@@ -4,7 +4,7 @@
 // ═══ WHAT THIS FILE TRIES TO BREAK ══════════════════════════════════════════════════
 //   * Every word sets EXACTLY the fields it names — robot x, robot two and robot y (P5b: every
 //     optional word) read back field by field, with the literal the team wrote beside each.
-//   * The STARTING values (N7; the hardware assumption the brief holds as HA-182) for Red, Green and
+//   * The STARTING values (N7; HA-182, registered by MECH-A3) for Red, Green and
 //     Blue through 1:1, 5:1 and 7:1, from first principles (the cartridge's free rpm x 6 / the
 //     reduction = the output's degrees per second) — and `.tuning` replaces EXACTLY what it names.
 //   * The GEARING's direction: gears(12, 60) is FIVE motor turns per output turn — the inverse would
@@ -296,7 +296,7 @@ TEST_CASE("MECH-A1 words: robot y -- every OPTIONAL word sets exactly its field 
         CHECK(s.safeMode == shulib::config::SafeBrakeMode::Brake);
         CHECK(s.position.home == HomeMethod::Stall);
         CHECK(s.position.homeVolts == -3.0);
-        CHECK(s.position.homeStall.amps == 1.5);
+        CHECK(s.position.homeStall.amps == 0.45);
         CHECK(s.position.homeStall.speedRadS == doctest::Approx(rpmToRadS(2.0)).epsilon(1e-15));
         CHECK(s.position.homeStall.time == doctest::Approx(0.2).epsilon(1e-15));
         CHECK(s.position.gravity == Gravity::Cosine);
@@ -577,6 +577,14 @@ TEST_CASE("MECH-A1 words: the goals a declaration makes, and the words that conv
     CHECK(past.computed);
     CHECK(past.value == 175.0);
     CHECK(rx::lift.clampedTo(30_in).computed);
+    // Every goal carries its mechanism's UNITS -- find() matches on them (MECH-A3): an arm's in degrees,
+    // a lift's in inches, whichever word made it.
+    CHECK(past.units == Units::Degrees);
+    CHECK(score.units == Units::Degrees);
+    CHECK(top.units == Units::Degrees);
+    CHECK(liftTop.units == Units::Inches);
+    CHECK(rx::lift["high"].units == Units::Inches);
+    CHECK(rx::lift.clampedTo(30_in).units == Units::Inches);
     CHECK(rx::flywheel.clampedTo(5000.0).computed);
     constexpr shulib::mechanism::SpeedGoal shoot = rx::flywheel["shoot"];
     CHECK(shoot.rpm == 3000.0);

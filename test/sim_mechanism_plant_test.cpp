@@ -1,5 +1,5 @@
 // sim/mechanism_plant.hpp — the host test plant's mechanisms (chunk MECH-A2, the MECH brief's §1.12:
-// the scaffolding; MECH-A3 tunes it). Every constant here is INVENTED (HA-183); these cases pin that
+// the scaffolding; MECH-A3 gave the joint its two homing sensors and a wedge — the cases at the end). Every constant here is INVENTED (HA-183); these cases pin that
 // the MODEL does what its header says, each against a number derived by hand from the header's
 // equations — never against the plant's own output — so a plant that drifted from its stated
 // physics turns a case red before it can make a behaviour test pass for the wrong reason.
@@ -12,6 +12,7 @@
 #include <string>
 
 #include "shulib/core/check.hpp"
+#include "shulib/hal/fake/fake_digital_in.hpp"
 #include "shulib/hal/fake/fake_motor.hpp"
 #include "shulib/hal/fake/fake_rotation.hpp"
 #include "shulib/sim/mechanism_plant.hpp"
@@ -400,4 +401,94 @@ TEST_CASE("MECH-A2 plant: the preconditions -- no motors, a null motor, a nonsen
     CHECK_THROWS_AS(FlywheelPlant(ms, fb), shulib::PreconditionError);
     FlywheelPlant fw{ms, FlywheelPlantConfig{}};
     CHECK_THROWS_AS(fw.step(-0.01), shulib::PreconditionError);
+}
+
+TEST_CASE("MECH-A3 plant: an angle sensor MOUNTED -- absolute within one turn at power-up (HA-186's belief), cumulative after, either way round") {
+    hal::fake::FakeMotor m;
+    std::array<hal::fake::FakeMotor*, 1> ms{&m};
+    ArmPlantConfig c = armCfg();
+    c.startDeg = 20.0;
+    ArmPlant p{ms, c};
+    hal::fake::FakeRotation fwd;
+    hal::fake::FakeRotation rev;
+    // reads 350 at the joint's 0: at 20 it reads 370 -> wrapped into ONE turn, 10
+    p.attachRotation(&fwd, shulib::sim::RotationMount{.readsAtJointZeroDeg = 350.0});
+    CHECK(fwd.position().value() / kD2R == doctest::Approx(10.0));
+    m.setVoltage(Voltage{6.0});
+    p.step(0.1);
+    const double moved = p.trueDeg() - 20.0;
+    REQUIRE(moved > 0.0);
+    CHECK(fwd.position().value() / kD2R == doctest::Approx(10.0 + moved));  // CUMULATIVE from there, no re-wrap
+    CHECK(fwd.velocity().value() == doctest::Approx(p.trueSpeedDegS() * kD2R));
+    // REVERSED, reading 180 at the joint's 0: at the joint's current angle it reads 180 - angle
+    p.attachRotation(&rev, shulib::sim::RotationMount{.reversed = true, .readsAtJointZeroDeg = 180.0});
+    const double at = p.trueDeg();
+    CHECK(rev.position().value() / kD2R == doctest::Approx(180.0 - at));
+    p.step(0.1);
+    CHECK(rev.position().value() / kD2R == doctest::Approx(180.0 - p.trueDeg()));
+    CHECK(rev.velocity().value() == doctest::Approx(-p.trueSpeedDegS() * kD2R));
+    // a NEGATIVE power-up reading wraps up into the turn: reads -30 -> 330
+    ArmPlant q{ms, armCfg()};
+    hal::fake::FakeRotation neg;
+    q.attachRotation(&neg, shulib::sim::RotationMount{.readsAtJointZeroDeg = -30.0});
+    CHECK(neg.position().value() / kD2R == doctest::Approx(330.0));
+    // the plain attach reads the joint angle itself, never wrapped (MECH-A2's form, unchanged)
+    hal::fake::FakeRotation plain;
+    ArmPlantConfig big = armCfg();
+    big.maxStopDeg = 1000.0;
+    big.startDeg = 500.0;
+    ArmPlant b{ms, big};
+    b.attachRotation(&plain);
+    CHECK(plain.position().value() / kD2R == doctest::Approx(500.0));
+}
+
+TEST_CASE("MECH-A3 plant: a limit SWITCH on the joint -- pressed at or below (or above) its angle, at its pressed level") {
+    hal::fake::FakeMotor m;
+    std::array<hal::fake::FakeMotor*, 1> ms{&m};
+    ArmPlantConfig c = armCfg();
+    c.startDeg = 5.0;
+    ArmPlant p{ms, c};
+    hal::fake::FakeDigitalIn bottom;
+    hal::fake::FakeDigitalIn top;
+    hal::fake::FakeDigitalIn low;
+    p.attachSwitch(&bottom, shulib::sim::SwitchMount{.atDeg = 0.0});
+    p.attachSwitch(&top, shulib::sim::SwitchMount{.atDeg = 4.0, .atTop = true});
+    CHECK(top.state());  // 5 >= 4: pressed — the last attached publishes (one switch per plant)
+    p.attachSwitch(&low, shulib::sim::SwitchMount{.atDeg = 0.0, .pressedLevel = false});
+    CHECK(low.state());  // not pressed, and a pressed switch reads LOW: released reads high
+    m.setVoltage(Voltage{-6.0});
+    for (int i = 0; i < 100 && p.trueDeg() > -1.0; ++i) {
+        p.step(0.01);
+    }
+    REQUIRE(p.trueDeg() <= 0.0);
+    CHECK_FALSE(low.state());  // pressed: low
+    p.attachSwitch(&bottom, shulib::sim::SwitchMount{.atDeg = 0.0});
+    CHECK(bottom.state());
+}
+
+TEST_CASE("MECH-A3 plant: a WEDGE below the joint stops it there; cleared, it goes on to the hard stop; a joint below it is free") {
+    hal::fake::FakeMotor m;
+    std::array<hal::fake::FakeMotor*, 1> ms{&m};
+    ArmPlantConfig c = armCfg();
+    c.startDeg = 60.0;
+    ArmPlant p{ms, c};
+    p.setWedgeDeg(25.0);
+    m.setVoltage(Voltage{-6.0});
+    for (int i = 0; i < 300; ++i) {
+        p.step(0.01);
+    }
+    CHECK(p.trueDeg() == doctest::Approx(25.0));
+    CHECK(p.trueSpeedDegS() == 0.0);
+    CHECK(m.current().value() == doctest::Approx(6.0 * 2.5 / 12.0));  // pushing into it: stall-grade for 6 V
+    p.clearWedge();
+    for (int i = 0; i < 300; ++i) {
+        p.step(0.01);
+    }
+    CHECK(p.trueDeg() == doctest::Approx(-10.0));  // the hard stop
+    p.setWedgeDeg(25.0);  // a wedge ABOVE the joint is not in its way going down
+    m.setVoltage(Voltage{6.0});
+    for (int i = 0; i < 10; ++i) {
+        p.step(0.01);
+    }
+    CHECK(p.trueDeg() > -10.0);
 }

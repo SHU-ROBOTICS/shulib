@@ -20,8 +20,8 @@
 // A field nobody stated is the byte 0 (or 0.0) and is REFUSED by specRefusal(), naming it. The
 // three kinds of number that are NOT the team's — the controllers' starting gains, the smooth
 // move's starting speed and acceleration, and the "reached" tolerance — are the library's STARTING
-// values (kinds.hpp's positionStart(); PROVISIONAL, the hardware assumption the brief holds as
-// HA-182 for MECH-A3, which registers it with the behaviours that run them).
+// values (kinds.hpp's positionStart(); PROVISIONAL: HA-182, registered by MECH-A3 with the behaviours
+// that run them, mechanism/service.hpp).
 //
 // ── THE BUILD CHECK, three ways, one list ───────────────────────────────────────────
 // specRefusal() is THE check: the FIRST thing wrong with one spec, as a `Refusal`, checked in a
@@ -549,6 +549,7 @@ enum class Refusal : std::uint8_t {
     PositionTheHomingPushIsPast12Volts,  ///< a homing push past 12 V either way (MECH-A1 review)
     PositionTheGravityHoldIsPast12Volts,  ///< a gravity hold past 12 V either way (MECH-A1 review)
     PositionUnhomedVoltsIsNotIn0To12,  ///< an unhomedVolts outside [0, 12] (MECH-A1 review)
+    PositionAbsoluteHomingTravelSpansAWholeSensorTurn,  ///< absolute homing over a travel of a whole output turn or more (MECH-A3: a reading within one turn cannot tell the turns apart)
 };
 
 /// The SENTENCE for a refusal — what a run-time caller logs, a host test pins, and the robot
@@ -695,6 +696,9 @@ enum class Refusal : std::uint8_t {
             return "position: the gravity hold (kG) must be within 12 V either way";
         case Refusal::PositionUnhomedVoltsIsNotIn0To12:
             return "position: unhomedVolts must be from 0 to 12";
+        case Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn:
+            return "position: absolute homing needs a travel shorter than one turn of its angle sensor (a reading "
+                   "within one turn cannot tell the turns apart: home it by switch, by stall or at rest)";
     }
     return "an unknown refusal";
 }
@@ -840,6 +844,8 @@ inline void position_the_homing_push_must_be_within_12_volts_either_way() {}
 inline void position_the_gravity_hold_must_be_within_12_volts_either_way() {}
 /// Refusal::PositionUnhomedVoltsIsNotIn0To12's name at the robot file's line.
 inline void position_unhomedvolts_must_be_from_0_to_12() {}
+/// Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn's name at the robot file's line.
+inline void position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor() {}
 }  // namespace refused
 
 /// Stop the build with `r`'s named function (consteval contexts only); None does nothing.
@@ -1054,8 +1060,47 @@ consteval void refuse(Refusal r) {
         case Refusal::PositionUnhomedVoltsIsNotIn0To12:
             refused::position_unhomedvolts_must_be_from_0_to_12();
             return;
+        case Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn:
+            refused::position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor();
+            return;
     }
 }
+
+namespace detail {
+/// A position mechanism's travel, min to max, in OUTPUT degrees — as a constant expression can say
+/// it (angleDegToPosition's inverse needs sin/asin, which are not constexpr): an arm's limits; a
+/// spool's arc; a measured table's angles at the limits, interpolated; a linkage's 0 — its height
+/// formula spans at most 180 deg (its limits are refused past the formula's range). Read by the
+/// absolute-homing check (MECH-A3).
+[[nodiscard]] constexpr double outputTravelDeg(const PositionSpec& p) noexcept {
+    const auto tableDeg = [&p](double pos) {
+        const auto n = static_cast<std::size_t>(p.tablePoints < kMaxTablePoints ? p.tablePoints : kMaxTablePoints);
+        if (n < 2 || pos <= p.table[0][0]) {
+            return n < 1 ? 0.0 : p.table[0][1];
+        }
+        for (std::size_t i = 1; i < n; ++i) {
+            if (pos <= p.table[i][0]) {
+                return p.table[i - 1][1] + (pos - p.table[i - 1][0]) / (p.table[i][0] - p.table[i - 1][0]) *
+                                               (p.table[i][1] - p.table[i - 1][1]);
+            }
+        }
+        return p.table[n - 1][1];
+    };
+    switch (p.geometry) {
+        case Geometry::Rotary:
+            return p.maxPosition - p.minPosition;
+        case Geometry::Spool:
+            return p.spoolDiameterIn > 0.0 ? (p.maxPosition - p.minPosition) * 360.0 /
+                                                 (3.14159265358979323846 * p.spoolDiameterIn)
+                                           : 0.0;
+        case Geometry::Arm:
+            return 0.0;
+        case Geometry::Table:
+            return tableDeg(p.maxPosition) - tableDeg(p.minPosition);
+    }
+    return 0.0;
+}
+}  // namespace detail
 
 /// THE BUILD CHECK (header): the FIRST thing wrong with `s`, or Refusal::None. constexpr, so a robot
 /// file's list is checked at build (wire() calls refuse(specRefusal(spec))) and a host test runs the
@@ -1341,6 +1386,12 @@ consteval void refuse(Refusal r) {
         if (s.position.home == HomeMethod::Absolute &&
             !(s.position.absoluteSensorAtZeroDeg >= 0.0 && s.position.absoluteSensorAtZeroDeg < 360.0)) {
             return Refusal::AbsoluteHomingTheSensorSReadingAtZeroMustBeIn0360;
+        }
+        // An angle sensor absolute within ONE turn (HA-186) cannot home a travel of a whole output turn
+        // or more: two places on it read alike, and the service would choose a turn — maybe the wrong
+        // one (MECH-A3: a spool lift's rotation sensor turns several times over its travel).
+        if (s.position.home == HomeMethod::Absolute && !(detail::outputTravelDeg(s.position) < 360.0)) {
+            return Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn;
         }
     }
     if (s.kind == Kind::Speed) {

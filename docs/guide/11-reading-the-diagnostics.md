@@ -272,9 +272,10 @@ worth recognizing on sight:
 
   Field by field: the mechanism's name as the robot file spells it; the verdict; after `--`, WHAT
   ended it — `time` (its time condition, or a pneumatic's move time), `sees a piece`,
-  `stopped seeing a piece`, `stalled` — or nothing, when no condition ended it (its time limit, a
-  refusal, a cancel); `in` the seconds since the step was commanded; and, in brackets, the reason
-  when there is one. The verdicts: `SUCCEEDED`; `UNCONFIRMED` — done, but nothing CONFIRMED it, and
+  `stopped seeing a piece`, `stalled`, `reached` (a position move within its tolerance, a home found,
+  a flywheel at speed) — or nothing, when no condition ended it (its time limit, a refusal, a
+  cancel); `in` the seconds since the step was commanded; and, in brackets, the reason when there is
+  one. The verdicts: `SUCCEEDED`; `UNCONFIRMED` — done, but nothing CONFIRMED it, and
   the bracket says whether it was `counted done` (`StepReport::countedDone`: no sensor exists to
   ask — a sensorless grab, or a declared piece sensor missing this boot, named with its port) or
   not (the sensor was there and said no, or did not answer). From the core's auton steps on (its
@@ -283,15 +284,31 @@ worth recognizing on sight:
   `SUCCEEDED` only ([Ch. 9](09-the-recipe-api.md)), so a counted-done step stops that chain too.
   `TIMED_OUT` (its time limit came first and no condition it asked for was met — a piece sensor
   that answered on every read but never as asked, a stall that never came, or no condition at all
-  but the limit, `Until::bound()`); `STALLED` (a stall signature the robot file states tripped — the
-  same tick also raises `MECHANISM_STALLED`, once); `CANCELLED` (stopped from outside — the bracket
-  names by what: `replaced by a newer command`, `stopped`, `driver control began`, `autonomous
+  but the limit, `Until::bound()`; since the core's third part also a position move that never got
+  within its tolerance — `it holds where it stopped`: it never pushes on toward a target it could
+  not reach —, a flywheel that never reached speed — `it keeps spinning` —, and a homing push —
+  `its home switch never read pressed`, or `it never stalled against its stop: it drew at most 0.62
+  A when stopped, its homing signature needs 2.00 A`: the most current the push drew when stopped (no
+  faster than its homing signature's speed) beside what that signature asks — a homing signature above
+  what the push can draw never trips —, or `it never stalled against its stop: it never slowed to its
+  homing signature's speed -- did it reach its stop?` (its time ran out first), [Ch. 18](18-mechanisms.md));
+  `STALLED` (a stall
+  signature the robot file states tripped — the same tick also raises `MECHANISM_STALLED`, once; the
+  bracket says during what: `a stated stall signature tripped` during the step, and after it `...
+  while holding`, `... while held to move` (a button pushing an arm or a lift), `... while held to
+  run` (a power mechanism's), `... while spinning`, or `... while homing: its home switch never read
+  pressed`); `NOT_HOMED` (a position move before the mechanism found its zero — nothing moved: `it
+  has not found its zero yet: home it first (homeBySwitch)` or `(homeByStall)`, or `it is declared
+  neverHomed: a move needs a zero`); `CANCELLED` (stopped from outside — the bracket
+  names by what: `replaced by a newer command`, `stopped`, `released`, `driver control began`, `autonomous
   began`, `driver control ended`, `its claim was taken by another owner`, `its claim was released
   outside the service`, `its service was destroyed`; NO bracket means it was cancelled through its
   claim — by the run guard (its deadline or abandon cut, whose own `SEQ` line is below, or its
   end-of-run cancel-all) or by a program's own `cancel()`); `REFUSED` (`another owner holds its
   claim` — nothing moved); `ABSENT` (`not built at boot: ...`, the boot's own sentence for the port
-  — nothing moved). Lines you will meet:
+  — nothing moved). A homing step on a mechanism that needs no motion SUCCEEDS at once, its bracket
+  saying why: `it rests at its stop at boot: its zero is kept`, `its angle sensor read again`. Lines
+  you will meet:
 
   ```text
   'intake': UNCONFIRMED -- time in 1.00s (its piece sensor is missing this boot, port 9; counted done)
@@ -300,6 +317,11 @@ worth recognizing on sight:
   'roller': TIMED_OUT in 1.00s
   'catapult': STALLED -- stalled in 0.71s (a stated stall signature tripped)
   'intake': REFUSED in 0.00s (another owner holds its claim)
+  'arm': SUCCEEDED -- reached in 0.88s
+  'arm': TIMED_OUT in 3.00s (it holds where it stopped)
+  'arm': STALLED -- stalled in 3.15s (a stated stall signature tripped while holding)
+  'arm': NOT_HOMED in 0.00s (it is declared neverHomed: a move needs a zero)
+  'flywheel': TIMED_OUT in 2.00s (it keeps spinning)
   ```
 
   **"Stopped answering" is not "saw nothing".** A sensor cable that comes out does not read as an
@@ -308,6 +330,18 @@ worth recognizing on sight:
   way, and a step that had any such reading cannot say the piece never came — `no evidence on N of
   M reads` counts them. Check the sensor's cable; a step that keeps saying it needs its sensor
   looked at, not a longer time limit.
+- **Where a mechanism's zero went** (tag `MECH`, at every home — at boot for one that needs no motion,
+  and at the end of a homing step): `'arm': homed -- +0.0 deg from where its encoders read zero at
+  boot` (the first time: where its zero sits against the motor encoders' — or its angle sensor's —
+  reading at boot, in degrees of its output) or `'wrist': homed -- its angle sensor reads 170.0 deg, so
+  it is at 10.00 deg` (an absolute sensor); `'arm': homed again -- its zero moved -27.0 deg (past its
+  tolerance: was something in the way?)` (a re-home). Info, but a Warn when a re-home moves the zero by
+  more than the mechanism's "reached" tolerance: a stall-home trusts the FIRST stall, and a piece wedged
+  under the arm is a stall too ([Ch. 18](18-mechanisms.md)).
+- **A computed target clamped** (Warn, tag `MECH`, once per step): `'arm': target 175.00 clamped to the
+  travel limit 160.00 (soft stop)`, or a flywheel's `'flywheel': speed 4000 rpm clamped to its free
+  speed 3600 rpm` — a target computed while the auton ran was past what the robot file allows; the step
+  went to the limit instead. Expected only if your code computes targets; check its arithmetic.
 - **A leftover claim released by the mechanism service** (Warn, tag `MECH`, at a mode change — once
   per mechanism): `'claw pivot 7': a claim left by another owner RELEASED as driver control began
   (its operation was not cancelled -- it may have lived on a deleted task)` — the mechanism
@@ -341,7 +375,7 @@ but not narrated there. The authoritative list is always
 | `MOTOR_OVER_TEMP` | a drive motor crossed the thermal throttle step (55 °C) | sustained load; too much current for too long | no | the motor is now weaker than the control model thinks; rest it. In a match: expect sluggishness |
 | `IMPLAUSIBLE` | the estimate or a command violated a physical sanity bound (e.g. pose jumped impossibly fast) | usually a symptom of another problem; occasionally a library bug being caught in the act | no | advisory — look at what *else* happened that tick; report persistent ones |
 | `MOTOR_GROUP_DISAGREE` | one motor of a drive side disagreed with its mates for 250 ms: running opposite to the side's command, or under a quarter of its fastest mate's speed, while the side was driven above 1 V and turning above 1 rad/s | a wrong sign for that port, a fight on the gear train, a slipping gear, a stalled or frozen encoder | no | the drive continues in a motion. In DRIVER CONTROL the same verdict also CUTS the drive for 1 s (the library's drive protections, [Chapter 12](12-when-things-go-wrong.md)): read the `TEL` cut line for the port |
-| `MECHANISM_STALLED` | a mechanism's stall detector tripped: stall-grade current with the shaft not turning — an operation's, or a stall signature the robot file states (`.stall`), watched by the mechanism service through a step and through a driver's hold-to-run; once per stall, beside the step's `MECH` line (`STALLED -- stalled`) | a jam on a game piece, an over-travelled lift against its stop, a seized gearbox | no (the *operation* or the *step* ends with a stalled verdict and the mechanism is put in its safe state; a driver's hold-to-run ends too and its command number moves — from the core's driver controls on (its fourth part), the held button then does nothing more until it is let go; the drive keeps going) | the mechanism stopped itself before it cooked a motor — clear the jam. A stall on every attempt is a mechanical problem, not a tuning one. (A step that ASKED to end on a stall — `stalls`, a squeeze — SUCCEEDS instead and raises nothing) |
+| `MECHANISM_STALLED` | a mechanism's stall detector tripped: stall-grade current with the shaft not turning — an operation's, or a stall signature the robot file states (`.stall`), watched by the mechanism service through a step and through what goes on after it — a driver's hold-to-run, a position mechanism's hold and a button's push, a homing push by switch, a flywheel's spin; once per stall, beside the step's `MECH` line (`STALLED -- stalled`) | a jam on a game piece, an over-travelled lift against its stop, a seized gearbox | no (the *operation* or the *step* ends with a stalled verdict and the mechanism is put in its safe state; a driver's hold-to-run ends too and its command number moves — from the core's driver controls on (its fourth part), the held button then does nothing more until it is let go; the drive keeps going) | the mechanism stopped itself before it cooked a motor — clear the jam. A stall on every attempt is a mechanical problem, not a tuning one. (A step that ASKED to end on a stall — `stalls`, a squeeze — SUCCEEDS instead and raises nothing) |
 
 Notes on the machinery: fault raising is **edge-triggered** (a problem persisting 500 ticks is
 *one* fault episode, not 500 lines), the **first** fault of a run is latched immutably (that's

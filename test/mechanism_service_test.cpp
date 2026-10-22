@@ -348,9 +348,8 @@ TEST_CASE("MECH-A2 bind: every precondition, each checked BEFORE anything is sto
         CHECK(svc.size() == 0U);
         return msg;
     };
-    // a POSITION or SPEED mechanism: MECH-A3's
-    CHECK(bindOne(rx::kRobotXMechanisms.specs[0], mech::Devices{.motors = &g1}).find("MECH-A3") != std::string::npos);
-    CHECK(bindOne(rx::kRobotXMechanisms.specs[2], mech::Devices{.motors = &g1}).find("MECH-A3") != std::string::npos);
+    // (A POSITION or SPEED mechanism was refused here until MECH-A3 built their behaviours; bind() now
+    // takes them — their device preconditions are test/mechanism_position_test.cpp's.)
     // an invalid spec: its own sentence
     mech::MechanismSpec bad = pivot;
     bad.power.maxVolts = 13.0;

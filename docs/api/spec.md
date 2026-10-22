@@ -8,7 +8,7 @@
 
 mechanism/spec.hpp — ONE MECHANISM AS DATA, and THE BUILD CHECK.
 
-This header declares **18** types (194 members), **77** free functions, and **7** constants.
+This header declares **18** types (195 members), **78** free functions, and **7** constants.
 
 Extracted from [`include/shulib/mechanism/spec.hpp`](../../include/shulib/mechanism/spec.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -237,6 +237,7 @@ Extracted from [`include/shulib/mechanism/spec.hpp`](../../include/shulib/mechan
   - [`PositionTheHomingPushIsPast12Volts`](#refusal-positionthehomingpushispast12volts)
   - [`PositionTheGravityHoldIsPast12Volts`](#refusal-positionthegravityholdispast12volts)
   - [`PositionUnhomedVoltsIsNotIn0To12`](#refusal-positionunhomedvoltsisnotin0to12)
+  - [`PositionAbsoluteHomingTravelSpansAWholeSensorTurn`](#refusal-positionabsolutehomingtravelspansawholesensorturn)
 - [`refusalText`](#refusaltext) — *free function*
 - [`a_mechanism_has_no_name`](#a_mechanism_has_no_name) — *free function*
 - [`a_mechanism_name_does_not_fit_twenty_three_characters`](#a_mechanism_name_does_not_fit_twenty_three_characters) — *free function*
@@ -307,6 +308,7 @@ Extracted from [`include/shulib/mechanism/spec.hpp`](../../include/shulib/mechan
 - [`position_the_homing_push_must_be_within_12_volts_either_way`](#position_the_homing_push_must_be_within_12_volts_either_way) — *free function*
 - [`position_the_gravity_hold_must_be_within_12_volts_either_way`](#position_the_gravity_hold_must_be_within_12_volts_either_way) — *free function*
 - [`position_unhomedvolts_must_be_from_0_to_12`](#position_unhomedvolts_must_be_from_0_to_12) — *free function*
+- [`position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor`](#position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor) — *free function*
 - [`refuse`](#refuse) — *free function*
 - [`specRefusal`](#specrefusal) — *free function*
 - [`specProblem`](#specproblem) — *free function*
@@ -2987,6 +2989,18 @@ an unhomedVolts outside [0, 12] (MECH-A1 review)
 
 *enumerator, declared at [`include/shulib/mechanism/spec.hpp:551`](../../include/shulib/mechanism/spec.hpp#L551).*
 
+<a id="refusal-positionabsolutehomingtravelspansawholesensorturn"></a>
+
+### `Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn`
+
+```cpp
+PositionAbsoluteHomingTravelSpansAWholeSensorTurn
+```
+
+absolute homing over a travel of a whole output turn or more (MECH-A3: a reading within one turn cannot tell the turns apart)
+
+*enumerator, declared at [`include/shulib/mechanism/spec.hpp:552`](../../include/shulib/mechanism/spec.hpp#L552).*
+
 <a id="refusaltext"></a>
 
 ## `refusalText`
@@ -2997,7 +3011,7 @@ an unhomedVolts outside [0, 12] (MECH-A1 review)
 
 The SENTENCE for a refusal — what a run-time caller logs, a host test pins, and the robot panel's validator mirrors (G3a). nullptr for None.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:556`](../../include/shulib/mechanism/spec.hpp#L556).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:557`](../../include/shulib/mechanism/spec.hpp#L557).*
 
 <a id="a_mechanism_has_no_name"></a>
 
@@ -3009,7 +3023,7 @@ inline void a_mechanism_has_no_name()
 
 Refusal::AMechanismHasNoName's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:706`](../../include/shulib/mechanism/spec.hpp#L706).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:710`](../../include/shulib/mechanism/spec.hpp#L710).*
 
 <a id="a_mechanism_name_does_not_fit_twenty_three_characters"></a>
 
@@ -3021,7 +3035,7 @@ inline void a_mechanism_name_does_not_fit_twenty_three_characters()
 
 Refusal::AMechanismNameDoesNotFit23Characters's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:708`](../../include/shulib/mechanism/spec.hpp#L708).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:712`](../../include/shulib/mechanism/spec.hpp#L712).*
 
 <a id="a_mechanisms_kind_is_unset"></a>
 
@@ -3033,7 +3047,7 @@ inline void a_mechanisms_kind_is_unset()
 
 Refusal::AMechanismSKindIsUNSET's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:710`](../../include/shulib/mechanism/spec.hpp#L710).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:714`](../../include/shulib/mechanism/spec.hpp#L714).*
 
 <a id="a_motor_mechanism_needs_one_to_four_motor_roles"></a>
 
@@ -3045,7 +3059,7 @@ inline void a_motor_mechanism_needs_one_to_four_motor_roles()
 
 Refusal::AMotorMechanismNeeds14MotorRoles's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:712`](../../include/shulib/mechanism/spec.hpp#L712).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:716`](../../include/shulib/mechanism/spec.hpp#L716).*
 
 <a id="a_motor_mechanism_has_three_wire_line_roles_make_two_mechanisms"></a>
 
@@ -3057,7 +3071,7 @@ inline void a_motor_mechanism_has_three_wire_line_roles_make_two_mechanisms()
 
 Refusal::AMotorMechanismHas3WireLineRolesMakeTwoMechanisms's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:714`](../../include/shulib/mechanism/spec.hpp#L714).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:718`](../../include/shulib/mechanism/spec.hpp#L718).*
 
 <a id="a_motor_mechanisms_cartridge_is_unset"></a>
 
@@ -3069,7 +3083,7 @@ inline void a_motor_mechanisms_cartridge_is_unset()
 
 Refusal::AMotorMechanismSCartridgeIsUNSET's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:716`](../../include/shulib/mechanism/spec.hpp#L716).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:720`](../../include/shulib/mechanism/spec.hpp#L720).*
 
 <a id="a_motor_mechanisms_safe_brake_mode_is_unset"></a>
 
@@ -3081,7 +3095,7 @@ inline void a_motor_mechanisms_safe_brake_mode_is_unset()
 
 Refusal::AMotorMechanismSSafeBrakeModeIsUNSET's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:718`](../../include/shulib/mechanism/spec.hpp#L718).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:722`](../../include/shulib/mechanism/spec.hpp#L722).*
 
 <a id="a_pneumatic_mechanism_has_motor_roles"></a>
 
@@ -3093,7 +3107,7 @@ inline void a_pneumatic_mechanism_has_motor_roles()
 
 Refusal::APneumaticMechanismHasMotorRoles's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:720`](../../include/shulib/mechanism/spec.hpp#L720).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:724`](../../include/shulib/mechanism/spec.hpp#L724).*
 
 <a id="a_pneumatic_mechanism_needs_one_or_two_line_roles"></a>
 
@@ -3105,7 +3119,7 @@ inline void a_pneumatic_mechanism_needs_one_or_two_line_roles()
 
 Refusal::APneumaticMechanismNeeds12LineRoles's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:722`](../../include/shulib/mechanism/spec.hpp#L722).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:726`](../../include/shulib/mechanism/spec.hpp#L726).*
 
 <a id="the_angle_sensor_role_is_not_a_rotation_sensor"></a>
 
@@ -3117,7 +3131,7 @@ inline void the_angle_sensor_role_is_not_a_rotation_sensor()
 
 Refusal::TheAngleSensorRoleIsNotARotationSensor's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:724`](../../include/shulib/mechanism/spec.hpp#L724).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:728`](../../include/shulib/mechanism/spec.hpp#L728).*
 
 <a id="an_angle_sensor_role_on_a_mechanism_that_is_not_position_or_speed"></a>
 
@@ -3129,7 +3143,7 @@ inline void an_angle_sensor_role_on_a_mechanism_that_is_not_position_or_speed()
 
 Refusal::AnAngleSensorRoleOnAMechanismThatIsNotPositionOrSpeed's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:726`](../../include/shulib/mechanism/spec.hpp#L726).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:730`](../../include/shulib/mechanism/spec.hpp#L730).*
 
 <a id="the_home_switch_role_is_not_a_limit_switch"></a>
 
@@ -3141,7 +3155,7 @@ inline void the_home_switch_role_is_not_a_limit_switch()
 
 Refusal::TheHomeSwitchRoleIsNotALimitSwitch's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:728`](../../include/shulib/mechanism/spec.hpp#L728).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:732`](../../include/shulib/mechanism/spec.hpp#L732).*
 
 <a id="a_home_switch_role_on_a_mechanism_that_is_not_position"></a>
 
@@ -3153,7 +3167,7 @@ inline void a_home_switch_role_on_a_mechanism_that_is_not_position()
 
 Refusal::AHomeSwitchRoleOnAMechanismThatIsNotPosition's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:730`](../../include/shulib/mechanism/spec.hpp#L730).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:734`](../../include/shulib/mechanism/spec.hpp#L734).*
 
 <a id="a_piece_sensor_cannot_be_a_rotation_sensor"></a>
 
@@ -3165,7 +3179,7 @@ inline void a_piece_sensor_cannot_be_a_rotation_sensor()
 
 Refusal::APieceSensorCannotBeARotationSensor's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:732`](../../include/shulib/mechanism/spec.hpp#L732).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:736`](../../include/shulib/mechanism/spec.hpp#L736).*
 
 <a id="a_distance_piece_sensor_needs_its_sees_within_distance_more_than_zero"></a>
 
@@ -3177,7 +3191,7 @@ inline void a_distance_piece_sensor_needs_its_sees_within_distance_more_than_zer
 
 Refusal::ADistancePieceSensorNeedsItsSeesWithinDistance0's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:734`](../../include/shulib/mechanism/spec.hpp#L734).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:738`](../../include/shulib/mechanism/spec.hpp#L738).*
 
 <a id="an_optical_piece_sensor_needs_its_proximity_threshold_in_above_0_and_at_most_1"></a>
 
@@ -3189,7 +3203,7 @@ inline void an_optical_piece_sensor_needs_its_proximity_threshold_in_above_0_and
 
 Refusal::AnOpticalPieceSensorNeedsItsProximityThresholdIn01's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:736`](../../include/shulib/mechanism/spec.hpp#L736).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:740`](../../include/shulib/mechanism/spec.hpp#L740).*
 
 <a id="power_maxvolts_is_not_in_above_0_and_at_most_12"></a>
 
@@ -3201,7 +3215,7 @@ inline void power_maxvolts_is_not_in_above_0_and_at_most_12()
 
 Refusal::PowerMaxVoltsIsNotIn012's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:738`](../../include/shulib/mechanism/spec.hpp#L738).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:742`](../../include/shulib/mechanism/spec.hpp#L742).*
 
 <a id="position_units_unset"></a>
 
@@ -3213,7 +3227,7 @@ inline void position_units_unset()
 
 Refusal::PositionUnitsUNSET's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:740`](../../include/shulib/mechanism/spec.hpp#L740).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:744`](../../include/shulib/mechanism/spec.hpp#L744).*
 
 <a id="position_gearratio_must_be_more_than_zero"></a>
 
@@ -3225,7 +3239,7 @@ inline void position_gearratio_must_be_more_than_zero()
 
 Refusal::PositionGearRatioMustBe0's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:742`](../../include/shulib/mechanism/spec.hpp#L742).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:746`](../../include/shulib/mechanism/spec.hpp#L746).*
 
 <a id="position_a_rotary_mechanism_is_in_degrees"></a>
 
@@ -3237,7 +3251,7 @@ inline void position_a_rotary_mechanism_is_in_degrees()
 
 Refusal::PositionARotaryMechanismIsInDegrees's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:744`](../../include/shulib/mechanism/spec.hpp#L744).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:748`](../../include/shulib/mechanism/spec.hpp#L748).*
 
 <a id="position_a_lift_is_in_inches"></a>
 
@@ -3249,7 +3263,7 @@ inline void position_a_lift_is_in_inches()
 
 Refusal::PositionALiftIsInInches's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:746`](../../include/shulib/mechanism/spec.hpp#L746).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:750`](../../include/shulib/mechanism/spec.hpp#L750).*
 
 <a id="position_spool_diameter_must_be_more_than_zero"></a>
 
@@ -3261,7 +3275,7 @@ inline void position_spool_diameter_must_be_more_than_zero()
 
 Refusal::PositionSpoolDiameterMustBe0's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:748`](../../include/shulib/mechanism/spec.hpp#L748).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:752`](../../include/shulib/mechanism/spec.hpp#L752).*
 
 <a id="position_arm_length_must_be_more_than_zero"></a>
 
@@ -3273,7 +3287,7 @@ inline void position_arm_length_must_be_more_than_zero()
 
 Refusal::PositionArmLengthMustBe0's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:750`](../../include/shulib/mechanism/spec.hpp#L750).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:754`](../../include/shulib/mechanism/spec.hpp#L754).*
 
 <a id="position_an_arm_needs_one_to_three_stages"></a>
 
@@ -3285,7 +3299,7 @@ inline void position_an_arm_needs_one_to_three_stages()
 
 Refusal::PositionAnArmNeeds13Stages's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:752`](../../include/shulib/mechanism/spec.hpp#L752).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:756`](../../include/shulib/mechanism/spec.hpp#L756).*
 
 <a id="position_an_arms_travel_limits_reach_past_its_linkage_the_height_formula_has_no_inverse_there"></a>
 
@@ -3297,7 +3311,7 @@ inline void position_an_arms_travel_limits_reach_past_its_linkage_the_height_for
 
 Refusal::PositionAnArmSTravelLimitsReachPastItsLinkageTheHeightFormul's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:754`](../../include/shulib/mechanism/spec.hpp#L754).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:758`](../../include/shulib/mechanism/spec.hpp#L758).*
 
 <a id="position_a_lookup_table_needs_two_to_eight_points"></a>
 
@@ -3309,7 +3323,7 @@ inline void position_a_lookup_table_needs_two_to_eight_points()
 
 Refusal::PositionALookupTableNeeds28Points's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:756`](../../include/shulib/mechanism/spec.hpp#L756).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:760`](../../include/shulib/mechanism/spec.hpp#L760).*
 
 <a id="position_the_lookup_table_is_not_strictly_increasing"></a>
 
@@ -3321,7 +3335,7 @@ inline void position_the_lookup_table_is_not_strictly_increasing()
 
 Refusal::PositionTheLookupTableIsNotStrictlyIncreasing's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:758`](../../include/shulib/mechanism/spec.hpp#L758).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:762`](../../include/shulib/mechanism/spec.hpp#L762).*
 
 <a id="position_travel_limits_missing_or_min_at_least_max"></a>
 
@@ -3333,7 +3347,7 @@ inline void position_travel_limits_missing_or_min_at_least_max()
 
 Refusal::PositionTravelLimitsMissingOrMinMax's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:760`](../../include/shulib/mechanism/spec.hpp#L760).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:764`](../../include/shulib/mechanism/spec.hpp#L764).*
 
 <a id="position_the_profile_needs_maxvelocity_and_maxacceleration_more_than_zero"></a>
 
@@ -3345,7 +3359,7 @@ inline void position_the_profile_needs_maxvelocity_and_maxacceleration_more_than
 
 Refusal::PositionTheProfileNeedsMaxVelocityAndMaxAcceleration0's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:762`](../../include/shulib/mechanism/spec.hpp#L762).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:766`](../../include/shulib/mechanism/spec.hpp#L766).*
 
 <a id="position_tolerance_must_be_more_than_zero"></a>
 
@@ -3357,7 +3371,7 @@ inline void position_tolerance_must_be_more_than_zero()
 
 Refusal::PositionToleranceMustBe0's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:764`](../../include/shulib/mechanism/spec.hpp#L764).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:768`](../../include/shulib/mechanism/spec.hpp#L768).*
 
 <a id="position_gravity_unset"></a>
 
@@ -3369,7 +3383,7 @@ inline void position_gravity_unset()
 
 Refusal::PositionGravityUNSET's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:766`](../../include/shulib/mechanism/spec.hpp#L766).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:770`](../../include/shulib/mechanism/spec.hpp#L770).*
 
 <a id="position_homing_method_unset"></a>
 
@@ -3381,7 +3395,7 @@ inline void position_homing_method_unset()
 
 Refusal::PositionHomingMethodUNSET's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:768`](../../include/shulib/mechanism/spec.hpp#L768).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:772`](../../include/shulib/mechanism/spec.hpp#L772).*
 
 <a id="position_homing_by_switch_needs_a_homeswitch_role"></a>
 
@@ -3393,7 +3407,7 @@ inline void position_homing_by_switch_needs_a_homeswitch_role()
 
 Refusal::PositionHomingBySwitchNeedsAHomeSwitchRole's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:770`](../../include/shulib/mechanism/spec.hpp#L770).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:774`](../../include/shulib/mechanism/spec.hpp#L774).*
 
 <a id="position_absolute_homing_needs_an_anglesensor_rotation_role"></a>
 
@@ -3405,7 +3419,7 @@ inline void position_absolute_homing_needs_an_anglesensor_rotation_role()
 
 Refusal::PositionAbsoluteHomingNeedsAnAngleSensorRotationRole's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:772`](../../include/shulib/mechanism/spec.hpp#L772).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:776`](../../include/shulib/mechanism/spec.hpp#L776).*
 
 <a id="position_homing_needs_homevolts"></a>
 
@@ -3417,7 +3431,7 @@ inline void position_homing_needs_homevolts()
 
 Refusal::PositionHomingNeedsHomeVolts's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:774`](../../include/shulib/mechanism/spec.hpp#L774).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:778`](../../include/shulib/mechanism/spec.hpp#L778).*
 
 <a id="position_stall_homing_needs_its_stall_signature"></a>
 
@@ -3429,7 +3443,7 @@ inline void position_stall_homing_needs_its_stall_signature()
 
 Refusal::PositionStallHomingNeedsItsStallSignature's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:776`](../../include/shulib/mechanism/spec.hpp#L776).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:780`](../../include/shulib/mechanism/spec.hpp#L780).*
 
 <a id="position_the_home_position_is_outside_the_travel_limits"></a>
 
@@ -3441,7 +3455,7 @@ inline void position_the_home_position_is_outside_the_travel_limits()
 
 Refusal::PositionTheHomePositionIsOutsideTheTravelLimits's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:778`](../../include/shulib/mechanism/spec.hpp#L778).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:782`](../../include/shulib/mechanism/spec.hpp#L782).*
 
 <a id="position_more_presets_than_fit"></a>
 
@@ -3453,7 +3467,7 @@ inline void position_more_presets_than_fit()
 
 Refusal::PositionMorePresetsThanFit's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:780`](../../include/shulib/mechanism/spec.hpp#L780).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:784`](../../include/shulib/mechanism/spec.hpp#L784).*
 
 <a id="position_a_preset_has_no_name"></a>
 
@@ -3465,7 +3479,7 @@ inline void position_a_preset_has_no_name()
 
 Refusal::PositionAPresetHasNoName's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:782`](../../include/shulib/mechanism/spec.hpp#L782).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:786`](../../include/shulib/mechanism/spec.hpp#L786).*
 
 <a id="position_a_preset_is_outside_the_travel_limits"></a>
 
@@ -3477,7 +3491,7 @@ inline void position_a_preset_is_outside_the_travel_limits()
 
 Refusal::PositionAPresetIsOutsideTheTravelLimits's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:784`](../../include/shulib/mechanism/spec.hpp#L784).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:788`](../../include/shulib/mechanism/spec.hpp#L788).*
 
 <a id="speed_gearratio_and_its_free_speed_must_be_more_than_zero"></a>
 
@@ -3489,7 +3503,7 @@ inline void speed_gearratio_and_its_free_speed_must_be_more_than_zero()
 
 Refusal::SpeedGearRatioAndMaxRpmMustBe0's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:786`](../../include/shulib/mechanism/spec.hpp#L786).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:790`](../../include/shulib/mechanism/spec.hpp#L790).*
 
 <a id="speed_the_at_speed_band_must_be_more_than_zero"></a>
 
@@ -3501,7 +3515,7 @@ inline void speed_the_at_speed_band_must_be_more_than_zero()
 
 Refusal::SpeedTheAtSpeedBandMustBe0's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:788`](../../include/shulib/mechanism/spec.hpp#L788).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:792`](../../include/shulib/mechanism/spec.hpp#L792).*
 
 <a id="speed_more_presets_than_fit"></a>
 
@@ -3513,7 +3527,7 @@ inline void speed_more_presets_than_fit()
 
 Refusal::SpeedMorePresetsThanFit's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:790`](../../include/shulib/mechanism/spec.hpp#L790).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:794`](../../include/shulib/mechanism/spec.hpp#L794).*
 
 <a id="speed_a_preset_has_no_name"></a>
 
@@ -3525,7 +3539,7 @@ inline void speed_a_preset_has_no_name()
 
 Refusal::SpeedAPresetHasNoName's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:792`](../../include/shulib/mechanism/spec.hpp#L792).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:796`](../../include/shulib/mechanism/spec.hpp#L796).*
 
 <a id="speed_a_preset_is_past_its_free_speed"></a>
 
@@ -3537,7 +3551,7 @@ inline void speed_a_preset_is_past_its_free_speed()
 
 Refusal::SpeedAPresetIsPastMaxRpm's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:794`](../../include/shulib/mechanism/spec.hpp#L794).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:798`](../../include/shulib/mechanism/spec.hpp#L798).*
 
 <a id="pneumatic_two_or_three_positions"></a>
 
@@ -3549,7 +3563,7 @@ inline void pneumatic_two_or_three_positions()
 
 Refusal::Pneumatic2Or3Positions's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:796`](../../include/shulib/mechanism/spec.hpp#L796).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:800`](../../include/shulib/mechanism/spec.hpp#L800).*
 
 <a id="pneumatic_start_or_safe_is_not_one_of_its_positions"></a>
 
@@ -3561,7 +3575,7 @@ inline void pneumatic_start_or_safe_is_not_one_of_its_positions()
 
 Refusal::PneumaticStartSafeIsNotOneOfItsPositions's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:798`](../../include/shulib/mechanism/spec.hpp#L798).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:802`](../../include/shulib/mechanism/spec.hpp#L802).*
 
 <a id="pneumatic_actuationtime_must_be_more_than_zero"></a>
 
@@ -3573,7 +3587,7 @@ inline void pneumatic_actuationtime_must_be_more_than_zero()
 
 Refusal::PneumaticActuationTimeMustBe0's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:800`](../../include/shulib/mechanism/spec.hpp#L800).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:804`](../../include/shulib/mechanism/spec.hpp#L804).*
 
 <a id="pneumatic_a_position_has_no_name"></a>
 
@@ -3585,7 +3599,7 @@ inline void pneumatic_a_position_has_no_name()
 
 Refusal::PneumaticAPositionHasNoName's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:802`](../../include/shulib/mechanism/spec.hpp#L802).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:806`](../../include/shulib/mechanism/spec.hpp#L806).*
 
 <a id="pneumatic_two_positions_have_the_same_line_levels"></a>
 
@@ -3597,7 +3611,7 @@ inline void pneumatic_two_positions_have_the_same_line_levels()
 
 Refusal::PneumaticTwoPositionsHaveTheSameLineLevels's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:804`](../../include/shulib/mechanism/spec.hpp#L804).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:808`](../../include/shulib/mechanism/spec.hpp#L808).*
 
 <a id="pneumatic_its_start_names_none_of_its_positions"></a>
 
@@ -3609,7 +3623,7 @@ inline void pneumatic_its_start_names_none_of_its_positions()
 
 Refusal::PneumaticItsStartNamesNoneOfItsPositions's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:806`](../../include/shulib/mechanism/spec.hpp#L806).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:810`](../../include/shulib/mechanism/spec.hpp#L810).*
 
 <a id="pneumatic_its_safe_names_none_of_its_positions"></a>
 
@@ -3621,7 +3635,7 @@ inline void pneumatic_its_safe_names_none_of_its_positions()
 
 Refusal::PneumaticItsSafeNamesNoneOfItsPositions's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:808`](../../include/shulib/mechanism/spec.hpp#L808).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:812`](../../include/shulib/mechanism/spec.hpp#L812).*
 
 <a id="a_preset_or_position_name_does_not_fit_fifteen_characters"></a>
 
@@ -3633,7 +3647,7 @@ inline void a_preset_or_position_name_does_not_fit_fifteen_characters()
 
 Refusal::APresetOrPositionNameDoesNotFit15Characters's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:810`](../../include/shulib/mechanism/spec.hpp#L810).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:814`](../../include/shulib/mechanism/spec.hpp#L814).*
 
 <a id="two_presets_or_positions_share_a_name"></a>
 
@@ -3645,7 +3659,7 @@ inline void two_presets_or_positions_share_a_name()
 
 Refusal::TwoPresetsOrPositionsShareAName's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:812`](../../include/shulib/mechanism/spec.hpp#L812).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:816`](../../include/shulib/mechanism/spec.hpp#L816).*
 
 <a id="absolute_homing_the_sensors_reading_at_zero_must_be_in_from_0_up_to_360"></a>
 
@@ -3657,7 +3671,7 @@ inline void absolute_homing_the_sensors_reading_at_zero_must_be_in_from_0_up_to_
 
 Refusal::AbsoluteHomingTheSensorSReadingAtZeroMustBeIn0360's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:814`](../../include/shulib/mechanism/spec.hpp#L814).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:818`](../../include/shulib/mechanism/spec.hpp#L818).*
 
 <a id="position_the_stall_signature_is_unset_a_held_mechanism_must_never_sit_at_stall_current"></a>
 
@@ -3669,7 +3683,7 @@ inline void position_the_stall_signature_is_unset_a_held_mechanism_must_never_si
 
 Refusal::PositionTheStallSignatureIsUNSET's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:816`](../../include/shulib/mechanism/spec.hpp#L816).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:820`](../../include/shulib/mechanism/spec.hpp#L820).*
 
 <a id="position_the_homing_push_points_away_from_its_home_end"></a>
 
@@ -3681,7 +3695,7 @@ inline void position_the_homing_push_points_away_from_its_home_end()
 
 Refusal::PositionHomingPushesAwayFromItsHomeEnd's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:818`](../../include/shulib/mechanism/spec.hpp#L818).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:822`](../../include/shulib/mechanism/spec.hpp#L822).*
 
 <a id="speed_the_stall_signature_is_unset_a_jammed_wheel_must_never_sit_at_stall_current"></a>
 
@@ -3693,7 +3707,7 @@ inline void speed_the_stall_signature_is_unset_a_jammed_wheel_must_never_sit_at_
 
 Refusal::SpeedTheStallSignatureIsUNSET's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:820`](../../include/shulib/mechanism/spec.hpp#L820).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:824`](../../include/shulib/mechanism/spec.hpp#L824).*
 
 <a id="a_stall_signatures_amps_must_be_below_the_motors_2_5_a_current_limit"></a>
 
@@ -3705,7 +3719,7 @@ inline void a_stall_signatures_amps_must_be_below_the_motors_2_5_A_current_limit
 
 Refusal::AStallSignatureSAmpsMustBeBelowTheMotorS25ACurrentLimit's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:822`](../../include/shulib/mechanism/spec.hpp#L822).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:826`](../../include/shulib/mechanism/spec.hpp#L826).*
 
 <a id="a_stall_signature_needs_belowmotorrpm_above_0"></a>
 
@@ -3717,7 +3731,7 @@ inline void a_stall_signature_needs_belowMotorRpm_above_0()
 
 Refusal::AStallSignatureNeedsBelowMotorRpmAbove0's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:824`](../../include/shulib/mechanism/spec.hpp#L824).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:828`](../../include/shulib/mechanism/spec.hpp#L828).*
 
 <a id="a_stall_signature_needs_lasting_above_0"></a>
 
@@ -3729,7 +3743,7 @@ inline void a_stall_signature_needs_lasting_above_0()
 
 Refusal::AStallSignatureNeedsLastingAbove0's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:826`](../../include/shulib/mechanism/spec.hpp#L826).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:830`](../../include/shulib/mechanism/spec.hpp#L830).*
 
 <a id="a_stall_signature_needs_its_amps_above_0"></a>
 
@@ -3741,7 +3755,7 @@ inline void a_stall_signature_needs_its_amps_above_0()
 
 Refusal::AStallSignatureNeedsAmpsAbove0's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:828`](../../include/shulib/mechanism/spec.hpp#L828).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:832`](../../include/shulib/mechanism/spec.hpp#L832).*
 
 <a id="position_a_lifts_shape_is_unset_give_it_spool_linkage_or_measured"></a>
 
@@ -3753,7 +3767,7 @@ inline void position_a_lifts_shape_is_unset_give_it_spool_linkage_or_measured()
 
 Refusal::PositionGeometryUNSET's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:830`](../../include/shulib/mechanism/spec.hpp#L830).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:834`](../../include/shulib/mechanism/spec.hpp#L834).*
 
 <a id="position_the_settle_time_must_not_be_negative"></a>
 
@@ -3765,7 +3779,7 @@ inline void position_the_settle_time_must_not_be_negative()
 
 Refusal::PositionTheSettleTimeIsNegative's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:832`](../../include/shulib/mechanism/spec.hpp#L832).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:836`](../../include/shulib/mechanism/spec.hpp#L836).*
 
 <a id="speed_the_at_speed_lasting_must_not_be_negative"></a>
 
@@ -3777,7 +3791,7 @@ inline void speed_the_at_speed_lasting_must_not_be_negative()
 
 Refusal::SpeedTheAtSpeedLastingIsNegative's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:834`](../../include/shulib/mechanism/spec.hpp#L834).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:838`](../../include/shulib/mechanism/spec.hpp#L838).*
 
 <a id="pneumatic_confirmwithin_must_not_be_negative"></a>
 
@@ -3789,7 +3803,7 @@ inline void pneumatic_confirmwithin_must_not_be_negative()
 
 Refusal::PneumaticTheConfirmWindowIsNegative's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:836`](../../include/shulib/mechanism/spec.hpp#L836).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:840`](../../include/shulib/mechanism/spec.hpp#L840).*
 
 <a id="position_the_homing_push_must_be_within_12_volts_either_way"></a>
 
@@ -3801,7 +3815,7 @@ inline void position_the_homing_push_must_be_within_12_volts_either_way()
 
 Refusal::PositionTheHomingPushIsPast12Volts's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:838`](../../include/shulib/mechanism/spec.hpp#L838).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:842`](../../include/shulib/mechanism/spec.hpp#L842).*
 
 <a id="position_the_gravity_hold_must_be_within_12_volts_either_way"></a>
 
@@ -3813,7 +3827,7 @@ inline void position_the_gravity_hold_must_be_within_12_volts_either_way()
 
 Refusal::PositionTheGravityHoldIsPast12Volts's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:840`](../../include/shulib/mechanism/spec.hpp#L840).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:844`](../../include/shulib/mechanism/spec.hpp#L844).*
 
 <a id="position_unhomedvolts_must_be_from_0_to_12"></a>
 
@@ -3825,7 +3839,19 @@ inline void position_unhomedvolts_must_be_from_0_to_12()
 
 Refusal::PositionUnhomedVoltsIsNotIn0To12's name at the robot file's line.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:842`](../../include/shulib/mechanism/spec.hpp#L842).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:846`](../../include/shulib/mechanism/spec.hpp#L846).*
+
+<a id="position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor"></a>
+
+## `position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor`
+
+```cpp
+inline void position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor()
+```
+
+Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn's name at the robot file's line.
+
+*free function, declared at [`include/shulib/mechanism/spec.hpp:848`](../../include/shulib/mechanism/spec.hpp#L848).*
 
 <a id="refuse"></a>
 
@@ -3837,7 +3863,7 @@ consteval void refuse(Refusal r)
 
 Stop the build with `r`'s named function (consteval contexts only); None does nothing.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:846`](../../include/shulib/mechanism/spec.hpp#L846).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:852`](../../include/shulib/mechanism/spec.hpp#L852).*
 
 <a id="specrefusal"></a>
 
@@ -3849,7 +3875,7 @@ Stop the build with `r`'s named function (consteval contexts only); None does no
 
 THE BUILD CHECK (header): the FIRST thing wrong with `s`, or Refusal::None. constexpr, so a robot file's list is checked at build (wire() calls refuse(specRefusal(spec))) and a host test runs the same function at run time. The ORDER is pinned by a test, one property per reason.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:1063`](../../include/shulib/mechanism/spec.hpp#L1063).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:1108`](../../include/shulib/mechanism/spec.hpp#L1108).*
 
 <a id="specproblem"></a>
 
@@ -3861,7 +3887,7 @@ THE BUILD CHECK (header): the FIRST thing wrong with `s`, or Refusal::None. cons
 
 The same check as a SENTENCE (nullptr = valid) — run-time callers, host tests, G3a's agreement test.
 
-*free function, declared at [`include/shulib/mechanism/spec.hpp:1376`](../../include/shulib/mechanism/spec.hpp#L1376).*
+*free function, declared at [`include/shulib/mechanism/spec.hpp:1427`](../../include/shulib/mechanism/spec.hpp#L1427).*
 
 ## Design commentary, from the header
 
@@ -3892,8 +3918,8 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  A field nobody stated is the byte 0 (or 0.0) and is REFUSED by specRefusal(), naming it. The
  three kinds of number that are NOT the team's — the controllers' starting gains, the smooth
  move's starting speed and acceleration, and the "reached" tolerance — are the library's STARTING
- values (kinds.hpp's positionStart(); PROVISIONAL, the hardware assumption the brief holds as
- HA-182 for MECH-A3, which registers it with the behaviours that run them).
+ values (kinds.hpp's positionStart(); PROVISIONAL: HA-182, registered by MECH-A3 with the behaviours
+ that run them, mechanism/service.hpp).
 
  ── THE BUILD CHECK, three ways, one list ───────────────────────────────────────────
  specRefusal() is THE check: the FIRST thing wrong with one spec, as a `Refusal`, checked in a

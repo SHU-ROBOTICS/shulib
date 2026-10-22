@@ -16,6 +16,116 @@
 
 ## API 2.4
 
+### Added and changed since 2.4 (2026-10-22; built 2026-10-15) — the mechanism core, part 3: arms, lifts and flywheels move, hold, find their zero and spin; every one watched for a jam
+
+> Written when it was built (chunk MECH-A3, the third of the mechanism core's six parts), and revised by
+> its review before it landed (2026-10-22). **No version bump — every change is ADDITIVE in its
+> signatures:** new classes and members of the mechanism service, three constants, two functions beside
+> the starting values, a boot-line formatter, one new field of a goal (`PositionGoal::units`), and one
+> APPENDED build refusal (`spec.hpp`'s own append-only rule). **One precondition LIFTED** (`bind()` takes an `Arm`, a
+> `Lift` and a `Flywheel`) **and one NEW build refusal** (below). The auton steps that call these
+> behaviours, the driver controls and the bench page are the core's next parts; **no program builds a
+> service yet**. Everything was measured on the host test plant's invented models (HA-183), with the
+> library's invented starting values (HA-182). **Host only — nothing here has run on a robot.**
+> [Chapter 18](guide/18-mechanisms.md) teaches all of it.
+
+**ADDED:**
+
+- **The POSITION behaviour** (`mechanism::PositionSlot`, an `Arm` or a `Lift`; `MechanismService::position(i)`,
+  `find(arm)`, `find(lift)`, `find(arm["score"])`): `moveTo(position, timeLimit)` — a smooth trapezoid in
+  the output's degrees (a lift's speed in inches turned into degrees by its STEEPEST slope — exact for a
+  spool, a linkage's level slope, a measured table's steepest segment — so the plan is never faster in
+  inches than stated anywhere on its travel, and never asks the motor for more than it has near a
+  linkage's top), P + D on the plan with feedforward and
+  the declaration's gravity hold, then a FRESH hold loop (P + I + D, its integral clamped to 3 V) when the
+  plan ends; REACHED is judged in the mechanism's own units (a degree tolerance converted at a measured
+  table's end or a linkage's top was 0), for the settle time: SUCCEEDED, and it goes on HOLDING. Out of
+  time it is TIMED_OUT and HOLDS WHERE IT STOPPED — never pushing on toward a target it could not reach.
+  `home(timeLimit)` finds its zero by the declaration's method; `holdHere()`, `jog(volts)` (the driver's
+  hold-to-run) and `release()`; `homed()`, `position()`, `target()`, `softStops()`, `jointDeg()`.
+  **Before its zero is found** a move is NOT_HOMED and a push runs at most `.unhomedVolts` (0: nothing
+  moves it). **Homing with no motion at boot** — `restsAtStop`, `absoluteSensor` (the reading's turn
+  chosen nearest the middle of the travel; a reversed sensor's mounting applied), a home switch already
+  pressed on a FRESH read — and by a homing step (`homeBySwitch`: until the switch reads pressed on a fresh
+  read; `homeByStall`: until its own signature trips — and one that never trips says what the push drew
+  when stopped (no faster than its signature's speed; never the behaviour before the push, never a swing
+  it brakes) against what its signature needs: `(it never stalled against its stop: it drew at most 0.62
+  A when stopped, its homing signature needs 2.00 A)` — or, if it never got that slow, `it never slowed
+  to its homing signature's speed -- did it reach its stop?`). A home switch whose read fails is never read as
+  pressed (`Slot::homeSwitchPressed()`, the read-fault rule's second half). **Every (re-)home logs where its
+  zero went** — a Warn when a re-home moves it past the "reached" tolerance (homing into a wedged piece sets
+  a wrong zero; now it says so). `home()` on a mechanism that rests at its stop keeps its BOOT zero (it
+  never re-zeroes where it stands). **The limits:** a COMPUTED target past one is clamped and logged ONCE;
+  a push toward one is the driver's own until it could no longer stop before the limit at the move's
+  acceleration, then taken over for the rest of that push — the move loop brings it to the limit and a
+  fresh hold HOLDS it there, never pushing toward the limit harder than the push (one soft stop per push;
+  turned away, it is the driver's again at once); no hold target is ever past a limit. A goal finds this
+  robot's mechanism only in the goal's own units and, for a named preset, only at the same preset value
+  (`PositionGoal::units`, set by the `Arm` and `Lift` words; a goal built by hand without it finds
+  nothing).
+- **The SPEED behaviour** (`mechanism::SpeedSlot`, a `Flywheel`; `MechanismService::speed(i)`,
+  `find(flywheel)`, `find(flywheel["shoot"])` — a named speed only at this flywheel's own value):
+  `spinUp(rpm, timeLimit)` — feedforward plus P, with an integral that acts only within 10 % of the target
+  (frozen outside it, clamped to 3 V); "at speed" is SUCCEEDED and it KEEPS
+  spinning; out of time it is TIMED_OUT and still spins. A computed speed past the free speed is clamped
+  and logged once. `stop()`, `spinning()`, `rpm()` (the angle sensor's when one is wired), `targetRpm()`,
+  `atSpeed()`.
+- **The stall watch on EVERY behaviour** of a position and speed mechanism: the move, the hold after
+  it, a push, a homing push by switch, a spin before and after "at speed" (a homing push by stall keeps
+  its own signature). A trip is STALLED, `MECHANISM_STALLED` once, the declared safe state, the claim
+  released — and, when it ends a behaviour AFTER its step, the command number bumped (how the driver
+  controls, the core's fourth part, will ignore a held button until it is released).
+- **The library's own numbers, named** (HA-182 — invented, provisional): `mechanism::kHoldIntegralLimitVolts`
+  (3 V), `kSpeedIntegralWindow` (0.10), `kSpeedIntegralLimitVolts` (3 V) — LIBRARY constants for every
+  mechanism, not `.tuning` fields and not on the boot line; `positionStartingValues(spec)` and
+  `speedStartingValues(spec)` (what a spec runs with no `.tuning`); and `mechanism::startingValuesLine()`, ONE
+  boot line per position or speed mechanism naming the numbers its loop runs with and which of them are
+  starting values — `arm: starting values kP 0.250 kI 0.300 kD 0.0040 kV 0.0500, cruise 180.0 deg/s in
+  0.25 s, reached within 1.50 deg for 0.10 s -- PROVISIONAL (HA-182); .tuning overrides` (a number stated by
+  `.tuning` is marked "(tuned)"; the ramp by its TIME, so a stated speed alone keeps an unmarked 0.25 s
+  ramp; a flywheel's `kV` and `kP` per output rad/s, its `kI` per output rad). The programs print it from
+  the core's fifth part on.
+- **The host test plant** (`sim/mechanism_plant.hpp`, test-only): an angle sensor MOUNTED on the joint
+  (`RotationMount` — absolute within one turn at power-up, HA-186's belief, either way round), a limit
+  switch (`SwitchMount`, at a chosen pressed level), and a stop BELOW the joint (`setWedgeDeg` — a piece
+  wedged under the arm).
+
+**CHANGED:**
+
+- **`MechanismService::bind()` takes an `Arm`, a `Lift` and a `Flywheel`** — part 2 refused them (a
+  precondition naming this part). It now checks their devices instead: a built position or speed
+  mechanism carries its angle sensor exactly when it declares one, and a position one its home switch
+  exactly when it homes by switch (a refused sensor or switch makes the mechanism ABSENT at boot).
+- **A NEW build refusal, the 70th of `spec.hpp`'s:** absolute homing over a travel of a whole turn of the
+  sensor or more (`position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor`) — a
+  reading within one turn cannot tell the turns apart (a spool lift's sensor turns several times over its
+  travel). A robot file with such a mechanism stops compiling, by that name; none in this tree has one.
+  The robot panel's validator mirrors the list by sentence (G3a).
+- **A measured-table `Lift`'s STARTING speed and ramp** (`Lift::spec().position.maxVelocity` and
+  `maxAcceleration`, so `startingValuesLine()`'s cruise) now come from the table's STEEPEST segment, not
+  its first — the same or faster: 2.5 times for a table whose last segment is 2.5 times as steep as its
+  first. The core's first part scaled them by the first segment; the move plan turns the speed back into
+  degrees by the steepest one, so a starting move is 75 % of the output's free speed everywhere on the
+  travel and never more. A stated `.tuning` speed or ramp is unchanged; a spool's or a linkage's starting
+  values are unchanged.
+
+**TESTED** (host): 144 moves over a deliberately mismatched grid with the starting
+values, never tuned: 143 SUCCEEDED, every SUCCEEDED true at its verdict, the one miss a plant slower than
+its own cartridge (TIMED_OUT); a profile the plant cannot follow TIMES OUT; the hold under a piece's load
+against a control nobody ticks; the hold's integral (3.20° of steady error without it); a blocked move
+STALLED, and one whose signature is too slow TIMED_OUT and holding where it stopped at 0.37 A; both limits'
+soft stop on a slow, a medium and a fast arm and on a lift, pushed at 4 to 12 V with a plant up to twice as
+heavy (one soft stop per push, never pushing harder than the button, held there for 20 s; a push ended by a
+release, a move or a STALLED leaves none behind); "reached" at a
+table's end and a linkage's top, and only after an unbroken settle; a linkage's and a table's plan within the
+motor's speed; a tuned kS and kA, a lift's gravity term, both integral clamps and the speed integral's freeze;
+every homing moment, a dead home switch, a wedged piece, a homing signature its push cannot reach (its line
+counting only the push's own current when stopped — never a pinned jog before it, never a swing it brakes); an
+absolute sensor mounted either way, wrapped through 0, above and below the middle of its travel; 27
+flywheels, the integral window's ablation, a reverse spin, a jam before and after "at speed". 107 mutations of
+these rules, the two reviews' own among them, were each run on the final code, on a fresh build of every file
+they reach: 104 turned a test red, and the other three change nothing the code can do (each shown equivalent).
+
 ### Added since 2.4 (2026-10-15; built 2026-10-08–15) — the standard Calibrate's seams: the brain's screen as a seam, the painter that draws on it, and the front check
 
 > Written when it was built (chunk CAL1, Part A1 of four: the seams; the standard Calibrate program is
@@ -112,8 +222,8 @@ library function.
 > `Arm`, a `Lift`, a `Flywheel`) are the core's next part, and the auton steps and driver controls that
 > call the service come after that; until then a program calls the service's slots directly. Until
 > that next part, `bind()` REFUSES a list that holds an `Arm`, a `Lift` or a `Flywheel` (a precondition
-> naming the part that brings them) — it never skips one silently. **Host only — nothing here has run
-> on a robot.**
+> naming the part that brings them) — it never skips one silently *(part 3, above, lifted it)*. **Host
+> only — nothing here has run on a robot.**
 
 **ADDED:**
 

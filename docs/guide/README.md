@@ -23,6 +23,7 @@ order — each chapter assumes the ones before it and says so in its header.
 | 15 | [Glossary](15-glossary.md) | Every term, one sentence |
 | 16 | [Testing an auton on the bench](16-testing-an-auton-on-the-bench.md) | "shulib Auton Tester", the team's auton file, and reading a run against the tape |
 | 17 | [The competition program](17-the-competition-program.md) | "shulib Competition": the auton chosen on the brain's menu in `autonomous()`, what ends it, driver control, the refusals |
+| 18 | [Mechanisms: arms, lifts and flywheels](18-mechanisms.md) | How a position and a speed mechanism move, hold, find their zero, stay inside their limits and stop on a jam; the starting values and `.tuning` |
 
 ## The other two documents
 
@@ -47,10 +48,10 @@ hand is a fact that will go stale.
 ### How it's organised
 
 Numbered files, one topic each, so updating a topic means editing one file. Chapters 1–6 are
-concepts (no code) and should rot slowly; 7–12, 16 and 17 touch the code and rot fast — check
+concepts (no code) and should rot slowly; 7–12 and 16–18 touch the code and rot fast — check
 them first when the API moves. (Chapter 16, the bench auton tester, was added after the glossary
-at chunk COMP-t, and chapter 17, the competition program, after it at COMP-b, so the glossary kept
-its number.) (Chapter 9 was a deliberately reserved slot from the start; the Tier-2
+at chunk COMP-t, chapter 17, the competition program, after it at COMP-b, and chapter 18, the
+mechanisms, at MECH-A3 — so the glossary kept its number.) (Chapter 9 was a deliberately reserved slot from the start; the Tier-2
 recipe chapter filled it at chunk D1 as an *added file*, with nothing renumbered — the
 pattern to reuse.) Add future chapters either into a reserved slot or at the end (before the
 glossary stays the glossary — renumber only as a last resort, in one commit, updating every

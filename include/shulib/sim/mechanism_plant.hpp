@@ -1,8 +1,11 @@
 #pragma once
 //
 // sim::ArmPlant and sim::FlywheelPlant — the host test plant's MECHANISMS (the mechanism core:
-// MECH-A2 builds the scaffolding and its own tests over it; MECH-A3 tunes it for the position and
-// speed behaviours). Say "host test plant", never "simulator": nothing here is a measured motor.
+// MECH-A2 built the scaffolding and its own tests over it; MECH-A3, 2026-10-15, gave the joint the
+// two SENSORS a position mechanism homes by — an angle sensor that is ABSOLUTE within one turn at
+// power-up, mounted either way round, and a limit SWITCH pressed at the joint's end of travel — and
+// runs the position and speed behaviours' tests over it). Say "host test plant", never "simulator":
+// nothing here is a measured motor.
 //
 // ── The model, in the A2 drive plant's own style ─────────────────────────────────────
 // NO mass, NO torque curve — the INVERTED feedforward relation the drive plant uses
@@ -15,8 +18,9 @@
 // plus what a mechanism has that a drive wheel does not:
 //   * HARD STOPS — the joint cannot pass them; pushing into one reads ZERO speed and stall-grade
 //     current (a real stalled motor CREEPS a little — HA-93 — which this plant does not);
-//   * an OBSTACLE — a stop that appears mid-run ABOVE the joint (the blocked arm moving up), and a
-//     JAM — the joint pinned where it is, both ways (a roller jammed on a piece);
+//   * an OBSTACLE — a stop that appears mid-run ABOVE the joint (the blocked arm moving up), a WEDGE
+//     — one BELOW it (a piece wedged under the arm, MECH-A3), and a JAM — the joint pinned where it is,
+//     both ways (a roller jammed on a piece);
 //   * the BRAKE MODE at 0 V commanded: Hold drives back toward the angle where the command stopped
 //     (a restoring voltage, `holdStiffness` volts per joint radian), Brake damps (`brakeDamping`
 //     volts per joint rad/s), Coast is free. Each is the voltage the motor itself APPLIES, clamped to
@@ -45,7 +49,12 @@
 // Each step() reads motor 0's COMMANDED voltage and brake mode (every motor of a group is commanded
 // alike — hal::MotorMechanism's fan-out) and publishes into EVERY fake motor: position (motor
 // radians: the joint angle from `encoderZeroDeg`, times the gear ratio), velocity (motor rad/s) and
-// current; and, when one is attached, into a FakeRotation: the joint's ABSOLUTE angle and velocity.
+// current; when one is attached, into a FakeRotation — by default the joint's angle itself; with a
+// RotationMount, what HA-186 believes a V5 rotation sensor reads: at attach (power-up) its
+// `readsAtJointZeroDeg` plus the joint angle (MINUS it when mounted reversed), wrapped into one turn
+// [0, 360), and from there CUMULATIVE, never wrapping again; and, when one is attached, into a
+// FakeDigitalIn: a limit switch PRESSED while the joint is at or below (or at or above) its angle,
+// written at its pressed level (HA-184's belief is the test's to choose).
 // Ground truth (trueDeg(), trueSpeedDegS(), trueRpm()) is for the harness and assertions only —
 // shulib/sim/ is unreachable from the library (the CI layering guard).
 
@@ -54,6 +63,7 @@
 #include <span>
 
 #include "shulib/core/check.hpp"
+#include "shulib/hal/fake/fake_digital_in.hpp"
 #include "shulib/hal/fake/fake_motor.hpp"
 #include "shulib/hal/fake/fake_rotation.hpp"
 #include "shulib/units/quantity.hpp"
@@ -76,6 +86,27 @@ struct ArmPlantConfig {
     double brakeDamping = 3.0;            ///< Brake at 0 V: damping volts per joint rad/s
     double startDeg = 0.0;                ///< where the joint is at construction
     double encoderZeroDeg = 0.0;          ///< the joint angle at which the motor encoders read 0
+};
+
+/// How an angle sensor is mounted on the joint (header: HA-186's belief, modelled — never measured):
+/// what it reads at power-up when the joint is at 0, and whether it turns the other way round.
+struct RotationMount {
+    /// Mounted so its reading DEcreases as the joint angle increases.
+    bool reversed = false;
+    /// What it would read, degrees, with the joint at 0 at power-up (any value: the reading is wrapped
+    /// into one turn at attach).
+    double readsAtJointZeroDeg = 0.0;
+};
+
+/// A limit switch on the joint (header): PRESSED while the joint is at or below `atOrBelowDeg` (or,
+/// with `atTop`, at or above it), written at `pressedLevel` (HA-184's belief — the test chooses).
+struct SwitchMount {
+    /// The joint angle at which it is pressed, degrees.
+    double atDeg = 0.0;
+    /// Pressed at or ABOVE `atDeg` (the top of the travel) instead of at or below it.
+    bool atTop = false;
+    /// The level a pressed switch reads (true: pressed reads 1 — HA-184's belief).
+    bool pressedLevel = true;
 };
 
 /// One joint driven by N fake motors (header). Not copyable: it holds the motors' span.
@@ -114,11 +145,38 @@ public:
     }
     /// The obstacle goes away.
     void clearObstacle() noexcept { hasObstacle_ = false; }
+    /// A stop that appears BELOW the joint (a piece wedged under the arm — what a stall-home would take
+    /// for its stop); a joint already below it moves freely.
+    void setWedgeDeg(double deg) noexcept {
+        wedgeRad_ = deg * kD2R;
+        hasWedge_ = true;
+    }
+    /// The wedged piece is cleared.
+    void clearWedge() noexcept { hasWedge_ = false; }
     /// The joint is pinned where it is, both ways (a roller jammed on a piece), or freed.
     void setJammed(bool jammed) noexcept { jammed_ = jammed; }
-    /// Publish the joint's absolute angle into `r` too (an angle sensor on the output shaft).
+    /// Publish the joint's absolute angle into `r` too (an angle sensor on the output shaft that
+    /// reads the joint angle itself, never wrapped).
     void attachRotation(hal::fake::FakeRotation* r) {
         rotation_ = r;
+        mounted_ = false;
+        publish(appliedVolts_);
+    }
+    /// An angle sensor mounted as `m` (header): at THIS moment — the power-up — it reads the joint
+    /// angle through its mounting, wrapped into [0, 360); afterwards cumulatively.
+    void attachRotation(hal::fake::FakeRotation* r, const RotationMount& m) {
+        rotation_ = r;
+        mounted_ = true;
+        mountSign_ = m.reversed ? -1.0 : 1.0;
+        const double atPowerUp = m.readsAtJointZeroDeg + mountSign_ * trueDeg();
+        const double wrapped = atPowerUp - 360.0 * std::floor(atPowerUp / 360.0);
+        mountBaseRad_ = wrapped * kD2R - mountSign_ * thetaRad_;  // reading = base + sign * theta
+        publish(appliedVolts_);
+    }
+    /// A limit switch on the joint (header), published into `sw` on every step from now on.
+    void attachSwitch(hal::fake::FakeDigitalIn* sw, const SwitchMount& m) {
+        switch_ = sw;
+        switchMount_ = m;
         publish(appliedVolts_);
     }
     /// GROUND TRUTH, joint degrees (assertions only).
@@ -167,7 +225,8 @@ public:
         }
         appliedVolts_ = applied;
         double next = thetaRad_ + omega_ * dt;
-        const double lo = cfg_.minStopDeg * kD2R;
+        const double loStop = cfg_.minStopDeg * kD2R;
+        const double lo = hasWedge_ && thetaRad_ >= wedgeRad_ ? std::max(loStop, wedgeRad_) : loStop;
         const double hiStop = cfg_.maxStopDeg * kD2R;
         const double hi = hasObstacle_ && thetaRad_ <= obstacleRad_ ? std::min(hiStop, obstacleRad_) : hiStop;
         if (next <= lo) {
@@ -217,8 +276,14 @@ private:
             m->setCurrent(units::Current{amps});
         }
         if (rotation_ != nullptr) {
-            rotation_->setPosition(units::AngleDim{thetaRad_});
-            rotation_->setVelocity(units::AngularVelocity{omega_});
+            const double sign = mounted_ ? mountSign_ : 1.0;
+            rotation_->setPosition(units::AngleDim{mounted_ ? mountBaseRad_ + sign * thetaRad_ : thetaRad_});
+            rotation_->setVelocity(units::AngularVelocity{sign * omega_});
+        }
+        if (switch_ != nullptr) {
+            const double deg = trueDeg();
+            const bool pressed = switchMount_.atTop ? deg >= switchMount_.atDeg : deg <= switchMount_.atDeg;
+            switch_->setState(pressed ? switchMount_.pressedLevel : !switchMount_.pressedLevel);
         }
     }
     std::span<hal::fake::FakeMotor* const> motors_;
@@ -230,8 +295,15 @@ private:
     double extraLoad_ = 0.0;
     double obstacleRad_ = 0.0;
     bool hasObstacle_ = false;
+    double wedgeRad_ = 0.0;
+    bool hasWedge_ = false;
     bool jammed_ = false;
     hal::fake::FakeRotation* rotation_ = nullptr;
+    bool mounted_ = false;       ///< attached with a RotationMount
+    double mountSign_ = 1.0;     ///< -1 when mounted reversed
+    double mountBaseRad_ = 0.0;  ///< the mounted reading = base + sign * theta
+    hal::fake::FakeDigitalIn* switch_ = nullptr;
+    SwitchMount switchMount_{};
 };
 
 /// A flywheel's constants (header: INVENTED, HA-183). Speeds in WHEEL rad/s; volts.

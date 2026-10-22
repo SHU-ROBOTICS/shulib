@@ -1599,3 +1599,843 @@ restores them — `git status --short` on each is EMPTY, so their content is `HE
 - **Hand-ons:** A2-D18 (REFUSED's route-marker half) is MECH-A4's; the unnumbered HA-157 note (three pre-A2 sentences,
   "the library commands nothing on a disable", over-general since COMP) is fixed in its own documentation commit after
   this one.
+
+---
+
+## MECH-A3 — position and speed
+
+- **Started:** Thu Oct 15 10:44:23 PM EDT 2026 (`date`).
+- **Tree at start:** `fbaf729` (main: MECH-A1 `fd36e07`, SER1 `2506067`, MECH-A2 `98392b2` merged and verified, then
+  the HA-157 scope note), clean, in the git worktree `.claude/worktrees/mech-a3` (branch `mech-a3`) — NOT the main
+  working tree.
+- **Go:** the team lead, 2026-10-08: "Accept all, go" — N1–N13 all as recommended (a), the runs strictly in order,
+  each after the last LANDS; and 2026-10-15: "keep going with the original roadmap but move faster — that does not
+  mean skip steps". The coordinator's workflow launched MECH-A3 ONLY. Do not commit; no `pros` command; no
+  `/dev/ttyACM*`. Mutation backups and probes under `.claude/coordinator/scratch/mech-a3/` (never `/tmp`, never the
+  repository root). **Memory safety (2026-10-15):** every test binary — the suite, a filter, every mutation, every
+  looping probe — runs as `(ulimit -v 4194304; timeout 600 <cmd>)`; a mutant killed by the cap or the timeout counts
+  as CAUGHT (said which).
+- **Scope:** §2's A3 row — §1.7's POSITION and SPEED behaviours in `mechanism/service.hpp` (every homing moment and
+  its zero log, the move and hold loops, reached in units, both limit rules with the closed-loop soft stop, the
+  clamps, N2's hold-where-stopped, the stall watch on every behaviour, the speed loop); N7's starting values in
+  `kinds.hpp` and the library formatter of their boot line (beside `roleLine`); §1.12's arm, lift and flywheel models
+  tuned in `sim/mechanism_plant.hpp`; `bind()` STOPS refusing Arm/Lift/Flywheel (A2-D5's precondition — removed with
+  its text and every doc that says so); §3.3's tests and mutations; §4.1's A3 documents (changelog, `docs/api/`,
+  HA-182 ONLY, the guide's NEW mechanisms chapter); §2.1's DoD. NOTHING of A4–A6: no auton steps, no driver loop, no
+  `src/` or `tools/` file (`git diff --stat fbaf729 -- src/ tools/` EMPTY at the end).
+
+### 22:44 — start
+- Read `docs/internal/RESUMING.md` (standing rules, pace rules 1–8), the brief in full (the go note, the amendments —
+  which override the body —, N1–N13, §0–§9, "Found while reading"), and `## MECH-A1` / `## MECH-A2` above (A2's deltas
+  A2-D1…D21, its hand-ons: A2-D5 — lift `bind()`'s refusal; A2-D6 — the home switch's read-fault half and case S;
+  A2-D18 is A4's, not this run's; the merge record's MB5 lesson — an equality edge on an exact binary clock; finding
+  17's — a mutation verdict only when EVERY dependent object was recompiled). This heading appended before any code.
+
+### 22:44–23:05 — the baseline, and the overlay's A3 slice read against the tree *(`date` 23:05)*
+- **Baseline at `fbaf729`** (`cmake -S test -B build/test`; `rm -f build/test/shulib_tests`; `briefing_status.py
+  generate`; the full doc-gated build at -j8, 36 s wall; the suite under `ulimit -v 4194304; timeout 600`): **2447/2447
+  passed, 2,792,078 assertions, 3 skipped** — main's merged numbers (the coordinator's MB4/MB5 cases included).
+  Driver: `scratch/mech-a3/build.sh` (logs `scratch/mech-a3/logs/base.*`).
+- **Read in the overlay** (`proposed4/shulib/mechanism/service.hpp` :255-330 the two slots' surface, :720-1052 their
+  bodies; `sim/mechanism_plant.hpp`; `kinds.hpp`'s starting values), the probes `p5/probe2_position.cpp`,
+  `probe2_speed.cpp`, `adv_control.cpp`, `adv_softstop.cpp`, `adv_extra.cpp`, `adv_stallsig.cpp` and their `out5/`
+  outputs. **The overlay's base is not this tree's:** A2 rewrote the slot (A2-D1: every body inside its class, the
+  `detail::SlotHost`; `beginStep(bound, t)` / `finishStep(t, …)`; `stopBehaviour` / `resetBehaviour`), the plant
+  (A2-D3: Hold and Brake implicit; Hold captured at the END of the commanded step), and the starting values already
+  live in `kinds.hpp` (A1's `detail::positionStart`, the flywheel's in `Flywheel::spec()`), so A3's slice is
+  re-written onto A2's architecture, not copied — the deltas below (A3-D1 …).
+
+### 23:05–23:17 — the behaviours written, the plant extended (no constant of it tuned — A3-D19, the review's correction of this heading, which said "tuned"), the tests, the suite green *(`date` 23:17:29)*
+- **Code** (each file's banner says what it holds now):
+  - `include/shulib/mechanism/service.hpp` — `PositionSlot` and `SpeedSlot` (the brief's §1.6 surface: `moveTo`,
+    `moveToPreset`, `holdHere`, `home`, `jog`, `release`, `homed`, `position`, `target`, `softStops`, `jointDeg`;
+    `spinUp`, `spinUpPreset`, `stop`, `spinning`, `rpm`, `atSpeed`); `Slot::homeSwitchPressed()` with the home
+    switch's half of the read-fault rule and its snapshot; `Slot::stalledAfterStep()`; the three HA-182 constants
+    (`kHoldIntegralLimitVolts` 3 V, `kSpeedIntegralWindow` 0.10, `kSpeedIntegralLimitVolts` 3 V); the service's
+    `position(i)`, `speed(i)`, `find(const Arm&)`, `find(const Lift&)`, `find(const Flywheel&)`,
+    `find(const PositionGoal&)`, `find(const SpeedGoal&)`; **`bind()` no longer refuses an Arm, a Lift or a
+    Flywheel** (A2-D5's precondition and its text removed) and checks their devices instead (an angle sensor
+    exactly as declared, a home switch exactly when homed by switch, a home switch's count only with a switch).
+  - `include/shulib/mechanism/kinds.hpp` — the starting values factored so a boot line can name them:
+    `detail::unitsPerOutputDeg()`, `detail::speedStart()`, `positionStartingValues()`, `speedStartingValues()`;
+    HA-182 tagged at each; the numbers themselves unchanged (A1's `positionStart`).
+  - `include/shulib/mechanism/wiring.hpp` — `startingValuesLine()` beside `roleLine()` (N7's boot line).
+  - `include/shulib/mechanism/spec.hpp` — refusal **70** appended (A3-D3 below) and HA-182's wording.
+  - `include/shulib/sim/mechanism_plant.hpp` — `RotationMount` (an angle sensor absolute within one turn at
+    power-up, HA-186's belief modelled, either way round), `SwitchMount` (a limit switch at an angle, at a chosen
+    pressed level — HA-184's belief the test's to choose), `setWedgeDeg()` / `clearWedge()` (a stop BELOW the joint:
+    the piece wedged under the arm, D10).
+- **The A3 probe first** (`scratch/mech-a3/probes/p2.cpp`, output `p2.txt`): the brief's P2a, P2b, P2c and P3 re-run on
+  THIS code and A2's plant — **reproduced to the hundredth**: P2a 143/144 SUCCEEDED in 0.69..3.15 s, overshoot ≤ 7.22°
+  (≤ 3.59° with kVx ≥ 1), final ≤ 2.55°, the one miss Green 7:1 kVx 1.00 kS 0.6 kG 2.4 → 90 TIMED_OUT at 2.38 s; P2b
+  1.66 / 1.80 / 2.41° worst, −1.25 / −1.18 / −0.86 after 2 s; P2c STALLED at 0.65 s and 1.00 s; N2 (a 10 s signature)
+  TIMED_OUT at 3.01 s then mean 1.68 V, ≤ 0.37 A, held at 59.7°; P3 20/27, 20/21 reachable, the same table row for row.
+  ONE number moved: P2b's "nobody ticking" control sags **2.87°** (the brief 3.05°) — A2-D3's implicit Hold. The
+  ablation probe (`abl.cpp`): held level under plant kG 1.2 vs the controller's 1.6, kS 0.3 — **+3.20° without the
+  hold's integral, +0.001° with it**.
+- **Tests** (new: `test/mechanism_position_rig.hpp`, `test/mechanism_position_test.cpp` 29 cases,
+  `test/mechanism_speed_test.cpp` 7, 3 plant cases appended to `test/sim_mechanism_plant_test.cpp`; changed:
+  `test/mechanism_service_test.cpp` (A2's two "MECH-A3" bind refusals replaced by a pointer to their successors),
+  `test/mechanism_spec_test.cpp` (refusal 70's cases); new harness TU `test/compile_refusals/s70_absolute_homing_whole_
+  turn.cpp`). Thresholds are the probe's numbers plus the brief's stated margins, quoted beside each.
+- **Fresh build** (`build.sh b1`): the doc gate stopped it first (`docs/api/` stale — regenerated; the build script now
+  runs `api_doc_tool.py generate` every time). First suite: **7 cases red**, each diagnosed — 6 were the TESTS' errors
+  (a verdict's error read one world step late; a never-homed arm "not moved" though it sags under its own Hold; robot
+  y's wrist's starting line mis-computed by hand — 3:1 Green is 300 deg/s, not 450; a bind case that tripped an
+  earlier precondition; a reversed-sensor case wired to read +40; a shot read one tick early); **one was the code's
+  (A3-D9)**: on a homing step's success the slot zeroed and switched to HOLD but commanded nothing that tick, so the
+  motor kept the homing push one more tick past its zero — it now commands the hold in the same tick. The switch-home
+  test then asserts what is physical: the zero within one tick's travel of the switch (measured 0.23°), and held at it
+  after 3 s (measured −0.06° at 2.5 s).
+- **Suite (`b3`): 2486/2486 passed, 2,795,436 assertions, 3 skipped**; `-tc='MECH-A3*'` **39 cases, 3193 assertions**.
+  **Harness: `ctest -R compile_refusal` 201/201** (95 s; A1's 195 + A2's 5 + s70).
+
+### 23:17–23:40 — EVERY mutation run on fresh objects; four new tests the green ones asked for *(`date` 23:40)*
+- **Driver:** `scratch/mech-a3/mutate.py` — MECH-A2's v3 (the coordinator's finding 17 carried: the suite target's
+  `depend` step BEFORE every build, and no verdict unless EVERY object depending on the mutated file was recompiled
+  — counted from the consolidated `compiler_depend.make`) plus two additions: the LINK checked (the binary newer
+  than the mutated file, else INVALID) and the suite run under the memory cap (`ulimit -v 4194304; timeout 600`;
+  a mutant killed by either would count CAUGHT, said which — none was). Multi-site mutations allowed (X15d). Lists
+  `mutlist.py`, `mutlist2.py`, `mutlist3.py`; one log and one byte-identical backup each in `scratch/mech-a3/mut/`;
+  every file restored byte-identical (47 of 47 `restored=True`) and its timestamp bumped. Filter `-tc='MECH*'`
+  (every MECH case, A1's and A2's included).
+- **The brief's §3.3, each RED on a fresh build** (the failing cases named):
+  - **M14** the hold loop's kI 0 → RED 11 (P2a, P2b, the integral ablation, P2d ×2, the bottom soft stop, case C,
+    D4, P2e, P2h, the past-the-top clamp).
+  - **M15** the speed integral's 10 % window removed → RED 2 (P3's overshoot, the window's ablation).
+  - **M16** the soft stop removed → RED 3 (D2 at both limits, the bottom soft stop, case C) — **at BOTH limits:**
+    **M16top** (the top alone) RED (D2's UP pushes); **M16bottom** (the bottom alone) RED 3 (D2's DOWN, the bottom
+    soft stop, case C). *(The first M16 was red only at BUILD — `-Werror=unused-variable` — no verdict; re-written to
+    compile, `if (false && (up || down))`, and re-run. X1wrap the same.)*
+  - **M17** a move before homing proceeds → RED (the never-homed case's NOT_HOMED).
+  - **M18** a computed target not clamped → RED (P2d: the clamp line and the target).
+  - **M19** absolute homing zeroes where it is → RED (P2h).
+  - **M20** the gravity term's sign flipped → RED 8.
+  - **M21** N2 reverted (a timed-out move holds its unreached target) → RED 2 (P2c's N2 case: the current; the
+    past-the-top case).
+  - **M36** "reached" in converted degrees → RED (D4: the table-top).
+  - **M39** the hold's stall watch removed → RED (case A).
+- **The run's own** (each RED): X2sign (a reversed absolute sensor's sign ignored — the overlay's formula; a sensor
+  reading 180 HIDES it, 2 × 180 being a whole turn, so a case reading 100 was added), X1wrap (the turn never chosen),
+  X3rests (home() re-zeroes a rests-at-stop arm where it stands — the overlay), X4nothomed (a NOT_HOMED move leaves a
+  jog at its last volts — the overlay), X5jog0 (a push before homing with no unhomedVolts holds the claim at 0 V —
+  the overlay), X6swwatch (no stall watch on a homing push by switch), X7fresh / X22snapshot (the home switch's
+  read-fault rule / its snapshot), X8tick (the homing success's same-tick hold, A3-D9), X9clamp (a hold target not
+  clamped), X10seq (a stall after a step bumps no command number), X11spinwatch (a flywheel watched only during its
+  step), X12spinclamp, X13stopdist (the soft stop entered AT the limit, not at the stopping distance — RED 2),
+  X14profile (below), X15d (below), X17bind (A2-D5's refusal back — RED 35), X18unitsfind, X19goalpreset, X20angle,
+  X21movewatch (the MOVE's stall watch removed — RED 3: P2c, case F, P2h's mismatch), X23unhomedcap; the plant's
+  P1wrap, P2top, P3wedge; the spec's **S70** (refusal 70 removed — suite RED and **harness RED**
+  `compile_refusal_s70_absolute_homing_whole_turn`) and S70b (a spool's travel mis-scaled); W1line (the boot line
+  marks the wrong numbers); K1units (a spool's starting scale doubled — RED 3, A1's words test among them).
+- **Found GREEN, each answered:**
+  - **X14profile** ("reached" stops waiting for the plan's end) was GREEN: with the starting tolerance the arm lags
+    its plan and is never inside 1.5° before the plan ends. **A test was added** that can see it — a team's coarse
+    `within` 30° and no settle time: the verdict must still wait for the plan (measured: SUCCEEDED at the plan's end
+    + one tick). Re-run: **RED**.
+  - **X15fresh** (the hold loop not reset at the plan's end) is GREEN and stays green: EQUIVALENT — `moveTo()`
+    resets the hold loop too, and the move loop carries no integral, so either reset alone keeps the hold fresh.
+    **X15d** removes BOTH (the integral of a loaded hold carried into the next move): measured first on a temporary
+    copy (`probes/x14.cpp`: after the move SUCCEEDED the arm rose to 37.6° above its 30° target, against ≤ 0.1° on the
+    true code); **a test was added** ("a move after a LOADED hold starts its hold FRESH"); X15d **RED 2**.
+  - **M18b** (the output-degree clamp of a move's target removed, M18's position clamp kept) is GREEN: EQUIVALENT —
+    the target is already clamped to the travel in its units, and `positionToAngleDeg` is monotonic with the limits'
+    degrees computed by the same function, so the degree clamp can never act. Kept as a guard; said so here.
+- **Tests added in this round:** the coarse-tolerance REACHED case, the loaded-hold FRESH case, the reversed sensor
+  reading 100, "the hold from the verdict's own tick" (`volts > 0` after a switch-home — what made X8tick red), and
+  **case F** (a switch reading "pressed" while truly at 60 → homed there → a move to "140" STALLED at 1.70 s at the
+  hard stop — the brief's number to the hundredth; HA-184's net) — and the n58 justification in case A (the plant
+  never reads more than 2.5 A held at its stop — max 2.500 A — so a 2.5 A or larger signature can never trip, and
+  `specRefusal` refuses a 3.0 A one).
+- **Numbers re-measured for the documents** (`probes/nums.cpp` → `nums.txt`, the true code): case A 1.66 s at
+  ≥ 2.4 A of 30 s (STALLED 1.77 s after the load), case H STALLED at 0.51 s, D2 1.26 / 0.97, 2.06 / 1.76, 4.06 /
+  2.12° past, the bottom soft stop 18.32 / 17.94 / 16.06°, a jog into an obstacle STALLED 0.95 s in, case F 1.70 s —
+  the brief's every number reproduced.
+- **Suite after the round (`b7`): 2492/2492 passed, 2,795,475 assertions, 3 skipped**; `-tc='MECH-A3*'`: 42 cases
+  (32 position, 7 speed, 3 plant) + the chapter's 3 (`guide-18a..c`).
+
+### Deltas from the brief (MECH-A3), each with its reason
+- **A3-D1** the overlay's `PositionSlot` / `SpeedSlot` (`proposed4/shulib/mechanism/service.hpp` :261-361, :720-1052) were
+  RE-WRITTEN onto A2's architecture, not copied: every body inside its class (A2-D1's house style — the doc gate reads an
+  out-of-line `X::y(` as an undocumented free function), the `detail::SlotHost`, `beginStep(bound, t)` /
+  `finishStep(t, …)` / `stopBehaviour` / `resetBehaviour`. Not one `PROBE_` switch was carried (`PROBE_SETTLE_SPEED`,
+  `PROBE_TIMEOUT_HOLDS_TARGET` — the overlay's A3 half; `grep -rn PROBE_ include/` empty), no "PROTOTYPE"/"(proposed)"
+  marker. The behaviour is the overlay's except where a delta below says otherwise — and the brief's P2a, P2b, P2c, P3,
+  D2, case A, case F, case H numbers came out IDENTICAL to the hundredth (the probe entry above).
+- **A3-D2** absolute homing (the overlay's `zeroAbsolute()`, :798-801) computed `joint = sgn·reading + home − s0`, wrong
+  for a sensor declared `Reversed` unless the stated reading is 0 (robot y's wrist, `absoluteSensor(0, 180)` reversed,
+  would read −390° at −30°), and never chose the reading's TURN (a sensor reading 350 at the arm's 0 put the arm at 20°
+  at −340°). Now `joint = home + sgn·(reading − s0)`, the turn chosen nearest the middle of the travel. Both pinned
+  (P2h's subcases), both mutations RED (X1wrap, X2sign).
+- **A3-D3 — a 70th refusal in `spec.hpp`** (A1's file — the chunk that finds a flaw fixes it there):
+  `PositionAbsoluteHomingTravelSpansAWholeSensorTurn` / `position_absolute_homing_needs_a_travel_shorter_than_one_turn_
+  of_its_angle_sensor`, appended (its enum value 70 pinned). An angle sensor absolute within ONE turn (HA-186) cannot
+  home a travel of a whole output turn or more — a spool lift's rotation sensor turns 5.1 times over 24 in on a 1.5 in
+  spool, and the service would pick a turn, maybe the wrong one, and drive into a stop. Checked with a constexpr span
+  (`detail::outputTravelDeg`: an arm's limits, a spool's arc, a table interpolated, a linkage ≤ 180° by its formula's
+  domain). Its compile-refusal TU `s70_absolute_homing_whole_turn.cpp`; three one-property cases and three accepted
+  boundaries in `mechanism_spec_test.cpp`; the test's `last` bound moved to it. **For the coordinator: G3a's validator
+  mirrors `spec.hpp`'s list by sentence — it is 70 now** (and A1's counted totals in the plan docs — "69 checks …
+  132 named reasons" — are A1's dated numbers; today's are 70 and 133).
+- **A3-D4** `home()` on a mechanism that RESTS AT ITS STOP keeps its BOOT zero — SUCCEEDED, `(it rests at its stop at
+  boot: its zero is kept)`, held where it is; the overlay re-zeroed it where it stood (the "zero where it stands" class
+  the brief rejected for the absolute sensor — X3rests RED). An absolute one is READ AGAIN (its zero log says whether it
+  moved). `neverHomed` is a PRECONDITION ("it has no way to find its zero"), not the overlay's REFUSED — A2-D18 keeps
+  REFUSED for "another owner holds the claim", and a step that can never be met is refused where it is made (D7's rule).
+- **A3-D5** a NOT_HOMED move applies the declared safe state; the overlay (`stopBehaviour(false)` after its state was
+  reset) left a running pre-homing push at its last volts (X4nothomed RED).
+- **A3-D6** a push before homing with `.unhomedVolts` 0 is a STOP (the safe state, no claim held); the overlay held the
+  claim and commanded 0 V every tick (X5jog0 RED). `jog(0 V)` is `holdHere()`.
+- **A3-D7** a homing push BY SWITCH is watched by the mechanism's stated signature (N10: "every behaviour … homing by
+  STALL keeps its own"), STALLED `(… while homing: its home switch never read pressed)`; the overlay watched none.
+- **A3-D8** the zero logs: the brief's lines kept (`homed -- <x> deg from where its encoders read zero at boot`, `homed
+  again -- its zero moved <x> deg`), each number SIGNED, to its tenth, never "-0.0"; "angle sensor" for a sensor-read
+  mechanism; an absolute home's own line (`homed -- its angle sensor reads 170.0 deg, so it is at 10.00 deg`); the
+  re-home Warn's threshold is the tolerance converted on BOTH sides of the home position (at a table's end one side
+  converts to 0 — D4's class; the overlay used one side).
+- **A3-D9** a homing step's success commands the HOLD on the verdict's own tick (found by this run's own first test
+  run: the overlay switched to HOLD but commanded nothing, so the motor kept the homing push one more tick past its
+  zero) — X8tick RED.
+- **A3-D10** `find(const Arm&)` / `find(const Lift&)` check the units (an `Arm` is never a same-named lift);
+  `find(const PositionGoal&)` / `find(const SpeedGoal&)` return the slot only when this robot's mechanism HAS the goal's
+  named preset (the pneumatic goal's position-name check, A2's, extended) — X18, X19 RED.
+- **A3-D11** surface beyond the brief's verbatim: `SpeedSlot::targetRpm()`; `positionStartingValues()`,
+  `speedStartingValues()` (what a spec runs with no `.tuning` — the boot line's comparison); `detail::unitsPerOutputDeg()`
+  and `detail::speedStart()` (the starting values factored, unchanged); the three HA-182 constants
+  (`kHoldIntegralLimitVolts`, `kSpeedIntegralWindow`, `kSpeedIntegralLimitVolts` — the brief's numbers, now named);
+  `Slot::stalledAfterStep()` (protected); `sim::RotationMount`, `sim::SwitchMount`, `ArmPlant::setWedgeDeg()` /
+  `clearWedge()`.
+- **A3-D12** the boot line (`startingValuesLine()`, in `wiring.hpp` beside `roleLine()`): the brief's example words, plus
+  the ramp's time ("in 0.25 s"), fixed digits, each number a team's `.tuning` changed marked "(tuned)", and three
+  tails (all starting / some / none). Its numbers come from comparing the spec against `positionStartingValues()`: a
+  team that states exactly a starting value reads as untuned — harmless, said here.
+- **A3-D13** P2c's N2 case: the brief's hand-built 2.6 A signature is refused at `bind()` since A1 (n58), so the test
+  states a VALID signature too slow for the 3 s bound (lasting 10 s) — the same N2 behaviour, the same numbers. The
+  brief's "a hand-built 3.0 A signature never trips" is pinned as a property in case A (the plant held at its stop at
+  12 V reads exactly 2.500 A and never more; `specRefusal` refuses 3.0 A), not a 30 s run of an unbindable spec.
+- **A3-D14** the speed integral's ablation ("from the start it overshoots > 150 rpm") is a REFERENCE loop in the test —
+  the window is a constant (HA-182), not a `.tuning` field — run on the same plant with the same gains; M15 (the window
+  removed from the library) turns the library's own < 60 rpm assertion red.
+- **A3-D15** the rig's encoders read zero where the plant starts (`encoderZeroDeg = startDeg` — a TEST choice, not a
+  belief about V5 motors: the service zeroes a rests-at-stop mechanism at whatever its encoders read at bind, and
+  nothing in the library assumes where a motor's count starts); the brief's probes left them at the joint's 0. D10's verbatim line uses
+  the probes' convention explicitly (`encoderZeroDeg = 0`, so "+25.0 deg").
+- **A3-D16** A2-D5's precondition removed WITH its text and its two test lines; `bind()` checks the new kinds' devices
+  instead (an angle sensor exactly as declared on a built position or speed mechanism, a home switch exactly when it
+  homes by switch, a home switch's count only beside a switch). The A2 changelog entry's "bind() REFUSES …" is dated
+  history: annotated "(part 3, above, lifted it)", not rewritten.
+- **A3-D17** *(measured at the resumption, 2026-10-18)* `sizeof(MechanismService)` on ARM `-Os` is **9 448 B**, the
+  brief's S3 8 048 B; `PositionSlot` 568 B (S3: 536). The 1 400 B are A2's layout (one `std::optional` array of 8 per
+  kind: 8 × (568 + 208 + 224 + 136) B plus their flags) carrying A3's larger slots — the A2-D21 bounded log
+  buffers live on the stack, not in the slot. Static storage on a brain with megabytes of it: no change made; the
+  number is here so A5 (which puts the service in each program) starts from the measured one.
+- **A3-D18** *(2026-10-18)* the changelog's part-3 entry no longer names "the brief", "the live log" or "N10" (above):
+  a public document a release ships without `docs/internal/` must not lean on it, even unlinked. *(Scope, MECH-A3's
+  review, 2026-10-22: the rule covers the public text A3 itself writes — the changelog AND its own new doc comments,
+  which reach `docs/api/`. The review found 8 such `docs/api/` lines ("the brief's P3", "N7", "N2", "N10"); the fix
+  round reworded them, and `git diff fbaf729 -- docs/api/` now adds no line naming the brief or a decision but one —
+  `kinds.hpp`'s banner "(N7)", A1's citation on a line whose tail A3 rewrote. A1's and A2's own names in their doc
+  comments — `docs/api/kinds.md` 2 at the base and now, `service.md` 9 and 9 — are their chunks' wording, left.)*
+- **A3-D19** *(the review, 2026-10-22)* **no constant of the host test plant was TUNED.** The brief's A3 row, §1.12
+  ("MECH-A3 tuned") and §4.3 (HA-183's owner "A2 (A3 tunes)") planned it; the brief's P2a, P2b, P2c, P3, D2 and cases
+  A, F, H reproduced to the hundredth on A2's plant (the 23:05–23:17 probe entry), so none needed it. A3 EXTENDED the
+  plant (`RotationMount`, `SwitchMount`, the wedge) and changed no `ArmPlantConfig` or `FlywheelPlantConfig` default
+  (`git diff fbaf729 -- include/shulib/sim/mechanism_plant.hpp`). The 23:05 heading that said "the plant tuned" is
+  corrected in place (it says so); HA-183's entry says it in its Blast radius.
+- **A3-D20** *(the review)* **THE SOFT STOP, REBUILT** (the brief: a push past a limit "HELD AT THE LIMIT by the
+  closed-loop hold (P+I+D + gravity)", entered at the stopping distance). The first version let go every tick the
+  hold had the arm back inside the limit — the full push for a tick, the hold's integral reset, another soft stop
+  counted (25 in a 60 s push at 2×, 8 V), and a 2× arm drifting +1.59° in 15 s instead of settling — and its hold's
+  P on the 40° a fast arm still had to go pushed it toward the limit HARDER than the driver (8.70 V for an 8 V
+  push). Now, in `tickJog()`: a push toward a limit that could no longer stop before it at the smooth move's own
+  acceleration (its speed TOWARD the limit only) is taken over and LATCHED for the rest of that push — let go only
+  when the push turns away (or a new command ends it): ONE soft stop per push. The MOVE loop (P + D and gravity, no
+  integral to wind up on the way) brings it toward the limit; a FRESH hold loop (P + I + D and gravity) holds it
+  there from the moment it reaches the limit or the time a stop at the move's acceleration would take (its speed
+  then over that acceleration); the output toward the limit is CAPPED at the push's own volts. Measured over 3
+  cartridges (Red, Green, Blue 5:1) × plant kG 1×/1.5×/2× × both limits × 4/8/12 V (`fix/probes/p_ss_grid.cpp`; re-run
+  at the resumption on the final code, `fix/resume/vcur/grid_hard.txt`): worst **8.32°** past (Blue, 2×, 12 V down —
+  the reviewed version 10.11°), **2.50°** with the gravity right (4.56°), Green's D2 arm 3.67° at 2× (4.06°), never
+  harder toward the limit than the push; chapter 18 now quotes the whole table. **The alternative the review named
+  first was BUILT and REJECTED:** a deceleration RAMP from the arm's speed to the limit at the move's own
+  acceleration, tracked by the move loop with the full feedforward (kS, kV·v, kA·a, gravity), then a fresh hold — the
+  stopped run's variant `fix/variants/v1`, and independently this resumption's `fix/resume/vramp` (the same numbers to
+  the hundredth): WORSE everywhere it matters — **10.44°** worst, the Blue 2× arm meeting its limit at 219 deg/s, and
+  Green's D2 arm 4.13° past with its gravity RIGHT where the chosen design gives 0.02° (`fix/resume/vramp/grid_hard.txt`):
+  with the starting kA 0, the P + D lags a plan that decelerates at the move's own rate, so the arm arrives fast.
+  The stopped run's other variants: v0 (the reviewed code, byte-identical), v2 and v3 (a latched hold from the
+  entry, uncapped and capped) all 10.11° worst; v4 (the move loop, then the hold) 8.32° — the one kept.
+- **A3-D21** *(the review)* **a lift's move plan in ONE scale, its STEEPEST.** The brief: "a lift's inches converted at
+  the move's start: exact for a spool, a conservative scale for a linkage or a table". The first version converted
+  with the move's MEAN slope while the starting speed was derived with the STEEPEST — so near a linkage's top the
+  degree plan asked up to 3.9× the free speed (a saturated push, not a trapezoid). Now `PositionSlot::degPerUnit()` —
+  the inverse of `detail::unitsPerOutputDeg()`, the one the starting speed uses — scales the plan's speed and
+  acceleration AND the soft stop's stopping distance (`accelDeg_`), and a measured table's scale is its steepest
+  segment, not its first (`unitsPerOutputDeg()`, A1's function, fixed where it lives). A plan is never faster in
+  units than stated anywhere on the travel, and is slower where the shape is flatter (near a linkage's top) — the
+  conservative side, which is what the brief's word meant.
+- **A3-D22** *(the review)* **`PositionGoal::units`** (a new field, set by the `Arm` and `Lift` words; the byte 0, a
+  goal built by hand, finds nothing) — `find(const PositionGoal&)` finds only a mechanism of the goal's units, and,
+  for a named preset, only when this robot's preset of that name holds the SAME value (`find(const SpeedGoal&)` the
+  same for a flywheel's named speed). A3-D10's claim (a goal of another robot's same-named mechanism never moves this
+  one to a stranger's value) is now true for a same-named lift's goal and a same-named preset at another value. A4
+  is the lookup's first caller (landmine 6: an auton compiled into another robot's build).
+- **A3-D23** *(the review)* **the homing signature: no new build refusal; a diagnosable line instead.** The review's
+  first suggestion — refuse a homing signature above |homeVolts| / 12 × 2.5 A (n58's never-trip class) — was NOT
+  built: that bound is HA-93's INVENTED current shape (the host test plant draws |V − kV·ω| × 2.5 / 12), and a real V5
+  motor that draws more at a low push would make the build refuse a signature that works — a refusal must rest on a
+  fact (n58's 2.5 A is the motor's own limit), not on a belief. Instead: a stall-home that runs out of time logs what
+  its push drew and what its signature needs (`(it never stalled against its stop: it drew at most 0.62 A, its
+  homing signature needs 2.00 A)` — `homePushAmps_`, the most current over the push); chapter 18 gives the homing
+  signature its own rule with a worked number (below what the push draws when it stalls; 0.45 A for a 3 V push to
+  start — the host test plant's, checked on the bench); and A1's robot y `swing` fixture states 0.45 A (its 1.5 A
+  could never trip: every `home()` TIMED_OUT — the chunk that finds a flaw fixes it there, in
+  `test/mechanism_fixtures.hpp` and A1's words test). HA-93's entry notes chapter 18's reliance on its shape.
+  *(Its line's number was REDEFINED by A3-D26, the verification round: `homePushAmps_`, the most over the whole
+  push, counted the behaviour before the push and a swing the push braked.)*
+- **A3-D24** *(the review)* the boot line compares the smooth move's ramp by its TIME (a stated `maxSpeed` alone keeps
+  the starting 0.25 s ramp — the acceleration follows the speed — so the ramp is not marked "(tuned)" nor counted),
+  and labels the flywheel's `kI` "(V per output rad)" beside `kV` and `kP`'s "(V per output rad/s)".
+- **A3-D25** *(the review's prose pass)* `include/shulib/control/trapezoid_profile.hpp` — outside §4.1's list —
+  said nothing in the tree instantiates a `TrapezoidProfile`; A3's moves do. Its banner, `ProfileConstraints` and the
+  class doc now name the mechanism core's position moves as its one consumer (the drive's motions still none), and
+  guide 14's "No motion profiles on the main verbs yet" is scoped to the drive (pace rule 4: a stale sentence fixed
+  where it is found). `docs/api/trapezoid_profile.md` regenerated.
+- **A3-D17, re-measured after the review** *(2026-10-22)*: `sizeof(MechanismService)` on ARM `-Os` is **9 640 B**
+  (was 9 448), `PositionSlot` **592 B** (568) — the soft stop's latch direction and its approach clock, and the
+  homing push's most current (`fix/resume/probes/sizes.cpp`, the same failing-template read). **Re-measured after the
+  verification round** (2026-10-22, `vfix/probes/sizes.cpp`): unchanged, **9 640 B** and **592 B** — the new flag
+  sits in the padding after `softStops_`.
+- **A3-D26** *(the verification round, 2026-10-22)* **a stall-home's TIMED_OUT line counts the PUSH'S OWN current,
+  WHEN STOPPED.** The verifier's finding V-1: the first homing tick samples BEFORE the push acts, so A3-D23's
+  `homePushAmps_` (the most over every homing tick) carried the previous behaviour's current — a jog pinned at 8 V
+  just before printed 1.67 A against a 1.50 A signature beside "it never stalled". Its suggested fix (skip the first
+  tick) was built, and was NOT ENOUGH: `vfix/probes/p_brake.cpp` showed the push's OWN current at speed contradicts
+  the line the same way — a home begun while the arm still swings up brakes it at 1.29 A (1.42 A after 30 ticks of
+  jog), the push's stopped current 0.62 A. The number a homing signature is sized by is what the push draws when
+  STOPPED — no faster than the signature's own speed, the only samples its current test could have tripped on. So:
+  `homeStoppedAmps_` records only samples after the push's first command (`homePushed_`, set by it) AND at or below
+  `homeStall.speedRadS` (the detector's own `<=` test on the same `meanVelocity()` read, now read once per tick for
+  both); `home()` resets both. The line says `it drew at most 0.62 A when stopped, its homing signature needs 2.00
+  A`; a push that never got that slow says `it never slowed to its homing signature's speed -- did it reach its
+  stop?` instead of a number (its record stays < 0). The homing DETECTOR still takes the first tick's sample, as
+  every stall watch does (each tick samples, then commands): a stall-grade sample from the behaviour before can open
+  its window one tick early, and it stays open only if the push is itself stall-grade from its first acting tick
+  on — so a home can trip at most ONE tick sooner than its own samples alone would make it (an arm already at its
+  stop); left as it is, consistent with every watch, and said here rather than hidden. Docs: chapter 18's homing-signature rule, guide
+  11's TIMED_OUT notes, the changelog's part-3 entry, HA-93's note, `home()`'s doc comment (`docs/api/service.md`).
+- **Not done here, on purpose:** the driver toggle's 5 s at-speed window and station 13's numbers are A4's and A6's
+  (HA-182's entry says they add theirs); A2-D18 (REFUSED's route-marker half) is A4's.
+
+### 23:25–23:38 — the documents, and the prose review (pace rule 4) — every grep RUN and its hits READ before this line
+- **Documents (§4.1's A3 list):** `docs/changelog.md` — "Added and changed since 2.4 (2026-10-15) — part 3" at the top of
+  `## API 2.4`, newest first (no bump); A2's entry's "`bind()` REFUSES …" annotated "(part 3, above, lifted it)" (dated
+  history, not rewritten). `docs/hardware-assumptions.md` — **HA-182** (row, entry under a new "MECH-A3's addition"
+  section, the status 177 → **178**, the MECH-A3 paragraph after A2's; the held-numbers sentence now holds HA-185 only
+  of the core's) and AMENDED **HA-183** (Source: the A3 tests that run through the plant; the plant's new mounted
+  sensor, switch and wedge; its blast radius with the A3 numbers), **HA-184** (Source: `Slot::homeSwitchPressed()`; the
+  nets now BUILT and measured: case F STALLED at 1.70 s, case S), **HA-186** (Source: the absolute zero in `service.hpp`,
+  refusal 70, the plant's `RotationMount` which models — never proves — the belief). `docs/api/` regenerated
+  (`kinds.md`, `service.md`, `spec.md`, `wiring.md`, `README.md`, `all-entities.md`). **The guide's NEW chapter 18**
+  (`docs/guide/18-mechanisms.md` — 18 was the next free number: G3a Part 1 has not landed): the five kinds and what each
+  does, the member ORDER per kind, units and tooth-count gearing, limits and the soft stop (with the measured overshoots
+  to keep the limits short of the stops by), every homing moment and which to choose and what each TRUSTS, what a move,
+  a hold and a spin do and what "held" costs (N2), the jam-signature recipe, the starting values and `.tuning` (the
+  order to tune in), the honest limit (a starved service), and reading a refusal (chapter 10's lesson, and this
+  chapter's refusals by name); its listings compiled in `test/mechanism_chapter_example_test.cpp` (`guide-18a..c`,
+  `check-examples` holds them verbatim); its row in `docs/guide/README.md` (and the maintenance note's chapter list),
+  its `mkdocs.yml` nav line (outside the generated API block). Plan docs, MECH's lines only: `build-order.md` (the first
+  bold `Next:` — "MECH-A3 LANDED … NEXT: MECH-A4"; MECH's own entry), `roadmap.md` ("You are here" gains the A3
+  paragraph — A2's last sentence moved into it — and the `[~]` MECH row gains A3), `REMAINING-WORK.md` row 12,
+  `HANDOFF-remaining-work.md` (the inventory; the docs-owed list's "mechanism chapter" marked begun). They say
+  "LANDED" for the tree after the coordinator's commit, as A1's and A2's did (pace rule 5).
+- **§4.2's A3 grep** `\bhold\b|\bholds\b|gravity|homing|travel limit` (README.md and docs/**/*.md minus `docs/api/` and
+  `docs/internal/chunks/`, case-insensitive): 37 files, ~600 hits — narrowed to the lines that are about a MECHANISM
+  (`arm|lift|flywheel|mechanism|homed|preset|service|MECH|the core`) and every one of those read: guide 10 :404/:437/
+  :479/:511, guide 11, the guide README (this run's); HANDOFF :163/:451/:522/:677 (F3-era plans — history), **:787 the
+  docs-owed "mechanism chapter (L8)" — marked begun**; cookbook 01 :91 (`pause` is not `hold` — the chassis, true);
+  PROJECT-BRIEFING (generated / history); roadmap F6/F10/F12/F14 rows, :711/:736/:830/:932 (history), **:1734 F3's
+  `liftToLevel (homing + … sag-comp PID hold)` — an F3 primitive the core now provides generically; a plan change, so
+  FOR THE COORDINATOR (the Q28 re-scope's)**; `MECH-PANEL-requirements.md` (the requirements as written — stays);
+  guide 14 :230/:402 (true); vexbuilder-integration :151 (true); REMAINING-WORK rows 12–14 (row 12 this run's);
+  guide 13 :147/:157/:176 and guide 06 :90 ("an UNSCREENED dead port reads pressed … a lift driving into its hard stop"
+  — why the adapter screens; true, and the core's read-fault rule now also refuses a held level as a home); master plan
+  :413/:579/:585/:655 (history); HA register (this run's entries; HA-92's loaded-lift Hold — true).
+- **§4.1's A3 re-check grep** `soft stop|stall signature|belowRpm`: guide 11 (this run's), REMAINING-WORK :255
+  (history), requirements :186/:266 (stay), HA :1246/:1290 (this run's) and :2059 (HA-154: the service's watch on a
+  power hold-to-run — true). `belowRpm`: 0 hits.
+- **The run's own names** `MECH-A3|next part|later part|third part|refuses a list|power and pneumatic( mechanisms)? only|
+  nothing homes|homes? a mechanism|NOT_HOMED|starting value|no program builds|arrive with|its only reader`: **STALE,
+  FIXED** — `docs/faq.md` :25 (the service reads a HOME switch's count since the third part), guide 10's box (:400-409:
+  "the position and speed behaviours … are the core's next parts"), guide 10 :533-539 ("a home switch's arrives with the
+  position behaviours, its only reader"), roadmap :367-368 (A2's "next is MECH-A3"), build-order's `Next:` and MECH
+  entry. Read and TRUE: guide 10 :513, :539 (no program builds the service — true), cookbook 06 :202 (a three-position
+  pneumatic in driver control — A4's, true), HA :143-145 / :155 / :1138-1141 (A1's and A2's dated paragraphs, each
+  followed by its "since …" note), the changelog's older entries (dated), vexbuilder-integration :427 (another chunk).
+- **Stale BY OMISSION, found by reading around the hits, FIXED:** `README.md`'s directory map (`mechanism/` named only the
+  declarations — no service since A2) now names the service and its four kinds; `docs/guide/14-what-it-cannot-do-yet.md`'s
+  "The mechanism layer exists" section never mentioned the mechanism core at all (A1/A2 too) — one bullet added (what
+  exists, host-only, what does not); `docs/guide/11-reading-the-diagnostics.md` lists every bracket the service writes
+  (A2's rule) — A3's new ones added (`reached`, NOT_HOMED's three, STALLED's "while holding / held to move / spinning /
+  homing", TIMED_OUT's "holds where it stopped / keeps spinning / home switch never read pressed / never stalled",
+  CANCELLED's `released`, the home step's two SUCCEEDED brackets, the zero-log and clamp lines, `MECHANISM_STALLED`'s
+  row); `docs/guide/15-glossary.md` gains **homing**, **mechanism service**, **soft stop**, **stall signature**,
+  **starting values** (A2 deferred its glossary words to "the mechanisms chapter"); the roadmap's MECH row said "its 63
+  build refusals" (A1's first count — 69 after its review, 70 now).
+- **Pace rule 7:** public documents moved — §4.1's (the changelog, the register, `docs/api/`, chapter 18 with its README
+  row and nav line) and the prose review's fixes (guides 10, 11, 14, 15, the faq, README's map, the roadmap's MECH row),
+  each one sentence to one paragraph. Not touched, deliberately: the cookbook (A4's recipe), guide 13 (true), guide 17
+  and 16 (A5's).
+
+### 23:40–23:58 (2026-10-15) — what ran after the last entry, read back from the scratch files at the resumption
+- *(Written at the resumption, from the files' own timestamps and contents — the run was stopped before it logged
+  these.)* `scratch/mech-a3/logs/srcgate_selftest.log` (ended 23:49:20): **`src build gate self-test: OK (235
+  detector cases, each against a real build)`**, 15 min 36 s. `fmt_probe.sh` (A2's finding 8 carried: the suite's
+  flags without `-Werror`, at -O1/-O2/-O3/-Os, over the eight mechanism TUs) → `logs/fmt_probe.log` (23:51). One
+  warning, at -O1/-O2/-O3 only: `wiring.hpp:1102` `'%.23s' directive output truncated writing 21 bytes into a region
+  of size 8` — `roleLine()` (A1's), reached from `mechanism_wiring_test.cpp`:503, A1's DELIBERATE truncation case
+  (`roleLine(small, 8, "a very long mechanism", …)`): GCC sees the constant and the 8-byte cap and says the truncation
+  the test asks for will happen. Neither file is changed by this run; the suite builds at -O0 and the robot at -Os,
+  where it does not fire. Not a defect — recorded, not changed. `startingValuesLine()` and every A3 TU: 0 warnings.
+- `scratch/mech-a3/gates/final/` (23:51–23:58): every gate rc 0 — the configure, `api_doc_tool generate`, the
+  briefing pre/post, a CLEAN build (229 objects), **the suite 2,795,475 assertions passed**, `-tc='MECH-A3*,guide-18*'`
+  3228 assertions, the briefing check and self-test, the harness 201/201 (201 TUs), the api self-test / coverage /
+  fresh / examples / removability, the staleness self-test and audit, the PROS-free and sim-free greps, the ARM header
+  gate (218 headers, rc 0), no PROBE_ / PROTOTYPE, the C7 grep, the register's direction-1 grep, and `src_build_gate.py
+  check` PASS (all 7 builds). The second self-test (`22_src_gate_selftest.log`) was EMPTY — killed by the pause.
+
+### 22:33 (2026-10-18) — RESUMED *(`date`: Sun Oct 18 10:33:08 PM EDT 2026)*
+- The team lead paused all work at ~00:15 on 2026-10-16 and resumed 2026-10-18 ~22:35; the coordinator audited this
+  worktree at the pause (every file equal to its newest mutation backup under `scratch/mech-a3/mut/`; `service.hpp`
+  differs from X23's backup only by a later doc comment, 23:49 — `position()`'s, re-read: true).
+- Checked first: `git diff --stat fbaf729 -- src/ tools/ Makefile` EMPTY, `git status --short src tools Makefile`
+  EMPTY — no gate self-test plant left by the killed run. The binary on disk (`build/test/shulib_tests`, 23:51:59)
+  is NOT trusted: the resumption rebuilds clean from source (`gates.sh resume`: `--target clean`, the binary deleted,
+  the full build) before any number below.
+- What is left, read against §2.1's DoD and §3.3/§4.1: the fresh-build verification, the gates (the src gate's
+  self-test again), the ARM size of the whole service (A2 measured 3 048 B for power + pneumatic; the brief priced the
+  whole at 8 048 B — `probes/sizes.cpp` was written at 23:51 and never run), a read of §3.3's list against the tests,
+  and the hand-back.
+
+### 22:33–22:37 (2026-10-18) — the resumption's fresh build: every non-src gate green *(`date` 22:37:20)*
+- `scratch/mech-a3/gates.sh resume all` (logs `scratch/mech-a3/gates/resume/`): configure; `api_doc_tool generate`;
+  the briefing; `--target clean`; the binary deleted; **a full build, 229 objects compiled** (rc 0); **the suite
+  under `ulimit -v 4194304; timeout 600`: 2492/2492 test cases passed, 2,795,475 assertions, 3 skipped**;
+  `-tc='MECH-A3*,guide-18*'` **45 cases, 3228 assertions**; the briefing post / check / self-test (24 cases); the
+  harness **201/201** (201 TUs, 201 CTests); api self-test, coverage (4672 entities, 179 headers), fresh, examples
+  (565 quoted lines), removability; the staleness self-test and audit (clean); "library is PROS-free"; "layering
+  holds: core is sim-free"; the ARM header gate **218 headers, rc 0**; no `PROBE_` / PROTOTYPE / "(proposed)"; the
+  C7 grep empty; the register's direction-1 grep. The same numbers as 2026-10-15's last run: nothing drifted.
+- **A rule broken by MY gate script, found reading its log, and why it was harmless:** `gates.sh` (written 10-15)
+  ran `briefing_status.py generate` (step 03) BEFORE deleting the binary (step 04b) — the coordinator's memory rule
+  says `rm -f build/test/shulib_tests` FIRST, because the briefing runs that binary UNCAPPED. Step 03 took 18 s: it
+  ran the binary on disk, linked 2026-10-15 23:51:59 by `gates/final`'s CLEAN build of the restored tree (every
+  mutation run by `mutate.py` deletes its binary after its suite — `os.remove(bin_)` on every path — and the last
+  mutation ended 23:32), so it was the true code, and it passed. The 10-15 `build.sh` has the right order (rm, then
+  the briefing). Fixed for every later run: `scratch/mech-a3/gates2.sh` deletes the binary first (`gates.sh` was
+  left untouched while it ran — bash reads a running script as it goes).
+- **The mutation verdicts still stand for this tree** (checked, not assumed): every `service.hpp` backup in
+  `scratch/mech-a3/mut/` (36 of them, M14 … X23) is byte-identical to the others, and the tree's `service.hpp`
+  differs from them only by `position()`'s doc comment (above); `mechanism_plant.hpp`, `spec.hpp`, `kinds.hpp` and
+  `wiring.hpp` are md5-identical to their backups (P1wrap/P2top/P3wedge, S70/S70b, K1units, W1line). Every verdict
+  line in `mut/summary.txt` says "all N dependents" recompiled and the link checked. *(The driver runs the suite
+  target's `depend` step through its `build.make`, then the build — not a whole `cmake --build` — and refuses a
+  verdict unless EVERY object `compiler_depend.make` lists as depending on the mutated file was recompiled and the
+  binary re-linked after it: finding 17's failure is that check's to catch, and none came out INVALID.)*
+- **Sizes, ARM `-Os`** (`probes/sizes.cpp` through a failing template, run now): **`MechanismService` 9 448 B**,
+  `PositionSlot` 568 B, `SpeedSlot` 208 B, `PowerSlot` 224 B, `PneumaticSlot` 136 B (A2: 3 048 / 224 / 128 B — the slot
+  base gained the home switch's read-fault snapshot). **A3-D17** below: the brief priced the whole service at 8 048 B
+  and a `PositionSlot` at 536 B (S3).
+- **§3.3 read against the tests, item by item:** P2a (+ finding 4's "cannot follow ends TIMED_OUT"), P2b (with its
+  control), P2c (the robot file's signature, the 1.6 A / 3 rpm / 0.15 s one, N2's case — A3-D13), P2d (the limit,
+  the clamp once, D2's held push, never homed), P2e (every homing moment), P2f (the lift), P2h (absolute, reversed,
+  the mismatch STALLED), the integral's ablation and the fresh hold, P3 (27 plants, the 20 % shot, the window's
+  ablation — A3-D14), N10 (case A, case H, the jog into an obstacle, P2h's mismatch, the 3.0 A property — A3-D13; the
+  Power hold-to-run's is A2's `mechanism_service_power_test.cpp`:594), D2 (both limits, 1×/1.5×/2×, the release's
+  hold target, N2 clamped, case C), D4 (rotary, spool, linkage top, table ends — case G 1.91 s), D10; the mutations
+  M14–M21, M16 at both limits, M36, M39. Each has its case; each mutation its RED line. P2g is §3.1's (A1).
+- **Public-doc wording fixed (A3-D18 below):** the changelog's part-3 entry said "the brief's P2a", "Every mutation
+  of the brief's §3.3 run and seen red (the live log)" and "(N10)" — names that mean nothing outside
+  `docs/internal/` (which a release drops; no earlier changelog entry names a brief, a decision number or a log). Now
+  "144 moves over …", "Every rule's mutation was run and turned its test red." (A2's own words) and no "(N10)".
+  Re-run after: api check-fresh / check-examples (565 lines) / check-removability, the staleness audit, the C7 grep
+  — all clean. Guide 18, guides 11/14/15, the faq and README grepped for `\bN[0-9]+\b|\bD[0-9]+\b|A[1-6]-D[0-9]+|the
+  brief|live log`: no hit (the register's "case F" / "case S" name its tests, and "the core's brief" was its wording
+  before this run).
+- **Looked at and left:** three code lines past 120 columns (`service.hpp` :806 and :1730, the `SpeedGoal` find;
+  `wiring.hpp` :1161, 121) — no formatter or gate enforces a width, and A2's own tests and `wiring.hpp` carry longer lines
+  (`mechanism_service_test.cpp` 14 code lines past 120 at the base); re-wrapping would change verified files for no
+  behaviour. The -O1..-O3 `-Wformat-truncation` note on A1's `roleLine()` test (above): not a defect, not this run's.
+
+### 22:40–22:45 (2026-10-18) — the landing dates made true for the commit (pace rule 5)
+- The plan docs said "MECH-A3 LANDED 2026-10-15" — written the night it was built, but it lands at the coordinator's
+  commit, after this resumption. Now **"LANDED 2026-10-18 (built 2026-10-15)"** in `build-order.md` (the first bold
+  `Next:` — "MECH-A3 LANDED 2026-10-18 (built 2026-10-15, verified at its resumption 2026-10-18)" — and MECH's own
+  entry), `roadmap.md` ("You are here": "Now (2026-10-18): MECH-A3, the third part (built 2026-10-15), has LANDED";
+  the `[~]` MECH row), `REMAINING-WORK.md` row 12; the changelog's heading "(2026-10-18; built 2026-10-15)" (A2's
+  form); guide 10's box ("since its third (MECH-A3, 2026-10-18)"), guide 14 ("2026-10-15 to 2026-10-18, three of its
+  six parts"), chapter 18's header ("MECH-A1 and A2, 2026-10-15; A3, 2026-10-18"). **For the coordinator: if the
+  commit lands on another day, these say 2026-10-18.** Left as the BUILD date, on purpose: the register's "since
+  MECH-A3 (2026-10-15)" source notes and its section heading (its row says "built 2026-10-15"), HANDOFF's "chapter
+  18, MECH-A3, 2026-10-15" (when the chapter was written), and the code comments naming the run by its date
+  (`kinds.hpp` :47, `service.hpp`'s banner, `sim/mechanism_plant.hpp`'s).
+- `PROJECT-BRIEFING.md` regenerates from `build-order.md`'s pointer: regenerated by the final gate run below.
+
+### 22:37–22:58 (2026-10-18) — the src gates, then the final gates on the final tree *(`date` 22:58)*
+- From `gates.sh resume` (the tree before the doc-only edits above — none of them reaches `src/`: no `src/` file and
+  no header `src/` includes was changed after it; `src/` reaches the mechanism layer only through
+  `robot/mechanism_parts.hpp` → `mechanism/devices.hpp`, which includes none of A3's four headers):
+  **`src_build_gate.py check`: PASS (all 7 builds link …)**, every build `exit 0, 11/11 TUs compiled, 0 disallowed`
+  (170 s); **`self-test`: OK (235 detector cases, each against a real build)** (852 s); `git diff --stat fbaf729 --
+  src/ tools/` and `git status --short src tools Makefile` EMPTY after both (no plant left).
+- `gates2.sh final2 build` on the FINAL tree (logs `scratch/mech-a3/gates/final2/`; the binary deleted FIRST, then
+  the briefing, a clean build): configure; api generate; **229 objects compiled**; **suite 2492/2492 passed, 2,795,475
+  assertions, 3 skipped** (capped); `-tc='MECH-A3*,guide-18*'` 45 cases, 3228 assertions; briefing regenerated
+  (`PROJECT-BRIEFING.md` now carries "MECH-A3 LANDED 2026-10-18 …" from `build-order.md`'s pointer), check
+  (current) and self-test (24); **harness 201/201** (201 TUs); api self-test / coverage (4672 entities, 179
+  headers) / fresh / examples (565 lines) / removability; staleness self-test (10) and audit (clean, 30 docs);
+  PROS-free; sim-free; **ARM header gate 218 headers, rc 0**; no PROBE_ / PROTOTYPE; C7 empty; direction-1 clean.
+
+### §2.1's DoD — MECH-A3, checked against the tree *(2026-10-18 22:58)*
+*(Superseded by the re-check at the end of "MECH-A3 review findings and their disposition", below — the review
+changed the code, the tests, the numbers and this list's hand-ons; this block is the 10-18 record, kept.)*
+- [x] This log carries the run's heading, its tip (`fbaf729`), each step as it happened (and the 10-15 23:40–23:58
+      steps read back from their files at the resumption), every mutation with its observed red, the prose review's
+      greps and hits.
+- [x] The host suite builds and passes (2492/2492, 2,795,475 assertions, 3 skipped — memory-capped); `ctest -R
+      compile_refusal` 201/201.
+- [x] The ARM header gate (218 headers, rc 0); the CI PROS-free and sim-free greps.
+- [x] `src_build_gate.py check` PASS, all seven builds, 0 disallowed warnings; `self-test` OK (235).
+- [x] `grep -rn "PROBE_" include/` empty; no copied file says PROTOTYPE / "(proposed)" (gate 24).
+- [x] Every §3.3 test exists (the item-by-item read above) and every §3.3 mutation was RUN on a fresh build of every
+      dependent object, observed RED and restored byte-identical (M14–M21, M16 at both limits, M36, M39) — plus the
+      run's own 30 (X…, P…, S70/S70b, W1line, K1units); the three GREEN ones each answered (X14profile → a test added,
+      then RED; X15fresh EQUIVALENT, X15d RED; M18b EQUIVALENT, kept as a guard). None killed by the cap or the
+      timeout.
+- [x] Docs in the same change (§4.1's A3 list: changelog, `docs/api/`, HA-182 only — HA-183/184/186 amended in
+      their Source notes, no other number registered —, chapter 18 with its README row and nav line); the prose review
+      logged (above); the C7 grep empty.
+- [x] Nothing committed; no `pros`; no `/dev/ttyACM*`; `git diff --stat fbaf729 -- src/ tools/` EMPTY. **The tree:**
+      30 files modified + 6 new (`docs/guide/18-mechanisms.md`, `test/compile_refusals/s70_absolute_homing_whole_turn.cpp`,
+      `test/mechanism_chapter_example_test.cpp`, `test/mechanism_position_rig.hpp`, `test/mechanism_position_test.cpp`,
+      `test/mechanism_speed_test.cpp`), uncommitted, in the worktree `.claude/worktrees/mech-a3`.
+- **For the coordinator** (unnumbered; no hardware belief outside HA-182 was met):
+  - **Files main has changed since `fbaf729`** (CAL1 Part A1 `ceb17c0`, SER1's record `fd55ffc`) that this run also
+    changed: `docs/changelog.md` (both add a "since 2.4" entry at the top of `## API 2.4`), `docs/internal/build-order.md`
+    (the first bold `Next:` is ONE long line both edit — a certain conflict: keep CAL1's sentence and A3's "MECH-A3
+    LANDED 2026-10-18 … NEXT: MECH-A4 …, then A5–A6"), `docs/roadmap.md`, `docs/internal/REMAINING-WORK.md`,
+    `docs/internal/HANDOFF-remaining-work.md`, `README.md` (different hunks), `mkdocs.yml` (the generated API block on
+    main; this run's guide nav line), and the generated `docs/api/README.md`, `docs/api/all-entities.md`,
+    `docs/internal/PROJECT-BRIEFING.md` — regenerate those three after the merge (api_doc_tool generate; the briefing
+    after `rm -f build/test/shulib_tests` and a fresh build). `test/CMakeLists.txt`: NOT touched (the new tests and
+    the harness TU are picked up by its globs).
+  - The landing dates say **2026-10-18**; change them if the commit lands another day (the list in the 22:40 entry).
+  - G3a's validator mirrors `spec.hpp`'s refusals by sentence: it is **70** now (A3-D3).
+  - The roadmap's F3 `liftToLevel (homing + … sag-comp PID hold)` (`docs/roadmap.md` :1734 at the 10-15 read) is a
+    primitive the core now provides generically — a plan change, the Q28 re-scope's to make.
+  - `sizeof(MechanismService)` is 9 448 B on ARM (A3-D17) — for A5, which puts one in each program.
+  - The mutation driver's build step is the suite target's `build.make` with its `depend` step run first, verified
+    per mutation (every dependent object recompiled, the link checked) — not a whole `cmake --build`; finding 17's
+    failure would have shown as INVALID, and none did.
+
+### MECH-A3 review findings and their disposition *(the fix round: started 2026-10-22 ~01:20, STOPPED ~02:16 by the session limit; RESUMED `date`: Thu Oct 22 08:43:31 AM EDT 2026)*
+- **Three reviewers** (correctness, tests, docs) returned 33 findings, numbered below in the order received; two
+  overlap (13 ⊃ 1's test half; 14 is 9–13's survivors in the changelog's words). Every one was re-checked against the
+  tree; **every one was real** (33's premise has since moved — see 33).
+- **The stopped run, read back from its files** (it logged nothing but this log's 23:05 heading fix): code and test
+  edits 01:36–02:07 (`service.hpp`, `kinds.hpp`, `wiring.hpp`, `control/trapezoid_profile.hpp`, A1's
+  `test/mechanism_fixtures.hpp` and `mechanism_kinds_test.cpp`, both A3 test files); six fresh builds and capped suites
+  `fix/logs/f1…f6` (f6, 02:07:57: **2514/2514**); soft-stop design variants `fix/variants/v0…v4, v4n, wt` (01:38–01:55);
+  a copy of the final tree, `fix/muttree`, on which `fix/mut.py` re-ran every mutation 02:09–02:16 (`fix/mut/summary.txt`:
+  50 verdicts) until the stop killed it mid-`Napproach` (its log empty); the documents 02:11–02:15.
+- **Checked FIRST at the resumption:** the live log had no disposition section (grepped); `git status` and `git diff
+  --stat fbaf729 -- src/ tools/ Makefile` — src/, tools/ and the Makefile untouched, no gate plant; every worktree file
+  `cmp`-equal to its newest backup in `fix/mut/` (`service.hpp` = `Napproach.service.hpp.orig`, `kinds.hpp` = K1units's,
+  `spec.hpp` = S70b's, `wiring.hpp` = W1line's, the plant = P3wedge's) — the mutations ran in `fix/muttree`, never in
+  the worktree; **`fix/muttree`'s `service.hpp` still held the killed `Napproach` mutant** (`if (!holdLoop_) {`) —
+  restored from its backup, timestamp bumped, its binary deleted; `fix/muttree` then equal to the worktree file by file
+  (`diff -rq`, build dirs aside) once the stopped run's later doc edits were copied in. The worktree's binary was never
+  trusted: the final gates deleted it first, then the briefing, then a clean build.
+- **The reviewers' probes re-run on the final code** (`fix/resume/probes/*.now.txt`, each under the memory cap):
+  p_softstop2 Blue 2× 12 V down 10.11 → **8.32°**, 1× 4.56 → **2.50°**; p_blue the most toward the limit **8.00 V** for an
+  8 V push (was 8.70); p_softstop3 a 60 s push: **one soft stop, ±0.00° from 10 s on** in all nine (was 25–37 stops,
+  +1.45° drift); p_linkage the joint never above **66 of 86 deg/s** (Red) / **135 of 171** (Green) — 77–79 %;
+  p_stallhome the 2.0 A recipe still TIMED_OUT (by design, A3-D23) and now says `it drew at most 0.62 A, its homing
+  signature needs 2.00 A`; p_findgoal every stranger's goal **(nil)**; p_bootline `in 0.25 s,` unmarked; p_absturn −12°
+  still believed 348° and STALLED at 0.70 s (documented, finding 5); p_restsstop the limit-at-the-stop arrivals
+  0–19 deg/s. The stopped run's own measurement probes (`p_measure`, `p_measure2`) reproduced byte for byte; `p_ring`,
+  `p_bottom` as the tests quote.
+- **Found at the resumption, fixed:** (a) **R10 SURVIVED** the stopped run's test for it ("a re-home by STALL from a
+  loaded hold"): its hold had been loaded 1 s and still sagged at 9.6 deg/s, so the homing detector's first sample was
+  not stall-grade and a window left open closed on it — the case could not see the reset (`fix/resume/probes/r_rehome.cpp`
+  traced it: with the hold SETTLED, 1.08 A at rest, the mutant re-zeroes at once, "its zero moved +59.5 deg"). The
+  subcase now ticks the loaded hold 4 s and REQUIRES both halves of the stall-grade sample (current AND speed); R10
+  re-run: **RED**, and the twelve other mutations whose RED had named that test case re-run on it: all **RED**
+  (`fix/resume/mlist_resume3.py`). (b) `Nfindvalue` and `M16` were BUILD failures (`-Werror=unused`), no verdict —
+  re-written to compile, both **RED**. (c) the rests-at-stop test said its matched-gravity arm "never" meets its stop:
+  it meets it at 0.0–0.2 deg/s (never at 6 V) — comment corrected (`p_measure2`).
+- **The mutations, all on the FINAL code** (`fix/mut.py` and `fix/resume/mut.py`: one mutation at a time in
+  `fix/muttree`; a FULL `cmake --build build/test` — its depend step and the doc gates — line-preserving so the doc
+  gate's line numbers hold; a verdict only when EVERY object depending on the mutated file was recompiled (8 for
+  `service.hpp`, 16 for `kinds.hpp`/`wiring.hpp`/`spec.hpp`, 5 for the plant) and the binary re-linked after it; the
+  `MECH*,guide-18*` filter, then the whole suite, under `ulimit -v 4194304; timeout 600`; restored in `finally`,
+  byte-identical, timestamp bumped; the binary deleted after each): **98 distinct mutations — 96 RED, 2 GREEN and
+  EQUIVALENT** (M18b, X15fresh — as at 10-15: a clamp that can never act, a reset another reset already makes); none
+  killed by the cap or the timeout; every `restored=True`. Lists: `fix/mlist_final.py` (the brief's §3.3, the run's
+  own, the fix round's `N…`, the reviewers' `R…`), `fix/resume/mlist_resume*.py`; summaries `fix/mut/summary.txt`
+  (02:09–02:16, 50 lines) and `fix/resume/mut/summary.txt` (08:54–09:04, 63 lines).
+- **The soft stop's ramp, built again** (`fix/resume/vramp`): finding 1's first suggestion, independently re-written
+  at the resumption — the same grid as the stopped run's v1 to the hundredth (10.44° worst). A3-D20 records why it was
+  rejected.
+
+| # | Lens, severity | Finding | Disposition | Proof (mutations on the final code, each RED unless said) |
+|---|---|---|---|---|
+| 1 | correctness, major | the soft stop measured on one arm at 8 V; Blue / 12 V 7.8–10.1° past; its hold pushed harder than the driver | **FIXED in part, the rest MEASURED and DOCUMENTED** (A3-D20): latched, the move loop then a fresh hold, capped at the push — worst 8.32° (Blue 2× 12 V down), 2.50° with gravity right; the ramp tried and worse. Chapter 18's table (3 cartridges × 3 gravity errors), the rule that it grows with arrival speed and gravity error, a move's own overshoot up to 10.27° on the Blue arm; HA-183's numbers. New case: the soft stop on a SLOW, MEDIUM and FAST arm at 4/8/12 V (54 pushes; ≤ 8.32 + 1°, matched ≤ 2.50 + 1°, never harder than the push, one soft stop per push) | Ncap, Napproach, Napproachend, Nfreshhold, Nlatch, M16, M16top, M16bottom, X13stopdist, R7stopquarter |
+| 2 | correctness, major | a homing signature by the jam recipe can never trip at −3 V; robot y's `swing` states 1.5 A | **FIXED, a different way** (A3-D23): no refusal (it would rest on HA-93's invented current shape); the TIMED_OUT line says what the push drew against what the signature needs; chapter 18's homing-signature rule (0.45 A for a 3 V push to start), guide 11, the glossary; `swing` 0.45 A (A1's fixture and words test); HA-93's entry. New case: the 2.0 A home TIMED_OUT with its line, and robot y's swing HOMES | Nhomeamps |
+| 3 | correctness, major | a linkage's or a table's plan up to ~4× the free speed (mean slope against a steepest-slope speed) | **FIXED** (A3-D21): one scale, the steepest — the plan, the soft stop's distance, a table's steepest segment. New case: 8 moves on a DR4B, the measured table and a table steepest at its top — never a saturated tick, the joint ≤ 80 % of free, ≥ 70 % where it cruises | Nscale, Ntable, R44linkscale (A1's words test) |
+| 4 | correctness, minor | the limit hold chattered: let go inside the limit, the full push a tick, the integral reset, another soft stop | **FIXED** (A3-D20's latch). New cases: a 20 s push stays ONE soft stop and converges within 0.1°; D2 asserts `softStops() == 1` | Nlatch, R6softcount, R30turnaway |
+| 5 | correctness, minor | absolute homing's turn has no margin: an arm resting > (360 − travel)/2 outside its limits is read a turn off | **DOCUMENTED, not refused**: the build sees the travel, never where an arm rests at power-up; the jam signature is the net (STALLED 0.70 s). Chapter 18's rule with worked numbers (160° → ±100°; 340° → ±10°); HA-186's entry. New subcase: the one-turn window (−90 read right; −110 believed 250, STALLED at its stop) | R49floor, R49ceil |
+| 6 | correctness, minor | "limits short of the stops" cannot hold at a rests-at-stop / stall-homed end | **DOCUMENTED + TESTED**: chapter 18's "At a home end the limit IS the stop" with the measured arrivals (0.2 / 13.5 / 35 °/s). New case: the plant's stop AT the limit — met at ≤ 35.3 + 5 deg/s, never STALLED, held | M16bottom, R7stopquarter |
+| 7 | correctness, minor | `find(PositionGoal)` ignored units: a same-named lift's goal moved this arm | **FIXED** (A3-D22): `PositionGoal::units`; a named preset must match in value too. New case (and the speed one) | Nfindunits, Nfindvalue, X18unitsfind, X19goalpreset |
+| 8 | correctness, minor | the boot line marked a speed-only ramp "(tuned)"; the flywheel's kI labelled per rad/s | **FIXED** (A3-D24). Boot-line case: speed only, acceleration only, a declaration's `.maxSpeed` | Nrampmark, NkIunit, W1line |
+| 9 | tests, major | absolute homing tested only below the middle — floor for round survived | **FIXED (tests)**: an arm at 150 (0..160) and robot y's reversed wrist at +60 | R49floor, R49ceil, X1wrap |
+| 10 | tests, major | kS, kA and a lift's constant gravity never exercised | **FIXED (tests)**: a tuned kS (±0.5 V, both directions, exactly) and kA; a lift held by its gravity term alone (kI 0: within 0.01 in, 3.0 V at rest); the speed loop's kS (the reverse-spin case) | R4possign, R5kA, R38constgrav, R39level |
+| 11 | tests, major | removing either 3 V clamp, clearing (not freezing) the speed integral, carrying it into a new spin — all survived | **FIXED (tests)**: a move blocked 5 s (≤ 1.9 A, then ≤ 9.8° over — unclamped STALLED); a wheel dragged short (≤ 300 rpm over — unclamped 540); a shot's recovery ≤ 0.50 s (cleared 0.57); a re-spin ≤ 50 rpm over (carried 172.5) | R36holdcap, R42holdcaplow, R2spdcap, R2bspdcaplow, R40spdclear, R32spdintreset, R41wide, R41narrow |
+| 12 | tests, major | REACHED's settle window not tested as contiguous | **FIXED (tests)**: a ringing arm (2 exits after its plan) — the verdict a full settle time after the LAST entry | R1tolreset, R1bsettle |
+| 13 | tests, major | the soft stop tested on one arm: a quarter distance, an unconverted lift acceleration, a per-tick count, the direction-blind distance all survived | **FIXED (tests)**: the cartridge grid (1); a spool lift at both limits (the push untouched until near, then held within 0.05 in); a fall away from the top when the push flips up is the driver's own; a push turned away is let go at once, back up a NEW soft stop | R7stopquarter, R51accel, R6softcount, R22stopdir, R30turnaway |
+| 14 | tests, major | the changelog said "Every rule's mutation was run and turned its test red" against six survivors | **FIXED**: every survivor RED on the final code (9–13, 15–22) and the sentence narrowed to what was shown — "98 mutations of these rules, the review's own among them … 96 turned a test red, and the other two change nothing the code can do (each shown equivalent)"; the TESTED paragraph names the review's new cases; the DoD below matches | (the table's every row) |
+| 15 | tests, minor | the re-home Warn's threshold: one side, 10× — both survived | **FIXED (tests)**: a stall-homed arm wedged 2° (Warn) and 1° (Info); a measured table homed at its bottom end (1.25° one side, 0 the other: 1° is Info) | R8tolside, R9warn10 |
+| 16 | tests, minor | the stall-watch and step-clock resets untested (R10–R16, R18) | **FIXED (tests)**: every command restarts them — a new jog, a move from a loaded hold, `holdHere()`, a switch-home from a pinned jog, a re-home by stall from a SETTLED loaded hold, a move's first tick — on exact 1/128 s ticks (the 65th stall-grade sample is the trip) | R10 (on the resumption's fixed subcase), R11–R16, R18 |
+| 17 | tests, minor | `find(Lift)`'s units and `find(SpeedGoal)`'s preset untested | **FIXED (tests)**: a lift named "arm" on an arm rig; a same-named flywheel's missing preset and its preset at another speed | R37findlift, R19speedgoal |
+| 18 | tests, minor | the speed boot line's "(tuned)" never tested | **FIXED (tests)**: one tuned (kP) and all four, verbatim | R20bspdmark |
+| 19 | tests, minor | no reverse spin | **FIXED (tests)**: ±2000 rpm on a 10 %-slow plant both SUCCEEDED (the window opens backward) | R3spdwinneg |
+| 20 | tests, minor | `jog(0 V)` == `holdHere()` untested | **FIXED (tests)**: the target where it was, the gravity hold commanded, the claim held | R35jog0 |
+| 21 | tests, minor | a tautological assertion (`target() == Approx(target())`) | **FIXED**: the release's real claim — the target is where the arm read, clamped to the limit | — |
+| 22 | tests, minor | a reversed sensor's zero log, and `>=` at the homing and spin-up bounds, unpinned | **FIXED (tests)**: the reversed wrist's line verbatim; both bounds on 1/128 s ticks (TIMED_OUT on the third, `elapsed == 2/128`) | R28abslog, R23homegt, R24spdgt |
+| 23 | tests, minor | the 10-15 mutation driver ran no whole `cmake --build`; two test files changed after the last mutation | **SUPERSEDED**: every mutation re-run on the FINAL tree with a full build (above). What the 23:39 edits of `mechanism_position_rig.hpp` and `mechanism_speed_test.cpp` changed cannot be read back — no copy of either exists from between 23:32 and 23:39 — so it is recorded as unknown, not guessed; the reviewers' own full-build re-run of 18 (`review-gates/run3.out`) was all RED | (all) |
+| 24 | docs, major | HA-182 "printed at boot and replaced by `.tuning`" false for its three library constants, and nothing prints the line yet | **FIXED**: the claim split wherever it is made — the register (the MECH-A3 paragraph, the row, Source, a two-part Contained with the wider blast radius), `service.hpp`'s banner and the constants' docs, `kinds.hpp`'s banner, `startingValuesLine()`'s doc, chapter 18 (a paragraph on the three LIBRARY constants; "clamped to 3 V" out of the `.tuning` table), the changelog; "printed at boot" → "worded for a boot line the programs print from MECH-A5; none does yet" (chapter 18, glossary, roadmap, build-order → the briefing). Whether a team should tune the three is a design question: for the coordinator | — |
+| 25 | docs, minor | MECH-A4's driver-loop behaviour in the present tense | **FIXED**: the changelog, chapter 18 (twice), the glossary, `service.hpp`'s banner — "from the core's driver controls on (its fourth part)" | — |
+| 26 | docs, minor | "LANDED 2026-10-18" already wrong | **FIXED for a commit TODAY**: 2026-10-22 in the changelog heading, guides 10, 14, 18, roadmap ×2, build-order ×2, REMAINING-WORK (the 22:40 entry's list); the briefing regenerates. If the commit lands another day, these change again (for the coordinator) | — |
+| 27 | docs, minor | "the models tuned" not done, unlogged | **FIXED**: A3-D19; the 23:05 heading corrected in place; HA-183's entry | — |
+| 28 | docs, minor | homing "switch or stall" built as both while F14 and master-plan question A say open | **HANDED ON** (Q26's plan commit is the coordinator's): below | — |
+| 29 | docs, minor | kI's unit, `.cartridge` "common", flywheel kS 0 missing from HA-182 | **FIXED**: chapter 18's rows (kI per output rad), the boot line, "`.cartridge` (every kind with motors)", "kS 0" in HA-182's row and entry | NkIunit |
+| 30 | docs, minor | chapter 18's "Reading a refusal" had no example; guide 10's list lacked refusal 70 | **FIXED**: refusal 70's note chain in chapter 18 — GCC 13.3's real output for `fix/refusal/your_robot.cpp` (re-compiled at the resumption: `your_robot.cpp:7:9: in 'constexpr' expansion of 'shulib::mechanism::wire<RolePort>(wrist, …)'` … `spec.hpp:1064:103: error: call to non-'constexpr' function 'void shulib::mechanism::refused::position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor()'`), trimmed of the `wireMotors` expansion and the template arguments, as it says; guide 10's list gains the clause | — |
+| 31 | docs, minor | `mechanism_kinds_test.cpp`'s stale "the brief holds as HA-182" | **FIXED** | — |
+| 32 | docs, minor | A3-D18's rule broken by A3's own doc comments reaching `docs/api/` | **FIXED**: A3's doc comments reworded (no "the brief's P3", N2, N7, N10); A3-D18 scoped (its note) | — |
+| 33 | docs, minor | the merge list left out main's uncommitted plan update | **REAL, then OVERTAKEN**: main committed it as `71b4764` (HA-192..HA-203 held for VIS1); the hand-on below lists main's commits since `fbaf729` and the overlaps | — |
+
+- **The A3 tests now** (the final build): `MECH-A3 position` **47** cases (was 32), `MECH-A3 speed` **14** (7), `MECH-A3
+  plant` 3, the chapter's `guide-18a..c` 3 — **67 cases, 3925 assertions** under `-tc='MECH-A3*,guide-18*'`.
+- **Docs moved in this round (pace rule 3):** `docs/changelog.md` (part 3's header, the position and speed entries, the
+  library constants, the boot line, the TESTED paragraph), `docs/hardware-assumptions.md` (the MECH-A3 paragraph,
+  HA-182's row and entry, HA-183's Blast radius, HA-186's Source, HA-93's note), `docs/guide/18-mechanisms.md` (the
+  common fields; units — the steepest scale; the soft stop and its table; a home end's limit; the one-turn rule; the
+  homing signature; REACHED unbroken; the starting-values table and the library constants; the honest limit; the
+  refusal example), guides 10, 11, 14, 15, `docs/api/` (regenerated: `kinds.md`, `service.md`, `wiring.md`,
+  `trapezoid_profile.md`, `README.md`, `all-entities.md`), `roadmap.md`, `build-order.md`, `REMAINING-WORK.md`,
+  `PROJECT-BRIEFING.md` (regenerated), this log. **Not touched, deliberately:** the cookbook (A4's recipe), guide 13
+  (true), guides 16/17 (A5's), README's map (true), `docs/faq.md` (true), HANDOFF (its A3 lines true), the brief (the
+  coordinator's), `MECH-PANEL-requirements.md` (the requirements as written).
+- **Prose review (pace rule 4) — every grep RUN and its hits READ before this line** (README.md and docs/**/*.md
+  minus `docs/api/` and `docs/internal/chunks/`): `4\.06` 0 hits; `7\.22` chapter 18 :132 and HA-183 :1249 (both true —
+  the Red/Green grid's); `stopping distance` guide 14 :431, changelog :497, HA :4217/:4219, roadmap :1211 (the drive's —
+  not this); `held at the limit|HELD AT THE LIMIT|held AT` glossary (this round's), roadmap :372 and build-order :632
+  ("a push held at the limit" — true as a summary), HA-154 (a claw — not this); `mean slope|converted at the
+  move|first segment|conservative (scale|estimate)` 0 hits; `never stalled against its stop` chapter 18, guide 11,
+  changelog (this round's); `per rad/s|per output rad` chapter 18 :272/:273 and the changelog (this round's), HA
+  :1221/:1225 (the plant's kV and brake damping — true), :1278 (true); `PositionGoal` changelog (this round's);
+  `no consumer|nothing in the tree instantiates|isn.t wired|not wired into` changelog :1583/:1592 (a dated BREAKING
+  entry — history), guide 14 :351 (this round's); `soft stop` changelog, guide 11 :340, glossary, guide 14 :220,
+  roadmap :1741, build-order :1621, chapter 18, `MECH-PANEL-requirements.md` :186/:266 (all true or this round's);
+  `homing signature|homeByStall` guide 11, changelog, glossary, chapter 18, HA :4054 (this round's) and changelog
+  :303 (A1's words — true); `steepest` chapter 18 and the changelog (this round's); `trapezoid` chapter 18, the
+  changelog, guide 14, roadmap :867/:1188 (A1's control list — true), the master plan (history),
+  `MECH-PANEL-requirements.md` :97/:168 (true); `printed at boot|print(s|ed)? (it|them) at boot|boot line` — every
+  MECH hit scoped (24), the rest other programs' boot lines (true).
+- **Gates on the final tree** (`fix/resume/gates.sh`, logs `fix/resume/gates/build1/` and `…/src1/`): see the DoD
+  re-check below.
+
+### §2.1's DoD — MECH-A3, re-checked after the review's fix round *(2026-10-22, `date` 09:34:18)*
+- [x] This log carries the run's heading, its tip (`fbaf729`), each step as it happened, the 10-15 / 10-18 steps
+      read back at their resumptions, and the review's 33 findings with their dispositions — the stopped fix run read
+      back from its files and this resumption's own checks (above).
+- [x] The host suite, a CLEAN build (229 objects) of the final tree, its binary deleted first: **2514/2514 passed,
+      2,796,172 assertions, 3 skipped** (`ulimit -v 4194304; timeout 600`); `-tc='MECH-A3*,guide-18*'` **67 cases,
+      3925 assertions**; `ctest -R compile_refusal` **201/201** (201 TUs). (`fix/resume/gates/build1/`, 09:05–09:10.)
+- [x] The ARM header gate (**218** headers, rc 0); the CI PROS-free and sim-free greps.
+- [x] `src_build_gate.py check` **PASS** (all seven builds, 11/11 TUs each, 0 disallowed warnings); `self-test` **OK
+      (235** detector cases, each against a real build); `git diff --stat fbaf729 -- src/ tools/` and `git status
+      --short src tools Makefile` EMPTY after both (`fix/resume/gates/src1/`, 09:11–09:33).
+- [x] No `PROBE_` / PROTOTYPE / "(proposed)"; the C7 grep empty; the register's direction-1 grep clean.
+- [x] Every §3.3 test exists, and every mutation — the brief's §3.3 (M14–M21, M16 at both limits, M36, M39), the run's
+      own, the fix round's and the reviewers' — was RUN on the FINAL code with a full build of every dependent object,
+      the link checked: **98, 96 RED, 2 GREEN and shown EQUIVALENT** (M18b, X15fresh); none killed by the cap or the
+      timeout; every file restored byte-identical.
+- [x] Docs in the same change (the round's list above, §4.1's A3 list as before: the changelog, `docs/api/`, HA-182
+      only — HA-183/184/186 amended in their Source notes, HA-93's note, no other number registered —, chapter 18 with
+      its README row and nav line); the prose review logged (above); `api_doc_tool` self-test / coverage (4673
+      entities, 179 headers) / fresh / examples (565 lines) / removability; the staleness self-test and audit clean;
+      the briefing regenerated after the binary existed, `check` current, self-test OK.
+- [x] Nothing committed; no `pros`; no `/dev/ttyACM*`. **The tree:** 34 files modified + 6 new (the 10-18 list plus
+      `include/shulib/control/trapezoid_profile.hpp`, `docs/api/trapezoid_profile.md`, A1's
+      `test/mechanism_fixtures.hpp` and `test/mechanism_kinds_test.cpp`), uncommitted, in `.claude/worktrees/mech-a3`.
+- **For the coordinator** (unnumbered; the 10-18 list above stands except where this one says otherwise):
+  - **Main has moved since `fbaf729`**: `ceb17c0` (CAL1 Part A1), `fd55ffc` (SER1's record), `71b4764` (VIS1's brief
+    answered — HA-192..HA-203 HELD); and main's working tree holds uncommitted edits (`HANDOFF-remaining-work.md`,
+    `RELEASING.md`, `test/CMakeLists.txt`, `tools/briefing_status.py`, `tools/doc_staleness_audit.py`,
+    `tools/release.py`, a new `tools/suite_run.py`). Files both main (to `71b4764`) and this run changed: `README.md`,
+    `docs/changelog.md`, `docs/hardware-assumptions.md` (main's held line now ends `HA-192..HA-203` — after the merge
+    the briefing's next free is **HA-204**, not this tree's HA-192 — and main's 2026-10-18 K.7.3 note sits after
+    SER1's paragraph, beside where this run's MECH-A3 paragraph follows A2's), `docs/internal/build-order.md` (the first
+    bold `Next:` line: a certain conflict — keep both sentences), `docs/internal/HANDOFF-remaining-work.md` (also
+    uncommitted on main), `docs/internal/REMAINING-WORK.md`, `docs/roadmap.md`, `mkdocs.yml`, and the generated
+    `docs/api/README.md`, `docs/api/all-entities.md`, `docs/internal/PROJECT-BRIEFING.md` — regenerate those after the
+    merge (`api_doc_tool.py generate`; the briefing only after `rm -f build/test/shulib_tests` and a fresh build).
+    `test/CMakeLists.txt`: NOT touched by this run (its globs pick up the new tests).
+  - **The landing dates say 2026-10-22** (the changelog heading, guides 10, 14, 18, roadmap ×2, build-order ×2 — its
+    MECH entry adds "reviewed and fixed 2026-10-22" —, REMAINING-WORK): change them again if the commit lands another
+    day.
+  - **Q26's plan commit:** homing by switch AND by stall is BUILT (P2e; chapter 18's which-to-choose table), so the
+    roadmap's F14 row (:148, "the lift-homing switch-or-stall decision … is still unanswered"), roadmap :839 ("the
+    still-open lift-homing switch-or-stall answer") and the master plan's open question A (:585, "the scoring-primitives
+    chunk … which writes the homing routine") are stale until that commit records it. F3's `liftToLevel` (roadmap
+    :1748 now) as before.
+  - **Two design questions this round surfaced and did NOT decide:** (a) whether a team should be able to tune the
+    three LIBRARY constants (the hold's integral clamp, the speed integral's window and clamp) per mechanism — today
+    only an edit to `service.hpp` changes them, for every mechanism (HA-182's Contained says so); (b) whether, once
+    HA-93 is measured on a real motor, a homing signature its push cannot reach should be REFUSED at build (A3-D23
+    declined it while that current shape is invented).
+  - **A hardware belief leaned on outside HA-182** (unnumbered, as the go asks): chapter 18's homing-signature advice
+    — a 3 V homing push draws about 3/12 of the 2.5 A limit at its stop, so state 0.45 A to start — rests on HA-93's
+    invented current shape (|V − kV·ω| × 2.5 / 12). It is worded as the host test plant's number, to be checked on the
+    bench; HA-93's entry now names the reliance. No HA number was registered for it.
+  - `sizeof(MechanismService)` is **9 640 B** on ARM `-Os` (A3-D17 re-measured; was 9 448) — for A5.
+  - G3a's validator mirrors `spec.hpp`'s refusals by sentence: still **70** (the review added none).
+  - The mutation driver now runs a whole `cmake --build` per mutation (line-preserving, so the doc gate holds) — the
+    10-18 hand-on's last bullet is superseded. Its scratch: `.claude/coordinator/scratch/mech-a3/fix/` (the stopped
+    run) and `fix/resume/` (this resumption); `fix/muttree` is a scratch copy of the final tree, every mutated file
+    restored and `cmp`-equal to the worktree's.
+
+### 10:04 (2026-10-22) — Verification-round findings and their disposition — started *(`date`: Thu Oct 22 10:04:52 AM EDT 2026)*
+- A fresh verifier returned **five minor findings** (V-1 … V-5 below: the homing note's first-tick current, the soft
+  stop latch's clear in `resetBehaviour()`, an Arm `clampedTo()` goal's units, the changelog's missing CHANGE for a
+  measured table's starting speed, guide 10's "only numbers" sentence). Each is re-checked against the tree before it
+  is fixed; the disposition table follows when the round's gates are green. Scratch: `.claude/coordinator/scratch/
+  mech-a3/vfix/`.
+
+### 10:04–10:50 (2026-10-22) — Verification-round findings and their disposition *(`date` at this entry's writing: Thu Oct 22 10:45:37 AM EDT 2026)*
+- **Re-checked FIRST, each against the tree** (every one REAL): V-1, the verifier's probe re-run under the memory cap
+  (`verify/probes/p_v_homeamps.bin`): after a jog pinned at 8 V, `it drew at most 1.67 A, its homing signature needs
+  1.50 A` beside "it never stalled" — reproduced; V-2, `p_v_latch_real.bin` / `p_v_latch_v2.bin`: the second push's
+  first tick 8.00 V and 2 soft stops on the real header, **1.58 V** and 1 on the mutant — reproduced; V-3, the tests
+  read: `mechanism_kinds_test.cpp` checked no goal's `.units`, and no position case found an ARM's `clampedTo()`;
+  V-4, `git show fbaf729:include/shulib/mechanism/kinds.hpp` — "for a table its first segment's" — and the changelog's
+  CHANGED section had two bullets, neither this; V-5, guide 10 :452-456 read — the "only numbers" sentence as quoted.
+- **V-1 went wider than its suggestion — A3-D26 above.** Skipping the first tick alone was built in a probe first and
+  left the same contradiction from the push's OWN current: `vfix/probes/p_brake.cpp` (a home begun while the arm still
+  swings up) — the push brakes the swing at 1.29 A (1.42 A after 30 ticks of jog), 1.00–1.10 A after its first
+  tick, while its current when STOPPED is 0.62 A. The line now counts only the push's samples at or below its
+  signature's speed, and says `it never slowed to its homing signature's speed -- did it reach its stop?` when there
+  are none; `vfix/probes/p_newnote.cpp` on the fixed header: 0.62 A when stopped after a pinned jog (twice), after a
+  braked swing and on a wedge; the never-slowed line for a 0.15 s home that could not reach its stop.
+
+| # | Finding (minor, each) | Disposition | Proof (mutations on the final code — each RED unless said) |
+|---|---|---|---|
+| V-1 | the homing TIMED_OUT note counted the PREVIOUS behaviour's current (first tick); its reset unpinned | **FIXED at the root** (A3-D26): the push's own samples only (`homePushed_`, set by its first command), and only when stopped (the detector's own speed test); a never-slowed line; `home()` resets both. Tests: the existing note case's text; a NEW case — a jog pinned at 8 V before each of TWO homes (0.62 A each time), a home that brakes an upward swing (0.62, not 1.29), a home stopped on a wedge then a 0.15 s home that never slows (the never-slowed line, no "drew at most"). Docs: chapter 18, guide 11, the changelog, HA-93's note, `home()`'s doc comment | V1homeampsreset (the verifier's V1, re-anchored), V1bpushedreset, V1cfirsttick, V1dslow, V1enever, V1fsetpushed, V1gvelsource |
+| V-2 | the soft stop latch's clear in `resetBehaviour()` unpinned | **FIXED (tests)**: a push held at the top ENDED by `release()`, by a move, and by a STALLED (a 0.5 A signature; the arm jammed short of the top after the latch, `... while held to move`) — then a move away and a push the same way: its first tick commands **8.0 V exactly**, `softStops() == 2`, held within 0.5° of the limit. The code was right | V2resetlimitdir — RED on all THREE ends (`end := 0, 1, 2`). V2bholdatclear (`holdAt()`'s clear removed) **GREEN, EQUIVALENT**: `holdAt()`'s two callers are `beginHold()` (after `resetBehaviour()`) and a move's TIMED_OUT (Move mode); `limitDir_` is read only in `tickJog()`, reached only through `jog()`'s Mode::Jog, which passes `resetBehaviour()` whenever it enters from another mode — and `holdAt()` always leaves Mode::Hold. Kept as a defensive clear |
+| V-3 | an Arm `clampedTo()` goal's `units` unpinned | **FIXED (tests)**: `find(kGreen5.clampedTo(175.0))` and a same-named arm's both find this arm; A1's words test checks the units of six goals (the arm's preset, `to()`, `clampedTo()`; the lift's `to()`, preset, `clampedTo()`) | V13armclampunits — RED in BOTH tests |
+| V-4 | the changelog did not list a measured table's STARTING speed changing (first → steepest segment) | **FIXED**: a CHANGED bullet — `Lift::spec().position.maxVelocity` / `maxAcceleration` (and so the boot line's cruise) from the steepest segment, the same or faster (2.5× on the test's kTilt2); a stated `.tuning` value, a spool's and a linkage's unchanged | — (A3-D21's own test, `mechanism_position_test.cpp` kTilt2's `maxVelocity`) |
+| V-5 | guide 10: "the only numbers the library supplies" missed the three library constants | **FIXED**: scoped "PER MECHANISM", and the three loop constants named as the library's own, not in `.tuning` (chapter 18) | — |
+
+- **Every earlier mutation re-run on THIS round's code** (`vfix/mlist_all.py`: the 98 of `fix/mlist_final.py` and
+  `fix/resume/mlist_resume*.py`, the later definition winning) — `tickHome()` and `home()` changed, so no verdict is
+  carried over unchecked: **94 RED, 2 GREEN and EQUIVALENT** (M18b, X15fresh — as before). `Nhomeamps` is gone with
+  its line (superseded by V1cfirsttick / V1fsetpushed); `R11homewatchreset` named `homePushAmps_` in its context and
+  was re-anchored (`vfix/mlist2.py`, R11homewatchreset2): **RED**. **This round's own:** 10, 9 RED, V2bholdatclear
+  EQUIVALENT. **In all: 107 distinct mutations on the final code — 104 RED, 3 GREEN and shown EQUIVALENT**; none
+  killed by the cap or the timeout; every one `restored=True`; every verdict with ALL dependents recompiled (8 for
+  `service.hpp`, 16 for `kinds.hpp`/`spec.hpp`/`wiring.hpp`, 5 for the plant) and the binary re-linked, by a whole
+  `cmake --build` (`vfix/mut.py` = `fix/resume/mut.py` re-pointed; `vfix/mut/summary.txt`, 10:16–10:33). The tree:
+  `fix/muttree`, rsynced from the worktree before its baseline build (10:15:52; 229 objects, the filter green) and
+  again at 10:18 (the docs edited since), before the 96; after the last, equal to the worktree file by file but for this log.
+- **The A3 tests now:** `-tc='MECH-A3*,guide-18*'` **68 cases, 3969 assertions** (was 67 / 3925: one new case; the
+  latch subcase, the find() and words checks added to existing ones).
+- **Docs moved in this round (pace rule 3):** `docs/changelog.md` (part 3's homing line, a CHANGED bullet, TESTED and
+  its counts), `docs/guide/18-mechanisms.md` (the homing-signature rule: the line's number is the push's when stopped,
+  the never-slowed line), `docs/guide/11-reading-the-diagnostics.md` (TIMED_OUT's homing notes), `docs/guide/10-the-api.md`
+  (the "only numbers" sentence), `docs/hardware-assumptions.md` (HA-93's note: "when stopped"), `docs/api/`
+  (regenerated: `home()`'s doc comment, line numbers), `docs/internal/PROJECT-BRIEFING.md` (regenerated), this log
+  (A3-D23's note, A3-D26, A3-D17 re-measured). **Not touched, deliberately:** the glossary (its `homeByStall` sentence,
+  "a gentle push stalls at a small current", is true), roadmap / build-order / REMAINING-WORK / HANDOFF (their A3
+  lines name no count and stay true — read), `test/CMakeLists.txt` (no new file), the brief (the coordinator's).
+- **Prose review (pace rule 4) — each grep RUN and its hits READ before this line** (README.md, docs/**/*.md minus
+  `docs/api/` and `docs/internal/chunks/`, and `include/shulib`): `drew at most` — guide 11 :290, the changelog :52,
+  chapter 18 :203, `service.hpp` :1121 (all this round's); `what the push drew|push drew|its push drew` — guide 11,
+  chapter 18, the changelog, HA-93 :4057, `service.hpp` :847/:1293 (this round's); `never slowed` — the same four
+  (this round's); `first segment` — the changelog's new bullet only (A1's words gone, A3-D21); `steepest` — chapter
+  18 :92/:213, the changelog :37/:108, `service.hpp` :66/:810/:1164, `kinds.hpp` (all true); `only numbers|library
+  supplies` — guide 10 only (this round's); `library supplies|library's numbers|library's own numbers|replaced one
+  by one|one by one with|\.tuning replaces` — chapter 18 :16/:296, the changelog :78, HA :161/:1263, `service.hpp`
+  :90 (each already split by finding 24 — true); `turns away|turned away|or ends|push ends` — the changelog :62,
+  `service.hpp` :1053/:1057 (true), HA :1157 (a homing push by switch — not this); `homePushAmps|homeStoppedAmps|
+  homePushed_` — `service.hpp` and this log's A3-D23 (now annotated); `98 mutation|96 turned|67 cases|3925` — none
+  outside this log.
+- **Gates on the final tree** (`vfix/gates.sh final all`, logs `vfix/gates/final/`): the binary deleted, the briefing
+  generated, a CLEAN build (**229 objects**), the suite **2515/2515 passed, 2,796,224 assertions, 3 skipped** (capped,
+  20 s), the A3 filter as above, the briefing generated after the binary existed, `check` current, self-test OK (24);
+  `ctest -R compile_refusal` **201/201** (201 TUs); `api_doc_tool` self-test OK, coverage (4673 entities, 179
+  headers), fresh, examples (565 lines), removability; the staleness self-test OK and the audit clean; PROS-free,
+  sim-free; the ARM header gate (**218** headers, rc 0); no `PROBE_` / PROTOTYPE / "(proposed)"; C7 clean; the
+  register's direction 1 clean; `src_build_gate.py check` **PASS** (seven builds, 11/11 TUs each, 0 disallowed
+  warnings); `self-test` **OK (235** detector cases, each against a real build, 10:41–10:56); `git diff --stat fbaf729
+  -- src/ tools/` and `git status --short src tools Makefile` EMPTY after both (the self-test's planted `Makefile`
+  edit was seen mid-run, 10:50, and is gone — the gate restores it). Every gate rc 0 (`vfix/gates/final/summary.txt`).
+
+### §2.1's DoD — MECH-A3, re-checked after the verification round *(2026-10-22, `date` 10:57)*
+- [x] The log carries the verification round's start (10:04), its five findings re-checked and disposed (above), the
+      A3-D26 delta and A3-D23's note, and the re-measured size (A3-D17).
+- [x] The host suite on a CLEAN build (229 objects), its binary deleted first: **2515/2515 passed, 2,796,224
+      assertions, 3 skipped** (capped); `-tc='MECH-A3*,guide-18*'` **68 cases, 3969 assertions**; `ctest -R
+      compile_refusal` **201/201**.
+- [x] The ARM header gate (218 headers, rc 0); the CI PROS-free and sim-free greps; `src_build_gate.py` check PASS and
+      self-test OK (235); src/, tools/ and the Makefile untouched since `fbaf729`.
+- [x] Every mutation on the FINAL code with a whole build of every dependent object, the link checked: **107 — 104
+      RED, 3 GREEN and shown EQUIVALENT** (M18b, X15fresh, V2bholdatclear); none killed by the cap or the timeout;
+      every file restored byte-identical.
+- [x] Docs in the same change (the round's list above); the prose review logged (above); `api_doc_tool` self-test /
+      coverage / fresh / examples / removability; the staleness self-test and audit clean; the briefing regenerated
+      after the binary existed, `check` current — and `check`, the staleness audit and C7 re-run after this entry
+      was written (below).
+- [x] Nothing committed; no `pros`; no `/dev/ttyACM*`; no `src/` file. **The tree:** 34 files modified + 6 new —
+      the same 40 files as at 09:34 (`git status --short` against `fix/resume/a3_changed.txt`: no difference) —,
+      uncommitted, in `.claude/worktrees/mech-a3`.
+- **For the coordinator** (unnumbered; the 09:34 list stands except where this says otherwise):
+  - **V-1 was fixed wider than the verifier suggested** (A3-D26): the line's number is the push's own current WHEN
+    STOPPED, and a push that never slowed says so — the narrow fix (skip the first tick) left the push's own braking
+    current (1.29 A at speed) in the same contradiction. The homing DETECTOR still takes the first tick's sample, like
+    every stall watch: a home can trip at most one tick sooner when the arm is already at its stop (A3-D26 says why
+    it was left).
+  - The mutation count everywhere it is stated (the changelog's TESTED, the DoD) is now **107 / 104 / 3**.
+  - No new hardware belief; no HA number registered (chapter 18's 1.67 A / 1.29 A are the host test plant's,
+    labelled so).
+- **Re-run after this entry was written** (10:59): `briefing_status.py check` current (capped); the staleness audit
+  clean (30 live docs); C7 clean; `api_doc_tool` check-fresh and check-removability OK; `git status --short src tools
+  Makefile` and `git diff --stat fbaf729 -- src/ tools/` EMPTY.
+
+### The coordinator's merge verification — MECH-A3 (2026-10-22, main `c09e022` + the squash of `mech-a3`)
+- **Audit before the merge:** every file equals its newest mutation backup under `scratch/mech-a3/mut/` (one older probe backup,
+  `probes/service.hpp.bak` of 2026-10-15, predates later edits — not a mutation); `git diff --stat fbaf729 -- src/ tools/ Makefile`
+  empty; no stray root file; no merge in progress. The transport commit `36fbbe8`, then `git merge --squash mech-a3` (base `fbaf729`).
+- **Five conflicts:** `docs/api/README.md`, `all-entities.md` and the briefing (regenerated); the changelog (A3's entry first, then
+  CAL1 Part A1's and the earlier ones); build-order's `Next:` line (a word-level three-way merge against `fbaf729` — main's CAL1, plan
+  and tooling clauses and A3's clause all kept). The roadmap carries A3's "Now" paragraph (from the run).
+- **Gates on the merged tree** (`.claude/coordinator/logs/mech_a3_merge_verify.out`): host build with the doc gates (the bounded suite
+  run's, the briefing's and the staleness audit's self-tests all OK); suite **2,545 | 2,545 passed, 3 skipped**; `src_build_gate.py`
+  self-test OK (235 cases) and check **PASS, all 7 builds**; ARM header gate over **223** headers clean; CI greps empty; api
+  check-fresh, the briefing, removability and the staleness audit clean; the compile-refusal harness **201 of 201** (A3's S70 added).
+- **The coordinator's hand mutations** (`muts_mech_a3_main.json`, on `mechanism/service.hpp`; each on a fresh link, the whole suite
+  under a 4 GiB / 300 s cap, restored and hash-checked): **10 of 10 caught** — MC1 (a move before homing not refused NOT_HOMED —
+  caught by an abort), MC2 (a clamped target's Warn not logged), MC3 (N2: out of time it holds the TARGET), MC4 (the soft stop ignores
+  the stopping distance), MC5 (the speed integral's cap removed), MC6 (a reverse flywheel's kS sign), MC7 (absolute homing never picks
+  the turn nearest the middle — A3-D2), MC8 (the homing note counts samples from before the push — V-1), MC9 (the speed output clamped
+  at 6 V), MC10 (the hold target not clamped inside the travel limits) RED. Restored tree 2,545 | 2,545.

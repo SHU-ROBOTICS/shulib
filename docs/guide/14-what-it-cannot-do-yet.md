@@ -214,6 +214,14 @@ The mechanism seam that used to be a placeholder here is now real code
   adversarial clock rather than hanging, cancels into a per-mechanism declared safe state,
   and hands `then()` a verdict where a completed-but-unconfirmed action can never read as
   success. All of it against in-memory fakes and hostile fakes that jam, stall and lie.
+- **The mechanism core, on a host only (2026-10-15 to 2026-10-22, three of its six parts):** a robot file
+  DECLARES each mechanism (an `Arm`, a `Lift`, a `Flywheel`, a `Power` roller, a `Pneumatic`) and
+  wires it separately, the build refusing each mistake by name ([Chapter 10](10-the-api.md)); one
+  mechanism service runs all five kinds — a move and its hold, homing, the soft stop, a spin to "at
+  speed", a run until a piece sensor sees a piece, a valve's position — every behaviour watched for a
+  jam ([Chapter 18](18-mechanisms.md)). Proven only on the host test plant's invented models, with
+  invented starting gains; **no program builds the service yet**, and the auton steps, driver
+  controls and bench page that use it are its next parts.
 - **Deliberately absent:** any concrete mechanism. There is no `shulib::Intake` and never
   will be — mechanism sets change every season, so the library ships the grammar and your
   team writes the nouns (Chapter 13 says how, and why the safe state is declared per
@@ -340,7 +348,8 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   ([Chapter 10](10-the-api.md)); no blended, non-stop waypoint traversal, no curved profiled
   segments. Measured cost: about 1.2 s per motion.
 - **No motion profiles on the main verbs yet** (trapezoidal velocity planning exists in
-  `control/` but isn't wired into `moveTo`).
+  `control/` but isn't wired into the drive's `moveTo`; a mechanism's moves use it since the
+  mechanism core's third part — [chapter 18](18-mechanisms.md)).
 - **Tank steering exists, and has only been proven on the host test plant.** Since API 2.3 a
   tank `moveTo` steers back onto its line ([Chapter 4](04-drivetrains.md)): its heading bends at
   most 15° toward the line, the turn a weaker side adds is cancelled at most 1.5 rad/s, and only

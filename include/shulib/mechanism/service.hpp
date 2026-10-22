@@ -52,12 +52,47 @@
 // the next tick (the brief's landmine 22). What it cannot see: an UNPLUGGED 3-wire switch reads a
 // level, not PROS_ERR (HA-184).
 //
-// ── What this run builds, and what it does not ───────────────────────────────────────
-// MECH-A2 builds the slot, the two seams, the claimant, the three mode changes, the lookups and the
-// POWER and PNEUMATIC behaviours. The POSITION (Arm, Lift) and SPEED (Flywheel) behaviours are
-// MECH-A3's: until it lands, bind() REFUSES a list that has one (a precondition naming it — never a
-// slot that silently does nothing). The home switch's half of the read-fault rule arrives with
-// MECH-A3's homing, its only reader.
+// ── The four behaviours ──────────────────────────────────────────────────────────────
+// MECH-A2 built the slot, the two seams, the claimant, the three mode changes, the lookups and the
+// POWER and PNEUMATIC behaviours; MECH-A3 (2026-10-15) the POSITION (Arm, Lift) and SPEED (Flywheel)
+// ones, so bind() takes every kind a robot's list can hold. Their rules, each pinned by a test:
+//   * POSITION. Before it has found its zero a move is NOT_HOMED and a held button jogs it at most
+//     `.unhomedVolts` (0: nothing moves it — no limits are known, and no power is invented). It finds
+//     its zero with NO motion at bind (rests at its stop; an absolute angle sensor; a home switch
+//     already pressed on a FRESH read) or by a homing STEP (push until its switch is pressed, or until
+//     it stalls against its stop) — and every (re-)home logs where its zero went, a Warn when a
+//     re-home moves it past the "reached" tolerance (homing into a wedged piece sets a wrong zero
+//     silently otherwise). A move is a trapezoid profile in OUTPUT degrees (a lift's speed in inches
+//     turned into degrees by its steepest slope, so the plan never asks more of the motor than the stated
+//     speed there), tracked by P + D with feedforward (kS, kV, kA and gravity: kG·cos(angle −
+//     level) for an arm, kG for a lift); when the profile ends a FRESH hold loop (P + I + D, its
+//     integral clamped to kHoldIntegralLimitVolts) takes over, so the integral never winds up behind
+//     the profile. REACHED is judged in the mechanism's OWN units (a degree tolerance converted at a
+//     table's end or a linkage's top is 0), for the settle time: SUCCEEDED, and the HOLD goes on. Out
+//     of time: TIMED_OUT, and it HOLDS WHERE IT STOPPED — never pushing on toward a target it could not
+//     reach (a blocked arm would sit at stall current). No hold target is ever past a travel
+//     limit. A constant target past a limit never compiles; a COMPUTED one is clamped and logged once
+//     (the soft stop); a held button pushing toward a limit is taken over where it could no longer stop
+//     before it at the smooth move's own acceleration — brought to the limit by the move loop, then
+//     HELD AT THE LIMIT by a fresh closed-loop hold for the rest of that push (one soft stop per push),
+//     never pushed toward the limit harder than the button pushes.
+//   * SPEED. Feedforward (kS + kV·ω) plus P on the speed error, plus an integral that acts only within
+//     kSpeedIntegralWindow of the target (from the start it winds up and overshoots) and is clamped to
+//     kSpeedIntegralLimitVolts. "At speed" — within the band for its time — is SUCCEEDED, and it KEEPS
+//     spinning until stopped; out of time is TIMED_OUT and it still spins (an unreachable wheel spins;
+//     a jammed one trips its stall signature).
+//   * THE STALL WATCH: a stated stall signature watches EVERY behaviour of a motor kind — a
+//     move, the hold after it, a jog, the release's hold, a homing push by switch, a spin before and
+//     after "at speed", a power run and a hold-to-run (homing by stall keeps its own signature). A trip
+//     is STALLED, MECHANISM_STALLED once, the declared safe state, the claim released; one that ends a
+//     behaviour AFTER its step (a hold, a jog, a spin) also bumps the command number — how the driver's
+//     inputs (MECH-A4) will see that a held button is superseded until it is released.
+// The library's own numbers in all of this are HA-182 — invented, PROVISIONAL — in two groups. The
+// starting gains, profile and "reached" (kinds.hpp) are per mechanism: startingValuesLine()
+// (wiring.hpp) words them for a boot line (MECH-A5 prints it; no program does yet) and a declaration's
+// `.tuning` replaces each one. The hold's integral clamp and the speed integral's window and clamp
+// (below) are LIBRARY constants: not on the boot line, not `.tuning` fields — only an edit here
+// changes them, for every mechanism.
 //
 // ── Re-entrancy (requirements :142-152) ──────────────────────────────────────────────
 // A tick never calls a blocking verb, a wait or the scheduler's cancel(), and is never re-entered
@@ -67,8 +102,8 @@
 // enterAutonomous) clears it.
 //
 // ── The honest limit ─────────────────────────────────────────────────────────────────
-// The service runs ONLY when something ticks it: inside a shulib motion, wait or pause, and every
-// driver-loop tick. A student's own busy loop (`pros::delay` in an auton, a then() action that
+// The service runs ONLY when something ticks it: inside a shulib motion, wait or pause, and (from
+// MECH-A4, which wires it into the driver loop) every driver-loop tick. A student's own busy loop (`pros::delay` in an auton, a then() action that
 // blocks) STARVES it, and a starved service leaves each mechanism at its LAST command — not held,
 // not limited, not safe (the brief's D11, measured: 11.74 V held for 1.5 s). The run guard says the
 // same of itself: nothing preempts pure user code.
@@ -93,6 +128,8 @@
 #include <span>
 #include <string_view>
 
+#include "shulib/control/pid.hpp"
+#include "shulib/control/trapezoid_profile.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/diag/fault.hpp"
 #include "shulib/hal/clock.hpp"
@@ -114,6 +151,19 @@ namespace shulib::mechanism {
 /// A step's verdict vocabulary (manipulation/mechanism_outcome.hpp), named here for the service's
 /// readers: SUCCEEDED, UNCONFIRMED, TIMED_OUT, CANCELLED, STALLED, ABSENT, NOT_HOMED, REFUSED.
 using manipulation::MechanismOutcome;
+
+/// The position HOLD loop's integral clamp, volts: the I-term never adds more than this either way
+/// (HA-182 — invented, PROVISIONAL; a LIBRARY constant for every mechanism, not a `.tuning` field and
+/// not on the boot line). Enough to carry a gravity mismatch of a few volts; small enough that a hold
+/// pushed off its target cannot wind up to full power.
+inline constexpr double kHoldIntegralLimitVolts = 3.0;
+/// The SPEED loop's integral acts only while the speed error is within this FRACTION of the target
+/// (HA-182; a library constant, like the clamps). Accumulated through the whole spin-up it winds up
+/// and overshoots (measured on the host test plant: +219 rpm at 3000 with a matched plant, +467 with
+/// a lighter wheel).
+inline constexpr double kSpeedIntegralWindow = 0.10;
+/// The SPEED loop's integral clamp, volts (HA-182; a library constant).
+inline constexpr double kSpeedIntegralLimitVolts = 3.0;
 
 /// What the most recent step on a mechanism did — what a step reads and logs.
 struct StepReport {
@@ -236,6 +286,22 @@ public:
     }
     /// True only on positive evidence of a piece: `seen() == Seen::Yes`.
     [[nodiscard]] bool sees() const { return seen() == Seen::Yes; }
+    /// The HOME switch reads PRESSED now, on a FRESH read: false with no home switch, and false for a
+    /// sample taken while the switch's read-fault count moved since the end of the last tick (the
+    /// read-fault rule — a held level is never a home: a switch that failed, or that was dead from
+    /// boot, holds its last level, and with HA-184 wrong that level could read "pressed" and home the
+    /// mechanism wherever it stands). `pressedLevel` is the level that means pressed (HA-184 —
+    /// unmeasured). What it cannot see: an UNPLUGGED 3-wire switch reads a level, not a failed read.
+    [[nodiscard]] bool homeSwitchPressed() const {
+        if (devices_.homeSwitch == nullptr) {
+            return false;
+        }
+        const bool pressed = devices_.homeSwitch->state() == spec_->homeSwitch.pressedLevel;
+        if (devices_.homeSwitchFaults != nullptr && devices_.homeSwitchFaults->faultedReads() != homeFaultsSeen_) {
+            return false;  // read AFTER the sample, as seen() does: a read that failed just now has counted
+        }
+        return pressed;
+    }
     /// True when the DECLARATION has a piece sensor, whatever this boot found.
     [[nodiscard]] bool declaresPieceSensor() const noexcept {
         return spec_->pieceSensor.kind != SensorKind::None;
@@ -376,11 +442,24 @@ protected:
         }
         return nullptr;
     }
-    /// The END of every tick: the read-fault count a later sample is compared against.
+    /// The END of every tick (and bind): the read-fault counts a later sample is compared against —
+    /// the piece sensor's and the home switch's.
     void snapshotReadFaults() {
         if (devices_.pieceFaults != nullptr) {
             pieceFaultsSeen_ = devices_.pieceFaults->faultedReads();
         }
+        if (devices_.homeSwitchFaults != nullptr) {
+            homeFaultsSeen_ = devices_.homeSwitchFaults->faultedReads();
+        }
+    }
+    /// A STATED stall signature tripped while a behaviour went on AFTER its step (a hold, a jog, a
+    /// spin): STALLED (said, `why`), MECHANISM_STALLED once, the declared safe state, the claim
+    /// released, and the command number bumped — a held button is superseded until it is released
+    /// (N10). Not a step: stepsBegun() does not count it (A2's drive() stall is the same).
+    void stalledAfterStep(double t, const char* why) {
+        ++seq_;
+        stopBehaviour(true);
+        finishStep(t, MechanismOutcome::Stalled, DoneBy::Stalled, false, why);
     }
 
     /// One tick of the behaviour at clock time `t` (only while active and holding the claim).
@@ -405,6 +484,7 @@ protected:
     double bound_ = 0.0;         ///< the step's bound, seconds after stepStart_
     StepReport report_{};        ///< lastStep()
     int pieceFaultsSeen_ = 0;    ///< the piece sensor's read-fault count at the end of the last tick
+    int homeFaultsSeen_ = 0;     ///< the home switch's, likewise
 };
 
 /// POWER: run at a voltage until a done-condition, within a bound; the driver's hold-to-run.
@@ -641,6 +721,720 @@ private:
     std::optional<manipulation::StallDetector> stall_;
 };
 
+/// POSITION (an Arm or a Lift): go to a position smoothly and HOLD it; find its zero; keep inside its
+/// travel limits (file header: the position rules). Positions are in the mechanism's units (degrees
+/// or inches); the loops run on the OUTPUT angle in degrees, where gravity's cosine lives.
+class PositionSlot final : public Slot {
+public:
+    /// Built by the service's bind(); `d.motors` is the actuator (nullptr when ABSENT). Homing that
+    /// needs NO motion happens here, at boot, each logged: rests at its stop; an absolute angle
+    /// sensor; a home switch already pressed on a fresh read. The service's clock must be set.
+    PositionSlot(detail::SlotHost& host, const MechanismSpec& spec, const MechanismWiring* wiring, std::uint8_t i,
+                 const Devices& d)
+        : Slot{host, spec, wiring, i, d, d.motors},
+          movePid_{control::PidConfig{.kP = spec.position.kP, .kD = spec.position.kD, .outputMin = -12.0,
+                                      .outputMax = 12.0},
+                   *host.clock},
+          holdPid_{control::PidConfig{.kP = spec.position.kP, .kI = spec.position.kI, .kD = spec.position.kD,
+                                      .integralLimit = kHoldIntegralLimitVolts, .outputMin = -12.0,
+                                      .outputMax = 12.0},
+                   *host.clock} {
+        const PositionSpec& p = spec.position;
+        if (p.stall.stated()) {
+            stall_.emplace(manipulation::StallConfig{units::Current{p.stall.amps},
+                                                     units::AngularVelocity{p.stall.speedRadS},
+                                                     units::Time{p.stall.time}});
+        }
+        if (p.home == HomeMethod::Stall && p.homeStall.stated()) {
+            homeStall_.emplace(manipulation::StallConfig{units::Current{p.homeStall.amps},
+                                                         units::AngularVelocity{p.homeStall.speedRadS},
+                                                         units::Time{p.homeStall.time}});
+        }
+        const double a = positionToAngleDeg(p, p.minPosition);
+        const double b = positionToAngleDeg(p, p.maxPosition);
+        minDeg_ = std::min(a, b);
+        maxDeg_ = std::max(a, b);
+        // the smooth move's acceleration in OUTPUT degrees/s^2, by the move's own scale (moveTo()) — the
+        // soft stop's stopping distance uses it
+        accelDeg_ = p.maxAcceleration > 0.0 ? p.maxAcceleration * degPerUnit() : 1.0;
+        if (mech_ == nullptr) {
+            return;
+        }
+        // HOMING WITH NO MOTION, at boot
+        if (p.home == HomeMethod::RestsAtStop) {
+            zeroAt(p.homePosition);
+        } else if (p.home == HomeMethod::Absolute) {
+            zeroAbsolute();
+        } else if (p.home == HomeMethod::Switch && homeSwitchPressed()) {
+            zeroAt(p.homePosition);
+        }
+    }
+
+    /// Move to `pos` (the mechanism's units) within `bound`, then HOLD there (file header). Before it
+    /// has found its zero: NOT_HOMED, the safe state, nothing moves. A COMPUTED target past a travel
+    /// limit is CLAMPED to it and logged once ("target 175.00 clamped to the travel limit 160.00 (soft
+    /// stop)"). PRECONDITIONS (checked before anything changes): `pos` finite; `bound` finite and > 0;
+    /// a target that is not `computed` (a preset, `arm.to(95)` — the build checked it) inside the
+    /// travel limits.
+    void moveTo(double pos, units::Time bound, bool computed = true) {
+        const PositionSpec& p = spec_->position;
+        SHULIB_PRECONDITION(std::isfinite(pos), "PositionSlot::moveTo: the target must be a finite number");
+        SHULIB_PRECONDITION(std::isfinite(bound.value()) && bound.value() > 0.0,
+                            "r.move(...): the time limit must be finite and above 0");
+        SHULIB_PRECONDITION(computed || (pos >= p.minPosition && pos <= p.maxPosition),
+                            "PositionSlot::moveTo: a CONSTANT target outside the travel limits (the build refuses "
+                            "these; a computed one is clamped -- clampedTo(x))");
+        const double t = now();
+        if (!beginStep(bound.value(), t)) {
+            return;
+        }
+        if (!homed_) {
+            stopBehaviour(true);  // whatever it was doing (a jog before homing) stops, safe
+            finishStep(t, MechanismOutcome::NotHomed, DoneBy::None, false, notHomedNote());
+            return;
+        }
+        if (pos < p.minPosition || pos > p.maxPosition) {  // the runtime soft stop: clamp, and say so ONCE
+            const double asked = pos;
+            pos = std::clamp(pos, p.minPosition, p.maxPosition);
+            ++softStops_;
+            char line[160];
+            std::snprintf(line, sizeof line, "'%.23s': target %.2f clamped to the travel limit %.2f (soft stop)",
+                          spec_->name, std::clamp(asked, -99999.0, 99999.0), pos);
+            host_->telemetry->log(hal::LogLevel::Warn, "MECH", line);
+        }
+        targetPos_ = pos;
+        fromDeg_ = jointDeg();
+        toDeg_ = std::clamp(positionToAngleDeg(p, pos), minDeg_, maxDeg_);
+        // The profile in OUTPUT degrees: the declaration's speed and acceleration are in its units,
+        // turned into degrees by ONE scale (degPerUnit()) — so the plan never asks more of the motor
+        // than the stated speed at the mechanism's steepest slope.
+        const double scale = degPerUnit();
+        profile_.emplace(toDeg_ - fromDeg_,
+                         control::ProfileConstraints{p.maxVelocity * scale, p.maxAcceleration * scale});
+        movePid_.reset();
+        holdPid_.reset();
+        holdLoop_ = false;
+        inTolSince_ = -1.0;
+        if (stall_) {
+            stall_->reset();
+        }
+        mode_ = Mode::Move;
+        active_ = true;
+    }
+    /// Move to preset `i` (a named value the build checked against the limits). PRECONDITION: `i` is
+    /// one of its presets.
+    void moveToPreset(std::uint8_t i, units::Time bound) {
+        SHULIB_PRECONDITION(i < spec_->position.presetCount, "PositionSlot::moveToPreset: no such preset");
+        moveTo(spec_->position.presets[i].value, bound, false);
+    }
+    /// HOLD WHERE IT IS (gravity included; the target clamped to the travel limits) — a driver's
+    /// release of a hold-to-run. Not a step; a running step ends CANCELLED (the most recent command
+    /// wins). Before homing there is no position to hold: the declared safe state instead. Does
+    /// nothing on a mechanism another owner holds, or one that is ABSENT.
+    void holdHere() {
+        if (mech_ == nullptr || (mech_->claimed() && !holdsClaim())) {
+            return;
+        }
+        ++seq_;
+        const double t = now();
+        cancelRunningStep(t, "replaced by a newer command");
+        stepStart_ = t;  // not a step: when this behaviour began (a stall's line counts from here)
+        beginHold();
+    }
+    /// FIND ITS ZERO by the declaration's method, within `bound`: a homing push (`homeBySwitch`: until
+    /// its switch is pressed on a fresh read; `homeByStall`: until its homing signature trips) — then
+    /// SUCCEEDED, holding there, its zero logged; out of time TIMED_OUT, the safe state, the zero it
+    /// had (if any) kept — a stall-home's line then says the most current its push drew when stopped
+    /// (no faster than its homing signature's speed; the number that signature is sized by), or that it
+    /// never got that slow. An absolute sensor is READ AGAIN (no motion; SUCCEEDED; a moved zero is
+    /// logged). A mechanism that RESTS AT ITS STOP is not re-zeroed: it trusts the pose it had at boot,
+    /// never the one it has now — SUCCEEDED with no change, held where it is. A homing push by switch
+    /// is watched by the stated stall signature (STALLED: pushed into something with the switch never
+    /// pressed). PRECONDITIONS: `bound` finite and > 0; the declaration has a homing method
+    /// (`neverHomed` has no way to find its zero).
+    void home(units::Time bound) {
+        const PositionSpec& p = spec_->position;
+        SHULIB_PRECONDITION(std::isfinite(bound.value()) && bound.value() > 0.0,
+                            "r.home(...): the time limit must be finite and above 0");
+        SHULIB_PRECONDITION(p.home != HomeMethod::None,
+                            "r.home(...): the mechanism is declared neverHomed -- it has no way to find its zero "
+                            "(give it .home = homeBySwitch / homeByStall / restsAtStop / absoluteSensor)");
+        const double t = now();
+        if (!beginStep(bound.value(), t)) {
+            return;
+        }
+        if (p.home == HomeMethod::RestsAtStop || p.home == HomeMethod::Absolute) {
+            const char* note = "it rests at its stop at boot: its zero is kept";
+            if (p.home == HomeMethod::Absolute) {
+                zeroAbsolute();
+                note = "its angle sensor read again";
+            }
+            beginHold();
+            finishStep(t, MechanismOutcome::Succeeded, DoneBy::Reached, false, note);
+            return;
+        }
+        if (homeStall_) {
+            homeStall_->reset();
+        }
+        if (stall_) {
+            stall_->reset();
+        }
+        homeStoppedAmps_ = -1.0;  // this push's own record, from nothing: it has not pushed yet
+        homePushed_ = false;
+        mode_ = Mode::Home;
+        active_ = true;
+    }
+    /// The DRIVER's hold-to-run (`whileHeld`): `volts` every tick until another command — open-ended;
+    /// the button's release is the caller's holdHere(). Once homed, a push toward a travel limit is
+    /// taken over and HELD AT THE LIMIT for the rest of that push (file header: the soft stop); before
+    /// homing it runs at most `.unhomedVolts` either
+    /// way, and with none it does nothing (the safe state). 0 V holds where it is (holdHere()). The
+    /// stated stall signature watches it. Call it once or every tick (each call restates the
+    /// volts). Does nothing on a mechanism another owner holds, or one that is ABSENT. PRECONDITION:
+    /// `volts` finite.
+    void jog(units::Voltage volts) {
+        SHULIB_PRECONDITION(std::isfinite(volts.value()), "PositionSlot::jog: the volts must be a finite number");
+        if (mech_ == nullptr || (mech_->claimed() && !holdsClaim())) {
+            return;
+        }
+        if (volts.value() == 0.0) {
+            holdHere();
+            return;
+        }
+        ++seq_;
+        const double t = now();
+        cancelRunningStep(t, "replaced by a newer command");
+        if (!homed_ && !(spec_->position.unhomedVolts > 0.0)) {
+            stopBehaviour(true);  // no limits known and no power stated for before homing: nothing moves it
+            return;
+        }
+        if (!holdsClaim()) {
+            (void)mech_->tryClaim(*this);
+        }
+        if (mode_ != Mode::Jog || !active_) {  // a NEW hold-to-run: its stall window and its time start now
+            resetBehaviour();
+            stepStart_ = t;
+            if (stall_) {
+                stall_->reset();
+            }
+        }
+        jogVolts_ = std::clamp(volts.value(), -12.0, 12.0);
+        mode_ = Mode::Jog;
+        active_ = true;
+    }
+    /// LET GO: the declared safe state, the claim released, a running step CANCELLED (a hold is
+    /// dropped — under Hold the motor's own brake keeps what it can). Does nothing on a mechanism
+    /// another owner holds, or one that is ABSENT.
+    void release() {
+        if (mech_ == nullptr || (mech_->claimed() && !holdsClaim())) {
+            return;
+        }
+        ++seq_;
+        cancelRunningStep(now(), "released");
+        stopBehaviour(true);
+    }
+    /// True once it has found its zero (at boot or by a homing step).
+    [[nodiscard]] bool homed() const noexcept { return homed_; }
+    /// Where it is now, in its units — meaningful once homed (before, it is the encoders' — or the angle
+    /// sensor's — own count through the gearing, with no zero applied). 0 when ABSENT.
+    [[nodiscard]] double position() const {
+        return mech_ != nullptr ? angleDegToPosition(spec_->position, jointDeg()) : 0.0;
+    }
+    /// The position the move or the hold aims at, in its units (inside the travel limits).
+    [[nodiscard]] double target() const noexcept { return targetPos_; }
+    /// How many times the soft stop acted: a computed target clamped, or a push taken over and held at
+    /// a limit (once per push, however long it is held there).
+    [[nodiscard]] int softStops() const noexcept { return softStops_; }
+    /// The OUTPUT angle in degrees (an angle sensor's reading when one is wired, else the motor
+    /// encoders through the gearing), with its zero applied once homed. 0 when ABSENT.
+    [[nodiscard]] double jointDeg() const { return mech_ != nullptr ? rawJointDeg() + offsetDeg_ : 0.0; }
+
+private:
+    /// What the slot is doing.
+    enum class Mode : std::uint8_t { Idle, Move, Hold, Home, Jog };
+
+    void tickBehaviour(double t) override {
+        switch (mode_) {
+            case Mode::Idle:
+                stopBehaviour(true);  // defensive: an active slot always has a behaviour
+                return;
+            case Mode::Jog:
+                tickJog(t);
+                return;
+            case Mode::Home:
+                tickHome(t);
+                return;
+            case Mode::Move:
+            case Mode::Hold:
+                tickMoveOrHold(t);
+                return;
+        }
+    }
+    void resetBehaviour() noexcept override {
+        mode_ = Mode::Idle;
+        holdLoop_ = false;
+        limitDir_ = 0.0;
+        jogVolts_ = 0.0;
+        inTolSince_ = -1.0;
+        profile_.reset();
+    }
+    /// True when the stated stall signature trips on this tick's sample (false with none stated).
+    [[nodiscard]] bool stallTripped(double t) {
+        return stall_ && stall_->update(units::Time{t}, devices_.motors->maxCurrent(), devices_.motors->meanVelocity());
+    }
+    void tickMoveOrHold(double t) {
+        const PositionSpec& p = spec_->position;
+        // THE STALL WATCH (N10) on the move AND the hold after it: a blocked move, or a hold pushed past
+        // what it can carry, never sits at stall current.
+        if (stallTripped(t)) {
+            if (running()) {
+                stopBehaviour(true);
+                finishStep(t, MechanismOutcome::Stalled, DoneBy::Stalled, false, "a stated stall signature tripped");
+            } else {
+                stalledAfterStep(t, "a stated stall signature tripped while holding");
+            }
+            return;
+        }
+        const double jd = jointDeg();
+        const double since = t - stepStart_;
+        double set = toDeg_;
+        double vel = 0.0;
+        double acc = 0.0;
+        const bool profiling = mode_ == Mode::Move && profile_.has_value() && !profile_->isDone(since);
+        if (profiling) {
+            const control::ProfileState s = profile_->sample(since);
+            set = fromDeg_ + s.position;
+            vel = s.velocity;
+            acc = s.acceleration;
+        } else if (!holdLoop_) {
+            holdPid_.reset();  // the profile is over: a FRESH hold loop (with its integral) takes over
+            holdLoop_ = true;
+        }
+        command(feedforward(vel, acc, jd) + (holdLoop_ ? holdPid_.update(set, jd) : movePid_.update(set, jd)));
+        if (mode_ != Mode::Move || !running()) {
+            return;
+        }
+        // REACHED, judged in the mechanism's OWN units, once the profile is done, for the settle time.
+        if (!profiling && std::abs(angleDegToPosition(p, jd) - targetPos_) <= p.tolerance) {
+            if (inTolSince_ < 0.0) {
+                inTolSince_ = t;
+            }
+            if (t - inTolSince_ >= p.settleTime) {
+                mode_ = Mode::Hold;  // arrived: the behaviour goes on as a HOLD
+                finishStep(t, MechanismOutcome::Succeeded, DoneBy::Reached);
+                return;
+            }
+        } else {
+            inTolSince_ = -1.0;
+        }
+        if (since >= bound_) {
+            // Out of time: HOLD WHERE IT STOPPED (N2), never pushing on toward a target it could not
+            // reach — clamped inside the travel limits.
+            holdAt(jd);
+            finishStep(t, MechanismOutcome::TimedOut, DoneBy::None, false, "it holds where it stopped");
+        }
+    }
+    void tickJog(double t) {
+        if (stallTripped(t)) {
+            stalledAfterStep(t, "a stated stall signature tripped while held to move");
+            return;
+        }
+        const PositionSpec& p = spec_->position;
+        if (!homed_) {  // no limits known: at most the stated volts before homing
+            command(std::clamp(jogVolts_, -p.unhomedVolts, p.unhomedVolts));
+            return;
+        }
+        // THE SOFT STOP, CLOSED-LOOP: a push toward a limit that could no longer stop before it at the
+        // smooth move's own acceleration — or one at or past it — is taken over for the rest of that
+        // push, with the move's own two loops: the MOVE loop (P + D and gravity, no integral to wind up
+        // on the way) brings it to the limit, and once it gets there — or once a stop at the move's
+        // acceleration would have taken (its speed then over that acceleration) — a FRESH hold loop
+        // (P + I + D and gravity) HOLDS it there. It never pushes toward the limit harder than the push
+        // itself. One soft stop per push, the hold's integral kept, until the push turns away from the
+        // limit or ends.
+        const double dir = jogVolts_ > 0.0 ? 1.0 : -1.0;
+        if (limitDir_ != 0.0 && limitDir_ != dir) {
+            limitDir_ = 0.0;  // the push turned away from the limit it was held at: the driver's again
+        }
+        const double jd = jointDeg();
+        const double jv = jointVelDegS();
+        if (limitDir_ == 0.0) {
+            const double limit = dir > 0.0 ? maxDeg_ : minDeg_;
+            const double toGo = dir * (limit - jd);        // <= 0: at or past the limit
+            const double v0 = std::max(0.0, dir * jv);     // its speed TOWARD the limit
+            if (toGo > v0 * v0 / (2.0 * accelDeg_)) {      // it can still stop before the limit: the push's
+                command(jogVolts_);
+                return;
+            }
+            limitDir_ = dir;
+            ++softStops_;
+            approachEnd_ = t + v0 / accelDeg_;
+            toDeg_ = limit;
+            targetPos_ = angleDegToPosition(p, limit);
+            movePid_.reset();
+            holdLoop_ = false;
+        }
+        if (!holdLoop_ && (limitDir_ * (jd - toDeg_) >= 0.0 || t >= approachEnd_)) {
+            holdPid_.reset();  // at the limit, or the stop's time is up: a FRESH hold loop holds it there
+            holdLoop_ = true;
+        }
+        double u = gravityVolts(jd) + (holdLoop_ ? holdPid_.update(toDeg_, jd) : movePid_.update(toDeg_, jd));
+        if (limitDir_ * u > std::abs(jogVolts_)) {
+            u = limitDir_ * std::abs(jogVolts_);  // never toward the limit harder than the push itself
+        }
+        command(u);
+    }
+    void tickHome(double t) {
+        const PositionSpec& p = spec_->position;
+        const bool bySwitch = p.home == HomeMethod::Switch;
+        const bool pressed = bySwitch && homeSwitchPressed();
+        const units::Current amps = devices_.motors->maxCurrent();
+        const units::AngularVelocity vel = devices_.motors->meanVelocity();
+        // What the PUSH drew when STOPPED (no faster than its homing signature's speed) — the number a
+        // homing signature is sized by. Never the first tick's sample (it shows the behaviour BEFORE the
+        // push: a pinned jog's, a loaded hold's), and never one while it moves faster (braking a swing
+        // the other way draws more than any stall at the push's volts).
+        if (homePushed_ && std::abs(vel.value()) <= p.homeStall.speedRadS) {
+            homeStoppedAmps_ = std::max(homeStoppedAmps_, amps.value());
+        }
+        const bool stalled = !bySwitch && homeStall_ && homeStall_->update(units::Time{t}, amps, vel);
+        if (pressed || stalled) {
+            zeroAt(p.homePosition);
+            beginHold();
+            // the HOLD this very tick: never one more tick of the homing push past its zero
+            const double jd = jointDeg();
+            command(gravityVolts(jd) + holdPid_.update(toDeg_, jd));
+            finishStep(t, MechanismOutcome::Succeeded, DoneBy::Reached);
+            return;
+        }
+        if (bySwitch && stallTripped(t)) {  // pushed into something, its switch never pressed
+            stopBehaviour(true);
+            finishStep(t, MechanismOutcome::Stalled, DoneBy::Stalled, false,
+                       "a stated stall signature tripped while homing: its home switch never read pressed");
+            return;
+        }
+        if (t - stepStart_ >= bound_) {
+            // a stall-home that never trips says what the push DREW when stopped against what its
+            // signature needs — a gentle homing push draws far less than a jam (chapter 18's homing
+            // signature rule) — or that it never got that slow at all (it never reached its stop)
+            char note[120];
+            std::snprintf(note, sizeof note, "it never stalled against its stop: it drew at most %.2f A when stopped, "
+                          "its homing signature needs %.2f A", std::clamp(homeStoppedAmps_, 0.0, 99.0),
+                          std::clamp(p.homeStall.amps, 0.0, 99.0));
+            stopBehaviour(true);
+            finishStep(t, MechanismOutcome::TimedOut, DoneBy::None, false,
+                       bySwitch                  ? "its home switch never read pressed"
+                       : homeStoppedAmps_ < 0.0 ? "it never stalled against its stop: it never slowed to its homing "
+                                                   "signature's speed -- did it reach its stop?"
+                                                 : note);
+            return;
+        }
+        command(p.homeVolts);
+        homePushed_ = true;  // from the next tick on, a sample shows the push
+    }
+    /// Begin a HOLD where it is (clamped), a fresh hold loop; the claim taken. Before homing: the safe
+    /// state instead (no position to hold).
+    void beginHold() {
+        resetBehaviour();
+        if (!homed_) {
+            stopBehaviour(true);
+            return;
+        }
+        if (!holdsClaim()) {
+            (void)mech_->tryClaim(*this);
+        }
+        if (stall_) {
+            stall_->reset();
+        }
+        holdAt(jointDeg());
+        active_ = true;
+    }
+    /// Hold at `deg` — CLAMPED inside the travel limits (no hold target is ever past one), a FRESH hold
+    /// loop.
+    void holdAt(double deg) {
+        toDeg_ = std::clamp(deg, minDeg_, maxDeg_);
+        targetPos_ = angleDegToPosition(spec_->position, toDeg_);
+        holdPid_.reset();
+        holdLoop_ = true;
+        limitDir_ = 0.0;
+        mode_ = Mode::Hold;
+    }
+    /// Output degrees per unit of the mechanism, for its speed and acceleration: ONE scale, the inverse
+    /// of its STEEPEST units per degree (kinds.hpp's detail::unitsPerOutputDeg — 1 for an arm, exact for a
+    /// spool, a linkage's level slope, a measured table's steepest segment). A plan in degrees at the
+    /// stated speed times this is never faster in units than stated anywhere on the travel, and a
+    /// starting-value plan is 75 % of the output's free speed everywhere. (A move's MEAN slope, the
+    /// first version's scale, asked up to four times the free speed near a linkage's top.)
+    [[nodiscard]] double degPerUnit() const noexcept {
+        return 1.0 / std::max(detail::unitsPerOutputDeg(spec_->position), 1e-9);
+    }
+    /// The feedforward at the plan's speed `vel` (output deg/s) and acceleration `acc` (deg/s^2), at
+    /// output angle `jd`, volts: kS in the direction of travel, kV·vel, kA·acc and the gravity hold.
+    [[nodiscard]] double feedforward(double vel, double acc, double jd) const noexcept {
+        const PositionSpec& p = spec_->position;
+        return (vel > 0.0 ? p.kS : vel < 0.0 ? -p.kS : 0.0) + p.kV * vel + p.kA * acc + gravityVolts(jd);
+    }
+    /// The gravity hold at output angle `jd`, volts: kG·cos(jd − level) (Cosine), kG (Constant), 0.
+    [[nodiscard]] double gravityVolts(double jd) const noexcept {
+        const PositionSpec& p = spec_->position;
+        switch (p.gravity) {
+            case Gravity::Cosine:
+                return p.kG * std::cos((jd - p.horizontalAt) * kDegToRad);
+            case Gravity::Constant:
+                return p.kG;
+            case Gravity::None:
+                return 0.0;
+        }
+        return 0.0;
+    }
+    void command(double volts) { devices_.motors->setVoltage(units::Voltage{std::clamp(volts, -12.0, 12.0)}); }
+    /// The output angle before the zero: the angle sensor (its declared mounting applied — the port is
+    /// never signed for a sensor, mechanism::toMechanismConfig) or the motors through the gearing.
+    [[nodiscard]] double rawJointDeg() const {
+        if (devices_.angleSensor != nullptr) {
+            return (spec_->angleSensor.reversed ? -1.0 : 1.0) * devices_.angleSensor->position().value() / kDegToRad;
+        }
+        return devices_.motors->meanPosition().value() / kDegToRad / spec_->position.gearRatio;
+    }
+    [[nodiscard]] double jointVelDegS() const {
+        if (devices_.angleSensor != nullptr) {
+            return (spec_->angleSensor.reversed ? -1.0 : 1.0) * devices_.angleSensor->velocity().value() / kDegToRad;
+        }
+        return devices_.motors->meanVelocity().value() / kDegToRad / spec_->position.gearRatio;
+    }
+    /// ZERO: it is at `pos` now. Logged (D10): the first time, where the zero sits against where its
+    /// encoders (or its angle sensor) read zero at boot; again, how far the zero MOVED — a Warn past
+    /// the "reached" tolerance (something was in the way, or it slipped).
+    void zeroAt(double pos) {
+        setOffset(positionToAngleDeg(spec_->position, pos) - rawJointDeg(), nullptr);
+    }
+    /// ABSOLUTE (HA-186): the sensor reads `absoluteSensorAtZeroDeg` when the mechanism is at its home
+    /// position, so the output angle is home + (reading − that reading), the declared mounting applied
+    /// — a FIXED offset, never "zero wherever it stands". The reading at power-up is within one turn,
+    /// so the turn is chosen that puts the mechanism nearest the middle of its travel (the build
+    /// refuses absolute homing over a travel of a whole sensor turn or more, where no turn is right).
+    void zeroAbsolute() {
+        const PositionSpec& p = spec_->position;
+        const double sgn = spec_->angleSensor.reversed ? -1.0 : 1.0;
+        double offset = positionToAngleDeg(p, p.homePosition) - sgn * p.absoluteSensorAtZeroDeg;
+        const double mid = 0.5 * (minDeg_ + maxDeg_);
+        offset += 360.0 * std::round((mid - (rawJointDeg() + offset)) / 360.0);
+        char how[96];
+        std::snprintf(how, sizeof how, "its angle sensor reads %.1f deg",
+                      std::clamp(sgn * rawJointDeg(), -99999.0, 99999.0));
+        setOffset(offset, how);
+    }
+    void setOffset(double offset, const char* absoluteHow) {
+        const PositionSpec& p = spec_->position;
+        // a logged number to its tenth, never "-0.0" (a sign that rounds away is no sign)
+        const auto tenth = [](double x) { return std::round(std::clamp(x, -99999.0, 99999.0) * 10.0) / 10.0 + 0.0; };
+        const double was = offsetDeg_;
+        const bool again = homed_;
+        offsetDeg_ = offset;
+        homed_ = true;
+        char line[200];
+        hal::LogLevel level = hal::LogLevel::Info;
+        if (again) {
+            // the zero's move, in output degrees, against the tolerance at the home position (both
+            // sides: at a table's end one side converts to 0)
+            const double shift = was - offset;
+            const double homeDeg = positionToAngleDeg(p, p.homePosition);
+            const double tolDeg = std::max(std::abs(positionToAngleDeg(p, p.homePosition + p.tolerance) - homeDeg),
+                                           std::abs(positionToAngleDeg(p, p.homePosition - p.tolerance) - homeDeg));
+            level = std::abs(shift) > tolDeg ? hal::LogLevel::Warn : hal::LogLevel::Info;
+            std::snprintf(line, sizeof line, "'%.23s': homed again -- its zero moved %+.1f deg%s", spec_->name,
+                          tenth(shift),
+                          level == hal::LogLevel::Warn ? " (past its tolerance: was something in the way?)" : "");
+        } else if (absoluteHow != nullptr) {
+            std::snprintf(line, sizeof line, "'%.23s': homed -- %.60s, so it is at %.2f %s", spec_->name,
+                          absoluteHow, std::clamp(position(), -99999.0, 99999.0),
+                          p.units == Units::Inches ? "in" : "deg");
+        } else {
+            std::snprintf(line, sizeof line, "'%.23s': homed -- %+.1f deg from where its %s read zero at boot",
+                          spec_->name, tenth(-offset),
+                          devices_.angleSensor != nullptr ? "angle sensor" : "encoders");
+        }
+        host_->telemetry->log(level, "MECH", line);
+    }
+    [[nodiscard]] const char* notHomedNote() const noexcept {
+        switch (spec_->position.home) {
+            case HomeMethod::None:
+                return "it is declared neverHomed: a move needs a zero";
+            case HomeMethod::Switch:
+                return "it has not found its zero yet: home it first (homeBySwitch)";
+            case HomeMethod::Stall:
+                return "it has not found its zero yet: home it first (homeByStall)";
+            default:
+                return "it has not found its zero";
+        }
+    }
+
+    static constexpr double kDegToRad = 3.14159265358979323846 / 180.0;
+
+    control::Pid movePid_;  ///< the MOVE loop: P + D only — an integral would wind up behind the profile
+    control::Pid holdPid_;  ///< the HOLD loop: P + I + D, started FRESH when the profile ends
+    std::optional<control::TrapezoidProfile> profile_;
+    std::optional<manipulation::StallDetector> stall_;      ///< the stated signature (N10)
+    std::optional<manipulation::StallDetector> homeStall_;  ///< homeByStall's own
+    Mode mode_ = Mode::Idle;
+    bool homed_ = false;
+    bool holdLoop_ = false;     ///< the hold loop is the one running
+    double limitDir_ = 0.0;     ///< the soft stop holds this push at the top (+1) or bottom (-1) limit; 0 not
+    double approachEnd_ = 0.0;  ///< when the soft stop's move-loop approach gives way to the hold (clock s)
+    double minDeg_ = 0.0;       ///< the travel limits as output degrees
+    double maxDeg_ = 0.0;
+    double accelDeg_ = 1.0;     ///< the smooth move's acceleration, output deg/s^2
+    double offsetDeg_ = 0.0;    ///< joint = raw + offset
+    double fromDeg_ = 0.0;      ///< the move's start, output degrees
+    double toDeg_ = 0.0;        ///< the move's or hold's target, output degrees
+    double targetPos_ = 0.0;    ///< the same in its units
+    double jogVolts_ = 0.0;
+    double inTolSince_ = -1.0;  ///< when it last entered the tolerance (< 0: it is outside)
+    double homeStoppedAmps_ = -1.0;  ///< the most current the homing push drew when stopped, A (< 0: never stopped)
+    int softStops_ = 0;
+    bool homePushed_ = false;        ///< the homing push has been commanded (its samples are the push's)
+};
+
+/// SPEED (a Flywheel): spin at an RPM of its output and say when it is "at speed" (file header). The
+/// step SUCCEEDS at speed; the wheel keeps spinning until stopped.
+class SpeedSlot final : public Slot {
+public:
+    /// Built by the service's bind(); `d.motors` is the actuator (nullptr when ABSENT).
+    SpeedSlot(detail::SlotHost& host, const MechanismSpec& spec, const MechanismWiring* wiring, std::uint8_t i,
+              const Devices& d)
+        : Slot{host, spec, wiring, i, d, d.motors} {
+        if (spec.speed.stall.stated()) {
+            stall_.emplace(manipulation::StallConfig{units::Current{spec.speed.stall.amps},
+                                                     units::AngularVelocity{spec.speed.stall.speedRadS},
+                                                     units::Time{spec.speed.stall.time}});
+        }
+    }
+    /// Spin up to `rpm` (output rpm) within `bound`: SUCCEEDED once "at speed" (within the band for its
+    /// time), and it KEEPS spinning; out of time TIMED_OUT, and it still spins (an unreachable speed is
+    /// not a fault; a jam trips the stall signature). A COMPUTED speed past the free speed is CLAMPED
+    /// to it and logged once. PRECONDITIONS (checked before anything changes): `rpm` finite; `bound`
+    /// finite and > 0; a speed that is not `computed` within the free speed.
+    void spinUp(double rpmTarget, units::Time bound, bool computed = true) {
+        const SpeedSpec& q = spec_->speed;
+        double rpmGoal = rpmTarget;
+        SHULIB_PRECONDITION(std::isfinite(rpmGoal), "SpeedSlot::spinUp: the speed must be a finite number");
+        SHULIB_PRECONDITION(std::isfinite(bound.value()) && bound.value() > 0.0,
+                            "r.spinUp(...): the time limit must be finite and above 0");
+        SHULIB_PRECONDITION(computed || std::abs(rpmGoal) <= q.maxRpm,
+                            "SpeedSlot::spinUp: a CONSTANT speed past the free speed (the build refuses these; a "
+                            "computed one is clamped -- clampedTo(x))");
+        const double t = now();
+        if (!beginStep(bound.value(), t)) {
+            return;
+        }
+        if (std::abs(rpmGoal) > q.maxRpm) {
+            rpmGoal = std::clamp(rpmGoal, -q.maxRpm, q.maxRpm);
+            char line[160];
+            std::snprintf(line, sizeof line, "'%.23s': speed %.0f rpm clamped to its free speed %.0f rpm",
+                          spec_->name, std::clamp(rpmTarget, -999999.0, 999999.0), rpmGoal);
+            host_->telemetry->log(hal::LogLevel::Warn, "MECH", line);
+        }
+        targetRadS_ = rpmGoal * 2.0 * kPi / 60.0;
+        if (stall_) {
+            stall_->reset();
+        }
+        spinning_ = true;
+        active_ = true;
+    }
+    /// Spin up to preset `i`. PRECONDITION: `i` is one of its presets.
+    void spinUpPreset(std::uint8_t i, units::Time bound) {
+        SHULIB_PRECONDITION(i < spec_->speed.presetCount, "SpeedSlot::spinUpPreset: no such preset");
+        spinUp(spec_->speed.presets[i].value, bound, false);
+    }
+    /// Stop: a running step CANCELLED, the declared safe state, the claim released. Does nothing to a
+    /// mechanism another owner holds, or one that is ABSENT.
+    void stop() {
+        if (mech_ == nullptr || (mech_->claimed() && !holdsClaim())) {
+            return;
+        }
+        ++seq_;
+        cancelRunningStep(now(), "stopped");
+        stopBehaviour(true);
+    }
+    /// Commanded to spin (a toggle's state): true from spinUp() until a stop, a stall or a cancel.
+    [[nodiscard]] bool spinning() const noexcept { return spinning_ && active_; }
+    /// The output speed now, rpm: the angle sensor's when one is wired, else the motors' through the
+    /// gearing. 0 when ABSENT.
+    [[nodiscard]] double rpm() const {
+        if (devices_.motors == nullptr) {
+            return 0.0;
+        }
+        const double radS = devices_.angleSensor != nullptr
+                                ? (spec_->angleSensor.reversed ? -1.0 : 1.0) * devices_.angleSensor->velocity().value()
+                                : devices_.motors->meanVelocity().value() / spec_->speed.gearRatio;
+        return radS * 60.0 / (2.0 * kPi);
+    }
+    /// The speed it aims at, rpm (0 when it is not spinning).
+    [[nodiscard]] double targetRpm() const noexcept { return spinning() ? targetRadS_ * 60.0 / (2.0 * kPi) : 0.0; }
+    /// Within the band for its time, now.
+    [[nodiscard]] bool atSpeed() const noexcept { return spinning() && atSpeed_; }
+
+private:
+    void tickBehaviour(double t) override {
+        const SpeedSpec& q = spec_->speed;
+        // THE STALL WATCH (N10), before "at speed" and after it: a JAMMED wheel never sits at stall
+        // current (the brief's case H: 30 s at 12 V / 2.5 A before the signature was required).
+        if (stall_ && stall_->update(units::Time{t}, devices_.motors->maxCurrent(), devices_.motors->meanVelocity())) {
+            if (running()) {
+                stopBehaviour(true);
+                finishStep(t, MechanismOutcome::Stalled, DoneBy::Stalled, false, "a stated stall signature tripped");
+            } else {
+                stalledAfterStep(t, "a stated stall signature tripped while spinning");
+            }
+            return;
+        }
+        const double e = targetRadS_ - rpm() * 2.0 * kPi / 60.0;
+        const double dt = lastT_ < 0.0 ? 0.0 : t - lastT_;
+        lastT_ = t;
+        // The integral acts only NEAR the target (header); frozen, not cleared, outside the window.
+        if (q.kI > 0.0 && std::abs(e) < kSpeedIntegralWindow * std::abs(targetRadS_)) {
+            const double cap = kSpeedIntegralLimitVolts / q.kI;
+            integral_ = std::clamp(integral_ + e * dt, -cap, cap);
+        }
+        const double ff = (targetRadS_ > 0.0 ? q.kS : targetRadS_ < 0.0 ? -q.kS : 0.0) + q.kV * targetRadS_;
+        devices_.motors->setVoltage(units::Voltage{std::clamp(ff + q.kP * e + q.kI * integral_, -12.0, 12.0)});
+        if (std::abs(e) * 60.0 / (2.0 * kPi) <= q.atSpeedBandRpm) {
+            if (inBandSince_ < 0.0) {
+                inBandSince_ = t;
+            }
+        } else {
+            inBandSince_ = -1.0;
+        }
+        atSpeed_ = inBandSince_ >= 0.0 && t - inBandSince_ >= q.atSpeedTime;
+        if (!running()) {
+            return;
+        }
+        if (atSpeed_) {
+            finishStep(t, MechanismOutcome::Succeeded, DoneBy::Reached);  // and it keeps spinning
+        } else if (t - stepStart_ >= bound_) {
+            finishStep(t, MechanismOutcome::TimedOut, DoneBy::None, false, "it keeps spinning");
+        }
+    }
+    void resetBehaviour() noexcept override {
+        spinning_ = false;
+        atSpeed_ = false;
+        targetRadS_ = 0.0;
+        integral_ = 0.0;
+        inBandSince_ = -1.0;
+        lastT_ = -1.0;
+    }
+
+    static constexpr double kPi = 3.14159265358979323846;
+
+    std::optional<manipulation::StallDetector> stall_;  ///< the stated signature (N10)
+    double targetRadS_ = 0.0;   ///< the target, output rad/s
+    double integral_ = 0.0;     ///< the speed error's integral, rad
+    double inBandSince_ = -1.0; ///< when it last entered the band (< 0: outside)
+    double lastT_ = -1.0;       ///< the previous tick's time (< 0: none yet)
+    bool spinning_ = false;
+    bool atSpeed_ = false;
+};
+
 /// PNEUMATIC: two or three named positions, each the team's level per line (Q13 (a)).
 class PneumaticSlot final : public Slot {
 public:
@@ -820,10 +1614,13 @@ public:
     /// mechanism that was not built is a slot that answers ABSENT. Nothing is commanded. The specs,
     /// the devices' objects, the clock, the latch and the sink must outlive the service.
     /// PRECONDITIONS, each checked before anything is stored: bound ONCE; one Devices per spec, at
-    /// most 8; each spec valid (specRefusal) and its name unique; each a POWER or PNEUMATIC mechanism
-    /// (position and speed behaviours arrive with MECH-A3); a built mechanism's Devices carries the
-    /// actuator of its kind, with the declared number of motors or lines, and an ABSENT one none; a
-    /// piece sensor only as declared, of the declared kind; no angle sensor or home switch.
+    /// most 8; each spec valid (specRefusal) and its name unique; a built mechanism's Devices carries
+    /// the actuator of its kind, with the declared number of motors or lines, and an ABSENT one none;
+    /// a built position or speed mechanism carries its ANGLE sensor exactly when it declares one, and
+    /// a built position mechanism its HOME switch exactly when its homing is by switch (a refused angle
+    /// sensor or home switch makes the mechanism ABSENT — robot::MechanismParts); a power or pneumatic
+    /// one neither; a piece sensor only as declared, of the declared kind. Homing that needs no motion
+    /// happens here (PositionSlot): each such home is logged.
     void bind(std::span<const MechanismSpec> specs, std::span<const Devices> devices, hal::IClock& clock,
               diag::FaultLatch& faults, hal::ITelemetrySink& telemetry) {
         bindImpl(specs, nullptr, devices, clock, faults, telemetry);
@@ -941,6 +1738,18 @@ public:
                             "MechanismService::power: the mechanism at this index is not a power mechanism");
         return *powers_[i];
     }
+    /// The POSITION slot at `i` (an Arm or a Lift). PRECONDITION: `i` is a position mechanism.
+    [[nodiscard]] PositionSlot& position(std::size_t i) {
+        SHULIB_PRECONDITION(i < host_.count && positions_[i].has_value(),
+                            "MechanismService::position: the mechanism at this index is not a position mechanism");
+        return *positions_[i];
+    }
+    /// The SPEED slot at `i` (a Flywheel). PRECONDITION: `i` is a speed mechanism.
+    [[nodiscard]] SpeedSlot& speed(std::size_t i) {
+        SHULIB_PRECONDITION(i < host_.count && speeds_[i].has_value(),
+                            "MechanismService::speed: the mechanism at this index is not a speed mechanism");
+        return *speeds_[i];
+    }
     /// The PNEUMATIC slot at `i`. PRECONDITION: `i` is a pneumatic mechanism.
     [[nodiscard]] PneumaticSlot& pneumatic(std::size_t i) {
         SHULIB_PRECONDITION(i < host_.count && pneumatics_[i].has_value(),
@@ -955,9 +1764,39 @@ public:
     /// compiled into another robot's build commands a same-named mechanism of the same kind there —
     /// autons are per robot, landmine 6.)
     [[nodiscard]] PowerSlot* find(const mechanism::Power& d) noexcept { return findIn(powers_, d.name.text); }
+    /// An ARM declaration's slot (find(const Power&)'s rule) — a position mechanism in DEGREES (a
+    /// same-named LIFT, in inches, is not an arm: nullptr).
+    [[nodiscard]] PositionSlot* find(const Arm& d) noexcept { return findPosition(d.name.text, Units::Degrees); }
+    /// A LIFT declaration's slot — a position mechanism in INCHES.
+    [[nodiscard]] PositionSlot* find(const Lift& d) noexcept { return findPosition(d.name.text, Units::Inches); }
+    /// A FLYWHEEL declaration's slot.
+    [[nodiscard]] SpeedSlot* find(const mechanism::Flywheel& d) noexcept { return findIn(speeds_, d.name.text); }
     /// A pneumatic declaration's slot (find(const Power&)'s rule).
     [[nodiscard]] PneumaticSlot* find(const mechanism::Pneumatic& d) noexcept {
         return findIn(pneumatics_, d.name.text);
+    }
+    /// A position GOAL's slot (`arm["score"]`, `lift.to(18_in)`): this robot's position mechanism of
+    /// that name and of the goal's UNITS (an Arm's goal never finds a same-named lift) — and, for a
+    /// named preset, only when it has that preset at that value (a goal of another robot's same-named
+    /// mechanism must not move this one to a stranger's value).
+    [[nodiscard]] PositionSlot* find(const PositionGoal& g) noexcept {
+        PositionSlot* p = findPosition(g.mechanismName, g.units);
+        if (p == nullptr || (g.presetName != nullptr && !hasPreset(p->spec().position.presets,
+                                                                    p->spec().position.presetCount, g.presetName,
+                                                                    g.value))) {
+            return nullptr;
+        }
+        return p;
+    }
+    /// A speed GOAL's slot (`flywheel["shoot"]`): this robot's flywheel of that name — and, for a named
+    /// preset, only when it has that preset at that speed (find(const PositionGoal&)'s rule).
+    [[nodiscard]] SpeedSlot* find(const SpeedGoal& g) noexcept {
+        SpeedSlot* p = findIn(speeds_, g.mechanismName);
+        if (p == nullptr || (g.presetName != nullptr &&
+                             !hasPreset(p->spec().speed.presets, p->spec().speed.presetCount, g.presetName, g.rpm))) {
+            return nullptr;
+        }
+        return p;
     }
     /// A pneumatic GOAL's slot (`claw["closed"]`): also checks the POSITION — returned only when this
     /// robot's mechanism of that name has that position's name at that index.
@@ -1025,10 +1864,6 @@ private:
             const MechanismSpec& s = specs[i];
             const Devices& d = devices[i];
             SHULIB_PRECONDITION(specRefusal(s) == Refusal::None, specProblem(s));
-            SHULIB_PRECONDITION(s.kind == Kind::Power || s.kind == Kind::Pneumatic,
-                                "MechanismService::bind: a position (Arm, Lift) or speed (Flywheel) mechanism -- "
-                                "their behaviours arrive with MECH-A3; this build runs power and pneumatic "
-                                "mechanisms only");
             for (std::size_t j = 0; j < i; ++j) {
                 SHULIB_PRECONDITION(nameOf(specs[j]) != nameOf(s),
                                     "MechanismService::bind: two mechanisms share a name");
@@ -1036,9 +1871,9 @@ private:
             SHULIB_PRECONDITION(d.absence != nullptr,
                                 "MechanismService::bind: a Devices' absence is null (\"\" = built)");
             const bool built = d.absence[0] == '\0';
-            if (built && s.kind == Kind::Power) {
+            if (built && s.kind != Kind::Pneumatic) {
                 SHULIB_PRECONDITION(d.motors != nullptr && d.pneumatic == nullptr,
-                                    "MechanismService::bind: a built power mechanism's Devices needs its motors, and "
+                                    "MechanismService::bind: a built motor mechanism's Devices needs its motors, and "
                                     "no pneumatic");
                 SHULIB_PRECONDITION(d.motors->motors().size() == s.motorCount,
                                     "MechanismService::bind: the motor group's size is not the declaration's motor "
@@ -1053,9 +1888,23 @@ private:
                 SHULIB_PRECONDITION(d.motors == nullptr && d.pneumatic == nullptr,
                                     "MechanismService::bind: an ABSENT mechanism's Devices carries no actuator");
             }
-            SHULIB_PRECONDITION(d.angleSensor == nullptr && d.homeSwitch == nullptr,
-                                "MechanismService::bind: an angle sensor or a home switch on a power or pneumatic "
-                                "mechanism (only a position or speed mechanism declares one)");
+            const bool loopKind = s.kind == Kind::Position || s.kind == Kind::Speed;
+            SHULIB_PRECONDITION(d.angleSensor == nullptr ||
+                                    (built && loopKind && s.angleSensor.kind == SensorKind::Rotation),
+                                "MechanismService::bind: an angle sensor the declaration does not have (only a "
+                                "built position or speed mechanism that declares one carries it)");
+            SHULIB_PRECONDITION(!built || !loopKind || s.angleSensor.kind != SensorKind::Rotation ||
+                                    d.angleSensor != nullptr,
+                                "MechanismService::bind: a built mechanism that declares an angle sensor has none -- "
+                                "its angle is how it knows where it is (a refused one makes it ABSENT)");
+            SHULIB_PRECONDITION(d.homeSwitch == nullptr ||
+                                    (built && s.kind == Kind::Position && s.homeSwitch.kind == SensorKind::Switch),
+                                "MechanismService::bind: a home switch the declaration does not have (only a built "
+                                "position mechanism homed by its switch carries one)");
+            SHULIB_PRECONDITION(!built || s.kind != Kind::Position || s.homeSwitch.kind != SensorKind::Switch ||
+                                    d.homeSwitch != nullptr,
+                                "MechanismService::bind: a built mechanism homed by its switch has none (a refused "
+                                "one makes it ABSENT)");
             const int pieces = (d.pieceDistance != nullptr ? 1 : 0) + (d.pieceOptical != nullptr ? 1 : 0) +
                                (d.pieceSwitch != nullptr ? 1 : 0);
             const SensorKind k = s.pieceSensor.kind;
@@ -1066,7 +1915,7 @@ private:
                 "MechanismService::bind: a piece sensor the declaration does not have (or of another kind)");
             SHULIB_PRECONDITION(d.pieceFaults == nullptr || pieces == 1,
                                 "MechanismService::bind: a read-fault count for a piece sensor that was not built");
-            SHULIB_PRECONDITION(d.homeSwitchFaults == nullptr,
+            SHULIB_PRECONDITION(d.homeSwitchFaults == nullptr || d.homeSwitch != nullptr,
                                 "MechanismService::bind: a home switch's read-fault count on a mechanism with no "
                                 "home switch");
         }
@@ -1076,16 +1925,40 @@ private:
         for (std::size_t i = 0; i < specs.size(); ++i) {
             const auto idx = static_cast<std::uint8_t>(i);
             const MechanismWiring* w = wiring != nullptr ? &wiring[i] : nullptr;
-            if (specs[i].kind == Kind::Power) {
-                host_.slots[i] = &powers_[i].emplace(host_, specs[i], w, idx, devices[i]);
-            } else {
-                host_.slots[i] = &pneumatics_[i].emplace(host_, specs[i], w, idx, devices[i]);
+            switch (specs[i].kind) {
+                case Kind::Power:
+                    host_.slots[i] = &powers_[i].emplace(host_, specs[i], w, idx, devices[i]);
+                    break;
+                case Kind::Position:
+                    host_.slots[i] = &positions_[i].emplace(host_, specs[i], w, idx, devices[i]);
+                    break;
+                case Kind::Speed:
+                    host_.slots[i] = &speeds_[i].emplace(host_, specs[i], w, idx, devices[i]);
+                    break;
+                case Kind::Pneumatic:
+                    host_.slots[i] = &pneumatics_[i].emplace(host_, specs[i], w, idx, devices[i]);
+                    break;
             }
             if (host_.slots[i]->mech_ != nullptr) {
                 built_[builtCount_++] = host_.slots[i]->mech_;
             }
             ++host_.count;
         }
+    }
+    PositionSlot* findPosition(const char* name, Units units) noexcept {
+        PositionSlot* p = findIn(positions_, name);
+        return p != nullptr && p->spec().position.units == units ? p : nullptr;
+    }
+    /// True when one of `presets` is called `name` AND holds `value` (a goal copies its declaration's
+    /// value, so the same declaration's goal matches exactly).
+    static bool hasPreset(const Preset (&presets)[kMaxPresets], std::uint8_t count, const char* name,
+                          double value) noexcept {
+        for (std::size_t i = 0; i < count && i < kMaxPresets; ++i) {
+            if (std::string_view{presets[i].name} == std::string_view{name}) {
+                return presets[i].value == value;
+            }
+        }
+        return false;
     }
     template <class T>
     T* findIn(std::array<std::optional<T>, kMaxMechanisms>& a, const char* name) noexcept {
@@ -1153,6 +2026,8 @@ private:
     motion::ITickPacer* inner_;
     detail::SlotHost host_{};  ///< the clock, latch, sink and slots every slot reads (bound() = clock set)
     std::array<std::optional<PowerSlot>, kMaxMechanisms> powers_{};
+    std::array<std::optional<PositionSlot>, kMaxMechanisms> positions_{};
+    std::array<std::optional<SpeedSlot>, kMaxMechanisms> speeds_{};
     std::array<std::optional<PneumaticSlot>, kMaxMechanisms> pneumatics_{};
     std::array<hal::IMechanism*, kMaxMechanisms> built_{};
     std::size_t builtCount_ = 0;

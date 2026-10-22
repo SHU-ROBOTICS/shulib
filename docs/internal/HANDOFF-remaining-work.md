@@ -284,8 +284,8 @@ G1 Part 2b until then — and by the invented X-drive since Part 2c; none has ru
 `hal/device_provider.hpp` + fake (members: motor, imu, gps, rotation, digitalOut (T3), and since MECH-A1
 distance, optical, digitalIn and the read-fault pair; clock, battery, telemetry, pacer — **no vision yet**); the
 mechanism core's vocabulary `mechanism/{kinds,spec,wiring,route_ids,devices}.hpp` (MECH-A1) and its service
-`mechanism/{until,service}.hpp` (MECH-A2: power and pneumatic mechanisms run through it; host-only, no program builds
-one yet), `robot/robot.hpp` (`robot::validate` +
+`mechanism/{until,service}.hpp` (MECH-A2: power and pneumatic mechanisms run through it; MECH-A3: position and speed
+too — arms, lifts and flywheels move, hold, home and spin; host-only, no program builds one yet), `robot/robot.hpp` (`robot::validate` +
 `robot::Robot`; since G1 Part 2a also `BuildOptions` for the boot check's absent drive ports,
 `portMap()` and `driveOdometry()`), `runner/command_registry.hpp`, `runner/path_runner.hpp`, `runner/manifest.hpp`.
 
@@ -790,7 +790,9 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
    calibrator, drive, write and run a first routine on the robot. Followed start to finish by someone
    who did not write it (the user guide chunk C8's rule; D3's still-open partial).
 3. **The competition program chapter** (L2): selector, phases, the park, how routines are registered.
-4. **The mechanism chapter** (L8): each primitive, its confirmation and failure modes, homing.
+4. **The mechanism chapter** (L8): each primitive, its confirmation and failure modes, homing. *(Begun:
+   the guide's chapter 18, MECH-A3, 2026-10-15 — the kinds, homing, limits, jam signatures, tuning; the core's
+   A4 adds the auton steps and driver controls, A6 the bench page.)*
 5. **The driver-control chapter** (L1, L5, T2): profiles, modes, field-centric and its fallback,
    bindings.
 6. **The calibration chapter:** what the calibrator measures, the record on the card, boot

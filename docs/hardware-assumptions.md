@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 177 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 178 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -156,10 +156,21 @@
 > stand in for a real arm, lift, roller and flywheel closely enough that the core's host verdicts
 > transfer. Every constant in them is invented; the core's next part (MECH-A3, the position and speed
 > behaviours) leans on them far more than this one. With it, 177.
+> **MECH-A3 (the mechanism core's third part, the position and speed behaviours; built 2026-10-15) added ONE —
+> HA-182, invented** — that the library's STARTING numbers for an arm, a lift and a flywheel (the gains, the smooth
+> move's speed and ramp, "reached", the hold's integral clamp, the speed integral's window and clamp) hold a real
+> mechanism well enough to be tuned from. The gains, the profile and "reached" are per mechanism: worded for a
+> boot line, PROVISIONAL (the programs print it from MECH-A5 on; none does yet), and replaced one by one by a
+> declaration's `.tuning`. The integral clamps and window are LIBRARY constants: no `.tuning` field, not on that
+> line — a wrong one is a library change for every mechanism (MECH-A3's review, 2026-10-22, split the claim). It AMENDED three: HA-183 (the plant gained a mounted angle sensor, a limit switch and a
+> wedge, and now carries the position and speed verdicts), HA-184 (the service reads a HOME switch since this part
+> — at boot and through a homing push — through the read-fault rule) and HA-186 (absolute homing runs: the
+> reading's turn chosen nearest the middle of the travel, a reversed sensor's mounting applied, and a travel of a
+> whole sensor turn or more refused at build). With it, 178.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
-> reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182 and
-> HA-185** (the mechanism core's later parts: its brief, accepted 2026-10-08; HA-184 and HA-186
-> landed with its first part, HA-183 with its second, above), held the same way. The
+> reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-185** (the
+> mechanism core's fifth part: its brief, accepted 2026-10-08; HA-184 and HA-186 landed with its first
+> part, HA-183 with its second, HA-182 with its third, above), held the same way. The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
 > 122, have no bucket for UNKNOWN (HA-143, HA-145, HA-157 and HA-162's confidence), and a recount is due.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
@@ -362,6 +373,7 @@
 | HA-178 | The Auton Tester's abort and RUN gate read the right things from PROS: `press_count` rises when a finger LANDS; a controller button's level turns true within ~50 ms; with nothing connected and the tester started from the brain, `competition_get_status()` reads 0x00; a controller switched OFF reads `is_connected()` false within ~1 s — each read from a task the program created | (a) reasoned (the vendored text); (b), (d) **invented**; (c) reasoned (HA-128's measurement) | COMP-t Stations M.2–M.4 |
 | HA-179 | TANK1's tank-steering constants (bend 0.1 rad/in capped at 15°, fade 6 in, lead 0.06 s; yaw observer 0.1 s, limit 1.5 rad/s) remove robot two's weak-side drift on a tank `moveTo` within the unchanged 0.5 in / 0.02 rad rule, without heading oscillation — its drivetrain follows a yaw command much faster than 0.1 s | **invented** (tuned on the host test plant's placeholder dynamics; with unmodelled motor lag the plant's margin shrinks — measured) | COMP-t Station M.6 / R5 |
 | HA-180 | Robot two's sideways error on a straight tank `moveTo` comes from its HEADING being pulled (the IMU sees it), not from the chassis sliding sideways (which no sensor on robot two sees) | reasoned (the 2026-09-25 veer was a heading change read on the IMU; a skid was never measured) | COMP-t Station M.6 |
+| HA-182 | The mechanism core's STARTING numbers hold a real arm, lift and flywheel well enough to be TUNED from: position kP 0.25 V/deg, kI 0.3 (the hold loop only; its I-term clamped to 3 V), kD 0.004, kS 0, kA 0, kV = 12 V over the output's free speed, the smooth move at 75 % of the free speed reached in 0.25 s, "reached" within 1.5° (0.25 in) for 0.1 s; speed kS 0, kV = 12 V over the free speed, kP 0.05, kI 0.2 acting only within 10 % of the target, its I-term clamped to 3 V — the gains, profile and "reached" per mechanism (a boot line words them; `.tuning` replaces each), the two integral clamps and the window LIBRARY constants (no `.tuning`) | **invented** (the host test plant's 144 mismatched moves and 27 flywheels are its only evidence — HA-183) | tuning each mechanism on the robot (MECH on hardware); MECH-A4 and MECH-A6 add their own numbers here |
 | HA-183 | The host test plant's mechanism models (`sim::ArmPlant`, `sim::FlywheelPlant`) stand in for a real V5 arm, lift, roller and flywheel closely enough that the mechanism core's host verdicts transfer: the inverted-feedforward joint (static band kS, speed per volt kV, first-order approach τ = kA/kV), gravity as a load in volts (kG·cos(θ − level) for an arm, kG for a lift), the brake modes at 0 V (Hold's restoring stiffness, Brake's damping, Coast free), the current's shape (\|V − kV·ω\|·2.5/12, capped at 2.5 A — HA-93's), and a hard stop or a jam reading ZERO speed at stall-grade current | **invented** (no constant is measured; a real stalled motor creeps — HA-93 — the plant's does not) | the first robot session that logs a real arm's and a real flywheel's step response beside the model's (MECH on hardware) |
 | HA-184 | A VEX limit switch read through `ProsDigitalIn::state()` reads 1 (TRUE) when PRESSED, so the mechanism core's `pressedLevel = true` is right; and an UNPLUGGED switch line reads RELEASED | **unknown** (the vendored `get_value()` doc says only "the digital value (1 or 0) of a pin") | MECH-A6's Bench Tests station 13: the switch read pressed, released AND with its cable out |
 | HA-186 | At power-up a V5 rotation sensor's CUMULATIVE `get_position()` (what `ProsRotation::position()` reads, HA-11) starts at the shaft's ABSOLUTE angle within one turn — and so it does after a PROGRAM restart without a power cycle — so `absoluteSensor()` homing needs no motion | reasoned (VEX's description of the sensor as absolute within a turn; the vendored doc says only "current position") | MECH-A6's station 13: power-cycle at two marked angles; move the arm, restart only the program, read again |
@@ -1142,7 +1154,9 @@ there; homing, and so HA-186 and the home-switch half of HA-184, from MECH-A3.)*
   `include/shulib/mechanism/spec.hpp` (`SensorRole::pressedLevel`), `include/shulib/hal/pros/digital_in.hpp`
   (the adapter's read-fault note); since MECH-A2 (2026-10-15) `include/shulib/mechanism/service.hpp`
   (`Slot::seen()` reads a limit switch used as a PIECE sensor against `pressedLevel`, so every `seesPiece`
-  / `stopsSeeingPiece` on one leans on this belief — homing on a switch waits for MECH-A3); vendored `include/pros/adi.hpp` :731-757 (`get_value()`: "Gets the
+  / `stopsSeeingPiece` on one leans on this belief), and since MECH-A3 (2026-10-15) its HOME switch too
+  (`Slot::homeSwitchPressed()`: a position mechanism homed by switch is homed at boot when its switch
+  reads pressed on a fresh read, and a homing push ends when it does); vendored `include/pros/adi.hpp` :731-757 (`get_value()`: "Gets the
   digital value (1 or 0) of a pin" — nothing about which level a pressed switch gives, or what an empty
   line reads; :705-729, which an earlier draft of the core's brief cited, is `get_new_press()`'s doc).
   *Confidence:* **unknown** — no vendored text says which level means pressed or what an unplugged
@@ -1152,9 +1166,11 @@ there; homing, and so HA-186 and the home-switch half of HA-184, from MECH-A3.)*
   *Blast radius if wrong:* if pressed reads 0 — every switch-homed mechanism believes it is home
   wherever it stands at boot (the rule "a switch already pressed at bind: homed, no motion" fires on a
   released switch), and every switch piece sensor reads inverted. If an unplugged line reads 1 — the
-  same, for a cable that fell out. The nets the core's later parts build (measured on the host test
-  plant by its brief): the REQUIRED jam signature stops a move into the hard stop (STALLED at 1.70 s),
-  and a switch whose reads FAIL from boot no longer homes it (the read-fault rule). What no net sees:
+  same, for a cable that fell out. The nets (built by MECH-A3, measured on the host test plant): the
+  REQUIRED jam signature stops a move into the hard stop (case F: an arm homed at 60° by a switch reading
+  "pressed", then moved to "140" — truly 200 — STALLED at 1.70 s at the stop, 170°;
+  `test/mechanism_position_test.cpp`), and a switch whose reads FAIL from boot no longer homes it (the
+  read-fault rule — case S, the same file). What no net sees:
   an unplugged 3-wire line reads a LEVEL, not PROS_ERR (`hal/read_faults.hpp` says so), so its
   read-fault count never moves. **Contained:** one field per switch role (`pressedLevel`), set in one
   place (`limitSwitch()` and the switch-homing words) — a measured inversion is a one-line change.
@@ -1168,8 +1184,16 @@ there; homing, and so HA-186 and the home-switch half of HA-184, from MECH-A3.)*
   program (the brain powered throughout, the arm moved meanwhile) gives the arm's NEW angle, not the
   old count.
   *Source:* `include/shulib/mechanism/kinds.hpp` (`absoluteSensor()`), `include/shulib/mechanism/spec.hpp`
-  (`HomeMethod::Absolute`, `PositionSpec::absoluteSensorAtZeroDeg`, and the refusal of a reading outside
-  [0, 360)); `include/shulib/hal/pros/rotation.hpp` :79 binds `get_position()` (it carries HA-11, not this
+  (`HomeMethod::Absolute`, `PositionSpec::absoluteSensorAtZeroDeg`, the refusal of a reading outside
+  [0, 360), and — MECH-A3 — the refusal of absolute homing over a travel of a whole sensor turn or more);
+  since MECH-A3 (2026-10-15) `include/shulib/mechanism/service.hpp` (`PositionSlot`'s absolute zero: the
+  output angle is home + (reading − the stated reading), the declared mounting applied, the reading's TURN
+  chosen nearest the middle of the travel — a reading within one turn is what this belief says it is, so
+  the travel plus twice the farthest the mechanism can rest outside a limit at power-up must stay under
+  one turn: refusal 70 checks only the travel, and chapter 18 tells the team the rest — MECH-A3's
+  review, 2026-10-22);
+  `include/shulib/sim/mechanism_plant.hpp`'s `RotationMount` MODELS this belief for the host tests (it
+  proves the arithmetic, never the belief); `include/shulib/hal/pros/rotation.hpp` :79 binds `get_position()` (it carries HA-11, not this
   ID); vendored `include/pros/rotation.hpp` :194-216 (`get_position()`: "the Rotation Sensor's current
   position in centidegrees" — nothing about its value at power-up; :244-266, which an earlier draft of
   the core's brief cited, is `get_angle()`).
@@ -1206,7 +1230,13 @@ is a belief.
   speed at stall-grade current.
   *Source:* `include/shulib/sim/mechanism_plant.hpp` (its banner names every constant invented),
   `test/sim_mechanism_plant_test.cpp` (the model's equations, each pinned against a number derived by
-  hand), and the core's tests that run a power mechanism through it (`test/mechanism_service_power_test.cpp`).
+  hand), and the core's tests that run a mechanism through it: a power mechanism
+  (`test/mechanism_service_power_test.cpp`) and, since MECH-A3 (2026-10-15), every position and speed
+  verdict (`test/mechanism_position_rig.hpp`, `test/mechanism_position_test.cpp`,
+  `test/mechanism_speed_test.cpp`, `test/mechanism_chapter_example_test.cpp`). MECH-A3 gave the joint an
+  angle sensor MOUNTED on it (absolute within one turn at power-up — HA-186's belief, modelled — either way
+  round), a limit SWITCH at an angle and a chosen pressed level (HA-184's belief is the test's to choose),
+  and a stop BELOW the joint (a piece wedged under the arm).
   *Confidence:* **invented** — no constant is measured; the shape is the A2 drive plant's, not a measured
   mechanism's.
   *Settle (MECH on hardware):* the first robot session that logs a real arm's and a real flywheel's step
@@ -1216,11 +1246,67 @@ is a belief.
   part: the stall-signature timings (a 0.2 s signature trips at ~0.21 s here because the plant's jam
   reads zero speed at once; a real stalled motor CREEPS — HA-93 — so a `belowMotorRpm` below the creep
   would never trip — the reason `spec.hpp` refuses a signature whose `belowMotorRpm` is 0),
-  and the hold-to-run into a jam. MECH-A3's moves, holds, soft stop and flywheel lean on it far more
-  (it tunes the model and adds its numbers here). **Contained:** test-only — `shulib/sim/` is
+  and the hold-to-run into a jam. **Since MECH-A3 every position and speed verdict rests on it**, with
+  these numbers (the brief's probes re-run on the built code, to the hundredth): 143 of 144 mismatched moves
+  SUCCEEDED (overshoot ≤ 7.22°, ≤ 3.59° with a plant no faster than its cartridge; the miss a plant slower
+  than its own cartridge); a hold under a +0.8 V piece within 2.41°; the hold's integral worth 3.20° of
+  steady error under a 25 % gravity mismatch; a blocked move STALLED in 0.65 s / 1.00 s; the soft stop (as
+  MECH-A3's review rebuilt it, 2026-10-22) at most 8.32° past a limit — a fast Blue 5:1 arm twice as heavy as
+  its `.gravity`, pushed down at 12 V; 2.50° with the gravity right, 3.68° on the slower Green arm twice as
+  heavy; 20 of 27 flywheels at speed, the other 7 out of reach or the slowest; a jam stopped in 0.51 s. Each
+  transfers only as far as a real mechanism's step response matches the model's — and the starting values
+  those tests run are HA-182's. MECH-A3 TUNED NO constant of the model: the brief planned "A3 tunes", and
+  its probes reproduced on A2's plant to the hundredth, so none needed it (MECH-A3's review).
+  **Contained:** test-only — `shulib/sim/` is
   unreachable from the library (the CI layering guard), no program runs any of it, and every adversarial
   case sets the controller's constants and the plant's SEPARATELY (the A2 truth-integrator lesson): a
   test that gave both the same numbers would prove only the algebra.
+
+### MECH-A3's addition — the library's own numbers for an arm, a lift and a flywheel (2026-10-15)
+
+The mechanism core's third part runs the position (an arm, a lift) and speed (a flywheel) behaviours. Every
+number a team can know it requires (limits, presets, the gravity hold, how it homes, what a jam looks like,
+the at-speed band); the numbers no team can know before the robot runs — the loops' gains, the smooth
+move's speed and ramp, "reached" — the library STARTS, from the cartridge and gearing the team states.
+Those are a belief about real mechanisms.
+
+- [ ] **HA-182 — the library's starting numbers hold a real arm, lift and flywheel well enough to be tuned
+  from.**
+  *Claim:* with no `.tuning`, a position mechanism's move and hold — kP 0.25 V per output degree, kI 0.3
+  V per degree-second in the HOLD loop only (its I-term clamped to 3 V, `mechanism::kHoldIntegralLimitVolts`),
+  kD 0.004 V per degree/s, kS 0, kA 0, kV 12 V over the output's free speed (the cartridge's 100 / 200 /
+  600 rpm through the stated gearing), the smooth move at 75 % of that free speed reached in 0.25 s,
+  "reached" within 1.5° (a lift's 0.25 in) for 0.1 s — and a flywheel's spin — kV 12 V over its free
+  speed, kS 0, kP 0.05 V per rad/s, kI 0.2 V per rad acting only within 10 % of the target
+  (`kSpeedIntegralWindow`) and clamped to 3 V (`kSpeedIntegralLimitVolts`) — bring a real mechanism near
+  enough to its target to be tuned from, rather than oscillating, stalling or crawling.
+  *Source:* `include/shulib/mechanism/kinds.hpp` (`detail::positionStart()`, `detail::speedStart()`,
+  `positionStartingValues()`, `speedStartingValues()`), `include/shulib/mechanism/service.hpp` (the three
+  constants, and the loops that run every number), `include/shulib/mechanism/wiring.hpp`
+  (`startingValuesLine()`, the boot line that words the per-mechanism ones "PROVISIONAL (HA-182)" — the
+  programs print it from MECH-A5 on; it does not carry the three library constants),
+  `include/shulib/mechanism/spec.hpp` (its banner).
+  *Confidence:* **invented** — the only evidence is the host test plant (HA-183): 143 of 144
+  deliberately mismatched moves reached their target with these numbers (the miss: a plant slower than its
+  own cartridge, TIMED_OUT honestly), 20 of 27 flywheels reached speed (the rest could not, or were the
+  slowest), and a hold carried a 25 % gravity mismatch within 0.001°.
+  *Settle (MECH on hardware):* tune each mechanism on the robot — log a move's and a hold's volts,
+  position and current beside the starting values', and record the `.tuning` each mechanism ends with.
+  MECH-A4 (the driver toggle's at-speed window) and MECH-A6 (the bench page's jog volts and time, its
+  "did not move" angle and its "drawing" current) add their own numbers to this entry.
+  *Blast radius if wrong:* a mechanism that moves too fast (overshooting toward a hard stop — which is
+  why the guide tells a team to set limits short of the stops by more than the measured overshoot), too
+  slowly (a move TIMED_OUT, said, holding where it stopped), or that rings or sags in a hold (a hold's
+  gravity number is the TEAM's; the integral covers only a mismatch). Never silent: every step says how
+  it ended, and a jam trips the team's own stall signature. **Contained — in two parts** (MECH-A3's
+  review split this, 2026-10-22): the gains, the smooth move's speed and ramp and "reached" are PER
+  MECHANISM — a boot line words them (the programs print it from MECH-A5) and the declaration's
+  `.tuning` replaces each one by one. The hold's integral clamp (3 V) and the speed integral's window
+  (10 %) and clamp (3 V) are LIBRARY constants (`service.hpp`): no `.tuning` field and not on the boot
+  line, so if one is wrong the fix is an edit to the library that changes EVERY mechanism — a wider
+  blast radius than the rest of this entry (whether a team should be able to tune them is a design
+  question for the coordinator, not this register's). Nothing outside the mechanism core reads any of
+  them.
 
 ---
 
@@ -3969,6 +4055,14 @@ E2's tuning constants make the corrector work better or worse; these three make 
   *Blast radius if wrong:* hostile-suite realism only — the operation layer's thresholds are
   required per-mechanism parameters, so no library behavior rests on these numbers; a wrong
   magnitude here mis-calibrates the *worst day* the suite rehearses, not the robot.
+  *Since MECH-A3 (2026-10-15):* the host test plant's mechanism current has this shape (HA-183), and
+  since MECH-A3's review (2026-10-22) chapter 18's advice for a `homeByStall` signature leans on its
+  linear scaling: a gentle homing push stalls at about |V|/12 of the 2.5 A limit (0.62 A at 3 V), so the
+  homing signature's amps belong below that (0.45 A to start) — stated as the host test plant's number,
+  to be checked on the bench, and a stall-home that never trips logs what its push drew when stopped. No library
+  behaviour and no build refusal rests on it: a refusal of a homing signature above |V|/12 × 2.5 A was
+  proposed and NOT built — if the scaling is wrong (a real motor drawing more at low volts) it would
+  refuse a signature that works.
 
 ---
 

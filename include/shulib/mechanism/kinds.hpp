@@ -44,9 +44,13 @@
 // library, each a STARTING value, PROVISIONAL: the controllers' gains, the smooth move's speed and
 // acceleration (a fraction of the cartridge's free speed through the stated gearing), and the
 // "reached" tolerance — the requirements' "gains ship with starting values and are MEASURED on the
-// robot later" (N7). They are the hardware assumption the brief holds as HA-182 (MECH-A3 registers
-// it with the behaviours that run these numbers; nothing in this run commands a motor). Each can be
-// stated instead, one by one (`.tuning`). No time limit is ever a default: every step states its own.
+// robot later" (N7). They are HA-182 (registered by MECH-A3, 2026-10-15, with the behaviours that run
+// them — mechanism/service.hpp), INVENTED until each mechanism is tuned on the robot;
+// startingValuesLine() (wiring.hpp) words them per mechanism for a boot line — the programs print it
+// from the core's fifth part (MECH-A5) on; none does yet — so nobody mistakes them for measurements.
+// Each can be stated instead, one by one (`.tuning`). (The service's own integral clamps and window
+// are HA-182 too, but LIBRARY constants: no `.tuning` field, not on that line — service.hpp.) No time
+// limit is ever a default: every step states its own.
 //
 // ── UNITS ────────────────────────────────────────────────────────────────────────────
 // An Arm is in DEGREES of the arm — plain numbers: `_deg` is a WRAPPING heading (270 reads -90), so
@@ -451,6 +455,9 @@ struct PositionGoal {
     double value;
     /// A run-time number (`clampedTo`): clamped at the limits by the soft stop, logged.
     bool computed;
+    /// Degrees (an Arm's goal) or inches (a Lift's): the service finds only a mechanism of these units
+    /// (UNSET, the byte 0, finds none).
+    Units units;
 };
 /// A speed goal: a Flywheel's named speed or constant target.
 struct SpeedGoal {
@@ -581,7 +588,7 @@ constexpr StallSpec stallSpec(const Stall& s) noexcept {
     return StallSpec{.amps = s.amps, .speedRadS = s.belowMotorRpm * 2.0 * 3.14159265358979323846 / 60.0,
                      .time = s.lasting.value()};
 }
-/// THE STARTING VALUES (header; N7; held as HA-182) for a position mechanism, from its gearing and
+/// THE STARTING VALUES (header; N7; HA-182 — invented) for a position mechanism, from its gearing and
 /// cartridge: kP 0.25, kI 0.3 (the hold loop), kD 0.004, kS 0, kV 12 V over the output's free speed,
 /// kA 0, the smooth move at 75 % of the free speed reached in 0.25 s, "reached" within `withinStart`
 /// (1.5 deg / 0.25 in) for 0.1 s — each replaced by a stated `.tuning` value.
@@ -607,7 +614,63 @@ constexpr void homing(PositionSpec& p, const Homing& h) noexcept {
     p.homeStall = stallSpec(h.stall);
     p.absoluteSensorAtZeroDeg = h.sensorAtZeroDeg;
 }
+/// The mechanism's STEEPEST units per OUTPUT degree — the one scale between its units and the loops'
+/// degrees for a speed or an acceleration (the starting profile here; the service's move plan and soft
+/// stop, mechanism/service.hpp): 1 for an arm; for a lift exact for a spool, a linkage's level slope
+/// (its steepest) and a measured table's steepest segment. The steepest, so a speed in units turned
+/// into degrees by it is never faster in units anywhere on the travel — conservative (0 for a shape
+/// with nothing to scale by, refused anyway).
+[[nodiscard]] constexpr double unitsPerOutputDeg(const PositionSpec& p) noexcept {
+    switch (p.geometry) {
+        case Geometry::Rotary:
+            return 1.0;
+        case Geometry::Spool:
+            return 3.14159265358979323846 * p.spoolDiameterIn / 360.0;
+        case Geometry::Arm:
+            return p.armStages * p.armLengthIn * 3.14159265358979323846 / 180.0;
+        case Geometry::Table: {
+            // every segment, not the first: a later one can be the steepest (a table read off a lift
+            // that speeds up toward its top)
+            double steepest = 0.0;
+            for (std::size_t i = 1; i < p.tablePoints && i < kMaxTablePoints; ++i) {
+                const double dDeg = p.table[i][1] - p.table[i - 1][1];
+                const double slope = dDeg > 0.0 ? (p.table[i][0] - p.table[i - 1][0]) / dDeg : 0.0;
+                steepest = slope > steepest ? slope : steepest;
+            }
+            return steepest;
+        }
+    }
+    return 0.0;
+}
+/// THE STARTING VALUES (header; HA-182 — invented) for a flywheel, from its free speed (output
+/// rad/s): kS 0, kV 12 V over the free speed, kP 0.05 V per rad/s, kI 0.2 V per rad (the speed loop's
+/// integral, which acts only near the target — mechanism/service.hpp) — each replaced by a stated
+/// `.tuning` value.
+constexpr void speedStart(SpeedSpec& q, const SpeedTuning& t, double freeRadS) noexcept {
+    q.kS = t.kS;
+    q.kV = t.kV > 0.0 ? t.kV : (freeRadS > 0.0 ? 12.0 / freeRadS : 0.0);
+    q.kP = t.kP > 0.0 ? t.kP : 0.05;
+    q.kI = t.kI > 0.0 ? t.kI : 0.2;
+}
 }  // namespace detail
+
+/// The numbers a POSITION spec would run with NO `.tuning` — the library's starting values
+/// (HA-182) for its cartridge, gearing and shape. What startingValuesLine() (wiring.hpp) compares a
+/// spec against to say which of its numbers are the library's and which the team's.
+[[nodiscard]] constexpr PositionSpec positionStartingValues(const MechanismSpec& s) noexcept {
+    PositionSpec p = s.position;
+    detail::positionStart(p, PositionTuning{}, s.cartridge, detail::unitsPerOutputDeg(p),
+                          p.units == Units::Inches ? 0.25 : 1.5);
+    return p;
+}
+/// The numbers a SPEED spec would run with NO `.tuning` (HA-182), from its cartridge through its
+/// gearing.
+[[nodiscard]] constexpr SpeedSpec speedStartingValues(const MechanismSpec& s) noexcept {
+    SpeedSpec q = s.speed;
+    const double freeRpm = q.gearRatio > 0.0 ? detail::cartridgeRpm(s.cartridge) / q.gearRatio : 0.0;
+    detail::speedStart(q, SpeedTuning{}, freeRpm * 2.0 * 3.14159265358979323846 / 60.0);
+    return q;
+}
 
 // ═══ THE FIVE KINDS ═══════════════════════════════════════════════════════════════════
 
@@ -683,7 +746,7 @@ struct Arm {
     [[nodiscard]] consteval PositionGoal operator[](const char* preset) const {
         for (const DegreePreset& p : presets) {
             if (detail::same(p.name, preset)) {
-                return PositionGoal{this, name.text, p.name, p.value, false};
+                return PositionGoal{this, name.text, p.name, p.value, false, Units::Degrees};
             }
         }
         detail::no_such_preset_on_this_mechanism();
@@ -694,7 +757,7 @@ struct Arm {
         if (!(degrees >= range.min && degrees <= range.max)) {
             detail::target_is_outside_the_travel_limits();
         }
-        return PositionGoal{this, name.text, nullptr, degrees, false};
+        return PositionGoal{this, name.text, nullptr, degrees, false, Units::Degrees};
     }
     /// `arm.to(90_deg)`: refused BY NAME (`_deg` is a wrapping heading — 270 reads -90).
     template <class T>
@@ -705,7 +768,7 @@ struct Arm {
     }
     /// A target computed while the auton runs: clamped to the limits by the soft stop, and logged.
     [[nodiscard]] constexpr PositionGoal clampedTo(double degrees) const noexcept {
-        return PositionGoal{this, name.text, nullptr, degrees, true};
+        return PositionGoal{this, name.text, nullptr, degrees, true, Units::Degrees};
     }
 
     /// This declaration as data.
@@ -779,7 +842,7 @@ struct Lift {
     [[nodiscard]] consteval PositionGoal operator[](const char* preset) const {
         for (const InchPreset& p : presets) {
             if (detail::same(p.name, preset)) {
-                return PositionGoal{this, name.text, p.name, p.value.value(), false};
+                return PositionGoal{this, name.text, p.name, p.value.value(), false, Units::Inches};
             }
         }
         detail::no_such_preset_on_this_mechanism();
@@ -790,7 +853,7 @@ struct Lift {
         if (!(height.value() >= range.min.value() && height.value() <= range.max.value())) {
             detail::target_is_outside_the_travel_limits();
         }
-        return PositionGoal{this, name.text, nullptr, height.value(), false};
+        return PositionGoal{this, name.text, nullptr, height.value(), false, Units::Inches};
     }
     /// `lift.to(18)`: refused BY NAME (a height is inches: `lift.to(18_in)`).
     template <class T>
@@ -801,7 +864,7 @@ struct Lift {
     }
     /// A height computed while the auton runs: clamped to the limits by the soft stop, and logged.
     [[nodiscard]] constexpr PositionGoal clampedTo(units::Length height) const noexcept {
-        return PositionGoal{this, name.text, nullptr, height.value(), true};
+        return PositionGoal{this, name.text, nullptr, height.value(), true, Units::Inches};
     }
 
     /// This declaration as data.
@@ -835,18 +898,8 @@ struct Lift {
         p.stall = detail::stallSpec(stall);
         p.unhomedVolts = unhomedVolts.value();
         // The starting profile's scale, inches per output degree: exact for a spool; for a linkage
-        // its steepest (level) slope and for a table its first segment's — conservative estimates.
-        double inPerDeg = 0.0;
-        if (shape.geometry == Geometry::Spool) {
-            inPerDeg = 3.14159265358979323846 * shape.spoolDiameterIn / 360.0;
-        }
-        if (shape.geometry == Geometry::Arm) {
-            inPerDeg = shape.stages * shape.armLengthIn * 3.14159265358979323846 / 180.0;
-        }
-        if (shape.geometry == Geometry::Table && shape.points >= 2 && shape.table[1][1] > shape.table[0][1]) {
-            inPerDeg = (shape.table[1][0] - shape.table[0][0]) / (shape.table[1][1] - shape.table[0][1]);
-        }
-        detail::positionStart(p, tuning, cartridge, inPerDeg, 0.25);
+        // its steepest (level) slope and for a table its steepest segment's — conservative estimates.
+        detail::positionStart(p, tuning, cartridge, detail::unitsPerOutputDeg(p), 0.25);
         for (std::size_t i = 0; i < kMaxPresets; ++i) {
             if (presets[i].name == nullptr) {
                 break;
@@ -930,11 +983,7 @@ struct Flywheel {
         q.gearRatio = gearing.motorTurnsPerTurn;
         q.maxRpm = freeRpm();
         q.stall = detail::stallSpec(stall);
-        const double freeRadS = freeRpm() * 2.0 * 3.14159265358979323846 / 60.0;
-        q.kS = tuning.kS;
-        q.kV = tuning.kV > 0.0 ? tuning.kV : (freeRadS > 0.0 ? 12.0 / freeRadS : 0.0);
-        q.kP = tuning.kP > 0.0 ? tuning.kP : 0.05;
-        q.kI = tuning.kI > 0.0 ? tuning.kI : 0.2;
+        detail::speedStart(q, tuning, freeRpm() * 2.0 * 3.14159265358979323846 / 60.0);
         q.atSpeedBandRpm = atSpeed.rpm;
         q.atSpeedTime = atSpeed.lasting.value();
         for (std::size_t i = 0; i < kMaxPresets; ++i) {

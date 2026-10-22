@@ -104,6 +104,10 @@
   (`Localizer::reseatHeading`; your placement, not a sensor). [Ch. 3]
 - **holonomic** — able to move in any direction regardless of facing, while also rotating.
   [Ch. 4]
+- **homing (a mechanism's)** — finding where an arm's or a lift's zero is, before it may go to any
+  position: at program start with no motion (it rests on its stop; an absolute angle sensor; a home
+  switch already pressed) or by a homing step that pushes until its switch is pressed or it stalls
+  against its stop. Every home logs where its zero went. [Ch. 18]
 - **host-side** — running on an ordinary computer rather than the robot. [Ch. 7]
 - **IMU (inertial measurement unit)** — the sensor that measures rotation directly; the owner
   of the heading estimate. [Ch. 3]
@@ -123,6 +127,11 @@
   you declare yours with (`Arm`, `Lift`, `Flywheel`, `Power`, `Pneumatic`) and the grammar for
   commanding and confirming them — never a season's mechanism: what your robot has, and what you
   call it, is yours to write. [Ch. 10, Ch. 13]
+- **mechanism service** — the one object, ticked once per control tick (inside shulib's waits and
+  motions, and — from the core's driver controls on — every driver-loop tick), that runs every
+  mechanism's behaviour, so an arm keeps
+  holding and an intake keeps running while the robot drives; starved by a busy loop of your own, it
+  leaves each mechanism at its last command. [Ch. 18]
 - **declared safe state** — what a given mechanism does when a run ends or is cancelled, stated
   per mechanism rather than assumed. A lift holds; an intake coasts; a clamp that has
   successfully grabbed *keeps holding*, because a clamp whose safe state were "open" would fling
@@ -205,6 +214,19 @@
 - **snap (and never-snap)** — jumping the estimate straight to whatever a sensor claims. shulib
   never does it, in position or in heading: corrections are applied as small bounded steps, so a
   single bad reading cannot teleport or spin the robot's idea of itself. [Ch. 3]
+- **soft stop** — a mechanism's travel limits enforced while it runs: a computed target past one is
+  clamped to it (and said), and a button pushing toward one is taken over where it could no longer
+  stop before it, brought to it and held AT it by the closed-loop hold — never pushed harder than the
+  button pushes, one soft stop per push. A constant target past one never compiles. [Ch. 18]
+- **stall signature** — what a jam looks like for one mechanism, stated in its declaration
+  (`.stall`): at least this current while the motor turns slower than this, for this long. Required
+  on an arm, a lift and a flywheel; a trip is STALLED, the safe state and a `MECHANISM_STALLED`
+  fault. A `homeByStall` push has its own, far smaller one (a gentle push stalls at a small
+  current). [Ch. 18]
+- **starting values** — the numbers the library starts a position or speed mechanism's loop with
+  (gains, the smooth move's speed and ramp, "reached"), derived from its cartridge and gearing,
+  invented and PROVISIONAL (HA-182) until `.tuning` replaces them; a boot line words them (the
+  programs print it from the core's fifth part on). [Ch. 18]
 - **step (recipe)** — one link in a recipe chain, plus the record of whether it ran, succeeded,
   or was skipped. Most steps delegate to a single chassis command, but not all: a wait step has
   no motion behind it, and a `then()` step runs your own code or a mechanism operation and judges

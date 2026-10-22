@@ -400,10 +400,11 @@ show `cmd#0`). Until you need it, you don't need it.
 > the VOCABULARY and the BUILD CHECKS: how a robot file says what each mechanism is and where it is
 > plugged in, what the build refuses, the route ids every mechanism publishes, and the devices the
 > robot builds for every role. Since its second part (MECH-A2, 2026-10-15) a mechanism SERVICE runs
-> POWER and PNEUMATIC mechanisms through it, ticked once per control tick — but no program builds a
-> service yet, and its API is taught with the auton steps that call it. The position and speed
-> behaviours (an `Arm`, a `Lift`, a `Flywheel`), the auton steps (`r.move(arm["score"], 1.5_s)`) and
-> the driver controls are the core's next parts. Robot two's programs build their claws through it
+> POWER and PNEUMATIC mechanisms through it, ticked once per control tick, and since its third (MECH-A3,
+> 2026-10-22) the POSITION and SPEED behaviours too — an `Arm` or a `Lift` moves, holds and finds its
+> zero, a `Flywheel` spins up and stays at speed ([chapter 18](18-mechanisms.md)) — but no program builds
+> a service yet, and its API is taught with the auton steps that call it. The auton steps
+> (`r.move(arm["score"], 1.5_s)`) and the driver controls are the core's next parts. Robot two's programs build their claws through it
 > (the Robot builds every role), but the per-role boot lines below are only worded by the library
 > today — the programs first print them in the core's fifth part. **Nothing here has run on a
 > robot.**
@@ -449,9 +450,12 @@ members in that order. The rules that matter most:
   `.belowMotorRpm` above 0 (a stalled motor still reads a little creep) and `.lasting` above 0 (a motor
   starting from rest draws stall-grade current with its shaft still). Optional on a `Power`.
 - **Every number you own is yours to state.** A field left out is UNSET and refused at build, by
-  name. The only numbers the library supplies are its STARTING gains, smooth-move speed and "reached"
-  tolerance — derived from your cartridge and gearing, provisional until tuned, and replaced one by
-  one with `.tuning`.
+  name. The only numbers the library supplies PER MECHANISM are its STARTING gains, smooth-move speed
+  and "reached" tolerance — derived from your cartridge and gearing, provisional until tuned, and
+  replaced one by one with `.tuning` ([chapter 18](18-mechanisms.md#tuning--the-starting-values-and-how-to-change-them)
+  lists them and says how). Three loop constants are the library's own, the same for every mechanism
+  and not in `.tuning`: the hold's integral clamp and the flywheel integral's window and clamp (the same
+  chapter).
 
 **Where each one is plugged in** is a separate block, one `wire(...)` line per mechanism, in boot
 order — re-cabling changes only these lines. A smart port is a NUMBER and a 3-wire port a LETTER in
@@ -476,8 +480,9 @@ more than four motors or two lines), a sensor the declaration has but the wiring
 (or the reverse), one sensor written twice in a `wire(...)` line, a pneumatic position that states a
 different number of levels than its wiring has lines, a preset past a travel limit, a homing push
 that points away from its home end, a voltage past the motor's 12 V (a homing push, a gravity hold,
-`.unhomedVolts`), a jam signature that could never trip, a missing number, a misspelt preset, and
-every route id the list could not publish (below). The reason is the name of a function GCC refuses
+`.unhomedVolts`), a jam signature that could never trip, absolute homing over a travel of a whole
+turn of its angle sensor or more, a missing number, a misspelt preset, and every route id the list
+could not publish (below). The reason is the name of a function GCC refuses
 to call, so a refusal reads like this:
 
 ```text
@@ -533,7 +538,7 @@ READ-FAULT count (`hal::IReadFaults`, through `readFaults(port)` / `lineReadFaul
 whose read fails is answered with its last good value, and a distance sensor held from a far reading
 is, byte for byte, the "no object" reading — only the count tells them apart. The count is there so
 the core's service never takes a held value for evidence: since its second part the service reads a
-PIECE sensor's count (a home switch's arrives with the position behaviours, its only reader) — and
+PIECE sensor's count, and since its third a HOME switch's (a read that failed is never a home) — and
 no program builds the service yet.
 
 At run time `config::RobotConfig::valid()` owns every port collision — now including each

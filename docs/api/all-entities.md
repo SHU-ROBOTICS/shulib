@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 4,744 of them, across 183 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 4,783 of them, across 183 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -2066,6 +2066,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kHitPadX` | constant | [touch_panel.md](touch_panel.md#khitpadx) |
 | `kHitPadY` | constant | [calibrate_panel.md](calibrate_panel.md#khitpady) |
 | `kHitPadY` | constant | [touch_panel.md](touch_panel.md#khitpady) |
+| `kHoldIntegralLimitVolts` | constant | [service.md](service.md#kholdintegrallimitvolts) |
 | `kImuCount` | constant | [calibrate_screen.md](calibrate_screen.md#kimucount) |
 | `kImuRefused` | constant | [calibrate_screen.md](calibrate_screen.md#kimurefused) |
 | `kImuWarming` | constant | [calibrate_panel.md](calibrate_panel.md#kimuwarming) |
@@ -2220,6 +2221,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kSmallCols` | constant | [touch_panel.md](touch_panel.md#ksmallcols) |
 | `kSmallHeight` | constant | [calibrate_panel.md](calibrate_panel.md#ksmallheight) |
 | `kSmallHeight` | constant | [touch_panel.md](touch_panel.md#ksmallheight) |
+| `kSpeedIntegralLimitVolts` | constant | [service.md](service.md#kspeedintegrallimitvolts) |
+| `kSpeedIntegralWindow` | constant | [service.md](service.md#kspeedintegralwindow) |
 | `kSpinAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kspinagain) |
 | `kSpinFirst` | constant | [calibrate_panel.md](calibrate_panel.md#kspinfirst) |
 | `kSpinning` | constant | [calibrate_panel.md](calibrate_panel.md#kspinning) |
@@ -2533,6 +2536,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MechanismService::find` | function | [service.md](service.md#mechanismservice-find) |
 | `MechanismService::find (overload 2)` | function | [service.md](service.md#mechanismservice-find-2) |
 | `MechanismService::find (overload 3)` | function | [service.md](service.md#mechanismservice-find-3) |
+| `MechanismService::find (overload 4)` | function | [service.md](service.md#mechanismservice-find-4) |
+| `MechanismService::find (overload 5)` | function | [service.md](service.md#mechanismservice-find-5) |
+| `MechanismService::find (overload 6)` | function | [service.md](service.md#mechanismservice-find-6) |
+| `MechanismService::find (overload 7)` | function | [service.md](service.md#mechanismservice-find-7) |
+| `MechanismService::find (overload 8)` | function | [service.md](service.md#mechanismservice-find-8) |
 | `MechanismService::leaveDriverControl` | function | [service.md](service.md#mechanismservice-leavedrivercontrol) |
 | `MechanismService::leftoverClaimsReleased` | function | [service.md](service.md#mechanismservice-leftoverclaimsreleased) |
 | `MechanismService::mechanisms` | function | [service.md](service.md#mechanismservice-mechanisms) |
@@ -2543,11 +2551,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MechanismService::operator= (overload 2)` | function | [service.md](service.md#mechanismservice-operator-eq-2) |
 | `MechanismService::pace` | function | [service.md](service.md#mechanismservice-pace) |
 | `MechanismService::pneumatic` | function | [service.md](service.md#mechanismservice-pneumatic) |
+| `MechanismService::position` | function | [service.md](service.md#mechanismservice-position) |
 | `MechanismService::power` | function | [service.md](service.md#mechanismservice-power) |
 | `MechanismService::size` | function | [service.md](service.md#mechanismservice-size) |
 | `MechanismService::slot` | function | [service.md](service.md#mechanismservice-slot) |
 | `MechanismService::slotFor` | function | [service.md](service.md#mechanismservice-slotfor) |
 | `MechanismService::slotPtr` | function | [service.md](service.md#mechanismservice-slotptr) |
+| `MechanismService::speed` | function | [service.md](service.md#mechanismservice-speed) |
 | `MechanismService::telemetry` | function | [service.md](service.md#mechanismservice-telemetry) |
 | `MechanismService::tickFromDriverLoop` | function | [service.md](service.md#mechanismservice-tickfromdriverloop) |
 | `MechanismService::ticks` | function | [service.md](service.md#mechanismservice-ticks) |
@@ -3163,6 +3173,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `position_a_preset_has_no_name` | free function | [spec.md](spec.md#position_a_preset_has_no_name) |
 | `position_a_preset_is_outside_the_travel_limits` | free function | [spec.md](spec.md#position_a_preset_is_outside_the_travel_limits) |
 | `position_a_rotary_mechanism_is_in_degrees` | free function | [spec.md](spec.md#position_a_rotary_mechanism_is_in_degrees) |
+| `position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor` | free function | [spec.md](spec.md#position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor) |
 | `position_absolute_homing_needs_an_anglesensor_rotation_role` | free function | [spec.md](spec.md#position_absolute_homing_needs_an_anglesensor_rotation_role) |
 | `position_an_arm_needs_one_to_three_stages` | free function | [spec.md](spec.md#position_an_arm_needs_one_to_three_stages) |
 | `position_an_arms_travel_limits_reach_past_its_linkage_the_height_formula_has_no_inverse_there` | free function | [spec.md](spec.md#position_an_arms_travel_limits_reach_past_its_linkage_the_height_formula_has_no_inverse_there) |
@@ -3192,6 +3203,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PositionGoal::mechanism` | field | [kinds.md](kinds.md#positiongoal-mechanism) |
 | `PositionGoal::mechanismName` | field | [kinds.md](kinds.md#positiongoal-mechanismname) |
 | `PositionGoal::presetName` | field | [kinds.md](kinds.md#positiongoal-presetname) |
+| `PositionGoal::units` | field | [kinds.md](kinds.md#positiongoal-units) |
 | `PositionGoal::value` | field | [kinds.md](kinds.md#positiongoal-value) |
 | `Positions` | struct | [kinds.md](kinds.md#struct-positions) |
 | `Positions::count` | field | [kinds.md](kinds.md#positions-count) |
@@ -3201,6 +3213,19 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Positions::Positions` | function | [kinds.md](kinds.md#positions-positions) |
 | `Positions::Positions (overload 2)` | function | [kinds.md](kinds.md#positions-positions-2) |
 | `Positions::tooMany` | field | [kinds.md](kinds.md#positions-toomany) |
+| `PositionSlot` | class | [service.md](service.md#class-positionslot) |
+| `PositionSlot::holdHere` | function | [service.md](service.md#positionslot-holdhere) |
+| `PositionSlot::home` | function | [service.md](service.md#positionslot-home) |
+| `PositionSlot::homed` | function | [service.md](service.md#positionslot-homed) |
+| `PositionSlot::jog` | function | [service.md](service.md#positionslot-jog) |
+| `PositionSlot::jointDeg` | function | [service.md](service.md#positionslot-jointdeg) |
+| `PositionSlot::moveTo` | function | [service.md](service.md#positionslot-moveto) |
+| `PositionSlot::moveToPreset` | function | [service.md](service.md#positionslot-movetopreset) |
+| `PositionSlot::position` | function | [service.md](service.md#positionslot-position) |
+| `PositionSlot::PositionSlot` | function | [service.md](service.md#positionslot-positionslot) |
+| `PositionSlot::release` | function | [service.md](service.md#positionslot-release) |
+| `PositionSlot::softStops` | function | [service.md](service.md#positionslot-softstops) |
+| `PositionSlot::target` | function | [service.md](service.md#positionslot-target) |
 | `PositionSpec` | struct | [spec.md](spec.md#struct-positionspec) |
 | `PositionSpec::absoluteSensorAtZeroDeg` | field | [spec.md](spec.md#positionspec-absolutesensoratzerodeg) |
 | `PositionSpec::armLengthIn` | field | [spec.md](spec.md#positionspec-armlengthin) |
@@ -3235,6 +3260,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PositionSpec::tolerance` | field | [spec.md](spec.md#positionspec-tolerance) |
 | `PositionSpec::unhomedVolts` | field | [spec.md](spec.md#positionspec-unhomedvolts) |
 | `PositionSpec::units` | field | [spec.md](spec.md#positionspec-units) |
+| `positionStartingValues` | free function | [kinds.md](kinds.md#positionstartingvalues) |
 | `positionToAngleDeg` | free function | [spec.md](spec.md#positiontoangledeg) |
 | `PositionTuning` | struct | [kinds.md](kinds.md#struct-positiontuning) |
 | `PositionTuning::kA` | field | [kinds.md](kinds.md#positiontuning-ka) |
@@ -3593,6 +3619,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Refusal::PneumaticTheConfirmWindowIsNegative` | enumerator | [spec.md](spec.md#refusal-pneumatictheconfirmwindowisnegative) |
 | `Refusal::PneumaticTwoPositionsHaveTheSameLineLevels` | enumerator | [spec.md](spec.md#refusal-pneumatictwopositionshavethesamelinelevels) |
 | `Refusal::PositionAbsoluteHomingNeedsAnAngleSensorRotationRole` | enumerator | [spec.md](spec.md#refusal-positionabsolutehomingneedsananglesensorrotationrole) |
+| `Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn` | enumerator | [spec.md](spec.md#refusal-positionabsolutehomingtravelspansawholesensorturn) |
 | `Refusal::PositionALiftIsInInches` | enumerator | [spec.md](spec.md#refusal-positionaliftisininches) |
 | `Refusal::PositionALookupTableNeeds28Points` | enumerator | [spec.md](spec.md#refusal-positionalookuptableneeds28points) |
 | `Refusal::PositionAnArmNeeds13Stages` | enumerator | [spec.md](spec.md#refusal-positionanarmneeds13stages) |
@@ -4300,6 +4327,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Slot::declaresPieceSensor` | function | [service.md](service.md#slot-declarespiecesensor) |
 | `Slot::hasPieceSensor` | function | [service.md](service.md#slot-haspiecesensor) |
 | `Slot::holdsClaim` | function | [service.md](service.md#slot-holdsclaim) |
+| `Slot::homeSwitchPressed` | function | [service.md](service.md#slot-homeswitchpressed) |
 | `Slot::index` | function | [service.md](service.md#slot-index) |
 | `Slot::kind` | function | [service.md](service.md#slot-kind) |
 | `Slot::lastStep` | function | [service.md](service.md#slot-laststep) |
@@ -4356,6 +4384,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SpeedGoal::mechanismName` | field | [kinds.md](kinds.md#speedgoal-mechanismname) |
 | `SpeedGoal::presetName` | field | [kinds.md](kinds.md#speedgoal-presetname) |
 | `SpeedGoal::rpm` | field | [kinds.md](kinds.md#speedgoal-rpm) |
+| `SpeedSlot` | class | [service.md](service.md#class-speedslot) |
+| `SpeedSlot::atSpeed` | function | [service.md](service.md#speedslot-atspeed) |
+| `SpeedSlot::rpm` | function | [service.md](service.md#speedslot-rpm) |
+| `SpeedSlot::SpeedSlot` | function | [service.md](service.md#speedslot-speedslot) |
+| `SpeedSlot::spinning` | function | [service.md](service.md#speedslot-spinning) |
+| `SpeedSlot::spinUp` | function | [service.md](service.md#speedslot-spinup) |
+| `SpeedSlot::spinUpPreset` | function | [service.md](service.md#speedslot-spinuppreset) |
+| `SpeedSlot::stop` | function | [service.md](service.md#speedslot-stop) |
+| `SpeedSlot::targetRpm` | function | [service.md](service.md#speedslot-targetrpm) |
 | `SpeedSpec` | struct | [spec.md](spec.md#struct-speedspec) |
 | `SpeedSpec::atSpeedBandRpm` | field | [spec.md](spec.md#speedspec-atspeedbandrpm) |
 | `SpeedSpec::atSpeedTime` | field | [spec.md](spec.md#speedspec-atspeedtime) |
@@ -4369,6 +4406,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SpeedSpec::presetCount` | field | [spec.md](spec.md#speedspec-presetcount) |
 | `SpeedSpec::presets` | field | [spec.md](spec.md#speedspec-presets) |
 | `SpeedSpec::stall` | field | [spec.md](spec.md#speedspec-stall) |
+| `speedStartingValues` | free function | [kinds.md](kinds.md#speedstartingvalues) |
 | `SpeedTuning` | struct | [kinds.md](kinds.md#struct-speedtuning) |
 | `SpeedTuning::kI` | field | [kinds.md](kinds.md#speedtuning-ki) |
 | `SpeedTuning::kP` | field | [kinds.md](kinds.md#speedtuning-kp) |
@@ -4406,6 +4444,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StallSpec::stated` | function | [spec.md](spec.md#stallspec-stated) |
 | `StallSpec::time` | field | [spec.md](spec.md#stallspec-time) |
 | `StallSpec::written` | function | [spec.md](spec.md#stallspec-written) |
+| `startingValuesLine` | free function | [wiring.md](wiring.md#startingvaluesline) |
 | `startModeWord` | free function | [auton_registry.md](auton_registry.md#startmodeword) |
 | `StartPose` | class | [auton_registry.md](auton_registry.md#class-startpose) |
 | `StartPose::field` | function | [auton_registry.md](auton_registry.md#startpose-field) |

@@ -370,8 +370,17 @@ not silently break them. This table is the spine of the no-staleness promise.
 > control tick (inside a drive's wait under the run guard, or at the driver loop's stated place), runs every power
 > and pneumatic mechanism: a step until a piece sensor sees (or stops seeing) a piece, until a stall, or for a time,
 > always within its time limit; a sensor that stops answering is never read as an answer. The run guard's deadline
-> (and a disable) now CUTS a mechanism step instead of letting it run to its own limit. No program builds the service
-> yet, and no auton step calls it: **next is MECH-A3 (position and speed), with CAL1 beside the core.**
+> (and a disable) now CUTS a mechanism step instead of letting it run to its own limit.
+>
+> **Now (2026-10-22): MECH-A3, the third part (built 2026-10-15), has LANDED — host-only.** The service now runs
+> POSITION and SPEED mechanisms too: an arm or a lift moves on a smooth plan and HOLDS, finds its zero at every homing moment (at boot
+> with no motion, or by a homing push) and says where its zero went, stays inside its travel (a computed target
+> clamped, a push held AT the limit), and a timed-out move holds where it stopped; a flywheel spins to "at speed" and
+> keeps spinning. A stated stall signature watches every behaviour. The library's starting gains are PROVISIONAL
+> (HA-182) until `.tuning` replaces them, worded for a boot line the programs print from MECH-A5 — the guide's new
+> chapter 18 teaches all of it. No program builds
+> the service yet, and no auton step calls it: **next is MECH-A4 (auton steps, driver controls, route markers — API
+> 2.5), with CAL1 beside the core.**
 >
 > **Now (2026-10-15): CAL1 Part A1, the standard Calibrate's seams, has LANDED — host-only.** The brain's screen is
 > now a seam with ONE sanitizer (`hal::IBrainScreen`, `hal::screenSafeLine()`), a painter draws Calibrate's screens
@@ -1727,8 +1736,8 @@ is required, not optional, to hold < 1°.)*
   consumer — stresses it (register row F11), and **no mechanism hardware has ever moved** —
   the per-mechanism safe-state physics is HA-92, a registered guess.
 - [~] **The mechanism core (MECH, six runs A1–A6; the team lead's go 2026-10-08)** — **A1 LANDED 2026-10-08,
-  host-only**: the five declarations and their words (`mechanism/kinds.hpp`), one mechanism as data and its 63
-  build refusals (`spec.hpp`), the wiring checked at build (`wiring.hpp`), route ids derived at build
+  host-only**: the five declarations and their words (`mechanism/kinds.hpp`), one mechanism as data and its
+  build refusals (`spec.hpp`: 63 at A1, 69 after its review, 70 since A3), the wiring checked at build (`wiring.hpp`), route ids derived at build
   (`route_ids.hpp`), every role built at boot (`robot/mechanism_parts.hpp`, `mechanism/devices.hpp`), the
   read-fault seam (`hal/read_faults.hpp`), the config's sensor roles and `valid()`'s claims of them, and a
   compile-refusal harness in CI (every build refusal must fail to compile naming its reason). `[~]` until A6:
@@ -1740,6 +1749,11 @@ is required, not optional, to hold < 1°.)*
   the read-fault rule, the outcomes ABSENT / NOT_HOMED / REFUSED, the run guard's latch cutting claimed mechanisms
   (N1, a behaviour change), and the host test plant's mechanism models (`sim/mechanism_plant.hpp`, HA-183). No
   program builds the service yet.
+  **A3 LANDED 2026-10-22 (built 2026-10-15), host-only**: the POSITION behaviour (`PositionSlot`: moves, holds,
+  every homing moment with its zero log, the soft stop, every hold target clamped, NOT_HOMED before homing) and the SPEED behaviour
+  (`SpeedSlot`), the stall watch on every behaviour, the starting values' boot line (HA-182), `bind()` taking every
+  kind, and a 70th build refusal (absolute homing over a whole sensor turn); the guide's chapter 18. Still `[~]`:
+  auton steps and driver controls (A4), robot two and the programs (A5), the bench page (A6).
 - [ ] `setQuadrantToggle` (index N clicks on the 3-state Toggle + Optical color confirm) — *highest-value primitive*.
 - [ ] `orientToScoringHalf` (yellow-side-out: color-sense → pass-through vs flip) — *second highest-value*.
 - [ ] `intakeUntilCapture` (counter-roller, retry, sensor-confirm).

@@ -1117,6 +1117,86 @@ inline void roleLine(char* out, std::size_t cap, const char* mechanismName, cons
     out[0] = '\0';
 }
 
+/// ONE boot line naming the numbers a POSITION or SPEED mechanism's loop runs with, and which of them
+/// are the library's STARTING values (HA-182 — invented, never measured) rather than the team's
+/// `.tuning` — beside roleLine(). No program prints it yet: the core's fifth part (MECH-A5) adds it
+/// to every program's boot. Each number that differs from positionStartingValues() /
+/// speedStartingValues() is marked "(tuned)" — for the smooth move's ramp, its TIME (a stated speed
+/// alone keeps the starting 0.25 s ramp, so it is not marked); the line ends saying how many are
+/// starting values. Writes at most `cap` bytes, NUL-terminated; "" for a power or pneumatic mechanism
+/// (they run no loop). Verbatim, an untuned arm and flywheel:
+///     arm: starting values kP 0.250 kI 0.300 kD 0.0040 kV 0.0500, cruise 180.0 deg/s in 0.25 s, reached
+///     within 1.50 deg for 0.10 s -- PROVISIONAL (HA-182); .tuning overrides
+///     flywheel: starting values kV 0.0318 kP 0.050 (V per output rad/s) kI 0.200 (V per output rad) --
+///     PROVISIONAL (HA-182); .tuning overrides
+/// (each one line). A number stated by `.tuning` prints its value and "(tuned)"; when every one is,
+/// the line ends "-- every number stated by its .tuning". The library's other HA-182 numbers — the
+/// hold's integral clamp, the speed integral's window and clamp (mechanism/service.hpp) — are
+/// constants, not `.tuning` fields, and are not on this line.
+inline void startingValuesLine(char* out, std::size_t cap, const MechanismSpec& s) {
+    if (out == nullptr || cap == 0) {
+        return;
+    }
+    out[0] = '\0';
+    const auto mark = [](double v, double start) { return v != start ? " (tuned)" : ""; };
+    const auto tail = [](int tuned, int total) {
+        return tuned == 0       ? "-- PROVISIONAL (HA-182); .tuning overrides"
+               : tuned == total ? "-- every number stated by its .tuning"
+                                : "-- the rest are starting values, PROVISIONAL (HA-182)";
+    };
+    const std::string_view name = nameOf(s);
+    const int nameLen = static_cast<int>(name.size() < 23 ? name.size() : 23);
+    if (s.kind == Kind::Position) {
+        const PositionSpec& p = s.position;
+        const PositionSpec st = positionStartingValues(s);
+        // the ramp is printed as its TIME, so its time is what is compared: a stated speed alone keeps
+        // the starting 0.25 s ramp (the acceleration follows the speed), and is not a tuned ramp
+        const double rampS = p.maxAcceleration > 0.0 ? p.maxVelocity / p.maxAcceleration : 0.0;
+        const double startRampS = st.maxAcceleration > 0.0 ? st.maxVelocity / st.maxAcceleration : 0.0;
+        const double numbers[] = {p.kP, p.kI, p.kD, p.kS, p.kV, p.kA, p.maxVelocity, rampS, p.tolerance,
+                                  p.settleTime};
+        const double starts[] = {st.kP, st.kI, st.kD, st.kS, st.kV, st.kA, st.maxVelocity, startRampS,
+                                 st.tolerance, st.settleTime};
+        int tuned = 0;
+        for (std::size_t i = 0; i < sizeof numbers / sizeof numbers[0]; ++i) {
+            tuned += numbers[i] != starts[i] ? 1 : 0;
+        }
+        const char* u = p.units == Units::Inches ? "in" : "deg";
+        // kS and kA start at 0 and are printed only when stated; the cruise's time is the profile's
+        // acceleration as "reaches its cruise in N s".
+        char extra[64]{};
+        if (p.kS != st.kS || p.kA != st.kA) {
+            std::snprintf(extra, sizeof extra, " kS %.3f%s kA %.4f%s", p.kS, mark(p.kS, st.kS), p.kA, mark(p.kA, st.kA));
+        }
+        std::snprintf(out, cap,
+                      "%.*s: %s kP %.3f%s kI %.3f%s kD %.4f%s kV %.4f%s%s, cruise %.1f %s/s%s in %.2f s%s, reached "
+                      "within %.2f %s%s for %.2f s%s %s",
+                      nameLen, name.data(), tuned == 0 ? "starting values" : "runs", p.kP, mark(p.kP, st.kP), p.kI,
+                      mark(p.kI, st.kI), p.kD, mark(p.kD, st.kD), p.kV, mark(p.kV, st.kV), extra, p.maxVelocity, u,
+                      mark(p.maxVelocity, st.maxVelocity), rampS, mark(rampS, startRampS),
+                      p.tolerance, u, mark(p.tolerance, st.tolerance), p.settleTime, mark(p.settleTime, st.settleTime),
+                      tail(tuned, 10));
+        return;
+    }
+    if (s.kind == Kind::Speed) {
+        const SpeedSpec& q = s.speed;
+        const SpeedSpec st = speedStartingValues(s);
+        const double numbers[] = {q.kS, q.kV, q.kP, q.kI};
+        const double starts[] = {st.kS, st.kV, st.kP, st.kI};
+        int tuned = 0;
+        for (std::size_t i = 0; i < 4; ++i) {
+            tuned += numbers[i] != starts[i] ? 1 : 0;
+        }
+        char extra[32]{};
+        if (q.kS != st.kS) {
+            std::snprintf(extra, sizeof extra, " kS %.3f%s", q.kS, mark(q.kS, st.kS));
+        }
+        std::snprintf(out, cap, "%.*s: %s%s kV %.4f%s kP %.3f%s (V per output rad/s) kI %.3f%s (V per output rad) %s",
+                      nameLen, name.data(), tuned == 0 ? "starting values" : "runs", extra, q.kV, mark(q.kV, st.kV),
+                      q.kP, mark(q.kP, st.kP), q.kI, mark(q.kI, st.kI), tail(tuned, 4));
+    }
+}
+
 /// The wiring's words, added to `mechanism::words` (kinds.hpp has the rest).
 namespace words {
 /// A robot's list of mechanisms: `inline constexpr MechanismTable kRobotXMechanisms = mechanisms(...)`.

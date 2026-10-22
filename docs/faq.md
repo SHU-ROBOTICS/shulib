@@ -22,7 +22,8 @@ infinity). The `hal/pros` adapters screen every read **before** any conversion:
   value** and count the screened reads (each adapter's `faultedReads()`; for the distance and
   optical sensors and a 3-wire input, also through `hal::IReadFaults` since the mechanism core's
   first part, so that its service never takes a held value for a fresh one; since the core's second
-  part the service reads that count for a PIECE sensor, though no program builds the service yet).
+  part the service reads that count for a PIECE sensor, and since its third for a HOME switch, though
+  no program builds the service yet).
   Deliberately NOT
   zero: a zeroed encoder reads as "the robot stopped", which is exactly the lie that makes a
   dead-encoder runaway invisible — a *frozen* value is what the health layer's
