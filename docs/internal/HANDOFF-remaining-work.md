@@ -659,7 +659,10 @@ fixed.)*
 - **[G3a — NEW 2026-09-26, before G3] The robot profile, its generator and an optional VS Code robot
   panel** (jal: "lets do it for before implementing .vexbot"; build-order's G3a entry). ~3–5 days.
   *(Stale, corrected 2026-09-28: its draft brief of 2026-09-27 puts it at ~5½–6 days; it waits for jal's go
-  and his answers to D1–D6.)*
+  and his answers to D1–D6.)* *(2026-10-29: amended for the MECH core to ~11½–16 or ~13–18½ days (rough; REMAINING-WORK's
+  sizing table and its row 20 differ, until its D6′ re-sizes it); D1–D6 answered 2026-09-29, D6′–D10 still waiting; by jal's ordering ruling of 2026-10-29 its
+  foundation — the robot file and its generator — starts when MECH-A5 merges, beside VIS1, L6 and the
+  auto-flipper, and DOCS3 follows the panel; build-order's G3a entry.)*
 - **[G3] `.vexbot` ingestion into G3a's generator → freeze F7.** Serves VexBuilder's files. ~1 day
   after G3a.
 - **[G4] the ten-minute guide** (closes M5). The legacy `.shupaths` importer was DROPPED 2026-09-26

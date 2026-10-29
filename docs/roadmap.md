@@ -389,7 +389,10 @@ not silently break them. This table is the spine of the no-staleness promise.
 > named); a driver file's controls (`whileHeld`, `toggle`, `preset`, the homing controls — the most recent input
 > wins); every mechanism's route ids run by one registration; and the direction check's judgement (API **2.5**).
 > No program builds the service yet: **next is MECH-A5 — robot two's tables, its driver file and the programs move
-> onto it — with CAL1 before A5.**
+> onto it — with CAL1 before A5.** **The team lead's ordering ruling of 2026-10-29:** the panel's foundation (the
+> robot file and its generator into C++) starts right after MECH-A5 lands, beside the camera, the wall reset and
+> the auto-flipper instead of after them; their panel pages plug in as each lands, and the documentation redo
+> (DOCS3) follows the panel and documents it. Nothing is dropped; the auto-flipper stays fully in.
 >
 > **Now (2026-10-15): CAL1 Part A1, the standard Calibrate's seams, has LANDED — host-only.** The brain's screen is
 > now a seam with ONE sanitizer (`hal::IBrainScreen`, `hal::screenSafeLine()`), a painter draws Calibrate's screens
