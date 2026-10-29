@@ -221,11 +221,19 @@ struct AutonContext {
     /// Where the auton's own log lines go.
     hal::ITelemetrySink& telemetry;
     /// The mechanisms the guard SAFES at the cut and at the end — the Robot's PRESENT ones (B9).
-    /// For the guard's safing only (B25): a routine that commands a mechanism looks it up by name
-    /// from the Robot, not from this list.
+    /// For the guard's safing only (B25): an auton reaches its mechanisms through
+    /// `mechanismService` below (`Routine r{ctx, "name"}`), each by its declaration — never from
+    /// this list.
     std::span<hal::IMechanism* const> mechanisms;
     /// The entry being run.
     const AutonEntry& entry;
+    /// The robot's MECHANISM SERVICE (mechanism/service.hpp) — THE LOOKUP an auton reaches its
+    /// mechanisms through: `Routine r{ctx, "score-three"}` takes it, and every mechanism step finds
+    /// its mechanism there by its declaration (`r.move(arm["score"], 1.5_s)`). nullptr in a program
+    /// that runs autons without one (COMP-a's runAuton): a mechanism step then refuses, loudly.
+    /// (APPENDED at chunk MECH-A4 with a default, so COMP-a's positional
+    /// `AutonContext{chassis, guard, telemetry, mechanisms, entry}` still compiles.)
+    mechanism::MechanismService* mechanismService = nullptr;
 };
 
 /// An auton's routine: runs the auton and returns the Routine's verdict (a bare ExitReason would
@@ -490,3 +498,10 @@ private:
 };
 
 }  // namespace shulib::competition
+
+// MECH-A4: the auton's context, as a word beside the Routine's (chassis/routine.hpp), so a team's
+// auton names `AutonContext` with no library namespace in it.
+namespace shulib::mechanism::words {
+/// What an auton is handed: `RoutineResult scoreThree(AutonContext& ctx)`.
+using competition::AutonContext;
+}  // namespace shulib::mechanism::words

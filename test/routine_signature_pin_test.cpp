@@ -350,6 +350,27 @@ SHULIB_F10_PIN(static_cast<int>(RoutineStopCause::MechanismFailed) == 4,
                "RoutineStopCause::MechanismFailed == 4 (append-only enum; APPENDED at F1 "
                "via the sanctioned additive path — a re-meaning of it is what this pin "
                "would catch)");
+// APPENDED at chunk MECH-A4 (API 2.5), by the same path: a failing mechanism STEP. Pinned the day it
+// landed, beside its neighbours — ADDED, no pin above changed.
+SHULIB_F10_PIN(static_cast<int>(RoutineStopCause::MechanismStepFailed) == 5,
+               "RoutineStopCause::MechanismStepFailed == 5 (append-only enum; APPENDED at MECH-A4 — "
+               "MechanismFailed keeps 4 and its F1 meaning)");
+
+// ── MECH-A4's other additions: what is pinned, and what is deliberately NOT ──────────
+// The appended RoutineResult field is pinned by TYPE (a frozen return type's field): read beside
+// `cause`, it must stay a mechanism verdict. The mechanism STEPS (move / run / set / spinUp / home /
+// stop / waitUntilDone and their start forms), the context constructor and lastMechanism() are
+// NOT pinned: whether they join F10's freeze is an OPEN decision (the Freeze Register's F10 row;
+// routine.hpp's banner gives both readings — they take the unfrozen mechanism seam's types, as
+// then() does, or they take L9's additive path and are pinned). Pinning them later is additive.
+// ADDITIVE growth: no pin above moved, and the frozen constructor's three pins still hold beside
+// the new overload.
+template <typename T>
+concept F10ResMechanismVerdict = requires {
+    requires std::is_same_v<decltype(T::mechanismVerdict), shulib::manipulation::MechanismOutcome>;
+};
+SHULIB_F10_PIN(F10ResMechanismVerdict<RoutineResult>,
+               "RoutineResult::mechanismVerdict : manipulation::MechanismOutcome (appended at MECH-A4)");
 
 // ── the defaulted call spellings (default args are not part of a function type) ───
 template <typename R>
@@ -449,9 +470,9 @@ TEST_CASE("F10 pin: the frozen Routine surface is API major 2 and the mechanism 
     std::snprintf(expected, sizeof expected, "%d.%d", shulib::kApiMajor, shulib::kApiMinor);
     CHECK(std::string_view{shulib::kApiVersionString} == std::string_view{expected});
 
-    // F10 grew additively at 2.4 (L9: reverseTo and faceAway), so the minor must have moved
-    // past TANK1's 3.
-    CHECK(shulib::kApiMinor >= 4);
+    // F10 grew additively at 2.4 (L9: reverseTo and faceAway) and again at 2.5 (MECH-A4: the
+    // appended MechanismStepFailed and mechanismVerdict), so the minor must have moved past L9's 4.
+    CHECK(shulib::kApiMinor >= 5);
 }
 
 }  // namespace

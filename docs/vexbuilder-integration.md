@@ -71,7 +71,7 @@ Legend: ✅ exists and works · ⚠️ exists but incomplete · ❌ not built
 | On-brain live tuner | ❌ | **H3** |
 | **`DebugRecord`** — the record SHUL/2 serialises | ✅ | exists, stable, and already has reserved space for this (§5.2) |
 | **Blackbox binary format** — a shipped, versioned, round-trip-tested wire format | ✅ | **the precedent SHUL/2 followed**: its Tick and Summary payloads ARE the blackbox's bytes (§5.2.5) |
-| The HAL, motion, localization, sequencing, both auton-authoring tiers | ✅ | done and frozen — this is what a loaded `.vexbot` will drive |
+| The HAL, motion, localization, sequencing, both auton-authoring tiers | ✅ | done and frozen (but for the pieces the Freeze Register leaves outside: the recipe layer's `then()` and — not yet ruled — its mechanism steps, row F10; the mechanism ids of 4.2.3 are a robot's, never frozen) — this is what a loaded `.vexbot` will drive |
 
 **The honest read:** your side is further along on the file format; our side is further along on the
 runtime. The integration is the middle, and neither side has built it.
@@ -348,12 +348,60 @@ sink's contract carries, what keeps your parser trivial, and what makes two buil
 ```
 
 - Line 1 is the header; every later line is one command, with the **same five fields** every time
-  (`doc` is `""` for a team-registered id, whose meaning the library does not know).
+  (`doc` is `""` for an id a team registered without one — the library does not know its meaning;
+  since the mechanism core's fourth part, 2026-10-22, an id MAY be registered with its one-line doc,
+  and every mechanism id below is).
 - **Order is part of the contract:** the built-ins first, in the order above, **append-only**; then
   the team's ids in **registration order**. A byte-exact golden test in shulib pins these bytes, so
   a change to the file your picker parses cannot happen quietly.
 - `minArgs`/`maxArgs` tell the picker exactly how many argument fields to render.
-- Nothing in the file is escaped, because 4.2.1 makes escaping unnecessary.
+- Nothing in the file is escaped, because 4.2.1 makes escaping unnecessary (a doc carrying a `"` or a
+  `\` is refused when it is registered).
+
+**Every mechanism's actions are ids too — derived, never typed (since the mechanism core's fourth part,
+2026-10-22).** A robot's mechanisms are declared once in its robot file, and their ids are DERIVED from
+those declarations, one rule per kind — an arm's or a lift's `<name>_<preset>` and `<name>_home`, a
+flywheel's `<name>_<preset>` and `<name>_stop`, a power mechanism's `<name>_run`,
+`<name>_until_piece` / `<name>_until_gone` (when it has a piece sensor) and `<name>_stop`, a
+pneumatic's `<name>_<position>` (the name lower-cased, every run of other characters one `_`: "claw
+pivot 6" → `claw_pivot_6`). A program registers all of a robot's ids in one call, each with its doc, so
+the manifest carries them like any other registered id.
+
+> **Status: host-tested only — no program registers them yet.** The registration call and the manifest
+> lines below are built and tested on the host; no shulib program builds a registry of mechanism ids
+> yet (the mechanism core's fifth part registers them in the competition program and the Auton
+> Tester), so no manifest a robot writes today contains them. The six lines below are derived from
+> robot two's claws exactly as that part declares them — a test fixture's copy of the declarations,
+> not robot two's robot file. Where a robot's manifest FILE lives for a picker to read is the robot
+> panel's work, not yet built.
+
+Robot two's six, exactly as the manifest writes them (after the header and the built-ins):
+
+```
+{"id":"claw_pivot_6_run","builtin":false,"minArgs":2,"maxArgs":2,"doc":"claw pivot 6: run; args[0] = volts (-12..12), args[1] = how long, ms"}
+{"id":"claw_pivot_6_stop","builtin":false,"minArgs":0,"maxArgs":0,"doc":"claw pivot 6: stop (its safe state)"}
+{"id":"claw_pivot_7_run","builtin":false,"minArgs":2,"maxArgs":2,"doc":"claw pivot 7: run; args[0] = volts (-12..12), args[1] = how long, ms"}
+{"id":"claw_pivot_7_stop","builtin":false,"minArgs":0,"maxArgs":0,"doc":"claw pivot 7: stop (its safe state)"}
+{"id":"claw_closed","builtin":false,"minArgs":0,"maxArgs":0,"doc":"claw: go to 'closed'"}
+{"id":"claw_open","builtin":false,"minArgs":0,"maxArgs":0,"doc":"claw: go to 'open'"}
+```
+
+What a picker should know about them:
+
+- **Their args.** An arm's, a lift's or a flywheel's id carries ONE arg: its **time limit in
+  milliseconds** (`arm_score [1500]`). A power mechanism's `_run`, `_until_piece` and `_until_gone` carry
+  TWO: **volts** (−12..12, not 0) and a **time in milliseconds** (`intake_until_piece [12, 3000]`). A
+  `_stop` and a pneumatic's position carry none (a valve's move time is the robot file's). The library
+  states no default for any of them: a marker missing one is REFUSED at run time with one warning
+  naming the id and what it needs, and the route stops there — so a picker that renders `minArgs`
+  fields and refuses an empty or zero one saves a student that run.
+- **A mechanism marker BLOCKS** its waypoint until the step's verdict (markers fire only after a leg
+  settles, 4.1.1 / ruling R2): a long time limit is a long stop there. SUCCEEDED — and a sensorless grab
+  counted done — let the route go on; any other verdict stops it (`MarkerFailed`).
+- **The ids are a robot's**, and they change when its robot file does (a preset renamed, a mechanism
+  added). Derive the list from the robot it is for; never hardcode one. A robot publishes at most 32
+  (the registry's capacity), and its build refuses an id longer than 23 characters, two ids alike, or an
+  id that is a built-in.
 
 #### 4.2.4 The unknown-id guarantee, now implemented and tested
 
@@ -372,7 +420,7 @@ legacy id ended up:
 |---|---|---|
 | `MOVE_WITH_HEADING` | **yes** — 826 CSV rows + 635 generated + 10 hand-written | covered: it is `motion: "move"` with `headingMode: "fixed"` |
 | `NONE` | **yes** — 18 rows, and **absent from both legacy enums** | **ANSWERED — see below. It is not an id and never will be** |
-| `PICK_UP`, `PLACE`, `SCOOP`, `RELEASE`, `CLASP` | **no — declared in an enum, never emitted** | planned scoring primitives, not yet built; they will arrive as ordinary registered ids in the manifest |
+| `PICK_UP`, `PLACE`, `SCOOP`, `RELEASE`, `CLASP` | **no — declared in an enum, never emitted** | planned scoring primitives, not yet built; they will arrive as ordinary registered ids in the manifest. What a robot's MECHANISMS do already arrives that way — each declared mechanism's derived ids (4.2.3), since 2026-10-22 |
 
 **Only one motion id was ever really used.** The five manipulation ids are aspirational, and the
 primitives behind them are gated on the build team's final mechanism decisions — which are not made.

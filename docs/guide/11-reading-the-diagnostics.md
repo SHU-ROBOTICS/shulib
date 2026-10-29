@@ -278,10 +278,10 @@ worth recognizing on sight:
   one. The verdicts: `SUCCEEDED`; `UNCONFIRMED` — done, but nothing CONFIRMED it, and
   the bracket says whether it was `counted done` (`StepReport::countedDone`: no sensor exists to
   ask — a sensorless grab, or a declared piece sensor missing this boot, named with its port) or
-  not (the sensor was there and said no, or did not answer). From the core's auton steps on (its
-  fourth part), a counted-done step lets the auton go on and any other `UNCONFIRMED` stops it; today
-  nothing but your own code reads the verdict, and a `then()` that returns it continues on
-  `SUCCEEDED` only ([Ch. 9](09-the-recipe-api.md)), so a counted-done step stops that chain too.
+  not (the sensor was there and said no, or did not answer). An auton's mechanism STEP
+  ([Ch. 18](18-mechanisms.md#in-an-auton--one-line-per-step)) goes on after a counted-done step and stops
+  on any other `UNCONFIRMED`; a `then()` action that returns an operation's verdict continues on
+  `SUCCEEDED` only ([Ch. 9](09-the-recipe-api.md)), so there a counted-done verdict stops the chain.
   `TIMED_OUT` (its time limit came first and no condition it asked for was met — a piece sensor
   that answered on every read but never as asked, a stall that never came, or no condition at all
   but the limit, `Until::bound()`; since the core's third part also a position move that never got
@@ -305,8 +305,8 @@ worth recognizing on sight:
   outside the service`, `its service was destroyed`; NO bracket means it was cancelled through its
   claim — by the run guard (its deadline or abandon cut, whose own `SEQ` line is below, or its
   end-of-run cancel-all) or by a program's own `cancel()`); `REFUSED` (`another owner holds its
-  claim` — nothing moved); `ABSENT` (`not built at boot: ...`, the boot's own sentence for the port
-  — nothing moved). A homing step on a mechanism that needs no motion SUCCEEDS at once, its bracket
+  claim` — nothing moved; or, from a route, a MARKER whose args are wrong — its own line, below);
+  `ABSENT` (`not built at boot: ...`, the boot's own sentence for the port — nothing moved). A homing step on a mechanism that needs no motion SUCCEEDS at once, its bracket
   saying why: `it rests at its stop at boot: its zero is kept`, `its angle sensor read again`. Lines
   you will meet:
 
@@ -347,6 +347,26 @@ worth recognizing on sight:
   (its operation was not cancelled -- it may have lived on a deleted task)` — the mechanism
   service's line for the same kind of event as the `TEL` line above (`as autonomous began` when it is
   an auton that starts with a claim driver control left).
+- **A routine stopped by a mechanism step** (Warn, tag `RTN`): `routine 'score-three' STOPPED at step 4
+  (intake): mechanism step FAILED (TIMED_OUT) — skipping the rest; drive safed` — the step's verdict in
+  the brackets (its own `MECH` line above says why), the rest of the auton skipped
+  ([Ch. 18](18-mechanisms.md#in-an-auton--one-line-per-step)). Two brackets are the routine's own:
+  `(TIMED_OUT: the mechanism service never ticked -- it is not in the chassis pacer's chain)` — the
+  PROGRAM's wiring: nothing ticked the service during the step's wait — and `(TIMED_OUT: no verdict
+  within the wait's bound; the step runs on to its own)` — a `waitUntilDone` given less time than the
+  step has left. A step on a mechanism the robot does not have says so first, tag `MECH`: `'claw' is
+  not on this robot (its wiring list does not have it): the step did nothing` (another robot's
+  same-named mechanism: `'arm' on this robot is not the mechanism this step names (...)`). The third
+  one, `'arm': the mechanism service is not bound (the program bound no robot list): the step did
+  nothing`, is the PROGRAM's: its boot never bound the mechanism service. The auton still ran — its
+  drive steps before that line drove — and stopped at its first mechanism step, which commanded
+  nothing (every mechanism step would say the same). Look for the boot's own line about the service:
+  it must be bound before any auton can run.
+- **A route marker REFUSED** (Warn, tag `MECH`): `route marker 'arm_score' REFUSED: it needs its time
+  limit in ms, above 0 (args[0])` (or `its volts (args[0], -12..12, not 0) and its time in ms, above 0
+  (args[1])`) — a marker of a mechanism's route id written without the args its step needs
+  ([Ch. 18](18-mechanisms.md#as-route-markers--every-mechanisms-ids-run)); the route stops there,
+  nothing commanded, and `RUN`'s stop line names the marker `returned REFUSED`. Fix the route's marker.
 - **The run guard cut a mechanism** (Warn, tag `SEQ`, once per run — later cuts are counted, not
   logged): `mechanism 'intake' cut at the deadline -- its operation cancelled into its safe state
   (later cuts are counted, not logged)` (or `after the abandon`, when the field disabled the robot) —
@@ -375,7 +395,7 @@ but not narrated there. The authoritative list is always
 | `MOTOR_OVER_TEMP` | a drive motor crossed the thermal throttle step (55 °C) | sustained load; too much current for too long | no | the motor is now weaker than the control model thinks; rest it. In a match: expect sluggishness |
 | `IMPLAUSIBLE` | the estimate or a command violated a physical sanity bound (e.g. pose jumped impossibly fast) | usually a symptom of another problem; occasionally a library bug being caught in the act | no | advisory — look at what *else* happened that tick; report persistent ones |
 | `MOTOR_GROUP_DISAGREE` | one motor of a drive side disagreed with its mates for 250 ms: running opposite to the side's command, or under a quarter of its fastest mate's speed, while the side was driven above 1 V and turning above 1 rad/s | a wrong sign for that port, a fight on the gear train, a slipping gear, a stalled or frozen encoder | no | the drive continues in a motion. In DRIVER CONTROL the same verdict also CUTS the drive for 1 s (the library's drive protections, [Chapter 12](12-when-things-go-wrong.md)): read the `TEL` cut line for the port |
-| `MECHANISM_STALLED` | a mechanism's stall detector tripped: stall-grade current with the shaft not turning — an operation's, or a stall signature the robot file states (`.stall`), watched by the mechanism service through a step and through what goes on after it — a driver's hold-to-run, a position mechanism's hold and a button's push, a homing push by switch, a flywheel's spin; once per stall, beside the step's `MECH` line (`STALLED -- stalled`) | a jam on a game piece, an over-travelled lift against its stop, a seized gearbox | no (the *operation* or the *step* ends with a stalled verdict and the mechanism is put in its safe state; a driver's hold-to-run ends too and its command number moves — from the core's driver controls on (its fourth part), the held button then does nothing more until it is let go; the drive keeps going) | the mechanism stopped itself before it cooked a motor — clear the jam. A stall on every attempt is a mechanical problem, not a tuning one. (A step that ASKED to end on a stall — `stalls`, a squeeze — SUCCEEDS instead and raises nothing) |
+| `MECHANISM_STALLED` | a mechanism's stall detector tripped: stall-grade current with the shaft not turning — an operation's, or a stall signature the robot file states (`.stall`), watched by the mechanism service through a step and through what goes on after it — a driver's hold-to-run, a position mechanism's hold and a button's push, a homing push by switch, a flywheel's spin; once per stall, beside the step's `MECH` line (`STALLED -- stalled`) | a jam on a game piece, an over-travelled lift against its stop, a seized gearbox | no (the *operation* or the *step* ends with a stalled verdict and the mechanism is put in its safe state; a driver's hold-to-run ends too and its command number moves — the held button then does nothing more until it is let go; the drive keeps going) | the mechanism stopped itself before it cooked a motor — clear the jam. A stall on every attempt is a mechanical problem, not a tuning one. (A step that ASKED to end on a stall — `stalls`, a squeeze — SUCCEEDS instead and raises nothing) |
 
 Notes on the machinery: fault raising is **edge-triggered** (a problem persisting 500 ticks is
 *one* fault episode, not 500 lines), the **first** fault of a run is latched immutably (that's

@@ -31,6 +31,25 @@
 // The result is TAGGED (B16): the RunGuardReport always, plus EITHER the routine's RoutineResult
 // OR the route's RunReport, never a mix a reader has to guess about.
 //
+// ── With the robot's MECHANISM SERVICE (chunk MECH-A4, API 2.5) ─────────────────────
+// The second overload takes the program's mechanism::MechanismService instead of a span. Three
+// things differ, nothing above moves (both overloads run ONE body, detail::runAutonImpl):
+//   0. AUTON ENTRY, right after the preconditions and before step 1: the service's
+//      enterAutonomous(). PROS deletes the driver-control task on a mode change, so driver
+//      control's own exit may never have run — a driver's intake left at 12 V would otherwise run
+//      through the whole auton (the MECH brief's D1, measured on the host test plant: 269 of 269
+//      auton paces at 12 V without the call, 0 with it). It clears the service's re-entrancy flag,
+//      releases a claim another owner left (said, by name), stops every motor mechanism's
+//      behaviour (its safe state) and leaves a pneumatic's level alone. It runs even when the
+//      entry is then refused: whatever driver control left running stops either way.
+//   1. The guard's span is the service's mechanisms() — exactly the Robot's built ones (B9).
+//   5. The routine's AutonContext carries the service (`mechanismService`), so `Routine r{ctx,
+//      "name"}` reaches every mechanism by its declaration; a route's mechanism markers reach it
+//      through the program's registry (runner/mechanism_routes.hpp).
+// The service must be IN the chassis's pacer chain, under the guard (Chassis -> RunGuard ->
+// MechanismService -> the program's watch -> the tick pacer): a routine whose mechanism step
+// waits on a service that never ticks stops, saying so (chassis/routine.hpp).
+//
 // ── What it does not do ─────────────────────────────────────────────────────────────
 // It owns no task and reads no competition state: the program's auton task calls it, and the
 // program's watch (a pacer under the guard) abandons it. It does not catch: a routine that THROWS
@@ -56,6 +75,7 @@
 #include "shulib/localization/localizer.hpp"
 #include "shulib/math/angle.hpp"
 #include "shulib/math/pose2d.hpp"
+#include "shulib/mechanism/service.hpp"
 #include "shulib/runner/command_registry.hpp"
 #include "shulib/runner/path_runner.hpp"
 #include "shulib/sequence/run_guard.hpp"
@@ -124,30 +144,26 @@ struct AutonRunResult {
     }
 };
 
-/// Run `entry` under `guard` (file banner: the order of events).
-///
-///  * `chassis` MUST be the Chassis built with `guard` as its pacer (robot::BuildOptions::pacer) —
-///    the guard counts paces and the result says so if it never saw one.
-///  * `commands` is the command registry a ROUTE entry's markers fire through; required for a
-///    route entry (refused without one), ignored for a routine entry, and may be nullptr then.
-///  * `mechanisms` is what the guard safes at the cut and at the end — the Robot's PRESENT
-///    mechanisms (B9). No nullptr (refused, before arming).
-///  * `period` is the period this run is in — the PROGRAM's constant for the entry's kind (C6).
-///
-/// PRECONDITIONS (a programming error, thrown): the guard is not already running, and no motion is
-/// active on the chassis (the re-seat must not move a heading under a live motion — B14). Every
-/// other problem is a REFUSAL with a sentence, returned without arming.
-[[nodiscard]] inline AutonRunResult runAuton(chassis::Chassis& chassis, sequence::RunGuard& guard,
-                                             const AutonEntry& entry,
-                                             const runner::CommandRegistry* commands,
-                                             hal::ITelemetrySink& telemetry,
-                                             std::span<hal::IMechanism* const> mechanisms,
-                                             units::Time period) {
+namespace detail {
+/// THE ONE BODY of both runAuton overloads (file banner: the order of events, and the service's
+/// three differences). `service` is nullptr for COMP-a's overload.
+[[nodiscard]] inline AutonRunResult runAutonImpl(chassis::Chassis& chassis, sequence::RunGuard& guard,
+                                                 const AutonEntry& entry,
+                                                 const runner::CommandRegistry* commands,
+                                                 hal::ITelemetrySink& telemetry,
+                                                 std::span<hal::IMechanism* const> mechanisms,
+                                                 mechanism::MechanismService* service,
+                                                 units::Time period) {
     SHULIB_PRECONDITION(!guard.running(), "runAuton: the guard is already running a run");
     SHULIB_PRECONDITION(!chassis.scheduler().hasActiveMotion(),
                         "runAuton: a motion is still active -- the start pose cannot be re-seated "
                         "under it");
     AutonRunResult result{};
+
+    // ── 0. auton entry: whatever driver control left running stops HERE (MECH-A4; banner) ──
+    if (service != nullptr) {
+        (void)service->enterAutonomous();  // a released leftover claim is said, by name, by the service
+    }
 
     // ── 1. refusals, before anything arms (C6, B9, B16) ───────────────────────────────────
     const AutonVerdict verdict = checkAutonEntry(entry, period);
@@ -177,7 +193,7 @@ struct AutonRunResult {
     const StartPose start = entry.effectiveStart();
     localization::Localizer& localizer = *chassis.deps().localizer;
     hal::IClock& clock = chassis.deps().ctx->clock();
-    AutonContext ctx{chassis, guard, telemetry, mechanisms, entry};
+    AutonContext ctx{chassis, guard, telemetry, mechanisms, entry, service};
     {
         char line[160];
         std::snprintf(line, sizeof line,
@@ -280,6 +296,48 @@ struct AutonRunResult {
                       "COMP", line);
     }
     return result;
+}
+}  // namespace detail
+
+
+/// Run `entry` under `guard` (file banner: the order of events).
+///
+///  * `chassis` MUST be the Chassis built with `guard` as its pacer (robot::BuildOptions::pacer) —
+///    the guard counts paces and the result says so if it never saw one.
+///  * `commands` is the command registry a ROUTE entry's markers fire through; required for a
+///    route entry (refused without one), ignored for a routine entry, and may be nullptr then.
+///  * `mechanisms` is what the guard safes at the cut and at the end — the Robot's PRESENT
+///    mechanisms (B9). No nullptr (refused, before arming).
+///  * `period` is the period this run is in — the PROGRAM's constant for the entry's kind (C6).
+///
+/// PRECONDITIONS (a programming error, thrown): the guard is not already running, and no motion is
+/// active on the chassis (the re-seat must not move a heading under a live motion — B14). Every
+/// other problem is a REFUSAL with a sentence, returned without arming.
+[[nodiscard]] inline AutonRunResult runAuton(chassis::Chassis& chassis, sequence::RunGuard& guard,
+                                             const AutonEntry& entry,
+                                             const runner::CommandRegistry* commands,
+                                             hal::ITelemetrySink& telemetry,
+                                             std::span<hal::IMechanism* const> mechanisms,
+                                             units::Time period) {
+    return detail::runAutonImpl(chassis, guard, entry, commands, telemetry, mechanisms, nullptr, period);
+}
+
+/// Run `entry` under `guard` WITH the robot's MECHANISM SERVICE (chunk MECH-A4, API 2.5; the file
+/// banner's three differences): the service's enterAutonomous() first, the guard's span is
+/// `mechanisms.mechanisms()`, and the routine's AutonContext carries the service, so `Routine
+/// r{ctx, "name"}` reaches every mechanism by its declaration. Every rule of the overload above
+/// holds unchanged. `mechanisms` belongs in the chassis's pacer chain under the guard, bound at
+/// boot before any auton can run; an UNBOUND one has no mechanisms (an empty span for the guard),
+/// and every mechanism step then ends ABSENT, saying the service is not bound — the drive steps
+/// still run.
+[[nodiscard]] inline AutonRunResult runAuton(chassis::Chassis& chassis, sequence::RunGuard& guard,
+                                             const AutonEntry& entry,
+                                             const runner::CommandRegistry* commands,
+                                             hal::ITelemetrySink& telemetry,
+                                             mechanism::MechanismService& mechanisms,
+                                             units::Time period) {
+    return detail::runAutonImpl(chassis, guard, entry, commands, telemetry, mechanisms.mechanisms(),
+                                &mechanisms, period);
 }
 
 }  // namespace shulib::competition

@@ -336,6 +336,12 @@ concept F8EntryIdView = requires(const T& e) {
 SHULIB_F8_PIN(F8EntryIdView<CommandEntry>,
               "CommandEntry::idView() const noexcept -> std::string_view");
 
+// APPENDED at chunk MECH-A4 (API 2.5) — F8's "new registry members": an entry's one-line doc,
+// NON-OWNING, published in the manifest. Pinned the day it landed; no pin above changed.
+template <typename T>
+concept F8EntryDoc = requires { requires std::is_same_v<decltype(T::doc), const char*>; };
+SHULIB_F8_PIN(F8EntryDoc<CommandEntry>, "CommandEntry::doc : const char* (appended at MECH-A4, non-owning)");
+
 // ── runner::CommandRegistry ───────────────────────────────────────────────────────────
 using VoidFn = void (*)();
 
@@ -351,6 +357,15 @@ concept F8RegistryOnCallable = requires {
     static_cast<void (R::*)(std::string_view, VoidFn&, std::uint8_t)>(
         &R::template on<VoidFn>);
 };
+// APPENDED at chunk MECH-A4 (API 2.5): the same registration with its doc — a NEW overload, so the
+// three-argument pins above and below still resolve exactly as before.
+template <typename R>
+concept F8RegistryOnHandlerDoc = requires {
+    static_cast<void (R::*)(std::string_view, Handler, std::uint8_t, const char*)>(&R::on);
+};
+SHULIB_F8_PIN(F8RegistryOnHandlerDoc<CommandRegistry>,
+              "CommandRegistry::on(string_view, Handler, uint8_t, const char* doc) -> void (appended at MECH-A4)");
+
 SHULIB_F8_PIN(F8RegistryOnCallable<CommandRegistry>,
               "CommandRegistry::on(string_view, Callable&, uint8_t) — the NON-OWNING template "
               "overload (a `Callable&`, so a temporary lambda cannot be registered)");
@@ -485,8 +500,9 @@ TEST_CASE("F8 pin: the frozen path vocabulary is API major 2 and the version mec
     std::snprintf(expected, sizeof expected, "%d.%d", shulib::kApiMajor, shulib::kApiMinor);
     CHECK(std::string_view{shulib::kApiVersionString} == std::string_view{expected});
 
-    // F8 is an ADDITIVE growth of the 2.x surface, so the minor must have moved past F1's 1.
-    CHECK(shulib::kApiMinor >= 2);
+    // F8 is an ADDITIVE growth of the 2.x surface, so the minor must have moved past F1's 1 — and F8
+    // itself grew additively at 2.5 (MECH-A4: CommandEntry::doc and the four-argument on()).
+    CHECK(shulib::kApiMinor >= 5);
 }
 
 }  // namespace

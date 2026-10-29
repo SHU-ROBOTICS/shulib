@@ -40,7 +40,8 @@
 // step that moved NOTHING: `Absent` (the mechanism was not built at boot — a
 // device missing), `NotHomed` (a position move asked of a mechanism that has not
 // found its zero — produced from MECH-A3 on) and `Refused` (another owner holds
-// the mechanism's claim). Never "a target the build could not check": a COMPUTED
+// the mechanism's claim — or, since MECH-A4, a route marker whose args are wrong:
+// no time limit, volts outside ±12 or 0). Never "a target the build could not check": a COMPUTED
 // target past a travel limit is CLAMPED to it (the soft stop), not refused.
 // Like every non-Succeeded verdict, each is a failure where the vocabularies meet.
 
@@ -71,7 +72,8 @@ enum class MechanismOutcome : std::uint8_t {
                       ///< nothing moved
     NotHomed = 7,     ///< a position move asked of a mechanism that has not found
                       ///< its zero: nothing moved
-    Refused = 8,      ///< another owner holds the mechanism's claim: nothing moved
+    Refused = 8,      ///< another owner holds the mechanism's claim, or a route marker's args
+                      ///< are wrong (runner/mechanism_routes.hpp, MECH-A4): nothing moved
 };
 
 /// Stable spelling for log lines. Never returns null; an out-of-range cast

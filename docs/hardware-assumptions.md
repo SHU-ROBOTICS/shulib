@@ -373,7 +373,7 @@
 | HA-178 | The Auton Tester's abort and RUN gate read the right things from PROS: `press_count` rises when a finger LANDS; a controller button's level turns true within ~50 ms; with nothing connected and the tester started from the brain, `competition_get_status()` reads 0x00; a controller switched OFF reads `is_connected()` false within ~1 s — each read from a task the program created | (a) reasoned (the vendored text); (b), (d) **invented**; (c) reasoned (HA-128's measurement) | COMP-t Stations M.2–M.4 |
 | HA-179 | TANK1's tank-steering constants (bend 0.1 rad/in capped at 15°, fade 6 in, lead 0.06 s; yaw observer 0.1 s, limit 1.5 rad/s) remove robot two's weak-side drift on a tank `moveTo` within the unchanged 0.5 in / 0.02 rad rule, without heading oscillation — its drivetrain follows a yaw command much faster than 0.1 s | **invented** (tuned on the host test plant's placeholder dynamics; with unmodelled motor lag the plant's margin shrinks — measured) | COMP-t Station M.6 / R5 |
 | HA-180 | Robot two's sideways error on a straight tank `moveTo` comes from its HEADING being pulled (the IMU sees it), not from the chassis sliding sideways (which no sensor on robot two sees) | reasoned (the 2026-09-25 veer was a heading change read on the IMU; a skid was never measured) | COMP-t Station M.6 |
-| HA-182 | The mechanism core's STARTING numbers hold a real arm, lift and flywheel well enough to be TUNED from: position kP 0.25 V/deg, kI 0.3 (the hold loop only; its I-term clamped to 3 V), kD 0.004, kS 0, kA 0, kV = 12 V over the output's free speed, the smooth move at 75 % of the free speed reached in 0.25 s, "reached" within 1.5° (0.25 in) for 0.1 s; speed kS 0, kV = 12 V over the free speed, kP 0.05, kI 0.2 acting only within 10 % of the target, its I-term clamped to 3 V — the gains, profile and "reached" per mechanism (a boot line words them; `.tuning` replaces each), the two integral clamps and the window LIBRARY constants (no `.tuning`) | **invented** (the host test plant's 144 mismatched moves and 27 flywheels are its only evidence — HA-183) | tuning each mechanism on the robot (MECH on hardware); MECH-A4 and MECH-A6 add their own numbers here |
+| HA-182 | The mechanism core's STARTING numbers hold a real arm, lift and flywheel well enough to be TUNED from: position kP 0.25 V/deg, kI 0.3 (the hold loop only; its I-term clamped to 3 V), kD 0.004, kS 0, kA 0, kV = 12 V over the output's free speed, the smooth move at 75 % of the free speed reached in 0.25 s, "reached" within 1.5° (0.25 in) for 0.1 s; speed kS 0, kV = 12 V over the free speed, kP 0.05, kI 0.2 acting only within 10 % of the target, its I-term clamped to 3 V — the gains, profile and "reached" per mechanism (a boot line words them; `.tuning` replaces each), the two integral clamps and the window LIBRARY constants (no `.tuning`); the driver flywheel toggle's 5 s at-speed window (`kToggleAtSpeedWindowSeconds`, a LIBRARY constant, MECH-A4) | **invented** (the host test plant's 144 mismatched moves and 27 flywheels are its only evidence — HA-183) | tuning each mechanism on the robot (MECH on hardware) — the toggle's window by timing a real flywheel's spin-up to its named speed; MECH-A6 adds the bench page's |
 | HA-183 | The host test plant's mechanism models (`sim::ArmPlant`, `sim::FlywheelPlant`) stand in for a real V5 arm, lift, roller and flywheel closely enough that the mechanism core's host verdicts transfer: the inverted-feedforward joint (static band kS, speed per volt kV, first-order approach τ = kA/kV), gravity as a load in volts (kG·cos(θ − level) for an arm, kG for a lift), the brake modes at 0 V (Hold's restoring stiffness, Brake's damping, Coast free), the current's shape (\|V − kV·ω\|·2.5/12, capped at 2.5 A — HA-93's), and a hard stop or a jam reading ZERO speed at stall-grade current | **invented** (no constant is measured; a real stalled motor creeps — HA-93 — the plant's does not) | the first robot session that logs a real arm's and a real flywheel's step response beside the model's (MECH on hardware) |
 | HA-184 | A VEX limit switch read through `ProsDigitalIn::state()` reads 1 (TRUE) when PRESSED, so the mechanism core's `pressedLevel = true` is right; and an UNPLUGGED switch line reads RELEASED | **unknown** (the vendored `get_value()` doc says only "the digital value (1 or 0) of a pin") | MECH-A6's Bench Tests station 13: the switch read pressed, released AND with its cable out |
 | HA-186 | At power-up a V5 rotation sensor's CUMULATIVE `get_position()` (what `ProsRotation::position()` reads, HA-11) starts at the shaft's ABSOLUTE angle within one turn — and so it does after a PROGRAM restart without a power cycle — so `absoluteSensor()` homing needs no motion | reasoned (VEX's description of the sensor as absolute within a turn; the vendored doc says only "current position") | MECH-A6's station 13: power-cycle at two marked angles; move the arm, restart only the program, read again |
@@ -1279,21 +1279,27 @@ Those are a belief about real mechanisms.
   "reached" within 1.5° (a lift's 0.25 in) for 0.1 s — and a flywheel's spin — kV 12 V over its free
   speed, kS 0, kP 0.05 V per rad/s, kI 0.2 V per rad acting only within 10 % of the target
   (`kSpeedIntegralWindow`) and clamped to 3 V (`kSpeedIntegralLimitVolts`) — bring a real mechanism near
-  enough to its target to be tuned from, rather than oscillating, stalling or crawling.
+  enough to its target to be tuned from, rather than oscillating, stalling or crawling. **And (since
+  MECH-A4, 2026-10-22) the driver's flywheel TOGGLE gives its spin-up 5 s** to report "at speed"
+  (`mechanism::kToggleAtSpeedWindowSeconds`) — long enough for a real wheel to reach its named speed, so
+  the step it logs is not a false TIMED_OUT (the wheel keeps spinning whatever that verdict says; it
+  bounds only the logged step).
   *Source:* `include/shulib/mechanism/kinds.hpp` (`detail::positionStart()`, `detail::speedStart()`,
   `positionStartingValues()`, `speedStartingValues()`), `include/shulib/mechanism/service.hpp` (the three
   constants, and the loops that run every number), `include/shulib/mechanism/wiring.hpp`
   (`startingValuesLine()`, the boot line that words the per-mechanism ones "PROVISIONAL (HA-182)" — the
   programs print it from MECH-A5 on; it does not carry the three library constants),
-  `include/shulib/mechanism/spec.hpp` (its banner).
+  `include/shulib/mechanism/spec.hpp` (its banner), `include/shulib/mechanism/driver_inputs.hpp`
+  (`kToggleAtSpeedWindowSeconds`, MECH-A4).
   *Confidence:* **invented** — the only evidence is the host test plant (HA-183): 143 of 144
   deliberately mismatched moves reached their target with these numbers (the miss: a plant slower than its
   own cartridge, TIMED_OUT honestly), 20 of 27 flywheels reached speed (the rest could not, or were the
   slowest), and a hold carried a 25 % gravity mismatch within 0.001°.
   *Settle (MECH on hardware):* tune each mechanism on the robot — log a move's and a hold's volts,
   position and current beside the starting values', and record the `.tuning` each mechanism ends with.
-  MECH-A4 (the driver toggle's at-speed window) and MECH-A6 (the bench page's jog volts and time, its
-  "did not move" angle and its "drawing" current) add their own numbers to this entry.
+  MECH-A4 added the driver toggle's at-speed window (above); MECH-A6 (the bench page's jog volts and
+  time, its "did not move" angle and its "drawing" current — the direction check's two thresholds,
+  which `judgeDirection` takes from the page and never invents) adds its own.
   *Blast radius if wrong:* a mechanism that moves too fast (overshooting toward a hard stop — which is
   why the guide tells a team to set limits short of the stops by more than the measured overshoot), too
   slowly (a move TIMED_OUT, said, holding where it stopped), or that rings or sags in a hold (a hold's
@@ -2012,7 +2018,10 @@ run. Worksheet Station J is their first run.
   direction of the hazard — a stale "up" on the first reconnected tick, then the live "down", FLIPS
   the claw. HA-103 claims only that a disconnected controller reads 0 and that `is_connected()` is
   the only validity signal; nothing claimed the two change together. Found by T3's B2 review and
-  registered at the merge.
+  registered at the merge. **Since MECH-A4** the same rule runs every one-button control of a driver
+  file — a toggle, a preset, a homing press: `include/shulib/mechanism/driver_inputs.hpp`
+  (`DriverInputs`' A PRESS MUST BE SEEN paragraph, tagged HA-147; robot two's claw moves onto it at
+  MECH-A5).
   *Confidence:* **invented** — unmeasured; nothing vendored says either way.
   *Settle (worksheet Station J.9.5):* open the claw, hold A down, pull the controller's cable,
   plug it back in STILL holding A, keep holding for two seconds, then let go. Nothing may move
@@ -2021,8 +2030,8 @@ run. Worksheet Station J is their first run.
   *Blast radius if wrong:* a phantom flip of the pneumatic claw when the driver holds A across a
   controller reconnect (or on a bouncing release) — an open flip drops what the claw holds. Until
   it is measured the driver's rule is: after a controller drop, let go of A before pressing it
-  again (the driver-control cookbook says so). **Contained:** `ToggleBinding::tick()`; the
-  mitigation (a reconnect settle window) is flagged for the team lead's ruling after J.9.5, not
+  again (the driver-control cookbook says so). **Contained:** `ToggleBinding::tick()` and
+  `DriverInputs::tick()`'s one-button controls; the mitigation (a reconnect settle window) is flagged for the team lead's ruling after J.9.5, not
   built.
 
 - [ ] **HA-153 — robot two's claw pivots are RED motors on ports 6 and 7, and a positive command

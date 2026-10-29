@@ -52,6 +52,12 @@
 //                      pre-emption — keeps the invariant independent of which library path
 //                      set another mode, for one set_brake_mode per motor per tick (believed
 //                      harmless to a running motor: A4 register HA-146).
+//   6½. mechanisms     (the MECHANISM SERVICE overload only — chunk MECH-A4, below) the driver
+//                      file's controls read their buttons and command the service
+//                      (mechanism::DriverInputs::tick, only while connected), THEN the service
+//                      ticks every mechanism ONCE (tickFromDriverLoop) — after the drive and the
+//                      T3 bindings' place, BEFORE perTick, so a press read at tick k is commanded
+//                      and ticked in tick k and a panel sees this tick's command.
 //   7. perTick(command, connected, shaper.state())  the caller's panel — or, when the caller's
 //                      perTick takes a FOURTH argument, perTick(…, protection.state()), the
 //                      drive protections' state (DriveProtectionState). The three-argument form
@@ -105,6 +111,27 @@
 // claim taken DURING the loop is not touched: the binding still defers to it. The cost of the
 // ruling is stated in mechanism_binding.hpp (an operation started before entry loses its claim).
 //
+// THE MECHANISM SERVICE (chunk MECH-A4, 2026-10-22; the MECH brief's §1.10). The overload taking a
+// mechanism::MechanismService and its bound mechanism::DriverInputs runs a robot's DECLARED mechanisms
+// — the driver file's whileHeld / toggle / preset / homing controls (mechanism/driver_inputs.hpp) —
+// through the one per-tick service that also runs them in autons. Nothing above moves (every public
+// overload runs ONE body, detail::driverLoop); three places are added: at ENTRY, after the checks,
+// the service's enterDriverControl() (a claim another owner left released WITHOUT its cancel() and
+// said by name; every running step CANCELLED; motor mechanisms safe; a pneumatic sent its START
+// position on the program's FIRST entry only) and then the inputs' enter() (a press must be SEEN;
+// homeAtDriverStart homes what nothing homed); on the DISABLE, after chassis.cancel(), the service's
+// leaveDriverControl() (motor mechanisms safe, claims released; a pneumatic KEEPS its level — HA-157);
+// and step 6½ each tick. The service ticks EXACTLY ONCE per tick whichever pacer the loop is handed —
+// the raw tick pacer, the service itself, or a guard around it (a pace() right after
+// tickFromDriverLoop() does not tick it again). TWO PRECONDITIONS, checked first: the service and
+// its BOUND inputs come together and replace the T3 bindings — one driver path per mechanism — and
+// no control takes the re-zero button.
+//
+// T3'S BINDINGS ARE SUPERSEDED, NOT REMOVED (the brief's N4, ruled (a)): MechanismBinding and
+// ToggleBinding and the overloads taking them stay, documented "superseded by the mechanism service;
+// for a program with no service". A program with a mechanism service drives its mechanisms through
+// the service overload; one with none keeps the T3 path exactly as it was.
+//
 // No buffer, no queue, no "apply next tick": a stick step read at tick k is in the commanded
 // volts of tick k (pinned through the host plant). PERCEIVED latency is not claimed — real
 // input-to-motion latency is PROS call cost plus loop rate, and neither is measured.
@@ -136,6 +163,8 @@
 #include "shulib/hal/telemetry_sink.hpp"
 #include "shulib/math/frame.hpp"
 #include "shulib/math/twist2d.hpp"
+#include "shulib/mechanism/driver_inputs.hpp"
+#include "shulib/mechanism/service.hpp"
 #include "shulib/motion/motion_config.hpp"
 #include "shulib/motion/motion_scheduler.hpp"
 #include "shulib/teleop/drive_protection.hpp"
@@ -199,6 +228,165 @@ struct HeadingSample {
     bool trusted = false;
 };
 
+namespace detail {
+/// THE ONE LOOP BODY (file header): every public runDriverControl overload forwards here. `mechs` and
+/// `inputs` null = the T3 bindings path (or neither); non-null = the MECHANISM SERVICE path, whose
+/// T3 spans are empty (one driver path per mechanism — the first precondition).
+template <typename IsDisabled, typename HeadingSource, typename PerTick>
+void driverLoop(chassis::Chassis& chassis, const hal::IController& controller, motion::ITickPacer& pacer,
+                DriveShaper& shaper, const DriverLoopConfig& cfg, std::span<MechanismBinding* const> bindings,
+                std::span<ToggleBinding* const> toggles, mechanism::MechanismService* mechs,
+                mechanism::DriverInputs* inputs, IsDisabled&& disabled, HeadingSource&& heading,
+                PerTick&& perTick) {
+    SHULIB_PRECONDITION((mechs == nullptr) == (inputs == nullptr) &&
+                            (mechs == nullptr || (bindings.empty() && toggles.empty())) &&
+                            (inputs == nullptr || (inputs->bound() && inputs->boundTo(*mechs))),
+                        "runDriverControl: the mechanism service and the driver inputs BOUND to it come together, "
+                        "and replace the T3 bindings (one driver path per mechanism)");
+    SHULIB_PRECONDITION(inputs == nullptr || inputs->avoids(cfg.rezeroButton),
+                        "runDriverControl: a mechanism control takes the loop's re-zero button "
+                        "(DriverLoopConfig::rezeroButton)");
+    SHULIB_PRECONDITION(std::isfinite(cfg.tickPeriod.value()) && cfg.tickPeriod.value() > 0.0,
+                        "runDriverControl: DriverLoopConfig::tickPeriod must be finite and > 0 "
+                        "(state it: the pacer's period, 10 ms on a V5)");
+    char bindingWhy[192] = "";
+    SHULIB_PRECONDITION(
+        validBindings(bindings, toggles, cfg.rezeroButton, bindingWhy, sizeof bindingWhy),
+        bindingWhy);
+    // The protections' numbers, checked with the rest — BEFORE the claim release, the entry safe
+    // state, the toggles' enter and the release mode below, each of which commands something: a
+    // bad config commands nothing at all (T4 Part 2).
+    char protectionWhy[192] = "";
+    SHULIB_PRECONDITION(validProtectionConfig(cfg.protection, chassis.deps().motorGroups,
+                                              protectionWhy, sizeof protectionWhy),
+                        protectionWhy);
+    // A claim still on a bound mechanism at entry is RELEASED, and said (the team lead's ruling,
+    // 2026-09-26): a claim left by a deleted autonomous task must never lock the driver out. After
+    // the set check (a refused set touches nothing), before the entry safe state below.
+    const auto sayReleased = [&chassis](const char* mechanismName) {
+        char line[192];
+        std::snprintf(line, sizeof line,
+                      "driver control: RELEASED a claim left on mechanism '%s' at entry (an "
+                      "operation that outlived its task) -- its buttons work from the first tick",
+                      mechanismName);
+        chassis.deps().ctx->telemetry().log(hal::LogLevel::Warn, "TEL", line);
+    };
+    for (MechanismBinding* binding : bindings) {
+        if (binding->releaseLeftoverClaim()) {
+            sayReleased(binding->mechanism().name());
+        }
+    }
+    for (ToggleBinding* toggle : toggles) {
+        if (toggle->releaseLeftoverClaim()) {
+            sayReleased(toggle->mechanism().name());
+        }
+    }
+    // Bindings, before tick 1: every one starts from nothing, in its declared safe state.
+    for (MechanismBinding* binding : bindings) {
+        binding->reset();
+        binding->makeSafe();
+    }
+    // …and every toggle is entered: its initial level, once in its life; its button not yet seen.
+    for (ToggleBinding* toggle : toggles) {
+        toggle->enter();
+    }
+    // MECH-A4: the service drops what autonomous left (a leftover claim released WITHOUT its
+    // cancel() and said by name; motor kinds safe; a pneumatic sent its START position on the
+    // program's FIRST entry only), then the inputs forget every level (a press must be SEEN) and home
+    // what nothing homed (homeAtDriverStart).
+    if (mechs != nullptr) {
+        mechs->enterDriverControl();
+        inputs->enter();
+    }
+    const motion::MotionConfig& budgets = chassis.motionConfig();
+    const double dtSeconds = cfg.tickPeriod.value();
+    hal::ButtonEdge rezeroEdge{};  // the loop's OWN edge (HA-104: one per consumer)
+    // DEFECTS2: the release mode on every drive motor — at entry, and after every drive().
+    const auto applyReleaseMode = [&chassis, &cfg] {
+        for (hal::IMotor* m : chassis.deps().ctx->driveMotors()) {
+            m->setBrakeMode(cfg.releaseBrakeMode);
+        }
+    };
+    applyReleaseMode();
+    // The drive protections for this entry (T4 Part 2): judged from the groups as they stand, so a
+    // drive left with more than two dead by an earlier entry is REFUSED from tick 1. Its destructor
+    // clears every group's exclusion mask on every way out of this function.
+    DriveProtection protection{chassis, cfg.protection, cfg.tickPeriod};
+    protection.enter();
+    const math::ChassisSpeeds zeroCommand{};
+    while (true) {
+        // 1. A field disable: safe the drive, then leave.
+        if (disabled()) {
+            chassis.cancel();
+            for (MechanismBinding* binding : bindings) {
+                binding->makeSafe();  // …and every mechanism, in the same tick
+            }
+            // No toggle is touched: a pneumatic claw keeps its level through a disable (whether
+            // the BRAIN keeps a 3-wire output's level while disabled: A4 register HA-157).
+            if (mechs != nullptr) {
+                mechs->leaveDriverControl();  // motor kinds safe, claims released; pneumatics keep their level
+            }
+            protection.onDisable();  // the summary, after the drive is already safe
+            return;
+        }
+        // 2. The sticks — every channel read only while the controller is there.
+        StickInput sticks{.connected = controller.isConnected()};
+        bool rezeroDown = false;
+        if (sticks.connected) {
+            sticks.leftY = controller.axis(hal::ControllerAxis::LeftY);
+            sticks.leftX = controller.axis(hal::ControllerAxis::LeftX);
+            sticks.rightX = controller.axis(hal::ControllerAxis::RightX);
+            sticks.rightY = controller.axis(hal::ControllerAxis::RightY);  // tank sticks' RIGHT
+            rezeroDown = controller.pressed(cfg.rezeroButton);
+        }
+        // 3. One heading sample for the whole tick.
+        const HeadingSample h = heading();
+        // 4. The re-zero, once per press, before this tick is shaped.
+        if (rezeroEdge.update(rezeroDown)) {
+            shaper.rezero(h.radians);
+        }
+        // 5–6. Shape, scale to the budgets, command in the BODY frame.
+        const DriveRequest request = shaper.shape(sticks, dtSeconds, h.radians, h.trusted);
+        const math::ChassisSpeeds command =
+            toChassisSpeeds(request, budgets.maxLinearSpeed, budgets.maxAngularSpeed);
+        // The protections wrap drive(): the frozen-reading rule BEFORE it (the group monitors are
+        // judged inside it), a ZERO command while a cut or a refusal is in force, the cuts AFTER.
+        protection.beforeDrive();
+        chassis.drive(protection.commandAllowed() ? command : zeroCommand, math::Frame::Body);
+        protection.afterDrive();
+        // 6b. The release mode again, in this same tick: undoes a pre-emption's Brake (DEFECTS2).
+        //     Drive motors only (driveMotors()) — a mechanism's motor is its binding's alone.
+        applyReleaseMode();
+        // Bindings, after drive() and the release mode, before the panel: two buttons each, read
+        // only while connected.
+        for (MechanismBinding* binding : bindings) {
+            binding->tick(sticks.connected,
+                          sticks.connected && controller.pressed(binding->forwardButton()),
+                          sticks.connected && controller.pressed(binding->reverseButton()));
+        }
+        for (ToggleBinding* toggle : toggles) {  // …then each toggle: one button, same rule
+            toggle->tick(sticks.connected,
+                         sticks.connected && controller.pressed(toggle->button()));
+        }
+        // 6½. MECH-A4: the driver file's controls command the service, then the service ticks — ONCE,
+        //     here, before the panel (a pace() through the service below does not tick it again).
+        if (mechs != nullptr) {
+            inputs->tick(controller, sticks.connected);
+            mechs->tickFromDriverLoop();
+        }
+        // 7–8. The caller's panel, then the tick boundary. A panel that takes a fourth argument is
+        //      handed the protections' state; the three-argument form is unchanged.
+        if constexpr (std::is_invocable_v<PerTick&, const math::ChassisSpeeds&, bool,
+                                          const DriveShaperState&, const DriveProtectionState&>) {
+            perTick(command, sticks.connected, shaper.state(), protection.state());
+        } else {
+            perTick(command, sticks.connected, shaper.state());
+        }
+        pacer.pace();
+    }
+}
+}  // namespace detail
+
 /// Run driver control until `disabled()` says stop: sticks → `shaper` → budgets → the chassis,
 /// once per tick, in the order the file header lists (disabled check, sticks while connected,
 /// one heading sample, the re-zero edge, shape, the drive protections' check before `drive`,
@@ -253,138 +441,43 @@ struct HeadingSample {
 /// a drive member whose readings freeze is kept out of the fight monitor and marked ABSENT after
 /// 250 ms; more than two dead in total REFUSES the drive for the rest of the run; a fight or a
 /// member over 2.4 A for 250 ms while driven cuts the drive to 0 V for 1 s, then re-arms.
+///
+/// SUPERSEDED by the mechanism service (the file header, N4): this T3 overload is for a program
+/// with NO mechanism service; a program with one drives its mechanisms through the service
+/// overload below.
 template <typename IsDisabled, typename HeadingSource, typename PerTick>
 void runDriverControl(chassis::Chassis& chassis, const hal::IController& controller,
                       motion::ITickPacer& pacer, DriveShaper& shaper, const DriverLoopConfig& cfg,
                       std::span<MechanismBinding* const> bindings,
                       std::span<ToggleBinding* const> toggles, IsDisabled&& disabled,
                       HeadingSource&& heading, PerTick&& perTick) {
-    SHULIB_PRECONDITION(std::isfinite(cfg.tickPeriod.value()) && cfg.tickPeriod.value() > 0.0,
-                        "runDriverControl: DriverLoopConfig::tickPeriod must be finite and > 0 "
-                        "(state it: the pacer's period, 10 ms on a V5)");
-    char bindingWhy[192] = "";
-    SHULIB_PRECONDITION(
-        validBindings(bindings, toggles, cfg.rezeroButton, bindingWhy, sizeof bindingWhy),
-        bindingWhy);
-    // The protections' numbers, checked with the rest — BEFORE the claim release, the entry safe
-    // state, the toggles' enter and the release mode below, each of which commands something: a
-    // bad config commands nothing at all (T4 Part 2).
-    char protectionWhy[192] = "";
-    SHULIB_PRECONDITION(validProtectionConfig(cfg.protection, chassis.deps().motorGroups,
-                                              protectionWhy, sizeof protectionWhy),
-                        protectionWhy);
-    // A claim still on a bound mechanism at entry is RELEASED, and said (the team lead's ruling,
-    // 2026-09-26): a claim left by a deleted autonomous task must never lock the driver out. After
-    // the set check (a refused set touches nothing), before the entry safe state below.
-    const auto sayReleased = [&chassis](const char* mechanismName) {
-        char line[192];
-        std::snprintf(line, sizeof line,
-                      "driver control: RELEASED a claim left on mechanism '%s' at entry (an "
-                      "operation that outlived its task) -- its buttons work from the first tick",
-                      mechanismName);
-        chassis.deps().ctx->telemetry().log(hal::LogLevel::Warn, "TEL", line);
-    };
-    for (MechanismBinding* binding : bindings) {
-        if (binding->releaseLeftoverClaim()) {
-            sayReleased(binding->mechanism().name());
-        }
-    }
-    for (ToggleBinding* toggle : toggles) {
-        if (toggle->releaseLeftoverClaim()) {
-            sayReleased(toggle->mechanism().name());
-        }
-    }
-    // Bindings, before tick 1: every one starts from nothing, in its declared safe state.
-    for (MechanismBinding* binding : bindings) {
-        binding->reset();
-        binding->makeSafe();
-    }
-    // …and every toggle is entered: its initial level, once in its life; its button not yet seen.
-    for (ToggleBinding* toggle : toggles) {
-        toggle->enter();
-    }
-    const motion::MotionConfig& budgets = chassis.motionConfig();
-    const double dtSeconds = cfg.tickPeriod.value();
-    hal::ButtonEdge rezeroEdge{};  // the loop's OWN edge (HA-104: one per consumer)
-    // DEFECTS2: the release mode on every drive motor — at entry, and after every drive().
-    const auto applyReleaseMode = [&chassis, &cfg] {
-        for (hal::IMotor* m : chassis.deps().ctx->driveMotors()) {
-            m->setBrakeMode(cfg.releaseBrakeMode);
-        }
-    };
-    applyReleaseMode();
-    // The drive protections for this entry (T4 Part 2): judged from the groups as they stand, so a
-    // drive left with more than two dead by an earlier entry is REFUSED from tick 1. Its destructor
-    // clears every group's exclusion mask on every way out of this function.
-    DriveProtection protection{chassis, cfg.protection, cfg.tickPeriod};
-    protection.enter();
-    const math::ChassisSpeeds zeroCommand{};
-    while (true) {
-        // 1. A field disable: safe the drive, then leave.
-        if (disabled()) {
-            chassis.cancel();
-            for (MechanismBinding* binding : bindings) {
-                binding->makeSafe();  // …and every mechanism, in the same tick
-            }
-            // No toggle is touched: a pneumatic claw keeps its level through a disable (whether
-            // the BRAIN keeps a 3-wire output's level while disabled: A4 register HA-157).
-            protection.onDisable();  // the summary, after the drive is already safe
-            return;
-        }
-        // 2. The sticks — every channel read only while the controller is there.
-        StickInput sticks{.connected = controller.isConnected()};
-        bool rezeroDown = false;
-        if (sticks.connected) {
-            sticks.leftY = controller.axis(hal::ControllerAxis::LeftY);
-            sticks.leftX = controller.axis(hal::ControllerAxis::LeftX);
-            sticks.rightX = controller.axis(hal::ControllerAxis::RightX);
-            sticks.rightY = controller.axis(hal::ControllerAxis::RightY);  // tank sticks' RIGHT
-            rezeroDown = controller.pressed(cfg.rezeroButton);
-        }
-        // 3. One heading sample for the whole tick.
-        const HeadingSample h = heading();
-        // 4. The re-zero, once per press, before this tick is shaped.
-        if (rezeroEdge.update(rezeroDown)) {
-            shaper.rezero(h.radians);
-        }
-        // 5–6. Shape, scale to the budgets, command in the BODY frame.
-        const DriveRequest request = shaper.shape(sticks, dtSeconds, h.radians, h.trusted);
-        const math::ChassisSpeeds command =
-            toChassisSpeeds(request, budgets.maxLinearSpeed, budgets.maxAngularSpeed);
-        // The protections wrap drive(): the frozen-reading rule BEFORE it (the group monitors are
-        // judged inside it), a ZERO command while a cut or a refusal is in force, the cuts AFTER.
-        protection.beforeDrive();
-        chassis.drive(protection.commandAllowed() ? command : zeroCommand, math::Frame::Body);
-        protection.afterDrive();
-        // 6b. The release mode again, in this same tick: undoes a pre-emption's Brake (DEFECTS2).
-        //     Drive motors only (driveMotors()) — a mechanism's motor is its binding's alone.
-        applyReleaseMode();
-        // Bindings, after drive() and the release mode, before the panel: two buttons each, read
-        // only while connected.
-        for (MechanismBinding* binding : bindings) {
-            binding->tick(sticks.connected,
-                          sticks.connected && controller.pressed(binding->forwardButton()),
-                          sticks.connected && controller.pressed(binding->reverseButton()));
-        }
-        for (ToggleBinding* toggle : toggles) {  // …then each toggle: one button, same rule
-            toggle->tick(sticks.connected,
-                         sticks.connected && controller.pressed(toggle->button()));
-        }
-        // 7–8. The caller's panel, then the tick boundary. A panel that takes a fourth argument is
-        //      handed the protections' state; the three-argument form is unchanged.
-        if constexpr (std::is_invocable_v<PerTick&, const math::ChassisSpeeds&, bool,
-                                          const DriveShaperState&, const DriveProtectionState&>) {
-            perTick(command, sticks.connected, shaper.state(), protection.state());
-        } else {
-            perTick(command, sticks.connected, shaper.state());
-        }
-        pacer.pace();
-    }
+    detail::driverLoop(chassis, controller, pacer, shaper, cfg, bindings, toggles, nullptr, nullptr,
+                       std::forward<IsDisabled>(disabled), std::forward<HeadingSource>(heading),
+                       std::forward<PerTick>(perTick));
+}
+
+/// `runDriverControl` with the robot's MECHANISM SERVICE (chunk MECH-A4, API 2.5; the file header's
+/// THE MECHANISM SERVICE): the driver file's controls (`inputs`, bound to `mechanisms`) run the
+/// robot's declared mechanisms through the service, which ticks EXACTLY ONCE per tick at step 6½ —
+/// `pacer` may be the raw tick pacer or a chain that contains the service. Everything the overload
+/// above says of the drive — the order of a tick, the protections, the release mode, the disable —
+/// holds unchanged; there are no T3 bindings. PRECONDITIONS, checked before anything is commanded:
+/// `inputs` bound to `mechanisms` (at boot); no control on `cfg.rezeroButton`; and every
+/// precondition of the overload above. BORROWED for the call; a PROS program keeps the service and
+/// the inputs in static storage.
+template <typename IsDisabled, typename HeadingSource, typename PerTick>
+void runDriverControl(chassis::Chassis& chassis, const hal::IController& controller,
+                      motion::ITickPacer& pacer, DriveShaper& shaper, const DriverLoopConfig& cfg,
+                      mechanism::MechanismService& mechanisms, mechanism::DriverInputs& inputs,
+                      IsDisabled&& disabled, HeadingSource&& heading, PerTick&& perTick) {
+    detail::driverLoop(chassis, controller, pacer, shaper, cfg, std::span<MechanismBinding* const>{},
+                       std::span<ToggleBinding* const>{}, &mechanisms, &inputs, std::forward<IsDisabled>(disabled),
+                       std::forward<HeadingSource>(heading), std::forward<PerTick>(perTick));
 }
 
 /// `runDriverControl` with hold bindings and NO toggles — the chunk-T3 signature, forwarding to
-/// the overload above with an empty toggle span, so there is one loop body and every rule above
-/// holds unchanged.
+/// the two-span overload with an empty toggle span, so there is one loop body and every rule above
+/// holds unchanged. SUPERSEDED by the mechanism service, like the two-span overload (N4).
 template <typename IsDisabled, typename HeadingSource, typename PerTick>
 void runDriverControl(chassis::Chassis& chassis, const hal::IController& controller,
                       motion::ITickPacer& pacer, DriveShaper& shaper, const DriverLoopConfig& cfg,
@@ -395,8 +488,8 @@ void runDriverControl(chassis::Chassis& chassis, const hal::IController& control
                      std::forward<HeadingSource>(heading), std::forward<PerTick>(perTick));
 }
 
-/// `runDriverControl` with NO mechanism bindings — the 2a signature, forwarding to the overload
-/// above with an empty span, so there is one loop body and every rule above holds unchanged.
+/// `runDriverControl` with NO mechanism bindings — the 2a signature, forwarding to the hold-binding
+/// overload with an empty span, so there is one loop body and every rule above holds unchanged.
 template <typename IsDisabled, typename HeadingSource, typename PerTick>
 void runDriverControl(chassis::Chassis& chassis, const hal::IController& controller,
                       motion::ITickPacer& pacer, DriveShaper& shaper, const DriverLoopConfig& cfg,
@@ -407,3 +500,23 @@ void runDriverControl(chassis::Chassis& chassis, const hal::IController& control
 }
 
 }  // namespace shulib::teleop
+
+// MECH-A4: the DRIVER FILE's words, beside the mechanism words, so a team's driver file writes
+// `DriverProfile kFeel{.mode = ArcadeBody}`, `Button::R1` and `.releaseBrakeMode = Coast` with no
+// library namespace in it (the robot's namespace says `using namespace mechanism::words;`; ONE
+// Coast / Brake / Hold — kinds.hpp's BrakeWord — serves a mechanism's `.safe` and the loop's
+// `.releaseBrakeMode`).
+namespace shulib::mechanism::words {
+/// The controller's buttons: `Button::R1`.
+using Button = hal::ControllerButton;
+/// The driver's feel (teleop/driver_control.hpp).
+using teleop::DriverProfile;
+/// The loop's numbers: the re-zero button, the release brake mode, the drive protections.
+using teleop::DriverLoopConfig;
+/// Arcade, robot-centric: the left stick drives forward and back, the right turns.
+inline constexpr teleop::DriveMode ArcadeBody = teleop::DriveMode::ArcadeBody;
+/// Arcade, field-centric ("away from me" is away, whichever way the robot faces).
+inline constexpr teleop::DriveMode ArcadeField = teleop::DriveMode::ArcadeField;
+/// Tank sticks: the left stick drives the left side, the right stick the right.
+inline constexpr teleop::DriveMode TankSticks = teleop::DriveMode::TankSticks;
+}  // namespace shulib::mechanism::words

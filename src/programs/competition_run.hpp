@@ -557,6 +557,7 @@ inline CompetitionRunRecord& serveAutonRequest(CompetitionParts& p, CompetitionR
         case chassis::RoutineStopCause::WaitTimedOut: return "wait TIMEOUT";
         case chassis::RoutineStopCause::ActionFailed: return "action FAILED";
         case chassis::RoutineStopCause::MechanismFailed: return "mechanism FAILED";
+        case chassis::RoutineStopCause::MechanismStepFailed: return "mechanism step FAILED";
     }
     return "stopped";
 }

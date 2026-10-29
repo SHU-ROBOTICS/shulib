@@ -32,9 +32,21 @@
 // PathRunner calls a handler from inside run(), after the leg it hangs off has settled, and
 // waits for it to return. A handler that blocks for two seconds blocks the route for two
 // seconds. That is the right default for "close the clamp, then drive away" and the wrong
-// one for "spin the intake for the rest of the match"; asynchronous mechanism operations
-// are chunk T3's, and the idiom until then is a handler that STARTS an operation and a
-// later marker that confirms it (manipulation/mechanism_op.hpp).
+// one for "spin the intake for the rest of the match". Since the mechanism core (chunk
+// MECH-A4) a robot's DECLARED mechanisms need no hand-written handler at all: their route
+// ids are derived from the robot's list and registered in ONE call
+// (runner/mechanism_routes.hpp) — each marker blocks through a Routine step until its
+// verdict, and what goes on after it (an arm's hold, a flywheel's spin) is the mechanism
+// service's, which ticks every mechanism inside every shulib wait. A step that must start
+// mid-leg is the mechanism core's later work ("triggers partway through a drive"); for an
+// F1 operation the idiom is unchanged: a handler that STARTS it and a later marker that
+// confirms it (manipulation/mechanism_op.hpp).
+//
+// ── A doc per id (chunk MECH-A4, F8-additive) ───────────────────────────────────────
+// An entry may carry a one-line `doc` — what the id does and what its args mean — which the
+// manifest publishes for a picker to show beside the id ("args[0] = volts, args[1] = how
+// long, ms" instead of a bare "2 args"). The four-argument on() sets it; an entry without one
+// publishes `"doc":""`, so a registry with no docs writes exactly the bytes it wrote before.
 //
 // ── What is a programming error here, and what is data ──────────────────────────────
 // Registration is code, so everything wrong with a registration is a PRECONDITION: a
@@ -103,6 +115,11 @@ struct CommandEntry {
     std::uint8_t argCount = 0;
     /// The bound action.
     Handler handler{};
+    /// What the id does and what its args mean, in one line, published in the manifest's `doc`
+    /// field (file banner). NON-OWNING — the text must outlive the registry; free of `"` and `\`
+    /// (the manifest's rule). nullptr = no doc: the manifest's `""`, as before it existed.
+    /// (APPENDED at chunk MECH-A4 — F8's "new registry members", API 2.5.)
+    const char* doc = nullptr;
 
     /// The id as text.
     [[nodiscard]] constexpr std::string_view idView() const noexcept {
@@ -171,6 +188,21 @@ public:
     template <typename Callable>
     void on(std::string_view id, Callable& callable, std::uint8_t argCount = 0) {
         on(id, Handler{&adaptCall<Callable>, static_cast<void*>(&callable)}, argCount);
+    }
+
+    /// Bind `id` to `handler` exactly as the three-argument form does, and give it a one-line `doc`
+    /// the manifest publishes (file banner) — how runner::MechanismRoutes registers every derived
+    /// mechanism id. Every precondition of the three-argument form, and: `doc` is null or free of
+    /// `"` and `\` (the manifest's own rule, checked HERE so a bad doc fails at registration, not
+    /// when the manifest is written). NON-OWNING: `doc` must outlive the registry. (APPENDED at
+    /// chunk MECH-A4 — F8's "new registry members", API 2.5.)
+    void on(std::string_view id, Handler handler, std::uint8_t argCount, const char* doc) {
+        SHULIB_PRECONDITION(doc == nullptr || (std::string_view{doc}.find('"') == std::string_view::npos &&
+                                               std::string_view{doc}.find('\\') == std::string_view::npos),
+                            "CommandRegistry::on: a doc may not contain a quote or a backslash (the manifest "
+                            "cannot carry one)");
+        on(id, handler, argCount);
+        entries_[count_ - 1].doc = doc;
     }
 
     /// The handler bound to `id`, or NULLPTR when nothing is. A null return is the whole error

@@ -28,7 +28,7 @@ inline constexpr int kManifestSchemaVersion = 1
 
 The manifest format's own version, carried on the file's first line. Bumped only when a line's FIELDS change in a way a reader must know about; adding a field is additive and does not bump it (F8's breaking-vs-additive policy, applied to this artifact).
 
-*constant, declared at [`include/shulib/runner/manifest.hpp:54`](../../include/shulib/runner/manifest.hpp#L54).*
+*constant, declared at [`include/shulib/runner/manifest.hpp:58`](../../include/shulib/runner/manifest.hpp#L58).*
 
 <a id="writemanifestentry"></a>
 
@@ -40,7 +40,7 @@ inline void writeManifestEntry(hal::ICharSink& sink, std::string_view id, bool b
 
 One manifest record, as its line. Not itself the published contract — `writeManifest` is; this is where the five fields are spelled exactly once, so the two kinds of record cannot drift apart.  Precondition: `doc` is free of `"` and `\`. Docs are library-owned literals (`config::kBuiltinCommands`), so this is a self-check on the library rather than on a caller — and it is here because the day someone writes a built-in whose doc says `the "grab" id` is the day a picker silently stops parsing the file.
 
-*free function, declared at [`include/shulib/runner/manifest.hpp:64`](../../include/shulib/runner/manifest.hpp#L64).*
+*free function, declared at [`include/shulib/runner/manifest.hpp:68`](../../include/shulib/runner/manifest.hpp#L68).*
 
 <a id="writemanifest"></a>
 
@@ -52,14 +52,14 @@ inline void writeManifest(const CommandRegistry& registry, hal::ICharSink& sink)
 
 Write the command-id manifest for `registry` to `sink` — one JSON object per line, the schema line first, then the built-ins in their fixed order, then the registered ids in registration order (file banner). Exactly one `write()` call per line, terminator included.
 
-*free function, declared at [`include/shulib/runner/manifest.hpp:90`](../../include/shulib/runner/manifest.hpp#L90).*
+*free function, declared at [`include/shulib/runner/manifest.hpp:94`](../../include/shulib/runner/manifest.hpp#L94).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 37 lines</summary>
+<summary>The header’s own reasoning — 41 lines</summary>
 
 ```text
 
@@ -84,8 +84,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  The alternative — a single JSON document — was rejected because it needs a serializer with
  string escaping, and escaping is exactly what the id vocabulary rule
  (`config::commandIdValid`: `[a-z0-9_]`) exists to make unnecessary. The one free text in the
- file is the built-ins' own `doc` strings, which are library-owned literals; a precondition
- below refuses a `"` or a `\` in one rather than emitting a file no parser can read.
+ file is the `doc` strings — the built-ins' own library-owned literals, and since chunk MECH-A4
+ a registered id's optional one; a precondition below refuses a `"` or a `\` in either rather
+ than emitting a file no parser can read.
 
  ── The ORDER is part of the contract ───────────────────────────────────────────────
  Schema line, then the built-ins in `config::kBuiltinCommands` order, then the registered ids
@@ -94,7 +95,10 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
 
  Every line carries the SAME five fields, including `"doc":""` for a registered id whose
  meaning the library does not know. A regular shape costs a few bytes and buys a picker that
- needs no special cases.
+ needs no special cases. Since chunk MECH-A4 a registered id MAY carry its doc
+ (CommandEntry::doc — a robot's derived mechanism ids each do, runner/mechanism_routes.hpp);
+ one registered without one still writes `""`, so a registry with no docs writes exactly the
+ bytes it wrote before (the golden test pins them).
 
  FROZEN: F8 (docs/roadmap.md) — the field names and the order. New FIELDS may be appended.
 

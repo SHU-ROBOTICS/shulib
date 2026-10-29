@@ -21,8 +21,9 @@
 // The alternative — a single JSON document — was rejected because it needs a serializer with
 // string escaping, and escaping is exactly what the id vocabulary rule
 // (`config::commandIdValid`: `[a-z0-9_]`) exists to make unnecessary. The one free text in the
-// file is the built-ins' own `doc` strings, which are library-owned literals; a precondition
-// below refuses a `"` or a `\` in one rather than emitting a file no parser can read.
+// file is the `doc` strings — the built-ins' own library-owned literals, and since chunk MECH-A4
+// a registered id's optional one; a precondition below refuses a `"` or a `\` in either rather
+// than emitting a file no parser can read.
 //
 // ── The ORDER is part of the contract ───────────────────────────────────────────────
 // Schema line, then the built-ins in `config::kBuiltinCommands` order, then the registered ids
@@ -31,7 +32,10 @@
 //
 // Every line carries the SAME five fields, including `"doc":""` for a registered id whose
 // meaning the library does not know. A regular shape costs a few bytes and buys a picker that
-// needs no special cases.
+// needs no special cases. Since chunk MECH-A4 a registered id MAY carry its doc
+// (CommandEntry::doc — a robot's derived mechanism ids each do, runner/mechanism_routes.hpp);
+// one registered without one still writes `""`, so a registry with no docs writes exactly the
+// bytes it wrote before (the golden test pins them).
 //
 // FROZEN: F8 (docs/roadmap.md) — the field names and the order. New FIELDS may be appended.
 //
@@ -104,7 +108,9 @@ inline void writeManifest(const CommandRegistry& registry, hal::ICharSink& sink)
                            std::string_view{b.doc});
     }
     for (const CommandEntry& e : registry.ids()) {
-        writeManifestEntry(sink, e.idView(), false, e.argCount, e.argCount, std::string_view{});
+        // its doc (chunk MECH-A4) — an entry registered without one writes "", as before
+        writeManifestEntry(sink, e.idView(), false, e.argCount, e.argCount,
+                           e.doc != nullptr ? std::string_view{e.doc} : std::string_view{});
     }
 }
 

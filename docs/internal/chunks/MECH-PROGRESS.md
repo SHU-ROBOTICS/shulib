@@ -2439,3 +2439,809 @@ changed the code, the tests, the numbers and this list's hand-ons; this block is
   the stopping distance), MC5 (the speed integral's cap removed), MC6 (a reverse flywheel's kS sign), MC7 (absolute homing never picks
   the turn nearest the middle — A3-D2), MC8 (the homing note counts samples from before the push — V-1), MC9 (the speed output clamped
   at 6 V), MC10 (the hold target not clamped inside the travel limits) RED. Restored tree 2,545 | 2,545.
+
+---
+
+## MECH-A4 — autons, the driver loop, the direction judgement, the route binder
+
+- **Started:** Thu Oct 22 05:24:28 PM EDT 2026 (`date`).
+- **Tree at start:** `43ac361` (main: MECH-A1 `fd36e07`, SER1 `2506067`, MECH-A2 `98392b2`, CAL1 Part A1 `ceb17c0`,
+  MECH-A3 `43ac361` merged and verified; the plan at `71b4764`, the tooling at `c09e022`), clean, in the git worktree
+  `.claude/worktrees/mech-a4` (branch `mech-a4`) — NOT the main working tree.
+- **Go:** the team lead, 2026-10-08: "Accept all, go" — N1–N13 all as recommended (a), the runs strictly in order,
+  each after the last LANDS; 2026-10-15/22: "move faster — that does not mean skip steps"; "we are running out of time
+  but that doesnt mean we should cut corners". The coordinator's workflow launched MECH-A4 ONLY. Do not commit; no
+  `pros` command; no `/dev/ttyACM*`. Mutation backups and probes under `.claude/coordinator/scratch/mech-a4/` (never
+  `/tmp`, never the repository root). **Memory safety (2026-10-15):** every test binary — the suite, a filter, every
+  mutation, every looping probe — runs as `(ulimit -v 4194304; timeout 600 <cmd>)`, the suite through
+  `python3 tools/suite_run.py green` where a verdict is enough; a mutant killed by the cap or the timeout counts as
+  CAUGHT (said which); the briefing is regenerated only after `rm -f build/test/shulib_tests`.
+- **Reading (the team lead's ruling of 2026-10-22 for this run):** the brief's header and answers, the re-check's
+  amendments (which override the body), N1–N13, the Decisions, §6 coordination, §7, §8 landmines, §9 and "Found while
+  reading" IN FULL; every section, row and test list naming MECH-A4 or its files (§1.1's auton and driver forms, §1.9,
+  §1.10, §1.11, §1.16, §2's A4 row, §2.1, §3.0, §3.4, §4.1–§4.3); the rest by heading. One reviewer reads the whole.
+- **Scope:** §2's A4 row — §1.9 (the Routine's mechanism steps, ONE eager call per step, the constructor and the
+  refusal templates, `MechanismStepFailed`, `RoutineResult::mechanismVerdict`, `AutonContext::mechanismService`, the
+  `runAuton` service overload — API 2.5); §1.10 (`mechanism/driver_inputs.hpp`, the loop's one body + the service
+  overload — every T4 Part 2a protection test unchanged); §1.11 `mechanism/direction_check.hpp` (the judgement; its
+  page is MECH-A6); §1.16's `runner/mechanism_routes.hpp` and the registry's doc; N4's "superseded" notes. `src/`:
+  ONE `case` each in `src/programs/{competition_run,auton_tester_run}.hpp`, nothing else. Hand-ons carried: **M35
+  proper** (A2-D7: `runAuton`'s service overload calls `enterAutonomous()`); **A2-D18** (REFUSED's route-marker half:
+  `MechanismOutcome::Refused`'s doc comment, the changelog, guide 11's verdict list); A3's "not done here" (the driver
+  toggle's 5 s at-speed window is HA-182's, A4's to add); A3-D4 (`home()` on `neverHomed` is a precondition); A3-D22
+  (A4 is `find(PositionGoal)`'s first caller). NOTHING of A5–A6 (robot two's tables and programs; station 13).
+- **In flight beside this run (not touched here):** CAL1 Part A2a (`calibration/calibrate_program.hpp`,
+  `hal/pros/calibrate.hpp`); VIS1-A1/A2 (`hal/vision_frames.hpp`, `hal/pros/ai_vision.hpp`, `hal/device_registry*`,
+  `hal/device_provider*`, `hal/fake/fake_device_provider.hpp`, `config/robot_config.hpp`, `config/camera_config.hpp`,
+  `robot/robot.hpp`, `vision/`, `sim/camera_plant.hpp`); the L6 and IMU1 briefs (L6 adds a Routine step AFTER this run:
+  A4's additions to `routine.hpp` stay in their own delimited block).
+
+### 17:24 — start
+- Read `docs/internal/RESUMING.md` (standing rules, pace rules 1–8), the brief as ruled above, and `## MECH-A1` /
+  `## MECH-A2` / `## MECH-A3` above (their deltas and every "For MECH-A4" hand-on). This heading appended before any
+  code.
+
+### 17:24–18:08 — the baseline, the overlay's A4 slice against the tree, the code, the tests *(`date` 18:07:54)*
+- **Baseline at `43ac361`** (`cmake -S test -B build/test`; `rm -f build/test/shulib_tests`; the briefing regenerated; the
+  full doc-gated build at -j8, 232 objects, 45.9 s wall; the suite under `ulimit -v 4194304; timeout 600`): **2545/2545
+  passed, 2,798,203 assertions, 3 skipped** — main's merged numbers. Driver: `scratch/mech-a4/build.sh` (logs
+  `scratch/mech-a4/logs/`).
+- **Read in the overlay** (`proposed4/shulib/`: `chassis/routine.hpp`, `competition/{auton_registry,match_runner}.hpp`,
+  `teleop/teleop_loop.hpp`, `runner/{command_registry,manifest,mechanism_routes}.hpp`, `mechanism/{driver_inputs,
+  direction_check}.hpp`; `proposed4_src/`), the probes `p5/probe3_auton.cpp`, `probe3_driver.cpp`, `probe3_direction.cpp`,
+  `probe3_robot_two.cpp`, `probe5_routes.cpp`, `probe4_forms.cpp`, `neg5/` and their `out5/` outputs. **The overlay's base is
+  not this tree's** (A2 and A3 rewrote the service, A3-D22 added `PositionGoal::units`, T4 Part 3 rewrote a comment block of
+  `auton_registry.hpp` after the overlay was taken): A4's slice is re-written onto the tree, not copied — the deltas below
+  (A4-D1 …). No `PROBE_` switch exists in the A4 slice; no "PROTOTYPE"/"(proposed)" marker was carried.
+- **Code** (each file's banner says what it holds now): `chassis/routine.hpp` (the MECH-A4 block: the context constructor,
+  the steps, the four refusal templates, `lastMechanism()`, the appended `MechanismStepFailed` and `mechanismVerdict`, the
+  auton's words); `competition/auton_registry.hpp` (`AutonContext::mechanismService`, appended with a default; the word);
+  `competition/match_runner.hpp` (ONE body `detail::runAutonImpl`, COMP-a's overload forwarding with no service, the service
+  overload — `enterAutonomous()` first); `mechanism/driver_inputs.hpp` (NEW); `teleop/teleop_loop.hpp` (ONE body
+  `detail::driverLoop`, the service overload, step 6½, the driver file's words); `teleop/mechanism_binding.hpp` (N4's
+  "superseded" notes); `mechanism/direction_check.hpp` (NEW); `runner/command_registry.hpp` (`CommandEntry::doc`, the
+  four-argument `on()`, the banner's stale "asynchronous mechanism operations are chunk T3's" refreshed — the brief's
+  "Found while reading"); `runner/manifest.hpp` (a registered id's doc); `runner/mechanism_routes.hpp` (NEW);
+  `version.hpp` (API **2.5**); `src/programs/competition_run.hpp` :560 and `auton_tester_run.hpp` :272 (ONE `case` each).
+- **The suite after the library half, before any new test:** 2545/2545 green (every existing case — T4 Part 2a's
+  protections, COMP-a's runAuton, the F8/F10 pins, the manifest golden — unchanged and passing).
+- **Tests** (new): `test/mechanism_auton_rig.hpp` (robot x on the A2 tank plant + the §1.12 models, the program's pacer
+  chain, the control; robot two), `test/mechanism_driver_fixtures.hpp` (the driver files' controls, verbatim),
+  `mechanism_auton_run_test.cpp` (P1 through the REAL runAuton — **measured: drive T+0.92..T+2.72, the arm's worst |error|
+  1.16°, the intake 0 V at T+2.00 with the drive running, lift 9.70 in and flywheel 3000 rpm at the drive's end, 180 paces /
+  180 service ticks** — the brief's P1 to the hundredth; P5-run; the control; the deadline cutting a blocking step; D1/M35;
+  the leftover claim; a refused entry; the guard's span; COMP-a), `mechanism_auton_steps_test.cpp` (every form; the verdict
+  policy, each verdict; ABSENT's three sentences; REFUSED; the start forms; waitUntilDone; the frozen constructor;
+  MechanismFailed kept), `mechanism_driver_loop_test.cpp` (P5d, P8, the order pin, both-buttons / a drop, N10's stall
+  supersede, P2i, U5, P9c, the loop's and bind()'s preconditions, the lists), `mechanism_direction_check_test.cpp` (P7:
+  every finding verbatim, the generated path, changeHere's sources, the pneumatic answers, the sign, noise, the
+  preconditions), `mechanism_routes_test.cpp` (P14 through the REAL PathRunner in the REAL runAuton; robot two's route; nine
+  bad-arg markers; a failing step; every action; both manifests byte-exact; the doc; the binder's ids),
+  `mechanism_step_forms_test.cpp` (the positive TU, compiled into the suite, the counted autons run). Edited:
+  `routine_signature_pin_test.cpp` (`MechanismStepFailed == 5`, `mechanismVerdict`'s type, the floor 5),
+  `f8_signature_pin_test.cpp` (`CommandEntry::doc`, the four-argument `on()`, the floor 5), `competition_run_test.cpp` (the
+  word), `auton_tester_run_test.cpp` (the word and the longest line — A4-D9). **51 MECH-A4 cases, 517 assertions, green.**
+- **The harness** (`test/compile_refusals/`, grown by 45 TUs → 246): the Routine's four named `static_assert`s (n05, n53,
+  n54, n55) and three kind variants; every `refused::` function of `driver_inputs.hpp` — the twelve buttons by name (n17 R1,
+  m2 Right multi-line, `d_button_*_twice` the other ten), the cast byte, n18–n22, n24, n33, n34, n48–n51 and their edge
+  variants (a hold at 0 V and at −6 V, two presets to one target, a toggle on a constant speed, a homing with no time
+  limit, a homing on a never-homed mechanism, autonOnly with a control, 25 controls, the four kind refusals). **45/45 PASS**
+  (`ctest -R compile_refusal_(…)`); the judge caught two of the first draft refused for the WRONG reason (`Control` not
+  a word — fixed to `mech::Control`). n56, n57 (DriverFile) and n31 stay MECH-A5's (A1's D18).
+
+### 18:08–18:38 — the documents (§4.1's A4 share, pace rule 3) and the prose review (pace rule 4) — every grep RUN and its hits READ before this line *(written during mutation run 1, which touched only headers; `date` 18:38)*
+- **Written:** `docs/changelog.md` — the **API 2.5** section at the top (ADDED: the steps, the context constructor,
+  `MechanismStepFailed`, the four refusal sentences, `AutonContext::mechanismService` and `runAuton`'s service overload,
+  the driver file's controls and `runDriverControl`'s service overload, the route binder, the F8-additive per-id doc, the
+  direction check's judgement, the words; CHANGED (documentation only): REFUSED's second meaning — A2-D18's hand-on —, T3's
+  bindings superseded (N4); "what you must do"); `include/shulib/version.hpp` (2.5 and its history paragraph);
+  `docs/api/` regenerated (three new pages: `driver_inputs.md`, `direction_check.md`, `mechanism_routes.md`; `mkdocs.yml`'s
+  GENERATED nav by the tool); **the mechanisms chapter** (`docs/guide/18-mechanisms.md`: the banner's "what exists"; four
+  new sections — *In an auton — one line per step* (the steps table, the START forms, P1's measured numbers, the verdict
+  policy, the stop line, the build-time sentences, the conditions refused at the step, the frozen constructor's
+  precondition, the never-ticked service), *On the driver's buttons* (the controls, the most recent input wins, a press
+  must be seen, every build refusal with U5's, the loop's entry / tick / disable), *As route markers* (the one-call
+  registration, what blocks, the args, REFUSED, the docs), *The direction check — what it judges*; *The honest limit*
+  rewritten with D11's measured 11.74 V / 2.45 A and "a `then()` action must not block"; the jam section's driver clause
+  in the present tense; *Reading a refusal*'s list); **guide 10** (the bindings' "superseded" note, the mechanism
+  section's "what exists" box, the route-id sentence, the direction check's sentence, a new *In an auton, on the
+  buttons, on a route* map); **the cookbook's recipe** (NEW `docs/cookbook/07-mechanisms.md`, "An arm with presets, held
+  while the robot drives" — A4-D17); **`docs/vexbuilder-integration.md` §4.2.3** (the doc field's new meaning, every
+  mechanism's derived ids with robot two's six manifest lines verbatim, their args, what blocks, why a picker derives
+  the list; §4.3's row); **guide 11** (A2-D18: REFUSED's route-marker half; the routine's mechanism stop line and its two
+  own brackets; the binder's REFUSED line; the counted-done sentence and `MECHANISM_STALLED`'s driver clause in the
+  present tense); **HA-182** (the driver toggle's 5 s window, A3's hand-on — entry and row); the internal pointers
+  (`build-order.md`'s MECH entry and its first bold `Next:`, `roadmap.md`'s "Now" paragraph, the MECH row, the F8 and
+  F10 rows, the button-bindings row; `REMAINING-WORK.md` row 12; `HANDOFF-remaining-work.md`) — each says BUILT, its
+  review, verification and merge to come, never "landed".
+- **The greps** (`grep -rnF <pat> docs/ README.md`, public documents; `docs/internal/` and the generated `docs/api/`
+  read separately): §4.2's A4 set — `Routine` (127 hits), `then(` (62), `AutonContext` (7), `runAuton` (26),
+  `runDriverControl` (34), `MechanismBinding` (10), `ToggleBinding` (12) — and §4.1's re-check additions — `hold(` (14),
+  `toggle(` (6), `MechanismFailed` (6), `CommandRegistry` (10), `manifest` (35); plus `fourth part`, `next part`,
+  `auton step`, `mechanism step`, `route marker`, the chapter's old title, `2.4`. **Stale, FIXED:** guide 9 :18-24 ("used
+  for real, twice" — now three times, with 2.5's additions and the steps' unfrozen status), :148 (the stop-cause list
+  lacked `MechanismStepFailed` and `mechanismVerdict`), :270 (a declared mechanism needs no `then()`); guide 14 :217-224
+  ("three of its six parts", "the auton steps, driver controls … are its next parts") and :409-416 (mechanism buttons
+  — the driver controls now exist); the glossary's `route id` (a marker runs the step) and `step (recipe)` (a mechanism
+  step); the guide index's chapter-18 row; cookbook 06 (T3's two recipes — a "superseded, not removed" note, N4); the
+  README's source layout (`mechanism/`, `runner/`, `teleop/`); `runner/command_registry.hpp`'s banner;
+  `mechanism/route_ids.hpp`'s and `mechanism/service.hpp`'s future-tense sentences; guide 11 and guide 10 (above).
+  **Read, true, left:** guide 3 :220/:391, guide 16 :24/:43/:92/:141, guide 17 (every `runAuton` hit — COMP-a's call,
+  unchanged; guide 16's quoted auton builds `Routine r{ctx.chassis, …}`, the team's file, which MECH-A5 changes with the
+  file — the brief's U3), cookbook 01 :32, guide 9 :104 (`startAt`), guide 10 :194-222 (the loop's drive half,
+  unchanged), the hardware register's T3 entries (HA-157's, the ToggleBinding entries — true of T3's path, which stays),
+  the changelog's dated entries (history), `legacy-command-vocabulary.md` :162, the roadmap's T2/T4 rows. Every
+  `hold(` hit is the drive's `Routine::hold` / `Chassis::hold` (unchanged); `manifest` hits outside the VexBuilder
+  contract and guide 10 are the drive-protection and SD-log meanings or dated history.
+
+### Deltas from the brief (MECH-A4), each with its reason
+- **A4-D1** the overlay's A4 slice (`proposed4/`) was RE-WRITTEN onto the tree, not copied: A2 and A3 rebuilt the service
+  (A2-D1's every-body-inside-its-class, A3-D10/D22's `find()` by kind, units and preset VALUE, `PositionGoal::units`), and
+  T4 Part 3 rewrote a comment block of `auton_registry.hpp` after the overlay was taken (only the overlay's MECH additions
+  were carried). No `PROBE_` switch, no "PROTOTYPE"/"(proposed)" marker (`grep -rn PROBE_ include/` empty).
+- **A4-D2** (the route binder) a `<lift>_home` marker looks its mechanism up as a LIFT, by the spec's units (the overlay
+  built an `Arm` stub for every home: since A3-D10 the service never finds a lift through an arm's declaration, so every
+  lift's home marker would have ended ABSENT — RT4 RED); a preset marker's goal carries its `units` (A3-D22; RT5 RED).
+- **A4-D3** `waitUntilDone` collects only the step THIS routine last began on that mechanism (`startedSeq_`, the slot's
+  `stepsBegun()` at the begin): none begun — a precondition naming the start forms; one REPLACED from outside since —
+  CANCELLED, said. The overlay collected whatever `lastStep()` held: a stale verdict of an earlier run's step, or the
+  verdict of the command that replaced it (R8, R9 RED).
+- **A4-D4** `stop()` reports what it did: the slot's `stop()` bumps the command number exactly when it acts, so a stop that
+  did nothing is REFUSED (another owner holds the claim) or ABSENT (not built), each with a MECH line in the step-line
+  format, and the chain stops. The overlay recorded SUCCEEDED when another owner held the claim (R6b RED).
+- **A4-D5** a step whose mechanism the service cannot find says one of THREE sentences: the service is not bound; no
+  mechanism of that name on this robot (the brief's verbatim); or one of that name that is not what the step names
+  (another robot's same-named declaration — a different kind, units, preset or position; landmine 6, A3-D22). The
+  overlay said "not on this robot" for all three (R7 RED).
+- **A4-D6** `runAuton`'s service overload calls `enterAutonomous()` INSIDE the one body, right after the two
+  preconditions and BEFORE the refusals (the overlay called it before the body, i.e. before the preconditions, and logged
+  a second, generic Warn — the service's own `releaseLeftover` line already names each mechanism): a refused entry still
+  stops what driver control left (tested); no duplicate line (MR2 RED). No `bound()` precondition: an UNBOUND service has
+  no mechanisms, and every mechanism step then ends ABSENT saying "the mechanism service is not bound" while the drive
+  steps run — a precondition would have cost a match's whole auton for a boot problem the boot already reports.
+- **A4-D7** the driver loop's entry: the overlay's extra generic `TEL` Warn for a released claim dropped — the service
+  logs one `MECH` line per mechanism, by name (guide 11 documents both lines).
+- **A4-D8** a START form stops the chain only on ABSENT, REFUSED or NOT_HOMED — the brief's words; the overlay stopped on
+  anything but Running/Succeeded (equivalent at a start; written to the brief) (R4c, R4d, R4b RED).
+- **A4-D9** `test/auton_tester_run_test.cpp` edited (not in the A4 row's list): the Auton Tester's four-line render
+  checked with the new LONGEST stop word ("mechanism step FAILED") and its `routineStopWord` for the new cause pinned —
+  the src line A4 adds was otherwise untested (S2 RED with it).
+- **A4-D10** `driver_inputs.hpp` beyond the overlay: `Control::units` (an arm's or a lift's control); `DriverInputs::bind()`
+  checks every control against the robot the SERVICE is bound to — the kind, the units, a named preset at its VALUE, a
+  constant inside the limits / free speed, a pneumatic position by NAME, a homing method — and binds ONCE (the overlay
+  bound by name only: a driver file built for another robot's same-named mechanism would command it — D6, D13 RED); the
+  homing words take an `Arm` or a `Lift` only, and are refused BY NAME on the other kinds
+  (`homeOnPress_and_homeAtDriverStart_are_for_an_arm_or_a_lift`; the overlay's template took any declaration and misread a
+  power mechanism's unset homing as "never homed"); a cast byte names
+  `a_control_names_a_button_that_is_not_one_of_the_twelve` (the overlay reported it as "a button does two jobs"); the
+  overlay's unused `a_hold_on_a_flywheel_or_a_pneumatic` and its generic `a_button_does_two_jobs` dropped (every
+  `refused::` function has a harness TU — §3.0); **a toggle on a flywheel's CONSTANT speed is refused** (the brief: a
+  toggle works "a flywheel's NAMED speed"; the overlay accepted `toggle(flywheel.at(3000))`), the refusal renamed
+  `a_toggle_needs_a_two_position_pneumatic_or_a_flywheel_named_speed` (n22's expected text is its prefix; D8 RED);
+  a time limit must be finite (`detail::realBound`); `enter()` / `tick()` preconditions (bound).
+- **A4-D11** the driver toggle's at-speed window is the public `mechanism::kToggleAtSpeedWindowSeconds` (5 s, HA-182 —
+  A3's hand-on: its entry and row now carry it); the overlay's was private.
+- **A4-D12** `direction_check.hpp`: preconditions (a motor kind for `judgeDirection`, a pneumatic for `judgePneumatic`; a
+  finite, non-zero command; the page's thresholds finite and above 0; the positions in range); a motor "against its
+  command" and an angle sensor's reversal are judged only at or past the move threshold — encoder noise below it is not a
+  fight (the overlay flagged any negative product; DC5 RED); every `snprintf` precision bounded so the 384-byte verdict
+  provably fits (GCC's `-Wformat-truncation` refused the overlay's at -O2 — the brief's verbatim sentences are unchanged;
+  a path is cut at 130–160 characters).
+- **A4-D13** the FREEZE line: the brief calls the mechanism steps additive growth of F10 but does not say to freeze them.
+  Pinned: `MechanismStepFailed == 5` (an append-only enum's values must be pinned) and `RoutineResult::mechanismVerdict`'s
+  type (a field of a frozen return type); the F10 and F8 floors moved to 5. NOT pinned, and said so in `routine.hpp`'s
+  banner, the pin file and the F10 row: the steps, the context constructor and `lastMechanism()` — the mechanism seam's,
+  unfrozen like `then()` until the core runs on a robot (Q26's "MECH on hardware" trigger). The coordinator may rule
+  otherwise; pinning them later is additive.
+- **A4-D14** the two constrained templates use named concepts (`chassis::detail::RoutineContext`,
+  `MechanismDeclaration`): the doc gate reads a `requires requires(...) {...}` clause between the `///` and the
+  declaration as an undocumented member (measured: the first build failed DOC COVERAGE on both).
+- **A4-D15** the words gain `TankSticks` beside `ArcadeBody` / `ArcadeField` (the third `DriveMode` a team may choose).
+- **A4-D16** §3.4's "Every step form ... each stop the chain as `MechanismFailed`" is the 10-06 body's word; the
+  re-check's `MechanismStepFailed` is built (the amendments override the body), and a test pins `!= MechanismFailed`
+  (R12 RED).
+- **A4-D17** the docs: chapter 18's title widened ("— in autons, on buttons, on routes"), and the cookbook recipe got a
+  NEW chapter, `docs/cookbook/07-mechanisms.md` (+ one `mkdocs.yml` nav line, + the cookbook README's row and source
+  note): chapter 6 is driver control on T3's bindings, chapters 1–5 are drive recipes, and the recipe needs both an auton
+  and a driver file. Its listings and chapter 18's new ones are quoted from a new example test,
+  `test/mechanism_auton_example_test.cpp` (`check-examples` reads `test/*example*_test.cpp`).
+- **A4-D18** the binder's REFUSED line buffer is 256 bytes (the overlay's 160 could not hold its bounded format).
+- **A4-D19** `MechanismRoutes::doc(i)` (an observer for a test or a tool) and `kMechanismRouteDocBytes`.
+- **A4-D20** a blocking wait that ran out puts the verdict FIRST in the routine's stop-line bracket — `(TIMED_OUT: the
+  mechanism service never ticked -- it is not in the chassis pacer's chain)` — so a stop line always carries its verdict;
+  the brief's sentence is kept verbatim inside it.
+- **A4-D21** `MechanismOutcome::Refused`'s doc comment widened (A2-D18's hand-on: a route marker whose args are wrong) —
+  `manipulation/mechanism_outcome.hpp`, a header outside the A4 row's list, named by the hand-on; the changelog and
+  guide 11 too.
+- **A4-D22** the rig builds robot x's devices by HAND over the §1.12 models (the brief's probes did), not through
+  `robot::MechanismParts` (A2's `mechanism_service_rig.hpp`) — the plants must hold the fake motors, and the brief's
+  P1/P14 numbers are reproduced to the hundredth on exactly the probes' wiring.
+- **A4-D23** stale prose fixed where found (pace rule 4): `runner/command_registry.hpp`'s banner ("asynchronous mechanism
+  operations are chunk T3's" — the brief's "Found while reading"), `mechanism/route_ids.hpp`'s and
+  `mechanism/service.hpp`'s future-tense MECH-A4 sentences (A1's and A2/A3's files — one sentence each), guide 9's
+  "used for real, twice" and its stop-cause list, guide 14's mechanism bullet, the glossary's `route id` and
+  `step (recipe)`, cookbook 06's T3 recipes (a "superseded" note, N4), the guide index's chapter 18 row, the README's
+  source layout.
+- **A4-D24** `DriverInputs::boundTo(svc)` and the loop's precondition that its inputs are bound to the SERVICE it is
+  handed (the overlay checked `bound()` only: inputs bound to another service would command mechanisms the loop never
+  ticks — BT RED). Found while writing the mutation list.
+- **A4-D25** two tests beyond §3.4's list, each asked for by a mutation that compiled but needed its own case: a START
+  form's ABSENT and REFUSED starts (R4c, R4d), a control of another KIND at bind (D13); and the direction check's
+  "exactly the move angle while drawing" edge (DC4 survived run 1 — the `still` flag feeds only the jam rule, whose edge
+  needs a drawing motor; DC4b re-run RED).
+
+### 18:10–18:55 — EVERY mutation, on a fresh build of every dependent object *(`date` 18:55)*
+- **The driver** is MECH-A3's (`scratch/mech-a4/mutate.py`, re-pointed): the suite target's `depend` step before every
+  build, EVERY object that depends on the mutated file recompiled (fewer = INVALID, never a verdict), the link checked
+  newer than the mutation, the WHOLE suite run under `ulimit -v 4194304; timeout 600`, the binary deleted after each run,
+  the file restored byte-identical in a `finally` and its timestamp bumped; harness mutations judged by `ctest -R
+  compile_refusal_<…>`. Backups `scratch/mech-a4/mut/` (per mutation) and `mut/orig*/` (every mutated file, with md5 —
+  `md5sum -c` OK after every run). Lists: `mutlist.py` (53), `mutlist2.py` (13), `mutlist3.py` (9). None was killed by
+  the cap or the timeout.
+- **75 mutations: 68 RED by a TEST's verdict (suite or harness — the re-runs R3b, R4c, R4d, R6b, D6b, DC4b among
+  them), 2 RED by a test's own compile-time assertion (D11b: the positive TU; D12: a test's `static_assert`), 4 RED AT
+  BUILD by a warning only — NOT counted as caught; each re-written to compile and re-run RED (R3, R4, R6, D6) — and 1
+  GREEN that asked for a test (DC4: the case added, re-run RED as DC4b).** The brief's: **M22** RED (the sensorless-grab, robot two's route and the counted
+  autons), **M23** RED (P5d, N10's stall supersede), **M24** RED (P8's order pin, the same-tick press), **M25** RED (the
+  sign), **M35 proper** RED (D1: 0 of N paces at 12 V with the call; the CONTROL overload reproduces the failure, >50),
+  **M44** RED (robot two's route), **M45** RED (the bad-arg markers: the step's own precondition would throw), **M46**
+  RED (the motor findings, verbatim).
+
+  | id | file | the mutation | verdict — the case(s) that turned red |
+  |---|---|---|---|
+  | M22 | routine.hpp | stops on a counted UNCONFIRMED | RED: steps/sensorless grab, P14d, forms/counted |
+  | R2 | routine.hpp | continues on ANY UNCONFIRMED | RED: steps/an UNCONFIRMED NOT counted |
+  | R3 → R3b | routine.hpp | the never-ticked sentence never chosen | R3 RED AT BUILD (`ticks0` unused — not a verdict); **R3b** (compiles) RED: P1 CONTROL |
+  | R4 → R4c, R4d | routine.hpp | a START's ABSENT / REFUSED start continues | R4 RED AT BUILD (`-Wparentheses`); **R4c, R4d** RED: steps/a START form whose START fails (A4-D25) |
+  | R4b | routine.hpp | a START's NOT_HOMED start continues | RED: steps/NOT_HOMED |
+  | R5 | routine.hpp | a blocking step does not wait | RED: 14 cases (P1 …) |
+  | R6 → R6b | routine.hpp | a stop that did nothing → SUCCEEDED | R6 RED AT BUILD (unused parameter); **R6b** RED: steps/REFUSED |
+  | R7 | routine.hpp | another robot's goal → "not on this robot" | RED: steps/a goal of ANOTHER robot |
+  | R8 | routine.hpp | waitUntilDone collects a replaced step | RED: steps/waitUntilDone |
+  | R9 | routine.hpp | a move not noted as started | RED: P1, steps/START forms |
+  | R10 | routine.hpp | mechanismVerdict never written | RED: 11 cases |
+  | R11 | routine.hpp | the wait's slack 0.25 → 0 | RED: 12 cases (P1 …) — the slack is load-bearing |
+  | R12 | routine.hpp | a failing step recorded as MechanismFailed | RED: 7 cases |
+  | M35 | match_runner.hpp | runAuton's service overload: no enterAutonomous() | RED: D1/M35 proper, the leftover claim, the refused entry |
+  | MR2 | match_runner.hpp | enterAutonomous() moved into the run | RED: D1/M35 proper, the refused entry |
+  | MR3 | match_runner.hpp | the guard handed an EMPTY span | RED: 6 cases (P1, the guard's reach …) |
+  | MR4 | match_runner.hpp | the context without the service | RED: 6 cases |
+  | M23 | driver_inputs.hpp | the SUPERSEDED state removed | RED: P5d, N10's stall supersede |
+  | D2 | driver_inputs.hpp | a button down at entry is a press | RED: P5d |
+  | D3 | driver_inputs.hpp | homeAtDriverStart re-homes what was homed | RED: P2i |
+  | D4 | driver_inputs.hpp | a disconnect reads every button up | RED: a press must be SEEN (the reconnect) |
+  | D5 | driver_inputs.hpp | both buttons: forward wins | RED: both buttons = neither |
+  | D6 → D6b | driver_inputs.hpp | bind() accepts a stranger's preset value | D6 RED AT BUILD (unused parameter); **D6b** RED: bind checks against the SERVICE's robot |
+  | D7 | driver_inputs.hpp | U5's rule removed | RED (harness): n48 |
+  | D8 | driver_inputs.hpp | a toggle on a CONSTANT speed compiles | RED (harness): d_toggle_on_a_constant_speed |
+  | D9 | driver_inputs.hpp | Left and Right swapped in the naming | RED (harness): d_button_Left_twice, m2 |
+  | D10 | driver_inputs.hpp | a 0 s time limit accepted (EQUALITY) | RED (harness): n34, d_home_at_start_with_no_time_limit |
+  | D11 | driver_inputs.hpp | a hold at 0 V accepted (EQUALITY) | RED (harness): d_hold_at_0_volts |
+  | D11b | driver_inputs.hpp | a hold at exactly 12 V refused (EQUALITY) | RED at build — **the positive TU's own assertion**: `mechanism_step_forms_test.cpp:50` (`kLimits`' 12 V hold) refused, the failure IS that test's check (every form at its exact limit compiles) |
+  | D12 | driver_inputs.hpp | avoids() blind to a hold's BACK | RED at build — **the test's own `static_assert`** (`mechanism_driver_loop_test.cpp`: `!rx::kControls.avoids(Button::R2)`) |
+  | D13 | driver_inputs.hpp | bind() accepts another KIND | RED: bind refuses another KIND (A4-D25) |
+  | BT | teleop_loop.hpp | inputs bound to ANOTHER service accepted | RED: the loop refuses inputs bound to another service (A4-D24) |
+  | M24 | teleop_loop.hpp | the service ticked AFTER perTick | RED: P8 (`tickedBeforePanel`), the same-tick press |
+  | L1 | teleop_loop.hpp | no leaveDriverControl() on a disable | RED: P5d |
+  | L2 | teleop_loop.hpp | no enterDriverControl() at entry | RED: P9c (the claw's START) |
+  | L3 | teleop_loop.hpp | a T3 binding beside the service | RED: the loop's preconditions |
+  | L4 | teleop_loop.hpp | a control on the re-zero accepted | RED: the loop's preconditions |
+  | M25 | direction_check.hpp | the command's sign ignored | RED: the SIGN |
+  | M46 | direction_check.hpp | "nothing / something else" → OTHER way | RED: the motor findings, verbatim |
+  | DC3 | direction_check.hpp | exactly the draw current not drawing (EQUALITY) | RED: the thresholds are EDGES |
+  | DC4 → DC4b | direction_check.hpp | exactly the move angle is still (EQUALITY) | **DC4 GREEN — not caught**: the `still` flag feeds only the jam rule, whose edge needs a DRAWING motor; the case "exactly the move angle WHILE drawing" added; **DC4b** RED |
+  | DC5 | direction_check.hpp | noise below the threshold is a fight | RED: encoder NOISE |
+  | DC6 | direction_check.hpp | the angle sensor judged backwards | RED: the ANGLE SENSOR |
+  | DC7 | direction_check.hpp | exactly the move angle "neither moved nor drew" (EQUALITY) | RED: the thresholds are EDGES |
+  | M44 | mechanism_routes.hpp | a counted UNCONFIRMED → Unconfirmed | RED: P14d |
+  | M45 | mechanism_routes.hpp | the time-limit check removed | RED: P14b/c (the 0 s step throws) |
+  | RT3 | mechanism_routes.hpp | the volts unchecked | RED: P14b/c |
+  | RT4 | mechanism_routes.hpp | a lift's home as an ARM's | RED: P14, every action |
+  | RT5 | mechanism_routes.hpp | a lift preset's goal in DEGREES | RED: every action |
+  | RT6 | mechanism_routes.hpp | a doc drifts | RED: the MANIFESTS |
+  | RT10, RT11 | mechanism_routes.hpp | ±12 V refused (EQUALITY) | RED: P14 (+12), P14d (−12) |
+  | RT12, RT13 | mechanism_routes.hpp | 0 ms accepted (EQUALITY) | RED: P14b/c |
+  | RT7 | manifest.hpp | the doc ignored | RED: the MANIFESTS, the DOC |
+  | RT8 | command_registry.hpp | a quoted doc accepted | RED: the DOC |
+  | RT9 | command_registry.hpp | the four-argument on() drops the doc | RED: the MANIFESTS, the DOC |
+  | S1 | competition_run.hpp | the new cause's word drifts | RED: `request (R23)` |
+  | S2 | auton_tester_run.hpp | the new cause's word drifts | RED: `run (23)` (A4-D9's added check) |
+  | V1 | version.hpp | "2.4" left with minor 5 | RED: the F6, F8, F10 pins |
+  | H1–H4 | routine.hpp | each refusal template's sentence lost or its kind dropped | RED (harness): n05 + r_run_on_a_pneumatic, n53, n54, n55 |
+  | H5–H9 | driver_inputs.hpp | whileHeld(hood) / n19 / autonOnly+control / 25 controls / a preset on never-homed — each refusal removed | RED (harness): n24, n19, d_auton_only_with_a_control, d_more_controls_than_fit, n50 |
+- **The equality edges** (the coordinator's lesson from MB5 / CM13 — a test must land ON the edge): the hold's 0 V and
+  12 V (D11, D11b), the 0 s time limit (D10), a marker's ±12 V and 0 ms (RT10–RT13), the direction check's two
+  thresholds (DC3, DC4b, DC7) — each landed on exactly, each RED. No time-based edge is A4's own: the step bounds and
+  the 5 s toggle window are the service's (A2/A3, tested there on exact clocks).
+
+### 18:56–19:13 — every gate on the FINAL tree *(`date` 19:13:16)*
+- **The host suite, a CLEAN build** (`cmake --build build/test --target clean`, then `scratch/mech-a4/build.sh final`: the
+  API pages generated, the binary deleted, the briefing generated, the full doc-gated build — **239 objects, 47.96 s**
+  wall at -j8 —, the suite capped, the briefing generated again): **2605/2605 passed, 2,799,223 assertions, 3 skipped**
+  (the base: 2545/2545, 2,798,203). `python3 tools/suite_run.py green`: **green — 2605 cases, 2,799,223 assertions**.
+  MECH-A4's own cases (`-tc='MECH-A4*,guide-18c*,guide-18d*,guide-18e*,cookbook-07a*'`): **61 cases, 548 assertions**.
+- **The compile-refusal harness**, every TU: `ctest --test-dir build/test -R compile_refusal --no-tests=error -j1` —
+  **246/246 passed** (116 s); TUs 246 = CTests 246 (CI's count rule).
+- **`python3 tools/src_build_gate.py self-test`**: OK (235 detector cases); **`check`: PASS — all 7 builds link**, 0
+  disallowed warnings (each 11/11 TUs, 8 vendor-ignored warnings). `git diff --stat 43ac361 -- src/ tools/ Makefile`:
+  the two `case` lines only (`src/programs/auton_tester_run.hpp` +1, `src/programs/competition_run.hpp` +1).
+- **The ARM header gate** (RESUMING's command over every `include/shulib` header, -Werror, arm-none-eabi-g++ 13.2.1):
+  **226 headers, rc 0, no output** (223 at the base + the three new).
+- **The CI greps**: the PROS grep and the `sim/` grep empty; `grep -rn PROBE_ include/` empty; no "PROTOTYPE" /
+  "(proposed" in an A4 file.
+- **`api_doc_tool`**: self-test OK; check-coverage — 4,959 public entities across 186 headers, all documented;
+  check-fresh OK; check-examples — 603 quoted lines verbatim (9 source files), 6 whole-run listings each unbroken;
+  check-removability OK. **`briefing_status.py`** self-test OK, check current. **`doc_staleness_audit.py`** self-test
+  OK, audit clean (31 live docs). **C7** removability grep empty.
+- **Landmine 15 (routine.hpp now includes `mechanism/service.hpp`) — measured:** the clean host build 232 objects /
+  45.86 s → 239 / 47.96 s (+7 objects — the new test files — and +2.1 s); a TU of `routine.hpp` alone at -O2 0.42 →
+  0.50 s; the ARM header gate 1.78 → 1.87 s. Not noticeable: the fallback (the steps over a forward-declared service) is
+  not needed.
+- **Sizes on ARM -Os** (a failing-template read of `sizeof`): `runner::MechanismRoutes` **4,804 B** and
+  `CommandRegistry` **1,156 → 1,284 B** (the brief's S3, exactly); `mechanism::DriverInputs` 176 B,
+  `mechanism::DriverControls` 1,544 B (a driver file's `inline constexpr`), `chassis::Routine` 48 → 112 B (on the stack
+  of an auton).
+
+### §2.1's DoD — MECH-A4, checked against the tree *(2026-10-22 19:13)*
+- [x] `MECH-PROGRESS.md` carries this run's heading (written FIRST, 17:24), its tip (`43ac361`), each step as it happened,
+      every mutation with its observed red, the prose review's greps and hits.
+- [x] The host suite builds and passes (2605/2605, clean build) AND `ctest -R compile_refusal` passes (246/246).
+- [x] The ARM header gate passes (226 headers); the CI PROS-free and sim-free greps are empty.
+- [x] `python3 tools/src_build_gate.py check` — all seven builds link, zero disallowed warnings; `self-test` OK.
+- [x] `grep -rn "PROBE_" include/` empty; no copied file says "PROTOTYPE" or "proposed".
+- [x] Every §3.4 test exists (P1 through the REAL runAuton; every step form; COMP-a unchanged; P5d, P2i, P8, P9c; P7's
+      verdicts verbatim and `changeHere`'s sources; P14 through the REAL PathRunner; the stop cause and the `== 5` pin;
+      U5's n48–n50 and the restart off a switch; D6's three answers; the both-paths and re-zero preconditions; every T4
+      Part 2a protection test unchanged and passing) and every §3.4 mutation was RUN, seen red and restored (M22–M25,
+      M35 proper, M44–M46), with 67 more of this run's own.
+- [x] Docs in the same change (above), the prose review logged (above), the C7 grep empty.
+- [x] Nothing committed; no `pros`; no `/dev/ttyACM*`. **The tree:** uncommitted in `.claude/worktrees/mech-a4` (branch
+      `mech-a4`): 50 files modified (`git diff --stat 43ac361`: 2,756 insertions, 430 deletions — the API pages and
+      the briefing among them) and 61 new (the three headers, three API pages, the cookbook chapter, nine test files, 45
+      compile-refusal TUs).
+
+### For the coordinator (unnumbered)
+- **No hardware belief outside HA-182..HA-186 was needed, and no HA number was registered.** HA-182 gained the driver
+  toggle's 5 s window (A3's hand-on); HA-185 stays held for A5.
+- **The FREEZE line (A4-D13) is a call the brief left open:** the mechanism steps, `Routine(ctx, name)` and
+  `lastMechanism()` are added to F10's class but NOT pinned, stated in the header, the pin file and the F10 row; only
+  `MechanismStepFailed == 5` and `mechanismVerdict`'s type are pinned. Pinning the steps later is additive.
+- **A latent COMP-b line-length gap, NOT A4's to fix (src/ is A5's):** `src/programs/competition_run.hpp`'s routine-stop
+  line (`kCompetitionLineBytes` 200) reaches **214** bytes in its worst case (a 24-character step name, the counts at
+  `INT_MAX`, the longest fault string) with A4's new word "mechanism step FAILED" — and was already **209** with
+  "mechanism FAILED" / "motion CANCELLED" before A4 (computed from the format, not run): the line is cut (its `cut`
+  flag set), never overflowed. `test/competition_run_test.cpp`'s worst-case case leaves `cause` at None and the step
+  name empty, so it never meets it. A realistic stop line is ~163 bytes. The Auton Tester's render was checked with the
+  new word (A4-D9) and fits.
+- **Measured on the host test plant while writing the N10 test (not a defect, the team's number):** a 6 V hold-to-run
+  pushing an arm into an obstacle draws 1.25 A (the plant's invented current shape, HA-93/HA-183) — under the recipe's
+  2.0 A signature, so it never trips and the motor sits at that current while the button is held. Chapter 18's recipe
+  is for a 12 V jam; a team that drives an arm at 6 V into something learns its signature is above that push. Worth a
+  sentence in DOCS3 or A6's bench page (a held button's current is visible there), not a library change.
+- **A route `Hold` leg of 0.1 s exits TIMED_OUT** (seen while writing a test; 0.3 s settles) — PathRunner / `Chassis::hold`
+  semantics, F8's, unchanged here; noted, not chased.
+- **Files touched outside the A4 row's list, each logged:** `manipulation/mechanism_outcome.hpp` (A2-D18's hand-on),
+  `mechanism/service.hpp` (two comment sentences), `mechanism/route_ids.hpp` (one banner sentence),
+  `test/auton_tester_run_test.cpp` (A4-D9), `mkdocs.yml` (ONE nav line by hand — the cookbook chapter — plus the
+  tool-generated API nav), `README.md`'s source layout, cookbook 06 / README, guides 9 / 11 / 14 / 15 / README,
+  `docs/hardware-assumptions.md` (HA-182). **No file of an in-flight chunk was touched** (CAL1 Part A2a's, VIS1's —
+  `hal/device_provider*`, `config/robot_config.hpp`, `robot/robot.hpp`, … — unchanged). `routine.hpp`'s additions sit in
+  two delimited blocks (`MECH-A4: the mechanism steps — BEGIN/END` and `… machinery — BEGIN/END`) plus the appended
+  members, for L6's later step.
+- **The shared files** (`test/CMakeLists.txt` untouched — the suite and the harness glob; the changelog's API 2.5 section
+  added at the top, above 2.4's; `mkdocs.yml` as above): a merge onto a main whose changelog grew keeps 2.5 on top.
+- **Re-run after the entries above** (19:15): the `src` gate's self-test left `config/robot_config.hpp` and eight more
+  headers with a new mtime (its planted cases restore the content: `git diff 43ac361` shows none of them), so the
+  staleness audit no longer trusted the binary; `build.sh final2` rebuilt all 239 objects (45.6 s) — **2605/2605,
+  2,799,223 assertions, 3 skipped** —, then `briefing_status.py check` current, `doc_staleness_audit.py` clean, C7 empty.
+
+### MECH-A4 review findings and their disposition — started *(`date`: Tue Oct 27 07:51:26 PM EDT 2026)*
+- Three reviewers (correctness, tests, docs) returned 30 findings (one blocker). The worktree's A4 files were
+  snapshotted before any edit (`scratch/mech-a4/fixround/tree_before_fixround.tgz`, 111 files). Each finding is
+  re-checked, fixed at the root or answered with evidence below; every gate re-run on the final tree.
+
+### MECH-A4 review findings and their disposition *(the fix round: 2026-10-27, `date` 19:51:26 at the snapshot; this entry written as each step finished)*
+- **How it ran.** Every finding re-checked against the worktree before any edit (the code read, the reviewers' probes
+  read; `scratch/mech-a4/fixround/tree_before_fixround.tgz` = the 111 A4 files before the round). Root fixes in the
+  library; a test for every finding, each placed in the file of its topic under a "MECH-A4's review round" banner;
+  then EVERY fix and every survivor the reviewers named mutated on a fresh build of every dependent object
+  (`fixround/mutate_fr.py` = `mutate.py` re-pointed to `fixround/mut/`, `fixround/fr_list.py`), each seen red and
+  restored byte-identical; then the per-PLACE deletion check (test/README's claim) over A4's refusal calls; then
+  every gate on the final tree.
+
+**Correctness (6).**
+- **C1 (BLOCKER) — a controller DROP fired every one-button control whose button was up. REAL — confirmed by reading:**
+  `pressedNow()` returned `edge_[i].update(connected ? … : true)`, and `hal::ButtonEdge::update` reports a rising edge
+  whenever the last level was up (`hal/controller.hpp` :111-114). So robot two's claw flipped OPEN on a drop, robot x's
+  three arm presets and its flywheel toggle fired, and kAltControls' `homeOnPress` began a homing push. A regression
+  against the overlay (`proposed4/…/driver_inputs.hpp` :353/:366/:374: `if (!connected) { (void)edge_[i].update(true);
+  break; }`) introduced by A4-D1's rewrite and logged nowhere. **FIXED at the root** — `pressedNow()` records the
+  unknown level as HELD and returns false on a disconnected tick (the overlay's form; T3's `forgetLevel()` is the same
+  rule). **Test:** "a controller DROP with every button UP fires NOTHING" through the REAL `runDriverControl` — robot
+  two's claw line and command number unchanged through a drop and its reconnect, then a real A press still opens it;
+  robot x's arm/flywheel command numbers unchanged and Right still presses after the reconnect; kAltControls' lift
+  begins no step and the hood's three presets do not fire. **FR-C1** (the collapsed expression restored) RED;
+  **FR-D4** (the drop recorded as "up") RED on the existing reconnect case.
+- **C2 (major) — U5's driver-start home CANCELLED by the mechanism's own hold or preset. REAL** — `jog()` / `moveTo()`
+  replace a running step ("replaced by a newer command"), unhomed with no `.unhomedVolts` the jog then commands
+  nothing, and nothing re-issues the home: the dead buttons U5 refuses at build. **FIXED — the reviewer's rule (a),
+  A4-D26:** while the driver-start home that `enter()` began is still running (its slot's command number unchanged
+  since and no verdict yet, `startHomeRuns()`), that mechanism's OWN controls wait — a hold held during it is
+  SUPERSEDED (nothing until its buttons are seen released after the home), a preset's or a homeOnPress's press is
+  consumed and dropped; other mechanisms are untouched; any other running step (a preset's move after the home) is
+  still replaced at once (Q8). **Rule (b) not taken** (re-issue the home on the next touch while unhomed): it changes
+  "once at entry" and, on a broken switch, re-pushes into the stop on every press; (a) costs at most the home's own
+  time limit. Stated in the header as THE ONE EXCEPTION to "the most recent input wins" (Q8). **For the coordinator:**
+  it is a rule beside Q8 the brief did not state — overrulable; the tests say what it does. **Tests:** the reviewer's
+  four touches (nothing; L1 held THROUGH entry; L2 tapped at 0.20 s; L1 at 0.50 s) — homed by 3.0 s, no "replaced by a
+  newer command" on the lift, L1 later raises it; a hold held from before entry to 3.0 s does nothing after the home
+  until released and pressed again; Up (preset) and Left (homeOnPress) during the home dropped, Up after it goes to
+  'high', and L2 during THAT move wins at once (the move replaced — the exception is only the driver-start home's).
+  **FR-U5a … FR-U5e** RED.
+- **C3 (minor) — "a button already down at entry does nothing" is wrong for a hold. REAL (words only).** The code is
+  T3's rule (a hold's button is a level: down at entry it drives at once — `mechanism_binding.hpp` :59-60), kept.
+  **FIXED** per control in `driver_inputs.hpp`'s header and `enter()`'s doc, chapter 18 and the changelog's 2.5
+  entry: a toggle's, a preset's and a homeOnPress's press must be SEEN; a hold's button is a level. The EN1 case below
+  pins the hold's half at a re-entry.
+- **C4 (minor) — U5 accepts `.unhomedVolts` as "a way to home", but a jog never homes. REAL** — the service zeroes at
+  bind (`service.hpp` :765/:769) and in a homing step (:1102) only; `tickJog` unhomed commands the clamped volts
+  (:1043-1045). A preset beside it ends NOT_HOMED all match after a restart off the home. **FIXED — A4-D27, the
+  reviewer's first option:** `.unhomedVolts` answers for a mechanism that is only HELD; a PRESET on a switch- or
+  stall-homed mechanism needs `homeAtDriverStart` or `homeOnPress` (same refusal name; its doc comment says why). The
+  second option (a jog onto a pressed switch zeroes it) not taken: it changes A3's service and trusts a switch read
+  mid-push for a zero. **For the coordinator:** this TIGHTENS the brief's U5 text (which lists `.unhomedVolts`
+  unconditionally) — overrulable; no fixture, brief listing or robot two's file is affected (robot two's pivots are
+  Power; robot x's and robot y's homed mechanisms carry homing controls). **Tests:** `n48d_preset_beside_unhomed_volts`
+  (refused) and the positive TU's new `forms::u5` lists (a switch-homed lift and a stall-homed arm with `.unhomedVolts`,
+  HELD only, compile). **FR-C4** RED (harness: n48d), **FR-D14** RED at build — the failure IS the positive TU's own
+  check (`mechanism_step_forms_test.cpp`'s `kHeldOnlyControls` refused, its `static_assert` non-constant).
+- **C5 (minor) — a GENERATED robot file's sensor / mechanism-wide / pneumatic sentences in C++ words with no
+  regenerate step. REAL. FIXED — A4-D29:** every finding that names a role's place has a generated branch when that
+  role's `source` is set — SensorReversed ("at <path> make it true|false, then regenerate, rebuild and upload"),
+  MechanismReversed for motors ("in the generated robot file, flip EVERY motor role's reversed (and the angle
+  sensor's) -- motor 1's is at <path> -- then regenerate…"), the pneumatic's levels ("at <path> swap each position's
+  levels, then regenerate…"), and FightOrJam's two-motor sentence too (the reviewer did not list it; the same defect).
+  **Test:** one generated sentence pinned per finding, verbatim. **FR-G1 … FR-G5** RED.
+- **C6 (major) — "make motor 1 Reversed" for a BACK-DRIVEN mechanism. REAL** — a V5 motor reverses command and encoder
+  together (landmine 17), so a motor reading against its command is a fight only when a mate moves WITH its own.
+  **FIXED — A4-D28:** a new finding `DirectionFinding::BackDriven`, APPENDED after the brief's verbatim eight (their
+  values unchanged; nothing is frozen here): when every motor that moved went against its command (one motor, or all
+  alike), "'<name>' was turned AGAINST its command by something stronger than the jog (gravity or a load): every motor
+  that moved went the same wrong way, so no declaration is wrong -- jog it harder, or from another pose, and check
+  again" — no line named. "Moved" uses the page's threshold (a mate's noise is not "with"). **Tests:** the one-motor
+  arm and the two-motor lift verbatim, a DOWN jog driven up, a mate EXACTLY at the move angle with its command (a fight
+  — the equality edge landed on), a mate below it (back-driven). **FR-BK1 … FR-BK3** RED. **For the coordinator:**
+  MECH-A6's page shows a ninth finding.
+
+**Tests (12).**
+- **T1 — a wait shorter than its step (the second TIMED_OUT sentence). REAL gap. Test:** the reviewer's probe A
+  (`startRun(…3_s).waitUntilDone(intake, 0.5_s).move(…)` with no piece: stopped at 2, TIMED_OUT in `mechanismVerdict`
+  AND `lastMechanism()`, the sentence verbatim, "never ticked" absent, one skipped, the step still running).
+  **FR-WU3, FR-V1, FR-V8b** RED.
+- **T2 — skipping after a stop, per step form. REAL gap. Test:** probe B (all twelve forms after a NOT_HOMED stop:
+  skipped 12, completed 0, no pace, every slot's command number unchanged, the stop's step and verdict not overwritten).
+  **FR-SK1 … FR-SK7** RED.
+- **T3 — driver-control branches never run. REAL gaps. Tests:** the toggle OFF before any disable (probe C, plus the
+  named speed); kAltControls' hood presets → each position's line levels; a flywheel preset's named and constant
+  speeds; a preset's time limit (TIMED_OUT at 0.25 s, elapsed in [0.25, 0.27)); the driver-start home's (a switch that
+  never reads pressed: TIMED_OUT at 1.5 s); the toggle's window (a flywheel whose named speed its plant cannot reach:
+  TIMED_OUT at `kToggleAtSpeedWindowSeconds`, the wheel still spinning, the constant pinned `== 5.0`).
+  **FR-TG2, FR-D1, FR-D2, FR-DB1, FR-DB2** RED; **FR-TW1** (5 → 4 s) RED at build — the failure IS the test's own
+  `static_assert(kToggleAtSpeedWindowSeconds == 5.0)`; **FR-TW2** (the toggle's USE of it replaced by a literal 4 s)
+  RED at run time, the window check.
+- **T4 — bind()'s rules untested. REAL gap. Test:** one stranger per rule (a Lift named "arm"; a two-position "hood"
+  toggled; a flywheel toggle at a "shoot" of 2500; a constant 170° on a 0..180 stranger; a constant 4000 rpm under a
+  4200 rpm stranger; a pneumatic position "open" at index 1; a homing control bound to a never-homed "arm"), each
+  `CHECK_THROWS` and `!bound()`. **FR-BD3 … FR-BD9** RED.
+- **T5 — build-time rules that compiled when broken. REAL gaps. TUs:** `n48b_stall_homed_arm_held_no_way`,
+  `n48c_switch_homed_lift_presets_only`, `d_home_on_press_on_a_used_button` (Left named), `d_preset_with_an_infinite_bound`;
+  the positive `forms::u5` lists (C4). **FR-D12, FR-D13, FR-D15, FR-CT1** RED (harness), **FR-D14** RED at build (the
+  positive TU).
+- **T6 — an ABSENT mechanism's control binds; an UNBOUND service still runs the auton. REAL gaps. Tests:** robot x
+  with its flywheel ABSENT binds kControls, R1 drives the arm, X's toggle says ABSENT; `runAuton`'s service overload
+  with a never-bound service: RoutineRan, the drive step completed, the arm step ABSENT with the not-bound sentence.
+  **FR-AB1, FR-AB3** RED.
+- **T7 — `_until_gone` never fired; the ms conversion unchecked. REAL gaps. Test:** `intake_until_gone [-6, 2000]`
+  with a piece leaving at 0.6 s: SUCCEEDED "stopped seeing a piece", elapsed in (0.5, 1.0); `intake_run [12, 500]`:
+  "time in 0.50s", elapsed in [0.5, 0.52). **FR-T1, FR-T2** RED.
+- **T8 — the 0 s waitUntilDone edge masked. REAL. Test:** the 0 s bound after a START on the same mechanism (the
+  message checked), the step still collectable after. **FR-V5** RED.
+- **T9 — spinUp's `computed`, set()'s noteStarted. REAL gaps. Tests:** `spinUp(flywheel.clampedTo(5000.0))` clamps
+  to 3600 rpm and says so (the host test plant's 5 %-slow flywheel then times out — the step RAN, never threw);
+  `set(hood["up"]).waitUntilDone(hood, 1_s)` succeeds. **FR-V6, FR-NS1** RED.
+- **T10 — the Warn level unpinned. REAL gap.** The rig gains `RobotX::countAt(level, subsystem, needle)`. **Tests:**
+  "not on this robot", a REFUSED stop and an ABSENT stop, and the binder's REFUSED marker line, each at Warn.
+  **FR-LV1, FR-LV2, FR-LV3** RED.
+- **T11 — four direction branches. REAL gaps. Tests:** a generated FORWARD motor ("make it true"), a FORWARD
+  hand-written sensor (robot z's wrist → `rotationSensor(Reversed)`), a still motor drawing EXACTLY the draw current
+  beside a moving mate (AwaitingPerson; half of it → DidNotMove), a pneumatic told its FIRST position going to the
+  other. **FR-C3, FR-C4s, FR-C5, FR-C7** RED.
+- **T12 — a superseded hold through a drop; enter()'s hold reset. REAL gaps. Tests:** N10's stall with L1 held, a
+  drop and a reconnect with L1 still down — 0 V and one STALLED line; R1 held across a disable — the second entry drives
+  at once. **FR-D10, FR-EN1** RED.
+
+**Docs (14).**
+- **D1 (major) — A4-D13's freeze scope written as decided, citing a trigger the register does not carry. REAL**
+  (`grep -c 'MECH on hardware' docs/roadmap.md` at base: 0; the register's F11 trigger: "F3's scoring primitives, on
+  hardware"). **FIXED — worded as OPEN in all six places** (`routine.hpp`'s banner, the F10 row, `version.hpp`'s 5,
+  the changelog's 2.5 heading block, guide 9's stability box, the pin file's comment): not pinned meanwhile; the
+  proposal (not yet — they take the unfrozen mechanism seam's types, as `then()` does) and the alternative (L9's
+  additive path, pinned the day they landed) both stated; pinning later is additive. Not pinned the L9 way: that would
+  be the decision itself. **For the coordinator: the team lead's ruling is needed before the merge** (pace rule 2).
+- **D2 (major) — the jam section implied a held button always trips. REAL** (the 0.95 s is a 12 V push,
+  `mechanism_position_test.cpp` :1172-1174; at 6 V the plant's stall current is 6 × 2.5/12 = 1.25 A < 2.0 A).
+  **FIXED** in this change: chapter 18's jam section ("A gentler push may never trip it"), its driver section (a
+  pointer), and cookbook 07 (a watch-out under the 6 V recipe).
+- **D3 — "a 2.4 program needs nothing". REAL. FIXED:** the changelog's 2.5 "What you must do" and heading block,
+  `version.hpp`'s 5 and guide 9 now say a `switch` over every `RoutineStopCause` needs a `MechanismStepFailed` case
+  (A2's precedent for an appended enumerator; shulib's two programs each gained one).
+- **D4 — "all eight fields". REAL. FIXED:** nine (`mechanismVerdict` appended at MECH-A4, its type pinned) in
+  `routine.hpp`'s banner and the F10 row.
+- **D5 — future tense left standing. REAL. FIXED:** chapter 18 :113 ("`whileHeld` — below"), cookbook 06's per-line
+  sentence (A2's hand-on — the core's driver controls now drive such positions; no program until its fifth part),
+  guide 9 ("every step spelling and every observer but the ones listed as not frozen"; "One exception" became the
+  not-frozen list).
+- **D6 — HA-157 not cited (landmine 11). REAL. FIXED** in chapter 18 and the changelog's 2.5 entry. **Also found while
+  fixing (the same class, unflagged):** the press-must-be-SEEN rule rests on HA-147 (the connected flag and the
+  buttons come back together — T3's ToggleBinding cites it); chapter 18, `driver_inputs.hpp`'s header and HA-147's
+  entry (Source + Contained) now say so.
+- **D7 — the VexBuilder paragraph lacked "host-only". REAL. FIXED:** a status note in §4.2.3 (host-tested only, no
+  program registers the ids until the core's fifth part, the six lines from a fixture's copy of robot two's claws, the
+  manifest file's place the panel's).
+- **D8 — guide 11 lacked the third ABSENT sentence. REAL. FIXED** in guide 11 (what it means: the boot never bound the
+  service; drive steps before it ran; the chain stopped at the first mechanism step) and the changelog.
+- **D9 — no G3a hand-on for the changed refusal vocabulary. REAL. FIXED:** the unnumbered coordinator note below.
+- **D10 — the log omitted steps. REAL. FIXED here:** (a) landmine 24's re-read — `git log 43ac361 --
+  docs/internal/MECH-PANEL-requirements.md`: last `bdcbc7c`; `git diff 2fce38a 43ac361` touches only :101-102 and
+  :277-280 (the controller screen's wording) — §4 item 7b (:497) is unchanged since the brief's tip; (b) the HA
+  register reconciled both ways over A4's fourteen headers — direction 1 (every `HA-NNN` they cite is a registered row:
+  HA-05, -32, -50, -51, -53, -103, -104, -112, -145, -146, -147, -154, -157, -161, -167, -175, -176, -182, -184, -186 —
+  all present), direction 2 (HA-182's Source names `driver_inputs.hpp`, which carries HA-182; HA-147's Source now
+  names it too, and it carries HA-147); (c) the cited lines (A4-D30): the AutonContext comment the brief cites at
+  :221 is at :224 at the base; the brief's `competition_run.hpp` :559, `auton_tester_run.hpp` :271 and
+  `competition_run_test.cpp` :1370 are the existing `MechanismFailed` lines, and A4's lines sit BESIDE them at :560,
+  :272 and :1371 — placements, not drift; (d) the deltas' order: A4-D23 moved before D24.
+- **D11 — HA-182's row put the window in "Settled by". REAL. FIXED:** the belief column lists
+  `kToggleAtSpeedWindowSeconds`; "Settled by" says how (timing a real flywheel's spin-up).
+- **D12 — test/README's harness claim stale. REAL. FIXED by running the check** (below) and updating the counts.
+- **D13 — public build dates. REAL, the merge's:** the coordinator re-dates at the commit (A3's form); the list is in
+  the coordinator's notes below.
+
+**For the coordinator (unnumbered), from the review round.**
+- **THREE rulings wanted before the merge** (each built as recommended, each overrulable, each with its tests): (1) the
+  FREEZE line (D1 — now worded OPEN in all six places; the team lead's call, pace rule 2); (2) the driver-start home's
+  exception to "the most recent input wins" (C2, A4-D26 — rule (a)); (3) U5 tightened: `.unhomedVolts` answers for a
+  HELD-only mechanism, a preset needs a homing control (C4, A4-D27 — tightens the brief's U5 text).
+- **G3a's validator mirror (the brief's §6.3, its §1.14 re-check):** mirror A4's refusal NAMES and SENTENCES, not the
+  brief's 17. Against the overlay: `a_button_does_two_jobs` DROPPED (every button is named:
+  `button_<L1…A>_does_two_jobs`), `a_hold_on_a_flywheel_or_a_pneumatic` DROPPED (unused — `whileHeld` on either is
+  refused by name), `…_flywheel_with_a_preset` RENAMED `a_toggle_needs_a_two_position_pneumatic_or_a_flywheel_named_speed`
+  (and a toggle on a flywheel's CONSTANT speed is refused — A4-D10), ADDED
+  `homeOnPress_and_homeAtDriverStart_are_for_an_arm_or_a_lift` and
+  `a_control_names_a_button_that_is_not_one_of_the_twelve`; 29 functions, 18 reasons (the twelve buttons one). And
+  U5's rule as A4-D27 states it (a preset needs a homing control whatever its `.unhomedVolts`). Plus bind()'s run-time
+  checks against the service's robot (A4-D10) — a panel cannot see those at generation, the boot does.
+- **MECH-A6's page:** the judgement has a NINTH finding, `BackDriven` (A4-D28: no line named — "jog it harder, or
+  from another pose"), and every role-naming finding has a generated-file sentence (A4-D29).
+- **MECH-A5:** robot two's driver file's `toggle(claw, Button::A)` inherits the C1 fix (a drop never flips the claw);
+  HA-147's Station J.9.5 now settles the service path too.
+- **The landing dates (D13), for the commit — A3's form "(<landing>; built 2026-10-22)":** `docs/changelog.md` the 2.5
+  heading ("Added (2026-10-22)"); `docs/guide/18-mechanisms.md` :12 ("A3 and A4, 2026-10-22"); `docs/guide/10-the-api.md`
+  :409-411 ("MECH-A4, 2026-10-22"); `docs/guide/14-what-it-cannot-do-yet.md` :217 ("2026-10-15 to 2026-10-22") and
+  :422; `docs/cookbook/06-driver-control.md` :21; `docs/vexbuilder-integration.md` :352, :362 and the §4.3 table row
+  ("since 2026-10-22"); `include/shulib/version.hpp` :103; `docs/roadmap.md` the F8 and F10 rows ("MECH-A4, 2026-10-22"),
+  :385 and :1765 ("BUILT 2026-10-22 … to come" → LANDED); `build-order.md`'s first bold `Next:` and MECH entry,
+  `REMAINING-WORK.md` row 12, `HANDOFF-remaining-work.md`. Left as the BUILD date on purpose (A3's rule): the register's
+  "since MECH-A4, 2026-10-22" source notes (HA-182 :1283) and the code banners naming the run by its date
+  (`driver_inputs.hpp` :5, `direction_check.hpp` :4, `mechanism_routes.hpp` :5, `teleop_loop.hpp` :114,
+  `mechanism_binding.hpp` :7).
+
+**Deltas from the brief added by the review round** (numbered on from A4-D25): **A4-D26** the driver-start home's
+exception (C2); **A4-D27** U5: `.unhomedVolts` answers for a HELD-only mechanism, a preset needs a homing control
+(C4 — tightens the brief's U5 text); **A4-D28** `DirectionFinding::BackDriven`, appended after the brief's eight
+(C6); **A4-D29** a generated-file sentence for every role-naming finding, FightOrJam's included (C5); **A4-D30** the
+cited lines (D10 (c)); **A4-D31** A4-D13's freeze line re-worded OPEN (D1) — A4-D13 stands as the proposal, no
+longer as a decision.
+
+**The mutations — 62, every one RED, every file restored byte-identical** (`fixround/run_fr.out`, `run_extra.out`;
+backups and per-mutation logs `fixround/mut/`; `md5sum -c` OK after each list; none killed by the cap or the
+timeout). Each verdict came from a full build of every dependent object (16 for `driver_inputs.hpp`, 33 for
+`routine.hpp`, 14 for `match_runner.hpp`, 2 for `mechanism_routes.hpp`, 1 for `direction_check.hpp`) and the WHOLE
+suite under the 4 GiB / 600 s cap, or the harness for a build-time rule:
+
+| ids | what | verdict — the case(s) that turned red |
+|---|---|---|
+| FR-C1, FR-D4 | the blocker restored; a drop recorded "up" | the drop case; the existing reconnect case |
+| FR-U5a–e | the driver-start home's wait removed (hold / preset / homeOnPress), widened to any step, never recorded | the two U5 cases |
+| FR-C4, FR-D12, FR-D13 | U5: the old rule; presets only; stall-homed | harness: n48d, n48c, n48b |
+| FR-D14 | U5's accepting side refuses a held-only list | RED at build — the positive TU's own check (`forms::u5`) |
+| FR-D15, FR-CT1 | an infinite limit; homeOnPress's button not reserved | harness: d_preset_with_an_infinite_bound, d_home_on_press_on_a_used_button |
+| FR-TG2, FR-D1, FR-D2, FR-DB1, FR-DB2, FR-TW2 | toggle never off; pneumatic preset → 0; flywheel preset ×0.5; preset / start-home limits ×10; the toggle's window used as 4 s | the toggle-off, presets and time-limit cases |
+| FR-TW1 | the window constant 5 → 4 s | RED at build — the test's own `static_assert` |
+| FR-BD3–BD9 | bind()'s seven rules, each removed | the stranger-per-rule case |
+| FR-AB1, FR-AB3 | bind() refuses an ABSENT one; runAuton refuses an unbound service | the absent-binds case; the unbound-runAuton case |
+| FR-D10, FR-EN1 | a superseded hold released by a drop; enter() keeps a hold's state | the drop / re-entry case |
+| FR-WU3, FR-V1, FR-V8b | a short wait recorded SUCCEEDED; its verdict not in lastMechanism(); its sentence never chosen | probe A's case |
+| FR-SK1–SK7 | each step form's skip removed | probe B's case (SK1, SK3, SK7 also P1 CONTROL) |
+| FR-V5, FR-V6, FR-NS1 | the 0 s edge; spinUp's computed; set()'s noteStarted | the 0 s case; the computed / set case |
+| FR-LV1, FR-LV2, FR-LV3, FR-RS3 | the three Warn lines lowered; the not-bound sentence never chosen | the Warn cases; the unbound cases |
+| FR-T1, FR-T2 | until_gone → sees; every marker time doubled | the until_gone / 0.50 s case |
+| FR-BK1–BK3 | back-driven removed; its equality edge; noise as "with" | the back-driven case |
+| FR-G1–G5, FR-C3 | each generated branch never taken; a generated value backwards | the generated case |
+| FR-C4s, FR-C5, FR-C7 | a Forward sensor's word; DidNotMove's equality edge; a pneumatic told 0 | the each-way case |
+
+**The equality edges** (the coordinator's lesson): the new guard's "a mate at exactly the move angle" (FR-BK2), the
+draw current in DidNotMove (FR-C5), the 0 s wait on a STARTED step (FR-V5) — each landed on exactly, each RED. The
+time limits above are scaling mutants, checked by intervals ([0.25, 0.27), [1.5, 1.52), [5.0, 5.02)); their `>=`
+edges are the service's, pinned on exact clocks in A2/A3.
+
+**The per-PLACE deletion check (D12) — 36 of 36 RED** (`fixround/fr_places.py`, `run_places.out`): each of the 31
+direct `refused::` calls in `driver_inputs.hpp`, its dispatcher call (`refuseButtonTwice`, 15 TUs red) and each of
+the Routine's four refusal templates' `static_assert`, deleted in turn; the harness over A4's 50 TUs went red every
+time. (The ids' line numbers are the file's before the HA-147 paragraph — add 3.) `test/README.md` now says so,
+with the harness's new time.
+
+**Every gate on the final tree** (`date` at the end below):
+- **The host suite, a CLEAN build** (`cmake --build build/test --target clean`, then `build.sh frclean`: the API pages
+  generated, the binary deleted, the briefing generated, the full doc-gated build — 239 objects, 35.3 s at -j8 —, the
+  suite capped, the briefing generated again): **2625/2625 passed, 2,799,429 assertions, 3 skipped** (before the
+  round: 2605, 2,799,223). `python3 tools/suite_run.py green`: green — 2625 cases, 2,799,429 assertions. MECH-A4's own
+  cases (`-tc='MECH-A4*,guide-18c*,guide-18d*,guide-18e*,cookbook-07a*'`): **81 cases, 720 assertions** (51 → 61 at
+  the build, + 20 from the round).
+- **The compile-refusal harness**, every TU: **251/251 passed** (197 s); TUs 251 = CTests 251.
+- **`src_build_gate.py self-test`**: OK (235 detector cases); **`check`: PASS — all 7 builds link**, 0 disallowed
+  warnings; `git diff --stat 43ac361 -- src/ tools/ Makefile`: the two `case` lines only.
+- **The ARM header gate**: 226 headers, rc 0, no output. **The CI greps**: PROS and `sim/` empty; `PROBE_` 0; no
+  "PROTOTYPE" / "(proposed" in an A4 file.
+- **`api_doc_tool`**: self-test OK; check-coverage 4,960 public entities across 186 headers, all documented;
+  check-fresh OK (the pages regenerated: `direction_check.md`, `driver_inputs.md` changed); check-examples 603 quoted
+  lines verbatim; check-removability OK. **`briefing_status.py`** self-test OK, check current.
+  **`doc_staleness_audit.py`** self-test OK, audit clean. **C7** empty.
+
+**The prose review (pace rule 4) — every grep RUN and its hits READ before this line.** For the changed concepts:
+`homeAtDriverStart` (10 hits: guide 10 :577 — a word list, true; chapter 18 :403, :417, :435, :450, :461 — updated;
+cookbook 07 :65 — updated; changelog :82, :87, :97 — updated), `unhomedVolts` beside a homing word (the changelog
+:87 — updated), "press must be seen" / "already down" (chapter 18 — updated; cookbook 06 :184 and guide 10 :296 — T3's
+ToggleBinding, still true, HA-147 already beside them; the changelog :1477 — 2.3's history), the direction check
+(guide 10 :543, :584, guide 14 :224-226, README :287, roadmap :390/:1768 — none lists the findings: true), "fight" /
+"drags it" (no public hit beyond chapter 18 and the changelog — both updated), the freeze words ("not frozen",
+"eight fields", "MECH on hardware": the six D1 places updated; HA-182/HA-183's "MECH on hardware" is a settling
+phase's name, not a freeze trigger — left), `MechanismStepFailed` "What you must do" (changelog, `version.hpp`, guide
+9 — updated). Internal pointers moved to "the review's fix round done 2026-10-27; verification, three rulings and
+merge to come": `build-order.md`'s first bold `Next:` and its MECH entry, `roadmap.md`'s "Now" and the MECH row,
+`REMAINING-WORK.md` row 12, `HANDOFF-remaining-work.md` :289.
+
+**Files the round touched** — library: `mechanism/driver_inputs.hpp`, `mechanism/direction_check.hpp`,
+`chassis/routine.hpp` (its banner only), `version.hpp` (comments); tests: `mechanism_driver_loop_test.cpp`,
+`mechanism_auton_steps_test.cpp`, `mechanism_auton_run_test.cpp`, `mechanism_routes_test.cpp`,
+`mechanism_direction_check_test.cpp`, `mechanism_step_forms_test.cpp`, `mechanism_auton_rig.hpp` (`countAt`),
+`routine_signature_pin_test.cpp` (a comment), five new TUs, `test/README.md`; docs: the changelog, guides 9 / 11 /
+18, cookbooks 06 / 07, `vexbuilder-integration.md`, `hardware-assumptions.md` (HA-182's row, HA-147's entry),
+`roadmap.md` (F10 row, "Now", the MECH row), `docs/api/` (regenerated), the internal pointers above. No file of an
+in-flight chunk touched; nothing committed; no `pros`; no `/dev/ttyACM*`.
+- **Entry written** (`date`: Tue Oct 27 09:32:56 PM EDT 2026); the final re-check after the src gate (whose self-test re-times nine headers) follows.
+- **The final re-check** (`build.sh frpost` after the src gate: the API pages regenerated, the binary rebuilt — **2625/2625, 2,799,429 assertions, 3 skipped**; `gates.sh frpostg`: every gate above green again, `briefing_status.py check` current, the staleness audit clean, the ARM gate rc 0). The tree: 51 files modified from `43ac361` (3,229 insertions, 446 deletions — the API pages and the briefing among them) and 66 new (the round added five TUs; `test/README.md` is the one newly modified file). `date`: Tue Oct 27 09:36:22 PM EDT 2026.
+
+### MECH-A4 — Verification-round findings and their disposition — started *(`date`: Tue Oct 27 10:00:17 PM EDT 2026)*
+- A fresh verifier returned **three findings** (VR-1 major: the C1 fix's "recorded as held" half is unpinned — a
+  button pressed DURING a drop and still down at the reconnect; VR-2 minor: `driver_inputs.hpp` cites A4-D26 for the
+  U5 tightening, which is A4-D27; VR-3 minor: guide 14 still promises the whole recipe layer frozen and names only
+  `then()` as open). Each is re-checked against the tree before any edit; the disposition follows when the round's
+  gates are green. Scratch: `.claude/coordinator/scratch/mech-a4/vround/`.
+
+### MECH-A4 — Verification-round findings and their disposition *(this entry written as each step finished; `date` at its first line: Tue Oct 27 10:15:12 PM EDT 2026)*
+- **Re-checked FIRST, each against the tree (every one REAL):** VR-1 — `pressedNow()` read (`driver_inputs.hpp`
+  :719-725: both halves present, the code RIGHT), and every reconnect case read: "a press must be SEEN" (:247-272, X
+  down from tick 10 — BEFORE the drop, so the edge already reads "held" and the recording line changes nothing) and
+  the fix round's C1 case (:598-693, every button UP through the drop); none presses a button DURING the drop. The
+  verifier's probe (`verify/probes/press_during_drop.cpp`) read: its two cases are that gap. A TEST gap on the half
+  of the rule the header, chapter 18 :426-428 and the changelog :94-95 state ("still down when a dropped controller
+  comes back, is not a press"). VR-2 — `grep -rn "A4-D2[6-9]" include test docs | grep -v MECH-PROGRESS`: the one
+  hit, `driver_inputs.hpp` :496, cites A4-D26 (the driver-start home's exception) for U5's tightening, A4-D27.
+  VR-3 — guide 14 :201-206 ("Both API tiers are frozen … routines written today will not need rewriting") and
+  :254-261 ("One related piece stays deliberately open: `then()`") read; A4's diff to that file touched only :217
+  and :421-427. **A sibling, found by this round's prose review:** guide 10's banner (:14-25) promises "every
+  signature and documented behavior in this chapter changes only with a major API-version bump", and A4 added to
+  that chapter the section "In an auton, on the buttons, on a route" naming the steps, the second constructor and
+  `lastMechanism()`; the driver loop carves itself out of the banner (:210 then, :212 now, "The banner at the top of this chapter
+  does not cover the loop"), the mechanism section (MECH-A1's, extended by A2–A4) never did.
+
+| # | Finding | Disposition | Proof (each mutation on a fresh build of all 16 objects that depend on `driver_inputs.hpp`, the WHOLE suite under the 4 GiB / 600 s cap, restored byte-identical — `vround/mutate_vr.py` = `fixround/mutate_fr.py` re-pointed to `vround/mut/`, `vround/vr_list.py`, `vround/run_vr.out`) |
+|---|---|---|---|
+| VR-1 (major) | the C1 fix's "recorded as held" half unpinned: a button pressed DURING a drop, still down at the reconnect | **FIXED (tests); the code was right.** A NEW case in `test/mechanism_driver_loop_test.cpp`, "MECH-A4 (verification): a button pressed DURING a controller drop and still down at the reconnect is NOT a press -- released and pressed again, it is", through the REAL `runDriverControl`, each button UP before the drop (tick 30), pressed during it (35), still DOWN at the reconnect (40) and to tick 55, released at 58, pressed again at 60: robot two's A (claw line still closed and its command number unchanged at 55; at 70 open, command number +1); robot x's X and Right on `kControls` (arm and flywheel command numbers unchanged, target 0, not spinning at 55; at 75 the target 95 and spinning); robot x's Left and Right on `kAltControls` (no homing push begun, no hood preset at 55; at 75 one push begun, one hood command, 'middle' sent — C high, D low). 17 assertions | **VR-1** (the verifier's VM1: the recording line deleted) RED — the new case; run again on the new case alone (`VR-1detail`) 13 of its 17 checks red, in ALL THREE blocks (the four green: the line before the drop, robot x's target at 75 — the spurious "score" already sent it there —, the hood's two lines at 75 — the spurious and the real press both send 'middle'). **VR-1b** (the drop records what the controller READS — 0 while disconnected on a real one, HA-103, and on the fake) RED — the new case and "a press must be SEEN". **FR-C1** and **FR-D4** re-run RED — each now in two cases (the fix round's and the new). None killed by the cap or the timeout; `md5sum -c` OK after the list |
+| VR-2 (minor) | `driver_inputs.hpp` :496 cites A4-D26 for U5's tightening | **FIXED:** A4-D27 (a `//` comment — no generated page moves) | — |
+| VR-3 (minor) | guide 14 promises the whole recipe layer frozen and names only `then()` as open | **FIXED, with its sibling:** guide 14 :201-207 — frozen "all but the pieces the register leaves outside them" (for the recipe layer `then()`, its log lines' wording, and — not yet ruled — its mechanism steps), "routines written today against the frozen surfaces"; :256-263 — "What stays open in the recipe layer": `then()` as before, AND the mechanism steps (`r.move` / `r.run` / `r.set` / `r.spinUp` / `r.home` / `r.stop`, the START forms, `waitUntilDone`), the second constructor and `lastMechanism()` not yet ruled, the F10 row giving both readings, not pinned meanwhile, an auton using them may need an edit if their spelling moves before the ruling; :266 "both API tiers but for the pieces named above". **Guide 10** (the sibling): the banner ends "Two parts of this chapter are outside this banner, and each says so: the driver loop (under `drive()`) and the mechanisms (the auton steps among them)"; the mechanism section's opening box gains the carve-out (the mechanism words, the service, the driver controls, the route binder and the direction check are in no register row — the seam beneath them is F11's, NOT frozen —; whether the steps, the second constructor and `lastMechanism()` join F10 is not yet ruled; the two pieces the route binder appended to the FROZEN F8 — `CommandEntry::doc`, the four-argument `on()` — ARE pinned, `f8_signature_pin_test.cpp` :343, :367). The wording follows the six D1 places (guide 9's box, the F10 row, the changelog's 2.5 block) | — (prose) |
+
+- **RESUMED** *(`date`: Thu Oct 29 11:50:22 AM EDT 2026)*: the 2026-10-27 round stopped DURING its gates (the
+  compile-refusal harness at 189/251 in `vround/harness.log`; no gate verdict was written above). The same three
+  findings came back from the verifier; each was re-checked against the tree at this resumption before anything
+  else: VR-1's case is at `test/mechanism_driver_loop_test.cpp` :695 (read in full — every captured value starts at
+  a sentinel that fails its CHECK if the capture never runs), VR-2's comment reads A4-D27 (`grep -rn "A4-D2[6-9]"
+  include test docs | grep -v MECH-PROGRESS` → only `driver_inputs.hpp` :496), VR-3's guide 14 and guide 10 edits
+  are in the tree (`git diff 43ac361` read). The mutated header's md5 equals `vround/pre_mut.md5`, and the test
+  file's mtime (22:01:45) predates every mutation run (22:01–22:07), so the table's verdicts are on these files.
+  What follows: one more sibling from the prose review, VR-1 re-run in this session, and every gate.
+- **VR-1 re-run in THIS session** (`vround/vr_list_resume.py`, id `VR-1r`; the verifier's VM1 exactly: `if
+  (!connected) { (void)edge_[i].update(true); return false; }` → `if (!connected) { return false; }`): a fresh build
+  of all 16 objects that depend on `driver_inputs.hpp` (the depend step first; 16 of 16 recompiled; the binary newer
+  than the mutant), the WHOLE suite under the 4 GiB / 600 s cap — **RED**: 2626 cases, 2625 passed, 1 failed, the one
+  failure the new case ("a button pressed DURING a controller drop …"); not killed by the cap or the timeout.
+  Restored byte-identical (md5 `b01fe37c…` before and after, = `vround/pre_mut.md5`), its timestamp bumped.
+- **One more sibling of VR-3, from this resumption's prose review** (every grep RUN and its hits READ before this
+  line). Searched the public docs for a freeze promise: `need rewriting|both tiers are now stable|both API
+  tiers|FROZEN at BOTH|whole recipe layer|recipe layer is frozen|One related piece|stays deliberately open`, then
+  "frozen" beside routine / recipe / auton / tier / F10. Hits: guide 10 :16 and :25 (the banner — carved out at
+  :26-27 by the earlier pass: true); guide 14 :201, :207, :266 (VR-3's edits: true); guide 9 :10-13, :28 (D1's box:
+  true); guide 10 :423 (the mechanism section's carve-out: true); `hardware-assumptions.md` :477 (`startAt` frozen:
+  true); `roadmap.md` :486 (the M-milestone record of the 2026-08-12 freeze — a dated record, left), the changelog
+  :2123 (the 2026-08-12 entry — history, left), the guide README :131-137 and :154 (maintenance-log items "Executed
+  2026-08-12" / "2026-08-13" — history, left). **One live promise A4 made untrue:** `docs/vexbuilder-integration.md`
+  :74, the status table's "The HAL, motion, localization, sequencing, both auton-authoring tiers | ✅ | done and
+  frozen" — now "done and frozen (but for the pieces the Freeze Register leaves outside: the recipe layer's `then()`
+  and — not yet ruled — its mechanism steps, row F10; the mechanism ids of 4.2.3 are a robot's, never frozen)".
+- **A process incident of this resumption, found and undone before any verdict was taken** (for the coordinator,
+  unnumbered — not a hardware belief): I first ran `src_build_gate.py self-test` under `timeout 600`; under this
+  machine's shared load (CAL1-A2a's review was building beside it) the self-test needs ~16 minutes, so `timeout`
+  SIGTERMed it at 12:06:40 — in the middle of a plant. SIGTERM skips Python's `finally`/`__exit__`, so its
+  byte-exact restore never ran: **`src/build_selection.hpp` was left with the tank-drive branch's `kProgram =
+  Program::Drive` rewritten to `Program::BenchTests`** (found by `git diff --stat 43ac361 -- src/`, which showed a
+  third file). The `check` that followed ran ~25 s on that planted tree and was interrupted by me (SIGINT); NO verdict
+  of it is used. The planted copy is kept (`vround/build_selection.hpp.planted-by-killed-selftest`); the file was
+  restored from `HEAD` (A4 never edits it — every earlier gate's `git diff --stat 43ac361 -- src/` lists only the two
+  `case` lines) and touched; the tree re-counted: 51 modified, 66 new — exactly the fix round's counts. Nothing that
+  ran before 11:56:40 (the build, the suite, the harness) saw a plant. The self-test and `check` were then re-run
+  under `timeout -s INT 3600` (SIGINT raises `KeyboardInterrupt`, so a kill still runs the restores). **The lesson:
+  never wrap the src gate's self-test in a SIGTERM timeout, and never one shorter than ~20 minutes on a loaded
+  machine — use `timeout -s INT`, and read `git diff --stat 43ac361 -- src/` after it.**
+- **Status pointers moved** (A4's own lines only): `build-order.md`'s first bold `Next:` ("… its gates finished
+  2026-10-29 …, the freeze wording in guides 10 and 14 and the integration doc") and its MECH entry (:1626),
+  `roadmap.md`'s "Now (2026-10-29)" and the MECH row (:1765), `REMAINING-WORK.md` row 12, `HANDOFF-remaining-work.md`
+  :289; `PROJECT-BRIEFING.md`'s generated block regenerated from them (on the fresh final binary).
+
+**Every gate on the FINAL tree** (`date` at the end below):
+- **The host suite** (`build.sh vr3`: the API pages generated, the binary deleted, the briefing generated, the full
+  doc-gated build, the suite capped, the briefing generated again): **2626/2626 passed, 2,799,446 assertions, 3
+  skipped** (before the round: 2625, 2,799,429 — the new case's 17). After the src gate (whose self-test re-times
+  headers): `build.sh vr3post` — 239 objects recompiled — the same 2626 / 2,799,446. `python3 tools/suite_run.py
+  green`: green both times, 2626 cases, 2,799,446 assertions. MECH-A4's own cases
+  (`-tc='MECH-A4*,guide-18c*,guide-18d*,guide-18e*,cookbook-07a*'`): **82 cases, 737 assertions** (81 / 720 + the
+  new case).
+- **The compile-refusal harness**, every TU (`ctest --test-dir build/test --output-on-failure`, capped): **251/251
+  compile refusals passed** (and the suite as CTest #1) — 252/252, 212.6 s; TUs 251 = CTests 251
+  (`vround/harness_resume.log`). The 2026-10-27 run of it, stopped at 189/251, is superseded.
+- **`src_build_gate.py self-test`**: OK (235 detector cases, each against a real build; 15 m 39 s);
+  **`check`: PASS — all 7 builds link**, 0 disallowed warnings (2 m 32 s); `git diff --stat 43ac361 -- src/ tools/
+  Makefile`: the two `case` lines only.
+- **The ARM header gate**: 226 headers, rc 0, no output. **The CI greps**: PROS and `sim/` empty; `PROBE_` 0; no
+  "PROTOTYPE" / "(proposed" in an A4 file.
+- **`api_doc_tool`**: self-test OK; check-coverage 4,960 public entities across 186 headers, all documented;
+  check-fresh OK (no `///` changed this round — VR-2's is a `//` comment); check-examples 603 quoted lines verbatim;
+  check-removability OK. **`briefing_status.py`** self-test OK, check current. **`doc_staleness_audit.py`** self-test
+  OK, audit clean. **C7** empty. (Run twice — `gates.sh vr3g`, then `vr3g2` after the pointer edits and the
+  briefing's regeneration: the same.)
+
+**Files this round touched** — tests: `test/mechanism_driver_loop_test.cpp` (the new case, :695); library:
+`mechanism/driver_inputs.hpp` (:496, a `//` comment); docs: guide 14 (:201-207, :256-268), guide 10 (the banner
+:26-27, the mechanism section's box), `vexbuilder-integration.md` (:74), the pointers above, this log. No file of an
+in-flight chunk touched; `src/` as at the fix round (the two `case` lines); nothing committed; no `pros`; no
+`/dev/ttyACM*`. The tree: 51 files modified from `43ac361`, 66 new. `date`: Thu Oct 29 12:31:04 PM EDT 2026.
+
+### The coordinator's merge verification — MECH-A4 (2026-10-29, main `73044ca` + the squash of `mech-a4`)
+- **The team lead's three rulings (2026-10-29, asked at the merge):** (1) the freeze line — the mechanism steps, `Routine r{ctx,
+  name}` and `lastMechanism()` stay OPEN (unpinned) for now; pinning later is additive (A4-D13 stands as the proposal, A4-D31);
+  (2) the driver-start home's exception to "the most recent input wins" — ACCEPTED (A4-D26, C2); (3) U5 tightened — a preset needs a
+  homing control, `.unhomedVolts` answers for a held-only mechanism — ACCEPTED (A4-D27, C4). Recorded in the roadmap (the A4 "Now"
+  paragraph, the F10 row), build-order, REMAINING-WORK row 12 and HANDOFF.
+- **Audit before the merge:** every file equals its newest mutation backup (version.hpp differs from V1's only by the fix round's later
+  doc comment); `src/` changed by exactly the two `case` lines the row allows; no stray root file; no merge in progress. The transport
+  commit `1fe8f52`, then `git merge --squash mech-a4` (base `43ac361`).
+- **Two conflicts:** the briefing (regenerated) and build-order's `Next:` line (a word-level three-way merge against `43ac361`).
+- **Gates on the merged tree** (`.claude/coordinator/logs/mech_a4_merge_verify.out`): host build with the doc gates; suite **2,626 |
+  2,626 passed, 3 skipped**; `src_build_gate.py` self-test OK and check **PASS, all 7 builds**; ARM header gate over **226** headers
+  clean; CI greps empty; api check-fresh, the briefing, removability and the staleness audit clean; the compile-refusal harness **251
+  of 251**.
+- **The coordinator's hand mutations** (`muts_mech_a4_main.json`; each on a fresh link, the whole suite under a 4 GiB / 300 s cap,
+  restored and hash-checked): **7 of 7 caught** — MD1 (a counted UNCONFIRMED stops the auton), MD2 (runAuton never hands over —
+  `enterAutonomous` not called: M35 proper), MD3 (the service ticked before the driver's controls are read), MD4 (a route marker
+  with a 0 ms limit not refused), MD5 (a START form's NOT_HOMED does not stop the chain), MD6 (a dropped controller's button read as
+  a press — C1), MD7 (a preset press during the driver-start home not dropped — A4-D26) RED. Restored tree 2,626 | 2,626.

@@ -145,6 +145,7 @@ nav:
       - Drivetrains: cookbook/04-drivetrains.md
       - Mixing tiers: cookbook/05-mixing-tiers.md
       - Driver control: cookbook/06-driver-control.md
+      - Mechanisms: cookbook/07-mechanisms.md
 
 # BEGIN GENERATED API NAV — regenerate with: python3 tools/api_doc_tool.py generate
   - API reference:
@@ -329,6 +330,8 @@ nav:
           - Route: api/route.md
       - Mechanism:
           - Devices: api/devices.md
+          - Direction check: api/direction_check.md
+          - Driver inputs: api/driver_inputs.md
           - Kinds: api/kinds.md
           - Route ids: api/route_ids.md
           - Service: api/service.md
@@ -341,6 +344,7 @@ nav:
       - Runner:
           - Command registry: api/command_registry.md
           - Manifest: api/manifest.md
+          - Mechanism routes: api/mechanism_routes.md
           - Path runner: api/path_runner.md
       - Teleop:
           - Coupled side monitor: api/coupled_side_monitor.md

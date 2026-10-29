@@ -23,6 +23,8 @@
 > independent consumer ([Chapter 9](09-the-recipe-api.md)'s recipe layer) had used the
 > surface in anger. The [recipe layer](09-the-recipe-api.md) froze the same way one chunk later
 > (row F10, after the cookbook became *its* second consumer), so both tiers are now stable.
+> Two parts of this chapter are outside this banner, and each says so: the driver loop (under
+> `drive()`) and the mechanisms (the auton steps among them).
 
 The code examples in this chapter are compiled and run in
 [`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp), cases `guide-10a` through
@@ -282,7 +284,12 @@ rather than stopping the robot. (Since the mechanism core's first part the Robot
 mechanism's SENSOR roles — [the section below](#mechanisms--declared-once-wired-separately).) The
 [cookbook](../cookbook/06-driver-control.md) has the recipe.
 Honest status: host-tested only; no driver has used a binding, and whether Hold keeps a loaded
-mechanism up is unmeasured.
+mechanism up is unmeasured. **Superseded, not removed (since the mechanism core's fourth part):** a
+robot whose mechanisms are DECLARED ([below](#mechanisms--declared-once-wired-separately)) runs them
+from its driver file's controls — `whileHeld`, `toggle`, `preset`, the homing controls — through
+`runDriverControl`'s mechanism-service overload, the same service its autons use
+([chapter 18](18-mechanisms.md#on-the-drivers-buttons--the-driver-files-controls)); these bindings
+stay, unchanged, for a program with no service, and the loop refuses the two paths together.
 
 A pneumatic claw is the other shape: **one** button that opens it on one press and closes it on
 the next. That is a `teleop::ToggleBinding` (same header) over one `hal::PneumaticMechanism`,
@@ -402,12 +409,22 @@ show `cmd#0`). Until you need it, you don't need it.
 > robot builds for every role. Since its second part (MECH-A2, 2026-10-15) a mechanism SERVICE runs
 > POWER and PNEUMATIC mechanisms through it, ticked once per control tick, and since its third (MECH-A3,
 > 2026-10-22) the POSITION and SPEED behaviours too — an `Arm` or a `Lift` moves, holds and finds its
-> zero, a `Flywheel` spins up and stays at speed ([chapter 18](18-mechanisms.md)) — but no program builds
-> a service yet, and its API is taught with the auton steps that call it. The auton steps
-> (`r.move(arm["score"], 1.5_s)`) and the driver controls are the core's next parts. Robot two's programs build their claws through it
-> (the Robot builds every role), but the per-role boot lines below are only worded by the library
-> today — the programs first print them in the core's fifth part. **Nothing here has run on a
-> robot.**
+> zero, a `Flywheel` spins up and stays at speed ([chapter 18](18-mechanisms.md)). Since its fourth
+> (MECH-A4, 2026-10-22) everything that calls the service exists: the auton STEPS
+> (`r.move(arm["score"], 1.5_s)`), the driver CONTROLS, the ROUTE BINDER that runs a marker's id, and
+> the direction check's judgement ([below](#in-an-auton-on-the-buttons-on-a-route)) — but no program
+> builds a service yet: robot two's programs move onto it in the core's fifth part, which also prints
+> the per-role boot lines below (the library only words them today; the Robot already builds every
+> role of robot two's claws). **Nothing here has run on a robot.**
+>
+> **The banner at the top of this chapter does not cover this section**, as it does not cover the
+> driver loop: the mechanism words, the service, the driver controls, the route binder and the
+> direction check are in no row of the [Freeze Register](../roadmap.md#freeze-register) (the
+> mechanism seam beneath them is row F11's, NOT frozen), and whether the auton steps, the second
+> `Routine` constructor and `lastMechanism()` join the recipe layer's freeze (row F10) is not yet
+> ruled — they are not pinned meanwhile. The two pieces the route binder appended to the FROZEN
+> command vocabulary (`CommandEntry::doc` and the four-argument `CommandRegistry::on`) are pinned
+> with it (row F8).
 
 A mechanism is written ONCE, as **what it is** — its kind, its motors and which way each is mounted,
 its cartridge, its gearing as tooth counts, what it does when stopped and what a jam looks like, and
@@ -513,7 +530,9 @@ The name is lower-cased and every run of other characters becomes one `_` ("claw
 `intake_run`, `intake_until_piece`, `intake_until_gone`, `intake_stop`, `claw_closed` and `claw_open`.
 An id longer than 23 characters, two ids alike (a preset named `home` beside a homing method), an id
 that is one of the library's own (`wait_ms`, `brake`, `hold_ms`, `log`) and more than 32 ids are each
-refused at the list. (Running a marker's id is the core's later part.)
+refused at the list. A program registers every one of a robot's ids in ONE call
+(`runner::MechanismRoutes`, [below](#in-an-auton-on-the-buttons-on-a-route)), and a marker then runs
+exactly the step an auton's line runs.
 
 ### At boot — every role built, one line each
 
@@ -532,8 +551,9 @@ claw: line 1 -> 3-wire A not checkable (the brain cannot see a 3-wire device)
 A missing or wrong-kind MOTOR, line or ANGLE sensor makes that mechanism ABSENT — nothing commands
 it, and the robot still drives. A missing PIECE sensor leaves the mechanism running WITHOUT one. A
 3-wire role is always "not checkable": the brain cannot see a switch or a solenoid. Two cables of the
-SAME kind swapped between mechanisms look fine at boot — that is the bench page's direction check
-(the core's last part). Beside each piece sensor and home switch the provider also answers its
+SAME kind swapped between mechanisms look fine at boot — that is the direction check's to find (its
+judgement, `mechanism::judgeDirection`, exists since the core's fourth part; the bench page that runs it
+is the core's last). Beside each piece sensor and home switch the provider also answers its
 READ-FAULT count (`hal::IReadFaults`, through `readFaults(port)` / `lineReadFaults(line)`): a sensor
 whose read fails is answered with its last good value, and a distance sensor held from a far reading
 is, byte for byte, the "no object" reading — only the count tells them apart. The count is there so
@@ -550,6 +570,30 @@ calibration record that drives a mechanism sensor's port is refused naming both
 unplugged switch line reads released (the Hardware Assumptions Register's HA-184), and that a V5
 rotation sensor starts at its shaft's absolute angle at power-up (HA-186). Both are settled at the
 bench page.
+
+### In an auton, on the buttons, on a route
+
+What calls the service, each taught in [chapter 18](18-mechanisms.md) with its rules and its measured
+numbers — this is the map:
+
+- **An auton's steps** — `Routine r{ctx, "name"}` (the second `Routine` constructor, taking the auton's
+  `competition::AutonContext`, whose appended `mechanismService` carries the robot's service), then one
+  line per step: `move`, `home`, `run`, `set`, `spinUp`, `stop`, and the START forms `startMove`,
+  `startHome`, `startRun`, `startSpinUp` with `waitUntilDone`. SUCCEEDED and an UNCONFIRMED counted done
+  continue; every other verdict stops the chain as `RoutineStopCause::MechanismStepFailed`, the verdict
+  in `RoutineResult::mechanismVerdict` and `lastMechanism()`. `competition::runAuton`'s mechanism-service
+  overload runs such an auton — the service's `enterAutonomous()` first, so whatever a deleted driver
+  task left running stops before the auton.
+- **The driver's buttons** — `mechanism::controls(kRobotXMechanisms, whileHeld(...), toggle(...),
+  preset(...), homeOnPress(...), homeAtDriverStart(...), autonOnly(...))`, checked at build;
+  `mechanism::DriverInputs` binds them to the service at boot; `teleop::runDriverControl`'s
+  mechanism-service overload runs them, the service ticked once per tick before your panel.
+- **A route's markers** — `runner::MechanismRoutes` registers a robot's ids in a `CommandRegistry` in one
+  call, each with a one-line doc the manifest publishes (`CommandEntry::doc`, the four-argument
+  `CommandRegistry::on`); a marker blocks at its waypoint until its step's verdict, and one whose args are
+  wrong is REFUSED.
+- **The direction check's judgement** — `mechanism::judgeDirection` / `judgePneumatic`: a jog's
+  readings and the person's three answers in, the robot-file line to change out.
 
 ## Gotchas, collected
 

@@ -100,9 +100,29 @@ inline constexpr int kApiMajor = 2;
 /// shape, no enumerator moved, no behaviour changed — every 2.3 program compiles and runs
 /// exactly as before.
 /// docs/changelog.md, API 2.4, lists it.
-inline constexpr int kApiMinor = 4;
+/// 5 = chunk MECH-A4 (2026-10-22), the mechanism core's autons, driver controls and route binder,
+/// every one the additive path: `Routine` gains a SECOND constructor `Routine r{ctx, "name"}` (a new
+/// overload — the frozen `Routine(Chassis&, const char*)` is untouched), the mechanism steps (move /
+/// startMove / home / startHome / run / startRun / set / spinUp / startSpinUp / stop /
+/// waitUntilDone) and lastMechanism() — added by register row F10's additive path and NOT pinned:
+/// whether they join F10's freeze is an OPEN decision (the register's F10 row; they take the
+/// unfrozen mechanism seam's types, as then() does) —, the APPENDED
+/// enumerator `RoutineStopCause::MechanismStepFailed` (== 5, pinned) and the appended field
+/// `RoutineResult::mechanismVerdict`; `competition::AutonContext` appends `mechanismService` (with a
+/// default, so COMP-a's positional initializer still compiles) and `runAuton` gains a mechanism-
+/// service overload; `teleop::runDriverControl` gains one too; F8 (LOCKED) grows by its own
+/// "new registry members" path — `runner::CommandEntry::doc` and a four-argument
+/// `CommandRegistry::on(id, handler, argCount, doc)`, whose doc the manifest publishes (a registry
+/// with no docs writes the same bytes as 2.4); and the new headers mechanism/driver_inputs.hpp,
+/// mechanism/direction_check.hpp and runner/mechanism_routes.hpp. No frozen member changed shape, no
+/// enumerator moved, no behaviour of a 2.4 program changed. ONE thing to do, as at 2.1: a `switch`
+/// over `RoutineStopCause` that lists every value needs a `MechanismStepFailed` case (under
+/// `-Wswitch -Werror` it stops compiling without one — shulib's competition program and Auton Tester
+/// each gained one); every other 2.4 program compiles and runs exactly as before.
+/// docs/changelog.md, API 2.5, lists all of it.
+inline constexpr int kApiMinor = 5;
 
 /// "major.minor", for session headers / logs that want one printable token.
-inline constexpr const char* kApiVersionString = "2.4";
+inline constexpr const char* kApiVersionString = "2.5";
 
 }  // namespace shulib

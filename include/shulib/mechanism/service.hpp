@@ -86,7 +86,7 @@
 //     after "at speed", a power run and a hold-to-run (homing by stall keeps its own signature). A trip
 //     is STALLED, MECHANISM_STALLED once, the declared safe state, the claim released; one that ends a
 //     behaviour AFTER its step (a hold, a jog, a spin) also bumps the command number — how the driver's
-//     inputs (MECH-A4) will see that a held button is superseded until it is released.
+//     inputs (mechanism/driver_inputs.hpp, MECH-A4) see that a held button is superseded until it is released.
 // The library's own numbers in all of this are HA-182 — invented, PROVISIONAL — in two groups. The
 // starting gains, profile and "reached" (kinds.hpp) are per mechanism: startingValuesLine()
 // (wiring.hpp) words them for a boot line (MECH-A5 prints it; no program does yet) and a declaration's
@@ -1682,7 +1682,8 @@ public:
     }
     /// AUTONOMOUS BEGINS (the brief's D1): PROS deletes the driver-control task on a mode change
     /// (HA-161), so driver control's own exit may never run — a driver's intake left at 12 V then ran
-    /// through the whole auton. The auton runner (MECH-A4's runAuton overload) calls this before the
+    /// through the whole auton. The auton runner (competition::runAuton's mechanism-service overload,
+    /// MECH-A4) calls this before the
     /// guard's run: the re-entrancy flag cleared; a claim ANOTHER owner left released WITHOUT its
     /// cancel(), counted, said; every motor mechanism's behaviour stopped (its safe state); a
     /// pneumatic KEEPS its level; a running step CANCELLED. Returns how many leftover claims this call

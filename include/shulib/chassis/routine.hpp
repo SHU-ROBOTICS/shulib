@@ -12,7 +12,8 @@
 // pause / waitFor, and reverseTo / faceAway, the two APPENDED at chunk L9
 // (API 2.4) by exactly the additive path below and pinned the day they
 // landed — the four observers ok / result / lastTrajectory / chassis,
-// the types RoutineResult (all eight fields) and RoutineStopCause (append-only,
+// the types RoutineResult (all NINE fields — mechanismVerdict appended at
+// MECH-A4, API 2.5, its type pinned) and RoutineStopCause (append-only,
 // existing values fixed), the documented error policy below, and typed time as
 // a SEMANTIC (hold(0.3) must not compile). Enforced structurally:
 // test/routine_signature_pin_test.cpp fails the build, naming F10, if any of
@@ -21,6 +22,25 @@
 // observers, new RoutineResult fields, appended RoutineStopCause enumerators —
 // stays legal and is the intended path (F1 used it for the stop cause, L9 for
 // two steps: no existing member moved either time).
+//
+// The MECHANISM STEPS (the mechanism core, chunk MECH-A4, API 2.5) took the same
+// path, and what they added is in ONE delimited block below ("MECH-A4: the
+// mechanism steps"): the appended stop cause MechanismStepFailed (its value
+// pinned, like every enumerator's), the appended RoutineResult field
+// mechanismVerdict, a SECOND constructor `Routine r{ctx, "name"}` (a new
+// overload — the frozen `Routine(Chassis&, const char*)` is untouched), the
+// steps move / startMove / home / startHome / run / startRun / set / spinUp /
+// startSpinUp / stop / waitUntilDone, the observer lastMechanism(), and four
+// refusal templates that name the right step when a team writes the wrong one.
+// NOT pinned, and NOT YET RULED: whether the mechanism steps, the context
+// constructor and lastMechanism() join this freeze is an OPEN decision (the
+// Freeze Register's F10 row says so). Proposed at MECH-A4: not yet — every one
+// of them takes the mechanism seam's types (register row F11, NOT frozen), as
+// then() below does, and then() stays out of F10 for exactly that reason. The
+// other reading is the additive path L9 took (its two steps pinned the day they
+// landed). Until it is ruled they are unpinned: pinning them later is additive,
+// un-freezing them would not be. Stated out loud for the reason the then()
+// paragraph gives: silence in a freeze reads as "frozen too".
 //
 // NOT frozen, deliberately: **then()** — its accepted return types and its
 // `name` default were left out of F10 because they were chosen before
@@ -126,6 +146,10 @@
 // CALLABLE, so a member function is passed as `then([&] { intake.in(); })` —
 // `then(intake.in)` is valid C++ only for a callable data member, and the
 // documentation spells the lambda form everywhere for that reason (T5).
+// Since MECH-A4 a robot's DECLARED mechanisms need no then(): each has its own
+// steps — `r.move(arm["score"], 1.5_s)`, `r.run(intake, 12_volt, seesPiece,
+// 3_s)` — run by the mechanism service, with their own verdict policy (the
+// MECH-A4 block below). then() stays the seam for anything else.
 //
 // ═══ What a recipe deliberately CANNOT do (the documented gaps) ══════════════════
 //   * drive(speeds, Frame) — a recipe is a SEQUENCE; drive() is a per-
@@ -142,9 +166,13 @@
 // would let a stopped chain's twin keep driving.
 
 #include <cmath>
+#include <concepts>
+#include <cstdint>
+#include <cstdio>
 #include <functional>
 #include <initializer_list>
 #include <span>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -157,10 +185,25 @@
 #include "shulib/manipulation/mechanism_outcome.hpp"
 #include "shulib/math/angle.hpp"
 #include "shulib/math/pose2d.hpp"
+#include "shulib/mechanism/service.hpp"  // MECH-A4: the mechanism steps run through the service
 #include "shulib/motion/motion_scheduler.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::chassis {
+
+namespace detail {
+/// MECH-A4: what the context constructor reads — a `chassis` (a Chassis&) and a `mechanismService`
+/// (a MechanismService*): competition::AutonContext, or a route binder's own two-member context.
+template <class Context>
+concept RoutineContext = requires(Context& c) {
+    { c.chassis } -> std::convertible_to<Chassis&>;
+    { c.mechanismService } -> std::convertible_to<mechanism::MechanismService*>;
+};
+/// MECH-A4: a mechanism DECLARATION (an Arm, a Lift, a Flywheel, a Power, a Pneumatic) — it has a
+/// `.name`.
+template <class Declared>
+concept MechanismDeclaration = requires(const Declared& d) { d.name.text; };
+}  // namespace detail
 
 /// Why a Routine stopped early. `None` = it never stopped. Append-only: F1/F3
 /// mechanism failures arrive as new enumerators, never as re-meanings.
@@ -174,6 +217,11 @@ enum class RoutineStopCause {
                       ///< the stop log line names which, and the operation object
                       ///< itself remains the authority on the exact outcome
                       ///< (APPENDED at chunk F1, per the append-only rule above)
+    MechanismStepFailed,  ///< a mechanism STEP (move, run, set, spinUp, home, stop, waitUntilDone —
+                          ///< and their start forms' starts) ended other than SUCCEEDED or an
+                          ///< UNCONFIRMED counted done; the verdict is RoutineResult::mechanismVerdict
+                          ///< and the stop line names it. MechanismFailed keeps its F1 meaning (a
+                          ///< then()-action's verdict). (APPENDED at chunk MECH-A4, API 2.5.)
 };
 
 /// What a Routine did — the whole-chain verdict, readable at any point (it is
@@ -194,6 +242,11 @@ struct RoutineResult {
     /// means "no motion verdict here" — the stop was a wait or an action, or
     /// nothing stopped (the same "none yet" convention as CompletedMotion).
     control::ExitReason exit = control::ExitReason::Running;
+    /// The failing MECHANISM step's verdict — TimedOut / Stalled / Absent / NotHomed / Refused /
+    /// Cancelled / an Unconfirmed NOT counted done. `Running` means "no mechanism verdict here":
+    /// read `cause` first — only `MechanismStepFailed` puts one here. (APPENDED at chunk MECH-A4,
+    /// API 2.5.)
+    manipulation::MechanismOutcome mechanismVerdict = manipulation::MechanismOutcome::Running;
 };
 
 /// The Tier-2 recipe chain: a complete autonomous routine as a sequence of
@@ -208,6 +261,16 @@ public:
     /// must be a stable literal (it is stored, not copied).
     explicit Routine(Chassis& chassis, const char* name = "routine") noexcept
         : chassis_{&chassis}, name_{name} {}
+
+    /// MECH-A4 (API 2.5; a NEW overload — the frozen constructor above is untouched): `Routine
+    /// r{ctx, "score-three"}` in an auton — the chassis AND the robot's mechanism service, from the
+    /// auton's context (competition::AutonContext; any type with these two members). Borrows both
+    /// (each must outlive the Routine). A program that runs autons without a service leaves
+    /// `mechanismService` null: the chassis steps run as ever, and a mechanism step is a loud
+    /// precondition naming the fix. Not frozen (the file header).
+    template <detail::RoutineContext Context>
+    explicit Routine(Context& ctx, const char* name = "routine") noexcept
+        : chassis_{&ctx.chassis}, name_{name}, mechs_{ctx.mechanismService} {}
 
     /// Neither copyable nor movable, and there is no reset(): one chain is one
     /// run. Two handles sharing the stop-state counters would let a stopped
@@ -456,6 +519,231 @@ public:
         return *this;
     }
 
+    // ═══ MECH-A4: the mechanism steps — BEGIN (API 2.5; not frozen — the file header) ═════════
+    // ONE eager call per step, each naming its mechanism by its DECLARATION (or a goal the
+    // declaration made — a preset, a constant, a computed target), each run by the robot's
+    // mechanism service (mechanism/service.hpp), which this Routine reaches through the context
+    // constructor above. A BLOCKING step commands, then waits for the step's verdict within its
+    // `bound` — the step's own time limit, always stated; the service's deadline ends the step,
+    // and this wait's backstop is the bound plus kMechanismWaitSlackSeconds. A START form commands
+    // and returns at once (the next drive runs while the service ticks the step);
+    // waitUntilDone() collects it later.
+    //
+    //   r.move(arm["score"], 1.5_s);                       // a preset (checked at BUILD)
+    //   r.move(arm.to(120), 1.5_s);                        // a constant (past a limit: no build)
+    //   r.move(lift.clampedTo(h), 2_s);                    // a computed one (clamped, logged)
+    //   r.run(intake, 12_volt, seesPiece, 3_s);            // until its sensor sees a piece
+    //   r.run(intake, 12_volt, seesPiece.orAfter(2.5_s), 3_s);  // ... or after 2.5 s
+    //   r.run(clawPivot6, 12_volt, 0.4_s);                 // for 0.4 s
+    //   r.set(claw["closed"]);                             // a pneumatic position
+    //   r.spinUp(flywheel["shoot"], 2_s);                  // until "at speed"; it keeps spinning
+    //   r.home(lift, 1.5_s);  r.stop(flywheel);
+    //   r.startRun(intake, 12_volt, seesPiece, 3_s).driveTo(40_in, 0_in).waitUntilDone(intake, 1_s);
+    //
+    // THE VERDICT POLICY (each rule pinned by a test): SUCCEEDED continues; UNCONFIRMED COUNTED
+    // DONE (no sensor exists to confirm it — the team lead's Q2 (c): robot two's sensorless claw)
+    // continues; EVERY other verdict stops the chain as RoutineStopCause::MechanismStepFailed, with
+    // the verdict in the stop line, in RoutineResult::mechanismVerdict and in lastMechanism(). A
+    // START form stops the chain only when the start itself is ABSENT, REFUSED or NOT_HOMED. A step
+    // on a mechanism this robot's list does not have is ABSENT, said, and stops the chain. A
+    // blocking wait during which the service NEVER ticked stops the chain TIMED_OUT, saying the
+    // service is not in the chassis pacer's chain (the program's wiring fault, found on the first
+    // blocking step). After its step a mechanism keeps its behaviour — an arm HOLDS, a flywheel
+    // keeps spinning — until another command, the run guard's end of run, or driver control.
+    //
+    // THE HONEST LIMIT: the service ticks only inside a shulib motion, wait or pause (and the
+    // driver loop). An auton's own busy loop — `pros::delay`, a then() action that blocks — STARVES
+    // it, and a starved service leaves every mechanism at its LAST command: not held, not limited,
+    // not safe. In an auton, wait with r.pause() / r.waitFor().
+    //
+    // PRECONDITIONS (thrown, the error policy above: the bad call never ran, the counters are
+    // untouched): the Routine was built from a context with a mechanism service; a bound finite and
+    // > 0; and every precondition of the service's own command (a time condition longer than its
+    // bound, a sensor condition on a mechanism that declares no piece sensor, `stalls` with no
+    // stall signature, homing a mechanism declared neverHomed, ...).
+
+    /// Move an arm or a lift to `goal` within `bound`, then HOLD it there (`arm["score"]`,
+    /// `arm.to(120)`, `lift.to(18_in)`, `lift.clampedTo(h)`). Out of time: TIMED_OUT, and it holds
+    /// where it stopped.
+    Routine& move(mechanism::PositionGoal goal, units::Time bound, const char* name = nullptr) {
+        return positionStep(goal, bound, name, /*wait=*/true);
+    }
+    /// move()'s START form: commands the move and returns at once; waitUntilDone() collects it.
+    Routine& startMove(mechanism::PositionGoal goal, units::Time bound, const char* name = nullptr) {
+        return positionStep(goal, bound, name, /*wait=*/false);
+    }
+    /// Find an ARM's zero by its declaration's homing method, within `bound` (then it holds there).
+    Routine& home(const mechanism::Arm& m, units::Time bound, const char* name = nullptr) {
+        return homeStep(m, bound, name, /*wait=*/true);
+    }
+    /// Find a LIFT's zero by its declaration's homing method, within `bound`.
+    Routine& home(const mechanism::Lift& m, units::Time bound, const char* name = nullptr) {
+        return homeStep(m, bound, name, /*wait=*/true);
+    }
+    /// home()'s START form, for an arm (homing while the robot drives).
+    Routine& startHome(const mechanism::Arm& m, units::Time bound, const char* name = nullptr) {
+        return homeStep(m, bound, name, /*wait=*/false);
+    }
+    /// home()'s START form, for a lift.
+    Routine& startHome(const mechanism::Lift& m, units::Time bound, const char* name = nullptr) {
+        return homeStep(m, bound, name, /*wait=*/false);
+    }
+    /// Run a POWER mechanism at `volts` until `until` holds (seesPiece, seesPiece(grip),
+    /// stopsSeeingPiece, stalls, `seesPiece.orAfter(2.5_s)`), within `bound`; its declared safe
+    /// state at the end, however it ends.
+    Routine& run(const mechanism::Power& m, units::Voltage volts, mechanism::Until until, units::Time bound,
+                 const char* name = nullptr) {
+        return powerStep(m, volts, until, bound, name, /*wait=*/true);
+    }
+    /// Run a POWER mechanism at `volts` for `time`: SUCCEEDED when the time is up.
+    Routine& run(const mechanism::Power& m, units::Voltage volts, units::Time time, const char* name = nullptr) {
+        return powerStep(m, volts, mechanism::Until::time(time), time, name, /*wait=*/true);
+    }
+    /// run()'s START form, with a done-condition.
+    Routine& startRun(const mechanism::Power& m, units::Voltage volts, mechanism::Until until, units::Time bound,
+                      const char* name = nullptr) {
+        return powerStep(m, volts, until, bound, name, /*wait=*/false);
+    }
+    /// run()'s START form, for a time.
+    Routine& startRun(const mechanism::Power& m, units::Voltage volts, units::Time time, const char* name = nullptr) {
+        return powerStep(m, volts, mechanism::Until::time(time), time, name, /*wait=*/false);
+    }
+    /// Put a PNEUMATIC mechanism in a named position (`claw["closed"]`). Its time is the robot
+    /// file's `.moveTime` (plus `.confirmWithin` when a sensor confirms it), so the step states no
+    /// bound. A `grabs` position with no sensor ends UNCONFIRMED, counted done: the chain goes on.
+    Routine& set(mechanism::PneumaticGoal goal, const char* name = nullptr) {
+        const char* step = name != nullptr ? name : goal.mechanismName;
+        if (skipIfStopped(step)) {
+            return *this;
+        }
+        mechanism::PneumaticSlot* m = mechs().find(goal);
+        if (m == nullptr) {
+            return notOnThisRobot(goal.mechanismName, step);
+        }
+        m->set(goal.position);
+        noteStarted(*m);
+        return awaitMechanism(*m, units::Time{m->lastStepBound()}, step);
+    }
+    /// Spin a FLYWHEEL up (`flywheel["shoot"]`, `flywheel.at(3000)`, `flywheel.clampedTo(x)`): the
+    /// step SUCCEEDS at speed and the wheel KEEPS spinning until stop(), the guard or driver control.
+    Routine& spinUp(mechanism::SpeedGoal goal, units::Time bound, const char* name = nullptr) {
+        return speedStep(goal, bound, name, /*wait=*/true);
+    }
+    /// spinUp()'s START form (the wheel spins up while the robot drives).
+    Routine& startSpinUp(mechanism::SpeedGoal goal, units::Time bound, const char* name = nullptr) {
+        return speedStep(goal, bound, name, /*wait=*/false);
+    }
+    /// Stop a POWER mechanism now — its declared safe state (a running step on it ends CANCELLED).
+    /// SUCCEEDED, unless it is ABSENT this boot or ANOTHER owner holds its claim (REFUSED: the stop
+    /// did nothing).
+    Routine& stop(const mechanism::Power& m, const char* name = nullptr) {
+        const char* step = name != nullptr ? name : m.name.text;
+        if (skipIfStopped(step)) {
+            return *this;
+        }
+        mechanism::PowerSlot* s = mechs().find(m);
+        if (s == nullptr) {
+            return notOnThisRobot(m.name.text, step);
+        }
+        const std::uint32_t before = s->commandSeq();
+        s->stop();
+        return stoppedMechanism(*s, before, step);
+    }
+    /// Stop a FLYWHEEL now — its declared safe state. As stop(const Power&).
+    Routine& stop(const mechanism::Flywheel& m, const char* name = nullptr) {
+        const char* step = name != nullptr ? name : m.name.text;
+        if (skipIfStopped(step)) {
+            return *this;
+        }
+        mechanism::SpeedSlot* s = mechs().find(m);
+        if (s == nullptr) {
+            return notOnThisRobot(m.name.text, step);
+        }
+        const std::uint32_t before = s->commandSeq();
+        s->stop();
+        return stoppedMechanism(*s, before, step);
+    }
+    /// Wait (at most `bound` more) for the verdict of the step THIS routine last began on `m` — a
+    /// START form's, usually; a step that already ended answers at once. A step that something
+    /// OUTSIDE this routine replaced meanwhile ended CANCELLED, and so does this one.
+    /// PRECONDITIONS: `bound` finite and > 0; this routine began a step on `m`.
+    template <detail::MechanismDeclaration Declared>
+    Routine& waitUntilDone(const Declared& m, units::Time bound, const char* name = nullptr) {
+        const char* step = name != nullptr ? name : m.name.text;
+        if (skipIfStopped(step)) {
+            return *this;
+        }
+        SHULIB_PRECONDITION(std::isfinite(bound.value()) && bound.value() > 0.0,
+                            "r.waitUntilDone(...): the time limit must be finite and above 0");
+        auto* s = mechs().find(m);
+        if (s == nullptr) {
+            return notOnThisRobot(m.name.text, step);
+        }
+        const std::uint32_t mine = startedSeq_[s->index()];
+        SHULIB_PRECONDITION(mine != 0,
+                            "r.waitUntilDone(...): this routine started no step on that mechanism -- start one "
+                            "first (r.startRun / r.startMove / r.startSpinUp / r.startHome)");
+        if (s->stepsBegun() != mine) {
+            // Something outside this routine began a newer step on it: the one this routine started
+            // was replaced (CANCELLED by the service, said) and has no verdict of its own to wait for.
+            lastMech_ = mechanism::StepReport{.outcome = manipulation::MechanismOutcome::Cancelled};
+            mechStop_ = manipulation::MechanismOutcome::Cancelled;
+            recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
+                       "CANCELLED: a newer command replaced the step this routine started");
+            return *this;
+        }
+        return awaitMechanism(*s, bound, step);
+    }
+
+    // The WRONG STEP FOR THE KIND, refused BY NAME where the team calls it: each is a template only
+    // so its static_assert fires at the team's line ("required from here"), never as a list of the
+    // overloads that did not match.
+
+    /// `r.run(arm, ...)`: refused — run() is a power mechanism's step.
+    template <class D, class... Rest>
+        requires(std::same_as<D, mechanism::Arm> || std::same_as<D, mechanism::Lift> ||
+                 std::same_as<D, mechanism::Flywheel> || std::same_as<D, mechanism::Pneumatic>)
+    Routine& run(const D&, Rest&&...) {
+        static_assert(sizeof(D) == 0,
+                      "r.run(...) is for a POWER mechanism -- move an arm or a lift with r.move(arm[\"score\"], "
+                      "1.5_s), spin a flywheel up with r.spinUp(flywheel[\"shoot\"], 2_s), set a pneumatic with "
+                      "r.set(claw[\"open\"])");
+        return *this;
+    }
+    /// `r.run(intake, 12, 1_s)`: refused — volts carry their unit.
+    template <class V, class... Rest>
+        requires std::is_arithmetic_v<V>
+    Routine& run(const mechanism::Power&, V, Rest&&...) {
+        static_assert(sizeof(V) == 0, "volts are written with their unit: 12_volt, not 12");
+        return *this;
+    }
+    /// `r.move(intake, ...)` / `r.move(arm, ...)`: refused — move() takes a TARGET.
+    template <class D, class... Rest>
+        requires(std::same_as<D, mechanism::Arm> || std::same_as<D, mechanism::Lift> ||
+                 std::same_as<D, mechanism::Power> || std::same_as<D, mechanism::Flywheel> ||
+                 std::same_as<D, mechanism::Pneumatic>)
+    Routine& move(const D&, Rest&&...) {
+        static_assert(sizeof(D) == 0,
+                      "r.move(...) takes a TARGET: arm[\"score\"], arm.to(95), lift.to(18_in) (a power mechanism "
+                      "runs: r.run(intake, 12_volt, 1_s); a pneumatic is set: r.set(claw[\"open\"]))");
+        return *this;
+    }
+    /// `r.stop(arm)`: refused — an arm or a lift holds, a pneumatic keeps its position.
+    template <class D, class... Rest>
+        requires(std::same_as<D, mechanism::Arm> || std::same_as<D, mechanism::Lift> ||
+                 std::same_as<D, mechanism::Pneumatic>)
+    Routine& stop(const D&, Rest&&...) {
+        static_assert(sizeof(D) == 0,
+                      "r.stop(...) is for a power mechanism or a flywheel -- an arm or a lift HOLDS where its "
+                      "last step left it, and a pneumatic keeps its position (r.set(claw[\"open\"]))");
+        return *this;
+    }
+
+    /// The most recent mechanism step's report — its verdict, what ended it, whether an UNCONFIRMED
+    /// was counted done, how long it took. Before any mechanism step: the default report (`Running`).
+    [[nodiscard]] const mechanism::StepReport& lastMechanism() const noexcept { return lastMech_; }
+    // ═══ MECH-A4: the mechanism steps — END ═══════════════════════════════════════════════════
+
     // ── the whole-chain verdict ────────────────────────────────────────────────────
 
     /// True while no step has failed (and none was skipped).
@@ -472,6 +760,7 @@ public:
         r.stoppedName = stoppedName_;
         r.cause = cause_;
         r.exit = exit_;
+        r.mechanismVerdict = mechStop_;  // MECH-A4
         return r;
     }
 
@@ -606,9 +895,185 @@ private:
                 return "action FAILED";
             case RoutineStopCause::MechanismFailed:
                 return "mechanism FAILED";
+            case RoutineStopCause::MechanismStepFailed:
+                return "mechanism step FAILED";
         }
         return "stopped";
     }
+
+    // ═══ MECH-A4: the mechanism steps' machinery — BEGIN ══════════════════════════════════════
+    /// The wait's backstop past a step's own bound (the service's deadline ends the step first).
+    static constexpr double kMechanismWaitSlackSeconds = 0.25;
+
+    /// The service, or a loud precondition naming the fix (a Routine built from a bare Chassis, or
+    /// from a context whose program passed no service).
+    [[nodiscard]] mechanism::MechanismService& mechs() const {
+        SHULIB_PRECONDITION(mechs_ != nullptr,
+                            "Routine: a mechanism step needs the robot's mechanism service -- construct it as "
+                            "Routine r{ctx, \"name\"} in an auton, in a program that passes its mechanism service "
+                            "to runAuton");
+        return *mechs_;
+    }
+    /// Remember that THIS routine began the slot's current step (waitUntilDone() collects only it).
+    void noteStarted(const mechanism::Slot& s) noexcept {
+        if (s.index() < mechanism::kMaxMechanisms) {
+            startedSeq_[s.index()] = s.stepsBegun();
+        }
+    }
+    /// Wait for `m`'s step, then record it under the verdict policy (the block's header).
+    Routine& awaitMechanism(mechanism::Slot& m, units::Time bound, const char* step) {
+        const long ticks0 = mechs().ticks();
+        if (m.running()) {
+            (void)chassis_->waitUntil([&m] { return !m.running(); },
+                                      units::Time{bound.value() + kMechanismWaitSlackSeconds});
+        }
+        lastMech_ = m.lastStep();
+        if (m.running()) {
+            // The WAIT ran out before the step's verdict: the chain stops TIMED_OUT, said. The step
+            // itself runs on to its own bound (the guard's cancel-all ends it with the run).
+            mechStop_ = manipulation::MechanismOutcome::TimedOut;
+            lastMech_.outcome = manipulation::MechanismOutcome::TimedOut;
+            recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
+                       mechs().ticks() == ticks0
+                           ? "TIMED_OUT: the mechanism service never ticked -- it is not in the chassis pacer's chain"
+                           : "TIMED_OUT: no verdict within the wait's bound; the step runs on to its own");
+            return *this;
+        }
+        const manipulation::MechanismOutcome o = lastMech_.outcome;
+        if (o == manipulation::MechanismOutcome::Succeeded ||
+            (o == manipulation::MechanismOutcome::Unconfirmed && lastMech_.countedDone)) {
+            recordSuccess();
+        } else {
+            mechStop_ = o;
+            recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
+                       manipulation::mechanismOutcomeName(o));
+        }
+        return *this;
+    }
+    /// A START form's record: the chain stops only when the start itself was ABSENT, REFUSED or
+    /// NOT_HOMED (nothing runs); anything else — still running, or already done — continues.
+    Routine& startedMechanism(const mechanism::Slot& m, const char* step) {
+        lastMech_ = m.lastStep();
+        const manipulation::MechanismOutcome o = lastMech_.outcome;
+        if (o == manipulation::MechanismOutcome::Absent || o == manipulation::MechanismOutcome::Refused ||
+            o == manipulation::MechanismOutcome::NotHomed) {
+            mechStop_ = o;
+            recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
+                       manipulation::mechanismOutcomeName(o));
+        } else {
+            recordSuccess();
+        }
+        return *this;
+    }
+    /// A stop step's record. The slot's stop() bumps the command number exactly when it acted; when
+    /// it did not, the mechanism is ABSENT this boot or ANOTHER owner holds its claim (REFUSED) —
+    /// either way nothing was stopped, said in the step's MECH line format, and the chain stops.
+    Routine& stoppedMechanism(const mechanism::Slot& s, std::uint32_t seqBefore, const char* step) {
+        if (s.commandSeq() != seqBefore) {
+            lastMech_ = mechanism::StepReport{.outcome = manipulation::MechanismOutcome::Succeeded};
+            recordSuccess();
+            return *this;
+        }
+        const manipulation::MechanismOutcome o =
+            s.built() ? manipulation::MechanismOutcome::Refused : manipulation::MechanismOutcome::Absent;
+        char line[200];
+        if (s.built()) {
+            std::snprintf(line, sizeof line, "'%.23s': REFUSED in 0.00s (another owner holds its claim: the stop did "
+                          "nothing)", s.name());
+        } else {
+            std::snprintf(line, sizeof line, "'%.23s': ABSENT in 0.00s (not built at boot: %.120s)", s.name(),
+                          s.absence());
+        }
+        chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "MECH", line);
+        lastMech_ = mechanism::StepReport{.outcome = o};
+        mechStop_ = o;
+        recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
+                   manipulation::mechanismOutcomeName(o));
+        return *this;
+    }
+    /// A step whose mechanism this robot's service cannot find: ABSENT, said, and the chain stops —
+    /// nothing was commanded. Three sentences: the service is not bound at all, no mechanism of that
+    /// NAME on this robot, or one of that name that is not what the step names (another robot's
+    /// declaration — a different kind, units, preset or position; autons are per robot).
+    Routine& notOnThisRobot(const char* mechanismName, const char* step) {
+        const char* n = mechanismName != nullptr ? mechanismName : "?";
+        char line[220];
+        if (!mechs().bound()) {
+            std::snprintf(line, sizeof line,
+                          "'%.23s': the mechanism service is not bound (the program bound no robot list): the step "
+                          "did nothing",
+                          n);
+        } else if (mechs().slotFor(mechanismName) == nullptr) {
+            std::snprintf(line, sizeof line,
+                          "'%.23s' is not on this robot (its wiring list does not have it): the step did nothing", n);
+        } else {
+            std::snprintf(line, sizeof line,
+                          "'%.23s' on this robot is not the mechanism this step names (another robot's declaration: "
+                          "a different kind, units, preset or position): the step did nothing",
+                          n);
+        }
+        chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "MECH", line);
+        lastMech_ = mechanism::StepReport{.outcome = manipulation::MechanismOutcome::Absent};
+        mechStop_ = manipulation::MechanismOutcome::Absent;
+        recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
+                   manipulation::mechanismOutcomeName(manipulation::MechanismOutcome::Absent));
+        return *this;
+    }
+    Routine& positionStep(const mechanism::PositionGoal& goal, units::Time bound, const char* name, bool wait) {
+        const char* step = name != nullptr ? name : goal.mechanismName;
+        if (skipIfStopped(step)) {
+            return *this;
+        }
+        mechanism::PositionSlot* m = mechs().find(goal);
+        if (m == nullptr) {
+            return notOnThisRobot(goal.mechanismName, step);
+        }
+        m->moveTo(goal.value, bound, goal.computed);
+        noteStarted(*m);
+        return wait ? awaitMechanism(*m, bound, step) : startedMechanism(*m, step);
+    }
+    template <class Declared>
+    Routine& homeStep(const Declared& d, units::Time bound, const char* name, bool wait) {
+        const char* step = name != nullptr ? name : d.name.text;
+        if (skipIfStopped(step)) {
+            return *this;
+        }
+        mechanism::PositionSlot* m = mechs().find(d);
+        if (m == nullptr) {
+            return notOnThisRobot(d.name.text, step);
+        }
+        m->home(bound);
+        noteStarted(*m);
+        return wait ? awaitMechanism(*m, bound, step) : startedMechanism(*m, step);
+    }
+    Routine& powerStep(const mechanism::Power& d, units::Voltage volts, mechanism::Until until, units::Time bound,
+                       const char* name, bool wait) {
+        const char* step = name != nullptr ? name : d.name.text;
+        if (skipIfStopped(step)) {
+            return *this;
+        }
+        mechanism::PowerSlot* m = mechs().find(d);
+        if (m == nullptr) {
+            return notOnThisRobot(d.name.text, step);
+        }
+        m->run(volts, until, bound);
+        noteStarted(*m);
+        return wait ? awaitMechanism(*m, bound, step) : startedMechanism(*m, step);
+    }
+    Routine& speedStep(const mechanism::SpeedGoal& goal, units::Time bound, const char* name, bool wait) {
+        const char* step = name != nullptr ? name : goal.mechanismName;
+        if (skipIfStopped(step)) {
+            return *this;
+        }
+        mechanism::SpeedSlot* m = mechs().find(goal);
+        if (m == nullptr) {
+            return notOnThisRobot(goal.mechanismName, step);
+        }
+        m->spinUp(goal.rpm, bound, goal.computed);
+        noteStarted(*m);
+        return wait ? awaitMechanism(*m, bound, step) : startedMechanism(*m, step);
+    }
+    // ═══ MECH-A4: the mechanism steps' machinery — END ════════════════════════════════════════
 
     Chassis* chassis_;
     const char* name_;
@@ -622,6 +1087,25 @@ private:
     const char* stoppedName_ = "";
     RoutineStopCause cause_ = RoutineStopCause::None;
     control::ExitReason exit_ = control::ExitReason::Running;
+    // ═══ MECH-A4 (declared LAST, so the frozen constructor's initializer order is untouched) ═══
+    mechanism::MechanismService* mechs_ = nullptr;  ///< the robot's service; null = a chassis-only routine
+    mechanism::StepReport lastMech_{};              ///< lastMechanism()
+    /// The failing mechanism step's verdict (RoutineResult::mechanismVerdict); Running = none.
+    manipulation::MechanismOutcome mechStop_ = manipulation::MechanismOutcome::Running;
+    /// Per slot index: the slot's stepsBegun() right after THIS routine began a step on it (0 = none).
+    std::uint32_t startedSeq_[mechanism::kMaxMechanisms]{};
 };
 
 }  // namespace shulib::chassis
+
+// MECH-A4: an AUTON's words, beside the robot file's mechanism words (mechanism/kinds.hpp), so a
+// team's auton reads `RoutineResult scoreThree(AutonContext& ctx) { Routine r{ctx, "score-three"};
+// ... }` with no library namespace in it — `using namespace robot_two;` brings them, because the
+// robot's namespace says `using namespace mechanism::words;`. (AutonContext joins them in
+// competition/auton_registry.hpp.)
+namespace shulib::mechanism::words {
+/// An auton's step chain: `Routine r{ctx, "name"}`.
+using chassis::Routine;
+/// What an auton returns: `return r.result();`.
+using chassis::RoutineResult;
+}  // namespace shulib::mechanism::words

@@ -4,6 +4,16 @@
 // (chunk T3, 2026-09-26). ToggleBinding — one button flipping one pneumatic mechanism, once per
 // press (T3's addendum B2, 2026-09-26; its own section below).
 //
+// ── SUPERSEDED BY THE MECHANISM SERVICE (chunk MECH-A4, 2026-10-22; the MECH brief's N4 (a)) ──
+// A robot whose mechanisms are DECLARED (mechanism/kinds.hpp) and run by the mechanism service drives
+// them from its driver file's controls — mechanism::whileHeld / toggle / preset (mechanism/
+// driver_inputs.hpp) — through teleop::runDriverControl's service overload: the same hold-to-run and
+// toggle rules plus presets, homing and "the most recent input wins", and the same service that runs
+// them in autons. These two bindings, and the runDriverControl overloads that take them, are KEPT
+// for a program with NO mechanism service, unchanged; one program uses one path per mechanism (the
+// loop refuses the two together). Removing them later is a small chunk of its own, on the team
+// lead's word.
+//
 // ── What it is ──────────────────────────────────────────────────────────────────────
 // The driver-control half of a mechanism: "while R1 is held the claw pivot drives forward at
 // full power, while R2 is held it drives back, and the moment neither is held it goes to its
@@ -172,7 +182,8 @@ inline constexpr int kControllerButtonCount = 12;
 }
 
 /// Hold-to-run: a forward button and a reverse button driving one `hal::MotorMechanism` at a
-/// stated voltage, with release as the stop. The file header states every rule.
+/// stated voltage, with release as the stop. The file header states every rule. SUPERSEDED by the
+/// mechanism service's `whileHeld` (file header) — for a program with no mechanism service.
 ///
 /// Non-copyable and non-movable: the loop and a panel hold it by pointer, and a copy would be a
 /// second state machine driving the same mechanism. Construct it where it lives — for a PROS
@@ -317,7 +328,8 @@ private:
     bool releasedLeftover_ = false;
 };
 
-/// Press-to-toggle: one button flipping one `hal::PneumaticMechanism` between its two line levels,
+/// SUPERSEDED by the mechanism service's `toggle` (file header) — for a program with no mechanism
+/// service. Press-to-toggle: one button flipping one `hal::PneumaticMechanism` between its two line levels,
 /// once per SEEN press — a pneumatic claw on A. The file header's TOGGLE section states every rule;
 /// the short form: a press flips the commanded level exactly once, a level the binding could not see
 /// counts as held, the initial level is commanded once in the binding's life, and a disconnect, a

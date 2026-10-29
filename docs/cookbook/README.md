@@ -28,7 +28,8 @@ Every recipe has the same four parts:
    driver file, [`src/team/robot_two_driver.hpp`](../../src/team/robot_two_driver.hpp), instead:
    every robot build compiles it, and
    [`test/robot_two_driver_test.cpp`](../../test/robot_two_driver_test.cpp) runs it on every
-   build.)
+   build. Chapter 7's mechanism recipes are compiled and run in
+   [`test/mechanism_auton_example_test.cpp`](../../test/mechanism_auton_example_test.cpp).)
 3. **Why it is written this way** — the reasoning, so you can change it safely.
 4. **Watch out for** — the mistake this recipe exists to prevent.
 
@@ -91,6 +92,12 @@ so it cannot disagree with the code.
 | [Drive a mechanism from two buttons](06-driver-control.md#drive-a-mechanism-from-two-buttons) | A claw, arm or intake moves while a button is held and stops when the driver lets go |
 | [Open and close a pneumatic claw with one button](06-driver-control.md#open-and-close-a-pneumatic-claw-with-one-button) | A claw on air opens on one press and closes on the next |
 | [A whole driver file: robot two's](06-driver-control.md#a-whole-driver-file-robot-twos) | You want one robot's buttons, feel and loop in one file a student can defend |
+
+### [7 — Mechanisms](07-mechanisms.md)
+
+| Recipe | Use this when |
+|---|---|
+| [An arm with presets, held while the robot drives](07-mechanisms.md#an-arm-with-presets-held-while-the-robot-drives) | An arm or a lift must get to a height and stay there while the robot drives |
 
 ---
 

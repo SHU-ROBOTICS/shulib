@@ -191,7 +191,8 @@
 - **route id** — the word a route marker names to make the robot do something at a waypoint. Every
   mechanism publishes its actions as route ids automatically, derived from its declaration
   (`arm_score`, `intake_until_piece`, `claw_closed`); one that would not fit, would repeat or is the
-  library's own is refused at build. [Ch. 10]
+  library's own is refused at build. A program registers a robot's ids in one call, and a marker then
+  runs exactly the step an auton's line runs, blocking at its waypoint until its verdict. [Ch. 10, 18]
 - **routine** — the function encoding one autonomous plan as a sequence of commands. [Ch. 8]
 - **run guard** — a wrapper around the tick pacer that gives a whole routine a hard deadline: it
   cuts the active motion — and every mechanism operation still running that registered its claim,
@@ -229,8 +230,9 @@
   programs print it from the core's fifth part on). [Ch. 18]
 - **step (recipe)** — one link in a recipe chain, plus the record of whether it ran, succeeded,
   or was skipped. Most steps delegate to a single chassis command, but not all: a wait step has
-  no motion behind it, and a `then()` step runs your own code or a mechanism operation and judges
-  it on what that returns. [Ch. 9]
+  no motion behind it, a `then()` step runs your own code or a mechanism operation and judges
+  it on what that returns, and a mechanism step (`move`, `run`, `set`, ...) runs a declared mechanism
+  through the mechanism service. [Ch. 9, 18]
 - **strafe** — to move sideways without turning. [Ch. 4]
 - **strafe authority** — a drivetrain's sustainable sideways speed as a fraction of its
   forward speed (X: 1.0, tank: 0.0, H: between). [Ch. 4]

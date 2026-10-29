@@ -961,6 +961,13 @@ TEST_CASE("run (23): testerResultWord and testerRunLines for every record shape"
     x.run.routine.stoppedName = "a-step-name-that-is-long-too";
     x.run.routine.cause = shulib::chassis::RoutineStopCause::MechanismFailed;
     check(x, 4);
+    // MECH-A4: the LONGEST stop word since API 2.5 ("mechanism step FAILED") fits the same lines.
+    x.run.routine.cause = shulib::chassis::RoutineStopCause::MechanismStepFailed;
+    check(x, 4);
+    CHECK(std::string_view{shulib::bench::routineStopWord(shulib::chassis::RoutineStopCause::MechanismStepFailed,
+                                                          shulib::control::ExitReason::Settled)} ==
+          "mechanism step FAILED");
+    x.run.routine.cause = shulib::chassis::RoutineStopCause::MechanismFailed;
     x.cause = AbortCause::Button;
     check(x, 4);
     x.run.guard.abandoned = false;  // ABORT IGNORED by every button: the longest prefix

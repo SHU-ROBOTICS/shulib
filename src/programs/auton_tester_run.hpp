@@ -269,6 +269,7 @@ inline void buttonNamesOf(std::uint16_t mask, char* out, std::size_t cap) noexce
         case chassis::RoutineStopCause::WaitTimedOut: return "wait TIMEOUT";
         case chassis::RoutineStopCause::ActionFailed: return "action FAILED";
         case chassis::RoutineStopCause::MechanismFailed: return "mechanism FAILED";
+        case chassis::RoutineStopCause::MechanismStepFailed: return "mechanism step FAILED";
     }
     return "stopped";
 }

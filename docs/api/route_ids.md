@@ -508,8 +508,8 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  silently missing id. routeIdsOf() is constexpr, so a host test or a tool can derive any robot's
  ids with no brain, and the robot panel (G3a Part R) mirrors the rule and its four refusals.
 
- What RUNS an id (the route binder, runner/mechanism_routes.hpp, and the registry's per-id doc) is
- MECH-A4's; registering a robot's ids in a program is MECH-A5's. This file is the rule only.
+ What RUNS an id is runner/mechanism_routes.hpp (the route binder, with the registry's per-id doc —
+ MECH-A4); registering a robot's ids in a program is MECH-A5's. This file is the rule only.
 
  PROS-free, allocation-free, constexpr.
 ```

@@ -14,6 +14,141 @@
 > after the fact from those comments and the project records; everything above it was
 > written when the change landed.
 
+## API 2.5
+
+### Added (2026-10-22) — the mechanism core, part 4: a mechanism step on one line of an auton, presets on the driver's buttons, every mechanism's route ids run, and the direction check's judgement
+
+> Written when it was built (chunk MECH-A4, the fourth of the mechanism core's six parts). **Minor bump,
+> 2.4 → 2.5** — the recipe layer ([Freeze Register](roadmap.md#freeze-register) row F10) and the
+> command vocabulary (row F8), both FROZEN, grow by the paths their freezes name: a new `Routine`
+> constructor (a new overload — the frozen `Routine(Chassis&, const char*)` is untouched), new steps,
+> an APPENDED `RoutineStopCause` value and an APPENDED `RoutineResult` field; an APPENDED
+> `CommandEntry` field and a new `CommandRegistry::on()` overload. Whether the mechanism steps, the
+> context constructor and `lastMechanism()` join F10's freeze is **not yet decided** (the register's
+> F10 row gives both readings): they are not pinned meanwhile. Nothing that existed changed shape or
+> behaviour: **every 2.4 program runs exactly as before**, and compiles as before unless it `switch`es
+> over every `RoutineStopCause` (see *What you must do*). No program builds a mechanism service yet — robot two's programs and its
+> driver file move onto it in the core's next part. Everything was measured on the host test plant's
+> invented models (HA-183), with the library's invented starting values (HA-182). **Host only — nothing
+> here has run on a robot.** [Chapter 18](guide/18-mechanisms.md) teaches all of it.
+
+**ADDED:**
+
+- **The mechanism STEPS — one line each** (`chassis/routine.hpp`): `r.move(arm["score"], 1.5_s)` (a
+  preset, `arm.to(120)`, `lift.to(18_in)`, or a computed `lift.clampedTo(h)`), `r.home(lift, 1.5_s)`,
+  `r.run(intake, 12_volt, seesPiece, 3_s)` (any done-condition, or a time: `r.run(clawPivot6, 12_volt,
+  0.4_s)`), `r.set(claw["closed"])` (its time is the robot file's `.moveTime`), `r.spinUp(flywheel["shoot"],
+  2_s)`, `r.stop(intake)` / `r.stop(flywheel)`, and the START forms `startMove`, `startHome`, `startRun`,
+  `startSpinUp` — each returns at once, so the next drive runs while the mechanism works — collected by
+  `r.waitUntilDone(intake, 1_s)`. Each step runs the moment it is chained, through the robot's mechanism
+  service, and every one states its time limit. **The verdict policy:** SUCCEEDED continues; UNCONFIRMED
+  COUNTED done (no sensor exists to confirm it — robot two's sensorless claw) continues; every other
+  verdict (TIMED_OUT, STALLED, NOT_HOMED, ABSENT, REFUSED, CANCELLED, an UNCONFIRMED not counted) STOPS
+  the chain — the drive safed, the rest skipped — naming the verdict in the stop line
+  (`routine 'score' STOPPED at step 1 (intake): mechanism step FAILED (TIMED_OUT) — skipping the rest;
+  drive safed`), in the new `RoutineResult::mechanismVerdict` and in the new `Routine::lastMechanism()`. A
+  START form stops the chain only when its start is ABSENT, REFUSED or NOT_HOMED. A step on a mechanism
+  this robot does not have is ABSENT, said (`'claw' is not on this robot (its wiring list does not have
+  it): the step did nothing` — or, for another robot's same-named mechanism, that the one here is not the
+  one the step names; or, when the program never bound its service, `'arm': the mechanism service is not
+  bound (the program bound no robot list): the step did nothing` — the drive steps still run). A blocking
+  step whose wait sees the service NEVER tick stops the chain saying the
+  service is not in the chassis pacer's chain — a program's wiring fault found at its first blocking
+  step. `waitUntilDone` collects only a step THIS routine began (none: a precondition; one replaced from
+  outside: CANCELLED). After its step a mechanism keeps its behaviour — an arm HOLDS, a flywheel keeps
+  spinning — until another command, the end of the guarded run, or driver control.
+- **`Routine r{ctx, "name"}`** — a second constructor taking the auton's context: the chassis AND the
+  mechanism service. A routine built from `ctx.chassis` (the frozen constructor) runs its chassis steps
+  as ever; a mechanism step on it is a loud precondition naming the fix.
+- **`RoutineStopCause::MechanismStepFailed`** (APPENDED, `== 5`) — a failing mechanism step's cause.
+  `MechanismFailed` keeps its meaning: a `then()` action's mechanism verdict.
+- **The wrong step for a kind is refused BY NAME**, at your line: `r.run(arm, …)` ("r.run(...) is for a
+  POWER mechanism -- move an arm or a lift with r.move(...)…"), `r.run(intake, 12, 1_s)` ("volts are
+  written with their unit: 12_volt, not 12"), `r.move(intake, …)` / `r.move(arm, …)` ("r.move(...) takes
+  a TARGET…"), `r.stop(arm)` ("r.stop(...) is for a power mechanism or a flywheel…").
+- **`competition::AutonContext::mechanismService`** (APPENDED, default `nullptr` — a positional
+  `AutonContext{chassis, guard, telemetry, mechanisms, entry}` still compiles) and a **`runAuton`
+  overload taking the `mechanism::MechanismService`**: the guard's span is the service's built
+  mechanisms, the routine's context carries the service, and — first, before any refusal — the
+  service's `enterAutonomous()`: whatever a deleted driver-control task left running (a held intake at
+  12 V) stops before the auton, and a claim another owner left is released and said by name. The
+  service must be in the chassis's pacer chain under the guard.
+- **The driver file's mechanism controls** (`mechanism/driver_inputs.hpp`): `controls(kRobotXMechanisms,
+  …)` — ONE list, checked at build against the robot's list — of `whileHeld(arm, Button::R1,
+  Button::R2, 6_volt)` (a power mechanism: run while held, its safe state on release; an arm or a lift:
+  jog while held, HOLD HERE on release), `toggle(claw, Button::A)` (a two-position pneumatic) /
+  `toggle(flywheel["shoot"], Button::X)` (a flywheel's NAMED speed on / off), `preset(arm["score"],
+  Button::Right, 1.5_s)` (a position, a speed, or `preset(hood["up"], Button::Up)` with no time limit),
+  `homeOnPress(lift, Button::Left, 1.5_s)`, `homeAtDriverStart(lift, 1.5_s)` and `autonOnly(hood)`. The
+  build refuses, BY NAME: a button doing two jobs (`button_Right_does_two_jobs`), a mechanism the robot
+  lacks, a hold outside (0, 12] V, a preset or homing with no time limit, two controls of one kind on a
+  mechanism, a toggle on anything but a two-position pneumatic or a flywheel's named speed, homing a
+  never-homed mechanism, **a switch- or stall-homed arm or lift held or preset with no way to home it in
+  driver control** (`homeAtDriverStart` or `homeOnPress`; the declaration's `.unhomedVolts` answers for a
+  mechanism that is only HELD — a hold moves it unhomed but never homes it, so a preset beside it needs a
+  homing control; its buttons would be dead after any restart off its home), a never-homed one held with
+  no `.unhomedVolts` or preset at all, a
+  mechanism with no control unless marked `autonOnly`, and more than 24 controls. At run time
+  `mechanism::DriverInputs` (static storage, bound once at boot) runs them: **the most recent input
+  wins** — a held button that sees something newer speak (a preset, a toggle, a stall) commands nothing
+  until it is released; a toggle's, a preset's or a homing button's press must be SEEN (a button down at
+  entry, or still down when a dropped controller comes back, is not a press, and a drop itself presses
+  nothing); a hold's button is a level — down at entry, it drives at once; a drop releases every hold;
+  both buttons of a hold = neither. **While a `homeAtDriverStart` home runs, that mechanism's own
+  controls wait** (a hold held during it does nothing until released after it; a preset or homing press
+  during it is dropped) — a touch would otherwise cancel the home and leave its buttons dead. A flywheel
+  toggle's step is bounded by
+  `kToggleAtSpeedWindowSeconds` (5 s, HA-182 — its logged verdict only; the wheel keeps spinning).
+- **A `teleop::runDriverControl` overload taking the service and its `DriverInputs`**: at entry the
+  service's `enterDriverControl()` then the inputs' `enter()`; each tick, after the drive and BEFORE your
+  panel, the inputs command the service and the service ticks — EXACTLY once per tick, whichever pacer
+  the loop is handed; on a disable the service's `leaveDriverControl()` (motor mechanisms safe, a
+  pneumatic keeps its level — [HA-157](hardware-assumptions.md): whether the brain keeps a 3-wire
+  output's level while disabled is unmeasured). It refuses, before anything is commanded, a T3 binding beside the
+  service (one driver path per mechanism) and a control on the re-zero button. Every drive protection
+  is unchanged.
+- **The route binder** (`runner/mechanism_routes.hpp`): `runner::MechanismRoutes routes{chassis, service,
+  kRobotTwoMechanisms, sink}; routes.registerInto(registry);` registers every id the robot's list derives
+  (`arm_score`, `intake_until_piece`, `claw_closed`) in ONE call, each with its doc. A marker runs
+  exactly the step an auton's line runs, through a `Routine`, and BLOCKS at its waypoint until the
+  step's verdict; SUCCEEDED and a counted UNCONFIRMED continue the route, any other verdict stops it
+  (`MarkerFailed`). Its args are the route author's: the time limit in ms (`arm_score [1500]`), and a
+  power id's volts within ±12 and not 0 (`intake_until_piece [12, 3000]`); a marker without them is
+  REFUSED with one line naming the id and what it needs, and the route stops, nothing commanded.
+- **A doc per command id** (F8, "new registry members"): `runner::CommandEntry::doc` and
+  `CommandRegistry::on(id, handler, argCount, doc)`; the manifest publishes a registered id's doc where
+  it published `""` (robot two's: `{"id":"claw_pivot_6_run",…,"doc":"claw pivot 6: run; args[0] =
+  volts (-12..12), args[1] = how long, ms"}`). A doc with a `"` or a `\` is refused at registration. **A
+  registry with no docs writes exactly the bytes it wrote before.**
+- **The direction check's judgement** (`mechanism/direction_check.hpp`; its bench page is the core's last
+  part): `judgeDirection(spec, wiring, observation, minMoveRad, drawAmps)` and `judgePneumatic(...)` turn
+  a jog's encoder readings and the person's THREE answers (its + way / the other way / it did NOT move,
+  or something ELSE moved) into a finding and the exact place to change — the declaration's line for a
+  direction, the `wire(...)` line for a cable on another mechanism's port, a generated robot file's JSON
+  path (the value to write there, then "regenerate, rebuild and upload") when it states one. A motor
+  against its command is a FIGHT only while a mate moves with its own; when every motor that moved went
+  against it the mechanism was BACK-DRIVEN (gravity, a load) and no line is named. It REPORTS; it saves
+  nothing.
+- **The words** an auton and a driver file need, beside the robot file's: `Routine`, `RoutineResult`,
+  `AutonContext`, `Button`, `DriverProfile`, `DriverLoopConfig`, `ArcadeBody`, `ArcadeField`,
+  `TankSticks`, and the control words — all from `using namespace shulib::mechanism::words;`.
+
+**CHANGED (documentation only; no behaviour of a 2.4 program):**
+
+- **REFUSED** (`manipulation::MechanismOutcome::Refused`) now has a second meaning beside "another owner
+  holds the claim": a route marker whose args are wrong. Both say nothing was commanded.
+- **T3's bindings are superseded, not removed**: `teleop::MechanismBinding`, `teleop::ToggleBinding` and
+  the `runDriverControl` overloads that take them stay, unchanged, for a program with no mechanism
+  service; a robot whose mechanisms are declared drives them through the service overload.
+
+**What you must do:** a `switch` over `RoutineStopCause` that lists every value needs one more `case`,
+`MechanismStepFailed` — under `-Wswitch` as an error (shulib's own build) it stops compiling without
+one, and shulib's competition program and Auton Tester each gained exactly that line. Nothing else:
+every other 2.4 program compiles and behaves the same (`kApiMinor` is now 5 and `kApiVersionString`
+`"2.5"`). To use the steps, an auton builds its routine from its context:
+`Routine r{ctx, "score-three"}`, in a program that hands `runAuton` its mechanism service — robot two's
+programs do from the core's next part.
+
 ## API 2.4
 
 ### Added and changed since 2.4 (2026-10-22; built 2026-10-15) — the mechanism core, part 3: arms, lifts and flywheels move, hold, find their zero and spin; every one watched for a jam

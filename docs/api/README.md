@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 4,783 of them across 183 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 4,960 of them across 186 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -279,6 +279,8 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | Page | Header | What it is |
 |---|---|---|
 | [Devices](devices.md) | [`mechanism/devices.hpp`](../../include/shulib/mechanism/devices.hpp) | mechanism/devices.hpp — the DEVICES one mechanism was built over, and what the build found for each of its ROLES. |
+| [Direction check](direction_check.md) | [`mechanism/direction_check.hpp`](../../include/shulib/mechanism/direction_check.hpp) | mechanism/direction_check.hpp — THE DIRECTION CHECK's judgement. |
+| [Driver inputs](driver_inputs.md) | [`mechanism/driver_inputs.hpp`](../../include/shulib/mechanism/driver_inputs.hpp) | mechanism/driver_inputs.hpp — THE DRIVER FILE'S MECHANISM CONTROLS: hold-to-run, toggle, preset and the homing controls, each naming its mechanism by its DECLARATION, checked at build against the robot's list, and run THROUGH the mechanism service. |
 | [Kinds](kinds.md) | [`mechanism/kinds.hpp`](../../include/shulib/mechanism/kinds.hpp) | mechanism/kinds.hpp — WHAT A MECHANISM IS, the way a team writes it. |
 | [Route ids](route_ids.md) | [`mechanism/route_ids.hpp`](../../include/shulib/mechanism/route_ids.hpp) | mechanism/route_ids.hpp — EVERY MECHANISM'S ACTIONS AS ROUTE IDS, automatically (the mechanism core, chunk MECH-A1, 2026-10-08; the team lead's ruling of 2026-10-08, MECH-PANEL-requirements §4 item 7b: "an arm's presets as arm_stow, arm_score; an intake's i… |
 | [Service](service.md) | [`mechanism/service.hpp`](../../include/shulib/mechanism/service.hpp) | mechanism/service.hpp — THE MECHANISM SERVICE: one object, ticked once per control tick, that runs every mechanism's behaviour. |
@@ -299,6 +301,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 |---|---|---|
 | [Command registry](command_registry.md) | [`runner/command_registry.hpp`](../../include/shulib/runner/command_registry.hpp) | CommandRegistry — the binding from a marker's ID to the code that performs it. |
 | [Manifest](manifest.md) | [`runner/manifest.hpp`](../../include/shulib/runner/manifest.hpp) | writeManifest — the command-id vocabulary, published. |
+| [Mechanism routes](mechanism_routes.md) | [`runner/mechanism_routes.hpp`](../../include/shulib/runner/mechanism_routes.hpp) | runner/mechanism_routes.hpp — a robot's MECHANISM ROUTE IDS (mechanism/route_ids.hpp), bound to its mechanism service and registered in a route registry in ONE call (the mechanism core, chunk MECH-A4, 2026-10-22; the team lead's ruling of 2026-10-08: "every… |
 | [Path runner](path_runner.md) | [`runner/path_runner.hpp`](../../include/shulib/runner/path_runner.hpp) | PathRunner — the engine that EXECUTES a Route. |
 
 ### Teleop
@@ -325,7 +328,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 4,783 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 4,960 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

@@ -18,6 +18,13 @@ line, which each test declares just above. The last section quotes a real file f
 compiles and [`test/robot_two_driver_test.cpp`](../../test/robot_two_driver_test.cpp) runs through
 the host's stand-in for PROS.
 
+> **Since the mechanism core's fourth part (2026-10-22) these two bindings are SUPERSEDED, not removed.** A
+> robot whose mechanisms are declared in its robot file states its buttons as one checked list of driver
+> controls — `whileHeld`, `toggle`, `preset` (presets on buttons), the homing controls — run through the same
+> mechanism service as its autons ([chapter 18](../guide/18-mechanisms.md#on-the-drivers-buttons--the-driver-files-controls);
+> [chapter 7](07-mechanisms.md) has the recipe). The two below stay, unchanged, for a program with no mechanism
+> service; robot two's driver file moves onto the controls in the core's next part.
+
 ---
 
 ## Drive a mechanism from two buttons
@@ -199,7 +206,9 @@ disable ends driver control and the claw is **still open**.
   coils of a double solenoid, which need opposite levels. (Since the mechanism core's first part a
   mechanism can DESCRIBE such positions — each position states every line's level, and
   [`config::MechanismConfig`](../api/robot_config.md#struct-mechanismconfig) carries per-line
-  levels — but no driver control drives one yet; the core's later parts do.) A single valve on ONE
+  levels — and since its fourth part the core's driver controls drive such positions, `toggle` and
+  `preset` ([chapter 7](07-mechanisms.md), [chapter 18](../guide/18-mechanisms.md#on-the-drivers-buttons--the-driver-files-controls));
+  no program uses them until the core's fifth part.) A single valve on ONE
   3-wire port is one line, whatever cylinder it drives.
 - **From a config, the robot builds the claw.** State the mechanism's 3-wire port (A..H, stored as
   1..8), its `pneumaticStart` and its `pneumaticSafe` level, and bind to

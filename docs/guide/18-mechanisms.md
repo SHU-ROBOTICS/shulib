@@ -1,20 +1,24 @@
-# 18 — Mechanisms: arms, lifts and flywheels
+# 18 — Mechanisms: arms, lifts, flywheels — in autons, on buttons, on routes
 
 > **Read [chapter 10's "Mechanisms" section](10-the-api.md#mechanisms--declared-once-wired-separately)
 > first** — it shows how a robot file declares a mechanism and wires it, and how to read a refusal.
 > This chapter is what happens AFTER the declaration: how an `Arm`, a `Lift` and a `Flywheel` move,
-> hold, find their zero, stay inside their limits and stop when something jams — and how to tune
-> them.
+> hold, find their zero, stay inside their limits and stop when something jams, and how to tune
+> them — then how an AUTON runs a mechanism (one line per step), how the DRIVER's buttons do
+> (presets, holds, toggles), how a ROUTE's markers do (every mechanism's ids, published), and what
+> the direction check judges.
 >
-> **What exists, and what does not yet.** The mechanism core's first three parts are in (MECH-A1 and
-> A2, 2026-10-15; A3, 2026-10-22): the vocabulary and its build checks, the mechanism SERVICE (one
-> object, ticked once per control tick, that runs every mechanism's behaviour), and the behaviours of all four kinds
-> of mechanism — power, pneumatic, POSITION (an arm, a lift) and SPEED (a flywheel). The auton steps
-> that call them (`r.move(arm["score"], 1.5_s)`), the driver controls (presets on buttons), the
-> route markers and the bench page are the core's next parts, and **no program builds a service
-> yet**. Everything below is measured on the **host test plant** — invented models of an arm, a lift
-> and a flywheel ([HA-183](../hardware-assumptions.md)) — and the library's own numbers in it are
-> invented starting values ([HA-182](../hardware-assumptions.md)). **Nothing here has run on a
+> **What exists, and what does not yet.** The mechanism core's first four parts are in (MECH-A1 and
+> A2, 2026-10-15; A3 and A4, 2026-10-22): the vocabulary and its build checks, the mechanism SERVICE
+> (one object, ticked once per control tick, that runs every mechanism's behaviour), the behaviours of
+> all four kinds of mechanism — power, pneumatic, POSITION (an arm, a lift) and SPEED (a flywheel) —
+> and everything that calls them: the auton STEPS (`r.move(arm["score"], 1.5_s)`), the driver
+> CONTROLS (presets on buttons), the ROUTE BINDER that runs a marker's id, and the direction check's
+> JUDGEMENT. What is still to come: robot two's programs and its driver file moving onto them (the
+> core's fifth part — **no program builds a service yet**) and the bench page that runs the direction
+> check (its sixth). Everything below is measured on the **host test plant** — invented models of an
+> arm, a lift and a flywheel ([HA-183](../hardware-assumptions.md)) — and the library's own numbers in
+> it are invented starting values ([HA-182](../hardware-assumptions.md)). **Nothing here has run on a
 > robot.**
 
 ## The five kinds, and what each one does
@@ -106,7 +110,8 @@ The travel limits (`.range`) are enforced two ways:
 'arm': target 175.00 clamped to the travel limit 160.00 (soft stop)
 ```
 
-And while a button pushes the mechanism (the driver's hold-to-run, the core's next part), the push is
+And while a button pushes the mechanism (the driver's hold-to-run, `whileHeld` —
+[below](#on-the-drivers-buttons--the-driver-files-controls)), the push is
 the driver's own until the mechanism could no longer stop before a limit at the smooth move's own
 acceleration. There the **soft stop takes the push over** for as long as it lasts: the move's own loop
 brings the mechanism to the limit, and a fresh hold (the same closed loop that holds it anywhere else,
@@ -245,8 +250,7 @@ like: `.stall = {.amps = …, .belowMotorRpm = …, .lasting = …}` — at leas
 shaft turns slower than that, for that long. **The service watches it on everything the mechanism
 does**: the move, the hold after it, a button's push, a homing push by switch, a spin before and after
 "at speed". A trip is **STALLED**, a `MECHANISM_STALLED` fault, the `.safe` state and the motor let go —
-and, from the core's driver controls on (its fourth part), a button that was held is ignored until it
-is released.
+and a driver's button that was held is ignored until it is released ([below](#on-the-drivers-buttons--the-driver-files-controls)).
 
 **The recipe, before you measure one:** a bit below the motor's 2.5 A limit (2.0 A), a LOW motor speed
 (5 rpm for an arm or a lift; a flywheel's 30), about half a second. (Not for a homing push: its own
@@ -258,7 +262,14 @@ trip: 2.5 A or more (a limited motor never reads more), 0 rpm, or no `.lasting`.
 On the host test plant: a move blocked at 60° ended STALLED 1.00 s after it began (the recipe's
 numbers); a hold loaded far past what it can carry stopped once the load had dragged it to its stop
 (1.66 s at stall current of a 30 s test — without the watch it sat there for all 30); a jammed flywheel
-stopped 0.51 s in; a button pushing an arm into an obstacle, 0.95 s in.
+stopped 0.51 s in; a button pushing an arm into an obstacle at **12 V**, 0.95 s in.
+
+**A gentler push may never trip it.** That last number is a full-power push. A hold-to-run at less
+power stalls at less current: on the host test plant a stalled motor draws its volts' share of 2.5 A,
+so a **6 V** push into something draws about **1.25 A** — below the recipe's 2.0 A. It never trips, and
+only letting go of the button ends it. If your driver file holds a mechanism at less than full power,
+either state its `.amps` below what that hold draws when it is stopped (measure it on the bench), or
+accept that the driver's thumb is what ends a push into an obstacle.
 
 ## Tuning — the starting values, and how to change them
 
@@ -306,12 +317,214 @@ On the host test plant the starting values reached 143 of 144 deliberately misma
 miss was a plant slower than its own cartridge, reported TIMED_OUT, as it should be. A real arm is not
 the host test plant: tune on the robot.
 
+## In an auton — one line per step
+
+An auton builds its routine from its context — `Routine r{ctx, "name"}` — and every mechanism step is
+then ONE line, naming the mechanism by its declaration and stating its time limit. The auton below is
+robot x's (`guide-18c`, in
+[`test/mechanism_auton_example_test.cpp`](../../test/mechanism_auton_example_test.cpp); the robot's own
+namespace gives every word):
+
+```cpp
+RoutineResult scoreThree(AutonContext& ctx) {
+    Routine r{ctx, "score-three"};
+    r.startSpinUp(flywheel["shoot"], 2_s);         // the flywheel spins up while the robot drives
+    r.startRun(intake, 12_volt, seesPiece.orAfter(2.5_s), 3_s);  // until it sees a piece (or 2.5 s)
+    r.driveTo(24_in, 0_in);
+    r.waitUntilDone(intake, 1_s);
+    r.move(arm["score"], 1.5_s);                    // the arm HOLDS 95 degrees from here on
+    r.move(lift.to(18_in), 4_s);
+    r.set(hood["up"]);
+    r.waitUntilDone(flywheel, 1_s);
+    r.run(intake, 12_volt, 0.5_s);                  // feed the piece into the flywheel
+    r.stop(flywheel);
+    return r.result();
+}
+```
+
+| Step | What it does | Its verdict |
+|---|---|---|
+| `r.move(arm["score"], 1.5_s)` | an arm or a lift to a preset, a constant (`arm.to(120)`, `lift.to(18_in)` — past a limit, no build) or a computed target (`arm.clampedTo(x)` — clamped, logged) | REACHED → SUCCEEDED, and it holds there |
+| `r.home(lift, 1.5_s)` | an arm or a lift finds its zero by its declaration's method | SUCCEEDED, holding there |
+| `r.run(intake, 12_volt, seesPiece, 3_s)` | a power mechanism at a voltage until a condition — `seesPiece`, `stopsSeeingPiece`, `seesPiece(grip)` (ANOTHER mechanism's sensor), `stalls`, `seesPiece.orAfter(2.5_s)` — or for a time: `r.run(clawPivot6, 12_volt, 0.4_s)` | the condition → SUCCEEDED; then its `.safe` state |
+| `r.set(claw["closed"])` | a pneumatic to a named position — no time limit: its `.moveTime` is the robot file's | SUCCEEDED; with no sensor to confirm a `grabs` position, UNCONFIRMED, counted done |
+| `r.spinUp(flywheel["shoot"], 2_s)` | a flywheel to a named speed or `flywheel.at(3000)` | AT SPEED → SUCCEEDED, and it keeps spinning |
+| `r.stop(intake)` / `r.stop(flywheel)` | its `.safe` state, now | SUCCEEDED (ABSENT or REFUSED when it could not) |
+
+**The START forms** — `startMove`, `startHome`, `startRun`, `startSpinUp` — command and return at once, so
+the next line (a drive) runs WHILE the mechanism works; `r.waitUntilDone(intake, 1_s)` collects that
+step's verdict later (at once if it is already over). On the host test plant robot x's arm held 95° within
+1.16° through a 1.8 s, 40 in drive, its intake — started before the drive — stopped on its sensor at
+T+2.00 s while the drive was still running, its lift and flywheel reached 9.7 in and 3000 rpm during
+the same drive, and the service ticked exactly once per pace (180 paces, 180 ticks).
+
+**The verdicts, and what each does to the chain:** SUCCEEDED goes on; **UNCONFIRMED counted done** — no
+sensor exists to confirm it, like robot two's sensorless claw — goes on (the team lead's ruling);
+**every other verdict STOPS the chain** — TIMED_OUT, STALLED, NOT_HOMED, ABSENT, REFUSED, CANCELLED, or
+an UNCONFIRMED NOT counted (a piece sensor that stopped answering may have missed the very piece the
+step waited for). Stopping is the routine's usual policy: the drive safed, every later step skipped,
+one line naming the verdict —
+
+```text
+routine 'score-three' STOPPED at step 4 (intake): mechanism step FAILED (TIMED_OUT) — skipping the rest; drive safed
+```
+
+— and the verdict is also `r.result().mechanismVerdict` (cause `MechanismStepFailed`) and
+`r.lastMechanism()`. A START form stops the chain only when its START failed (ABSENT, REFUSED,
+NOT_HOMED); its later verdict is `waitUntilDone`'s. A step on a mechanism this robot does not have is
+ABSENT and says so (`'claw' is not on this robot (its wiring list does not have it): the step did
+nothing`) — autons are per robot. After its step a mechanism KEEPS its behaviour (an arm holds, a
+flywheel spins) until another command, the end of the run, or driver control.
+
+**Mistakes, and where they are caught.** The wrong step for a kind fails the build at your line, with a
+sentence: `r.run(arm, …)` ("r.run(...) is for a POWER mechanism -- move an arm or a lift with
+r.move(...)…"), `r.run(intake, 12, 1_s)` ("volts are written with their unit: 12_volt, not 12"),
+`r.move(intake, …)` or `r.move(arm, …)` ("r.move(...) takes a TARGET…"), `r.stop(arm)` ("r.stop(...) is
+for a power mechanism or a flywheel…"). A condition that can never be met — `seesPiece` on a mechanism
+that declares no piece sensor, `stalls` with no `.stall` — throws at the step, before anything moves;
+the host test of every auton runs each step against the robot's real list, so it fails the suite
+before an upload. A routine built the old way, `Routine r{ctx.chassis, …}`, runs its drive steps as
+ever, and its first mechanism step throws, naming the fix (`Routine r{ctx, "name"}`). If the program
+forgot to put the service in the chassis's pacer chain, the first blocking mechanism step stops the
+chain saying `the mechanism service never ticked -- it is not in the chassis pacer's chain`.
+
+## On the driver's buttons — the driver file's controls
+
+A driver file states its mechanism controls as ONE list, checked at build against the robot's list
+(`guide-18d`):
+
+```cpp
+inline constexpr DriverControls kControls = controls(kRobotXMechanisms,
+    whileHeld(arm, Button::R1, Button::R2, 6_volt),  // up / down while held; let go: it holds there
+    preset(arm["stow"], Button::Down, 1.5_s),
+    preset(arm["score"], Button::Right, 1.5_s),      // the most recent button wins
+    preset(arm["high"], Button::Up, 1.5_s),
+    whileHeld(lift, Button::L1, Button::L2, 12_volt),
+    homeAtDriverStart(lift, 1.5_s),                  // after a restart it may not be on its switch
+    toggle(flywheel["shoot"], Button::X),            // on at "shoot" / off
+    whileHeld(intake, Button::A, Button::B, 12_volt),
+    autonOnly(hood));                                // the hood is the autons' alone
+```
+
+- **`whileHeld(m, forward, back, volts)`** — a power mechanism runs while a button is held and goes to its
+  `.safe` state when let go; an arm or a lift JOGS while held (inside its limits once homed; at most
+  its `.unhomedVolts` before) and HOLDS WHERE IT IS when let go. Both buttons at once = neither.
+- **`toggle(claw, Button::A)`** — each press flips a two-position pneumatic; **`toggle(flywheel["shoot"],
+  Button::X)`** spins a flywheel up to that NAMED speed or stops it (`toggle(flywheel, …)` is refused:
+  name the speed).
+- **`preset(arm["score"], Button::Right, 1.5_s)`** — a press sends it there within the time limit, then it
+  holds (or keeps spinning); a pneumatic position needs no time limit: `preset(hood["up"], Button::Up)`.
+- **`homeOnPress(lift, Button::Left, 1.5_s)`**, **`homeAtDriverStart(lift, 1.5_s)`** (once, at the start of
+  driver control, when nothing has homed it — skipped when the auton did; its mechanism's own buttons wait
+  while it runs — "the one exception", below), and **`autonOnly(hood)`** (no
+  control, on purpose).
+
+**The most recent input wins.** A preset pressed while a hold-to-run is still held takes over, and the
+held button then commands NOTHING until you let it go — it never fights the preset back. The same after
+a stall: a held button whose mechanism tripped its jam signature is ignored until released (a push
+gentler than full power may never trip it — [the jam section](#jam-signatures--what-a-stall-looks-like-and-the-recipe)).
+**A press must be SEEN** — for a toggle, a preset and `homeOnPress`: its button already down when driver
+control starts, or still down when a dropped controller comes back, is not a press, and **a drop itself
+never presses anything** (robot two's claw stays as it is) — provided the controller's "connected"
+signal and its buttons come back together, which nobody has measured
+([HA-147](../hardware-assumptions.md)); until it is, a driver whose controller drops lets go before
+pressing again. A hold-to-run is a level, not a press: its
+button already down when driver control starts drives at once, and a controller drop releases every
+hold-to-run that tick.
+
+**The one exception — the driver-start home.** While a `homeAtDriverStart` home is running (at most its
+time limit), that mechanism's OWN buttons wait: a hold held during it does nothing until you let go
+after the home, and a preset or `homeOnPress` press during it is dropped. Without that, a driver
+touching the lift in the first second and a half would cancel the very home that makes its buttons
+work. Every other mechanism's buttons work as usual meanwhile.
+
+**What the build refuses, by name:** a button doing two jobs (`button_Right_does_two_jobs`); a control
+on a mechanism the robot does not have; a hold's volts outside (0, 12]; a preset or a homing with no
+time limit; two controls of one kind on a mechanism (a hold beside presets is fine); a toggle on
+anything but a two-position pneumatic or a flywheel's named speed; a homing control on a never-homed
+mechanism; a mechanism with no control and not marked `autonOnly`, or marked and controlled; more than 24
+controls; and — the rule that saves a match — **an arm or a lift homed by its switch or by a stall,
+held or preset, with no way to home it in driver control**
+(`a_mechanism_that_must_be_homed_has_no_way_to_home_in_driver_control`): after a program restart that
+leaves it off its home it is not homed, its holds would command its `.unhomedVolts` (0 = nothing) and
+its presets end NOT_HOMED — dead buttons for the whole match. Add `homeAtDriverStart` or `homeOnPress`.
+The declaration's `.unhomedVolts` is enough only for a mechanism that is HELD and never preset: its
+holds then move it, unhomed, at those volts — but a hold never homes it (nothing zeroes a mechanism
+but its boot and a homing step), so a preset beside it would end NOT_HOMED all match, and needs one of
+the two homing controls. (A never-homed mechanism held with no `.unhomedVolts`, or preset at all, is
+refused the same way.) The program checks the list once more against the robot its service is
+bound to — a driver file built for another robot's same-named mechanism never commands a stranger.
+
+**What the loop does with them.** `teleop::runDriverControl`'s mechanism-service overload runs them:
+at the start of driver control the service drops whatever autonomous left (a leftover claim released
+and said, motor mechanisms to their `.safe` state, a pneumatic sent its `.start` on the program's FIRST
+entry only), and each homeAtDriverStart homes; every tick, after the drive, your buttons command the
+service and the service ticks ONCE — before your panel's `perTick`, so a panel sees this tick's
+command; on a field disable every motor mechanism goes to its `.safe` state and a pneumatic keeps its
+level ([HA-157](../hardware-assumptions.md): whether the brain keeps a 3-wire output's level while
+disabled is unmeasured). The drive protections are unchanged. One driver path per mechanism: the loop refuses T3's older
+bindings beside the service, and a control on its re-zero button.
+
+## As route markers — every mechanism's ids, run
+
+Every mechanism's actions are route ids a route marker names — derived from its declaration, never
+typed ([chapter 10](10-the-api.md#route-ids--the-actions-every-mechanism-publishes-automatically)). A
+program registers ALL of a robot's ids in one call (`guide-18e`):
+
+```cpp
+static runner::CommandRegistry registry;
+static runner::MechanismRoutes routes{chassis, service, kRobotXMechanisms, telemetry};
+routes.registerInto(registry);
+```
+
+A marker runs EXACTLY the step an auton's line runs — `arm_score [1500]` is `r.move(arm["score"],
+1.5_s)`, `intake_until_piece [12, 3000]` is `r.run(intake, 12_volt, seesPiece, 3_s)`, `claw_closed` is
+`r.set(claw["closed"])` — and **blocks at its waypoint until the step's verdict** (markers fire only
+after a leg settles, so a marker never runs while driving — a long time limit is a long stop there).
+SUCCEEDED and a counted UNCONFIRMED let the route go on; any other verdict stops it. The args are the
+route author's: an arm's, a lift's or a flywheel's id carries its **time limit in ms**; a power
+mechanism's `_run`, `_until_piece` and `_until_gone` carry **volts (−12..12, not 0) and a time in
+ms**; a `_stop` and a pneumatic's position carry none. A marker missing one is REFUSED and the route
+stops, nothing commanded:
+
+```text
+route marker 'arm_score' REFUSED: it needs its time limit in ms, above 0 (args[0])
+```
+
+Each id is published with a one-line doc for a marker picker — `"claw pivot 6: run; args[0] = volts
+(-12..12), args[1] = how long, ms"` (the manifest:
+[the VexBuilder contract §4.2.3](../vexbuilder-integration.md#423-the-manifest--ask-4-and-it-now-exists)).
+On the host test plant robot x's route of seven generated markers ran every one to SUCCEEDED inside a
+real auton, and robot two's sensorless grab went UNCONFIRMED, counted done, with its route going on.
+
+## The direction check — what it judges
+
+Two cables of the SAME kind swapped between mechanisms, a motor declared the wrong way, or an angle
+sensor mounted backwards all look fine at boot. The direction check (its bench page is the core's last
+part) jogs ONE mechanism a little and asks you ONE question — "ONLY 'arm' should have moved: did it go
+its + way, the OTHER way, or did it NOT move (or something ELSE moved)?" — and
+`mechanism::judgeDirection` (or `judgePneumatic`) turns the encoders' readings and your answer into the
+line to change: the declaration's for a direction (`'arm' moved the OTHER way: in the declaration at
+…:14, .motors: swap EVERY Forward and Reversed (and the angle sensor's), then rebuild and upload`), the
+`wire(...)` line for a cable on another mechanism's port, a generated robot file's JSON path when it
+states one (and then the value to write there, and "regenerate, rebuild and upload"). What the
+encoders see on their own: a motor turning AGAINST its command while a mate turns WITH its own (the
+mate drags it — that motor's word is wrong), every motor still while every one draws (a fight of
+equals, or a jam), a motor that neither moved nor drew (its cable), an angle sensor reading against its
+motors — and every motor that moved going AGAINST its command, one motor or all of them alike: the
+mechanism was **back-driven** by something stronger than the jog (gravity, a load), no declaration is
+wrong, and none is named — jog it harder or from another pose. A V5 motor reverses its encoder with its
+command, so its own encoder cannot see it declared the wrong way — your answer does. It REPORTS; it
+saves nothing: you edit the robot file, rebuild and upload.
+
 ## The honest limit — the service runs only when something ticks it
 
-The service runs ONLY inside shulib's own waits, motions and pauses — and, from the core's driver
-controls on (its fourth part), every tick of the driver loop. **A busy loop of your own starves it** — a `pros::delay` in an auton, an action that blocks — and
+The service runs ONLY inside shulib's own waits, motions and pauses — and every tick of the driver loop.
+**A busy loop of your own starves it** — a `pros::delay` in an auton, a `then()` action that blocks — and
 a starved service leaves every mechanism at its LAST command: not held, not limited, not watched for a
-jam. In an auton, wait with the routine's own pause; never with `pros::delay`.
+jam (on the host test plant, an arm left at 11.74 V for 1.5 s sat against its hard stop at 2.45 A). In
+an auton, wait with `r.pause(…)` or `r.waitFor(…)`, never with `pros::delay`, and never let a `then()`
+action block.
 
 ## Reading a refusal
 
@@ -335,4 +548,6 @@ chapter:
 `speed_the_stall_signature_is_unset_a_jammed_wheel_must_never_sit_at_stall_current`,
 `a_stall_signatures_amps_must_be_below_the_motors_2_5_A_current_limit`, `speed_is_past_the_free_speed`,
 `target_is_outside_the_travel_limits` and — new with the position behaviours —
-`position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor`.
+`position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor`. The driver
+file's (above) point at its `controls(` line — a button twice names the button — and the auton's wrong
+steps are `static_assert` sentences ("required from here" names your line).

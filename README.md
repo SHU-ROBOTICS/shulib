@@ -283,10 +283,13 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
                     and wired separately (where it is plugged in) — each mistake refused at
                     build by name; the route ids derived from the declarations; the
                     mechanism SERVICE that runs every one each tick (power, pneumatic,
-                    position — arms, lifts — and speed — flywheels; host-only so far)
-  runner/           runs a Route: the path runner, the command-id registry, the manifest
+                    position — arms, lifts — and speed — flywheels; host-only so far); the
+                    driver file's controls (presets on buttons) and the direction check's
+                    judgement
+  runner/           runs a Route: the path runner, the command-id registry, the manifest,
+                    and every mechanism's route ids bound in one call
   teleop/           driver control: stick mapping, input shaping, drive modes, field-centric,
-                    mechanism buttons
+                    mechanism buttons (and the mechanism service's driver controls)
   kinematics/       drivetrain math: X-drive, tank, H-drive behind one contract
   control/          PID, feedforward, motion profiles, settling, watchdogs
   localization/     odometry, tracking wheels, the fused localizer + correction seam

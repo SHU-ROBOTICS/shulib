@@ -200,9 +200,11 @@ ordinary run, and on the evidence available it is very slightly less so.
 
 Both API tiers are frozen: the `Chassis` API ([Chapter 10](10-the-api.md)) at D2 and the
 recipe layer ([Chapter 9](09-the-recipe-api.md)) at D3, Freeze Register rows F6 and F10, both
-2026-08-12. Signatures and documented behavior change only with a major version bump and a
-migration note, and compile-time pins fail the build if one drifts — routines written today
-will not need rewriting.
+2026-08-12 — all but the pieces the register leaves outside them: for the recipe layer,
+`then()` and the exact wording of its log lines, and — not yet ruled — its mechanism steps (the
+end of this section has `then()` and the steps). Frozen signatures and documented behavior change
+only with a major version bump and a migration note, and compile-time pins fail the build if one
+drifts — routines written today against the frozen surfaces will not need rewriting.
 
 The mechanism seam that used to be a placeholder here is now real code
 ([Chapter 13](13-extending-the-library.md) is the how-to). What is proven, and against what:
@@ -214,14 +216,16 @@ The mechanism seam that used to be a placeholder here is now real code
   adversarial clock rather than hanging, cancels into a per-mechanism declared safe state,
   and hands `then()` a verdict where a completed-but-unconfirmed action can never read as
   success. All of it against in-memory fakes and hostile fakes that jam, stall and lie.
-- **The mechanism core, on a host only (2026-10-15 to 2026-10-22, three of its six parts):** a robot file
+- **The mechanism core, on a host only (2026-10-15 to 2026-10-22, four of its six parts):** a robot file
   DECLARES each mechanism (an `Arm`, a `Lift`, a `Flywheel`, a `Power` roller, a `Pneumatic`) and
   wires it separately, the build refusing each mistake by name ([Chapter 10](10-the-api.md)); one
   mechanism service runs all five kinds — a move and its hold, homing, the soft stop, a spin to "at
   speed", a run until a piece sensor sees a piece, a valve's position — every behaviour watched for a
-  jam ([Chapter 18](18-mechanisms.md)). Proven only on the host test plant's invented models, with
-  invented starting gains; **no program builds the service yet**, and the auton steps, driver
-  controls and bench page that use it are its next parts.
+  jam ([Chapter 18](18-mechanisms.md)); an auton runs a mechanism on ONE line (`r.move(arm["score"],
+  1.5_s)`), a driver file's controls put presets on buttons, a route's markers run every mechanism's
+  ids, and the direction check judges a jog. Proven only on the host test plant's invented models, with
+  invented starting gains; **no program builds the service yet** — robot two's programs move onto it in
+  its fifth part — and the bench page that runs the direction check is its sixth.
 - **Deliberately absent:** any concrete mechanism. There is no `shulib::Intake` and never
   will be — mechanism sets change every season, so the library ships the grammar and your
   team writes the nouns (Chapter 13 says how, and why the safe state is declared per
@@ -249,14 +253,19 @@ The mechanism seam that used to be a placeholder here is now real code
   `setQuadrantToggle` — remain future work (roadmap item F3) that needs both hardware and
   the build team's final mechanism decisions.
 
-One related piece stays deliberately open: **`then()`** and the mechanism seam are still
-**unfrozen** — the seam gets its second real consumer at F3 (the concrete scoring verbs),
-and this project freezes surfaces after a second consumer has stressed them, not before.
+What stays open in the recipe layer: **`then()`** and the mechanism seam are still
+**unfrozen**, deliberately — the seam gets its second real consumer at F3 (the concrete scoring
+verbs), and this project freezes surfaces after a second consumer has stressed them, not before.
+And, since the mechanism core's fourth part, whether **the mechanism steps** (`r.move`, `r.run`,
+`r.set`, `r.spinUp`, `r.home`, `r.stop`, the START forms and `waitUntilDone`), **the second
+constructor** `Routine r{ctx, "name"}` and **`lastMechanism()`** join F10's freeze is **not yet
+ruled** — the register's F10 row gives both readings, and they are not pinned meanwhile. An auton
+that uses them may need an edit if their spelling moves before that ruling.
 The [Freeze Register](../roadmap.md#freeze-register) remains the authority on what is and
 isn't stable (the coordinate conventions, units, accuracy targets, hardware interfaces,
-kinematics contract, both API tiers and — since 2026-09-18 — the route data schema and
-command-id vocabulary *are* locked; the mechanism seam is listed there as explicitly
-not-yet-frozen).
+kinematics contract, both API tiers but for the pieces named above and — since 2026-09-18 —
+the route data schema and command-id vocabulary *are* locked; the mechanism seam is listed there
+as explicitly not-yet-frozen).
 
 ## A run-scoped deadline now exists — and "guaranteed" is a narrower word than it sounds
 
@@ -416,8 +425,13 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   (full power while held, holding on release), A opens and closes the pneumatic claw, and the
   field-centric re-zero moved to Y. **None of it has run on a robot**: no claw has moved, whether a
   released pivot really holds its load, which way each one turns and which line level opens the
-  claw are all unmeasured, and no driver has used a claw button. Driver MACROS (a button that runs
-  a chassis motion the sticks can interrupt) are still future work (phase T on the roadmap).
+  claw are all unmeasured, and no driver has used a claw button. Since the mechanism core's fourth
+  part (2026-10-22) a robot's DECLARED mechanisms have their own driver controls — `whileHeld`,
+  `toggle`, `preset` (an arm to its "score" on one button), the homing controls, "the most recent input
+  wins" ([Chapter 18](18-mechanisms.md#on-the-drivers-buttons--the-driver-files-controls)) — host-tested
+  only, and no program uses them yet (robot two's driver file moves onto them next). Driver MACROS (a
+  button that runs a chassis motion the sticks can interrupt) are still future work (phase T on the
+  roadmap).
   *(This bullet used to say joystick shaping and slew limits did not exist at all; that went
   stale when the layer landed, and it is corrected here rather than deleted, because "it
   exists" and "it is known to feel right" are very different claims.)*

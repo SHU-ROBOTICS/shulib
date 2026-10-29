@@ -9,18 +9,25 @@
 
 > **Stability.** Both tiers are now **frozen**: the `Chassis` API underneath
 > ([Freeze Register](../roadmap.md#freeze-register) row F6) and `Routine` itself (row F10),
-> both locked 2026-08-12. Every step spelling, every observer, `RoutineResult` and
-> `RoutineStopCause` change only with a major API-version bump plus a migration note
+> both locked 2026-08-12. Every step spelling and every observer (but the ones listed as not
+> frozen below), `RoutineResult` and `RoutineStopCause` change only with a major API-version bump
+> plus a migration note
 > ([`include/shulib/version.hpp`](../../include/shulib/version.hpp)), and the freeze is enforced
 > by a compile-time signature pin
 > ([`test/routine_signature_pin_test.cpp`](../../test/routine_signature_pin_test.cpp)) that
 > fails the build if a spelling drifts. New steps arrive *additively* — and that path has since
-> been used for real, twice. First `RoutineStopCause` gained an **appended** `MechanismFailed`,
+> been used for real, three times. First `RoutineStopCause` gained an **appended** `MechanismFailed`,
 > which is a minor version bump (2.0 → 2.1), not a breaking change: existing enumerator *values*
 > are pinned and only the end of the list grows, so if you `switch` exhaustively, add the new
 > case. Then, at 2.4, two new **steps** were appended, `reverseTo` and `faceAway` (below), with
-> nothing that already existed changing shape.
-> **One exception, deliberately:** `then()` is **not** frozen. It is the seam mechanisms plug
+> nothing that already existed changing shape. And at 2.5 the mechanism core added a second
+> constructor (`Routine r{ctx, "name"}`), the mechanism steps (`move`, `run`, `set`, `spinUp`,
+> `home`, `stop`, the START forms, `waitUntilDone` — [Chapter 18](18-mechanisms.md#in-an-auton--one-line-per-step)),
+> an appended `MechanismStepFailed` (a `switch` over every `RoutineStopCause` needs its case) and
+> an appended `RoutineResult::mechanismVerdict`.
+> **Not frozen:** `then()`, deliberately — and, until a decision still open, the mechanism steps,
+> the second constructor and `lastMechanism()` (the Freeze Register's F10 row gives both readings;
+> they are not pinned meanwhile). `then()` is the seam mechanisms plug
 > into. Mechanisms now *exist* — the seam was filled, and `then()` accepts a mechanism
 > operation's `MechanismOutcome` as a fourth return type — but the surface stays unfrozen until
 > a second real consumer has stressed it, which is this project's standing rule for freezing.
@@ -145,8 +152,10 @@ a `waitFor` deadline passes with the condition still false, or a `then` action r
 failure.
 
 **Read `result().cause` before `result().exit`.** `cause` says what *kind* of thing stopped the
-chain (`MotionFailed`, `WaitTimedOut`, `ActionFailed`, or `MechanismFailed` when a mechanism
-operation returned any verdict other than `Succeeded`); `exit` carries a motion's verdict and is
+chain (`MotionFailed`, `WaitTimedOut`, `ActionFailed`, `MechanismFailed` when a `then()` action's
+mechanism operation returned any verdict other than `Succeeded`, or `MechanismStepFailed` when one of
+the mechanism core's steps did — its verdict then in `result().mechanismVerdict`,
+[Chapter 18](18-mechanisms.md#in-an-auton--one-line-per-step)); `exit` carries a motion's verdict and is
 only meaningful when the cause is `MotionFailed`. After a failed wait or a failed action, `exit`
 reads `Running`, which means "no motion verdict here" — not "still going". It is the same
 "nothing yet" convention `lastCompleted()` uses, and it surprises everyone once.
@@ -268,7 +277,10 @@ inside the action — has that verdict honored. And since the mechanism layer la
 mechanism operation's `MechanismOutcome`: **only `Succeeded` continues the chain.** A grab
 that completed but was never confirmed reports `Unconfirmed`, stops the chain as
 `MechanismFailed`, and the transcript names the exact verdict — a failed grab cannot be
-mistaken for a successful one, and there is no way to spell it that would.
+mistaken for a successful one, and there is no way to spell it that would. (A mechanism DECLARED in
+the robot file needs no `then()`: it has its own one-line steps, run by the mechanism service, with
+their own verdict policy — [Chapter 18](18-mechanisms.md#in-an-auton--one-line-per-step). `then()` is
+the seam for anything else.)
 
 Here is the whole idiom, compiled and run by the test suite. The operation never owns a
 loop: you start it, the chassis's own `waitUntil` ticks it once per control tick (this also

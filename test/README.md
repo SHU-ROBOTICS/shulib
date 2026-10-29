@@ -23,13 +23,16 @@ translation unit in [`compile_refusals/`](compile_refusals/) that must FAIL to c
 reason. Two names have none, on purpose: `a_smart_port_is_used_twice` and
 `a_three_wire_port_is_used_twice`, the "used twice" fallbacks no list can reach (each said so beside it
 in `mechanism/wiring.hpp`). And every PLACE in the headers that calls a refusal is reached by a TU, not
-only every name (checked by deleting each call in turn and seeing a TU go red: 148 of the 150 direct
-calls — the other two are those fallbacks — and all 11 calls made through a dispatcher, such as
-`refuse(specRefusal(...))` or the route-id recorder). Where two layers could both refuse with the same
+only every name (checked by deleting each call in turn and seeing a TU go red — at the mechanism core's
+first part, 148 of the 150 direct calls in the robot file's words, the other two being those fallbacks,
+and all 11 calls made through a dispatcher, such as `refuse(specRefusal(...))` or the route-id
+recorder; at its fourth part's review, 2026-10-27, all 36 of the driver file's and the auton's: the 31
+direct calls in `mechanism/driver_inputs.hpp`, its one dispatcher call — the button-naming one — and
+the `Routine`'s four refusal templates). Where two layers could both refuse with the same
 name — a `wire(...)` check and `mechanisms()`' own re-check of each entry — the TU also pins the line
 GCC must cite (`// expect-at:`). They are not part of `shulib_tests` — `ctest` builds each one on its
-own, one at a time even under `ctest -j` (they share a lock on the build tree), which takes two to three
-minutes for all of them (127 s and 153 s, measured 2026-10-15 at 195 TUs), and
+own, one at a time even under `ctest -j` (they share a lock on the build tree), which takes two to four
+minutes for all of them (127 s and 153 s, measured 2026-10-15 at 195 TUs; 197 s at 251 TUs, 2026-10-27), and
 `ctest --test-dir build/test -R compile_refusal --no-tests=error --output-on-failure` runs just those.
 The TU's own `// expect:` line states its reason; [`compile_refusals/run_refusal.py`](compile_refusals/run_refusal.py)
 is the judge (the reason must be in a diagnostic's message, never only in a path), and four

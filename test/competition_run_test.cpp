@@ -1368,6 +1368,7 @@ TEST_CASE("request (R23): the levels, the stop words, the boot and phase lines, 
         CHECK(word(RoutineStopCause::WaitTimedOut, ExitReason::Settled) == "wait TIMEOUT");
         CHECK(word(RoutineStopCause::ActionFailed, ExitReason::Settled) == "action FAILED");
         CHECK(word(RoutineStopCause::MechanismFailed, ExitReason::Settled) == "mechanism FAILED");
+        CHECK(word(RoutineStopCause::MechanismStepFailed, ExitReason::Settled) == "mechanism step FAILED");
     }
     // The boot's three lines, whole, at a real build hash.
     {
