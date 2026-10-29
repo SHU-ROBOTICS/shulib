@@ -392,7 +392,10 @@ not silently break them. This table is the spine of the no-staleness promise.
 > onto it — with CAL1 before A5.** **The team lead's ordering ruling of 2026-10-29:** the panel's foundation (the
 > robot file and its generator into C++) starts right after MECH-A5 lands, beside the camera, the wall reset and
 > the auto-flipper instead of after them; their panel pages plug in as each lands, and the documentation redo
-> (DOCS3) follows the panel and documents it. Nothing is dropped; the auto-flipper stays fully in.
+> (DOCS3) follows the panel and documents it. Nothing is dropped; the auto-flipper stays fully in. **Later the same
+> day he set a date: the panel by 2026-11-21.** The fifth mechanism part (robot two's claws on the library's
+> mechanisms) and the panel's first part are building side by side; the camera's later parts, the alliance colour,
+> driving to a piece and the auto-flipper come after the panel.
 >
 > **Now (2026-10-15): CAL1 Part A1, the standard Calibrate's seams, has LANDED — host-only.** The brain's screen is
 > now a seam with ONE sanitizer (`hal::IBrainScreen`, `hal::screenSafeLine()`), a painter draws Calibrate's screens

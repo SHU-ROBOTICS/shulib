@@ -663,7 +663,9 @@ fixed.)*
   recommended — the brief is `chunks/G3a-robot-profile-generator-panel.md`: two lanes, Parts 1–6 ~17¾–23¾
   builder-days, ~11–15½ to a robot made and driven in the panel, everything before G3 ~24¾–34¼ (rough); by jal's ordering ruling of 2026-10-29 its
   foundation — the robot file and its generator — starts when MECH-A5 merges, beside VIS1, L6 and the
-  auto-flipper, and DOCS3 follows the panel; build-order's G3a entry.)*
+  auto-flipper, and DOCS3 follows the panel; build-order's G3a entry.)* *(2026-10-29, later: jal's PANEL SPRINT —
+  the panel by 2026-11-21; Part 1 building beside MECH-A5, the builds overlapping; the camera's later runs,
+  ALLY1, L4 and AF1 after the panel.)*
 - **[G3] `.vexbot` ingestion into G3a's generator → freeze F7.** Serves VexBuilder's files. ~1 day
   after G3a.
 - **[G4] the ten-minute guide** (closes M5). The legacy `.shupaths` importer was DROPPED 2026-09-26
