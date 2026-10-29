@@ -403,6 +403,19 @@ not silently break them. This table is the spine of the no-staleness promise.
 > front matches the saved record's — or, for a first Calibrate, the robot's typed drive ports (the team lead's
 > D6 (a)). No program uses them yet: **next for CAL1 is Part A2a, the standard Calibrate program.**
 >
+> **Now (2026-10-29): CAL1 Part A2a, the standard Calibrate program, has LANDED — host-only** (built 2026-10-18–22,
+> reviewed and fixed 2026-10-22–29).
+> `calibration::CalibrateProgram` is robot two's Calibrate moved into the library over those seams: a team states
+> only its drive kind, its drive motors' cartridge and EVERY motor that is not a drive motor, and the program finds
+> and measures the rest. The end that leads the push is the front; before anything is saved the new record is
+> checked against the card's, and a FLIPPED front holds the save (USE NEW or RUN AGAIN); a declared mechanism
+> motor that turned with the push holds it too — one question per such motor (SAVE or RUN AGAIN); the save is the
+> safe save. The whole program
+> runs in the host test suite on the host test plant, and `hal/pros/calibrate.hpp` is its thin robot shell. No
+> program uses it yet — robot two's Calibrate is unchanged until Part B: **next for CAL1 is Part A2b** (a team's
+> typed drive ports as the reference when the card holds no record, the proof through the real PROS shell, the
+> guide chapter).
+>
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
 > robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver

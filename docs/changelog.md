@@ -16,6 +16,120 @@
 
 ## API 2.5
 
+### Added since 2.5 (2026-10-29; built 2026-10-18–22, reviewed and fixed 2026-10-22–29) — the standard Calibrate: a team states its drive kind, its cartridge and its mechanism motors, and every team runs the same Calibrate
+
+> Written when it was built (chunk CAL1, Part A2a of four: the standard program, with the card's record
+> as the front check's only reference; Part A2b adds a team's typed drive ports as the reference when
+> the card holds no usable record, and the guide's chapter on writing your Calibrate; robot two moves
+> onto it in Part B). **No version bump — every change is ADDITIVE:** two new headers, and additions to
+> `calibration/calibrate_panel.hpp` whose defaults are today's screens (a host test renders every view
+> of four runs both ways and requires them equal, field for field); `calibration/` is in no row of the
+> [Freeze Register](roadmap.md#freeze-register). **No program uses it yet:** robot two's "shulib
+> Calibrate" is still its own program, and paints, prints and saves exactly as before. **Host only —
+> this program has not run on a robot in this form** (the calibrator inside it ran on robot two on
+> 2026-09-24).
+
+**Why:** the team lead asked on 2026-10-06 for Calibrate to ship WITH the library, so every team — and
+the VS Code panel, which reads the record Calibrate saves — runs the same, correct Calibrate. This part
+moves robot two's program into the library over the seams the previous part added, so the whole
+program runs in the host test suite on the host test plant, and adds what his rulings asked for: the
+end that LEADS the push is the robot's front, with a check against the card's record before anything
+is saved; the safe save; and a watch of the motors a team says are not drive motors.
+
+**ADDED:**
+
+- **`calibration::CalibrateProgram`** (`calibration/calibrate_program.hpp`) — the standard Calibrate,
+  PROS-free: `CalibrateProgram(facts, devices, buildStamp).run()` from `opcontrol()`. It finds the
+  motors and the IMU from the brain's registry (never a typed port list), drops every DECLARED mechanism
+  port before any device is made, refuses by name — before any device is asked for — facts it cannot
+  use, makes one motor per candidate port through the robot's `hal::IDeviceProvider`, runs
+  `calibration::DrivetrainCalibrator` with the operator answering on the touch screen (the push, the
+  pulses, the spin), prints the serial record robot two's program prints, and offers RUN AGAIN. Every
+  exit leaves every motor at 0 V and coasting; the competition status is polled every tick, and the end
+  of driver control — the field's disable, or the start of autonomous, with or without a field — ends
+  the run cleanly, its words naming which. **`CalibrateProgram::kPushLogMinSeconds`** (0.25 s) and
+  **`kPushLogKeepaliveSeconds`** (5 s) are the push's live serial line's two intervals: a changed count
+  at most that often, an unchanged one at least that often.
+  - **The front is the end that leads the push** — the screen says PUSH FRONT FIRST, and the
+    calibrator's old WHICH END question is answered by the program itself, never painted.
+  - **The FRONT CHECK**, before anything is saved: the card's record, read the way the boot reads it
+    (the record file, else its backup), against this run's, with `calibration::compareFronts()`. A card
+    with no record: the first record, saved with the note `FIRST RECORD -- the end you pushed first is
+    FRONT` (painted only when the save succeeds — under NOT SAVED it would name a record the card does not
+    hold; a card that READ as holding none: a good record misread at the check makes an unchecked first
+    record — the safe save's two-fault limit, stated in the header; no third read hides it). Files that do not decode: saved, each file named with its reason (`EMPTY (0 bytes read)` for
+    an empty one), note `FRONT NOT CHECKED`. CANNOT TELL: saved, the same note. **FRONT FLIPPED: NOTHING
+    is written** until the operator touches USE NEW (saved as pushed — right when the drive cables were
+    swapped between the sides, or the front was changed on purpose) or RUN AGAIN (nothing saved — right
+    when the back led by mistake); the records cannot tell those apart, so the screen says what the
+    records say, never what the operator did. No SD card: no check (nothing can be saved), and the
+    words say there is no card.
+  - **The WATCH of the declared mechanism motors**: each is READ as the push begins and again at DONE —
+    never commanded, never configured (on the brain, PROS's C reads by port and no motor object; the
+    belief that such a read writes nothing to the motor is registered by CAL1's next part). One that
+    turned as far as the calibrator's own threshold for a drive port **holds the save** on MECHANISM
+    PORT TURNED, with its travel beside the drive's and whether the card's record drives with it: SAVE
+    (a mechanism the push turns: kept declared, note `PORT N KEPT AS A MECHANISM`) or RUN AGAIN (a
+    drive motor declared by mistake: fix the facts). **Every declared port that turned is its own
+    question**, one screen each in the facts' order, and nothing is saved until the last is answered
+    SAVE (note `N PORTS KEPT AS MECHANISMS`) — so an intake the push legitimately turns can never stand
+    in for a drive motor declared by mistake. After a USE NEW the first of them follows; each new
+    question's boxes are greyed again for the arming delay, so a reflexive second tap cannot answer it.
+  - **The save is the safe save** (`calibration::saveRecordSafely()`, a verified backup first; the
+    words `calibration::formatSaveReport()`'s): SAVED is said only when the card measurably holds the
+    new record, and a failed save never erases a good one.
+  - **A motor the facts do not list is a drive candidate**, and one the push turns is POWERED (3, 6,
+    9 V) like a drive motor: the program says so in its banner when nothing is declared, names every
+    candidate the push did not turn ("never powered -- if it is a mechanism, declare it"), and adds the
+    same advice to a LEFT OUT line and a pulse refusal.
+- **What a team states — `calibration::CalibrateFacts`**: the drive kind (`config::DrivetrainKind`;
+  only `Tank` is measured, anything else is refused `NOT A TANK`), the drive motors' cartridge (never
+  defaulted: unset refuses), and `mechanisms` — EVERY motor that is not a drive motor
+  (`calibration::MechanismPort`, a port and a name; up to `kMaxMechanismPorts`). Optional: the robot's
+  name and a stated IMU port (a cross-check; the registry decides). **`calibration::factsProblem()`**
+  (constexpr, so a build can `static_assert` its facts) names the first unusable entry — a NAMED entry
+  with port 0, a port past 21, a port listed twice — as a `calibration::FactsProblem`;
+  **`calibration::declaredMechanism()`** finds a port's entry.
+- **What the program needs from its platform**: **`calibration::CalibrateIo`** — four calls (one serial
+  line, the competition status, a plain wait, the watch's read) — and **`calibration::CalibrateDevices`**
+  (the provider, the registry, the `hal::IFileStore` card, the `hal::IBrainScreen`, the IO); the
+  competition bits **`kCompetitionDisabled`/`Autonomous`/`Connected`** and **`competitionWords()`**;
+  **`calibrateBootBanner()`** for `initialize()` and **`calibrateStateScreen()`** for the other three
+  entry points.
+- **The robot's shell** (`hal/pros/calibrate.hpp`): **`hal::pros::ProsCalibrateIo`** (each serial line
+  ONE tagged write, `[R3D] …`, through `serialWrapped()`; the watch's three C reads, converted to
+  degrees by the units and gearing the motor reports) and the five entry functions a team's file
+  calls — **`calibrateInitialize()`**, **`calibrateDisabled()`**, **`calibrateConnected()`**,
+  **`calibrateAutonomous()`** and **`runCalibrate(facts)`**, which composes the PROS registry, device
+  provider, SD store, screen and IO on its own frame (its stack on the opcontrol task is stated in the
+  header: 22,464 B of 32 KiB as GCC measures it) — and **`hal::pros::calibrateStateScreen(state, why)`**,
+  the competition-state screen the three state functions share, over the brain's own screen. Include
+  it in ONE translation unit (its default build stamp is that unit's).
+- **`calibration/calibrate_panel.hpp`, additions only:** `FrontRule` (`AskedAfterPush`, today's;
+  `ByPush`, the standard Calibrate's: steps 1/4..4/4, PUSH FRONT FIRST, the front rule while the IMU
+  warms up, never the WHICH END view), `FrontChoice`, `HoldReason`, `FinishFacts` (the hold, its two
+  evidence lines, the finished screen's one NOTE row — a two-row calibrator warning is then cut to one
+  ending ` ...`, the full text on serial), the appended `PanelScreen::Held`, `SaveOutcome::Held` and
+  `TouchAction::SaveHeld`, and two defaulted parameters on `viewFor()` and `TouchGate::view()`. A held
+  screen's left box is today's FRONT FIRST button relabelled USE NEW or SAVE (no new button id — today's
+  programs switch over them); `TouchGate` reads it as `SaveHeld`, never an answer, and restarts its
+  arming delay when the held question changes — its reason, or `FinishFacts::holdPort`, the port a
+  MECHANISM PORT TURNED screen asks about. Every new word is a `calibration::panel_text` literal checked
+  at compile time against its line's budget: the four step headers (`kHeaderImu4`, `kHeaderPush4`,
+  `kHeaderPulses4`, `kHeaderSpin4`), the two held headers (`kHeaderFlipped`, `kHeaderMechTurned`) and
+  `kHeaderSavedNew`; `kPushFrontFirst`, `kNothingSavedYet`, `kNextTouchDoneClear` and `kFrontRule`; the
+  FRONT FLIPPED lines (`kFlipWhat`, `kFlipAgain`, `kFlipNew`, `kFlipWarn`) and the MECHANISM PORT TURNED
+  lines (`kMechNotOnCard`, `kMechSave`, `kMechAgain`); the two box labels (`kLabelNew`, `kLabelSave`); the
+  NOTE literals (`kNoteFirst`, `kNoteNotChecked`); and `kWarningCut`, the ` ...` that ends a cut warning.
+
+**What you must do:** nothing. A team's own Calibrate file, and the guide chapter that shows it, come
+with CAL1's next part.
+
+**For contributors:** the host PROS shim's per-port motor state (`test/pros_shim/pros/motors.hpp`)
+gained three dropout knobs — `failPositionReads`, `failUnitsReads` and `failGearingReads` — each
+failing the next N calls of ONE of `pros/motors.h`'s three C reads while the other two answer (a
+dropout between two reads of one port), so a test reaches each of a read's guards alone.
+
 ### Added (2026-10-29; built 2026-10-22) — the mechanism core, part 4: a mechanism step on one line of an auton, presets on the driver's buttons, every mechanism's route ids run, and the direction check's judgement
 
 > Written when it was built (chunk MECH-A4, the fourth of the mechanism core's six parts). **Minor bump,

@@ -146,6 +146,14 @@ struct MotorPortState {
     /// which `disconnected` (every call refused) cannot (DEFECTS2 review).
     int refuseSetBrakeMode = 0;
     bool disconnected = false;  ///< true → every read returns the PROS sentinel
+    /// The next N calls of ONE of the three C reads (motors.h: motor_get_position(),
+    /// motor_get_encoder_units(), motor_get_gearing()) answer the PROS sentinel while the other two
+    /// go through — a dropout that lands between two reads of one port (CAL1 Part A2a: the watch's
+    /// read makes three). `disconnected` fails all three at once, so it reaches only the first of
+    /// the shell's guards; these reach each guard alone. 0 = never.
+    int failPositionReads = 0;
+    int failUnitsReads = 0;    ///< as failPositionReads, for motor_get_encoder_units()
+    int failGearingReads = 0;  ///< as failPositionReads, for motor_get_gearing()
 };
 
 inline std::array<MotorPortState, 22>& motorPorts() {

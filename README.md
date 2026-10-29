@@ -94,7 +94,8 @@ current state, so here it is, third heading from the top:
   devices on the bench. **Distance, optical, ADI digital in and out, and the brain's touch screen
   are constructed by no program yet** — no V5 build compiles them into a package, and none has
   touched a physical device (the touch screen's calls are the ones robot two's Calibrate program
-  makes itself today; the adapter is the library's standard Calibrate's, still to come) — and GPS
+  makes itself today; the adapter is the library's standard Calibrate's, which no program builds
+  yet) — and GPS
   and rotation appear only in the X-drive build, which has never run. All
   eighteen are host-tested against a hand-written stand-in for PROS, which proves the glue is
   faithful to *our beliefs* about PROS — units, signs, error values — and cannot prove the
@@ -275,7 +276,8 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
     pros/           the real V5 adapters over the PROS SDK — the ONE exempted path (see rule 1)
   calibration/      the drivetrain self-calibrator, its screen model and the painter that draws
                     it, its SD-card record and its safe save and load (a verified backup copy),
-                    the boot check, the front check
+                    the boot check, the front check, and the standard Calibrate program itself
+                    (a team states its facts; its robot shell is hal/pros/calibrate.hpp)
   config/           a robot and a route described as DATA (RobotConfig, Route)
   robot/            robot::Robot — the whole library graph built from a RobotConfig (its
                     mechanisms' motors, lines and sensor roles built by MechanismParts)

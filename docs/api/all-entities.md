@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 4,960 of them, across 186 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 5,059 of them, across 188 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -453,6 +453,34 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `calibrateAutonomous` | free function | [pros-calibrate.md](pros-calibrate.md#calibrateautonomous) |
+| `calibrateBootBanner` | free function | [calibrate_program.md](calibrate_program.md#calibratebootbanner) |
+| `calibrateConnected` | free function | [pros-calibrate.md](pros-calibrate.md#calibrateconnected) |
+| `CalibrateDevices` | struct | [calibrate_program.md](calibrate_program.md#struct-calibratedevices) |
+| `CalibrateDevices::card` | field | [calibrate_program.md](calibrate_program.md#calibratedevices-card) |
+| `CalibrateDevices::devices` | field | [calibrate_program.md](calibrate_program.md#calibratedevices-devices) |
+| `CalibrateDevices::io` | field | [calibrate_program.md](calibrate_program.md#calibratedevices-io) |
+| `CalibrateDevices::registry` | field | [calibrate_program.md](calibrate_program.md#calibratedevices-registry) |
+| `CalibrateDevices::screen` | field | [calibrate_program.md](calibrate_program.md#calibratedevices-screen) |
+| `calibrateDisabled` | free function | [pros-calibrate.md](pros-calibrate.md#calibratedisabled) |
+| `CalibrateFacts` | struct | [calibrate_program.md](calibrate_program.md#struct-calibratefacts) |
+| `CalibrateFacts::cartridge` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-cartridge) |
+| `CalibrateFacts::drive` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-drive) |
+| `CalibrateFacts::imuPortStated` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-imuportstated) |
+| `CalibrateFacts::mechanisms` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-mechanisms) |
+| `CalibrateFacts::robot` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-robot) |
+| `calibrateInitialize` | free function | [pros-calibrate.md](pros-calibrate.md#calibrateinitialize) |
+| `CalibrateIo` | class | [calibrate_program.md](calibrate_program.md#class-calibrateio) |
+| `CalibrateIo::CalibrateIo` | function | [calibrate_program.md](calibrate_program.md#calibrateio-calibrateio) |
+| `CalibrateIo::CalibrateIo (overload 2)` | function | [calibrate_program.md](calibrate_program.md#calibrateio-calibrateio-2) |
+| `CalibrateIo::CalibrateIo (overload 3)` | function | [calibrate_program.md](calibrate_program.md#calibrateio-calibrateio-3) |
+| `CalibrateIo::competitionStatus` | function | [calibrate_program.md](calibrate_program.md#calibrateio-competitionstatus) |
+| `CalibrateIo::delayMs` | function | [calibrate_program.md](calibrate_program.md#calibrateio-delayms) |
+| `CalibrateIo::line` | function | [calibrate_program.md](calibrate_program.md#calibrateio-line) |
+| `CalibrateIo::operator=` | function | [calibrate_program.md](calibrate_program.md#calibrateio-operator-eq) |
+| `CalibrateIo::operator= (overload 2)` | function | [calibrate_program.md](calibrate_program.md#calibrateio-operator-eq-2) |
+| `CalibrateIo::readShaftDegrees` | function | [calibrate_program.md](calibrate_program.md#calibrateio-readshaftdegrees) |
+| `CalibrateIo::~CalibrateIo` | function | [calibrate_program.md](calibrate_program.md#calibrateio-destructor-calibrateio) |
 | `CalibratePainter` | class | [calibrate_screen.md](calibrate_screen.md#class-calibratepainter) |
 | `CalibratePainter::CalibratePainter` | function | [calibrate_screen.md](calibrate_screen.md#calibratepainter-calibratepainter) |
 | `CalibratePainter::invalidate` | function | [calibrate_screen.md](calibrate_screen.md#calibratepainter-invalidate) |
@@ -461,6 +489,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CalibratePainter::paintStarting` | function | [calibrate_screen.md](calibrate_screen.md#calibratepainter-paintstarting) |
 | `CalibratePainter::paintStateScreen` | function | [calibrate_screen.md](calibrate_screen.md#calibratepainter-paintstatescreen) |
 | `CalibratePainter::render` | function | [calibrate_screen.md](calibrate_screen.md#calibratepainter-render) |
+| `CalibrateProgram` | class | [calibrate_program.md](calibrate_program.md#class-calibrateprogram) |
+| `CalibrateProgram::CalibrateProgram` | function | [calibrate_program.md](calibrate_program.md#calibrateprogram-calibrateprogram) |
+| `CalibrateProgram::CalibrateProgram (overload 2)` | function | [calibrate_program.md](calibrate_program.md#calibrateprogram-calibrateprogram-2) |
+| `CalibrateProgram::kPushLogKeepaliveSeconds` | field | [calibrate_program.md](calibrate_program.md#calibrateprogram-kpushlogkeepaliveseconds) |
+| `CalibrateProgram::kPushLogMinSeconds` | field | [calibrate_program.md](calibrate_program.md#calibrateprogram-kpushlogminseconds) |
+| `CalibrateProgram::operator=` | function | [calibrate_program.md](calibrate_program.md#calibrateprogram-operator-eq) |
+| `CalibrateProgram::run` | function | [calibrate_program.md](calibrate_program.md#calibrateprogram-run) |
+| `calibrateStateScreen` | free function | [calibrate_program.md](calibrate_program.md#calibratestatescreen) |
+| `calibrateStateScreen` | free function | [pros-calibrate.md](pros-calibrate.md#calibratestatescreen) |
 | `CalibrationReport` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-calibrationreport) |
 | `CalibrationReport::backFirst` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-backfirst) |
 | `CalibrationReport::drivePortCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-driveportcount) |
@@ -709,6 +746,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CompensatedVoltage::brownoutLimited` | field | [feedforward.md](feedforward.md#compensatedvoltage-brownoutlimited) |
 | `CompensatedVoltage::voltage` | field | [feedforward.md](feedforward.md#compensatedvoltage-voltage) |
 | `compensateForBattery` | free function | [feedforward.md](feedforward.md#compensateforbattery) |
+| `competitionWords` | free function | [calibrate_program.md](calibrate_program.md#competitionwords) |
 | `compiledBuildHash` | free function | [build_info.md](build_info.md#compiledbuildhash) |
 | `ComplementaryFusion` | class | [complementary_fusion.md](complementary_fusion.md#class-complementaryfusion) |
 | `ComplementaryFusion::ComplementaryFusion` | function | [complementary_fusion.md](complementary_fusion.md#complementaryfusion-complementaryfusion) |
@@ -860,6 +898,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DebugRecord::wheelCount` | field | [debug_record.md](debug_record.md#debugrecord-wheelcount) |
 | `DebugRecord::wheelCurrent` | field | [debug_record.md](debug_record.md#debugrecord-wheelcurrent) |
 | `DebugRecord::wheelVoltage` | field | [debug_record.md](debug_record.md#debugrecord-wheelvoltage) |
+| `declaredMechanism` | free function | [calibrate_program.md](calibrate_program.md#declaredmechanism) |
 | `declaredMotorPorts` | free function | [wiring.md](wiring.md#declaredmotorports) |
 | `DeclaredMotorPorts` | struct | [boot_check.md](boot_check.md#struct-declaredmotorports) |
 | `DeclaredMotorPorts::label` | field | [boot_check.md](boot_check.md#declaredmotorports-label) |
@@ -1282,6 +1321,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `factsProblem` | free function | [calibrate_program.md](calibrate_program.md#factsproblem) |
+| `FactsProblem` | struct | [calibrate_program.md](calibrate_program.md#struct-factsproblem) |
+| `FactsProblem::entry` | field | [calibrate_program.md](calibrate_program.md#factsproblem-entry) |
+| `FactsProblem::why` | field | [calibrate_program.md](calibrate_program.md#factsproblem-why) |
 | `faultBit` | free function | [motion_scheduler.md](motion_scheduler.md#faultbit) |
 | `FaultCode` | enum class | [fault.md](fault.md#enum-class-faultcode) |
 | `FaultCode::Brownout` | enumerator | [fault.md](fault.md#faultcode-brownout) |
@@ -1363,6 +1406,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FileRead::tried` | field | [record_store.md](record_store.md#fileread-tried) |
 | `FileRead::why` | field | [record_store.md](record_store.md#fileread-why) |
 | `findBuiltinCommand` | free function | [route.md](route.md#findbuiltincommand) |
+| `FinishFacts` | struct | [calibrate_panel.md](calibrate_panel.md#struct-finishfacts) |
+| `FinishFacts::front` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-front) |
+| `FinishFacts::hold` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-hold) |
+| `FinishFacts::holdLine1` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-holdline1) |
+| `FinishFacts::holdLine2` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-holdline2) |
+| `FinishFacts::holdPort` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-holdport) |
+| `FinishFacts::note` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-note) |
 | `FitConfig` | struct | [feedforward_fit.md](feedforward_fit.md#struct-fitconfig) |
 | `FitConfig::alphaMin` | function | [feedforward_fit.md](feedforward_fit.md#fitconfig-alphamin) |
 | `FitConfig::currentGuard` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-currentguard) |
@@ -1461,6 +1511,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FrontCheck::sideOnly` | field | [front_check.md](front_check.md#frontcheck-sideonly) |
 | `FrontCheck::signOnly` | field | [front_check.md](front_check.md#frontcheck-signonly) |
 | `FrontCheck::verdict` | field | [front_check.md](front_check.md#frontcheck-verdict) |
+| `FrontChoice` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-frontchoice) |
+| `FrontChoice::New` | enumerator | [calibrate_panel.md](calibrate_panel.md#frontchoice-new) |
+| `FrontChoice::None` | enumerator | [calibrate_panel.md](calibrate_panel.md#frontchoice-none) |
+| `FrontRule` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-frontrule) |
+| `FrontRule::AskedAfterPush` | enumerator | [calibrate_panel.md](calibrate_panel.md#frontrule-askedafterpush) |
+| `FrontRule::ByPush` | enumerator | [calibrate_panel.md](calibrate_panel.md#frontrule-bypush) |
 | `FrontVerdict` | enum class | [front_check.md](front_check.md#enum-class-frontverdict) |
 | `FrontVerdict::Flipped` | enumerator | [front_check.md](front_check.md#frontverdict-flipped) |
 | `FrontVerdict::Same` | enumerator | [front_check.md](front_check.md#frontverdict-same) |
@@ -1658,6 +1714,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `HoldPose::HoldPose` | function | [hold_pose.md](hold_pose.md#holdpose-holdpose) |
 | `HoldPose::HoldPose (overload 2)` | function | [hold_pose.md](hold_pose.md#holdpose-holdpose-2) |
 | `HoldPose::name` | function | [hold_pose.md](hold_pose.md#holdpose-name) |
+| `HoldReason` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-holdreason) |
+| `HoldReason::FrontFlipped` | enumerator | [calibrate_panel.md](calibrate_panel.md#holdreason-frontflipped) |
+| `HoldReason::MechanismTurned` | enumerator | [calibrate_panel.md](calibrate_panel.md#holdreason-mechanismturned) |
+| `HoldReason::None` | enumerator | [calibrate_panel.md](calibrate_panel.md#holdreason-none) |
 | `homeAtDriverStart` | free function | [driver_inputs.md](driver_inputs.md#homeatdriverstart) |
 | `homeAtDriverStart (overload 2)` | free function | [driver_inputs.md](driver_inputs.md#homeatdriverstart-2) |
 | `homeAtDriverStart (overload 3)` | free function | [driver_inputs.md](driver_inputs.md#homeatdriverstart-3) |
@@ -2125,6 +2185,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kColText` | constant | [calibrate_screen.md](calibrate_screen.md#kcoltext) |
 | `kCommandAuditMargin` | constant | [plausibility_guard.md](plausibility_guard.md#kcommandauditmargin) |
 | `kCompactThresholdBytes` | constant | [line_format.md](line_format.md#kcompactthresholdbytes) |
+| `kCompetitionAutonomous` | constant | [calibrate_program.md](calibrate_program.md#kcompetitionautonomous) |
+| `kCompetitionConnected` | constant | [calibrate_program.md](calibrate_program.md#kcompetitionconnected) |
+| `kCompetitionDisabled` | constant | [calibrate_program.md](calibrate_program.md#kcompetitiondisabled) |
 | `kControllerButtonCount` | constant | [mechanism_binding.md](mechanism_binding.md#kcontrollerbuttoncount) |
 | `kCopyNow` | constant | [calibrate_panel.md](calibrate_panel.md#kcopynow) |
 | `kCopyThenRunAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythenrunagain) |
@@ -2152,10 +2215,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kFitExclusionReasons` | constant | [feedforward_fit.md](feedforward_fit.md#kfitexclusionreasons) |
 | `kFitRankTolerance` | constant | [feedforward_fit.md](feedforward_fit.md#kfitranktolerance) |
 | `kFlagsOffset` | constant | [shul2_format.md](shul2_format.md#kflagsoffset) |
+| `kFlipAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kflipagain) |
+| `kFlipNew` | constant | [calibrate_panel.md](calibrate_panel.md#kflipnew) |
+| `kFlipWarn` | constant | [calibrate_panel.md](calibrate_panel.md#kflipwarn) |
+| `kFlipWhat` | constant | [calibrate_panel.md](calibrate_panel.md#kflipwhat) |
 | `kFormatVersion` | constant | [blackbox_format.md](blackbox_format.md#kformatversion) |
 | `kFrameHeaderBytes` | constant | [blackbox_format.md](blackbox_format.md#kframeheaderbytes) |
 | `kFrameOverheadBytes` | constant | [shul2_format.md](shul2_format.md#kframeoverheadbytes) |
 | `kFrontBox` | constant | [calibrate_panel.md](calibrate_panel.md#kfrontbox) |
+| `kFrontRule` | constant | [calibrate_panel.md](calibrate_panel.md#kfrontrule) |
 | `kFullReasonOnSerial` | constant | [calibrate_panel.md](calibrate_panel.md#kfullreasononserial) |
 | `kGpsDefaultNorthHeadingDeg` | constant | [gps_conversion.md](gps_conversion.md#kgpsdefaultnorthheadingdeg) |
 | `kHandsOff` | constant | [calibrate_panel.md](calibrate_panel.md#khandsoff) |
@@ -2164,14 +2232,21 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kHeaderBytes` | constant | [blackbox_format.md](blackbox_format.md#kheaderbytes) |
 | `kHeaderCannot` | constant | [calibrate_screen.md](calibrate_screen.md#kheadercannot) |
 | `kHeaderCols` | constant | [calibrate_panel.md](calibrate_panel.md#kheadercols) |
+| `kHeaderFlipped` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderflipped) |
 | `kHeaderIdle` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderidle) |
 | `kHeaderImu` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderimu) |
+| `kHeaderImu4` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderimu4) |
 | `kHeaderMeasured` | constant | [calibrate_panel.md](calibrate_panel.md#kheadermeasured) |
+| `kHeaderMechTurned` | constant | [calibrate_panel.md](calibrate_panel.md#kheadermechturned) |
 | `kHeaderNotSaved` | constant | [calibrate_panel.md](calibrate_panel.md#kheadernotsaved) |
 | `kHeaderPulses` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderpulses) |
+| `kHeaderPulses4` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderpulses4) |
 | `kHeaderPush` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderpush) |
+| `kHeaderPush4` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderpush4) |
 | `kHeaderSaved` | constant | [calibrate_panel.md](calibrate_panel.md#kheadersaved) |
+| `kHeaderSavedNew` | constant | [calibrate_panel.md](calibrate_panel.md#kheadersavednew) |
 | `kHeaderSpin` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderspin) |
+| `kHeaderSpin4` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderspin4) |
 | `kHeaderStarting` | constant | [calibrate_screen.md](calibrate_screen.md#kheaderstarting) |
 | `kHeaderStopped` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderstopped) |
 | `kHeaderStopped` | constant | [calibrate_screen.md](calibrate_screen.md#kheaderstopped) |
@@ -2201,7 +2276,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kLabelBack` | constant | [calibrate_panel.md](calibrate_panel.md#klabelback) |
 | `kLabelDone` | constant | [calibrate_panel.md](calibrate_panel.md#klabeldone) |
 | `kLabelFront` | constant | [calibrate_panel.md](calibrate_panel.md#klabelfront) |
+| `kLabelNew` | constant | [calibrate_panel.md](calibrate_panel.md#klabelnew) |
 | `kLabelRunAgain` | constant | [calibrate_panel.md](calibrate_panel.md#klabelrunagain) |
+| `kLabelSave` | constant | [calibrate_panel.md](calibrate_panel.md#klabelsave) |
 | `kLargeCols` | constant | [calibrate_panel.md](calibrate_panel.md#klargecols) |
 | `kLargeCols` | constant | [touch_panel.md](touch_panel.md#klargecols) |
 | `kLargeHeight` | constant | [calibrate_panel.md](calibrate_panel.md#klargeheight) |
@@ -2226,6 +2303,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxMarkerArgs` | constant | [route.md](route.md#kmaxmarkerargs) |
 | `kMaxMarkerIdBytes` | constant | [route.md](route.md#kmaxmarkeridbytes) |
 | `kMaxMarkersPerWaypoint` | constant | [route.md](route.md#kmaxmarkersperwaypoint) |
+| `kMaxMechanismPorts` | constant | [calibrate_program.md](calibrate_program.md#kmaxmechanismports) |
 | `kMaxMechanisms` | constant | [robot_config.md](robot_config.md#kmaxmechanisms) |
 | `kMaxMechanisms` | constant | [spec.md](spec.md#kmaxmechanisms) |
 | `kMaxMotorRoles` | constant | [spec.md](spec.md#kmaxmotorroles) |
@@ -2246,7 +2324,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxStoredFileBytes` | constant | [record_store.md](record_store.md#kmaxstoredfilebytes) |
 | `kMaxTablePoints` | constant | [spec.md](spec.md#kmaxtablepoints) |
 | `kMaxWaypoints` | constant | [route.md](route.md#kmaxwaypoints) |
+| `kMechAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kmechagain) |
 | `kMechanismRouteDocBytes` | constant | [mechanism_routes.md](mechanism_routes.md#kmechanismroutedocbytes) |
+| `kMechNotOnCard` | constant | [calibrate_panel.md](calibrate_panel.md#kmechnotoncard) |
+| `kMechSave` | constant | [calibrate_panel.md](calibrate_panel.md#kmechsave) |
 | `kMediumCols` | constant | [calibrate_panel.md](calibrate_panel.md#kmediumcols) |
 | `kMediumCols` | constant | [touch_panel.md](touch_panel.md#kmediumcols) |
 | `kMediumHeight` | constant | [calibrate_panel.md](calibrate_panel.md#kmediumheight) |
@@ -2284,13 +2365,17 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kNextSaves` | constant | [calibrate_panel.md](calibrate_panel.md#knextsaves) |
 | `kNextSpins` | constant | [calibrate_panel.md](calibrate_panel.md#knextspins) |
 | `kNextTouchDone` | constant | [calibrate_panel.md](calibrate_panel.md#knexttouchdone) |
+| `kNextTouchDoneClear` | constant | [calibrate_panel.md](calibrate_panel.md#knexttouchdoneclear) |
 | `kNextTwitch` | constant | [calibrate_panel.md](calibrate_panel.md#knexttwitch) |
 | `kNoAutonName` | constant | [auton_registry.md](auton_registry.md#knoautonname) |
 | `kNoIndependentStallSourceNote` | constant | [odo_stall_check.md](odo_stall_check.md#knoindependentstallsourcenote) |
 | `kNotDriverControl` | constant | [calibrate_screen.md](calibrate_screen.md#knotdrivercontrol) |
 | `kNoteCols` | constant | [calibrate_panel.md](calibrate_panel.md#knotecols) |
+| `kNoteFirst` | constant | [calibrate_panel.md](calibrate_panel.md#knotefirst) |
+| `kNoteNotChecked` | constant | [calibrate_panel.md](calibrate_panel.md#knotenotchecked) |
 | `kNothingOrSomethingElseMoved` | constant | [direction_check.md](direction_check.md#knothingorsomethingelsemoved) |
 | `kNothingPowered` | constant | [calibrate_screen.md](calibrate_screen.md#knothingpowered) |
+| `kNothingSavedYet` | constant | [calibrate_panel.md](calibrate_panel.md#knothingsavedyet) |
 | `kNotStarted` | constant | [calibrate_panel.md](calibrate_panel.md#knotstarted) |
 | `kNotTank` | constant | [calibrate_screen.md](calibrate_screen.md#knottank) |
 | `kOdomAuditDetailMaxBytes` | constant | [odom_tick_audit.md](odom_tick_audit.md#kodomauditdetailmaxbytes) |
@@ -2311,6 +2396,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kProtectionTextBytes` | constant | [drive_protection.md](drive_protection.md#kprotectiontextbytes) |
 | `kProvenanceBytes` | constant | [calibration_record.md](calibration_record.md#kprovenancebytes) |
 | `kPushForward` | constant | [calibrate_panel.md](calibrate_panel.md#kpushforward) |
+| `kPushFrontFirst` | constant | [calibrate_panel.md](calibrate_panel.md#kpushfrontfirst) |
 | `kRecommendedBufferBytes` | constant | [sd_sink.md](sd_sink.md#krecommendedbufferbytes) |
 | `kRecordBackupFileName` | constant | [calibration_record.md](calibration_record.md#krecordbackupfilename) |
 | `kRecordBytes` | constant | [calibration_record.md](calibration_record.md#krecordbytes) |
@@ -2375,6 +2461,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kTypeOffset` | constant | [shul2_format.md](shul2_format.md#ktypeoffset) |
 | `kVersionMajor` | constant | [shul2_format.md](shul2_format.md#kversionmajor) |
 | `kVersionMinor` | constant | [shul2_format.md](shul2_format.md#kversionminor) |
+| `kWarningCut` | constant | [calibrate_panel.md](calibrate_panel.md#kwarningcut) |
 | `kWhichEnd` | constant | [calibrate_panel.md](calibrate_panel.md#kwhichend) |
 | `kWidthTable` | constant | [shul2_format.md](shul2_format.md#kwidthtable) |
 
@@ -2642,6 +2729,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MechanismParts::roles` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-roles) |
 | `MechanismParts::size` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-size) |
 | `MechanismParts::~MechanismParts` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-destructor-mechanismparts) |
+| `MechanismPort` | struct | [calibrate_program.md](calibrate_program.md#struct-mechanismport) |
+| `MechanismPort::name` | field | [calibrate_program.md](calibrate_program.md#mechanismport-name) |
+| `MechanismPort::port` | field | [calibrate_program.md](calibrate_program.md#mechanismport-port) |
 | `MechanismRoutes` | class | [mechanism_routes.md](mechanism_routes.md#class-mechanismroutes) |
 | `MechanismRoutes::doc` | function | [mechanism_routes.md](mechanism_routes.md#mechanismroutes-doc) |
 | `MechanismRoutes::ids` | function | [mechanism_routes.md](mechanism_routes.md#mechanismroutes-ids) |
@@ -3116,6 +3206,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PanelRect::y0` | field | [calibrate_panel.md](calibrate_panel.md#panelrect-y0) |
 | `PanelRect::y1` | field | [calibrate_panel.md](calibrate_panel.md#panelrect-y1) |
 | `PanelScreen` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-panelscreen) |
+| `PanelScreen::Held` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-held) |
 | `PanelScreen::ImuWait` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-imuwait) |
 | `PanelScreen::NotStarted` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-notstarted) |
 | `PanelScreen::Pulses` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-pulses) |
@@ -3488,6 +3579,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsBrainScreen::print` | function | [pros-brain_screen.md](pros-brain_screen.md#prosbrainscreen-print) |
 | `ProsBrainScreen::prints` | function | [pros-brain_screen.md](pros-brain_screen.md#prosbrainscreen-prints) |
 | `ProsBrainScreen::touch` | function | [pros-brain_screen.md](pros-brain_screen.md#prosbrainscreen-touch) |
+| `ProsCalibrateIo` | class | [pros-calibrate.md](pros-calibrate.md#class-proscalibrateio) |
+| `ProsCalibrateIo::competitionStatus` | function | [pros-calibrate.md](pros-calibrate.md#proscalibrateio-competitionstatus) |
+| `ProsCalibrateIo::delayMs` | function | [pros-calibrate.md](pros-calibrate.md#proscalibrateio-delayms) |
+| `ProsCalibrateIo::line` | function | [pros-calibrate.md](pros-calibrate.md#proscalibrateio-line) |
+| `ProsCalibrateIo::readShaftDegrees` | function | [pros-calibrate.md](pros-calibrate.md#proscalibrateio-readshaftdegrees) |
 | `ProsCharSink` | class | [pros-char_sink.md](pros-char_sink.md#class-proscharsink) |
 | `ProsCharSink::ProsCharSink` | function | [pros-char_sink.md](pros-char_sink.md#proscharsink-proscharsink) |
 | `ProsCharSink::ProsCharSink (overload 2)` | function | [pros-char_sink.md](pros-char_sink.md#proscharsink-proscharsink-2) |
@@ -4105,6 +4201,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RpmPreset::rpm` | field | [kinds.md](kinds.md#rpmpreset-rpm) |
 | `runAuton` | free function | [match_runner.md](match_runner.md#runauton) |
 | `runAuton (overload 2)` | free function | [match_runner.md](match_runner.md#runauton-2) |
+| `runCalibrate` | free function | [pros-calibrate.md](pros-calibrate.md#runcalibrate) |
 | `runDriverControl` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol) |
 | `runDriverControl (overload 2)` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol-2) |
 | `runDriverControl (overload 3)` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol-3) |
@@ -4221,6 +4318,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `safeReplace` | free function | [record_store.md](record_store.md#safereplace) |
 | `sameFileOnCard` | free function | [file_store.md](file_store.md#samefileoncard) |
 | `SaveOutcome` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-saveoutcome) |
+| `SaveOutcome::Held` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-held) |
 | `SaveOutcome::NotAttempted` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notattempted) |
 | `SaveOutcome::NotSaved` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notsaved) |
 | `SaveOutcome::Saved` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-saved) |
@@ -4854,6 +4952,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TouchAction::Answer` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-answer) |
 | `TouchAction::None` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-none) |
 | `TouchAction::RunAgain` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-runagain) |
+| `TouchAction::SaveHeld` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-saveheld) |
 | `TouchGate` | class | [calibrate_panel.md](calibrate_panel.md#class-touchgate) |
 | `TouchGate::touch` | function | [calibrate_panel.md](calibrate_panel.md#touchgate-touch) |
 | `TouchGate::TouchGate` | function | [calibrate_panel.md](calibrate_panel.md#touchgate-touchgate) |

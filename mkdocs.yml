@@ -286,6 +286,7 @@ nav:
           - Block sink (PROS): api/pros-block_sink.md
           - Block source (PROS): api/pros-block_source.md
           - Brain screen (PROS): api/pros-brain_screen.md
+          - Calibrate (PROS): api/pros-calibrate.md
           - Char sink (PROS): api/pros-char_sink.md
           - Clock (PROS): api/pros-clock.md
           - Controller (PROS): api/pros-controller.md
@@ -311,6 +312,7 @@ nav:
       - Calibration:
           - Boot check: api/boot_check.md
           - Calibrate panel: api/calibrate_panel.md
+          - Calibrate program: api/calibrate_program.md
           - Calibrate screen: api/calibrate_screen.md
           - Calibration record: api/calibration_record.md
           - Drive characterization: api/drive_characterization.md

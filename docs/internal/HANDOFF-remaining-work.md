@@ -265,15 +265,21 @@ blackbox + reader, fault latch, health monitor, loop monitor. Mechanisms: `hal/m
 (`RunUntilConfirmed`, `ActuateAndConfirm`) and `manipulation/stall_detector.hpp` (`StallDetector`) —
 **seam only, F11 unfrozen, never on hardware.** Sequencing: `sequence/run_guard.hpp` (`RunGuard`, the
 guaranteed end-of-run action; F12 unfrozen; since MECH-A2 its deadline and an abandon also cut a claimed
-mechanism). Adapters (`hal/pros/`, 20 headers): motor, IMU, GPS,
+mechanism). Adapters (`hal/pros/`, 21 headers): motor, IMU, GPS,
 rotation, distance, optical, digital in/out, controller, battery, clock, char sink, block sink +
 source (SD), line display, tick pacer, device registry, (G1 Part 2a, 2026-09-24) the device
 provider `ProsDeviceProvider`, (SAFE-SAVE Part A, 2026-10-04) the SD store `ProsFileStore` built
-over the block sink and source, and (CAL1 Part A1, 2026-10-15) the brain's touch screen
-`ProsBrainScreen` — **no AI Vision adapter.** Drivetrain:
+over the block sink and source, (CAL1 Part A1, 2026-10-15) the brain's touch screen
+`ProsBrainScreen`, and (CAL1 Part A2a, 2026-10-29) the standard Calibrate's shell
+(`hal/pros/calibrate.hpp`: `ProsCalibrateIo` and the five entry functions — not an adapter) — **no AI
+Vision adapter.** Drivetrain:
 `hal::MotorGroup` (median reads, ABSENT members), `hal::DriveGeometry`, `hal::DrivetrainDescription`.
 Calibration: `calibration/drivetrain_calibrator.hpp`, `calibration_record.hpp` (180-byte, CRC-32),
-`boot_check.hpp`. Driver control: `teleop/stick_mapping.hpp` (raw, used by the bench tester's DRIVE
+`boot_check.hpp`, `calibrate_panel.hpp` (the calibrator's screens and touch), (SAFE-SAVE Part A) `record_store.hpp`
+(the safe save), (CAL1 Part A1) `calibrate_screen.hpp` (the painter) and `front_check.hpp` (`compareFronts`), and
+(CAL1 Part A2a) `calibrate_program.hpp` (the standard Calibrate, `CalibrateProgram` — host-only; no program builds
+it yet), and (R5a Part A) `drive_characterization.hpp`, `drive_characterizer.hpp`, `feedforward_fit.hpp` and
+`rest_capture.hpp` (the GAINS and REST measurements; Calibrate runs them in R5a Part C). Driver control: `teleop/stick_mapping.hpp` (raw, used by the bench tester's DRIVE
 station; the OLD shulib Drive used it until T4 Part 3),
 `coupled_side_monitor.hpp`, `drivetrain_degradation.hpp`, and T2's `input_shaping.hpp`,
 `slew_limiter.hpp`, `drive_modes.hpp`, `field_centric.hpp`, `driver_control.hpp`, and (G1 Part 2a)

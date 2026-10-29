@@ -4,9 +4,12 @@
 // motor_get_position, motor_get_encoder_units and motor_get_gearing — the reads by port that the
 // standard Calibrate's WATCH of a declared mechanism motor makes (CAL1 Part A2), with no motor
 // object of any kind. They read the SAME per-port device state as this shim's pros::Motor
-// (motors.hpp's pros::shim::motorState) and WRITE NOTHING: no field of that state changes, and
-// every write counter there (gearing, units, voltage, brake mode, brake) stays where it was. They
-// count their own calls instead (pros::shim::motorCReads()), so a test can see a read happened.
+// (motors.hpp's pros::shim::motorState) and WRITE NOTHING: no field of the DEVICE's state changes,
+// and every write counter there (gearing, units, voltage, brake mode, brake) stays where it was —
+// the one thing a read moves is a TEST's own dropout knob counting down (failPositionReads,
+// failUnitsReads, failGearingReads: one read refused while the other two answer, CAL1 Part A2a's
+// review round). They count their own calls instead (pros::shim::motorCReads()), so a test can see
+// a read happened.
 // The belief behind "a read writes nothing" on the brain is CAL1's (A2 registers it): the vendored
 // libpros.a's three functions call only the firmware's *Get functions.
 //
@@ -96,8 +99,12 @@ namespace c {
 
 inline double motor_get_position(std::int8_t port) {
     ::pros::shim::motorCReads()[static_cast<std::size_t>(std::abs(port))].position += 1;
-    const auto& s = ::pros::shim::motorState(port);
+    auto& s = ::pros::shim::motorState(port);
     if (s.disconnected) {
+        return PROS_ERR_F;
+    }
+    if (s.failPositionReads > 0) {
+        --s.failPositionReads;  // a dropout on this read alone
         return PROS_ERR_F;
     }
     const double outDeg = (port < 0 ? -1.0 : 1.0) * s.positionOutputDeg;
@@ -118,8 +125,12 @@ inline double motor_get_position(std::int8_t port) {
 
 inline motor_encoder_units_e_t motor_get_encoder_units(std::int8_t port) {
     ::pros::shim::motorCReads()[static_cast<std::size_t>(std::abs(port))].units += 1;
-    const auto& s = ::pros::shim::motorState(port);
+    auto& s = ::pros::shim::motorState(port);
     if (s.disconnected) {
+        return E_MOTOR_ENCODER_INVALID;
+    }
+    if (s.failUnitsReads > 0) {
+        --s.failUnitsReads;  // a dropout on this read alone
         return E_MOTOR_ENCODER_INVALID;
     }
     return static_cast<motor_encoder_units_e_t>(static_cast<int>(s.units));
@@ -127,8 +138,12 @@ inline motor_encoder_units_e_t motor_get_encoder_units(std::int8_t port) {
 
 inline motor_gearset_e_t motor_get_gearing(std::int8_t port) {
     ::pros::shim::motorCReads()[static_cast<std::size_t>(std::abs(port))].gearing += 1;
-    const auto& s = ::pros::shim::motorState(port);
+    auto& s = ::pros::shim::motorState(port);
     if (s.disconnected) {
+        return E_MOTOR_GEARSET_INVALID;
+    }
+    if (s.failGearingReads > 0) {
+        --s.failGearingReads;  // a dropout on this read alone
         return E_MOTOR_GEARSET_INVALID;
     }
     return static_cast<motor_gearset_e_t>(static_cast<int>(s.gearing));
