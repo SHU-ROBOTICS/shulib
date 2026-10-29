@@ -16,7 +16,7 @@
 
 ## API 2.5
 
-### Added (2026-10-22) — the mechanism core, part 4: a mechanism step on one line of an auton, presets on the driver's buttons, every mechanism's route ids run, and the direction check's judgement
+### Added (2026-10-29; built 2026-10-22) — the mechanism core, part 4: a mechanism step on one line of an auton, presets on the driver's buttons, every mechanism's route ids run, and the direction check's judgement
 
 > Written when it was built (chunk MECH-A4, the fourth of the mechanism core's six parts). **Minor bump,
 > 2.4 → 2.5** — the recipe layer ([Freeze Register](roadmap.md#freeze-register) row F10) and the

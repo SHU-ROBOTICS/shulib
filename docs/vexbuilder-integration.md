@@ -349,7 +349,7 @@ sink's contract carries, what keeps your parser trivial, and what makes two buil
 
 - Line 1 is the header; every later line is one command, with the **same five fields** every time
   (`doc` is `""` for an id a team registered without one — the library does not know its meaning;
-  since the mechanism core's fourth part, 2026-10-22, an id MAY be registered with its one-line doc,
+  since the mechanism core's fourth part, 2026-10-29, an id MAY be registered with its one-line doc,
   and every mechanism id below is).
 - **Order is part of the contract:** the built-ins first, in the order above, **append-only**; then
   the team's ids in **registration order**. A byte-exact golden test in shulib pins these bytes, so
@@ -359,7 +359,7 @@ sink's contract carries, what keeps your parser trivial, and what makes two buil
   `\` is refused when it is registered).
 
 **Every mechanism's actions are ids too — derived, never typed (since the mechanism core's fourth part,
-2026-10-22).** A robot's mechanisms are declared once in its robot file, and their ids are DERIVED from
+2026-10-29).** A robot's mechanisms are declared once in its robot file, and their ids are DERIVED from
 those declarations, one rule per kind — an arm's or a lift's `<name>_<preset>` and `<name>_home`, a
 flywheel's `<name>_<preset>` and `<name>_stop`, a power mechanism's `<name>_run`,
 `<name>_until_piece` / `<name>_until_gone` (when it has a piece sensor) and `<name>_stop`, a
@@ -420,7 +420,7 @@ legacy id ended up:
 |---|---|---|
 | `MOVE_WITH_HEADING` | **yes** — 826 CSV rows + 635 generated + 10 hand-written | covered: it is `motion: "move"` with `headingMode: "fixed"` |
 | `NONE` | **yes** — 18 rows, and **absent from both legacy enums** | **ANSWERED — see below. It is not an id and never will be** |
-| `PICK_UP`, `PLACE`, `SCOOP`, `RELEASE`, `CLASP` | **no — declared in an enum, never emitted** | planned scoring primitives, not yet built; they will arrive as ordinary registered ids in the manifest. What a robot's MECHANISMS do already arrives that way — each declared mechanism's derived ids (4.2.3), since 2026-10-22 |
+| `PICK_UP`, `PLACE`, `SCOOP`, `RELEASE`, `CLASP` | **no — declared in an enum, never emitted** | planned scoring primitives, not yet built; they will arrive as ordinary registered ids in the manifest. What a robot's MECHANISMS do already arrives that way — each declared mechanism's derived ids (4.2.3), since 2026-10-29 |
 
 **Only one motion id was ever really used.** The five manipulation ids are aspirational, and the
 primitives behind them are gated on the build team's final mechanism decisions — which are not made.

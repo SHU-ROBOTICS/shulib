@@ -100,7 +100,7 @@ inline constexpr int kApiMajor = 2;
 /// shape, no enumerator moved, no behaviour changed — every 2.3 program compiles and runs
 /// exactly as before.
 /// docs/changelog.md, API 2.4, lists it.
-/// 5 = chunk MECH-A4 (2026-10-22), the mechanism core's autons, driver controls and route binder,
+/// 5 = chunk MECH-A4 (2026-10-29; built 2026-10-22), the mechanism core's autons, driver controls and route binder,
 /// every one the additive path: `Routine` gains a SECOND constructor `Routine r{ctx, "name"}` (a new
 /// overload — the frozen `Routine(Chassis&, const char*)` is untouched), the mechanism steps (move /
 /// startMove / home / startHome / run / startRun / set / spinUp / startSpinUp / stop /

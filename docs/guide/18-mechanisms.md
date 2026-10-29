@@ -9,7 +9,7 @@
 > the direction check judges.
 >
 > **What exists, and what does not yet.** The mechanism core's first four parts are in (MECH-A1 and
-> A2, 2026-10-15; A3 and A4, 2026-10-22): the vocabulary and its build checks, the mechanism SERVICE
+> A2, 2026-10-15; A3, 2026-10-22; A4, 2026-10-29): the vocabulary and its build checks, the mechanism SERVICE
 > (one object, ticked once per control tick, that runs every mechanism's behaviour), the behaviours of
 > all four kinds of mechanism — power, pneumatic, POSITION (an arm, a lift) and SPEED (a flywheel) —
 > and everything that calls them: the auton STEPS (`r.move(arm["score"], 1.5_s)`), the driver

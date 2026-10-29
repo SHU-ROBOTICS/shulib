@@ -18,7 +18,7 @@ line, which each test declares just above. The last section quotes a real file f
 compiles and [`test/robot_two_driver_test.cpp`](../../test/robot_two_driver_test.cpp) runs through
 the host's stand-in for PROS.
 
-> **Since the mechanism core's fourth part (2026-10-22) these two bindings are SUPERSEDED, not removed.** A
+> **Since the mechanism core's fourth part (2026-10-29) these two bindings are SUPERSEDED, not removed.** A
 > robot whose mechanisms are declared in its robot file states its buttons as one checked list of driver
 > controls — `whileHeld`, `toggle`, `preset` (presets on buttons), the homing controls — run through the same
 > mechanism service as its autons ([chapter 18](../guide/18-mechanisms.md#on-the-drivers-buttons--the-driver-files-controls);

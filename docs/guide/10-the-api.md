@@ -410,7 +410,7 @@ show `cmd#0`). Until you need it, you don't need it.
 > POWER and PNEUMATIC mechanisms through it, ticked once per control tick, and since its third (MECH-A3,
 > 2026-10-22) the POSITION and SPEED behaviours too — an `Arm` or a `Lift` moves, holds and finds its
 > zero, a `Flywheel` spins up and stays at speed ([chapter 18](18-mechanisms.md)). Since its fourth
-> (MECH-A4, 2026-10-22) everything that calls the service exists: the auton STEPS
+> (MECH-A4, 2026-10-29) everything that calls the service exists: the auton STEPS
 > (`r.move(arm["score"], 1.5_s)`), the driver CONTROLS, the ROUTE BINDER that runs a marker's id, and
 > the direction check's judgement ([below](#in-an-auton-on-the-buttons-on-a-route)) — but no program
 > builds a service yet: robot two's programs move onto it in the core's fifth part, which also prints
