@@ -837,6 +837,12 @@ Sequence: hasFix() reads sample N -> true. pose() then reads sample N+1; if N+1 
 **ProsImu::yawRate() in the DEFAULT DifferentiateRotation mode is a CONSUMING read that rebases the differentiation sample, but IImu::yawRate() is a plain const accessor called 2-4x per tick by independent consumers — so the value each caller gets depends on who read it first, and attaching a telemetry sink changes the yaw rate the Localizer sees.**
 
 > **DEFECTS1 → DEFER.** R4. The consuming-read rebase needs measured call patterns and a real loop rate before a design can be chosen.
+>
+> *(Dated pointer, 2026-10-29 — history, not rewritten: IMU1 closes A17. Under PROS's documented 10 ms data copy
+> (A4 register HA-213) the effect is not "only noisier" but BIASED — the Localizer's rate 0 on every tick for one
+> band of the copy's phase (derived and reproduced on the host test plant; never measured on a robot). IMU1 Part A (2026-10-29) makes `ProsImu::yawRate()` answer once per control tick; its
+> Part B is the "measured call patterns and a real loop rate" this deferral asked for — [IMU1's live
+> log](IMU1-PROGRESS.md), its completion record after Part B.)*
 
 <details>
 <summary>Evidence (7 lines)</summary>

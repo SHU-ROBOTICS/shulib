@@ -416,6 +416,12 @@ not silently break them. This table is the spine of the no-staleness promise.
 > typed drive ports as the reference when the card holds no record, the proof through the real PROS shell, the
 > guide chapter).
 >
+> **Now (2026-10-29): IMU1 Part A has LANDED — host-only.** The robot's IMU adapter now answers its turn rate ONCE per
+> control tick: a second read within 5 ms gets the first read's answer, so the Localizer, a tank's steering and the
+> rest gates all see the same number (a second read used to come back as about 0 or a spike, which on the host test
+> plant could turn the 40 in auton into a timeout). Nothing has run on a robot; Station M's floor runs wait for this
+> build. **Next for IMU1 is Part B**, a short Bench Tests stage that measures the IMU on the robot.
+>
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
 > robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver

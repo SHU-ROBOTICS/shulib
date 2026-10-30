@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 5,059 of them, across 188 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 5,060 of them, across 188 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -3666,6 +3666,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsImu::faultedReads` | function | [pros-imu.md](pros-imu.md#prosimu-faultedreads) |
 | `ProsImu::heading` | function | [pros-imu.md](pros-imu.md#prosimu-heading) |
 | `ProsImu::isReady` | function | [pros-imu.md](pros-imu.md#prosimu-isready) |
+| `ProsImu::kRateHoldUs` | field | [pros-imu.md](pros-imu.md#prosimu-krateholdus) |
 | `ProsImu::pitch` | function | [pros-imu.md](pros-imu.md#prosimu-pitch) |
 | `ProsImu::ProsImu` | function | [pros-imu.md](pros-imu.md#prosimu-prosimu) |
 | `ProsImu::roll` | function | [pros-imu.md](pros-imu.md#prosimu-roll) |

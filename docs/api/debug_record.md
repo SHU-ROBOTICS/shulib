@@ -515,9 +515,9 @@ canonical IMU heading — C1
 units::AngularVelocity imuYawRate{}
 ```
 
-canonical yaw rate — C1
+Canonical yaw rate: the IMU's answer for this tick — on ProsImu since IMU1, the same value every reader saw that tick, the Localizer's included, within the hold's limits (a tick that stalls over 5 ms between its reads gives its later readers a fresh answer; ProsImu's header) — C1
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:149`](../../include/shulib/diag/debug_record.hpp#L149).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:153`](../../include/shulib/diag/debug_record.hpp#L153).*
 
 <a id="debugrecord-activecommandid"></a>
 
@@ -529,7 +529,7 @@ std::uint32_t activeCommandId = 0
 
 0 = no active command. Ids are assigned by the motion scheduler (C2); the value is wire-stable as a plain integer regardless of what the ids come to mean.
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:154`](../../include/shulib/diag/debug_record.hpp#L154).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:158`](../../include/shulib/diag/debug_record.hpp#L158).*
 
 <a id="debugrecord-activecommandstate"></a>
 
@@ -541,7 +541,7 @@ std::uint8_t activeCommandState = 0
 
 Motion-layer state (run/settling/…). 0 = idle. The VOCABULARY is owned by the motion layer (C1/C2); once assigned, values are wire-stable like FaultCode's.
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:157`](../../include/shulib/diag/debug_record.hpp#L157).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:161`](../../include/shulib/diag/debug_record.hpp#L161).*
 
 <a id="debugrecord-deadreckoning"></a>
 
@@ -553,7 +553,7 @@ bool deadReckoning = false
 
 Localizer::isDeadReckoning() — C1
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:160`](../../include/shulib/diag/debug_record.hpp#L160).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:164`](../../include/shulib/diag/debug_record.hpp#L164).*
 
 <a id="debugrecord-qualityclass"></a>
 
@@ -565,7 +565,7 @@ std::uint8_t qualityClass = 0
 
 Categorical quality, mirroring localization::Localizer::Quality numerically (0=Uninitialized 1=DeadReckon 2=Corrected 3=Degraded — the mapping is pinned by test so a reorder of either enum is caught). Kept as a raw byte so diag/ stays a leaf that localization/ may depend on, never the reverse. — C1
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:165`](../../include/shulib/diag/debug_record.hpp#L165).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:169`](../../include/shulib/diag/debug_record.hpp#L169).*
 
 <a id="debugrecord-quality"></a>
 
@@ -577,7 +577,7 @@ double quality = 0.0
 
 the [0,1] scalar (Localizer::quality()) — C1
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:166`](../../include/shulib/diag/debug_record.hpp#L166).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:170`](../../include/shulib/diag/debug_record.hpp#L170).*
 
 <a id="debugrecord-covariancetrace"></a>
 
@@ -589,7 +589,7 @@ double covarianceTrace = 0.0
 
 EKF covariance trace once E4 lands; the complementary tier may surface its scalar trust weight here until then. One slot, semantics per active fusion policy (§18.2 "covariance trace / filter trust weights"). — E4
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:170`](../../include/shulib/diag/debug_record.hpp#L170).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:174`](../../include/shulib/diag/debug_record.hpp#L174).*
 
 <a id="debugrecord-gateresidualx"></a>
 
@@ -601,7 +601,7 @@ units::Length gateResidualX{}
 
 innovation, field x — E2/E3
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:173`](../../include/shulib/diag/debug_record.hpp#L173).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:177`](../../include/shulib/diag/debug_record.hpp#L177).*
 
 <a id="debugrecord-gateresidualy"></a>
 
@@ -613,7 +613,7 @@ units::Length gateResidualY{}
 
 innovation, field y — E2/E3
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:174`](../../include/shulib/diag/debug_record.hpp#L174).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:178`](../../include/shulib/diag/debug_record.hpp#L178).*
 
 <a id="debugrecord-gateresidualheading"></a>
 
@@ -625,7 +625,7 @@ units::AngleDim gateResidualHeading{}
 
 innovation, heading (radians) — E3
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:175`](../../include/shulib/diag/debug_record.hpp#L175).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:179`](../../include/shulib/diag/debug_record.hpp#L179).*
 
 <a id="debugrecord-gatemahalanobis"></a>
 
@@ -637,7 +637,7 @@ double gateMahalanobis = 0.0
 
 Mahalanobis distance of the fix — E4
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:176`](../../include/shulib/diag/debug_record.hpp#L176).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:180`](../../include/shulib/diag/debug_record.hpp#L180).*
 
 <a id="debugrecord-gatereason"></a>
 
@@ -649,7 +649,7 @@ GateReason gateReason = GateReason::None
 
 why accepted/rejected — E2/E3/E4
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:177`](../../include/shulib/diag/debug_record.hpp#L177).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:181`](../../include/shulib/diag/debug_record.hpp#L181).*
 
 <a id="debugrecord-correctiondx"></a>
 
@@ -661,7 +661,7 @@ units::Length correctionDx{}
 
 net position nudge applied this tick — C1
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:180`](../../include/shulib/diag/debug_record.hpp#L180).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:184`](../../include/shulib/diag/debug_record.hpp#L184).*
 
 <a id="debugrecord-correctiondy"></a>
 
@@ -673,7 +673,7 @@ units::Length correctionDy{}
 
 — C1
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:181`](../../include/shulib/diag/debug_record.hpp#L181).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:185`](../../include/shulib/diag/debug_record.hpp#L185).*
 
 <a id="debugrecord-correctiondtheta"></a>
 
@@ -685,7 +685,7 @@ units::AngleDim correctionDTheta{}
 
 heading nudge (0 at M2: heading is IMU-owned) — E3
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:182`](../../include/shulib/diag/debug_record.hpp#L182).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:186`](../../include/shulib/diag/debug_record.hpp#L186).*
 
 <a id="debugrecord-clampedthistick"></a>
 
@@ -697,7 +697,7 @@ bool clampedThisTick = false
 
 the per-tick nudge budget bound the correction — C1
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:183`](../../include/shulib/diag/debug_record.hpp#L183).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:187`](../../include/shulib/diag/debug_record.hpp#L187).*
 
 <a id="debugrecord-strafefallbackactive"></a>
 
@@ -709,7 +709,7 @@ bool strafeFallbackActive = false
 
 H-drive turn-then-drive fallback engaged (§13 #5) — C3
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:184`](../../include/shulib/diag/debug_record.hpp#L184).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:188`](../../include/shulib/diag/debug_record.hpp#L188).*
 
 <a id="debugrecord-fault"></a>
 
@@ -721,7 +721,7 @@ FaultCode fault = FaultCode::None
 
 fault raised THIS tick (the latch keeps the first)
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:187`](../../include/shulib/diag/debug_record.hpp#L187).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:191`](../../include/shulib/diag/debug_record.hpp#L191).*
 
 <a id="debugrecord-batteryvoltage"></a>
 
@@ -733,7 +733,7 @@ units::Voltage batteryVoltage{}
 
 — C1
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:188`](../../include/shulib/diag/debug_record.hpp#L188).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:192`](../../include/shulib/diag/debug_record.hpp#L192).*
 
 <a id="debugrecord-batterycurrent"></a>
 
@@ -745,7 +745,7 @@ units::Current batteryCurrent{}
 
 — C1
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:189`](../../include/shulib/diag/debug_record.hpp#L189).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:193`](../../include/shulib/diag/debug_record.hpp#L193).*
 
 <a id="debugrecord-droppedrecords"></a>
 
@@ -757,7 +757,7 @@ std::uint32_t droppedRecords = 0
 
 emit()-channel records dropped so far — C5
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:196`](../../include/shulib/diag/debug_record.hpp#L196).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:200`](../../include/shulib/diag/debug_record.hpp#L200).*
 
 <a id="debugrecord-droppedlines"></a>
 
@@ -769,7 +769,7 @@ std::uint32_t droppedLines = 0
 
 log()-channel lines dropped so far — C5
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:197`](../../include/shulib/diag/debug_record.hpp#L197).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:201`](../../include/shulib/diag/debug_record.hpp#L201).*
 
 <a id="debugrecord-tickphase"></a>
 
@@ -781,7 +781,7 @@ std::array<units::Time, static_cast<std::size_t>(kTickPhaseSlots)> tickPhase{}
 
 D-3: per-subsystem tick-time attribution in canonical seconds, indexed by TickPhase (top of file). Slots for phases marked RESERVED hold 0 until their producer exists; slots 6..7 are spare capacity (kTickPhaseSlots note). The values describe the most recently COMPLETED tick (the stamping sink cannot know the current tick's total mid-tick; one-tick lag, documented at the producer). All-zero when attribution is off, which is indistinguishable here from a tick that spent no time anywhere — read it with that in mind. Do NOT audit the sum against `dt`: tick_attribution.hpp's "attributed never exceeds the total" contract is qualified ON THE SAME CLOCK, and the attribution clock is injected separately from the loop clock `dt` is measured on — this record carries no attribution total of its own to compare against. Even on that one clock the relation is soft enough that TickAttribution floors its own remainder at 0, because a clock that jumps mid-phase can push the phases past the total. So read a shortfall as un-instrumented work rather than a missing phase, and read a sum above `dt` as a statement about two clocks rather than a broken record. — C5 (scheduler)
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:212`](../../include/shulib/diag/debug_record.hpp#L212).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:216`](../../include/shulib/diag/debug_record.hpp#L216).*
 
 <a id="debugrecord-tanksteeractive"></a>
 
@@ -793,7 +793,7 @@ bool tankSteerActive = false
 
 MoveToPose on a TANK changed this tick's yaw command to steer back onto the target's line (the bend's share of the heading loop plus the yaw correction) by more than the legibility floor (motion/tank_steer.hpp, kTankSteerNoiseFraction: 2 % of maxAngularSpeed). Never set on a drivetrain with strafe authority, nor by any motion but a plain MoveToPose. The blackbox carries it as tick flags bit 2; TermSink prints " TSTR". — TANK1
 
-*field, declared at [`include/shulib/diag/debug_record.hpp:221`](../../include/shulib/diag/debug_record.hpp#L221).*
+*field, declared at [`include/shulib/diag/debug_record.hpp:225`](../../include/shulib/diag/debug_record.hpp#L225).*
 
 ## Design commentary, from the header
 

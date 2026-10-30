@@ -146,7 +146,11 @@ struct DebugRecord {
 
     // ── inertial ────────────────────────────────────────────────────────────────────
     math::Angle imuYaw{};               ///< canonical IMU heading — C1
-    units::AngularVelocity imuYawRate{};  ///< canonical yaw rate — C1
+    /// Canonical yaw rate: the IMU's answer for this tick — on ProsImu since IMU1, the same value
+    /// every reader saw that tick, the Localizer's included, within the hold's limits (a tick that
+    /// stalls over 5 ms between its reads gives its later readers a fresh answer; ProsImu's
+    /// header) — C1
+    units::AngularVelocity imuYawRate{};
 
     // ── active command ──────────────────────────────────────────────────────────────
     /// 0 = no active command. Ids are assigned by the motion scheduler (C2); the value

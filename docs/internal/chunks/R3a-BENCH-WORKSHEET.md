@@ -1711,6 +1711,22 @@ have one there, its first auton; you are not on PICK when you abort.)
 
 **M.6 — the floor run on the tape**
 
+> **M.6 needs an IMU1 Part A build** *(added by IMU1 Part A, 2026-10-29 — the team lead's D4 (a), 2026-10-22;
+> the check corrected at Part A's review, the same day)*. Before IMU1 Part A, the tester's motion read the IMU's
+> turn rate twice in every tick, and on this robot the second read could spoil the next tick's first — the one
+> TANK1's steering correction uses (derived from the code and PROS's documented 10 ms copy; never seen on a
+> robot). **A floor run counts as evidence for HA-179 and HA-180 only from a tester built from a tree with IMU1
+> Part A's hold in it:** before M.1's build, in the laptop's shulib folder,
+> `grep -c kRateHoldUs include/shulib/hal/pros/imu.hpp` must print **1 or more**; `0` (or "No such file") is a
+> pre-IMU1 tree. (Not `git log | grep IMU1`: two older plan commits carry "IMU1" in their subjects and hold no
+> fix.) Write M.2.2's boot `hash` in M.6.4's table — for a run written down earlier, the hash's `g…` part names
+> the commit (`…-g2ef1f3f` → `2ef1f3f`), and
+> `git show 2ef1f3f:include/shulib/hal/pros/imu.hpp | grep -c kRateHoldUs`
+> answers the same question. A run on an older build (or a hash ending `-dirty` you cannot account for) is
+> still recorded, marked **pre-IMU1**, and a TIMEOUT on it — TSTR lit, the correction pinned at its limit —
+> is NOT evidence against HA-179. M.0–M.5 (the boot, the forward check, the aborts, the wheels-up run) need
+> no IMU1 build.
+
 - [ ] **M.6.1** **Capture serial BEFORE RUN** (it is the only place the tick lines are; the SD file gets
       each run's summary lines, not its ticks). Use ONE of: (a) the brain's micro-USB to a laptop running
       `pros terminal`, on a cable long enough for ~45 in of travel, held **slack and to the SIDE** so it
@@ -1737,6 +1753,7 @@ have one there, its first auton; you are not on PICK when you abort.)
 
       | | run 1 | run 2 | run 3 |
       |---|---|---|---|
+      | build hash (M.2.2), and the `kRateHoldUs` grep's count (1 or more = IMU1 Part A) | | | |
       | RESULT word | | | |
       | END x, END y (estimate, from RESULT or serial line 4) | | | |
       | the faults line | | | |
@@ -1930,6 +1947,12 @@ start level — CLOSED — while disabled):
 
 **K.5 — a practice match on the tape** (only if K.3 found a disabled window before autonomous)
 
+> **K.5 counts with M.6's rule** *(added at IMU1 Part A's review, 2026-10-29 — the IMU1 brief's §6, D4 (a))*:
+> K.5 runs the same 40 in through the same call, so a K.5 run is evidence for HA-179 and HA-180 only on an IMU1
+> Part A build, checked the same way — the `grep -c kRateHoldUs include/shulib/hal/pros/imu.hpp` before K.1's
+> build (1 or more), and K.2.2's boot `hash` in K.5.3's table. A run on an older build is recorded, marked
+> **pre-IMU1**; a TIMEOUT on it is not evidence against HA-179. K's other steps need no IMU1 build.
+
 - [ ] **K.5.1** The robot on START, **the end that made EST x rise in M.3 leading**, facing along the tape.
       Start the Timed Run (K.3.1's way). **In the disabled window**, touch `40in forward MATCH` on the
       brain: the bar reads `AUTON: 40in forward` and serial logs `menu: the auton is now '40in forward'`.
@@ -1959,6 +1982,7 @@ start level — CLOSED — while disabled):
 
       | | run 1 | run 2 |
       |---|---|---|
+      | build hash (K.2.2), and the `kRateHoldUs` grep's count (1 or more = IMU1 Part A) | | |
       | RESULT word | | |
       | line 3: `routine OK`, or `stopped at <step> (<cause>)` and the last fault by name (e.g. `ODO_STUCK`) | | |
       | the hand-off (line 2), s | | |

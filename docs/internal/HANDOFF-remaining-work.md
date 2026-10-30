@@ -606,7 +606,10 @@ first" — a bounded correction that never plans a turn, logged when it steers, 
 byte-for-byte unchanged, the auton line unchanged. HA-179/180. **Part A LANDED 2026-09-28 as `3965791`**
 (`chunks/TANK1-PROGRESS.md`, Part A and the coordinator's merge record: the steering, TSTR, the Warn, 40 new test
 cases after the 2026-09-28 review added the bend's lead, API 2.3, HA-179/180); its build found that the
-Localizer reads the IMU rate twice at every chained-motion boundary (IMU1's, not TANK1's; TANK1 immune). **Part B LANDED
+Localizer reads the IMU rate twice at every chained-motion boundary (IMU1's, not TANK1's; TANK1 immune — corrected
+2026-10-22: not immune on robot two, whose record read would damage the Localizer's rate (IMU1's brief §0.2;
+derived from the adapter's code and PROS's documented 10 ms copy, HA-213 — never measured); IMU1 Part A BUILT
+2026-10-29, `chunks/IMU1-PROGRESS.md`). **Part B LANDED
 2026-09-29** (`chunks/TANK1-PROGRESS.md`, Part B, its review findings and the coordinator's merge record: translating
 tank result lines end with ` xt`, the final cross-track error; X/H lines byte-identical).
 

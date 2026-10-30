@@ -280,9 +280,9 @@ public:
             // heading error winds up, motion_tank_steer_test.cpp P5); while the robot cannot
             // follow, it integrates like one, bounded by yawCorrectionLimit, and decays within
             // about yawObserverTime once the robot rotates again (P8). The rate is the one the
-            // Localizer read THIS tick (loc.twist(), finite-guarded there) -- NEVER a second
-            // ctx.imu().yawRate(): ProsImu's default rate differentiates between successive
-            // CALLS, so a second read in the same tick is ~0 or a spike (hal/pros/imu.hpp; P14).
+            // Localizer read THIS tick (loc.twist(), finite-guarded there): the value the estimate
+            // used, pinned by P14. (Before IMU1 a second ctx.imu().yawRate() would have been ~0
+            // or a spike -- derived, never measured; ProsImu answers once per tick -- its header.)
             // It holds its estimate while the IMU is not ready.
             if (hasOmegaCmd_ && dt.value() > 0.0 && ctx.imu().isReady()) {
                 const double unexplained = loc.twist().omega().value() - lastOmegaCmd_;

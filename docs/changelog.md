@@ -16,6 +16,70 @@
 
 ## API 2.5
 
+### Fixed since 2.5 (2026-10-29) — the IMU's turn rate answers once per control tick
+
+> Written when it was built (chunk IMU1 Part A; the team lead's "accept all" of 2026-10-22). **No
+> version bump — a BEHAVIOUR change inside an adapter and one new constant:** `hal::pros` adapters are
+> implementations, not contracts (the [Freeze Register](roadmap.md#freeze-register)'s F13 row), no
+> signature changed, and the frozen `IImu` (F4) is untouched. **Host and build gated only — nothing
+> here has run on a robot**: the defect is DERIVED from the adapter's code and PROS's documented 10 ms
+> data copy (A4 register HA-213, never measured on our brains) and reproduced on the host test plant;
+> whether robot two's copy timing lands in the bad band (HA-214) is unknown.
+
+**FIXED — a second read of the IMU's turn rate in one tick answered about 0 or a spike, and spoiled the
+next tick's first read.** `hal::pros::ProsImu::yawRate()` (every robot's IMU) differentiated the IMU's
+rotation between CALLS, and the library reads the rate two or three times a tick — the Localizer; every
+motion's record when the sink wants records (robot two's serial sink wants every one); a GPS or tag
+corrector's gate; the calibration classes. On a robot those reads are microseconds apart while PROS
+copies the IMU's numbers only every 10 ms, so the second read answered about 0 (or a spike when a copy
+landed between the two) AND moved the differentiation baseline: the NEXT tick's first read — the
+Localizer's, which TANK1's yaw observer and `DriveBrake` use — read about 3 % high, or, for one band of
+the copy's timing, 0 on every tick. On the host test plant, with TANK1's own motor-lag values, that band
+turned the 40 in auton from FINISHED into a 5 s TIMEOUT. Now `yawRate()` keeps its answer for
+`ProsImu::kRateHoldUs` (5 ms, half the 10 ms tick): a read within 5 ms of the last fresh answer returns
+that answer and touches neither the sensor nor the differentiation baseline. Every reader in one tick
+gets the same value — the Localizer, every record (whose `imuYawRate` is now the Localizer's value), a
+corrector's gate, the calibration classes, and your own `imu.yawRate()` from inside a library tick. The
+hold covers the gyro source (`YawRateSource::GyroRateZ`) too. `faultedReads()` no longer counts a held
+read: a dead sensor counts one rate read per tick. First recorded at DOCS2 (A17), re-found by TANK1.
+
+**Added:** `hal::pros::ProsImu::kRateHoldUs` (`std::uint32_t`, 5000 µs) — the hold, in whole
+microseconds, pinned to `ProsTickPacer::kTickMs` by a test.
+
+**Breaking or additive:** a behaviour change in an adapter; no signature changes and no version bump.
+On the host test plant nothing changes for any existing program: every host clock stands still inside a
+tick, where the old adapter already answered every in-tick read with one value — the suite's every
+other case gives byte-for-byte the same results.
+
+**What you must do:** nothing, for code that reads the rate inside a library tick: within one library
+tick, every read gets the library's value. **The hold's three limits** (`ProsImu`'s header; A4 register
+HA-215 — the hold infers "the same tick" from the clock, not from the loop; the figures are the host
+test plant's, pinned by IMU1's tests L1–L3 and T9 (b)):
+
+- **(1) A stall or a late wake.** A tick that stalls more than 5 ms between two of its reads (a slow SD
+  write, a long record) gives its later readers a fresh answer, and the Localizer's next two ticks read
+  off — the first held from that answer, the second low; a tick that wakes 5 ms or more late is followed
+  by an on-time wake less than 5 ms after it, which gets the late tick's answer, one tick stale (three
+  of the Localizer's ticks off, where a 4 ms late wake, which the hold does not touch, costs two). Then
+  nothing — neither repeats without its cause.
+- **(2) The tick's first read moving** — see *Not fixed*, below.
+- **(3) A reader outside the tick.** A read from OUTSIDE the library's loop — between routine steps, or
+  from a task of your own — 5–10 ms after a tick's first read makes the library's next tick read a stale
+  rate and the one after a skewed one: two of the Localizer's ticks per such read (one such read every
+  10 ticks: 60 of 300 ticks off, where the adapter before IMU1 lost 30 — measured on the host test plant
+  on 2026-10-29 with that adapter put back; no test holds that figure). And a loop of your own at any
+  period other than a multiple of 10 ms gets a rate that is 0 on a large share of its reads (the IMU
+  copies new data every 10 ms — A4 register HA-213; a 4 ms loop read 0 on one read in five and never
+  exactly). For your own loop, differentiate the heading over 10 ms or more yourself, or use the gyro's
+  rate once HA-04 and HA-109 are settled.
+
+**Not fixed** (limit (2)): the residual of A4 register HA-214 — the IMU's copy landing next to the tick's
+one rate read, or between two positions of a tick's first read (a corrector's gate on a fresh-fix tick
+against the Localizer on a stale one; Calibrate's REST capture starting) — gives a pair of ticks 0 and
+about double (a GPS fix every 5th tick, with the copy between the gate's read and the Localizer's: at
+most 60 zero and 60 double of 300 ticks). Its cure is the gyro's own rate, once the bench measures its
+sign (HA-04).
+
 ### Added since 2.5 (2026-10-29; built 2026-10-18–22, reviewed and fixed 2026-10-22–29) — the standard Calibrate: a team states its drive kind, its cartridge and its mechanism motors, and every team runs the same Calibrate
 
 > Written when it was built (chunk CAL1, Part A2a of four: the standard program, with the card's record

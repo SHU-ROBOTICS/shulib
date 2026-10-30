@@ -23,7 +23,7 @@
 //   P11 the honest signal is strafeAuthority() == 0 exactly (a dead-strafe-wheel H-drive)
 //   P12 robot two's odometry shape (drive encoders + IMU) sees the drift and steers it out
 //   P13 the plant WITH motor lag: a regression fence that pins today's limits
-//   P14 the observer never re-reads the IMU (ProsImu differentiates between CALLS)
+//   P14 the observer never re-reads the IMU (ProsImu differentiated between CALLS until IMU1)
 //   P15 no leg that settles with TANK1 off times out with it on (the Part A review's legs: a
 //       start 10–14 degrees off the target heading, pointed at the line), and the lateral reach
 //       has no holes (the lead — tank_steer.hpp)
@@ -1212,11 +1212,16 @@ TEST_CASE("P13 with unmodelled motor lag: the 9 % weak 40 in still settles; late
 
 namespace {
 
-/// An IImu shaped like ProsImu's default rate (DifferentiateRotation on a microsecond clock):
-/// the FIRST yawRate() of each clock instant answers truly; every later call in the same instant
-/// answers 0 ("zero") or 0 with a rare 50x spike ("spike") — what a second read of a
-/// differentiated rotation microseconds after the first returns on the robot. FakeImu is
-/// stateless, so without this no host test can see a second read.
+/// An IImu shaped like the PRE-IMU1 ProsImu's default rate (DifferentiateRotation on a
+/// microsecond clock): the FIRST yawRate() of each clock instant answers truly; every later call
+/// in the same instant answers 0 ("zero") or 0 with a rare 50x spike ("spike") — what a second
+/// read of a differentiated rotation microseconds after the first would return on a robot (derived
+/// from the adapter's code and PROS's documented 10 ms copy, HA-213 — never measured). It leaves
+/// out what the real adapter also did: that second read moved the baseline, so the NEXT tick's
+/// first read was damaged too (the IMU1 brief's §0.2). Since IMU1 ProsImu answers once per tick,
+/// and IMU1's T8 (test/imu_rate_once_per_tick_test.cpp) runs this scenario through the REAL
+/// adapter; P14 stays as the pin that the observer reads loc.twist(). FakeImu is stateless, so
+/// without this no host test can see a second read.
 enum class ImuShape { Plain, Zero, Spike };
 
 struct ProsShapedImu final : shulib::hal::IImu {
@@ -1258,7 +1263,8 @@ struct ProsShapedImu final : shulib::hal::IImu {
 };
 
 /// The Chassis stack with the RobotContext AND the Localizer sharing one ProsShapedImu, and no
-/// telemetry sink (so no record — the pre-existing record reads of the IMU are D4's, IMU1).
+/// telemetry sink (so no record — the record reads of the IMU were D4's, fixed in ProsImu by
+/// IMU1).
 struct ProsImuRig {
     sim::SimHarness h;
     ProsShapedImu imu;
@@ -1303,10 +1309,12 @@ struct ProsImuRig {
 }  // namespace
 
 // Bug caught: the observer reading ctx.imu().yawRate() (M28 — the brief's first draft). On the
-// robot the Localizer has already made the tick's read, so a second read is ~0 (or a spike):
-// the observer would learn a phantom disturbance on every tick. It must use the rate the
+// robot before IMU1 the Localizer had already made the tick's read, so a second read would have
+// been ~0 (or a spike — derived from the adapter's code, never measured): the observer would learn
+// a phantom disturbance on every tick. It must use the rate the
 // Localizer read THIS tick (loc.twist()). Measured with the draft: zero mode changes every drift
-// leg, spike mode times out the 40 in from x0.97 and stops the acceptance run.
+// leg, spike mode times out the 40 in from x0.97 and stops the acceptance run. Since IMU1 ProsImu
+// answers once per tick (its second read is the first's); this stays as the pin on loc.twist().
 TEST_CASE("P14 on a ProsImu-shaped IMU the steered runs are bit-identical to the plain IMU, and "
           "the IMU is never read twice in a tick") {
     const TankKinematics kin{Length{12.0}};
@@ -1351,9 +1359,9 @@ TEST_CASE("P14 on a ProsImu-shaped IMU the steered runs are bit-identical to the
         // Second reads DO happen here — three, and each one is the LOCALIZER's, at a motion
         // boundary: the scheduler ticks the next motion at the instant the previous one exited
         // (no pace between two blocking verbs), so Localizer::update reads the rate twice at
-        // that instant. That is pre-existing (D4's IMU1 owns it), and it never reaches TANK1:
-        // a motion's first tick has no commanded rate to compare against (hasOmegaCmd_ is false
-        // until the first command), so the observer does not run there. What this pins: no
+        // that instant. That was pre-existing (fixed in ProsImu by IMU1), and it never reaches
+        // TANK1: a motion's first tick has no commanded rate to compare against (hasOmegaCmd_ is
+        // false until the first command), so the observer does not run there. What this pins: no
         // second read anywhere else — none inside any motion, so none on an observer tick.
         REQUIRE(shaped.imu.secondReadTimes.size() == boundaries.size());
         for (std::size_t i = 0; i < boundaries.size(); ++i) {

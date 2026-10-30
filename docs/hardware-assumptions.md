@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 178 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 181 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -167,6 +167,15 @@
 > — at boot and through a homing push — through the read-fault rule) and HA-186 (absolute homing runs: the
 > reading's turn chosen nearest the middle of the travel, a reversed sensor's mounting applied, and a travel of a
 > whole sensor turn or more refused at build). With it, 178.
+> **IMU1 Part A (the IMU's turn rate once per control tick; built 2026-10-29) added THREE — HA-213, reasoned,
+> HA-214, invented, and HA-215, reasoned** — the beliefs `ProsImu`'s 5 ms rate hold rests on: that the IMU's
+> readings are copied into the brain's buffer every 10 ms (sample-and-hold), that the copy's phase against the
+> tick is unknown and a copy next to a read (or between two positions of a tick's first read) gives a pair of
+> ticks 0 and about double, and that a tick's reads fall within 5 ms of its first with no reader between ticks.
+> None is measured; IMU1 Part B's bench stage (Station N) is their first look. It AMENDED HA-179 (its "The IMU
+> read" paragraph: robot two's Localizer rate was not clean before IMU1; Station M.6 counts only on an IMU1
+> build), HA-22 (a REST record from a pre-IMU1 build is not its evidence; one doubled sample can remain), HA-32
+> and HA-102 (the hold groups reads by time). With them, 181.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-185** (the
 > mechanism core's fifth part: its brief, accepted 2026-10-08; HA-184 and HA-186 landed with its first
@@ -380,6 +389,9 @@
 | HA-189 | Two tasks writing the V5 USB serial (stdout) at once never mix or lose each other's lines — `ProsCharSink`'s "fwrite is atomic per call at this layer" — believed FALSE: the vendored newlib's per-FILE locks are no-ops, stdout is line-buffered (`ser_isatty_r` returns 1) through ONE shared buffer, and only PROS's device write below it takes a mutex. **FIXED in shulib's code by SER1 (2026-10-08):** every line is ONE direct `write()`, which that mutex keeps whole — unconfirmed until the bench | **reasoned** (FALSE — from the vendored `libc.a`/`libpros.a`, disassembled 2026-10-08) | the coordinator, T4 Part 3's hand-over; SER1's fix; Station K.7.3 (HA-189's robot test — accepted by the team lead 2026-10-18 in place of the dedicated two-task test; unsettled until it runs) |
 | HA-190 | A task PROS deletes while it is INSIDE `ser_write_r` (one serial `write()`) leaves PROS's serial write mutex held, and every later serial write of that boot — stdout and stderr alike — blocks its writer for ever | **reasoned** (the vendored `libpros.a`: `ser_write_r` holds the mutex across `stream_buf_send`'s unbounded waits; `task_delete` releases no mutex) | SER1; Station K.7.3 (Timed-Run mode changes while two tasks print) |
 | HA-191 | One serial `write()` must fit PROS's 2047-byte serial stream (about 2,035 bytes of text: a 4-byte stream id, COBS framing and a delimiter around it); a larger one waits for ever holding PROS's write mutex | **reasoned** (the vendored `libpros.a`: `ser_driver_initialize` +0x38, `stream_buf_send` waits until the WHOLE frame fits) | SER1 (no shulib call offers one `write()` more than 512 bytes — `kSerialWriteMaxBytes`; `serialLine` 256) |
+| HA-213 | The V5 IMU's readings (`get_rotation()`, `get_gyro_rate()`) are copied into the brain's shared buffer every 10 ms, so every read between two copies returns the SAME value (sample-and-hold) | reasoned (the vendored `pros/imu.hpp`, `set_data_rate`'s doc); never observed on our brains | IMU1 (Part B's bench stage, Station N) |
+| HA-214 | The phase of that 10 ms copy against the motion tick's wake is unknown (fixed per boot, or drifting); a copy within a read's jitter of the tick's ONE rate read, or between two positions of the tick's FIRST read, makes a pair of ticks read 0 and about double — IMU1's hold does not cure it | **invented** (the phase) · reasoned (the consequence) | IMU1 (Part B's bench stage, Station N) |
+| HA-215 | Every rate read of one control tick falls within 5 ms of the tick's first, consecutive ticks' first reads are 5 ms or more apart, and no reader outside the loop's tick reads the rate — what `ProsImu::kRateHoldUs` (5 ms) rests on | reasoned (HA-32/HA-102, themselves unmeasured under load) | IMU1 (Part B's bench stage, a lower bound); Bench Tests STAGE 5 |
 
 ---
 
@@ -804,7 +816,9 @@ dependency order (battery scale before anything drives, signs before any closed 
   is HA-32/HA-34's).
   *Settle (R3, runbook step 12):* LoopMonitor dt stats over 60 s idle ≈ 10 ms mean.
   *Blast radius if wrong:* the loop runs slow by the tick body's cost and every profile
-  integrates the error. **Contained:** one adapter.
+  integrates the error. **Contained:** one adapter. *(IMU1 Part A, 2026-10-29:)* `ProsImu`'s rate hold
+  groups a tick's reads by TIME — 5 ms, half this cadence (HA-215) — so a cadence far off 100 Hz, or a
+  wake 5 ms or more late, moves which reads share an answer (`hal/pros/imu.hpp`'s three limits).
 
 - [ ] **HA-103 — controller axes are [-127, 127]; a DISCONNECTED controller reads 0, not a
   sentinel.**
@@ -1313,6 +1327,91 @@ Those are a belief about real mechanisms.
   blast radius than the rest of this entry (whether a team should be able to tune them is a design
   question for the coordinator, not this register's). Nothing outside the mechanism core reads any of
   them.
+
+### IMU1's additions — the IMU's 10 ms copy and the timing the rate hold rests on (2026-10-29)
+
+`ProsImu::yawRate()` differentiated the IMU's rotation between CALLS, and the library reads the rate two or
+three times a tick; IMU1 Part A made the adapter keep its answer for 5 ms (`ProsImu::kRateHoldUs`), so every
+read in one tick gets one value. The defect and the fix both rest on three beliefs no robot has shown —
+the IMU's 10 ms copy, its phase against the loop, and the spacing of a tick's reads. **None is measured.**
+The premise that IS measured: HA-101 (`micros()` is microseconds and monotonic), so two reads in one tick are
+microseconds apart. IMU1 Part B (a Bench Tests stage, worksheet Station N — not built yet) is the first
+measurement of all three.
+
+- [ ] **HA-213 — the V5 IMU's readings are copied into the shared buffer every 10 ms (sample-and-hold).**
+  *Claim:* `get_rotation()` and `get_gyro_rate()` return what PROS last copied into the brain's shared memory
+  buffer, and that copy is made every 10 ms (PROS's default data rate; shulib never calls `set_data_rate`), so
+  every read between two copies returns the SAME value.
+  *Source:* `include/shulib/hal/pros/imu.hpp` (the banner's ONE ANSWER PER CONTROL TICK paragraph — "A4
+  register HA-213"); `test/imu_buffer_model.hpp` (the host test plant's model of it); the PROS host shim's
+  "Beliefs modeled" list (`test/pros_shim/pros/imu.hpp`).
+  *Confidence:* **reasoned** — the vendored `include/pros/imu.hpp` says it in words (`set_data_rate`'s doc:
+  "values are copied into the shared memory buffer only at 10ms intervals"); never observed on our brains.
+  *Settle:* IMU1 Part B, Bench Tests button 2's STAGE 2c (worksheet Station N): a tight-loop read of the raw
+  rotation while the robot is turned by hand, the intervals between its changes — HA-213 holds if they cluster
+  at 10 000 µs.
+  *Blast radius if wrong — "faster"* (the buffer refreshes more often than 10 ms): before IMU1 the second read
+  was a noisy short-interval derivative rather than 0, and the baseline still moved; IMU1's hold is still
+  right, and HA-214's residual is smaller. **"Slower"** (e.g. 20 ms): a 10 ms tick's ONE read is 0 on
+  alternate ticks even after IMU1 — the rate then needs differentiating over a longer window, or the gyro's
+  own rate (a new chunk). Visible at the bench (Part B) before any motion depends on it. A team's own loop at a
+  period that is not a multiple of 10 ms reads 0 on a large share of its reads (on the host test plant a 4 ms
+  loop read 0 on one read in five and never exactly — IMU1's L3) — said in the changelog and `ProsImu`'s header.
+
+- [ ] **HA-214 — the copy's phase against the tick is unknown, and a copy next to a read gives 0 / double.**
+  *Claim:* the phase of HA-213's copy against the motion tick's wake is UNKNOWN — fixed per boot, or drifting
+  (whether the IMU's copy and the RTOS's 1 ms tick share a clock is unknown too). When the copy lands within a
+  read's jitter of the tick's ONE rate read, that read alternates 0 / about double on the affected ticks (the
+  IMU1 brief's probe 3, pinned on the real adapter by IMU1's L2: 73 zero and 73 double of 300 at ±0.05 ms of
+  jitter, with one reader or two); and when the tick's FIRST read MOVES between code paths — a corrector's gate
+  reads first only on a fresh-fix tick; Calibrate's REST capture reads the heading before its rate where its
+  settle step did not — with the copy between the two positions, the pair of ticks around each change reads 0
+  and about double (IMU1's T9 (b): a fresh fix every 5th tick, the Localizer exact on 180, 0 on 60 and double
+  on 60 of 300 ticks — recorded, and held by the suite to a ceiling of 60 and 60; T10 (b): one doubled REST
+  sample). IMU1's hold does not cure either. Before IMU1 the same phase decided whether robot two's Localizer read 0 on EVERY tick
+  (the copy between the Localizer's read and the record's).
+  *Source:* `include/shulib/hal/pros/imu.hpp` (the banner's limit (2) and its NOT CURED sentence — "A4 register
+  HA-214"); `ProsImu::kRateHoldUs`'s doc.
+  *Confidence:* **invented** (the phase, its drift) · **reasoned** (the consequence, from HA-213's model).
+  *Settle:* IMU1 Part B's STAGE 2c, the copy's offset from the wake over 100 ticks and its drift per second (a
+  drift means every boot passes through the bad band).
+  *Blast radius if wrong:* on an affected boot the Localizer's ω alternates 0 / ×2 tick to tick (the mean right,
+  the noise large): TANK1's yaw observer (time constant 0.1 s, HA-179) averages most of it; `DriveBrake`'s exit
+  and the calibrator's rest gate (`|ω|` under a floor) can pass on a 0 tick or fail on a ×2 tick; a corrector's
+  yaw-rate gate mis-gates on ×2 ticks; a REST capture's `yawRateSigma` carries one doubled sample (HA-22).
+  **Contained:** the gyro's own rate (`YawRateSource::GyroRateZ`, one constructor argument) once HA-04 and
+  HA-109 are measured — a later, separate change (IMU1's brief §5); for the corrected robot's first-read move,
+  the Localizer reading its rate at the top of `update()` (the same brief's §5, OUT for now: no robot is GPS-
+  or tag-corrected this season).
+
+- [ ] **HA-215 — a tick's rate reads fall within 5 ms of its first, and no reader reads between ticks.**
+  *Claim:* every rate read of one control tick falls within 5 ms of the tick's first, consecutive ticks' first
+  reads are 5 ms or more apart, and no reader OUTSIDE the loop's tick reads the rate — the motion task's body
+  reads the rate early and fast (the Localizer's `update()`, then a record — microseconds apart on the host test
+  plant's arithmetic), and a wake is rarely 5 ms or more late. So `ProsImu::kRateHoldUs` = 5 ms (half of
+  `ProsTickPacer::kTickMs`) groups a tick's reads exactly.
+  *Source:* `include/shulib/hal/pros/imu.hpp` (`kRateHoldUs`'s doc and the banner's three limits — "A4 register
+  HA-215"); `test/imu_rate_hold_pin_test.cpp` (the hold pinned to the tick).
+  *Confidence:* **reasoned** — HA-32/HA-102's anchored 100 Hz cadence (both themselves reasoned, unmeasured
+  under load); the tick body's span is unmeasured on a brain.
+  *Settle:* IMU1 Part B's STAGE 2c, the tick span — a stand-in, a LOWER bound (the device reads between a
+  motion tick's two IMU reads plus one serial line); Bench Tests STAGE 5 (LOOP RATE) for the wake jitter, which
+  has never run.
+  *Blast radius if wrong:* a tick body whose span between its first and last rate read JITTERS around 5 ms (a
+  slow SD write on some ticks, a long record build) damages the Localizer's OWN first read on most ticks — the
+  later read is fresh on some ticks and held on others, so the next tick's first read is held or not by chance
+  (on the host test plant a later reader at a random +4..+7 ms left 55 of 300 Localizer reads exact); a span
+  STEADILY over 5 ms makes the Localizer answer the previous tick's late read — one partial tick late; a stall
+  over 5 ms inside a tick costs two of the Localizer's ticks, and a wake 5 ms or more late one stale tick (three
+  ticks off, where a 4 ms late wake, which the hold does not touch, costs two — the brief's probe 3b); a reader
+  outside the tick (team code between routine steps, a screen task) 5–10 ms after a tick's first read costs two
+  Localizer ticks per read (host: 60 of 300 for one read in 10 ticks; the adapter before IMU1, 30). Every host
+  figure here was first a probe of the IMU1 brief's on a prototype of the hold; IMU1's L1 and L3 pin them on the
+  real adapter — all but the 30, measured on the host test plant on 2026-10-29 with the adapter before IMU1
+  put back (the same 30 at all three phases, on every run that day), which no suite test can hold: that
+  adapter no longer exists. **Contained:** the constant (`kRateHoldUs`, pinned to the tick by IMU1's T3 (c))
+  — or a tick counter the pacer bumps (the brief's D1 (c), rejected: a loop that forgets to bump it FREEZES
+  the rate).
 
 ---
 
@@ -2581,12 +2680,33 @@ that leaves unproven. The numbers below are host-test-plant measurements of 2026
   `maxSteer` to remove larger offsets also steers un-faced legs further off — with no window at all an
   un-faced 40 in leg arrives up to 30° off its nose and times out from 40°, a cliff an author cannot see —
   so keep it well under 30°. **The IMU read:** the observer uses the rate the Localizer read that tick
-  (`loc.twist()`), the tick's FIRST `ProsImu::yawRate()` on robot two; on a robot with a GPS or tag
-  corrector, until IMU1 lands, the corrector reads first on the ticks it reaches its yaw-rate gate and the
-  Localizer's rate is about 0 (or a spike) there — modelled on every other tick: with zeros 15 of 15 probe
-  cases still arrive, with zeros and a 3 % ×50 spike 8 of 15. (The Localizer also reads the rate a second
-  time on the first tick of every chained motion — IMU1's too; the observer never runs on a motion's first
-  tick, so it does not reach TANK1.) **The rate's SIGN:** TANK1's observer is the first control law in the
+  (`loc.twist()`). *(Rewritten 2026-10-29, IMU1 Part A.)* Before IMU1 that rate was NOT the tick's clean
+  first read on robot two — DERIVED from the adapter's code and PROS's documented 10 ms copy (HA-213); no robot
+  log has shown it (IMU1's brief §0.5): every motion tick's record read `ProsImu::yawRate()` a second time (robot two's
+  serial sink wants every record), that read moved the adapter's differentiation baseline, and the NEXT
+  tick's first read — the Localizer's — was about 3 % high, or, for one band of the IMU's copy phase
+  (HA-213, HA-214), 0 on EVERY tick: measured on the host test plant with TANK1's own motor lag (kA 0.02 /
+  0.03), the 40 in TIMED OUT where one reader finishes (IMU1's brief §0.4, probe 2; its T8 reproduces it —
+  the Localizer's ω exactly 0 on 486–487 turning ticks). TANK1's "immune" (its completion record) rested on a
+  model of the second read that left this out. *(TANK1's own model, kept as it was written 2026-09-28: on a
+  robot with a GPS or tag corrector, until IMU1 lands, the corrector reads first on the ticks it reaches its
+  yaw-rate gate and the Localizer's rate is about 0 (or a spike) there — modelled on every other tick: with
+  zeros 15 of 15 probe cases still arrive, with zeros and a 3 % ×50 spike 8 of 15. The Localizer also reads the
+  rate a second time on the first tick of every chained motion; the observer never runs on a motion's first
+  tick.)* **Since IMU1** `ProsImu` answers once per tick, so every
+  reader gets one value — the record, a corrector's gate, the second `update()` at a chained-motion boundary
+  included — and records on and off are bit-identical through the 40 in and the acceptance run on the host
+  test plant (IMU1's T8; one narrow band at a chained-motion boundary excepted, where a later HEADING read
+  sees a newer copy). **On a GPS- or tag-corrected robot a residual remains** (the hold's limit (2),
+  HA-214): when the IMU's copy lands between the gate's read and the Localizer's, the pair of ticks around
+  each change between a fresh-fix tick and a stale one reads 0 and about double — the observer's input
+  included (IMU1's T9 (b), a fix every 5th tick: the Localizer exact on 180, 0 on 60 and about double on 60
+  of 300 ticks). No steering run has been measured through it; TANK1's model above (zeros on every other
+  tick) is the nearest. The cure, the Localizer reading its rate at the top of `update()`, belongs to the
+  first corrected robot's chunk (IMU1's brief §5); no robot is GPS- or tag-corrected this season. **Station
+  M's floor run (M.6) counts as evidence for HA-179 only on an IMU1 Part A build** (the team lead's D4 (a),
+  2026-10-22; the worksheet's check: `kRateHoldUs` in the tree's `hal/pros/imu.hpp`); a TIMEOUT with TSTR
+  lit on an older build is not evidence against it. **The rate's SIGN:** TANK1's observer is the first control law in the
   library that closes a loop on the yaw rate's sign (before it, the rate fed records, rest checks and
   |ω| gates), so a rate whose sign disagrees with the heading's (HA-04 — `get_gyro_rate().z`'s sign is
   undocumented) makes the observer push the WRONG way, up to its 1.5 rad/s limit: measured with a negated
@@ -3343,6 +3463,18 @@ settleable before hardware, and none block any host chunk.
   *Settle (R4):* same stationary log, rate channel.
   *Amended R5a Part A (2026-09-29):* the REST step reports the yaw-rate channel's mean and σ, and the
   σ of the per-tick heading step over dt — the rate noise `SettledUtil` actually sees (HA-51, HA-173).
+  *Amended IMU1 Part A (2026-10-29):* a REST capture made on a build BEFORE IMU1 has a contaminated rate
+  channel — DERIVED from the adapter's code and PROS's documented 10 ms copy (HA-213), never measured on a
+  robot: the settle gate's read and the capture's first read share the tick the capture starts
+  (`calibration/rest_capture.hpp`'s settle read, `beginCapture()`, the capture's read), so the first sample
+  was a second read of the same tick, 0 or a spike of one 10 ms copy over a few microseconds: on the host test
+  plant (the IMU's 10 ms copy modelled, HA-213) `yawRateSigma` read 4.5e-2 rad/s in the band and 2.25e-4 off
+  it, against a clean 5.6e-7 (IMU1's T10). **A REST record from a pre-IMU1 build is not this entry's
+  evidence.** On an IMU1 build ONE residual remains (HA-214, the hold's limit (2)): when the IMU's copy lands
+  between the settle read's position in the tick and the capture read's (a band about one device read wide),
+  exactly ONE capture sample is about twice the drift rate — σ 2.2e-4 rad/s on the host test plant against a
+  clean 5.6e-7, still far below this entry's claimed 0.5°/s (8.7e-3 rad/s), so it cannot fake the verdict;
+  it is named so a REST record is read knowing it (IMU1's T10 (b) pins it).
   *Blast radius if wrong:* E-phase rate weighting and any rate-based rejection thresholds
   (E2 high-yaw-rate gate) miscalibrated. Constants only.
 
@@ -3456,7 +3588,9 @@ settleable before hardware, and none block any host chunk.
   even 20 ms the margin is still enormous for real yaw rates), coarsen control discretization
   (the derived instability thresholds in the closed-loop tests scale with dt), and inflate all
   latency-relative effects. Structure survives — the suite already passes under ×5 jitter
-  stalls — but budgets get recalibrated. Watch, don't fear.
+  stalls — but budgets get recalibrated. Watch, don't fear. *(IMU1 Part A, 2026-10-29:)*
+  `ProsImu`'s rate hold groups a tick's reads by TIME (HA-215): a tick body whose span between its
+  first and last rate read nears 5 ms, or a cadence far off 100 Hz, moves which reads share an answer.
 
 - [ ] **HA-33 — PROS sensor reads are non-blocking (µs-class, no ms-scale stalls).**
   *Claim:* `get_position()`/`get_rotation()`/GPS reads return cached values quickly rather than

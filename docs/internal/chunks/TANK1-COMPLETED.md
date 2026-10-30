@@ -66,3 +66,8 @@ the host test plant, none of it yet on robot two (COMP-t's Station M is the firs
   offset from the line differs from END y by more than 0.5 in is HA-180 failing, not a pass.
 - IMU1 (the IMU's yaw rate read once per tick) is its own planned chunk; TANK1 is immune (it reads the
   Localizer's rate), but other readers are not.
+  *(Dated pointer, 2026-10-29 — this record is history and stays as written: "immune" was found FALSE for robot
+  two by IMU1's brief (§0.2, 2026-10-22) — the record's second read moved the adapter's baseline, so the
+  Localizer's own rate was damaged (derived from the adapter's code and PROS's documented 10 ms copy, HA-213;
+  never measured on a robot). IMU1 Part A fixed it in `ProsImu` — [IMU1's live log](IMU1-PROGRESS.md); its
+  completion record will follow Part B.)*

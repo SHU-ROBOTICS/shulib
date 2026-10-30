@@ -40,9 +40,9 @@ Nothing new has run on the robot since 2026-09-25. **The 40 in auton is ready fo
 | 1 | **TANK1 Part A**: a tank's `moveTo` bends back toward its line (≤ 15°, a 0.06 s look-ahead) and cancels the yaw a weak side makes. X/H drives unchanged | ✅ landed `3965791` (API 2.3) | — | — |
 | 2 | **COMP-t**: "shulib Auton Tester" (pick an auton, touch RUN, 3 s countdown, any button aborts; it runs the same `runAuton` path `autonomous()` uses) plus the students' auton file `src/team/autons.{hpp,cpp}` with the 40 in auton | ✅ **landed 2026-09-29** (host- and build-gated, seven builds; the coordinator's ten safety mutations all red; **never run**) | — | — |
 | 3 | **TANK1 Part B**: the sideways-miss number (` xt`) on every tank result line; no API bump | ✅ landed 2026-09-29 — **TANK1 COMPLETE** | — | — |
-| 4 | **You run the 40 in on the bench**: worksheet Station M. Wheels up first, then the floor and the tape, with serial captured. Its `imuYawRate` column does not count as evidence until IMU1 (#32) lands | **ready — needs you at the robot** (upload with `rm -rf bin .d` first; copy the calibration record off the card first) | — | ~1 hour |
+| 4 | **You run the 40 in on the bench**: worksheet Station M. Wheels up first, then the floor and the tape, with serial captured. Its floor run (M.6) counts as evidence for HA-179/HA-180 only on a build with IMU1 Part A (#32); M.0–M.5 need not wait | **ready — needs you at the robot** (upload with `rm -rf bin .d` first; copy the calibration record off the card first) | 32 (M.6 only) | ~1 hour |
 | 5 | **COMP-b**, the competition program: `autonomous()` runs the chosen auton on the program's own task under the guard; `opcontrol()` runs the driver file; the brain-screen auton picker; slot 6; the eighth build | ✅ **landed 2026-10-02 — COMP complete** (host- and build-gated, NOT run on a robot; Station K is its first run). Your C5 ruling (one bad auton entry is dropped, never the boot) is built in T4 Part 3's late step | — | — |
-| 6 | **Station K**: a practice match with the controller's Timed Run (does Timed Run start `autonomous()`? HA-162). B6 is decided after it (§11) | needs you at the robot | 5 | ~1 hour |
+| 6 | **Station K**: a practice match with the controller's Timed Run (does Timed Run start `autonomous()`? HA-162). B6 is decided after it (§11). Its floor runs (K.5) count with M.6's rule — only on a build with IMU1 Part A (#32) | needs you at the robot | 5; 32 (K.5 only) | ~1 hour |
 | 7 | **R3b + M1** close when "a v2 tank auton runs on the robot under the library's own steering" (R3b's DoD) and M1's DoD holds. Both are judged against Station M's and Station K's logs. They also settle HA-18, the threshold half of HA-52 and the "drivable" half of HA-112 | open since June | 4, 6 | robot-session-bound |
 
 ## 2. The driver program (T4) — Part 2a before COMP-b; Part 3, with Part 2b's items, beside it and after it
@@ -139,7 +139,7 @@ Subtotal: ~10–12½ days.
 
 | # | Item | State | Its DoD's constraint | Size |
 |---|---|---|---|---|
-| 32 | **IMU1**: read the IMU's turn rate once per tick (the adapter keeps its answer for 5 ms, so every reader in a tick gets one value). Found by TANK1's re-check; its probe found the double read can turn the 40 in auton into a 5 s timeout in one timing band | **brief ✅ GO 2026-10-22** ("Accept all", D1–D4) | must land **before Station M's floor run** (D4) and before any GPS- or tag-corrected robot runs a tank `moveTo` | ~1¼ + ~½ days (its brief) |
+| 32 | **IMU1**: read the IMU's turn rate once per tick (the adapter keeps its answer for 5 ms, so every reader in a tick gets one value). Found by TANK1's re-check; its probe found the double read can turn the 40 in auton into a 5 s timeout in one timing band | **brief ✅ GO 2026-10-22** ("Accept all", D1–D4); **Part A BUILT 2026-10-29**, its review's and its verification round's findings fixed the same day (host- and build-gated, not run on a robot; awaiting the coordinator's check — [live log](chunks/IMU1-PROGRESS.md)); Part B (the bench stage, Station N) not started | must land **before Station M's floor run** (D4) and before any GPS- or tag-corrected robot runs a tank `moveTo` | ~1¼ + ~½ days (its brief) |
 
 ## 7. Chunks that close on the robot (robot-session-bound; not in the total)
 
@@ -172,8 +172,9 @@ Subtotal: ~10–12½ days.
 - **Station J, the claws**, on "shulib Drive" (slot 1) since T4 Part 3 (it was written for "shulib Teleop" until then; it has never been run).
 - **Station M, the 40 in on the bench** (ready: COMP-t landed 2026-09-29). If the floor run's log shows the library's motion stack
   drove, the **"never driven a robot under its own control" documentation sweep** follows: every instance in one
-  commit (HANDOFF S1). Station M's `imuYawRate` does not count as evidence until IMU1 (#32) lands.
-- **Station K, Timed Run** (after COMP-b). Then R3b and M1 are judged against Station M's and Station K's logs (#7),
+  commit (HANDOFF S1). Its floor run (M.6) counts as evidence for HA-179/HA-180 only on a build with IMU1 Part A
+  (#32; the worksheet's check is a grep for `kRateHoldUs`, not the git log); M.0–M.5 need not wait.
+- **Station K, Timed Run** (after COMP-b; its K.5 floor runs count with M.6's rule). Then R3b and M1 are judged against Station M's and Station K's logs (#7),
   and you rule on B6 (§11).
 - **Stations F and J re-run on the new "shulib Drive"** (after T4 Part 3; T4's DoD).
 - **A recorded Calibrate rerun**, which fixes the ~8 % distance error and closes R3d. It waits for **SAFE-SAVE
@@ -234,7 +235,7 @@ Sizes are from the briefs where one exists, and rough ranges otherwise (MECH, G3
 | 4. the panel as planned: G3a as briefed (5½–6), G3 at its plan-of-record scope (~5½–8, rough); H4 not sized | ~11–14 |
 | 5. sensors (rough) | ~3 |
 | 6. the briefed library chunks | ~6–7½ |
-| 6. IMU1 (rough) | ~½–1 |
+| 6. IMU1 (its brief, 2026-10-22: Part A ~1¼, Part B ~½). *2026-10-29: this row was ~½–1 (rough); the brief's ~¾ more is NOT added into the plan of record or the totals below — the same rule as the auto-flipper row's note: this table's sums wait for the coordinator's full re-pricing* | ~1¼–1¾ |
 | 8–9. T2's close-out, documentation, G4 (rough); PKG1 not sized | ~3–4 |
 | **The plan of record** | **~26¼–32¼** |
 | + the MECH core, before the panel (its brief, 2026-10-08) | +19¼–26 |
