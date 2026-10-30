@@ -1,5 +1,43 @@
 # G3a — the robot file, its generator and the optional robot panel: robot two described as data, generated into marked regions byte for byte, one validator, and a VS Code form over it — amended 2026-09-29: a new robot with its build, mechanisms from templates, wiring and controls
 
+> **THE TEAM LEAD'S ANSWERS (2026-10-30)** to the evening amendment's D11–D20 (its "## Amendment 2026-10-29
+> (evening)" and the checker's C1–C16, each fixed in place) — **"Accept all (Recommended)" for D11–D15, D17, D19 and
+> D20, and these three:**
+> - **D16 — (c), A TRUE CURVE FOLLOWER** (not the recommendation): a pursuit- or boomerang-style controller on a tank,
+>   a smooth path form, its end behaviour, the facade verb, the Routine step and F8's `"arc"` (additive). It RE-OPENS
+>   C1's D12 ("never aim at the point") — by this answer, for the curve follower only. ~3½–5½ builder-days (rough, no
+>   precedent here) plus robot tuning; it cannot be built and trusted on a robot by Nov 21, so it is its OWN library
+>   chunk, **CURVE1**, with its own brief and go, AFTER the route maker lands. Until then the route maker offers
+>   "through points" (stopping at each, with the tank warnings on bends over 15°), as D16 (a) describes.
+> - **D18 — 30 s for a match's autonomous, 60 s for skills** (VEX U), as recommended.
+> - **D19 — the publisher name is `shulib`** (the brief's example was `shu-robotics`); the team lead checks and
+>   registers it on the VS Code Marketplace and Open VSX before the first store release (after Nov 21). Releases are
+>   cut only on his `robot-panel-v*` tag, as recommended.
+> - **So:** D11 (a) the feel inside Part 5; D12 (a) every tuning number typeable with the library's default shown, the
+>   turning radius derived (half the measured track width); D13 (c) a route becomes generated `Routine` code in a
+>   `[routes]` region of the autons file, plus an F8 export with one optional `shulib` object per waypoint; D14 (a)
+>   per step stop / skip to a named step / carry on, the deadline always stopping; D15 (a) a drive that ends early
+>   never fires its partway trigger; D17 (a) red/blue as two autons, the mirror axis read from the manual (Appendix A)
+>   and put to him before Part R1's go; D20 (a) the five slots: the Nov 23 competition work first (MECH-A6 first),
+>   then make-and-drive, the route maker, the string-lift safety, the walls page, the camera page — the mechanism
+>   pages (Part 6) before drive tuning (Part T); robot one's hand-written backup starts now (its facts by ~Nov 5).
+> - **Each part is still its own go.** The library runs STEP1-A and STEP1-B are their own chunk (**STEP1**), briefed
+>   from this brief's R.13 before Part R1. The coordinator's draft stays in `.claude/coordinator/briefs/`; this copy
+>   is the brief of record.
+
+> **AMENDED 2026-10-29 (EVENING) — read "## Amendment 2026-10-29 (evening) — the team lead's panel scope" FIRST;
+> where it and anything else in this file disagree, it wins.** After seeing the panel's concept page the team lead
+> ruled: (1) the driving feel becomes panel data (REVERSES D4 (a)); (2) drive tuning per robot; (3) the camera and wall
+> pages by Nov 21 (if tight, the route maker comes first); (4) a FULL route maker — every auton step, care on
+> each, mechanism timing with partway triggers, red/blue mirroring, a timeline; (5) "GitHub now, store later". The
+> amendment adds D11–D20 for him, Part T (drive tuning), a route lane (R1, R2) and the library runs STEP1-A/B, splits
+> Part S into S1 (walls) and S2 (camera), and re-plans the parts and the five job slots for Nov 21. *(fix 2026-10-30:
+> a checker's 16 findings on the amendment, each re-verified and fixed in place — "### The checker's findings on this
+> amendment (C1–C16)"; the dates RE-DERIVED on five slots with every review round holding a slot: make and drive
+> ~Nov 14–18; routes ~Nov 18–22; walls ~Nov 18–22; the camera page ~Nov 25–Dec 2 — it misses the 21st; robot one's
+> backup must start by ~Nov 6, D20.)* **Status: D11–D20 and each part's go WAIT for him; Part 5 waits for D11, Part 3
+> for D19.**
+
 > **THE TEAM LEAD'S ANSWERS (2026-10-29)** to D6′–D10 as the re-check of 2026-10-29 put them — **every one as
 > recommended**:
 > - **D6′ (a) — DECIDED: two lanes, after MECH-A5 merges.** The TOOL lane Part 1 → Part 5 → Part 2 → Part 4 (Parts 1
@@ -11,6 +49,9 @@
 > - **D6′'s slot question — DECIDED, as recommended:** when a usage warning drops the ceiling to two jobs, G3a's PANEL
 >   lane yields first, then AF1, then G3a's TOOL lane; MECH-A6 and L6-B never yield before the ~Nov 16 code freeze. At
 >   one job: the 2026-11-23 track's job until the freeze; after it, the tool lane or AF1 — his call then.
+>   *(fix 2026-10-30, C6: the evening amendment's D20 (a) would SUPERSEDE this yield order — Part 6, a panel-lane part,
+>   goes before Part T, a tool-lane part, because Part 6 is on the critical path to "make and drive"; D20 puts that to
+>   him. Until he answers, this answered order stands.)*
 > - **D7 (a) — DECIDED:** robot two's typed table is flipped to the camera end with `flip-front`, as Part 1's own
 >   logged step right after the byte-for-byte differential; the step cites the record (2026-09-25), not a front.
 > - **D8 (a) — DECIDED:** a new robot gets robot two's five programs — Bench Tests and Calibrate (its bring-up builds,
@@ -22,7 +63,7 @@
 > - **D10 (a) — DECIDED:** a new robot needs three facts — its name, its drivetrain kind and its cartridge; drive
 >   ports are optional (typed ports give build-time collision checks, never a boot fallback) and the front comes from
 >   Calibrate's push. Option (c) (the panel copies the record's ports into the file) NOT taken.
-> - **Each part is still its own go; nothing of G3a builds before MECH-A5 merges.** HA-181 stays G3a's reserve (next
+> - **Each part is still its own go; nothing of G3a builds before MECH-A5 merges.** *(amended 2026-10-29 evening: the PANEL SPRINT of the same afternoon built Part 1 BEFORE MECH-A5 merged, as D6′ (b), robot two's D7 flip held to Part 5's first step — build-order :1817-1826; each part is still its own go)* HA-181 stays G3a's reserve (next
 >   free HA-216). The coordinator's draft stays in `.claude/coordinator/briefs/`; this copy is the brief of record.
 
 > **RE-CHECKED 2026-10-29 FOR THE TEAM LEAD'S NEW ORDERING — read "## Re-check 2026-10-29 — amendments" below
@@ -130,6 +171,1355 @@
 > `f1/` (the injections, and a line-splice the checker did not try); `panel/` (`@vscode/vsce` 3.9.2 on
 > Node 20: model tests 5/5, `.vsix` packaged, the real repository URL).
 
+## Amendment 2026-10-29 (evening) — the team lead's panel scope
+
+> **READ THIS FIRST. Where it and anything below disagree, this section wins** (the re-check of 2026-10-29 below is
+> history wherever this section changes it). Written 2026-10-30 from a READ-ONLY pass over main `6798aa5` (IMU1 Part A
+> merged) and the worktrees `mech-a5` (`d37fa79`, MECH-A5 as finished, awaiting the coordinator's merge), `g3a-p1`
+> (Part 1 built, in review), `l6-a1` and `vis1-a1` (in their review rounds), against `build-order.md`'s G3a entry
+> (:1830-1840 at `81eb666`), the deviations table's sprint row (:2333 at `81eb666`; *fix 2026-10-30, C16: the
+> first pass cited :1817-1838 and :2320*), NOTES 10-29 ~19:30–21:00 and the team lead's rulings of
+> that evening. Probes E1–E4: `.claude/coordinator/scratch/brief-G3a-amend-1029b/` (evidence, never project code; "host
+> test plant" where the library's model is meant). Every body passage these rulings make false is corrected in place
+> and marked *(amended 2026-10-29 evening)*; the list is the section "Body passages corrected in place", below.
+> **Fixed 2026-10-30 after a checker's 16 findings (C1–C16, each re-verified against main `81eb666` — MECH-A5 merged
+> 2026-10-30 ~09:35, so every `mech-a5` citation below now reads the same lines on main):** one blocker (a partly
+> stated settle, gains or feedforward group zeroed the library's other members — fixed by emitting assignments onto a
+> default `ChassisConfig`, probe F1), seven majors and eight minors — all real (two with a detail corrected, below); every fix is in place, marked *(fix 2026-10-30, Cn)*,
+> and listed in "### The checker's findings on this amendment (C1–C16)" near this section's end. Fix probes F1, F6,
+> F13 and F14 sit beside the checker's own (C1–C3) in the probe directory.
+> **Status: WAITS for the team lead's answers to D11–D20 and his go for each part and for the two library runs
+> STEP1-A and STEP1-B. Part 5's launch waits for D11 (under D11 (a) the feel's tool half is inside Part 5); Part 3's
+> for D19 (the extension's public name). Nothing in this amendment is built.**
+
+### What he ruled (2026-10-29, evening), in his words
+
+After seeing the concept page (`.claude/coordinator/panel_concept/robot-panel-concept.html`, published ~19:30): *"the
+functionality of the panel is really bad, the customization needed to actually be able to make a bot is not there"*;
+*"the route maker does not allow for care in what to do and is very rudimentary"*. His answers, each from an
+AskUserQuestion (NOTES 10-29 ~19:30–20:15; memory `robot-config-panel-g3a` — the option texts he picked are in that
+session's record; quotation marks below mark only the words recorded verbatim):
+
+1. **DRIVING FEEL becomes panel data by Nov 21** — arcade or tank sticks, dead zones, curves, the ramp. This REVERSES
+   D4 (a) of 2026-09-29 ("THE FEEL stays hand-written").
+2. **DRIVE TUNING per robot by Nov 21** — feedforward, the gains, top speeds, settle tolerances, timeouts — with R5a's
+   measured gains shown beside them.
+3. **The CAMERA and WALL pages (Part S) by Nov 21** — VIS1-A2/B and L6-A2/B resume; if it is tight, the ROUTE MAKER
+   comes first (his ruling, as recorded).
+4. **A FULL ROUTE MAKER** — he picked all four: (a) every auton step as an ordered list on the field; (b) care on every
+   step — speed cap, timeout, arrival tolerance, and what happens if it fails (stop the auton / skip it / carry on);
+   (c) mechanism timing — start-and-keep-driving or wait-until-done, waits on a time or a sensor, triggers PARTWAY
+   through a drive; (d) red/blue mirroring and a 15 s / 1 min timeline (rough estimates — the panel never simulates,
+   his ruling of 2026-10-08).
+5. **Distribution: "GitHub now, store later"** — every panel version a `.vsix` on a GitHub Release of the public repo
+   (SHU-ROBOTICS/shulib, MIT); after Nov 21, once it has run on a real robot, the VS Code Marketplace and Open VSX
+   under a club publisher account he creates. Each actual release still needs his word.
+6. *(Context only — a separate brief.)* The team's string mechanism is a LIFT; before the panel lands the library gains
+   a per-mechanism CURRENT CAP, SNAPPED-STRING DETECTION (by motor load by default, an output rotation sensor optional)
+   and LIVE TUNING ON THE ROBOT.
+
+He chose "describe it" over a second concept page. What he was told that evening (memory): the feel and the tuning
+move "make and drive a robot" to about Nov 14–20, and routes plus the sensor pages both by the 21st "need a lucky
+run". The schedule below re-derives that from the parts.
+
+### 1. The FEEL becomes panel data — ruling (1)
+
+**What exists (opened).** `teleop::DriverProfile` (`include/shulib/teleop/input_shaping.hpp` :187-205): per axis
+(`forward`, `left`, `yaw`) an `AxisShaping {deadband, expo}` (:142-159; `valid()` = deadband in [0, 1), expo in
+[0, 1]), ONE `SlewConfig {ratePerSecond}` (`slew_limiter.hpp` :40-45; 0 or below = OFF) and a `DriveMode`
+(`drive_modes.hpp` :51-63: `ArcadeBody`, `ArcadeField`, `TankSticks`). `teleop::DriverLoopConfig` (`teleop_loop.hpp`
+:196-223): `tickPeriod` (a driver file never states it — MECH-A5's `DriverFile` fills the brain's tick and refuses any
+other, `src/common/driver_file.hpp` :84-90 in `mech-a5`), `rezeroButton`, `releaseBrakeMode` and `protection` (T4
+Part 2's numbers, HA-175, HA-176). Robot two's, in `mech-a5`'s `src/team/robot_two_driver.hpp`: `kFeel{.mode =
+ArcadeBody}` and `kLoop{.rezeroButton = Button::Y, .releaseBrakeMode = Coast}` (:56-63), BELOW MECH-A5's
+`// [/driver file two]` (:54), as RC5 asked.
+
+**Found (E2).** Nothing in the build refuses an out-of-range feel. A generated `kFeel` with a curve of 1.5 compiles and
+passes through `DriverFile` (E2's `feel_bad_expo_nocheck.cpp`, exit 0); the shaping functions then void their
+monotonic promise in silence (`input_shaping.hpp` :127-129), and `DriverFile` checks only the re-zero and the tick
+(:81, :84). A control on the re-zero button IS refused by `DriverFile`'s `static_assert` (E2, as CK9 said). Hand-typed,
+the out-of-range number was a typing risk; written by a form, it needs a refusal the build owns.
+
+**The design (D11 (a)).**
+- **The robot file** gains a `driving` block; every field is optional, and an absent one is the library's default
+  (HA-112):
+  ```
+  "driving": {
+    "mode": "arcade" | "arcadeField" | "tankSticks",       // DriveMode
+    "forward": {"deadband": 0.05, "curve": 0.0},           // AxisShaping {deadband, expo}
+    "strafe":  {"deadband": 0.05, "curve": 0.0},           // DriverProfile::left
+    "turn":    {"deadband": 0.05, "curve": 0.0},           // DriverProfile::yaw
+    "rampPerSecond": 0.0,                                  // SlewConfig::ratePerSecond; 0 = off
+    "rezeroButton": "Y",
+    "onRelease": "coast" | "brake" | "hold",               // releaseBrakeMode
+    "provenance": "who set it, after which driving session",
+    "notes": ["..."]
+  }
+  ```
+- **The C++:** a `feel` region in each driver file over THE FEEL's heading, `kFeel` and `kLoop` (robot two's: `mech-a5`
+  :56-63, adopted byte for byte, the differential logged). The emitter writes only the STATED fields, in declaration
+  order (N11), and never `.tickPeriod` or `.protection`. The cookbook's chapter 6 quotes robot two's feel lines, so a
+  feel change is not done at `generate` in THIS repository: the witness list names the listing (D5's rule).
+- **The words that describe the feel** *(fix 2026-10-30, C11)*. Robot two's driver-file header (main `81eb666`) says
+  what the feel does in prose a panel change would make false: the stick lines (:17-20 — arcade: "left stick … drive",
+  "right stick … turn"), "Y field-centric re-zero" (:29), "let go of the sticks and the drive coasts" (:30), and THE
+  FEEL's own comment (:57-58, "The library's default: arcade …, a smooth deadband of 0.05, no curve, no ramp"). So:
+  the feel's comment lines are INSIDE the `feel` region, written from `driving`; and the header's whole
+  stick-and-button map (:17-32 — the stick lines, the button lines, the re-zero and release lines, the presets note)
+  becomes ONE `control words` region (the region A5-D2 asked for), written from `controls` AND `driving` — the
+  vocabulary's wording per control and per mode, robot-specific sentences (such as "the camera end, on robot two's
+  record of 2026-09-25") from the file's `notes`, robot two's adopted byte for byte with its differential logged. The
+  map is one block because its feel lines and button lines are interleaved (:17-20, :29-30 feel; :21-28, :31-32
+  buttons): two regions would need the header reordered by hand first. §1.2's hand-editable list loses "the sticks"
+  and "the re-zero line" (only the protections paragraph stays hand-written). Both regions' prose joins the part's
+  prose pass (pace rule 4).
+- **The validator:** `AxisShaping::valid()` per axis, mirrored and pinned by run-time agreement fixtures; the re-zero
+  against the controls (CK9's compile-refusal fixture now reads the re-zero FROM THE FILE — M34 re-worded); and one
+  rule of the tool's own, named as stricter than the C++: a negative or non-finite ramp is refused (the C++ reads it as
+  OFF). `arcadeField` carries a note: it needs a trusted heading and falls back to robot-centric without one
+  (`teleop_loop.hpp` :225-233).
+- **One hand edit outside the regions, in Part 5:** `src/common/driver_file.hpp` gains `static_assert(Feel.valid(),
+  "...")`, so the build refuses an out-of-range feel, hand-written or generated, with its compile-refusal fixture
+  (rule 4).
+- **The FEEL page (Part 6):** the mode; per axis the dead zone and the curve, with a response plot whose points come
+  from the TOOL (a `curve` query computing `shapeAxis` in Python, pinned by agreement fixtures against
+  `teleop::shapeAxis` — the panel draws the curve, it never computes it); the ramp; the re-zero button (a dropdown that
+  warns when a control takes it); what the drive does on release.
+- **A new robot (Part 4):** the starter driver file's `feel` region holds the library's defaults, emitted from an
+  empty `driving` block.
+
+**Parts and sizes.** Part 5 **+¾–1** (the block, the emitter, the validator, the region and its differential, the
+`static_assert` and its fixture, the robot-file chapter's feel section; *fix 2026-10-30, C11: +¼ for the
+`control words` region over the whole stick-and-button map and the feel's own comment*); Part 6 **+½–¾** (the FEEL
+page and the curve query). If Part 5 launches before he answers: D11 (b).
+
+**D11 — The driving feel as data: which part carries it, and do the drive protections come with it? RECOMMENDED
+(a).**
+- **(a) RECOMMENDED.** The design above: the tool half inside Part 5, the page inside Part 6; the drive protections
+  (the over-current cut and its numbers, the dropped-motor rule) stay the library's defaults and are not on the page.
+  Why Part 5: it already adopts robot two's driver-file regions, and without this it would build "read the re-zero out
+  of THE FEEL" (D4 (a)'s rule) only for this ruling to delete it. What it costs against D4 (a): the feel becomes
+  profile schema (F7 at G3; the note to VexBuilder grows, and Q20's "keep fields you do not know" covers it); a student
+  sets the feel in a form, though the generated lines stay in the driver file for anyone to read.
+- **(b)** The same work as its own **Part F**, right after Part 5 (~1–1½, both halves) — only if Part 5 has launched
+  before his answer. Cost: robot two's driver file is adopted twice, and Part 5's re-zero reading is built, then
+  replaced.
+- **(c)** (a), plus the drive protections on the page. Cost: +¼–½; a form can switch the over-current cut off, and
+  every one of those numbers is unmeasured (HA-175, HA-176) — T4's ruling kept the cut ON with a push check before any
+  match.
+
+### 2. DRIVE TUNING per robot — ruling (2)
+
+**What exists (opened).** `motion::MotionConfig` (`include/shulib/motion/motion_config.hpp` :150-249): `wheelFf`
+(:154), `translation` and `heading` `AxisGains` (:158-160), `maxLinearSpeed` / `maxAngularSpeed` / `maxWheelSpeed`
+(:164-168), the translation, heading and brake `SettleConfig`s (:172-184), `defaultTimeout` (:188), `rotationRadius`
+(:192), `stall` (`OdoStallCheckConfig`, :199 — `window`, `minSpinTravel`, `motionRatio`, plus `wheels` and
+`independentMotionSource`, which `Robot::effectiveTuning()` sets for a tank, and its OWN `rotationRadius`, 7.0 in,
+HA-17/HA-52, which nothing sets — `odo_stall_check.hpp` :129; *fix 2026-10-30, C12: the first pass said the builder
+sets the stall check's `rotationRadius` too*) and `tankSteer` (:205, TANK1, HA-179). **The nested structs' OWN
+defaults are zero** (*fix 2026-10-30, C1*): `SettleConfig` (`control/settled_util.hpp` :30-32 — "a default-constructed
+SettleConfig effectively never settles"), `AxisGains` (`motion_config.hpp` :56-58, `integralLimit` ∞) and
+`FeedforwardGains` (`control/feedforward.hpp` :37-40); the library's non-zero values are `MotionConfig`'s member
+initializers (:154, :158/:160, :172-184). `TankSteerConfig` and `OdoStallCheckConfig` carry their own non-zero defaults. `validate()` (:219-248) refuses non-finite gains and non-positive budgets; it does not descend into the settle
+or stall configs, whose owners check them when a motion is built. A robot's comes from `RobotConfig::tuning`
+(`config/robot_config.hpp` :520, :576 — `chassis::ChassisConfig {motion, scheduler}`, `chassis/chassis.hpp` :201-204).
+**Where robot two's comes from today: nowhere typed.** `bootConfigFrom` leaves `c.tuning` as
+`chassis::ChassisConfig{}`, "the library's PROVISIONAL defaults, UNTOUCHED", on purpose (`src/common/boot_source.hpp`
+:132-136, :208 — the same in `mech-a5`), and `robot::Robot::effectiveTuning()` sets only the stall check's geometry for
+a tank (`include/shulib/robot/robot.hpp` :1052-1059). Every program that boots robot two drives on HA-50/51/52/179's
+placeholders. The X-drive's `RobotConfig` (`src/robots/xdrive_config.hpp`) is hand-written and stays so. **R5a** (Part
+A landed 2026-10-06; B, C, D not built, none in the sprint): Part B puts the measured characterization in
+`RobotConfig` and lets it OWN `wheelFf` and the three speed budgets when present — "a typed `wheelFf` is honoured only
+without one", the budgets by D3's rule STARTING FROM the typed ones — and "G3a's profile never carries it"
+(`R5a-gains-and-noise-on-the-sd-card.md` :746-756); its numbers live on the SD card (`shulib_characterization.bin`,
+bound to the drivetrain record). Part C (Calibrate's GAINS step) comes after CAL1 (`CAL1-standard-calibrate.md`
+:1355).
+
+**Found (E1).** A `chassis::ChassisConfig` member appended to a constexpr aggregate with a `{}` default keeps every
+existing initializer compiling; a partly stated one keeps the library's defaults for every other TOP-LEVEL field; both
+pass `validate()` — host `-Werror` and ARM. ~~a partly stated one keeps the library's defaults for every other
+field~~ *(fix 2026-10-30, C1 — the BLOCKER: false for a NESTED group. E1 stated each nested group in full. The
+checker's probe C1 (`checker/nested_default.cpp`) designated `.translationSettle = {.maxError = 0.75}`,
+`.heading = {.kD = 0.1}` and `.wheelFf = {.kV = 0.17}`: the unstated members took the nested structs' zeros —
+`maxErrorRate` 0 and `settleTime` 0 (library 1.0, 0.1), heading `kP` 0 (library 4), `kS` 0 (library 1) — and all
+three pass `validate()`; `SettledUtil` accepts zeros (it requires only ≥ 0, `settled_util.hpp` :50-52). On a robot:
+with `maxErrorRate` 0 the error rate is never exactly 0 under noise, so every translation never settles and times out;
+heading `kP` 0 means no heading correction. Re-verified by reading the three structs (above).)* **Found (F1, the fix
+probe, `fix1/lambda.cpp`):** the region written as a constexpr lambda that ASSIGNS only the stated fields onto a
+default `chassis::ChassisConfig` keeps every unstated member — nested or not — at the library's value BY
+CONSTRUCTION (`static_assert`s on `maxErrorRate`, `settleTime`, heading `kP`, `kS`); the table stays `inline
+constexpr`; host `-std=c++20 -Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -Werror` (runs, `validate()`
+passes) and ARM `arm-none-eabi-g++ 13.2.1 -std=gnu++20 … -Werror` exit 0 (`fix1/lambda.log`).
+
+**The design (D12 (a)).**
+- **The robot file** gains `driveTuning`; every field is optional (absent = the library's provisional default, shown
+  with its HA number). ~~in the C++'s own units — inches, seconds, radians — so the emitted literal IS the typed
+  number (the page shows degrees beside radians)~~ *(fix 2026-10-30, C16: ONE angle unit at the human edge across the
+  panel's two files — DEGREES, F3's rule "degrees only at the API edge" (`docs/roadmap.md` :137), as the route file
+  already does (R.4). The angle-bearing fields carry a `Deg` in their name (`maxAngularSpeedDegPerS`,
+  `headingSettle.maxErrorDeg`, `…maxErrorRateDegPerS`, `heading.integralLimitDegPerS`, `tankSteer.maxSteerDeg`,
+  `tankSteer.crossGainDegPerIn`, `tankSteer.yawCorrectionLimitDegPerS`); the heading GAINS need no conversion (kP is
+  1/s, kI 1/s², kD unit-free whatever the angle unit). The emitter converts with ONE function, pinned by an agreement
+  fixture against `math::Angle::degrees(x).value()`, and writes the typed degrees in a comment beside each radian
+  literal, so the C++ still shows the number a student typed. Inches and seconds unchanged.)*:
+  ```
+  "driveTuning": {
+    "feedforward": {"kS": ..., "kV": ..., "kA": ...},     // used until a GAINS run is on the card (R5a)
+    "translation": {"kP": ..., "kI": ..., "kD": ..., "integralLimit": ...},
+    "heading":     {"kP": ..., "kI": ..., "kD": ..., "integralLimitDegPerS": ...},
+    "maxLinearSpeed": ..., "maxAngularSpeedDegPerS": ..., "maxWheelSpeed": ...,   // R5a's D3 rule starts from these
+    "translationSettle": {"maxError": ..., "maxErrorRate": ..., "settleTime": ...},
+    "headingSettle": {"maxErrorDeg": ..., "maxErrorRateDegPerS": ..., "settleTime": ...}, "brakeSettle": {...},
+    "defaultTimeout": ...,
+    "tankSteer": {"crossGainDegPerIn": ..., "maxSteerDeg": ..., "fadeDistance": ..., "leadTime": ...,
+                  "yawObserverTime": ..., "yawCorrectionLimitDegPerS": ...},
+    "stallCheck": {"window": ..., "minSpinTravel": ..., "motionRatio": ...},
+    "provenance": "who tuned it, how, when"
+  }
+  ```
+  Never in it: `scheduler` (the fault policy and the loop monitor), the stall check's `wheels` and
+  `independentMotionSource` (`Robot::effectiveTuning()`'s), and anything the robot measures — ~~`rotationRadius`~~
+  *(fix 2026-10-30, C12: `rotationRadius` is OUT of the typed schema, both copies — `MotionConfig::rotationRadius`
+  and the stall check's own. Each is a centre-to-wheel distance, half the track width on a tank, which Calibrate
+  MEASURES (the runtime-discovery ruling; D12's own "never anything the robot measures"); both stay 7.0 in (HA-17,
+  HA-52), shown READ-ONLY on the page with that note. Deriving them from the record is a library item, logged in §8,
+  not G3a's.)*
+- **The C++:** `ChassisTable` gains `chassis::ChassisConfig tuning{};`, appended (E1: the bench bot's table and every
+  existing initializer unchanged). A robot's `.tuning = …` sits in a new `[chassis tuning]` region at the END of its
+  initializer — robot two's after `[chassis]`'s end marker, or after `.camera` / `.wallSensors` if VIS1-B or L6-B land
+  first; a member added later goes after this region's end marker (the rule Part 1's region already states).
+  *(fix 2026-10-30, C1)* **The emitted form is a constexpr lambda that ASSIGNS each stated field onto a default
+  config** (F1), one line per stated field in the struct's declaration order, never a designated initializer of a
+  nested group:
+  ```
+  .tuning = [] {
+      chassis::ChassisConfig c{};
+      c.motion.translationSettle.maxError = 0.75;
+      c.motion.headingSettle.maxError = 0.0174532925199433;  // 1 deg
+      c.motion.maxLinearSpeed = units::Velocity{50.0};
+      return c;
+  }(),
+  ```
+  Every unstated member keeps `MotionConfig{}`'s value by construction, and the generated code duplicates no library
+  default (a later change to a provisional default reaches every robot that did not state that field). The other fix
+  the checker offered — write every member of a touched group, filling the unstated ones from a copy of the library's
+  defaults pinned by an agreement fixture — was NOT taken: it copies library numbers into team files, where they read
+  as chosen. Robot two's file states no tuning, so its region is EMPTY and its programs do not change; a host test
+  pins robot two's effective tuning equal to `chassis::ChassisConfig{}`, field by field (`test/boot_source_test.cpp`'s
+  `requireDefaultTuning()`, :219-258, already walks every struct by member count).
+- **The boot:** *(fix 2026-10-30, C12: re-read — the first pass named the wrong callers)* the pure core takes the
+  table's tuning as a parameter: `decideBootSourceFrom` (`boot_source.hpp` :357) and `bootConfigFrom` (:143, :181)
+  gain it, and the PROS shim `decideBootSource` (`boot_source.cpp` :35-54 — the one place that reads `kChassis`) passes
+  `kChassis.tuning`. The programs call `decideBootSource(kTag)` (`competition_program.cpp` :668,
+  `auton_tester_program.cpp` :464, `drive_program.cpp` :632) and DO NOT change. The test calls do: ~30 calls of the two
+  core functions in seven test files (`boot_source_test.cpp` 20, `mechanism_wiring_test.cpp` 5,
+  `driver_panel_claws_test.cpp` 4, `robot_two_driver_test.cpp` 3, `drive_program_source_test.cpp`,
+  `boot_check_test.cpp`, `driver_heading_test.cpp` 1 each) — each passes the tuning it means, with no defaulted
+  parameter (a default would let the shim forget it in silence; M49 stays red either way). A stated tuning the library
+  would refuse REFUSES the boot with one line naming the robot file's field — never a robot whose every motion faults on
+  its first tick (`core/check.hpp`: the scheduler turns a broken precondition into `FAULT_ABORT`). The refusal is a PURE
+  function in `boot_source.hpp` (for example `tuningProblem(const chassis::ChassisConfig&) -> const char*`, the first
+  failing field's robot-file name, "" when none) — not a call that throws on the brain. It checks THREE things on the
+  table's tuning: `MotionConfig::validate()`'s conditions (tankSteer's included — `validate()` calls
+  `tankSteer.valid()`, :245), each settle group's three bounds ≥ 0 (`SettledUtil`'s, `settled_util.hpp` :50-52), and the
+  stall check's three TYPED fields (`window` finite and > 0, `minSpinTravel` > 0, `motionRatio` inside (0, 1) —
+  `odo_stall_check.hpp` :163-168). The stall check's `wheels` and `independentMotionSource` are filled AFTER, by
+  `Robot::effectiveTuning()` from the record (`robot.hpp` :1052-1059), and checked where they are today (the default
+  wheels are a valid stand-in, `drive_geometry.hpp` :66-70). Host tests pin `tuningProblem` against the real checks,
+  each catching the real `PreconditionError`.
+- **The validator:** ~~those four checks~~ *(fix 2026-10-30, C12: THREE — `validate()` already covers tankSteer)* those
+  three checks mirrored, pinned by run-time agreement fixtures (each catches the real `validate()`'s or constructor's
+  `PreconditionError` on the host); plus ONE rule of the tool's own, named as stricter than the C++: a stated
+  translation or heading settle group's `maxError` and `maxErrorRate` must be > 0 (the C++ accepts 0, which "effectively
+  never settles", `settled_util.hpp` :26-28 — exactly C1's failure, typed on purpose).
+- **The DRIVE TUNING page (in Part T):** each field with the library's default and its HA number beside it, the typed
+  value with its provenance, and, for `feedforward` and the three top speeds, a MEASURED column: "none on this robot's
+  card yet — Calibrate's GAINS step (R5a Part C) is not built; until then the typed values drive the robot". When R5a
+  Part B lands, its characterization decoder joins `tools/robot_record.py` (the drivetrain record's pattern: Python,
+  pinned to the C++ decoder) and the column fills; R5a's brief carries that, as the chunk that lands second (the
+  coordinator amends R5a's OUT line, ~:1310, which names the display G3a's). The two `rotationRadius` values shown
+  read-only (above).
+- **A new robot (Part 2):** its table carries `.tuning` from its file — added by whichever of Part 2 and Part T lands
+  second (the tool cannot emit a block it does not know yet).
+
+**Parts and sizes.** NEW **Part T** — DRIVE TUNING (the tool lane's work, its page in the panel; beside Part 2, after
+Part 5's build and Part 3's merge): ~~**~2¼–3**~~ **~2½–3¼** (the block and its three mirrored checks plus the tool's
+own settle rule ~1; the degrees conversion and its agreement fixture ~¼ — *fix 2026-10-30, C16*; the member, the
+lambda emitter, the boot copy and the pure refusal with their host tests and the ~30 test-call updates ~½–¾; the
+region and the docs ~¼; the page ~½–¾). Part 2 **+¼**.
+
+**D12 — Where the drive tuning lives, and which numbers a team may type. RECOMMENDED (a).**
+- **(a) RECOMMENDED.** The design above: every number typeable, with feedforward and the three top speeds marked
+  "used until Calibrate measures them" — R5a's own rule, unchanged.
+- **(b)** As (a), but feedforward and the top speeds are NOT typeable — measured only (the runtime-discovery ruling of
+  2026-09-10). Cost: nothing can change them before R5a Part C, which is not in the sprint, so robot two drives on
+  placeholders past Nov 21.
+- **(c)** A separate per-robot tuning table with its own selection function. Cost: a third per-robot table — step 0's
+  `TABLE_FILES`, the selection pins and the gate's tables all change — for the same data.
+
+### 3. The CAMERA and WALL pages — ruling (3), re-timed
+
+**What changed.** Ruling (3) un-pauses VIS1-A2/B and L6-A2/B (the sprint row, :2333 at `81eb666`, had paused VIS1-A2/B and ALLY1,
+L4, AF1; L6 kept). VIS1-A1 and L6-A1 are in their review rounds. Part S needs only the BLOCKS: VIS1's camera block
+(`config/camera_config.hpp`, VIS1-A1) and robot two's `.camera` (VIS1-B — which documents into VIS1-A2's new camera
+chapter, so in practice after A2); L6's walls block (`config/wall_sensor_config.hpp`, L6-A2) and robot two's
+`.wallSensors` (L6-B, on the 2026-11-23 track).
+
+**Re-timed: Part S splits in two.**
+- **S1 — the WALLS half** (the walls block in the tool, robot two's `.wallSensors` adopted, the SENSORS page's walls):
+  after L6-B and Part 3; **~1½–2**. It rides the competition track (L6-B lands ~Nov 6–9) and can land by Nov 21.
+  *(fix 2026-10-30, C6: re-derived — L6-B merges ~Nov 8–10 with MECH-A6 first, and S1 lands ~Nov 18–22: at the edge
+  of Nov 21, D20.)*
+- **S2 — the CAMERA half** (the camera block, robot two's `.camera`, the page's camera): after VIS1-B and S1;
+  **~1½–2**. Under "route maker first", VIS1-A2 → VIS1-B get slots only from ~Nov 16, so S2 misses Nov 21 (the
+  schedule below). *(fix 2026-10-30, C6: ~Nov 25–Dec 2 — the serial chain cannot land before ~Nov 25 even at the low
+  sizes.)*
+- Together **~3–4** (was 2½–3½; +½ for the split). The robot-two rule: the hand-written `.camera` / `.wallSensors`
+  lines are adopted into a `[chassis sensors]` region (or by moving an ADJACENT region's end marker) — whichever leaves
+  no hand-written line inside a region; Part T's `[chassis tuning]` may sit between. The CALIBRATION page's flip
+  warning (CK10) names the walls from S1 on and the camera from S2 on.
+
+### 4. THE ROUTE MAKER — Part R's full section — ruling (4)
+
+> Supersedes the re-check's parts-table row for Part R ("waypoints … saved in F8's `paths[]`", ~4–6, RC10) and, for
+> routes, §1.16's "export: hooks only". Ruled 2026-10-08 (MECH-PANEL §4 item 7b: a field view; mechanism steps from
+> the robot's route ids; F8 so VexBuilder can take the route and add its physics; NO simulation, a geometry visual
+> yes) and widened 2026-10-29 evening (above).
+
+**What exists (opened).**
+- **`chassis::Routine`** (`include/shulib/chassis/routine.hpp`; F10 FROZEN, MECH-A4's block not yet): EAGER steps that
+  block in the order they read — `startAt`, `moveTo`, `driveTo`, `reverseTo`, `strafeTo`, `turnTo`, `face`, `faceAway`,
+  `followTrajectory`, `brake`, `hold`, `pause`, `waitFor`, `then` — and MECH-A4's `move`/`startMove`,
+  `home`/`startHome`, `run`/`startRun` (for a time, or `Until`: `seesPiece`, `stopsSeeingPiece`, `stalls`,
+  `.orAfter(t)`), `set` (a pneumatic position — no start form), `spinUp`/`startSpinUp`, `stop`, `waitUntilDone`
+  (:568-671). Per step, `MotionOptions` = `timeout`, `maxLinearSpeed`, `maxAngularSpeed` only (`chassis.hpp`
+  :212-239) — **no arrival tolerance**; its field SET is "deliberately additive-open" (:209-211). **One error policy,
+  frozen:** the first failure parks the drive and skips the rest (:109-133); "a routine that must CONTINUE past a
+  failure branches on the verbs directly" (:134-139); A4's verdict policy: SUCCEEDED and a counted UNCONFIRMED (robot
+  two's sensorless grab) continue, every other verdict stops (:543-552). F10's ADDITIVE path: "new steps, new
+  observers, new RoutineResult fields, appended RoutineStopCause enumerators" (:21-24).
+- **`followTrajectory` STOPS at each point** ("sequential moveTo legs, settling at each", `chassis.hpp` :324-355).
+  There is no smooth-curve verb; F8 names `"arc"` a gap until the roadmap's blending item (`vexbuilder-integration.md`
+  :281 and the paragraph after its rename table).
+- **F8** (`config/route.hpp`; the Freeze Register's row, `docs/roadmap.md` :142): `Waypoint {x, y, heading,
+  headingMode, motion ∈ Start/MoveToPose/DriveTo/TurnTo/StrafeTo/Hold, reverse, Constraints {maxLinear, maxAngular,
+  timeout}, markers[4] of an id and ≤ 2 int args}`, ≤ 32 waypoints. Markers fire only AFTER a leg settles (ruling R2,
+  `runner/path_runner.hpp` :45-56); the route stops on the first failure (:33-44); MECH-A4's route ids are blocking
+  only (`runner/mechanism_routes.hpp` :15-25: "a step that starts mid-leg is the mechanism core's later 'triggers
+  partway through a drive'"). ADDITIVE under F8: new enumerators and built-in ids at the end, new `RunReport` fields,
+  new registry members, **new optional fields in the file schema**. NOT on that list: new members on
+  `Waypoint`/`Constraints`/`Marker` (the pin test checks names and types by concept, `test/f8_signature_pin_test.cpp`
+  :24-35, so an appended member would compile — but the register does not call it additive: that would be a ruling).
+- **The auton list:** `competition::AutonEntry {name, kind, routine | route, start, endActionAt, hardStopAt,
+  endAction}` — a name ≤ 29 printable ASCII, no '%', unique, not NONE (`competition/auton_registry.hpp` :93-94,
+  :294-318); `AutonKind` Match or Skills (:110-114); at most **16** entries (:90). Robot two has two (`src/team/autons.cpp`
+  in `mech-a5`: the 40 in auton — "runs in the 30 s autonomous period", `endActionAt = 27_s`, `hardStopAt = 29_s`,
+  :71-84 — and the acceptance run).
+- **The wall reset** (L6-A2, in flight): `competition::resetFromWall(ctx, {.wall, .sensor, .maxCorrection, …})`
+  through `then()`, `.continues()` true when SEATED or when REFUSED and not `required`; FIELD starts only (L6 brief
+  :613-660).
+- **A sensor wait is expressible today:** `MechanismService::find(declaration)` and `Slot::sees()` are public
+  (`mechanism/service.hpp` :1767-1806, :288).
+
+**Found (E3).** ONE generated route ~~using every step form above~~ *(fix 2026-10-30, C14: the first pass said
+"every step form above"; E3 has the fifteen forms named next and no others)* — `face` and `driveTo` with a turn cap, a
+speed cap and a timeout, `startRun` (for a time) then `reverseTo` then `waitUntilDone`, `set`, a `waitFor` on the
+claw's piece sensor, `turnTo`, `faceAway`, `moveTo` (a fixed heading), `followTrajectory`, `run` (for a time),
+`pause`, `hold`, `brake` — plus a red/blue pair of registry entries compiles against MECH-A5's tree, host (`-Werror`)
+and ARM; re-run at main `81eb666` after A5's merge, host and ARM exit 0 (`fix14/e3_main.log`). **NOT in E3** (robot
+two has none of those kinds, or the form is not in the library yet): `move`/`startMove`, `home`/`startHome`,
+`spinUp`/`startSpinUp`, `stop`, a power run UNTIL a condition — each compiled and run by
+`test/mechanism_step_forms_test.cpp` (it calls every one of them); `strafeTo` — `test/chassis_routine_test.cpp` and
+the F10 pin `test/routine_signature_pin_test.cpp`; the keep-heading `moveTo` (the mixed-tier idiom over
+`Chassis::pose()`, `chassis.hpp` :480) — compiled by no probe yet: S37 compiles it; the wall reset — not landed
+(L6-A2). A missing position is refused at build by name (`no_such_position_on_this_mechanism`); a pneumatic has no
+start form (`startSet` does not exist). **So the route maker needs only four things the library does not have:** an
+arrival tolerance per step, an on-failure choice per step, triggers partway through a drive, and a smooth curve.
+*(fix 2026-10-30, C2/C3: and two rules for when steps are skipped or cut — a cut step always stops the chain, and a
+wait for a mechanism whose start never ran is a counted failure, not a throw — STEP1-A/B, R.13.)*
+
+#### R.1 What a route compiles to — D13
+
+**D13 — What a route drawn in the panel becomes. RECOMMENDED (c).**
+- **(a) F8 data, run by the library's route runner (`PathRunner`).** Gain: ONE format with VexBuilder, end to end — the
+  10-08 ruling's words. Cost: F8 cannot say face, face away, start-and-keep-driving, wait until done, wait on a
+  sensor, a partway trigger, a per-step tolerance or a per-step on-failure choice. Each is a new enumerator, a new
+  built-in id or a new `Waypoint` member (the last a reading of the freeze he must make); start forms as route ids push
+  names past F8's 23 characters (`<name>_start_until_piece`); a wall reset as a route id needs the auton's run guard and
+  start mode, which a route handler does not have (`mechanism_routes.hpp`'s step context carries the chassis and the
+  service only); VexBuilder must accept every addition; 32 waypoints and 4 markers each cap the route. Library work
+  ~6–9 builder-days before the panel half: misses Nov 21.
+- **(b) Generated C++ only:** each route becomes `chassis::Routine` code in a marked region of the robot's autons file.
+  Gain: every step the library has today (E3) plus STEP1-A/B's three; nothing in F8 moves; the students read their
+  auton as ordinary Routine lines and can explain each one — the generator is a fixed program turning their choices
+  into code, nothing else writes it; no cap but the registry's 16. Cost: VexBuilder cannot take a panel route —
+  reversing the 10-08 ruling's reason for F8.
+- **(c) RECOMMENDED: both — the robot runs the generated C++ of (b); the panel also EXPORTS each route as F8 `paths[]`
+  for VexBuilder,** with what F8 cannot say carried in ONE optional `shulib` object per waypoint (F8: "new optional
+  fields in the file schema" are additive — `docs/roadmap.md` :142). F8's in-memory types and `PathRunner` do not
+  change. Gain: (b)'s, and the 10-08 ruling kept — VexBuilder simulates the motions it knows and keeps the rest (if it
+  honours Q20). Cost: +½–¾ in Part R1 for the exporter and its fidelity test; the export is lossy for VexBuilder's
+  simulation in what it does not understand (start forms, triggers, choices, tolerances) — the exported file and the
+  panel say so; a route VexBuilder edits and sends back merges into the route file at G3.
+
+#### R.2 Scope — IN
+- **The route file** `src/team/<id>_routes.json` (one per robot; A5's per-robot team-file rule makes `<id>_*` the
+  robot's), checked against its robot file — the schema in R.4.
+- **`tools/robot_routes.py`** — standard library only, its own module (routes are a separate file type, and the route
+  lane must not share `tools/robot_tool.py`'s lines with the tool lane — the rebase rule's point 5). Loaded BY PATH like
+  `robot_record.py` (CK11 (b)); `robot_tool.py routes …` forwards to it. It reads the robot file through
+  `robot_tool.py`'s loader (one parser). Commands: `validate`, `generate`, `check` (freshness), `describe` (the step
+  vocabulary and the robot's mechanisms, presets, sensors and walls, for the page), `timeline`, `mirror` (a preview),
+  `export-paths` — each with `--json`.
+- **The robot's FOOTPRINT** in the robot file — `footprint {lengthIn, widthIn, provenance}`, human-stated (no program
+  measures it; both robots are 15" this season) — added to `robot_tool.py`'s schema by Part R1 (a few lines; the
+  rebase rule's point 1). Drawing only; no C++.
+- **The `[routes]` region** in the robot's autons file (R.11).
+- **The step vocabulary** (R.5), **care on every step** (R.6), **mechanism timing** (R.7), **mirroring** (R.8), **the
+  timeline** (R.9), **the F8 export** (R.10).
+- **The ROUTES page (Part R2):** the field (the season's walls, Loaders, Load Zones and start pieces from L6's
+  `override_walls.hpp` — the tool's copy pinned against the C++ constants by an agreement fixture; goals and other
+  elements from the manual, labelled "a drawing aid, never a check"); the ordered step list (add from the vocabulary,
+  reorder, duplicate, delete, label); each step's form (its care and timing); the robot's outline to scale at each
+  step's end pose; partway triggers drawn as ticks on their leg; skip arrows; a step-through that moves the outline from
+  end pose to end pose in order (geometry only); the mirror preview; the timeline bar; every refusal on its JSON path.
+
+#### R.3 Scope — OUT
+- **A smooth curve** (D16 — its decision block is R.7a; *fix 2026-10-30, C4: the first pass had none*).
+- **Strafe on a tank** — refused; offered on a holonomic robot only, and generation is tank-only until §5 Q22 (b).
+- **Drive to a piece** (L4, after the panel) and **the alliance colour chosen on the brain** (ALLY1, after the panel —
+  D17).
+- **Any simulation** (the 10-08 ruling): the step-through moves the outline between END poses; it never shows speed,
+  drift or timing. VexBuilder is the one simulator; shulib's host test plant stays inside the library's tests.
+- **The expanded (24") outline and collision checks against field elements** — the outline is a drawing aid; "does it
+  fit?" is a person looking.
+- **Importing a `.vexbot`'s paths** (G3); **editing hand-written autons** (the panel writes only its region); **measured
+  step times** (D18 (c), later); **"eject this route as hand-written code"** (a student can copy the generated lines out
+  of the region by hand; a tool command for it is later).
+
+#### R.4 The route file — the contract Parts R1 and R2 build against
+```
+{
+  "schemaVersion": 1,
+  "robot": "robot_two",                         // the robot file's id; every name below is checked against it
+  "routes": [ {
+    "name": "left three",                       // ≤ 29 printable ASCII, no '%', unique, not NONE; ≤ 24 if mirrored
+    "kind": "match" | "skills",
+    "start": {"mode": "field", "x": -55.7, "y": -60, "headingDeg": 90} | {"mode": "relative"},
+    "drawnFor": "red" | "blue",                 // field starts; relative starts too under the midline flip (R.8)
+    "mirror": true,                             // also generate the other side (D17); refused on a relative start
+                                                //   under the half turn (it would mirror to itself, R.8)
+    "endActionAtS": 27, "hardStopAtS": 29,      // tool defaults: 27/29 match, 57/59 skills (his to change)
+    "notes": ["..."],
+    "steps": [ {
+      "label": "second piece",                  // optional; unique; a skip target
+      "do": "driveTo", "x": -24, "y": -36,      // the step and its own fields (R.5)
+      "care": {"maxSpeedInPerS": 40, "maxTurnDegPerS": 0, "timeoutS": 2.5,
+               "toleranceIn": 1.0, "toleranceDeg": 0,
+               "onFail": "stop" | "carryOn" | {"skipTo": "second piece"}},     // R.6
+      "during": [ {"at": {"percent": 60} | {"afterIn": 20} | {"afterDeg": 45},
+                   "then": {"do": "move", "mechanism": "lift", "preset": "high", "boundS": 2}} ],  // R.7
+      "notes": ["..."]
+    } ]
+  } ]
+}
+```
+Units: inches, seconds, degrees in the file (F8's file uses degrees for headings, `vexbuilder-integration.md` §4.1.2);
+converted once at generation. `0` or absent in `care` = the robot's default (F8's and `MotionOptions`' sentinel).
+*(fix 2026-10-30, C16)* The robot file's `driveTuning` uses DEGREES too (§2): one angle unit at the human edge across
+the panel's two files (F3), one conversion function in the tools, pinned against the C++.
+**No end action** *(fix 2026-10-30, C16)*: the route file has no `endAction`; every generated entry leaves
+`AutonEntry::endAction` null — the library's brake (`auton_registry.hpp` :267-268; robot two's 40 in auton does the
+same, `autons.cpp` :83). A PARK (a second routine run at `endActionAt`) is OUT for Nov 21 — a later, additive field
+(`"endAction": {"route": NAME}`) whose routine the tool would check against the time left before `hardStopAt`.
+
+#### R.5 The step vocabulary → the library call each becomes
+| Step (`do`) | Its fields | Generated C++ (*fix 2026-10-30, C14:* E3 compiled the rows marked ᴱ; the other "today" rows are compiled by the tests the Found (E3) paragraph names; S37 compiles every row at R1's tip) | Library | F8 export |
+|---|---|---|---|---|
+| (the route's start) | `start` | `entry.start = StartPose::field(x, y, θ)` / `relative()` | today | `"start"` |
+| drive to | `x, y` | `r.driveTo(x, y, opts)` ᴱ | today | `"drive"` |
+| back into | `x, y` | `r.reverseTo(x, y, opts)` ᴱ | today (L9) | `"drive"` + `reverse` |
+| move to a pose | `x, y, headingDeg` | `r.moveTo(Pose2d{x, y, θ}, opts)` ᴱ | today | `"move"`, `"fixed"` |
+| move, keep heading | `x, y` | `r.moveTo(Pose2d{x, y, <the pose estimate's heading, read when the step runs>}, opts)` (the mixed-tier idiom) | today | `"move"`, `"free"` |
+| turn to | `headingDeg` | `r.turnTo(θ, opts)` ᴱ | today | `"turn"` |
+| face a point | `x, y` | `r.face(x, y, opts)` ᴱ | today | `"turn"` at the bearing from the PLANNED pose + `shulib.face` |
+| face away | `x, y` | `r.faceAway(x, y, opts)` ᴱ | today (L9) | as above + `faceAway` |
+| strafe to | `x, y` | `r.strafeTo(x, y, opts)` — holonomic robots only | today | `"strafe"` |
+| through points (stops at each) | `points[]` | `r.followTrajectory({…}, opts)` ᴱ — each point's heading is the bearing of its leg from the PLANNED pose (R.5's tank warnings) | today | consecutive `"move"`s |
+| a smooth curve | — | — | **NO** (D16) | — |
+| pause | `seconds` | ~~`r.pause(t)`~~ `r.then([&] { return ctx.guard.pause(t) == sequence::GuardedWaitResult::Satisfied; }, "pause")` — *fix 2026-10-30, C2: the GUARD's pause, which the deadline and a mid-auton disable can cut; `Routine::pause` is a frozen wait that runs to its own end (`auton_registry.hpp` :218-220; `run_guard.hpp` :94-108); compiled host and ARM, `fix13/`* | today | marker `wait_ms` |
+| hold position | `seconds` | `r.hold(t, opts)` ᴱ | today | `"hold"` |
+| brake | — | `r.brake(opts)` ᴱ | today | marker `brake` |
+| wall reset | `wall, sensor, maxCorrectionIn` | `r.then([&]{ return competition::resetFromWall(ctx, {…}).continues(); }, "label")`; `required` from the step's on-failure | after L6-A2 merges; FIELD starts only | `shulib.wallReset` |
+| home | `mechanism, boundS, wait` | `r.home(m, b)` / `r.startHome(m, b)` | today | `<name>_home [ms]` (blocking) / `shulib` |
+| arm or lift to a preset / a value | `mechanism, preset \| value, boundS, wait` | `r.move(m["p"], b)` / `r.move(m.to(v), b)` / `startMove` | today (a value past a limit: no build) | `<name>_<preset> [ms]` / `shulib` |
+| run a power mechanism | `mechanism, volts, seconds \| until (+ orAfterS), boundS, wait` | `r.run(m, V, t)` / `r.run(m, V, seesPiece[.orAfter(t)], b)` / `startRun` | today | `<name>_run`, `_until_piece`, `_until_gone` / `shulib` |
+| a pneumatic position | `mechanism, position` | `r.set(m["p"])` ᴱ (blocking: its move time) | today | `<name>_<position>` |
+| spin up a flywheel | `mechanism, preset, boundS, wait` | `r.spinUp(m["p"], b)` / `startSpinUp` | today | `<name>_<preset>` / `shulib` |
+| stop a mechanism | `mechanism` | `r.stop(m)` | today | `<name>_stop` |
+| wait until a started mechanism is done | `mechanism, boundS` | `r.waitUntilDone(m, b)` ᴱ — only where a start of `m` DEFINITELY ran first (R.5's refusals) | today | `shulib` |
+| wait for a piece / for it to go | `mechanism, seen, timeoutS` | ~~`r.waitFor(…)`~~ `r.then([&] { return ctx.guard.waitFor([&] { … find(m) … sees() … }, t) == sequence::GuardedWaitResult::Satisfied; }, "label")` — *fix 2026-10-30, C2: the guard's wait, as pause* (E3 compiled the frozen form) | today | `shulib` |
+
+`opts` is the step's care (R.6). The tool refuses: a mechanism or preset the robot file does not have, or a step of
+the wrong kind for it; `until: seesPiece` on a mechanism with no piece sensor (the C++ refuses it at run time); strafe
+on a tank; a wall reset on a relative start, or before L6-A2 has landed (`describe` lists it only then; once S1 lands
+the robot file's wall sensors are checked, before that the page warns "the brain refuses the reset if that side has no
+sensor"); `through` with no points; a pause or hold of 0.
+*(fix 2026-10-30, C3)* **Every run-time precondition of a mechanism step is a refusal in the tool** — a generated
+route must never THROW out of a match auton (a throw ends the auton; the guard safes on the unwind,
+`match_runner.hpp` :55-57). `routine.hpp` :558-563 lists them; three more are refused: **a time condition longer than
+its bound** (`orAfterS` > `boundS`); **`until: stalls` on a mechanism with no stall signature**; **homing a mechanism
+declared `neverHomed`** — and every other precondition the service's commands state (the R1 run re-reads
+`mechanism/service.hpp` and lists them all; S37 has one fixture each). And the `waitUntilDone` precondition ("this routine started no step on that mechanism",
+`routine.hpp` :682-685; a start is recorded only when its step RUNS — `noteStarted`, :918-922, after
+`skipIfStopped`): the tool refuses a `waitUntilDone(m)` unless a start form on `m` ran on EVERY path to it — a
+forward pass over the steps in which a skip (`onFail: {skipTo}`) is a jump from its step to its label, so a start
+between a skip and its label does not count for a wait at or after the label. A partway TRIGGER's start never counts
+as definite; a wait after a trigger is allowed only because STEP1-B defines it (R.13: the wait then answers "the trigger
+never fired" as a counted failure — never a throw, never an older step's verdict). STEP1-A also defines the run-time
+side for hand-written chains (a wait whose start was jumped over is a counted failure), so the tool's refusal is the
+first line and the library the second.
+**Warnings on a tank** *(fix 2026-10-30, C5)* — generation is tank-only (R.3), and a tank `moveTo` is steered only for
+a leg that STARTS within `tankSteer.maxSteer` (15° by default; Part T's typed value when stated) of its target heading;
+otherwise it runs unsteered, logs "turn first: face()", and on a laterally offset point "times out beside the point"
+(`chassis.hpp` :99-124; `routine.hpp` :303-311 and :321-333; robot two's `autons.cpp` :55-60). From the PLANNED poses
+(each step's end pose from the one before; a field start's pose, or (0, 0, 0) for a relative one) the tool WARNS, on
+the step, and offers to insert the turn: a `driveTo` whose planned start heading is more than `maxSteer` off the
+bearing to its point (offer `face` first); a `reverseTo` more than `maxSteer` off the bearing + 180° (offer
+`faceAway`); a `moveTo` to a pose — and "move, keep heading" — whose planned start heading is more than `maxSteer` off
+its target heading, or whose planned start lies off the target's LINE (through the point, along its heading) by more
+than tan(`maxSteer`) × the leg's length (an offset a 15° bend cannot remove — no size is promised, `chassis.hpp`
+:117-122); and every bend in a `through` list of more than `maxSteer` (the next leg starts unsteered). A warning, not a
+refusal: the live pose may differ from the plan. The page shows it on the step.
+
+#### R.6 Care on every step — D14
+| Care field | Applies to | Library | Note |
+|---|---|---|---|
+| speed cap | every drive step | `MotionOptions::maxLinearSpeed` — today | 0 = the robot's `maxLinearSpeed` (Part T) |
+| turn cap | every drive and turn step | `MotionOptions::maxAngularSpeed` — today | |
+| time limit | every step | `MotionOptions::timeout` / a mechanism step's `bound` — today | a mechanism step's is REQUIRED (A4: never a library default) |
+| arrival tolerance (inches, degrees) | drive, turn, move steps | **NEW — STEP1-A:** two `MotionOptions` fields, 0 = the robot's settle config | F6's field set is additive-open (`chassis.hpp` :209-211) |
+| on failure | every step | **NEW — STEP1-A:** a per-step choice; the frozen policy stays the default, word for word | D14 |
+
+**D14 — What "if it fails" offers, and what "skip" means. RECOMMENDED (a).**
+- **(a) RECOMMENDED: three choices.** **Stop the auton** (today's rule: park the drive, skip every later step).
+  **Skip ahead to a named later step** (park the drive, skip the steps in between — counted and logged — and go on from
+  that step; the panel draws the jump; a skip whose target never comes skips to the end, said). **Carry on** (log it,
+  count it, go to the next step). Defaults: every drive step STOP; every mechanism step A4's policy (a counted
+  sensorless grab continues, anything else STOP); a wall reset STOP = `required`, CARRY ON = not required, ~~(SKIP
+  unstated)~~ *(fix 2026-10-30, C9)* SKIP = `required` (a reset that is REFUSED must count as a failure for the skip to
+  happen; with `required` false `.continues()` reads true and the chain would go on, L6 brief :613-660). Carry on
+  after a drive that did not arrive gets a warning: "the next steps start from wherever the robot stopped". The frozen
+  error policy (F10) stays the default for every step that does not choose, unchanged — the choices are opt-in per step,
+  F10's additive path (the register's F10 row gains one sentence).
+  **A cut always stops** *(fix 2026-10-30, C2)*. The run guard ends scoring at `endActionAt` by CANCELLING the motion:
+  the verb returns `Cancelled`, "a Routine records the stop and skips the rest" (`run_guard.hpp` :60-75), and Routine
+  counts that exit as `MotionFailed` (`routine.hpp` :113-117, :208-210). The frozen waits cannot be cut; the guard's
+  lateness bound assumes "its first post-deadline motion is refused and stops the chain" (`run_guard.hpp` :94-108).
+  Under carry on or skip the chain would go on after the cut: each later frozen wait would run its full time past
+  `endActionAt`, later mechanism steps would still be issued, and the end action (the brake) could slide past
+  `hardStopAt`, where its own motions are refused. So: **a `Cancelled` verdict — a motion's or a mechanism step's —
+  and any failure once the run's guard reads `expired()` (the deadline passed, or the run was abandoned) STOPS the
+  chain, whatever the step chose.** The Routine learns the guard from the auton's context (`AutonContext::guard`; a
+  Routine built from a bare `Chassis` has only the `Cancelled` rule). And the generator emits the GUARD's waits (R.5's
+  pause and sensor-wait rows), which return at the deadline with zero latency.
+  **What the result says under carry on and skip** *(fix 2026-10-30, C9)*. The frozen `RoutineResult` fields keep
+  their meanings, read as "the chain's STOP": `ok` false once any step failed (its frozen meaning); `stoppedAt`,
+  `stoppedName`, `cause`, `exit`, `mechanismVerdict` describe the step that STOPPED the chain, and stay 0 / "" /
+  `None` / `Running` when the chain ran to its end; `skipped` counts only the steps skipped after a stop. NEW appended
+  fields carry the rest: the steps that failed and the chain went on (carry on or skip), the first of them (index,
+  name, cause), and the steps a skip jumped over. The two result screens read `ok` today and print "ROUTINE STOPPED"
+  for any not-ok routine (`auton_tester_run.hpp` :248, :402; `competition_run.hpp` :550, :729); they gain a result
+  word for a routine that finished with failures — for example "FINISHED, 2 FAILED", within `ui::kLargeCols` (18,
+  `calibrate_panel.hpp` :82) — and a stop line only when `stoppedAt` > 0.
+- **(b) Two choices** — stop or carry on ("skip it" = carry on). Cost: no way to give up on one scoring action and go
+  for the next one.
+- **(c) Choices per GROUP of steps** (a scoring action as one block). Cost: a group editor on the page and a nesting
+  concept in the library; more to build, more to explain.
+
+#### R.7 Mechanism timing — D15
+- **Wait until done** — the blocking forms (today). **Start and keep driving** — `startMove`, `startHome`, `startRun`,
+  `startSpinUp` (today); a pneumatic has no start form (E3). **Wait until a started mechanism is done** —
+  `waitUntilDone` (today). The tool warns when a started mechanism is never waited for: it keeps its behaviour until
+  the next command, the end of the auton or driver control (A4).
+- **Wait on a time** — `pause`, or a power run for a time (today). **Wait on a sensor** — a power run until it sees
+  (or stops seeing) a piece, or `waitFor` on a mechanism's piece sensor (today; a failing sensor reads UNKNOWN, which
+  satisfies neither, so the wait times out into the step's on-failure choice).
+- **Triggers partway through a drive** — **NEW — STEP1-B** (D15).
+
+**D15 — A trigger partway through a drive: what if the robot never gets that far? RECOMMENDED (a).**
+- **(a) RECOMMENDED.** A trigger is set on a drive or turn step: at a percent of the leg (the fraction of its
+  straight-line distance — or its angle, for a turn — covered, from the pose estimate), or after so many inches or
+  degrees. It STARTS a mechanism (start forms only — a blocking one would stop the drive) and fires at most once. **A
+  leg that ends before the point — timed out, failed, skipped — never fires it** (MECH-PANEL §5 Q19 (i), the R2
+  precedent: "a marker that fires at the wrong place is ... strictly worse than a marker that does not fire at all").
+  The page marks the trigger "fires only if the robot gets there". This also answers Q19's first half: routes too, now
+  — as generated code; the F8 export carries the trigger in its `shulib` object.
+- **(b)** As (a), but a trigger the leg never reached fires when the leg ends (Q19 (ii)). Cost: a lift raised where
+  the robot stopped short, not where the author meant.
+
+*(fix 2026-10-30, C3)* **D15's second question — a leg that ARRIVES short of its mark. RECOMMENDED (i).** A leg ends
+SETTLED once the robot is inside its arrival tolerance, not at the full length. So a mark at 100 %, an `afterIn` near
+the leg's end, or a turn whose live angle (`face()` reads its bearing from the live pose) is smaller than planned can
+leave the trigger unfired on a leg that SUCCEEDED; the chain then goes on, and a `waitUntilDone` on that mechanism
+would throw (no start) or — worse — collect an OLDER step's verdict as done (`routine.hpp` :666-695: the wait answers
+the step this routine last began on that mechanism, and "a step that already ended answers at once").
+- **(i) RECOMMENDED: a leg that ends SETTLED fires its unfired trigger at the settle** — the robot did get there,
+  within the tolerance the step accepts; a leg that ends any other way never fires it (D15 (a), unchanged). The tool
+  also refuses a percent above 100 and an `afterIn` / `afterDeg` longer than the PLANNED leg (a typo guard).
+- **(ii)** Never fire short: the tool refuses a mark it can predict is unreachable (a percent above
+  100 × (1 − tolerance ÷ planned length), an `afterIn` past planned length − tolerance). Cost: the live pose can still
+  miss a mark the plan reached; the step then succeeds with its mechanism never started.
+- **Either way — the wait after a trigger that never fired** (a leg that timed out, failed or was skipped, or (ii)'s
+  short arrival): STEP1-B arms the trigger's mechanism so that a later `waitUntilDone` on it answers "the trigger never
+  fired: the robot did not reach the mark" as a COUNTED FAILURE under that wait's own on-failure choice — never a throw,
+  never an older step's verdict (R.13, ST20/ST21).
+
+#### R.7a Smooth curves — D16 *(fix 2026-10-30, C4: the first pass had no decision block for D16, though "follow a curve" was in the team lead's own list)*
+**What exists (opened).** "Through points" is `followTrajectory`: sequential `moveTo` legs, "settling at each"
+(`chassis.hpp` :324-355). Each leg must meet BOTH settle criteria — the robot within 0.5 in at ≤ 1 in/s for 0.1 s,
+and its heading within 0.02 rad at ≤ 0.3 rad/s for 0.1 s (the library's provisional defaults, HA-51,
+`motion_config.hpp` :172-178) — and the motors are stopped on the exit tick (`move_to_pose.hpp` :58-59). So the robot
+STOPS at every point; options apply per leg (:325-327). On a tank each leg is steered only when it starts within
+`maxSteer` (15°) of its target heading (`chassis.hpp` :99-124): a point that bends the path by more than 15° gives an
+unsteered leg that can time out beside its point — R.5's tank warnings flag it. No curve verb exists: F8 names `"arc"`
+a gap that "arrives additively with the roadmap's blending item" (`docs/roadmap.md` :142), "a measured Frontier" with
+no size (:1989-1990); the master plan CUT "min-velocity motion chaining (stop-and-settle first)" from v1
+(`docs/shulib-v2-master-plan.md` :515). And TANK1's design rule: steering toward the author's LINE is allowed, turning
+toward the POINT is not (`tank_steer.hpp` :11-14, C1's D12) — a pursuit or boomerang controller aims at a point, so it
+re-opens that rule.
+
+**D16 — What "follow a curve" means by Nov 21. RECOMMENDED (a).**
+- **(a) RECOMMENDED: no curve by Nov 21.** The route maker offers "through points" (it stops at each), with R.5's tank
+  warnings on every bend over 15°. Size: 0. Cost: a route that should flow through a bend stops at each point — the
+  deceleration into the point plus the 0.1 s settle hold, per point.
+- **(b) Rolling through points** — "motion chaining", the master plan's deferred item: a leg that is not the last ends
+  once the robot is within a stated distance of its point, at speed — no rate check, no settle hold, no heading
+  criterion, the motors NOT zeroed — and the next leg starts from there. Library: a `MoveToPose` exit option and its
+  `MotionOptions` field (F6-additive), a rolling form of `followTrajectory` (an F6 overload) and its Routine step; on a
+  tank every bend must stay under `maxSteer` (15°) or the next leg is unsteered, so a "curve" is many points a few
+  degrees apart. **~1½–2½ builder-days** (rough — sized by analogy to TANK1 Part A, sized 1¼, whose review found a
+  loop-damping blocker, `tank_steer.hpp` :24-30), its own run after STEP1-A (both edit `MotionOptions`), plus robot
+  tuning — how close "through" is and what speed it carries into the next leg — that no host test plant settles. Under
+  D20 (a)'s order it would land after the routes, ~Nov 20–24: it misses Nov 21 unless something else gives way.
+- **(c) A curve follower** — a pursuit or boomerang-style controller on a tank, the roadmap's blending item: a new
+  motion class, a path form (points with headings → a smooth path), its end behaviour, the facade verb and the Routine
+  step, F8's `"arc"` (additive), host-test-plant tests, and a ruling that re-opens C1's D12 ("never aim at the point").
+  **~3½–5½ builder-days** (rough — no precedent in this repository: ~2–3 times TANK1 Part A for the motion class,
+  ~1–1½ for the path form, the verb, the pins and the docs), plus robot tuning. It cannot be built and trusted on a
+  robot by Nov 21.
+
+#### R.8 Mirroring — D17
+- **The two flips (E4).** On the field frame (+X right as seen from the RED station, +Y toward BLUE, walls at
+  ±70.205 in — L6's `override_walls.hpp` :5-10 in `l6-a1`): **across the midline** `(x, y, θ) → (x, −y, −θ)`, or **a
+  half turn** `(x, y, θ) → (−x, −y, θ + 180°)`. Both undo themselves. WHICH ONE Override's field needs is **not stated
+  anywhere in this repository** (UNVERIFIED): the coordinator reads the manual's field drawing (Appendix A) before Part
+  R1's go and puts it to the team lead to confirm; the tool implements both and the season states one.
+- **What each changes besides the poses (E4).** Across the midline, the robot's left and right swap: a red route's
+  LEFT sensor on the left wall becomes the blue route's RIGHT sensor on the same wall, and a RELATIVE-start route becomes
+  `(x, −y, −θ)` (turns reversed). A half turn keeps the robot's sides: the LEFT sensor now faces the RIGHT wall, and a
+  relative-start route is unchanged. The tool rewrites wall-reset steps accordingly, and under the midline flip it warns
+  on every step that depends on a side of the robot ("this route uses the robot's left side; the mirrored route uses its
+  right").
+- *(fix 2026-10-30, C15)* **What the tool can and cannot know.** The robot file states no mechanism's SIDE (only the
+  wall sensors carry one, L6's walls block), so a per-step warning can cover wall resets only. Under the midline flip
+  the WHOLE route is a mirror image — a claw on the robot's left now meets the field on the other side — so the page
+  shows a ROUTE-LEVEL warning on every midline-mirrored route: "the mirrored route is a mirror image: anything on one
+  side of the robot is now on the other side of its path — check each mechanism step". **Relative starts:** under the
+  midline flip a relative route's mirror DIFFERS (`(x, −y, −θ)`), so `drawnFor` is allowed on a relative route there;
+  under the half turn a relative route mirrors to ITSELF, so `mirror` is REFUSED on a relative route (two identical
+  entries would waste two of the registry's 16 places).
+- **The lead for the manual read** *(fix 2026-10-30, C15)*: the manual's sheet A16 ("AprilTag numbering/locations")
+  puts tags 1–4 on the field TWICE each, "mirrored" (`HANDOFF-remaining-work.md` :154-155) — where each pair sits
+  settles the flip: a tag at (x, y) with its twin at (−x, −y) is a half turn; at (x, −y), the midline. The walls,
+  Loaders, Load Zones and start pieces in `override_walls.hpp` are symmetric under BOTH flips, so they cannot settle it.
+- **D17 — How a mirrored route reaches the robot. RECOMMENDED (a).**
+  - **(a) RECOMMENDED: two picker entries per mirrored route** — "<name> RED" and "<name> BLUE" — generated as a pair,
+    the flip the season's. No library change, no run-time colour. Cost: a pair takes two of the registry's 16 places,
+    so names stay ≤ 24 characters (" BLUE" is five); the drivers pick the right one before the match.
+  - **(b) One entry; the colour chosen on the brain at run time.** Needs ALLY1 (our alliance colour), which the sprint
+    put after the panel. Cost: not by Nov 21; an ALLY1 change later can collapse each pair into one entry additively.
+
+#### R.9 The timeline — D18
+- **The bar** shows each route against its period and its entry's stop times (`endActionAt`, `hardStopAt`). **The
+  periods: 30 s for a VEX U head-to-head autonomous and 60 s for Autonomous Coding Skills** (`<VUT4>`, the manual of
+  2026-07-02 — memory `vexu-override-facts`, and `HANDOFF-remaining-work.md` :150-153, read from manual v1.0 on
+  2026-09-24; robot two's autons file already says "the 30 s autonomous period"). The
+  "15 s" in his words is V5RC's period, not VEX U's — D18 asks him to confirm.
+- **D18 — What the timeline shows. RECOMMENDED (a).**
+  - **(a) RECOMMENDED: two bounds, arithmetic only.** *(fix 2026-10-30, C8: the first pass called both "true" bounds;
+    neither was, as written.)* The **FASTEST** time, an estimate FROM THE PLANNED POSES: each drive leg's
+    max(0, length − its arrival tolerance − the previous step's) ÷ its speed cap (the robot's top speed where none is
+    stated), each turn's max(0, angle − its tolerance) ÷ its turn cap, plus every stated pause, hold and timed run. Not
+    a guarantee: a leg ends once it is inside its tolerance, it starts where the previous step ACTUALLY stopped, and
+    `face`/`driveTo` take their bearings from the live pose (`routine.hpp` :86-95) — so it is labelled "about the
+    fastest possible", never "true". The **SLOWEST ALLOWED** time: the sum over steps of each one's limit — a drive or
+    turn's timeout (the robot's `defaultTimeout` where none is stated) TIMES ITS LEGS (`followTrajectory`'s options
+    apply per leg, each leg its own watchdog, `chassis.hpp` :325-327), plus one control tick per motion (a motion can
+    end up to a tick after its timeout); a mechanism step's bound plus the library's 0.25 s slack (`routine.hpp` :906)
+    and a tick; a `waitUntilDone` the same; a guard pause its time; a guard sensor wait its timeout; a wall reset its
+    own limit (read from L6-A2's API at R1's tip) — and the whole capped at `endActionAt`, where the guard cuts scoring
+    (R.6's "a cut always stops"); the bar shows the end action from there to at most `hardStopAt`. Started mechanisms
+    and partway triggers add nothing. ~~A route whose fastest time passes `hardStopAt`~~ A route whose FASTEST time
+    passes `endActionAt` cannot finish its scoring (warned); one whose SLOWEST does may be cut (warned). No "likely"
+    time is shown. The bounds are checked, not trusted: Part R1's test runs every fixture route on the host test plant
+    and its time must fall between them (R.12, S42 — with fixtures built to break each bound) — the plant is the
+    library's test oracle; the panel shows only the arithmetic. *How it stays arithmetic, not a second simulator:* it
+    reads only numbers the student typed (or the robot file's defaults) and the planned geometry — no acceleration, no
+    friction, no settle model, nothing VexBuilder would compute — and it is shown as two numbers with their words,
+    never one predicted time; D18 asks him to confirm that line.
+  - **(b)** (a) plus a "likely" time from an assumed acceleration and settle. Cost: that IS a small simulator, which
+    he ruled out on 2026-10-08 — it would disagree with VexBuilder's and the robot's, with no way to say which is right.
+  - **(c)** (a), plus, later, the times MEASURED on the robot (the Auton Tester's SD log, once it records each step's
+    duration — a small `src/` change after the panel). Real numbers, not a model.
+
+#### R.10 The F8 export (D13 (c))
+`robot_routes.py export-paths ROUTES.json --route NAME` writes F8's `paths[]` entries: `"start"`, then one waypoint per
+drive step (the mapping in R.5's last column); each blocking mechanism step a MARKER on the waypoint before it (route
+ids, `kBuiltinCommands`' `wait_ms` / `brake`); everything F8 cannot say in ONE optional `shulib` object on the waypoint
+it belongs to (start forms, `waitUntilDone`, sensor waits, partway triggers, tolerances, on-failure choices, wall
+resets, the face target). A route that needs more than 32 waypoints or more than 4 markers on one waypoint is NOT
+exported — refused, naming the step; never truncated. A mirrored route exports both sides. The coordinator's note to
+VexBuilder (§4.10) gains the `shulib` object and the ask to keep it (Q20).
+
+#### R.11 Where the generated code goes
+- **One `[routes]` region** ~~at the end of the robot's autons file's namespace~~ *(fix 2026-10-30, C13: there it
+  does not compile — `registerAutons()` calls a function declared after it; the checker's probe C3,
+  `checker/routes_end.log`: "'registerPanelRoutes' was not declared in this scope")* **ABOVE `registerAutons()`, after
+  the hand-written autons' anonymous namespace** (robot two's: between `autons.cpp` :72 and :74), holding its OWN
+  anonymous namespace: one function per route and side (`route_<identifier>_<side>`, `chassis::Routine r{ctx,
+  "<name>"}` …), then `void registerPanelRoutes(competition::AutonRegistry&)` registering each entry (name, kind,
+  start, `endActionAt`, `hardStopAt`; `endAction` left null — R.4). Internal linkage, no declaration in `autons.hpp`,
+  nothing unused (the gate fails `-Wunused-function`). Probe F13 (`fix13/`): a copy of `autons.cpp` with the region
+  there — EMPTY, and with a generated red/blue pair using the guard's pause and a capped `driveTo` — compiles host
+  `-Wall -Wextra -Wunused-function -Wconversion -Wsign-conversion -Wshadow -Werror` and ARM, exit 0
+  (`fix13/routes_above.log`). ONE hand-written line
+  calls it from `registerAutons()` — added once by Part R1 for robot two (`src/team/autons.cpp`, outside the region),
+  by Part 4's starter for a new robot. Robot two's region is adopted EMPTY (`registerPanelRoutes` with no entries):
+  its five packages do not change in behaviour (checked by the host suite and the gate). Hand-written autons stay
+  outside the region, untouched.
+- **The registry's 16:** the tool counts the hand-written `registry.add(` calls outside the region and refuses a route
+  file that would pass 16; the host suite's registration test (every entry of every robot registers) is the truth.
+- **Robot two's code freeze:** a route generated after the ~Nov 16 freeze changes robot two's competition build — the
+  coordinator lands none into robot two's file between the freeze and 2026-11-23 without the team lead's word.
+
+#### R.12 Tests (adversarial) and mutations — Parts R1 and R2 (numbered on from S36 and M35)
+**Part R1 (self-test and host suite; each case FAILS first on a deliberately broken tool):**
+- **S37 every step form** generates code that compiles on the host and ARM (E3's method, at the tip); one fixture per
+  refusal in R.5 and R.6 (a mechanism, preset or position the robot lacks; `seesPiece` without a sensor; strafe on a
+  tank; a wall reset on a relative start; a skip to an earlier or missing label; a duplicate label; a trigger on a
+  non-drive step or with a blocking form; a name over 29, or over 24 when mirrored; a 17th entry). *(fix 2026-10-30:
+  + the three run-time preconditions and every other the R1 run lists (C3) — `orAfterS` > `boundS`, `stalls` with no
+  stall signature, homing a `neverHomed` mechanism; + the definitely-started check (C3) — a start inside a skip's range
+  with the wait after its label REFUSED, the same start before the skipping step ACCEPTED, a wait whose only start is
+  a trigger ACCEPTED (STEP1-B's rule); + the tank warnings (C5) — a `driveTo` 90° off its planned bearing, a `reverseTo`
+  not preceded by `faceAway`, a `through` bend of 30°, a keep-heading `moveTo` to a point 10 in off its line over
+  20 in each WARN, and the same steps after `face` / `faceAway` / with 10° bends do not; + the keep-heading `moveTo`
+  and the guard's pause and sensor wait compile (C14, C2).)*
+- **S38 the twin:** each fixture route's generated function and a hand-written `Routine` chain of the same steps drive
+  two identically seeded host test plants BIT-IDENTICALLY, per tick (G2's `memcmp` method).
+- **S39 the export's fidelity:** for every fixture route of F8-expressible steps only, `PathRunner` on the exported
+  route (emitted as a `constexpr config::Route` fixture) and the generated function drive two seeded host test plants
+  bit-identically; every exported route passes `Route::valid()`.
+- **S40 the `shulib` object** carries every non-F8 field; a route needing a 33rd waypoint or a 5th marker is refused,
+  naming the step.
+- **S41 mirroring:** each flip undoes itself (byte for byte in the file); poses as E4; a wall reset's wall and sensor
+  per flip; a relative route unchanged under the half turn and `(x, −y, −θ)` under the midline flip; both entries
+  registered. *(fix 2026-10-30, C15: "undoes itself" alone passes for a flip that wrongly negates a signed field twice,
+  so ALSO: after ONE flip every non-geometric field equals the original — volts, bounds, times, care, labels,
+  mechanism, preset and position names, kinds, notes; `mirror` on a relative route under the half turn is REFUSED,
+  `drawnFor` on one under the midline flip ACCEPTED; every midline-mirrored route carries the route-level warning.)*
+- **S42 the timeline is honest:** on the host test plant every fixture route's run time lies between the fastest and
+  the slowest bound — including a fixture robot whose `defaultTimeout` is not the library's. *(fix 2026-10-30, C8:
+  the fixtures are built to BREAK each bound — a fixture robot whose `defaultTimeout` is 8 s, LONGER than the
+  library's 5 s, with a step that times out on it (M39's mutant then reads 5 s and goes red; with a shorter default it
+  would survive); a `through` step whose every leg is speed-capped so it takes most of its timeout (M56); a blocked
+  leg that times out; a slow-capped, 3 in-tolerance short leg (the fastest estimate must still sit below it).)*
+- **S43 care reaches the robot:** a stated speed cap, turn cap, time limit and tolerance reach the generated
+  `MotionOptions`; on the host test plant a 2 in tolerance settles before a 0.5 in one.
+- **S44 the on-failure choices:** with a forced failure (a blocked plant; a STALLED mechanism fixture) STOP, SKIP and
+  CARRY ON produce exactly their step counts and log lines. *(fix 2026-10-30, C2/C9: + a generated CARRY ON route and
+  a SKIP route, each cut at its `endActionAt` mid-motion and mid-pause, run NO further step and the end action starts
+  within one tick of the cut; a wall reset under SKIP is emitted `required`.)*
+- **S45 partway triggers:** the mechanism's first command lands in the tick where the leg's progress first reaches the
+  mark; a leg that times out first never fires it. *(fix 2026-10-30, C3: + a leg that SETTLES short of a 100 % mark
+  (D15's second question as he answers it); a `waitUntilDone` after a trigger that never fired is a counted failure —
+  never an exception, never an earlier step's verdict on the same mechanism.)*
+- **S46 freshness:** a hand edit inside `[routes]` → `check` names the lines; a stale region → STALE; robot two's
+  region adopted empty, its differential logged.
+- **S47 the field copy:** the tool's walls, Loaders, Load Zones and start pieces equal `override_walls.hpp`'s
+  constants (an agreement fixture).
+- **S53 nothing generated throws** *(fix 2026-10-30, C3)*: for every fixture route, the host test plant runs it once
+  per step with THAT step forced to fail (each choice: stop, skip, carry on) — no run raises an exception; each ends
+  with the counts its choices predict.
+**Part R2 (`node --test`, pure model):** step add / move / delete / label keep the list valid; a refusal lands on its
+JSON path; the mirror preview and the timeline come from the tool's `--json` (the page computes neither); a skip arrow
+points at its label. The manual VS Code check: draw robot two a route of every step kind, mirror it, export it, and
+read the generated code.
+**Mutations (a FRESH run each; observe red; restore; log):**
+- **M36** the midline flip forgets to negate the heading → S41 red;
+- **M37** the midline flip keeps a wall reset's sensor side → S41 red;
+- **M38** a skip target matched by prefix ("second" finds "second piece") → S37/S44 red;
+- **M39** the slowest bound takes the library's 5 s default instead of the robot's `defaultTimeout` → S42 red;
+- **M40** the export drops `reverse` → S39 red;
+- **M41** a start form emitted as its blocking form → S38/S45 red;
+- **M42** the position tolerance emitted on the heading field → S43 red;
+- **M43** the validator accepts a preset the robot lacks → S37's fixture DISAGREES with the build's refusal;
+- **M44** the generator writes past the region's end marker → S46 red;
+- **M45** the field copy's Loader moved 1 in → S47 red;
+- *(fix 2026-10-30)* **M53** the definitely-started check ignores skips → S37's skip fixture is accepted and S53's run
+  THROWS → red; **M54** the turn-first check forgets `reverseTo`'s + 180° → S37's warning fixture red; **M55** the
+  midline flip negates a power run's volts → S41's one-flip assertion red (it survives "undoes itself"); **M56** the
+  slowest bound counts a `through` step's timeout once, not per leg → S42 red; **M57** the pause emitted as the frozen
+  `r.pause(t)` → S44's mid-pause cut red (the pause runs past `endActionAt`); **M58** a `through` step's point headings
+  taken from the step's own end pose instead of each leg's planned bearing → S37's 10°-bend fixture warns → red.
+
+#### R.13 The library half — STEP1-A and STEP1-B (their own runs, `include/` work)
+G3a's parts write no `include/` (§6: `git diff --stat -- include/` is empty for every part), so the route maker's
+library half is its own chunk, **STEP1 — per-step care and timing in autons**, in two runs, each its own go. This
+section is its brief's scope; the coordinator writes each run's prompt from it once D14 and D15 are answered.
+- **STEP1-A — the arrival tolerance and the on-failure choice. ~~2–2¾~~ ~2¾–3½ builder-days** *(fix 2026-10-30:
+  +¾ for the cut rule (C2), the result fields and screens (C9) and the jumped start (C3))*.
+  - `chassis/chassis.hpp`: `MotionOptions` gains a position tolerance and a heading tolerance (typed; 0 = the robot's
+    settle config); `effectiveConfig()` (:571-577) applies them to `translationSettle.maxError` /
+    `headingSettle.maxError`. F6-additive (the field set is "additive-open").
+  - `chassis/routine.hpp`: the per-step choice (D14) as opt-in, F10-additive members — for example a one-shot
+    `r.onFail(…)` consumed by the next step and a `r.label("…")` step that ends a skip (the spelling is the run's,
+    within these rules): the frozen policy is the default, bit for bit; carry on and skip are counted in APPENDED
+    `RoutineResult` fields; `ok()` keeps its frozen meaning (false once any step has failed).
+  - *(fix 2026-10-30, C2)* **A cut always stops:** a `Cancelled` verdict (a motion's exit or a mechanism step's) and
+    any failure once the run's guard reads `expired()` stop the chain whatever the step chose (R.6). The context
+    constructor also borrows the guard when the context has one (`requires { c.guard }`; `AutonContext::guard`,
+    `auton_registry.hpp` :218-220), declared after A4's members like them; a Routine from a bare `Chassis` keeps the
+    `Cancelled` rule only. (`routine.hpp` may include `sequence/run_guard.hpp` — that header includes `chassis.hpp`, not
+    `routine.hpp`, so there is no cycle; or the template constructor keeps a thunk — the run's spelling.) The frozen default is untouched (it already stops on both).
+  - *(fix 2026-10-30, C3)* **A jumped start:** when a skip jumps over a start form, the Routine marks that mechanism
+    so a later `waitUntilDone` on it answers a COUNTED failure ("its start was skipped") under the wait's own choice —
+    never the precondition throw (`routine.hpp` :682-685, kept for a wait with no start at all), never an older verdict.
+  - *(fix 2026-10-30, C9)* **What the result says** (R.6's definitions): the frozen fields read as the chain's STOP;
+    APPENDED fields for the failures the chain went past, the first of them, and the steps a skip jumped. **The two
+    result screens** — `src/programs/auton_tester_run.hpp` (:218-248 the result word, :395-410 the stop line) and
+    `src/programs/competition_run.hpp` (:517-550, :720-735) — gain the word for a routine that finished with failures
+    (within `ui::kLargeCols`, 18) and print the stop line only when `stoppedAt` > 0; their tests
+    (`test/competition_run_test.cpp`, the Auton Tester's run test) gain the cases. Every new line fits the line budgets
+    (`kTesterLineBytes`, `kCompetitionLineBytes` — NOTES 10-29 ~21:00 logged COMP-b's routine-stop line at 214 B worst
+    case against 200, CUT with its flag; STEP1-A must not lengthen it).
+  - Tests (each FAILS first): ST1 every existing routine and recipe test passes UNCHANGED (the frozen default);
+    ST2 a tolerance of 0 is bit-identical to today on the host test plant; ST3 a 2 in tolerance settles earlier;
+    ST4 skip-to skips exactly the steps between, each logged and counted, and resumes at the label; ST5 a skip whose
+    label never comes skips to the end, said; ST6 carry on continues, `ok()` false, the failure recorded; ST7 a
+    mechanism step's own verdict policy under each choice (A4's counted grab still continues); ST8 the F6 and F10 pins
+    gain the new members. *(fix 2026-10-30)* ST15 a CARRY ON chain and a SKIP chain cut at `endActionAt` — mid-motion,
+    mid-frozen-pause and mid-guard-wait — run no further step, and the end action starts within one tick of the cut
+    (or, mid-frozen-pause, of that pause's end — the frozen bound); ST16 a mechanism step ending CANCELLED under CARRY ON
+    stops the chain; ST17 every frozen and appended `RoutineResult` field under each choice, and both screens' result
+    words and stop lines (a routine that carried on past two failures reads its new word, not "ROUTINE STOPPED"); ST18
+    a `waitUntilDone` whose start a skip jumped answers a counted failure, no exception.
+  - Mutations: SM1 the choice ignored (always stop) → ST4/ST6 red; SM2 a label matched by prefix → ST4 red; SM3 carry
+    on leaves `ok()` true → ST6 red; SM4 the position tolerance applied to the heading → ST3 red. *(fix 2026-10-30)*
+    SM9 CARRY ON ignores a `Cancelled` exit → ST15 red; SM10 `expired()` not consulted → ST15's guard-wait case red;
+    SM11 the screens' word reads `ok` alone → ST17 red; SM12 a jumped start leaves the mechanism unmarked → ST18
+    throws → red.
+  - Docs: guide 09 (the recipe API — the choices and the tolerance); cookbook 02 (when a step fails — a "skip to the
+    next piece" recipe); the changelog; `version.hpp` (API 2.6, additive); the Freeze Register's F6 and F10 rows (one
+    sentence each). *(fix 2026-10-30, C9: + the Auton Tester's and Competition's result words wherever the worksheet
+    and guide quote them.)*
+  - *(fix 2026-10-30, C9)* **Files:** `include/shulib/chassis/{chassis,routine}.hpp`, `version.hpp`, the F6/F10 pins,
+    their tests, AND `src/programs/{auton_tester_run,competition_run}.hpp` with their tests — shared with ALLY1, L6-B
+    and AF1 (the shared-files table); whichever lands second re-reads.
+- **STEP1-B — triggers partway through a drive. ~~1½–2~~ ~2¼–3 builder-days** *(fix 2026-10-30, C10/C3: +¾–1 for
+  the public seam and the unfired trigger; MECH-PANEL's own size for this item is "~1–2 (+~1 if routes are in scope,
+  §5 Q19)", `MECH-PANEL-requirements.md` :764)*. After STEP1-A's build ends; it re-reads STEP1-A's tip (both edit
+  `chassis.hpp`).
+  - A pure progress function (the fraction of a leg's straight-line distance — or angle — covered, from the pose
+    estimate, kept as a running maximum so a wobble cannot fire twice), and a Routine step form that arms a START form
+    on the next drive or turn step (D15). The tier rule holds (`routine.hpp` :86-104: a recipe is never the only way):
+    ~~the Tier-3 spelling — the scheduler's `async` plus `waitUntil` (`chassis.hpp` :516-520) with the progress check —
+    is written first, in the cookbook, and the Routine form delegates to it.~~ *(fix 2026-10-30, C10: that spelling
+    needs pieces a Tier-3 caller cannot reach — `effectiveConfig` (`chassis.hpp` :571-580) and `runBlocking` /
+    `DetachGuard` (:541-566) are private, and `bearingTo` is private to Routine (PathRunner duplicates it,
+    `path_runner.hpp` :24-28) — and a Routine step must be "exactly one Chassis call" (`routine.hpp` :86-88), so a
+    Routine form built from those pieces would itself be motion logic.)* **So STEP1-B adds an F6-additive PUBLIC seam
+    in `chassis/chassis.hpp`:** an overload of each blocking drive and turn verb (`moveTo`, `turnTo`; `driveTo`,
+    `reverseTo`, `face`, `faceAway` reach them through Routine's one-argument delegation) that takes a small per-tick
+    observer — a plain function pointer and a non-owning context, no heap (`runner::Handler`'s pattern) — called once
+    per tick of the leg with the leg's progress, never after its exit tick. That overload IS the Tier-3 spelling the
+    cookbook shows; the Routine step delegates to it, one Chassis call. The F6 pin gains it.
+  - *(fix 2026-10-30, C3)* **The trigger that never fires:** arming a trigger marks its mechanism; if the leg ends
+    without firing it, a later `waitUntilDone` on that mechanism answers a COUNTED failure, "the trigger never fired:
+    the robot did not reach the mark" (an APPENDED `RoutineStopCause`), under the wait's own choice — never the
+    precondition throw, never the verdict of a step the routine began on that mechanism earlier. D15's second question
+    as he answers it: under (i) a leg that ends SETTLED fires its unfired trigger at the settle.
+  - *(fix 2026-10-30, C10)* **It takes MECH C's item** "mid-drive triggers for routines ~1–2" (`MECH-PANEL-
+    requirements.md` :764): MECH's rest loses it (the coordinator strikes it there at STEP1's plan commit).
+  - Tests: ST9 fires once, in the tick where progress first reaches the mark; ST10 never before; ST11 a leg that times
+    out, fails or is skipped first never fires; ST12 by inches and by degrees; ST13 the started mechanism runs while the
+    drive continues (the service is ticked — A4's honest limit); ST14 a blocking form is refused at build (MECH-A1's
+    compile-refusal harness). *(fix 2026-10-30)* ST19 the seam's observer is called once per tick of the leg and never
+    after its exit tick, and the overload without an observer is bit-identical to today's verb (the F6 pin gains it);
+    ST20 a `waitUntilDone` after a trigger that never fired is a counted failure, no exception; ST21 the same on a
+    mechanism the routine started EARLIER does not answer that earlier step's verdict; ST22 a leg that settles short of
+    its mark — D15's second question as answered.
+  - Mutations: SM5 `>` for `>=` at the mark → ST9 red; SM6 fires on a timed-out leg → ST11 red; SM7 fires twice after
+    a wobble → ST9 red; SM8 a blocking form accepted → ST14 red. *(fix 2026-10-30)* SM13 the wait after an unfired
+    trigger answers the earlier step's verdict → ST21 red; SM14 the observer called once more on the exit tick → ST19
+    red; SM15 the settle-short rule inverted → ST22 red.
+  - Docs: guide 09; cookbook 03 (timing and partners) or 07 (mechanisms); the changelog; the Freeze Register's F10 row.
+- **Who they collide with.** `chassis/routine.hpp`: MECH-A4's block (landed), MECH's rest (later), L6-C (not taken);
+  `chassis/chassis.hpp`: nothing in flight (L6-A2 edits `motion/motion_scheduler.hpp` and `chassis/robot_context.hpp`
+  — not these) — STEP1-A then STEP1-B, and D16 (b)'s run if he takes it, each after the one before; *(fix 2026-10-30,
+  C9)* `src/programs/{auton_tester_run,competition_run}.hpp`: ALLY1, L6-B, AF1 — whichever lands second re-reads; `mechanism/service.hpp`: NOT edited (the sensor wait uses `find()` / `sees()`, already public) — so the
+  string chunks (current cap, slack detection, in the service and the kinds) do not collide; `version.hpp`: STEP1-A
+  takes 2.6; a string chunk landing in the same window shares or follows it (the coordinator's, at merge). No
+  hardware belief is expected; if one appears, the executor stops and asks (HA-216 is the next free).
+
+#### R.14 Part R's parts and sizes
+- **R1 — the route tool and the code** (the route lane): `tools/robot_routes.py`, the route file, the footprint, the
+  validator, the generator and robot two's `[routes]` region, the mirror, the timeline, the F8 export, R.12's S37–S47
+  and S53 (*fix 2026-10-30: + the definitely-started check, the run-time refusals, the tank warnings, the guard's
+  waits, the mirror's route-level warning and relative rules, the per-leg slowest bound — C2, C3, C5, C8, C15*),
+  docs (a new guide chapter, "Routes from the robot panel", at the next free number at its tip; the cookbook's autons
+  recipe; `vexbuilder-integration.md` §4's export and the `shulib` object; the robot-file chapter's footprint).
+  ~~**~4–5½.**~~ **~4½–6½** *(fix 2026-10-30: +½–1)*. Starts when Part 5's BUILD ends (it needs the mechanism vocabulary in the robot file); its care and
+  timing emitters need STEP1-A and STEP1-B merged by its tip — if STEP1-B is late, R1 lands without triggers and a
+  small follow-up adds them (D20).
+- **R2 — the ROUTES page** (the route lane): R.2's page, its model tests, the manual check. **~4–5½.** Starts when
+  Part 3 has merged, BESIDE R1, against R.4's contract; whichever lands second re-reads the other at its tip.
+- **Part R in all: ~~8–11~~ ~8½–12** (was ~4–6, RC10 — that was the 10-08 waypoints-and-markers page); **with
+  STEP1 ~~11½–15¾~~ ~13½–18½** *(fix 2026-10-30)*.
+
+### 5. Distribution — ruling (5)
+
+**What exists (opened).** §1.7's package (`@vscode/vsce` 3.9.2, the real repository URL, `npx vsce package`, "no
+marketplace" — now false) and §1.8's CI job (packages, publishes nothing). The repository: `shulib-v2` (development,
+pushed by the team lead) and `release/v2` / `main` (public snapshots with `docs/internal/` dropped — `docs/internal/
+RELEASING.md`; `tools/release.py`: `stage` never pushes, `push` never builds). The v2 probe packaged under a
+placeholder publisher, `shulib-local` (P9).
+
+**The design (Part 3, +½–¾).**
+- **The package, release-ready:** `package.json` — `name`, `displayName`, `description`, `version` (0.x until it has
+  run on a real robot), `publisher` (D19), `license: "MIT"` with the repository's `LICENSE` copied in, `repository`,
+  `bugs`, `homepage`, `engines`, `categories`, `keywords`; a `CHANGELOG.md`; a `README.md` written for someone OUTSIDE
+  the club — what the panel is; what it needs (VS Code 1.90 or later, Python 3, and a shulib project with
+  `tools/robot_tool.py` — today a clone of SHU-ROBOTICS/shulib, PKG1's starter later); how to install a `.vsix`
+  (Extensions → "Install from VSIX…", or `code --install-extension`); what it never does (build, upload, simulate);
+  its limits (tank robots; host- and build-gated; not yet run on a robot); where to report a problem.
+- **A release job,** `.github/workflows/robot-panel-release.yml`: runs ONLY on a tag `robot-panel-v<version>` the team
+  lead pushes (or a manual run he starts); refuses unless the tag equals `package.json`'s version and the CHANGELOG has
+  that version's section; `npm ci`, `npm test`, `npx vsce package`; checks `npx vsce ls` against an allow-list (nothing
+  else ships); then `gh release create` with the `.vsix` attached and the CHANGELOG section as its notes
+  (`permissions: contents: write`, the workflow's own token — no stored secret). Nothing is published to a store.
+- **Docs:** `docs/internal/RELEASING.md` gains "Releasing the robot panel" (the tag, the version rule, his word every
+  time); the robot-file chapter says where the `.vsix` comes from.
+- **After Nov 21 (OUT of G3a's Nov 21 scope):** the Marketplace and Open VSX — a small later chunk (`vsce publish` /
+  `ovsx publish` from the same job, the tokens as repository secrets, the club's accounts, which he creates).
+
+**D19 — The panel's public name, and where its releases are cut. RECOMMENDED (a).**
+- **(a) RECOMMENDED.** The publisher name is chosen NOW (for example `shu-robotics` — his to pick, and the name he
+  will register at the stores) and used from the first GitHub release; the extension's full id is `<publisher>.<name>`.
+  Release tags go on `release/v2` commits, so what the public `main` shows matches the released panel. *(fix
+  2026-10-30, C16: (a) works only if the name is free at BOTH stores — the VS Code Marketplace's publishers and Open
+  VSX's namespaces are separate registries; if either has it taken, (a) collapses into (b) at the store. So the team lead
+  checks the name at both — or registers it at both — BEFORE the first release tag; the release job's README and
+  `package.json` carry it from then.)*
+- **(b)** A placeholder publisher now, renamed at the store. Cost: the store copy is then a DIFFERENT extension to VS
+  Code — everyone who installed a GitHub `.vsix` must uninstall it and install again.
+- **(c)** (a), but tags on `shulib-v2` commits. Cost: a released panel can be ahead of the public `main` and its docs.
+
+### 6. String mechanisms — where they plug in (context; their own brief designs them)
+- **The current cap and the snapped-string (slack) signature** are new members on a motor kind (the Lift at least);
+  **the optional output rotation sensor** is a new named sensor slot in `wire(...)`. If they land BEFORE Part 5's tip,
+  Part 5 adopts them as landed (+¼–½ per member set). AFTER (likely): the rebase rule's point 6 (i) — each chunk
+  extends `tools/robot_tool.py` itself (the emitter in the kind's declaration order, its one-sentence refusals,
+  `describe`'s vocabulary, the WIRING slot, the agreement fixtures — rule 4). **This amendment has Part 6 render every
+  kind's members and every wiring slot FROM `describe`** (+¼–½ in Part 6), so the MECHANISMS and WIRING pages show
+  such vocabulary with no page code. The bench step's thresholds (string on vs unhooked) enter the robot file like any
+  stated fact, with provenance.
+- **The live-tuning copy-back** comes through the TOOL — a subcommand (for example `robot_tool.py import-tuning FILE`)
+  through the one writer, each value with a provenance ("tuned live on the brain, <date>") — and a button on the
+  MECHANISMS page (and on Part T's DRIVE TUNING page if drive gains are live-tunable) that runs it. The live-tuning
+  chunk carries both (rule 6 (i); the button +¼–½ in its own size), unless Part 6 or Part T is still unbuilt when it
+  lands. **One question its brief must answer, because it decides G3a's side:** MECH-PANEL §5 Q24 recommended ONE
+  tuning store on the SD card (R5a's pattern); copying live-tuned numbers INTO the robot file is Q24 (b). G3a works
+  either way (an SD store is shown read-only beside, like R5a's).
+- **The rebase rule's point 3 list** gains the string chunks; **point 6** applies to them.
+
+### Tests (adversarial) and mutations for the feel, the tuning, the release and the pages (numbered on from R.12)
+Each case FAILS first on a deliberately broken tool or page; each mutation is run fresh, seen red, restored and logged.
+- **S48 (Part 5) the feel.** Robot two's `feel` region regenerates byte for byte (its differential logged); every
+  `driving` field round-trips through `fmt`; a dead zone of 1.0 or a curve of 1.5 is refused by the validator AND by
+  the build (`static_assert(Feel.valid())`, a compile-refusal fixture — the two agree); a negative ramp is refused by
+  the tool alone (its own rule, named as such); a re-zero a control takes is refused by both (CK9's fixture, now reading
+  the file's `rezeroButton`). *(fix 2026-10-30, C11: + robot two's `control words` region — the whole stick-and-button
+  map — regenerates byte for byte; a `driving` file with `tankSticks` and `onRelease: brake` emits stick and release
+  lines that say so.)*
+- **S49 (Part T) the tuning.** Each of the ~~four~~ THREE mirrored checks *(fix 2026-10-30, C12: `validate()` covers
+  tankSteer)* agrees with the real C++ (run-time fixtures catching `PreconditionError` from `MotionConfig::validate()`
+  — tankSteer cases included —, `SettledUtil`, `OdoStallCheck`'s three typed fields), and the pure `tuningProblem`
+  agrees with them fixture for fixture; the tool's own settle rule (a stated `maxError` or `maxErrorRate` of 0)
+  refuses, named as stricter; a stated field reaches `RobotConfig::tuning` through `decideBootSourceFrom` and
+  `bootConfigFrom` (`test/boot_source_test.cpp`); robot two's effective tuning equals `chassis::ChassisConfig{}` field
+  by field; a stated tuning the C++ refuses refuses the boot, naming the robot file's field; a generated robot with a
+  stated tuning compiles on the host and ARM (E1's method). *(fix 2026-10-30, C1)* **A partly stated NESTED group keeps
+  the library's other members, field by field:** fixtures stating only `translationSettle.maxError`, only
+  `heading.kD`, only `feedforward.kV`, only `tankSteer.maxSteerDeg` and only `stallCheck.window` — each other member
+  of that group equals `MotionConfig{}`'s (the checker's C1 values: `maxErrorRate` 1.0, `settleTime` 0.1, heading
+  `kP` 4, `kS` 1). *(C16)* A degrees field reaches the C++ as its radians, agreeing with `math::Angle::degrees`.
+- **S50 (Part 3) the release check** (a small script the job runs, with its own `node --test` cases): a tag that is not
+  `package.json`'s version is refused; a version with no CHANGELOG section is refused; a file outside the allow-list in
+  `vsce ls` is refused.
+- **S51 (Part 6) the FEEL page.** The curve's points come from the tool's `curve` query (the page computes none),
+  pinned against `teleop::shapeAxis` by agreement fixtures; the re-zero dropdown shows the tool's refusal on its JSON
+  path.
+- **S52 (Part 6) the pages render from `describe`.** A fixture `describe` with an invented member on a kind and an
+  invented wiring slot renders on the MECHANISMS and WIRING pages with no page code (§6's plug-in point).
+- **Mutations:** **M46** the validator accepts a curve of 1.5 → S48's fixture DISAGREES; **M47** the feel emitter writes
+  `.tickPeriod` → ~~`DriverFile`'s `static_assert` turns S48 red~~ S48's byte-for-byte differential red *(fix
+  2026-10-30, C14: `DriverFile` ACCEPTS `.tickPeriod == kBrainTick` — `src/common/driver_file.hpp` :84 — so the likely
+  mutant, `.tickPeriod = 10_ms`, compiles; only the differential sees the extra line)*; **M48** ~~the tuning emitter
+  writes `heading` before `translation` → the generated table does not compile (S49)~~ *(re-cut 2026-10-30, C1: with
+  assignments the order no longer decides compilation)* the tuning emitter writes a nested group as a designated
+  initializer of its stated members (`c.motion.translationSettle = {.maxError = 0.75};`) → S49's partly-stated case
+  red (`maxErrorRate` reads 0, not 1.0); **M49** the boot copies `ChassisConfig{}` instead of the table's tuning → S49
+  red; **M59** the degrees conversion uses π/360 → S49's degrees fixture red; **M60** the tool's settle rule dropped →
+  S49's zero-rate fixture is accepted → red; **M50** the release check compares the tag with `name` instead of `version` → S50 red;
+  **M51** the curve query applies the curve before the dead zone → S51's agreement red; **M52** a page hard-codes the
+  Lift's members → S52 red.
+
+### The parts, re-planned for Nov 21 (replaces the re-check's parts table; the old numbers are kept)
+
+| Part | Lane | What (changes in bold) | Starts after | Size (builder-days) | vs 10-29 (morning) |
+|---|---|---|---|---|---|
+| **1** | tool | as the re-check | BUILT 2026-10-29 (sprint, D6′ (b)); in review | 2½–3½ | = |
+| **5** | tool | as the re-check, **+ D7's flip as its first logged step (sprint, D6′ (b), CK5), + THE FEEL's tool half (D11 (a)), + the `control words` region over the whole stick-and-button map (C11)** | Part 1's build; MECH-A5 merged (DONE 2026-10-30, `81eb666`); **D11 answered** | **~~5¼–7¼~~ 5½–7½** | +1–1½ (flip ¼–½, feel ¾–1) |
+| **T** (NEW) | tool + page | **DRIVE TUNING** (§2) | Part 5's build ends; Part 3 merged; beside Part 2 | **~~2¼–3~~ 2½–3¼** (C16's degrees) | new |
+| **2** | tool | as the re-check, **+ a generated robot's `.tuning` (or Part T adds it, whichever lands second)** | Part 5 | **2¼–3¼** | +¼ |
+| **4** | tool | as the re-check, **+ the starter's `feel` region, + the starter autons file's `[routes]` region and its call line (if R1 has landed; else R1 adds them for generated robots)** | Part 2 | **2¼–3¼** | +¼ |
+| **3** | panel | as the re-check, **+ the release-ready package and the release job (§5)** | Part 1's build; **D19 answered** | **3¾–4½** | +½–¾ |
+| **6** | panel | as the re-check, **+ the FEEL page; + every member and slot rendered from `describe`** | Parts 3 and 5 | **4¼–5¾** | +¾–1¼ |
+| **3b** | panel | the NEW ROBOT page | Part 6; Part 2 merged | ¼–½ | = |
+| **R1** (NEW split of R) | route | the route tool and the code (R.14) | Part 5's build ends; D13–D18 answered; STEP1-A/B by its tip | **~~4–5½~~ 4½–6½** (C2, C3, C5, C8, C15) | R was 4–6 |
+| **R2** (NEW split of R) | route | the ROUTES page (R.14) | Part 3 merged; beside R1 | **4–5½** | |
+| **S1** | panel | the walls half (§3) | L6-B merged; Part 3 | **1½–2** | S was 2½–3½ |
+| **S2** | panel | the camera half (§3) | VIS1-B merged; S1 | **1½–2** | |
+| **AF** | panel | unchanged | AF1 (after the panel) | ½–1 | = |
+| **7** | both | unchanged | MECH's rest | 2–3½ | = |
+| **Make and drive** (1, 5, T, 2, 4, 3, 6, 3b) | | | | **~~22¾–31~~ ~23¼–31½** | 1–6 + 3b was ~18–24¼ |
+| **Routes** (R1, R2) | | | | **~~8–11~~ ~8½–12** (+ STEP1 ~~3½–4¾~~ ~5–6½, library) | was ~4–6 |
+| **All before G3** (1–6, 3b, T, R1, R2, S1, S2, AF) | | | | **~~34¼–47~~ ~35¼–48½** (+ STEP1) | was ~24¾–34¼ |
+
+**The library runs beside it (not G3a's parts; their own go):** STEP1-A ~~2–2¾~~ ~2¾–3½ and STEP1-B ~~1½–2~~ ~2¼–3
+(R.13; *fix 2026-10-30*). D16 (b), if he takes it, would be a third (~1½–2½).
+
+**The lanes (three G3a lanes and the library):**
+- **Tool lane:** 1 → 5 → 2 → 4, with **T beside 2** (T's tool half touches `chassis_table.hpp`'s struct, a new region
+  and `boot_source.*`; Part 2 the SET regions — different lines; both edit `tools/robot_tool.py`, so whichever lands
+  second re-reads and re-extracts, rules 1–2).
+- **Panel lane:** 3 → 6 → 3b; S1 when L6-B has merged; S2 when VIS1-B has merged.
+- **Route lane (NEW):** R1 and R2 side by side from Part 5's build end (R2 needs Part 3 merged); `tools/robot_routes.py`
+  is R1's alone, so the route lane shares only `robot_tool.py`'s few schema lines (the footprint), the CMake file and
+  the docs with the other lanes.
+- **Library:** STEP1-A → STEP1-B (STEP1-B's build when STEP1-A's build ends).
+- The sprint's overlap holds: each lane's next BUILD starts when its previous BUILD ends; reviews and fixes port
+  forward; nothing is skipped (three reviewers, fixes, a fresh verifier, the coordinator's checks, every part).
+
+### The slot schedule under the five-job ceiling, and the honest dates — D20
+
+> *(fix 2026-10-30, C6/C7 — this section RE-DERIVED.)* The first pass's table hid review rounds inside its cells: around
+> Nov 8–10 it ran six jobs (Part 5's review, T's build, R1, Part 2, Part 6, MECH-A6). Its demand (100–115) undercounted
+> the sizes it listed; its camera and walls dates did not follow from its own sizes; it stated L6's order with MECH-A6
+> as a rule when L6's brief makes it a choice; it put Part 6 before T without saying that departs from D6′'s answered
+> yield order; and it left robot one out. Below: re-derived by probe F6 (`fix6/slots2.py`, adapted from the checker's
+> C2 — a list scheduler on FIVE slots in which every review round HOLDS a slot for 2 days like a build, merges ½ day
+> after the review, D20 (a)'s order, a lane's next build when its previous BUILD ends, this fix round's sizes), for
+> both of L6's orders and with or without robot one's plumbing (`fix6/slots2_*.log`, `fix6/occ_*.log`). The model
+> never runs more than five jobs (it prints its peak: 5).
+
+**The demand** *(fix 2026-10-30, C6: recounted)*. From Oct 30 to Nov 21 (22 days): the 2026-11-23 track — CAL1-A2b
+(building, ~1 left), CAL1-B (~1⅞–2⅛), MECH-A6 (~2–3), L6-A1 (in review), L6-A2 (~1¾–2), L6-B (~1½–2), IMU1-B (~½):
+~8⅝–10⅝ to build; G3a's make and drive — 5, 3, T, 2, 6, 4, 3b: ~20¾–28; the route maker — STEP1-A, STEP1-B, R1, R2:
+~13½–18½; the camera and walls — VIS1-A2, VIS1-B, S1, S2: ~7–9; the string chunks — a brief first, then runs guessed
+at ~1 build day each (three); robot one's plumbing, if D20's robot-one line takes it: ~1–1½. Builds ~53–69 slot-days;
+review rounds ~24 × 2 plus the three in flight ~4 = ~52. **About 105–121 slot-days** (+3 with robot one's plumbing)
+against **at most 110** (five slots × 22 days) — and on 2026-10-29 the usage limit dropped the ceiling to ONE job
+twice. Not everything lands by Nov 21; the order decides what does.
+
+**D20 — The order of the five slots until Nov 21, and what gives first. RECOMMENDED (a).**
+- **(a) RECOMMENDED, highest first:** (1) **the 2026-11-23 track** until the ~Nov 16 freeze — CAL1-A2b/B, MECH-A6,
+  L6-A2/B, IMU1-B (his standing rule: MECH-A6 and L6-B never yield before the freeze) — with **MECH-A6 launched
+  FIRST** and L6-B after A6 merges *(fix 2026-10-30, C6: a CHOICE, not a rule — L6's brief allows "L6-B before A6
+  launches; if A6 has launched, after A6 merges", `L6-wall-reset.md` :1934; NOTES 10-30 ~09:35 queues A6 first; F6: A6
+  first finishes the track ~Nov 8–10, L6-B first ~Nov 16–17, against the freeze, for the same panel dates within a
+  day)*; (2) **make and drive** — the tool and panel lanes, Part T beside Part 2, and **Part 6 before T when only one
+  slot is free** (6 is on the critical path: Part 3b, the NEW ROBOT page, waits on Part 6's build; in F6, T merges at
+  or before the day make and drive lands in all four runs — a day or more before in three). *(fix 2026-10-30, C6: that SUPERSEDES D6′'s answered yield order — "the PANEL lane
+  yields first, then AF1, then the TOOL lane" — for Part 6 against Part T only; D20 (a) asks him to accept it.)* (3)
+  **the route maker** — STEP1-A, STEP1-B, R1, R2; (4) **the string-mechanism safety chunks** (their brief first); (5)
+  **the walls page** (S1, after L6-B); (6) **the camera** — VIS1-A2 → VIS1-B → S2. On a budget warning, jobs yield from
+  the bottom. If the route maker runs late, **the partway triggers slip first** (STEP1-B and R1's trigger emitter);
+  everything else of it lands.
+- **(b)** The string chunks above the route maker. Cost: routes most likely miss Nov 21.
+- **(c)** The camera and walls above the route maker. Cost: reverses his ruling that, if it is tight, the route maker
+  comes first.
+- **D20's robot-one line** *(fix 2026-10-30, C7)*. The sprint row records robot one as "Panel + hand-written backup"
+  (build-order :2333), and the G3a entry "made in the panel if the tool lane lands ~Nov 16 and tests well on the robot,
+  with the students' hand-written table as the backup" (:1838-1840). Under this amendment the tool lane — Part 2 (a new
+  robot's bring-up builds) and Part 4 (its Drive, Auton Tester and Competition), all a new robot needs by command —
+  lands ~Nov 13–18, and with the NEW ROBOT page ~Nov 14–18: at or after that ~Nov 16. So the backup cannot wait for the
+  panel. **When the backup must start:** robot one's facts from the team (its cartridge, mechanisms and their ports,
+  controls) by ~Nov 5; its build plumbing — a second hand-written robot (RC18: "its own chunk, the coordinator's",
+  ~1–1½ builder-days, rough) — launched by ~Nov 6 on the 11-23 track, merged ~Nov 10; the students' tables, driver
+  file and autons (theirs to write, G4) ready for a first bench session by ~Nov 14 — a week of robot time before Nov 23.
+  **The latest a panel-made robot one is worth a bench session:** Part 4 merged by ~Nov 18, so a session on Nov 19–20
+  (Calibrate's push, Drive, the Auton Tester) leaves the team Nov 21–22 to choose which build competes. A panel-made
+  robot one must carry a DIFFERENT robot id from the hand-written one (one id cannot be both; RC18's conversion —
+  delete the hand-written lines, then `new-robot` — is a separate call, after Nov 23).
+  - **(a) RECOMMENDED:** start the backup now, as above; try a panel-made robot one on the bench only if Part 4 has
+    merged by ~Nov 18; robot one competes on its hand-written build unless that trial is clean. Cost: the plumbing's
+    slot moves make and drive by ~0–1 day at the low sizes and ~2–4 at the high (F6: ~Nov 14–18 → ~Nov 14–22).
+  - **(b)** Panel first, the backup on a cut-off: if Part 4 has not merged by ~Nov 16, start the backup then. Cost:
+    started ~Nov 16, the backup has about a week for the plumbing, the students' code and a bench session — late in
+    exactly the case it exists for.
+
+**The five jobs under (a) — F6's schedule** (MECH-A6 first, LOW sizes, no day lost; at the HIGH sizes every band from
+Nov 4 slides 1–4 days — Part 5's build ends ~Nov 8, not ~Nov 6). Each cell lists exactly the jobs that hold the five
+slots — a build or a review round; a review is a job.
+
+| Days | The five jobs (builds and review rounds) | Waiting |
+|---|---|---|
+| Oct 30 | CAL1-A2b build · MECH-A6 build · Part 1 review · L6-A1 review · VIS1-A1 verify | the answers (D11, D14, D19) → Part 5, STEP1-A, Part 3 |
+| Oct 31–Nov 1 | CAL1-A2b review · CAL1-B build · MECH-A6 build → review · Part 3 build · Part 5 build | L6-A2 (L6-A1 and VIS1-A1 merge ~Oct 31–Nov 1), STEP1-A |
+| Nov 2–3 | CAL1-B review · L6-A2 build · MECH-A6 review → STEP1-A build · Part 3 build · Part 5 build | IMU1-B (A6 merges ~Nov 3) |
+| Nov 4–5 | IMU1-B build → review · L6-A2 review → L6-B build · Part 5 build · STEP1-A build · (Part 3's build ends ~Nov 4; its review waits for a slot) | Part 3 review |
+| Nov 6–7 | L6-B review · Part 3 review · Part 5 review · STEP1-A review · Part 2 build | Part 6, R1, T (Part 5's build ended ~Nov 6) |
+| Nov 8–9 | Part 2 build → review · Part 6 build · R1 build · STEP1-B build · a string run → Part 4 build | T, R2 (Part 3 merges ~Nov 8) |
+| Nov 10–11 | Part 2 review → Part 4 review · Part 4 build · Part 6 build · R1 build · T build (STEP1-B review from ~Nov 11) | R2, S1 |
+| Nov 12–13 | Part 3b review · Part 4 review · Part 6 review · STEP1-B review → R1 review · T review → R2 build | S1, VIS1-A2 |
+| Nov 14–16 | R1 review · R2 build · S1 build → review · string runs and their reviews · VIS1-A2 build | VIS1-B |
+| Nov 17–18 | R2 review · S1 review · a string review · VIS1-A2 review · VIS1-B build | S2 |
+| Nov 19–25 | VIS1-B review → S2 build → S2 review (one job; four slots free) | — |
+
+**The honest dates** (each "if the builders run every day"; every lost day — a usage stop, a reboot, a network drop —
+moves every date about one day). *(fix 2026-10-30, C6: re-derived by F6 — both of L6's orders; the high ends include
+robot one's plumbing where marked.)*
+
+| Milestone | Lands | Slack to Nov 21 | What it needs |
+|---|---|---|---|
+| **Make and drive a robot** — the NEW ROBOT page, mechanisms, wiring, controls, the FEEL, DRIVE TUNING (Parts 1, 5, T, 2, 4, 3, 6, 3b) | **~Nov 14–18** (~Nov 14–22 if robot one's plumbing takes a slot) | ~3–7 days (~−1–7 with the plumbing) | D11 and D19 answered by ~Oct 31 |
+| **The tool lane alone** — a new robot by command, its five programs (Parts 2, 4) | **~Nov 13–18** | ~3–8 days | as above |
+| **Routes** — the full route maker (R1, R2, STEP1-A/B) | **~Nov 18–22** | ~−1–3 days | D13–D18 answered by ~Nov 1; STEP1-A's slot by ~Nov 3 |
+| **The walls page** (S1) | **~Nov 18–22** (~Nov 24 with robot one's plumbing at the high sizes) | ~−1–3 days | L6-B merged by ~Nov 8–10 |
+| **The camera page** (S2) | **~Nov 25–Dec 2** | misses by ~4–11 days | the serial chain VIS1-A2 → VIS1-B → S2 after the routes and the walls (at the LOW sizes alone: VIS1-A2 from ~Nov 15, 2¼ + 1¾ + a 2-day review + ½ + 1½ + 2 + ½ ≈ Nov 25) |
+| **The 2026-11-23 track** (CAL1-B, MECH-A6, L6-B, IMU1-B) | **~Nov 8–10** (A6 first) / ~Nov 16–17 (L6-B first) | before the ~Nov 16 freeze | |
+| **The string chunks** | **~Nov 19–23** | unknown | their brief's sizes (guessed) |
+
+**What misses Nov 21 if the builders lose days.** With NO day lost: make and drive and the tool lane land with days to
+spare; routes and the walls page land at the edge (their high ends are Nov 22); the camera page does not, and a string
+run may not. **Two days lost:** routes and the walls page are a coin toss — the partway triggers slip first; make and
+drive still lands. **Four days lost:** routes land a few days after Nov 21 (the step list, care, timing other than
+triggers, mirroring and the timeline first), the walls page misses; make and drive lands at the edge at the high
+sizes. **Seven days lost:** make and drive misses. **Not in the model, each making these dates later, never earlier:**
+the coordinator's merges are serial (about 27 between now and Nov 21, one build directory, each with its gates and
+mutations — F6 lets two merge the same hour); a review round with a blocker takes longer than 2 days (MECH-A4's took
+from 2026-10-22 to 2026-10-29); the string runs are guesses.
+
+**Robot use before Nov 23.** Every one of these dates is host- and build-gated. A robot MADE in the panel and DRIVEN
+needs a bench session after it lands; a route needs the Auton Tester on the robot. No G3a part changes what robot two's
+competition builds DO (the differentials, robot two's empty `[chassis tuning]` and `[routes]` regions, the feel and
+control-words regions byte for byte); the coordinator checks that at each merge after the ~Nov 16 freeze. Robot one:
+D20's robot-one line.
+
+### Body passages corrected in place (each marked *(amended 2026-10-29 evening)*)
+- **The header:** a pointer to this section (first); the 2026-10-29 answers block's "nothing of G3a builds before
+  MECH-A5 merges" (the sprint built Part 1 first, D6′ (b)).
+- **D6′ (the re-check):** "two G3a lanes … under the three-job ceiling"; the size "to a robot MADE and DRIVEN … ~11–15½";
+  the three-job slot table (→ D20's five-slot schedule).
+- **The re-check's parts table:** its heading (→ "The parts, re-planned for Nov 21"); Part 5's "THE FEEL outside — D4"
+  (→ D11); Part 3 (→ §5); Part R (→ R1/R2, D13); Part S (→ S1/S2).
+- **The adoption table's Controls row** ("THE FEEL outside (D4, RC5)"); **RC5**; **RC6** (the re-zero is stated, not read).
+- **The rebase rule's point 3 list** (+ the string chunks and R5a Part B).
+- **D4** — its accepted text REVERSED (a blockquote under its heading), and the 09-29 note "**D4** holds".
+- **§1.2** "what a student may still hand-edit" (THE FEEL); **§1.3** (three new regions: `feel`, `[chassis tuning]`,
+  `[routes]`); **§1.6** the re-zero fixture; **§1.7** the read-only re-zero and "no marketplace"; **§1.8** the release
+  job; **§1.11** the profile gains `driving`, `driveTuning` and `footprint`; **§1.13** the starter's FEEL; **"What
+  new-robot creation writes"** item 7; **§1.14** the controls page's read-only re-zero; **§1.16** the routes export.
+- **§2** Part 5's M34; **§4** "Moved IN", "Stays OUT: THE FEEL" and the OUT line's "THE FEEL (D4); autons"; **landmine
+  28**; **§8** "would generate THE FEEL"; **the plain words'** "Also coming".
+- *(fix 2026-10-30)* **Corrected again, marked *(fix 2026-10-30, Cn)*:** the header's dates (C6); the answers block's
+  D6′ slot question (C6: D20 would supersede it); **D6′'s** "two G3a lanes" line (C6); **§1.2**'s hand-editable list
+  (C11: the sticks and the re-zero line are generated); **§1.3**'s three regions (C1: the lambda form; C11: the
+  `control words` span; C13: `[routes]` above `registerAutons()`); **§1.7**'s packaging (C16: the publisher name
+  checked at both stores); **§1.11**'s profile (C16: degrees at the human edge; C12: no `rotationRadius`); **§8**'s
+  found list (C12: `rotationRadius` not derived from the record).
+
+**Shared files these parts add (beside the re-check's table, the rebase rule unchanged):**
+| File | Who else edits it | Part | The rule |
+|---|---|---|---|
+| `src/team/robot_two_driver.hpp` (THE FEEL) | MECH-A5 (landed by then); AF1 (after the panel) | 5 (`feel` region) | as `[driver file two]` |
+| `src/common/driver_file.hpp` | MECH-A5 (creates it) | 5 (one `static_assert`) | A5 first |
+| `src/common/boot_source.{hpp,cpp}` and the seven test files that call the boot core (§2) | VIS1-B, L6-B (their overloads), SAFE-SAVE B2, R5a Part D | T (the tuning parameter, the shim's `kChassis.tuning`, the pure refusal) | whichever lands second re-reads; T writes no other boot line |
+| `src/robots/chassis_table.hpp`'s struct and robot two's initializer | VIS1-B (`camera`), L6-B (`wallSensors`) | T (`tuning`, `[chassis tuning]`), S1/S2 | each member appended; each region ends before what follows |
+| `src/programs/{competition,auton_tester,drive}_program.cpp` | ALLY1, L6-B, AF1 | ~~T (pass `kChassis.tuning`),~~ 4 *(fix 2026-10-30, C12: T does not touch the programs — they call `decideBootSource(kTag)`, and only the shim reads `kChassis`)* | whichever lands second re-reads |
+| `src/programs/{auton_tester_run,competition_run}.hpp` and their tests | ALLY1, L6-B, AF1 | STEP1-A (not G3a — the result word and stop line, C9) | whichever lands second re-reads |
+| `src/team/autons.cpp` | the team (hand-written autons) | R1 (`[routes]` and its one call line) | the panel writes only its region |
+| `tools/robot_routes.py` (new) | — | R1 | R1's alone |
+| `.github/workflows/robot-panel-release.yml` (new) | — | 3 | |
+| `include/shulib/chassis/{chassis,routine}.hpp`, `version.hpp`, the F6/F10 pins | MECH's rest (later), the string chunks (version only), D16 (b)'s run if taken | STEP1-A/B (not G3a) | R.13; STEP1-B after STEP1-A (both in `chassis.hpp`, C10) |
+| `src/team/robot_two_driver.hpp`'s header (the stick-and-button map) | AF1 (a control for the flipper) | 5 (`control words`, C11) | the panel writes only its regions |
+
+### The probes — `.claude/coordinator/scratch/brief-G3a-amend-1029b/` (evidence, never project code)
+| # | What | Result |
+|---|---|---|
+| **E1** | `t1/tuning_member.cpp`: an aggregate with an appended `chassis::ChassisConfig tuning{}`; an old initializer without it; a generated one stating six fields in declaration order (main's headers) | Host `g++ -std=c++20 -Wall -Wextra -Werror` and ARM `-fsyntax-only` (RESUMING §3's flags) pass; the old table keeps 60 in/s, the stated one 50, unstated fields the defaults; both `validate()` (`t1/t1.log`) |
+| **E2** | `t2/`: a generated feel (every `DriverProfile` field) beside robot two's `kControls`, through `mech-a5`'s `DriverFile`; the re-zero on the claw's button A; a curve of 1.5 with and without a generator-side check | Compiles host and ARM; the re-zero clash fails `DriverFile`'s `static_assert` ("a mechanism's button is the loop's re-zero button"); **the curve of 1.5 compiles when nothing but `DriverFile` checks it** (`feel_bad_expo_nocheck.cpp`, exit 0) — hence D11's `static_assert(Feel.valid())` (`t2/t2.log`) |
+| **E3** | `t3/route_gen.cpp`: a generated route of ~~every step form today's library has~~ fifteen step forms (*fix 2026-10-30, C14: the list in §4's Found (E3); the other forms are compiled by the tests it names*), with caps and timeouts, and a red/blue pair of `AutonEntry`s, against `mech-a5`'s tree; a missing position; a pneumatic start form | Host `-Werror` and ARM: exit 0; a missing position: `no_such_position_on_this_mechanism` at build; `startSet`: "has no member named 'startSet'" (`t3/e3.log`) |
+| **E4** | `t4/mirror.py` (`python3 -I`): the midline flip and the half turn on the F1 frame; a wall reset's sensor side after each; a relative route under each | Both undo themselves; midline: the LEFT sensor on the left wall becomes the RIGHT sensor on the left wall, relative `(x, −y, −θ)`; half turn: the LEFT sensor faces the RIGHT wall, relative unchanged (`t4/e4.log`) |
+| **C1–C3** (the checker's, 2026-10-30) | `checker/nested_default.cpp` (a partly stated nested group); `checker/slots.py` (a five-slot list schedule with reviews holding slots); `checker/routes_end/` (the `[routes]` region at the namespace's end) | C1: the unstated members of a nested group are ZERO, all pass `validate()` (`checker/nested_default.log`); C2: make and drive Nov 14–18, routes Nov 17–23, walls Nov 18–22, camera Nov 27–Dec 1 (`checker/slots_*.log`); C3: "'registerPanelRoutes' was not declared in this scope" (`checker/routes_end.log`) |
+| **F1** (fix) | `fix1/lambda.cpp`: the `[chassis tuning]` region as a constexpr lambda assigning only the stated fields onto a default `ChassisConfig`, inside an `inline constexpr` table | Every unstated member — nested included — equals `MotionConfig{}`'s (`static_assert`s); host `-Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -Werror` runs and `validate()` passes; ARM exit 0 (`fix1/lambda.log`) |
+| **F6** (fix) | `fix6/slots2.py` + `fix6/occupancy.py` (`python3 -I`): C2's model with this round's sizes, both of L6's orders, with and without robot one's plumbing | Peak 5 jobs in every run; the dates in D20's table (`fix6/slots2_{A6first,L6Bfirst}{,_i1}.log`, `fix6/occ_A6first_{low,high}.log`) |
+| **F13** (fix) | `fix13/team/autons_{empty,one}.cpp`: robot two's `autons.cpp` with the `[routes]` region ABOVE `registerAutons()` in its own anonymous namespace — empty, and a generated red/blue pair (the guard's pause, a capped `driveTo`) | Host `-Wall -Wextra -Wunused-function -Wconversion -Wsign-conversion -Wshadow -Werror` and ARM: exit 0, both (`fix13/routes_above.log`) |
+| **F14** (fix) | E3's `t3/route_gen.cpp` re-compiled against main `81eb666` (MECH-A5 merged) | Host and ARM exit 0 (`fix14/e3_main.log`) |
+
+### The decisions, as I would put them to the team lead (plain words)
+
+**D11 — The driving feel.** I recommend: the feel (arcade or tank sticks, dead zones, curves, the ramp, the re-zero
+button, coast or brake on release) moves into the robot file, and the panel writes it into the driver file. It goes
+into the mechanism part that is about to start (Part 5), so that part is built once. The safety cut-outs (the
+over-current cut) stay as they are, not on the page. Also: today nothing stops a bad curve number from building; we add
+that check.
+*Other choices:* do the feel as its own small part after Part 5; or also put the safety cut-outs on the page.
+
+**D12 — Drive tuning.** I recommend: every tuning number can be typed in the panel, each with who set it and when. The
+panel shows the library's default beside each one. Feedforward and the top speeds are typed "until Calibrate measures
+them" — Calibrate's gains step is not built yet, so for now the typed numbers are what the robot uses. A typed number
+the library would reject stops the boot with a message naming it, instead of every drive failing. Angles are typed in
+degrees, as everywhere else in the panel. The robot's turning radius is NOT typed: it is half the track width, which
+Calibrate measures (the panel shows it, read-only). *(Fixed after the check: typing just one number
+of a group — say only the settle distance — used to zero the rest of that group without any warning; the generated
+code now changes only the numbers you typed.)*
+*Other choices:* feedforward and top speeds measured only (then nothing changes them before Nov 21); or a separate
+tuning table (more plumbing, same result).
+
+**D13 — What a route becomes.** I recommend: the panel turns each route into normal auton code (the same `Routine`
+lines a student would write) inside a marked section of the autons file. That is what the robot runs. The panel also
+exports the route in VexBuilder's format, with the extra details in one extra field, so VexBuilder can still take it.
+*Other choices:* run routes as data (much more library work; misses Nov 21); or code only (VexBuilder cannot use panel
+routes).
+
+**D14 — "If this step fails".** I recommend three choices per step: stop the auton; skip ahead to a named later step;
+or carry on. Today's rule (stop) stays the default. Two safety rules come with it: when the auton's time runs out
+(the field stops scoring at your end time), the auton always stops, whatever a step chose — otherwise "carry on"
+could keep it going into the time the robot needs to brake. And the brain's result screen gets a new word for "it
+finished, but 2 steps failed", instead of saying ROUTINE STOPPED.
+*Other choices:* just stop or carry on; or choices per group of steps.
+
+**D15 — Triggers partway through a drive.** I recommend: "at 60 % of this drive, start the lift". If the drive ends
+early — timed out or failed — the trigger never fires, because firing in the wrong place is worse than not firing.
+*Other choice:* fire it at the end of the drive anyway.
+*A second question:* a drive counts as "arrived" when it is close enough, so it can finish just short of a mark set at
+100 %. I recommend: if the drive ARRIVED, fire the trigger then (the robot did get there). Either way, a later "wait
+for the lift" after a trigger that never fired counts as a failed step, never a crash.
+*Other choice:* never fire short; the panel refuses marks it can tell are too close to the end.
+
+**D16 — Smooth curves.** I recommend: no smooth curves by Nov 21. The panel offers "drive through these points"; the
+robot stops briefly at each one, and on our tank drive the panel warns about any bend sharper than 15 degrees. A real
+curve follower is its own library job after the panel. It cannot be built and trusted on the robot by the 21st.
+*Other choices:* "roll through the points" without stopping (a smaller library job, about 1½–2½ builder-days plus
+tuning on the robot; it would land around Nov 20–24); or a true curve follower now (about 3½–5½ builder-days plus
+tuning on the robot, and it changes a design rule — the library never aims the robot at a point).
+
+**D17 — Red and blue.** I recommend: a mirrored route shows up as two autons on the brain, "... RED" and "... BLUE".
+Before we build it, I check the game manual for how the field mirrors — flipped across the middle, or turned half way
+around. The repo does not say yet; the AprilTag sheet in the manual (A16) should settle it. If it is flipped, the
+robot's left and right swap: the panel then warns on the whole mirrored route that anything on one side of the robot
+ends up on the other side, because the robot file does not say which side each mechanism is on.
+*Other choice:* one auton that asks for the colour on the brain (needs the alliance-colour chunk, after the panel).
+
+**D18 — The timeline.** I recommend: the panel shows about the fastest a route could take and the slowest it is
+allowed to take — plain arithmetic from the distances on the field and the speeds and time limits you typed. Nothing
+else goes into it: no acceleration, no friction, no physics. So it never becomes a second simulator; VexBuilder stays
+the only one. No "likely" time. One check: VEX U's autonomous is 30 seconds, not 15 (15 is the high-school game).
+Skills is 60. Is 30 right for the bar?
+*Other choices:* add a "likely" time (a simulator, which you ruled out); later, show times measured on the robot.
+
+**D19 — The public name.** I recommend: pick the club's publisher name now (for example `shu-robotics`) and use it from
+the first GitHub release. Changing it later turns the store version into a different extension, and everyone would
+have to reinstall. Before the first release, please check the name is free on BOTH stores (the VS Code Marketplace and
+Open VSX) — or register it on both; if one store has it taken, we pick another name first. Releases go on the public
+release branch. Each release still waits for your word.
+*Other choices:* a placeholder name now; or releases from the development branch.
+
+**D20 — What gets the five job slots, and what slips.** I recommend this order: the Nov 23 competition work first,
+until the Nov 16 freeze (MECH-A6 first, then the wall reset's robot part); then "make and drive a robot"; then the
+route maker; then the string-safety work; then the walls page; then the camera. If routes run late, the partway
+triggers slip first. One change to your earlier rule: you said the panel's pages give way before the tool work when
+we are short of slots. I ask to let ONE panel part (the mechanism pages, Part 6) go before ONE tool part (drive
+tuning, Part T), because the new-robot page waits on Part 6.
+*Honest dates, if the builders run every day (re-checked with every review counted as a job):* make and drive ~Nov
+14–18; routes ~Nov 18–22; the walls page ~Nov 18–22; the camera page ~Nov 25–Dec 2 (it misses the 21st). Each lost
+day moves every date a day. Two lost days make routes and the walls page a coin toss. Four lost days mean routes land a
+few days after the 21st; make and drive lands at the edge.
+*Robot one:* the panel's "make a robot" lands around Nov 13–18, which is too late to be robot one's only plan. I
+recommend starting robot one's hand-written backup now: its facts (motor cartridge, mechanisms and their ports,
+buttons) from the team by about Nov 5, a small build-setup job by about Nov 6, the students' code ready to test by
+about Nov 14. If the panel lands by Nov 18, we can try a panel-made robot one on the bench on Nov 19–20, and the team
+picks which one competes. This costs make and drive up to a few days at worst.
+*Other choices:* string work before routes; or the camera before routes (against your ruling that routes come first
+when it is tight). For robot one: wait for the panel, and start the backup only if it is not in by Nov 16 (then the
+backup has about a week).
+
+**Also asked (gos, not decisions):** the go for Part T, for the route lane (R1, R2) and for the library runs STEP1-A
+and STEP1-B; leave to read the game manual's field drawing for D17; robot one's facts (D20); and the publisher name
+checked at both stores (D19).
+
+### The checker's findings on this amendment (C1–C16; 2026-10-30, each re-verified at main `81eb666`)
+| # | Sev. | The finding | Re-verified | Fixed where |
+|---|---|---|---|---|
+| C1 | blocker | A partly stated nested tuning group zeroes its other members; "Found (E1)" false for nested groups | **Real.** The three structs' own defaults read (`settled_util.hpp` :30-32, `motion_config.hpp` :56-58, `feedforward.hpp` :37-40); the checker's `nested_default.log`; `validate()` does not descend (:209-248) | §2: the Found corrected; the emitter assigns onto a default config (F1, chosen over "write every member", which copies library numbers into team files); the tool's own settle rule; S49's partly-stated cases; M48 re-cut |
+| C2 | major | Carry on / skip after the guard's cut (`Cancelled`) breaks F2's lateness bound and delays the park | **Real.** `run_guard.hpp` :60-75, :94-108; `routine.hpp` :113-117; `auton_registry.hpp` :218-220 | R.6 "a cut always stops"; R.5's guard waits (F13 compiles them); STEP1-A's rule, ST15/ST16, SM9/SM10; S44; M57 |
+| C3 | major | `waitUntilDone` after a skipped start or an unfired trigger throws or returns a stale verdict; three run-time preconditions not refused | **Real.** `routine.hpp` :558-563, :666-695, :918-922, :1049-1061 (start recorded only when the step runs) | R.5's refusals and the definitely-started check; D15's second question; STEP1-A's jumped start (ST18, SM12); STEP1-B's unfired trigger (ST20/ST21, SM13); S37, S45, S53, M53 |
+| C4 | major | D16 had no decision block | **Real** (grep: no "**D16 —**" block; "4–6" underived) | R.7a: what exists, three options with sourced sizes; the plain words |
+| C5 | major | No tank warning for a leg that needs a turn first | **Real.** `chassis.hpp` :99-124; `routine.hpp` :303-311, :321-333; `autons.cpp` :55-60 | R.5's "Warnings on a tank"; S37's fixtures; M54, M58 |
+| C6 | major | The slot table ran six jobs; the camera and walls dates did not follow; demand undercounted; L6/A6 order a choice; D20 departs from D6′ | **Real.** Re-derived (F6): demand ~105–121; camera ~Nov 25–Dec 2; walls ~Nov 18–22; routes' high end Nov 22 in BOTH orders at this round's sizes (the checker's Nov 23 was at the first pass's sizes with A6 waiting for L6-B's merge) | D20 re-derived: the five-jobs table, the dates, A6-first as a choice, the yield-order supersession put to him; the header; the answers block |
+| C7 | major | Robot one missing | **Real** (no "robot one" in the amendment; build-order :1838-1840, :2333) | D20's robot-one line (when the backup starts; the latest useful panel date; options); the plain words |
+| C8 | major | D18's bounds were not true bounds | **Real.** `chassis.hpp` :325-327 (per-leg watchdog); `routine.hpp` :86-95 (live bearings) | R.9 rewritten (an estimate from the planned poses; per-leg timeouts, a tick per motion, capped at `endActionAt`; how it stays arithmetic); S42's breaking fixtures; M56 |
+| C9 | minor | Result screens and `RoutineResult` under carry on / skip; program files; SKIP's `required` | **Real.** `auton_tester_run.hpp` :248, :402; `competition_run.hpp` :550, :729; `routine.hpp` :231-237 | R.6's definitions; STEP1-A's files, collisions, ST17, SM11; D14 SKIP = `required` |
+| C10 | minor | STEP1-B's Tier-3 spelling needs private Chassis pieces; MECH C's item not struck | **Real.** `chassis.hpp` :541-580 private; `path_runner.hpp` :24-28; `MECH-PANEL-requirements.md` :764 | STEP1-B: an F6-additive public observer seam in `chassis.hpp` after STEP1-A; ST19, SM14; MECH C's item taken (struck at STEP1's plan commit) |
+| C11 | minor | The driver file's header still describes the feel by hand | **Real** (`robot_two_driver.hpp` :17-20, :29-30, :57-58 at main) | §1's "words that describe the feel": `control words` over the whole map, the feel's comment in `feel`; §1.2; S48; Part 5 +¼ |
+| C12 | minor | Part T's boot plumbing described wrongly; stall `rotationRadius`; three checks not four | **Real, one detail corrected:** the default stall wheels are a VALID stand-in (3.25 in, 1:1 — `drive_geometry.hpp` :66-70), not unset — the substance stands (the real wheels come from `effectiveTuning()`, after) | §2's boot (the shim and core only; ~30 test calls; a pure refusal); three checks; `rotationRadius` out of the schema (measured geometry); the shared-files table; S49 |
+| C13 | minor | `[routes]` at the namespace's end does not compile | **Real** (`checker/routes_end.log`) | R.11: above `registerAutons()` in its own anonymous namespace (F13 compiles it); §1.3 |
+| C14 | minor | E3 overclaimed; M47's kill path wrong | **Real.** E3 has fifteen forms (`t3/route_gen.cpp`); `driver_file.hpp` :84 accepts `kBrainTick` | §4's Found (E3) and R.5's column; the probes table; F14 (E3 at main); M47 re-worded |
+| C15 | minor | Mirroring: handedness, relative routes, a weak involution test, the A16 lead | **Real.** `HANDOFF-remaining-work.md` :154-155 | R.8's two new bullets; R.4's `drawnFor` / `mirror`; S41; M55; D17's plain words |
+| C16 | minor | D19's store name at both stores; mixed angle units; no end action; a stale citation | **Real** (`auton_registry.hpp` :267-268; build-order :2333) | D19 (a); §2 and R.4 in degrees (F3); R.4's "No end action"; the citations; S49, M59 |
+
+### What stays unverified
+- **Which way Override's field mirrors** (D17) — not in the repository; the manual's field drawing is read before R1.
+- **VEX U's period lengths** — from the manual of 2026-07-02 as recorded in memory; v2.1 (2026-10-08) could not be
+  fetched (L6-A1's note in `override_walls.hpp`); D18 asks him.
+- **Every size here** — rough: R1 and R2 are new kinds of work (a generator of auton code; a field-drawing page); STEP1's
+  are sized against L9 (two steps), MECH-A4's step block and MECH-PANEL's own "~1–2 (+~1 with routes)" for the
+  triggers; the string chunks are unsized until their brief. *(fix 2026-10-30)* D16's (b) and (c) have NO precedent in
+  this repository — sized by analogy to TANK1 Part A; robot one's plumbing (~1–1½) is a guess.
+- **The dates** — they assume no usage stop, a ~2-day review round per run and ~½-day merges; 2026-10-29 dropped to one
+  job twice. *(fix 2026-10-30)* F6 counts every review round as a job and never runs more than five, but it does not
+  model serial merges, review rounds that run long (MECH-A4's: a week), or the string runs' real sizes — each makes the
+  dates later, never earlier.
+- *(fix 2026-10-30)* **That the guard's waits tick the mechanism service** as `Routine::pause` does — the guard's waits
+  are "a composite predicate over C2's own waitUntil" (`run_guard.hpp` :95-97), which runs the pacer chain the service
+  sits in, so they should; S38's twin and STEP1-A's ST15 are the proof, not this reading.
+- *(fix 2026-10-30)* **Whether the publisher name is free at both stores** (D19) — not checked; the team lead's.
+- *(fix 2026-10-30)* **Robot one's facts** (cartridge, mechanisms, ports, controls) — the team's; D20's robot-one line
+  needs them by ~Nov 5.
+- **Whether VexBuilder keeps the `shulib` object** (Q20, unanswered) — until it does, a route VexBuilder rewrites may
+  come back without its care and timing; G3's import then takes them from the route file, never defaults them.
+- **Whether a robot made in the panel drives** — nothing in this amendment runs on a robot; the first robot session
+  after "make and drive" lands is the check.
+- **Whether the string chunks land before or after Part 5** — decides rule 6 (i) or adoption (§6).
+- **The DRIVE TUNING page's measured column** — empty until R5a Part B and Part C, neither in the sprint.
+
+---
+
+
 ## Re-check 2026-10-29 — amendments
 
 > **READ THIS FIRST. Where it and anything below disagree, this section wins.** Written 2026-10-29 from a READ-ONLY
@@ -172,7 +1562,7 @@ three slots are full — CK3); Parts R, S and AF plug in as their prerequisites 
     (~5¾–9), so 3b is always needed; in the panel lane it ends at ~10¾–14½, inside the ~11–15½ path; "right after
     Part 2" in the TOOL lane would have made the path 1 + 5 + 2 + 3b + 4 ≈ ~11¼–16. With ONE lane, Part 2 is in
     before Part 3 starts and the page goes inside Part 3.)*
-  - **Two G3a lanes at once only when a slot is free** under the three-job ceiling; otherwise ONE lane, in the order
+  - **Two G3a lanes at once only when a slot is free** under the three-job ceiling *(amended 2026-10-29 evening: the ceiling is FIVE jobs since the sprint, and there are three G3a lanes — tool, panel, route — plus the library runs STEP1-A/B; the order of the slots is D20's; fix 2026-10-30, C6: D20 (a) would also supersede this D6′'s answered yield order for Part 6 against Part T — put to him)*; otherwise ONE lane, in the order
     1 → 5 → 2 → 3 (NEW ROBOT inside) → 6 → 4 → R. Part S when VIS1-B and L6-B have landed (its camera half may go
     after VIS1-B alone); Part AF when AF1 has landed; Part 7 after MECH's rest. **DOCS3 after the panel's pre-G3
     parts** (his ruling: it documents everything, the panel included); no G3a part waits for DOCS3.
@@ -181,8 +1571,8 @@ three slots are full — CK3); Parts R, S and AF plug in as their prerequisites 
     so against 09-29's figure WITH the watch, ~17¼–23¼, it is +½)*; with R, S and AF **~24¾–34¼** (R, S and AF
     rough until their sections; AF is the page only — CK1, rule 6; +½–1½ in Part 5 if AF1 lands before Part 5);
     Part 7 ~2–3½. **To a robot MADE and DRIVEN in the panel with its mechanisms (Parts 1–6 and 3b): ~11–15½
-    builder-days with two lanes, ~17¾–23¾ with one** — verification on top either way.
-  - **What two lanes cost in slots — the window after MECH-A5 (re-check 2026-10-29, CK3).** At A5's merge FOUR
+    builder-days with two lanes, ~17¾–23¾ with one** — verification on top either way. *(amended 2026-10-29 evening: with the feel, Part T and the flip, make-and-drive is ~22¾–31 builder-days of parts, landing ~Nov 14–18 by the evening amendment's schedule)*
+  - **What two lanes cost in slots — the window after MECH-A5 (re-check 2026-10-29, CK3).** *(amended 2026-10-29 evening: SUPERSEDED by the five-slot schedule, D20; kept as history)* At A5's merge FOUR
     jobs want to start, and three of them edit `src/robots/chassis_table.hpp`: G3a Part 1 (~2½–3½), VIS1-B
     (~1¾–2¼) and L6-B (~1½–2) — VIS1's and L6's accepted plans put both "after MECH-A5 merges and before MECH-A6
     launches" (VIS1 :502, L6 :564; "whichever goes second re-reads the other"; L6-B is in this window if A5 launches
@@ -315,16 +1705,18 @@ drivetrain kind, motor cartridge (the front is never asked, 2026-10-06).**
 
 ### The parts, re-planned (replaces the 2026-09-29 parts table; the old numbers are kept)
 
+> *(amended 2026-10-29 evening)* **This table is itself REPLACED by "The parts, re-planned for Nov 21" in the evening amendment above:** Part 5 + the D7 flip and THE FEEL's tool half; NEW Part T (drive tuning); Part 3 + the release; Part 6 + the FEEL page and the `describe`-driven rendering; Part R split into R1 and R2 (~8–11) with the library runs STEP1-A/B; Part S split into S1 (walls) and S2 (camera). Kept as history.
+
 | Part | Lane | What it builds | Starts after | Size (builder-days) | Docs | vs 2026-09-29 |
 |---|---|---|---|---|---|---|
 | **1 — robot two's drivetrain, the tool, the freshness gate** (FOUNDATION) | tool | as 09-29 (validate / generate / check / fmt / adopt / describe / flip-front / self-test, the marker protocol, the text-field, baseline, collision and provenance-length rules; the agreement test's chassis half; D5's chassis pin; the freshness gate in the host doc gate, the src gate's `[generated]` step and CI) **minus the front's words** (RC2); robot two's file without a `front` key; `[chassis]` adopted with the differential, the region ENDING before any appended sensor member (RC9, V3); D7's flip (if (a)) | **MECH-A5 lands** (D6′ (b): a free slot before it, D7 after A5) | **~2½–3½** (−¼ the front; +¼ the re-pin floor: 22 files at the tip, 11 named at 09-29) | ~6 | = |
-| **5 — mechanisms and controls in the tool** (FOUNDATION) | tool | MECH §6.3's vocabulary AS LANDED (five kinds, named sensor slots, `gearing` tooth pairs, `range`, `gravity`, the five homing forms, a lift's `shape`, `presets`, `stall`, `unhomedVolts`, `tuning`, pneumatic `positions`; `wiring` as the `wire(...)` facts; the controls with A4-D27; per-robot namespace; lowerCamelCase identifiers with `id`); route ids mirrored, never stored; each role's `changeAt` (≤ 160 characters — RC8 as corrected by CK7, V7); templates as data; the mechanism edits with their effects; robot two's THREE regions — `mechanisms` (MECH's one block), `control words`, `controls` (the `kControls` statement only, THE FEEL outside — D4, RC5) — with the differential against A5's tree; the agreement test's mechanism half (run-time: `specProblem`, `wiringProblem`, the route-id refusals; controls: a compile-refusal set — RC6 — with ONE `DriverFile` fixture, a control on the re-zero button matched by its `static_assert` text, CK9); robot two's flipper and any vocabulary AF1 has landed by Part 5's tip (rule 6) | Part 1; MECH-A5 (A4 merged) | **~4½–6** (09-29 Part 5 ~3½–5, its "+~½ for the watch" released to CAL1; −¼ no handles file and three regions not four, +½ the landed vocabulary's ~128 refusals, +½ the controls' compile-refusal agreement, +¼ route ids and `changeAt`) | ~5 | moved before Part 2 |
+| **5 — mechanisms and controls in the tool** (FOUNDATION) | tool | MECH §6.3's vocabulary AS LANDED (five kinds, named sensor slots, `gearing` tooth pairs, `range`, `gravity`, the five homing forms, a lift's `shape`, `presets`, `stall`, `unhomedVolts`, `tuning`, pneumatic `positions`; `wiring` as the `wire(...)` facts; the controls with A4-D27; per-robot namespace; lowerCamelCase identifiers with `id`); route ids mirrored, never stored; each role's `changeAt` (≤ 160 characters — RC8 as corrected by CK7, V7); templates as data; the mechanism edits with their effects; robot two's THREE regions — `mechanisms` (MECH's one block), `control words`, `controls` (the `kControls` statement only, THE FEEL outside — D4, RC5 *(amended 2026-10-29 evening: plus a `feel` region over THE FEEL — D4 reversed, D11)*) — with the differential against A5's tree; the agreement test's mechanism half (run-time: `specProblem`, `wiringProblem`, the route-id refusals; controls: a compile-refusal set — RC6 — with ONE `DriverFile` fixture, a control on the re-zero button matched by its `static_assert` text, CK9); robot two's flipper and any vocabulary AF1 has landed by Part 5's tip (rule 6) | Part 1; MECH-A5 (A4 merged) | **~4½–6** (09-29 Part 5 ~3½–5, its "+~½ for the watch" released to CAL1; −¼ no handles file and three regions not four, +½ the landed vocabulary's ~128 refusals, +½ the controls' compile-refusal agreement, +¼ route ids and `changeAt`) | ~5 | moved before Part 2 |
 | **2 — a new robot's bring-up build** | tool | as 09-29 (the SET regions with their differential; `new-robot`; the guards' general form; the Makefile's hand-written robots in the generated shape; the gate's merge lines and its self-test robot; `kEveryRobotId`) **minus everything Calibrate-specific** (CAL1 §1.7: banner, refusal words, the two front lines, the front `static_assert`, `ChassisTable::front`); **plus** the generated robot's mechanism table and namespace from creation (Part 5 is in; S34 moves here), CAL1 R13, and the namespace as a derived name in the collision rule (C++ keywords, a shadowed namespace, an id that prefixes another's team files — CK8, V8) | Part 5 | **~2–3** (−½ Calibrate; +¼ mechanisms from creation) | ~4 | after 5, not 1 |
 | **4 — its match builds and starter files** | tool | `DriverFor<RobotId>`, `autonsFor(RobotId)`; the STARTER driver file in A4/A5's vocabulary (`controls(k<Id>Mechanisms, …)`, `using <Camel>Driver = DriverFile<…>`) and the starter auton file; their SET regions; step 0's selection names on A5's namespace rule; the bound listings (`api_doc_tool.py`) — **six** whole-run listings at the tip (RC12) | Part 2 | **~2–3** (−¼ no span form, N4 moot; −¼ A5's namespace rule) | ~5 | no longer "after the core" |
-| **3 — the panel shell** | panel | as 09-29 (extension, custom editor, tool runner, `describe`-driven vocabularies, diagnostics by JSON path, model tests, `.vsix`, CI job; Save) with **DRIVETRAIN** (no front words; `flip-front` offered only for typed sides the CALIBRATION page finds FLIPPED) and **CALIBRATION** (the record AND its backup, `.bin` and `.bak`, `record_store.hpp`'s fallback rule mirrored; the port map in `writePortMap()`'s form; `compareFronts` mirrored as ONE rule pinned against the C++; FIRST RECORD wording) — RC2, RC3; the **NEW ROBOT** page (three facts and the id) inside Part 3 only with ONE lane; with two, it is **Part 3b** (~¼–½, panel lane, after Part 6 and Part 2 — CK6) | Part 1, or MECH-A6's landing when slots are full (CK3) (NEW ROBOT: Part 2) | **~3¼–3¾** (−¼ the front; +½ the backup and the front check mirrored) | ~5 | after 1, not 2 |
+| **3 — the panel shell** *(amended 2026-10-29 evening: + the release-ready package and the release job, +½–¾ — §5 of the evening amendment)* | panel | as 09-29 (extension, custom editor, tool runner, `describe`-driven vocabularies, diagnostics by JSON path, model tests, `.vsix`, CI job; Save) with **DRIVETRAIN** (no front words; `flip-front` offered only for typed sides the CALIBRATION page finds FLIPPED) and **CALIBRATION** (the record AND its backup, `.bin` and `.bak`, `record_store.hpp`'s fallback rule mirrored; the port map in `writePortMap()`'s form; `compareFronts` mirrored as ONE rule pinned against the C++; FIRST RECORD wording) — RC2, RC3; the **NEW ROBOT** page (three facts and the id) inside Part 3 only with ONE lane; with two, it is **Part 3b** (~¼–½, panel lane, after Part 6 and Part 2 — CK6) | Part 1, or MECH-A6's landing when slots are full (CK3) (NEW ROBOT: Part 2) | **~3¼–3¾** (−¼ the front; +½ the backup and the front check mirrored) | ~5 | after 1, not 2 |
 | **6 — the mechanism pages** | panel | MECHANISMS (templates mapped to the five kinds, the stall with the guide's recipe beside it), WIRING (the named slots, never free roles; the honest limits), CONTROLS (hold, toggle, preset with its time limit, the two homing controls, autons-only; A4-D27's rule; A4-D26's words), each mechanism's route ids shown, the CALIBRATION page's mechanism warning | Parts 3 and 5 | **~3½–4½** (+½ the landed vocabulary's forms) | ~4 | = |
-| **R — routes in the panel** (ruled 2026-10-08; NEW to this brief, RC10) | panel | the field view (waypoints, headings, reversed legs), mechanism steps picked from the robot's route ids, saved in F8's `paths[]`; the geometry-only visual (path, headings, the robot's outline to scale, markers, a step-through) — never a simulation; one validator (a marker naming an id the robot does not have is refused); the robot's FOOTPRINT added to the robot file | Part 6 | **~4–6** (rough, REMAINING-WORK row 20b) | its own section first | new |
-| **S — the sensor pages: the camera and the side walls** (NEW, RC9) | both | the `camera` (VIS1 §6.6) and `walls` (L6 §6.7) blocks in the tool, validated by mirroring `RobotConfig::valid()`'s camera and wall checks (agreement fixtures); robot two's `.camera` and `.wallSensors` adopted by moving `[chassis]`'s end marker below them (the differential re-run); a generated robot's table carries them; the SENSORS page (ports, the MEASURED mounts with tolerances and provenance, UNSET shown as the Step 0 to run); **the mounts are measured from the RECORD's front** — the end that led Calibrate's push, the library's +X — so the page names the record they were measured against, and the CALIBRATION page's flip warning names the camera and wall mounts (a flipped front mirrors every mount and swaps the left and right wall sensors — CK10) | VIS1-B and L6-B (the camera half may go after VIS1-B alone); Part 3 | **~2½–3½** (rough; ~1½–2 each half) | ~4 | new |
+| **R — routes in the panel** (ruled 2026-10-08; NEW to this brief, RC10) *(amended 2026-10-29 evening: SUPERSEDED by Part R's full section — R1 and R2, ~8–11; "saved in F8's `paths[]`" becomes an EXPORT beside generated code, D13)* | panel | the field view (waypoints, headings, reversed legs), mechanism steps picked from the robot's route ids, saved in F8's `paths[]`; the geometry-only visual (path, headings, the robot's outline to scale, markers, a step-through) — never a simulation; one validator (a marker naming an id the robot does not have is refused); the robot's FOOTPRINT added to the robot file | Part 6 | **~4–6** (rough, REMAINING-WORK row 20b) | its own section first | new |
+| **S — the sensor pages: the camera and the side walls** (NEW, RC9) *(amended 2026-10-29 evening: split into S1 (walls, after L6-B) and S2 (camera, after VIS1-B), ~3–4)* | both | the `camera` (VIS1 §6.6) and `walls` (L6 §6.7) blocks in the tool, validated by mirroring `RobotConfig::valid()`'s camera and wall checks (agreement fixtures); robot two's `.camera` and `.wallSensors` adopted by moving `[chassis]`'s end marker below them (the differential re-run); a generated robot's table carries them; the SENSORS page (ports, the MEASURED mounts with tolerances and provenance, UNSET shown as the Step 0 to run); **the mounts are measured from the RECORD's front** — the end that led Calibrate's push, the library's +X — so the page names the record they were measured against, and the CALIBRATION page's flip warning names the camera and wall mounts (a flipped front mirrors every mount and swaps the left and right wall sensors — CK10) | VIS1-B and L6-B (the camera half may go after VIS1-B alone); Part 3 | **~2½–3½** (rough; ~1½–2 each half) | ~4 | new |
 | **AF — the auto-flipper page** (NEW) | panel | the page over AF1's robot-file vocabulary. **The vocabulary in the tool is NOT Part AF's** (CK1, rule 6): if AF1 lands after Part 5, AF1 extends `tools/robot_tool.py` itself (its plan line's "panel generator ~½–1½" stays in AF1) or states its facts outside the regions; if AF1 lands before Part 5, Part 5 adopts it as landed (+½–1½ there) | AF1 lands; Part 6 | **~½–1** (rough: the page only; was ~1–2½ with the generator) | ~3 | new |
 | **Parts 1–6** | | | | **~17¾–23¾** (+1–1½ with X-drive generation, §5 Q22 (b), in Part 2) | | 09-29: ~16¾–22¾ — **+1** (CK4: +½ against 09-29's ~17¼–23¼ with the watch, now CAL1's) |
 | **All before G3** (1–6, 3b, R, S, AF) | | | | **~24¾–34¼** (CK1: AF is the page only; +½–1½ in Part 5 if AF1 lands before it) | | first pass: ~25¼–35¾ |
@@ -368,7 +1760,7 @@ are written; R's figure is REMAINING-WORK's.
 |---|---|---|---|---|
 | **Mechanisms** | MECH §6.3 (the field-by-field record G3a's §1.14 re-check works from) and the LANDED headers: `include/shulib/mechanism/{kinds,spec,wiring,route_ids}.hpp` at `73044ca` (MECH-A1–A3; every word of §6.3 is there — `Arm Lift Flywheel Power Pneumatic Forward Reversed rotationSensor distanceSensor opticalSensor limitSwitch cosine constantGravity noGravity restsAtStop homeBySwitch homeByStall absoluteSensor neverHomed spool linkage measured within High Low grabs releases gears direct`, `kinds.hpp` :1152-1241) | `mechanisms[]`, each with `kind` ∈ power / arm / lift / flywheel / pneumatic and that kind's members IN THE C++ DECLARATION ORDER (N11: a designator out of order does not compile — the re-check's own probe hit it). *(CK11 (a): the order, from `kinds.hpp` at `73044ca` — Power :679 `name motors cartridge pieceSensor safe stall maxVolts`; Arm :717 `name motors cartridge gearing angleSensor safe stall range gravity home presets unhomedVolts tuning`; Lift :811 `name motors cartridge gearing shape angleSensor safe stall range gravity home presets unhomedVolts tuning`; Flywheel :928 `name motors cartridge gearing angleSensor safe stall atSpeed presets tuning`; Pneumatic :1075 `name positions start safe moveTime pieceSensor confirmWithin` (+ `changeAt`). REQUIRED besides the below: every kind's `name`; a motor kind's `cartridge` and `safe`; a flywheel's `gearing` and `atSpeed` (`within(rpm, lasting)`, :944); optional: a power's `maxVolts` (12 V by default).)* `motors: ["forward", "reversed"]`; the named sensor slots; `gearing` as tooth pairs or `"direct"` (never a bare ratio); `range`; `gravity`; `home`; a lift's `shape`; `presets`; `stall` (REQUIRED on an arm, a lift and a flywheel — the template cannot invent one); `unhomedVolts`; `tuning`; a pneumatic's `positions [{name, levels, confirm}]`, `start`, `safe`, `moveTime`, `pieceSensor`, `confirmWithin`; an optional `id`; per-mechanism `notes` (the caveat comments) | the declarations and `inline constexpr MechanismTable k<Robot>Mechanisms = mechanisms(wire(…), …)` inside the robot's namespace (`using namespace mechanism::words;`); each role's `.changeAt` = its JSON path (`Motor::changeAt` :117, `Sensor::changeAt` :167, `Pneumatic::changeAt` :1091); robot two: ONE region over MECH's `[robot two mechanisms]` block (MECH §6.2 item 2 — no separate polarity, handles or binding region) | 5 |
 | **Wiring** (Q1 (a): only here) | `wire(m, motors(…), angleSensor(n), pieceSensor(n or 'X'), homeSwitch('X'))` / `wire(m, lines('A', …))` (`wiring.hpp`); `wiringProblem()` :295 | `wiring[] {mechanism, motors[], angleSensor, pieceSensor, homeSwitch, lines[]}` — the named slots, never free role names | the `wire(...)` lines, in the mechanisms' order | 5 |
-| **Controls** | `controls(list, whileHeld(m, f, b, V), toggle(m or m["speed"], b), preset(m["name"], b, t), homeOnPress(m, b, t), homeAtDriverStart(m, t), autonOnly(m))` (`driver_inputs.hpp`, MECH-A4 worktree; 24 at most, `DriverControls::kCap`); **A4-D27** (accepted 2026-10-29): a PRESET on a switch- or stall-homed arm or lift needs `homeAtDriverStart` or `homeOnPress`, and `.unhomedVolts` answers only for a mechanism that is HELD (V2: refused by name / passes); **A4-D26** (accepted): while the driver-start home runs, that mechanism's own buttons wait — run-time only; **A4-D13** (the freeze line, OPEN): nothing in the robot file changes, and F7 still freezes at G3 | `controls.whileHeld[]`, `.toggles[]`, `.presets[]` (with `timeLimitS`; none on a pneumatic position), `.homeOnPress[]`, `.homeAtDriverStart[]`, `.autonOnly[]`, each with its `words` | the `kControls = controls(...)` statement and the header's button words — robot two: the `controls` and `control words` regions, THE FEEL outside (D4, RC5); a generated robot: the same two regions in its starter driver file (Part 4) | 5, 4 |
+| **Controls** | `controls(list, whileHeld(m, f, b, V), toggle(m or m["speed"], b), preset(m["name"], b, t), homeOnPress(m, b, t), homeAtDriverStart(m, t), autonOnly(m))` (`driver_inputs.hpp`, MECH-A4 worktree; 24 at most, `DriverControls::kCap`); **A4-D27** (accepted 2026-10-29): a PRESET on a switch- or stall-homed arm or lift needs `homeAtDriverStart` or `homeOnPress`, and `.unhomedVolts` answers only for a mechanism that is HELD (V2: refused by name / passes); **A4-D26** (accepted): while the driver-start home runs, that mechanism's own buttons wait — run-time only; **A4-D13** (the freeze line, OPEN): nothing in the robot file changes, and F7 still freezes at G3 | `controls.whileHeld[]`, `.toggles[]`, `.presets[]` (with `timeLimitS`; none on a pneumatic position), `.homeOnPress[]`, `.homeAtDriverStart[]`, `.autonOnly[]`, each with its `words` | the `kControls = controls(...)` statement and the header's button words — robot two: the `controls` and `control words` regions, THE FEEL outside (D4, RC5) *(amended 2026-10-29 evening: THE FEEL is generated too — a `feel` region from the robot file's `driving` block, D11)*; a generated robot: the same two regions in its starter driver file (Part 4) | 5, 4 |
 | **Route ids** | DERIVED, never stored (MECH §1.16; `route_ids.hpp`, 4 refusals: too long, alike, a built-in, more than 32) | nothing | nothing — the tool mirrors the rule and the four refusals by sentence; Part 6 shows each mechanism's ids; Part R picks from them | 5, 6, R |
 | **Camera** | VIS1 D2 (a), §1.7, §6.6 (answered 2026-10-18); `config/camera_config.hpp` in `vis1-a1` (not yet landed): `CameraConfig {port, settings (hal::AiVisionSettings: colours[], objects, expectedClasses, colourMerge), placement (CameraPlacement: measured, forward, left, height, yawDeg, pitchDeg, tolerances, provenance), note}`; robot two's values as a `ChassisTable` member, `.camera` (VIS1-B) | `camera {…}`, every measured number with its provenance (who, how, when, under what light); `forward`, `left`, `yawDeg` are measured from the RECORD's front (the body frame's +X, `camera_config.hpp` :35-49 in `vis1-a1` — the end that led Calibrate's push), so a re-Calibrate that flips the front mirrors them (CK10) | `.camera = {…}` in the robot's chassis table; robot two's by moving `[chassis]`'s end marker below it | S |
 | **Side walls** | L6 D5 (a), §1.4, §6.7 (answered 2026-10-22): `WallSensorsConfig {left, right: WallSensorConfig {port, mount: SideMount {measured, forward, left, height, facing, positionTolerance, facingTolerance, rangeBias, rangeAccuracy, coneHalfAngle, toggleChecked, provenance}}, limits: WallResetLimits {…}, note}` — vocabulary fixed by L6-A2; robot two's as `ChassisTable::wallSensors` (L6-B) | `walls {…}`; `left`/`right`, each mount's `forward`, `left` and `facing` (CCW from forward) are measured from the RECORD's front — a flipped front swaps the two sensors and mirrors their mounts (CK10) | `.wallSensors = {…}` | S |
@@ -406,7 +1798,7 @@ the coordinator's note to VexBuilder (§4.10) gains both blocks beside the mecha
    `python3 tools/robot_tool.py generate`, with `check` in its verification — or, for a block the tool cannot yet emit
    (the camera and walls before Part S), it writes OUTSIDE the region. The coordinator says so in every such chunk's
    prompt: VIS1-B, L6-B, L6-C, ALLY1's `src/` half, AF1, L4 *(CK1)*, MECH-A6, R5a Part C, SAFE-SAVE B2, L9 Part B,
-   MECH's rest.
+   MECH's rest *(amended 2026-10-29 evening: and the string-mechanism chunks and R5a Part B — point 6 too)*.
 4. A chunk that adds a C++ refusal the robot file can reach adds its fixture to G3a's agreement set in the same change,
    once Parts 1 and 5 have landed (else the validator silently lags the build).
 5. Never two G3a parts in one lane at once; the two lanes share only the files named above.
@@ -433,8 +1825,8 @@ the coordinator's note to VexBuilder (§4.10) gains both blocks beside the mecha
 | RC2 | The front, ruled 2026-10-06: never asked, never typed; the record carries the push's end; Calibrate warns on a flip (MECH-PANEL §4.1) | The header said so; the BODY still had `drivetrain.front` (REQUIRED), `--front`, `ChassisTable::front`, two Calibrate prints, a front `static_assert`, the 160-character rule, S35/M30, landmines 21/25/26, the DRIVETRAIN page's words and read-back, the CALIBRATION page's "front cannot be checked", §1.11's `front` ask and the plain words | Struck everywhere, marked. `flip-front` STAYS without `--front`: it is the tool's answer to typed sides that face the wrong end (robot two's D7; CAL1's FIX YOUR TYPED DRIVE PORTS; the CALIBRATION page's FLIPPED) | §1.1; §1.2; §1.3; §1.7; §1.11; §1.13; §2; §3; §4; §6; §7; plain words; "What new-robot creation writes" |
 | RC3 | CAL1 answered 2026-10-08: §1.7 — a generated robot's Calibrate needs NOTHING Calibrate-specific (its glue reads the build's tables); §5 — Part 2's three hunks and `ChassisTable::front` struck, the WATCH is CAL1's (D4 (a), HA-187), R11 (mechanisms before the first Calibrate), R13 (Calibrate only on a tank), Part 3's page reads `.bin` and `.bak` and mirrors `compareFronts` | Part 2 carried the hunks; Part 5 was the watch's fallback owner (+½); landmine 22 "until that exists" | Part 2 −½; Part 5's +½ released; R11 met by the new order (5 before 2) and the NEW ROBOT page's words ("declare every mechanism motor before Calibrate, or unplug it"); R13 a tool refusal (D9); landmines 17 and 22 re-worded | §1.13; §2 (Parts 2, 5); §3 Part 2; §5 items 5, 7; §6; §7 |
 | RC4 | MECH-A1–A3 landed the vocabulary (`fd36e07`, `98392b2`, `43ac361`); A4 adds `driver_inputs.hpp`, `direction_check.hpp`, `runner/mechanism_routes.hpp` (worktree). MECH §6.2–§6.4 say what G3a adopts | §1.14 PROPOSED its own vocabulary (free-form roles, `units`, `autonOnly` on the mechanism, a handles SET region, four robot-two regions incl. a polarity region) | Superseded by the adoption table above (§6.3 as landed): five kinds, named slots, no handles file, robot two's regions THREE (`mechanisms`, `control words`, `controls`); the per-robot namespace keeps names from colliding across robots; route ids derived | §1.1 (mechanism rows); §1.2 (region kinds); §1.3; §1.6; §1.14; "What new-robot creation writes" items 5, 12–14; §2 Part 5; landmines 4, 5, 20 |
-| RC5 | MECH §1.1 puts THE FEEL (`kFeel`, `kLoop`) inside the driver file's `// [driver file two]` block, and §6.2 item 2 offers that block to G3a as one region | D4 (a), ACCEPTED 2026-09-29: THE FEEL stays hand-written, the tool READS the re-zero | G3a's `controls` region wraps only the WHICH BUTTON heading and the `kControls` statement; THE FEEL stays outside (D4 holds). The coordinator asks MECH-A5's prompt to end `[driver file two]` before THE FEEL (else Part 5's `adopt --lines` takes the range). MECH §6.2's "TWO regions" drops the header's button words; G3a keeps a `control words` region over them (generated from each control's `words`) unless A5 removes the words from the header | §1.2; §1.3; D4's note; §5 |
-| RC6 | `controls(...)` is `consteval`: every controls refusal is a NAME (`refused::button_R1_does_two_jobs`, …), with no run-time sentence; `specProblem()` (`spec.hpp` :1425-1429, documented "for G3a's agreement test") and `wiringProblem()` (`wiring.hpp` :295) ARE callable at run time on a declaration the build would refuse | §1.6: the agreement test runs the real checks at run time | The agreement test's spec, wiring and route-id halves stay run-time (V1: a stall-less Arm gives "position: the stall signature (.stall) is UNSET -- …"; a drive-port role gives "a mechanism role is bound to a DRIVE port"); its CONTROLS half is a compile-refusal set — each fixture a TU expected to fail naming its `refused::` function — on MECH-A1's harness (`test/compile_refusals/`, `ctest -R compile_refusal`) (V2), **plus ONE `DriverFile<kControls, kFeel, kLoop>` fixture with a control on the re-zero button, matched by its `static_assert` message (MECH N6, n57; A5 lands `src/common/driver_file.hpp`) — the one controls refusal that is not a `refused::` name, and the one D4 makes the tool mirror by READING the re-zero from THE FEEL** *(CK9)*. (n56, the brain's tick, is THE FEEL's, outside the robot file — no fixture.) +½ in Part 5 | §1.6; §2 Part 5 |
+| RC5 *(amended 2026-10-29 evening: D4 REVERSED — THE FEEL becomes its own generated `feel` region, D11; MECH-A5 ended `[driver file two]` before THE FEEL, so the two regions never overlap)* | MECH §1.1 puts THE FEEL (`kFeel`, `kLoop`) inside the driver file's `// [driver file two]` block, and §6.2 item 2 offers that block to G3a as one region | D4 (a), ACCEPTED 2026-09-29: THE FEEL stays hand-written, the tool READS the re-zero | G3a's `controls` region wraps only the WHICH BUTTON heading and the `kControls` statement; THE FEEL stays outside (D4 holds). The coordinator asks MECH-A5's prompt to end `[driver file two]` before THE FEEL (else Part 5's `adopt --lines` takes the range). MECH §6.2's "TWO regions" drops the header's button words; G3a keeps a `control words` region over them (generated from each control's `words`) unless A5 removes the words from the header | §1.2; §1.3; D4's note; §5 |
+| RC6 | `controls(...)` is `consteval`: every controls refusal is a NAME (`refused::button_R1_does_two_jobs`, …), with no run-time sentence; `specProblem()` (`spec.hpp` :1425-1429, documented "for G3a's agreement test") and `wiringProblem()` (`wiring.hpp` :295) ARE callable at run time on a declaration the build would refuse | §1.6: the agreement test runs the real checks at run time | The agreement test's spec, wiring and route-id halves stay run-time (V1: a stall-less Arm gives "position: the stall signature (.stall) is UNSET -- …"; a drive-port role gives "a mechanism role is bound to a DRIVE port"); its CONTROLS half is a compile-refusal set — each fixture a TU expected to fail naming its `refused::` function — on MECH-A1's harness (`test/compile_refusals/`, `ctest -R compile_refusal`) (V2), **plus ONE `DriverFile<kControls, kFeel, kLoop>` fixture with a control on the re-zero button, matched by its `static_assert` message (MECH N6, n57; A5 lands `src/common/driver_file.hpp`) — the one controls refusal that is not a `refused::` name, and the one D4 makes the tool mirror by READING the re-zero from THE FEEL** *(CK9)* *(amended 2026-10-29 evening: the re-zero is now STATED in the robot file's `driving` block and the fixture reads it there, D11)*. (n56, the brain's tick, is THE FEEL's, outside the robot file — no fixture.) +½ in Part 5 | §1.6; §2 Part 5 |
 | RC7 | A4-D27 and A4-D26 ACCEPTED 2026-10-29; A4-D13's freeze line ruled OPEN | §1.14's controls had neither | The validator and the CONTROLS page mirror A4-D27 (V2); the page words A4-D26; A4-D13 changes nothing in the robot file | §1.14; §2 Parts 5, 6 |
 | RC8 | The direction check names a role's `changeAt` (the generator's JSON path) and cuts it at **160** characters *(CK7 — the first pass said "130–160 (`%.130s`…`%.160s`)"; corrected: `changeAt` reaches the sentence through `changeHere()`'s `%.200s` into a 224-byte buffer and is printed at `%.160s` — `direction_check.hpp` :168, :224, :242, :272, :329, the GENERATED branches, MECH-A4 worktree, identical to main's staged copy; the `%.130s` (:315) and `%.150s` (:262) print `wireHere()`'s `wire(...)` place, never a `changeAt`; V7)*; its WIRING place is the captured `file:line` of `wire(...)` (`wireHere()`, :113-120; `MechanismWiring::file/line`, `wiring.hpp` :105-110) — for a generated robot, a line INSIDE a generated region | §1.14: "the generated table carries each role's JSON path" | A new literal-length rule: a generated `changeAt` ≤ **160** characters (V5: 84 for robot two; 117 at a 31-character id and a 23-character name; V7: 160 whole and 161 cut in all five generated sentences, the longest 377 bytes of the 384-byte `fix` — so the buffer is not the limit), refused naming the `%.160s` lines it protects; re-read at Part 5's tip, and against MECH-A6's station 13 if it prints the sentence through a smaller buffer. The wiring gap is an `include/` change, not G3a's: the coordinator asks **MECH's rest or a small library chunk** (CK11 (e): not MECH-A6, which writes only `src/programs/bench_r3a.*` and its test — MECH §2) for a `changeAt` on the wiring entry; until then the region's begin marker ("edit that file or the robot panel") is the pointer, and the robot-file chapter says so | §1.2; §1.14 (wiring page); §5; §7; §8 |
 | RC9 | VIS1 D2 (a) and L6 D5 (a): the camera's and the side sensors' facts are robot-file data, typed as `ChassisTable` members (`.camera`, `.wallSensors`, appended with defaults) by VIS1-B and L6-B, both "after MECH-A5, before A6" | `sensors[]` "generates nothing yet (R2b)"; nothing about either block | Part 1's `[chassis]` ends before any appended member (V3); Part S brings both blocks into the tool and the SENSORS page; `sensors[]` keeps the radio and, until Part S, the camera's and walls' ports as claims; §1.11 gains both blocks and L6's VexBuilder gap | §1.1; §1.3; §1.11; §5; §7 |
@@ -899,7 +2291,7 @@ panel shows that list before Create.
 **Part 4 — the match builds (`drive`, `autontest`, `competition`) and the starter files add:**
 
 7. **`src/team/<id>_driver.hpp`** — a NEW STARTER, written once and never overwritten: *(re-check 2026-10-29: in A4/A5's vocabulary — `controls(k<Id>Mechanisms, …)` and `using <Camel>Driver = DriverFile<…>`; the span spelling below is moot, an empty `controls(list)` compiles — RC11, V2)* the class, THE FEEL (the
-   library's defaults), the loop and the checks, in the controls vocabulary the MECH core leaves (its bind call
+   library's defaults; *(amended 2026-10-29 evening: a generated `feel` region, D11)*), the loop and the checks, in the controls vocabulary the MECH core leaves (its bind call
    and its lists, presets included, are the core's). Its `[control words]` and `[controls]` regions are
    generated; they hold EMPTY lists, spelled as spans (`std::span<const …>{}`, N4), until the robot has
    mechanisms. Everything outside the markers is the team's. `new-robot` writes it when the robot's programs
@@ -1039,7 +2431,7 @@ under "Decided here".
 >   unchanged (probed N2).
 > - **D3** holds: the templates, the mechanism edits and their effects list are the TOOL's; the panel runs it.
 > - **D4** holds: a starter driver file's FEEL, re-zero included, is the team's code, and the tool reads the
->   re-zero from it. *(Re-check 2026-10-29: still holds — MECH's `[driver file two]` block would put the feel inside a region; G3a wraps only the controls, RC5.)*
+>   re-zero from it. *(Re-check 2026-10-29: still holds — MECH's `[driver file two]` block would put the feel inside a region; G3a wraps only the controls, RC5.)* *(amended 2026-10-29 evening: NO LONGER HOLDS — the team lead REVERSED D4 (a): the feel and the loop, re-zero included, become robot-file data (`driving`) generated into a `feel` region; D11)*
 > - **D5 (a)** splits: the chassis pin in Part 1, the mechanism pin with the MECH core or Part 5 (A6). *(Re-check 2026-10-29: the mechanism half is DONE by MECH-A5, RC19.)*
 > - **D6** is SUPERSEDED by the amended parts table: seven parts, each its own go, after T4 Part 3 rather than
 >   Part 1b. The replacement is put to him as **D6′** (re-check 2026-09-29, #5), since it undoes a decision he
@@ -1100,6 +2492,16 @@ the panel runs it as a process — ONE validator, ONE generator, ONE record deco
 
 **D4 — Which lines the generator owns, and the re-zero button. RECOMMENDED (a): the five regions only;
 THE FEEL and THE LOOP stay hand-written, the re-zero with them, and the tool READS the re-zero.**
+
+> *(amended 2026-10-29 evening)* **REVERSED by the team lead (2026-10-29, evening — ruling (1): the driving feel becomes panel data).** D4 (a)
+> was accepted 2026-09-29; it is now (b) in substance: THE FEEL (`kFeel`) and THE LOOP (`kLoop`: the re-zero and the
+> release brake mode) are the robot file's `driving` block, generated into a `feel` region — never `.tickPeriod`
+> (MECH-A5's `DriverFile` fills it) and, unless D11 (c), never `.protection`. The tool no longer READS the re-zero; the
+> file STATES it, and the validator checks it against the controls. (a)'s reason — the feel is code a student writes and
+> defends — gives way to his ruling; the generated lines stay in the driver file, readable; (b)'s cost (a larger F7
+> surface for VexBuilder) is accepted. Where it lands: D11 (Parts 5 and 6 under (a)). The text below is kept as it was
+> accepted.
+
 - **(a) RECOMMENDED.** `kLoop.rezeroButton` (`robot_two_driver.hpp` :81) belongs to field-centric, which
   is the feel (and is OFF). The feel is the driver's code a student tunes and must defend (G4's
   guardrail). The tool reads `.rezeroButton = Button::<name>,` (exactly once, or it refuses) so its
@@ -1275,7 +2677,7 @@ it; the robot builds exactly as it does now.
 - **Robot two's front.** The team lead is asked to confirm it. The recommendation is the camera end, the end
   its record and its drivers already use; flipped that way, the file agrees with the record on all eight
   motors the record has. *(re-check 2026-10-29: now "robot two's TYPED table" — D7, kept: Bench Tests and the boot's CROSS-CHECK line then agree with the drivers.)*
-- **(Re-check 2026-10-29) Also coming:** routes drawn on the field (Part R), the camera and side-sensor page (Part S) and the auto-flipper's page (Part AF), each as its chunk lands; the documentation redo (DOCS3) after the panel.
+- **(Re-check 2026-10-29) Also coming:** routes drawn on the field (Part R), the camera and side-sensor page (Part S) and the auto-flipper's page (Part AF), each as its chunk lands; the documentation redo (DOCS3) after the panel. *(amended 2026-10-29 evening: and, by Nov 21, the driving feel and the drive tuning as pages, a FULL route maker — every auton step, care on each, mechanism timing, red/blue mirroring, a timeline — and the panel on GitHub for anyone; D11–D20)*
 
 ---
 
@@ -1860,7 +3262,9 @@ stands and is applied twice:*
   holding `>>> GENERATED`/`<<< GENERATED` not in the exact form), a region naming a robot file that does
   not exist, a robot file refused by the validator, and a robot file not in canonical form.
 - **What a student may still hand-edit around the regions:** everything outside the markers — the
-  header's other lines (the sticks, the re-zero line, the protections paragraph), THE FEEL, HOW IT RUNS,
+  header's other lines (~~the sticks, the re-zero line,~~ the protections paragraph *(fix 2026-10-30, C11: the sticks,
+  the re-zero and the release lines are inside the generated `control words` region now — the evening amendment's §1)*),
+  THE FEEL *(amended 2026-10-29 evening: no longer — a generated `feel` region, D11)*, HOW IT RUNS,
   THE CHECKS. Inside: nothing.
 
 **The validator — every C++ refusal, named first** (P6's harness is the proof; the table is the tool's
@@ -1938,6 +3342,17 @@ from the tool too, never left behind as a phantom refusal. The agreement test EV
 predicate on every fixture (§1.6).
 
 ### 1.3 The five regions, adopted (Part A — *amended 2026-09-29: across Parts 1, 2 and 5*)
+
+> *(amended 2026-10-29 evening)* **Three more regions, each adopted with `check` passing and its differential logged:** robot two's
+> `feel` (Part 5, D11 — THE FEEL's heading, `kFeel` and `kLoop`, byte for byte); `[chassis tuning]` at the END of robot
+> two's chassis initializer (Part T, D12 — adopted EMPTY: robot two states no tuning); `[routes]` in
+> `src/team/autons.cpp` (Part R1, D13 — adopted EMPTY, with ONE hand-written call line outside it). Part S's
+> `.camera` / `.wallSensors` adoption becomes a `[chassis sensors]` region or an ADJACENT end marker moved (§3 of the
+> evening amendment). *(fix 2026-10-30: `[chassis tuning]` holds ONE constexpr lambda assigning the stated fields onto
+> a default `ChassisConfig` — never a designated initializer of a nested group (C1, probe F1); robot two's `control
+> words` region spans the header's whole stick-and-button map, :17-32, written from `controls` AND `driving` (C11);
+> `[routes]` sits ABOVE `registerAutons()`, after the hand-written autons' anonymous namespace, in its own (C13, probe
+> F13) — at the namespace's end it does not compile.)*
 
 > **AMENDED 2026-09-29.** The method below is unchanged: adopt, `check` with zero differences, the differential
 > logged with each file's sha256 before and after, and only THEN the prose pass. It now runs three times.
@@ -2071,7 +3486,7 @@ pivots on 6 and 7 ...)", its comment (:613-618) likewise. The host tests that re
 > - The P6 fixtures written against the pre-core table are history.
 
 Includes the generated header: ≥ the 31 probed fixtures (P6), each one mutation of robot two's file,
-emitted UNCHECKED, plus the validator's verdict per fixture *(re-check 2026-10-29, CK9: the controls half also carries ONE `DriverFile<kControls, kFeel, kLoop>` fixture with a control on THE FEEL's re-zero button, expected to fail on `DriverFile`'s `static_assert` (MECH N6, n57) and matched by its message text — the controls refusal that is not a `refused::` name, and the one the tool mirrors by READING the re-zero, D4)*; for each emittable fixture the test runs the
+emitted UNCHECKED, plus the validator's verdict per fixture *(re-check 2026-10-29, CK9: the controls half also carries ONE `DriverFile<kControls, kFeel, kLoop>` fixture with a control on THE FEEL's re-zero button, expected to fail on `DriverFile`'s `static_assert` (MECH N6, n57) and matched by its message text — the controls refusal that is not a `refused::` name, and the one the tool mirrors by READING the re-zero, D4)* *(amended 2026-10-29 evening: the re-zero is STATED in the file's `driving` block since D4's reversal, D11)*; for each emittable fixture the test runs the
 real checks (as `agree_runner.cpp` does) **and the selection pin's predicate** (`robotTwoTableSelectable`,
 §1.4 — every fixture is robot two), and CHECKs that the C++ families equal the validator's, the pin's
 family included (the v2 harness dropped it: re-check #7; `recheck/agree_pin/`: fixture 24 AGREES, and
@@ -2147,7 +3562,7 @@ host build. Post-1b, the pre-1b table checks 4-7 leave the harness.
   hard-coded cartridge list goes (re-check #15.2). **"The OTHER end is the front"** is a button that
   runs `flip-front` (§1.2) with the provenance the user types; the form reads the statement back —
   "looking toward <front>: LEFT …, RIGHT …" (§1.1) *(re-check 2026-10-29: offered only for typed sides found FLIPPED; no words to read back — RC2)*. **Read-only:** `typedTable` (labelled "measured by
-  MOTOR WATCH, legacy — robot two only"), the re-zero (read from THE FEEL — D4), the calibration record.
+  MOTOR WATCH, legacy — robot two only"), the re-zero (read from THE FEEL — D4) *(amended 2026-10-29 evening: no longer read-only — the FEEL page edits it, D11)*, the calibration record.
 - **Every edit** goes model → `robot_tool.py fmt -` → a `WorkspaceEdit` of the whole document (the ONE
   writer; unknown fields kept — P9's test). **Live warnings:** on change (debounced ~300 ms) it runs
   `validate - --path <file> --json` on the buffer and shows each refusal beside its field — **by its JSON
@@ -2179,10 +3594,12 @@ host build. Post-1b, the pre-1b table checks 4-7 leave the harness.
   (`src/views/<job>/`), one process runner, a typed message protocol between webview and host — the
   console is a second view on H1's wire later. Nothing in the panel assumes it is the only view.
 - **Packaging:** `npx vsce package` → `shulib-robot-panel-<version>.vsix`, installed with
-  `code --install-extension`; **no marketplace**; the `.vsix` and `node_modules/` are gitignored.
+  `code --install-extension`; ~~**no marketplace**~~ *(amended 2026-10-29 evening: "GitHub now, store later" — each version a `.vsix` on a GitHub Release, cut by the release job on the team lead's tag; the Marketplace and Open VSX after Nov 21; the package release-ready — §5 of the evening amendment, D19; fix 2026-10-30, C16: the publisher name checked — or
+registered — at BOTH stores before the first release tag)*; the `.vsix` and `node_modules/` are gitignored.
 
 ### 1.8 The panel's CI job (Part B — *amended 2026-09-29: Part 3*)
 *(Amended: the job and the record agreement test's CMake step are Part 3's. Part 6 adds model tests only.)*
+*(amended 2026-10-29 evening: Part 3 also adds `.github/workflows/robot-panel-release.yml` — on the team lead's `robot-panel-v<version>` tag only: test, package, check the file list, attach the `.vsix` to a GitHub Release; nothing to a store — §5 of the evening amendment, S50.)*
 A separate job `robot-panel` (`actions/setup-node`, **Node 22** — Node 20 reached end of life 2026-04-30
 per the Node.js release schedule, and 22 is within vsce 3.9.2's engines; re-check #9): `npm ci`,
 `npm test`, `npx vsce package`. No other job depends on it; the host and ARM jobs run without Node.
@@ -2249,6 +3666,7 @@ is PKG1's decision, like the types above.
 >   - VexBuilder-emitted and OPTIONAL: `presets`, `controls.presets`, `autonOnly`.
 >   - shulib-only: `build` (G3's reader fills it by a NAMED rule, D8's default program list) and `draft`
 >     (never in a `.vexbot`: a draft is not a stated robot).
+> - *(amended 2026-10-29 evening)* **The `driving` (D11), `driveTuning` (D12) and `footprint` (Part R1) blocks** become profile schema too — F7 at G3; the note to VexBuilder (§4.10) gains them, and the route file's F8 export carries its extras in ONE optional `shulib` object per waypoint (D13 (c)); Q20 (keep unknown fields) covers both. *(fix 2026-10-30: `driveTuning`'s angles are in DEGREES with `Deg` in their names, as the route file's — F3, C16; it carries no `rotationRadius`, which is measured geometry — C12.)*
 > - *(re-check 2026-10-29)* **The camera and walls blocks** (VIS1 §6.6, L6 §6.7) become profile schema when Part S emits them; VexBuilder's `sensors: [ { port, type } ]` carries neither (L6 RC32), so the note to VexBuilder gains both. **The front is NOT a profile field** (2026-10-06, RC2). **The mechanism words are MECH §6.3's as landed** (MECH §6.4: from Part 5 to G3 a rename is a generator and agreement-test change).
 > - **Every MECH field becomes profile schema (P8).** A panel → VexBuilder → import round trip could
 >   therefore drop mechanism settings silently. Hence the NEW ask (§5 Q20, his; recommendation (a)):
@@ -2403,7 +3821,7 @@ prints a record's CRC — re-check #10; the CRC is shown as the file's identity 
   regenerated outside its regions. It is written in the controls vocabulary the MECH core leaves, since its bind
   call and its lists ARE that vocabulary. The bullets below were written against today's `DriverBindings` and
   hold in spirit; Part 4 re-reads the driver file robot two has after the core.
-  - Its THE FEEL is the library's defaults: ArcadeBody, re-zero Y, Coast on release. The team tunes it (D4).
+  - Its THE FEEL is the library's defaults: ArcadeBody, re-zero Y, Coast on release. The team tunes it (D4). *(amended 2026-10-29 evening: in a generated `feel` region from an empty `driving` block; the team tunes it in the robot file or on the FEEL page — D11)*
   - Its checks name `mechanismTableFor(RobotId::<Id>)` inside `static_assert`s, which step 0 allows (N2).
   - Its empty control lists are `std::span<const HoldControl>{}` and `std::span<const ToggleControl>{}`: the
     `[] = {}` form fails both compilers (N4).
@@ -2553,7 +3971,7 @@ the same edit). Each has `--dry-run --json`, which lists its EFFECTS before anyt
 - Per mechanism: a hold (forward, back, volts), a toggle (a button), and presets (a button → a named preset).
   Every button is a dropdown from `describe`.
 - The live warnings are the five predicates, the presets' rules, two controls of one kind, and auton-only.
-- The re-zero is shown read-only (D4).
+- ~~The re-zero is shown read-only (D4).~~ *(amended 2026-10-29 evening: the re-zero is edited on the FEEL page, and the CONTROLS page warns when a control takes it — D11)*
 - The rest's controls — preset cycling, sticks, long-press and double-tap, macros, the partner controller —
   come in Part 7.
 
@@ -2572,7 +3990,7 @@ command that runs `make ROBOT=<id>` in a terminal. It is never a gate and never 
 are fixed, which is why a half-made mechanism can be saved as a draft (§1.14).
 
 ### 1.16 Import and export — hooks only (G3 and Export) — NEW 2026-09-29
-The robot file IS the profile (D1, P8), so both directions are thin.
+The robot file IS the profile (D1, P8), so both directions are thin. *(amended 2026-10-29 evening: ROUTES are exported now — Part R1's `robot_routes.py export-paths` writes F8 `paths[]` entries with a `shulib` object, D13 (c); the `.vexbot` import and export below stay G3's.)*
 - **Import (G3)** reads a `.vexbot`'s `project.robotProfile`, validates it, writes
   `src/robots/<id>.robot.json` and runs `new-robot`'s generation. A field the file lacks is taken from an
   existing robot file, never defaulted (§4.7).
@@ -2694,7 +4112,7 @@ The robot file IS the profile (D1, P8), so both directions are thin.
 >   - **M29:** the whole-run files kept in `known` → S33's unnamed-listing case red.
 >
 > **Part 5:**
-> - the agreement test's mechanism fixtures against the MECH core's C++ (§1.6); *(re-check 2026-10-29: run-time and compile-refusal halves, RC6; A4-D27's case among them, RC7; and the `DriverFile` re-zero fixture matched by its `static_assert` text, CK9 — with its mutation **M34**: the validator stops reading the re-zero from THE FEEL → that fixture DISAGREES)*
+> - the agreement test's mechanism fixtures against the MECH core's C++ (§1.6); *(re-check 2026-10-29: run-time and compile-refusal halves, RC6; A4-D27's case among them, RC7; and the `DriverFile` re-zero fixture matched by its `static_assert` text, CK9 — with its mutation **M34**: the validator stops reading the re-zero from THE FEEL → that fixture DISAGREES)* *(amended 2026-10-29 evening: M34 now — the validator stops checking the file's STATED re-zero against the controls → that fixture DISAGREES; the feel's own cases are S48 and M46–M47, D11)*
 > - *(re-check 2026-10-29, CK7)* the `changeAt` length rule: a path of 161 characters refused naming the `%.160s` lines, 160 passes and reads back WHOLE through `judgeDirection` in a host case (V7's method); **M35:** the limit set to 200 → red;
 > - **S28 the templates.** Each template's `add` produces a file refused ONLY at the EMPTY fields its row in
 >   §1.14 lists, so a template that fills in a team's number is caught (P6);
@@ -2939,9 +4357,9 @@ chunk). C7 removability re-run (no public document names `docs/internal/`).
 
 > **AMENDED 2026-09-29.**
 > - **Moved IN:** adding a robot from the panel (§1.13, D8–D10); robot two re-stated toward the camera end
->   (D7, if (a)). *(Re-check 2026-10-29: and routes in the panel (Part R, ruled 2026-10-08), the camera and side-wall blocks with their page (Part S), the auto-flipper's page (Part AF) — RC9, RC10.)*
-> - **Stays OUT:** THE FEEL (D4), the `.vexbot` reader and the F7 freeze (G3), H4, PKG1, and any
->   `include/shulib/` change. The mechanism LIBRARY — the service, the kinds, the binding checks at boot, the
+>   (D7, if (a)). *(Re-check 2026-10-29: and routes in the panel (Part R, ruled 2026-10-08), the camera and side-wall blocks with their page (Part S), the auto-flipper's page (Part AF) — RC9, RC10.)* *(amended 2026-10-29 evening: and the driving feel (D11), drive tuning (D12), the full route maker with its F8 export (D13), and the release job (§5).)*
+> - **Stays OUT:** ~~THE FEEL (D4),~~ *(amended 2026-10-29 evening: THE FEEL moved IN — D11)* the `.vexbot` reader and the F7 freeze (G3), H4, PKG1, and any
+>   `include/shulib/` change *(amended 2026-10-29 evening: still none in any G3a part — the route maker's library half is its own chunk, STEP1, R.13)*. The mechanism LIBRARY — the service, the kinds, the binding checks at boot, the
 >   bench page, the direction check, the auton steps and the handles' C++ types — is the MECH core's; G3a
 >   generates DATA for it and never writes that library.
 > - **New OUT items:**
@@ -2962,8 +4380,8 @@ chunk). C7 removability re-run (no public document names `docs/internal/`).
 >   - templates or mechanism edits implemented in the panel (D3).
 
 - **OUT:** ~~adding a robot from the panel (the one chain's territory — the guide documents the manual
-  steps);~~ *[moved IN 2026-09-29]* the bench bot's and the X-drive's tables (hand-written; the X-drive is a `RobotConfig`); THE FEEL
-  (D4); autons (COMP-t/COMP-b); the `.vexbot` reader, the SD-card runtime loader, `inferDrivetrain()`,
+  steps);~~ *[moved IN 2026-09-29]* the bench bot's and the X-drive's tables (hand-written; the X-drive is a `RobotConfig`); ~~THE FEEL
+  (D4); autons (COMP-t/COMP-b);~~ *(amended 2026-10-29 evening: THE FEEL is IN (D11); autons drawn in the panel are IN as generated code in a `[routes]` region (D13) — hand-written autons stay the team's)* the `.vexbot` reader, the SD-card runtime loader, `inferDrivetrain()`,
   `schemaVersion` negotiation and the F7 freeze (G3); the robot console (H4); the starter project (PKG1);
   Calibrate's and the boot's "claw pivot" words (§8); ~~re-stating robot two toward the camera end (§8);~~
   *[D7, 2026-09-29]* D5 (b)'s structural test pins unless chosen; any `include/shulib/` change.
@@ -3220,7 +4638,7 @@ include/` empty; every mutation's red run logged; the manual VS Code check logge
     logged re-adoption with the differential). A chunk that puts the camera's or the walls' notes in the region's
     comment makes `check` say EDITED BY HAND.
 28. **MECH's `[driver file two]` block holds THE FEEL** (RC5). G3a's `controls` region wraps the WHICH BUTTON heading
-    and the `kControls` statement only; wrapping the whole block would generate the feel D4 keeps hand-written.
+    and the `kControls` statement only; wrapping the whole block would generate the feel D4 keeps hand-written. *(amended 2026-10-29 evening: D4 reversed — THE FEEL gets its OWN `feel` region, D11; the `controls` region still wraps only WHICH BUTTON and `kControls`, so the two never overlap)*
 29. **The controls' refusals have no run-time sentence** (RC6). `controls(...)` is `consteval`; its rules are
     `refused::` names. The agreement test's controls half compiles each fixture and expects the named failure; an
     evaluator at run time sees nothing.
@@ -3305,7 +4723,7 @@ include/` empty; every mutation's red run logged; the manual VS Code check logge
   chunk *(CK11 (e): not MECH-A6, whose scope is `src/programs/bench_r3a.*`)*.
 - **The robot's footprint** (RC10) — in no file; Part R's section adds it.
 - **VexBuilder's `sensors` is `{port, type}` only** (L6 RC32, RC9) — the note to VexBuilder grows.
-- **MECH §6.2's "two regions" would generate THE FEEL** (RC5) — against D4 (a).
+- **MECH §6.2's "two regions" would generate THE FEEL** (RC5) — against D4 (a). *(amended 2026-10-29 evening: D4 (a) reversed — THE FEEL is generated, in its own region; moot)*
 - **Robot one has no build for 2026-11-23** (RC18) — I1's, the coordinator's to raise.
 
 **Found by the second pass (the checker's findings, 2026-10-29):**
@@ -3321,3 +4739,19 @@ include/` empty; every mutation's red run logged; the manual VS Code check logge
 - **A robot id is a C++ namespace from MECH-A5 on** (CK8, V8) — `std`, `hal`, `robot`, keywords and team-file
   prefixes break the build or the gate's ownership rule with messages that never name the robot file; G3a's
   collision rule now refuses them.
+
+**Found by the fix round on the evening amendment (2026-10-30, the checker's C1–C16):**
+- **`rotationRadius` is a stand-in the record could answer** (C12). `MotionConfig::rotationRadius` and the stall
+  check's own `rotationRadius` are both 7.0 in (HA-17, HA-52) on every robot; on a tank each is half the track width,
+  which Calibrate MEASURES and the record carries, and `Robot::effectiveTuning()` (`robot.hpp` :1052-1059) applies
+  the record's wheels to the stall check but not this. A small library item (the coordinator's to raise), not G3a's —
+  G3a now shows both read-only rather than letting a team type a measured number.
+- **A default-constructed `SettleConfig`, `AxisGains` or `FeedforwardGains` is a robot that never settles or never
+  corrects, and nothing refuses it** (C1). `SettledUtil` accepts zeros (`settled_util.hpp` :50-52; its own header
+  says a default "effectively never settles"); `MotionConfig::validate()` does not descend into the settle groups.
+  Any hand-written `RobotConfig` that designates a nested group in part has the same trap the generator had; none in
+  the tree does today (the X-drive's `src/robots/xdrive_config.hpp` names no tuning at all — grep, 2026-10-30). A
+  library-side refusal (for example `validate()` refusing a zero `maxErrorRate`) would be a behaviour change for the
+  library's owner to weigh, not G3a's.
+- **COMP-b's routine-stop line can reach 214 B against a 200 B budget** (NOTES 10-29 ~21:00, MECH-A5's note 5 — CUT,
+  flagged, never overflowed). STEP1-A's result words touch the same lines (C9) and must not lengthen them.

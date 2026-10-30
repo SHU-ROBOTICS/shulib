@@ -679,7 +679,9 @@ fixed.)*
   foundation — the robot file and its generator — starts when MECH-A5 merges, beside VIS1, L6 and the
   auto-flipper, and DOCS3 follows the panel; build-order's G3a entry.)* *(2026-10-29, later: jal's PANEL SPRINT —
   the panel by 2026-11-21; Part 1 building beside MECH-A5, the builds overlapping; the camera's later runs,
-  ALLY1, L4 and AF1 after the panel.)*
+  ALLY1, L4 and AF1 after the panel.)* *(2026-10-30: the evening amendment answered — the feel, drive tuning, the
+  full route maker (+ STEP1), the wall and camera pages, release-ready; D16 a true curve follower, CURVE1, after
+  the route maker; publisher `shulib`; MECH-S and TUNE1 ruled, briefs next.)*
 - **[G3] `.vexbot` ingestion into G3a's generator → freeze F7.** Serves VexBuilder's files. ~1 day
   after G3a.
 - **[G4] the ten-minute guide** (closes M5). The legacy `.shupaths` importer was DROPPED 2026-09-26
