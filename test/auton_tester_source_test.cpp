@@ -68,33 +68,65 @@ TEST_CASE("pins: the tester's registry DROPS a refused entry and names it in the
     CHECK(sayAt < taskAt);
 }
 
-// Bug caught (the re-check's finding 4; mutations 24 and 25): the Robot built WITHOUT the options
-// that carry the guard (`buildOptions()` passed straight through — the guard never paces, and no
-// abort can stop a motion), or built on the watch (the abandon requested and never acted on), and
-// the chain proof moved after the task starts or out of the try (a failed proof would not refuse).
-TEST_CASE("pins: the Robot is built WITH opts, the guard its pacer, the chain proven before the task") {
+// Bug caught (the re-check's finding 4; mutations 24 and 25; the mechanism service since MECH-A5):
+// the Robot built WITHOUT the options that carry the guard (`buildOptions()` passed straight through
+// — the guard never paces, and no abort can stop a motion), or built on the watch (the abandon
+// requested and never acted on); the MECHANISM SERVICE left out of the chain (guard -> watch: every
+// mechanism step of an auton waits on a mechanism nothing ticks — the MECH brief's P1 control case),
+// constructed AFTER the Robot (the Chassis takes its pacer once — landmine 1), bound outside the try,
+// over devices other than the Robot's own (landmine 20), or after the proof (an unbound service ticks
+// nothing: the proof would refuse every boot); the route ids registered before the bind, outside the
+// try, or never (mutation M47: every route marker an unknown id); the chain proof moved after the
+// task starts or out of the try (a failed proof would not refuse); and the unbuild resetting the
+// Robot before the service (MECH-A5's review: ~MechanismService reads every slot's mechanism, and
+// those, the fault latch and the clock are the Robot's — a refused boot read destroyed objects).
+TEST_CASE("pins: the Robot is built WITH opts, the guard its pacer, the chain guard -> service -> watch, "
+          "the service bound and the route ids registered in the try, the chain proven before the task") {
     const std::string code = stripComments(readFile(kProgramFile));
     CHECK(count(code, "st.robot.emplace(st.boot.built.config, *st.devices, opts);") == 1);
     CHECK(count(code, "st.robot.emplace(") == 1);
     CHECK(count(code, "robot::validate(st.boot.built.config, *st.devices, opts)") == 1);
     CHECK(count(code, "opts.pacer = &*st.guard;") == 1);
     CHECK(count(code, ".pacer =") == 1);
-    CHECK(count(code, "st.guard.emplace(*st.watch)") == 1);
-    CHECK(count(code, "st.watch.emplace(*st.painter") == 1);
+    // THE CHAIN (inside out): painter -> watch -> service -> guard.
     CHECK(count(code, "st.painter.emplace(st.devices->pacer())") == 1);
+    CHECK(count(code, "st.watch.emplace(*st.painter") == 1);
+    CHECK(count(code, "st.mechanisms.emplace(*st.watch);") == 1);
+    CHECK(count(code, "st.guard.emplace(*st.mechanisms);") == 1);
+    CHECK(count(code, "st.guard.emplace(") == 1);
+    CHECK(count(code, "st.mechanisms.emplace(") == 1);
     CHECK(count(code, "attachGuard(") == 1);
+    // THE BIND: over the Robot's OWN built devices, the robot's clock, latch and sink.
+    CHECK(count(squash(code), "st.mechanisms->bind(kMechanisms, st.robot->mechanismParts().devices(), "
+                              "st.robot->context().clock(), st.robot->faults(), st.robot->context().telemetry());")
+          == 1);
+    CHECK(count(code, "->bind(") == 1);
+    // THE ROUTE REGISTRY: one registry, the robot's route ids over its Chassis and service, ONE call.
+    CHECK(count(code, "st.commands.emplace();") == 1);
+    CHECK(count(code, "st.routes.emplace(st.robot->chassis(), *st.mechanisms, kMechanisms, "
+                      "st.devices->telemetry());") == 1);
+    CHECK(count(code, "st.routes->registerInto(*st.commands);") == 1);
+    CHECK(count(code, "registerInto(") == 1);
 
-    CHECK(count(code, "pacerChainProven(") == 1);
+    CHECK(count(code, "pacerChainMissing(") == 1);
+    CHECK(count(code, "pacerChainProven(") == 0);
     const std::size_t tryAt = code.find("    try {\n        st.devices.emplace();");
     const std::size_t catchAt = code.find("} catch (const PreconditionError& e) {\n        unbuild();");
+    const std::size_t serviceAt = code.find("st.mechanisms.emplace(");
     const std::size_t robotAt = code.find("st.robot.emplace(");
-    const std::size_t proofAt = code.find("pacerChainProven(");
+    const std::size_t bindAt = code.find("st.mechanisms->bind(");
+    const std::size_t routesAt = code.find("st.routes->registerInto(");
+    const std::size_t proofAt = code.find("pacerChainMissing(");
     const std::size_t registerAt = code.find("registerAutons(");
     const std::size_t taskAt = code.find("st.task.emplace(");
     REQUIRE(tryAt != std::string::npos);
     REQUIRE(catchAt != std::string::npos);
-    CHECK(tryAt < robotAt);
-    CHECK(robotAt < proofAt);
+    CHECK(tryAt < serviceAt);
+    CHECK(serviceAt < robotAt);  // constructed BEFORE the Robot (the Chassis takes its pacer once)
+    CHECK(robotAt < bindAt);     // bound AFTER it, over its devices
+    CHECK(bindAt < routesAt);    // the route ids after the bind
+    CHECK(routesAt < proofAt);
+    CHECK(bindAt < proofAt);     // an unbound service ticks nothing: the proof needs it bound
     CHECK(proofAt < catchAt);  // inside the try: a throw or a false proof refuses the boot
     CHECK(tryAt < registerAt);
     CHECK(registerAt < catchAt);
@@ -102,6 +134,11 @@ TEST_CASE("pins: the Robot is built WITH opts, the guard its pacer, the chain pr
     CHECK(count(code, "st.task.emplace(&testerTask, nullptr, TASK_PRIORITY_DEFAULT, "
                       "TASK_STACK_DEPTH_DEFAULT,") == 1);
     CHECK(count(code, "st.task.emplace(") == 1);
+    // THE UNBUILD, each object before what its destructor reads: the service before the Robot.
+    CHECK(count(squash(code), "const auto unbuild = [&st] { st.screen.reset(); st.registry.reset(); "
+                              "st.routes.reset(); st.commands.reset(); st.mechanisms.reset(); st.robot.reset(); "
+                              "st.guard.reset(); st.watch.reset(); st.painter.reset(); st.inputs.reset(); "
+                              "st.master.reset(); st.devices.reset(); };") == 1);
 }
 
 // Bug caught (the re-check's finding 4; mutations 21-23): the PROS reads widened past one line
@@ -263,9 +300,11 @@ TEST_CASE("pins: readFacts, the painter's repaint rule, the chain proof's refusa
              "next; paintedAt_ = f.now; } } inner_->pace();");
 
     const std::string init = squash(bodyOf(code, "void autonTesterInitialize("));
-    CHECK(count(init, "if (!pacerChainProven(st.robot->chassis(), *st.guard, *st.watch)) { "
-                      "unbuild(); refuse(\"the tester's pacer chain is WRONG\", ") == 1);
-    const std::size_t proof = init.find("if (!pacerChainProven(");
+    CHECK(count(init, "if (const ChainGap gap = pacerChainMissing(st.robot->chassis(), *st.guard, *st.mechanisms, "
+                      "*st.watch); gap != ChainGap::None) { char chain[192]; std::snprintf(chain, sizeof chain, "
+                      "\"%.150s -- a build error, not a robot fault\", chainGapWords(gap)); unbuild(); "
+                      "refuse(\"the tester's pacer chain is WRONG\", chain); return; }") == 1);
+    const std::size_t proof = init.find("if (const ChainGap gap = pacerChainMissing(");
     REQUIRE(proof != std::string::npos);
     const std::size_t proofEnd = init.find("} } catch (const PreconditionError& e) {", proof);
     REQUIRE(proofEnd != std::string::npos);
@@ -278,23 +317,27 @@ TEST_CASE("pins: readFacts, the painter's repaint rule, the chain proof's refusa
     CHECK(count(code, "showResult(") == 1);
 }
 
-// Bug caught (the review's M2 and M4, both SURVIVING the suite and a clean package build): the
-// Robot's PRESENT mechanisms never reaching the guard — the collection losing its `++` (every
-// present mechanism written to slot 0 and the count left 0: the boot line would say "0 of 3" and
-// nothing would be safed), or runOne handing runTesterOnce an empty span. The collection is pinned,
-// and the span over it appears exactly twice: runOne's run and stopTheTester's last-resort stop.
-TEST_CASE("pins: the present mechanisms are collected and handed to the run and the stop") {
+// Bug caught (the review's M2 and M4, both SURVIVING the suite and a clean package build; the
+// mechanism service since MECH-A5): the Robot's PRESENT mechanisms never reaching the guard — runOne
+// handing runTesterOnce no service (runAuton's span overload with nothing in it), or no route
+// registry (every ROUTE auton refused); the last-resort stop safing nothing; the boot line counting
+// something else than the service's built mechanisms. The service is handed to the run and the stop,
+// and the boot's "N of M mechanisms present" reads its count.
+TEST_CASE("pins: the mechanism service and the route registry are handed to the run, the service's "
+          "mechanisms to the stop and the boot line") {
     const std::string code = stripComments(readFile(kProgramFile));
-    CHECK(count(code, "st.present[st.presentCount++] = m;") == 1);
-    CHECK(count(code, "presentCount") == 5);  // the member, the collection, two spans, the boot
-    CHECK(count(code, "std::span<hal::IMechanism* const>{st.present.data(), st.presentCount}")
-          == 2);
+    CHECK(count(code, "presentCount") == 0);
+    CHECK(count(code, "st.present") == 0);
     const std::string runOne = squash(bodyOf(code, "void runOne(int index, std::int32_t "));
-    CHECK(count(runOne, "std::span<hal::IMechanism* const>{st.present.data(), st.presentCount}, "
-                        "observer, runPressCount);") == 1);
+    CHECK(count(runOne, "st.devices->telemetry(), *st.mechanisms, &*st.commands, observer, runPressCount);") == 1);
     const std::string stop = squash(bodyOf(code, "void stopTheTester(const char* what) noexcept"));
-    CHECK(count(stop, "stopAfterProgramError(st.robot->chassis(), std::span<hal::IMechanism* "
-                      "const>{st.present.data(), st.presentCount}, *st.watch);") == 1);
+    CHECK(count(stop, "stopAfterProgramError(st.robot->chassis(), st.mechanisms->mechanisms(), *st.watch);") == 1);
+    CHECK(count(code, "static_cast<int>(st.mechanisms->mechanisms().size())") == 1);
+    // The mechanism boot lines (no driver controls: this program drives nothing) and the ROUTES line.
+    CHECK(count(squash(code), "mechanismBootLines(kMechanisms, *st.robot, *st.mechanisms, nullptr, [&st](const "
+                              "MechanismLine& m) { st.devices->telemetry().log(m.level, \"MECH\", m.text); });")
+          == 1);
+    CHECK(count(code, "logBoth(hal::LogLevel::Info, routesBootLine(st.routes->ids()).text);") == 1);
 }
 
 // Bug caught (the review, 2026-09-29): a finger that lands between the read whose release touched

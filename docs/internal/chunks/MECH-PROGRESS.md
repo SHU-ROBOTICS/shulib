@@ -3245,3 +3245,842 @@ in-flight chunk touched; `src/` as at the fix round (the two `case` lines); noth
   `enterAutonomous` not called: M35 proper), MD3 (the service ticked before the driver's controls are read), MD4 (a route marker
   with a 0 ms limit not refused), MD5 (a START form's NOT_HOMED does not stop the chain), MD6 (a dropped controller's button read as
   a press — C1), MD7 (a preset press during the driver-start home not dropped — A4-D26) RED. Restored tree 2,626 | 2,626.
+
+---
+
+## MECH-A5 — robot two and the programs
+
+- **Started:** Thu Oct 29 02:12:30 PM EDT 2026 (`date`).
+- **Tree at start:** `4691757` (main: MECH-A4 `46c874c`, its landing dates `4691757`; the plan at `73044ca`, `ec3754f`,
+  `2ef1f3f` — G3a's brief answered; CAL1 Part A1 `ceb17c0`; the tooling at `c09e022`), clean, in the git worktree
+  `.claude/worktrees/mech-a5` (branch `mech-a5`) — NOT the main working tree.
+- **Go:** the team lead, 2026-10-08: "Accept all, go" — N1–N13 as recommended; his three rulings at A4's merge
+  (2026-10-29: the steps' freeze stays OPEN; A4-D26 the driver-start home's exception; A4-D27 a preset needs a homing
+  control); THE SPRINT RULING (2026-10-29, "by the 21st"): the panel (G3a) makes and drives a robot with its mechanisms
+  and draws routes by 2026-11-21; MECH-A5 and G3a Part 1 start NOW, side by side; NOTHING IS SKIPPED. The coordinator's
+  workflow launched MECH-A5 ONLY. Do not commit; no `pros` command; no `/dev/ttyACM*`. Mutation backups and probes under
+  `.claude/coordinator/scratch/mech-a5/` (never `/tmp`, never the repository root). **Memory safety (2026-10-15):** every
+  test binary runs as `(ulimit -v 4194304; timeout 600 <cmd>)`; a mutant killed by the cap or the timeout counts as
+  CAUGHT (said which); the briefing is regenerated only after `rm -f build/test/shulib_tests`.
+- **Order change (the sprint):** CAL1 has NOT landed before this run (only its Part A1) — the brief's own fallback
+  applies (N9): A5 re-points today's drop call in `calibrate_program.cpp` at the new list (one line) and CAL1 maps the
+  core's list later; `declaredMotorRole()` is not built; CAL1's typed half, if met, stays untouched.
+- **G3a's ask (its RC5, D4 accepted 2026-09-29):** the driver file's `// [driver file two]` block ENDS BEFORE THE FEEL
+  (`kFeel`, `kLoop` hand-written, outside it), so G3a's `controls` region wraps only the WHICH BUTTON heading and the
+  `kControls` statement. (The brief's §1.1 draft put the feel inside the block — a delta, logged below.)
+- **Reading (the team lead's ruling of 2026-10-22):** the brief's header and answers, the re-check's amendments, N1–N13,
+  the Decisions, §6, §7, §8 landmines IN FULL; every section/row/test list naming MECH-A5 or its files (§1.1's robot-two
+  blocks and the count, §1.13 entire, §1.16, §2's A5 row, §2.1, §3.5, §4.1–§4.3); the rest by heading. MECH-A1..A4's
+  entries of this log grepped for every `A5` hand-on.
+- **In flight beside this run (not touched here):** CAL1 Part A2a (`calibration/calibrate_program.hpp`,
+  `hal/pros/calibrate.hpp`, `calibration/calibrate_panel.hpp`, `test/calibrate_program_*`); VIS1-A1 (`hal/device_registry*`,
+  `hal/device_provider*`, `config/robot_config.hpp`, `config/camera_config.hpp`, `robot/robot.hpp`, `hal/vision_frames.hpp`,
+  `hal/pros/ai_vision.hpp`, `sim/camera_plant.hpp`, `test/pros_shim/pros/shim_control.hpp`); IMU1 Part A
+  (`hal/pros/imu.hpp`, …); L6-A1 next; G3a Part 1 (worktree g3a-p1: `tools/robot_tool.py`, robot two's robot file,
+  `[chassis]` markers in `src/robots/chassis_table.hpp`, `src/build_selection.hpp`, the freshness gate and a `[generated]`
+  step in `tools/src_build_gate.py`) — shares ONLY `tools/src_build_gate.py` (A5 edits step 0's per-robot functions) and
+  `test/CMakeLists.txt` with this run.
+
+### 14:12 — start
+- `docs/internal/RESUMING.md` read (standing rules, pace rules 1–8). The brief read as ruled above. `## MECH-A1` ..
+  `## MECH-A4` grepped for `A5`: the hand-ons are (1) n56, n57 (DriverFile's two `static_assert`s) and n31 (the robot
+  table file's `clearOfDrive` `static_assert`) join the harness here (A1's D18, A4's :2530); (2) A1's recorded-path pin
+  moves to the table file (:527-529); (3) `sizeof(MechanismService)` 9 640 B on ARM `-Os` (A3-D17 re-measured) — one per
+  program; (4) HA-182's line is "worded for a boot line the programs print from MECH-A5" — A5 prints it; (5) guide 16's
+  quoted auton builds `Routine r{ctx.chassis, …}` — A5 changes the team's file; (6) HA-185 held for A5; (7) the latent
+  COMP-b line-length gap in `competition_run.hpp`'s routine-stop line (214 > 200 bytes worst case, cut not overflowed) —
+  src/ is A5's; (8) robot two's `toggle(claw, Button::A)` inherits A4's C1 fix (a controller drop never flips the claw);
+  HA-147's Station J.9.5 settles the service path too; (9) A4-D26 / A4-D27 as accepted.
+
+### 14:12–14:38 — the baseline, then the src/ half written *(`date` at this entry: Thu Oct 29 02:37:50 PM EDT 2026)*
+- **Baseline at `4691757`** (`scratch/mech-a5/`): host build 36 s; the suite through `tools/suite_run.py show` **2,626
+  cases, 0 failed, 3 skipped, 2,799,446 assertions**; `src_build_gate.py check` **PASS, all 7 builds link** (2 m 27 s).
+- **The brief's file:line citations, re-checked at this base** (the brief was written against `tree_t43d`): `calibrate_
+  program.cpp`'s drop call is **:1138-1139** (the brief: :1129-1130); `mechanism_table.hpp`'s old check 4 was :393-402,
+  the drop :448-489, the "only robot two" pin :522-523; `boot_source.hpp`'s `mechanismTableProblem` :130, the two
+  `toMechanismConfig` :202-222, `mechanismConfigIndexOfPneumatic` :159, the declared-port rule :451-471;
+  `driver_panel.hpp`'s `motorClawBootLine`/`pneumaticClawBootLine` :152-202 and `clawRowText` :277; `guarded_run.hpp`'s
+  `stopAfterProgramError` :83-97; `autons.cpp`'s Routine :53; `competition_program.cpp`'s chain :680-683 (the brief:
+  :640-644), its claw lines :785-796; `auton_tester_program.cpp`'s chain :472-475; `drive_program.cpp`'s run :695 (now
+  :698); `xdrive_program.cpp` :54 and :239 (the brief: :237); `driver_controls.hpp`'s users exactly the brief's T6 list.
+  **No `src/team` exception exists in step 0 at this base** (the brief's T3 described one): `_stray_selection_problems`
+  (:811-836) exempts only the table files, `test/` and a `static_assert` — the driver file named robot two's list only
+  inside its `static_assert`s. So the per-robot rule ADDS the own-team-file exception rather than narrowing one.
+- **Written (src/):** `src/robots/mechanism_table.hpp` (rewritten: robot two's region exactly as §1.1, in `namespace
+  robot_two`; `kNoMechanisms`; `mechanismTableFor()` a case per robot, no default; `kMechanisms`; `mechanismsClearOf()`
+  over the library's ONE rule `mechanism::clearOfDrive` — every smart role and the IMU; `clearOfItsDrive()` refusing BY
+  NAME; `isDeclaredMechanismPort()` + `dropDeclaredMechanismPorts()` re-implemented over the new list; the selection pins
+  by ADDRESS, no counts); `src/common/driver_heading.hpp` (NEW — `driverHeading()` moved, body unchanged);
+  `src/common/driver_file.hpp` (NEW — `DriverFile<kControls, kFeel, kLoop>`, its two `static_assert`s, the brain's tick
+  supplied, `bind(service)`, `run(robot, service, pacer, disabled, perTick)`, `releasedLeftoverAtEntry()` for FREED);
+  `src/team/robot_two_driver.hpp` (rewritten — the button map in words KEPT, `// [driver file two]` around the WHICH
+  BUTTON heading and `kControls` ONLY, the feel and the loop after it, `using RobotTwoDriver = DriverFile<…>;`);
+  `src/common/driver_controls.hpp` DELETED; `src/common/boot_source.hpp` (`bootConfigFrom` through
+  `mechanism::toMechanismConfig` in the list's order; `mechanismTableProblem`, both old `toMechanismConfig`s,
+  `mechanismConfigIndexOfPneumatic`, `toMotorCartridge`/`toSafeBrakeMode`/`toPneumaticLevel`/`copyMechanismName`/
+  `mechanismNameFits` and the two `static_assert`s REMOVED; the declared ports from `mechanism::declaredMotorPorts`; the
+  declared-port rule over every smart ROLE — motors in T3's words byte for byte, sensors named by mechanism and role);
+  `src/common/guarded_run.hpp` (`ChainGap`, `pacerChainMissing(chassis, guard, service, watch)` naming the first layer
+  that did not pace, `pacerChainProven` over it; `stopAfterProgramError` also cancels each present mechanism's registered
+  claimant); `src/common/driver_panel.hpp` (the mechanism boot lines, `routesBootLine`, the claw row reading the service);
+  the three programs (the service in static storage, in the chain guard → service → watch for the two auton programs and
+  around the raw pacer for Drive, bound over `robot.mechanismParts().devices()` inside the boot's try; the route registry +
+  `MechanismRoutes` in the two auton programs, registered after the bind, handed to `runAuton`; the boot lines; the FREED
+  word from the service); `src/programs/{competition_run,auton_tester_run}.hpp` (the `runAuton` service overload with the
+  registry; `CompetitionParts::present` → `mechanisms` + `commands`; `runTesterOnce(…, service, commands, …)`);
+  `src/programs/xdrive_program.cpp` (its include and one comment); `src/team/autons.cpp` (`Routine r{ctx, …}`, the table
+  include, `using namespace robot_two;`, a comment on mechanism steps — no auton steps a mechanism: G4).
+- **`calibrate_program.cpp` is UNCHANGED** — N9's fallback said "one line": `dropDeclaredMechanismPorts(kMechanisms, …)`
+  keeps its signature over the new type and `kMechanisms` IS the new list, so the call (and its pinned text) did not move.
+- **All seven `make` variants compile and link** (each `make clean` first; 8 vendor-ignored warnings each, none of ours) —
+  after one fix: a `-Wformat-truncation` in the pneumatic declaration line (a 64-byte buffer; 80 now, its sum commented).
+
+### 14:38–15:09 — the tests over the src/ half; the suite GREEN *(`date` at this entry: Thu Oct 29 03:09:39 PM EDT 2026)*
+- **Rewritten / new tests** (each case names the bug it catches): `test/mechanism_table_test.cpp` (rewritten — robot two's
+  declarations and wiring pinned literally; the claw's levels on ONE `.positions` line; WHERE each declaration and
+  `wire(...)` line was written, pinned by the suffix `src/robots/mechanism_table.hpp` — A1's D18 pin moved here; the
+  region byte for byte the fixture's; the selection for every robot by ADDRESS; `isDeclaredMechanismPort` and the
+  Calibrate filter over the new list; THE DRIVE CHECK over every smart role incl. sensors on drive ports and the IMU, a
+  3-wire line numbered like the IMU's port never a collision; the Calibrate call site pin UNCHANGED);
+  `test/boot_source_test.cpp` (6s–6x: robot two's derived config written literally; a list whose kinds are
+  interleaved lands in the LIST's order; NEW 6x: a mechanism SENSOR port on a record's / typed table's drive port
+  refuses the boot by mechanism and role); `test/driver_heading_test.cpp` (NEW — the heading cases moved from
+  `driver_controls_test.cpp`, which is DELETED with its types; the ONE-copy pin; the retired header's grep);
+  `test/robot_two_driver_test.cpp` (rebuilt on the service; NEW **M5a**: the same long script — every button alone and
+  in pairs, A short and held, a drop with R1 held and A pressed during it, a disable mid-hold, three entries — through
+  T3's bindings exactly as T4 bound them and through the driver file: ports 6/7 (mV, brake() and move counts,
+  stopped, brake mode) and line A (every write) **IDENTICAL on all 159 ticks**; T9b the C1 drop fix inherited; T10
+  refusals now PreconditionErrors by sentence; the region pin for G3a's ask); `test/driver_panel_claws_test.cpp`
+  (rewritten for the mechanism boot lines word for word, every control word over robot x's fixture controls, the
+  ROUTES line, the claw row from the service, FREED per entry); `test/guarded_run_test.cpp` (G1 — `pacerChainMissing`
+  names each gap, the P1 control case FAILS; NEW G2b — the stop cancels the slot: no re-command at the next tick);
+  `test/robot_two_claws_example_test.cpp` (NEW — the claws auton and the claws ROUTE through the REAL tester run,
+  each step's verdict asserted; a marker with no time limit REFUSED; a typo id unknown); the rigs
+  (`test/auton_tester_rig.hpp`, `test/competition_rig.hpp`: guard → service → watch over robot two's REAL list on
+  counting fakes, the route registry registered); the source pins (`auton_tester_source_test`, `competition_source_test`,
+  `drive_program_source_test`: chain order, service-before-Robot, bind-after-Robot-inside-the-try, registerInto after
+  bind, `pacerChainMissing`, the boot lines, the unbuild order); `competition_run_test` R7/R8/R12/R18 and
+  `auton_tester_run_test` (18b) re-pointed at the rig's counting fakes (18b now cancels a STEP IN FLIGHT — the slot is the
+  claimant; a pre-run foreign claim is released by `enterAutonomous()` by design, D1); the route-auton case now RUNS
+  (the tester passes the registry); `competition_watch_test` W6, `auton_abort_watch_test` 13b, `mechanism_wiring_test`
+  P9a, `drive_protection_test` (one string), `mechanism_fixtures.hpp` (robot two's region now byte for byte the real
+  one: the `.moveTime` comment), `mechanism_driver_fixtures.hpp` (its banner).
+- **Two findings while writing them:** (1) a mechanism NAME is at most ~18–19 characters in any `mechanisms(...)` list
+  — its route ids must fit F8's 23 (`claw_pivot_six_lef_stop`), so the config's 23-character field (which the old
+  boot refusal guarded) can no longer be reached; the 6t case pins the longest one carried whole, and **G3a's panel
+  needs this limit for its name field** (for the coordinator). (2) `DriverInputs::bind` checks a control's mechanism
+  exists on the service's robot, but not that every mechanism of that robot has a control — T4's binder refused "the
+  robot declares 'intake', and no control names it" at boot; **`DriverFile::bind` now checks coverage first** (a
+  PreconditionError naming the problem, nothing bound), so T10's four refusals all hold (logged as a delta).
+- Doc gates met on the way: cookbook 06's robot-two section re-quoted (N6's three listings, the unbroken-run rule —
+  G3a Part 4's `example-source` directive has not landed); guide 16's quoted 40 in auton (`Routine r{ctx, …}`); two
+  history lines annotated for the staleness audit's dead paths (`build-order.md` T4 status, `roadmap.md` T4 row:
+  "(deleted at MECH-A5 …)").
+- **Suite: 2,620 cases, 0 failed, 3 skipped, 2,800,303 assertions** (`build.sh b7`: the stale binary removed and the
+  briefing regenerated first; the run capped at 4 GiB / 600 s).
+
+### 15:09–15:31 — the docs in the same change; the src gate's self-test; the suite again *(`date` at this entry: Thu Oct 29 03:31:28 PM EDT 2026)*
+- **`tools/src_build_gate.py self-test`: OK — 249 detector cases, each against a real build** (14 m 9 s; it plants in
+  the worktree and restored every file — `git status` after it lists only this run's own changes). Case 26's
+  `DRIVE_PLANT` re-pointed (the drive program's bind names `mechanismTableFor(RobotId::BenchBot)` for the plant); NEW
+  case 28b: the robot namespaces derived from the table file (`{"robot_two": {"kRobotTwoMechanisms"}}`), then the brief's
+  nine planted cases (`out5/gate_cases.txt`), each alone — REFUSED: `robot_two::claw` in a program, `using namespace
+  robot_two` in a program, `src/common/` re-opening `namespace …robot_two`, robot THREE's driver file naming robot two's
+  list qualified and unqualified, a chassis table named in robot two's own team file, a team file of NO robot saying
+  `using namespace robot_two`; PASSING: robot two's own second team file naming its list and namespace, a program's
+  `static_assert` naming it — then the auton file through `TEAM_FILE_ROBOT` (passes), and a planted robot THREE in the
+  table file derived and its namespace refused in a program. The real tree: `one_chain_problems() == []`.
+- **The docs (same change):**
+  - `docs/hardware-assumptions.md`: **HA-185 registered** (index row after HA-184; the long entry in a new "MECH-A5's
+    addition" section after MECH-A3's; the status 178 → **179**, a MECH-A5 paragraph; the held-numbers sentence now holds
+    HA-181 only — the `**Held numbers**` line itself is unchanged: its rule lets a landed number stay in its range, as
+    A1–A3 left HA-181..HA-186). **HA-159's text:** the index row and the entry's claim, source, settle and blast radius
+    now say "swap `Low` and `High` on the claw's `.positions` line" (`kClawOpenCommand` named only as "until MECH-A5").
+    Re-pointed Sources: HA-147 (robot two's claw on `DriverInputs` since A5), HA-153 (the declarations and their `wire`
+    lines; `Forward` / `Reversed`), HA-154 (the 12 V is the driver file's `whileHeld` now; the boot's no-stall line
+    quoted), HA-156 (the declarations' `.safe = Hold`; `whileHeld` through the service; the M5a differential), HA-161
+    (`driver_controls.hpp` deleted — the static-storage rule stands in `driver_file.hpp`), HA-182 (the boot line is
+    printed since A5, for a position or speed mechanism — robot two has none).
+  - `docs/internal/chunks/R3a-BENCH-WORKSHEET.md`: J.3.1 (the eight `[MECH]` pivot lines and the two ABSENT lines, the old
+    one-line form kept as history), J.3.3 (FREED's serial line is the service's `[WARN][MECH]` one), J.4's fix (the
+    declaration's `{Forward}` → `{Reversed}`), J.9's intro and J.9.1 (the claw's three lines), J.9.3 (swap `Low` and
+    `High`), **NEW J.9.8** (HA-185: the slow-motion video, full and low air), "What to send back" items 3 and 7 (item 3 no
+    longer asks for the banner's claw sentence — J.3.2 was RETIRED at T4 Part 3; a stale item fixed on the way), K's
+    boot-line paragraph, K.2.3, M.2.2 (the tester's eight lines and its `ROUTES:` line), M.9.1, Station M's header
+    ("a route auton is neither station's" — both programs register the route ids now).
+  - Guide 16 (the registry paragraph rewritten — both programs pass the service and a registry holding the robot's
+    route ids; **NEW section "The claws in an auton"**: `claws_example::grabAndPivot` quoted from
+    `test/robot_two_claws_example_test.cpp` — held verbatim by the example scan — each step's verdict, the route ids as
+    markers, the tester's boot lines; the host-test paragraph: the claws safe at the end, the `ctx.chassis` source pin);
+    guide 17 (the chain with the service, the boot phase row, the `[MECH]` lines and `ROUTES:`, the chain proof's three
+    links, "No route autons" → "Route autons fire only the mechanisms' ids"); guide 18 (five parts in; the starting-values
+    line printed since A5; a pointer to guide 16's claws auton); guide 10 (two "no program builds a service yet"
+    sentences); guide 14 (two); guide 15 glossary (starting values); guide 11 (the `TEL` release line: a program on the
+    service says it with the `MECH` line); guide 07 (`src/common/`'s and `src/robots/`'s descriptions); cookbook 06 (one
+    "until the core's fifth part" note) and 07 (its intro); `README.md` (the Mechanisms bullet names the core; the
+    `src/robots/` and `src/common/` layout lines); `src/team/README.md` (`driver_file.hpp` / `driver_heading.hpp`; the
+    per-robot namespace rule); `docs/changelog.md` (an entry at the top of 2.5: "the mechanism core, part 5 … — no API
+    change"); `docs/roadmap.md` (a "Now" paragraph, the MECH row's A5 line); `docs/internal/build-order.md` (the MECH
+    entry's A5 paragraph; the first bold Next: line's MECH clause); `docs/internal/REMAINING-WORK.md` row 12;
+    `docs/internal/HANDOFF-remaining-work.md` (one parenthesis on the library list; two `driver_controls.hpp` mentions
+    annotated "deleted at MECH-A5").
+  - `include/shulib/mechanism/{wiring,kinds,service,route_ids}.hpp`: four "MECH-A5 adds it / no program does yet"
+    comments made present tense (one `///` — `startingValuesLine`'s); `python3 tools/api_doc_tool.py generate` re-run
+    (`docs/api/{kinds,route_ids,service,wiring}.md` regenerated).
+  - `test/autons_test.cpp`: its banner (the rig is the program's whole chain since A5); (1b) also asserts robot two's
+    mechanisms SAFE after every registered auton; **NEW (1c)**: `src/team/autons.cpp` builds every `Routine` on `ctx`
+    (never `ctx.chassis`), says `using namespace robot_two;` once and includes the table — the brief's U3 source pin.
+- **`build.sh b6`: rc 0** — doc coverage 4,960 entities / 186 headers; **doc example scan 591 quoted lines, all verbatim
+  (10 source files); 6 whole-run listings, each one unbroken run**; removability clean; the staleness audit clean.
+- **Suite (`tools/suite_run.py green`, capped): green — 2,621 cases, 2,800,327 assertions.** `ctest -R compile_refusal`:
+  **255/255 passed** (n31 ×2, n56, n57 among them, each "refused as expected" for its own reason).
+
+### 15:31–15:45 — the mutations, each observed red; the final gates *(`date` at this entry: Thu Oct 29 03:45:23 PM EDT 2026)*
+- **How each ran.** A C++ mutation: the file backed up under `scratch/mech-a5/mut/`, ONE exact replacement, a FRESH
+  full host build (`build.sh`: the stale binary removed, the briefing regenerated, the whole `cmake --build build/test`
+  — doc gates, suite, everything), then the named cases from that binary, capped (`ulimit -v 4194304; timeout 600`);
+  the file restored in a `finally` (identical to its backup, checked) and its timestamp bumped. A refusal-harness
+  mutation: its CTest, which builds the TU's own object target (`run_refusal.py` → `cmake --build --target cr_<stem>`),
+  so it compiled against the mutant. A gate mutation: case 28b's OWN lines, extracted from the self-test's source and
+  run against the mutated gate module (`scratch/mech-a5/gate_case_runner.py`), with every plant restored. A mutation
+  that changes a line a document quotes changed the quote too (`mutate_multi.py`), so the TEST — not the doc gate —
+  is what judged it. Scripts: `scratch/mech-a5/{mutate.py,mutate_multi.py,mut_run.sh,batch1.sh}`; logs `mut/*.out`.
+- **Every one RED (none caught by the cap or the timeout):**
+
+| # | Mutation (file) | Caught by (observed) |
+|---|---|---|
+| M26 | `bootConfigFrom` loses the per-line levels — every `pneumatic{Start,Safe}ByLine` zeroed after the projection (`src/common/boot_source.hpp`) | **6y RED** (4 checks: start E/F, safe E/F read 0); **6s GREEN under it** — robot two's one-line claw cannot see it, as the brief said (6y is A5-D11) |
+| M27 | the own-team-file exception admits EVERY per-robot name (`per_robot = frozenset()`) — chassis tables included (`tools/src_build_gate.py`) | **28b RED** (2 of 16): "a chassis table in robot two's own team file — expected REFUSED"; robot three's file naming robot two's list |
+| M28 | the chain proof ignores the service (its `ticks()` check removed) (`src/common/guarded_run.hpp`) | **G1 RED** (3): the service left out → `None` instead of `Service`; `pacerChainProven` true |
+| M29 | `mechanismsClearOf` checks MOTOR roles only (`src/robots/mechanism_table.hpp`) | **"THE DRIVE CHECK" RED** (3: an angle sensor on a drive port, a piece sensor on one, a distance sensor on the IMU port) **and the harness: `compile_refusal_n31_a_sensor_on_a_drive_port` FAILED** (it compiled) |
+| M33 | the namespace rule skips `using namespace` (`tools/src_build_gate.py`) | **28b RED** (3): a program's `using namespace robot_two`; a no-robot team file's; the auton file's `using namespace robot_three` |
+| M34 | the exception admits EVERY robot's mechanism lists, not the file's own robot's (`tools/src_build_gate.py`) | **28b RED** (1): robot three's team file naming robot TWO's list — **it SURVIVED the brief's nine planted cases** (all 14 earlier expectations green under it); the two robot-three expectations were added for it (A5-D9) |
+| M47a | the rig forgets `routes.registerInto(commands)` (`test/auton_tester_rig.hpp`) | **"claws route" RED**: 0 markers fired, 4 unknown ids, no verdict lines |
+| M47b | the Auton Tester forgets `st.routes->registerInto(*st.commands);` (`src/programs/auton_tester_program.cpp`) | **the tester's chain/registry pin RED** (3: the call's count, `registerInto(`'s count, the routes-before-proof order) |
+| MA | `DriverFile::bind`'s coverage check disabled (`src/common/driver_file.hpp`) | **T10 RED**: "the driver file bound a robot its controls are not for" (the extra-intake list) |
+| MB | FREED from the service's LIFETIME count (`releasedBefore_ = 0`) (`src/common/driver_file.hpp`) | **robot_two_driver's FREED case RED** (2: still FREED after the next entry; its row) and **driver_panel_claws' "FREED for THAT entry" RED** (1) |
+| MC | `stopAfterProgramError` no longer cancels the claimant (`src/common/guarded_run.hpp`) | **G2b RED**: the pivot still claimed, no cancel, and port 6 back at 12 V at every later tick |
+| MD | the boot's declared-port rule skips SENSOR roles (`src/common/boot_source.hpp`) | **6x RED** (every row: the boot not refused, no headline, the config built with 7 mechanisms) |
+| ME | robot two's driver file swaps pivot 7's buttons (`whileHeld(clawPivot7, Button::L2, Button::L1, …)`; cookbook 06's quote changed with it) | **M5a RED**: port 7 at −12000 mV where T3's bindings gave +12000, tick after tick |
+| M1c | the team's 40 in auton built as `Routine r{ctx.chassis, …}` (guide 16's quote changed with it) | **autons (1c) RED** (2); (1b) GREEN under it — the auton has no mechanism step, which is exactly why the source pin exists |
+| MF | DriverFile's re-zero `static_assert` made `true \|\| …` | **`compile_refusal_n57_a_control_on_the_rezero_button` FAILED** ("COMPILED … was NOT refused") |
+| MG | DriverFile's tick `static_assert` made `true \|\| …` | **`compile_refusal_n56_a_tick_that_is_not_the_brains` FAILED** ("COMPILED: … was NOT refused; it must be refused naming: [\"leave .tickPeriod out of the driver file: the loop runs at the brain's tick\"]") |
+
+- **The final gates (the restored tree; `git status` lists only this run's files):**
+  - `build.sh final1`: rc 0. **Suite: 2,622 cases, 0 failed, 3 skipped, 2,800,355 assertions** (`suite_run.py green`;
+    the binary itself, capped, the same). **`ctest -R compile_refusal`: 255/255 passed; TUs 255 = CTests 255.**
+  - `api_doc_tool.py` self-test OK; check-coverage 4,960 entities / 186 headers; check-fresh rc 0; check-examples 591
+    quoted lines verbatim, 6 whole-run listings unbroken; check-removability clean. `doc_staleness_audit.py` self-test OK,
+    the audit clean (31 live docs). `briefing_status.py` self-test OK; generated from the FRESH binary, then **check:
+    current**.
+  - CI greps: no `pros/` include outside `hal/pros/`; no `shulib/sim/` include in the core; **`PROBE_`: 0**.
+  - **ARM header gate: 226 headers, `arm-none-eabi-g++ … -Werror -mfloat-abi=softfp`: CLEAN.**
+  - `src_build_gate.py` self-test and check: re-run after case 28b grew (below).
+
+### Deltas from the brief (MECH-A5), each with its reason
+- **A5-D1** robot two's driver file: `// [driver file two]` .. `// [/driver file two]` wraps ONLY the WHICH BUTTON heading
+  and the `kControls` statement — the feel (`kFeel`) and the loop (`kLoop`) are hand-written AFTER it (§1.1's draft put
+  them inside). G3a's ask (its RC5, D4 accepted 2026-09-29): its generator owns the controls region and never the feel.
+  Pinned by `test/robot_two_driver_test.cpp`'s region case (the markers, and `kFeel`/`kLoop` after the closing one).
+- **A5-D2** the driver file's header KEEPS the button map in words (the left stick .. Y, the coast, "no presets"):
+  the team reads it before the code; it is prose, not compiled. **For G3a:** the words describe the controls, so a
+  generated controls region needs a `control words` region beside it (or the words go stale on the first edit made
+  in the panel) — G3a's Part 1 decides; nothing here generates them.
+- **A5-D3** `DriverFile::bind` checks COVERAGE first — every mechanism the service has is named by a control
+  (`autonOnly(...)` included), else a PreconditionError naming the problem and nothing bound. `DriverInputs::bind`
+  (A4) checks only the other way (each control's mechanism exists on the service's robot); T4's binder refused "the
+  robot declares 'intake', and no control names it" at boot, and T10's four refusals must all hold. (Mutation MA.)
+  *(Superseded at the review by A5-D21: the refusal is a `false` with a reason naming the mechanism, not a throw.)*
+- **A5-D4** the boot's declared-port rule covers every SMART ROLE, not only the motors: an angle sensor or a piece
+  sensor on a drive port of the record / typed table refuses the boot too (new headline "a MECHANISM SENSOR port is a
+  DRIVE port in the record/typed table", the sensor named by mechanism and role). A MOTOR role keeps T3's sentences
+  byte for byte (Station J's and the worksheet's quotes; the generic wording is L9 Part B's). The build-time
+  `mechanismsClearOf` covers every role already (the library's `clearOfDrive`); the boot had to match it, or a record
+  could put a drive motor where the table's check never looked. (Test 6x; mutation MD.)
+- **A5-D5** `pacerChainProven` gained the service as the brief says AND a sibling, `pacerChainMissing(...) -> ChainGap`,
+  that names the FIRST layer an idle tick did not reach (Guard, Service, Watch, NotAttached), so a program's refusal
+  says which link is missing (`chainGapWords`) — the brief's single "pacer chain is WRONG" sentence could not tell a
+  service left out from one never bound. The programs call `pacerChainMissing`; the bool is the `== None` of it.
+  (G1; mutation M28.)
+- **A5-D6** `stopAfterProgramError(chassis, present)` also CANCELS each present mechanism's registered claimant (the
+  service's slot) after `applySafeState()` — without it the slot re-commands the step it was running at the next tick
+  (a pivot back to 12 V after a program error). Each call in its own try. (G2b; mutation MC.)
+- **A5-D7** FREED is per ENTRY: `DriverFile::releasedLeftoverAtEntry(service)` compares the service's lifetime count
+  (`leftoverClaimsReleased()`) with its value when THIS `run()` began — the service's count alone would say FREED
+  forever after one release; T3's flag was per entry. (Mutation MB.)
+- **A5-D8** `src/programs/calibrate_program.cpp` UNCHANGED: N9's fallback said "re-point the drop call (one line)", but
+  `dropDeclaredMechanismPorts(kMechanisms, …)` keeps its signature over the new type and `kMechanisms` IS the new
+  list, so the call and its pinned text did not move. CAL1's facts mapping (N9 proper) is NOT done — CAL1 Part A2a had
+  not landed in this branch's base; `declaredMotorRole()` is not built.
+- **A5-D9** the src gate: no `src/team` exception existed in step 0 at this base (the brief's T3 described one), so the
+  per-robot rule ADDS a robot's-own-team-file exception (`_team_file_robot`: `src/team/<ns>_*`, or the reviewed
+  `TEAM_FILE_ROBOT` map — `autons.{hpp,cpp}` → `robot_two`) rather than narrowing one; it admits only that robot's
+  MECHANISM lists, never a chassis table or a selection function. Case 28b gained two expectations past the brief's
+  nine: robot THREE's own team file naming its own list passes and naming robot TWO's is refused — the mutation that
+  widened the exception to every robot's lists (M34) passed all nine planted cases.
+- **A5-D10** the claws auton and the claws ROUTE (U3's "a case that registers a claws auton AND a claws route") live in a
+  NEW `test/robot_two_claws_example_test.cpp`, not in `test/autons_test.cpp`: guide 16 quotes the auton, and the
+  documentation build's verbatim rule reads `test/*example*_test.cpp`. `autons_test.cpp` gained (1b)'s mechanisms-safe
+  check and (1c), the `Routine r{ctx, …}` source pin.
+- **A5-D11** test 6y (a two-line pneumatic whose start and safe differ per line) added for M26: robot two's one-line
+  claw cannot see per-line levels (6s stays green under M26, as the brief predicted), and no boot test had one.
+- **A5-D12** robot two's claws in the boot use TWO tags no more: every program prints the mechanism lines with tag
+  `MECH` (one block, `mechanismBootLines`), and the auton programs' `ROUTES:` line with their own tag (`CMP`, `ATS`);
+  "shulib Drive" registers no routes (it runs no auton) and prints no `ROUTES:` line.
+- **A5-D13** the HA register's `**Held numbers**` line is unchanged (HA-181..HA-186 stays): its own rule lets a number
+  that lands as a row stay in its range, as A1–A3 left it; the status paragraph's held sentence names HA-181 only.
+- **A5-D14** the worksheet's "What to send back" item 3 no longer asks for "the banner's claw sentence" — J.3.2 was
+  RETIRED at T4 Part 3 and the item was stale; fixed on the way, in the lines this run rewrote.
+- **A5-D15** the changelog entry is a "no API change" entry under 2.5's heading (nothing under `include/shulib/` moved
+  but comments) — the format COMP-b's entry used.
+
+### The prose review (MECH-A5) — the greps run FIRST, every hit read *(2026-10-29, 15:40–15:50)*
+- **§4.2's A5 grep** `mechanism_table|kClawOpenCommand|driver_controls|HoldControl|ToggleControl|DriverBindings|claw pivot|
+  robot_two_driver|Calibrate.*declared` — hits after the fixes: `README.md` 1, `docs/guide/` 22, `docs/cookbook/` 8,
+  `docs/vexbuilder-integration.md` 5, `docs/changelog.md` 5, `docs/roadmap.md` 6, `docs/hardware-assumptions.md` 42,
+  `src/team/README.md` 2, `test/README.md` 1; internal: the worksheet 28, HANDOFF 13, build-order 15, REMAINING-WORK 1.
+  **Fixed on reading:** guide 11's `TEL` release line (a program on the service says it with the `MECH` line — added);
+  guide 07's `src/common/` / `src/robots/` lines (the driver file's plumbing, the mechanism lines, the core's words);
+  HA-153's claim (`+6` / `+7` → `.motors = {Forward}`, the old form as history); HANDOFF :481 (a FUTURE plan naming
+  `driver_controls.hpp` as the macros' binder — now says the file was deleted and names `driver_file.hpp`) and :611
+  (annotated). **Stay, with why:** the roadmap's :420/:434 and the HA register's MECH-A3 status line (:163) are dated
+  "Now (date)" / per-part history paragraphs (indexed, not rewritten — the DOCS3 rule); build-order :1492/:1501 and
+  REMAINING-WORK row 8 are T4's own history (:1492 already annotated "deleted at MECH-A5"); changelog :164 (2.5's A4 entry
+  quoting robot two's manifest line — true) and :1371 (2.2's entry — history); `docs/internal/MECH-PANEL-requirements.md`
+  :101 (a planning table of 2026-09-28 listing what existed then); the worksheet's remaining hits are its new lines or the
+  old forms quoted as "until MECH-A5"; every guide / cookbook / vexbuilder hit names a file that exists or quotes a line
+  the code prints today (read against `test/driver_panel_claws_test.cpp`'s pins and `mechanism_routes_test.cpp`'s
+  manifest).
+- **Second grep** `driverHeading|ctx\.chassis|kMechanisms` (public docs): guide 3 (18 :389 "the old way" — true; 16
+  :281/:330 — this run's), changelog 1 (2.5's A4 entry on the frozen constructor — true), roadmap 1 (this run's).
+- **Forward references** (`MECH-A5|fifth part` with yet / will / next / "from … on" / "adds it" / "moves onto"), public
+  docs + `include/shulib` + `src/team/README.md`: **fixed** — guide 10 (two), guide 14 (two), guide 15, guide 18 (two),
+  cookbook 06 and 07, `docs/vexbuilder-integration.md` §4.2.3's status ("no program registers them yet" → registered by
+  the competition program and the Auton Tester, written to no manifest), HA-182's entry, and four header comments
+  (`wiring.hpp`'s `startingValuesLine` `///` — the API reference regenerated —, `kinds.hpp`, `service.hpp`,
+  `route_ids.hpp`). **Stay:** roadmap :391 and the HA register's :163 (dated history paragraphs, as above).
+- **Read whole, as a student would:** guide 16's new section and its listing against the example test; guide 17's boot
+  paragraph and its `text` block against the pinned lines; the worksheet's J.3.1, J.9 and J.9.8; the HA-185 entry; the
+  changelog entry (corrected on reading: "shulib Drive" has no guard — its driver loop ticks the service; the chain claim
+  now names only the two auton programs).
+
+### Definition of done (MECH-A5) — evidence
+- [x] §1.13's file list: the table (declarations in `robot_two`, `mechanismTableFor` a case per robot, the drive check
+  over every role by name — n31 ×2), `boot_source` (projection, sensors in the declared-port rule), N6's `driver_file.hpp`
+  + robot two's driver file (`[driver file two]` before the feel — A5-D1), `driver_heading.hpp`, `driver_controls.hpp`
+  deleted (grep test), `autons.cpp` (`Routine r{ctx, …}`, `using namespace robot_two;` — (1c)), the service + route
+  registry in each program (chain, proof naming the gap, boot lines, `ROUTES:`, claw row from the service), the tester
+  rig, the gate's per-robot rule (28b), HA-185 + HA-159's text.
+- [x] **The claws EXACTLY as today on every input**: M5a — the same 159-tick script through T3's bindings as T4 bound them
+  and through the driver file: ports 6/7 (mV, brake() and move counts, stopped, brake mode) and line A (every write)
+  identical; T1–T10, T9b (a drop is never a press); mutation ME red.
+- [x] **Every T4 Part 2a protection test green, its assertions unchanged** — ONE source pin's search string re-pointed
+  in `drive_protection_test.cpp` (A5-D19, for the coordinator's acceptance; this line said "unchanged" beside the
+  re-point until the review, R-11): the driver file's `kLoop` is now `inline constexpr DriverLoopConfig kLoop{` at
+  namespace scope, where it was a `static constexpr teleop::DriverLoopConfig kLoop{` member; the pin's assertions — no
+  protection field in the driver file's `kLoop` — unchanged; the suite green.
+- [x] **The src gate PASSES all 7 builds** (check, 15:28 and the final run below); the self-test OK (249 cases, then
+  re-run after 28b grew).
+- [~] **CAL1's facts mapping (N9)**: NOT done — CAL1 Part A2a landed on main (`e5a69b5`) AFTER this branch's base
+  (`4691757`), says "src/ is untouched; robot two moves onto it in Part B"; the brief's fallback holds (Calibrate's drop
+  reads the new list; A5-D8). The mapping belongs to CAL1 Part B.
+- [x] Docs in the same change; the prose review above; every delta logged (A5-D1..D15); every mutation observed red.
+
+### Notes for the coordinator (MECH-A5)
+1. **Files shared with another in-flight chunk:** ONLY `tools/src_build_gate.py` (G3a Part 1's too). A5 changed: the
+   header's step-0 paragraph ("…AND A ROBOT'S MECHANISM NAMESPACE, PER ROBOT"); NEW `TEAM_FILE_ROBOT`, `TEAM_DIR_REL`,
+   `_NAMESPACE_OPEN`, `_MECHANISM_TABLE_OBJECT`, `_robot_namespaces()`, `_team_file_robot()`,
+   `_robot_namespace_problems()`; `_stray_selection_problems(repo, rel, per_robot, namespaces)` (the own-team-file
+   exception); `one_chain_problems()` (calls both); self-test case 26's `DRIVE_PLANT` re-pointed; NEW case 28b.
+   `test/CMakeLists.txt` NOT touched (the new tests are globbed). Untouched: every CAL1 A2a, VIS1-A1 and IMU1 file,
+   `src/robots/chassis_table.hpp`, `src/build_selection.hpp`, `src/programs/calibrate_program.cpp`.
+2. **The merge onto main** (this branch is from `4691757`; main has `d8fdb8b` and `e5a69b5` since): expect conflicts in
+   `README.md`, `docs/changelog.md` (both entries go at the top of 2.5 — A5's is "no API change"), `docs/roadmap.md`,
+   `docs/internal/{build-order,REMAINING-WORK,HANDOFF-remaining-work}.md`; REGENERATE after it: `docs/api/`
+   (`api_doc_tool.py generate` — `README.md` / `all-entities.md` differ) and the briefing (from a fresh binary). The
+   suite's count changes with CAL1's cases.
+3. **N9 (CAL1's facts mapping) is CAL1 Part B's now** — A2a "left src/ untouched; robot two moves onto it in Part B".
+   A5 left `calibrate_program.cpp` unchanged: `dropDeclaredMechanismPorts(kMechanisms, …)` reads the new list (A5-D8;
+   `test/mechanism_table_test.cpp` pins the call site unchanged). Part B maps `kMechanisms` (a `mechanism::MechanismTable`;
+   `mechanism::declaredMotorPorts()` is the library's helper) into `CalibrateFacts` and deletes the drop.
+4. **For G3a:** (a) a mechanism NAME is at most **18** characters for a Power / motor kind (its `<name>_stop` route id
+   must fit F8's 23) and shorter for a pneumatic (`<name>_<longest position>` ≤ 23) — `mechanisms(...)` refuses a longer
+   one at build by name; the panel's name field needs that rule (6t pins the 18). (b) `// [driver file two]` wraps ONLY
+   the WHICH BUTTON heading and `kControls` (A5-D1); the header's button words are KEPT (A5-D2) — G3a needs a
+   `control words` region or the words go stale. (c) `// [robot two mechanisms]` is one contiguous block, byte for byte
+   `test/mechanism_fixtures.hpp`'s (pinned).
+5. **NOT fixed here — the latent COMP-b line gap A4 handed on:** `src/programs/competition_run.hpp`'s routine-stop line
+   is still **214 bytes** with its NUL in its worst case (re-computed from the format: 10-digit request and counts at
+   `INT_MAX`, a 24-character step name, "mechanism step FAILED", a 78-character faults text) against
+   `kCompetitionLineBytes` 200 — CUT (the record's `cut` flag set), never overflowed; a
+   realistic line is ~163. A fix changes words `test/competition_run_test.cpp` and Station K quote; left for the
+   coordinator to brief or rule.
+6. **The register:** HA-185 registered (179 entries); HA-159 amended; the next free number is unchanged (HA-216).
+   The worksheet gained **J.9.8** (HA-185: a phone's slow-motion video of the claw, full and low air).
+7. **G4 held:** no auton in `src/team/autons.cpp` steps a claw; the claws auton guide 16 teaches lives in
+   `test/robot_two_claws_example_test.cpp` (a host test), so the team writes its own.
+8. **Scripts** (`.claude/coordinator/scratch/mech-a5/`): `build.sh`, `mutate.py`, `mutate_multi.py` (a mutation that
+   changes a quoted line changes its quote too), `mut_run.sh`, `batch1.sh`, `gate_case_runner.py` (one self-test case
+   against the gate on disk); every mutation's log under `mut/`.
+
+### The src gate, final *(`date` at this entry: Thu Oct 29 04:00:53 PM EDT 2026)*
+- **`src_build_gate.py self-test`: OK — 251 detector cases, each against a real build** (13 m 51 s; 249 before case
+  28b gained robot three's two expectations). **`check`: PASS — all 7 builds link** (bench, xdrive, tank, tank-drive,
+  tank-calibrate, tank-autontest, tank-competition: 11/11 TUs each, 8 vendor-ignored warnings, 0 disallowed; 2 m 32 s).
+  Every plant restored (`git status` lists only this run's files). The fast doc gates re-run after the last doc edits
+  (`docs/vexbuilder-integration.md` §4.2.3's status, HA-185's index row): coverage, fresh, examples (591 lines; 6
+  whole-run listings unbroken), removability, the staleness audit and the briefing check — all clean / current.
+- **MECH-A5 BUILT — waiting on its review.** Not committed (the coordinator commits).
+
+### MECH-A5 review findings and their disposition *(started — `date`: Thu Oct 29 06:03:32 PM EDT 2026)*
+- Three reviewers (correctness, tests, docs) returned 19 findings; each re-checked against this worktree before any
+  fix. The dispositions follow, one per finding (R-1 .. R-19 in the order the coordinator listed them), then the gates.
+
+**R-1 (correctness, minor) — the gate's per-robot namespace rule missed four valid spellings.** REAL: confirmed by
+reading `_robot_namespace_problems` (one physical line at a time, three spellings) and by mutation GN1 below — the old
+rule restored passes exactly the reviewer's four shapes (an alias, a `using namespace` split over two lines, a re-open
+with its brace on the next line, a qualified name split before its `::`) and a `#define` of the name. **Fixed at
+the root:** `_robot_namespace_problems` no longer lists spellings — the rule is the namespace's NAME as a whole C++
+identifier (`\b<ns>\b`, comments and literals stripped, static_asserts blanked, per logical line: an identifier
+cannot span a line). Every way to reach a namespace spells its name, so the alias, the split forms, a `#define`, an
+attribute or `inline` on a re-open are all refused by the one rule. The header paragraph, the function's docstring,
+`src/robots/mechanism_table.hpp`'s banner and `src/team/README.md` say so. Case 28b gained eight plants: REFUSED — an
+alias, a split `using namespace`, a fully qualified `using namespace shulib::bench::robot_two;` at global scope, an
+Allman re-open in `src/common/`, a qualified name split before `::`, a `#define` of the name, a `src/common/` file
+NAMED like robot two's team files (R-5); PASSING — identifiers that only BEGIN with the name (`robot_twofold`,
+`robot_two_count`). The real tree still passes (`one_chain_problems() == []`, the case's last expectation). The
+alternative the reviewer suggested — whole-file matching plus an alias pattern — was rejected: it is still a list of
+spellings (it misses a `#define`, `namespace [[deprecated]] robot_two {`, `namespace a::inline robot_two {`). Its cost:
+an unrelated identifier spelled exactly like a robot's namespace is refused too — none exists in `src/` or
+`include/shulib/`, and a name equal to a robot's namespace is one a program should not use. (A5-D20.)
+*(Overclaimed — the verification round's VR-1, below: "every way … spells its name" missed a splice inside the
+name, a digit separator and a raw string on the name's line, and a name pasted together with `##`.)*
+
+**R-2 (correctness, minor) — a refused boot destroyed the Robot before the mechanism service.** REAL, confirmed by
+reading: `~MechanismService` (`service.hpp` :1595-1611) calls `holdsClaim()` on every slot, which reads the slot's
+`hal::MotorMechanism` / `PneumaticMechanism` — objects inside the Robot's `MechanismParts` — and the service was bound
+with the Robot's fault latch and clock (`bind()`'s rule: they "must outlive the service"). Both unbuild lambdas
+(`competition_program.cpp`, `auton_tester_program.cpp`) reset the Robot first. **Fixed:** the service is reset BEFORE
+the Robot; the Robot's, the guard's and the watch's destructors are defaulted (read nothing), so the guard naming the
+released service as its inner pacer for one statement is harmless (nothing paces during an unbuild). The two comments
+now say what each destructor reads (the old "the service's own end touches no device" was true but beside the point).
+`test/competition_source_test.cpp`'s unbuild pin PINNED THE WRONG ORDER — re-pointed, with the reason; the Auton
+Tester had no unbuild pin — one added to `auton_tester_source_test`'s chain case. "shulib Drive" was already right
+(`refuseBuilt()` resets the service first). Undefined behaviour no host test can observe (the static `optional`'s
+storage stays), so the pins are the guard; mutations FRU1/FRU2 below.
+
+**R-3 (correctness, minor) — "shulib Drive"'s driver-file refusal lost its headline and its mechanism's name.** REAL:
+T4's binder refused with its own headline and a reason naming the mechanism; A5's `DriverFile::bind` threw a
+PreconditionError the boot's catch showed as "the library graph REFUSED to build" with a generic sentence — and Station
+F's table promised the old headline. **Fixed at the root (T4's contract restored):** `DriverFile::bind(service, why,
+cap)` returns `bool`; FALSE with the reason in `why` NAMING THE MECHANISM, and nothing bound, in T4's sentences — "a
+control names '<name>', which the robot does not declare", "'<name>' is a <kind> mechanism on this robot: its control
+is for a <kind> one", "the robot declares '<name>', and no control names it" — and the library's own checks
+(`DriverInputs::bind`: a preset, position, speed, units or homing that is not this robot's) caught and reported in
+the library's sentence. A PROGRAM's mistake (a second bind; a service not bound yet) stays a PreconditionError — the
+graph headline is right for those. The programs refuse with their T4 headlines again: "shulib Drive" `the driver file
+REFUSED this robot` (Station F's row, now true — amended to name `driver_file.hpp` and the library-sentence case), the
+competition program `the driver's controls REFUSED` (its T4 words; no document quotes them). Tests: T8 pins both
+program-mistake preconditions by sentence; T10 pins all five refusals by their exact reasons (a NEW three-position-claw
+case reaches the library's check), `CHECK_NOTHROW`, nothing bound, and a refusal with no buffer; the two source pins
+re-pointed (`refuseBuilt(` counts back to T4's 4 in each program). The duplication this adds (steps 1's two checks
+repeat two of `DriverInputs::bind`'s preconditions) is deliberate and bounded: the library's preconditions stay the
+authority (step 3 still runs them), the driver file's are the team-facing words. (A5-D21, superseding A5-D3's "a
+PreconditionError naming the problem".)
+
+**R-4 (correctness, minor) — each claw press in driver control now prints a MECH verdict line.** REAL — confirmed
+and pinned by a NEW test (`robot_two_driver_test`, "MECH-A5 review: in driver control each A press is a claw STEP that
+logs its verdict"): through robot two's real driver file on the fake provider (10 ms a tick), A at ticks 10, 100, 200,
+203 and the run ending at 230 log exactly `[INFO] 'claw': SUCCEEDED -- time in 0.50s`, `[WARN] 'claw': UNCONFIRMED --
+time in 0.50s (no piece sensor to confirm it; counted done)`, `[WARN] 'claw': CANCELLED in 0.03s (replaced by a newer
+command)`, `[WARN] 'claw': CANCELLED in 0.26s (driver control ended)` — and R1 held for 40 ticks logs nothing (a
+hold-to-run is not a step). **Disposition: documented and pinned, not silenced.** A step's verdict line is A4's
+library rule for every step, and a driver's toggle / preset / homing press IS a step by A4's design (one service, one
+path); silencing driver presses is a library behaviour change outside A5's row. The lines are now expected in the
+docs: guide 18's `toggle` bullet, guide 11's verdict entry, worksheet J.9.3 (the line after each press, "ONE line per
+press?"), J.9.4 (one line while held; two quick presses → `CANCELLED (replaced …)`), K.2.5 (one per press of A, none
+for the pivots, in serial and `comp_log.txt`). **For the team lead** (coordinator note 10): whether a match's driver
+presses should log — each close is a `[WARN]` line on serial and the card. (A5-D22.)
+
+**R-5 (tests, minor) — 28b missed two edges (G10, G21 survived).** REAL. Fixed with R-1: the `src/common/
+robot_two_helpers.hpp` plant (a file named like robot two's team files outside `src/team/`) and the fully qualified
+global `using namespace` plant. G10 re-run: **RED**. G21 as written no longer applies — the rule has no
+qualified-`using` alternative to drop; its plant stands, and GN2 (the rule narrowed to qualified names only) is its
+analogue: **RED**.
+
+**R-6 (tests, minor) — the competition program's route path had no behavioural test (R22 survived).** REAL. NEW
+`competition_run_test` **(R1r)**: the claws route (the example test's: `claw_open` at the start; `claw_closed`,
+`claw_pivot_6_run` 12/400, `claw_pivot_7_run` −12/400 at the end of a 20 in drive) registered as a match auton through
+the stack's `extraAutons`, chosen through the real menu, served through `serveAutonRequest`: `FINISHED`, `RouteRan`,
+4 markers fired, 0 unknown, line A commanded open during the route, pivot 6 at +12 V and pivot 7 at −12 V, every
+mechanism and the drive safe at the end. The rig's `ProbeLayer` gained an `onPace` hook (a case's own look at the world
+each pace). R22 and R3 (`runAuton` handed `nullptr` for the registry) re-run: **both RED behaviourally** (R3 also red
+on P5's pin).
+
+**R-7 (tests, minor) — "each call in its own try" untested with a throwing safe state AND a claimant (R1 survived).**
+REAL. G2b gained a `ThrowingMechanism` (its `applySafeState()` throws) holding a `Counting` claimant, first in the
+list: its safe state tried once, its claimant STILL cancelled once, its claim released. R1 re-run: **RED**.
+
+**R-8 (tests, minor) — the boot's rule for motor roles beyond the first untested (R2 survived).** REAL. 6x gained robot
+y's dr4b (motors 3 and 4) with its SECOND motor on the record's drive port 13: refused, the CLAW headline, `port 13 is
+both a claw (dr4b) and a drive motor in the record -- recalibrate: …`, nothing built. R2 re-run: **RED**.
+
+**R-9 (tests, minor) — the drive check never tested on the LAST left port (R21 survived).** REAL. THE DRIVE CHECK gained
+the left side's LAST entry (−15) and the right side's FIRST (+20) (the right's last, +16, and the left's first, −11,
+were there). R21 re-run: **RED**.
+
+**R-10 (tests, minor) — the chain proof's "first gap in that order" unpinned with two gaps (R11 survived).** REAL. G1
+gained a guard paced over the PLANT (neither the service nor the watch in its chain): `ChainGap::Service`, never
+`Watch`. R11 re-run: **RED**.
+
+**R-11 (tests, minor) — one T4 Part 2 source pin's search string changed.** Re-checked: true, and necessary —
+`git diff 4691757 -- test/drive_protection_test.cpp` is that one search string (`static constexpr
+teleop::DriverLoopConfig kLoop{` → `inline constexpr DriverLoopConfig kLoop{`): N6's driver file states `kLoop` at
+namespace scope (DriverFile takes it as a template argument), so the old text cannot exist; the pin's assertions (no
+protection field in the driver file's `kLoop`) are unchanged. **For the coordinator's explicit acceptance** — logged as
+A5-D19; the DoD line reworded so it no longer says "unchanged" beside the re-point.
+
+**R-12 (docs, major) — status pointers stale.** REAL. Rewritten: `build-order.md`'s first bold `Next:` (its "NEXT:
+MECH-A5 (CAL1 before it) … then A5–A6" clause → A5 built and in review, then A6; G3a Part 1 beside A5 under the PANEL
+SPRINT; CAL1 maps the core's list after A5 — N9's fallback), its MECH entry's `Next run:` line and A5 paragraph,
+`REMAINING-WORK.md`'s "Where things stand" and row 12, `roadmap.md`'s "Now (2026-10-29, later)" paragraph (now names
+the next step), `HANDOFF-remaining-work.md` :288/:291. The merge with main's `d8fdb8b` (the sprint's own wording) still
+has to reconcile these lines (note 2). The briefing regenerated from a fresh binary.
+
+**R-13 (docs, major) — the prose review missed sentences this change made false.** REAL, all eight — fixed: (1)
+`docs/faq.md` ("no program builds the service yet" → robot two's three programs build it since the fifth part); (2)
+HA-161's quote of `drive_program.cpp` ("the bindings by address" → "the inputs", the old word as history); (3) HA-161's
+claim rule restated (the service's slots DO take a claim; every mode change ends each slot's behaviour and releases its
+claim, and releases and says a claim another owner left; T3's bindings took none — history); (4) HA-157's Source (the
+service's `leaveDriverControl()` and `teleop_loop.hpp`; T3's ToggleBinding as history; `robot_two_driver_test` M5a pins
+robot two's claw); (5) HANDOFF's re-zero paragraph (DriverFile's `static_assert` — n57 — and the service overload's
+`DriverInputs::avoids()`; `validBindings()` for the superseded overloads); (6) `teleop_loop.hpp` — its callers
+(robot two's driver file through `DriverFile::run`, the service overload) and `DriverLoopConfig`'s `///` (both
+preconditions; `docs/api/teleop_loop.md` regenerated); (7) guide 14's present-tense T3 sentence → past; (8)
+`src/team/README.md` and cookbook 06 ("the call into the loop" is `driver_file.hpp`'s). Also found: guide 14's "four of
+its six parts" → five; HANDOFF :288's "no program builds one yet" → "until MECH-A5". The widened greps are logged in
+the prose-review addendum below.
+
+**R-14 (docs, minor) — `src/team/autons.cpp` misstated a claw step's verdict.** REAL — reworded: opening SUCCEEDS once
+its move time has passed; a GRAB (`closed`, marked `grabs`) with no sensor ends UNCONFIRMED and is counted done.
+
+**R-15 (docs, minor) — guides 16/17 showed no route auton with mechanism markers; the changelog said guide 16 did.**
+REAL. Guide 16 now QUOTES the claws route's waypoint and marker lines from `test/robot_two_claws_example_test.cpp`
+(held verbatim by the example scan — 600 quoted lines now, was 591), with its verdicts; guide 17's route bullet points
+at it (and says the host suite runs one through the competition program's own request path — R1r). The changelog line
+is true as written.
+
+**R-16 (docs, minor) — deltas missing from the A5-D list.** REAL — A5-D16..D19 added below (the declaration line; the
+ROUTES line's text; the tester rig's list; the drive-protection pin), and this round's A5-D20..D22.
+
+**R-17 (docs, minor) — nothing handed L9 Part B the rule A5 rewrote.** REAL — coordinator note 9 added below.
+
+**R-18 (docs, minor) — no landing-date list.** REAL — the list is below (A4's D13 form).
+
+**R-19 (docs, minor) — two comments overclaimed.** REAL. `wiring.hpp`'s `startingValuesLine` `///` → "a program prints
+it at boot for each position or speed mechanism of its list, after that mechanism's role and control lines" (robot two
+declares none, so no boot prints one; `docs/api/wiring.md` regenerated); `mechanism_table.hpp`'s banner → "mistakes the
+mechanism core refuses at build, each by name (GCC names your line on the error or in its first note — guide 18,
+'reading a refusal')" (the brief's T5 retraction; no count).
+
+**Deltas from the brief added by the review round** (numbered on from A5-D15):
+- **A5-D16** every mechanism's boot block begins with a DECLARATION line (`driver_panel.hpp`
+  `mechanismDeclarationLine()`: its kind, cartridge, each motor's direction and its stop — or a pneumatic's start,
+  safe and each position's levels) beyond §1.13's role, control, homed, no-stall and starting-values lines. Reason: a
+  role line names a port, not what is on it; J.9's polarity station needs the claw's levels AS DECLARED and J.4 a
+  pivot's direction, and without the line a student must open the robot file. Rejected: the brief's list only.
+  Quoted by the worksheet (J.3.1's four per pivot, J.9.1, M.2.2) and guides 16/17; pinned by `driver_panel_claws_test`.
+- **A5-D17** the `ROUTES:` line reads `(claw_pivot_6_run .. claw_open); 26 of the registry's 32 left for the team's
+  own` where §1.13 wrote `…` and no tail: `driver_panel.hpp`'s own rule is every line ASCII (:62, :101 — a `…` is three
+  bytes of UTF-8), and the tail is the number a team adding its own commands (and G3a's panel) needs. Rejected: the
+  brief's text verbatim.
+- **A5-D18** the tester rig (`test/auton_tester_rig.hpp`) binds ROBOT TWO's list, not "the build's list over the §1.12
+  models" (§1.13 / U3): on the host the build's list is `kNoMechanisms` (the bench selection), so a rig over it runs
+  every team auton with no mechanism at all — the team's autons are robot two's (`TEAM_FILE_ROBOT`), and a claw step
+  must meet robot two's declarations; robot two has no arm, lift or flywheel for the §1.12 models to stand for. Said
+  in the rig's banner (:11-18).
+- **A5-D19** `test/drive_protection_test.cpp` :2480's search string re-pointed (R-11) — the one change to a T4 Part 2a
+  protection test; assertions unchanged; for the coordinator's acceptance.
+- **A5-D20** (review) the src gate's per-robot rule is the namespace's NAME as an identifier, not three spellings (R-1).
+  *(Verification round, VR-1: its "in any spelling" / "misses none" overclaimed — step 0 now reads the text as C++'s
+  phases 2–3 leave it (`_splice`: line splices joined with NOTHING; numbers whole; raw strings whole), and its documents
+  state the real limit: a name the preprocessor ASSEMBLES with `##` is beyond any text rule.)*
+- **A5-D21** (review) `DriverFile::bind` returns a refusal NAMING the mechanism (`bool` + `why`) and the programs' T4
+  headlines are back (R-3); supersedes A5-D3's PreconditionError for a robot the controls are not for.
+- **A5-D22** (review) a driver's toggle press logs its step verdict — documented and pinned, not silenced (R-4).
+
+**The review round's mutations — each observed RED, none caught by the cap or the timeout.** A C++ mutation: ONE
+exact replacement through `scratch/mech-a5/mutate.py` (the file backed up under `scratch/mech-a5/mut/`, restored in a
+`finally`, identical to its backup — checked — and its timestamp bumped), then `mut_run.sh`: the stale binary removed,
+the WHOLE `cmake --build build/test` (every object depending on the mutated file recompiled — the count below), then
+the named cases from THAT binary, capped (`ulimit -v 4194304; timeout 600`). A source pin reads the file on disk at run
+time, so a program file the host build never compiles (0–3 objects) is judged by the pin on the mutant. A gate
+mutation: case 28b's own lines against the mutated gate module (`gate_case_runner.py`), every plant restored. Script
+`scratch/mech-a5/fix/{batch_fix.py,gate_mut.py}`; logs `scratch/mech-a5/mut/FR*.out`, `scratch/mech-a5/fix/*.out`.
+
+| # | Mutation (file; objects rebuilt) | Caught by (observed) |
+|---|---|---|
+| GN1 | the namespace rule back to three spellings matched per line (`tools/src_build_gate.py`) | **28b RED** (5 of 24): the alias, the split `using`, the Allman re-open, the split qualified name, the `#define` |
+| GN2 | the rule narrowed to qualified names `<ns>::` (G21's analogue) | **28b RED** (10 of 24) |
+| GN3 | the trailing `\b` dropped (a prefix, not the name) | **28b RED** (1): the PASS control (`robot_twofold`, `robot_two_count`) reported |
+| G10 | `_team_file_robot`'s `src/team/` check dropped | **28b RED** (1): `src/common/robot_two_helpers.hpp` admitted |
+| FR1 | the program-error stop's safe state and claimant cancel in ONE try (`src/common/guarded_run.hpp`; 9) | **G2b RED**: `safeThrowsClaimant.cancels == 1` and the claim released both fail |
+| FR2 | the boot's rule reads each mechanism's FIRST motor only (`src/common/boot_source.hpp`; 16) | **6x RED** (4): the dr4b's second motor on port 13 booted, no headline, 7 mechanisms built |
+| FR21 | the drive check's left loop stops one short (`src/robots/mechanism_table.hpp`; 17) | **THE DRIVE CHECK RED**: `onLeftLast` (−15) clear |
+| FR11 | the chain proof's service and watch checks swapped (`src/common/guarded_run.hpp`; 18) | **G1 RED**: the two-gap chain named `Watch` |
+| FR22 | the competition rig's `routes.registerInto(commands)` → `(void)commands` (`test/competition_rig.hpp`; 9) | **R1r RED** (5): 0 markers fired, ids unknown, the claw never opened, neither pivot moved |
+| FR3 | `serveAutonRequest` hands `runAuton` `nullptr` for the registry (`src/programs/competition_run.hpp`; 3) | **R1r RED** (not `FINISHED`, not `RouteRan`) and **P5 RED** (the hand-off pin) |
+| FRU1 | the competition unbuild resets the Robot before the service (`competition_program.cpp`; 3) | **pins (P2) RED** (the unbuild pin) |
+| FRU2 | the same in the Auton Tester (`auton_tester_program.cpp`; 0 — not host-compiled) | **the tester's chain pin RED** (its NEW unbuild pin) |
+| FRD1 | `DriverFile::bind`'s kind check removed (`src/common/driver_file.hpp`; 2) | **T10 RED**: 'claw pivot 7 a pneumatic' reached the library's check — its reason no longer names the mechanism |
+| FRD2 | `DriverFile::bind`'s try around the library's checks removed (2) | **T10 RED** (3): the three-position claw THREW (`CHECK_NOTHROW`), no `false`, no reason |
+| FRD3 | "shulib Drive" refuses a driver file with the library-graph headline (`drive_program.cpp`; 2) | **P3-T3 RED** (the boot pin) |
+| FRD4 | the coverage refusal's reason no longer names the mechanism (2) | **T10 RED**: 'an extra intake' — `the robot declares a mechanism no control names` |
+| FRL1 | every step verdict logged at `Info` (`include/shulib/mechanism/service.hpp`; 51) | **the claw-press log case RED** (3 of 4 lines: `[INFO]` where `[WARN]`) |
+
+**The prose review, widened (R-13), the greps run FIRST and every hit read** *(2026-10-29, the fix round)*:
+- `no program (builds|runs|binds|registers|prints)|bindings by address|take(s) no claim|call into the … loop` over the
+  public docs, `src/`, `include/`, `test/README.md` and the live internal docs: changelog 3 (A3's entry and two older
+  "no program runs it yet" — history, dated), cookbook 06 2 (the reworded "Use this when" and the "Why it is written"
+  bullet — true), `driver_file.hpp` 1 (true), `src/team/README.md` 2 (reworded), roadmap 1 and the HA register 4 (dated
+  per-chunk history: HA-117's, R5a's, a 2.x entry — and HA-161's reworded rule), `mechanism_binding.hpp` 2 (T3's own
+  bindings — true of them), HANDOFF 1 and build-order 1 (R5a's history, reworded :288), `session_info.hpp` 1 and
+  `service.hpp` 1 (other subjects — true).
+- `validBindings|ToggleBinding|MechanismBinding|claw bindings|driver_controls|teleop_claws`: guide 10 4 and cookbook 06
+  10 (the superseded bindings' own sections, marked "Superseded, not removed" — true), guide 14 2 (now past tense),
+  changelog 10 (history), roadmap 3 and REMAINING-WORK 1 and HANDOFF 3 (annotated history; HANDOFF's re-zero
+  paragraph rewritten), the HA register 7 (HA-147's and HA-156's "until MECH-A5" history, HA-157/HA-161 rewritten),
+  `teleop_loop.hpp` 24 (its T3 overloads — true; its callers and the re-zero `///` rewritten), `src/team/README.md` 1
+  (history).
+- `REFUSED this robot|controls REFUSED|library graph REFUSED|DriverFile::bind|PreconditionError naming`: the two
+  programs' refusals (each read), `driver_file.hpp`'s own sentences, the worksheet's F table (row rewritten, the
+  library-graph row true), `drive_program.cpp`'s ORDER AT BOOT comment (corrected: the driver file's mismatch is its
+  own refusal, not a precondition), `autons.hpp` :32 (another subject).
+- `UNCONFIRMED|counted done` in guides 11/16/18, the worksheet and `autons.cpp`: every hit now says a SENSORLESS GRAB
+  is the counted-done case (R-14's comment fixed; the others were already right).
+- `four of its six|unbuild|using namespace robot_two|re-open`: guide 14's count fixed; the unbuild comments are the two
+  rewritten; the namespace hits are the gate's, the banner's and the README's rewritten sentences.
+
+**The landing dates, for the commit (A4's D13 form — "(<landing>; built 2026-10-29)", or the landing date where a
+document dates A5 as IN):** `docs/changelog.md` :19 (the entry's heading date); `docs/guide/18-mechanisms.md` :12 ("A4
+and A5, 2026-10-29"); `docs/guide/16-testing-an-auton-on-the-bench.md` :38; `docs/guide/14-what-it-cannot-do-yet.md`
+:219 ("2026-10-15 to 2026-10-29, five of its six parts"), :227 and :434; `docs/guide/10-the-api.md` :416;
+`docs/cookbook/06-driver-control.md` :27; `docs/cookbook/07-mechanisms.md` :8; `docs/vexbuilder-integration.md` :371;
+`src/team/README.md` :10; `docs/hardware-assumptions.md` :170 (the status paragraph: "built 2026-10-29" → add the
+landing); `docs/roadmap.md` the "Now (2026-10-29, later)" paragraph and the MECH row (:1780, "A5 BUILT … landing waits
+on its review" → LANDED); `build-order.md`'s first bold `Next:` and the MECH entry's A5 paragraph and `Next run:`;
+`REMAINING-WORK.md` "Where things stand" and row 12; `HANDOFF-remaining-work.md` :291. **Left as the BUILD date on
+purpose (A3's rule):** the register's "since MECH-A5, 2026-10-29" source notes (HA-182 :1297, HA-185's section heading
+:1325, HA-147 :2067, HA-159 :2333, HA-161 :2394), the worksheet's "since MECH-A5, 2026-10-29" station notes (they name the
+build a station tests), and the code banners naming the run by its date (`driver_file.hpp` :4, `driver_heading.hpp`
+:5, `driver_panel.hpp` :9/:98, `guarded_run.hpp` :15/:20, `competition_run.hpp` :65, `auton_tester_run.hpp` :31,
+`drive_program.cpp` :62, `mechanism_table.hpp` :4, `robot_two_driver.hpp` :6, `tools/src_build_gate.py` :225, the
+test banners).
+
+**Notes for the coordinator, added by the review round:**
+9. **L9 Part B — carry A5's rewritten rule.** A5 rewrote the boot's declared-port rule (`src/common/boot_source.hpp`,
+   step 5) over every SMART ROLE: a MOTOR role keeps T3's words byte for byte ("port N is both a claw (<name>) and a
+   drive motor in the record -- recalibrate: …", headline "a CLAW port is a DRIVE port in the record / typed table"),
+   a SENSOR role (an angle sensor, a distance or optical piece sensor) has new words ("port N is both <name>'s <role>
+   and a drive motor in the record -- check its wire(...) line in src/robots/mechanism_table.hpp; then recalibrate
+   (slot 4)", headline "a MECHANISM SENSOR port is a DRIVE port in the record / typed table"). `mechanismTableProblem`,
+   both old `toMechanismConfig`s and their two `static_assert`s are GONE from `src/`. L9's brief (:433-440) still plans
+   a motor-only `DeclaredMotorPorts` and says `mechanismTableProblem` stays in `src/` — both stale. The MECH brief's
+   §6.1 ask ("that derivation must include A1's sensor ports") is met at the collision rule (step 5 reads every smart
+   role); the port check's declared list stays the MOTOR ports (`mechanism::declaredMotorPorts()` — a sensor is never a
+   NEW motor in the census). L9 Part B's `BootWording` must carry both headlines and both sentence shapes, and its
+   re-check should re-read step 5 at its tip.
+10. **A ruling the team lead may want (R-4):** since A5, each driver press of robot two's claw logs its step verdict
+   0.5 s later — a close is a `[WARN][MECH] … UNCONFIRMED … counted done` line, on serial and in `comp_log.txt` during
+   a match. It is A4's library rule (every step says its verdict) and is now documented (guides 11/18, J.9.3/J.9.4/
+   K.2.5) and pinned; silencing driver presses would be a library change (`driver_inputs.hpp` / `service.hpp`), not
+   made here.
+11. **The unbuild order (R-2)** was a real lifetime defect in the competition program and the Auton Tester (UB on a
+   refused boot after the bind; benign in practice); fixed and pinned in both. The `DriverFile::bind` signature changed
+   (R-3: `bool bind(service, why, cap)`): a driver FILE never calls it — the programs do (`if (!st.driver.bind(
+   *st.mechanisms, why, sizeof why)) { refuseBuilt(<the program's headline>, why); return; }`), so G3a Part 5's
+   generated controls region does not move; G3a Part 4 (which edits the three programs and adds `DriverFor<RobotId>`)
+   builds on this form at A5's tip.
+
+**The gates, final (the restored tree; `git status` lists only this run's files)** *(`date` at this entry: Thu Oct 29
+07:05 PM EDT 2026)*:
+- `build.sh final2` (the stale binary removed, the briefing regenerated as unbuilt, the whole `cmake --build
+  build/test`, 51 objects): rc 0. **Suite (`tools/suite_run.py green`, capped 4 GiB / 600 s): green — 2,624 cases,
+  2,800,491 assertions** (2,622 before the round: + the claw-press log case, + R1r). The briefing regenerated from that
+  fresh binary, then **`briefing_status.py check`: current**; its self-test OK.
+- **`ctest -R compile_refusal`: 255/255 passed** (TUs 255 = CTests 255).
+- `api_doc_tool.py` self-test OK; check-coverage 4,960 entities / 186 headers; **check-fresh rc 0** (`docs/api/`
+  regenerated for the two `///` edits: `teleop_loop.md`, `wiring.md`); check-examples **600 quoted lines** verbatim (10
+  source files; 6 whole-run listings unbroken); check-removability clean. `doc_staleness_audit.py` self-test OK, the
+  audit clean (31 live docs) — after one fix on the way: HA-161's re-wrapped sentence put the deleted
+  `driver_controls.hpp` on a line without its "deleted at" note (the audit's dead-path rule caught it; re-joined).
+- CI greps: no `pros/` include outside `hal/pros/`; no `shulib/sim/` include in the core; `PROBE_`: 0.
+- **ARM header gate: 226 headers, `arm-none-eabi-g++ -std=gnu++20 … -Wshadow -Werror -Os -mcpu=cortex-a9
+  -mfpu=neon-fp16 -mfloat-abi=softfp`: CLEAN.**
+- **`src_build_gate.py self-test`: OK — 259 detector cases, each against a real build** (251 + case 28b's eight new
+  plants; ~15 min; every plant restored). **`check`: PASS — all 7 builds link** (bench, xdrive, tank, tank-drive,
+  tank-calibrate, tank-autontest, tank-competition: 11/11 TUs each, 8 vendor-ignored warnings, 0 disallowed).
+- **MECH-A5's review round DONE — every finding re-checked; 18 fixed at the root, R-11 left for the coordinator's
+  acceptance (A5-D19).** Not committed (the coordinator commits).
+
+### MECH-A5 — Verification-round findings and their disposition *(started — `date`: Thu Oct 29 07:44:27 PM EDT 2026)*
+- A fresh verifier returned ONE finding (VR-1, minor: R-1's fix claims the gate's namespace rule catches the name "in
+  ANY spelling" and "misses none", but a backslash line splice inside the name and macro token pasting both compile
+  and pass). Re-checked first, against this worktree; the disposition, the fix and the gates follow when done.
+
+**VR-1 (minor) — R-1's fix claimed the namespace rule sees the name "in ANY spelling" and "misses none"; two
+compiling spellings passed.** *(`date` at this entry: Thu Oct 29 08:10:52 PM EDT 2026)* **REAL**, re-checked first:
+- **The re-check.** `scratch/mech-a5/vfix/probe.py` plants each spelling under `src/programs/` of a COPY of this
+  worktree (`vfix/copy/`) and counts what the namespace rule and the stray-selection rule report. Before the fix: the
+  splice `robot_\` + `two::claw` 0 / 0 and `CAT(robot_, two)` 0 / 0 — the verifier's two, confirmed. The same probe
+  found THREE MORE of the class, each compiling (`vfix/evasions.cpp`, `g++ -std=gnu++20 -Wall -Wextra`, returning the
+  expected 28): a digit separator on each side of the name on ONE line (`int a = 1'0; … robot_two::claw; … 2'0` — the
+  character-literal pattern paired the two apostrophes and blanked the code between them as a literal's text, 0 / 0;
+  the same with `0xF'F` / `0b1'0`), and a raw string holding a quote before the name on its line (`R"(")"`, with and
+  without a delimiter — the plain-literal pattern ended at the inner quote and the next `"` opened a literal that
+  swallowed the name, 0 / 0). Robot two's LIST split by a splice (`kRobotTwo\` + `Mechanisms`) passed the
+  per-robot table rule too (the same reading). The other way: a `//` comment ending in a backslash was REPORTED,
+  though C++ continues the comment over the next line. Not gaps (each probed): a UCN inside the name
+  (`robot_\u0074wo` and its `\U` / `\u{}` forms — g++ and arm-none-eabi-g++ both refuse "universal character … is
+  not valid in an identifier"), a trigraph `??/` (ignored in gnu++20 — the split name does not compile), a digraph
+  `%:define R2 robot_two` (the name is written out — refused).
+- **The root cause.** Step 0 read the text in a different ORDER and with a coarser lexer than C++: comments and
+  literals stripped BEFORE splices were joined, the joins a SPACE, no pp-numbers, no raw strings. Every step-0 rule
+  reads through the same two helpers (build switches, chain constants, per-robot tables, the namespace rule, the
+  include root, the printed paths), so the fix is the READING, not the namespace rule.
+- **Fixed at the root (`tools/src_build_gate.py`).** (1) `_splice` (new) is C++'s translation phase 2: each line
+  splice — a backslash ending a line, blanks after it allowed as GCC allows them — deleted with NOTHING between, each
+  deleted line break put back after its logical line ends so every line keeps its number. (2) `_strip_comments`
+  splices FIRST (C++'s order), so a comment continued by a splice is a comment and a literal continued by one is one
+  literal. (3) `_logical_lines` joins by `_splice` — with nothing (the finding's step 1), for any text handed to it.
+  (4) `_CXX_TOKENS` gained C++'s pp-number (a digit separator's `'` opens no literal) and the raw string literal
+  (`(u8|u|U|L)?R"delim( … )delim"`), each anchored at a token's start; `_strip_comments` keeps a number as it is and
+  blanks a raw string to `""` keeping its line breaks; `_literal_runs` (the printed-path rule) reads a raw string's
+  own text. (5) The documents state the REAL limit, in the header (step 0's reading; the per-robot paragraph's "THE
+  LIMIT"), `_robot_namespace_problems`' and `_splice`'s docstrings, the 28b comment ("THE NAME, WHEREVER IT IS
+  WRITTEN"), `src/robots/mechanism_table.hpp`'s banner and `src/team/README.md`: a name the PREPROCESSOR assembles
+  (`##`, or its digraph `%:%:`) is never written out and no text rule sees it; a file step 0 does not read is not
+  read; and the one place the reading differs from C++'s — C++ undoes splices inside a raw string's text, `_splice`
+  does not, so a splice inside a raw string's closing `)delim"` ends it early here. (6) A5-D20 notes the change;
+  R-1's paragraph is annotated "overclaimed — VR-1" (history kept).
+- **The real tree, old reading against new** (`vfix/diffread.py`, `vfix/diffcount.py`: every one of the 793 files
+  step 0 reads, both modes): every rule still reports NOTHING (`one_chain_problems`, `include_root_problems`,
+  `printed_path_problems`: `[]` before and after). 28 files read differently, each now right: 16
+  (`test/pros_shim/*`) hold a string literal continued by a splice, and the old reading dropped its line break — every
+  later line was reported ONE LINE SHORT (`test/pros_shim/main.h`'s `#endif` is line 14; the old reading said 13);
+  `src/build_selection.hpp`'s, `check.hpp`'s and `trace.hpp`'s multi-line directives and the F6/F8/F10 pin macros
+  join with no extra blank; `pros_device_provider_test.cpp` and `pros_platform_adapter_test.cpp` use digit
+  separators (`advanceUs(2'500'000)` — the old reading had `2''000`, `500` blanked as a "literal"); five tests' raw-string
+  regexes (`R"(…)"`) were mis-paired. So the digit-separator gap was LIVE in this tree's reading, in test/ (read by
+  the build-switch rule).
+- **The tests (adversarial).** Case 28b: seven new plants and two direct checks — 33 expectations (was 24). REFUSED:
+  the name split INSIDE it by a splice; the same with blanks after the backslash; the name between two
+  digit-separated numbers on one line; the name after a raw string holding a quote; robot two's LIST split by a splice
+  (the per-robot table rule). PASSING: a `//` comment a splice runs on over the next line; the name only inside a
+  multi-line raw string. Direct: `_logical_lines` joins with nothing on the line the logical line starts; a spliced
+  literal shifts no later line and a number keeps its digits. Case 30: a dead path inside a raw string holding a quote
+  is reported (it passed the old gate). Token pasting is NOT planted: it is the stated limit — a plant would pin a gap
+  as behaviour. Cases 28b and 30 GREEN on the fixed gate (`gate_case_runner.py`: 33 and 7 expectations).
+- **Not done, said.** Refusing `##` (and `%:%:`) under `src/` would close the last text gap — a NEW rule on the
+  team's code, a decision for the team lead; offered in the notes, not made. A file outside ONE_CHAIN_ROOTS —
+  `include/main.h`, PROS's project header, which a team may edit — is read by NO step-0 rule; pre-existing since SRC1,
+  every rule alike; noted for the coordinator, not changed here.
+
+**VR-1's mutations — each observed RED on an `expect` (none crashed; none caught by the cap or the timeout).**
+`scratch/mech-a5/vfix/gate_mut.py`: each mutation a set of exact replacements in `tools/src_build_gate.py` (backed up
+under `vfix/mut/`, restored in a `finally`, checked identical, timestamp bumped; `md5sum -c vfix/gate.fixed.md5` OK
+after the run), then case 28b's and case 30's own lines against the mutated module (`gate_case_runner.py`, capped
+`ulimit -v 4194304; timeout 600`). Log `vfix/mut/gate_mut.out`.
+
+| # | Mutation | Caught by (observed) |
+|---|---|---|
+| VM0 | the WHOLE reading back to the pre-verification gate (`_logical_lines`, `_CXX_TOKENS`, `_strip_comments`, `_literal_runs`) | **28b RED** (9 of 33: both direct checks, all five REFUSED plants, both PASS plants over-reported) and **30 RED** (the raw-string path) |
+| VM1 | `_splice` joins with a SPACE (the finding's premise) | **28b RED** (4): `_logical_lines`' direct check, the split name, the split name with blanks, the split LIST |
+| VM2 | `_strip_comments` does not splice first | **28b RED** (2): the spliced literal shifts the later lines; the continued `//` comment reported |
+| VM3 | `_logical_lines` does not splice | **28b RED** (1): its direct check |
+| VM4 | no pp-number (a digit separator opens a literal again) | **28b RED** (2): the digit-separator plant; the number lost its digits |
+| VM5 | no raw string | **28b RED** (2): the quote-holding raw string; the multi-line raw string over-reported — and **30 RED** |
+| VM6 | `_literal_runs` ignores a raw string | **30 RED** (the raw-string path) |
+| VM7 | a raw string's text not blanked | **28b RED** (1): the multi-line raw string reported |
+| VM8 | a number blanked like a literal | **28b RED** (1): `int k = 11; int j = 22;` |
+| VM9 | the splice pattern without blanks after the backslash | **28b RED** (1): the blanks plant |
+
+- **An interrupted run, cleaned up.** My first `src_build_gate.py self-test` of this round was STOPPED (by me, two
+  minutes in, to finish the limit sentences before the gates ran on them) and left its first plant —
+  `static int gate1_selftest_unused_variable = 42;` at the end of `src/programs/bench_r3a.cpp` (a file this run does
+  not change). Found by the plant grep, restored with `git checkout`, timestamp bumped; no other plant
+  (`gate1_selftest|kSelfTest|zz_self_test` over `src include test`: none).
+
+**VR-1's prose review — the greps run FIRST, every hit read** *(before any sentence above claimed it)*:
+`any spelling|misses none|cannot span a line|every spelling|continuations joined|literals stripped` over `*.py *.hpp
+*.cpp *.md *.txt`: the gate's header :267 ("comments and string literals stripped, as above" — true, "above" is the
+rewritten reading sentence), :796 and :954 (true: literals are stripped), :2621 (case 28's selection function — another
+subject), the 28b comment's "THE NAME, IN ANY SPELLING" (REWORDED: "WHEREVER IT IS WRITTEN"), R-1's paragraph in this
+log (ANNOTATED, history kept), the SER1 and G1 logs (history), `auton_tester_program.cpp` :35 (another subject — true).
+The four documents the finding named were rewritten with the real limit (above); `mechanism namespace|robot's
+namespace|namespace rule` over `docs/`: build-order :1646 (no completeness claim), the MECH and G3a briefs (plans —
+no claim of the rule's reach). No guide, cookbook or the changelog describes the gate's reading. `259 detector`: only
+this log (history; the count is now 269).
+
+**VR-1's gates, final (the restored tree; `git status` lists only this run's files)** *(`date` at this entry: Thu Oct 29 08:35:15 PM EDT 2026)*:
+- `vfix/build.sh v2` (the stale binary removed, the briefing regenerated as unbuilt, `cmake -S test -B build/test`, the
+  WHOLE `cmake --build build/test -j8`, 240 objects — the banner edit and the src gate's fresh builds): rc 0, no
+  doc-gate error. **Suite (`tools/suite_run.py green`, capped 4 GiB / 600 s): green — 2,624 cases, 2,800,491
+  assertions** (unchanged: this round changed no C++ code). The briefing regenerated from that fresh binary, then
+  **`briefing_status.py check`: current**; its self-test OK. **`ctest -R compile_refusal`: 255/255 passed.**
+- `api_doc_tool.py` self-test OK; check-coverage 4,960 entities / 186 headers; check-fresh rc 0 (no `///` changed);
+  check-examples 600 quoted lines verbatim (10 source files; 6 whole-run listings unbroken); check-removability clean.
+  `doc_staleness_audit.py` self-test OK, the audit clean (31 live docs).
+- CI greps: no `pros/` include outside `hal/pros/`; no `shulib/sim/` include in the core; `PROBE_`: 0.
+- **ARM header gate: 226 headers, `arm-none-eabi-g++ -std=gnu++20 … -Wshadow -Werror -Os -mcpu=cortex-a9
+  -mfpu=neon-fp16 -mfloat-abi=softfp`: CLEAN.**
+- **`src_build_gate.py self-test`: OK — 269 detector cases, each against a real build** (259 + 28b's seven plants and
+  two direct checks + case 30's raw-string plant; 20:09–20:29; every plant restored). **`check`: PASS — all 7 builds
+  link** (bench, xdrive, tank, tank-drive, tank-calibrate, tank-autontest, tank-competition: 11/11 TUs each, 8
+  vendor-ignored warnings, 0 disallowed).
+
+**Notes for the coordinator, added by the verification round:**
+12. **The shared gate file.** VR-1's fix is in step 0's SHARED reading, not only the per-robot functions:
+   `_splice` (new), `_logical_lines`, `_CXX_TOKENS`, `_strip_comments`, `_literal_runs`, the header's step-0 reading
+   sentence and the per-robot paragraph, case 28b and one plant in case 30. G3a Part 1 also edits
+   `tools/src_build_gate.py` (its freshness gate and `[generated]` step): whichever lands second rebases; a G3a rule
+   that reads C++ through `_strip_comments` / `_logical_lines` gets the corrected reading (splices joined with nothing,
+   numbers and raw strings whole, line numbers right after a spliced literal).
+13. **Two offers, not made (each a decision beyond VR-1):** (a) refuse `##` and `%:%:` under `src/` — it closes the one
+   text gap the rule states (a name pasted together); a new rule on the team's code, the team lead's call. (b) Step 0
+   reads no file outside ONE_CHAIN_ROOTS — `include/main.h` (PROS's project header, which a team may edit) could hold
+   `using namespace shulib::bench::robot_two;` or a build switch and no step-0 rule would see it; pre-existing since
+   SRC1, every rule alike.
+- **VR-1 DONE — re-checked REAL, fixed at the root (the reading), three more spellings of its class found and fixed,
+  the limit stated where the claims were; every gate green.** Not committed (the coordinator commits).
+
+### The coordinator's merge verification — MECH-A5 (2026-10-30 08:45–09:30, main `6798aa5` + the squash of `mech-a5`)
+- **Audit before the merge:** `audit_wt.py mech-a5` — 29 backed-up files, 0 suspicious; the two files newer than their
+  backups (`src/robots/mechanism_table.hpp` against V9b, `tools/src_build_gate.py` against VM9) diffed by hand: the
+  verification-fix round's doc-comment and splice-rule edits, no live mutant. No gate plant; no stray root file. The
+  transport commit `d37fa79`, then `git merge --squash mech-a5` (base `4691757`).
+- **Four conflicts:** the briefing (regenerated); the changelog — A5's "no API change" entry dated as landed
+  ("2026-10-30 (built 2026-10-29)") at the top of `## API 2.5`, above IMU1's and CAL1-A2a's; the register — the status
+  line **7 of 182** (main's 181 with IMU1's three, plus A5's HA-185; 182 index rows counted), IMU1's "added THREE"
+  paragraph then A5's "added ONE" ending "With it, 182", and both new sections (IMU1's, then A5's); build-order — A5's
+  MECH status rewritten as LANDED 2026-10-30 (N9 "is CAL1 Part B's"), the sprint's line kept after it in the past tense,
+  and the `Next:` line by a word-level three-way merge against `4691757` (both sides' additions present), its "A5
+  BUILT … in review" phrases then made LANDED. Auto-merged but stale, corrected: the roadmap's A5 "Now" paragraph and
+  its F-row line, HANDOFF :297, REMAINING-WORK's top status and row 12 — all said "built, waiting on its review".
+- **Gates on the merged tree** (`.claude/coordinator/logs/mech_a5_merge_verify.out`): host build with the doc gates;
+  suite **2,721 | 2,721 passed, 3 skipped** (main's 2,723, less A5's two retired driver-controls cases, plus its
+  new ones — the same net as its own run against its base); `src_build_gate.py` self-test OK and check **PASS, all 7
+  builds**; ARM header gate over **228** headers clean; CI greps empty; api check-fresh, the briefing, removability and
+  the staleness audit clean; the compile-refusal harness **255 of 255**; no plant, no stray root file.
+- **The coordinator's hand mutations** (`muts_mech_a5_main.json` + `_b`; each on a fresh link, the whole suite under a
+  4 GiB / 300 s cap, restored and hash-checked): **7 of 7 caught** — MA1 (pivot 6's buttons swapped), MA2 (pivot 7 at
+  11 V, not full power), MA3 (the program-error stop never cancels a mechanism's claimant — A5-D6), MA4 (the
+  program-error stop skips the safe state), MA5 (the drive check forgets the IMU's port), MA6 (the boot's
+  declared-port rule forgets an angle sensor — A5-D4) RED; **MA7** as first cut (the right side's loop bound `0`)
+  broke its own build (`-Werror=type-limits`) — NOT counted; re-cut as **MA7b** (the drive check skips the last
+  right-side port) → RED at `test/mechanism_table_test.cpp` :601. Restored tree green.
+- **Logged, not fixed (A5's note 5):** COMP-b's routine-stop line is 214 bytes in its worst case against
+  `kCompetitionLineBytes` 200 — CUT with its `cut` flag set, never overflowed; a realistic line is ~163. A small item
+  for a later brief or ruling.
+- **Next:** MECH-A6 (station 13 and the direction check page). G3a Part 5 (robot two's mechanisms and controls in the
+  tool, D7's flip first) can start once G3a Part 1 merges and the panel amendment is answered.

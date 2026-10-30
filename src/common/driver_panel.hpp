@@ -1,11 +1,13 @@
 #pragma once
 //
 // driver_panel.hpp — THE DRIVER-CONTROL SCREEN'S SHARED PURE PIECES: every word a driver-control
-// program on robot two shows or prints about the drive and the claws — the PROTECTION row, the
-// controller row, the CLAW row, the ONE fault row, the claw boot lines — and the controller's own
+// program on robot two shows or prints about the drive and the mechanisms — the PROTECTION row, the
+// controller row, the CLAW row, the ONE fault row, the mechanism boot lines — and the controller's own
 // three lines with their ONE chooser and the writer that sends them (chunk COMP-b, 2026-09-30, the
 // COMP brief's B11 as T4 Part 1a replaced it; T4 Part 3, 2026-10-04: the claw words moved in, and
-// Part 2b's PROTECTION row and chooser words were added — the T4 brief's D4).
+// Part 2b's PROTECTION row and chooser words were added — the T4 brief's D4; the mechanism core's
+// MECH-A5, 2026-10-29: the claw boot lines became the mechanism boot lines, read from the robot's
+// list, its built roles and its mechanism service, and the claw row reads the service).
 //
 // ── Why here ────────────────────────────────────────────────────────────────────────
 // Two programs hand robot two to a driver: "shulib Drive" (src/programs/drive_program.cpp, slot
@@ -15,7 +17,7 @@
 // So everything either program says about the drive and the claws is made HERE, by pure functions
 // from plain facts the program reads — and the host suite pins every word (test/driver_panel_test.cpp
 // for the chooser, the writer and the PROTECTION row; test/driver_panel_claws_test.cpp for the
-// claw words, through the REAL table, the REAL driver file and the PROS shim). A program only
+// mechanism words, through the REAL list, the REAL driver file and the PROS shim). A program only
 // reads the robot, hands the facts in, and paints or prints what comes back. Nothing else in
 // either program may choose a controller word. Being pure is also what lets a later robot console
 // stream the same rows (the team lead's R7).
@@ -52,10 +54,10 @@
 // the program believed them written. Both programs write through the writer.
 //
 // ── An ABSENT mechanism ─────────────────────────────────────────────────────────────
-// A mechanism the provider refused (robot::Robot left it ABSENT with the provider's sentence) gets
-// no binding from the driver file's binder: its buttons do nothing, its boot line says ABSENT with
-// that sentence, the claw row says ABSENT, the controller says `CLAW ABSENT` when a line has room —
-// and the drive runs.
+// A mechanism the provider refused (robot::Robot left it ABSENT with the provider's sentence) is a
+// mechanism-service slot that answers ABSENT: its buttons do nothing, its role's boot line says
+// ABSENT with that sentence (and its control lines say so), the claw row says ABSENT, the controller
+// says `CLAW ABSENT` when a line has room — and the drive runs.
 //
 // Every sentence is ASCII, and bounded: each goes through snprintf, with a precision on every %s
 // that carries a name, a reason or a state's text (a bare %s prints a literal of this file, or a
@@ -72,14 +74,19 @@
 #include <string_view>
 
 #include "common/boot_source.hpp"
-#include "common/driver_controls.hpp"
 #include "robots/mechanism_table.hpp"
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/diag/fault.hpp"
 #include "shulib/hal/controller.hpp"
 #include "shulib/hal/mechanism.hpp"
 #include "shulib/hal/motor.hpp"
+#include "shulib/hal/telemetry_sink.hpp"
+#include "shulib/mechanism/driver_inputs.hpp"
+#include "shulib/mechanism/route_ids.hpp"
+#include "shulib/mechanism/service.hpp"
+#include "shulib/mechanism/wiring.hpp"
 #include "shulib/robot/robot.hpp"
+#include "shulib/runner/command_registry.hpp"
 #include "shulib/teleop/drive_protection.hpp"
 #include "shulib/teleop/drivetrain_degradation.hpp"
 #include "shulib/teleop/mechanism_binding.hpp"
@@ -88,126 +95,309 @@
 
 namespace shulib::bench {
 
-// ═══ THE CLAW WORDS (moved from src/programs/teleop_claws.hpp at T4 Part 3, unchanged) ═══════════
-// Every sentence below is ASCII, and bounded: each goes through snprintf with a precision on every
-// %s, so -Wformat-truncation (an error in src/) can see it fit.
+// ═══ THE MECHANISM BOOT LINES (the mechanism core's MECH-A5, 2026-10-29) ═════════════════════════
+// Every program that boots robot two ("shulib Drive", the Auton Tester, the competition program)
+// prints, AFTER its mechanism service is bound, one block per mechanism in the list's order — each
+// line ASCII, at most kMechanismLineBytes - 1 = 199 characters (one TermSink line: no line is ever
+// cut), logged with the tag MECH:
+//   1. WHAT IT IS — its kind, its cartridge and its motors' directions (or a pneumatic's positions and
+//      their levels), and what it does when let go or made safe:
+//        `claw pivot 6: POWER -- RED, motor 1 forward; let go: HOLD`
+//        `claw: PNEUMATIC -- starts 'closed', safe 'closed'; closed = A low, open = A high (levels
+//         UNVERIFIED until a bench station sees them); a disable leaves it where it is`
+//      (a line that would run past 199 characters — 23-character names, three 15-character
+//      positions on two lines — is CUT there, never overflowed);
+//   2. ONE PER ROLE, in the library's words (mechanism::roleLine over robot::MechanismParts' facts):
+//        `claw pivot 6: motor 1 -> port 6 ok`, `claw: line 1 -> 3-wire A not checkable (...)`, or
+//        `claw pivot 7: motor 1 -> port 7 ABSENT: port 7: nothing plugged in (expected a motor)` (Warn);
+//   3. ONE PER DRIVER CONTROL naming it (the driver file's — a program with none, the Auton Tester,
+//      prints none): `claw pivot 6: hold-to-run R1 / R2, 12 V`, `claw: toggle on A ('closed' /
+//      'open')`, `arm: preset 'score' on RIGHT (1.50 s)`; on an ABSENT mechanism the line says its
+//      buttons do nothing and the drive still runs (Warn);
+//   4. a POSITION mechanism's homed state (`lift: NOT HOMED -- its buttons do nothing until it is
+//      homed (homeAtDriverStart)`, the MECH brief's U5); a POWER mechanism with no stall signature
+//      (`'claw pivot 6': no stall signature -- held against its stop it is cut only by the driver
+//      letting go (HA-154)`, N10); a position or speed mechanism's starting values
+//      (mechanism::startingValuesLine, N7 — HA-182).
+// (Until MECH-A5 two lines per robot-two claw said most of this — motorClawBootLine() /
+// pneumaticClawBootLine(), from the old table entries and T4's HoldControl / ToggleControl; the
+// worksheet's Stations J and K quote these lines now.)
 
-/// The cartridge as the boot line names it.
-constexpr const char* clawCartridgeWord(Cartridge c) noexcept {
+/// One mechanism boot line's storage (199 characters and its NUL: one TermSink line, never cut).
+inline constexpr std::size_t kMechanismLineBytes = 200;
+
+/// A cartridge as a boot line names it: `RED`, `GREEN`, `BLUE` (`UNSET` for any other byte).
+constexpr const char* mechanismCartridgeWord(hal::MotorCartridge c) noexcept {
     switch (c) {
-        case Cartridge::Red: return "RED";
-        case Cartridge::Green: return "GREEN";
-        case Cartridge::Blue: return "BLUE";
-        case Cartridge::Unset: break;
+        case hal::MotorCartridge::Red: return "RED";
+        case hal::MotorCartridge::Green: return "GREEN";
+        case hal::MotorCartridge::Blue: return "BLUE";
     }
     return "UNSET";
 }
 
-/// A brake mode as the panel and the boot line name a stopped pivot: `HOLD`, `BRAKE`, `COAST`.
-constexpr const char* clawStopWord(hal::BrakeMode m) noexcept {
+/// A declared safe brake mode as the boot line and the claw row name a stopped mechanism: `HOLD`,
+/// `BRAKE`, `COAST` (`?` for any other byte).
+constexpr const char* mechanismStopWord(config::SafeBrakeMode m) noexcept {
     switch (m) {
-        case hal::BrakeMode::Hold: return "HOLD";
-        case hal::BrakeMode::Brake: return "BRAKE";
-        case hal::BrakeMode::Coast: return "COAST";
+        case config::SafeBrakeMode::Hold: return "HOLD";
+        case config::SafeBrakeMode::Brake: return "BRAKE";
+        case config::SafeBrakeMode::Coast: return "COAST";
     }
     return "?";
 }
 
-/// A 3-wire line 1..8 as its letter on the brain, 'A'..'H' ('?' outside).
-constexpr char adiLetter(std::uint8_t line) noexcept {
-    return line >= 1 && line <= kMaxAdiLine ? static_cast<char>('A' + (line - 1)) : '?';
+/// A declaration's kind as its boot line names it: `POWER`, `ARM`, `LIFT`, `FLYWHEEL`, `PNEUMATIC`.
+constexpr const char* mechanismKindWord(const mechanism::MechanismSpec& s) noexcept {
+    switch (s.kind) {
+        case mechanism::Kind::Power: return "POWER";
+        case mechanism::Kind::Position: return s.position.units == mechanism::Units::Inches ? "LIFT" : "ARM";
+        case mechanism::Kind::Speed: return "FLYWHEEL";
+        case mechanism::Kind::Pneumatic: return "PNEUMATIC";
+    }
+    return "UNSET";
 }
 
-/// One boot line, at most kClawLineBytes - 1 characters (logWrapped() splits it for TermSink).
-inline constexpr std::size_t kClawLineBytes = 256;
-struct ClawLine {
-    char text[kClawLineBytes]{};
+/// One mechanism boot line.
+struct MechanismLine {
+    hal::LogLevel level = hal::LogLevel::Info;  ///< Warn for an ABSENT role or an ABSENT control
+    char text[kMechanismLineBytes]{};           ///< NUL-terminated, at most 199 characters
 };
 
-/// The hold control in `holds` that names `name`, or nullptr — found BY NAME, as the driver file's
-/// binder finds a mechanism (src/common/driver_controls.hpp). A driver file whose controls miss an
-/// entry does not compile (controlsCoverTable), so a null here is a hand-built test's.
-constexpr const HoldControl* holdControlFor(std::span<const HoldControl> holds,
-                                            const char* name) noexcept {
-    for (const HoldControl& h : holds) {
-        if (controlNameIs(h.mechanism, name)) return &h;
+namespace detail {
+/// Append `text` to `out` at `n`, bounded (never past kMechanismLineBytes - 1).
+inline void appendTo(char (&out)[kMechanismLineBytes], std::size_t& n, const char* text) noexcept {
+    for (std::size_t i = 0; text[i] != '\0' && n + 1 < kMechanismLineBytes; ++i) {
+        out[n++] = text[i];
     }
-    return nullptr;
+    out[n] = '\0';
+}
+/// A position's levels as `A low` / `C high D low` (the wiring's letters, line 1 first).
+inline void appendLevels(char (&out)[kMechanismLineBytes], std::size_t& n, const mechanism::MechanismSpec& s,
+                         const mechanism::MechanismWiring& w, std::size_t p) noexcept {
+    for (std::size_t l = 0; l < s.lineCount && l < mechanism::kMaxLineRoles; ++l) {
+        char one[16];
+        std::snprintf(one, sizeof one, "%s%c %s", l == 0 ? "" : " ", mechanism::lineLetter(w.lines[l]),
+                      s.pneumatic.positions[p].levels[l] ? "high" : "low");
+        appendTo(out, n, one);
+    }
+}
+}  // namespace detail
+
+/// Line 1 for mechanism `i` of `list` (block header): WHAT IT IS.
+inline MechanismLine mechanismDeclarationLine(const MechanismTable& list, std::size_t i) {
+    MechanismLine out;
+    const mechanism::MechanismSpec& s = list.specs[i];
+    std::size_t n = 0;
+    char head[64];
+    std::snprintf(head, sizeof head, "%.23s: %s -- ", s.name, mechanismKindWord(s));
+    detail::appendTo(out.text, n, head);
+    if (s.kind != mechanism::Kind::Pneumatic) {
+        detail::appendTo(out.text, n, mechanismCartridgeWord(s.cartridge));
+        for (std::size_t m = 0; m < s.motorCount && m < mechanism::kMaxMotorRoles; ++m) {
+            char one[24];
+            std::snprintf(one, sizeof one, ", motor %d %s", static_cast<int>(m + 1),
+                          s.motors[m].reversed ? "reversed" : "forward");
+            detail::appendTo(out.text, n, one);
+        }
+        detail::appendTo(out.text, n, s.kind == mechanism::Kind::Power ? "; let go: " : "; made safe: ");
+        detail::appendTo(out.text, n, mechanismStopWord(s.safeMode));
+        return out;
+    }
+    const mechanism::PneumaticSpec& q = s.pneumatic;
+    const mechanism::MechanismWiring& w = list.wiring[i];
+    char start[56];  // "starts '" 8 + 15 + "', safe '" 9 + 15 + "';" 2 = 49, and the NUL
+    std::snprintf(start, sizeof start, "starts '%.15s', safe '%.15s';", q.positions[q.start].name,
+                  q.positions[q.safe].name);
+    detail::appendTo(out.text, n, start);
+    for (std::size_t p = 0; p < q.positionCount && p < mechanism::kMaxPneumaticPositions; ++p) {
+        char name[24];
+        std::snprintf(name, sizeof name, "%s%.15s = ", p == 0 ? " " : ", ", q.positions[p].name);
+        detail::appendTo(out.text, n, name);
+        detail::appendLevels(out.text, n, s, w, p);
+    }
+    detail::appendTo(out.text, n,
+                     " (levels UNVERIFIED until a bench station sees them); a disable leaves it where it is");
+    return out;
 }
 
-/// The toggle control in `toggles` that names `name`, or nullptr (as holdControlFor()).
-constexpr const ToggleControl* toggleControlFor(std::span<const ToggleControl> toggles,
-                                                const char* name) noexcept {
-    for (const ToggleControl& c : toggles) {
-        if (controlNameIs(c.mechanism, name)) return &c;
-    }
-    return nullptr;
+/// Line 2: role `r` of mechanism `i`, in the library's words (mechanism::roleLine) — Warn when the
+/// provider refused it.
+inline MechanismLine mechanismRoleLine(const MechanismTable& list, const robot::Robot& robot, std::size_t i,
+                                       std::size_t r) {
+    MechanismLine out;
+    const mechanism::RoleFact& f = robot.mechanismParts().roles(i)[r];
+    mechanism::roleLine(out.text, sizeof out.text, list.specs[i].name, f.role, f.port,
+                        static_cast<mechanism::Line>(f.line), f.state, f.refusal, f.degradeOnly);
+    out.level = f.state == mechanism::RoleState::Refused ? hal::LogLevel::Warn : hal::LogLevel::Info;
+    return out;
 }
 
-/// Motor entry `i`'s boot line: BUILT (its port, sign, cartridge, its control's buttons and volts,
-/// its stop) or ABSENT with the provider's own sentence (`robot.mechanismAbsence(i)`). The buttons
-/// and the volts come from `holds` — the driver file's controls — found BY NAME (T4 Part 3: they
-/// left the table); an entry no control names prints `?` for its buttons and 0 V. A complete entry
-/// of a table the robot was built from (config index i).
-inline ClawLine motorClawBootLine(const MechanismTable& t, std::span<const HoldControl> holds,
-                                  const robot::Robot& robot, std::size_t i) {
-    ClawLine out;
-    const MotorMechanismEntry& e = t.motors[i];
-    const HoldControl* c = holdControlFor(holds, e.name);
-    const char* fwd = c != nullptr ? teleop::controllerButtonWord(c->forward) : "?";
-    const char* rev = c != nullptr ? teleop::controllerButtonWord(c->back) : "?";
-    const double volts = c != nullptr ? c->volts.value() : 0.0;
-    if (robot.builtMechanismAt(i) != nullptr) {
-        std::snprintf(out.text, sizeof out.text,
-                      "%.23s: BUILT -- port %d (typed %+d), %.5s, %.5s forward / %.5s reverse at "
-                      "%d V, %.5s on release -- buttons: src/team/robot_two_driver.hpp",
-                      e.name, absPort(e.signedPort), static_cast<int>(e.signedPort),
-                      clawCartridgeWord(e.cartridge), fwd, rev,
-                      static_cast<int>(std::lround(volts)), clawStopWord(*e.safeMode));
-    } else {
-        std::snprintf(out.text, sizeof out.text,
-                      "%.23s: ABSENT -- %.159s -- %.5s/%.5s do nothing; the drive still runs",
-                      e.name, robot.mechanismAbsence(i), fwd, rev);
+/// Line 3: driver control `c` (it names mechanism `i` of `list`); `built` is whether the boot built
+/// it. On an ABSENT mechanism the line says its buttons do nothing (Warn).
+inline MechanismLine mechanismControlLine(const MechanismTable& list, std::size_t i, const mechanism::Control& c,
+                                          bool built) {
+    MechanismLine out;
+    const mechanism::MechanismSpec& s = list.specs[i];
+    const char* name = s.name;
+    switch (c.kind) {
+        case mechanism::ControlKind::Hold:
+            std::snprintf(out.text, sizeof out.text, "%.23s: hold-to-run %s / %s, %d V", name,
+                          teleop::controllerButtonWord(c.button), teleop::controllerButtonWord(c.back),
+                          static_cast<int>(std::lround(c.volts)));
+            break;
+        case mechanism::ControlKind::Toggle:
+            if (c.mechanismKind == mechanism::Kind::Pneumatic) {
+                std::snprintf(out.text, sizeof out.text, "%.23s: toggle on %s ('%.15s' / '%.15s')", name,
+                              teleop::controllerButtonWord(c.button), s.pneumatic.positions[0].name,
+                              s.pneumatic.positions[1].name);
+            } else {
+                std::snprintf(out.text, sizeof out.text, "%.23s: toggle on %s (spin to '%.15s' / stop)", name,
+                              teleop::controllerButtonWord(c.button), c.presetName != nullptr ? c.presetName : "");
+            }
+            break;
+        case mechanism::ControlKind::Preset:
+            if (c.mechanismKind == mechanism::Kind::Pneumatic) {
+                std::snprintf(out.text, sizeof out.text, "%.23s: preset '%.15s' on %s", name,
+                              s.pneumatic.positions[c.position].name, teleop::controllerButtonWord(c.button));
+            } else if (c.presetName != nullptr) {
+                std::snprintf(out.text, sizeof out.text, "%.23s: preset '%.15s' on %s (%.2f s)", name, c.presetName,
+                              teleop::controllerButtonWord(c.button), c.bound);
+            } else {
+                std::snprintf(out.text, sizeof out.text, "%.23s: preset %.1f on %s (%.2f s)", name, c.value,
+                              teleop::controllerButtonWord(c.button), c.bound);
+            }
+            break;
+        case mechanism::ControlKind::HomeOnPress:
+            std::snprintf(out.text, sizeof out.text, "%.23s: home on %s (%.2f s)", name,
+                          teleop::controllerButtonWord(c.button), c.bound);
+            break;
+        case mechanism::ControlKind::HomeAtDriverStart:
+            std::snprintf(out.text, sizeof out.text,
+                          "%.23s: homed when driver control starts, if nothing has homed it (%.2f s)", name, c.bound);
+            break;
+        case mechanism::ControlKind::AutonOnly:
+            std::snprintf(out.text, sizeof out.text, "%.23s: no driver control (autonOnly: the autons' alone)", name);
+            break;
+    }
+    if (!built && c.kind != mechanism::ControlKind::AutonOnly) {
+        std::size_t n = std::strlen(out.text);
+        detail::appendTo(out.text, n, " -- ABSENT: does nothing; the drive still runs");
+        out.level = hal::LogLevel::Warn;
     }
     return out;
 }
 
-/// Pneumatic entry `j`'s boot line: BUILT (its 3-wire port, its start position and the line level
-/// that is, the polarity's status, its control's button, the disable rule) or ABSENT with the
-/// provider's sentence. The button comes from `toggles` — the driver file's controls — found BY
-/// NAME (`?` when no control names it). A complete entry of a table the robot was built from.
-inline ClawLine pneumaticClawBootLine(const MechanismTable& t,
-                                      std::span<const ToggleControl> toggles,
-                                      const robot::Robot& robot, std::size_t j) {
-    ClawLine out;
-    const PneumaticMechanismEntry& e = t.pneumatics[j];
-    const std::size_t k = mechanismConfigIndexOfPneumatic(t, j);
-    const ToggleControl* c = toggleControlFor(toggles, e.name);
-    const char* button = c != nullptr ? teleop::controllerButtonWord(c->button) : "?";
-    if (robot.builtMechanismAt(k) != nullptr) {
+/// Lines 4 for mechanism `i` (zero to two of them): a position mechanism's homed state, a power
+/// mechanism with no stall signature, a position or speed mechanism's starting values. `homed` is the
+/// service's word for a position mechanism (PositionSlot::homed()); ignored otherwise.
+template <class Emit>
+void mechanismStateLines(const MechanismTable& list, std::size_t i, bool built, bool homed, Emit&& emit) {
+    const mechanism::MechanismSpec& s = list.specs[i];
+    MechanismLine out;
+    if (s.kind == mechanism::Kind::Position && built) {
+        if (homed) {
+            std::snprintf(out.text, sizeof out.text, "%.23s: homed at boot", s.name);
+        } else {
+            std::snprintf(out.text, sizeof out.text,
+                          "%.23s: NOT HOMED -- its buttons do nothing until it is homed (homeAtDriverStart, "
+                          "homeOnPress, or an auton's r.home)",
+                          s.name);
+            out.level = hal::LogLevel::Warn;
+        }
+        emit(out);
+        out = MechanismLine{};
+    }
+    if (s.kind == mechanism::Kind::Power && !s.power.stall.stated()) {
         std::snprintf(out.text, sizeof out.text,
-                      "%.23s: BUILT -- 3-wire port %c, %.6s at the start (line %.4s; line %.4s "
-                      "opens it -- polarity UNVERIFIED, HA-159); %.5s toggles it; a disable "
-                      "leaves it where it is",
-                      e.name, adiLetter(e.adiLine),
-                      *e.start == PneumaticPosition::Closed ? "CLOSED" : "OPEN",
-                      pneumaticStartCommand(e) ? "high" : "low", *e.openCommand ? "high" : "low",
-                      button);
+                      "'%.23s': no stall signature -- held against its stop it is cut only by the driver letting "
+                      "go (HA-154)",
+                      s.name);
+        emit(out);
+        out = MechanismLine{};
+    }
+    if (s.kind == mechanism::Kind::Position || s.kind == mechanism::Kind::Speed) {
+        mechanism::startingValuesLine(out.text, sizeof out.text, s);
+        emit(out);
+    }
+}
+
+/// EVERY mechanism boot line of `list` (the section banner), in order, handed to `emit(const
+/// MechanismLine&)` one at a time. `robot` was built from `list` (config index i IS list entry i);
+/// `service` is bound over it; `controls` is the driver file's (nullptr: a program with no driver
+/// control prints no control line).
+template <class Emit>
+void mechanismBootLines(const MechanismTable& list, const robot::Robot& robot,
+                        const mechanism::MechanismService& service, const mechanism::DriverControls* controls,
+                        Emit&& emit) {
+    for (std::size_t i = 0; i < list.count && i < robot.mechanismCount(); ++i) {
+        const bool built = robot.builtMechanismAt(i) != nullptr;
+        emit(mechanismDeclarationLine(list, i));
+        const std::size_t roles = robot.mechanismParts().roles(i).size();
+        for (std::size_t r = 0; r < roles; ++r) {
+            emit(mechanismRoleLine(list, robot, i, r));
+        }
+        if (controls != nullptr) {
+            for (const mechanism::Control& c : controls->all()) {
+                if (list.indexOf(c.mechanism) == static_cast<int>(i)) {
+                    emit(mechanismControlLine(list, i, c, built));
+                }
+            }
+        }
+        const mechanism::Slot* slot = service.slotPtr(i);
+        const bool homed = slot != nullptr && slot->kind() == mechanism::Kind::Position &&
+                           static_cast<const mechanism::PositionSlot*>(slot)->homed();
+        mechanismStateLines(list, i, built, homed, emit);
+    }
+}
+
+/// The ROUTES boot line's storage (one TermSink line).
+struct RoutesLine {
+    char text[kMechanismLineBytes]{};  ///< NUL-terminated, at most 199 characters
+};
+
+/// THE ROUTES BOOT LINE (the two auton programs; the team lead's ruling of 2026-10-08 — every
+/// mechanism publishes its actions as route ids): how many mechanism route ids the robot's list
+/// derived and registered (runner::MechanismRoutes::ids()), the first and the last by name, and how
+/// many of the route registry's slots are left for the team's own ids:
+///     `ROUTES: 6 mechanism route ids published (claw_pivot_6_run .. claw_open); 26 of the registry's
+///      32 left for the team's own`
+/// and, for a robot that declares no mechanism, `ROUTES: no mechanism route ids (this robot declares no
+/// mechanism); 32 of the registry's 32 left for the team's own`.
+inline RoutesLine routesBootLine(const mechanism::RouteIds& ids) {
+    RoutesLine out;
+    const std::size_t n = ids.count < mechanism::kMaxRouteIds ? ids.count : mechanism::kMaxRouteIds;
+    const int left = static_cast<int>(runner::kMaxCommands) - static_cast<int>(n);
+    if (n == 0) {
+        std::snprintf(out.text, sizeof out.text,
+                      "ROUTES: no mechanism route ids (this robot declares no mechanism); %d of the registry's %d "
+                      "left for the team's own",
+                      left, static_cast<int>(runner::kMaxCommands));
+    } else if (n == 1) {
+        std::snprintf(out.text, sizeof out.text,
+                      "ROUTES: 1 mechanism route id published (%.23s); %d of the registry's %d left for the team's "
+                      "own",
+                      ids.ids[0].id, left, static_cast<int>(runner::kMaxCommands));
     } else {
         std::snprintf(out.text, sizeof out.text,
-                      "%.23s: ABSENT -- %.159s -- %.5s does nothing; the drive still runs", e.name,
-                      robot.mechanismAbsence(k), button);
+                      "ROUTES: %d mechanism route ids published (%.23s .. %.23s); %d of the registry's %d left for "
+                      "the team's own",
+                      static_cast<int>(n), ids.ids[0].id, ids.ids[n - 1].id, left,
+                      static_cast<int>(runner::kMaxCommands));
     }
     return out;
 }
 
 // ═══ THE PANEL'S CLAW ROW ═══════════════════════════════════════════════════════════
-// `CLAW 6 HOLD 34C | 7 FWD 35C | CLAW CLOSED` — each pivot by its port: the word is what its motor
-// was last COMMANDED (FWD above 0 V, REV below, else its declared stop — HOLD — so an operation
-// driving it would show too), then its temperature in whole degrees C; ABSENT when it was not
-// built. Then each pneumatic mechanism by its name in capitals: OPEN / CLOSED (its commanded line
-// against its polarity) or ABSENT. ` FREED` at the end while a claim released at this driver-control
-// entry is remembered (the serial `[WARN][TEL]` line names which). The panel paints it amber then.
+// `CLAW 6 HOLD 34C | 7 FWD 35C | CLAW CLOSED` — each MOTOR mechanism by its first motor's port: the
+// word is what its motors were last COMMANDED (FWD above 0 V, REV below, else its declared stop —
+// HOLD — so a step or the guard driving it shows too), then its temperature in whole degrees C;
+// ABSENT when it was not built. Then each PNEUMATIC mechanism by its name in capitals and the position
+// its lines are at, from the MECHANISM SERVICE (PneumaticSlot::commandedPosition() — the declaration's
+// own levels; CLOSED / OPEN for robot two's claw), `?` when they match none, or ABSENT. ` FREED` at the
+// end while a claim another owner left was released at THIS driver-control entry (the driver file's
+// releasedLeftoverAtEntry(); the serial `[WARN][MECH]` line names which). The panel paints it amber
+// then. (Since MECH-A5; until then the row read the old table's polarity constant for the claw.)
 
 /// The temperature as the row prints it: whole degrees, clamped to -99..999 (a width the budget
 /// check below can bound); "--" when the read is not a number.
@@ -230,13 +420,13 @@ inline void clawTemperatureText(double celsius, char (&out)[8]) {
     std::snprintf(out, sizeof out, "%d", static_cast<int>(std::lround(clamped)));
 }
 
-/// The row when the table declares nothing (every build but ROBOT=tank).
+/// The row when the list declares nothing (every build but ROBOT=tank).
 inline constexpr std::string_view kNoClawsRow = "claws: none declared for this robot";
 
-/// The row's widest possible text for `t`, computed from the words it can print — the budget the
+/// The row's widest possible text for `list`, computed from the words it can print — the budget the
 /// panel's static_assert holds against calibration::kSmallCols (constexpr).
-constexpr std::size_t clawRowWorstLength(const MechanismTable& t) noexcept {
-    if (motorEntryCount(t) + pneumaticEntryCount(t) == 0) {
+constexpr std::size_t clawRowWorstLength(const MechanismTable& list) noexcept {
+    if (list.count == 0) {
         return kNoClawsRow.size();
     }
     const auto len = [](const char* s) {
@@ -245,21 +435,29 @@ constexpr std::size_t clawRowWorstLength(const MechanismTable& t) noexcept {
         return n;
     };
     std::size_t total = 4;  // "CLAW"
-    for (std::size_t i = 0; i < motorEntryCount(t); ++i) {
-        const int port = absPort(t.motors[i].signedPort);
-        const std::size_t digits = port >= 10 ? 2 : 1;
-        std::size_t word = len(clawStopWord(*t.motors[i].safeMode));
+    bool firstMotor = true;
+    for (std::size_t i = 0; i < list.count && i < mechanism::kMaxMechanisms; ++i) {
+        const mechanism::MechanismSpec& s = list.specs[i];
+        if (s.kind == mechanism::Kind::Pneumatic) {
+            std::size_t word = 6;  // ABSENT
+            for (std::size_t p = 0; p < s.pneumatic.positionCount && p < mechanism::kMaxPneumaticPositions; ++p) {
+                const std::size_t w = len(s.pneumatic.positions[p].name);
+                word = w > word ? w : word;
+            }
+            total += 3 + len(s.name) + 1 + word;  // " | NAME " + its widest word
+            continue;
+        }
+        const std::size_t digits = list.wiring[i].motors[0] >= 10 ? 2 : 1;
+        std::size_t word = len(mechanismStopWord(s.safeMode));
         word = word < 3 ? 3 : word;                 // FWD / REV
         std::size_t body = word + 1 + 4;            // "<word> 999C"
         body = body < 6 ? 6 : body;                 // ABSENT
-        total += (i == 0 ? 1 : 3) + digits + 1 + body;
-    }
-    for (std::size_t j = 0; j < pneumaticEntryCount(t); ++j) {
-        total += 3 + len(t.pneumatics[j].name) + 1 + 6;  // " | NAME " + CLOSED / ABSENT
+        total += (firstMotor ? 1 : 3) + digits + 1 + body;
+        firstMotor = false;
     }
     return total + 6;  // " FREED"
 }
-static_assert(clawRowWorstLength(kRobotTwoMechanisms) <= calibration::kSmallCols,
+static_assert(clawRowWorstLength(robot_two::kRobotTwoMechanisms) <= calibration::kSmallCols,
               "robot two's claw row could run past the SMALL budget");
 static_assert(clawRowWorstLength(kMechanisms) <= calibration::kSmallCols,
               "this build's claw row could run past the SMALL budget");
@@ -269,52 +467,66 @@ struct ClawRow {
     char text[calibration::kSmallCols + 1]{};
 };
 
-/// The claw row for `t` over `robot`, with ` FREED` when `freed` — a claim released at this
-/// driver-control entry is remembered by whatever holds the bindings (a driver file's
-/// DriverBindings: `anyReleasedLeftoverClaim()`). The row reads the robot and the table, and takes
-/// the one fact it needs from the bindings as a bool (since T4 Part 1a), so every program that
-/// binds through a driver file prints the same row, byte for byte.
-inline ClawRow clawRowText(const MechanismTable& t, const robot::Robot& robot, bool freed) {
+/// The claw row for `list` over `robot` and its bound `service` (section banner), with ` FREED` when
+/// `freed` — the driver file's releasedLeftoverAtEntry(service) — so every program that runs a driver
+/// file prints the same row, byte for byte.
+inline ClawRow clawRowText(const MechanismTable& list, const robot::Robot& robot,
+                           const mechanism::MechanismService& service, bool freed) {
     ClawRow out;
-    if (motorEntryCount(t) + pneumaticEntryCount(t) == 0) {
+    if (list.count == 0) {
         std::snprintf(out.text, sizeof out.text, "%.50s", kNoClawsRow.data());
         return out;
     }
     char row[128] = "CLAW";
     std::size_t n = 4;
-    for (std::size_t i = 0; i < motorEntryCount(t) && n < sizeof row; ++i) {
-        const MotorMechanismEntry& e = t.motors[i];
-        const char* sep = i == 0 ? " " : " | ";
+    bool firstMotor = true;
+    for (std::size_t i = 0; i < list.count && i < robot.mechanismCount() && n < sizeof row; ++i) {
+        const mechanism::MechanismSpec& s = list.specs[i];
+        if (s.kind == mechanism::Kind::Pneumatic) {
+            continue;  // the pneumatics after every motor mechanism (below)
+        }
+        const char* sep = firstMotor ? " " : " | ";
+        firstMotor = false;
+        const int port = list.wiring[i].motors[0];
         const hal::MotorMechanism* m = robot.mechanismAt(i);
         if (m == nullptr) {
-            n += static_cast<std::size_t>(std::snprintf(row + n, sizeof row - n, "%s%d ABSENT", sep,
-                                                        absPort(e.signedPort)));
+            n += static_cast<std::size_t>(std::snprintf(row + n, sizeof row - n, "%s%d ABSENT", sep, port));
             continue;
         }
         const double v = m->commandedVoltage().value();
-        const char* word = v > 0.0 ? "FWD" : (v < 0.0 ? "REV" : clawStopWord(m->safeBrakeMode()));
+        const char* word = v > 0.0 ? "FWD" : (v < 0.0 ? "REV" : mechanismStopWord(s.safeMode));
         char temp[8];
         clawTemperatureText(m->motors().front()->temperature(), temp);
-        n += static_cast<std::size_t>(std::snprintf(row + n, sizeof row - n, "%s%d %.5s %.4sC", sep,
-                                                    absPort(e.signedPort), word, temp));
+        n += static_cast<std::size_t>(std::snprintf(row + n, sizeof row - n, "%s%d %.5s %.4sC", sep, port, word, temp));
     }
-    for (std::size_t j = 0; j < pneumaticEntryCount(t) && n < sizeof row; ++j) {
-        const PneumaticMechanismEntry& e = t.pneumatics[j];
+    for (std::size_t i = 0; i < list.count && i < robot.mechanismCount() && n < sizeof row; ++i) {
+        const mechanism::MechanismSpec& s = list.specs[i];
+        if (s.kind != mechanism::Kind::Pneumatic) {
+            continue;
+        }
         char upper[24] = "";
         std::size_t k = 0;
-        for (; e.name[k] != '\0' && k + 1 < sizeof upper; ++k) {
-            const char c = e.name[k];
+        for (; s.name[k] != '\0' && k + 1 < sizeof upper; ++k) {
+            const char c = s.name[k];
             upper[k] = (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
         }
         upper[k] = '\0';
-        const hal::PneumaticMechanism* p =
-            robot.pneumaticMechanismAt(mechanismConfigIndexOfPneumatic(t, j));
-        const char* word = p == nullptr ? "ABSENT"
-                           : p->commanded() == pneumaticCommandFor(e, PneumaticPosition::Open)
-                               ? "OPEN"
-                               : "CLOSED";
-        n += static_cast<std::size_t>(
-            std::snprintf(row + n, sizeof row - n, " | %.23s %.6s", upper, word));
+        char word[16] = "ABSENT";
+        const mechanism::Slot* slot = service.slotPtr(i);
+        if (slot != nullptr && slot->built()) {
+            const std::uint8_t p = static_cast<const mechanism::PneumaticSlot*>(slot)->commandedPosition();
+            if (p < s.pneumatic.positionCount) {
+                std::size_t w = 0;
+                for (; s.pneumatic.positions[p].name[w] != '\0' && w + 1 < sizeof word; ++w) {
+                    const char c = s.pneumatic.positions[p].name[w];
+                    word[w] = (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
+                }
+                word[w] = '\0';
+            } else {
+                std::snprintf(word, sizeof word, "?");
+            }
+        }
+        n += static_cast<std::size_t>(std::snprintf(row + n, sizeof row - n, " | %.23s %.15s", upper, word));
     }
     if (freed && n < sizeof row) {
         std::snprintf(row + n, sizeof row - n, " FREED");

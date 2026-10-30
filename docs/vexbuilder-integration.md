@@ -367,13 +367,13 @@ pneumatic's `<name>_<position>` (the name lower-cased, every run of other charac
 pivot 6" → `claw_pivot_6`). A program registers all of a robot's ids in one call, each with its doc, so
 the manifest carries them like any other registered id.
 
-> **Status: host-tested only — no program registers them yet.** The registration call and the manifest
-> lines below are built and tested on the host; no shulib program builds a registry of mechanism ids
-> yet (the mechanism core's fifth part registers them in the competition program and the Auton
-> Tester), so no manifest a robot writes today contains them. The six lines below are derived from
-> robot two's claws exactly as that part declares them — a test fixture's copy of the declarations,
-> not robot two's robot file. Where a robot's manifest FILE lives for a picker to read is the robot
-> panel's work, not yet built.
+> **Status: host-tested only — registered by two programs, written to no manifest yet.** Since the
+> mechanism core's fifth part (2026-10-29) the competition program and the Auton Tester register robot
+> two's six ids at boot (their `ROUTES:` boot line counts them), so a route's markers can fire them;
+> no program writes a manifest, so no manifest a robot writes today contains them. The six lines below
+> are derived from a test fixture's copy of robot two's declarations, held byte for byte equal to the
+> robot file's region by a host test. Where a robot's manifest FILE lives for a picker to read is the
+> robot panel's work, not yet built.
 
 Robot two's six, exactly as the manifest writes them (after the header and the built-ins):
 

@@ -1995,9 +1995,9 @@ ONE BOOT LINE per role (tag MECH; the caller logs it), from what robot::Mechanis
 inline void startingValuesLine(char* out, std::size_t cap, const MechanismSpec& s)
 ```
 
-ONE boot line naming the numbers a POSITION or SPEED mechanism's loop runs with, and which of them are the library's STARTING values (HA-182 — invented, never measured) rather than the team's `.tuning` — beside roleLine(). No program prints it yet: the core's fifth part (MECH-A5) adds it to every program's boot. Each number that differs from positionStartingValues() / speedStartingValues() is marked "(tuned)" — for the smooth move's ramp, its TIME (a stated speed alone keeps the starting 0.25 s ramp, so it is not marked); the line ends saying how many are starting values. Writes at most `cap` bytes, NUL-terminated; "" for a power or pneumatic mechanism (they run no loop). Verbatim, an untuned arm and flywheel: arm: starting values kP 0.250 kI 0.300 kD 0.0040 kV 0.0500, cruise 180.0 deg/s in 0.25 s, reached within 1.50 deg for 0.10 s -- PROVISIONAL (HA-182); .tuning overrides flywheel: starting values kV 0.0318 kP 0.050 (V per output rad/s) kI 0.200 (V per output rad) -- PROVISIONAL (HA-182); .tuning overrides (each one line). A number stated by `.tuning` prints its value and "(tuned)"; when every one is, the line ends "-- every number stated by its .tuning". The library's other HA-182 numbers — the hold's integral clamp, the speed integral's window and clamp (mechanism/service.hpp) — are constants, not `.tuning` fields, and are not on this line.
+ONE boot line naming the numbers a POSITION or SPEED mechanism's loop runs with, and which of them are the library's STARTING values (HA-182 — invented, never measured) rather than the team's `.tuning` — beside roleLine(). A program prints it at boot for each position or speed mechanism of its list, after that mechanism's role and control lines (since the core's fifth part, MECH-A5). Each number that differs from positionStartingValues() / speedStartingValues() is marked "(tuned)" — for the smooth move's ramp, its TIME (a stated speed alone keeps the starting 0.25 s ramp, so it is not marked); the line ends saying how many are starting values. Writes at most `cap` bytes, NUL-terminated; "" for a power or pneumatic mechanism (they run no loop). Verbatim, an untuned arm and flywheel: arm: starting values kP 0.250 kI 0.300 kD 0.0040 kV 0.0500, cruise 180.0 deg/s in 0.25 s, reached within 1.50 deg for 0.10 s -- PROVISIONAL (HA-182); .tuning overrides flywheel: starting values kV 0.0318 kP 0.050 (V per output rad/s) kI 0.200 (V per output rad) -- PROVISIONAL (HA-182); .tuning overrides (each one line). A number stated by `.tuning` prints its value and "(tuned)"; when every one is, the line ends "-- every number stated by its .tuning". The library's other HA-182 numbers — the hold's integral clamp, the speed integral's window and clamp (mechanism/service.hpp) — are constants, not `.tuning` fields, and are not on this line.
 
-*free function, declared at [`include/shulib/mechanism/wiring.hpp:1136`](../../include/shulib/mechanism/wiring.hpp#L1136).*
+*free function, declared at [`include/shulib/mechanism/wiring.hpp:1137`](../../include/shulib/mechanism/wiring.hpp#L1137).*
 
 <a id="mechanismtable"></a>
 
@@ -2009,7 +2009,7 @@ using mechanism::MechanismTable
 
 A robot's list of mechanisms: `inline constexpr MechanismTable kRobotXMechanisms = mechanisms(...)`.
 
-*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1203`](../../include/shulib/mechanism/wiring.hpp#L1203).*
+*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1204`](../../include/shulib/mechanism/wiring.hpp#L1204).*
 
 <a id="mechanisms-3"></a>
 
@@ -2021,7 +2021,7 @@ using mechanism::mechanisms
 
 The list itself.
 
-*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1205`](../../include/shulib/mechanism/wiring.hpp#L1205).*
+*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1206`](../../include/shulib/mechanism/wiring.hpp#L1206).*
 
 <a id="wire-8"></a>
 
@@ -2033,7 +2033,7 @@ using mechanism::wire
 
 One mechanism's line of it.
 
-*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1207`](../../include/shulib/mechanism/wiring.hpp#L1207).*
+*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1208`](../../include/shulib/mechanism/wiring.hpp#L1208).*
 
 <a id="motors-7"></a>
 
@@ -2045,7 +2045,7 @@ using mechanism::motors
 
 Its motors' smart ports.
 
-*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1209`](../../include/shulib/mechanism/wiring.hpp#L1209).*
+*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1210`](../../include/shulib/mechanism/wiring.hpp#L1210).*
 
 <a id="lines-5"></a>
 
@@ -2057,7 +2057,7 @@ using mechanism::lines
 
 Its 3-wire lines.
 
-*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1211`](../../include/shulib/mechanism/wiring.hpp#L1211).*
+*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1212`](../../include/shulib/mechanism/wiring.hpp#L1212).*
 
 <a id="anglesensor-2"></a>
 
@@ -2069,7 +2069,7 @@ using mechanism::angleSensor
 
 Its angle sensor's smart port.
 
-*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1213`](../../include/shulib/mechanism/wiring.hpp#L1213).*
+*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1214`](../../include/shulib/mechanism/wiring.hpp#L1214).*
 
 <a id="piecesensor-2"></a>
 
@@ -2081,7 +2081,7 @@ using mechanism::pieceSensor
 
 Its piece sensor's port (a number) or line (a letter).
 
-*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1215`](../../include/shulib/mechanism/wiring.hpp#L1215).*
+*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1216`](../../include/shulib/mechanism/wiring.hpp#L1216).*
 
 <a id="homeswitch-2"></a>
 
@@ -2093,7 +2093,7 @@ using mechanism::homeSwitch
 
 Its home switch's line.
 
-*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1217`](../../include/shulib/mechanism/wiring.hpp#L1217).*
+*type alias, declared at [`include/shulib/mechanism/wiring.hpp:1218`](../../include/shulib/mechanism/wiring.hpp#L1218).*
 
 ## Design commentary, from the header
 

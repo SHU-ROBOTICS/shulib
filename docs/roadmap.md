@@ -397,6 +397,13 @@ not silently break them. This table is the spine of the no-staleness promise.
 > mechanisms) and the panel's first part are building side by side; the camera's later parts, the alliance colour,
 > driving to a piece and the auto-flipper come after the panel.
 >
+> **Now (2026-10-30): MECH-A5, the fifth part, has LANDED (built 2026-10-29; reviewed, fixed and verified) —
+> host-only; no API change.** Robot two's claws are declarations in the core's words, every program that boots
+> robot two runs them on ONE mechanism service (its boot lines, its route ids, its chain proven), and robot two's
+> driver file is three lines of controls — its claws behave exactly as before on every input. Host- and build-gated
+> only. **Next: MECH-A6, the core's last part; G3a Part 1 (the robot file and its generator) builds beside A5 under
+> the team lead's PANEL SPRINT (2026-10-29: the panel by 2026-11-21); CAL1 maps the core's list after A5.**
+>
 > **Now (2026-10-15): CAL1 Part A1, the standard Calibrate's seams, has LANDED — host-only.** The brain's screen is
 > now a seam with ONE sanitizer (`hal::IBrainScreen`, `hal::screenSafeLine()`), a painter draws Calibrate's screens
 > on it (`calibration/calibrate_screen.hpp`), and `calibration::compareFronts()` judges whether a new Calibrate's
@@ -1792,6 +1799,13 @@ is required, not optional, to hold < 1°.)*
   `runDriverControl`'s mechanism-service overloads, the driver file's controls (`mechanism/driver_inputs.hpp`), the
   direction check's judgement, the route binder (`runner/mechanism_routes.hpp`) and the registry's per-id doc; T3's
   bindings superseded, kept. Still `[~]`: robot two and the programs (A5), the bench page (A6).
+  **A5 LANDED 2026-10-30 (built 2026-10-29; no API change), host- and build-gated**: robot two's claws as
+  declarations (`src/robots/mechanism_table.hpp`, the drive check per robot), ONE mechanism service in every program
+  that boots robot two (the competition program and the Auton Tester prove guard -> service -> watch at boot), the
+  per-role boot lines and the route ids registered, robot two's driver file as three lines of controls over
+  `src/common/driver_file.hpp` (its claws byte-identical to T3's bindings, tick for tick), `driverHeading()` in
+  `src/common/driver_heading.hpp`, `driver_controls.hpp` retired, the src gate's rule per robot (HA-185 new). No
+  mechanism has moved through it on a robot. Still `[~]`: the bench page (A6).
 - [ ] `setQuadrantToggle` (index N clicks on the 3-state Toggle + Optical color confirm) — *highest-value primitive*.
 - [ ] `orientToScoringHalf` (yellow-side-out: color-sense → pass-through vs flip) — *second highest-value*.
 - [ ] `intakeUntilCapture` (counter-roller, retry, sensor-confirm).
@@ -1910,8 +1924,8 @@ only the INPUT half is missing.*
   **A macro must never take the robot away from its driver**: interruptible by stick input within one
   tick, and releasing the button cancels the operation and safes the mechanism.
 - [~] **The driver program** *(T4, 2026-09-27 — Part 1a LANDED, host- and build-gated: the driver file
-  `src/team/robot_two_driver.hpp` and its generic half `src/common/driver_controls.hpp`, held by
-  `test/robot_two_driver_test.cpp` and `test/driver_controls_test.cpp`; the competition program's
+  `src/team/robot_two_driver.hpp` and its generic half `src/common/driver_controls.hpp` (deleted at MECH-A5, 2026-10-29 — `src/common/driver_file.hpp` and `driver_heading.hpp` replaced it), held by
+  `test/robot_two_driver_test.cpp` and `test/driver_controls_test.cpp` (deleted at MECH-A5 with its header; its heading cases moved to `test/driver_heading_test.cpp`); the competition program's
   `opcontrol()` runs it since COMP-b (2026-10-02), and nothing of it has run on a robot. **Part 2a LANDED 2026-10-01, host- and build-gated:** the old
   drive's protections inside `teleop::runDriverControl` for every program (`teleop/drive_protection.hpp`,
   `teleop::FrozenReadingDetector`, `hal::MotorGroup::markAbsent`; `test/drive_protection_test.cpp`),

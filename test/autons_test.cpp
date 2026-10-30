@@ -1,10 +1,14 @@
 // autons_test.cpp — the team's autons (src/team/autons.cpp, linked into this suite by
 // test/CMakeLists.txt) registered and RUN on the host test plant through the Auton Tester's own
 // run sequence, runTesterOnce(): the real AbortWatch between the plant's pacer and the RunGuard,
-// 50 idle ticks, the 3 s countdown, the quiet tick, then competition::runAuton with no command
-// registry — exactly what "shulib Auton Tester" does when RUN is touched (chunk COMP-t,
-// 2026-09-28; the brief's §5 tests (1)–(5), (3b), (3b′), (3c) and (4b); and (1b), added by the
-// chunk's review on 2026-09-29: EVERY registered auton, not only the two named here).
+// 50 idle ticks, the 3 s countdown, the quiet tick, then competition::runAuton — exactly what
+// "shulib Auton Tester" does when RUN is touched (chunk COMP-t, 2026-09-28; the brief's §5 tests
+// (1)–(5), (3b), (3b′), (3c) and (4b); and (1b), added by the chunk's review on 2026-09-29: EVERY
+// registered auton, not only the two named here). Since the mechanism core's MECH-A5 (2026-10-29)
+// the rig is the program's whole chain: robot two's REAL mechanism list bound to a live
+// MechanismService between the guard and the watch, and its six route ids registered, so a
+// mechanism step or a mechanism route in any auton here runs, and is judged, as on the bench
+// (test/auton_tester_rig.hpp; the claws auton and route: test/robot_two_claws_example_test.cpp).
 //
 // Graded on PLANT GROUND TRUTH (the A2 truth integrator) AND on the record the tester builds (its
 // END estimate, its fault counts, its word), because the record is what the students read.
@@ -21,6 +25,7 @@
 #include <string_view>
 
 #include "auton_tester_rig.hpp"
+#include "source_pins.hpp"
 #include "motion_test_rig.hpp"
 #include "programs/auton_tester_panel.hpp"
 #include "programs/auton_tester_run.hpp"
@@ -136,10 +141,12 @@ TEST_CASE("autons (1): registerAutons registers exactly the 40 in auton and the 
 // README — that the host suite runs EVERY auton in the file, when it ran only the two it names. A
 // student's next auton would never have run on the host test plant. EVERY registered entry, whatever
 // the file grows to, runs here through the tester's own sequence on the clean plant, and must end the
-// way the bench needs: not refused (a route auton is, until its command registry exists), no throw,
-// never aborted, started, no hard stop, the end action run and succeeded, the drive at 0 V + Brake,
-// the guard and the watch let go. The word is printed for each (FINISHED is not required: an auton
-// cut at its own endActionAt is legal); a run that FAILS here would fail on the bench.
+// way the bench needs: not refused, no throw, never aborted, started, no hard stop, the end action run
+// and succeeded, the drive at 0 V + Brake, robot two's mechanisms at their safe states (MECH-A5: the
+// service is live, so a mechanism step that can never be met — a refusal at the STEP — fails here,
+// before any upload), the guard and the watch let go. The word is printed for each (FINISHED is not
+// required: an auton cut at its own endActionAt is legal); a run that FAILS here would fail on the
+// bench.
 TEST_CASE("autons (1b): EVERY registered auton runs through runTesterOnce and ends safe") {
     const AutonRegistry reg = teamRegistry();
     REQUIRE(reg.size() >= 1);
@@ -162,10 +169,29 @@ TEST_CASE("autons (1b): EVERY registered auton runs through runTesterOnce and en
         CHECK(r.run.guard.endActionSucceeded);
         CHECK_FALSE(r.run.guard.floorFired);
         CHECK(s.driveSafe());
+        CHECK(s.mechanismsSafe());
         CHECK_FALSE(s.chassis.scheduler().hasActiveMotion());
         CHECK_FALSE(s.guard.running());
         CHECK_FALSE(s.watch.armed());
     }
+}
+
+// (1c) Bug caught (the MECH brief's U3, 2026-10-29): an auton built as `Routine r{ctx.chassis, ...}`
+// — the form every auton here used until MECH-A5 — has NO mechanisms: its first `r.set(claw[...])`
+// or `r.run(...)` is refused at the step ("Routine: a mechanism step needs the robot's mechanism
+// service -- construct it as Routine r{ctx, "name"} in an auton ..."), so a student who copies it and
+// adds a claw step gets an auton that refuses on the bench. The file the students
+// copy from must build every Routine on the CONTEXT — the only spelling the guide teaches — and name
+// robot two's mechanisms through its namespace, the one place the src build gate allows outside the
+// table file (TEAM_FILE_ROBOT).
+TEST_CASE("autons (1c): src/team/autons.cpp builds every Routine on the context, never ctx.chassis") {
+    const std::string code = source_pins::stripComments(source_pins::readFile("src/team/autons.cpp"));
+    const std::size_t routines = source_pins::count(code, "chassis::Routine r{");
+    CHECK(routines >= 1);
+    CHECK(source_pins::count(code, "chassis::Routine r{ctx, \"") == routines);
+    CHECK(source_pins::count(code, "Routine r{ctx.chassis") == 0);
+    CHECK(source_pins::count(code, "using namespace robot_two;") == 1);
+    CHECK(source_pins::count(code, "#include \"robots/mechanism_table.hpp\"") == 1);
 }
 
 // (2) Bug caught: a schedule that is never really checked against the period it runs in. The same

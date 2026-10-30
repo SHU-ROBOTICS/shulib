@@ -139,8 +139,11 @@
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // Host-proven on the A2 plant only. Two callers: robot two's driver file
 // (src/team/robot_two_driver.hpp, T4 Part 1a), with the default DriverProfile (ArcadeBody) and
-// field-centric OFF — "shulib Drive" runs that file (T4 Part 3, src/programs/drive_program.cpp),
-// and so does the competition program's opcontrol() (chunk COMP-b) — and the invented X-drive's
+// field-centric OFF, through the call every driver file shares — src/common/driver_file.hpp's
+// DriverFile::run(), the mechanism-service overload, since MECH-A5 (the driver file made the call
+// itself, over T3's bindings, until then) — "shulib Drive" runs that file (T4 Part 3,
+// src/programs/drive_program.cpp), and so does the competition program's opcontrol() (chunk COMP-b) —
+// and the invented X-drive's
 // program (src/programs/xdrive_program.cpp, since G1 Part 2c), which refuses at boot on every
 // robot that exists. ("shulib Teleop" called it by its own call from G1 Part 2b until T4 Part 3
 // retired it.) Every one of them gets the drive protections from DriverLoopConfig::protection's
@@ -182,9 +185,11 @@ namespace shulib::teleop {
 /// `runDriverControl`'s precondition before anything moves, so a config nobody wrote can never
 /// run. The button's default is NOT a refusal by itself: a config that leaves `rezeroButton`
 /// unset quietly gets `L1` — a shoulder button, which robot two's claw pivot 7 takes. What stops
-/// that collision running is `validBindings()` (chunk T3): a binding on the re-zero button is
-/// refused before the first tick, by `runDriverControl`'s precondition. A program should still
-/// name its button, and robot two's driver file does (its kLoop names Y). The third,
+/// that collision running is `runDriverControl`'s precondition, before the first tick: a binding on
+/// the re-zero button is refused by `validBindings()` (chunk T3), a mechanism service's control on
+/// it by `mechanism::DriverInputs::avoids()` (chunk MECH-A4). A program should still name its
+/// button, and robot two's driver file does (its kLoop names Y — and since MECH-A5 a driver file
+/// whose control takes its re-zero button does not build). The third,
 /// `releaseBrakeMode`, has a working default (Coast, the team lead's ruling). The fourth, `protection`, is APPENDED LAST so every
 /// existing designated initializer still compiles, and its defaults are the old "shulib Drive"'s
 /// numbers: a program that names no `protection` is protected (chunk T4 Part 2).

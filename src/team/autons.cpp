@@ -16,11 +16,24 @@
 // disagrees with an auton, the calibration record is what is wrong, not the number written here:
 // re-run "shulib Calibrate", and never change an auton's number to make the tape agree.
 //
+// THE MECHANISMS. `using namespace robot_two;` below makes robot two's mechanisms nameable here by
+// their declarations in src/robots/mechanism_table.hpp: an auton step names one and its time limit,
+// one line each --
+//     r.set(claw["open"]);                    // the claw to 'open' (its move time is the robot file's)
+//     r.run(clawPivot6, 12_volt, 0.4_s);      // pivot 6 forward at full power for 0.4 s
+// -- and `Routine r{ctx, "name"}` (below) is the form that reaches them: the context carries the
+// program's mechanism service, which runs every mechanism step even while the robot drives
+// (guide chapter 18). Opening the claw SUCCEEDS once its move time has passed; a GRAB (`closed`, the
+// position marked `grabs`) with no sensor to confirm it ends UNCONFIRMED and is counted done (the
+// team lead's ruling, 2026-09-29). No auton here steps a mechanism yet: which claw does what in an
+// auton is the team's to decide.
+//
 // PROVENANCE. The 40 in auton was written for the team on the team lead's go of 2026-09-26 ("no
 // you can write the auton"). Every line is the team's to explain, defend and change.
 
 #include "team/autons.hpp"
 
+#include "robots/mechanism_table.hpp"
 #include "shulib/chassis/routine.hpp"
 #include "shulib/competition/acceptance_run.hpp"
 #include "shulib/competition/auton_registry.hpp"
@@ -30,6 +43,7 @@
 namespace shulib::bench {
 
 using namespace units::literals;  // 40_in, 0_deg, 27_s
+using namespace robot_two;        // robot two's mechanisms, by their declarations (this file is robot two's)
 
 namespace {
 
@@ -50,7 +64,7 @@ namespace {
 // about this robot, not a broken auton: read END x and y (how far short, how far beside) and the
 // TSTR lines before changing anything.
 chassis::RoutineResult fortyInchesForward(competition::AutonContext& ctx) {
-    chassis::Routine r{ctx.chassis, "40in-forward"};
+    chassis::Routine r{ctx, "40in-forward"};
     r.moveTo(math::Pose2d{40_in, 0_in, 0_deg});
     return r.result();
 }

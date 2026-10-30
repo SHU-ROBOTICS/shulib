@@ -226,8 +226,8 @@
   current). [Ch. 18]
 - **starting values** — the numbers the library starts a position or speed mechanism's loop with
   (gains, the smooth move's speed and ramp, "reached"), derived from its cartridge and gearing,
-  invented and PROVISIONAL (HA-182) until `.tuning` replaces them; a boot line words them (the
-  programs print it from the core's fifth part on). [Ch. 18]
+  invented and PROVISIONAL (HA-182) until `.tuning` replaces them; a boot line words them (every
+  program that boots a robot's list prints it, since the core's fifth part). [Ch. 18]
 - **step (recipe)** — one link in a recipe chain, plus the record of whether it ran, succeeded,
   or was skipped. Most steps delegate to a single chassis command, but not all: a wait step has
   no motion behind it, a `then()` step runs your own code or a mechanism operation and judges

@@ -28,10 +28,10 @@
 // list below, and robot::Robot builds them as ABSENT group members (G1 Part 2a, ruling M1).
 //
 // ── Everything decided here is PROS-free; only the card and the registry are not ────
-//  * THE PURE CORE: bootConfigFrom() — description + verdict + the mechanism table → the
+//  * THE PURE CORE: bootConfigFrom() — description + verdict + the mechanism list → the
 //    config::RobotConfig robot::Robot is built from (the drivetrain AND, since T3 Part 2, every
-//    mechanism src/robots/mechanism_table.hpp declares, converted field by field), plus the absent-port
-//    list.
+//    mechanism src/robots/mechanism_table.hpp declares — through the library's one projection,
+//    mechanism::toMechanismConfig, since MECH-A5), plus the absent-port list.
 //  * THE DECISION: readRecord() (the card's bytes → a decoded record, or why not) and
 //    decideBootSourceFrom() (record + registry + the table's description → which source, the
 //    port check of the one chosen, the cross-check, the refusal, the config) — each decision
@@ -82,144 +82,36 @@
 
 namespace shulib::bench {
 
-// ═══ THE MECHANISMS, INTO THE CONFIG (T3 Part 2, 2026-09-26) ═════════════════════════════
-// src/robots/mechanism_table.hpp is the ONE typed input about a robot's mechanisms; config::MechanismConfig
-// is what robot::Robot builds them from. The conversion is here, in the pure core, so the host
-// suite runs it against the REAL table (test/boot_source_test.cpp, test/driver_panel_claws_test.cpp).
-// CONFIG ORDER IS TABLE ORDER: the motor entries first, in the table's order, then the pneumatic
-// ones — so robot.mechanismAt(i) is motor entry i and robot.pneumaticMechanismAt(motorCount + j) is
-// pneumatic entry j (mechanismConfigIndexOfPneumatic() below; src/common/driver_panel.hpp words by it).
-// EVERY FIELD IS CONVERTED, NOTHING DEFAULTED: a name is copied WHOLE (one that does not fit is
-// refused, never cut), the signed port as typed, the cartridge and the safe mode each to the
-// config's own enum, the 3-wire line, and the START and SAFE of a pneumatic entry as LEVELS —
-// pneumaticStartCommand() / pneumaticSafeCommand(), through the entry's polarity — never as its
-// positions. The START level is what the builder drives the line to when it makes it (A4 register
-// HA-119: a 3-wire output is driven the moment it is constructed), and the SAME function gives the
-// driver's toggle its initial level (a driver file's binder reads it back from this config,
-// src/common/driver_controls.hpp), so the two cannot disagree. THE RULE
-// (corrected at T4 Part 1a, 2026-09-27; this said "the claw cannot move when driver control first
-// starts" until then): the first driver-control entry in a run SENDS the start level; nothing moves
-// unless something commanded the line in between; after an autonomous that left the claw OPEN, the
-// entry closes it — the team lead's ruling (2026-09-26): "starts closed — whatever autonomous left
-// it at". The buttons and the volts are not config fields: they go to the bindings, from the same
-// entry.
+// ═══ THE MECHANISMS, INTO THE CONFIG (T3 Part 2, 2026-09-26; the mechanism core's words since MECH-A5) ═══
+// src/robots/mechanism_table.hpp is the ONE typed input about a robot's mechanisms — since MECH-A5 its
+// DECLARATIONS and their wiring (mechanism::MechanismTable); config::MechanismConfig is what
+// robot::Robot builds them from. The projection is the LIBRARY's ONE (mechanism::toMechanismConfig,
+// mechanism/wiring.hpp), called here in the pure core so the host suite runs it against the REAL list
+// (test/boot_source_test.cpp, test/driver_panel_claws_test.cpp). CONFIG ORDER IS THE LIST'S ORDER —
+// robot two's is today's: pivot 6, pivot 7, then the claw — so config index i IS the list's entry i,
+// for the Robot's accessors, the mechanism service and every boot line. Nothing is converted by hand
+// and nothing defaulted: the signed motor ports (a Reversed motor is a NEGATIVE port, reversed once by
+// its adapter), the cartridge, the safe state, each 3-wire line, the sensor roles' ports, and a
+// pneumatic's START and SAFE as LEVELS — the levels its declaration states for its start and safe
+// POSITIONS. The START level is what the builder drives each line to when it makes it (A4 register
+// HA-119: a 3-wire output is driven the moment it is constructed); the program's FIRST driver-control
+// entry SENDS it again (the mechanism service's enterDriverControl()), so an autonomous that left the
+// claw OPEN closes it there — the team lead's ruling (2026-09-26): "starts closed — whatever
+// autonomous left it at". The buttons and the volts are not config fields: they are the driver
+// file's. (Until MECH-A5 this section converted the old entry structs itself, refused a table that
+// would not convert — mechanismTableProblem() — and kept the motors before the pneumatics; the list's
+// own build checks now refuse what that refused, and its order is the config's.)
 
 /// The words the boot check uses for a declared mechanism MOTOR port that carries a motor the
 /// description does not list — Calibrate's own words for them ("claw pivot (declared)"), because
-/// every MOTOR entry the table declares today is a claw pivot; a table that declares another kind
-/// of motor mechanism changes this with it.
+/// every MOTOR role robot two declares is a claw pivot; a list that declares another kind of motor
+/// mechanism changes this with it (L9 Part B's boot wording makes it the program's).
 inline constexpr const char* kDeclaredMotorLabel = "claw pivots (declared, not drive motors)";
 
-/// A NUL-terminated `s` whose length is at most `cap` (constexpr, so the build's table is checked
-/// at compile time). A null `s` never fits.
-constexpr bool mechanismNameFits(const char* s, std::size_t cap) noexcept {
-    if (s == nullptr) return false;
-    std::size_t n = 0;
-    while (s[n] != '\0') {
-        if (++n > cap) return false;
-    }
-    return true;
-}
-
-/// Why `t` cannot be converted into a config::RobotConfig WHOLE, or nullptr when it can: the
-/// table's own count and completeness checks (the conversion reads every field of every declared
-/// entry — an unset optional has no value to read), then the fit — no more entries of both kinds
-/// together than config::kMaxMechanisms, and every name inside MechanismConfig::name with its NUL.
-/// PURE and constexpr: the build's table is checked at compile time below, and the boot refuses by
-/// this sentence at run time (decideBootSourceFrom), which is what a host test can reach.
-[[nodiscard]] constexpr const char* mechanismTableProblem(const MechanismTable& t) noexcept {
-    if (!mechanismCountValid(t)) {
-        return "the mechanism table declares more entries than its arrays hold";
-    }
-    if (!mechanismTableComplete(t)) {
-        return "a declared mechanism has an UNSET field (a value is never invented)";
-    }
-    if (motorEntryCount(t) + pneumaticEntryCount(t) > config::kMaxMechanisms) {
-        return "the mechanism table declares more mechanisms than a RobotConfig holds (8)";
-    }
-    constexpr std::size_t nameCap = sizeof(config::MechanismConfig{}.name) - 1;
-    for (std::size_t i = 0; i < motorEntryCount(t); ++i) {
-        if (!mechanismNameFits(t.motors[i].name, nameCap)) {
-            return "a mechanism name is longer than 23 characters (a RobotConfig name field)";
-        }
-    }
-    for (std::size_t i = 0; i < pneumaticEntryCount(t); ++i) {
-        if (!mechanismNameFits(t.pneumatics[i].name, nameCap)) {
-            return "a mechanism name is longer than 23 characters (a RobotConfig name field)";
-        }
-    }
-    return nullptr;
-}
-static_assert(mechanismTableProblem(kRobotTwoMechanisms) == nullptr,
-              "robot two's mechanism table does not convert into a RobotConfig");
-static_assert(mechanismTableProblem(kMechanisms) == nullptr,
-              "this build's mechanism table does not convert into a RobotConfig");
-
-/// The config index of pneumatic entry `j` of `t` — every motor entry comes first (header).
-[[nodiscard]] constexpr std::size_t mechanismConfigIndexOfPneumatic(const MechanismTable& t,
-                                                                    std::size_t j) noexcept {
-    return motorEntryCount(t) + j;
-}
-
-/// The table's cartridge as the library's (Unset stays the byte 0 — refused by
-/// RobotConfig::valid(); a converted table is complete, so it never happens here).
-[[nodiscard]] constexpr hal::MotorCartridge toMotorCartridge(Cartridge c) noexcept {
-    switch (c) {
-        case Cartridge::Red: return hal::MotorCartridge::Red;
-        case Cartridge::Green: return hal::MotorCartridge::Green;
-        case Cartridge::Blue: return hal::MotorCartridge::Blue;
-        case Cartridge::Unset: break;
-    }
-    return static_cast<hal::MotorCartridge>(0);
-}
-
-/// The table's brake mode as the config's SAFE brake mode — each to its own, never a default.
-[[nodiscard]] constexpr config::SafeBrakeMode toSafeBrakeMode(hal::BrakeMode m) noexcept {
-    switch (m) {
-        case hal::BrakeMode::Coast: return config::SafeBrakeMode::Coast;
-        case hal::BrakeMode::Brake: return config::SafeBrakeMode::Brake;
-        case hal::BrakeMode::Hold: return config::SafeBrakeMode::Hold;
-    }
-    return static_cast<config::SafeBrakeMode>(0);  // UNSET: refused by RobotConfig::valid()
-}
-
-/// A line value as the config's level: `true` is High, `false` Low.
-[[nodiscard]] constexpr config::PneumaticLevel toPneumaticLevel(bool line) noexcept {
-    return line ? config::PneumaticLevel::High : config::PneumaticLevel::Low;
-}
-
-/// Copy `name` into a config name field (the table was checked to fit: mechanismTableProblem()).
-inline void copyMechanismName(char (&dst)[24], const char* name) noexcept {
-    std::size_t n = 0;
-    for (; name != nullptr && name[n] != '\0' && n + 1 < sizeof dst; ++n) {
-        dst[n] = name[n];
-    }
-    dst[n] = '\0';
-}
-
-/// One MOTOR entry as a config mechanism: its name, its ONE signed port as typed, its cartridge
-/// and its safe mode. A COMPLETE entry (mechanismTableProblem() == nullptr).
-[[nodiscard]] inline config::MechanismConfig toMechanismConfig(const MotorMechanismEntry& e) {
-    config::MechanismConfig m{};
-    copyMechanismName(m.name, e.name);
-    m.motorPorts[0] = e.signedPort;
-    m.motorCount = 1;
-    m.cartridge = toMotorCartridge(e.cartridge);
-    m.safeMode = toSafeBrakeMode(*e.safeMode);
-    return m;
-}
-
-/// One PNEUMATIC entry as a config mechanism: its name, its ONE 3-wire line, and its START and
-/// SAFE as LEVELS through its polarity — never its positions. A COMPLETE entry.
-[[nodiscard]] inline config::MechanismConfig toMechanismConfig(const PneumaticMechanismEntry& e) {
-    config::MechanismConfig m{};
-    copyMechanismName(m.name, e.name);
-    m.pneumaticPorts[0] = e.adiLine;
-    m.pneumaticCount = 1;
-    m.pneumaticStart = toPneumaticLevel(pneumaticStartCommand(e));
-    m.pneumaticSafe = toPneumaticLevel(pneumaticSafeCommand(e));
-    return m;
-}
+/// The most mechanism MOTOR ports a list can declare: kMaxMechanisms mechanisms of four motors each.
+inline constexpr std::size_t kMaxDeclaredMotorPorts = mechanism::kMaxMechanisms * mechanism::kMaxMotorRoles;
+static_assert(mechanism::kMaxMechanisms == config::kMaxMechanisms,
+              "a mechanism list must fit a RobotConfig whole (bootConfigFrom converts every entry)");
 
 class BootConfig;
 
@@ -234,9 +126,9 @@ class BootConfig;
 ///    provenance, byte for byte;
 ///  * the odometry is the drive encoders (the fall robots have no tracking wheels);
 ///  * no GPS (robot two has none) — robot::Robot then installs hal::AbsentGps and no corrector;
-///  * every mechanism `mechanisms` declares, in TABLE order — the motor entries, then the
-///    pneumatic ones — each converted field by field (toMechanismConfig(); the header's "THE
-///    MECHANISMS, INTO THE CONFIG"). `kNoMechanisms` gives none;
+///  * every mechanism `mechanisms` declares, in the LIST's order, each through the library's one
+///    projection, mechanism::toMechanismConfig(spec, wiring) (the header's "THE MECHANISMS, INTO THE
+///    CONFIG"). `kNoMechanisms` gives none;
 ///  * `tuning` is `chassis::ChassisConfig{}`, the library's PROVISIONAL defaults, UNTOUCHED: the
 ///    one thing a tank's tuning needs that a person should not type — the stall check's geometry
 ///    and "no independent motion source" — is applied by robot::Robot::effectiveTuning(), which is
@@ -245,9 +137,9 @@ class BootConfig;
 ///  * the absent list: every drive port of `description`, LEFT side then RIGHT in the stored
 ///    order, that `verdict.isMissing()` — as the port MAGNITUDE the builder takes.
 ///
-/// PRECONDITIONS: `verdict.usable()` (Ok or Degraded) — a refused verdict describes a robot that
-/// must not be built, and no caller in the tree builds one; and `mechanismTableProblem(mechanisms)
-/// == nullptr` — decideBootSourceFrom() refuses the boot by that sentence first.
+/// PRECONDITION: `verdict.usable()` (Ok or Degraded) — a refused verdict describes a robot that
+/// must not be built, and no caller in the tree builds one. (A mechanisms(...) list always converts:
+/// its own build checks refused every name past 23 characters, every list past eight mechanisms.)
 [[nodiscard]] inline BootConfig bootConfigFrom(const hal::DrivetrainDescription& description,
                                                const calibration::BootVerdict& verdict,
                                                std::string_view robotName,
@@ -292,8 +184,6 @@ inline BootConfig bootConfigFrom(const hal::DrivetrainDescription& description,
     SHULIB_PRECONDITION(verdict.usable(),
                         "bootConfigFrom: the port check REFUSED this description -- nothing may "
                         "be built from it");
-    SHULIB_PRECONDITION(mechanismTableProblem(mechanisms) == nullptr,
-                        "bootConfigFrom: the mechanism table does not convert into a RobotConfig");
     BootConfig out;
     config::RobotConfig& c = out.config;
 
@@ -308,13 +198,11 @@ inline BootConfig bootConfigFrom(const hal::DrivetrainDescription& description,
     c.drivetrain.tank.description = description;
     c.odometry.kind = config::OdometryKind::DriveEncoders;
     c.sensors.gps.present = false;
-    // The mechanisms, in table order: motors, then pneumatics (the header's CONFIG ORDER).
+    // The mechanisms, in the LIST's order (the header's CONFIG ORDER), through the library's one
+    // projection. A list holds at most mechanism::kMaxMechanisms = config::kMaxMechanisms (static_assert).
     std::size_t k = 0;
-    for (std::size_t i = 0; i < motorEntryCount(mechanisms); ++i) {
-        c.mechanisms[k++] = toMechanismConfig(mechanisms.motors[i]);
-    }
-    for (std::size_t j = 0; j < pneumaticEntryCount(mechanisms); ++j) {
-        c.mechanisms[k++] = toMechanismConfig(mechanisms.pneumatics[j]);
+    for (std::size_t i = 0; i < mechanisms.count && i < config::kMaxMechanisms; ++i) {
+        c.mechanisms[k++] = mechanism::toMechanismConfig(mechanisms.specs[i], mechanisms.wiring[i]);
     }
     c.mechanismCount = static_cast<std::uint8_t>(k);
     // c.tuning stays chassis::ChassisConfig{} ON PURPOSE (see the declaration above).
@@ -457,13 +345,14 @@ inline constexpr std::size_t kBootLineBytes = 512;
 /// `fromTable` is this build's typed table as a description (tableToDescription(kChassis) — the
 /// ONLY path from the table into a graph) and `tableMissing` the words naming what it lacks
 /// (describeMissingForDescription), printed only when the table cannot describe a drivetrain.
-/// `mechanisms` is this build's mechanism table (kMechanisms; T3 Part 2): its MOTOR ports are the
-/// port check's declared ports (named `kDeclaredMotorLabel`, never as NEW motors), and after the
-/// source is chosen two more refusals can end the boot — a table that does not convert
-/// (mechanismTableProblem()), and a declared mechanism motor port that the CHOSEN description lists
-/// as a DRIVE port (`port N is both a claw (<name>) and a drive motor in the record -- recalibrate
-/// ...`), each printed as it is decided. `robotName` becomes the config's identity
-/// (bootConfigFrom).
+/// `mechanisms` is this build's list (kMechanisms; T3 Part 2, the mechanism core's words since
+/// MECH-A5): its MOTOR ports are the port check's declared ports (mechanism::declaredMotorPorts(),
+/// named `kDeclaredMotorLabel`, never as NEW motors), and after the source is chosen one more refusal
+/// can end the boot — a declared mechanism SMART port (a motor's since T3 Part 2; an angle sensor's or
+/// a distance or optical piece sensor's since MECH-A5) that the CHOSEN description lists as a DRIVE
+/// port (`port N is both a claw (<name>) and a drive motor in the record -- recalibrate ...`, or
+/// `port N is both <name>'s piece sensor and ...`), printed as it is decided. `robotName` becomes the
+/// config's identity (bootConfigFrom).
 template <class PrintLine>
 [[nodiscard]] BootOutcome decideBootSourceFrom(const RecordRead& record,
                                                const hal::IDeviceRegistry& registry,
@@ -475,12 +364,10 @@ template <class PrintLine>
     char line[kBootLineBytes];
 
     // The declared mechanism MOTOR ports, as the port check takes them: a motor there that the
-    // description does not list is a claw pivot, not a NEW motor (T3 Part 2).
-    int declaredPorts[kMaxMechanisms]{};
-    std::size_t declaredCount = 0;
-    for (std::size_t i = 0; i < motorEntryCount(mechanisms); ++i) {
-        declaredPorts[declaredCount++] = absPort(mechanisms.motors[i].signedPort);
-    }
+    // description does not list is a claw pivot, not a NEW motor (T3 Part 2). Physical ports: the
+    // wiring holds them unsigned (a Reversed motor's direction is its declaration's).
+    int declaredPorts[kMaxDeclaredMotorPorts]{};
+    const std::size_t declaredCount = mechanism::declaredMotorPorts(mechanisms, declaredPorts);
     const calibration::DeclaredMotorPorts declared{
         .ports = std::span<const int>{declaredPorts, declaredCount}, .label = kDeclaredMotorLabel};
 
@@ -551,37 +438,71 @@ template <class PrintLine>
         }
     }
 
-    // 5. the MECHANISMS (T3 Part 2): the table must convert whole, and no declared mechanism motor
-    //    may be a drive port of the description just chosen — a record taken before Calibrate
-    //    skipped the claws could list one, and robot two would then drive a claw as a wheel.
-    //    (RobotConfig::valid() would refuse that too, but its words name a collision, not the fix.)
-    if (const char* problem = mechanismTableProblem(mechanisms); problem != nullptr) {
-        std::snprintf(line, sizeof line, "mechanism table: REFUSED -- %s (src/robots/mechanism_table.hpp)",
-                      problem);
-        printLine(static_cast<const char*>(line));
-        detail::refuseWith(out, "the MECHANISM TABLE does not convert", problem);
-        return out;
-    }
+    // 5. the MECHANISMS (T3 Part 2; every smart ROLE since MECH-A5): no declared mechanism port — a
+    //    motor's, an angle sensor's, a distance or optical piece sensor's — may be a drive port of the
+    //    description just chosen. A record taken before Calibrate skipped the claws could list one,
+    //    and robot two would then drive a claw as a wheel. (RobotConfig::valid() would refuse that
+    //    too, but its words name a collision, not the fix.) A MOTOR role keeps T3 Part 2's words
+    //    byte for byte ("a claw" — every motor robot two declares is a claw pivot; L9 Part B makes
+    //    the noun the program's); a SENSOR role is named by its mechanism and role, and its fix is the
+    //    robot file's wire(...) line first (the record measured a MOTOR on that port).
     const bool fromRecord = choice.source == calibration::BootSource::UseRecord;
-    for (std::size_t i = 0; i < motorEntryCount(mechanisms); ++i) {
-        const int port = absPort(mechanisms.motors[i].signedPort);
-        if (chosen->sideOf(port) == 0) {
-            continue;
+    constexpr const char* kMotorRoleWords[mechanism::kMaxMotorRoles] = {"motor 1", "motor 2", "motor 3",
+                                                                         "motor 4"};
+    for (std::size_t i = 0; i < mechanisms.count && i < mechanism::kMaxMechanisms; ++i) {
+        const mechanism::MechanismSpec& spec = mechanisms.specs[i];
+        const mechanism::MechanismWiring& wiring = mechanisms.wiring[i];
+        // Its smart roles in boot-line order (MechanismParts'): the motors, the angle sensor, a
+        // distance or optical piece sensor. A 3-wire role is not a smart port.
+        struct SmartRole {
+            std::uint8_t port;
+            const char* word;
+            bool motor;
+        };
+        SmartRole roles[mechanism::kMaxMotorRoles + 2]{};
+        std::size_t n = 0;
+        for (std::size_t m = 0; m < spec.motorCount && m < mechanism::kMaxMotorRoles; ++m) {
+            roles[n++] = SmartRole{wiring.motors[m], kMotorRoleWords[m], true};
         }
-        char why[192];
-        std::snprintf(why, sizeof why, "port %d is both a claw (%.23s) and a drive motor in the %s -- %s",
-                      port, mechanisms.motors[i].name,
-                      fromRecord ? "record" : "typed table",
-                      fromRecord ? "recalibrate: shulib Calibrate (slot 4) never takes a declared "
-                                   "claw port"
-                                 : "src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp disagree");
-        std::snprintf(line, sizeof line, "mechanisms: REFUSED -- %s", why);
-        printLine(static_cast<const char*>(line));
-        detail::refuseWith(out,
-                           fromRecord ? "a CLAW port is a DRIVE port in the record"
-                                      : "a CLAW port is a DRIVE port in the typed table",
-                           why);
-        return out;
+        if (spec.angleSensor.kind == mechanism::SensorKind::Rotation) {
+            roles[n++] = SmartRole{wiring.angleSensor, "angle sensor", false};
+        }
+        if (spec.pieceSensor.kind == mechanism::SensorKind::Distance ||
+            spec.pieceSensor.kind == mechanism::SensorKind::Optical) {
+            roles[n++] = SmartRole{wiring.pieceSensorPort, "piece sensor", false};
+        }
+        for (std::size_t r = 0; r < n; ++r) {
+            const int port = roles[r].port;
+            if (port == 0 || chosen->sideOf(port) == 0) {
+                continue;
+            }
+            char why[192];
+            if (roles[r].motor) {
+                std::snprintf(why, sizeof why,
+                              "port %d is both a claw (%.23s) and a drive motor in the %s -- %s", port,
+                              spec.name, fromRecord ? "record" : "typed table",
+                              fromRecord ? "recalibrate: shulib Calibrate (slot 4) never takes a declared "
+                                           "claw port"
+                                         : "src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp "
+                                           "disagree");
+            } else {
+                std::snprintf(why, sizeof why, "port %d is both %.23s's %.12s and a drive motor in the %s -- %s",
+                              port, spec.name, roles[r].word, fromRecord ? "record" : "typed table",
+                              fromRecord ? "check its wire(...) line in src/robots/mechanism_table.hpp; "
+                                           "then recalibrate (slot 4)"
+                                         : "src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp "
+                                           "disagree");
+            }
+            std::snprintf(line, sizeof line, "mechanisms: REFUSED -- %s", why);
+            printLine(static_cast<const char*>(line));
+            const char* headline = roles[r].motor
+                                       ? (fromRecord ? "a CLAW port is a DRIVE port in the record"
+                                                     : "a CLAW port is a DRIVE port in the typed table")
+                                       : (fromRecord ? "a MECHANISM SENSOR port is a DRIVE port in the record"
+                                                     : "a MECHANISM SENSOR port is a DRIVE port in the typed table");
+            detail::refuseWith(out, headline, why);
+            return out;
+        }
     }
 
     out.built = bootConfigFrom(*chosen, out.verdict, robotName, mechanisms);
@@ -591,7 +512,7 @@ template <class PrintLine>
 
 /// THE BOOT (src/common/boot_source.cpp; the PROS shim): open the card's record and read it, make the
 /// brain's registry, turn this build's typed table into a description, and run
-/// decideBootSourceFrom() with this build's mechanism table (kMechanisms) — printing each decision
+/// decideBootSourceFrom() with this build's mechanism list (kMechanisms) — printing each decision
 /// line as `[<tag>] …` through hal::pros::serialWrapped() (one serial write() per piece; SER1),
 /// BEFORE any adapter exists. Returns the outcome; paints nothing and sets no global.
 [[nodiscard]] BootOutcome decideBootSource(const char* tag);

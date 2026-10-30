@@ -47,7 +47,7 @@
 // robot later" (N7). They are HA-182 (registered by MECH-A3, 2026-10-15, with the behaviours that run
 // them — mechanism/service.hpp), INVENTED until each mechanism is tuned on the robot;
 // startingValuesLine() (wiring.hpp) words them per mechanism for a boot line — the programs print it
-// from the core's fifth part (MECH-A5) on; none does yet — so nobody mistakes them for measurements.
+// since the core's fifth part (MECH-A5) — so nobody mistakes them for measurements.
 // Each can be stated instead, one by one (`.tuning`). (The service's own integral clamps and window
 // are HA-182 too, but LIBRARY constants: no `.tuning` field, not on that line — service.hpp.) No time
 // limit is ever a default: every step states its own.

@@ -6,7 +6,18 @@
 // The chain is the program's (src/programs/auton_tester_program.cpp) with the plant in place of
 // the provider's 10 ms pacer and a PROBE layer in place of the painter:
 //
-//     Chassis -> RunGuard -> AbortWatch (REAL) -> ProbeLayer -> PlantPacer (the plant steps)
+//     Chassis -> RunGuard -> MechanismService (REAL) -> AbortWatch (REAL) -> ProbeLayer -> PlantPacer
+//
+// THE MECHANISM SERVICE (the mechanism core's MECH-A5, 2026-10-29; the MECH brief's U3): bound, as the
+// program binds it, over ROBOT TWO'S REAL list (src/robots/mechanism_table.hpp's kRobotTwoMechanisms —
+// the team's autons are robot two's, `using namespace robot_two;`) and robot two's mechanisms on
+// fakes: the two claw pivots (a FakeMotor each, behind a hal::MotorMechanism that counts its safe-state
+// applications) and the claw (one FakeDigitalOut, behind a counting hal::PneumaticMechanism, made at its
+// START level, low = closed). The host build's OWN selection (kMechanisms) is the bench bot's — none —
+// so the rig names robot two's list. Robot two's pivots are Power mechanisms: they need no §1.12 model
+// (nothing reads a pivot back). The route registry is the program's too: runner::MechanismRoutes over
+// the list, registered at construction, handed to runAuton — so a ROUTE auton fires robot two's six
+// derived ids. `absentPivot7` builds the boot where pivot 7's port answered nothing: ABSENT.
 //
 // The watch's inputs go through the SAME pure reductions the program uses — testerTouchFrom() on a
 // struct with PROS's field names, abortInputsFrom() over a FakeController — so every run test also
@@ -29,11 +40,19 @@
 #include "motion_test_rig.hpp"
 #include "programs/auton_abort_watch.hpp"
 #include "programs/auton_tester_run.hpp"
+#include "robots/mechanism_table.hpp"
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/hal/fake/fake_controller.hpp"
+#include "shulib/hal/fake/fake_digital_out.hpp"
+#include "shulib/hal/fake/fake_motor.hpp"
 #include "shulib/hal/fake/fake_telemetry_sink.hpp"
+#include "shulib/hal/mechanism.hpp"
 #include "shulib/hal/motor.hpp"
+#include "shulib/mechanism/devices.hpp"
+#include "shulib/mechanism/service.hpp"
+#include "shulib/runner/command_registry.hpp"
+#include "shulib/runner/mechanism_routes.hpp"
 #include "shulib/kinematics/tank.hpp"
 #include "shulib/math/angle.hpp"
 #include "shulib/sequence/run_guard.hpp"
@@ -100,6 +119,53 @@ struct ScriptedInputs final : shulib::bench::IAbortInputs {
         touch.touch_status = kTouchReleased;
         ++touch.release_count;
     }
+};
+
+/// A hal::MotorMechanism that COUNTS its safe-state applications and can run a hook first (the
+/// competition rig's (R18) records the terminal word there) — the mechanism itself is unchanged.
+struct CountingMotorMechanism final : shulib::hal::MotorMechanism {
+    using shulib::hal::MotorMechanism::MotorMechanism;
+    int safes = 0;
+    std::function<void()> onSafe;
+    void applySafeState() override {
+        ++safes;
+        if (onSafe) {
+            onSafe();
+        }
+        shulib::hal::MotorMechanism::applySafeState();
+    }
+};
+/// A hal::PneumaticMechanism that counts its safe-state applications (as CountingMotorMechanism).
+struct CountingPneumaticMechanism final : shulib::hal::PneumaticMechanism {
+    using shulib::hal::PneumaticMechanism::PneumaticMechanism;
+    int safes = 0;
+    std::function<void()> onSafe;
+    void applySafeState() override {
+        ++safes;
+        if (onSafe) {
+            onSafe();
+        }
+        shulib::hal::PneumaticMechanism::applySafeState();
+    }
+};
+
+/// Robot two's mechanisms on fakes (file banner), in its list's order: pivot 6, pivot 7, the claw.
+struct RobotTwoFakes {
+    shulib::hal::fake::FakeMotor m6;
+    shulib::hal::fake::FakeMotor m7;
+    shulib::hal::IMotor* s6[1]{&m6};
+    shulib::hal::IMotor* s7[1]{&m7};
+    CountingMotorMechanism pivot6{s6, shulib::hal::BrakeMode::Hold, "claw pivot 6"};
+    CountingMotorMechanism pivot7{s7, shulib::hal::BrakeMode::Hold, "claw pivot 7"};
+    shulib::hal::fake::FakeDigitalOut lineA;  // 3-wire A: made at the claw's START level (low)
+    shulib::hal::IDigitalOut* lines[1]{&lineA};
+    CountingPneumaticMechanism claw{lines, false, "claw"};  // safe = low = closed
+    shulib::mechanism::Devices devs[3];
+    explicit RobotTwoFakes(bool absentPivot7 = false)
+        : devs{{.motors = &pivot6},
+               absentPivot7 ? shulib::mechanism::Devices{.absence = "port 7: nothing plugged in (expected a motor)"}
+                            : shulib::mechanism::Devices{.motors = &pivot7},
+               {.pneumatic = &claw}} {}
 };
 
 /// What the probe layer throws (each of runTesterOnce's three handlers has its own case).
@@ -209,21 +275,33 @@ struct TesterStack {
     ProbeLayer probe;
     ScriptedInputs inputs;
     shulib::bench::AbortWatch watch;
+    RobotTwoFakes two;                               // before the service: bind()'s lifetime rule
+    shulib::mechanism::MechanismService mechanisms;  // the guard's inner pacer; the watch is its
     shulib::sequence::RunGuard guard;
     shulib::chassis::Chassis chassis;
+    shulib::runner::MechanismRoutes routes;          // robot two's six route ids ...
+    shulib::runner::CommandRegistry commands;        // ... registered here (holds pointers into routes)
     RecordingObserver obs;
     shulib::bench::TesterRunRecord rec{};
 
     explicit TesterStack(const shulib::kinematics::IKinematics& kin, int weakWheel = 1,
                          double weakScale = 1.0,
                          const shulib::sim::SimHarnessConfig& cfg = motion_rig::plantConfig(),
-                         shulib::sim::DegradationModel* degradation = nullptr, int idleTicks = 50)
+                         shulib::sim::DegradationModel* degradation = nullptr, int idleTicks = 50,
+                         bool absentPivot7 = false)
         : weak{},
           rig{kin, cfg, &sink, degradation != nullptr ? degradation : &weak},
           plant{rig.h},
           watch{probe, inputs},
-          guard{watch},
-          chassis{rig.deps, guard, motion_rig::chassisConfig()} {
+          two{absentPivot7},
+          mechanisms{watch},
+          guard{mechanisms},
+          chassis{rig.deps, guard, motion_rig::chassisConfig()},
+          routes{chassis, mechanisms, shulib::bench::robot_two::kRobotTwoMechanisms, sink} {
+        // THE PROGRAM'S BOOT ORDER: the service bound over the built mechanisms after the chassis
+        // exists (the program: after the Robot), then the route ids registered.
+        mechanisms.bind(shulib::bench::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
+        routes.registerInto(commands);
         weak.wheel = weakWheel;
         weak.scale = weakScale;
         probe.inner = &plant;
@@ -246,21 +324,26 @@ struct TesterStack {
     /// One run of registry entry `index`, as the program runs it: RUN's release read is NOW
     /// (its press count is the abort's touch baseline).
     const shulib::bench::TesterRunRecord& run(const shulib::competition::AutonRegistry& reg,
-                                              int index, int number = 1,
-                                              std::span<shulib::hal::IMechanism* const> present =
-                                                  {}) {
-        return runFrom(inputs.touch.press_count, reg, index, number, present);
+                                              int index, int number = 1) {
+        return runFrom(inputs.touch.press_count, reg, index, number);
     }
 
     /// One run whose RUN release was read EARLIER, with press count `runPressCount` (a finger
-    /// may have landed since).
+    /// may have landed since). The program's call: the mechanism service and the route registry.
     const shulib::bench::TesterRunRecord& runFrom(std::int32_t runPressCount,
                                                   const shulib::competition::AutonRegistry& reg,
-                                                  int index, int number = 1,
-                                                  std::span<shulib::hal::IMechanism* const>
-                                                      present = {}) {
+                                                  int index, int number = 1) {
         return shulib::bench::runTesterOnce(rec, number, chassis, guard, watch, reg, index, sink,
-                                            present, obs, runPressCount);
+                                            mechanisms, &commands, obs, runPressCount);
+    }
+
+    /// Robot two's PRESENT mechanisms: each at its safe state — a pivot at 0 V under Hold, the claw's
+    /// line LOW (closed); an ABSENT pivot is not asked.
+    [[nodiscard]] bool mechanismsSafe() const {
+        const bool seven = two.devs[1].motors == nullptr ||
+                           (two.m7.commandedVoltage().value() == 0.0 && two.m7.brakeMode() == shulib::hal::BrakeMode::Hold);
+        return two.m6.commandedVoltage().value() == 0.0 && two.m6.brakeMode() == shulib::hal::BrakeMode::Hold &&
+               seven && !two.lineA.commanded();
     }
 
     /// Every drive motor at 0 V under Brake (the guard's and the panic stop's safe state).

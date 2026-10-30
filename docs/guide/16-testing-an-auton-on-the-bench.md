@@ -34,10 +34,13 @@ auton starts to the moment the end action finishes. What it **cannot** show you 
 match on a real field (or the controller's Timed Run) still must — is everything around that: a
 field disabling the robot mid-auton, the hand-over from autonomous to driver control, whether
 the controller's Timed Run really enters `autonomous()`, and the first moments after a mode
-change. One limit holds for the call in both programs today: neither passes a **command
-registry**, so an auton written as a *route* (the path editor's kind, with markers) is refused
-by name — in the tester and in the match — until the team registers its commands once, beside the
-autons, for both programs to use.
+change. Both programs also hand the call the same two things an auton needs for the robot's
+**mechanisms** (since the mechanism core's fifth part, 2026-10-29): the robot's **mechanism
+service**, so a claw step in an auton runs and is judged exactly as it will be in the match, and a
+**command registry** holding the robot's mechanism **route ids** — so an auton written as a *route*
+(the path editor's kind, with markers) can fire robot two's claws from its markers. A marker naming
+any other id is counted as unknown and runs nothing: the team's own commands have no place to be
+registered yet.
 
 **The competition program ("shulib Competition") calls the same `registerAutons()` and the same
 `competition::runAuton`** — [Chapter 17](17-the-competition-program.md) describes it. Like the
@@ -90,7 +93,7 @@ fails if this listing and the file ever disagree):
 // about this robot, not a broken auton: read END x and y (how far short, how far beside) and the
 // TSTR lines before changing anything.
 chassis::RoutineResult fortyInchesForward(competition::AutonContext& ctx) {
-    chassis::Routine r{ctx.chassis, "40in-forward"};
+    chassis::Routine r{ctx, "40in-forward"};
     r.moveTo(math::Pose2d{40_in, 0_in, 0_deg});
     return r.result();
 }
@@ -252,6 +255,83 @@ that one file. Nothing is written to the card during a run. Whether the brain ap
 expects is itself one of the beliefs the bench worksheet checks (the
 [Hardware Assumptions Register](../hardware-assumptions.md), HA-177).
 
+## The claws in an auton
+
+Robot two's mechanisms — the two claw pivots and the pneumatic claw — are declared in its robot
+file, `src/robots/mechanism_table.hpp`, each by name inside the namespace `robot_two`. The team's
+auton file says `using namespace robot_two;` at its top, so an auton names them directly:
+`clawPivot6`, `clawPivot7` and `claw`. No auton in the team's file steps a claw yet — which claw
+does what in an auton is the team's to write — so here is one, quoted from a host test that runs it
+on robot two's real declarations (the build fails if this listing and that test ever disagree):
+
+```cpp
+RoutineResult grabAndPivot(AutonContext& ctx) {
+    Routine r{ctx, "grab-and-pivot"};
+    r.set(claw["open"]);
+    r.driveTo(20_in, 0_in);
+    r.set(claw["closed"]);                     // no sensor: UNCONFIRMED, counted done
+    r.run(clawPivot6, 12_volt, 0.4_s);         // pivot 6 forward for 0.4 s
+    r.run(clawPivot7, -12_volt, 0.4_s);        // pivot 7 back for 0.4 s
+    return r.result();
+}
+```
+
+Two things in it are easy to get wrong. The routine is built on the **context**,
+`Routine r{ctx, "grab-and-pivot"}` — the form the 40 in auton uses too. Built on the chassis
+alone (`Routine r{ctx.chassis, ...}`) it has no mechanisms: its drive steps run, and its first claw
+step throws, naming the fix. And every step on a claw is **judged**, one serial line each (tag
+`MECH`), as it ends: on the host test plant, the run above logs `'claw': SUCCEEDED -- time in 0.5…`
+for the open, `'claw': UNCONFIRMED -- time in 0.5…` for the grab, then `'claw pivot 6': SUCCEEDED`
+and `'claw pivot 7': SUCCEEDED`, each `-- time in 0.4…`, and the result reads `FINISHED`. Nothing
+senses the claw, so a claw step ends when its declared move time has passed — 0.5 s, a guess
+until the bench worksheet times it ([HA-185](../hardware-assumptions.md)) — and the grab is
+UNCONFIRMED, **counted done**: the auton goes on (the team lead's ruling). Which level opens the
+claw is a guess too ([HA-159](../hardware-assumptions.md)). At the end of every run, and on an
+abort, the run guard puts every claw in its safe state: the pivots at 0 V in Hold, the claw closed.
+
+**On a route, the same claws are markers.** Each mechanism's actions are published as route ids,
+derived from its name: `claw_open` and `claw_closed`; `claw_pivot_6_run` and `claw_pivot_6_stop`;
+the same two for pivot 7. A run marker takes its volts and a time limit in milliseconds
+(`claw_pivot_6_run` with 12 and 400 is the auton's pivot step above); one without its time limit is
+refused by name, nothing moves, and the route stops there. Here is the auton above as a route — a
+start that opens the claw, then a drive 20 inches out whose end grabs and pivots — quoted from the
+same host test, which runs it through the tester and checks each marker's verdict (a route is
+normally drawn in a route editor, not typed; this is what one holds):
+
+```cpp
+route.waypoints[0].markers[0] = marker("claw_open");
+route.waypoints[0].markerCount = 1;
+route.waypoints[1] = {.x = Length{20.0}, .y = Length{0.0}, .headingMode = shulib::config::HeadingMode::Free,
+                      .motion = shulib::config::WaypointMotion::DriveTo,
+                      .constraints = {.timeout = Time{5.0}}};
+route.waypoints[1].markers[0] = marker("claw_closed");
+route.waypoints[1].markers[1] = marker("claw_pivot_6_run", 12, 400, 2);
+route.waypoints[1].markers[2] = marker("claw_pivot_7_run", -12, 400, 2);
+route.waypoints[1].markerCount = 3;
+```
+
+Its four markers fire in that order and are judged as the auton's steps are — the open SUCCEEDED, the
+grab UNCONFIRMED and counted done, each pivot SUCCEEDED — and the result reads `FINISHED`.
+[Chapter 18](18-mechanisms.md#as-route-markers--every-mechanisms-ids-run) covers the ids in full.
+
+**What the boot says about them.** The tester's serial log names each mechanism as it boots: what
+the robot file declares it to be, where each part is plugged in, and whether the brain found it
+there; then the route ids it published (the competition program prints the same, plus a line saying
+what each driver button does) —
+
+```text
+claw pivot 6: POWER -- RED, motor 1 forward; let go: HOLD
+claw pivot 6: motor 1 -> port 6 ok
+'claw pivot 6': no stall signature -- held against its stop it is cut only by the driver letting go (HA-154)
+claw: PNEUMATIC -- starts 'closed', safe 'closed'; closed = A low, open = A high (levels UNVERIFIED until a bench station sees them); a disable leaves it where it is
+claw: line 1 -> 3-wire A not checkable (the brain cannot see a 3-wire device)
+ROUTES: 6 mechanism route ids published (claw_pivot_6_run .. claw_open); 26 of the registry's 32 left for the team's own
+```
+
+— pivot 7's lines between them, like pivot 6's. A pivot that is not plugged in says so on its
+second line, as a warning naming what the brain found on that port, and the tester still runs:
+the run guard cannot make an absent claw safe, and the drive does not need it.
+
 ## Writing the next auton
 
 Add a function beside `fortyInchesForward`, and an entry for it in `registerAutons()`. Keep the
@@ -261,9 +341,12 @@ wheels up first. When you change a line this chapter quotes, the build tells you
 update.
 
 What the host tests do with your new entry: one test runs **every** registered auton, whatever the
-file holds, through the tester's own run sequence on the host test plant, and fails if any of them
-is refused, throws, never starts, hits its hard stop, or does not end with its end action run and
-the drive stopped under Brake. A second test pins the first two autons by name and schedule, and
+file holds, through the tester's own run sequence on the host test plant — robot two's claws
+included, through the same mechanism service the programs use — and fails if any of them is
+refused, throws (a claw step that can never be met throws at the step), never starts, hits its hard
+stop, or does not end with its end action run, the drive stopped under Brake and every claw in its
+safe state. Another reads the file itself and fails if a routine is built on `ctx.chassis` instead
+of `ctx`. A second test pins the first two autons by name and schedule, and
 counts the entries: it fails on your new one with a message asking you to pin its name, kind and
 schedule there too. Neither checks that your auton goes where you meant — that is the bench's job,
 and the tape's.

@@ -144,10 +144,11 @@ mental model, which matters more:
   (`src/programs/auton_tester_program.cpp`, `make ROBOT=tank PROGRAM=autontest`) and "shulib
   Competition" (`src/programs/competition_program.cpp`, `make ROBOT=tank PROGRAM=competition`);
   `src/common/` holds what those programs share — the boot source, the competition-state screens, the
-  painters, and the driver-control screen's words (`src/common/driver_panel.hpp`: the drive
-  protections' row, the controller's lines, and the claws' boot lines and panel row, whose buttons are
-  the driver file's); and the per-robot tables in `src/robots/` carry every robot's ports,
-  and robot two's claws (`src/robots/mechanism_table.hpp`). (Wiring a robot by hand, object by
+  painters, every driver file's plumbing (`src/common/driver_file.hpp`), and the driver-control
+  screen's words (`src/common/driver_panel.hpp`: the drive protections' row, the controller's lines,
+  and the mechanisms' boot lines and the claw row, whose buttons are the driver file's); and the
+  per-robot tables in `src/robots/` carry every robot's ports, and robot two's claws, declared in the
+  mechanism core's words (`src/robots/mechanism_table.hpp`). (Wiring a robot by hand, object by
   object, is still possible — the test suite's standalone case does it — but no program here does
   any more.) Which robot a build targets is
   chosen at `make` time: the X-drive build's port map is an

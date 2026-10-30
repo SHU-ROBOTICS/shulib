@@ -20,13 +20,26 @@
 // DriverLoopPresence), so the two never share the robot even if PROS did not delete opcontrol on a
 // direct change to autonomous (A4 register HA-161 (a)).
 //
-// ═══ THE PACER CHAIN (B7), PROVED AT BOOT ═════════════════════════════════════════════════
-//     Chassis -> RunGuard -> CompetitionWatch -> the provider's 10 ms ProsTickPacer
-// The boot PROVES it (pacerChainProven, src/common/guarded_run.hpp -- shared with the Auton Tester,
-// B30): one idle tick must pace the guard AND the watch, and the watch must be attached to the
-// guard, or the boot is REFUSED -- a Chassis built without the guard, or a watch that asks nobody,
-// could never be ended by a disable. Driver control's tick is the provider's pacer itself (the
-// driver file's run() takes it): nothing in driver control is the guard's to end.
+// ═══ THE PACER CHAIN (B7; the mechanism service since MECH-A5), PROVED AT BOOT ═══════════════════
+//     Chassis -> RunGuard -> MechanismService -> CompetitionWatch -> the provider's 10 ms ProsTickPacer
+// The guard checks its deadlines first, then the MECHANISM SERVICE ticks every mechanism (an auton's
+// claw step runs while the robot drives), then the watch and the world. The service is constructed
+// in the chain BEFORE the Robot (the Chassis takes its pacer once) and BOUND after it, over the
+// Robot's own built mechanisms (the MECH brief's landmines 1 and 20). The boot PROVES the chain
+// (pacerChainMissing, src/common/guarded_run.hpp -- shared with the Auton Tester, B30): one idle tick
+// must pace the guard, tick the service and pace the watch, and the watch must be attached to the
+// guard, or the boot is REFUSED naming the layer -- a Chassis built without the guard, a service left
+// out of the chain or never bound, or a watch that asks nobody, would leave an auton nothing could
+// end or a mechanism nothing runs. Driver control's tick is the provider's pacer itself (the driver
+// file's run() takes it, and its loop ticks the service ONCE per tick itself): nothing in driver
+// control is the guard's to end.
+//
+// ═══ THE ROUTE REGISTRY (the mechanism core's MECH-A5; the team lead's ruling of 2026-10-08) ═══════
+// ONE runner::CommandRegistry and ONE runner::MechanismRoutes live in the state: every route id the
+// robot's list derives (robot two's six: claw_pivot_6_run .. claw_open) is registered at boot, after
+// the service binds and inside the boot's try, and the registry goes to runAuton -- so a ROUTE auton's
+// markers fire the same steps an auton's lines do. A team's own registry.on(...) lines would come
+// after, sharing the registry's 32 (runner::kMaxCommands). The boot says how many it published.
 //
 // ═══ WHO PAINTS (RC3, ND4) ═══════════════════════════════════════════════════════════════
 // The auton task paints the MENU (after the boot, in competition_initialize() and disabled()) and
@@ -46,7 +59,8 @@
 //
 // ═══ THE LOGS (B5(1), ND5; the T4 brief's N5 (a) with Decisions A and B) ═════════════════════════
 // Serial: the banner, the boot's decision lines, the session header, the three boot lines, every
-// auton the registry DROPPED, every absent mechanism, where the log copy is, the claw lines, every
+// auton the registry DROPPED, every absent mechanism, where the log copy is, the mechanism lines
+// (one block per mechanism, tag MECH) and the route ids published, every
 // competition-status CHANGE (millis and the decoded bits, from the auton task's idle loop -- one
 // tick of latency), one line on entry to and on normal return from each of
 // competition_initialize(), disabled(), autonomous() and opcontrol(), and each request's lines;
@@ -156,7 +170,10 @@
 #include "shulib/hal/telemetry_sink.hpp"
 #include "shulib/math/angle.hpp"
 #include "shulib/math/twist2d.hpp"
+#include "shulib/mechanism/service.hpp"
 #include "shulib/robot/robot.hpp"
+#include "shulib/runner/command_registry.hpp"
+#include "shulib/runner/mechanism_routes.hpp"
 #include "shulib/sequence/run_guard.hpp"
 #include "shulib/teleop/drive_protection.hpp"
 #include "shulib/teleop/driver_control.hpp"
@@ -216,10 +233,12 @@ public:
 // ═══ PROGRAM STATE: one function-local static of EMPTY optionals ═════════════════════════════
 // ("shulib Drive"'s rule, and "shulib Teleop"'s before it: nothing non-movable at namespace scope,
 // nothing whose constructor can throw in the static itself.) Declaration order is the borrow order: the provider, the status
-// source, the pacer chain from the inside out (watch, guard), the Robot -- whose Chassis keeps the
-// guard as its pacer for the Robot's whole life -- the driver's bindings over it, the registry and
-// the menu. The driver file lives HERE for the program's life (its loop holds the bindings by
-// address; PROS deletes the opcontrol task on a disable), and so does the last request's record.
+// source, the pacer chain from the inside out (watch, mechanism service, guard), the Robot -- whose
+// Chassis keeps the guard as its pacer for the Robot's whole life -- the driver file bound to the
+// service, the route registry and the mechanism route ids over the Robot's Chassis and the service,
+// the auton registry and the menu. The driver file lives HERE for the program's life (its loop holds
+// the inputs by address; PROS deletes the opcontrol task on a disable), and so does the last
+// request's record.
 struct CompetitionState {
     BootOutcome boot{};
     CompetitionFlags flags{};
@@ -228,14 +247,15 @@ struct CompetitionState {
     std::optional<hal::pros::ProsDeviceProvider> devices{};
     std::optional<ProsCompetitionStatus> status{};
     std::optional<CompetitionWatch> watch{};
+    std::optional<mechanism::MechanismService> mechanisms{};  // between the guard and the watch (B7)
     std::optional<sequence::RunGuard> guard{};
     std::optional<robot::Robot> robot{};
     RobotTwoDriver driver{};
+    std::optional<runner::CommandRegistry> commands{};     // the route registry ...
+    std::optional<runner::MechanismRoutes> routes{};       // ... and the robot's mechanism route ids
     std::optional<competition::AutonRegistry> registry{};
     std::optional<competition::AutonMenu> menu{};
     std::optional<hal::pros::ProsLineDisplay> lcd{};
-    std::array<hal::IMechanism*, config::kMaxMechanisms> present{};
-    std::size_t presentCount = 0;
     std::optional<hal::pros::ProsBlockSink> sdBlock{};
     std::optional<hal::BlockCharSink> sdChars{};
     std::optional<diag::TermSink> sdLog{};
@@ -490,7 +510,8 @@ void autonTask(void* /*unused*/) {
                            *st.menu,
                            *st.registry,
                            st.devices->telemetry(),
-                           std::span<hal::IMechanism* const>{st.present.data(), st.presentCount},
+                           *st.mechanisms,
+                           &*st.commands,
                            st.handshake,
                            st.flags};
     StatusObserver observer;
@@ -564,8 +585,8 @@ private:
                                        const teleop::DriveProtectionState& protection) {
         const diag::FaultLatch& f = robot_.faults();
         faultRow_ = faultRowText(f.hasFault() ? f.faultCount() : 0, f.firstFault(), f.lastFault());
-        clawRow_ = clawRowText(kMechanisms, robot_,
-                               st_.driver.bindings().anyReleasedLeftoverClaim());
+        const bool freed = st_.driver.releasedLeftoverAtEntry(*st_.mechanisms);
+        clawRow_ = clawRowText(kMechanisms, robot_, *st_.mechanisms, freed);
         CompetitionDriverFacts facts{};
         facts.protection = protectionRowText(protection, kCutSeconds);
         facts.auton = competitionAutonRow(st_.last, *st_.registry, st_.flags.programError.load(),
@@ -574,8 +595,7 @@ private:
         facts.faultRow = faultRow_.text;
         facts.faultRed = f.hasFault();
         facts.clawRow = clawRow_.text;
-        facts.clawAmber =
-            anyClawAbsent(robot_) || st_.driver.bindings().anyReleasedLeftoverClaim();
+        facts.clawAmber = anyClawAbsent(robot_) || freed;
         facts.buildStamp = kBuildTimeText;
         return competitionDriverView(facts);
     }
@@ -651,11 +671,22 @@ void competitionInitialize(const char* variantBeacon, const char* competitionSta
         return;
     }
     // Everything is built at the graph boundary, inside ONE try (B8); any refusal un-builds it all,
-    // the driver's bindings first -- none may outlive the mechanisms it points at (B11).
+    // each object before what its DESTRUCTOR reads: the route ids (they point at the Chassis and the
+    // service) first; then the SERVICE, before the Robot -- its destructor reads every slot's
+    // mechanism (is a claim still held?), and those mechanisms, the fault latch and the clock it was
+    // bound with are the Robot's (service.hpp: they "must outlive the service"; MECH-A5's review);
+    // then the Robot, the guard and the watch, whose destructors read nothing (the guard still names
+    // the released service as its inner pacer, and the Robot's Chassis the guard, but nothing paces
+    // during an unbuild). Nothing holds a mechanism's claim at boot (bind() and the proof's idle tick
+    // command nothing), so the service's own end commands no device. The driver file stays bound to
+    // the released service, harmlessly: a refused boot starts no task and runs no driver control
+    // (runCompetition()).
     const auto unbuild = [&st] {
-        st.driver.unbind();
         st.menu.reset();
         st.registry.reset();
+        st.routes.reset();
+        st.commands.reset();
+        st.mechanisms.reset();
         st.robot.reset();
         st.guard.reset();
         st.watch.reset();
@@ -679,7 +710,8 @@ void competitionInitialize(const char* variantBeacon, const char* competitionSta
         st.devices.emplace(kLogCopyFile, hal::pros::ProsFileMode::Append);  // + the log copy
         st.status.emplace();
         st.watch.emplace(st.devices->pacer(), *st.status);
-        st.guard.emplace(*st.watch);
+        st.mechanisms.emplace(*st.watch);  // in the chain BEFORE the Robot; bound AFTER it (B7)
+        st.guard.emplace(*st.mechanisms);
         st.watch->attachGuard(*st.guard);
         robot::BuildOptions opts = st.boot.built.buildOptions();
         opts.pacer = &*st.guard;  // BORROWED for the Robot's whole life (robot.hpp)
@@ -689,32 +721,39 @@ void competitionInitialize(const char* variantBeacon, const char* competitionSta
             return;
         }
         st.robot.emplace(st.boot.built.config, *st.devices, opts);
-        // The team's driver file (B11): its buttons bound over this Robot, inside the try.
+        // THE MECHANISM SERVICE (B7): bound over the Robot's own built mechanisms -- one source of
+        // devices (the MECH brief's landmine 20) -- before anything can run an auton or a driver loop.
+        st.mechanisms->bind(kMechanisms, st.robot->mechanismParts().devices(), st.robot->context().clock(),
+                            st.robot->faults(), st.robot->context().telemetry());
+        // The team's driver file (B11): its controls bound to the service BY NAME, inside the try. A
+        // robot these controls are not for (a control naming a mechanism it lacks, or one of another
+        // kind, or a mechanism no control names) is the driver file's own refusal, its reason naming
+        // the mechanism (T4's headline, kept).
         char why[192] = "";
-        if (!st.driver.bind(*st.robot, why, sizeof why)) {
+        if (!st.driver.bind(*st.mechanisms, why, sizeof why)) {
             refuseBuilt("the driver's controls REFUSED", why);
             return;
         }
+        // THE ROUTE REGISTRY (header): every mechanism route id the list derives, registered once.
+        st.commands.emplace();
+        st.routes.emplace(st.robot->chassis(), *st.mechanisms, kMechanisms, st.devices->telemetry());
+        st.routes->registerInto(*st.commands);
         // The team's autons. An entry the registry refuses is DROPPED -- never on the menu, named
         // there and in the log -- and the boot goes on: the team lead's ruling of 2026-10-02 ("drop
         // just that auton"; an auton bug must not cost the match's driver control).
         st.registry.emplace(kAutonPeriods, competition::OnRefusal::DropEntry);
         registerAutons(*st.registry);
-        // The guard safes the Robot's PRESENT mechanisms (B9).
-        for (std::size_t i = 0; i < st.robot->mechanismCount(); ++i) {
-            hal::IMechanism* m = st.robot->builtMechanismAt(i);
-            if (m != nullptr) {
-                st.present[st.presentCount++] = m;
-            }
-        }
+        // (The guard safes the Robot's PRESENT mechanisms -- B9 -- through the service: runAuton's
+        // service overload hands the guard the service's built ones, the same objects.)
         st.menu.emplace(*st.registry, readTouch().sample.releaseCount);
-        // THE CHAIN PROOF (B30): one idle tick must pace the guard AND the watch, and the watch
-        // must be attached to the guard, or no disable could end an auton. Refused, not warned.
-        if (!pacerChainProven(st.robot->chassis(), *st.guard, *st.watch)) {
-            refuseBuilt("the competition program's pacer chain is WRONG",
-                   "one idle tick did not pace the run guard and the competition watch, or the "
-                   "watch is not attached to the guard -- a disable could not end an auton; this is "
-                   "a build error, not a robot fault");
+        // THE CHAIN PROOF (B30, MECH-A5): one idle tick must pace the guard, tick the mechanism
+        // service and pace the watch, and the watch must be attached to the guard, or no disable
+        // could end an auton (or no mechanism would run in one). Refused, not warned, naming the gap.
+        if (const ChainGap gap = pacerChainMissing(st.robot->chassis(), *st.guard, *st.mechanisms, *st.watch);
+            gap != ChainGap::None) {
+            char chain[192];
+            std::snprintf(chain, sizeof chain, "%.150s -- a build error, not a robot fault", chainGapWords(gap));
+            refuseBuilt("the competition program's pacer chain is WRONG", chain);
             return;
         }
     } catch (const std::exception& e) {
@@ -752,7 +791,7 @@ void competitionInitialize(const char* variantBeacon, const char* competitionSta
     const CompetitionBootLines boot = competitionBootLines(
         variantBeacon, diag::compiledBuildHash(), bootSourceWord(st.boot.source),
         st.flags.bootFromRecord, static_cast<int>(st.registry->size()),
-        static_cast<int>(st.presentCount), static_cast<int>(st.robot->mechanismCount()), sd,
+        static_cast<int>(st.mechanisms->mechanisms().size()), static_cast<int>(st.robot->mechanismCount()), sd,
         st.sdLog.has_value() ? st.sdBlock->path() : "");
     for (const char* bootLine : boot.line) {
         logLine(hal::LogLevel::Info, bootLine, true);
@@ -782,17 +821,16 @@ void competitionInitialize(const char* variantBeacon, const char* competitionSta
                                                  st.devices->serialCopyDroppedLines());
         logLine(copy.warn ? hal::LogLevel::Warn : hal::LogLevel::Info, copy.text);
     }
-    // The claws, one line each (src/common/driver_panel.hpp's words, from the table AND the driver
-    // file's controls -- the same lines "shulib Drive" prints; worksheet J.3.1 and K quote them),
-    // printed whole: an ABSENT line can pass TermSink's 200 bytes -- and one serial line's 256
-    // (SER1), so each is serialWrapped(): one write() per piece, never cut.
-    for (std::size_t i = 0; i < motorEntryCount(kMechanisms); ++i) {
-        hal::pros::serialWrapped(
-            kTag, motorClawBootLine(kMechanisms, RobotTwoDriver::kHolds, *st.robot, i).text);
-    }
-    for (std::size_t j = 0; j < pneumaticEntryCount(kMechanisms); ++j) {
-        hal::pros::serialWrapped(
-            kTag, pneumaticClawBootLine(kMechanisms, RobotTwoDriver::kToggles, *st.robot, j).text);
+    // THE MECHANISMS (MECH-A5): each one's block -- what it is, one line per role, one per driver
+    // control, its state -- in src/common/driver_panel.hpp's words (the same lines "shulib Drive" and
+    // the Auton Tester print; worksheet J.3.1, J.9.1 and K quote them), tag MECH, through the provider's
+    // sink (serial and the log copy), each within one line.
+    mechanismBootLines(kMechanisms, *st.robot, *st.mechanisms, &RobotTwoDriver::kControls,
+                       [&st](const MechanismLine& m) { st.devices->telemetry().log(m.level, "MECH", m.text); });
+    // ...and the route ids they publish (header, THE ROUTE REGISTRY).
+    {
+        const RoutesLine routes = routesBootLine(st.routes->ids());
+        logLine(hal::LogLevel::Info, routes.text, true);
     }
 
     st.owner.handTo(ScreenOwner::Menu);  // the auton task paints the menu from its first tick
@@ -860,7 +898,7 @@ void runCompetition() {
     // The team's driver file (B11): its loop until a disable, the autonomous bit, or a waiting
     // auton request -- beating once per tick for the auton task. Its tick is the provider's pacer
     // (nothing in driver control is the guard's).
-    st.driver.run(r, st.devices->pacer(),
+    st.driver.run(r, *st.mechanisms, st.devices->pacer(),
                   [&st] {
                       st.presence.beat();
                       return driverControlMustEnd(readStatus(), st.handshake.busy());

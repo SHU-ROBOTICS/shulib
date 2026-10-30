@@ -216,7 +216,7 @@ The mechanism seam that used to be a placeholder here is now real code
   adversarial clock rather than hanging, cancels into a per-mechanism declared safe state,
   and hands `then()` a verdict where a completed-but-unconfirmed action can never read as
   success. All of it against in-memory fakes and hostile fakes that jam, stall and lie.
-- **The mechanism core, on a host only (2026-10-15 to 2026-10-29, four of its six parts):** a robot file
+- **The mechanism core, on a host only (2026-10-15 to 2026-10-29, five of its six parts):** a robot file
   DECLARES each mechanism (an `Arm`, a `Lift`, a `Flywheel`, a `Power` roller, a `Pneumatic`) and
   wires it separately, the build refusing each mistake by name ([Chapter 10](10-the-api.md)); one
   mechanism service runs all five kinds — a move and its hold, homing, the soft stop, a spin to "at
@@ -224,8 +224,9 @@ The mechanism seam that used to be a placeholder here is now real code
   jam ([Chapter 18](18-mechanisms.md)); an auton runs a mechanism on ONE line (`r.move(arm["score"],
   1.5_s)`), a driver file's controls put presets on buttons, a route's markers run every mechanism's
   ids, and the direction check judges a jog. Proven only on the host test plant's invented models, with
-  invented starting gains; **no program builds the service yet** — robot two's programs move onto it in
-  its fifth part — and the bench page that runs the direction check is its sixth.
+  invented starting gains; robot two's programs run on the service since its fifth part (2026-10-29),
+  its claws as declarations — never on a robot — and the bench page that runs the direction check is
+  its sixth.
 - **Deliberately absent:** any concrete mechanism. There is no `shulib::Intake` and never
   will be — mechanism sets change every season, so the library ships the grammar and your
   team writes the nouns (Chapter 13 says how, and why the safe state is declared per
@@ -419,9 +420,10 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   as a starting point, not a recommendation. Mechanism BUTTONS exist since chunk T3
   (`teleop::MechanismBinding`: hold a button to drive a mechanism, let go and it goes to its safe
   state; `teleop::ToggleBinding`: press a button to open a pneumatic claw, press again to close it
-  — [Chapter 10](10-the-api.md)), and robot two's driver file gives robot two's claws to the
-  driver with them (the claws since T3's second part, in the driver file since T4; "shulib Drive"
-  runs that file): R1/R2 move the claw pivot on port 6, L1/L2 the one on port 7
+  — [Chapter 10](10-the-api.md)), and robot two's driver file gave robot two's claws to the
+  driver with them (the claws since T3's second part, in the driver file since T4, until the
+  mechanism core's fifth part moved them onto the core's controls — below; "shulib Drive" runs
+  that file): R1/R2 move the claw pivot on port 6, L1/L2 the one on port 7
   (full power while held, holding on release), A opens and closes the pneumatic claw, and the
   field-centric re-zero moved to Y. **None of it has run on a robot**: no claw has moved, whether a
   released pivot really holds its load, which way each one turns and which line level opens the
@@ -429,7 +431,8 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   part (2026-10-29) a robot's DECLARED mechanisms have their own driver controls — `whileHeld`,
   `toggle`, `preset` (an arm to its "score" on one button), the homing controls, "the most recent input
   wins" ([Chapter 18](18-mechanisms.md#on-the-drivers-buttons--the-driver-files-controls)) — host-tested
-  only, and no program uses them yet (robot two's driver file moves onto them next). Driver MACROS (a
+  only; robot two's driver file runs its claws on them since the core's fifth part (2026-10-29),
+  behaving exactly as before. Driver MACROS (a
   button that runs a chassis motion the sticks can interrupt) are still future work (phase T on the
   roadmap).
   *(This bullet used to say joystick shaping and slew limits did not exist at all; that went

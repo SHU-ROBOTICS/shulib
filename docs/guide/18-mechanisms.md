@@ -8,15 +8,16 @@
 > (presets, holds, toggles), how a ROUTE's markers do (every mechanism's ids, published), and what
 > the direction check judges.
 >
-> **What exists, and what does not yet.** The mechanism core's first four parts are in (MECH-A1 and
-> A2, 2026-10-15; A3, 2026-10-22; A4, 2026-10-29): the vocabulary and its build checks, the mechanism SERVICE
+> **What exists, and what does not yet.** The mechanism core's first five parts are in (MECH-A1 and
+> A2, 2026-10-15; A3, 2026-10-22; A4 and A5, 2026-10-29): the vocabulary and its build checks, the mechanism SERVICE
 > (one object, ticked once per control tick, that runs every mechanism's behaviour), the behaviours of
 > all four kinds of mechanism — power, pneumatic, POSITION (an arm, a lift) and SPEED (a flywheel) —
 > and everything that calls them: the auton STEPS (`r.move(arm["score"], 1.5_s)`), the driver
 > CONTROLS (presets on buttons), the ROUTE BINDER that runs a marker's id, and the direction check's
-> JUDGEMENT. What is still to come: robot two's programs and its driver file moving onto them (the
-> core's fifth part — **no program builds a service yet**) and the bench page that runs the direction
-> check (its sixth). Everything below is measured on the **host test plant** — invented models of an
+> JUDGEMENT — and, since the fifth part, robot two on all of it: its claws are declarations, every
+> program that boots it binds one service, prints each mechanism's boot lines and publishes its route
+> ids, and its driver file is three lines of controls ([the cookbook](../cookbook/06-driver-control.md)).
+> What is still to come: the bench page that runs the direction check (the core's sixth part). Everything below is measured on the **host test plant** — invented models of an
 > arm, a lift and a flywheel ([HA-183](../hardware-assumptions.md)) — and the library's own numbers in
 > it are invented starting values ([HA-182](../hardware-assumptions.md)). **Nothing here has run on a
 > robot.**
@@ -276,7 +277,8 @@ accept that the driver's thumb is what ends a push into an obstacle.
 Three kinds of number are not yours to know before the robot runs: the loops' gains, the smooth
 move's speed and acceleration, and "reached". The library starts them from your cartridge and gearing
 — **invented and provisional** (HA-182). `startingValuesLine()` words them for a boot line, so nobody
-takes them for measurements; the programs print it from the core's fifth part on — none does yet:
+takes them for measurements; every program that boots a robot's list prints it, one line per position
+or speed mechanism (since the core's fifth part — robot two declares neither, so its boot prints none):
 
 | Number | Starting value | What it is |
 |---|---|---|
@@ -323,7 +325,8 @@ An auton builds its routine from its context — `Routine r{ctx, "name"}` — an
 then ONE line, naming the mechanism by its declaration and stating its time limit. The auton below is
 robot x's (`guide-18c`, in
 [`test/mechanism_auton_example_test.cpp`](../../test/mechanism_auton_example_test.cpp); the robot's own
-namespace gives every word):
+namespace gives every word — robot two's claws in an auton are
+[Chapter 16](16-testing-an-auton-on-the-bench.md#the-claws-in-an-auton)'s):
 
 ```cpp
 RoutineResult scoreThree(AutonContext& ctx) {
@@ -411,7 +414,12 @@ inline constexpr DriverControls kControls = controls(kRobotXMechanisms,
   its `.unhomedVolts` before) and HOLDS WHERE IT IS when let go. Both buttons at once = neither.
 - **`toggle(claw, Button::A)`** — each press flips a two-position pneumatic; **`toggle(flywheel["shoot"],
   Button::X)`** spins a flywheel up to that NAMED speed or stops it (`toggle(flywheel, …)` is refused:
-  name the speed).
+  name the speed). A toggle's press, a preset's and a homing press are each a STEP, as an auton's is, so
+  each logs its verdict once it ends — robot two's claw, 0.5 s after each press of A: `'claw': SUCCEEDED
+  -- time in 0.50s` for an open, `[WARN]` `'claw': UNCONFIRMED -- time in 0.50s (no piece sensor to
+  confirm it; counted done)` for a close (nothing senses the grab), and `CANCELLED` when a newer press or
+  the end of driver control came first. Those lines are expected; a hold-to-run (`whileHeld`) logs
+  none.
 - **`preset(arm["score"], Button::Right, 1.5_s)`** — a press sends it there within the time limit, then it
   holds (or keeps spinning); a pneumatic position needs no time limit: `preset(hood["up"], Button::Up)`.
 - **`homeOnPress(lift, Button::Left, 1.5_s)`**, **`homeAtDriverStart(lift, 1.5_s)`** (once, at the start of

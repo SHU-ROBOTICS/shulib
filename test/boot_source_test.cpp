@@ -51,6 +51,7 @@
 #include <vector>
 
 #include "common/boot_source.hpp"
+#include "mechanism_fixtures.hpp"
 #include "shulib/calibration/boot_check.hpp"
 #include "shulib/calibration/calibration_record.hpp"
 #include "shulib/chassis/chassis.hpp"
@@ -837,18 +838,52 @@ TEST_CASE("G1 2b test 6r: a usable table that FAILS its own port check is refuse
     CHECK(std::string_view{b.out.why} == std::string{b.out.verdict.reason}.substr(0, 191));
 }
 
-// ═══ 6s-6v: THE MECHANISMS INTO THE CONFIG (T3 Part 2) ═══════════════════════════════════════
-// src/common/boot_source.hpp's pure core converts src/robots/mechanism_table.hpp — the REAL table, robot two's
-// kRobotTwoMechanisms, defined in every build — into config::MechanismConfig, field by field, in
-// table order; the port check names the declared motor ports as claw pivots; and a claw port that
-// the chosen description lists as a drive port refuses the boot. NO HARDWARE CLAIM: nobody has
-// seen a motor on port 6 or 7 (A4 register HA-153), and the census below is a FakeDeviceRegistry.
+// ═══ 6s-6x: THE MECHANISMS INTO THE CONFIG (T3 Part 2; the mechanism core's words since MECH-A5) ═══════
+// src/common/boot_source.hpp's pure core projects src/robots/mechanism_table.hpp's list — the REAL
+// declarations, robot two's robot_two::kRobotTwoMechanisms, defined in every build — into
+// config::MechanismConfig through the library's ONE projection (mechanism::toMechanismConfig), in the
+// LIST's order; the port check names the declared motor ports as claw pivots; and a declared port —
+// a motor's, or (since MECH-A5) a smart SENSOR's — that the chosen description lists as a drive port
+// refuses the boot. NO HARDWARE CLAIM: nobody has seen a motor on port 6 or 7 (A4 register HA-153),
+// and the census below is a FakeDeviceRegistry.
+namespace boot_mech {
+using namespace shulib::mechanism::words;
+/// A list whose every field is DISTINGUISHABLE — what robot two's cannot tell apart (its two pivots
+/// share a cartridge and a mode; its claw's start and safe are both 'closed', which is LOW): a
+/// REVERSED Green Brake roller on 9, a Blue Coast intake on 10, a clamp on C whose 'closed' is HIGH
+/// that starts 'closed' and is made safe 'open', a wing on H that starts 'open' and is made safe
+/// 'closed' — and the kinds INTERLEAVED, so the config's order must be the list's, not "motors
+/// first" (the order before MECH-A5).
+inline constexpr Power roller{.name = "roller", .motors = {Reversed}, .cartridge = Green, .safe = Brake};
+inline constexpr Power intake{.name = "intake", .motors = {Forward}, .cartridge = Blue, .safe = Coast};
+inline constexpr Pneumatic clamp{.name = "clamp", .positions = {{"closed", {High}}, {"open", {Low}}},
+                                 .start = "closed", .safe = "open", .moveTime = 0.2_s};
+inline constexpr Pneumatic wing{.name = "wing", .positions = {{"closed", {Low}}, {"open", {High}}},
+                                .start = "open", .safe = "closed", .moveTime = 0.2_s};
+inline constexpr MechanismTable kDistinguishable = mechanisms(
+    wire(clamp, lines('C')),
+    wire(roller, motors(9)),
+    wire(wing, lines('H')),
+    wire(intake, motors(10)));
+/// The LONGEST name a Power mechanism can carry in a list: 18 characters — its route ids
+/// ("abcdefghijklmnopqr_stop", 23) must fit F8's 23 (route_ids.hpp; mechanisms(...) refuses a longer
+/// one by name), so the config's 23-character field is never the limit.
+inline constexpr Power longName{.name = "abcdefghijklmnopqr", .motors = {Forward}, .cartridge = Red, .safe = Hold};
+inline constexpr MechanismTable kLongName = mechanisms(wire(longName, motors(8)));
+/// A TWO-LINE pneumatic whose start and safe positions each put its lines at DIFFERENT levels — what
+/// robot two's one-line claw can never show: a config that kept only one level per mechanism (the
+/// shape before the mechanism core) starts this flap at the wrong level on line F and makes it safe
+/// at the wrong level on both.
+inline constexpr Pneumatic flap{.name = "flap",
+                                .positions = {{"down", {Low, Low}}, {"half", {High, Low}}, {"tilt", {Low, High}}},
+                                .start = "half", .safe = "tilt", .moveTime = 0.2_s};
+inline constexpr MechanismTable kTwoLines = mechanisms(wire(roller, motors(9)), wire(flap, lines('E', 'F')));
+}  // namespace boot_mech
+
 namespace {
 
-using shulib::bench::Cartridge;
-using shulib::bench::kRobotTwoMechanisms;
 using shulib::bench::MechanismTable;
-using shulib::bench::PneumaticPosition;
+namespace two = shulib::bench::robot_two;
 
 /// Robot two's census with the claws plugged in: the 2026-09-25 census plus MOTOR on 6 and 7.
 FakeDeviceRegistry robotTwoCensusWithClaws() {
@@ -875,6 +910,9 @@ void requireMotorMechanism(const cfgns::MechanismConfig& m, std::string_view nam
     CHECK(m.pneumaticPorts[1] == 0);
     CHECK(static_cast<int>(m.pneumaticSafe) == 0);   // UNSET: not a pneumatic mechanism
     CHECK(static_cast<int>(m.pneumaticStart) == 0);
+    CHECK(m.rotationPort == 0);  // no sensor role
+    CHECK(m.distancePort == 0);
+    CHECK(m.opticalPort == 0);
 }
 
 /// Every field of a converted PNEUMATIC mechanism, longhand.
@@ -892,51 +930,22 @@ void requirePneumaticMechanism(const cfgns::MechanismConfig& m, std::string_view
     CHECK(static_cast<int>(m.safeMode) == 0);
 }
 
-/// A table whose every field is DISTINGUISHABLE — the fields robot two's table cannot tell apart
-/// (its two pivots share a cartridge and a mode; its claw's start and safe are both CLOSED, and its
-/// polarity makes CLOSED the LOW level, which is also what a CLOSED position read as a bool gives).
-/// (Its entries carried buttons and volts until T4 Part 3 moved them to the driver file; the
-/// conversion never read them, so every decision this file pins is unchanged.)
-constexpr MechanismTable kDistinguishable = {
-    .motors = {{.name = "lift",
-                .signedPort = -9,
-                .cartridge = Cartridge::Green,
-                .safeMode = shulib::hal::BrakeMode::Brake,
-                .provenance = "test"},
-               {.name = "intake",
-                .signedPort = 10,
-                .cartridge = Cartridge::Blue,
-                .safeMode = shulib::hal::BrakeMode::Coast,
-                .provenance = "test"}},
-    .motorCount = 2,
-    .pneumatics = {{.name = "clamp",
-                    .adiLine = 3,
-                    .openCommand = false,  // LOW opens: CLOSED is HIGH
-                    .start = PneumaticPosition::Closed,
-                    .safe = PneumaticPosition::Open,
-                    .provenance = "test"},
-                   {.name = "wing",
-                    .adiLine = 8,
-                    .openCommand = true,
-                    .start = PneumaticPosition::Open,
-                    .safe = PneumaticPosition::Closed,
-                    .provenance = "test"}},
-    .pneumaticCount = 2,
-};
-
 }  // namespace
 
-TEST_CASE("T3 P2 test 6s: the pure core converts robot two's REAL mechanism table into the config "
-          "exactly — the pivots as single-motor mechanisms, the claw as a pneumatic one whose START "
-          "and SAFE are LEVELS, in table order — and every field is converted, nothing defaulted") {
+TEST_CASE("T3 P2 test 6s: the pure core projects robot two's REAL list into the config EXACTLY -- "
+          "today's numbers, written literally: +6 / +7 RED Hold, the claw on 3-wire A LOW at the start "
+          "and LOW when forced safe, in the list's order -- and every field lands in its own place") {
     // BUG CAUGHT: a pivot converted with Coast (the value-initialised mode: it drops a loaded claw),
-    // the drive's cartridge, a lost sign; the claw's POSITION handed over as its level, or its
-    // SAFE level as its START; the two pivots in one mechanism; the order of the kinds swapped (the
-    // bindings bind by config index); a mechanism dropped or a name cut.
+    // the drive's cartridge, a lost sign; the claw's start level wrong (it opens at boot), its SAFE
+    // level as its START; the two pivots in one mechanism; the LIST's order replaced by "motors
+    // first" (every boot line, the claw row and the Robot's accessors index by it); a mechanism
+    // dropped or a name cut. These are the numbers robot two booted with before MECH-A5, written out
+    // — so the projection cannot be "identical and both wrong" (test/mechanism_wiring_test.cpp pins
+    // the fixture to the same).
     const DrivetrainDescription record = robotTwoRecord();
     const BootVerdict v = verifyAgainstRegistry(record, robotTwoCensusWithClaws());
     REQUIRE(v.usable());
-    const BootConfig boot = bootConfigFrom(record, v, kRobotTwoName, kRobotTwoMechanisms);
+    const BootConfig boot = bootConfigFrom(record, v, kRobotTwoName, two::kRobotTwoMechanisms);
     const cfgns::RobotConfig& c = boot.config;
     char why[192] = "";
     REQUIRE_MESSAGE(c.valid(why, sizeof why), why);
@@ -945,36 +954,28 @@ TEST_CASE("T3 P2 test 6s: the pure core converts robot two's REAL mechanism tabl
                           cfgns::SafeBrakeMode::Hold);
     requireMotorMechanism(c.mechanisms[1], "claw pivot 7", +7, MotorCartridge::Red,
                           cfgns::SafeBrakeMode::Hold);
-    // The claw: 3-wire A; CLOSED at the start and CLOSED when forced safe — as LEVELS through the
-    // one polarity constant (kClawOpenCommand: the level that OPENS it, UNVERIFIED — HA-159).
-    const cfgns::PneumaticLevel closed = shulib::bench::kClawOpenCommand
-                                             ? cfgns::PneumaticLevel::Low
-                                             : cfgns::PneumaticLevel::High;
-    requirePneumaticMechanism(c.mechanisms[2], "claw", 1, closed, closed);
-    CHECK(c.mechanisms[2].pneumaticStart
-          == shulib::bench::toPneumaticLevel(
-              shulib::bench::pneumaticStartCommand(kRobotTwoMechanisms.pneumatics[0])));
-    CHECK(shulib::bench::mechanismConfigIndexOfPneumatic(kRobotTwoMechanisms, 0) == 2U);
+    // The claw: 3-wire A (line 1); CLOSED at the start and CLOSED when forced safe — LOW, the level
+    // its declaration states for 'closed' (the guess, HA-159).
+    requirePneumaticMechanism(c.mechanisms[2], "claw", 1, cfgns::PneumaticLevel::Low, cfgns::PneumaticLevel::Low);
+    CHECK(c.mechanisms[2].pneumaticStartByLine[0] == static_cast<cfgns::PneumaticLevel>(0));  // uniform: no per-line
     // The drivetrain is untouched by the mechanisms (6b's pins, again, with them in).
     requireSameDescription(c.drivetrain.tank.description, record);
     requireDefaultTuning(c.tuning);
 
-    SUBCASE("a table whose every field differs: each lands in its own place") {
-        const BootConfig b = bootConfigFrom(record, v, kRobotTwoName, kDistinguishable);
+    SUBCASE("a list whose every field differs, its kinds interleaved: each lands in its own place, in "
+            "the list's order") {
+        const BootConfig b = bootConfigFrom(record, v, kRobotTwoName, boot_mech::kDistinguishable);
         const cfgns::RobotConfig& d = b.config;
         REQUIRE_MESSAGE(d.valid(why, sizeof why), why);
         REQUIRE(static_cast<int>(d.mechanismCount) == 4);
-        requireMotorMechanism(d.mechanisms[0], "lift", -9, MotorCartridge::Green,
-                              cfgns::SafeBrakeMode::Brake);
-        requireMotorMechanism(d.mechanisms[1], "intake", 10, MotorCartridge::Blue,
-                              cfgns::SafeBrakeMode::Coast);
-        // clamp: LOW opens, so CLOSED (start) is HIGH and OPEN (safe) is LOW.
-        requirePneumaticMechanism(d.mechanisms[2], "clamp", 3, cfgns::PneumaticLevel::High,
+        // clamp: 'closed' is HIGH, starts 'closed' (HIGH), made safe 'open' (LOW).
+        requirePneumaticMechanism(d.mechanisms[0], "clamp", 3, cfgns::PneumaticLevel::High,
                                   cfgns::PneumaticLevel::Low);
-        // wing: HIGH opens, so OPEN (start) is HIGH and CLOSED (safe) is LOW.
-        requirePneumaticMechanism(d.mechanisms[3], "wing", 8, cfgns::PneumaticLevel::High,
+        requireMotorMechanism(d.mechanisms[1], "roller", -9, MotorCartridge::Green, cfgns::SafeBrakeMode::Brake);
+        // wing: 'open' is HIGH, starts 'open' (HIGH), made safe 'closed' (LOW).
+        requirePneumaticMechanism(d.mechanisms[2], "wing", 8, cfgns::PneumaticLevel::High,
                                   cfgns::PneumaticLevel::Low);
-        CHECK(shulib::bench::mechanismConfigIndexOfPneumatic(kDistinguishable, 1) == 3U);
+        requireMotorMechanism(d.mechanisms[3], "intake", 10, MotorCartridge::Blue, cfgns::SafeBrakeMode::Coast);
     }
     SUBCASE("no mechanisms: none, and the config stays what G1 Part 2b built") {
         const BootConfig none = bootConfigFrom(record, v, kRobotTwoName, kNoMechanisms);
@@ -982,70 +983,55 @@ TEST_CASE("T3 P2 test 6s: the pure core converts robot two's REAL mechanism tabl
     }
 }
 
-TEST_CASE("T3 P2 test 6t: a table that does not convert WHOLE is named by mechanismTableProblem() "
-          "— a name one character too long, more mechanisms than a RobotConfig holds, an unset "
-          "field — and the boot refuses by that sentence; bootConfigFrom() will not build from it") {
-    // BUG CAUGHT: a name cut to fit (the Robot's lookups, the boot lines and the bindings would name
-    // another mechanism than the table); a ninth mechanism silently dropped; an unset optional read.
-    CHECK(shulib::bench::mechanismTableProblem(kRobotTwoMechanisms) == nullptr);
-    CHECK(shulib::bench::mechanismTableProblem(kNoMechanisms) == nullptr);
-    CHECK(shulib::bench::mechanismTableProblem(kDistinguishable) == nullptr);
+TEST_CASE("T3 P2 test 6y: a TWO-LINE pneumatic's per-line start and safe levels reach the config, line by "
+          "line, after a motor mechanism -- robot two's one line cannot show them") {
+    // BUG CAUGHT (the MECH brief's mutation M26): the boot projecting a pneumatic as ONE level per
+    // mechanism — every line at line 1's level — so a flap that starts at 'half' (E high, F low) boots
+    // with F high, and is made safe at 'tilt' with E high: the wrong cylinder moves at program start and
+    // at every stop. Robot two's claw (one line, start and safe both 'closed') reads the same either
+    // way, so 6s cannot see it; this list can. The second mechanism, so a per-index slip shows too.
+    const DrivetrainDescription record = robotTwoRecord();
+    const BootVerdict v = verifyAgainstRegistry(record, robotTwoCensus());
+    REQUIRE(v.usable());
+    const BootConfig b = bootConfigFrom(record, v, kRobotTwoName, boot_mech::kTwoLines);
+    const cfgns::RobotConfig& c = b.config;
+    char why[192] = "";
+    REQUIRE_MESSAGE(c.valid(why, sizeof why), why);
+    REQUIRE(static_cast<int>(c.mechanismCount) == 2);
+    requireMotorMechanism(c.mechanisms[0], "roller", -9, MotorCartridge::Green, cfgns::SafeBrakeMode::Brake);
+    const cfgns::MechanismConfig& f = c.mechanisms[1];
+    CHECK(std::string_view{f.name} == "flap");
+    REQUIRE(static_cast<int>(f.pneumaticCount) == 2);
+    CHECK(static_cast<int>(f.pneumaticPorts[0]) == 5);  // E
+    CHECK(static_cast<int>(f.pneumaticPorts[1]) == 6);  // F
+    CHECK(f.pneumaticStartByLine[0] == cfgns::PneumaticLevel::High);  // 'half': E high ...
+    CHECK(f.pneumaticStartByLine[1] == cfgns::PneumaticLevel::Low);   // ... F low
+    CHECK(f.pneumaticSafeByLine[0] == cfgns::PneumaticLevel::Low);    // 'tilt': E low ...
+    CHECK(f.pneumaticSafeByLine[1] == cfgns::PneumaticLevel::High);   // ... F high
+    CHECK(static_cast<int>(f.motorCount) == 0);
+}
 
-    MechanismTable longName = kRobotTwoMechanisms;
-    longName.motors[0].name = "abcdefghijklmnopqrstuvw";  // 23: fits with its NUL
-    longName.pneumatics[0].name = "ABCDEFGHIJKLMNOPQRSTUVW";
-    CHECK(shulib::bench::mechanismTableProblem(longName) == nullptr);
-    {
-        // …and is carried WHOLE, both kinds — copyMechanismName()'s bound at its edge (review
-        // round 1, finding 5: only mechanismTableProblem() was pinned at 23/24).
-        const BootVerdict fits = verifyAgainstRegistry(robotTwoRecord(), robotTwoCensus());
-        const BootConfig b = bootConfigFrom(robotTwoRecord(), fits, kRobotTwoName, longName);
-        CHECK(std::string_view{b.config.mechanisms[0].name} == "abcdefghijklmnopqrstuvw");
-        CHECK(std::string_view{b.config.mechanisms[2].name} == "ABCDEFGHIJKLMNOPQRSTUVW");
-    }
-    longName.pneumatics[0].name = kRobotTwoMechanisms.pneumatics[0].name;
-    longName.motors[0].name = "abcdefghijklmnopqrstuvwx";  // 24: does not
-    CHECK(std::string_view{shulib::bench::mechanismTableProblem(longName)}
-          == "a mechanism name is longer than 23 characters (a RobotConfig name field)");
-    MechanismTable longClaw = kRobotTwoMechanisms;
-    longClaw.pneumatics[0].name = "abcdefghijklmnopqrstuvwx";
-    CHECK(shulib::bench::mechanismTableProblem(longClaw) != nullptr);
-
-    MechanismTable nine = kDistinguishable;  // 2 motors + 7 pneumatics = 9 > 8
-    for (std::size_t j = 2; j < 7; ++j) {
-        nine.pneumatics[j] = kDistinguishable.pneumatics[0];
-        nine.pneumatics[j].adiLine = static_cast<std::uint8_t>(j + 1);
-    }
-    nine.pneumaticCount = 7;
-    CHECK(std::string_view{shulib::bench::mechanismTableProblem(nine)}
-          == "the mechanism table declares more mechanisms than a RobotConfig holds (8)");
-    MechanismTable eight = nine;
-    eight.pneumaticCount = 6;  // 2 + 6 = 8: fits exactly
-    CHECK(shulib::bench::mechanismTableProblem(eight) == nullptr);
-
-    MechanismTable unset = kRobotTwoMechanisms;
-    unset.pneumatics[0].openCommand = std::nullopt;
-    CHECK(std::string_view{shulib::bench::mechanismTableProblem(unset)}
-          == "a declared mechanism has an UNSET field (a value is never invented)");
-    MechanismTable tooMany = kRobotTwoMechanisms;
-    tooMany.motorCount = 7;
-    CHECK(std::string_view{shulib::bench::mechanismTableProblem(tooMany)}
-          == "the mechanism table declares more entries than its arrays hold");
-
-    // The boot refuses by the sentence, printed as it is decided, AFTER the source lines.
-    FakeBlockSource card{encoded(robotTwoRecord())};
-    const Boot b = runBoot(card, robotTwoCensus(), robotTwoTableSigns(), longName);
-    REQUIRE(b.lines.size() == 5U);
-    CHECK(b.lines[4]
-          == "mechanism table: REFUSED -- a mechanism name is longer than 23 characters (a "
-             "RobotConfig name field) (src/robots/mechanism_table.hpp)");
-    CHECK_FALSE(b.out.ok);
-    CHECK(std::string_view{b.out.headline} == "the MECHANISM TABLE does not convert");
-    CHECK(std::string_view{b.out.why}
-          == "a mechanism name is longer than 23 characters (a RobotConfig name field)");
-    const BootVerdict v = verifyAgainstRegistry(robotTwoRecord(), robotTwoCensus());
-    CHECK_THROWS_AS((void)bootConfigFrom(robotTwoRecord(), v, kRobotTwoName, longName),
-                    PreconditionError);
+TEST_CASE("T3 P2 test 6t: the longest name a list can carry is carried WHOLE into the config's name "
+          "field -- the list refused at BUILD what the boot used to refuse at run time") {
+    // BUG CAUGHT: a name cut to fit (the Robot's lookups, the boot lines and the service's name lookup
+    // would name another mechanism than the list). Until MECH-A5 the boot refused a table that did not
+    // convert WHOLE by its own sentences (mechanismTableProblem(): a 24-character name, a ninth
+    // mechanism, an unset field); the mechanism core refuses each of those AT BUILD, by name
+    // (test/compile_refusals/ — spec.hpp's name width, wiring.hpp's more_mechanisms_than_a_robot_can_have,
+    // every required field), so no list a build compiles can reach the boot unconvertible, and the
+    // boot's refusal went with the old table. What is left to pin here is the edge it used to guard —
+    // which is no longer the config's 23 characters: a mechanism's ROUTE IDS must fit 23 (MECH-A1's
+    // derivation), so a Power's name is at most 18 (its `_stop` id), a pneumatic's shorter by its
+    // longest position. The longest one is carried whole.
+    const BootVerdict fits = verifyAgainstRegistry(robotTwoRecord(), robotTwoCensus());
+    const BootConfig b = bootConfigFrom(robotTwoRecord(), fits, kRobotTwoName, boot_mech::kLongName);
+    REQUIRE(static_cast<int>(b.config.mechanismCount) == 1);
+    CHECK(std::string_view{b.config.mechanisms[0].name} == "abcdefghijklmnopqr");
+    CHECK(std::string_view{b.config.mechanisms[0].name}.size() == 18);
+    char why[192] = "";
+    CHECK_MESSAGE(b.config.valid(why, sizeof why), why);
+    // A list holds what a RobotConfig holds — the static_assert in boot_source.hpp, restated.
+    CHECK(shulib::mechanism::kMaxMechanisms == cfgns::kMaxMechanisms);
 }
 
 TEST_CASE("T3 P2 test 6u: the whole boot with robot two's claws plugged in — the port check names "
@@ -1056,7 +1042,7 @@ TEST_CASE("T3 P2 test 6u: the whole boot with robot two's claws plugged in — t
     // to the port check, or to the config.
     FakeBlockSource card{encoded(robotTwoRecord())};
     const Boot b = runBoot(card, robotTwoCensusWithClaws(), robotTwoTableSigns(),
-                           kRobotTwoMechanisms);
+                           two::kRobotTwoMechanisms);
     REQUIRE(b.lines.size() == 4U);
     CHECK(b.lines[0]
           == "calibration record: DECODED, port check OK -- OK: all 8 recorded drive ports carry "
@@ -1072,7 +1058,7 @@ TEST_CASE("T3 P2 test 6u: the whole boot with robot two's claws plugged in — t
     // build reports them ABSENT — test/teleop_claws_test.cpp).
     FakeBlockSource again{encoded(robotTwoRecord())};
     const Boot unplugged = runBoot(again, robotTwoCensus(), robotTwoTableSigns(),
-                                   kRobotTwoMechanisms);
+                                   two::kRobotTwoMechanisms);
     CHECK(unplugged.lines[0].find("NEW motors not in the calibration: 14. NOT CHECKED")
           != std::string::npos);
     CHECK(unplugged.out.ok);
@@ -1083,10 +1069,11 @@ TEST_CASE("T3 P2 test 6u: the whole boot with robot two's claws plugged in — t
     const Boot noTable = runBoot(bare, robotTwoCensusWithClaws(), robotTwoTableSigns());
     CHECK(noTable.lines[0].find("NEW motors not in the calibration: 6 7 14. NOT CHECKED")
           != std::string::npos);
-    // A pivot FLIPPED in the table (Station J's fix for a claw that moves the wrong way: +6 -> -6)
-    // is still port 6 to the port check — the declared ports are MAGNITUDES.
-    MechanismTable flipped = kRobotTwoMechanisms;
-    flipped.motors[0].signedPort = -6;
+    // A pivot FLIPPED in the robot file (Station J's fix for a claw that moves the wrong way: its
+    // declaration's `Reversed`, a config port of -6) is still port 6 to the port check — the declared
+    // ports are the wiring's PHYSICAL ports.
+    MechanismTable flipped = two::kRobotTwoMechanisms;
+    flipped.specs[0].motors[0].reversed = true;  // the pivot declared Reversed: its config port is -6
     FakeBlockSource again2{encoded(robotTwoRecord())};
     const Boot flippedBoot = runBoot(again2, robotTwoCensusWithClaws(), robotTwoTableSigns(), flipped);
     CHECK(flippedBoot.lines[0].find("NEW motors not in the calibration: 14; claw pivots (declared, "
@@ -1106,7 +1093,7 @@ TEST_CASE("T3 P2 test 6v: a claw port that the RECORD lists as a DRIVE port REFU
     FakeBlockSource card{encoded(tookTheClaw)};
     FakeDeviceRegistry census = robotTwoCensusWithClaws();
     census.setKind(15, DeviceKind::None);
-    const Boot b = runBoot(card, census, robotTwoTableSigns(), kRobotTwoMechanisms);
+    const Boot b = runBoot(card, census, robotTwoTableSigns(), two::kRobotTwoMechanisms);
     REQUIRE_FALSE(b.lines.empty());
     CHECK(b.lines.back()
           == "mechanisms: REFUSED -- port 6 is both a claw (claw pivot 6) and a drive motor in the "
@@ -1119,9 +1106,9 @@ TEST_CASE("T3 P2 test 6v: a claw port that the RECORD lists as a DRIVE port REFU
              "shulib Calibrate (slot 4) never takes a declared claw port");
     CHECK(static_cast<int>(b.out.built.config.mechanismCount) == 0);  // nothing was built
     CHECK(b.out.built.config.drivetrain.tank.description.left.count == 0);
-    // The same with the pivot FLIPPED in the table (-6): the collision is on the port's MAGNITUDE.
-    MechanismTable flipped = kRobotTwoMechanisms;
-    flipped.motors[0].signedPort = -6;
+    // The same with the pivot declared Reversed: the collision is on the PHYSICAL port.
+    MechanismTable flipped = two::kRobotTwoMechanisms;
+    flipped.specs[0].motors[0].reversed = true;
     FakeBlockSource card2{encoded(tookTheClaw)};
     const Boot f = runBoot(card2, census, robotTwoTableSigns(), flipped);
     CHECK_FALSE(f.out.ok);
@@ -1136,7 +1123,7 @@ TEST_CASE("T3 P2 test 6v: a claw port that the RECORD lists as a DRIVE port REFU
     FakeDeviceRegistry tableCensusWithClaws = tableCensus();
     tableCensusWithClaws.setKind(7, DeviceKind::Motor);
     tableCensusWithClaws.setKind(6, DeviceKind::Motor);
-    const Boot t = runBoot(none, tableCensusWithClaws, table, kRobotTwoMechanisms);
+    const Boot t = runBoot(none, tableCensusWithClaws, table, two::kRobotTwoMechanisms);
     CHECK_FALSE(t.out.ok);
     CHECK(std::string_view{t.out.headline} == "a CLAW port is a DRIVE port in the typed table");
     CHECK(std::string_view{t.out.why}
@@ -1157,7 +1144,7 @@ TEST_CASE("T3 P2 test 6w: a boot with NO record falls back to the TYPED TABLE �
     FakeDeviceRegistry census = tableCensus();
     census.setKind(6, DeviceKind::Motor);
     census.setKind(7, DeviceKind::Motor);
-    const Boot b = runBoot(none, census, usableTable(), kRobotTwoMechanisms);
+    const Boot b = runBoot(none, census, usableTable(), two::kRobotTwoMechanisms);
     REQUIRE(b.lines.size() == 3U);
     CHECK(b.lines[0] == "calibration record: NOT USED -- " + std::string{kNoCardWhy});
     CHECK(b.lines[1] == kSourceTableLine);
@@ -1179,4 +1166,96 @@ TEST_CASE("T3 P2 test 6w: a boot with NO record falls back to the TYPED TABLE �
     REQUIRE(bare.lines.size() == 3U);
     CHECK(bare.lines[2].find("NEW motors not in the calibration: 6 7. NOT CHECKED")
           != std::string::npos);
+}
+
+// (6x) Bug caught (the MECH brief's §1.13; MECH-A5): the boot's declared-port rule reading the MOTOR
+// roles only — a record (or a typed table) whose drive port carries a mechanism's ANGLE sensor or
+// PIECE sensor booted, and the provider would hand a drive motor's port to a sensor adapter (or the
+// sensor's to the drive). Every smart role is checked now, each named by its mechanism and role, the
+// fix pointing at the robot file's wire(...) line first (the record measured a MOTOR there); a 3-wire
+// role (a switch, a line) is never a smart port. Robot y (test/mechanism_fixtures.hpp: a wrist with
+// a rotation sensor on 10, a roller with an optical piece sensor on 9, a grip with a distance piece
+// sensor on 8 and a line on A, a catapult with a limit switch on E) is clear of robot two's record;
+// each sensor moved onto one of its drive ports refuses. And a mechanism's SECOND motor (the dr4b's,
+// motors 3 and 4) moved onto a drive port refuses in T3's motor words (MECH-A5's review, mutation
+// R2: the rule reading only each mechanism's FIRST motor — robot two's pivots have one motor each,
+// so 6v cannot see it; a generated robot's two-motor lift would lose the named "recalibrate" refusal).
+TEST_CASE("T3 P2 test 6x: a mechanism SENSOR port the record lists as a DRIVE port REFUSES the boot, "
+          "naming the mechanism and the role") {
+    const MechanismTable& y = mech_fixture::robot_y::kRobotYMechanisms;
+    {
+        FakeBlockSource card{encoded(robotTwoRecord())};
+        const Boot clear = runBoot(card, robotTwoCensus(), robotTwoTableSigns(), y);
+        CHECK(clear.out.ok);
+    }
+    struct Case {
+        const char* what;
+        std::size_t index;
+        int port;
+        bool angle;
+        const char* why;
+    };
+    for (const Case k : {Case{"the wrist's angle sensor on 17", 0, 17, true,
+                              "port 17 is both wrist's angle sensor and a drive motor in the record -- check its "
+                              "wire(...) line in src/robots/mechanism_table.hpp; then recalibrate (slot 4)"},
+                         Case{"the roller's optical piece sensor on 13", 4, 13, false,
+                              "port 13 is both roller's piece sensor and a drive motor in the record -- check its "
+                              "wire(...) line in src/robots/mechanism_table.hpp; then recalibrate (slot 4)"},
+                         Case{"the grip's distance piece sensor on 11", 6, 11, false,
+                              "port 11 is both grip's piece sensor and a drive motor in the record -- check its "
+                              "wire(...) line in src/robots/mechanism_table.hpp; then recalibrate (slot 4)"}}) {
+        CAPTURE(k.what);
+        MechanismTable onDrive = y;
+        if (k.angle) {
+            onDrive.wiring[k.index].angleSensor = static_cast<std::uint8_t>(k.port);
+        } else {
+            onDrive.wiring[k.index].pieceSensorPort = static_cast<std::uint8_t>(k.port);
+        }
+        FakeBlockSource card{encoded(robotTwoRecord())};
+        const Boot b = runBoot(card, robotTwoCensus(), robotTwoTableSigns(), onDrive);
+        CHECK_FALSE(b.out.ok);
+        CHECK(b.out.source == BootSource::UseRecord);
+        CHECK(std::string_view{b.out.headline} == "a MECHANISM SENSOR port is a DRIVE port in the record");
+        CHECK(std::string_view{b.out.why} == k.why);
+        REQUIRE_FALSE(b.lines.empty());
+        CHECK(b.lines.back() == std::string{"mechanisms: REFUSED -- "} + k.why);
+        CHECK(static_cast<int>(b.out.built.config.mechanismCount) == 0);  // nothing was built
+    }
+    {
+        MechanismTable secondMotor = y;
+        REQUIRE(secondMotor.specs[2].motorCount == 2);  // the dr4b: motors 3 and 4
+        secondMotor.wiring[2].motors[1] = 13;          // its SECOND motor on the record's LEFT -13
+        FakeBlockSource card{encoded(robotTwoRecord())};
+        const Boot b = runBoot(card, robotTwoCensus(), robotTwoTableSigns(), secondMotor);
+        CHECK_FALSE(b.out.ok);
+        CHECK(std::string_view{b.out.headline} == "a CLAW port is a DRIVE port in the record");
+        CHECK(std::string_view{b.out.why}
+              == "port 13 is both a claw (dr4b) and a drive motor in the record -- recalibrate: shulib "
+                 "Calibrate (slot 4) never takes a declared claw port");
+        CHECK(static_cast<int>(b.out.built.config.mechanismCount) == 0);  // nothing was built
+    }
+    // The typed table says so about ITSELF: the two src/robots/ files disagree.
+    FakeBlockSource none;
+    none.setOpen(false);
+    MechanismTable onTable = y;
+    onTable.wiring[0].angleSensor = 13;  // the typed table's LEFT -13
+    const Boot t = runBoot(none, tableCensus(), usableTable(), onTable);
+    CHECK_FALSE(t.out.ok);
+    CHECK(std::string_view{t.out.headline} == "a MECHANISM SENSOR port is a DRIVE port in the typed table");
+    CHECK(std::string_view{t.out.why}
+          == "port 13 is both wrist's angle sensor and a drive motor in the typed table -- "
+             "src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp disagree");
+    // A 3-WIRE role is never read as a smart port: the record below lists port 5 as a drive port, and
+    // the catapult's limit switch sits on line E — the 3-wire port numbered 5. Still clear.
+    DrivetrainDescription fiveDrives = robotTwoRecord();
+    fiveDrives.right.signedPorts[3] = 5;  // RIGHT 11 -12 13 5
+    FakeDeviceRegistry census5 = robotTwoCensus();
+    census5.setKind(5, DeviceKind::Motor);
+    census5.setKind(15, DeviceKind::None);
+    MechanismTable lineFive = y;
+    lineFive.wiring[3].motors[0] = 21;  // the tilt's motor off port 5 (a MOTOR there would collide)
+    REQUIRE(lineFive.wiring[5].pieceSwitch == shulib::mechanism::Line::E);
+    FakeBlockSource card3{encoded(fiveDrives)};
+    const Boot five = runBoot(card3, census5, robotTwoTableSigns(), lineFive);
+    CHECK_MESSAGE(five.out.ok, five.out.why);
 }

@@ -41,6 +41,7 @@
 #include "shulib/math/pose2d.hpp"
 #include "shulib/motion/move_to_pose.hpp"
 #include "shulib/sim/degradation.hpp"
+#include "shulib/units/literals.hpp"
 #include "shulib/units/quantity.hpp"
 
 using shulib::bench::AbortCause;
@@ -131,19 +132,6 @@ RoutineResult driveThenThrowInt(AutonContext& ctx) {
     }
     return r.result();
 }
-
-/// A claimant (an operation's cancel hook) that counts its cancels and releases the claim, as a
-/// real operation does when the guard cancels it.
-struct CountingClaimant final : shulib::hal::ICancellable {
-    shulib::hal::IMechanism* mech = nullptr;
-    int cancels = 0;
-    void cancel() override {
-        ++cancels;
-        if (mech != nullptr) {
-            mech->releaseClaim();
-        }
-    }
-};
 
 /// True when a [SEQ] line saying the end-of-run action started has been logged since `from`.
 bool endActionStarted(const shulib::hal::fake::FakeTelemetrySink& sink, int from) {
@@ -334,28 +322,53 @@ TEST_CASE("run (18): B mid-run -> abandoned within one tick, end action skipped,
     CHECK(says(lines.line[1], "end action ended T+--,"));
 }
 
-// (18b) Bug caught (COMP-t's review, 2026-09-29): the robot's PRESENT mechanisms not reaching the
-// guard — runTesterOnce handing runAuton an empty span (mutation M1: `present.first(0)`), so the claw
-// and pivots keep their last command at the end of a run and on an abort; the tests before this ran
-// with no mechanism at all, and today's autons never command one, so nothing else could see it. Each
-// shape through runTesterOnce: a clean run safes every mechanism at its end; B mid-run safes every
-// mechanism AND cancels a registered claimant (an operation in flight on the claw); B DURING the end
-// action safes every mechanism; a countdown abort touches none (the guard never ran).
-TEST_CASE("run (18b): every PRESENT mechanism is safed at a run's end and on an abort") {
-    const AutonRegistry reg = teamRegistry();
+// (18b) Bug caught (COMP-t's review, 2026-09-29; through the mechanism service since MECH-A5): the
+// robot's PRESENT mechanisms not reaching the guard — runTesterOnce handing runAuton nothing to safe
+// (mutation M1: `present.first(0)` until MECH-A5; now the span overload in place of the service's) —
+// so the claws keep their last command at the end of a run and on an abort. And a step IN FLIGHT on a
+// claw (its service slot, the registered claimant): the guard must CANCEL it — inert, safe, released —
+// or it would command again at the next tick. An auton that starts pivot 6 for 20 s and then drives
+// the 40 in, through runTesterOnce: a clean run safes every mechanism at its end and cancels the step;
+// B mid-run safes every mechanism AND cancels the step at the abandon; B DURING the end action safes
+// every mechanism; a countdown abort touches none (the guard never ran, the step never began).
+namespace {
+shulib::chassis::RoutineResult pivotWhileDriving(shulib::competition::AutonContext& ctx) {
+    using namespace shulib::bench::robot_two;
+    using namespace shulib::units::literals;
+    shulib::chassis::Routine r{ctx, "pivot-while-driving"};
+    r.startRun(clawPivot6, 6_volt, 20_s);  // a step in flight on a claw, beyond the run's own end
+    r.moveTo(shulib::math::Pose2d{40_in, 0_in, 0_deg});
+    return r.result();
+}
+AutonRegistry pivotRegistry() {
+    AutonRegistry reg{shulib::bench::kAutonPeriods};
+    shulib::competition::AutonEntry e{};
+    e.name = "pivot while driving";
+    e.kind = shulib::competition::AutonKind::Match;
+    e.routine = &pivotWhileDriving;
+    e.start = shulib::competition::StartPose::relative();
+    e.endActionAt = Time{27.0};
+    e.hardStopAt = Time{29.0};
+    reg.add(e);
+    return reg;
+}
+}  // namespace
+
+TEST_CASE("run (18b): every PRESENT mechanism is safed at a run's end and on an abort, and a step in "
+          "flight on a claw is CANCELLED") {
+    const AutonRegistry reg = pivotRegistry();
     enum class Shape { Clean, MidRun, InEndAction, Countdown };
     for (const Shape shape : {Shape::Clean, Shape::MidRun, Shape::InEndAction, Shape::Countdown}) {
         CAPTURE(static_cast<int>(shape));
         TesterStack s{tank()};
-        shulib::hal::fake::FakeMechanism claw{"claw"};
-        shulib::hal::fake::FakeMechanism pivot{"pivot"};
-        CountingClaimant op;
-        op.mech = &claw;
-        REQUIRE(claw.tryClaim(op));  // an operation on the claw, as a mechanism step would leave
-        shulib::hal::IMechanism* present[] = {&claw, &pivot};
+        const int sixBefore = s.two.pivot6.safes;
+        const int sevenBefore = s.two.pivot7.safes;
+        const int clawBefore = s.two.claw.safes;
+        bool pivotRanLive = false;
         const double start = s.now();
         const int from = s.sink.size();
         s.inputs.onRead = [&](double now) {
+            pivotRanLive = pivotRanLive || s.two.m6.commandedVoltage().value() == 6.0;
             const bool press =
                 (shape == Shape::MidRun && now - start >= kTesterCountdownSeconds + 0.45)
                 || (shape == Shape::InEndAction && endActionStarted(s.sink, from))
@@ -364,23 +377,32 @@ TEST_CASE("run (18b): every PRESENT mechanism is safed at a run's end and on an 
                 s.inputs.pad.setPressed(ControllerButton::B, true);
             }
         };
-        const TesterRunRecord& r =
-            s.run(reg, 0, 1, std::span<shulib::hal::IMechanism* const>{present});
+        const TesterRunRecord& r = s.run(reg, 0, 1);
         if (shape == Shape::Countdown) {
             CHECK(r.countdownAborted);
-            CHECK(claw.safeStateApplications() == 0);  // nothing ran: nothing was touched
-            CHECK(pivot.safeStateApplications() == 0);
-            CHECK(op.cancels == 0);
-            CHECK(claw.claimed());
+            CHECK(s.two.pivot6.safes == sixBefore);  // nothing ran: nothing was touched
+            CHECK(s.two.pivot7.safes == sevenBefore);
+            CHECK(s.two.claw.safes == clawBefore);
+            CHECK_FALSE(pivotRanLive);
+            CHECK(s.mechanisms.slot(0).stepsBegun() == 0);
             continue;
         }
+        CHECK(pivotRanLive);  // the step really drove the pivot while the robot drove
         CHECK(s.driveSafe());
-        CHECK(claw.safeStateApplications() >= 1);
-        CHECK(pivot.safeStateApplications() >= 1);
-        CHECK(op.cancels >= 1);  // the claimant was cancelled: the operation is inert...
-        CHECK_FALSE(claw.claimed());  // ...and its claim released
+        CHECK(s.two.pivot6.safes > sixBefore);
+        CHECK(s.two.pivot7.safes > sevenBefore);
+        CHECK(s.two.claw.safes > clawBefore);
+        CHECK(s.mechanismsSafe());
+        // The step in flight was CANCELLED — inert and released, so nothing commands it again.
+        CHECK(s.mechanisms.slot(0).lastStep().outcome == shulib::manipulation::MechanismOutcome::Cancelled);
+        CHECK_FALSE(s.two.pivot6.claimed());
+        CHECK_FALSE(s.mechanisms.slot(0).running());
         CHECK_FALSE(s.guard.running());
         CHECK_FALSE(s.watch.armed());
+        for (int i = 0; i < 5; ++i) {
+            s.chassis.wait(Time{0.01});
+            CHECK(s.two.m6.commandedVoltage().value() == 0.0);
+        }
         if (shape == Shape::Clean) {
             CHECK(std::string_view{testerResultWord(r)} == "FINISHED");
         } else {
@@ -501,7 +523,7 @@ TEST_CASE("run (20b): an abort the guard never acted on reads ABORT IGNORED, nev
     TesterStack s{tank()};
     shulib::sequence::RunGuard other{s.plant};  // the watch's link goes to ANOTHER guard
     s.watch.attachGuard(other);
-    CHECK_FALSE(shulib::bench::pacerChainProven(s.chassis, s.guard, s.watch));  // boot refuses
+    CHECK_FALSE(shulib::bench::pacerChainProven(s.chassis, s.guard, s.mechanisms, s.watch));  // boot refuses
     const double start = s.now();
     s.inputs.onRead = [&](double now) {
         if (now - start >= kTesterCountdownSeconds + 0.45) {
@@ -880,14 +902,24 @@ TEST_CASE("run (23): testerResultWord and testerRunLines for every record shape"
               == "run 1: seated (0.00, 0.00) facing 0.0 deg (the IMU read 0.0); END estimate "
                  "(39.38, -0.93) facing 0.6 deg LIVE -- measure the tape");
     }
-    // A ROUTE entry is REFUSED by name: the tester passes no command registry (the COMP brief's
-    // B30 — the registry is registered once beside registerAutons when the first route exists).
+    // A ROUTE entry RUNS (MECH-A5; it was REFUSED by name until then — the tester passed no command
+    // registry, the COMP brief's B30): the tester hands runAuton the program's registry, which holds
+    // robot two's derived mechanism route ids, so a route's markers fire them — here the claw opened
+    // and pivot 6 run at the turn's waypoint; an id the robot does not have is an unknown id, counted.
     {
         static shulib::config::Route route{};  // a turn, no Start: RELATIVE is its start
         std::snprintf(route.name, sizeof route.name, "%s", "r1");
         route.waypoints[0].motion = shulib::config::WaypointMotion::TurnTo;
         route.waypoints[0].heading = Angle::degrees(90.0);
+        std::snprintf(route.waypoints[0].markers[0].id, sizeof route.waypoints[0].markers[0].id, "%s", "claw_open");
+        std::snprintf(route.waypoints[0].markers[1].id, sizeof route.waypoints[0].markers[1].id, "%s",
+                      "claw_pivot_6_run");
+        route.waypoints[0].markers[1].args[0] = 12;
+        route.waypoints[0].markers[1].args[1] = 300;
+        route.waypoints[0].markers[1].argCount = 2;
+        route.waypoints[0].markerCount = 2;
         route.count = 1;
+        REQUIRE(route.valid());
         AutonRegistry withRoute{shulib::bench::kAutonPeriods};
         AutonEntry e{};
         e.name = "a route auton";
@@ -898,20 +930,21 @@ TEST_CASE("run (23): testerResultWord and testerRunLines for every record shape"
         e.hardStopAt = Time{29.0};
         withRoute.add(e);
         TesterStack s{tank()};
-        const double before = s.plant.distance;
+        REQUIRE(s.commands.count() == 6U);  // robot two's six, registered as the program registers them
+        bool pivotRan = false;
+        s.inputs.onRead = [&s, &pivotRan](double) {
+            pivotRan = pivotRan || s.two.m6.commandedVoltage().value() == 12.0;
+        };
         const TesterRunRecord& r = s.run(withRoute, 0);
-        CHECK(r.run.outcome == AutonRunOutcome::Refused);
-        CHECK(std::string_view{testerResultWord(r)} == "REFUSED");
-        CHECK(s.plant.distance - before == 0.0);
-        const TesterRunLines l = testerRunLines(r, withRoute.at(0));
-        REQUIRE(l.count == 4);
-        CHECK_FALSE(l.cut);
-        CHECK(std::string_view{l.line[0]}
-              == "run 1: 'a route auton' REFUSED -- runAuton refused it before the guard armed; "
-                 "nothing moved");
-        CHECK(std::string_view{l.line[1]} == "run 1: the guard never armed");
-        CHECK(says(l.line[2], "a route auton needs a command registry"));
-        CHECK(says(l.line[2], "; faults this run: none"));
+        CHECK(r.run.outcome == AutonRunOutcome::RouteRan);
+        CHECK(r.run.route.ok());
+        CHECK(r.run.route.markersFired == 2);
+        CHECK(r.run.route.unknownIds == 0);  // M47: a program that forgot registerInto is 2 unknown ids
+        CHECK(pivotRan);
+        CHECK(s.two.lineA.setCount() >= 2);  // the claw was opened by its marker ...
+        CHECK_FALSE(s.two.lineA.commanded());  // ... and the guard's end of run made it safe: closed
+        CHECK(s.mechanismsSafe());
+        CHECK(std::string_view{testerResultWord(r)} == "FINISHED");
     }
 
     // THE WORST CASE: a 29-character name, run 99999, extreme numbers, every button, the longest

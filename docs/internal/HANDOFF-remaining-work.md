@@ -291,10 +291,11 @@ G1 Part 2b until then — and by the invented X-drive since Part 2c; none has ru
 distance, optical, digitalIn and the read-fault pair; clock, battery, telemetry, pacer — **no vision yet**); the
 mechanism core's vocabulary `mechanism/{kinds,spec,wiring,route_ids,devices}.hpp` (MECH-A1) and its service
 `mechanism/{until,service}.hpp` (MECH-A2: power and pneumatic mechanisms run through it; MECH-A3: position and speed
-too — arms, lifts and flywheels move, hold, home and spin; host-only, no program builds one yet), and what calls the
+too — arms, lifts and flywheels move, hold, home and spin; host-only, no program built one until MECH-A5), and what calls the
 service (MECH-A4, built 2026-10-22, its review's fix round 2026-10-27, its verification round 2026-10-29; LANDED 2026-10-29): the Routine's mechanism steps (`chassis/routine.hpp`, API 2.5),
 `runAuton`'s and `runDriverControl`'s service overloads, `mechanism/{driver_inputs,direction_check}.hpp` and
-`runner/mechanism_routes.hpp`, `robot/robot.hpp` (`robot::validate` +
+`runner/mechanism_routes.hpp` (MECH-A5, LANDED 2026-10-30, built 2026-10-29: robot two's three programs build
+the service and run its claws on it — `src/robots/mechanism_table.hpp`, `src/common/driver_file.hpp`), `robot/robot.hpp` (`robot::validate` +
 `robot::Robot`; since G1 Part 2a also `BuildOptions` for the boot check's absent drive ports,
 `portMap()` and `driveOdometry()`), `runner/command_registry.hpp`, `runner/path_runner.hpp`, `runner/manifest.hpp`.
 
@@ -483,14 +484,18 @@ brief names it as a future consumer of the builder's dead-port tolerance).
   took over Part 1b; landed 2026-10-08)** robot two's buttons are stated ONLY in its
   driver file (`src/team/robot_two_driver.hpp`, L5b): they left `src/robots/mechanism_table.hpp` with
   `kTeleopRezeroButton`, its button checks and Part 1a's interim tie; the macros, when they come, get their
-  line in its WHICH BUTTON block and their binder in `src/common/driver_controls.hpp` (T4 brief §8).
+  line in its WHICH BUTTON block and their binder in `src/common/driver_controls.hpp` (T4 brief §8; that file
+  was deleted at MECH-A5, 2026-10-29 — a driver file's shared plumbing is `src/common/driver_file.hpp` since).
 - **The re-zero default, and what guards it now:** `teleop::DriverLoopConfig::rezeroButton` still
-  DEFAULTS to `L1` (pivot 7's forward button). What stops the collision running is
-  `teleop::validBindings()` — `runDriverControl` refuses, before its first tick, a binding on the
-  loop's re-zero button (T3 Part 1). Robot two's driver file names **Y** in its `kLoop` (the team
-  lead's ruling: A became the claw's toggle), its checks refuse a control on Y at compile time, and
-  its `bind()` validates the whole set against it before driver control starts ("shulib Teleop" named Y
-  itself, beside the table's `kTeleopRezeroButton`, until T4 Part 3 retired both). The default itself
+  DEFAULTS to `L1` (pivot 7's forward button). What stops the collision running, since MECH-A5
+  (2026-10-29): a driver file whose controls take its `kLoop`'s re-zero button does not BUILD
+  (`src/common/driver_file.hpp`'s `static_assert`, the refusal harness's n57), and
+  `runDriverControl`'s service overload refuses it again before its first tick
+  (`mechanism::DriverInputs::avoids()`); T3's `teleop::validBindings()` still guards the superseded
+  bindings' overloads (until MECH-A5 robot two's driver file went through it, its `bind()` validating
+  the whole set). Robot two's driver file names **Y** in its `kLoop` (the team lead's ruling: A became
+  the claw's toggle) ("shulib Teleop" named Y itself, beside the table's `kTeleopRezeroButton`, until
+  T4 Part 3 retired both). The default itself
   was NOT moved or made a sentinel — a program with no bindings still gets L1, harmlessly.
 - Docs owed (for the macros): guide chapter section, cookbook, roadmap Phase T rows, build-order.
 - Size: the macros ~½–1 day.
@@ -616,7 +621,7 @@ tank result lines end with ` xt`, the final cross-track error; X/H lines byte-id
 **L5b. [T4, NEW 2026-09-26] The driver program.** BRIEFED (`chunks/T4-driver-program.md`); Part 0 (the slots
 and the plan) landed 2026-09-27. **Part 1a LANDED 2026-09-27, host- and build-gated, NOT run on a robot; run
 by "shulib Competition"'s `opcontrol()` since COMP-b (built 2026-09-30, not run on a robot)** (`chunks/T4-PROGRESS.md` "Part 1a"): robot two's driver file `src/team/robot_two_driver.hpp`
-and its generic half `src/common/driver_controls.hpp` (the binder by name, the five checks, the ONE heading rule
+and its generic half `src/common/driver_controls.hpp` (deleted at MECH-A5, 2026-10-29) (the binder by name, the five checks, the ONE heading rule
 — Teleop and the X-drive called it then; the driver file and the X-drive since Part 3); the buttons also
 stayed in `src/robots/mechanism_table.hpp`, tied at compile time in Teleop, until Part 3 moved them into the
 driver file (Part 1b was folded into Part 3 on jal's ruling of 2026-09-28: Teleop was never rewired); COMP-b's B11 replaced ("`opcontrol()` IS the driver file"). Parts (COMP-b) → 2 (the old drive's

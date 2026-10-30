@@ -8,9 +8,11 @@
 //   * robot x  — the brief's driver file: a held arm with three presets, a held lift homed at driver
 //                start, a flywheel toggled at its named speed, a held intake, the hood autonOnly; and
 //                its alternative (the hood by presets, the lift homed on a press);
-//   * robot two — robot two's claws as MECH-A5 writes its driver file: two held pivots, a toggled claw;
+//   * robot two — robot two's claws as its driver file states them since MECH-A5: two held pivots, a
+//                toggled claw — the controls statement byte for byte the real file's
+//                (test/robot_two_driver_test.cpp pins the two equal);
 //   * robot y  — every optional control word at once (the brief's P5b).
-// Nothing here is a real robot's driver file: src/team/robot_two_driver.hpp is MECH-A5's.
+// Nothing here is a real robot's driver file (robot two's is src/team/robot_two_driver.hpp).
 
 #include "mechanism_fixtures.hpp"
 #include "shulib/mechanism/driver_inputs.hpp"

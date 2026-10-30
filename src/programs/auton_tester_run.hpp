@@ -28,6 +28,12 @@
 // at RUN and at the end, and the last fault ONLY when the count rose -- a fault latched before RUN
 // is never reported as this run's (test (3c)).
 //
+// THE MECHANISM SERVICE AND THE ROUTE REGISTRY (the mechanism core's MECH-A5, 2026-10-29): the run
+// goes through competition::runAuton's MECHANISM-SERVICE overload, exactly as the competition
+// program's does — the service handed over (enterAutonomous), the guard safing its built mechanisms,
+// the routine's context carrying it — with the program's route registry, which holds the robot's
+// derived mechanism route ids (a ROUTE auton's markers fire them).
+//
 // NOTHING HERE HAS RUN ON A ROBOT (worksheet Station M).
 
 #include <cstddef>
@@ -52,6 +58,8 @@
 #include "shulib/hal/telemetry_sink.hpp"
 #include "shulib/localization/localizer.hpp"
 #include "shulib/math/pose2d.hpp"
+#include "shulib/mechanism/service.hpp"
+#include "shulib/runner/command_registry.hpp"
 #include "shulib/sequence/run_guard.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -97,9 +105,12 @@ public:
     virtual void runStarted(double now) = 0;
 };
 
-/// ONE run (file banner). `chassis` MUST be the Chassis built with `guard` as its pacer, and the
-/// guard's inner pacer MUST be `watch` (the COMP brief's B7 layering; pacerChainProven() checks it
-/// at boot). `present` is the Robot's PRESENT mechanisms (B9). `runPressCount` is the press count
+/// ONE run (file banner). `chassis` MUST be the Chassis built with `guard` as its pacer, the guard's
+/// inner pacer MUST be `mechanisms` and the service's `watch` (the COMP brief's B7 layering, MECH-A5;
+/// pacerChainMissing() checks it at boot). `mechanisms` is the robot's mechanism service, bound at
+/// boot: the guard safes its built mechanisms — the Robot's PRESENT ones (B9). `commands` is the route
+/// registry the robot's mechanism route ids were registered into (nullptr: a ROUTE auton is refused
+/// by name). `runPressCount` is the press count
 /// of the good touch read whose release touched RUN: the abort's touch baseline, so a finger that
 /// lands after that read aborts however soon (AbortWatch::arm(pressBaseline)). Fills and returns
 /// `rec` (the caller's storage -- never a task stack). Everything from the arm to the end is inside
@@ -110,7 +121,8 @@ inline TesterRunRecord& runTesterOnce(TesterRunRecord& rec, int number, chassis:
                                       sequence::RunGuard& guard, AbortWatch& watch,
                                       const competition::AutonRegistry& registry, int index,
                                       hal::ITelemetrySink& telemetry,
-                                      std::span<hal::IMechanism* const> present,
+                                      mechanism::MechanismService& mechanisms,
+                                      const runner::CommandRegistry* commands,
                                       ITesterRunObserver& observer, std::int32_t runPressCount) {
     SHULIB_PRECONDITION(index >= 0 && static_cast<std::size_t>(index) < registry.size(),
                         "runTesterOnce: no such auton");
@@ -143,10 +155,10 @@ inline TesterRunRecord& runTesterOnce(TesterRunRecord& rec, int number, chassis:
         if (watch.cause() != AbortCause::None) {
             rec.countdownAborted = true;
         } else {
-            // THE RUN: the competition program's call, on the same entry, guard, schedule and
-            // mechanisms. No command registry: a ROUTE auton is refused by name (the COMP brief's
-            // B30).
-            rec.run = competition::runAuton(chassis, guard, entry, nullptr, telemetry, present,
+            // THE RUN: the competition program's call, on the same entry, guard, schedule,
+            // mechanism service and route registry (MECH-A5; until then no registry, and a ROUTE
+            // auton was refused by name — the COMP brief's B30).
+            rec.run = competition::runAuton(chassis, guard, entry, commands, telemetry, mechanisms,
                                             registry.periodFor(entry));
         }
     } catch (const PreconditionError& e) {
@@ -174,14 +186,16 @@ inline TesterRunRecord& runTesterOnce(TesterRunRecord& rec, int number, chassis:
     return rec;
 }
 
-// THE BOOT'S CHAIN PROOF is src/common/guarded_run.hpp's pacerChainProven() since COMP-b's first
-// step (2026-09-30): the same body, a template over any watch with paces() and attachedTo() -- the
-// tester's AbortWatch is one. The program calls it by the same name and refuses its boot when it
-// is false (a Chassis built without the guard, or a watch never attached, could not be aborted).
+// THE BOOT'S CHAIN PROOF is src/common/guarded_run.hpp's pacerChainMissing() since COMP-b's first
+// step (2026-09-30; the mechanism service its third layer since MECH-A5): a template over any watch
+// with paces() and attachedTo() -- the tester's AbortWatch is one. The program refuses its boot,
+// naming the gap, unless it is ChainGap::None (a Chassis built without the guard, a service outside
+// the chain or unbound, or a watch never attached, could not be aborted or would run no mechanism).
 
 /// A throw reached the tester's task (a programming error): the drive at 0 V + Brake (the panic
-/// stop), every PRESENT mechanism to its safe state -- src/common/guarded_run.hpp's program-error
-/// stop, each step tried on its own -- then the watch disarmed. Never throws.
+/// stop), every PRESENT mechanism to its safe state and its mechanism-service slot cancelled --
+/// src/common/guarded_run.hpp's program-error stop, each step tried on its own -- then the watch
+/// disarmed. Never throws.
 inline void stopAfterProgramError(chassis::Chassis& chassis,
                                   std::span<hal::IMechanism* const> present,
                                   AbortWatch& watch) noexcept {

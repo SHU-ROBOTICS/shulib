@@ -7,7 +7,12 @@
 // The chain is the program's (src/programs/competition_program.cpp) with the plant in place of the
 // provider's 10 ms pacer and a PROBE layer under the watch:
 //
-//     Chassis -> RunGuard -> CompetitionWatch (REAL) -> ProbeLayer -> PlantPacer (the plant steps)
+//     Chassis -> RunGuard -> MechanismService (REAL) -> CompetitionWatch (REAL) -> ProbeLayer -> PlantPacer
+//
+// The mechanism service and the route registry are the program's (the mechanism core's MECH-A5): bound
+// over robot two's REAL list and robot two's mechanisms on fakes (tester_rig::RobotTwoFakes — the
+// pivots and the claw, each counting its safe-state applications), the route ids registered at
+// construction — test/auton_tester_rig.hpp's banner says why robot two's list and not the host's.
 //
 // The watch reads a SCRIPTED status byte (what competition_get_status() returns on the robot); a
 // test changes it at a time of its choosing through `onRead`, which the status source calls on
@@ -40,6 +45,9 @@
 #include "shulib/hal/mechanism.hpp"
 #include "shulib/hal/motor.hpp"
 #include "shulib/kinematics/tank.hpp"
+#include "shulib/mechanism/service.hpp"
+#include "shulib/runner/command_registry.hpp"
+#include "shulib/runner/mechanism_routes.hpp"
 #include "shulib/sequence/run_guard.hpp"
 #include "shulib/ui/touch_panel.hpp"
 #include "shulib/units/quantity.hpp"
@@ -86,6 +94,7 @@ struct ProbeLayer final : shulib::motion::ITickPacer {
     int energizedWhileIdle = 0;   ///< paces with a drive motor != 0 V and no run live
     double travelAtLatch = -1.0;  ///< plant travel when the watch was first seen latched
     int pacesAfterLatch = 0;      ///< paces the world advanced after the latch was first seen
+    std::function<void()> onPace;  ///< a case's own look at the world, every pace (before the inner pace)
 
     void pace() override {
         if (throwAfter >= 0 && paces >= throwAfter) {
@@ -115,6 +124,9 @@ struct ProbeLayer final : shulib::motion::ITickPacer {
             } else {
                 ++pacesAfterLatch;
             }
+        }
+        if (onPace) {
+            onPace();
         }
         inner->pace();
     }
@@ -184,28 +196,38 @@ struct CompetitionStack {
     ProbeLayer probe;
     ScriptedStatus status;
     shulib::bench::CompetitionWatch watch;
+    tester_rig::RobotTwoFakes two;                   // before the service: bind()'s lifetime rule
+    shulib::mechanism::MechanismService mechanisms;  // the guard's inner pacer; the watch is its
     shulib::sequence::RunGuard guard;
     shulib::chassis::Chassis chassis;
+    shulib::runner::MechanismRoutes routes;          // robot two's six route ids ...
+    shulib::runner::CommandRegistry commands;        // ... registered here (holds pointers into routes)
     shulib::competition::AutonRegistry registry{shulib::bench::kAutonPeriods};
     std::optional<shulib::competition::AutonMenu> menu;
     shulib::bench::AutonHandshake handshake;
     shulib::bench::CompetitionFlags flags;
     RecordingObserver obs;
     shulib::bench::CompetitionRunRecord rec{};
-    std::vector<shulib::hal::IMechanism*> present;
     ThrowingSink* telemetryOverride = nullptr;  ///< when set, the parts' telemetry
     std::int32_t releases = 0;
     double menuClock = 0.0;  ///< the menu's own clock for choose(): only ever moves forward
 
     explicit CompetitionStack(const shulib::kinematics::IKinematics& kin, int weakWheel = 1,
                               double weakScale = 1.0, int idleTicks = 50,
-                              void (*extraAutons)(shulib::competition::AutonRegistry&) = nullptr)
+                              void (*extraAutons)(shulib::competition::AutonRegistry&) = nullptr,
+                              bool absentPivot7 = false)
         : weak{},
           rig{kin, motion_rig::plantConfig(), &sink, &weak},
           plant{rig.h},
           watch{probe, status},
-          guard{watch},
-          chassis{rig.deps, guard, motion_rig::chassisConfig()} {
+          two{absentPivot7},
+          mechanisms{watch},
+          guard{mechanisms},
+          chassis{rig.deps, guard, motion_rig::chassisConfig()},
+          routes{chassis, mechanisms, shulib::bench::robot_two::kRobotTwoMechanisms, sink} {
+        // THE PROGRAM'S BOOT ORDER: the service bound after the chassis exists, then the route ids.
+        mechanisms.bind(shulib::bench::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
+        routes.registerInto(commands);
         weak.wheel = weakWheel;
         weak.scale = weakScale;
         probe.inner = &plant;
@@ -285,7 +307,8 @@ struct CompetitionStack {
             registry,
             telemetryOverride != nullptr ? static_cast<shulib::hal::ITelemetrySink&>(*telemetryOverride)
                                          : static_cast<shulib::hal::ITelemetrySink&>(sink),
-            std::span<shulib::hal::IMechanism* const>{present.data(), present.size()},
+            mechanisms,
+            &commands,
             handshake,
             flags};
     }
@@ -299,6 +322,15 @@ struct CompetitionStack {
         REQUIRE(request == n);
         shulib::bench::CompetitionParts p = parts();
         return shulib::bench::serveAutonRequest(p, rec, request, at, static_cast<int>(request), obs);
+    }
+
+    /// Robot two's PRESENT mechanisms each at its safe state (a pivot at 0 V under Hold, the claw's line
+    /// LOW — closed); an ABSENT pivot is not asked.
+    [[nodiscard]] bool mechanismsSafe() const {
+        const bool seven = two.devs[1].motors == nullptr ||
+                           (two.m7.commandedVoltage().value() == 0.0 && two.m7.brakeMode() == shulib::hal::BrakeMode::Hold);
+        return two.m6.commandedVoltage().value() == 0.0 && two.m6.brakeMode() == shulib::hal::BrakeMode::Hold &&
+               seven && !two.lineA.commanded();
     }
 
     /// Every drive motor at 0 V under Brake (the guard's and the program-error stop's safe state).

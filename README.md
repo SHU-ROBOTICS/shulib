@@ -57,11 +57,15 @@ core never touches PROS directly (that separation is load-bearing; see the layou
   safe state: motor mechanisms go safe on every exit, while a discrete actuator keeps a state it
   successfully commanded and goes safe only on cancel — a clamp whose safe state is "open" would
   fling its game piece the instant a grab succeeded. The library ships the grammar, not the
-  nouns; there is no `shulib::Intake` and never will be. For driver control, a motor mechanism
-  can be put on two buttons — hold one to drive it, let go and it goes to its safe state — and a
-  pneumatic one on a single button that opens it on one press and closes it on the next; a robot
-  built from a config builds its declared mechanisms of both kinds (host-tested only; none of it
-  has run on a robot yet).
+  nouns; there is no `shulib::Intake` and never will be. On top of that grammar sits the
+  **mechanism core**: a team DECLARES each mechanism once in its robot file — an arm, a lift, a
+  flywheel, a power roller, a pneumatic — and wires it separately, the build refusing each mistake
+  by name; one mechanism service runs them all each tick (a move and its hold, homing, a spin to
+  speed, a run until a piece sensor sees a piece, a valve's position), every behaviour watched for a
+  jam; an auton runs a mechanism on one line (`r.move(arm["score"], 1.5_s)`), a driver file puts
+  them on buttons (hold-to-run, toggles, presets), and a route's markers fire each mechanism's
+  published ids. Robot two's programs run its two claw pivots and its pneumatic claw this way
+  (guide chapters 16–18; host-tested only — none of it has run on a robot yet).
 - **A guaranteed end of run**: wrap the tick pacer and a routine gets a hard deadline — the
   active motion — and every mechanism operation still running that registered its claim, as the
   library's own do — is cut at the instant you name, every later motion is *refused* (a latch,
@@ -312,7 +316,8 @@ src/                the robot programs, one folder per job (every include writte
   build_selection.hpp  the one place a build's switches are read — it picks the program and
                     the robot together
   robots/           what each robot IS: the per-robot tables (every robot's ports; robot two's
-                    claws) and the invented X-drive (a RobotConfig constant)
+                    claws, declared in the mechanism core's words) and the invented X-drive (a
+                    RobotConfig constant)
   team/             the team's own code — where students edit: robot two's driver file (which
                     button does what, the feel; shulib Drive runs it on its own, and the
                     competition program's driver control runs it) and the team's autons
@@ -329,10 +334,11 @@ src/                the robot programs, one folder per job (every include writte
                     and no X-drive robot exists
   common/           what the programs share: the boot source, the state screens, the screen
                     text path and the painters (the selector, the refusal screen), the
-                    fault-latch hook, a driver file's binder and checks, the driver-control
-                    screen's words (the drive protections' row, the controller's lines, the
-                    claws' boot lines and row), the log copy's and the dropped autons' boot
-                    lines, and an auton run's boot chain proof and program-error stop
+                    fault-latch hook, every driver file's plumbing (driver_file.hpp) and the
+                    driver-control heading, the driver-control screen's words (the drive
+                    protections' row, the controller's lines, the mechanisms' boot lines and
+                    the claw row), the log copy's and the dropped autons' boot lines, and an
+                    auton run's boot chain proof and program-error stop
 test/               the host suite (doctest) against plant + hostile sims + a PROS shim
                     (test/pros_shim/ — the programmable SDK stand-in the adapter tests run on;
                     its headers refuse to compile outside the host test build, on purpose)

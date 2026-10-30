@@ -24,7 +24,8 @@
 // Whatever throws while a request is served -- the status painter, runAuton's own refusal log, the
 // guard's rethrow of a routine's precondition, a student's std::out_of_range -- is caught HERE,
 // and the handler: (1) runs the PROGRAM-ERROR STOP (src/common/guarded_run.hpp: the drive to
-// 0 V + Brake, every present mechanism to its safe state, each step alone, none throwing); (2)
+// 0 V + Brake, every present mechanism to its safe state and its mechanism-service slot cancelled,
+// each step alone, none throwing); (2)
 // logs one Error line naming what threw; (3) latches the program error, which paints the fault
 // screen and REFUSES every later auton on this boot (ND1 (a), the team lead's answer: "yes, after
 // a safe stop" -- driver control still runs, because the Chassis is idle and callable after the
@@ -61,6 +62,15 @@
 // stopped for kDriverLoopStaleSeconds (a loop PROS deleted mid-tick never leaves). The wait is
 // host-tested (waitForDriverLoop); the request's lines say when it happened.
 //
+// ═══ THE MECHANISM SERVICE AND THE ROUTE REGISTRY (the mechanism core's MECH-A5, 2026-10-29) ═══════
+// The run goes through competition::runAuton's MECHANISM-SERVICE overload: the service's
+// enterAutonomous() first (whatever a deleted driver task left running stops; a pneumatic keeps its
+// level), the guard safes the service's built mechanisms, and the routine's AutonContext carries the
+// service, so `Routine r{ctx, "name"}` reaches every mechanism by its declaration. The program's
+// route REGISTRY carries the robot's derived mechanism ROUTE IDS (runner::MechanismRoutes, registered
+// at boot after the service binds): a ROUTE auton's markers fire them — runAuton refuses a route entry
+// only when no registry is handed over.
+//
 // NOTHING HERE HAS RUN ON A ROBOT (worksheet Station K is its first run).
 
 #include <atomic>
@@ -88,6 +98,8 @@
 #include "shulib/hal/telemetry_sink.hpp"
 #include "shulib/localization/localizer.hpp"
 #include "shulib/math/pose2d.hpp"
+#include "shulib/mechanism/service.hpp"
+#include "shulib/runner/command_registry.hpp"
 #include "shulib/sequence/run_guard.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -350,17 +362,21 @@ struct CompetitionRunRecord {
 };
 
 /// What the auton task works on. The references must outlive every request (the program's static
-/// state). `chassis` MUST be the Chassis built with `guard` as its pacer, and the guard's inner
-/// pacer MUST be `watch` (B7; pacerChainProven() checks it at boot). `present` is the Robot's
-/// PRESENT mechanisms (B9). `telemetry` gets runAuton's lines and the program-error line.
+/// state). `chassis` MUST be the Chassis built with `guard` as its pacer, the guard's inner pacer
+/// MUST be `mechanisms` and the service's inner pacer `watch` (B7, MECH-A5; pacerChainMissing()
+/// checks it at boot). `mechanisms` is the robot's mechanism service, bound at boot: the guard safes
+/// its built mechanisms — the Robot's PRESENT ones (B9). `commands` is the route registry the
+/// robot's mechanism route ids were registered into (nullptr: a ROUTE auton is refused by name).
+/// `telemetry` gets runAuton's lines and the program-error line.
 struct CompetitionParts {
     chassis::Chassis& chassis;                   ///< the robot's Chassis (paced by `guard`)
     sequence::RunGuard& guard;                   ///< the guaranteed end
-    CompetitionWatch& watch;                     ///< the guard's inner pacer: disable / mode change
+    CompetitionWatch& watch;                     ///< under the service: disable / mode change
     competition::AutonMenu& menu;                ///< the choice (locked for the run)
     const competition::AutonRegistry& registry;  ///< the team's autons (src/team/autons.cpp)
     hal::ITelemetrySink& telemetry;              ///< serial
-    std::span<hal::IMechanism* const> present;   ///< the Robot's PRESENT mechanisms
+    mechanism::MechanismService& mechanisms;     ///< the robot's mechanisms (under the guard)
+    const runner::CommandRegistry* commands;     ///< the route registry (the mechanism route ids)
     AutonHandshake& handshake;                   ///< the terminal word
     CompetitionFlags& flags;                     ///< the typed-table boot and the program error
 };
@@ -431,10 +447,13 @@ inline CompetitionRunRecord& serveAutonRequest(CompetitionParts& p, CompetitionR
                 p.registry.at(static_cast<std::size_t>(rec.entry));
             p.watch.arm();
             // THE RUN: the same call the Auton Tester makes from its RUN, on the same entry,
-            // schedule, re-seat and guaranteed end. No command registry yet: a ROUTE auton is
-            // refused by name (the COMP brief's B30).
-            rec.run = competition::runAuton(p.chassis, p.guard, entry, nullptr, p.telemetry,
-                                            p.present, p.registry.periodFor(entry));
+            // schedule, re-seat and guaranteed end — runAuton's MECHANISM-SERVICE overload (the
+            // service handed over from driver control, the guard safing its mechanisms, the
+            // routine's context carrying it), with the route registry the robot's mechanism route
+            // ids are in (MECH-A5; until then no registry, and a ROUTE auton was refused by name —
+            // the COMP brief's B30).
+            rec.run = competition::runAuton(p.chassis, p.guard, entry, p.commands, p.telemetry,
+                                            p.mechanisms, p.registry.periodFor(entry));
         }
     } catch (const PreconditionError& e) {
         rec.threw = true;
@@ -447,7 +466,7 @@ inline CompetitionRunRecord& serveAutonRequest(CompetitionParts& p, CompetitionR
         std::snprintf(rec.threwWhat, sizeof rec.threwWhat, "%s", "an unknown exception");
     }
     if (rec.threw) {
-        stopAfterProgramError(p.chassis, p.present);  // the drive 0 V + Brake, mechanisms safe
+        stopAfterProgramError(p.chassis, p.mechanisms.mechanisms());  // 0 V + Brake, mechanisms safe
         p.flags.programError.store(true);             // the fault screen; later autons refused
         try {
             char line[kCompetitionLineBytes];

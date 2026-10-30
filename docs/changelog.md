@@ -16,6 +16,50 @@
 
 ## API 2.5
 
+### 2026-10-30 (built 2026-10-29) — the mechanism core, part 5: robot two's programs run its claws on the core — no API change
+
+> Written when it was built (chunk MECH-A5, the fifth of the mechanism core's six parts). **No version
+> bump and no library change:** nothing under `include/shulib/` moved but its comments. **Robot two's claws
+> behave exactly as before on every input** — R1 / R2 run the port-6 pivot forward / back at full power
+> while held and put it in Hold when let go, L1 / L2 the port-7 pivot, A opens and closes the pneumatic
+> claw — host-proven tick for tick against the bindings they replace. **Nothing here has run on a robot.**
+
+What a library user can see in it is the core used end to end in real programs — the pattern for a
+team's own:
+
+- **The robot file declares, and wires separately** (`src/robots/mechanism_table.hpp`): robot two's two
+  claw pivots are `Power` declarations and its claw a `Pneumatic` (closed = `Low`, open = `High` — a
+  guess, HA-159 — and a move time of 0.5 s, a guess, **HA-185, NEW**), inside the namespace `robot_two`,
+  then ONE `mechanisms(wire(...), ...)` list; the selection of a build's list is one function with a
+  case per robot. The build refuses a mechanism wired to its own robot's drive ports or IMU port —
+  every role, sensors included.
+- **Every program that boots robot two binds ONE mechanism service** over that list and the Robot's
+  built devices. The two that run autons (the competition program and the Auton Tester) put it in
+  their pacer chain between the run guard and their watch, and **prove the chain at boot**: one idle
+  tick must reach the guard, the service and the watch — the refusal names which link is missing.
+  "shulib Drive" runs no auton and has no guard: its driver loop ticks the service itself.
+- **The boot prints each mechanism**, tag `MECH`: what it is declared, one line per role (where it is
+  plugged in, and whether the brain found it), what the driver file's control does with it, and what it
+  lacks (`'claw pivot 6': no stall signature -- held against its stop it is cut only by the driver
+  letting go (HA-154)`); the starting-values line for a position or speed mechanism.
+- **The route ids are registered** in each auton program (`runner::MechanismRoutes::registerInto`), and
+  its boot says how many: `ROUTES: 6 mechanism route ids published (claw_pivot_6_run .. claw_open); 26 of
+  the registry's 32 left for the team's own` — so a route auton's markers can fire the claws.
+- **Robot two's driver file is three lines of controls** (`whileHeld(clawPivot6, Button::R1,
+  Button::R2, 12_volt)`, the same for pivot 7, `toggle(claw, Button::A)`), the feel and the loop's two
+  numbers; the plumbing every driver file shares is one template the programs hold, which refuses at
+  build a control on the loop's re-zero button or a loop tick that is not the brain's, and at boot a
+  robot mechanism no control names. [Cookbook chapter 6](cookbook/06-driver-control.md) shows it.
+- **The team's autons** build every routine on the context (`Routine r{ctx, "40in-forward"}`) and name
+  robot two's mechanisms through its namespace; the host suite runs every registered auton with the
+  service live. [Guide chapter 16](guide/16-testing-an-auton-on-the-bench.md#the-claws-in-an-auton)
+  shows a claws auton and a claws route, each step's verdict asserted by a host test.
+
+**What you must do:** nothing — no library surface changed. **Hardware assumptions:** HA-185 is NEW
+(the claw's 0.5 s move time — invented, timed at the bench worksheet's Station J.9.8); HA-159's flip is
+now "swap `Low` and `High` on the claw's `.positions` line". See the
+[hardware assumptions register](hardware-assumptions.md).
+
 ### Fixed since 2.5 (2026-10-29) — the IMU's turn rate answers once per control tick
 
 > Written when it was built (chunk IMU1 Part A; the team lead's "accept all" of 2026-10-22). **No

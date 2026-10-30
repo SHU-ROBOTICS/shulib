@@ -412,10 +412,10 @@ show `cmd#0`). Until you need it, you don't need it.
 > zero, a `Flywheel` spins up and stays at speed ([chapter 18](18-mechanisms.md)). Since its fourth
 > (MECH-A4, 2026-10-29) everything that calls the service exists: the auton STEPS
 > (`r.move(arm["score"], 1.5_s)`), the driver CONTROLS, the ROUTE BINDER that runs a marker's id, and
-> the direction check's judgement ([below](#in-an-auton-on-the-buttons-on-a-route)) — but no program
-> builds a service yet: robot two's programs move onto it in the core's fifth part, which also prints
-> the per-role boot lines below (the library only words them today; the Robot already builds every
-> role of robot two's claws). **Nothing here has run on a robot.**
+> the direction check's judgement ([below](#in-an-auton-on-the-buttons-on-a-route)). Since its fifth
+> (MECH-A5, 2026-10-29) robot two's programs run on it: each binds one service over robot two's
+> declared claws, prints the per-role boot lines below, and publishes the claws' route ids; robot two's
+> driver file states its buttons as the core's controls. **Nothing here has run on a robot.**
 >
 > **The banner at the top of this chapter does not cover this section**, as it does not cover the
 > driver loop: the mechanism words, the service, the driver controls, the route binder and the
@@ -538,9 +538,9 @@ exactly the step an auton's line runs.
 
 The robot builds every ROLE a mechanism declares through its device provider (the provider is the
 kind check: a port holding the wrong device is refused, naming what it found), and
-`mechanism::roleLine()` words one boot line per role (`guide-10h`). Robot two's programs already build
-their claws this way (the Robot does it for them) but do not print these lines yet — that starts in
-the core's fifth part:
+`mechanism::roleLine()` words one boot line per role (`guide-10h`). Robot two's programs build their
+claws this way (the Robot does it for them) and print these lines at boot, tag `MECH`, since the
+core's fifth part:
 
 ```text
 arm: motor 1 -> port 1 ok
@@ -559,7 +559,7 @@ whose read fails is answered with its last good value, and a distance sensor hel
 is, byte for byte, the "no object" reading — only the count tells them apart. The count is there so
 the core's service never takes a held value for evidence: since its second part the service reads a
 PIECE sensor's count, and since its third a HOME switch's (a read that failed is never a home) — and
-no program builds the service yet.
+since its fifth, robot two's programs build the service (robot two declares no sensor yet).
 
 At run time `config::RobotConfig::valid()` owns every port collision — now including each
 mechanism's sensor ports and switch lines — against the drivetrain the boot actually chose, so a

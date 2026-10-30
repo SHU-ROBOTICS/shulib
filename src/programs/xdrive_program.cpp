@@ -51,7 +51,7 @@
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 
-#include "common/driver_controls.hpp"
+#include "common/driver_heading.hpp"
 #include "common/fault_latch_hook.hpp"
 #include "common/screen_text.hpp"
 #include "robots/xdrive_config.hpp"
@@ -236,9 +236,11 @@ void refuse(const char* why) {
     paintRefusal(st.refusal);
 }
 
-// The heading the feel layer trusts is src/common/driver_controls.hpp's driverHeading() — the ONE
-// heading rule since T4 Part 1a (2026-09-27), shared with every driver file (and with "shulib
-// Teleop" until T4 Part 3 retired it), and host-tested there. (G1 Part 2c wrote it here a second time, deliberately, while T3 was
+// The heading the feel layer trusts is src/common/driver_heading.hpp's driverHeading() — the ONE
+// heading rule since T4 Part 1a (2026-09-27; in src/common/driver_controls.hpp until the mechanism
+// core's MECH-A5 moved it, unchanged, to its own header when that file retired), shared with every
+// driver file through src/common/driver_file.hpp (and with "shulib Teleop" until T4 Part 3 retired
+// it), and host-tested (test/driver_heading_test.cpp). (G1 Part 2c wrote it here a second time, deliberately, while T3 was
 // changing Teleop in parallel, and listed the merge as owed; T4 Part 1a made it.)
 
 }  // namespace

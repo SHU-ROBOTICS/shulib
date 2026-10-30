@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 181 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 182 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -176,10 +176,15 @@
 > read" paragraph: robot two's Localizer rate was not clean before IMU1; Station M.6 counts only on an IMU1
 > build), HA-22 (a REST record from a pre-IMU1 build is not its evidence; one doubled sample can remain), HA-32
 > and HA-102 (the hold groups reads by time). With them, 181.
+> **MECH-A5 (the mechanism core's fifth part, robot two and the programs; built 2026-10-29) added ONE — HA-185,
+> invented** — that robot two's pneumatic claw moves between closed and open within 0.5 s, so an auton's `set()`
+> step on it does not count the move done early (the claw's `.moveTime = 0.5_s`, PROVISIONAL, in
+> `src/robots/mechanism_table.hpp`). It AMENDED one: HA-159's flip is now "swap `Low` and `High` on the claw's
+> `.positions` line" (the named constant `kClawOpenCommand` is gone with the old table). With it, 182.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
-> reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-185** (the
-> mechanism core's fifth part: its brief, accepted 2026-10-08; HA-184 and HA-186 landed with its first
-> part, HA-183 with its second, HA-182 with its third, above), held the same way. The
+> reissued — and neither is **HA-181** (G3a, the robot panel: its amended brief), held the same way (the
+> mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
+> its second, HA-182 with its third, HA-185 with its fifth, above). The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
 > 122, have no bucket for UNKNOWN (HA-143, HA-145, HA-157 and HA-162's confidence), and a recount is due.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
@@ -364,7 +369,7 @@
 | HA-156 | A claw pivot released in Hold (0 V, after DEFECTS2 makes a Hold reach the motor) keeps its angle under its load — its own weight and a game piece — with a sag over 30 s too small to matter | **invented** — no load, sag or hold current measured; "holds" is claimed nowhere until Station J logs it | T3 / worksheet Station J |
 | HA-157 | While the brain is DISABLED (between autonomous and driver control, on a field or competition-switch disable) a 3-wire digital output KEEPS the level the program last commanded, and still has it after the re-enable; and a level the program commands WHILE disabled (a Robot built in `initialize()` on a field, or a program started from the controller's menu, HA-128) reaches the valve — at once, or at the latest at the enable | **UNKNOWN** — nothing vendored says; the pneumatic claw's driver-control toggle commands NOTHING on a disable and relies on the first half; the claw's start level on a field relies on the second | Station J (robot two's claw) |
 | HA-158 | Nothing the program can read sees a pneumatic solenoid on a brain 3-wire port: the registry is indexed by SMART port, and a valve on A..H is a passive load — a connected line and an empty one are indistinguishable | reasoned (vendored registry + ADI shape) — the on-robot provider refuses a 3-wire line only for being outside 1..8 | Station J (robot two's claw) |
-| HA-159 | Robot two's pneumatic claw is driven by ONE solenoid line on the brain's 3-wire port A (line 1), and that line at the level `kClawOpenCommand` (`true`, HIGH) OPENS the claw | **reported** 2026-09-26 (team lead: "port A") — single or double solenoid and the polarity **UNKNOWN** (the team lead said so); `true` is a starting guess | T3 addendum (E2) / worksheet Station J.9 |
+| HA-159 | Robot two's pneumatic claw is driven by ONE solenoid line on the brain's 3-wire port A (line 1), and that line HIGH OPENS the claw (the claw's `.positions` line: closed = `Low`, open = `High`) | **reported** 2026-09-26 (team lead: "port A") — single or double solenoid and the polarity **UNKNOWN** (the team lead said so); open = `High` is a starting guess | T3 addendum (E2) / worksheet Station J.9 |
 | HA-160 | The V5 IMU's heading is CONTINUOUS tick to tick while it reports ready: two reads ~10 ms apart differ by no more than the robot turned in between — never by tens of degrees | **invented** (assumed since M2, unregistered until DIAG1) — **QUESTIONED** by 2026-09-25: in one start, during a hard reverse, the reconstructed heading swung up to 37° per 10 ms tick — 8 of the last 9 ticks at 16.9° or more, alternating in sign; cause UNKNOWN | R3 / R4 |
 | HA-161 | PROS runs `competition_initialize()` / `disabled()` / `autonomous()` / `opcontrol()` each on a task it DELETES on a mode change (a deleted task runs no destructor) — and does NOT delete a task the program created itself | reasoned (the belief code comments have carried since R3b Part 0b; no vendored PROS text says either half, and neither has been observed directly) — the competition program's own auton task rests on the second half | COMP-b's practice-match station (K) |
 | HA-162 | Started from the controller's own menu with **Timed Run**, a program comes up DISABLED (HA-128) and VEXos then ENABLES `autonomous()` after a disabled window of __ s, for __ s, then __ — every blank unmeasured | **unknown** (no vendored text; HA-128 measured only the start) | COMP-b Station K, K.3 (its first match step) |
@@ -385,6 +390,7 @@
 | HA-182 | The mechanism core's STARTING numbers hold a real arm, lift and flywheel well enough to be TUNED from: position kP 0.25 V/deg, kI 0.3 (the hold loop only; its I-term clamped to 3 V), kD 0.004, kS 0, kA 0, kV = 12 V over the output's free speed, the smooth move at 75 % of the free speed reached in 0.25 s, "reached" within 1.5° (0.25 in) for 0.1 s; speed kS 0, kV = 12 V over the free speed, kP 0.05, kI 0.2 acting only within 10 % of the target, its I-term clamped to 3 V — the gains, profile and "reached" per mechanism (a boot line words them; `.tuning` replaces each), the two integral clamps and the window LIBRARY constants (no `.tuning`); the driver flywheel toggle's 5 s at-speed window (`kToggleAtSpeedWindowSeconds`, a LIBRARY constant, MECH-A4) | **invented** (the host test plant's 144 mismatched moves and 27 flywheels are its only evidence — HA-183) | tuning each mechanism on the robot (MECH on hardware) — the toggle's window by timing a real flywheel's spin-up to its named speed; MECH-A6 adds the bench page's |
 | HA-183 | The host test plant's mechanism models (`sim::ArmPlant`, `sim::FlywheelPlant`) stand in for a real V5 arm, lift, roller and flywheel closely enough that the mechanism core's host verdicts transfer: the inverted-feedforward joint (static band kS, speed per volt kV, first-order approach τ = kA/kV), gravity as a load in volts (kG·cos(θ − level) for an arm, kG for a lift), the brake modes at 0 V (Hold's restoring stiffness, Brake's damping, Coast free), the current's shape (\|V − kV·ω\|·2.5/12, capped at 2.5 A — HA-93's), and a hard stop or a jam reading ZERO speed at stall-grade current | **invented** (no constant is measured; a real stalled motor creeps — HA-93 — the plant's does not) | the first robot session that logs a real arm's and a real flywheel's step response beside the model's (MECH on hardware) |
 | HA-184 | A VEX limit switch read through `ProsDigitalIn::state()` reads 1 (TRUE) when PRESSED, so the mechanism core's `pressedLevel = true` is right; and an UNPLUGGED switch line reads RELEASED | **unknown** (the vendored `get_value()` doc says only "the digital value (1 or 0) of a pin") | MECH-A6's Bench Tests station 13: the switch read pressed, released AND with its cable out |
+| HA-185 | Robot two's pneumatic claw moves between closed and open — either way — within 0.5 s of its line's level changing, so an auton's `set()` step on it (which, with no sensor on the claw, ends when the declared `.moveTime` has passed — the open SUCCEEDED, the grab UNCONFIRMED and counted done) does not count the move done before the claw has moved | **invented** (nobody has stated or timed it; the core refuses a pneumatic with no `.moveTime`, so a number had to be written) | Station J (J.9): a phone's slow-motion video of closed → open and back |
 | HA-186 | At power-up a V5 rotation sensor's CUMULATIVE `get_position()` (what `ProsRotation::position()` reads, HA-11) starts at the shaft's ABSOLUTE angle within one turn — and so it does after a PROGRAM restart without a power cycle — so `absoluteSensor()` homing needs no motion | reasoned (VEX's description of the sensor as absolute within a turn; the vendored doc says only "current position") | MECH-A6's station 13: power-cycle at two marked angles; move the arm, restart only the program, read again |
 | HA-189 | Two tasks writing the V5 USB serial (stdout) at once never mix or lose each other's lines — `ProsCharSink`'s "fwrite is atomic per call at this layer" — believed FALSE: the vendored newlib's per-FILE locks are no-ops, stdout is line-buffered (`ser_isatty_r` returns 1) through ONE shared buffer, and only PROS's device write below it takes a mutex. **FIXED in shulib's code by SER1 (2026-10-08):** every line is ONE direct `write()`, which that mutex keeps whole — unconfirmed until the bench | **reasoned** (FALSE — from the vendored `libc.a`/`libpros.a`, disassembled 2026-10-08) | the coordinator, T4 Part 3's hand-over; SER1's fix; Station K.7.3 (HA-189's robot test — accepted by the team lead 2026-10-18 in place of the dedicated two-task test; unsettled until it runs) |
 | HA-190 | A task PROS deletes while it is INSIDE `ser_write_r` (one serial `write()`) leaves PROS's serial write mutex held, and every later serial write of that boot — stdout and stderr alike — blocks its writer for ever | **reasoned** (the vendored `libpros.a`: `ser_write_r` holds the mutex across `stream_buf_send`'s unbounded waits; `task_delete` releases no mutex) | SER1; Station K.7.3 (Timed-Run mode changes while two tasks print) |
@@ -1301,8 +1307,10 @@ Those are a belief about real mechanisms.
   *Source:* `include/shulib/mechanism/kinds.hpp` (`detail::positionStart()`, `detail::speedStart()`,
   `positionStartingValues()`, `speedStartingValues()`), `include/shulib/mechanism/service.hpp` (the three
   constants, and the loops that run every number), `include/shulib/mechanism/wiring.hpp`
-  (`startingValuesLine()`, the boot line that words the per-mechanism ones "PROVISIONAL (HA-182)" — the
-  programs print it from MECH-A5 on; it does not carry the three library constants),
+  (`startingValuesLine()`, the boot line that words the per-mechanism ones "PROVISIONAL (HA-182)" — every
+  program that boots a robot's list prints it since MECH-A5, 2026-10-29, for each position or speed
+  mechanism; robot two declares none, so no boot prints one yet; it does not carry the three library
+  constants),
   `include/shulib/mechanism/spec.hpp` (its banner), `include/shulib/mechanism/driver_inputs.hpp`
   (`kToggleAtSpeedWindowSeconds`, MECH-A4).
   *Confidence:* **invented** — the only evidence is the host test plant (HA-183): 143 of 144
@@ -1320,7 +1328,7 @@ Those are a belief about real mechanisms.
   gravity number is the TEAM's; the integral covers only a mismatch). Never silent: every step says how
   it ended, and a jam trips the team's own stall signature. **Contained — in two parts** (MECH-A3's
   review split this, 2026-10-22): the gains, the smooth move's speed and ramp and "reached" are PER
-  MECHANISM — a boot line words them (the programs print it from MECH-A5) and the declaration's
+  MECHANISM — a boot line words them (the programs print it since MECH-A5) and the declaration's
   `.tuning` replaces each one by one. The hold's integral clamp (3 V) and the speed integral's window
   (10 %) and clamp (3 V) are LIBRARY constants (`service.hpp`): no `.tuning` field and not on the boot
   line, so if one is wrong the fix is an edit to the library that changes EVERY mechanism — a wider
@@ -1412,6 +1420,43 @@ measurement of all three.
   adapter no longer exists. **Contained:** the constant (`kRateHoldUs`, pinned to the tick by IMU1's T3 (c))
   — or a tick counter the pacer bumps (the brief's D1 (c), rejected: a loop that forgets to bump it FREEZES
   the rate).
+
+---
+
+### MECH-A5's addition — robot two's claw's move time (2026-10-29)
+
+The mechanism core's fifth part moved robot two onto the core: its two claw pivots and its pneumatic claw
+are DECLARATIONS now (`src/robots/mechanism_table.hpp`), run by one mechanism service in every program
+that boots robot two. A pneumatic declaration must state how long its cylinder takes to move
+(`.moveTime`) — the core refuses one that does not, by name, and invents no default — because with no
+sensor on the claw that time is when an auton's `set()` step counts the move done. Nobody has stated or
+timed robot two's claw, so the number below is a written guess: the MECH brief's N3 (a), accepted by the
+team lead with the brief, 2026-10-08.
+
+- [ ] **HA-185 — robot two's pneumatic claw moves between closed and open within 0.5 s.**
+  *Claim:* from the moment its line's level changes, robot two's claw finishes moving — closed → open,
+  and open → closed — within 0.5 s, with its air at match pressure, so an auton step that sets it does
+  not let the next step start while the claw is still moving. With nothing sensing the claw, the step
+  ends when the declared `.moveTime` has passed: `r.set(claw["open"])` SUCCEEDED, `r.set(claw["closed"])`
+  — a grab, `grabs` on its position — UNCONFIRMED and counted done ("no piece sensor to confirm it"). False if either move takes
+  longer than 0.5 s at any pressure the robot plays at — a low tank late in a match included.
+  *Source:* `src/robots/mechanism_table.hpp` (robot two's `claw`: `.moveTime = 0.5_s,  // PROVISIONAL
+  (HA-185): Station J times it`); the step's verdict is the service's (`include/shulib/mechanism/service.hpp`,
+  a pneumatic's `set()`: done when the move time has passed). `test/mechanism_table_test.cpp` pins the
+  0.5 s, and `test/robot_two_claws_example_test.cpp` runs auton steps on it (`'claw': SUCCEEDED -- time in
+  0.5…` for the open, `'claw': UNCONFIRMED -- time in 0.5…` for the grab).
+  *Confidence:* **invented** — no one has stated it and nothing has timed it; no solenoid has run on
+  either robot (HA-157..HA-159).
+  *Settle (worksheet Station J, J.9):* film the claw with a phone's slow-motion video, closed → open and
+  back, at least three times each way, with the tank full and again after the claw has been cycled until
+  the gauge falls to the lowest pressure a match reaches; count the frames from the line's change (the
+  press of A) to the claw at rest. The longest move, with a margin, is the number: it, its pin and this
+  entry change together, in one change.
+  *Blast radius if wrong:* too SHORT — an auton drives away, or pivots, while the claw is still closing
+  on a piece, which it may then drop or never grip; the step's word is the same either way (the open's
+  SUCCEEDED, the grab's UNCONFIRMED), so the log does not show it. Too LONG — every claw step in an auton waits longer than it needs, and a timed auton
+  loses that time. The driver's toggle does not wait on it at all. **Contained:** one number, on one
+  declaration; only an auton's claw steps read it.
 
 ---
 
@@ -2119,8 +2164,8 @@ run. Worksheet Station J is their first run.
   the only validity signal; nothing claimed the two change together. Found by T3's B2 review and
   registered at the merge. **Since MECH-A4** the same rule runs every one-button control of a driver
   file — a toggle, a preset, a homing press: `include/shulib/mechanism/driver_inputs.hpp`
-  (`DriverInputs`' A PRESS MUST BE SEEN paragraph, tagged HA-147; robot two's claw moves onto it at
-  MECH-A5).
+  (`DriverInputs`' A PRESS MUST BE SEEN paragraph, tagged HA-147); robot two's claw runs on it since
+  MECH-A5 (2026-10-29: its driver file's `toggle(claw, Button::A)`).
   *Confidence:* **invented** — unmeasured; nothing vendored says either way.
   *Settle (worksheet Station J.9.5):* open the claw, hold A down, pull the controller's cable,
   plug it back in STILL holding A, keep holding for two seconds, then let go. Nothing may move
@@ -2137,18 +2182,24 @@ run. Worksheet Station J is their first run.
   moves each the way the team lead calls "forward".**
   *Claim:* robot two carries two SEPARATE claw-pivot motors, each a V5 smart motor with a RED
   (100 rpm) cartridge: one on smart port **6** (forward while R1 is held, back while R2 is), one on
-  port **7** (L1 / L2). A POSITIVE voltage — the table's `+6` / `+7`, which PROS does not reverse —
+  port **7** (L1 / L2). A POSITIVE voltage — each pivot's `.motors = {Forward}` (until MECH-A5 the
+  table's `+6` / `+7`), which nothing reverses —
   moves each pivot the way R1 (port 6) and L1 (port 7) are meant to move it. False if a census shows
   no motor, or another kind of device, on 6 or 7; if either cartridge insert is not red; or if R1 /
   L1 moves its claw the "back" way.
-  *Source:* `src/robots/mechanism_table.hpp` (`kRobotTwoMechanisms`, tagged `A4 register HA-153`): the
-  ports, the cartridge and the `+` signs; `src/programs/calibrate_program.cpp` drops 6 and 7 from its drive
-  candidates on this belief, and every program that boots robot two from the record builds both
-  pivots from it (`src/common/boot_source.hpp`) and names them as claw pivots in its port check;
-  robot two's driver file binds R1/R2 and L1/L2 to them by name (`src/team/robot_two_driver.hpp` —
-  the buttons are stated there and nowhere else since T4 Part 3), and "shulib Drive" runs that
-  file. `test/mechanism_table_test.cpp` pins the table's contents — which
-  tests the TYPING against the report, never the report.
+  *Source:* `src/robots/mechanism_table.hpp` (robot two's region: the declarations `clawPivot6` and
+  `clawPivot7` — `.cartridge = Red`, `.motors = {Forward}` — and their `wire(..., motors(6))` /
+  `motors(7)` lines; the file's banner is tagged `A4 register HA-153`, the declarations' comment
+  `HA-153`): the ports, the cartridge and the signs (`Forward`, the motor's own forward; `Reversed`
+  is the flip, since MECH-A5 — until then a `+6` / `+7` port); `src/programs/calibrate_program.cpp`
+  drops 6 and 7 from its drive candidates on this belief, and every program that boots robot two
+  from the record builds both pivots from it (`src/common/boot_source.hpp`, through
+  `mechanism::toMechanismConfig`) and names them as claw pivots in its port check; robot two's
+  driver file binds R1/R2 and L1/L2 to them by declaration (`src/team/robot_two_driver.hpp`'s
+  `whileHeld(clawPivot6, Button::R1, Button::R2, 12_volt)` — the buttons are stated there and
+  nowhere else since T4 Part 3), and "shulib Drive" and the competition program run that file.
+  `test/mechanism_table_test.cpp` pins the declarations field by field — which tests the TYPING
+  against the report, never the report.
   *Confidence:* **reported** by the team lead, 2026-09-26 — not measured. No capture has seen a
   motor on 6 or 7: the 2026-09-24 Calibrate census lists motors on 11–18 and 20 only, and the
   2026-09-25 Teleop capture's port check names only port 14 as a motor outside its record. The
@@ -2156,7 +2207,8 @@ run. Worksheet Station J is their first run.
   the `+` signs are the table's unmeasured starting point.
   *Settle (worksheet Station J):* Bench Tests' DEVICE CENSUS shows MOTOR on 6 and 7; the insert
   colour read off each motor; Calibrate prints `port 6: claw pivot (declared) -- not a candidate,
-  not touched` and the same for 7; J's direction check — hold R1, which way does the port-6 claw
+  not touched` and the same for 7 (the bench page's direction check, MECH-A6, is the core's
+  station for it once it lands); J's direction check — hold R1, which way does the port-6 claw
   go; hold L1, the port-7 claw.
   *Blast radius if wrong:* a wrong PORT leaves that claw ABSENT in "shulib Drive" (the provider refuses a
   port with no motor on it, by name, and the drive still runs) — or, if a DRIVE motor is on 6 or
@@ -2165,8 +2217,9 @@ run. Worksheet Station J is their first run.
   claws — makes every program that boots from it refuse at boot, "recalibrate", since T3 Part 2.) A wrong CARTRIDGE writes the
   wrong gearset: the volts still reach the motor and the claw still moves; only the motor's speed
   and position scaling — unused by a hold-to-run button, needed by a future angle preset — would be
-  off. A wrong SIGN moves the claw opposite to what the driver expects, and is fixed by flipping
-  that entry's sign in the table (never by swapping its buttons). **Contained:** one table.
+  off. A wrong SIGN moves the claw opposite to what the driver expects, and is fixed on that pivot's
+  declaration — `.motors = {Reversed}` (since MECH-A5; until then the entry's sign) — never by
+  swapping its buttons. **Contained:** one table.
 
 - [ ] **HA-154 — a claw pivot held at 12 V against its stop heats, at the motor's default current
   limit, and shulib does not watch it.**
@@ -2178,13 +2231,18 @@ run. Worksheet Station J is their first run.
   long any of this takes is not known.** False if a stalled pivot barely warms in a minute at 12 V
   (then nothing is needed), or if it reaches the derating temperature within seconds (then a stall
   cut-off is not optional).
-  *Source:* `src/robots/mechanism_table.hpp` (`volts = 12.0`, tagged `A4 register HA-154`) — the ordered
-  full power passes straight through while a button is held; a stall cut-off is OUT of T3 by the
-  brief. Since MECH-A2 (2026-10-15) the mechanism service CAN watch it: a power mechanism's optional
+  *Source:* robot two's driver file, `src/team/robot_two_driver.hpp` (`whileHeld(clawPivot6,
+  Button::R1, Button::R2, 12_volt)` and the same for port 7 — the full power is the DRIVER FILE's since
+  MECH-A5; until then the table's `volts = 12.0`, tagged `A4 register HA-154`), and
+  `src/robots/mechanism_table.hpp` (the pivots' declarations state no `.stall`, commented HA-154) — the
+  ordered full power passes straight through while a button is held; a stall cut-off is OUT of T3 by
+  the brief. Since MECH-A2 (2026-10-15) the mechanism service CAN watch it: a power mechanism's optional
   stall signature (`.stall`) watches the driver's hold-to-run and cuts it STALLED, said
   (`include/shulib/mechanism/service.hpp`, `PowerSlot::drive()`, tagged HA-154; host-tested) — but a
   power mechanism that states NONE, as robot two's pivots do in the core's plan, is still cut only by
-  the driver letting go, and the claim below stands for it. The vendored `include/pros/motors.h` (`motor_get_current_limit`: "The default value is
+  the driver letting go — since MECH-A5 robot two's pivots run on the service and state none (its boot
+  says so per pivot: `'claw pivot 6': no stall signature -- held against its stop it is cut only by the
+  driver letting go (HA-154)`) — and the claim below stands for them. The vendored `include/pros/motors.h` (`motor_get_current_limit`: "The default value is
   2500 mA."). `include/shulib/diag/health_monitor.hpp` raises `MOTOR_OVER_TEMP` from the hottest
   motor "over the drive" — a claw motor is not in it.
   *Confidence:* reasoned (the limit is the vendored default; a stalled DC motor heats) — every
@@ -2232,14 +2290,16 @@ run. Worksheet Station J is their first run.
   "Holds" is claimed nowhere — in the code, the worksheet or a commit — until Station J logs it.
   False if the claw droops visibly within 30 s, drops its piece, or the motor heats holding it
   (HA-154).
-  *Source:* `src/robots/mechanism_table.hpp` (`safeMode = Hold`, tagged `A4 register HA-156`). The T3
-  brief specifies that the library's hold-to-run binding applies the safe state ONCE on release
-  (never re-applied per tick, which could creep the hold point); that binding is
-  `teleop::MechanismBinding` (T3 Part 1, `include/shulib/teleop/mechanism_binding.hpp`), and
-  robot two's driver file binds both pivots with it ("shulib Teleop" did from T3 Part 2 until T4
-  Part 3; "shulib Drive" runs the driver file since) — a release is ONE `brake()` under Hold at the
-  PROS shim (`test/driver_panel_claws_test.cpp` test 1 — renamed from `test/teleop_claws_test.cpp`
-  at T4 Part 3), which says nothing about the load.
+  *Source:* `src/robots/mechanism_table.hpp` (the pivots' declarations, `.safe = Hold`, commented
+  HA-156; until MECH-A5 the entry's `safeMode = Hold`, tagged `A4 register HA-156`). The T3
+  brief specifies that the library's hold-to-run control applies the safe state ONCE on release
+  (never re-applied per tick, which could creep the hold point); that was `teleop::MechanismBinding`
+  (T3 Part 1, `include/shulib/teleop/mechanism_binding.hpp`) until MECH-A5, and is the mechanism
+  core's `whileHeld` control since (`include/shulib/mechanism/driver_inputs.hpp`, through the
+  service): robot two's driver file binds both pivots with it, and "shulib Drive" and the
+  competition program run that file — a release is ONE `brake()` under Hold at the PROS shim
+  (`test/robot_two_driver_test.cpp`; the T3 bindings and the driver file command the same bytes,
+  tick for tick — its MECH-A5 differential case), which says nothing about the load.
   *Confidence:* **invented** — the load, the hold's stiffness and the hold current are all
   unmeasured; the V5's Hold is a position hold whose strength under a claw's load nobody here has
   measured.
@@ -2277,18 +2337,24 @@ opens it are the program half's entry, from the team lead's report).
   is disabled. False if VEXos drives the brain's 3-wire outputs to any level of its own while
   disabled (as it cuts the motors) or on the way back to enabled, or drops (or holds back past
   the enable) a 3-wire write made while disabled.
-  *Source:* `include/shulib/teleop/mechanism_binding.hpp` (ToggleBinding, the DISCONNECT/DISABLE
-  rule, tagged `A4 register HA-157`) and `include/shulib/teleop/teleop_loop.hpp` (the disable path
-  leaves every toggle untouched): driver control commands NOTHING to a pneumatic claw on a disable, on
-  the team lead's rule that the claw keeps its state. One consumer of the SECOND half: in "shulib
+  *Source:* `include/shulib/mechanism/service.hpp` (`leaveDriverControl()`: a pneumatic KEEPS its
+  level on a disable, tagged HA-157) and `include/shulib/teleop/teleop_loop.hpp` (the disable path):
+  driver control commands NOTHING to a pneumatic claw on a disable, on the team lead's rule that the
+  claw keeps its state — robot two's claw on that path since MECH-A5 (its driver file's
+  `toggle(claw, Button::A)`); until then through T3's `include/shulib/teleop/mechanism_binding.hpp`
+  (ToggleBinding, the DISCONNECT/DISABLE rule, tagged `A4 register HA-157`), which keeps the rule for
+  its superseded overloads. One consumer of the SECOND half: in "shulib
   Competition", a disable DURING a guarded auton makes the watch abandon the run, and the run guard's
   cancel-all then puts every present claw in its SAFE level while the brain is disabled
   ([guide 17](guide/17-the-competition-program.md), the watch) — a write made while disabled. Since MECH-A2 (2026-10-15) the mechanism
   service keeps the same rule for every pneumatic it runs (`include/shulib/mechanism/service.hpp`,
   `leaveDriverControl()` and `enterAutonomous()`: a pneumatic KEEPS its level, tagged HA-157). `include/shulib/robot/robot.hpp` (the
   MECHANISMS section and `buildPneumatic()`, tagged `A4 register HA-157`): the start level is
-  written when the Robot is built, whatever the brain's state. `test/toggle_binding_test.cpp` TL3
-  pins that driver control's toggle commands nothing on a disable, and `test/pros_device_provider_test.cpp` 1m
+  written when the Robot is built, whatever the brain's state. `test/robot_two_driver_test.cpp` M5a
+  pins that robot two's claw is commanded nothing on a disable (line A's every write identical to T3's
+  ToggleBinding through a field disable and two re-entries) — `test/toggle_binding_test.cpp` TL3 the
+  same for T3's superseded toggle — and
+  `test/pros_device_provider_test.cpp` 1m
   that construction writes the start level once; no host test can pin what the brain does with
   either.
   *Confidence:* **UNKNOWN.** The vendored PROS headers document the 3-wire output's constructor
@@ -2356,18 +2422,21 @@ opens it are the program half's entry, from the team lead's report).
 - [ ] **HA-159 — robot two's claw solenoid is on 3-wire port A; single or double, and which level
   opens the claw, are NOT KNOWN.**
   *Claim:* robot two's pneumatic claw is moved by a solenoid valve wired to the brain's 3-wire
-  port **A** (line 1) through ONE cable, and commanding that line to the level `kClawOpenCommand`
-  — `true` (HIGH), the addendum's starting guess, "ON = open" — OPENS the claw, while the other
-  level CLOSES it. False if the valve's cable is in another lettered port; if the valve has TWO
+  port **A** (line 1) through ONE cable, and commanding that line HIGH — the claw's `.positions`
+  line, `{{"closed", {Low}, grabs}, {"open", {High}}}`, the addendum's starting guess, "ON = open"
+  — OPENS the claw, while LOW CLOSES it. False if the valve's cable is in another lettered port; if the valve has TWO
   cables into the brain (a double solenoid, whose second line nobody has declared); or if HIGH
   closes the claw.
-  *Source:* `src/robots/mechanism_table.hpp` (`kRobotTwoMechanisms.pneumatics[0]` and
-  `kClawOpenCommand`, tagged `A4 register HA-159`): line 1, the polarity as ONE named constant
-  marked UNVERIFIED, the start and safe positions CLOSED. `test/mechanism_table_test.cpp` pins the
-  entry against the report AND the polarity's value (`true`), as it pins the pivots' signs: the
-  flip Station J.9 may call for is ONE line of code (the constant; every level follows it), and it
-  is a measurement — so the constant, that pin, this entry (its claim and its index row) and
-  Station J.9's quote change together, in one change.
+  *Source:* `src/robots/mechanism_table.hpp` (robot two's region: the declaration `claw` and its
+  `wire(claw, lines('A'))`; the file's banner is tagged `A4 register HA-159`, the declaration's
+  comment `HA-159`): line A, the polarity written ON the `.positions` line (closed = `Low`, open =
+  `High`) and called a GUESS beside it, the start and safe positions the NAME "closed" — so they
+  follow the levels. (Until MECH-A5, 2026-10-29, the polarity was one named constant,
+  `kClawOpenCommand = true`.) `test/mechanism_table_test.cpp` pins the declaration against the report
+  AND the two levels, as it pins the pivots' signs: the flip Station J.9 may call for is ONE line of
+  code (swap `Low` and `High` on the claw's `.positions` line; the start and safe levels follow the
+  names), and it is a measurement — so that line, that pin, this entry (its claim and its index row)
+  and Station J.9's quote change together, in one change.
   *Confidence:* **reported** by the team lead, 2026-09-26 — the PORT only ("port A"). Whether the
   valve is single or double, and the polarity, are **unknown**: the team lead said so, and `true`
   is a guess recorded as one. Nothing has seen the claw move under a program: the one program that
@@ -2380,15 +2449,15 @@ opens it are the program half's entry, from the team lead's report).
   and which letters (one cable NOT in A stops the station: the port is wrong, not the polarity);
   J.9.2 — where the claw is after "shulib Drive" (slot 1) starts; J.9.3 — the FIRST press of A decides, with one
   cable in A: CLOSED after the start and the press OPENS it ⇒ the polarity is right; OPEN after
-  the start and the press CLOSES it ⇒ it is backwards (flip `kClawOpenCommand`, the only code
-  edit, and record it — the test's pin, this entry, J.9); the press moves NOTHING ⇒ no answer
+  the start and the press CLOSES it ⇒ it is backwards (swap `Low` and `High` on the claw's
+  `.positions` line, the only code edit, and record it — the test's pin, this entry, J.9); the press moves NOTHING ⇒ no answer
   about the polarity (the air, the cable, the port, the valve). Then A opens it, A again closes
   it.
   *Blast radius if wrong:* a wrong POLARITY opens the claw at program start — constructing the
   3-wire output drives the line at once (HA-119) — so a preloaded piece drops as the program
   starts; every press still flips the claw, so the driver sees the button "backwards"; and a
   library-forced safe state (COMP's end-of-run guard, later) would OPEN the claw instead of keeping
-  what it holds. Fixed by flipping ONE constant. A wrong PORT leaves the claw unmoved by A while
+  what it holds. Fixed by swapping `Low` and `High` on ONE line. A wrong PORT leaves the claw unmoved by A while
   the program drives a line with nothing (or something else) on it — and no software can see
   that: a 3-wire output has no feedback channel (`hal/digital_out.hpp`). A valve with TWO cables
   gets only the one in port A driven, never the other; what the claw does then is not known, and
@@ -2421,14 +2490,20 @@ were built in parallel; both have since landed, with the numbers below it.)
   opcontrol task and a deleted task runs no destructors", for its all-stop guard — the old
   `src/programs/drive_program.cpp` said it nearly word for word for its own guard until T4 Part 3
   replaced that program; the new one says it for its storage: the driver file is held in the
-  program's static state, never on the opcontrol task's stack, "because the loop holds the bindings
-  by address and PROS deletes the opcontrol task on a field disable"), `src/common/driver_controls.hpp`
-  (its Storage note: the bindings live in static storage because PROS "runs no destructor"), and `include/shulib/robot/robot.hpp` ("PROS calls opcontrol() again after
-  every disable"). Two rules rest on half (a) as well: the claw bindings take no claim (a claim
-  would survive a deleted task), and T3's static-state rule — a driver program ("shulib Drive" and
-  the competition program since T4 Part 3; "shulib Teleop" until then) keeps its bindings, its
-  mechanisms and their `IMotor*` arrays in its static state, never on the driver task's stack,
-  which a deleted task would leave dangling. Half (b) is what COMP's own-task design rests on
+  program's static state, never on the opcontrol task's stack, "because the loop holds the inputs by
+  address and PROS deletes the opcontrol task on a field disable" — "the bindings" until MECH-A5),
+  `src/common/driver_controls.hpp` (deleted at MECH-A5, 2026-10-29; its Storage note: the bindings
+  lived in static storage because PROS "runs no destructor" — the rule stands in `src/common/driver_file.hpp`, whose DriverFile and the
+  mechanism service the programs hold in their static state), and `include/shulib/robot/robot.hpp` ("PROS calls opcontrol() again after
+  every disable"). Two rules rest on half (a) as well: a claim a deleted task left must never lock a
+  mechanism — T3's claw bindings took no claim for that reason; since MECH-A5 the claws run through
+  the mechanism service, whose slots DO take their mechanism's claim while a step or a hold runs, and
+  each mode change ends every slot's behaviour and releases its claim, and releases (and says) a
+  claim ANOTHER owner left (`enterDriverControl()` / `enterAutonomous()`, `include/shulib/mechanism/
+  service.hpp`) — and T3's static-state rule — a driver program ("shulib Drive" and the competition
+  program since T4 Part 3; "shulib Teleop" until then) keeps its driver file (its bindings until
+  MECH-A5, its inputs since), its mechanism service, its mechanisms and their `IMotor*` arrays in its
+  static state, never on the driver task's stack, which a deleted task would leave dangling. Half (b) is what COMP's own-task design rests on
   (`competition/match_runner.hpp` runs on whichever task calls it; the program's task and its
   handshake are COMP-b's). **The Auton Tester (COMP-t, 2026-09-28) rests on half (b) too:** after
   boot it does everything — the idle ticks, the countdown, every run — on a `pros::Task` it creates

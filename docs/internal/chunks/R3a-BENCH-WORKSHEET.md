@@ -508,7 +508,7 @@ pretend-match trap).
 | `NO USABLE DRIVETRAIN DESCRIPTION` | no record on the card (or one that failed its format checks), and the table cannot describe a drivetrain | run Calibrate (Station G) |
 | `NO USABLE DRIVETRAIN DESCRIPTION`, reason `\| REFUSE: port(s) <n>(<kind>) carry a DIFFERENT device than the calibration recorded -- this robot was rewired; run shulib Calibrate` (or the IMU moved) — the WHOLE sentence is also on serial, in the earlier line `calibration record: DECODED, port check REFUSE -- ...`, then `boot source: REFUSE -- the calibration record does not match this robot's ports ...` | the record was taken on a different wiring. A record that fails its port check NEVER falls back to the table | re-calibrate; do not "fix" the record |
 | `the library graph REFUSED to build` | the library would not build the robot — e.g. `a RIGHT drive motor cannot be made: port 13: the motor rejected its configuration: ...` | Bench Tests (slot 3) on that port |
-| `the driver file REFUSED this robot` | the driver file's controls do not fit the robot built (a control naming a mechanism the robot does not declare, or of the wrong kind, or a declared mechanism no control names) — the reason names it | send the line; the driver file and the mechanism table disagree |
+| `the driver file REFUSED this robot` | the driver file's controls do not fit the robot built (a control naming a mechanism the robot does not declare, or of the wrong kind, or a declared mechanism no control names) — the reason names it (since MECH-A5 `src/common/driver_file.hpp` says it, in T4's words; a control whose preset, position or homing is not this robot's mechanism's is said in the library's own sentence, `DriverInputs::bind: …`) | send the line; the driver file and the mechanism table disagree |
 
 **F.1 — what the screen shows: MAIN, then DETAILS and MORE (touch the buttons)**
 
@@ -570,8 +570,9 @@ speed caps and gains (`facade alive: ... budgets lin 60 in/s ang 6.00 rad/s whee
 kV 0.1714 ...` on the 2026-09-25 record — **placeholders**, R5 measures them), the stall note, the two
 dead-port lines (`dead-port tolerance at BOOT ...`, `dead-port tolerance MID-RUN ...`), `driver
 control: robot two's driver file ... re-zero button Y; mode ARCADE BODY`, `drive protections (the
-library's, in every program): ...` (its numbers generated from the driver file's loop config), one
-line per claw (Station J.3.1), and `opcontrol(): robot two's driver file is live -- ...`.
+library's, in every program): ...` (its numbers generated from the driver file's loop config), the
+mechanism lines (`[MECH]`, Station J.3.1 — since MECH-A5, 2026-10-29), and `opcontrol(): robot two's
+driver file is live -- ...`.
 
 **What "feels different" means.** The stick becomes a **speed request** through the library's
 pipeline (speed caps → wheel speeds → a feedforward guessing the volts → the battery ceiling), and the
@@ -1335,17 +1336,26 @@ lines — copied from the code, final:
 
 **J.3 — "shulib Drive"'s boot** (slot 1, started from the brain; the robot on blocks)
 
-- [ ] **J.3.1** The boot lines, one per pivot, each BUILT or ABSENT — copy both word for word.
-      BUILT, as the code words them (the buttons and volts from the driver file's controls, found by
-      the pivot's NAME):
-      `[DRV] claw pivot 6: BUILT -- port 6 (typed +6), RED, R1 forward / R2 reverse at 12 V, HOLD on release -- buttons: src/team/robot_two_driver.hpp`
-      `[DRV] claw pivot 7: BUILT -- port 7 (typed +7), RED, L1 forward / L2 reverse at 12 V, HOLD on release -- buttons: src/team/robot_two_driver.hpp`
-      *(The line's end read `-- in shulib Teleop only` (T3), then `-- in shulib Teleop and shulib
-      Competition` (COMP-b, 2026-09-30); since T4 Part 3 it names where the buttons live, which stays
-      true whichever program prints it. Station K reads the same lines with its `[CMP]` tag.)*
-      ABSENT (a warning; the drive still runs), with the device provider's own sentence for the
-      port — e.g. for an empty port 7:
-      `[WARN][DRV] claw pivot 7: ABSENT -- port 7: nothing plugged in (expected a motor) -- L1/L2 do nothing; the drive still runs`
+- [ ] **J.3.1** The mechanism boot lines (`[MECH]`), four per pivot — copy all eight word for word.
+      The first says what the robot file DECLARES the pivot to be; the second, where its motor is
+      plugged in and whether the brain found it there; the third, what robot two's driver file does
+      with it (the buttons and volts from the driver file's controls, found by the declaration); the
+      fourth, its only cut-off:
+      `[MECH] claw pivot 6: POWER -- RED, motor 1 forward; let go: HOLD`
+      `[MECH] claw pivot 6: motor 1 -> port 6 ok`
+      `[MECH] claw pivot 6: hold-to-run R1 / R2, 12 V`
+      `[MECH] 'claw pivot 6': no stall signature -- held against its stop it is cut only by the driver letting go (HA-154)`
+      and the same four for `claw pivot 7` (`port 7`, `L1 / L2`). The claw's three lines are J.9.1's.
+      *(Until MECH-A5, 2026-10-29, ONE line per pivot: `[DRV] claw pivot 6: BUILT -- port 6 (typed
+      +6), RED, R1 forward / R2 reverse at 12 V, HOLD on release -- buttons: src/team/robot_two_driver.hpp`;
+      before that its end read `-- in shulib Teleop only` (T3), then `-- in shulib Teleop and shulib
+      Competition` (COMP-b). Station K reads the same lines, the same `[MECH]` tag; the Auton Tester
+      prints them without the driver-control lines.)*
+      ABSENT (a warning; the drive still runs): the role line carries the device provider's own
+      sentence for the port, and the control line says the buttons do nothing — e.g. for an empty
+      port 7:
+      `[WARN][MECH] claw pivot 7: motor 1 -> port 7 ABSENT: port 7: nothing plugged in (expected a motor)`
+      `[WARN][MECH] claw pivot 7: hold-to-run L1 / L2, 12 V -- ABSENT: does nothing; the drive still runs`
       And the port check (the `calibration record: DECODED, port check OK -- ...` line and the
       later `port check:` line) names them as claw pivots, never as NEW motors:
       `... NEW motors not in the calibration: 14; claw pivots (declared, not drive motors): 6 7. NOT CHECKED: ...`
@@ -1368,9 +1378,9 @@ lines — copied from the code, final:
       never answered a read shows `20C` — the program cannot tell (the library's motor seam carries
       no "stale" mark); `--` never appears on the brain. The row is
       AMBER when a claw is ABSENT, or when it ends `FREED` (driver control released a claim an
-      operation had left on a claw; serial names which, `[WARN][TEL] driver control: RELEASED a
-      claim left on mechanism '...' at entry ...` — not expected on this station, which runs no
-      autonomous). The controller's third line says `CLAW ABSENT` when a claw is absent and nothing
+      operation had left on a claw; serial names which, `[WARN][MECH] '...': a claim left by another
+      owner RELEASED as driver control began (...)` since MECH-A5 — not expected on this station,
+      which runs no autonomous). The controller's third line says `CLAW ABSENT` when a claw is absent and nothing
       more urgent is showing. → as shown: ______________
 - [ ] **J.3.4** If a claw says ABSENT, **"shulib Drive" still drives** — by design, a missing claw motor never
       stops the drive (run F.2.3 for a few seconds to see it). → drove with a claw ABSENT? **YES / NO
@@ -1392,8 +1402,9 @@ lines — copied from the code, final:
       shorter than 0.2 s may never show FWD). → **YES / NO**
 
 **If R1 moves a claw the way the team calls "back",** that is a finding, not a fault: the fix is ONE
-sign in `src/robots/mechanism_table.hpp` (the coordinator changes that pivot's `+6` to `-6`, or `+7` to
-`-7`), **never swapping R1 and R2** — the buttons are the driver's, the sign is the motor's. (The
+word in `src/robots/mechanism_table.hpp` (the coordinator changes that pivot's declaration from
+`.motors = {Forward}` to `.motors = {Reversed}` — since MECH-A5; until then its `+6` to `-6`), **never
+swapping R1 and R2** — the buttons are the driver's, the direction is the motor's. (The
 buttons live in the driver file, `src/team/robot_two_driver.hpp`, and nowhere else since T4 Part 3:
 changing which button moves a pivot is a change THERE, by the team — never a table edit.) **If R1
 moves the WRONG claw, or a wheel, stop:** a swapped cable (HA-155) or a wrong port (HA-153) — send
@@ -1470,8 +1481,9 @@ proof the motor is cool: let go, check that pivot's cable, and write down what y
 addendum, 2026-09-26)*
 
 Everything here is by eye: no census lists a 3-wire device, and the program cannot tell whether
-the air moved — it knows only what it COMMANDED. The table's polarity is a guess
-(`kClawOpenCommand = true` in `src/robots/mechanism_table.hpp`: "line ON = open"). What can show whether
+the air moved — it knows only what it COMMANDED. The table's polarity is a guess, written on the
+claw's `.positions` line in `src/robots/mechanism_table.hpp` — `{{"closed", {Low}, grabs}, {"open",
+{High}}}`, "line ON = open" (until MECH-A5 the constant `kClawOpenCommand = true`). What can show whether
 it is right is J.9.2 (where the claw is after the start) TOGETHER WITH J.9.3's first press — and
 only when J.9.0 found the valve's one cable in A: a claw that does not move when A is pressed says
 nothing about the polarity. The program commands the claw once at the start and then ONLY when A
@@ -1487,11 +1499,17 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
       *If TWO:* write down both letters, run only J.9.1 and J.9.2, and send them — the table
       declares ONE line (A); a second line is a fact nobody has stated, and the program does not
       drive it. (No polarity answer comes from this case: that needs J.9.3 and one cable.)
-- [ ] **J.9.1** "shulib Drive"'s boot line for the claw, as the code words it:
-      `[DRV] claw: BUILT -- 3-wire port A, CLOSED at the start (line low; line high opens it -- polarity UNVERIFIED, HA-159); A toggles it; a disable leaves it where it is`
-      (the ABSENT form, `[WARN][DRV] claw: ABSENT -- <reason> -- A does nothing; the drive still
-      runs`, cannot happen on the brain: its provider refuses only a 3-wire port outside A..H, and
-      the table's A is checked before the build). → ______________
+- [ ] **J.9.1** "shulib Drive"'s boot lines for the claw, as the code words them (three, since
+      MECH-A5 — what it is declared, where its line is, what A does):
+      `[MECH] claw: PNEUMATIC -- starts 'closed', safe 'closed'; closed = A low, open = A high (levels UNVERIFIED until a bench station sees them); a disable leaves it where it is`
+      `[MECH] claw: line 1 -> 3-wire A not checkable (the brain cannot see a 3-wire device)`
+      `[MECH] claw: toggle on A ('closed' / 'open')`
+      (the ABSENT form — `[WARN][MECH] claw: line 1 -> 3-wire A ABSENT: <reason>` and `[WARN][MECH]
+      claw: toggle on A ('closed' / 'open') -- ABSENT: does nothing; the drive still runs` — cannot
+      happen on the brain: its provider refuses only a 3-wire port outside A..H, and the table's A
+      is checked before the build. Until MECH-A5 one line: `[DRV] claw: BUILT -- 3-wire port A,
+      CLOSED at the start (line low; line high opens it -- polarity UNVERIFIED, HA-159); A toggles it;
+      a disable leaves it where it is`.) → ______________
 - [ ] **J.9.2 At the start the claw should CLOSE.** Note where the claw is before you start slot 1
       (wherever the valve left it). Start slot 1 and watch it. → before the start: **OPEN /
       CLOSED** · after the start: **CLOSED / OPEN** · it moved: **at the start / when driver
@@ -1503,14 +1521,21 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
       press flipped it exactly once? **YES / NO** · anything else moved (a pivot, a wheel)? ______
       · the panel's claw word after each press (the claw row's last word: `CLAW OPEN` after an
       opening press, `CLAW CLOSED` after a closing one — what the program COMMANDED, read through
-      the polarity guess): ______ · pressing
+      the polarity guess): ______ · **serial, about half a second after each press** *(since MECH-A5,
+      2026-10-29: a press of A is a mechanism STEP, and the service says its verdict when the claw's
+      move time has passed — expected, not a fault)*: after an opening press `[MECH] 'claw': SUCCEEDED
+      -- time in 0.50s`, after a closing one `[WARN][MECH] 'claw': UNCONFIRMED -- time in 0.50s (no
+      piece sensor to confirm it; counted done)` — ONE line per press? **YES / NO** (copy any other
+      `MECH` line) · pressing
       **Y** (the re-zero button now) leaves the claw alone? **YES / NO**
       **The polarity, from J.9.2 and this FIRST press** (only with J.9.0's one cable in A):
       - CLOSED after the start, and the first press OPENED it: **the polarity is RIGHT.**
-      - OPEN after the start, and the first press CLOSED it: **`kClawOpenCommand` is BACKWARDS.**
-        Write down "OPENED AT THE START". The coordinator flips that ONE constant in
-        `src/robots/mechanism_table.hpp` — never the button, never the start position — and records the
-        flip where the guess is written (the host test's pin, HA-159, this sheet). You may go on
+      - OPEN after the start, and the first press CLOSED it: **the claw's levels are BACKWARDS.**
+        Write down "OPENED AT THE START". The coordinator swaps `Low` and `High` on the claw's
+        `.positions` line in `src/robots/mechanism_table.hpp` (since MECH-A5; until then the one
+        constant `kClawOpenCommand`) — never the button, never the start position, which is a NAME
+        and follows the levels — and records the flip where the guess is written (the host test's
+        pin, HA-159, this sheet). You may go on
         with this build (every press still flips the claw), but read every "opens" below as
         "closes" and the other way round, and say so in what you send back.
       - The first press did NOTHING: **not a polarity answer** — the valve is not being driven
@@ -1518,8 +1543,11 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
         you saw, and send it.
       → the polarity: **RIGHT / BACKWARDS ("OPENED AT THE START") / not called**
 - [ ] **J.9.4 Holding A does nothing more.** Hold A down for about three seconds, then let go: the
-      claw flips ONCE, at the press — nothing while A is held, nothing at the release. → **YES /
-      NO** *(if it flips again, chatters, or flips on the release: stop and send it)*
+      claw flips ONCE, at the press — nothing while A is held, nothing at the release; serial shows ONE
+      verdict line (J.9.3's), half a second after the press. Then two presses in quick succession (well
+      under half a second apart): the claw flips twice, and serial shows `[WARN][MECH] 'claw': CANCELLED
+      in 0.<n>s (replaced by a newer command)` for the first, then the second's verdict — expected.
+      → **YES / NO** *(if it flips again, chatters, or flips on the release: stop and send it)*
 - [ ] **J.9.5 The controller goes away while the claw is OPEN ⇒ it STAYS OPEN.** Open it with A.
       Pull the cable as in J.7 (the tether, or the radio's cable from brain port 1): the claw stays
       open — the program commands nothing on a disconnect. Press A a few times on the unplugged
@@ -1557,22 +1585,34 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
       cable back into A before anything else.** → any difference anywhere (boot line, screen,
       Devices)? **YES / NO** *(NO is the expected answer: nothing the program can read sees a
       solenoid — an unplugged valve shows only as a claw that does not move)*
+- [ ] **J.9.8 How long the claw takes to move** *(A4 register HA-185 — added at MECH-A5, 2026-10-29;
+      no hand in the claw; only after J.9.3 called the polarity)*. An auton's claw step counts the
+      move done when the claw's declared move time has passed — `.moveTime = 0.5_s`, a GUESS —
+      because nothing senses the claw. Film it with a phone's SLOW-MOTION video, the press of A in
+      the frame: three presses that open it and three that close it, with the tank charged as in
+      J.9.0; then cycle the claw (A, again and again) until the gauge reads the lowest a match
+      leaves it (or 20 cycles, with no gauge) and film one open and one close more. From each clip,
+      the time from the press to the claw at rest. → the longest OPEN: ______ s · the longest CLOSE:
+      ______ s · the low-air pair: ______ s / ______ s · the gauge at the low-air pair: ______
+      *(Over 0.5 s, any of them: the guess is too short — an auton would drive away from a claw still
+      closing. Send the clips' times; the coordinator changes the number, its pin and HA-185
+      together.)*
 
 **What to send back**
 
 1. J.1: the census list and both cartridge colours.
 2. J.2: the two Calibrate lines as they appeared (or that one was missing), the push count, and
    whether a claw moved under power.
-3. J.3: both claw boot lines word for word, the banner's claw sentence, the claw row as shown, and
-   J.3.4.
+3. J.3: the eight pivot boot lines word for word, the claw row as shown, and J.3.4.
 4. J.4: which way R1, R2, L1 and L2 moved which claw — and anything else that moved.
 5. J.5's table and the hand-push answers. J.6's answers. J.7: which cable you pulled, and what the
    claw row and the serial log showed at the disconnect.
 6. J.8's temperature table.
 7. J.9: the valve's cable count and letters; the claw before and after the start; the first
    press, and the polarity answer (RIGHT / BACKWARDS, "OPENED AT THE START" / not called); the
-   boot line; each press, the hold, the disconnect (and A held across the reconnect) and the
-   disable (which disable, or "not available"); J.9.7's pulled-cable answer — as observed.
+   boot lines; each press, the hold, the disconnect (and A held across the reconnect) and the
+   disable (which disable, or "not available"); J.9.7's pulled-cable answer; J.9.8's times (and the
+   clips, if they can be sent) — as observed.
 8. The serial logs (G.7) of the Calibrate start and the "shulib Drive" run, and anything surprising, as
    observed.
 
@@ -1597,8 +1637,9 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
 >
 > **K still owns** what the tester cannot show: a field disable mid-auton, the auton → driver-control
 > hand-over, whether the controller's Timed Run enters `autonomous()` (HA-162; HA-128 measured only how
-> it starts) and PROS deleting its competition tasks (HA-161). A route auton is neither station's: both
-> programs pass no command registry yet, so each refuses one by name.
+> it starts) and PROS deleting its competition tasks (HA-161). A route auton is neither station's yet:
+> since MECH-A5 (2026-10-29) both programs register robot two's six mechanism route ids at boot (the
+> `ROUTES:` line, M.2.2), but the team's file holds no route auton.
 
 **M.0 — before you touch a program**
 
@@ -1642,7 +1683,11 @@ delete slot 7 from the brain's Programs menu, so nobody runs the stale one.)* RE
       `SD run log ON, APPENDED to /usd/shulib_auton_runs.txt`; with no card, `SD run log OFF (no card, or
       the log would not open)` — write down which. `3 of 3` is the pneumatic claw and both pivots (the
       ones the run guard safes — M.9): fewer is a mechanism not built, and its `mechanism '…' is
-      ABSENT` line says which — copy it.
+      ABSENT` line says which — copy it. Then *(since MECH-A5, 2026-10-29)* the mechanism lines,
+      `[MECH]` — J.3.1's and J.9.1's without the driver-control lines (this program has none): three
+      per pivot and two for the claw, eight in all — and one line for the route ids (this program's
+      `[ATS]` tag):
+      `ROUTES: 6 mechanism route ids published (claw_pivot_6_run .. claw_open); 26 of the registry's 32 left for the team's own`.
 - [ ] **M.2.3** The first `competition status 0x00 field=no disabled=no auton=no -- RUN is allowed`
       line (HA-178 (c)). If it reads anything else, RUN will be refused: copy the line.
 - [ ] **M.2.4** The boot is **not** refused with `the tester's pacer chain is WRONG` — the boot's chain
@@ -1803,7 +1848,8 @@ table).
       mechanism; the tester never commands them otherwise). → did anything on a claw move? **YES / NO**
       *(Today's autons never command a claw, so this station shows only that nothing moved one. That
       the guard SAFES every present mechanism, at a run's end and on an abort, is shown by the host
-      suite — test (18b) — not here.)*
+      suite — test (18b) — not here; since MECH-A5 the claws run on the mechanism service under the
+      guard, and an auton step on a claw is host-tested (`test/robot_two_claws_example_test.cpp`).)*
 
 **What to send back**
 
@@ -1891,9 +1937,11 @@ control after the boot)
       src/team/autons.cpp`, then `DROPPED: auton '<name>': <why>` (past eight drops: `(the first 8
       named below)`, and a last line counting the rest), and the menu names it in red; none is
       expected with the team's file as it is — copy any word for word.
-- [ ] **K.2.3** The claw lines, word for word: each pivot's BUILT line ends **`-- buttons:
-      src/team/robot_two_driver.hpp`** (J.3.1's lines — "shulib Drive" prints the same — with this
-      program's `[CMP]` tag), and the claw's own line.
+- [ ] **K.2.3** The mechanism lines, word for word: J.3.1's eight for the pivots and J.9.1's three for
+      the claw — "shulib Drive" prints the same, the same `[MECH]` tag (since MECH-A5, 2026-10-29; until
+      then each pivot's `[CMP]` BUILT line ended `-- buttons: src/team/robot_two_driver.hpp`) — and
+      the route ids' line (this program's `[CMP]` tag), `ROUTES: 6 mechanism route ids published
+      (claw_pivot_6_run .. claw_open); 26 of the registry's 32 left for the team's own`.
 - [ ] **K.2.4** The phase lines: `opcontrol() entry at <ms>, status 0x00 field=no disabled=no auton=no`,
       then `opcontrol(): driver control starts -- the driver file, after 0.000 s waiting for the auton
       task`. The screen: the **driver page** — `shulib COMPETITION` and the BUILD time in the bar (the time
@@ -1908,8 +1956,10 @@ control after the boot)
       F's, in this program's driver page.
 - [ ] **K.2.5** Wheels up, drive briefly: the sticks drive as at Station F (forward = the end M.3 found);
       R1/R2 and L1/L2 move the pivots as at J; **A opens the claw — leave it OPEN** (K.0.5). The
-      controller's lines: `LIB 12V B…V`, `hdg …`, `ok`; the protections' row stays `drive OK`. Then stop
-      the program **from the brain**.
+      controller's lines: `LIB 12V B…V`, `hdg …`, `ok`; the protections' row stays `drive OK`. Serial
+      (and `comp_log.txt`, K.7.2) carries one `[MECH] 'claw': …` verdict line per press of A (J.9.3's —
+      since MECH-A5, expected), and none for the pivots' buttons. Then stop the program **from the
+      brain**.
 
 **K.3 — THE TIMED RUN, MEASURED (HA-162 — the FIRST match step; everything after it depends on it)**
 

@@ -148,8 +148,9 @@ PROS's task:
   robot even if PROS did **not** delete `opcontrol()` at a change straight from driver control to
   autonomous; when the auton task had to wait for the loop, the run's lines say so.
 
-**What ends an auton early.** Between the run guard and the brain's 10 ms tick sits the program's
-**watch**. Every tick it reads the competition status; the moment VEXos reports the robot
+**What ends an auton early.** Between the run guard and the brain's 10 ms tick sit the robot's
+**mechanism service** — one object that ticks every claw's step once per tick, since the mechanism
+core's fifth part ([Chapter 18](18-mechanisms.md)) — and, below it, the program's **watch**. Every tick it reads the competition status; the moment VEXos reports the robot
 **disabled**, or the status leaves **autonomous** (the period ended, or the match moved straight to
 driver control), it asks the run guard to **abandon** the run. The guard cuts the motion before the
 world advances again — at most **one more commanded 10 ms tick** after the watch saw the change —
@@ -182,7 +183,7 @@ one at a time: whichever holds the screen paints it, and PROS's phase tasks pain
 
 | Phase | What the program does | The brain's screen |
 |---|---|---|
-| boot (`initialize()`) | builds the robot from the calibration record, binds the driver's controls, registers the autons, **proves its tick chain**, starts the auton task | the menu (or a refusal) |
+| boot (`initialize()`) | builds the robot from the calibration record, binds its mechanism service and the driver's controls, registers the autons and the mechanisms' route ids, **proves its tick chain**, starts the auton task | the menu (or a refusal) |
 | field connects (`competition_initialize()`) | one line on entry, one on return; hands the screen to the menu | the menu |
 | disabled (`disabled()`) | the same | the menu |
 | autonomous (`autonomous()`) | asks the auton task for a run, waits for its terminal word | the auton's **status**, then its **result** |
@@ -203,9 +204,22 @@ DROPPED -- the dropped ones are NOT on the menu (each named below); every other 
 control still run -- ...`, then `DROPPED: auton '...': ...` for each — past eight, the line says `(the
 first 8 named below)` and a last line counts the rest), where the log copy is (`log
 copy: /usd/comp_log.txt (APPENDED, kept across boots) -- ...`, or that it did not open and why: `NO
-SD CARD`, or a card that is in and would not take the file), and one line per
-claw, in the words "shulib Drive" prints too (each pivot's line ends `-- buttons:
-src/team/robot_two_driver.hpp`: the buttons are the driver file's, whichever program binds them).
+SD CARD`, or a card that is in and would not take the file), the mechanisms' lines — tag `MECH`, in
+the words "shulib Drive" and the tester print too: for each mechanism what the robot file declares it
+to be, where each part is plugged in and whether the brain found it, what the driver file's control
+does with it, and anything it lacks — and one line for the route ids the autons' markers can fire:
+
+```text
+claw pivot 6: POWER -- RED, motor 1 forward; let go: HOLD
+claw pivot 6: motor 1 -> port 6 ok
+claw pivot 6: hold-to-run R1 / R2, 12 V
+'claw pivot 6': no stall signature -- held against its stop it is cut only by the driver letting go (HA-154)
+claw: toggle on A ('closed' / 'open')
+ROUTES: 6 mechanism route ids published (claw_pivot_6_run .. claw_open); 26 of the registry's 32 left for the team's own
+```
+
+(pivot 7's four lines and the claw's first two between them; [Chapter 16](16-testing-an-auton-on-the-bench.md#the-claws-in-an-auton)
+shows the claw's. The buttons are the driver file's, whichever program binds them.)
 
 **Every phase function** logs one line when it starts and one when it returns normally, with the
 brain's clock in milliseconds and the competition status in words:
@@ -334,9 +348,9 @@ There are three refusals, and each says why on the screen and on serial.
 
 - **A refused boot.** When the robot cannot be described — no calibration record and no usable typed
   table, the graph refused to build, the driver's controls do not fit the robot, or the boot's
-  **tick-chain proof** failed (one idle tick must reach both the run
-  guard and the watch, and the watch must be attached to the guard; otherwise no disable could end an
-  auton) — the program paints the red refusal screen, powers nothing and starts **no auton task**.
+  **tick-chain proof** failed (one idle tick must reach the run guard, the mechanism service and the
+  watch, and the watch must be attached to the guard; otherwise no disable could end an auton, or no
+  claw step would ever end — the refusal names which link is missing) — the program paints the red refusal screen, powers nothing and starts **no auton task**.
   Nothing paints over the refusal afterwards; each phase still logs its two lines, and
   `autonomous()` logs `the boot was REFUSED: no auton runs`. With no auton task there is no
   `competition status … at <ms>` line at all: serial carries only the four phase functions' entry and
@@ -383,7 +397,11 @@ controller off, wait ten seconds, and see the brain's menu return before startin
   [HA-154](../hardware-assumptions.md), not measured) is what the bench
   worksheet's practice-match station's **push check** measures, and it is **required before this
   program drives a match**.
-- **No route autons.** An auton written as a route (the path editor's kind) needs the team's
-  commands registered once, beside the autons; until then it is refused by name, as in the tester.
+- **Route autons fire only the mechanisms' ids.** An auton written as a route (the path editor's
+  kind) runs, and its markers can fire robot two's six mechanism route ids, as in the tester
+  ([chapter 16](16-testing-an-auton-on-the-bench.md#the-claws-in-an-auton) shows one, the claws
+  auton as a route; the host suite runs it through this program's own request path too); a marker
+  naming any other id is counted unknown and runs nothing — the team's own commands have no place to
+  be registered yet. The team's file holds no route auton today.
 - **The auton pick under a Timed Run** waits on the measurement above: if the Timed Run gives no
   disabled window before autonomous, how an auton is chosen on the bench is decided after it.

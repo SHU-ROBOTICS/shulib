@@ -21,6 +21,7 @@
 #include "shulib/hal/controller.hpp"
 #include "shulib/hal/fake/fake_controller.hpp"
 #include "shulib/kinematics/tank.hpp"
+#include "shulib/mechanism/service.hpp"
 #include "shulib/sequence/run_guard.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -482,6 +483,8 @@ TEST_CASE("abort (13): each pace reads the inputs, THEN paces the inner pacer, e
 // acted on — mutation 25). And (COMP-t's review, 2026-09-29) the chain paced right but the watch
 // NEVER ATTACHED to the guard, or attached to another one: it paces and latches, its abandon goes
 // nowhere, and the run drives on through the button (measured: 14.22 in after B, a green FINISHED).
+// Since MECH-A5 the chain has the robot's mechanism service between the guard and the watch (the
+// tester rig's is the program's); test/guarded_run_test.cpp (G1) proves a chain WITHOUT it fails.
 // The boot's chain proof must say true for the right chain and false for every wrong one — and
 // none of the proofs commands the drive.
 TEST_CASE("abort (13b): pacerChainProven — the right chain only, and it commands nothing") {
@@ -489,7 +492,7 @@ TEST_CASE("abort (13b): pacerChainProven — the right chain only, and it comman
     {
         tester_rig::TesterStack s{kin, 1, 1.0, motion_rig::plantConfig(), nullptr, 0};
         const double before = s.plant.distance;
-        CHECK(pacerChainProven(s.chassis, s.guard, s.watch));
+        CHECK(pacerChainProven(s.chassis, s.guard, s.mechanisms, s.watch));
         CHECK(s.plant.distance - before == 0.0);
         CHECK(s.probe.energizedWhileIdle == 0);
     }
@@ -498,12 +501,14 @@ TEST_CASE("abort (13b): pacerChainProven — the right chain only, and it comman
     CountingInputs inputs;
     inputs.next = quiet();
     AbortWatch watch{plant, inputs};
-    RunGuard guard{watch};
+    shulib::mechanism::MechanismService svc{watch};
+    svc.bind(shulib::bench::kNoMechanisms, {}, rig.h.clock(), rig.latch, rig.faultSink);
+    RunGuard guard{svc};
     watch.attachGuard(guard);
     shulib::chassis::Chassis onWatch{rig.deps, watch, motion_rig::chassisConfig()};
-    CHECK_FALSE(pacerChainProven(onWatch, guard, watch));
+    CHECK_FALSE(pacerChainProven(onWatch, guard, svc, watch));
     shulib::chassis::Chassis onPlant{rig.deps, plant, motion_rig::chassisConfig()};
-    CHECK_FALSE(pacerChainProven(onPlant, guard, watch));
+    CHECK_FALSE(pacerChainProven(onPlant, guard, svc, watch));
     CHECK(plant.distance == 0.0);
     for (const shulib::hal::IMotor* m : rig.h.context().driveMotors()) {
         CHECK(m->commandedVoltage().value() == 0.0);
@@ -520,14 +525,16 @@ TEST_CASE("abort (13b): pacerChainProven — the right chain only, and it comman
     CountingInputs inputs2;
     inputs2.next = quiet();
     AbortWatch unattached{plant2, inputs2};
-    RunGuard guard2{unattached};
+    shulib::mechanism::MechanismService svc2{unattached};
+    svc2.bind(shulib::bench::kNoMechanisms, {}, rig2.h.clock(), rig2.latch, rig2.faultSink);
+    RunGuard guard2{svc2};
     shulib::chassis::Chassis onChain{rig2.deps, guard2, motion_rig::chassisConfig()};
     CHECK_FALSE(unattached.attachedTo(guard2));
-    CHECK_FALSE(pacerChainProven(onChain, guard2, unattached));
+    CHECK_FALSE(pacerChainProven(onChain, guard2, svc2, unattached));
     unattached.attachGuard(guard);  // the OTHER guard
-    CHECK_FALSE(pacerChainProven(onChain, guard2, unattached));
+    CHECK_FALSE(pacerChainProven(onChain, guard2, svc2, unattached));
     unattached.attachGuard(guard2);
     CHECK(unattached.attachedTo(guard2));
-    CHECK(pacerChainProven(onChain, guard2, unattached));  // the same chain, now linked back
+    CHECK(pacerChainProven(onChain, guard2, svc2, unattached));  // the same chain, now linked back
     CHECK(plant2.distance == 0.0);
 }

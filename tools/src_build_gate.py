@@ -189,7 +189,10 @@ Once per `check`, before any build — step 0, five source checks:
   make compiles (ALL_EXTS, `.c++` and `.S` included — generated from the Makefile's mirror, never
   typed twice), every header extension, and the host build's own CMake files (test/CMakeLists.txt,
   `*.cmake`: a per-source COMPILE_DEFINITIONS is a switch the host's static_assert cannot see);
-  comments and string literals stripped, so an `#if`, `#ifdef`, `#ifndef`, `#elif`, `#elifdef`,
+  read as C++'s first phases leave the text — line splices joined with nothing (`SHULIB_\\` + a
+  next line `ROBOT_…` is one name), comments and string, raw-string and character literals
+  stripped, numbers whole (`1'000`'s apostrophe opens no literal; MECH-A5's verification) —
+  so an `#if`, `#ifdef`, `#ifndef`, `#elif`, `#elifdef`,
   `#elifndef`, a `#define` that launders one, or plain code is caught, and a switch named in a
   comment or a printed hint is not. A declaration of `kProgram`, `kRobotId` or `kVariantBeacon`
   outside the chain FAILS too, in every initializer form (`= …`, `{…}`, `(…)`), and so does a
@@ -222,6 +225,27 @@ Once per `check`, before any build — step 0, five source checks:
   is in a package), and inside a `static_assert(…)`'s parentheses anywhere (compile-time only:
   T3 Part 2's checks on robot two's claws). Anywhere else under src/ or include/shulib/ one
   FAILS. A program reads the BUILD's tables, kChassis and kMechanisms, only.
+  ...AND A ROBOT'S MECHANISM NAMESPACE, PER ROBOT (the mechanism core's MECH-A5, 2026-10-29; the MECH
+  brief's re-check T3). Since MECH-A5 a robot's mechanisms are DECLARATIONS inside its own namespace
+  in the mechanism table file (`namespace robot_two { … inline constexpr MechanismTable
+  kRobotTwoMechanisms = mechanisms(…); }`), and a step names a declaration (`r.set(claw["closed"])`),
+  so a program could command ANOTHER robot's same-named mechanism — or end ABSENT — by naming its
+  namespace, with no compile error (HA-111's defect class: a build carrying another robot's facts).
+  So the robot NAMESPACES are DERIVED too (_robot_namespaces: every namespace block of the mechanism
+  table file that declares a `MechanismTable`), and the namespace's NAME, as a whole C++ identifier
+  wherever the text writes it — `<ns>::`, `using namespace <ns>`, re-opening `namespace …<ns>`, an
+  alias `namespace r2 = <ns>;`, a `#define`, split over lines, or split INSIDE the name by a line
+  splice — is refused outside the table files, test/, a static_assert — and THAT ROBOT'S OWN TEAM
+  FILES (below). THE LIMIT (MECH-A5's verification): the rule reads text, so a name the PREPROCESSOR
+  assembles — `##` token pasting, `CAT(robot_, two)` — is never written out and is not seen; nor is
+  a file step 0 does not read (ONE_CHAIN_ROOTS), nor — the one place its reading differs from C++'s
+  (_splice) — code after a raw string that a line splice INSIDE its closing `)delim"` ends early
+  here. THAT ROBOT'S OWN TEAM FILES: a src/team/ file whose name begins `<ns>_` (src/team/robot_two_driver.hpp), or one
+  the reviewed TEAM_FILE_ROBOT map gives to a robot (today the team's auton file, src/team/autons.cpp
+  and .hpp, robot two's — until G3a Part 4's per-robot auton files). A robot's own team file may also
+  name that robot's own LIST (a driver file checks its controls against its robot's list — its job),
+  and nothing of another robot's; a CHASSIS table stays refused in a team file. A broader exception
+  re-opens the defect class without a single compile error (the brief's landmine 12).
   THE CHAIN'S TABLE (2c's final run): each branch's three constants must be one build's row
   of this gate's own tables — its kVariantBeacon one build's VARIANT_BEACONS entry, its
   kProgram that build's BUILD_PROGRAM, its kRobotId that build's BUILD_ROBOT — every build must
@@ -273,7 +297,7 @@ Once per `check`, before any build — step 0, five source checks:
   now: every `src/…` path inside a string literal of a file under src/ or include/shulib/
   (PRINTED_PATH_ROOTS: the code a package is built from) must name a file or folder that exists.
   Adjacent literals are joined first, as the compiler joins them, so a path split across two is
-  read whole; comments are not read (the staleness audit's class, and a comment reaches no
+  read whole, and a raw string's text is its own (MECH-A5's verification); comments are not read (the staleness audit's class, and a comment reaches no
   robot); test/ is not read (its own tests pin what they print). Self-test case 30.
 
 THE VARIANT DIFFERENTIAL, RETIRED AT G1 PART 2c — what it was, why it went, what replaced it
@@ -570,48 +594,166 @@ STDIO_EXEMPT_OBJECT = "_pros_ld_timestamp.o"
 _NM_UNDEFINED = re.compile(r"^(?P<obj>.+?):\s+U\s+(?P<sym>\S+)$")
 
 
+# A line break, or a LINE SPLICE: a backslash ending a physical line, blanks after it allowed (GCC
+# splices those too, with a warning; C++23 made it the rule).
+_LINE_BREAK_OR_SPLICE = re.compile(r"(\\[ \t\v\f\r]*\n|\n)")
+
+
+def _splice(text):
+    """`text` after C++'s translation phase 2, which runs BEFORE comments and literals exist: every line
+    splice is deleted, so the next line joins its line with NOTHING between — `robot_\\` then `two` is the
+    identifier `robot_two`, and a `//` comment ending in a backslash runs on over the next line. Each
+    deleted line break is put back after the joined line ends, so every line keeps its number and a
+    joined line is read on the line it starts. (MECH-A5's verification: the joins were a space, so a name
+    split by a splice passed every rule.) One place this differs from C++: C++ undoes the splices inside a
+    raw string literal's text (`R"(…)"`); this does not — a raw string whose text has a backslash at a
+    line's end can end early here, inside its closing `)delim"`."""
+    out, owed = [], 0
+    for k, piece in enumerate(_LINE_BREAK_OR_SPLICE.split(text)):
+        if k % 2 == 0:
+            out.append(piece)  # a line's text
+        elif piece == "\n":
+            out.append("\n" * (1 + owed))  # a line break, and every break the line's splices deleted
+            owed = 0
+        else:
+            owed += 1  # a splice: deleted, its break owed
+    out.append("\n" * owed)
+    return "".join(out)
+
+
 def _logical_lines(text):
-    """Source lines with backslash continuations joined, each paired with its 1-based
-    starting line number — a multi-line #if is one directive."""
-    out, buf, start = [], "", None
-    for n, raw in enumerate(text.splitlines(), 1):
-        if start is None:
-            start = n
-        if raw.endswith("\\"):
-            buf += raw[:-1] + " "
-            continue
-        out.append((start, buf + raw))
-        buf, start = "", None
-    if start is not None:
-        out.append((start, buf))
-    return out
+    """(1-based line number, logical line) for `text`: its line splices joined as C++ joins them
+    (_splice — with nothing between), each logical line at the number of the physical line it starts on
+    (the lines it joined follow it, empty) — a multi-line #if is one directive, and `robot_\\` + `two`
+    one identifier."""
+    return list(enumerate(_splice(text).splitlines(), 1))
 
 
-# One left-to-right pass: a string or character literal, a // comment, a /* */ comment, or
-# anything else. Order matters — `src/*.cpp` inside a // comment is not a block comment's start.
-_CXX_TOKENS = re.compile(r'"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|//[^\n]*|/\*.*?\*/',
+# One left-to-right pass over SPLICED text (_splice): a number, a raw string literal, a string or
+# character literal, a // comment, a /* */ comment, or anything else. Order matters — `src/*.cpp` inside
+# a // comment is not a block comment's start. A NUMBER is C++'s pp-number, so a digit separator's `'`
+# (`1'000`) never opens a character literal — before MECH-A5's verification it did, and a name between
+# two such numbers on one line was read as a literal's text; a RAW string (`R"(…)"`, `u8R"x(…)x"`) ends
+# at its own `)delim"`, never at a `"` inside it. The look-behinds keep both at a token's start (`x1`,
+# `FOOR"…"` are an identifier and then whatever follows it).
+_CXX_TOKENS = re.compile(r"(?P<number>(?<![\w.])\.?\d(?:[eEpP][+-]|'\w|[\w.])*)"
+                         r'|(?P<raw>(?<!\w)(?:u8|[uUL])?R"(?P<delim>[^ ()\\\t\v\f\n]{0,16})\((?P<rawtext>.*?)\)(?P=delim)")'
+                         r'|"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|//[^\n]*|/\*.*?\*/',
                          flags=re.S)
 
 
 def _strip_comments(text, literals=False):
-    """C++ source with its // and /* */ comments removed (line breaks kept, so line numbers
-    survive). String and character literals are kept, or emptied to `""` when `literals` — a
-    build switch's name inside a printed string does not READ the switch."""
+    """C++ source SPLICED (_splice: C++'s phase 2 comes first) with its // and /* */ comments removed
+    (line breaks kept, so line numbers survive). String, raw-string and character literals are kept, or
+    emptied to `""` when `literals` — a build switch's name inside a printed string does not READ the
+    switch; numbers are kept as they are."""
     def keep(m):
         t = m.group(0)
+        if m.group("number") is not None:
+            return t
         if t.startswith("//"):
             return ""
         if t.startswith("/*"):
             return "\n" * t.count("\n")
+        if m.group("raw") is not None:
+            return '""' + "\n" * t.count("\n") if literals else t
         if literals:
             return t[0] * 2
         return t
-    return _CXX_TOKENS.sub(keep, text)
+    return _CXX_TOKENS.sub(keep, _splice(text))
 
 
 def _read(repo, rel):
     with open(os.path.join(repo, rel), encoding="utf-8", errors="replace") as fh:
         return fh.read()
+
+
+# ── MECH-A5: a robot's MECHANISM namespace is a per-robot name too (header, "A ROBOT'S TABLES BY NAME") ──
+#: Team files that belong to ONE robot although their name does not say so. REVIEWED BY HAND: a new team
+#: file that belongs to one robot but does not begin with its namespace goes here (the MECH brief's
+#: landmine 12). G3a Part 4's per-robot auton files (autonsFor(RobotId)) replace these two entries.
+TEAM_FILE_ROBOT = {
+    os.path.join("src", "team", "autons.cpp"): "robot_two",
+    os.path.join("src", "team", "autons.hpp"): "robot_two",
+}
+TEAM_DIR_REL = os.path.join("src", "team")
+_NAMESPACE_OPEN = re.compile(r"\bnamespace\s+((?:\w+::)*)(\w+)\s*\{")
+_MECHANISM_TABLE_OBJECT = re.compile(r"\bconstexpr\s+(?:[\w:]*::)?MechanismTable\s+(\w+)\s*(?:=|\{)")
+
+
+def _robot_namespaces(repo):
+    """{namespace: set of the per-robot MECHANISM lists declared inside it}, for the mechanism table
+    file (TABLE_FILES[1]): every namespace block that declares a `constexpr MechanismTable <name>` —
+    its robot's list. DERIVED, never listed (a robot added is covered the moment its namespace and
+    list exist); the file's own enclosing namespaces (`shulib`, `bench`) are never a robot's."""
+    rel = TABLE_FILES[1]
+    if not os.path.exists(os.path.join(repo, rel)):
+        return {}
+    code = _strip_comments(_read(repo, rel), literals=True)
+    out = {}
+    for m in _NAMESPACE_OPEN.finditer(code):
+        depth, j = 1, m.end()
+        while j < len(code) and depth:
+            depth += (code[j] == "{") - (code[j] == "}")
+            j += 1
+        tables = set(_MECHANISM_TABLE_OBJECT.findall(code[m.end():j]))
+        if tables and m.group(2) not in ("shulib", "bench"):
+            out.setdefault(m.group(2), set()).update(tables)
+    return out
+
+
+def _team_file_robot(rel, namespaces):
+    """The robot namespace a src/team/ file belongs to — TEAM_FILE_ROBOT's entry, or the namespace its
+    file name begins with (`robot_two_driver.hpp` -> `robot_two`) — or None (a file under src/team/
+    that belongs to no robot, and every file outside src/team/)."""
+    if not rel.startswith(TEAM_DIR_REL + os.sep):
+        return None
+    if rel in TEAM_FILE_ROBOT:
+        return TEAM_FILE_ROBOT[rel]
+    base = os.path.basename(rel)
+    for ns in sorted(namespaces, key=len, reverse=True):  # the longest first: robot_two_x before robot_t
+        if base.startswith(ns + "_"):
+            return ns
+    return None
+
+
+def _robot_namespace_problems(repo, rel, namespaces=None):
+    """Step 0 (header, "…AND A ROBOT'S MECHANISM NAMESPACE, PER ROBOT"): one C++ file — a robot's
+    mechanism namespace NAMED outside the table files, test/, a static_assert and that robot's own team
+    files. The rule is the namespace's NAME as a whole C++ identifier, not a list of spellings: every
+    way to reach a namespace spells its name — `<ns>::` (a line break on either side of the `::`
+    included), `using namespace …<ns>` (qualified, split over lines), re-opening `namespace …<ns>` (the
+    brace on the next line, `inline`, an attribute), an alias `namespace r2 = <ns>;`, a `#define` — and
+    an identifier spans no LOGICAL line, so it is matched per logical line: the text read as C++'s
+    first phases leave it (_strip_comments — line splices joined with nothing, so `robot_\\` + `two` is
+    the name; comments and literals stripped; numbers whole, so `1'000 … 2'000` hides nothing between).
+    THE LIMIT: a name the preprocessor ASSEMBLES (`##` token pasting) is never written out, and no text
+    rule sees it; and the one place the reading differs from C++'s (_splice: a line splice inside a raw
+    string's closing `)delim"` ends it early here). (MECH-A5's review: the first rule listed three spellings per physical line and missed
+    four that compile; its verification: the splices were joined with a space, a digit separator opened
+    a character literal, a raw string ended at its first quote — each passed a name that compiles.)
+    Returns a list of problem strings."""
+    if rel in TABLE_FILES or rel.startswith("test" + os.sep):
+        return []
+    namespaces = _robot_namespaces(repo) if namespaces is None else namespaces
+    if not namespaces:
+        return []
+    mine = _team_file_robot(rel, namespaces)
+    problems = []
+    code = _blank_static_asserts(_strip_comments(_read(repo, rel), literals=True))
+    for n, line in _logical_lines(code):
+        for ns in sorted(namespaces):
+            if ns == mine:
+                continue
+            named = re.search(r"\b" + re.escape(ns) + r"\b", line)
+            if named:
+                problems.append(
+                    f"{rel}:{n} names {ns}, a robot's mechanism namespace — only that robot's own team "
+                    f"files (src/team/{ns}_*, or this gate's TEAM_FILE_ROBOT), the table files, test/ and a "
+                    f"static_assert may; a step against another robot's declaration would run ITS "
+                    f"same-named mechanism, or end ABSENT, with no compile error (header, step 0, a robot's "
+                    f"mechanism namespace; HA-111's class): `{line.strip()}`")
+    return problems
 
 
 def _blank_static_asserts(code):
@@ -761,6 +903,7 @@ def one_chain_problems(repo=None):
     strings."""
     repo = repo or REPO
     per_robot, problems = per_robot_table_names(repo)
+    namespaces = _robot_namespaces(repo)
     macro_names = SELECTION_NAMES | per_robot
     for top in ONE_CHAIN_ROOTS:
         for root, dirs, files in os.walk(os.path.join(repo, top)):
@@ -780,7 +923,8 @@ def one_chain_problems(repo=None):
                 problems += _retired_switch_problems(
                     rel, _logical_lines(_strip_comments(_read(repo, rel), literals=True)))
                 if rel != SELECTION_HEADER:
-                    problems += _stray_selection_problems(repo, rel, per_robot)
+                    problems += _stray_selection_problems(repo, rel, per_robot, namespaces)
+                    problems += _robot_namespace_problems(repo, rel, namespaces)
     problems += _selection_header_problems(repo)
     return problems
 
@@ -808,10 +952,12 @@ def _retired_switch_problems(rel, lines):
     return problems
 
 
-def _stray_selection_problems(repo, rel, per_robot=frozenset()):
+def _stray_selection_problems(repo, rel, per_robot=frozenset(), namespaces=None):
     """One C++ file outside SELECTION_HEADER (header, step 0): a build switch named in its code
     (comments and string literals stripped), one of the chain's constants declared there, or —
-    outside the two table files and test/ — a per-robot table named outside a static_assert."""
+    outside the two table files and test/ — a per-robot table named outside a static_assert. A
+    robot's OWN team file (header, "…PER ROBOT"; MECH-A5) may name its own robot's MECHANISM list —
+    and nothing else per-robot: another robot's list, any chassis table, any selection function."""
     problems = []
     code = _strip_comments(_read(repo, rel), literals=True)
     for n, line in _logical_lines(code):
@@ -824,6 +970,12 @@ def _stray_selection_problems(repo, rel, per_robot=frozenset()):
                 f"{rel}:{n} declares one of THE ONE CHAIN's constants — only "
                 f"{SELECTION_HEADER}'s chain may (header, step 0): `{line.strip()}`")
     if per_robot and rel not in TABLE_FILES and not rel.startswith("test" + os.sep):
+        namespaces = _robot_namespaces(repo) if namespaces is None else namespaces
+        mine = _team_file_robot(rel, namespaces)
+        if mine is not None:
+            per_robot = frozenset(n for n in per_robot if n not in namespaces.get(mine, set()))
+        if not per_robot:
+            return problems
         named = re.compile(r"\b(" + "|".join(sorted(per_robot)) + r")\b")
         for n, line in _logical_lines(_blank_static_asserts(code)):
             for name in sorted(set(named.findall(line))):
@@ -1136,13 +1288,18 @@ def _literal_runs(code):
     stripped): `"fill src/robots/" "chassis_table.hpp"` is one string to the compiler, so it is one
     string here and a path split across the two is read whole. `text` is the literals' contents
     joined, quotes and any encoding prefix dropped; `pieces` is one (offset in `text`, line) per
-    literal, so a match in `text` is reported on the line its literal starts. A character literal,
-    or any code between two literals, ends a run."""
+    literal, so a match in `text` is reported on the line its literal starts. A raw string literal's
+    text is its own (between `delim(` and `)delim`). A character literal, a number, or any code
+    between two literals, ends a run."""
     runs, text, pieces, end = [], None, None, None
     line, counted = 1, 0
     for m in _CXX_TOKENS.finditer(code):
         t = m.group(0)
-        if not t.startswith('"'):
+        if m.group("raw") is not None:
+            body = m.group("rawtext")
+        elif t.startswith('"'):
+            body = t[1:-1]
+        else:
             if text is not None:
                 runs.append((pieces, text))
             text = None
@@ -1151,11 +1308,11 @@ def _literal_runs(code):
         counted = m.start()
         if text is not None and _LITERAL_GAP.fullmatch(code[end:m.start()]):
             pieces.append((len(text), line))
-            text += t[1:-1]
+            text += body
         else:
             if text is not None:
                 runs.append((pieces, text))
-            text, pieces = t[1:-1], [(0, line)]
+            text, pieces = body, [(0, line)]
         end = m.end()
     if text is not None:
         runs.append((pieces, text))
@@ -2404,9 +2561,9 @@ def do_self_test():
     #     so a program could name ANOTHER robot's by a one-token edit, and nothing in the package
     #     would notice. The per-robot names are DERIVED from the table files; each one named in a
     #     program is reported; the review's own mutations (the bench tester's IMU from robot two's
-    #     table; shulib Drive's claw boot lines from the bench bot's mechanisms — re-pointed at T4
-    #     Part 3 from the OLD Drive's ports from the bench bot's chassis table, a line the new file
-    #     does not hold; Calibrate dropping the bench bot's mechanisms, i.e. none — its claws become
+    #     table; shulib Drive's mechanism service bound over the bench bot's mechanisms — re-pointed at
+    #     MECH-A5 from its claw boot lines, which left the file (and at T4 Part 3 from the OLD Drive's
+    #     ports from the bench bot's chassis table); Calibrate dropping the bench bot's mechanisms, i.e. none — its claws become
     #     drive candidates) are reported; a library header
     #     is read too. NOT reported: the tables themselves, test/, a static_assert's argument (T3
     #     Part 2's checks on robot two's claws), a comment, a string. A table added for a new robot
@@ -2426,8 +2583,8 @@ def do_self_test():
                    f"26: {name} named in a program was not reported: {found}")
     for where, old, new in (
             (SRC_PLANT, "ProsImu imu{kChassis.imuPort", "ProsImu imu{kRobotTwoChassis.imuPort"),
-            (DRIVE_PLANT, "motorClawBootLine(kMechanisms, ",
-             "motorClawBootLine(mechanismTableFor(RobotId::BenchBot), "),
+            (DRIVE_PLANT, "st.mechanisms->bind(kMechanisms, ",
+             "st.mechanisms->bind(mechanismTableFor(RobotId::BenchBot), "),
             (CALIBRATE_PLANT, "dropDeclaredMechanismPorts(kMechanisms,",
              "dropDeclaredMechanismPorts(mechanismTableFor(RobotId::BenchBot),")):
         rel = os.path.relpath(where, REPO)
@@ -2440,7 +2597,7 @@ def do_self_test():
         expect(any(os.path.relpath(LIBRARY_PLANT, REPO) in p and by_name in p for p in found),
                f"26: a per-robot table named in a library header was not reported: {found}")
     # the legal places: T3 Part 2's static_assert form (multi-line), a comment, a string, test/
-    legal = ("\nstatic_assert(mechanismPortsValid(kRobotTwoMechanisms)\n"
+    legal = ("\nstatic_assert(clearOfItsDrive(kRobotTwoMechanisms, kRobotTwoChassis)\n"
              "                  && &chassisTableFor(RobotId::RobotTwo) == &kRobotTwoChassis,\n"
              "              \"self-test: a static_assert may name robot two's tables\");\n"
              "// kBenchBotChassis, named in a comment\n"
@@ -2648,6 +2805,163 @@ def do_self_test():
     expect(include_root_problems() == [] and one_chain_problems() == [],
            "28: a plant was not restored")
 
+    # 28b (MECH-A5, the MECH brief's re-check T3): A ROBOT'S MECHANISM NAMESPACE, PER ROBOT (step 0;
+    #     header). The robot namespaces are DERIVED from the mechanism table file (robot two's, with its
+    #     list); then the brief's nine planted cases (its probe's out5/gate_cases.txt), each alone:
+    #     REFUSED — a program stepping robot two's claw by its namespace, a program's `using namespace
+    #     robot_two`, src/common re-opening the namespace, robot THREE's driver file naming robot two's
+    #     list qualified and unqualified, a chassis table in robot two's own team file (case 28's rule,
+    #     unchanged); PASSING — robot two's OWN second team file naming its list and namespace, the
+    #     team's auton file (TEAM_FILE_ROBOT) re-stating its `using namespace robot_two`, and a program
+    #     naming robot two's list inside a static_assert. A team file of no robot (src/team/<x>.hpp) is
+    #     no exception; a robot added to the table file is covered the moment it exists (derived, not
+    #     listed) — and its own team file may name its own list, never robot two's. Source-only; every
+    #     plant restored.
+    #     THE NAME, WHEREVER IT IS WRITTEN (MECH-A5's review): the rule is the namespace's name as a C++
+    #     identifier, so seven more plants are REFUSED — an alias (`namespace r2 = robot_two;`), a
+    #     `using namespace` split over two lines, one fully qualified at global scope, a re-open with its
+    #     brace on the NEXT line, a qualified name split before its `::`, a `#define` of the name, and a
+    #     file NAMED like robot two's team files (`robot_two_helpers.hpp`) but outside src/team/ (the
+    #     own-team-file exception is src/team/'s only) — and one PASSES: identifiers that merely BEGIN
+    #     with the name (`robot_twofold`, `robot_two_count`) are other names. (The first rule matched
+    #     three spellings per physical line and passed the first four; mutants G10 — the src/team/
+    #     check dropped — and G21 — the qualified `using namespace` dropped — passed every plant above.)
+    #     THE TEXT AS THE COMPILER READS IT (MECH-A5's verification): REFUSED — the name split INSIDE it
+    #     by a line splice (and with blanks after the backslash), the name between two digit-separated
+    #     numbers on one line, the name after a raw string holding a quote, robot two's LIST split by a
+    #     splice (the per-robot table rule reads the same text); PASSING — a `//` comment whose backslash
+    #     runs it on over the next line, and the name only inside a multi-line raw string. And the reading
+    #     directly: a splice joins with nothing on the line it starts, a spliced literal shifts no later
+    #     line, a number keeps its digits. (Each REFUSED form compiled and passed the gate before.)
+    #     Not planted, the rule's stated limit: a name the preprocessor assembles (`##`).
+    namespaces = _robot_namespaces(REPO)
+    expect(namespaces == {"robot_two": {"kRobotTwoMechanisms"}},
+           f"28b: the robot namespaces were not derived from the mechanism table file: {namespaces}")
+    by_ns = "a robot's mechanism namespace"
+    programs_dir = os.path.join(REPO, "src", "programs")
+    common_dir = os.path.join(REPO, "src", "common")
+    namespace_cases = (
+        ("a program steps robot two's claw by its namespace", os.path.join(programs_dir, "zz_self_test.cpp"),
+         '#include "robots/mechanism_table.hpp"\nvoid f() { auto& c = shulib::bench::robot_two::claw; (void)c; }\n',
+         by_ns),
+        ("a program says using namespace robot_two", os.path.join(programs_dir, "zz_self_test.cpp"),
+         '#include "robots/mechanism_table.hpp"\nnamespace shulib::bench { using namespace robot_two; }\n', by_ns),
+        ("src/common re-opens robot two's namespace", os.path.join(common_dir, "zz_self_test.hpp"),
+         '#pragma once\n#include "robots/mechanism_table.hpp"\nnamespace shulib::bench::robot_two { inline int x = 0; }\n',
+         by_ns),
+        ("robot THREE's driver file names robot two's list", os.path.join(TEAM_DIR, "robot_three_driver.hpp"),
+         '#pragma once\n#include "robots/mechanism_table.hpp"\n'
+         'namespace shulib::bench { inline const auto& m = robot_two::kRobotTwoMechanisms; }\n', by_name),
+        ("robot three's driver file names kRobotTwoMechanisms unqualified", os.path.join(TEAM_DIR, "robot_three_driver.hpp"),
+         '#pragma once\n#include "robots/mechanism_table.hpp"\n'
+         'namespace shulib::bench { using MT = decltype(kRobotTwoMechanisms); }\n', by_name),
+        ("a chassis table in robot two's own team file", os.path.join(TEAM_DIR, "robot_two_extra.hpp"),
+         '#pragma once\n#include "robots/chassis_table.hpp"\nnamespace shulib::bench { inline const auto& c = kRobotTwoChassis; }\n',
+         by_name),
+        ("a team file of NO robot names robot two's namespace", os.path.join(TEAM_DIR, "shared_helpers.hpp"),
+         '#pragma once\n#include "robots/mechanism_table.hpp"\nnamespace shulib::bench { using namespace robot_two; }\n',
+         by_ns),
+        ("robot two's OWN second team file names its list and namespace", os.path.join(TEAM_DIR, "robot_two_presets.hpp"),
+         '#pragma once\n#include "robots/mechanism_table.hpp"\n'
+         'namespace shulib::bench::robot_two { inline const auto& m = kRobotTwoMechanisms; }\n', None),
+        ("a program names robot two's list inside a static_assert", os.path.join(programs_dir, "zz_self_test.cpp"),
+         '#include "robots/mechanism_table.hpp"\n'
+         'static_assert(shulib::bench::robot_two::kRobotTwoMechanisms.count == 3);\n', None),
+        ("a program ALIASES robot two's namespace", os.path.join(programs_dir, "zz_self_test.cpp"),
+         '#include "robots/mechanism_table.hpp"\nnamespace shulib::bench {\nnamespace r2 = robot_two;\n'
+         'void f() { (void)r2::clawPivot6; }\n}\n', by_ns),
+        ("a program's using namespace split over two lines", os.path.join(programs_dir, "zz_self_test.cpp"),
+         '#include "robots/mechanism_table.hpp"\nnamespace shulib::bench {\nusing namespace\n    robot_two;\n}\n',
+         by_ns),
+        ("a program's using namespace fully qualified at global scope", os.path.join(programs_dir, "zz_self_test.cpp"),
+         '#include "robots/mechanism_table.hpp"\nusing namespace shulib::bench::robot_two;\n', by_ns),
+        ("src/common re-opens robot two's namespace, the brace on the next line", os.path.join(common_dir, "zz_self_test.hpp"),
+         '#pragma once\n#include "robots/mechanism_table.hpp"\nnamespace shulib::bench::robot_two\n{\ninline int x = 0;\n}\n',
+         by_ns),
+        ("a program's qualified name split before its ::", os.path.join(programs_dir, "zz_self_test.cpp"),
+         '#include "robots/mechanism_table.hpp"\nnamespace shulib::bench {\nvoid f() { (void)robot_two\n::claw; }\n}\n',
+         by_ns),
+        ("a program makes robot two's namespace a macro", os.path.join(programs_dir, "zz_self_test.cpp"),
+         '#include "robots/mechanism_table.hpp"\n#define SELF_TEST_R2 robot_two\n', by_ns),
+        ("a src/common file NAMED like robot two's team files", os.path.join(common_dir, "robot_two_helpers.hpp"),
+         '#pragma once\n#include "robots/mechanism_table.hpp"\n'
+         'namespace shulib::bench { inline const auto& c = robot_two::claw; }\n', by_ns),
+        ("a program's names that only BEGIN with robot two's namespace", os.path.join(programs_dir, "zz_self_test.cpp"),
+         'namespace shulib::bench { inline int robot_twofold = 0; inline int robot_two_count = 0; }\n', None),
+        # THE TEXT AS THE COMPILER READS IT (MECH-A5's verification; each REFUSED form compiles, g++ and
+        # arm-none-eabi-g++ -std=gnu++20 — the verification's probe):
+        ("a program's name split INSIDE it by a line splice", os.path.join(programs_dir, "zz_self_test.cpp"),
+         '#include "robots/mechanism_table.hpp"\nnamespace shulib::bench {\nvoid f() { (void)robot_\\\ntwo::claw; }\n}\n',
+         by_ns),
+        ("the same splice with blanks after its backslash (GCC splices them too)", os.path.join(programs_dir, "zz_self_test.cpp"),
+         '#include "robots/mechanism_table.hpp"\nnamespace shulib::bench {\nvoid f() { (void)robot_\\  \ntwo::claw; }\n}\n',
+         by_ns),
+        ("a program names robot two between two digit-separated numbers on one line", os.path.join(programs_dir, "zz_self_test.cpp"),
+         "#include \"robots/mechanism_table.hpp\"\nnamespace shulib::bench {\n"
+         "inline int f() { int a = 1'000; (void)robot_two::claw; return a + 2'000; }\n}\n", by_ns),
+        ("a program names robot two after a raw string holding a quote", os.path.join(programs_dir, "zz_self_test.cpp"),
+         '#include "robots/mechanism_table.hpp"\nnamespace shulib::bench {\n'
+         'inline const char* r = R"(")"; inline const auto& c = robot_two::claw; inline const char* s = "";\n}\n', by_ns),
+        ("a program's per-robot LIST split inside its name by a line splice", os.path.join(programs_dir, "zz_self_test.cpp"),
+         '#include "robots/mechanism_table.hpp"\nnamespace shulib::bench {\ninline const auto& m = robot_two::kRobotTwo\\\n'
+         'Mechanisms;\n}\n', by_name),
+        ("a // comment ending in a backslash runs on over the next line (a comment to the compiler)",
+         os.path.join(programs_dir, "zz_self_test.cpp"),
+         '// a note \\\n(void)shulib::bench::robot_two::claw; -- still the comment\nnamespace shulib::bench { inline int x = 0; }\n',
+         None),
+        ("robot two's name only inside a multi-line raw string", os.path.join(programs_dir, "zz_self_test.cpp"),
+         'inline const char* kSelfTestRaw = R"x(\nshulib::bench::robot_two::claw ")"\n)x";\n', None),
+    )
+    # The reading itself, directly (MECH-A5's verification): a splice joins with NOTHING and its line's
+    # number is the line it starts on; _logical_lines splices text it is handed raw; a literal a splice
+    # continued keeps every later line's number (before, the stripped literal lost its line break and
+    # every later line was reported one short — test/pros_shim/main.h's #error); a number is whole.
+    joined = _logical_lines("#if A \\\n  || B\nx robot_\\\ntwo y\nz")
+    expect(joined == [(1, "#if A   || B"), (2, ""), (3, "x robot_two y"), (4, ""), (5, "z")],
+           f"28b: _logical_lines did not join a splice with nothing, on the line it starts: {joined}")
+    stripped = _strip_comments('#error "a \\\nb"\n#endif\nint k = 1\'0; int j = 2\'0;\n', literals=True)
+    expect(_logical_lines(stripped)[2:4] == [(3, "#endif"), (4, "int k = 1'0; int j = 2'0;")],
+           f"28b: a spliced literal shifted the later lines, or a number lost its digits: {_logical_lines(stripped)}")
+    for title, path, content, refused in namespace_cases:
+        rel = os.path.relpath(path, REPO)
+        with _newfile(path, content):
+            found = [p for p in one_chain_problems() if rel in p]
+            if refused is None:
+                expect(found == [], f"28b: {title} — expected to PASS, reported: {found}")
+            else:
+                expect(any(refused in p for p in found), f"28b: {title} — expected REFUSED ({refused}): {found}")
+    # The team's auton file, its robot by TEAM_FILE_ROBOT: its own `using namespace robot_two` is legal…
+    autons = os.path.join(TEAM_DIR, "autons.cpp")
+    rel_autons = os.path.relpath(autons, REPO)
+    with _plant(autons, "\nnamespace shulib::bench { using namespace robot_two; }\n"):
+        expect([p for p in one_chain_problems() if rel_autons in p] == [],
+               "28b: the team's auton file (TEAM_FILE_ROBOT: robot two's) was refused its own namespace")
+    # …and a robot added to the table file is another robot to the auton file: refused there.
+    with _plant(MECHANISM_TABLE_PATH, "\nnamespace shulib::bench::robot_three {\n"
+                                      "inline constexpr MechanismTable kRobotThreeMechanisms = mechanism::mechanisms();\n"
+                                      "}\n"):
+        expect(_robot_namespaces(REPO).get("robot_three") == {"kRobotThreeMechanisms"},
+               f"28b: a NEW robot's namespace was not derived: {_robot_namespaces(REPO)}")
+        with _plant(autons, "\nnamespace shulib::bench { using namespace robot_three; }\n"):
+            found = [p for p in one_chain_problems() if rel_autons in p]
+            expect(any("names robot_three" in p and by_ns in p for p in found),
+                   f"28b: robot two's auton file naming robot THREE's namespace was not reported: {found}")
+        # …and robot THREE's own team file, now that robot three exists: its OWN list passes, robot
+        # TWO's list is refused — the exception is the file's robot's lists, never every robot's (the
+        # mutation that widened it to every robot's lists survived the nine cases above: MECH-A5's M34).
+        three = os.path.join(TEAM_DIR, "robot_three_driver.hpp")
+        rel_three = os.path.relpath(three, REPO)
+        with _newfile(three, '#pragma once\n#include "robots/mechanism_table.hpp"\n'
+                             'namespace shulib::bench::robot_three { inline const auto& m = kRobotThreeMechanisms; }\n'):
+            found = [p for p in one_chain_problems() if rel_three in p]
+            expect(found == [], f"28b: robot three's own team file was refused its own list: {found}")
+        with _newfile(three, '#pragma once\n#include "robots/mechanism_table.hpp"\n'
+                             'namespace shulib::bench::robot_three { inline const auto& m = kRobotTwoMechanisms; }\n'):
+            found = [p for p in one_chain_problems() if rel_three in p]
+            expect(any(by_name in p and "kRobotTwoMechanisms" in p for p in found),
+                   f"28b: robot three's team file naming robot TWO's list was not refused: {found}")
+    expect(one_chain_problems() == [], "28b: a plant was not restored")
+
     # 29: an include left in the OLD form in src/programs/ (`#include "chassis_table.hpp"`) -> the
     #     BUILD fails, naming the file: nothing answers that spelling from a subfolder — not the
     #     program's own folder, not include/, not src/ — so a half-done move can never compile
@@ -2669,8 +2983,9 @@ def do_self_test():
     #     boot line (the review's surviving mutation, `src/robot/` for `src/robots/`, was in the OLD
     #     shulib Drive's refusal, a literal T4 Part 3 deleted; re-pointed to the new shulib Drive's
     #     TYPED TABLE boot line), split across two adjacent literals (the compiler joins them, so the check
-    #     does), and in a library header; the same dead path in a comment is not (a comment
-    #     reaches no robot). Source-only; every plant restored.
+    #     does), in a library header, and inside a raw string holding a quote (MECH-A5's verification:
+    #     the old reading took it for two plain literals with the path between them as code); the same
+    #     dead path in a comment is not (a comment reaches no robot). Source-only; every plant restored.
     expect(printed_path_problems() == [],
            f"30: the real tree's printed paths do not all exist: {printed_path_problems()}")
     rel = os.path.relpath(DRIVE_PLANT, REPO)
@@ -2691,6 +3006,13 @@ def do_self_test():
         found = printed_path_problems()
         expect(any(rel in p and 'prints "src/common/no_such_file.hpp"' in p for p in found),
                f"30: a dead path in a library header ({rel}) was not reported: {found}")
+    # A raw string's text is read too, whole (MECH-A5's verification: a raw string holding a quote was
+    # read as two plain literals with the path between them as CODE — this plant passed the old gate).
+    rel = os.path.relpath(COMMON_PLANT, REPO)
+    with _plant(COMMON_PLANT, '\ninline constexpr const char* kSelfTestRaw = R"x(fill "src/robot/chassis_table.hpp")x";\n'):
+        found = printed_path_problems()
+        expect(any(rel in p and 'prints "src/robot/chassis_table.hpp"' in p for p in found),
+               f"30: a dead path inside a raw string in {rel} was not reported: {found}")
     with _plant(DRIVE_PLANT, '\n// "fill src/robot/chassis_table.hpp" -- a dead path in a comment\n'):
         expect(printed_path_problems() == [],
                f"30: a path inside a comment was reported: {printed_path_problems()}")

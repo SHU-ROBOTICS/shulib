@@ -153,7 +153,11 @@ TEST_CASE("MECH-A1 wiring: robot x's list -- every port where the robot file wro
 }
 
 TEST_CASE("MECH-A1 wiring: ROBOT TWO's projection is IDENTICAL to today's bootConfigFrom, field by field (P9a)") {
-    // Today's side: the real table through the real boot conversion — so this fails if either moves.
+    // The REAL side: src/robots/mechanism_table.hpp's list through the real boot conversion — until
+    // MECH-A5 the OLD table's entries and bootConfigFrom's own conversion; since MECH-A5 the real list
+    // in the core's words, which bootConfigFrom projects with toMechanismConfig — so this now pins the
+    // FIXTURE (test/mechanism_fixtures.hpp's robot two) to the real file, field by field, and the
+    // literal facts below pin both. It fails if either moves.
     shulib::hal::fake::FakeDeviceRegistry census;
     for (const int p : {11, 12, 13, 15, 16, 17, 18, 20, 6, 7}) {
         census.setKind(p, shulib::hal::DeviceKind::Motor);
@@ -163,7 +167,7 @@ TEST_CASE("MECH-A1 wiring: ROBOT TWO's projection is IDENTICAL to today's bootCo
     const shulib::calibration::BootVerdict v = shulib::calibration::verifyAgainstRegistry(record, census);
     REQUIRE(v.usable());
     const shulib::bench::BootConfig today =
-        shulib::bench::bootConfigFrom(record, v, "robot two", shulib::bench::kRobotTwoMechanisms);
+        shulib::bench::bootConfigFrom(record, v, "robot two", shulib::bench::robot_two::kRobotTwoMechanisms);
     const cfgns::RobotConfig& c = today.config;
     // The core's side: robot two in the new words, in its list's order (pivot 6, pivot 7, claw —
     // today's order: motors, then pneumatics).

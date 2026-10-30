@@ -46,15 +46,21 @@ constexpr const char* kDrive = "src/programs/drive_program.cpp";
 }  // namespace
 
 // ═══ The boot: the driver file bound inside the graph's ONE try ═════════════════════════════
-TEST_CASE("P3-T3: shulib Drive binds the driver file ONCE, inside the boot's try, right after the "
-          "Robot's emplace — and unbinds FIRST in its catch") {
-    // BUG CAUGHT: bind() moved outside the try (a binding's precondition would escape
-    // initialize()); a catch that resets the robot while a binding still points into it; a second
-    // bind() somewhere a later driver period would re-run. (Re-pinned at the T4-3 review: every
-    // refusal after the provider goes through refuseBuilt(), which unbinds FIRST — pinned below.)
+TEST_CASE("P3-T3: shulib Drive binds its mechanism service and the driver file ONCE, inside the boot's "
+          "try, right after the Robot's emplace — and releases the service FIRST in its catch") {
+    // BUG CAUGHT: the bind moved outside the try (a control's precondition would escape
+    // initialize()); the service bound over anything but the Robot's own built devices (landmine 20)
+    // or not at all (every button would command a slot that does nothing); the driver file bound
+    // before the service; a catch that resets the robot while the service still points into it; a
+    // second bind somewhere a later driver period would re-run; a robot the driver file's controls
+    // are not for said as "the library graph REFUSED to build" (MECH-A5's review: it is the driver
+    // file's own refusal, T4's headline — Station F's table — its reason naming the mechanism).
+    // (Re-pinned at the T4-3 review: every refusal after the provider goes through refuseBuilt(),
+    // which releases the service FIRST since MECH-A5 — pinned below.)
     const std::string c = code(kDrive);
     const std::string boot = bodyOf(c, "void driveInitialize(");
     CHECK(count(c, "st.driver.bind(") == 1U);
+    CHECK(count(c, "->bind(") == 1U);
     CHECK(count(boot,
                 "try { st.devices.emplace(kLogCopyFile); const robot::BuildVerdict verdict = "
                 "robot::validate(st.boot.built.config, *st.devices, st.boot.built.buildOptions()); "
@@ -63,9 +69,11 @@ TEST_CASE("P3-T3: shulib Drive binds the driver file ONCE, inside the boot's try
           == 1U);
     CHECK(count(boot,
                 "st.robot.emplace(st.boot.built.config, *st.devices, st.boot.built.buildOptions()); "
-                "char why[192] = \"\"; if (!st.driver.bind(*st.robot, why, sizeof why)) { "
-                "refuseBuilt(\"the driver file REFUSED this robot\", why); return; } } catch (const "
-                "PreconditionError& e) { refuseBuilt(\"the library graph REFUSED to build\", "
+                "st.mechanisms.emplace(st.devices->pacer()); st.mechanisms->bind(kMechanisms, "
+                "st.robot->mechanismParts().devices(), st.robot->context().clock(), st.robot->faults(), "
+                "st.robot->context().telemetry()); char why[192] = \"\"; if (!st.driver.bind(*st.mechanisms, "
+                "why, sizeof why)) { refuseBuilt(\"the driver file REFUSED this robot\", why); return; } } "
+                "catch (const PreconditionError& e) { refuseBuilt(\"the library graph REFUSED to build\", "
                 "e.what()); return; }")
           == 1U);
     CHECK(count(boot, "try {") == 1U);
@@ -73,14 +81,14 @@ TEST_CASE("P3-T3: shulib Drive binds the driver file ONCE, inside the boot's try
     // The fault latch, the session header and the boot lines come after the try, in that order.
     const std::size_t latch = boot.find("attachFaultLatch(&r.faults());");
     const std::size_t header = boot.find("diag::emitSessionHeader(log, session, ");
-    const std::size_t lines = boot.find("logBootLines(r, log, st.boot, *st.devices);");
+    const std::size_t lines = boot.find("logBootLines(r, log, st.boot, *st.devices, *st.mechanisms);");
     REQUIRE(latch != std::string::npos);
     REQUIRE(header != std::string::npos);
     REQUIRE(lines != std::string::npos);
     CHECK(boot.find("} catch (") < latch);
     CHECK(latch < header);
     CHECK(header < lines);
-    CHECK(count(c, "logBootLines(r, log, st.boot, *st.devices);") == 1U);
+    CHECK(count(c, "logBootLines(r, log, st.boot, *st.devices, *st.mechanisms);") == 1U);
 }
 
 // ═══ The loop: the driver file's run(), and nothing else ════════════════════════════════════
@@ -94,7 +102,7 @@ TEST_CASE("P3-T3: shulib Drive drives ONLY through the driver file's run(), once
     CHECK(count(c, "runDriverControl(") == 0U);
     const std::string run = bodyOf(c, "void runDrive()");
     CHECK(count(run,
-                "st.driver.run(r, st.devices->pacer(), [] { return "
+                "st.driver.run(r, *st.mechanisms, st.devices->pacer(), [] { return "
                 "pros::c::competition_is_disabled() != 0; }, screen);")
           == 1U);
     // The refused path: paints the refusal again (its serial line says why once more) and idles,
@@ -137,22 +145,20 @@ TEST_CASE("P3-T3: none of the OLD shulib Drive survives — no stick mapping, no
     CHECK(count(c, "/usd/") == 0U);
 }
 
-TEST_CASE("P3-T3: shulib Drive prints each claw's boot line from the build's table AND the driver "
-          "file's controls, and its exit line names what the disable did to the claws") {
-    // BUG CAUGHT (test 1l's, moved from "shulib Teleop"): a boot line handed another table, or the
-    // controls of nothing (every button `?`); a loop deleted or its level swapped (each compiles).
+TEST_CASE("P3-T3: shulib Drive prints each mechanism's boot lines from the build's list, the bound "
+          "service AND the driver file's controls, and its exit line names what the disable did to the "
+          "claws") {
+    // BUG CAUGHT (test 1l's, moved from "shulib Teleop"; the mechanism core's words since MECH-A5): a
+    // boot block handed another list, no controls (no control line), or another sink than the
+    // provider's (the SD copy would miss it); each line's level dropped (an ABSENT one would read as
+    // fine).
     const std::string c = code(kDrive);
     CHECK(count(c,
-                "for (std::size_t i = 0; i < motorEntryCount(kMechanisms); ++i) { logWrapped(log, "
-                "r.builtMechanismAt(i) != nullptr ? hal::LogLevel::Info : hal::LogLevel::Warn, "
-                "motorClawBootLine(kMechanisms, RobotTwoDriver::kHolds, r, i).text); }")
+                "mechanismBootLines(kMechanisms, r, mechanisms, &RobotTwoDriver::kControls, [&log](const "
+                "MechanismLine& m) { log.log(m.level, \"MECH\", m.text); });")
           == 1U);
-    CHECK(count(c,
-                "for (std::size_t j = 0; j < pneumaticEntryCount(kMechanisms); ++j) { "
-                "logWrapped(log, r.builtMechanismAt(mechanismConfigIndexOfPneumatic(kMechanisms, "
-                "j)) != nullptr ? hal::LogLevel::Info : hal::LogLevel::Warn, "
-                "pneumaticClawBootLine(kMechanisms, RobotTwoDriver::kToggles, r, j).text); }")
-          == 1U);
+    CHECK(count(c, "mechanismBootLines(") == 1U);
+    CHECK(count(c, "ClawBootLine(") == 0U);
     CHECK(count(c,
                 "\"opcontrol(): field DISABLED -- the driver file's loop exited cleanly after \" "
                 "\"cancel() (0 V + Brake); each claw pivot made safe, the pneumatic claw left as it \" "
@@ -265,14 +271,17 @@ TEST_CASE("P3-T3: the buttons left the mechanism table — kTeleopRezeroButton, 
         CHECK(count(table, member) == 0U);
     }
     const std::string driver = code("src/team/robot_two_driver.hpp");
-    CHECK(count(driver, "static constexpr HoldControl kHolds[] = {") == 1U);
-    CHECK(count(driver, "static constexpr ToggleControl kToggles[] = {") == 1U);
+    CHECK(count(driver, "inline constexpr DriverControls kControls = controls(kRobotTwoMechanisms,") == 1U);
 }
 
-TEST_CASE("P3-T3: the library's loop is called only by the driver file and the invented X-drive; "
-          "a binding is constructed only by the driver file's binder") {
-    // BUG CAUGHT: a program that drives robot two through its own call to the loop, or builds its
-    // own MechanismBinding / ToggleBinding — the driver file and its binder bypassed.
+TEST_CASE("P3-T3: the library's loop is called only by the shared driver file and the invented "
+          "X-drive; NO src/ file builds T3's superseded bindings any more (MECH-A5)") {
+    // BUG CAUGHT: a program that drives robot two through its own call to the loop, or builds its own
+    // MechanismBinding / ToggleBinding — robot two's claws driven by a second path beside the mechanism
+    // service (the loop refuses the two together, but only a program that hands it both). Until
+    // MECH-A5 the one builder was src/common/driver_controls.hpp's binder, and the one caller robot
+    // two's driver file itself; the binder retired with that file, and the call is DriverFile's, which
+    // every robot's driver file runs (the MECH brief's N6).
     std::vector<std::string> callers;
     std::vector<std::string> builders;
     for (const std::string& rel : sourcesUnder("src")) {
@@ -280,9 +289,8 @@ TEST_CASE("P3-T3: the library's loop is called only by the driver file and the i
         if (count(c, "runDriverControl(") > 0) callers.push_back(rel);
         if (count(c, "MechanismBinding") + count(c, "ToggleBinding") > 0) builders.push_back(rel);
     }
-    CHECK(callers == std::vector<std::string>{"src/programs/xdrive_program.cpp",
-                                              "src/team/robot_two_driver.hpp"});
-    CHECK(builders == std::vector<std::string>{"src/common/driver_controls.hpp"});
+    CHECK(callers == std::vector<std::string>{"src/common/driver_file.hpp", "src/programs/xdrive_program.cpp"});
+    CHECK(builders.empty());
 }
 
 // ═══ The screen, the page flip and the controller: wired to the SHARED pieces (the late step) ═══
@@ -310,7 +318,7 @@ TEST_CASE("P3-T3: shulib Drive paints through the shared painters only — the r
              "static_cast<int>(pros::E_TOUCH_ERROR));");
     CHECK(count(c, "screen_touch_status") == 1U);
     CHECK(count(c, "readTouch()") == 3U);  // its definition, each tick's read, the pager's start
-    CHECK(count(c, "DriveScreen screen{r, st.boot, st.driver, *st.lcd, readTouch()};") == 1U);
+    CHECK(count(c, "DriveScreen screen{r, st.boot, st.driver, *st.mechanisms, *st.lcd, readTouch()};") == 1U);
     CHECK(count(c, "printText(") == 0U);
     CHECK(count(c, "screen_erase") == 0U);
     CHECK(count(c, "screen_print") == 0U);
@@ -398,19 +406,21 @@ TEST_CASE("P3-T3: shulib Drive says where its log copy is ONCE, in the words bot
 
 // ═══ The T4-3 review's findings: a refusal reaches the card; the glue is the pure model's ═══════
 TEST_CASE("P3-T3 (T4-3): a refusal decided after the provider is said THROUGH it first — the SD "
-          "copy, truncated by this boot, holds why — then the graph released, binding first") {
+          "copy, truncated by this boot, holds why — then the graph released, the service first") {
     // BUG CAUGHT (the review's finding: a refused boot left an EMPTY drive_log.txt and the reason on
     // serial only): the refusal logged after the provider is gone (or never); the provider released
-    // before the Robot or a binding (a dangling borrow); the serial line said twice.
+    // before the Robot, or the Robot before the mechanism service that points into it (MECH-A5: a
+    // dangling borrow); the serial line said twice.
     const std::string c = code(kDrive);
     CHECK(source_pins::squash(bodyOf(c, "void refuseBuilt(const char* headline, const char* why)"))
           == "DriveState& st = state(); std::snprintf(st.refusalHeadline, sizeof "
              "st.refusalHeadline, \"%.63s\", headline); std::snprintf(st.refusalWhy, sizeof "
              "st.refusalWhy, \"%.191s\", why); const bool logged = st.devices.has_value(); if "
              "(logged) { logBootRefusal(st.devices->telemetry(), kTag, st.refusalHeadline, "
-             "st.refusalWhy); } st.driver.unbind(); st.robot.reset(); st.devices.reset(); "
+             "st.refusalWhy); } st.mechanisms.reset(); st.robot.reset(); st.devices.reset(); "
              "paintRefusal(!logged);");
     CHECK(count(c, "refuseBuilt(") == 4U);  // its definition and the three refusals after the provider
+                                            // (the driver file's its own again: MECH-A5's review)
     CHECK(count(c, "logBootRefusal(") == 1U);
     // The serial line is left to the sink ONLY when the sink said it: `logged` is read BEFORE the
     // provider is released (BUG CAUGHT, the T4-3 verification: a refusal with no provider painted
@@ -435,8 +445,8 @@ TEST_CASE("P3-T3 (T4-3): the rows, the repaint and the boot's generated words co
           == "const math::Pose2d pose = r_.localizer().pose(); const "
              "localization::DriveEncoderOdometry* odom = r_.driveOdometry(); const "
              "diag::FaultLatch& faults = r_.faults(); const bool freed = "
-             "driver_.bindings().anyReleasedLeftoverClaim(); const ClawRow claw = "
-             "clawRowText(kMechanisms, r_, freed); DriveLiveFacts f{}; f.cutSeconds = kCutSeconds; "
+             "driver_.releasedLeftoverAtEntry(mechanisms_); const ClawRow claw = "
+             "clawRowText(kMechanisms, r_, mechanisms_, freed); DriveLiveFacts f{}; f.cutSeconds = kCutSeconds; "
              "f.connected = connected; f.cmdVx = command.vx().value(); f.cmdOmega = "
              "command.omega().value(); f.estX = pose.x().value(); f.estY = pose.y().value(); "
              "f.estHeadingDeg = pose.heading().radians() * 180.0 / math::Angle::kPi; f.quality = "

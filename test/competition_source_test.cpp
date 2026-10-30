@@ -54,17 +54,35 @@ TEST_CASE("pins (P1): the program runs autons ONLY through runAutonRequest") {
     CHECK(count(code, "registerAutons(") == 1);
 }
 
-// Bug caught (B7, B8, B11, B30): the Robot built WITHOUT the options that carry the guard (no
-// disable could end an auton), the chain in the wrong order (the guard not over the watch, the watch
-// not over the provider's pacer), the watch never attached, the chain proof outside the try or
-// after the task (a failed proof would not refuse), the driver's controls bound outside the try or
-// not right after the Robot (a throwing binding would kill initialize()), the unbuild not unbinding
-// FIRST (a binding left pointing at a destroyed mechanism), or the task started before the fault
-// latch is attached.
-TEST_CASE("pins (P2): the boot — B8's order, the chain, the proof and the binding in the ONE try") {
+// Bug caught (B7, B8, B11, B30; the mechanism service and the route registry since MECH-A5): the
+// Robot built WITHOUT the options that carry the guard (no disable could end an auton), the chain in
+// the wrong order (Chassis -> guard -> MECHANISM SERVICE -> watch -> the provider's pacer: a service
+// left out ticks no mechanism in an auton — the MECH brief's P1 control case; one constructed after
+// the Robot cannot be in its chain — landmine 1), the service bound outside the try, over anything
+// but the Robot's own devices (landmine 20), or after the proof (an unbound service ticks nothing);
+// the route ids registered before the bind or never (M47: every route marker an unknown id); the
+// watch never attached; the chain proof outside the try or after the task (a failed proof would not
+// refuse); the driver file bound outside the try or before the service; the unbuild in an order that
+// leaves something pointing at what it released; or the task started before the fault latch is
+// attached.
+TEST_CASE("pins (P2): the boot — B8's order, the chain, the service, the route ids, the proof and the "
+          "binding in the ONE try") {
     const std::string code = program();
     CHECK(count(code, "st.watch.emplace(st.devices->pacer(), *st.status);") == 1);
-    CHECK(count(code, "st.guard.emplace(*st.watch);") == 1);
+    CHECK(count(code, "st.mechanisms.emplace(*st.watch);") == 1);
+    CHECK(count(code, "st.guard.emplace(*st.mechanisms);") == 1);
+    CHECK(count(code, "st.guard.emplace(") == 1);
+    CHECK(count(code, "st.mechanisms.emplace(") == 1);
+    CHECK(count(squash(code), "st.mechanisms->bind(kMechanisms, st.robot->mechanismParts().devices(), "
+                              "st.robot->context().clock(), st.robot->faults(), st.robot->context().telemetry());")
+          == 1);
+    CHECK(count(code, "->bind(") == 1);
+    CHECK(count(code, "st.driver.bind(") == 1);
+    CHECK(count(code, "st.commands.emplace();") == 1);
+    CHECK(count(code, "st.routes.emplace(st.robot->chassis(), *st.mechanisms, kMechanisms, "
+                      "st.devices->telemetry());") == 1);
+    CHECK(count(code, "st.routes->registerInto(*st.commands);") == 1);
+    CHECK(count(code, "registerInto(") == 1);
     CHECK(count(code, "st.watch->attachGuard(*st.guard);") == 1);
     CHECK(count(code, "attachGuard(") == 1);
     CHECK(count(code, "robot::BuildOptions opts = st.boot.built.buildOptions();") == 1);
@@ -73,31 +91,42 @@ TEST_CASE("pins (P2): the boot — B8's order, the chain, the proof and the bind
     CHECK(count(code, "robot::validate(st.boot.built.config, *st.devices, opts)") == 1);
     CHECK(count(code, "st.robot.emplace(st.boot.built.config, *st.devices, opts);") == 1);
     CHECK(count(code, "st.robot.emplace(") == 1);
-    CHECK(count(code, "pacerChainProven(") == 1);
+    CHECK(count(code, "pacerChainMissing(") == 1);
+    CHECK(count(code, "pacerChainProven(") == 0);
 
     const std::string init = squash(bodyOf(code, "void competitionInitialize("));
     // T4 Part 3 (Decision B): the provider is built WITH the log copy, appended; re-pointed
     // one-for-one from "try { st.devices.emplace();".
     const std::size_t tryAt =
         init.find("try { st.devices.emplace(kLogCopyFile, hal::pros::ProsFileMode::Append);");
+    const std::size_t serviceAt = init.find("st.mechanisms.emplace(*st.watch);");
     const std::size_t robotAt = init.find("st.robot.emplace(");
-    const std::size_t bindAt = init.find("if (!st.driver.bind(*st.robot, why, sizeof why)) {");
+    const std::size_t serviceBindAt = init.find("st.mechanisms->bind(");
+    const std::size_t bindAt = init.find("char why[192] = \"\"; if (!st.driver.bind(*st.mechanisms, why, sizeof why)) "
+                                         "{ refuseBuilt(\"the driver's controls REFUSED\", why); return; }");
+    const std::size_t routesAt = init.find("st.routes->registerInto(*st.commands);");
     // T4 Part 3 (the team lead's C5 ruling, 2026-10-02): the registry DROPS a refused entry --
     // built so right before the team's registration, inside the try.
     const std::size_t registerAt = init.find(
         "st.registry.emplace(kAutonPeriods, competition::OnRefusal::DropEntry); "
         "registerAutons(*st.registry);");
-    const std::size_t proofAt = init.find("if (!pacerChainProven(st.robot->chassis(), *st.guard, *st.watch)) {");
+    const std::size_t proofAt = init.find("if (const ChainGap gap = pacerChainMissing(st.robot->chassis(), "
+                                          "*st.guard, *st.mechanisms, *st.watch); gap != ChainGap::None) {");
     const std::size_t catchAt = init.find("} catch (const std::exception& e) { refuseBuilt(");
     const std::size_t latchAt = init.find("attachFaultLatch(&st.robot->faults());");
     const std::size_t taskAt = init.find("st.task.emplace(");
-    for (const std::size_t at : {tryAt, robotAt, bindAt, registerAt, proofAt, catchAt, latchAt, taskAt}) {
+    for (const std::size_t at : {tryAt, serviceAt, robotAt, serviceBindAt, bindAt, routesAt, registerAt, proofAt,
+                                 catchAt, latchAt, taskAt}) {
         REQUIRE(at != std::string::npos);
     }
-    CHECK(tryAt < robotAt);
-    CHECK(robotAt < bindAt);  // bound right after the Robot, inside the try (B11):
-    const std::size_t robotEnd = init.find(';', robotAt) + 1;  // nothing between but `why`
-    CHECK(squash(init.substr(robotEnd, bindAt - robotEnd)) == "char why[192] = \"\";");
+    CHECK(tryAt < serviceAt);
+    CHECK(serviceAt < robotAt);       // the service in the chain BEFORE the Robot (landmine 1)
+    CHECK(robotAt < serviceBindAt);   // bound right after the Robot, inside the try:
+    const std::size_t robotEnd = init.find(';', robotAt) + 1;  // nothing between
+    CHECK(serviceBindAt == robotEnd + 1);
+    CHECK(serviceBindAt < bindAt);    // the driver file bound to the BOUND service (B11)
+    CHECK(bindAt < routesAt);         // the route ids after the bind
+    CHECK(routesAt < registerAt);
     CHECK(bindAt < registerAt);
     CHECK(registerAt < proofAt);
     CHECK(proofAt < catchAt);  // inside the try: a throw or a false proof refuses the boot
@@ -113,8 +142,12 @@ TEST_CASE("pins (P2): the boot — B8's order, the chain, the proof and the bind
     // line of its own.)
     CHECK(count(init, "refuseBuilt(\"the library graph REFUSED to build\", verdict.why); "
                       "return;") == 1);
+    CHECK(count(init, "refuseBuilt(\"the competition program's pacer chain is WRONG\", chain); return;") == 1);
+    // The driver file's OWN refusal (T4's headline, kept at MECH-A5's review): a robot its controls
+    // are not for is said as the driver's, its reason naming the mechanism — never "the library graph".
     CHECK(count(init, "refuseBuilt(\"the driver's controls REFUSED\", why); return;") == 1);
-    CHECK(count(init, "refuseBuilt(\"the competition program's pacer chain is WRONG\",") == 1);
+    CHECK(count(init, "std::snprintf(chain, sizeof chain, \"%.150s -- a build error, not a robot fault\", "
+                      "chainGapWords(gap));") == 1);
     CHECK(count(init, "} catch (const std::exception& e) { refuseBuilt(\"the competition "
                       "program REFUSED to start\", e.what()); return; }") == 1);
     // The serial line is left to the sink ONLY when the sink said it (`logged`, read before
@@ -125,16 +158,21 @@ TEST_CASE("pins (P2): the boot — B8's order, the chain, the proof and the bind
                       "logBootRefusal(st.devices->telemetry(), kTag, headline, why); } unbuild(); "
                       "refuse(headline, why, !logged); };") == 1);
     CHECK(count(code, "refuse(headline, why, false)") == 0);
-    CHECK(count(init, "refuseBuilt(") == 4);  // its four refusals
+    CHECK(count(init, "refuseBuilt(") == 4);  // its four refusals (the driver file's its own again: MECH-A5's review)
     CHECK(count(init, "unbuild();") == 1);    // only inside refuseBuilt
     CHECK(count(code, "logBootRefusal(") == 1);
     CHECK(count(squash(bodyOf(code, "void refuse(const char* headline, const char* why, bool "
                                     "serialLine = true)")),
                 ".footer = kNothingPowered, .logToSerial = serialLine});") == 1);
-    // The unbuild: the driver's bindings FIRST, then the objects from the outside in.
-    CHECK(count(squash(code), "const auto unbuild = [&st] { st.driver.unbind(); st.menu.reset(); "
-                              "st.registry.reset(); st.robot.reset(); st.guard.reset(); "
-                              "st.watch.reset(); st.status.reset(); st.devices.reset(); };") == 1);
+    // The unbuild, each object before what its DESTRUCTOR reads: the route ids (they point at the
+    // Chassis and the service) first; the SERVICE before the Robot -- ~MechanismService reads every
+    // slot's mechanism (holdsClaim()), and the mechanisms, the fault latch and the clock it was bound
+    // with are the Robot's (MECH-A5's review: the first order reset the Robot first, so a refused boot
+    // ran the service's destructor over destroyed mechanisms); then the Robot, the guard, the watch.
+    CHECK(count(squash(code), "const auto unbuild = [&st] { st.menu.reset(); st.registry.reset(); "
+                              "st.routes.reset(); st.commands.reset(); st.mechanisms.reset(); st.robot.reset(); "
+                              "st.guard.reset(); st.watch.reset(); st.status.reset(); st.devices.reset(); };")
+          == 1);
     // ND2: the one place the typed-table fact is set, from the boot's own decision -- and BEFORE
     // the auton task exists (a plain bool written after the task that reads it is running would be
     // a data race, and the first menu tick could read the default, false: every auton refused).
@@ -180,8 +218,8 @@ TEST_CASE("pins (P4): the auton task is ONE loop, a one-tick idle, one try per t
     // program error's reason itself (R22).
     CHECK(squash(bodyOf(code, "void autonTask(void*"))
           == "CompetitionState& st = state(); CompetitionParts parts{st.robot->chassis(), *st.guard, "
-             "*st.watch, *st.menu, *st.registry, st.devices->telemetry(), std::span<hal::IMechanism* "
-             "const>{st.present.data(), st.presentCount}, st.handshake, st.flags}; StatusObserver "
+             "*st.watch, *st.menu, *st.registry, st.devices->telemetry(), *st.mechanisms, &*st.commands, "
+             "st.handshake, st.flags}; StatusObserver "
              "observer; MenuPainter menu; DriverLoopWatcher loop; const auto now = [&st] { return "
              "st.devices->clock().now().value(); }; for (;;) { try { "
              "(void)pros::c::task_notify_take(true, kTickMs); loop.observe(st.presence, now()); "
@@ -209,17 +247,22 @@ TEST_CASE("pins (P4): the auton task is ONE loop, a one-tick idle, one try per t
     }
 }
 
-// Bug caught (B9, B30): the Robot's PRESENT mechanisms never reaching the guard — the collection
-// losing its `++` (every present mechanism written to slot 0 and the count left 0: nothing safed at
-// a cut or a program error), a null let through, or the parts built over an empty span.
-TEST_CASE("pins (P5): the present mechanisms are collected once and handed to the request") {
+// Bug caught (B9, B30; through the mechanism service since MECH-A5): the Robot's PRESENT mechanisms
+// never reaching the guard — the parts built without the service (the request's runAuton call then
+// the span overload with nothing to safe), or without the route registry (every ROUTE auton refused);
+// the boot line's "N of M mechanisms present" counting anything but the service's built mechanisms.
+// The request's own use of them is test/competition_run_test.cpp's (R12, R18) and (P15) below.
+TEST_CASE("pins (P5): the mechanism service and the route registry are handed to the request") {
     const std::string code = program();
-    CHECK(count(code, "st.present[st.presentCount++] = m;") == 1);
-    CHECK(count(squash(code), "hal::IMechanism* m = st.robot->builtMechanismAt(i); if (m != "
-                              "nullptr) { st.present[st.presentCount++] = m; }") == 1);
-    CHECK(count(code, "std::span<hal::IMechanism* const>{st.present.data(), st.presentCount}")
-          == 1);
-    CHECK(count(code, "presentCount") == 4);  // the member, the collection, the span, the boot line
+    CHECK(count(code, "presentCount") == 0);
+    CHECK(count(code, "st.present") == 0);
+    CHECK(count(squash(bodyOf(code, "void autonTask(void*")), "st.devices->telemetry(), *st.mechanisms, "
+                                                              "&*st.commands, st.handshake, st.flags};") == 1);
+    CHECK(count(code, "static_cast<int>(st.mechanisms->mechanisms().size())") == 1);
+    const std::string run = stripComments(readFile("src/programs/competition_run.hpp"));
+    CHECK(count(run, "rec.run = competition::runAuton(p.chassis, p.guard, entry, p.commands, p.telemetry,\n"
+                     "                                            p.mechanisms, p.registry.periodFor(entry));") == 1);
+    CHECK(count(run, "competition::runAuton(") == 1);
 }
 
 // Bug caught (RC3, RC7, ND4): a PROS phase task that PAINTS (PROS deletes it mid-statement on a
@@ -268,7 +311,7 @@ TEST_CASE("pins (P7): opcontrol() waits, claims, runs the driver file, leaves, h
              "std::snprintf(line, sizeof line, \"opcontrol(): driver control starts -- the driver "
              "file, after %.3f s waiting for \" \"the auton task\", waited); "
              "logLine(hal::LogLevel::Info, line); robot::Robot& r = *st.robot; DriverPanel panel{r, "
-             "st}; st.driver.run(r, st.devices->pacer(), [&st] { st.presence.beat(); return "
+             "st}; st.driver.run(r, *st.mechanisms, st.devices->pacer(), [&st] { st.presence.beat(); return "
              "driverControlMustEnd(readStatus(), st.handshake.busy()); }, panel); st.presence.leave(); "
              "st.owner.handOver(ScreenOwner::Driver, ScreenOwner::Menu); std::snprintf(line, sizeof "
              "line, \"opcontrol(): driver control ended -- 0 V + Brake, each claw pivot safe, the \" "
@@ -342,19 +385,21 @@ TEST_CASE("pins (P10): the program names no motion verb") {
     }
 }
 
-// Bug caught (RC5): the claw boot lines printed from words of the program's own (the worksheet's
-// J.3.1 and K quote the shared words, true for both programs). T4 Part 3 re-pointed it one-for-one:
-// the words MOVED from src/programs/teleop_claws.hpp (deleted) into src/common/driver_panel.hpp,
-// and the buttons they name come from the driver file's controls (the table lost them) -- so a
-// line read from anything but RobotTwoDriver's kHolds / kToggles is red here.
-TEST_CASE("pins (P11): the claw boot lines are the shared panel's, from the driver file's controls") {
+// Bug caught (RC5; MECH-A5): the mechanism boot lines printed from words of the program's own (the
+// worksheet's J.3.1, J.9.1 and K quote the shared words, true for every program), from another list
+// than the build's, without the driver file's controls, or not through the provider's sink (the log
+// copy would miss them); the ROUTES line missing (a route editor's ids unconfirmed at boot). Until
+// MECH-A5 two claw lines per robot (motorClawBootLine / pneumaticClawBootLine) said most of it.
+TEST_CASE("pins (P11): the mechanism boot lines are the shared panel's, from the build's list and the "
+          "driver file's controls, and the ROUTES line follows them") {
     const std::string code = program();
-    CHECK(count(code, "motorClawBootLine(kMechanisms, RobotTwoDriver::kHolds, *st.robot, i).text")
-          == 1);
-    CHECK(count(code,
-                "pneumaticClawBootLine(kMechanisms, RobotTwoDriver::kToggles, *st.robot, j).text")
-          == 1);
-    CHECK(count(code, "ClawBootLine(") == 2);
+    CHECK(count(squash(code), "mechanismBootLines(kMechanisms, *st.robot, *st.mechanisms, &RobotTwoDriver::kControls, "
+                              "[&st](const MechanismLine& m) { st.devices->telemetry().log(m.level, \"MECH\", "
+                              "m.text); });") == 1);
+    CHECK(count(code, "mechanismBootLines(") == 1);
+    CHECK(count(code, "ClawBootLine(") == 0);
+    CHECK(count(squash(code), "const RoutesLine routes = routesBootLine(st.routes->ids()); "
+                              "logLine(hal::LogLevel::Info, routes.text, true);") == 1);
     CHECK(count(code, "#include \"common/driver_panel.hpp\"") == 1);
     CHECK(count(code, "teleop_claws") == 0);
     CHECK(count(code, "kRobotTwoMechanisms") == 0);  // the build's table by the selected name only
@@ -510,14 +555,15 @@ TEST_CASE("pins (P14): the program's log, screen and controller functions, each 
          "kLcdEveryTicks == 1) { refreshLcd(connected, protection, now); }"},
         {"CompetitionView view(bool connected,",
          "const diag::FaultLatch& f = robot_.faults(); faultRow_ = faultRowText(f.hasFault() ? "
-         "f.faultCount() : 0, f.firstFault(), f.lastFault()); clawRow_ = clawRowText(kMechanisms, "
-         "robot_, st_.driver.bindings().anyReleasedLeftoverClaim()); CompetitionDriverFacts "
+         "f.faultCount() : 0, f.firstFault(), f.lastFault()); const bool freed = "
+         "st_.driver.releasedLeftoverAtEntry(*st_.mechanisms); clawRow_ = clawRowText(kMechanisms, "
+         "robot_, *st_.mechanisms, freed); CompetitionDriverFacts "
          "facts{}; facts.protection = protectionRowText(protection, kCutSeconds); facts.auton = "
          "competitionAutonRow(st_.last, *st_.registry, "
          "st_.flags.programError.load(), st_.flags.bootFromRecord); facts.controller = "
          "controllerRowText(connected); facts.faultRow = faultRow_.text; facts.faultRed = "
          "f.hasFault(); facts.clawRow = clawRow_.text; facts.clawAmber = anyClawAbsent(robot_) || "
-         "st_.driver.bindings().anyReleasedLeftoverClaim(); facts.buildStamp = kBuildTimeText; "
+         "freed; facts.buildStamp = kBuildTimeText; "
          "return competitionDriverView(facts);"},
         {"void refreshLcd(bool connected, const teleop::DriveProtectionState& protection, double now)",
          "ControllerFacts f{}; f.batteryVolts = robot_.context().battery().voltage().value(); "
@@ -548,8 +594,9 @@ TEST_CASE("pins (P14): the program's log, screen and controller functions, each 
     // The controller is written in exactly two places: AUTON ENDING's line, and the writer's line.
     CHECK(count(code, "->setLine(") == 2);
     // logLine is the program's ONE line writer, and only the boot and the auton task pass `alsoSd`.
-    // The boot's lines, an ABSENT mechanism's, and (T4 Part 3, C5) each DROPPED auton's.
-    CHECK(count(code, ", true);") == 3);
+    // The boot's lines, an ABSENT mechanism's, (T4 Part 3, C5) each DROPPED auton's, and (MECH-A5) the
+    // ROUTES line.
+    CHECK(count(code, ", true);") == 4);
 }
 
 // Bug caught (RC1, ND5 -- the review's RV2 and RV3, both green on the full suite): the END estimate
@@ -568,7 +615,7 @@ TEST_CASE("pins (P15): serveAutonRequest's tail -- the stop and the reads BEFORE
     REQUIRE(openAt != std::string::npos);
     const std::string body = squash(bodyOf(code.substr(openAt), ") {"));
     CHECK(body.rfind("rec = CompetitionRunRecord{};", 0) == 0);  // the right body, from its start
-    const char* order[] = {"stopAfterProgramError(p.chassis, p.present);",
+    const char* order[] = {"stopAfterProgramError(p.chassis, p.mechanisms.mechanisms());",
                            "p.flags.programError.store(true);",
                            "p.watch.disarm();",
                            "rec.endEstimate = localizer.pose();",

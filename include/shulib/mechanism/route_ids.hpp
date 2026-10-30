@@ -30,7 +30,7 @@
 // ids with no brain, and the robot panel (G3a Part R) mirrors the rule and its four refusals.
 //
 // What RUNS an id is runner/mechanism_routes.hpp (the route binder, with the registry's per-id doc —
-// MECH-A4); registering a robot's ids in a program is MECH-A5's. This file is the rule only.
+// MECH-A4); a program registers its robot's ids at boot since MECH-A5. This file is the rule only.
 //
 // PROS-free, allocation-free, constexpr.
 

@@ -1,18 +1,28 @@
-// robot_two_driver_test.cpp — T4 Part 1a: robot two's DRIVER FILE (src/team/robot_two_driver.hpp),
-// end to end through the REAL src/ table, hal::pros::ProsDeviceProvider and the PROS shim.
+// robot_two_driver_test.cpp — robot two's DRIVER FILE (src/team/robot_two_driver.hpp), end to end
+// through the REAL src/ list, hal::pros::ProsDeviceProvider and the PROS shim (T4 Part 1a; moved onto
+// the mechanism core by MECH-A5, 2026-10-29: the driver file is `controls(...)` + the feel + the loop,
+// run by src/common/driver_file.hpp's DriverFile through the robot's MECHANISM SERVICE).
 //
 // ═══ WHAT THIS FILE PINS ════════════════════════════════════════════════════════════
-// The driver file is what "shulib Drive" runs (T4 Part 3, src/programs/drive_program.cpp), and the
-// competition program's opcontrol() (chunk COMP-b); neither program TU compiles on the host. So
-// each case below builds the composition a program does: the boot decision over robot two's
-// 2026-09-25 record and the shim's
-// registry with the REAL kRobotTwoMechanisms (or a copy with ONE field changed), robot::Robot over
-// the REAL provider, RobotTwoDriver::bind(), then RobotTwoDriver::run() — and reads the result at
-// the bottom of the stack: each port's millivolts, brake() calls and brake mode in the shim, and
-// every level 3-wire port A was ever driven to. The cases carry the T4 brief's names (T1-T10); T7
-// (the heading rule) is test/driver_controls_test.cpp's. Where the shim cannot show a thing — the
-// loop's [WARN][TEL] line goes to the provider's stdout — the same driver file runs over the fake
-// provider, whose telemetry a test can read.
+// The driver file is what "shulib Drive" runs (src/programs/drive_program.cpp) and the competition
+// program's opcontrol(); neither program TU compiles on the host. So each case builds the composition
+// a program does: the boot decision over robot two's 2026-09-25 record and the shim's registry with
+// the REAL robot_two::kRobotTwoMechanisms (or a copy with ONE field changed), robot::Robot over the
+// REAL provider, ONE mechanism::MechanismService bound over the Robot's built mechanisms, the driver
+// file bound to it, then RobotTwoDriver::run() — and reads the result at the bottom of the stack: each
+// port's millivolts, brake() calls and brake mode in the shim, and every level 3-wire port A was ever
+// driven to. The cases carry the T4 brief's names (T1-T10); T7 (the heading rule) is
+// test/driver_heading_test.cpp's. Where the shim cannot show a thing — a log line goes to the
+// provider's stdout — the same driver file runs over the fake provider, whose telemetry a test reads.
+//
+// ═══ THE CLAWS BEHAVE EXACTLY AS THEY DID (MECH-A5) ═════════════════════════════════
+// "(M5a) the same script through T3/T4's bindings and through the driver file" runs ONE long input
+// script — every button alone and in pairs, A's presses short and held, controller drops with buttons
+// held and pressed DURING the drop, field disables mid-hold and re-entries — through BOTH paths on the
+// same robot: T3's MechanismBinding / ToggleBinding, exactly as T4's DriverBindings bound them until
+// MECH-A5 (the library keeps them, superseded — the MECH brief's N4), and robot two's driver file today.
+// Every tick, ports 6 and 7 (millivolts, brake() calls, move calls, stopped, the brake mode) and line A
+// (every write) must be IDENTICAL. Every T-case below then pins the same behaviour by its own numbers.
 //
 // NO HARDWARE CLAIM. The shim models our BELIEF about PROS: nothing here shows a claw moving, a
 // pivot holding a load (HA-156), which way either turns (HA-153), or which level opens the claw
@@ -33,10 +43,12 @@
 #include <vector>
 
 #include "common/boot_source.hpp"
-#include "common/driver_controls.hpp"
+#include "common/driver_heading.hpp"
 #include "common/driver_panel.hpp"
+#include "mechanism_driver_fixtures.hpp"
 #include "pros/shim_control.hpp"
 #include "robots/mechanism_table.hpp"
+#include "shulib/core/check.hpp"
 #include "shulib/hal/controller.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/hal/fake/fake_battery.hpp"
@@ -48,9 +60,11 @@
 #include "shulib/hal/pros/device_provider.hpp"
 #include "shulib/hal/pros/device_registry.hpp"
 #include "shulib/math/angle.hpp"
+#include "shulib/mechanism/service.hpp"
 #include "shulib/robot/robot.hpp"
 #include "shulib/teleop/driver_control.hpp"
 #include "shulib/teleop/input_shaping.hpp"
+#include "shulib/teleop/mechanism_binding.hpp"
 #include "shulib/teleop/teleop_loop.hpp"
 #include "shulib/teleop/coupled_side_monitor.hpp"
 #include "shulib/teleop/drive_protection.hpp"
@@ -59,22 +73,16 @@
 #include "source_pins.hpp"
 #include "team/robot_two_driver.hpp"
 
+using shulib::PreconditionError;
 using shulib::bench::BootOutcome;
 using shulib::bench::clawRowText;
 using shulib::bench::decideBootSourceFrom;
-using shulib::bench::kRobotTwoMechanisms;
 using shulib::bench::MechanismTable;
-using shulib::bench::PneumaticPosition;
 using shulib::bench::RecordRead;
 using shulib::bench::RobotTwoDriver;
 using shulib::hal::ControllerButton;
-
-// (THE INTERIM TIE — two static_asserts that robot two's buttons in this driver file equal the
-// mechanism table's, and its re-zero the table's kTeleopRezeroButton — stood here from T4 Part 1a
-// until T4 Part 3, which removed the table's copy: the driver file is the buttons' one owner, and
-// the tie, controlsMatchTable() and kTeleopRezeroButton retired with it. What the tie protected —
-// a button whose two statements disagree — cannot happen with one statement; robot two's buttons
-// are pinned through the driver file by T1 and T2 below.)
+using shulib::mechanism::MechanismService;
+namespace two = shulib::bench::robot_two;
 
 namespace {
 
@@ -120,7 +128,7 @@ void sticks(int k) {
 /// 3-wire line A's write history — every level it was ever driven to, construction included.
 const std::vector<std::int32_t>& lineA() { return pros::shim::adiLine(0, 1).writes; }
 
-/// What one tick left at the bottom of the stack, read in perTick (after drive() and the bindings).
+/// What one tick left at the bottom of the stack, read in perTick (after drive() and the mechanisms).
 struct Snap {
     std::array<std::int32_t, 22> mv{};
     std::array<int, 22> brakes{};
@@ -130,7 +138,8 @@ struct Snap {
     std::size_t lineWrites = 0;
     std::string clawRow;
 };
-Snap snap(const shulib::robot::Robot& robot, bool freed) {
+/// `svc` null: no claw row (the old bindings' path has no service to read it from).
+Snap snap(const shulib::robot::Robot& robot, const MechanismService* svc, bool freed) {
     Snap s;
     for (int p = 1; p <= 21; ++p) {
         const auto& m = pros::shim::motorState(p);
@@ -142,18 +151,22 @@ Snap snap(const shulib::robot::Robot& robot, bool freed) {
         s.mode[i] = m.brake;
     }
     s.lineWrites = lineA().size();
-    s.clawRow = clawRowText(kRobotTwoMechanisms, robot, freed).text;
+    if (svc != nullptr) {
+        s.clawRow = clawRowText(two::kRobotTwoMechanisms, robot, *svc, freed).text;
+    }
     return s;
 }
 
-/// A program's composition for robot two, on the host: the boot decision (the REAL table unless a
-/// case hands a copy with ONE field changed), the Robot over the REAL provider, the driver file
-/// bound. `sixPlugged` / `sevenPlugged` say which claw pivots carry a motor; `extraMotors` plugs
-/// more motor ports (a copy that declares an intake on 8).
+/// A program's composition for robot two, on the host: the boot decision (the REAL list unless a
+/// case hands a copy with ONE field changed), the Robot over the REAL provider, the mechanism service
+/// bound over the Robot's built mechanisms, the driver file bound to it. `sixPlugged` / `sevenPlugged`
+/// say which claw pivots carry a motor; `extraMotor` (not 0) plugs one more motor port. `bindNow` false leaves
+/// the service and the driver unbound (a case binds them, or runs the OLD bindings instead).
 struct Rig {
     explicit Rig(bool sixPlugged = true, bool sevenPlugged = true,
-                 const MechanismTable& table = kRobotTwoMechanisms, bool bindNow = true,
-                 std::initializer_list<int> extraMotors = {}) {
+                 const MechanismTable& table = two::kRobotTwoMechanisms, bool bindNow = true,
+                 int extraMotor = 0)
+        : list{&table} {
         pros::shim::resetAll();
         for (const int p : {11, 12, 13, 14, 15, 16, 17, 18, 20}) {  // the 09-25 census (19 empty)
             pros::shim::setPluggedAtPort(p, pros::c::E_DEVICE_MOTOR);
@@ -161,7 +174,7 @@ struct Rig {
         pros::shim::setPluggedAtPort(2, pros::c::E_DEVICE_IMU);
         if (sixPlugged) pros::shim::setPluggedAtPort(6, pros::c::E_DEVICE_MOTOR);
         if (sevenPlugged) pros::shim::setPluggedAtPort(7, pros::c::E_DEVICE_MOTOR);
-        for (const int p : extraMotors) pros::shim::setPluggedAtPort(p, pros::c::E_DEVICE_MOTOR);
+        if (extraMotor != 0) pros::shim::setPluggedAtPort(extraMotor, pros::c::E_DEVICE_MOTOR);
         const shulib::hal::pros::ProsDeviceRegistry registry;
         RecordRead record{};
         record.description = robotTwoRecord();
@@ -175,9 +188,17 @@ struct Rig {
             shulib::robot::validate(boot.built.config, *devices, boot.built.buildOptions());
         REQUIRE_MESSAGE(v.ok, v.why);
         robot.emplace(boot.built.config, *devices, boot.built.buildOptions());
+        // The program's order ("shulib Drive"): the service around the raw tick, bound over the
+        // Robot's own built mechanisms — then the driver file bound to it.
+        mechanisms.emplace(devices->pacer());
         if (bindNow) {
-            REQUIRE_MESSAGE(driver.bind(*robot, why, sizeof why), why);
+            bindService();
+            REQUIRE_MESSAGE(driver.bind(*mechanisms, why, sizeof why), why);  // the driver file's refusal, if any
         }
+    }
+    void bindService() {
+        mechanisms->bind(*list, robot->mechanismParts().devices(), robot->context().clock(), robot->faults(),
+                         robot->context().telemetry());
     }
 
     /// RobotTwoDriver::run() for `ticks` ticks; `script(k)` runs at the TOP of tick k (inside the
@@ -186,24 +207,26 @@ struct Rig {
         std::vector<Snap> log;
         int k = 0;
         driver.run(
-            *robot, devices->pacer(),
+            *robot, *mechanisms, devices->pacer(),
             [&] {
                 if (k >= ticks) return true;
                 script(k);
                 return false;
             },
             [&](const shulib::math::ChassisSpeeds&, bool, const shulib::teleop::DriveShaperState&) {
-                log.push_back(snap(*robot, driver.bindings().anyReleasedLeftoverClaim()));
+                log.push_back(snap(*robot, &*mechanisms, driver.releasedLeftoverAtEntry(*mechanisms)));
                 ++k;
             });
         return log;
     }
 
+    const MechanismTable* list;
     BootOutcome boot;
     std::optional<shulib::hal::pros::ProsDeviceProvider> devices;
     std::optional<shulib::robot::Robot> robot;
-    RobotTwoDriver driver;  // declared after the robot: destroyed first, as a program's catch does
-    char why[192] = "";
+    std::optional<MechanismService> mechanisms;  // after the Robot: destroyed first (it points into it)
+    RobotTwoDriver driver;
+    char why[192] = "";  // the driver file's bind() reason (empty when it bound)
 };
 
 // ── the same robot over the FAKE provider (its telemetry is readable; a line can be refused) ──
@@ -224,15 +247,18 @@ struct FakeRig {
         }
         census.setKind(2, shulib::hal::DeviceKind::Imu);
         boot = decideBootSourceFrom(record, census, shulib::hal::DrivetrainDescription{}, "",
-                                    kRobotTwoMechanisms, "robot two", [](const char*) {});
+                                    two::kRobotTwoMechanisms, "robot two", [](const char*) {});
         REQUIRE_MESSAGE(boot.ok, boot.why);
         robot.emplace(boot.built.config, devices, boot.built.buildOptions());
+        mechanisms.emplace(pacer);
+        mechanisms->bind(two::kRobotTwoMechanisms, robot->mechanismParts().devices(), robot->context().clock(),
+                         robot->faults(), robot->context().telemetry());
     }
     template <class Script>
     void run(int ticks, Script script) {
         int k = 0;
         driver.run(
-            *robot, pacer,
+            *robot, *mechanisms, pacer,
             [&] {
                 if (k >= ticks) return true;
                 script(k);
@@ -251,24 +277,173 @@ struct FakeRig {
     shulib::hal::fake::FakeDeviceProvider devices{clock, battery, sink, pacer};
     BootOutcome boot;
     std::optional<shulib::robot::Robot> robot;
+    std::optional<MechanismService> mechanisms;
     RobotTwoDriver driver;
 };
 
+/// A copy of robot two's REAL list (a hand-built list: the build's checks ran on the original only).
+MechanismTable robotTwoCopy() { return two::kRobotTwoMechanisms; }
+
 }  // namespace
+
+// ═══ M5a — the claws exactly as T3/T4's bindings drove them ═════════════════════════════════
+// The script (file banner): R1, R2, L1, L2 alone; R1+R2 and L1+L2 together; a release of one of two;
+// A short, A held; R1 held through a drop and back; A pressed DURING a drop and still down at the
+// reconnect, then released and pressed again; R1 + L1 held into a field DISABLE, then a second entry
+// with R1 still held (it drives at once — a hold is a level); a third entry with A down at entry (not
+// a press); sticks moving throughout.
+namespace {
+/// One tick's controller, by tick number within one entry's run (`entry` 0, 1, 2).
+void claws(int entry, int k) {
+    sticks(k + 7 * entry);
+    const auto in = [k](int a, int b) { return k >= a && k < b; };
+    pad().connected = true;
+    if (entry == 0) {
+        press(ControllerButton::R1, in(5, 15) || in(40, 50) || in(90, 120));
+        press(ControllerButton::R2, in(20, 28) || in(44, 47));        // R1+R2 together at 44..46
+        press(ControllerButton::L1, in(30, 38) || in(60, 70));
+        press(ControllerButton::L2, in(64, 75));                       // L1+L2 together at 64..69
+        press(ControllerButton::A, in(52, 54) || in(78, 88) || in(101, 112) || in(118, 121));
+        pad().connected = !in(95, 110);  // a drop with R1 held; A pressed during it (101..)
+    } else if (entry == 1) {
+        press(ControllerButton::R1, k < 12);  // still held from the disabled entry: drives at once
+        press(ControllerButton::L1, in(4, 9));
+        press(ControllerButton::A, in(15, 17));
+        press(ControllerButton::R2, false);
+        press(ControllerButton::L2, false);
+    } else {
+        press(ControllerButton::A, k < 6 || in(10, 12));  // down AT entry: not a press; then one press
+        press(ControllerButton::R1, false);
+        press(ControllerButton::L1, in(2, 4));
+    }
+}
+/// Ports 6 and 7 and line A, as one comparable record.
+struct ClawTick {
+    std::int32_t mv6, mv7;
+    int brakes6, brakes7, moves6, moves7;
+    bool stopped6, stopped7;
+    pros::v5::MotorBrake mode6, mode7;
+    std::size_t lineWrites;
+    bool operator==(const ClawTick&) const = default;
+};
+ClawTick clawTick(const Snap& s) {
+    return ClawTick{s.mv[6], s.mv[7], s.brakes[6], s.brakes[7], s.moves[6], s.moves[7], s.stopped[6], s.stopped[7],
+                    s.mode[6], s.mode[7], s.lineWrites};
+}
+}  // namespace
+
+TEST_CASE("MECH-A5 (M5a): robot two's claws behave EXACTLY as T3/T4's bindings drove them -- the same "
+          "script through the old bindings and through the driver file, tick by tick, ports 6 and 7 and "
+          "line A identical, across three entries, a drop and a disable") {
+    // BUG CAUGHT: ANY change in what a claw does on any input when robot two moved onto the mechanism
+    // service — a hold-to-run at another voltage or a tick late, a release that brakes twice or not at
+    // all, both buttons driving, a drop that does not release (or re-sends the stop), a toggle that
+    // flips on a held A, on a drop, on a reconnect with A down, or on a press at entry; a disable that
+    // moves the claw; a later entry that re-sends the start level; a claw row reading another state.
+    constexpr int kTicks[3] = {125, 20, 14};
+    // THE OLD PATH: T3's bindings over the same robot, exactly as T4's DriverBindings bound them (by
+    // NAME — config index 0, 1, 2 — at the driver file's old buttons and volts; the toggle's initial
+    // level the config's START level), run by the T3 overload of the library's loop.
+    std::vector<ClawTick> before;
+    std::vector<std::int32_t> lineBefore;
+    {
+        Rig r{true, true, two::kRobotTwoMechanisms, /*bindNow=*/false};
+        shulib::teleop::MechanismBinding six{*r.robot->mechanismAt(0), ControllerButton::R1, ControllerButton::R2,
+                                             shulib::units::Voltage{12.0}};
+        shulib::teleop::MechanismBinding seven{*r.robot->mechanismAt(1), ControllerButton::L1, ControllerButton::L2,
+                                               shulib::units::Voltage{12.0}};
+        shulib::teleop::ToggleBinding claw{*r.robot->pneumaticMechanismAt(2), ControllerButton::A,
+                                           shulib::config::toLineValue(r.robot->config().mechanisms[2].pneumaticStart)};
+        shulib::teleop::MechanismBinding* holds[] = {&six, &seven};
+        shulib::teleop::ToggleBinding* toggles[] = {&claw};
+        shulib::hal::pros::ProsController master{shulib::hal::pros::ControllerId::Master};
+        shulib::teleop::DriveShaper shaper{RobotTwoDriver::kFeel};
+        for (int entry = 0; entry < 3; ++entry) {
+            int k = 0;
+            shulib::teleop::runDriverControl(
+                r.robot->chassis(), master, r.devices->pacer(), shaper, RobotTwoDriver::kLoop,
+                std::span<shulib::teleop::MechanismBinding* const>{holds},
+                std::span<shulib::teleop::ToggleBinding* const>{toggles},
+                [&] {
+                    if (k >= kTicks[entry]) return true;
+                    claws(entry, k);
+                    return false;
+                },
+                [&] { return shulib::bench::driverHeading(*r.robot); },
+                [&](const shulib::math::ChassisSpeeds&, bool, const shulib::teleop::DriveShaperState&) {
+                    before.push_back(clawTick(snap(*r.robot, nullptr, false)));
+                    ++k;
+                });
+        }
+        lineBefore = lineA();
+    }
+    // THE NEW PATH: robot two's driver file, through the mechanism service.
+    std::vector<ClawTick> after;
+    std::vector<std::int32_t> lineAfter;
+    {
+        Rig r;
+        for (int entry = 0; entry < 3; ++entry) {
+            for (const Snap& s : r.run(kTicks[entry], [entry](int k) { claws(entry, k); })) {
+                after.push_back(clawTick(s));
+            }
+        }
+        lineAfter = lineA();
+    }
+    REQUIRE(before.size() == 159U);
+    REQUIRE(after.size() == before.size());
+    int differing = 0;
+    for (std::size_t i = 0; i < before.size(); ++i) {
+        CAPTURE(i);
+        if (!(after[i] == before[i])) {
+            ++differing;
+            CHECK(after[i].mv6 == before[i].mv6);
+            CHECK(after[i].mv7 == before[i].mv7);
+            CHECK(after[i].brakes6 == before[i].brakes6);
+            CHECK(after[i].brakes7 == before[i].brakes7);
+            CHECK(after[i].moves6 == before[i].moves6);
+            CHECK(after[i].moves7 == before[i].moves7);
+            CHECK(after[i].stopped6 == before[i].stopped6);
+            CHECK(after[i].stopped7 == before[i].stopped7);
+            CHECK(after[i].mode6 == before[i].mode6);
+            CHECK(after[i].mode7 == before[i].mode7);
+            CHECK(after[i].lineWrites == before[i].lineWrites);
+        }
+    }
+    CHECK(differing == 0);
+    CHECK(lineAfter == lineBefore);  // every level line A was ever driven to, construction included
+    // ...and the script really exercised what it claims (two identical idle runs would prove nothing):
+    // each pivot driven both ways, released, both-held, a toggle that flipped, a drop, a disable.
+    int six12 = 0;
+    int sixMinus = 0;
+    int seven12 = 0;
+    int sevenMinus = 0;
+    for (const ClawTick& t : after) {
+        six12 += t.mv6 == 12000 ? 1 : 0;
+        sixMinus += t.mv6 == -12000 ? 1 : 0;
+        seven12 += t.mv7 == 12000 ? 1 : 0;
+        sevenMinus += t.mv7 == -12000 ? 1 : 0;
+    }
+    CHECK(six12 > 20);
+    CHECK(sixMinus > 5);
+    CHECK(seven12 > 10);
+    CHECK(sevenMinus > 3);
+    CHECK(after.back().brakes6 > 6);
+    CHECK(lineAfter.size() >= 5U);  // built, the first entry's start, and flips
+}
 
 // ═══ T1 — the right ports ═══════════════════════════════════════════════════════════════
 TEST_CASE("T4 1a T1: through the driver file, R1 alone drives port 6 at +12000 mV in the tick it is "
           "read and leaves 7 alone, R2 -12000, L1 port 7 +12000, L2 -12000; each release is ONE "
-          "brake() under HOLD; the drive ports get exactly what they get with no button; holdFor() "
-          "names the binding that moves each port") {
-    // BUG CAUGHT: R1/R2 swapped in the driver file; the two holds' names swapped (R1 would move
-    // port 7); a hold bound to the wrong mechanism; a release re-sent every tick; a binding that
-    // reaches a drive port, or a drive that notices a claw button; holdFor() answering by position.
+          "brake() under HOLD; the drive ports get exactly what they get with no button; the service's "
+          "slot for each pivot moves ITS port") {
+    // BUG CAUGHT: R1/R2 swapped in the driver file; the two pivots' declarations swapped in its
+    // controls (R1 would move port 7); a control bound to the wrong slot; a release re-sent every
+    // tick; a control that reaches a drive port, or a drive that notices a claw button; a slot found
+    // by position instead of by name.
     std::vector<Snap> with;
     {
         Rig r;
-        REQUIRE(r.driver.bindings().holds().size() == 2U);
-        REQUIRE(r.driver.bindings().toggles().size() == 1U);
+        REQUIRE(r.driver.bound());
         with = r.run(90, [](int k) {
             sticks(k);
             press(ControllerButton::R1, k >= 10 && k < 20);
@@ -326,41 +501,36 @@ TEST_CASE("T4 1a T1: through the driver file, R1 alone drives port 6 at +12000 m
     }
     CHECK(moving > 30);  // the drive really moved — two idle runs agreeing would prove nothing
 
-    // holdFor(): the binding by NAME — pushed through ITS mechanism, ITS port moves.
+    // The service's slot BY NAME — pushed through ITS mechanism, ITS port moves.
     Rig r;
-    const auto* six = r.driver.bindings().holdFor("claw pivot 6");
-    const auto* seven = r.driver.bindings().holdFor("claw pivot 7");
+    const shulib::mechanism::Slot* six = r.mechanisms->slotFor("claw pivot 6");
+    const shulib::mechanism::Slot* seven = r.mechanisms->slotFor("claw pivot 7");
     REQUIRE(six != nullptr);
     REQUIRE(seven != nullptr);
-    CHECK(six->forwardButton() == ControllerButton::R1);
-    CHECK(seven->forwardButton() == ControllerButton::L1);
-    six->mechanism().setVoltage(shulib::units::Voltage{5.0});
+    CHECK(six->index() == 0);
+    CHECK(seven->index() == 1);
+    r.mechanisms->power(six->index()).drive(shulib::units::Voltage{5.0});
+    r.mechanisms->tickFromDriverLoop();
     CHECK(pros::shim::motorState(6).lastVoltageMv == 5000);
     CHECK(pros::shim::motorState(7).lastVoltageMv == 0);
-    seven->mechanism().setVoltage(shulib::units::Voltage{-4.0});
+    r.mechanisms->power(seven->index()).drive(shulib::units::Voltage{-4.0});
+    r.mechanisms->tickFromDriverLoop();
     CHECK(pros::shim::motorState(7).lastVoltageMv == -4000);
     CHECK(pros::shim::motorState(6).lastVoltageMv == 5000);
-    CHECK(r.driver.bindings().holdFor("claw") == nullptr);    // a toggle's name, not a hold's
-    CHECK(r.driver.bindings().holdFor("intake") == nullptr);  // not declared
-    CHECK(r.driver.bindings().holdFor(nullptr) == nullptr);
+    CHECK(r.mechanisms->slotFor("intake") == nullptr);  // not declared
+    CHECK(r.mechanisms->slotFor(nullptr) == nullptr);
 }
 
 // ═══ T2 — the claw ═══════════════════════════════════════════════════════════════════════
 TEST_CASE("T4 1a T2: the claw through the driver file — line A's FIRST level ever is the start "
           "level and the first entry sends the same; each press flips it ONCE; a disable and a "
-          "second run() write nothing; toggleFor(\"claw\") is the binding on line A") {
-    // BUG CAUGHT: the toggle's initial level inverted; a flip on a held A; a disable, or the next
-    // entry, that commands the claw; the toggles never handed to the loop; toggleFor() by position.
+          "second run() write nothing; the service's 'claw' slot is the one on line A") {
+    // BUG CAUGHT: the claw's start level inverted; a flip on a held A; a disable, or the next entry,
+    // that commands the claw; the toggle never handed to the loop; the slot found by position.
     Rig r;
-    const bool start = shulib::bench::pneumaticStartCommand(kRobotTwoMechanisms.pneumatics[0]);
-    REQUIRE(start == !shulib::bench::kClawOpenCommand);  // CLOSED, through the polarity
-    const std::int32_t s = start ? 1 : 0;
-    const std::int32_t o = start ? 0 : 1;
+    const std::int32_t s = 0;  // CLOSED = LOW (robot two's .positions line; HA-159's guess)
+    const std::int32_t o = 1;
     REQUIRE(lineA() == std::vector<std::int32_t>{s});  // built at the start level, nothing before
-    const auto* claw = r.driver.bindings().toggleFor("claw");
-    REQUIRE(claw != nullptr);
-    CHECK(claw->initialState() == start);
-    CHECK(claw->button() == ControllerButton::A);
     const auto log = r.run(40, [](int k) {
         press(ControllerButton::A, (k >= 5 && k < 9) || (k >= 15 && k < 17));
     });
@@ -376,28 +546,29 @@ TEST_CASE("T4 1a T2: the claw through the driver file — line A's FIRST level e
     CHECK(log[39].lineWrites == 4U);
     CHECK(lineA().size() == 4U);  // the disable that ended the run commanded nothing
     r.run(3, [](int) {});
-    CHECK(lineA().size() == 4U);  // and the next entry sends no initial level
-    // toggleFor("claw") IS line A's binding: commanding through it reaches line A.
-    claw->mechanism().set(!start);
+    CHECK(lineA().size() == 4U);  // and the next entry sends no start level
+    // The 'claw' slot IS line A's: a step through it reaches line A.
+    const shulib::mechanism::Slot* claw = r.mechanisms->slotFor("claw");
+    REQUIRE(claw != nullptr);
+    CHECK(claw->kind() == shulib::mechanism::Kind::Pneumatic);
+    r.mechanisms->pneumatic(claw->index()).set(1);  // 'open'
     CHECK(lineA().size() == 5U);
     CHECK(lineA().back() == o);
-    CHECK(r.driver.bindings().toggleFor("claw pivot 6") == nullptr);  // a hold's name
-    CHECK(r.driver.bindings().toggleFor("wing") == nullptr);
     // The pivots never moved on A.
     CHECK(log.back().moves[6] == log[0].moves[6]);
     CHECK(log.back().moves[7] == log[0].moves[7]);
 }
 
-TEST_CASE("T4 1a T2c: the toggle starts at the robot's START level, not its SAFE one — a table copy "
-          "whose claw starts OPEN and is safe CLOSED: line A's first level and the first entry's "
+TEST_CASE("T4 1a T2c: the claw starts at the robot's START position, not its SAFE one — a list copy "
+          "whose claw starts 'open' and is safe 'closed': line A's first level and the first entry's "
           "are OPEN, and the first press closes it") {
-    // BUG CAUGHT: the binder reading pneumaticSafe (robot two's real claw has start == safe ==
-    // CLOSED, so T2, T2b and T3 cannot tell the two apart).
-    MechanismTable startsOpen = kRobotTwoMechanisms;
-    startsOpen.pneumatics[0].start = PneumaticPosition::Open;
-    startsOpen.pneumatics[0].safe = PneumaticPosition::Closed;
+    // BUG CAUGHT: the start level taken from the SAFE position (robot two's real claw has start ==
+    // safe == 'closed', so T2, T2b and T3 cannot tell the two apart).
+    MechanismTable startsOpen = robotTwoCopy();
+    startsOpen.specs[2].pneumatic.start = 1;  // 'open'
+    startsOpen.specs[2].pneumatic.safe = 0;   // 'closed'
     Rig r{true, true, startsOpen};
-    const std::int32_t open = shulib::bench::kClawOpenCommand ? 1 : 0;
+    const std::int32_t open = 1;
     REQUIRE(lineA() == std::vector<std::int32_t>{open});
     const auto log = r.run(10, [](int k) { press(ControllerButton::A, k >= 4 && k < 6); });
     CHECK(log[0].lineWrites == 2U);
@@ -408,16 +579,15 @@ TEST_CASE("T4 1a T2c: the toggle starts at the robot's START level, not its SAFE
 }
 
 TEST_CASE("T4 1a T2b: the team lead's ruling — \"starts closed — whatever autonomous left it at\": "
-          "an auton that opens the claw after bind() is overruled ONCE by the first entry; and a "
-          "line set OPEN before bind() still gives a toggle that starts CLOSED") {
-    // BUG CAUGHT: the toggle's initial level read from what the line is commanded to NOW (the
-    // call-order hazard: bind() after an auton would then keep the claw open), or the first entry
-    // not sending it; a second entry re-sending it (the claw would move on every re-enable).
-    const bool start = shulib::bench::pneumaticStartCommand(kRobotTwoMechanisms.pneumatics[0]);
-    const std::int32_t s = start ? 1 : 0;
+          "an auton that opens the claw is overruled ONCE by the first entry; and a line set OPEN "
+          "before the service is bound still starts CLOSED at that entry") {
+    // BUG CAUGHT: the start read from what the line is commanded to NOW (the call-order hazard: a
+    // bind after an auton would keep the claw open), or the first entry not sending it; a second
+    // entry re-sending it (the claw would move on every re-enable).
+    const std::int32_t s = 0;  // CLOSED = LOW
     {
         Rig r;
-        r.robot->pneumaticMechanism("claw")->set(!start);  // an auton opens it
+        r.robot->pneumaticMechanism("claw")->set(true);  // an auton opens it
         REQUIRE(lineA().size() == 2U);
         REQUIRE(lineA().back() == 1 - s);
         r.run(3, [](int) {});
@@ -427,27 +597,27 @@ TEST_CASE("T4 1a T2b: the team lead's ruling — \"starts closed — whatever au
         CHECK(lineA().size() == 3U);  // nothing
     }
     {
-        Rig r{true, true, kRobotTwoMechanisms, /*bindNow=*/false};
-        r.robot->pneumaticMechanism("claw")->set(!start);  // OPEN before the binding exists
-        REQUIRE(r.driver.bind(*r.robot, r.why, sizeof r.why));
-        const auto* claw = r.driver.bindings().toggleFor("claw");
-        REQUIRE(claw != nullptr);
-        CHECK(claw->initialState() == start);  // the CONFIG's start, not the line's level now
+        Rig r{true, true, two::kRobotTwoMechanisms, /*bindNow=*/false};
+        r.robot->pneumaticMechanism("claw")->set(true);  // OPEN before the service exists
+        r.bindService();
+        char why[192] = "";
+        REQUIRE_MESSAGE(r.driver.bind(*r.mechanisms, why, sizeof why), why);
         r.run(2, [](int) {});
         CHECK(lineA().size() == 3U);
-        CHECK(lineA().back() == s);
+        CHECK(lineA().back() == s);  // the DECLARATION's start, not the line's level now
     }
 }
 
-TEST_CASE("T4 1a T3: the claw follows the ROBOT, not a restated CLOSED — a table copy with the "
-          "polarity flipped (Station J.9's fix): the first level and the entry level are both the "
-          "flipped one, and the first press still flips it once") {
-    // BUG CAUGHT: a driver file or binder that hard-codes CLOSED as a line level (false) — right
-    // for today's guess, wrong the day J.9 flips the polarity.
-    MechanismTable flipped = kRobotTwoMechanisms;
-    flipped.pneumatics[0].openCommand = !shulib::bench::kClawOpenCommand;
-    Rig r{true, true, flipped};
-    const std::int32_t closed = shulib::bench::kClawOpenCommand ? 1 : 0;  // the flipped CLOSED
+TEST_CASE("T4 1a T3: the claw follows the ROBOT FILE, not a restated CLOSED — a list copy with Low and "
+          "High swapped (Station J.9's fix): the first level and the entry level are both the swapped "
+          "'closed', and the first press still flips it once") {
+    // BUG CAUGHT: a driver file or a service that hard-codes CLOSED as a line level (false) — right
+    // for today's guess, wrong the day J.9 swaps the levels.
+    MechanismTable swapped = robotTwoCopy();
+    swapped.specs[2].pneumatic.positions[0].levels[0] = true;   // closed = HIGH
+    swapped.specs[2].pneumatic.positions[1].levels[0] = false;  // open = LOW
+    Rig r{true, true, swapped};
+    const std::int32_t closed = 1;  // the swapped CLOSED
     REQUIRE(lineA() == std::vector<std::int32_t>{closed});
     const auto log = r.run(8, [](int k) { press(ControllerButton::A, k >= 3 && k < 5); });
     CHECK(log[0].lineWrites == 2U);
@@ -458,16 +628,15 @@ TEST_CASE("T4 1a T3: the claw follows the ROBOT, not a restated CLOSED — a tab
 }
 
 // ═══ T4 / T4b — ABSENT mechanisms ═══════════════════════════════════════════════════════
-TEST_CASE("T4 1a T4: a pivot whose port is EMPTY is ABSENT — bind() is true with ONE hold, its "
-          "buttons command nothing anywhere, the other pivot works, and the drive runs; for port 7 "
-          "and for port 6") {
-    // BUG CAUGHT: an absent claw refusing the whole driver (the drive would not run); a binding
-    // over a missing motor (a crash).
+TEST_CASE("T4 1a T4: a pivot whose port is EMPTY is ABSENT — the driver file binds, its buttons "
+          "command nothing anywhere, the other pivot works, and the drive runs; for port 7 and for "
+          "port 6") {
+    // BUG CAUGHT: an absent claw refusing the whole driver (the drive would not run); a control over a
+    // missing motor (a crash).
     {
         Rig r{true, false};
-        CHECK(r.driver.bindings().holds().size() == 1U);
-        CHECK(r.driver.bindings().holdFor("claw pivot 7") == nullptr);
-        REQUIRE(r.driver.bindings().holdFor("claw pivot 6") != nullptr);
+        CHECK_FALSE(r.mechanisms->slotFor("claw pivot 7")->built());
+        REQUIRE(r.mechanisms->slotFor("claw pivot 6")->built());
         const auto log = r.run(12, [](int k) {
             sticks(k + 5);
             press(ControllerButton::L1, k < 6);
@@ -485,8 +654,7 @@ TEST_CASE("T4 1a T4: a pivot whose port is EMPTY is ABSENT — bind() is true wi
     }
     {
         Rig r{false, true};
-        CHECK(r.driver.bindings().holds().size() == 1U);
-        CHECK(r.driver.bindings().holdFor("claw pivot 6") == nullptr);
+        CHECK_FALSE(r.mechanisms->slotFor("claw pivot 6")->built());
         const auto log = r.run(8, [](int k) {
             sticks(k + 5);
             press(ControllerButton::R1, k < 4);
@@ -498,17 +666,15 @@ TEST_CASE("T4 1a T4: a pivot whose port is EMPTY is ABSENT — bind() is true wi
     }
 }
 
-TEST_CASE("T4 1a T4b: a claw whose 3-wire line the provider refused is ABSENT — bind() is true with "
-          "2 holds and 0 toggles, A commands nothing, and the drive runs (the fake provider: the "
-          "brain's refuses only a line outside 1..8, which the config refuses first)") {
-    // BUG CAUGHT (T3 test 1f's intent, carried before 1f retires): a toggle built over a missing
-    // line (a crash), or an absent claw refusing the driver.
+TEST_CASE("T4 1a T4b: a claw whose 3-wire line the provider refused is ABSENT — the driver file binds, "
+          "A commands nothing, the pivots and the drive run (the fake provider: the brain's refuses only "
+          "a line outside 1..8, which the config refuses first)") {
+    // BUG CAUGHT (T3 test 1f's intent): a toggle over a missing line (a crash), or an absent claw
+    // refusing the driver.
     FakeRig f{1};
     char why[192] = "";
-    REQUIRE_MESSAGE(f.driver.bind(*f.robot, why, sizeof why), why);
-    CHECK(f.driver.bindings().holds().size() == 2U);
-    CHECK(f.driver.bindings().toggles().empty());
-    CHECK(f.driver.bindings().toggleFor("claw") == nullptr);
+    REQUIRE_MESSAGE(f.driver.bind(*f.mechanisms, why, sizeof why), why);
+    CHECK_FALSE(f.mechanisms->slotFor("claw")->built());
     double pivot = 0.0;
     double drive = 0.0;
     f.run(10, [&f, &pivot, &drive](int k) {
@@ -571,7 +737,7 @@ TEST_CASE("T4 1a T5: the feel is the library's default, field-centric OFF — th
             },
             [&] { return shulib::bench::driverHeading(*r.robot); },
             [&](const shulib::math::ChassisSpeeds&, bool, const shulib::teleop::DriveShaperState&) {
-                direct.push_back(snap(*r.robot, false));
+                direct.push_back(snap(*r.robot, nullptr, false));
                 ++k;
             });
     }
@@ -623,26 +789,38 @@ TEST_CASE("T4 1a T6: sticks let go => every drive motor COASTS at 0 V, every tic
     }
 }
 
-// ═══ T8 — bind() twice, unbind() ════════════════════════════════════════════════════════
-TEST_CASE("T4 1a T8: bind() twice leaves exactly 2 holds and 1 toggle, no stale entry; unbind() "
-          "leaves empty spans") {
-    // BUG CAUGHT: bind() that appends to what an earlier call bound (a second bind would bind each
-    // pivot twice); unbind() that leaves a span pointing at bindings it reset.
-    Rig r;
-    const auto* firstSix = r.driver.bindings().holdFor("claw pivot 6");
-    REQUIRE(r.driver.bind(*r.robot, r.why, sizeof r.why));
-    CHECK(r.driver.bindings().holds().size() == 2U);
-    CHECK(r.driver.bindings().toggles().size() == 1U);
-    CHECK(r.driver.bindings().holdFor("claw pivot 6") == firstSix);  // the same slot, rebuilt
-    CHECK(r.driver.bindings().holdFor("claw pivot 6")->forwardButton() == ControllerButton::R1);
-    CHECK(r.driver.bindings().holdFor("claw pivot 7")->forwardButton() == ControllerButton::L1);
-    r.driver.unbind();
-    CHECK(r.driver.bindings().holds().empty());
-    CHECK(r.driver.bindings().toggles().empty());
-    CHECK(r.driver.bindings().holdFor("claw pivot 6") == nullptr);
-    CHECK(r.driver.bindings().toggleFor("claw") == nullptr);
-    REQUIRE(r.driver.bind(*r.robot, r.why, sizeof r.why));  // and binds again
-    CHECK(r.driver.bindings().holds().size() == 2U);
+// ═══ T8 — the driver binds ONCE ═════════════════════════════════════════════════════════
+TEST_CASE("T4 1a T8 (MECH-A5): the driver file binds ONCE, at boot — a second bind is a precondition, "
+          "and the first binding still drives; a bind before the service is bound is one too") {
+    // BUG CAUGHT: a second bind that silently re-binds (two sets of button states over one service),
+    // or one that leaves the first unusable; a program's composition mistake (a second bind, a
+    // service not bound yet) reported as the DRIVER FILE's refusal — a team would go looking in its
+    // controls for a program's bug. (Until MECH-A5 bind() could be called again and unbind() emptied
+    // the bindings: the driver's inputs now belong to the service they were bound to, for the
+    // program's life — DriverInputs' rule.)
+    char why[192] = "";
+    {
+        Rig r;
+        try {
+            (void)r.driver.bind(*r.mechanisms, why, sizeof why);
+            FAIL("a second bind was not a precondition");
+        } catch (const PreconditionError& e) {
+            CHECK(std::string_view{e.what()} == "DriverFile::bind: called twice -- bind once, at boot");
+        }
+        CHECK(r.driver.bound());
+        const auto log = r.run(4, [](int) { press(ControllerButton::R1, true); });
+        CHECK(log[1].mv[6] == 12000);
+    }
+    Rig unbound{true, true, two::kRobotTwoMechanisms, /*bindNow=*/false};
+    RobotTwoDriver d;
+    try {
+        (void)d.bind(*unbound.mechanisms, why, sizeof why);
+        FAIL("a bind before the service was bound was not a precondition");
+    } catch (const PreconditionError& e) {
+        CHECK(std::string_view{e.what()} ==
+              "DriverFile::bind: the mechanism service is not bound -- bind it first");
+    }
+    CHECK_FALSE(d.bound());
 }
 
 // ═══ T9 — T3's rules, through the driver file ═══════════════════════════════════════════
@@ -663,15 +841,82 @@ TEST_CASE("T4 1a T9: through the driver file, a controller drop with R1 held is 
     CHECK_FALSE(log[10].stopped[6]);
 }
 
-TEST_CASE("T4 1a T9: a claim left on pivot 6 before run() is RELEASED at entry with ONE "
-          "[WARN][TEL] line, R1 drives from the first tick, and anyReleasedLeftoverClaim() — "
-          "what the claw row's FREED reads — is true after that entry and false after the next") {
-    // BUG CAUGHT: the driver locked out of a pivot by a claim nobody will release (a deleted auton
-    // task); a release the log or the screen does not show. (The fake provider: the shim's is on
-    // stdout, which no test reads.)
+TEST_CASE("MECH-A5 T9b: a controller DROP never flips the claw (MECH-A4's C1 fix, inherited) — A up "
+          "through a drop; A pressed DURING a drop and still down at the reconnect; then released and "
+          "pressed again: ONE flip, the last") {
+    // BUG CAUGHT (MECH-A4's review blocker C1, through robot two's REAL driver file): a drop read as a
+    // press (feeding "held" into an edge whose last level was up is itself a rising edge) — robot
+    // two's claw would OPEN on every controller drop and drop what it holds; or a reconnect with A
+    // still down taken as a press. It rests on HA-147 (the connected flag and the buttons come back
+    // together); Station J.9.5 settles it, for this path too.
+    Rig r;
+    const auto log = r.run(70, [](int k) {
+        pad().connected = !((k >= 10 && k < 20) || (k >= 30 && k < 40));
+        press(ControllerButton::A, (k >= 35 && k < 50) || (k >= 55 && k < 58));
+    });
+    REQUIRE(log.size() == 70U);
+    CHECK(log[49].lineWrites == 2U);  // built + the first entry: no flip through either drop
+    CHECK(lineA().size() >= 3U);
+    CHECK(log[55].lineWrites == 3U);  // released at 50, pressed at 55: the ONE flip
+    CHECK(lineA()[2] == 1);           // OPEN
+    CHECK(log[69].lineWrites == 3U);
+}
+
+TEST_CASE("MECH-A5 review: in driver control each A press is a claw STEP that logs its verdict — "
+          "an opening press SUCCEEDED, a closing press UNCONFIRMED (no piece sensor; counted done) at "
+          "WARN, a press within the move time CANCELLED (replaced), a disable within it CANCELLED "
+          "(driver control ended) — and the pivots' holds log nothing") {
+    // BUG CAUGHT: a change to what a driver's press writes to serial and the card's log that no test
+    // sees. T3's ToggleBinding logged nothing per press; since MECH-A5 the claw's A goes through the
+    // mechanism service (PneumaticSlot::set — a step, like an auton's), so the service says each
+    // press's verdict once its move time has passed. These are the lines Station J.9.3/J.9.4 and
+    // Station K now expect, and guide 18 / guide 11 describe (MECH-A5's review: M5a compares ports
+    // and line writes only, so it could not see them). The clock moves 10 ms a tick, as the brain's.
     FakeRig f;
     char why[192] = "";
-    REQUIRE_MESSAGE(f.driver.bind(*f.robot, why, sizeof why), why);
+    REQUIRE_MESSAGE(f.driver.bind(*f.mechanisms, why, sizeof why), why);
+    const int before = f.sink.size();
+    f.run(230, [&f](int k) {
+        f.clock.advance(shulib::units::Time{0.010});
+        press(ControllerButton::A, k == 10 || k == 100 || k == 200 || k == 203);
+        // R1 held for a while: a hold-to-run logs no verdict (it is not a step)
+        press(ControllerButton::R1, k >= 20 && k < 60);
+    });
+    std::vector<std::string> mech;
+    for (int i = before; i < f.sink.size(); ++i) {
+        const auto& e = f.sink.at(i);
+        if (e.subsystem == "MECH") {
+            mech.push_back(std::string{e.level == shulib::hal::LogLevel::Warn ? "[WARN] " : "[INFO] "} + e.message);
+        }
+    }
+    const std::vector<std::string> expected{
+        "[INFO] 'claw': SUCCEEDED -- time in 0.50s",
+        "[WARN] 'claw': UNCONFIRMED -- time in 0.50s (no piece sensor to confirm it; counted done)",
+        "[WARN] 'claw': CANCELLED in 0.03s (replaced by a newer command)",
+        "[WARN] 'claw': CANCELLED in 0.26s (driver control ended)",  // pressed at 2.04 s, disabled at 2.30 s
+    };
+    std::string all;
+    for (const std::string& line : mech) {
+        all += line + "\n";
+    }
+    INFO("the MECH lines:\n" << all);
+    REQUIRE(mech.size() == expected.size());
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        CHECK(mech[i] == expected[i]);
+    }
+}
+
+TEST_CASE("T4 1a T9: a claim left on pivot 6 before run() is RELEASED at entry with ONE [WARN][MECH] "
+          "line, R1 drives from the first tick, and releasedLeftoverAtEntry() — what the claw row's "
+          "FREED reads — is true after that entry and false after the next") {
+    // BUG CAUGHT: the driver locked out of a pivot by a claim nobody will release (a deleted auton
+    // task); a release the log or the screen does not show; FREED remembered past the entry it
+    // belongs to (MECH-A5: the service's count is cumulative, the driver file compares it with the
+    // count at THIS entry). The fake provider: the shim's log is on stdout, which no test reads.
+    FakeRig f;
+    char why[192] = "";
+    REQUIRE_MESSAGE(f.driver.bind(*f.mechanisms, why, sizeof why), why);
+    CHECK_FALSE(f.driver.releasedLeftoverAtEntry(*f.mechanisms));  // before any run
     REQUIRE(f.robot->mechanismAt(0)->tryClaim());
     const int before = f.sink.size();
     double firstTick = 0.0;
@@ -684,139 +929,217 @@ TEST_CASE("T4 1a T9: a claim left on pivot 6 before run() is RELEASED at entry w
     int released = 0;
     for (int i = before; i < f.sink.size(); ++i) {
         const auto& e = f.sink.at(i);
-        if (e.message.find("RELEASED a claim") != std::string::npos) {
+        if (e.message.find("RELEASED") != std::string::npos) {
             ++released;
             CHECK(e.level == shulib::hal::LogLevel::Warn);
-            CHECK(e.subsystem == "TEL");
+            CHECK(e.subsystem == "MECH");
             CHECK(e.message
-                  == "driver control: RELEASED a claim left on mechanism 'claw pivot 6' at entry "
-                     "(an operation that outlived its task) -- its buttons work from the first "
-                     "tick");
+                  == "'claw pivot 6': a claim left by another owner RELEASED as driver control began (its "
+                     "operation was not cancelled -- it may have lived on a deleted task)");
         }
     }
     CHECK(released == 1);
-    CHECK(f.driver.bindings().anyReleasedLeftoverClaim());
-    CHECK(std::string{clawRowText(kRobotTwoMechanisms, *f.robot,
-                                  f.driver.bindings().anyReleasedLeftoverClaim())
+    CHECK(f.driver.releasedLeftoverAtEntry(*f.mechanisms));
+    CHECK(std::string{clawRowText(two::kRobotTwoMechanisms, *f.robot, *f.mechanisms,
+                                  f.driver.releasedLeftoverAtEntry(*f.mechanisms))
                           .text}
           == "CLAW 6 HOLD 0C | 7 HOLD 0C | CLAW CLOSED FREED");  // safed at the disable; 0 C fake
     const int afterFirst = f.sink.size();
     f.run(2, [](int) { press(ControllerButton::R1, false); });
-    CHECK_FALSE(f.driver.bindings().anyReleasedLeftoverClaim());
+    CHECK_FALSE(f.driver.releasedLeftoverAtEntry(*f.mechanisms));
     for (int i = afterFirst; i < f.sink.size(); ++i) {
-        CHECK(f.sink.at(i).message.find("RELEASED a claim") == std::string::npos);
+        CHECK(f.sink.at(i).message.find("RELEASED") == std::string::npos);
     }
-    CHECK(std::string{clawRowText(kRobotTwoMechanisms, *f.robot,
-                                  f.driver.bindings().anyReleasedLeftoverClaim())
+    CHECK(std::string{clawRowText(two::kRobotTwoMechanisms, *f.robot, *f.mechanisms,
+                                  f.driver.releasedLeftoverAtEntry(*f.mechanisms))
                           .text}
           == "CLAW 6 HOLD 0C | 7 HOLD 0C | CLAW CLOSED");
-    // The claw's claim alone says it too (a panel reading only the holds would miss it).
+    // The claw's claim alone says it too (a panel reading only the pivots would miss it).
     REQUIRE(f.robot->pneumaticMechanismAt(2)->tryClaim());
     f.run(1, [](int) {});
-    CHECK(f.driver.bindings().anyReleasedLeftoverClaim());
+    CHECK(f.driver.releasedLeftoverAtEntry(*f.mechanisms));
 }
 
 // ═══ T10 — a robot these controls are not for ═══════════════════════════════════════════
-TEST_CASE("T4 1a T10: bind() REFUSES, by name and with nothing bound, a robot these controls are "
-          "not for — no 'claw pivot 7'; 'claw pivot 7' pneumatic; an extra 'intake' no control "
-          "names; no claw — each on a driver file BOUND to robot two a moment before, and binds "
-          "again on robot two afterwards") {
+TEST_CASE("T4 1a T10: the driver file REFUSES, with nothing bound, a robot its controls are not for — "
+          "no 'claw pivot 7'; 'claw pivot 7' pneumatic; an extra 'intake' no control names; no claw; a "
+          "THREE-position claw — each reason NAMING the mechanism, and binds robot two afterwards") {
     // BUG CAUGHT (T3 test 1i's intent): an undeclared name read as "absent" (pivot 7's buttons
-    // silently dead on a robot built from another table; the claw's A silently dead on a robot
-    // with no claw — the toggle's own refusal, which no case reached until the Part 1a review:
-    // mutation RV-M7); a hold resolved against a pneumatic mechanism; a declared mechanism nobody
-    // can work; and a refusal that leaves the PREVIOUS robot's bindings live (RV-M1: every case
-    // here refused on a driver file that had never been bound, so "nothing bound" held trivially).
-    RobotTwoDriver d;
-    char why[192] = "";
-    // Robot two over the FAKE provider — no shim state, so it stays alive (and its bindings valid)
-    // while the refusing robot is built on the shim right after it.
-    const auto bindTwoFirst = [&](FakeRig& two) {
-        REQUIRE(d.bind(*two.robot, why, sizeof why));
-        REQUIRE(d.bindings().holds().size() == 2U);
-        REQUIRE(d.bindings().toggles().size() == 1U);
+    // silently dead on a robot built from another list; the claw's A silently dead on a robot with no
+    // claw); a hold resolved against a pneumatic mechanism; a declared mechanism nobody can work (the
+    // driver file's own coverage check — the build checks the controls against robot two's list, and
+    // this checks them against the robot the SERVICE was bound to); a toggle bound to a claw with a
+    // third position (the library's own check, DriverInputs::bind, reported in its own words); a
+    // refusal that leaves a half-bound driver (a later bind would then be refused as "twice"); and —
+    // MECH-A5's review — a refusal that THROWS (the program would show "the library graph REFUSED to
+    // build", not its driver-file headline) or whose reason does not NAME the mechanism (T4's binder
+    // named it, and Station F's table promises it). Each list is a hand-built copy of robot two's
+    // (the build's checks ran on the original only).
+    MechanismTable fewer = robotTwoCopy();  // pivot 6 and the claw: no pivot 7
+    fewer.specs[1] = fewer.specs[2];
+    fewer.wiring[1] = fewer.wiring[2];
+    fewer.declared[1] = fewer.declared[2];
+    fewer.count = 2;
+    MechanismTable kinds = robotTwoCopy();  // 'claw pivot 7' a PNEUMATIC on line B
+    kinds.specs[1] = kinds.specs[2];
+    std::snprintf(kinds.specs[1].name, sizeof kinds.specs[1].name, "%s", "claw pivot 7");
+    kinds.wiring[1] = kinds.wiring[2];
+    std::snprintf(kinds.wiring[1].mechanism, sizeof kinds.wiring[1].mechanism, "%s", "claw pivot 7");
+    kinds.wiring[1].lines[0] = shulib::mechanism::Line::B;
+    MechanismTable withIntake = robotTwoCopy();  // a fourth mechanism no control names
+    withIntake.specs[3] = withIntake.specs[0];
+    std::snprintf(withIntake.specs[3].name, sizeof withIntake.specs[3].name, "%s", "intake");
+    withIntake.wiring[3] = withIntake.wiring[0];
+    std::snprintf(withIntake.wiring[3].mechanism, sizeof withIntake.wiring[3].mechanism, "%s", "intake");
+    withIntake.wiring[3].motors[0] = 8;
+    withIntake.count = 4;
+    MechanismTable noClaw = robotTwoCopy();  // the pivots only
+    noClaw.count = 2;
+    MechanismTable threeWay = robotTwoCopy();  // 'claw' on lines A and B with a THIRD position
+    {
+        auto& q = threeWay.specs[2];
+        q.lineCount = 2;
+        for (std::size_t i = 0; i < 2; ++i) {
+            q.pneumatic.positions[i].levels[1] = false;  // closed {Low, Low}, open {High, Low}
+            q.pneumatic.positions[i].levelCount = 2;
+        }
+        std::snprintf(q.pneumatic.positions[2].name, sizeof q.pneumatic.positions[2].name, "%s", "half");
+        q.pneumatic.positions[2].levels[0] = false;  // half {Low, High}
+        q.pneumatic.positions[2].levels[1] = true;
+        q.pneumatic.positions[2].levelCount = 2;
+        q.pneumatic.positionCount = 3;
+        threeWay.wiring[2].lines[1] = shulib::mechanism::Line::B;
+    }
+    struct Case {
+        const char* what;
+        const MechanismTable* list;
+        const char* why;
+        int extraMotor;  // 0: none
     };
-    {
-        FakeRig two;
-        bindTwoFirst(two);
-        MechanismTable fewer = kRobotTwoMechanisms;
-        fewer.motors[1] = shulib::bench::MotorMechanismEntry{};
-        fewer.motorCount = 1;
-        Rig r{true, true, fewer, false};
-        CHECK_FALSE(d.bind(*r.robot, why, sizeof why));
-        CHECK(std::string_view{why}
-              == "a control names 'claw pivot 7', which the robot does not declare");
-        CHECK(d.bindings().holds().empty());
-        CHECK(d.bindings().toggles().empty());
+    for (const Case k :
+         {Case{"no claw pivot 7", &fewer, "a control names 'claw pivot 7', which the robot does not declare", 0},
+          Case{"claw pivot 7 a pneumatic", &kinds,
+               "'claw pivot 7' is a pneumatic mechanism on this robot: its control is for a power one", 0},
+          Case{"an extra intake", &withIntake, "the robot declares 'intake', and no control names it", 8},
+          Case{"no claw", &noClaw, "a control names 'claw', which the robot does not declare", 0},
+          Case{"a three-position claw", &threeWay,
+               "DriverInputs::bind: a control's preset, position, speed or homing is not this robot's "
+               "mechanism's (another robot's declaration of the same name)",
+               0}}) {
+        CAPTURE(k.what);
+        Rig r{true, true, *k.list, /*bindNow=*/false, k.extraMotor};
+        r.bindService();
+        RobotTwoDriver d;
+        char why[192] = "stale";
+        bool bound = true;
+        CHECK_NOTHROW(bound = d.bind(*r.mechanisms, why, sizeof why));
+        CHECK_FALSE(bound);
+        CHECK(std::string_view{why} == k.why);
+        CHECK_FALSE(d.bound());  // nothing bound: it can still bind robot two
     }
+    // A refusal with no room for its reason still refuses (and writes nothing).
     {
-        FakeRig two;
-        bindTwoFirst(two);
-        MechanismTable kinds = kRobotTwoMechanisms;
-        kinds.motors[1] = shulib::bench::MotorMechanismEntry{};
-        kinds.motorCount = 1;
-        kinds.pneumatics[1] = kRobotTwoMechanisms.pneumatics[0];
-        kinds.pneumatics[1].name = "claw pivot 7";
-        kinds.pneumatics[1].adiLine = 2;
-        kinds.pneumaticCount = 2;
-        Rig r{true, true, kinds, false};
-        CHECK_FALSE(d.bind(*r.robot, why, sizeof why));
-        CHECK(std::string_view{why}
-              == "'claw pivot 7' is not a motor mechanism: a hold control needs one");
-        CHECK(d.bindings().holds().empty());
-        CHECK(d.bindings().toggles().empty());
+        Rig r{true, true, noClaw, /*bindNow=*/false};
+        r.bindService();
+        RobotTwoDriver d;
+        CHECK_FALSE(d.bind(*r.mechanisms, nullptr, 0));
+        CHECK_FALSE(d.bound());
     }
-    {
-        FakeRig two;
-        bindTwoFirst(two);
-        MechanismTable withIntake = kRobotTwoMechanisms;
-        withIntake.motors[2] = kRobotTwoMechanisms.motors[0];
-        withIntake.motors[2].name = "intake";
-        withIntake.motors[2].signedPort = 8;
-        withIntake.motorCount = 3;
-        Rig r{true, true, withIntake, false, {8}};
-        CHECK_FALSE(d.bind(*r.robot, why, sizeof why));
-        CHECK(std::string_view{why} == "the robot declares 'intake', and no control names it");
-        CHECK(d.bindings().holds().empty());
-        CHECK(d.bindings().toggles().empty());
-    }
-    {
-        FakeRig two;
-        bindTwoFirst(two);
-        MechanismTable noClaw = kRobotTwoMechanisms;  // the pivots only: the toggle's name is gone
-        noClaw.pneumatics[0] = shulib::bench::PneumaticMechanismEntry{};
-        noClaw.pneumaticCount = 0;
-        Rig r{true, true, noClaw, false};
-        CHECK_FALSE(d.bind(*r.robot, why, sizeof why));
-        CHECK(std::string_view{why} == "a control names 'claw', which the robot does not declare");
-        CHECK(d.bindings().holds().empty());
-        CHECK(d.bindings().toggles().empty());
-    }
-    Rig r{true, true, kRobotTwoMechanisms, false};
-    CHECK(d.bind(*r.robot, why, sizeof why));
-    CHECK(d.bindings().holds().size() == 2U);
-    CHECK(d.bindings().toggles().size() == 1U);
-    d.unbind();
-}
-
-// (The interim tie's own case — "the interim tie (controlsMatchTable) — robot two's driver file
-// matches its table …", seven table copies each breaking one button, the volts, the toggle or an
-// entry — RETIRED with the tie at T4 Part 3, above. Its mutations RV-M2 and the hold/forward-only
-// tie have nothing left to mutate.)
-
-TEST_CASE("T4 1a: the shared claw row — clawRowText(table, robot, freed) — prints the row Station J "
-          "quotes, byte for byte, with FREED exactly when `freed`") {
-    // BUG CAUGHT: the shared form reading a different entry, or dropping FREED, so a driver-control
-    // program's row would differ from the one Station J quotes. (T4 Part 3: until then this case
-    // also compared it with "shulib Teleop"'s TeleopClaws form, which retired with Teleop; the
-    // pinned strings below are what that form printed, so the comparison is kept in the strings.)
     Rig r;
-    CHECK(std::string{clawRowText(kRobotTwoMechanisms, *r.robot, false).text}
-          == "CLAW 6 HOLD 20C | 7 HOLD 20C | CLAW CLOSED");
-    CHECK(std::string{clawRowText(kRobotTwoMechanisms, *r.robot, true).text}
-          == "CLAW 6 HOLD 20C | 7 HOLD 20C | CLAW CLOSED FREED");
+    RobotTwoDriver d;
+    char why[192] = "stale";
+    CHECK(d.bind(*r.mechanisms, why, sizeof why));
+    CHECK(std::string_view{why}.empty());  // a bind that succeeds says nothing
+    CHECK(d.bound());
 }
 
+TEST_CASE("T4 1a: the shared claw row — clawRowText(list, robot, service, freed) — prints the row "
+          "Station J quotes, byte for byte, with FREED exactly when `freed`") {
+    // BUG CAUGHT: the shared form reading a different mechanism, the claw's word read from anywhere
+    // but its declaration's levels, or FREED dropped — a driver-control program's row would differ
+    // from the one Station J quotes (the strings below are what the row printed before MECH-A5).
+    Rig r;
+    CHECK(std::string{clawRowText(two::kRobotTwoMechanisms, *r.robot, *r.mechanisms, false).text}
+          == "CLAW 6 HOLD 20C | 7 HOLD 20C | CLAW CLOSED");
+    CHECK(std::string{clawRowText(two::kRobotTwoMechanisms, *r.robot, *r.mechanisms, true).text}
+          == "CLAW 6 HOLD 20C | 7 HOLD 20C | CLAW CLOSED FREED");
+    r.mechanisms->pneumatic(2).set(1);  // 'open'
+    CHECK(std::string{clawRowText(two::kRobotTwoMechanisms, *r.robot, *r.mechanisms, false).text}
+          == "CLAW 6 HOLD 20C | 7 HOLD 20C | CLAW OPEN");
+}
+
+TEST_CASE("MECH-A5: the driver file holds only the team's decisions — the [driver file two] block wraps "
+          "the WHICH BUTTON heading and the controls statement ONLY (G3a's ask), byte for byte the "
+          "fixture's; the feel and the loop are after it; RobotTwoDriver is the shared DriverFile") {
+    // BUG CAUGHT: G3a's `controls` region swallowing the hand-written feel (its generator would then
+    // overwrite the team's kFeel / kLoop — G3a's RC5, D4 accepted 2026-09-29); a marker doubled; the
+    // fixture every library test of robot two's controls runs drifting from the real file; plumbing
+    // (a class, a bind(), static_asserts) creeping back into the team's file (the MECH brief's N6).
+    const std::string file = source_pins::readFile("src/team/robot_two_driver.hpp");
+    const std::string begin = "// [driver file two]\n";
+    const std::string end = "// [/driver file two]\n";
+    REQUIRE(file.find(begin) != std::string::npos);
+    REQUIRE(file.find(end) != std::string::npos);
+    CHECK(file.find(begin, file.find(begin) + 1) == std::string::npos);
+    CHECK(file.find(end, file.find(end) + 1) == std::string::npos);
+    const std::size_t b = file.find(begin) + begin.size();
+    const std::string region = file.substr(b, file.find(end) - b);
+    const std::string controls =
+        "inline constexpr DriverControls kControls = controls(kRobotTwoMechanisms,\n"
+        "    whileHeld(clawPivot6, Button::R1, Button::R2, 12_volt),  // forward / back, full power\n"
+        "    whileHeld(clawPivot7, Button::L1, Button::L2, 12_volt),  // forward / back, full power\n"
+        "    toggle(claw, Button::A));                                // each press opens or closes it\n";
+    CHECK(region.find("// ═══ WHICH BUTTON DOES WHAT") == 0);
+    CHECK(region.size() == region.find('\n') + 1 + controls.size());  // the heading, then the statement, nothing else
+    CHECK(region.substr(region.find('\n') + 1) == controls);
+    CHECK(region.find("kFeel") == std::string::npos);
+    CHECK(region.find("kLoop") == std::string::npos);
+    CHECK(file.find("inline constexpr DriverProfile kFeel{.mode = ArcadeBody};") > file.find(end));
+    CHECK(file.find("inline constexpr DriverLoopConfig kLoop{") > file.find(end));
+    // The fixture's controls (test/mechanism_driver_fixtures.hpp) state the same statement.
+    CHECK(source_pins::readFile("test/mechanism_driver_fixtures.hpp").find(controls) != std::string::npos);
+    // No plumbing in the team's file: no class, no static_assert, no tick period, no library namespace.
+    CHECK(file.find("class ") == std::string::npos);
+    CHECK(file.find("static_assert") == std::string::npos);
+    CHECK(file.find(".tickPeriod") == std::string::npos);
+    CHECK(file.find("teleop::") == std::string::npos);
+    CHECK(file.find("hal::") == std::string::npos);
+    CHECK(file.find("using RobotTwoDriver = DriverFile<robot_two::kControls, robot_two::kFeel, robot_two::kLoop>;")
+          != std::string::npos);
+    // ...and the real controls ARE the fixture's, control by control.
+    const shulib::mechanism::DriverControls& real = two::kControls;
+    const shulib::mechanism::DriverControls& fixture = mech_fixture::robot_two::kControls;
+    REQUIRE(real.count == 3);
+    REQUIRE(fixture.count == real.count);
+    for (std::size_t i = 0; i < real.count; ++i) {
+        CAPTURE(i);
+        CHECK(real.c[i].kind == fixture.c[i].kind);
+        CHECK(std::string_view{real.c[i].mechanismName} == fixture.c[i].mechanismName);
+        CHECK(real.c[i].button == fixture.c[i].button);
+        CHECK(real.c[i].back == fixture.c[i].back);
+        CHECK(real.c[i].volts == fixture.c[i].volts);
+    }
+    // The loop's numbers as the library takes them: the team's, with the BRAIN's tick supplied.
+    CHECK(RobotTwoDriver::kLoop.tickPeriod.value() == 0.01);
+    CHECK(RobotTwoDriver::kLoop.rezeroButton == ControllerButton::Y);
+    CHECK(RobotTwoDriver::kLoop.releaseBrakeMode == shulib::hal::BrakeMode::Coast);
+    CHECK(RobotTwoDriver::kFeel.mode == shulib::teleop::DriveMode::ArcadeBody);
+    CHECK(two::kLoop.tickPeriod.value() == 0.0);  // the file states none
+}
+
+
+// THE TICK'S EQUALITY EDGE (DriverFile's static_assert; its refusal is test/compile_refusals/
+// n56_a_tick_that_is_not_the_brains.cpp, 20 ms): a driver file that states the BRAIN's tick exactly —
+// 10 ms, the same double as hal::pros::ProsTickPacer::kTickMs / 1000.0 — compiles, and so does one
+// that states none (robot two's). If the static_assert compared with `<` or rounded, this would not
+// build.
+namespace tick_edge {
+using namespace shulib::mechanism::words;
+inline constexpr DriverLoopConfig kStated{.tickPeriod = 10_ms, .rezeroButton = Button::Y, .releaseBrakeMode = Coast};
+using StatedTick = shulib::bench::DriverFile<two::kControls, two::kFeel, kStated>;
+static_assert(StatedTick::kLoop.tickPeriod == shulib::bench::kBrainTick);
+static_assert(kStated.tickPeriod == shulib::bench::kBrainTick, "the edge: exactly the brain's tick");
+}  // namespace tick_edge
 
 // P2-18 (the T4 brief's §3; built in Part 3's late step with Part 2b's items) — the driver file's
 // PROTECTIONS paragraph, its every number against its source. BUG CAUGHT: the paragraph a student

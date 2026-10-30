@@ -5,10 +5,14 @@
 // PROS-free half (src/common/screen_paint.hpp). Every case names the bug it would catch.
 //
 // "shulib Auton Tester"'s own tests still run the same code through the tester's call sites
-// (test/auton_abort_watch_test.cpp (6b), (13b); test/auton_tester_run_test.cpp (21c)) and did not
-// change. THESE cases prove what those cannot: that the pieces are GENERIC — the chain proof over a
-// watch that is not the tester's, the stop with no watch at all — which is what the competition
-// program (COMP-b) relies on. Host test plant only; nothing here has run on a robot.
+// (test/auton_abort_watch_test.cpp (6b), (13b); test/auton_tester_run_test.cpp (21c)). THESE cases
+// prove what those cannot: that the pieces are GENERIC — the chain proof over a watch that is not
+// the tester's, the stop with no watch at all — which is what the competition program (COMP-b)
+// relies on. Since the mechanism core's MECH-A5 (2026-10-29) the proof has a THIRD layer, the
+// robot's mechanism service, and the stop cancels each mechanism's registered claimant: (G1) is the
+// proof that a chain WITHOUT the service — the MECH brief's P1 control case — fails (mutation M28),
+// and (G2b) that a service slot driving a pivot when the throw came cannot command it again. Host
+// test plant only; nothing here has run on a robot.
 
 #include "doctest.h"
 
@@ -23,6 +27,7 @@
 #include <string_view>
 #include <utility>
 
+#include "auton_tester_rig.hpp"
 #include "common/guarded_run.hpp"
 #include "common/screen_paint.hpp"
 #include "common/screen_touch.hpp"
@@ -34,11 +39,15 @@
 #include "shulib/hal/mechanism.hpp"
 #include "shulib/kinematics/tank.hpp"
 #include "shulib/math/pose2d.hpp"
+#include "shulib/mechanism/service.hpp"
 #include "shulib/motion/move_to_pose.hpp"
 #include "shulib/sequence/run_guard.hpp"
 #include "shulib/units/quantity.hpp"
 
+using shulib::bench::ChainGap;
+using shulib::bench::chainGapWords;
 using shulib::bench::kGuardedTickSeconds;
+using shulib::bench::pacerChainMissing;
 using shulib::bench::pacerChainProven;
 using shulib::bench::screenTouchFrom;
 using shulib::bench::ScreenTouch;
@@ -47,6 +56,7 @@ using shulib::bench::WatchLike;
 using shulib::kinematics::TankKinematics;
 using shulib::math::Angle;
 using shulib::math::Pose2d;
+using shulib::mechanism::MechanismService;
 using shulib::sequence::RunGuard;
 using shulib::units::Length;
 using shulib::units::Time;
@@ -128,33 +138,88 @@ std::string readSource(const std::string& rel) {
 
 // (G1) Bug caught: the chain proof written for the tester's watch alone (the competition program's
 // could not use it — the brief's "never copied" would force a copy), or a proof that passes a
-// wrong chain. Over a watch that is NOT the tester's: the right chain proves; a Chassis on the watch
-// (the guard never paces), on the plant (neither paces), a watch never attached, and a watch
-// attached to ANOTHER guard all fail — and no proof commands the drive.
-TEST_CASE("common (G1): pacerChainProven — any WatchLike watch; the right chain only") {
+// wrong chain. Over a watch that is NOT the tester's, with the robot's MECHANISM SERVICE between
+// the guard and the watch (MECH-A5): the right chain proves; a service NEVER BOUND (it ticks
+// nothing), a service LEFT OUT of the chain (the MECH brief's P1 control case: the guard paces the
+// watch directly — mutation M28, a proof that ignores the service, passes it), a watch outside the
+// service, a Chassis on the service (the guard never paces), on the watch, on the plant, a watch
+// never attached and a watch attached to ANOTHER guard each FAIL — each naming its gap, in the
+// proof's order — and no proof commands the drive.
+TEST_CASE("common (G1): pacerChainMissing — guard -> service -> watch, the right chain only, each gap named") {
     motion_rig::MotionRig rig{tank()};
     motion_rig::PlantPacer plant{rig.h};
     MinimalWatch watch{plant};
-    RunGuard guard{watch};
+    tester_rig::RobotTwoFakes two;
+    MechanismService svc{watch};
+    RunGuard guard{svc};
     shulib::chassis::Chassis onChain{rig.deps, guard, motion_rig::chassisConfig()};
-    CHECK_FALSE(pacerChainProven(onChain, guard, watch));  // never attached
+    watch.attachGuard(guard);
+    // The service UNBOUND: the guard paces it, it forwards to the watch, and it ticks nothing.
+    CHECK(pacerChainMissing(onChain, guard, svc, watch) == ChainGap::Service);
+    CHECK_FALSE(pacerChainProven(onChain, guard, svc, watch));
+    svc.bind(shulib::bench::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, rig.faultSink);
+    CHECK(pacerChainMissing(onChain, guard, svc, watch) == ChainGap::None);
+    CHECK(pacerChainProven(onChain, guard, svc, watch));
+    // The back link: attached to ANOTHER guard, then never attached (a second chain of the same shape).
     RunGuard other{plant};
     watch.attachGuard(other);
-    CHECK_FALSE(pacerChainProven(onChain, guard, watch));  // attached to another guard
+    CHECK(pacerChainMissing(onChain, guard, svc, watch) == ChainGap::NotAttached);
     watch.attachGuard(guard);
-    CHECK(pacerChainProven(onChain, guard, watch));
+    CHECK(pacerChainProven(onChain, guard, svc, watch));
+    MinimalWatch unattached{plant};
+    MechanismService svc2{unattached};
+    svc2.bind(shulib::bench::kNoMechanisms, {}, rig.h.clock(), rig.latch, rig.faultSink);
+    RunGuard guard2{svc2};
+    shulib::chassis::Chassis onChain2{rig.deps, guard2, motion_rig::chassisConfig()};
+    CHECK(pacerChainMissing(onChain2, guard2, svc2, unattached) == ChainGap::NotAttached);
+    // THE P1 CONTROL CASE: the guard paces the WATCH, the service is bound but outside the chain.
+    RunGuard skips{watch};
+    shulib::chassis::Chassis onSkip{rig.deps, skips, motion_rig::chassisConfig()};
+    watch.attachGuard(skips);
+    CHECK(pacerChainMissing(onSkip, skips, svc, watch) == ChainGap::Service);
+    watch.attachGuard(guard);
+    // TWO gaps at once — the guard paces the PLANT, so neither the service nor the watch is in the
+    // chain: the FIRST in the proof's order is named (the service), never a later one (MECH-A5's
+    // review, mutation R11: the service and watch checks swapped passed every one-gap chain above).
+    RunGuard overPlant{plant};
+    shulib::chassis::Chassis onOverPlant{rig.deps, overPlant, motion_rig::chassisConfig()};
+    watch.attachGuard(overPlant);
+    CHECK(pacerChainMissing(onOverPlant, overPlant, svc, watch) == ChainGap::Service);
+    watch.attachGuard(guard);
+    // The watch outside the service: guard -> service -> the plant.
+    MinimalWatch aside{plant};
+    MechanismService straight{plant};
+    straight.bind(shulib::bench::kNoMechanisms, {}, rig.h.clock(), rig.latch, rig.faultSink);
+    RunGuard guard3{straight};
+    aside.attachGuard(guard3);
+    shulib::chassis::Chassis onStraight{rig.deps, guard3, motion_rig::chassisConfig()};
+    CHECK(pacerChainMissing(onStraight, guard3, straight, aside) == ChainGap::Watch);
+    // A Chassis on the service, on the watch, on the plant: the guard never paces.
+    shulib::chassis::Chassis onService{rig.deps, svc, motion_rig::chassisConfig()};
+    CHECK(pacerChainMissing(onService, guard, svc, watch) == ChainGap::Guard);
     shulib::chassis::Chassis onWatch{rig.deps, watch, motion_rig::chassisConfig()};
-    CHECK_FALSE(pacerChainProven(onWatch, guard, watch));  // the guard is not in the chain
+    CHECK(pacerChainMissing(onWatch, guard, svc, watch) == ChainGap::Guard);
     shulib::chassis::Chassis onPlant{rig.deps, plant, motion_rig::chassisConfig()};
-    CHECK_FALSE(pacerChainProven(onPlant, guard, watch));  // nothing of the chain paces
+    CHECK(pacerChainMissing(onPlant, guard, svc, watch) == ChainGap::Guard);
     CHECK(plant.distance == 0.0);
     for (const shulib::hal::IMotor* m : rig.h.context().driveMotors()) {
         CHECK(m->commandedVoltage().value() == 0.0);
     }
+    CHECK(two.m6.commandedVoltage().value() == 0.0);  // no proof commands a mechanism either
     // One proof is ONE idle tick of the program's own tick (the plant's clock says so).
     const double t0 = rig.h.clock().now().value();
-    CHECK(pacerChainProven(onChain, guard, watch));
+    CHECK(pacerChainProven(onChain, guard, svc, watch));
     CHECK(rig.h.clock().now().value() - t0 == doctest::Approx(kGuardedTickSeconds));
+    // The refusal's words name each gap (what the programs print after "the pacer chain is WRONG").
+    CHECK(std::string_view{chainGapWords(ChainGap::Service)}
+          == "one idle tick did not tick the mechanism service: it is not under the run guard, or it was "
+             "never bound");
+    CHECK(std::string_view{chainGapWords(ChainGap::Guard)}
+          == "one idle tick did not pace the run guard: the Chassis is not built on it");
+    CHECK(std::string_view{chainGapWords(ChainGap::Watch)}
+          == "one idle tick did not pace the watch: it is not under the mechanism service");
+    CHECK(std::string_view{chainGapWords(ChainGap::NotAttached)}
+          == "the watch is not attached to the run guard: an abort would ask nobody");
 }
 
 // (G2) Bug caught: the program-error stop needing a watch (the competition program has its own),
@@ -203,6 +268,75 @@ TEST_CASE("common (G2): stopAfterProgramError(chassis, present) — drive safe, 
     static_assert(noexcept(stopAfterProgramError(std::declval<shulib::chassis::Chassis&>(),
                                                  std::span<shulib::hal::IMechanism* const>{})),
                   "the program-error stop must never throw");
+}
+
+// (G2b) Bug caught (the MECH brief's §1.13; MECH-A5): the program-error stop SAFING a mechanism but
+// leaving its owner live — "the half-safe failure" hal/mechanism.hpp describes. A mechanism-service
+// slot driving claw pivot 6 at 12 V when the throw came: a safe state alone lasts one tick, then the
+// slot (still active, still holding the claim) commands 12 V again. The stop must also CANCEL the
+// registered claimant: the pivot at 0 V under Hold, the slot inert and its claim released, and the
+// NEXT service tick leaves it there. And an F1-style claimant on another mechanism is cancelled too,
+// once; one that throws skips no other; a mechanism with no claimant is only safed; and a mechanism
+// whose SAFE STATE throws still has its claimant cancelled (MECH-A5's review, mutation R1: the safe
+// state and the cancel in ONE try — the throw would skip the cancel, and the slot driving that
+// mechanism would command it again at the next tick).
+TEST_CASE("common (G2b): stopAfterProgramError cancels each present mechanism's claimant -- a slot "
+          "that was driving cannot command again") {
+    motion_rig::MotionRig rig{tank()};
+    motion_rig::PlantPacer plant{rig.h};
+    tester_rig::RobotTwoFakes two;
+    MechanismService svc{plant};
+    svc.bind(shulib::bench::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, rig.faultSink);
+    shulib::chassis::Chassis chassis{rig.deps, svc, motion_rig::chassisConfig()};
+    svc.power(0).drive(shulib::units::Voltage{12.0});  // a hold-to-run on pivot 6, as R1 held leaves it
+    chassis.wait(Time{0.02});
+    REQUIRE(two.m6.commandedVoltage().value() == 12.0);
+    REQUIRE(two.pivot6.claimed());
+    REQUIRE(two.pivot6.claimant() == &svc.slot(0));
+    struct Counting final : shulib::hal::ICancellable {
+        shulib::hal::IMechanism* mech = nullptr;
+        int cancels = 0;
+        bool throws = false;
+        void cancel() override {
+            ++cancels;
+            if (throws) {
+                throw std::runtime_error("test: a claimant's cancel threw");
+            }
+            mech->releaseClaim();
+        }
+    };
+    shulib::hal::fake::FakeMechanism op{"op"};
+    Counting opClaimant;
+    opClaimant.mech = &op;
+    REQUIRE(op.tryClaim(opClaimant));
+    shulib::hal::fake::FakeMechanism thrower{"thrower"};
+    Counting throwing;
+    throwing.mech = &thrower;
+    throwing.throws = true;
+    REQUIRE(thrower.tryClaim(throwing));
+    shulib::hal::fake::FakeMechanism plain{"plain"};
+    ThrowingMechanism safeThrows;  // its applySafeState() throws — and it is claimed
+    Counting safeThrowsClaimant;
+    safeThrowsClaimant.mech = &safeThrows;
+    REQUIRE(safeThrows.tryClaim(safeThrowsClaimant));
+    shulib::hal::IMechanism* present[] = {&safeThrows, &thrower, &two.pivot6, &op, &plain};
+    CHECK_NOTHROW(stopAfterProgramError(chassis, std::span<shulib::hal::IMechanism* const>{present}));
+    CHECK(safeThrows.calls == 1);               // its safe state was tried (and threw) ...
+    CHECK(safeThrowsClaimant.cancels == 1);     // ... and its claimant was STILL cancelled
+    CHECK_FALSE(safeThrows.claimed());
+    CHECK(two.m6.commandedVoltage().value() == 0.0);
+    CHECK(two.m6.brakeMode() == shulib::hal::BrakeMode::Hold);
+    CHECK_FALSE(two.pivot6.claimed());  // the slot's cancel released it
+    CHECK(opClaimant.cancels == 1);
+    CHECK_FALSE(op.claimed());
+    CHECK(throwing.cancels == 1);       // it threw -- and skipped nothing after it
+    CHECK(plain.safeStateApplications() == 1);
+    // THE HALF-SAFE CHECK: the service ticks on, and the pivot stays where the stop put it.
+    for (int i = 0; i < 5; ++i) {
+        chassis.wait(Time{0.01});
+        CHECK(two.m6.commandedVoltage().value() == 0.0);
+    }
+    CHECK_FALSE(two.pivot6.claimed());
 }
 
 // (G3) Bug caught: the neutral touch reduction reading the RELEASE count as the press count (a

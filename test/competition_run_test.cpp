@@ -14,6 +14,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <span>
 #include <stdexcept>
@@ -31,6 +32,7 @@
 #include "team/autons.hpp"
 #include "shulib/chassis/routine.hpp"
 #include "shulib/competition/auton_registry.hpp"
+#include "shulib/config/route.hpp"
 #include "shulib/competition/match_runner.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/diag/term_sink.hpp"
@@ -118,6 +120,47 @@ void addThrowers(AutonRegistry& r) {
     r.add(routineEntry("throws int", &driveThenThrowInt));
 }
 
+/// A route marker (the route editor's form): `id`, then `args` integer args.
+shulib::config::Marker routeMarker(const char* id, std::int32_t a0 = 0, std::int32_t a1 = 0, int args = 0) {
+    shulib::config::Marker m{};
+    std::snprintf(m.id, sizeof m.id, "%s", id);
+    m.args[0] = a0;
+    m.args[1] = a1;
+    m.argCount = static_cast<std::uint8_t>(args);
+    return m;
+}
+/// Robot two's claws as a ROUTE (test/robot_two_claws_example_test.cpp's, the form G3a's panel draws):
+/// open the claw at the start; at the end, grab, then each pivot 0.4 s — four markers, each one of
+/// the route ids the program's registry holds.
+const shulib::config::Route& clawsRoute() {
+    static shulib::config::Route route = [] {
+        shulib::config::Route r{.name = "claws_route"};
+        r.waypoints[0] = {.heading = Angle::degrees(0.0), .headingMode = shulib::config::HeadingMode::Fixed,
+                          .motion = shulib::config::WaypointMotion::Start};
+        r.waypoints[0].markers[0] = routeMarker("claw_open");
+        r.waypoints[0].markerCount = 1;
+        r.waypoints[1] = {.x = Length{20.0}, .y = Length{0.0}, .headingMode = shulib::config::HeadingMode::Free,
+                          .motion = shulib::config::WaypointMotion::DriveTo, .constraints = {.timeout = Time{5.0}}};
+        r.waypoints[1].markers[0] = routeMarker("claw_closed");
+        r.waypoints[1].markers[1] = routeMarker("claw_pivot_6_run", 12, 400, 2);
+        r.waypoints[1].markers[2] = routeMarker("claw_pivot_7_run", -12, 400, 2);
+        r.waypoints[1].markerCount = 3;
+        r.count = 2;
+        return r;
+    }();
+    return route;
+}
+/// The claws route as a match auton, registered BEFORE the team's (index 0; the team's then 1 and 2).
+void addClawsRoute(AutonRegistry& r) {
+    AutonEntry e{};
+    e.name = "claws route";
+    e.kind = AutonKind::Match;
+    e.route = &clawsRoute();
+    e.endActionAt = Time{27.0};
+    e.hardStopAt = Time{29.0};
+    r.add(e);
+}
+
 /// Drive every drive motor at `volts` under Coast — a live drive nothing but a stop can end.
 void energize(CompetitionStack& s, double volts) {
     for (shulib::hal::IMotor* m : s.rig.h.context().driveMotors()) {
@@ -202,6 +245,38 @@ TEST_CASE("request (R1): the 40 in through serveAutonRequest — FINISHED, the w
     CHECK(std::string_view{lines.line[3]} == want);
 }
 
+// (R1r) Bug caught (MECH-A5's review): a ROUTE auton served through the program's request path
+// without the program's route registry — `runAuton` handed no commands (every marker an unknown id,
+// the claws never move), the registry not holding robot two's route ids (the rig's `registerInto`
+// gone: mutation R22), or the markers fired outside the guard (the claws left open at the end). The
+// panel G3a builds draws exactly these routes for the first competition; until this case only a
+// source pin (P5) held competition_run.hpp's hand-off of `p.commands`.
+TEST_CASE("request (R1r): a ROUTE auton through serveAutonRequest — every marker one of robot two's route "
+          "ids, each fired and run, none unknown; the claws safe at the end") {
+    CompetitionStack s{tank(), 1, 1.0, 50, &addClawsRoute};
+    REQUIRE(clawsRoute().valid());
+    s.choose(0);
+    bool opened = false;
+    double six = 0.0;
+    double seven = 0.0;
+    s.probe.onPace = [&] {
+        opened = opened || s.two.lineA.commanded();
+        six = s.two.m6.commandedVoltage().value() != 0.0 ? s.two.m6.commandedVoltage().value() : six;
+        seven = s.two.m7.commandedVoltage().value() != 0.0 ? s.two.m7.commandedVoltage().value() : seven;
+    };
+    const CompetitionRunRecord& r = s.serve();
+    CHECK(std::string_view{competitionResultWord(r)} == "FINISHED");
+    REQUIRE(r.run.outcome == AutonRunOutcome::RouteRan);
+    CHECK(r.run.route.ok());
+    CHECK(r.run.route.markersFired == 4);
+    CHECK(r.run.route.unknownIds == 0);
+    CHECK(opened);          // claw_open ran: line A high (open) during the route
+    CHECK(six == 12.0);     // claw_pivot_6_run 12 V
+    CHECK(seven == -12.0);  // claw_pivot_7_run -12 V
+    CHECK(s.mechanismsSafe());  // the end of the run: every mechanism safe, the claw CLOSED
+    CHECK(s.driveSafe());
+}
+
 // (R2) Bug caught: an auton the team registers that the COMPETITION program's request cannot run
 // to a clean end — the tester's (1b) proves every auton through the tester's sequence; this proves
 // it through the match's. Each: FINISHED, the drive at 0 V + Brake after, nothing commanded idle.
@@ -284,7 +359,7 @@ TEST_CASE("request (R4): the period ends mid-auton (driver control) — ABANDONE
 // left for a minute; the 40 in must then run 40 in straight ahead of where it stands, no fault.
 TEST_CASE("request (R17): the first tick after a long idle — the 40 in from where the robot stands") {
     CompetitionStack s{tank(), 1, 1.0, 0};
-    REQUIRE(shulib::bench::pacerChainProven(s.chassis, s.guard, s.watch));  // the boot's ONE tick
+    REQUIRE(shulib::bench::pacerChainProven(s.chassis, s.guard, s.mechanisms, s.watch));  // the boot's ONE tick
     s.choose(kForty);
     const auto byHand = [&s](double left, double right, int ticks) {
         const auto motors = s.rig.h.context().driveMotors();
@@ -425,9 +500,6 @@ TEST_CASE("request (R7): a throw OUTSIDE runAuton — stopped, safed, latched, a
         CAPTURE(static_cast<int>(kind));
         SUBCASE("(i) the status painter throws") {
             CompetitionStack s{tank()};
-            shulib::hal::fake::FakeMechanism pivot{"claw pivot 6"};
-            shulib::hal::fake::FakeMechanism claw{"claw"};
-            s.present = {&pivot, &claw};
             s.choose(kForty);
             s.obs.throwOnStart = true;
             s.obs.throwKind = kind;
@@ -445,8 +517,9 @@ TEST_CASE("request (R7): a throw OUTSIDE runAuton — stopped, safed, latched, a
                                 : "an unknown exception"));
             CHECK(std::string_view{competitionResultWord(*r)} == "PROGRAM ERROR");
             CHECK(s.driveSafe());  // the handler's program-error stop
-            CHECK(pivot.safeStateApplications() >= 1);
-            CHECK(claw.safeStateApplications() >= 1);
+            CHECK(s.two.pivot6.safes >= 1);  // robot two's present mechanisms, through the service
+            CHECK(s.two.pivot7.safes >= 1);
+            CHECK(s.two.claw.safes >= 1);
             CHECK(s.flags.programError.load());
             CHECK(s.handshake.isFinished(1));
             CHECK_FALSE(s.handshake.busy());
@@ -465,8 +538,6 @@ TEST_CASE("request (R7): a throw OUTSIDE runAuton — stopped, safed, latched, a
             comp_rig::ThrowingSink broken;
             broken.throwAt = 0;
             s.telemetryOverride = &broken;
-            shulib::hal::fake::FakeMechanism pivot{"claw pivot 7"};
-            s.present = {&pivot};
             s.choose(kForty);
             energize(s, 6.0);
             const CompetitionRunRecord* r = nullptr;
@@ -475,7 +546,7 @@ TEST_CASE("request (R7): a throw OUTSIDE runAuton — stopped, safed, latched, a
             CHECK(r->threw);
             CHECK(std::string_view{r->threwWhat} == "probe: the log sink threw");
             CHECK(s.driveSafe());
-            CHECK(pivot.safeStateApplications() >= 1);
+            CHECK(s.two.pivot7.safes >= 1);
             CHECK(s.handshake.isFinished(1));  // the Error line threw too: the word still came
             CHECK(broken.calls >= 2);          // runAuton's line, then the Error line
         }
@@ -491,8 +562,6 @@ TEST_CASE("request (R8): a routine that throws (the guard rethrows) — PROGRAM 
     for (int index = 0; index < 3; ++index) {
         CAPTURE(index);
         CompetitionStack s{tank(), 1, 1.0, 50, &addThrowers};
-        shulib::hal::fake::FakeMechanism pivot{"claw pivot 6"};
-        s.present = {&pivot};
         s.choose(index);
         const double before = s.plant.distance;
         const CompetitionRunRecord* r = nullptr;
@@ -505,7 +574,7 @@ TEST_CASE("request (R8): a routine that throws (the guard rethrows) — PROGRAM 
         CHECK(s.driveSafe());
         CHECK_FALSE(s.chassis.scheduler().hasActiveMotion());
         CHECK_FALSE(s.guard.running());
-        CHECK(pivot.safeStateApplications() >= 1);
+        CHECK(s.two.pivot6.safes >= 1);
         CHECK(s.flags.programError.load());
         CHECK(s.handshake.isFinished(1));
         const CompetitionRunLines lines = competitionRunLines(*r, s.registry);
@@ -631,16 +700,16 @@ TEST_CASE("request (R11): the SD run log is written only AFTER FINISHED, with se
     CHECK(cmpLines == 4);
 }
 
-// (R12) Bug caught (B9): the Robot's PRESENT mechanisms not reaching the guard through the program's
-// request (the collection empty, or the span not handed on) — nothing would be safed at the cut or
-// the end; an ABSENT one is simply not in the span. At a clean end AND at a disable.
+// (R12) Bug caught (B9; through the mechanism service since MECH-A5): the Robot's PRESENT mechanisms
+// not reaching the guard through the program's request (the service not handed on, or runAuton's
+// span overload called with an empty span) — nothing would be safed at the cut or the end; an ABSENT
+// one is simply not the service's to safe (pivot 7 here, its port empty). At a clean end AND at a
+// disable.
 TEST_CASE("request (R12): the present mechanisms are safed at a clean end and at a disable") {
     for (const bool disable : {false, true}) {
         CAPTURE(disable);
-        CompetitionStack s{tank()};
-        shulib::hal::fake::FakeMechanism pivot6{"claw pivot 6"};
-        shulib::hal::fake::FakeMechanism claw{"claw"};
-        s.present = {&pivot6, &claw};  // claw pivot 7 ABSENT: not listed
+        CompetitionStack s{tank(), 1, 1.0, 50, nullptr, /*absentPivot7=*/true};
+        REQUIRE(s.mechanisms.mechanisms().size() == 2U);  // pivot 6 and the claw
         s.choose(kAcceptance);
         if (disable) {
             const double start = s.now();
@@ -649,10 +718,14 @@ TEST_CASE("request (R12): the present mechanisms are safed at a clean end and at
                     now - start >= 1.5 ? comp_rig::kDisabledOnField : comp_rig::kAutonEnabled;
             };
         }
+        const int sixBefore = s.two.pivot6.safes;
+        const int clawBefore = s.two.claw.safes;
         const CompetitionRunRecord& r = s.serve();
         CHECK(r.run.guard.abandoned == disable);
-        CHECK(pivot6.safeStateApplications() >= 1);
-        CHECK(claw.safeStateApplications() >= 1);
+        CHECK(s.two.pivot6.safes > sixBefore);
+        CHECK(s.two.claw.safes > clawBefore);
+        CHECK(s.two.pivot7.safes == 0);  // ABSENT: never the guard's
+        CHECK(s.mechanismsSafe());
     }
 }
 
@@ -849,15 +922,6 @@ TEST_CASE("request (R13): the words — every outcome's word; no line cut at the
 
 namespace {
 
-/// A mechanism that records, at every safe-state application, the handshake's FINISHED at that
-/// instant -- so a test can see whether a stop came before or after the terminal word.
-struct FinishedAtSafeMechanism final : shulib::hal::IMechanism {
-    const AutonHandshake* handshake = nullptr;
-    std::vector<std::uint32_t> finishedAtSafe;
-    void applySafeState() override { finishedAtSafe.push_back(handshake->finished()); }
-    [[nodiscard]] const char* name() const noexcept override { return "probe pivot"; }
-};
-
 /// The opcontrol task's driver loop, modelled where it meets the auton task: one tick every 10 ms of
 /// robot clock, from `firstAt` -- it beats, then checks its end (teleop_loop.hpp's step 1: the
 /// program's driverControlMustEnd), and on the end runs its exit (chassis.cancel(); the bindings'
@@ -895,22 +959,21 @@ struct DriverTaskModel {
 // (R18) Bug caught (RC1, the file banner's order -- the review's RV3): the program-error stop moved
 // AFTER the terminal word. FINISHED hands the robot to opcontrol(); a stop after it would put the
 // drive to 0 V + Brake and force the claws safe while the driver drives. A probe mechanism records
-// FINISHED at every safe-state application: on both of RC1's throws, and at a clean run's end,
-// every one comes BEFORE the word. (The END-estimate and fault reads cannot be watched from a
+// FINISHED at every safe-state application (robot two's pivot 6, through the mechanism service since
+// MECH-A5): on both of RC1's throws, and at a clean run's end, every one comes BEFORE the word. (The END-estimate and fault reads cannot be watched from a
 // single-threaded host: test/competition_source_test.cpp's (P15) pins their place.)
 TEST_CASE("request (R18): the program-error stop and the guard's safing come BEFORE FINISHED") {
     for (const int path : {0, 1, 2}) {  // 0: the status painter throws; 1: a routine throws; 2: clean
         CAPTURE(path);
         CompetitionStack s{tank(), 1, 1.0, 50, &addThrowers};
-        FinishedAtSafeMechanism probe;
-        probe.handshake = &s.handshake;
-        s.present = {&probe};
+        std::vector<std::uint32_t> finishedAtSafe;  // robot two's pivot 6, recording at every safe state
+        s.two.pivot6.onSafe = [&s, &finishedAtSafe] { finishedAtSafe.push_back(s.handshake.finished()); };
         s.choose(path == 1 ? 0 : 3);  // a throwing routine, or the team's 40 in
         s.obs.throwOnStart = path == 0;
         const CompetitionRunRecord& r = s.serve();
         CHECK(r.threw == (path != 2));
-        REQUIRE_FALSE(probe.finishedAtSafe.empty());  // safed on every path
-        for (const std::uint32_t f : probe.finishedAtSafe) {
+        REQUIRE_FALSE(finishedAtSafe.empty());  // safed on every path
+        for (const std::uint32_t f : finishedAtSafe) {
             CHECK(f < r.request);  // ...and always before the terminal word
         }
         CHECK(s.handshake.isFinished(r.request));

@@ -2477,7 +2477,7 @@ TEST_CASE("T4 Part 2 source pins: the driver file's kLoop and the X-drive's kLoo
     CHECK(mentions >= 1U);       // the boot's protections line reads it ...
     CHECK(reads == mentions);    // ... and nothing else names a protection field
     const std::string driver = readSource("src/team/robot_two_driver.hpp");
-    const std::size_t k = driver.find("static constexpr teleop::DriverLoopConfig kLoop{");
+    const std::size_t k = driver.find("inline constexpr DriverLoopConfig kLoop{");  // the words since MECH-A5
     REQUIRE(k != std::string::npos);
     const std::string kLoop = driver.substr(k, driver.find("};", k) - k);
     CHECK(kLoop.find("protection") == std::string::npos);

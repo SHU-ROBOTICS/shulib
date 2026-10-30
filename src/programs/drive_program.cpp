@@ -34,10 +34,12 @@
 // competition status (from main.cpp's arguments — the beacon stays a literal in
 // src/build_selection.hpp's one chain), the boot source (which prints its own decision lines), then
 // the graph, ONCE, into std::optional storage inside the graph boundary's ONE try — the provider
-// (which opens the SD copy), validate(), the Robot's construction, and the driver file's bind(),
-// because a provider configuration conflict and a binding's volts are preconditions — then the
-// fault latch handed to main.cpp's handler (fault_latch_hook.hpp), the session header, and the boot
-// lines. The banner and the boot source's lines come BEFORE the provider, so they are on serial
+// (which opens the SD copy), validate(), the Robot's construction, the MECHANISM SERVICE bound over
+// it and the driver file's bind() (the mechanism core's MECH-A5), because a provider configuration
+// conflict is a precondition and a control naming a mechanism this robot lacks is the driver file's
+// own refusal ("the driver file REFUSED this robot", naming it) — then the fault latch
+// handed to main.cpp's handler (fault_latch_hook.hpp), the session header, and the boot lines (the
+// mechanism lines among them: one per role, per control, and each mechanism's state). The banner and the boot source's lines come BEFORE the provider, so they are on serial
 // only; everything from the provider's construction on is in the SD copy too — a refusal decided
 // after it included: refuseBuilt() says it through the provider's sink before releasing it (the
 // T4-3 review), so the card's drive_log.txt, truncated by this boot, says why this boot refused.
@@ -55,8 +57,18 @@
 // THROWS would be re-attempted on the next call, so the static below holds empty optionals and
 // members whose constructors cannot throw and touch no hardware — the driver file's
 // RobotTwoDriver: its ProsController touches no device until it is read (hal/pros/controller.hpp),
-// its DriveShaper's constructor is noexcept, and its bindings start empty. driveInitialize()
-// emplaces into the optionals, once. Function-local rather than namespace-scope for one more
+// its DriveShaper's constructor is noexcept, and its inputs start unbound. driveInitialize()
+// emplaces into the optionals, once.
+//
+// ═══ THE MECHANISM SERVICE (the mechanism core's MECH-A5, 2026-10-29) ═══════════════════
+// ONE mechanism::MechanismService in the static, bound over the Robot's built mechanisms
+// (robot.mechanismParts().devices() — the same objects the Robot lists) right after the Robot is
+// built; the driver file's controls are bound to it, and the driver loop ticks it ONCE per tick
+// itself (teleop::runDriverControl's service overload). "shulib Drive" runs no auton and has NO run
+// guard, so the service is NOT in the Chassis's pacer chain: it is constructed around the raw tick
+// pacer only because its constructor needs an inner pacer, and nothing paces it — the driver loop's
+// tickFromDriverLoop() is its one ticker. It is declared AFTER the Robot, so it is destroyed FIRST:
+// it holds pointers into the Robot's devices. Function-local rather than namespace-scope for one more
 // reason: this file compiles in every build, and a namespace-scope object with a non-trivial
 // destructor registers that destructor from a static initializer the linker must keep — dragging
 // the whole graph's code into every other program's package. A function-local static is
@@ -97,7 +109,6 @@
 #include "pros/screen.h"
 
 #include "common/boot_source.hpp"
-#include "common/driver_controls.hpp"
 #include "common/driver_panel.hpp"
 #include "common/fault_latch_hook.hpp"
 #include "common/log_copy_line.hpp"
@@ -125,6 +136,7 @@
 #include "shulib/localization/localizer.hpp"
 #include "shulib/math/angle.hpp"
 #include "shulib/math/twist2d.hpp"
+#include "shulib/mechanism/service.hpp"
 #include "shulib/motion/odo_stall_check.hpp"
 #include "shulib/robot/robot.hpp"
 #include "shulib/teleop/coupled_side_monitor.hpp"
@@ -252,9 +264,12 @@ struct DriveState {
     // destroyed first (reverse declaration order), and the provider must outlive it.
     std::optional<hal::pros::ProsDeviceProvider> devices{};
     std::optional<robot::Robot> robot{};
+    // The mechanism service (header, THE MECHANISM SERVICE): AFTER the Robot, so it is destroyed
+    // before the devices it points at.
+    std::optional<mechanism::MechanismService> mechanisms{};
     // Robot two's driver file — the buttons, the feel and the loop — bound ONCE, inside
     // driveInitialize()'s try; held here, never on runDrive()'s stack, because the loop holds the
-    // bindings by address and PROS deletes the opcontrol task on a field disable. Its constructor
+    // inputs by address and PROS deletes the opcontrol task on a field disable. Its constructor
     // cannot throw and touches no hardware (header, STORAGE).
     RobotTwoDriver driver{};
     // The controller's three lines (emplaced after the graph is built; touches no hardware).
@@ -300,7 +315,10 @@ void refuse(const char* headline, const char* why) {
 /// released (no binding may outlive the mechanisms it points at, nor the Robot the provider), then
 /// remembered and painted with no serial line of its own (the sink said it). With NO provider (a
 /// throw inside its own construction) nothing was said, so the painter says it on serial (the T4-3
-/// verification: a refusal said nowhere on serial).
+/// verification: a refusal said nowhere on serial). The mechanism service goes FIRST — it points into
+/// the Robot's devices (nothing holds a claim at boot: bind() commands nothing). The driver file is
+/// left bound to the destroyed service, and harmlessly so: a refused boot never runs driver control
+/// (runDrive() paints the refusal and idles).
 void refuseBuilt(const char* headline, const char* why) {
     DriveState& st = state();
     std::snprintf(st.refusalHeadline, sizeof st.refusalHeadline, "%.63s", headline);
@@ -309,7 +327,7 @@ void refuseBuilt(const char* headline, const char* why) {
     if (logged) {
         logBootRefusal(st.devices->telemetry(), kTag, st.refusalHeadline, st.refusalWhy);
     }
-    st.driver.unbind();
+    st.mechanisms.reset();
     st.robot.reset();
     st.devices.reset();
     paintRefusal(!logged);
@@ -330,10 +348,11 @@ public:
     /// `lcd` is the controller's three lines; `atStart` the touch read when the screen first
     /// appears (a tap made before it is never replayed).
     DriveScreen(const robot::Robot& r, const BootOutcome& boot, const RobotTwoDriver& driver,
-                hal::ILineDisplay& lcd, const ScreenTouch& atStart)
+                const mechanism::MechanismService& mechanisms, hal::ILineDisplay& lcd, const ScreenTouch& atStart)
         : r_{r},
           boot_{boot},
           driver_{driver},
+          mechanisms_{mechanisms},
           lcd_{lcd},
           pager_{atStart.sample.releaseCount, atStart.pressCount} {
         const auto groups = r_.chassis().deps().motorGroups;
@@ -377,8 +396,8 @@ private:
         const math::Pose2d pose = r_.localizer().pose();
         const localization::DriveEncoderOdometry* odom = r_.driveOdometry();
         const diag::FaultLatch& faults = r_.faults();
-        const bool freed = driver_.bindings().anyReleasedLeftoverClaim();
-        const ClawRow claw = clawRowText(kMechanisms, r_, freed);
+        const bool freed = driver_.releasedLeftoverAtEntry(mechanisms_);
+        const ClawRow claw = clawRowText(kMechanisms, r_, mechanisms_, freed);
         DriveLiveFacts f{};
         f.cutSeconds = kCutSeconds;
         f.connected = connected;
@@ -466,6 +485,7 @@ private:
     const robot::Robot& r_;
     const BootOutcome& boot_;
     const RobotTwoDriver& driver_;
+    const mechanism::MechanismService& mechanisms_;
     hal::ILineDisplay& lcd_;
     const hal::MotorGroup* left_ = nullptr;
     const hal::MotorGroup* right_ = nullptr;
@@ -482,7 +502,7 @@ private:
 /// GENERATED from the driver file's constants and the library's defaults it runs with, never
 /// retyped.
 void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& boot,
-                  const hal::pros::ProsDeviceProvider& devices) {
+                  const hal::pros::ProsDeviceProvider& devices, const mechanism::MechanismService& mechanisms) {
     char line[240];
     // THE SD COPY (N5 (a)): where it is, or that it did not open and why (no card, or a card that
     // would not take the file) — once (the T5 rule), in the words src/common/log_copy_line.hpp
@@ -576,21 +596,14 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
                                    teleop::SideMonitorConfig{}.persistTicks);
         logWrapped(log, hal::LogLevel::Info, protections);
     }
-    // THE CLAWS: one line per declared mechanism, BUILT or ABSENT with the provider's own sentence
-    // (src/common/driver_panel.hpp words them from the table AND the driver file's controls — the
-    // competition program prints the same lines; Station J.3.1 / J.9.1 quote them). An ABSENT one is a warning: its buttons do nothing, and the
-    // drive runs anyway.
-    for (std::size_t i = 0; i < motorEntryCount(kMechanisms); ++i) {
-        logWrapped(log, r.builtMechanismAt(i) != nullptr ? hal::LogLevel::Info : hal::LogLevel::Warn,
-                   motorClawBootLine(kMechanisms, RobotTwoDriver::kHolds, r, i).text);
-    }
-    for (std::size_t j = 0; j < pneumaticEntryCount(kMechanisms); ++j) {
-        logWrapped(log,
-                   r.builtMechanismAt(mechanismConfigIndexOfPneumatic(kMechanisms, j)) != nullptr
-                       ? hal::LogLevel::Info
-                       : hal::LogLevel::Warn,
-                   pneumaticClawBootLine(kMechanisms, RobotTwoDriver::kToggles, r, j).text);
-    }
+    // THE MECHANISMS (the mechanism core's MECH-A5): each one's block — what it is, one line per role
+    // (BUILT, ABSENT with the provider's own sentence, or a 3-wire "not checkable"), one per driver
+    // control, its state — worded by src/common/driver_panel.hpp from the list, the Robot's built
+    // roles, the bound service AND the driver file's controls (the competition program and the Auton
+    // Tester print the same lines; Stations J.3.1 / J.9.1 quote them), tag MECH, each within one
+    // TermSink line. An ABSENT one is a warning: its buttons do nothing, and the drive runs anyway.
+    mechanismBootLines(kMechanisms, r, mechanisms, &RobotTwoDriver::kControls,
+                       [&log](const MechanismLine& m) { log.log(m.level, "MECH", m.text); });
 }
 
 }  // namespace
@@ -635,16 +648,23 @@ void driveInitialize(const char* variantBeacon, const char* competitionStatusBit
             return;
         }
         st.robot.emplace(st.boot.built.config, *st.devices, st.boot.built.buildOptions());
-        // Robot two's driver file binds its buttons BY NAME against the robot just built (a binding's
-        // constructor may throw, and nothing that can throw runs after driver control starts). An
-        // ABSENT mechanism gets no binding; a robot these controls are not for is refused.
+        // THE MECHANISM SERVICE (header): bound over the Robot's own built mechanisms (one source of
+        // devices — the MECH brief's landmine 20), then robot two's driver file binds its controls to
+        // it BY NAME, inside the try (nothing that can throw runs after driver control starts). A
+        // robot these controls are not for — a control naming a mechanism it lacks, or one of another
+        // kind, or a mechanism no control names — is the driver file's OWN refusal, its reason naming
+        // the mechanism (T4's headline, kept). An ABSENT mechanism is a slot that answers ABSENT: its
+        // buttons do nothing, and the drive runs.
+        st.mechanisms.emplace(st.devices->pacer());
+        st.mechanisms->bind(kMechanisms, st.robot->mechanismParts().devices(), st.robot->context().clock(),
+                            st.robot->faults(), st.robot->context().telemetry());
         char why[192] = "";
-        if (!st.driver.bind(*st.robot, why, sizeof why)) {
+        if (!st.driver.bind(*st.mechanisms, why, sizeof why)) {
             refuseBuilt("the driver file REFUSED this robot", why);
             return;
         }
     } catch (const PreconditionError& e) {
-        // refuseBuilt() unbinds FIRST: no binding may outlive the mechanisms it points at.
+        // refuseBuilt() releases the service FIRST: it points into the Robot's devices.
         refuseBuilt("the library graph REFUSED to build", e.what());
         return;
     }
@@ -665,7 +685,7 @@ void driveInitialize(const char* variantBeacon, const char* competitionStatusBit
     session.portMap = st.portMap;
     diag::emitSessionHeader(log, session, r.context().battery().voltage());
 
-    logBootLines(r, log, st.boot, *st.devices);
+    logBootLines(r, log, st.boot, *st.devices, *st.mechanisms);
 }
 
 void driveAutonomous() {
@@ -691,9 +711,11 @@ void runDrive() {
     robot::Robot& r = *st.robot;
     hal::ITelemetrySink& log = st.devices->telemetry();
     log.log(hal::LogLevel::Info, kTag, kOpcontrolLive);
-    DriveScreen screen{r, st.boot, st.driver, *st.lcd, readTouch()};
-    st.driver.run(r, st.devices->pacer(), [] { return pros::c::competition_is_disabled() != 0; },
-                  screen);
+    DriveScreen screen{r, st.boot, st.driver, *st.mechanisms, *st.lcd, readTouch()};
+    // The driver file's loop ticks the mechanism service itself, once per tick; its pacer is the raw
+    // tick (header, THE MECHANISM SERVICE).
+    st.driver.run(r, *st.mechanisms, st.devices->pacer(),
+                  [] { return pros::c::competition_is_disabled() != 0; }, screen);
     // This line races PROS's deletion of this task (HA-161 (a)): one that lands while the line is
     // being copied to the card ends the card's copy for the rest of the boot (serial keeps every
     // line; diag/log_copy_sink.hpp, "A writer that never comes back").

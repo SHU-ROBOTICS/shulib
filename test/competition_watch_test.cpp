@@ -22,6 +22,7 @@
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/kinematics/tank.hpp"
 #include "shulib/math/pose2d.hpp"
+#include "shulib/mechanism/service.hpp"
 #include "shulib/sequence/run_guard.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -208,21 +209,22 @@ TEST_CASE("watch (W5): each armed pace reads the status, THEN paces the inner pa
     CHECK(inner.paces == 4);
 }
 
-// (W6) Bug caught (B30; the boot's chain proof): a Chassis whose pacer is not the guard over this
-// watch — built on the watch (the guard never paces), on the plant (neither does) — or a watch
-// never attached / attached to another guard (it latches a disable and asks nobody). The shared
-// proof must say true for the right chain only, over THIS watch, commanding nothing.
+// (W6) Bug caught (B30; the boot's chain proof; MECH-A5's third layer): a Chassis whose pacer is not
+// the guard over the mechanism service over this watch — built on the watch (the guard never paces),
+// on the plant (nothing does) — or a watch never attached / attached to another guard (it latches a
+// disable and asks nobody). The shared proof must say true for the right chain only, over THIS watch,
+// commanding nothing — the competition rig's chain is the program's (guard -> service -> watch).
 TEST_CASE("watch (W6): pacerChainProven over the competition watch — the right chain only") {
     comp_rig::CompetitionStack s{tank(), 1, 1.0, 0};
-    CHECK(shulib::bench::pacerChainProven(s.chassis, s.guard, s.watch));
+    CHECK(shulib::bench::pacerChainProven(s.chassis, s.guard, s.mechanisms, s.watch));
     RunGuard other{s.plant};
     s.watch.attachGuard(other);
-    CHECK_FALSE(shulib::bench::pacerChainProven(s.chassis, s.guard, s.watch));
+    CHECK_FALSE(shulib::bench::pacerChainProven(s.chassis, s.guard, s.mechanisms, s.watch));
     s.watch.attachGuard(s.guard);
     shulib::chassis::Chassis onWatch{s.rig.deps, s.watch, motion_rig::chassisConfig()};
-    CHECK_FALSE(shulib::bench::pacerChainProven(onWatch, s.guard, s.watch));
+    CHECK_FALSE(shulib::bench::pacerChainProven(onWatch, s.guard, s.mechanisms, s.watch));
     shulib::chassis::Chassis onPlant{s.rig.deps, s.plant, motion_rig::chassisConfig()};
-    CHECK_FALSE(shulib::bench::pacerChainProven(onPlant, s.guard, s.watch));
+    CHECK_FALSE(shulib::bench::pacerChainProven(onPlant, s.guard, s.mechanisms, s.watch));
     CHECK(s.plant.distance == 0.0);
     CHECK(s.probe.energizedWhileIdle == 0);
     // A watch built but never attached: the same chain, the back link missing.
@@ -231,11 +233,13 @@ TEST_CASE("watch (W6): pacerChainProven over the competition watch — the right
     comp_rig::ScriptedStatus status2;
     status2.clock = &rig2.h.clock();
     CompetitionWatch unattached{plant2, status2};
-    RunGuard guard2{unattached};
+    shulib::mechanism::MechanismService svc2{unattached};
+    svc2.bind(shulib::bench::kNoMechanisms, {}, rig2.h.clock(), rig2.latch, rig2.faultSink);
+    RunGuard guard2{svc2};
     shulib::chassis::Chassis onChain{rig2.deps, guard2, motion_rig::chassisConfig()};
-    CHECK_FALSE(shulib::bench::pacerChainProven(onChain, guard2, unattached));
+    CHECK_FALSE(shulib::bench::pacerChainProven(onChain, guard2, svc2, unattached));
     unattached.attachGuard(guard2);
-    CHECK(shulib::bench::pacerChainProven(onChain, guard2, unattached));
+    CHECK(shulib::bench::pacerChainProven(onChain, guard2, svc2, unattached));
 }
 
 // (W7) Bug caught (B22, the one-tick latch; B7's "<= one tick of latency"): a disable mid-motion

@@ -1119,8 +1119,9 @@ inline void roleLine(char* out, std::size_t cap, const char* mechanismName, cons
 
 /// ONE boot line naming the numbers a POSITION or SPEED mechanism's loop runs with, and which of them
 /// are the library's STARTING values (HA-182 — invented, never measured) rather than the team's
-/// `.tuning` — beside roleLine(). No program prints it yet: the core's fifth part (MECH-A5) adds it
-/// to every program's boot. Each number that differs from positionStartingValues() /
+/// `.tuning` — beside roleLine(). A program prints it at boot for each position or speed mechanism of
+/// its list, after that mechanism's role and control lines (since the core's fifth part, MECH-A5). Each
+/// number that differs from positionStartingValues() /
 /// speedStartingValues() is marked "(tuned)" — for the smooth move's ramp, its TIME (a stated speed
 /// alone keeps the starting 0.25 s ramp, so it is not marked); the line ends saying how many are
 /// starting values. Writes at most `cap` bytes, NUL-terminated; "" for a power or pneumatic mechanism

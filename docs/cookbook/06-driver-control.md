@@ -23,7 +23,8 @@ the host's stand-in for PROS.
 > controls — `whileHeld`, `toggle`, `preset` (presets on buttons), the homing controls — run through the same
 > mechanism service as its autons ([chapter 18](../guide/18-mechanisms.md#on-the-drivers-buttons--the-driver-files-controls);
 > [chapter 7](07-mechanisms.md) has the recipe). The two below stay, unchanged, for a program with no mechanism
-> service; robot two's driver file moves onto the controls in the core's next part.
+> service. Robot two's driver file — the last section — moved onto the controls in the core's fifth part
+> (2026-10-29), its claws behaving exactly as they did.
 
 ---
 
@@ -208,7 +209,7 @@ disable ends driver control and the claw is **still open**.
   [`config::MechanismConfig`](../api/robot_config.md#struct-mechanismconfig) carries per-line
   levels — and since its fourth part the core's driver controls drive such positions, `toggle` and
   `preset` ([chapter 7](07-mechanisms.md), [chapter 18](../guide/18-mechanisms.md#on-the-drivers-buttons--the-driver-files-controls));
-  no program uses them until the core's fifth part.) A single valve on ONE
+  robot two's driver file uses `toggle` since the core's fifth part, for its one-line claw.) A single valve on ONE
   3-wire port is one line, whatever cylinder it drives.
 - **From a config, the robot builds the claw.** State the mechanism's 3-wire port (A..H, stored as
   1..8), its `pneumaticStart` and its `pneumaticSafe` level, and bind to
@@ -232,59 +233,38 @@ disable ends driver control and the claw is **still open**.
 ## A whole driver file: robot two's
 
 **Use this when:** you want to see everything a driver does to one robot — every stick and button,
-the feel, and the call into the loop — in one file a student can read top to bottom and defend.
+and the feel — in one file a student can read top to bottom and defend (the call into the loop is
+`src/common/driver_file.hpp`'s, shared by every driver file, since the mechanism core's fifth part).
 
-The two recipes above are the pieces. A team's own robot puts them in ONE file:
+A team's own robot puts its driver's decisions in ONE file:
 [`src/team/robot_two_driver.hpp`](../../src/team/robot_two_driver.hpp) is robot two's. Its header
-comment lists what every control does in plain words; below it, the code has three parts. **Which
-button does what** — one line per mechanism, named as the robot's mechanism table names it:
+comment lists what every stick and button does in plain words; below it, the code is the team's
+decisions and nothing else. **Which button does what** — one checked list, each control naming its
+mechanism by the declaration in the robot file
+([`src/robots/mechanism_table.hpp`](../../src/robots/mechanism_table.hpp)):
 
 ```cpp
-static constexpr HoldControl kHolds[] = {
-    {"claw pivot 6", Button::R1, Button::R2, 12_volt},  // forward / back, full power
-    {"claw pivot 7", Button::L1, Button::L2, 12_volt},  // forward / back, full power
-};
-static constexpr ToggleControl kToggles[] = {
-    {"claw", Button::A},  // each press opens or closes it
+inline constexpr DriverControls kControls = controls(kRobotTwoMechanisms,
+    whileHeld(clawPivot6, Button::R1, Button::R2, 12_volt),  // forward / back, full power
+    whileHeld(clawPivot7, Button::L1, Button::L2, 12_volt),  // forward / back, full power
+    toggle(claw, Button::A));                                // each press opens or closes it
+```
+
+**The feel** — the library's default arcade feel with field-centric off, the re-zero button, and
+what the drive does when the sticks are let go:
+
+```cpp
+inline constexpr DriverProfile kFeel{.mode = ArcadeBody};
+inline constexpr DriverLoopConfig kLoop{
+    .rezeroButton = Button::Y,     // field-centric's "away from me"
+    .releaseBrakeMode = Coast,     // let go of the sticks: the drive coasts
 };
 ```
 
-**The feel** — the library's default arcade feel with field-centric off, the loop's tick, the
-re-zero button, and what the drive does when the sticks are let go:
+**Its name** — the one line that makes the three constants a driver the programs can hold:
 
 ```cpp
-static constexpr teleop::DriverProfile kFeel{.mode = teleop::DriveMode::ArcadeBody};
-
-static constexpr teleop::DriverLoopConfig kLoop{
-    .tickPeriod = 10_ms,                        // the brain's tick
-    .rezeroButton = Button::Y,                  // field-centric's "away from me"
-    .releaseBrakeMode = hal::BrakeMode::Coast,  // let go of the sticks: the drive coasts
-};
-```
-
-**How it runs** — `bind()` once, when the program boots, and `run()` in driver control, each under
-the file's own comment. Nothing in this part changes when a button does:
-
-```cpp
-/// initialize(), once, right after the robot is built. False, with the reason in `why` and
-/// nothing bound, when the robot is not the one these controls are for. A mechanism it
-/// declares but could not build (a motor unplugged) gets no binding: its buttons do
-/// nothing, and the drive still runs. Call it inside the boot's try: a binding can throw.
-bool bind(robot::Robot& robot, char* why, std::size_t cap) {
-    return bindings_.bind(robot, kHolds, kToggles, kLoop.rezeroButton, why, cap);
-}
-
-/// opcontrol(): drive until the field disables the robot, then return (PROS calls
-/// opcontrol() again when driver control comes back). `pacer` is the brain's tick,
-/// `disabled` asks the field, and `perTick` is the program's screen (it may do nothing; one
-/// that takes a fourth argument is also handed the drive protections' state).
-template <class IsDisabled, class PerTick>
-void run(robot::Robot& robot, motion::ITickPacer& pacer, IsDisabled&& disabled,
-         PerTick&& perTick) {
-    teleop::runDriverControl(robot.chassis(), controller_, pacer, feel_, kLoop,
-                             bindings_.holds(), bindings_.toggles(), disabled,
-                             [&robot] { return driverHeading(robot); }, perTick);
-}
+using RobotTwoDriver = DriverFile<robot_two::kControls, robot_two::kFeel, robot_two::kLoop>;
 ```
 
 Every line of these listings is the file's own, and each listing is an unbroken run of the file:
@@ -297,44 +277,44 @@ it, in both, the library protects the drive, as the file's header says in plain 
 that stops answering is dropped and the robot drives on; more than two dead stop the drive for the
 rest of the run; a fight, or more than 2.4 A while driven, for 250 ms stops both sides for 1 s — the
 loop's numbers, every one unmeasured. **Nothing of it has run on a robot**: it is tested on the host,
-through a stand-in for PROS, against robot two's real mechanism table.
+through a stand-in for PROS, against robot two's real mechanisms.
 
 **Why it is written this way.**
 
-- **The file says WHICH button, never HOW a binding works.** Everything that is not "which button
-  does what" is in [`src/common/driver_controls.hpp`](../../src/common/driver_controls.hpp), written
-  and tested once: the two control types, the checks, the binder behind `bind()`, and the one rule
-  for trusting the heading. A second robot's driver file copies only its own controls.
-- **`bind()` finds each mechanism BY NAME**, in the robot the program built from its mechanism
-  table. It refuses — `false`, with the reason, nothing bound — a name the robot does not declare,
-  a hold on a mechanism that is not a motor (or a toggle on one that is not pneumatic), and a
-  mechanism the robot declares that no control names: those are controls written for a different
-  robot. A mechanism the robot declares but could not build (its motor unplugged) is skipped — its
-  buttons do nothing, and the drive still runs.
-- **The claw starts where the robot started.** A toggle's first level is the level the robot built
-  the claw's line at, read back from the robot — so nothing in this file says "closed", and flipping
-  which level opens the claw (in the mechanism table) needs no edit here. The first time driver
-  control starts in a run, that level is sent, whatever an autonomous routine left: the team lead's
-  ruling, "starts closed — whatever autonomous left it at". After that, a disable and the next start
-  send nothing.
-- **`run()` IS the library's loop**, with its arguments in plain sight: the robot's chassis, the
-  controller, the program's tick, the feel, the loop settings, the two lists of bindings, the
-  field's disable, the heading and the program's screen.
-- **`make` refuses a set that could not work.** Six checks under the class stop the build — each
-  with its own message — on a button doing two jobs, a control on the re-zero button, a voltage
-  outside (0, 12], a name the robot's table does not have (or of the wrong kind, or twice), a
-  mechanism with no control, and a loop tick that is not the brain's.
+- **The file holds only the team's decisions.** How a driver file RUNS — binding the controls to
+  the robot's mechanism service, the controller, the call into the library's driver loop, the one
+  rule for trusting the heading — is written once, in
+  [`src/common/driver_file.hpp`](../../src/common/driver_file.hpp)'s `DriverFile`, for every robot.
+  A second robot's driver file copies none of it: its controls, its feel, its loop and one `using`
+  line. (Until the mechanism core's fifth part this file also carried a class, its `bind()` and
+  `run()`, its bindings and six checks.)
+- **A control names its mechanism by its declaration**, so a misspelt or removed mechanism is a
+  compile error at the control's line, and `controls(...)` checks the whole list against the
+  robot's list at build — each refusal BY NAME: a button doing two jobs, a hold's volts outside
+  (0, 12], a control on a mechanism this robot does not have, a mechanism with no control (mark one
+  the driver never works `autonOnly(...)`). `DriverFile` adds the last two checks: no control on
+  the loop's re-zero button, and no tick but the brain's (the file states none — the library
+  supplies it).
+- **The claw starts where the robot started.** The program's FIRST driver-control entry sends the
+  claw its start position ("closed", in the robot file), whatever an autonomous routine left: the
+  team lead's ruling, "starts closed — whatever autonomous left it at". After that, a disable and
+  the next start send nothing, and a controller that drops out never flips it: a press must be SEEN
+  — up, then down, on two connected ticks. Which line level closes it is the robot file's (on the
+  claw's `.positions` line), never this file's.
+- **The claws run through the robot's mechanism service** — the same one that runs them in an
+  auton — and behave exactly as robot two's claws did before the mechanism core: R1 / R2 and L1 / L2
+  drive each pivot at full power while held, let go and it holds; both buttons at once is let go;
+  and a held button stops the moment the field disables the robot.
 
 **Watch out for:**
 
-- **Keep the driver file in static storage.** The program holds ONE for the whole run, never on
-  `opcontrol()`'s stack: a field disable deletes the driver-control task, and the loop holds the
-  bindings by address.
-- **Call `bind()` inside the boot's `try`**, and `unbind()` first in its `catch`: a binding that
-  cannot be built throws, and nothing may be left pointing at a robot the `catch` tears down.
+- **Keep the driver in static storage.** The program holds ONE `RobotTwoDriver` for the whole run,
+  never on `opcontrol()`'s stack: a field disable deletes the driver-control task, and the loop
+  holds the driver's inputs by address.
+- **Bind it once, at boot, inside the boot's `try`, AFTER the mechanism service is bound** — a
+  control naming a mechanism the robot does not have, or of another kind, throws there, where the
+  program can still refuse the boot and say why.
 - **Change a button in the driver file and nowhere else.** The buttons — the re-zero button
-  included — are stated only there; the mechanism table says what each mechanism IS (its ports,
-  its stop), never which button works it, and the claws' boot lines read their buttons from the
-  driver file's controls.
-- **A robot with no toggle (or no hold)** drops that list and passes `{}` in its place — in `bind()`
-  and in the checks. C++ has no empty `[]` array, so the compiler walks you through it.
+  included — are stated only there; the robot file says what each mechanism IS (its ports, its
+  stop), never which button works it, and the programs' boot lines read the buttons from the driver
+  file's controls.

@@ -1530,7 +1530,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
      inputs (mechanism/driver_inputs.hpp, MECH-A4) see that a held button is superseded until it is released.
  The library's own numbers in all of this are HA-182 — invented, PROVISIONAL — in two groups. The
  starting gains, profile and "reached" (kinds.hpp) are per mechanism: startingValuesLine()
- (wiring.hpp) words them for a boot line (MECH-A5 prints it; no program does yet) and a declaration's
+ (wiring.hpp) words them for a boot line (the programs print it since MECH-A5) and a declaration's
  `.tuning` replaces each one. The hold's integral clamp and the speed integral's window and clamp
  (below) are LIBRARY constants: not on the boot line, not `.tuning` fields — only an edit here
  changes them, for every mechanism.

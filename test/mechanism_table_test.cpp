@@ -1,29 +1,34 @@
 // Adversarial tests for the mechanism table (chunk T3, the program half's prep, 2026-09-26; the
-// pneumatic claw from T3's addendum, E2, the same day): robot two's two claw pivots and its
-// pneumatic claw exactly as the team lead stated them, the claw's polarity as ONE constant, the
-// "is this a declared mechanism port" predicate, "shulib Calibrate"'s candidate filter as a pure
-// function, the consistency checks broken one at a time with hand-built tables, and the one
-// Calibrate call site pinned by reading its source.
+// pneumatic claw from T3's addendum, E2; REWRITTEN for the mechanism core's words by MECH-A5,
+// 2026-10-29): robot two's claw pivots and its pneumatic claw exactly as the team lead stated them,
+// now as DECLARATIONS and their wiring in `namespace robot_two`; the claw's open level on ONE line;
+// WHERE each declaration was written (the recorded path, pinned by its suffix); the region G3a's
+// generator wraps, byte for byte the test fixture's; the selection for EVERY robot; the drive check
+// over every smart ROLE and the IMU (mechanismsClearOf — a SENSOR on a drive port included, the MECH
+// brief's M29); "is this a declared mechanism port"; "shulib Calibrate"'s candidate filter as a pure
+// function over the new list; and the one Calibrate call site pinned by reading its source.
 //
-// WHAT THIS TU SEES. The table lives in src/ (a per-robot composition fact, not library API) and
-// is PROS-free so this test can include it from src/, as test/chassis_table_test.cpp
-// includes the chassis table. Robot two's entries are defined in every build under their own name
-// (kRobotTwoMechanisms), so the contents test below reads THE REAL BYTES — a swapped button in
-// src/robots/mechanism_table.hpp turns this file red — while kMechanisms, the build's selection, is the
-// host's: no build switch is set, so src/build_selection.hpp's chain takes its #else (the bench
-// build) and none is declared. The selection itself, mechanismTableFor(), is called for EVERY robot
-// below. Since G1 Part 2c's final run (2026-09-26) robot two's DRIVE table is here too, by its own
-// name (kRobotTwoChassis): the disjointness case reads the real one (it re-typed it until then,
-// because the chassis table defined robot two's only under the tank define), and the header
-// static_asserts the real pair in every build.
+// WHAT LEFT WITH THE OLD ENTRY TYPES (MECH-A5). The cases that broke the table's own five
+// consistency checks one field at a time (an UNSET field, a port of 0 / 22 / a repeat, a line of 0 /
+// 9, a count past the array, the polarity typed as a literal) are GONE with those checks: the
+// declarations and mechanisms(...) refuse every one AT BUILD, by name, and the compile-refusal
+// harness (test/compile_refusals/) proves each refusal fires (MECH-A1). This file pins the facts
+// only this file can: robot two's VALUES, and this file's own drive check and selection.
+//
+// WHAT THIS TU SEES. The list lives in src/ (a per-robot composition fact, not library API) and is
+// PROS-free, so this test includes it from src/. Robot two's list is defined in every build under its
+// own name (robot_two::kRobotTwoMechanisms), so the contents cases read THE REAL DECLARATIONS, while
+// kMechanisms, the build's selection, is the host's: no build switch is set, so
+// src/build_selection.hpp's chain takes its #else (the bench build) and none is declared. The
+// selection itself, mechanismTableFor(), is called for EVERY robot below.
 //
 // WHAT THIS TU CANNOT DO: run the call site. src/programs/calibrate_program.cpp is a whole PROS program
-// (pros/screen.h, pros/misc.h and the rest are not in the host shim). So the filter's LOGIC —
-// re-listing the survivors in place, the new count, the dropped list — lives in the table's pure
-// dropDeclaredMechanismPorts(), which the cases here RUN; and what is left at the call site (one
-// assignment, one log loop, where they sit, and step 4 building from the filtered list) is pinned
-// by reading the program's code, comments stripped, EXACTLY (the last case). What that cannot see
-// — that the lines print on the robot and no claw moves — is worksheet Station J's.
+// (pros/screen.h, pros/misc.h and the rest are not in the host shim). So the filter's LOGIC lives in
+// the table's pure dropDeclaredMechanismPorts(), which the cases here RUN; and what is left at the call
+// site is pinned by reading the program's code, comments stripped, EXACTLY (the last case) — UNCHANGED
+// by MECH-A5: the call reads `kMechanisms`, which IS the new list (the MECH brief's N9 fallback; CAL1
+// Part B replaces the drop). What that cannot see — that the lines print on the robot and no claw
+// moves — is worksheet Station J's.
 
 #include "doctest.h"
 
@@ -32,77 +37,39 @@
 #include <cstdint>
 #include <cstring>
 #include <fstream>
-#include <limits>
-#include <optional>
 #include <span>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
+#include "mechanism_fixtures.hpp"
 #include "robots/mechanism_table.hpp"
+#include "shulib/mechanism/wiring.hpp"
 
-using shulib::bench::absPort;
-using shulib::bench::Cartridge;
 using shulib::bench::ChassisTable;
 using shulib::bench::dropDeclaredMechanismPorts;
 using shulib::bench::DroppedMechanismPorts;
 using shulib::bench::isDeclaredMechanismPort;
-using shulib::bench::kClawOpenCommand;
-using shulib::bench::kMaxAdiLine;
-using shulib::bench::kMaxMechanisms;
-using shulib::bench::kMaxPneumatics;
 using shulib::bench::kMaxPort;
 using shulib::bench::kMechanisms;
 using shulib::bench::kNoMechanisms;
-using shulib::bench::kRobotTwoMechanisms;
 using shulib::bench::MechanismTable;
-using shulib::bench::mechanismCountValid;
-using shulib::bench::mechanismPortsValid;
-using shulib::bench::mechanismsDisjointFromChassis;
-using shulib::bench::mechanismTableComplete;
-using shulib::bench::motorEntryComplete;
-using shulib::bench::motorEntryCount;
-using shulib::bench::MotorMechanismEntry;
-using shulib::bench::pneumaticCommandFor;
-using shulib::bench::pneumaticEntryComplete;
-using shulib::bench::pneumaticEntryCount;
-using shulib::bench::pneumaticLinesValid;
-using shulib::bench::PneumaticMechanismEntry;
-using shulib::bench::PneumaticPosition;
-using shulib::bench::pneumaticSafeCommand;
-using shulib::bench::pneumaticStartCommand;
+using shulib::bench::mechanismsClearOf;
 using shulib::bench::tableSideOf;
-using shulib::hal::BrakeMode;
+namespace mech = shulib::mechanism;
+namespace two = shulib::bench::robot_two;
 
 namespace {
 
-/// A copy of robot two's REAL drive table (src/robots/chassis_table.hpp's kRobotTwoChassis: LEFT -11 +12
-/// -13 +14 -15, RIGHT +20 -19 +18 -17 +16, IMU on port 2, BLUE — test/chassis_table_test.cpp pins
-/// those literals), for a case to break one field of.
+/// Robot two's REAL drive table (src/robots/chassis_table.hpp's kRobotTwoChassis: LEFT -11 +12 -13
+/// +14 -15, RIGHT +20 -19 +18 -17 +16, IMU on port 2 — test/chassis_table_test.cpp pins those
+/// literals), a copy for a case to break one field of.
 [[nodiscard]] ChassisTable robotTwoChassis() { return shulib::bench::kRobotTwoChassis; }
 
-/// A copy of robot two's REAL table, for a case to break one field of.
-[[nodiscard]] MechanismTable robotTwo() { return kRobotTwoMechanisms; }
-
-/// Every consistency check at once — what the header's static_asserts demand of a build's table
-/// (all but check 4, the chassis pairing, which takes a second table). Four checks of the nine T3
-/// wrote — the buttons and the volts — left with the buttons at T4 Part 3: they are the driver
-/// file's now (src/common/driver_controls.hpp; test/driver_controls_test.cpp breaks each).
-[[nodiscard]] bool allChecksPass(const MechanismTable& t) {
-    return mechanismCountValid(t) && mechanismTableComplete(t) && mechanismPortsValid(t)
-           && pneumaticLinesValid(t);
-}
-
-/// Robot two with a SECOND pneumatic entry — a copy of the claw on line `line` — for the cases
-/// that need two of them (the real table declares one).
-[[nodiscard]] MechanismTable robotTwoWithSecondPneumatic(int line) {
-    MechanismTable t = kRobotTwoMechanisms;
-    t.pneumatics[1] = t.pneumatics[0];
-    t.pneumatics[1].name = "second pneumatic";
-    t.pneumatics[1].adiLine = static_cast<std::uint8_t>(line);
-    t.pneumaticCount = 2;
-    return t;
-}
+/// A copy of robot two's REAL list, for a case to break one field of (a hand-built list: the build's
+/// checks ran on the original only).
+[[nodiscard]] MechanismTable robotTwo() { return two::kRobotTwoMechanisms; }
 
 [[nodiscard]] std::vector<int> asInts(const std::int8_t* p, std::size_t n) {
     std::vector<int> v;
@@ -217,141 +184,221 @@ struct Filtered {
     return n;
 }
 
+/// The 1-based line of the FIRST line of the table file holding `text` (0 if none): the recorded-path
+/// pins read the file, so a moved line moves its pin with it.
+[[nodiscard]] std::uint32_t tableLineOf(const std::string& text) {
+    const std::string file = readRepoFile("src/robots/mechanism_table.hpp");
+    const std::size_t at = file.find(text);
+    if (at == std::string::npos) return 0;
+    std::uint32_t line = 1;
+    for (std::size_t i = 0; i < at; ++i) line += file[i] == '\n' ? 1U : 0U;
+    return line;
+}
+
+/// The text strictly between `begin` and `end` (both whole lines) in `file`, or "" when either is
+/// missing or not exactly once.
+[[nodiscard]] std::string region(const std::string& file, const std::string& begin, const std::string& end) {
+    if (occurrences(file, begin) != 1 || occurrences(file, end) != 1) return "";
+    const std::size_t b = file.find(begin) + begin.size();
+    const std::size_t e = file.find(end);
+    return e > b ? file.substr(b, e - b) : "";
+}
+
+[[nodiscard]] bool endsWith(const char* s, const std::string& suffix) {
+    if (s == nullptr) return false;
+    const std::string v{s};
+    return v.size() >= suffix.size() && v.compare(v.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
 }  // namespace
 
 TEST_CASE("mechanism table: robot two's claw pivots are EXACTLY what the team lead stated "
-          "(2026-09-26) -- the real table, not a copy") {
-    // BUG CAUGHT: any typo in src/robots/mechanism_table.hpp's robot-two block — a wrong port (the
-    // binding drives some other motor), a sign flipped without a measurement, a wrong cartridge
-    // (RED gearing written as something else), or a safe mode other than Hold (a released claw
-    // drops). The BUTTONS and the VOLTS are not here since T4 Part 3 (the team lead's ruling R1:
-    // the driver file owns which button does what): robot two's R1/R2, L1/L2 and 12 V are pinned in
-    // test/robot_two_driver_test.cpp (T1, through the driver file), the pins that stood here until
-    // then retired with the fields.
-    const MechanismTable& t = kRobotTwoMechanisms;
-    REQUIRE(t.motorCount == 2);
-
-    const MotorMechanismEntry& six = t.motors[0];
-    CHECK(std::strcmp(six.name, "claw pivot 6") == 0);
-    CHECK(six.signedPort == +6);  // POSITIVE: the way is UNMEASURED; a flip is a measurement
-    CHECK(six.cartridge == Cartridge::Red);
-    REQUIRE(six.safeMode.has_value());
-    CHECK(*six.safeMode == BrakeMode::Hold);
-    REQUIRE(six.provenance != nullptr);
-    CHECK(std::strstr(six.provenance, "team lead 2026-09-26") != nullptr);
-    CHECK(std::strstr(six.provenance, "(buttons: src/team/robot_two_driver.hpp since T4)")
-          != nullptr);
-
-    const MotorMechanismEntry& seven = t.motors[1];
-    CHECK(std::strcmp(seven.name, "claw pivot 7") == 0);
-    CHECK(seven.signedPort == +7);
-    CHECK(seven.cartridge == Cartridge::Red);
-    REQUIRE(seven.safeMode.has_value());
-    CHECK(*seven.safeMode == BrakeMode::Hold);
-    REQUIRE(seven.provenance != nullptr);
-    CHECK(std::strstr(seven.provenance, "team lead 2026-09-26") != nullptr);
-    CHECK(std::strstr(seven.provenance, "(buttons: src/team/robot_two_driver.hpp since T4)")
-          != nullptr);
-
-    // And the table as a whole passes every check the header's static_asserts make.
-    CHECK(allChecksPass(t));
-    CHECK(mechanismsDisjointFromChassis(t, robotTwoChassis()));
+          "(2026-09-26) -- the real declarations and wiring, not a copy") {
+    // BUG CAUGHT: any typo in src/robots/mechanism_table.hpp's robot-two region — a wrong port (the
+    // control drives some other motor), a pivot declared Reversed without a measurement, a wrong
+    // cartridge (RED gearing written as something else), a safe state other than Hold (a released claw
+    // drops), a stall signature nobody measured, a ceiling below full power (R1 / R2 would no longer
+    // be 12 V), the pivots merged into one two-motor mechanism (both claws would move at once), or the
+    // list's ORDER changed (the boot's config index, the claw row and every boot line follow it). The
+    // BUTTONS and the VOLTS are the driver file's (test/robot_two_driver_test.cpp).
+    const MechanismTable& t = two::kRobotTwoMechanisms;
+    REQUIRE(t.count == 3);
+    struct Pivot {
+        std::size_t index;
+        const char* name;
+        int port;
+    };
+    for (const Pivot p : {Pivot{0, "claw pivot 6", 6}, Pivot{1, "claw pivot 7", 7}}) {
+        CAPTURE(p.name);
+        const mech::MechanismSpec& s = t.specs[p.index];
+        CHECK(std::string_view{s.name} == p.name);
+        CHECK(s.kind == mech::Kind::Power);
+        REQUIRE(s.motorCount == 1);
+        CHECK_FALSE(s.motors[0].reversed);  // + = the motor's own forward: the way is UNMEASURED (HA-153)
+        CHECK(s.cartridge == shulib::hal::MotorCartridge::Red);
+        CHECK(s.safeMode == shulib::config::SafeBrakeMode::Hold);
+        CHECK_FALSE(s.power.stall.written());  // no signature: the driver is the only cut-off (HA-154)
+        CHECK(s.power.maxVolts == 12.0);       // full power passes through
+        CHECK(s.lineCount == 0);
+        CHECK(s.angleSensor.kind == mech::SensorKind::None);
+        CHECK(s.pieceSensor.kind == mech::SensorKind::None);
+        const mech::MechanismWiring& w = t.wiring[p.index];
+        CHECK(w.motors[0] == p.port);
+        CHECK(w.motors[1] == 0);
+        CHECK(w.angleSensor == 0);
+        CHECK(w.pieceSensorPort == 0);
+        // ...and the config the boot derives from it: the signed port as typed, RED, Hold.
+        const shulib::config::MechanismConfig c = mech::toMechanismConfig(s, w);
+        CHECK(c.motorPorts[0] == p.port);
+        CHECK(c.motorCount == 1);
+        CHECK(c.cartridge == shulib::hal::MotorCartridge::Red);
+        CHECK(c.safeMode == shulib::config::SafeBrakeMode::Hold);
+    }
+    CHECK(mechanismsClearOf(t, robotTwoChassis()));
 }
 
 TEST_CASE("mechanism table: robot two's PNEUMATIC claw is EXACTLY what the team lead stated "
-          "(2026-09-26) -- 3-wire A, CLOSED at start, safe CLOSED, the polarity the ONE "
-          "constant") {
-    // BUG CAUGHT: any typo in the claw's entry — the wrong 3-wire line (the toggle fires some
-    // other valve, or nothing), the claw starting OPEN (it drops its preload the moment the
-    // program starts), a safe position of OPEN (a library-forced safe state — COMP's end-of-run
-    // guard — would drop what the claw holds), the polarity typed as a level instead
-    // of read from kClawOpenCommand, the wrong name, or a missing provenance — and the polarity
-    // flipped without a measurement (the claw then OPENS at program start and drops what it holds,
-    // while HA-159 and Station J.9 still say `true`).
-    const MechanismTable& t = kRobotTwoMechanisms;
-    // PINNED LIKE THE PIVOTS' SIGNS: the value is a guess, and a flip is Station J.9's MEASUREMENT
-    // (J.9.3's verdict, A4 register HA-159). The code edit stays one line — the entry reads the
-    // constant and every level follows it (the next case) — but the flip is RECORDED: it changes
-    // this pin, HA-159 (its index row and its claim) and J.9's quote, in the same change.
-    CHECK(kClawOpenCommand == true);  // "line ON = open": UNVERIFIED until Station J.9
-    REQUIRE(t.pneumaticCount == 1);
-
-    const PneumaticMechanismEntry& claw = t.pneumatics[0];
-    REQUIRE(claw.name != nullptr);
-    CHECK(std::strcmp(claw.name, "claw") == 0);
-    CHECK(claw.adiLine == 1);  // 3-wire port A
-    REQUIRE(claw.openCommand.has_value());
-    CHECK(*claw.openCommand == kClawOpenCommand);
-    REQUIRE(claw.start.has_value());
-    CHECK(*claw.start == PneumaticPosition::Closed);
-    REQUIRE(claw.safe.has_value());
-    CHECK(*claw.safe == PneumaticPosition::Closed);
-    // (Its toggle, A, is the driver file's since T4 Part 3: test/robot_two_driver_test.cpp T2.)
-    REQUIRE(claw.provenance != nullptr);
-    CHECK(std::strlen(claw.provenance) > 0);
-    CHECK(std::strstr(claw.provenance, "team lead 2026-09-26 (port A; polarity unknown)")
-          != nullptr);
-
-    // The LEVELS: CLOSED is the level that does not open it, at start and as the safe value.
-    CHECK(pneumaticCommandFor(claw, PneumaticPosition::Open) == kClawOpenCommand);
-    CHECK(pneumaticCommandFor(claw, PneumaticPosition::Closed) == !kClawOpenCommand);
-    CHECK(pneumaticStartCommand(claw) == !kClawOpenCommand);
-    CHECK(pneumaticSafeCommand(claw) == !kClawOpenCommand);
-
-    // The claw's line is a 3-WIRE port: it does not make smart port 1 a mechanism (Calibrate
-    // would then drop a motor on port 1 for a claw that is not there).
+          "(2026-09-26) -- 3-wire A, 'closed' at the start and when made safe, closed = LOW, a 0.5 s "
+          "move (HA-185)") {
+    // BUG CAUGHT: any typo in the claw's declaration — the wrong 3-wire line (the toggle fires some
+    // other valve, or nothing), the claw starting OPEN (it drops its preload the moment the program
+    // starts), a safe position of OPEN (a library-forced safe state — the run guard's end of run —
+    // would drop what the claw holds), the open level flipped without a measurement (the claw then
+    // OPENS at program start, while HA-159 and Station J.9 still quote LOW = closed), a second line
+    // nobody reported, `grabs` lost from 'closed' (a sensorless grab would then SUCCEED instead of
+    // reading UNCONFIRMED, counted done — the team lead's Q2 (c)), or the move time changed without
+    // Station J (an auton's set() would wait a time nobody measured — HA-185, PROVISIONAL).
+    const MechanismTable& t = two::kRobotTwoMechanisms;
+    const mech::MechanismSpec& s = t.specs[2];
+    CHECK(std::string_view{s.name} == "claw");
+    CHECK(s.kind == mech::Kind::Pneumatic);
+    CHECK(s.motorCount == 0);
+    REQUIRE(s.lineCount == 1);  // ONE line: what was reported (single or double, HA-159)
+    const mech::PneumaticSpec& q = s.pneumatic;
+    REQUIRE(q.positionCount == 2);
+    CHECK(std::string_view{q.positions[0].name} == "closed");
+    CHECK_FALSE(q.positions[0].levels[0]);  // closed = LOW: the GUESS (HA-159), Station J.9 settles it
+    CHECK(q.positions[0].confirm == mech::Confirm::Sees);  // `grabs`
+    CHECK(std::string_view{q.positions[1].name} == "open");
+    CHECK(q.positions[1].levels[0]);        // open = HIGH ("line ON = open", the T3 addendum's start)
+    CHECK(q.positions[1].confirm == mech::Confirm::None);
+    CHECK(q.start == 0);                    // 'closed'
+    CHECK(q.safe == 0);                     // 'closed'
+    CHECK(q.actuationTime == 0.5);          // PROVISIONAL (HA-185): Station J times it
+    CHECK(q.confirmWindow == 0.0);
+    CHECK(s.pieceSensor.kind == mech::SensorKind::None);  // nothing can confirm a grab
+    const mech::MechanismWiring& w = t.wiring[2];
+    CHECK(w.lines[0] == mech::Line::A);
+    CHECK(w.lines[1] == mech::Line::None);
+    // The LEVELS the boot derives: CLOSED is LOW at the start and as the safe value.
+    const shulib::config::MechanismConfig c = mech::toMechanismConfig(s, w);
+    CHECK(c.pneumaticCount == 1);
+    CHECK(c.pneumaticPorts[0] == 1);
+    CHECK(c.pneumaticStart == shulib::config::PneumaticLevel::Low);
+    CHECK(c.pneumaticSafe == shulib::config::PneumaticLevel::Low);
+    // The claw's line is a 3-WIRE port: it does not make smart port 1 a mechanism (Calibrate would
+    // then drop a motor on port 1 for a claw that is not there).
     CHECK_FALSE(isDeclaredMechanismPort(t, 1));
-    CHECK(allChecksPass(t));
 }
 
-TEST_CASE("mechanism table: the claw's polarity is ONE constant -- a flip moves the start AND safe "
-          "levels together and never a position, and the entry reads the constant, not a literal") {
-    // BUG CAUGHT: a level helper that ignores the polarity (the claw would open at boot whenever
-    // the guess is wrong, and flipping the constant would not fix it), one that ignores the
-    // entry's own position (a start of OPEN would still boot closed), or the polarity typed into
-    // the entry as a literal — after which flipping kClawOpenCommand at Station J would change
-    // nothing on the robot, with the suite green.
-    for (const bool open : {true, false}) {
-        CAPTURE(open);
-        PneumaticMechanismEntry e = kRobotTwoMechanisms.pneumatics[0];
-        e.openCommand = open;
-        CHECK(pneumaticCommandFor(e, PneumaticPosition::Open) == open);
-        CHECK(pneumaticCommandFor(e, PneumaticPosition::Closed) == !open);
-        CHECK(pneumaticStartCommand(e) == !open);  // starts CLOSED, whichever level that is
-        CHECK(pneumaticSafeCommand(e) == !open);
-        CHECK(*e.start == PneumaticPosition::Closed);  // the POSITIONS do not move with it
-        CHECK(*e.safe == PneumaticPosition::Closed);
-        // Each helper reads its OWN position.
-        e.start = PneumaticPosition::Open;
-        CHECK(pneumaticStartCommand(e) == open);
-        CHECK(pneumaticSafeCommand(e) == !open);
-        e.start = PneumaticPosition::Closed;
-        e.safe = PneumaticPosition::Open;
-        CHECK(pneumaticStartCommand(e) == !open);
-        CHECK(pneumaticSafeCommand(e) == open);
-    }
-
-    // The table's text, comments stripped: the constant is defined ONCE, and the ONE polarity in
-    // the table is that constant — so flipping it is the whole fix, and a literal cannot hide.
+TEST_CASE("mechanism table: the claw's open level is written ONCE, on its .positions line -- a swap "
+          "of Low and High moves the start AND safe levels together, and nothing else names a level") {
+    // BUG CAUGHT: the claw's level stated in a second place (a start or safe LEVEL beside the
+    // positions — flipping one would leave the other, and the claw would open at boot or on a forced
+    // safe state), or a projection that reads a position's NAME instead of its levels. Station J.9's
+    // fix for a claw that opens on the wrong press is ONE edit: swap Low and High on that line.
     const std::string code = codeOnly(readRepoFile("src/robots/mechanism_table.hpp"));
-    CHECK(occurrences(code, "inline constexpr bool kClawOpenCommand = ") == 1);
-    CHECK(occurrences(code, ".openCommand = ") == 1);
-    CHECK(occurrences(code, ".openCommand = kClawOpenCommand,") == 1);
+    CHECK(occurrences(code, ".positions = ") == 1);
+    CHECK(occurrences(code, ".positions = {{\"closed\", {Low}, grabs}, {\"open\", {High}}},") == 1);
+    CHECK(occurrences(code, ".start = \"closed\",") == 1);  // a position's NAME, never a level
+    CHECK(occurrences(code, ".safe = \"closed\",") == 1);
+    CHECK(occurrences(code, "Low") == 1);
+    CHECK(occurrences(code, "High") == 1);
+    // The swap, applied to a copy: both levels follow, the positions' names do not move.
+    mech::MechanismSpec swapped = two::kRobotTwoMechanisms.specs[2];
+    swapped.pneumatic.positions[0].levels[0] = true;   // closed = HIGH
+    swapped.pneumatic.positions[1].levels[0] = false;  // open = LOW
+    const shulib::config::MechanismConfig c = mech::toMechanismConfig(swapped, two::kRobotTwoMechanisms.wiring[2]);
+    CHECK(c.pneumaticStart == shulib::config::PneumaticLevel::High);
+    CHECK(c.pneumaticSafe == shulib::config::PneumaticLevel::High);
+    CHECK(swapped.pneumatic.start == 0);
+    CHECK(swapped.pneumatic.safe == 0);
 }
 
-TEST_CASE("mechanism table: the HOST build's selection is 'none' -- only robot two declares "
-          "mechanisms") {
-    // BUG CAUGHT: the selection handing robot two's table to a build that is not robot two (the
-    // bench bot's Calibrate would then refuse its own ports 6 and 7 for claws it does not have). The
-    // tank side of the selection is the next case's (mechanismTableFor() for every robot) and the
-    // header's static_asserts keyed on kRobotId, on every `make ROBOT=tank` (the src build gate's
-    // four tank builds compile them).
+TEST_CASE("mechanism table: WHERE each of robot two's declarations and wire(...) lines was written -- "
+          "its own line of src/robots/mechanism_table.hpp, pinned by the path's SUFFIX") {
+    // BUG CAUGHT (the MECH brief's §3.1, moved here from the fixture by MECH-A5 — A1's D18): a
+    // recorded location that is not the team's own line — the closing brace, a library header, the
+    // fixture's copy — would send the bench page's direction check ("change it HERE") to the wrong
+    // line. The path is the one the compiler opened, so host and brain differ: the SUFFIX is pinned.
+    const MechanismTable& t = two::kRobotTwoMechanisms;
+    struct Pin {
+        std::size_t index;
+        const char* nameLine;
+        const char* wireLine;
+    };
+    for (const Pin pin : {Pin{0, "inline constexpr Power clawPivot6{.name = \"claw pivot 6\",",
+                              "    wire(clawPivot6, motors(6)),"},
+                          Pin{1, "inline constexpr Power clawPivot7{.name = \"claw pivot 7\",",
+                              "    wire(clawPivot7, motors(7)),"},
+                          Pin{2, "    .name = \"claw\",", "    wire(claw, lines('A')));"}}) {
+        CAPTURE(pin.nameLine);
+        const mech::MechanismSpec& s = t.specs[pin.index];
+        const std::uint32_t expected = tableLineOf(pin.nameLine);
+        REQUIRE(expected > 0);
+        CHECK(s.declaredLine == expected);
+        CHECK(endsWith(s.declaredFile, "src/robots/mechanism_table.hpp"));
+        for (std::size_t m = 0; m < s.motorCount; ++m) {
+            CHECK(s.motors[m].line == expected);  // a motor role points at its `.name` line
+            CHECK(endsWith(s.motors[m].file, "src/robots/mechanism_table.hpp"));
+        }
+        CHECK(t.wiring[pin.index].line == tableLineOf(pin.wireLine));
+        CHECK(endsWith(t.wiring[pin.index].file, "src/robots/mechanism_table.hpp"));
+    }
+    CHECK(t.specs[2].pneumatic.levelsLine == tableLineOf("    .name = \"claw\","));
+}
+
+TEST_CASE("mechanism table: robot two's region is ONE block G3a's generator can wrap, and it is BYTE FOR "
+          "BYTE the test fixture's (test/mechanism_fixtures.hpp)") {
+    // BUG CAUGHT: a hand-written line inside the region (G3a's generator would overwrite it, or refuse
+    // the file — the MECH brief's §6.2 item 2), a marker missing or doubled, the selection or a check
+    // drifting INTO the region, or the fixture every library test of robot two runs drifting from the
+    // real file (a library test would then pass on declarations the robot does not have).
+    const std::string file = readRepoFile("src/robots/mechanism_table.hpp");
+    const std::string real = region(file, "// [robot two mechanisms]\n", "// [/robot two mechanisms]\n");
+    REQUIRE_FALSE(real.empty());
+    CHECK(occurrences(real, "inline constexpr ") == 4);  // the three declarations and the list
+    CHECK(occurrences(real, "wire(") == 3);
+    CHECK(real.find("mechanismTableFor") == std::string::npos);
+    CHECK(real.find("static_assert") == std::string::npos);
+    CHECK(real.find("namespace") == std::string::npos);
+    const std::string fixture =
+        region(readRepoFile("test/mechanism_fixtures.hpp"), "// [robot two mechanisms]\n", "// [/robot two mechanisms]\n");
+    CHECK(real == fixture);
+    // ...and the fixture's list equals the real one, field by field through the projection.
+    const MechanismTable& f = mech_fixture::robot_two::kRobotTwoMechanisms;
+    REQUIRE(f.count == two::kRobotTwoMechanisms.count);
+    for (std::size_t i = 0; i < f.count; ++i) {
+        CAPTURE(i);
+        const shulib::config::MechanismConfig a = mech::toMechanismConfig(f.specs[i], f.wiring[i]);
+        const shulib::config::MechanismConfig b =
+            mech::toMechanismConfig(two::kRobotTwoMechanisms.specs[i], two::kRobotTwoMechanisms.wiring[i]);
+        CHECK(std::string_view{a.name} == std::string_view{b.name});
+        CHECK(a.motorPorts[0] == b.motorPorts[0]);
+        CHECK(a.pneumaticPorts[0] == b.pneumaticPorts[0]);
+        CHECK(a.pneumaticStart == b.pneumaticStart);
+        CHECK(a.pneumaticSafe == b.pneumaticSafe);
+        CHECK(f.specs[i].pneumatic.actuationTime == two::kRobotTwoMechanisms.specs[i].pneumatic.actuationTime);
+    }
+}
+
+TEST_CASE("mechanism table: the HOST build's selection is 'none' -- only robot two declares mechanisms") {
+    // BUG CAUGHT: the selection handing robot two's list to a build that is not robot two (the bench
+    // bot's Calibrate would then refuse its own ports 6 and 7 for claws it does not have). The tank
+    // side is the next case's, and the file's static_asserts keyed on kRobotId, on every `make
+    // ROBOT=tank` (the src build gate's four tank builds compile them).
     CHECK(&kMechanisms == &kNoMechanisms);
-    CHECK(kMechanisms.motorCount == 0);
-    CHECK(motorEntryCount(kMechanisms) == 0);
-    CHECK(kMechanisms.pneumaticCount == 0);
-    CHECK(pneumaticEntryCount(kMechanisms) == 0);
-    CHECK(allChecksPass(kNoMechanisms));
+    CHECK(kMechanisms.count == 0);
     for (int p = 1; p <= kMaxPort; ++p) {
         CAPTURE(p);
         CHECK_FALSE(isDeclaredMechanismPort(kMechanisms, p));
@@ -364,41 +411,32 @@ TEST_CASE("mechanism table: the HOST build's selection is 'none' -- only robot t
 }
 
 TEST_CASE("mechanism table: the selection -- mechanismTableFor() gives robot two its claws and every "
-          "other robot none, and each robot's pair of tables is disjoint") {
+          "other robot none, BY ADDRESS, and each robot's list is clear of its own drive") {
     // BUG CAUGHT: a wrong robot in mechanismTableFor() — robot two handed kNoMechanisms (Calibrate
-    // would take its claw pivots as drive candidates again, and Teleop would have no claws), or the
-    // bench bot handed robot two's claws (its Calibrate would refuse its own ports 6 and 7). The robot
-    // builds evaluate exactly these calls; until G1 Part 2c's final run only the host's #else could be
-    // tested here.
+    // would take its claw pivots as drive candidates again, and "shulib Drive" would have no claws),
+    // or the bench bot handed robot two's claws. By ADDRESS, never a count (G3a's ask: a generated list
+    // may hold any number). The per-robot loop is today's three robots (G3a Part 2's kEveryRobotId will
+    // replace the list when it lands — the MECH brief's §6.2 item 8).
     using shulib::bench::chassisTableFor;
     using shulib::bench::mechanismTableFor;
     using shulib::bench::RobotId;
-    CHECK(&mechanismTableFor(RobotId::RobotTwo) == &kRobotTwoMechanisms);
+    CHECK(&mechanismTableFor(RobotId::RobotTwo) == &two::kRobotTwoMechanisms);
     CHECK(&mechanismTableFor(RobotId::BenchBot) == &kNoMechanisms);
     CHECK(&mechanismTableFor(RobotId::InventedXDrive) == &kNoMechanisms);
-    CHECK(mechanismTableFor(RobotId::RobotTwo).motorCount == 2);
-    CHECK(mechanismTableFor(RobotId::RobotTwo).pneumaticCount == 1);
     // The host is the bench build.
     CHECK(&kMechanisms == &mechanismTableFor(shulib::bench::kRobotId));
-    // Check 8 for EVERY robot's own pair — the pair each robot build static_asserts.
-    for (RobotId r : {RobotId::BenchBot, RobotId::RobotTwo, RobotId::InventedXDrive}) {
+    for (const RobotId r : {RobotId::BenchBot, RobotId::RobotTwo, RobotId::InventedXDrive}) {
         CAPTURE(static_cast<int>(r));
-        CHECK(mechanismsDisjointFromChassis(mechanismTableFor(r), chassisTableFor(r)));
-        CHECK(allChecksPass(mechanismTableFor(r)));
+        CHECK(mechanismsClearOf(mechanismTableFor(r), chassisTableFor(r)));
     }
-    // ...and the check sees a claw moved onto the REAL robot two's drive side.
-    MechanismTable onDrive = robotTwo();
-    onDrive.motors[0].signedPort = -13;  // robot two's left -13
-    CHECK_FALSE(mechanismsDisjointFromChassis(onDrive, shulib::bench::kRobotTwoChassis));
 }
 
 TEST_CASE("mechanism table: 'is this a declared mechanism port' -- 6 and 7 yes, every drive port "
           "and every other port no") {
-    // BUG CAUGHT: a predicate that matches too much (Calibrate would skip a DRIVE motor and
-    // calibrate a side one short), too little (it would gear, coast and pulse a claw), or matches
-    // the port-less value 0. The sweep includes port 1: the pneumatic claw's 3-WIRE line 1 is not
-    // smart port 1.
-    const MechanismTable& t = kRobotTwoMechanisms;
+    // BUG CAUGHT: a predicate that matches too much (Calibrate would skip a DRIVE motor and calibrate
+    // a side one short), too little (it would gear, coast and pulse a claw), or matches the port-less
+    // value 0. The sweep includes port 1: the pneumatic claw's 3-WIRE line A is not smart port 1.
+    const MechanismTable& t = two::kRobotTwoMechanisms;
     CHECK(isDeclaredMechanismPort(t, 6));
     CHECK(isDeclaredMechanismPort(t, 7));
     const ChassisTable drive = robotTwoChassis();
@@ -408,44 +446,55 @@ TEST_CASE("mechanism table: 'is this a declared mechanism port' -- 6 and 7 yes, 
         CHECK_FALSE(isDeclaredMechanismPort(t, p));
     }
     // Every drive port of robot two, explicitly, both sides.
-    for (int p : {11, 12, 13, 14, 15, 16, 17, 18, 19, 20}) {
+    for (const int p : {11, 12, 13, 14, 15, 16, 17, 18, 19, 20}) {
         CAPTURE(p);
         CHECK(tableSideOf(drive, p) != 0);
         CHECK_FALSE(isDeclaredMechanismPort(t, p));
     }
-    // A FLIPPED pivot (the fix Station J may call for) is still its physical port: the match is on
-    // |entry|, so flipping a sign can never hand a claw back to Calibrate.
+    // A pivot declared REVERSED (the fix Station J may call for) is still its physical port: the
+    // wiring holds physical ports and the direction is the declaration's, so flipping a pivot can
+    // never hand a claw back to Calibrate.
     MechanismTable flipped = robotTwo();
-    flipped.motors[0].signedPort = -6;
-    flipped.motors[1].signedPort = -7;
+    flipped.specs[0].motors[0].reversed = true;
+    flipped.specs[1].motors[0].reversed = true;
     CHECK(isDeclaredMechanismPort(flipped, 6));
     CHECK(isDeclaredMechanismPort(flipped, 7));
     CHECK_FALSE(isDeclaredMechanismPort(flipped, -6));  // a PHYSICAL port is never negative
-    // An entry left at port 0 is not "port 0 is a mechanism": 0 is never a port.
+    // A role left at port 0 is not "port 0 is a mechanism": 0 is never a port.
     MechanismTable zero = robotTwo();
-    zero.motors[1].signedPort = 0;
+    zero.wiring[1].motors[0] = 0;
     CHECK_FALSE(isDeclaredMechanismPort(zero, 0));
     // Entries past `count` are not declared, whatever they hold.
     MechanismTable one = robotTwo();
-    one.motorCount = 1;
+    one.count = 1;
     CHECK(isDeclaredMechanismPort(one, 6));
     CHECK_FALSE(isDeclaredMechanismPort(one, 7));
+    // A motor role past the declaration's motorCount is not a motor (a stale wiring slot).
+    MechanismTable stale = robotTwo();
+    stale.wiring[0].motors[1] = 9;
+    CHECK_FALSE(isDeclaredMechanismPort(stale, 9));
+    // A SENSOR's port is not a MOTOR port: the census lists motors (header) — robot y's wrist has its
+    // angle sensor on 10 and its roller a distance sensor on 9.
+    const MechanismTable& y = mech_fixture::robot_y::kRobotYMechanisms;
+    CHECK(isDeclaredMechanismPort(y, 1));
+    CHECK_FALSE(isDeclaredMechanismPort(y, 10));
+    CHECK_FALSE(isDeclaredMechanismPort(y, 9));
+    // Every motor of a two-motor mechanism (robot y's DR4B on 3 and 4).
+    CHECK(isDeclaredMechanismPort(y, 3));
+    CHECK(isDeclaredMechanismPort(y, 4));
 }
 
 TEST_CASE("mechanism table: the predicate's 1..21 guard at its EDGES -- a mechanism on port 21 "
           "or port 1 is declared and dropped; 0 and 22 are never ports") {
-    // BUG CAUGHT: an off-by-one in the guard (`port >= 21`, `port < 2`). Robot two's claws are on
-    // 6 and 7, where no such slip shows; a mechanism added later on port 21 (free on robot two) or
-    // port 1 would then NOT be dropped, and Calibrate would gear, coast and pulse it with the
-    // suite green. The table's own port check accepts 1 and 21 (the ports case below), so nothing
-    // else would stop it.
+    // BUG CAUGHT: an off-by-one in the guard (`port >= 21`, `port < 2`). Robot two's claws are on 6
+    // and 7, where no such slip shows; a mechanism added later on port 21 (free on robot two) or port
+    // 1 would then NOT be dropped, and Calibrate would gear, coast and pulse it with the suite green.
     MechanismTable edges = robotTwo();
-    edges.motors[0].signedPort = 21;
-    edges.motors[1].signedPort = -1;  // flipped, on physical port 1
-    REQUIRE(allChecksPass(edges));
+    edges.wiring[0].motors[0] = 21;
+    edges.wiring[1].motors[0] = 1;
     CHECK(isDeclaredMechanismPort(edges, 21));
     CHECK(isDeclaredMechanismPort(edges, 1));
-    for (int p : {0, 2, 6, 7, 20, 22}) {
+    for (const int p : {0, 2, 6, 7, 20, 22}) {
         CAPTURE(p);
         CHECK_FALSE(isDeclaredMechanismPort(edges, p));
     }
@@ -453,12 +502,11 @@ TEST_CASE("mechanism table: the predicate's 1..21 guard at its EDGES -- a mechan
     CHECK(f.keptPorts() == std::vector<int>{2, 11, 20});
     CHECK(f.dropped == std::vector<int>{1, 21});
     CHECK(f.tailCleared());
-
-    // An entry OUTSIDE 1..21 (a table the static_asserts refuse) never makes that number a port.
-    for (int bad : {22, -22, 0}) {
+    // A role OUTSIDE 1..21 (a list the build refuses) never makes that number a port.
+    for (const int bad : {22, 0, 255}) {
         CAPTURE(bad);
         MechanismTable beyond = robotTwo();
-        beyond.motors[0].signedPort = static_cast<std::int8_t>(bad);
+        beyond.wiring[0].motors[0] = static_cast<std::uint8_t>(bad);
         CHECK_FALSE(isDeclaredMechanismPort(beyond, 22));
         CHECK_FALSE(isDeclaredMechanismPort(beyond, 0));
         CHECK(isDeclaredMechanismPort(beyond, 7));  // the other entry still counts
@@ -473,36 +521,36 @@ TEST_CASE("mechanism table: Calibrate's candidate filter, in place -- the census
     // that is not the number kept, or carries an old dropped list into the log.
     // The list is robot two's census as it will read once the claws are plugged in: the drive
     // motors the 2026-09-24/25 captures saw (11-18 and 20; 19 unplugged) plus 6 and 7.
-    const Filtered f = filter(kRobotTwoMechanisms, {6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 20});
+    const Filtered f = filter(two::kRobotTwoMechanisms, {6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 20});
     CHECK(f.kept == 9);
     CHECK(f.array == std::vector<int>{11, 12, 13, 14, 15, 16, 17, 18, 20, 0, 0});  // every slot
     CHECK(f.dropped == std::vector<int>{6, 7});  // and NOT the 99s the list was pre-filled with
 
     // Order is the CENSUS's, not sorted: an interleaved list comes back in its own order, the
     // claws in the middle and at the end.
-    const Filtered mixed = filter(kRobotTwoMechanisms, {20, 7, 11, 6, 3});
+    const Filtered mixed = filter(two::kRobotTwoMechanisms, {20, 7, 11, 6, 3});
     CHECK(mixed.kept == 3);
     CHECK(mixed.array == std::vector<int>{20, 11, 3, 0, 0});
     CHECK(mixed.dropped == std::vector<int>{7, 6});
-    const Filtered last = filter(kRobotTwoMechanisms, {11, 12, 6});
+    const Filtered last = filter(two::kRobotTwoMechanisms, {11, 12, 6});
     CHECK(last.array == std::vector<int>{11, 12, 0});
     CHECK(last.dropped == std::vector<int>{6});
 
     // The claws UNPLUGGED (today's captures): nothing is dropped, nothing moves, nothing is said.
-    const Filtered today = filter(kRobotTwoMechanisms, {11, 12, 13, 14, 15, 16, 17, 18, 20});
+    const Filtered today = filter(two::kRobotTwoMechanisms, {11, 12, 13, 14, 15, 16, 17, 18, 20});
     CHECK(today.kept == 9);
     CHECK(today.array == std::vector<int>{11, 12, 13, 14, 15, 16, 17, 18, 20});
     CHECK(today.dropped.empty());
 
     // Only the claws plugged in: both dropped, no candidate left (Calibrate then refuses on its
     // own "at least two" check, which now counts motors besides the declared mechanisms).
-    const Filtered onlyClaws = filter(kRobotTwoMechanisms, {6, 7});
+    const Filtered onlyClaws = filter(two::kRobotTwoMechanisms, {6, 7});
     CHECK(onlyClaws.kept == 0);
     CHECK(onlyClaws.array == std::vector<int>{0, 0});
     CHECK(onlyClaws.dropped == std::vector<int>{6, 7});
 
     // An empty census: nothing kept, and the garbage-filled dropped list comes back EMPTY.
-    const Filtered none = filter(kRobotTwoMechanisms, {});
+    const Filtered none = filter(two::kRobotTwoMechanisms, {});
     CHECK(none.kept == 0);
     CHECK(none.array.empty());
     CHECK(none.dropped.empty());
@@ -514,7 +562,7 @@ TEST_CASE("mechanism table: Calibrate's candidate filter, in place -- the census
         all.push_back(p);
         if (p != 6 && p != 7) expect.push_back(p);
     }
-    const Filtered full = filter(kRobotTwoMechanisms, all);
+    const Filtered full = filter(two::kRobotTwoMechanisms, all);
     CHECK(full.kept == 19);
     CHECK(full.keptPorts() == expect);
     CHECK(full.tailCleared());
@@ -522,251 +570,88 @@ TEST_CASE("mechanism table: Calibrate's candidate filter, in place -- the census
 
     // More declared ports than the dropped list holds (impossible from a census, which lists each
     // port once): every one still LEAVES the candidates; only the log would miss the extras.
-    const Filtered flood = filter(kRobotTwoMechanisms, std::vector<int>(25, 6));
+    const Filtered flood = filter(two::kRobotTwoMechanisms, std::vector<int>(25, 6));
     CHECK(flood.kept == 0);
     CHECK(flood.tailCleared());
     CHECK(flood.dropped.size() == static_cast<std::size_t>(kMaxPort));
 }
 
-TEST_CASE("mechanism table: the claw ports are not robot two's drive ports, nor its IMU port -- "
-          "and the check sees a collision on either side, by |port|") {
-    // BUG CAUGHT: a claw typed onto a drive port. The binding would then drive a wheel on R1, the
-    // chassis would command the claw, and Calibrate would drop a drive motor. The header
-    // static_asserts it for robot two's REAL pair in every build and for each build's own pair;
-    // here the predicate itself is broken on purpose.
+TEST_CASE("mechanism table: THE DRIVE CHECK -- no role, a MOTOR or a SENSOR, on a drive port (either "
+          "side, by |port|) or the IMU's; a 3-wire line never collides with a smart port") {
+    // BUG CAUGHT (the MECH brief's §1.13, mutation M29): a drive check over the MOTOR roles only (until
+    // MECH-A5 it was `mechanismsDisjointFromChassis`, motors only) — an angle sensor or a piece sensor
+    // typed onto a drive port would build, and at boot the provider would hand the drive's motor port
+    // to a sensor adapter (RobotConfig::valid() refuses it at run time; this is the build's mirror). A
+    // check reading one side only, the signed entry instead of |port|, missing the IMU, or reading a
+    // 3-wire LINE number as a smart port (robot two's IMU is port 2 and line B is 2).
     const ChassisTable drive = robotTwoChassis();
-    CHECK(mechanismsDisjointFromChassis(kRobotTwoMechanisms, drive));
-    for (std::size_t i = 0; i < kRobotTwoMechanisms.motorCount; ++i) {
+    CHECK(mechanismsClearOf(two::kRobotTwoMechanisms, drive));
+    for (std::size_t i = 0; i < 2; ++i) {
         CAPTURE(i);
-        CHECK(tableSideOf(drive, absPort(kRobotTwoMechanisms.motors[i].signedPort)) == 0);
+        CHECK(tableSideOf(drive, two::kRobotTwoMechanisms.wiring[i].motors[0]) == 0);
     }
-
     MechanismTable onLeft = robotTwo();
-    onLeft.motors[0].signedPort = 11;  // the left side's -11, typed positive
-    CHECK_FALSE(mechanismsDisjointFromChassis(onLeft, drive));
+    onLeft.wiring[0].motors[0] = 11;  // the left side's -11, a signed entry: matched by |port|
+    CHECK_FALSE(mechanismsClearOf(onLeft, drive));
+    MechanismTable onLeftLast = robotTwo();
+    onLeftLast.wiring[0].motors[0] = 15;  // the left side's LAST entry, -15 (MECH-A5's review, R21: a
+    CHECK_FALSE(mechanismsClearOf(onLeftLast, drive));  // loop stopping one short passed every other case)
     MechanismTable onRight = robotTwo();
-    onRight.motors[1].signedPort = -16;  // the right side's +16, typed negative
-    CHECK_FALSE(mechanismsDisjointFromChassis(onRight, drive));
+    onRight.wiring[1].motors[0] = 16;  // the right side's +16, its LAST entry
+    CHECK_FALSE(mechanismsClearOf(onRight, drive));
+    MechanismTable onRightFirst = robotTwo();
+    onRightFirst.wiring[1].motors[0] = 20;  // the right side's FIRST entry, +20
+    CHECK_FALSE(mechanismsClearOf(onRightFirst, drive));
     MechanismTable onImu = robotTwo();
-    onImu.motors[1].signedPort = 2;  // the IMU's port
-    CHECK_FALSE(mechanismsDisjointFromChassis(onImu, drive));
-    // With no IMU stated (imuPort 0 = UNSET), no claw port collides with "the IMU".
+    onImu.wiring[1].motors[0] = 2;  // the IMU's port
+    CHECK_FALSE(mechanismsClearOf(onImu, drive));
+    // With no IMU stated (imuPort 0 = UNSET), no role collides with "the IMU".
     ChassisTable noImu = drive;
     noImu.imuPort = 0;
-    CHECK(mechanismsDisjointFromChassis(kRobotTwoMechanisms, noImu));
-    // Nothing declared is disjoint from anything.
-    CHECK(mechanismsDisjointFromChassis(kNoMechanisms, drive));
+    CHECK(mechanismsClearOf(two::kRobotTwoMechanisms, noImu));
+    // A 3-WIRE LINE whose number equals the IMU's port is a different connector: robot two's claw on
+    // line A (1) beside an IMU on smart port 1, and on line B beside its real IMU on port 2.
+    ChassisTable imuOne = drive;
+    imuOne.imuPort = 1;
+    CHECK(mechanismsClearOf(two::kRobotTwoMechanisms, imuOne));
+    MechanismTable lineB = robotTwo();
+    lineB.wiring[2].lines[0] = mech::Line::B;
+    CHECK(mechanismsClearOf(lineB, drive));
+    // THE SENSORS (M29). Robot y's roles sit on 1..10 and lines A and E; beside robot two's drive
+    // with its IMU moved to 21 (robot y's swing is on 2), robot y is clear — and each SENSOR moved
+    // onto a drive port or the IMU's is refused.
+    ChassisTable driveImu21 = drive;
+    driveImu21.imuPort = 21;
+    const MechanismTable& y = mech_fixture::robot_y::kRobotYMechanisms;
+    REQUIRE(mechanismsClearOf(y, driveImu21));
+    MechanismTable angleOnLeft = y;
+    angleOnLeft.wiring[0].angleSensor = 13;  // the wrist's rotation sensor on the left's -13
+    CHECK_FALSE(mechanismsClearOf(angleOnLeft, driveImu21));
+    MechanismTable pieceOnRight = y;
+    pieceOnRight.wiring[4].pieceSensorPort = 18;  // the roller's optical sensor on the right's +18
+    CHECK_FALSE(mechanismsClearOf(pieceOnRight, driveImu21));
+    MechanismTable distanceOnImu = y;
+    distanceOnImu.wiring[6].pieceSensorPort = 21;  // the grip's distance sensor on the IMU's port
+    CHECK_FALSE(mechanismsClearOf(distanceOnImu, driveImu21));
+    MechanismTable motorOnRight = y;
+    motorOnRight.wiring[2].motors[1] = 19;  // the DR4B's SECOND motor on the right's -19
+    CHECK_FALSE(mechanismsClearOf(motorOnRight, driveImu21));
+    // ...and a robot with no mechanisms is clear of anything.
+    CHECK(mechanismsClearOf(kNoMechanisms, drive));
+    CHECK(mechanismsClearOf(kNoMechanisms, driveImu21));
 }
 
-TEST_CASE("mechanism table: an UNSET field anywhere makes a declared entry incomplete -- a value "
-          "is never invented") {
-    // BUG CAUGHT: a table entry typed without one of its facts. The field would silently take its
-    // value-initialised value: Coast for the safe mode (a released claw DROPS), port 0, no
-    // cartridge. (Until T4 Part 3 the buttons and the volts were fields too — L1 and 0 V as the
-    // invented values; they are the driver file's now, its own checks refuse them.)
-    CHECK(motorEntryComplete(kRobotTwoMechanisms.motors[0]));
-    CHECK(motorEntryComplete(kRobotTwoMechanisms.motors[1]));
-
-    const auto brokenBy = [](auto&& breakIt) {
-        MechanismTable t = robotTwo();
-        breakIt(t.motors[1]);
-        return mechanismTableComplete(t);
-    };
-    CHECK_FALSE(brokenBy([](MotorMechanismEntry& e) { e.name = nullptr; }));
-    CHECK_FALSE(brokenBy([](MotorMechanismEntry& e) { e.name = ""; }));
-    CHECK_FALSE(brokenBy([](MotorMechanismEntry& e) { e.provenance = nullptr; }));
-    CHECK_FALSE(brokenBy([](MotorMechanismEntry& e) { e.provenance = ""; }));
-    CHECK_FALSE(brokenBy([](MotorMechanismEntry& e) { e.signedPort = 0; }));
-    CHECK_FALSE(brokenBy([](MotorMechanismEntry& e) { e.cartridge = Cartridge::Unset; }));
-    CHECK_FALSE(brokenBy([](MotorMechanismEntry& e) { e.safeMode.reset(); }));
-
-    // THE REASON FOR std::optional, pinned: a field LEFT OUT is value-initialised — the same thing
-    // a designated initializer does to a member it does not name — and for the safe mode that is
-    // "unset", refused, not Coast. (Built by assignment rather than with designators so that
-    // clang's -Wmissing-designated-field-initializers, an error under -Werror, stays quiet.)
-    MotorMechanismEntry forgotten{};
-    forgotten.name = "forgot its safe mode";
-    forgotten.signedPort = 9;
-    forgotten.cartridge = Cartridge::Red;
-    forgotten.provenance = "test";
-    CHECK_FALSE(forgotten.safeMode.has_value());
-    CHECK_FALSE(motorEntryComplete(forgotten));
-
-    // Only the DECLARED entries are judged: a garbage entry past `motorCount` is not.
-    MechanismTable one = robotTwo();
-    one.motorCount = 1;
-    one.motors[1] = MotorMechanismEntry{};
-    CHECK(mechanismTableComplete(one));
-}
-
-TEST_CASE("mechanism table: an UNSET field anywhere makes a declared PNEUMATIC entry incomplete -- "
-          "no invented line, polarity or position") {
-    // BUG CAUGHT: a claw entry typed without one of its facts, which would silently take its
-    // value-initialised value: line 0 (no port), polarity `false` (an invented guess — the one fact
-    // that is NOT known), start or safe position Closed (plausible, and still invented). Also: a
-    // completeness check that forgot to look at the pneumatic entries at all. (The toggle button
-    // was a field until T4 Part 3; it is the driver file's now.)
-    CHECK(pneumaticEntryComplete(kRobotTwoMechanisms.pneumatics[0]));
-    CHECK(mechanismTableComplete(kRobotTwoMechanisms));
-
-    const auto brokenBy = [](auto&& breakIt) {
-        MechanismTable t = robotTwo();
-        breakIt(t.pneumatics[0]);
-        return mechanismTableComplete(t);
-    };
-    CHECK_FALSE(brokenBy([](PneumaticMechanismEntry& e) { e.name = nullptr; }));
-    CHECK_FALSE(brokenBy([](PneumaticMechanismEntry& e) { e.name = ""; }));
-    CHECK_FALSE(brokenBy([](PneumaticMechanismEntry& e) { e.provenance = nullptr; }));
-    CHECK_FALSE(brokenBy([](PneumaticMechanismEntry& e) { e.provenance = ""; }));
-    CHECK_FALSE(brokenBy([](PneumaticMechanismEntry& e) { e.adiLine = 0; }));
-    CHECK_FALSE(brokenBy([](PneumaticMechanismEntry& e) { e.openCommand.reset(); }));
-    CHECK_FALSE(brokenBy([](PneumaticMechanismEntry& e) { e.start.reset(); }));
-    CHECK_FALSE(brokenBy([](PneumaticMechanismEntry& e) { e.safe.reset(); }));
-
-    // THE REASON FOR std::optional, pinned for this kind too: the three fields LEFT OUT come back
-    // "unset", refused — not false / Closed / Closed. (By assignment, as above.)
-    PneumaticMechanismEntry forgotten{};
-    forgotten.name = "forgot three fields";
-    forgotten.adiLine = 2;
-    forgotten.provenance = "test";
-    CHECK_FALSE(forgotten.openCommand.has_value());
-    CHECK_FALSE(forgotten.start.has_value());
-    CHECK_FALSE(forgotten.safe.has_value());
-    CHECK_FALSE(pneumaticEntryComplete(forgotten));
-
-    // A second pneumatic entry with one field unset is refused too (the loop reads every entry,
-    // not only the first)...
-    MechanismTable second = robotTwoWithSecondPneumatic(2);
-    REQUIRE(mechanismTableComplete(second));
-    second.pneumatics[1].safe.reset();
-    CHECK_FALSE(mechanismTableComplete(second));
-    // ...and a garbage entry past `pneumaticCount` is not judged.
-    MechanismTable none = robotTwo();
-    none.pneumaticCount = 0;
-    none.pneumatics[0] = PneumaticMechanismEntry{};
-    CHECK(mechanismTableComplete(none));
-}
-
-TEST_CASE("mechanism table: ports must be real and declared once -- 0, 22, -22 and a repeat "
-          "(+6 / -6) are refused; 1 and 21 are fine") {
-    // BUG CAUGHT: a port beyond the brain's 21, the "no port" value, or one motor declared twice
-    // (two bindings fighting over one motor, or — with a sign — one declared both ways).
-    CHECK(mechanismPortsValid(kRobotTwoMechanisms));
-    for (int bad : {0, 22, -22, 100, -100}) {
-        CAPTURE(bad);
-        MechanismTable t = robotTwo();
-        t.motors[0].signedPort = static_cast<std::int8_t>(bad);
-        CHECK_FALSE(mechanismPortsValid(t));
-    }
-    for (int edge : {1, 21, -21, -1}) {
-        CAPTURE(edge);
-        MechanismTable t = robotTwo();
-        t.motors[0].signedPort = static_cast<std::int8_t>(edge);
-        CHECK(mechanismPortsValid(t));
-    }
-    MechanismTable twice = robotTwo();
-    twice.motors[1].signedPort = 6;
-    CHECK_FALSE(mechanismPortsValid(twice));
-    MechanismTable twiceSigned = robotTwo();
-    twiceSigned.motors[1].signedPort = -6;
-    CHECK_FALSE(mechanismPortsValid(twiceSigned));
-}
-
-TEST_CASE("mechanism table: 3-wire lines must be real and declared once -- 0, 9 and 255 are "
-          "refused; 1 ('A') and 8 ('H') are fine; two entries on one line are refused") {
-    // BUG CAUGHT: the claw typed on "line 9" (the brain has eight 3-wire ports, A..H), the
-    // "no line" value, an off-by-one at either end, or two pneumatics on one line (two toggles
-    // fighting over one valve).
-    CHECK(kMaxAdiLine == 8);
-    CHECK(pneumaticLinesValid(kRobotTwoMechanisms));
-    for (int bad : {0, 9, 10, 22, 255}) {
-        CAPTURE(bad);
-        MechanismTable t = robotTwo();
-        t.pneumatics[0].adiLine = static_cast<std::uint8_t>(bad);
-        CHECK_FALSE(pneumaticLinesValid(t));
-    }
-    for (int edge : {1, 2, 7, 8}) {
-        CAPTURE(edge);
-        MechanismTable t = robotTwo();
-        t.pneumatics[0].adiLine = static_cast<std::uint8_t>(edge);
-        CHECK(pneumaticLinesValid(t));
-    }
-    // Two entries: on one line refused, on two lines fine — and the SECOND entry's range is read
-    // too (not only the first's).
-    CHECK_FALSE(pneumaticLinesValid(robotTwoWithSecondPneumatic(1)));
-    CHECK(pneumaticLinesValid(robotTwoWithSecondPneumatic(2)));
-    CHECK(allChecksPass(robotTwoWithSecondPneumatic(8)));
-    CHECK_FALSE(pneumaticLinesValid(robotTwoWithSecondPneumatic(9)));
-    CHECK_FALSE(pneumaticLinesValid(robotTwoWithSecondPneumatic(0)));
-    // A line past `pneumaticCount` is not judged.
-    MechanismTable none = robotTwo();
-    none.pneumaticCount = 0;
-    none.pneumatics[0].adiLine = 9;
-    CHECK(pneumaticLinesValid(none));
-
-    // A 3-wire LINE is not a SMART port, whatever its number: the claw on line 6, 7 or 2 does not
-    // collide with the pivots on smart ports 6 and 7, nor with the IMU on smart port 2; and
-    // wherever the claw's line is, Calibrate's predicate and filter see exactly the pivots.
-    const ChassisTable drive = robotTwoChassis();
-    for (int line = 1; line <= kMaxAdiLine; ++line) {
-        CAPTURE(line);
-        MechanismTable t = robotTwo();
-        t.pneumatics[0].adiLine = static_cast<std::uint8_t>(line);
-        CHECK(allChecksPass(t));
-        CHECK(mechanismsDisjointFromChassis(t, drive));
-        for (int p = 1; p <= kMaxPort; ++p) {
-            CAPTURE(p);
-            CHECK(isDeclaredMechanismPort(t, p) == (p == 6 || p == 7));
-        }
-    }
-}
-
-// ── RETIRED AT T4 PART 3 (2026-10-01): the table's BUTTON and VOLTS checks ─────────────────────
-// Three cases stood here — "the buttons" (forward != reverse, one button one pivot, never the
-// re-zero button Y), "the buttons across the pivots AND the claw", and "volts must be in (0, 12]" —
-// with checks 4-7 of the table they tested. The buttons and the volts left the table (the team
-// lead's ruling R1; Part 1b folded into Part 3), and each property is the DRIVER FILE's check now,
-// broken one way at a time in test/driver_controls_test.cpp: forward != reverse and one button one
-// job -> controlButtonsDistinct (a button in two holds, a pivot's forward = its back, a toggle on a
-// hold's button); never the re-zero button -> controlsAvoid; (0, 12] with NaN refused ->
-// holdVoltsValid (0 / 12.0001 / NaN / -1). Robot two's real buttons are pinned through the driver
-// file (test/robot_two_driver_test.cpp T1/T2), and robot_two_driver.hpp static_asserts all three.
-
-TEST_CASE("mechanism table: a count past the array is refused, and nothing reads past the array") {
-    // BUG CAUGHT: a hand-typed count larger than its entries array (either kind); every loop would
-    // read past its end. The count check refuses it, and every other check reads at most the
-    // array's length.
-    MechanismTable t = robotTwo();
-    t.motorCount = kMaxMechanisms + 1;
-    CHECK_FALSE(mechanismCountValid(t));
-    CHECK(motorEntryCount(t) == kMaxMechanisms);
-    t.motorCount = kMaxMechanisms;
-    CHECK(mechanismCountValid(t));
-    MechanismTable p = robotTwo();
-    p.pneumaticCount = kMaxPneumatics + 1;
-    CHECK_FALSE(mechanismCountValid(p));
-    CHECK(pneumaticEntryCount(p) == kMaxPneumatics);
-    p.pneumaticCount = kMaxPneumatics;
-    CHECK(mechanismCountValid(p));
-    CHECK(kMaxPneumatics == static_cast<std::size_t>(kMaxAdiLine));  // one per 3-wire port
-    // A full table of six motor entries passes since T4 Part 3: the table no longer carries the
-    // buttons whose arithmetic capped it at five (the header's kMaxMechanisms); a driver file that
-    // could not bind them all is refused by ITS checks (controlsCoverTable needs a control per
-    // entry, and controlButtonsDistinct / controlsAvoid run out of buttons at five).
-    MechanismTable six{};
-    six.motorCount = kMaxMechanisms;
-    for (std::size_t i = 0; i < kMaxMechanisms; ++i) {
-        six.motors[i] = MotorMechanismEntry{
-            .name = "pivot",
-            .signedPort = static_cast<std::int8_t>(1 + i),
-            .cartridge = Cartridge::Red,
-            .safeMode = BrakeMode::Hold,
-            .provenance = "test",
-        };
-    }
-    CHECK(allChecksPass(six));
-    six.motors[5].signedPort = 1;  // ...and a repeated port is still refused, at the sixth entry
-    CHECK_FALSE(allChecksPass(six));
+TEST_CASE("mechanism table: the selection checks name robot two by ADDRESS, and the file has no #if") {
+    // BUG CAUGHT: a selection pin by COUNT (G3a's generator may write any number — the MECH brief's §6.2
+    // item 4), a selection made by a build switch read here (only src/build_selection.hpp's chain may —
+    // the src build gate's step 0 says so too), or kMechanisms bound to a fixed robot.
+    const std::string code = codeOnly(readRepoFile("src/robots/mechanism_table.hpp"));
+    CHECK(code.find("#if") == std::string::npos);
+    CHECK(code.find(".count ==") == std::string::npos);
+    CHECK(occurrences(code, "inline constexpr const MechanismTable& kMechanisms = mechanismTableFor(kRobotId);") == 1);
+    CHECK(occurrences(code, "static_assert(kRobotId != RobotId::RobotTwo || &kMechanisms == &robot_two::kRobotTwoMechanisms,") == 1);
+    CHECK(occurrences(code, "static_assert(clearOfItsDrive(robot_two::kRobotTwoMechanisms, kRobotTwoChassis),") == 1);
+    CHECK(occurrences(code, "static_assert(clearOfItsDrive(kMechanisms, kChassis),") == 1);
 }
 
 TEST_CASE("mechanism table: the source reader this suite pins Calibrate with -- comments go, "
