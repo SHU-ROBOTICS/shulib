@@ -46,24 +46,38 @@
 // (save as pushed: right after a LEFT/RIGHT cable swap or a deliberate change of front) or RUN AGAIN
 // (save nothing: right after a wrong push). The records cannot tell those apart, so the screen states
 // what the RECORDS say and never what the operator did, and nothing is ever turned to another front:
-// every saved record's front is the end that led its push. (CAL1 Part A2b adds the team's TYPED drive
-// ports as the reference when the card holds no usable record — the team lead's D6 (a).)
+// every saved record's front is the end that led its push.
+// THE TYPED DRIVE PORTS (CAL1 Part A2b, 2026-10-30 — the team lead's D6 (a), 2026-10-08): a team
+// whose drive program already TYPES its drive ports may state them (CalibrateFacts::typedDrive,
+// optional). With a usable record on the card they change nothing — not a line, not a draw, not a
+// byte. With NO usable record on a present card (neither file opened, or files that opened and do
+// not decode: the boot treats a record that does not decode as absent, and drives from a valid typed
+// table) they are the reference instead: the same verdicts in their own words, FRONT FLIPPED held the
+// same way (USE NEW, then fix the typed ports; or RUN AGAIN), and SAME noted as an EXACT match
+// (every port in either list agrees) or a partial one (the serial log names each port that differs:
+// a typed port with a wrong sign fights its side-mates in anything that drives from them). They are
+// COMPARED, never copied into a record: Calibrate never calibrates from them. With no card there is
+// no check, typed or not. The words that say what a discarded run leaves follow the CARD's contents,
+// never the reference.
 // THE LIMIT: the check and the save read the card separately (one program, one task: no race). A
 // card that misreads a GOOD record as absent at the check makes this run a FIRST record, saved with
 // no flip check — SAFE-SAVE's two-fault limit (HA-139, the belief that a read returns what the card
 // holds; record_store.hpp, THE LIMIT). No third read is added to hide it: a third read can misread
-// too. So a FIRST RECORD note means "the check READ no record", never "the card held none".
+// too. So a FIRST RECORD note means "the check READ no record", never "the card held none". (With
+// typed drive ports in the facts, such a run is checked against THEM instead — still not against the
+// record the card holds.)
 //
 // ── The WATCH, and the second hold ──────────────────────────────────────────────────
 // Every declared mechanism port is READ when the push begins and again at DONE — never commanded,
 // never configured: CalibrateIo::readShaftDegrees(), which on the brain is PROS's C reads by port and
-// no motor object (hal/pros/calibrate.hpp; the belief CAL1 registers as HA-187, in Part A2b). One
+// no motor object (hal/pros/calibrate.hpp; its belief is HA-187 in docs/hardware-assumptions.md). One
 // that turned as far as the push's own movedThreshold — the calibrator's own test for a drive port,
 // so no new threshold — HOLDS the save on MECHANISM PORT TURNED: SAVE (a mechanism the push turns:
 // keep it declared) or RUN AGAIN (a drive motor declared by mistake: fix the facts). After a USE NEW
 // it follows FRONT FLIPPED: one question per screen. EVERY declared port that turned is its own
 // question, on its own screen, in the facts' order — each with ITS turn and whether the card's record
-// drives with IT, its boxes greyed again as it arrives — and nothing is saved until every one is
+// (or, when they were the reference, the typed drive ports) drives with IT, its boxes greyed again as
+// it arrives — and nothing is saved until every one is
 // answered SAVE: SAVE is a judgment about one port, so one port's evidence never stands for another's
 // (an intake the push legitimately turns must not hide a drive motor declared by mistake). Only an
 // ACCEPTED push is judged — a push the calibrator refuses at DONE saves nothing, so the watch says
@@ -130,28 +144,68 @@ struct MechanismPort {
 /// counting.
 inline constexpr std::size_t kMaxMechanismPorts = hal::kMaxSmartPorts;
 
-/// The facts only a person can state (header). The two optional members are UNSET until stated: a
-/// value is never invented, and an unset one REFUSES before anything is made or powered. Every
-/// member has a default, so a team names only what it states (designated initializers).
+/// The drive ports a team ALREADY TYPES for its drive program (CAL1 D6 (a), the team lead
+/// 2026-10-08) — OPTIONAL: leave them out and nothing changes. When the card holds no usable record,
+/// the front check compares this run with THESE instead of with nothing (header). The spelling is
+/// the one a typed table already uses (src/robots/chassis_table.hpp's
+/// `.left = {-11, 12, -13, 14, -15}`, carried unchanged into hal::DriveSideDescription::signedPorts
+/// by the boot's tableToDescription()): a SIGNED port per motor on the side it drives, `-11` = port
+/// 11 reversed once in the adapter. So "SAME FRONT as the typed ports" means exactly "a drive built
+/// from them turns every motor the way this push measured". 0 = an unused slot (skipped, the order
+/// kept). They are compared, never calibrated from.
+struct TypedDrivePorts {
+    std::int8_t left[hal::kMaxSmartPorts]{};   ///< the LEFT side's drive ports, signed; 0 = unused
+    std::int8_t right[hal::kMaxSmartPorts]{};  ///< the RIGHT side's drive ports, signed; 0 = unused
+};
+
+/// The facts only a person can state (header). The optional members are UNSET until stated: a
+/// value is never invented, and an unset kind or cartridge REFUSES before anything is made or
+/// powered. Every member has a default, so a team names only what it states (designated
+/// initializers, in this order — `typedDrive` is LAST, so a file that names the others still
+/// compiles).
 struct CalibrateFacts {
     std::optional<config::DrivetrainKind> drive{};   ///< the kind the team HAS; only Tank is measured
     std::optional<hal::MotorCartridge> cartridge{};  ///< the DRIVE motors' cartridge (insert colour)
     MechanismPort mechanisms[kMaxMechanismPorts]{};  ///< EVERY motor that is not a drive motor
     const char* robot = nullptr;     ///< optional: the robot's name, for the log
     std::uint8_t imuPortStated = 0;  ///< optional cross-check (the registry decides); 0 = none
+    /// optional (D6 (a)): the drive ports the team types — the front check's reference when the
+    /// card holds no usable record; empty = none
+    TypedDrivePorts typedDrive{};
 };
 
-/// Why a team's facts cannot be used: `why` is null when they can; `entry` is the index into
-/// CalibrateFacts::mechanisms of the entry it names.
+/// Which list of CalibrateFacts a FactsProblem's `entry` indexes.
+enum class FactsList : std::uint8_t {
+    Mechanisms,  ///< CalibrateFacts::mechanisms
+    TypedLeft,   ///< CalibrateFacts::typedDrive.left
+    TypedRight,  ///< CalibrateFacts::typedDrive.right
+};
+
+/// Why a team's facts cannot be used: `why` is null when they can; `entry` is the index of the
+/// entry it names, in the list `list` names.
 struct FactsProblem {
-    const char* why = nullptr;  ///< null = usable
-    std::size_t entry = 0;      ///< the mechanisms[] entry it is about
+    const char* why = nullptr;               ///< null = usable
+    std::size_t entry = 0;                   ///< the entry it is about
+    FactsList list = FactsList::Mechanisms;  ///< the list `entry` indexes
 };
 
-/// The first reason `f`'s mechanism list cannot be used: an entry NAMED but with no port (a
+/// True when `f` states typed drive ports: any non-zero entry on EITHER side (a list with one side
+/// only is then refused by factsProblem(), never run as untyped).
+[[nodiscard]] constexpr bool hasTypedDrive(const CalibrateFacts& f) noexcept {
+    for (std::size_t i = 0; i < hal::kMaxSmartPorts; ++i) {
+        if (f.typedDrive.left[i] != 0 || f.typedDrive.right[i] != 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// The first reason `f` cannot be used. The mechanism list first: an entry NAMED but with no port (a
 /// placeholder `{0, "intake"}` would silently leave that motor a drive candidate), a port outside
-/// 1..21, or a port listed twice (the SECOND entry is named). constexpr, so a build can
-/// static_assert its own facts.
+/// 1..21, or a port listed twice (the SECOND entry is named). Then, when it states typed drive ports
+/// (D6 (a)): a port outside 1..21, a port listed twice — on one side, or once on each, by |port|
+/// (the description's own rule) — or only ONE side typed. constexpr, so a build can static_assert
+/// its own facts.
 [[nodiscard]] constexpr FactsProblem factsProblem(const CalibrateFacts& f) noexcept {
     for (std::size_t i = 0; i < kMaxMechanismPorts; ++i) {
         const int p = f.mechanisms[i].port;
@@ -170,7 +224,76 @@ struct FactsProblem {
             }
         }
     }
+    if (!hasTypedDrive(f)) {
+        return {};
+    }
+    const std::int8_t* sides[2] = {f.typedDrive.left, f.typedDrive.right};
+    constexpr FactsList kLists[2] = {FactsList::TypedLeft, FactsList::TypedRight};
+    bool any[2] = {false, false};
+    for (std::size_t s = 0; s < 2; ++s) {
+        for (std::size_t i = 0; i < hal::kMaxSmartPorts; ++i) {
+            const int a = hal::DrivetrainDescription::portMagnitude(sides[s][i]);
+            if (a == 0) {
+                continue;
+            }
+            any[s] = true;
+            if (a > static_cast<int>(hal::kMaxSmartPorts)) {
+                return {"a typed drive port is not a smart port (1..21)", i, kLists[s]};
+            }
+            for (std::size_t t = s; t < 2; ++t) {
+                for (std::size_t j = t == s ? i + 1 : 0; j < hal::kMaxSmartPorts; ++j) {
+                    if (hal::DrivetrainDescription::portMagnitude(sides[t][j]) == a) {
+                        return {"a typed drive port is listed twice (one side, or both)", j,
+                                kLists[t]};
+                    }
+                }
+            }
+        }
+    }
+    if (!any[0]) {
+        return {"typed drive ports must list BOTH sides -- the LEFT is empty", 0,
+                FactsList::TypedLeft};
+    }
+    if (!any[1]) {
+        return {"typed drive ports must list BOTH sides -- the RIGHT is empty", 0,
+                FactsList::TypedRight};
+    }
     return {};
+}
+
+/// The typed drive ports as a description's two sides — the reference compareFronts() reads when
+/// the card holds no usable record (header). Only the two sides are filled (the check reads nothing
+/// else); zero slots are skipped and the order kept. Assumes factsProblem(f) passed.
+[[nodiscard]] constexpr hal::DrivetrainDescription typedDriveDescription(
+    const CalibrateFacts& f) noexcept {
+    hal::DrivetrainDescription d{};
+    for (const std::int8_t p : f.typedDrive.left) {
+        if (p != 0) {
+            d.left.signedPorts[d.left.count++] = p;
+        }
+    }
+    for (const std::int8_t p : f.typedDrive.right) {
+        if (p != 0) {
+            d.right.signedPorts[d.right.count++] = p;
+        }
+    }
+    return d;
+}
+
+/// A description's two sides as typed drive ports — for a team whose drive program is a
+/// config::RobotConfig: `.typedDrive = typedDrivePortsFrom(kRobot.drivetrain.tank.description)`
+/// (the inverse of typedDriveDescription(); the `kRobot` must be a constant expression when the
+/// facts are `constexpr`).
+[[nodiscard]] constexpr TypedDrivePorts typedDrivePortsFrom(
+    const hal::DrivetrainDescription& d) noexcept {
+    TypedDrivePorts t{};
+    for (std::size_t i = 0; i < d.left.count && i < hal::kMaxSmartPorts; ++i) {
+        t.left[i] = d.left.signedPorts[i];
+    }
+    for (std::size_t i = 0; i < d.right.count && i < hal::kMaxSmartPorts; ++i) {
+        t.right[i] = d.right.signedPorts[i];
+    }
+    return t;
 }
 
 /// The declared mechanism entry for physical `port`, or null.
@@ -440,11 +563,19 @@ public:
         // only true of a usable list (a port listed twice would print its second entry as "the
         // census found NO MOTOR there", over a port that HAS one).
         if (const FactsProblem fp = factsProblem(facts_); fp.why != nullptr) {
-            const MechanismPort& m = facts_.mechanisms[fp.entry];
             char why[192];
-            std::snprintf(why, sizeof why, "%s: mechanisms[%u] = {%u, \"%.60s\"}", fp.why,
-                          static_cast<unsigned>(fp.entry), static_cast<unsigned>(m.port),
-                          m.name != nullptr ? m.name : "");
+            if (fp.list == FactsList::Mechanisms) {
+                const MechanismPort& m = facts_.mechanisms[fp.entry];
+                std::snprintf(why, sizeof why, "%s: mechanisms[%u] = {%u, \"%.60s\"}", fp.why,
+                              static_cast<unsigned>(fp.entry), static_cast<unsigned>(m.port),
+                              m.name != nullptr ? m.name : "");
+            } else {
+                const bool left = fp.list == FactsList::TypedLeft;
+                std::snprintf(why, sizeof why, "%s: typedDrive.%s[%u] = %d", fp.why,
+                              left ? "left" : "right", static_cast<unsigned>(fp.entry),
+                              static_cast<int>(left ? facts_.typedDrive.left[fp.entry]
+                                                    : facts_.typedDrive.right[fp.entry]));
+            }
             refusal(screen_text::kFactsBad, why, "correct the robot's stated facts and rebuild");
             return;
         }
@@ -771,9 +902,10 @@ private:
         HoldReason reason = HoldReason::None;  // the screen showing now
         std::size_t mechCount = 0;             // MECHANISM PORT TURNED questions in all
         std::size_t mechAsked = 0;             // asked so far: the one showing is mechAsked - 1
-        bool onCardOf[kMaxMechanismPorts]{};   // per question: the card's record drives with its port
+        bool onCardOf[kMaxMechanismPorts]{};   // per question: the REFERENCE drives with its port
         int port = 0;                          // the declared port the question SHOWING is about
-        bool onCard = false;                   // the card's record drives with THAT port
+        bool onCard = false;                   // the reference drives with THAT port
+        bool typedRef = false;                 // D6 (a): the reference was the TYPED drive ports
         bool cardHadRecord = false;            // the card held a usable record at DONE
         bool cardPresent = true;               // a card was in the brain at DONE
         double driveDeg = 0.0;                 // the drive's median push travel, degrees
@@ -936,6 +1068,11 @@ private:
         }
         const LoadedRecord rec = loadRecord(d_.card);
         if (rec.from == Which::None) {
+            if (hasTypedDrive(facts_)) {  // D6 (a): the typed drive ports stand in
+                emit("card       : no usable record yet -- this run's FRONT is checked against "
+                     "your typed drive ports");
+                return;
+            }
             emit("card       : no usable record yet -- this run's push decides the FRONT");
             return;
         }
@@ -959,6 +1096,44 @@ private:
                 emitf("  %s: EMPTY (0 bytes read)", names[i]);
             } else {
                 emitf("  %s: %s", names[i], f.why[0] != '\0' ? f.why : "did not decode");
+            }
+        }
+    }
+
+    /// SAME against the TYPED ports, but not exactly (the CAL1 check of D6 (a), C4): every port where
+    /// they and this push's record differ, one line each, so a team can fix the typed port that is
+    /// wrong — a typed port with a wrong sign fights its side-mates in anything that still drives
+    /// from them, so "matches" alone would hide it.
+    void emitTypedDifferences(const hal::DrivetrainDescription& typed,
+                              const hal::DrivetrainDescription& d, unsigned differing) {
+        emitf("front check: SAME FRONT, but your typed drive ports and this push differ at %u "
+              "port(s) -- check each before anything drives from the typed ports:",
+              differing);
+        const auto sideWord = [](int side) { return side < 0 ? "LEFT" : "RIGHT"; };
+        for (int p = 1; p <= static_cast<int>(hal::kMaxSmartPorts); ++p) {
+            const int st = typed.sideOf(p);
+            const int sn = d.sideOf(p);
+            if (st == 0 && sn == 0) {
+                continue;
+            }
+            const int vt = typed.signedPortOf(p);
+            const int vn = d.signedPortOf(p);
+            if (sn == 0) {
+                emitf("  port %d: typed %s %+d, not in this push's record (LEFT OUT, declared, or "
+                      "did not turn)",
+                      p, sideWord(st), vt);
+            } else if (st == 0) {
+                emitf("  port %d: this push %s %+d, not in your typed drive ports", p, sideWord(sn),
+                      vn);
+            } else if (st == sn && (vt < 0) != (vn < 0)) {
+                emitf("  port %d: typed %s %+d, this push %s %+d -- the SIGN differs", p,
+                      sideWord(st), vt, sideWord(sn), vn);
+            } else if (st != sn && (vt < 0) == (vn < 0)) {
+                emitf("  port %d: typed %s %+d, this push %s %+d -- the SIDE differs", p,
+                      sideWord(st), vt, sideWord(sn), vn);
+            } else if (st != sn) {
+                emitf("  port %d: typed %s %+d, this push %s %+d -- the side AND the sign differ", p,
+                      sideWord(st), vt, sideWord(sn), vn);
             }
         }
     }
@@ -1183,14 +1358,61 @@ private:
 
         // ── THE FRONT CHECK (the team lead's ruling, 2026-10-06) ────────────────────────
         // The reference is the card's record as the boot reads it (the record file, else its
-        // backup). No card: no check — nothing can be saved, so there is no front to protect.
+        // backup); with NO usable record on a present card — no file, or none that decodes — the
+        // drive ports the team TYPED, when its facts carry them (D6 (a), 2026-10-08); else none.
+        // No card: no check, typed or not — nothing can be saved, so there is no front to protect.
         const bool cardPresent = d_.card.cardPresent();
         const LoadedRecord earlier = loadRecord(d_.card);
         run.note[0] = '\0';
         bool flipped = false;
         bool firstRecord = false;  // the FIRST RECORD note was set: it stands only over a save
+        bool typedRef = false;     // the typed drive ports were the reference
+        const hal::DrivetrainDescription typed = typedDriveDescription(facts_);
         if (!cardPresent) {
             emit("front check: NOT DONE -- no SD card in the brain (nothing can be saved either)");
+        } else if (earlier.from == Which::None && hasTypedDrive(facts_)) {
+            // D6 (a): no usable record — the typed ports are the front the robot drives with now
+            // (the boot drives from a valid typed table when no record decodes).
+            typedRef = true;
+            if (!earlier.primary.opened && !earlier.backup.opened) {
+                emit("front check: the card holds no record yet -- checking against your typed "
+                     "drive ports instead");
+            } else {
+                emit("front check: the card's record does not decode -- checking against your "
+                     "typed drive ports instead");
+                emitUndecodedFiles(earlier);
+            }
+            char l[hal::kMaxSmartPorts * 5 + 1];
+            char r[hal::kMaxSmartPorts * 5 + 1];
+            signedList(typed.left, l, sizeof l);
+            signedList(typed.right, r, sizeof r);
+            emitf("typed drive ports: LEFT%s | RIGHT%s", l, r);
+            const FrontCheck fc = compareFronts(typed, d);
+            emitf("front check against your typed drive ports: %u drive port(s) in both -- %u "
+                  "agree, %u flipped, %u sign only, %u side only; %u in the typed ports only, %u in "
+                  "this run's only: %s",
+                  static_cast<unsigned>(fc.shared), static_cast<unsigned>(fc.agree),
+                  static_cast<unsigned>(fc.flipped), static_cast<unsigned>(fc.signOnly),
+                  static_cast<unsigned>(fc.sideOnly), static_cast<unsigned>(fc.onlyEarlier),
+                  static_cast<unsigned>(fc.onlyNow), frontVerdictWord(fc.verdict));
+            if (fc.verdict == FrontVerdict::Undetermined) {
+                emit("front check: CANNOT TELL (no drive port in common, or no majority) -- saved "
+                     "as measured; check the robot drives the right way before an auton");
+                setNote(run, panel_text::kNoteNotChecked);
+            } else if (fc.verdict == FrontVerdict::Same) {
+                // EXACTLY the same only when every port in either list agrees (C4): any flipped,
+                // sign-only or side-only port, or a port in one list only, is named on its own line.
+                const unsigned differing =
+                    static_cast<unsigned>(fc.shared) - static_cast<unsigned>(fc.agree)
+                    + static_cast<unsigned>(fc.onlyEarlier) + static_cast<unsigned>(fc.onlyNow);
+                if (differing == 0) {
+                    setNote(run, panel_text::kNoteTypedSame);
+                } else {
+                    emitTypedDifferences(typed, d, differing);
+                    setNote(run, panel_text::kNoteTypedPartial);
+                }
+            }
+            flipped = fc.verdict == FrontVerdict::Flipped;
         } else if (earlier.from == Which::None && !earlier.primary.opened
                    && !earlier.backup.opened) {
             // "No record yet" means NEITHER file opened: a backup alone, or an EMPTY record file,
@@ -1224,15 +1446,35 @@ private:
         // ── THE HOLDS: nothing is written until the operator answers ────────────────────
         held_ = {};
         held_.measured = d;
+        held_.typedRef = typedRef;
         held_.cardHadRecord = earlier.from != Which::None;
         held_.cardPresent = cardPresent;
         held_.driveDeg = driveDeg(cal);
         held_.mechCount = run.turnedCount;
         for (std::size_t k = 0; k < run.turnedCount; ++k) {
-            // Judged for EACH port that turned, against the record the check read: whether the
-            // card's record drives with it is that port's evidence, never another's.
-            held_.onCardOf[k] = earlier.from != Which::None
-                                && earlier.description.sideOf(run.turnedPort[k]) != 0;
+            // Judged for EACH port that turned, against the reference the check read — the card's
+            // record, else the typed ports (D6 (a)): whether it drives with that port is that
+            // port's evidence, never another's.
+            held_.onCardOf[k] = typedRef ? typed.sideOf(run.turnedPort[k]) != 0
+                                         : earlier.from != Which::None
+                                               && earlier.description.sideOf(run.turnedPort[k])
+                                                      != 0;
+        }
+        if (flipped && typedRef) {
+            held_.held = true;
+            held_.reason = HoldReason::FrontFlipped;
+            emit("FRONT FLIPPED -- your typed drive ports call the end that LED this push its "
+                 "BACK.");
+            emit("Either the BACK led by mistake (touch RUN AGAIN: nothing is saved), or the FRONT "
+                 "led");
+            emit("and the typed ports are wrong, or the drive cables were swapped since they were "
+                 "typed");
+            emit("(touch USE NEW: saved as pushed -- then fix the typed ports). The push cannot "
+                 "tell");
+            emit("these apart. USE NEW reverses every auton tuned on the typed ports. NOTHING IS "
+                 "SAVED YET.");
+            emitLoopStats(run);
+            return SaveOutcome::Held;
         }
         if (flipped) {
             held_.held = true;
@@ -1269,7 +1511,8 @@ private:
     }
 
     /// MECHANISM PORT TURNED: hold the save on the NEXT declared port that turned — its own
-    /// question, with its own turn and whether the card's record drives with it. With several,
+    /// question, with its own turn and whether the reference (the card's record, else the typed
+    /// drive ports) drives with it. With several,
     /// the first says how many, and each says which of them it is.
     void holdMechanism(const detail::ProgramRun& run) {
         const std::size_t k = held_.mechAsked++;
@@ -1279,7 +1522,9 @@ private:
         held_.onCard = held_.onCardOf[k];
         std::snprintf(held_.line1, sizeof held_.line1, "port %d: %.0f deg, drive %.0f deg",
                       held_.port, run.turnedDeg[k], held_.driveDeg);
-        std::snprintf(held_.line2, sizeof held_.line2, "the card's record DRIVES with port %d",
+        std::snprintf(held_.line2, sizeof held_.line2,
+                      held_.typedRef ? "your typed ports DRIVE with port %d"
+                                     : "the card's record DRIVES with port %d",
                       held_.port);
         if (held_.mechCount > 1) {
             if (k == 0) {
@@ -1297,7 +1542,11 @@ private:
                   "push (%s).",
                   held_.port, held_.line1);
         }
-        if (held_.onCard) {
+        if (held_.onCard && held_.typedRef) {
+            emitf("Your typed drive ports DRIVE with port %d: saving now makes a record with NO "
+                  "port %d.",
+                  held_.port, held_.port);
+        } else if (held_.onCard) {
             emitf("The card's record DRIVES with port %d: saving now replaces that record with one "
                   "that has NO port %d.",
                   held_.port, held_.port);
@@ -1328,6 +1577,11 @@ private:
         if (held_.reason == HoldReason::FrontFlipped) {
             emit("front: USE NEW -- the end pushed first THIS time is the FRONT (saved as pushed)");
             run.front = FrontChoice::New;
+            if (held_.typedRef) {  // D6 (a): the typed ports now call the saved front the back
+                emit("front: now FIX YOUR TYPED DRIVE PORTS -- they call this FRONT the BACK, and "
+                     "anything that still drives from them drives this robot backwards");
+                setNote(run, panel_text::kNoteFixTyped);
+            }
         } else {
             emitf("watch: SAVE -- port %d stays a declared mechanism; this record has no port %d",
                   held_.port, held_.port);
@@ -1358,6 +1612,7 @@ private:
         f.holdLine1 = held_.line1;
         f.holdLine2 = held_.onCard ? held_.line2 : nullptr;
         f.note = run.note[0] != '\0' ? run.note : nullptr;
+        f.typedPorts = held_.held && held_.typedRef;
         return f;
     }
 

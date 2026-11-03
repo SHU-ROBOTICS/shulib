@@ -2974,3 +2974,890 @@ merge.
 - **For later (not this part's):** the third verification round's builder saw GCC's `-Wformat-truncation` in
   `calibrate_panel.hpp`'s `panelChips` (A1's code) when built at `-O1` only; the suite build and every ARM build are
   clean. Logged for Part A2b's or B's look, not fixed here.
+
+---
+
+# Part A2b — D6 (a)'s typed reference and the proof through the real PROS shell (a library ADDITION)
+
+> **This run builds Part A2b ONLY**, as the team lead's split (2026-10-08, "Split it") defines it (the brief's
+> check of D6 (a), "Not settled" #1 (ii); §9.2): the typed facts and words (`TypedDrivePorts`,
+> `CalibrateFacts::typedDrive`, `FactsList`, `hasTypedDrive`, `typedDriveDescription`, `typedDrivePortsFrom`, the
+> reference rule and every word of §1.4's typed branch, `FinishFacts::typedPorts` and the six typed literals), C4
+> (the exact/partial typed NOTE and the per-port lines), the golden test's 34 scenarios through the REAL PROS shell
+> (`test/calibrate_golden_test.cpp`), the team file's example test (`test/calibrate_team_file_example_test.cpp`),
+> the chapter, guide 12, the changelog (EXTENDING A2a's entry) and HA-187. NOT B's: no `src/` file
+> (`git diff --stat e5a69b5 -- src/` must be EMPTY at the end); `withTypedDriveFrom` and robot two's mapping are B's.
+>
+> Executor: **Claude Opus 5.5** (subagent of the coordinator's workflow run), working in the git worktree
+> `.claude/worktrees/cal1-a2b` (branch `cal1-a2b`, from `e5a69b5`). The executor does not commit, push, run `pros`,
+> or touch the serial port. Scratch and backups: `.claude/coordinator/scratch/cal1-a2b/` (never `/tmp`, never the
+> repository root). Every test binary runs capped: `(ulimit -v 4194304; timeout 600 …)`.
+
+## A2b.0 Start (2026-10-29 20:38 EDT, `date`)
+
+- Worktree clean at `e5a69b5` (`git status`). Read RESUMING.md's standing rules; the brief by the team lead's ruling
+  of 2026-10-22 (header and answers, every Re-check R1–R18, the D6 (a) entry and its continuation, "The check of D6
+  (a)" C1–C5 and its continuation, the Decisions D1–D6, §1.1–§1.4, §2.A's tests 1–11 and mutations 1–54 and both
+  DoDs, §3.1, §3.3, §4, §5, §6, §7, §8, §9); this log's Part A2a in full where it hands on (A2a.0–A2a.9, both
+  review rounds, the third verification round, the coordinator's merge record).
+- This heading was appended FIRST, before any code.
+- **The hand-ons A2b carries** (each taken up below, by number): (1) R19 — several turned declared ports are each
+  their own question, in the facts' order; A2b's goldens are single-port; (2) the held and finished lines keep
+  "the field disabled" (the status-bits line says which); (3) test 8b's "C-read counter counts 2 per push" through
+  the REAL shell is A2b's (the golden harness); (4) the changelog's A2a entry (under API 2.5) is EXTENDED, not a
+  second entry; (5) the touch-line and FIRST-note changes: no golden changes expected; (6) HA-187 registered here,
+  with A2a's finding 7 in (2)'s blast radius; (7) `-Wformat-truncation` in `calibrate_panel.hpp`'s `panelChips` at
+  `-O1` — look, fix if cheap, else log; plus A2a fix-2 finding 18 — name the chapter in `hal/pros/calibrate.hpp`'s
+  "21 lines" sentence and regenerate `docs/api/`.
+
+## A2b.R Resumption (2026-10-30 08:33 EDT, `date`)
+
+- **Why.** The run that wrote A2b.0 (2026-10-29 20:38) was STOPPED by the account's 5-hour usage limit at ~21:10;
+  the laptop was off overnight and restarted 08:28 on 2026-10-30. Executor of this resumption: **Claude Opus 5.5**
+  (the coordinator's workflow run), the same worktree and branch (`cal1-a2b`, from `e5a69b5`).
+- **State found** (`git status`, `git diff -- src/ Makefile`): two paths changed — this log (A2b.0 appended) and the
+  generated `PROJECT-BRIEFING.md` (regenerated with no binary: "Suite: not built"); `src/` and the `Makefile` carry
+  NO gate self-test plant (0 diff lines); no mutation backup under `scratch/cal1-a2b/` (`mut/` and `probe/` are
+  empty). The stopped run's scratch (`logs/b0_*`, 20:42–20:44) shows only a baseline: the briefing regenerated, a
+  host build (`build rc=0`) and a suite run (`suite rc=0`). Its counts are NOT taken from those files: the binary is
+  removed and rebuilt from source before any result here.
+- **So nothing of A2b's code was written**: every item in A2b.0's list is still to do, from the top.
+
+## A2b.1 Baseline, and the library's typed reference (2026-10-30 08:37–08:50)
+
+- **Baseline** (the binary removed, the briefing regenerated with none, `cmake -S test -B build/test`, the build
+  capped): exit 0, no warning; the suite through `tools/suite_run.py green`: **2,701 cases, 2,935,334 assertions,
+  3 skipped** — main's count after the A2a merge (`scratch/cal1-a2b/logs/r0_*`, the XML case by case in
+  `r0_suite.xml`).
+- **`calibration/calibrate_program.hpp`** — the brief's §1.1 typed facts, from the draft `brief-CAL1/d6a/v3/p3r/`
+  (the split had removed them, A2a.1), each line re-read against A2a's file as it stands: `TypedDrivePorts`
+  (`left[21]`, `right[21]`, signed, 0 = unused), `CalibrateFacts::typedDrive` appended LAST, `FactsList`,
+  `FactsProblem::list`, `hasTypedDrive()` (either side), `factsProblem()`'s typed checks after the mechanisms' (a
+  port outside 1..21 by |port| — so −128 too; twice on one side or once on each, by |port|, the SECOND entry named;
+  one side only), `typedDriveDescription()` (zero slots skipped, the order kept), `typedDrivePortsFrom()`; the
+  FACTS REFUSED line names `typedDrive.left[i]`/`.right[i]` and its value; the `card :` line's typed words; the
+  front check's typed branch (no usable record on a present card — neither file opened, or files that opened and do
+  not decode — AND typed ports: the per-file lines, the `typed drive ports:` list, the counts line, CANNOT TELL /
+  SAME exact / SAME partial with C4's per-port lines (`emitTypedDifferences`) / FLIPPED); the typed FRONT FLIPPED
+  hold's five lines; `Held::typedRef`; each MECHANISM PORT TURNED question's evidence judged against the REFERENCE
+  (`onCardOf[k]` from the typed ports when they were it — A2a's per-port questions kept); its typed screen and
+  serial words; USE NEW's FIX line and NOTE; `FinishFacts::typedPorts`. The header's FRONT CHECK block now states
+  the typed reference (it said "A2b adds …").
+- **`calibration/calibrate_panel.hpp`** (additions only, plus one behaviour-preserving line — below): the six
+  typed literals (`kFlipWhatTyped`, `kFlipNewTyped`, `kFlipWarnTyped`, `kNoteTypedSame`, `kNoteFixTyped`,
+  `kNoteTypedPartial`) in `kAll`'s compile-time budget check; `FinishFacts::typedPorts` (default false); the FRONT
+  FLIPPED view swaps its three reference lines when it is set. Header and `holdLine2`'s comment updated.
+- **Rulings beyond the brief (each logged here):**
+  1. `FinishFacts::typedPorts` is set only while a hold SHOWS (`held_.held && held_.typedRef`) — the draft set it
+     from `typedRef` alone. The view reads it only on a held FRONT FLIPPED screen, so no output differs; it keeps a
+     stale flag from ever reaching a later screen. **Alternative:** the draft's form — equivalent on every path
+     today.
+  2. The typed NOTEs (`FRONT MATCHES …`, `… SOME TYPED PORTS DIFFER …`, `FIX YOUR TYPED DRIVE PORTS …`) stay under
+     a NOT SAVED header; A2a drops only `FIRST RECORD` there (it names a record the run made — A2a's review round
+     2, finding 5). The typed NOTEs describe the COMPARISON of this measurement with the typed ports, which is true
+     whether or not the save succeeded. **Alternative not taken:** drop every NOTE on NOT SAVED — it would hide a
+     FIX YOUR TYPED DRIVE PORTS that is still true.
+  3. Hand-on (7), the `-Wformat-truncation` in `panelChips` (A1's code): **looked, fixed (cheap)**. Reproduced with
+     `g++ 13.3 -Wall -O1` on a one-function probe (`scratch/cal1-a2b/probe/wft/`): `calibrate_panel.hpp:753 '%s'
+     directive output may be truncated writing up to 267 bytes into a region of size 96` (and 51) — at `-O1` ONLY
+     (`-O0`, `-O2`, `-O3`, `-Os`: silent). The line copies the chips buffer inside `if (used <= kMediumCols)`; it is
+     now `snprintf(out, cap, "%.*s", static_cast<int>(used), buf)` — exactly `used` characters, which is exactly
+     what `"%s"` copied (the buffer holds `used` characters in that branch). Re-probed: silent at every level. A
+     behaviour-preserving edit to a non-additive line of the panel (its brief rule is "additions only"): logged as a
+     delta; mutation P1 below pins that the chips line is tested.
+- **The build** (09:00): `docs/api/` regenerated (`calibrate_panel.md`, `calibrate_program.md`, `README.md`,
+  `all-entities.md`); the suite, unchanged tests only: **2,701 / 2,701 passed**, assertions 2,935,334 → 2,935,704
+  (+370: the literal and line scans that walk `include/shulib`).
+
+## A2b.2 The golden test through the REAL PROS shell — and its goldens checked against the brief's (2026-10-30 08:50–08:58)
+
+- **`test/calibrate_golden_rig.hpp`** (new) — the probe harness (`brief-CAL1/d6a/v3/harness4.cpp`) made project
+  code: robot two's plant stepped from the shim clock's advance hook, the operator reading the shim screen's draw
+  log, the program composed EXACTLY as `hal::pros::runCalibrate()` composes it (`ProsDeviceRegistry`,
+  `ProsDeviceProvider{registry}`, `ProsBrainScreen`, `ProsCalibrateIo`) except the card, `ProsFileStore{<temp
+  dir>/card/}`; `calibrateInitialize(label, stamp)` first (initialize() before opcontrol()); fd 1 redirected to a
+  file for the run (the shell's line() is one write() on fd 1, SER1). Captures: the serial (normalized: the card's
+  directory → `<card>/`, the git hash → `<hash>` — the only two things not the program's), the draw log, both card
+  files, the shim's per-port C-read counts, configuration/command counters, largest |mV| and powered steps, and the
+  probe's FORWARD score of the saved record. Per-run state (the probe's `static pulsesSeenAt`) moved into the
+  operator; the probe's `exit(3)` deadline became a flag the test fails on (and a disable so the program returns).
+- **`test/calibrate_golden_test.cpp`** (new) — the brief's 34 scenarios by the probe's knobs, robot two's facts
+  LITERALLY with NO typed ports (the typed scenarios add the probe's lists — case 8 = robot two's 2026-10-08 typed
+  table, written literally, never read from `src/`: G3a's D7 flips that table), the seeds by the probe's rules (a
+  seeded scenario takes `one`'s saved record, REQUIRED to exist and decode first — C2). Per scenario: the three
+  goldens (a missing golden FAILS; a mismatch names its first differing line), every serial line `[R3D] `-tagged,
+  the declared ports never configured or commanded (gearing/units/voltage/brake-mode/brake() counters 0, |mV| 0),
+  the WATCH's C reads — **2 per push it judged, 1 per push refused at DONE, 0 with no push (hand-on (3): test 8b's
+  "C-read counter counts 2 per push" through the REAL shell)** — the units read paired with each position read and
+  no gearing read (rotations, the shim's default), the typo's port 7 geared once and never powered, the undeclared
+  8 never powered and 9 pulsed to exactly 9,000 mV, and the FORWARD score. Plus: `typed-card-wins` EQUALS its
+  untyped control and `typed-nocard` EQUALS `nocard` (serial, screen, card); the goldens directory holds exactly the
+  34 × 3 files; a source pin that `runCalibrate()` composes the same five (the card at its DEFAULT root) and the rig
+  the same, the card's root its one difference. `SHULIB_GOLDEN_OUT=<dir>` writes the actual files beside the
+  comparison (the case still compares and still fails) — nothing regenerates itself.
+- **The expectations a golden cannot hold were written from the probe's own counters** (`run_new/*.stderr.log`:
+  `C-API reads`, `drives N of M`), re-derived: the one difference is `curved` — 3 reads, not the probe's 4, because
+  A2a.1 #3 judges only an ACCEPTED push (run 1's refused push is read once, at its start).
+- **The goldens, before they were committed** (`scratch/cal1-a2b/gold1/` ← `SHULIB_GOLDEN_OUT`; `cmp/classify.py`,
+  `cmp/classify2.log`): every file compared with `brief-CAL1/d6a/v3/run_new/` (the probe's card path → `<card>/`,
+  its hash `probe` → `<hash>`; its card binaries as the same hex text). **66 of 102 files byte-identical** (all 34
+  card files; 32 of 34 screen logs). Every other differing line has a named reason — **residual 0**:
+  101 serial lines W8 (A2a.1 #8: "a verified backup … first" in the banner and the `record file:` line, the watch
+  banner's "and the save waits"); 56 serial lines E (the probe's card path was cut at 95 characters,
+  `<card>/shulib_drivetrai`; this rig's short root prints it whole); 2 screen lines C5 (A2a.1 #5: `slip18` and
+  `undeclared`'s finished-screen warning cut to one row with " ..." under the NOTE); 2 serial lines R3 (A2a.1 #3:
+  `curved`'s refused push gets no watch lines). **No timing line differs** — the real shell reproduces the probe's
+  plant to the digit — and no typed line differs: every D6 (a) and check-of-D6 (a) scenario prints, paints and
+  saves what the brief's probe did. Hand-on (5) confirmed: no golden pairs NOT SAVED with FIRST RECORD, and no touch
+  line changed (none of the 34 has two held questions in one run).
+- Then copied into **`test/goldens/calibrate/`** (102 files, 1.3 MB) and re-run: **38 / 38 cases, 936 assertions**
+  (2.2 s, 25 MB peak); order-independent (a seeded scenario alone, `--order-by=rand`), and inside the whole suite.
+
+## A2b.3 The typed tests and the team file's example test (2026-10-30 08:58–09:01)
+
+- **`test/calibrate_program_typed_test.cpp`** (new, on A2a's rig — no existing test TU edited): **T7a** agreeing in
+  every port (SAME, `FRONT MATCHES YOUR TYPED DRIVE PORTS`, never FIRST RECORD); **T7b** partial (8 agree, 1 sign
+  only, 1 each list only: the three per-port lines verbatim, the partial NOTE); **T7b-2** the SIDE and side-AND-sign
+  lines (13 typed on the other side: side only; 14 other side and sign: flipped — "8 agree, 1 flipped, … 1 side
+  only", SAME); **T7c** flipped on an empty card — the five typed lines, the typed screen (and NONE of the card's
+  three lines drawn), nothing written until USE NEW, the FIX line and NOTE, `SAVED -- NEW FRONT`, the record as
+  pushed, FORWARD 0 of 10; **T7d** RUN AGAIN → "the card is unchanged (it holds no usable record)", never "keeps
+  its record", run 2 SAME and saved; **T7e** a disable while held → the same words, NO file; **T7f** the 5/5 tie
+  and no port in common → CANNOT TELL, `FRONT NOT CHECKED`; **T7g** a record on the card with typed ports FLIPPED
+  against it → the whole run EQUALS the untyped run (every line, draw and byte); **T7h** undecodable files with typed
+  ports (both files; flipped → held and USE NEW; the backup alone; an EMPTY record file) — each opened file's own
+  line, then the typed ports; **T7i** no card → EQUALS the untyped no-card run, no typed line; **T7j** drive port 12
+  declared with typed ports driving it → `your typed ports DRIVE with port 12` (screen and serial), its per-port
+  line, the discard words; **T7k** typed FRONT FLIPPED then a claw's MECHANISM question → the touch line's "next
+  question" words, FIX at USE NEW, and the NOTE `PORT 6 KEPT …` over `FIX …` (§1.4's order). **T6g** the seven typed
+  refusals (−22, 22 right, −128, 11 twice on a side, 11 on each side, LEFT only, RIGHT only) each FACTS REFUSED
+  naming the entry and value before ANY device, and a mechanism problem first; **T6h** zero slots skipped through
+  the program; **T6i** the four functions at COMPILE time (17 `static_assert`s, counted).
+  Expected strings read off the probe's goldens; T7b-2's and T7k's `-1692` were reasoned (and two of my first
+  expectations were WRONG — T7b-2's "0 flipped" and T7k's "+1692": both corrected to the plant's truth, by
+  reasoning about the check's rule and the claw following the backward-turning left wheel, not by reading the
+  program's output).
+- **`test/calibrate_team_file_example_test.cpp`** (new): the 21 lines VERBATIM at the top of the file (they are the
+  file's program: `main.h` resolves to the shim's; the five entry points are defined here, and no other TU defines
+  them); the facts read back, usable, NO typed ports (compile and run time); the chapter's two typed spellings in
+  their own facts — the one line, and `typedDrivePortsFrom(kRobot.drivetrain.tank.description)` over a real
+  `inline constexpr config::RobotConfig` tank that is itself `valid()` (the brief's probe config was not: its sides
+  carried no inches per radian and no width — completed here, so the example is a drive program's real config);
+  and the five entry points RUN through the shim: the banner (default label), the three state lines, and
+  `opcontrol()` running the library program on an empty brain with no card — the census, then `REFUSED … the
+  registry reports 0 IMUs`, `CANNOT START` painted, no motor touched.
+- **The suite** (09:01): **2,757 cases, 2,937,329 assertions, green** (`suite_run.py green`) — 2,701 + 56 new.
+
+## A2b.4 The documents (2026-10-30 09:05–09:20) — the brief's §3.1, A2b's share
+
+- **`docs/guide/19-calibrating-your-robot.md` (NEW)** — the next free chapter number at this base (18 is MECH-A3's;
+  **for the coordinator:** G3a Part 1, in flight, adds no guide chapter by its file list — if anything lands a 19
+  first, renumber this one and its three links). For a team, in the brief's order: what it measures and what you
+  state (§0.4's table, the optional typed row included), YOUR FILE — the 21 lines VERBATIM, bound by
+  `check-examples` to `test/calibrate_team_file_example_test.cpp`, with what a team gets wrong and what it sees;
+  list EVERY motor that is not a drive motor (R11; unplug them with nothing declared); one run (1/4 IMU … SAVED,
+  RUN AGAIN to check); what each ending means (SAVED, NOT SAVED, SAVE UNCONFIRMED — B1's words; both files; delete
+  BOTH to reset); FRONT FLIPPED with BOTH causes (R10, qualified "on a tank whose two sides are mirror images");
+  MECHANISM PORT TURNED (R12, one screen per port); the typed drive ports (both spellings quoted from test 11; the
+  exact and partial NOTEs; FLIPPED against them; "a robot with neither … gets only FIRST RECORD: push with the end
+  its autons call the front"); X-drive refused (R13); "nothing in this program has run on a robot in this form",
+  the calibrator on robot two 2026-09-24, by date. No `docs/internal` path (`check-removability`: clean).
+  **A dated status line** ("As of 2026-10-30 no program in this repository runs the standard Calibrate yet; robot
+  two's own … moves onto it in CAL1's next part") — **for Part B: reword it when robot two moves on** (the brief's
+  §3.2 list does not name the chapter; this sentence is new).
+- **`docs/guide/12-when-things-go-wrong.md`** — a new section, "Calibrate held its save, or left a note": the
+  brief's rows (FRONT FLIPPED, both causes; FRONT FLIPPED against the typed ports; MECHANISM PORT TURNED; FRONT NOT
+  CHECKED; FIRST RECORD; FRONT MATCHES YOUR TYPED DRIVE PORTS — "nothing to do", only on an exact match; FRONT
+  MATCHES, SOME TYPED PORTS DIFFER — C4's words, the LEFT OUT/declared/did-not-turn caveat; FIX YOUR TYPED DRIVE
+  PORTS; a LEFT OUT or refused pulse naming a mechanism; FACTS REFUSED / NOT A TANK / … / TOO FEW MOTORS; B1's SAVE
+  UNCONFIRMED and NOT SAVED-with-a-damaged-record-file, worded from `formatSaveReport(No)`'s own lines).
+- **`docs/guide/README.md`** — the chapter's row; the maintenance note's "16–18" → "16–19" and its history sentence.
+  **`mkdocs.yml`** — one nav line (`19 — Calibrating your robot`), after 18's.
+- **`docs/changelog.md`** — A2a's entry under `## API 2.5` EXTENDED (hand-on (4)), not a second entry: the heading's
+  dates, the "written when it was built" note (Parts A2a and A2b), a sub-bullet for the typed reference's behaviour,
+  the typed facts' API by name (`TypedDrivePorts`, `CalibrateFacts::typedDrive`, `FactsList`, `FactsProblem::list`,
+  `hasTypedDrive()`, `typedDriveDescription()`, `typedDrivePortsFrom()`), the panel's `FinishFacts::typedPorts` and
+  the six typed literals by name, HA-187 linked where the watch's belief was "registered by CAL1's next part", "What
+  you must do" pointing at chapter 19, and the contributors' note (the golden test, `test/goldens/calibrate/`,
+  `SHULIB_GOLDEN_OUT`, the example test, the chips line's `"%.*s"`). Still "No version bump — additive".
+- **`docs/hardware-assumptions.md`** — HA-187 (§3.3's text, AMENDED by R6/R12) in a new section "CAL1's addition"
+  before Group R4, its index row between HA-186 and HA-189, the status paragraph's CAL1 Part A2b sentence and
+  "Status: 7 of 179"; the Held line drops `HA-187..HA-188` for `HA-188 (CAL1's second number, released unused when
+  CAL1 registered HA-187 — never reissued)` — parsed by `briefing_status.py`'s `HELD_LINE` exactly as before (the
+  next free number stays HA-216). **Hand-on (6) worded in:** (2)'s blast radius now carries A2a's finding 7 — the
+  held screen's EVIDENCE line depends on the gearing the motor REPORTS (a BLUE drive motor reporting green shows
+  about ⅓ of the drive's travel, inviting SAVE; detection unaffected) — and Station G's settle reads an unconfigured
+  claw's `motor_get_gearing` before any program gears it.
+- **Headers (their `///`-free banners, and so `docs/api/` regenerated):** `hal/pros/calibrate.hpp`'s "21 lines;
+  CAL1's next part adds the guide chapter" → names chapter 19 (A2a fix-2 finding 18's hand-on), and its "the belief
+  CAL1 registers as HA-187 (in Part A2b)" → "the belief is HA-187 in docs/hardware-assumptions.md"; the same in
+  `calibrate_program.hpp`'s WATCH block. `docs/api/` regenerated (`pros-calibrate.md`, `calibrate_program.md`,
+  `calibrate_panel.md`, `README.md`, `all-entities.md`).
+- **Internal:** `build-order.md` — CAL1's status block gains a 2026-10-30 line (Part A2b BUILT — "it lands at the
+  coordinator's verification and merge"; B next), the `Next:` line's CAL1 clause the same, and the CAL1 entry's
+  "HA-187/HA-188 reserved" → registered/released; `REMAINING-WORK.md` row 18b; `roadmap.md` a "Now (2026-10-30)"
+  paragraph after A2a's (A2a's left as history). **For the coordinator:** "BUILT … lands at the merge" is written
+  in four places (build-order ×2, roadmap, REMAINING-WORK) — make them LANDED with the merge's date then.
+- **Deliberately NOT touched:** `README.md` (its Calibrate lines — "the library's standard Calibrate, which no
+  program builds yet", `calibration/`'s line — are still true; README is Part B's "only if false"); `docs/faq.md`
+  (:154-176, :253 — robot two's program and the safe save, unchanged and true); guide 07 (the program list — Part
+  B's); the worksheet (Station G — Part B's); `HANDOFF-remaining-work.md` (its inventory line for
+  `calibrate_program.hpp` is still true; A2b adds no header); `ORIENTATION.md` (no `hal/pros` count moved);
+  `RESUMING.md`; the brief (its Re-check notes are the coordinator's); `test/pros_shim/` (no shim change was needed:
+  A1's `main.h`, `screen.h`, `misc.h`, C reads and advance hook carried the golden test as they stand);
+  `test/CMakeLists.txt` (the new tests are globbed; `SHULIB_SOURCE_DIR` already defined); every other chunk's
+  files — `git diff --stat e5a69b5 -- src/ tools/ Makefile test/CMakeLists.txt test/pros_shim .github` is EMPTY.
+
+## A2b.5 Mutations — every one on a FRESH binary, capped, SEEN red, restored (2026-10-30 09:06–09:27)
+
+**Method** (`scratch/cal1-a2b/mut/run_mut.py` — A2a pass 5's runner, run on the worktree itself; lists
+`make_list.py` → `pass1.json`, `make_list_b.py` → `pass1c.json`/`pass1b2.json`; outputs `pass1.out`,
+`pass1c.out`, `pass1b2.out`; backups under `mut/bak/`, never /tmp): each anchor checked to occur EXACTLY once
+before the pass (`make_list.py`: 33 mutations, 0 bad anchors); each mutant built with `shulib_tests/fast`,
+REQUIRING the link AND every object whose depfile names the mutated file rebuilt after the edit (5 objects for the
+program and the shell: `calibrate_golden_test`, `calibrate_program_test`, `calibrate_program_typed_test`,
+`calibrate_team_file_example_test`, `pros_calibrate_adapter_test`; the panel's ~25); the WHOLE suite run capped
+(RLIMIT_AS 4 GiB, 600 s); the file restored in `finally`, `cmp`-identical, its timestamp bumped. After every pass
+`md5sum -c` of the touched files against `mut/pre_md5.txt`: **OK, 4 of 4**. No mutant was killed by the cap or the
+timeout. A compile-time catch is counted only where the compiler's FIRST errors are a TEST's `static_assert`
+(printed by the compile_fail mode, `pass1c.out`) — and each of those mutants was ALSO run with T6i's
+`static_assert`s turned into run-time `CHECK`s (a `#define static_assert(...) CHECK(static_cast<bool>(...))` inserted
+before T6i, in the mutant's own edit list and restored with it — `pass1b2.out`; a first form that replaced the word
+with `CHECK(` broke on doctest's "expression too complex" for `&&` chains, `pass1b.out`, and was NOT counted), to
+see which RUN-TIME tests catch it too.
+
+| # | Brief | The mutant | Verdict | Caught by |
+|---|---|---|---|---|
+| M28 | 28 | the typed ports checked even when the card holds a record | RED | golden `typed-card-wins`, the equality case, T7g |
+| M29 | 29 | the typed ports ignored (no D6 (a)) | RED | 22 cases: every typed golden, T7a–T7k |
+| M30 | 30 | files that do not decode NOT checked against the typed ports | RED | goldens `typed-undecodable(-flip)`, `bakonly-garbage-typed`, T7h |
+| M31 | 31 | `typedDriveDescription` drops the signs | RED — **compile time, by the TEST's assertion**: T6i's description `static_assert`s (`calibrate_program_typed_test.cpp` :662–:667); at run time 24 cases (`typed-first` and every typed golden, T7*) |
+| M32 | 32 | `typedDriveDescription` swaps the sides | RED — compile time, T6i (:662–:667); at run time 24 cases |
+| M33 | 33 | `factsProblem` misses a port once on EACH side | RED — compile time, T6i's `across` (:649); at run time T6g ("11 on each side") |
+| M34 | 34 | `factsProblem` allows \|port\| > 21 (typed) | RED — compile time, T6i's `past` (:646); at run time T6g (−22, 22, −128) |
+| M35 | 35 | `factsProblem` allows one side typed | RED — compile time, T6i's `leftOnly`/`rightOnly` (:638, :642); at run time T6g |
+| M36a | 36 | the typed FRONT FLIPPED hold prints the CARD's words (serial) | RED | goldens `typed-flip-*`, `typed-undecodable-flip`, T7c, T7h |
+| M36b | 36 | `FinishFacts::typedPorts` left false | RED | the same goldens' screen logs, T7c |
+| M36c | 36 | the panel's FRONT FLIPPED view ignores `typedPorts` | RED | the same (5 cases) |
+| M37 | 37 | SAME (exactly) against the typed ports gives no NOTE | RED | goldens `typed-first`, `typed-undecodable`, `bakonly-garbage-typed`, `typed-flip-again`; T7a, T7d, T7h, T6h |
+| M38 | 38 | a discarded held run always says "the card keeps its record" | RED | goldens `typed-flip-again`, `typed-flip-disable`, `typed-watch-typo`, `empty-watch-untyped`, … (9) |
+| M39 | 39 | the MECHANISM PORT TURNED evidence ignores the typed reference | RED | golden `typed-watch-typo`, T7j |
+| M40 | 40 | no card: the typed ports consulted anyway | RED | golden `typed-nocard`, the equality case `typed-nocard` IS `nocard`, T7i |
+| M41 | 41 | the `card :` line ignores the typed ports | RED | 13 cases (every typed golden with a card, T7a, …) |
+| M42 | 42 | USE NEW against the typed ports: no FIX line, no NOTE | RED | goldens `typed-flip-new`, `typed-undecodable-flip`; T7c, T7h, T7k |
+| M43 | 43 (typed form) | the discard words keyed on the REFERENCE, not the card | RED | golden `empty-watch-untyped`; T5c, T5o |
+| M44 | 44 | typed branch: "no record yet" decided by the record FILE alone | RED | golden `bakonly-garbage-typed`; T7h |
+| M50 | 50 | a partial typed match painted FRONT MATCHES (the D6 (a) draft's rule) | RED | goldens `typed-partial`, `typed-watch-typo`; T7b, T7b-2, T7j |
+| M51 | 51 | the per-port lines dropped (the NOTE kept) | RED | the same |
+| M52 | 52 | a SIGN-only port reported as a SIDE difference | RED | golden `typed-partial`; T7b |
+| M53 | 53 | `hasTypedDrive` reads the LEFT only | RED — compile time, T6i's `rightOnly` (:641–:642); at run time T6g ("the right only" runs untyped instead of refusing) |
+| M54 | 54 | CANNOT TELL against the typed ports paints the MATCHES NOTE | RED | goldens `typed-tie`, `typed-nocommon`; T7f |
+| X20 | ruling 1 | CONTROL: `typedPorts` from `typedRef` alone (the draft's form) | **GREEN, as reasoned** (equivalent: the view reads it only on a held FRONT FLIPPED screen) | — |
+| X21 | hand-on 7 | `panelChips` copies one character short | RED | 33 cases: every golden's screen log (the PULSES chips line), the panel tests |
+| X22 | test 10 | `runCalibrate()`'s card given a root | RED | the golden test's source pin |
+| X23 | 8b / hand-on 3 | the shell's watch read makes TWO position reads | RED | 35 cases: every golden's C-read count ("2 per push" through the real shell), PC1 |
+| X24 | 11 | `typedDrivePortsFrom` puts the RIGHT's ports on the left | RED — compile time, by the TESTS' assertions: T6i's inverse (:667) and the team file's `factsProblem(kOurRobotFromConfig).why == nullptr` (`calibrate_team_file_example_test.cpp` :98) — namespace scope, so no run-time form |
+| X25 | 6 | the FACTS REFUSED line names the other side | RED | T6g |
+| X26 | 6 | the typed range refuses port 21 (off by one) | RED — compile time, T6i's `edge` and `gappy` (:644, :660); at run time T6i only (no program run types port 21) |
+| X27 | 6 | a typed duplicate names the FIRST entry | RED — compile time, T6i's `lastSlot` (:655); at run time T6g, T6i |
+| X29 | 10 | the `typed drive ports:` line prints the RIGHT as the LEFT | RED | 21 cases: every typed golden, T7* |
+
+**32 of 32 RED and the control GREEN** — the brief's typed set (28–42, 44, 50–54) and 43 in its typed form, plus 9
+of this run's own. **Not re-run, with reasons:** 1–3, 16, 17 (A1's, unchanged code); 4–15, 18, 20–27, 45–49 (A2a's,
+whose code A2b did not change — every one of them was RED at A2a's merge, and the 34 goldens add catches,
+never remove them); 19 (`detail` namespace — A2b adds no `detail` code).
+
+## A2b.6 Prose review (pace rule 4) — grepped, every hit in a living document READ, then logged (2026-10-30 09:20–09:40)
+
+**Grepped** (GNU `command grep`) over `README.md`, `docs/*.md`, `docs/guide/`, `docs/cookbook/` and the living
+internal documents (build-order, HANDOFF-remaining-work, ORIENTATION, REMAINING-WORK, PROJECT-BRIEFING, RESUMING),
+`docs/api/` aside (generated, check-fresh): A2b's names — `typedDrive`, `typed drive port`, `HA-187`, `HA-188`,
+`A2b`, `golden`, `calibrate_team_file`, `Calibrating your robot`, `chapter 19`, `19-calibrating`,
+`-Wformat-truncation`, `panelChips`, `FRONT MATCHES`, `FIX YOUR TYPED`, `FIRST RECORD` — and the phrases A2a left
+pointing at this part: `next part`, `still to come`, `registers as HA-187`, `registered by CAL1's next part`,
+`CAL1's next part adds`, `in Part A2b)`; and the counts a register entry moves (`178`, `of 178`, `HA-216`, a guide
+chapter count).
+**Read, and true after A2b:** the changelog's API 2.4 seams entry (:421 "its Parts A2a and A2b", :501 "comes in the
+next parts" — history, written when built); the changelog's other "next part" hits (the MECH core's, unrelated);
+`hardware-assumptions.md` :89/:169/:380/:381/:2537–2559 (HA-177..180's own text; "With it, 178." is MECH-A3's
+history line, followed now by A2b's "With it, 179."); `roadmap.md` :403 and :406–417 (A1's and A2a's "Now"
+paragraphs — history, A2b's added after them); guide 18 :17 and guide 11 :713 ("still to come" — the MECH core's and
+H1's); `build-order.md` :1676 (the brief's answers — robot two gets FIRST RECORD: still true); the FAQ :160–176 and
+:253–255 (the safe save and robot two's program — unchanged).
+**Fixed (made false, or left stale, by A2b):** `hal/pros/calibrate.hpp` ("CAL1's next part adds the guide chapter";
+"registers as HA-187 (in Part A2b)") and `calibrate_program.hpp` ("the belief CAL1 registers as HA-187, in Part
+A2b") — now chapter 19 and HA-187 by name, `docs/api/` regenerated; the changelog's A2a entry (the watch's belief
+"registered by CAL1's next part", "What you must do … come with CAL1's next part"); `build-order.md` :1690 (CAL1's
+entry: "HA-187/HA-188 reserved" → registered/released) and CAL1's status block and `Next:` clause;
+`REMAINING-WORK.md` row 18b; the register's Held line and status count; the guide README's chapter list and its
+maintenance note.
+**Deliberately NOT touched** (A2b.4's list): README, the FAQ, guide 07, the worksheet, HANDOFF, ORIENTATION, RESUMING,
+the brief, the shim, `test/CMakeLists.txt`, every other chunk's files.
+
+## A2b.7 The gates — every one on the final tree (2026-10-30 09:28–09:58; outputs `scratch/cal1-a2b/gates/`)
+
+- **Host build** (the binary removed, the briefing regenerated with none, `cmake -S test -B build/test`, the full
+  build with its doc-gate step, capped): exit 0, 0 warnings — re-run after the last header edit (09:52, below).
+- **The suite** (`tools/suite_run.py green`): **`suite run: green — 2757 cases, 2937329 assertions`** (3 skipped;
+  30.2 s, 53.8 MB peak). Case by case against the A2b baseline (`logs/r0_suite.xml` → `gates/suite.xml`): **0 gone,
+  56 new** (38 `calibrate_golden_test`, 15 `calibrate_program_typed_test`, 3 `calibrate_team_file_example_test`),
+  **0 failing**, 3 changed — all literal/file scans: `calibrate_panel_test` P9 (4,789 → 5,089: the six literals)
+  and two `drive_program_source_test` P3-T3 scans (+70, +16: the new strings and files).
+- **`briefing_status.py`** regenerated with the binary, then `check`: `generated block current` (suite 2,757 /
+  2,937,329; 228 headers; HA: 179 registered, next free HA-216).
+- **api_doc_tool:** self-test OK; `doc coverage: 5078 public entities across 188 headers, all documented`;
+  check-fresh exit 0 (0 lines; `docs/api/` regenerated after every `///`/banner change); `doc example scan: 623
+  quoted lines, all verbatim (10 source files)` — chapter 19's three listings included; `removability: no public doc
+  references docs/internal/`. **`doc_staleness_audit.py`:** `clean (32 live docs, 0 numeric claims checked)`.
+- **The ARM header gate** (`gates/arm_and_ci.sh`, its TU under `gates/`): exit 0 over **228** headers, 0 output
+  lines; the control fails (`-Werror=float-conversion`). **The CI greps:** `library is PROS-free (all of
+  include/shulib except hal/pros/)`; `layering holds: core is sim-free`.
+- **The compile-refusal harness** (`ctest -R compile_refusal`): `100% tests passed, 0 tests failed out of 251`.
+- **`src_build_gate.py self-test`** (09:34–09:49): `OK (235 detector cases, each against a real build)`, exit 0.
+  **`check`**: `src build gate: PASS (all 7 builds link; …)` — each of the seven `exit 0, 11/11 TUs compiled,
+  warnings: 8 vendor-ignored, 0 disallowed, hash asserted` — run at 09:52 and AGAIN at 09:56 after the last header
+  edit (the gate's step 0 reads `include/shulib` text). **No plant left:** `git status --porcelain` and the md5 of
+  every file under `src/ include/ test/ tools/` and the `Makefile` identical before and after each run.
+  `git diff --stat e5a69b5 -- src/ Makefile tools/`: EMPTY.
+- **The team file as a PROS project** (`scratch/cal1-a2b/team_proj/`: `git archive e5a69b5`, the three changed
+  headers overlaid and `cmp`-identical, `src/` replaced by the 21 lines — `cmp`-identical to the example test's
+  first 21): `make` exit 0, ONE warning (liblvgl's own), `bin/hot.package.bin` **85,104 bytes** (A2a's 81,604:
+  +3.5 KB, the typed code), text 83.10 KB; its strings carry the typed words (21 hits), its symbols the four C calls.
+- **The last edit** (09:52, after the first src-gate run): `calibrate_program.hpp`'s THE LIMIT paragraph gains
+  landmine 4's typed clause ("With typed drive ports in the facts, such a run is checked against THEM instead —
+  still not against the record the card holds") — a comment; `docs/api/` regenerated, and the build, the suite,
+  the briefing, every api/doc gate, the ARM gate, the src gate's `check` and the team project re-run after it, all
+  as above. (The src gate's `self-test` ran before it: its detectors plant into `src/`, which includes no changed
+  header — `grep`: no `src/` file includes `calibrate_program.hpp` or `hal/pros/calibrate.hpp`.)
+
+## A2b.8 Close of Part A2b (2026-10-30 09:59 EDT, `date`) — A2's DoD as the split leaves it to A2b
+
+- [x] The typed facts, words and C4 in `calibrate_program.hpp` (A2b.1), `FinishFacts::typedPorts` and the six
+  literals in `calibrate_panel.hpp` (additions, plus the chips line's behaviour-preserving `"%.*s"` — a logged
+  delta), every public member documented (coverage, above); `git diff --stat e5a69b5 -- src/` EMPTY.
+- [x] Tests 2 (typed half: T7a–T7k), 6 (typed: T6g–T6i), 10 (the 34 goldens through the real PROS shell, the two
+  equalities, the 8b C-read count — hand-on (3)) and 11 (the team file) green; the suite 2,701 → 2,757, every
+  pre-existing case passing, none edited (`git status test/`: new files only).
+- [x] Mutations 28–42, 43 (typed form), 44, 50–54 RED on fresh binaries, logged with their catches (A2b.5), plus 8 of
+  this run's own and a GREEN control; compile-time catches are the TESTS' `static_assert`s, each also shown caught at
+  run time where a run-time form exists.
+- [x] The same gates as A1/A2a (A2b.7), `src_build_gate.py` self-test and check; the team file links as a PROS
+  project.
+- [x] HA-187 in the register (index row, entry, status count, Held line; HA-188 released) with A2a's finding 7 in
+  (2)'s blast radius — hand-on (6). Docs per §3.1 (A2b.4), the prose review logged (A2b.6).
+- [x] The 34 golden scenarios committed (`test/goldens/calibrate/`, 102 files), checked against the brief's probe
+  goldens first (residual 0, A2b.2); `typed-card-wins` asserted equal to its untyped control and `typed-nocard` to
+  `nocard`; every new screen string — the six typed literals included — inside `kAll`'s compile-time check.
+- **Hand-ons, each closed:** (1) R19 — no golden needs the multi-port wording (all 34 are single-port; T7k's
+  two-question run is on the rig); (2) the goldens keep "the field disabled" words — residual 0; (3) test 8b's
+  "2 per push" through the real shell — the golden test (and mutant X23); (4) the changelog EXTENDED; (5) no golden
+  touch line or NOT SAVED/FIRST RECORD pair changed — confirmed by the comparison; (6) HA-187 (2)'s blast radius;
+  (7) `-Wformat-truncation` — fixed (A2b.1 ruling 3, mutant X21); A2a fix-2 finding 18 — chapter 19 named in
+  `hal/pros/calibrate.hpp`.
+- **No new hardware belief.** HA-187 is the brief's own; nothing found here needed another.
+
+**For the coordinator:**
+1. **Shared files this part touches (only its own lines):** `docs/changelog.md` (A2a's entry under `## API 2.5`
+   :19–172, extended), `mkdocs.yml` (one nav line after guide 18's), `docs/guide/README.md` (row 19, the maintenance
+   note), `docs/hardware-assumptions.md` (:39 Held line, :44 status, :170–176, :387 the index row, the new section
+   before Group R4), `docs/roadmap.md` (a "Now (2026-10-30)" paragraph after A2a's), `docs/internal/build-order.md`
+   (`Next:` line's CAL1 clause, CAL1's status block, :1690), `REMAINING-WORK.md` row 18b, `PROJECT-BRIEFING.md`
+   (generated), `docs/api/` (generated). **No file another in-flight chunk owns was edited** — not the shim
+   (VIS1/IMU1's `shim_control.hpp`, `imu.hpp`), not `config/robot_config.hpp` (VIS1), not `src/`, not `tools/`.
+2. **Merge order:** IMU1 Part A (`6798aa5`, `hal/pros/imu.hpp`, the shim's `imu.hpp`) is on main after this base. The
+   golden test runs the REAL `ProsImu` over the shim, so after the merge re-run `-tc='golden*'`: a change in what the
+   IMU adapter answers within one tick would move the goldens' timing lines (reasoned unlikely: the shim's IMU value
+   changes only between 10 ms steps). If they move, compare with `SHULIB_GOLDEN_OUT` and classify before copying.
+   VIS1 (in flight) edits `config/robot_config.hpp`: the team file test's `kRobot` names `.identity` and
+   `.drivetrain` by designated initializer — still valid as long as their order holds.
+3. **"BUILT … lands at the merge"** is written in four places (build-order :1643 block and the `Next:` clause, the
+   roadmap's "Now (2026-10-30)", REMAINING-WORK 18b) and the changelog heading says "its typed drive ports built
+   2026-10-30": make them LANDED with the merge's date, and regenerate the briefing (its "Next up" copies `Next:`).
+4. **Guide chapter 19** is the next free number at this base; if anything lands a 19 first, renumber (the chapter,
+   the guide README row, `mkdocs.yml`, `hal/pros/calibrate.hpp`'s sentence, the changelog's and roadmap's links).
+5. **For Part B:** chapter 19's dated status line ("As of 2026-10-30 no program in this repository runs the standard
+   Calibrate yet; robot two's own … moves onto it in CAL1's next part") — not in the brief's §3.2 list; reword it
+   when robot two moves on. The golden test's facts are written literally; Part B's §2.B says the goldens are the
+   end state's and must stay unchanged when its facts come from the tables.
+6. **The brief's proposed Re-check note R19** (A2a's) still waits for you; A2b proposes none. **The goldens are
+   1.3 MB** of text (102 files) under `test/goldens/calibrate/`.
+7. Scratch: `scratch/cal1-a2b/` (`gold1/`, `cmp/`, `mut/`, `gates/`, `team_proj/` — deletable after the merge).
+   **Nothing committed, nothing pushed, no `pros`, no serial port.**
+
+**Where work stopped:** Part A2b is complete at 09:59 EDT 2026-10-30 — every item built, tested, mutated and gated;
+the next step is the coordinator's review and merge.
+
+## CAL1-A2b review findings and their disposition (2026-10-30 14:50 EDT, `date`)
+
+> Executor: **Claude Opus 5.5** (subagent of the coordinator's workflow run), the same worktree and branch
+> (`cal1-a2b`, from `e5a69b5`). Twenty-one findings from three reviewers (correctness, tests, docs), deduplicated
+> below to eighteen.
+> Nothing committed, nothing pushed, no `pros`, no serial port; scratch and backups under
+> `scratch/cal1-a2b/fix1/`.
+
+### Resumption of this fix round (2026-10-30 14:48 EDT, `date`)
+
+- **Why.** A first fix run for these findings was STOPPED by the account's 5-hour usage limit late in the morning of
+  2026-10-30; this run resumes it ~14:48.
+- **State found** (`git status`, `git diff -- src/ Makefile`, file times): no file in the worktree (outside the build
+  trees `build/`, `bin/`, `.d/`) is newer than A2b.8's close (09:59) — the stopped run wrote NOTHING to the worktree
+  and no disposition to this log. `git diff --stat e5a69b5 -- src/ tools/ Makefile test/CMakeLists.txt test/pros_shim
+  .github`: EMPTY (no gate self-test plant). **No live mutant:** every backup under `scratch/cal1-a2b/mut/bak/`
+  (57 files) has the md5 of its file as it stands — except `calibrate_program.hpp`'s 46, which differ from the file
+  ONLY by the 09:52 THE LIMIT comment (A2b.7's last edit; `diff`: lines 66–68, a comment). The reviewers' trees are
+  their own copies (`review-*/tree`, `review-tests/r2/mergetree`), not this worktree.
+- **The binary on disk** (`build/test/shulib_tests`, 09:53) is not trusted: it is removed and relinked from source
+  before any result below.
+
+### The findings, each re-checked, and what was done (2026-10-30 14:50–15:40)
+
+Twenty-one findings arrived; three pairs say the same thing (2 = 14's first half; 4 = 7; 5 = 11), so eighteen
+distinct items. Each was re-checked on the tree before anything changed; **every one was REAL** — none is
+dispositioned "not a defect". Numbers below are the findings' order in the review.
+
+**1. The golden test fails with a long temporary directory — macOS's default (correctness, minor — REAL).**
+Re-checked: `TMPDIR=<139 characters>` on the relinked binary, `golden one`: `REQUIRE( 188 <= 95 )` … "the temporary
+directory's path is too long" — 1 failed (`fix1/logs`, the first probe). macOS's TMPDIR
+(`/var/folders/xx/<28>/T/`, 49 characters) + `shulib_calgold_<5-digit pid>/card/` + the 21-character file name =
+96 > 95: every scenario fails there, from the environment, not the code. **Fixed at the root**
+(`test/calibrate_golden_test.cpp`, `workDir()`): the work directory is made ONCE per process by `mkdtemp` (unique,
+so two suites side by side never share it — the pid name was only probably unique), named `scg-XXXXXX`, under this
+machine's temporary directory when the card root fits there, else under `/tmp`, whose length no environment variable
+sets; `kMaxCardRoot` (74 = 95 − 21, `static_assert`ed) is the one limit, used by both the choice and the guard.
+The guard `REQUIRE` stays (and a new one names a work directory that could not be made). macOS's case now fits in
+TMPDIR itself: 49 + `scg-XXXXXX` + `/card/` = 65 ≤ 74. **Measured:** the same 139-character TMPDIR → all 38 golden
+cases pass (the root fell back to `/tmp`); a 72-character TMPDIR (89 > 74) → falls back too, and passes; TMPDIR
+unset (this machine, CI) → `/tmp/scg-…`; no `scg-*` directory is left behind after any run (`ls`). The goldens are
+unchanged (the root is normalized away). **Alternative not taken:** `chdir` into the work directory with a relative
+root `card/` — process-global state for the whole suite, and "card/" as the normalization key would also match
+other text.
+
+**2 + 14 (first half). HA-187's Contained line said "no other program reads a motor this way" — FALSE (correctness,
+docs; minor — REAL).** Re-checked: `src/programs/bench_r3a.cpp` :975/:977 (`motor_get_position(raw)`,
+`motor_get_gearing(raw)`, the raw motor report) and :1135/:1160/:1184 (the motor watch's position reads) — Bench
+Tests reads motors by port through the same C calls; the entry's own settle (1) calls them "Bench Tests' raw
+probes". **Fixed** (`docs/hardware-assumptions.md`, the entry's Contained): the brief's sentence kept, then "In
+Calibrate the read is one function (`readShaftDegrees`). It is not the only reader: Bench Tests' raw motor report and
+its motor watch read motors by port through the same C calls …, so a getter that wrote would touch their reads too —
+still with no motion and nothing commanded." The blast radius is now stated, not understated.
+
+**14 (second half) + 20. Edits to the brief's verbatim text, and two deltas, not logged as rulings (docs, minor —
+REAL).** Logged here, each with its alternative (A2b.0–A2b.8 are history and are not rewritten):
+- *Ruling 4 — HA-187's text, four edits to §3.3's copy.* (a) the Source line drops the brief's internal
+  `brief-CAL1 amend/objdump/calls.txt` (a scratch path: `check-removability` refuses a public document naming
+  internal material, and the file is not in the repository) and names the shell's function and the host test
+  instead; (b) Claim (2) adds "(the push's own test for a drive port, HA-136)" — the 5° threshold's own register
+  entry; (c) blast radius (2)'s "is the draft's state (no watch)" → "is the state before the watch existed" — "the
+  draft" means nothing to a register reader; (d) hand-on (6)'s blast-radius paragraph and Station G's gearing read
+  (A2b.4), and now this round's Contained sentence. **Alternative:** copy §3.3 verbatim — a removability failure
+  and two sentences that point at nothing.
+- *Ruling 5 — the typed cases' ports written literally.* The brief's §2.A test 2 gives the typed cases' ports
+  "through `withTypedDriveFrom` over robot two's table made VALID"; `withTypedDriveFrom` is Part B's (§1.6) and does
+  not exist at A2b's tree, and robot two's table is G3a's to flip (D7). So T7*, T6* and the golden typed scenarios
+  write the brief probe's case-8 ports literally (`LEFT -11 +12 -13 +14 -15 | RIGHT +20 -19 +18 -17 +16`, the test
+  headers say so). **Alternative:** a local stand-in for `withTypedDriveFrom` in the test — Part B's function
+  written early, untested against the real one, and the test's ports read from `src/` (which G3a will change).
+  Part B's §2.B re-derives the golden facts from the tables and requires the goldens unchanged (A2b.8 item 5).
+- *Ruling 6 — the Held line.* The brief's §3.1 text is "HA-187 (registered by CAL1); HA-188 released unused — never
+  reissued"; A2b first wrote "HA-188 (CAL1's second number, released unused when CAL1 registered HA-187 — never
+  reissued)". Both put the token `HA-187` in the line `briefing_status.py`'s `held_numbers()` reads as HELD numbers,
+  so a REGISTERED number read as held (harmless today — only `next_free` uses the set — but the line no longer meant
+  its label). **Now:** "HA-188 (CAL1's second number, released unused — never reissued)"; `held_numbers()` on the
+  new line: 187 gone, 188 present, next free still HA-216 (the briefing's check, below). **Alternative:** the
+  brief's text verbatim — the same parser problem.
+
+**3. A C4 edge untested: only pushed ports the team did not type (correctness, minor — REAL).** Re-checked: no test
+has `onlyNow` as the only difference (T7b and `typed-partial` combine it with others). **Fixed:** T7b-3 — the typed
+lists one motor short (`LEFT -11 +12 -13 +14 | RIGHT +20 -19 +18 -17 +16`): the counts line ("9 agree, … 0 in the
+typed ports only, 1 in this run's only: SAME FRONT"), the header "differ at 1 port(s)", the one line "  port 15: this
+push LEFT -15, not in your typed drive ports", the SAVED line next, the PARTIAL note drawn and the exact one NOT.
+Mutant R15 RED (below).
+
+**4 + 7. T7k never checked the typed FRONT FLIPPED words, on the serial or the screen (correctness, tests; major —
+REAL).** Re-checked: T7k checked the touch line, FIX and the mechanism screen only; no golden pairs a typed flip with a
+turned claw. **Fixed:** T7k now checks the five hold lines (`kTypedFlip`) right after the verdict, no "the card's
+record calls", the `screen:` line in the typed words, the three typed draws, and none of the card's three. Mutants
+R14 (`typedPorts` false with a question to come) and T05 (the hold in the CARD's words with a question to come) RED.
+
+**5 + 11. The typed facts' slot edges: the last slot alone, and a duplicate in ADJACENT slots (correctness, tests;
+minor — REAL).** Re-checked: `lastSlot` is decided at slot 0, T6g's same-side duplicate pairs slots 0 and 4.
+**Fixed:** T6i gains seven `static_assert`s (the last slot alone on both sides — typed, usable, described; on the
+left only and on the right only — refused naming the other side; an adjacent duplicate on each side — refused at
+entry 1); T6g a run-time case (`{-11, 11, -13, 14, -15}` → "…: typedDrive.left[1] = 11"); T6h-2 a program run with
+ONLY slot 20 typed on both sides (the typed list `LEFT -11 | RIGHT +20`, "2 agree … 8 in this run's only", the
+partial NOTE, never FIRST RECORD). Mutants T04 and T06 RED at compile time (the TEST's assertions) and at run time.
+
+**6. A record recovered from the BACKUP, with typed ports present, untested (tests, major — REAL).** Re-checked: T7g
+and `typed-card-wins` seed both files good; A2a's T2i (the backup case) has no typed ports. **Fixed:** T7g-2 — the
+record file `garbage(180)`, the backup `frontLedRecord()`, typed ports flipped against it — the whole run EQUALS the
+untyped run (every line, draw and byte), no "typed drive ports" line, the BACKUP's check SAME, no FRONT FLIPPED.
+Mutant T07 RED. (Not added as a golden: the directory holds exactly the brief's 34 scenarios, and the rig's
+equality is the same proof.)
+
+**8. The MECHANISM evidence against the typed ports, tested on the LEFT side only (tests, minor — REAL).**
+**Fixed:** T7j-2 declares port 18 (typed RIGHT +18): its per-port line, the MECHANISM line, "Your typed drive ports
+DRIVE with port 18: saving now makes a record with NO port 18.", the screen's `your typed ports DRIVE with port 18`
+and never "it is declared a mechanism: not in this record", the disable's words, no file. Mutant T08 RED.
+
+**9. The per-port lines' bounds, ports 1 and 21, untested (tests, minor — REAL).** **Fixed:** T7b-4 types 1 (left)
+and 21 (right) besides the pushed ten: "differ at 2 port(s)", then exactly the port 1 and port 21 lines, then SAVED.
+Mutants T01 (`p < 21`) and T02 (`p = 2`) RED.
+
+**10. Ruling 2 (typed NOTEs kept under NOT SAVED) pinned by no test (tests, minor — REAL).** **Fixed:** T7l — A2a's
+T4c fault (a short write, 30 bytes, at the record file's first replace, found by a dry run whose NOTE is REQUIRED
+drawn) on two typed runs: every port agreeing (FRONT MATCHES YOUR TYPED DRIVE PORTS) and flipped then USE NEW (FIX
+YOUR TYPED DRIVE PORTS) — each NOT SAVED (the save's own line, the header, its red draw; never SAVED / SAVED -- NEW
+FRONT), the typed NOTE drawn, never FIRST RECORD. Mutant T03 RED.
+
+**12. Both checks on `runCalibrate()` tested presence only (tests, minor — REAL).** **Fixed:** the golden test's
+source pin compares `runCalibrate()`'s body EXACTLY (its nine lines, the five, the program, ONE run); the team file
+test counts the program's banner and `[R3D] REFUSED: ` exactly once each and requires the refusal's fix line to be
+the run's last. Mutant D01 (`program.run()` twice) RED — by the pin and by the team file test.
+
+**13. Chapter 19 misstated the backup after SAVED (docs, major — REAL).** Re-checked: `record_store.hpp` :35 (step 3
+`put(K, bytes)` refreshes the backup); `test/goldens/calibrate/flip-new.card.txt` (both files identical after USE
+NEW); the FAQ :163 says so. **Fixed** (:39-40 and "What the ending means"): three steps, each read back; after
+SAVED the backup holds the NEW record too (the log's "The backup … re-reads identical") — copying it back cannot
+undo a USE NEW after a wrong push; only a step that fails leaves the earlier record in one file, and the log says
+which (a SAVED whose backup refresh failed: "The backup … does NOT hold this record -- it holds …", `record_store.hpp`
+:813 — so the chapter does not claim "both files" unconditionally); "never erases the good record" is now
+"designed so that one failure part-way never erases … rests on beliefs … no robot has tested yet (HA-166)".
+
+**15. "ADDITIONS ONLY" over a non-additive panel line; today's program not re-measured on it (docs, minor — REAL).**
+**Fixed:** `calibrate_panel.hpp`'s A2b header bullet says "additions, plus ONE behaviour-preserving edit" and names
+it (no internal path — the first wording named this log and `check-removability` refused it, as it should;
+`docs/api/` regenerated). **Measured** (`fix1/p33/`, A2a's method — `build.sh`, `run.sh`, `compare.out`):
+`git archive e5a69b5`, TODAY's `src/programs/calibrate_program.cpp` built with the brief's harness twice — over
+e5a69b5's panel (`old_h`) and over A2b's final panel (`new_h`, md5 `eb353d8e…` = the worktree's) — the nine
+scenarios from an empty card, capped: **33 of 33 files identical** (32 byte-identical; `nocard.serial.log` after
+normalizing the card directory's name in its one NOT SAVED line, exactly A2a's). The old panel's build printed
+GCC's `-Wformat-truncation` (`calibrate_panel.hpp:753`) and the new one's did not — hand-on (7) seen once more at
+`-O1`. The changelog's "paints, prints and saves exactly as before" is now measured.
+
+**16. The prose review skipped the brief's terms, the changed files' names and the worksheet (docs, minor — REAL).**
+Done and logged below ("Prose review"). The stale comment the reviewer found — `test/pros_calibrate_adapter_test.cpp`
+:7, "the one CAL1 registers as HA-187 (in Part A2b)" — is in an existing test file A2b may not edit (§2.A test 9):
+**handed to Part B** (below).
+
+**17. FIRST RECORD from the wrong end — the recovery was incomplete (docs, minor — REAL).** **Fixed** in chapter 19
+and guide 12: RUN AGAIN, push with the other end leading; Calibrate then shows FRONT FLIPPED against the record just
+saved — touch USE NEW (changing the front back on purpose), not RUN AGAIN, which keeps the reversed record (the
+brief's Station G sentence, in the team's terms).
+
+**18. Chapter 19 omitted the typed-list refusals (docs, minor — REAL).** **Fixed:** one bullet in "What you get
+wrong": a port outside 1..21, a port listed twice (one side, or once on each — `-11` and `11` are one port), or one
+side typed → FACTS REFUSED naming the entry and value, e.g. `typedDrive.right[4] = 11` (T6g's own message).
+
+**19. Screen and log quotes with '—' where the brain prints '--', and a misquoted serial line (docs, minor — REAL).**
+**Fixed:** chapter 19 (`FRONT NOT CHECKED -- see the log`, `SAVED -- NEW FRONT`, `FIRST RECORD -- …`, `FRONT
+MATCHES, SOME TYPED PORTS DIFFER -- see log`) and guide 12 (the four NOTE rows); the pulse-refusal sentence now
+quotes the LEFT OUT line's "(a slipping gear? or a MECHANISM motor -- declare it in the robot's facts)" and the
+refusal's own line `if port N is a MECHANISM motor, declare it in the robot's facts: a motor that is not declared is
+a drive candidate` (`calibrate_program.hpp` :1646, :1669). `grep` over the docs A2b touched for a quoted literal with
+an em dash (`NOT CHECKED —`, `FIRST RECORD —`, `SAVED — NEW`, `DIFFER —`, `DRIVE PORTS —`): none left (two hits
+elsewhere are prose, not quotes).
+
+**21. Hand-off gaps (docs, minor — REAL).** Added to "For the coordinator" and "For Part B" below: (a) main's register
+is at 182 (`git show shulib-v2:docs/hardware-assumptions.md` :44, "Status: 7 of 182"; IMU1 "With them, 181" :178,
+MECH-A5 "With it, 182" :183, both after e5a69b5) — A2b's "7 of 179" / "With it, 179." become **183** at the merge,
+the status sentences in landing order (IMU1, MECH-A5, then CAL1 A2b), and main's Held line still reads
+`HA-187..HA-188`; (b) HA-187's two Station G settle steps are in no worksheet step; (c) the goldens' path.
+
+### Prose review (pace rule 4) — the brief's §3.1 terms and the changed files' names, grepped, every hit READ (2026-10-30 15:00–15:10)
+
+**Grepped** (GNU `command grep -F`) over `README.md`, `docs/*.md`, `docs/guide/*.md`, `docs/cookbook/*.md`, the
+living internal documents (build-order, HANDOFF-remaining-work, ORIENTATION, REMAINING-WORK, PROJECT-BRIEFING,
+RESUMING) and **the worksheet** (`R3a-BENCH-WORKSHEET.md`): the brief's §3.1 list — `shulib Calibrate`,
+`calibrate_program`, `viewFor`, `TouchGate`, `IBrainScreen`, `screenSafeLine`, `printText`, `record_store`,
+`saveRecordSafely`, the front (`front check`, `FRONT FLIPPED`, `WHICH END` — A2a's reading of "front") — and every
+file A2b changed by name: `calibrate_program`, `calibrate_panel`, `hal/pros/calibrate`, `pros-calibrate`,
+`calibrate_golden`, `calibrate_team_file`, `calibrate_program_typed`, `shulib_calgold`, `temp_directory`. 139 hits
+outside chapter 19 and guide 12 (those two were read whole for findings 13 and 17–19) — `fix1/logs/prose_hits.txt`.
+**Read, and true after A2b** (A2b changes no program: every line about robot two's "shulib Calibrate" describes
+`src/programs/calibrate_program.cpp`, unchanged, and is Part B's to reword as §3.2 lists): README :279-280 (the
+standard Calibrate and its shell), :322 (the program list); the FAQ :161 (the safe save's three steps — true, and
+what chapter 19 now says), :176 ("until shulib Calibrate saves through it" — robot two's program), :253;
+`hardware-assumptions.md` :116, :654, :1344, :1633/:1645 (the panel's screen model — A2b added literals inside its
+budget check, no budget moved), :1738, :1760, :2012, :2054, :2121, :2329, :2443-2505 (SAFE-SAVE: "does not use it
+until Part B1" — robot two's), :2670, :2700, :2910, :3026, :3184-3213 (HA-187 — A2b's, fixed above), :3329, :4029,
+:4190, :4219; roadmap :245, :293, :401, :414, :421 (A2b's paragraph), :476, :485, :1231, :1266, :1328; the master
+plan :274; guide 07 :143, guide 16 :145, guide 17 :346, the guide README :27; HANDOFF :119, :274-280 ("no program
+builds it yet" — still true), :307, :582, :731; ORIENTATION :85, :104; REMAINING-WORK :101; the briefing :110 (its
+"Next up" copies build-order's pointer); the changelog — A2b's extended entry :19-171 (its :81 "a verified backup
+first … never erases a good one" is A2a's merged text, true of the order; history, not rewritten), the 2.4 seams
+entry :418-478, SAFE-SAVE's :936-986, and the older :656, :865, :1535, :1728, :1779-1850 (history); build-order
+:632-642 (pointers and history), :1506, :1551, :1647-1686 (CAL1's block — A2b's lines and A2a's), :1855,
+:2160-2164, :2334-2338; the worksheet :22, :27, :452, :492-540, :624, :722-865, :1030, :1354, :1862 — robot two's
+program and Station G, all Part B's rewrite (§3.2), none made false by A2b. The test files' names occur only in
+chapter 19 (:74, its link), the changelog (:163, :168) and HA-187 (:3213) — true. `shulib_calgold` and
+`temp_directory` occur in no public document (one internal hit, IMU1's brief :78, about OTHER tests' fixed temp
+paths — the mkdtemp directory here is unique per process, so it adds no such collision).
+**Fixed this round:** chapter 19 and guide 12 (findings 13, 17, 18, 19), HA-187 and the Held line (2/14, 20),
+`calibrate_panel.hpp`'s header bullet (15; `docs/api/` regenerated).
+**Not touched, with reasons:** `test/pros_calibrate_adapter_test.cpp` :7 (an existing test A2b may not edit —
+handed to Part B, below); the FAQ, README, guide 07, the worksheet (true; Part B's); the changelog's A2a sentences
+(history).
+
+### For the coordinator and for Part B (added by this round; A2b.8's list stands)
+
+**For the coordinator (the merge):**
+1. **The register count** (finding 21a): main is at **"Status: 7 of 182"** — IMU1 (+3, "With them, 181") and
+   MECH-A5 (+1, "With it, 182") landed after `e5a69b5` and inserted their status sentences where A2b inserted its
+   own. At the merge A2b's "Status: 7 of 179" and "With it, 179." become **183**, its sentence AFTER MECH-A5's
+   (landing order), and main's Held line's `HA-187..HA-188` becomes this branch's `HA-188 (CAL1's second number,
+   released unused — never reissued)` (ruling 6: no registered number in the held line). The next free number stays
+   HA-216 (check it with `briefing_status.py check` on the merged tree).
+2. **The goldens after IMU1** (A2b.8 item 2) still apply; nothing here changed a golden (the card root is
+   normalized away).
+
+**For Part B:**
+1. **HA-187's settle at Station G** (finding 21b): the register's index row and entry name Station G, but no
+   worksheet step does it and §3.2's Station G list does not name it. Part B's Station G rewrite adds both steps:
+   (2)+(3) with the claw pivots declared, turn ONE by hand during the push — the watch names that port and only it,
+   the save waits on MECHANISM PORT TURNED, the other pivot has not moved; and read an unconfigured claw's
+   `motor_get_gearing` before any program gears it (it sets the evidence line's scale — HA-187 (2)'s blast radius).
+2. **The goldens' path** (finding 21c): A2b's goldens are `test/goldens/calibrate/` (plural — the brief's §2.B
+   side-by-side proof says `test/golden/calibrate/old/`, singular). The golden test REQUIRES
+   `test/goldens/calibrate/` to hold exactly the 34 × 3 files, so an `old/` directory placed UNDER it fails that
+   case. Put the old program's goldens beside it (e.g. `test/goldens/calibrate-old/`), or extend the directory test
+   — and delete them with the old program, as the brief says.
+3. **A stale comment in an existing test** (finding 16): `test/pros_calibrate_adapter_test.cpp` :7 still says "the
+   one CAL1 registers as HA-187 (in Part A2b)" — now false (HA-187 is registered). Part B re-pins tests; reword it
+   there ("the belief is HA-187 in docs/hardware-assumptions.md", the headers' words).
+
+### Mutation pass — the reviewers' surviving mutants, re-cut on this tree, each on a FRESH binary (2026-10-30 15:02–15:09)
+
+**Method** (`scratch/cal1-a2b/fix1/mut/`: `make_list.py` → `pass1.json`, `pass2.json`; `run_mut.py` — A2b.5's
+runner, its backups under `fix1/mut/bak/`, never /tmp; outputs `pass1.out`, `pass2.out`): 14 mutations, every
+anchor checked to occur EXACTLY once first (0 bad); each built with `shulib_tests/fast`, REQUIRING the link and
+every object whose depfile names the mutated file rebuilt after the edit (5 for the program header, 3 for the
+shell); the WHOLE suite capped (RLIMIT_AS 4 GiB, 600 s) — no mutant was killed by the cap or the timeout; each file
+restored in `finally`, `cmp`-identical, its timestamp bumped; after both passes `md5sum -c` of the touched files
+against `fix1/mut/pre_md5.txt`: **OK, 3 of 3**. A compile-time catch counts only where the compiler's errors are the
+TEST's `static_assert`s (printed — `pass1.out`); each such mutant was ALSO run with T6i's `static_assert`s made
+`CHECK`s (A2b.5's `#define`, in the mutant's own edit list and restored with it) to show the run-time catch. Before
+this round's tests, every one of these survived the reviewers' whole-suite runs (2,757 / 2,757 green).
+
+| # | Finding | The mutant | Verdict | Caught by |
+|---|---|---|---|---|
+| R15 | 3 | C4's exact NOTE when `differing == onlyNow` | RED | T7b-3 (5 checks), T6h-2 |
+| R14 | 4 | `typedPorts` false while a MECHANISM question is to come | RED | T7k (the `screen:` line, the three typed draws, the card's three) |
+| T05 | 7 | the typed hold in the CARD's words when a question is to come | RED | T7k (the five hold lines, "the card's record calls") |
+| T04 | 5/11 | `hasTypedDrive` never reads slot 20 | RED — **compile time, by the TEST's assertions** (`calibrate_program_typed_test.cpp` :888, :894–:895, :899–:900: `lastOnly`, `lastLeftOnly`, `lastRightOnly`); at run time T6h-2 (no typed check printed) and T6i |
+| T06 | 11 | the same-side duplicate scan starts two slots on | RED — **compile time, by the TEST's assertions** (:904 `adjacent`, :907 `adjacentRight`); at run time T6g (the adjacent case runs instead of refusing: devices asked for, motors commanded) and T6i |
+| T07 | 6 | typed ports take over whenever the RECORD FILE does not decode | RED | T7g-2 (the typed ports, flipped against the push, become the reference, so the typed run HOLDS on FRONT FLIPPED, which its scripted operator never answers — `REQUIRE_FALSE(typed.timedOut)`, the rig's own deadline, not the cap) |
+| T08 | 8 | the MECHANISM evidence judges the LEFT side only | RED | T7j-2 (the evidence line, the screen's line, "not in this record" drawn) |
+| T01 | 9 | the per-port lines stop at port 20 | RED | T7b-4 |
+| T02 | 9 | the per-port lines start at port 2 | RED | T7b-4 |
+| T03 | 10 | the typed NOTEs dropped under NOT SAVED (ruling 2 reversed) | RED | T7l |
+| D01 | 12 | `runCalibrate()` runs the program twice | RED | the golden test's exact source pin; the team file test (banner and REFUSED once each) |
+| X22r | (A2b.5's X22) | `runCalibrate()`'s card given a root — re-run because its catch, the source pin, was rewritten | RED | the exact source pin |
+
+**14 of 14 RED** (two of them at compile time by the tests' own assertions, and RED at run time too). The finding-1
+fix is shown by the TMPDIR probes above (it is the test's own environment, not library logic); finding 15's by the
+33-of-33 measurement.
+
+### Second resumption of this fix round, after the team lead's pause (2026-11-03 12:49 EST, `date`)
+
+- **Why.** The team lead paused all work at ~15:40 on 2026-10-30 (he travelled). The run above was stopped after
+  its mutation pass, before it logged its gates or closed the round. The laptop restarted on 2026-11-03; this run
+  resumed at 12:49 EST (`date`; EST since 2026-11-01). Scratch under `scratch/cal1-a2b/fix1r/`.
+- **State found** (`git status`, `git diff -- src/ Makefile`, md5s, file times):
+  - the worktree holds A2b's changes only (18 modified files; 6 untracked: chapter 19, the golden rig and test, the
+    typed test, the team file test, `test/goldens/`). `git diff --stat e5a69b5 -- src/ tools/ Makefile
+    test/CMakeLists.txt test/pros_shim .github`: EMPTY.
+  - **No live mutant:** `md5sum -c fix1/mut/pre_md5.txt` OK, 3 of 3 (the program header `f4cd06a2…`, the shell
+    `401c7982…`, the typed test `5e060af0…`), and each of the 16 backups under `fix1/mut/bak/` has the md5 of its
+    file as it stands.
+  - **No gate plant:** the stopped run's src gate `self-test` and `check` had FINISHED (10-30 15:17–15:35,
+    `fix1/gates/times.txt`), and its after-snapshot (1,116 files under `src/ include/ test/ tools/` and the
+    `Makefile`) matches the tree now (`md5sum -c --quiet`: all OK). The files newer than this log (`Makefile`,
+    `src/main.cpp`, `test/CMakeLists.txt`, …) are newer only by their restore's timestamp bump: `git status` lists
+    none of them.
+  - **What the stopped run did after its mutation pass and did not log:** the gates, 10-30 15:10–15:35
+    (`fix1/gates/`: the suite green with 2,763 cases; the src gate's `self-test` OK and `check`; ARM over 228
+    headers; api_doc_tool; the staleness audit; the briefing), and a rebuild of the team project at 15:04. The tree
+    has not changed since (above). Those results are NOT cited here: every gate is re-run below, on a fresh binary.
+  - **main has moved** since the base (IMU1 Part A `6798aa5`, MECH-A5 `81eb666`, the panel plan `eab0f89`; VIS1-A1
+    staged in main's tree). Of the files A2b changes, main's commits touch only shared documents
+    (`git diff --name-only e5a69b5 shulib-v2` against A2b's list): the changelog, the register, build-order, the
+    roadmap, REMAINING-WORK, the briefing and the two generated `docs/api/` indexes. In each, A2b changed only its own
+    lines. VIS1-A1's staged change also touches `mkdocs.yml`. The merge reconciles all of these (see "For the
+    coordinator", below).
+- **The binary** (`build/test/shulib_tests`, 2026-10-30 15:11) was removed and relinked from source (below) before
+  any result.
+
+### Re-verification of the logged dispositions (2026-11-03 12:52–13:00)
+
+- **Each finding's fix was re-read in the tree**, not taken from the log above:
+  - (1) `workDir()`'s `mkdtemp` and `kMaxCardRoot` (the golden test :319–354, the two `REQUIRE`s :394–401).
+  - (2) HA-187's Contained ("It is not the only reader", the register :3240).
+  - (3) T7b-3. (4 and 7) T7k's five hold lines, its typed draws, and the absence of the card's three.
+  - (5 and 11) T6i's new `static_assert`s (the typed test :888–907), T6g's adjacent case and T6h-2.
+  - (6) T7g-2. (8) T7j-2. (9) T7b-4. (10) T7l.
+  - (12) the exact source pin (the golden test :608–633) and the team file test's counts.
+  - (13) chapter 19 :39–40 and "What the ending means". (15) the panel's header bullet: a `diff` against A2b.5's
+    backup shows the bullet only, so no code line changed in this round, in any of the three headers.
+  - (17) chapter 19's FIRST RECORD paragraph and guide 12's row. (18) chapter 19's typed refusal bullet. (19) the
+    `--` quotes. (20) rulings 4–6 and the Held line (the register :39). (21) the hand-ons above.
+- **The mutation pass above was not re-run.** Its outputs (`fix1/mut/pass1.out`, `pass2.out`) already show every
+  mutant on a FRESH binary:
+  - each run-time mutant carries the runner's own line "fresh binary: linked, every dependent object rebuilt (5: … /
+    3: …)";
+  - each compile-time mutant shows the compiler's errors, which are the TEST's `static_assert`s (the typed test
+    :888–:907);
+  - each was observed RED and restored `cmp`-identical.
+
+  The files they mutated, and the tests that caught them, are byte-identical to the files those runs used
+  (`pre_md5.txt` OK; the golden test and the team file test last changed at 14:54, before the pass began at 15:02).
+- **Finding 1's probes, re-run on this round's fresh binary** (`fix1r/probe/`, capped, `strace -f -e
+  trace=mkdir,mkdirat`):
+  - TMPDIR set to a 146-character directory: `golden*` **38 of 38 passed**. `mkdtemp` made `/tmp/scg-NVjoYy`, and
+    nothing was made under the long TMPDIR, so the fallback was taken.
+  - TMPDIR unset: 38 of 38, made under `/tmp` (`/tmp/scg-yew8dw`), so the branch where the root fits was taken.
+  - No `scg-*` directory was left after either run, nor after the whole suite (`ls`).
+
+  A TMPDIR short enough to hold the root cannot be made under this run's scratch directory, which is itself 65
+  characters (65 + 17 > 74). macOS's 49-character TMPDIR is shown by the arithmetic: 49 + `scg-XXXXXX` +
+  `/card/` = 65 ≤ 74.
+- **Finding 15's measurement still holds:** its overlay panel (`fix1/p33/overlay/…/calibrate_panel.hpp`) has md5
+  `eb353d8e…`, the same as the panel as it stands.
+- **The team file as a PROS project, rebuilt** (`team_proj/`: the three headers `cmp`-identical to the worktree's,
+  `src/main.cpp` `cmp`-identical to the example test's first 21 lines; `bin/main.cpp.o` and the hot package removed
+  first, capped):
+  - `make` exit 0, with ONE warning (liblvgl's own);
+  - `bin/hot.package.bin` is **85,108 bytes**, text 83.11 KB; its strings carry the typed words (21 hits).
+  - A2b.7 measured 85,104 bytes. The four bytes are the build-hash string, which this scratch project's Makefile
+    takes from `git describe --dirty` of the repository around it (`v0.1.1-400-geab0f89-dirty` now). No code
+    changed.
+
+### The gates — every one re-run on this round's final tree (2026-11-03 12:52–13:25 EST; outputs `fix1r/`)
+
+- **The host build.** First the binary was removed, `cmake -S test -B build/test` run, and the briefing regenerated
+  with no binary. Then the full `cmake --build build/test -j8`, capped: exit 0, **245 objects compiled** (a full
+  rebuild), **0 warnings**, linked 12:53:09. Its doc-gate step reported:
+  - api_doc_tool self-test OK; coverage 5,078 entities across 188 headers; 623 quoted lines verbatim;
+  - removability clean;
+  - the self-tests of `suite_run.py` (41 cases), `briefing_status.py` (38) and the staleness audit (16) OK.
+
+  The briefing was regenerated again once the binary existed.
+- **The suite** (`(ulimit -v 4194304; timeout 600 python3 tools/suite_run.py green)`): **`suite run: green — 2763
+  cases, 2937505 assertions`** (3 skipped, as on main; 12:53:45–12:54:12). Compared case by case with A2b.7's
+  `gates/suite.xml` (the XML from the same binary, capped, `fix1r/logs/suite.xml`):
+  - **0 gone, 0 failing.**
+  - **6 new**, all in the typed test: T7b-3, T7b-4, T7g-2, T7j-2, T7l and T6h-2.
+  - **39 changed**, each by a test this round changed:
+    - the 34 golden scenarios, +1 assertion each (`runScenario()`'s new work-directory `REQUIRE`);
+    - the source pin, 14 → 8 (one exact compare in place of six finds);
+    - T7k, 21 → 35; T6g, 287 → 323; the team file test, 52 → 57;
+    - the panel's P9, 5,089 → 5,093. P9 checks every line of `calibrate_panel.hpp` for `%%`, and the header bullet
+      is four lines longer.
+- **`briefing_status.py check`:** `generated block current` (suite 2,763 / 2,937,505; 228 headers; HA: 179
+  registered, next free HA-216).
+- **api_doc_tool** (each exit 0):
+  - `self-test` OK; `check-coverage`: 5,078 public entities across 188 headers, all documented;
+  - `check-fresh`: 0 lines;
+  - `check-examples`: 623 quoted lines, all verbatim (10 source files), and 6 listings of whole-run files, each one
+    unbroken run;
+  - `check-removability`: no public doc references `docs/internal/`.
+- **`doc_staleness_audit.py`:** `clean (32 live docs, 0 numeric claims checked)`, with its cases and assertions
+  derived from the fresh binary.
+- **The ARM header gate** (`fix1r/gates/arm_and_ci.sh`, its translation unit under `fix1r/gates/`): exit 0 over
+  **228** headers, 0 output lines. Its control fails as it should (`-Werror=float-conversion`).
+- **The CI greps** (as `.github/workflows/ci.yml` :60 and :76 spell them): `library is PROS-free (all of
+  include/shulib except hal/pros/)`; `layering holds: core is sim-free`.
+- **The compile-refusal harness** (`ctest -R compile_refusal`, capped): `100% tests passed, 0 tests failed out of
+  251`.
+- **`src_build_gate.py`** (`fix1r/gates/srcgate.sh`, 13:00:36–13:19:45):
+  - `self-test`: `OK (235 detector cases, each against a real build)`, exit 0 (13:00–13:16).
+  - `check`: `src build gate: PASS (all 7 builds link; …)`, exit 0 (13:16–13:19). Each of the seven builds: `exit 0, 11/11 TUs
+    compiled, warnings: 8 vendor-ignored, 0 disallowed, hash asserted`.
+  - **No plant left:** the md5 of every file under `src/ include/ test/ tools/` and of the `Makefile`, plus
+    `git status --porcelain`, were taken before and after the two runs: **identical** (1,116 files). They are also identical to the
+    stopped run's after-snapshot of 2026-10-30, file for file, with the same `git status`.
+  - `git diff --stat e5a69b5 -- src/ Makefile tools/`: EMPTY.
+- **The team project:** rebuilt above (`make` exit 0, 85,108 bytes).
+- **Relinked after the src gate.** The src gate's restores bump file timestamps (`include/shulib/config/robot_config.hpp`
+  and 8 more), so the staleness audit then distrusted the binary ("older than … so it was not trusted"), although
+  the snapshot shows no content changed. So the binary was removed again, the briefing regenerated with none, the
+  full build re-run (exit 0, 245 objects, 0 warnings), and the briefing regenerated. The suite was then re-run:
+  **`suite run: green — 2763 cases, 2937505 assertions`** (13:22–13:24). No `scg-*` directory was left behind.
+- **After this log's last edit,** the documentation gates were re-run (`check-fresh`, `check-examples`,
+  `check-removability`, the staleness audit, `briefing_status.py check`), on the relinked binary. Each exited 0:
+  `check-fresh` printed 0 lines; 623 quoted lines verbatim; removability clean; the audit `clean (32 live docs, …)`
+  with its counts derived from the binary; the briefing `generated block current`.
+
+### Prose review (pace rule 4) for this resumption
+
+This resumption changed **no source file and no public document**. Its only edits are to this log, plus the
+briefing's regeneration, which leaves it unchanged (`git diff`: the suite and HA lines as the stopped run left them).
+The proof is the after-snapshot: every file under `src/ include/ test/ tools/` and the `Makefile` matches the
+stopped run's (`md5sum -c`: all OK, above), and `git status` lists the same files. The prose review of the round is
+the one logged above ("Prose review … 2026-10-30 15:00–15:10"), and nothing since has changed what it read.
+
+### For the coordinator — updated by this resumption (items 1 and 2 above stand, except as said here)
+
+1. **The register count has moved again.** Item 1 above says 183. That is right only for main at `eab0f89`
+   ("Status: 7 of 182"). VIS1-A1 is staged in main's tree at **"Status: 7 of 194"** (twelve entries, HA-192..HA-203,
+   its sentence "With them, 194." the last). So at the merge:
+   - A2b's "Status: 7 of 179" and "With it, 179." become **main's count + 1**: 195 if VIS1-A1 lands first, 183 if
+     it does not;
+   - A2b's sentence goes after the last one landed;
+   - the Held line still becomes A2b's `HA-188 (CAL1's second number, released unused — never reissued)`.
+     VIS1-A1's staged Held line still lists `HA-192..HA-203` as held; that is VIS1's to settle, not A2b's.
+   - The next free number stays HA-216. Check it with `briefing_status.py check` on the merged tree.
+2. **`mkdocs.yml` is touched by both A2b and VIS1-A1's staged change**: A2b adds chapter 19's nav line, so keep
+   both.
+3. **The landing date.** Five places say A2b is BUILT on 2026-10-30 and that it lands at the merge:
+   - `build-order.md` :632 (the `Next:` pointer — the briefing's "Next up" regenerates from it) and :1643;
+   - the roadmap's "Now" :419;
+   - `REMAINING-WORK.md` :101;
+   - the changelog's 2.5 heading :19 ("its typed drive ports built 2026-10-30").
+
+   At the merge, re-date them in A2a's form: `LANDED <merge date> (built 2026-10-30, reviewed and fixed
+   2026-10-30–11-03)`. Then regenerate the briefing.
+
+### This round's close (2026-11-03 13:24 EST, `date`)
+
+- **Findings:** the review sent twenty-one; deduplicated, they are **eighteen**. Every one was re-checked and found
+  **REAL**, and every one is dispositioned above:
+  - fixed at the root, in the tests, the documents or the register;
+  - or handed on with its reason: `test/pros_calibrate_adapter_test.cpp` :7 (an existing test A2b may not edit) and
+    HA-187's Station G steps both go to Part B.
+
+  None was dispositioned "not a defect".
+- **Mutations:** the reviewers' surviving mutants were re-cut on this tree. **14 of 14 are RED** on fresh binaries:
+  two at compile time by the tests' own `static_assert`s (and RED at run time too), and none killed by the cap or
+  the timeout.
+- **Gates:** every one is green on the final tree (above).
+- **Scope:** `git diff --stat e5a69b5 -- src/` is EMPTY, so Part B's files are untouched.
+- **Status:** nothing committed, nothing pushed, no `pros`, no serial port.
+- **Next:** the coordinator's verification and merge (above), then Part B.
+
+## The coordinator's merge verification — CAL1 Part A2b (2026-11-03 15:55–17:15, main `59d93bb` + the squash of `cal1-a2b`)
+- **Audit before the merge:** `audit_wt.py cal1-a2b` — 5 backed-up files, 0 suspicious; no gate plant in `src/`, `tools/`
+  or the Makefile (also grepped for a "(self-test plant" line); no stray root file. The transport commit `114caa0`, then
+  `git merge --squash cal1-a2b` (base `e5a69b5`).
+- **Seven conflicts:** `docs/api/README.md`, `all-entities.md` and the briefing (regenerated); the changelog — A2b EXTENDED
+  A2a's 2.5 entry (hand-on 4), so the entry keeps its place under the four newer ones and its heading takes A2b's words,
+  dated "its typed drive ports 2026-11-03, built 2026-10-30"; the register — the status **7 of 203** (main's 202 + HA-187;
+  203 index rows, sorted, HA-187 present), A2b's "added ONE" paragraph last, "With it, 203"; the roadmap — A2b's "Now"
+  paragraph after IMU1's, VIS1-A1's and L6-A1's, re-worded LANDED 2026-11-03; build-order's `Next:` line by a word-level
+  three-way merge against `e5a69b5` (both sides' additions present). "BUILT … lands at the coordinator's merge" phrases made
+  LANDED in build-order (the Next line and the CAL1 status) and REMAINING-WORK 18b.
+- **No semantic conflict:** A2b edited no existing test file; `test/calibrate_program_rig.hpp` keeps main's
+  `CountingProvider::aiVision()` (the VIS1-A1 merge fix).
+- **Guide chapter 19** is A2b's ("Calibrating your robot"); G3a Part 1's robot-file chapter, merging next, was renumbered
+  20 in its worktree before its merge.
+- **Gates on the merged tree** (`.claude/coordinator/logs/cal1_a2b_merge_verify.out`): host build with the doc gates; suite
+  **2,961 | 2,961 passed, 3 skipped** (the goldens re-run on IMU1's real `ProsImu`, as A2b asked); `src_build_gate.py`
+  self-test OK and check **PASS, all 7 builds**; ARM header gate over **240** headers clean; CI greps empty; api
+  check-fresh, the briefing, removability and the staleness audit clean; the compile-refusal harness **255 of 255**.
+- **The coordinator's hand mutations** (`muts_cal1_a2b_main.json`; fresh link, 4 GiB / 300 s cap, restored and
+  hash-checked): **5 of 5 caught** — CB3 (the turned port judged against the card when the typed ports were the
+  reference) and CB5 (the typed ports win over a usable record on the card — D6 (a)'s order) RED; CB1 (a port typed on
+  both sides not refused), CB2 (one side typed, the other empty, accepted) and CB4 (typed port 22 accepted) refused AT
+  BUILD by `test/calibrate_program_typed_test.cpp`'s own `static_assert`s (:865, :873, :876, :895 — the test's
+  assertions, confirmed by compiling each mutant, not the mutation's own breakage). Restored tree green.
+- **Next for CAL1:** Part B (robot two onto the standard Calibrate; CAL1's facts mapping N9; the dated status line in
+  chapter 19) — the auton library, ahead of the panel (the team lead's 2026-11-03 order).

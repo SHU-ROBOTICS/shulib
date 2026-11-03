@@ -445,6 +445,14 @@ not silently break them. This table is the spine of the no-staleness promise.
 > part is the library core with the explicit call over hand-wired handles; no program and no robot sensor uses it yet.
 > **Next for the wall reset: L6-A2** (the robot's side sensors and the everyday call from an auton), then L6-B (robot two).
 >
+> **Now (2026-11-03): CAL1 Part A2b has LANDED — host-only** (built 2026-10-30).
+> A team whose drive program already types its drive ports may state them (`CalibrateFacts::typedDrive`); with no
+> usable record on the card they are the front check's reference, in their own words — the team lead's D6 (a). The
+> program now runs through its REAL PROS shell in the host suite, 34 scenarios held to committed goldens, and the
+> team's whole Calibrate file — 21 lines — is compiled and run there and shown in the guide's
+> [chapter 19](guide/19-calibrating-your-robot.md). Register entry [HA-187](hardware-assumptions.md) holds the
+> watch's belief. No program uses it yet: **next for CAL1 is Part B** (robot two onto it).
+>
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
 > robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver

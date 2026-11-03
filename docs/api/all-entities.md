@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 5,479 of them, across 197 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 5,498 of them, across 197 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -488,6 +488,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CalibrateFacts::imuPortStated` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-imuportstated) |
 | `CalibrateFacts::mechanisms` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-mechanisms) |
 | `CalibrateFacts::robot` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-robot) |
+| `CalibrateFacts::typedDrive` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-typeddrive) |
 | `calibrateInitialize` | free function | [pros-calibrate.md](pros-calibrate.md#calibrateinitialize) |
 | `CalibrateIo` | class | [calibrate_program.md](calibrate_program.md#class-calibrateio) |
 | `CalibrateIo::CalibrateIo` | function | [calibrate_program.md](calibrate_program.md#calibrateio-calibrateio) |
@@ -1424,9 +1425,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `FactsList` | enum class | [calibrate_program.md](calibrate_program.md#enum-class-factslist) |
+| `FactsList::Mechanisms` | enumerator | [calibrate_program.md](calibrate_program.md#factslist-mechanisms) |
+| `FactsList::TypedLeft` | enumerator | [calibrate_program.md](calibrate_program.md#factslist-typedleft) |
+| `FactsList::TypedRight` | enumerator | [calibrate_program.md](calibrate_program.md#factslist-typedright) |
 | `factsProblem` | free function | [calibrate_program.md](calibrate_program.md#factsproblem) |
 | `FactsProblem` | struct | [calibrate_program.md](calibrate_program.md#struct-factsproblem) |
 | `FactsProblem::entry` | field | [calibrate_program.md](calibrate_program.md#factsproblem-entry) |
+| `FactsProblem::list` | field | [calibrate_program.md](calibrate_program.md#factsproblem-list) |
 | `FactsProblem::why` | field | [calibrate_program.md](calibrate_program.md#factsproblem-why) |
 | `faultBit` | free function | [motion_scheduler.md](motion_scheduler.md#faultbit) |
 | `FaultCode` | enum class | [fault.md](fault.md#enum-class-faultcode) |
@@ -1531,6 +1537,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FinishFacts::holdLine2` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-holdline2) |
 | `FinishFacts::holdPort` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-holdport) |
 | `FinishFacts::note` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-note) |
+| `FinishFacts::typedPorts` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-typedports) |
 | `finiteNumber` | free function | [camera_config.md](camera_config.md#finitenumber) |
 | `FitConfig` | struct | [feedforward_fit.md](feedforward_fit.md#struct-fitconfig) |
 | `FitConfig::alphaMin` | function | [feedforward_fit.md](feedforward_fit.md#fitconfig-alphamin) |
@@ -1766,6 +1773,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Handler` | struct | [command_registry.md](command_registry.md#struct-handler) |
 | `Handler::ctx` | field | [command_registry.md](command_registry.md#handler-ctx) |
 | `Handler::fn` | field | [command_registry.md](command_registry.md#handler-fn) |
+| `hasTypedDrive` | free function | [calibrate_program.md](calibrate_program.md#hastypeddrive) |
 | `hDrive` | free function | [h_drive.md](h_drive.md#hdrive) |
 | `HDriveConfig` | struct | [h_drive.md](h_drive.md#struct-hdriveconfig) |
 | `HDriveConfig::strafeSpeedRatio` | field | [h_drive.md](h_drive.md#hdriveconfig-strafespeedratio) |
@@ -2371,8 +2379,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kFlagsOffset` | constant | [shul2_format.md](shul2_format.md#kflagsoffset) |
 | `kFlipAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kflipagain) |
 | `kFlipNew` | constant | [calibrate_panel.md](calibrate_panel.md#kflipnew) |
+| `kFlipNewTyped` | constant | [calibrate_panel.md](calibrate_panel.md#kflipnewtyped) |
 | `kFlipWarn` | constant | [calibrate_panel.md](calibrate_panel.md#kflipwarn) |
+| `kFlipWarnTyped` | constant | [calibrate_panel.md](calibrate_panel.md#kflipwarntyped) |
 | `kFlipWhat` | constant | [calibrate_panel.md](calibrate_panel.md#kflipwhat) |
+| `kFlipWhatTyped` | constant | [calibrate_panel.md](calibrate_panel.md#kflipwhattyped) |
 | `kFormatVersion` | constant | [blackbox_format.md](blackbox_format.md#kformatversion) |
 | `kFrameHeaderBytes` | constant | [blackbox_format.md](blackbox_format.md#kframeheaderbytes) |
 | `kFrameOverheadBytes` | constant | [shul2_format.md](shul2_format.md#kframeoverheadbytes) |
@@ -2539,7 +2550,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kNotDriverControl` | constant | [calibrate_screen.md](calibrate_screen.md#knotdrivercontrol) |
 | `kNoteCols` | constant | [calibrate_panel.md](calibrate_panel.md#knotecols) |
 | `kNoteFirst` | constant | [calibrate_panel.md](calibrate_panel.md#knotefirst) |
+| `kNoteFixTyped` | constant | [calibrate_panel.md](calibrate_panel.md#knotefixtyped) |
 | `kNoteNotChecked` | constant | [calibrate_panel.md](calibrate_panel.md#knotenotchecked) |
+| `kNoteTypedPartial` | constant | [calibrate_panel.md](calibrate_panel.md#knotetypedpartial) |
+| `kNoteTypedSame` | constant | [calibrate_panel.md](calibrate_panel.md#knotetypedsame) |
 | `kNothingOrSomethingElseMoved` | constant | [direction_check.md](direction_check.md#knothingorsomethingelsemoved) |
 | `kNothingPowered` | constant | [calibrate_screen.md](calibrate_screen.md#knothingpowered) |
 | `kNothingSavedYet` | constant | [calibrate_panel.md](calibrate_panel.md#knothingsavedyet) |
@@ -5296,6 +5310,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `two_mechanisms_share_a_name` | free function | [wiring.md](wiring.md#two_mechanisms_share_a_name) |
 | `two_presets_or_positions_share_a_name` | free function | [spec.md](spec.md#two_presets_or_positions_share_a_name) |
 | `two_route_ids_are_the_same_rename_a_mechanism_a_preset_or_a_position` | free function | [route_ids.md](route_ids.md#two_route_ids_are_the_same_rename_a_mechanism_a_preset_or_a_position) |
+| `typedDriveDescription` | free function | [calibrate_program.md](calibrate_program.md#typeddrivedescription) |
+| `TypedDrivePorts` | struct | [calibrate_program.md](calibrate_program.md#struct-typeddriveports) |
+| `TypedDrivePorts::left` | field | [calibrate_program.md](calibrate_program.md#typeddriveports-left) |
+| `TypedDrivePorts::right` | field | [calibrate_program.md](calibrate_program.md#typeddriveports-right) |
+| `typedDrivePortsFrom` | free function | [calibrate_program.md](calibrate_program.md#typeddriveportsfrom) |
 
 ## U
 

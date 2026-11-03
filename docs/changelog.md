@@ -339,12 +339,14 @@ about double (a GPS fix every 5th tick, with the copy between the gate's read an
 most 60 zero and 60 double of 300 ticks). Its cure is the gyro's own rate, once the bench measures its
 sign (HA-04).
 
-### Added since 2.5 (2026-10-29; built 2026-10-18–22, reviewed and fixed 2026-10-22–29) — the standard Calibrate: a team states its drive kind, its cartridge and its mechanism motors, and every team runs the same Calibrate
+### Added since 2.5 (2026-10-29; built 2026-10-18–22, reviewed and fixed 2026-10-22–29; its typed drive ports 2026-11-03, built 2026-10-30) — the standard Calibrate: a team states its drive kind, its cartridge and its mechanism motors, and every team runs the same Calibrate
 
-> Written when it was built (chunk CAL1, Part A2a of four: the standard program, with the card's record
-> as the front check's only reference; Part A2b adds a team's typed drive ports as the reference when
-> the card holds no usable record, and the guide's chapter on writing your Calibrate; robot two moves
-> onto it in Part B). **No version bump — every change is ADDITIVE:** two new headers, and additions to
+> Written when it was built (chunk CAL1, Parts A2a and A2b of four: A2a the standard program, with the
+> card's record as the front check's reference; A2b, 2026-10-30, a team's TYPED drive ports as the
+> reference when the card holds no usable record — the team lead's D6 (a) — the guide's
+> [chapter 19](guide/19-calibrating-your-robot.md) with a team's whole Calibrate file, and the program
+> run through its real PROS shell in 34 recorded scenarios; robot two moves onto it in Part B). **No
+> version bump — every change is ADDITIVE:** two new headers, and additions to
 > `calibration/calibrate_panel.hpp` whose defaults are today's screens (a host test renders every view
 > of four runs both ways and requires them equal, field for field); `calibration/` is in no row of the
 > [Freeze Register](roadmap.md#freeze-register). **No program uses it yet:** robot two's "shulib
@@ -389,7 +391,8 @@ is saved; the safe save; and a watch of the motors a team says are not drive mot
     words say there is no card.
   - **The WATCH of the declared mechanism motors**: each is READ as the push begins and again at DONE —
     never commanded, never configured (on the brain, PROS's C reads by port and no motor object; the
-    belief that such a read writes nothing to the motor is registered by CAL1's next part). One that
+    belief that such a read writes nothing to the motor is register entry
+    [HA-187](hardware-assumptions.md)). One that
     turned as far as the calibrator's own threshold for a drive port **holds the save** on MECHANISM
     PORT TURNED, with its travel beside the drive's and whether the card's record drives with it: SAVE
     (a mechanism the push turns: kept declared, note `PORT N KEPT AS A MECHANISM`) or RUN AGAIN (a
@@ -405,6 +408,19 @@ is saved; the safe save; and a watch of the motors a team says are not drive mot
     9 V) like a drive motor: the program says so in its banner when nothing is declared, names every
     candidate the push did not turn ("never powered -- if it is a mechanism, declare it"), and adds the
     same advice to a LEFT OUT line and a pulse refusal.
+  - **The TYPED drive ports as the reference (A2b — the team lead's D6 (a)).** A team whose drive
+    program already types its drive ports may state them; with a usable record on the card they change
+    nothing (not a line, a draw or a byte). With NO usable record on a present card — no file, or files
+    that do not decode — the front is checked against them instead: the `card :` line and the check's
+    lines say "your typed drive ports", and list them; SAME with every port agreeing saves with the note
+    `FRONT MATCHES YOUR TYPED DRIVE PORTS`; SAME with any port differing (a sign, a side, a port in one
+    list only) saves with `FRONT MATCHES, SOME TYPED PORTS DIFFER -- see log` and one serial line per
+    port; CANNOT TELL saves with `FRONT NOT CHECKED`; FRONT FLIPPED holds the save in the typed ports'
+    own words (a wrong push → RUN AGAIN; the front led → USE NEW, then `FIX YOUR TYPED DRIVE PORTS`, a
+    serial line and the note). A MECHANISM PORT TURNED screen's evidence names the typed ports when they
+    were the reference (`your typed ports DRIVE with port N`). The words that say what a discarded run
+    leaves follow the CARD's contents, never the reference. They are compared, never copied into a
+    record; with no SD card nothing is checked, typed or not.
 - **What a team states — `calibration::CalibrateFacts`**: the drive kind (`config::DrivetrainKind`;
   only `Tank` is measured, anything else is refused `NOT A TANK`), the drive motors' cartridge (never
   defaulted: unset refuses), and `mechanisms` — EVERY motor that is not a drive motor
@@ -412,7 +428,18 @@ is saved; the safe save; and a watch of the motors a team says are not drive mot
   name and a stated IMU port (a cross-check; the registry decides). **`calibration::factsProblem()`**
   (constexpr, so a build can `static_assert` its facts) names the first unusable entry — a NAMED entry
   with port 0, a port past 21, a port listed twice — as a `calibration::FactsProblem`;
-  **`calibration::declaredMechanism()`** finds a port's entry.
+  **`calibration::declaredMechanism()`** finds a port's entry. **(A2b)** The optional, LAST member
+  **`CalibrateFacts::typedDrive`** — a **`calibration::TypedDrivePorts`** (`left[21]`, `right[21]`,
+  signed ports in a chassis table's own spelling, 0 = an unused slot) — written
+  `.typedDrive = {.left = {-11, 12, -13, 14, -15}, .right = {20, -19, 18, -17, 16}}`, or from a
+  `config::RobotConfig` with **`calibration::typedDrivePortsFrom(kRobot.drivetrain.tank.description)`**;
+  **`calibration::hasTypedDrive()`** (any entry on either side) and
+  **`calibration::typedDriveDescription()`** (the two sides as a description, zero slots skipped, the
+  order kept). `factsProblem()` checks the typed lists after the mechanisms — a port outside 1..21, a
+  port listed twice on one side or once on each (by |port|), only one side typed — and
+  **`FactsProblem::list`** (a **`calibration::FactsList`**: `Mechanisms`, `TypedLeft`, `TypedRight`)
+  says which list `entry` indexes; the refusal names `typedDrive.left[i]` or `.right[i]` and its value.
+  A file that names the other members is unchanged by it.
 - **What the program needs from its platform**: **`calibration::CalibrateIo`** — four calls (one serial
   line, the competition status, a plain wait, the watch's read) — and **`calibration::CalibrateDevices`**
   (the provider, the registry, the `hal::IFileStore` card, the `hal::IBrainScreen`, the IO); the
@@ -444,14 +471,27 @@ is saved; the safe save; and a watch of the motors a team says are not drive mot
   FRONT FLIPPED lines (`kFlipWhat`, `kFlipAgain`, `kFlipNew`, `kFlipWarn`) and the MECHANISM PORT TURNED
   lines (`kMechNotOnCard`, `kMechSave`, `kMechAgain`); the two box labels (`kLabelNew`, `kLabelSave`); the
   NOTE literals (`kNoteFirst`, `kNoteNotChecked`); and `kWarningCut`, the ` ...` that ends a cut warning.
+  **(A2b)** `FinishFacts::typedPorts` (default false): the FRONT FLIPPED view then paints the typed
+  ports' three lines — `kFlipWhatTyped`, `kFlipNewTyped`, `kFlipWarnTyped` — in place of the card's; and
+  the three typed NOTE literals, `kNoteTypedSame`, `kNoteTypedPartial` and `kNoteFixTyped`.
 
-**What you must do:** nothing. A team's own Calibrate file, and the guide chapter that shows it, come
-with CAL1's next part.
+**What you must do:** nothing. A team that wants the standard Calibrate writes the 21-line file
+[chapter 19](guide/19-calibrating-your-robot.md) shows (the typed drive ports are one optional line).
+No program in this repository runs it yet: robot two moves onto it in CAL1's Part B.
 
 **For contributors:** the host PROS shim's per-port motor state (`test/pros_shim/pros/motors.hpp`)
 gained three dropout knobs — `failPositionReads`, `failUnitsReads` and `failGearingReads` — each
 failing the next N calls of ONE of `pros/motors.h`'s three C reads while the other two answer (a
-dropout between two reads of one port), so a test reaches each of a read's guards alone.
+dropout between two reads of one port), so a test reaches each of a read's guards alone. **(A2b)**
+`test/calibrate_golden_test.cpp` runs the standard Calibrate through its REAL PROS shell — the PROS
+adapters over that shim, robot two's shape on the host test plant — in 34 scenarios, each held to
+committed goldens in `test/goldens/calibrate/` (the serial log, the screen's draw log, the card's two
+files): a change to what the program says, draws or saves fails it, naming the first differing line.
+Set `SHULIB_GOLDEN_OUT=<dir>` to have every scenario's actual files written there as well, to read and
+copy in by hand — nothing regenerates itself. `test/calibrate_team_file_example_test.cpp` holds the
+team's 21-line file, compiled and run. In passing, `calibrate_panel.hpp`'s chips line copies exactly
+the characters it built (`"%.*s"`): the line drawn is unchanged, and GCC's `-Wformat-truncation` at
+`-O1` no longer fires on it.
 
 ### Added (2026-10-29; built 2026-10-22) — the mechanism core, part 4: a mechanism step on one line of an auton, presets on the driver's buttons, every mechanism's route ids run, and the direction check's judgement
 

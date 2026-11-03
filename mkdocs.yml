@@ -136,6 +136,7 @@ nav:
       - 16 — Testing an auton on the bench: guide/16-testing-an-auton-on-the-bench.md
       - 17 — The competition program: guide/17-the-competition-program.md
       - 18 — Mechanisms: guide/18-mechanisms.md
+      - 19 — Calibrating your robot: guide/19-calibrating-your-robot.md
 
   - Cookbook:
       - cookbook/README.md

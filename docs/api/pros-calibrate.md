@@ -186,12 +186,12 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
                          whose constructor WRITES the gearset (T3's rule for a claw: never geared,
                          never set to Coast, never pulsed). The vendored libpros.a's three reads
                          call only PROS's registry check, the port mutex, __errno and one firmware
-                         *Get each (disassembled for the CAL1 brief, 2026-10-08) — the belief CAL1
-                         registers as HA-187 (in Part A2b): a read writes nothing to the motor.
+                         *Get each (disassembled for the CAL1 brief, 2026-10-08) — the belief is
+                         HA-187 in docs/hardware-assumptions.md: a read writes nothing to the motor.
                          False when PROS answers PROS_ERR_F, or a unit or gearing it does not know.
 
  A TEAM'S CALIBRATE is one file that states its facts and calls the five functions below from
- PROS's five entry points (21 lines; CAL1's next part adds the guide chapter that shows it whole).
+ PROS's five entry points (21 lines — the guide's chapter 19, "Calibrating your robot", shows it whole).
  Include this header in ONE translation unit: its default build stamp is that unit's __DATE__ and
  __TIME__, so two units would carry two stamps for one inline function.
 

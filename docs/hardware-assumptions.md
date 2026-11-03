@@ -36,12 +36,12 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-187..HA-188, HA-192..HA-203, HA-204..HA-215.
+> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-188 (CAL1's second number, released unused — never reissued), HA-192..HA-203, HA-204..HA-215.
 > The briefing names the next free number above every row AND every held one (`tools/briefing_status.py`
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 202 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 203 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -201,6 +201,13 @@
 > and VEX U's loads (HA-212, reasoned). **None is measured; no distance-sensor reading of the team's robot exists.**
 > It amended HA-113, HA-114, HA-115 and HA-180 by one sentence each (their blast radius now names the wall reset).
 > With them, 202.
+> **CAL1 Part A2b (the standard Calibrate's typed reference and its proof through the real PROS shell; built
+> 2026-10-30) added ONE — HA-187, reasoned (1) and invented (2)–(3)** — that the standard Calibrate's WATCH reads
+> a DECLARED mechanism motor with PROS's three C reads by port and changes nothing: the reads write nothing and
+> make no motor object (reasoned from the vendored `libpros.a`, disassembled for the CAL1 brief on 2026-10-08),
+> the position they give is the shaft's turn within the reported gearing's scale, and reading does not disturb
+> it. CAL1 held HA-187..HA-188 for its beliefs; HA-188 (a travel ratio to judge a turn by) was never needed and
+> is RELEASED, never reissued. With it, 203.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither is **HA-181** (G3a, the robot panel: its amended brief), held the same way (the
 > mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
@@ -412,6 +419,7 @@
 | HA-184 | A VEX limit switch read through `ProsDigitalIn::state()` reads 1 (TRUE) when PRESSED, so the mechanism core's `pressedLevel = true` is right; and an UNPLUGGED switch line reads RELEASED | **unknown** (the vendored `get_value()` doc says only "the digital value (1 or 0) of a pin") | MECH-A6's Bench Tests station 13: the switch read pressed, released AND with its cable out |
 | HA-185 | Robot two's pneumatic claw moves between closed and open — either way — within 0.5 s of its line's level changing, so an auton's `set()` step on it (which, with no sensor on the claw, ends when the declared `.moveTime` has passed — the open SUCCEEDED, the grab UNCONFIRMED and counted done) does not count the move done before the claw has moved | **invented** (nobody has stated or timed it; the core refuses a pneumatic with no `.moveTime`, so a number had to be written) | Station J (J.9): a phone's slow-motion video of closed → open and back |
 | HA-186 | At power-up a V5 rotation sensor's CUMULATIVE `get_position()` (what `ProsRotation::position()` reads, HA-11) starts at the shaft's ABSOLUTE angle within one turn — and so it does after a PROGRAM restart without a power cycle — so `absoluteSensor()` homing needs no motion | reasoned (VEX's description of the sensor as absolute within a turn; the vendored doc says only "current position") | MECH-A6's station 13: power-cycle at two marked angles; move the arm, restart only the program, read again |
+| HA-187 | Calibrate's WATCH reads a DECLARED mechanism motor without changing it: PROS's C reads motor_get_position(), motor_get_encoder_units() and motor_get_gearing() by port write nothing and construct no motor object; the position, converted by the units and gearing they report, gives the shaft's turn between two reads of one push | **reasoned** (1) from the vendored libpros.a disassembled 2026-10-08; **invented** (2) and (3); none measured | Station G |
 | HA-189 | Two tasks writing the V5 USB serial (stdout) at once never mix or lose each other's lines — `ProsCharSink`'s "fwrite is atomic per call at this layer" — believed FALSE: the vendored newlib's per-FILE locks are no-ops, stdout is line-buffered (`ser_isatty_r` returns 1) through ONE shared buffer, and only PROS's device write below it takes a mutex. **FIXED in shulib's code by SER1 (2026-10-08):** every line is ONE direct `write()`, which that mutex keeps whole — unconfirmed until the bench | **reasoned** (FALSE — from the vendored `libc.a`/`libpros.a`, disassembled 2026-10-08) | the coordinator, T4 Part 3's hand-over; SER1's fix; Station K.7.3 (HA-189's robot test — accepted by the team lead 2026-10-18 in place of the dedicated two-task test; unsettled until it runs) |
 | HA-190 | A task PROS deletes while it is INSIDE `ser_write_r` (one serial `write()`) leaves PROS's serial write mutex held, and every later serial write of that boot — stdout and stderr alike — blocks its writer for ever | **reasoned** (the vendored `libpros.a`: `ser_write_r` holds the mutex across `stream_buf_send`'s unbounded waits; `task_delete` releases no mutex) | SER1; Station K.7.3 (Timed-Run mode changes while two tasks print) |
 | HA-191 | One serial `write()` must fit PROS's 2047-byte serial stream (about 2,035 bytes of text: a 4-byte stream id, COBS framing and a delimiter around it); a larger one waits for ever holding PROS's write mutex | **reasoned** (the vendored `libpros.a`: `ser_driver_initialize` +0x38, `stream_buf_send` waits until the WHOLE frame fits) | SER1 (no shulib call offers one `write()` more than 512 bytes — `kSerialWriteMaxBytes`; `serialLine` 256) |
@@ -3811,6 +3819,68 @@ the safety rules — not physics. These five entries are what that leaves.
   unplugged.
   *Blast radius if wrong:* creep at low speed, or a settle that stalls short. The member-count note R5a
   Part B adds makes the second half visible.
+
+### CAL1's addition — the standard Calibrate's watch reads a declared motor and changes nothing (2026-10-30)
+
+**CAL1 Part A2b (2026-10-30) added ONE — HA-187.** The standard "shulib Calibrate" (`calibration/
+calibrate_program.hpp`, its robot shell `hal/pros/calibrate.hpp`) WATCHES every motor a team declares as a
+mechanism: it reads each one as the push begins and again at DONE, and one that turned with the push like a
+drive motor HOLDS the save on MECHANISM PORT TURNED (SAVE keeps it declared; RUN AGAIN saves nothing). It must
+never command, configure or brake such a motor — a claw that is geared, set to coast or pulsed can drop or
+strain (T3's rule) — so its read is PROS's C API by port, with no motor object of any kind. This entry is the
+belief that read rests on.
+
+- [ ] **HA-187 — the declared-port watch reads a mechanism motor and changes nothing.**
+  *Claim:*
+  1. The three C reads write nothing to the motor. In the vendored `firmware/libpros.a` (`vdml_motors.c.o`),
+     `motor_get_position`, `motor_get_gearing` and `motor_get_encoder_units` each call only PROS's registry check
+     (`registry_validate_binding`, `registry_get_device`), the port mutex and `__errno`, plus ONE firmware getter
+     (`vexDeviceMotorPositionGet`, `…GearingGet`, `…EncoderUnitsGet`). There is no `*Set` call and no motor
+     object. The getters are closed firmware, so "a Get writes nothing" is reasoned, not seen.
+  2. On a motor this program never configured, `motor_get_position()` returns the shaft's position in the units
+     `motor_get_encoder_units()` reports, scaled by the gearing `motor_get_gearing()` reports, whatever
+     configuration the motor then has. Both stay the same between the watch's two reads (the start and the end
+     of one push), so the difference is the shaft's turn, within the reported gearing's scale. The watch's 5°
+     threshold (the push's own test for a drive port, HA-136) sits far below a 48 in push's ~1,700° for any
+     cartridge.
+  3. Reading a motor's position does not disturb it (a claw left where it was stays there).
+
+  *Source:* the disassembly above (2026-10-08, `arm-none-eabi-objdump -dr`, for the CAL1 brief);
+  `include/pros/motors.h`; `hal::pros::ProsCalibrateIo::readShaftDegrees()` in
+  `include/shulib/hal/pros/calibrate.hpp` (degrees as reported; rotations × 360; counts × 360 over 1800, 900 or
+  300 by the reported gearing; false on `PROS_ERR_F` or a unit or gearing it does not know). The host suite runs
+  that read through the PROS shim and counts ZERO gearing, units, voltage, brake-mode and `brake()` writes on
+  every declared port in every scenario, and two position reads per push the watch judges
+  (`test/calibrate_golden_test.cpp`) — but the shim transcribes this belief, so it tests the shell against
+  the belief, not the belief itself.
+  *Confidence:* (1) **reasoned**; (2) and (3) **invented**. None measured.
+  *Settle:*
+  - (2) and (3) at Station G: with robot two's claw pivots declared, turn one by hand during the push. The watch
+    names that port and only that port, the save waits on MECHANISM PORT TURNED, and the other pivot has not
+    moved. Read an unconfigured claw's `motor_get_gearing` there too, before any program gears it — it decides
+    the evidence line's scale (the blast radius below).
+  - (1) needs a read of a pivot's gearing and units before and after a Calibrate run, with no other program in
+    between. That is an extension of Bench Tests' raw probes, unowned (like HA-166's settle (b)). The design
+    does not depend on it.
+
+  *Blast radius if wrong:*
+  - (1) a getter that wrote would leave the claw's motor with some configuration until the next program
+    configures it (every program that drives the claws writes its own gearset at construction, `ProsMotor`). No
+    motion results, and nothing is commanded.
+  - (2) a missed watch line, or a false MECHANISM PORT TURNED hold. The hold costs one touch (SAVE), and a missed
+    one is the state before the watch existed (no catch for a drive motor declared by mistake). **And the held
+    screen's EVIDENCE depends on the gearing the motor REPORTS** (CAL1 A2a's review, 2026-10-29): nothing in
+    Calibrate gears a declared motor, while the drive's travel comes from motors geared to the STATED cartridge,
+    so an ungeared declared port that reports another gearing than its insert shows the MEDIUM `port N: X deg,
+    drive Y deg` line off by the gearing ratio — a BLUE drive motor reporting green shows about ⅓ of the drive's
+    travel, which reads as "not a drive motor" and invites SAVE. Detection is unaffected (5° against ~1,700°);
+    the operator's judgement between SAVE and RUN AGAIN is what a wrong scale misleads.
+  - (3) a claw that drifts while read: not expected of a read.
+
+  **Contained:** one program's serial lines, one held screen and one NOTE. In Calibrate the read is one
+  function (`readShaftDegrees`). It is not the only reader: Bench Tests' raw motor report and its motor
+  watch read motors by port through the same C calls (`motor_get_position`, `motor_get_gearing`), so a getter
+  that wrote would touch their reads too — still with no motion and nothing commanded.
 
 ---
 

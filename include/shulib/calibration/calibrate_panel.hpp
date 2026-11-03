@@ -43,6 +43,15 @@
 //    TouchAction::SaveHeld; the SAVED header after USE NEW; and the finished screen's NOTE row. No
 //    PanelButtonId is added — today's program and tests switch over them; CAL1 Part B renames and
 //    removes them.
+//  * (CAL1 Part A2b, 2026-10-30 — additions, plus ONE behaviour-preserving edit) the team lead's
+//    D6 (a): with no usable record on the card, the program checks the front against the team's
+//    TYPED drive ports, and the FRONT FLIPPED screen then paints their words
+//    (FinishFacts::typedPorts); three NOTEs say how the front compared with them (every port
+//    agreed, the front agreed but some port did not, or the typed ports must be fixed after USE
+//    NEW). The one edit to an existing line: panelChips() copies its chips with "%.*s" of exactly
+//    `used` characters instead of "%s" (the same characters — GCC's -Wformat-truncation at -O1,
+//    the comment there; today's Calibrate program re-measured byte-identical on it in CAL1 A2b's
+//    review).
 //
 // ── What it does NOT decide ─────────────────────────────────────────────────────────
 // Pixels a font lands on, colours' RGB values, the build stamp, redraw-only-what-changed, the
@@ -243,8 +252,13 @@ struct FinishFacts {
     /// the boxes), as it does when the reason changes. 0 = none.
     int holdPort = 0;
     const char* holdLine1 = nullptr;  ///< MechanismTurned, MEDIUM: "port 6: 1692 deg, drive 1690 deg"
-    const char* holdLine2 = nullptr;  ///< MechanismTurned, SMALL: what the card's record says of it
+    /// MechanismTurned, SMALL: what the reference — the card's record, or (D6 (a)) the typed drive
+    /// ports — says of the port: "the card's record DRIVES with port 12", or null
+    const char* holdLine2 = nullptr;
     const char* note = nullptr;       ///< the finished screen's one amber NOTE row, or null
+    /// FrontFlipped: the front was checked against the team's TYPED drive ports (the card held no
+    /// usable record — CAL1 D6 (a)), so the screen paints their words, never the card's.
+    bool typedPorts = false;
 };
 
 /// How the front is decided (CAL1, Parts A — Part B removes AskedAfterPush and this parameter).
@@ -513,6 +527,24 @@ inline constexpr std::string_view kNoteFirst = "FIRST RECORD -- the end you push
 inline constexpr std::string_view kNoteNotChecked = "FRONT NOT CHECKED -- see the log";
 /// SMALL: the warning row's ending when the NOTE takes its second line (CAL1).
 inline constexpr std::string_view kWarningCut = " ...";
+/// MEDIUM: FRONT FLIPPED against the team's TYPED drive ports (CAL1 D6 (a)) — what they say.
+inline constexpr std::string_view kFlipWhatTyped = "typed ports: the end you led is BACK";
+/// SMALL: FRONT FLIPPED against the typed ports — USE NEW's case: the FRONT led, so the typed
+/// ports (or the cables since they were typed) are wrong.
+inline constexpr std::string_view kFlipNewTyped =
+    "USE NEW: you led with the FRONT -- fix typed ports";
+/// SMALL: FRONT FLIPPED against the typed ports — the warning: the autons tuned on them.
+inline constexpr std::string_view kFlipWarnTyped =
+    "USE NEW reverses autons tuned on the typed ports";
+/// SMALL: the NOTE when the card held no usable record and EVERY port of the typed drive ports and
+/// this push agrees (same side, same sign, none in one list only).
+inline constexpr std::string_view kNoteTypedSame = "FRONT MATCHES YOUR TYPED DRIVE PORTS";
+/// SMALL: the NOTE after USE NEW against the typed drive ports: they call the saved front the back.
+inline constexpr std::string_view kNoteFixTyped = "FIX YOUR TYPED DRIVE PORTS -- see the log";
+/// SMALL: the NOTE when the front matched the typed drive ports but some port did not (a sign, a
+/// side, a port in one list only): the serial log names each one.
+inline constexpr std::string_view kNoteTypedPartial =
+    "FRONT MATCHES, SOME TYPED PORTS DIFFER -- see log";
 
 /// One literal and the budget it must fit.
 struct Checked {
@@ -553,6 +585,9 @@ inline constexpr Checked kAll[] = {
     {kLabelNew, 12},                 {kLabelSave, 12},
     {kNoteFirst, kSmallCols},        {kNoteNotChecked, kSmallCols},
     {kWarningCut, kSmallCols},
+    {kFlipWhatTyped, kMediumCols},   {kFlipNewTyped, kSmallCols},
+    {kFlipWarnTyped, kSmallCols},    {kNoteTypedSame, kSmallCols},
+    {kNoteFixTyped, kSmallCols},     {kNoteTypedPartial, kSmallCols},
 };
 }  // namespace panel_text
 
@@ -750,7 +785,10 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
     group("R", +1, false);
     group("OUT", 0, true);
     if (used <= kMediumCols) {
-        std::snprintf(out, cap, "%s", buf);
+        // `used` characters exactly (the branch bounds them by kMediumCols): "%s" of the whole
+        // buffer drew GCC's -Wformat-truncation at -O1 (CAL1 A2b), though no byte past `used` is
+        // ever text.
+        std::snprintf(out, cap, "%.*s", static_cast<int>(used), buf);
         return;
     }
     std::snprintf(out, cap, "L %u  R %u  OUT %u", static_cast<unsigned>(cal.status().leftCount),
@@ -942,15 +980,19 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
                                  kMechAgain);
                     addPanelButton(v, PanelButtonId::Front, kFrontBox, kLabelSave, secs);
                 } else {
+                    // CAL1 D6 (a): checked against the TYPED drive ports, the three lines that
+                    // name the reference are theirs; the header, the headline, RUN AGAIN's case
+                    // and the boxes are the same.
+                    const bool typed = finish.typedPorts;
                     v.headerWord = kHeaderFlipped.data();
                     addPanelLine(v, d::kTextX, d::kNextY, TextSize::Medium, PanelTone::Amber,
-                                 kFlipWhat);
+                                 typed ? kFlipWhatTyped : kFlipWhat);
                     addPanelLine(v, d::kTextX, d::kSmall1Y, TextSize::Small, PanelTone::White,
                                  kFlipAgain);
                     addPanelLine(v, d::kTextX, d::kSmall2Y, TextSize::Small, PanelTone::White,
-                                 kFlipNew);
+                                 typed ? kFlipNewTyped : kFlipNew);
                     addPanelLine(v, d::kTextX, d::kSmall3Y, TextSize::Small, PanelTone::Amber,
-                                 kFlipWarn);
+                                 typed ? kFlipWarnTyped : kFlipWarn);
                     addPanelButton(v, PanelButtonId::Front, kFrontBox, kLabelNew, secs);
                 }
                 addPanelButton(v, PanelButtonId::RunAgain, kBackBox, kLabelRunAgain, secs);

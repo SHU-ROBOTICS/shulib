@@ -1,0 +1,111 @@
+erase 0 27 479 235 eraser=101418
+fill 0 0 479 26 pen=1e5aa8
+print M 8 4 pen=f0f0f0 eraser=1e5aa8 'CALIBRATE'
+print S 340 7 pen=f0f0f0 eraser=1e5aa8 'BUILD 12:00:00'
+print L 8 30 pen=f0f0f0 eraser=101418 'HANDS OFF'
+print L 8 66 pen=f0f0f0 eraser=101418 'STARTING UP'
+print M 8 110 pen=9aa4ae eraser=101418 'finding the motors and the IMU'
+erase 0 27 479 235 eraser=101418
+fill 0 0 479 26 pen=1e5aa8
+print M 8 4 pen=f0f0f0 eraser=1e5aa8 '1/4 IMU'
+print S 340 7 pen=f0f0f0 eraser=1e5aa8 'BUILD 12:00:00'
+print L 8 30 pen=f0f0f0 eraser=101418 'HANDS OFF'
+print L 8 66 pen=f0f0f0 eraser=101418 'IMU WARMING UP'
+print L 8 102 pen=e8b23a eraser=101418 '0.0 s'
+print M 8 138 pen=f0f0f0 eraser=101418 'the end that leads the push is FRONT'
+print M 8 160 pen=f0f0f0 eraser=101418 'NEXT: push it 48 in along the tape'
+fill 330 180 474 234 pen=b0302a
+rect 330 180 474 234 pen=e2564a
+rect 331 181 473 233 pen=e2564a
+print M 370 197 pen=f0f0f0 eraser=b0302a 'ABORT'
+print L 8 102 pen=e8b23a eraser=101418 '0.2 s'
+print L 8 102 pen=e8b23a eraser=101418 '0.4 s'
+print L 8 102 pen=e8b23a eraser=101418 '0.6 s'
+print L 8 102 pen=e8b23a eraser=101418 '0.8 s'
+print L 8 102 pen=e8b23a eraser=101418 '1.0 s'
+print L 8 102 pen=e8b23a eraser=101418 '1.2 s'
+print L 8 102 pen=e8b23a eraser=101418 '1.4 s'
+print L 8 102 pen=e8b23a eraser=101418 '1.7 s'
+print L 8 102 pen=e8b23a eraser=101418 '1.9 s'
+erase 0 27 479 235 eraser=101418
+fill 0 0 479 26 pen=1e5aa8
+print M 8 4 pen=f0f0f0 eraser=1e5aa8 '2/4 PUSH'
+print S 340 7 pen=f0f0f0 eraser=1e5aa8 'BUILD 12:00:00'
+print L 8 30 pen=f0f0f0 eraser=101418 'PUSH FRONT FIRST'
+print L 8 66 pen=f0f0f0 eraser=101418 '48 IN ALONG TAPE'
+print L 8 102 pen=e8b23a eraser=101418 '0 of 10 turned'
+print M 8 138 pen=f0f0f0 eraser=101418 'drift +0.0 deg'
+print M 8 160 pen=f0f0f0 eraser=101418 'DONE shows once the motors turn'
+fill 330 180 474 234 pen=b0302a
+rect 330 180 474 234 pen=e2564a
+rect 331 181 473 233 pen=e2564a
+print M 370 197 pen=f0f0f0 eraser=b0302a 'ABORT'
+print L 8 102 pen=e8b23a eraser=101418 '10 of 10 turned'
+print M 8 160 pen=f0f0f0 eraser=101418 'keep pushing -- the full 48 in '
+print M 8 160 pen=f0f0f0 eraser=101418 'let go -- DONE shows when it stops'
+print L 8 102 pen=39c36e eraser=101418 '10 of 10 turned'
+print M 8 160 pen=39c36e eraser=101418 'touch DONE -- then stand clear    '
+fill 6 180 300 234 pen=3a4450
+rect 6 180 300 234 pen=9aa4ae
+rect 7 181 299 233 pen=9aa4ae
+print M 127 197 pen=9aa4ae eraser=3a4450 'DONE'
+fill 6 180 300 234 pen=39c36e
+rect 6 180 300 234 pen=c8d8f0
+rect 7 181 299 233 pen=c8d8f0
+print M 127 197 pen=101418 eraser=39c36e 'DONE'
+erase 0 27 479 235 eraser=101418
+fill 0 0 479 26 pen=e8b23a
+print M 8 4 pen=101418 eraser=e8b23a '3/4 PULSES'
+print S 340 7 pen=101418 eraser=e8b23a 'BUILD 12:00:00'
+print L 8 30 pen=e8b23a eraser=101418 'STAND CLEAR'
+print L 8 66 pen=e8b23a eraser=101418 'TWITCHING MOTORS'
+print L 8 102 pen=e8b23a eraser=101418 'PORT 11  3 V'
+print M 8 138 pen=f0f0f0 eraser=101418 'settling -- hands off'
+print M 8 160 pen=f0f0f0 eraser=101418 ''
+fill 6 180 474 234 pen=b0302a
+rect 6 180 474 234 pen=e2564a
+rect 7 181 473 233 pen=e2564a
+print M 208 197 pen=f0f0f0 eraser=b0302a 'ABORT'
+print M 8 138 pen=f0f0f0 eraser=101418 '1 of 10  yaw +0.0 of 2.0 deg'
+print L 8 102 pen=e8b23a eraser=101418 'PORT 11  6 V'
+print M 8 138 pen=f0f0f0 eraser=101418 'settling -- hands off       '
+print M 8 138 pen=f0f0f0 eraser=101418 '1 of 10  yaw +0.0 of 2.0 deg'
+print L 8 102 pen=e8b23a eraser=101418 'PORT 11  9 V'
+print M 8 138 pen=f0f0f0 eraser=101418 'settling -- hands off       '
+print M 8 138 pen=f0f0f0 eraser=101418 '1 of 10  yaw +0.0 of 2.0 deg'
+print M 8 138 pen=39c36e eraser=101418 '1 of 10  yaw -2.1 of 2.0 deg'
+print M 8 138 pen=39c36e eraser=101418 '1 of 10  yaw -5.3 of 2.0 deg'
+print L 8 102 pen=e8b23a eraser=101418 'PORT 12  3 V'
+print M 8 138 pen=f0f0f0 eraser=101418 'settling -- hands off       '
+print M 8 160 pen=f0f0f0 eraser=101418 'L 11'
+print M 8 138 pen=f0f0f0 eraser=101418 '2 of 10  yaw +0.0 of 2.0 deg'
+print L 8 102 pen=e8b23a eraser=101418 'PORT 12  6 V'
+print M 8 138 pen=f0f0f0 eraser=101418 'settling -- hands off       '
+print M 8 138 pen=f0f0f0 eraser=101418 '2 of 10  yaw +0.0 of 2.0 deg'
+print L 8 102 pen=e8b23a eraser=101418 'PORT 12  9 V'
+print M 8 138 pen=f0f0f0 eraser=101418 'settling -- hands off       '
+print M 8 138 pen=f0f0f0 eraser=101418 '2 of 10  yaw +0.0 of 2.0 deg'
+print M 8 138 pen=39c36e eraser=101418 '2 of 10  yaw -2.1 of 2.0 deg'
+print M 8 138 pen=39c36e eraser=101418 '2 of 10  yaw -5.5 of 2.0 deg'
+print L 8 102 pen=e8b23a eraser=101418 'PORT 13  3 V'
+print M 8 138 pen=f0f0f0 eraser=101418 'settling -- hands off       '
+print M 8 160 pen=f0f0f0 eraser=101418 'L 11 12'
+print M 8 138 pen=f0f0f0 eraser=101418 '3 of 10  yaw +0.0 of 2.0 deg'
+print L 8 102 pen=e8b23a eraser=101418 'PORT 13  6 V'
+print M 8 138 pen=f0f0f0 eraser=101418 'settling -- hands off       '
+print M 8 138 pen=f0f0f0 eraser=101418 '3 of 10  yaw +0.0 of 2.0 deg'
+print L 8 102 pen=e8b23a eraser=101418 'PORT 13  9 V'
+print M 8 138 pen=f0f0f0 eraser=101418 'settling -- hands off       '
+print M 8 138 pen=f0f0f0 eraser=101418 '3 of 10  yaw +0.0 of 2.0 deg'
+print M 8 138 pen=39c36e eraser=101418 '3 of 10  yaw -2.1 of 2.0 deg'
+erase 0 27 479 235 eraser=101418
+fill 0 0 479 26 pen=e2564a
+print M 8 4 pen=101418 eraser=e2564a 'STOPPED -- MOTORS OFF'
+print S 340 7 pen=101418 eraser=e2564a 'BUILD 12:00:00'
+print L 8 34 pen=e8b23a eraser=101418 'NOT DRIVER CONTROL'
+print S 8 80 pen=f0f0f0 eraser=101418 'It powers the motors, so it runs ONLY in'
+print S 8 96 pen=f0f0f0 eraser=101418 'DRIVER CONTROL, enabled. Motors: 0 V, coasting.'
+print S 8 120 pen=9aa4ae eraser=101418 'status bits 0x01 field=no disabled=yes auton=no'
+print S 8 146 pen=f0f0f0 eraser=101418 'Unplug any competition switch or field cable,'
+print S 8 162 pen=f0f0f0 eraser=101418 'and NEVER start it from the CONTROLLER's menu.'
+print S 8 188 pen=9aa4ae eraser=101418 'Any result is on the serial log too ([R3D]).'

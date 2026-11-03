@@ -279,6 +279,61 @@ the line first; each one names the ports.
 
 None of these lines has been seen on a robot yet; the rules and their numbers are host-tested only.
 
+## "Calibrate held its save, or left a note" (shulib Calibrate)
+
+The standard Calibrate ([Chapter 19](19-calibrating-your-robot.md)) waits for you before saving
+when something does not add up, and leaves one amber NOTE on the finished screen when there is
+something to check. Each screen and note, and what to do:
+
+- **FRONT FLIPPED** (*the card calls the end you led BACK*) — the card's record calls the end that
+  led this push its back. **Nothing is saved yet.** Two causes look identical in the records: you
+  pushed with the **back** leading by mistake → touch **RUN AGAIN** and push front first; or the
+  front led and the **LEFT and RIGHT drive cables were swapped between the sides**, or you changed
+  the front on purpose → touch **USE NEW** (saved as pushed). USE NEW after a wrong push reverses
+  every auton.
+- **FRONT FLIPPED** with *typed ports: the end you led is BACK* — the card held no usable record,
+  and the drive ports your facts TYPE call the end you led the back. **RUN AGAIN** after a wrong
+  push; **USE NEW** when the front led — then fix the typed ports, which are wrong (or the cables
+  moved since they were typed).
+- **MECHANISM PORT TURNED** (*port 12: 1692 deg, drive 1692 deg*) — a motor you declared as a
+  mechanism turned with the push like a drive motor. **SAVE** if it is a mechanism the push turns
+  (an intake on the floor): it stays declared. **RUN AGAIN** if it is a drive motor — a typo in the
+  facts or a mechanism cable in a drive port: fix the facts or the wiring, rebuild, upload. One
+  screen per port that turned; nothing is saved until every one is answered SAVE.
+- **NOTE: FRONT NOT CHECKED -- see the log** — the card's record does not decode (the log names each
+  file and why), or the check could not tell (no drive port in common, or no majority). Saved as
+  measured: check the robot drives forward the right way before you run an auton.
+- **NOTE: FIRST RECORD -- the end you pushed first is FRONT** — the card held no record, so there
+  was nothing to compare with. If that end is not the front your autons use, the record just saved
+  is reversed: touch **RUN AGAIN** and push with the other end leading. Calibrate then shows **FRONT
+  FLIPPED** against the record just saved — touch **USE NEW** (you are changing the front back on
+  purpose), not RUN AGAIN, which would keep the reversed record.
+- **NOTE: FRONT MATCHES YOUR TYPED DRIVE PORTS** — the card held no usable record, and every typed
+  drive port agrees with this push. Nothing to do.
+- **NOTE: FRONT MATCHES, SOME TYPED PORTS DIFFER -- see log** — the front agrees with your typed
+  drive ports, but the log names each port where they and this push differ: a wrong **sign**, the
+  other **side**, or a port in one list only. Fix each typed port it names, or anything that still
+  drives from them fights itself. A typed port missing from this push may still be right — it was
+  LEFT OUT, declared, or did not turn: check the run's `LEFT OUT` and `watch:` lines.
+- **NOTE: FIX YOUR TYPED DRIVE PORTS -- see the log** — you touched USE NEW against the typed ports:
+  they now call the saved front the back. Correct them, or anything that still drives from them
+  drives the robot backwards.
+- **`LEFT OUT`, or a refused pulse, names a port that is a mechanism** — that motor was not
+  declared, so Calibrate treated it as a drive candidate and powered it. Declare it in the facts'
+  `.mechanisms` (every motor that is not a drive motor).
+- **CANNOT START: FACTS REFUSED / NOT A TANK / DRIVE KIND UNSET / CARTRIDGE UNSET / TOO FEW
+  MOTORS** — refused before anything was powered; the screen's second line says which entry or
+  fact. TOO FEW MOTORS names the ports you declared as mechanisms: is one of them a drive motor?
+- **SAVE UNCONFIRMED** (the log; the screen says NOT SAVED) — the card stopped answering mid-save,
+  so the run cannot say which record the next boot uses. Put the card back if it was pulled, copy
+  both files off it on a laptop, and start the drive program to read its calibration line.
+- **NOT SAVED, and the log says the record file is damaged** — the earlier record is safe in the
+  backup (`shulib_drivetrain.bak`), but the drive program in this build does not read the backup
+  yet, so its next boot refuses: rerun Calibrate, or on a laptop copy `shulib_drivetrain.bak` over
+  `shulib_drivetrain.bin`.
+
+None of these screens has been seen on a robot yet; they are host-tested only.
+
 ## When you're stuck
 
 Capture the transcript (the whole thing), note what you *saw* the robot do, and bring both to
