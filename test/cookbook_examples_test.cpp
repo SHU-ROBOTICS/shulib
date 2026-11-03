@@ -632,24 +632,34 @@ TEST_CASE("cookbook-05a: mixing tiers — a direct call that fails is invisible"
 // startAt() mid-chain must move the ESTIMATE and nothing else — if it also
 // moved the robot, or if it silently no-op'd once the chain had started, a team
 // squaring against a wall would be re-seeding into a lie. Ground truth is the
-// control: it must not move at all.
+// control: it must not move at all. And (chunk L6-A1, the L6 brief's D11 — a
+// flaw in the earlier recipe, fixed where it was made): a wall at x = 36 in
+// measures x ONLY — the recipe keeps y. The robot drives along y = 12 in, NOT 0,
+// so a recipe that wrote 0_in for y (the old one) turns this red (the brief's
+// M30); and startAt is a full seed — it clears the drift term for both axes.
 TEST_CASE("cookbook-05b: re-seeding the estimate in the middle of a routine") {
     const auto kin = shulib::kinematics::xDrive(7_in);
     motion_rig::ChassisRig c{kin};
 
     Routine r{c.chassis, "relocalize"};
-    r.startAt(Pose2d{0_in, 0_in, 0_deg}).driveTo(24_in, 0_in, {.timeout = 5_s});
+    r.startAt(Pose2d{0_in, 12_in, 0_deg}).driveTo(24_in, 12_in, {.timeout = 5_s});
     REQUIRE(r.ok());
 
     const Pose2d truthBefore = c.rig.h.truePose();
+    const double yBefore = c.chassis.pose().y().value();
+    REQUIRE(c.rig.loc.distanceSinceCorrection().value() > 20.0);
 
-    // Pretend the robot has just squared itself against the wall at x = 36 in:
-    // the measurement is better than the estimate, so overwrite the estimate.
+    // Pretend the robot has just squared itself against a wall at x = 36 in:
+    // a wall measures ONE axis, so overwrite x and keep y and the heading.
     // (The step is called startAt even here — see the chapter's note.)
-    r.startAt(Pose2d{36_in, 0_in, c.chassis.pose().heading()});
+    r.startAt(Pose2d{36_in, c.chassis.pose().y(), c.chassis.pose().heading()});
 
     CHECK(r.ok());
     CHECK(c.chassis.pose().x().value() == doctest::Approx(36.0));
+    CHECK(c.chassis.pose().y().value() == yBefore);  // the wall said nothing about y
+    CHECK(yBefore == doctest::Approx(12.0).epsilon(0.02));
+    // startAt is a FULL seed: the drift term restarts for both axes (the wall reset does not).
+    CHECK(c.rig.loc.distanceSinceCorrection().value() == 0.0);
     // The robot did not move an inch: seeding changes belief, not position.
     CHECK(motion_rig::posErr(c.rig.h.truePose(), truthBefore) == doctest::Approx(0.0));
 }

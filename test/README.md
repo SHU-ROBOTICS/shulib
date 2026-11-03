@@ -59,6 +59,32 @@ this — only the test build does, and deliberately: a gate you can forget to ru
 - **`test_main.cpp`** provides the test runner's `main()` exactly once — leave it empty of tests.
 - Include the unit under test from `include/shulib/...` and assert against it.
 
+## The host field plant (the wall reset's oracle)
+
+`include/shulib/sim/field_plant.hpp` (chunk L6-A1, 2026-10-29) is the host test plant's FIELD and its
+SIDE DISTANCE SENSORS — test infrastructure, outside the generated API reference like the rest of
+`sim/`. `sim::FieldModel` holds axis-aligned boxes with heights (opaque, or see-through for a clear
+wall panel) and the floor; `FieldModel::override2026()` builds the season's field — the four walls
+11.5 in tall at ±70.2047 in, each Toggle's body on top with its two brackets hanging to 10.6 in, the
+Loaders on the red and blue walls, A12's start pieces against every wall — from the plant's OWN copy
+of the drawing numbers, and `add` / `removeNamed` / `seeThroughWall` change it (a Pin, a robot, an object
+behind a panel). `sim::SideSensorPlant` is one side sensor with a TRUE mount (forward, left, height,
+facing — set separately from the mount the test hands the library, so a case can type it wrong): a
+cone of rays (±18° by default, a 7 × 7 grid inside the circle; `raysPerAxis = 1` is the centre ray
+alone) returning the NEAREST hit, or the hits' mean in `blend` mode; the GPS code strip's band
+(9.06–11.44 in) with a per-colour bias and confidence scale; a bias, seeded noise, an update hold, a
+latency delay line, drop-outs, a FROZEN mode and read faults (what `ProsDistance` does on PROS_ERR:
+the last good distance, confidence 0, the count moving). Each `step(truePose)` publishes into a
+`hal::fake::FakeDistance` the library reads; `rangeAt(truePose)` measures without publishing.
+
+**The rule it keeps:** it includes nothing from `localization/` — the wall reset's tests grade the
+library's geometry against this plant's own ray cast, so a sign error cannot hide in both
+(`sim_field_plant_test.cpp` asserts the two copies of the field agree to 0.01 in). The tank rig that
+puts it under a `Chassis` is `wall_reset_rig.hpp`; it takes an optional `sim::DegradationModel*` (e.g.
+`sim::ImuHostileModel`) for an IMU that calibrates, drifts or jitters — the wall reset's NOT LIVE case
+and its still-robot noise case run over one. The wall reset's log line is pinned byte for byte in
+`wall_reset_line_test.cpp`, and guide 11 quotes those strings.
+
 ## Strict by design
 
 The build uses `-Wall -Wextra -Wpedantic -Werror -Wshadow -Wconversion -Wsign-conversion

@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 5,269 of them, across 193 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 5,479 of them, across 197 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -92,6 +92,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ActuateAndConfirmConfig::actuationTime` | field | [mechanism_op.md](mechanism_op.md#actuateandconfirmconfig-actuationtime) |
 | `ActuateAndConfirmConfig::confirmWindow` | field | [mechanism_op.md](mechanism_op.md#actuateandconfirmconfig-confirmwindow) |
 | `ActuateAndConfirmConfig::target` | field | [mechanism_op.md](mechanism_op.md#actuateandconfirmconfig-target) |
+| `aimAt` | free function | [wall_reset.md](wall_reset.md#aimat) |
 | `AiVisionSettings` | struct | [vision_frames.md](vision_frames.md#struct-aivisionsettings) |
 | `AiVisionSettings::colourCount` | field | [vision_frames.md](vision_frames.md#aivisionsettings-colourcount) |
 | `AiVisionSettings::colourMerge` | field | [vision_frames.md](vision_frames.md#aivisionsettings-colourmerge) |
@@ -101,6 +102,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `AiVisionSettings::objects` | field | [vision_frames.md](vision_frames.md#aivisionsettings-objects) |
 | `aiVisionSettingsProblem` | free function | [vision_frames.md](vision_frames.md#aivisionsettingsproblem) |
 | `allFit` | free function | [calibrate_screen.md](calibrate_screen.md#allfit) |
+| `alongAxis` | free function | [axis.md](axis.md#alongaxis) |
 | `AlwaysConfirmed` | struct | [mechanism_op.md](mechanism_op.md#struct-alwaysconfirmed) |
 | `AlwaysConfirmed::operator()` | function | [mechanism_op.md](mechanism_op.md#alwaysconfirmed-operator-call) |
 | `an_angle_sensor_is_a_smart_sensor_give_it_a_port_number` | free function | [wiring.md](wiring.md#an_angle_sensor_is_a_smart_sensor_give_it_a_port_number) |
@@ -137,6 +139,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `appendPadded` | free function | [line_format.md](line_format.md#appendpadded) |
 | `appendTimestamp` | free function | [line_format.md](line_format.md#appendtimestamp) |
 | `appendUnsigned` | free function | [line_format.md](line_format.md#appendunsigned) |
+| `appendWallResetLine` | free function | [wall_reset.md](wall_reset.md#appendwallresetline) |
 | `AppliedCorrection` | struct | [correction.md](correction.md#struct-appliedcorrection) |
 | `AppliedCorrection::audit` | field | [correction.md](correction.md#appliedcorrection-audit) |
 | `AppliedCorrection::clamped` | field | [correction.md](correction.md#appliedcorrection-clamped) |
@@ -293,11 +296,17 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `AutonVerdict` | struct | [auton_registry.md](auton_registry.md#struct-autonverdict) |
 | `AutonVerdict::ok` | field | [auton_registry.md](auton_registry.md#autonverdict-ok) |
 | `AutonVerdict::why` | field | [auton_registry.md](auton_registry.md#autonverdict-why) |
+| `Axis` | enum class | [axis.md](axis.md#enum-class-axis) |
+| `Axis::X` | enumerator | [axis.md](axis.md#axis-x) |
+| `Axis::Y` | enumerator | [axis.md](axis.md#axis-y) |
+| `axisErrorBound` | free function | [wall_reset.md](wall_reset.md#axiserrorbound) |
+| `axisFromReading` | free function | [wall_reset.md](wall_reset.md#axisfromreading) |
 | `AxisGains` | struct | [motion_config.md](motion_config.md#struct-axisgains) |
 | `AxisGains::integralLimit` | field | [motion_config.md](motion_config.md#axisgains-integrallimit) |
 | `AxisGains::kD` | field | [motion_config.md](motion_config.md#axisgains-kd) |
 | `AxisGains::kI` | field | [motion_config.md](motion_config.md#axisgains-ki) |
 | `AxisGains::kP` | field | [motion_config.md](motion_config.md#axisgains-kp) |
+| `axisLetter` | free function | [axis.md](axis.md#axisletter) |
 | `AxisShaping` | struct | [input_shaping.md](input_shaping.md#struct-axisshaping) |
 | `AxisShaping::deadband` | field | [input_shaping.md](input_shaping.md#axisshaping-deadband) |
 | `AxisShaping::expo` | field | [input_shaping.md](input_shaping.md#axisshaping-expo) |
@@ -313,6 +322,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BackupLoad::count` | field | [record_store.md](record_store.md#backupload-count) |
 | `BackupLoad::from` | field | [record_store.md](record_store.md#backupload-from) |
 | `BackupLoad::primary` | field | [record_store.md](record_store.md#backupload-primary) |
+| `beamCeiling` | free function | [wall_reset.md](wall_reset.md#beamceiling) |
 | `BlackboxHeader` | struct | [blackbox_format.md](blackbox_format.md#struct-blackboxheader) |
 | `BlackboxHeader::alliance` | function | [blackbox_format.md](blackbox_format.md#blackboxheader-alliance) |
 | `BlackboxHeader::alliance_` | field | [blackbox_format.md](blackbox_format.md#blackboxheader-alliance_) |
@@ -1002,6 +1012,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DegreeRange::max` | field | [kinds.md](kinds.md#degreerange-max) |
 | `DegreeRange::min` | field | [kinds.md](kinds.md#degreerange-min) |
 | `desaturateUniform` | free function | [desaturate.md](desaturate.md#desaturateuniform) |
+| `describeWallReset` | free function | [wall_reset.md](wall_reset.md#describewallreset) |
 | `DescriptionSource` | enum class | [drivetrain_description.md](drivetrain_description.md#enum-class-descriptionsource) |
 | `DescriptionSource::RobotMeasured` | enumerator | [drivetrain_description.md](drivetrain_description.md#descriptionsource-robotmeasured) |
 | `DescriptionSource::TypedTable` | enumerator | [drivetrain_description.md](drivetrain_description.md#descriptionsource-typedtable) |
@@ -1299,6 +1310,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `effectiveCone` | free function | [wall_reset.md](wall_reset.md#effectivecone) |
 | `EkfFusion` | class | [ekf_fusion.md](ekf_fusion.md#class-ekffusion) |
 | `EkfFusion::acceptedFixes` | function | [ekf_fusion.md](ekf_fusion.md#ekffusion-acceptedfixes) |
 | `EkfFusion::consecutiveRejects` | function | [ekf_fusion.md](ekf_fusion.md#ekffusion-consecutiverejects) |
@@ -1394,6 +1406,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `entryProblemText` | free function | [wiring.md](wiring.md#entryproblemtext) |
 | `evaluateDegradation` | free function | [drivetrain_degradation.md](drivetrain_degradation.md#evaluatedegradation) |
 | `evaluateRuntimeDegradation` | free function | [drivetrain_degradation.md](drivetrain_degradation.md#evaluateruntimedegradation) |
+| `evaluateWallReset` | free function | [wall_reset.md](wall_reset.md#evaluatewallreset) |
 | `ExitGroup` | class | [exit_group.md](exit_group.md#class-exitgroup) |
 | `ExitGroup::check` | function | [exit_group.md](exit_group.md#exitgroup-check) |
 | `ExitGroup::ExitGroup` | function | [exit_group.md](exit_group.md#exitgroup-exitgroup) |
@@ -1486,6 +1499,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FieldFix::x` | field | [camera_geometry.md](camera_geometry.md#fieldfix-x) |
 | `FieldFix::y` | field | [camera_geometry.md](camera_geometry.md#fieldfix-y) |
 | `fieldToRobot` | free function | [frame.md](frame.md#fieldtorobot) |
+| `FieldWall` | struct | [wall_reset.md](wall_reset.md#struct-fieldwall) |
+| `FieldWall::axis` | field | [wall_reset.md](wall_reset.md#fieldwall-axis) |
+| `FieldWall::coord` | field | [wall_reset.md](wall_reset.md#fieldwall-coord) |
+| `FieldWall::frame` | field | [wall_reset.md](wall_reset.md#fieldwall-frame) |
+| `FieldWall::inward` | field | [wall_reset.md](wall_reset.md#fieldwall-inward) |
+| `FieldWall::keepOut` | field | [wall_reset.md](wall_reset.md#fieldwall-keepout) |
+| `FieldWall::keepOutCount` | field | [wall_reset.md](wall_reset.md#fieldwall-keepoutcount) |
+| `FieldWall::keepOuts` | function | [wall_reset.md](wall_reset.md#fieldwall-keepouts) |
+| `FieldWall::line` | function | [wall_reset.md](wall_reset.md#fieldwall-line) |
+| `FieldWall::name` | field | [wall_reset.md](wall_reset.md#fieldwall-name) |
 | `FileHolds` | enum class | [record_store.md](record_store.md#enum-class-fileholds) |
 | `FileHolds::Absent` | enumerator | [record_store.md](record_store.md#fileholds-absent) |
 | `FileHolds::Earlier` | enumerator | [record_store.md](record_store.md#fileholds-earlier) |
@@ -1762,6 +1785,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `HeadingSample` | struct | [teleop_loop.md](teleop_loop.md#struct-headingsample) |
 | `HeadingSample::radians` | field | [teleop_loop.md](teleop_loop.md#headingsample-radians) |
 | `HeadingSample::trusted` | field | [teleop_loop.md](teleop_loop.md#headingsample-trusted) |
+| `headingTolerance` | free function | [wall_reset.md](wall_reset.md#headingtolerance) |
 | `HealthMonitor` | class | [health_monitor.md](health_monitor.md#class-healthmonitor) |
 | `HealthMonitor::brownedOut` | function | [health_monitor.md](health_monitor.md#healthmonitor-brownedout) |
 | `HealthMonitor::HealthMonitor` | function | [health_monitor.md](health_monitor.md#healthmonitor-healthmonitor) |
@@ -2288,6 +2312,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kArmingDelaySeconds` | constant | [calibrate_panel.md](calibrate_panel.md#karmingdelayseconds) |
 | `kArmingDelaySeconds` | constant | [touch_panel.md](touch_panel.md#karmingdelayseconds) |
 | `kBackBox` | constant | [calibrate_panel.md](calibrate_panel.md#kbackbox) |
+| `kBlueWall` | constant | [override_walls.md](override_walls.md#kbluewall) |
 | `kBoxEdgePx` | constant | [camera_geometry.md](camera_geometry.md#kboxedgepx) |
 | `kBrainAdiLines` | constant | [device_provider.md](device_provider.md#kbrainadilines) |
 | `kBuildTimeCols` | constant | [calibrate_screen.md](calibrate_screen.md#kbuildtimecols) |
@@ -2313,6 +2338,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kCopyNow` | constant | [calibrate_panel.md](calibrate_panel.md#kcopynow) |
 | `kCopyThenRunAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythenrunagain) |
 | `kCopyThese` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythese) |
+| `kCornerKeepOut` | constant | [override_walls.md](override_walls.md#kcornerkeepout) |
 | `kCrcBytes` | constant | [shul2_format.md](shul2_format.md#kcrcbytes) |
 | `kCupSize` | constant | [override_elements.md](override_elements.md#kcupsize) |
 | `kDefaultDeadband` | constant | [input_shaping.md](input_shaping.md#kdefaultdeadband) |
@@ -2327,6 +2353,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kDockedHeadingTypicalDeg` | constant | [accuracy.md](accuracy.md#kdockedheadingtypicaldeg) |
 | `kDockedPositionError` | constant | [accuracy.md](accuracy.md#kdockedpositionerror) |
 | `kDriveUnset` | constant | [calibrate_screen.md](calibrate_screen.md#kdriveunset) |
+| `keepOutActive` | free function | [wall_reset.md](wall_reset.md#keepoutactive) |
+| `KeepOutKind` | enum class | [wall_reset.md](wall_reset.md#enum-class-keepoutkind) |
+| `KeepOutKind::Fixed` | enumerator | [wall_reset.md](wall_reset.md#keepoutkind-fixed) |
+| `KeepOutKind::PieceZone` | enumerator | [wall_reset.md](wall_reset.md#keepoutkind-piecezone) |
+| `KeepOutKind::Toggle` | enumerator | [wall_reset.md](wall_reset.md#keepoutkind-toggle) |
 | `kEndPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#kendpayloadbytes) |
 | `kEndPayloadBytes` | constant | [shul2_format.md](shul2_format.md#kendpayloadbytes) |
 | `kFactsBad` | constant | [calibrate_screen.md](calibrate_screen.md#kfactsbad) |
@@ -2408,7 +2439,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kLargeHeight` | constant | [touch_panel.md](touch_panel.md#klargeheight) |
 | `kLastPeerDataType` | constant | [shul2_format.md](shul2_format.md#klastpeerdatatype) |
 | `kLastRuntimeDataType` | constant | [shul2_format.md](shul2_format.md#klastruntimedatatype) |
+| `kLeftWall` | constant | [override_walls.md](override_walls.md#kleftwall) |
 | `kLiveRepaintSeconds` | constant | [calibrate_screen.md](calibrate_screen.md#kliverepaintseconds) |
+| `kLoaderCentre` | constant | [override_walls.md](override_walls.md#kloadercentre) |
+| `kLoaderHalfWidth` | constant | [override_walls.md](override_walls.md#kloaderhalfwidth) |
+| `kLoadZoneDepth` | constant | [override_walls.md](override_walls.md#kloadzonedepth) |
 | `kLogFixedBytes` | constant | [shul2_format.md](shul2_format.md#klogfixedbytes) |
 | `kLogMessageTruncated` | constant | [shul2_format.md](shul2_format.md#klogmessagetruncated) |
 | `kLogTagTruncated` | constant | [shul2_format.md](shul2_format.md#klogtagtruncated) |
@@ -2450,6 +2485,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxTablePoints` | constant | [spec.md](spec.md#kmaxtablepoints) |
 | `kMaxVisionClassNames` | constant | [vision_frames.md](vision_frames.md#kmaxvisionclassnames) |
 | `kMaxVisionDetections` | constant | [vision_frames.md](vision_frames.md#kmaxvisiondetections) |
+| `kMaxWallKeepOuts` | constant | [wall_reset.md](wall_reset.md#kmaxwallkeepouts) |
+| `kMaxWallSamples` | constant | [wall_reset.md](wall_reset.md#kmaxwallsamples) |
+| `kMaxWallWindowSeconds` | constant | [wall_reset.md](wall_reset.md#kmaxwallwindowseconds) |
 | `kMaxWaypoints` | constant | [route.md](route.md#kmaxwaypoints) |
 | `kMechAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kmechagain) |
 | `kMechanismRouteDocBytes` | constant | [mechanism_routes.md](mechanism_routes.md#kmechanismroutedocbytes) |
@@ -2477,6 +2515,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMenuPrevSlot` | constant | [auton_menu.md](auton_menu.md#kmenuprevslot) |
 | `kMenuRefusalTurnSeconds` | constant | [auton_menu.md](auton_menu.md#kmenurefusalturnseconds) |
 | `kMenuRefusedPrefix` | constant | [auton_menu.md](auton_menu.md#kmenurefusedprefix) |
+| `kMetalPerimeterInnerFace` | constant | [override_walls.md](override_walls.md#kmetalperimeterinnerface) |
 | `kMetersToInches` | constant | [gps_conversion.md](gps_conversion.md#kmeterstoinches) |
 | `kMinAnsweringPerSide` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kminansweringperside) |
 | `kModelClassCount` | constant | [override_elements.md](override_elements.md#kmodelclasscount) |
@@ -2525,6 +2564,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kProgramFault` | constant | [calibrate_screen.md](calibrate_screen.md#kprogramfault) |
 | `kProtectionTextBytes` | constant | [drive_protection.md](drive_protection.md#kprotectiontextbytes) |
 | `kProvenanceBytes` | constant | [calibration_record.md](calibration_record.md#kprovenancebytes) |
+| `kPublishedCloseAccuracyInches` | constant | [wall_reset.md](wall_reset.md#kpublishedcloseaccuracyinches) |
+| `kPublishedFarAccuracyFraction` | constant | [wall_reset.md](wall_reset.md#kpublishedfaraccuracyfraction) |
 | `kPushForward` | constant | [calibrate_panel.md](calibrate_panel.md#kpushforward) |
 | `kPushFrontFirst` | constant | [calibrate_panel.md](calibrate_panel.md#kpushfrontfirst) |
 | `kRecommendedBufferBytes` | constant | [sd_sink.md](sd_sink.md#krecommendedbufferbytes) |
@@ -2535,9 +2576,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kRecordPayloadBytes` | constant | [calibration_record.md](calibration_record.md#krecordpayloadbytes) |
 | `kRecordPrefixBytes` | constant | [calibration_record.md](calibration_record.md#krecordprefixbytes) |
 | `kRecordVersion` | constant | [calibration_record.md](calibration_record.md#krecordversion) |
+| `kRedWall` | constant | [override_walls.md](override_walls.md#kredwall) |
 | `kRepeatability` | constant | [accuracy.md](accuracy.md#krepeatability) |
 | `kReproScaleTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreproscaletolerance) |
 | `kReproWidthTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreprowidthtolerance) |
+| `kRightWall` | constant | [override_walls.md](override_walls.md#krightwall) |
 | `kRolePeer` | constant | [shul2_format.md](shul2_format.md#krolepeer) |
 | `kRoleRuntime` | constant | [shul2_format.md](shul2_format.md#kroleruntime) |
 | `kRunAgainBox` | constant | [calibrate_panel.md](calibrate_panel.md#krunagainbox) |
@@ -2563,6 +2606,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kSpinning` | constant | [calibrate_panel.md](calibrate_panel.md#kspinning) |
 | `kStandClear` | constant | [calibrate_panel.md](calibrate_panel.md#kstandclear) |
 | `kStartingUp` | constant | [calibrate_screen.md](calibrate_screen.md#kstartingup) |
+| `kStartPiecesInner` | constant | [override_walls.md](override_walls.md#kstartpiecesinner) |
+| `kStartPiecesOuter` | constant | [override_walls.md](override_walls.md#kstartpiecesouter) |
 | `kState1` | constant | [calibrate_screen.md](calibrate_screen.md#kstate1) |
 | `kState3` | constant | [calibrate_screen.md](calibrate_screen.md#kstate3) |
 | `kState4` | constant | [calibrate_screen.md](calibrate_screen.md#kstate4) |
@@ -2585,7 +2630,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kTickPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktickpayloadbytes) |
 | `kTickPhaseSlots` | constant | [debug_record.md](debug_record.md#ktickphaseslots) |
 | `kToggleAtSpeedWindowSeconds` | constant | [driver_inputs.md](driver_inputs.md#ktoggleatspeedwindowseconds) |
+| `kToggleBodyHalf` | constant | [override_walls.md](override_walls.md#ktogglebodyhalf) |
 | `kToggleFace` | constant | [override_elements.md](override_elements.md#ktoggleface) |
+| `kToggleHalfLength` | constant | [override_walls.md](override_walls.md#ktogglehalflength) |
 | `kTogglePlaces` | constant | [override_elements.md](override_elements.md#ktoggleplaces) |
 | `kTooFewMotors` | constant | [calibrate_screen.md](calibrate_screen.md#ktoofewmotors) |
 | `kTriagePayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktriagepayloadbytes) |
@@ -2595,6 +2642,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kVersionMinor` | constant | [shul2_format.md](shul2_format.md#kversionminor) |
 | `kVisionImageHeightPx` | constant | [vision_frames.md](vision_frames.md#kvisionimageheightpx) |
 | `kVisionImageWidthPx` | constant | [vision_frames.md](vision_frames.md#kvisionimagewidthpx) |
+| `kWallDegToRad` | constant | [wall_reset.md](wall_reset.md#kwalldegtorad) |
+| `kWallInnerFace` | constant | [override_walls.md](override_walls.md#kwallinnerface) |
+| `kWallResetWaitBackstopSeconds` | constant | [wall_reset_call.md](wall_reset_call.md#kwallresetwaitbackstopseconds) |
+| `kWalls` | constant | [override_walls.md](override_walls.md#kwalls) |
 | `kWarningCut` | constant | [calibrate_panel.md](calibrate_panel.md#kwarningcut) |
 | `kWhichEnd` | constant | [calibrate_panel.md](calibrate_panel.md#kwhichend) |
 | `kWidthTable` | constant | [shul2_format.md](shul2_format.md#kwidthtable) |
@@ -2699,6 +2750,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Localizer::headingBias` | function | [localizer.md](localizer.md#localizer-headingbias) |
 | `Localizer::isDeadReckoning` | function | [localizer.md](localizer.md#localizer-isdeadreckoning) |
 | `Localizer::kMaxCorrectors` | field | [localizer.md](localizer.md#localizer-kmaxcorrectors) |
+| `Localizer::kTravelCounterStepInches` | field | [localizer.md](localizer.md#localizer-ktravelcounterstepinches) |
+| `Localizer::kTurnCounterStepRadians` | field | [localizer.md](localizer.md#localizer-kturncounterstepradians) |
 | `Localizer::lastCorrection` | function | [localizer.md](localizer.md#localizer-lastcorrection) |
 | `Localizer::lastOdomDeltaImplausible` | function | [localizer.md](localizer.md#localizer-lastodomdeltaimplausible) |
 | `Localizer::lastOdomTickAudit` | function | [localizer.md](localizer.md#localizer-lastodomtickaudit) |
@@ -2712,7 +2765,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Localizer::Quality::Uninitialized` | enumerator | [localizer.md](localizer.md#localizer-quality-uninitialized) |
 | `Localizer::qualityClass` | function | [localizer.md](localizer.md#localizer-qualityclass) |
 | `Localizer::reseatHeading` | function | [localizer.md](localizer.md#localizer-reseatheading) |
+| `Localizer::seatAxis` | function | [localizer.md](localizer.md#localizer-seataxis) |
 | `Localizer::setPose` | function | [localizer.md](localizer.md#localizer-setpose) |
+| `Localizer::travelSinceSeat` | function | [localizer.md](localizer.md#localizer-travelsinceseat) |
+| `Localizer::turnedSinceHeadingSeed` | function | [localizer.md](localizer.md#localizer-turnedsinceheadingseed) |
 | `Localizer::twist` | function | [localizer.md](localizer.md#localizer-twist) |
 | `Localizer::update` | function | [localizer.md](localizer.md#localizer-update) |
 | `LocalizerConfig` | struct | [localizer.md](localizer.md#struct-localizerconfig) |
@@ -3679,6 +3735,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PowerSpec` | struct | [spec.md](spec.md#struct-powerspec) |
 | `PowerSpec::maxVolts` | field | [spec.md](spec.md#powerspec-maxvolts) |
 | `PowerSpec::stall` | field | [spec.md](spec.md#powerspec-stall) |
+| `preCheck` | free function | [wall_reset.md](wall_reset.md#precheck) |
 | `precondition_failed` | free function | [check.md](check.md#precondition_failed) |
 | `PreconditionError` | struct | [check.md](check.md#struct-preconditionerror) |
 | `PreconditionError::logic_error` | alias | [check.md](check.md#preconditionerror-logic_error) |
@@ -3967,6 +4024,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ReaderProfile` | struct | [shul2_format.md](shul2_format.md#struct-readerprofile) |
 | `ReaderProfile::rows` | field | [shul2_format.md](shul2_format.md#readerprofile-rows) |
 | `ReaderProfile::versionMajor` | field | [shul2_format.md](shul2_format.md#readerprofile-versionmajor) |
+| `readingAccuracy` | free function | [wall_reset.md](wall_reset.md#readingaccuracy) |
 | `ReadStatus` | enum class | [blackbox_reader.md](blackbox_reader.md#enum-class-readstatus) |
 | `ReadStatus::BadMagic` | enumerator | [blackbox_reader.md](blackbox_reader.md#readstatus-badmagic) |
 | `ReadStatus::Empty` | enumerator | [blackbox_reader.md](blackbox_reader.md#readstatus-empty) |
@@ -4101,6 +4159,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ReplaceStep::None` | enumerator | [file_store.md](file_store.md#replacestep-none) |
 | `ReplaceStep::Open` | enumerator | [file_store.md](file_store.md#replacestep-open) |
 | `ReplaceStep::Write` | enumerator | [file_store.md](file_store.md#replacestep-write) |
+| `resetFromWall` | free function | [wall_reset_call.md](wall_reset_call.md#resetfromwall) |
 | `RestCapture` | class | [rest_capture.md](rest_capture.md#class-restcapture) |
 | `RestCapture::abort` | function | [rest_capture.md](rest_capture.md#restcapture-abort) |
 | `RestCapture::captureSeconds` | function | [rest_capture.md](rest_capture.md#restcapture-captureseconds) |
@@ -4499,6 +4558,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `sameAiVisionSettings` | free function | [vision_frames.md](vision_frames.md#sameaivisionsettings) |
 | `sameFileOnCard` | free function | [file_store.md](file_store.md#samefileoncard) |
 | `sameVisionText` | free function | [vision_frames.md](vision_frames.md#samevisiontext) |
+| `sampleVerdict` | free function | [wall_reset.md](wall_reset.md#sampleverdict) |
 | `SaveOutcome` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-saveoutcome) |
 | `SaveOutcome::Held` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-held) |
 | `SaveOutcome::NotAttempted` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notattempted) |
@@ -4736,6 +4796,19 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SideMonitorConfig::nearZeroFraction` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-nearzerofraction) |
 | `SideMonitorConfig::oppositeFloorRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-oppositefloorrads) |
 | `SideMonitorConfig::persistTicks` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-persistticks) |
+| `SideMount` | struct | [wall_reset.md](wall_reset.md#struct-sidemount) |
+| `SideMount::coneHalfAngle` | field | [wall_reset.md](wall_reset.md#sidemount-conehalfangle) |
+| `SideMount::facing` | field | [wall_reset.md](wall_reset.md#sidemount-facing) |
+| `SideMount::facingTolerance` | field | [wall_reset.md](wall_reset.md#sidemount-facingtolerance) |
+| `SideMount::forward` | field | [wall_reset.md](wall_reset.md#sidemount-forward) |
+| `SideMount::height` | field | [wall_reset.md](wall_reset.md#sidemount-height) |
+| `SideMount::left` | field | [wall_reset.md](wall_reset.md#sidemount-left) |
+| `SideMount::measured` | field | [wall_reset.md](wall_reset.md#sidemount-measured) |
+| `SideMount::positionTolerance` | field | [wall_reset.md](wall_reset.md#sidemount-positiontolerance) |
+| `SideMount::provenance` | field | [wall_reset.md](wall_reset.md#sidemount-provenance) |
+| `SideMount::rangeAccuracy` | field | [wall_reset.md](wall_reset.md#sidemount-rangeaccuracy) |
+| `SideMount::rangeBias` | field | [wall_reset.md](wall_reset.md#sidemount-rangebias) |
+| `SideMount::toggleChecked` | field | [wall_reset.md](wall_reset.md#sidemount-togglechecked) |
 | `sidePosition` | free function | [rest_capture.md](rest_capture.md#sideposition) |
 | `sideSpeed` | free function | [rest_capture.md](rest_capture.md#sidespeed) |
 | `sideTravel` | free function | [rest_capture.md](rest_capture.md#sidetravel) |
@@ -5301,6 +5374,143 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `WaitResult` | enum class | [motion_scheduler.md](motion_scheduler.md#enum-class-waitresult) |
 | `WaitResult::Satisfied` | enumerator | [motion_scheduler.md](motion_scheduler.md#waitresult-satisfied) |
 | `WaitResult::TimedOut` | enumerator | [motion_scheduler.md](motion_scheduler.md#waitresult-timedout) |
+| `WallAim` | struct | [wall_reset.md](wall_reset.md#struct-wallaim) |
+| `WallAim::along` | field | [wall_reset.md](wall_reset.md#wallaim-along) |
+| `WallAim::beamHalfWidth` | field | [wall_reset.md](wall_reset.md#wallaim-beamhalfwidth) |
+| `WallAim::ceiling` | field | [wall_reset.md](wall_reset.md#wallaim-ceiling) |
+| `WallAim::cleanFound` | field | [wall_reset.md](wall_reset.md#wallaim-cleanfound) |
+| `WallAim::cleanFrom` | field | [wall_reset.md](wall_reset.md#wallaim-cleanfrom) |
+| `WallAim::cleanTo` | field | [wall_reset.md](wall_reset.md#wallaim-cleanto) |
+| `WallAim::cone` | field | [wall_reset.md](wall_reset.md#wallaim-cone) |
+| `WallAim::drift` | field | [wall_reset.md](wall_reset.md#wallaim-drift) |
+| `WallAim::expectedRange` | field | [wall_reset.md](wall_reset.md#wallaim-expectedrange) |
+| `WallAim::keepOutWhy` | field | [wall_reset.md](wall_reset.md#wallaim-keepoutwhy) |
+| `WallAim::margin` | field | [wall_reset.md](wall_reset.md#wallaim-margin) |
+| `WallAim::offSquare` | field | [wall_reset.md](wall_reset.md#wallaim-offsquare) |
+| `WallAim::widening` | field | [wall_reset.md](wall_reset.md#wallaim-widening) |
+| `WallFrame` | enum class | [wall_reset.md](wall_reset.md#enum-class-wallframe) |
+| `WallFrame::Field` | enumerator | [wall_reset.md](wall_reset.md#wallframe-field) |
+| `WallFrame::Own` | enumerator | [wall_reset.md](wall_reset.md#wallframe-own) |
+| `WallKeepOut` | struct | [wall_reset.md](wall_reset.md#struct-wallkeepout) |
+| `WallKeepOut::from` | field | [wall_reset.md](wall_reset.md#wallkeepout-from) |
+| `WallKeepOut::kind` | field | [wall_reset.md](wall_reset.md#wallkeepout-kind) |
+| `WallKeepOut::to` | field | [wall_reset.md](wall_reset.md#wallkeepout-to) |
+| `WallKeepOut::why` | field | [wall_reset.md](wall_reset.md#wallkeepout-why) |
+| `WallResetLimits` | struct | [wall_reset.md](wall_reset.md#struct-wallresetlimits) |
+| `WallResetLimits::alongDriftRate` | field | [wall_reset.md](wall_reset.md#wallresetlimits-alongdriftrate) |
+| `WallResetLimits::beamMargin` | field | [wall_reset.md](wall_reset.md#wallresetlimits-beammargin) |
+| `WallResetLimits::coneHalfAngle` | field | [wall_reset.md](wall_reset.md#wallresetlimits-conehalfangle) |
+| `WallResetLimits::errorBoundMax` | field | [wall_reset.md](wall_reset.md#wallresetlimits-errorboundmax) |
+| `WallResetLimits::headingFloor` | field | [wall_reset.md](wall_reset.md#wallresetlimits-headingfloor) |
+| `WallResetLimits::headingPerTurn` | field | [wall_reset.md](wall_reset.md#wallresetlimits-headingperturn) |
+| `WallResetLimits::keepOutMargin` | field | [wall_reset.md](wall_reset.md#wallresetlimits-keepoutmargin) |
+| `WallResetLimits::minConfidence` | field | [wall_reset.md](wall_reset.md#wallresetlimits-minconfidence) |
+| `WallResetLimits::minSamples` | field | [wall_reset.md](wall_reset.md#wallresetlimits-minsamples) |
+| `WallResetLimits::pieceTop` | field | [wall_reset.md](wall_reset.md#wallresetlimits-piecetop) |
+| `WallResetLimits::rangeMax` | field | [wall_reset.md](wall_reset.md#wallresetlimits-rangemax) |
+| `WallResetLimits::rangeMin` | field | [wall_reset.md](wall_reset.md#wallresetlimits-rangemin) |
+| `WallResetLimits::spreadMax` | field | [wall_reset.md](wall_reset.md#wallresetlimits-spreadmax) |
+| `WallResetLimits::squareWithin` | field | [wall_reset.md](wall_reset.md#wallresetlimits-squarewithin) |
+| `WallResetLimits::stillSpeed` | field | [wall_reset.md](wall_reset.md#wallresetlimits-stillspeed) |
+| `WallResetLimits::stillTurn` | field | [wall_reset.md](wall_reset.md#wallresetlimits-stillturn) |
+| `WallResetLimits::window` | field | [wall_reset.md](wall_reset.md#wallresetlimits-window) |
+| `WallResetLimits::windowMax` | field | [wall_reset.md](wall_reset.md#wallresetlimits-windowmax) |
+| `WallResetLog` | struct | [wall_reset.md](wall_reset.md#struct-wallresetlog) |
+| `WallResetLog::last` | field | [wall_reset.md](wall_reset.md#wallresetlog-last) |
+| `WallResetLog::record` | function | [wall_reset.md](wall_reset.md#wallresetlog-record) |
+| `WallResetLog::refused` | field | [wall_reset.md](wall_reset.md#wallresetlog-refused) |
+| `WallResetLog::seated` | field | [wall_reset.md](wall_reset.md#wallresetlog-seated) |
+| `wallResetProblem` | free function | [wall_reset.md](wall_reset.md#wallresetproblem) |
+| `WallResetReport` | struct | [wall_reset.md](wall_reset.md#struct-wallresetreport) |
+| `WallResetReport::along` | field | [wall_reset.md](wall_reset.md#wallresetreport-along) |
+| `WallResetReport::alongUncertainty` | field | [wall_reset.md](wall_reset.md#wallresetreport-alonguncertainty) |
+| `WallResetReport::applied` | field | [wall_reset.md](wall_reset.md#wallresetreport-applied) |
+| `WallResetReport::axis` | field | [wall_reset.md](wall_reset.md#wallresetreport-axis) |
+| `WallResetReport::beamHalfWidth` | field | [wall_reset.md](wall_reset.md#wallresetreport-beamhalfwidth) |
+| `WallResetReport::before` | field | [wall_reset.md](wall_reset.md#wallresetreport-before) |
+| `WallResetReport::ceiling` | field | [wall_reset.md](wall_reset.md#wallresetreport-ceiling) |
+| `WallResetReport::cleanFound` | field | [wall_reset.md](wall_reset.md#wallresetreport-cleanfound) |
+| `WallResetReport::cleanFrom` | field | [wall_reset.md](wall_reset.md#wallresetreport-cleanfrom) |
+| `WallResetReport::cleanTo` | field | [wall_reset.md](wall_reset.md#wallresetreport-cleanto) |
+| `WallResetReport::cone` | field | [wall_reset.md](wall_reset.md#wallresetreport-cone) |
+| `WallResetReport::continues` | function | [wall_reset.md](wall_reset.md#wallresetreport-continues) |
+| `WallResetReport::detail` | field | [wall_reset.md](wall_reset.md#wallresetreport-detail) |
+| `WallResetReport::errorBound` | field | [wall_reset.md](wall_reset.md#wallresetreport-errorbound) |
+| `WallResetReport::expectedRange` | field | [wall_reset.md](wall_reset.md#wallresetreport-expectedrange) |
+| `WallResetReport::faultChannel` | field | [wall_reset.md](wall_reset.md#wallresetreport-faultchannel) |
+| `WallResetReport::headingTolerance` | field | [wall_reset.md](wall_reset.md#wallresetreport-headingtolerance) |
+| `WallResetReport::keepOutMargin` | field | [wall_reset.md](wall_reset.md#wallresetreport-keepoutmargin) |
+| `WallResetReport::maxCorrection` | field | [wall_reset.md](wall_reset.md#wallresetreport-maxcorrection) |
+| `WallResetReport::measured` | field | [wall_reset.md](wall_reset.md#wallresetreport-measured) |
+| `WallResetReport::median` | field | [wall_reset.md](wall_reset.md#wallresetreport-median) |
+| `WallResetReport::offSquare` | field | [wall_reset.md](wall_reset.md#wallresetreport-offsquare) |
+| `WallResetReport::required` | field | [wall_reset.md](wall_reset.md#wallresetreport-required) |
+| `WallResetReport::sampleConfidence` | field | [wall_reset.md](wall_reset.md#wallresetreport-sampleconfidence) |
+| `WallResetReport::sampleDistance` | field | [wall_reset.md](wall_reset.md#wallresetreport-sampledistance) |
+| `WallResetReport::sampleIndex` | field | [wall_reset.md](wall_reset.md#wallresetreport-sampleindex) |
+| `WallResetReport::samples` | field | [wall_reset.md](wall_reset.md#wallresetreport-samples) |
+| `WallResetReport::seated` | function | [wall_reset.md](wall_reset.md#wallresetreport-seated) |
+| `WallResetReport::side` | field | [wall_reset.md](wall_reset.md#wallresetreport-side) |
+| `WallResetReport::speedSeen` | field | [wall_reset.md](wall_reset.md#wallresetreport-speedseen) |
+| `WallResetReport::spread` | field | [wall_reset.md](wall_reset.md#wallresetreport-spread) |
+| `WallResetReport::turnSeen` | field | [wall_reset.md](wall_reset.md#wallresetreport-turnseen) |
+| `WallResetReport::verdict` | field | [wall_reset.md](wall_reset.md#wallresetreport-verdict) |
+| `WallResetReport::windowSpan` | field | [wall_reset.md](wall_reset.md#wallresetreport-windowspan) |
+| `WallResetRequest` | struct | [wall_reset.md](wall_reset.md#struct-wallresetrequest) |
+| `WallResetRequest::maxCorrection` | field | [wall_reset.md](wall_reset.md#wallresetrequest-maxcorrection) |
+| `WallResetRequest::name` | field | [wall_reset.md](wall_reset.md#wallresetrequest-name) |
+| `WallResetRequest::required` | field | [wall_reset.md](wall_reset.md#wallresetrequest-required) |
+| `WallResetRequest::sensor` | field | [wall_reset.md](wall_reset.md#wallresetrequest-sensor) |
+| `WallResetRequest::wall` | field | [wall_reset.md](wall_reset.md#wallresetrequest-wall) |
+| `WallResetVerdict` | enum class | [wall_reset.md](wall_reset.md#enum-class-wallresetverdict) |
+| `WallResetVerdict::BadRequest` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-badrequest) |
+| `WallResetVerdict::BeamLow` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-beamlow) |
+| `WallResetVerdict::Cut` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-cut) |
+| `WallResetVerdict::Disagrees` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-disagrees) |
+| `WallResetVerdict::Imprecise` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-imprecise) |
+| `WallResetVerdict::KeepOut` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-keepout) |
+| `WallResetVerdict::LowConfidence` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-lowconfidence) |
+| `WallResetVerdict::MotionActive` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-motionactive) |
+| `WallResetVerdict::MountUnset` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-mountunset) |
+| `WallResetVerdict::Moving` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-moving) |
+| `WallResetVerdict::NoReturn` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-noreturn) |
+| `WallResetVerdict::NoSensor` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-nosensor) |
+| `WallResetVerdict::NotFieldStart` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-notfieldstart) |
+| `WallResetVerdict::NotLive` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-notlive) |
+| `WallResetVerdict::NotSquare` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-notsquare) |
+| `WallResetVerdict::OutOfRange` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-outofrange) |
+| `WallResetVerdict::ReadFault` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-readfault) |
+| `WallResetVerdict::Seated` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-seated) |
+| `WallResetVerdict::SensorAbsent` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-sensorabsent) |
+| `WallResetVerdict::Spread` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-spread) |
+| `WallResetVerdict::TooFewSamples` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-toofewsamples) |
+| `wallResetVerdictWord` | free function | [wall_reset.md](wall_reset.md#wallresetverdictword) |
+| `WallSample` | struct | [wall_reset.md](wall_reset.md#struct-wallsample) |
+| `WallSample::at` | field | [wall_reset.md](wall_reset.md#wallsample-at) |
+| `WallSample::confidence` | field | [wall_reset.md](wall_reset.md#wallsample-confidence) |
+| `WallSample::distance` | field | [wall_reset.md](wall_reset.md#wallsample-distance) |
+| `WallSample::faultMoved` | field | [wall_reset.md](wall_reset.md#wallsample-faultmoved) |
+| `WallSampler` | class | [wall_reset.md](wall_reset.md#class-wallsampler) |
+| `WallSampler::maxTwist` | function | [wall_reset.md](wall_reset.md#wallsampler-maxtwist) |
+| `WallSampler::samples` | function | [wall_reset.md](wall_reset.md#wallsampler-samples) |
+| `WallSampler::step` | function | [wall_reset.md](wall_reset.md#wallsampler-step) |
+| `WallSampler::WallSampler` | function | [wall_reset.md](wall_reset.md#wallsampler-wallsampler) |
+| `WallSensor` | struct | [wall_reset.md](wall_reset.md#struct-wallsensor) |
+| `WallSensor::absence` | field | [wall_reset.md](wall_reset.md#wallsensor-absence) |
+| `WallSensor::faults` | field | [wall_reset.md](wall_reset.md#wallsensor-faults) |
+| `WallSensor::mount` | field | [wall_reset.md](wall_reset.md#wallsensor-mount) |
+| `WallSensor::sensor` | field | [wall_reset.md](wall_reset.md#wallsensor-sensor) |
+| `WallSensors` | struct | [wall_reset.md](wall_reset.md#struct-wallsensors) |
+| `WallSensors::left` | field | [wall_reset.md](wall_reset.md#wallsensors-left) |
+| `WallSensors::limits` | field | [wall_reset.md](wall_reset.md#wallsensors-limits) |
+| `WallSensors::log` | field | [wall_reset.md](wall_reset.md#wallsensors-log) |
+| `WallSensors::right` | field | [wall_reset.md](wall_reset.md#wallsensors-right) |
+| `WallSensors::side` | function | [wall_reset.md](wall_reset.md#wallsensors-side) |
+| `WallSide` | enum class | [wall_reset.md](wall_reset.md#enum-class-wallside) |
+| `WallSide::Left` | enumerator | [wall_reset.md](wall_reset.md#wallside-left) |
+| `WallSide::Right` | enumerator | [wall_reset.md](wall_reset.md#wallside-right) |
+| `wallSideWord` | free function | [wall_reset.md](wall_reset.md#wallsideword) |
+| `wallStill` | free function | [wall_reset.md](wall_reset.md#wallstill) |
 | `Watchdog` | class | [watchdog.md](watchdog.md#class-watchdog) |
 | `Watchdog::elapsed` | function | [watchdog.md](watchdog.md#watchdog-elapsed) |
 | `Watchdog::expired` | function | [watchdog.md](watchdog.md#watchdog-expired) |

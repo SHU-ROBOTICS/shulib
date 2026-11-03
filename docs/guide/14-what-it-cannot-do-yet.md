@@ -324,6 +324,75 @@ default lead time, no park pose, no field coordinate — a guard with a built-in
 "the endgame" would be one team's strategy frozen into everyone's library. Both instants
 and the action are yours.
 
+## The wall reset: what it cannot catch
+
+The wall reset ([Chapter 10](10-the-api.md#the-wall-reset--one-axis-against-a-field-wall)) re-seats
+ONE coordinate from a side distance sensor parked beside a field wall. It is **host- and build-gated,
+NOT run on a robot**: every number below comes from the host test plant or from paper, and no
+distance-sensor reading of the team's robot exists yet. Only its explicit form is in the library;
+the robot file's side sensors and the everyday call an auton writes come in its later parts.
+
+- **Something taller than a game piece, at a plausible distance, passes every check.** No reading
+  check can tell it from the wall, and no document should say one can. On the host test plant: a
+  Loader read as the wall with the keep-outs switched off seated y **3.7 in wrong**; a sensor mounted
+  (or wired) to face the other way, with a robot 5 in to that side, seated x **2.0 in wrong** at a 7-in
+  parking (the parking distance less the 5 in); an object 1 or 2 in behind a CLEAR wall panel seated
+  ~1 / ~2 in wrong. A nested stack against the wall would do the same — and so would the Toggle's
+  body, where it overhangs the wall's inner face above the wall top, for a lens high enough that its
+  beam's upper edge reaches it: which is why that body's keep-out lifts only for a sensor SEEN to read
+  the wall beneath a real Toggle (`toggleChecked`), and never by a typed height (the overhang's size
+  is read off a drawing by eye; no wrong-seat distance for it is pinned on the host test plant). The
+  defences are yours: a **tight `maxCorrection`** (how far the robot can really have drifted since its
+  last reset — never near the gap to anything that could be mistaken for the wall), parking where the
+  route says, the season's keep-outs, the sensor's height, and checking each side's port with a board
+  held to ONE side.
+- **A single standing Pin or Cup is caught — if the typed height and beam spread are true.** The
+  beam-height check refuses any reading the beam's lower edge could take from a 6.5-in piece; it
+  rests on the mount's typed height and on a beam spread of ±18° that is unofficial until it is
+  measured. Never type a height "so the reset works".
+- **No heading.** One sensor per side gives ONE range — the axis and the angle are two unknowns.
+  The IMU owns the heading; no sensor ever seats it.
+- **No background mode.** The reset runs only where an auton asks for it. A "correct whenever a wall
+  is in view" mode would run where nobody chose — beside a partner robot, a piece against the wall —
+  and every wrong seat the host test plant produced passed every reading check.
+- **Clear wall panels.** A VEX Forum report (seen only through search summaries) says the sensor
+  sees through the metal perimeter's clear panels, or drops out beyond ~700 mm. Then the reset
+  usually REFUSES — but it **seats wrong by up to `maxCorrection`** when something opaque stands
+  within that distance behind the panel: the wall's own frame, a drive-team member's hand. Check
+  the perimeter at your event.
+- **The GPS code strip.** VEX U and skills fields must carry it: black and white squares on the wall
+  at about 9.1–11.4 in — exactly where a useful sensor's beam lands. Whether a black square reads like a
+  white one is not published; measure your sensor against both.
+- **VEX U Load Zones are always kept out.** Match loads come in through the Loaders during the
+  autonomous period too, so a robot taking loads, or a stack it drops, may be in a Load Zone (23.11 in
+  from each corner, along both walls) at any time — taller than the beam-height check assumes. With
+  the beam's spread unmeasured the start pieces are kept out as well, so the clean stretch is narrow:
+  about 2 × 8 in per wall for the beam's centre at a 7-in reading right after a seed, and none after
+  ~48 in of driving (the keep-outs widen by 10 % of the travel since that along-wall coordinate was
+  set); with a measured spread, about 2 × 23.6 in. Reset early in a leg, or reset the perpendicular
+  axis first.
+- **The precision is just inside its own limit.** With VEX's published accuracy (the larger of 15 mm
+  and 5 %) and a mount measured to ±0.25 in, a sensor at the robot's fore-aft centre answers to
+  0.86–0.97 in at 4–10 in of reading before any turning (square to the wall, up to 5° off) — inside the
+  1.0-in limit. After 180° of turning it still passes parked square (0.93–0.98 in), but the margin is
+  gone: it is refused `imprecise` from about 2° off square at a 7-in reading (from 0.5° at 10 in, 3° at
+  4 in); after 450°, refused. Mounted 5 in forward of the centre, it is refused from the first reset
+  (1.01–1.15 in); a mount measured to ±0.1 in and a measured accuracy of ±0.3 in bring that sensor to
+  0.56–0.69 in. (Computed with the library's own error bound; nothing measured.) Standing still does
+  not use the margin up: the rotation counted is the IMU's heading in 1° steps, so its jitter does not
+  add up — at the jitter the library believes (HA-21). An IMU more than about three times that noisy
+  starts counting it, steeply (up to ~100° a still minute at five times, on the host test plant —
+  HA-211); that only refuses more resets, never seats a wrong one, and nothing has measured a real
+  IMU's still jitter yet.
+- **The explicit call's window cannot be cut.** It samples inside a wait the run guard cannot
+  interrupt, so a deadline or a disable that lands in the window is acted on up to `windowMax`
+  (0.5 s) late.
+- **Every number is a belief** until measured — the sensor's accuracy, its beam's spread and how it
+  answers two surfaces at once, whether the wall answers at all at that height, its update rate, the
+  gate defaults (and the steps the Localizer counts turning and travel in), the field's dimensions
+  (the two legal perimeters differ by 0.045 in a wall): the
+  [hardware-assumptions register](../hardware-assumptions.md), HA-204 to HA-209, HA-211 and HA-212.
+
 ## No easier tiers yet
 
 The project's [accessibility model](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet)

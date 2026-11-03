@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 194 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 202 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -191,6 +191,16 @@
 > (HA-200, invented), the Toggle's geometry (HA-201, reasoned — the flat bottom face at 12.36 in read from pA8
 > at VIS1-A1), a box edge's jitter (HA-202, invented) and a read's cost (HA-203, invented). Where the vendored
 > PROS header and its `libpros.a` disagree, the binary was read and followed. With them, 194.
+> **L6-A1 (the wall reset's library core; built 2026-10-29) added EIGHT — HA-204..HA-209, HA-211 and HA-212**
+> (HA-210, robot two's side-sensor ports and unmeasured mounts, stays HELD for L6-B, the part whose code cites it) —
+> the beliefs the wall reset rests on: the V5 Distance Sensor's accuracy (HA-204, reasoned), its beam's spread and
+> what it reports with two surfaces in view (HA-205, invented), the wall answering at the sensor's height — clear
+> panels and the GPS code strip included (HA-206, invented with contrary evidence), the field's wall positions
+> (HA-207, reasoned), the Toggle's overhang and brackets (HA-208, reasoned and invented), the sensor's update
+> interval and latency (HA-209, invented), every gate default (HA-211, invented) and the Loaders, the start pieces
+> and VEX U's loads (HA-212, reasoned). **None is measured; no distance-sensor reading of the team's robot exists.**
+> It amended HA-113, HA-114, HA-115 and HA-180 by one sentence each (their blast radius now names the wall reset).
+> With them, 202.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither is **HA-181** (G3a, the robot panel: its amended brief), held the same way (the
 > mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
@@ -417,6 +427,14 @@
 | HA-201 | The Toggle's geometry: the field face's lower edge 12.55–12.65 in up, the apex 14.39 in and 0.9–1.2 in behind it, the FLAT bottom face 12.36 in, a different colour; its distance from the wall's inner face unknown | reasoned (arithmetic from the manual's pA8 and glossary, v2.0) | Step 0.1 (a real Toggle, a tape measure; the newest manual) |
 | HA-202 | A box edge's jitter is at most ~2 px for a still object — for a model's box AND a colour band's top and bottom rows | **invented** | Step 0.2 (a still Pin, five reads); Station I 0.5 after VIS1-B (a still Toggle face) |
 | HA-203 | One camera read (1 + N device calls, N up to 24; once a second up to 28 more for the adapter's settings-and-model check; up to 36 more for a set-up written again) is cheap enough to make once a period inside the driver loop's 10 ms tick | **invented** | Station I 0.7 after VIS1-B (station 12's read time); the driver loop's tick monitor under AF1 |
+| HA-204 | The V5 Distance Sensor reads a flat, wall-sized target to ±15 mm below 200 mm and ~5 % above, over 20–2000 mm, from its front face — the wall reset assumes max(15 mm, 5 % of the reading) at every range until a measured `rangeAccuracy` replaces it | **reasoned** (VEX's published figures; the zero point and the real spread unknown) | L6 Step 0.3 / 0.7 |
+| HA-205 | The beam is a cone of about ±12° (long range) to ±18° (short range); within 5° of square to a flat wall the reading is the beam-centre range; with two surfaces in the cone the sensor reports the NEAREST | **invented** (a community post seen through search summaries; VEX publishes no angle and no multi-target behaviour) | L6 Step 0.5 / 0.6 |
+| HA-206 | The field wall's inner face returns a reading at the sensor's height — the portable perimeter's opaque walls, the metal perimeter's clear panels and the GPS code strip's black and white squares (9.06–11.44 in) alike | **invented, with CONTRARY evidence** (a forum report of the beam passing through clear panels) | L6 Step 0.3 / 0.6 |
+| HA-207 | The perimeter's inner faces are ±70.205 in from the field's centre (A10/A13; the metal perimeter A14 ±70.25) and a real field is within ±0.5 in of its drawing | **reasoned** (the drawings) · **invented** (the tolerance) | L6 Step 0.6 |
+| HA-208 | Each Toggle's BODY sits on top of its wall (overhang ≤ ~1 in), so a beam below the wall top (11.50 / 11.54 in, printed) reads the wall beneath it; its two BRACKETS (\|along\| ≈ 10.9–13.0 in) hang to ≈ 10.6 in | **reasoned** (the printed heights; the bracket's bottom off A8's scale) · **invented** (the overhang, the brackets' depth) | L6 Step 0.6 |
+| HA-209 | The sensor's update interval and latency are UNKNOWN; repeated reads within one update repeat it, and a `distance()` / `confidence()` pair can straddle an update | **invented** (the interval, the latency) · **reasoned** (the two reads) | L6 Step 0.7 |
+| HA-211 | The wall reset's gate defaults (range 2–16 in, square 5°, spread 0.5 in, ≥ 5 samples over ≥ 0.15 s, confidence 0.5, still ≤ 1 in/s and 3°/s, bound 1.0 in, keep-out margin 3 in + 10 % of the along-wall travel, heading tolerance 2° + 2 % of the rotation, the 6.5-in piece + 0.5 in and an 18° cone for the beam-height ceiling; stillness as the estimate's displacement over `window`; the Localizer's turn and travel counters in 1° / 0.5-in steps, which assume a still robot's IMU heading and odometry path never move a full step) | **invented** (each derived on paper, none observed) | L6 Step 0.3–0.8; a 60-s still-robot capture |
+| HA-212 | The Loaders (4.02 in wide, 3.74 in deep, ±58.77 in on the red and blue walls), A12's start pieces (6.5 in tall, against every wall at \|along\| 18.81–28.28 in), VEX U's match loads in the Load Zones during the auton, and no single piece taller than 6.5 in | **reasoned** (A9/A10/A12, FO-1, VEXU-1, VURS1) | L6 Step 0.6 |
 | HA-213 | The V5 IMU's readings (`get_rotation()`, `get_gyro_rate()`) are copied into the brain's shared buffer every 10 ms, so every read between two copies returns the SAME value (sample-and-hold) | reasoned (the vendored `pros/imu.hpp`, `set_data_rate`'s doc); never observed on our brains | IMU1 (Part B's bench stage, Station N) |
 | HA-214 | The phase of that 10 ms copy against the motion tick's wake is unknown (fixed per boot, or drifting); a copy within a read's jitter of the tick's ONE rate read, or between two positions of the tick's FIRST read, makes a pair of ticks read 0 and about double — IMU1's hold does not cure it | **invented** (the phase) · reasoned (the consequence) | IMU1 (Part B's bench stage, Station N) |
 | HA-215 | Every rate read of one control tick falls within 5 ms of the tick's first, consecutive ticks' first reads are 5 ms or more apart, and no reader outside the loop's tick reads the rate — what `ProsImu::kRateHoldUs` (5 ms) rests on | reasoned (HA-32/HA-102, themselves unmeasured under load) | IMU1 (Part B's bench stage, a lower bound); Bench Tests STAGE 5 |
@@ -1020,6 +1038,7 @@ robot — the steps say what can be done with a sensor on a loose cable at the t
   *Settle (R3, runbook step 18):* an object at a tape-measured 500 mm reads ~19.7 in canonical.
   *Blast radius if wrong:* every capture/dock-confirm threshold off by 25.4× — confirm never
   fires (or always does). **Contained:** one conversion function.
+  L6's wall reset also rests on this (its readings are inches through the same conversion).
 
 - [ ] **HA-114 — the distance sensor's "no object" is the IN-BAND integer 9999, not a sentinel.**
   *Claim:* with nothing in range, `get_distance()` returns exactly 9999 (mm) — a plain value
@@ -1034,6 +1053,7 @@ robot — the steps say what can be done with a sensor on a loose cable at the t
   a wall 33 feet away that thresholds as "no object anyway" (far), so the practical damage is
   a confidence that flickers non-zero on an empty intake — visible in step 18's log.
   **Contained:** one named constant + the adapter rule, mutation-proven (campaign M2).
+  L6's wall reset also rests on this (a 9999 reads confidence 0 and is refused `no return`).
 
 - [ ] **HA-115 — `get_confidence()` is 0–63, "only available when distance is > 200mm"; its
   value at or below 200 mm is UNKNOWN.**
@@ -1052,6 +1072,8 @@ robot — the steps say what can be done with a sensor on a loose cable at the t
   instead passed the below-200 raw through and it reads 0 there: capture-confirm REFUSES the
   grab it most needs — the exact failure the close-range rule exists to prevent.
   **Contained:** adapter-only, mutation-proven (campaign M3).
+  L6's wall reset also rests on this: inside 200 mm (7.87 in) its confidence gate checks nothing, and the range,
+  spread, error-bound and agreement gates carry those readings.
 
 - [ ] **HA-116 — optical hue is 0–359.999°, saturation/brightness are 0–1.0 doubles.**
   *Claim:* the three double channels are already in shulib's canonical ranges — the adapter
@@ -3061,7 +3083,8 @@ that leaves unproven. The numbers below are host-test-plant measurements of 2026
   three runs; agreement within 0.5 in settles it.
   *Blast radius if wrong:* the screen says FINISHED while the robot is off its line on the tape by the
   skid, and every later leg starts from that error. Not contained by config — only a GPS, a tracking wheel
-  or a wall reset sees a skid.
+  or a wall reset sees a skid. The wall reset (L6, host-gated since 2026-10-29) sees it on the axis across the
+  wall it resets against.
 
 **COMP-t (2026-09-28) added TWO — HA-177 and HA-178.** "shulib Auton Tester" runs one of the team's
 autons on the bench from RUN on the brain's screen (a 3 s countdown, then `competition::runAuton`, the
@@ -3460,6 +3483,173 @@ by SER1).
   as HA-190's. **Contained** for shulib's calls by `writeWhole()`'s 512-byte ceiling (and its `static_assert` ≤ 1024);
   a 512-byte piece is a quarter of the stream, so the margin is a factor of four.
 
+**L6-A1 (2026-10-29) added EIGHT — HA-204..HA-209, HA-211 and HA-212.** The wall reset re-seats ONE axis of the
+estimate from a side distance sensor parked beside a field wall (`localization/wall_reset.hpp`,
+`chassis/wall_reset_call.hpp`, the season's walls in `localization/override_walls.hpp`; the host test plant's
+field and sensors in `sim/field_plant.hpp`). Every gate it applies rests on a belief about the sensor or the field
+that only a robot on a field can settle — the L6 brief's Step 0 (worksheet Station H). **None is measured; the
+reset has not run on a robot.** HA-210 (robot two's side-sensor ports and their unmeasured mounts) is held for
+L6-B, whose robot table cites it.
+
+- [ ] **HA-204 — the V5 Distance Sensor's accuracy: max(15 mm, 5 % of the reading).**
+  *Claim:* on a flat, wall-sized target the sensor reads to about ±15 mm below 200 mm and about 5 % above, over
+  20–2000 mm, measured from its front face (the zero point is not published). The two figures are approximations
+  that meet at 200 mm, not an optimum, so the reset assumes the LARGER at every range — never a step at 200 mm (a
+  step would put a cliff in the precision gate) — until a measured `SideMount::rangeAccuracy` replaces it.
+  *Source:* VEX's published figures (api.vex.com, fetched 2026-10-18); `localization/wall_reset.hpp`
+  (`kPublishedCloseAccuracyInches`, `kPublishedFarAccuracyFraction`, `readingAccuracy`, `axisErrorBound`, the
+  `rangeMin` floor's reason, `SideMount::rangeBias` / `rangeAccuracy`).
+  *Confidence:* **reasoned** — published; our sensors' real spread and zero point unknown.
+  *Settle:* L6 Step 0.3 (ten taped distances × five RECORDs per side: the bias and the spread) and Step 0.7.
+  *Blast radius if wrong:* a sensor worse than published makes the reset seat with a larger error than its bound
+  says (the bound is the precision gate); better than published makes it refuse `imprecise` more than it must.
+  **Contained** by a measured `rangeAccuracy` / `rangeBias`, typed per side.
+
+- [ ] **HA-205 — the beam is a ±12°–18° cone, square within 5° reads the beam-centre range, and two surfaces
+  in the cone read as the NEAREST.**
+  *Claim:* the beam spreads about ±12° (long range) to ±18° (short-range mode); within 5° of square to a flat wall
+  the reading is the beam-centre range to within HA-204 (≤ 0.046 in at 12 in); with two surfaces in the cone the
+  sensor reports the nearest — though VEX says object size comes from "how much of the sensor's view is taken up",
+  so it may integrate over its view and report a BLEND.
+  *Source:* `localization/wall_reset.hpp` (`WallResetLimits::coneHalfAngle` widening the keep-outs and setting the
+  beam-height ceiling while the mount's cone is unmeasured; `SideMount::coneHalfAngle`; the 5° square gate's
+  reason); `sim/field_plant.hpp` (the host plant's nearest-hit default and its `blend` mode).
+  *Confidence:* **invented** — a community post seen only through search summaries; VEX publishes no angle and no
+  multi-target behaviour.
+  *Settle:* L6 Step 0.5 (angles 0–20° at 8 and 12 in; a Pin slid in from the side and from below — WHERE the
+  reading changes and HOW: a jump to the Pin, or a slide) and Step 0.6 (a person just behind an alliance wall
+  while the cone's top passes over it).
+  *Blast radius if wrong:* a WIDER real cone than typed lets the beam-height gate pass a reading a standing piece
+  could make (the start pieces stay kept out until a cone is measured, which bounds it there); a blending sensor
+  changes the known-limit magnitudes (an object at a plausible distance) and the claim that the cone's top edge
+  over the wall is harmless. The beam-height gate itself does not depend on the multi-target behaviour (at or
+  under the ceiling no piece is in the cone at all).
+
+- [ ] **HA-206 — the wall's face returns a reading at the sensor's height: opaque walls, clear panels and the
+  GPS code strip.**
+  *Claim:* the portable perimeter's opaque walls AND the metal perimeter's clear panels return a reading; so does
+  the VEX GPS code strip, which VURC and Autonomous Coding Skills fields MUST carry (manual v2.0, the VURC field
+  setup; `<RSC4>` a): two rows of black and white squares on the wall at 9.06–11.44 in (A8 at 300 dpi) — where every
+  useful mount's beam lands — a black square reading the same range as a white one, within HA-204, with a usable
+  confidence.
+  *Source:* `localization/wall_reset.hpp` (the file banner; the `LowConfidence` / `NoReturn` gates);
+  `sim/field_plant.hpp` (the see-through boxes and the code strip's per-colour bias, default none).
+  *Confidence:* **invented, with CONTRARY evidence** — a VEX Forum thread (seen only through search summaries)
+  reports the sensor seeing through the metal perimeter's clear panels or dropping out beyond ~700 mm; no published
+  behaviour on dark or patterned targets. The strip's place is manual v2.0's (A8); v2.1 (2026-10-08) exists and
+  was not readable on 2026-10-29, so whether it moved the strip is UNVERIFIED (HA-207).
+  *Settle:* L6 Step 0.6 on each perimeter type the team can reach, ON the strip where the field has one; Step 0.3's
+  black and white squares (a printed full-scale sample if the team's field has no strip).
+  *Blast radius if wrong:* on a clear panel the reset usually REFUSES (no return, out of range, disagrees) — but
+  SEATS wrong by up to `maxCorrection` when something opaque stands within that distance behind the panel (the
+  host test plant: 1 in behind → ~1 in wrong, 2 in → ~2 in; the wall's own frame, a hand). A biased black square
+  shifts every reading on the strip. Not contained by code; a tight `maxCorrection` caps it.
+
+- [ ] **HA-207 — the walls' inner faces are ±70.205 in from the centre, within ±0.5 in on a real field.**
+  *Claim:* A10 places the field elements on inner faces 3566.4 mm apart (±70.205 in); A13's portable perimeter
+  agrees (140.40 in); A14's METAL perimeter is 140.50 in (±70.25 — 0.045 in further out per wall). A real field is
+  within ±0.5 in of its drawing.
+  *Source:* `localization/override_walls.hpp` (`kWallInnerFace`, `kMetalPerimeterInnerFace` — stated, never
+  averaged); the host plant's own copy agrees to 0.01 in (`test/sim_field_plant_test.cpp`).
+  *Confidence:* **reasoned** (the drawings — manual v2.0's; v2.1, released 2026-10-08 as a "clarification /
+  minor update", exists but could not be read on 2026-10-29, so whether it moved any of these numbers is
+  UNVERIFIED) · **invented** (the tolerance — the manual says only that fields "vary slightly").
+  *Settle:* L6 Step 0.6 — the field measured face to face at three places, and WHICH perimeter type it was.
+  *Blast radius if wrong:* every seat is off by the wall's error — 1:1, silently, inside the gates. **Contained** to
+  one constant per season header.
+
+- [ ] **HA-208 — each Toggle's BODY sits on top of its wall; its BRACKETS hang to ≈ 10.6 in.**
+  *Claim:* the Toggle's body sits ON TOP of its wall, overhanging the inner face by ≤ ~1 in, so a beam below the
+  wall top (11.50 in metal, A14; 11.54 in portable, A13 — printed) reads the wall beneath the body; its two
+  BRACKETS, at |along| ≈ 10.9–13.0 in, hang down to ≈ 10.6 in above the floor, into the beam's band; how far they
+  reach into the field is not drawn.
+  *Source:* `localization/override_walls.hpp` (the Toggle BODY span — `KeepOutKind::Toggle`, lifted per side only by
+  a measured `SideMount::toggleChecked` — and the two BRACKET spans, `Fixed`); `sim/field_plant.hpp` (the plant's
+  1-in overhang and 1-in-deep brackets).
+  *Confidence:* **reasoned** (the wall heights are printed; the bracket's bottom measured off A8's printed scale —
+  manual v2.0's drawings; v2.1 (2026-10-08) exists and was not readable on 2026-10-29: UNVERIFIED) ·
+  **invented** (the overhang and the brackets' depth).
+  *Settle:* L6 Step 0.6 (the overhang and the brackets' depth measured; readings at the mount's height at
+  mid-Toggle AND at each bracket end) — then `toggleChecked` lifts the BODY for that side, never the brackets.
+  *Blast radius if wrong:* with the body's keep-out lifted on a sensor whose cone reaches the overhang, the reset
+  seats short by up to the overhang; a bracket in the beam does the same — on the host test plant, a beam whose
+  ESTIMATE was 5.5 in off along the wall, clear of the bracket's span by the widening alone, seated more than
+  0.5 in wrong where the truth's beam met a bracket, with the along-wall drift term switched off (with it on, the
+  reset refused KEEP-OUT — `test/wall_reset_plant_test.cpp`, "the along drift beside a Toggle bracket").
+  **Contained** by the body's keep-out staying ON until measured and the brackets' never lifting.
+
+- [ ] **HA-209 — the sensor's update interval and latency are UNKNOWN.**
+  *Claim:* PROS returns the sensor's latest value, so repeated reads within one update repeat it (N samples are
+  fewer independent readings), and one `distance()` / `confidence()` pair can straddle an update (two device reads,
+  `hal/pros/distance.hpp`).
+  *Source:* `localization/wall_reset.hpp` (`minSamples` with `window` — the window's TIME is the real guard;
+  `WallSampler`'s per-sample read-fault rule around both reads); `sim/field_plant.hpp` (`updateEvery`,
+  `latencySteps`).
+  *Confidence:* **invented** (the interval, the latency) · **reasoned** (the two reads, from the adapter's source).
+  *Settle:* L6 Step 0.7 (a change timer on the bench page, a board moved slowly).
+  *Blast radius if wrong:* a slow update makes the 0.15-s window hold fewer real readings than its count says — a
+  spread of 0 proves less; a long latency reads where the robot was. Shortening the window "to speed the auton up"
+  without the interval is the misuse to avoid.
+
+- [ ] **HA-211 — the wall reset's gate defaults.**
+  *Claim:* range **2–16 in** (2 in = VEX's 20-mm floor with room for the unpublished close-range behaviour; 16 in =
+  where the published 5 % alone, 0.8 in, leaves no room under the 1.0-in bound); square within **5°**; spread
+  **≤ 0.5 in**; **≥ 5 samples over ≥ 0.15 s** (window ≤ 0.5 s); confidence **≥ 0.5**; still **≤ 1 in/s, ≤ 3°/s**;
+  error bound **≤ 1.0 in** (F2's pose target); keep-out margin **3 in** (the start pose's placement ~1 in + a field
+  element's place 0.5 in + the beam centre's aim 2° × 16 in ≈ 0.56 in, summed ≈ 2.1, rounded up) **plus 10 % of the
+  travel since the along-wall axis was last set** (robot two's saved distance scale reads ~8 % short until the
+  Calibrate rerun; HA-83 believes 2 % σ on a calibrated robot); heading tolerance **2° + 2 % of the |rotation|
+  since the heading was last set** (HA-20's floor, doubled; HA-84's 1 % of rotation, doubled); the beam-height
+  ceiling's 6.5-in piece + 0.5 in and an **18°** cone while the mount's is unmeasured. The ONE policy number,
+  `maxCorrection`, has no default — it is the author's. *Added by the L6-A1 review (2026-10-29):* "still" is the
+  estimate's DISPLACEMENT over the trailing `window`, per second — not one tick's finite-difference velocity, which
+  a still IMU's heading noise (HA-21) turns into 1.1–1.4 in/s of phantom speed on tracking wheels 3–4.5 in off the
+  turning centre (the host test plant), refusing every reset; `window` at most **0.6 s** (the 64-sample buffer
+  spans 0.63 s at 10 ms); and the Localizer counts turning in **1° steps** of the raw IMU heading and travel in
+  **0.5-in steps** of the odometry's path (`kTurnCounterStepRadians`, `kTravelCounterStepInches`) — summed tick by
+  tick, HA-21's jitter alone read ~335° of "turning" and ~32 in of "travel" per still minute (twice that at 0.1°),
+  and a still robot's reset was refused IMPRECISE after ~45 s, KEEP-OUT after a minute at 0.1°. The steps assume
+  two readings of a still IMU's heading never differ by a full degree (14 σ of the difference of two of HA-21's
+  readings), and a still robot's odometry path never strays 0.5 in from a point it passed — whether real noise is
+  white or integrated (HA-173) does not change that while its size is near HA-21's. *Where it stops holding*
+  (measured on the host test plant at the L6-A1 verification round, 2026-10-30: a still minute on the default rig's
+  offset wheels, twenty seeds, the hostile IMU's σ scaled): the travel counter reads 0 up to SIX times HA-21's σ.
+  The turn counter reads 0 with noise alone up to THREE times; with HA-20's drift added (≤ 1°/min, counted as it
+  should be) ~1° up to twice and up to ~3° at three times. Then a cliff — the step is 3.5 σ of the difference at four
+  times, and a minute is 6,000 tries: at four times up to ~4° a still minute with noise alone and up to ~31° with
+  the drift (a reading whose mean sits mid-step crosses it back and forth, two steps a trip); at five times up to
+  ~100°; at six times 20–245° — and a still robot at six times refused IMPRECISE after 120 s in 8 of 10 seeds (a
+  7-in reading, parked square). Rule 5's displacement on a still robot reads ~0.08 in/s at HA-21's σ (0.04–0.17
+  over 600 resets, ten seeds), ~0.33 (up to 0.69) at four times, and reaches the 1-in/s limit near six times (2 of
+  600 refused MOVING). An over-count only refuses — a wider heading tolerance, a larger error bound — and never
+  seats a wrong reading.
+  *Source:* `localization/wall_reset.hpp` (`WallResetLimits`, every field labelled `PROVISIONAL (A4: HA-211)`;
+  `SideMount`'s tolerances; `kMaxWallWindowSeconds`); `localization/localizer.hpp` (`travelSinceSeat`,
+  `turnedSinceHeadingSeed`, and their steps `kTurnCounterStepRadians` / `kTravelCounterStepInches`).
+  *Confidence:* **invented** — each derived on paper from HA-204/205/209 and HA-20/21/83/84, none observed.
+  *Settle:* L6 Step 0.3–0.8; the first field session's `[WALL]` lines; for the two steps, a still-robot IMU and
+  odometry capture (60 s, the robot untouched): `turnedSinceHeadingSeed()` and `travelSinceSeat()` must stay at a
+  step or two, and the capture reports the heading's σ (R5a's REST step, HA-21) against the turn counter's clear
+  margin — 0 counted up to ~0.15° (three times HA-21) on the host test plant. A σ past that means the counter's
+  input needs smoothing before it is stepped (a design change for a later chunk, not a constant).
+  *Blast radius if wrong:* too tight refuses good resets (the auton goes on uncorrected — exactly as without the
+  reset); too loose seats from worse readings. Overridable per robot in `WallResetLimits`.
+
+- [ ] **HA-212 — the Loaders, the start pieces and VEX U's loads.**
+  *Claim:* the Loaders are 4.02 in wide, protrude 3.74 in, centred ±58.77 in on the red and blue walls (A9/A10;
+  the season header computes 58.764 from A10's 3275.8 − 1783.2 mm); A12's start pieces — Cup-Pin-Cup clusters 6.5
+  in tall, centred 1.58 in off EVERY wall at |along| 18.81–28.28 in — stand there until moved; in VEX U, match loads
+  enter through the Loaders during the AUTONOMOUS period (`<VUG4>`) into the 23.11-in Load Zones, where a robot
+  taking them, or pieces it drops (nested or not), may stand at any time; no single Override piece is taller than
+  6.5 in (a nested stack is); no other field element stands against a wall below its top.
+  *Source:* `localization/override_walls.hpp` (the Loader, Load Zone and start-piece spans);
+  `localization/wall_reset.hpp` (`WallResetLimits::pieceTop`); `sim/field_plant.hpp` (the plant's own copy).
+  *Confidence:* **reasoned** — A9/A10/A12 (manual v2.0; v2.1, 2026-10-08, exists and was not readable on
+  2026-10-29: whether it moved these is UNVERIFIED), FO-1, VEXU-1, VURS1.
+  *Settle:* L6 Step 0.6 (a Loader's position and depth, and the start pieces' places, on a real field).
+  *Blast radius if wrong:* a Loader or a piece outside its kept-out span can be read as the wall — the host plant:
+  a Loader read as the wall with the keep-outs off seated 3.7 in wrong, inside a 4-in bound.
+
 **R5a Part A added FIVE — HA-170 to HA-174.** The team lead ruled on 2026-09-26 that the drive's gains
 are measured by the robot and kept on the SD card, never typed or committed as constants; R5a builds
 that in four parts, and Part A is the measurements as library: the fit (`calibration/feedforward_fit.hpp`),
@@ -3787,7 +3977,14 @@ settleable before hardware, and none block any host chunk.
   number is the wrong description of it — see HA-173 and the structure ratio the REST step reports.
   *Blast radius if wrong:* `SettledUtil` deadbands and E4's measurement covariance were sized
   against fiction — loops may chatter at settle (σ larger) or tolerances are needlessly loose
-  (σ smaller). Constants only.
+  (σ smaller). Constants only. *Added L6-A1 (2026-10-29):* the Localizer's wall-reset counters
+  count in steps sized against this σ (1° of heading, 0.5 in of odometry path — HA-211). On the host
+  test plant (a still minute, twenty seeds) the travel counter stays at 0 up to six times this σ, and
+  the turn counter stays at 0 with noise alone up to THREE times it (with HA-20's drift added, ~1° up
+  to twice it — the drift itself — and up to ~3° at three times). Past that it falls off a cliff: at
+  four times up to ~4° a still minute (~31° with the drift), at five times up to ~100°, at six times
+  20–245° (HA-211 has the numbers). An over-count only widens the reset's heading tolerance — it
+  refuses more resets, never seats a wrong one.
 
 - [ ] **HA-22 — IMU yaw-rate white noise σ ≈ 0.5°/s.**
   *Source:* `imu_hostility.hpp:75`. *Confidence:* **invented**.
@@ -4766,7 +4963,11 @@ E2's tuning constants make the corrector work better or worse; these three make 
   a 600 rpm 4″ drive tops out near 125 in/s and ~3 rev/s is past any real chassis — so a delta
   beyond envelope × margin × dt means the estimate is lying, never that the robot is fast.
   The ×1.5 margin absorbs legitimate non-physical estimate motion (never-snap-clamped fusion
-  nudges, discretization) and is a logic constant, not part of this claim.
+  nudges, discretization) and is a logic constant, not part of this claim. One caller-made
+  exception (L6-A1, 2026-10-29): a wall reset's one-axis seat over 2.25 in, seen by a Tier-3
+  loop that ticks the scheduler itself, raises one advisory IMPLAUSIBLE while the estimate is
+  right — a deliberate jump, not a lie (the guard sees only dt; every verb's dt-0 first tick
+  forgives it).
   *Source:* `include/shulib/diag/plausibility_guard.hpp` `PlausibilityConfig` (PROVISIONAL
   (A4: HA-56)); consumed by the scheduler's per-tick check (`MotionSchedulerConfig.plausibility`).
   *Confidence:* reasoned — derived from motor/wheel physics with deliberate headroom; the

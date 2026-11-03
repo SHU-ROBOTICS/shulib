@@ -436,7 +436,14 @@ not silently break them. This table is the spine of the no-staleness promise.
 > missing or wrong camera leaves it ABSENT and the robot still drives. One read is one frame with its status, and a
 > camera model turns a box into a bearing, a range and a field position, each an interval over the stated tolerances.
 > Nothing reads the camera yet and no AI Vision sensor has run this code: **next for the camera is VIS1-A2** (what
-> it sees — the Toggle's colour, a named piece), after the route maker and the wall page in the sprint's order.
+> it sees — the Toggle's colour, a named piece) — moved ahead of the panel by the team lead's ruling of 2026-11-03.
+>
+> **Now (2026-11-03): L6-A1, the wall reset's library core, has LANDED — host-only.** A robot parked square beside a field
+> wall can re-seat ONE coordinate of its estimate from a side distance sensor's reading — never the heading, never in
+> the background, and only inside gates that REFUSE rather than guess (the beam square to the wall and off the
+> season's keep-outs, the robot still, every sample clean, the answer within the author's own `maxCorrection`). This
+> part is the library core with the explicit call over hand-wired handles; no program and no robot sensor uses it yet.
+> **Next for the wall reset: L6-A2** (the robot's side sensors and the everyday call from an auton), then L6-B (robot two).
 >
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
@@ -1732,6 +1739,17 @@ all three and does not exist.*
   itself never exceeds it.
 - [ ] **Calibration routines + persistence** (wheel scale/offset, GPS lever-arm, camera mount, IMU
   bias) — saved to SD/config.
+- [~] **The wall reset (L6): one axis re-seated against a field wall from a side distance sensor** — a robot
+  parked square along a wall re-seats x (left/right walls) or y (red/blue walls) from the side sensor facing it,
+  inside gates that REFUSE rather than guess (the beam square, off the season's keep-outs, under the
+  beam-height ceiling, a still robot, every sample clean, a precise answer agreeing with the estimate within the
+  author's `maxCorrection`) — never the heading, never in the background. **L6-A1 LANDED 2026-11-03 (built 2026-10-29):** the library
+  core — `Localizer::seatAxis` (one axis; the drift term, the quality and the odometry untouched) and its two
+  counters, the pure gates (`localization/wall_reset.hpp`), the season's walls (`localization/override_walls.hpp`),
+  the EXPLICIT call (`chassis::resetFromWall`), the host test plant's field and side sensors. **Host- and
+  build-gated, NOT run on a robot.** Owed: L6-A2 (the robot file's side sensors and the everyday call
+  `competition::resetFromWall(ctx, …)`), L6-B (robot two's sensors, the WALL bench page, the tester's wall line), and
+  the measuring at the robot (the L6 brief's Step 0) — `[~]` until a robot has seated a real wall.
 
 **Alignment (WS7)**
 - [ ] `alignment/DockToGoal` — visual-servo (AprilTag/poly-cutout), current/distance/pose confirm,

@@ -240,9 +240,11 @@
 - **size range** — how far away an upright thing of known height is, from how tall its box is in the
   picture and where in the picture it sits — an interval. A Pin's box takes in its top face too, so its
   size range reads a little nearer than its near rim. [Ch. 10]
-- **snap (and never-snap)** — jumping the estimate straight to whatever a sensor claims. shulib
-  never does it, in position or in heading: corrections are applied as small bounded steps, so a
-  single bad reading cannot teleport or spin the robot's idea of itself. [Ch. 3]
+- **snap (and never-snap)** — jumping the estimate straight to whatever a sensor claims. shulib's
+  correctors never do it, in position or in heading: corrections are applied as small bounded steps, so a
+  single bad reading cannot teleport or spin the robot's idea of itself. The one exception is a step
+  YOU call — the wall reset seats ONE position coordinate from a side sensor's reading, only with no
+  motion running and only within the limit you give it; nothing ever snaps the heading. [Ch. 3, Ch. 10]
 - **soft stop** — a mechanism's travel limits enforced while it runs: a computed target past one is
   clamped to it (and said), and a button pushing toward one is taken over where it could no longer
   stop before it, brought to it and held AT it by the closed-loop hold — never pushed harder than the

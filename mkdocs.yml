@@ -155,6 +155,7 @@ nav:
           - Chassis: api/chassis.md
           - Robot context: api/robot_context.md
           - Routine: api/routine.md
+          - Wall reset call: api/wall_reset_call.md
       - Motion:
           - Command pipeline: api/command_pipeline.md
           - Drive brake: api/drive_brake.md
@@ -186,6 +187,7 @@ nav:
       - Localization:
           - AprilTag corrector: api/apriltag_corrector.md
           - Arc step: api/arc_step.md
+          - Axis: api/axis.md
           - Complementary fusion: api/complementary_fusion.md
           - Correction: api/correction.md
           - Drive encoder odometry: api/drive_encoder_odometry.md
@@ -196,9 +198,11 @@ nav:
           - IPoseSource: api/i_pose_source.md
           - Localizer: api/localizer.md
           - Odometry: api/odometry.md
+          - Override walls: api/override_walls.md
           - Pilons odometry: api/pilons_odometry.md
           - Tag map: api/tag_map.md
           - Tracking wheel: api/tracking_wheel.md
+          - Wall reset: api/wall_reset.md
       - Manipulation:
           - Mechanism op: api/mechanism_op.md
           - Mechanism outcome: api/mechanism_outcome.md

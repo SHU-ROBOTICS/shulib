@@ -13,8 +13,9 @@ that's a genuine skill: the transcript is designed so that "what went wrong at t
 answerable from a text file, at the field, without a debugger. Everything below is the *exact*
 format the code produces today — every example is copied from output that the test suite pins
 byte-for-byte (`test/term_sink_test.cpp`, `test/run_summary_test.cpp`,
-`test/motion_result_test.cpp`, `test/session_header_test.cpp` and, for the `ODO_STUCK` line,
-`test/odom_tick_audit_test.cpp` hold the golden strings). If the
+`test/motion_result_test.cpp`, `test/session_header_test.cpp`, for the `ODO_STUCK` line
+`test/odom_tick_audit_test.cpp` and, for the wall reset's `WALL` lines,
+`test/wall_reset_line_test.cpp` hold the golden strings). If the
 format ever changes, those tests change with it — trust them over this page and tell the guide
 maintainer.
 
@@ -235,6 +236,8 @@ worth recognizing on sight:
   of the next fault line, and in the run's fault count) without a line of its own — the per-tick
   `dt` is on every record. A tick back under the budget ends the stretch; the next slow one is
   said again.
+- **A wall reset** (tag `WALL`, Info when it seated, Warn when it refused) — one line per call;
+  [its own section below](#the-wall-reset-wall) reads it word by word.
 - **Fault-policy aborts** (Warn, from the scheduler):
   `[SCH] fault abort: ODO_STUCK — cancelling MoveToPose` — pairs with a `✗FAULT_ABORT` result
   line moments later.
@@ -380,6 +383,73 @@ worth recognizing on sight:
   guard cancelled it: the step's own `MECH` line reads `CANCELLED` with no bracket. Expected when an
   auton runs long; the guard's report carries the run's total in `RunGuardReport::mechanismCuts`.
 
+## The wall reset (WALL)
+
+A wall reset ([Chapter 10](10-the-api.md#the-wall-reset--one-axis-against-a-field-wall)) writes
+**exactly one line per call**, tag `WALL` — `Info` (no level tag) when it SEATED, `Warn` when it
+REFUSED — and nothing else: no line per sample, and no scheduler "timed out" line (its window ends
+itself). Each line below is pinned byte for byte (after its `[t=…]` prefix) by
+`test/wall_reset_line_test.cpp`, which computes each from the library's own checks on the season's
+left wall — and fails if this page quotes anything else; nothing here has run on a robot:
+
+```text
+[t=  14.20] [WALL] left wall x SEATED (LEFT sensor): -53.30 -> -55.71 (moved -2.41, limit 3.00) | median 6.99 in spread 0.25 n 16 | bound 0.87 | faults ok
+[t=  14.20] [WARN][WALL] left wall x REFUSED disagrees (LEFT sensor): wall says -55.72, estimate -52.20, limit 3.00 | median 6.98 in spread 0.25 n 16
+[t=  14.20] [WARN][WALL] left wall x REFUSED keep-out (LEFT sensor): Load Zone at along -46.0 (widened 5.3 = beam 2.3 + margin 3.0 + drift 0.0) | clean -41.8..-33.6
+[t=  14.20] [WARN][WALL] left wall x REFUSED not square (LEFT sensor): beam 7.0 deg off square (limit 5.0)
+[t=  14.20] [WARN][WALL] left wall x REFUSED beam low (LEFT sensor): expected 11.00 in past the ceiling 10.77 in (lens 10.50 in up, cone 18.0 deg)
+[t=  14.20] [WARN][WALL] left wall x REFUSED bad request (LEFT sensor): maxCorrection UNSET: say how far this wall may move x
+```
+
+Word by word: the request's `name`, when it set one, then a colon; the wall's name (`left wall`); the
+axis it measures (`x` or `y`); the verdict's word (`SEATED`, or `REFUSED` and the first check that
+failed); which side's sensor was read — `(LEFT sensor)`, a sensor, not a direction; then that
+verdict's numbers. On a SEATED line: the coordinate before -> after, how far it moved and the limit
+(`maxCorrection`), the window's median reading, spread and sample count, the answer's worst-case
+error (`bound`), and `faults ok` — or `faults n/a` when the sensor has no read-fault count to check (a
+hand-wired handle without one: accepted, but never called "ok"). The same tail ends the per-sample
+refusals (`no return`, `low confidence`, `out of range`): `faults ok` there means the refusing sample
+was read cleanly — the port was fine, the reading itself was the problem. A `read fault` line ends
+`faults moved` instead: that sample's read-fault count moved, so its numbers may be the sensor's last
+good value held over, not a reading. A keep-out line names the stretch
+the beam would land on, the beam centre's coordinate ALONG the wall, how far either side of it had to
+be clear (the beam's spread, the margin, and the drift allowance — 10 % of the travel since that
+along-wall coordinate was last set), and the nearest clean stretch for the beam's centre — park so
+the beam centre lands inside it. The same line comes from the everyday form (once it is in the
+library), which adds three words of its own: `no sensor`, `not a field start` and `cut`.
+
+**Every verdict, its word, what the line also prints, and what to do:**
+
+| Verdict | Word | The line also prints | What to do |
+|---|---|---|---|
+| Seated | `SEATED` | before -> after, moved, the limit, median, spread, n, the bound, faults | nothing; now and then compare the next leg's end with the tape |
+| NoSensor | `REFUSED no sensor` | — | the everyday form only: this robot file declares no wall sensors. On the host test plant's tester rig it is expected — that rig has none |
+| SensorAbsent | `REFUSED sensor absent` | why the sensor is absent (the handle's `absence`, or the provider's reason) | check the cable and the port |
+| MountUnset | `REFUSED mount unset` | — | measure the mount (tape: forward, left, height, facing) and type it with `measured = true` |
+| NotLive | `REFUSED not live` | — | the estimate never went live (the IMU still calibrating?) — read the boot lines; a program error |
+| MotionActive | `REFUSED motion active` | — | a motion is still armed (a Tier-3 `async()`): let it finish or cancel it first |
+| BadRequest | `REFUSED bad request` | the field, e.g. `maxCorrection UNSET: say how far this wall may move x`, or `limits.window must be at most 0.6 s …` | fix that field in the auton (or the robot's limits) |
+| NotFieldStart | `REFUSED not a field start` | — | the everyday form only: the auton starts RELATIVE — declare a FIELD start (`StartPose::field(…)`); the season's walls are field coordinates |
+| NotSquare | `REFUSED not square` | the beam's angle off the wall's normal | 5°–20°: `turnTo` square before the reset. Near 90° or 180°: this beam faces away from that wall — the wrong side named (LEFT/RIGHT), the wrong wall, or the nose not along the wall |
+| KeepOut | `REFUSED keep-out` | the stretch's name (Toggle, Toggle bracket, Loader, Load Zone, start pieces, corner), the beam's along-wall coordinate, the widening, the nearest clean stretch | park so the beam lands in the wall's clean stretch; after a long drive it narrows — reset earlier in the leg, or the other axis first |
+| BeamLow | `REFUSED beam low` | the expected range or the median, the ceiling, the lens height and the beam's spread | park nearer the wall, under the ceiling; a ceiling near zero means the sensor is mounted too low or its beam spread is unmeasured |
+| Moving | `REFUSED moving` | the speed (the estimate's displacement over the last `window`, per second) and the turn rate seen | brake and let the leg settle first (`r.brake()`, a short `pause`) |
+| ReadFault | `REFUSED read fault` | the sample number, then `faults moved` | the port faulted mid-window — check the cable |
+| NoReturn | `REFUSED no return` | the sample, its confidence and distance | nothing within ~78 in — or a CLEAR wall panel: see what the beam faces |
+| LowConfidence | `REFUSED low confidence` | the sample, its confidence and distance | a dark, shiny or slanted surface, or the GPS code strip — measure the sensor against it |
+| OutOfRange | `REFUSED out of range` | the reading and the window | park so the reading is ~6–8 in; never flush (mount the lens at least 2.5 in inboard) |
+| TooFewSamples | `REFUSED too few samples` | n and the window | a pacing problem in the program (the loop not ticking every 10 ms) — report it; or limits that ask for more samples (`minSamples`) than `windowMax` holds at one a tick — fix the limits |
+| Spread | `REFUSED spread` | max − min | the beam is on an edge, a seam or something moving — move along the wall |
+| Imprecise | `REFUSED imprecise` | the bound, its limit and the heading tolerance | the sensor is far from the fore-aft centre, the robot has turned a lot since its heading was set, or the mount and the sensor's accuracy are unmeasured — measure them and type them |
+| Disagrees | `REFUSED disagrees` | the wall's answer, the estimate, the limit | EITHER the robot drifted more than `maxCorrection` OR something other than the wall is in the beam (a robot, a stack): look first; raise the limit only from taped legs |
+| Cut | `REFUSED cut` | — | the everyday form only: the run's deadline or a disable landed in the window; nothing changed |
+
+**Choosing `maxCorrection`.** Run the auton up to the reset WITHOUT it, several times, and tape the
+error on that axis at the reset point; the largest seen plus ~1 in is the drift this wall may
+correct. Never set it near the gap to the nearest thing a wrong reading could mistake for the wall
+— a tight limit is the one defence the reading checks cannot give
+([Chapter 14](14-what-it-cannot-do-yet.md#the-wall-reset-what-it-cannot-catch)).
+
 ## Every fault code
 
 The complete vocabulary. [Chapter 6](06-how-things-fail.md) tells the story behind most of
@@ -399,7 +469,7 @@ but not narrated there. The authoritative list is always
 | `BROWNOUT` | battery at/below the danger threshold | tired battery + heavy motor load | no | swap the battery; re-read the rest of the log knowing the motors were weak |
 | `MOTION_TIMEOUT` | a motion's watchdog fired | blocked, jammed, unreachable, or under-budgeted ([Ch. 12](12-when-things-go-wrong.md) has the differential) | n/a (already ended) | informational — the result line's `✗TIMEOUT` is the same event |
 | `MOTOR_OVER_TEMP` | a drive motor crossed the thermal throttle step (55 °C) | sustained load; too much current for too long | no | the motor is now weaker than the control model thinks; rest it. In a match: expect sluggishness |
-| `IMPLAUSIBLE` | the estimate or a command violated a physical sanity bound (e.g. pose jumped impossibly fast) | usually a symptom of another problem; occasionally a library bug being caught in the act | no | advisory — look at what *else* happened that tick; report persistent ones |
+| `IMPLAUSIBLE` | the estimate or a command violated a physical sanity bound (e.g. pose jumped impossibly fast) | usually a symptom of another problem; occasionally a library bug being caught in the act. One known benign cause: a wall reset that SEATED a jump over ~2.25 in, followed by a Tier-3 loop that ticks the scheduler itself — one advisory line, the estimate correct ([the wall reset](#the-wall-reset-wall)) | no | advisory — look at what *else* happened that tick (a `WALL ... SEATED` line just before it?); report persistent ones |
 | `MOTOR_GROUP_DISAGREE` | one motor of a drive side disagreed with its mates for 250 ms: running opposite to the side's command, or under a quarter of its fastest mate's speed, while the side was driven above 1 V and turning above 1 rad/s | a wrong sign for that port, a fight on the gear train, a slipping gear, a stalled or frozen encoder | no | the drive continues in a motion. In DRIVER CONTROL the same verdict also CUTS the drive for 1 s (the library's drive protections, [Chapter 12](12-when-things-go-wrong.md)): read the `TEL` cut line for the port |
 | `MECHANISM_STALLED` | a mechanism's stall detector tripped: stall-grade current with the shaft not turning — an operation's, or a stall signature the robot file states (`.stall`), watched by the mechanism service through a step and through what goes on after it — a driver's hold-to-run, a position mechanism's hold and a button's push, a homing push by switch, a flywheel's spin; once per stall, beside the step's `MECH` line (`STALLED -- stalled`) | a jam on a game piece, an over-travelled lift against its stop, a seized gearbox | no (the *operation* or the *step* ends with a stalled verdict and the mechanism is put in its safe state; a driver's hold-to-run ends too and its command number moves — the held button then does nothing more until it is let go; the drive keeps going) | the mechanism stopped itself before it cooked a motor — clear the jam. A stall on every attempt is a mechanical problem, not a tuning one. (A step that ASKED to end on a stall — `stalls`, a squeeze — SUCCEEDS instead and raises nothing) |
 

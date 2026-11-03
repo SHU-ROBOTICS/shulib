@@ -1805,6 +1805,11 @@ written with them (D12 honesty reaching the data layer intact).
 > brief). It takes the alliance colour out of AF1's 2026-10-08 scope (above).
 
 ### L6 — the wall reset with the side distance sensors ⟵ BRIEF ANSWERED 2026-10-22
+> **Status 2026-11-03: L6-A1 LANDED** (built 2026-10-29, reviewed, fixed and verified 2026-10-30; the library core — `Localizer::seatAxis` and
+> its two counters, `localization/{axis,wall_reset,override_walls}.hpp`, `chassis/wall_reset_call.hpp` (the EXPLICIT
+> call), `sim/field_plant.hpp`, cookbook 05's re-seed recipe fixed (D11); 64 new host cases (2,690 in all, green), 36 mutations RED;
+> [live log](chunks/L6-PROGRESS.md)) — host- and build-gated, NOT run on a robot. No version bump (§1.8). Next for L6: L6-A2 (VIS1-A1 merged 2026-11-03),
+> then L6-B — the auton library ahead of the panel (the team lead's "Autons first", 2026-11-03).
 > **Status 2026-10-29 (sprint): KEEPS BUILDING beside the panel** (the team lead's "Sprint, keep the wall
 > reset"): L6-A1 takes the next free slot; L6-A2 when VIS1-A1 merges; L6-B before or after MECH-A5 by its D1.
 > **Status 2026-10-22: BRIEF ANSWERED — "Accept all"** ([brief](chunks/L6-wall-reset.md), D1–D13 as recommended,

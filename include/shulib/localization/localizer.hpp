@@ -45,6 +45,12 @@
 // pose — sets the bias so the published heading equals that value on this tick; the IMU stays the
 // only source of every change after it. Never-snap is a rule about what a SENSOR may do to a live
 // estimate, and it still holds: nothing that reads a sensor can reach reseatHeading().
+// THE ONE POSITION EXCEPTION (chunk L6-A1, 2026-10-29 — locked decision #4 as AMENDED by the team
+// lead, 2026-10-22): seatAxis() below lets a CALLER — the wall reset (localization/wall_reset.hpp,
+// chassis/wall_reset_call.hpp) — write ONE position axis from a side distance sensor's reading, while
+// no motion is active and only inside gates whose largest jump is the author's maxCorrection. It is a
+// caller act like setPose(), never a corrector's, and no sensor can reach the HEADING through it or
+// anywhere else (the wall reset never calls reseatHeading()).
 // (Decision-consistency check, logged in the COMP-a progress record. The sentence this paragraph
 // replaced — "there is no code path, here or anywhere below, that ASSIGNS a heading" — had three
 // echoes, each re-read: apriltag_corrector.hpp's "no code path HERE writes a pose or a heading"
@@ -122,6 +128,7 @@
 #include "shulib/core/check.hpp"
 #include "shulib/hal/clock.hpp"
 #include "shulib/hal/imu.hpp"
+#include "shulib/localization/axis.hpp"
 #include "shulib/localization/correction.hpp"
 #include "shulib/localization/i_corrector.hpp"
 #include "shulib/localization/i_fusion_policy.hpp"
@@ -167,7 +174,8 @@ struct LocalizerConfig {
 /// deterministic five-step tick over an injected clock, IMU, IOdometry (PilonsOdometry or
 /// DriveEncoderOdometry — the R3b Part 2 seam) and a non-owning list
 /// of correctors. Position is a PERSISTENT accumulator advanced by odometry DELTAS and nudged —
-/// never snapped — toward corrector proposals; heading is composed from the IMU as the LAST write
+/// never snapped — toward corrector proposals (only a CALLER seeds it: setPose(), or seatAxis()
+/// for one axis — the wall reset); heading is composed from the IMU as the LAST write
 /// of every tick, so nothing below can ASSIGN a heading, only move a bounded, persistent bias.
 /// It owns no loop and raises no faults: the caller calls update() once per control tick, and
 /// pose()/twist()/quality() then describe THAT tick until the next one.
@@ -202,6 +210,30 @@ public:
     /// At most this many correctors (GPS + AI-Vision tag + Pi tag + LIDAR today) — the valid-proposal
     /// buffer is fixed-capacity so the hot path never heap-allocates.
     static constexpr std::size_t kMaxCorrectors = 4;
+
+    /// The turn counter's step (turnedSinceHeadingSeed(), the wall reset's): 1 degree, in radians.
+    /// The raw heading must move this far from the counter's anchor reading before the move is
+    /// counted. Twenty times the register's HA-21 heading-noise sigma (0.05 degrees) — fourteen
+    /// sigma of the difference of two noisy readings — so a still IMU at HA-21's noise never trips
+    /// it. Past that the margin is a CLIFF, not a slope. On the host test plant (a still minute,
+    /// twenty seeds) it counts 0 with noise alone up to three times HA-21's sigma. With HA-20's drift
+    /// added it counts ~1 degree up to twice (the drift itself, counted as it should be) and up to
+    /// ~3 at three times. At four times a still minute counts up to ~4 degrees with noise alone and
+    /// up to ~31 with the drift (a reading whose mean sits mid-step crosses it back and forth); at
+    /// five times up to ~100; at six times 20-245. An over-count only widens the wall reset's
+    /// heading tolerance, so it refuses more, never seats wrongly; the register's HA-211 has the
+    /// numbers and the still-robot capture that settles them. Small enough that a turn's uncounted
+    /// remainder costs the heading tolerance at most 0.02 degrees a turn. PROVISIONAL (A4: HA-211).
+    static constexpr double kTurnCounterStepRadians = 1.0 * math::Angle::kPi / 180.0;
+
+    /// The travel counters' step (travelSinceSeat(), the wall reset's): 0.5 in. The odometry's
+    /// path must move this far from the counters' anchor point before the move is counted. A
+    /// still robot's odometry jitter — the register's HA-21 heading noise on a tracking wheel 4.5 in
+    /// off the turning centre moves it ~0.006 in a tick, back and forth — stays far inside it: on
+    /// the host test plant a still minute counts 0 up to six times HA-21's noise (twenty seeds);
+    /// and a leg's uncounted remainder costs the wall reset's keep-out widening at most 0.05 in
+    /// (10 % of a step). PROVISIONAL (A4: HA-211).
+    static constexpr double kTravelCounterStepInches = 0.5;
 
     /// `correctors` is a NON-OWNING view: the backing array (and the correctors it points to) must
     /// outlive the Localizer. Empty at M2 (dead-reckon). All references are validated non-null.
@@ -280,6 +312,25 @@ public:
             ody = ry;
         }
         const math::Angle rawHeading = imu_.heading();
+        // L6-A1 — the wall reset's turn counter (turnedSinceHeadingSeed()): the RAW IMU heading's
+        // |wrapped| excursion from an ANCHOR, added (and the anchor moved to this reading) only once
+        // it reaches kTurnCounterStepRadians — so a still IMU's heading noise does not add up (at
+        // the noise the register believes; the step's doc says where that stops), and a real turn
+        // counts in full but for at most one step at its end (the accessor's doc says why a
+        // per-tick sum cannot be used). Counted only while the fold is open on this tick AND
+        // was on the last one; otherwise the anchor just follows the reading — so boot garbage, and
+        // the first tick after a seed taken while booting, never enter it. Bookkeeping only:
+        // nothing in this tick's estimate reads it.
+        if (foldDeltas && headingTracked_) {
+            const double excursion = std::abs(turnAnchor_.errorTo(rawHeading));
+            if (excursion >= kTurnCounterStepRadians) {
+                turnedSinceHeadingSeed_ += excursion;
+                turnAnchor_ = rawHeading;
+            }
+        } else {
+            turnAnchor_ = rawHeading;
+        }
+        headingTracked_ = foldDeltas;
         const math::Angle heading = biasedHeading(rawHeading);
         const math::Pose2d predicted{units::Length{fusedX_ + odx}, units::Length{fusedY_ + ody}, heading};
 
@@ -375,12 +426,30 @@ public:
         // drift accumulator: an applied fix CLEARS it in proportion to the fix's confidence (a strong
         // fix zeroes drift uncertainty; a weak one barely dents it — so quality() can't spring to 1.0
         // on a microscopic-confidence fix). Otherwise it grows by the odom-driven travel.
+        const double stepTravel = std::hypot(odx, ody);
         if (fr.applied) {
             const double retain = 1.0 - std::clamp(fr.appliedConfidence, 0.0, 1.0);
             distanceSinceCorrection_ = units::Length{distanceSinceCorrection_.value() * retain};
         } else {
             distanceSinceCorrection_ =
-                units::Length{distanceSinceCorrection_.value() + std::hypot(odx, ody)};
+                units::Length{distanceSinceCorrection_.value() + stepTravel};
+        }
+        // L6-A1 — the wall reset's per-axis travel counters (travelSinceSeat()): the odometry's own
+        // path (the same per-tick deltas the drift term adds, summed into a point), counted in
+        // STEPS — the path point's distance from an ANCHOR, added to both counters (and the anchor
+        // moved) once it reaches kTravelCounterStepInches — so a still robot's jitter never adds
+        // up (the accessor's doc says why). On every tick, whether or not a fix was applied: a
+        // corrector's fix zeroes neither on purpose (conservative: a partial GPS fix does not make
+        // the wall reset trust the axis it did not measure — and no corrector is fitted on our
+        // robots).
+        pathX_ += odx;
+        pathY_ += ody;
+        const double pathMoved = std::hypot(pathX_ - travelAnchorX_, pathY_ - travelAnchorY_);
+        if (pathMoved >= kTravelCounterStepInches) {
+            travelSinceSeatX_ += pathMoved;
+            travelSinceSeatY_ += pathMoved;
+            travelAnchorX_ = pathX_;
+            travelAnchorY_ = pathY_;
         }
 
         deadReckoning_ = !fr.applied;
@@ -476,6 +545,46 @@ public:
     /// confidence), so a weak fix barely dents it; setPose() clears it outright, and travel made
     /// while the boot fold is closed never enters it.
     [[nodiscard]] units::Length distanceSinceCorrection() const noexcept { return distanceSinceCorrection_; }
+    /// Inches of odometry path length since `axis` was last SET — seeded by setPose() (both axes)
+    /// or seated by seatAxis() (that axis only) — added at L6-A1 for the wall reset. Per axis and
+    /// never touched by a corrector's fix (conservative). Why it exists: the wall reset tests its
+    /// keep-outs at the estimate's coordinate ALONG the wall — the one axis that reset does not
+    /// measure — so it widens them by how far that axis may have drifted (10 % of this, by default;
+    /// A4 register HA-211). The single drift term cannot serve: it is one number for both axes, and
+    /// a one-axis seat deliberately leaves it alone. Counted in STEPS of kTravelCounterStepInches
+    /// (0.5 in) along the odometry's own path: the path's straight-line distance from an anchor
+    /// point is added, and the anchor moved, each time it reaches a step — so a leg counts in full
+    /// but for at most one step at its end (and the step a seatAxis() lands inside may count
+    /// toward that axis: over, never under). WHY STEPS, NOT EVERY TICK'S |delta| (the L6-A1
+    /// review): on tracking wheels off the turning centre, a still IMU's heading noise (the
+    /// register's HA-21) moves the odometry a few thousandths of an inch each tick, back and forth
+    /// about a fixed point — a per-tick sum adds that up to ~25-50 in of "travel" a minute while
+    /// nothing moves, and the keep-outs widened until a still robot's reset was refused KEEP-OUT.
+    /// (distanceSinceCorrection() still sums every tick, as it always has.) Bookkeeping only: no
+    /// estimate reads it.
+    [[nodiscard]] units::Length travelSinceSeat(Axis axis) const noexcept {
+        return units::Length{axis == Axis::X ? travelSinceSeatX_ : travelSinceSeatY_};
+    }
+    /// Radians the robot has TURNED since the heading was last seeded — by setPose() or
+    /// reseatHeading() — added at L6-A1. Counted from the raw IMU heading in STEPS: its |wrapped|
+    /// excursion from an anchor reading is added, and the anchor moved, each time the excursion
+    /// reaches kTurnCounterStepRadians (1 degree) — so a left-right wiggle adds up (each leg
+    /// counts) and a 350-degree spin reads 350 degrees, never 10, while a robot standing still
+    /// reads ~0 however long it stands — at the register's believed noise (HA-21; the step's own
+    /// doc, kTurnCounterStepRadians, says how fast that stops holding as the noise grows past three
+    /// times it). A turn counts in full but for at most one step at its end
+    /// (and up to two at each reversal of direction) — under-counting by at most ~1 degree a turn;
+    /// and a wobble that never strays a full step from the anchor is not counted at all (the step
+    /// IS the noise floor: under it, a wobble cannot be told from a still IMU's jitter). WHY STEPS,
+    /// NOT A SUM OF EVERY TICK'S CHANGE (the L6-A1 review): a still IMU's heading jitters — the
+    /// register's HA-21 believes white noise of about 0.05 degrees — and a per-tick sum adds that
+    /// jitter up at ~5.6 degrees a SECOND while nothing turns, so a robot that stood still for 45 s
+    /// had "turned" ~250 degrees and its wall reset was refused imprecise. The wall reset grows its heading tolerance with this counter: the register's HA-84 believes
+    /// heading error grows about 1 % of the rotation (A4 register HA-211 doubles it). Only ticks
+    /// with the boot fold open count. Bookkeeping only: no estimate reads it.
+    [[nodiscard]] units::AngleDim turnedSinceHeadingSeed() const noexcept {
+        return units::AngleDim{turnedSinceHeadingSeed_};
+    }
     /// The last tick's applied correction AND the gate's account of why (`audit`, added
     /// at E1) — the values a record producer stamps into the §18.2 gating slots.
     [[nodiscard]] const AppliedCorrection& lastCorrection() const noexcept { return lastCorrection_; }
@@ -516,11 +625,16 @@ public:
     /// moments a routine cares most. `p.heading()` is still ignored, as it always was — the
     /// heading's own seed is reseatHeading(), below; a caller seeding both calls the two on the
     /// same tick (competition::runAuton does).
+    ///
+    /// L6-A1: a seed of BOTH axes and of the heading's reference, so it also zeroes the wall
+    /// reset's counters — travelSinceSeat() for x and y, and turnedSinceHeadingSeed() (the IMU is
+    /// read ONCE here, as before; that one reading is also the turn counter's new reference).
     void setPose(const math::Pose2d& p) {
         odom_.setPose(p);
         fusedX_ = p.x().value();
         fusedY_ = p.y().value();
-        pose_ = math::Pose2d{p.x(), p.y(), biasedHeading(imu_.heading())};
+        const math::Angle raw = imu_.heading();
+        pose_ = math::Pose2d{p.x(), p.y(), biasedHeading(raw)};
         lastFusedX_ = fusedX_;
         lastFusedY_ = fusedY_;
         lastOdomX_ = odom_.pose().x().value();  // re-baseline the odom delta so the jump isn't counted
@@ -528,6 +642,11 @@ public:
         twist_ = math::Twist2d{};
         distanceSinceCorrection_ = units::Length{0.0};
         hasLast_ = false;  // next tick re-establishes dt (no phantom velocity from the jump)
+        travelSinceSeatX_ = 0.0;
+        travelSinceSeatY_ = 0.0;
+        travelAnchorX_ = pathX_;  // "since the seed": the step in progress is dropped
+        travelAnchorY_ = pathY_;
+        restartTurnCounter(raw);
     }
 
     /// Seed the HEADING: make the published heading equal `heading` on this tick, by setting the
@@ -551,7 +670,8 @@ public:
     /// wrong the moment calibration ends; and, by contract since this class cannot see it, NO
     /// MOTION is active — a motion mid-flight would see its heading error jump under it
     /// (competition::runAuton checks that before it calls this). Call it on the same tick as a
-    /// setPose() that seeds the position, with no update() between them.
+    /// setPose() that seeds the position, with no update() between them. L6-A1: it also restarts
+    /// the wall reset's turn counter (turnedSinceHeadingSeed()), and leaves the travel counters.
     void reseatHeading(math::Angle heading) {
         SHULIB_PRECONDITION(qualityClass_ != Quality::Uninitialized,
                             "Localizer::reseatHeading: the estimate is not live yet (the IMU is "
@@ -561,9 +681,77 @@ public:
         pose_ = math::Pose2d{units::Length{fusedX_}, units::Length{fusedY_}, biasedHeading(raw)};
         twist_ = math::Twist2d{};
         hasLast_ = false;  // exactly setPose()'s re-baseline (doc above: the EKF's dt-0 resync)
+        restartTurnCounter(raw);
+    }
+
+    /// SEAT ONE POSITION AXIS (chunk L6-A1, the wall reset): make the estimate's `axis` coordinate
+    /// equal `value` on this tick, and change NOTHING else — not the other axis, not the heading,
+    /// not the heading bias, not the drift term (distanceSinceCorrection), not the quality, not the
+    /// last correction, and not the odometry. A caller act like setPose(), never a correction —
+    /// the one exception locked decision #4 (never snap) carries, as amended by the team lead on
+    /// 2026-10-22: a caller-invoked ONE-AXIS wall reset, while no motion is active, inside gates
+    /// whose largest jump is the author's maxCorrection (chassis::resetFromWall checks every one
+    /// before it calls this). No sensor seats the heading — here or anywhere.
+    ///
+    /// WHY NOT setPose() WITH THE OTHER AXIS COPIED: setPose() clears the drift term, so from the
+    /// second tick after it the quality reads DeadReckon (1.000) where a one-axis measurement
+    /// should leave it Degraded (0.200) — one measured axis passing as two (probed while the wall
+    /// reset was designed). One axis measured is not a fix, so the drift term, and with it the
+    /// quality, stay.
+    ///
+    /// WHAT IT DOES: the axis jumps (`fusedX_` or `fusedY_`), the fused-pose history is re-taken
+    /// (as setPose() does), the published pose is recomposed with the CURRENT published heading
+    /// (the IMU is not read), the twist is cleared, that axis's travelSinceSeat() restarts — and
+    /// the next tick's dt is made 0. That last is LOAD-BEARING, not tidiness: EkfFusion keeps its
+    /// own position state and recovers each tick's odometry increment as (handed prediction −
+    /// its last answer), so without the dt-0 re-base it reads the seat as one tick's TRAVEL — on
+    /// the host tests, 1.68 in of a 2-in seat bounced back and the filter's velocity read 167.6
+    /// in/s. The dt-0 tick resyncs it onto the seated prediction instead.
+    ///
+    /// WHY THE ODOMETRY IS NOT TOUCHED (setPose() forwards to IOdometry::setPose): nothing reads an
+    /// odometry's absolute pose but this class, and it reads only per-tick DELTAS (STEP 2), so the
+    /// seated axis simply advances from its new value; IOdometry::setPose would also re-take the
+    /// odometry's heading reference (its prevHeading), a side effect a one-axis seat has no reason
+    /// to cause. setPose()'s "the predictor and the fused belief never diverge" is not an invariant
+    /// this class keeps elsewhere either: an applied correction already lets them diverge, by
+    /// design (STEP 2's note).
+    ///
+    /// Preconditions: the estimate is LIVE (qualityClass() != Uninitialized — reseatHeading()'s
+    /// rule) and `value` is finite; and, by contract since this class cannot see the scheduler,
+    /// NO MOTION is active — a motion mid-flight would see its position error jump under it (the
+    /// master plan's risk 5, "corrector pose-jump mid-motion"); the wall reset refuses
+    /// MotionActive before it samples.
+    void seatAxis(Axis axis, units::Length value) {
+        SHULIB_PRECONDITION(qualityClass_ != Quality::Uninitialized,
+                            "Localizer::seatAxis: the estimate is not live yet (the IMU is still "
+                            "booting) -- wait for qualityClass() != Uninitialized first");
+        SHULIB_PRECONDITION(std::isfinite(value.value()),
+                            "Localizer::seatAxis: the seated value must be finite");
+        if (axis == Axis::X) {
+            fusedX_ = value.value();
+            travelSinceSeatX_ = 0.0;
+        } else {
+            fusedY_ = value.value();
+            travelSinceSeatY_ = 0.0;
+        }
+        lastFusedX_ = fusedX_;
+        lastFusedY_ = fusedY_;
+        pose_ = math::Pose2d{units::Length{fusedX_}, units::Length{fusedY_}, pose_.heading()};
+        twist_ = math::Twist2d{};
+        hasLast_ = false;  // LOAD-BEARING under EkfFusion (the doc above): the next tick is a re-base
     }
 
 private:
+    /// A heading seed (setPose / reseatHeading) restarts the wall reset's turn counter, taking the
+    /// seed's own raw IMU reading as the counter's anchor — counted from the next tick only if the
+    /// fold was open on the last one (a seed taken while booting starts counting at the first live
+    /// tick, never across the boot boundary).
+    void restartTurnCounter(math::Angle raw) noexcept {
+        turnedSinceHeadingSeed_ = 0.0;
+        turnAnchor_ = raw;
+        headingTracked_ = settled_;
+    }
+
     /// The published heading: the raw IMU reading plus the bias — learned by correctors, and/or
     /// seeded by reseatHeading() (E3, COMP-a; header note). The zero-bias early-out makes a tree
     /// with no heading-providing corrector and no seed bit-identical to pre-E3 by construction
@@ -645,6 +833,18 @@ private:
     // bit-identity early-outs key on.
     double headingBias_ = 0.0;
     double appliedHeadingNudge_ = 0.0;  // this tick's net bias change, for AppliedCorrection::dtheta
+
+    // L6-A1 — the wall reset's bookkeeping (travelSinceSeat(), turnedSinceHeadingSeed()). Read by
+    // nothing in this class's estimate; written only by update()'s counters and the three seeds.
+    double travelSinceSeatX_ = 0.0;        // path length since x was last seeded / seated
+    double travelSinceSeatY_ = 0.0;        // path length since y was last seeded / seated
+    double pathX_ = 0.0;                   // the odometry's own path: the sum of the folded deltas
+    double pathY_ = 0.0;
+    double travelAnchorX_ = 0.0;           // the path point the travel counters measure from
+    double travelAnchorY_ = 0.0;
+    double turnedSinceHeadingSeed_ = 0.0;  // the counted turning since the heading seed (radians)
+    math::Angle turnAnchor_{};             // the raw IMU heading the counter measures excursions from
+    bool headingTracked_ = false;          // the last tick ran with the fold open (anchor is live)
 };
 
 }  // namespace shulib::localization

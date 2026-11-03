@@ -5,8 +5,8 @@
 // converts mm→inches and normalizes the raw confidence (0–63 → 0–1) exactly once.
 //
 // Callers threshold confidence() for "object present" — never trust distance() when
-// confidence() is ~0 (out of range / no return). Used for manipulation sensor-confirm
-// and the docking distance-fallback (master plan §M3/§M4).
+// confidence() is ~0 (out of range / no return). Used for manipulation sensor-confirm,
+// the docking distance-fallback (master plan §M3/§M4) and the wall reset (L6).
 
 #include "shulib/units/quantity.hpp"
 
@@ -16,7 +16,7 @@ namespace shulib::hal {
 /// distance(), a [0, 1] confidence out of confidence(). Read confidence() FIRST — "nothing
 /// in range" arrives there as ~0 while distance() stays finite and reports a plausible-
 /// looking far wall, so a caller that trusts distance() alone acts on empty air. Consumers
-/// are the manipulation sensor-confirm and the docking distance-fallback.
+/// are the manipulation sensor-confirm, the docking distance-fallback and the wall reset (L6).
 class IDistance {
 public:
     /// Public defaulted special members on a polymorphic base: the virtual destructor makes

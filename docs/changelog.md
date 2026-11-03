@@ -16,6 +16,89 @@
 
 ## API 2.5
 
+### Added and fixed since 2.5 (2026-11-03; built 2026-10-29–30) — the wall reset's library core: one axis of the estimate re-seated against a field wall from a side distance sensor; cookbook 05's re-seed recipe keeps y
+
+> Written when it was built (chunk L6-A1, the first of the wall reset's three parts — the robot file's
+> side sensors and the everyday call an auton writes are Part A2, robot two's sensors Part B). **No
+> version bump — every change is ADDITIVE and nothing in it is a frozen surface:** new headers, and a
+> new member and two new read-only accessors on `localization::Localizer`, which is outside every
+> freeze (`Localizer::reseatHeading`, 2.4's COMP-a, is the precedent). **Every 2.5 program compiles and
+> runs exactly as before:** the Localizer's estimate, quality and drift term are bit-for-bit
+> unchanged by the two new counters (the whole suite is the evidence, and a 1500-tick trace of pose,
+> twist, quality, drift term and heading bias over one drive — through the boot fold, a `setPose` and
+> a `reseatHeading` — is identical to 2.5's under both fusion tiers). **Host only — nothing here has
+> run on a robot,** and no distance-sensor reading of the team's robot exists yet;
+> [Chapter 10](guide/10-the-api.md#the-wall-reset--one-axis-against-a-field-wall) teaches it and
+> [Chapter 14](guide/14-what-it-cannot-do-yet.md#the-wall-reset-what-it-cannot-catch) says what it
+> cannot catch.
+
+**ADDED:**
+
+- **`chassis::resetFromWall(chassis, sensor, request, limits)`** (`chassis/wall_reset_call.hpp`) — the
+  EXPLICIT call over sensor handles a hand-wired robot (or a host test) builds: with the robot parked
+  beside a field wall, nose along it, it samples that side's distance sensor for a short window (≥ 5
+  samples over ≥ 0.15 s, at most 0.5 s), and either SEATS that one coordinate of the estimate (x against
+  the left/right walls, y against the red/blue walls) or REFUSES, saying which check failed — the setup
+  (sensor, measured mount, a live estimate, **no motion armed**, a usable request), the beam square to the
+  wall, the beam off the season's keep-outs, the beam-height ceiling, stillness (the estimate's
+  displacement over the last `window`, ≤ 1 in/s, and its turn rate, ≤ 3°/s), every sample (no read
+  fault between its two device reads, a real return, enough confidence, inside 2–16 in), the window's
+  count, time, spread and median, the answer's worst-case error, and its agreement with the estimate
+  within the author's `maxCorrection` (which has NO default: 0 is refused by name). ONE log line either
+  way (tag `WALL`, [Chapter 11](guide/11-reading-the-diagnostics.md#the-wall-reset-wall) reads it); commands nothing to the
+  drive; a refusal leaves the estimate exactly as it was. Returns a `WallResetReport` — `continues()` is
+  what a `then()` returns (a refusal fails the step only when the request says `required`).
+- **`localization/wall_reset.hpp`** — the pure core both forms run: `WallSide`, `WallFrame`,
+  `KeepOutKind`, `WallKeepOut`, `FieldWall` (and `FieldWall::line(...)` for an author's own line),
+  `SideMount` (the MEASURED mount: `measured = false` refuses every reset; optional measured
+  `rangeBias`, `rangeAccuracy`, `coneHalfAngle`, `toggleChecked`), `WallResetLimits` (the PROVISIONAL gate
+  defaults — HA-211), `WallResetRequest`, `WallSample`, the APPEND-ONLY `WallResetVerdict` and
+  `wallResetVerdictWord`, `WallResetReport`, `WallSensor`, `WallSensors`, `WallResetLog`, the geometry
+  (`axisFromReading`, `axisErrorBound` — the worst case over the tolerance box's corners, accuracy max(15
+  mm, 5 %) or a measured one, never a step at 200 mm — `headingTolerance`, `beamCeiling`), the gates
+  (`preCheck`, `sampleVerdict`, `evaluateWallReset` — which refuses an unusable request itself, naming
+  the field), `WallSampler` and the line's text (`appendWallResetLine`). A `window` over 0.6 s
+  (`kMaxWallWindowSeconds` — more than the 64-sample buffer spans) is refused by name; a non-finite
+  tolerance makes the error bound infinite (refused), never 0; and a non-finite pose or turn rate ends
+  the sampler's window at that tick as MOVING.
+- **`localization/override_walls.hpp`** — the 2026-27 season's four walls in
+  `localization::override2026` (`kLeftWall`, `kRightWall`, `kRedWall`, `kBlueWall`, inner faces at ±70.205
+  in, FIELD coordinates), each with the stretches a beam must not land on: the Toggle body (lifted only by a
+  measured `toggleChecked`), its brackets, the Loaders (red and blue walls), the corners, the VEX U Load
+  Zones (always), and the start pieces (until the beam's spread is measured). Manual v2.0's numbers (v2.1,
+  2026-10-08, exists and could not be read: whether it moved any is unverified — HA-207).
+- **`localization/axis.hpp`** — `localization::Axis` (X, Y), `axisLetter`, `alongAxis`: a leaf both the
+  Localizer and the wall reset include.
+- **`Localizer::seatAxis(axis, value)`** — moves ONE axis of the estimate and nothing else: not the other
+  axis, the heading, the heading bias, the drift term, the quality, nor the odometry (unlike `setPose`,
+  which would let one measured axis pass as a fix of both). The next tick re-bases (dt 0), which the EKF
+  tier needs. Preconditions: a live estimate, a finite value, and — by contract — no motion active. And
+  two read-only counters the wall reset's gates use: **`Localizer::travelSinceSeat(axis)`** (path length
+  since that axis was last set) and **`Localizer::turnedSinceHeadingSeed()`** (rotation since the heading
+  was last seeded) — both counted in STEPS (`kTravelCounterStepInches`, 0.5 in of the odometry's path;
+  `kTurnCounterStepRadians`, 1° of the IMU's heading), so a robot standing still reads ~0 however long
+  it stands (summed tick by tick, a still IMU's heading jitter read hundreds of degrees of "turning" a
+  minute and refused a skills run's late resets) — at the IMU jitter the register believes (HA-21): on
+  the host test plant that holds up to three times the jitter and falls off steeply past it (HA-211). **Locked decision #4** (never snap) carries the exception the team lead accepted on
+  2026-10-22: a caller-invoked ONE-axis wall reset, with no motion active, bounded by the author's
+  `maxCorrection`; no sensor ever seats the heading.
+- **The host test plant's field and side sensors** (`sim/field_plant.hpp`, for test authors — see
+  `test/README.md`): `sim::FieldModel` (boxes with heights, opaque or clear, the floor; the season's field
+  from its own copy of the drawing numbers) and `sim::SideSensorPlant` (a cone of rays from a TRUE mount,
+  nearest hit or a blend, the code strip, noise, update hold, latency, drop-outs, a frozen mode, read
+  faults).
+
+**FIXED:**
+
+- **Cookbook 05's re-seed recipe overwrote the OTHER axis** ("Re-seed the estimate mid-routine"): it wrote
+  `0_in` for y after a wall at x = 36 in, which measures x only — right only for a robot that happened to
+  stand on y = 0, which its compiled test's robot did. It now keeps y (`c.chassis.pose().y()`), says that
+  `startAt` clears the drift term for both axes, and points at the wall reset for a sensor-measured axis;
+  its test drives along y = 12 in.
+
+**What you must do:** nothing. To use the reset on a hand-wired robot, measure each side sensor's mount
+and pass it with the sensor; on the team's robots, wait for the robot file's side sensors (Part A2).
+
 ### Added since 2.5 (2026-10-30; built 2026-10-18–22, reviewed and fixed 2026-10-22–30) — the AI Vision camera as a device: a frame at a time, its colours and AI model written and checked, and pixels turned into bearings and ranges that carry their error
 
 > Written when it was built (chunk VIS1, part A1 of three: the camera as a device; its Toggle colour

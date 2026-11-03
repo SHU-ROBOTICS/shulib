@@ -2,8 +2,9 @@
 
 > **Covers:** the public operations on `Chassis` you write routines with — what each does, when
 > to use it, what it does when things go wrong, and the gotchas — and, since the mechanism core's
-> first part, how a robot's mechanisms are declared and wired, and since the camera's first part, how the AI Vision
-> camera is declared and read (the last two sections before the gotchas). It is deliberately selective
+> first part, how a robot's mechanisms are declared and wired, since the camera's first part, how the AI Vision
+> camera is declared and read, and since the wall reset's library core (L6-A1), how one coordinate is re-seated
+> against a field wall from a side distance sensor (the last sections before the gotchas). It is deliberately selective
 > rather than exhaustive: construction and the advanced accessors are covered where they matter
 > and skipped where they do not. The [generated API reference](../api/README.md) is the
 > exhaustive one, and it cannot disagree with the code. Plus typed units, per-call options, and the escape
@@ -24,14 +25,16 @@
 > independent consumer ([Chapter 9](09-the-recipe-api.md)'s recipe layer) had used the
 > surface in anger. The [recipe layer](09-the-recipe-api.md) froze the same way one chunk later
 > (row F10, after the cookbook became *its* second consumer), so both tiers are now stable.
-> Two parts of this chapter are outside this banner, and each says so: the driver loop (under
-> `drive()`) and the mechanisms (the auton steps among them).
+> Three parts of this chapter are outside this banner, and each says so: the driver loop (under
+> `drive()`), the wall reset and the mechanisms (the auton steps among them).
 
 The code examples in this chapter are compiled and run in
 [`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp), cases `guide-10a` through
-`guide-10e`, and the mechanism section's in
+`guide-10e`, the mechanism section's in
 [`test/mechanism_guide_example_test.cpp`](../../test/mechanism_guide_example_test.cpp), cases
-`guide-10f` through `guide-10h`. The authoritative fine print for everything here is the header itself —
+`guide-10f` through `guide-10h`, and the wall reset's in
+[`test/wall_reset_example_test.cpp`](../../test/wall_reset_example_test.cpp), case `guide-10w`.
+The authoritative fine print for everything here is the header itself —
 [`include/shulib/chassis/chassis.hpp`](../../include/shulib/chassis/chassis.hpp) opens with a
 long design commentary that is meant to be read, not skipped.
 
@@ -401,6 +404,141 @@ in. Two things to know even if you never use it: it's the *same* one-motion-at-a
 verbs use (an async motion and a verb pre-empt each other — that's a feature), and motions built
 from raw materials rather than `chassis.deps()` lose their id stamp in the diagnostics (records
 show `cmd#0`). Until you need it, you don't need it.
+
+## The wall reset — one axis against a field wall
+
+> **The banner at the top of this chapter does not cover this section.** The wall reset is in no
+> row of the [Freeze Register](../roadmap.md#freeze-register): `chassis::resetFromWall`, the request,
+> mount, limits and report types, the season's walls, and the Localizer's `seatAxis` and two counters
+> are not frozen and not signature-pinned, and they grow additively as the rest of the wall reset
+> lands (the everyday form and the robot file's side sensors).
+
+*Host- and build-gated, NOT run on a robot.* When the robot has **parked beside a field wall, nose
+along it and square to it**, the side distance sensor facing that wall measures how far the wall is;
+from where that sensor sits on the robot, that is **the robot's distance from the wall — ONE
+coordinate**: x against the left and right walls, y against the red and blue walls. The wall reset
+replaces that one coordinate of the estimate and nothing else — not the other coordinate, not the
+heading. It is a step you call, at a moment you chose; there is no background mode.
+
+Two forms. The **explicit** call, `chassis::resetFromWall(chassis, sensor, request, limits)`
+(`shulib/chassis/wall_reset_call.hpp`), takes the sensor handles you build — the form for a
+hand-wired Tier-3 robot and for the host tests. The everyday form an auton writes,
+`competition::resetFromWall(ctx, request)`, which finds the robot file's side sensors through the
+auton's context and refuses any start that is not a FIELD start, is **not in the library yet** (it
+lands with the robot file's side sensors). The explicit call (`guide-10w`):
+
+```cpp
+// A hand-wired robot's left side sensor, as the wall reset reads it: the
+// sensor, its read-fault count, and the mount a student MEASURED.
+localization::SideMount mount{};
+mount.measured = true;
+mount.left = 7.5_in;     // out from the robot's centre
+mount.height = 10.5_in;  // the lens above the floor
+mount.facing = units::AngleDim{90.0 * localization::kWallDegToRad};  // straight out the left
+mount.provenance = "tape, 2026-10-29";
+const localization::WallSensor left{&sensor, &faults, mount, "not declared"};
+
+// Re-seat x against the left wall: the beam square to it, on a clean
+// stretch of it, and x may move by at most 3 inches.
+const localization::WallResetReport report = chassis::resetFromWall(
+    c.chassis, left,
+    {.wall = localization::override2026::kLeftWall,
+     .sensor = localization::WallSide::Left,
+     .maxCorrection = 3_in},
+    localization::WallResetLimits{});
+CHECK(report.seated());
+```
+
+**The request** (`localization::WallResetRequest`): the `wall` — one of the season's four,
+`localization::override2026::kLeftWall` / `kRightWall` / `kRedWall` / `kBlueWall`
+(`shulib/localization/override_walls.hpp`: inner faces at ±70.205 in, each carrying the stretches a
+beam must not land on — the Toggle, its brackets, the Loaders, the corners, the VEX U Load Zones and,
+until the beam's spread is measured, the start pieces), which are FIELD coordinates and mean nothing
+under a relative start; or `FieldWall::line(name, axis, coord, inward, keepOuts)`, your own line in your
+own frame with your own keep-outs (none by default — then nothing tells a Loader from the wall). The
+`sensor` side. **`maxCorrection` — how far this wall may move the coordinate — has no default:** 0 is
+UNSET and refused by name (`maxCorrection UNSET: say how far this wall may move x`); choose it as the
+largest drift you have taped at this point plus ~1 in ([Chapter 11](11-reading-the-diagnostics.md#the-wall-reset-wall)).
+`required` (false by default): a refusal leaves the estimate exactly as it was and the auton goes on —
+unless the request says `required = true`, when `continues()` is false and a `then()` returning it
+stops the chain `ActionFailed`. `name`, when set, leads the log line.
+
+**The mount** (`localization::SideMount`) is MEASURED, never guessed: `forward`, `left` (from the
+robot's centre — the turning centre on a tank), `height` (the lens above the floor), `facing` (CCW
+from forward: `90.0 * kWallDegToRad` is straight out the left side — written that way because the
+`_deg` literal is not `constexpr`), each with a tolerance, and a `provenance` string. `measured =
+false` — the default — makes every reset with that sensor refuse `MOUNT UNSET`. Four optional
+measured fields stay 0 / false until their measurement exists: `rangeBias`, `rangeAccuracy`,
+`coneHalfAngle` (a measured beam spread also lifts the start-piece keep-outs) and `toggleChecked`
+(lifts the Toggle BODY's keep-out for that sensor — never its brackets). The sensor's place matters:
+mounted at the robot's fore-aft centre, a heading error barely moves the answer; 5 in forward of it —
+with the default ±0.25-in mount tolerance and VEX's published accuracy (no measured `rangeAccuracy`)
+— the precision check refuses from the first reset (a mount measured to ±0.1 in and a measured
+accuracy of ±0.3 in would bring it back under the limit).
+
+**The limits** (`localization::WallResetLimits`) are the sensor-physics and geometry gates — library
+defaults that are PROVISIONAL (the [hardware-assumptions register](../hardware-assumptions.md),
+HA-211): a reading inside 2–16 in, the beam within 5° of square, at least 5 samples over at least
+0.15 s (at most 0.5 s; `window` may not exceed 0.6 s — the 64-sample buffer could not span it)
+spreading no more than 0.5 in, confidence at least 0.5, the robot still (≤ 1 in/s — measured as the
+estimate's displacement over the last `window`, so a still robot's IMU jitter, which shakes the
+estimate a few thousandths of an inch a tick, is not read as motion — and ≤ 3°/s on every tick), the
+answer's worst-case error at most 1.0 in, and the beam-height ceiling: the reading short enough that
+the beam's lower edge stays above a standing game piece (6.5 in) — about 10.8 in of reading for a
+lens 10.5 in up, 3 in for one 8 in up.
+
+**The report** (`localization::WallResetReport`) is a value, never an exception: the `verdict`, the
+coordinate `before`, the wall's answer (`measured`), what was `applied` (0 unless SEATED), the window's
+`median`, `spread` and `samples`, the `errorBound`, and every number its log line prints. `seated()` is
+true when the coordinate moved; `continues()` is what a `then()` should return —
+`r.then([&] { return chassis::resetFromWall(…).continues(); }, "left wall x")`. The verdict's word is
+`localization::wallResetVerdictWord(v)`: `SEATED`, or `REFUSED` and the first check that failed —
+`sensor absent`, `mount unset`, `not live`, `motion active`, `bad request`, `not square`, `keep-out`,
+`beam low`, `moving`, `read fault`, `no return`, `low confidence`, `out of range`, `too few samples`,
+`spread`, `imprecise`, `disagrees` (and, for the everyday form, `no sensor`, `not a field start`,
+`cut`). [Chapter 11](11-reading-the-diagnostics.md#the-wall-reset-wall) says what each means and
+what to do about it.
+
+**What one call does.** It refuses, reading nothing and taking no time, when the sensor is absent,
+the mount unmeasured, the estimate not live, **a motion still armed** (a Tier-3 `async()` — the
+estimate is never moved under a running motion), the request unusable, the beam not square, the beam
+on a keep-out, or the expected reading past the beam-height ceiling. Otherwise it samples inside
+`chassis.waitUntil` — the Localizer and every health check keep ticking; the window ends itself, so
+no "timed out" line — then judges the samples and, when every check passes, SEATS. ONE log line
+either way (subsystem `WALL`). It **commands nothing to the drive**: stop first (`brake()`, a short
+pause) — a robot still coasting is refused `MOVING`. Blocking, at most `windowMax` (0.5 s) plus a
+tick — and that window is a wait the run guard cannot cut, so a deadline landing in it is acted on
+up to 0.5 s late (the everyday form will sample through the guard's own wait instead).
+
+**`Localizer::seatAxis(axis, value)`** is what SEATED calls — and why it is not `setPose`. It moves
+that one axis and leaves everything else exactly as it was: the other axis, the heading, the heading
+bias, the drift term (`distanceSinceCorrection()`), the quality, and the odometry. `setPose` with the
+other axis copied would clear the drift term, and from the second tick after it the estimate would
+read DeadReckon (quality 1.0) where one measured axis should leave it Degraded — a one-axis
+measurement passing as a two-axis one. The next tick after a seat is a re-base (its dt is 0), which
+an EKF-tier estimator needs so that it does not read the seat as one tick of travel. Preconditions:
+the estimate is live, the value finite, and — by contract, since the Localizer cannot see the
+scheduler — no motion active. Its two read-only counters feed the gates: `travelSinceSeat(axis)`
+(the path length since that axis was last set — the keep-outs widen by 10 % of it along the wall,
+because along the wall is the one direction the reset does not measure) and
+`turnedSinceHeadingSeed()` (the rotation since the heading was set — the precision check's heading
+tolerance grows by 2 % of it). Both count in STEPS — 0.5 in of the odometry's path, 1° of the IMU's
+heading — so a robot standing still reads ~0 however long it stands: summed tick by tick, a still
+IMU's heading jitter would add up to hundreds of degrees of "turning" a minute, and a long skills run
+would be refused. A real leg or turn counts in full but for its last step. "~0" holds at the jitter
+the library believes a still IMU has (the register's HA-21); an IMU more than about three times that
+noisy starts counting it, which only refuses more resets (HA-211 has the numbers).
+
+**A seat is a deliberate jump.** The scheduler's pose guard raises an advisory `IMPLAUSIBLE` when one
+tick's pose change is bigger than 150 in/s × 1.5 × the tick (2.25 in at 10 ms), and it forgives a
+jump only on a tick whose dt is 0 — which every verb and wait gives on its first tick. So a seat
+followed by a Routine step raises nothing; **a Tier-3 loop that ticks the scheduler itself
+(`scheduler().tick()`) sees one advisory `IMPLAUSIBLE` after a seat over ~2.25 in.** It is advice,
+not an abort; the report says what was applied.
+
+No sensor ever seats the heading — here or anywhere. And no reading check can tell a tall object at
+a plausible distance from the wall: [Chapter 14](14-what-it-cannot-do-yet.md#the-wall-reset-what-it-cannot-catch)
+says what the reset cannot catch.
 
 ## Mechanisms — declared once, wired separately
 

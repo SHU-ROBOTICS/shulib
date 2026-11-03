@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 5,269 of them across 193 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 5,479 of them across 197 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -32,6 +32,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Chassis](chassis.md) | [`chassis/chassis.hpp`](../../include/shulib/chassis/chassis.hpp) | Chassis — the public facade every auton is written against. |
 | [Robot context](robot_context.md) | [`chassis/robot_context.hpp`](../../include/shulib/chassis/robot_context.hpp) | RobotContext — the composition root / DI container: "the one object that differs across robot / sim / test". |
 | [Routine](routine.md) | [`chassis/routine.hpp`](../../include/shulib/chassis/routine.hpp) | Routine — the Tier-2 recipe layer. |
+| [Wall reset call](wall_reset_call.md) | [`chassis/wall_reset_call.hpp`](../../include/shulib/chassis/wall_reset_call.hpp) | chassis::resetFromWall — the wall reset's EXPLICIT call (chunk L6-A1, 2026-10-29): re-seat ONE axis of the estimate against a field wall from a side distance sensor, over sensor handles the caller passes. |
 
 ### Motion
 
@@ -79,6 +80,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 |---|---|---|
 | [AprilTag corrector](apriltag_corrector.md) | [`localization/apriltag_corrector.hpp`](../../include/shulib/localization/apriltag_corrector.hpp) | AprilTagCorrector — the SECOND real corrector, and the FIRST source in the tree that can tell the estimator which way it is actually pointing. |
 | [Arc step](arc_step.md) | [`localization/arc_step.hpp`](../../include/shulib/localization/arc_step.hpp) | arc_step.hpp — the one constant-curvature integration step. |
+| [Axis](axis.md) | [`localization/axis.hpp`](../../include/shulib/localization/axis.hpp) | Axis — the FIELD axis a wall measures. |
 | [Complementary fusion](complementary_fusion.md) | [`localization/complementary_fusion.hpp`](../../include/shulib/localization/complementary_fusion.hpp) | ComplementaryFusion — the M2 fusion policy. |
 | [Correction](correction.md) | [`localization/correction.hpp`](../../include/shulib/localization/correction.hpp) | correction.hpp — the value types the localization fusion seam exchanges. |
 | [Drive encoder odometry](drive_encoder_odometry.md) | [`localization/drive_encoder_odometry.hpp`](../../include/shulib/localization/drive_encoder_odometry.hpp) | DriveEncoderOdometry — dead reckoning from the DRIVE motors' own encoders and the IMU, for a tank drive with no tracking wheels. |
@@ -89,9 +91,11 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [IPoseSource](i_pose_source.md) | [`localization/i_pose_source.hpp`](../../include/shulib/localization/i_pose_source.hpp) | IPoseSource — the READ seam every pose consumer (motion, alignment, telemetry, skills) depends on. |
 | [Localizer](localizer.md) | [`localization/localizer.hpp`](../../include/shulib/localization/localizer.hpp) | Localizer — the fused field-frame estimate. |
 | [Odometry](odometry.md) | [`localization/odometry.hpp`](../../include/shulib/localization/odometry.hpp) | IOdometry — the dead-reckoning seam the Localizer predicts from. |
+| [Override walls](override_walls.md) | [`localization/override_walls.hpp`](../../include/shulib/localization/override_walls.hpp) | The 2026-27 season's field walls for the wall reset — VEX V5RC "Override". |
 | [Pilons odometry](pilons_odometry.md) | [`localization/pilons_odometry.hpp`](../../include/shulib/localization/pilons_odometry.hpp) | PilonsOdometry — tracking-wheel dead-reckoning. |
 | [Tag map](tag_map.md) | [`localization/tag_map.hpp`](../../include/shulib/localization/tag_map.hpp) | TagMap — where the AprilTags are on the field, and where each of those numbers CAME FROM. |
 | [Tracking wheel](tracking_wheel.md) | [`localization/tracking_wheel.hpp`](../../include/shulib/localization/tracking_wheel.hpp) | TrackingWheel — one unpowered odometry wheel: an `IRotation` sensor + the wheel's diameter + its mounting offset from the tracking center. |
+| [Wall reset](wall_reset.md) | [`localization/wall_reset.hpp`](../../include/shulib/localization/wall_reset.hpp) | The WALL RESET's pure core (chunk L6-A1, 2026-10-29; the L6 brief, the team lead's answers of 2026-10-22): the geometry that turns one side distance sensor's reading into ONE field coordinate, the gates that REFUSE rather than guess, the verdict, and the on… |
 
 ### Manipulation
 
@@ -340,7 +344,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 5,269 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 5,479 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

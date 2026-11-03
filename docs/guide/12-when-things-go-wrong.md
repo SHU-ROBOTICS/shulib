@@ -147,7 +147,9 @@ This is [Chapter 5](05-getting-there.md)'s control-tuning material made audible:
   (`flt=NAN_POSE`, `IMPLAUSIBLE`, or an `ODO_STUCK` whose line reads `why=TRAVEL` or `why=ROT`:
   the odometry flags such a tick but still counts it, so the jump is in the estimate). The
   never-snap rule means visible teleports should not happen; a real jump with no flags is a
-  bug — capture the transcript and report it.
+  bug — capture the transcript and report it. (A wall reset's seat IS a deliberate jump of one
+  coordinate — its `WALL` line says `SEATED` and by how much; a loop that ticks the scheduler itself
+  may see one advisory `IMPLAUSIBLE` right after a seat over ~2.25 in, and that one is benign.)
 - **The pose froze:** `NAN_POSE`'s designed behavior is freezing position rather than
   corrupting it. An `ODO_STUCK` reading `wheels spin but odometry reports no motion` is a frozen
   sensor caught in the act, and one reading `why=NONFINITE` held position for that one tick.

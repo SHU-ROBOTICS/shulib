@@ -98,21 +98,31 @@ itself against a wall, driven into a fixed structure, or passed a sensor you tru
 odometry.
 
 ```cpp
-// Pretend the robot has just squared itself against the wall at x = 36 in:
-// the measurement is better than the estimate, so overwrite the estimate.
+// Pretend the robot has just squared itself against a wall at x = 36 in:
+// a wall measures ONE axis, so overwrite x and keep y and the heading.
 // (The step is called startAt even here — see the chapter's note.)
-r.startAt(Pose2d{36_in, 0_in, c.chassis.pose().heading()});
+r.startAt(Pose2d{36_in, c.chassis.pose().y(), c.chassis.pose().heading()});
 ```
 
 **Why it is written this way.**
 
 - **Seeding changes belief, not position.** The robot does not move; the estimator's idea of
   where it is does. The compiled test asserts exactly that: the estimate jumps to 36 inches and
-  the simulator's ground truth does not move at all.
+  the host test plant's ground truth does not move at all.
+- **Keep what the wall did not measure.** A wall at x = 36 in says how far the robot is along x
+  and nothing about y — so the recipe passes the current y (`c.chassis.pose().y()`). An earlier
+  version of this recipe wrote `0_in` there, which is right only for a robot that happens to stand
+  on y = 0 (its test passed because its robot did); the compiled test now drives along y = 12 in,
+  so a recipe that overwrote y would turn it red.
 - **Keep the current heading.** Position is what a wall measurement gives you. Heading belongs to
   the IMU, which does not drift the way odometry position does
   ([Chapter 3](../guide/03-knowing-where-you-are.md)) — passing `chassis.pose().heading()` says
   "correct where I am, not which way I face".
+- **`startAt` is a full seed.** It also clears the estimate's drift term for BOTH axes, so the
+  estimate then trusts its y as if y had been measured too. That is right after a placement you
+  trust in both axes; after a wall, it overclaims. For an axis a side distance sensor measured,
+  use the wall reset instead ([Chapter 10](../guide/10-the-api.md#the-wall-reset--one-axis-against-a-field-wall)):
+  it moves that ONE axis and leaves the drift term alone.
 - **It is a step**, so it participates in the chain: if the routine has already stopped, the
   re-seed is skipped like anything else, rather than quietly rewriting the estimate of a routine
   that is no longer running.
