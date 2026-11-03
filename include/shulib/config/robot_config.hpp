@@ -48,6 +48,7 @@
 #include <cstdio>
 
 #include "shulib/chassis/chassis.hpp"
+#include "shulib/config/camera_config.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/hal/motor.hpp"
 #include "shulib/units/quantity.hpp"
@@ -322,13 +323,23 @@ struct GpsConfig {
 
 /// Every sensor this robot has that is not part of the drivetrain or the odometry.
 ///
-/// TAGS AND VISION ARE DELIBERATELY ABSENT IN PART 1, and that is a statement about the tree
-/// rather than about the schema: no camera adapter exists (R2 owns it), so a field here would
-/// describe hardware the library cannot open. `robot::Robot` installs `hal::AbsentTagSource` and
-/// `hal::AbsentVision` unconditionally, exactly as src/main.cpp's hand-wired graphs did.
+/// THE AI VISION CAMERA IS DECLARED HERE since VIS1-A1 (2026-10-18): `camera` (its block's type is
+/// config/camera_config.hpp's), port 0 = no camera — the default, so every config written before it
+/// stays valid and builds the same robot. `robot::Robot` builds it through the device provider and a
+/// refused camera never refuses the robot (`Robot::camera()` / `cameraAbsence()`).
+///
+/// TAGS ARE STILL DELIBERATELY ABSENT, and that is a statement about the tree rather than about the
+/// schema: no AprilTag adapter exists (R2b's tag part, after G3), so a field here would describe a
+/// reading the library cannot make. `robot::Robot` installs `hal::AbsentTagSource` and — because the
+/// frozen `hal::IVision` seam has no consumer and the camera is read a FRAME at a time through
+/// `hal::IVisionFrames` instead — `hal::AbsentVision` unconditionally, as before.
 struct SensorsConfig {
     /// The GPS, present or absent.
     GpsConfig gps{};
+    /// The AI Vision camera (VIS1-A1, APPENDED): port 0 = none. A DEFAULT MEMBER INITIALIZER, so a
+    /// designated initializer that names only `.gps` stays complete (GCC's -Wmissing-field-initializers
+    /// refuses one that omits a member without one).
+    CameraConfig camera{};
 };
 
 /// A motor mechanism's DECLARED safe brake mode, as config data — what `robot::Robot` hands to
@@ -532,6 +543,7 @@ enum class PortUse : std::uint8_t {
     Gps,           ///< the GPS
     Mechanism,     ///< a mechanism motor
     MechanismSensor,  ///< a mechanism's rotation, distance or optical sensor (MECH-A1, appended)
+    Camera,           ///< the AI Vision camera (VIS1-A1, appended)
 };
 
 /// A port claim as words, for the collision message — "port 7 is claimed by the LEFT drive and by
@@ -548,6 +560,7 @@ enum class PortUse : std::uint8_t {
         case PortUse::Gps: return "the GPS";
         case PortUse::Mechanism: return "a mechanism motor";
         case PortUse::MechanismSensor: return "a mechanism sensor";
+        case PortUse::Camera: return "the AI Vision camera";
     }
     return "something unnamed";
 }
@@ -606,6 +619,12 @@ struct RobotConfig {
     /// limit-switch line outside 1..8, or on a line a pneumatic or another switch already claims. The
     /// second pass refuses a half-stated per-line level set (some lines stated, or a level past the
     /// mechanism's lines, or per-line levels on a mechanism with none).
+    /// SINCE VIS1-A1 (2026-10-18) the first pass also checks the AI VISION CAMERA when its port is not 0:
+    /// a port outside 1..21; the port claimed by anything else (so a motor or a sensor typed on the
+    /// camera's port is refused naming both — "port 3 is claimed by the LEFT drive and by the AI Vision
+    /// camera"); its settings' problem (`hal::aiVisionSettingsProblem`, named); a placement that is SET
+    /// (`measured`) but has a problem (`cameraPlacementProblem`, named). An UNSET placement is NOT an
+    /// error: the camera is built and read, and only its geometry consumers refuse.
     ///
     /// WHAT IT DELIBERATELY DOES NOT CHECK, and why the omission is a design decision rather than
     /// a hole: that every kinematic wheel actually HAS a motor. A holonomic port left at 0 is
@@ -978,6 +997,37 @@ struct RobotConfig {
                 lineOwner[line] = static_cast<std::uint8_t>(m + 1);
             }
         }
+        // ── the AI Vision camera (VIS1-A1) — after every older claim, so each keeps its message ──
+        if (sensors.camera.port != 0) {
+            const CameraConfig& cam = sensors.camera;
+            if (cam.port > static_cast<std::uint8_t>(hal::kMaxSmartPorts)) {
+                if (why != nullptr && cap > 0) {
+                    std::snprintf(why, cap, "camera port %d is not a port in 1..21 (0 = no camera)",
+                                  static_cast<int>(cam.port));
+                }
+                return false;
+            }
+            if (!claim(static_cast<int>(cam.port), PortUse::Camera)) {
+                return false;
+            }
+            if (const char* problem = hal::aiVisionSettingsProblem(cam.settings)) {
+                if (why != nullptr && cap > 0) {
+                    std::snprintf(why, cap, "the camera's settings (port %d): %s",
+                                  static_cast<int>(cam.port), problem);
+                }
+                return false;
+            }
+            if (cam.placement.measured) {
+                if (const char* problem = cameraPlacementProblem(cam.placement)) {
+                    if (why != nullptr && cap > 0) {
+                        std::snprintf(why, cap, "the camera's mount (port %d): %s",
+                                      static_cast<int>(cam.port), problem);
+                    }
+                    return false;
+                }
+            }
+        }
+
         // ── the mechanisms, second pass (chunk T3): what a BUILT mechanism needs ─────────
         // AFTER every port above is claimed, on purpose: a config with a collision AND an unset
         // cartridge is refused for the collision, with the message it always had — the port

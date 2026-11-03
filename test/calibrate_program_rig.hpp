@@ -375,6 +375,12 @@ public:
         ++requests;
         return inner_->digitalIn(line);
     }
+    // VIS1-A1 added the camera to the provider (merged after CAL1 Part A2a); Calibrate never asks for one.
+    shulib::hal::IVisionFrames* aiVision(std::uint8_t port,
+                                         const shulib::hal::AiVisionSettings& settings) override {
+        ++requests;
+        return inner_->aiVision(port, settings);
+    }
     const shulib::hal::IReadFaults* readFaults(std::uint8_t port) const noexcept override {
         return inner_->readFaults(port);
     }

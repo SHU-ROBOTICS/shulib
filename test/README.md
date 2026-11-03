@@ -78,6 +78,34 @@ stays green while the code is wrong is theater.
 Trivial checks (`1+1==2`) are only ever *harness self-checks* — proof the runner itself works (and can
 fail) — and are retired once real tests exist.
 
+## The camera's test doubles (since VIS1-A1)
+
+Three pieces stand in for the V5 AI Vision camera on the host. Like every fake and the host test plant they
+are outside the API reference (`tools/api_doc_tool.py` leaves `hal/fake/` and `sim/` out), so they are
+documented here and in their own headers:
+
+- **`hal::fake::FakeVisionFrames`** (`include/shulib/hal/fake/fake_vision_frames.hpp`) — a settable camera:
+  `setNext(frame)` is what every `read()` returns until changed, `setFailing(true)` makes every read a
+  `ReadFault` with NO detections, `setStatus(...)` is what `status()` answers (the Robot's boot line is
+  tested through it in every state). It is its own `hal::IReadFaults`, like the adapter, so its count moves
+  WITH the fault frames it returns; `FakeDeviceProvider::readFaults(port)` answers it only once
+  `aiVision()` has served it. `FakeDeviceProvider::fakeCamera(port)` hands a test the provider's own.
+- **The shim's `pros/ai_vision.h`** (`test/pros_shim/pros/`) — a programmable camera per port, for
+  `hal::pros::ProsAiVision`. Where the vendored PROS header and its `libpros.a` disagree it answers as the
+  BINARY does (a class name read returns 1 for every id and writes nothing for an id the camera does not
+  name; a failed object read is `{127, 127, 0...}`; a failed colour read 127s and +Inf — `colourReadFails`
+  makes the read-back fail while the write still lands; `codeObject()` makes a colour CODE's record). It
+  starts ADVERSARIAL — tags and objects on (what Bench Tests station 12 leaves), a stray colour in slot 1, and
+  VEX's Classroom model (`setOverrideModel(port)` for the right one) — and counts every call the adapter
+  must never make. `pros::shim::resetAll()` resets it. It tests the adapter against our BELIEF about PROS;
+  it cannot test the belief.
+- **`sim::CameraPlant`** (`include/shulib/sim/camera_plant.hpp`), the host camera model — Toggle faces
+  (seated or rolled), Pins and Cups (standing, lying, raised), plates and strips, seen through a TRUE
+  camera a test sets apart from the believed mount, with jitter, drops and a frozen, unplugged or torn
+  camera. It projects with its OWN code and includes nothing from `vision/`: a sign error in the library's
+  geometry cannot cancel out in a test that uses both (`test/sim_camera_plant_test.cpp` holds its own
+  anchors). Its banner lists what it does not model.
+
 ## Vendored dependency
 
 [`vendor/doctest.h`](vendor/doctest.h) — **doctest v2.4.11**, a single-header test framework.

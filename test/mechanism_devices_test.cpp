@@ -63,7 +63,7 @@ namespace {
 constexpr DeviceKind kEveryKind[] = {DeviceKind::None,     DeviceKind::Motor, DeviceKind::Imu,
                                      DeviceKind::Rotation, DeviceKind::Distance, DeviceKind::Optical,
                                      DeviceKind::Vision,   DeviceKind::Gps,   DeviceKind::Radio,
-                                     DeviceKind::Adi,      DeviceKind::Other};
+                                     DeviceKind::Adi,      DeviceKind::Other, DeviceKind::AiVision};
 
 const char* foundWords(DeviceKind k) {
     switch (k) {
@@ -78,6 +78,7 @@ const char* foundWords(DeviceKind k) {
         case DeviceKind::Radio: return "the radio";
         case DeviceKind::Adi: return "an ADI expander";
         case DeviceKind::Other: return "an unrecognised device";
+        case DeviceKind::AiVision: return "an AI Vision sensor";
     }
     return "?";
 }

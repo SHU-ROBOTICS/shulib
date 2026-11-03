@@ -31,9 +31,9 @@ Extracted from [`include/shulib/hal/read_faults.hpp`](../../include/shulib/hal/r
 class IReadFaults
 ```
 
-How many reads a sensor adapter has SCREENED — answered with its last good value because the device failed (unplugged, a wrong port, a PROS_ERR). A consumer that must not act on a held value remembers this count and compares it at its next read: a change means a value it was given in between was held, not measured (header).
+How many reads a sensor adapter has SCREENED because the device failed (unplugged, a wrong port, a PROS_ERR) — a scalar sensor's answered with its last good value, a camera's as a frame that says it failed. A consumer that must not act on a held value remembers this count and compares it at its next read: a change means a value it was given in between was held, not measured — for a camera, a read in between was not evidence (header).
 
-*class, declared at [`include/shulib/hal/read_faults.hpp:40`](../../include/shulib/hal/read_faults.hpp#L40).*
+*class, declared at [`include/shulib/hal/read_faults.hpp:49`](../../include/shulib/hal/read_faults.hpp#L49).*
 
 <a id="ireadfaults-destructor-ireadfaults"></a>
 
@@ -45,7 +45,7 @@ virtual ~IReadFaults() = default
 
 Polymorphic base: the virtual destructor makes `delete` through an `IReadFaults*` well-defined. A consumer holds one by pointer and never owns it (the provider does).
 
-*function, declared at [`include/shulib/hal/read_faults.hpp:44`](../../include/shulib/hal/read_faults.hpp#L44).*
+*function, declared at [`include/shulib/hal/read_faults.hpp:53`](../../include/shulib/hal/read_faults.hpp#L53).*
 
 <a id="ireadfaults-ireadfaults"></a>
 
@@ -57,7 +57,7 @@ IReadFaults() = default
 
 Polymorphic base: the virtual destructor makes `delete` through an `IReadFaults*` well-defined. A consumer holds one by pointer and never owns it (the provider does). Default-constructible: the base has no state.
 
-*function, declared at [`include/shulib/hal/read_faults.hpp:46`](../../include/shulib/hal/read_faults.hpp#L46).*
+*function, declared at [`include/shulib/hal/read_faults.hpp:55`](../../include/shulib/hal/read_faults.hpp#L55).*
 
 <a id="ireadfaults-ireadfaults-2"></a>
 
@@ -69,7 +69,7 @@ IReadFaults(const IReadFaults&) = default
 
 Polymorphic base: the virtual destructor makes `delete` through an `IReadFaults*` well-defined. A consumer holds one by pointer and never owns it (the provider does). Default-constructible: the base has no state. Copyable at the base, because the base holds no state; an adapter decides for itself.
 
-*function, declared at [`include/shulib/hal/read_faults.hpp:48`](../../include/shulib/hal/read_faults.hpp#L48).*
+*function, declared at [`include/shulib/hal/read_faults.hpp:57`](../../include/shulib/hal/read_faults.hpp#L57).*
 
 <a id="ireadfaults-ireadfaults-3"></a>
 
@@ -81,7 +81,7 @@ IReadFaults(IReadFaults&&) = default
 
 Polymorphic base: the virtual destructor makes `delete` through an `IReadFaults*` well-defined. A consumer holds one by pointer and never owns it (the provider does). Default-constructible: the base has no state. Copyable at the base, because the base holds no state; an adapter decides for itself. Movable, same reasoning as the copy constructor.
 
-*function, declared at [`include/shulib/hal/read_faults.hpp:50`](../../include/shulib/hal/read_faults.hpp#L50).*
+*function, declared at [`include/shulib/hal/read_faults.hpp:59`](../../include/shulib/hal/read_faults.hpp#L59).*
 
 <a id="ireadfaults-operator-eq"></a>
 
@@ -93,7 +93,7 @@ IReadFaults& operator=(const IReadFaults&) = default
 
 Polymorphic base: the virtual destructor makes `delete` through an `IReadFaults*` well-defined. A consumer holds one by pointer and never owns it (the provider does). Default-constructible: the base has no state. Copyable at the base, because the base holds no state; an adapter decides for itself. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning.
 
-*function, declared at [`include/shulib/hal/read_faults.hpp:52`](../../include/shulib/hal/read_faults.hpp#L52).*
+*function, declared at [`include/shulib/hal/read_faults.hpp:61`](../../include/shulib/hal/read_faults.hpp#L61).*
 
 <a id="ireadfaults-operator-eq-2"></a>
 
@@ -105,7 +105,7 @@ IReadFaults& operator=(IReadFaults&&) = default
 
 Polymorphic base: the virtual destructor makes `delete` through an `IReadFaults*` well-defined. A consumer holds one by pointer and never owns it (the provider does). Default-constructible: the base has no state. Copyable at the base, because the base holds no state; an adapter decides for itself. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning. Move-assignable, same reasoning.
 
-*function, declared at [`include/shulib/hal/read_faults.hpp:54`](../../include/shulib/hal/read_faults.hpp#L54).*
+*function, declared at [`include/shulib/hal/read_faults.hpp:63`](../../include/shulib/hal/read_faults.hpp#L63).*
 
 <a id="ireadfaults-faultedreads"></a>
 
@@ -117,14 +117,14 @@ Polymorphic base: the virtual destructor makes `delete` through an `IReadFaults*
 
 Reads screened since the adapter was constructed. MONOTONIC: it never decreases and is never reset, so "it moved" is the only question a consumer may ask of it.
 
-*function, declared at [`include/shulib/hal/read_faults.hpp:58`](../../include/shulib/hal/read_faults.hpp#L58).*
+*function, declared at [`include/shulib/hal/read_faults.hpp:67`](../../include/shulib/hal/read_faults.hpp#L67).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 31 lines</summary>
+<summary>The header’s own reasoning — 39 lines</summary>
 
 ```text
 
@@ -134,8 +134,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  Exactly as IDigitalOut (F11), IController (F13) and IDigitalIn (F14) were added beside the
  locked F4 seams, this one is added beside them: IDistance, IOptical, IRotation and the rest are
  untouched, byte for byte. An adapter that screens its reads implements this interface AS WELL
- as its seam (hal::pros::ProsDistance, ProsOptical, ProsDigitalIn); a consumer that needs the
- count asks the device provider for it (IDeviceProvider::readFaults / lineReadFaults).
+ as its seam (hal::pros::ProsDistance, ProsOptical, ProsDigitalIn — and, since VIS1-A1, the AI
+ Vision camera's hal::pros::ProsAiVision); a consumer that needs the count asks the device provider
+ for it (IDeviceProvider::readFaults / lineReadFaults).
 
  ── WHY IT EXISTS (the MECH brief's re-check, its probe R) ──────────────────────────
  The locked sensor seams carry NO validity channel, by design: a PROS adapter that gets a
@@ -149,6 +150,13 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  each ended an eject step SUCCEEDED "stopped seeing a piece" at its first tick with the motor
  never run. So the core reads this count BESIDE the value: a sample taken while the count moved
  is UNKNOWN, never evidence (the rule is the mechanism service's, MECH-A2).
+
+ ── A camera's count: a frame that SAID it failed, not a held value (VIS1-A1) ─────────
+ The camera's seam (hal/vision_frames.hpp) HAS a validity channel: a failed or torn read is a frame
+ whose status says so, with no detections — never the last good frame held (a held frame would read
+ as a fresh "nothing changed"). Its adapter counts those frames here too, so a consumer written for
+ this channel works unchanged; for a camera the count's change means "a read in between was not
+ evidence", and nothing was held.
 
  ── What it cannot see ──────────────────────────────────────────────────────────────
  Only what the adapter can: a read the device REFUSED. An UNPLUGGED 3-wire switch is not a

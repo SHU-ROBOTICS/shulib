@@ -73,6 +73,7 @@ TEST_CASE("ProsDeviceRegistry: an ASYMMETRIC census — every physical port answ
         {8, pros::c::E_DEVICE_OPTICAL, DeviceKind::Optical},
         {11, pros::c::E_DEVICE_MOTOR, DeviceKind::Motor},
         {12, pros::c::E_DEVICE_MOTOR, DeviceKind::Motor},
+        {4, pros::c::E_DEVICE_AIVISION, DeviceKind::AiVision},  // VIS1-A1: beside the older one
         {16, pros::c::E_DEVICE_VISION, DeviceKind::Vision},
         {19, pros::c::E_DEVICE_ADI, DeviceKind::Adi},
         {21, pros::c::E_DEVICE_GPS, DeviceKind::Gps},
@@ -140,7 +141,10 @@ TEST_CASE("ProsDeviceRegistry: EVERY v5_device_e_t value is mapped, and none bec
         {pros::c::E_DEVICE_ADI, DeviceKind::Adi, "ADI"},
         {pros::c::E_DEVICE_OPTICAL, DeviceKind::Optical, "OPTICAL"},
         {pros::c::E_DEVICE_GPS, DeviceKind::Gps, "GPS"},
-        {pros::c::E_DEVICE_AIVISION, DeviceKind::Vision, "VISION"},
+        // VIS1-A1 (D4): the AI Vision sensor is its OWN kind — until then it answered Vision, the
+        // older sensor's kind, so no registry check could refuse an older Vision sensor on the camera's
+        // port. The older sensor (E_DEVICE_VISION, above) still answers Vision / "VISION".
+        {pros::c::E_DEVICE_AIVISION, DeviceKind::AiVision, "AI-VISION"},
         {pros::c::E_DEVICE_SERIAL, DeviceKind::Other, "OTHER"},
         {pros::c::E_DEVICE_UNDEFINED, DeviceKind::Other, "OTHER"},
     };

@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 5,060 of them across 188 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 5,269 of them across 193 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -198,11 +198,13 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Telemetry sink](telemetry_sink.md) | [`hal/telemetry_sink.hpp`](../../include/shulib/hal/telemetry_sink.hpp) | ITelemetrySink — the diagnostics output seam. |
 | [Vision](vision.md) | [`hal/vision.hpp`](../../include/shulib/hal/vision.hpp) | IVision / ITagSource — the AI Vision seams. |
 | [Vision conversion](vision_conversion.md) | [`hal/vision_conversion.hpp`](../../include/shulib/hal/vision_conversion.hpp) | vision_conversion.hpp — the ONE place raw AprilTag image corners become shulib's canonical robot-relative tag pose (§7: convert exactly once, at the edge). |
+| [Vision frames](vision_frames.md) | [`hal/vision_frames.hpp`](../../include/shulib/hal/vision_frames.hpp) | IVisionFrames — the V5 AI Vision camera read a FRAME at a time. |
 
 ### HAL — the PROS adapters
 
 | Page | Header | What it is |
 |---|---|---|
+| [Ai vision (PROS)](pros-ai_vision.md) | [`hal/pros/ai_vision.hpp`](../../include/shulib/hal/pros/ai_vision.hpp) | ProsAiVision — hal::IVisionFrames (and hal::IReadFaults, MECH-A1's channel) over the vendored PROS 4.2.2 AI Vision C API, include/pros/ai_vision.h. |
 | [Battery (PROS)](pros-battery.md) | [`hal/pros/battery.hpp`](../../include/shulib/hal/pros/battery.hpp) | ProsBattery — IBattery over the pros::battery namespace (chunk R1a): the brownout-compensation input behind the HAL. |
 | [Block sink (PROS)](pros-block_sink.md) | [`hal/pros/block_sink.hpp`](../../include/shulib/hal/pros/block_sink.hpp) | ProsBlockSink — IBlockSink over a PROS FILE* on the V5's SD card (chunk R1b): where the blackbox's binary blocks physically go. |
 | [Block source (PROS)](pros-block_source.md) | [`hal/pros/block_source.hpp`](../../include/shulib/hal/pros/block_source.hpp) | ProsBlockSource — IBlockSource over a PROS FILE* on the V5's SD card (chunk R3d Part 2): where the calibration record is read back from. |
@@ -273,6 +275,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 | Page | Header | What it is |
 |---|---|---|
+| [Camera config](camera_config.md) | [`config/camera_config.hpp`](../../include/shulib/config/camera_config.hpp) | CameraConfig — the robot file's AI VISION CAMERA block. |
 | [Robot config](robot_config.md) | [`config/robot_config.hpp`](../../include/shulib/config/robot_config.hpp) | RobotConfig — a whole robot, described as DATA. |
 | [Route](route.md) | [`config/route.hpp`](../../include/shulib/config/route.hpp) | Route — an autonomous routine as DATA. |
 
@@ -328,9 +331,16 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 |---|---|---|
 | [Touch panel](touch_panel.md) | [`ui/touch_panel.hpp`](../../include/shulib/ui/touch_panel.hpp) | ui::touch_panel — the GENERIC pieces of a brain-screen panel model. |
 
+### Vision
+
+| Page | Header | What it is |
+|---|---|---|
+| [Camera geometry](camera_geometry.md) | [`vision/camera_geometry.hpp`](../../include/shulib/vision/camera_geometry.hpp) | Camera geometry — a detection's box turned into which way it is (BEARING), how high it looks (ELEVATION), how far it is (a GROUND range from where its base meets the floor, a SIZE range from its known real height) and where it is on the FIELD — every one an… |
+| [Override elements](override_elements.md) | [`vision/override_elements.hpp`](../../include/shulib/vision/override_elements.hpp) | The 2026-27 Override season's facts the camera code needs — the Toggle's coloured faces, where the Toggles are, the Pin and the Cup, and the class table of VEX's Override AI model. |
+
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 5,060 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 5,269 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

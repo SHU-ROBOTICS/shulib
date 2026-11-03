@@ -61,6 +61,20 @@
 // indistinguishable from a measured one). Those two are PURE like the rest: a provider that forgot
 // them would silently re-open the false "piece gone" the count exists to stop.
 //
+// ── THE AI VISION CAMERA (chunk VIS1-A1, 2026-10-18) ────────────────────────────────────
+// aiVision(port, settings) makes the robot's camera — an hal::IVisionFrames (hal/vision_frames.hpp) —
+// refused like any smart-port device (on the brain: the registry's kind answer, which since VIS1-A1
+// tells the AI Vision sensor from the OLDER Vision sensor — that the registry reports an AI Vision
+// sensor as E_DEVICE_AIVISION and never as the older sensor's E_DEVICE_VISION is UNMEASURED: no census
+// has yet printed a word that tells the two apart) and refused for a settings block with a problem
+// (`aiVisionSettingsProblem`). MAKING ONE WRITES THE CAMERA: its colours and detection
+// modes are written (and read back) the moment it is constructed, and its AI model is checked by name
+// (A4 register HA-196, HA-197) — like an IMU, whose calibration starts when it is made. A second
+// request with EQUAL settings returns the same camera; a request with DIFFERENT settings is REFUSED —
+// not a precondition, as a motor's second configuration is, because a camera never stops a robot from
+// driving (VIS1's D5: a disagreement about it costs the camera, never the program). readFaults(port)
+// answers the camera too, once it was made: a camera is an IReadFaults (a failed or torn read).
+//
 // ── IDEMPOTENCE IS PART OF THE CONTRACT ─────────────────────────────────────────────
 // Asking twice for the same port must return the SAME object. The graph borrows these
 // pointers and holds them for the life of the robot; a provider that made a second adapter
@@ -93,6 +107,7 @@
 #include "shulib/hal/read_faults.hpp"
 #include "shulib/hal/rotation.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
+#include "shulib/hal/vision_frames.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::motion {
@@ -189,10 +204,20 @@ public:
     /// a digitalOut() (one line, one direction — and digitalOut() states the converse). Idempotent.
     [[nodiscard]] virtual IDigitalIn* digitalIn(std::uint8_t line) = 0;
 
-    /// The READ-FAULT count of the piece sensor this provider made on smart `port` with distance()
-    /// or optical() — how a consumer tells a HELD value from a measured one (hal/read_faults.hpp).
-    /// nullptr when no such sensor was made there, or when this provider's sensors never screen a
-    /// read. Never makes anything. Every implementer must answer it (header).
+    /// The AI VISION CAMERA on physical `port`, 1..kMaxSmartPorts, set up with `settings` (VIS1-A1;
+    /// the header's camera section). Returns nullptr and sets lastRefusal() when the port is out of
+    /// range, empty, or carries anything but an AI Vision sensor (the OLDER Vision sensor included),
+    /// when `aiVisionSettingsProblem(settings)` names a problem, or when a camera was already made on
+    /// `port` with settings that are not `sameAiVisionSettings` — never a precondition: a refused
+    /// camera never stops a robot. MAKING ONE WRITES ITS SETTINGS to the camera. Idempotent for equal
+    /// settings: the same port yields the same object. Every implementer must answer it.
+    [[nodiscard]] virtual IVisionFrames* aiVision(std::uint8_t port, const AiVisionSettings& settings) = 0;
+
+    /// The READ-FAULT count of the device this provider made on smart `port` that screens its reads:
+    /// a piece sensor made with distance() or optical() — how a consumer tells a HELD value from a
+    /// measured one (hal/read_faults.hpp) — or the camera made with aiVision() (since VIS1-A1: its
+    /// failed and torn reads). nullptr when no such device was made there, or when this provider's
+    /// devices never screen a read. Never makes anything. Every implementer must answer it (header).
     [[nodiscard]] virtual const IReadFaults* readFaults(std::uint8_t port) const noexcept = 0;
 
     /// The READ-FAULT count of the digital input this provider made on 3-wire `line` with

@@ -74,8 +74,10 @@ Three shapes of it, all of which the adapters now defuse before the value reache
 
 - **The sentinel.** PROS reports a failed read by returning a special value — a huge integer, or
   literally infinity. Convert one of those without checking and you get a pose in the next
-  galaxy. Every adapter screens the raw value *before* converting it, and on a bad read **holds
-  its last good value** rather than substituting zero. Zero is the dangerous choice: a zeroed
+  galaxy. Every adapter screens the raw value *before* converting it, and on a bad read a scalar
+  sensor's adapter **holds its last good value** rather than substituting zero (the camera, whose
+  every read is a frame that says whether it worked, answers a bad read with a frame that says it
+  failed and carries nothing — never the last good frame). Zero is the dangerous choice: a zeroed
   encoder reads as "the robot stopped", which is exactly the lie that makes a dead-encoder
   runaway invisible. A frozen value, by contrast, is what the wheels-spin-but-nothing-moves
   cross-check is built to catch. The screened reads are counted, so the log can show you a sensor

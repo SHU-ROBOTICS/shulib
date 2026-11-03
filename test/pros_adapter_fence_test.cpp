@@ -11,7 +11,8 @@
 //  * every <pros/...> include sits INSIDE a fence;
 //  * the forbidden PROS calls are ABSENT as text: the tare family in the IMU
 //    adapter (HA-05), set_offset/initialize_full in the GPS adapter (HA-06),
-//    get_digital_new_press in the controller adapter (HA-104/trap C);
+//    get_digital_new_press in the controller adapter (HA-104/trap C); and (VIS1-A1) the AI
+//    Vision adapter's reset, white-balance, tag-family, USB-overlay and colour-code calls;
 //  * every shim header carries the #error + SHULIB_HOST_PROS_SHIM gate
 //    (mutation M12's subject) — a shim that can compile outside the host test
 //    build is a robot binary that drives nothing.
@@ -190,6 +191,16 @@ TEST_CASE("forbidden calls are textually absent from the adapters (the contract 
     const std::string digitalIn =
         withoutLineComments(readFile(kAdapterDir / "digital_in.hpp"));
     CHECK(digitalIn.find("get_new_press") == std::string::npos);
+
+    // (VIS1-A1) The AI Vision adapter: never a camera reset (it might drop the AI model the VEXcode
+    // Utility chose), never a white balance (it moves every colour the team measured), no tag family
+    // (no tags), no USB overlay (a bench aid), no colour code. Its header NAMES each while saying
+    // why; the code calls none — the shim's counters prove it at run time, this pins the text.
+    const std::string aiVision = withoutLineComments(readFile(kAdapterDir / "ai_vision.hpp"));
+    for (const char* banned : {"aivision_reset", "aivision_start_awb", "aivision_set_tag_family",
+                               "aivision_set_usb_bounding_box_overlay", "aivision_set_code"}) {
+        CHECK_MESSAGE(aiVision.find(banned) == std::string::npos, "ai_vision.hpp calls ", banned);
+    }
 }
 
 TEST_CASE("adapters: PROS includes are QUOTED, never angle-bracketed (the -iquote lesson)") {

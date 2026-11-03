@@ -1743,6 +1743,14 @@ written with them (D12 honesty reaching the data layer intact).
 > [record](chunks/SER1-COMPLETED.md).)*
 
 ### VIS1 and AF1 — the Toggle auto-flipper ⟵ NEW 2026-10-08; after the panel since the sprint of 2026-10-29
+> **Status 2026-10-30: VIS1-A1 LANDED** (built 2026-10-18–22, reviewed, fixed and verified through 2026-10-30; [live
+> log](chunks/VIS1-PROGRESS.md)) — the camera as a device: `hal/vision_frames.hpp` (the frame and its status),
+> `hal/pros/ai_vision.hpp` (`ProsAiVision`: settings written and read back, the model checked by name, a failed read a
+> ReadFault frame), `config/camera_config.hpp` (the robot file's camera block), `vision/camera_geometry.hpp` (intervals
+> over every tolerance) and `vision/override_elements.hpp`, the host camera model; HA-192..HA-203 registered. Host only.
+> **Next: VIS1-A2** (the Toggle tracker, the piece finder, the feed), then VIS1-B and the panel's camera page (S2) — by
+> G3a's D20 order the camera comes LAST of the five slots' queue (after the route maker, the string-lift safety and the
+> wall page); the panel brief's dates put S2 at ~Nov 25–Dec 2.
 > **Status 2026-10-29 (sprint): AFTER THE PANEL** — the team lead's PANEL SPRINT of 2026-10-29 ("WE MUST FINISH THE PANEL BY THEN" — "by the 21st"): VIS1-A1 finishes its review and merges; VIS1-A2,
 > VIS1-B and AF1 (with AF1's brief) wait until the panel lands (~2026-11-21). The auto-flipper stays fully in.
 > **Status 2026-10-29: BESIDE THE PANEL, no longer before it** (the team lead's ordering ruling of 2026-10-29 —

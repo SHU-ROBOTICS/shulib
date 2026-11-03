@@ -63,9 +63,10 @@
 // A robot with no GPS gets hal::AbsentGps in its context and NO corrector in its Localizer.
 // It never gets a nullptr (RobotContext's preconditions throw on one, and they are right to)
 // and it never gets a fake — a test double inside a competition binary erases the difference
-// between "no device is installed" and "a test injects here". Tags and vision are ABSENT
-// unconditionally in Part 1, because no camera adapter exists yet (R2 owns it) and a field
-// for hardware the library cannot open would be a promise rather than a description.
+// between "no device is installed" and "a test injects here". Tags and the frozen `hal::IVision`
+// are ABSENT unconditionally (hal::AbsentTagSource, hal::AbsentVision): no AprilTag adapter exists
+// yet (R2b's tag part), and `IVision` has no consumer — the AI Vision camera is read a FRAME at a
+// time through `hal::IVisionFrames` instead (the CAMERA section below; VIS1's D11).
 //
 // ── ABSENT DRIVE PORTS: the boot check decides, the builder obeys (G1 Part 2a, M1) ──
 // A tank drive port the boot check found DEAD (calibration/boot_check.hpp — the registry is read
@@ -123,6 +124,22 @@
 // built LAST as before, and every accessor below forwards to it; mechanismParts() hands it out
 // whole (its devices() are what the mechanism service binds over — MECH-A2).
 //
+// ── THE AI VISION CAMERA: built from the config, ABSENT rather than refused (VIS1-A1) ──
+// A config whose `sensors.camera.port` is not 0 gets its camera built LAST, in the constructor's
+// body after the mechanisms — so every provider request before it, and so every graph built before
+// VIS1-A1, is exactly what it was. `devices.aiVision(port, settings)` writes the camera's settings
+// (the provider's banner); validate() does NOT ask for it. A camera the provider will not make — an
+// empty port, the OLDER Vision sensor on it, a cable out — leaves `camera()` nullptr and
+// `cameraAbsence()` carrying the provider's own sentence, and the robot builds and drives: a dead
+// camera must never stop a robot from driving a match (VIS1's D5; a mechanism's refused piece sensor
+// is the same rule) — and a provider that THROWS from aiVision() (a breach of its interface) is caught
+// and named the same way. `cameraAbsence()` is "" EXACTLY when `camera()` is non-null, "no camera is
+// declared" for port 0. The builder never reads a frame (no tick, no poll): the boot line's camera
+// words come from `IVisionFrames::status()`, which touches nothing — "camera port 3 set up, model OK"
+// — never from a downcast to the PROS adapter. Who reads frames, and how often, is the consumer's: one
+// read per period, from its own loop (VIS1's D10; the shared camera feed is the camera's next part). The
+// frozen `IVision` slot in the context stays hal::AbsentVision (D11).
+//
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // A Robot built from a config has driven the A2 host plant, through fakes, and nothing else.
 // No config has ever been used on a physical robot. Since T4 Part 3 "shulib Drive" builds its
@@ -141,6 +158,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <exception>
 #include <optional>
 #include <span>
 
@@ -580,6 +598,7 @@ public:
                    effectiveTuning(cfg_)} {
         parts_.build(std::span<const config::MechanismConfig>{cfg_.mechanisms, cfg_.mechanismCount},
                      devices);
+        buildCamera(devices);  // VIS1-A1: LAST, after everything above (header: THE AI VISION CAMERA)
     }
 
     /// Non-copyable: the graph is a web of references into this object's own storage.
@@ -732,6 +751,22 @@ public:
     /// per-index lookups the accessors above forward to. Valid for the Robot's lifetime.
     [[nodiscard]] const MechanismParts& mechanismParts() const noexcept { return parts_; }
 
+    // ── the AI Vision camera (VIS1-A1; the file header's CAMERA section) ───────────────
+
+    /// The robot's AI Vision camera if it was BUILT — nullptr when the config declares none (port 0)
+    /// or the provider refused it (`cameraAbsence()` says why). Owned by the provider; valid for the
+    /// Robot's lifetime. Reading frames from it is the consumer's (one read per period, from its own
+    /// loop); the Robot never reads one.
+    [[nodiscard]] hal::IVisionFrames* camera() noexcept { return camera_; }
+    /// The camera, read-only (its status() is const; reading a frame is not).
+    [[nodiscard]] const hal::IVisionFrames* camera() const noexcept { return camera_; }
+
+    /// Why `camera()` is nullptr: "no camera is declared" for port 0, the provider's own sentence
+    /// naming the port for a refused one ("port 3: nothing plugged in (expected an AI Vision
+    /// sensor)"), or a fixed sentence when the provider gave none. The empty string EXACTLY when
+    /// `camera()` is non-null. Stable for the Robot's lifetime.
+    [[nodiscard]] const char* cameraAbsence() const noexcept { return cameraAbsence_; }
+
     /// The §18.5 session header's port map for this robot, generated from the config it was
     /// built with — `writePortMap(config(), out, cap)`, whose documentation gives the formats.
     /// Truncates rather than overflowing (the header field is `diag::kMaxPortMapBytes`, 96
@@ -743,8 +778,13 @@ public:
     /// sides' ports AS STORED (signs included — the one place a sign lives), any drive port
     /// ABSENT (`DEGRADED: absent 3,13` — only when there is one: built absent at boot, or marked
     /// absent mid-run by the driver loop's protections, T4 Part 2), the geometry that
-    /// governs, the estimator, and each optional device as present or ABSENT. Truncates rather
-    /// than overflowing; writes at least a NUL whenever cap > 0.
+    /// governs, the estimator, and each optional device as present or ABSENT — LAST the camera
+    /// (VIS1-A1): "camera ABSENT" with none declared, "camera port 3 ABSENT (<why>)" refused, or
+    /// "camera port 3 " + `hal::cameraStatusWords(camera()->status())`, the adapter's reason after it
+    /// in parentheses when it has one ("camera port 3 set up, model DIFFERENT (class 0 is 'blueBall',
+    /// the robot file expects 'redBluePin')") — ASCII only, and LAST so a short buffer cuts the
+    /// camera's reason, never the drive. Until VIS1-A1 the line ended "vision ABSENT". Truncates
+    /// rather than overflowing; writes at least a NUL whenever cap > 0.
     ///
     /// It is built from the CONFIG this robot was constructed with, not from a second copy of the
     /// numbers, so it cannot drift from the wiring — the same property src/main.cpp's retired
@@ -757,6 +797,8 @@ public:
         constexpr std::size_t kSideCap = 72;
         char left[kSideCap] = "";
         char right[kSideCap] = "";
+        char cam[kCameraWordsBytes] = "";
+        cameraWords(cam, sizeof cam);
         const char* name = cfg_.identity.name[0] != '\0' ? cfg_.identity.name : "(unnamed)";
         switch (cfg_.drivetrain.kind) {
             case config::DrivetrainKind::Tank: {
@@ -767,7 +809,7 @@ public:
                 appendAbsent(absent, kSideCap);
                 std::snprintf(buf, cap,
                               "%s [%s] tank %s | L %s R %s%s%s | ipr L%.5f R%.5f W %.3f in | "
-                              "IMU%u | %s | GPS %s tags ABSENT vision ABSENT",
+                              "IMU%u | %s | GPS %s tags ABSENT %s",
                               name, cfg_.identity.team,
                               d.source == hal::DescriptionSource::RobotMeasured ? "MEASURED"
                                                                                 : "TYPED",
@@ -776,7 +818,7 @@ public:
                               rightGeometry_.inchesPerRadian().value(), d.trackWidth.value(),
                               static_cast<unsigned>(d.imuPort),
                               config::odometryKindWord(cfg_.odometry.kind),
-                              gpsWord());
+                              gpsWord(), cam);
                 return;
             }
             case config::DrivetrainKind::XDrive: {
@@ -784,10 +826,10 @@ public:
                 appendPorts(left, kSideCap, x.ports, 4);
                 std::snprintf(buf, cap,
                               "%s [%s] x-drive TYPED | wheels %s | R %.3f in | IMU%u | %s | "
-                              "GPS %s tags ABSENT vision ABSENT",
+                              "GPS %s tags ABSENT %s",
                               name, cfg_.identity.team, left, x.driveRadius.value(),
                               static_cast<unsigned>(x.imuPort),
-                              config::odometryKindWord(cfg_.odometry.kind), gpsWord());
+                              config::odometryKindWord(cfg_.odometry.kind), gpsWord(), cam);
                 return;
             }
             case config::DrivetrainKind::HDrive: {
@@ -795,10 +837,10 @@ public:
                 appendPorts(left, kSideCap, hcfg.ports, 3);
                 std::snprintf(buf, cap,
                               "%s [%s] h-drive TYPED | wheels %s | W %.3f in strafe@%.3f in | "
-                              "IMU%u | %s | GPS %s tags ABSENT vision ABSENT",
+                              "IMU%u | %s | GPS %s tags ABSENT %s",
                               name, cfg_.identity.team, left, hcfg.trackWidth.value(),
                               hcfg.strafeWheelOffset.value(), static_cast<unsigned>(hcfg.imuPort),
-                              config::odometryKindWord(cfg_.odometry.kind), gpsWord());
+                              config::odometryKindWord(cfg_.odometry.kind), gpsWord(), cam);
                 return;
             }
         }
@@ -1059,6 +1101,86 @@ private:
         return tuning;
     }
 
+    /// The longest camera part of the banner, NUL included (header: the words, a reason in parentheses).
+    static constexpr std::size_t kCameraWordsBytes = 224;
+    /// The longest camera absence sentence kept, NUL included (the providers' refusals are 160 at most).
+    static constexpr std::size_t kCameraReasonBytes = 160;
+
+    /// VIS1-A1: ask the provider for the configured camera — LAST, after the mechanisms — or record why
+    /// there is none. A refusal never refuses the robot (header: THE AI VISION CAMERA), and neither does a
+    /// provider that THROWS — a breach of the interface, which says nullptr and a refusal — whose words
+    /// become the reason. Throws nothing.
+    void buildCamera(hal::IDeviceProvider& devices) {
+        const config::CameraConfig& cam = cfg_.sensors.camera;
+        if (cam.port == 0) {
+            copyCameraReason("no camera is declared");
+            return;
+        }
+        try {
+            camera_ = devices.aiVision(cam.port, cam.settings);
+        } catch (const std::exception& e) {
+            camera_ = nullptr;
+            std::snprintf(cameraAbsence_, sizeof cameraAbsence_,
+                          "the device provider threw making the camera: %s", e.what());
+            return;
+        } catch (...) {
+            camera_ = nullptr;
+            copyCameraReason("the device provider threw making the camera");
+            return;
+        }
+        if (camera_ == nullptr) {
+            const char* why = devices.lastRefusal();
+            copyCameraReason(why != nullptr && why[0] != '\0'
+                                 ? why
+                                 : "the device provider refused the camera and gave no reason");
+            return;
+        }
+        cameraAbsence_[0] = '\0';
+    }
+
+    /// Copy `why` into `cameraAbsence_`, bounded and always terminated.
+    void copyCameraReason(const char* why) noexcept {
+        std::size_t n = 0;
+        for (; why[n] != '\0' && n + 1 < kCameraReasonBytes; ++n) {
+            cameraAbsence_[n] = why[n];
+        }
+        cameraAbsence_[n] = '\0';
+    }
+
+    /// The camera's part of the banner (describe()'s documentation gives the forms), bounded by `cap`,
+    /// always terminated, every byte outside printable ASCII replaced by '?' — the reasons come from a
+    /// provider or an adapter this class does not control, and the line reaches the brain's screen.
+    void cameraWords(char* out, std::size_t cap) const noexcept {
+        if (out == nullptr || cap == 0) {
+            return;
+        }
+        const unsigned port = cfg_.sensors.camera.port;
+        if (port == 0) {
+            std::snprintf(out, cap, "camera ABSENT");
+        } else if (camera_ == nullptr) {
+            std::snprintf(out, cap, "camera port %u ABSENT (%s)", port, cameraAbsence_);
+        } else {
+            const hal::CameraStatus st = camera_->status();
+            const char* reason = !st.configured ? st.setupProblem
+                                 : (st.model == hal::ModelCheck::Different
+                                    || st.model == hal::ModelCheck::Unreadable)
+                                     ? st.modelProblem
+                                     : "";
+            if (reason != nullptr && reason[0] != '\0') {
+                std::snprintf(out, cap, "camera port %u %s (%s)", port, hal::cameraStatusWords(st),
+                              reason);
+            } else {
+                std::snprintf(out, cap, "camera port %u %s", port, hal::cameraStatusWords(st));
+            }
+        }
+        for (std::size_t k = 0; out[k] != '\0'; ++k) {
+            const auto byte = static_cast<unsigned char>(out[k]);
+            if (byte < 0x20U || byte >= 0x7FU) {
+                out[k] = '?';
+            }
+        }
+    }
+
     /// "GPS present" or "ABSENT", for the banner.
     [[nodiscard]] const char* gpsWord() const noexcept {
         return cfg_.sensors.gps.present ? "present" : "ABSENT";
@@ -1183,6 +1305,10 @@ private:
     }
 
     MechanismParts parts_{};
+
+    // ── the AI Vision camera, built in the constructor BODY, LAST (VIS1-A1) ─────────────
+    hal::IVisionFrames* camera_ = nullptr;
+    char cameraAbsence_[kCameraReasonBytes]{};
 };
 
 }  // namespace shulib::robot

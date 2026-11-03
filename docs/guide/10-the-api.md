@@ -2,7 +2,8 @@
 
 > **Covers:** the public operations on `Chassis` you write routines with — what each does, when
 > to use it, what it does when things go wrong, and the gotchas — and, since the mechanism core's
-> first part, how a robot's mechanisms are declared and wired (the last section before the gotchas). It is deliberately selective
+> first part, how a robot's mechanisms are declared and wired, and since the camera's first part, how the AI Vision
+> camera is declared and read (the last two sections before the gotchas). It is deliberately selective
 > rather than exhaustive: construction and the advanced accessors are covered where they matter
 > and skipped where they do not. The [generated API reference](../api/README.md) is the
 > exhaustive one, and it cannot disagree with the code. Plus typed units, per-call options, and the escape
@@ -594,6 +595,78 @@ numbers — this is the map:
   wrong is REFUSED.
 - **The direction check's judgement** — `mechanism::judgeDirection` / `judgePneumatic`: a jog's
   readings and the person's three answers in, the robot-file line to change out.
+
+## The camera — a frame at a time
+
+The V5 AI Vision camera is declared in the robot file like any device — its port, what the library writes
+to it, and where it sits — and the Robot builds it at boot through the device provider. Nothing in the
+library READS it yet: the camera's consumers (a Toggle colour tracker, a piece finder that takes one named
+piece, and a feed that reads once per period for both) are the camera's next part. What exists now is the
+device, the frame, and the geometry that turns a box into directions and distances. **No AI Vision sensor
+has been read by this code yet; everything below has run on the host test plant only.**
+
+**The robot file's camera block** (`config::CameraConfig`, in `sensors.camera`): the port (0, the
+default, means no camera); the SETTINGS the library writes at every boot — the colour descriptors the
+team measures with VEXcode's AI Vision Utility (each with its name and who measured it, under what
+light), whether the AI model's OBJECTS are on, and the class names that model must report; and the
+MOUNT, measured from the robot's tracking centre with how well each number was measured. A mount nobody
+has measured stays UNSET — that is not an error: the camera is built and read, and only the geometry
+refuses, naming why. `RobotConfig::valid()` claims the camera's port like any other ("port 3 is claimed
+by the LEFT drive and by the AI Vision camera").
+
+**At boot the library writes the camera, it never trusts it.** Making the camera writes its colours and
+its detection modes (exactly the ones asked for — AprilTags OFF) and reads each back, because PROS reports
+success whatever the camera did. It writes them again after a read the camera does not answer, and
+whenever its once-a-second check — the modes and every colour read back, the model's names asked again —
+finds one changed. And it checks the camera's AI MODEL by NAME before an object's class number means
+anything — VEX's Override model calls class 3 a yellow Pin; its Classroom model calls class 3 a blue ring,
+and a route would chase it. Until every expected name matches, every object is WITHHELD (the colours still
+come through), and since the names are asked again every second, a match is never more than a second old.
+A colour blob the camera reports for a colour this program did not write (one another program left on it)
+is withheld too. A camera the provider will not make — nothing plugged in, the
+OLDER V5 Vision sensor on the port, a cable out — leaves the camera ABSENT, and **the robot still builds
+and drives**: a dead camera must never cost a match. The boot line's last words say which:
+
+```text
+... GPS ABSENT tags ABSENT camera ABSENT
+... GPS ABSENT tags ABSENT camera port 3 set up, model OK
+... GPS ABSENT tags ABSENT camera port 3 set up, model DIFFERENT (class 0 is 'blueBall', the robot file expects 'redBluePin')
+... GPS ABSENT tags ABSENT camera port 3 ABSENT (port 3: a vision sensor (expected an AI Vision sensor))
+```
+
+(Since the camera's first part a census names the AI Vision sensor "AI-VISION" — assuming the brain
+reports it as one, which no census has shown yet; "VISION" now means the older sensor only.)
+
+**A frame, and what it can and cannot tell you.** `camera()->read()` returns one `hal::VisionFrame`:
+up to 24 detections — colour blobs and model objects, each with its box in the picture — the time the
+read FINISHED, and how the read went. **Only a frame whose status is `Ok` is evidence of anything.** A
+read that failed is a frame that says so, with NO detections — never the last good picture held over,
+which would read as a fresh "nothing changed". A read that reports 24 or more is "possibly full": the
+camera sends at most 24 and may hold more, so what matters may be the one it never sent. And PROS gives no frame number
+and no camera timestamp: the picture is OLDER than the time the read finished, by an amount nobody has
+measured yet. A camera that freezes looks exactly like a still scene.
+
+**Pixels into directions and distances, each with its error.** `vision::CameraModel`, built from the
+camera's optics (VEX's 74 by 63 degrees — two different focal lengths, never square pixels, each with
+its own tolerance) and the measured mount, turns a box into a bearing, an elevation, a range from where
+its base meets the floor, a range from its known height, and a field position with a radius — every
+answer an INTERVAL, the exact range over every combination of the stated tolerances, never one number.
+(A Pin's box takes in its top face as well as its side, so the range from its height reads a little
+NEARER than its near rim.) A pose bound that is not a bound — a negative or non-finite tolerance — gives
+an INFINITE radius, never a tight one. Near the horizon a floor range is refused rather than reported as
+infinite, and a mount whose pitch with its tolerance reaches past 55 degrees is refused by the geometry
+(the camera is still read; only its directions and distances are not computed). Two quantities from
+ONE camera (a band's two edges, a Pin's base and its height) are checked one camera at a time — is
+there one camera inside the tolerances that sees this box as that? — never by overlapping two widened
+intervals. And a robot that moved since the picture was taken is not
+where its pose says: `vision::boundAtImage()` widens the pose's bound by the speed and turn rate times the
+image's MEASURED age; until that age is measured on the bench, use the camera's field positions only with
+the robot stopped.
+
+**Hardware beliefs this rests on, unmeasured:** HA-192 to HA-203 in the Hardware Assumptions Register,
+all new with the camera — among them the frame's freshness and the image's age (HA-192), the optics
+(HA-194), the AI model kept on the sensor and named as VEX spells it (HA-197), and the Toggle's shape
+(HA-201). The camera's bench page settles them.
 
 ## Gotchas, collected
 

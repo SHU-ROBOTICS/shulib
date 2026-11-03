@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 182 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 194 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -181,6 +181,16 @@
 > step on it does not count the move done early (the claw's `.moveTime = 0.5_s`, PROVISIONAL, in
 > `src/robots/mechanism_table.hpp`). It AMENDED one: HA-159's flip is now "swap `Low` and `High` on the claw's
 > `.positions` line" (the named constant `kClawOpenCommand` is gone with the old table). With it, 182.
+> **VIS1-A1 (the AI Vision camera as a device; built 2026-10-18–22) added TWELVE — HA-192..HA-203**, the numbers
+> VIS1's brief held: what the camera's library code believes about the camera and PROS — the frame's
+> freshness and the image's unmeasured age (HA-192, reasoned), the image's axes (HA-193, reasoned), the optics
+> and the axis against the housing (HA-194, reasoned), a non-atomic read (HA-195, reasoned), the mode mask and
+> the read-backs (HA-196, reasoned), the AI model's names and no class count through PROS (HA-197, measured
+> elsewhere for the names, reasoned for the rest), the detections' order and score (HA-198, reasoned — nothing
+> depends on them) — and about the field: the colours and their lookalikes (HA-199, invented), the model's box
+> (HA-200, invented), the Toggle's geometry (HA-201, reasoned — the flat bottom face at 12.36 in read from pA8
+> at VIS1-A1), a box edge's jitter (HA-202, invented) and a read's cost (HA-203, invented). Where the vendored
+> PROS header and its `libpros.a` disagree, the binary was read and followed. With them, 194.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither is **HA-181** (G3a, the robot panel: its amended brief), held the same way (the
 > mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
@@ -395,6 +405,18 @@
 | HA-189 | Two tasks writing the V5 USB serial (stdout) at once never mix or lose each other's lines — `ProsCharSink`'s "fwrite is atomic per call at this layer" — believed FALSE: the vendored newlib's per-FILE locks are no-ops, stdout is line-buffered (`ser_isatty_r` returns 1) through ONE shared buffer, and only PROS's device write below it takes a mutex. **FIXED in shulib's code by SER1 (2026-10-08):** every line is ONE direct `write()`, which that mutex keeps whole — unconfirmed until the bench | **reasoned** (FALSE — from the vendored `libc.a`/`libpros.a`, disassembled 2026-10-08) | the coordinator, T4 Part 3's hand-over; SER1's fix; Station K.7.3 (HA-189's robot test — accepted by the team lead 2026-10-18 in place of the dedicated two-task test; unsettled until it runs) |
 | HA-190 | A task PROS deletes while it is INSIDE `ser_write_r` (one serial `write()`) leaves PROS's serial write mutex held, and every later serial write of that boot — stdout and stderr alike — blocks its writer for ever | **reasoned** (the vendored `libpros.a`: `ser_write_r` holds the mutex across `stream_buf_send`'s unbounded waits; `task_delete` releases no mutex) | SER1; Station K.7.3 (Timed-Run mode changes while two tasks print) |
 | HA-191 | One serial `write()` must fit PROS's 2047-byte serial stream (about 2,035 bytes of text: a 4-byte stream id, COBS framing and a delimiter around it); a larger one waits for ever holding PROS's write mutex | **reasoned** (the vendored `libpros.a`: `ser_driver_initialize` +0x38, `stream_buf_send` waits until the WHOLE frame fits) | SER1 (no shulib call offers one `write()` more than 512 bytes — `kSerialWriteMaxBytes`; `serialLine` 256) |
+| HA-192 | The AI Vision camera's data is its LATEST frame, ~30 a second (VEX's figure), with NO counter and NO timestamp: a read's completion time is the only freshness, a frozen camera looks like a still scene — and the IMAGE is older than the read by an UNMEASURED age `L` | reasoned (VEX's rate through search snippets only; the vendored header and binary have no counter; `L` unknown) | Step 0.2 (no new code: Bench Tests station 12 as it stands — the change timer); Station I 0.7 after VIS1-B (the LIBRARY page's latency check) |
+| HA-193 | The camera reports 320 x 240 with (0, 0) at the top-left, +y DOWN, a box as its left edge, top edge, width and height | reasoned | Step 0.2 (station 12 as it stands: a Pin moved left/right and up/down; a box at the edge reads 0 / 319 / 239) |
+| HA-194 | The camera's optics: 74 x 63 degrees (two focal lengths, 212.3 and 195.8 px), the principal point at the centre, no distortion worth modelling, +-5 % — and the optical axis square to the housing's back face | reasoned (VEX's figures through search snippets only) | Step 0.2 (a Pin on the centreline at 24 and 48 in); Station I after VIS1-B (Pins at known offsets) |
+| HA-195 | A camera read is NOT atomic (the count, then each object); a `get_object` whose port claim fails returns {id 127, type 127, the rest 0}; what the SDK returns past its own count is unknown | reasoned (the 127 record read in the vendored `libpros.a`; its SDK half not) | Station I 0.7 after VIS1-B (the LIBRARY page's partial-fault count; unplugging mid-read) |
+| HA-196 | `set_enabled_detection_types(bits, mask)` sets exactly the masked mode bits; the modes and a colour's RGB read back as written (whether the camera KEEPS them is not assumed — they are written every boot) | reasoned (the vendored doc's one example and the binary; the SDK's own semantics unread) | Station I 0.7 after VIS1-B (`setups` and the fault count across a re-plug, `settingsLost` for a setting found changed; the mode line after the write) |
+| HA-197 | The AI model is chosen in VEXcode's AI Vision Utility and KEPT on the sensor; PROS reads each class id's NAME (and no count — `get_class_name` returns 1 for every id); the Override model names ids 0–4 `redBluePin`, `blueYellowPin`, `redYellowPin`, `yellowPin`, `cup` | measured elsewhere (the names, api.vex.com); reasoned (kept on the sensor; the PROS path) | Step 0.2 (station 12's RECORD lines with each piece in view, before and after a power cycle) |
+| HA-198 | The order of the 24 detections and the Object score's raw scale are UNKNOWN — and nothing in VIS1 depends on either, or on whether a count above 24 can be reported (24 or more is "possibly full", never evidence) | reasoned | Step 0.2 (the order against the sizes, the scores, how often a crowded field reads 24) |
+| HA-199 | The three taught colours separate the Toggle's faces under event light, and the lookalikes fire no band at Toggle height or fail a gate — except those the probes show need a trusted pose | **invented** | Station I 0.5 / 0.6 after VIS1-B, then the event field (0.8) |
+| HA-200 | The AI model's box encloses the WHOLE piece: its bottom row is where the piece's base meets the floor (or its support), its height the piece's | **invented** | Step 0.2 (a still Pin at 12 / 24 / 36 in — standing, lying, on a Goal) |
+| HA-201 | The Toggle's geometry: the field face's lower edge 12.55–12.65 in up, the apex 14.39 in and 0.9–1.2 in behind it, the FLAT bottom face 12.36 in, a different colour; its distance from the wall's inner face unknown | reasoned (arithmetic from the manual's pA8 and glossary, v2.0) | Step 0.1 (a real Toggle, a tape measure; the newest manual) |
+| HA-202 | A box edge's jitter is at most ~2 px for a still object — for a model's box AND a colour band's top and bottom rows | **invented** | Step 0.2 (a still Pin, five reads); Station I 0.5 after VIS1-B (a still Toggle face) |
+| HA-203 | One camera read (1 + N device calls, N up to 24; once a second up to 28 more for the adapter's settings-and-model check; up to 36 more for a set-up written again) is cheap enough to make once a period inside the driver loop's 10 ms tick | **invented** | Station I 0.7 after VIS1-B (station 12's read time); the driver loop's tick monitor under AF1 |
 | HA-213 | The V5 IMU's readings (`get_rotation()`, `get_gyro_rate()`) are copied into the brain's shared buffer every 10 ms, so every read between two copies returns the SAME value (sample-and-hold) | reasoned (the vendored `pros/imu.hpp`, `set_data_rate`'s doc); never observed on our brains | IMU1 (Part B's bench stage, Station N) |
 | HA-214 | The phase of that 10 ms copy against the motion tick's wake is unknown (fixed per boot, or drifting); a copy within a read's jitter of the tick's ONE rate read, or between two positions of the tick's FIRST read, makes a pair of ticks read 0 and about double — IMU1's hold does not cure it | **invented** (the phase) · reasoned (the consequence) | IMU1 (Part B's bench stage, Station N) |
 | HA-215 | Every rate read of one control tick falls within 5 ms of the tick's first, consecutive ticks' first reads are 5 ms or more apart, and no reader outside the loop's tick reads the rate — what `ProsImu::kRateHoldUs` (5 ms) rests on | reasoned (HA-32/HA-102, themselves unmeasured under load) | IMU1 (Part B's bench stage, a lower bound); Bench Tests STAGE 5 |
@@ -1152,6 +1174,240 @@ robot — the steps say what can be done with a sensor on a loose cable at the t
   save's report would fall back on its two other checks (nothing on the card could be opened, or a file
   did not read back the same way twice) and say SAVE UNCONFIRMED, so no false claim rests on it.
 
+
+### VIS1-A1's additions — the AI Vision camera as a device (built 2026-10-18–22)
+
+The camera chunk's first part reads the V5 AI Vision sensor a FRAME at a time through the library's own
+adapter (`hal/pros/ai_vision.hpp`), checks the camera's AI model BY NAME, writes the colours and modes it
+needs every boot, turns a box into bearings and ranges that carry their error (`vision/camera_geometry.hpp`),
+and carries the season's Toggle, Pin and Cup data (`vision/override_elements.hpp`). Twelve beliefs are new.
+**None is measured: no AI Vision sensor has been read by this code**, and no AI Vision evidence exists yet —
+Bench Tests station 12 was uploaded and never run. Each is settled at the bench — first by **Step 0**, the
+steps that need no new code (0.1 a tape measure and a level on the mount, and a real Toggle; 0.2 "shulib
+Bench Tests" station 12 as it stands; 0.3 VEXcode's AI Vision Utility, teaching the colours; 0.4 the
+camera's live picture at the wall), then by the camera's worksheet station (**Station I**, written with
+VIS1's part B: 0.5–0.8, on the library's own adapter). Where the
+PROS header and the vendored `libpros.a` 4.2.2 disagree, the binary was read (`arm-none-eabi-objdump` on its
+`vdml_ai_vision.c.o`) and the binary is what the adapter follows. *Three beliefs the brief's re-check (S6) found
+unregistered are FOLDED into the entries that own the quantity rather than numbered on their own — the image's
+age (HA-192), the optical axis against the housing (HA-194), a colour band's rows (HA-202); the coordinator may
+split them.* The consumers — the Toggle tracker, the piece finder and the camera feed (VIS1-A2) — lean on
+HA-197, HA-199, HA-200 and HA-203 far more than this part does, and add their sites then.
+
+- [ ] **HA-192 — the camera's data is its LATEST frame, about 30 a second, with no counter and no time; the
+  IMAGE is older than the read by an unmeasured age.**
+  *Claim:* what PROS returns is the camera's most recent frame, refreshed about 30 times a second (VEX's
+  figure); PROS gives NO frame counter and NO timestamp, so the time a read COMPLETED is the only freshness a
+  program can know, and a frozen camera is indistinguishable from a still scene. The image itself is older
+  than that completion by an age `L` nobody has measured. (HA-72's and HA-90's "~20 Hz" are the TAG
+  pipeline's and are not this.)
+  *Source:* `include/shulib/hal/vision_frames.hpp` (`VisionFrame::readAt` — the read's completion — and
+  `readSeq`, the adapter's poll count, never a frame number), `include/shulib/hal/pros/ai_vision.hpp` (the
+  read), `include/shulib/vision/camera_geometry.hpp` (`PoseBound` must hold AT THE IMAGE; `boundAtImage()`
+  widens a moving robot's bound by speed and turn rate times `L`), `include/shulib/sim/camera_plant.hpp` (the
+  host camera model's FROZEN state, re-stamped).
+  *Confidence:* reasoned — the rate is VEX's knowledge-base figure seen only through search snippets (the
+  page answers 403), the same source as HA-194; the absence of a counter or a time from the vendored header,
+  read whole, and the binary; `L` unknown.
+  *Settle (Step 0.2; Station I 0.7 after VIS1-B):* station 12's change timer with a piece moving (the
+  rate); for `L`, the LIBRARY page's latency check — a taught colour painted on the brain's own screen at
+  a logged `pros::micros()`, the first read that reports it, ten trials, the largest kept (an upper bound,
+  the screen's own delay included).
+  *Blast radius if wrong:* a consumer that pairs a frame with the pose at read completion while the robot
+  moves places a piece wrong by the distance moved in `L` — on the host test plant, turning 180 deg/s with a
+  Pin 36 in ahead, the fix misses the Pin from a 66-ms-old image (`test/camera_geometry_test.cpp`, R6.1).
+  **Contained:** `boundAtImage()` is the one widening, and the consumers (AF1, L4) take a MEASURED `L` or use
+  field positions only with the robot stopped. A camera frozen while the robot is PARKED cannot be caught by
+  anything that reads it — which is why a check after a push is not the camera's.
+
+- [ ] **HA-193 — the camera reports 320 x 240, (0, 0) at the top-left, +y DOWN, a box as its left and top
+  edges and its size.**
+  *Claim:* every detection's box is in image pixels, 320 wide and 240 tall, the origin at the top-left, +x
+  right and +y DOWN, given as the box's left edge, top edge, width and height (the vendored header's "left
+  edge (from camera's view)" and "top edge"; api.vex.com's `originX/Y`).
+  *Source:* `include/shulib/hal/vision_frames.hpp` (`Detection`, `kVisionImageWidthPx`/`HeightPx`),
+  `include/shulib/vision/camera_geometry.hpp` (its frames), `include/shulib/hal/pros/ai_vision.hpp` (the
+  copy out of the packed record).
+  *Confidence:* reasoned.
+  *Settle (Step 0.2):* a Pin moved left and right, up and down — the numbers move the stated way; a box
+  at the image's edge reads 0 / 319 / 239.
+  *Blast radius if wrong:* a flipped axis flips every bearing or every elevation — and the host camera model
+  SHARES this belief (it is the one thing its independence cannot catch), so no host test can see it.
+  **Contained:** two constants and the adapter's one copy.
+
+- [ ] **HA-194 — the camera's optics are 74 x 63 degrees, the axis square to the housing's back face.**
+  *Claim:* a 74-degree by 63-degree field of view over 320 x 240 — two focal lengths, 212.3 and 195.8 px, never
+  a square pixel — the principal point at the image's centre, no lens distortion worth modelling, each focal
+  length within +-5 % on its own (the geometry's tolerance box takes the two apart); and the optical axis square to the housing's back face, where the team measures pitch
+  and yaw (Step 0.1), within the mount's stated tolerance.
+  *Source:* `include/shulib/vision/camera_geometry.hpp` (`kAiVisionOptics`, the header's axis paragraph);
+  the host camera model (`sim/camera_plant.hpp`) takes the same numbers as its default true camera.
+  *Confidence:* reasoned — VEX's figures, read only through search snippets (the knowledge-base article
+  answers 403).
+  *Settle (Step 0.2, then Station I's offsets after VIS1-B):* a Pin straight ahead on the robot's centreline at 24 and
+  48 in — its box centre near column 160 and its bottom row where the measured pitch and height put the floor
+  (a consistent offset is an axis not square to the housing: a yaw or pitch to type, not a tolerance to
+  widen); then Pins at known offsets (straight, +-20 degrees, at 12 / 24 / 36 in) against the tape.
+  *Blast radius if wrong:* every bearing and range scales with the focal lengths (one "field of view" for both
+  axes moves every range by about 8 %); an axis off the housing is a pitch or yaw error no stated tolerance
+  covers — a confidently wrong range. **Contained:** one constant, and the mount's typed pitch and yaw.
+
+- [ ] **HA-195 — a camera read is not atomic; a failed object read is {127, 127, 0...}.**
+  *Claim:* the count and each object are separate calls and the camera may update between them; a
+  `get_object` whose port claim fails returns `{id 127, type 127, the rest 0}` (the vendored `libpros.a`
+  zeroes the record and sets both bytes to 127 BEFORE the claim); what the SDK returns for an index past its
+  own count is unknown.
+  *Source:* `include/shulib/hal/pros/ai_vision.hpp` (a record with no valid type, or a tag, is skipped and the
+  frame is a `PartialFault` — counted, never evidence); `test/pros_shim/pros/ai_vision.h` (the failure
+  record).
+  *Confidence:* reasoned — the API's two-call shape; the 127 record read in the binary, its SDK half not.
+  *Settle (Station I 0.7, after VIS1-B):* the LIBRARY page's partial-fault count while pieces move; unplugging mid-read
+  (station 12's RECORD prints any type other than 1 / 2 / 4 / 8 with its raw bytes).
+  *Blast radius if wrong:* a torn read passed as evidence could lose the band that contradicts a colour.
+  **Contained:** any skip makes the whole frame a `PartialFault`; if the SDK answered a VALID-looking type
+  for a stale index, a torn read would pass undetected — the bench's partial-fault count is how that shows.
+
+- [ ] **HA-196 — the mode mask sets exactly the masked bits; the modes and a colour's RGB read back as
+  written.**
+  *Claim:* `aivision_set_enabled_detection_types(bits, mask)` sets EXACTLY the masked mode bits from `bits` and
+  keeps the rest; `get_enabled_detection_types` reads the modes back; `get_color` reads back the RGB as
+  written. Whether the camera KEEPS modes and colours across programs, power cycles and re-plugs is NOT
+  assumed either way — the adapter writes them at every construction, after every read the camera does
+  not answer, and whenever its once-a-second check reads one back DIFFERENT (the check reads the modes and
+  every colour back); a read-back the camera does not ANSWER — the mode read's `PROS_ERR`, or `get_color`'s
+  failure record (the binary: id, red, green, blue 127 and both floats +Inf) — is a failed read, never a
+  changed setting. ONLY that exact record: any other answer is compared, and a mismatch is a changed
+  setting — an empty slot included, whatever the SDK reports for one (the binary's success path copies out
+  whatever the SDK wrote into an uninitialised record; that is unread, and no belief about it is needed).
+  *Source:* `include/shulib/hal/pros/ai_vision.hpp` (the set-up, the all-modes mask, the 1 Hz check),
+  `include/shulib/hal/pros/device_provider.hpp` and `include/shulib/hal/device_provider.hpp` (making the
+  camera writes it).
+  *Confidence:* reasoned — the vendored doc's one example, AND the binary: `set_enabled_detection_types`
+  passes `(bits, mask)` straight to the SDK, PROS's own `enable_` / `disable_` call it as `(t, t)` / `(0, t)`,
+  and the overlay, white balance and tag family use another SDK call — so the all-modes mask cannot disturb
+  them; every setter returns 1 whatever the SDK did. The SDK's own semantics are unread.
+  *Settle (Station I 0.7, after VIS1-B):* the LIBRARY page's `setups` and fault count across a re-plug
+  (the adapter re-writes after any failed read), and its `settingsLost` — a setting the once-a-second check
+  found CHANGED: a camera re-plugged between two reads that came back without its settings, or another
+  writer; station 12's AS FOUND line after another program ran; the mode line after the adapter's write
+  reads exactly COLORS + OBJECTS.
+  *Blast radius if wrong:* a mask that means something else leaves tags on (one of the 24 slots taken) or a
+  mode off — the read-back refuses the set-up and the camera reads `NotConfigured` (the boot line: "NOT set
+  up") rather than a wrongly configured camera; a `get_color` that reads back other numbers refuses every
+  set-up — the camera dark, the robot still drives (VIS1's D5). **Contained:** one adapter.
+
+- [ ] **HA-197 — the AI model is kept on the sensor and named, id by id, as VEX spells it; PROS gives no
+  count.**
+  *Claim:* the AI model is chosen in VEXcode's AI Vision Utility and KEPT on the sensor; a PROS program reads
+  each class id's NAME with `get_class_name` — and no class COUNT, because the vendored binary returns 1 (its
+  success code) for every id, -1 included, whatever the header says; the Override model names ids 0–4
+  `redBluePin`, `blueYellowPin`, `redYellowPin`, `yellowPin`, `cup`; for an id the camera does not name, the
+  SDK writes nothing a zeroed buffer would not show.
+  *Source:* `include/shulib/hal/pros/ai_vision.hpp` (the check by name, each expected id into a zeroed buffer,
+  after every set-up and at every once-a-second check; every Object withheld until it matches), `include/shulib/vision/override_elements.hpp`
+  (`kOverrideClassNames`), `include/shulib/hal/device_provider.hpp` and `hal/pros/device_provider.hpp`.
+  *Confidence:* measured elsewhere for the names (api.vex.com's table, read 2026-10-15); reasoned for "kept
+  on the sensor" and the PROS read path (the binary's behaviour read, its SDK half not).
+  *Settle (Step 0.2):* station 12's RECORD lines (`class '...'` per OBJECT) with one piece of each type in
+  view, before and after a power cycle; its entry line `get_class_name(-1) -> 1` confirms the binary's return.
+  *Blast radius if wrong:* a different spelling withholds every object — safe, but dark; the boot line names
+  the first name that differed. A model not kept on the sensor withholds objects until it is chosen again.
+  A name the SDK does not write reads as '' (the buffer is zeroed before each read); bytes it does write
+  that are not the expected name read as Different — safe either way. **Contained:** one
+  check, one table; the colours never depend on it.
+
+- [ ] **HA-198 — the detections' order and the score's scale are unknown, and nothing depends on them.**
+  *Claim:* the order of up to 24 detections is UNVERIFIED (VEX's page says largest first, by width in one
+  place and by area in another) and the Object score's raw scale is UNKNOWN (VEXcode reports 1–100) — and
+  NOTHING in VIS1 depends on either, or on whether a count above 24 can be reported: a read reporting 24 or
+  more is "possibly full" and never evidence.
+  *Source:* `include/shulib/hal/vision_frames.hpp` (`VisionFrame::truncated`, the detections' order,
+  `Detection::score`), `include/shulib/hal/pros/ai_vision.hpp` (24 or more reads 0..23, truncated).
+  *Confidence:* reasoned — the independence from the code; the order and the scale themselves unknown.
+  *Settle (Step 0.2):* RECORD with several pieces in view — the order against their sizes, the scores,
+  and how often a crowded field reads 24.
+  *Blast radius if wrong:* by design none for the order or the cap; a field that reads 24 often costs answers
+  (the consumers say "camera full"), so the team keeps the working set small. The score floor is the team's
+  number from the bench.
+
+- [ ] **HA-199 — the taught colours separate the Toggle's faces under event light; the lookalikes fail a
+  gate.**
+  *Claim:* the three colour descriptors separate the Toggle's red, blue and yellow faces under event light,
+  and the lookalikes — Pins, Goals, licence plates, LEDs, clothing — either fire no band at Toggle height or
+  fail one of the tracker's gates, EXCEPT those VIS1's probes show cannot be told apart without a trusted
+  pose (65 of 540 red bands near a wall with the position check off; a long strip on the face's line from
+  about 22 in out; a legal 4.5-in plate clipped at the picture's side never).
+  *Source:* `include/shulib/sim/camera_plant.hpp` (the host camera model: a quad IS its descriptor's colour,
+  and a lookalike fires because the test says it does); the Toggle tracker from VIS1-A2.
+  *Confidence:* invented.
+  *Settle (Station I 0.5 / 0.6 after VIS1-B, then the event field, 0.8).*
+  *Blast radius if wrong:* a lookalike read as a Toggle's colour. **Contained:** by the tracker's gates (A2),
+  its optional position check, and AF1's contract — no push on the camera's colour alone.
+
+- [ ] **HA-200 — the AI model's box encloses the WHOLE piece.**
+  *Claim:* an Object's box spans the whole visible piece: its bottom row is where a standing Pin's base meets
+  the floor (or its support) and its height the Pin's 6.5 in — what the ground range, the size range, and the
+  piece finder's agreement between them and its RAISED verdict rest on.
+  *Source:* `include/shulib/vision/camera_geometry.hpp` (`groundRange()` and `sizeRange()`'s documentation);
+  the piece finder's posture agreement from VIS1-A2.
+  *Confidence:* invented.
+  *Settle (Step 0.2):* a still Pin at 12 / 24 / 36 in — standing, lying, on a Goal — the box against the
+  tape.
+  *Blast radius if wrong:* a box short of the base reads the piece farther by the ground range and nearer by
+  the size range, so the two disagree — the finder answers UNSURE (a refusal), or RAISED for a floor piece.
+  **Contained:** two functions.
+
+- [ ] **HA-201 — the Toggle's geometry, from the manual's drawing.**
+  *Claim:* the field-facing face's lower colour boundary is 12.55–12.65 in above the floor, its apex 14.39 in
+  and 0.9–1.2 in behind the lower boundary (the face LEANS BACK); the FLAT bottom face sits at 12.36 in, about
+  a quarter inch below that boundary, joined to it by the rounded corner, and is a different colour; the
+  face's distance from the wall's inner face is unknown. ARITHMETIC from the Game Manual v2.0's pA8 (the axle
+  13.20 in up; the apex 30.2 mm above it; 51.6 mm from the apex to the flat bottom) and its glossary ("each
+  face of the triangle is approximately 2.05 in (52.2 mm) wide"): the colour boundaries, at the rounded
+  corners' middles, lie 30.2 mm from the axle and so 52.3 mm apart — the glossary's width — and the field
+  face's lower one is 15.1 mm below the axle. (VIS1's brief first read 12.36 as the field face's lower edge,
+  then took 12.61 from the glossary; VIS1-A1 read the drawing: both hold, 12.36 is the flat bottom.) v2.1's
+  PDF answered 404 on 2026-10-15, -18 and -22.
+  *Source:* `include/shulib/vision/override_elements.hpp` (`ToggleFace`, `kTogglePlaces`); the host camera
+  model's Toggles (`sim/camera_plant.hpp`), whose bottom face is drawn at the lower boundary's height — a
+  quarter-inch approximation its banner states.
+  *Confidence:* reasoned.
+  *Settle (Step 0.1):* a real Toggle measured with a tape — the lower boundary's and the apex's heights,
+  the flat bottom's, the distance from the wall's inner face, which colour is on which face — and the newest
+  manual's pA8 and glossary.
+  *Blast radius if wrong:* heights off by more than the interval make "one camera explains it" refuse a real
+  face (UNKNOWN), and a wider interval lets more lookalikes through; the blind band of mounts (lens
+  11¾–12¾ in, level) moves with the lower boundary, so a mount chosen from it could be blind.
+  **Contained:** one header.
+
+- [ ] **HA-202 — a still object's box edge jitters by at most about 2 px — a model box's and a colour band's.**
+  *Claim:* a box edge's jitter is at most ~2 px for a still object (`kBoxEdgePx`; the minimum measurable band
+  height is twice it) — for a model's object box AND for a colour band, whose top and bottom rows are taken
+  as the face's apex and lower edge (glare on the back-leaning face, rounded corners).
+  *Source:* `include/shulib/vision/camera_geometry.hpp` (`kBoxEdgePx`, the jitter term in every interval);
+  the tracker's band rows from VIS1-A2.
+  *Confidence:* invented.
+  *Settle (Step 0.2; Station I 0.5 after VIS1-B):* five RECORDs of a still Pin at each distance — the spread; five of a still
+  Toggle face at 12 / 24 / 36 / 48 in — its rows against the rows the measured mount predicts, and their
+  spread.
+  *Blast radius if wrong:* larger jitter makes every interval too narrow — a true range outside its "bound",
+  a confident wrong fix; a glare-shifted band edge refuses a real face. **Contained:** one constant.
+
+- [ ] **HA-203 — one camera read is cheap enough for the driver loop's tick.**
+  *Claim:* one read — the count and then one call per detection, up to 25 device calls, and once a second
+  the adapter's check (the modes, every colour and every expected class name read back: up to 28 more), and
+  after a lost setting or a failed read, at most every half second, the set-up written again (each colour
+  written and read back, the modes written and read back, every expected class name: up to 36 more) —
+  costs little enough to make once per read period inside the driver loop's 10 ms tick without stretching
+  it.
+  *Source:* `include/shulib/hal/vision_frames.hpp` (`IVisionFrames::read()`'s documentation),
+  `include/shulib/hal/pros/ai_vision.hpp`; the camera feed, which times every read, from VIS1-A2.
+  *Confidence:* invented.
+  *Settle (Station I 0.7, after VIS1-B):* station 12's read time (microseconds, the maximum) with colours
+  and objects on, and the LIBRARY page's on a read that carries the once-a-second check;
+  later the driver loop's own tick monitor under AF1.
+  *Blast radius if wrong:* a read that costs milliseconds stretches the tick (LOOP_OVERRUN faults, worse
+  motion). **Contained:** the feed reads at most once a period, a period the consumer chooses.
 
 ### MECH-A1's additions — the mechanism core's beliefs about the sensors it names (2026-10-08)
 
@@ -3996,7 +4252,9 @@ E2's tuning constants make the corrector work better or worse; these three make 
   *Source:* `hal/vision_conversion.hpp`, the planar-reduction note (A4: HA-70). `CameraMount`
   carries position and yaw only, which encodes the assumption in the type.
   *Confidence:* **invented** — robot two has carried an AI Vision camera on port 3 since
-  2026-09-24, but nobody has measured how it is mounted, and no library adapter reads it yet (R2).
+  2026-09-24, but nobody has measured how it is mounted, and no library adapter reads it yet (R2)
+  (a library adapter for the camera's objects and colours exists since VIS1-A1, host-tested only; no
+  program reads robot two's camera until VIS1-B declares it; its TAGS are read by nothing).
   *Settle (R3):* measure the mounted camera's pitch and roll; if either is significant, the
   reduction needs the full 3-D transform and `CameraMount` grows two fields.
   *Blast radius if wrong:* a pitched camera turns a tag's HEIGHT into a RANGE error — a tag

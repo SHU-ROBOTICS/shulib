@@ -281,7 +281,9 @@ nav:
           - Telemetry sink: api/telemetry_sink.md
           - Vision: api/vision.md
           - Vision conversion: api/vision_conversion.md
+          - Vision frames: api/vision_frames.md
       - HAL — the PROS adapters:
+          - Ai vision (PROS): api/pros-ai_vision.md
           - Battery (PROS): api/pros-battery.md
           - Block sink (PROS): api/pros-block_sink.md
           - Block source (PROS): api/pros-block_source.md
@@ -328,6 +330,7 @@ nav:
           - Auton registry: api/auton_registry.md
           - Match runner: api/match_runner.md
       - Config:
+          - Camera config: api/camera_config.md
           - Robot config: api/robot_config.md
           - Route: api/route.md
       - Mechanism:
@@ -362,6 +365,9 @@ nav:
           - Teleop loop: api/teleop_loop.md
       - Ui:
           - Touch panel: api/touch_panel.md
+      - Vision:
+          - Camera geometry: api/camera_geometry.md
+          - Override elements: api/override_elements.md
 # END GENERATED API NAV
 
   - FAQ: faq.md

@@ -16,6 +16,138 @@
 
 ## API 2.5
 
+### Added since 2.5 (2026-10-30; built 2026-10-18–22, reviewed and fixed 2026-10-22–30) — the AI Vision camera as a device: a frame at a time, its colours and AI model written and checked, and pixels turned into bearings and ranges that carry their error
+
+> Written when it was built (chunk VIS1, part A1 of three: the camera as a device; its Toggle colour
+> tracker, piece finder and camera feed are part A2, robot two's camera and the bench page part B). **No
+> version bump — every change is ADDITIVE:** seven new headers; an appended enumerator
+> (`hal::DeviceKind::AiVision`), an appended field (`config::SensorsConfig::camera`), an appended `config::PortUse::Camera`
+> and new members on surfaces the [Freeze Register](roadmap.md#freeze-register) does not freeze
+> (`hal::IDeviceProvider`, `config::RobotConfig` and `robot::Robot` are in no row of it); the F4 seams
+> untouched — `hal::IVision` stays byte for byte, and the camera's frames are a SIBLING seam, row F15, NOT
+> FROZEN. Every config that was valid stays valid and builds the same robot: the camera's port defaults to
+> 0, no camera. **No program declares a camera yet** (robot two's table gains it in part B), so every
+> program builds and drives exactly as before. **Host only — no AI Vision sensor has been read by this
+> code.**
+
+**Why:** the team lead's rulings of 2026-10-08 and 2026-10-14 put the camera before the robot panel —
+its colours for the Toggle auto-flipper (AF1), its OBJECTS (Pins, Cups: VEX's Override AI model) for
+driving to a named piece (L4). Both rest on one adapter, one frame and one geometry, built here.
+
+**ADDED:**
+
+- **`hal::IVisionFrames`** (`hal/vision_frames.hpp`) — the camera read a FRAME at a time: `read()` (hits
+  the device: the count, then each detection) and `status()` (touches nothing). A `hal::VisionFrame` holds
+  up to 24 `hal::Detection`s (a colour blob, a colour code or an AI-model object: its kind, id and box in
+  image pixels, +y down), the time the read COMPLETED (`readAt` — PROS gives no frame counter and no
+  timestamp, and the IMAGE is older than the read by an unmeasured age), the adapter's poll count
+  (`readSeq`, never a frame number), and how the read went: **only `FrameStatus::Ok` is evidence.** A
+  failed read is a frame that SAYS it failed, with NO detections — never the last good frame held over
+  (the scalar sensor adapters hold their last good value; a held frame would read as a fresh "nothing
+  changed"). An Object's raw score is kept whole (0..65535; its scale is unknown). A read of 24 or more is `truncated` — "possibly full", never evidence that nothing else is
+  there. `hal::AiVisionSettings` is what is written to the camera (the colour descriptors a team measures
+  with VEXcode's AI Vision Utility, `hal::ColourDescriptor`; whether the AI model's objects are on; the
+  class names the model must report), refused by name by `aiVisionSettingsProblem()` — an all-zero
+  descriptor is UNSET, never a colour. `hal::CameraStatus` and `cameraStatusWords()` give the set-up and
+  the model check in ASCII words ("set up, model OK", "set up, model DIFFERENT", "NOT set up", ...).
+- **`hal::pros::ProsAiVision`** (`hal/pros/ai_vision.hpp`) — the adapter over PROS's C API. It WRITES the
+  colours and the detection modes at construction — exactly the modes asked for, TAGS off, through the
+  all-modes mask — and reads each back (PROS's setters report success whatever the camera did); writes
+  them again after a read the camera does not answer and whenever the once-a-second check finds one
+  changed; reads `NotConfigured` until a set-up holds, retried at most every 0.5 s. The once-a-second check
+  reads the modes and EVERY colour back and re-asks the AI model, so a match is never more than a second
+  old (a camera swapped while nothing read it is caught before its objects pass); a check the camera does
+  not answer is a failed read, counted like a failed count read — never a "lost setting". It checks the camera's AI model BY
+  NAME before an object id means anything — class 3 is `yellowPin` in VEX's Override model and `blueRing`
+  in its Classroom model — reading each expected id's name into a zeroed buffer and never asking for a
+  count: the vendored PROS 4.2.2 returns 1 for every id, whatever its header says (read in its
+  `libpros.a`). Until the names match, every Object is WITHHELD (counted); colours still pass — but only
+  the colours this program wrote: a blob from a descriptor another program left on the camera, and any
+  colour code, is withheld too (counted, `coloursWithheld`). A torn read (an object with no valid type, or
+  a tag) is a `PartialFault`. It never calls PROS's camera reset, white
+  balance, tag-family, USB-overlay or colour-code calls. It is an `hal::IReadFaults` too.
+- **`config::CameraConfig`** (`config/camera_config.hpp`) — the robot file's camera block: the port (0 = none),
+  the settings, the MEASURED mount (`config::CameraPlacement`: forward, left, height, yaw, pitch, each with
+  how well it was measured, and who measured it) and a note. An UNSET mount is not a config error: the
+  camera is built and read, and only the geometry refuses (`vision::cameraModelProblem()` names why), so a
+  team can bring a camera up a piece at a time.
+- **`vision::CameraModel`** (`vision/camera_geometry.hpp`) — a box turned into a BEARING, an ELEVATION, a
+  GROUND range (from where its base meets the floor), a SIZE range (from its known height) and a FIELD
+  position with a radius — every one an INTERVAL, the EXACT range of the answer over every combination of
+  the stated tolerances (the mount's, the optics' — VEX's 74 x 63 degrees, two focal lengths, never a
+  square pixel, each with its own tolerance — and a box edge's jitter): computed at the corners of that
+  box and at the few points inside it where an answer turns back (a box on the lens's level, the
+  principal point's column), and the fix radius over the bearing, the range and the heading together. A
+  ground range near the horizon is refused rather than infinite; a mount whose pitch WITH its tolerance
+  reaches past 55 degrees (`vision::kMaxPitchSpanDeg`) is refused by the geometry, not by the robot file.
+  The size range is exact for an upright line anywhere in the picture (its sideways angle and the
+  camera's pitch carried); a Pin's box also takes in its top face, so its size range reads a little nearer
+  than its near rim. A pose bound that is not a bound (a negative or non-finite tolerance) gives an
+  INFINITE fix radius, never a tight one. `vision::boundAtImage()` widens a robot's pose bound by
+  its speed and turn rate times the image's measured age; with no measured age, field positions hold only
+  with the robot stopped.
+- **`vision::override2026`** (`vision/override_elements.hpp`) — the season's data, every number cited to
+  the Game Manual v2.0: the Toggle's leaning face (its lower edge 12.55–12.65 in up, the apex 14.39 in,
+  the flat bottom face 12.36 in), the four Toggles' places, the Pin's and the Cup's sizes, and the
+  Override model's class names.
+- **`robot::Robot::camera()` / `cameraAbsence()`** — a config with a camera gets it built, LAST, through
+  the provider. **A refused camera never refuses the robot:** `camera()` is nullptr and `cameraAbsence()`
+  says why ("port 3: a vision sensor (expected an AI Vision sensor)"), and the robot builds and drives —
+  a camera cable out at an event must never cost the match.
+- **`config::PortUse::Camera`** — the camera's port is claimed like every other: a motor typed on it is
+  refused naming both ("port 3 is claimed by the LEFT drive and by the AI Vision camera").
+- **For test authors** (outside the reference — `test/README.md` documents them):
+  `hal::fake::FakeVisionFrames` (a settable camera, its own read-fault count), the host PROS shim's `pros/ai_vision.h`
+  (it answers as the vendored binary does where the binary and the header differ, and starts adversarial:
+  station 12's tags on, a stray colour, VEX's Classroom model), and `sim::CameraPlant`, the host camera
+  model (Toggles, Pins, Cups and lookalikes seen through a TRUE camera set apart from the believed one,
+  with jitter, drops, a frozen or unplugged or torn camera; written with its own projection, so a sign
+  error in the library's cannot cancel out).
+
+**CHANGED (for an implementer, or a reader of the census words):**
+
+- **`hal::IDeviceProvider` has a new pure virtual, `aiVision(port, settings)`**, and `readFaults(port)`
+  answers the camera too. MAKING the camera WRITES its settings. A port outside 1..21, a port holding
+  anything but an AI Vision sensor — the OLDER Vision sensor included, by name — and a settings problem are
+  refused, naming the port; a second request with EQUAL settings returns the same camera and writes
+  nothing, one with different settings is refused ("one owner"). Code that only CALLS a provider is
+  unaffected; a class that IMPLEMENTS one must add it (the two in the library have). **Migration:** make
+  the camera or refuse it naming the port, and answer `readFaults(port)` with it once made.
+- **`hal::DeviceKind::AiVision`** — the brain's registry answer for an AI Vision sensor, appended.
+  **A BEHAVIOUR CHANGE in words:** until now the registry called the AI Vision sensor `Vision`, the older
+  Vision sensor's kind, so a census line said "VISION" for it and no check could refuse an older Vision
+  sensor on the camera's port; it now says **"AI-VISION"** — so "shulib Calibrate"'s device census
+  should list robot two's port 3 that way, and so would the boot check's refusal for a drive or IMU port
+  found holding the camera, IF the brain's registry reports an AI Vision sensor as `E_DEVICE_AIVISION`
+  (unmeasured: no census so far printed a word that tells the two apart) — and `Vision` means the older
+  sensor only. A `switch` over `DeviceKind` needs one more case.
+- **The robot's boot line** (`robot::Robot::describe()`) ends with the camera's words where it ended
+  "vision ABSENT": "camera ABSENT" with none declared — every program's line today —, "camera port 3
+  ABSENT (why)" refused, or "camera port 3 set up, model OK" and the other states, the reason in
+  parentheses, ASCII only. A test or a tool that matches the old words must take the new ones.
+- **`config::RobotConfig::valid()`** checks the camera when its port is not 0: the port, its claim, its
+  settings, and a mount that is set. A config without a camera is unaffected. **What you must do:**
+  nothing.
+
+**TESTED:** every refusal by name on both sides of each range (a hue of 1 and 40 accepted, 0.99 and 40.01
+refused); the adapter over the shim — the set-up written and read back, a write that "succeeds" and changes
+nothing caught, the retry's 0.5 s and the read-back's 1 s each landed on exactly, each colour field compared
+on its own, only the binary's exact failure record taken for a camera that did not answer (a wiped slot is a
+changed setting), descriptor 7 written and held, a dead camera's `PROS_ERR` (2,147,483,647) never read as a
+count, 23 complete and 24 possibly full, a torn read and a tag not evidence, the Classroom model withholding
+every object, one wrong name of five, a camera that names nothing, a model re-plugged; the provider's refusals
+for every kind the brain reports; the geometry against hand anchors and, over 400 placements, against the host
+camera model with a true camera moved to the edge of every tolerance (every interval held the truth); every
+interval swept against the WHOLE tolerance box at 100 % of each tolerance, the pitch inside it included (each
+held the sweep's extremes and reached them), and the fix radius against a sweep of bearing, range and heading;
+an image 66 ms old while turning 180 deg/s shown to put a Pin outside the fix computed without
+`boundAtImage()`, and inside it with; the Robot's camera words in every state, and a refused camera with the
+robot still driving; each load-bearing rule's mutation run and seen to fail a test. Twelve beliefs about the
+camera and the field are new in the [register](hardware-assumptions.md): HA-192..HA-203 — none measured.
+
+**What you must do:** nothing, unless you implement `hal::IDeviceProvider` or match the census or boot
+line words (above).
+
 ### 2026-10-30 (built 2026-10-29) — the mechanism core, part 5: robot two's programs run its claws on the core — no API change
 
 > Written when it was built (chunk MECH-A5, the fifth of the mechanism core's six parts). **No version

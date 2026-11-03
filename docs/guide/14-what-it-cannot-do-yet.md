@@ -144,7 +144,9 @@ reads as a smaller change than the feature sounds like, that is the honest size 
   has been measured.
 - **Driving Skills has no GPS strip**, so in that event the GPS corrector reports "no fix" for
   the whole run. The **tag** corrector does not depend on the strip — but it does depend on you
-  having a camera, a tag map, and a task polling it, none of which exist yet either.
+  having a camera that reads TAGS, a tag map, and a task polling it, none of which exist yet either
+  (since the camera's first part the library opens the AI Vision camera, but for its colours and
+  objects only — its tags stay off).
 
 ## A Kalman filter now exists — and it is not the default
 

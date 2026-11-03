@@ -10,6 +10,10 @@
 - **adapter (`hal/pros`)** — the thin glue that implements one hardware interface over the real
   PROS SDK, converting units exactly once at the edge. The library core never touches PROS; the
   adapters are the only place that does. [Ch. 13]
+- **AI model (the camera's) / class table** — the object recogniser chosen on the AI Vision camera in
+  VEXcode's AI Vision Utility; it numbers what it finds (its CLASSES), and the library checks the
+  camera's name for each number against the robot file's table before a number means anything — VEX's
+  Override model's class 3 is a yellow Pin, its Classroom model's a blue ring. [Ch. 10]
 - **AprilTag** — a printed black-and-white square marker, like a chunky QR code, that a camera
   can find and identify. Because its real size and shape are known, the four corners in the image
   are enough to work out how far away it is *and which way it is turned*. [Ch. 3]
@@ -24,6 +28,8 @@
   from RUN on the brain's screen, through the same library call the competition program's
   `autonomous()` makes; only the trigger differs. Not "the tester" — that word is Bench Tests'.
   [Ch. 16]
+- **bearing (a camera's)** — which way something is from the camera, as an angle from the robot's
+  forward, left positive — always an interval, never one number. [Ch. 10]
 - **blackbox** — the binary run record written to the SD card, so a run can be read back with no
   laptop attached. Its decoder ships with it. [Ch. 11]
 - **blocking (call)** — a function that doesn't return until its job is done, which is what
@@ -37,6 +43,9 @@
   [Ch. 8]
 - **CI (continuous integration)** — automation that builds and tests every commit, so a
   breakage is caught the day it's made. [Ch. 7]
+- **colour descriptor** — one colour the AI Vision camera is taught to box: an id, a red-green-blue value
+  and how far the hue and saturation may stray, measured by the team in VEXcode's AI Vision Utility and
+  written to the camera by the library at every boot. All zero is UNSET, never a colour. [Ch. 10]
 - **command id** — the per-run serial number (1, 2, 3…) stamped on each motion and all its
   diagnostic lines, tying them together. [Ch. 11]
 - **competition program ("shulib Competition")** — the program uploaded for a match: the auton
@@ -84,13 +93,21 @@
   need, and let feedback fix only the leftovers. [Ch. 5]
 - **field-relative (Field frame)** — directions fixed to the field, independent of which way
   any robot faces. [Ch. 2]
+- **fix radius** — how far a camera's field position for a thing may be from where it really is, given
+  every stated tolerance — a bound, not a probability; infinite when a stated tolerance is not a number
+  that bounds anything. [Ch. 10]
 - **frame** — a point of view for describing directions; the field's or the robot's. [Ch. 2]
+- **frame (a camera's)** — one READ of the AI Vision camera: up to 24 detections, each with its box in
+  the picture, the time the read finished, and how the read went — only an `Ok` frame is evidence; a
+  failed read has no detections. Not the same word as the frame of reference above. [Ch. 10]
 - **fusion** — combining multiple imperfect sensors into one best estimate. [Ch. 3]
 - **gain** — a tuning constant that sets how strongly a controller reacts (e.g. `kP`). [Ch. 5]
 - **gate / gating** — the fusion layer's bouncer: corrections that disagree wildly with the
   estimate are rejected as probable sensor lies. [Ch. 3]
 - **GPS (V5 GPS sensor)** — VEX's camera-based sensor that reads a coded strip on the field
   wall to report absolute position; no relation to satellites. [Ch. 3]
+- **ground range** — how far away something on the floor is, from the camera's height and the picture
+  row where its base meets the floor — an interval, refused near the horizon. [Ch. 10]
 - **HAL (hardware abstraction layer)** — the set of interfaces (`hal/`) standing between the
   library and any actual hardware, real or simulated. [Ch. 13]
 - **H-drive** — a tank layout plus one sideways wheel: strafes, but slower than it drives.
@@ -145,6 +162,10 @@
 - **odometry** — tracking position by accumulating wheel-measured movement each tick. [Ch. 3]
 - **omniwheel** — a wheel with rollers around its rim, so it can slide freely along its axle
   direction; what makes X-drives possible. [Ch. 4]
+- **one camera explains it** — the rule for checking two numbers measured from ONE camera against each
+  other (a band's two edges; a Pin's base and its height): ask whether a single camera inside the
+  stated tolerances sees the box that way, never whether two separately widened intervals overlap.
+  [Ch. 10]
 - **oscillation** — over-aggressive control rocking back and forth around the target instead
   of settling. [Ch. 5]
 - **overshoot** — carrying past the target before coming back; the result line's `over`
@@ -162,6 +183,9 @@
   into its position and orientation relative to the camera. In shulib it is a standalone,
   testable function, deliberately separate from the corrector that consumes its output. [Ch. 3]
 - **pose** — position plus heading: (x, y, θ). [Ch. 2]
+- **possibly full** — a camera read that reported the camera's most, 24 or more: the camera sends at
+  most 24 and may hold more, and what was not sent may be what matters, so such a read is never
+  evidence that something is absent. [Ch. 10]
 - **process noise** — how much confidence the estimator gives up per tick simply from time
   passing and distance covered — the thing that makes a covariance grow while dead reckoning.
   Scaling it with distance travelled rather than with time is what lets a truthful correction
@@ -176,10 +200,11 @@
   consequences. [Ch. 3]
 - **rate limiting** — capping diagnostic output volume, with every dropped line counted and
   announced. [Ch. 11]
-- **read fault** — a sensor read the adapter screened because the device failed, answering with
-  its last good value instead; counted (`IReadFaults`), so that a reader — the mechanism core's
-  service, which reads a piece sensor's count since the core's second part — can tell a held value
-  from a measured one. [Ch. 10]
+- **read fault** — a sensor read the adapter screened because the device failed: a scalar sensor
+  answers with its last good value instead, the camera with a frame that says the read failed;
+  counted (`IReadFaults`), so that a reader — the mechanism core's service, which reads a piece
+  sensor's count since the core's second part — can tell a held value from a measured one (for the
+  camera: a read that was not evidence). [Ch. 10]
 - **recipe** — a routine written as a `Routine` chain of steps that runs in exactly the order
   it reads and stops (parking the robot) at the first failed step. [Ch. 9]
 - **result line** — the one-line verdict each motion leaves in the transcript. [Ch. 11]
@@ -212,6 +237,9 @@
 - **sim harness** — an assembled simulated robot (`SimHarness`): plant, sensors, clock, and
   their wiring. The test suite is its heaviest user, but it is a shipped header and chapter 8 has
   you build one yourself. [Ch. 8]
+- **size range** — how far away an upright thing of known height is, from how tall its box is in the
+  picture and where in the picture it sits — an interval. A Pin's box takes in its top face too, so its
+  size range reads a little nearer than its near rim. [Ch. 10]
 - **snap (and never-snap)** — jumping the estimate straight to whatever a sensor claims. shulib
   never does it, in position or in heading: corrections are applied as small bounded steps, so a
   single bad reading cannot teleport or spin the robot's idea of itself. [Ch. 3]
@@ -261,6 +289,10 @@
   competition program's start on the bench. A program started that way comes up disabled; what the
   Timed Run does next is not yet measured (the Hardware Assumptions Register, HA-162). [Ch. 17]
 - **tolerance** — the "close enough" threshold in settling. [Ch. 5]
+- **tolerance box** — every combination of the camera's stated errors (its height, pitch and yaw, each
+  of the optics' two focal lengths on its own, a box edge's jitter) up to their limits; every camera
+  answer's interval is its exact span over the box — computed at each corner of it, and at the few points
+  inside where an answer turns back (a box on the lens's level, the principal point's column). [Ch. 10]
 - **tracking center** — the specific point on the robot whose position the estimate tracks.
   [Ch. 2]
 - **tracking wheel** — a small unpowered wheel with an encoder, pressed to the floor purely to

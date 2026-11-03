@@ -125,7 +125,7 @@ public:
             case ::pros::c::E_DEVICE_ADI: return DeviceKind::Adi;
             case ::pros::c::E_DEVICE_OPTICAL: return DeviceKind::Optical;
             case ::pros::c::E_DEVICE_GPS: return DeviceKind::Gps;
-            case ::pros::c::E_DEVICE_AIVISION: return DeviceKind::Vision;
+            case ::pros::c::E_DEVICE_AIVISION: return DeviceKind::AiVision;  // VIS1-A1 (D4)
             case ::pros::c::E_DEVICE_SERIAL: return DeviceKind::Other;
             case ::pros::c::E_DEVICE_UNDEFINED: return DeviceKind::Other;
             default: break;

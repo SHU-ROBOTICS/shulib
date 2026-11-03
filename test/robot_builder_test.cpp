@@ -824,7 +824,8 @@ TEST_CASE("G1 builder 7: no GPS means AbsentGps and NO corrector; a GPS means th
         BuiltRobot built{tankConfig(5, cfgns::OdometryKind::DriveEncoders), tank, worldConfig()};
         CHECK_FALSE(built.robot.hasGpsCorrector());
         CHECK(dynamic_cast<shulib::hal::AbsentGps*>(&built.robot.context().gps()) != nullptr);
-        // Tags and vision are ABSENT unconditionally in Part 1 — no camera adapter exists.
+        // Tags and the frozen IVision are ABSENT unconditionally — no AprilTag adapter exists, and since
+        // VIS1-A1 the AI Vision camera is read a frame at a time through IVisionFrames instead (D11).
         CHECK(dynamic_cast<shulib::hal::AbsentTagSource*>(&built.robot.context().tags())
               != nullptr);
         CHECK(dynamic_cast<shulib::hal::AbsentVision*>(&built.robot.context().vision())
@@ -880,7 +881,11 @@ TEST_CASE("G1 builder 9: describe() names the identity, the source word, the por
     CHECK(s.find("drive-encoders") != std::string::npos);
     CHECK(s.find("GPS ABSENT") != std::string::npos);
     CHECK(s.find("tags ABSENT") != std::string::npos);
-    CHECK(s.find("vision ABSENT") != std::string::npos);
+    // VIS1-A1: the camera's word, LAST — "vision ABSENT" until then (no camera is declared here).
+    CHECK(s.find("camera ABSENT") != std::string::npos);
+    CHECK(s.find("vision") == std::string::npos);
+    CHECK(s.size() >= std::strlen("camera ABSENT"));
+    CHECK(s.compare(s.size() - std::strlen("camera ABSENT"), std::string::npos, "camera ABSENT") == 0);
 
     const shulib::kinematics::MatrixKinematics xkin =
         shulib::kinematics::xDrive(Length{kDriveRadius});
@@ -1799,6 +1804,8 @@ TEST_CASE("T3 builder M5: a provider that refuses a claw motor WITHOUT a reason 
         [[nodiscard]] shulib::hal::IDistance* distance(std::uint8_t p) override { return inner->distance(p); }
         [[nodiscard]] shulib::hal::IOptical* optical(std::uint8_t p) override { return inner->optical(p); }
         [[nodiscard]] shulib::hal::IDigitalIn* digitalIn(std::uint8_t l) override { return inner->digitalIn(l); }
+        // VIS1-A1: the camera, forwarded.
+        [[nodiscard]] shulib::hal::IVisionFrames* aiVision(std::uint8_t p, const shulib::hal::AiVisionSettings& s) override { return inner->aiVision(p, s); }
         [[nodiscard]] const shulib::hal::IReadFaults* readFaults(std::uint8_t p) const noexcept override {
             return inner->readFaults(p);
         }
@@ -1833,6 +1840,13 @@ TEST_CASE("T3 builder M5: a provider that refuses a claw motor WITHOUT a reason 
         CHECK(std::string{robot.mechanismAbsence(i)} == "no mechanism is declared at this index");
     }
     checkReportContract(robot);
+    // VIS1-A1: a camera request reaches the inner provider unchanged.
+    shulib::hal::AiVisionSettings camera{};
+    const char* names[1] = {"cup"};
+    camera.objects = true;
+    camera.expectedClasses = names;
+    camera.expectedClassCount = 1;
+    CHECK(silent.aiVision(19, camera) == &world.devices.fakeCamera(19));
 }
 
 TEST_CASE("T3 builder M6: each mechanism is built with ITS OWN declared safe mode — Coast, Brake "
@@ -2189,6 +2203,8 @@ TEST_CASE("B2 builder P2: a 3-wire line the provider refuses leaves THAT mechani
             [[nodiscard]] shulib::hal::IDigitalIn* digitalIn(std::uint8_t l) override {
                 return inner->digitalIn(l);
             }
+            // VIS1-A1: the camera, forwarded.
+            [[nodiscard]] shulib::hal::IVisionFrames* aiVision(std::uint8_t p, const shulib::hal::AiVisionSettings& s) override { return inner->aiVision(p, s); }
             [[nodiscard]] const shulib::hal::IReadFaults* readFaults(std::uint8_t p) const noexcept override {
                 return inner->readFaults(p);
             }
@@ -2211,6 +2227,13 @@ TEST_CASE("B2 builder P2: a 3-wire line the provider refuses leaves THAT mechani
         CHECK(std::string{r.mechanismAbsence(2)}
               == "the device provider refused a 3-wire line and gave no reason");
         CHECK(r.mechanisms().size() == 2U);
+        // VIS1-A1: a camera request reaches the inner provider unchanged.
+        shulib::hal::AiVisionSettings camera{};
+        const char* names[1] = {"cup"};
+        camera.objects = true;
+        camera.expectedClasses = names;
+        camera.expectedClassCount = 1;
+        CHECK(silent.aiVision(19, camera) == &w3.devices.fakeCamera(19));
     }
 }
 

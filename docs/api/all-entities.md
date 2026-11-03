@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 5,060 of them, across 188 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 5,269 of them, across 193 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -92,6 +92,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ActuateAndConfirmConfig::actuationTime` | field | [mechanism_op.md](mechanism_op.md#actuateandconfirmconfig-actuationtime) |
 | `ActuateAndConfirmConfig::confirmWindow` | field | [mechanism_op.md](mechanism_op.md#actuateandconfirmconfig-confirmwindow) |
 | `ActuateAndConfirmConfig::target` | field | [mechanism_op.md](mechanism_op.md#actuateandconfirmconfig-target) |
+| `AiVisionSettings` | struct | [vision_frames.md](vision_frames.md#struct-aivisionsettings) |
+| `AiVisionSettings::colourCount` | field | [vision_frames.md](vision_frames.md#aivisionsettings-colourcount) |
+| `AiVisionSettings::colourMerge` | field | [vision_frames.md](vision_frames.md#aivisionsettings-colourmerge) |
+| `AiVisionSettings::colours` | field | [vision_frames.md](vision_frames.md#aivisionsettings-colours) |
+| `AiVisionSettings::expectedClassCount` | field | [vision_frames.md](vision_frames.md#aivisionsettings-expectedclasscount) |
+| `AiVisionSettings::expectedClasses` | field | [vision_frames.md](vision_frames.md#aivisionsettings-expectedclasses) |
+| `AiVisionSettings::objects` | field | [vision_frames.md](vision_frames.md#aivisionsettings-objects) |
+| `aiVisionSettingsProblem` | free function | [vision_frames.md](vision_frames.md#aivisionsettingsproblem) |
 | `allFit` | free function | [calibrate_screen.md](calibrate_screen.md#allfit) |
 | `AlwaysConfirmed` | struct | [mechanism_op.md](mechanism_op.md#struct-alwaysconfirmed) |
 | `AlwaysConfirmed::operator()` | function | [mechanism_op.md](mechanism_op.md#alwaysconfirmed-operator-call) |
@@ -384,6 +392,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BootVerdict::reason` | field | [boot_check.md](boot_check.md#bootverdict-reason) |
 | `BootVerdict::swappedCount` | field | [boot_check.md](boot_check.md#bootverdict-swappedcount) |
 | `BootVerdict::usable` | function | [boot_check.md](boot_check.md#bootverdict-usable) |
+| `boundAtImage` | free function | [camera_geometry.md](camera_geometry.md#boundatimage) |
 | `Brake` | constant | [kinds.md](kinds.md#brake) |
 | `BrakeMode` | enum class | [motor.md](motor.md#enum-class-brakemode) |
 | `BrakeMode::Brake` | enumerator | [motor.md](motor.md#brakemode-brake) |
@@ -568,15 +577,71 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CalibratorStatus::spinDirection` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-spindirection) |
 | `CalibratorStatus::spinLevelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-spinlevelvolts) |
 | `CalibratorStatus::spinTurns` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-spinturns) |
+| `CameraConfig` | struct | [camera_config.md](camera_config.md#struct-cameraconfig) |
+| `CameraConfig::note` | field | [camera_config.md](camera_config.md#cameraconfig-note) |
+| `CameraConfig::placement` | field | [camera_config.md](camera_config.md#cameraconfig-placement) |
+| `CameraConfig::port` | field | [camera_config.md](camera_config.md#cameraconfig-port) |
+| `CameraConfig::settings` | field | [camera_config.md](camera_config.md#cameraconfig-settings) |
+| `CameraCorner` | struct | [camera_geometry.md](camera_geometry.md#struct-cameracorner) |
+| `CameraCorner::cx` | field | [camera_geometry.md](camera_geometry.md#cameracorner-cx) |
+| `CameraCorner::cy` | field | [camera_geometry.md](camera_geometry.md#cameracorner-cy) |
+| `CameraCorner::fx` | field | [camera_geometry.md](camera_geometry.md#cameracorner-fx) |
+| `CameraCorner::fy` | field | [camera_geometry.md](camera_geometry.md#cameracorner-fy) |
+| `CameraCorner::h` | field | [camera_geometry.md](camera_geometry.md#cameracorner-h) |
+| `CameraCorner::pitch` | field | [camera_geometry.md](camera_geometry.md#cameracorner-pitch) |
+| `CameraCorner::yaw` | field | [camera_geometry.md](camera_geometry.md#cameracorner-yaw) |
 | `CameraIntrinsics` | struct | [vision_conversion.md](vision_conversion.md#struct-cameraintrinsics) |
 | `CameraIntrinsics::cx` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-cx) |
 | `CameraIntrinsics::cy` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-cy) |
 | `CameraIntrinsics::fx` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-fx) |
 | `CameraIntrinsics::fy` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-fy) |
+| `CameraModel` | class | [camera_geometry.md](camera_geometry.md#class-cameramodel) |
+| `CameraModel::bearing` | function | [camera_geometry.md](camera_geometry.md#cameramodel-bearing) |
+| `CameraModel::CameraModel` | function | [camera_geometry.md](camera_geometry.md#cameramodel-cameramodel) |
+| `CameraModel::eachCorner` | function | [camera_geometry.md](camera_geometry.md#cameramodel-eachcorner) |
+| `CameraModel::elevation` | function | [camera_geometry.md](camera_geometry.md#cameramodel-elevation) |
+| `CameraModel::fieldFix` | function | [camera_geometry.md](camera_geometry.md#cameramodel-fieldfix) |
+| `CameraModel::fx` | function | [camera_geometry.md](camera_geometry.md#cameramodel-fx) |
+| `CameraModel::fy` | function | [camera_geometry.md](camera_geometry.md#cameramodel-fy) |
+| `CameraModel::groundRange` | function | [camera_geometry.md](camera_geometry.md#cameramodel-groundrange) |
+| `CameraModel::inViewForCertain` | function | [camera_geometry.md](camera_geometry.md#cameramodel-inviewforcertain) |
+| `CameraModel::nominal` | function | [camera_geometry.md](camera_geometry.md#cameramodel-nominal) |
+| `CameraModel::opticsTolerance` | function | [camera_geometry.md](camera_geometry.md#cameramodel-opticstolerance) |
+| `CameraModel::placement` | function | [camera_geometry.md](camera_geometry.md#cameramodel-placement) |
+| `CameraModel::project` | function | [camera_geometry.md](camera_geometry.md#cameramodel-project) |
+| `CameraModel::rangeToPlane` | function | [camera_geometry.md](camera_geometry.md#cameramodel-rangetoplane) |
+| `CameraModel::ray` | function | [camera_geometry.md](camera_geometry.md#cameramodel-ray) |
+| `CameraModel::sizeRange` | function | [camera_geometry.md](camera_geometry.md#cameramodel-sizerange) |
+| `cameraModelProblem` | free function | [camera_geometry.md](camera_geometry.md#cameramodelproblem) |
 | `CameraMount` | struct | [vision_conversion.md](vision_conversion.md#struct-cameramount) |
 | `CameraMount::x` | field | [vision_conversion.md](vision_conversion.md#cameramount-x) |
 | `CameraMount::y` | field | [vision_conversion.md](vision_conversion.md#cameramount-y) |
 | `CameraMount::yaw` | field | [vision_conversion.md](vision_conversion.md#cameramount-yaw) |
+| `CameraOptics` | struct | [camera_geometry.md](camera_geometry.md#struct-cameraoptics) |
+| `CameraOptics::fovTolerance` | field | [camera_geometry.md](camera_geometry.md#cameraoptics-fovtolerance) |
+| `CameraOptics::heightPx` | field | [camera_geometry.md](camera_geometry.md#cameraoptics-heightpx) |
+| `CameraOptics::hfovDeg` | field | [camera_geometry.md](camera_geometry.md#cameraoptics-hfovdeg) |
+| `CameraOptics::vfovDeg` | field | [camera_geometry.md](camera_geometry.md#cameraoptics-vfovdeg) |
+| `CameraOptics::widthPx` | field | [camera_geometry.md](camera_geometry.md#cameraoptics-widthpx) |
+| `CameraPlacement` | struct | [camera_config.md](camera_config.md#struct-cameraplacement) |
+| `CameraPlacement::forward` | field | [camera_config.md](camera_config.md#cameraplacement-forward) |
+| `CameraPlacement::height` | field | [camera_config.md](camera_config.md#cameraplacement-height) |
+| `CameraPlacement::heightTolerance` | field | [camera_config.md](camera_config.md#cameraplacement-heighttolerance) |
+| `CameraPlacement::left` | field | [camera_config.md](camera_config.md#cameraplacement-left) |
+| `CameraPlacement::measured` | field | [camera_config.md](camera_config.md#cameraplacement-measured) |
+| `CameraPlacement::pitchDeg` | field | [camera_config.md](camera_config.md#cameraplacement-pitchdeg) |
+| `CameraPlacement::pitchToleranceDeg` | field | [camera_config.md](camera_config.md#cameraplacement-pitchtolerancedeg) |
+| `CameraPlacement::positionTolerance` | field | [camera_config.md](camera_config.md#cameraplacement-positiontolerance) |
+| `CameraPlacement::provenance` | field | [camera_config.md](camera_config.md#cameraplacement-provenance) |
+| `CameraPlacement::yawDeg` | field | [camera_config.md](camera_config.md#cameraplacement-yawdeg) |
+| `CameraPlacement::yawToleranceDeg` | field | [camera_config.md](camera_config.md#cameraplacement-yawtolerancedeg) |
+| `cameraPlacementProblem` | free function | [camera_config.md](camera_config.md#cameraplacementproblem) |
+| `CameraStatus` | struct | [vision_frames.md](vision_frames.md#struct-camerastatus) |
+| `CameraStatus::configured` | field | [vision_frames.md](vision_frames.md#camerastatus-configured) |
+| `CameraStatus::model` | field | [vision_frames.md](vision_frames.md#camerastatus-model) |
+| `CameraStatus::modelProblem` | field | [vision_frames.md](vision_frames.md#camerastatus-modelproblem) |
+| `CameraStatus::setupProblem` | field | [vision_frames.md](vision_frames.md#camerastatus-setupproblem) |
+| `cameraStatusWords` | free function | [vision_frames.md](vision_frames.md#camerastatuswords) |
 | `CaptureStatus` | enum class | [shul2_reader.md](shul2_reader.md#enum-class-capturestatus) |
 | `CaptureStatus::Empty` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-empty) |
 | `CaptureStatus::NoFrame` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-noframe) |
@@ -710,6 +775,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `chooseEffective` | free function | [record_store.md](record_store.md#chooseeffective) |
 | `clearOfDrive` | free function | [wiring.md](wiring.md#clearofdrive) |
 | `Coast` | constant | [kinds.md](kinds.md#coast) |
+| `ColourDescriptor` | struct | [vision_frames.md](vision_frames.md#struct-colourdescriptor) |
+| `ColourDescriptor::blue` | field | [vision_frames.md](vision_frames.md#colourdescriptor-blue) |
+| `ColourDescriptor::green` | field | [vision_frames.md](vision_frames.md#colourdescriptor-green) |
+| `ColourDescriptor::hueRange` | field | [vision_frames.md](vision_frames.md#colourdescriptor-huerange) |
+| `ColourDescriptor::id` | field | [vision_frames.md](vision_frames.md#colourdescriptor-id) |
+| `ColourDescriptor::name` | field | [vision_frames.md](vision_frames.md#colourdescriptor-name) |
+| `ColourDescriptor::provenance` | field | [vision_frames.md](vision_frames.md#colourdescriptor-provenance) |
+| `ColourDescriptor::red` | field | [vision_frames.md](vision_frames.md#colourdescriptor-red) |
+| `ColourDescriptor::saturationRange` | field | [vision_frames.md](vision_frames.md#colourdescriptor-saturationrange) |
+| `colourDescriptorProblem` | free function | [vision_frames.md](vision_frames.md#colourdescriptorproblem) |
 | `CommandEntry` | struct | [command_registry.md](command_registry.md#struct-commandentry) |
 | `CommandEntry::argCount` | field | [command_registry.md](command_registry.md#commandentry-argcount) |
 | `CommandEntry::doc` | field | [command_registry.md](command_registry.md#commandentry-doc) |
@@ -930,8 +1005,23 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DescriptionSource` | enum class | [drivetrain_description.md](drivetrain_description.md#enum-class-descriptionsource) |
 | `DescriptionSource::RobotMeasured` | enumerator | [drivetrain_description.md](drivetrain_description.md#descriptionsource-robotmeasured) |
 | `DescriptionSource::TypedTable` | enumerator | [drivetrain_description.md](drivetrain_description.md#descriptionsource-typedtable) |
+| `Detection` | struct | [vision_frames.md](vision_frames.md#struct-detection) |
+| `Detection::angleTenths` | field | [vision_frames.md](vision_frames.md#detection-angletenths) |
+| `Detection::clipped` | function | [vision_frames.md](vision_frames.md#detection-clipped) |
+| `Detection::height` | field | [vision_frames.md](vision_frames.md#detection-height) |
+| `Detection::id` | field | [vision_frames.md](vision_frames.md#detection-id) |
+| `Detection::kind` | field | [vision_frames.md](vision_frames.md#detection-kind) |
+| `Detection::left` | field | [vision_frames.md](vision_frames.md#detection-left) |
+| `Detection::score` | field | [vision_frames.md](vision_frames.md#detection-score) |
+| `Detection::top` | field | [vision_frames.md](vision_frames.md#detection-top) |
+| `Detection::width` | field | [vision_frames.md](vision_frames.md#detection-width) |
+| `DetectionKind` | enum class | [vision_frames.md](vision_frames.md#enum-class-detectionkind) |
+| `DetectionKind::Code` | enumerator | [vision_frames.md](vision_frames.md#detectionkind-code) |
+| `DetectionKind::Colour` | enumerator | [vision_frames.md](vision_frames.md#detectionkind-colour) |
+| `DetectionKind::Object` | enumerator | [vision_frames.md](vision_frames.md#detectionkind-object) |
 | `DeviceKind` | enum class | [device_registry.md](device_registry.md#enum-class-devicekind) |
 | `DeviceKind::Adi` | enumerator | [device_registry.md](device_registry.md#devicekind-adi) |
+| `DeviceKind::AiVision` | enumerator | [device_registry.md](device_registry.md#devicekind-aivision) |
 | `DeviceKind::Distance` | enumerator | [device_registry.md](device_registry.md#devicekind-distance) |
 | `DeviceKind::Gps` | enumerator | [device_registry.md](device_registry.md#devicekind-gps) |
 | `DeviceKind::Imu` | enumerator | [device_registry.md](device_registry.md#devicekind-imu) |
@@ -1390,6 +1480,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FieldDelta` | struct | [arc_step.md](arc_step.md#struct-fielddelta) |
 | `FieldDelta::dx` | field | [arc_step.md](arc_step.md#fielddelta-dx) |
 | `FieldDelta::dy` | field | [arc_step.md](arc_step.md#fielddelta-dy) |
+| `FieldFix` | struct | [camera_geometry.md](camera_geometry.md#struct-fieldfix) |
+| `FieldFix::radius` | field | [camera_geometry.md](camera_geometry.md#fieldfix-radius) |
+| `FieldFix::valid` | field | [camera_geometry.md](camera_geometry.md#fieldfix-valid) |
+| `FieldFix::x` | field | [camera_geometry.md](camera_geometry.md#fieldfix-x) |
+| `FieldFix::y` | field | [camera_geometry.md](camera_geometry.md#fieldfix-y) |
 | `fieldToRobot` | free function | [frame.md](frame.md#fieldtorobot) |
 | `FileHolds` | enum class | [record_store.md](record_store.md#enum-class-fileholds) |
 | `FileHolds::Absent` | enumerator | [record_store.md](record_store.md#fileholds-absent) |
@@ -1413,6 +1508,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FinishFacts::holdLine2` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-holdline2) |
 | `FinishFacts::holdPort` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-holdport) |
 | `FinishFacts::note` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-note) |
+| `finiteNumber` | free function | [camera_config.md](camera_config.md#finitenumber) |
 | `FitConfig` | struct | [feedforward_fit.md](feedforward_fit.md#struct-fitconfig) |
 | `FitConfig::alphaMin` | function | [feedforward_fit.md](feedforward_fit.md#fitconfig-alphamin) |
 | `FitConfig::currentGuard` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-currentguard) |
@@ -1491,6 +1587,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Frame` | enum class | [frame.md](frame.md#enum-class-frame) |
 | `Frame::Body` | enumerator | [frame.md](frame.md#frame-body) |
 | `Frame::Field` | enumerator | [frame.md](frame.md#frame-field) |
+| `FrameStatus` | enum class | [vision_frames.md](vision_frames.md#enum-class-framestatus) |
+| `FrameStatus::NotConfigured` | enumerator | [vision_frames.md](vision_frames.md#framestatus-notconfigured) |
+| `FrameStatus::NotRead` | enumerator | [vision_frames.md](vision_frames.md#framestatus-notread) |
+| `FrameStatus::Ok` | enumerator | [vision_frames.md](vision_frames.md#framestatus-ok) |
+| `FrameStatus::PartialFault` | enumerator | [vision_frames.md](vision_frames.md#framestatus-partialfault) |
+| `FrameStatus::ReadFault` | enumerator | [vision_frames.md](vision_frames.md#framestatus-readfault) |
 | `FrameType` | enum class | [blackbox_format.md](blackbox_format.md#enum-class-frametype) |
 | `FrameType` | enum class | [shul2_format.md](shul2_format.md#enum-class-frametype) |
 | `FrameType::End` | enumerator | [blackbox_format.md](blackbox_format.md#frametype-end) |
@@ -1843,6 +1945,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ICorrector::propose` | function | [i_corrector.md](i_corrector.md#icorrector-propose) |
 | `ICorrector::~ICorrector` | function | [i_corrector.md](i_corrector.md#icorrector-destructor-icorrector) |
 | `IDeviceProvider` | class | [device_provider.md](device_provider.md#class-ideviceprovider) |
+| `IDeviceProvider::aiVision` | function | [device_provider.md](device_provider.md#ideviceprovider-aivision) |
 | `IDeviceProvider::battery` | function | [device_provider.md](device_provider.md#ideviceprovider-battery) |
 | `IDeviceProvider::clock` | function | [device_provider.md](device_provider.md#ideviceprovider-clock) |
 | `IDeviceProvider::digitalIn` | function | [device_provider.md](device_provider.md#ideviceprovider-digitalin) |
@@ -2032,6 +2135,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `InchRange` | struct | [kinds.md](kinds.md#struct-inchrange) |
 | `InchRange::max` | field | [kinds.md](kinds.md#inchrange-max) |
 | `InchRange::min` | field | [kinds.md](kinds.md#inchrange-min) |
+| `Interval` | struct | [camera_geometry.md](camera_geometry.md#struct-interval) |
+| `Interval::contains` | function | [camera_geometry.md](camera_geometry.md#interval-contains) |
+| `Interval::hi` | field | [camera_geometry.md](camera_geometry.md#interval-hi) |
+| `Interval::lo` | field | [camera_geometry.md](camera_geometry.md#interval-lo) |
+| `Interval::mid` | function | [camera_geometry.md](camera_geometry.md#interval-mid) |
+| `Interval::valid` | field | [camera_geometry.md](camera_geometry.md#interval-valid) |
+| `Interval::width` | function | [camera_geometry.md](camera_geometry.md#interval-width) |
 | `IOdometry` | class | [odometry.md](odometry.md#class-iodometry) |
 | `IOdometry::IOdometry` | function | [odometry.md](odometry.md#iodometry-iodometry) |
 | `IOdometry::IOdometry (overload 2)` | function | [odometry.md](odometry.md#iodometry-iodometry-2) |
@@ -2142,6 +2252,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IVision::operator=` | function | [vision.md](vision.md#ivision-operator-eq) |
 | `IVision::operator= (overload 2)` | function | [vision.md](vision.md#ivision-operator-eq-2) |
 | `IVision::~IVision` | function | [vision.md](vision.md#ivision-destructor-ivision) |
+| `IVisionFrames` | class | [vision_frames.md](vision_frames.md#class-ivisionframes) |
+| `IVisionFrames::IVisionFrames` | function | [vision_frames.md](vision_frames.md#ivisionframes-ivisionframes) |
+| `IVisionFrames::IVisionFrames (overload 2)` | function | [vision_frames.md](vision_frames.md#ivisionframes-ivisionframes-2) |
+| `IVisionFrames::IVisionFrames (overload 3)` | function | [vision_frames.md](vision_frames.md#ivisionframes-ivisionframes-3) |
+| `IVisionFrames::operator=` | function | [vision_frames.md](vision_frames.md#ivisionframes-operator-eq) |
+| `IVisionFrames::operator= (overload 2)` | function | [vision_frames.md](vision_frames.md#ivisionframes-operator-eq-2) |
+| `IVisionFrames::read` | function | [vision_frames.md](vision_frames.md#ivisionframes-read) |
+| `IVisionFrames::status` | function | [vision_frames.md](vision_frames.md#ivisionframes-status) |
+| `IVisionFrames::~IVisionFrames` | function | [vision_frames.md](vision_frames.md#ivisionframes-destructor-ivisionframes) |
 
 ## J
 
@@ -2157,6 +2276,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kAbortRow` | constant | [calibrate_panel.md](calibrate_panel.md#kabortrow) |
 | `kAbortSlot` | constant | [calibrate_panel.md](calibrate_panel.md#kabortslot) |
 | `kAcceptanceRunName` | constant | [acceptance_run.md](acceptance_run.md#kacceptancerunname) |
+| `kAiVisionOptics` | constant | [camera_geometry.md](camera_geometry.md#kaivisionoptics) |
 | `kAll` | constant | [calibrate_panel.md](calibrate_panel.md#kall) |
 | `kAll` | constant | [calibrate_screen.md](calibrate_screen.md#kall) |
 | `kApiMajor` | constant | [version.md](version.md#kapimajor) |
@@ -2168,6 +2288,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kArmingDelaySeconds` | constant | [calibrate_panel.md](calibrate_panel.md#karmingdelayseconds) |
 | `kArmingDelaySeconds` | constant | [touch_panel.md](touch_panel.md#karmingdelayseconds) |
 | `kBackBox` | constant | [calibrate_panel.md](calibrate_panel.md#kbackbox) |
+| `kBoxEdgePx` | constant | [camera_geometry.md](camera_geometry.md#kboxedgepx) |
 | `kBrainAdiLines` | constant | [device_provider.md](device_provider.md#kbrainadilines) |
 | `kBuildTimeCols` | constant | [calibrate_screen.md](calibrate_screen.md#kbuildtimecols) |
 | `kBuiltinCommandCount` | constant | [route.md](route.md#kbuiltincommandcount) |
@@ -2193,10 +2314,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kCopyThenRunAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythenrunagain) |
 | `kCopyThese` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythese) |
 | `kCrcBytes` | constant | [shul2_format.md](shul2_format.md#kcrcbytes) |
+| `kCupSize` | constant | [override_elements.md](override_elements.md#kcupsize) |
 | `kDefaultDeadband` | constant | [input_shaping.md](input_shaping.md#kdefaultdeadband) |
 | `kDefaultExpo` | constant | [input_shaping.md](input_shaping.md#kdefaultexpo) |
 | `kDefaultFlightRingTicks` | constant | [sd_sink.md](sd_sink.md#kdefaultflightringticks) |
 | `kDegreesToRadians` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kdegreestoradians) |
+| `kDegToRad` | constant | [camera_geometry.md](camera_geometry.md#kdegtorad) |
 | `kDiagnosisTool` | constant | [calibrate_screen.md](calibrate_screen.md#kdiagnosistool) |
 | `kDistanceConfidenceAvailableAboveMm` | constant | [distance_conversion.md](distance_conversion.md#kdistanceconfidenceavailableabovemm) |
 | `kDistanceConfidenceFullScale` | constant | [distance_conversion.md](distance_conversion.md#kdistanceconfidencefullscale) |
@@ -2294,6 +2417,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxAutonNameChars` | constant | [auton_registry.md](auton_registry.md#kmaxautonnamechars) |
 | `kMaxAutonRefusals` | constant | [auton_registry.md](auton_registry.md#kmaxautonrefusals) |
 | `kMaxAutons` | constant | [auton_registry.md](auton_registry.md#kmaxautons) |
+| `kMaxColourDescriptors` | constant | [vision_frames.md](vision_frames.md#kmaxcolourdescriptors) |
 | `kMaxCommands` | constant | [command_registry.md](command_registry.md#kmaxcommands) |
 | `kMaxDeadTotal` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kmaxdeadtotal) |
 | `kMaxFieldBytes` | constant | [session_info.md](session_info.md#kmaxfieldbytes) |
@@ -2310,6 +2434,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxMotorsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxmotorspermechanism) |
 | `kMaxMotorVoltage` | constant | [motor.md](motor.md#kmaxmotorvoltage) |
 | `kMaxPayloadBytes` | constant | [shul2_format.md](shul2_format.md#kmaxpayloadbytes) |
+| `kMaxPitchSpanDeg` | constant | [camera_geometry.md](camera_geometry.md#kmaxpitchspandeg) |
 | `kMaxPneumaticPositions` | constant | [spec.md](spec.md#kmaxpneumaticpositions) |
 | `kMaxPneumaticsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxpneumaticspermechanism) |
 | `kMaxPortMapBytes` | constant | [session_info.md](session_info.md#kmaxportmapbytes) |
@@ -2323,6 +2448,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxSpinLevels` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxspinlevels) |
 | `kMaxStoredFileBytes` | constant | [record_store.md](record_store.md#kmaxstoredfilebytes) |
 | `kMaxTablePoints` | constant | [spec.md](spec.md#kmaxtablepoints) |
+| `kMaxVisionClassNames` | constant | [vision_frames.md](vision_frames.md#kmaxvisionclassnames) |
+| `kMaxVisionDetections` | constant | [vision_frames.md](vision_frames.md#kmaxvisiondetections) |
 | `kMaxWaypoints` | constant | [route.md](route.md#kmaxwaypoints) |
 | `kMechAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kmechagain) |
 | `kMechanismRouteDocBytes` | constant | [mechanism_routes.md](mechanism_routes.md#kmechanismroutedocbytes) |
@@ -2352,6 +2479,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMenuRefusedPrefix` | constant | [auton_menu.md](auton_menu.md#kmenurefusedprefix) |
 | `kMetersToInches` | constant | [gps_conversion.md](gps_conversion.md#kmeterstoinches) |
 | `kMinAnsweringPerSide` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kminansweringperside) |
+| `kModelClassCount` | constant | [override_elements.md](override_elements.md#kmodelclasscount) |
 | `kMoreOnSerial` | constant | [calibrate_screen.md](calibrate_screen.md#kmoreonserial) |
 | `kMotorsRefused` | constant | [calibrate_screen.md](calibrate_screen.md#kmotorsrefused) |
 | `kNameBytes` | constant | [spec.md](spec.md#knamebytes) |
@@ -2381,6 +2509,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kOdomAuditDetailMaxBytes` | constant | [odom_tick_audit.md](odom_tick_audit.md#kodomauditdetailmaxbytes) |
 | `kOdomAuditPrecision` | constant | [odom_tick_audit.md](odom_tick_audit.md#kodomauditprecision) |
 | `kOdoStallMaxWheels` | constant | [odo_stall_check.md](odo_stall_check.md#kodostallmaxwheels) |
+| `kOverrideClassNames` | constant | [override_elements.md](override_elements.md#koverrideclassnames) |
 | `kPanelLastRow` | constant | [calibrate_panel.md](calibrate_panel.md#kpanellastrow) |
 | `kPanelLastRow` | constant | [touch_panel.md](touch_panel.md#kpanellastrow) |
 | `kPanelLineCap` | constant | [calibrate_panel.md](calibrate_panel.md#kpanellinecap) |
@@ -2390,6 +2519,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kPanelWidth` | constant | [touch_panel.md](touch_panel.md#kpanelwidth) |
 | `kPayloadBytesOffset` | constant | [shul2_format.md](shul2_format.md#kpayloadbytesoffset) |
 | `kPayloadOffset` | constant | [shul2_format.md](shul2_format.md#kpayloadoffset) |
+| `kPinSize` | constant | [override_elements.md](override_elements.md#kpinsize) |
 | `kPositionErrorEndOfRun` | constant | [accuracy.md](accuracy.md#kpositionerrorendofrun) |
 | `kPrimarySlot` | constant | [calibrate_panel.md](calibrate_panel.md#kprimaryslot) |
 | `kProgramFault` | constant | [calibrate_screen.md](calibrate_screen.md#kprogramfault) |
@@ -2455,12 +2585,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kTickPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktickpayloadbytes) |
 | `kTickPhaseSlots` | constant | [debug_record.md](debug_record.md#ktickphaseslots) |
 | `kToggleAtSpeedWindowSeconds` | constant | [driver_inputs.md](driver_inputs.md#ktoggleatspeedwindowseconds) |
+| `kToggleFace` | constant | [override_elements.md](override_elements.md#ktoggleface) |
+| `kTogglePlaces` | constant | [override_elements.md](override_elements.md#ktoggleplaces) |
 | `kTooFewMotors` | constant | [calibrate_screen.md](calibrate_screen.md#ktoofewmotors) |
 | `kTriagePayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktriagepayloadbytes) |
 | `kTwitching` | constant | [calibrate_panel.md](calibrate_panel.md#ktwitching) |
 | `kTypeOffset` | constant | [shul2_format.md](shul2_format.md#ktypeoffset) |
 | `kVersionMajor` | constant | [shul2_format.md](shul2_format.md#kversionmajor) |
 | `kVersionMinor` | constant | [shul2_format.md](shul2_format.md#kversionminor) |
+| `kVisionImageHeightPx` | constant | [vision_frames.md](vision_frames.md#kvisionimageheightpx) |
+| `kVisionImageWidthPx` | constant | [vision_frames.md](vision_frames.md#kvisionimagewidthpx) |
 | `kWarningCut` | constant | [calibrate_panel.md](calibrate_panel.md#kwarningcut) |
 | `kWhichEnd` | constant | [calibrate_panel.md](calibrate_panel.md#kwhichend) |
 | `kWidthTable` | constant | [shul2_format.md](shul2_format.md#kwidthtable) |
@@ -2870,6 +3004,19 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MenuView::page` | field | [auton_menu.md](auton_menu.md#menuview-page) |
 | `MenuView::pageCount` | field | [auton_menu.md](auton_menu.md#menuview-pagecount) |
 | `MenuView::status` | field | [auton_menu.md](auton_menu.md#menuview-status) |
+| `ModelCheck` | enum class | [vision_frames.md](vision_frames.md#enum-class-modelcheck) |
+| `ModelCheck::Different` | enumerator | [vision_frames.md](vision_frames.md#modelcheck-different) |
+| `ModelCheck::Matches` | enumerator | [vision_frames.md](vision_frames.md#modelcheck-matches) |
+| `ModelCheck::NotAsked` | enumerator | [vision_frames.md](vision_frames.md#modelcheck-notasked) |
+| `ModelCheck::Unreadable` | enumerator | [vision_frames.md](vision_frames.md#modelcheck-unreadable) |
+| `ModelClass` | enum class | [override_elements.md](override_elements.md#enum-class-modelclass) |
+| `ModelClass::BlueYellowPin` | enumerator | [override_elements.md](override_elements.md#modelclass-blueyellowpin) |
+| `ModelClass::Cup` | enumerator | [override_elements.md](override_elements.md#modelclass-cup) |
+| `ModelClass::RedBluePin` | enumerator | [override_elements.md](override_elements.md#modelclass-redbluepin) |
+| `ModelClass::RedYellowPin` | enumerator | [override_elements.md](override_elements.md#modelclass-redyellowpin) |
+| `ModelClass::YellowPin` | enumerator | [override_elements.md](override_elements.md#modelclass-yellowpin) |
+| `modelClassName` | free function | [override_elements.md](override_elements.md#modelclassname) |
+| `modelClassSize` | free function | [override_elements.md](override_elements.md#modelclasssize) |
 | `modeRequest` | free function | [drive_modes.md](drive_modes.md#moderequest) |
 | `more_controls_than_fit` | free function | [driver_inputs.md](driver_inputs.md#more_controls_than_fit) |
 | `more_mechanisms_than_a_robot_can_have` | free function | [wiring.md](wiring.md#more_mechanisms_than_a_robot_can_have) |
@@ -3266,6 +3413,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PidConfig::outputMin` | field | [pid.md](pid.md#pidconfig-outputmin) |
 | `pieceSensor` | free function | [wiring.md](wiring.md#piecesensor) |
 | `pieceSensor (overload 2)` | type alias | [wiring.md](wiring.md#piecesensor-2) |
+| `PieceSize` | struct | [override_elements.md](override_elements.md#struct-piecesize) |
+| `PieceSize::diameterIn` | field | [override_elements.md](override_elements.md#piecesize-diameterin) |
+| `PieceSize::heightIn` | field | [override_elements.md](override_elements.md#piecesize-heightin) |
 | `PilonsOdometry` | class | [pilons_odometry.md](pilons_odometry.md#class-pilonsodometry) |
 | `PilonsOdometry::lastDeltaImplausible` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-lastdeltaimplausible) |
 | `PilonsOdometry::lastTickAudit` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-lasttickaudit) |
@@ -3367,6 +3517,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PortObservation::sign` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-sign) |
 | `PortObservation::verdict` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-verdict) |
 | `PortUse` | enum class | [robot_config.md](robot_config.md#enum-class-portuse) |
+| `PortUse::Camera` | enumerator | [robot_config.md](robot_config.md#portuse-camera) |
 | `PortUse::DriveLeft` | enumerator | [robot_config.md](robot_config.md#portuse-driveleft) |
 | `PortUse::DriveRight` | enumerator | [robot_config.md](robot_config.md#portuse-driveright) |
 | `PortUse::DriveWheel` | enumerator | [robot_config.md](robot_config.md#portuse-drivewheel) |
@@ -3385,6 +3536,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Pose2d::Pose2d (overload 2)` | function | [pose2d.md](pose2d.md#pose2d-pose2d-2) |
 | `Pose2d::x` | function | [pose2d.md](pose2d.md#pose2d-x) |
 | `Pose2d::y` | function | [pose2d.md](pose2d.md#pose2d-y) |
+| `PoseBound` | struct | [camera_geometry.md](camera_geometry.md#struct-posebound) |
+| `PoseBound::headingToleranceDeg` | field | [camera_geometry.md](camera_geometry.md#posebound-headingtolerancedeg) |
+| `PoseBound::pose` | field | [camera_geometry.md](camera_geometry.md#posebound-pose) |
+| `PoseBound::positionTolerance` | field | [camera_geometry.md](camera_geometry.md#posebound-positiontolerance) |
 | `PoseDeltaGuard` | class | [plausibility_guard.md](plausibility_guard.md#class-posedeltaguard) |
 | `PoseDeltaGuard::check` | function | [plausibility_guard.md](plausibility_guard.md#posedeltaguard-check) |
 | `PoseDeltaGuard::PoseDeltaGuard` | function | [plausibility_guard.md](plausibility_guard.md#posedeltaguard-posedeltaguard) |
@@ -3543,6 +3698,26 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProfileState::acceleration` | field | [trapezoid_profile.md](trapezoid_profile.md#profilestate-acceleration) |
 | `ProfileState::position` | field | [trapezoid_profile.md](trapezoid_profile.md#profilestate-position) |
 | `ProfileState::velocity` | field | [trapezoid_profile.md](trapezoid_profile.md#profilestate-velocity) |
+| `ProsAiVision` | class | [pros-ai_vision.md](pros-ai_vision.md#class-prosaivision) |
+| `ProsAiVision::configured` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-configured) |
+| `ProsAiVision::faultedReads` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-faultedreads) |
+| `ProsAiVision::kModeMask` | field | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-kmodemask) |
+| `ProsAiVision::kRetrySeconds` | field | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-kretryseconds) |
+| `ProsAiVision::kVerifySeconds` | field | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-kverifyseconds) |
+| `ProsAiVision::model` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-model) |
+| `ProsAiVision::modelProblem` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-modelproblem) |
+| `ProsAiVision::operator=` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-operator-eq) |
+| `ProsAiVision::operator= (overload 2)` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-operator-eq-2) |
+| `ProsAiVision::ProsAiVision` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-prosaivision) |
+| `ProsAiVision::ProsAiVision (overload 2)` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-prosaivision-2) |
+| `ProsAiVision::ProsAiVision (overload 3)` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-prosaivision-3) |
+| `ProsAiVision::read` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-read) |
+| `ProsAiVision::settings` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-settings) |
+| `ProsAiVision::settingsLost` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-settingslost) |
+| `ProsAiVision::setupProblem` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-setupproblem) |
+| `ProsAiVision::setups` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-setups) |
+| `ProsAiVision::status` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-status) |
+| `ProsAiVision::~ProsAiVision` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-destructor-prosaivision) |
 | `ProsBattery` | class | [pros-battery.md](pros-battery.md#class-prosbattery) |
 | `ProsBattery::capacity` | function | [pros-battery.md](pros-battery.md#prosbattery-capacity) |
 | `ProsBattery::current` | function | [pros-battery.md](pros-battery.md#prosbattery-current) |
@@ -3596,6 +3771,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsController::pressed` | function | [pros-controller.md](pros-controller.md#proscontroller-pressed) |
 | `ProsController::ProsController` | function | [pros-controller.md](pros-controller.md#proscontroller-proscontroller) |
 | `ProsDeviceProvider` | class | [pros-device_provider.md](pros-device_provider.md#class-prosdeviceprovider) |
+| `ProsDeviceProvider::aiVision` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-aivision) |
 | `ProsDeviceProvider::battery` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-battery) |
 | `ProsDeviceProvider::clock` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-clock) |
 | `ProsDeviceProvider::digitalIn` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-digitalin) |
@@ -3995,6 +4171,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Robot` | class | [robot.md](robot.md#class-robot) |
 | `Robot::builtMechanismAt` | function | [robot.md](robot.md#robot-builtmechanismat) |
 | `Robot::builtMechanismAt (overload 2)` | function | [robot.md](robot.md#robot-builtmechanismat-2) |
+| `Robot::camera` | function | [robot.md](robot.md#robot-camera) |
+| `Robot::camera (overload 2)` | function | [robot.md](robot.md#robot-camera-2) |
+| `Robot::cameraAbsence` | function | [robot.md](robot.md#robot-cameraabsence) |
 | `Robot::chassis` | function | [robot.md](robot.md#robot-chassis) |
 | `Robot::chassis (overload 2)` | function | [robot.md](robot.md#robot-chassis-2) |
 | `Robot::config` | function | [robot.md](robot.md#robot-config) |
@@ -4317,7 +4496,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SafeBrakeMode::Hold` | enumerator | [robot_config.md](robot_config.md#safebrakemode-hold) |
 | `safeBrakeModeWord` | free function | [robot_config.md](robot_config.md#safebrakemodeword) |
 | `safeReplace` | free function | [record_store.md](record_store.md#safereplace) |
+| `sameAiVisionSettings` | free function | [vision_frames.md](vision_frames.md#sameaivisionsettings) |
 | `sameFileOnCard` | free function | [file_store.md](file_store.md#samefileoncard) |
+| `sameVisionText` | free function | [vision_frames.md](vision_frames.md#samevisiontext) |
 | `SaveOutcome` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-saveoutcome) |
 | `SaveOutcome::Held` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-held) |
 | `SaveOutcome::NotAttempted` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notattempted) |
@@ -4474,6 +4655,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SensorRole::seesWithinIn` | field | [spec.md](spec.md#sensorrole-seeswithinin) |
 | `SensorRole::source` | field | [spec.md](spec.md#sensorrole-source) |
 | `SensorsConfig` | struct | [robot_config.md](robot_config.md#struct-sensorsconfig) |
+| `SensorsConfig::camera` | field | [robot_config.md](robot_config.md#sensorsconfig-camera) |
 | `SensorsConfig::gps` | field | [robot_config.md](robot_config.md#sensorsconfig-gps) |
 | `serialLine` | free function | [pros-char_sink.md](pros-char_sink.md#serialline) |
 | `serialWrapped` | free function | [pros-char_sink.md](pros-char_sink.md#serialwrapped) |
@@ -4940,6 +5122,20 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleBinding::ToggleBinding (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding-2) |
 | `ToggleBinding::ToggleBinding (overload 3)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding-3) |
 | `ToggleBinding::~ToggleBinding` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-destructor-togglebinding) |
+| `ToggleFace` | struct | [override_elements.md](override_elements.md#struct-toggleface) |
+| `ToggleFace::bottomHiIn` | field | [override_elements.md](override_elements.md#toggleface-bottomhiin) |
+| `ToggleFace::bottomIn` | field | [override_elements.md](override_elements.md#toggleface-bottomin) |
+| `ToggleFace::flatBottomIn` | field | [override_elements.md](override_elements.md#toggleface-flatbottomin) |
+| `ToggleFace::lengthIn` | field | [override_elements.md](override_elements.md#toggleface-lengthin) |
+| `ToggleFace::setBackHiIn` | field | [override_elements.md](override_elements.md#toggleface-setbackhiin) |
+| `ToggleFace::setBackLoIn` | field | [override_elements.md](override_elements.md#toggleface-setbackloin) |
+| `ToggleFace::topIn` | field | [override_elements.md](override_elements.md#toggleface-topin) |
+| `ToggleFace::wallTopIn` | field | [override_elements.md](override_elements.md#toggleface-walltopin) |
+| `TogglePlace` | struct | [override_elements.md](override_elements.md#struct-toggleplace) |
+| `TogglePlace::inX` | field | [override_elements.md](override_elements.md#toggleplace-inx) |
+| `TogglePlace::inY` | field | [override_elements.md](override_elements.md#toggleplace-iny) |
+| `TogglePlace::x` | field | [override_elements.md](override_elements.md#toggleplace-x) |
+| `TogglePlace::y` | field | [override_elements.md](override_elements.md#toggleplace-y) |
 | `toLineValue` | free function | [robot_config.md](robot_config.md#tolinevalue) |
 | `toMechanismConfig` | free function | [wiring.md](wiring.md#tomechanismconfig) |
 | `Tone` | enum class | [touch_panel.md](touch_panel.md#enum-class-tone) |
@@ -5083,6 +5279,19 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `verifyAgainstRegistry` | free function | [boot_check.md](boot_check.md#verifyagainstregistry) |
 | `verifyAgainstRegistry (overload 2)` | free function | [boot_check.md](boot_check.md#verifyagainstregistry-2) |
 | `viewFor` | free function | [calibrate_panel.md](calibrate_panel.md#viewfor) |
+| `VisionFrame` | struct | [vision_frames.md](vision_frames.md#struct-visionframe) |
+| `VisionFrame::coloursWithheld` | field | [vision_frames.md](vision_frames.md#visionframe-colourswithheld) |
+| `VisionFrame::count` | field | [vision_frames.md](vision_frames.md#visionframe-count) |
+| `VisionFrame::detections` | field | [vision_frames.md](vision_frames.md#visionframe-detections) |
+| `VisionFrame::model` | field | [vision_frames.md](vision_frames.md#visionframe-model) |
+| `VisionFrame::objectsWithheld` | field | [vision_frames.md](vision_frames.md#visionframe-objectswithheld) |
+| `VisionFrame::readAt` | field | [vision_frames.md](vision_frames.md#visionframe-readat) |
+| `VisionFrame::readSeq` | field | [vision_frames.md](vision_frames.md#visionframe-readseq) |
+| `VisionFrame::reportedCount` | field | [vision_frames.md](vision_frames.md#visionframe-reportedcount) |
+| `VisionFrame::skipped` | field | [vision_frames.md](vision_frames.md#visionframe-skipped) |
+| `VisionFrame::status` | field | [vision_frames.md](vision_frames.md#visionframe-status) |
+| `VisionFrame::truncated` | field | [vision_frames.md](vision_frames.md#visionframe-truncated) |
+| `VisionFrame::usable` | function | [vision_frames.md](vision_frames.md#visionframe-usable) |
 | `Voltage` | type alias | [quantity.md](quantity.md#voltage) |
 
 ## W

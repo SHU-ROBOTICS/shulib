@@ -54,11 +54,13 @@ enum class DeviceKind : std::uint8_t {
     Rotation,  ///< a rotation sensor — hal/pros/rotation.hpp
     Distance,  ///< a distance sensor — hal/pros/distance.hpp
     Optical,   ///< an optical sensor — hal/pros/optical.hpp
-    Vision,    ///< a vision sensor (including AI Vision) — no adapter yet; R2 owns the camera
+    Vision,    ///< the OLDER V5 Vision sensor (276-4850) — no adapter (since VIS1-A1 the AI Vision sensor is AiVision)
     Gps,       ///< a GPS sensor — hal/pros/gps.hpp
     Radio,     ///< the VEXnet radio
     Adi,       ///< an ADI (three-wire) expander — hal/pros/digital_in.hpp's pair form
     Other,     ///< a device this library has no name for (serial, undefined, anything new)
+    AiVision,  ///< the V5 AI Vision sensor — hal/pros/ai_vision.hpp (VIS1-A1, APPENDED: the value is
+               ///< compared in memory only, never stored in a record, so appending moves nothing)
 };
 
 /// The kind as one short word, for a census line or a refusal message. Never invents:
@@ -76,6 +78,7 @@ enum class DeviceKind : std::uint8_t {
         case DeviceKind::Radio: return "RADIO";
         case DeviceKind::Adi: return "ADI";
         case DeviceKind::Other: return "OTHER";
+        case DeviceKind::AiVision: return "AI-VISION";
     }
     return "?";
 }

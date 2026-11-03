@@ -69,6 +69,17 @@
 // would pass here and fail on the brain, so the fake does not let it pass. fakeReadFaults(port) /
 // fakeLineReadFaults(line) hand a test those counters, to set one `failing`.
 //
+// ── The AI Vision camera (chunk VIS1-A1, 2026-10-18) ────────────────────────────────
+// aiVision(port, settings) serves this provider's own hal::fake::FakeVisionFrames for that port — refused
+// on a refusePort()'d port like every port device, AND for a settings block with a problem, AND for a
+// second request whose settings are not `sameAiVisionSettings` as the first's (the on-robot provider's
+// three refusals; a fake that let any of them pass would let a builder pass here and fail on the brain).
+// fakeCamera(port) hands a test that camera, to set its frames, its faults and its status;
+// cameraSettings(port) the settings the request that made it passed. readFaults(port) answers the
+// FakeVisionFrames ITSELF — not a separate FakeReadFaults, as the distance and optical sensors' counts
+// are — and only once aiVision() has SERVED it: the camera's fake is an IReadFaults, as the adapter is,
+// so its count moves with the fault frames it returns (VIS1's re-check T9; fake_vision_frames.hpp).
+//
 // ── SIM-FREE, on purpose ────────────────────────────────────────────────────────────
 // Nothing in this file includes shulib/sim/, and the CI layering guard enforces that. The
 // PLANT attachment is done BY THE TEST, which may include sim/ and does; this header only
@@ -93,6 +104,7 @@
 #include "shulib/hal/fake/fake_motor.hpp"
 #include "shulib/hal/fake/fake_optical.hpp"
 #include "shulib/hal/fake/fake_read_faults.hpp"
+#include "shulib/hal/fake/fake_vision_frames.hpp"
 #include "shulib/hal/fake/fake_rotation.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -187,6 +199,16 @@ public:
     /// answers once a digital input was served there.
     [[nodiscard]] FakeReadFaults& fakeLineReadFaults(std::uint8_t line) {
         return lineReadFaults_[checkedLine(line)];
+    }
+    /// This provider's own camera for `port` — what `aiVision()` hands out (VIS1-A1). A test sets its
+    /// frames, its failing and its status; it is also what `readFaults(port)` answers once served.
+    [[nodiscard]] FakeVisionFrames& fakeCamera(std::uint8_t port) { return cameras_[checkedIndex(port)]; }
+    /// Whether `aiVision()` SERVED a camera on `port` (VIS1-A1).
+    [[nodiscard]] bool cameraMade(std::uint8_t port) const { return cameraMade_[checkedIndex(port)]; }
+    /// The settings the request that made the camera on `port` passed — how a test proves the builder
+    /// handed the config's block through. Read it only when `cameraMade(port)`.
+    [[nodiscard]] const AiVisionSettings& cameraSettings(std::uint8_t port) const {
+        return cameraSettings_[checkedIndex(port)];
     }
 
     // ── the refusal switch ─────────────────────────────────────────────────────────────
@@ -396,15 +418,46 @@ public:
         return &inputs_[i];
     }
 
+    /// VIS1-A1: the camera on `port` — this provider's own FakeVisionFrames; nullptr + a refusal on an
+    /// out-of-range or refused port, for a settings problem, or for settings other than the made
+    /// camera's (header). Idempotent for equal settings (fixed storage).
+    [[nodiscard]] IVisionFrames* aiVision(std::uint8_t port, const AiVisionSettings& settings) override {
+        const int p = static_cast<int>(port);
+        if (!servable(p, "AI Vision camera")) {
+            return nullptr;
+        }
+        if (const char* problem = aiVisionSettingsProblem(settings)) {
+            std::snprintf(refusal_, sizeof refusal_, "port %d: the camera's settings: %s", p, problem);
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(p);
+        if (cameraMade_[i]) {
+            if (!sameAiVisionSettings(cameraSettings_[i], settings)) {
+                std::snprintf(refusal_, sizeof refusal_,
+                              "port %d: the camera was already set up with other settings -- one owner",
+                              p);
+                return nullptr;
+            }
+            return &cameras_[i];
+        }
+        cameraMade_[i] = true;
+        cameraSettings_[i] = settings;
+        return &cameras_[i];
+    }
+
     /// MECH-A1: this provider's own read-fault counter for smart `port` — only where a distance or
-    /// optical sensor was SERVED (header: the on-robot contract); nullptr otherwise. Never makes.
+    /// optical sensor was SERVED (header: the on-robot contract) — or (VIS1-A1) the camera served
+    /// there, as its own count; nullptr otherwise. Never makes.
     [[nodiscard]] const IReadFaults* readFaults(std::uint8_t port) const noexcept override {
         const int p = static_cast<int>(port);
         if (p < 1 || p > static_cast<int>(kMaxSmartPorts)) {
             return nullptr;
         }
         const auto i = static_cast<std::size_t>(p);
-        return (distanceMade_[i] || opticalMade_[i]) ? &readFaults_[i] : nullptr;
+        if (distanceMade_[i] || opticalMade_[i]) {
+            return &readFaults_[i];
+        }
+        return cameraMade_[i] ? &cameras_[i] : nullptr;
     }
 
     /// MECH-A1: this provider's own read-fault counter for 3-wire `line` — only where a digital
@@ -477,6 +530,9 @@ private:
     FakeReadFaults readFaults_[kSlots]{};
     bool distanceMade_[kSlots]{};
     bool opticalMade_[kSlots]{};
+    FakeVisionFrames cameras_[kSlots]{};  // VIS1-A1: the camera, its own read-fault count
+    AiVisionSettings cameraSettings_[kSlots]{};
+    bool cameraMade_[kSlots]{};
 
     IMotor* boundMotor_[kSlots]{};
     IImu* boundImu_[kSlots]{};
@@ -501,7 +557,7 @@ private:
     FakeReadFaults lineReadFaults_[kLineSlots]{};
     bool inputMade_[kLineSlots]{};
 
-    char refusal_[96]{};
+    char refusal_[160]{};  // 96 until VIS1-A1: a camera settings refusal carries a whole sentence
 };
 
 }  // namespace shulib::hal::fake

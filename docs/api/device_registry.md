@@ -8,7 +8,7 @@
 
 IDeviceRegistry — WHAT IS ACTUALLY PLUGGED INTO EACH SMART PORT.
 
-This header declares **2** types (18 members) and **2** free functions.
+This header declares **2** types (19 members) and **2** free functions.
 
 Extracted from [`include/shulib/hal/device_registry.hpp`](../../include/shulib/hal/device_registry.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -26,6 +26,7 @@ Extracted from [`include/shulib/hal/device_registry.hpp`](../../include/shulib/h
   - [`Radio`](#devicekind-radio)
   - [`Adi`](#devicekind-adi)
   - [`Other`](#devicekind-other)
+  - [`AiVision`](#devicekind-aivision)
 - [`deviceKindWord`](#devicekindword) — *free function*
 - [`class IDeviceRegistry`](#class-ideviceregistry)
   - [`~IDeviceRegistry`](#ideviceregistry-destructor-ideviceregistry)
@@ -129,7 +130,7 @@ an optical sensor — hal/pros/optical.hpp
 Vision
 ```
 
-a vision sensor (including AI Vision) — no adapter yet; R2 owns the camera
+the OLDER V5 Vision sensor (276-4850) — no adapter (since VIS1-A1 the AI Vision sensor is AiVision)
 
 *enumerator, declared at [`include/shulib/hal/device_registry.hpp:57`](../../include/shulib/hal/device_registry.hpp#L57).*
 
@@ -181,6 +182,18 @@ a device this library has no name for (serial, undefined, anything new)
 
 *enumerator, declared at [`include/shulib/hal/device_registry.hpp:61`](../../include/shulib/hal/device_registry.hpp#L61).*
 
+<a id="devicekind-aivision"></a>
+
+### `DeviceKind::AiVision`
+
+```cpp
+AiVision
+```
+
+the V5 AI Vision sensor — hal/pros/ai_vision.hpp (VIS1-A1, APPENDED: the value is compared in memory only, never stored in a record, so appending moves nothing)
+
+*enumerator, declared at [`include/shulib/hal/device_registry.hpp:62`](../../include/shulib/hal/device_registry.hpp#L62).*
+
 <a id="devicekindword"></a>
 
 ## `deviceKindWord`
@@ -191,7 +204,7 @@ a device this library has no name for (serial, undefined, anything new)
 
 The kind as one short word, for a census line or a refusal message. Never invents: an unknown byte reads "?".
 
-*free function, declared at [`include/shulib/hal/device_registry.hpp:66`](../../include/shulib/hal/device_registry.hpp#L66).*
+*free function, declared at [`include/shulib/hal/device_registry.hpp:68`](../../include/shulib/hal/device_registry.hpp#L68).*
 
 <a id="class-ideviceregistry"></a>
 
@@ -203,7 +216,7 @@ class IDeviceRegistry
 
 The seam that answers "what is plugged into this port?" without opening anything. Stated in PHYSICAL port numbers, 1..kMaxSmartPorts — the zero-indexed PROS call it is implemented over is the adapter's business and nobody else's (header). Non-owning and const: a registry is asked, never told.
 
-*class, declared at [`include/shulib/hal/device_registry.hpp:87`](../../include/shulib/hal/device_registry.hpp#L87).*
+*class, declared at [`include/shulib/hal/device_registry.hpp:90`](../../include/shulib/hal/device_registry.hpp#L90).*
 
 <a id="ideviceregistry-destructor-ideviceregistry"></a>
 
@@ -215,7 +228,7 @@ virtual ~IDeviceRegistry() = default
 
 The polymorphic-base special members: a virtual destructor so a registry may be owned and destroyed through this interface, and defaulted copy/move because the interface itself holds no state.
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:92`](../../include/shulib/hal/device_registry.hpp#L92).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:95`](../../include/shulib/hal/device_registry.hpp#L95).*
 
 <a id="ideviceregistry-ideviceregistry"></a>
 
@@ -227,7 +240,7 @@ IDeviceRegistry() = default
 
 *Covered by the comment on [`~IDeviceRegistry`](#ideviceregistry-destructor-ideviceregistry) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:93`](../../include/shulib/hal/device_registry.hpp#L93).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:96`](../../include/shulib/hal/device_registry.hpp#L96).*
 
 <a id="ideviceregistry-ideviceregistry-2"></a>
 
@@ -239,7 +252,7 @@ IDeviceRegistry(const IDeviceRegistry&) = default
 
 *Covered by the comment on [`~IDeviceRegistry`](#ideviceregistry-destructor-ideviceregistry) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:94`](../../include/shulib/hal/device_registry.hpp#L94).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:97`](../../include/shulib/hal/device_registry.hpp#L97).*
 
 <a id="ideviceregistry-ideviceregistry-3"></a>
 
@@ -251,7 +264,7 @@ IDeviceRegistry(IDeviceRegistry&&) = default
 
 *Covered by the comment on [`~IDeviceRegistry`](#ideviceregistry-destructor-ideviceregistry) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:95`](../../include/shulib/hal/device_registry.hpp#L95).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:98`](../../include/shulib/hal/device_registry.hpp#L98).*
 
 <a id="ideviceregistry-operator-eq"></a>
 
@@ -263,7 +276,7 @@ IDeviceRegistry& operator=(const IDeviceRegistry&) = default
 
 *Covered by the comment on [`~IDeviceRegistry`](#ideviceregistry-destructor-ideviceregistry) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:96`](../../include/shulib/hal/device_registry.hpp#L96).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:99`](../../include/shulib/hal/device_registry.hpp#L99).*
 
 <a id="ideviceregistry-operator-eq-2"></a>
 
@@ -275,7 +288,7 @@ IDeviceRegistry& operator=(IDeviceRegistry&&) = default
 
 *Covered by the comment on [`~IDeviceRegistry`](#ideviceregistry-destructor-ideviceregistry) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:97`](../../include/shulib/hal/device_registry.hpp#L97).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:100`](../../include/shulib/hal/device_registry.hpp#L100).*
 
 <a id="ideviceregistry-pluggedkind"></a>
 
@@ -287,7 +300,7 @@ IDeviceRegistry& operator=(IDeviceRegistry&&) = default
 
 What PHYSICAL port `port` (1..kMaxSmartPorts) currently carries. Out of range answers None without asking the platform — a loop that walks 0..21, or 1..22, gets an honest "empty" rather than a shifted reading or a phantom device (header, and HA-120's 2026-08-18 finding). MUST NOT throw.
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:103`](../../include/shulib/hal/device_registry.hpp#L103).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:106`](../../include/shulib/hal/device_registry.hpp#L106).*
 
 <a id="issmartport"></a>
 
@@ -299,7 +312,7 @@ What PHYSICAL port `port` (1..kMaxSmartPorts) currently carries. Out of range an
 
 True when `port` is a physical smart port number a registry may be asked about. The ONE place the 1..kMaxSmartPorts range is spelled for this seam, so the fake, the adapter and every caller agree about the boundary.
 
-*free function, declared at [`include/shulib/hal/device_registry.hpp:109`](../../include/shulib/hal/device_registry.hpp#L109).*
+*free function, declared at [`include/shulib/hal/device_registry.hpp:112`](../../include/shulib/hal/device_registry.hpp#L112).*
 
 ## Design commentary, from the header
 

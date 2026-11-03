@@ -98,6 +98,19 @@
 // competition program does not: since COMP-a the chosen auton's start pose is seated when the
 // auton starts, through Localizer::reseatHeading (HA-05, amended), over this boot heading of 0.
 //
+// ── THE CAMERA'S SETTINGS ARE WRITTEN HERE (chunk VIS1-A1, 2026-10-18) ──────────────
+// aiVision(port, settings) makes a ProsAiVision (hal/pros/ai_vision.hpp) on the first request the
+// registry (kind AI-VISION — the OLDER Vision sensor is refused by name: "port 3: a vision sensor
+// (expected an AI Vision sensor)") and the settings block both allow — and CONSTRUCTING IT WRITES THE
+// CAMERA, like imu()'s calibration above: the colour descriptors (each read back), the detection modes
+// (TAGS off, read back) and the AI model's check by name (A4 register HA-196, HA-197). A second request
+// with EQUAL settings (`sameAiVisionSettings`: field by field, strings by content) returns the same
+// camera and writes nothing; a request with DIFFERENT settings is REFUSED, naming the port ("port 3:
+// the camera was already set up with other settings -- one owner") — deliberately NOT the precondition
+// a motor's second configuration is: the camera never stops a robot from driving (VIS1's D5), so a
+// disagreement about it costs the camera, never the program. readFaults(port) answers the camera made
+// there (it is an hal::IReadFaults: a failed or torn read counts), and never makes one.
+//
 // ── WHAT IT DOES NOT DO ─────────────────────────────────────────────────────────────
 // It applies NO dead-port policy. A port the boot check reported MISSING is never requested
 // (robot::BuildOptions::absentDrivePorts); anything else it will not make refuses the build,
@@ -156,6 +169,7 @@
 #include "shulib/hal/device_provider.hpp"
 #include "shulib/hal/device_registry.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
+#include "shulib/hal/pros/ai_vision.hpp"
 #include "shulib/hal/pros/battery.hpp"
 #include "shulib/hal/pros/block_sink.hpp"
 #include "shulib/hal/pros/char_sink.hpp"
@@ -510,9 +524,50 @@ public:
         return &*inputs_[i];
     }
 
+    /// VIS1-A1: the AI Vision camera on `port`, set up with `settings` (header: THE CAMERA'S SETTINGS
+    /// ARE WRITTEN HERE). Made on the first request the registry (kind AI-VISION) and the settings
+    /// block both allow — and making it WRITES the camera; the same object for a later request with
+    /// equal settings. nullptr + a refusal for a port outside 1..21, a settings problem ("port 3: the
+    /// camera's settings: <the problem>"), a port the registry says is empty or carries anything else
+    /// (the older Vision sensor included), or a request with settings other than the made camera's —
+    /// a refusal, never a precondition (header).
+    [[nodiscard]] IVisionFrames* aiVision(std::uint8_t port, const AiVisionSettings& settings) override {
+        const int p = static_cast<int>(port);
+        if (!isSmartPort(p)) {
+            std::snprintf(refusal_, sizeof refusal_,
+                          "port %d is not a smart port (ports are 1..21)", p);
+            return nullptr;
+        }
+        if (const char* problem = aiVisionSettingsProblem(settings)) {
+            std::snprintf(refusal_, sizeof refusal_, "port %d: the camera's settings: %s", p, problem);
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(p);
+        if (cameras_[i].has_value()) {
+            if (!sameAiVisionSettings(cameras_[i]->settings(), settings)) {
+                std::snprintf(refusal_, sizeof refusal_,
+                              "port %d: the camera was already set up with other settings -- one owner",
+                              p);
+                return nullptr;
+            }
+            return &*cameras_[i];
+        }
+        if (!expectKind(p, DeviceKind::AiVision, "an AI Vision sensor")) {
+            return nullptr;
+        }
+        try {
+            cameras_[i].emplace(port, settings, clock_);  // WRITES the camera's settings (header)
+        } catch (const std::exception& e) {
+            cameras_[i].reset();
+            refuseRejected(p, "camera", e.what());
+            return nullptr;
+        }
+        return &*cameras_[i];
+    }
+
     /// MECH-A1: the read-fault count of the distance or optical sensor THIS provider made on
-    /// `port` — that adapter itself, as an hal::IReadFaults; nullptr when neither was made there.
-    /// Looks up, never makes (header).
+    /// `port` — that adapter itself, as an hal::IReadFaults — or (VIS1-A1) the camera made there;
+    /// nullptr when none was made there. Looks up, never makes (header).
     [[nodiscard]] const IReadFaults* readFaults(std::uint8_t port) const noexcept override {
         const int p = static_cast<int>(port);
         if (!isSmartPort(p)) {
@@ -524,6 +579,9 @@ public:
         }
         if (opticals_[i].has_value()) {
             return &*opticals_[i];
+        }
+        if (cameras_[i].has_value()) {
+            return &*cameras_[i];
         }
         return nullptr;
     }
@@ -622,6 +680,7 @@ private:
             case DeviceKind::Radio: return "the radio";
             case DeviceKind::Adi: return "an ADI expander";
             case DeviceKind::Other: return "an unrecognised device";
+            case DeviceKind::AiVision: return "an AI Vision sensor";
         }
         return "an unrecognised device";
     }
@@ -698,6 +757,7 @@ private:
     std::optional<ProsRotation> rotations_[kSlots]{};
     std::optional<ProsDistance> distances_[kSlots]{};  // MECH-A1: piece sensors
     std::optional<ProsOptical> opticals_[kSlots]{};
+    std::optional<ProsAiVision> cameras_[kSlots]{};  // VIS1-A1: the AI Vision camera(s)
     std::optional<ProsDigitalOut> lines_[kBrainAdiLines + 1]{};  // slot 0 unused, like the ports
     std::optional<ProsDigitalIn> inputs_[kBrainAdiLines + 1]{};  // MECH-A1: limit switches
     bool lineInitial_[kBrainAdiLines + 1]{};

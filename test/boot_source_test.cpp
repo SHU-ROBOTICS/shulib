@@ -157,7 +157,7 @@ FakeDeviceRegistry robotTwoCensus() {
     }
     reg.setKind(1, DeviceKind::Radio);
     reg.setKind(2, DeviceKind::Imu);
-    reg.setKind(3, DeviceKind::Vision);
+    reg.setKind(3, DeviceKind::AiVision);
     return reg;
 }
 
@@ -391,7 +391,7 @@ TEST_CASE("G1 2b test 6c: robot::Robot::portMap() equals the 2026-09-25 capture'
     CHECK(std::string_view{banner}
           == "2026 TANK CHASSIS (robot two) [] tank MEASURED | L -16,17,-18,-20 R 11,-12,13,15 | "
              "ipr L1.25442 R1.36703 W 12.006 in | IMU2 | drive-encoders | GPS ABSENT tags ABSENT "
-             "vision ABSENT");
+             "camera ABSENT");  // VIS1-A1: was "vision ABSENT" (robot two's table declares no camera yet)
     // :95 — the description's own banner line, which the program prints beside robot.describe().
     char described[128];
     boot.config.drivetrain.tank.description.describe(described, sizeof described);
