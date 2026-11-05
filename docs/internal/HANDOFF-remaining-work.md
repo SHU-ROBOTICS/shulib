@@ -296,7 +296,9 @@ too — arms, lifts and flywheels move, hold, home and spin; host-only, no progr
 service (MECH-A4, built 2026-10-22, its review's fix round 2026-10-27, its verification round 2026-10-29; LANDED 2026-10-29): the Routine's mechanism steps (`chassis/routine.hpp`, API 2.5),
 `runAuton`'s and `runDriverControl`'s service overloads, `mechanism/{driver_inputs,direction_check}.hpp` and
 `runner/mechanism_routes.hpp` (MECH-A5, LANDED 2026-10-30, built 2026-10-29: robot two's three programs build
-the service and run its claws on it — `src/robots/mechanism_table.hpp`, `src/common/driver_file.hpp`), `robot/robot.hpp` (`robot::validate` +
+the service and run its claws on it — `src/robots/mechanism_table.hpp`, `src/common/driver_file.hpp`; MECH-A6, LANDED
+2026-11-06 (the core complete): Bench Tests' station 13 runs the direction check on the robot — `src/programs/bench_r3a.{hpp,cpp}`,
+worksheet Station P), `robot/robot.hpp` (`robot::validate` +
 `robot::Robot`; since G1 Part 2a also `BuildOptions` for the boot check's absent drive ports,
 `portMap()` and `driveOdometry()`), `runner/command_registry.hpp`, `runner/path_runner.hpp`, `runner/manifest.hpp`.
 
@@ -820,8 +822,8 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
 3. **The competition program chapter** (L2): selector, phases, the park, how routines are registered.
 4. **The mechanism chapter** (L8): each primitive, its confirmation and failure modes, homing. *(Begun:
    the guide's chapter 18, MECH-A3, 2026-10-15 — the kinds, homing, limits, jam signatures, tuning; MECH-A4,
-   2026-10-22, the auton steps, the driver controls, the route markers and the direction check's judgement; A6 adds
-   the bench page.)*
+   2026-10-22, the auton steps, the driver controls, the route markers and the direction check's judgement; A6
+   (built 2026-10-30, in review) added the bench page's section.)*
 5. **The driver-control chapter** (L1, L5, T2): profiles, modes, field-centric and its fallback,
    bindings.
 6. **The calibration chapter:** what the calibrator measures, the record on the card, boot

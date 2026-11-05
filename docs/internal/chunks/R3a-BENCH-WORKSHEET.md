@@ -13,7 +13,9 @@
 
 **The program is already on the brain: slot 3, named "Bench Tests".** It is **read-only and commands
 no motion — EXCEPT button 10 DRIVE**, which powers the drive motors and has its own station (D)
-below. Nothing else on the menu can move the robot. *(Button **12 AI VISION** writes the AI Vision
+below, **and button 13 MECHANISMS** (since MECH-A6, 2026-10-30), which powers robot two's claws — one
+at a time, behind its own gates — and checks which way each one moves (Station P). Nothing else on the
+menu can move the robot. *(Button **12 AI VISION** writes the AI Vision
 CAMERA's own settings — tag and object detection on, its video overlay on — and says so on its
 screen; it powers nothing. Station I.)* *(Robot two has FOUR more programs, five in all (since T4
 Part 3, 2026-10-04). **"shulib Drive"** in **slot 1** — robot two's DRIVER FILE on the library: the
@@ -64,8 +66,10 @@ Part 3:* the OLD "shulib Drive" (the typed table's open-loop drive — Station E
 2. A **boot splash** shows a **BUILD** stamp for two seconds, and the same stamp sits on the menu.
    **If that stamp is not the build you just uploaded, the upload did not land** — re-upload before
    trusting anything on screen. (A silent upload failure cost a debugging cycle on 2026-08-18.)
-3. A **touch menu** appears: **twelve buttons, three across and four down**, numbered like a
-   phone keypad (since R2a, 2026-09-24 — it was two columns of five):
+3. A **touch menu** appears: **thirteen buttons, three across and five rows down**, numbered like a
+   phone keypad (since MECH-A6, 2026-10-30 — it was three across and four down from R2a, 2026-09-24,
+   and two columns of five before that). Stations 1–12 sit where they always did; 13 is alone on the
+   fifth row, on the left, and the two places beside it do nothing:
 
    ```text
    [ 1 DEVICE   ] [ 2 IMU +    ] [ 3 MOTOR    ]
@@ -76,10 +80,13 @@ Part 3:* the OLD "shulib Drive" (the typed table's open-loop drive — Station E
    [            ] [   STATIC   ] [   RULER    ]
    [ 10 DRIVE   ] [ 11 DISTANCE] [ 12 AI      ]
    [   POWERS   ] [            ] [   VISION   ]
+   [ 13 MECH    ]
+   [   POWERS   ]
    ```
 
-   Each button shows its number and name on two lines (shortened to fit; the log still writes
-   the full name, e.g. `>>>>>> 3  MOTOR WATCH (live)`). Tap any test:
+   Each button shows its number and name on two lines — the first in the medium letters, the second
+   in small ones (since MECH-A6: the five rows are shorter) — shortened to fit; the log still writes
+   the full name, e.g. `>>>>>> 3  MOTOR WATCH (live)`. Tap any test:
 
    **An amber stripe down a button's left edge means that test needs your hands.**
    Each test also opens with two amber lines — `DO NOW` and `DONE IF` — so you never
@@ -99,13 +106,14 @@ Part 3:* the OLD "shulib Drive" (the typed table's open-loop drive — Station E
    | **10 DRIVE (POWERS)** | **yes — RED stripe** | **POWERS THE MOTORS.** Wheels off the ground; hold **L1** to drive | you drove at 3 V wheels-up, raised the ceiling with **R1**, touched to stop — see **Station D** |
    | **11 DISTANCE** | **yes** | hold the robot square to a wall at 6, 12 and 24 in (tape) and press **RECORD** at each; then point it at open space — see **Station H** | a RECORD number for 6, 12, 24 in and open space, per sensor |
    | **12 AI VISION** | **yes** | a game piece about 1 ft then 2 ft ahead, moved left then right, **RECORD** each; **FAMILY** for a printed tag — see **Station I** | a RECORD number per spot, and which FAMILY sees your tag (if you have one) |
+   | **13 MECHANISMS (POWERS)** | **yes — RED stripe** | **POWERS THE CLAWS, one at a time.** Clear every claw's path; hold **L1**: **UP / DOWN** jog, **A** checks which way it moves — see **Station P** | every claw has a direction verdict, its readings RECORDed |
 
    Each button carries a **status dot** at its bottom right: hollow until run, then filled —
    green PASS, amber CHECK, red FAIL, **white DONE** (the test ran and judges nothing — 11 and 12
    end that way). That is how you tell what is left without keeping a list.
-   **Button 10 has a RED stripe and a red edge instead of amber: it is the only one that
-   powers motors.** *(This table was corrected at R3b Session 2 — it had listed the menu as it
-   was before MOTOR WATCH existed — and grew to twelve at R2a.)*
+   **Buttons 10 and 13 have a RED stripe and a red edge instead of amber: they are the only two
+   that power motors.** *(This table was corrected at R3b Session 2 — it had listed the menu as it
+   was before MOTOR WATCH existed — grew to twelve at R2a, and to thirteen at MECH-A6.)*
 
 4. Results print on the screen. When it fills, tap to continue. When a test ends, tap
    **TOUCH TO RETURN TO MENU**.
@@ -297,10 +305,12 @@ moves the whole develop-upload-read loop off the robot and onto a desk.
 
 ## Station D — DRIVE  *(the 2026 tank chassis, robot two — added R3b Session 2, 2026-09-10)*
 
-> ⚠ **This is the ONE station that powers motors.** Button **10 DRIVE** has a **RED** stripe. It
-> drives the robot through the library's motor and controller *adapters* with open-loop volts — it
-> is **not** the library's motion stack, and it commands nothing unless a button is **held**.
-> Everything else on the menu is still read-only.
+> ⚠ **This is one of the TWO stations that power anything** — button **10 DRIVE** (this one: the
+> wheels) and button **13 MECHANISMS** (Station P: the claws, one at a time). Each has a **RED**
+> stripe. DRIVE drives the robot through the library's motor and controller *adapters* with open-loop
+> volts — it is **not** the library's motion stack, and it commands nothing unless a button is
+> **held**. Everything else on the menu is read-only (12 AI VISION writes the camera's own detection
+> settings, never a motor).
 >
 > **Six things must be true before it will drive, and the program checks each one and refuses
 > loudly if it is not.** The refusal text names what is missing. A refusal is a finding — write
@@ -1244,10 +1254,197 @@ this test cannot tell — write that. (Nothing in the library assumes either ans
 
 ---
 
+## Station P — THE MECHANISMS: each claw shown, powered one at a time, and its DIRECTION checked  *(Bench Tests button 13, robot two — added MECH-A6, 2026-10-30)*
+
+> **THIS STATION POWERS THE CLAWS** — one at a time, and only while you hold **L1**. It is the second
+> station on the menu with a **red** stripe (10 DRIVE is the other). **It has NEVER RUN ON A ROBOT**:
+> every word below is copied from the code, and its numbers (the 3 V start, the 1 s announcement and the
+> 0.4 s check, the cuts) are **invented for a first run** (A4 register HA-182) — the screen says so.
+>
+> **What it answers:** which way each claw ACTUALLY moves for its "+" (A4 register HA-153 — robot two's
+> pivots on ports 6 and 7 are as REPORTED and their direction unmeasured), whether the pneumatic claw's
+> "open" really opens it (HA-159), and — for any robot whose mechanism has one — what a limit switch
+> reads pressed, released and UNPLUGGED (HA-184) and what an angle sensor reads at power-up (HA-186).
+> It reads every mechanism the robot DECLARES (`src/robots/mechanism_table.hpp`) through the library's
+> own parts — the same projection every program boots from — and shows each one **in its declared
+> units**: a position mechanism's angle through its gearing, a lift's inches through its shape.
+>
+> **It saves NOTHING.** When a claw moves the wrong way the screen names the LINE of the robot file to
+> change; the coordinator edits it, rebuilds and uploads, and you run P again. **Run P BEFORE Station
+> J's J.4 and J.9**: P finds a wrong direction with the robot on blocks, a claw at a time, at 3 V.
+>
+> **Robot two:** three mechanisms — `claw pivot 6` (POWER, port 6), `claw pivot 7` (POWER, port 7),
+> `claw` (PNEUMATIC, 3-wire A). The bench bot declares none: there the station says
+> `this robot declares NO mechanism -- nothing to show.` and stops.
+
+**P.0 — before**
+
+- [ ] **P.0.1** "Bench Tests" uploaded from the committed tree **as `make ROBOT=tank`** (robot two's
+      build; G.1's first line, slot 3); its BUILD stamp is the build you just made.
+- [ ] **P.0.2** **The robot on blocks**, both claws free to swing their whole way with nothing in their
+      path, **the air tank charged** (the claw), hands clear. The controller **paired** (Station 5.5) — every
+      move needs **L1** held on it.
+- [ ] **P.0.3** A card in the SD slot (every line also goes to `/usd/r3a_log.txt`), and the laptop on the
+      USER port if you can (G.7 — every line of this station starts `[R3A] mech`).
+- [ ] **P.0.4** Decide, with the team, what each claw's **"+" way** should be (for a pivot: which way is
+      "forward" for the team — opening? up?) and write it here: port 6 + = ________ · port 7 + = ________ ·
+      the pneumatic's `open` = the claw's jaws ________.
+
+**P.1 — the boot lines and the CLEAR question**
+
+- [ ] **P.1.1** Tap **13 MECH**. The scrolling page says the station powers mechanisms, then asks — on its
+      own screen — **`STATION 13 POWERS MECHANISMS`** / `every path clear, hands away? (3 declared)`, with
+      `making a line DRIVES it: 'claw' -> 'closed'` underneath: **making the claw's 3-wire line sets it to its
+      start level** (closed), the first time in a power cycle. **NO** goes back to the menu with nothing made;
+      **YES, CLEAR** (`nothing moves yet`) makes the three. A LATER visit in the same power cycle makes nothing:
+      its CLEAR says `nothing moves on YES` / `made earlier this power cycle: no line is driven` (a robot whose
+      pneumatic STARTS High would read `a cylinder MOVES` on the first one — its YES strokes it).
+- [ ] **P.1.2** The boot lines — copy any that differ:
+      `claw pivot 6: POWER -- RED, motor 1 forward; let go: HOLD` · `claw pivot 6: motor 1 -> port 6 ok` ·
+      `'claw pivot 6': no stall signature -- held against its stop it is cut only by the driver letting go
+      (HA-154)` · the same three for 7 · `claw: PNEUMATIC -- starts 'closed', safe 'closed'; closed = A low,
+      open = A high (levels UNVERIFIED until a bench station sees them); a disable leaves it where it is` ·
+      `claw: line 1 -> 3-wire A not checkable (the brain cannot see a 3-wire device)`.
+      A line ending **`ABSENT: port 7 ...`** means the brain did not find that motor — its page will say why
+      and nothing on it can be powered (send the line and J.1's census).
+- [ ] **P.1.3** `TOUCH to open the live page.` — touch.
+
+**P.2 — reading the live page** (every string copied from the code; the numbers are made up)
+
+| Where | It says | What it is |
+|---|---|---|
+| top bar | `13 MECHANISMS -- POWERS` | |
+| line 1 (white; **green** while powered; **red** when CUT or ABSENT) | `1/3 'claw pivot 6' POWER` (+ ` POWERED` / ` CUT` / ` ABSENT`) | which mechanism is on the page — **only this one can move** |
+| a motor's line | `m1 p6 +123.4deg +1.23r/s 0.42A 31C` | motor 1 on port 6: how far it has turned **since power-up** (its own degrees, its declared direction applied), speed, current, temperature — **`unknown`** when the temperature read failed (never a made-up "cool") |
+| an arm's or lift's units (another robot's) | `ARM +95.0 deg (power-up = home 0.0; 5.00:1)` | where it is **in its declared units**, taking the power-up pose as its declared home, through its gearing (5 motor turns per arm turn). **Turn the arm by hand and read its range, its presets and its level angle off this line**; a wrong gearing reads a wrong angle here |
+| the claw's lines | `line A: commanded LOW` · `position: 'closed'` (` (FIRED)` while fired) | what the brain's 3-wire line was last COMMANDED (the line's own readback — never a sensor on the claw) and the declared position those levels are — read at each visit, so a claw an earlier visit left elsewhere shows where its line put it (`position: UNKNOWN (no declared one matches)` if no position matches; its first fire then goes to its safe one) |
+| the gates line (amber; green while powered; red on a cut) | `ceiling 3V \| L1+UP/DN jog \| L1+A check \| R1 raise` | what the controller does now; `POWERED +3.0 V -- let go of L1 to stop`; `CHECK: watch it -- keep L1 held` (the check's announcement); `CHECK: jog +3.0 V -- keep L1 held`; `CUT: <why>`; `CONTROLLER NOT CONNECTED -- nothing can be powered`; a mechanism whose `maxVolts` is under 12 V: `ceiling 3V, max 6.0V \| …` |
+| the last reading line, when there are more than fit | `-- page 1/2: TAP the readings for more --` | a mechanism with more readings than the panel holds (four motors, a sensor and a switch); a long verdict too — **tap the lines** for the next page |
+| the status line | the station's last log line, without its `[R3A] mech ` start | e.g. `ARMED 'claw pivot 6': hold L1, then UP / DOWN jog it…` |
+| buttons | **NEXT** (left — the next mechanism), **RECORD**, **DONE** (all safe) | grey for half a second whenever they change; a tap then is ignored (and logged) |
+
+**P.3 — the gates (what keeps your hands safe; each is in the code and host-tested — the order of the steps
+only the bench program runs, the CLEAR before anything is made and the dead-man watched inside each confirm,
+is pinned by reading its source; only this station's run proves the page itself)**
+
+1. Only a mechanism the brain BUILT can be powered (an ABSENT one's page says why).
+2. **Two confirms**: the CLEAR at entry (P.1.1), then **`POWER 'claw pivot 6'?`** the first time you try
+   to move a pivot in this visit, and **`FIRE 'claw' -> 'open'?` EVERY time** the claw is fired (a cylinder
+   cannot be stopped mid-stroke). A **YES only arms** a pivot — it moves on your NEXT press.
+3. **L1 is the dead-man.** Let go of it — or let the controller drop — and whatever the station powered goes
+   to its safe state **that instant**: a pivot to 0 V and HOLD, the claw back to `closed`. A confirm on the
+   screen CLOSES the moment you let go (`ANSWER: none -- L1 let go …`), granting nothing. Anything the station
+   never powered is never touched. A jog runs only **while its arrow is held**. **Nothing restarts by itself:** a
+   button still held when the controller comes back, when a check ends, or through NEXT, is not a press — let
+   go and press again.
+4. The volts **start at 3 V — for EACH mechanism** (NEXT puts the ceiling back to 3 V, so a ceiling raised for
+   one claw never reaches the next one's first move); each **R1** press raises it 3 → 6 → 9 → 12 (it never
+   goes higher; leaving the station resets it). A power mechanism is never driven past its declared
+   `maxVolts` whatever the ceiling (robot two's pivots keep the default 12 V).
+5. **A cut** stops that mechanism, names why, and keeps it stopped until you leave and re-enter 13: two of a
+   mechanism's motors fighting each other for 250 ms; any motor above 2.4 A for 250 ms; its own stall
+   signature, when it states one (robot two's pivots state none — so the 2.4 A cut and the next one are what
+   protect them); **a jog held for 3 s**.
+6. **DONE** (or any other way out of the station) puts everything it powered safe.
+
+**P.4 — each pivot: by hand, jogged, then its direction check** (port 6, then NEXT to port 7)
+
+- [ ] **P.4.1** **By hand, nothing powered:** swing the pivot a little. Its `m1 p6 …deg` changes, and the
+      sign follows your hand: write which way of the claw made it go **+**: ________.
+- [ ] **P.4.2** **Arm it:** hold **L1**, press **UP** → `POWER 'claw pivot 6'?` → **YES, POWER IT** (NO: nothing
+      is powered). Nothing moves yet.
+- [ ] **P.4.3** **Jog:** keep **L1** held; hold **UP** a moment — the pivot turns its "+" way at 3 V and stops
+      when you let go of UP (or of L1). **DOWN** turns it the other way. Hold either past **3 s** and it is CUT —
+      that is the gate, not a fault (leave and re-enter to clear it). Watch the current while you push it gently
+      against something: it is the number a stall signature is sized by (P.7).
+- [ ] **P.4.4** **The direction check:** let go of UP and DOWN and let the pivot rest mid-travel, clear (A is
+      REFUSED while a jog runs: `REFUSED A: 'claw pivot 6' is being jogged -- let go of the arrow first`). Hold
+      **L1**, press **A** once: the page says `CHECK 'claw pivot 6': ONLY 'claw pivot 6' should move -- watch it.`
+      and counts down **1 s with nothing driven** — watch the claws: only this one should move. If the pivot was
+      still swinging in that second's last 0.4 s the check is abandoned (`still MOVING when its jog was due …
+      nothing judged` — let it settle, press A again). Then it jogs it **+** at the ceiling for **0.4 s** and stops
+      it. Keep L1 held until it stops (letting go early judges nothing: `L1 was let go before the check's jog
+      ended`).
+- [ ] **P.4.5** Either the screen shows a verdict AT ONCE (the encoders saw something — P.6), or it asks:
+      **`ONLY 'claw pivot 6' should have moved: did it go its + way, the OTHER way, or did it NOT move (or
+      something ELSE moved)?`** with three buttons — **ITS + WAY** · **THE OTHER WAY** · **NOT MOVED / ELSE MOVED**.
+      "Its + way" is the way you wrote in P.0.4. Answer what you SAW (B on the controller drops the question).
+- [ ] **P.4.6** The verdict fills the page (it stays until you press L1 again, NEXT, or 20 s; a long one has a
+      second page — tap the lines) and is in the log as `[R3A] mech CHECK 'claw pivot 6': answered '…' -> …`.
+      Write it here: ________________.
+- [ ] **P.4.7** **RECORD.** Then **NEXT** to `claw pivot 7` and P.4.1–P.4.7 again.
+
+**P.5 — the claw (pneumatic)**
+
+- [ ] **P.5.1** NEXT to `3/3 'claw' PNEUMATIC`. Hands clear of the jaws. Hold **L1**, press **A** (or UP) →
+      **`FIRE 'claw' -> 'open'?`** / `hands clear: it moves when you touch YES`. **Keep L1 held** and touch
+      **YES, FIRE**. Letting go of L1 while the prompt waits CLOSES it at once and fires nothing (`ANSWER: none
+      -- L1 let go (or the controller dropped) while it waited` / `not fired: 'claw' -> 'open' -- L1 was let go
+      during the prompt`), and anything it had fired goes back to `closed` then and there (`L1 released during
+      the prompt: every powered mechanism safe`); a YES touched just as L1 is let go is refused too (`NOT fired:
+      'claw' -- L1 was not held when YES was touched`).
+- [ ] **P.5.2** The claw moves (if the valve, the tubing and the air are right). The page asks **`ONLY 'claw'
+      should have moved. Told 'open': which position did it go to?`** — buttons **closed** · **open** ·
+      **NOTHING / ELSE MOVED**. Answer what you saw. Let go of L1: the claw returns to `closed`.
+- [ ] **P.5.3** The verdict: ________________. **RECORD.**
+
+**P.6 — what each verdict means** (the station only REPORTS: it names the line; the coordinator edits
+`src/robots/mechanism_table.hpp`, rebuilds, uploads — then run P again)
+
+| The screen says | It means | The change it names |
+|---|---|---|
+| **OK** — `'claw pivot 6': direction confirmed` / `'claw': 'open' confirmed` | the declaration is right | none |
+| **REVERSED** — `'claw pivot 6' moved the OTHER way: in the declaration at …mechanism_table.hpp:NNN, .motors: swap EVERY Forward and Reversed …` | the pivot's "+" is the team's "−" | that declaration's `.motors = {Forward}` → `{Reversed}` — never swap the driver's buttons |
+| **REVERSED** (the claw) — `'claw' went 'closed' when told 'open': its line levels are swapped -- in the declaration at …:NNN, .positions: swap each position's levels …` | "open" closes it (HA-159 was the other way) | `{Low}` ↔ `{High}` on the claw's `.positions` line |
+| **CABLE ELSEWHERE** — `… a cable of 'claw pivot 6' is on ANOTHER mechanism's port … check the wire(...) line at …:NNN and the wire line of what moved` | something ELSE moved (a swap the boot cannot see) | the `wire(...)` lines — or the cables (label them, HA-155) |
+| **CABLE ELSEWHERE** (the claw) — `'claw' did not move when told 'open': its valve is not on the line the wiring says …: check the wire(...) line at …, the tubing and the air` | nothing moved — a wrong 3-wire port, an unplugged valve, no air | the claw's `wire(claw, lines('A'))`, the tubing, the tank |
+| **DID NOT MOVE** — `'claw pivot 6' motor 1 neither moved nor drew current: check its cable, and its port in the wire(...) line at …` | the motor never turned and drew nothing | its cable; its port in the `wire(...)` line |
+| **FIGHT OR JAM** — `'claw pivot 6' did not move but its motor drew current: it is JAMMED or at its stop -- clear it and jog the other way` | it pushed on something | nothing to edit: clear it, start mid-travel |
+| **BACK-DRIVEN** — `… was turned AGAINST its command by something stronger than the jog (gravity or a load) … jog it harder, or from another pose, and check again` | gravity beat the 3 V jog | nothing to edit: R1 to 6 V (on THIS claw — NEXT puts the next one back to 3 V), or start where gravity helps |
+| **A MOTOR FIGHTS** / **SENSOR REVERSED** | (a two-motor mechanism; an angle sensor) — robot two has neither | the motor role / the sensor's mounting word the sentence names |
+
+**P.7 — a limit switch and an angle sensor** (robot two has NEITHER today — these are for the robot that
+first declares one; the page shows the lines only then)
+
+- [ ] **P.7.1 (HA-184)** A mechanism with a home switch shows `home sw B: reads 1 = PRESSED (if HA-184)` — a
+      switch PIECE sensor `piece sw E: reads 1 = PRESSED (if HA-184)` — and asks `RECORD it pressed, released,
+      and cable OUT`: RECORD with the switch **held pressed**, then **released**, then with its **3-wire cable
+      pulled out** — three `[R3A] mech REC … home switch 3-wire B reads N (pressedLevel 1; HA-184)` lines (`…
+      piece switch 3-wire E reads N …` for a piece switch). HA-184 holds when
+      pressed reads 1 and both released AND unplugged read 0. Write the three: pressed __ released __ unplugged __.
+      `NOT ANSWERING (a read failed)` is a failed read, not a level.
+- [ ] **P.7.2 (HA-186)** A mechanism with an angle sensor shows `angle p10: raw +170.0deg, as mounted …`, then
+      `absoluteSensor(at, reads): reads = 170.0` — **the number to type into `absoluteSensor(at, reads)` with the
+      mechanism at `at`: the RAW reading, in [0, 360)**, never the "as mounted" one (for a `rotationSensor(Reversed)`
+      that one is the joint's direction, and typed it zeroes the mechanism wrong) — and asks
+      `RECORD it at 2 marks: power-cycled, restarted`: mark two angles of the shaft; at each, **power-cycle the
+      brain**, open 13 and RECORD; then move the arm, **restart only the program** (not the brain) and RECORD again.
+      HA-186 holds when each reading is the shaft's angle (within one turn), not 0 and not the old count.
+- [ ] **P.7.3** A jam signature is sized from P.4.3's current: a held button pushing into something draws LESS
+      than a jam at full power (on the host test plant a 6 V push into an obstacle drew 1.25 A, under a 2.0 A
+      signature) — note the most a pivot drew when you held it against its stop: ______ A at ___ V.
+
+**P.8 — what to send back**
+
+1. P.0.4's "+" ways, P.4.1's by-hand signs, and each verdict (P.4.6 ×2, P.5.3).
+2. The `[R3A] mech` lines — from `/usd/r3a_log.txt` or the serial capture (G.7;
+   `strings <log> | grep '\[R3A\] mech'`): the `ASK:` / `ANSWER:` lines of each confirm, `ARMED`, `CHECK`,
+   `FIRED`, any `CUT` or `REFUSED`, and each RECORD. Every line is ONE serial write (255 characters at most): a
+   verdict's long sentence comes in PIECES, each starting `[R3A] mech CHECK '…' (cont.)` or `[R3A] mech REC N
+   '…' (cont.)`, so the grep keeps every piece — read them together; the robot-file path is whole on its line.
+   RECORD carries EACH mechanism's own last check this visit. One RECORD line looks like this (numbers made up):
+   `[R3A] mech REC 2 'claw pivot 6' motor 1 port 6 pos +0.812 rad (+46.5 deg) vel +0.000 rad/s cur 0.031 A temp 31C`
+   and, after a check, `[R3A] mech REC 2 'claw pivot 6' last check: OK (its + way): 'claw pivot 6': direction confirmed`.
+3. P.1.2's boot lines if any differs, P.7's numbers if a robot has a switch or a sensor, and anything
+   surprising — a claw that moved without L1, a cut you did not expect — as observed.
+
+---
+
 ## Station J — THE CLAWS: the two pivots and the pneumatic claw  *("shulib Drive", slot 1, robot two — added T3, 2026-09-26, for "shulib Teleop" in slot 2; the pneumatic claw, J.9, by T3's addendum the same day; moved to "shulib Drive" at T4 Part 3, 2026-10-04)*
 
-> ⚠ **The claws' first run. It POWERS TWO MORE MOTORS, at full power, from the controller's
-> shoulder buttons.** Robot two's two claw PIVOTS, as the team lead stated them on 2026-09-26:
+> ⚠ **The claws' first run from the CONTROLLER** (their first POWERED check is Station P — Bench
+> Tests' station 13, a claw at a time at 3 V: **run P first**). **It POWERS TWO MORE MOTORS, at full
+> power, from the controller's shoulder buttons.** Robot two's two claw PIVOTS, as the team lead stated them on 2026-09-26:
 > **port 6** moves one pivot **forward while R1 is held, back while R2 is held**; **port 7** moves
 > the other **forward on L1, back on L2**. RED cartridge each, **12 V while a button is held**, and
 > on release each pivot is meant to **hold its angle**.
@@ -1264,9 +1461,12 @@ this test cannot tell — write that. (Nothing in the library assumes either ans
 > (this station), and **slot 6, "shulib Competition"**'s driver control (Station K). The Auton Tester
 > (slot 2) builds the claws so an auton can drive them, and binds no button. **Slot 4, "shulib
 > Calibrate", never touches them** (J.2 checks it). Slot 3, Bench Tests, lists them in its census;
-> its DRIVE station commands only the chassis table's drive ports. The pneumatic claw is the same: in
-> slots 3 and 4 nothing in shulib drives 3-wire port A, so the claw sits wherever its valve leaves it
-> — nobody has looked at what that is. (No census lists it: Bench Tests' DEVICE CENSUS reads the 21
+> its DRIVE station commands only the chassis table's drive ports; and its station **13 MECHANISMS**
+> (Station P, added MECH-A6) powers each claw ONE at a time behind its own gates — the pivots only
+> while L1 and an arrow are held, after a confirm, from 3 V; and it MAKES 3-wire port A at its start
+> level (closed) on its first CLEAR of a power cycle and fires it only on a confirm naming the
+> position. In slot 4 nothing in shulib drives 3-wire port A, so the claw sits wherever its valve
+> leaves it — nobody has looked at what that is. (No census lists it: Bench Tests' DEVICE CENSUS reads the 21
 > smart ports; a 3-wire port is not one of them.)
 >
 > **What has run: nothing.** No census or capture has ever shown a motor on port 6 or 7 (the
@@ -1387,6 +1587,10 @@ lines — copied from the code, final:
       / not tried**
 
 **J.4 — which way each button moves each claw** (robot on blocks; short taps first, half a second)
+
+> *Since MECH-A6 (2026-10-30), **Station P** (Bench Tests button 13) checks each pivot's direction and the
+> claw's levels first — a claw at a time, at 3 V, the screen naming the line to change. Run it before J.4
+> and J.9; J.4 is then the DRIVER's buttons on directions already checked.*
 
 - [ ] **J.4.1** Tap **R1**: the **port-6** claw moves; the port-7 claw and every wheel do NOT.
       → it moved **OPEN / CLOSED / UP / DOWN** (or: ______) · anything else moved? ______
@@ -2133,8 +2337,9 @@ back` (about 6 s on the host test plant, its legs 24 in, a turn, back).
       → banner printed and the program still running? **YES / NO**
       *(HA-189's dedicated settle — two tasks printing numbered lines through `pros terminal` for 60 s, with
       Timed-Run mode changes while they print, every line whole and every number once (SER1's brief, §1.5) —
-      is NOT built: no build carries such a program (the bench program's menu is full, twelve stations in its
-      3 × 4 grid). **The team lead ruled on 2026-10-18 ("Use Station K's K.7.3"): K.7.3 is accepted, in
+      is NOT built: no build carries such a program (the bench program's menu was full then, twelve stations in
+      its 3 × 4 grid; MECH-A6 made it 3 × 5 on 2026-10-30 for station 13 — two slots free — and the ruling
+      below stands). **The team lead ruled on 2026-10-18 ("Use Station K's K.7.3"): K.7.3 is accepted, in
       writing, as HA-189's robot test — no new Bench Tests station.** Its known weakness, accepted with it: it
       reads the competition program's own lines, which carry no sequence numbers, so a line LOST between two
       whole ones shows only as an expected line missing. HA-189 stays unsettled until K.7.3 runs.)*
@@ -2185,11 +2390,13 @@ measurement.
 ## DO NOT
 
 - ❌ **Do not upload an old build.** The default build is the **bench tester**
-      (`src/programs/bench_r3a.cpp`) — read-only except button 10 DRIVE, which powers nothing unless L1 is
-      held and its six checks pass (button 12 AI VISION writes the camera's own detection
+      (`src/programs/bench_r3a.cpp`) — read-only except button 10 DRIVE and button 13 MECHANISMS, each of
+      which powers nothing unless L1 is held and its six checks (DRIVE) or six gates (MECHANISMS, Station P)
+      pass (button 12 AI VISION writes the camera's own detection
       settings, never a motor). For the 2026 tank chassis the build is `make ROBOT=tank`, and
       its driver program is `make ROBOT=tank PROGRAM=drive` (Station F — check F.0.1 before any wheel
-      moves: an OLD "shulib Drive" package drives toward the other end). The invented X-drive
+      moves: an OLD "shulib Drive" package drives toward the other end). **Do not run 13 MECHANISMS
+      with a hand anywhere a claw can reach** — its CLEAR question means exactly that (Station P). The invented X-drive
       is behind a build flag (`make ROBOT=xdrive`) and refuses at boot on either robot, naming
       port 1 and powering nothing (G1 Part 2c).
       *(Brain's programming port is **micro-USB**, not USB-C.)*

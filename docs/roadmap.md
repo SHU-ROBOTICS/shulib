@@ -404,6 +404,9 @@ not silently break them. This table is the spine of the no-staleness promise.
 > driver file is three lines of controls — its claws behave exactly as before on every input. Host- and build-gated
 > only. **Next: MECH-A6, the core's last part; G3a Part 1 (the robot file and its generator) builds beside A5 under
 > the team lead's PANEL SPRINT (2026-10-29: the panel by 2026-11-21); CAL1 maps the core's list after A5.**
+> **MECH-A6 LANDED 2026-11-06 (built 2026-10-30) — the mechanism core is COMPLETE, host-only** — Bench Tests' station 13 MECHANISMS: every declared mechanism in its
+> declared units, powered one at a time behind six gates, the direction check run on the robot (the menu now 3 × 5;
+> no API change; host- and build-gated, never run on a robot). The core is COMPLETE when A6 lands.
 >
 > **Now (2026-10-15): CAL1 Part A1, the standard Calibrate's seams, has LANDED — host-only.** The brain's screen is
 > now a seam with ONE sanitizer (`hal::IBrainScreen`, `hal::screenSafeLine()`), a painter draws Calibrate's screens
@@ -1849,6 +1852,13 @@ is required, not optional, to hold < 1°.)*
   `src/common/driver_file.hpp` (its claws byte-identical to T3's bindings, tick for tick), `driverHeading()` in
   `src/common/driver_heading.hpp`, `driver_controls.hpp` retired, the src gate's rule per robot (HA-185 new). No
   mechanism has moved through it on a robot. Still `[~]`: the bench page (A6).
+  **A6 LANDED 2026-11-06 (built 2026-10-30; no API change), host- and build-gated**: Bench Tests' station 13
+  MECHANISMS (`src/programs/bench_r3a.{hpp,cpp}`) — every declared mechanism in its declared units, powered one at a
+  time behind six gates, the direction check run on the robot, `[R3A] mech` RECORD lines; the menu 3 × 5. Never run
+  on a robot (worksheet Station P is its first run). Its review's fix round 2026-11-03 (31 findings) wrote the core's
+  completion record (BUILT, not landed). Still `[~]` until A6 lands (its
+  verification, then the merge flips these rows) — then the core is complete; "MECH on hardware" (the freeze
+  trigger) stays open.
 - [ ] `setQuadrantToggle` (index N clicks on the 3-state Toggle + Optical color confirm) — *highest-value primitive*.
 - [ ] `orientToScoringHalf` (yellow-side-out: color-sense → pass-through vs flip) — *second highest-value*.
 - [ ] `intakeUntilCapture` (counter-roller, retry, sensor-confirm).

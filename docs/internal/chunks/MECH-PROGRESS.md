@@ -4084,3 +4084,790 @@ this log (history; the count is now 269).
   for a later brief or ruling.
 - **Next:** MECH-A6 (station 13 and the direction check page). G3a Part 5 (robot two's mechanisms and controls in the
   tool, D7's flip first) can start once G3a Part 1 merges and the panel amendment is answered.
+
+---
+
+## MECH-A6 — station 13 and the direction check page
+
+- **Started:** Fri Oct 30 10:19:10 AM EDT 2026 (`date`).
+- **Tree at start:** `81eb666` (main: MECH-A5 landed there; IMU1 Part A `6798aa5`, CAL1 Part A2a `e5a69b5`, the
+  PANEL SPRINT plan `d8fdb8b`), clean, in the git worktree `.claude/worktrees/mech-a6` (branch `mech-a6`) — NOT the
+  main working tree.
+- **Go:** the team lead, 2026-10-08: "Accept all, go" — N1–N13 as recommended (N5 (a): the 3 × 5 menu); his rulings
+  at A4's merge (2026-10-29); THE PANEL SPRINT (2026-10-29): the panel by 2026-11-21, the Nov 23 competition work
+  keeps its place, and the panel brief's D20 puts MECH-A6 FIRST among the five job slots (station 13 is how robot
+  two's mechanisms are brought up and checked on the robot before 2026-11-23). NOTHING IS SKIPPED. The coordinator's
+  workflow launched MECH-A6 ONLY. Do not commit; no `pros` command; no `/dev/ttyACM*`. Mutation backups and probes
+  under `.claude/coordinator/scratch/mech-a6/` (never `/tmp`, never the repository root). **Memory safety
+  (2026-10-15):** every test binary runs as `(ulimit -v 4194304; timeout 600 <cmd>)`; a mutant killed by the cap or
+  the timeout counts as CAUGHT (said which); the briefing is regenerated only after `rm -f build/test/shulib_tests`.
+- **Scope:** §2's A6 row — §1.14 entire: the 3 × 5 menu (N5), station 13's readings in declared units, its six
+  gates, the direction check page with its three answers, RECORD lines, HA-184/186's settles — in
+  `src/programs/bench_r3a.{hpp,cpp}` ONLY; `test/bench_menu_grid_test.cpp` and new host tests of the station's pure
+  parts; documents: `R3a-BENCH-WORKSHEET.md` (station 13, its steps, what each verdict means), the mechanisms
+  chapter's bench page section, the changelog. Every existing bench station unchanged (proved below).
+- **Reading (the team lead's ruling of 2026-10-22):** RESUMING's standing rules; the brief's header and answers, the
+  re-check's amendments and dispositions IN FULL, N1–N13, the Decisions, §6, §7, §8 landmines IN FULL; every
+  section/row/test list naming MECH-A6 or its files (§1.11, §1.14, §2's A6 row, §2.1, §3.6, §4.1–§4.3); the rest by
+  heading. `## MECH-A1` .. `## MECH-A5` of this log grepped for every `A6` hand-on.
+- **In flight beside this run (not touched here):** G3a Part 1 (`tools/robot_tool.py`, `src/robots/chassis_table.hpp`'s
+  `[chassis]` markers, `src/build_selection.hpp`, `tools/src_build_gate.py`'s `[generated]` step,
+  `docs/guide/19-your-robot-file.md`); CAL1 Part A2b (`calibration/calibrate_program.hpp`'s typed half, the golden
+  harness, guide 12); L6-A1 (`localization/*`, `chassis/wall_reset_call.hpp`, `sim/field_plant.hpp`); VIS1-A1 (the
+  camera device layer). LATER, planned around this run's `bench_r3a.*`: VIS1-B (station 12's functions), L6-B
+  (station 11's functions, a NEW `src/programs/bench_wall.hpp`), IMU1 Part B (station 2's functions) — this run keeps
+  its edits to the menu, the grid and station 13, and names every function it touched (below).
+
+### 10:19 — start; the A6 hand-ons found by the grep
+- `docs/internal/RESUMING.md` read (standing rules, pace rules 1–8). The brief read as ruled above. `## MECH-A1` ..
+  `## MECH-A5` grepped for `A6` / `station 13` / `bench page` / `toMechanismConfig`. The hand-ons:
+  1. **A1-D11:** `MechanismParts` BORROWS its configs — "MECH-A6's station keeps its configs in static storage".
+  2. **A3 (:1927):** station 13's numbers are A6's to add to HA-182's entry (the jog volts and time, the "did not
+     move" angle, the "drawing" current).
+  3. **A4 (:2820):** a 6 V hold-to-run pushing an arm into an obstacle draws 1.25 A on the host test plant — under
+     the recipe's 2.0 A signature — "worth a sentence in DOCS3 or A6's bench page (a held button's current is
+     visible there)".
+  4. **A4-D28 (:2914, :3024):** the judgement has a NINTH finding, `BackDriven` ("jog it harder, or from another
+     pose" — no line named); the page shows it.
+  5. **A4-D29 (:3024):** every role-naming finding has a generated-file sentence (a role's `source` set): the page
+     prints `judgeDirection`'s / `judgePneumatic`'s sentence as it comes, so a generated file's path reaches the
+     screen unchanged.
+  6. **A5:** the mechanism boot lines (`src/common/driver_panel.hpp`'s `mechanismDeclarationLine`, `roleLine` over
+     `MechanismParts`' facts) and the projection `mechanism::toMechanismConfig` — the station shows each role's
+     line in the same words; the src gate's step 0 (per robot): a program names `kMechanisms` only.
+  7. **A5's merge record:** next is MECH-A6; nothing else handed on.
+
+### 14:20 (2026-10-30) — RESUMED after the account's usage limit *(`date`: Fri Oct 30 02:16:05 PM EDT 2026)*
+- **Where the stopped run stood** (read from this log and the worktree, never assumed): this heading, the start
+  entry and the hand-on list above — nothing else. `git status`: only `docs/internal/PROJECT-BRIEFING.md` (the
+  briefing regenerated with the binary removed — "Suite: not built") and this log; `git diff -- src/ Makefile`
+  EMPTY (no gate self-test plant, no mutant). The scratch directory held `build.sh` (the safe build: the binary
+  removed FIRST, the briefing regenerated, the whole host build), `cmake_config.out`, and `baseline.out` — the
+  baseline build `Terminated` mid doc-gates when the limit cut the run; `mut/` empty (no mutation was ever run).
+  Nothing to restore, nothing to revert.
+- **The fresh baseline** (`build.sh baseline`: rc 0 — every TU compiled from source, the binary relinked) and
+  the suite under the cap (`ulimit -v 4194304; timeout 600`): **2,721 | 2,721 passed, 0 failed, 3 skipped;
+  2,937,848 assertions** — the A5 merge record's count exactly.
+- **Re-read for the resumption** (the team lead's 2026-10-22 ruling): RESUMING's standing rules; the brief's
+  header, the re-check's amendments, N1–N13 and the Decided-here lists IN FULL; §1.11, §1.14, §2's A6 row, §2.1,
+  §3 intro and §3.6, §4.1–§4.3, §6, §7, §8 IN FULL; the hand-ons above re-grepped (A4-D28's `BackDriven`, A4-D29's
+  generated-file sentences, A1-D11's static storage, A3's HA-182 numbers, A4's 1.25 A note, A5's boot lines).
+  The code read before writing: `src/programs/bench_r3a.{hpp,cpp}` (the menu, its grid, station 10's six gates,
+  stations 11/12's live panel), `test/bench_menu_grid_test.cpp`, `mechanism/direction_check.hpp`,
+  `robot/mechanism_parts.hpp`, `mechanism/{spec,wiring,devices}.hpp`'s projection, `roleLine` and the units
+  conversions, `hal/mechanism.hpp`, `src/common/driver_panel.hpp`'s mechanism boot lines,
+  `src/robots/mechanism_table.hpp`, `teleop/coupled_side_monitor.hpp`, `manipulation/stall_detector.hpp`,
+  `hal/pros/device_provider.hpp`, `hal/fake/fake_device_provider.hpp`, `test/mechanism_fixtures.hpp`.
+
+### 14:26–15:05 (2026-10-30) — the code, the tests, every mutation on a fresh binary *(`date` at this entry: Fri Oct 30 03:05 PM EDT 2026)*
+- **What was written, and where (the A6 row's files ONLY — `src/programs/bench_r3a.{hpp,cpp}`, the two tests):**
+  - **`src/programs/bench_r3a.hpp`** (PROS-free, the R2a precedent): `menu_grid::kMenu` → `{13, 3, 6, 38, 153, 36, 4}`
+    (N5 (a): five rows of 36 px, 38 + 5 × 40 − 4 = 234), `kMenuSlots = 15`; the inside-a-button offsets for a 36 px
+    button (line 1 MEDIUM at +2, line 2 **SMALL** at +22 — two MEDIUM lines need 44 px — `kSmallPitch = 13`, the dot at
+    +28 r 5); `kAnswerRow4` / `kAnswerRow4Hit` (a three-position pneumatic's four answers); and **NEW
+    `namespace mech_station`** — the page's stated numbers (HA-182's page entries), `projectConfigs()`,
+    `unitsReading()` / `unitsText()`, `temperatureText()`, `motorText()`, `switchText()`, the piece evidence
+    (`Evidence`, `distanceEvidence()`, `opticalEvidence()` — the service's positive-evidence rule, mirrored for the
+    page), `FaultWatch`, `Pad`, `Phase`, `PromptText`, `wrapText()`, and **`class Station`**: the six gates, the
+    direction check, the readings (`panelLines()`) and the RECORD lines (`record()`), over `robot::MechanismParts`.
+    It includes `common/driver_panel.hpp` for `mechanismKindWord()` (the boot lines' kind words — not copied).
+  - **`src/programs/bench_r3a.cpp`**: **functions touched** (for VIS1-B / L6-B / IMU1 Part B, who plan around this
+    file): `drawMenu()` (line 2 drawn SMALL; the header's "READ-ONLY except 10 + 13"), the `kMenu[]` table (entry 13),
+    `kMaxMenu`/`g_verdict` (13), `kBtnLine2Cols` (SMALL budget), `testerInitialize()` (ONE serial line added — the
+    banner named only the DRIVE station as powered), `runR3a()` (the splash's and the `#` banner's "except" sentences);
+    two static_asserts (`kLineH == menu_grid::kSmallPitch`); comments only in the file banner and station 10's header
+    (its "ONLY code path that calls setVoltage" note grows to two, as §1.14 says); **NEW**: `namespace mech13`
+    (`Built` / `built()` / `provider()` / `station()` — function-local statics, once per power cycle;
+    `rawTemperature()`, `prompt()`, `ExitGuard`, `drawAnswer4()`) and **`mechanismsStation()`**. The include of
+    `robots/mechanism_table.hpp` (`kMechanisms` only — the per-robot rule) and `hal/pros/device_provider.hpp`.
+    **Untouched:** every function of stations 1–12 (`census`, `reportImu`, `motorWatch`, `driveStation`, …,
+    `distanceStation`, `aiVisionStation` and their helpers) — proved by the function diff below.
+  - **`test/bench_menu_grid_test.cpp`** (rewritten where the grid changed): 15 slots inside 240 px, no overlaps, the
+    exact rectangles; stations 1–12 at their row and column with their columns' x pixels unchanged, and R2a's 3 × 4
+    spec reproduced by the helper pixel for pixel against its stated rows; the 3 × 5 hit test against an
+    independently re-typed oracle at every pixel of −2..481 × −2..241; the empty fifth-row slots dead (and counted);
+    the gap above 13 belongs to 10; the button's inside (SMALL line 2, the dot, 11 / 13 characters); the four-answer
+    row. **`test/bench_mech_station_test.cpp`** (NEW, 23 cases): the gates one by one, the pneumatic, the check's
+    flow and its at-once findings, the readings, RECORD, the build, NEXT, the wrap, the prompts' widths.
+- **Built:** `build.sh` (the binary removed first, the whole host build) — the station's header and the cpp compile
+  clean on the host warning set (−Wformat=2 included) and in the ARM `make ROBOT=tank` and `make` (bench) objects
+  (`bin/programs/bench_r3a.cpp.o`: no warning but the vendored liblvgl one every build carries). **Suite under the cap:
+  2,749 | 2,749 passed, 3 skipped; 2,938,908 assertions** (base 2,721: +28 cases).
+- **The clock is WHOLE MILLISECONDS** (`Station::tick(pad, nowMs)`, `pros::millis()`): a first cut kept seconds as
+  doubles, and `(a + 400) / 1000.0 − a / 1000.0` can land an ulp under 0.4 — an equality edge the tests must land on
+  exactly (the coordinator's lesson); the stall detector is fed the time since the jog began, so its window's edge is
+  exact too.
+- **Mutations** (`scratch/mech-a6/mutate.py`: ONE exact replacement, the binary REMOVED, `cmake --build --target
+  shulib_tests`, both dependent TUs seen recompiling in every build output — `bench_menu_grid_test.cpp.o`,
+  `bench_mech_station_test.cpp.o` — the station and grid cases run under `ulimit -v 4194304; timeout 600`, the file
+  restored in a `finally` and on SIGTERM/SIGINT, its timestamp bumped). A first run (24) at 14:54; the FINAL run (29)
+  at 15:00–15:01 on the final header (`mut/run_final.out`), all 29 backups of the last run byte-equal to the restored
+  file, then a fresh build (b4) and the whole suite green again:
+  - **M30** (the dead-man ignored: `held = pad.connected`) → RED, 4 cases (gate 3, the valve, the pneumatic check,
+    the abandon); **M31** (the ceiling starts at 12 V) → RED, 9 cases (gate 4: `12 == 3`); **M32** (a valve fired
+    without its confirm) → RED, 3 cases; **M48** (the stall signature not watched) → RED (gate 5's stall case).
+  - MA6-1 (the release safes nothing) RED · MA6-2 (the fight cut also cuts a back-drive) RED · MA6-3 (over-current
+    at 2.4 A itself) RED · MA6-4 (the jog's maximum a tick late) RED · MA6-5 (the check's jog a tick long) RED · MA6-6
+    (NO arms) RED · MA6-8 (the sensor's mounting not applied) RED · MA6-9 (the gearing upside down) RED · MA6-10 (an
+    infinite temperature shown as a number) RED · MA6-11 (the exit safes nothing) RED · MA6-12 (NEXT leaves it
+    powered) RED · MA6-13 (no CLEAR needed) RED · MA6-14 (the release safes the untouched too) RED · MA6-15 (fired
+    with L1 let go) RED · MA6-16 (a distance AT its threshold is a piece) RED · MA6-17 (the switch inverted) RED ·
+    MA6-18 (a cut during the check throws the jog away) RED · MA6-19 (the menu's rows 37 px) RED (2 grid cases) ·
+    MA6-20 (a jog starting on a HELD arrow) RED (5 cases) · MA6-22 (the screen not asking for the switch's three
+    readings) RED · MA6-23 (an answered verdict not counted) RED.
+  - **MA6-7 and MA6-21 SURVIVED — equivalent mutants, logged, re-cut:** each removed one term (`!built(i)`, `cut`)
+    from the guard `if (!cleared_ || !built(i) || mech_[i].cut) return;` that sits AFTER the per-press refusals; every
+    press is refused before it and an unbuilt or cut mechanism is never armed or jogging, so the term is
+    defence in depth that no reachable state reaches. Re-cut to remove the refusal AND the term: **MA6-7b → RED**
+    (gate 1's case: the unbuilt pivot asked for a confirm), **MA6-21b → RED** (a cut lift powered again on a fresh
+    press). The terms are kept (a powered station's guard), and said here.
+
+### Every existing bench station unchanged — the proof *(2026-10-30 15:08)*
+- `git diff -U0 src/programs/bench_r3a.cpp` — its 26 hunks, each placed: the file banner's comments (2), two
+  `#include`s, the `kLineH == menu_grid::kSmallPitch` static_assert, `kMaxMenu` / `g_verdict` (13), station 10's
+  HEADER COMMENT (2 hunks: "THE FIRST STATION THAT POWERS", the "ONLY code path" note grown to two — the lines above
+  `namespace drive`, which git's context labels `motorWatch`), the NEW station 13 block (after `aiVisionStation`'s
+  closing brace), `MenuItem`'s comments, the menu table's entry 13, the grid comment, `kBtnLine2Cols`, `drawMenu()`,
+  `testerInitialize()`, `runR3a()`. No hunk falls inside a station function.
+- **Mechanically** (`scratch/mech-a6/fn_diff.py`, every top-level definition of the base `81eb666` file against
+  this one): **48 definitions; 43 byte-identical** — `census`, `reportImu`, `reportMotors`, `motorWatch`,
+  `driveStation` and the whole `namespace drive`, `measureLoopRate`, `reportPlatform`, `probeSdCard`, `screenRuler`,
+  `distanceStation`, `aiVisionStation` and the whole `namespace sensors` (LiveLine, drawRowButton, TapWatch, the
+  distance and camera helpers), `tImu`, `tAll`, `emit`/`emitf`/`emitS`, the screen helpers, `Grid`/`gridFor`/
+  `gridCell`, `panelSafe`, `menuLiteralsFit` … — and **5 changed: `MenuItem` (comments), `kMenu` (entry 13 added),
+  `drawMenu`, `testerInitialize`, `runR3a`** (the menu and the banners, none a station); added `mech13`,
+  `mechanismsStation`. (One-line and multi-line-signature functions — `tCensus`, `twoButtonPrompt`, `screenText`,
+  `hitTest` — the detector does not split out; the hunk list above shows none of them touched.)
+
+### Deltas from the brief (MECH-A6), each with its reason
+- **A6-D1 — the station's pure parts are `bench_r3a.hpp`'s `namespace mech_station`** (the A6 row writes
+  `bench_r3a.{hpp,cpp}` only; the R2a precedent keeps that header PROS-free). It now includes the library's
+  mechanism headers, `robot/mechanism_parts.hpp`, `teleop/coupled_side_monitor.hpp`, `manipulation/stall_detector.hpp`
+  and `common/driver_panel.hpp` (for `mechanismKindWord()` — the boot lines' kind words, used, not copied); so
+  `src/main.cpp` (every build) and the two bench test TUs compile them. All 7 builds were gated with it (below).
+- **A6-D2 — gate 2 is stricter than "before the first volt or the first line in a power cycle":** stage 1 (CLEAR) is
+  asked at EVERY entry, before anything is made — making a pneumatic's 3-wire line DRIVES it to its start level
+  (HA-119), so the build itself waits for that YES (once per power cycle: `MechanismParts` builds once); stage 2 is
+  asked before a motor mechanism's first volt in each ENTRY (station 10 asks its wheels-up question at every entry
+  too) and before EVERY pneumatic fire, naming its position (a cylinder cannot be stopped mid-stroke). A YES only
+  ARMS a motor mechanism; it moves on a fresh press (an arrow held through the prompt does not drive — MA6-20).
+- **A6-D3 — gates 3 and 6 safe every mechanism the station POWERED, not every one built.** A mechanism the station
+  never commanded is never commanded: a pneumatic whose safe position is not its start (robot y's `grip`: start
+  'loose', safe 'shut') would otherwise MOVE on the first L1 release with nobody asking — against "never move one
+  without the operator's touch". The guard and DONE call the same `Station::exit()`.
+- **A6-D4 — the fight cut cuts a FIGHT** (some of a mechanism's motors persisted against the others), never every
+  motor alike against the command: that is a BACK-DRIVE (A4-D28's finding), not a fight; station 10 cuts a whole
+  side because a whole drive side opposite means a wrong front. A one-motor mechanism has no fight rule (the
+  evaluator would read a sagging arm as "opposite"). The 2.4 A cut, its own stall signature and the 3 s jog still
+  apply. MA6-2 is its mutation.
+- **A6-D5 — a cut during the check's jog ENDS the jog and the judgement runs over what it saw** (a two-motor fight's
+  250 ms cut lands inside the 0.4 s jog: the check then names the fighting motor, MotorFights — abandoning it would
+  throw the one finding away). MA6-18.
+- **A6-D6 — the page's numbers** (HA-182's page entries, §4.3): the check's + jog 0.4 s at the ceiling (started by
+  L1 + A, its volts fixed at its start); "did not move" 0.035 rad (~2° at the motor); "drawing" 0.40 A; a jog's
+  maximum 3 s; station 10's 2.4 A / 250 ms and its 3 → 12 V ceiling. All invented, said on screen and in HA-182.
+- **A6-D7 — the menu's second line is SMALL** (two MEDIUM lines need 44 px; a 36 px button has 35 inside its
+  edges): line 1 MEDIUM at +2 (11 characters), line 2 SMALL at +22 (13), the dot at +28 r 5. Every station's button
+  words are unchanged; 13's are `13 MECH` / `POWERS` (logged `13 MECHANISMS (POWERS)`), red stripe and edge.
+- **A6-D8 — "stations 1–12 at their numbers and places … pixel-for-pixel against the 3 × 4 grid it replaces"**
+  (§3.6) built as: stations 1–12 keep their ROW and COLUMN and their columns' x pixels (their y pixels cannot stay:
+  N5 (a)'s rows are 36 px); the generalized helper still reproduces R2a's 3 × 4 grid pixel for pixel from its spec
+  (an oracle typed from its stated rows); and the new grid's hit test agrees with an independently typed oracle at
+  every pixel on and around the panel.
+- **A6-D9 — "in its declared units, from power-up"** for a position mechanism takes the power-up pose as its
+  declared HOME (`angleDegToPosition(positionToAngleDeg(home) + travel)`): for an arm or a spool lift that is home +
+  travel (the §3.6 numbers, 360° and π × 1.5 in), for a linkage or a table the height the service itself would
+  believe at boot (`restsAtStop`). The screen says it: `(power-up = home 0.0; 5.00:1)`.
+- **A6-D10 — temperature is read RAW** (`pros::c::motor_get_temperature`, PROS_ERR_F = infinity → `unknown`): the
+  adapter holds its last good value and seeds 20 °C, so its `temperature()` could never say "unknown".
+- **A6-D11 — the piece evidence is MIRRORED for the page** (`distanceEvidence` / `opticalEvidence`, the service's
+  `Slot::seen()` rule): the station builds no service to ask. The drift risk is named in its comment and its test
+  pins the same edges (AT the threshold: no piece; near with confidence 0: no evidence; MA6-16).
+- **A6-D12 — a controller is NOT required to enter** (station 10 refuses without one): the readings by hand are
+  worth having without one; nothing can be powered without it, and the gates line says so.
+- **A6-D13 — the serial boot banner gains ONE line** (`testerInitialize()`: it said only the DRIVE station powers),
+  and the splash, the menu header and the `#` banner name 13 — their comment's "bytes unchanged" corrected.
+- **A6-D14 — the page shows ONE mechanism at a time** (NEXT; seven reading lines, the gates line, the status line); a
+  NEW verdict takes the reading lines until L1 is pressed again, NEXT, or 20 s (the log keeps it).
+- **A6-D15 — the worksheet station is "Station P"** (N is IMU1 Part B's; L appears in an old T4 brief note).
+- **A6-D16 — the clock is whole milliseconds** (above): the edges exact, on the host and the brain alike.
+- **A6-D17 — no `MECH-COMPLETED.md` yet:** A6 is BUILT, not closed — §4.1's "at A6's close" is after its review and
+  its verification; the status pointers say "A6 BUILT, in its review" (build-order's first `Next:` and its MECH
+  entry, the roadmap's "Now" and MECH row, REMAINING-WORK row 12, HANDOFF).
+
+### The documents, and the prose review (pace rule 4) — every grep RUN and its hits READ before this entry *(2026-10-30 15:05–15:12)*
+- **The A6 row's documents:** `docs/internal/chunks/R3a-BENCH-WORKSHEET.md` — Station A (the menu's 3 × 5 picture,
+  13's row in the table, "buttons 10 and 13" are the red ones, the "EXCEPT" sentence) and **NEW Station P** (before
+  J: its gates, P.0–P.8 step by step, the screen's strings copied from the code, **what each verdict means** — a
+  table of the nine findings and the line each names — the HA-184/186 steps for the robot that first declares a
+  switch or a sensor, what to send back), and J.4's pointer to P; `docs/guide/18-mechanisms.md` — the intro (the
+  sixth part is in) and **NEW section "The bench page — Bench Tests station 13"** (the readings in declared units,
+  the six gates, the check, "it saves nothing"; A4's hand-on: a held button's current is the number a jam signature
+  is sized by — 1.25 A at 6 V on the host test plant, under a 2.0 A signature); `docs/changelog.md` — an entry at the
+  top of `## API 2.5` ("Built 2026-10-30 … no API change").
+- **The register** (`docs/hardware-assumptions.md`, own lines only): HA-182's row and entry (the page's numbers,
+  §4.3's "A6 adds the page's"), HA-184's and HA-186's Source and Settle (the built page; Station P's P.7.1 / P.7.2),
+  HA-153's Settle (Station P first), a MECH-A6 status paragraph ("added NONE … Still 182"); and SER1's HA-189 note
+  (the menu "was" full — the ruling stands). No new HA; the held line untouched.
+- **Status pointers (own lines):** build-order's first bold `Next:` (MECH clause → "MECH-A6's review, verification and
+  merge (A6 BUILT …), then the core's completion record") and its MECH entry (an A6 paragraph) and the SER1 note's
+  "(3 × 4 … until MECH-A6 made it 3 × 5)"; the roadmap's "Now" and the MECH row's A6 line (`[~]` until A6 lands);
+  REMAINING-WORK row 12; HANDOFF's library list and its chapter-18 note.
+- **Prose-review greps** (over `docs/` and `README.md`, the API pages excluded):
+  1. §4.2's A6 grep `Bench Tests|station 1[0-3]|3 × 4|3 x 4|twelve stations|twelve buttons` (the chunk logs filtered):
+     FIXED — the worksheet's Station A ("twelve buttons, three across and four down", the 4-row picture, "the only one
+     that powers motors"); the register's HA-189 note ("the bench program's menu is full — twelve stations…": now
+     "was full", with MECH-A6's note — the team lead's K.7.3 ruling stands); build-order :1741 (the same SER1 fact,
+     dated). LEFT, history or still true: build-order :663 (R3b Part 0's landing record, 2026-09-10: "station 10 DRIVE —
+     the ONE station that powers motors" — true then), the roadmap's R3b/R2a "Now" records (:193–:226, :462), guide 07's
+     program list, the glossary's "the tester", REMAINING-WORK rows 15/18c/24 and :181/:274, HANDOFF's session history,
+     ORIENTATION's program list, the register's HA-136/166/215/HA-04 rows (other subjects), the IMU1/L6/VIS1/G3a
+     briefs' plans around `bench_r3a.*` (A6 kept to the menu, the grid and station 13, as they plan).
+  2. `bench page|sixth part|core.s last|station 13|MECH-A6`: FIXED — guide 10 :555 ("the bench page that runs it is the
+     core's last" → it exists, linked to chapter 18's section) and :572 ("settled at the bench page" → station 13,
+     built, not yet run); guide 14 :228 ("the bench page … is its sixth" → since its sixth and last, built, never run);
+     README :293 (the mechanism line names station 13); HANDOFF :823 ("A6 adds the bench page" → added); the register
+     HA-153 :2210 ("once it lands"). LEFT: the changelog's A1/A4 entries (:377, :416 — history), guide 18 :176/:182/:187/
+     :514 (true now: the page reads them), MECH-PANEL-requirements (the requirements, history), REMAINING-WORK :71
+     (true), the G3a/VIS1/L6/IMU1 briefs (plans that name A6 as the owner of the menu and station 13 — true).
+- **C7 removability** (`grep -rln "internal/\|chunks/\|RESUMING\|build-order" README.md docs --include=*.md | grep -v
+  "^docs/internal/"`): EMPTY. The guide's new section links only to chapter 18 itself and the register.
+
+### 15:10–15:14 — three defects found re-reading the station, each test written FIRST and seen RED on the unfixed header *(`date` 15:13:54)*
+While the first src-gate run held `src/` (its self-test plants into `bench_r3a.cpp`, so nothing in `src/` was edited
+under it), a re-read of `Station::tick()` / `confirm()` found three ways something could move with nobody pressing:
+- **A6-F1 — a controller that comes back resumed a jog.** The press edges were fed `false` while the controller was
+  gone, so L1 + UP still held at the reconnect read as a NEW press: an armed pivot jogged again by itself. **Fix:** an
+  edge is updated only on a connected controller (a press is a release-then-press SEEN). Test `station 13: nothing
+  resumes by itself …` — RED on the unfixed header (`3 == 0`, live).
+- **A6-F2 — a hold-to-run jog resumed after a check.** A check started with UP still held (A pressed mid-jog) left
+  `jogDir_` set; once the check ended, the held arrow drove again without a press. **Fix:** `startCheck()` clears the
+  jog. Same test, its second half — RED (`3 == 0`).
+- **A6-F3 — L1 let go DURING a confirm prompt kept a fired claw fired.** `confirm()` set `heldWas_` from L1 at the
+  answer, so the release that happened while the prompt blocked the ticks was never seen: a claw fired 'open', a
+  second fire asked, L1 let go, YES → "NOT fired" — and the claw stayed OPEN with nobody on the dead-man. **Fix:** a
+  confirm answered with L1 not held IS the dead-man's release: whatever the station powered goes safe there and then
+  (logged). Test `station 13: L1 let go DURING a confirm prompt …` — RED on the unfixed header (the line still HIGH).
+- Two screen fixes for the same edit: the header bar redrawn after the CLEAR prompt (the prompt erases the whole
+  panel — station 10 redraws it the same way), and the station's opening lines cut to the scrolling log's 54 columns
+  (`rule()`'s title too: the header shows 30).
+
+### 15:24–15:32 — the first src-gate run, the three fixes applied, the FINAL mutation run *(`date` 15:31:29)*
+- **The first `tools/src_build_gate.py` run** (on the tree before the three fixes; nothing in `src/` edited while it
+  ran — `sha256sum` of `bench_r3a.{cpp,hpp}` and the `Makefile` equal before and after): **self-test OK (269 detector
+  cases, each against a real build; 21 min)**; **check PASS — all 7 builds link** (bench, xdrive, tank, tank-drive,
+  tank-calibrate, tank-autontest, tank-competition: each exit 0, 11/11 TUs, 8 vendor-ignored warnings, **0
+  disallowed**, hash and beacons asserted).
+- **The fixes applied** (A6-F1..F3 and the two screen fixes, above) — `bench_r3a.hpp`'s `tick()` / `startCheck()` /
+  `confirm()`, `bench_r3a.cpp`'s `mechanismsStation()` only; every literal line of the station's scrolling log then
+  checked at ≤ 54 columns by a script (four were longer: the "no mechanism" path, the failed-build path and the exit's
+  "nothing is saved" — each split). ARM object (`make ROBOT=tank bin/programs/bench_r3a.cpp.o`): no warning of ours.
+- **Fresh build (b8) and the whole suite under the cap: 2,751 | 2,751 passed, 3 skipped; 2,938,941 assertions.**
+- **The FINAL mutation run** (`mut/run_final2.out`, 15:29–15:30, 32 mutants on THIS header — its backup byte-equal to the
+  file after the run): **30 RED, 2 equivalent (MA6-7, MA6-21 — re-cut as MA6-7b / MA6-21b, both RED)**: everything
+  listed above again, plus **MA6-24** (the edges fed while the controller is gone) RED, **MA6-25** (a check leaving the
+  jog set) RED, **MA6-26** (L1 let go during a prompt not taken as the release) RED. Every mutant's build recompiled
+  BOTH dependent TUs (`bench_menu_grid_test.cpp.o`, `bench_mech_station_test.cpp.o`), the binary removed before each.
+- The final src-gate run (self-test + check) started 15:31 on the final tree — below.
+
+### 12:50 (2026-11-03) — RESUMED after the team lead's pause *(`date`: Tue Nov  3 12:50:11 PM EST 2026)*
+- **Why it stopped:** the 15:31 (2026-10-30) final src-gate run was cut by the team lead's pause (~15:40, he
+  travelled); the laptop restarted on 2026-11-03. `scratch/mech-a6/gate2_selftest.out` is EMPTY (0 bytes, 15:31) —
+  the run was killed before its first line, so it proved nothing and is re-run below.
+- **Checked before anything else** (never assumed): `git status` — the A6 files above and nothing else (no stray
+  include-root directory, no file outside the A6 set); `git diff -- src/ Makefile` — `bench_r3a.{cpp,hpp}` ONLY;
+  `sha256sum` of `bench_r3a.{cpp,hpp}` and the `Makefile` EQUAL to `scratch/mech-a6/src_hashes_before_gate2.txt`
+  (taken just before the killed run), and a grep of every file the gate's self-test plants into (`bench_r3a.cpp`,
+  `robot_config.hpp`, `build_selection_test.cpp`, `test/CMakeLists.txt`, `chassis_table_test.cpp`, the vendored
+  `lv_obj_style.h`, the `Makefile`, `drive_program.cpp`, `calibrate_program.cpp`, `boot_source.hpp`) for its plant
+  strings: EMPTY — no gate plant left. All 32 mutation backups under `mut/` byte-equal to the header: no mutant left.
+- **Main has moved** since the base: `git log 81eb666..shulib-v2` is ONE commit, the panel plan `eab0f89` (plan
+  documents only — `git diff --stat 81eb666 shulib-v2` over `bench_r3a.*`, the grid test and `test/CMakeLists.txt`
+  is empty); IMU1 Part A `6798aa5` is IN the base (an ancestor of `81eb666`, checked); VIS1-A1 is staged on main,
+  not committed. None of it is merged here; this run stays on its base `81eb666`, as launched.
+- **Next:** the binary removed and a fresh whole build, the suite under the cap, then the final gates in order.
+
+### 12:50–12:58 (2026-11-03) — a CLEAN rebuild, the suite, and every gate but the src gate on the final tree *(`date` 12:58:18)*
+- **A clean rebuild, not trusted from the old objects:** `cmake -S test -B build/test` (rc 0); `cmake --build
+  build/test --target clean` (0 objects left), then `build.sh r2_clean` — the binary removed first, the briefing
+  regenerated reading "not built", **246 objects compiled from source** (`scratch/mech-a6/r2_clean.out`), rc 0, no
+  warning. No object of a killed mutation run can have reached this binary.
+- **The suite under the cap** (`ulimit -v 4194304; timeout 600`): **2,751 | 2,751 passed, 0 failed, 3 skipped;
+  2,938,941 assertions** — the 15:30 (2026-10-30) count exactly. `python3 tools/suite_run.py green` (the bounded
+  run): `suite run: green — 2751 cases, 2938941 assertions`.
+- **The compile-refusal harness:** `ctest --test-dir build/test -R compile_refusal --no-tests=error` — `100% tests
+  passed, 0 tests failed out of 255`; 255 TUs, 255 CTests.
+- **The ARM header gate** (every `include/shulib` header, −Werror, Cortex-A9 softfp; its TU under
+  `scratch/mech-a6/all_headers_r2.cpp`): `TU includes 228 headers` / `ARM compile gate: CLEAN (all v2 headers)`.
+- **The CI greps:** `library is PROS-free`; `layering holds: core is sim-free`; `grep -rn "PROBE_" include/`
+  EMPTY; the C7 removability grep EMPTY; no `PROTOTYPE` / `proposed` in the four A6 files.
+- **The documentation gates:** `api_doc_tool.py` self-test OK; check-coverage `5060 public entities across 188
+  headers, all documented`; check-fresh rc 0 (nothing under `include/shulib/` changed — the docs/api pages need no
+  regeneration); check-examples `600 quoted lines, all verbatim`; check-removability `no public doc references
+  docs/internal/`; `briefing_status.py` self-test OK; `doc_staleness_audit.py` self-test OK and `clean (31 live
+  docs…)`.
+- **The briefing:** `briefing_status.py check` FAILED once as expected (the briefing still said "Suite: not built"
+  — `build.sh` regenerates it with the binary removed); regenerated from THIS clean link (`build/test/shulib_tests`,
+  12:51:41), then `check`: `generated block current` (rc 0). Its "Suite" line: 2,751 / 2,938,941.
+- **The src gate** (`self-test`, then `check`) started 12:58 on this tree, `sha256sum` of every changed and
+  planted-into file taken first (`scratch/mech-a6/r2_hashes_before_gate.txt`); nothing under `src/`, `include/`,
+  `test/` or the `Makefile` is edited while it runs.
+
+### 12:59–13:00 (2026-11-03) — the prose review RE-RUN on the final tree; one stale sentence the first pass missed *(`date` 13:00:12)*
+- **Re-run, every hit read** (over `README.md` and `docs/`, the API pages and the PROGRESS/COMPLETED history
+  excluded): §4.2's A6 grep narrowed to the menu's facts (`3 × 4|3 x 4|twelve stations|twelve buttons|the ONE station`),
+  a new grep `kMaxMenu|kMenu\{12|menu is full|menu.{0,20}full|twelve (stations|buttons)`, and the second one
+  (`bench page|sixth part|core.s last|station 13`).
+- **FIXED (missed by the 2026-10-30 pass):** `R3a-BENCH-WORKSHEET.md` :2310 (Station K's K.7.4 note on HA-189) still
+  said "the bench program's menu is full, twelve stations in its 3 × 4 grid" — a live instruction the team reads at
+  the bench, and the register's twin sentence (HA-189, :3168) WAS fixed. Now "was full then … MECH-A6 made it 3 × 5
+  on 2026-10-30 for station 13 — two slots free — and the ruling below stands", the register's words.
+- **LEFT, each read:** build-order :663 (R3b Part 0's landing record — true then) and :1741 (already dated "until
+  MECH-A6 made it 3 × 5"); the changelog :45 (A6's own "it was 3 × 4"); the MECH brief's N5 :553-554 / §3.6 :2389 /
+  §4.2 :2451 (the brief itself); R2a's brief and log, SER1's log :687 and record :61, T4's and R3b's logs (history);
+  COMP-t's brief :428 and G3a's brief :2082 ("twelve buttons" = the CONTROLLER's twelve buttons, another subject);
+  guide 18 :176/:182/:187/:514 (true: the page reads them; it IS the core's last part); the register :1167/:1238
+  (true); the roadmap's MECH row :1789/:1804/:1811 (the A1/A4/A5 records' "still [~]" — history; :1812 is A6's
+  entry); REMAINING-WORK :71 (true); the L6 brief :5/:1934-1935/:2197 and build-order :1815/:1825 (plans naming A6
+  as the owner of the menu and station 13 — true).
+- **NOT MINE TO EDIT — for the coordinator:** the IMU1 brief (`IMU1-imu-rate-once-per-tick.md` :733-734, IMU1 Part B's
+  live plan) says "no new menu button (the 3 × 4 menu is full — `kMaxMenu` = 12, ~:329)". After A6: the menu is 3 × 5
+  with two slots free and `kMaxMenu` = 13 at :339. Its plan (station 2's functions only, no new button) is
+  unaffected; the reason it gives is stale. Its line references into `bench_r3a.cpp` move (measured against the base
+  file, `scratch/mech-a6/bench_r3a.cpp.base`): `reportImu` :736 → :745 (+9: the banner, includes, the static_assert
+  and `kMaxMenu` above it), `distanceStation` :2490 → :2501 and `aiVisionStation` :2636 → :2647 (+11: station 10's
+  header comment grew by 2), `tImu` :2914 → :3345 (+431: station 13's block sits above it).
+
+### 12:58–13:29 (2026-11-03) — the src gate on the FINAL tree, then the suite and the briefing once more *(`date` 13:28:40)*
+- **`python3 tools/src_build_gate.py self-test`** (12:58–13:19): `src build gate self-test: OK (269 detector cases,
+  each against a real build)`, rc 0. **`check`** (13:19–13:24): **`src build gate: PASS (all 7 builds link …)`**, rc 0
+  — bench, xdrive, tank, tank-drive, tank-calibrate, tank-autontest, tank-competition: each `exit 0, 11/11 TUs
+  compiled, warnings: 8 vendor-ignored, 0 disallowed, hash asserted (v0.1.1-399-g81eb666-dirty)`. Output under
+  `scratch/mech-a6/r2_gate_{selftest,check}.out`. This replaces the killed 15:31 (2026-10-30) run.
+- **No plant left:** `sha256sum -c` of `scratch/mech-a6/r2_hashes_before_gate.txt` (every changed file plus every file
+  the self-test plants into) — ALL EQUAL after the gate; `git status` the A6 set only; `bench_r3a.cpp` ends at its
+  closing namespace brace.
+- **Rebuilt after the gate** (the self-test restores its plants byte-exact but bumps their timestamps, so the audit
+  read the old binary as older than `boot_source.hpp` and nine more — correctly not trusted): `build.sh r2_final` —
+  the binary removed first, **246 objects recompiled**, rc 0 — and the suite under the cap: **2,751 | 2,751 passed,
+  0 failed, 3 skipped; 2,938,941 assertions**. The briefing regenerated from THAT link; `briefing_status.py check`:
+  `generated block current`; `doc_staleness_audit.py`: `clean (31 live docs…)` (the binary trusted now).
+- **The docs gates once more** after the worksheet fix: `check-fresh` rc 0, `check-examples` `600 quoted lines, all
+  verbatim`, `check-removability` clean, the C7 grep EMPTY.
+- `git diff --stat -- src/ tools/ include/ test/CMakeLists.txt mkdocs.yml Makefile`: `src/programs/bench_r3a.{cpp,hpp}`
+  ONLY (the new test file is picked up by the suite's glob; `test/CMakeLists.txt` untouched).
+
+### §2.1's DoD — MECH-A6, checked against the tree *(2026-11-03 13:29)*
+- [x] This log carries the run's heading, its tip (`81eb666`), each step as it happened (two stops, both logged), every
+  mutation with its observed red (32 on the final header, `mut/results_153025.json`: 30 RED, MA6-7 / MA6-21 equivalent
+  and re-cut RED as MA6-7b / MA6-21b), the prose review's greps and hits (2026-10-30, and re-run 2026-11-03).
+- [x] The host suite builds and passes (2,751 | 2,751; 2,938,941) and `ctest -R compile_refusal` passes (255/255).
+- [x] The ARM header gate CLEAN (228 headers); the CI PROS-free and layering guards pass.
+- [x] `src_build_gate.py check` PASS — all 7 builds link, 0 disallowed warnings; `self-test` OK (A6 runs it).
+- [x] `grep -rn "PROBE_" include/` EMPTY; no `PROTOTYPE` / `proposed` in the A6 files.
+- [x] Every §3.6 test exists (the grid: 15 inside 240 px, no overlaps, 1–12 at their places, R2a's grid reproduced;
+  the station: every gate, the check's flow, RECORD, the readings in declared units — 360° / π × 1.5 in —, the
+  switch's three states, the three answers into `judgeDirection` / `judgePneumatic`, the stall signature's cut), and
+  M30, M31, M32 and M48 were RUN, observed RED and restored.
+- [x] Docs in the same change (§4.1's A6 list, the internal status pointers), the prose review logged, the C7 grep
+  EMPTY.
+- [x] Nothing committed: the worktree holds the A6 change uncommitted on `mech-a6` at `81eb666` (16 files modified,
+  one new: `test/bench_mech_station_test.cpp`). **MECH-A6 is BUILT; its review, fixes and verification follow
+  (A6-D17: no `MECH-COMPLETED.md` until then).**
+
+### MECH-A6 review findings and their disposition *(started — `date`: Tue Nov  3 01:50:50 PM EST 2026)*
+- Three reviewers (correctness, tests, docs) returned 31 findings; each is re-checked against this worktree before
+  any fix. The dispositions follow, one per finding (R-1 .. R-30 in the order the coordinator listed them), then the
+  gates. *(Written as each step finishes.)* (The coordinator's list holds 31 entries: 10 correctness, 13 tests, 8 docs.)
+- **(Correction to the line above:** the findings are numbered **R-1 .. R-31** in the coordinator's order — R-1..R-10
+  correctness, R-11..R-23 tests, R-24..R-31 docs; "R-30" was a slip.)
+
+### 15:49 (2026-11-03) — RESUMED: the stopped fix run's state, checked before anything else *(`date`: Tue Nov  3 03:49:36 PM EST 2026)*
+- **Why it stopped:** the team lead dropped to ONE job at 93 % of the session limit (~14:50); the old session ended
+  with only the "started" heading above written — **no finding was dispositioned in this log**, so every one is
+  re-checked below, none taken as done.
+- **What the stopped run left (found, not assumed):** `git status` — the A6 set and nothing else (no file the src
+  gate's self-test plants into — `robot_config.hpp`, `build_selection_test.cpp`, `test/CMakeLists.txt`,
+  `chassis_table_test.cpp`, `lv_obj_style.h`, the `Makefile`, `drive_program.cpp`, `calibrate_program.cpp`,
+  `boot_source.hpp` — is modified: no gate plant). Against the reviewers' snapshot (`scratch/mech-a6/review-tests/tree`,
+  whose header is byte-equal to the 2026-10-30 final header and to every A6 mutation backup under `mut/`), only
+  `bench_r3a.hpp` (+~400 lines) and `bench_r3a.cpp` (+~120) differ — the stopped run's code edits, saved as
+  `scratch/mech-a6/fix2/{hpp,cpp}_partial.diff` and READ IN FULL; the tests, the docs and this log untouched since
+  12:50 (but the briefing, regenerated). No mutation string in them: the stopped run's edits ARE the partial fixes
+  for R-1..R-10 (each reviewed below), no mutant. The reviewers' own mutations ran only in their copy of the tree.
+- **The binary trusted for nothing:** removed, the briefing regenerated reading "not built", the build — and then
+  the header's timestamp bumped and BOTH test TUs recompiled from source (`fix2_b1`, `fix2_b2`). On that fresh
+  binary the stopped run's code failed SIX existing station cases (its announcement changed the check's timing; its
+  per-mechanism NEXT reset moved the prompts case's ceiling) — expected: the run stopped before its tests.
+- **The stopped run's code, reviewed line by line and KEPT, with four corrections of mine:** (1) a FIRE did not mark
+  the position known again after an unknown readback (`fire()` now sets `pneuKnown`); (2) an unknown readback's first
+  fire went to `(safe + 1) % n`, not to the safe position its own log line promised (`tick()` now targets `safe`);
+  (3) `kMaxPanelLines` was 10, short of a declaration with every role (4 motors + units + 3 angle + 2 home + 2 piece
+  switch = 12) — now computed from `kMaxMotorRoles`, and the cpp `static_assert`s its buffer against it; (4) two
+  lines that could never run were removed rather than left as equivalent mutants: `safeOne()`'s `pneuKnown = true`
+  (only a FIRED pneumatic is ever live, and `fire()` sets it) and `startCheck()`'s `jogDir_ = 0` (A is now refused
+  while a jog is live, and no hold-to-run is set without being live — it replaced the A6 mutant MA6-25, which this
+  round's N15 succeeds). Also: the HA-186 prompt `  RECORD it at 2 marks: power-cycled, then restarted` was 52
+  characters, 2 past the panel's 50 (found by this round's paging test) — now `… power-cycled, restarted`; and the
+  RECORD header line (`[R3A] mech REC n: …`, cpp-only) names the new invented number, `announce 1.00 s`.
+
+### MECH-A6 review findings — each re-checked, its disposition *(2026-11-03 15:49–16:20; every test below was seen
+RED on its mutant, each mutant on a fresh build of BOTH dependent objects — the mutation table follows)*
+**Correctness (R-1..R-10) — every one REAL, reproduced from the reviewer's evidence against the 10-30 header:**
+- **R-1 (re-entry: a pneumatic believed at its START).** REAL — `Station()` set `pneuPos = start`; the parts outlive
+  the Station. FIXED: `markCleared()` reads each pneumatic's lines back (`commandedLevel`, the DEVICE readback) and
+  matches a declared position; one left elsewhere says `'grip' holds 'shut' (an earlier entry left it there), not its
+  start 'loose'`; a readback matching none says so (`position: UNKNOWN …`) and its first fire goes to the SAFE
+  position. Test: `station 13 re-entry (R-1)` — robot y's grip fired 'shut', made safe, re-entered: the page reads
+  HIGH and 'shut', the first FIRE names 'loose' and moves the line; robot x's hood set to an undeclared C-low/D-high,
+  re-entered: UNKNOWN, then 'down'. Mutants N1, N1b, N2, N3 red.
+- **R-2 (maxVolts ignored).** REAL. FIXED: `voltsFor(i)` = min(ceiling, `power.maxVolts`) for a POWER mechanism (the
+  only kind that declares one — `kinds.hpp` :693, (0, 12]); the jog and the check use it; the confirm's foot, the
+  gates line, the R1 event and RECORD say it. Test `(R-2)` on a 6 V power mechanism: 3 V at a 3 V ceiling, 6 V at 6,
+  9 and 12 (both ways), the check at 6 V; robot two's pivots (12 V) never shown capped. N7–N10 red.
+- **R-3 (lines over 255 characters).** REAL (robot two's real table: 8 over). FIXED: every Station log line and
+  RECORD line goes through `logPieces()` — at most 255 characters (`kLineChars`; the cpp `static_assert`s it equal to
+  `hal::pros::kSerialLineBytes − 1`), broken at spaces, each later piece starting `[R3A] mech CHECK '<name>'
+  (cont.) ` / `[R3A] mech REC n '<name>' (cont.) `, so the worksheet's grep keeps every piece and a path stays whole.
+  Test `(R-3)` on robot two's REAL table (its host path is LONGER than the brain's `./src/…`): nine verdicts — every
+  line ≤ 255 and tagged, each fix whole in its CHECK and REC text, the path whole on one line, some line actually
+  split; plus `logPieces` at 255 exactly / 256 / a 300-character word / null. N20–N23 red.
+- **R-4 (the ceiling carried across NEXT).** REAL. FIXED: `next()` puts it back to 3 V and logs it. Test `(R-4)`.
+  N11 red. The worksheet's "a claw at a time, at 3 V" is now TRUE as written.
+- **R-5 (only the last verdict survives).** REAL. FIXED: each `Mech` keeps its latest verdict and answer; RECORD
+  prints the mechanism's own; `anyFinding()` drives the menu dot (`setVerdict`) and the exit summary prints every
+  mechanism's. Test `(R-5)` (pivot 6 REVERSED then pivot 7 OK: both in RECORD, FAIL; pivot 6 re-checked OK: no
+  finding; an abandoned check leaves the last standing). N12–N14 red; the cpp's dot pinned (C4 red).
+- **R-6 (L1 let go during a blocking prompt).** REAL — `twoButtonPrompt` waits on a touch only. FIXED in the cpp:
+  `mech13::promptHeld()` (twoButtonPrompt's layout; stations 4 and 10's function untouched) polls L1 every tick and
+  CLOSES as `LetGo` the moment it is let go (or the controller drops); `confirm(false, false)` then grants nothing
+  and makes safe what was powered; `confirm(true, false)` no longer ARMS a motor mechanism either. Tests `(R-6)` and
+  the pin; N29, N30, C2, C3 red. Guide 18's "that tick" is now true (within one 10 ms poll).
+- **R-7 (a check started mid-jog).** REAL. FIXED two ways: A is REFUSED while the mechanism is live (`REFUSED A: …
+  is being jogged`); and the check now starts with a 1 s ANNOUNCEMENT, nothing driven — at its last 0.4 s a settle
+  window samples every motor, and one that turned ≥ 0.035 rad by the jog's start is still moving (a coast, a sag): the
+  check is abandoned, nothing judged. Test `(R-7, R-30)`: the refusal (the minus jog runs on, never reversed), nothing
+  driven t0..t0+0.99 s, the jog at t0+1.00 s exactly, the settle edges (EXACTLY 0.035 rad: abandoned; 1 µrad under:
+  the jog; a whole radian BEFORE the window's sample at t0+0.60 s: the jog; 0.035 rad at t0+0.61 s: abandoned). N15–N19,
+  N31–N34 red. (A6-D18, A6-D19 below.)
+- **R-8 (7 reading lines).** REAL. FIXED: `panelLines()` is asked for `kMaxPanelLines`; `readingsPage()` pages them
+  at the cpp's `kShown` (= `Station::kShownLines`, pinned), `shown − 1` a page with a footer `-- page 1/2: TAP the
+  readings for more --`; a tap on the lines steps the page (a verdict and the question page the same way). Test
+  `(R-8)` on a 4-motor lift with an angle sensor and a home switch: 10 lines, the switch and its question on page 2,
+  every line ≤ 50 columns. N24, N25, C5 red.
+- **R-9 (the CLEAR's YES).** REAL. FIXED: `clearText()` says `a cylinder MOVES` (and `'<name>' -> '<start>' MOVES`)
+  when a pneumatic's start drives a line High on the first CLEAR, and on a later entry (parts made) `nothing moves on
+  YES` / `made earlier this power cycle: no line is driven`. Test `(R-9)`; N5, N6 red.
+- **R-10 (which angle number absoluteSensor takes).** REAL — `zeroAbsolute()` matches `reads` against the RAW sensor
+  (its mounting applied to both sides) and the spec refuses a `reads` outside [0, 360). FIXED: a panel line
+  `  absoluteSensor(at, reads): reads = 180.0` (`absoluteReadsDeg()`: the raw reading wrapped into [0, 360), to its
+  tenth, never "-0.0") and the same number named in RECORD. Test `(R-10, R-29)` — robot y's wrist (declared
+  `absoluteSensor(0, 180)`, Reversed) with its sensor at 180 raw reads 180.0 (the declaration's own number; the
+  service homes that very pose correctly in `mechanism_position_test.cpp`), at −90 raw reads 270.0. N26–N26c red.
+
+**Tests (R-11..R-23) — every survivor re-checked against the reviewer's mutant; each now has its test, every mutant
+re-cut on THIS header and seen red on a fresh build (R1b..R21 in the table):**
+- **R-11** hold-to-run: `(R-11)` — UP let go with L1 held: 0 V, HOLD applied, `jog released -- safe`; DOWN too. R1b red.
+- **R-12** the question holds the tick: `(R-12)` — FRESH presses of UP, DOWN and A during a motor check's question,
+  and of UP and A during the claw's: nothing driven, still asking, no new fire. The pneumatic case's old comment
+  ("presses while the question waits") was a held button, not a press — rewritten as fresh presses. R2 red.
+- **R-13** the observation's baselines and the peak: `(R-13)` — the motor at 1.0 rad first (DID NOT MOVE, Δ exactly
+  0); robot y's sensor at 1.0 rad first (Δ +0.2 as mounted); 1.0 A for ten ticks then 0 (FIGHT OR JAM, peak 1.0).
+  R3, R4, R5 red.
+- **R-14** nothing resumes through NEXT: `(R-14)` — `kArmOnly` (NEXT wraps to itself) and NEXT onto an armed pivot 7,
+  UP held five ticks: 0 V; a fresh press then moves it. R19 red.
+- **R-15** the answer labels: `(R-15)` — each slot's two label lines paired with the finding that slot is judged. R11 red.
+- **R-16** any motor, consecutive: `(R-16)` — the lift's SECOND motor (port 3) cut at its 25th tick naming
+  `motor 2 (port 3)`; 24 above, one dip, 24 above: not cut, the 25th after the dip is. R6, R7 red.
+- **R-17** an at-once verdict counted: every at-once case now checks `verdictCount() == 1`. R21 red.
+- **R-18** the temperature's port: `(R-18)` — a stub answering 31 °C for port 6 only: `31C` on pivot 6's panel and
+  RECORD, `unknown` on pivot 7's. R13, R14 red.
+- **R-19** RECORD's angle, cut and pneumatic lines: `(R-19)`. R15, R17, R18 red.
+- **R-20** the read-fault seed: `(R-20)` — the lift's switch and the intake's distance sensor fail, recover, the
+  station is RE-ENTERED (`Bench::reenter()`): the first paint reads `released` / `no piece`. R9, R10 red.
+- **R-21** "did not move" from below: `(R-21)` — 0.0349 rad at 0.1 A is DID NOT MOVE. R8 red.
+- **R-22** the stall window at a small clock: `(R-22)` — `Bench{robotX(), 40}`, the press at 70 ms, the cut at 570 ms
+  exactly. R12 red.
+- **R-23** the cpp's own safety steps: the last case, `pin (R-23, R-6, R-8, R-5)`, reads `mechanismsStation` and
+  `promptHeld` (the `serial_line_test.cpp` :1048 precedent): the guard before the CLEAR prompt, ONE `.parts.build(`
+  after it, `markCleared()` after that; the confirm through `promptHeld` and L1 read AFTER it into `confirm()`; never
+  the touch-only prompt for a confirm; `kShown = ms::Station::kShownLines`; the panel asked for `kMaxPanelLines` and
+  paged; the dot from `anyFinding()`; `promptHeld` polling L1 inside its wait before any touch. Cpp mutants C1–C6 red
+  (C6 builds the parts BEFORE the CLEAR under another spelling — the pin counts `.parts.build(` and sees two). The
+  stage-1 test's comment now says the Station never builds the parts (the cpp does, pinned); the worksheet's P.3
+  heading says which order is pinned by reading the source and that only the bench run proves the page.
+
+**Docs (R-24..R-31):**
+- **R-24 (the worksheet's "ONE station that powers").** REAL — my 10-30 and 11-03 passes listed neither :308 nor :1436.
+  FIXED: Station D's warning (one of the TWO stations that power: 10 DRIVE and 13 MECHANISMS, both red), the DO NOT
+  list (10 and 13 named; a new "do not run 13 MECHANISMS with a hand where a claw can reach"), Station J's programs
+  paragraph (station 13 makes 3-wire A at its start level and fires it only on a confirm) and J's banner (their first
+  run FROM THE CONTROLLER; Station P is their first powered check — run it first). The grep re-run below.
+- **R-25 (HA-184's settle for a piece switch).** REAL. FIXED IN CODE (not by narrowing the documents): a switch piece
+  sensor gets the ask line on the panel and its own RECORD line (`piece switch 3-wire E reads N (pressedLevel 1;
+  HA-184), read faults N -- RECORD it pressed, released and with its cable OUT`). Test `(R-25)` on robot y's catapult;
+  N27, N28 red. The worksheet's P.7.1, guide 18, the changelog and HA-184 (Source and Settle) now say home switch OR
+  piece switch — true of the code.
+- **R-26 (MECH-COMPLETED.md deferred).** Accepted: A6-D17 is SUPERSEDED. `docs/internal/chunks/MECH-COMPLETED.md`
+  written now (BUILT, not landed — the T4 / COMP-b precedent), from this log: the six runs and their commits (A1
+  `fd36e07`, A2 `98392b2`, A3 `43ac361`, A4 `46c874c`, A5 `81eb666`), what is proven and where, what has not run
+  (nothing on a robot; HA-182..186 and HA-153/159 open; "MECH on hardware" the freeze trigger for F11/F12), the deltas
+  index, what is handed on. **For the coordinator, explicitly:** its A6 landing line, the roadmap's MECH rows `[~]` →
+  `[x]`, build-order's MECH entry and first bold `Next:`, and REMAINING-WORK row 12 flip AT THE MERGE — main has moved
+  since `81eb666` (`eab0f89`, the panel plan, rewrote those files), so they are written against the merged tree, not
+  this worktree's. Here they say "A6 BUILT, in review; its record written". The briefing lists `MECH` among the
+  completed records from now on (regenerated; it broke the doc gate inside the first mutation run — below).
+- **R-27 (register follow-through).** REAL. FIXED: HA-159's "the one program that drives its line" (stale since A5's
+  Competition driver control, and now station 13) rewritten; its Settle names Station P (P.5) first, then J.9; its
+  index row and HA-153's say "worksheet Station P (Bench Tests' station 13), then Station J"; the A6 status paragraph
+  names HA-159 and the HA-189 note it edited.
+- **R-28 (two public sentences read as run).** REAL. FIXED: README's library tree ("which Bench Tests' station 13
+  MECHANISMS runs on the robot — built, not yet run on one"), guide 10 :556 ("built and not yet run on a robot").
+- **R-29 (guide 18's angle sentence).** REAL. FIXED with R-10: guide 18 names the RAW reading as the number
+  `absoluteSensor(at, reads)` takes and why "as mounted" is not; the test comment that shared the ambiguity rewritten;
+  the worksheet's P.7.2 quotes the new panel line.
+- **R-30 ("ONLY '<name>' should move" not said before the jog).** REAL. FIXED IN CODE by R-7's announcement — the line
+  is shown for a whole second with nothing driven before the jog (`announceText()` on the panel, with a countdown; the
+  gates line `CHECK: watch it -- keep L1 held`) — so the brief's order holds as written; worksheet P.4.4 and guide 18
+  describe it.
+- **R-31 (status pointers, the index, the counts).** REAL. FIXED: REMAINING-WORK :23 ("A6 BUILT … in its review — its
+  fix round 2026-11-03, `MECH-COMPLETED.md` written"); the guide index's chapter-18 row adds the bench page. The
+  log's counts, corrected here: `test/bench_mech_station_test.cpp` had **25 cases at 15:05 and 27 at the 10-30 final**
+  (the "23 cases" at :4190 was wrong; the grid file holds 12, untouched since that final); the 10-30 FINAL mutation run
+  (`mut/results_153025.json`, 36 filtered cases) read **M31 10 failed, M32 4, MA6-20 6** — not the 15:00 run's 9 / 3 /
+  5 that :4207/:4216 restate. **Now: 51 station cases, 12 grid cases.**
+
+### Deltas from the brief added by the review round (A6-D18 onward), each with its reason
+- **A6-D18 — the direction check ANNOUNCES first:** A shows "ONLY '<name>' should move -- watch it" with NOTHING driven
+  for `kAnnounceMs` = 1 s, then the 0.4 s "+" jog; a motor that turned ≥ `kMinMoveRad` in the announcement's last
+  0.4 s abandons the check (a coast would be judged as the jog). The brief's "the page says …, then one short jog"
+  literally; the 1 s and the reuse of 0.035 rad are INVENTED (HA-182 amended).
+- **A6-D19 — A is refused while a jog runs** (a check starts from rest; R-7).
+- **A6-D20 — the ceiling is per mechanism SHOWN:** NEXT puts it back to 3 V (gate 4's gentle first motion for every
+  mechanism; R-4). Arming still persists per entry.
+- **A6-D21 — a POWER mechanism's declared `maxVolts` caps the page** (the service's own rule; §1.14 does not name it;
+  R-2). A position or speed mechanism declares no such limit.
+- **A6-D22 — the stage-2 confirm watches the dead-man** (`promptHeld`, a copy of `twoButtonPrompt`'s layout — that
+  function is stations 4 and 10's and stays untouched; R-6).
+- **A6-D23 — a log line longer than 255 characters goes as tagged `(cont.)` pieces** (SER1's one-write rule; R-3).
+- **A6-D24 — the readings are PAGED** (A6-D14's "seven reading lines" superseded: seven SHOWN, a footer and a tap
+  when there are more; R-8).
+- **A6-D25 — each mechanism keeps its own latest verdict this entry** (RECORD, the exit summary, the menu dot; R-5).
+- **A6-D26 — a pneumatic's position is read back at each CLEAR** (unknown → its first fire to the safe position; R-1).
+- **A6-D27 — the CLEAR says what its YES moves** (R-9). **A6-D28** — the angle sensor's `absoluteSensor(at, reads)`
+  line (R-10). **A6-D29** — a piece switch is asked HA-184's three readings (R-25). **A6-D30** — the HA-186 prompt
+  shortened to fit 50 columns. **A6-D31** — `MECH-COMPLETED.md` in this change; A6-D17 superseded (R-26).
+
+### The mutations — 92, every one on a fresh build of BOTH dependent objects, every one RED *(16:08–16:18)*
+- Driver `scratch/mech-a6/fix2/mutate.py` (one exact replacement that must match ONCE; the file backed up under
+  `fix2/mut/`; the binary REMOVED; `cmake --build … --target shulib_tests`; the verdict refused unless the output shows
+  `bench_menu_grid_test.cpp.o` AND `bench_mech_station_test.cpp.o` compiled; the station + grid + pin cases under
+  `ulimit -v 4194304; timeout 600`; a survivor would get the whole suite; restored in `finally` and on SIGTERM, its
+  timestamp bumped). The list is `fix2/muts.json`: the reviewers' R1b–R21 re-cut on this header, this round's N1–N34
+  and C1–C6, and the A6 set (`muts_final2.json`) — M32, MA6-6 and MA6-23 re-cut where the header moved, MA6-7/MA6-21
+  dropped for their red re-cuts MA6-7b/MA6-21b, MA6-25 retired (its line removed, N15 its successor).
+- **Run 1 (`fix2/mutrun1.out`): 56 red, then a BUILD FAILED on everything after N33** — not a mutant's: my own doc
+  edits during the run broke the build's doc gates (a roadmap line naming "MECH-COMPLETED" — the removability rule
+  refuses `-COMPLETED` in a public doc — and, once that was reworded, the briefing made stale by the new record). The
+  driver counts a failed build as NOTHING ("re-cut, not counted"). Stopped by SIGTERM (it restored the header; all four
+  files `sha256sum`-equal to `fix2/hashes_before_mut.txt`), the binary removed, a clean build, the briefing
+  regenerated, and **run 2 (`fix2/mutrun2.out`, `mut/results_161813.json`) ran the 36 not yet red: all 36 red.**
+  Total **92 / 92 RED**, none killed by the cap or the timeout. No doc was edited during run 2.
+- The cpp mutants (C1–C6): no host object compiles `bench_r3a.cpp` (the pins READ it at run time), so "recompiled:
+  none needed" is the truth for them, and each was seen red by the pin's own assertion.
+
+### The prose review (pace rule 4) — the greps RUN and their hits READ before this entry *(16:00–16:20)*
+- **§4.2's A6 grep** (`Bench Tests|station 1[0-3]|3 × 4|twelve stations` over `README.md` and `docs/`, the API pages
+  and the PROGRESS/COMPLETED history excluded): 300 hits in 32 files. Read for what THIS round changed — which stations
+  power, how the check starts, the ceiling, the readings: the briefs of VIS1 (39), G3a (35), CAL1 (21), IMU1 (17), L6
+  (16), T4, SAFE-SAVE, COMP-t, G1, R3d, R3b, R2a, R5a, the session log and ORIENTATION name Bench Tests' stations as
+  plans or history — none states what this round changed; the worksheet's (31), the register's (29), build-order's,
+  the roadmap's, REMAINING-WORK's, HANDOFF's, the changelog's, guides 07/10/14/15/18/README's and README's read — the
+  stale ones FIXED above (R-24, R-28, R-31).
+- **The R-24 concept grep** (`read-only|the ONE station|only station|powers motors|powers anything|nothing in shulib
+  drives|never drives|DRIVE station commands|…power…`): FIXED the worksheet :308/:311, :1435-1440, :2363 (R-24);
+  worksheet :14 already true (A6); LEFT: build-order :663 (R3b Part 0's landing record — history), R3b's brief :135/:373
+  (history), R2a's brief (stations 11/12 ARE read-only), L6's :474 (station 11's read-only claim — true), every other
+  hit a different subject (a "read-only query", a read-only research pass, the panel's read-only blocks).
+- **This round's own facts** — `power-cycled, then restarted` (0 left), `ONLY '…' should move` (guide 18, the
+  changelog, the worksheet — the announcement; the brief :453/:2012 — the brief), `nothing moves yet` (the worksheet,
+  true), `as mounted` (guide 18, the changelog, HA-186, worksheet P.7.2 — all now name the RAW number; HA :442 another
+  sensor), `seven … lines|kShown` (only G3a's other subject), `last verdict|the last check` (0), `at 3 V` (the
+  worksheet's Station P/J now TRUE per mechanism; R3b/R3d/T4/D.1.5 other stations), `maxVolts` (guide 18 :52 the
+  field table; the new sentences).
+- **NOT MINE TO EDIT — for the coordinator:** G3a's brief (in flight, worktree `g3a-p1`) :1647/:1655/:1931 says
+  "Station J.9 settles" HA-159 — Station P (P.5) now checks it first (HA-159's Settle, amended here). And, still, the
+  IMU1 brief's "the 3 × 4 menu is full" (logged 11-03 13:00).
+- **Found while testing, LEFT (pre-existing A6 behaviour, not a finding; for the coordinator):** a distance piece
+  sensor's panel line can run past the panel's 50 columns (`piece p9: 393.66in conf 1.00 -> no piece (within 2.00in)`
+  is 56): the panel cuts the "(within …)" restatement of the declared threshold; the evidence word is never cut, and
+  RECORD carries the line whole. An optical one's `NOT ANSWERING` form reaches 52. Not fixed here: outside the 31
+  findings, and it changes text the worksheet quotes.
+
+### Every existing bench station unchanged — re-proven *(16:12)*
+- `fn_diff.py` (every top-level definition) — base `81eb666` → now: **48; 43 byte-identical, 5 changed (`MenuItem`,
+  `kMenu`, `drawMenu`, `testerInitialize`, `runR3a` — A6's menu and banners, as on 10-30)**, added `mech13`,
+  `mechanismsStation`. The review round alone (the 10-30 final cpp → now): **50; 48 identical; changed ONLY `mech13`
+  and `mechanismsStation`.** Every function this round touched: in `bench_r3a.hpp`'s `mech_station` — new
+  `absoluteReadsDeg`, `logPieces`, `ReadingsPage`, `readingsPage`, `pageFooter`; `Station`'s constants
+  (`kLineChars`, `kLineBytes`, `kTextBytes`, `kMaxEvents`, `kShownLines`, `kMaxPanelLines`), `markCleared`,
+  `startsHigh`, `clearText`, `next`, `voltsFor`, `capped`, `confirmText`, `confirm`, `tick`, `answer`,
+  `verdictPanelText`, `hasVerdictFor`/`verdictFor`/`answeredFor`/`anyFinding`/`anyVerdict`, `exit`, `panelLines`,
+  `announceText`, `gatesText`, `record`, `pushLine`/`vEvent`/`event`/`eventCont`, `keepVerdict`, `safeOne`,
+  `startCheck`, `stepAnnounce`, `startJog`, `finishCheck`, `abandonCheck`, `fire`, `leaveSelected`, `Mech`'s fields;
+  in `bench_r3a.cpp` — `mech13::Held`, `mech13::promptHeld`, a `static_assert`, and `mechanismsStation`. Nothing
+  outside station 13 (VIS1-B, L6-B and IMU1 Part B's stations 12, 11 and 2 untouched).
+
+### 16:20–16:55 (2026-11-03) — the first src-gate run FAILED; the fix; two fixed line budgets; ALL mutations again *(`date` 16:55:18)*
+- **The host gates first, on the fixed tree:** `build.sh fix2_final1` (binary removed, briefing regenerated, the
+  whole build with the doc gates) rc 0; the suite under the cap **2,775 | 2,775 passed, 0 failed, 3 skipped;
+  2,943,528 assertions**; `suite_run.py green` the same; the briefing regenerated from that link and `check`ed current.
+- **`src_build_gate.py self-test` (16:23) FAILED at its baseline:** `[tank], [tank-drive], [tank-calibrate],
+  [tank-autontest], [tank-competition] disallowed warning -Wformat-truncation= at src/programs/bench_r3a.hpp:1541 —
+  '%s' directive output may be truncated writing up to 511 bytes into a region of size 256` — `pushLine()`'s
+  `snprintf(event_[k], kLineBytes, "%s", line)` fed by `logPieces()`' 512-byte piece buffer (a piece never passes 255,
+  but GCC's optimised ARM builds cannot see that; the host build does not warn). Stopped with SIGINT (the self-test
+  restores its plants in `finally`/`__exit__`, which SIGINT runs); all 13 changed and planted-into files `sha256sum`-
+  equal to `fix2/hashes_before_gate.txt`; `git status` the A6 set only. FIXED: `pushLine()` COPIES at most
+  `kLineChars` (`memcpy` + terminator) — no format, no warning. Its mutant N35 (the terminator dropped: a short line
+  shows the tail of the longer one its slot held) is caught by a new EXACT check in `(R-11)` (the ARMED line held
+  that slot); the `min(…, kLineChars)` bound is unreachable by construction (every piece ≤ 255) — a bound against an
+  overrun, not a behaviour, so its only mutant (to `kLineBytes − 1`, the same number) would be equivalent: not cut.
+- **Two fixed line budgets found while the gate ran** (the R-3 / R-8 class — a sentence's tail dropped without a
+  word): the exit summary wrapped each verdict into a FIXED 10 lines of 52 (`wrapText` stops silently at its limit;
+  a 383-character sentence with its prefix is ~440, 9–11 lines) — now `logPieces()` with no cap, pinned (C7 red); and
+  the live page's buffer for a wrapped verdict or question, 14 lines of 50 for up to 459 characters — now 20.
+- **ALL 94 mutations again on this final header** (`fix2/mutrun3.out`, `mut/results_165512.json`; the 92 above plus
+  N35 and C7): **94 / 94 RED**; the 87 header mutants each with BOTH dependent objects recompiled (the driver refuses
+  a verdict otherwise), the 7 cpp mutants read at run time by the pin; none killed by the cap or the timeout; the
+  four files `sha256sum`-equal after (`fix2/hashes_before_mut3.txt`). No file was edited while it ran.
+
+### RESUMED again (2026-11-05) — what the second stop left, checked before anything else *(`date`: Thu Nov  5 12:22:35 AM EST 2026)*
+- **Why:** the 16:55 (2026-11-03) entry above is the stopped run's last; its final src-gate run (`fix2/gate2_check_first.out`,
+  17:00, `check` PASS, rc 0, then the `self-test`, whose `fix2/gate2_selftest.out` is EMPTY) was cut while the
+  self-test held a plant. Nothing after 16:55 was logged, so the gates below are re-run, none taken from that run.
+- **A GATE PLANT WAS LEFT, found and restored:** the `Makefile` (mtime 2026-11-03 17:08:15) held the self-test's case
+  for the tank define — `override EXTRA_CXXFLAGS+=-DSHULIB_ROBOT_TANK_2026_BROKEN` in place of `…_TANK_2026` (the
+  `_replace` at `tools/src_build_gate.py` :2087; the kill skipped its restore). Its copy kept as
+  `fix2/Makefile.planted_found_1105`; restored with `git checkout -- Makefile` (HEAD's hash = the pre-gate hash
+  `63ce7a46…` in `fix2/hashes_before_gate2.txt`), timestamp bumped. **For the coordinator:** its audit did not list
+  the `Makefile` — any tank build from this worktree between 2026-11-03 17:08 and this restore was made with no robot defined (none is known to have been made; the gate below rebuilds every variant from source).
+- **Every other file checked:** `sha256sum -c fix2/hashes_before_gate2.txt` (the four A6 code/test files and every file
+  the self-test plants into) — ALL OK after the restore; `sha256sum -c fix2/hashes_before_mut3.txt` — the four files
+  equal to the tree the 94 mutations ran on (no mutant; their verdicts stand for this source); `git status` (with
+  ignored files) — the A6 set, `MECH-COMPLETED.md` and the station test only; no stray include-root folder.
+- **The dispositions above (R-1 .. R-31) were all written by the stopped run;** none is redone. Spot-checked in the
+  tree: the worksheet's Station D / J / DO NOT sentences (R-24), README and guide 10 (R-28), HA-159 (R-27),
+  REMAINING-WORK :23 and the guide index (R-31), `MECH-COMPLETED.md` (87 lines, R-26); the test counts 51 / 12 (R-31).
+- **Next:** the binary removed, a fresh whole build, the suite under the cap, every gate on this final tree.
+
+### 00:21–00:58 (2026-11-05) — every gate on the FINAL tree *(`date`: Thu Nov  5 12:58:55 AM EST 2026)*
+- **A clean rebuild:** `cmake -S test -B build/test` rc 0; `--target clean`; `build.sh fix3_clean` — the binary removed
+  first, the briefing regenerated reading "not built", **246 objects compiled from source**, rc 0, no warning.
+- **The suite under the cap** (`ulimit -v 4194304; timeout 600`): **2,775 | 2,775 passed, 0 failed, 3 skipped;
+  2,943,529 assertions** (one more than 16:20's 2,943,528: N35's EXACT check in `(R-11)`, added after that run);
+  `suite_run.py green`: `green — 2775 cases, 2943529 assertions`.
+- **The CI greps:** `library is PROS-free`; `layering holds: core is sim-free`; `PROBE_` in `include/` 0; `PROTOTYPE` /
+  `proposed` in the four A6 code/test files 0.
+- **The ARM header gate** (CI's exact command; TU `scratch/mech-a6/all_headers_fix3.cpp`): `TU includes 228 headers`,
+  `ARM compile gate: CLEAN (all v2 headers)`.
+- **The compile-refusal harness:** `ctest -R compile_refusal --no-tests=error` — `100% tests passed … out of 255`;
+  255 TUs, 255 CTests.
+- **The documentation gates:** `api_doc_tool.py` self-test OK; check-coverage `5060 public entities across 188
+  headers, all documented`; check-fresh rc 0 (no `///` under `include/shulib/` changed — `docs/api` needs no
+  regeneration); check-examples `600 quoted lines, all verbatim`; check-removability clean; `briefing_status.py`
+  self-test OK and `check` current; `doc_staleness_audit.py` self-test OK and `clean (31 live docs…)`.
+- **`src_build_gate.py self-test`** (00:29–00:51): `OK (269 detector cases, each against a real build)`, rc 0.
+  **`check`** (00:51–00:54): **`src build gate: PASS (all 7 builds link …)`**, rc 0 — bench, xdrive, tank, tank-drive,
+  tank-calibrate, tank-autontest, tank-competition each `exit 0, 11/11 TUs compiled, warnings: 8 vendor-ignored, 0
+  disallowed`. Output `scratch/mech-a6/fix3_gate_{selftest,check}.out`. **No plant left:** `sha256sum -c
+  fix3_hashes_before_gate.txt` (15 files: the four A6 code/test files, every file the self-test plants into, the
+  vendored `doctest.h`, `build_selection.hpp`) ALL OK; `git status --ignored` the A6 set only.
+- **Rebuilt after the gate** (its restores bump timestamps): `build.sh fix3_final` — 246 objects recompiled, rc 0; the
+  suite under the cap **2,775 | 2,775; 2,943,529**, rc 0; the briefing regenerated from THAT link, `check` current;
+  the staleness audit, check-fresh, check-examples and check-removability once more — all clean.
+- **Every existing bench station unchanged, re-proven** (`fn_diff.py`, base `81eb666` → now): 48 definitions, 43
+  byte-identical, changed only `MenuItem`, `kMenu`, `drawMenu`, `testerInitialize`, `runR3a` (A6's menu and banners);
+  added `mech13`, `mechanismsStation` — as at 16:12.
+- **The mutations are not re-run:** the four files they mutate are `sha256sum`-equal to `fix2/hashes_before_mut3.txt`,
+  the tree the 94 / 94 RED run (`mut/results_165512.json`, each header mutant with both dependent objects recompiled)
+  ran on; nothing under `src/` or `test/` has changed since.
+- **The fix round is complete:** R-1 .. R-31 each dispositioned above (every one REAL and fixed; none declined), the
+  deltas A6-D18 .. A6-D31 logged, the prose review logged. Nothing committed. **For the coordinator:** the Makefile plant
+  found and restored at this resumption (above); the items marked "NOT MINE TO EDIT" and "Found while testing, LEFT"
+  above stand.
+
+### MECH-A6 — Verification-round findings and their disposition *(`date` at this entry: Thu Nov  5 01:56:34 AM EST 2026)*
+- A fresh verifier returned ONE finding (minor: R-7's settle check watches EVERY motor, but every settle case drives a
+  one-motor mechanism, so its mutant V19 — the check loop cut to `m < 1` — survived the whole suite). Re-checked first,
+  on this worktree; the fix, its mutations and every gate follow. Scratch: `scratch/mech-a6/vround/`.
+
+**VR-1 (minor) — the settle window's "every motor" untested past motor 1.** **REAL** (a test gap; the code is right):
+- **The re-check.** `bench_r3a.hpp` `stepAnnounce()` samples, then checks, `motors[m]` for every `m` below
+  `motors.size()` and `kMaxMotorRoles`. Every settle case in `(R-7, R-30)` moved robot x's ONE-motor arm or robot two's
+  one-motor pivot, so nothing failed when motor 2 was ignored — the verifier's V19 SURVIVED (its
+  `verify/mutrun.out`). The SAMPLING loop had the same gap (my V19s below): skipping motor 2's sample leaves its stored
+  angle at 0, which a motor resting at 0 hides. Robot two (one motor per pivot) is unaffected today; a lift or a
+  mirrored pair is not.
+- **FIXED IN THE TEST ONLY** (`test/bench_mech_station_test.cpp`, the end of the `(R-7, R-30)` case — no source line
+  changed; `bench_r3a.{hpp,cpp}` `sha256sum`-equal to the tree the 94 / 94 RED run used, `fix2/hashes_before_mut3.txt`):
+  robot x's LIFT (motors on ports 2 and 3, 3 mirrored), armed, A pressed, and ONLY its second motor (port 3) moved at
+  t0 + 1.00 s. Port 3 starts at `kMinMoveRad`, not 0, so a skipped sample reads as a move; the jump goes to
+  `2 × kMinMoveRad`, and `REQUIRE(atEdge - start == kMinMoveRad)` proves first that the equality edge lands EXACTLY (a
+  start of 2.0 or 0.5 rad would not: `(p + 0.035) - p != 0.035` in doubles for every start tried). EXACTLY
+  `kMinMoveRad`: the check abandoned, `CHECK 'lift': still MOVING when its jog was due (motor 2 turned +0.035 rad in
+  the last 0.40 s) -- let it settle, then press A again; nothing judged` logged word for word, no line naming motor 1,
+  0 V on ports 2 and 3 at every tick, no verdict, port 2 never moved. 1 µrad under: the jog (`Jogging`, volts on the
+  lift, no "still MOVING"). The case's BUG CAUGHT line names the gap. Case counts unchanged (51 station / 12 grid);
+  the suite **2,775 | 2,775 passed, 3 skipped; 2,943,552 assertions** (+23 over 2,943,529).
+- **The mutations — 4 / 4 RED**, each on a fresh build with BOTH dependent objects recompiled (driver
+  `vround/mutate.py`, a copy of `fix2/mutate.py` with only its scratch folder changed; backups under `vround/mut/`;
+  restored in `finally` and on SIGTERM, timestamps bumped; `vround/mutrun.out`): **V19** (the check loop `m < 1`, the
+  verifier's) — red by the NEW assertions (:1653 phase, :1654 volts 6 V, :1664 named); **V19s** (the SAMPLE loop
+  `m < 1`) — red by :1664 and the 1 µrad-under case (:1668–:1670: abandoned where the jog was due); **V19e** (`>=` →
+  `>`) — red by the old motor-1 edges AND the new motor-2 edge (:1653/:1654, so that edge is exact); **V19n** (the
+  message's `m + 1` → `m == 0 ? 1 : m`, which names motor 2 as "motor 1") — red by :1662/:1664. None killed by the cap
+  or the timeout. After the run `sha256sum -c vround/hashes_before_mut.txt` — all four files OK.
+- **Every gate on the final tree** (`vround/`): `cmake -S test -B build/test` rc 0; `build.sh vround_final` (the binary
+  removed first, the briefing regenerated reading "not built"), rc 0; the suite under the cap rc 0 (figures above);
+  `suite_run.py green` `green — 2775 cases, 2943552 assertions`; the briefing regenerated from that link, `check`
+  current. CI greps: `library is PROS-free`, `layering holds: core is sim-free`, `PROBE_` in `include/` 0,
+  `PROTOTYPE` / `proposed` in the four A6 files 0. ARM header gate (CI's exact command, TU `vround/all_headers.cpp`):
+  228 headers, CLEAN. `ctest -R compile_refusal` 255 / 255. `api_doc_tool.py` self-test OK, check-coverage 5,060
+  entities all documented, check-fresh rc 0 (no `///` changed — `docs/api` needs no regeneration), check-examples 600
+  lines verbatim, check-removability clean; `briefing_status.py` self-test OK; `doc_staleness_audit.py` self-test OK and
+  clean. **`src_build_gate.py self-test`: `OK (269 detector cases …)`, rc 0; `check`: `src build gate: PASS (all 7
+  builds link …)`, rc 0** — bench, xdrive, tank, tank-drive, tank-calibrate, tank-autontest, tank-competition each
+  `exit 0, 11/11 TUs compiled, … 0 disallowed`. No plant left: `sha256sum -c vround/hashes_before_gate.txt` (15 files,
+  the `Makefile` among them) ALL OK; `git status --ignored` the A6 set only. Rebuilt after the gate (246 objects), the
+  suite again 2,775 | 2,775; 2,943,552, rc 0; the briefing regenerated and `check` current; the staleness audit,
+  check-fresh, check-examples, check-removability clean once more.
+- **Every existing bench station unchanged** (`fn_diff.py` base `81eb666` → now): 48 definitions, 43 byte-identical;
+  changed only `MenuItem`, `kMenu`, `drawMenu`, `testerInitialize`, `runR3a`; added `mech13`, `mechanismsStation` — as
+  before (no source changed this round).
+- **No delta from the brief** (a test only). **The prose review** (pace rule 4): the new test lines and this entry
+  grepped for the retired name of the host test plant, `on the robot`, `proven`, `robot claims` — 0 hits; no live doc describes the settle check
+  past robot two's pivot (the worksheet's P.4.4 at `R3a-BENCH-WORKSHEET.md` :1364 is about the pivot and stays true),
+  so no document changes. Nothing committed.
+
+### The coordinator's merge verification — MECH-A6, the core's LAST run (2026-11-06, main `858b675` + the squash of `mech-a6`)
+- **Audit before the merge:** `audit_wt.py mech-a6` — 2 backed-up files, 0 suspicious; the header newer than its backup
+  diffed by hand (581 lines of the fix round's code, not a mutant); no "(self-test plant" line in `src/` or the Makefile;
+  no stray root file. The transport commit `e70328f`, then `git merge --squash mech-a6` (base `81eb666`).
+- **Five conflicts:** the briefing (regenerated); the changelog — A6's entry at the top of `## API 2.5`, dated "2026-11-06
+  (built 2026-10-30)"; the guide's index — A6's longer chapter-18 row and A2b's chapter-19 row; the register — A6 added
+  NONE (amended HA-182/184/186/153/159/189), so its paragraph ends "Still 203"; build-order's `Next:` line by a word-level
+  three-way merge against `81eb666` (both sides present). "A6 BUILT … in its review" phrases made LANDED in build-order,
+  REMAINING-WORK (the status and row 12), HANDOFF, the roadmap (its Now paragraph and checklist) and `MECH-COMPLETED.md`
+  (written by A6's fix round; its header and A6 row now say landed).
+- **Gates on the merged tree** (`.claude/coordinator/logs/mech_a6_merge_verify.out`, re-run 2026-11-06 after a pause):
+  host build with the doc gates; suite **3,015 | 3,015 passed, 3 skipped**; `src_build_gate.py` self-test OK and check
+  **PASS, all 7 builds**; ARM header gate over **240** headers clean; CI greps empty; doc gates clean; the compile-refusal
+  harness **255 of 255**; no plant, no stray root file.
+- **The coordinator's hand mutations** (`muts_mech_a6_main.json`, on `src/programs/bench_r3a.hpp`; fresh link, 4 GiB / 300 s
+  cap, restored and hash-checked): **6 of 6 caught** — MX1 (a dropped controller's held L1 still counts as held), MX2 (a
+  motor mechanism's first volt needs no confirm — gate 2), MX3 (letting go of L1 during a confirm keeps what the station
+  powered — A6-F3), MX4 (the volts ceiling starts at 12 V — gate 4), MX5 (a YES armed without L1 held), MX6 (letting go
+  of L1, or a dropped controller, leaves powered mechanisms powered) RED. Restored tree green.
+- **THE MECH CORE IS COMPLETE** (A1–A6). What follows for mechanisms, by the team lead's order of 2026-11-05: the
+  cascade — MECH-S-A (the current cap, building), TUNE1 (live tuning), and the cascade's declaration once its facts arrive.

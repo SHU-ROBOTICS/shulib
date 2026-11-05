@@ -692,7 +692,7 @@ it, and the robot still drives. A missing PIECE sensor leaves the mechanism runn
 3-wire role is always "not checkable": the brain cannot see a switch or a solenoid. Two cables of the
 SAME kind swapped between mechanisms look fine at boot — that is the direction check's to find (its
 judgement, `mechanism::judgeDirection`, exists since the core's fourth part; the bench page that runs it
-is the core's last). Beside each piece sensor and home switch the provider also answers its
+on the robot — Bench Tests' station 13 — since its sixth and last, built and not yet run on a robot, [chapter 18](18-mechanisms.md#the-bench-page--bench-tests-station-13)). Beside each piece sensor and home switch the provider also answers its
 READ-FAULT count (`hal::IReadFaults`, through `readFaults(port)` / `lineReadFaults(line)`): a sensor
 whose read fails is answered with its last good value, and a distance sensor held from a far reading
 is, byte for byte, the "no object" reading — only the count tells them apart. The count is there so
@@ -708,7 +708,7 @@ calibration record that drives a mechanism sensor's port is refused naming both
 **Hardware beliefs this rests on, unmeasured:** that a limit switch reads 1 when pressed and an
 unplugged switch line reads released (the Hardware Assumptions Register's HA-184), and that a V5
 rotation sensor starts at its shaft's absolute angle at power-up (HA-186). Both are settled at the
-bench page.
+bench page (Bench Tests' station 13, built at the core's sixth part — not yet run on a robot).
 
 ### In an auton, on the buttons, on a route
 

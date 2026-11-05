@@ -16,6 +16,48 @@
 
 ## API 2.5
 
+### 2026-11-06 (built 2026-10-30) — the mechanism core, part 6 (its last): Bench Tests' station 13 shows every mechanism in its own units, powers one at a time behind six gates, and runs the direction check on the robot — no API change
+
+> Written when it was built (chunk MECH-A6, the last of the mechanism core's six parts) and corrected at
+> its review round (2026-11-03: the 31 findings of three reviewers — what follows is the page after it; its
+> verification round follows). **No version bump and no library change:** nothing under `include/shulib/`
+> moved. It is the bench program's (`src/programs/bench_r3a.{hpp,cpp}`) — and the first program to run the
+> core's direction check. **Nothing here has run on a robot.**
+
+- **Station 13 MECHANISMS** in Bench Tests (slot 3): every mechanism the robot's file declares, built
+  through `robot::MechanismParts` from the same projection every program boots from — no drivetrain, no
+  mechanism service, nothing homed — shown one at a time:
+  - **its readings, live, in its declared units**: each motor's angle since power-up, speed, current and
+    temperature (`unknown` when the read failed); an arm's or lift's position through its gearing and
+    shape (a gearing typed wrong is a wrong angle on the screen); a flywheel's output rpm; the angle
+    sensor raw and as mounted, and the number `absoluteSensor(at, reads)` takes (the RAW reading in
+    [0, 360)); a limit switch's level — a home switch or a switch piece sensor — asked for pressed,
+    released and unplugged (HA-184's settle); the piece sensor's reading and whether it sees a piece; a
+    pneumatic's position read back from its lines at every visit; more lines than the panel holds on a
+    second page (tap the readings);
+  - **power behind six gates**: only a built mechanism; a CLEAR question before anything is made (its YES
+    says whether making a line moves a cylinder), a confirm before a motor mechanism's first volt and
+    before EVERY pneumatic fire; L1 as a dead-man (let go, and what the page powered is safe that tick — a
+    confirm on the screen closes at once — and what it never powered is never touched); a jog only while
+    its arrow is held; a ceiling from 3 V for each mechanism that R1 raises to 12, never past a power
+    mechanism's declared `maxVolts`; a cut on a fight between a mechanism's motors, on 2.4 A for 250 ms, on
+    its own stall signature and on a 3 s jog; everything safe on the way out. Every number is invented for
+    a first run (HA-182's page entries);
+  - **the direction check**, from rest: "ONLY '<name>' should move" said with nothing driven for 1 s (a
+    mechanism still moving in its last 0.4 s abandons it), one + jog for 0.4 s, `mechanism::judgeDirection`
+    over what the encoders saw — a fight, a dead motor, a jam, a back-drive, a reversed sensor reported at
+    once, otherwise the three answers; a pneumatic fired and "which position did it go to?"
+    (`judgePneumatic`) — the verdict naming the robot-file line, nothing saved. RECORD writes `[R3A] mech`
+    lines to serial and the SD log — each mechanism's own latest verdict, and every line one serial write
+    (a long one in tagged `(cont.)` pieces).
+- **The menu is 3 × 5** (it was 3 × 4): thirteen buttons, room for fifteen; stations 1–12 keep their
+  numbers, their logged names and their places; the buttons are 36 px tall again, their second line in the
+  small font. Buttons 10 and 13 carry the red stripe: the two stations that power motors.
+- The station's logic is PROS-free and host-tested over the library's own parts on a fake provider (the
+  gates one by one, the check's flow, the readings, the RECORD lines, the line lengths on robot two's real
+  table), with every gate's mutation seen red; the steps only the bench program runs (the CLEAR before
+  anything is made, the dead-man watched inside each confirm) are pinned by reading its source.
+
 ### Added and fixed since 2.5 (2026-11-03; built 2026-10-29–30) — the wall reset's library core: one axis of the estimate re-seated against a field wall from a side distance sensor; cookbook 05's re-seed recipe keeps y
 
 > Written when it was built (chunk L6-A1, the first of the wall reset's three parts — the robot file's

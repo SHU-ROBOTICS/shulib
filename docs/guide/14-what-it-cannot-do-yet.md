@@ -227,8 +227,9 @@ The mechanism seam that used to be a placeholder here is now real code
   1.5_s)`), a driver file's controls put presets on buttons, a route's markers run every mechanism's
   ids, and the direction check judges a jog. Proven only on the host test plant's invented models, with
   invented starting gains; robot two's programs run on the service since its fifth part (2026-10-29),
-  its claws as declarations — never on a robot — and the bench page that runs the direction check is
-  its sixth.
+  its claws as declarations — never on a robot — and the bench page that runs the direction check,
+  Bench Tests' station 13, since its sixth and last (built 2026-10-30; its logic host-tested, the page
+  itself never run on a robot).
 - **Deliberately absent:** any concrete mechanism. There is no `shulib::Intake` and never
   will be — mechanism sets change every season, so the library ships the grammar and your
   team writes the nouns (Chapter 13 says how, and why the safe state is declared per

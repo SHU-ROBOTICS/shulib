@@ -6,7 +6,7 @@
 > hold, find their zero, stay inside their limits and stop when something jams, and how to tune
 > them — then how an AUTON runs a mechanism (one line per step), how the DRIVER's buttons do
 > (presets, holds, toggles), how a ROUTE's markers do (every mechanism's ids, published), and what
-> the direction check judges.
+> the direction check judges — and the BENCH PAGE that runs it on the robot.
 >
 > **What exists, and what does not yet.** The mechanism core's first five parts are in (MECH-A1 and
 > A2, 2026-10-15; A3, 2026-10-22; A4 and A5, 2026-10-29): the vocabulary and its build checks, the mechanism SERVICE
@@ -17,7 +17,10 @@
 > JUDGEMENT — and, since the fifth part, robot two on all of it: its claws are declarations, every
 > program that boots it binds one service, prints each mechanism's boot lines and publishes its route
 > ids, and its driver file is three lines of controls ([the cookbook](../cookbook/06-driver-control.md)).
-> What is still to come: the bench page that runs the direction check (the core's sixth part). Everything below is measured on the **host test plant** — invented models of an
+> And since the sixth and last part (MECH-A6, built 2026-10-30), Bench Tests' **station 13 MECHANISMS**
+> — the bench page ([below](#the-bench-page--bench-tests-station-13)) — shows every declared mechanism in
+> its declared units and runs the direction check on the robot. Everything below is measured on the
+> **host test plant** — invented models of an
 > arm, a lift and a flywheel ([HA-183](../hardware-assumptions.md)) — and the library's own numbers in
 > it are invented starting values ([HA-182](../hardware-assumptions.md)). **Nothing here has run on a
 > robot.**
@@ -524,6 +527,64 @@ mechanism was **back-driven** by something stronger than the jog (gravity, a loa
 wrong, and none is named — jog it harder or from another pose. A V5 motor reverses its encoder with its
 command, so its own encoder cannot see it declared the wrong way — your answer does. It REPORTS; it
 saves nothing: you edit the robot file, rebuild and upload.
+
+## The bench page — Bench Tests station 13
+
+**Bench Tests** (the bench program, slot 3) has a thirteenth station, **13 MECHANISMS**: it builds the
+robot's mechanisms from its robot file exactly as every program does — no drivetrain, no mechanism service,
+nothing homed — and shows ONE at a time, with three jobs:
+
+- **Every reading, live, in the mechanism's own units.** Each motor's angle since power-up, speed,
+  current and temperature (`unknown` when the read failed — never a guessed "cool"); an arm's or a lift's
+  position **in its declared units**, through its gearing and its shape, taking the power-up pose as its
+  declared home (`ARM +95.0 deg (power-up = home 0.0; 5.00:1)`) — so you read `.range`, the presets and
+  the level angle off the robot by moving the arm by hand, and **a gearing typed wrong is a wrong angle on
+  the screen** (a 12:60 arm turned one turn reads 360°; typed `gears(12, 36)` it reads 600°); a
+  flywheel's output rpm; the angle sensor raw and as mounted, and on its own line **the number
+  `absoluteSensor(at, reads)` takes — the RAW reading, in [0, 360)** (`absoluteSensor(at, reads): reads =
+  180.0`; the mechanism service applies the mounting to both sides, so "as mounted" is the joint's
+  direction, never what you type — for a `rotationSensor(Reversed)` it is the wrong number); a limit
+  switch's level — a home switch or a piece switch alike — and the page asks for it **pressed, released
+  and with its cable out** (HA-184: an unplugged 3-wire line reads a level, so only the three readings side
+  by side say what it does); the piece sensor's reading and whether it SEES a piece, by the same
+  positive-evidence rule a step uses (`NOT ANSWERING` while its read-fault count moves). A mechanism with
+  more readings than the panel holds (four motors, an angle sensor and a home switch) gets a second page:
+  **tap the readings** for it. **The current you see while you hold a jog
+  against something is the number a jam signature is sized by** — a held button draws less than a jam at
+  full power (on the host test plant a 6 V push into an obstacle drew 1.25 A, under a 2.0 A signature).
+- **Power, behind six gates.** Only a mechanism the robot built; a CLEAR question before anything is
+  made (making a pneumatic's line drives it to its start level), then a confirm before a motor
+  mechanism's first volt (`POWER 'arm'?`) and before EVERY pneumatic fire (`FIRE 'claw' -> 'open'?` — a
+  pneumatic's position is read back from its lines at each entry, so the fire names the OTHER one even
+  after an earlier visit left it in its safe position); **L1 held** the whole time — letting go, or a
+  controller that drops, puts whatever the page powered in its declared safe state that tick (a confirm
+  prompt CLOSES the moment L1 is let go, granting nothing), nothing it never powered is touched, and
+  nothing restarts by itself (a button still held when the controller comes back, or through NEXT, is not
+  a press); a jog runs only while its arrow is held; a ceiling starting at 3 V — again for each mechanism
+  NEXT shows — that R1 raises to 6, 9, 12, **never past a power mechanism's declared `maxVolts`**; a cut
+  that stops THAT mechanism, names why and keeps it stopped until the station is re-entered — two of its motors fighting for 250 ms, any motor above 2.4 A for 250 ms, its
+  own stall signature, a jog held for 3 s; and leaving the station makes everything safe. **Every one of
+  those numbers is invented for a first run** ([HA-182](../hardware-assumptions.md)'s page entries) and
+  the page says so.
+- **The direction check.** Hold L1 and press A with the mechanism at rest (A is refused while a jog runs —
+  let go of the arrow first): the page says `ONLY 'arm' should move -- watch it` and drives NOTHING for
+  1 s — a mechanism still turning in that second's last 0.4 s (a coast, a sag) abandons the check, since
+  a jog from a moving start would judge the coast — then jogs it "+" at the ceiling for 0.4 s and hands
+  what the encoders saw to `judgeDirection` (above). A fight, a motor that never answered, a jam, a
+  back-drive or a sensor against its motors is reported at once; otherwise it asks its question with three
+  buttons — its + way / the other way / it did NOT move or something ELSE moved — and shows the verdict,
+  naming the robot-file line. A pneumatic's check is a fire and "which position did it go to?" (its
+  positions as buttons, and "nothing / something else moved"). **RECORD** writes every reading and EACH
+  mechanism's latest verdict this visit to the serial log and the SD card as `[R3A] mech` lines — each
+  line one serial write, a longer one in pieces that each start `[R3A] mech ... (cont.)`, so a grep of the
+  tag keeps the whole sentence and the path stays whole on its line.
+
+It saves nothing: edit the robot file at the line the verdict names, rebuild, upload, check again. The
+page's logic is host-tested (the gates, the check's flow, the readings, the RECORD lines —
+`test/bench_mech_station_test.cpp`, over the library's own mechanism parts on a fake provider), and the
+order of the steps only the bench program runs (the CLEAR before anything is made, the dead-man watched
+inside each confirm) is pinned by reading its source; the page itself has **never run on a robot** — the
+bench worksheet's station for it is its first run.
 
 ## The honest limit — the service runs only when something ticks it
 

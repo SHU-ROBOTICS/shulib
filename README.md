@@ -291,7 +291,8 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
                     mechanism SERVICE that runs every one each tick (power, pneumatic,
                     position — arms, lifts — and speed — flywheels; host-only so far); the
                     driver file's controls (presets on buttons) and the direction check's
-                    judgement
+                    judgement (which Bench Tests' station 13 MECHANISMS runs on the robot —
+                    built, not yet run on one)
   runner/           runs a Route: the path runner, the command-id registry, the manifest,
                     and every mechanism's route ids bound in one call
   teleop/           driver control: stick mapping, input shaping, drive modes, field-centric,

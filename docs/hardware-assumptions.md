@@ -208,6 +208,13 @@
 > the position they give is the shaft's turn within the reported gearing's scale, and reading does not disturb
 > it. CAL1 held HA-187..HA-188 for its beliefs; HA-188 (a travel ratio to judge a turn by) was never needed and
 > is RELEASED, never reissued. With it, 203.
+> **MECH-A6 (the core's sixth and last part, Bench Tests' station 13; built 2026-10-30) added NONE.** It AMENDED
+> HA-182 (the bench page's own invented numbers — its jog ceiling, its 1 s announcement and 0.4 s check, the
+> direction check's two thresholds, its cuts — joined the belief, as the core's brief assigned), HA-184 and HA-186
+> (their settle names the built page and worksheet Station P; HA-184's covers a switch PIECE sensor as well as a
+> home switch, and HA-186's page names the RAW reading `absoluteSensor(at, reads)` takes), HA-153 and HA-159 (the
+> pivots' direction and the claw's open level are Station P's to check first), and HA-189's note (the menu is
+> 3 × 5 now). Still 203.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither is **HA-181** (G3a, the robot panel: its amended brief), held the same way (the
 > mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
@@ -390,13 +397,13 @@
 | HA-145 | What a motor stopped under Hold (or Brake) does while VEXos has the robot DISABLED, and after re-enable | **invented** (UNKNOWN) — the adapter's stop record cannot see a disable | T3's claw station / COMP |
 | HA-146 | After `brake()`, the next `move_voltage(v ≠ 0)` drives the motor at once (the stop is replaced, not latched); a `set_brake_mode()` repeated every tick changes nothing but the register of a RUNNING motor (a held one: HA-144) | reasoned (vendored text) | R3 / T3's claw station |
 | HA-147 | A V5 controller's connected flag and its button levels change together: on the first tick `is_connected()` is true after a disconnect, `get_digital()` already returns the LIVE level (never a stale one from before the drop), and a button's level does not bounce across two 10 ms samples | **invented** (unmeasured; HA-103 claims only that a disconnected controller reads 0) — the pneumatic claw's toggle takes a connected tick's level as live | Station J.9.5 (robot two's claw) |
-| HA-153 | Robot two's two claw pivots are separate V5 motors with RED (100 rpm) cartridges on smart ports 6 (R1 forward / R2 back) and 7 (L1 / L2), and a POSITIVE command moves each the way the team lead calls "forward" | **reported** 2026-09-26 (team lead); NO capture has seen a motor on 6 or 7, and the way each turns is not even reported | T3 / worksheet Station J |
+| HA-153 | Robot two's two claw pivots are separate V5 motors with RED (100 rpm) cartridges on smart ports 6 (R1 forward / R2 back) and 7 (L1 / L2), and a POSITIVE command moves each the way the team lead calls "forward" | **reported** 2026-09-26 (team lead); NO capture has seen a motor on 6 or 7, and the way each turns is not even reported | worksheet Station P (Bench Tests' station 13, MECH-A6), then Station J |
 | HA-154 | A claw pivot held at 12 V against its mechanical stop draws up to the motor's DEFAULT current limit (2500 mA — nothing in shulib changes it) for as long as the button is held, and heats; shulib watches only the DRIVE motors' temperatures | reasoned (vendored `motors.h`; a stalled motor heats) — every TIMING **invented** (none is stated) | T3 / worksheet Station J |
 | HA-155 | A cable swapped between a claw pivot and a drive motor is invisible to the brain's registry (a MOTOR on both ports either way), so no check before power can see it | reasoned (the registry reports a device's KIND, never which motor) | T3 / worksheet Station J (a person, not the registry) |
 | HA-156 | A claw pivot released in Hold (0 V, after DEFECTS2 makes a Hold reach the motor) keeps its angle under its load — its own weight and a game piece — with a sag over 30 s too small to matter | **invented** — no load, sag or hold current measured; "holds" is claimed nowhere until Station J logs it | T3 / worksheet Station J |
 | HA-157 | While the brain is DISABLED (between autonomous and driver control, on a field or competition-switch disable) a 3-wire digital output KEEPS the level the program last commanded, and still has it after the re-enable; and a level the program commands WHILE disabled (a Robot built in `initialize()` on a field, or a program started from the controller's menu, HA-128) reaches the valve — at once, or at the latest at the enable | **UNKNOWN** — nothing vendored says; the pneumatic claw's driver-control toggle commands NOTHING on a disable and relies on the first half; the claw's start level on a field relies on the second | Station J (robot two's claw) |
 | HA-158 | Nothing the program can read sees a pneumatic solenoid on a brain 3-wire port: the registry is indexed by SMART port, and a valve on A..H is a passive load — a connected line and an empty one are indistinguishable | reasoned (vendored registry + ADI shape) — the on-robot provider refuses a 3-wire line only for being outside 1..8 | Station J (robot two's claw) |
-| HA-159 | Robot two's pneumatic claw is driven by ONE solenoid line on the brain's 3-wire port A (line 1), and that line HIGH OPENS the claw (the claw's `.positions` line: closed = `Low`, open = `High`) | **reported** 2026-09-26 (team lead: "port A") — single or double solenoid and the polarity **UNKNOWN** (the team lead said so); open = `High` is a starting guess | T3 addendum (E2) / worksheet Station J.9 |
+| HA-159 | Robot two's pneumatic claw is driven by ONE solenoid line on the brain's 3-wire port A (line 1), and that line HIGH OPENS the claw (the claw's `.positions` line: closed = `Low`, open = `High`) | **reported** 2026-09-26 (team lead: "port A") — single or double solenoid and the polarity **UNKNOWN** (the team lead said so); open = `High` is a starting guess | worksheet Station P (P.5, Bench Tests' station 13), then Station J.9 |
 | HA-160 | The V5 IMU's heading is CONTINUOUS tick to tick while it reports ready: two reads ~10 ms apart differ by no more than the robot turned in between — never by tens of degrees | **invented** (assumed since M2, unregistered until DIAG1) — **QUESTIONED** by 2026-09-25: in one start, during a hard reverse, the reconstructed heading swung up to 37° per 10 ms tick — 8 of the last 9 ticks at 16.9° or more, alternating in sign; cause UNKNOWN | R3 / R4 |
 | HA-161 | PROS runs `competition_initialize()` / `disabled()` / `autonomous()` / `opcontrol()` each on a task it DELETES on a mode change (a deleted task runs no destructor) — and does NOT delete a task the program created itself | reasoned (the belief code comments have carried since R3b Part 0b; no vendored PROS text says either half, and neither has been observed directly) — the competition program's own auton task rests on the second half | COMP-b's practice-match station (K) |
 | HA-162 | Started from the controller's own menu with **Timed Run**, a program comes up DISABLED (HA-128) and VEXos then ENABLES `autonomous()` after a disabled window of __ s, for __ s, then __ — every blank unmeasured | **unknown** (no vendored text; HA-128 measured only the start) | COMP-b Station K, K.3 (its first match step) |
@@ -414,7 +421,7 @@
 | HA-178 | The Auton Tester's abort and RUN gate read the right things from PROS: `press_count` rises when a finger LANDS; a controller button's level turns true within ~50 ms; with nothing connected and the tester started from the brain, `competition_get_status()` reads 0x00; a controller switched OFF reads `is_connected()` false within ~1 s — each read from a task the program created | (a) reasoned (the vendored text); (b), (d) **invented**; (c) reasoned (HA-128's measurement) | COMP-t Stations M.2–M.4 |
 | HA-179 | TANK1's tank-steering constants (bend 0.1 rad/in capped at 15°, fade 6 in, lead 0.06 s; yaw observer 0.1 s, limit 1.5 rad/s) remove robot two's weak-side drift on a tank `moveTo` within the unchanged 0.5 in / 0.02 rad rule, without heading oscillation — its drivetrain follows a yaw command much faster than 0.1 s | **invented** (tuned on the host test plant's placeholder dynamics; with unmodelled motor lag the plant's margin shrinks — measured) | COMP-t Station M.6 / R5 |
 | HA-180 | Robot two's sideways error on a straight tank `moveTo` comes from its HEADING being pulled (the IMU sees it), not from the chassis sliding sideways (which no sensor on robot two sees) | reasoned (the 2026-09-25 veer was a heading change read on the IMU; a skid was never measured) | COMP-t Station M.6 |
-| HA-182 | The mechanism core's STARTING numbers hold a real arm, lift and flywheel well enough to be TUNED from: position kP 0.25 V/deg, kI 0.3 (the hold loop only; its I-term clamped to 3 V), kD 0.004, kS 0, kA 0, kV = 12 V over the output's free speed, the smooth move at 75 % of the free speed reached in 0.25 s, "reached" within 1.5° (0.25 in) for 0.1 s; speed kS 0, kV = 12 V over the free speed, kP 0.05, kI 0.2 acting only within 10 % of the target, its I-term clamped to 3 V — the gains, profile and "reached" per mechanism (a boot line words them; `.tuning` replaces each), the two integral clamps and the window LIBRARY constants (no `.tuning`); the driver flywheel toggle's 5 s at-speed window (`kToggleAtSpeedWindowSeconds`, a LIBRARY constant, MECH-A4) | **invented** (the host test plant's 144 mismatched moves and 27 flywheels are its only evidence — HA-183) | tuning each mechanism on the robot (MECH on hardware) — the toggle's window by timing a real flywheel's spin-up to its named speed; MECH-A6 adds the bench page's |
+| HA-182 | The mechanism core's STARTING numbers hold a real arm, lift and flywheel well enough to be TUNED from: position kP 0.25 V/deg, kI 0.3 (the hold loop only; its I-term clamped to 3 V), kD 0.004, kS 0, kA 0, kV = 12 V over the output's free speed, the smooth move at 75 % of the free speed reached in 0.25 s, "reached" within 1.5° (0.25 in) for 0.1 s; speed kS 0, kV = 12 V over the free speed, kP 0.05, kI 0.2 acting only within 10 % of the target, its I-term clamped to 3 V — the gains, profile and "reached" per mechanism (a boot line words them; `.tuning` replaces each), the two integral clamps and the window LIBRARY constants (no `.tuning`); the driver flywheel toggle's 5 s at-speed window (`kToggleAtSpeedWindowSeconds`, a LIBRARY constant, MECH-A4); the bench page's own numbers (Bench Tests station 13, MECH-A6 — `src/programs/bench_r3a.hpp`'s `mech_station`): the jog ceiling starting at 3 V (R1: 6 / 9 / 12), the direction check's + jog of 0.4 s at the ceiling, the 1 s announcement before that jog (nothing driven; its last 0.4 s a settle window — a motor that turned 0.035 rad or more in it abandons the check), its "did not move" 0.035 rad and its "drawing" 0.40 A (judgeDirection's two thresholds), a jog's 3 s maximum, the 2.4 A / 250 ms cut | **invented** (the host test plant's 144 mismatched moves and 27 flywheels are its only evidence — HA-183; the bench page's numbers have none) | tuning each mechanism on the robot (MECH on hardware) — the toggle's window by timing a real flywheel's spin-up to its named speed; the bench page's at its first run (worksheet Station P) |
 | HA-183 | The host test plant's mechanism models (`sim::ArmPlant`, `sim::FlywheelPlant`) stand in for a real V5 arm, lift, roller and flywheel closely enough that the mechanism core's host verdicts transfer: the inverted-feedforward joint (static band kS, speed per volt kV, first-order approach τ = kA/kV), gravity as a load in volts (kG·cos(θ − level) for an arm, kG for a lift), the brake modes at 0 V (Hold's restoring stiffness, Brake's damping, Coast free), the current's shape (\|V − kV·ω\|·2.5/12, capped at 2.5 A — HA-93's), and a hard stop or a jam reading ZERO speed at stall-grade current | **invented** (no constant is measured; a real stalled motor creeps — HA-93 — the plant's does not) | the first robot session that logs a real arm's and a real flywheel's step response beside the model's (MECH on hardware) |
 | HA-184 | A VEX limit switch read through `ProsDigitalIn::state()` reads 1 (TRUE) when PRESSED, so the mechanism core's `pressedLevel = true` is right; and an UNPLUGGED switch line reads RELEASED | **unknown** (the vendored `get_value()` doc says only "the digital value (1 or 0) of a pin") | MECH-A6's Bench Tests station 13: the switch read pressed, released AND with its cable out |
 | HA-185 | Robot two's pneumatic claw moves between closed and open — either way — within 0.5 s of its line's level changing, so an auton's `set()` step on it (which, with no sensor on the claw, ends when the declared `.moveTime` has passed — the open SUCCEEDED, the grab UNCONFIRMED and counted done) does not count the move done before the claw has moved | **invented** (nobody has stated or timed it; the core refuses a pneumatic with no `.moveTime`, so a number had to be written) | Station J (J.9): a phone's slow-motion video of closed → open and back |
@@ -1462,13 +1469,18 @@ there; homing, and so HA-186 and the home-switch half of HA-184, from MECH-A3.)*
   (`Slot::seen()` reads a limit switch used as a PIECE sensor against `pressedLevel`, so every `seesPiece`
   / `stopsSeeingPiece` on one leans on this belief), and since MECH-A3 (2026-10-15) its HOME switch too
   (`Slot::homeSwitchPressed()`: a position mechanism homed by switch is homed at boot when its switch
-  reads pressed on a fresh read, and a homing push ends when it does); vendored `include/pros/adi.hpp` :731-757 (`get_value()`: "Gets the
+  reads pressed on a fresh read, and a homing push ends when it does); since MECH-A6 (2026-10-30) Bench Tests' station 13
+  (`src/programs/bench_r3a.hpp`, `mech_station::switchText()`: a level shown as `PRESSED (if HA-184)` or `released (if
+  HA-184)`, the page asking for all three readings — for a home switch and, since its review round (2026-11-03), a
+  switch PIECE sensor alike); vendored `include/pros/adi.hpp` :731-757 (`get_value()`: "Gets the
   digital value (1 or 0) of a pin" — nothing about which level a pressed switch gives, or what an empty
   line reads; :705-729, which an earlier draft of the core's brief cited, is `get_new_press()`'s doc).
   *Confidence:* **unknown** — no vendored text says which level means pressed or what an unplugged
   input reads. HA-121 (that `get_value()` is a level) is its neighbour, not its answer.
-  *Settle (MECH-A6, Bench Tests station 13):* read a switch PRESSED, RELEASED and with its CABLE OUT;
-  the screen asks for all three.
+  *Settle (MECH-A6, Bench Tests station 13 — built 2026-10-30, not yet run; worksheet Station P, P.7.1):*
+  read a switch PRESSED, RELEASED and with its CABLE OUT; the screen asks for all three (`RECORD it pressed,
+  released, and cable OUT`, beside `home sw B: reads 1 = PRESSED (if HA-184)` or a piece switch's `piece sw E: …`),
+  and each RECORD logs the raw level and its `pressedLevel`. No robot declares a switch yet: the first that does settles this.
   *Blast radius if wrong:* if pressed reads 0 — every switch-homed mechanism believes it is home
   wherever it stands at boot (the rule "a switch already pressed at bind: homed, no motion" fires on a
   released switch), and every switch piece sensor reads inverted. If an unplugged line reads 1 — the
@@ -1499,14 +1511,17 @@ there; homing, and so HA-186 and the home-switch half of HA-184, from MECH-A3.)*
   one turn: refusal 70 checks only the travel, and chapter 18 tells the team the rest — MECH-A3's
   review, 2026-10-22);
   `include/shulib/sim/mechanism_plant.hpp`'s `RotationMount` MODELS this belief for the host tests (it
-  proves the arithmetic, never the belief); `include/shulib/hal/pros/rotation.hpp` :79 binds `get_position()` (it carries HA-11, not this
+  proves the arithmetic, never the belief); since MECH-A6 (2026-10-30) Bench Tests' station 13 shows the sensor's
+  raw reading and logs it (`src/programs/bench_r3a.hpp`'s `mech_station`, its RECORD line citing this entry); `include/shulib/hal/pros/rotation.hpp` :79 binds `get_position()` (it carries HA-11, not this
   ID); vendored `include/pros/rotation.hpp` :194-216 (`get_position()`: "the Rotation Sensor's current
   position in centidegrees" — nothing about its value at power-up; :244-266, which an earlier draft of
   the core's brief cited, is `get_angle()`).
   *Confidence:* reasoned — VEX describes the sensor as absolute within a turn; the vendored text says
   only "current position", and the program-restart half is not described anywhere we have.
-  *Settle (MECH-A6, station 13):* with the shaft at two marked angles, power-cycle the brain and read;
-  then move the arm, restart only the PROGRAM, and read again.
+  *Settle (MECH-A6, station 13 — built 2026-10-30, not yet run; worksheet Station P, P.7.2):* with the shaft
+  at two marked angles, power-cycle the brain and read; then move the arm, restart only the PROGRAM, and read
+  again — the page shows the sensor raw and as mounted, the number `absoluteSensor(at, reads)` takes (the RAW
+  reading in [0, 360)), and asks for the readings (`RECORD it at 2 marks: power-cycled, restarted`). No robot declares an angle sensor yet: the first that does settles this.
   *Blast radius if wrong:* an absolute-homed mechanism's zero is wherever the count started — every
   preset and limit offset by the arm's boot angle, the very bug the core's first prototype had ("zero
   wherever it stands"). The nets: the required jam signature stops a move into the hard stop, and the
@@ -1605,9 +1620,18 @@ Those are a belief about real mechanisms.
   slowest), and a hold carried a 25 % gravity mismatch within 0.001°.
   *Settle (MECH on hardware):* tune each mechanism on the robot — log a move's and a hold's volts,
   position and current beside the starting values', and record the `.tuning` each mechanism ends with.
-  MECH-A4 added the driver toggle's at-speed window (above); MECH-A6 (the bench page's jog volts and
-  time, its "did not move" angle and its "drawing" current — the direction check's two thresholds,
-  which `judgeDirection` takes from the page and never invents) adds its own.
+  MECH-A4 added the driver toggle's at-speed window (above). **MECH-A6 (built 2026-10-30) added the bench
+  page's own** — Bench Tests station 13's `mech_station` constants in `src/programs/bench_r3a.hpp`: the jog
+  ceiling starts at **3 V** for each mechanism and R1 steps it 3 → 6 → 9 → 12 (never past a power mechanism's
+  declared `maxVolts`); the direction check first ANNOUNCES what should move and drives nothing for **1 s**
+  (`kAnnounceMs`, added at its review round, 2026-11-03), a motor that turned **0.035 rad** or more in that
+  second's last 0.4 s abandoning it as still moving, then jogs **+ at the ceiling for 0.4 s** (`kCheckJogMs`); its **"did not move" is an encoder change under 0.035 rad** (about 2° at the
+  motor, `kMinMoveRad`) and its **"drawing" a peak current of 0.40 A or more** (`kDrawAmps`) — the two
+  thresholds `judgeDirection` takes from the page and never invents; a hold-to-run jog is cut at **3 s**
+  (`kJogMaxMs`) and any motor above **2.4 A for 250 ms** (station 10's numbers, `kCurrentLimitA`,
+  `kPersistTicks`). None was measured: the page says so on its screens, and its first run (worksheet
+  Station P) is where a 3 V check that is too weak to move a loaded claw (a BACK-DRIVEN or FIGHT-OR-JAM
+  finding on a free mechanism) or a "drawing" threshold a free motor reaches would show.
   *Blast radius if wrong:* a mechanism that moves too fast (overshooting toward a hard stop — which is
   why the guide tells a team to set limits short of the stops by more than the measured overshoot), too
   slowly (a move TIMED_OUT, said, holding where it stopped), or that rings or sags in a hold (a hold's
@@ -2493,9 +2517,10 @@ run. Worksheet Station J is their first run.
   the `+` signs are the table's unmeasured starting point.
   *Settle (worksheet Station J):* Bench Tests' DEVICE CENSUS shows MOTOR on 6 and 7; the insert
   colour read off each motor; Calibrate prints `port 6: claw pivot (declared) -- not a candidate,
-  not touched` and the same for 7 (the bench page's direction check, MECH-A6, is the core's
-  station for it once it lands); J's direction check — hold R1, which way does the port-6 claw
-  go; hold L1, the port-7 claw.
+  not touched` and the same for 7; **the bench page's direction check — Bench Tests' station 13
+  (MECH-A6, built 2026-10-30, not yet run), worksheet Station P: a + jog of each pivot at 3 V and
+  "which way did it go?", the verdict naming the declaration's line** — then J's direction check —
+  hold R1, which way does the port-6 claw go; hold L1, the port-7 claw.
   *Blast radius if wrong:* a wrong PORT leaves that claw ABSENT in "shulib Drive" (the provider refuses a
   port with no motor on it, by name, and the drive still runs) — or, if a DRIVE motor is on 6 or
   7, Calibrate drops that drive motor (the side calibrates one short) and R1 spins a wheel. (A
@@ -2725,13 +2750,18 @@ opens it are the program half's entry, from the team lead's report).
   and Station J.9's quote change together, in one change.
   *Confidence:* **reported** by the team lead, 2026-09-26 — the PORT only ("port A"). Whether the
   valve is single or double, and the polarity, are **unknown**: the team lead said so, and `true`
-  is a guess recorded as one. Nothing has seen the claw move under a program: the one program that
-  drives its line ("shulib Drive", since T4 Part 3; "shulib Teleop" from T3 Part 2) has not run on
-  the robot, shulib's census
+  is a guess recorded as one. Nothing has seen the claw move under a program: no program that drives
+  its line has run on the robot — "shulib Drive" (since T4 Part 3; "shulib Teleop" from T3 Part 2) and
+  "shulib Competition"'s driver control (robot two's driver file), and since MECH-A6 (built 2026-10-30)
+  Bench Tests' station 13, which makes the line at its start level and fires it only on a confirm
+  (worksheet Station P) — shulib's census
   reads the 21 smart ports only, and nothing in shulib
   can ask the brain what is on a 3-wire line (the library half's register entries carry what the
   brain can and cannot report there).
-  *Settle (worksheet Station J.9):* J.9.0 — look at the valve: one cable or two into the brain,
+  *Settle (worksheet Station P, P.5 — Bench Tests' station 13, FIRST; then Station J.9):* P.5 fires `open` on a
+  confirm, L1 held, and asks which position the claw went to: `OK` ⇒ the polarity is right; `REVERSED` (it went
+  `closed`) names the `.positions` line to swap; `CABLE ELSEWHERE` (nothing moved) is no answer about the polarity
+  (the air, the cable, the port, the valve). Station J.9 then checks it from the controller. J.9.0 — look at the valve: one cable or two into the brain,
   and which letters (one cable NOT in A stops the station: the port is wrong, not the polarity);
   J.9.2 — where the claw is after "shulib Drive" (slot 1) starts; J.9.3 — the FIRST press of A decides, with one
   cable in A: CLOSED after the start and the press OPENS it ⇒ the polarity is right; OPEN after
@@ -3433,8 +3463,9 @@ Part 3 (`diag::LogCopySink`); serial did not, on the belief below — which the 
   *Settle (as fixed):* **the team lead accepted, in writing on 2026-10-18 ("Use Station K's K.7.3"), worksheet
   Station K.7.3 as HA-189's robot test — no new Bench Tests station.** Until then the dedicated two-task numbered-line
   test above was the settle, and it was OWED: no build carries a program that prints numbered lines from two tasks (the
-  bench program's menu is full — twelve stations, three across and four down, with no room for a row on the panel — so
-  it needed a station retired or a new layout; that call was the team lead's, and he chose neither). K.7.3 is the
+  bench program's menu was full — twelve stations, three across and four down, with no room for a row on the panel — so
+  it needed a station retired or a new layout; that call was the team lead's, and he chose neither. *(MECH-A6, 2026-10-30,
+  made the menu 3 × 5 for its station 13 — room for fifteen, two slots free; the ruling stands, K.7.3 is HA-189's test.)*) K.7.3 is the
   competition program's own serial capture around every Timed-Run mode change, every expected line whole — with no
   sequence numbers, a lost line shows only as an expected line missing (the weakness he accepted); and K.7.4, `pros
   terminal` connected to a RUNNING program once (the banner prints, no halt). **HA-189 stays UNSETTLED until K.7.3
