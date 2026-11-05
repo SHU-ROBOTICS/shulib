@@ -24,7 +24,9 @@ Auton Tester on slot 2, the SD log copy, one bad auton dropped (never the boot),
 answers (2026-10-18), and L6's and IMU1's (2026-10-22). **Your ordering ruling of 2026-10-29:** the panel's
 foundation (G3a: the robot file and its generator) starts right after MECH-A5 lands, beside VIS1, L6 and the
 auto-flipper; their pages plug in as each lands; DOCS3 follows the panel. G3a's brief has your answers (D6′–D10,
-2026-10-29, all as recommended): two lanes after MECH-A5. **Its evening amendment is answered too (2026-10-30, D11–D20):** the driving feel, drive tuning, a full route maker (with the library chunk STEP1), the wall and camera pages; D16 a true curve follower (its own chunk, CURVE1, after the route maker); publisher `shulib`. String-lift safety (MECH-S) and live tuning (TUNE1) are ruled, briefs next. **Your PANEL SPRINT (2026-10-29, later): the panel by
+2026-10-29, all as recommended): two lanes after MECH-A5. **Its evening amendment is answered too (2026-10-30, D11–D20):** the driving feel, drive tuning, a full route maker (with the library chunk STEP1), the wall and camera pages; D16 a true curve follower (its own chunk, CURVE1, after the route maker); publisher `shulib`. String-lift safety (MECH-S) and live tuning (TUNE1) are ruled, briefs next. **The first competition is NOV 21 (your builder, 2026-11-05; it was written as the 23rd), both robots identical, one built by
+Nov 14; your order (2026-11-05): the CASCADE first (current cap, live tuning, its levels), then the autons, then the auto-flipper,
+then curves; snap detection and L4 after the 21st.** **Your PANEL SPRINT (2026-10-29, later): the panel by
 2026-11-21** — MECH-A5 and G3a Part 1 building now, the builds overlapping, the wall reset kept; the camera's
 later runs, our colour, driving to a piece and the auto-flipper after the panel; robot one made in the panel
 with a hand-written backup.
