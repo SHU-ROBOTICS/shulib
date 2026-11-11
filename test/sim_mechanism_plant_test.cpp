@@ -7,6 +7,9 @@
 #include "doctest.h"
 
 #include <array>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include <cmath>
 #include <stdexcept>
 #include <string>
@@ -491,4 +494,256 @@ TEST_CASE("MECH-A3 plant: a WEDGE below the joint stops it there; cleared, it go
         p.step(0.01);
     }
     CHECK(p.trueDeg() > -10.0);
+}
+
+// ═══ MECH-S-A: the MOTOR'S OWN CURRENT LIMIT in the plant (the MECH-S brief's CA6; HA-219 believed, the
+// limiter INVENTED like every constant here — HA-183) ═══════════════════════════════════════════════
+namespace {
+/// A joint with inertia (τ = kA/kV = 50 ms), no gravity of its own, starting on its bottom stop.
+ArmPlantConfig massCfg() {
+    ArmPlantConfig c;
+    c.gearRatio = 1.0;
+    c.kS = 0.3;
+    c.kV = 1.2;
+    c.kA = 0.06;
+    c.kG = 0.0;
+    c.constantGravity = true;
+    c.minStopDeg = 0.0;
+    c.maxStopDeg = 3000.0;
+    c.startDeg = 0.0;
+    return c;
+}
+
+/// The MECH-S brief's p_plantlimit case at plant level: a lift (red, direct, its true kV the cartridge's,
+/// 1.2 V of gravity) pushed at 12 V for 0.8 s, then flipped to -12 V — every sample's bits folded into
+/// an FNV-1a digest, and seven samples around the flip as they are.
+struct Reversal {
+    std::uint64_t digest = 1469598103934665603ULL;
+    double samples[7][4]{};
+};
+Reversal reversal(double limitAmps) {
+    ArmPlantConfig c;
+    c.gearRatio = 1.0;
+    const double freeRadS = 100.0 * 2.0 * kPi / 60.0;
+    c.kS = 0.3;
+    c.kV = 12.0 / freeRadS;
+    c.kA = 0.05 * c.kV;
+    c.kG = 1.2;
+    c.constantGravity = true;
+    c.minStopDeg = -1.0;
+    c.maxStopDeg = 24.5 * 360.0 / (kPi * 1.5);
+    std::array<hal::fake::FakeMotor, 2> m{};
+    std::array<hal::fake::FakeMotor*, 2> ms{&m[0], &m[1]};
+    if (limitAmps > 0.0) {
+        for (auto* q : ms) {
+            REQUIRE(q->setCurrentLimit(shulib::units::Current{limitAmps}));
+        }
+    }
+    ArmPlant p{ms, c};
+    Reversal r;
+    const auto mix = [&r](double d) {
+        std::uint64_t b = 0;
+        std::memcpy(&b, &d, 8);
+        for (int k = 0; k < 8; ++k) {
+            r.digest ^= (b >> (8 * k)) & 0xffU;
+            r.digest *= 1099511628211ULL;
+        }
+    };
+    for (int i = 0; i < 110; ++i) {
+        for (auto* q : ms) {
+            q->setVoltage(Voltage{i < 80 ? 12.0 : -12.0});
+        }
+        p.step(0.01);
+        const double s[4] = {p.trueDeg(), p.trueSpeedDegS(), p.appliedVolts(), m[0].current().value()};
+        for (const double d : s) {
+            mix(d);
+        }
+        if (i >= 78 && i <= 84) {
+            std::memcpy(r.samples[i - 78], s, sizeof s);
+        }
+    }
+    return r;
+}
+}  // namespace
+
+TEST_CASE("MECH-S-A CA6 plant: AT THE DEFAULT the limiter is BYPASSED -- the reversal's samples are ef6162e's, byte for byte") {
+    // The pins were taken from the plant BEFORE MECH-S-A (ef6162e's sim/mechanism_plant.hpp, built in the
+    // run's scratch probe p_reversal.cpp: digest and samples identical before and after). The flip's two
+    // ticks read 2.5 A — the plant's READING clamp — while |V - kV·w| passes 12 V (the brief's 18.26 V): an
+    // EXISTING inaccuracy, kept on purpose (re-check #15). BUG CAUGHT (MA11): a limiter active at the
+    // default re-solves those two ticks and every sample after them.
+    const double pinned[7][4] = {
+        {0x1.87099da2058bfp+8, 0x1.067ffda2aa065p+9, 0x1.8p+3, 0x1.4000142d8852cp-2},
+        {0x1.8c499d981c09dp+8, 0x1.067ffe1064972p+9, 0x1.8p+3, 0x1.400010852e29bp-2},
+        {0x1.8f6aad864515cp+8, 0x1.38ea390808adfp+8, -0x1.8p+3, 0x1.4p+1},
+        {0x1.90cf3867952f6p+8, 0x1.168c800693fc7p+7, -0x1.8p+3, 0x1.4p+1},
+        {0x1.90c7d223e1059p+8, -0x1.71f939302a1ccp+1, -0x1.8p+3, 0x1.3e755c8fcc9fdp+1},
+        {0x1.8f96736e882f8p+8, -0x1.dd23fb5ace899p+6, -0x1.8p+3, 0x1.00619a3828ba8p+1},
+        {0x1.8d711f93fd4d9p+8, -0x1.ad2982bc8080ep+7, -0x1.8p+3, 0x1.9b1d0f9b7732bp+0},
+    };
+    for (const double limit : {0.0, 2.5}) {  // never set, and set to the default exactly
+        CAPTURE(limit);
+        const Reversal r = reversal(limit);
+        CHECK(r.digest == 0xeb8a40335b400333ULL);
+        for (int i = 0; i < 7; ++i) {
+            for (int k = 0; k < 4; ++k) {
+                CAPTURE(i);
+                CAPTURE(k);
+                CHECK(std::memcmp(&r.samples[i][k], &pinned[i][k], 8) == 0);
+            }
+        }
+    }
+    // and a limit BELOW the default does change them (the pin is not blind)
+    CHECK(reversal(2.4).digest != 0xeb8a40335b400333ULL);
+}
+
+TEST_CASE("MECH-S-A CA6 plant: a joint pushed into a hard stop under a 1.2 A limit READS at most 1.2 A -- 2.5 A uncapped") {
+    const auto pushed = [](double limit) {
+        hal::fake::FakeMotor m;
+        std::array<hal::fake::FakeMotor*, 1> ms{&m};
+        if (limit > 0.0) {
+            REQUIRE(m.setCurrentLimit(shulib::units::Current{limit}));
+        }
+        ArmPlant p{ms, armCfg()};
+        m.setVoltage(Voltage{12.0});
+        double worst = 0.0;
+        for (int i = 0; i < 300; ++i) {
+            p.step(0.01);
+            worst = std::max(worst, m.current().value());
+        }
+        struct Out {
+            double deg, amps, worst, applied;
+        };
+        return Out{p.trueDeg(), m.current().value(), worst, p.appliedVolts()};
+    };
+    const auto free = pushed(0.0);
+    const auto capped = pushed(1.2);
+    CHECK(free.deg == doctest::Approx(170.0));
+    CHECK(free.amps == doctest::Approx(2.5));
+    CHECK(capped.deg == doctest::Approx(170.0));          // it still gets there (12 V moves it freely)
+    CHECK(capped.amps == doctest::Approx(1.2));            // stalled AT the limit
+    CHECK(capped.worst <= 1.2 + 1e-12);                    // every sample, the impact's included
+    CHECK(capped.applied == doctest::Approx(1.2 * 12.0 / 2.5));  // the volts it pushes with: 5.76 V
+}
+
+TEST_CASE("MECH-S-A CA6 plant: the limit limits TORQUE, not only the reading -- a load above its torque (below 2.5 A's) is never lifted") {
+    // 1.2 A = 5.76 V of torque. A 7.0 V load (1.46 A's worth) is above it and below 2.5 A's 12 V: uncapped
+    // the joint climbs; capped it stays on its bottom stop. A 5.0 V load (below the limit's torque) still
+    // climbs capped — the limit is not stricter than itself.
+    const auto climb = [](double load, double limit) {
+        hal::fake::FakeMotor m;
+        std::array<hal::fake::FakeMotor*, 1> ms{&m};
+        if (limit > 0.0) {
+            REQUIRE(m.setCurrentLimit(shulib::units::Current{limit}));
+        }
+        ArmPlantConfig c = massCfg();
+        c.kG = load;
+        ArmPlant p{ms, c};
+        m.setVoltage(Voltage{12.0});
+        double worst = 0.0;
+        for (int i = 0; i < 200; ++i) {
+            p.step(0.01);
+            worst = std::max(worst, m.current().value());
+        }
+        struct Out {
+            double deg, worst;
+        };
+        return Out{p.trueDeg(), worst};
+    };
+    CHECK(climb(7.0, 0.0).deg > 100.0);     // uncapped: it climbs
+    const auto held = climb(7.0, 1.2);
+    CHECK(held.deg == 0.0);                 // BUG CAUGHT (MA4): a plant that ignores the limit lifts it
+    CHECK(held.worst <= 1.2 + 1e-12);
+    const auto light = climb(5.0, 1.2);
+    CHECK(light.deg > 100.0);               // under the limit's torque: it climbs
+    CHECK(light.worst <= 1.2 + 1e-12);
+}
+
+TEST_CASE("MECH-S-A CA6 plant: the Hold brake at 0 V is limited like any command -- a load the limit cannot hold sags") {
+    // Hold restores with up to 12 V; under a 0.5 A limit (2.4 V of torque) a 3.0 V load (less 0.3 V of
+    // friction: 2.7 V) cannot be held — it sags to its stop; uncapped it holds (its 40 V/rad stiffness sags
+    // ~3.9 degrees under 2.7 V).
+    const auto held = [](double limit) {
+        hal::fake::FakeMotor m;
+        std::array<hal::fake::FakeMotor*, 1> ms{&m};
+        if (limit > 0.0) {
+            REQUIRE(m.setCurrentLimit(shulib::units::Current{limit}));
+        }
+        ArmPlantConfig c = massCfg();
+        c.kG = 3.0;
+        c.startDeg = 90.0;
+        ArmPlant p{ms, c};
+        m.setVoltage(Voltage{3.3});
+        p.step(0.01);
+        m.setBrakeMode(hal::BrakeMode::Hold);
+        m.setVoltage(Voltage{0.0});
+        double worst = 0.0;
+        for (int i = 0; i < 300; ++i) {
+            p.step(0.01);
+            worst = std::max(worst, m.current().value());
+        }
+        struct Out {
+            double deg, worst;
+        };
+        return Out{p.trueDeg(), worst};
+    };
+    const auto free = held(0.0);
+    CHECK(free.deg > 85.0);
+    const auto capped = held(0.5);
+    CHECK(capped.deg < 10.0);             // it could not be held
+    CHECK(capped.worst <= 0.5 + 1e-12);
+}
+
+TEST_CASE("MECH-S-A CA6 plant: a JAMMED joint under a limit applies at most the limit's volts, both ways") {
+    hal::fake::FakeMotor m;
+    std::array<hal::fake::FakeMotor*, 1> ms{&m};
+    REQUIRE(m.setCurrentLimit(shulib::units::Current{1.0}));
+    ArmPlant p{ms, armCfg()};
+    p.setJammed(true);
+    m.setVoltage(Voltage{12.0});
+    p.step(0.01);
+    CHECK(p.appliedVolts() == doctest::Approx(4.8));  // 1.0 A * 12 / 2.5
+    CHECK(m.current().value() == doctest::Approx(1.0));
+    m.setVoltage(Voltage{-12.0});
+    p.step(0.01);
+    CHECK(p.appliedVolts() == doctest::Approx(-4.8));
+    CHECK(m.current().value() == doctest::Approx(1.0));
+    m.setVoltage(Voltage{3.0});  // inside the limit: untouched
+    p.step(0.01);
+    CHECK(p.appliedVolts() == doctest::Approx(3.0));
+}
+
+TEST_CASE("MECH-S-A CA6 plant (review): a load the limit cannot carry even at -12 V falls at the -12 V step's speed, its READING clamped at the limit") {
+    // A 6 V load held up by 3 V under a 0.3 A limit (1.44 V of torque): the bisection's far end, -12 V, still
+    // leaves |V - kV·w| at kG - kS = 5.7 V (1.19 A's worth), so no volts are inside the limit — limitedAdvance
+    // takes the -12 V end's step (the header: this plant has no mass to fall with) and publish() clamps the
+    // reading. BUG CAUGHT (review P1): the reading clamp removed — every sample read 1.19 A under a 0.3 A limit.
+    hal::fake::FakeMotor m;
+    std::array<hal::fake::FakeMotor*, 1> ms{&m};
+    REQUIRE(m.setCurrentLimit(shulib::units::Current{0.3}));
+    ArmPlantConfig c = armCfg();  // memoryless (kA 0): each step's speed is its steady speed exactly
+    c.constantGravity = true;
+    c.kG = 6.0;
+    c.minStopDeg = -1.0e6;
+    c.maxStopDeg = 1.0e6;
+    ArmPlant p{ms, c};
+    m.setVoltage(Voltage{3.0});
+    const double fallRadS = (-12.0 - c.kG + c.kS) / c.kV;  // the -12 V step's speed: -14.75 rad/s
+    for (int i = 0; i < 20; ++i) {
+        CAPTURE(i);
+        p.step(0.01);
+        CHECK(m.current().value() <= 0.3 + 1e-12);              // clamped at the limit, every sample
+        CHECK(m.current().value() == doctest::Approx(0.3));
+        CHECK(p.appliedVolts() == -12.0);                       // the far end's step
+        CHECK(p.trueSpeedDegS() == doctest::Approx(fallRadS / kD2R));
+    }
+    // uncapped, the same 3 V against the 6 V load: it falls slower and reads its true 1.19 A (the clamp is
+    // the LIMIT's, not a second reading rule)
+    hal::fake::FakeMotor u;
+    std::array<hal::fake::FakeMotor*, 1> us{&u};
+    ArmPlant q{us, c};
+    u.setVoltage(Voltage{3.0});
+    q.step(0.01);
+    CHECK(q.appliedVolts() == 3.0);
+    CHECK(u.current().value() == doctest::Approx((c.kG - c.kS) * 2.5 / 12.0));
 }

@@ -471,3 +471,51 @@ TEST_CASE("MECH-A1 parts: the Robot FORWARDS -- its accessors and mechanismParts
     CHECK(parts.devices()[0].angleSensor == w.devices.rotation(10));
     CHECK(std::string{robot.mechanismAbsence(7)} == "no mechanism is declared at this index");
 }
+
+// ═══ MECH-S-A: each built motor's own CURRENT LIMIT in its Devices (the MECH-S brief's §1.1) ════════
+
+TEST_CASE("MECH-S-A parts: every BUILT motor's current limit is in its Devices, in the motors' order -- none past them, none for a pneumatic") {
+    const FakeDeviceRegistry census = cleanCensus();
+    ProsBoot b{census};
+    const auto d = b.parts.devices();
+    // robot z: arm 1, lift 2+3, flywheel 4, intake 5, hood (lines), wrist 6, claw pivot 6 on 7
+    const struct {
+        std::size_t mech;
+        std::uint8_t ports[2];
+        std::size_t n;
+    } motorKinds[] = {{0, {1, 0}, 1}, {1, {2, 3}, 2}, {2, {4, 0}, 1}, {3, {5, 0}, 1}, {5, {6, 0}, 1}, {6, {7, 0}, 1}};
+    for (const auto& k : motorKinds) {
+        CAPTURE(k.mech);
+        for (std::size_t m = 0; m < 4; ++m) {
+            CAPTURE(m);
+            if (m < k.n) {
+                REQUIRE(d[k.mech].currentLimits[m] != nullptr);
+                // the provider's own: the ProsMotor made on that port (BUG CAUGHT: motor 1's limit twice)
+                CHECK(d[k.mech].currentLimits[m] == b.prov.currentLimit(k.ports[m]));
+            } else {
+                CHECK(d[k.mech].currentLimits[m] == nullptr);
+            }
+        }
+    }
+    for (std::size_t m = 0; m < 4; ++m) {
+        CHECK(d[4].currentLimits[m] == nullptr);  // the hood: lines, no motor
+    }
+    // the parts WROTE no limit (the service decides — D12 (b)): every motor still at the default
+    for (const int p : {1, 2, 3, 4, 5, 6, 7}) {
+        CAPTURE(p);
+        CHECK(pros::shim::motorState(p).setCurrentLimitCalls == 0);
+    }
+}
+
+TEST_CASE("MECH-S-A parts: an ABSENT mechanism carries no current limit -- even for a motor that WAS made before the refusal") {
+    // the wrist's motor on 6 is made, then its angle sensor on 10 is refused: ABSENT — its Devices are
+    // all null, the made motor's limit included (nothing may write a cap to a mechanism that is not run)
+    FakeDeviceRegistry census = cleanCensus();
+    census.setKind(10, DeviceKind::None);
+    ProsBoot b{census};
+    REQUIRE(b.parts.builtAt(5) == nullptr);
+    REQUIRE(b.prov.currentLimit(6) != nullptr);  // the provider did make it ...
+    for (std::size_t m = 0; m < 4; ++m) {
+        CHECK(b.parts.devices()[5].currentLimits[m] == nullptr);  // ... the parts hand none on
+    }
+}

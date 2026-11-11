@@ -276,6 +276,7 @@ nav:
           - Mechanism: api/mechanism.md
           - Motor: api/motor.md
           - Motor conversion: api/motor_conversion.md
+          - Motor current limit: api/motor_current_limit.md
           - Motor group: api/motor_group.md
           - Null sink: api/null_sink.md
           - Optical: api/optical.md

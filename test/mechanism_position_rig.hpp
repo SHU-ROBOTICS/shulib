@@ -19,6 +19,12 @@
 // like the rest; the service never relies on it: a mechanism that rests at its stop is zeroed at
 // whatever its encoders read at bind, and its log line says how far that is from their zero).
 //
+// Since MECH-S-A (2026-11-05) each rig motor is ALSO the mechanism's current limit (Devices::
+// currentLimits — the FakeMotor is an hal::IMotorCurrentLimit), so every position and speed test reads
+// its motors' limits at bind exactly as a robot does; the plant limits the joint's torque only when a
+// limit below the 2.5 A default is set, so a test that states no cap runs as before. `Wiring::
+// noCurrentLimits` boots a rig whose provider gave none (the "this provider cannot cap" boot).
+//
 // Members are in LIFETIME order: the devices and the plant are declared BEFORE the service, which
 // must not outlive them (bind()'s rule; ~MechanismService ends a slot still holding its claim).
 
@@ -117,6 +123,8 @@ struct Wiring {
     bool switchFailingFromBoot = false;
     /// The control tick, seconds.
     double dt = 0.01;
+    /// The provider gave NO current limit for the motors (MECH-S-A): Devices::currentLimits all nullptr.
+    bool noCurrentLimits = false;
 };
 
 /// ONE position mechanism over an ArmPlant (header).
@@ -146,6 +154,9 @@ struct ArmRig {
                      shulib::config::toBrakeMode(spec.safeMode), "rig");
         plant.emplace(std::span<fake::FakeMotor* const>{fakes.data(), n}, pc);
         mech::Devices d{.motors = &*mech};
+        for (std::size_t i = 0; i < n && !w.noCurrentLimits; ++i) {
+            d.currentLimits[i] = &motors[i];  // MECH-S-A: each motor's own limit (header)
+        }
         if (w.angle) {
             plant->attachRotation(&rotation, *w.angle);
             d.angleSensor = &rotation;
@@ -231,7 +242,10 @@ struct FlyRig {
         mech.emplace(std::span<shulib::hal::IMotor* const>{imotors.data(), n},
                      shulib::config::toBrakeMode(spec.safeMode), "rig");
         plant.emplace(std::span<fake::FakeMotor* const>{fakes.data(), n}, pc);
-        const mech::Devices d{.motors = &*mech};
+        mech::Devices d{.motors = &*mech};
+        for (std::size_t i = 0; i < n; ++i) {
+            d.currentLimits[i] = &motors[i];  // MECH-S-A: each motor's own limit (header)
+        }
         world.clock = &clock;
         world.dt = dt;
         world.fly = &*plant;

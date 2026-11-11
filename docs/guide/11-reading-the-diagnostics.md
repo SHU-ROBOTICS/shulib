@@ -347,6 +347,31 @@ worth recognizing on sight:
   tolerance: was something in the way?)` (a re-home). Info, but a Warn when a re-home moves the zero by
   more than the mechanism's "reached" tolerance: a stall-home trusts the FIRST stall, and a piece wedged
   under the arm is a stall too ([Ch. 18](18-mechanisms.md)).
+- **A mechanism's current cap** (tag `MECH`, at boot, for a mechanism whose robot file states
+  `.currentCap` — [Ch. 18](18-mechanisms.md#current-caps--how-hard-a-string-is-pulled)): Info
+  `'lift': current cap 1.20 A per motor (2 motors: 2.40 A in all) -- set and read back` when every
+  motor took it. Otherwise a Warn per motor that did not: `'lift': motor 2 (port 12) did not take its
+  current cap: asked 1.20 A, the write was refused, reads back 2.50 A -- it runs; that motor is not
+  capped as stated` (or `the write was accepted, reads back 2.00 A` — the motor kept another number),
+  or `'lift': motor 2 (port 12): current cap 1.20 A stated, but this provider cannot cap a motor -- the
+  motor's own 2.50 A applies`; the mechanism runs either way. And a Warn for each stall or homing
+  signature not MORE than 0.2 A below the cap (exactly 0.2 A below included; judged as the motor reads, at the first whole milliamp that trips the signature — chapter 18): `'lift': its stall signature (1.05 A) is within 0.2 A of its
+  current cap (1.20 A): a capped motor may read a little under its cap, so it may never trip (HA-223)` —
+  lower the signature, or raise the cap. **Once a second** afterwards (inside the mechanism service's
+  tick — a program stuck in its own loop checks nothing, and the motor is believed to keep its cap
+  meanwhile, HA-219): a Warn
+  `'lift': motor 1 (port 11): its current limit reads 2.50 A, the motor's default (it lost power?
+  HA-220) -- its cap 1.20 A written again`, once per loss; or, once, `'lift': motor 2 (port 12): its
+  current limit reads 1.80 A, not its cap 1.20 A: something else set it (another program, or VEXos's
+  sharing -- HA-221) -- not written again`. A loss over and over is most likely a loose cable or a
+  brown-out (believed: that a power loss is what resets a limit is HA-220, unmeasured).
+- **A motor's current limit that is not the default** (Info, tag `MECH`, at boot, for a mechanism with
+  NO cap — its motors are read, never written): `'claw pivot 6': motor 1 (port 6): its current limit
+  reads 1.80 A: a cap left by another program (HA-220), or VEXos's sharing with many motors plugged in
+  (HA-221) -- nothing written`. That motor is believed to push with less than its full 2.5 A this run
+  (HA-219). Power the
+  robot off and on: a cap another program left is believed to go with the power (HA-220); one that
+  comes back with every motor plugged in is VEXos's own.
 - **A computed target clamped** (Warn, tag `MECH`, once per step): `'arm': target 175.00 clamped to the
   travel limit 160.00 (soft stop)`, or a flywheel's `'flywheel': speed 4000 rpm clamped to its free
   speed 3600 rpm` — a target computed while the auton ran was past what the robot file allows; the step

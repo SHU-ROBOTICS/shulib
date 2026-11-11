@@ -1,5 +1,5 @@
 // Guide chapter 18 ("Mechanisms: arms, lifts and flywheels"), compiled and run (cases guide-18a to
-// guide-18c; chunk MECH-A3). Every ```cpp line the chapter shows is a line of this file —
+// guide-18c; chunk MECH-A3 — and guide-18g, the current-cap section's lift, chunk MECH-S-A). Every ```cpp line the chapter shows is a line of this file —
 // tools/api_doc_tool.py's check-examples fails the build if one drifts — and each case below checks,
 // on the host test plant (invented models, HA-183), what the chapter says that listing does.
 
@@ -52,6 +52,20 @@ inline constexpr Arm tunedArm{
     .gravity = cosine(1.6_volt, 45),
     .home = restsAtStop(0),
     .tuning = {.kP = 0.3, .within = 2.0},
+};
+// The current-cap section's string lift (MECH-S-A).
+inline constexpr Lift stringLift{
+    .name = "string lift",
+    .motors = {Forward, Reversed},
+    .cartridge = Red,
+    .gearing = direct,
+    .shape = spool(1.5_in),
+    .safe = Hold,
+    .stall = {.amps = 0.9, .belowMotorRpm = 5, .lasting = 0.5_s},  // below the cap, with room
+    .currentCap = {.amps = 1.2},                                    // each motor: at most 1.2 A
+    .range = {0_in, 24_in},
+    .gravity = constantGravity(1.0_volt),
+    .home = restsAtStop(0_in),
 };
 }  // namespace chapter18
 
@@ -120,4 +134,14 @@ TEST_CASE("guide-18c: the chapter's log lines -- a computed target clamped, once
     r.runStep();
     CHECK(r.mechCount("'arm': target 175.00 clamped to the travel limit 160.00 (soft stop)") == 1);
     CHECK(r.slot().lastStep().outcome == MechanismOutcome::Succeeded);
+}
+
+TEST_CASE("guide-18g: the current-cap section's lift -- its cap on BOTH motors, read back, said once; no margin Warn (0.3 A under)") {
+    pos_rig::ArmRig r{chapter18::stringLift.spec(), pos_rig::armPlant(100, 1, 1.0, 1.0, 0.3)};
+    CHECK(r.motors[0].currentLimit().value() == 1.2);
+    CHECK(r.motors[1].currentLimit().value() == 1.2);
+    // the chapter's boot line, verbatim (bound from bare specs here, so no port is named — none is in it)
+    CHECK(r.mechCount("'string lift': current cap 1.20 A per motor (2 motors: 2.40 A in all) -- set and read back") ==
+          1);
+    CHECK(r.mechCount("is within 0.2 A of its current cap") == 0);
 }

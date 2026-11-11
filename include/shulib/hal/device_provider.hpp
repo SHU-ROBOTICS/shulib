@@ -75,6 +75,15 @@
 // driving (VIS1's D5: a disagreement about it costs the camera, never the program). readFaults(port)
 // answers the camera too, once it was made: a camera is an IReadFaults (a failed or torn read).
 //
+// ── A MOTOR'S OWN CURRENT LIMIT (chunk MECH-S-A, 2026-11-05) ───────────────────────────
+// currentLimit(port) answers the hal::IMotorCurrentLimit (hal/motor_current_limit.hpp) of the motor
+// this provider made on `port` — the F4-additive sibling beside IMotor, through which the mechanism
+// service sets a mechanism's stated current cap and reads every mechanism motor's limit back. Like
+// readFaults() it LOOKS UP, never makes: nullptr when no motor was made there, or when this provider's
+// motor there cannot limit its current (a host test's motor bound as a bare IMotor). It is PURE like
+// the rest: a provider that forgot it would leave every stated cap unset with no error — the service
+// says so at boot ("this provider cannot cap a motor"), but only an implementer that answers can cap.
+//
 // ── IDEMPOTENCE IS PART OF THE CONTRACT ─────────────────────────────────────────────
 // Asking twice for the same port must return the SAME object. The graph borrows these
 // pointers and holds them for the life of the robot; a provider that made a second adapter
@@ -103,6 +112,7 @@
 #include "shulib/hal/gps.hpp"
 #include "shulib/hal/imu.hpp"
 #include "shulib/hal/motor.hpp"
+#include "shulib/hal/motor_current_limit.hpp"
 #include "shulib/hal/optical.hpp"
 #include "shulib/hal/read_faults.hpp"
 #include "shulib/hal/rotation.hpp"
@@ -224,6 +234,12 @@ public:
     /// digitalIn(); nullptr when none was made there (or it never screens a read). Never makes
     /// anything. Every implementer must answer it.
     [[nodiscard]] virtual const IReadFaults* lineReadFaults(std::uint8_t line) const noexcept = 0;
+
+    /// The CURRENT LIMIT of the motor this provider made on physical smart `port`, 1..kMaxSmartPorts
+    /// (MECH-S-A; the header's current-limit section): the motor's own limit, set and read back.
+    /// nullptr when no motor was made there, or when the motor there cannot limit its current. Never
+    /// makes anything. Every implementer must answer it.
+    [[nodiscard]] virtual IMotorCurrentLimit* currentLimit(std::uint8_t port) noexcept = 0;
 
     /// The run's clock. PORT-LESS and never refused: every target has one, and a robot without a
     /// clock cannot report that it has no clock.

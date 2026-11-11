@@ -20,6 +20,13 @@
 //  * a NEGATIVE port reverses the motor: commands and readings negate, applied
 //    by PROS itself, exactly once
 //  * failed reads return PROS_ERR / PROS_ERR_F (error.h)
+//  * THE CURRENT LIMIT lives in the DEVICE, in mA, 2500 by default
+//    (set_current_limit / get_current_limit — vendored motors.hpp:974, :1237;
+//    motors.h "The default value is 2500 mA"; chunk MECH-S-A, A4 register
+//    HA-219..HA-221). The shim REMEMBERS it and enforces nothing (the current
+//    reading is whatever the test writes); knobs make the device refuse the
+//    write (PROS_ERR), keep a DIFFERENT number than was asked (VEXos's own
+//    share — HA-221), or fail the read.
 //  * THE BRAKE MODE IS APPLIED ONLY BY brake() (chunk DEFECTS2, 2026-09-26;
 //    HA-142). move_voltage() "will not respect brake modes, and simply sets
 //    the voltage" (vendored motors.h:253-254; the same note on motor_move,
@@ -154,6 +161,17 @@ struct MotorPortState {
     int failPositionReads = 0;
     int failUnitsReads = 0;    ///< as failPositionReads, for motor_get_encoder_units()
     int failGearingReads = 0;  ///< as failPositionReads, for motor_get_gearing()
+    /// THE CURRENT LIMIT the device holds, mA (MECH-S-A; header). 2500 = the V5 default.
+    std::int32_t currentLimitMa = 2500;
+    /// set_current_limit() calls that reached the device (accepted or refused by the knob below).
+    int setCurrentLimitCalls = 0;
+    /// The next N set_current_limit() calls answer PROS_ERR and change nothing.
+    int refuseSetCurrentLimit = 0;
+    /// An accepted set_current_limit() leaves THIS many mA in the device instead of the asked
+    /// value (the device's own answer — HA-221); 0 = take what is asked.
+    std::int32_t currentLimitTakesInsteadMa = 0;
+    /// The next N get_current_limit() calls answer PROS_ERR (a dropout between two reads).
+    int failCurrentLimitReads = 0;
 };
 
 inline std::array<MotorPortState, 22>& motorPorts() {
@@ -298,6 +316,37 @@ public:
     MotorGears get_gearing(const std::uint8_t /*index*/ = 0) const {
         const auto& s = shim::motorState(port_);
         return s.disconnected ? MotorGears::invalid : s.gearing;
+    }
+
+    /// Belief (vendored motors.hpp:1237; motors.h motor_set_current_limit): the
+    /// limit in mA, kept by the DEVICE; 1 on success, PROS_ERR when the port
+    /// does not answer (header: the knobs).
+    std::int32_t set_current_limit(const std::int32_t limit, const std::uint8_t /*index*/ = 0) const {
+        auto& s = shim::motorState(port_);
+        if (s.disconnected) {
+            return PROS_ERR;
+        }
+        s.setCurrentLimitCalls += 1;
+        if (s.refuseSetCurrentLimit > 0) {
+            s.refuseSetCurrentLimit -= 1;
+            return PROS_ERR;
+        }
+        s.currentLimitMa = s.currentLimitTakesInsteadMa > 0 ? s.currentLimitTakesInsteadMa : limit;
+        return 1;
+    }
+
+    /// Belief (vendored motors.hpp:974; motors.h "The default value is 2500
+    /// mA"): the limit the device holds, mA; PROS_ERR when it does not answer.
+    std::int32_t get_current_limit(const std::uint8_t /*index*/ = 0) const {
+        auto& s = shim::motorState(port_);
+        if (s.disconnected) {
+            return PROS_ERR;
+        }
+        if (s.failCurrentLimitReads > 0) {
+            s.failCurrentLimitReads -= 1;
+            return PROS_ERR;
+        }
+        return s.currentLimitMa;
     }
 
 private:

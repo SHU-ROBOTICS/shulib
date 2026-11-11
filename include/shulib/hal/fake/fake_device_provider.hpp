@@ -149,6 +149,13 @@ public:
     /// must outlive this provider. Rebinding the same port replaces the binding.
     void bindMotor(std::uint8_t port, IMotor& motor) {
         boundMotor_[checkedIndex(port)] = &motor;
+        boundLimit_[checkedIndex(port)] = nullptr;  // a bare IMotor: no current limit to answer
+    }
+    /// Serve `port` with a FakeMotor the caller owns — as its motor AND its current limit (MECH-S-A:
+    /// currentLimit(port) then answers it). Chosen over the IMotor& overload for a FakeMotor.
+    void bindMotor(std::uint8_t port, FakeMotor& motor) {
+        boundMotor_[checkedIndex(port)] = &motor;
+        boundLimit_[checkedIndex(port)] = &motor;
     }
     /// Serve `port` with an IMU the caller owns — the plant-synthesized one, in every rig here.
     void bindImu(std::uint8_t port, IImu& imu) { boundImu_[checkedIndex(port)] = &imu; }
@@ -460,6 +467,24 @@ public:
         return cameraMade_[i] ? &cameras_[i] : nullptr;
     }
 
+    /// MECH-S-A: the current limit of the motor SERVED on `port` — this provider's own FakeMotor, or a
+    /// FakeMotor bound with bindMotor(port, FakeMotor&); nullptr where no motor was served, or where a
+    /// bare IMotor is bound (it has no limit to answer). Never makes.
+    [[nodiscard]] IMotorCurrentLimit* currentLimit(std::uint8_t port) noexcept override {
+        const int p = static_cast<int>(port);
+        if (p < 1 || p > static_cast<int>(kMaxSmartPorts)) {
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(p);
+        if (!motorRequested_[i]) {
+            return nullptr;
+        }
+        if (boundMotor_[i] != nullptr) {
+            return boundLimit_[i];
+        }
+        return &motors_[i];
+    }
+
     /// MECH-A1: this provider's own read-fault counter for 3-wire `line` — only where a digital
     /// input was SERVED; nullptr otherwise. Never makes.
     [[nodiscard]] const IReadFaults* lineReadFaults(std::uint8_t line) const noexcept override {
@@ -535,6 +560,7 @@ private:
     bool cameraMade_[kSlots]{};
 
     IMotor* boundMotor_[kSlots]{};
+    IMotorCurrentLimit* boundLimit_[kSlots]{};  // MECH-S-A: a bound FakeMotor's limit (nullptr: a bare IMotor)
     IImu* boundImu_[kSlots]{};
     IGps* boundGps_[kSlots]{};
     IRotation* boundRotation_[kSlots]{};

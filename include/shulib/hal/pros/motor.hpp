@@ -11,6 +11,20 @@
 //  * get_current_draw() mA     → current()      (motorMilliampsToCanonical, HA-97)
 //  * get_temperature() °C      → temperature()  (identity — already canonical)
 //  * set/get_brake_mode        ↔ setBrakeMode()/brakeMode() (mapped both ways below)
+//  * set/get_current_limit mA  ↔ setCurrentLimit()/currentLimit() — hal::IMotorCurrentLimit,
+//                                the F4-additive sibling (chunk MECH-S-A, below)
+//
+// THE CURRENT LIMIT (chunk MECH-S-A, 2026-11-05; A4 register HA-219..HA-221): ProsMotor is ALSO an
+// hal::IMotorCurrentLimit (hal/motor_current_limit.hpp) — IMotor itself is untouched (F4). The
+// limit is the MOTOR's own (PROS motor_set_current_limit: "The motor will reduce its output at
+// 1000 mA instead of the default 2500 mA"), kept by the DEVICE: setCurrentLimit() sends the
+// amperes as mA (motorCurrentLimitToMilliamps — the one A→mA, motor_conversion.hpp) and answers
+// whether the port ACCEPTED the write; currentLimit() READS THE DEVICE BACK (never the request's
+// echo — a VEXos share, HA-221, or a limit left by another program, HA-220, must show). A read
+// the port refuses (PROS_ERR) answers the last good reading — the motor's documented 2.5 A
+// default before any good read — and counts in faultedReads(), as the other screened reads do.
+// Nothing here sets a limit at construction: which motors get one, and when, is the mechanism
+// service's (mechanism/service.hpp — D12 (b): a motor whose mechanism states no cap is only read).
 //
 // THE STOP — HOW A BRAKE MODE REACHES THE MOTOR (chunk DEFECTS2, 2026-09-26;
 // A4 register HA-142): PROS applies a brake mode ONLY through brake(). move_voltage()
@@ -88,7 +102,7 @@
 // prototype for this brief made that mistake; it compiles, passes a clamp
 // test, and turns a programming error into a robot that coasts.
 //
-// HA register: HA-94..HA-98, HA-142..HA-146 (docs/hardware-assumptions.md).
+// HA register: HA-94..HA-98, HA-142..HA-146, HA-219..HA-221 (docs/hardware-assumptions.md).
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -104,6 +118,7 @@
 #include "shulib/core/check.hpp"
 #include "shulib/hal/motor.hpp"
 #include "shulib/hal/motor_conversion.hpp"
+#include "shulib/hal/motor_current_limit.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::hal::pros {
@@ -130,10 +145,10 @@ enum class MotorGearset {
 /// commanded or seeded) rather than propagating a sentinel or substituting zero, because a
 /// frozen reading is what the loop's odometry cross-checks are built to notice while a zeroed
 /// encoder would look exactly like a robot that stopped. faultedReads() counts every one of
-/// those five screens. commandedVoltage() sits outside the scheme: a local mirror of the last
-/// applied command that touches no device. This adapter does not raise faults; raising is the
-/// loop layer's policy.
-class ProsMotor final : public IMotor {
+/// those five screens — six since MECH-S-A, with currentLimit() (header: THE CURRENT LIMIT).
+/// commandedVoltage() sits outside the scheme: a local mirror of the last applied command that
+/// touches no device. This adapter does not raise faults; raising is the loop layer's policy.
+class ProsMotor final : public IMotor, public IMotorCurrentLimit {
 public:
     /// `port`: 1..21, NEGATIVE to reverse (PROS applies the reversal — once).
     /// `gearset`: the physical cartridge color. The ctor configures the device
@@ -281,8 +296,32 @@ public:
         return lastTemperature_;
     }
 
-    /// How many of the five screened READS (position/velocity/current/temperature/brakeMode)
-    /// were screened to last-good — cumulative for the life of the object, never reset. T7
+    /// Send the motor its own current limit, in mA (header: THE CURRENT LIMIT; HA-219). True when
+    /// the port ACCEPTED the write (PROS answered 1); false when it refused it (PROS_ERR — a dropout),
+    /// and nothing is remembered. Read it back with currentLimit(): true is not proof the motor holds
+    /// `limit` (HA-221) — nor that it holds the exact double: the device holds whole milliamps, so a
+    /// 2.4995 A limit is sent, and read back, as 2500 mA. PRECONDITION (motorCurrentLimitToMilliamps'):
+    /// `limit` finite, from 0.001 A to 2.5 A.
+    [[nodiscard]] bool setCurrentLimit(units::Current limit) override {
+        return motor_.set_current_limit(motorCurrentLimitToMilliamps(limit)) == 1;
+    }
+
+    /// The limit the DEVICE reports now, canonical amperes (header). Sentinel-screened like the
+    /// other reads: PROS_ERR holds the last good reading — the documented 2.5 A default before any
+    /// good read — and counts a faulted read.
+    [[nodiscard]] units::Current currentLimit() const override {
+        const std::int32_t ma = motor_.get_current_limit();
+        if (ma == PROS_ERR) {
+            faultedReads_ += 1;
+            return lastLimit_;
+        }
+        lastLimit_ = motorMilliampsToCanonical(static_cast<double>(ma));
+        return lastLimit_;
+    }
+
+    /// How many of the six screened READS (position/velocity/current/temperature/brakeMode and,
+    /// since MECH-S-A, currentLimit) were screened to last-good — cumulative for the life of the
+    /// object, never reset. T7
     /// observability: telemetry and the loop's health policy can see a flaky port without
     /// this seam growing a validity channel F4 does not have. brakeMode() has been counted
     /// since DEFECTS1 (I9/E1); this comment said otherwise until DEFECTS2. COMMANDS are not
@@ -382,6 +421,8 @@ private:
     mutable units::AngularVelocity lastVelocity_{0.0};
     mutable units::Current lastCurrent_{0.0};
     mutable double lastTemperature_ = 20.0;
+    /// currentLimit()'s last good reading; the motor's documented default before the first one.
+    mutable units::Current lastLimit_ = kDefaultMotorCurrentLimit;
     mutable int faultedReads_ = 0;
 };
 

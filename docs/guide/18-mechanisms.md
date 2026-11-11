@@ -19,8 +19,10 @@
 > ids, and its driver file is three lines of controls ([the cookbook](../cookbook/06-driver-control.md)).
 > And since the sixth and last part (MECH-A6, built 2026-10-30), Bench Tests' **station 13 MECHANISMS**
 > — the bench page ([below](#the-bench-page--bench-tests-station-13)) — shows every declared mechanism in
-> its declared units and runs the direction check on the robot. Everything below is measured on the
-> **host test plant** — invented models of an
+> its declared units and runs the direction check on the robot. Since then, **current caps** (`.currentCap` —
+> [below](#current-caps--how-hard-a-string-is-pulled)): the most each motor of a mechanism may draw, set in the
+> motor itself. Still to come: a watch for a snapped string, and live tuning on the robot. Everything below is
+> measured on the **host test plant** — invented models of an
 > arm, a lift and a flywheel ([HA-183](../hardware-assumptions.md)) — and the library's own numbers in
 > it are invented starting values ([HA-182](../hardware-assumptions.md)). **Nothing here has run on a
 > robot.**
@@ -36,7 +38,8 @@
 | `Pneumatic` | named positions | go to a position | its lines keep their levels | `.positions`, `.start`, `.safe`, `.moveTime` |
 
 The common fields are `.name`, `.motors` (or `.positions` for a pneumatic), `.cartridge` (every kind
-with motors) and `.safe`.
+with motors) and `.safe`. Every kind with motors may also state a `.currentCap` — the most each motor
+may draw ([current caps](#current-caps--how-hard-a-string-is-pulled), below); it is never required.
 A field you leave out is UNSET and the build refuses it by name — the library never invents a number
 you own (a limit, a preset, the gravity hold, how it homes, what a jam looks like, a valve's move
 time).
@@ -46,10 +49,10 @@ it GOES, the extras.
 
 | Kind | The order |
 |---|---|
-| `Arm` | `.name`, `.motors`, `.cartridge`, `.gearing`, `.angleSensor`, `.safe`, `.stall`, `.range`, `.gravity`, `.home`, `.presets`, `.unhomedVolts`, `.tuning` |
-| `Lift` | `.name`, `.motors`, `.cartridge`, `.gearing`, `.shape`, `.angleSensor`, `.safe`, `.stall`, `.range`, `.gravity`, `.home`, `.presets`, `.unhomedVolts`, `.tuning` |
-| `Flywheel` | `.name`, `.motors`, `.cartridge`, `.gearing`, `.angleSensor`, `.safe`, `.stall`, `.atSpeed`, `.presets`, `.tuning` |
-| `Power` | `.name`, `.motors`, `.cartridge`, `.pieceSensor`, `.safe`, `.stall`, `.maxVolts` |
+| `Arm` | `.name`, `.motors`, `.cartridge`, `.gearing`, `.angleSensor`, `.safe`, `.stall`, `.currentCap`, `.range`, `.gravity`, `.home`, `.presets`, `.unhomedVolts`, `.tuning` |
+| `Lift` | `.name`, `.motors`, `.cartridge`, `.gearing`, `.shape`, `.angleSensor`, `.safe`, `.stall`, `.currentCap`, `.range`, `.gravity`, `.home`, `.presets`, `.unhomedVolts`, `.tuning` |
+| `Flywheel` | `.name`, `.motors`, `.cartridge`, `.gearing`, `.angleSensor`, `.safe`, `.stall`, `.currentCap`, `.atSpeed`, `.presets`, `.tuning` |
+| `Power` | `.name`, `.motors`, `.cartridge`, `.pieceSensor`, `.safe`, `.stall`, `.currentCap`, `.maxVolts` |
 | `Pneumatic` | `.name`, `.positions`, `.start`, `.safe`, `.moveTime`, `.pieceSensor`, `.confirmWithin` |
 
 A lift and a flywheel, as a team writes them (`guide-18a`):
@@ -258,10 +261,13 @@ and a driver's button that was held is ignored until it is released ([below](#on
 
 **The recipe, before you measure one:** a bit below the motor's 2.5 A limit (2.0 A), a LOW motor speed
 (5 rpm for an arm or a lift; a flywheel's 30), about half a second. (Not for a homing push: its own
-signature is far smaller — the homing section above.) Then look at what your mechanism
-really draws: a hold that squeezes on purpose (an arm pressing a goal down) trips it too — state a
-higher `.amps` or a longer `.lasting` for that one. The build refuses a signature that could never
-trip: 2.5 A or more (a limited motor never reads more), 0 rpm, or no `.lasting`.
+signature is far smaller — the homing section above.) **Under a `.currentCap` the 2.0 A is wrong:** a
+capped motor never draws more than its cap, so the signature must sit below the cap — MORE than 0.2 A
+below it ([the next section](#current-caps--how-hard-a-string-is-pulled) says why and how). Then look at
+what your mechanism really draws: a hold that squeezes on purpose (an arm pressing a goal down) trips
+it too — state a higher `.amps` or a longer `.lasting` for that one. The build refuses a signature that
+could never trip: 2.5 A or more (a limited motor never reads more), at or above the mechanism's
+`.currentCap`, 0 rpm, or no `.lasting`.
 
 On the host test plant: a move blocked at 60° ended STALLED 1.00 s after it began (the recipe's
 numbers); a hold loaded far past what it can carry stopped once the load had dragged it to its stop
@@ -274,6 +280,88 @@ so a **6 V** push into something draws about **1.25 A** — below the recipe's 2
 only letting go of the button ends it. If your driver file holds a mechanism at less than full power,
 either state its `.amps` below what that hold draws when it is stopped (measure it on the bench), or
 accept that the driver's thumb is what ends a push into an obstacle.
+
+## Current caps — how hard a string is pulled
+
+A motor's current IS its pull: the motor turns current into torque, and a spool turns that torque into
+string tension — so "how many amps" is "how hard the string is pulled". A string pulled too hard snaps.
+`.currentCap` tells each of the mechanism's motors the most it may draw (`guide-18g`):
+
+```cpp
+inline constexpr Lift stringLift{
+    .name = "string lift",
+    .motors = {Forward, Reversed},
+    .cartridge = Red,
+    .gearing = direct,
+    .shape = spool(1.5_in),
+    .safe = Hold,
+    .stall = {.amps = 0.9, .belowMotorRpm = 5, .lasting = 0.5_s},  // below the cap, with room
+    .currentCap = {.amps = 1.2},                                    // each motor: at most 1.2 A
+    .range = {0_in, 24_in},
+    .gravity = constantGravity(1.0_volt),
+    .home = restsAtStop(0_in),
+};
+```
+
+**The motor enforces it, not the library.** At boot the library writes the cap into every motor of the
+mechanism and reads it back; from then on the MOTOR holds it — every command, the Hold brake, a homing
+push up or down, and even while a blocking loop of yours stops the library from running. (That a real
+motor holds its limit this way, and how fast, is a belief nobody has measured yet — Hardware Assumption
+HA-219.) The boot says it once:
+
+```
+'string lift': current cap 1.20 A per motor (2 motors: 2.40 A in all) -- set and read back
+```
+
+**It is PER MOTOR.** Two motors on one spool pull with twice the cap — the line says the total. **No cap
+written means the motor's own 2.5 A**; the library never invents one. A cap written as `0` means the same:
+no cap. The build refuses a cap below 0, above 2.5 A, or under 0.001 A (a motor holds its limit in whole
+milliamps, so a smaller one would be sent as 0 mA — no torque at all).
+
+**Four currents must stay in ORDER**, or the cap and the jam detector fight each other:
+the heaviest **hold** (with a game piece) < the stall signature < the cap − 0.2 A; the heaviest
+**move's peak** < the cap; and the cap ≤ what the string can safely take.
+
+- **The signature below the cap.** A capped motor never draws more than its cap, so a signature at or
+  above it could never fire — the build refuses it. A signature just under the cap may never fire
+  either: a real capped motor may read a little under its cap (believed within about 0.1 A —
+  HA-223, not measured), so the boot warns when one is not MORE than 0.2 A below it (exactly 0.2 A
+  below warns too). It judges as the motor reads, in whole milliamps: a signature trips at the first
+  whole milliamp at or above it, so under a 1.2 A cap a 0.9994 A signature counts as 1.000 A and warns,
+  and 0.999 A does not. Type a signature in whole milliamps (three decimals) and the arithmetic is the
+  plain one.
+- **The hold below the signature.** The jam detector watches the hold too. On the host test plant a
+  lift capped at 1.2 A with a 1.0 A signature (the boot warned: exactly 0.2 A under the cap) held a 3 V
+  lift for 12 s at 0.56 A without a stall — then a 2.5 V game piece raised its hold to the cap's 1.2 A,
+  above the signature, and the hold ended **STALLED**, the piece and all. Measure the hold WITH your
+  heaviest piece before you choose the signature.
+- **The move's peak below the cap.** Too low a cap also limits how hard the motor can accelerate:
+  moves slow down, run out of time, or stall at their start.
+- **The cap below the string's limit.** The string's safe pull divided by the pull per amp — about
+  10 lbf per amp per motor for a red cartridge on a 1.5 in spool, by the published motor numbers
+  (HA-222, not checked on this robot) — divided by your safety margin.
+
+**Where the hold and the peak come from.** No page of the library shows a mechanism motor's current
+yet: live tuning, a later part, will report each move's peak and the settled hold, with and without a
+piece. Until then shulib gives you no reading — a PROS program of your own can print a motor's
+`get_current_draw()` (milliamps) while it holds and moves the lift; without one, start from the order
+above and the boot's warnings, and treat your numbers as unmeasured.
+
+**What it cannot limit:** the carriage's and the motor's momentum when the lift hits a stop pulls on the
+string with no current at all (HA-222). Push into stops gently. And it does not see a string that has
+already snapped — today a snapped string is invisible to the library (the lift reports its moves done
+with the carriage on the floor); a watch for that is a later part.
+
+**If a motor will not take its cap,** the boot warns, naming the port and both numbers
+(`'lift': motor 2 (port 12) did not take its current cap: asked 1.20 A, the write was refused, reads back
+2.50 A -- it runs; that motor is not capped as stated`), and the lift still runs. **Once a second** the
+library reads each capped motor's limit again: one that reads 2.5 A again (it lost power and came back
+at its default — HA-220) is written again, with one warning; one that reads any other number was set by
+something else and is warned about once and left alone. **A mechanism with no cap** is only read at
+boot, never written: if its motor's limit reads anything but 2.5 A — a cap an earlier program left
+(HA-220), or VEXos sharing current when more than 8 motors are plugged in (HA-221) — one line says so,
+and the library changes nothing. [Chapter 11](11-reading-the-diagnostics.md) lists every one of these
+lines.
 
 ## Tuning — the starting values, and how to change them
 
@@ -591,7 +679,9 @@ bench worksheet's station for it is its first run.
 The service runs ONLY inside shulib's own waits, motions and pauses — and every tick of the driver loop.
 **A busy loop of your own starves it** — a `pros::delay` in an auton, a `then()` action that blocks — and
 a starved service leaves every mechanism at its LAST command: not held, not limited, not watched for a
-jam (on the host test plant, an arm left at 11.74 V for 1.5 s sat against its hard stop at 2.45 A). In
+jam (on the host test plant, an arm left at 11.74 V for 1.5 s sat against its hard stop at 2.45 A) —
+except a stated [`.currentCap`](#current-caps--how-hard-a-string-is-pulled), which the motor itself keeps
+(believed, not measured — HA-219). In
 an auton, wait with `r.pause(…)` or `r.waitFor(…)`, never with `pros::delay`, and never let a `then()`
 action block.
 
@@ -616,7 +706,10 @@ chapter:
 `position_the_stall_signature_is_unset_a_held_mechanism_must_never_sit_at_stall_current`,
 `speed_the_stall_signature_is_unset_a_jammed_wheel_must_never_sit_at_stall_current`,
 `a_stall_signatures_amps_must_be_below_the_motors_2_5_A_current_limit`, `speed_is_past_the_free_speed`,
-`target_is_outside_the_travel_limits` and — new with the position behaviours —
-`position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor`. The driver
+`target_is_outside_the_travel_limits`, new with the position behaviours
+`position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor`, and new with
+current caps `a_current_cap_must_be_above_0_and_at_most_2_5_A`,
+`a_current_cap_must_be_at_least_0_001_A_a_motor_holds_whole_milliamps` and
+`a_stall_signatures_amps_must_be_below_the_current_cap_it_could_never_trip`. The driver
 file's (above) point at its `controls(` line — a button twice names the button — and the auton's wrong
 steps are `static_assert` sentences ("required from here" names your line).

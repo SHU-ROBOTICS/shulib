@@ -25,8 +25,9 @@
 // ── THE MEMBERS ARE WRITTEN IN ONE ORDER PER KIND — C++ requires it ──────────────────
 // A designated initializer must follow the declaration order, so each kind's members are ordered
 // the way a student reads them: what it IS (name, motors, cartridge, gearing, shape, angle or piece
-// sensor), what it does STOPPED (safe, stall), where it GOES (range, gravity, home, presets — or
-// at-speed and presets), the extras (unhomedVolts, tuning). Out of order is a plain C++ error
+// sensor), what it does STOPPED (safe, stall, and — since MECH-S-A — currentCap), where it GOES
+// (range, gravity, home, presets — or at-speed and presets), the extras (unhomedVolts, tuning). Power's
+// maxVolts comes after its currentCap. Out of order is a plain C++ error
 // ("designator order ... does not match declaration order"); the guide prints each kind's order.
 //
 // ── THE DECLARATION IS THE HANDLE (Q18 (a): "checked at build") ──────────────────────
@@ -204,6 +205,24 @@ struct Stall {
     double belowMotorRpm = 0.0;
     /// Continuously for this long (above 0).
     units::Time lasting{0.0};
+};
+
+/// A CURRENT CAP (chunk MECH-S-A, 2026-11-05): the most current EACH motor of the mechanism may draw,
+/// amperes — `.currentCap = {.amps = 1.2}`. Optional on a Power, an Arm, a Lift and a Flywheel; the
+/// team's number, never a default (none written = the motor's own 2.5 A). Set in every motor at boot
+/// and enforced by the MOTOR itself from then on — every command, the Hold brake, a homing push, a
+/// blocking loop that starves the service (A4 register HA-219: how fast, unmeasured). PER MOTOR: two
+/// motors on one spool pull with twice it. The build refuses one below 0 or above 2.5 A, one under
+/// 0.001 A (a V5 limit is whole milliamps), and any stated stall signature at or above it (a capped
+/// motor never draws more: the signature could never trip) — a cap written as 0 is no cap, the same as
+/// leaving it out; the boot warns when a signature is not MORE than 0.2 A below it, as the motor reads it in whole milliamps (HA-223). Choosing it — the ORDER four
+/// currents must keep: the heaviest HOLD (with a game piece) < the stall signature < the cap − 0.2 A,
+/// the heaviest MOVE's peak < the cap, and the cap ≤ what the string can take (about 10 lbf per amp
+/// per motor for a red cartridge on a 1.5 in spool — HA-222, NOT measured). It does not limit the
+/// carriage's momentum when it hits a stop (HA-222): push gently.
+struct CurrentCap {
+    /// At most this current per motor, A: from 0.001 (one milliamp) to 2.5. 0 = no cap stated.
+    double amps = 0.0;
 };
 
 namespace detail {
@@ -690,6 +709,8 @@ struct Power {
     /// Optional: the jam signature (`stalls`, the STALLED verdict); with none, the boot says a held
     /// button is cut only by its release (HA-154).
     Stall stall{};
+    /// Optional: the most current each motor may draw, set in the motor at boot (CurrentCap; MECH-S-A).
+    CurrentCap currentCap{};
     /// The most any command may ask (the motor's own ceiling unless lowered), (0, 12] V.
     units::Voltage maxVolts{12.0};
 
@@ -709,6 +730,7 @@ struct Power {
         s.pieceSensor = detail::role(pieceSensor);
         s.power.maxVolts = maxVolts.value();
         s.power.stall = detail::stallSpec(stall);
+        s.currentCapAmps = currentCap.amps;
         return s;
     }
 };
@@ -729,6 +751,8 @@ struct Arm {
     config::SafeBrakeMode safe = static_cast<config::SafeBrakeMode>(0);
     /// REQUIRED: a blocked move's or hold's signature (P4, N10).
     Stall stall{};
+    /// Optional: the most current each motor may draw, set in the motor at boot (CurrentCap; MECH-S-A).
+    CurrentCap currentCap{};
     /// The travel limits, degrees. REQUIRED.
     DegreeRange range{};
     /// cosine(...) or noGravity. REQUIRED.
@@ -791,6 +815,7 @@ struct Arm {
         p.horizontalAt = gravity.levelAtDeg;
         detail::homing(p, home);
         p.stall = detail::stallSpec(stall);
+        s.currentCapAmps = currentCap.amps;
         p.unhomedVolts = unhomedVolts.value();
         detail::positionStart(p, tuning, cartridge, 1.0, 1.5);
         for (std::size_t i = 0; i < kMaxPresets; ++i) {
@@ -825,6 +850,9 @@ struct Lift {
     config::SafeBrakeMode safe = static_cast<config::SafeBrakeMode>(0);
     /// REQUIRED (P4, N10).
     Stall stall{};
+    /// Optional: the most current each motor may draw, set in the motor at boot (CurrentCap; MECH-S-A) —
+    /// how hard a string lift's string is pulled.
+    CurrentCap currentCap{};
     /// The travel limits, inches. REQUIRED.
     InchRange range{};
     /// constantGravity(...) (or cosine for a linkage's arm, or noGravity). REQUIRED.
@@ -896,6 +924,7 @@ struct Lift {
         p.horizontalAt = gravity.levelAtDeg;
         detail::homing(p, home);
         p.stall = detail::stallSpec(stall);
+        s.currentCapAmps = currentCap.amps;
         p.unhomedVolts = unhomedVolts.value();
         // The starting profile's scale, inches per output degree: exact for a spool; for a linkage
         // its steepest (level) slope and for a table its steepest segment's — conservative estimates.
@@ -940,6 +969,8 @@ struct Flywheel {
     config::SafeBrakeMode safe = static_cast<config::SafeBrakeMode>(0);
     /// REQUIRED: a jammed wheel's signature (P4, N10).
     Stall stall{};
+    /// Optional: the most current each motor may draw, set in the motor at boot (CurrentCap; MECH-S-A).
+    CurrentCap currentCap{};
     /// REQUIRED: within(60, 0.1_s).
     AtSpeed atSpeed{};
     /// Its named speeds: {"shoot", 3000}, ... (six at most).
@@ -983,6 +1014,7 @@ struct Flywheel {
         q.gearRatio = gearing.motorTurnsPerTurn;
         q.maxRpm = freeRpm();
         q.stall = detail::stallSpec(stall);
+        s.currentCapAmps = currentCap.amps;
         detail::speedStart(q, tuning, freeRpm() * 2.0 * 3.14159265358979323846 / 60.0);
         q.atSpeedBandRpm = atSpeed.rpm;
         q.atSpeedTime = atSpeed.lasting.value();

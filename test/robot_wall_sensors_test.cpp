@@ -137,6 +137,10 @@ struct OddDistance final : hal::IDeviceProvider {
     [[nodiscard]] const hal::IReadFaults* lineReadFaults(std::uint8_t l) const noexcept override {
         return inner->lineReadFaults(l);
     }
+    // MECH-S-A added the motor current limit to the provider (merged after L6-A2 was built); forwarded.
+    [[nodiscard]] hal::IMotorCurrentLimit* currentLimit(std::uint8_t p) noexcept override {
+        return inner->currentLimit(p);
+    }
     [[nodiscard]] hal::IClock& clock() override { return inner->clock(); }
     [[nodiscard]] hal::IBattery& battery() override { return inner->battery(); }
     [[nodiscard]] hal::ITelemetrySink& telemetry() override { return inner->telemetry(); }
@@ -156,6 +160,11 @@ struct RecordingProvider final : hal::IDeviceProvider {
     [[nodiscard]] hal::IMotor* motor(std::int8_t p, hal::MotorCartridge c) override {
         note("motor", p);
         return inner->motor(p, c);
+    }
+    // MECH-S-A added the motor current limit to the provider (merged after L6-A2 was built). A limit is a
+    // view of a motor already asked for, not a device request, so it is forwarded and NOT recorded.
+    [[nodiscard]] hal::IMotorCurrentLimit* currentLimit(std::uint8_t p) noexcept override {
+        return inner->currentLimit(p);
     }
     [[nodiscard]] hal::IImu* imu(std::uint8_t p) override {
         note("imu", p);

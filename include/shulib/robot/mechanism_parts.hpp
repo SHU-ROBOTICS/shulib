@@ -30,6 +30,10 @@
 // built(): there is nothing there for a guard to make safe, and nothing a step may command. A
 // motor made before the refusal stays made — the provider owns it; nothing commands it.
 //
+// Beside each motor it records the provider's CURRENT LIMIT for it (IDeviceProvider::currentLimit —
+// hal/motor_current_limit.hpp; MECH-S-A), into that mechanism's `Devices`: how the service writes a
+// stated cap and reads every mechanism motor's limit back. It writes no limit itself.
+//
 // Beside each piece sensor and home switch it records the provider's READ-FAULT count for it
 // (IDeviceProvider::readFaults / lineReadFaults — hal/read_faults.hpp), into that mechanism's
 // `Devices`: the service's rule that a sample taken while it moved is HELD, never evidence.
@@ -61,6 +65,9 @@
 #include "shulib/mechanism/devices.hpp"
 
 namespace shulib::robot {
+
+static_assert(mechanism::kDevicesMaxMotors == config::kMaxMotorsPerMechanism,
+              "mechanism::Devices::currentLimits must hold every motor a mechanism config can have");
 
 /// Every role of every mechanism a config declares, built over a device provider (header). Built
 /// ONCE, by build(); non-copyable and non-movable — the built mechanisms hold spans into its storage.
@@ -374,6 +381,10 @@ private:
                                      config::toBrakeMode(mc.safeMode), mc.name);
             d.motors = &*s.motorMechanism;
             built_[builtCount_++] = &*s.motorMechanism;
+            // MECH-S-A: each built motor's own current limit, in the motors' order (looked up, never made)
+            for (std::size_t i = 0; i < mc.motorCount && i < config::kMaxMotorsPerMechanism; ++i) {
+                d.currentLimits[i] = devices.currentLimit(physical(mc.motorPorts[i]));
+            }
         } else {
             const bool perLine = mc.pneumaticSafeByLine[0] != static_cast<config::PneumaticLevel>(0);
             const std::span<hal::IDigitalOut* const> lines{s.lines, mc.pneumaticCount};

@@ -34,6 +34,22 @@
 // CURRENT: I = |V_applied − kV·ω|·(stallAmps/12), clamped at stallAmps — 2.5 A at a 12 V stall
 // (HA-93's shape: the V5 firmware's 2.5 A default limit, `pros/motors.h`).
 //
+// THE MOTOR'S OWN CURRENT LIMIT (chunk MECH-S-A, 2026-11-05): a joint honours motor 0's
+// currentLimit() (hal::IMotorCurrentLimit; every motor of a group is set alike) ONLY when a limit BELOW
+// the motor's 2.5 A default is set. Then, within each step, the applied volts are limited so
+// |V − kV·ω| ≤ limit·12/stallAmps — the limit's TORQUE, not only its reading — re-solved at the END
+// speed of the step, the stops included (the way the 12 V clamp is re-solved), so a joint stopped at a
+// hard stop publishes at most the limit and pushes with at most its torque, and the Hold brake at 0 V is
+// limited like any command. A load the limit cannot carry even when back-driven falls as fast as −12 V
+// drives it (this plant has no mass to fall with — an approximation, said), its reading clamped at the
+// limit. AT THE DEFAULT THE LIMITER IS BYPASSED, so every result before MECH-S-A is unchanged (its test
+// pins a reversal's samples byte for byte) — including an EXISTING inaccuracy it does not fix: the
+// plant clamps only its READING at 2.5 A, so a 12 V push flipped to −12 V drives |V − kV·ω| past 2.5 A's
+// torque for a couple of ticks (the MECH-S brief's p_plantlimit: up to 18.26 V). Like every constant
+// here the limiter is INVENTED (HA-183); whether a real motor holds its limit like this is HA-219. The
+// flywheel plant below has no limiter (no test needs one; a flywheel's cap is the motor's, as for any
+// mechanism).
+//
 // A POWER roller (an intake, a claw pivot) is this joint with no gravity (kG 0) and stops far away:
 // the mechanism core's own tests drive power mechanisms through it.
 //
@@ -65,6 +81,7 @@
 #include "shulib/core/check.hpp"
 #include "shulib/hal/fake/fake_digital_in.hpp"
 #include "shulib/hal/fake/fake_motor.hpp"
+#include "shulib/hal/motor_current_limit.hpp"
 #include "shulib/hal/fake/fake_rotation.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -210,38 +227,27 @@ public:
         if (jammed_) {
             omega_ = 0.0;
             appliedVolts_ = std::clamp(a0, -12.0, 12.0);
+            if (limited()) {  // pinned: ω is 0, so the limit is on the volts themselves (header)
+                appliedVolts_ = std::clamp(appliedVolts_, -gapVolts(), gapVolts());
+            }
             if (commanded) {
                 heldRad_ = thetaRad_;  // pinned: where it is IS where the command leaves it
             }
             publish(appliedVolts_);
             return;
         }
-        const double before = omega_;
-        omega_ = approach(before, a0, c, dt);
-        double applied = a0 - c * omega_;
-        if (std::abs(applied) > 12.0) {  // the motor cannot apply more: the clamped volts, solved again
-            applied = std::clamp(applied, -12.0, 12.0);
-            omega_ = approach(before, applied, 0.0, dt);
+        Advance r = advance(a0, c, dt);
+        if (limited()) {  // the motor's own limit (header): its torque, re-solved at the end speed
+            const double gap = gapVolts();
+            const double f = r.applied - cfg_.kV * r.omega;
+            if (f > gap || f < -gap) {
+                r = limitedAdvance(dt, gap, f > 0.0, r.applied);
+            }
         }
+        omega_ = r.omega;
+        const double applied = r.applied;
         appliedVolts_ = applied;
-        double next = thetaRad_ + omega_ * dt;
-        const double loStop = cfg_.minStopDeg * kD2R;
-        const double lo = hasWedge_ && thetaRad_ >= wedgeRad_ ? std::max(loStop, wedgeRad_) : loStop;
-        const double hiStop = cfg_.maxStopDeg * kD2R;
-        const double hi = hasObstacle_ && thetaRad_ <= obstacleRad_ ? std::min(hiStop, obstacleRad_) : hiStop;
-        if (next <= lo) {
-            next = lo;
-            if (omega_ < 0.0) {
-                omega_ = 0.0;
-            }
-        }
-        if (next >= hi) {
-            next = hi;
-            if (omega_ > 0.0) {
-                omega_ = 0.0;
-            }
-        }
-        thetaRad_ = next;
+        thetaRad_ = r.next;
         if (commanded) {
             // A Hold captures where the command STOPPED: the angle at the END of the last commanded
             // step — where the shaft is when the next step's 0 V engages Hold. (Captured before this
@@ -254,6 +260,75 @@ public:
 
 private:
     static constexpr double kD2R = 3.14159265358979323846 / 180.0;
+    /// One step's outcome before it is kept: the end speed, the applied volts, the end angle.
+    struct Advance {
+        double omega;
+        double applied;
+        double next;
+    };
+    /// One step from the current state under a0 − c·ω (header): the speed, the 12 V clamp re-solved,
+    /// then the hard stops (a joint pushing into one ends it at ZERO speed). Changes nothing.
+    [[nodiscard]] Advance advance(double a0, double c, double dt) const {
+        Advance r{approach(omega_, a0, c, dt), 0.0, 0.0};
+        r.applied = a0 - c * r.omega;
+        if (std::abs(r.applied) > 12.0) {  // the motor cannot apply more: the clamped volts, solved again
+            r.applied = std::clamp(r.applied, -12.0, 12.0);
+            r.omega = approach(omega_, r.applied, 0.0, dt);
+        }
+        double next = thetaRad_ + r.omega * dt;
+        const double loStop = cfg_.minStopDeg * kD2R;
+        const double lo = hasWedge_ && thetaRad_ >= wedgeRad_ ? std::max(loStop, wedgeRad_) : loStop;
+        const double hiStop = cfg_.maxStopDeg * kD2R;
+        const double hi = hasObstacle_ && thetaRad_ <= obstacleRad_ ? std::min(hiStop, obstacleRad_) : hiStop;
+        if (next <= lo) {
+            next = lo;
+            if (r.omega < 0.0) {
+                r.omega = 0.0;
+            }
+        }
+        if (next >= hi) {
+            next = hi;
+            if (r.omega > 0.0) {
+                r.omega = 0.0;
+            }
+        }
+        r.next = next;
+        return r;
+    }
+    /// True when motor 0 holds a limit BELOW the motor's 2.5 A default (header: at the default the
+    /// limiter is bypassed).
+    [[nodiscard]] bool limited() const { return motors_[0]->currentLimit() < hal::kDefaultMotorCurrentLimit; }
+    /// The limit as volts of |V − kV·ω| (the current's own scale: stallAmps at 12 V).
+    [[nodiscard]] double gapVolts() const {
+        return motors_[0]->currentLimit().value() * 12.0 / cfg_.stallAmps;
+    }
+    /// The step at the volts nearest `applied` whose end-speed torque is inside ±gap (header). V − kV·ω at
+    /// the end of a step never decreases as V grows (inside the static band it is V; moving, the exact
+    /// step keeps a part of V; into a stop it is V), so the volts that keep it inside are one interval and
+    /// a bisection finds its edge. `pushingUp`: the step's torque was ABOVE +gap (else below −gap). A load
+    /// the limit cannot carry even at the far end (−12 V or +12 V) gets that end's step (header).
+    [[nodiscard]] Advance limitedAdvance(double dt, double gap, bool pushingUp, double applied) const {
+        const auto torque = [this](const Advance& a) { return a.applied - cfg_.kV * a.omega; };
+        double inside = pushingUp ? -12.0 : 12.0;  // the end that must be inside, if anything is
+        double outside = applied;                   // outside, by the caller's test
+        Advance best = advance(inside, 0.0, dt);
+        const bool reachable = pushingUp ? torque(best) <= gap : torque(best) >= -gap;
+        if (!reachable) {
+            return best;
+        }
+        for (int i = 0; i < 60; ++i) {
+            const double mid = 0.5 * (inside + outside);
+            const Advance m = advance(mid, 0.0, dt);
+            const bool ok = pushingUp ? torque(m) <= gap : torque(m) >= -gap;
+            if (ok) {
+                inside = mid;
+                best = m;
+            } else {
+                outside = mid;
+            }
+        }
+        return best;
+    }
     /// The joint speed after `dt` from `w0` when the motor applies a0 − c·ω (c > 0: a brake mode's
     /// implicit part): the steady speed solves kV·ω = a0 − c·ω − G ∓ kS, approached with τ = kA/(kV + c).
     [[nodiscard]] double approach(double w0, double a0, double c, double dt) const {
@@ -269,7 +344,10 @@ private:
     void publish(double applied) {
         const double motorRad = (thetaRad_ - cfg_.encoderZeroDeg * kD2R) * cfg_.gearRatio;
         const double motorRadS = omega_ * cfg_.gearRatio;
-        const double amps = std::min(cfg_.stallAmps, std::abs(applied - cfg_.kV * omega_) * cfg_.stallAmps / 12.0);
+        double amps = std::min(cfg_.stallAmps, std::abs(applied - cfg_.kV * omega_) * cfg_.stallAmps / 12.0);
+        if (limited()) {  // a limited motor reads at most its limit (header: the load it cannot carry)
+            amps = std::min(amps, motors_[0]->currentLimit().value());
+        }
         for (hal::fake::FakeMotor* m : motors_) {
             m->setPosition(units::AngleDim{motorRad});
             m->setVelocity(units::AngularVelocity{motorRadS});

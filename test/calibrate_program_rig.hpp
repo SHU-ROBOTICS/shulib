@@ -387,6 +387,10 @@ public:
     const shulib::hal::IReadFaults* lineReadFaults(std::uint8_t line) const noexcept override {
         return inner_->lineReadFaults(line);
     }
+    // MECH-S-A added a motor's own current limit to the provider; Calibrate builds no mechanism.
+    shulib::hal::IMotorCurrentLimit* currentLimit(std::uint8_t port) noexcept override {
+        return inner_->currentLimit(port);
+    }
     shulib::hal::IClock& clock() override { return clockOverride != nullptr ? *clockOverride : inner_->clock(); }
     shulib::hal::IBattery& battery() override { return inner_->battery(); }
     shulib::hal::ITelemetrySink& telemetry() override { return inner_->telemetry(); }

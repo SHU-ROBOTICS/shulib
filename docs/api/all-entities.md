@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 5,528 of them, across 199 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 5,560 of them, across 200 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -17,6 +17,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 |---|---|---|
 | `a_control_names_a_button_that_is_not_one_of_the_twelve` | free function | [driver_inputs.md](driver_inputs.md#a_control_names_a_button_that_is_not_one_of_the_twelve) |
 | `a_control_names_a_mechanism_this_robot_does_not_have` | free function | [driver_inputs.md](driver_inputs.md#a_control_names_a_mechanism_this_robot_does_not_have) |
+| `a_current_cap_must_be_above_0_and_at_most_2_5_A` | free function | [spec.md](spec.md#a_current_cap_must_be_above_0_and_at_most_2_5_a) |
+| `a_current_cap_must_be_at_least_0_001_A_a_motor_holds_whole_milliamps` | free function | [spec.md](spec.md#a_current_cap_must_be_at_least_0_001_a_a_motor_holds_whole_milliamps) |
 | `a_distance_piece_sensor_needs_its_sees_within_distance_more_than_zero` | free function | [spec.md](spec.md#a_distance_piece_sensor_needs_its_sees_within_distance_more_than_zero) |
 | `a_hold_needs_volts_above_0_and_at_most_12` | free function | [driver_inputs.md](driver_inputs.md#a_hold_needs_volts_above_0_and_at_most_12) |
 | `a_home_switch_role_on_a_mechanism_that_is_not_position` | free function | [spec.md](spec.md#a_home_switch_role_on_a_mechanism_that_is_not_position) |
@@ -51,6 +53,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `a_stall_signature_needs_belowMotorRpm_above_0` | free function | [spec.md](spec.md#a_stall_signature_needs_belowmotorrpm_above_0) |
 | `a_stall_signature_needs_its_amps_above_0` | free function | [spec.md](spec.md#a_stall_signature_needs_its_amps_above_0) |
 | `a_stall_signature_needs_lasting_above_0` | free function | [spec.md](spec.md#a_stall_signature_needs_lasting_above_0) |
+| `a_stall_signatures_amps_must_be_below_the_current_cap_it_could_never_trip` | free function | [spec.md](spec.md#a_stall_signatures_amps_must_be_below_the_current_cap_it_could_never_trip) |
 | `a_stall_signatures_amps_must_be_below_the_motors_2_5_A_current_limit` | free function | [spec.md](spec.md#a_stall_signatures_amps_must_be_below_the_motors_2_5_a_current_limit) |
 | `a_three_wire_port_is_a_letter_in_quotes_like_A_a_number_is_a_smart_port` | free function | [wiring.md](wiring.md#a_three_wire_port_is_a_letter_in_quotes_like_a_a_number_is_a_smart_port) |
 | `a_three_wire_port_is_not_a_letter_from_A_to_H_or_more_than_two_lines` | free function | [wiring.md](wiring.md#a_three_wire_port_is_not_a_letter_from_a_to_h_or_more_than_two_lines) |
@@ -194,6 +197,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Arm::angleSensor` | field | [kinds.md](kinds.md#arm-anglesensor) |
 | `Arm::cartridge` | field | [kinds.md](kinds.md#arm-cartridge) |
 | `Arm::clampedTo` | function | [kinds.md](kinds.md#arm-clampedto) |
+| `Arm::currentCap` | field | [kinds.md](kinds.md#arm-currentcap) |
 | `Arm::gearing` | field | [kinds.md](kinds.md#arm-gearing) |
 | `Arm::gravity` | field | [kinds.md](kinds.md#arm-gravity) |
 | `Arm::home` | field | [kinds.md](kinds.md#arm-home) |
@@ -940,6 +944,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `crc32Ieee` | free function | [calibration_record.md](calibration_record.md#crc32ieee) |
 | `crc32Ieee` | free function | [crc32.md](crc32.md#crc32ieee) |
 | `Current` | type alias | [quantity.md](quantity.md#current) |
+| `CurrentCap` | struct | [kinds.md](kinds.md#struct-currentcap) |
+| `CurrentCap::amps` | field | [kinds.md](kinds.md#currentcap-amps) |
 
 ## D
 
@@ -1048,6 +1054,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Devices` | struct | [devices.md](devices.md#struct-devices) |
 | `Devices::absence` | field | [devices.md](devices.md#devices-absence) |
 | `Devices::angleSensor` | field | [devices.md](devices.md#devices-anglesensor) |
+| `Devices::currentLimits` | field | [devices.md](devices.md#devices-currentlimits) |
 | `Devices::homeSwitch` | field | [devices.md](devices.md#devices-homeswitch) |
 | `Devices::homeSwitchFaults` | field | [devices.md](devices.md#devices-homeswitchfaults) |
 | `Devices::motors` | field | [devices.md](devices.md#devices-motors) |
@@ -1598,6 +1605,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Flywheel::atSpeed` | field | [kinds.md](kinds.md#flywheel-atspeed) |
 | `Flywheel::cartridge` | field | [kinds.md](kinds.md#flywheel-cartridge) |
 | `Flywheel::clampedTo` | function | [kinds.md](kinds.md#flywheel-clampedto) |
+| `Flywheel::currentCap` | field | [kinds.md](kinds.md#flywheel-currentcap) |
 | `Flywheel::freeRpm` | function | [kinds.md](kinds.md#flywheel-freerpm) |
 | `Flywheel::gearing` | field | [kinds.md](kinds.md#flywheel-gearing) |
 | `Flywheel::motors` | field | [kinds.md](kinds.md#flywheel-motors) |
@@ -1980,6 +1988,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IDeviceProvider::aiVision` | function | [device_provider.md](device_provider.md#ideviceprovider-aivision) |
 | `IDeviceProvider::battery` | function | [device_provider.md](device_provider.md#ideviceprovider-battery) |
 | `IDeviceProvider::clock` | function | [device_provider.md](device_provider.md#ideviceprovider-clock) |
+| `IDeviceProvider::currentLimit` | function | [device_provider.md](device_provider.md#ideviceprovider-currentlimit) |
 | `IDeviceProvider::digitalIn` | function | [device_provider.md](device_provider.md#ideviceprovider-digitalin) |
 | `IDeviceProvider::digitalOut` | function | [device_provider.md](device_provider.md#ideviceprovider-digitalout) |
 | `IDeviceProvider::distance` | function | [device_provider.md](device_provider.md#ideviceprovider-distance) |
@@ -2159,6 +2168,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IMotor::temperature` | function | [motor.md](motor.md#imotor-temperature) |
 | `IMotor::velocity` | function | [motor.md](motor.md#imotor-velocity) |
 | `IMotor::~IMotor` | function | [motor.md](motor.md#imotor-destructor-imotor) |
+| `IMotorCurrentLimit` | class | [motor_current_limit.md](motor_current_limit.md#class-imotorcurrentlimit) |
+| `IMotorCurrentLimit::currentLimit` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-currentlimit) |
+| `IMotorCurrentLimit::IMotorCurrentLimit` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-imotorcurrentlimit) |
+| `IMotorCurrentLimit::IMotorCurrentLimit (overload 2)` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-imotorcurrentlimit-2) |
+| `IMotorCurrentLimit::IMotorCurrentLimit (overload 3)` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-imotorcurrentlimit-3) |
+| `IMotorCurrentLimit::operator=` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-operator-eq) |
+| `IMotorCurrentLimit::operator= (overload 2)` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-operator-eq-2) |
+| `IMotorCurrentLimit::setCurrentLimit` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-setcurrentlimit) |
+| `IMotorCurrentLimit::~IMotorCurrentLimit` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-destructor-imotorcurrentlimit) |
 | `imuHeadingToCanonical` | free function | [imu_conversion.md](imu_conversion.md#imuheadingtocanonical) |
 | `imuYawRateToCanonical` | free function | [imu_conversion.md](imu_conversion.md#imuyawratetocanonical) |
 | `InchPreset` | struct | [kinds.md](kinds.md#struct-inchpreset) |
@@ -2326,6 +2344,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kBuildTimeCols` | constant | [calibrate_screen.md](calibrate_screen.md#kbuildtimecols) |
 | `kBuiltinCommandCount` | constant | [route.md](route.md#kbuiltincommandcount) |
 | `kBuiltinCommands` | constant | [route.md](route.md#kbuiltincommands) |
+| `kCapRecheckSeconds` | constant | [service.md](service.md#kcaprecheckseconds) |
+| `kCapSignatureMarginAmps` | constant | [service.md](service.md#kcapsignaturemarginamps) |
 | `kCartridgeUnset` | constant | [calibrate_screen.md](calibrate_screen.md#kcartridgeunset) |
 | `kColAbortFill` | constant | [calibrate_screen.md](calibrate_screen.md#kcolabortfill) |
 | `kColAmber` | constant | [calibrate_screen.md](calibrate_screen.md#kcolamber) |
@@ -2352,8 +2372,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kDefaultDeadband` | constant | [input_shaping.md](input_shaping.md#kdefaultdeadband) |
 | `kDefaultExpo` | constant | [input_shaping.md](input_shaping.md#kdefaultexpo) |
 | `kDefaultFlightRingTicks` | constant | [sd_sink.md](sd_sink.md#kdefaultflightringticks) |
+| `kDefaultMotorCurrentLimit` | constant | [motor_current_limit.md](motor_current_limit.md#kdefaultmotorcurrentlimit) |
 | `kDegreesToRadians` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kdegreestoradians) |
 | `kDegToRad` | constant | [camera_geometry.md](camera_geometry.md#kdegtorad) |
+| `kDevicesMaxMotors` | constant | [devices.md](devices.md#kdevicesmaxmotors) |
 | `kDiagnosisTool` | constant | [calibrate_screen.md](calibrate_screen.md#kdiagnosistool) |
 | `kDistanceConfidenceAvailableAboveMm` | constant | [distance_conversion.md](distance_conversion.md#kdistanceconfidenceavailableabovemm) |
 | `kDistanceConfidenceFullScale` | constant | [distance_conversion.md](distance_conversion.md#kdistanceconfidencefullscale) |
@@ -2703,6 +2725,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Lift::angleSensor` | field | [kinds.md](kinds.md#lift-anglesensor) |
 | `Lift::cartridge` | field | [kinds.md](kinds.md#lift-cartridge) |
 | `Lift::clampedTo` | function | [kinds.md](kinds.md#lift-clampedto) |
+| `Lift::currentCap` | field | [kinds.md](kinds.md#lift-currentcap) |
 | `Lift::gearing` | field | [kinds.md](kinds.md#lift-gearing) |
 | `Lift::gravity` | field | [kinds.md](kinds.md#lift-gravity) |
 | `Lift::home` | field | [kinds.md](kinds.md#lift-home) |
@@ -2998,6 +3021,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MechanismSpec` | struct | [spec.md](spec.md#struct-mechanismspec) |
 | `MechanismSpec::angleSensor` | field | [spec.md](spec.md#mechanismspec-anglesensor) |
 | `MechanismSpec::cartridge` | field | [spec.md](spec.md#mechanismspec-cartridge) |
+| `MechanismSpec::currentCapAmps` | field | [spec.md](spec.md#mechanismspec-currentcapamps) |
 | `MechanismSpec::declaredFile` | field | [spec.md](spec.md#mechanismspec-declaredfile) |
 | `MechanismSpec::declaredLine` | field | [spec.md](spec.md#mechanismspec-declaredline) |
 | `MechanismSpec::homeSwitch` | field | [spec.md](spec.md#mechanismspec-homeswitch) |
@@ -3213,6 +3237,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotorCartridge::Blue` | enumerator | [drivetrain_description.md](drivetrain_description.md#motorcartridge-blue) |
 | `MotorCartridge::Green` | enumerator | [drivetrain_description.md](drivetrain_description.md#motorcartridge-green) |
 | `MotorCartridge::Red` | enumerator | [drivetrain_description.md](drivetrain_description.md#motorcartridge-red) |
+| `motorCurrentLimitToMilliamps` | free function | [motor_conversion.md](motor_conversion.md#motorcurrentlimittomilliamps) |
 | `MotorGearset` | enum class | [pros-motor.md](pros-motor.md#enum-class-motorgearset) |
 | `MotorGearset::Blue` | enumerator | [pros-motor.md](pros-motor.md#motorgearset-blue) |
 | `MotorGearset::Green` | enumerator | [pros-motor.md](pros-motor.md#motorgearset-green) |
@@ -3741,6 +3766,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Power` | type alias | [kinds.md](kinds.md#power) |
 | `Power` | type alias | [quantity.md](quantity.md#power) |
 | `Power::cartridge` | field | [kinds.md](kinds.md#power-cartridge) |
+| `Power::currentCap` | field | [kinds.md](kinds.md#power-currentcap) |
 | `Power::maxVolts` | field | [kinds.md](kinds.md#power-maxvolts) |
 | `Power::motors` | field | [kinds.md](kinds.md#power-motors) |
 | `Power::name` | field | [kinds.md](kinds.md#power-name) |
@@ -3855,6 +3881,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsDeviceProvider::aiVision` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-aivision) |
 | `ProsDeviceProvider::battery` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-battery) |
 | `ProsDeviceProvider::clock` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-clock) |
+| `ProsDeviceProvider::currentLimit` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-currentlimit) |
 | `ProsDeviceProvider::digitalIn` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-digitalin) |
 | `ProsDeviceProvider::digitalOut` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-digitalout) |
 | `ProsDeviceProvider::distance` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-distance) |
@@ -3935,10 +3962,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsMotor::brakeMode` | function | [pros-motor.md](pros-motor.md#prosmotor-brakemode) |
 | `ProsMotor::commandedVoltage` | function | [pros-motor.md](pros-motor.md#prosmotor-commandedvoltage) |
 | `ProsMotor::current` | function | [pros-motor.md](pros-motor.md#prosmotor-current) |
+| `ProsMotor::currentLimit` | function | [pros-motor.md](pros-motor.md#prosmotor-currentlimit) |
 | `ProsMotor::faultedReads` | function | [pros-motor.md](pros-motor.md#prosmotor-faultedreads) |
 | `ProsMotor::position` | function | [pros-motor.md](pros-motor.md#prosmotor-position) |
 | `ProsMotor::ProsMotor` | function | [pros-motor.md](pros-motor.md#prosmotor-prosmotor) |
 | `ProsMotor::setBrakeMode` | function | [pros-motor.md](pros-motor.md#prosmotor-setbrakemode) |
+| `ProsMotor::setCurrentLimit` | function | [pros-motor.md](pros-motor.md#prosmotor-setcurrentlimit) |
 | `ProsMotor::setVoltage` | function | [pros-motor.md](pros-motor.md#prosmotor-setvoltage) |
 | `ProsMotor::temperature` | function | [pros-motor.md](pros-motor.md#prosmotor-temperature) |
 | `ProsMotor::velocity` | function | [pros-motor.md](pros-motor.md#prosmotor-velocity) |
@@ -4078,6 +4107,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Refusal` | enum class | [spec.md](spec.md#enum-class-refusal) |
 | `Refusal::Aborted` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-aborted) |
 | `Refusal::AbsoluteHomingTheSensorSReadingAtZeroMustBeIn0360` | enumerator | [spec.md](spec.md#refusal-absolutehomingthesensorsreadingatzeromustbein0360) |
+| `Refusal::ACurrentCapMustBeAbove0AndAtMost25A` | enumerator | [spec.md](spec.md#refusal-acurrentcapmustbeabove0andatmost25a) |
+| `Refusal::ACurrentCapMustBeAtLeastOneMilliamp` | enumerator | [spec.md](spec.md#refusal-acurrentcapmustbeatleastonemilliamp) |
 | `Refusal::ADistancePieceSensorNeedsItsSeesWithinDistance0` | enumerator | [spec.md](spec.md#refusal-adistancepiecesensorneedsitsseeswithindistance0) |
 | `Refusal::AHomeSwitchRoleOnAMechanismThatIsNotPosition` | enumerator | [spec.md](spec.md#refusal-ahomeswitchroleonamechanismthatisnotposition) |
 | `Refusal::AMechanismHasNoName` | enumerator | [spec.md](spec.md#refusal-amechanismhasnoname) |
@@ -4093,6 +4124,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Refusal::APneumaticMechanismHasMotorRoles` | enumerator | [spec.md](spec.md#refusal-apneumaticmechanismhasmotorroles) |
 | `Refusal::APneumaticMechanismNeeds12LineRoles` | enumerator | [spec.md](spec.md#refusal-apneumaticmechanismneeds12lineroles) |
 | `Refusal::APresetOrPositionNameDoesNotFit15Characters` | enumerator | [spec.md](spec.md#refusal-apresetorpositionnamedoesnotfit15characters) |
+| `Refusal::AStallSignatureMustBeBelowTheCurrentCap` | enumerator | [spec.md](spec.md#refusal-astallsignaturemustbebelowthecurrentcap) |
 | `Refusal::AStallSignatureNeedsAmpsAbove0` | enumerator | [spec.md](spec.md#refusal-astallsignatureneedsampsabove0) |
 | `Refusal::AStallSignatureNeedsBelowMotorRpmAbove0` | enumerator | [spec.md](spec.md#refusal-astallsignatureneedsbelowmotorrpmabove0) |
 | `Refusal::AStallSignatureNeedsLastingAbove0` | enumerator | [spec.md](spec.md#refusal-astallsignatureneedslastingabove0) |

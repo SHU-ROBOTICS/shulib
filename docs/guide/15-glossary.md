@@ -66,6 +66,10 @@
   along it. For a tank's `moveTo`, the line runs through the target point along the target
   heading; the result line's `xt` column is the cross-track error the leg finished with, + to the
   left of the target heading (tank only, since API 2.3). [Ch. 11]
+- **current cap (a mechanism's)** — `.currentCap = {.amps = …}`: the most current EACH of a
+  mechanism's motors may draw, written into the motors at boot and enforced by the motors themselves (believed, not measured — HA-219) —
+  how hard a lift's string is pulled. Per motor (two motors on one spool pull with twice it); none
+  written means the motor's own 2.5 A; a stall signature must sit below it. [Ch. 18]
 - **dead reckoning** — estimating position purely by accumulating your own measured movement,
   with no external reference (the `DR` flag). [Ch. 3]
 - **declaration (a mechanism's)** — what a mechanism IS, written once in the robot file

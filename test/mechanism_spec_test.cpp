@@ -19,6 +19,13 @@
 //     inside", so a NaN is refused like any number outside).
 //   * THE SENTENCES: every reason has one, non-empty and unique; None has none; a byte past the list
 //     reads "an unknown refusal".
+//   * THE CURRENT CAP (MECH-S-A, the MECH-S brief's CA1–CA3): a written cap below 0, above 2.5 or NaN
+//     refused, and one above 0 but under one milliamp (0.0009, 0.0004 — refusal 73, MECH-S-A's review: a V5
+//     limit is whole mA, so it would go out as 0 mA) — 2.5 and 0.001 exactly accepted, and NO cap, which a
+//     cap WRITTEN as 0 or -0.0 is too (0 = none stated: the brief's CA1 "≤ 0" is §1.1's "0 = none" here — a
+//     logged delta); every written signature (a power's, an arm's, its homing's, a flywheel's) AT the cap
+//     refused, 0.01 A below accepted; the reasons LAST in the check order (an old reason still wins over
+//     them; the cap's own range, 71 then 73, before the signature's 72) and last in the list (71, 72, 73).
 // The same reasons AT BUILD, through a declaration, are test/compile_refusals/'s (MECH brief §3.0).
 
 #include "doctest.h"
@@ -268,6 +275,37 @@ std::vector<Case> oneProperty() {
         Refusal::AStallSignatureNeedsLastingAbove0);
     add("an arm signature lasting 0", [] { auto s = arm(); s.position.stall.time = 0.0; return s; },
         Refusal::AStallSignatureNeedsLastingAbove0);
+    // MECH-S-A (CA1): a WRITTEN current cap outside (0, 2.5] — each side, and a NaN ("not inside").
+    add("a current cap of -0.5 A", [] { auto s = lift(); s.position.stall.amps = 1.0; s.currentCapAmps = -0.5; return s; },
+        Refusal::ACurrentCapMustBeAbove0AndAtMost25A);
+    add("a current cap of 2.51 A", [] { auto s = arm(); s.position.stall.amps = 1.0; s.currentCapAmps = 2.51; return s; },
+        Refusal::ACurrentCapMustBeAbove0AndAtMost25A);
+    add("a current cap of 3.0 A on a flywheel", [] { auto s = flywheel(); s.currentCapAmps = 3.0; return s; },
+        Refusal::ACurrentCapMustBeAbove0AndAtMost25A);
+    add("a current cap that is not a number", [] { auto s = intake(); s.currentCapAmps = kNaN; return s; },
+        Refusal::ACurrentCapMustBeAbove0AndAtMost25A);
+    // MECH-S-A review (refusal 73): above 0 but under one milliamp — the motor would be sent 0 mA. 0.0009 is
+    // the edge's near side (0.001 itself is accepted below), 0.0004 the reviewer's case, the smallest
+    // positive double the far end.
+    add("a current cap of 0.0009 A (under one milliamp)", [] { auto s = arm(); s.position.stall.amps = 0.0005; s.currentCapAmps = 0.0009; return s; },
+        Refusal::ACurrentCapMustBeAtLeastOneMilliamp);
+    add("a current cap of 0.0004 A (it would be sent as 0 mA)", [] { auto s = intake(); s.currentCapAmps = 0.0004; return s; },
+        Refusal::ACurrentCapMustBeAtLeastOneMilliamp);
+    add("a current cap of the smallest positive double", [] { auto s = flywheel(); s.currentCapAmps = std::numeric_limits<double>::denorm_min(); return s; },
+        Refusal::ACurrentCapMustBeAtLeastOneMilliamp);
+    // MECH-S-A (CA2): every WRITTEN signature AT the cap — it could never trip (a capped motor never draws more).
+    add("an arm's stall signature AT its cap", [] { auto s = arm(); s.position.stall.amps = 1.2; s.currentCapAmps = 1.2; return s; },
+        Refusal::AStallSignatureMustBeBelowTheCurrentCap);
+    add("a lift's stall signature ABOVE its cap", [] { auto s = lift(); s.currentCapAmps = 1.2; return s; },  // 2.0 A
+        Refusal::AStallSignatureMustBeBelowTheCurrentCap);
+    add("a HOMING signature AT the cap (the move's below it)",
+        [] { auto s = swing(); s.position.stall.amps = 0.5; s.position.homeStall.amps = 1.0; s.currentCapAmps = 1.0; return s; },
+        Refusal::AStallSignatureMustBeBelowTheCurrentCap);
+    add("a flywheel's signature AT its cap", [] { auto s = flywheel(); s.speed.stall.amps = 1.5; s.currentCapAmps = 1.5; return s; },
+        Refusal::AStallSignatureMustBeBelowTheCurrentCap);
+    add("a power's optional signature AT its cap",
+        [] { auto s = intake(); s.power.stall = {.amps = 0.8, .speedRadS = 1.0, .time = 0.5}; s.currentCapAmps = 0.8; return s; },
+        Refusal::AStallSignatureMustBeBelowTheCurrentCap);
     add("a power signature with its amps left out (MECH-A1)", [] { auto s = intake(); s.power.stall = {.amps = 0.0, .speedRadS = 1.0, .time = 0.5}; return s; },
         Refusal::AStallSignatureNeedsAmpsAbove0);
     add("a homing signature with negative amps", [] { auto s = swing(); s.position.homeStall.amps = -1.5; return s; },
@@ -327,6 +365,19 @@ std::vector<Case> boundariesAccepted() {
     };
     add("a 23-character name", [] { auto s = arm(); setName(s, "abcdefghijklmnopqrstuvw"); return s; });
     add("a stall signature at 2.49 A", [] { auto s = arm(); s.position.stall.amps = 2.49; return s; });
+    // MECH-S-A (CA1, CA2): a cap of 2.5 A exactly (the motor's own) and none; each signature 0.01 A below it.
+    add("a current cap of exactly 2.5 A (signature 2.49)", [] { auto s = arm(); s.position.stall.amps = 2.49; s.currentCapAmps = 2.5; return s; });
+    add("no current cap (0 = none stated)", [] { auto s = lift(); s.currentCapAmps = 0.0; return s; });
+    add("a current cap WRITTEN as -0.0: no cap, like 0", [] { auto s = lift(); s.currentCapAmps = -0.0; return s; });
+    add("a current cap of exactly 0.001 A, one milliamp (refusal 73's edge)", [] { auto s = arm(); s.position.stall.amps = 0.0005; s.currentCapAmps = 0.001; return s; });
+    add("a tiny current cap, 0.01 A, over a 0.005 A signature", [] { auto s = arm(); s.position.stall.amps = 0.005; s.currentCapAmps = 0.01; return s; });
+    add("an arm's signature 0.01 A below its cap", [] { auto s = arm(); s.position.stall.amps = 1.19; s.currentCapAmps = 1.2; return s; });
+    add("a homing signature 0.01 A below its cap",
+        [] { auto s = swing(); s.position.stall.amps = 0.5; s.position.homeStall.amps = 0.99; s.currentCapAmps = 1.0; return s; });
+    add("a flywheel's signature 0.01 A below its cap", [] { auto s = flywheel(); s.speed.stall.amps = 1.49; s.currentCapAmps = 1.5; return s; });
+    add("a power's signature 0.01 A below its cap",
+        [] { auto s = intake(); s.power.stall = {.amps = 0.79, .speedRadS = 1.0, .time = 0.5}; s.currentCapAmps = 0.8; return s; });
+    add("a capped power with no signature at all", [] { auto s = intake(); s.currentCapAmps = 0.5; return s; });
     add("a stall signature at 0.1 motor rpm", [] { auto s = arm(); s.position.stall.speedRadS = 0.1 * 2.0 * 3.141592653589793 / 60.0; return s; });
     add("a linkage top limit exactly at its formula's reach", [] { auto s = dr4b(); s.position.maxPosition = 38.0; return s; });
     add("a linkage bottom limit exactly at its formula's reach", [] { auto s = dr4b(); s.position.minPosition = -18.0; return s; });
@@ -439,7 +490,7 @@ TEST_CASE("MECH-A1 spec: ONE property wrong gives exactly THAT refusal and its s
     }
     // EVERY reason the list holds was produced by a case: a reason appended to spec.hpp with no case
     // here turns this red (the list's last enumerator is the bound).
-    const int last = static_cast<int>(Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn);
+    const int last = static_cast<int>(Refusal::ACurrentCapMustBeAtLeastOneMilliamp);
     for (int r = 1; r <= last; ++r) {
         CAPTURE(r);
         CHECK(hit.count(r) == 1U);
@@ -550,6 +601,30 @@ TEST_CASE("MECH-A1 spec: the CHECK ORDER, peeled -- each fix reveals the NEXT re
         s.position.homeVolts = good.position.homeVolts;
         CHECK(specRefusal(s) == Refusal::None);
     }
+    SUBCASE("MECH-S-A (CA3): the cap reasons come LAST -- an old reason wins over them, the range (71, 73) before the signature (72)") {
+        MechanismSpec s = lift();
+        s.position.tolerance = 0.0;     // an old reason
+        s.currentCapAmps = 2.6;         // the cap's range
+        s.position.homeStall = {.amps = 0.0, .speedRadS = 0.0, .time = 0.0};
+        const MechanismSpec good = lift();
+        CHECK(specRefusal(s) == Refusal::PositionToleranceMustBe0);
+        s.position.tolerance = good.position.tolerance;
+        CHECK(specRefusal(s) == Refusal::ACurrentCapMustBeAbove0AndAtMost25A);
+        s.currentCapAmps = 1.5;         // in range now, but below the lift's 2.0 A signature
+        CHECK(specRefusal(s) == Refusal::AStallSignatureMustBeBelowTheCurrentCap);
+        s.position.stall.amps = 1.49;
+        CHECK(specRefusal(s) == Refusal::None);
+        // under one milliamp (73) is the CAP's fault, named before the signature's (72), though the lift's
+        // 1.49 A signature is far above it too
+        s.currentCapAmps = 0.0005;
+        CHECK(specRefusal(s) == Refusal::ACurrentCapMustBeAtLeastOneMilliamp);
+        s.currentCapAmps = 1.5;
+        CHECK(specRefusal(s) == Refusal::None);
+        // and the OLD 2.5 A rule still fires first for a signature at 2.5 under a cap of 2.5
+        s.position.stall.amps = 2.5;
+        s.currentCapAmps = 2.5;
+        CHECK(specRefusal(s) == Refusal::AStallSignatureSAmpsMustBeBelowTheMotorS25ACurrentLimit);
+    }
     SUBCASE("a flywheel and a pneumatic: the split fields after their partners") {
         MechanismSpec f = flywheel();
         f.speed.atSpeedBandRpm = 0.0;
@@ -595,7 +670,7 @@ TEST_CASE("MECH-A1 spec: the CHECK ORDER, peeled -- each fix reveals the NEXT re
 
 TEST_CASE("MECH-A1 spec: every refusal has its own sentence; None has none; a byte past the list is 'unknown'") {
     std::set<std::string> sentences;
-    const int last = static_cast<int>(Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn);
+    const int last = static_cast<int>(Refusal::ACurrentCapMustBeAtLeastOneMilliamp);
     for (int r = 1; r <= last; ++r) {
         CAPTURE(r);
         const char* text = refusalText(static_cast<Refusal>(r));
@@ -612,6 +687,16 @@ TEST_CASE("MECH-A1 spec: every refusal has its own sentence; None has none; a by
     CHECK(std::string{refusalText(Refusal::AStallSignatureNeedsBelowMotorRpmAbove0)}
           == "a stall signature needs belowMotorRpm above 0 (a stalled motor still reads a little creep: at 0 "
              "it would never trip)");
+    // MECH-S-A's two, verbatim (the guide's words; G3a Part 5 mirrors them by sentence).
+    CHECK(std::string{refusalText(Refusal::ACurrentCapMustBeAbove0AndAtMost25A)}
+          == "a current cap must be above 0 and at most 2.5 A (the motor's own limit is 2.5 A; leave .currentCap "
+             "out for no cap)");
+    CHECK(std::string{refusalText(Refusal::AStallSignatureMustBeBelowTheCurrentCap)}
+          == "a stall signature's amps must be below the current cap (a capped motor never draws more than its "
+             "cap: the signature would never trip)");
+    CHECK(std::string{refusalText(Refusal::ACurrentCapMustBeAtLeastOneMilliamp)}
+          == "a current cap must be at least 0.001 A (a V5 motor holds its limit in whole milliamps: a smaller "
+             "cap would be sent as 0 mA, a motor with no torque at all)");
 }
 
 TEST_CASE("MECH-A1 spec: refusal 1..N keep their numbers (append-only: G3a mirrors the list)") {
@@ -634,6 +719,11 @@ TEST_CASE("MECH-A1 spec: refusal 1..N keep their numbers (append-only: G3a mirro
     CHECK(static_cast<int>(Refusal::PositionUnhomedVoltsIsNotIn0To12) == 69);
     // MECH-A3 appended one, after every earlier number.
     CHECK(static_cast<int>(Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn) == 70);
+    // MECH-S-A appended two, after every earlier number (the brief's CA3, MA7).
+    CHECK(static_cast<int>(Refusal::ACurrentCapMustBeAbove0AndAtMost25A) == 71);
+    CHECK(static_cast<int>(Refusal::AStallSignatureMustBeBelowTheCurrentCap) == 72);
+    // MECH-S-A's review appended one, after every earlier number (a cap under one milliamp).
+    CHECK(static_cast<int>(Refusal::ACurrentCapMustBeAtLeastOneMilliamp) == 73);
 }
 
 TEST_CASE("MECH-A1 spec: nameOf reads up to the NUL, bounded by the field") {

@@ -472,6 +472,17 @@ not silently break them. This table is the spine of the no-staleness promise.
 > refuse-rather-than-guess gates as L6-A1, sampled through the auton's own clock, so a deadline cuts it. A RELATIVE-start
 > auton is refused with "not a field start". **Next for the wall reset: L6-B** (robot two's sensors and the WALL bench page).
 >
+> **Now (2026-11-10): MECH-S-A, a mechanism's current cap, has LANDED — host-only.** A robot file may state
+> `.currentCap = {.amps = …}` on a Power, an Arm, a Lift or a Flywheel: the most each motor may draw, written
+> into the motors at boot and enforced by the motors themselves — how hard robot one's string cascade will
+> pull its strings once its robot file exists. The build refuses a cap below 0, above 2.5 A or under one
+> milliamp (a cap written as 0 is no cap) and any stall or homing signature at or above it; the boot warns
+> when a signature is not more than 0.2 A below it; a mechanism with no cap is only read, never
+> written (robot two states none, so its boot is unchanged while its claw motors read 2.5 A). Register entries
+> [HA-219..HA-223](hardware-assumptions.md) hold its beliefs; nothing has run on a robot.
+> [Chapter 18](guide/18-mechanisms.md#current-caps--how-hard-a-string-is-pulled) teaches it. **Next for
+> MECH-S/TUNE1 is TUNE1-A** (live tuning's library); the slack watch (MECH-S-B) is after the 21st.
+>
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
 > robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver

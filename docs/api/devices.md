@@ -8,12 +8,13 @@
 
 mechanism/devices.hpp — the DEVICES one mechanism was built over, and what the build found for each of its ROLES.
 
-This header declares **3** types (20 members).
+This header declares **3** types (21 members) and **1** constant.
 
 Extracted from [`include/shulib/mechanism/devices.hpp`](../../include/shulib/mechanism/devices.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 
+- [`kDevicesMaxMotors`](#kdevicesmaxmotors) — *constant*
 - [`struct Devices`](#struct-devices)
   - [`motors`](#devices-motors)
   - [`pneumatic`](#devices-pneumatic)
@@ -25,6 +26,7 @@ Extracted from [`include/shulib/mechanism/devices.hpp`](../../include/shulib/mec
   - [`pieceFaults`](#devices-piecefaults)
   - [`homeSwitchFaults`](#devices-homeswitchfaults)
   - [`absence`](#devices-absence)
+  - [`currentLimits`](#devices-currentlimits)
 - [`enum class RoleState`](#enum-class-rolestate)
   - [`Present`](#rolestate-present)
   - [`Refused`](#rolestate-refused)
@@ -38,6 +40,18 @@ Extracted from [`include/shulib/mechanism/devices.hpp`](../../include/shulib/mec
   - [`degradeOnly`](#rolefact-degradeonly)
   - [`refusal`](#rolefact-refusal)
 
+<a id="kdevicesmaxmotors"></a>
+
+## `kDevicesMaxMotors`
+
+```cpp
+inline constexpr std::size_t kDevicesMaxMotors = 4
+```
+
+How many motors one mechanism's `Devices` has room for: config::kMaxMotorsPerMechanism, stated here because this header includes nothing above hal/ (robot/mechanism_parts.hpp and mechanism/service.hpp each static_assert that the two agree).
+
+*constant, declared at [`include/shulib/mechanism/devices.hpp:41`](../../include/shulib/mechanism/devices.hpp#L41).*
+
 <a id="struct-devices"></a>
 
 ## `struct Devices`
@@ -48,7 +62,7 @@ struct Devices
 
 The devices one mechanism was built over (header).
 
-*struct, declared at [`include/shulib/mechanism/devices.hpp:31`](../../include/shulib/mechanism/devices.hpp#L31).*
+*struct, declared at [`include/shulib/mechanism/devices.hpp:44`](../../include/shulib/mechanism/devices.hpp#L44).*
 
 <a id="devices-motors"></a>
 
@@ -60,7 +74,7 @@ hal::MotorMechanism* motors = nullptr
 
 A motor kind's actuator (power, position, speed); nullptr for a pneumatic or when ABSENT.
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:33`](../../include/shulib/mechanism/devices.hpp#L33).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:46`](../../include/shulib/mechanism/devices.hpp#L46).*
 
 <a id="devices-pneumatic"></a>
 
@@ -72,7 +86,7 @@ hal::PneumaticMechanism* pneumatic = nullptr
 
 A pneumatic kind's actuator; nullptr for a motor kind or when ABSENT.
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:35`](../../include/shulib/mechanism/devices.hpp#L35).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:48`](../../include/shulib/mechanism/devices.hpp#L48).*
 
 <a id="devices-anglesensor"></a>
 
@@ -84,7 +98,7 @@ hal::IRotation* angleSensor = nullptr
 
 Its angle sensor (a Rotation role).
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:37`](../../include/shulib/mechanism/devices.hpp#L37).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:50`](../../include/shulib/mechanism/devices.hpp#L50).*
 
 <a id="devices-homeswitch"></a>
 
@@ -96,7 +110,7 @@ hal::IDigitalIn* homeSwitch = nullptr
 
 Its home switch (a limit switch on a 3-wire line).
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:39`](../../include/shulib/mechanism/devices.hpp#L39).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:52`](../../include/shulib/mechanism/devices.hpp#L52).*
 
 <a id="devices-piecedistance"></a>
 
@@ -108,7 +122,7 @@ hal::IDistance* pieceDistance = nullptr
 
 Its piece sensor when it is a distance sensor (at most one of the three piece pointers).
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:41`](../../include/shulib/mechanism/devices.hpp#L41).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:54`](../../include/shulib/mechanism/devices.hpp#L54).*
 
 <a id="devices-pieceoptical"></a>
 
@@ -120,7 +134,7 @@ hal::IOptical* pieceOptical = nullptr
 
 Its piece sensor when it is an optical sensor.
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:43`](../../include/shulib/mechanism/devices.hpp#L43).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:56`](../../include/shulib/mechanism/devices.hpp#L56).*
 
 <a id="devices-pieceswitch"></a>
 
@@ -132,7 +146,7 @@ hal::IDigitalIn* pieceSwitch = nullptr
 
 Its piece sensor when it is a limit switch.
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:45`](../../include/shulib/mechanism/devices.hpp#L45).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:58`](../../include/shulib/mechanism/devices.hpp#L58).*
 
 <a id="devices-piecefaults"></a>
 
@@ -144,7 +158,7 @@ const hal::IReadFaults* pieceFaults = nullptr
 
 The piece sensor's READ-FAULT count (the provider's readFaults(port) / lineReadFaults(line)): a sample taken while it moved was a HELD value, never evidence. nullptr = no piece sensor, or one that never screens a read.
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:49`](../../include/shulib/mechanism/devices.hpp#L49).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:62`](../../include/shulib/mechanism/devices.hpp#L62).*
 
 <a id="devices-homeswitchfaults"></a>
 
@@ -156,7 +170,7 @@ const hal::IReadFaults* homeSwitchFaults = nullptr
 
 The home switch's read-fault count (lineReadFaults(line)).
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:51`](../../include/shulib/mechanism/devices.hpp#L51).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:64`](../../include/shulib/mechanism/devices.hpp#L64).*
 
 <a id="devices-absence"></a>
 
@@ -168,7 +182,19 @@ const char* absence = ""
 
 Why the mechanism was NOT built — the provider's sentence naming the port; "" when it was.
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:53`](../../include/shulib/mechanism/devices.hpp#L53).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:66`](../../include/shulib/mechanism/devices.hpp#L66).*
+
+<a id="devices-currentlimits"></a>
+
+### `Devices::currentLimits`
+
+```cpp
+hal::IMotorCurrentLimit* currentLimits[kDevicesMaxMotors]{}
+```
+
+Each motor's own current limit, in the motors' order (MECH-S-A; the provider's currentLimit(port)); nullptr past the mechanism's motors, for a pneumatic or ABSENT one, and where the provider's motor cannot limit its current.
+
+*field, declared at [`include/shulib/mechanism/devices.hpp:70`](../../include/shulib/mechanism/devices.hpp#L70).*
 
 <a id="enum-class-rolestate"></a>
 
@@ -180,7 +206,7 @@ enum class RoleState : std::uint8_t
 
 What the build found for ONE ROLE — the facts its boot line words (mechanism::roleLine, in mechanism/wiring.hpp).
 
-*enum class, declared at [`include/shulib/mechanism/devices.hpp:58`](../../include/shulib/mechanism/devices.hpp#L58).*
+*enum class, declared at [`include/shulib/mechanism/devices.hpp:75`](../../include/shulib/mechanism/devices.hpp#L75).*
 
 <a id="rolestate-present"></a>
 
@@ -192,7 +218,7 @@ Present
 
 a smart device of the expected kind answered on its port
 
-*enumerator, declared at [`include/shulib/mechanism/devices.hpp:59`](../../include/shulib/mechanism/devices.hpp#L59).*
+*enumerator, declared at [`include/shulib/mechanism/devices.hpp:76`](../../include/shulib/mechanism/devices.hpp#L76).*
 
 <a id="rolestate-refused"></a>
 
@@ -204,7 +230,7 @@ Refused
 
 the provider refused it (its sentence names the port and what was found)
 
-*enumerator, declared at [`include/shulib/mechanism/devices.hpp:60`](../../include/shulib/mechanism/devices.hpp#L60).*
+*enumerator, declared at [`include/shulib/mechanism/devices.hpp:77`](../../include/shulib/mechanism/devices.hpp#L77).*
 
 <a id="rolestate-notcheckable"></a>
 
@@ -216,7 +242,7 @@ NotCheckable
 
 a 3-wire role: made, but the brain cannot see a 3-wire device (HA-158)
 
-*enumerator, declared at [`include/shulib/mechanism/devices.hpp:61`](../../include/shulib/mechanism/devices.hpp#L61).*
+*enumerator, declared at [`include/shulib/mechanism/devices.hpp:78`](../../include/shulib/mechanism/devices.hpp#L78).*
 
 <a id="rolestate-notasked"></a>
 
@@ -228,7 +254,7 @@ NotAsked
 
 not requested: the mechanism was already ABSENT
 
-*enumerator, declared at [`include/shulib/mechanism/devices.hpp:62`](../../include/shulib/mechanism/devices.hpp#L62).*
+*enumerator, declared at [`include/shulib/mechanism/devices.hpp:79`](../../include/shulib/mechanism/devices.hpp#L79).*
 
 <a id="struct-rolefact"></a>
 
@@ -240,7 +266,7 @@ struct RoleFact
 
 One role of one mechanism, as the build left it — what a boot line needs.
 
-*struct, declared at [`include/shulib/mechanism/devices.hpp:66`](../../include/shulib/mechanism/devices.hpp#L66).*
+*struct, declared at [`include/shulib/mechanism/devices.hpp:83`](../../include/shulib/mechanism/devices.hpp#L83).*
 
 <a id="rolefact-role"></a>
 
@@ -252,7 +278,7 @@ const char* role = ""
 
 The role in the boot line's words: "motor 1".."motor 4", "line 1", "line 2", "angle sensor", "home switch", "piece sensor".
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:69`](../../include/shulib/mechanism/devices.hpp#L69).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:86`](../../include/shulib/mechanism/devices.hpp#L86).*
 
 <a id="rolefact-port"></a>
 
@@ -264,7 +290,7 @@ std::uint8_t port = 0
 
 Its smart port, physical (1..21); 0 for a 3-wire role.
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:71`](../../include/shulib/mechanism/devices.hpp#L71).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:88`](../../include/shulib/mechanism/devices.hpp#L88).*
 
 <a id="rolefact-line"></a>
 
@@ -276,7 +302,7 @@ std::uint8_t line = 0
 
 Its 3-wire line, 1..8 = A..H; 0 for a smart role.
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:73`](../../include/shulib/mechanism/devices.hpp#L73).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:90`](../../include/shulib/mechanism/devices.hpp#L90).*
 
 <a id="rolefact-state"></a>
 
@@ -288,7 +314,7 @@ RoleState state = RoleState::NotAsked
 
 What the build found.
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:75`](../../include/shulib/mechanism/devices.hpp#L75).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:92`](../../include/shulib/mechanism/devices.hpp#L92).*
 
 <a id="rolefact-degradeonly"></a>
 
@@ -300,7 +326,7 @@ bool degradeOnly = false
 
 A refusal that leaves the mechanism RUNNING WITHOUT this role (a piece sensor), rather than ABSENT.
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:78`](../../include/shulib/mechanism/devices.hpp#L78).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:95`](../../include/shulib/mechanism/devices.hpp#L95).*
 
 <a id="rolefact-refusal"></a>
 
@@ -312,14 +338,14 @@ const char* refusal = ""
 
 The provider's refusal sentence when `state` is Refused (stable for the parts' lifetime); "" otherwise.
 
-*field, declared at [`include/shulib/mechanism/devices.hpp:81`](../../include/shulib/mechanism/devices.hpp#L81).*
+*field, declared at [`include/shulib/mechanism/devices.hpp:98`](../../include/shulib/mechanism/devices.hpp#L98).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 16 lines</summary>
+<summary>The header’s own reasoning — 22 lines</summary>
 
 ```text
 
@@ -336,6 +362,12 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  piece sensor) it was refused and the mechanism runs WITHOUT one. The read-fault pointers are the
  provider's IDeviceProvider::readFaults / lineReadFaults for that sensor (hal/read_faults.hpp):
  the service reads a sample taken while one moved as HELD, never as evidence (MECH-A2's rule).
+
+ Since MECH-S-A (2026-11-05) a motor mechanism's `Devices` also carries each motor's own CURRENT
+ LIMIT (the provider's IDeviceProvider::currentLimit(port) — hal/motor_current_limit.hpp), in the
+ motors' order: the service writes a stated cap through it at boot and reads every motor's limit
+ back (mechanism/service.hpp). nullptr = no such motor, or a provider whose motor cannot limit its
+ current (the service says so when a cap is stated).
 
  PROS-free, allocation-free.
 ```

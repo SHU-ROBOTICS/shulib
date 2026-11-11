@@ -14,18 +14,31 @@
 // provider's IDeviceProvider::readFaults / lineReadFaults for that sensor (hal/read_faults.hpp):
 // the service reads a sample taken while one moved as HELD, never as evidence (MECH-A2's rule).
 //
+// Since MECH-S-A (2026-11-05) a motor mechanism's `Devices` also carries each motor's own CURRENT
+// LIMIT (the provider's IDeviceProvider::currentLimit(port) — hal/motor_current_limit.hpp), in the
+// motors' order: the service writes a stated cap through it at boot and reads every motor's limit
+// back (mechanism/service.hpp). nullptr = no such motor, or a provider whose motor cannot limit its
+// current (the service says so when a cap is stated).
+//
 // PROS-free, allocation-free.
 
+#include <cstddef>
 #include <cstdint>
 
 #include "shulib/hal/digital_in.hpp"
 #include "shulib/hal/distance.hpp"
 #include "shulib/hal/mechanism.hpp"
+#include "shulib/hal/motor_current_limit.hpp"
 #include "shulib/hal/optical.hpp"
 #include "shulib/hal/read_faults.hpp"
 #include "shulib/hal/rotation.hpp"
 
 namespace shulib::mechanism {
+
+/// How many motors one mechanism's `Devices` has room for: config::kMaxMotorsPerMechanism, stated
+/// here because this header includes nothing above hal/ (robot/mechanism_parts.hpp and
+/// mechanism/service.hpp each static_assert that the two agree).
+inline constexpr std::size_t kDevicesMaxMotors = 4;
 
 /// The devices one mechanism was built over (header).
 struct Devices {
@@ -51,6 +64,10 @@ struct Devices {
     const hal::IReadFaults* homeSwitchFaults = nullptr;
     /// Why the mechanism was NOT built — the provider's sentence naming the port; "" when it was.
     const char* absence = "";
+    /// Each motor's own current limit, in the motors' order (MECH-S-A; the provider's
+    /// currentLimit(port)); nullptr past the mechanism's motors, for a pneumatic or ABSENT one, and
+    /// where the provider's motor cannot limit its current.
+    hal::IMotorCurrentLimit* currentLimits[kDevicesMaxMotors]{};
 };
 
 /// What the build found for ONE ROLE — the facts its boot line words (mechanism::roleLine, in

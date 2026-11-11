@@ -45,7 +45,7 @@ class MechanismParts
 
 Every role of every mechanism a config declares, built over a device provider (header). Built ONCE, by build(); non-copyable and non-movable — the built mechanisms hold spans into its storage.
 
-*class, declared at [`include/shulib/robot/mechanism_parts.hpp:67`](../../include/shulib/robot/mechanism_parts.hpp#L67).*
+*class, declared at [`include/shulib/robot/mechanism_parts.hpp:74`](../../include/shulib/robot/mechanism_parts.hpp#L74).*
 
 <a id="mechanismparts-kreasonbytes"></a>
 
@@ -57,7 +57,7 @@ static constexpr std::size_t kReasonBytes = 160
 
 The longest reason a mechanism was not built (or a piece sensor was refused), NUL included — sized to the on-robot provider's refusal buffer (hal::pros::ProsDeviceProvider::kRefusalBytes) so the whole sentence it wrote survives the copy.
 
-*field, declared at [`include/shulib/robot/mechanism_parts.hpp:72`](../../include/shulib/robot/mechanism_parts.hpp#L72).*
+*field, declared at [`include/shulib/robot/mechanism_parts.hpp:79`](../../include/shulib/robot/mechanism_parts.hpp#L79).*
 
 <a id="mechanismparts-kmaxroles"></a>
 
@@ -69,7 +69,7 @@ static constexpr std::size_t kMaxRoles = config::kMaxMotorsPerMechanism + config
 
 The most roles one mechanism has: its motors (or lines), an angle sensor, a home switch and a piece sensor.
 
-*field, declared at [`include/shulib/robot/mechanism_parts.hpp:75`](../../include/shulib/robot/mechanism_parts.hpp#L75).*
+*field, declared at [`include/shulib/robot/mechanism_parts.hpp:82`](../../include/shulib/robot/mechanism_parts.hpp#L82).*
 
 <a id="mechanismparts-mechanismparts"></a>
 
@@ -81,7 +81,7 @@ MechanismParts() = default
 
 Empty: nothing built.
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:79`](../../include/shulib/robot/mechanism_parts.hpp#L79).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:86`](../../include/shulib/robot/mechanism_parts.hpp#L86).*
 
 <a id="mechanismparts-mechanismparts-2"></a>
 
@@ -93,7 +93,7 @@ MechanismParts(const MechanismParts&) = delete
 
 Empty: nothing built. Non-copyable: the built mechanisms hold spans into this object's storage.
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:81`](../../include/shulib/robot/mechanism_parts.hpp#L81).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:88`](../../include/shulib/robot/mechanism_parts.hpp#L88).*
 
 <a id="mechanismparts-mechanismparts-3"></a>
 
@@ -105,7 +105,7 @@ MechanismParts(MechanismParts&&) = delete
 
 Empty: nothing built. Non-copyable: the built mechanisms hold spans into this object's storage. Non-movable, same reasoning.
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:83`](../../include/shulib/robot/mechanism_parts.hpp#L83).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:90`](../../include/shulib/robot/mechanism_parts.hpp#L90).*
 
 <a id="mechanismparts-operator-eq"></a>
 
@@ -117,7 +117,7 @@ MechanismParts& operator=(const MechanismParts&) = delete
 
 Empty: nothing built. Non-copyable: the built mechanisms hold spans into this object's storage. Non-movable, same reasoning. Non-copy-assignable, same reasoning.
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:85`](../../include/shulib/robot/mechanism_parts.hpp#L85).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:92`](../../include/shulib/robot/mechanism_parts.hpp#L92).*
 
 <a id="mechanismparts-operator-eq-2"></a>
 
@@ -129,7 +129,7 @@ MechanismParts& operator=(MechanismParts&&) = delete
 
 Empty: nothing built. Non-copyable: the built mechanisms hold spans into this object's storage. Non-movable, same reasoning. Non-copy-assignable, same reasoning. Non-move-assignable, same reasoning.
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:87`](../../include/shulib/robot/mechanism_parts.hpp#L87).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:94`](../../include/shulib/robot/mechanism_parts.hpp#L94).*
 
 <a id="mechanismparts-destructor-mechanismparts"></a>
 
@@ -141,7 +141,7 @@ Empty: nothing built. Non-copyable: the built mechanisms hold spans into this ob
 
 Empty: nothing built. Non-copyable: the built mechanisms hold spans into this object's storage. Non-movable, same reasoning. Non-copy-assignable, same reasoning. Non-move-assignable, same reasoning. Destroys the mechanisms it built (never the devices: the provider owns those).
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:89`](../../include/shulib/robot/mechanism_parts.hpp#L89).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:96`](../../include/shulib/robot/mechanism_parts.hpp#L96).*
 
 <a id="mechanismparts-build"></a>
 
@@ -153,7 +153,7 @@ void build(std::span<const config::MechanismConfig> configs, hal::IDeviceProvide
 
 Build every mechanism of `configs`, in order (header: THE ORDER). The configs are BORROWED, not copied: each built mechanism's name() is the pointer into them, exactly as the Robot's mechanisms have always borrowed the Robot's own config copy (robot_builder_test.cpp pins that pointer) — so `configs` must OUTLIVE this object. The Robot hands in its own copy (made for exactly that reason: it never keeps a caller's reference); a caller with no Robot keeps its configs in static storage beside the parts. `devices` is asked for every role and must outlive this object too. PRECONDITIONS: called once; at most config::kMaxMechanisms configs; the configs passed RobotConfig::valid() (a provider precondition — one port asked twice with two configurations, one 3-wire line asked as an output and an input — would otherwise throw out of here, loudly).
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:101`](../../include/shulib/robot/mechanism_parts.hpp#L101).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:108`](../../include/shulib/robot/mechanism_parts.hpp#L108).*
 
 <a id="mechanismparts-size"></a>
 
@@ -165,7 +165,7 @@ Build every mechanism of `configs`, in order (header: THE ORDER). The configs ar
 
 How many mechanisms were declared (built or not).
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:114`](../../include/shulib/robot/mechanism_parts.hpp#L114).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:121`](../../include/shulib/robot/mechanism_parts.hpp#L121).*
 
 <a id="mechanismparts-devices"></a>
 
@@ -177,7 +177,7 @@ How many mechanisms were declared (built or not).
 
 Every declared mechanism's devices, in config order — what the mechanism service binds over (MECH-A2). An ABSENT one has every pointer null and its `absence` set.
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:118`](../../include/shulib/robot/mechanism_parts.hpp#L118).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:125`](../../include/shulib/robot/mechanism_parts.hpp#L125).*
 
 <a id="mechanismparts-built"></a>
 
@@ -189,7 +189,7 @@ Every declared mechanism's devices, in config order — what the mechanism servi
 
 Every BUILT mechanism of both kinds, in config order — the `hal::IMechanism*` span an end-of-run guard walks. An ABSENT one is not in it.
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:124`](../../include/shulib/robot/mechanism_parts.hpp#L124).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:131`](../../include/shulib/robot/mechanism_parts.hpp#L131).*
 
 <a id="mechanismparts-builtat"></a>
 
@@ -201,7 +201,7 @@ Every BUILT mechanism of both kinds, in config order — the `hal::IMechanism*` 
 
 The `i`-th declared mechanism if it was built, of either kind; nullptr when ABSENT, when it has nothing to build, or when `i` is not below size().
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:130`](../../include/shulib/robot/mechanism_parts.hpp#L130).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:137`](../../include/shulib/robot/mechanism_parts.hpp#L137).*
 
 <a id="mechanismparts-motorat"></a>
 
@@ -213,7 +213,7 @@ The `i`-th declared mechanism if it was built, of either kind; nullptr when ABSE
 
 The `i`-th declared mechanism as a built MOTOR mechanism; nullptr when ABSENT, pneumatic, or `i` is not below size().
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:142`](../../include/shulib/robot/mechanism_parts.hpp#L142).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:149`](../../include/shulib/robot/mechanism_parts.hpp#L149).*
 
 <a id="mechanismparts-pneumaticat"></a>
 
@@ -225,7 +225,7 @@ The `i`-th declared mechanism as a built MOTOR mechanism; nullptr when ABSENT, p
 
 The `i`-th declared mechanism as a built PNEUMATIC mechanism; nullptr when ABSENT, a motor mechanism, or `i` is not below size().
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:148`](../../include/shulib/robot/mechanism_parts.hpp#L148).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:155`](../../include/shulib/robot/mechanism_parts.hpp#L155).*
 
 <a id="mechanismparts-absence"></a>
 
@@ -237,7 +237,7 @@ The `i`-th declared mechanism as a built PNEUMATIC mechanism; nullptr when ABSEN
 
 Why the `i`-th declared mechanism was NOT built: the provider's sentence naming the port, or a fixed one for a mechanism with nothing to build. "" EXACTLY when builtAt(i) is non-null. "no mechanism is declared at this index" for an `i` not below size().
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:155`](../../include/shulib/robot/mechanism_parts.hpp#L155).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:162`](../../include/shulib/robot/mechanism_parts.hpp#L162).*
 
 <a id="mechanismparts-roles"></a>
 
@@ -249,7 +249,7 @@ Why the `i`-th declared mechanism was NOT built: the provider's sentence naming 
 
 The `i`-th mechanism's ROLES, in boot-line order (motors or lines, angle sensor, home switch, piece sensor) — what each one's boot line words. Empty for an `i` not below size().
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:161`](../../include/shulib/robot/mechanism_parts.hpp#L161).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:168`](../../include/shulib/robot/mechanism_parts.hpp#L168).*
 
 <a id="mechanismparts-config"></a>
 
@@ -261,7 +261,7 @@ The `i`-th mechanism's ROLES, in boot-line order (motors or lines, angle sensor,
 
 The `i`-th mechanism's config (the borrowed one). PRECONDITION: `i` below size().
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:169`](../../include/shulib/robot/mechanism_parts.hpp#L169).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:176`](../../include/shulib/robot/mechanism_parts.hpp#L176).*
 
 <a id="mechanismparts-indexof"></a>
 
@@ -273,14 +273,14 @@ The `i`-th mechanism's config (the borrowed one). PRECONDITION: `i` below size()
 
 The index of the mechanism whose config name is `name`, or size() when none is (or `name` is null). Compared over the name field's 24 bytes.
 
-*function, declared at [`include/shulib/robot/mechanism_parts.hpp:176`](../../include/shulib/robot/mechanism_parts.hpp#L176).*
+*function, declared at [`include/shulib/robot/mechanism_parts.hpp:183`](../../include/shulib/robot/mechanism_parts.hpp#L183).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 47 lines, click to expand</summary>
+<summary>The header’s own reasoning — 51 lines, click to expand</summary>
 
 ```text
 
@@ -313,6 +313,10 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  Once a mechanism is ABSENT the rest of its roles are NOT ASKED, and the mechanism is not in
  built(): there is nothing there for a guard to make safe, and nothing a step may command. A
  motor made before the refusal stays made — the provider owns it; nothing commands it.
+
+ Beside each motor it records the provider's CURRENT LIMIT for it (IDeviceProvider::currentLimit —
+ hal/motor_current_limit.hpp; MECH-S-A), into that mechanism's `Devices`: how the service writes a
+ stated cap and reads every mechanism motor's limit back. It writes no limit itself.
 
  Beside each piece sensor and home switch it records the provider's READ-FAULT count for it
  (IDeviceProvider::readFaults / lineReadFaults — hal/read_faults.hpp), into that mechanism's

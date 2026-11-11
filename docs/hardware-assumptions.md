@@ -36,12 +36,12 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-188 (CAL1's second number, released unused — never reissued), HA-192..HA-203, HA-204..HA-215, HA-216..HA-218 (STEP1's), HA-219..HA-227 (MECH-S/TUNE1's).
+> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-188 (CAL1's second number, released unused — never reissued), HA-192..HA-203, HA-204..HA-215, HA-216..HA-218 (STEP1's), HA-224..HA-227 (MECH-S/TUNE1's — its HA-219..HA-223 registered by MECH-S-A).
 > The briefing names the next free number above every row AND every held one (`tools/briefing_status.py`
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 203 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 208 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -215,6 +215,15 @@
 > home switch, and HA-186's page names the RAW reading `absoluteSensor(at, reads)` takes), HA-153 and HA-159 (the
 > pivots' direction and the claw's open level are Station P's to check first), and HA-189's note (the menu is
 > 3 × 5 now). Still 203.
+>
+> **MECH-S-A (a mechanism's current cap; built 2026-11-05) added FIVE — HA-219..HA-223** of the nine
+> MECH-S/TUNE1's brief held (HA-224..HA-227, the slack watch's, stay HELD for MECH-S-B): that a V5 motor
+> enforces the limit PROS sets by itself, within a tick, under any command and with nothing ticking (HA-219,
+> reasoned · speed invented); that a limit can outlive the program that set it and a motor that loses power
+> comes back at its 2500 mA default (HA-220, unverified); that VEXos may lower each motor's limit with more
+> than 8 motors plugged in (HA-221, unverified); the string's pull per amp and the momentum no cap limits
+> (HA-222, reasoned · number unverified); and that a stalled capped motor reads within ~0.1 A of its cap
+> (HA-223, invented). **None is measured.** With them, 208.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither is **HA-181** (G3a, the robot panel: its amended brief), held the same way (the
 > mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
@@ -398,7 +407,7 @@
 | HA-146 | After `brake()`, the next `move_voltage(v ≠ 0)` drives the motor at once (the stop is replaced, not latched); a `set_brake_mode()` repeated every tick changes nothing but the register of a RUNNING motor (a held one: HA-144) | reasoned (vendored text) | R3 / T3's claw station |
 | HA-147 | A V5 controller's connected flag and its button levels change together: on the first tick `is_connected()` is true after a disconnect, `get_digital()` already returns the LIVE level (never a stale one from before the drop), and a button's level does not bounce across two 10 ms samples | **invented** (unmeasured; HA-103 claims only that a disconnected controller reads 0) — the pneumatic claw's toggle takes a connected tick's level as live | Station J.9.5 (robot two's claw) |
 | HA-153 | Robot two's two claw pivots are separate V5 motors with RED (100 rpm) cartridges on smart ports 6 (R1 forward / R2 back) and 7 (L1 / L2), and a POSITIVE command moves each the way the team lead calls "forward" | **reported** 2026-09-26 (team lead); NO capture has seen a motor on 6 or 7, and the way each turns is not even reported | worksheet Station P (Bench Tests' station 13, MECH-A6), then Station J |
-| HA-154 | A claw pivot held at 12 V against its mechanical stop draws up to the motor's DEFAULT current limit (2500 mA — nothing in shulib changes it) for as long as the button is held, and heats; shulib watches only the DRIVE motors' temperatures | reasoned (vendored `motors.h`; a stalled motor heats) — every TIMING **invented** (none is stated) | T3 / worksheet Station J |
+| HA-154 | A claw pivot held at 12 V against its mechanical stop draws up to the motor's DEFAULT current limit (2500 mA — nothing in shulib changes it while the pivot's declaration states no `.currentCap`, as robot two's do; since MECH-S-A a stated cap lowers it, HA-219) for as long as the button is held, and heats; shulib watches only the DRIVE motors' temperatures | reasoned (vendored `motors.h`; a stalled motor heats) — every TIMING **invented** (none is stated) | T3 / worksheet Station J |
 | HA-155 | A cable swapped between a claw pivot and a drive motor is invisible to the brain's registry (a MOTOR on both ports either way), so no check before power can see it | reasoned (the registry reports a device's KIND, never which motor) | T3 / worksheet Station J (a person, not the registry) |
 | HA-156 | A claw pivot released in Hold (0 V, after DEFECTS2 makes a Hold reach the motor) keeps its angle under its load — its own weight and a game piece — with a sag over 30 s too small to matter | **invented** — no load, sag or hold current measured; "holds" is claimed nowhere until Station J logs it | T3 / worksheet Station J |
 | HA-157 | While the brain is DISABLED (between autonomous and driver control, on a field or competition-switch disable) a 3-wire digital output KEEPS the level the program last commanded, and still has it after the re-enable; and a level the program commands WHILE disabled (a Robot built in `initialize()` on a field, or a program started from the controller's menu, HA-128) reaches the valve — at once, or at the latest at the enable | **UNKNOWN** — nothing vendored says; the pneumatic claw's driver-control toggle commands NOTHING on a disable and relies on the first half; the claw's start level on a field relies on the second | Station J (robot two's claw) |
@@ -453,6 +462,11 @@
 | HA-213 | The V5 IMU's readings (`get_rotation()`, `get_gyro_rate()`) are copied into the brain's shared buffer every 10 ms, so every read between two copies returns the SAME value (sample-and-hold) | reasoned (the vendored `pros/imu.hpp`, `set_data_rate`'s doc); never observed on our brains | IMU1 (Part B's bench stage, Station N) |
 | HA-214 | The phase of that 10 ms copy against the motion tick's wake is unknown (fixed per boot, or drifting); a copy within a read's jitter of the tick's ONE rate read, or between two positions of the tick's FIRST read, makes a pair of ticks read 0 and about double — IMU1's hold does not cure it | **invented** (the phase) · reasoned (the consequence) | IMU1 (Part B's bench stage, Station N) |
 | HA-215 | Every rate read of one control tick falls within 5 ms of the tick's first, consecutive ticks' first reads are 5 ms or more apart, and no reader outside the loop's tick reads the rate — what `ProsImu::kRateHoldUs` (5 ms) rests on | reasoned (HA-32/HA-102, themselves unmeasured under load) | IMU1 (Part B's bench stage, a lower bound); Bench Tests STAGE 5 |
+| HA-219 | A V5 motor given `motor_set_current_limit(L)` draws at most about L from then on — enforced by the motor itself within one 10 ms control tick, under any command, under Hold at 0 V, during a disable and with nothing ticking | reasoned (the vendored `pros/motors.h`: "The motor will reduce its output at 1000 mA instead of the default 2500 mA") · the speed **invented** | the Tune program (a later part): a capped lift pushed into its top stop, the current trace |
+| HA-220 | A limit set by one program can persist in the motor into the next, and a motor that loses power mid-run comes back at its 2500 mA default — so the library READS every mechanism motor's limit at every boot (writing only a stated cap) and re-checks capped ones each second | **unverified** (HA-98's open question, extended to the limit) | MECH-S Step 0.4: a cap set, the program stopped from the brain, the next program's boot read-back; a capped motor's cable pulled and re-seated |
+| HA-221 | With more than 8 motors plugged in, VEXos may lower each motor's limit below what was set (robot two runs 10); a cap below VEXos's own share behaves as stated — and writing 2500 mA over a share at every boot would fight it, so a mechanism with no cap is only READ | **unverified** (HA-172's open question) | MECH-S Step 0.4: robot two's boot read-back with all 10 motors plugged in |
+| HA-222 | The string's pull is the motor's current times its torque per amp through the gearing over the spool's radius — about 10 lbf per amp per motor for a red cartridge on a 1.5 in spool; the rotor's and the carriage's MOMENTUM at a hard stop add a pull no current cap limits | reasoned (physics) · the number **unverified** (the published stall torque, from memory) | a spring scale on the string at a held current |
+| HA-223 | A stalled motor held at its cap reads within ~0.1 A of the cap, so a stall signature MORE than ~0.2 A below the cap trips (the boot's Warn for one not more than 0.2 A below — exactly 0.2 A included — rests on it) | **invented** (the host test plant reads exactly the cap — it is not a motor) | the Tune program: a capped lift held against its top stop, the reading |
 
 ---
 
@@ -1562,7 +1576,12 @@ is a belief.
   joint back a whole step of travel the moment it stopped — the MECH-A2 review's finding), Brake damps (`brakeDamping` volts per rad/s), Coast is free — each solved implicitly in the step
   (an explicit form rang on a fast joint, MECH-A2's own finding); the current I = |V − kV·ω|·(2.5/12),
   capped at 2.5 A at a 12 V stall (HA-93's shape); and a hard stop, an obstacle or a jam reading ZERO
-  speed at stall-grade current.
+  speed at stall-grade current. *(MECH-S-A, 2026-11-05:)* a joint also honours motor 0's own current
+  limit when one BELOW 2.5 A is set — the applied volts limited so |V − kV·ω| at the end of each step
+  stays within the limit's volts (its torque, not only its reading), the Hold brake included; a load the
+  limit cannot carry falls as fast as −12 V drives it (no mass to fall with). At the default it is
+  bypassed, so every earlier result stands — including the reading clamp a 12 V reversal pushes past
+  (HA-219 holds whether a real motor limits like this).
   *Source:* `include/shulib/sim/mechanism_plant.hpp` (its banner names every constant invented),
   `test/sim_mechanism_plant_test.cpp` (the model's equations, each pinned against a number derived by
   hand), and the core's tests that run a mechanism through it: a power mechanism
@@ -1790,6 +1809,86 @@ team lead with the brief, 2026-10-08.
   SUCCEEDED, the grab's UNCONFIRMED), so the log does not show it. Too LONG — every claw step in an auton waits longer than it needs, and a timed auton
   loses that time. The driver's toggle does not wait on it at all. **Contained:** one number, on one
   declaration; only an auton's claw steps read it.
+
+---
+
+### MECH-S-A's additions — a motor's own current cap (2026-11-05)
+
+A string lift's string snaps when it is pulled too hard, and a V5 motor's current IS that pull (its torque
+through the spool). MECH-S-A lets a mechanism state `.currentCap` — the most each motor may draw — and
+writes it into the motors at boot through PROS's own per-motor limit (`hal::IMotorCurrentLimit`,
+`hal/motor_current_limit.hpp`; the MECH-S brief's D1 (a): the MOTOR enforces it, not the library). Five
+beliefs come with it; **none is measured**, and no motor on either robot has had a limit set by shulib.
+
+- [ ] **HA-219 — a motor enforces the limit PROS sets, by itself, within a tick.**
+  *Claim:* a V5 motor given `motor_set_current_limit(L)` draws at most about L from then on, enforced by the
+  motor itself within one 10 ms control tick — under any command, under Hold at 0 V, during a disable and
+  with nothing in the program ticking.
+  *Source:* `include/shulib/hal/motor_current_limit.hpp` (the banner's WHY THE MOTOR — "A4 register
+  HA-219"); `include/shulib/hal/pros/motor.hpp` (THE CURRENT LIMIT); `include/shulib/hal/motor_conversion.hpp`
+  (`motorCurrentLimitToMilliamps`); `include/shulib/sim/mechanism_plant.hpp` models it (the limiter, its own
+  invented constant — HA-183).
+  *Confidence:* **reasoned** from one vendored sentence ("The motor will reduce its output at 1000 mA instead of
+  the default 2500 mA" — `include/pros/motors.h`); how FAST, and whether with nothing ticking, **invented**.
+  *Settle:* the Tune program (a later part of MECH-S/TUNE1): a capped lift pushed into its top stop, its
+  current trace; and once with the program held in a blocking loop.
+  *Blast radius if wrong:* a cap that is slow or soft lets a string see more than the cap for a while — the
+  cap is then a softer guard than the guide says; a cap that is not enforced while the program is starved
+  is no better than the software cap the brief rejected (D1 (b)). **Contained:** nothing in the library's
+  verdicts depends on it — only how hard the string is pulled.
+
+- [ ] **HA-220 — a limit outlives its program; a motor that loses power comes back at 2500 mA.**
+  *Claim:* the limit lives in the DEVICE, so one set by one program may still be there when the next program
+  boots; and a motor that loses power mid-run (a cable, a brown-out) comes back at its 2500 mA default.
+  *Source:* `include/shulib/mechanism/service.hpp` (the header's CURRENT CAP section: every mechanism
+  motor's limit READ at boot; each capped motor re-checked once a second and written again when it reads the
+  default — the Warn line names HA-220); `include/shulib/hal/motor_current_limit.hpp`.
+  *Confidence:* **unverified** — HA-98's open question (device settings persisting across programs), extended
+  to the limit.
+  *Settle:* MECH-S Step 0.4 — a cap set by one program, the program stopped from the brain, the next
+  program's boot read-back; and a capped motor's cable pulled and re-seated mid-run.
+  *Blast radius if wrong:* if a limit does NOT outlive its program, the boot read-back never sees a stray one
+  (harmless); if a powered-down motor does NOT come back at its default, the re-check's re-write never fires
+  and the "other number" Warn says so instead. **Contained:** the read-back at every boot and the re-check
+  each second cover either way; nothing is written to a mechanism with no cap.
+
+- [ ] **HA-221 — VEXos may lower each motor's limit with more than 8 motors plugged in.**
+  *Claim:* with more than 8 motors plugged in, VEXos may hold each motor's limit below what was set (robot
+  two runs 10); a cap below VEXos's own share behaves as stated; and writing 2500 mA over a share at every
+  boot would fight VEXos — which is why a mechanism with no cap is only READ (the MECH-S brief's D12 (b)).
+  *Source:* `include/shulib/mechanism/service.hpp` (the no-cap boot Info line names HA-221; the re-check's
+  "something else set it" Warn); `include/shulib/hal/motor_current_limit.hpp`.
+  *Confidence:* **unverified** — HA-172's open question.
+  *Settle:* MECH-S Step 0.4 — robot two's boot read-back with all 10 motors plugged in, right after MECH-S-A
+  lands; if every motor reads 2500 mA, the brief's D12 (a) (reset at boot) is safe and comes back to the team
+  lead as a one-line follow-up.
+  *Blast radius if wrong:* a share that exists reads as "a cap left by another program" on the boot line —
+  the line names both causes. **Contained:** nothing is written over it.
+
+- [ ] **HA-222 — the string's pull per amp, and the momentum no cap limits.**
+  *Claim:* the string's pull is the motor's current times its torque per amp through the gearing over the
+  spool's radius — about 10 lbf per amp per motor for a red cartridge on a 1.5 in spool (VEX's published stall
+  torque, believed 2.1 N·m at 2.5 A — not checked in this tree); friction adds little; the rotor's and the
+  carriage's MOMENTUM at a hard stop add a pull no current cap limits.
+  *Source:* `include/shulib/mechanism/kinds.hpp` (`CurrentCap`'s note: choosing the cap); guide chapter 18's
+  current-cap section; `include/shulib/hal/motor_current_limit.hpp` (what a limit cannot be trusted to do).
+  *Confidence:* reasoned (physics) · the number **unverified**.
+  *Settle:* a spring scale on the string at a held current (the Tune program's HOLD at a known cap).
+  *Blast radius if wrong:* a cap chosen from the guide's 10 lbf per amp pulls harder or softer than the team
+  meant. **Contained:** the number is the team's to choose; the guide gives the arithmetic, not the cap.
+
+- [ ] **HA-223 — a stalled capped motor reads within ~0.1 A of its cap.**
+  *Claim:* a motor stalled at its cap reads within about 0.1 A of the cap, so a stall signature MORE than
+  ~0.2 A below the cap trips.
+  *Source:* `include/shulib/mechanism/service.hpp` (`kCapSignatureMarginAmps`, 0.2 A — the boot's Warn for a
+  signature not more than 0.2 A below the cap, judged in whole milliamps — the cap as sent, the signature as the first whole-mA reading that trips it — so exactly 200 mA below warns); `include/shulib/mechanism/spec.hpp` and `kinds.hpp` (the build refuses only AT or above the cap: the
+  margin is not refused, because it is invented).
+  *Confidence:* **invented** — the host test plant reads exactly the cap (the brief's P10: 1.15 A under 1.2 A
+  trips there), which proves only the algebra.
+  *Settle:* the Tune program — a capped lift held against its top stop, the reading.
+  *Blast radius if wrong:* a signature the boot did not warn about may never trip — a jam then sits at the
+  cap until the step's time runs out (TIMED_OUT, not STALLED). **Contained:** the Warn names the margin; the
+  cap still limits the pull.
 
 ---
 
@@ -2559,7 +2658,10 @@ run. Worksheet Station J is their first run.
   limit, and shulib does not watch it.**
   *Claim:* a claw pivot commanded 12 V while it is pressed against its mechanical stop (the driver
   keeps holding R1 after the claw has closed) draws current up to the V5 motor's current limit —
-  PROS's documented DEFAULT, 2500 mA, which nothing in shulib changes — for as long as the button
+  PROS's documented DEFAULT, 2500 mA, which nothing in shulib changes while the pivot states no
+  `.currentCap` (since MECH-S-A, 2026-11-05, a Power declaration MAY state one and the mechanism
+  service then writes it into the motor at boot — HA-219; robot two's pivots state none, so its boot
+  reads their limits and writes nothing) — for as long as the button
   is held, and heats; as it heats, the motor's own firmware derates it (HA-44's shape) until the
   claw weakens. A pivot in Hold against a load also draws current, and heats more slowly. **How
   long any of this takes is not known.** False if a stalled pivot barely warms in a minute at 12 V

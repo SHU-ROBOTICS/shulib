@@ -586,6 +586,17 @@ public:
         return nullptr;
     }
 
+    /// MECH-S-A: the current limit of the motor THIS provider made on `port` — that ProsMotor itself,
+    /// as an hal::IMotorCurrentLimit; nullptr when no motor was made there. Looks up, never makes.
+    [[nodiscard]] IMotorCurrentLimit* currentLimit(std::uint8_t port) noexcept override {
+        const int p = static_cast<int>(port);
+        if (!isSmartPort(p)) {
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(p);
+        return motors_[i].has_value() ? &*motors_[i] : nullptr;
+    }
+
     /// MECH-A1: the read-fault count of the digital input THIS provider made on 3-wire `line`;
     /// nullptr when none was made there. Looks up, never makes.
     [[nodiscard]] const IReadFaults* lineReadFaults(std::uint8_t line) const noexcept override {

@@ -151,6 +151,9 @@ struct SilentCameraRefusal final : hal::IDeviceProvider {
     [[nodiscard]] const hal::IReadFaults* lineReadFaults(std::uint8_t l) const noexcept override {
         return inner->lineReadFaults(l);
     }
+    [[nodiscard]] hal::IMotorCurrentLimit* currentLimit(std::uint8_t p) noexcept override {
+        return inner->currentLimit(p);  // MECH-S-A: forwarded
+    }
     [[nodiscard]] hal::IClock& clock() override { return inner->clock(); }
     [[nodiscard]] hal::IBattery& battery() override { return inner->battery(); }
     [[nodiscard]] hal::ITelemetrySink& telemetry() override { return inner->telemetry(); }
@@ -185,6 +188,9 @@ struct ThrowingCamera final : hal::IDeviceProvider {
     }
     [[nodiscard]] const hal::IReadFaults* lineReadFaults(std::uint8_t l) const noexcept override {
         return inner->lineReadFaults(l);
+    }
+    [[nodiscard]] hal::IMotorCurrentLimit* currentLimit(std::uint8_t p) noexcept override {
+        return inner->currentLimit(p);  // MECH-S-A: forwarded
     }
     [[nodiscard]] hal::IClock& clock() override { return inner->clock(); }
     [[nodiscard]] hal::IBattery& battery() override { return inner->battery(); }

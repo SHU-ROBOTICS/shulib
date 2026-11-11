@@ -108,6 +108,35 @@
 // not limited, not safe (the brief's D11, measured: 11.74 V held for 1.5 s). The run guard says the
 // same of itself: nothing preempts pure user code.
 //
+// ── The CURRENT CAP (chunk MECH-S-A, 2026-11-05; the MECH-S brief's D1 (a), D2 (a), D12 (b)) ─
+// A mechanism that STATES `.currentCap` has it written into EVERY one of its motors at bind, through
+// each motor's own limit (Devices::currentLimits — hal/motor_current_limit.hpp), and READ BACK; from
+// then on the MOTOR enforces it, ticked or not (A4 register HA-219 — how fast, unmeasured). The boot
+// says it once, per motor AND in all:
+//     'lift': current cap 1.20 A per motor (2 motors: 2.40 A in all) -- set and read back
+// and WARNS for each motor that would not take it (the port, the asked and the read-back numbers — the
+// mechanism still runs), for a provider that gave no limit to set ("this provider cannot cap a
+// motor"), and for each stated stall or homing signature within 0.2 A of the cap (a capped motor may
+// read a little under its cap, so such a signature may never trip — A4 register HA-223; the build
+// already refuses one at or above it). Every one of these comparisons is made in the DEVICE's unit,
+// WHOLE MILLIAMPS (a V5 limit is whole mA): the cap as hal::motorCurrentLimitToMilliamps sends it, the
+// read-back rounded to the mA — so a typed 2.4995 A (sent as 2500 mA) reads back as itself — and a
+// signature as the FIRST whole-mA reading that trips it (a signature is never sent, so never rounded:
+// 0.9996 A and 0.9994 A both trip at 1000 mA). The 0.2 A margin is 200 mA between those two integers,
+// inclusive: under a 1.2 A cap, 1.0 A, 0.9996 A and 0.9994 A all warn; 0.999 A does not. A mechanism that states NO cap has each motor's limit READ and
+// NOTHING written (D12 (b), until robot two's 10-motor boot is measured — HA-221): a limit that reads
+// other than the motor's 2.5 A default gets one Info line naming both possible causes (a cap another
+// program left — HA-220 — or VEXos's own sharing — HA-221) and "nothing written".
+// ONCE A SECOND, on the service's clock and INSIDE a tick (never its own task — a starved service does
+// not re-check, and the motor keeps its cap meanwhile: that is the point of D1), each capped motor's
+// limit is read again: one that reads back the motor's DEFAULT (it lost power and came back — HA-220)
+// is written again, with one Warn; one that reads ANY OTHER number is a Warn ONCE and is NOT written
+// again (something else set it — the library never fights it every second). No verdict changes and
+// nothing is refused at boot: the cap is a limit, never a gate. Choosing the number (four currents in
+// ORDER — the heaviest hold < the signature < the cap − 0.2 A; the heaviest move's peak < the cap; the
+// cap ≤ the string's safe pull) is the guide's (chapter 18); the cap does not limit a carriage's
+// momentum at a stop (HA-222).
+//
 // ── What a step says ─────────────────────────────────────────────────────────────────
 // Every step's verdict is ONE line, tag MECH — Info when SUCCEEDED, Warn otherwise:
 //     'intake': SUCCEEDED -- sees a piece in 0.97s
@@ -134,6 +163,7 @@
 #include "shulib/diag/fault.hpp"
 #include "shulib/hal/clock.hpp"
 #include "shulib/hal/mechanism.hpp"
+#include "shulib/hal/motor_conversion.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
 #include "shulib/manipulation/mechanism_outcome.hpp"
 #include "shulib/manipulation/stall_detector.hpp"
@@ -147,6 +177,17 @@
 
 
 namespace shulib::mechanism {
+
+static_assert(kDevicesMaxMotors == kMaxMotorRoles,
+              "mechanism::Devices::currentLimits must hold every motor role a spec can have");
+
+/// How close (A) a stated stall or homing signature may come to the CURRENT CAP before the boot warns
+/// (MECH-S-A; A4 register HA-223 — invented: a stalled capped motor is believed to read within ~0.1 A of
+/// its cap). A LIBRARY constant, like the integral clamps below.
+inline constexpr double kCapSignatureMarginAmps = 0.2;
+/// How often (s, on the service's clock, inside a tick) each capped motor's limit is read again
+/// (MECH-S-A; HA-220 — a motor that lost power comes back at its default). A library constant.
+inline constexpr double kCapRecheckSeconds = 1.0;
 
 /// A step's verdict vocabulary (manipulation/mechanism_outcome.hpp), named here for the service's
 /// readers: SUCCEEDED, UNCONFIRMED, TIMED_OUT, CANCELLED, STALLED, ABSENT, NOT_HOMED, REFUSED.
@@ -349,6 +390,7 @@ protected:
         : host_{&host}, spec_{&spec}, wiring_{wiring}, index_{index}, devices_{d},
           mech_{d.absence[0] == '\0' ? actuator : nullptr} {
         snapshotReadFaults();
+        bootCurrentCap();
     }
 
     /// Begin a step bounded by `boundSeconds` at clock time `t`: bump the command number, end a running
@@ -462,6 +504,192 @@ protected:
         finishStep(t, MechanismOutcome::Stalled, DoneBy::Stalled, false, why);
     }
 
+    /// THE CURRENT CAP AT BOOT (the header's section): a STATED cap written to every motor and read
+    /// back, said once (per motor and in all) or warned per motor; a signature within
+    /// kCapSignatureMarginAmps of it warned; NO cap: every motor's limit READ, nothing written, a limit
+    /// other than the 2.5 A default said once with both possible causes. A pneumatic or ABSENT
+    /// mechanism has no motor: nothing. Only from the constructor (bind).
+    void bootCurrentCap() {
+        if (mech_ == nullptr || spec_->kind == Kind::Pneumatic) {
+            return;
+        }
+        const double cap = spec_->currentCapAmps;
+        const std::size_t n = std::min<std::size_t>(spec_->motorCount, kDevicesMaxMotors);
+        nextCapCheck_ = now() + kCapRecheckSeconds;
+        char line[240];
+        char place[40];
+        if (cap <= 0.0) {
+            // D12 (b): READ, write nothing; a stray limit is said, never undone (HA-220, HA-221)
+            for (std::size_t m = 0; m < n; ++m) {
+                const hal::IMotorCurrentLimit* lim = devices_.currentLimits[m];
+                if (lim == nullptr) {
+                    continue;
+                }
+                const double reads = lim->currentLimit().value();
+                if (milliamps(reads) != defaultMilliamps()) {
+                    motorPlace(m, place, sizeof place);
+                    std::snprintf(line, sizeof line,
+                                  "'%.23s': motor %u (%.32s): its current limit reads %.2f A: a cap left by another "
+                                  "program (HA-220), or VEXos's sharing with many motors plugged in (HA-221) -- "
+                                  "nothing written",
+                                  spec_->name, static_cast<unsigned>(m + 1), place, clampAmps(reads));
+                    host_->telemetry->log(hal::LogLevel::Info, "MECH", line);
+                }
+            }
+            return;
+        }
+        bool allTook = true;
+        for (std::size_t m = 0; m < n; ++m) {
+            hal::IMotorCurrentLimit* lim = devices_.currentLimits[m];
+            motorPlace(m, place, sizeof place);
+            if (lim == nullptr) {
+                allTook = false;
+                capState_[m] = CapState::OtherWarned;  // nothing to re-check on this motor
+                std::snprintf(line, sizeof line,
+                              "'%.23s': motor %u (%.32s): current cap %.2f A stated, but this provider cannot cap a "
+                              "motor -- the motor's own 2.50 A applies",
+                              spec_->name, static_cast<unsigned>(m + 1), place, clampAmps(cap));
+                host_->telemetry->log(hal::LogLevel::Warn, "MECH", line);
+                continue;
+            }
+            const bool accepted = lim->setCurrentLimit(units::Current{cap});
+            const double reads = lim->currentLimit().value();
+            if (accepted && milliamps(reads) == capMilliamps()) {
+                capState_[m] = CapState::Ok;
+                continue;
+            }
+            allTook = false;
+            // a motor still at its default is re-written by the re-check (HA-220); any other number was
+            // set by something else and is never fought (D2 (a))
+            capState_[m] = milliamps(reads) == defaultMilliamps() ? CapState::LostWarned : CapState::OtherWarned;
+            std::snprintf(line, sizeof line,
+                          "'%.23s': motor %u (%.32s) did not take its current cap: asked %.2f A, %s, reads back "
+                          "%.2f A -- it runs; that motor is not capped as stated",
+                          spec_->name, static_cast<unsigned>(m + 1), place, clampAmps(cap),
+                          accepted ? "the write was accepted" : "the write was refused", clampAmps(reads));
+            host_->telemetry->log(hal::LogLevel::Warn, "MECH", line);
+        }
+        if (allTook) {
+            std::snprintf(line, sizeof line, "'%.23s': current cap %.2f A per motor (%u motor%s: %.2f A in all) -- "
+                                             "set and read back",
+                          spec_->name, clampAmps(cap), static_cast<unsigned>(n), n == 1 ? "" : "s",
+                          clampAmps(cap * static_cast<double>(n)));
+            host_->telemetry->log(hal::LogLevel::Info, "MECH", line);
+        }
+        // every STATED signature must sit MORE than the margin below the cap to be sure to trip (HA-223),
+        // judged as the MOTOR reads: the first whole-mA reading that trips the signature against the cap as
+        // sent, so 200 mA under warns; the build has already refused one at or above the cap
+        const struct {
+            const StallSpec* st;
+            const char* what;
+        } signatures[] = {{&spec_->power.stall, "stall signature"},
+                          {&spec_->position.stall, "stall signature"},
+                          {&spec_->position.homeStall, "homing signature"},
+                          {&spec_->speed.stall, "stall signature"}};
+        for (const auto& sig : signatures) {
+            if (sig.st->stated() && capMilliamps() - tripMilliamps(sig.st->amps) <= milliamps(kCapSignatureMarginAmps)) {
+                std::snprintf(line, sizeof line,
+                              "'%.23s': its %s (%.2f A) is within 0.2 A of its current cap (%.2f A): a capped motor "
+                              "may read a little under its cap, so it may never trip (HA-223)",
+                              spec_->name, sig.what, clampAmps(sig.st->amps), clampAmps(cap));
+                host_->telemetry->log(hal::LogLevel::Warn, "MECH", line);
+            }
+        }
+    }
+    /// THE ONCE-A-SECOND RE-CHECK (the header's section), from the service's tick at clock time `t`: each
+    /// capped motor's limit read; one back at the motor's DEFAULT written again (one Warn per loss); one at
+    /// ANY OTHER number warned ONCE and never written. Nothing for a mechanism with no cap.
+    void recheckCurrentCap(double t) {
+        const double cap = spec_->currentCapAmps;
+        if (mech_ == nullptr || spec_->kind == Kind::Pneumatic || cap <= 0.0 || t < nextCapCheck_) {
+            return;
+        }
+        nextCapCheck_ = t + kCapRecheckSeconds;
+        const std::size_t n = std::min<std::size_t>(spec_->motorCount, kDevicesMaxMotors);
+        char line[240];
+        char place[40];
+        for (std::size_t m = 0; m < n; ++m) {
+            hal::IMotorCurrentLimit* lim = devices_.currentLimits[m];
+            if (lim == nullptr) {
+                continue;
+            }
+            const double reads = lim->currentLimit().value();
+            const long readsMa = milliamps(reads);
+            if (readsMa == capMilliamps()) {
+                capState_[m] = CapState::Ok;
+                continue;
+            }
+            motorPlace(m, place, sizeof place);
+            if (readsMa == defaultMilliamps()) {
+                if (capState_[m] != CapState::LostWarned) {
+                    std::snprintf(line, sizeof line,
+                                  "'%.23s': motor %u (%.32s): its current limit reads 2.50 A, the motor's default (it "
+                                  "lost power? HA-220) -- its cap %.2f A written again",
+                                  spec_->name, static_cast<unsigned>(m + 1), place, clampAmps(cap));
+                    host_->telemetry->log(hal::LogLevel::Warn, "MECH", line);
+                }
+                capState_[m] = CapState::LostWarned;
+                if (lim->setCurrentLimit(units::Current{cap}) && milliamps(lim->currentLimit().value()) == capMilliamps()) {
+                    capState_[m] = CapState::Ok;
+                }
+                continue;
+            }
+            if (capState_[m] != CapState::OtherWarned) {
+                std::snprintf(line, sizeof line,
+                              "'%.23s': motor %u (%.32s): its current limit reads %.2f A, not its cap %.2f A: "
+                              "something else set it (another program, or VEXos's sharing -- HA-221) -- not written "
+                              "again",
+                              spec_->name, static_cast<unsigned>(m + 1), place, clampAmps(reads), clampAmps(cap));
+                host_->telemetry->log(hal::LogLevel::Warn, "MECH", line);
+                capState_[m] = CapState::OtherWarned;
+            }
+        }
+    }
+    /// Where motor `m` (0-based) is wired, as a log line says it — "port 12" — from the robot's list;
+    /// "its port unknown to the service" when bound from bare specs.
+    void motorPlace(std::size_t m, char* out, std::size_t cap) const {
+        if (wiring_ != nullptr && m < kMaxMotorRoles && wiring_->motors[m] != 0) {
+            std::snprintf(out, cap, "port %u", static_cast<unsigned>(wiring_->motors[m]));
+        } else {
+            std::snprintf(out, cap, "its port unknown to the service");
+        }
+    }
+    /// A current in the DEVICE's unit, WHOLE MILLIAMPS (a V5 limit is whole mA — the header's section):
+    /// rounded to the nearest mA, as hal::motorCurrentLimitToMilliamps rounds a cap on its way out, so a
+    /// read-back (the device's mA / 1000) comes home to exactly the integer the device holds. A number
+    /// no motor could report (not finite, below 0, above 1000 A) is -1, equal to no cap and no default.
+    [[nodiscard]] static long milliamps(double a) noexcept {
+        return (std::isfinite(a) && a >= 0.0 && a <= 1000.0) ? std::lround(a * 1000.0) : -1L;
+    }
+    /// The FIRST whole-mA reading that trips a signature of `a` A: the least r with r / 1000 >= a, through
+    /// hal::motorMilliampsToCanonical — the StallDetector's own `>=` over a motor's reading (a V5 reports
+    /// whole mA), so 0.9996 A and 0.9994 A both trip at 1000 mA, not at their nearest mA. A signature is
+    /// never SENT, so it is never rounded. A number no signature could be is -1 (as milliamps()).
+    [[nodiscard]] static long tripMilliamps(double a) {
+        if (!(std::isfinite(a) && a > 0.0 && a <= 1000.0)) {
+            return -1L;
+        }
+        long r = static_cast<long>(std::ceil(a * 1000.0));
+        while (hal::motorMilliampsToCanonical(static_cast<double>(r - 1)).value() >= a) {
+            --r;
+        }
+        while (hal::motorMilliampsToCanonical(static_cast<double>(r)).value() < a) {
+            ++r;
+        }
+        return r;
+    }
+    /// The stated cap as the motor is SENT it, whole mA — hal::motorCurrentLimitToMilliamps, the one A→mA
+    /// (ProsMotor sends exactly this). Only for a stated cap: the build has refused any other.
+    [[nodiscard]] long capMilliamps() const {
+        return hal::motorCurrentLimitToMilliamps(units::Current{spec_->currentCapAmps});
+    }
+    /// The motor's documented default limit, whole mA (2500 — hal::kDefaultMotorCurrentLimit).
+    [[nodiscard]] static long defaultMilliamps() { return hal::motorCurrentLimitToMilliamps(hal::kDefaultMotorCurrentLimit); }
+    /// A read-back bounded for "%.2f" (a device may answer anything; the line must provably fit).
+    [[nodiscard]] static double clampAmps(double a) noexcept {
+        return std::isfinite(a) ? std::clamp(a, -9999.99, 9999.99) : -1.0;
+    }
+
     /// One tick of the behaviour at clock time `t` (only while active and holding the claim).
     virtual void tickBehaviour(double t) = 0;
     /// Forget the kind's own behaviour state (a hold-to-run's volts, a step's condition).
@@ -485,6 +713,14 @@ protected:
     StepReport report_{};        ///< lastStep()
     int pieceFaultsSeen_ = 0;    ///< the piece sensor's read-fault count at the end of the last tick
     int homeFaultsSeen_ = 0;     ///< the home switch's, likewise
+    /// What the cap re-check last found on each motor (MECH-S-A): it decides which reading is said.
+    enum class CapState : std::uint8_t {
+        Ok,           ///< reads its cap (or no cap is stated)
+        LostWarned,   ///< read the motor's DEFAULT: said once per loss, written again each check
+        OtherWarned,  ///< read another number (or has no limit to read): said once, never written
+    };
+    std::array<CapState, kDevicesMaxMotors> capState_{};  ///< per motor, the re-check's last finding
+    double nextCapCheck_ = 0.0;  ///< the clock time of the next once-a-second re-check
 };
 
 /// POWER: run at a voltage until a done-condition, within a bound; the driver's hold-to-run.
@@ -1611,16 +1847,19 @@ public:
 
     /// BOOT: one slot per spec, over its devices — `devices[i]` is `specs[i]`'s, as
     /// robot::MechanismParts built them (the SAME devices the guard's span lists, landmine 20). A
-    /// mechanism that was not built is a slot that answers ABSENT. Nothing is commanded. The specs,
-    /// the devices' objects, the clock, the latch and the sink must outlive the service.
+    /// mechanism that was not built is a slot that answers ABSENT. Nothing is commanded — but a STATED
+    /// current cap is WRITTEN into its motors here (a limit, not a command), and every motor kind's
+    /// limits are read (the header's CURRENT CAP section). The specs, the devices' objects, the clock,
+    /// the latch and the sink must outlive the service.
     /// PRECONDITIONS, each checked before anything is stored: bound ONCE; one Devices per spec, at
     /// most 8; each spec valid (specRefusal) and its name unique; a built mechanism's Devices carries
     /// the actuator of its kind, with the declared number of motors or lines, and an ABSENT one none;
     /// a built position or speed mechanism carries its ANGLE sensor exactly when it declares one, and
     /// a built position mechanism its HOME switch exactly when its homing is by switch (a refused angle
     /// sensor or home switch makes the mechanism ABSENT — robot::MechanismParts); a power or pneumatic
-    /// one neither; a piece sensor only as declared, of the declared kind. Homing that needs no motion
-    /// happens here (PositionSlot): each such home is logged.
+    /// one neither; a piece sensor only as declared, of the declared kind; a current limit only for a
+    /// built motor mechanism's own motors (MECH-S-A). Homing that needs no motion happens here
+    /// (PositionSlot): each such home is logged.
     void bind(std::span<const MechanismSpec> specs, std::span<const Devices> devices, hal::IClock& clock,
               diag::FaultLatch& faults, hal::ITelemetrySink& telemetry) {
         bindImpl(specs, nullptr, devices, clock, faults, telemetry);
@@ -1919,6 +2158,12 @@ private:
             SHULIB_PRECONDITION(d.homeSwitchFaults == nullptr || d.homeSwitch != nullptr,
                                 "MechanismService::bind: a home switch's read-fault count on a mechanism with no "
                                 "home switch");
+            for (std::size_t m = 0; m < kDevicesMaxMotors; ++m) {
+                SHULIB_PRECONDITION(d.currentLimits[m] == nullptr ||
+                                        (built && s.kind != Kind::Pneumatic && m < s.motorCount),
+                                    "MechanismService::bind: a current limit for a motor the mechanism does not have "
+                                    "(only a built motor mechanism's motors carry one)");
+            }
         }
         host_.clock = &clock;
         host_.faults = &faults;
@@ -1984,6 +2229,9 @@ private:
         inTick_ = true;
         ++ticks_;
         const double t = host_.clock->now().value();
+        for (std::size_t i = 0; i < host_.count; ++i) {
+            host_.slots[i]->recheckCurrentCap(t);  // MECH-S-A: once a second, active or not (header)
+        }
         for (std::size_t i = 0; i < host_.count; ++i) {
             Slot& s = *host_.slots[i];
             if (!s.active_) {

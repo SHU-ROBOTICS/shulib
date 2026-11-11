@@ -8,7 +8,7 @@
 
 mechanism/kinds.hpp — WHAT A MECHANISM IS, the way a team writes it.
 
-This header declares **30** types (179 members), **20** free functions, **15** constants, and **31** type aliass.
+This header declares **31** types (184 members), **20** free functions, **15** constants, and **31** type aliass.
 
 Extracted from [`include/shulib/mechanism/kinds.hpp`](../../include/shulib/mechanism/kinds.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -51,6 +51,8 @@ Extracted from [`include/shulib/mechanism/kinds.hpp`](../../include/shulib/mecha
   - [`amps`](#stall-amps)
   - [`belowMotorRpm`](#stall-belowmotorrpm)
   - [`lasting`](#stall-lasting)
+- [`struct CurrentCap`](#struct-currentcap)
+  - [`amps`](#currentcap-amps)
 - [`struct Gearing`](#struct-gearing)
   - [`motorTurnsPerTurn`](#gearing-motorturnsperturn)
   - [`Gearing`](#gearing-gearing)
@@ -151,6 +153,7 @@ Extracted from [`include/shulib/mechanism/kinds.hpp`](../../include/shulib/mecha
   - [`pieceSensor`](#power-piecesensor)
   - [`safe`](#power-safe)
   - [`stall`](#power-stall)
+  - [`currentCap`](#power-currentcap)
   - [`maxVolts`](#power-maxvolts)
   - [`operator[]`](#power-operator-index)
   - [`spec`](#power-spec)
@@ -162,6 +165,7 @@ Extracted from [`include/shulib/mechanism/kinds.hpp`](../../include/shulib/mecha
   - [`angleSensor`](#arm-anglesensor)
   - [`safe`](#arm-safe)
   - [`stall`](#arm-stall)
+  - [`currentCap`](#arm-currentcap)
   - [`range`](#arm-range)
   - [`gravity`](#arm-gravity)
   - [`home`](#arm-home)
@@ -182,6 +186,7 @@ Extracted from [`include/shulib/mechanism/kinds.hpp`](../../include/shulib/mecha
   - [`angleSensor`](#lift-anglesensor)
   - [`safe`](#lift-safe)
   - [`stall`](#lift-stall)
+  - [`currentCap`](#lift-currentcap)
   - [`range`](#lift-range)
   - [`gravity`](#lift-gravity)
   - [`home`](#lift-home)
@@ -205,6 +210,7 @@ Extracted from [`include/shulib/mechanism/kinds.hpp`](../../include/shulib/mecha
   - [`angleSensor`](#flywheel-anglesensor)
   - [`safe`](#flywheel-safe)
   - [`stall`](#flywheel-stall)
+  - [`currentCap`](#flywheel-currentcap)
   - [`atSpeed`](#flywheel-atspeed)
   - [`presets`](#flywheel-presets)
   - [`tuning`](#flywheel-tuning)
@@ -300,7 +306,7 @@ struct Name
 
 A mechanism's name ("claw pivot 6": boot lines, logs, the route ids' stem, the run-time lookup). Written as a plain string (`.name = "arm"`); it also records the FILE and LINE it was written on, which is how the direction check and the boot lines point at the declaration (header).
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:94`](../../include/shulib/mechanism/kinds.hpp#L94).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:95`](../../include/shulib/mechanism/kinds.hpp#L95).*
 
 <a id="name-text"></a>
 
@@ -312,7 +318,7 @@ const char* text = nullptr
 
 The name's text, borrowed from the team's literal (null = UNSET).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:96`](../../include/shulib/mechanism/kinds.hpp#L96).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:97`](../../include/shulib/mechanism/kinds.hpp#L97).*
 
 <a id="name-file"></a>
 
@@ -324,7 +330,7 @@ const char* file = nullptr
 
 The file the `.name = ...` was written in (the path the compiler opened).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:98`](../../include/shulib/mechanism/kinds.hpp#L98).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:99`](../../include/shulib/mechanism/kinds.hpp#L99).*
 
 <a id="name-line"></a>
 
@@ -336,7 +342,7 @@ std::uint32_t line = 0
 
 The line it was written on.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:100`](../../include/shulib/mechanism/kinds.hpp#L100).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:101`](../../include/shulib/mechanism/kinds.hpp#L101).*
 
 <a id="name-name"></a>
 
@@ -348,7 +354,7 @@ constexpr Name() noexcept = default
 
 UNSET.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:102`](../../include/shulib/mechanism/kinds.hpp#L102).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:103`](../../include/shulib/mechanism/kinds.hpp#L103).*
 
 <a id="name-name-2"></a>
 
@@ -360,7 +366,7 @@ consteval Name(const char* s, std::source_location at = std::source_location::cu
 
 UNSET. `.name = "arm"`: the text, and where it was written (the defaulted `at` is the team's line).
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:104`](../../include/shulib/mechanism/kinds.hpp#L104).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:105`](../../include/shulib/mechanism/kinds.hpp#L105).*
 
 <a id="struct-motor"></a>
 
@@ -372,7 +378,7 @@ struct Motor
 
 One MOTOR role: how the motor is MOUNTED (which way + turns the mechanism), never its port.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:111`](../../include/shulib/mechanism/kinds.hpp#L111).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:112`](../../include/shulib/mechanism/kinds.hpp#L112).*
 
 <a id="motor-present"></a>
 
@@ -384,7 +390,7 @@ bool present = false
 
 Set by Forward / Reversed: a role the mechanism has.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:113`](../../include/shulib/mechanism/kinds.hpp#L113).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:114`](../../include/shulib/mechanism/kinds.hpp#L114).*
 
 <a id="motor-reversed"></a>
 
@@ -396,7 +402,7 @@ bool reversed = false
 
 Mounted so that + turns the mechanism the other way.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:115`](../../include/shulib/mechanism/kinds.hpp#L115).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:116`](../../include/shulib/mechanism/kinds.hpp#L116).*
 
 <a id="motor-changeat"></a>
 
@@ -408,7 +414,7 @@ const char* changeAt = nullptr
 
 Generated robot files only: this role's JSON path (the direction check's "change it HERE").
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:117`](../../include/shulib/mechanism/kinds.hpp#L117).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:118`](../../include/shulib/mechanism/kinds.hpp#L118).*
 
 <a id="forward"></a>
 
@@ -420,7 +426,7 @@ inline constexpr Motor Forward{.present = true}
 
 A motor mounted so that + moves the mechanism its "+" way (up, in, out — the team's word).
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:120`](../../include/shulib/mechanism/kinds.hpp#L120).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:121`](../../include/shulib/mechanism/kinds.hpp#L121).*
 
 <a id="reversed"></a>
 
@@ -432,7 +438,7 @@ inline constexpr Motor Reversed{.present = true, .reversed = true}
 
 A motor mounted the other way round (the mirror-image motor of a two-motor lift).
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:122`](../../include/shulib/mechanism/kinds.hpp#L122).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:123`](../../include/shulib/mechanism/kinds.hpp#L123).*
 
 <a id="struct-motors"></a>
 
@@ -444,7 +450,7 @@ struct Motors
 
 A mechanism's MOTOR roles, in order: `.motors = {Forward, Reversed}` (one to four; a fifth is recorded as "too many" and refused by the list).
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:126`](../../include/shulib/mechanism/kinds.hpp#L126).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:127`](../../include/shulib/mechanism/kinds.hpp#L127).*
 
 <a id="motors-m"></a>
 
@@ -456,7 +462,7 @@ Motor m[kMaxMotorRoles]{}
 
 The roles, in the order written.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:128`](../../include/shulib/mechanism/kinds.hpp#L128).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:129`](../../include/shulib/mechanism/kinds.hpp#L129).*
 
 <a id="motors-count"></a>
 
@@ -468,7 +474,7 @@ std::uint8_t count = 0
 
 How many were written (at most kMaxMotorRoles).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:130`](../../include/shulib/mechanism/kinds.hpp#L130).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:131`](../../include/shulib/mechanism/kinds.hpp#L131).*
 
 <a id="motors-toomany"></a>
 
@@ -480,7 +486,7 @@ bool tooMany = false
 
 More than kMaxMotorRoles were written.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:132`](../../include/shulib/mechanism/kinds.hpp#L132).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:133`](../../include/shulib/mechanism/kinds.hpp#L133).*
 
 <a id="motors-file"></a>
 
@@ -492,7 +498,7 @@ const char* file = nullptr
 
 Where the list was written (GCC 13 captures an initializer list at the declaration's CLOSING line — measured — so the spec points every role at the `.name` line instead).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:135`](../../include/shulib/mechanism/kinds.hpp#L135).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:136`](../../include/shulib/mechanism/kinds.hpp#L136).*
 
 <a id="motors-line"></a>
 
@@ -504,7 +510,7 @@ std::uint32_t line = 0
 
 That line.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:137`](../../include/shulib/mechanism/kinds.hpp#L137).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:138`](../../include/shulib/mechanism/kinds.hpp#L138).*
 
 <a id="motors-motors"></a>
 
@@ -516,7 +522,7 @@ constexpr Motors() noexcept = default
 
 UNSET: no motors.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:139`](../../include/shulib/mechanism/kinds.hpp#L139).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:140`](../../include/shulib/mechanism/kinds.hpp#L140).*
 
 <a id="motors-motors-2"></a>
 
@@ -528,7 +534,7 @@ consteval Motors(std::initializer_list<Motor> list, std::source_location at = st
 
 UNSET: no motors. `.motors = {Forward, Reversed}`.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:141`](../../include/shulib/mechanism/kinds.hpp#L141).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:142`](../../include/shulib/mechanism/kinds.hpp#L142).*
 
 <a id="struct-sensor"></a>
 
@@ -540,7 +546,7 @@ struct Sensor
 
 One SENSOR role (an angle sensor, a piece sensor). Made by the words below, never by hand.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:155`](../../include/shulib/mechanism/kinds.hpp#L155).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:156`](../../include/shulib/mechanism/kinds.hpp#L156).*
 
 <a id="sensor-kind"></a>
 
@@ -552,7 +558,7 @@ SensorKind kind = SensorKind::None
 
 What it is; None = no such role.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:157`](../../include/shulib/mechanism/kinds.hpp#L157).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:158`](../../include/shulib/mechanism/kinds.hpp#L158).*
 
 <a id="sensor-reversed"></a>
 
@@ -564,7 +570,7 @@ bool reversed = false
 
 Rotation: mounted so that + reads the other way.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:159`](../../include/shulib/mechanism/kinds.hpp#L159).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:160`](../../include/shulib/mechanism/kinds.hpp#L160).*
 
 <a id="sensor-pressedlevel"></a>
 
@@ -576,7 +582,7 @@ bool pressedLevel = true
 
 Switch: the level that means PRESSED — `true` (HA-184's claim).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:161`](../../include/shulib/mechanism/kinds.hpp#L161).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:162`](../../include/shulib/mechanism/kinds.hpp#L162).*
 
 <a id="sensor-seeswithinin"></a>
 
@@ -588,7 +594,7 @@ double seesWithinIn = 0.0
 
 Distance: closer than this many inches = "sees a piece".
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:163`](../../include/shulib/mechanism/kinds.hpp#L163).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:164`](../../include/shulib/mechanism/kinds.hpp#L164).*
 
 <a id="sensor-seesproximity"></a>
 
@@ -600,7 +606,7 @@ double seesProximity = 0.0
 
 Optical: proximity at or above this = "sees a piece", (0, 1].
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:165`](../../include/shulib/mechanism/kinds.hpp#L165).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:166`](../../include/shulib/mechanism/kinds.hpp#L166).*
 
 <a id="sensor-changeat"></a>
 
@@ -612,7 +618,7 @@ const char* changeAt = nullptr
 
 Generated robot files only: this role's JSON path.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:167`](../../include/shulib/mechanism/kinds.hpp#L167).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:168`](../../include/shulib/mechanism/kinds.hpp#L168).*
 
 <a id="sensor-file"></a>
 
@@ -624,7 +630,7 @@ const char* file = nullptr
 
 Where it was written (captured).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:169`](../../include/shulib/mechanism/kinds.hpp#L169).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:170`](../../include/shulib/mechanism/kinds.hpp#L170).*
 
 <a id="sensor-line"></a>
 
@@ -636,7 +642,7 @@ std::uint32_t line = 0
 
 That line.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:171`](../../include/shulib/mechanism/kinds.hpp#L171).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:172`](../../include/shulib/mechanism/kinds.hpp#L172).*
 
 <a id="rotationsensor"></a>
 
@@ -648,7 +654,7 @@ That line.
 
 A V5 ROTATION sensor on the mechanism's output shaft — its angle sensor. `mounted` Reversed when + reads the other way.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:175`](../../include/shulib/mechanism/kinds.hpp#L175).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:176`](../../include/shulib/mechanism/kinds.hpp#L176).*
 
 <a id="distancesensor"></a>
 
@@ -660,7 +666,7 @@ A V5 ROTATION sensor on the mechanism's output shaft — its angle sensor. `moun
 
 A DISTANCE sensor as a piece sensor: "sees a piece" when something is closer than `within`.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:180`](../../include/shulib/mechanism/kinds.hpp#L180).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:181`](../../include/shulib/mechanism/kinds.hpp#L181).*
 
 <a id="opticalsensor"></a>
 
@@ -672,7 +678,7 @@ A DISTANCE sensor as a piece sensor: "sees a piece" when something is closer tha
 
 An OPTICAL sensor as a piece sensor: "sees a piece" at proximity >= `proximity`, in (0, 1].
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:185`](../../include/shulib/mechanism/kinds.hpp#L185).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:186`](../../include/shulib/mechanism/kinds.hpp#L186).*
 
 <a id="limitswitch"></a>
 
@@ -684,7 +690,7 @@ An OPTICAL sensor as a piece sensor: "sees a piece" at proximity >= `proximity`,
 
 A LIMIT SWITCH (or bumper) on a 3-wire port as a piece sensor: pressed = sees a piece.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:190`](../../include/shulib/mechanism/kinds.hpp#L190).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:191`](../../include/shulib/mechanism/kinds.hpp#L191).*
 
 <a id="struct-stall"></a>
 
@@ -696,7 +702,7 @@ struct Stall
 
 A STALL SIGNATURE: the motors draw at least `amps` while turning slower than `belowMotorRpm` (at the MOTOR shaft — every other rpm a team writes is the output's) for `lasting` (manipulation::StallDetector's three numbers). The team's — never a default. REQUIRED on an Arm, a Lift and a Flywheel (N10: their behaviour goes on after the step — a hold, a spin — and a blocked one must never sit at stall current, P4); optional on a Power mechanism. A stated one must be able to trip: amps below the motor's 2.5 A limit, belowMotorRpm above 0, lasting above 0.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:200`](../../include/shulib/mechanism/kinds.hpp#L200).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:201`](../../include/shulib/mechanism/kinds.hpp#L201).*
 
 <a id="stall-amps"></a>
 
@@ -708,7 +714,7 @@ double amps = 0.0
 
 At least this current, A (below 2.5).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:202`](../../include/shulib/mechanism/kinds.hpp#L202).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:203`](../../include/shulib/mechanism/kinds.hpp#L203).*
 
 <a id="stall-belowmotorrpm"></a>
 
@@ -720,7 +726,7 @@ double belowMotorRpm = 0.0
 
 While the MOTOR shaft turns slower than this, rpm (above 0).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:204`](../../include/shulib/mechanism/kinds.hpp#L204).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:205`](../../include/shulib/mechanism/kinds.hpp#L205).*
 
 <a id="stall-lasting"></a>
 
@@ -732,7 +738,31 @@ units::Time lasting{0.0}
 
 Continuously for this long (above 0).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:206`](../../include/shulib/mechanism/kinds.hpp#L206).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:207`](../../include/shulib/mechanism/kinds.hpp#L207).*
+
+<a id="struct-currentcap"></a>
+
+## `struct CurrentCap`
+
+```cpp
+struct CurrentCap
+```
+
+A CURRENT CAP (chunk MECH-S-A, 2026-11-05): the most current EACH motor of the mechanism may draw, amperes — `.currentCap = {.amps = 1.2}`. Optional on a Power, an Arm, a Lift and a Flywheel; the team's number, never a default (none written = the motor's own 2.5 A). Set in every motor at boot and enforced by the MOTOR itself from then on — every command, the Hold brake, a homing push, a blocking loop that starves the service (A4 register HA-219: how fast, unmeasured). PER MOTOR: two motors on one spool pull with twice it. The build refuses one below 0 or above 2.5 A, one under 0.001 A (a V5 limit is whole milliamps), and any stated stall signature at or above it (a capped motor never draws more: the signature could never trip) — a cap written as 0 is no cap, the same as leaving it out; the boot warns when a signature is not MORE than 0.2 A below it, as the motor reads it in whole milliamps (HA-223). Choosing it — the ORDER four currents must keep: the heaviest HOLD (with a game piece) < the stall signature < the cap − 0.2 A, the heaviest MOVE's peak < the cap, and the cap ≤ what the string can take (about 10 lbf per amp per motor for a red cartridge on a 1.5 in spool — HA-222, NOT measured). It does not limit the carriage's momentum when it hits a stop (HA-222): push gently.
+
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:223`](../../include/shulib/mechanism/kinds.hpp#L223).*
+
+<a id="currentcap-amps"></a>
+
+### `CurrentCap::amps`
+
+```cpp
+double amps = 0.0
+```
+
+At most this current per motor, A: from 0.001 (one milliamp) to 2.5. 0 = no cap stated.
+
+*field, declared at [`include/shulib/mechanism/kinds.hpp:225`](../../include/shulib/mechanism/kinds.hpp#L225).*
 
 <a id="struct-gearing"></a>
 
@@ -744,7 +774,7 @@ struct Gearing
 
 THE GEARING, as tooth counts (header): `gears(12, 60)` = a 12-tooth gear on the motor drives a 60; `gears(60, 12)` = geared UP; stages multiply, `gears(12, 36) * gears(12, 60)`; `direct` = none. Sprockets the same way (teeth). A bare number does not compile, and names the fix.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:217`](../../include/shulib/mechanism/kinds.hpp#L217).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:236`](../../include/shulib/mechanism/kinds.hpp#L236).*
 
 <a id="gearing-motorturnsperturn"></a>
 
@@ -756,7 +786,7 @@ double motorTurnsPerTurn = 0.0
 
 Motor turns per output turn (> 0); 0 = UNSET.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:219`](../../include/shulib/mechanism/kinds.hpp#L219).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:238`](../../include/shulib/mechanism/kinds.hpp#L238).*
 
 <a id="gearing-gearing"></a>
 
@@ -768,7 +798,7 @@ constexpr Gearing() noexcept = default
 
 UNSET.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:221`](../../include/shulib/mechanism/kinds.hpp#L221).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:240`](../../include/shulib/mechanism/kinds.hpp#L240).*
 
 <a id="gearing-gearing-2"></a>
 
@@ -780,7 +810,7 @@ template <class Write_the_gearing_as_tooth_counts_like_gears_12_60> requires std
 
 UNSET. `.gearing = 5`: refused. The template parameter's NAME is the reason GCC prints ("use of deleted function ... [with Write_the_gearing_as_tooth_counts_like_gears_12_60 = int]") — a consteval refusal inside a converting constructor printed no reason (measured, n41).
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:226`](../../include/shulib/mechanism/kinds.hpp#L226).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:245`](../../include/shulib/mechanism/kinds.hpp#L245).*
 
 <a id="gearing-operator-star"></a>
 
@@ -792,7 +822,7 @@ UNSET. `.gearing = 5`: refused. The template parameter's NAME is the reason GCC 
 
 UNSET. `.gearing = 5`: refused. The template parameter's NAME is the reason GCC prints ("use of deleted function ... [with Write_the_gearing_as_tooth_counts_like_gears_12_60 = int]") — a consteval refusal inside a converting constructor printed no reason (measured, n41). Two stages in series: their reductions multiply.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:229`](../../include/shulib/mechanism/kinds.hpp#L229).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:248`](../../include/shulib/mechanism/kinds.hpp#L248).*
 
 <a id="gears"></a>
 
@@ -804,7 +834,7 @@ UNSET. `.gearing = 5`: refused. The template parameter's NAME is the reason GCC 
 
 A gear pair, DRIVING (on the motor's side) then DRIVEN, in teeth. Refuses a gear with no tooth.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:236`](../../include/shulib/mechanism/kinds.hpp#L236).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:255`](../../include/shulib/mechanism/kinds.hpp#L255).*
 
 <a id="direct"></a>
 
@@ -816,7 +846,7 @@ inline constexpr Gearing direct = [] { Gearing g; g.motorTurnsPerTurn = 1.0; ret
 
 No gearing: the output turns with the motor.
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:245`](../../include/shulib/mechanism/kinds.hpp#L245).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:264`](../../include/shulib/mechanism/kinds.hpp#L264).*
 
 <a id="struct-gravityterm"></a>
 
@@ -828,7 +858,7 @@ struct GravityTerm
 
 The holding term for gravity — `volts` is what holds the mechanism still where gravity pulls hardest (an arm held LEVEL; a lift anywhere). Made by cosine(), constantGravity(), noGravity.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:255`](../../include/shulib/mechanism/kinds.hpp#L255).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:274`](../../include/shulib/mechanism/kinds.hpp#L274).*
 
 <a id="gravityterm-kind"></a>
 
@@ -840,7 +870,7 @@ Gravity kind = static_cast<Gravity>(0)
 
 Which shape. UNSET = 0, refused.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:257`](../../include/shulib/mechanism/kinds.hpp#L257).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:276`](../../include/shulib/mechanism/kinds.hpp#L276).*
 
 <a id="gravityterm-volts"></a>
 
@@ -852,7 +882,7 @@ double volts = 0.0
 
 The hold, V.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:259`](../../include/shulib/mechanism/kinds.hpp#L259).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:278`](../../include/shulib/mechanism/kinds.hpp#L278).*
 
 <a id="gravityterm-levelatdeg"></a>
 
@@ -864,7 +894,7 @@ double levelAtDeg = 0.0
 
 Cosine: the output angle (deg) at which the arm is level.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:261`](../../include/shulib/mechanism/kinds.hpp#L261).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:280`](../../include/shulib/mechanism/kinds.hpp#L280).*
 
 <a id="cosine"></a>
 
@@ -876,7 +906,7 @@ Cosine: the output angle (deg) at which the arm is level.
 
 An ARM: `holdLevel` holds it out level, less as it points up (cosine); level at `levelAt` degrees.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:264`](../../include/shulib/mechanism/kinds.hpp#L264).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:283`](../../include/shulib/mechanism/kinds.hpp#L283).*
 
 <a id="constantgravity"></a>
 
@@ -888,7 +918,7 @@ An ARM: `holdLevel` holds it out level, less as it points up (cosine); level at 
 
 A LIFT: the same `volts` everywhere along its travel.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:268`](../../include/shulib/mechanism/kinds.hpp#L268).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:287`](../../include/shulib/mechanism/kinds.hpp#L287).*
 
 <a id="nogravity"></a>
 
@@ -900,7 +930,7 @@ inline constexpr GravityTerm noGravity{Gravity::None, 0.0, 0.0}
 
 Nothing to hold (a turntable, a counterbalanced arm).
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:272`](../../include/shulib/mechanism/kinds.hpp#L272).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:291`](../../include/shulib/mechanism/kinds.hpp#L291).*
 
 <a id="struct-homing"></a>
 
@@ -912,7 +942,7 @@ struct Homing
 
 How a position mechanism finds its zero — every moment the requirements list: at program start with no motion (restsAtStop, absoluteSensor, a home switch already pressed), or by a homing MOVE (homeBySwitch, homeByStall) at auton start, at driver start or on request, which the auton or the driver file says. Made by the words below.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:278`](../../include/shulib/mechanism/kinds.hpp#L278).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:297`](../../include/shulib/mechanism/kinds.hpp#L297).*
 
 <a id="homing-method"></a>
 
@@ -924,7 +954,7 @@ HomeMethod method = static_cast<HomeMethod>(0)
 
 How. UNSET = 0, refused.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:280`](../../include/shulib/mechanism/kinds.hpp#L280).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:299`](../../include/shulib/mechanism/kinds.hpp#L299).*
 
 <a id="homing-at"></a>
 
@@ -936,7 +966,7 @@ double at = 0.0
 
 Where zero puts it (degrees / inches).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:282`](../../include/shulib/mechanism/kinds.hpp#L282).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:301`](../../include/shulib/mechanism/kinds.hpp#L301).*
 
 <a id="homing-sensoratzerodeg"></a>
 
@@ -948,7 +978,7 @@ double sensorAtZeroDeg = 0.0
 
 absoluteSensor only: the sensor's reading (deg) when the mechanism is at `at`.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:284`](../../include/shulib/mechanism/kinds.hpp#L284).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:303`](../../include/shulib/mechanism/kinds.hpp#L303).*
 
 <a id="homing-volts"></a>
 
@@ -960,7 +990,7 @@ double volts = 0.0
 
 A homing move's gentle push toward its stop, V, signed (it must point at the home end).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:286`](../../include/shulib/mechanism/kinds.hpp#L286).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:305`](../../include/shulib/mechanism/kinds.hpp#L305).*
 
 <a id="homing-stall"></a>
 
@@ -972,7 +1002,7 @@ Stall stall{}
 
 homeByStall only: the signature that means "at the stop".
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:288`](../../include/shulib/mechanism/kinds.hpp#L288).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:307`](../../include/shulib/mechanism/kinds.hpp#L307).*
 
 <a id="restsatstop"></a>
 
@@ -984,7 +1014,7 @@ homeByStall only: the signature that means "at the stop".
 
 It RESTS on its stop when the program starts (an arm down on its hard stop): that is `at`.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:291`](../../include/shulib/mechanism/kinds.hpp#L291).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:310`](../../include/shulib/mechanism/kinds.hpp#L310).*
 
 <a id="restsatstop-2"></a>
 
@@ -996,7 +1026,7 @@ It RESTS on its stop when the program starts (an arm down on its hard stop): tha
 
 The same for a lift: `at` in inches.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:293`](../../include/shulib/mechanism/kinds.hpp#L293).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:312`](../../include/shulib/mechanism/kinds.hpp#L312).*
 
 <a id="homebyswitch"></a>
 
@@ -1008,7 +1038,7 @@ The same for a lift: `at` in inches.
 
 Push at `toward` until its HOME SWITCH is pressed; that is `at`. Wire it with homeSwitch('B').
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:295`](../../include/shulib/mechanism/kinds.hpp#L295).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:314`](../../include/shulib/mechanism/kinds.hpp#L314).*
 
 <a id="homebyswitch-2"></a>
 
@@ -1020,7 +1050,7 @@ Push at `toward` until its HOME SWITCH is pressed; that is `at`. Wire it with ho
 
 The same for a lift: `at` in inches.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:299`](../../include/shulib/mechanism/kinds.hpp#L299).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:318`](../../include/shulib/mechanism/kinds.hpp#L318).*
 
 <a id="homebystall"></a>
 
@@ -1032,7 +1062,7 @@ The same for a lift: `at` in inches.
 
 Push at `toward` until it STALLS against its stop (the team's `signature`); that is `at`.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:303`](../../include/shulib/mechanism/kinds.hpp#L303).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:322`](../../include/shulib/mechanism/kinds.hpp#L322).*
 
 <a id="homebystall-2"></a>
 
@@ -1044,7 +1074,7 @@ Push at `toward` until it STALLS against its stop (the team's `signature`); that
 
 The same for a lift: `at` in inches.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:307`](../../include/shulib/mechanism/kinds.hpp#L307).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:326`](../../include/shulib/mechanism/kinds.hpp#L326).*
 
 <a id="absolutesensor"></a>
 
@@ -1056,7 +1086,7 @@ The same for a lift: `at` in inches.
 
 An angle sensor that knows where it is at power-up: the mechanism is at `at` when the sensor reads `sensorReadsDeg` — a FIXED offset, never "zero wherever it stands" (HA-186: that the V5 rotation sensor's cumulative reading starts at its absolute angle). Needs `.angleSensor`.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:313`](../../include/shulib/mechanism/kinds.hpp#L313).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:332`](../../include/shulib/mechanism/kinds.hpp#L332).*
 
 <a id="neverhomed"></a>
 
@@ -1068,7 +1098,7 @@ inline constexpr Homing neverHomed{.method = HomeMethod::None}
 
 Never homed: position moves are refused (NOT_HOMED); a held button jogs it at `.unhomedVolts`.
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:317`](../../include/shulib/mechanism/kinds.hpp#L317).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:336`](../../include/shulib/mechanism/kinds.hpp#L336).*
 
 <a id="struct-degreerange"></a>
 
@@ -1080,7 +1110,7 @@ struct DegreeRange
 
 An Arm's travel limits, degrees. REQUIRED (min < max).
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:320`](../../include/shulib/mechanism/kinds.hpp#L320).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:339`](../../include/shulib/mechanism/kinds.hpp#L339).*
 
 <a id="degreerange-min"></a>
 
@@ -1092,7 +1122,7 @@ double min = 0.0
 
 The lower limit.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:322`](../../include/shulib/mechanism/kinds.hpp#L322).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:341`](../../include/shulib/mechanism/kinds.hpp#L341).*
 
 <a id="degreerange-max"></a>
 
@@ -1104,7 +1134,7 @@ double max = 0.0
 
 The upper limit.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:324`](../../include/shulib/mechanism/kinds.hpp#L324).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:343`](../../include/shulib/mechanism/kinds.hpp#L343).*
 
 <a id="struct-inchrange"></a>
 
@@ -1116,7 +1146,7 @@ struct InchRange
 
 A Lift's travel limits, inches. REQUIRED (min < max).
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:327`](../../include/shulib/mechanism/kinds.hpp#L327).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:346`](../../include/shulib/mechanism/kinds.hpp#L346).*
 
 <a id="inchrange-min"></a>
 
@@ -1128,7 +1158,7 @@ units::Length min{0.0}
 
 The lower limit.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:329`](../../include/shulib/mechanism/kinds.hpp#L329).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:348`](../../include/shulib/mechanism/kinds.hpp#L348).*
 
 <a id="inchrange-max"></a>
 
@@ -1140,7 +1170,7 @@ units::Length max{0.0}
 
 The upper limit.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:331`](../../include/shulib/mechanism/kinds.hpp#L331).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:350`](../../include/shulib/mechanism/kinds.hpp#L350).*
 
 <a id="struct-degreepreset"></a>
 
@@ -1152,7 +1182,7 @@ struct DegreePreset
 
 An Arm's named preset: `{"score", 95}`.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:334`](../../include/shulib/mechanism/kinds.hpp#L334).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:353`](../../include/shulib/mechanism/kinds.hpp#L353).*
 
 <a id="degreepreset-name"></a>
 
@@ -1164,7 +1194,7 @@ const char* name = nullptr
 
 Its name (15 characters at most).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:336`](../../include/shulib/mechanism/kinds.hpp#L336).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:355`](../../include/shulib/mechanism/kinds.hpp#L355).*
 
 <a id="degreepreset-value"></a>
 
@@ -1176,7 +1206,7 @@ double value = 0.0
 
 Its angle, degrees.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:338`](../../include/shulib/mechanism/kinds.hpp#L338).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:357`](../../include/shulib/mechanism/kinds.hpp#L357).*
 
 <a id="struct-inchpreset"></a>
 
@@ -1188,7 +1218,7 @@ struct InchPreset
 
 A Lift's named preset: `{"high", 22_in}`.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:341`](../../include/shulib/mechanism/kinds.hpp#L341).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:360`](../../include/shulib/mechanism/kinds.hpp#L360).*
 
 <a id="inchpreset-name"></a>
 
@@ -1200,7 +1230,7 @@ const char* name = nullptr
 
 Its name (15 characters at most).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:343`](../../include/shulib/mechanism/kinds.hpp#L343).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:362`](../../include/shulib/mechanism/kinds.hpp#L362).*
 
 <a id="inchpreset-value"></a>
 
@@ -1212,7 +1242,7 @@ units::Length value{0.0}
 
 Its height.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:345`](../../include/shulib/mechanism/kinds.hpp#L345).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:364`](../../include/shulib/mechanism/kinds.hpp#L364).*
 
 <a id="struct-rpmpreset"></a>
 
@@ -1224,7 +1254,7 @@ struct RpmPreset
 
 A Flywheel's named speed: `{"shoot", 3000}`.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:348`](../../include/shulib/mechanism/kinds.hpp#L348).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:367`](../../include/shulib/mechanism/kinds.hpp#L367).*
 
 <a id="rpmpreset-name"></a>
 
@@ -1236,7 +1266,7 @@ const char* name = nullptr
 
 Its name (15 characters at most).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:350`](../../include/shulib/mechanism/kinds.hpp#L350).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:369`](../../include/shulib/mechanism/kinds.hpp#L369).*
 
 <a id="rpmpreset-rpm"></a>
 
@@ -1248,7 +1278,7 @@ double rpm = 0.0
 
 Its output rpm.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:352`](../../include/shulib/mechanism/kinds.hpp#L352).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:371`](../../include/shulib/mechanism/kinds.hpp#L371).*
 
 <a id="struct-liftshape"></a>
 
@@ -1260,7 +1290,7 @@ struct LiftShape
 
 A lift's SHAPE: how its inches relate to its output shaft's degrees. Made by spool(), linkage(), measured().
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:357`](../../include/shulib/mechanism/kinds.hpp#L357).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:376`](../../include/shulib/mechanism/kinds.hpp#L376).*
 
 <a id="liftshape-geometry"></a>
 
@@ -1272,7 +1302,7 @@ Geometry geometry = static_cast<Geometry>(0)
 
 Which shape. UNSET = 0, refused.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:359`](../../include/shulib/mechanism/kinds.hpp#L359).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:378`](../../include/shulib/mechanism/kinds.hpp#L378).*
 
 <a id="liftshape-spooldiameterin"></a>
 
@@ -1284,7 +1314,7 @@ double spoolDiameterIn = 0.0
 
 spool(): its diameter, inches.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:361`](../../include/shulib/mechanism/kinds.hpp#L361).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:380`](../../include/shulib/mechanism/kinds.hpp#L380).*
 
 <a id="liftshape-armlengthin"></a>
 
@@ -1296,7 +1326,7 @@ double armLengthIn = 0.0
 
 linkage(): one stage's arm length, inches.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:363`](../../include/shulib/mechanism/kinds.hpp#L363).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:382`](../../include/shulib/mechanism/kinds.hpp#L382).*
 
 <a id="liftshape-pivotheightin"></a>
 
@@ -1308,7 +1338,7 @@ double pivotHeightIn = 0.0
 
 linkage(): the first pivot's height, inches.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:365`](../../include/shulib/mechanism/kinds.hpp#L365).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:384`](../../include/shulib/mechanism/kinds.hpp#L384).*
 
 <a id="liftshape-stages"></a>
 
@@ -1320,7 +1350,7 @@ std::uint8_t stages = 0
 
 linkage(): 1 = a four-bar, 2 = a double reverse four-bar.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:367`](../../include/shulib/mechanism/kinds.hpp#L367).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:386`](../../include/shulib/mechanism/kinds.hpp#L386).*
 
 <a id="liftshape-table"></a>
 
@@ -1332,7 +1362,7 @@ double table[kMaxTablePoints][2]{}
 
 measured(): {height in, output angle deg} rows.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:369`](../../include/shulib/mechanism/kinds.hpp#L369).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:388`](../../include/shulib/mechanism/kinds.hpp#L388).*
 
 <a id="liftshape-points"></a>
 
@@ -1344,7 +1374,7 @@ std::uint8_t points = 0
 
 measured(): how many rows were written.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:371`](../../include/shulib/mechanism/kinds.hpp#L371).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:390`](../../include/shulib/mechanism/kinds.hpp#L390).*
 
 <a id="spool"></a>
 
@@ -1356,7 +1386,7 @@ measured(): how many rows were written.
 
 A string or chain on a spool of this diameter on the output shaft.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:374`](../../include/shulib/mechanism/kinds.hpp#L374).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:393`](../../include/shulib/mechanism/kinds.hpp#L393).*
 
 <a id="linkage"></a>
 
@@ -1368,7 +1398,7 @@ A string or chain on a spool of this diameter on the output shaft.
 
 A four-bar (1 stage) or a double reverse four-bar (2 stages): each stage `armLength` long, the first pivot `pivotHeight` up; its height follows the sine of the arm's angle from level.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:379`](../../include/shulib/mechanism/kinds.hpp#L379).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:398`](../../include/shulib/mechanism/kinds.hpp#L398).*
 
 <a id="struct-heightat"></a>
 
@@ -1380,7 +1410,7 @@ struct HeightAt
 
 One measured pair of a lift's table: its height at an output angle.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:384`](../../include/shulib/mechanism/kinds.hpp#L384).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:403`](../../include/shulib/mechanism/kinds.hpp#L403).*
 
 <a id="heightat-height"></a>
 
@@ -1392,7 +1422,7 @@ units::Length height{0.0}
 
 The lift's height there.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:386`](../../include/shulib/mechanism/kinds.hpp#L386).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:405`](../../include/shulib/mechanism/kinds.hpp#L405).*
 
 <a id="heightat-degrees"></a>
 
@@ -1404,7 +1434,7 @@ double degrees = 0.0
 
 The output shaft's angle there, degrees.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:388`](../../include/shulib/mechanism/kinds.hpp#L388).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:407`](../../include/shulib/mechanism/kinds.hpp#L407).*
 
 <a id="measured"></a>
 
@@ -1416,7 +1446,7 @@ template <std::size_t N> [[nodiscard]] constexpr LiftShape measured(const Height
 
 Any other shape: measured pairs {height, output angle}, at least two, strictly increasing — interpolated between them. More than kMaxTablePoints pairs is recorded and refused by the list.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:393`](../../include/shulib/mechanism/kinds.hpp#L393).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:412`](../../include/shulib/mechanism/kinds.hpp#L412).*
 
 <a id="struct-positiontuning"></a>
 
@@ -1428,7 +1458,7 @@ struct PositionTuning
 
 A position mechanism's overrides of the library's STARTING values (header; N7), one by one — 0 keeps the starting value. Gains per OUTPUT-SHAFT degree; speed and acceleration in the mechanism's units per second.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:406`](../../include/shulib/mechanism/kinds.hpp#L406).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:425`](../../include/shulib/mechanism/kinds.hpp#L425).*
 
 <a id="positiontuning-kp"></a>
 
@@ -1440,7 +1470,7 @@ double kP = 0.0
 
 Proportional gain, V/deg (starting value 0.25).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:408`](../../include/shulib/mechanism/kinds.hpp#L408).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:427`](../../include/shulib/mechanism/kinds.hpp#L427).*
 
 <a id="positiontuning-ki"></a>
 
@@ -1452,7 +1482,7 @@ double kI = 0.0
 
 The hold loop's integral gain, V/(deg*s) (starting value 0.3).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:410`](../../include/shulib/mechanism/kinds.hpp#L410).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:429`](../../include/shulib/mechanism/kinds.hpp#L429).*
 
 <a id="positiontuning-kd"></a>
 
@@ -1464,7 +1494,7 @@ double kD = 0.0
 
 Derivative gain, V/(deg/s) (starting value 0.004).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:412`](../../include/shulib/mechanism/kinds.hpp#L412).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:431`](../../include/shulib/mechanism/kinds.hpp#L431).*
 
 <a id="positiontuning-ks"></a>
 
@@ -1476,7 +1506,7 @@ double kS = 0.0
 
 Static feedforward, V (starting value 0).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:414`](../../include/shulib/mechanism/kinds.hpp#L414).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:433`](../../include/shulib/mechanism/kinds.hpp#L433).*
 
 <a id="positiontuning-kv"></a>
 
@@ -1488,7 +1518,7 @@ double kV = 0.0
 
 Velocity feedforward, V/(deg/s) (starting value 12 V over the output's free speed).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:416`](../../include/shulib/mechanism/kinds.hpp#L416).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:435`](../../include/shulib/mechanism/kinds.hpp#L435).*
 
 <a id="positiontuning-ka"></a>
 
@@ -1500,7 +1530,7 @@ double kA = 0.0
 
 Acceleration feedforward, V/(deg/s^2) (starting value 0).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:418`](../../include/shulib/mechanism/kinds.hpp#L418).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:437`](../../include/shulib/mechanism/kinds.hpp#L437).*
 
 <a id="positiontuning-maxspeed"></a>
 
@@ -1512,7 +1542,7 @@ double maxSpeed = 0.0
 
 The smooth move's top speed, units/s (starting value 75 % of the free speed).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:420`](../../include/shulib/mechanism/kinds.hpp#L420).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:439`](../../include/shulib/mechanism/kinds.hpp#L439).*
 
 <a id="positiontuning-maxacceleration"></a>
 
@@ -1524,7 +1554,7 @@ double maxAcceleration = 0.0
 
 Its acceleration, units/s^2 (starting value: the top speed in 0.25 s).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:422`](../../include/shulib/mechanism/kinds.hpp#L422).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:441`](../../include/shulib/mechanism/kinds.hpp#L441).*
 
 <a id="positiontuning-within"></a>
 
@@ -1536,7 +1566,7 @@ double within = 0.0
 
 "Reached" when within this of the target (starting value 1.5 deg, or 0.25 in) ...
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:424`](../../include/shulib/mechanism/kinds.hpp#L424).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:443`](../../include/shulib/mechanism/kinds.hpp#L443).*
 
 <a id="positiontuning-settle"></a>
 
@@ -1548,7 +1578,7 @@ units::Time settle{0.0}
 
 ... for this long (starting value 0.1 s).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:426`](../../include/shulib/mechanism/kinds.hpp#L426).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:445`](../../include/shulib/mechanism/kinds.hpp#L445).*
 
 <a id="struct-speedtuning"></a>
 
@@ -1560,7 +1590,7 @@ struct SpeedTuning
 
 A flywheel's overrides of its starting values — 0 keeps the starting value.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:429`](../../include/shulib/mechanism/kinds.hpp#L429).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:448`](../../include/shulib/mechanism/kinds.hpp#L448).*
 
 <a id="speedtuning-ks"></a>
 
@@ -1572,7 +1602,7 @@ double kS = 0.0
 
 Static feedforward, V (starting value 0).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:431`](../../include/shulib/mechanism/kinds.hpp#L431).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:450`](../../include/shulib/mechanism/kinds.hpp#L450).*
 
 <a id="speedtuning-kv"></a>
 
@@ -1584,7 +1614,7 @@ double kV = 0.0
 
 Velocity feedforward, V per output rad/s (starting value 12 V over the free speed).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:433`](../../include/shulib/mechanism/kinds.hpp#L433).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:452`](../../include/shulib/mechanism/kinds.hpp#L452).*
 
 <a id="speedtuning-kp"></a>
 
@@ -1596,7 +1626,7 @@ double kP = 0.0
 
 Proportional gain, V per rad/s (starting value 0.05).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:435`](../../include/shulib/mechanism/kinds.hpp#L435).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:454`](../../include/shulib/mechanism/kinds.hpp#L454).*
 
 <a id="speedtuning-ki"></a>
 
@@ -1608,7 +1638,7 @@ double kI = 0.0
 
 Integral gain, V per rad (starting value 0.2).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:437`](../../include/shulib/mechanism/kinds.hpp#L437).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:456`](../../include/shulib/mechanism/kinds.hpp#L456).*
 
 <a id="struct-positiongoal"></a>
 
@@ -1620,7 +1650,7 @@ struct PositionGoal
 
 A position goal: an Arm's or a Lift's preset or constant target.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:447`](../../include/shulib/mechanism/kinds.hpp#L447).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:466`](../../include/shulib/mechanism/kinds.hpp#L466).*
 
 <a id="positiongoal-mechanism"></a>
 
@@ -1632,7 +1662,7 @@ const void* mechanism
 
 The declaration's address (what a driver control's build check compares).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:449`](../../include/shulib/mechanism/kinds.hpp#L449).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:468`](../../include/shulib/mechanism/kinds.hpp#L468).*
 
 <a id="positiongoal-mechanismname"></a>
 
@@ -1644,7 +1674,7 @@ const char* mechanismName
 
 The declaration's `.name` (what the run-time lookup compares).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:451`](../../include/shulib/mechanism/kinds.hpp#L451).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:470`](../../include/shulib/mechanism/kinds.hpp#L470).*
 
 <a id="positiongoal-presetname"></a>
 
@@ -1656,7 +1686,7 @@ const char* presetName
 
 The preset's name, or nullptr for a number.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:453`](../../include/shulib/mechanism/kinds.hpp#L453).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:472`](../../include/shulib/mechanism/kinds.hpp#L472).*
 
 <a id="positiongoal-value"></a>
 
@@ -1668,7 +1698,7 @@ double value
 
 The target, degrees or inches.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:455`](../../include/shulib/mechanism/kinds.hpp#L455).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:474`](../../include/shulib/mechanism/kinds.hpp#L474).*
 
 <a id="positiongoal-computed"></a>
 
@@ -1680,7 +1710,7 @@ bool computed
 
 A run-time number (`clampedTo`): clamped at the limits by the soft stop, logged.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:457`](../../include/shulib/mechanism/kinds.hpp#L457).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:476`](../../include/shulib/mechanism/kinds.hpp#L476).*
 
 <a id="positiongoal-units"></a>
 
@@ -1692,7 +1722,7 @@ Units units
 
 Degrees (an Arm's goal) or inches (a Lift's): the service finds only a mechanism of these units (UNSET, the byte 0, finds none).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:460`](../../include/shulib/mechanism/kinds.hpp#L460).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:479`](../../include/shulib/mechanism/kinds.hpp#L479).*
 
 <a id="struct-speedgoal"></a>
 
@@ -1704,7 +1734,7 @@ struct SpeedGoal
 
 A speed goal: a Flywheel's named speed or constant target.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:463`](../../include/shulib/mechanism/kinds.hpp#L463).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:482`](../../include/shulib/mechanism/kinds.hpp#L482).*
 
 <a id="speedgoal-mechanism"></a>
 
@@ -1716,7 +1746,7 @@ const void* mechanism
 
 The declaration's address.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:465`](../../include/shulib/mechanism/kinds.hpp#L465).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:484`](../../include/shulib/mechanism/kinds.hpp#L484).*
 
 <a id="speedgoal-mechanismname"></a>
 
@@ -1728,7 +1758,7 @@ const char* mechanismName
 
 The declaration's `.name`.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:467`](../../include/shulib/mechanism/kinds.hpp#L467).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:486`](../../include/shulib/mechanism/kinds.hpp#L486).*
 
 <a id="speedgoal-presetname"></a>
 
@@ -1740,7 +1770,7 @@ const char* presetName
 
 The preset's name, or nullptr for a number.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:469`](../../include/shulib/mechanism/kinds.hpp#L469).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:488`](../../include/shulib/mechanism/kinds.hpp#L488).*
 
 <a id="speedgoal-rpm"></a>
 
@@ -1752,7 +1782,7 @@ double rpm
 
 The target, output rpm.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:471`](../../include/shulib/mechanism/kinds.hpp#L471).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:490`](../../include/shulib/mechanism/kinds.hpp#L490).*
 
 <a id="speedgoal-computed"></a>
 
@@ -1764,7 +1794,7 @@ bool computed
 
 A run-time number (`clampedTo`).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:473`](../../include/shulib/mechanism/kinds.hpp#L473).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:492`](../../include/shulib/mechanism/kinds.hpp#L492).*
 
 <a id="struct-pneumaticgoal"></a>
 
@@ -1776,7 +1806,7 @@ struct PneumaticGoal
 
 A pneumatic goal: one of its named positions.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:476`](../../include/shulib/mechanism/kinds.hpp#L476).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:495`](../../include/shulib/mechanism/kinds.hpp#L495).*
 
 <a id="pneumaticgoal-mechanism"></a>
 
@@ -1788,7 +1818,7 @@ const void* mechanism
 
 The declaration's address.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:478`](../../include/shulib/mechanism/kinds.hpp#L478).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:497`](../../include/shulib/mechanism/kinds.hpp#L497).*
 
 <a id="pneumaticgoal-mechanismname"></a>
 
@@ -1800,7 +1830,7 @@ const char* mechanismName
 
 The declaration's `.name`.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:480`](../../include/shulib/mechanism/kinds.hpp#L480).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:499`](../../include/shulib/mechanism/kinds.hpp#L499).*
 
 <a id="pneumaticgoal-position"></a>
 
@@ -1812,7 +1842,7 @@ std::uint8_t position
 
 The position's index in the declaration.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:482`](../../include/shulib/mechanism/kinds.hpp#L482).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:501`](../../include/shulib/mechanism/kinds.hpp#L501).*
 
 <a id="pneumaticgoal-positionname"></a>
 
@@ -1824,7 +1854,7 @@ const char* positionName
 
 The position's name (the lookup checks it at its index).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:484`](../../include/shulib/mechanism/kinds.hpp#L484).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:503`](../../include/shulib/mechanism/kinds.hpp#L503).*
 
 <a id="positionstartingvalues"></a>
 
@@ -1836,7 +1866,7 @@ The position's name (the lookup checks it at its index).
 
 The numbers a POSITION spec would run with NO `.tuning` — the library's starting values (HA-182) for its cartridge, gearing and shape. What startingValuesLine() (wiring.hpp) compares a spec against to say which of its numbers are the library's and which the team's.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:660`](../../include/shulib/mechanism/kinds.hpp#L660).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:679`](../../include/shulib/mechanism/kinds.hpp#L679).*
 
 <a id="speedstartingvalues"></a>
 
@@ -1848,7 +1878,7 @@ The numbers a POSITION spec would run with NO `.tuning` — the library's starti
 
 The numbers a SPEED spec would run with NO `.tuning` (HA-182), from its cartridge through its gearing.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:668`](../../include/shulib/mechanism/kinds.hpp#L668).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:687`](../../include/shulib/mechanism/kinds.hpp#L687).*
 
 <a id="struct-power"></a>
 
@@ -1860,7 +1890,7 @@ struct Power
 
 POWER — run at a voltage (intakes, rollers, conveyors, robot two's claw pivots). Members in the order C++ requires them written (header).
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:679`](../../include/shulib/mechanism/kinds.hpp#L679).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:698`](../../include/shulib/mechanism/kinds.hpp#L698).*
 
 <a id="power-name"></a>
 
@@ -1872,7 +1902,7 @@ Name name{}
 
 Its name (23 characters at most).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:681`](../../include/shulib/mechanism/kinds.hpp#L681).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:700`](../../include/shulib/mechanism/kinds.hpp#L700).*
 
 <a id="power-motors"></a>
 
@@ -1884,7 +1914,7 @@ Motors motors{}
 
 Its motor roles.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:683`](../../include/shulib/mechanism/kinds.hpp#L683).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:702`](../../include/shulib/mechanism/kinds.hpp#L702).*
 
 <a id="power-cartridge"></a>
 
@@ -1896,7 +1926,7 @@ hal::MotorCartridge cartridge = static_cast<hal::MotorCartridge>(0)
 
 Its motors' cartridge. REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:685`](../../include/shulib/mechanism/kinds.hpp#L685).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:704`](../../include/shulib/mechanism/kinds.hpp#L704).*
 
 <a id="power-piecesensor"></a>
 
@@ -1908,7 +1938,7 @@ Sensor pieceSensor{}
 
 Optional: distanceSensor(2_in), opticalSensor(0.5), limitSwitch().
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:687`](../../include/shulib/mechanism/kinds.hpp#L687).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:706`](../../include/shulib/mechanism/kinds.hpp#L706).*
 
 <a id="power-safe"></a>
 
@@ -1920,7 +1950,7 @@ config::SafeBrakeMode safe = static_cast<config::SafeBrakeMode>(0)
 
 What every stop lands in: Coast, Brake or Hold. REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:689`](../../include/shulib/mechanism/kinds.hpp#L689).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:708`](../../include/shulib/mechanism/kinds.hpp#L708).*
 
 <a id="power-stall"></a>
 
@@ -1932,7 +1962,19 @@ Stall stall{}
 
 Optional: the jam signature (`stalls`, the STALLED verdict); with none, the boot says a held button is cut only by its release (HA-154).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:692`](../../include/shulib/mechanism/kinds.hpp#L692).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:711`](../../include/shulib/mechanism/kinds.hpp#L711).*
+
+<a id="power-currentcap"></a>
+
+### `Power::currentCap`
+
+```cpp
+CurrentCap currentCap{}
+```
+
+Optional: the most current each motor may draw, set in the motor at boot (CurrentCap; MECH-S-A).
+
+*field, declared at [`include/shulib/mechanism/kinds.hpp:713`](../../include/shulib/mechanism/kinds.hpp#L713).*
 
 <a id="power-maxvolts"></a>
 
@@ -1944,7 +1986,7 @@ units::Voltage maxVolts{12.0}
 
 The most any command may ask (the motor's own ceiling unless lowered), (0, 12] V.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:694`](../../include/shulib/mechanism/kinds.hpp#L694).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:715`](../../include/shulib/mechanism/kinds.hpp#L715).*
 
 <a id="power-operator-index"></a>
 
@@ -1956,7 +1998,7 @@ template <class T> [[nodiscard]] consteval int operator[](T) const
 
 `intake["fast"]`: refused BY NAME — a power mechanism has no presets (run it: `r.run(intake, 12_volt, ...)`).
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:699`](../../include/shulib/mechanism/kinds.hpp#L699).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:720`](../../include/shulib/mechanism/kinds.hpp#L720).*
 
 <a id="power-spec"></a>
 
@@ -1968,7 +2010,7 @@ template <class T> [[nodiscard]] consteval int operator[](T) const
 
 This declaration as data.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:705`](../../include/shulib/mechanism/kinds.hpp#L705).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:726`](../../include/shulib/mechanism/kinds.hpp#L726).*
 
 <a id="struct-arm"></a>
 
@@ -1980,7 +2022,7 @@ struct Arm
 
 ARM — go to an angle in DEGREES and hold it (arms, tilters, a claw pivot with presets).
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:717`](../../include/shulib/mechanism/kinds.hpp#L717).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:739`](../../include/shulib/mechanism/kinds.hpp#L739).*
 
 <a id="arm-name"></a>
 
@@ -1992,7 +2034,7 @@ Name name{}
 
 Its name (23 characters at most).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:719`](../../include/shulib/mechanism/kinds.hpp#L719).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:741`](../../include/shulib/mechanism/kinds.hpp#L741).*
 
 <a id="arm-motors"></a>
 
@@ -2004,7 +2046,7 @@ Motors motors{}
 
 Its motor roles.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:721`](../../include/shulib/mechanism/kinds.hpp#L721).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:743`](../../include/shulib/mechanism/kinds.hpp#L743).*
 
 <a id="arm-cartridge"></a>
 
@@ -2016,7 +2058,7 @@ hal::MotorCartridge cartridge = static_cast<hal::MotorCartridge>(0)
 
 Its motors' cartridge. REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:723`](../../include/shulib/mechanism/kinds.hpp#L723).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:745`](../../include/shulib/mechanism/kinds.hpp#L745).*
 
 <a id="arm-gearing"></a>
 
@@ -2028,7 +2070,7 @@ Gearing gearing{}
 
 REQUIRED: gears(12, 60) — tooth counts, the motor's gear first.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:725`](../../include/shulib/mechanism/kinds.hpp#L725).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:747`](../../include/shulib/mechanism/kinds.hpp#L747).*
 
 <a id="arm-anglesensor"></a>
 
@@ -2040,7 +2082,7 @@ Sensor angleSensor{}
 
 Optional: rotationSensor() — then it, not the motor encoders, is the angle.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:727`](../../include/shulib/mechanism/kinds.hpp#L727).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:749`](../../include/shulib/mechanism/kinds.hpp#L749).*
 
 <a id="arm-safe"></a>
 
@@ -2052,7 +2094,7 @@ config::SafeBrakeMode safe = static_cast<config::SafeBrakeMode>(0)
 
 What every stop lands in. REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:729`](../../include/shulib/mechanism/kinds.hpp#L729).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:751`](../../include/shulib/mechanism/kinds.hpp#L751).*
 
 <a id="arm-stall"></a>
 
@@ -2064,7 +2106,19 @@ Stall stall{}
 
 REQUIRED: a blocked move's or hold's signature (P4, N10).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:731`](../../include/shulib/mechanism/kinds.hpp#L731).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:753`](../../include/shulib/mechanism/kinds.hpp#L753).*
+
+<a id="arm-currentcap"></a>
+
+### `Arm::currentCap`
+
+```cpp
+CurrentCap currentCap{}
+```
+
+Optional: the most current each motor may draw, set in the motor at boot (CurrentCap; MECH-S-A).
+
+*field, declared at [`include/shulib/mechanism/kinds.hpp:755`](../../include/shulib/mechanism/kinds.hpp#L755).*
 
 <a id="arm-range"></a>
 
@@ -2076,7 +2130,7 @@ DegreeRange range{}
 
 The travel limits, degrees. REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:733`](../../include/shulib/mechanism/kinds.hpp#L733).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:757`](../../include/shulib/mechanism/kinds.hpp#L757).*
 
 <a id="arm-gravity"></a>
 
@@ -2088,7 +2142,7 @@ GravityTerm gravity{}
 
 cosine(...) or noGravity. REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:735`](../../include/shulib/mechanism/kinds.hpp#L735).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:759`](../../include/shulib/mechanism/kinds.hpp#L759).*
 
 <a id="arm-home"></a>
 
@@ -2100,7 +2154,7 @@ Homing home{}
 
 restsAtStop / homeBySwitch / homeByStall / absoluteSensor / neverHomed. REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:737`](../../include/shulib/mechanism/kinds.hpp#L737).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:761`](../../include/shulib/mechanism/kinds.hpp#L761).*
 
 <a id="arm-presets"></a>
 
@@ -2112,7 +2166,7 @@ DegreePreset presets[kMaxPresets]{}
 
 Optional: {"score", 95}, ... (six at most).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:739`](../../include/shulib/mechanism/kinds.hpp#L739).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:763`](../../include/shulib/mechanism/kinds.hpp#L763).*
 
 <a id="arm-unhomedvolts"></a>
 
@@ -2124,7 +2178,7 @@ units::Voltage unhomedVolts{0.0}
 
 Optional: a held button's most before homing (0 = nothing moves it before homing).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:741`](../../include/shulib/mechanism/kinds.hpp#L741).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:765`](../../include/shulib/mechanism/kinds.hpp#L765).*
 
 <a id="arm-tuning"></a>
 
@@ -2136,7 +2190,7 @@ PositionTuning tuning{}
 
 Optional: overrides of the starting values (header).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:743`](../../include/shulib/mechanism/kinds.hpp#L743).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:767`](../../include/shulib/mechanism/kinds.hpp#L767).*
 
 <a id="arm-operator-index"></a>
 
@@ -2148,7 +2202,7 @@ Optional: overrides of the starting values (header).
 
 A named preset: `arm["score"]`. A name the arm does not have FAILS THE BUILD.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:746`](../../include/shulib/mechanism/kinds.hpp#L746).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:770`](../../include/shulib/mechanism/kinds.hpp#L770).*
 
 <a id="arm-to"></a>
 
@@ -2160,7 +2214,7 @@ A named preset: `arm["score"]`. A name the arm does not have FAILS THE BUILD.
 
 A constant target in degrees: `arm.to(120)`. Past the travel limits FAILS THE BUILD.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:756`](../../include/shulib/mechanism/kinds.hpp#L756).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:780`](../../include/shulib/mechanism/kinds.hpp#L780).*
 
 <a id="arm-requires"></a>
 
@@ -2172,7 +2226,7 @@ template <class T> requires(!std::is_arithmetic_v<T>) [[nodiscard]] consteval Po
 
 `arm.to(90_deg)`: refused BY NAME (`_deg` is a wrapping heading — 270 reads -90).
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:764`](../../include/shulib/mechanism/kinds.hpp#L764).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:788`](../../include/shulib/mechanism/kinds.hpp#L788).*
 
 <a id="arm-clampedto"></a>
 
@@ -2184,7 +2238,7 @@ template <class T> requires(!std::is_arithmetic_v<T>) [[nodiscard]] consteval Po
 
 A target computed while the auton runs: clamped to the limits by the soft stop, and logged.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:770`](../../include/shulib/mechanism/kinds.hpp#L770).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:794`](../../include/shulib/mechanism/kinds.hpp#L794).*
 
 <a id="arm-spec"></a>
 
@@ -2196,7 +2250,7 @@ A target computed while the auton runs: clamped to the limits by the soft stop, 
 
 This declaration as data.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:775`](../../include/shulib/mechanism/kinds.hpp#L775).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:799`](../../include/shulib/mechanism/kinds.hpp#L799).*
 
 <a id="struct-lift"></a>
 
@@ -2208,7 +2262,7 @@ struct Lift
 
 LIFT — go to a height in INCHES and hold it (a spool lift, a four-bar, a DR4B, any measured shape). Members in the Arm's order, its shape after the gearing.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:811`](../../include/shulib/mechanism/kinds.hpp#L811).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:836`](../../include/shulib/mechanism/kinds.hpp#L836).*
 
 <a id="lift-name"></a>
 
@@ -2220,7 +2274,7 @@ Name name{}
 
 Its name (23 characters at most).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:813`](../../include/shulib/mechanism/kinds.hpp#L813).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:838`](../../include/shulib/mechanism/kinds.hpp#L838).*
 
 <a id="lift-motors"></a>
 
@@ -2232,7 +2286,7 @@ Motors motors{}
 
 Its motor roles.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:815`](../../include/shulib/mechanism/kinds.hpp#L815).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:840`](../../include/shulib/mechanism/kinds.hpp#L840).*
 
 <a id="lift-cartridge"></a>
 
@@ -2244,7 +2298,7 @@ hal::MotorCartridge cartridge = static_cast<hal::MotorCartridge>(0)
 
 Its motors' cartridge. REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:817`](../../include/shulib/mechanism/kinds.hpp#L817).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:842`](../../include/shulib/mechanism/kinds.hpp#L842).*
 
 <a id="lift-gearing"></a>
 
@@ -2256,7 +2310,7 @@ Gearing gearing{}
 
 REQUIRED: gears(12, 36), or direct.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:819`](../../include/shulib/mechanism/kinds.hpp#L819).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:844`](../../include/shulib/mechanism/kinds.hpp#L844).*
 
 <a id="lift-shape"></a>
 
@@ -2268,7 +2322,7 @@ LiftShape shape{}
 
 REQUIRED: spool(...), linkage(...) or measured({...}).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:821`](../../include/shulib/mechanism/kinds.hpp#L821).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:846`](../../include/shulib/mechanism/kinds.hpp#L846).*
 
 <a id="lift-anglesensor"></a>
 
@@ -2280,7 +2334,7 @@ Sensor angleSensor{}
 
 Optional: rotationSensor() on the output shaft.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:823`](../../include/shulib/mechanism/kinds.hpp#L823).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:848`](../../include/shulib/mechanism/kinds.hpp#L848).*
 
 <a id="lift-safe"></a>
 
@@ -2292,7 +2346,7 @@ config::SafeBrakeMode safe = static_cast<config::SafeBrakeMode>(0)
 
 What every stop lands in. REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:825`](../../include/shulib/mechanism/kinds.hpp#L825).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:850`](../../include/shulib/mechanism/kinds.hpp#L850).*
 
 <a id="lift-stall"></a>
 
@@ -2304,7 +2358,19 @@ Stall stall{}
 
 REQUIRED (P4, N10).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:827`](../../include/shulib/mechanism/kinds.hpp#L827).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:852`](../../include/shulib/mechanism/kinds.hpp#L852).*
+
+<a id="lift-currentcap"></a>
+
+### `Lift::currentCap`
+
+```cpp
+CurrentCap currentCap{}
+```
+
+Optional: the most current each motor may draw, set in the motor at boot (CurrentCap; MECH-S-A) — how hard a string lift's string is pulled.
+
+*field, declared at [`include/shulib/mechanism/kinds.hpp:855`](../../include/shulib/mechanism/kinds.hpp#L855).*
 
 <a id="lift-range"></a>
 
@@ -2316,7 +2382,7 @@ InchRange range{}
 
 The travel limits, inches. REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:829`](../../include/shulib/mechanism/kinds.hpp#L829).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:857`](../../include/shulib/mechanism/kinds.hpp#L857).*
 
 <a id="lift-gravity"></a>
 
@@ -2328,7 +2394,7 @@ GravityTerm gravity{}
 
 constantGravity(...) (or cosine for a linkage's arm, or noGravity). REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:831`](../../include/shulib/mechanism/kinds.hpp#L831).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:859`](../../include/shulib/mechanism/kinds.hpp#L859).*
 
 <a id="lift-home"></a>
 
@@ -2340,7 +2406,7 @@ Homing home{}
 
 How it finds zero. REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:833`](../../include/shulib/mechanism/kinds.hpp#L833).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:861`](../../include/shulib/mechanism/kinds.hpp#L861).*
 
 <a id="lift-presets"></a>
 
@@ -2352,7 +2418,7 @@ InchPreset presets[kMaxPresets]{}
 
 Optional: {"high", 22_in}, ... (six at most).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:835`](../../include/shulib/mechanism/kinds.hpp#L835).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:863`](../../include/shulib/mechanism/kinds.hpp#L863).*
 
 <a id="lift-unhomedvolts"></a>
 
@@ -2364,7 +2430,7 @@ units::Voltage unhomedVolts{0.0}
 
 Optional: a held button's most before homing.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:837`](../../include/shulib/mechanism/kinds.hpp#L837).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:865`](../../include/shulib/mechanism/kinds.hpp#L865).*
 
 <a id="lift-tuning"></a>
 
@@ -2376,7 +2442,7 @@ PositionTuning tuning{}
 
 Optional: overrides of the starting values.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:839`](../../include/shulib/mechanism/kinds.hpp#L839).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:867`](../../include/shulib/mechanism/kinds.hpp#L867).*
 
 <a id="lift-operator-index"></a>
 
@@ -2388,7 +2454,7 @@ Optional: overrides of the starting values.
 
 A named preset: `lift["high"]`. A name the lift does not have FAILS THE BUILD.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:842`](../../include/shulib/mechanism/kinds.hpp#L842).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:870`](../../include/shulib/mechanism/kinds.hpp#L870).*
 
 <a id="lift-to"></a>
 
@@ -2400,7 +2466,7 @@ A named preset: `lift["high"]`. A name the lift does not have FAILS THE BUILD.
 
 A constant target height: `lift.to(18_in)`. Past the travel limits FAILS THE BUILD.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:852`](../../include/shulib/mechanism/kinds.hpp#L852).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:880`](../../include/shulib/mechanism/kinds.hpp#L880).*
 
 <a id="lift-to-2"></a>
 
@@ -2412,7 +2478,7 @@ template <class T> requires std::is_arithmetic_v<T> [[nodiscard]] consteval Posi
 
 `lift.to(18)`: refused BY NAME (a height is inches: `lift.to(18_in)`).
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:860`](../../include/shulib/mechanism/kinds.hpp#L860).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:888`](../../include/shulib/mechanism/kinds.hpp#L888).*
 
 <a id="lift-clampedto"></a>
 
@@ -2424,7 +2490,7 @@ template <class T> requires std::is_arithmetic_v<T> [[nodiscard]] consteval Posi
 
 A height computed while the auton runs: clamped to the limits by the soft stop, and logged.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:866`](../../include/shulib/mechanism/kinds.hpp#L866).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:894`](../../include/shulib/mechanism/kinds.hpp#L894).*
 
 <a id="lift-spec"></a>
 
@@ -2436,7 +2502,7 @@ A height computed while the auton runs: clamped to the limits by the soft stop, 
 
 This declaration as data.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:871`](../../include/shulib/mechanism/kinds.hpp#L871).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:899`](../../include/shulib/mechanism/kinds.hpp#L899).*
 
 <a id="struct-atspeed"></a>
 
@@ -2448,7 +2514,7 @@ struct AtSpeed
 
 "At speed": within `rpm` of the target for `lasting` (both the team's, P6). Made by within().
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:917`](../../include/shulib/mechanism/kinds.hpp#L917).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:946`](../../include/shulib/mechanism/kinds.hpp#L946).*
 
 <a id="atspeed-rpm"></a>
 
@@ -2460,7 +2526,7 @@ double rpm = 0.0
 
 The band, output rpm.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:919`](../../include/shulib/mechanism/kinds.hpp#L919).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:948`](../../include/shulib/mechanism/kinds.hpp#L948).*
 
 <a id="atspeed-lasting"></a>
 
@@ -2472,7 +2538,7 @@ units::Time lasting{0.0}
 
 How long it must stay inside it.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:921`](../../include/shulib/mechanism/kinds.hpp#L921).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:950`](../../include/shulib/mechanism/kinds.hpp#L950).*
 
 <a id="within"></a>
 
@@ -2484,7 +2550,7 @@ How long it must stay inside it.
 
 `.atSpeed = within(60, 0.1_s)`: within 60 rpm of the target for 0.1 s.
 
-*free function, declared at [`include/shulib/mechanism/kinds.hpp:924`](../../include/shulib/mechanism/kinds.hpp#L924).*
+*free function, declared at [`include/shulib/mechanism/kinds.hpp:953`](../../include/shulib/mechanism/kinds.hpp#L953).*
 
 <a id="struct-flywheel"></a>
 
@@ -2496,7 +2562,7 @@ struct Flywheel
 
 FLYWHEEL — spin at an RPM of its output and say when it is up to speed (the SPEED kind; re-check N11: the declaration's word is what a team builds).
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:928`](../../include/shulib/mechanism/kinds.hpp#L928).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:957`](../../include/shulib/mechanism/kinds.hpp#L957).*
 
 <a id="flywheel-name"></a>
 
@@ -2508,7 +2574,7 @@ Name name{}
 
 Its name (23 characters at most).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:930`](../../include/shulib/mechanism/kinds.hpp#L930).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:959`](../../include/shulib/mechanism/kinds.hpp#L959).*
 
 <a id="flywheel-motors"></a>
 
@@ -2520,7 +2586,7 @@ Motors motors{}
 
 Its motor roles.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:932`](../../include/shulib/mechanism/kinds.hpp#L932).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:961`](../../include/shulib/mechanism/kinds.hpp#L961).*
 
 <a id="flywheel-cartridge"></a>
 
@@ -2532,7 +2598,7 @@ hal::MotorCartridge cartridge = static_cast<hal::MotorCartridge>(0)
 
 Its motors' cartridge. REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:934`](../../include/shulib/mechanism/kinds.hpp#L934).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:963`](../../include/shulib/mechanism/kinds.hpp#L963).*
 
 <a id="flywheel-gearing"></a>
 
@@ -2544,7 +2610,7 @@ Gearing gearing{}
 
 REQUIRED: gears(72, 12) = geared UP 6:1.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:936`](../../include/shulib/mechanism/kinds.hpp#L936).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:965`](../../include/shulib/mechanism/kinds.hpp#L965).*
 
 <a id="flywheel-anglesensor"></a>
 
@@ -2556,7 +2622,7 @@ Sensor angleSensor{}
 
 Optional: rotationSensor() on the wheel — then it, not the motor encoders, is the speed.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:938`](../../include/shulib/mechanism/kinds.hpp#L938).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:967`](../../include/shulib/mechanism/kinds.hpp#L967).*
 
 <a id="flywheel-safe"></a>
 
@@ -2568,7 +2634,7 @@ config::SafeBrakeMode safe = static_cast<config::SafeBrakeMode>(0)
 
 What every stop lands in. REQUIRED.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:940`](../../include/shulib/mechanism/kinds.hpp#L940).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:969`](../../include/shulib/mechanism/kinds.hpp#L969).*
 
 <a id="flywheel-stall"></a>
 
@@ -2580,7 +2646,19 @@ Stall stall{}
 
 REQUIRED: a jammed wheel's signature (P4, N10).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:942`](../../include/shulib/mechanism/kinds.hpp#L942).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:971`](../../include/shulib/mechanism/kinds.hpp#L971).*
+
+<a id="flywheel-currentcap"></a>
+
+### `Flywheel::currentCap`
+
+```cpp
+CurrentCap currentCap{}
+```
+
+Optional: the most current each motor may draw, set in the motor at boot (CurrentCap; MECH-S-A).
+
+*field, declared at [`include/shulib/mechanism/kinds.hpp:973`](../../include/shulib/mechanism/kinds.hpp#L973).*
 
 <a id="flywheel-atspeed"></a>
 
@@ -2592,7 +2670,7 @@ AtSpeed atSpeed{}
 
 REQUIRED: within(60, 0.1_s).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:944`](../../include/shulib/mechanism/kinds.hpp#L944).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:975`](../../include/shulib/mechanism/kinds.hpp#L975).*
 
 <a id="flywheel-presets"></a>
 
@@ -2604,7 +2682,7 @@ RpmPreset presets[kMaxPresets]{}
 
 Its named speeds: {"shoot", 3000}, ... (six at most).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:946`](../../include/shulib/mechanism/kinds.hpp#L946).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:977`](../../include/shulib/mechanism/kinds.hpp#L977).*
 
 <a id="flywheel-tuning"></a>
 
@@ -2616,7 +2694,7 @@ SpeedTuning tuning{}
 
 Optional: overrides of the starting values.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:948`](../../include/shulib/mechanism/kinds.hpp#L948).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:979`](../../include/shulib/mechanism/kinds.hpp#L979).*
 
 <a id="flywheel-freerpm"></a>
 
@@ -2628,7 +2706,7 @@ Optional: overrides of the starting values.
 
 The fastest it can spin: the cartridge's free speed through the gearing, output rpm.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:951`](../../include/shulib/mechanism/kinds.hpp#L951).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:982`](../../include/shulib/mechanism/kinds.hpp#L982).*
 
 <a id="flywheel-operator-index"></a>
 
@@ -2640,7 +2718,7 @@ The fastest it can spin: the cartridge's free speed through the gearing, output 
 
 A named speed: `flywheel["shoot"]`. A name it does not have FAILS THE BUILD.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:955`](../../include/shulib/mechanism/kinds.hpp#L955).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:986`](../../include/shulib/mechanism/kinds.hpp#L986).*
 
 <a id="flywheel-at"></a>
 
@@ -2652,7 +2730,7 @@ A named speed: `flywheel["shoot"]`. A name it does not have FAILS THE BUILD.
 
 A constant speed: `flywheel.at(3000)`. Past its free speed FAILS THE BUILD.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:965`](../../include/shulib/mechanism/kinds.hpp#L965).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:996`](../../include/shulib/mechanism/kinds.hpp#L996).*
 
 <a id="flywheel-clampedto"></a>
 
@@ -2664,7 +2742,7 @@ A constant speed: `flywheel.at(3000)`. Past its free speed FAILS THE BUILD.
 
 A speed computed while the auton runs: clamped to the free speed, and logged.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:972`](../../include/shulib/mechanism/kinds.hpp#L972).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:1003`](../../include/shulib/mechanism/kinds.hpp#L1003).*
 
 <a id="flywheel-spec"></a>
 
@@ -2676,7 +2754,7 @@ A speed computed while the auton runs: clamped to the free speed, and logged.
 
 This declaration as data (its free speed derived, its starting values filled).
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:977`](../../include/shulib/mechanism/kinds.hpp#L977).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:1008`](../../include/shulib/mechanism/kinds.hpp#L1008).*
 
 <a id="struct-levels"></a>
 
@@ -2688,7 +2766,7 @@ struct Levels
 
 One position's line levels, as written: `{Low}` (one line) or `{High, Low}` (two). Records HOW MANY were written, so the wiring can refuse a position stating a different number of levels than it has lines (U2: a bool array cannot tell an unstated level from Low).
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:1005`](../../include/shulib/mechanism/kinds.hpp#L1005).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:1037`](../../include/shulib/mechanism/kinds.hpp#L1037).*
 
 <a id="levels-l"></a>
 
@@ -2700,7 +2778,7 @@ bool l[kMaxLineRoles]{}
 
 The levels, line 1 first.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1007`](../../include/shulib/mechanism/kinds.hpp#L1007).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1039`](../../include/shulib/mechanism/kinds.hpp#L1039).*
 
 <a id="levels-count"></a>
 
@@ -2712,7 +2790,7 @@ std::uint8_t count = 0
 
 How many were written.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1009`](../../include/shulib/mechanism/kinds.hpp#L1009).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1041`](../../include/shulib/mechanism/kinds.hpp#L1041).*
 
 <a id="levels-toomany"></a>
 
@@ -2724,7 +2802,7 @@ bool tooMany = false
 
 More than kMaxLineRoles were written.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1011`](../../include/shulib/mechanism/kinds.hpp#L1011).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1043`](../../include/shulib/mechanism/kinds.hpp#L1043).*
 
 <a id="levels-levels"></a>
 
@@ -2736,7 +2814,7 @@ constexpr Levels() noexcept = default
 
 UNSET: no levels.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:1013`](../../include/shulib/mechanism/kinds.hpp#L1013).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:1045`](../../include/shulib/mechanism/kinds.hpp#L1045).*
 
 <a id="levels-levels-2"></a>
 
@@ -2748,7 +2826,7 @@ consteval Levels(std::initializer_list<bool> list) noexcept
 
 UNSET: no levels. `{High, Low}`.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:1015`](../../include/shulib/mechanism/kinds.hpp#L1015).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:1047`](../../include/shulib/mechanism/kinds.hpp#L1047).*
 
 <a id="struct-namedposition"></a>
 
@@ -2760,7 +2838,7 @@ struct NamedPosition
 
 A pneumatic POSITION: its name, each line's level in it, and whether reaching it is a GRAB (or a RELEASE) a piece sensor confirms (Q2: with no sensor it is counted done after `moveTime`, reported UNCONFIRMED).
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:1028`](../../include/shulib/mechanism/kinds.hpp#L1028).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:1060`](../../include/shulib/mechanism/kinds.hpp#L1060).*
 
 <a id="namedposition-name"></a>
 
@@ -2772,7 +2850,7 @@ const char* name = nullptr
 
 Its name (15 characters at most).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1030`](../../include/shulib/mechanism/kinds.hpp#L1030).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1062`](../../include/shulib/mechanism/kinds.hpp#L1062).*
 
 <a id="namedposition-levels"></a>
 
@@ -2784,7 +2862,7 @@ Levels levels{}
 
 Its line levels.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1032`](../../include/shulib/mechanism/kinds.hpp#L1032).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1064`](../../include/shulib/mechanism/kinds.hpp#L1064).*
 
 <a id="namedposition-confirm"></a>
 
@@ -2796,7 +2874,7 @@ Confirm confirm = Confirm::None
 
 `grabs`, `releases`, or nothing.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1034`](../../include/shulib/mechanism/kinds.hpp#L1034).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1066`](../../include/shulib/mechanism/kinds.hpp#L1066).*
 
 <a id="struct-positions"></a>
 
@@ -2808,7 +2886,7 @@ struct Positions
 
 A pneumatic mechanism's positions, in order (two or three): `.positions = {{"closed", {Low}, grabs}, {"open", {High}}}`.
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:1038`](../../include/shulib/mechanism/kinds.hpp#L1038).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:1070`](../../include/shulib/mechanism/kinds.hpp#L1070).*
 
 <a id="positions-p"></a>
 
@@ -2820,7 +2898,7 @@ NamedPosition p[kMaxPneumaticPositions]{}
 
 The positions, in the order written.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1040`](../../include/shulib/mechanism/kinds.hpp#L1040).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1072`](../../include/shulib/mechanism/kinds.hpp#L1072).*
 
 <a id="positions-count"></a>
 
@@ -2832,7 +2910,7 @@ std::uint8_t count = 0
 
 How many were written.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1042`](../../include/shulib/mechanism/kinds.hpp#L1042).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1074`](../../include/shulib/mechanism/kinds.hpp#L1074).*
 
 <a id="positions-toomany"></a>
 
@@ -2844,7 +2922,7 @@ bool tooMany = false
 
 More than kMaxPneumaticPositions were written.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1044`](../../include/shulib/mechanism/kinds.hpp#L1044).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1076`](../../include/shulib/mechanism/kinds.hpp#L1076).*
 
 <a id="positions-file"></a>
 
@@ -2856,7 +2934,7 @@ const char* file = nullptr
 
 Where the list was written (an initializer list — see Motors::file; the spec uses `.name`'s).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1046`](../../include/shulib/mechanism/kinds.hpp#L1046).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1078`](../../include/shulib/mechanism/kinds.hpp#L1078).*
 
 <a id="positions-line"></a>
 
@@ -2868,7 +2946,7 @@ std::uint32_t line = 0
 
 That line.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1048`](../../include/shulib/mechanism/kinds.hpp#L1048).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1080`](../../include/shulib/mechanism/kinds.hpp#L1080).*
 
 <a id="positions-positions"></a>
 
@@ -2880,7 +2958,7 @@ constexpr Positions() noexcept = default
 
 UNSET: no positions.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:1050`](../../include/shulib/mechanism/kinds.hpp#L1050).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:1082`](../../include/shulib/mechanism/kinds.hpp#L1082).*
 
 <a id="positions-positions-2"></a>
 
@@ -2892,7 +2970,7 @@ consteval Positions(std::initializer_list<NamedPosition> list, std::source_locat
 
 UNSET: no positions. `{{"closed", {Low}, grabs}, {"open", {High}}}`.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:1052`](../../include/shulib/mechanism/kinds.hpp#L1052).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:1084`](../../include/shulib/mechanism/kinds.hpp#L1084).*
 
 <a id="high"></a>
 
@@ -2904,7 +2982,7 @@ inline constexpr bool High = true
 
 A line driven HIGH (on, `true` — the solenoid powered).
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:1065`](../../include/shulib/mechanism/kinds.hpp#L1065).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:1097`](../../include/shulib/mechanism/kinds.hpp#L1097).*
 
 <a id="low"></a>
 
@@ -2916,7 +2994,7 @@ inline constexpr bool Low = false
 
 A line driven LOW (off, `false` — the solenoid unpowered).
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:1067`](../../include/shulib/mechanism/kinds.hpp#L1067).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:1099`](../../include/shulib/mechanism/kinds.hpp#L1099).*
 
 <a id="grabs"></a>
 
@@ -2928,7 +3006,7 @@ inline constexpr Confirm grabs = Confirm::Sees
 
 Reaching this position GRABS a piece: a piece sensor confirms it; with none, UNCONFIRMED and counted done (Q2 (c)).
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:1070`](../../include/shulib/mechanism/kinds.hpp#L1070).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:1102`](../../include/shulib/mechanism/kinds.hpp#L1102).*
 
 <a id="releases"></a>
 
@@ -2940,7 +3018,7 @@ inline constexpr Confirm releases = Confirm::StopsSeeing
 
 Reaching this position lets a piece GO: a piece sensor confirms it is gone.
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:1072`](../../include/shulib/mechanism/kinds.hpp#L1072).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:1104`](../../include/shulib/mechanism/kinds.hpp#L1104).*
 
 <a id="struct-pneumatic"></a>
 
@@ -2952,7 +3030,7 @@ struct Pneumatic
 
 PNEUMATIC — two or three named positions, each the team's line levels (Q13 (a)).
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:1075`](../../include/shulib/mechanism/kinds.hpp#L1075).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:1107`](../../include/shulib/mechanism/kinds.hpp#L1107).*
 
 <a id="pneumatic-name"></a>
 
@@ -2964,7 +3042,7 @@ Name name{}
 
 Its name (23 characters at most).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1077`](../../include/shulib/mechanism/kinds.hpp#L1077).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1109`](../../include/shulib/mechanism/kinds.hpp#L1109).*
 
 <a id="pneumatic-positions"></a>
 
@@ -2976,7 +3054,7 @@ Positions positions{}
 
 REQUIRED: {{"closed", {Low}, grabs}, {"open", {High}}} — one level per wired line.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1079`](../../include/shulib/mechanism/kinds.hpp#L1079).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1111`](../../include/shulib/mechanism/kinds.hpp#L1111).*
 
 <a id="pneumatic-start"></a>
 
@@ -2988,7 +3066,7 @@ const char* start = nullptr
 
 REQUIRED: the position at program start (a position's name).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1081`](../../include/shulib/mechanism/kinds.hpp#L1081).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1113`](../../include/shulib/mechanism/kinds.hpp#L1113).*
 
 <a id="pneumatic-safe"></a>
 
@@ -3000,7 +3078,7 @@ const char* safe = nullptr
 
 REQUIRED: the position the end-of-run guard puts it in.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1083`](../../include/shulib/mechanism/kinds.hpp#L1083).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1115`](../../include/shulib/mechanism/kinds.hpp#L1115).*
 
 <a id="pneumatic-movetime"></a>
 
@@ -3012,7 +3090,7 @@ units::Time moveTime{0.0}
 
 REQUIRED: how long the cylinder takes (no default, P6).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1085`](../../include/shulib/mechanism/kinds.hpp#L1085).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1117`](../../include/shulib/mechanism/kinds.hpp#L1117).*
 
 <a id="pneumatic-piecesensor"></a>
 
@@ -3024,7 +3102,7 @@ Sensor pieceSensor{}
 
 Optional: confirms a `grabs` / `releases` position.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1087`](../../include/shulib/mechanism/kinds.hpp#L1087).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1119`](../../include/shulib/mechanism/kinds.hpp#L1119).*
 
 <a id="pneumatic-confirmwithin"></a>
 
@@ -3036,7 +3114,7 @@ units::Time confirmWithin{0.0}
 
 With a piece sensor: how long after moveTime the confirmation may take.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1089`](../../include/shulib/mechanism/kinds.hpp#L1089).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1121`](../../include/shulib/mechanism/kinds.hpp#L1121).*
 
 <a id="pneumatic-changeat"></a>
 
@@ -3048,7 +3126,7 @@ const char* changeAt = nullptr
 
 Generated robot files only: the positions' JSON path (G3a).
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1091`](../../include/shulib/mechanism/kinds.hpp#L1091).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1123`](../../include/shulib/mechanism/kinds.hpp#L1123).*
 
 <a id="pneumatic-to"></a>
 
@@ -3060,7 +3138,7 @@ template <class T> [[nodiscard]] consteval PneumaticGoal to(const T&) const
 
 `claw.to(...)`: refused BY NAME (a position is named: claw["open"]).
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:1095`](../../include/shulib/mechanism/kinds.hpp#L1095).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:1127`](../../include/shulib/mechanism/kinds.hpp#L1127).*
 
 <a id="pneumatic-operator-index"></a>
 
@@ -3072,7 +3150,7 @@ template <class T> [[nodiscard]] consteval PneumaticGoal to(const T&) const
 
 A named position: `claw["closed"]`. A name it does not have FAILS THE BUILD.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:1100`](../../include/shulib/mechanism/kinds.hpp#L1100).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:1132`](../../include/shulib/mechanism/kinds.hpp#L1132).*
 
 <a id="pneumatic-spec"></a>
 
@@ -3084,7 +3162,7 @@ A named position: `claw["closed"]`. A name it does not have FAILS THE BUILD.
 
 This declaration as data, with `lines` 3-wire lines — the WIRING says how many (lines('A') or lines('B', 'C')).
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:1112`](../../include/shulib/mechanism/kinds.hpp#L1112).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:1144`](../../include/shulib/mechanism/kinds.hpp#L1144).*
 
 <a id="arm"></a>
 
@@ -3096,7 +3174,7 @@ using mechanism::Arm
 
 The ARM declaration (degrees, held).
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1155`](../../include/shulib/mechanism/kinds.hpp#L1155).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1187`](../../include/shulib/mechanism/kinds.hpp#L1187).*
 
 <a id="lift"></a>
 
@@ -3108,7 +3186,7 @@ using mechanism::Lift
 
 The LIFT declaration (inches, held).
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1157`](../../include/shulib/mechanism/kinds.hpp#L1157).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1189`](../../include/shulib/mechanism/kinds.hpp#L1189).*
 
 <a id="pneumatic"></a>
 
@@ -3120,7 +3198,7 @@ using mechanism::Pneumatic
 
 The PNEUMATIC declaration (named positions).
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1159`](../../include/shulib/mechanism/kinds.hpp#L1159).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1191`](../../include/shulib/mechanism/kinds.hpp#L1191).*
 
 <a id="power"></a>
 
@@ -3132,7 +3210,7 @@ using mechanism::Power
 
 The POWER declaration (volts).
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1161`](../../include/shulib/mechanism/kinds.hpp#L1161).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1193`](../../include/shulib/mechanism/kinds.hpp#L1193).*
 
 <a id="flywheel"></a>
 
@@ -3144,7 +3222,7 @@ using mechanism::Flywheel
 
 The FLYWHEEL declaration (output rpm, "at speed").
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1163`](../../include/shulib/mechanism/kinds.hpp#L1163).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1195`](../../include/shulib/mechanism/kinds.hpp#L1195).*
 
 <a id="forward-2"></a>
 
@@ -3156,7 +3234,7 @@ using mechanism::Forward
 
 A motor mounted the + way.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1165`](../../include/shulib/mechanism/kinds.hpp#L1165).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1197`](../../include/shulib/mechanism/kinds.hpp#L1197).*
 
 <a id="reversed-2"></a>
 
@@ -3168,7 +3246,7 @@ using mechanism::Reversed
 
 A motor mounted the other way.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1167`](../../include/shulib/mechanism/kinds.hpp#L1167).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1199`](../../include/shulib/mechanism/kinds.hpp#L1199).*
 
 <a id="rotationsensor-2"></a>
 
@@ -3180,7 +3258,7 @@ using mechanism::rotationSensor
 
 An angle sensor: rotationSensor() / rotationSensor(Reversed).
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1169`](../../include/shulib/mechanism/kinds.hpp#L1169).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1201`](../../include/shulib/mechanism/kinds.hpp#L1201).*
 
 <a id="distancesensor-2"></a>
 
@@ -3192,7 +3270,7 @@ using mechanism::distanceSensor
 
 A distance piece sensor: distanceSensor(2_in).
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1171`](../../include/shulib/mechanism/kinds.hpp#L1171).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1203`](../../include/shulib/mechanism/kinds.hpp#L1203).*
 
 <a id="opticalsensor-2"></a>
 
@@ -3204,7 +3282,7 @@ using mechanism::opticalSensor
 
 An optical piece sensor: opticalSensor(0.5).
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1173`](../../include/shulib/mechanism/kinds.hpp#L1173).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1205`](../../include/shulib/mechanism/kinds.hpp#L1205).*
 
 <a id="limitswitch-2"></a>
 
@@ -3216,7 +3294,7 @@ using mechanism::limitSwitch
 
 A limit-switch piece sensor: limitSwitch().
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1175`](../../include/shulib/mechanism/kinds.hpp#L1175).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1207`](../../include/shulib/mechanism/kinds.hpp#L1207).*
 
 <a id="stall"></a>
 
@@ -3228,7 +3306,7 @@ using mechanism::Stall
 
 A stall signature: {.amps, .belowMotorRpm, .lasting}.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1177`](../../include/shulib/mechanism/kinds.hpp#L1177).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1209`](../../include/shulib/mechanism/kinds.hpp#L1209).*
 
 <a id="cosine-2"></a>
 
@@ -3240,7 +3318,7 @@ using mechanism::cosine
 
 An arm's gravity: cosine(1.6_volt, 45).
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1179`](../../include/shulib/mechanism/kinds.hpp#L1179).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1211`](../../include/shulib/mechanism/kinds.hpp#L1211).*
 
 <a id="constantgravity-2"></a>
 
@@ -3252,7 +3330,7 @@ using mechanism::constantGravity
 
 A lift's gravity: constantGravity(1.0_volt).
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1181`](../../include/shulib/mechanism/kinds.hpp#L1181).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1213`](../../include/shulib/mechanism/kinds.hpp#L1213).*
 
 <a id="nogravity-2"></a>
 
@@ -3264,7 +3342,7 @@ using mechanism::noGravity
 
 No gravity to hold.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1183`](../../include/shulib/mechanism/kinds.hpp#L1183).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1215`](../../include/shulib/mechanism/kinds.hpp#L1215).*
 
 <a id="restsatstop-3"></a>
 
@@ -3276,7 +3354,7 @@ using mechanism::restsAtStop
 
 Homing: it rests on its stop at program start.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1185`](../../include/shulib/mechanism/kinds.hpp#L1185).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1217`](../../include/shulib/mechanism/kinds.hpp#L1217).*
 
 <a id="homebyswitch-3"></a>
 
@@ -3288,7 +3366,7 @@ using mechanism::homeBySwitch
 
 Homing: push until its switch is pressed.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1187`](../../include/shulib/mechanism/kinds.hpp#L1187).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1219`](../../include/shulib/mechanism/kinds.hpp#L1219).*
 
 <a id="homebystall-3"></a>
 
@@ -3300,7 +3378,7 @@ using mechanism::homeByStall
 
 Homing: push until it stalls.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1189`](../../include/shulib/mechanism/kinds.hpp#L1189).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1221`](../../include/shulib/mechanism/kinds.hpp#L1221).*
 
 <a id="absolutesensor-2"></a>
 
@@ -3312,7 +3390,7 @@ using mechanism::absoluteSensor
 
 Homing: an absolute angle sensor (HA-186).
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1191`](../../include/shulib/mechanism/kinds.hpp#L1191).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1223`](../../include/shulib/mechanism/kinds.hpp#L1223).*
 
 <a id="neverhomed-2"></a>
 
@@ -3324,7 +3402,7 @@ using mechanism::neverHomed
 
 Never homed.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1193`](../../include/shulib/mechanism/kinds.hpp#L1193).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1225`](../../include/shulib/mechanism/kinds.hpp#L1225).*
 
 <a id="spool-2"></a>
 
@@ -3336,7 +3414,7 @@ using mechanism::spool
 
 A lift's shape: a spool.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1195`](../../include/shulib/mechanism/kinds.hpp#L1195).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1227`](../../include/shulib/mechanism/kinds.hpp#L1227).*
 
 <a id="linkage-2"></a>
 
@@ -3348,7 +3426,7 @@ using mechanism::linkage
 
 A lift's shape: a four-bar or a DR4B.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1197`](../../include/shulib/mechanism/kinds.hpp#L1197).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1229`](../../include/shulib/mechanism/kinds.hpp#L1229).*
 
 <a id="measured-2"></a>
 
@@ -3360,7 +3438,7 @@ using mechanism::measured
 
 A lift's shape: measured pairs.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1199`](../../include/shulib/mechanism/kinds.hpp#L1199).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1231`](../../include/shulib/mechanism/kinds.hpp#L1231).*
 
 <a id="heightat"></a>
 
@@ -3372,7 +3450,7 @@ using mechanism::HeightAt
 
 One measured pair.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1201`](../../include/shulib/mechanism/kinds.hpp#L1201).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1233`](../../include/shulib/mechanism/kinds.hpp#L1233).*
 
 <a id="within-2"></a>
 
@@ -3384,7 +3462,7 @@ using mechanism::within
 
 A flywheel's "at speed" band.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1203`](../../include/shulib/mechanism/kinds.hpp#L1203).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1235`](../../include/shulib/mechanism/kinds.hpp#L1235).*
 
 <a id="high-2"></a>
 
@@ -3396,7 +3474,7 @@ using mechanism::High
 
 A line driven high.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1205`](../../include/shulib/mechanism/kinds.hpp#L1205).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1237`](../../include/shulib/mechanism/kinds.hpp#L1237).*
 
 <a id="low-2"></a>
 
@@ -3408,7 +3486,7 @@ using mechanism::Low
 
 A line driven low.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1207`](../../include/shulib/mechanism/kinds.hpp#L1207).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1239`](../../include/shulib/mechanism/kinds.hpp#L1239).*
 
 <a id="grabs-2"></a>
 
@@ -3420,7 +3498,7 @@ using mechanism::grabs
 
 A position that grabs.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1209`](../../include/shulib/mechanism/kinds.hpp#L1209).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1241`](../../include/shulib/mechanism/kinds.hpp#L1241).*
 
 <a id="releases-2"></a>
 
@@ -3432,7 +3510,7 @@ using mechanism::releases
 
 A position that releases.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1211`](../../include/shulib/mechanism/kinds.hpp#L1211).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1243`](../../include/shulib/mechanism/kinds.hpp#L1243).*
 
 <a id="gears-2"></a>
 
@@ -3444,7 +3522,7 @@ using mechanism::gears
 
 A gear pair, driving then driven.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1213`](../../include/shulib/mechanism/kinds.hpp#L1213).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1245`](../../include/shulib/mechanism/kinds.hpp#L1245).*
 
 <a id="direct-2"></a>
 
@@ -3456,7 +3534,7 @@ using mechanism::direct
 
 No gearing.
 
-*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1215`](../../include/shulib/mechanism/kinds.hpp#L1215).*
+*type alias, declared at [`include/shulib/mechanism/kinds.hpp:1247`](../../include/shulib/mechanism/kinds.hpp#L1247).*
 
 <a id="red"></a>
 
@@ -3468,7 +3546,7 @@ inline constexpr hal::MotorCartridge Red = hal::MotorCartridge::Red
 
 The RED cartridge (100 rpm).
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:1217`](../../include/shulib/mechanism/kinds.hpp#L1217).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:1249`](../../include/shulib/mechanism/kinds.hpp#L1249).*
 
 <a id="green"></a>
 
@@ -3480,7 +3558,7 @@ inline constexpr hal::MotorCartridge Green = hal::MotorCartridge::Green
 
 The GREEN cartridge (200 rpm).
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:1219`](../../include/shulib/mechanism/kinds.hpp#L1219).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:1251`](../../include/shulib/mechanism/kinds.hpp#L1251).*
 
 <a id="blue"></a>
 
@@ -3492,7 +3570,7 @@ inline constexpr hal::MotorCartridge Blue = hal::MotorCartridge::Blue
 
 The BLUE cartridge (600 rpm).
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:1221`](../../include/shulib/mechanism/kinds.hpp#L1221).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:1253`](../../include/shulib/mechanism/kinds.hpp#L1253).*
 
 <a id="struct-brakeword"></a>
 
@@ -3504,7 +3582,7 @@ struct BrakeWord
 
 ONE word per brake mode for both places a team writes one: a mechanism's `.safe` (a config::SafeBrakeMode) and the driver loop's `.releaseBrakeMode` (a hal::BrakeMode) — so a driver file needs no `hal::BrakeMode::Coast` beside the robot file's `Coast` (N11).
 
-*struct, declared at [`include/shulib/mechanism/kinds.hpp:1225`](../../include/shulib/mechanism/kinds.hpp#L1225).*
+*struct, declared at [`include/shulib/mechanism/kinds.hpp:1257`](../../include/shulib/mechanism/kinds.hpp#L1257).*
 
 <a id="brakeword-safe"></a>
 
@@ -3516,7 +3594,7 @@ config::SafeBrakeMode safe
 
 As a mechanism's declared safe state.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1227`](../../include/shulib/mechanism/kinds.hpp#L1227).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1259`](../../include/shulib/mechanism/kinds.hpp#L1259).*
 
 <a id="brakeword-drive"></a>
 
@@ -3528,7 +3606,7 @@ hal::BrakeMode drive
 
 As the drive's brake mode.
 
-*field, declared at [`include/shulib/mechanism/kinds.hpp:1229`](../../include/shulib/mechanism/kinds.hpp#L1229).*
+*field, declared at [`include/shulib/mechanism/kinds.hpp:1261`](../../include/shulib/mechanism/kinds.hpp#L1261).*
 
 <a id="brakeword-operator-config-safebrakemode"></a>
 
@@ -3540,7 +3618,7 @@ constexpr operator config::SafeBrakeMode() const noexcept
 
 Read as a mechanism's `.safe`.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:1231`](../../include/shulib/mechanism/kinds.hpp#L1231).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:1263`](../../include/shulib/mechanism/kinds.hpp#L1263).*
 
 <a id="brakeword-operator-hal-brakemode"></a>
 
@@ -3552,7 +3630,7 @@ constexpr operator hal::BrakeMode() const noexcept
 
 Read as a drive brake mode.
 
-*function, declared at [`include/shulib/mechanism/kinds.hpp:1233`](../../include/shulib/mechanism/kinds.hpp#L1233).*
+*function, declared at [`include/shulib/mechanism/kinds.hpp:1265`](../../include/shulib/mechanism/kinds.hpp#L1265).*
 
 <a id="hold"></a>
 
@@ -3564,7 +3642,7 @@ inline constexpr BrakeWord Hold{config::SafeBrakeMode::Hold, hal::BrakeMode::Hol
 
 HOLD: drives back to where it stopped — the one that keeps a load up.
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:1236`](../../include/shulib/mechanism/kinds.hpp#L1236).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:1268`](../../include/shulib/mechanism/kinds.hpp#L1268).*
 
 <a id="brake"></a>
 
@@ -3576,7 +3654,7 @@ inline constexpr BrakeWord Brake{config::SafeBrakeMode::Brake, hal::BrakeMode::B
 
 BRAKE: resists, but does not return to where it stopped.
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:1238`](../../include/shulib/mechanism/kinds.hpp#L1238).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:1270`](../../include/shulib/mechanism/kinds.hpp#L1270).*
 
 <a id="coast"></a>
 
@@ -3588,14 +3666,14 @@ inline constexpr BrakeWord Coast{config::SafeBrakeMode::Coast, hal::BrakeMode::C
 
 COAST: undriven — for a mechanism that must never sit at stall current.
 
-*constant, declared at [`include/shulib/mechanism/kinds.hpp:1240`](../../include/shulib/mechanism/kinds.hpp#L1240).*
+*constant, declared at [`include/shulib/mechanism/kinds.hpp:1272`](../../include/shulib/mechanism/kinds.hpp#L1272).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 70 lines, click to expand</summary>
+<summary>The header’s own reasoning — 71 lines, click to expand</summary>
 
 ```text
 
@@ -3624,8 +3702,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  ── THE MEMBERS ARE WRITTEN IN ONE ORDER PER KIND — C++ requires it ──────────────────
  A designated initializer must follow the declaration order, so each kind's members are ordered
  the way a student reads them: what it IS (name, motors, cartridge, gearing, shape, angle or piece
- sensor), what it does STOPPED (safe, stall), where it GOES (range, gravity, home, presets — or
- at-speed and presets), the extras (unhomedVolts, tuning). Out of order is a plain C++ error
+ sensor), what it does STOPPED (safe, stall, and — since MECH-S-A — currentCap), where it GOES
+ (range, gravity, home, presets — or at-speed and presets), the extras (unhomedVolts, tuning). Power's
+ maxVolts comes after its currentCap. Out of order is a plain C++ error
  ("designator order ... does not match declaration order"); the guide prints each kind's order.
 
  ── THE DECLARATION IS THE HANDLE (Q18 (a): "checked at build") ──────────────────────

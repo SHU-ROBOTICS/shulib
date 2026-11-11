@@ -16,6 +16,63 @@
 
 ## API 2.5
 
+### 2026-11-10 (built 2026-11-05) — a mechanism's current cap: the most each motor may draw, written into the motors at boot and enforced by the motors themselves — how hard a string lift's string is pulled
+
+> Written when it was built (chunk MECH-S-A, the first part of a string lift's safety — the slack watch
+> that sees a snapped string, and live tuning on the brain, are later parts). **No version bump — every
+> change is ADDITIVE and nothing in it is a frozen surface:** a new HAL seam BESIDE the locked `IMotor`
+> (F4 is untouched, byte for byte — the `IDigitalOut` / `IReadFaults` precedent), a new optional member on
+> the four motor kinds, three refusals APPENDED to the build check's list, a new member at the end of
+> `MechanismSpec` and of `mechanism::Devices`. **One thing a team's own code may meet:** `IDeviceProvider`
+> gains one more accessor every implementer must answer (`currentLimit(port)`) — a provider written
+> outside the library must add it (VIS1-A1's `aiVision` is the precedent). **Every 2.5 program compiles
+> and runs exactly as before while every mechanism motor reads the 2.5 A default:** a mechanism with no
+> cap is only READ at boot (nothing written), and robot two states no cap (its boot is byte for byte a
+> provider's that answers no limit at all — `mechanism_current_cap_test.cpp`); the host test plant's
+> limiter is bypassed at the default (a reversal's samples are 2.5's, byte for byte). **Host only —
+> nothing here has run on a robot;** whether a real motor holds its limit this way is HA-219, never
+> measured. [Chapter 18](guide/18-mechanisms.md#current-caps--how-hard-a-string-is-pulled) teaches it;
+> [Chapter 11](guide/11-reading-the-diagnostics.md) reads its lines.
+
+**ADDED:**
+
+- **`hal::IMotorCurrentLimit`** (`hal/motor_current_limit.hpp`) — a motor's own current limit:
+  `setCurrentLimit(units::Current)` (true when the device accepted the write) and `currentLimit()` (READ
+  BACK from the device, never the request's echo), and `hal::kDefaultMotorCurrentLimit` (2.5 A, the V5's
+  documented default). Implemented by `hal::pros::ProsMotor` (mA on the wire through the new
+  `hal::motorCurrentLimitToMilliamps`; a refused read holds the last good one and counts in
+  `faultedReads()`) and `hal::fake::FakeMotor` (remembers the limit, enforces nothing; knobs to refuse,
+  to keep another number, to lose power; counts writes and reads). A V5 motor holds its limit in WHOLE
+  milliamps: a cap is sent rounded to the nearest mA, and the service compares every read-back in mA.
+- **`IDeviceProvider::currentLimit(port)`** — the limit of the motor the provider made on `port`;
+  nullptr when none was made there. Looks up, never makes. Every implementer answers it:
+  `ProsDeviceProvider`, `FakeDeviceProvider` (and its new `bindMotor(port, FakeMotor&)`, which binds a
+  bound fake's limit too).
+- **`.currentCap = {.amps = …}`** on `Power`, `Arm`, `Lift` and `Flywheel` (`mechanism::CurrentCap`,
+  after `.stall` in each kind's member order) → `MechanismSpec::currentCapAmps`. Per motor; optional;
+  never a default; a cap written as 0 is no cap, the same as leaving it out.
+- **Three refusals, appended (71, 72, 73):** `ACurrentCapMustBeAbove0AndAtMost25A` (a written cap below
+  0 or above 2.5 A, a NaN included), `AStallSignatureMustBeBelowTheCurrentCap` (any written stall or
+  homing signature at or above the cap — it could never trip) and `ACurrentCapMustBeAtLeastOneMilliamp`
+  (a cap above 0 but under 0.001 A — it would be sent as 0 mA), named at build as
+  `a_current_cap_must_be_above_0_and_at_most_2_5_A`,
+  `a_stall_signatures_amps_must_be_below_the_current_cap_it_could_never_trip` and
+  `a_current_cap_must_be_at_least_0_001_A_a_motor_holds_whole_milliamps`.
+- **The mechanism service** writes a stated cap into every motor of the mechanism at bind and reads it
+  back (one Info line, per motor and in all; a Warn per motor that would not take it, naming the port
+  and both numbers; a Warn for a signature not MORE than 0.2 A below the cap, judged in whole milliamps as the motor reads — HA-223), reads every uncapped
+  mechanism motor's limit and writes NOTHING (an Info line when one reads other than 2.5 A — HA-220,
+  HA-221), and re-checks each capped motor once a second inside its tick (one back at the default is
+  written again with one Warn; one at any other number is warned about once and never written). Two
+  library constants: `kCapSignatureMarginAmps` (0.2 A) and `kCapRecheckSeconds` (1 s). No verdict
+  changes; nothing is refused at boot.
+- **`mechanism::Devices::currentLimits`** (each motor's limit, filled by `robot::MechanismParts`) and
+  `mechanism::kDevicesMaxMotors`.
+- **The host test plant** (`sim::ArmPlant`) honours motor 0's limit when it is below 2.5 A: the
+  limit's TORQUE, re-solved at the end speed of each step, the Hold brake at 0 V included.
+
+**Hardware Assumptions:** HA-219..HA-223 registered (HA-224..HA-227 stay held for the slack watch).
+
 ### 2026-11-10 (built 2026-11-03–05) — the wall reset from an auton: the robot file's side distance sensors, built by the Robot, and the everyday call over the auton's context
 
 > Written when it was built (chunk L6-A2, the wall reset's second part — robot two's sensors are Part

@@ -8,7 +8,7 @@
 
 ProsDeviceProvider — hal::IDeviceProvider over the real V5 adapters.
 
-This header declares **1** type (30 members).
+This header declares **1** type (31 members).
 
 Extracted from [`include/shulib/hal/pros/device_provider.hpp`](../../include/shulib/hal/pros/device_provider.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -35,6 +35,7 @@ Extracted from [`include/shulib/hal/pros/device_provider.hpp`](../../include/shu
   - [`digitalIn`](#prosdeviceprovider-digitalin)
   - [`aiVision`](#prosdeviceprovider-aivision)
   - [`readFaults`](#prosdeviceprovider-readfaults)
+  - [`currentLimit`](#prosdeviceprovider-currentlimit)
   - [`lineReadFaults`](#prosdeviceprovider-linereadfaults)
   - [`clock`](#prosdeviceprovider-clock)
   - [`battery`](#prosdeviceprovider-battery)
@@ -298,6 +299,18 @@ MECH-A1: the read-fault count of the distance or optical sensor THIS provider ma
 
 *function, declared at [`include/shulib/hal/pros/device_provider.hpp:571`](../../include/shulib/hal/pros/device_provider.hpp#L571).*
 
+<a id="prosdeviceprovider-currentlimit"></a>
+
+### `ProsDeviceProvider::currentLimit`
+
+```cpp
+[[nodiscard]] IMotorCurrentLimit* currentLimit(std::uint8_t port) noexcept override
+```
+
+MECH-S-A: the current limit of the motor THIS provider made on `port` — that ProsMotor itself, as an hal::IMotorCurrentLimit; nullptr when no motor was made there. Looks up, never makes.
+
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:591`](../../include/shulib/hal/pros/device_provider.hpp#L591).*
+
 <a id="prosdeviceprovider-linereadfaults"></a>
 
 ### `ProsDeviceProvider::lineReadFaults`
@@ -308,7 +321,7 @@ MECH-A1: the read-fault count of the distance or optical sensor THIS provider ma
 
 MECH-A1: the read-fault count of the digital input THIS provider made on 3-wire `line`; nullptr when none was made there. Looks up, never makes.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:591`](../../include/shulib/hal/pros/device_provider.hpp#L591).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:602`](../../include/shulib/hal/pros/device_provider.hpp#L602).*
 
 <a id="prosdeviceprovider-clock"></a>
 
@@ -320,7 +333,7 @@ MECH-A1: the read-fault count of the digital input THIS provider made on 3-wire 
 
 The V5's real clock (`ProsClock`, microseconds → seconds once). Never refused.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:603`](../../include/shulib/hal/pros/device_provider.hpp#L603).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:614`](../../include/shulib/hal/pros/device_provider.hpp#L614).*
 
 <a id="prosdeviceprovider-battery"></a>
 
@@ -332,7 +345,7 @@ The V5's real clock (`ProsClock`, microseconds → seconds once). Never refused.
 
 The V5 battery (`ProsBattery`). Never refused.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:605`](../../include/shulib/hal/pros/device_provider.hpp#L605).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:616`](../../include/shulib/hal/pros/device_provider.hpp#L616).*
 
 <a id="prosdeviceprovider-telemetry"></a>
 
@@ -344,7 +357,7 @@ The V5 battery (`ProsBattery`). Never refused.
 
 The diagnostics sink: a `diag::TermSink` over the USB serial (`ProsCharSink`, stdout) — exactly the sink src/main.cpp's hand-wired graphs built (the invented X-drive's until G1 Part 2c, which builds it over this provider). With a log copy (the log-copy constructor), a `diag::LogCopySink` over that TermSink and the card's: every line and summary to both, every per-tick record to serial only. Never refused.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:611`](../../include/shulib/hal/pros/device_provider.hpp#L611).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:622`](../../include/shulib/hal/pros/device_provider.hpp#L622).*
 
 <a id="prosdeviceprovider-serialcopyopen"></a>
 
@@ -356,7 +369,7 @@ The diagnostics sink: a `diag::TermSink` over the USB serial (`ProsCharSink`, st
 
 True when this provider keeps a log copy AND its file on the card is open. False with no copy asked for, and with no card or a failed open (the copy then refuses every line).
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:620`](../../include/shulib/hal/pros/device_provider.hpp#L620).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:631`](../../include/shulib/hal/pros/device_provider.hpp#L631).*
 
 <a id="prosdeviceprovider-serialcopypath"></a>
 
@@ -368,7 +381,7 @@ True when this provider keeps a log copy AND its file on the card is open. False
 
 The copy's full path on the card ("/usd/drive_log.txt"), or "" with no copy asked for — for the program's one boot line.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:626`](../../include/shulib/hal/pros/device_provider.hpp#L626).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:637`](../../include/shulib/hal/pros/device_provider.hpp#L637).*
 
 <a id="prosdeviceprovider-serialcopydroppedlines"></a>
 
@@ -380,7 +393,7 @@ The copy's full path on the card ("/usd/drive_log.txt"), or "" with no copy aske
 
 Lines the copy LOST since construction: those its card refused (the write or the flush — every line, with no card), plus those left off because another task was mid-copy (diag::LogCopySink's one-writer guard; every line after a task PROS deleted mid-copy, too). 0 with no copy asked for. Read it where no other task is logging (the boot line does): the card's half is a plain count its writer keeps.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:635`](../../include/shulib/hal/pros/device_provider.hpp#L635).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:646`](../../include/shulib/hal/pros/device_provider.hpp#L646).*
 
 <a id="prosdeviceprovider-serialcopyappendopen"></a>
 
@@ -392,7 +405,7 @@ Lines the copy LOST since construction: those its card refused (the write or the
 
 How the copy's Append open went (Appended / Created / Refused); Refused in Truncate mode, which never asks, and with no copy asked for.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:643`](../../include/shulib/hal/pros/device_provider.hpp#L643).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:654`](../../include/shulib/hal/pros/device_provider.hpp#L654).*
 
 <a id="prosdeviceprovider-pacer"></a>
 
@@ -404,7 +417,7 @@ How the copy's Append open went (Appended / Created / Refused); Refused in Trunc
 
 The 10 ms `ProsTickPacer` (`pros::Task::delay_until`, anchored on its first pace). Never refused.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:648`](../../include/shulib/hal/pros/device_provider.hpp#L648).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:659`](../../include/shulib/hal/pros/device_provider.hpp#L659).*
 
 <a id="prosdeviceprovider-lastrefusal"></a>
 
@@ -416,7 +429,7 @@ The 10 ms `ProsTickPacer` (`pros::Task::delay_until`, anchored on its first pace
 
 Why the most recent refused request returned nullptr, naming the port and — when the registry answered — what was found and what was expected. Plain ASCII. The empty string until something is refused; not cleared by a later success (the builder reads it immediately after the nullptr it explains).
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:654`](../../include/shulib/hal/pros/device_provider.hpp#L654).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:665`](../../include/shulib/hal/pros/device_provider.hpp#L665).*
 
 ## Design commentary, from the header
 

@@ -522,3 +522,53 @@ TEST_CASE("DEFECTS2 a11: a DRIVING command clears the zero record — a mode sta
     CHECK(pros::shim::motorState(10).brakeCalls == 1);  // the first stop only
     CHECK(pros::shim::motorState(10).moveVoltageCalls == movesBefore);  // no 0 V either
 }
+
+// ═══ MECH-S-A: THE CURRENT LIMIT through the shim (the MECH-S brief's CA11; HA-219..HA-221) ═══════
+
+TEST_CASE("MECH-S-A CA11 ProsMotor: setCurrentLimit sends mA to the DEVICE; currentLimit reads the device back in A") {
+    pros::shim::resetMotors();
+    ProsMotor m{-4, MotorGearset::Red};  // reversed: the limit is the port's, sign or not
+    auto& s = pros::shim::motorState(4);
+    CHECK(s.setCurrentLimitCalls == 0);  // construction sets no limit (the service decides — D12 (b))
+    CHECK(m.currentLimit().value() == 2.5);  // the device's default, READ
+    CHECK(m.setCurrentLimit(shulib::units::Current{1.2}));
+    CHECK(s.currentLimitMa == 1200);     // BUG CAUGHT (MA5): A -> mA x 100 sends 120
+    CHECK(s.setCurrentLimitCalls == 1);
+    CHECK(m.currentLimit().value() == 1.2);
+    // READ BACK, never the request's echo: the device changed under the adapter (another program, VEXos)
+    s.currentLimitMa = 1800;
+    CHECK(m.currentLimit().value() == doctest::Approx(1.8));
+    // the device keeps ITS number, not the asked one (HA-221's share): the read-back says so
+    s.currentLimitTakesInsteadMa = 2000;
+    CHECK(m.setCurrentLimit(shulib::units::Current{1.2}));  // accepted ...
+    CHECK(m.currentLimit().value() == doctest::Approx(2.0));  // ... and the truth read back
+    CHECK(m.faultedReads() == 0);
+}
+
+TEST_CASE("MECH-S-A CA11 ProsMotor: a refused write is false and changes nothing; a refused READ holds the last good one and COUNTS") {
+    pros::shim::resetMotors();
+    ProsMotor m{5, MotorGearset::Green};
+    auto& s = pros::shim::motorState(5);
+    REQUIRE(m.setCurrentLimit(shulib::units::Current{1.0}));
+    REQUIRE(m.currentLimit().value() == 1.0);
+    s.refuseSetCurrentLimit = 1;
+    CHECK_FALSE(m.setCurrentLimit(shulib::units::Current{1.5}));  // PROS_ERR -> false
+    CHECK(s.currentLimitMa == 1000);
+    CHECK(m.faultedReads() == 0);  // a refused COMMAND is not a screened read
+    s.failCurrentLimitReads = 1;
+    CHECK(m.currentLimit().value() == 1.0);  // the last good reading, never PROS_ERR's 2147483.647 A
+    CHECK(m.faultedReads() == 1);
+    CHECK(m.currentLimit().value() == 1.0);  // answers again: fresh
+    CHECK(m.faultedReads() == 1);
+    // a port that NEVER answered: the documented default, counted
+    pros::shim::resetMotors();
+    ProsMotor dead{6, MotorGearset::Green};
+    pros::shim::motorState(6).disconnected = true;
+    CHECK(dead.currentLimit().value() == 2.5);
+    CHECK(dead.faultedReads() == 1);
+    CHECK_FALSE(dead.setCurrentLimit(shulib::units::Current{1.0}));
+    // and a limit no build could state never reaches the wire
+    pros::shim::motorState(6).disconnected = false;
+    CHECK_THROWS_AS((void)dead.setCurrentLimit(shulib::units::Current{3.0}), PreconditionError);
+    CHECK(pros::shim::motorState(6).setCurrentLimitCalls == 0);
+}

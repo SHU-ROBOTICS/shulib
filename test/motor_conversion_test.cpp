@@ -114,3 +114,24 @@ TEST_CASE("motor conversions: non-finite readings are rejected by the backstop")
     CHECK_THROWS_AS((void)motorRpmToCanonical(inf), PreconditionError);
     CHECK_THROWS_AS((void)motorMilliampsToCanonical(inf), PreconditionError);
 }
+
+TEST_CASE("MECH-S-A motorCurrentLimitToMilliamps: A to mA via x1000, rounded to the nearest whole mA (HA-219)") {
+    using shulib::hal::motorCurrentLimitToMilliamps;
+    using shulib::units::Current;
+    // BUG CAUGHT (MA5's family): a missing or doubled scale — 1.2 A must be 1200 mA, never 1 or 1200000.
+    CHECK(motorCurrentLimitToMilliamps(Current{1.2}) == 1200);
+    CHECK(motorCurrentLimitToMilliamps(Current{2.5}) == 2500);  // the default exactly
+    CHECK(motorCurrentLimitToMilliamps(Current{0.001}) == 1);  // the smallest limit there is: one milliamp
+    CHECK(motorCurrentLimitToMilliamps(Current{2.4995}) == 2500);  // half a mA rounds UP (lround): the default
+    CHECK(motorCurrentLimitToMilliamps(Current{1.2345}) == 1235);  // rounded, never truncated (1234)
+    CHECK(motorCurrentLimitToMilliamps(Current{1.2344}) == 1234);
+    // round-trip through the read-back's own conversion
+    CHECK(motorMilliampsToCanonical(motorCurrentLimitToMilliamps(Current{1.2})).value() == 1.2);
+    // below one milliamp (it would round to 0 mA — MECH-S-A review: 0.0004 A was sent as 0 mA, no torque),
+    // above 2.5 A, or not a number: the backstop (the build refuses any such cap first — refusals 71, 73)
+    for (const double bad : {0.0, -0.5, 0.0004, 0.0009, 2.51, std::numeric_limits<double>::quiet_NaN(),
+                             std::numeric_limits<double>::infinity()}) {
+        CAPTURE(bad);
+        CHECK_THROWS_AS((void)motorCurrentLimitToMilliamps(Current{bad}), PreconditionError);
+    }
+}

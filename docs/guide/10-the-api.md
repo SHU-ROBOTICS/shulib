@@ -707,7 +707,8 @@ members in that order. The rules that matter most:
   −90) and does not compile there. A lift's height is inches (`lift.to(18_in)`).
 - **A jam signature is REQUIRED on an `Arm`, a `Lift` and a `Flywheel`** — they keep holding or
   spinning after their step, and must never sit at stall current — and every signature you write must
-  be able to trip: `.amps` below the motor's 2.5 A current limit (a limited motor never reads more),
+  be able to trip: `.amps` below the motor's 2.5 A current limit (a limited motor never reads more) —
+  and below the mechanism's own `.currentCap` when it states one ([Ch. 18](18-mechanisms.md#current-caps--how-hard-a-string-is-pulled)),
   `.belowMotorRpm` above 0 (a stalled motor still reads a little creep) and `.lasting` above 0 (a motor
   starting from rest draws stall-grade current with its shaft still). Optional on a `Power`.
 - **Every number you own is yours to state.** A field left out is UNSET and refused at build, by

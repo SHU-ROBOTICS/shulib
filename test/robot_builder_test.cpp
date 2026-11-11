@@ -1812,6 +1812,10 @@ TEST_CASE("T3 builder M5: a provider that refuses a claw motor WITHOUT a reason 
         [[nodiscard]] const shulib::hal::IReadFaults* lineReadFaults(std::uint8_t l) const noexcept override {
             return inner->lineReadFaults(l);
         }
+        // MECH-S-A: a motor's own current limit, forwarded.
+        [[nodiscard]] shulib::hal::IMotorCurrentLimit* currentLimit(std::uint8_t p) noexcept override {
+            return inner->currentLimit(p);
+        }
         [[nodiscard]] shulib::hal::IClock& clock() override { return inner->clock(); }
         [[nodiscard]] shulib::hal::IBattery& battery() override { return inner->battery(); }
         [[nodiscard]] shulib::hal::ITelemetrySink& telemetry() override {
@@ -2210,6 +2214,10 @@ TEST_CASE("B2 builder P2: a 3-wire line the provider refuses leaves THAT mechani
             }
             [[nodiscard]] const shulib::hal::IReadFaults* lineReadFaults(std::uint8_t l) const noexcept override {
                 return inner->lineReadFaults(l);
+            }
+            // MECH-S-A: a motor's own current limit, forwarded.
+            [[nodiscard]] shulib::hal::IMotorCurrentLimit* currentLimit(std::uint8_t p) noexcept override {
+                return inner->currentLimit(p);
             }
             [[nodiscard]] shulib::hal::IClock& clock() override { return inner->clock(); }
             [[nodiscard]] shulib::hal::IBattery& battery() override { return inner->battery(); }

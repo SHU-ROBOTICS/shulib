@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 5,528 of them across 199 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 5,560 of them across 200 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -192,6 +192,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Mechanism](mechanism.md) | [`hal/mechanism.hpp`](../../include/shulib/hal/mechanism.hpp) | The mechanism device seam (chunk F1, WS7/M4): IMechanism + the two concrete compositions every VEX mechanism reduces to at the device level — a group of motors on one shaft (MotorMechanism) and a set of digital lines switching one pneumatic circuit (Pneumat… |
 | [Motor](motor.md) | [`hal/motor.hpp`](../../include/shulib/hal/motor.hpp) | IMotor — a single V5 smart motor behind the HAL. |
 | [Motor conversion](motor_conversion.md) | [`hal/motor_conversion.hpp`](../../include/shulib/hal/motor_conversion.hpp) | Motor canonical conversions — the ONE place the V5 smart motor's units become shulib's canonical units (§7: "convert exactly once, at the edge"). |
+| [Motor current limit](motor_current_limit.md) | [`hal/motor_current_limit.hpp`](../../include/shulib/hal/motor_current_limit.hpp) | IMotorCurrentLimit — a V5 motor's OWN current limit, set and read back (chunk MECH-S-A, 2026-11-05; the MECH-S brief's D1 (a)). |
 | [Motor group](motor_group.md) | [`hal/motor_group.hpp`](../../include/shulib/hal/motor_group.hpp) | MotorGroup — N physically COUPLED motors behind ONE IMotor. |
 | [Null sink](null_sink.md) | [`hal/null_sink.hpp`](../../include/shulib/hal/null_sink.hpp) | NullSink — the zero-cost default ITelemetrySink (§18.1). |
 | [Optical](optical.md) | [`hal/optical.hpp`](../../include/shulib/hal/optical.hpp) | IOptical — a color / optical sensor (pros::Optical) behind the HAL. |
@@ -346,7 +347,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 5,528 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 5,560 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

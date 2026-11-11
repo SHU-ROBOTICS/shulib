@@ -36,6 +36,22 @@
 // Appended only, like every enum the robot file and the panel share: a new reason goes at the END,
 // so G3a's mirror never renumbers.
 //
+// ── A CURRENT CAP (chunk MECH-S-A, 2026-11-05) ───────────────────────────────────────
+// A motor kind may state `currentCapAmps`: the most EACH of its motors may draw, set in the motor
+// itself at boot (mechanism/service.hpp; hal/motor_current_limit.hpp). 0 = none stated: the motor's
+// own 2.5 A default applies — a cap WRITTEN as 0 (or -0.0) is the same as one left out, never refused
+// (the house rule for every optional number here: a StallSpec of three zeros is "no signature" too).
+// Three refusals, APPENDED last in the list and checked LAST in specRefusal() (so every older reason
+// keeps its pinned place): a written cap that is not inside (0, 2.5] — a NaN included; one inside it
+// but below 0.001 A (73, appended by MECH-S-A's review: a V5 motor holds its limit in WHOLE
+// milliamps, so a smaller cap would be sent as 0 mA — a motor with no torque at all); and any written
+// stall signature (a power's, a position's, its
+// homing's, a flywheel's) whose amps are not BELOW the cap: a capped motor never draws more than its
+// cap, so a signature at or above it could never trip (the brief's P10: a 2.0 A signature under a
+// 1.2 A cap pulled at the cap for 1.33 s and ended TIMED_OUT, no fault; P11: a 1.2 A homing signature
+// under a 1.0 A cap never homed). A signature only a little below the cap is NOT refused (the margin
+// a real motor needs is unmeasured — A4 register HA-223): the service WARNS at boot within 0.2 A.
+//
 // ── Units ───────────────────────────────────────────────────────────────────────────
 // A position mechanism is in DEGREES of its output (an arm) or INCHES (a lift: a spool, a linkage, a
 // measured table). EVERY GAIN is per OUTPUT-SHAFT DEGREE whatever the units — the loop runs on the
@@ -397,6 +413,10 @@ struct MechanismSpec {
     std::uint32_t declaredLine = 0;
     /// Set by kinds.hpp when a preset or position name runs past 15 characters (its copy was cut).
     bool presetNameTooLong = false;
+    /// A motor kind's CURRENT CAP, amperes PER MOTOR (MECH-S-A; the header's current-cap section): set
+    /// in each motor at boot and enforced by the motor itself. 0 = none stated (the motor's own 2.5 A; a
+    /// written 0 is the same); otherwise from 0.001 A (one milliamp — a V5 limit is whole mA) to 2.5 A.
+    double currentCapAmps = 0.0;
 };
 
 /// A spec's name as a view (up to its NUL, at most kNameBytes).
@@ -550,6 +570,9 @@ enum class Refusal : std::uint8_t {
     PositionTheGravityHoldIsPast12Volts,  ///< a gravity hold past 12 V either way (MECH-A1 review)
     PositionUnhomedVoltsIsNotIn0To12,  ///< an unhomedVolts outside [0, 12] (MECH-A1 review)
     PositionAbsoluteHomingTravelSpansAWholeSensorTurn,  ///< absolute homing over a travel of a whole output turn or more (MECH-A3: a reading within one turn cannot tell the turns apart)
+    ACurrentCapMustBeAbove0AndAtMost25A,  ///< a written current cap outside (0, 2.5] A, a NaN included (MECH-S-A)
+    AStallSignatureMustBeBelowTheCurrentCap,  ///< a written stall or homing signature at or above the current cap (MECH-S-A: it could never trip)
+    ACurrentCapMustBeAtLeastOneMilliamp,  ///< a written current cap above 0 but below 0.001 A (MECH-S-A review: a V5 limit is whole mA — it would be sent as 0 mA)
 };
 
 /// The SENTENCE for a refusal — what a run-time caller logs, a host test pins, and the robot
@@ -699,6 +722,15 @@ enum class Refusal : std::uint8_t {
         case Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn:
             return "position: absolute homing needs a travel shorter than one turn of its angle sensor (a reading "
                    "within one turn cannot tell the turns apart: home it by switch, by stall or at rest)";
+        case Refusal::ACurrentCapMustBeAbove0AndAtMost25A:
+            return "a current cap must be above 0 and at most 2.5 A (the motor's own limit is 2.5 A; leave "
+                   ".currentCap out for no cap)";
+        case Refusal::AStallSignatureMustBeBelowTheCurrentCap:
+            return "a stall signature's amps must be below the current cap (a capped motor never draws more than "
+                   "its cap: the signature would never trip)";
+        case Refusal::ACurrentCapMustBeAtLeastOneMilliamp:
+            return "a current cap must be at least 0.001 A (a V5 motor holds its limit in whole milliamps: a "
+                   "smaller cap would be sent as 0 mA, a motor with no torque at all)";
     }
     return "an unknown refusal";
 }
@@ -846,6 +878,12 @@ inline void position_the_gravity_hold_must_be_within_12_volts_either_way() {}
 inline void position_unhomedvolts_must_be_from_0_to_12() {}
 /// Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn's name at the robot file's line.
 inline void position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor() {}
+/// Refusal::ACurrentCapMustBeAbove0AndAtMost25A's name at the robot file's line.
+inline void a_current_cap_must_be_above_0_and_at_most_2_5_A() {}
+/// Refusal::AStallSignatureMustBeBelowTheCurrentCap's name at the robot file's line.
+inline void a_stall_signatures_amps_must_be_below_the_current_cap_it_could_never_trip() {}
+/// Refusal::ACurrentCapMustBeAtLeastOneMilliamp's name at the robot file's line.
+inline void a_current_cap_must_be_at_least_0_001_A_a_motor_holds_whole_milliamps() {}
 }  // namespace refused
 
 /// Stop the build with `r`'s named function (consteval contexts only); None does nothing.
@@ -1062,6 +1100,15 @@ consteval void refuse(Refusal r) {
             return;
         case Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn:
             refused::position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor();
+            return;
+        case Refusal::ACurrentCapMustBeAbove0AndAtMost25A:
+            refused::a_current_cap_must_be_above_0_and_at_most_2_5_A();
+            return;
+        case Refusal::AStallSignatureMustBeBelowTheCurrentCap:
+            refused::a_stall_signatures_amps_must_be_below_the_current_cap_it_could_never_trip();
+            return;
+        case Refusal::ACurrentCapMustBeAtLeastOneMilliamp:
+            refused::a_current_cap_must_be_at_least_0_001_A_a_motor_holds_whole_milliamps();
             return;
     }
 }
@@ -1416,6 +1463,25 @@ namespace detail {
                     std::string_view{s.pneumatic.positions[j].name}) {
                     return Refusal::TwoPresetsOrPositionsShareAName;
                 }
+            }
+        }
+    }
+    // THE CURRENT CAP (MECH-S-A; the header's section) — checked LAST, so every older reason keeps its
+    // pinned place. 0 = none stated (a written 0 or -0.0 too); anything else must be inside (0, 2.5],
+    // written "not inside" so a NaN is refused too, and at least one milliamp (73: a V5 limit is whole
+    // mA — checked before the signatures, so a too-small cap is named as the cap's fault). Then every
+    // WRITTEN signature (each is whole and below 2.5 A by now) must be BELOW it: a capped motor never
+    // draws more than its cap.
+    if (s.currentCapAmps != 0.0) {
+        if (!(s.currentCapAmps > 0.0 && s.currentCapAmps <= 2.5)) {
+            return Refusal::ACurrentCapMustBeAbove0AndAtMost25A;
+        }
+        if (s.currentCapAmps < 0.001) {
+            return Refusal::ACurrentCapMustBeAtLeastOneMilliamp;
+        }
+        for (const StallSpec* st : {&s.power.stall, &s.position.stall, &s.position.homeStall, &s.speed.stall}) {
+            if (st->written() && !(st->amps < s.currentCapAmps)) {
+                return Refusal::AStallSignatureMustBeBelowTheCurrentCap;
             }
         }
     }

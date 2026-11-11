@@ -8,7 +8,7 @@
 
 ProsMotor — IMotor over pros::Motor.
 
-This header declares **2** types (13 members).
+This header declares **2** types (15 members).
 
 Extracted from [`include/shulib/hal/pros/motor.hpp`](../../include/shulib/hal/pros/motor.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -28,6 +28,8 @@ Extracted from [`include/shulib/hal/pros/motor.hpp`](../../include/shulib/hal/pr
   - [`velocity`](#prosmotor-velocity)
   - [`current`](#prosmotor-current)
   - [`temperature`](#prosmotor-temperature)
+  - [`setCurrentLimit`](#prosmotor-setcurrentlimit)
+  - [`currentLimit`](#prosmotor-currentlimit)
   - [`faultedReads`](#prosmotor-faultedreads)
 
 <a id="enum-class-motorgearset"></a>
@@ -40,7 +42,7 @@ enum class MotorGearset
 
 The drive cartridge in the physical motor — a construction fact the caller must state (see header: velocity scaling is gearset-dependent, so there is deliberately no default).
 
-*enum class, declared at [`include/shulib/hal/pros/motor.hpp:114`](../../include/shulib/hal/pros/motor.hpp#L114).*
+*enum class, declared at [`include/shulib/hal/pros/motor.hpp:129`](../../include/shulib/hal/pros/motor.hpp#L129).*
 
 <a id="motorgearset-red"></a>
 
@@ -52,7 +54,7 @@ Red
 
 36:1, 100 RPM
 
-*enumerator, declared at [`include/shulib/hal/pros/motor.hpp:115`](../../include/shulib/hal/pros/motor.hpp#L115).*
+*enumerator, declared at [`include/shulib/hal/pros/motor.hpp:130`](../../include/shulib/hal/pros/motor.hpp#L130).*
 
 <a id="motorgearset-green"></a>
 
@@ -64,7 +66,7 @@ Green
 
 18:1, 200 RPM
 
-*enumerator, declared at [`include/shulib/hal/pros/motor.hpp:116`](../../include/shulib/hal/pros/motor.hpp#L116).*
+*enumerator, declared at [`include/shulib/hal/pros/motor.hpp:131`](../../include/shulib/hal/pros/motor.hpp#L131).*
 
 <a id="motorgearset-blue"></a>
 
@@ -76,19 +78,19 @@ Blue
 
 6:1, 600 RPM
 
-*enumerator, declared at [`include/shulib/hal/pros/motor.hpp:117`](../../include/shulib/hal/pros/motor.hpp#L117).*
+*enumerator, declared at [`include/shulib/hal/pros/motor.hpp:132`](../../include/shulib/hal/pros/motor.hpp#L132).*
 
 <a id="class-prosmotor"></a>
 
 ## `class ProsMotor`
 
 ```cpp
-class ProsMotor final : public IMotor
+class ProsMotor final : public IMotor, public IMotorCurrentLimit
 ```
 
-IMotor over a real pros::Motor — the adapter that converts V5 units to canonical ones exactly once, at the edge. Four contracts a caller should know: the constructor CONFIGURES the device (degrees + the stated gearset) and reads both back, so a miswired port fails at boot rather than mid-match; a NEGATIVE port reverses the motor inside PROS and this adapter never negates on top of that; a ZERO command under a Brake or Hold mode that this program commanded is sent as PROS brake() — the one call that applies a mode — while Coast, or no commanded mode, stays a 0 V command (header: THE STOP; before DEFECTS2 every zero was 0 V and no mode ever reached the motor); and the five screened READS — position(), velocity(), current(), temperature() and brakeMode() — handle the PROS_ERR / PROS_ERR_F / `invalid` sentinels by HOLDING THE LAST GOOD VALUE (for brakeMode(), the last mode this adapter commanded or seeded) rather than propagating a sentinel or substituting zero, because a frozen reading is what the loop's odometry cross-checks are built to notice while a zeroed encoder would look exactly like a robot that stopped. faultedReads() counts every one of those five screens. commandedVoltage() sits outside the scheme: a local mirror of the last applied command that touches no device. This adapter does not raise faults; raising is the loop layer's policy.
+IMotor over a real pros::Motor — the adapter that converts V5 units to canonical ones exactly once, at the edge. Four contracts a caller should know: the constructor CONFIGURES the device (degrees + the stated gearset) and reads both back, so a miswired port fails at boot rather than mid-match; a NEGATIVE port reverses the motor inside PROS and this adapter never negates on top of that; a ZERO command under a Brake or Hold mode that this program commanded is sent as PROS brake() — the one call that applies a mode — while Coast, or no commanded mode, stays a 0 V command (header: THE STOP; before DEFECTS2 every zero was 0 V and no mode ever reached the motor); and the five screened READS — position(), velocity(), current(), temperature() and brakeMode() — handle the PROS_ERR / PROS_ERR_F / `invalid` sentinels by HOLDING THE LAST GOOD VALUE (for brakeMode(), the last mode this adapter commanded or seeded) rather than propagating a sentinel or substituting zero, because a frozen reading is what the loop's odometry cross-checks are built to notice while a zeroed encoder would look exactly like a robot that stopped. faultedReads() counts every one of those five screens — six since MECH-S-A, with currentLimit() (header: THE CURRENT LIMIT). commandedVoltage() sits outside the scheme: a local mirror of the last applied command that touches no device. This adapter does not raise faults; raising is the loop layer's policy.
 
-*class, declared at [`include/shulib/hal/pros/motor.hpp:136`](../../include/shulib/hal/pros/motor.hpp#L136).*
+*class, declared at [`include/shulib/hal/pros/motor.hpp:151`](../../include/shulib/hal/pros/motor.hpp#L151).*
 
 <a id="prosmotor-prosmotor"></a>
 
@@ -100,7 +102,7 @@ ProsMotor(std::int8_t port, MotorGearset gearset)
 
 `port`: 1..21, NEGATIVE to reverse (PROS applies the reversal — once). `gearset`: the physical cartridge color. The ctor configures the device (degrees + gearset) and READS BOTH BACK — a disagreeing device raises SHULIB_PRECONDITION (header: why boot-loud beats match-silent).
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:142`](../../include/shulib/hal/pros/motor.hpp#L142).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:157`](../../include/shulib/hal/pros/motor.hpp#L157).*
 
 <a id="prosmotor-setvoltage"></a>
 
@@ -112,7 +114,7 @@ void setVoltage(units::Voltage volts) override
 
 Clamp to ±kMaxMotorVoltage, REJECT non-finite (never coerce — L4), send as millivolts (HA-94). commandedVoltage() is the clamped volts, UNROUNDED, however the command was sent — so a sub-millivolt command reads back as itself (0.0004 V) although the wire sent a stop. When the millivolts SENT are 0 and this program's last setBrakeMode() was Brake or Hold, the stop goes out as PROS brake() instead of move_voltage(0) — once, on the way INTO the stop; a zero repeated under the same mode sends nothing more (header: THE STOP, HA-142/HA-144). Coast, or no mode commanded yet, sends move_voltage(0) every time, as before.
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:174`](../../include/shulib/hal/pros/motor.hpp#L174).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:189`](../../include/shulib/hal/pros/motor.hpp#L189).*
 
 <a id="prosmotor-commandedvoltage"></a>
 
@@ -124,7 +126,7 @@ Clamp to ±kMaxMotorVoltage, REJECT non-finite (never coerce — L4), send as mi
 
 The voltage this adapter last APPLIED, after the ±kMaxMotorVoltage clamp. A locally mirrored value computed by the same clamp as the millivolt command, NOT a read-back from the device — so it can never disagree with what went on the wire, and it never faults. 0 V until the first setVoltage().
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:192`](../../include/shulib/hal/pros/motor.hpp#L192).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:207`](../../include/shulib/hal/pros/motor.hpp#L207).*
 
 <a id="prosmotor-setbrakemode"></a>
 
@@ -136,7 +138,7 @@ void setBrakeMode(BrakeMode mode) override
 
 Send the brake mode to the device AND remember it twice: as the value brakeMode() falls back to when the device's own read comes back invalid (T7), and as the mode THIS PROGRAM commanded, which is what decides how a zero command is sent (header: THE STOP). If the last command was a zero, the stop is RE-ISSUED under the new mode — brake() for Brake or Hold (unless already stopped under that very mode), move_voltage(0) for Coast when the motor was in a brake() stop — so mode-then-zero and zero-then-mode end the same way. Whether the port ACCEPTED the write is kept as well: a refused one is re-sent before the next brake(), which stops under the device's register (header: THE STOP). The ctor configures encoder units and gearing but never a brake mode, and brakeMode() reads the DEVICE first — so until this is called at least once, the value you observe is whatever mode the motor is still holding from an earlier program (the persistent-device- state trap the header describes for encoder units), and a zero command is sent as 0 V whatever that inherited mode is. Call this during setup if the mode has to be applied rather than inherited.
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:208`](../../include/shulib/hal/pros/motor.hpp#L208).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:223`](../../include/shulib/hal/pros/motor.hpp#L223).*
 
 <a id="prosmotor-brakemode"></a>
 
@@ -148,7 +150,7 @@ Send the brake mode to the device AND remember it twice: as the value brakeMode(
 
 Reads the DEVICE back and maps to the canonical enum; an unreadable device (MotorBrake::invalid) holds the last commanded mode — or, before any command, the mode the ctor read from the device (T7) — and COUNTS a faulted read, like the other four screens. This reports the device's configured mode; it says nothing about whether the motor is currently stopped under it (header: THE STOP).
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:222`](../../include/shulib/hal/pros/motor.hpp#L222).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:237`](../../include/shulib/hal/pros/motor.hpp#L237).*
 
 <a id="prosmotor-position"></a>
 
@@ -160,7 +162,7 @@ Reads the DEVICE back and maps to the canonical enum; an unreadable device (Moto
 
 Cumulative output-shaft radians (never wrapped). Sentinel-screened: PROS_ERR_F holds the last good value (header, T7).
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:233`](../../include/shulib/hal/pros/motor.hpp#L233).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:248`](../../include/shulib/hal/pros/motor.hpp#L248).*
 
 <a id="prosmotor-velocity"></a>
 
@@ -172,7 +174,7 @@ Cumulative output-shaft radians (never wrapped). Sentinel-screened: PROS_ERR_F h
 
 Measured output-shaft angular velocity, canonical rad/s, converted from the device's RPM (HA-96). This is the DEVICE's reported velocity — this adapter never differentiates position() to get it. Sentinel-screened like position(): PROS_ERR_F holds the last good value and counts a faulted read; 0 rad/s before the first successful read.
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:247`](../../include/shulib/hal/pros/motor.hpp#L247).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:262`](../../include/shulib/hal/pros/motor.hpp#L262).*
 
 <a id="prosmotor-current"></a>
 
@@ -184,7 +186,7 @@ Measured output-shaft angular velocity, canonical rad/s, converted from the devi
 
 Canonical amperes. PROS_ERR (INT32_MAX) is IN-BAND for the int32 mA read — only this adapter can screen it (motor_conversion.hpp note).
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:259`](../../include/shulib/hal/pros/motor.hpp#L259).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:274`](../../include/shulib/hal/pros/motor.hpp#L274).*
 
 <a id="prosmotor-temperature"></a>
 
@@ -196,7 +198,31 @@ Canonical amperes. PROS_ERR (INT32_MAX) is IN-BAND for the int32 mA read — onl
 
 Motor temperature in degrees Celsius — already canonical, so this is the one reader that applies no conversion. Sentinel-screened like the others (non-finite holds the last good value and counts a faulted read), but note the seed: before ANY successful read this returns 20 °C, not 0, so a port that has never answered reports a room-temperature motor. Check faultedReads() before trusting it as a thermal signal.
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:274`](../../include/shulib/hal/pros/motor.hpp#L274).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:289`](../../include/shulib/hal/pros/motor.hpp#L289).*
+
+<a id="prosmotor-setcurrentlimit"></a>
+
+### `ProsMotor::setCurrentLimit`
+
+```cpp
+[[nodiscard]] bool setCurrentLimit(units::Current limit) override
+```
+
+Send the motor its own current limit, in mA (header: THE CURRENT LIMIT; HA-219). True when the port ACCEPTED the write (PROS answered 1); false when it refused it (PROS_ERR — a dropout), and nothing is remembered. Read it back with currentLimit(): true is not proof the motor holds `limit` (HA-221) — nor that it holds the exact double: the device holds whole milliamps, so a 2.4995 A limit is sent, and read back, as 2500 mA. PRECONDITION (motorCurrentLimitToMilliamps'): `limit` finite, from 0.001 A to 2.5 A.
+
+*function, declared at [`include/shulib/hal/pros/motor.hpp:305`](../../include/shulib/hal/pros/motor.hpp#L305).*
+
+<a id="prosmotor-currentlimit"></a>
+
+### `ProsMotor::currentLimit`
+
+```cpp
+[[nodiscard]] units::Current currentLimit() const override
+```
+
+The limit the DEVICE reports now, canonical amperes (header). Sentinel-screened like the other reads: PROS_ERR holds the last good reading — the documented 2.5 A default before any good read — and counts a faulted read.
+
+*function, declared at [`include/shulib/hal/pros/motor.hpp:312`](../../include/shulib/hal/pros/motor.hpp#L312).*
 
 <a id="prosmotor-faultedreads"></a>
 
@@ -206,16 +232,16 @@ Motor temperature in degrees Celsius — already canonical, so this is the one r
 [[nodiscard]] int faultedReads() const noexcept
 ```
 
-How many of the five screened READS (position/velocity/current/temperature/brakeMode) were screened to last-good — cumulative for the life of the object, never reset. T7 observability: telemetry and the loop's health policy can see a flaky port without this seam growing a validity channel F4 does not have. brakeMode() has been counted since DEFECTS1 (I9/E1); this comment said otherwise until DEFECTS2. COMMANDS are not counted: a move_voltage() or brake() the port refuses leaves this number unchanged.
+How many of the six screened READS (position/velocity/current/temperature/brakeMode and, since MECH-S-A, currentLimit) were screened to last-good — cumulative for the life of the object, never reset. T7 observability: telemetry and the loop's health policy can see a flaky port without this seam growing a validity channel F4 does not have. brakeMode() has been counted since DEFECTS1 (I9/E1); this comment said otherwise until DEFECTS2. COMMANDS are not counted: a move_voltage() or brake() the port refuses leaves this number unchanged.
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:290`](../../include/shulib/hal/pros/motor.hpp#L290).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:329`](../../include/shulib/hal/pros/motor.hpp#L329).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 90 lines, click to expand</summary>
+<summary>The header’s own reasoning — 104 lines, click to expand</summary>
 
 ```text
 
@@ -230,6 +256,20 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
   * get_current_draw() mA     → current()      (motorMilliampsToCanonical, HA-97)
   * get_temperature() °C      → temperature()  (identity — already canonical)
   * set/get_brake_mode        ↔ setBrakeMode()/brakeMode() (mapped both ways below)
+  * set/get_current_limit mA  ↔ setCurrentLimit()/currentLimit() — hal::IMotorCurrentLimit,
+                                the F4-additive sibling (chunk MECH-S-A, below)
+
+ THE CURRENT LIMIT (chunk MECH-S-A, 2026-11-05; A4 register HA-219..HA-221): ProsMotor is ALSO an
+ hal::IMotorCurrentLimit (hal/motor_current_limit.hpp) — IMotor itself is untouched (F4). The
+ limit is the MOTOR's own (PROS motor_set_current_limit: "The motor will reduce its output at
+ 1000 mA instead of the default 2500 mA"), kept by the DEVICE: setCurrentLimit() sends the
+ amperes as mA (motorCurrentLimitToMilliamps — the one A→mA, motor_conversion.hpp) and answers
+ whether the port ACCEPTED the write; currentLimit() READS THE DEVICE BACK (never the request's
+ echo — a VEXos share, HA-221, or a limit left by another program, HA-220, must show). A read
+ the port refuses (PROS_ERR) answers the last good reading — the motor's documented 2.5 A
+ default before any good read — and counts in faultedReads(), as the other screened reads do.
+ Nothing here sets a limit at construction: which motors get one, and when, is the mechanism
+ service's (mechanism/service.hpp — D12 (b): a motor whose mechanism states no cap is only read).
 
  THE STOP — HOW A BRAKE MODE REACHES THE MOTOR (chunk DEFECTS2, 2026-09-26;
  A4 register HA-142): PROS applies a brake mode ONLY through brake(). move_voltage()
@@ -307,7 +347,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  prototype for this brief made that mistake; it compiles, passes a clamp
  test, and turns a programming error into a robot that coasts.
 
- HA register: HA-94..HA-98, HA-142..HA-146 (docs/hardware-assumptions.md).
+ HA register: HA-94..HA-98, HA-142..HA-146, HA-219..HA-221 (docs/hardware-assumptions.md).
 ```
 
 </details>
