@@ -217,7 +217,8 @@
   sensor's count since the core's second part — can tell a held value from a measured one (for the
   camera: a read that was not evidence). [Ch. 10]
 - **recipe** — a routine written as a `Routine` chain of steps that runs in exactly the order
-  it reads and stops (parking the robot) at the first failed step. [Ch. 9]
+  it reads and stops (parking the robot) at the first failed step — unless that step was written
+  after `onFail(carryOn)` or `onFail(skipTo("..."))`. [Ch. 9]
 - **result line** — the one-line verdict each motion leaves in the transcript. [Ch. 11]
 - **robot-relative (Body frame)** — directions fixed to the robot ("forward" = wherever its
   front points right now). [Ch. 2]

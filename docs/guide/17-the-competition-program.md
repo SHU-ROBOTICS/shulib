@@ -254,8 +254,9 @@ order the program checks them:
 | `NOT STARTED` | the estimate never went live before the schedule ran out |
 | `HARD STOP` | the hard stop fired (the end action did not finish in time) |
 | `CUT BY DEADLINE` | the routine was still running at `endActionAt`; the end action ran |
+| `DONE, 2 FAILED` | (amber) the routine ran to its end and the end action succeeded, but two steps written `onFail(carryOn)` or `onFail(skipTo(...))` failed on the way ([Chapter 9](09-the-recipe-api.md#choosing-what-a-failure-does-onfail-and-label)); `DONE, 9+ FAILED` for ten or more; the log's extra line names the first failed step |
 | `FINISHED` | the routine (or route) ran to its end and the end action succeeded |
-| `ROUTINE STOPPED` | a step failed; the routine's own stop line says which |
+| `ROUTINE STOPPED` | a step failed and stopped the routine, a skip never found its step, or the routine went on past its failed steps but the end action failed; the routine's own lines say which |
 
 Below the word: how it ended, the end action (`succeeded`, `FAILED`, `skipped`, or `CUT` when an
 abandon landed during it — nothing is wrong with the brake then), where it was seated (`START`), the
@@ -292,7 +293,8 @@ applied — so a full refresh takes up to 0.3 s. When driver control ends on a d
 back to the menu.
 
 **Each auton run's lines.** Four `[CMP]` lines per run (two for NONE, TOO LATE, a refusal or a program
-error; one more when the auton task first waited for the driver loop to leave):
+error; one more when the auton task first waited for the driver loop to leave, and one more — the
+first failed step — when the routine went on past a failed step or a skip never found its step):
 
 ```text
 request 1: '40in forward' FINISHED -- ROUTINE_RAN; in time, end action succeeded

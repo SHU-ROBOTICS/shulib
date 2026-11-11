@@ -180,7 +180,11 @@ way to see that your upload actually landed.
 **The countdown** shows STEP BACK with a count of 3, 2, 1. Nothing is commanded during it.
 **Then it runs.**
 
-**RESULT** shows one word — `FINISHED`, `ROUTINE STOPPED`, `ABORTED`, `ABORT IGNORED`,
+**RESULT** shows one word — `FINISHED`, `DONE, 2 FAILED` (amber: the routine ran to its end,
+carrying on past two failed steps it marked `onFail(carryOn)` or `onFail(skipTo(...))`, [Chapter
+9](09-the-recipe-api.md#choosing-what-a-failure-does-onfail-and-label); ten or more read
+`DONE, 9+ FAILED`, and the log names the first failed step on a line of its own),
+`ROUTINE STOPPED`, `ABORTED`, `ABORT IGNORED`,
 `CUT BY DEADLINE`, `HARD STOP`, `NOT STARTED`, `REFUSED` or `PROGRAM ERROR` — and, for a run, six
 lines: how it ended, the end action and the guard's clock, where it was seated, the **END**
 estimate, the faults raised during this run (never faults from before RUN), and a reminder to

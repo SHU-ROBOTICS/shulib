@@ -456,7 +456,10 @@ the same drive, and the service ticked exactly once per pace (180 paces, 180 tic
 sensor exists to confirm it, like robot two's sensorless claw — goes on (the team lead's ruling);
 **every other verdict STOPS the chain** — TIMED_OUT, STALLED, NOT_HOMED, ABSENT, REFUSED, CANCELLED, or
 an UNCONFIRMED NOT counted (a piece sensor that stopped answering may have missed the very piece the
-step waited for). Stopping is the routine's usual policy: the drive safed, every later step skipped,
+step waited for). Stopping is the routine's usual policy (a step written after `r.onFail(carryOn)` or
+`r.onFail(skipTo("..."))` goes on instead, except after a CANCELLED verdict or once the auton's time
+is up —
+[Ch. 9](09-the-recipe-api.md#choosing-what-a-failure-does-onfail-and-label)): the drive safed, every later step skipped,
 one line naming the verdict —
 
 ```text

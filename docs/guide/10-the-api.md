@@ -340,7 +340,11 @@ greater than zero.
 ## Options: per-call knobs
 
 Every **blocking** verb takes a `MotionOptions` struct: `timeout` (typed time — `5_s`,
-`500_ms`), `maxLinearSpeed` (in/s), `maxAngularSpeed` (rad/s). The two non-blocking verbs do
+`500_ms`), `maxLinearSpeed` (in/s), `maxAngularSpeed` (rad/s), and the two
+arrival tolerances, `positionTolerance` (`2_in`: "arrive within 2 in") and `headingTolerance`
+(`5_deg`), which loosen the settle's distance and its speed bound in proportion
+([Chapter 9](09-the-recipe-api.md#choosing-what-a-failure-does-onfail-and-label) says why both;
+`brake()` ignores them). The two non-blocking verbs do
 not — `drive(speeds, frame)` commands velocities directly and returns immediately, and
 `wait(duration)` has nothing to bound but the duration you already gave it. Unset fields (0) mean "use the
 chassis-wide config." They affect
@@ -825,7 +829,7 @@ numbers — this is the map:
   `competition::AutonContext`, whose appended `mechanismService` carries the robot's service), then one
   line per step: `move`, `home`, `run`, `set`, `spinUp`, `stop`, and the START forms `startMove`,
   `startHome`, `startRun`, `startSpinUp` with `waitUntilDone`. SUCCEEDED and an UNCONFIRMED counted done
-  continue; every other verdict stops the chain as `RoutineStopCause::MechanismStepFailed`, the verdict
+  continue; every other verdict stops the chain (by default — `onFail`, [Chapter 9](09-the-recipe-api.md#choosing-what-a-failure-does-onfail-and-label)) as `RoutineStopCause::MechanismStepFailed`, the verdict
   in `RoutineResult::mechanismVerdict` and `lastMechanism()`. `competition::runAuton`'s mechanism-service
   overload runs such an auton — the service's `enterAutonomous()` first, so whatever a deleted driver
   task left running stops before the auton.

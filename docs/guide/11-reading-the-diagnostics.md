@@ -381,6 +381,20 @@ worth recognizing on sight:
   (its operation was not cancelled -- it may have lived on a deleted task)` — the mechanism
   service's line for the same kind of event as the `TEL` line above (`as autonomous began` when it is
   an auton that starts with a claim driver control left).
+- **A step's on-failure choice** (tag `RTN`, [Ch. 9](09-the-recipe-api.md#choosing-what-a-failure-does-onfail-and-label)):
+  `routine 'two-pieces': step 2 (intake) FAILED: mechanism step FAILED (TIMED_OUT) — carrying on; drive
+  safed` (Warn: a step written after `onFail(carryOn)` failed, and the routine went on), the same ending
+  `— skipping to 'second piece'; drive safed` for `onFail(skipTo(...))`, then one Info line per step the
+  skip passes over (`step 3 (arm) jumped — skipping to 'second piece'`) and one where it lands (`the skip
+  to 'second piece' landed at step 5 (driveTo)`). A stop line can end `— the step was CANCELLED, so its
+  on-failure choice is ignored` or `— the time is up, so its on-failure choice is ignored` (the deadline
+  always stops), or `— its skip target 'X' is behind it: a skip only goes forward`; a Warn
+  `step N: its skip target 'X' is behind it` is the same mistake caught where it is written, and
+  `on-failure choices with no run guard` means the Routine was built from a bare chassis. A wait whose
+  start a skip passed over reads `mechanism NOT STARTED (its start was skipped)`; one whose start did
+  nothing because it named another robot's mechanism (a different kind or units, or a preset or
+  position this robot's mechanism of that name lacks), and the routine carried on past it,
+  reads `mechanism NOT STARTED (its start did nothing: another robot's declaration)`.
 - **A routine stopped by a mechanism step** (Warn, tag `RTN`): `routine 'score-three' STOPPED at step 4
   (intake): mechanism step FAILED (TIMED_OUT) — skipping the rest; drive safed` — the step's verdict in
   the brackets (its own `MECH` line above says why), the rest of the auton skipped

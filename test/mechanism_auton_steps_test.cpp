@@ -541,3 +541,307 @@ TEST_CASE("MECH-A4 (review): the lines that say why a step did nothing are WARN 
         CHECK(x.countAt(LogLevel::Warn, "MECH", "'flywheel': ABSENT in 0.00s (not built at boot") == 1);
     }
 }
+
+// ═══ STEP1-A: a START a skip jumped, and the wait for it (the STEP1 brief's D4, A6; ST7, ST18) ═══════
+
+TEST_CASE("STEP1-A ST18 (a): a wait after a JUMPED start -- with no earlier step on the mechanism -- is a counted "
+          "failure, never a throw") {
+    // Bug caught: SM12 — a jumped start that leaves the slot unmarked: the wait's precondition ("this
+    // routine started no step on that mechanism") THROWS out of the auton (the brief's P1 (a): PROGRAM
+    // ERROR on the brain, for a skip the author chose).
+    RobotX x;
+    Ctx ctx{x.chassis, &x.svc};
+    Routine r{ctx, "jumped-start"};
+    r.onFail(skipTo("L")).then([] { return false; }, "miss");
+    r.startRun(intake, 12_volt, seesPiece, 3_s);  // jumped
+    CHECK_NOTHROW(r.label("L").waitUntilDone(intake, 1_s));
+    const auto res = r.result();
+    CHECK(res.stoppedAt == 3);
+    CHECK(res.cause == RoutineStopCause::MechanismNotStarted);
+    CHECK(res.mechanismVerdict == MechanismOutcome::Running);  // nothing ran: no mechanism verdict
+    CHECK(r.lastMechanism().outcome == MechanismOutcome::Running);
+    CHECK(x.intakeM.commandedVoltage().value() == 0.0);  // the jumped start commanded nothing
+    CHECK(rtn(x, "routine 'jumped-start' STOPPED at step 3 (intake): mechanism NOT STARTED (its start was "
+                 "skipped) — skipping the rest; drive safed") == 1);
+}
+
+TEST_CASE("STEP1-A ST18 (b): a wait after a jumped start NEVER answers an older step's verdict") {
+    // Bug caught: P1 (b) — an earlier run of the intake SUCCEEDED, so the wait read that verdict at once
+    // and reported SUCCEEDED for a start that never ran.
+    RobotX x;
+    Ctx ctx{x.chassis, &x.svc};
+    Routine r{ctx, "older"};
+    r.run(intake, 12_volt, 0.3_s);  // an earlier intake step, SUCCEEDED
+    REQUIRE(r.lastMechanism().outcome == MechanismOutcome::Succeeded);
+    r.onFail(skipTo("L")).then([] { return false; }, "miss").startRun(intake, 12_volt, 1_s);
+    r.label("L").waitUntilDone(intake, 1_s);
+    CHECK(r.result().cause == RoutineStopCause::MechanismNotStarted);
+    CHECK(r.result().stoppedAt == 4);
+    CHECK(r.lastMechanism().outcome == MechanismOutcome::Running);  // never the older step's report
+}
+
+TEST_CASE("STEP1-A ST18: every STARTING form a skip jumps marks its mechanism -- and only those") {
+    // Bug caught: a starting form that does not mark (its later wait throws or collects an older
+    // verdict): the four start forms and the blocking move / home / run / spinUp / set.
+    const auto check = [](auto&& jumpOne, auto&& waitOne, const char* what) {
+        CAPTURE(what);
+        RobotX x;
+        Ctx ctx{x.chassis, &x.svc};
+        Routine r{ctx, "forms"};
+        r.onFail(skipTo("L")).then([] { return false; }, "miss");
+        jumpOne(r);
+        r.label("L").onFail(carryOn);
+        CHECK_NOTHROW(waitOne(r));
+        CHECK(r.result().failedOn == 2);
+        CHECK(r.result().firstFailedCause == RoutineStopCause::ActionFailed);
+        CHECK(r.result().stoppedAt == 0);
+        CHECK(rtn(x, "mechanism NOT STARTED (its start was skipped) — carrying on") == 1);
+    };
+    check([](Routine& r) { r.move(arm["score"], 1_s); }, [](Routine& r) { r.waitUntilDone(arm, 1_s); }, "move");
+    check([](Routine& r) { r.startMove(arm["score"], 1_s); }, [](Routine& r) { r.waitUntilDone(arm, 1_s); },
+          "startMove");
+    check([](Routine& r) { r.home(lift, 1_s); }, [](Routine& r) { r.waitUntilDone(lift, 1_s); }, "home");
+    check([](Routine& r) { r.startHome(lift, 1_s); }, [](Routine& r) { r.waitUntilDone(lift, 1_s); }, "startHome");
+    check([](Routine& r) { r.run(intake, 12_volt, 1_s); }, [](Routine& r) { r.waitUntilDone(intake, 1_s); }, "run");
+    check([](Routine& r) { r.startRun(intake, 12_volt, seesPiece, 1_s); },
+          [](Routine& r) { r.waitUntilDone(intake, 1_s); }, "startRun");
+    check([](Routine& r) { r.spinUp(flywheel["shoot"], 1_s); }, [](Routine& r) { r.waitUntilDone(flywheel, 1_s); },
+          "spinUp");
+    check([](Routine& r) { r.startSpinUp(flywheel["shoot"], 1_s); },
+          [](Routine& r) { r.waitUntilDone(flywheel, 1_s); }, "startSpinUp");
+    check([](Routine& r) { r.set(hood["up"]); }, [](Routine& r) { r.waitUntilDone(hood, 1_s); }, "set");
+}
+
+TEST_CASE("STEP1-A ST18 (c): a jumped STOP or a jumped WAIT marks nothing -- the later wait collects the start "
+          "that ran") {
+    // Bug caught: SM30 — marking on ANY jumped mechanism step: a jumped stop(intake) or
+    // waitUntilDone(intake) would make the later wait answer a false MechanismNotStarted for a start
+    // that DID run.
+    RobotX x;
+    Ctx ctx{x.chassis, &x.svc};
+    Routine r{ctx, "stop-and-wait-jumped"};
+    r.startRun(intake, 12_volt, 0.3_s);  // this start RUNS
+    r.onFail(skipTo("L")).then([] { return false; }, "miss");
+    r.stop(intake);                    // jumped
+    r.waitUntilDone(intake, 1_s);      // jumped
+    r.label("L").waitUntilDone(intake, 1_s);
+    CHECK(r.lastMechanism().outcome == MechanismOutcome::Succeeded);
+    CHECK(r.result().stoppedAt == 0);
+    CHECK(r.result().jumped == 2);
+    CHECK(r.result().failedOn == 1);
+    CHECK(r.result().completed == 2);
+}
+
+TEST_CASE("STEP1-A ST18: a NEWER start after the jump clears the mark -- the wait collects that one") {
+    // Bug caught: a mark that never clears (every later wait on the intake fails for good).
+    RobotX x;
+    Ctx ctx{x.chassis, &x.svc};
+    Routine r{ctx, "cleared"};
+    r.onFail(skipTo("L")).then([] { return false; }, "miss").startRun(intake, 12_volt, 1_s);  // jumped: marked
+    r.label("L").startRun(intake, 12_volt, 0.2_s);  // a newer start RUNS: the mark is cleared
+    r.waitUntilDone(intake, 1_s);
+    CHECK(r.lastMechanism().outcome == MechanismOutcome::Succeeded);
+    CHECK(r.result().stoppedAt == 0);
+    CHECK(r.result().completed == 2);
+}
+
+TEST_CASE("STEP1-A ST18 (d)+(e): under carryOn, TWO waits after one jumped start BOTH answer MechanismNotStarted") {
+    // Bug caught: SM29 — a wait that clears the mark: the SECOND wait would read startedSeq_ and answer
+    // the OLDER step's verdict (C3's stale answer), or throw; and (e) a not-started answer that fills
+    // mechanismVerdict or lastMechanism() with something that never ran.
+    RobotX x;
+    Ctx ctx{x.chassis, &x.svc};
+    Routine r{ctx, "two-waits"};
+    r.run(intake, 12_volt, 0.3_s);  // an older SUCCEEDED step on the intake
+    r.onFail(skipTo("L")).then([] { return false; }, "miss").startRun(intake, 12_volt, 1_s);
+    r.label("L").onFail(carryOn).waitUntilDone(intake, 1_s);
+    CHECK(r.lastMechanism().outcome == MechanismOutcome::Running);
+    CHECK_NOTHROW(r.onFail(carryOn).waitUntilDone(intake, 1_s));
+    CHECK(r.lastMechanism().outcome == MechanismOutcome::Running);
+    const auto res = r.result();
+    CHECK(res.failedOn == 3);
+    CHECK(res.stoppedAt == 0);
+    CHECK(res.mechanismVerdict == MechanismOutcome::Running);
+    CHECK(res.completed == 1);
+    CHECK(rtn(x, "mechanism NOT STARTED (its start was skipped) — carrying on") == 2);
+}
+
+TEST_CASE("STEP1-A ST18 (review): a start that did NOTHING -- another robot's preset -- marks this robot's "
+          "same-named mechanism, carried on or jumped") {
+    // Bug caught (review, 2026-11-05; SM-R1a/SM-R1b): the mark found by the step's GOAL. A goal naming a
+    // preset this robot's 'arm' lacks finds no slot, so (a) a carried-on start left the slot unmarked and
+    // the later wait on the same-named declaration THREW out of the auton (the precondition), (b) after an
+    // earlier SUCCEEDED move the wait answered that OLDER verdict, and (c) a JUMPED start did the same.
+    using namespace shulib::mechanism::words;
+    static constexpr Arm armB{.name = "arm", .motors = {Forward}, .cartridge = Green, .gearing = gears(12, 60),
+                              .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 10, .lasting = 0.5_s},
+                              .range = {0, 160}, .gravity = noGravity, .home = restsAtStop(0),
+                              .presets = {{"score", 95}, {"reach", 120}}};  // robot x's arm has no "reach"
+    {
+        RobotX x;
+        Ctx ctx{x.chassis, &x.svc};
+        Routine r{ctx, "cross"};
+        r.onFail(carryOn).startMove(armB["reach"], 1_s);  // ABSENT: not this robot's preset — carried on
+        CHECK_NOTHROW(r.waitUntilDone(armB, 1_s));
+        const auto res = r.result();
+        CHECK(res.failedOn == 1);
+        CHECK(res.firstFailedAt == 1);
+        CHECK(res.stoppedAt == 2);
+        CHECK(res.cause == RoutineStopCause::MechanismNotStarted);
+        CHECK(res.mechanismVerdict == MechanismOutcome::Running);
+        CHECK(r.lastMechanism().outcome == MechanismOutcome::Running);
+        CHECK(rtn(x, "routine 'cross' STOPPED at step 2 (arm): mechanism NOT STARTED (its start did nothing: "
+                     "another robot's declaration) — skipping the rest; drive safed") == 1);
+        CHECK(std::abs(x.armPlant.trueDeg()) < 2.5);  // nothing moved
+    }
+    {
+        RobotX x;
+        Ctx ctx{x.chassis, &x.svc};
+        Routine r{ctx, "cross-older"};
+        r.move(arm["score"], 1.5_s);  // an earlier arm step, SUCCEEDED
+        REQUIRE(r.lastMechanism().outcome == MechanismOutcome::Succeeded);
+        r.onFail(carryOn).startMove(armB["reach"], 1_s);
+        r.waitUntilDone(arm, 1_s);  // this robot's own declaration of 'arm'
+        const auto res = r.result();
+        CHECK(res.completed == 1);  // never 2: the older move's SUCCEEDED is not this wait's answer
+        CHECK(res.stoppedAt == 3);
+        CHECK(res.cause == RoutineStopCause::MechanismNotStarted);
+        CHECK(r.lastMechanism().outcome == MechanismOutcome::Running);
+    }
+    {
+        RobotX x;
+        Ctx ctx{x.chassis, &x.svc};
+        Routine r{ctx, "cross-jumped"};
+        r.move(arm["score"], 1.5_s);
+        r.onFail(skipTo("L")).then([] { return false; }, "miss");
+        r.startMove(armB["reach"], 1_s);  // jumped
+        r.label("L").waitUntilDone(arm, 1_s);
+        const auto res = r.result();
+        CHECK(res.completed == 1);
+        CHECK(res.jumped == 1);
+        CHECK(res.stoppedAt == 4);
+        CHECK(res.cause == RoutineStopCause::MechanismNotStarted);
+        CHECK(rtn(x, "routine 'cross-jumped' STOPPED at step 4 (arm): mechanism NOT STARTED (its start was "
+                     "skipped) — skipping the rest; drive safed") == 1);
+    }
+}
+
+TEST_CASE("STEP1-A ST18 (verify): EVERY starting form that did nothing -- another robot's declaration -- marks "
+          "this robot's same-named mechanism: set, spinUp, run and home, each alone") {
+    // Bug caught (the verify round, 2026-11-10; SM-R1c..SM-R1f): ST18 (review) pinned the mark for the
+    // arm's positionStep only, so ONE form's not-found path put back to notOnThisRobot (no mark) survived
+    // — and under carryOn that form's later wait THREW out of the auton (no earlier step on the
+    // mechanism: the precondition) or answered an OLDER step's verdict (an earlier step SUCCEEDED). Each
+    // form below misses this robot's same-named mechanism its own way: a hood position robot x lacks,
+    // a flywheel preset robot x lacks, a POWER named like robot x's flywheel (a speed mechanism), an ARM
+    // named like robot x's lift (in inches). Each runs twice: alone (the throw) and after an older
+    // SUCCEEDED step on that mechanism (the stale answer).
+    using namespace shulib::mechanism::words;
+    static constexpr Pneumatic hoodB{.name = "hood",
+                                     .positions = {{"down", {Low, Low}}, {"middle", {High, Low}},
+                                                   {"tilt", {Low, High}}},  // robot x's hood has no "tilt"
+                                     .start = "down", .safe = "down", .moveTime = 0.3_s};
+    static constexpr Flywheel flywheelB{.name = "flywheel", .motors = {Forward}, .cartridge = Blue,
+                                        .gearing = gears(72, 12), .safe = Coast,
+                                        .stall = {.amps = 2.0, .belowMotorRpm = 30, .lasting = 0.5_s},
+                                        .atSpeed = within(60, 0.1_s),
+                                        .presets = {{"shoot", 3000}, {"far", 3400}}};  // robot x has no "far"
+    static constexpr Power rollerB{.name = "flywheel", .motors = {Forward}, .cartridge = Blue, .safe = Coast};
+    static constexpr Arm liftAsArm{.name = "lift", .motors = {Forward}, .cartridge = Green, .gearing = gears(12, 60),
+                                   .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 10, .lasting = 0.5_s},
+                                   .range = {0, 160}, .gravity = noGravity, .home = restsAtStop(0),
+                                   .presets = {{"score", 95}}};
+    const auto check = [](auto&& older, auto&& startOne, auto&& waitOne, const char* mech, const char* what,
+                          auto&& commandedNothing) {
+        CAPTURE(what);
+        const std::string tail = std::string{"("} + mech +
+                                 "): mechanism NOT STARTED (its start did nothing: another robot's declaration) — "
+                                 "skipping the rest; drive safed";
+        {  // alone: before the fix the wait's precondition THREW
+            RobotX x;
+            Ctx ctx{x.chassis, &x.svc};
+            Routine r{ctx, "cross"};
+            r.onFail(carryOn);
+            startOne(r);
+            CHECK(r.lastMechanism().outcome == MechanismOutcome::Absent);  // the start did nothing, said
+            CHECK(x.count("MECH", std::string{"'"} + mech + "' on this robot is not the mechanism this step names") ==
+                  1);
+            CHECK(commandedNothing(x));
+            CHECK_NOTHROW(waitOne(r));
+            const auto res = r.result();
+            CHECK(res.failedOn == 1);
+            CHECK(res.firstFailedAt == 1);
+            CHECK(res.firstFailedCause == RoutineStopCause::MechanismStepFailed);
+            CHECK(res.stoppedAt == 2);
+            CHECK(res.cause == RoutineStopCause::MechanismNotStarted);
+            CHECK(res.completed == 0);
+            CHECK(res.mechanismVerdict == MechanismOutcome::Running);
+            CHECK(r.lastMechanism().outcome == MechanismOutcome::Running);
+            CHECK(rtn(x, "routine 'cross' STOPPED at step 2 " + tail) == 1);
+        }
+        {  // after an older SUCCEEDED step: before the fix the wait answered THAT step's verdict
+            RobotX x;
+            Ctx ctx{x.chassis, &x.svc};
+            Routine r{ctx, "cross-older"};
+            older(r);
+            REQUIRE(r.ok());
+            REQUIRE(r.result().completed == 1);
+            r.onFail(carryOn);
+            startOne(r);
+            waitOne(r);
+            const auto res = r.result();
+            CHECK(res.completed == 1);  // never 2: the older step's verdict is not this wait's answer
+            CHECK(res.failedOn == 1);
+            CHECK(res.stoppedAt == 3);
+            CHECK(res.cause == RoutineStopCause::MechanismNotStarted);
+            CHECK(r.lastMechanism().outcome == MechanismOutcome::Running);
+            CHECK(rtn(x, "routine 'cross-older' STOPPED at step 3 " + tail) == 1);
+        }
+    };
+    check([](Routine& r) { r.set(hood["up"]); }, [](Routine& r) { r.set(hoodB["tilt"]); },
+          [](Routine& r) { r.waitUntilDone(hood, 1_s); }, "hood", "set: a position robot x's hood lacks",
+          [](const RobotX& x) { return !x.lineC.commanded() && !x.lineD.commanded(); });
+    check([](Routine& r) { r.spinUp(flywheel["shoot"], 2_s); },
+          [](Routine& r) { r.startSpinUp(flywheelB["far"], 1_s); },
+          [](Routine& r) { r.waitUntilDone(flywheel, 1_s); }, "flywheel",
+          "startSpinUp: a preset robot x's flywheel lacks",
+          [](const RobotX& x) { return x.flyM.commandedVoltage().value() == 0.0; });
+    check([](Routine& r) { r.spinUp(flywheel["shoot"], 2_s); },
+          [](Routine& r) { r.startRun(rollerB, 12_volt, 1_s); },
+          [](Routine& r) { r.waitUntilDone(flywheel, 1_s); }, "flywheel",
+          "startRun: a POWER named like robot x's flywheel",
+          [](const RobotX& x) { return x.flyM.commandedVoltage().value() == 0.0; });
+    check([](Routine& r) { r.home(lift, 1.5_s); }, [](Routine& r) { r.startHome(liftAsArm, 1_s); },
+          [](Routine& r) { r.waitUntilDone(lift, 1_s); }, "lift", "startHome: an ARM named like robot x's lift",
+          [](const RobotX& x) {
+              return x.liftM1.commandedVoltage().value() == 0.0 && x.liftM2.commandedVoltage().value() == 0.0;
+          });
+}
+
+TEST_CASE("STEP1-A ST7: MECH-A4's verdict policy under carryOn -- a counted UNCONFIRMED is not a failure, a "
+          "TIMED_OUT is") {
+    // Bug caught: carryOn counting robot two's sensorless grab (UNCONFIRMED, counted done) as failed —
+    // every carried-on auton of robot two would read "DONE, n FAILED" for grabs that worked as well as
+    // they can be known to.
+    {
+        RobotTwo two;
+        Ctx ctx{two.chassis, &two.svc};
+        Routine r{ctx, "grab"};
+        using namespace mech_fixture::robot_two;
+        r.onFail(carryOn).set(claw["closed"]);
+        CHECK(r.lastMechanism().outcome == MechanismOutcome::Unconfirmed);
+        CHECK(r.result().failedOn == 0);
+        CHECK(r.ok());
+    }
+    {
+        RobotX x;  // no piece ever comes
+        Ctx ctx{x.chassis, &x.svc};
+        Routine r{ctx, "timeout"};
+        r.onFail(carryOn).run(intake, 12_volt, seesPiece, 0.4_s).move(arm["score"], 1.5_s);
+        CHECK(r.result().failedOn == 1);
+        CHECK(r.result().firstFailedCause == RoutineStopCause::MechanismStepFailed);
+        CHECK(r.result().mechanismVerdict == MechanismOutcome::Running);  // no STOP: the stop's field stays empty
+        CHECK(r.result().stoppedAt == 0);
+        CHECK(r.result().completed == 1);  // the arm step after it ran
+    }
+}

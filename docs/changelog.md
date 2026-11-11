@@ -16,6 +16,70 @@
 
 ## API 2.5
 
+### 2026-11-11 (built 2026-11-05) — care on every auton step: an arrival tolerance, and a per-step choice to stop, carry on, or skip ahead to a named step
+
+> Written when it was built (chunk STEP1-A, the route maker's library half, part A — partway triggers
+> are part B). **No version bump in this entry** — every change is ADDITIVE; the coordinator numbers
+> the minor at merge. **Every 2.5 program compiles and runs exactly as before**, with ONE thing to do
+> (below): a `Routine` with no `onFail` follows the default rule bit for bit — seven golden chains (every
+> chassis step form, five failure kinds, and robot x's mechanism steps) captured from the base tree read byte-identical,
+> and every existing test passes unchanged. **Host only — nothing here has run on a robot;** how far
+> robot two coasts after a leg that ends at a loosened speed bound is register entry HA-216, unmeasured.
+> [Chapter 9](guide/09-the-recipe-api.md#choosing-what-a-failure-does-onfail-and-label) teaches it;
+> [cookbook 2](cookbook/02-when-a-step-fails.md#carry-on-past-a-missed-piece) has two recipes.
+
+**ADDED (pinned the day it landed, Freeze Register row F10 — the team lead's D1):**
+
+- **`Routine::onFail(OnFail)`** and **`Routine::label(const char*)`** — modifiers written in front
+  of ONE step: `r.onFail(carryOn).driveTo(...)` counts a failure, safes the drive and runs the next
+  step; `r.onFail(skipTo("third piece")).run(...)` does the same, then passes over every step until
+  `r.label("third piece")`'s, and goes on there (forward only: a target already passed, or the step's
+  own label, stops the chain, said "behind it" — and Warned on the `onFail` line itself, every run; a
+  target that never comes jumps the rest). `onFail(stopChain)` is the default, spelled out. A label is
+  not a step: the step numbers do not move. Two in a row, or an empty name, throw.
+- **`chassis::OnFail`** and its three spellings **`stopChain`**, **`carryOn`**, **`skipTo("x")`** —
+  also in `mechanism::words`, so a robot's auton file needs no namespace.
+- **`RoutineStopCause::MechanismNotStarted`** (`== 6`) — a `waitUntilDone()` whose start a skip
+  jumped: a COUNTED failure ("its start was skipped") under the wait's own choice. Before this, that
+  wait threw out of the auton, or answered an older step's verdict at once. The same answer ("its
+  start did nothing: another robot's declaration") for a wait whose start named another robot's
+  mechanism (a different kind or units, or a preset or position this robot's same-named mechanism
+  lacks) and was carried on past.
+- **Six `RoutineResult` fields:** `failedOn`, `firstFailedAt`, `firstFailedName`, `firstFailedCause`,
+  `jumped`, `skipPendingTo`. The nine existing fields keep their meaning ("where the chain STOPPED"):
+  under `carryOn` / `skipTo`, `stoppedAt` stays 0 unless a stop happens. `ok()` is false once a step
+  has failed, carried on or not.
+- **Two rules above every choice.** (1) **The deadline always stops:** a CANCELLED verdict (a
+  motion's, a mechanism step's, or a `then()` action's `ExitReason` / `MechanismOutcome`), any failure
+  once the run guard is running and expired, and a skip still pending then, all STOP the chain
+  whatever the step chose. A `Routine r{ctx, ...}` built from an `AutonContext` now borrows its run
+  guard for this (any context with a `guard` member); a Routine built from a bare chassis has only
+  the CANCELLED half and Warns once at its first `carryOn` / `skipTo`. (2) **Nothing new throws** on a
+  run-dependent path.
+
+**ADDED (Freeze Register row F6, the field set's additive path; both types pinned):**
+
+- **`MotionOptions::positionTolerance`** (a `units::Length`) and **`MotionOptions::headingTolerance`**
+  (a `math::Angle`, so `5_deg`) — an ARRIVAL TOLERANCE per call. 0 = the robot's own settle numbers,
+  bit for bit. Looser than the robot's own loosens the distance AND the speed bound in proportion
+  (2 in → within 2 in and slower than 4 in/s), because on a drive leg the speed bound is what ends it:
+  on the host test plant the 40 in leg takes 1.80 s at the robot's own 0.5 in — and 1.80 s at 1, 2 or
+  4 in with the distance alone — but 1.35 s at 2 in with both; tighter tightens the distance only.
+  `brake()` ignores both. Refused at the call: non-finite, negative, or an angle that wraps negative
+  (`359_deg`).
+- **`motion::loosenedSettle(robot, tolerance)`** — that formula, pure and total (a robot whose own
+  settle distance is 0 keeps its speed bound; never a division by 0).
+
+**CHANGED — the brain's result word (the Auton Tester and the competition program):** a routine that
+carried on past failed steps to its end, with its end action succeeded, reads **`DONE, n FAILED`**
+(`DONE, 9+ FAILED` for ten or more) in AMBER — no longer `ROUTINE STOPPED`. Every DONE word fits the
+driver page's unchanged 15-character slot. The serial and SD log gain one line in that case (and when a
+skip never landed), naming the first failed step; under the default rule every line is unchanged.
+
+**What you must do:** one thing, as at 2.1 and 2.5's first entry: a `switch` over `RoutineStopCause`
+that lists every value needs a `MechanismNotStarted` case (under `-Wswitch -Werror` it stops compiling
+without one — the Auton Tester's and the competition program's each gained one). Nothing else.
+
 ### 2026-11-11 (built 2026-11-05) — the WHICH END question removed: the end that leads the push is the front; robot two runs the standard Calibrate
 
 > Written when it was built (chunk CAL1, Part B — the last of its four parts). **BEHAVIOUR CHANGE in an

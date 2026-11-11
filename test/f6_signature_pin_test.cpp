@@ -335,6 +335,23 @@ concept F6OptionsMaxAngular = requires {
 SHULIB_F6_PIN(F6OptionsMaxAngular<MotionOptions>,
               "MotionOptions::maxAngularSpeed : units::AngularVelocity");
 
+// STEP1-A (2026-11-05): the two ARRIVAL TOLERANCES, APPENDED after the three above by the field set's
+// additive path, and pinned the day they land (their types: a Length, and a heading-typed Angle so
+// `5_deg` reads like every heading). ADDED pins only — no pin above changed.
+template <typename T>
+concept F6OptionsPositionTolerance = requires {
+    requires std::is_same_v<decltype(T::positionTolerance), Length>;
+};
+SHULIB_F6_PIN(F6OptionsPositionTolerance<MotionOptions>,
+              "MotionOptions::positionTolerance : units::Length (appended at STEP1-A)");
+
+template <typename T>
+concept F6OptionsHeadingTolerance = requires {
+    requires std::is_same_v<decltype(T::headingTolerance), Angle>;
+};
+SHULIB_F6_PIN(F6OptionsHeadingTolerance<MotionOptions>,
+              "MotionOptions::headingTolerance : math::Angle (appended at STEP1-A)");
+
 template <typename T>
 concept F6OptionsValidate = requires {
     static_cast<void (T::*)() const>(&T::validate);

@@ -212,11 +212,26 @@ inline void stopAfterProgramError(chassis::Chassis& chassis,
            && r.run.outcome != competition::AutonRunOutcome::Refused && !r.run.guard.abandoned;
 }
 
+/// STEP1-A (D5 (a)): the word for a routine that FAILED steps and carried on to its end -- "DONE, 2
+/// FAILED", and "DONE, 9+ FAILED" for ten or more. A static table, so the word stays a `const char*`;
+/// every word is at most 15 characters: the driver page's last-auton slot (competition_screen.hpp)
+/// and under ui::kLargeCols. `failed` below 1 reads as 1 (never reached: the caller asks only when
+/// failedOn > 0).
+[[nodiscard]] inline const char* testerDoneWord(int failed) noexcept {
+    static constexpr const char* kWords[10] = {"DONE, 1 FAILED", "DONE, 2 FAILED", "DONE, 3 FAILED",
+                                               "DONE, 4 FAILED", "DONE, 5 FAILED", "DONE, 6 FAILED",
+                                               "DONE, 7 FAILED", "DONE, 8 FAILED", "DONE, 9 FAILED",
+                                               "DONE, 9+ FAILED"};
+    return kWords[failed < 1 ? 0 : (failed > 9 ? 9 : failed - 1)];
+}
+
 /// The word a finished run earns -- the RESULT page's big line and the first log line say the same
 /// (one source). First match wins: a countdown abort, a throw, a refusal, an abort, an abort the
 /// guard never acted on (ABORT IGNORED, red), never started, the hard floor, the deadline cut, then
-/// FINISHED (the routine -- or route -- OK and the end action succeeded) or ROUTINE STOPPED. At
-/// most ui::kLargeCols characters (test (23)).
+/// (STEP1-A) DONE, n FAILED (a routine that carried on past failed steps to its end -- no stop, no
+/// skip still looking for its step -- and the end action succeeded), then FINISHED (the routine --
+/// or route -- OK and the end action succeeded) or ROUTINE STOPPED. At most ui::kLargeCols
+/// characters (test (23)).
 [[nodiscard]] inline const char* testerResultWord(const TesterRunRecord& r) noexcept {
     if (r.countdownAborted) {
         return "ABORTED";
@@ -241,6 +256,13 @@ inline void stopAfterProgramError(chassis::Chassis& chassis,
     }
     if (r.run.guard.scoringCut) {
         return "CUT BY DEADLINE";
+    }
+    if (r.run.outcome == competition::AutonRunOutcome::RoutineRan) {
+        const chassis::RoutineResult& rr = r.run.routine;
+        if (rr.stoppedAt == 0 && rr.skipPendingTo[0] == '\0' && rr.failedOn > 0
+            && r.run.guard.endActionSucceeded) {
+            return testerDoneWord(rr.failedOn);
+        }
     }
     const bool ranOk = r.run.outcome == competition::AutonRunOutcome::RouteRan
                            ? r.run.route.ok()
@@ -284,6 +306,7 @@ inline void buttonNamesOf(std::uint16_t mask, char* out, std::size_t cap) noexce
         case chassis::RoutineStopCause::ActionFailed: return "action FAILED";
         case chassis::RoutineStopCause::MechanismFailed: return "mechanism FAILED";
         case chassis::RoutineStopCause::MechanismStepFailed: return "mechanism step FAILED";
+        case chassis::RoutineStopCause::MechanismNotStarted: return "mechanism NOT STARTED";
     }
     return "stopped";
 }
@@ -293,7 +316,9 @@ inline constexpr std::size_t kTesterLineBytes = 200;
 
 /// The lines one finished run leaves in the log -- serial and the SD card carry the same words.
 struct TesterRunLines {
-    char line[4][kTesterLineBytes]{};  ///< each <= kTesterLineBytes - 1 characters, ASCII
+    /// each <= kTesterLineBytes - 1 characters, ASCII. Five since STEP1-A: a routine that carried on
+    /// past a failure (or whose skip never landed) adds line 3b, the first failed step.
+    char line[5][kTesterLineBytes]{};
     int count = 0;                     ///< how many are real
     bool cut = false;                  ///< a line did not fit and was cut (a test failure, never
                                        ///< expected: every field below is precision-bounded)
@@ -399,17 +424,44 @@ inline void noteLine(TesterRunLines& out, int written) noexcept {
     }
     if (r.run.outcome == competition::AutonRunOutcome::RoutineRan) {
         const chassis::RoutineResult& rr = r.run.routine;
+        const bool skipPending = rr.skipPendingTo[0] != '\0';
         if (rr.stoppedAt > 0) {
             detail::noteLine(out, std::snprintf(out.line[out.count++], kTesterLineBytes,
                                                 "run %d: routine STOPPED, %d of %d steps done, "
                                                 "stopped at %.24s (%s); %.79s",
                                                 r.number, rr.completed, rr.steps, rr.stoppedName,
                                                 routineStopWord(rr.cause, rr.exit), faults));
+        } else if (rr.failedOn > 0 || skipPending) {
+            // STEP1-A: the routine went on past a failure (or a skip is still looking for its step).
+            detail::noteLine(out, std::snprintf(out.line[out.count++], kTesterLineBytes,
+                                                "run %d: routine %s, %d of %d steps done, %d failed, "
+                                                "%d jumped; %.79s",
+                                                r.number, skipPending ? "STOPPED" : "DONE", rr.completed,
+                                                rr.steps, rr.failedOn, rr.jumped, faults));
         } else {
             detail::noteLine(out, std::snprintf(out.line[out.count++], kTesterLineBytes,
                                                 "run %d: routine %s, %d of %d steps done; %.79s",
                                                 r.number, rr.ok ? "OK" : "STOPPED", rr.completed,
                                                 rr.steps, faults));
+        }
+        // 3b (STEP1-A). The first failed step, ONLY when the routine went on past one or a skip is
+        // still pending -- so a run under the default rule keeps its four lines, word for word.
+        if (rr.failedOn > 0 || skipPending) {
+            if (skipPending) {
+                detail::noteLine(out, std::snprintf(out.line[out.count++], kTesterLineBytes,
+                                                    "run %d: first failed: step %d %.24s (%s); a skip "
+                                                    "to '%.24s' never landed",
+                                                    r.number, rr.firstFailedAt, rr.firstFailedName,
+                                                    routineStopWord(rr.firstFailedCause, control::ExitReason::Running),
+                                                    rr.skipPendingTo));
+            } else {
+                detail::noteLine(out, std::snprintf(out.line[out.count++], kTesterLineBytes,
+                                                    "run %d: first failed: step %d %.24s (%s); the "
+                                                    "routine went on%s",
+                                                    r.number, rr.firstFailedAt, rr.firstFailedName,
+                                                    routineStopWord(rr.firstFailedCause, control::ExitReason::Running),
+                                                    rr.stoppedAt > 0 ? ", then stopped" : ""));
+            }
         }
     } else if (r.run.outcome == competition::AutonRunOutcome::RouteRan) {
         detail::noteLine(out, std::snprintf(out.line[out.count++], kTesterLineBytes,

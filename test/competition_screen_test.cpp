@@ -620,3 +620,32 @@ TEST_CASE("screen (S14): TOO LATE -- the status and result pages, and the driver
     CHECK(std::string{row.text} == "auton TOO LATE: 40in forward");
     CHECK(row.tone == shulib::ui::Tone::Amber);
 }
+
+// (S15) STEP1-A (D5 (a)) Bug caught: a routine that carried on past failed steps painted in RED (an
+// unknown word is red: the brief's L13) or with its word cut on the large line; the prefix match
+// catching a word that is not a DONE word.
+TEST_CASE("screen (S15) STEP1-A: the RESULT page paints DONE, n FAILED whole, in amber") {
+    using shulib::ui::Tone;
+    AutonRegistry reg{shulib::bench::kAutonPeriods};
+    shulib::bench::registerAutons(reg);
+    CompetitionRunRecord r{};
+    r.request = 2;
+    r.entry = 0;
+    r.run.outcome = AutonRunOutcome::RoutineRan;
+    r.run.guard.endActionRan = true;
+    r.run.guard.endActionSucceeded = true;
+    r.run.routine.ok = false;
+    r.run.routine.failedOn = 12;
+    r.run.routine.firstFailedAt = 1;
+    r.run.routine.firstFailedName = "miss";
+    const CompetitionView v = shulib::bench::competitionResultView(r, reg, "BUILD x");
+    CHECK(v.bar == Tone::Amber);
+    CHECK(v.hasBig);
+    CHECK(std::string{v.big.text} == "DONE, 9+ FAILED");
+    CHECK(v.unsafeLines == 0);
+    CHECK(v.droppedLines == 0);
+    // The prefix is the DONE words' only: other words keep their colours.
+    CHECK(shulib::bench::competitionResultTone("DONE") == Tone::Red);
+    CHECK(shulib::bench::competitionResultTone("ROUTINE STOPPED") == Tone::Red);
+    CHECK(shulib::bench::competitionResultTone("FINISHED") == Tone::Green);
+}

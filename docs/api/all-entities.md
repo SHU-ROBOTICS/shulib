@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 5,542 of them, across 200 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 5,568 of them, across 200 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -661,6 +661,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CaptureStatus::Ok` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-ok) |
 | `CaptureStatus::Refused` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-refused) |
 | `captureStatusName` | free function | [shul2_reader.md](shul2_reader.md#capturestatusname) |
+| `carryOn` | constant | [routine.md](routine.md#carryon) |
+| `carryOn (overload 2)` | type alias | [routine.md](routine.md#carryon-2) |
 | `cartridgeWord` | free function | [drivetrain_description.md](drivetrain_description.md#cartridgeword) |
 | `changeHere` | free function | [direction_check.md](direction_check.md#changehere) |
 | `CharacterizationSource` | enum class | [drive_characterization.md](drive_characterization.md#enum-class-characterizationsource) |
@@ -2844,6 +2846,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `LoopMonitor::worstDt` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-worstdt) |
 | `LoopMonitorConfig` | struct | [loop_monitor.md](loop_monitor.md#struct-loopmonitorconfig) |
 | `LoopMonitorConfig::budget` | field | [loop_monitor.md](loop_monitor.md#loopmonitorconfig-budget) |
+| `loosenedSettle` | free function | [motion_config.md](motion_config.md#loosenedsettle) |
 | `Low` | constant | [kinds.md](kinds.md#low) |
 | `Low (overload 2)` | type alias | [kinds.md](kinds.md#low-2) |
 
@@ -3133,8 +3136,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotionDeps::validate` | function | [motion.md](motion.md#motiondeps-validate) |
 | `MotionDeps::validatedClock` | function | [motion.md](motion.md#motiondeps-validatedclock) |
 | `MotionOptions` | struct | [chassis.md](chassis.md#struct-motionoptions) |
+| `MotionOptions::headingTolerance` | field | [chassis.md](chassis.md#motionoptions-headingtolerance) |
 | `MotionOptions::maxAngularSpeed` | field | [chassis.md](chassis.md#motionoptions-maxangularspeed) |
 | `MotionOptions::maxLinearSpeed` | field | [chassis.md](chassis.md#motionoptions-maxlinearspeed) |
+| `MotionOptions::positionTolerance` | field | [chassis.md](chassis.md#motionoptions-positiontolerance) |
 | `MotionOptions::timeout` | field | [chassis.md](chassis.md#motionoptions-timeout) |
 | `MotionOptions::validate` | function | [chassis.md](chassis.md#motionoptions-validate) |
 | `MotionOutcome` | enum class | [motion_result.md](motion_result.md#enum-class-motionoutcome) |
@@ -3382,6 +3387,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `OdoStallCheckConfig::setAllWheels` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-setallwheels) |
 | `OdoStallCheckConfig::wheels` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-wheels) |
 | `OdoStallCheckConfig::window` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-window) |
+| `OnFail` | struct | [routine.md](routine.md#struct-onfail) |
+| `OnFail` | type alias | [routine.md](routine.md#onfail) |
+| `OnFail::Kind` | enum class | [routine.md](routine.md#enum-class-onfail-kind) |
+| `OnFail::kind` | field | [routine.md](routine.md#onfail-kind) |
+| `OnFail::Kind::CarryOn` | enumerator | [routine.md](routine.md#onfail-kind-carryon) |
+| `OnFail::Kind::SkipTo` | enumerator | [routine.md](routine.md#onfail-kind-skipto) |
+| `OnFail::Kind::Stop` | enumerator | [routine.md](routine.md#onfail-kind-stop) |
+| `OnFail::target` | field | [routine.md](routine.md#onfail-target) |
 | `OnRefusal` | enum class | [auton_registry.md](auton_registry.md#enum-class-onrefusal) |
 | `OnRefusal::DropEntry` | enumerator | [auton_registry.md](auton_registry.md#onrefusal-dropentry) |
 | `OnRefusal::Throw` | enumerator | [auton_registry.md](auton_registry.md#onrefusal-throw) |
@@ -4425,11 +4438,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Routine::hold` | function | [routine.md](routine.md#routine-hold) |
 | `Routine::home` | function | [routine.md](routine.md#routine-home) |
 | `Routine::home (overload 2)` | function | [routine.md](routine.md#routine-home-2) |
+| `Routine::label` | function | [routine.md](routine.md#routine-label) |
 | `Routine::lastMechanism` | function | [routine.md](routine.md#routine-lastmechanism) |
 | `Routine::lastTrajectory` | function | [routine.md](routine.md#routine-lasttrajectory) |
 | `Routine::move` | function | [routine.md](routine.md#routine-move) |
 | `Routine::moveTo` | function | [routine.md](routine.md#routine-moveto) |
 | `Routine::ok` | function | [routine.md](routine.md#routine-ok) |
+| `Routine::onFail` | function | [routine.md](routine.md#routine-onfail) |
 | `Routine::operator=` | function | [routine.md](routine.md#routine-operator-eq) |
 | `Routine::operator= (overload 2)` | function | [routine.md](routine.md#routine-operator-eq-2) |
 | `Routine::pause` | function | [routine.md](routine.md#routine-pause) |
@@ -4467,15 +4482,22 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RoutineResult::cause` | field | [routine.md](routine.md#routineresult-cause) |
 | `RoutineResult::completed` | field | [routine.md](routine.md#routineresult-completed) |
 | `RoutineResult::exit` | field | [routine.md](routine.md#routineresult-exit) |
+| `RoutineResult::failedOn` | field | [routine.md](routine.md#routineresult-failedon) |
+| `RoutineResult::firstFailedAt` | field | [routine.md](routine.md#routineresult-firstfailedat) |
+| `RoutineResult::firstFailedCause` | field | [routine.md](routine.md#routineresult-firstfailedcause) |
+| `RoutineResult::firstFailedName` | field | [routine.md](routine.md#routineresult-firstfailedname) |
+| `RoutineResult::jumped` | field | [routine.md](routine.md#routineresult-jumped) |
 | `RoutineResult::mechanismVerdict` | field | [routine.md](routine.md#routineresult-mechanismverdict) |
 | `RoutineResult::ok` | field | [routine.md](routine.md#routineresult-ok) |
 | `RoutineResult::skipped` | field | [routine.md](routine.md#routineresult-skipped) |
+| `RoutineResult::skipPendingTo` | field | [routine.md](routine.md#routineresult-skippendingto) |
 | `RoutineResult::steps` | field | [routine.md](routine.md#routineresult-steps) |
 | `RoutineResult::stoppedAt` | field | [routine.md](routine.md#routineresult-stoppedat) |
 | `RoutineResult::stoppedName` | field | [routine.md](routine.md#routineresult-stoppedname) |
 | `RoutineStopCause` | enum class | [routine.md](routine.md#enum-class-routinestopcause) |
 | `RoutineStopCause::ActionFailed` | enumerator | [routine.md](routine.md#routinestopcause-actionfailed) |
 | `RoutineStopCause::MechanismFailed` | enumerator | [routine.md](routine.md#routinestopcause-mechanismfailed) |
+| `RoutineStopCause::MechanismNotStarted` | enumerator | [routine.md](routine.md#routinestopcause-mechanismnotstarted) |
 | `RoutineStopCause::MechanismStepFailed` | enumerator | [routine.md](routine.md#routinestopcause-mechanismstepfailed) |
 | `RoutineStopCause::MotionFailed` | enumerator | [routine.md](routine.md#routinestopcause-motionfailed) |
 | `RoutineStopCause::None` | enumerator | [routine.md](routine.md#routinestopcause-none) |
@@ -4876,6 +4898,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SkipReason::LengthTooLarge` | enumerator | [shul2_format.md](shul2_format.md#skipreason-lengthtoolarge) |
 | `SkipReason::None` | enumerator | [shul2_format.md](shul2_format.md#skipreason-none) |
 | `SkipReason::NoSync` | enumerator | [shul2_format.md](shul2_format.md#skipreason-nosync) |
+| `skipTo` | free function | [routine.md](routine.md#skipto) |
+| `skipTo (overload 2)` | type alias | [routine.md](routine.md#skipto-2) |
 | `SlewConfig` | struct | [slew_limiter.md](slew_limiter.md#struct-slewconfig) |
 | `SlewConfig::ratePerSecond` | field | [slew_limiter.md](slew_limiter.md#slewconfig-ratepersecond) |
 | `SlewLimiter` | class | [slew_limiter.md](slew_limiter.md#class-slewlimiter) |
@@ -5046,6 +5070,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StickInput::leftY` | field | [stick_mapping.md](stick_mapping.md#stickinput-lefty) |
 | `StickInput::rightX` | field | [stick_mapping.md](stick_mapping.md#stickinput-rightx) |
 | `StickInput::rightY` | field | [stick_mapping.md](stick_mapping.md#stickinput-righty) |
+| `stopChain` | constant | [routine.md](routine.md#stopchain) |
+| `stopChain (overload 2)` | type alias | [routine.md](routine.md#stopchain-2) |
 | `stoppedWords` | free function | [calibrate_panel.md](calibrate_panel.md#stoppedwords) |
 | `StoppedWords` | struct | [calibrate_panel.md](calibrate_panel.md#struct-stoppedwords) |
 | `StoppedWords::doLine` | field | [calibrate_panel.md](calibrate_panel.md#stoppedwords-doline) |

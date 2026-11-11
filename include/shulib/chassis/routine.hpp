@@ -12,8 +12,9 @@
 // pause / waitFor, and reverseTo / faceAway, the two APPENDED at chunk L9
 // (API 2.4) by exactly the additive path below and pinned the day they
 // landed — the four observers ok / result / lastTrajectory / chassis,
-// the types RoutineResult (all NINE fields — mechanismVerdict appended at
-// MECH-A4, API 2.5, its type pinned) and RoutineStopCause (append-only,
+// the types RoutineResult (all FIFTEEN fields — nine through MECH-A4, whose
+// mechanismVerdict is pinned by type; six appended at STEP1-A, each pinned by
+// type) and RoutineStopCause (append-only,
 // existing values fixed), the documented error policy below, and typed time as
 // a SEMANTIC (hold(0.3) must not compile). Enforced structurally:
 // test/routine_signature_pin_test.cpp fails the build, naming F10, if any of
@@ -41,6 +42,17 @@
 // landed). Until it is ruled they are unpinned: pinning them later is additive,
 // un-freezing them would not be. Stated out loud for the reason the then()
 // paragraph gives: silence in a freeze reads as "frozen too".
+//
+// THE ON-FAILURE CHOICE (chunk STEP1-A, 2026-11-05; the same additive path, in TWO delimited blocks
+// below, "STEP1-A: the on-failure choice" — the types at namespace scope, the modifiers in the
+// class — plus its state, declared last, and the policy's edits inside the existing steps, each
+// marked "STEP1-A") is PINNED the day it lands, the way L9's steps were (the
+// team lead's D1, 2026-11-03: a route maker generates code against it, so it must not drift): the
+// two modifiers onFail(OnFail) and label(const char*), OnFail's three spellings (stopChain,
+// carryOn, skipTo("x")), the appended stop cause MechanismNotStarted (== 6) and the six appended
+// RoutineResult fields (failedOn, firstFailedAt, firstFailedName, firstFailedCause, jumped,
+// skipPendingTo) — test/routine_signature_pin_test.cpp. The context constructor also learns the
+// auton's run guard (when the context has a `guard`); it stays unpinned, as at MECH-A4.
 //
 // NOT frozen, deliberately: **then()** — its accepted return types and its
 // `name` default were left out of F10 because they were chosen before
@@ -132,10 +144,58 @@
 //     untouched (the bad call never ran).
 //
 // A routine that must CONTINUE past a failure (a sweep that shrugs off one
-// missed goal) branches on the verbs directly — that is one step down the
-// tier ladder, not a rewrite, and mixing the two styles in one routine is
-// supported and tested (steps and direct facade calls interleave freely,
-// because eager execution keeps program order = field order).
+// missed goal) writes onFail(carryOn) in front of that step (STEP1-A, below),
+// or branches on the verbs directly — that is one step down the tier ladder,
+// not a rewrite, and mixing the two styles in one routine is supported and
+// tested (steps and direct facade calls interleave freely, because eager
+// execution keeps program order = field order).
+//
+// ═══ The on-failure CHOICE (chunk STEP1-A, additive; pinned) ══════════════════════
+// The policy above is the DEFAULT, unchanged bit for bit. Two modifiers, written
+// in front of a step, change it for THAT step only:
+//
+//     r.onFail(carryOn).driveTo(-24_in, -36_in, {.timeout = 2.5_s});
+//     r.onFail(skipTo("third piece")).run(intake, 12_volt, seesPiece, 2_s);
+//     r.label("third piece").face(0_in, 48_in);
+//
+//   * onFail(carryOn): a failure is COUNTED (RoutineResult::failedOn and the
+//     first one's step, name and cause), Warn-logged, and the drive is safed
+//     exactly as a stop safes it — then the next step runs, from rest, where the
+//     robot is. ok() goes false; the stop fields stay clean (stoppedAt 0).
+//   * onFail(skipTo("x")): as carryOn, then every step until the next one
+//     label("x") names is PASSED OVER (counted in `steps` and `jumped`, one Info
+//     line each) and the auton goes on AT that step. A skip only goes FORWARD (the
+//     chain runs its lines as it reaches them; it never stores them): a target
+//     already passed — the last 32 labels are remembered, a label on a step a skip
+//     jumped included; one further back reads as a target that never comes — or
+//     the failing step's own label STOPS the chain there, said "behind it" (and Warned at the
+//     onFail line itself, every run, so a bench run shows it first); a target
+//     that never comes jumps every remaining step (RoutineResult::skipPendingTo).
+//   * onFail(stopChain): today's rule, spelled out. label("x") names the next
+//     step — it is not a step, so the step numbers do not move.
+//   * Each modifier binds to exactly ONE step and is used up at its door — run,
+//     skipped after a stop, jumped, or throwing. Two in a row, an empty or null
+//     name: precondition throws. Names are stored, not copied: string literals.
+//
+// TWO RULES SIT ABOVE EVERY CHOICE:
+//   1. THE CUT ALWAYS STOPS. A step's choice is IGNORED and the chain stops when
+//      its verdict is CANCELLED (a motion's exit, a mechanism step's verdict, or a
+//      then() action's ExitReason / MechanismOutcome — whatever cancelled it: the
+//      deadline, an abandon, the fault policy, a replaced step), or when the
+//      routine's run guard is running and expired() (the deadline passed or the
+//      run was abandoned); a skip still looking for its step then stops at the
+//      next step's door. A carry-on chain must never keep issuing steps past the
+//      buzzer. The guard comes from the context constructor (`Routine r{ctx,
+//      "x"}` in an auton); a routine with NO guard — Routine r{chassis} — keeps
+//      only the CANCELLED half, and Warns once at its first carryOn / skipTo.
+//   2. NOTHING NEW THROWS on a run-dependent path. A waitUntilDone() on a
+//      mechanism whose START a skip jumped answers a counted failure,
+//      RoutineStopCause::MechanismNotStarted ("its start was skipped"), under the
+//      wait's own choice — never a throw, never an older step's verdict. So does
+//      one whose start did nothing because its goal is another robot's (a different
+//      kind or units, or a preset or position this robot's same-named mechanism
+//      lacks) and the chain carried on past it ("its start did nothing: another
+//      robot's declaration").
 //
 // ═══ then(): the mechanism seam (filled at F1; still unfrozen — see above) ═══════
 // then() accepts any callable returning void (always succeeds), bool, or
@@ -167,6 +227,7 @@
 
 #include <cmath>
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <functional>
@@ -187,6 +248,7 @@
 #include "shulib/math/pose2d.hpp"
 #include "shulib/mechanism/service.hpp"  // MECH-A4: the mechanism steps run through the service
 #include "shulib/motion/motion_scheduler.hpp"
+#include "shulib/sequence/run_guard.hpp"  // STEP1-A: the cut rule asks the auton's guard
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::chassis {
@@ -203,7 +265,47 @@ concept RoutineContext = requires(Context& c) {
 /// `.name`.
 template <class Declared>
 concept MechanismDeclaration = requires(const Declared& d) { d.name.text; };
+/// STEP1-A: a context that ALSO carries the auton's run guard (competition::AutonContext's
+/// `guard`; any struct with a `guard` member that is a sequence::RunGuard). The context
+/// constructor borrows it for the cut rule; a context without one builds a guard-less Routine.
+template <class Context>
+concept RoutineContextWithGuard = requires(Context& c) {
+    { c.guard } -> std::convertible_to<sequence::RunGuard&>;
+};
 }  // namespace detail
+
+// ═══ STEP1-A: the on-failure choice — BEGIN (the types; pinned, F10) ═════════════════════════════
+/// What a step does when it FAILS — the value `r.onFail(...)` takes (the file banner's "on-failure
+/// choice"). Written with one of its three spellings: `stopChain` (the default rule: stop, safe the
+/// drive, skip the rest), `carryOn` (count it, safe the drive, run the next step) or `skipTo("x")`
+/// (count it, safe the drive, pass over every step until the one `r.label("x")` names). A plain
+/// value: build it with those three, not by hand — `r.onFail` refuses a SkipTo with no target.
+struct OnFail {
+    /// Which of the three.
+    enum class Kind : std::uint8_t {
+        Stop,     ///< the default rule (stopChain)
+        CarryOn,  ///< count the failure and run the next step (carryOn)
+        SkipTo,   ///< count the failure and pass over every step until `target`'s label (skipTo)
+    };
+    Kind kind = Kind::Stop;        ///< which choice
+    const char* target = nullptr;  ///< SkipTo's label — a stable literal (stored, not copied)
+};
+/// The default rule, spelled out: the failing step stops the chain (`r.onFail(stopChain)`).
+inline constexpr OnFail stopChain{OnFail::Kind::Stop, nullptr};
+/// Count the failure, safe the drive, run the next step from where the robot is
+/// (`r.onFail(carryOn)`).
+inline constexpr OnFail carryOn{OnFail::Kind::CarryOn, nullptr};
+/// Count the failure, safe the drive, pass over every step until the one labelled `label`
+/// (`r.onFail(skipTo("third piece"))` ... `r.label("third piece")`). Skips go FORWARD only.
+/// `label` is stored, not copied (a string literal), and matched whole and case-sensitively.
+/// PRECONDITION: `label` not null and not empty.
+[[nodiscard]] inline OnFail skipTo(const char* label) {
+    SHULIB_PRECONDITION(label != nullptr && label[0] != '\0',
+                        "skipTo(...): the step to skip to needs a name -- skipTo(\"third piece\"), matching "
+                        "a later r.label(\"third piece\")");
+    return OnFail{OnFail::Kind::SkipTo, label};
+}
+// ═══ STEP1-A: the on-failure choice — END (the types) ════════════════════════════════════════════
 
 /// Why a Routine stopped early. `None` = it never stopped. Append-only: F1/F3
 /// mechanism failures arrive as new enumerators, never as re-meanings.
@@ -222,6 +324,12 @@ enum class RoutineStopCause {
                           ///< UNCONFIRMED counted done; the verdict is RoutineResult::mechanismVerdict
                           ///< and the stop line names it. MechanismFailed keeps its F1 meaning (a
                           ///< then()-action's verdict). (APPENDED at chunk MECH-A4, API 2.5.)
+    MechanismNotStarted,  ///< a waitUntilDone() whose START never ran: a skip jumped the step that
+                          ///< would have started it, or that step did nothing because its goal is
+                          ///< another robot's and the chain carried on (STEP1-A) — or, from STEP1-B,
+                          ///< its partway trigger never fired. Never a throw, never an older step's verdict;
+                          ///< RoutineResult::mechanismVerdict stays `Running` (nothing ran).
+                          ///< (APPENDED at chunk STEP1-A, == 6.)
 };
 
 /// What a Routine did — the whole-chain verdict, readable at any point (it is
@@ -247,6 +355,18 @@ struct RoutineResult {
     /// read `cause` first — only `MechanismStepFailed` puts one here. (APPENDED at chunk MECH-A4,
     /// API 2.5.)
     manipulation::MechanismOutcome mechanismVerdict = manipulation::MechanismOutcome::Running;
+    // ── STEP1-A (APPENDED; types pinned, F10). The nine fields above keep their meaning — "where
+    //    the chain STOPPED" — so under carryOn / skipTo `stoppedAt` stays 0 unless a stop happens,
+    //    and `skipped` still counts only the steps after a stop. These say the rest. ──────────────
+    int failedOn = 0;       ///< steps that FAILED and the chain went on (carryOn / skipTo)
+    int firstFailedAt = 0;  ///< 1-based index of the first of them; 0 = none
+    const char* firstFailedName = "";  ///< its verb/name ("" = none)
+    /// Its cause — read `firstFailedAt` first (None when no step failed and went on).
+    RoutineStopCause firstFailedCause = RoutineStopCause::None;
+    int jumped = 0;  ///< steps a skip passed over (counted in `steps`, never run)
+    /// The label a skip is still looking for — "" when none is. Non-empty at the end of a run: the
+    /// skip never landed, and nothing ran after its failure.
+    const char* skipPendingTo = "";
 };
 
 /// The Tier-2 recipe chain: a complete autonomous routine as a sequence of
@@ -268,9 +388,13 @@ public:
     /// (each must outlive the Routine). A program that runs autons without a service leaves
     /// `mechanismService` null: the chassis steps run as ever, and a mechanism step is a loud
     /// precondition naming the fix. Not frozen (the file header).
+    /// STEP1-A: when the context also has a `guard` (AutonContext does), the Routine borrows it for
+    /// the cut rule — a step that fails once the guard is running and expired() STOPS the chain
+    /// whatever its onFail choice (the file banner). A context without one builds a guard-less
+    /// Routine, as Routine(Chassis&) does.
     template <detail::RoutineContext Context>
     explicit Routine(Context& ctx, const char* name = "routine") noexcept
-        : chassis_{&ctx.chassis}, name_{name}, mechs_{ctx.mechanismService} {}
+        : chassis_{&ctx.chassis}, name_{name}, mechs_{ctx.mechanismService}, guard_{guardOf(ctx)} {}
 
     /// Neither copyable nor movable, and there is no reset(): one chain is one
     /// run. Two handles sharing the stop-state counters would let a stopped
@@ -485,6 +609,9 @@ public:
     /// verdict "succeeds" whatever happened — the same sharp edge as dropping
     /// a direct facade call's ExitReason (guide chapter 9), owned the same way.
     /// `name` labels the step in stop/skip log lines (stable literal).
+    /// STEP1-A: an action that returns `ExitReason::Cancelled` or `MechanismOutcome::Cancelled` is
+    /// CANCELLED, and stops the chain whatever its onFail choice (the cut rule; a `bool` false is
+    /// an ordinary failure, which carryOn / skipTo may go on from).
     template <typename Action>
     Routine& then(Action&& action, const char* name = "action") {
         if (skipIfStopped(name)) {
@@ -495,6 +622,7 @@ public:
         control::ExitReason exit = control::ExitReason::Running;
         const char* detail = nullptr;
         RoutineStopCause failCause = RoutineStopCause::ActionFailed;
+        bool cancelled = false;  // STEP1-A: a CANCELLED action stops the chain whatever its choice
         if constexpr (std::is_void_v<R>) {
             std::invoke(action);
         } else if constexpr (std::is_same_v<R, control::ExitReason>) {
@@ -505,6 +633,7 @@ public:
             succeeded = (mo == manipulation::MechanismOutcome::Succeeded);
             failCause = RoutineStopCause::MechanismFailed;
             detail = manipulation::mechanismOutcomeName(mo);
+            cancelled = (mo == manipulation::MechanismOutcome::Cancelled);
         } else {
             static_assert(std::is_constructible_v<bool, R>,
                           "Routine::then: the action must return void, bool, "
@@ -514,10 +643,69 @@ public:
         if (succeeded) {
             recordSuccess();
         } else {
-            recordStop(name, failCause, exit, detail);
+            recordStop(name, failCause, exit, detail, manipulation::MechanismOutcome::Running, cancelled);
         }
         return *this;
     }
+
+    // ═══ STEP1-A: the on-failure choice — BEGIN (the modifiers; pinned, F10) ═══════════════════════
+    /// What the NEXT step does if it fails: `r.onFail(carryOn).driveTo(...)`,
+    /// `r.onFail(skipTo("third piece")).run(...)`, `r.onFail(stopChain)` (the default, spelled out).
+    /// It binds to exactly one step and is used up at that step's door — whether the step runs, is
+    /// skipped after a stop, is jumped by a skip, or throws. It is not a step (the step numbers do
+    /// not move). Above every choice: a CANCELLED verdict, or a guard that is running and expired,
+    /// STOPS the chain (the file banner's two rules). Logs one Warn — once per Routine — when the
+    /// Routine has NO run guard (a carry-on chain there cannot be stopped by the deadline), and one
+    /// Warn when a skipTo's target is already BEHIND (a label this routine has passed, or the next
+    /// step's own label): a skip only goes forward, so that step's failure would stop the chain.
+    /// PRECONDITIONS (thrown; nothing recorded): not two onFail() in a row; a SkipTo has a non-empty
+    /// target.
+    Routine& onFail(OnFail choice) {
+        SHULIB_PRECONDITION(!pendingFailSet_,
+                            "r.onFail(...): two in a row -- each onFail binds to the ONE step after it; write "
+                            "the step between them");
+        SHULIB_PRECONDITION(choice.kind != OnFail::Kind::SkipTo ||
+                                (choice.target != nullptr && choice.target[0] != '\0'),
+                            "r.onFail(...): a skip needs the name of the step to skip to -- write "
+                            "skipTo(\"third piece\")");
+        pendingFail_ = choice;
+        pendingFailSet_ = true;
+        if (choice.kind != OnFail::Kind::Stop && guard_ == nullptr && !warnedNoGuard_) {
+            warnedNoGuard_ = true;
+            diag::lineformat::Line line;
+            line.appendLiteral("routine '");
+            line.appendLiteral(name_);
+            line.appendLiteral("': on-failure choices with no run guard — the deadline cannot stop this routine; "
+                               "build it as Routine r{ctx, \"");
+            line.appendLiteral(name_);
+            line.appendLiteral("\"} in an auton");
+            chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line.view());
+        }
+        if (choice.kind == OnFail::Kind::SkipTo &&
+            (labelSeen(choice.target) || sameLabel(pendingLabel_, choice.target))) {
+            warnBehind(choice.target);
+        }
+        return *this;
+    }
+
+    /// Name the NEXT step, so a `skipTo("...")` before it can land there:
+    /// `r.label("third piece").face(0_in, 48_in)`. Not a step of its own (the step numbers do not
+    /// move); used up at that step's door. Matched whole and case-sensitively; stored, not copied —
+    /// a string literal (a std::string's c_str() would dangle). Logs the "behind" Warn when an
+    /// onFail(skipTo(...)) already written for the same step names this label.
+    /// PRECONDITIONS (thrown; nothing recorded): not two label() in a row; `name` not null, not "".
+    Routine& label(const char* name) {
+        SHULIB_PRECONDITION(pendingLabel_ == nullptr,
+                            "r.label(...): two in a row -- a label names the ONE step after it");
+        SHULIB_PRECONDITION(name != nullptr && name[0] != '\0',
+                            "r.label(...): a label needs a name -- r.label(\"third piece\")");
+        pendingLabel_ = name;
+        if (pendingFailSet_ && pendingFail_.kind == OnFail::Kind::SkipTo && sameLabel(pendingFail_.target, name)) {
+            warnBehind(name);
+        }
+        return *this;
+    }
+    // ═══ STEP1-A: the on-failure choice — END (the modifiers) ═══════════════════════════════════════
 
     // ═══ MECH-A4: the mechanism steps — BEGIN (API 2.5; not frozen — the file header) ═════════
     // ONE eager call per step, each naming its mechanism by its DECLARATION (or a goal the
@@ -550,6 +738,12 @@ public:
     // service is not in the chassis pacer's chain (the program's wiring fault, found on the first
     // blocking step). After its step a mechanism keeps its behaviour — an arm HOLDS, a flywheel
     // keeps spinning — until another command, the run guard's end of run, or driver control.
+    // STEP1-A: "stops the chain" above is the DEFAULT; a step written after r.onFail(carryOn) or
+    // r.onFail(skipTo("x")) goes on (or skips) instead, except that a CANCELLED verdict, and any
+    // failure once the auton's time is up, always stops. A starting step (the start forms, and
+    // move / home / run / spinUp / set) that a skip JUMPS — or that did nothing because its goal is
+    // another robot's — marks its mechanism (by name): a later waitUntilDone() on it answers
+    // MechanismNotStarted.
     //
     // THE HONEST LIMIT: the service ticks only inside a shulib motion, wait or pause (and the
     // driver loop). An auton's own busy loop — `pros::delay`, a then() action that blocks — STARVES
@@ -613,12 +807,12 @@ public:
     /// bound. A `grabs` position with no sensor ends UNCONFIRMED, counted done: the chain goes on.
     Routine& set(mechanism::PneumaticGoal goal, const char* name = nullptr) {
         const char* step = name != nullptr ? name : goal.mechanismName;
-        if (skipIfStopped(step)) {
+        if (startingStepPassed(step, goal.mechanismName)) {
             return *this;
         }
         mechanism::PneumaticSlot* m = mechs().find(goal);
         if (m == nullptr) {
-            return notOnThisRobot(goal.mechanismName, step);
+            return startNotOnThisRobot(goal.mechanismName, step);
         }
         m->set(goal.position);
         noteStarted(*m);
@@ -666,7 +860,15 @@ public:
     /// Wait (at most `bound` more) for the verdict of the step THIS routine last began on `m` — a
     /// START form's, usually; a step that already ended answers at once. A step that something
     /// OUTSIDE this routine replaced meanwhile ended CANCELLED, and so does this one.
-    /// PRECONDITIONS: `bound` finite and > 0; this routine began a step on `m`.
+    /// STEP1-A: when a skip JUMPED the step that would have started `m` — or that step did nothing
+    /// because its goal is another robot's (a different kind or units, or a preset or position this
+    /// robot's same-named mechanism lacks) — and no later step began one, the wait FAILS, counted —
+    /// RoutineStopCause::MechanismNotStarted, "its start was skipped" (or "its start did nothing:
+    /// another robot's declaration") — under its own onFail choice; never a throw, never an older step's verdict
+    /// (mechanismVerdict stays Running, lastMechanism() is the default report). A wait never clears
+    /// that mark, so a second wait answers the same.
+    /// PRECONDITIONS: `bound` finite and > 0; this routine began a step on `m` (or a skip jumped
+    /// one, or one did nothing as above).
     template <detail::MechanismDeclaration Declared>
     Routine& waitUntilDone(const Declared& m, units::Time bound, const char* name = nullptr) {
         const char* step = name != nullptr ? name : m.name.text;
@@ -679,6 +881,16 @@ public:
         if (s == nullptr) {
             return notOnThisRobot(m.name.text, step);
         }
+        // STEP1-A (A6): a slot whose start a skip JUMPED answers a counted failure, BEFORE the
+        // precondition below — never a throw, never the verdict of an older step on it. A wait never
+        // clears the mark (only a step that begins a step on the slot does), so a second wait
+        // answers the same.
+        if (s->index() < mechanism::kMaxMechanisms && notStartedWhy_[s->index()] != nullptr) {
+            lastMech_ = mechanism::StepReport{};  // nothing ran: the default report (Running)
+            recordStop(step, RoutineStopCause::MechanismNotStarted, control::ExitReason::Running,
+                       notStartedWhy_[s->index()]);
+            return *this;
+        }
         const std::uint32_t mine = startedSeq_[s->index()];
         SHULIB_PRECONDITION(mine != 0,
                             "r.waitUntilDone(...): this routine started no step on that mechanism -- start one "
@@ -687,9 +899,9 @@ public:
             // Something outside this routine began a newer step on it: the one this routine started
             // was replaced (CANCELLED by the service, said) and has no verdict of its own to wait for.
             lastMech_ = mechanism::StepReport{.outcome = manipulation::MechanismOutcome::Cancelled};
-            mechStop_ = manipulation::MechanismOutcome::Cancelled;
             recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
-                       "CANCELLED: a newer command replaced the step this routine started");
+                       "CANCELLED: a newer command replaced the step this routine started",
+                       manipulation::MechanismOutcome::Cancelled);
             return *this;
         }
         return awaitMechanism(*s, bound, step);
@@ -746,8 +958,10 @@ public:
 
     // ── the whole-chain verdict ────────────────────────────────────────────────────
 
-    /// True while no step has failed (and none was skipped).
-    [[nodiscard]] bool ok() const noexcept { return stoppedAt_ == 0; }
+    /// True while no step has failed (and none was skipped). (STEP1-A: a step that failed under
+    /// onFail(carryOn) / skipTo counts as failed too — under the default rule failedOn is always 0,
+    /// so this reads exactly as it always has.)
+    [[nodiscard]] bool ok() const noexcept { return stoppedAt_ == 0 && failedOn_ == 0; }
 
     /// The chain verdict so far (a snapshot — see RoutineResult).
     [[nodiscard]] RoutineResult result() const noexcept {
@@ -761,6 +975,12 @@ public:
         r.cause = cause_;
         r.exit = exit_;
         r.mechanismVerdict = mechStop_;  // MECH-A4
+        r.failedOn = failedOn_;          // STEP1-A
+        r.firstFailedAt = firstFailedAt_;
+        r.firstFailedName = firstFailedName_;
+        r.firstFailedCause = firstFailedCause_;
+        r.jumped = jumped_;
+        r.skipPendingTo = skipTo_ != nullptr ? skipTo_ : "";
         return r;
     }
 
@@ -818,10 +1038,87 @@ private:
         return *this;
     }
 
-    /// True (and the step recorded as skipped) when the chain has stopped.
-    [[nodiscard]] bool skipIfStopped(const char* name) {
+    /// Every step's DOOR: true (and the step recorded) when it must not run — skipped after a stop,
+    /// or (STEP1-A) jumped by a pending skip. One call per step, always its first line.
+    [[nodiscard]] bool skipIfStopped(const char* name) { return enterStep(name) != Door::Run; }
+
+    /// A STARTING mechanism step's door (STEP1-A, A6): as skipIfStopped(), and a step a skip JUMPS
+    /// marks the slot named `mechanismName` "its start was skipped" (markNotStarted()).
+    [[nodiscard]] bool startingStepPassed(const char* name, const char* mechanismName) {
+        const Door d = enterStep(name);
+        if (d == Door::Jumped) {
+            markNotStarted(mechanismName, "its start was skipped");
+        }
+        return d != Door::Run;
+    }
+    /// STEP1-A (A6): mark the slot this robot has under `mechanismName`, so a later waitUntilDone() on it
+    /// answers MechanismNotStarted (`why`) — never a throw, never an older step's verdict. Found by NAME
+    /// (unique on a robot), NOT by the step's goal: a goal of another robot's same-named mechanism (its
+    /// kind, units, preset or position) finds nothing, yet a later wait on this robot's declaration of that
+    /// name finds the slot (review finding, 2026-11-05). Only when the Routine has a service (slotFor()
+    /// is the service's noexcept lookup; a chassis-only Routine's mechs() would throw); a name this
+    /// robot lacks marks nothing — a later wait on it ends ABSENT as well.
+    void markNotStarted(const char* mechanismName, const char* why) noexcept {
+        if (mechs_ == nullptr) {
+            return;
+        }
+        if (const mechanism::Slot* slot = mechs_->slotFor(mechanismName);
+            slot != nullptr && slot->index() < mechanism::kMaxMechanisms) {
+            notStartedWhy_[slot->index()] = why;
+        }
+    }
+
+    enum class Door : std::uint8_t { Run, Skipped, Jumped };
+
+    /// STEP1-A: the door's whole rule. The pending modifiers bind to THIS step (used up whatever
+    /// happens to it); its label is remembered; a pending skip either STOPS (the guard's time is up —
+    /// a skip never resumes scoring after the buzzer), LANDS (this step carries its label), or JUMPS
+    /// this step; then today's rule — a stopped chain skips it.
+    Door enterStep(const char* name) {
+        cur_ = pendingFailSet_ ? pendingFail_ : stopChain;
+        curLabel_ = pendingLabel_;
+        pendingFail_ = stopChain;
+        pendingFailSet_ = false;
+        pendingLabel_ = nullptr;
+        if (curLabel_ != nullptr) {
+            rememberLabel(curLabel_);
+        }
+        if (skipTo_ != nullptr && stoppedAt_ == 0) {
+            if (timeIsUp()) {
+                stopPendingSkip();  // then this step is skipped, below, as after any stop
+            } else if (sameLabel(curLabel_, skipTo_)) {
+                diag::lineformat::Line line;
+                line.appendLiteral("routine '");
+                line.appendLiteral(name_);
+                line.appendLiteral("': the skip to '");
+                line.appendLiteral(skipTo_);
+                line.appendLiteral("' landed at step ");
+                diag::lineformat::appendUnsigned(line, static_cast<unsigned long>(steps_ + 1));
+                line.appendLiteral(" (");
+                line.appendLiteral(name);
+                line.appendLiteral(")");
+                chassis_->deps().ctx->telemetry().log(hal::LogLevel::Info, "RTN", line.view());
+                skipTo_ = nullptr;
+                return Door::Run;
+            } else {
+                ++steps_;
+                ++jumped_;
+                diag::lineformat::Line line;
+                line.appendLiteral("routine '");
+                line.appendLiteral(name_);
+                line.appendLiteral("': step ");
+                diag::lineformat::appendUnsigned(line, static_cast<unsigned long>(steps_));
+                line.appendLiteral(" (");
+                line.appendLiteral(name);
+                line.appendLiteral(") jumped — skipping to '");
+                line.appendLiteral(skipTo_);
+                line.appendLiteral("'");
+                chassis_->deps().ctx->telemetry().log(hal::LogLevel::Info, "RTN", line.view());
+                return Door::Jumped;
+            }
+        }
         if (stoppedAt_ == 0) {
-            return false;
+            return Door::Run;
         }
         ++steps_;
         ++skipped_;
@@ -835,7 +1132,7 @@ private:
         line.appendLiteral(") skipped — stopped at step ");
         diag::lineformat::appendUnsigned(line, static_cast<unsigned long>(stoppedAt_));
         chassis_->deps().ctx->telemetry().log(hal::LogLevel::Info, "RTN", line.view());
-        return true;
+        return Door::Skipped;
     }
 
     void recordSuccess() noexcept {
@@ -843,20 +1140,57 @@ private:
         ++completed_;
     }
 
-    /// The stop half of the error policy: record, SAFE the drive (cancel is
-    /// idempotent and defined-safe with or without an active motion), Warn.
+    /// A step FAILED: the error policy, and (STEP1-A) the step's on-failure choice. Under the
+    /// default — and whenever the cut rule applies (a CANCELLED verdict, or the guard's time is up)
+    /// — it is the stop half of the policy: record, SAFE the drive (cancel is idempotent and
+    /// defined-safe with or without an active motion), Warn. A skip whose target is BEHIND stops
+    /// too, said. Otherwise (carryOn / skipTo) the failure is counted, the drive safed the same
+    /// way, and the chain goes on (or starts skipping).
     /// `detail` (optional) names the specific verdict inside the cause — F1's
     /// mechanism outcomes use it, so a transcript says WHICH way a grab failed.
+    /// `verdict` is a mechanism STEP's verdict: RoutineResult::mechanismVerdict when this becomes
+    /// the stop. `cancelled` marks a CANCELLED verdict `exit` and `verdict` cannot carry (a then()
+    /// action's MechanismOutcome::Cancelled).
     /// Note the layering: a mechanism operation has already safed its OWN
     /// mechanism on every exit path (mechanism_op.hpp); this stop parks the
     /// DRIVE on top of that.
     void recordStop(const char* name, RoutineStopCause cause, control::ExitReason exit,
-                    const char* detail = nullptr) {
+                    const char* detail = nullptr,
+                    manipulation::MechanismOutcome verdict = manipulation::MechanismOutcome::Running,
+                    bool cancelled = false) {
         ++steps_;
+        const OnFail choice = cur_;
+        if (choice.kind != OnFail::Kind::Stop) {
+            // THE CUT ALWAYS STOPS (the file banner's first rule): the choice is ignored.
+            const bool wasCancelled = cancelled || exit == control::ExitReason::Cancelled ||
+                                      verdict == manipulation::MechanismOutcome::Cancelled;
+            if (wasCancelled || timeIsUp()) {
+                stopHere(name, cause, exit, detail, verdict,
+                         wasCancelled ? " — the step was CANCELLED, so its on-failure choice is ignored"
+                                      : " — the time is up, so its on-failure choice is ignored");
+                return;
+            }
+            if (choice.kind == OnFail::Kind::SkipTo && labelSeen(choice.target)) {
+                stopHere(name, cause, exit, detail, verdict, nullptr, choice.target);
+                return;
+            }
+            carryOnFrom(name, cause, exit, detail, verdict, choice);
+            return;
+        }
+        stopHere(name, cause, exit, detail, verdict);
+    }
+
+    /// The chain STOPS at the step just counted (steps_): today's stop, word for word, plus a
+    /// clause when an on-failure choice was overruled (`why`) or a skip target is behind
+    /// (`behindTarget`).
+    void stopHere(const char* name, RoutineStopCause cause, control::ExitReason exit, const char* detail,
+                  manipulation::MechanismOutcome verdict, const char* why = nullptr,
+                  const char* behindTarget = nullptr) {
         stoppedAt_ = steps_;
         stoppedName_ = name;
         cause_ = cause;
         exit_ = exit;
+        mechStop_ = verdict;
         chassis_->cancel();  // 0 V + Brake — the routine parks where it stopped
         diag::lineformat::Line line;
         line.appendLiteral("routine '");
@@ -872,8 +1206,135 @@ private:
             line.appendLiteral(detail);
             line.appendLiteral(")");
         }
+        if (why != nullptr) {
+            line.appendLiteral(why);
+        }
+        if (behindTarget != nullptr) {
+            line.appendLiteral(" — its skip target '");
+            line.appendLiteral(behindTarget);
+            line.appendLiteral("' is behind it: a skip only goes forward");
+        }
         line.appendLiteral(" — skipping the rest; drive safed");
         chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line.view());
+    }
+
+    /// STEP1-A: a failure the chain goes on from (carryOn), or starts skipping from (skipTo):
+    /// counted, the drive safed exactly as a stop safes it, one Warn.
+    void carryOnFrom(const char* name, RoutineStopCause cause, control::ExitReason exit, const char* detail,
+                     manipulation::MechanismOutcome verdict, OnFail choice) {
+        ++failedOn_;
+        if (firstFailedAt_ == 0) {
+            firstFailedAt_ = steps_;
+            firstFailedName_ = name;
+            firstFailedCause_ = cause;
+        }
+        chassis_->cancel();  // the same safe state a stop leaves: the next step starts from rest
+        diag::lineformat::Line line;
+        line.appendLiteral("routine '");
+        line.appendLiteral(name_);
+        line.appendLiteral("': step ");
+        diag::lineformat::appendUnsigned(line, static_cast<unsigned long>(steps_));
+        line.appendLiteral(" (");
+        line.appendLiteral(name);
+        line.appendLiteral(") FAILED: ");
+        line.appendLiteral(stopCauseText(cause, exit));
+        if (detail != nullptr) {
+            line.appendLiteral(" (");
+            line.appendLiteral(detail);
+            line.appendLiteral(")");
+        }
+        if (choice.kind == OnFail::Kind::SkipTo) {
+            line.appendLiteral(" — skipping to '");
+            line.appendLiteral(choice.target);
+            line.appendLiteral("'; drive safed");
+            skipTo_ = choice.target;
+            skipFrom_ = SkipOrigin{steps_, name, cause, exit, verdict};
+        } else {
+            line.appendLiteral(" — carrying on; drive safed");
+        }
+        chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line.view());
+    }
+
+    /// STEP1-A (A5): the guard's time ran out while a skip was still looking for its step. The skip
+    /// never resumes scoring after the buzzer: its failure becomes the chain's STOP, exactly as if
+    /// the failing step had chosen stop (the cut rule ignores the choice) — so it leaves the
+    /// carried-on count, and every step from here on is skipped. It does NOT cancel the drive: the
+    /// failure already safed it (carryOnFrom, as a stop would have), and from the deadline on this
+    /// chain must do exactly what the default chain does — whose skipped steps cancel nothing, and
+    /// whose stray Tier-3 motion the guard's latch cuts (ST15 (d)'s stray-motion case).
+    void stopPendingSkip() {
+        const char* target = skipTo_;
+        skipTo_ = nullptr;
+        --failedOn_;
+        if (firstFailedAt_ == skipFrom_.at) {
+            firstFailedAt_ = 0;
+            firstFailedName_ = "";
+            firstFailedCause_ = RoutineStopCause::None;
+        }
+        stoppedAt_ = skipFrom_.at;
+        stoppedName_ = skipFrom_.name;
+        cause_ = skipFrom_.cause;
+        exit_ = skipFrom_.exit;
+        mechStop_ = skipFrom_.verdict;
+        diag::lineformat::Line line;
+        line.appendLiteral("routine '");
+        line.appendLiteral(name_);
+        line.appendLiteral("' STOPPED at step ");
+        diag::lineformat::appendUnsigned(line, static_cast<unsigned long>(stoppedAt_));
+        line.appendLiteral(" (");
+        line.appendLiteral(stoppedName_);
+        line.appendLiteral("): ");
+        line.appendLiteral(stopCauseText(cause_, exit_));
+        line.appendLiteral(" — the time ran out while skipping to '");
+        line.appendLiteral(target);
+        line.appendLiteral("' — skipping the rest; drive safed");
+        chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line.view());
+    }
+
+    /// STEP1-A: the cut rule's guard read — running() FIRST (expired() throws with no run live, and
+    /// programs build AutonContexts over idle guards), and false with no guard at all.
+    [[nodiscard]] bool timeIsUp() const { return guard_ != nullptr && guard_->running() && guard_->expired(); }
+
+    /// STEP1-A: whole-string, case-sensitive; a null never matches.
+    [[nodiscard]] static bool sameLabel(const char* a, const char* b) noexcept {
+        return a != nullptr && b != nullptr && std::string_view{a} == std::string_view{b};
+    }
+    /// STEP1-A: remember a label this routine has passed (the last kLabelMemory; no heap).
+    void rememberLabel(const char* label) noexcept {
+        labels_[labelCount_ % kLabelMemory] = label;
+        ++labelCount_;
+    }
+    /// STEP1-A: has this routine passed a step labelled `label` (within the last kLabelMemory)?
+    [[nodiscard]] bool labelSeen(const char* label) const noexcept {
+        const std::size_t n = labelCount_ < kLabelMemory ? labelCount_ : kLabelMemory;
+        for (std::size_t i = 0; i < n; ++i) {
+            if (sameLabel(labels_[i], label)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /// STEP1-A: the Warn when a skip's target is behind it as it is WRITTEN (every run that reaches
+    /// the line, so a bench run shows it before a match does). Nothing else changes.
+    void warnBehind(const char* target) {
+        diag::lineformat::Line line;
+        line.appendLiteral("routine '");
+        line.appendLiteral(name_);
+        line.appendLiteral("': step ");
+        diag::lineformat::appendUnsigned(line, static_cast<unsigned long>(steps_ + 1));
+        line.appendLiteral(": its skip target '");
+        line.appendLiteral(target);
+        line.appendLiteral("' is behind it: a skip only goes forward (if the step fails, the routine stops)");
+        chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line.view());
+    }
+    /// STEP1-A: the context's run guard, when it has one.
+    template <class Context>
+    [[nodiscard]] static sequence::RunGuard* guardOf(Context& ctx) noexcept {
+        if constexpr (detail::RoutineContextWithGuard<Context>) {
+            return &static_cast<sequence::RunGuard&>(ctx.guard);
+        } else {
+            return nullptr;
+        }
     }
 
     [[nodiscard]] static const char* stopCauseText(RoutineStopCause cause,
@@ -897,6 +1358,8 @@ private:
                 return "mechanism FAILED";
             case RoutineStopCause::MechanismStepFailed:
                 return "mechanism step FAILED";
+            case RoutineStopCause::MechanismNotStarted:
+                return "mechanism NOT STARTED";
         }
         return "stopped";
     }
@@ -918,6 +1381,7 @@ private:
     void noteStarted(const mechanism::Slot& s) noexcept {
         if (s.index() < mechanism::kMaxMechanisms) {
             startedSeq_[s.index()] = s.stepsBegun();
+            notStartedWhy_[s.index()] = nullptr;  // STEP1-A (A6): only a step that BEGAN one clears the mark
         }
     }
     /// Wait for `m`'s step, then record it under the verdict policy (the block's header).
@@ -931,12 +1395,12 @@ private:
         if (m.running()) {
             // The WAIT ran out before the step's verdict: the chain stops TIMED_OUT, said. The step
             // itself runs on to its own bound (the guard's cancel-all ends it with the run).
-            mechStop_ = manipulation::MechanismOutcome::TimedOut;
             lastMech_.outcome = manipulation::MechanismOutcome::TimedOut;
             recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
                        mechs().ticks() == ticks0
                            ? "TIMED_OUT: the mechanism service never ticked -- it is not in the chassis pacer's chain"
-                           : "TIMED_OUT: no verdict within the wait's bound; the step runs on to its own");
+                           : "TIMED_OUT: no verdict within the wait's bound; the step runs on to its own",
+                       manipulation::MechanismOutcome::TimedOut);
             return *this;
         }
         const manipulation::MechanismOutcome o = lastMech_.outcome;
@@ -944,9 +1408,8 @@ private:
             (o == manipulation::MechanismOutcome::Unconfirmed && lastMech_.countedDone)) {
             recordSuccess();
         } else {
-            mechStop_ = o;
             recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
-                       manipulation::mechanismOutcomeName(o));
+                       manipulation::mechanismOutcomeName(o), o);
         }
         return *this;
     }
@@ -957,9 +1420,8 @@ private:
         const manipulation::MechanismOutcome o = lastMech_.outcome;
         if (o == manipulation::MechanismOutcome::Absent || o == manipulation::MechanismOutcome::Refused ||
             o == manipulation::MechanismOutcome::NotHomed) {
-            mechStop_ = o;
             recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
-                       manipulation::mechanismOutcomeName(o));
+                       manipulation::mechanismOutcomeName(o), o);
         } else {
             recordSuccess();
         }
@@ -986,9 +1448,8 @@ private:
         }
         chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "MECH", line);
         lastMech_ = mechanism::StepReport{.outcome = o};
-        mechStop_ = o;
         recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
-                   manipulation::mechanismOutcomeName(o));
+                   manipulation::mechanismOutcomeName(o), o);
         return *this;
     }
     /// A step whose mechanism this robot's service cannot find: ABSENT, said, and the chain stops —
@@ -1014,19 +1475,27 @@ private:
         }
         chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "MECH", line);
         lastMech_ = mechanism::StepReport{.outcome = manipulation::MechanismOutcome::Absent};
-        mechStop_ = manipulation::MechanismOutcome::Absent;
         recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
-                   manipulation::mechanismOutcomeName(manipulation::MechanismOutcome::Absent));
+                   manipulation::mechanismOutcomeName(manipulation::MechanismOutcome::Absent),
+                   manipulation::MechanismOutcome::Absent);
         return *this;
+    }
+    /// A STARTING step that found nothing to start: notOnThisRobot(), and (STEP1-A, A6) the same-named
+    /// slot, when this robot has one, marked — its start did nothing, so a later wait on it (reachable
+    /// under onFail(carryOn)) answers MechanismNotStarted rather than throwing or collecting an older step's
+    /// verdict. Under the default the chain stops here and the mark is never read.
+    Routine& startNotOnThisRobot(const char* mechanismName, const char* step) {
+        markNotStarted(mechanismName, "its start did nothing: another robot's declaration");
+        return notOnThisRobot(mechanismName, step);
     }
     Routine& positionStep(const mechanism::PositionGoal& goal, units::Time bound, const char* name, bool wait) {
         const char* step = name != nullptr ? name : goal.mechanismName;
-        if (skipIfStopped(step)) {
+        if (startingStepPassed(step, goal.mechanismName)) {
             return *this;
         }
         mechanism::PositionSlot* m = mechs().find(goal);
         if (m == nullptr) {
-            return notOnThisRobot(goal.mechanismName, step);
+            return startNotOnThisRobot(goal.mechanismName, step);
         }
         m->moveTo(goal.value, bound, goal.computed);
         noteStarted(*m);
@@ -1035,12 +1504,12 @@ private:
     template <class Declared>
     Routine& homeStep(const Declared& d, units::Time bound, const char* name, bool wait) {
         const char* step = name != nullptr ? name : d.name.text;
-        if (skipIfStopped(step)) {
+        if (startingStepPassed(step, d.name.text)) {
             return *this;
         }
         mechanism::PositionSlot* m = mechs().find(d);
         if (m == nullptr) {
-            return notOnThisRobot(d.name.text, step);
+            return startNotOnThisRobot(d.name.text, step);
         }
         m->home(bound);
         noteStarted(*m);
@@ -1049,12 +1518,12 @@ private:
     Routine& powerStep(const mechanism::Power& d, units::Voltage volts, mechanism::Until until, units::Time bound,
                        const char* name, bool wait) {
         const char* step = name != nullptr ? name : d.name.text;
-        if (skipIfStopped(step)) {
+        if (startingStepPassed(step, d.name.text)) {
             return *this;
         }
         mechanism::PowerSlot* m = mechs().find(d);
         if (m == nullptr) {
-            return notOnThisRobot(d.name.text, step);
+            return startNotOnThisRobot(d.name.text, step);
         }
         m->run(volts, until, bound);
         noteStarted(*m);
@@ -1062,12 +1531,12 @@ private:
     }
     Routine& speedStep(const mechanism::SpeedGoal& goal, units::Time bound, const char* name, bool wait) {
         const char* step = name != nullptr ? name : goal.mechanismName;
-        if (skipIfStopped(step)) {
+        if (startingStepPassed(step, goal.mechanismName)) {
             return *this;
         }
         mechanism::SpeedSlot* m = mechs().find(goal);
         if (m == nullptr) {
-            return notOnThisRobot(goal.mechanismName, step);
+            return startNotOnThisRobot(goal.mechanismName, step);
         }
         m->spinUp(goal.rpm, bound, goal.computed);
         noteStarted(*m);
@@ -1094,6 +1563,39 @@ private:
     manipulation::MechanismOutcome mechStop_ = manipulation::MechanismOutcome::Running;
     /// Per slot index: the slot's stepsBegun() right after THIS routine began a step on it (0 = none).
     std::uint32_t startedSeq_[mechanism::kMaxMechanisms]{};
+    // ═══ STEP1-A: the on-failure choice's state (declared LAST, after MECH-A4's, so neither
+    //     constructor's initializer order moves) ══════════════════════════════════════════════════
+    /// How many step labels the "behind" check remembers (D3: past this, a behind target reads as
+    /// one that never comes — the robot does the same either way).
+    static constexpr std::size_t kLabelMemory = 32;
+    /// The context's run guard (the cut rule); null = a guard-less Routine (Routine(Chassis&), or a
+    /// context with no `guard`).
+    sequence::RunGuard* guard_ = nullptr;
+    OnFail pendingFail_ = stopChain;     ///< onFail() written for the next step
+    bool pendingFailSet_ = false;        ///< ... and whether one was (two in a row is refused)
+    const char* pendingLabel_ = nullptr; ///< label() written for the next step
+    OnFail cur_ = stopChain;             ///< the step in progress' choice (bound at its door)
+    const char* curLabel_ = nullptr;     ///< the step in progress' label
+    bool warnedNoGuard_ = false;         ///< the guard-less Warn, once
+    const char* labels_[kLabelMemory]{}; ///< the labels passed, a ring
+    std::size_t labelCount_ = 0;         ///< how many were ever remembered
+    int failedOn_ = 0;
+    int firstFailedAt_ = 0;
+    const char* firstFailedName_ = "";
+    RoutineStopCause firstFailedCause_ = RoutineStopCause::None;
+    int jumped_ = 0;
+    const char* skipTo_ = nullptr;  ///< the label a skip is looking for (null = none)
+    /// The failure a pending skip started from (stopPendingSkip() makes it the stop).
+    struct SkipOrigin {
+        int at = 0;
+        const char* name = "";
+        RoutineStopCause cause = RoutineStopCause::None;
+        control::ExitReason exit = control::ExitReason::Running;
+        manipulation::MechanismOutcome verdict = manipulation::MechanismOutcome::Running;
+    };
+    SkipOrigin skipFrom_{};
+    /// Per slot index: why a later waitUntilDone() answers MechanismNotStarted (null = not marked).
+    const char* notStartedWhy_[mechanism::kMaxMechanisms]{};
 };
 
 }  // namespace shulib::chassis
@@ -1108,4 +1610,13 @@ namespace shulib::mechanism::words {
 using chassis::Routine;
 /// What an auton returns: `return r.result();`.
 using chassis::RoutineResult;
+/// STEP1-A: the on-failure choice's words, so a generated auton needs no namespace either —
+/// `r.onFail(carryOn)`: count the failure and run the next step.
+using chassis::carryOn;
+/// What `r.onFail(...)` takes.
+using chassis::OnFail;
+/// `r.onFail(skipTo("x"))`: count the failure and pass over every step until `r.label("x")`.
+using chassis::skipTo;
+/// `r.onFail(stopChain)`: the default rule, spelled out.
+using chassis::stopChain;
 }  // namespace shulib::mechanism::words

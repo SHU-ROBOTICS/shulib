@@ -163,7 +163,11 @@
 // MotionOptions carries the per-call knobs every real auton needs (a slow
 // precise approach leg is table stakes). 0 means "use the config default".
 // An options STRUCT (not positional parameters) is deliberate: post-freeze,
-// new knobs are added fields — no signature change, no migration.
+// new knobs are added fields — no signature change, no migration. STEP1-A
+// (2026-11-05) took that path: positionTolerance / headingTolerance, the
+// per-call ARRIVAL TOLERANCE, which loosens the settle's distance AND its speed
+// bound in proportion (motion::loosenedSettle — the speed bound is what ends a
+// drive leg, so a distance alone would change nothing).
 //
 // Single-task by contract, like everything it composes. Not copyable/movable
 // (it owns the scheduler, which is pinned by its self-referential stamp).
@@ -178,6 +182,7 @@
 #include "shulib/core/check.hpp"
 #include "shulib/hal/clock.hpp"
 #include "shulib/diag/debug_record.hpp"
+#include "shulib/math/angle.hpp"
 #include "shulib/math/frame.hpp"
 #include "shulib/math/pose2d.hpp"
 #include "shulib/math/twist2d.hpp"
@@ -222,6 +227,39 @@ struct MotionOptions {
     units::Velocity maxLinearSpeed{0.0};
     /// Yaw-rate budget for this motion (rad/s).
     units::AngularVelocity maxAngularSpeed{0.0};
+    /// ARRIVAL TOLERANCE for this motion's position: "arrive within 2 in" is
+    /// `{.positionTolerance = 2_in}`. 0 (the default) = the robot's own settle
+    /// numbers (MotionConfig::translationSettle), bit for bit. A leg ends when the
+    /// robot is close enough AND slow enough, and on a drive leg the SPEED bound
+    /// is the one that decides (the robot is already well inside 0.5 in when it
+    /// first slows under 1 in/s) — so a tolerance looser than the robot's own
+    /// loosens BOTH, in proportion: 2 in means "within 2 in and slower than
+    /// 4 in/s" (0.5 in / 1 in/s scaled by 2 / 0.5). A tolerance TIGHTER than the
+    /// robot's own tightens only the distance. motion::loosenedSettle is the one
+    /// formula (it is total: a robot whose own distance is 0 keeps its own speed
+    /// bound). The leg can therefore end with the robot still rolling at up to
+    /// that speed: it stops dead on the host test plant, and how far a real robot
+    /// coasts after it is unmeasured (A4: HA-216). Read by every verb whose motion
+    /// reads the translation settle — moveTo, driveTo / reverseTo (through moveTo),
+    /// each followTrajectory leg, strafeTo, and hold() (Settled iff within it when
+    /// the hold window ends); turnTo / face / faceAway and brake() ignore it.
+    /// Validated finite and >= 0. (APPENDED at STEP1-A, after the frozen three, so
+    /// every designated initializer keeps compiling.)
+    units::Length positionTolerance{0.0};
+    /// ARRIVAL TOLERANCE for this motion's heading: "within 5°" is
+    /// `{.headingTolerance = 5_deg}`. A zero Angle (the default) = the robot's own
+    /// MotionConfig::headingSettle, bit for bit. The same rule as
+    /// positionTolerance, on the heading settle (1.15° / 0.30 rad/s on the
+    /// defaults): looser loosens the distance AND the turn-rate bound in
+    /// proportion (5° → 1.31 rad/s, about 75°/s), tighter tightens only the
+    /// distance (a smaller rate bound could sit inside the IMU's noise and never
+    /// settle — motion_config.hpp's header). Read by turnTo / face / faceAway and
+    /// by every MoveToPose-engine verb above (each also settles its heading);
+    /// brake() ignores it. A math::Angle, so it is written 2_deg like every
+    /// heading — and so it is wrapped: a negative value, or one that WRAPS to a
+    /// negative one (359_deg stores −1°), is refused at the call, never read as a
+    /// size. (APPENDED at STEP1-A.)
+    math::Angle headingTolerance{};
 
     /// Reject nonsense before anything moves: every field must be finite and
     /// >= 0. Called by each verb at the door, so a bad option value is a loud
@@ -235,6 +273,15 @@ struct MotionOptions {
         SHULIB_PRECONDITION(std::isfinite(maxAngularSpeed.value())
                                 && maxAngularSpeed.value() >= 0.0,
                             "MotionOptions: maxAngularSpeed must be finite and >= 0");
+        // STEP1-A: the two arrival tolerances. An Angle is finite by construction (its
+        // factories refuse NaN/inf), so its one way to be wrong is negative — a wrapped
+        // 359_deg included.
+        SHULIB_PRECONDITION(std::isfinite(positionTolerance.value())
+                                && positionTolerance.value() >= 0.0,
+                            "MotionOptions: positionTolerance must be finite and >= 0");
+        SHULIB_PRECONDITION(headingTolerance.radians() >= 0.0,
+                            "MotionOptions: headingTolerance must be >= 0 (a negative angle -- or one "
+                            "that wraps to one, like 359_deg = -1 deg -- is not a size)");
     }
 };
 
@@ -567,7 +614,10 @@ private:
 
     /// The per-call config: the chassis config with any nonzero option
     /// overrides applied (0 = keep the default — MotionConfig::validate
-    /// forbids 0 budgets, so 0 is unambiguous as a sentinel).
+    /// forbids 0 budgets, so 0 is unambiguous as a sentinel). Since STEP1-A the
+    /// two arrival tolerances too, each through motion::loosenedSettle (0 = the
+    /// robot's own settle config, untouched; brakeSettle and every settleTime are
+    /// never changed).
     [[nodiscard]] motion::MotionConfig effectiveConfig(const MotionOptions& options) const {
         motion::MotionConfig cfg = cfg_;
         if (options.maxLinearSpeed.value() > 0.0) {
@@ -575,6 +625,14 @@ private:
         }
         if (options.maxAngularSpeed.value() > 0.0) {
             cfg.maxAngularSpeed = options.maxAngularSpeed;
+        }
+        if (options.positionTolerance.value() > 0.0) {
+            cfg.translationSettle =
+                motion::loosenedSettle(cfg.translationSettle, options.positionTolerance.value());
+        }
+        if (options.headingTolerance.radians() > 0.0) {
+            cfg.headingSettle =
+                motion::loosenedSettle(cfg.headingSettle, options.headingTolerance.radians());
         }
         return cfg;
     }

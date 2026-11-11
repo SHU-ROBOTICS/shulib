@@ -36,12 +36,12 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-188 (CAL1's second number, released unused — never reissued), HA-192..HA-203, HA-204..HA-215, HA-216..HA-218 (STEP1's), HA-224..HA-227 (MECH-S/TUNE1's — its HA-219..HA-223 registered by MECH-S-A).
+> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-188 (CAL1's second number, released unused — never reissued), HA-192..HA-203, HA-204..HA-215, HA-216..HA-218 (STEP1's: HA-216 registered by STEP1-A; HA-217..HA-218 held for STEP1-B), HA-224..HA-227 (MECH-S/TUNE1's — its HA-219..HA-223 registered by MECH-S-A).
 > The briefing names the next free number above every row AND every held one (`tools/briefing_status.py`
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 208 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 209 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -224,6 +224,13 @@
 > than 8 motors plugged in (HA-221, unverified); the string's pull per amp and the momentum no cap limits
 > (HA-222, reasoned · number unverified); and that a stalled capped motor reads within ~0.1 A of its cap
 > (HA-223, invented). **None is measured.** With them, 208.
+>
+> **STEP1-A (the arrival tolerance and the on-failure choice; built 2026-11-05) added ONE — HA-216, reasoned** —
+> that a leg which ends under a LOOSENED arrival tolerance, still moving at up to the scaled speed bound (4 in/s
+> at 2 in; a turn up to 1.31 rad/s, about 75°/s, at 5°), comes to rest within that tolerance on robot two. On the
+> host test plant it stops dead on the exit tick; robot two coasts on its own momentum, unmeasured. STEP1 held
+> HA-216..HA-218; HA-217 (a partway trigger's latency) and HA-218 (the estimate's "arrived" against the tape) stay
+> HELD for STEP1-B, the part whose code cites them. With it, 209.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither is **HA-181** (G3a, the robot panel: its amended brief), held the same way (the
 > mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
@@ -467,6 +474,8 @@
 | HA-221 | With more than 8 motors plugged in, VEXos may lower each motor's limit below what was set (robot two runs 10); a cap below VEXos's own share behaves as stated — and writing 2500 mA over a share at every boot would fight it, so a mechanism with no cap is only READ | **unverified** (HA-172's open question) | MECH-S Step 0.4: robot two's boot read-back with all 10 motors plugged in |
 | HA-222 | The string's pull is the motor's current times its torque per amp through the gearing over the spool's radius — about 10 lbf per amp per motor for a red cartridge on a 1.5 in spool; the rotor's and the carriage's MOMENTUM at a hard stop add a pull no current cap limits | reasoned (physics) · the number **unverified** (the published stall torque, from memory) | a spring scale on the string at a held current |
 | HA-223 | A stalled motor held at its cap reads within ~0.1 A of the cap, so a stall signature MORE than ~0.2 A below the cap trips (the boot's Warn for one not more than 0.2 A below — exactly 0.2 A included — rests on it) | **invented** (the host test plant reads exactly the cap — it is not a motor) | the Tune program: a capped lift held against its top stop, the reading |
+>
+| HA-216 | A leg that ends under a loosened arrival tolerance — still moving at up to the scaled speed bound (4 in/s at 2 in; a turn up to 1.31 rad/s, ~75°/s, at 5°) — comes to rest within that tolerance on robot two | **reasoned** (the host test plant stops dead on the exit tick; robot two's coast unmeasured) | an Auton Tester run of the 40 in leg at 2 in, tape-measured; the 90° turn at 5°, the END heading against the IMU at rest |
 
 ---
 
@@ -1889,6 +1898,34 @@ beliefs come with it; **none is measured**, and no motor on either robot has had
   *Blast radius if wrong:* a signature the boot did not warn about may never trip — a jam then sits at the
   cap until the step's time runs out (TIMED_OUT, not STALLED). **Contained:** the Warn names the margin; the
   cap still limits the pull.
+>
+### STEP1-A's addition — the coast after a loosened arrival tolerance (2026-11-05)
+
+STEP1-A gave every drive and turn step an ARRIVAL TOLERANCE (`MotionOptions::positionTolerance` /
+`headingTolerance`). A leg ends when the robot is close enough AND slow enough, and on a drive leg the speed
+bound is what decides — the STEP1 brief's probe P3 found the distance alone changes nothing (1.80 s at 0.5,
+1, 2 and 4 in alike, on the host test plant) — so a looser tolerance loosens both, in proportion
+(`motion::loosenedSettle`, the team lead's D2 (a), 2026-11-03). A leg can therefore END while the robot is
+still moving at a few in/s, or still turning. What it does next is the belief below.
+
+- [ ] **HA-216 — a leg that ends under a loosened tolerance comes to rest within that tolerance.**
+  *Claim:* a leg that ends under a loosened arrival tolerance — moving at up to the scaled speed bound (4 in/s
+  at 2 in, 8 in/s at 4 in; a turn up to 1.31 rad/s, about 75°/s, at 5°) — comes to rest within that tolerance
+  on robot two, drives and turns alike.
+  *Source:* `include/shulib/chassis/chassis.hpp` (`MotionOptions::positionTolerance`'s doc — "A4: HA-216");
+  `include/shulib/motion/motion_config.hpp` (`loosenedSettle`); `test/routine_tolerance_test.cpp` (ST3: the
+  host test plant's times and arrivals).
+  *Confidence:* **reasoned** — on the exit tick the motion sets the drive motors to 0 V; the A2 plant stops
+  dead then (its kA 0), and the motor-lag plant (kA 0.02) ENDS the leg inside the tolerance (ST3, read at the
+  verb's return — where that plant then comes to rest is not measured); robot two keeps moving on its own
+  momentum under whatever brake mode its drive motors hold — unmeasured.
+  *Settle:* an Auton Tester run of the 40 in leg at `{.positionTolerance = 2_in}`, tape-measured; and of the 90°
+  turn at `{.headingTolerance = 5_deg}`, the END heading against the IMU at rest (a Station M-style floor run).
+  *Blast radius if wrong:* a robot that coasts PAST the tolerance arrives further on than the step said it
+  would (a drive) or turned further (a turn) — the next step starts from there, and a tight auton's next leg
+  is off by the coast. Only steps that ASK for a looser tolerance are affected; a step with none uses the
+  robot's own settle numbers, bit for bit. **Contained:** the author's own number on the step (a tighter
+  tolerance, or none), or the formula's proportion (`loosenedSettle`, one function).
 
 ---
 

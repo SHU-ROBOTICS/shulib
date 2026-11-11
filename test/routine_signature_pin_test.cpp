@@ -372,6 +372,62 @@ concept F10ResMechanismVerdict = requires {
 SHULIB_F10_PIN(F10ResMechanismVerdict<RoutineResult>,
                "RoutineResult::mechanismVerdict : manipulation::MechanismOutcome (appended at MECH-A4)");
 
+// ── STEP1-A (2026-11-05): the ON-FAILURE CHOICE, pinned the day it lands (the team lead's D1) ────
+// A route maker generates autons against these spellings, so they must not drift: the two modifiers,
+// OnFail's three spellings, the appended stop cause and the six appended result fields. ADDED pins
+// only — no pin above changed. NOT pinned (deliberately, like the mechanism steps): the context
+// constructor's new reading of a `guard` member, and STEP1-B's partway-trigger arms when they land.
+using shulib::chassis::OnFail;
+template <typename R>
+concept F10OnFail = requires(R& r) {
+    static_cast<R& (R::*)(OnFail)>(&R::onFail);
+    { r.onFail(shulib::chassis::carryOn) } -> std::same_as<R&>;
+};
+SHULIB_F10_PIN(F10OnFail<Routine>, "Routine::onFail(OnFail) -> Routine& (appended at STEP1-A)");
+
+template <typename R>
+concept F10Label = requires(R& r) {
+    static_cast<R& (R::*)(const char*)>(&R::label);
+    { r.label("x") } -> std::same_as<R&>;
+};
+SHULIB_F10_PIN(F10Label<Routine>, "Routine::label(const char*) -> Routine& (appended at STEP1-A)");
+
+SHULIB_F10_PIN((std::is_same_v<decltype(shulib::chassis::stopChain), const OnFail>),
+               "stopChain : const OnFail (an inline constexpr value; appended at STEP1-A)");
+SHULIB_F10_PIN((std::is_same_v<decltype(shulib::chassis::carryOn), const OnFail>),
+               "carryOn : const OnFail (an inline constexpr value; appended at STEP1-A)");
+SHULIB_F10_PIN(shulib::chassis::stopChain.kind == OnFail::Kind::Stop && shulib::chassis::stopChain.target == nullptr,
+               "stopChain's meaning: the default rule (appended at STEP1-A)");
+SHULIB_F10_PIN(shulib::chassis::carryOn.kind == OnFail::Kind::CarryOn && shulib::chassis::carryOn.target == nullptr,
+               "carryOn's meaning: count the failure and go on (appended at STEP1-A)");
+SHULIB_F10_PIN((std::is_same_v<decltype(&shulib::chassis::skipTo), OnFail (*)(const char*)>),
+               "skipTo(const char*) -> OnFail (appended at STEP1-A)");
+
+SHULIB_F10_PIN(static_cast<int>(RoutineStopCause::MechanismNotStarted) == 6,
+               "RoutineStopCause::MechanismNotStarted == 6 (append-only enum; APPENDED at STEP1-A — "
+               "MechanismStepFailed keeps 5)");
+
+template <typename T>
+concept F10ResStep1A = requires {
+    requires std::is_same_v<decltype(T::failedOn), int>;
+    requires std::is_same_v<decltype(T::firstFailedAt), int>;
+    requires std::is_same_v<decltype(T::firstFailedName), const char*>;
+    requires std::is_same_v<decltype(T::firstFailedCause), RoutineStopCause>;
+    requires std::is_same_v<decltype(T::jumped), int>;
+    requires std::is_same_v<decltype(T::skipPendingTo), const char*>;
+};
+SHULIB_F10_PIN(F10ResStep1A<RoutineResult>,
+               "RoutineResult's six STEP1-A fields: failedOn int, firstFailedAt int, firstFailedName const "
+               "char*, firstFailedCause RoutineStopCause, jumped int, skipPendingTo const char*");
+
+// The modifiers mutate the chain's state: never callable on a const Routine.
+template <typename R>
+concept F10ConstOnFail = requires(const R& r) { r.onFail(shulib::chassis::carryOn); };
+SHULIB_F10_PIN(!F10ConstOnFail<Routine>, "onFail staying non-const (appended at STEP1-A)");
+template <typename R>
+concept F10ConstLabel = requires(const R& r) { r.label("x"); };
+SHULIB_F10_PIN(!F10ConstLabel<Routine>, "label staying non-const (appended at STEP1-A)");
+
 // ── the defaulted call spellings (default args are not part of a function type) ───
 template <typename R>
 concept F10TerseSpellings = requires(R& r, const Pose2d& p, Length l, Angle a, Time t,

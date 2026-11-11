@@ -1509,3 +1509,139 @@ TEST_CASE("request (R24): Station M's predictions, through the competition reque
                           "[ERROR] line"));
     }
 }
+
+// (R25) STEP1-A (D5 (a)) Bug caught: the competition program's twin of the tester's (23c) — a routine
+// that carried on past failed steps reading "ROUTINE STOPPED" or "FINISHED"; the DONE word red, logged
+// at Info (it is a run that failed steps: Warn), or too wide for the driver page's "auton %.15s"
+// slot; a carried-on request's log naming no failed step (SM21); a default request's lines changing.
+TEST_CASE("request (R25) STEP1-A: DONE, n FAILED -- the word, its level and amber, the driver row, the two "
+          "lines") {
+    AutonRegistry reg{shulib::bench::kAutonPeriods};
+    reg.add(routineEntry("forty", &driveThenThrow));
+    const auto base = [] {
+        CompetitionRunRecord r{};
+        r.request = 3;
+        r.entry = 0;
+        r.run.outcome = AutonRunOutcome::RoutineRan;
+        r.run.guard.endActionRan = true;
+        r.run.guard.endActionSucceeded = true;
+        r.run.routine.ok = false;
+        r.run.routine.steps = 7;
+        r.run.routine.completed = 5;
+        r.run.routine.failedOn = 2;
+        r.run.routine.firstFailedAt = 2;
+        r.run.routine.firstFailedName = "miss";
+        r.run.routine.firstFailedCause = shulib::chassis::RoutineStopCause::MechanismStepFailed;
+        return r;
+    };
+    CompetitionRunRecord w = base();
+    CHECK(std::string_view{competitionResultWord(w)} == "DONE, 2 FAILED");
+    CHECK(shulib::bench::competitionRunLevel(w) == shulib::hal::LogLevel::Warn);
+    CHECK(shulib::bench::competitionResultTone(competitionResultWord(w)) == shulib::ui::Tone::Amber);
+    w.run.routine.failedOn = 10;
+    CHECK(std::string_view{competitionResultWord(w)} == "DONE, 9+ FAILED");
+    // The driver page's AUTON row: the word whole in its unchanged 15-character slot, amber.
+    {
+        CompetitionRunRecord last = w;
+        const shulib::bench::PanelRow row = shulib::bench::competitionAutonRow(last, reg, false, true);
+        CHECK(std::string{row.text} == "auton DONE, 9+ FAILED: forty");
+        CHECK(row.tone == shulib::ui::Tone::Amber);
+    }
+    w.run.routine.failedOn = 2;
+    w.run.routine.skipPendingTo = "B";
+    CHECK(std::string_view{competitionResultWord(w)} == "ROUTINE STOPPED");
+    w.run.routine.skipPendingTo = "";
+    w.run.routine.stoppedAt = 6;
+    CHECK(std::string_view{competitionResultWord(w)} == "ROUTINE STOPPED");
+    w.run.routine.stoppedAt = 0;
+    w.run.guard.endActionSucceeded = false;
+    CHECK(std::string_view{competitionResultWord(w)} == "ROUTINE STOPPED");
+    for (int n = -1; n <= 12; ++n) {
+        CAPTURE(n);
+        const std::string_view d{shulib::bench::competitionDoneWord(n)};
+        CHECK(d.size() <= 15);
+        CHECK(d.size() <= shulib::ui::kLargeCols);
+        CHECK(shulib::bench::competitionResultTone(d) == shulib::ui::Tone::Amber);
+        // review RM9/RM10: the exact word for EVERY n, by the rule the tester's (23c) is pinned to --
+        // this header keeps its own copy of the table, so only the shared rule keeps the two equal.
+        const std::string want = n > 9 ? "DONE, 9+ FAILED" : "DONE, " + std::to_string(n < 1 ? 1 : n) + " FAILED";
+        CHECK(d == want);
+        CompetitionRunRecord e = base();
+        e.run.routine.failedOn = n < 1 ? 1 : n;
+        CHECK(std::string_view{competitionResultWord(e)} ==
+              std::string_view{shulib::bench::competitionDoneWord(n < 1 ? 1 : n)});
+    }
+    // The lines: 1, 2, the summary, the first failure, the seat — five; six with the driver-loop line.
+    CompetitionRunLines l = competitionRunLines(base(), reg);
+    CHECK(l.count == 5);
+    CHECK_FALSE(l.cut);
+    CHECK(std::string_view{l.line[2]} == "request 3: routine DONE, 5 of 7 steps done, 2 failed, 0 jumped; faults "
+                                         "this run: none");
+    CHECK(std::string_view{l.line[3]} == "request 3: first failed: step 2 miss (mechanism step FAILED); the routine "
+                                         "went on");
+    CHECK(std::string_view{l.line[4]}.find("request 3: seated (") == 0);
+    CompetitionRunRecord p = base();
+    p.run.routine.skipPendingTo = "third piece";
+    p.run.routine.jumped = 4;
+    l = competitionRunLines(p, reg);
+    CHECK(l.count == 5);
+    CHECK(std::string_view{l.line[2]} == "request 3: routine STOPPED, 5 of 7 steps done, 2 failed, 4 jumped; faults "
+                                         "this run: none");
+    CHECK(std::string_view{l.line[3]} == "request 3: first failed: step 2 miss (mechanism step FAILED); a skip to "
+                                         "'third piece' never landed");
+    CompetitionRunRecord s = base();
+    s.run.routine.stoppedAt = 6;
+    s.run.routine.stoppedName = "wait";
+    s.run.routine.cause = shulib::chassis::RoutineStopCause::MechanismNotStarted;
+    l = competitionRunLines(s, reg);
+    CHECK(std::string_view{l.line[2]} == "request 3: routine STOPPED, 5 of 7 steps done, stopped at wait (mechanism "
+                                         "NOT STARTED); faults this run: none");
+    CHECK(std::string_view{l.line[3]} == "request 3: first failed: step 2 miss (mechanism step FAILED); the routine "
+                                         "went on, then stopped");
+    CompetitionRunRecord m = base();  // a carried-on MOTION failure: "motion failed" (23c's twin; review)
+    m.run.routine.firstFailedName = "driveTo";
+    m.run.routine.firstFailedCause = shulib::chassis::RoutineStopCause::MotionFailed;
+    l = competitionRunLines(m, reg);
+    CHECK(std::string_view{l.line[3]} == "request 3: first failed: step 2 driveTo (motion failed); the routine went "
+                                         "on");
+    CompetitionRunRecord d = base();  // the default rule: four lines, as ever
+    d.run.routine.failedOn = 0;
+    d.run.routine.firstFailedAt = 0;
+    d.run.routine.ok = true;
+    CHECK(competitionRunLines(d, reg).count == 4);
+    // THE WORST CASE of each new line: request 4294967295, every count at 4 digits and at its int
+    // extremes, a name past 24 characters, the longest cause word, the faults tail at its cap, and the
+    // driver-loop line on top (six lines).
+    AutonRegistry longReg{shulib::bench::kAutonPeriods};
+    longReg.add(routineEntry("abcdefghijklmnopqrstuvwxyz012", &driveThenThrow));
+    CompetitionRunRecord x = base();
+    x.request = 4294967295u;
+    x.faultsBefore = 0;
+    x.faultsAfter = 2147483647;
+    x.run.routine.firstFailedName = "a-step-name-that-is-longer-than-24";
+    x.run.routine.firstFailedCause = shulib::chassis::RoutineStopCause::MechanismNotStarted;
+    x.loopWait = shulib::bench::DriverLoopWait{.waited = true, .left = false, .seconds = 1e12};
+    for (const int n : {9999, 2147483647, -2147483647 - 1}) {
+        CAPTURE(n);
+        x.run.routine.steps = n;
+        x.run.routine.completed = n;
+        // failedOn stays > 0 (a negative count is never produced, and it is what writes line 3b);
+        // every other count takes the widest %d there is.
+        x.run.routine.failedOn = n < 0 ? 2147483647 : n;
+        x.run.routine.jumped = n;
+        x.run.routine.firstFailedAt = n;
+        for (const bool pending : {false, true}) {
+            x.run.routine.skipPendingTo = pending ? "a-label-that-is-longer-than-24" : "";
+            l = competitionRunLines(x, longReg);
+            CHECK(l.count == 6);
+            CHECK_FALSE(l.cut);
+            for (int i = 0; i < l.count; ++i) {
+                CAPTURE(l.line[i]);
+                CHECK(std::strlen(l.line[i]) <= kCompetitionLineBytes - 1);
+            }
+        }
+    }
+    CHECK(std::string_view{shulib::bench::competitionStopWord(shulib::chassis::RoutineStopCause::MechanismNotStarted,
+                                                              shulib::control::ExitReason::Running)} ==
+          "mechanism NOT STARTED");
+}

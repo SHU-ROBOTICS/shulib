@@ -16,7 +16,7 @@
 > by a compile-time signature pin
 > ([`test/routine_signature_pin_test.cpp`](../../test/routine_signature_pin_test.cpp)) that
 > fails the build if a spelling drifts. New steps arrive *additively* — and that path has since
-> been used for real, three times. First `RoutineStopCause` gained an **appended** `MechanismFailed`,
+> been used for real, four times. First `RoutineStopCause` gained an **appended** `MechanismFailed`,
 > which is a minor version bump (2.0 → 2.1), not a breaking change: existing enumerator *values*
 > are pinned and only the end of the list grows, so if you `switch` exhaustively, add the new
 > case. Then, at 2.4, two new **steps** were appended, `reverseTo` and `faceAway` (below), with
@@ -24,7 +24,10 @@
 > constructor (`Routine r{ctx, "name"}`), the mechanism steps (`move`, `run`, `set`, `spinUp`,
 > `home`, `stop`, the START forms, `waitUntilDone` — [Chapter 18](18-mechanisms.md#in-an-auton--one-line-per-step)),
 > an appended `MechanismStepFailed` (a `switch` over every `RoutineStopCause` needs its case) and
-> an appended `RoutineResult::mechanismVerdict`.
+> an appended `RoutineResult::mechanismVerdict`. Then the on-failure choice arrived the same
+> way — `onFail(...)` and `label(...)`, an appended `MechanismNotStarted` (one more `switch` case) and
+> six appended `RoutineResult` fields ([below](#choosing-what-a-failure-does-onfail-and-label)) —
+> and it was **pinned the day it landed**, because the route maker generates code against it.
 > **Not frozen:** `then()`, deliberately — and, until a decision still open, the mechanism steps,
 > the second constructor and `lastMechanism()` (the Freeze Register's F10 row gives both readings;
 > they are not pinned meanwhile). `then()` is the seam mechanisms plug
@@ -40,7 +43,9 @@ teaches the layer; the cookbook uses it.
 
 The code in this chapter is compiled and run in
 [`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp), cases `guide-09a`
-through `guide-09d`. The fine print lives in the header,
+through `guide-09d`, and the on-failure section's in
+[`test/routine_on_fail_example_test.cpp`](../../test/routine_on_fail_example_test.cpp), case
+`guide-09e`. The fine print lives in the header,
 [`include/shulib/chassis/routine.hpp`](../../include/shulib/chassis/routine.hpp), whose
 opening commentary — like `chassis.hpp`'s — is meant to be read.
 
@@ -205,10 +210,81 @@ Two deliberate edges of the policy:
   timeout is a programming error, and it stays as loud through the recipe layer as through
   the facade ([Chapter 10](10-the-api.md)'s misuse rules). The chain's counters don't move;
   the bad call simply never ran.
-- **Wanting to continue past a failure is legitimate — and it is one tier down, not a
-  rewrite.** Call `chassis.moveTo(...)` directly for the legs where you want to branch on the
-  `ExitReason` yourself, and use chain steps for the rest. Mixing is fully supported; that's
-  next.
+- **Wanting to continue past a failure is legitimate.** The chain can do it for
+  you, one step at a time: write `onFail(carryOn)` or `onFail(skipTo("..."))` in front of that
+  step (the next section). And it is still one tier down, not a rewrite: call
+  `chassis.moveTo(...)` directly for the legs where you want to branch on the `ExitReason`
+  yourself, and use chain steps for the rest. Mixing is fully supported.
+
+## Choosing what a failure does: `onFail` and `label`
+
+The policy above is the **default**, and it does not change. You can change it for
+**one step at a time**, by writing a modifier in front of that step. From `guide-09e`:
+
+```cpp
+RoutineResult threeChoices(AutonContext& ctx) {
+    Routine r{ctx, "three-choices"};
+    r.onFail(carryOn).driveTo(24_in, 0_in, {.timeout = 2.5_s, .positionTolerance = 1_in});
+    r.onFail(skipTo("third piece")).run(intake, 12_volt, seesPiece, 2_s);
+    r.move(arm["score"], 1.5_s);
+    r.label("third piece").face(0_in, 48_in, {.headingTolerance = 3_deg});
+    return r.result();
+}
+```
+
+- **`onFail(carryOn)`** — if this step fails, the failure is **counted** and said (one `Warn`:
+  `... FAILED: ... — carrying on; drive safed`), the drive is parked exactly as a stop parks it,
+  and the next step runs from where the robot is. `r.ok()` goes false, `result().failedOn`
+  counts the failures, and `firstFailedAt` / `firstFailedName` / `firstFailedCause` name the
+  first one. The stop fields stay clean: `stoppedAt` is still 0, because nothing stopped.
+- **`onFail(skipTo("third piece"))`** — as `carryOn`, then every step until the one
+  `label("third piece")` names is **passed over** — counted in `steps` and in `jumped`, one
+  `Info` line each, never run — and the auton goes on **at** that step. In the listing above a
+  missed piece skips the score, not the rest of the auton.
+- **`onFail(stopChain)`** is the default rule, spelled out. No `onFail` at all means the same.
+- **`label("...")`** names the next step. It is not a step itself, so the step numbers on the
+  brain's screen do not move. Names are matched whole and case-sensitively (`"B2"`, `"b"` and
+  `"B "` are not `"B"`), and they are stored, not copied: write string literals.
+
+Each modifier binds to **exactly one step** — the next one — and is used up there, whatever
+happens to that step (it runs, it is skipped after a stop, a skip jumps it, or it throws). Two
+`onFail`s (or two `label`s) in a row, and an empty name, are programming errors: they throw.
+
+**A skip only goes forward.** The chain runs its lines as it reaches them; it never stores them,
+so it cannot go back. A skip whose target is a label the routine has **already passed** — a label
+on a step an earlier skip jumped counts as passed — or the failing step's own label stops the
+chain right there, and its stop line says the target is
+behind it. That mistake is also logged where it is **written**, as a `Warn` on the `onFail` line
+on every run, so a bench run whose step succeeds still shows it. A target that **never comes** (a
+misspelling) jumps every remaining step; `result().skipPendingTo` names it. The routine remembers
+the last 32 labels it passed; a target further back than that reads as one that never comes.
+
+**Two rules sit above every choice.**
+
+1. **The deadline always stops.** A step whose verdict is **CANCELLED** — the run guard cut it at
+   the deadline, an abandon, the fault policy, a step replaced from outside, or a `then()` action
+   that returned `Cancelled` — stops the chain whatever it chose. So does any failure once the
+   auton's time is up, and a skip still looking for its step when the time runs out. A carry-on
+   auton must never keep issuing steps past the buzzer.
+2. **Nothing new throws.** A `waitUntilDone(intake, ...)` whose `startRun(intake, ...)` a skip
+   jumped does not crash the auton and does not answer an older run of the intake: it **fails,
+   counted**, as `MechanismNotStarted` ("its start was skipped"), under the wait's own choice. So
+   does a wait whose start did nothing because it named another robot's mechanism (a different kind
+   or units, or a preset or position this robot's mechanism of that name lacks), when
+   the chain carried on past that start ("its start did nothing: another robot's declaration").
+
+The deadline rule needs the auton's run guard, and the Routine gets it from the **context**:
+write `Routine r{ctx, "name"}` in an auton that takes `AutonContext& ctx`, as every listing here
+does. A Routine built from a bare chassis (`Routine r{chassis, "name"}`) has only the CANCELLED
+half of the rule, and says so once, with a `Warn`, at its first `carryOn` or `skipTo`.
+
+**An arrival tolerance, per step.** `{.positionTolerance = 1_in}` means "arrive within 1 in";
+`{.headingTolerance = 3_deg}` means "within 3°". A leg ends when the robot is close enough **and**
+slow enough, and on a drive the speed is what decides — so a tolerance looser than the robot's own
+loosens **both, in proportion**: 2 in means "within 2 in and slower than 4 in/s". On the host
+test plant the 40 in drive takes 1.80 s with the robot's own numbers and 1.35 s within 2 in. A
+tolerance tighter than the robot's own tightens only the distance. The leg can end with the robot
+still rolling a little; how far a real robot coasts after that has not been measured yet.
 
 ## Tank drives, and the no-cliff rule
 

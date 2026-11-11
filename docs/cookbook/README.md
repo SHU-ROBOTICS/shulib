@@ -29,7 +29,9 @@ Every recipe has the same four parts:
    every robot build compiles it, and
    [`test/robot_two_driver_test.cpp`](../../test/robot_two_driver_test.cpp) runs it on every
    build. Chapter 7's mechanism recipes are compiled and run in
-   [`test/mechanism_auton_example_test.cpp`](../../test/mechanism_auton_example_test.cpp).)
+   [`test/mechanism_auton_example_test.cpp`](../../test/mechanism_auton_example_test.cpp), and
+   chapter 2's two on-failure recipes in
+   [`test/routine_on_fail_example_test.cpp`](../../test/routine_on_fail_example_test.cpp).)
 3. **Why it is written this way** — the reasoning, so you can change it safely.
 4. **Watch out for** — the mistake this recipe exists to prevent.
 
@@ -58,7 +60,9 @@ so it cannot disagree with the code.
 | Recipe | Use this when |
 |---|---|
 | [Bail out and park somewhere useful](02-when-a-step-fails.md#bail-out-and-park-somewhere-useful) | A failed grab should abandon the plan, not carry on with empty jaws |
-| [Attempt something and keep going](02-when-a-step-fails.md#attempt-something-and-keep-going) | One missed goal in a sweep should not end the routine |
+| [Attempt something and keep going](02-when-a-step-fails.md#attempt-something-and-keep-going) | One missed goal in a sweep should not end the routine, and you want its outcome in a variable |
+| [Carry on past a missed piece](02-when-a-step-fails.md#carry-on-past-a-missed-piece) | A grab can miss, and a miss should cost that piece, not the auton |
+| [Give up on this piece, go for the next](02-when-a-step-fails.md#give-up-on-this-piece-go-for-the-next) | A miss makes the next few steps pointless, but not the rest |
 | [Recover from a broken sweep](02-when-a-step-fails.md#recover-from-a-broken-sweep) | A trajectory stopped partway and you need to know how far it got |
 
 ### [3 — Timing and teammates](03-timing-and-partners.md)
@@ -112,7 +116,8 @@ a printed line, a sensor read, or a whole `if` between two steps and nothing sur
 
 **2. A failed step stops the chain and parks the robot.** Everything after it is skipped and
 logged. You do not have to check anything for the robot to be safe — you check `r.ok()` when you
-want to *do* something different, not to prevent a crash.
+want to *do* something different, not to prevent a crash. (That is the default: a step written
+after `onFail(carryOn)` or `onFail(skipTo("..."))` goes on instead — chapter 2's last recipes.)
 
 **3. Nothing here is a ceiling.** Every step is one call on the `Chassis` object underneath, and
 that object is one line away (`r.chassis()`, or the reference you already have). When a recipe
@@ -134,7 +139,8 @@ defeat. [Chapter 10](../guide/10-the-api.md) is that API in prose.
   recipes use plausible field points as scaffolding; none of them is an argument about what a
   good auton does.
 - **Anything untested.** If it is not in `test/cookbook_examples_test.cpp` (or, for chapter 6's
-  driver file, `test/robot_two_driver_test.cpp`), it is not in here.
+  driver file, `test/robot_two_driver_test.cpp`; for chapter 7's recipes and chapter 2's on-failure
+  ones, the two example tests named above), it is not in here.
 
 ---
 

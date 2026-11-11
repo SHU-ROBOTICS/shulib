@@ -23,6 +23,7 @@
 #include <string_view>
 
 #include "auton_tester_rig.hpp"
+#include "routine_golden_chains.hpp"
 #include "motion_test_rig.hpp"
 #include "programs/auton_abort_watch.hpp"
 #include "programs/auton_tester_panel.hpp"
@@ -1269,4 +1270,183 @@ TEST_CASE("run (23b): the boot's three lines fit at every field's worst case, an
     const TesterBootLines off =
         testerBootLines("b", "abc", "RECORD", 2, 3, 3, TesterSdLog::Off, "/usd/never-printed");
     CHECK(std::string_view{off.line[2]} == "SD run log OFF (no card, or the log would not open)");
+}
+
+// (23c) STEP1-A (D5 (a)) Bug caught: a routine that CARRIED ON past failed steps to its end reading
+// "ROUTINE STOPPED" (it did not stop) or "FINISHED" (it failed steps); the DONE word red (an unknown
+// word is red); a DONE word too wide for the driver page's 15-character slot or the large line; a
+// carried-on run's log naming no failed step (SM21); a pending skip read as DONE; a default run's
+// lines changing count. SM11 (the word reading `ok` alone) reads FINISHED/ROUTINE STOPPED here.
+TEST_CASE("run (23c) STEP1-A: DONE, n FAILED -- the word, its amber, and the routine's two lines") {
+    const AutonRegistry reg = teamRegistry();
+    const AutonEntry& forty = reg.at(0);
+    const auto base = [] {
+        TesterRunRecord r{};
+        r.number = 7;
+        r.entry = 0;
+        r.run.outcome = AutonRunOutcome::RoutineRan;
+        r.run.guard.endActionRan = true;
+        r.run.guard.endActionSucceeded = true;
+        r.run.routine.ok = false;
+        r.run.routine.steps = 7;
+        r.run.routine.completed = 5;
+        r.run.routine.failedOn = 2;
+        r.run.routine.firstFailedAt = 2;
+        r.run.routine.firstFailedName = "miss";
+        r.run.routine.firstFailedCause = shulib::chassis::RoutineStopCause::ActionFailed;
+        return r;
+    };
+    // THE WORDS.
+    TesterRunRecord w = base();
+    CHECK(std::string_view{testerResultWord(w)} == "DONE, 2 FAILED");
+    w.run.routine.failedOn = 1;
+    CHECK(std::string_view{testerResultWord(w)} == "DONE, 1 FAILED");
+    w.run.routine.failedOn = 9;
+    CHECK(std::string_view{testerResultWord(w)} == "DONE, 9 FAILED");
+    w.run.routine.failedOn = 10;
+    CHECK(std::string_view{testerResultWord(w)} == "DONE, 9+ FAILED");
+    w.run.routine.failedOn = 2147483647;
+    CHECK(std::string_view{testerResultWord(w)} == "DONE, 9+ FAILED");
+    w.run.routine.failedOn = 2;
+    w.run.guard.endActionSucceeded = false;  // the park failed: today's word, unchanged (the brief's L12)
+    CHECK(std::string_view{testerResultWord(w)} == "ROUTINE STOPPED");
+    w.run.guard.endActionSucceeded = true;
+    w.run.routine.skipPendingTo = "B";  // a skip that never landed: nothing ran after it
+    CHECK(std::string_view{testerResultWord(w)} == "ROUTINE STOPPED");
+    w.run.routine.skipPendingTo = "";
+    w.run.routine.stoppedAt = 6;  // went on, then a later step stopped the chain
+    CHECK(std::string_view{testerResultWord(w)} == "ROUTINE STOPPED");
+    w.run.routine.stoppedAt = 0;
+    w.run.guard.scoringCut = true;  // the deadline's word still comes first
+    CHECK(std::string_view{testerResultWord(w)} == "CUT BY DEADLINE");
+    w.run.guard.scoringCut = false;
+    w.run.routine.failedOn = 0;
+    w.run.routine.ok = true;
+    CHECK(std::string_view{testerResultWord(w)} == "FINISHED");
+    for (int n = -1; n <= 12; ++n) {
+        CAPTURE(n);
+        const std::string_view d{shulib::bench::testerDoneWord(n)};
+        CHECK(d.size() <= 15);  // the driver page's "auton %.15s" slot (competition_screen.hpp)
+        CHECK(d.size() <= shulib::ui::kLargeCols);
+        // review RM9/RM10: the exact word for EVERY n (R25 pins the competition program's twin to the
+        // same rule, so the two tables cannot drift): below 1 reads as 1; 9 is the last single figure.
+        const std::string want = n > 9 ? "DONE, 9+ FAILED" : "DONE, " + std::to_string(n < 1 ? 1 : n) + " FAILED";
+        CHECK(d == want);
+    }
+    // ITS COLOUR, on the RESULT page: amber (an unknown word would be red) -- for EVERY count, so the
+    // panel's rule is the prefix, not one word (review RM11).
+    for (int n = 1; n <= 12; ++n) {
+        CAPTURE(n);
+        shulib::bench::TesterScreen screen{reg};
+        shulib::bench::TesterFacts f;
+        f.now = 100.0;
+        TesterRunRecord done = base();
+        done.run.routine.failedOn = n;
+        screen.showResult(done, 0, false);
+        const shulib::bench::TesterView v = screen.view(f);
+        CHECK(v.bar == shulib::ui::Tone::Amber);
+        CHECK(std::string_view{v.big[0].text} == std::string_view{shulib::bench::testerDoneWord(n)});
+    }
+    // THE LINES. Went on to the end: line 3 the summary, line 3b the first failure; five lines.
+    const auto all = [&](const TesterRunRecord& r, int expect) {
+        const TesterRunLines l = testerRunLines(r, forty);
+        CHECK(l.count == expect);
+        CHECK_FALSE(l.cut);
+        return l;
+    };
+    {
+        const TesterRunLines l = all(base(), 5);
+        CHECK(std::string_view{l.line[0]}.find("run 7: '40in forward' DONE, 2 FAILED -- ROUTINE_RAN; in time, end "
+                                               "action succeeded") == 0);
+        CHECK(std::string_view{l.line[2]} == "run 7: routine DONE, 5 of 7 steps done, 2 failed, 0 jumped; faults "
+                                             "this run: none");
+        CHECK(std::string_view{l.line[3]} == "run 7: first failed: step 2 miss (action FAILED); the routine went on");
+        CHECK(std::string_view{l.line[4]}.find("run 7: seated (") == 0);
+    }
+    {
+        TesterRunRecord r = base();  // a skip that never landed
+        r.run.routine.failedOn = 1;
+        r.run.routine.jumped = 3;
+        r.run.routine.skipPendingTo = "third piece";
+        const TesterRunLines l = all(r, 5);
+        CHECK(std::string_view{l.line[2]} == "run 7: routine STOPPED, 5 of 7 steps done, 1 failed, 3 jumped; faults "
+                                             "this run: none");
+        CHECK(std::string_view{l.line[3]} == "run 7: first failed: step 2 miss (action FAILED); a skip to 'third "
+                                             "piece' never landed");
+    }
+    {
+        TesterRunRecord r = base();  // went on, then stopped: line 3 is today's STOPPED form
+        r.run.routine.stoppedAt = 6;
+        r.run.routine.skipped = 1;
+        r.run.routine.stoppedName = "driveTo";
+        r.run.routine.cause = shulib::chassis::RoutineStopCause::MechanismNotStarted;
+        const TesterRunLines l = all(r, 5);
+        CHECK(std::string_view{l.line[2]} == "run 7: routine STOPPED, 5 of 7 steps done, stopped at driveTo "
+                                             "(mechanism NOT STARTED); faults this run: none");
+        CHECK(std::string_view{l.line[3]} == "run 7: first failed: step 2 miss (action FAILED); the routine went on, "
+                                             "then stopped");
+    }
+    {
+        // A carried-on MOTION failure (a drive that timed out): line 3b says "motion failed" -- the
+        // result keeps no exit for its first failed step (the six fields are the brief's; the step's own
+        // RTN Warn says "motion TIMEOUT"). Pinned so a change to it is a decision, not a drift (review).
+        TesterRunRecord r = base();
+        r.run.routine.firstFailedName = "driveTo";
+        r.run.routine.firstFailedCause = shulib::chassis::RoutineStopCause::MotionFailed;
+        const TesterRunLines l = all(r, 5);
+        CHECK(std::string_view{l.line[3]} == "run 7: first failed: step 2 driveTo (motion failed); the routine went "
+                                             "on");
+    }
+    {
+        TesterRunRecord r = base();  // the default rule: four lines, as ever
+        r.run.routine.failedOn = 0;
+        r.run.routine.firstFailedAt = 0;
+        r.run.routine.ok = true;
+        r.run.routine.completed = 7;
+        all(r, 4);
+    }
+    // A REAL carried-on chain on the host test plant gives the record its result.
+    {
+        golden::Tank t;
+        Routine r{t.ch, "real"};
+        r.onFail(shulib::chassis::carryOn).then([] { return false; }, "miss").then([] { return true; }, "next");
+        TesterRunRecord rec = base();
+        rec.run.routine = r.result();
+        CHECK(std::string_view{testerResultWord(rec)} == "DONE, 1 FAILED");
+        const TesterRunLines l = all(rec, 5);
+        CHECK(std::string_view{l.line[2]} == "run 7: routine DONE, 1 of 2 steps done, 1 failed, 0 jumped; faults "
+                                             "this run: none");
+        CHECK(std::string_view{l.line[3]} == "run 7: first failed: step 1 miss (action FAILED); the routine went on");
+    }
+    // THE WORST CASE of each new line: run 99999, 4-digit counts, a name past 24 characters, the
+    // longest cause word (21), the faults tail at its cap — then every count at its int extreme.
+    TesterRunRecord x = base();
+    x.number = 99999;
+    x.faultsBefore = 0;
+    x.faultsAfter = 2147483647;
+    x.lastFault = FaultCode::MotorGroupDisagree;
+    x.run.routine.firstFailedName = "a-step-name-that-is-longer-than-24";
+    x.run.routine.firstFailedCause = shulib::chassis::RoutineStopCause::MechanismNotStarted;
+    x.run.routine.skipPendingTo = "a-label-that-is-longer-than-24";
+    for (const int n : {9999, 2147483647, -2147483647 - 1}) {
+        CAPTURE(n);
+        x.run.routine.steps = n;
+        x.run.routine.completed = n;
+        // failedOn stays > 0 (a negative count is never produced, and it is what writes line 3b);
+        // every other count takes the widest %d there is.
+        x.run.routine.failedOn = n < 0 ? 2147483647 : n;
+        x.run.routine.jumped = n;
+        x.run.routine.firstFailedAt = n;
+        for (const bool pending : {false, true}) {
+            x.run.routine.skipPendingTo = pending ? "a-label-that-is-longer-than-24" : "";
+            const TesterRunLines l = all(x, 5);
+            for (int i = 0; i < l.count; ++i) {
+                CAPTURE(l.line[i]);
+                CHECK(std::strlen(l.line[i]) <= kTesterLineBytes - 1);
+            }
+        }
+    }
+    CHECK(std::string_view{shulib::bench::routineStopWord(shulib::chassis::RoutineStopCause::MechanismNotStarted,
+                                                          shulib::control::ExitReason::Running)} ==
+          "mechanism NOT STARTED");
 }

@@ -510,10 +510,25 @@ inline CompetitionRunRecord& serveAutonRequest(CompetitionParts& p, CompetitionR
            && r.run.outcome != competition::AutonRunOutcome::Refused && !r.run.guard.abandoned;
 }
 
+/// STEP1-A (D5 (a)): the word for a routine that FAILED steps and carried on to its end -- "DONE, 2
+/// FAILED", and "DONE, 9+ FAILED" for ten or more (the tester's words, restated here so this header
+/// does not include the tester's -- the COMP-t brief's §4). Every word is at most 15 characters: it
+/// fits the driver page's "auton %.15s" slot unchanged (competition_screen.hpp). `failed` below 1
+/// reads as 1 (never reached: the caller asks only when failedOn > 0).
+[[nodiscard]] inline const char* competitionDoneWord(int failed) noexcept {
+    static constexpr const char* kWords[10] = {"DONE, 1 FAILED", "DONE, 2 FAILED", "DONE, 3 FAILED",
+                                               "DONE, 4 FAILED", "DONE, 5 FAILED", "DONE, 6 FAILED",
+                                               "DONE, 7 FAILED", "DONE, 8 FAILED", "DONE, 9 FAILED",
+                                               "DONE, 9+ FAILED"};
+    return kWords[failed < 1 ? 0 : (failed > 9 ? 9 : failed - 1)];
+}
+
 /// The word a served request earns -- the result page's big line and the first log line say the
 /// same (one source). First match wins: a throw, NONE, TOO LATE (the period was over at the serve),
 /// a refusal (ours or runAuton's), an abandon, an abandon the guard never acted on (red), never
-/// started, the hard floor, the deadline cut, then FINISHED (the routine -- or route -- OK and the
+/// started, the hard floor, the deadline cut, then (STEP1-A) DONE, n FAILED (a routine that carried
+/// on past failed steps to its end -- no stop, no skip still looking for its step -- and the end
+/// action succeeded; amber, logged at Warn), then FINISHED (the routine -- or route -- OK and the
 /// end action succeeded) or ROUTINE STOPPED. At most ui::kLargeCols characters (test (R13)).
 [[nodiscard]] inline const char* competitionResultWord(const CompetitionRunRecord& r) noexcept {
     if (r.threw) {
@@ -543,6 +558,13 @@ inline CompetitionRunRecord& serveAutonRequest(CompetitionParts& p, CompetitionR
     }
     if (r.run.guard.scoringCut) {
         return "CUT BY DEADLINE";
+    }
+    if (r.run.outcome == competition::AutonRunOutcome::RoutineRan) {
+        const chassis::RoutineResult& rr = r.run.routine;
+        if (rr.stoppedAt == 0 && rr.skipPendingTo[0] == '\0' && rr.failedOn > 0
+            && r.run.guard.endActionSucceeded) {
+            return competitionDoneWord(rr.failedOn);
+        }
     }
     const bool ranOk = r.run.outcome == competition::AutonRunOutcome::RouteRan
                            ? r.run.route.ok()
@@ -577,13 +599,16 @@ inline CompetitionRunRecord& serveAutonRequest(CompetitionParts& p, CompetitionR
         case chassis::RoutineStopCause::ActionFailed: return "action FAILED";
         case chassis::RoutineStopCause::MechanismFailed: return "mechanism FAILED";
         case chassis::RoutineStopCause::MechanismStepFailed: return "mechanism step FAILED";
+        case chassis::RoutineStopCause::MechanismNotStarted: return "mechanism NOT STARTED";
     }
     return "stopped";
 }
 
 /// The lines one served request leaves in the log -- serial and the SD card carry the same words.
 struct CompetitionRunLines {
-    char line[5][kCompetitionLineBytes]{};  ///< each <= kCompetitionLineBytes - 1 characters
+    /// each <= kCompetitionLineBytes - 1 characters. Six since STEP1-A: a routine that carried on past
+    /// a failure (or whose skip never landed) adds line 3b, the first failed step.
+    char line[6][kCompetitionLineBytes]{};
     int count = 0;                          ///< how many are real
     bool cut = false;  ///< a line did not fit and was cut (a test failure, never expected)
 };
@@ -726,16 +751,42 @@ inline void competitionRequestLines(CompetitionRunLines& out, const CompetitionR
     }
     if (r.run.outcome == competition::AutonRunOutcome::RoutineRan) {
         const chassis::RoutineResult& rr = r.run.routine;
+        const bool skipPending = rr.skipPendingTo[0] != '\0';
         if (rr.stoppedAt > 0) {
             add(std::snprintf(out.line[out.count], kCompetitionLineBytes,
                               "request %u: routine STOPPED, %d of %d steps done, stopped at %.24s "
                               "(%s); %.79s",
                               req, rr.completed, rr.steps, rr.stoppedName,
                               competitionStopWord(rr.cause, rr.exit), faults));
+        } else if (rr.failedOn > 0 || skipPending) {
+            // STEP1-A: the routine went on past a failure (or a skip is still looking for its step).
+            add(std::snprintf(out.line[out.count], kCompetitionLineBytes,
+                              "request %u: routine %s, %d of %d steps done, %d failed, %d jumped; "
+                              "%.79s",
+                              req, skipPending ? "STOPPED" : "DONE", rr.completed, rr.steps,
+                              rr.failedOn, rr.jumped, faults));
         } else {
             add(std::snprintf(out.line[out.count], kCompetitionLineBytes,
                               "request %u: routine %s, %d of %d steps done; %.79s", req,
                               rr.ok ? "OK" : "STOPPED", rr.completed, rr.steps, faults));
+        }
+        // 3b (STEP1-A). The first failed step, ONLY when the routine went on past one or a skip is
+        // still pending -- so a request under the default rule keeps its lines, word for word.
+        if (rr.failedOn > 0 || skipPending) {
+            if (skipPending) {
+                add(std::snprintf(out.line[out.count], kCompetitionLineBytes,
+                                  "request %u: first failed: step %d %.24s (%s); a skip to '%.24s' "
+                                  "never landed",
+                                  req, rr.firstFailedAt, rr.firstFailedName,
+                                  competitionStopWord(rr.firstFailedCause, control::ExitReason::Running),
+                                  rr.skipPendingTo));
+            } else {
+                add(std::snprintf(out.line[out.count], kCompetitionLineBytes,
+                                  "request %u: first failed: step %d %.24s (%s); the routine went on%s",
+                                  req, rr.firstFailedAt, rr.firstFailedName,
+                                  competitionStopWord(rr.firstFailedCause, control::ExitReason::Running),
+                                  rr.stoppedAt > 0 ? ", then stopped" : ""));
+            }
         }
     } else if (r.run.outcome == competition::AutonRunOutcome::RouteRan) {
         add(std::snprintf(out.line[out.count], kCompetitionLineBytes,

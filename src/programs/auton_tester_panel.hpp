@@ -611,9 +611,11 @@ private:
 
     [[nodiscard]] ui::Tone resultTone() const noexcept {
         const std::string_view w = testerResultWord(*result_);
-        return w == "FINISHED"                                ? ui::Tone::Green
-               : (w == "ABORTED" || w == "CUT BY DEADLINE") ? ui::Tone::Amber
-                                                              : ui::Tone::Red;
+        // STEP1-A: every "DONE, n FAILED" word is amber (testerDoneWord generates them all).
+        return w == "FINISHED" ? ui::Tone::Green
+               : (w == "ABORTED" || w == "CUT BY DEADLINE" || w.starts_with("DONE, "))
+                   ? ui::Tone::Amber
+                   : ui::Tone::Red;
     }
 
     const competition::AutonRegistry* registry_;

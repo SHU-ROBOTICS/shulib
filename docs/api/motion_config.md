@@ -8,7 +8,7 @@
 
 MotionConfig — the shared knobs of the C1 motion primitives.
 
-This header declares **3** types (25 members) and **1** free function.
+This header declares **3** types (25 members) and **2** free functions.
 
 Extracted from [`include/shulib/motion/motion_config.hpp`](../../include/shulib/motion/motion_config.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -42,6 +42,7 @@ Extracted from [`include/shulib/motion/motion_config.hpp`](../../include/shulib/
   - [`stall`](#motionconfig-stall)
   - [`tankSteer`](#motionconfig-tanksteer)
   - [`validate`](#motionconfig-validate)
+- [`loosenedSettle`](#loosenedsettle) — *free function*
 - [`validatedConfig`](#validatedconfig) — *free function*
 
 <a id="struct-axisgains"></a>
@@ -380,6 +381,18 @@ Re-check the invariants the motions rely on and RAISE on the first violation: fe
 
 *function, declared at [`include/shulib/motion/motion_config.hpp:219`](../../include/shulib/motion/motion_config.hpp#L219).*
 
+<a id="loosenedsettle"></a>
+
+## `loosenedSettle`
+
+```cpp
+[[nodiscard]] inline control::SettleConfig loosenedSettle(const control::SettleConfig& robot, double tolerance) noexcept
+```
+
+STEP1-A — an ARRIVAL TOLERANCE applied to one of the robot's settle configs (`robot`, e.g. MotionConfig::translationSettle), as chassis::MotionOptions' positionTolerance / headingTolerance apply it. With `e` = robot.maxError, `r` = robot.maxErrorRate and `t` = `tolerance` (in the config's own error units — inches, or radians): * `t <= 0` (or NaN): `robot`, unchanged — 0 means "the robot's own numbers", bit for bit; * otherwise maxError = t, and maxErrorRate = r·t/e when `e > 0 && t > e` (LOOSER: the speed bound loosens in proportion — on a drive leg it is the speed bound, not the distance, that decides when the leg ends, so a distance alone would change nothing), else r (TIGHTER, or a robot whose own distance is 0: the rate is never lowered — a smaller rate bound can sit inside the IMU's noise and never settle, this header's top note — and never divided by 0: r·t/0 would be inf, which silently drops the speed bound, or NaN, which SettledUtil refuses). settleTime is never changed. Pure and total; validating `t` is the caller's (MotionOptions:: validate refuses a non-finite or negative tolerance before this runs).
+
+*free function, declared at [`include/shulib/motion/motion_config.hpp:264`](../../include/shulib/motion/motion_config.hpp#L264).*
+
 <a id="validatedconfig"></a>
 
 ## `validatedConfig`
@@ -390,7 +403,7 @@ Re-check the invariants the motions rely on and RAISE on the first violation: fe
 
 Validate `config` (and a caller-supplied `timeout`) and hand the config straight back, so a motion can write `cfg_{validatedConfig(config, timeout, "TurnTo")}` as the FIRST member in its initializer list and have the check run before any component is built from these fields. The counterpart to MotionDeps::validatedClock(), which exists for exactly the same reason on the pointer half: "a null pointer trips the precondition rather than being dereferenced." Without it the first component constructed from a bad config reports the failure in ITS vocabulary, naming a class the caller never named.
 
-*free function, declared at [`include/shulib/motion/motion_config.hpp:258`](../../include/shulib/motion/motion_config.hpp#L258).*
+*free function, declared at [`include/shulib/motion/motion_config.hpp:284`](../../include/shulib/motion/motion_config.hpp#L284).*
 
 ## Design commentary, from the header
 

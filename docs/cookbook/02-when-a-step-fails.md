@@ -1,11 +1,16 @@
 # 2 — When a step fails
 
-The recipe layer has one built-in answer to failure: **stop, park, skip the rest, say so.** These
-recipes are about the decisions that answer leaves to you.
+The recipe layer's default answer to failure is **stop, park, skip the rest, say so.** A step
+can choose otherwise — **carry on**, or **skip ahead to a named step** — by writing
+`onFail(...)` in front of it ([Chapter 9](../guide/09-the-recipe-api.md#choosing-what-a-failure-does-onfail-and-label)).
+These recipes are about the decisions those answers leave to you.
 
 Listings are compiled and run in
 [`test/cookbook_examples_test.cpp`](../../test/cookbook_examples_test.cpp), cases `cookbook-02a`
-and `cookbook-02b` (plus `cookbook-01c` for the sweep).
+and `cookbook-02b` (plus `cookbook-01c` for the sweep), and — the two on-failure recipes, which
+use a robot's declared mechanisms — in
+[`test/routine_on_fail_example_test.cpp`](../../test/routine_on_fail_example_test.cpp), cases
+`cookbook-02c` and `cookbook-02d`.
 
 ---
 
@@ -49,7 +54,8 @@ RoutineResult grabOrBailOut(Chassis& chassis, Intake& intake) {
 - **The fallback is a second `Routine`.** A stopped chain stays stopped — every further step is
   counted as skipped and never runs — so recovery cannot live in the same chain. This is
   deliberate (a chain that resumed after a failure would be a chain you could not read top to
-  bottom), but it is worth stating plainly: *there is no `.finally()`*.
+  bottom), but it is worth stating plainly: *there is no `.finally()`*. (A step that should not
+  stop the chain says so up front instead — the two recipes after the next one.)
 - **Save `r.result()` first.** The fallback chain has its own counters. If you return
   `bail.result()` you have thrown away the only record of what actually failed.
 
@@ -75,8 +81,10 @@ routine 'grab-or-bail': step 5 (driveTo) skipped — stopped at step 4
 **Use this when:** one failure should *not* end the routine — a sweep across three goals where
 missing the middle one is disappointing but not fatal.
 
-The chain has no "try this step" mode: `then()` stops on `false`. So the attempt returns `void`
-and puts its outcome somewhere you own.
+This recipe predates the on-failure choice, and it is still right when you want the outcome in a
+variable of your own: `then()` stops on `false`, so the attempt returns `void` and puts its
+outcome somewhere you own. When all you want is "a miss must not end the routine", the next
+recipe says it in one word.
 
 ```cpp
 Routine& attemptGrab(Routine& r, Intake& intake, std::vector<bool>& outcomes) {
@@ -127,6 +135,78 @@ to
 
 silently converts a tolerant sweep into a routine that stops at the first miss. Name your action
 steps so the log tells you which one you wrote.
+
+---
+
+## Carry on past a missed piece
+
+**Use this when:** a grab can miss, and a miss should cost you that piece — not the rest of the
+auton. Written in the context form, `Routine r{ctx, ...}` in an auton, so the deadline still
+stops it.
+
+```cpp
+RoutineResult twoPieces(AutonContext& ctx) {
+    Routine r{ctx, "two-pieces"};
+    r.driveTo(24_in, 0_in, {.positionTolerance = 1_in});      // "arrive within 1 in"
+    r.onFail(carryOn).run(intake, 12_volt, seesPiece, 1_s);  // a miss is counted, not the end
+    r.driveTo(48_in, 0_in, {.positionTolerance = 1_in});      // the next piece, straight on
+    r.onFail(carryOn).run(intake, 12_volt, seesPiece, 1_s);
+    r.move(arm["score"], 1.5_s);
+    return r.result();
+}
+```
+
+**Why it is written this way.**
+
+- **`onFail(carryOn)` binds to the one step after it.** Only the two grabs may fail and go on; a
+  drive that fails still stops the auton, because a robot that missed its spot should not act out
+  the rest of the plan from somewhere else.
+- **The miss is not silent.** Unlike the void-action recipe above, the chain logs one `Warn` for
+  it (`routine 'two-pieces': step 2 (intake) FAILED: mechanism step FAILED (TIMED_OUT) — carrying
+  on; drive safed`), counts it in `result().failedOn`, and names the first failed step. The
+  Auton Tester and the competition program show the run as **`DONE, 1 FAILED`**, in amber — it
+  ran to its end, and one step failed on the way.
+- **`{.positionTolerance = 1_in}`** says how close is close enough for this drive. It also lets
+  the robot count as arrived while still moving a little, so a looser tolerance really does end
+  the drive sooner (Chapter 9 has the numbers).
+
+**Watch out for** the deadline: it overrides the choice. A step the run guard cut at the
+deadline, or any failure after it, stops the auton whatever the step chose.
+
+---
+
+## Give up on this piece, go for the next
+
+**Use this when:** a miss makes the next few steps pointless — scoring with empty jaws — but not
+the rest of the auton.
+
+```cpp
+RoutineResult nextPiece(AutonContext& ctx) {
+    Routine r{ctx, "next-piece"};
+    r.driveTo(24_in, 0_in, {.positionTolerance = 1_in});
+    r.onFail(skipTo("second piece")).run(intake, 12_volt, seesPiece, 1_s);
+    r.move(arm["score"], 1.5_s);                              // only worth doing with a piece
+    r.move(arm["stow"], 1.5_s);
+    r.label("second piece").driveTo(48_in, 0_in, {.positionTolerance = 1_in});
+    r.run(intake, 12_volt, seesPiece, 1_s);
+    return r.result();
+}
+```
+
+**Why it is written this way.** When the first grab misses, the two arm moves are **passed
+over** — counted in `result().jumped`, one `Info` line each, never run — and the auton goes on at
+the step `label("second piece")` names. When the grab succeeds, nothing is skipped: the label is
+only a name.
+
+**Watch out for two things.**
+
+1. **A skip only goes forward.** Point `skipTo` at a label further down. A label the routine has
+   already passed stops the auton instead (and a `Warn` on the `onFail` line says so on every run,
+   so the bench shows it before a match does). A misspelled label never comes: every remaining step
+   is passed over, and the result says the skip never landed.
+2. **A start the skip passed over has not started.** If a skipped step was a `startRun(intake,
+   ...)`, a later `waitUntilDone(intake, ...)` fails, counted, as "its start was skipped" — it
+   never crashes the auton, and it never reports an older run of the intake as done.
 
 ---
 

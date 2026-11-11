@@ -248,6 +248,32 @@ struct MotionConfig {
     }
 };
 
+/// STEP1-A — an ARRIVAL TOLERANCE applied to one of the robot's settle configs (`robot`, e.g.
+/// MotionConfig::translationSettle), as chassis::MotionOptions' positionTolerance /
+/// headingTolerance apply it. With `e` = robot.maxError, `r` = robot.maxErrorRate and `t` =
+/// `tolerance` (in the config's own error units — inches, or radians):
+///   * `t <= 0` (or NaN): `robot`, unchanged — 0 means "the robot's own numbers", bit for bit;
+///   * otherwise maxError = t, and maxErrorRate = r·t/e when `e > 0 && t > e` (LOOSER: the speed
+///     bound loosens in proportion — on a drive leg it is the speed bound, not the distance, that
+///     decides when the leg ends, so a distance alone would change nothing), else r (TIGHTER, or a
+///     robot whose own distance is 0: the rate is never lowered — a smaller rate bound can sit
+///     inside the IMU's noise and never settle, this header's top note — and never divided by 0:
+///     r·t/0 would be inf, which silently drops the speed bound, or NaN, which SettledUtil refuses).
+/// settleTime is never changed. Pure and total; validating `t` is the caller's (MotionOptions::
+/// validate refuses a non-finite or negative tolerance before this runs).
+[[nodiscard]] inline control::SettleConfig loosenedSettle(const control::SettleConfig& robot,
+                                                         double tolerance) noexcept {
+    if (!(tolerance > 0.0)) {
+        return robot;
+    }
+    control::SettleConfig s = robot;
+    s.maxError = tolerance;
+    s.maxErrorRate = (robot.maxError > 0.0 && tolerance > robot.maxError)
+                         ? robot.maxErrorRate * tolerance / robot.maxError
+                         : robot.maxErrorRate;
+    return s;
+}
+
 /// Validate `config` (and a caller-supplied `timeout`) and hand the config straight back, so a
 /// motion can write `cfg_{validatedConfig(config, timeout, "TurnTo")}` as the FIRST member in
 /// its initializer list and have the check run before any component is built from these fields.
