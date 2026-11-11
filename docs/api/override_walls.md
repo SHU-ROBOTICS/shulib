@@ -231,8 +231,8 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  These walls are meaningful ONLY when the robot's estimate is in field coordinates — that is, when
  the auton declared a FIELD start (`competition::StartPose::field(...)`). A RELATIVE-start auton has
  its origin wherever the robot started, so `kLeftWall` names nothing in its frame and a reset against
- it would seat a field number into a robot frame. The everyday call (L6-A2) REFUSES any start that is
- not a FIELD start; the explicit call (`chassis::resetFromWall`, Tier 3 and the host tests) cannot see
+ it would seat a field number into a robot frame. The everyday call (`competition::resetFromWall`)
+ REFUSES any start that is not a FIELD start; the explicit call (`chassis::resetFromWall`, Tier 3 and the host tests) cannot see
  the start mode, so its author either uses these walls under a field-frame estimate or builds an own
  line with `localization::FieldWall::line` (frame `Own`, the author's keep-outs or none).
 

@@ -208,7 +208,7 @@ inline constexpr double kWallDegToRad = math::Angle::kPi / 180.0
 
 Degrees to radians, as a constexpr factor: the wall reset's angle defaults are written `5.0 * kWallDegToRad` because the `_deg` literal builds a non-constexpr math::Angle.
 
-*constant, declared at [`include/shulib/localization/wall_reset.hpp:78`](../../include/shulib/localization/wall_reset.hpp#L78).*
+*constant, declared at [`include/shulib/localization/wall_reset.hpp:79`](../../include/shulib/localization/wall_reset.hpp#L79).*
 
 <a id="kpublishedcloseaccuracyinches"></a>
 
@@ -220,7 +220,7 @@ inline constexpr double kPublishedCloseAccuracyInches = 15.0 / 25.4
 
 VEX's published accuracy of the V5 Distance Sensor below 200 mm — "approximately ±15 mm" — in inches. With kPublishedFarAccuracyFraction it gives the accuracy the reset assumes until a measured `SideMount::rangeAccuracy` replaces it: max(15 mm, 5 % of the reading) at EVERY range, never a step at 200 mm (a step would put a cliff in the precision gate). A4 register HA-204.
 
-*constant, declared at [`include/shulib/localization/wall_reset.hpp:84`](../../include/shulib/localization/wall_reset.hpp#L84).*
+*constant, declared at [`include/shulib/localization/wall_reset.hpp:85`](../../include/shulib/localization/wall_reset.hpp#L85).*
 
 <a id="kpublishedfaraccuracyfraction"></a>
 
@@ -232,7 +232,7 @@ inline constexpr double kPublishedFarAccuracyFraction = 0.05
 
 VEX's published accuracy above 200 mm — "about 5 %" of the reading. A4 register HA-204.
 
-*constant, declared at [`include/shulib/localization/wall_reset.hpp:87`](../../include/shulib/localization/wall_reset.hpp#L87).*
+*constant, declared at [`include/shulib/localization/wall_reset.hpp:88`](../../include/shulib/localization/wall_reset.hpp#L88).*
 
 <a id="enum-class-wallside"></a>
 
@@ -244,7 +244,7 @@ enum class WallSide : std::uint8_t
 
 Which of the robot's two side sensors a reset reads (one per side, facing straight out — the team lead's 2026-10-08 ruling for both robots).
 
-*enum class, declared at [`include/shulib/localization/wall_reset.hpp:91`](../../include/shulib/localization/wall_reset.hpp#L91).*
+*enum class, declared at [`include/shulib/localization/wall_reset.hpp:92`](../../include/shulib/localization/wall_reset.hpp#L92).*
 
 <a id="wallside-left"></a>
 
@@ -256,7 +256,7 @@ Left
 
 The sensor on the robot's LEFT side (facing +90 degrees from forward, typically).
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:93`](../../include/shulib/localization/wall_reset.hpp#L93).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:94`](../../include/shulib/localization/wall_reset.hpp#L94).*
 
 <a id="wallside-right"></a>
 
@@ -268,7 +268,7 @@ Right
 
 The sensor on the robot's RIGHT side (facing -90 degrees from forward, typically).
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:95`](../../include/shulib/localization/wall_reset.hpp#L95).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:96`](../../include/shulib/localization/wall_reset.hpp#L96).*
 
 <a id="wallsideword"></a>
 
@@ -280,7 +280,7 @@ The sensor on the robot's RIGHT side (facing -90 degrees from forward, typically
 
 The side's word in the log line: "LEFT" or "RIGHT" (printed "(LEFT sensor)" — a sensor, never a direction). Exhaustive, no default.
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:100`](../../include/shulib/localization/wall_reset.hpp#L100).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:101`](../../include/shulib/localization/wall_reset.hpp#L101).*
 
 <a id="enum-class-wallframe"></a>
 
@@ -292,7 +292,7 @@ enum class WallFrame : std::uint8_t
 
 Whose coordinates a wall is in.
 
-*enum class, declared at [`include/shulib/localization/wall_reset.hpp:111`](../../include/shulib/localization/wall_reset.hpp#L111).*
+*enum class, declared at [`include/shulib/localization/wall_reset.hpp:112`](../../include/shulib/localization/wall_reset.hpp#L112).*
 
 <a id="wallframe-field"></a>
 
@@ -304,7 +304,7 @@ Field
 
 A SEASON wall in the field frame (F1) — localization::override2026's. Meaningful only when the estimate is in field coordinates, i.e. the auton declared a FIELD start.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:114`](../../include/shulib/localization/wall_reset.hpp#L114).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:115`](../../include/shulib/localization/wall_reset.hpp#L115).*
 
 <a id="wallframe-own"></a>
 
@@ -316,7 +316,7 @@ Own
 
 An author's OWN line (`FieldWall::line`), in whatever frame the author's code uses, with the author's own keep-outs or none — the explicit, Tier-3 form's.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:117`](../../include/shulib/localization/wall_reset.hpp#L117).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:118`](../../include/shulib/localization/wall_reset.hpp#L118).*
 
 <a id="enum-class-keepoutkind"></a>
 
@@ -328,7 +328,7 @@ enum class KeepOutKind : std::uint8_t
 
 What lifts a keep-out span (rule 3).
 
-*enum class, declared at [`include/shulib/localization/wall_reset.hpp:121`](../../include/shulib/localization/wall_reset.hpp#L121).*
+*enum class, declared at [`include/shulib/localization/wall_reset.hpp:122`](../../include/shulib/localization/wall_reset.hpp#L122).*
 
 <a id="keepoutkind-fixed"></a>
 
@@ -340,7 +340,7 @@ Fixed
 
 Never lifted: the Toggle's brackets, the Loaders, the corners, the VEX U Load Zones.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:123`](../../include/shulib/localization/wall_reset.hpp#L123).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:124`](../../include/shulib/localization/wall_reset.hpp#L124).*
 
 <a id="keepoutkind-toggle"></a>
 
@@ -352,7 +352,7 @@ Toggle
 
 The Toggle's BODY: lifted per side only by the mount's MEASURED `toggleChecked` (that sensor, at its height, was seen to read the wall beneath a real Toggle on a field).
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:126`](../../include/shulib/localization/wall_reset.hpp#L126).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:127`](../../include/shulib/localization/wall_reset.hpp#L127).*
 
 <a id="keepoutkind-piecezone"></a>
 
@@ -364,7 +364,7 @@ PieceZone
 
 Where single game pieces are KNOWN to stand (the start pieces): applies while the mount's cone is UNMEASURED and lifts once a measured `coneHalfAngle` is typed, because the beam-height gate (rule 4) then rests on a measured cone.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:130`](../../include/shulib/localization/wall_reset.hpp#L130).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:131`](../../include/shulib/localization/wall_reset.hpp#L131).*
 
 <a id="struct-wallkeepout"></a>
 
@@ -376,7 +376,7 @@ struct WallKeepOut
 
 One stretch of a wall a beam must not land on, as coordinates ALONG the wall (`from` <= `to`; the along axis is the one the wall does not measure).
 
-*struct, declared at [`include/shulib/localization/wall_reset.hpp:135`](../../include/shulib/localization/wall_reset.hpp#L135).*
+*struct, declared at [`include/shulib/localization/wall_reset.hpp:136`](../../include/shulib/localization/wall_reset.hpp#L136).*
 
 <a id="wallkeepout-from"></a>
 
@@ -388,7 +388,7 @@ units::Length from{}
 
 The span's lower end along the wall (inches).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:137`](../../include/shulib/localization/wall_reset.hpp#L137).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:138`](../../include/shulib/localization/wall_reset.hpp#L138).*
 
 <a id="wallkeepout-to"></a>
 
@@ -400,7 +400,7 @@ units::Length to{}
 
 The span's upper end along the wall (inches); >= `from`.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:139`](../../include/shulib/localization/wall_reset.hpp#L139).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:140`](../../include/shulib/localization/wall_reset.hpp#L140).*
 
 <a id="wallkeepout-kind"></a>
 
@@ -412,7 +412,7 @@ KeepOutKind kind = KeepOutKind::Fixed
 
 What lifts it (KeepOutKind).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:141`](../../include/shulib/localization/wall_reset.hpp#L141).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:142`](../../include/shulib/localization/wall_reset.hpp#L142).*
 
 <a id="wallkeepout-why"></a>
 
@@ -424,7 +424,7 @@ const char* why = ""
 
 The span's name in the log line ("Loader", "Load Zone", "Toggle", ...) — a stable literal.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:143`](../../include/shulib/localization/wall_reset.hpp#L143).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:144`](../../include/shulib/localization/wall_reset.hpp#L144).*
 
 <a id="kmaxwallkeepouts"></a>
 
@@ -436,7 +436,7 @@ inline constexpr std::size_t kMaxWallKeepOuts = 12
 
 The most keep-out spans one wall carries (the red and blue walls need 11).
 
-*constant, declared at [`include/shulib/localization/wall_reset.hpp:147`](../../include/shulib/localization/wall_reset.hpp#L147).*
+*constant, declared at [`include/shulib/localization/wall_reset.hpp:148`](../../include/shulib/localization/wall_reset.hpp#L148).*
 
 <a id="struct-fieldwall"></a>
 
@@ -448,7 +448,7 @@ struct FieldWall
 
 A wall: the line `axis = coord`, with the field on its `inward` side (+1: the field is at larger coordinates, as for the left wall at x = -70.2; -1: at smaller), and the spans along it a beam must not land on.
 
-*struct, declared at [`include/shulib/localization/wall_reset.hpp:152`](../../include/shulib/localization/wall_reset.hpp#L152).*
+*struct, declared at [`include/shulib/localization/wall_reset.hpp:153`](../../include/shulib/localization/wall_reset.hpp#L153).*
 
 <a id="fieldwall-name"></a>
 
@@ -460,7 +460,7 @@ const char* name = ""
 
 The wall's name in the log line ("left wall") — a stable literal.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:154`](../../include/shulib/localization/wall_reset.hpp#L154).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:155`](../../include/shulib/localization/wall_reset.hpp#L155).*
 
 <a id="fieldwall-axis"></a>
 
@@ -472,7 +472,7 @@ Axis axis = Axis::X
 
 The axis this wall measures.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:156`](../../include/shulib/localization/wall_reset.hpp#L156).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:157`](../../include/shulib/localization/wall_reset.hpp#L157).*
 
 <a id="fieldwall-coord"></a>
 
@@ -484,7 +484,7 @@ units::Length coord{}
 
 The wall's inner face, as a coordinate on `axis` (inches).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:158`](../../include/shulib/localization/wall_reset.hpp#L158).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:159`](../../include/shulib/localization/wall_reset.hpp#L159).*
 
 <a id="fieldwall-inward"></a>
 
@@ -496,7 +496,7 @@ std::int8_t inward = +1
 
 +1 or -1: the side of the line the field (and the robot) is on. Anything else is refused BadRequest.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:161`](../../include/shulib/localization/wall_reset.hpp#L161).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:162`](../../include/shulib/localization/wall_reset.hpp#L162).*
 
 <a id="fieldwall-frame"></a>
 
@@ -508,7 +508,7 @@ WallFrame frame = WallFrame::Field
 
 Whose coordinates the wall is in (WallFrame).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:163`](../../include/shulib/localization/wall_reset.hpp#L163).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:164`](../../include/shulib/localization/wall_reset.hpp#L164).*
 
 <a id="fieldwall-keepout"></a>
 
@@ -520,7 +520,7 @@ std::array<WallKeepOut, kMaxWallKeepOuts> keepOut{}
 
 The keep-out spans; the first `keepOutCount` are used.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:165`](../../include/shulib/localization/wall_reset.hpp#L165).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:166`](../../include/shulib/localization/wall_reset.hpp#L166).*
 
 <a id="fieldwall-keepoutcount"></a>
 
@@ -532,7 +532,7 @@ std::uint8_t keepOutCount = 0
 
 How many of `keepOut` are used.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:167`](../../include/shulib/localization/wall_reset.hpp#L167).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:168`](../../include/shulib/localization/wall_reset.hpp#L168).*
 
 <a id="fieldwall-line"></a>
 
@@ -544,7 +544,7 @@ How many of `keepOut` are used.
 
 An author's OWN wall line (frame `Own`) — for hand-wired Tier-3 code and tests that know their frame: the line `axis = coord`, the field on the `inward` side, and the author's keep-outs (none by default — a line with none has none: the reset then cannot tell a Loader from the wall). More than kMaxWallKeepOuts spans is a programming error (a precondition).
 
-*function, declared at [`include/shulib/localization/wall_reset.hpp:173`](../../include/shulib/localization/wall_reset.hpp#L173).*
+*function, declared at [`include/shulib/localization/wall_reset.hpp:174`](../../include/shulib/localization/wall_reset.hpp#L174).*
 
 <a id="fieldwall-keepouts"></a>
 
@@ -556,7 +556,7 @@ An author's OWN wall line (frame `Own`) — for hand-wired Tier-3 code and tests
 
 The used keep-out spans, as a view into this wall.
 
-*function, declared at [`include/shulib/localization/wall_reset.hpp:192`](../../include/shulib/localization/wall_reset.hpp#L192).*
+*function, declared at [`include/shulib/localization/wall_reset.hpp:193`](../../include/shulib/localization/wall_reset.hpp#L193).*
 
 <a id="struct-sidemount"></a>
 
@@ -568,7 +568,7 @@ struct SideMount
 
 One side sensor's place on the robot, in the BODY frame, MEASURED with a tape on the robot — every number with its tolerance, and a provenance string. `measured == false` (the default) makes every reset with this sensor REFUSE `MountUnset`; a placeholder "so the reset works" is the defect this project has paid for before.
 
-*struct, declared at [`include/shulib/localization/wall_reset.hpp:202`](../../include/shulib/localization/wall_reset.hpp#L202).*
+*struct, declared at [`include/shulib/localization/wall_reset.hpp:203`](../../include/shulib/localization/wall_reset.hpp#L203).*
 
 <a id="sidemount-measured"></a>
 
@@ -580,7 +580,7 @@ bool measured = false
 
 False = UNSET: every reset with this sensor refuses MountUnset (never the robot).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:204`](../../include/shulib/localization/wall_reset.hpp#L204).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:205`](../../include/shulib/localization/wall_reset.hpp#L205).*
 
 <a id="sidemount-forward"></a>
 
@@ -592,7 +592,7 @@ units::Length forward{}
 
 The lens's offset FORWARD of the robot's centre (the turning centre on a tank), inches. The fore-aft centre (0) is load-bearing for precision: the axis error from a heading error is this offset times the heading error.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:208`](../../include/shulib/localization/wall_reset.hpp#L208).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:209`](../../include/shulib/localization/wall_reset.hpp#L209).*
 
 <a id="sidemount-left"></a>
 
@@ -604,7 +604,7 @@ units::Length left{}
 
 The lens's offset to the LEFT of the robot's centre, inches (negative = right).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:210`](../../include/shulib/localization/wall_reset.hpp#L210).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:211`](../../include/shulib/localization/wall_reset.hpp#L211).*
 
 <a id="sidemount-height"></a>
 
@@ -616,7 +616,7 @@ units::Length height{}
 
 The lens centre's height above the floor, inches — decides the beam-height ceiling (rule 4).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:212`](../../include/shulib/localization/wall_reset.hpp#L212).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:213`](../../include/shulib/localization/wall_reset.hpp#L213).*
 
 <a id="sidemount-facing"></a>
 
@@ -628,7 +628,7 @@ units::AngleDim facing{}
 
 The beam's direction, counter-clockwise from forward: `90.0 * kWallDegToRad` = straight out the left side, `-90.0 * kWallDegToRad` the right.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:215`](../../include/shulib/localization/wall_reset.hpp#L215).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:216`](../../include/shulib/localization/wall_reset.hpp#L216).*
 
 <a id="sidemount-positiontolerance"></a>
 
@@ -640,7 +640,7 @@ units::Length positionTolerance{0.25}
 
 How well `forward` and `left` were measured (inches, +/-). PROVISIONAL default (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:217`](../../include/shulib/localization/wall_reset.hpp#L217).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:218`](../../include/shulib/localization/wall_reset.hpp#L218).*
 
 <a id="sidemount-facingtolerance"></a>
 
@@ -652,7 +652,7 @@ units::AngleDim facingTolerance{2.0 * kWallDegToRad}
 
 How square the sensor was found (+/-). PROVISIONAL default (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:219`](../../include/shulib/localization/wall_reset.hpp#L219).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:220`](../../include/shulib/localization/wall_reset.hpp#L220).*
 
 <a id="sidemount-rangebias"></a>
 
@@ -664,7 +664,7 @@ units::Length rangeBias{}
 
 Subtracted from every reading; 0 = none measured. Typed ONLY when this sensor's readings at taped distances from a wall show a consistent offset (A4 register HA-204).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:222`](../../include/shulib/localization/wall_reset.hpp#L222).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:223`](../../include/shulib/localization/wall_reset.hpp#L223).*
 
 <a id="sidemount-rangeaccuracy"></a>
 
@@ -676,7 +676,7 @@ units::Length rangeAccuracy{}
 
 This sensor's +/- accuracy, measured from readings at taped distances from a wall; 0 = unmeasured, and the reset assumes VEX's published max(15 mm, 5 % of the reading) — A4 register HA-204.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:226`](../../include/shulib/localization/wall_reset.hpp#L226).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:227`](../../include/shulib/localization/wall_reset.hpp#L227).*
 
 <a id="sidemount-conehalfangle"></a>
 
@@ -688,7 +688,7 @@ units::AngleDim coneHalfAngle{}
 
 The beam's half-angle, measured (how far to the side of the beam a target is still seen); 0 = UNMEASURED: the limits' 18 degrees is used and the start-piece zones stay kept out (A4 register HA-205).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:230`](../../include/shulib/localization/wall_reset.hpp#L230).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:231`](../../include/shulib/localization/wall_reset.hpp#L231).*
 
 <a id="sidemount-togglechecked"></a>
 
@@ -700,7 +700,7 @@ bool toggleChecked = false
 
 True only when this sensor, at its height, was seen to read the WALL beneath a real Toggle's BODY on a field — then the Toggle body's keep-out lifts for it (its brackets never do — A4 register HA-208).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:234`](../../include/shulib/localization/wall_reset.hpp#L234).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:235`](../../include/shulib/localization/wall_reset.hpp#L235).*
 
 <a id="sidemount-provenance"></a>
 
@@ -712,7 +712,7 @@ const char* provenance = ""
 
 Who measured what, how and when — a stable literal; printed by nothing, read by people.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:236`](../../include/shulib/localization/wall_reset.hpp#L236).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:237`](../../include/shulib/localization/wall_reset.hpp#L237).*
 
 <a id="struct-wallresetlimits"></a>
 
@@ -724,7 +724,7 @@ struct WallResetLimits
 
 The sensor-physics and geometry gates — PROVISIONAL library defaults (A4: HA-211), overridable per robot. The ONE policy number, maxCorrection, is not here: the author states it in every request.
 
-*struct, declared at [`include/shulib/localization/wall_reset.hpp:241`](../../include/shulib/localization/wall_reset.hpp#L241).*
+*struct, declared at [`include/shulib/localization/wall_reset.hpp:242`](../../include/shulib/localization/wall_reset.hpp#L242).*
 
 <a id="wallresetlimits-rangemin"></a>
 
@@ -736,7 +736,7 @@ units::Length rangeMin{2.0}
 
 The shortest bias-corrected reading accepted (inches): VEX's 20-mm floor with room for the unpublished close-range behaviour. PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:244`](../../include/shulib/localization/wall_reset.hpp#L244).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:245`](../../include/shulib/localization/wall_reset.hpp#L245).*
 
 <a id="wallresetlimits-rangemax"></a>
 
@@ -748,7 +748,7 @@ units::Length rangeMax{16.0}
 
 The longest (inches): where the published accuracy alone (5 % = 0.8 in) leaves no room under the 1.0-in precision gate. PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:247`](../../include/shulib/localization/wall_reset.hpp#L247).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:248`](../../include/shulib/localization/wall_reset.hpp#L248).*
 
 <a id="wallresetlimits-squarewithin"></a>
 
@@ -760,7 +760,7 @@ units::AngleDim squareWithin{5.0 * kWallDegToRad}
 
 The beam's largest angle off the wall's normal (rule 2). PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:249`](../../include/shulib/localization/wall_reset.hpp#L249).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:250`](../../include/shulib/localization/wall_reset.hpp#L250).*
 
 <a id="wallresetlimits-spreadmax"></a>
 
@@ -772,7 +772,7 @@ units::Length spreadMax{0.5}
 
 The window's largest max - min reading (rule 7). PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:251`](../../include/shulib/localization/wall_reset.hpp#L251).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:252`](../../include/shulib/localization/wall_reset.hpp#L252).*
 
 <a id="wallresetlimits-minsamples"></a>
 
@@ -784,7 +784,7 @@ int minSamples = 5
 
 The fewest samples a window needs (rule 7); at most kMaxWallSamples. PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:253`](../../include/shulib/localization/wall_reset.hpp#L253).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:254`](../../include/shulib/localization/wall_reset.hpp#L254).*
 
 <a id="wallresetlimits-window"></a>
 
@@ -796,7 +796,7 @@ units::Time window{0.15}
 
 The shortest window (rule 7) — the TIME is the real guard: reads inside one sensor update repeat (A4 register HA-209). Also the span rule 5 measures the speed over. Above 0 and at most kMaxWallWindowSeconds. PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:257`](../../include/shulib/localization/wall_reset.hpp#L257).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:258`](../../include/shulib/localization/wall_reset.hpp#L258).*
 
 <a id="wallresetlimits-windowmax"></a>
 
@@ -808,7 +808,7 @@ units::Time windowMax{0.5}
 
 The longest a window may run — the explicit form's frozen-wait lateness bound (at most 1 s). PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:260`](../../include/shulib/localization/wall_reset.hpp#L260).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:261`](../../include/shulib/localization/wall_reset.hpp#L261).*
 
 <a id="wallresetlimits-minconfidence"></a>
 
@@ -820,7 +820,7 @@ double minConfidence = 0.5
 
 The lowest confidence a sample may carry (rule 6). Synthetic below 200 mm: the adapter reports 1.0 there. PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:263`](../../include/shulib/localization/wall_reset.hpp#L263).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:264`](../../include/shulib/localization/wall_reset.hpp#L264).*
 
 <a id="wallresetlimits-stillspeed"></a>
 
@@ -832,7 +832,7 @@ units::Velocity stillSpeed{1.0}
 
 The fastest the estimate may move during the window (rule 5): its displacement over the trailing `window`, divided by that time — never one tick's finite difference, which turns a still IMU's heading noise into phantom speed on offset tracking wheels. PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:268`](../../include/shulib/localization/wall_reset.hpp#L268).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:269`](../../include/shulib/localization/wall_reset.hpp#L269).*
 
 <a id="wallresetlimits-stillturn"></a>
 
@@ -844,7 +844,7 @@ units::AngularVelocity stillTurn{3.0 * kWallDegToRad}
 
 The fastest it may turn during the window (rule 5), on every tick (the IMU's own rate). PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:271`](../../include/shulib/localization/wall_reset.hpp#L271).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:272`](../../include/shulib/localization/wall_reset.hpp#L272).*
 
 <a id="wallresetlimits-errorboundmax"></a>
 
@@ -856,7 +856,7 @@ units::Length errorBoundMax{1.0}
 
 The largest worst-case error of the answer (rule 8) — F2's ~1.0-in pose target. PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:274`](../../include/shulib/localization/wall_reset.hpp#L274).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:275`](../../include/shulib/localization/wall_reset.hpp#L275).*
 
 <a id="wallresetlimits-keepoutmargin"></a>
 
@@ -868,7 +868,7 @@ units::Length keepOutMargin{3.0}
 
 The keep-out margin (rule 3): start-pose placement + a field element's place + the beam centre's aim, summed (~2.1) and rounded up. PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:277`](../../include/shulib/localization/wall_reset.hpp#L277).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:278`](../../include/shulib/localization/wall_reset.hpp#L278).*
 
 <a id="wallresetlimits-alongdriftrate"></a>
 
@@ -880,7 +880,7 @@ double alongDriftRate = 0.10
 
 The along-wall drift rate (rule 3): the keep-outs widen by this times the travel since the along axis was last set (robot two's saved scale reads ~8 % short). PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:280`](../../include/shulib/localization/wall_reset.hpp#L280).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:281`](../../include/shulib/localization/wall_reset.hpp#L281).*
 
 <a id="wallresetlimits-conehalfangle"></a>
 
@@ -892,7 +892,7 @@ units::AngleDim coneHalfAngle{18.0 * kWallDegToRad}
 
 The beam half-angle while the mount's is unmeasured (rules 3, 4) — an unofficial figure (A4 register HA-205). PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:283`](../../include/shulib/localization/wall_reset.hpp#L283).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:284`](../../include/shulib/localization/wall_reset.hpp#L284).*
 
 <a id="wallresetlimits-piecetop"></a>
 
@@ -904,7 +904,7 @@ units::Length pieceTop{6.5}
 
 The tallest single game piece the ceiling keeps the cone above (inches): a standing Pin or Cup (A4 register HA-212). PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:286`](../../include/shulib/localization/wall_reset.hpp#L286).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:287`](../../include/shulib/localization/wall_reset.hpp#L287).*
 
 <a id="wallresetlimits-beammargin"></a>
 
@@ -916,7 +916,7 @@ units::Length beamMargin{0.5}
 
 The clearance above that piece (inches). PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:288`](../../include/shulib/localization/wall_reset.hpp#L288).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:289`](../../include/shulib/localization/wall_reset.hpp#L289).*
 
 <a id="wallresetlimits-headingfloor"></a>
 
@@ -928,7 +928,7 @@ units::AngleDim headingFloor{2.0 * kWallDegToRad}
 
 The heading tolerance's floor (rule 8): HA-20's drift over a run, doubled. PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:291`](../../include/shulib/localization/wall_reset.hpp#L291).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:292`](../../include/shulib/localization/wall_reset.hpp#L292).*
 
 <a id="wallresetlimits-headingperturn"></a>
 
@@ -940,7 +940,7 @@ double headingPerTurn = 0.02
 
 The heading tolerance's growth per radian turned since the heading was set: HA-84's 1 %, doubled. PROVISIONAL (A4: HA-211).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:294`](../../include/shulib/localization/wall_reset.hpp#L294).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:295`](../../include/shulib/localization/wall_reset.hpp#L295).*
 
 <a id="struct-wallresetrequest"></a>
 
@@ -952,7 +952,7 @@ struct WallResetRequest
 
 One reset, as an auton states it: the wall, the side, how far it may move the coordinate, and whether a refusal fails the step.
 
-*struct, declared at [`include/shulib/localization/wall_reset.hpp:299`](../../include/shulib/localization/wall_reset.hpp#L299).*
+*struct, declared at [`include/shulib/localization/wall_reset.hpp:300`](../../include/shulib/localization/wall_reset.hpp#L300).*
 
 <a id="wallresetrequest-wall"></a>
 
@@ -964,7 +964,7 @@ FieldWall wall{}
 
 The wall to reset against — a season wall (`localization::override2026::kLeftWall`, ...) or an author's own line (`FieldWall::line`).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:302`](../../include/shulib/localization/wall_reset.hpp#L302).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:303`](../../include/shulib/localization/wall_reset.hpp#L303).*
 
 <a id="wallresetrequest-sensor"></a>
 
@@ -976,7 +976,7 @@ WallSide sensor = WallSide::Left
 
 Which side's sensor faces it.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:304`](../../include/shulib/localization/wall_reset.hpp#L304).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:305`](../../include/shulib/localization/wall_reset.hpp#L305).*
 
 <a id="wallresetrequest-maxcorrection"></a>
 
@@ -988,7 +988,7 @@ units::Length maxCorrection{0.0}
 
 How far this wall may move the coordinate (inches). NO DEFAULT: 0 is UNSET and refused by name (`maxCorrection UNSET: say how far this wall may move x`) — the largest drift the author has taped at this point plus ~1 in, never near the gap to anything a wrong seat could mistake for the wall.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:309`](../../include/shulib/localization/wall_reset.hpp#L309).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:310`](../../include/shulib/localization/wall_reset.hpp#L310).*
 
 <a id="wallresetrequest-required"></a>
 
@@ -1000,7 +1000,7 @@ bool required = false
 
 True: a refusal FAILS the step (through `then()` the chain stops). False: a refusal leaves the estimate as it was and the auton goes on.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:312`](../../include/shulib/localization/wall_reset.hpp#L312).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:313`](../../include/shulib/localization/wall_reset.hpp#L313).*
 
 <a id="wallresetrequest-name"></a>
 
@@ -1012,7 +1012,7 @@ const char* name = nullptr
 
 Optional: leads the log line when set — a stable literal.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:314`](../../include/shulib/localization/wall_reset.hpp#L314).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:315`](../../include/shulib/localization/wall_reset.hpp#L315).*
 
 <a id="struct-wallsample"></a>
 
@@ -1024,7 +1024,7 @@ struct WallSample
 
 One sample of the window, as the sampler took it.
 
-*struct, declared at [`include/shulib/localization/wall_reset.hpp:318`](../../include/shulib/localization/wall_reset.hpp#L318).*
+*struct, declared at [`include/shulib/localization/wall_reset.hpp:319`](../../include/shulib/localization/wall_reset.hpp#L319).*
 
 <a id="wallsample-distance"></a>
 
@@ -1036,7 +1036,7 @@ units::Length distance{}
 
 The sensor's distance() reading — RAW (the mount's bias is removed by the gates, never here).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:320`](../../include/shulib/localization/wall_reset.hpp#L320).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:321`](../../include/shulib/localization/wall_reset.hpp#L321).*
 
 <a id="wallsample-confidence"></a>
 
@@ -1048,7 +1048,7 @@ double confidence = 0.0
 
 The sensor's confidence() reading, in [0, 1].
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:322`](../../include/shulib/localization/wall_reset.hpp#L322).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:323`](../../include/shulib/localization/wall_reset.hpp#L323).*
 
 <a id="wallsample-faultmoved"></a>
 
@@ -1060,7 +1060,7 @@ bool faultMoved = false
 
 The read-fault count moved across the sample's two device reads: the values may be HELD (a faulted port's adapter returns its last good reading), not measured — never evidence.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:325`](../../include/shulib/localization/wall_reset.hpp#L325).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:326`](../../include/shulib/localization/wall_reset.hpp#L326).*
 
 <a id="wallsample-at"></a>
 
@@ -1072,7 +1072,7 @@ units::Time at{}
 
 When it was taken, from the window's first sample.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:327`](../../include/shulib/localization/wall_reset.hpp#L327).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:328`](../../include/shulib/localization/wall_reset.hpp#L328).*
 
 <a id="kmaxwallsamples"></a>
 
@@ -1084,7 +1084,7 @@ inline constexpr std::size_t kMaxWallSamples = 64
 
 The window's sample buffer: fixed, allocation-free. At the 10-ms tick the 0.5-s windowMax is 50 samples; a faster pacer fills it and the sampler STOPS at capacity — it never wraps or overruns.
 
-*constant, declared at [`include/shulib/localization/wall_reset.hpp:332`](../../include/shulib/localization/wall_reset.hpp#L332).*
+*constant, declared at [`include/shulib/localization/wall_reset.hpp:333`](../../include/shulib/localization/wall_reset.hpp#L333).*
 
 <a id="kmaxwallwindowseconds"></a>
 
@@ -1096,7 +1096,7 @@ inline constexpr double kMaxWallWindowSeconds = 0.6
 
 The longest `WallResetLimits::window` a reset accepts (seconds). The 64-sample buffer spans 63 ticks — 0.63 s at the project's 10-ms control tick — and a `window` longer than the buffer can span could never be met: every reset would end TOO FEW SAMPLES. 0.6 s keeps a tick of slack; past it the request is refused BadRequest, naming the field (found by the L6-A1 review).
 
-*constant, declared at [`include/shulib/localization/wall_reset.hpp:338`](../../include/shulib/localization/wall_reset.hpp#L338).*
+*constant, declared at [`include/shulib/localization/wall_reset.hpp:339`](../../include/shulib/localization/wall_reset.hpp#L339).*
 
 <a id="enum-class-wallresetverdict"></a>
 
@@ -1108,7 +1108,7 @@ enum class WallResetVerdict : std::uint8_t
 
 A reset's verdict. APPEND-ONLY from L6-A1's landing (2026-10-29): a value is never renumbered or reused. `wallResetVerdictWord` gives each its word; guide 11 gives each its remedy.
 
-*enum class, declared at [`include/shulib/localization/wall_reset.hpp:342`](../../include/shulib/localization/wall_reset.hpp#L342).*
+*enum class, declared at [`include/shulib/localization/wall_reset.hpp:343`](../../include/shulib/localization/wall_reset.hpp#L343).*
 
 <a id="wallresetverdict-seated"></a>
 
@@ -1120,7 +1120,7 @@ Seated
 
 The axis was re-seated.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:344`](../../include/shulib/localization/wall_reset.hpp#L344).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:345`](../../include/shulib/localization/wall_reset.hpp#L345).*
 
 <a id="wallresetverdict-nosensor"></a>
 
@@ -1130,9 +1130,9 @@ The axis was re-seated.
 NoSensor
 ```
 
-The robot declares no wall sensors (the everyday form's context has no slot — L6-A2).
+The robot declares no wall sensors (the everyday form: the robot's context has no wall-sensor slot).
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:346`](../../include/shulib/localization/wall_reset.hpp#L346).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:348`](../../include/shulib/localization/wall_reset.hpp#L348).*
 
 <a id="wallresetverdict-sensorabsent"></a>
 
@@ -1144,7 +1144,7 @@ SensorAbsent
 
 The named side's sensor does not exist (the provider refused it); the detail is the reason.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:348`](../../include/shulib/localization/wall_reset.hpp#L348).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:350`](../../include/shulib/localization/wall_reset.hpp#L350).*
 
 <a id="wallresetverdict-mountunset"></a>
 
@@ -1156,7 +1156,7 @@ MountUnset
 
 The side's mount was never measured (`SideMount::measured` false).
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:350`](../../include/shulib/localization/wall_reset.hpp#L350).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:352`](../../include/shulib/localization/wall_reset.hpp#L352).*
 
 <a id="wallresetverdict-notlive"></a>
 
@@ -1168,7 +1168,7 @@ NotLive
 
 The estimate is not live yet (the IMU still booting).
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:352`](../../include/shulib/localization/wall_reset.hpp#L352).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:354`](../../include/shulib/localization/wall_reset.hpp#L354).*
 
 <a id="wallresetverdict-motionactive"></a>
 
@@ -1180,7 +1180,7 @@ MotionActive
 
 A motion is still armed (a Tier-3 `async()`): the reset never moves the estimate under one.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:354`](../../include/shulib/localization/wall_reset.hpp#L354).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:356`](../../include/shulib/localization/wall_reset.hpp#L356).*
 
 <a id="wallresetverdict-badrequest"></a>
 
@@ -1192,7 +1192,7 @@ BadRequest
 
 A request, mount or limit field is unusable; the detail names it.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:356`](../../include/shulib/localization/wall_reset.hpp#L356).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:358`](../../include/shulib/localization/wall_reset.hpp#L358).*
 
 <a id="wallresetverdict-notfieldstart"></a>
 
@@ -1202,9 +1202,9 @@ A request, mount or limit field is unusable; the detail names it.
 NotFieldStart
 ```
 
-The auton's start is not a FIELD start (the everyday form — L6-A2).
+The auton's start is not a FIELD start (the everyday form); the detail is the start mode's word.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:358`](../../include/shulib/localization/wall_reset.hpp#L358).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:360`](../../include/shulib/localization/wall_reset.hpp#L360).*
 
 <a id="wallresetverdict-notsquare"></a>
 
@@ -1216,7 +1216,7 @@ NotSquare
 
 The beam is not within `squareWithin` of the wall's normal (or faces away from it).
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:360`](../../include/shulib/localization/wall_reset.hpp#L360).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:362`](../../include/shulib/localization/wall_reset.hpp#L362).*
 
 <a id="wallresetverdict-keepout"></a>
 
@@ -1228,7 +1228,7 @@ KeepOut
 
 The beam lands on (or its widened footprint overlaps) a keep-out span; the detail names it.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:362`](../../include/shulib/localization/wall_reset.hpp#L362).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:364`](../../include/shulib/localization/wall_reset.hpp#L364).*
 
 <a id="wallresetverdict-beamlow"></a>
 
@@ -1240,7 +1240,7 @@ BeamLow
 
 The expected range, or the median's, is past the beam-height ceiling.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:364`](../../include/shulib/localization/wall_reset.hpp#L364).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:366`](../../include/shulib/localization/wall_reset.hpp#L366).*
 
 <a id="wallresetverdict-moving"></a>
 
@@ -1252,7 +1252,7 @@ Moving
 
 The estimate moved or turned during the window.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:366`](../../include/shulib/localization/wall_reset.hpp#L366).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:368`](../../include/shulib/localization/wall_reset.hpp#L368).*
 
 <a id="wallresetverdict-readfault"></a>
 
@@ -1264,7 +1264,7 @@ ReadFault
 
 A sample was read while the port faulted.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:368`](../../include/shulib/localization/wall_reset.hpp#L368).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:370`](../../include/shulib/localization/wall_reset.hpp#L370).*
 
 <a id="wallresetverdict-noreturn"></a>
 
@@ -1276,7 +1276,7 @@ NoReturn
 
 A sample had no return (confidence 0 — PROS's 9999, or a held value).
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:370`](../../include/shulib/localization/wall_reset.hpp#L370).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:372`](../../include/shulib/localization/wall_reset.hpp#L372).*
 
 <a id="wallresetverdict-lowconfidence"></a>
 
@@ -1288,7 +1288,7 @@ LowConfidence
 
 A sample's confidence was under `minConfidence`.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:372`](../../include/shulib/localization/wall_reset.hpp#L372).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:374`](../../include/shulib/localization/wall_reset.hpp#L374).*
 
 <a id="wallresetverdict-outofrange"></a>
 
@@ -1300,7 +1300,7 @@ OutOfRange
 
 A sample's bias-corrected range was outside [rangeMin, rangeMax].
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:374`](../../include/shulib/localization/wall_reset.hpp#L374).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:376`](../../include/shulib/localization/wall_reset.hpp#L376).*
 
 <a id="wallresetverdict-toofewsamples"></a>
 
@@ -1312,7 +1312,7 @@ TooFewSamples
 
 The window had fewer than `minSamples`, or ran shorter than `window`.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:376`](../../include/shulib/localization/wall_reset.hpp#L376).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:378`](../../include/shulib/localization/wall_reset.hpp#L378).*
 
 <a id="wallresetverdict-spread"></a>
 
@@ -1324,7 +1324,7 @@ Spread
 
 The window's readings spread more than `spreadMax`.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:378`](../../include/shulib/localization/wall_reset.hpp#L378).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:380`](../../include/shulib/localization/wall_reset.hpp#L380).*
 
 <a id="wallresetverdict-imprecise"></a>
 
@@ -1336,7 +1336,7 @@ Imprecise
 
 The answer's worst-case error is over `errorBoundMax`.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:380`](../../include/shulib/localization/wall_reset.hpp#L380).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:382`](../../include/shulib/localization/wall_reset.hpp#L382).*
 
 <a id="wallresetverdict-disagrees"></a>
 
@@ -1348,7 +1348,7 @@ Disagrees
 
 The answer differs from the estimate by more than `maxCorrection`.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:382`](../../include/shulib/localization/wall_reset.hpp#L382).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:384`](../../include/shulib/localization/wall_reset.hpp#L384).*
 
 <a id="wallresetverdict-cut"></a>
 
@@ -1358,9 +1358,9 @@ The answer differs from the estimate by more than `maxCorrection`.
 Cut
 ```
 
-The run's deadline or a disable landed in the window (the everyday form — L6-A2).
+The run's deadline or a disable landed in the window — or had already come when it was to begin (`samples` 0; the line says which) — the everyday form.
 
-*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:384`](../../include/shulib/localization/wall_reset.hpp#L384).*
+*enumerator, declared at [`include/shulib/localization/wall_reset.hpp:387`](../../include/shulib/localization/wall_reset.hpp#L387).*
 
 <a id="wallresetverdictword"></a>
 
@@ -1372,7 +1372,7 @@ The run's deadline or a disable landed in the window (the everyday form — L6-A
 
 The verdict's word in the log line ("SEATED", "REFUSED keep-out", ...). Exhaustive with no `default:` — a new verdict without a word does not compile (-Wswitch -Werror).
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:389`](../../include/shulib/localization/wall_reset.hpp#L389).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:392`](../../include/shulib/localization/wall_reset.hpp#L392).*
 
 <a id="struct-wallresetreport"></a>
 
@@ -1384,7 +1384,7 @@ struct WallResetReport
 
 What a reset did, with every number its log line prints. A VALUE: a refusal is a report, never an exception. Fields a verdict did not reach stay at their defaults.
 
-*struct, declared at [`include/shulib/localization/wall_reset.hpp:439`](../../include/shulib/localization/wall_reset.hpp#L439).*
+*struct, declared at [`include/shulib/localization/wall_reset.hpp:442`](../../include/shulib/localization/wall_reset.hpp#L442).*
 
 <a id="wallresetreport-verdict"></a>
 
@@ -1396,7 +1396,7 @@ WallResetVerdict verdict = WallResetVerdict::NoSensor
 
 The verdict (the FIRST rule that failed, or Seated).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:441`](../../include/shulib/localization/wall_reset.hpp#L441).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:444`](../../include/shulib/localization/wall_reset.hpp#L444).*
 
 <a id="wallresetreport-axis"></a>
 
@@ -1408,7 +1408,7 @@ Axis axis = Axis::X
 
 The axis the wall measures.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:443`](../../include/shulib/localization/wall_reset.hpp#L443).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:446`](../../include/shulib/localization/wall_reset.hpp#L446).*
 
 <a id="wallresetreport-side"></a>
 
@@ -1420,7 +1420,7 @@ WallSide side = WallSide::Left
 
 The side whose sensor was read.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:445`](../../include/shulib/localization/wall_reset.hpp#L445).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:448`](../../include/shulib/localization/wall_reset.hpp#L448).*
 
 <a id="wallresetreport-required"></a>
 
@@ -1432,7 +1432,7 @@ bool required = false
 
 The request's `required` (D3): a refusal then fails the step.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:447`](../../include/shulib/localization/wall_reset.hpp#L447).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:450`](../../include/shulib/localization/wall_reset.hpp#L450).*
 
 <a id="wallresetreport-before"></a>
 
@@ -1444,7 +1444,7 @@ units::Length before{}
 
 The estimate's coordinate on `axis` when the reset judged it.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:449`](../../include/shulib/localization/wall_reset.hpp#L449).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:452`](../../include/shulib/localization/wall_reset.hpp#L452).*
 
 <a id="wallresetreport-measured"></a>
 
@@ -1456,7 +1456,7 @@ units::Length measured{}
 
 The wall's answer for that coordinate (filled once a median exists).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:451`](../../include/shulib/localization/wall_reset.hpp#L451).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:454`](../../include/shulib/localization/wall_reset.hpp#L454).*
 
 <a id="wallresetreport-applied"></a>
 
@@ -1468,7 +1468,7 @@ units::Length applied{}
 
 How far the coordinate was moved: measured - before when SEATED, 0 otherwise.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:453`](../../include/shulib/localization/wall_reset.hpp#L453).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:456`](../../include/shulib/localization/wall_reset.hpp#L456).*
 
 <a id="wallresetreport-maxcorrection"></a>
 
@@ -1480,7 +1480,7 @@ units::Length maxCorrection{}
 
 The request's maxCorrection, echoed for the line.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:455`](../../include/shulib/localization/wall_reset.hpp#L455).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:458`](../../include/shulib/localization/wall_reset.hpp#L458).*
 
 <a id="wallresetreport-median"></a>
 
@@ -1492,7 +1492,7 @@ units::Length median{}
 
 The window's MEDIAN reading — raw, as the sensor gave it.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:457`](../../include/shulib/localization/wall_reset.hpp#L457).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:460`](../../include/shulib/localization/wall_reset.hpp#L460).*
 
 <a id="wallresetreport-spread"></a>
 
@@ -1504,7 +1504,7 @@ units::Length spread{}
 
 The window's max - min reading.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:459`](../../include/shulib/localization/wall_reset.hpp#L459).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:462`](../../include/shulib/localization/wall_reset.hpp#L462).*
 
 <a id="wallresetreport-samples"></a>
 
@@ -1516,7 +1516,7 @@ int samples = 0
 
 How many samples the window took.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:461`](../../include/shulib/localization/wall_reset.hpp#L461).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:464`](../../include/shulib/localization/wall_reset.hpp#L464).*
 
 <a id="wallresetreport-windowspan"></a>
 
@@ -1528,7 +1528,7 @@ units::Time windowSpan{}
 
 How long the window ran (first sample to last).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:463`](../../include/shulib/localization/wall_reset.hpp#L463).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:466`](../../include/shulib/localization/wall_reset.hpp#L466).*
 
 <a id="wallresetreport-offsquare"></a>
 
@@ -1540,7 +1540,7 @@ units::AngleDim offSquare{}
 
 The beam's angle off the wall's normal, by the estimate's heading (rule 2).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:465`](../../include/shulib/localization/wall_reset.hpp#L465).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:468`](../../include/shulib/localization/wall_reset.hpp#L468).*
 
 <a id="wallresetreport-expectedrange"></a>
 
@@ -1552,7 +1552,7 @@ units::Length expectedRange{}
 
 The beam-centre range to the wall the ESTIMATE implies (rules 3, 4).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:467`](../../include/shulib/localization/wall_reset.hpp#L467).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:470`](../../include/shulib/localization/wall_reset.hpp#L470).*
 
 <a id="wallresetreport-along"></a>
 
@@ -1564,7 +1564,7 @@ units::Length along{}
 
 The beam centre's coordinate along the wall, by the estimate (rule 3).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:469`](../../include/shulib/localization/wall_reset.hpp#L469).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:472`](../../include/shulib/localization/wall_reset.hpp#L472).*
 
 <a id="wallresetreport-beamhalfwidth"></a>
 
@@ -1576,7 +1576,7 @@ units::Length beamHalfWidth{}
 
 The beam's footprint half-width along the wall at the expected range (rule 3).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:471`](../../include/shulib/localization/wall_reset.hpp#L471).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:474`](../../include/shulib/localization/wall_reset.hpp#L474).*
 
 <a id="wallresetreport-keepoutmargin"></a>
 
@@ -1588,7 +1588,7 @@ units::Length keepOutMargin{}
 
 The keep-out margin used (rule 3).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:473`](../../include/shulib/localization/wall_reset.hpp#L473).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:476`](../../include/shulib/localization/wall_reset.hpp#L476).*
 
 <a id="wallresetreport-alonguncertainty"></a>
 
@@ -1600,7 +1600,7 @@ units::Length alongUncertainty{}
 
 The along-wall drift allowance used: alongDriftRate x travelSinceSeat (rule 3).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:475`](../../include/shulib/localization/wall_reset.hpp#L475).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:478`](../../include/shulib/localization/wall_reset.hpp#L478).*
 
 <a id="wallresetreport-cone"></a>
 
@@ -1612,7 +1612,7 @@ units::AngleDim cone{}
 
 The beam half-angle used (the mount's measured one, or the limits').
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:477`](../../include/shulib/localization/wall_reset.hpp#L477).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:480`](../../include/shulib/localization/wall_reset.hpp#L480).*
 
 <a id="wallresetreport-ceiling"></a>
 
@@ -1624,7 +1624,7 @@ units::Length ceiling{}
 
 The beam-height ceiling (rule 4).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:479`](../../include/shulib/localization/wall_reset.hpp#L479).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:482`](../../include/shulib/localization/wall_reset.hpp#L482).*
 
 <a id="wallresetreport-headingtolerance"></a>
 
@@ -1636,7 +1636,7 @@ units::AngleDim headingTolerance{}
 
 The heading tolerance used by the precision gate (rule 8).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:481`](../../include/shulib/localization/wall_reset.hpp#L481).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:484`](../../include/shulib/localization/wall_reset.hpp#L484).*
 
 <a id="wallresetreport-errorbound"></a>
 
@@ -1648,7 +1648,7 @@ units::Length errorBound{}
 
 The answer's worst-case error (rule 8; filled once a median exists).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:483`](../../include/shulib/localization/wall_reset.hpp#L483).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:486`](../../include/shulib/localization/wall_reset.hpp#L486).*
 
 <a id="wallresetreport-speedseen"></a>
 
@@ -1660,7 +1660,7 @@ units::Velocity speedSeen{}
 
 The fastest the estimate moved during the window.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:485`](../../include/shulib/localization/wall_reset.hpp#L485).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:488`](../../include/shulib/localization/wall_reset.hpp#L488).*
 
 <a id="wallresetreport-turnseen"></a>
 
@@ -1672,7 +1672,7 @@ units::AngularVelocity turnSeen{}
 
 The fastest it turned during the window.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:487`](../../include/shulib/localization/wall_reset.hpp#L487).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:490`](../../include/shulib/localization/wall_reset.hpp#L490).*
 
 <a id="wallresetreport-sampleindex"></a>
 
@@ -1684,7 +1684,7 @@ int sampleIndex = -1
 
 The refusing sample's index (rule 6), or -1.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:489`](../../include/shulib/localization/wall_reset.hpp#L489).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:492`](../../include/shulib/localization/wall_reset.hpp#L492).*
 
 <a id="wallresetreport-sampledistance"></a>
 
@@ -1696,7 +1696,7 @@ units::Length sampleDistance{}
 
 The refusing sample's distance reading (rule 6).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:491`](../../include/shulib/localization/wall_reset.hpp#L491).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:494`](../../include/shulib/localization/wall_reset.hpp#L494).*
 
 <a id="wallresetreport-sampleconfidence"></a>
 
@@ -1708,7 +1708,7 @@ double sampleConfidence = 0.0
 
 The refusing sample's confidence (rule 6).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:493`](../../include/shulib/localization/wall_reset.hpp#L493).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:496`](../../include/shulib/localization/wall_reset.hpp#L496).*
 
 <a id="wallresetreport-detail"></a>
 
@@ -1718,9 +1718,9 @@ The refusing sample's confidence (rule 6).
 const char* detail = ""
 ```
 
-BadRequest: the field's message; KeepOut: the span's name; SensorAbsent: the absence sentence. A stable literal (or the Robot's copied sentence), "" when none.
+BadRequest: the field's message; KeepOut: the span's name; SensorAbsent: the absence sentence; NotFieldStart: the start mode's word ("RELATIVE", "UNSET" — L6-A2). A stable literal (or the Robot's copied sentence), "" when none.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:496`](../../include/shulib/localization/wall_reset.hpp#L496).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:500`](../../include/shulib/localization/wall_reset.hpp#L500).*
 
 <a id="wallresetreport-cleanfound"></a>
 
@@ -1732,7 +1732,7 @@ bool cleanFound = false
 
 KeepOut: a clean band for the beam centre was found along the wall.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:498`](../../include/shulib/localization/wall_reset.hpp#L498).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:502`](../../include/shulib/localization/wall_reset.hpp#L502).*
 
 <a id="wallresetreport-cleanfrom"></a>
 
@@ -1744,7 +1744,7 @@ units::Length cleanFrom{}
 
 KeepOut: the nearest clean band's lower end along the wall.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:500`](../../include/shulib/localization/wall_reset.hpp#L500).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:504`](../../include/shulib/localization/wall_reset.hpp#L504).*
 
 <a id="wallresetreport-cleanto"></a>
 
@@ -1756,7 +1756,7 @@ units::Length cleanTo{}
 
 KeepOut: the nearest clean band's upper end along the wall.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:502`](../../include/shulib/localization/wall_reset.hpp#L502).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:506`](../../include/shulib/localization/wall_reset.hpp#L506).*
 
 <a id="wallresetreport-faultchannel"></a>
 
@@ -1768,7 +1768,7 @@ bool faultChannel = true
 
 False: the sensor has no read-fault count ("faults n/a" — never "faults ok").
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:504`](../../include/shulib/localization/wall_reset.hpp#L504).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:508`](../../include/shulib/localization/wall_reset.hpp#L508).*
 
 <a id="wallresetreport-seated"></a>
 
@@ -1780,7 +1780,7 @@ False: the sensor has no read-fault count ("faults n/a" — never "faults ok").
 
 The axis was re-seated.
 
-*function, declared at [`include/shulib/localization/wall_reset.hpp:507`](../../include/shulib/localization/wall_reset.hpp#L507).*
+*function, declared at [`include/shulib/localization/wall_reset.hpp:511`](../../include/shulib/localization/wall_reset.hpp#L511).*
 
 <a id="wallresetreport-continues"></a>
 
@@ -1792,7 +1792,7 @@ The axis was re-seated.
 
 The auton may go on: SEATED, or REFUSED and not `required` (D3) — the value a `then()` returns.
 
-*function, declared at [`include/shulib/localization/wall_reset.hpp:509`](../../include/shulib/localization/wall_reset.hpp#L509).*
+*function, declared at [`include/shulib/localization/wall_reset.hpp:513`](../../include/shulib/localization/wall_reset.hpp#L513).*
 
 <a id="struct-wallsensor"></a>
 
@@ -1802,9 +1802,9 @@ The auton may go on: SEATED, or REFUSED and not `required` (D3) — the value a 
 struct WallSensor
 ```
 
-One side as a reset reads it: the sensor, its read-fault count, its mount, and why it is absent. Built by the caller (the explicit form) or by the Robot (from L6-A2).
+One side as a reset reads it: the sensor, its read-fault count, its mount, and why it is absent. Built by the caller (the explicit form) or by robot::Robot from the robot file's `walls` block (config/wall_sensor_config.hpp).
 
-*struct, declared at [`include/shulib/localization/wall_reset.hpp:514`](../../include/shulib/localization/wall_reset.hpp#L514).*
+*struct, declared at [`include/shulib/localization/wall_reset.hpp:519`](../../include/shulib/localization/wall_reset.hpp#L519).*
 
 <a id="wallsensor-sensor"></a>
 
@@ -1816,7 +1816,7 @@ hal::IDistance* sensor = nullptr
 
 The sensor; nullptr = absent (the reset refuses SensorAbsent with `absence`).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:516`](../../include/shulib/localization/wall_reset.hpp#L516).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:521`](../../include/shulib/localization/wall_reset.hpp#L521).*
 
 <a id="wallsensor-faults"></a>
 
@@ -1828,7 +1828,7 @@ const hal::IReadFaults* faults = nullptr
 
 Its read-fault count; nullptr = none (a fake, or a provider that never screens) — accepted, and the line says "faults n/a".
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:519`](../../include/shulib/localization/wall_reset.hpp#L519).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:524`](../../include/shulib/localization/wall_reset.hpp#L524).*
 
 <a id="wallsensor-mount"></a>
 
@@ -1840,7 +1840,7 @@ SideMount mount{}
 
 Its measured mount.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:521`](../../include/shulib/localization/wall_reset.hpp#L521).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:526`](../../include/shulib/localization/wall_reset.hpp#L526).*
 
 <a id="wallsensor-absence"></a>
 
@@ -1852,7 +1852,7 @@ const char* absence = "not declared"
 
 Why it is absent, when `sensor` is nullptr — a stable literal or the Robot's copied sentence.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:523`](../../include/shulib/localization/wall_reset.hpp#L523).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:528`](../../include/shulib/localization/wall_reset.hpp#L528).*
 
 <a id="struct-wallresetlog"></a>
 
@@ -1864,7 +1864,7 @@ struct WallResetLog
 
 A robot's running tally of its resets (the Auton Tester shows it to the people testing, from L6-B) — counts and the last outcome. `record()` is how a call files one.
 
-*struct, declared at [`include/shulib/localization/wall_reset.hpp:528`](../../include/shulib/localization/wall_reset.hpp#L528).*
+*struct, declared at [`include/shulib/localization/wall_reset.hpp:533`](../../include/shulib/localization/wall_reset.hpp#L533).*
 
 <a id="wallresetlog-seated"></a>
 
@@ -1876,7 +1876,7 @@ int seated = 0
 
 Resets SEATED so far.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:530`](../../include/shulib/localization/wall_reset.hpp#L530).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:535`](../../include/shulib/localization/wall_reset.hpp#L535).*
 
 <a id="wallresetlog-refused"></a>
 
@@ -1888,7 +1888,7 @@ int refused = 0
 
 Resets REFUSED so far.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:532`](../../include/shulib/localization/wall_reset.hpp#L532).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:537`](../../include/shulib/localization/wall_reset.hpp#L537).*
 
 <a id="wallresetlog-last"></a>
 
@@ -1900,7 +1900,7 @@ WallResetReport last{}
 
 The last outcome (a default report until the first).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:534`](../../include/shulib/localization/wall_reset.hpp#L534).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:539`](../../include/shulib/localization/wall_reset.hpp#L539).*
 
 <a id="wallresetlog-record"></a>
 
@@ -1912,7 +1912,7 @@ void record(const WallResetReport& report) noexcept
 
 File one outcome: counted SEATED or REFUSED, and kept as `last`.
 
-*function, declared at [`include/shulib/localization/wall_reset.hpp:537`](../../include/shulib/localization/wall_reset.hpp#L537).*
+*function, declared at [`include/shulib/localization/wall_reset.hpp:542`](../../include/shulib/localization/wall_reset.hpp#L542).*
 
 <a id="struct-wallsensors"></a>
 
@@ -1922,9 +1922,9 @@ File one outcome: counted SEATED or REFUSED, and kept as `last`.
 struct WallSensors
 ```
 
-Both sides, the robot's limits and its log — the slot the robot's context carries from L6-A2.
+Both sides, the robot's limits and its log — the OPTIONAL slot the robot's context carries (`chassis::RobotContextConfig::walls`), which the everyday form finds through `chassis.deps().ctx`.
 
-*struct, declared at [`include/shulib/localization/wall_reset.hpp:548`](../../include/shulib/localization/wall_reset.hpp#L548).*
+*struct, declared at [`include/shulib/localization/wall_reset.hpp:554`](../../include/shulib/localization/wall_reset.hpp#L554).*
 
 <a id="wallsensors-left"></a>
 
@@ -1936,7 +1936,7 @@ WallSensor left{}
 
 The LEFT side's sensor.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:550`](../../include/shulib/localization/wall_reset.hpp#L550).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:556`](../../include/shulib/localization/wall_reset.hpp#L556).*
 
 <a id="wallsensors-right"></a>
 
@@ -1948,7 +1948,7 @@ WallSensor right{}
 
 The RIGHT side's sensor.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:552`](../../include/shulib/localization/wall_reset.hpp#L552).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:558`](../../include/shulib/localization/wall_reset.hpp#L558).*
 
 <a id="wallsensors-limits"></a>
 
@@ -1960,7 +1960,7 @@ WallResetLimits limits{}
 
 The robot's gate limits.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:554`](../../include/shulib/localization/wall_reset.hpp#L554).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:560`](../../include/shulib/localization/wall_reset.hpp#L560).*
 
 <a id="wallsensors-log"></a>
 
@@ -1972,7 +1972,7 @@ WallResetLog log{}
 
 The robot's running tally.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:556`](../../include/shulib/localization/wall_reset.hpp#L556).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:562`](../../include/shulib/localization/wall_reset.hpp#L562).*
 
 <a id="wallsensors-side"></a>
 
@@ -1984,7 +1984,7 @@ The robot's running tally.
 
 The named side.
 
-*function, declared at [`include/shulib/localization/wall_reset.hpp:559`](../../include/shulib/localization/wall_reset.hpp#L559).*
+*function, declared at [`include/shulib/localization/wall_reset.hpp:565`](../../include/shulib/localization/wall_reset.hpp#L565).*
 
 <a id="readingaccuracy"></a>
 
@@ -1996,7 +1996,7 @@ The named side.
 
 PURE: the accuracy the reset assumes for a bias-corrected RANGE: the mount's measured `rangeAccuracy` when typed, else VEX's published max(15 mm, 5 % of the range) — at every range, never a step at 200 mm. A4 register HA-204.
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:594`](../../include/shulib/localization/wall_reset.hpp#L594).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:600`](../../include/shulib/localization/wall_reset.hpp#L600).*
 
 <a id="axisfromreading"></a>
 
@@ -2008,7 +2008,7 @@ PURE: the accuracy the reset assumes for a bias-corrected RANGE: the mount's mea
 
 PURE: the robot centre's coordinate a READING implies (the beam-centre model; the mount's bias removed). `reading` is the sensor's raw distance and must be finite (a precondition).
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:604`](../../include/shulib/localization/wall_reset.hpp#L604).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:610`](../../include/shulib/localization/wall_reset.hpp#L610).*
 
 <a id="axiserrorbound"></a>
 
@@ -2020,7 +2020,7 @@ PURE: the robot centre's coordinate a READING implies (the beam-centre model; th
 
 PURE: the worst-case error of axisFromReading's answer — over the CORNERS of the tolerance box (the reading +/- its accuracy, `forward` and `left` +/- the mount's positionTolerance, `facing` +/- its facingTolerance, the heading +/- `headingTolerance`), each corner run through the exact geometry, not a linearisation. A non-finite tolerance (a NaN typed into the mount, or handed in as `headingTolerance`) gives +infinity — the worst answer, so the precision gate refuses — never a NaN silently dropped by a max (found by the L6-A1 review). A4 register HA-204 (the accuracy), HA-211 (the tolerances).
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:621`](../../include/shulib/localization/wall_reset.hpp#L621).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:627`](../../include/shulib/localization/wall_reset.hpp#L627).*
 
 <a id="headingtolerance"></a>
 
@@ -2032,7 +2032,7 @@ PURE: the worst-case error of axisFromReading's answer — over the CORNERS of t
 
 PURE: the heading tolerance the precision gate assumes: `headingFloor` + `headingPerTurn` x the |rotation| since the heading was last seeded (`Localizer::turnedSinceHeadingSeed`). A4 register HA-211 (the floor from HA-20, the growth from HA-84).
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:657`](../../include/shulib/localization/wall_reset.hpp#L657).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:663`](../../include/shulib/localization/wall_reset.hpp#L663).*
 
 <a id="effectivecone"></a>
 
@@ -2044,7 +2044,7 @@ PURE: the heading tolerance the precision gate assumes: `headingFloor` + `headin
 
 PURE: the beam half-angle a reset uses — the mount's MEASURED one when typed (> 0), else the limits' (A4 register HA-205).
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:665`](../../include/shulib/localization/wall_reset.hpp#L665).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:671`](../../include/shulib/localization/wall_reset.hpp#L671).*
 
 <a id="beamceiling"></a>
 
@@ -2056,7 +2056,7 @@ PURE: the beam half-angle a reset uses — the mount's MEASURED one when typed (
 
 PURE: the farthest range whose cone stays above `pieceTop` + `beamMargin` all the way to the wall, from the TYPED height and cone: (height - pieceTop - beamMargin) / tan(cone), and 0 when the lens is not above that line at all. At or under it, no single standing game piece can be the nearest surface in the cone — nor the floor, which the cone meets only beyond height / tan(cone).
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:674`](../../include/shulib/localization/wall_reset.hpp#L674).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:680`](../../include/shulib/localization/wall_reset.hpp#L680).*
 
 <a id="wallresetproblem"></a>
 
@@ -2068,7 +2068,7 @@ PURE: the farthest range whose cone stays above `pieceTop` + `beamMargin` all th
 
 PURE: the first thing wrong with a request, its mount or the limits, as the message the line prints ("maxCorrection UNSET: say how far this wall may move x") — or nullptr when everything is usable. Rule 1's last check (BadRequest).
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:685`](../../include/shulib/localization/wall_reset.hpp#L685).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:691`](../../include/shulib/localization/wall_reset.hpp#L691).*
 
 <a id="struct-wallaim"></a>
 
@@ -2080,7 +2080,7 @@ struct WallAim
 
 Where a beam lands, by the ESTIMATE — everything rules 2-4 judge, computed once (PURE).
 
-*struct, declared at [`include/shulib/localization/wall_reset.hpp:778`](../../include/shulib/localization/wall_reset.hpp#L778).*
+*struct, declared at [`include/shulib/localization/wall_reset.hpp:784`](../../include/shulib/localization/wall_reset.hpp#L784).*
 
 <a id="wallaim-offsquare"></a>
 
@@ -2092,7 +2092,7 @@ units::AngleDim offSquare{}
 
 The beam's angle off the wall's outward normal, in [0, pi]: above 90 degrees it faces away.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:780`](../../include/shulib/localization/wall_reset.hpp#L780).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:786`](../../include/shulib/localization/wall_reset.hpp#L786).*
 
 <a id="wallaim-expectedrange"></a>
 
@@ -2104,7 +2104,7 @@ units::Length expectedRange{}
 
 The beam-centre range to the wall the estimate implies (<= 0 if the estimate puts the lens past the wall; only meaningful while the beam points at it).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:783`](../../include/shulib/localization/wall_reset.hpp#L783).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:789`](../../include/shulib/localization/wall_reset.hpp#L789).*
 
 <a id="wallaim-along"></a>
 
@@ -2116,7 +2116,7 @@ units::Length along{}
 
 The beam centre's coordinate along the wall.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:785`](../../include/shulib/localization/wall_reset.hpp#L785).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:791`](../../include/shulib/localization/wall_reset.hpp#L791).*
 
 <a id="wallaim-beamhalfwidth"></a>
 
@@ -2128,7 +2128,7 @@ units::Length beamHalfWidth{}
 
 The footprint's half-width along the wall at the expected range: the LARGER side of the exact cone footprint (a skewed beam's footprint is lopsided), applied both ways.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:788`](../../include/shulib/localization/wall_reset.hpp#L788).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:794`](../../include/shulib/localization/wall_reset.hpp#L794).*
 
 <a id="wallaim-margin"></a>
 
@@ -2140,7 +2140,7 @@ units::Length margin{}
 
 The keep-out margin (the limits').
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:790`](../../include/shulib/localization/wall_reset.hpp#L790).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:796`](../../include/shulib/localization/wall_reset.hpp#L796).*
 
 <a id="wallaim-drift"></a>
 
@@ -2152,7 +2152,7 @@ units::Length drift{}
 
 The along-wall drift allowance (alongDriftRate x the travel since the along axis was set).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:792`](../../include/shulib/localization/wall_reset.hpp#L792).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:798`](../../include/shulib/localization/wall_reset.hpp#L798).*
 
 <a id="wallaim-widening"></a>
 
@@ -2164,7 +2164,7 @@ units::Length widening{}
 
 beamHalfWidth + margin + drift: how far either side of `along` a keep-out must stay clear.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:794`](../../include/shulib/localization/wall_reset.hpp#L794).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:800`](../../include/shulib/localization/wall_reset.hpp#L800).*
 
 <a id="wallaim-cone"></a>
 
@@ -2176,7 +2176,7 @@ units::AngleDim cone{}
 
 The beam half-angle used (effectiveCone).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:796`](../../include/shulib/localization/wall_reset.hpp#L796).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:802`](../../include/shulib/localization/wall_reset.hpp#L802).*
 
 <a id="wallaim-ceiling"></a>
 
@@ -2188,7 +2188,7 @@ units::Length ceiling{}
 
 The beam-height ceiling (beamCeiling).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:798`](../../include/shulib/localization/wall_reset.hpp#L798).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:804`](../../include/shulib/localization/wall_reset.hpp#L804).*
 
 <a id="wallaim-keepoutwhy"></a>
 
@@ -2200,7 +2200,7 @@ const char* keepOutWhy = nullptr
 
 The first ACTIVE keep-out the widened footprint overlaps (its `why`), or nullptr.
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:800`](../../include/shulib/localization/wall_reset.hpp#L800).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:806`](../../include/shulib/localization/wall_reset.hpp#L806).*
 
 <a id="wallaim-cleanfound"></a>
 
@@ -2212,7 +2212,7 @@ bool cleanFound = false
 
 A clean band for the beam centre exists along the wall (only computed when `keepOutWhy` is set).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:802`](../../include/shulib/localization/wall_reset.hpp#L802).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:808`](../../include/shulib/localization/wall_reset.hpp#L808).*
 
 <a id="wallaim-cleanfrom"></a>
 
@@ -2224,7 +2224,7 @@ units::Length cleanFrom{}
 
 The nearest clean band's lower end (may be -infinity on an author's own line).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:804`](../../include/shulib/localization/wall_reset.hpp#L804).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:810`](../../include/shulib/localization/wall_reset.hpp#L810).*
 
 <a id="wallaim-cleanto"></a>
 
@@ -2236,7 +2236,7 @@ units::Length cleanTo{}
 
 The nearest clean band's upper end (may be +infinity on an author's own line).
 
-*field, declared at [`include/shulib/localization/wall_reset.hpp:806`](../../include/shulib/localization/wall_reset.hpp#L806).*
+*field, declared at [`include/shulib/localization/wall_reset.hpp:812`](../../include/shulib/localization/wall_reset.hpp#L812).*
 
 <a id="keepoutactive"></a>
 
@@ -2248,7 +2248,7 @@ The nearest clean band's upper end (may be +infinity on an author's own line).
 
 PURE: whether a keep-out span applies for this mount (KeepOutKind's rules).
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:810`](../../include/shulib/localization/wall_reset.hpp#L810).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:816`](../../include/shulib/localization/wall_reset.hpp#L816).*
 
 <a id="aimat"></a>
 
@@ -2260,7 +2260,7 @@ PURE: whether a keep-out span applies for this mount (KeepOutKind's rules).
 
 PURE: where the beam lands by the estimate `pose`, and what it would land on (rules 2-4's inputs). Requires a usable request (`wallResetProblem` returned nullptr) — with an `inward` other than +/-1 the normal is undefined.
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:825`](../../include/shulib/localization/wall_reset.hpp#L825).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:831`](../../include/shulib/localization/wall_reset.hpp#L831).*
 
 <a id="precheck"></a>
 
@@ -2272,7 +2272,7 @@ PURE: where the beam lands by the estimate `pose`, and what it would land on (ru
 
 PURE: the gates that need no reading, in order — BadRequest (wallResetProblem), NotSquare, KeepOut, BeamLow; Seated means "go on and sample". (The call checks the sensor, the mount's `measured`, liveness and motion first.)
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:937`](../../include/shulib/localization/wall_reset.hpp#L937).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:943`](../../include/shulib/localization/wall_reset.hpp#L943).*
 
 <a id="sampleverdict"></a>
 
@@ -2284,7 +2284,7 @@ PURE: the gates that need no reading, in order — BadRequest (wallResetProblem)
 
 PURE: rule 6 for ONE sample — ReadFault, NoReturn, LowConfidence, OutOfRange, or Seated when the sample is usable. The sampler stops the window at the first sample this refuses; the evaluator names it.
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:960`](../../include/shulib/localization/wall_reset.hpp#L960).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:966`](../../include/shulib/localization/wall_reset.hpp#L966).*
 
 <a id="wallstill"></a>
 
@@ -2296,7 +2296,7 @@ PURE: rule 6 for ONE sample — ReadFault, NoReturn, LowConfidence, OutOfRange, 
 
 PURE: whether a window's worst twist is still (rule 5): the norm of (vx, vy) within `stillSpeed` and |omega| within `stillTurn`. A non-finite twist is not still.
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:980`](../../include/shulib/localization/wall_reset.hpp#L980).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:986`](../../include/shulib/localization/wall_reset.hpp#L986).*
 
 <a id="describewallreset"></a>
 
@@ -2308,7 +2308,7 @@ PURE: whether a window's worst twist is still (rule 5): the norm of (vx, vy) wit
 
 PURE: a report with every number the estimate alone decides — the axis, the side, `before`, the aim's numbers, the heading tolerance, the limit echoed — and verdict Seated ("nothing refused yet"). The call fills a pre-sampling refusal's report from it; evaluateWallReset starts from it.
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:989`](../../include/shulib/localization/wall_reset.hpp#L989).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:995`](../../include/shulib/localization/wall_reset.hpp#L995).*
 
 <a id="evaluatewallreset"></a>
 
@@ -2320,7 +2320,7 @@ PURE: a report with every number the estimate alone decides — the axis, the si
 
 PURE: the whole verdict from a window of samples — rules 5-9 (run preCheck first: this does not re-judge rules 2-4, but an unusable request is refused BadRequest here too, never judged). `maxTwist` is the window's worst twist: its linear part's norm (WallSampler's speed over the trailing `window`) and |omega| each the largest seen. `pose` is the estimate the answer is compared with (and seated over). Fills `measured`, `applied` (SEATED only), `median`, `spread`, `errorBound` and the refusing sample's numbers. Changes nothing.
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:1031`](../../include/shulib/localization/wall_reset.hpp#L1031).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:1037`](../../include/shulib/localization/wall_reset.hpp#L1037).*
 
 <a id="class-wallsampler"></a>
 
@@ -2330,9 +2330,9 @@ PURE: the whole verdict from a window of samples — rules 5-9 (run preCheck fir
 class WallSampler
 ```
 
-The window's sampler: one `step()` per control tick, each judging stillness from the estimate and taking ONE sample — the read-fault count read before the sample's first device read and after its second (`distance()` then `confidence()` are TWO device reads; both must be fault-free). It says the window is DONE at the first tick that refuses (moving, or a sample rule 6 refuses), once the window has `minSamples` over `window`, at `windowMax`, or at the buffer's capacity — never later. The explicit call drives it from `Chassis::waitUntil`'s predicate; the everyday form (L6-A2) from the run guard's wait. The wait's own ticks keep the estimate current.  RULE 5's SPEED is the estimate's DISPLACEMENT over the trailing `window`, per that time: on each tick, the distance from the pose of the latest earlier tick at least `window` back (or the window's first tick, while the window is younger than that), divided by the time between them, floored at `window`. A robot moving at v reads v once the window is `window` old, and a push lasting `window` is seen; WHY NOT ONE TICK'S VELOCITY (the L6-A1 review): the estimate's per-tick linear velocity is a finite difference of the fused pose, and on a robot whose tracking wheels sit off the turning centre a still IMU's heading noise (the register's HA-21, ~0.05 degrees) moves that pose a few thousandths of an inch each tick — 1.1-1.4 in/s of PHANTOM speed on the host test plant's wheel offsets, so every reset was refused MOVING while nothing moved. That jitter does not add up over `window` (it is noise about a fixed point), so the displacement reads ~0.08 in/s on average there instead (0.04-0.17 in/s over 600 still resets, ten seeds). It grows in step with the noise: ~0.33 in/s (up to ~0.7) at four times HA-21's, and it reaches the 1-in/s limit only near six times (2 of 600 still resets refused MOVING). The turn rate is judged on every tick from the estimate's own `omega` (the IMU's rate), as before. A NaN pose or turn rate counts as +infinity — the window ends MOVING at that tick (std::max alone would drop a NaN and judge the tick still).
+The window's sampler: one `step()` per control tick, each judging stillness from the estimate and taking ONE sample — the read-fault count read before the sample's first device read and after its second (`distance()` then `confidence()` are TWO device reads; both must be fault-free). It says the window is DONE at the first tick that refuses (moving, or a sample rule 6 refuses), once the window has `minSamples` over `window`, at `windowMax`, or at the buffer's capacity — never later. The explicit call drives it from `Chassis::waitUntil`'s predicate; the everyday form from the run guard's wait. The wait's own ticks keep the estimate current.  RULE 5's SPEED is the estimate's DISPLACEMENT over the trailing `window`, per that time: on each tick, the distance from the pose of the latest earlier tick at least `window` back (or the window's first tick, while the window is younger than that), divided by the time between them, floored at `window`. A robot moving at v reads v once the window is `window` old, and a push lasting `window` is seen; WHY NOT ONE TICK'S VELOCITY (the L6-A1 review): the estimate's per-tick linear velocity is a finite difference of the fused pose, and on a robot whose tracking wheels sit off the turning centre a still IMU's heading noise (the register's HA-21, ~0.05 degrees) moves that pose a few thousandths of an inch each tick — 1.1-1.4 in/s of PHANTOM speed on the host test plant's wheel offsets, so every reset was refused MOVING while nothing moved. That jitter does not add up over `window` (it is noise about a fixed point), so the displacement reads ~0.08 in/s on average there instead (0.04-0.17 in/s over 600 still resets, ten seeds). It grows in step with the noise: ~0.33 in/s (up to ~0.7) at four times HA-21's, and it reaches the 1-in/s limit only near six times (2 of 600 still resets refused MOVING). The turn rate is judged on every tick from the estimate's own `omega` (the IMU's rate), as before. A NaN pose or turn rate counts as +infinity — the window ends MOVING at that tick (std::max alone would drop a NaN and judge the tick still).
 
-*class, declared at [`include/shulib/localization/wall_reset.hpp:1134`](../../include/shulib/localization/wall_reset.hpp#L1134).*
+*class, declared at [`include/shulib/localization/wall_reset.hpp:1140`](../../include/shulib/localization/wall_reset.hpp#L1140).*
 
 <a id="wallsampler-wallsampler"></a>
 
@@ -2344,7 +2344,7 @@ WallSampler(const WallSensor& sensor, const WallResetLimits& limits) noexcept
 
 Borrows `sensor` and `limits` (both must outlive the sampler); `sensor.sensor` must be set and the limits usable (wallResetProblem() returned nullptr — `window` above 0).
 
-*function, declared at [`include/shulib/localization/wall_reset.hpp:1138`](../../include/shulib/localization/wall_reset.hpp#L1138).*
+*function, declared at [`include/shulib/localization/wall_reset.hpp:1144`](../../include/shulib/localization/wall_reset.hpp#L1144).*
 
 <a id="wallsampler-step"></a>
 
@@ -2356,7 +2356,7 @@ bool step(units::Time now, const math::Pose2d& pose, units::AngularVelocity turn
 
 One tick at time `now`, the estimate at `pose` and turning at `turnRate`: judge stillness, take one sample. Returns true when the window is DONE (the caller's wait predicate returns this).
 
-*function, declared at [`include/shulib/localization/wall_reset.hpp:1144`](../../include/shulib/localization/wall_reset.hpp#L1144).*
+*function, declared at [`include/shulib/localization/wall_reset.hpp:1150`](../../include/shulib/localization/wall_reset.hpp#L1150).*
 
 <a id="wallsampler-samples"></a>
 
@@ -2368,7 +2368,7 @@ One tick at time `now`, the estimate at `pose` and turning at `turnRate`: judge 
 
 The samples taken so far.
 
-*function, declared at [`include/shulib/localization/wall_reset.hpp:1193`](../../include/shulib/localization/wall_reset.hpp#L1193).*
+*function, declared at [`include/shulib/localization/wall_reset.hpp:1199`](../../include/shulib/localization/wall_reset.hpp#L1199).*
 
 <a id="wallsampler-maxtwist"></a>
 
@@ -2380,7 +2380,7 @@ The samples taken so far.
 
 The window's worst twist so far: vx carries the largest speed judged (rule 5's: the displacement over the trailing `window`), vy is 0, omega the largest |turn rate| — the form evaluateWallReset takes.
 
-*function, declared at [`include/shulib/localization/wall_reset.hpp:1200`](../../include/shulib/localization/wall_reset.hpp#L1200).*
+*function, declared at [`include/shulib/localization/wall_reset.hpp:1206`](../../include/shulib/localization/wall_reset.hpp#L1206).*
 
 <a id="appendwallresetline"></a>
 
@@ -2392,14 +2392,14 @@ inline void appendWallResetLine(diag::lineformat::Line& line, const WallResetRep
 
 PURE: append the reset's ONE log line (subsystem "WALL"; ASCII; within a Line's 384 bytes) — `[<name>: ]<wall> <axis> <WORD> (<SIDE> sensor): <the verdict's numbers>`, e.g. `left wall x SEATED (LEFT sensor): -52.21 -> -54.66 (moved -2.45, limit 3.00) | median 8.05 in spread 0.26 n 10 | bound 0.62 | faults ok`. Caller-supplied text (the names, an absence sentence) goes through the Line's sanitizer.
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:1231`](../../include/shulib/localization/wall_reset.hpp#L1231).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:1237`](../../include/shulib/localization/wall_reset.hpp#L1237).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 53 lines, click to expand</summary>
+<summary>The header’s own reasoning — 54 lines, click to expand</summary>
 
 ```text
 
@@ -2407,8 +2407,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  2026-10-22): the geometry that turns one side distance sensor's reading into ONE field coordinate,
  the gates that REFUSE rather than guess, the verdict, and the one log line. Nothing here moves the
  estimate or reads a clock: the calls that do are `chassis::resetFromWall` (the explicit form over
- sensor handles — chassis/wall_reset_call.hpp) and, from L6-A2, the everyday form over an auton's
- context. Both run THESE functions, so no gate is written twice.
+ sensor handles — chassis/wall_reset_call.hpp) and `competition::resetFromWall` (the everyday form
+ over an auton's context — competition/auton_wall_reset.hpp, L6-A2). Both run THESE functions, so no gate
+ is written twice.
 
  ── What a wall reset is ─────────────────────────────────────────────────────────────────────────
  A robot parked beside a field wall, nose along it and square to it, with a side sensor facing it:

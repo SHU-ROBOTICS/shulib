@@ -84,6 +84,7 @@ so it cannot disagree with the code.
 | [Call the full API mid-routine](05-mixing-tiers.md#call-the-full-api-mid-routine) | A recipe step cannot express what this one leg needs |
 | [Make a direct call count as a step](05-mixing-tiers.md#make-a-direct-call-count-as-a-step) | You dropped a tier and still want the chain to stop if it fails |
 | [Re-seed the estimate mid-routine](05-mixing-tiers.md#re-seed-the-estimate-mid-routine) | The robot has just squared itself against a wall |
+| [Re-seat x against a wall](05-mixing-tiers.md#re-seat-x-against-a-wall) | The robot is parked beside a field wall and a side distance sensor faces it |
 
 ### [6 — Driver control](06-driver-control.md)
 

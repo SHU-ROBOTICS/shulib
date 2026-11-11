@@ -11,8 +11,18 @@
 // arrays), so adding fields here later is safe.
 //
 // Built from a RobotContextConfig of NAMED pointers (designated initializers at the call
-// site); the constructor validates them all non-null, then the accessors hand out
+// site); the constructor validates every REQUIRED one non-null, then the accessors hand out
 // references so consumers write `ctx.clock().now()` rather than juggling pointers.
+//
+// ── The first OPTIONAL slot: the wall sensors (chunk L6-A2, 2026-11-03) ─────────────
+// `walls` is the one slot the constructor does NOT require: nullptr means "this robot declares no
+// wall sensors", and the wall reset then refuses NO SENSOR — so every existing caller (the host
+// harness, the rigs, the Robot before L6-A2) compiles and runs unchanged. It is a pointer handed
+// out as a pointer (`wallSensors()`), never a reference, because null is a real answer here. This
+// context only FORWARD-DECLARES its type and never dereferences it (it sees only the L0 interfaces;
+// the type lives in localization/wall_reset.hpp). The pointer is NON-CONST: the everyday wall reset
+// files each outcome in the slot's log. motion::MotionScheduler's shadow context carries it field by
+// field like every other slot — a slot not carried there is nullptr in every `chassis.deps().ctx`.
 
 #include <span>
 
@@ -24,6 +34,12 @@
 #include "shulib/hal/motor.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
 #include "shulib/hal/vision.hpp"
+
+namespace shulib::localization {
+/// Forward declaration only (localization/wall_reset.hpp defines it): this context stores the OPTIONAL
+/// wall-sensor slot's pointer and never reads through it, so it includes no localization header.
+struct WallSensors;
+}  // namespace shulib::localization
 
 namespace shulib::chassis {
 
@@ -45,6 +61,11 @@ struct RobotContextConfig {
     hal::ITelemetrySink* telemetry = nullptr; ///< every log line and DebugRecord; NullSink = off
     hal::ITagSource* tags = nullptr;          ///< AprilTags as body-frame poses (the M3 corrector)
     hal::IVision* vision = nullptr;           ///< object bearings for M4 manipulation targeting
+    /// OPTIONAL (L6-A2, appended): the robot's side distance sensors, their limits and the reset log —
+    /// nullptr = this robot declares no wall sensors, and the wall reset refuses NO SENSOR. The ONE
+    /// slot the constructor does NOT require. Non-const: the everyday wall reset files its outcome in
+    /// the slot's log. Must outlive the context when set.
+    localization::WallSensors* walls = nullptr;
 };
 
 /// The composition root: the ONE object that differs between the real robot, the simulator and a
@@ -57,8 +78,8 @@ struct RobotContextConfig {
 /// only ever as fresh as the caller's own call.
 class RobotContext {
 public:
-    /// Validates the whole config up front — every handle non-null and driveMotors non-empty —
-    /// through SHULIB_PRECONDITION, so a mis-wired robot fails at construction naming the handle
+    /// Validates the whole config up front — every REQUIRED handle non-null and driveMotors
+    /// non-empty (`walls` is optional and never checked) — through SHULIB_PRECONDITION, so a mis-wired robot fails at construction naming the handle
     /// it is missing, instead of dereferencing null halfway through an auton. The count of drive
     /// motors is checked here only for emptiness; motion::MotionDeps::validate() checks it for
     /// EQUALITY against the kinematics' wheel count (the context never sees the kinematics).
@@ -101,6 +122,10 @@ public:
     /// The object/colour detection source. A separate seam from tags() so one adapter can serve
     /// both, or either alone, without a consumer of one depending on the other.
     [[nodiscard]] hal::IVision& vision() const { return *cfg_.vision; }
+    /// The robot's side distance sensors (L6-A2) — nullptr when this robot declares none (the one
+    /// OPTIONAL slot; the wall reset then refuses NO SENSOR). A pointer, as handed in: this context
+    /// never dereferences it.
+    [[nodiscard]] localization::WallSensors* wallSensors() const noexcept { return cfg_.walls; }
 
 private:
     RobotContextConfig cfg_;

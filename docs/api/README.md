@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 5,498 of them across 197 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 5,528 of them across 199 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -273,6 +273,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Acceptance run](acceptance_run.md) | [`competition/acceptance_run.hpp`](../../include/shulib/competition/acceptance_run.hpp) | competition::acceptanceRun — the LIBRARY's acceptance run: the one routine shulib ships. |
 | [Auton menu](auton_menu.md) | [`competition/auton_menu.hpp`](../../include/shulib/competition/auton_menu.hpp) | competition::AutonMenu — the brain-screen auton selector as a PURE MODEL. |
 | [Auton registry](auton_registry.md) | [`competition/auton_registry.hpp`](../../include/shulib/competition/auton_registry.hpp) | competition::AutonRegistry — the autons a competition program can run, as DATA. |
+| [Auton wall reset](auton_wall_reset.md) | [`competition/auton_wall_reset.hpp`](../../include/shulib/competition/auton_wall_reset.hpp) | competition::resetFromWall — the wall reset's EVERYDAY call, over the auton's context (chunk L6-A2, 2026-11-03; the L6 brief's D4 (a) and its §1.12 — the team lead's answers of 2026-10-22, and his ruling of 2026-11-03 that the wall reset be callable from a… |
 | [Match runner](match_runner.md) | [`competition/match_runner.hpp`](../../include/shulib/competition/match_runner.hpp) | competition::runAuton — run ONE registered auton under a RunGuard, from its start pose to its guaranteed end. |
 
 ### Config
@@ -282,6 +283,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Camera config](camera_config.md) | [`config/camera_config.hpp`](../../include/shulib/config/camera_config.hpp) | CameraConfig — the robot file's AI VISION CAMERA block. |
 | [Robot config](robot_config.md) | [`config/robot_config.hpp`](../../include/shulib/config/robot_config.hpp) | RobotConfig — a whole robot, described as DATA. |
 | [Route](route.md) | [`config/route.hpp`](../../include/shulib/config/route.hpp) | Route — an autonomous routine as DATA. |
+| [Wall sensor config](wall_sensor_config.md) | [`config/wall_sensor_config.hpp`](../../include/shulib/config/wall_sensor_config.hpp) | WallSensorsConfig — the robot file's SIDE DISTANCE SENSORS block. |
 
 ### Mechanism
 
@@ -344,7 +346,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 5,498 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 5,528 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

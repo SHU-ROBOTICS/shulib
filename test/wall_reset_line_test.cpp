@@ -240,9 +240,26 @@ TEST_CASE("L6 T9 every verdict's line, byte for byte; the faults tail per verdic
     callOnly.verdict = WallResetVerdict::NoSensor;
     CHECK(line(callOnly) == "left wall x REFUSED no sensor (LEFT sensor): this robot declares no wall sensors");
     callOnly.verdict = WallResetVerdict::NotFieldStart;
-    CHECK(line(callOnly) == "left wall x REFUSED not a field start (LEFT sensor): the auton does not start at a FIELD pose");
+    // L6-A2 (finding 23 of the L6-A1 review): the line names the start mode, so RELATIVE and UNSET read
+    // apart; a hand-built report with no mode still says what is wrong.
+    callOnly.detail = "RELATIVE";
+    CHECK(line(callOnly) == "left wall x REFUSED not a field start (LEFT sensor): start RELATIVE -- the season's "
+                            "walls are FIELD coordinates: declare a FIELD start");
+    callOnly.detail = "UNSET";
+    CHECK(line(callOnly) == "left wall x REFUSED not a field start (LEFT sensor): start UNSET -- the season's "
+                            "walls are FIELD coordinates: declare a FIELD start");
+    callOnly.detail = "";
+    CHECK(line(callOnly) == "left wall x REFUSED not a field start (LEFT sensor): start not FIELD -- the "
+                            "season's walls are FIELD coordinates: declare a FIELD start");
     callOnly.verdict = WallResetVerdict::Cut;
+    // L6-A2 (a review finding of 2026-11-05): with samples taken the cut landed IN the window; with none
+    // the run had already ended when the window was to begin — the call came too late. The two forms
+    // split between 0 and 1 sample, so each side of that edge is checked ON it (the fresh verifier's
+    // V11, 2026-11-10: `samples > 1` survived when this side sat at 7).
+    callOnly.samples = 1;
     CHECK(line(callOnly) == "left wall x REFUSED cut (LEFT sensor): the run's deadline or a disable landed in the window; nothing changed");
+    callOnly.samples = 0;
+    CHECK(line(callOnly) == "left wall x REFUSED cut (LEFT sensor): the run's deadline or a disable came before the window began; nothing changed");
 
     // A named request leads its line; the right sensor's word.
     loc::WallResetRequest named = rq;

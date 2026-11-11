@@ -96,6 +96,9 @@
 - **fix radius** — how far a camera's field position for a thing may be from where it really is, given
   every stated tolerance — a bound, not a probability; infinite when a stated tolerance is not a number
   that bounds anything. [Ch. 10]
+- **footprint (a beam's)** — the stretch of wall a distance sensor's beam covers: its cone widens
+  with range (about ±2.3 in at a 7-in reading, for the unofficial ±18° spread), so the wall reset keeps
+  the whole footprint, not just the beam's centre, off a keep-out. [Ch. 3]
 - **frame** — a point of view for describing directions; the field's or the robot's. [Ch. 2]
 - **frame (a camera's)** — one READ of the AI Vision camera: up to 24 detections, each with its box in
   the picture, the time the read finished, and how the read went — only an `Ok` frame is evidence; a
@@ -132,6 +135,10 @@
   trust each new measurement. shulib ships one (an *extended* Kalman filter, meaning it copes with
   the fact that the robot's motion is not a straight line) as the optional second fusion tier.
   [Ch. 3]
+- **keep-out (the wall reset's)** — a stretch of a field wall a side sensor's beam must not land on
+  (the Toggle, its brackets, a Loader, a corner, a VEX U Load Zone, the start pieces until the beam's
+  spread is measured): something other than the wall may stand there. The reset refuses `keep-out`
+  and prints the nearest clean stretch. [Ch. 3]
 - **kinematics** — the geometry converting a desired chassis velocity into per-wheel speeds
   and back. [Ch. 4]
 - **localization** — the whole problem (and code layer) of knowing where the robot is. [Ch. 3]
@@ -230,10 +237,17 @@
   end legal). Supplied by you to the run guard, which performs it after cancelling everything
   else. [Ch. 6]
 - **run summary** — the one-screen ledger printed at the end of a run. [Ch. 11]
+- **seat (an axis)** — set ONE coordinate of the estimate to a measured value and leave everything
+  else as it was — the other coordinate, the heading, the drift record (`Localizer::seatAxis`). What
+  a wall reset does when every check passes; unlike `setPose`, it never passes a one-coordinate
+  measurement off as a fix of both. [Ch. 3, Ch. 10]
 - **session header** — the transcript's opening lines: which build, routine, ports, battery.
   [Ch. 11]
 - **settling** — the three-part test for "genuinely arrived": close enough, slow enough, for
   long enough. [Ch. 5]
+- **side sensor** — a V5 Distance Sensor on the robot's left or right side, facing straight out,
+  declared in the robot file with its MEASURED mount (`RobotConfig::sensors.walls`); what the wall
+  reset reads. [Ch. 3, Ch. 10]
 - **sim harness** — an assembled simulated robot (`SimHarness`): plant, sensors, clock, and
   their wiring. The test suite is its heaviest user, but it is a shipped header and chapter 8 has
   you build one yourself. [Ch. 8]
@@ -308,6 +322,10 @@
 - **V5 brain** — the VEX controller-computer that runs the robot's code. [Ch. 1]
 - **VEX U** — the university division of the VEX Robotics Competition; two robots per team.
   [Ch. 1]
+- **wall reset** — a step an auton calls: parked beside a field wall, nose along it and square, the
+  side sensor facing that wall re-seats ONE coordinate of the estimate (x against the left or right
+  wall, y against the red or blue wall) — or refuses, saying which check failed. Needs a FIELD start;
+  never the heading; never in the background (`competition::resetFromWall`). [Ch. 3, Ch. 10]
 - **watch (the competition program's)** — the pacer under the run guard that reads the
   competition status every tick and asks the guard to abandon a live auton the moment the robot is
   disabled or leaves autonomous. A controller button never ends an auton in a match (that is the

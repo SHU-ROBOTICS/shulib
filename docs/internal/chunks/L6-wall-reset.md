@@ -545,6 +545,18 @@ L6-C entries marked optional; §2.1's L6-A2 row (the new header, three test file
 8; §5's route-command line; §6.2 (the tester files' row, RC47); §3.3 (the 11-23 plan's line: no FIELD-start auton yet);
 the plain words ("a wall reset needs a FIELD start").
 
+**RC49 — the everyday call's header is `competition/auton_wall_reset.hpp`, not `competition/wall_reset.hpp`**
+*(the coordinator, 2026-11-10, at L6-A2's merge).* The API pages map each header to one page by its file name, and
+`localization/wall_reset.hpp` (L6-A1) already takes `wall_reset`; the tool refuses a second, and changing the tool is
+outside L6-A2 (§7). L6-A2 named the header `competition/auton_wall_reset.hpp` (beside `auton_registry.hpp` and
+`auton_menu.hpp`) — kept. **Every reference below to `competition/wall_reset.hpp` means
+`competition/auton_wall_reset.hpp`** (D4, §1.2, §1.8, §1.12's heading, §2.1, §6, §7's grep, §9); in particular §7's
+`setPose|reseatHeading|headingBias` grep must name the NEW path, or it greps a file that does not exist and passes
+vacuously (L6-B's checks use the new path). Also recorded at the merge (L6-PROGRESS, L6-A2's deltas 7, 15, 16): a typo
+in a MEASURED wall mount — a missing provenance, a `facing` outside (−180°, 180°], a mount copied from the other side
+— refuses the robot at boot, the same way the camera's placement and §1.4's own checks do; the host test of the boot
+config catches it before an upload.
+
 ---
 
 ## DECISIONS FOR THE TEAM LEAD (a recommendation for each; nothing below decides them silently)

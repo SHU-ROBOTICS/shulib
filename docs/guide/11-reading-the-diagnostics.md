@@ -415,21 +415,24 @@ good value held over, not a reading. A keep-out line names the stretch
 the beam would land on, the beam centre's coordinate ALONG the wall, how far either side of it had to
 be clear (the beam's spread, the margin, and the drift allowance — 10 % of the travel since that
 along-wall coordinate was last set), and the nearest clean stretch for the beam's centre — park so
-the beam centre lands inside it. The same line comes from the everyday form (once it is in the
-library), which adds three words of its own: `no sensor`, `not a field start` and `cut`.
+the beam centre lands inside it. The same line comes from the everyday call an auton writes
+(`competition::resetFromWall` — [Chapter 10](10-the-api.md#the-everyday-call-from-an-auton)), which adds
+three words of its own: `no sensor`, `not a field start` (naming the start: `start RELATIVE -- the season's
+walls are FIELD coordinates: declare a FIELD start`, or `start UNSET`) and `cut`; its line goes to the
+auton's own log.
 
 **Every verdict, its word, what the line also prints, and what to do:**
 
 | Verdict | Word | The line also prints | What to do |
 |---|---|---|---|
 | Seated | `SEATED` | before -> after, moved, the limit, median, spread, n, the bound, faults | nothing; now and then compare the next leg's end with the tape |
-| NoSensor | `REFUSED no sensor` | — | the everyday form only: this robot file declares no wall sensors. On the host test plant's tester rig it is expected — that rig has none |
-| SensorAbsent | `REFUSED sensor absent` | why the sensor is absent (the handle's `absence`, or the provider's reason) | check the cable and the port |
-| MountUnset | `REFUSED mount unset` | — | measure the mount (tape: forward, left, height, facing) and type it with `measured = true` |
+| NoSensor | `REFUSED no sensor` | — | the everyday call only: this robot file declares no wall sensors — add the `walls` block ([Chapter 10](10-the-api.md#the-robot-files-side-sensors)). On the host test plant's tester rig it is expected — that rig has none |
+| SensorAbsent | `REFUSED sensor absent` | why the sensor is absent (the handle's `absence`, or the provider's reason) | check the cable and the port; the boot line's `walls L4 R5(ABSENT)` says which side |
+| MountUnset | `REFUSED mount unset` | — | measure the mount (tape: forward, left, height, facing) and type it with `measured = true` (the boot line says `MOUNT UNSET` until you do) |
 | NotLive | `REFUSED not live` | — | the estimate never went live (the IMU still calibrating?) — read the boot lines; a program error |
 | MotionActive | `REFUSED motion active` | — | a motion is still armed (a Tier-3 `async()`): let it finish or cancel it first |
 | BadRequest | `REFUSED bad request` | the field, e.g. `maxCorrection UNSET: say how far this wall may move x`, or `limits.window must be at most 0.6 s …` | fix that field in the auton (or the robot's limits) |
-| NotFieldStart | `REFUSED not a field start` | — | the everyday form only: the auton starts RELATIVE — declare a FIELD start (`StartPose::field(…)`); the season's walls are field coordinates |
+| NotFieldStart | `REFUSED not a field start` | the start mode: `start RELATIVE`, or `start UNSET` (a route whose Start states no heading) | the everyday call only: declare a FIELD start (`StartPose::field(…)`, or a route Start that states its heading); the season's walls are field coordinates |
 | NotSquare | `REFUSED not square` | the beam's angle off the wall's normal | 5°–20°: `turnTo` square before the reset. Near 90° or 180°: this beam faces away from that wall — the wrong side named (LEFT/RIGHT), the wrong wall, or the nose not along the wall |
 | KeepOut | `REFUSED keep-out` | the stretch's name (Toggle, Toggle bracket, Loader, Load Zone, start pieces, corner), the beam's along-wall coordinate, the widening, the nearest clean stretch | park so the beam lands in the wall's clean stretch; after a long drive it narrows — reset earlier in the leg, or the other axis first |
 | BeamLow | `REFUSED beam low` | the expected range or the median, the ceiling, the lens height and the beam's spread | park nearer the wall, under the ceiling; a ceiling near zero means the sensor is mounted too low or its beam spread is unmeasured |
@@ -442,7 +445,7 @@ library), which adds three words of its own: `no sensor`, `not a field start` an
 | Spread | `REFUSED spread` | max − min | the beam is on an edge, a seam or something moving — move along the wall |
 | Imprecise | `REFUSED imprecise` | the bound, its limit and the heading tolerance | the sensor is far from the fore-aft centre, the robot has turned a lot since its heading was set, or the mount and the sensor's accuracy are unmeasured — measure them and type them |
 | Disagrees | `REFUSED disagrees` | the wall's answer, the estimate, the limit | EITHER the robot drifted more than `maxCorrection` OR something other than the wall is in the beam (a robot, a stack): look first; raise the limit only from taped legs |
-| Cut | `REFUSED cut` | — | the everyday form only: the run's deadline or a disable landed in the window; nothing changed |
+| Cut | `REFUSED cut` | — | the everyday call only: the run's deadline or a disable landed in the window; nothing changed. When the line says it `came before the window began` (no sample was taken), the call itself came after the deadline: a step before it ran long — move the reset earlier in the auton |
 
 **Choosing `maxCorrection`.** Run the auton up to the reset WITHOUT it, several times, and tape the
 error on that axis at the reset point; the largest seen plus ~1 in is the drift this wall may

@@ -3560,7 +3560,9 @@ L6-B, whose robot table cites it.
   step would put a cliff in the precision gate) — until a measured `SideMount::rangeAccuracy` replaces it.
   *Source:* VEX's published figures (api.vex.com, fetched 2026-10-18); `localization/wall_reset.hpp`
   (`kPublishedCloseAccuracyInches`, `kPublishedFarAccuracyFraction`, `readingAccuracy`, `axisErrorBound`, the
-  `rangeMin` floor's reason, `SideMount::rangeBias` / `rangeAccuracy`).
+  `rangeMin` floor's reason, `SideMount::rangeBias` / `rangeAccuracy`); since L6-A2 `config/wall_sensor_config.hpp`
+  (`kWallRangeFloorInches` — the robot file's `rangeMin` may not go under VEX's 20 mm — and a measured accuracy's
+  0.05–2-in span).
   *Confidence:* **reasoned** — published; our sensors' real spread and zero point unknown.
   *Settle:* L6 Step 0.3 (ten taped distances × five RECORDs per side: the bias and the spread) and Step 0.7.
   *Blast radius if wrong:* a sensor worse than published makes the reset seat with a larger error than its bound
@@ -3575,7 +3577,8 @@ L6-B, whose robot table cites it.
   so it may integrate over its view and report a BLEND.
   *Source:* `localization/wall_reset.hpp` (`WallResetLimits::coneHalfAngle` widening the keep-outs and setting the
   beam-height ceiling while the mount's cone is unmeasured; `SideMount::coneHalfAngle`; the 5° square gate's
-  reason); `sim/field_plant.hpp` (the host plant's nearest-hit default and its `blend` mode).
+  reason); `sim/field_plant.hpp` (the host plant's nearest-hit default and its `blend` mode); since L6-A2
+  `config/wall_sensor_config.hpp` (a measured cone's 3–30° span in the robot file).
   *Confidence:* **invented** — a community post seen only through search summaries; VEX publishes no angle and no
   multi-target behaviour.
   *Settle:* L6 Step 0.5 (angles 0–20° at 8 and 12 in; a Pin slid in from the side and from below — WHERE the
@@ -3627,7 +3630,8 @@ L6-B, whose robot table cites it.
   reach into the field is not drawn.
   *Source:* `localization/override_walls.hpp` (the Toggle BODY span — `KeepOutKind::Toggle`, lifted per side only by
   a measured `SideMount::toggleChecked` — and the two BRACKET spans, `Fixed`); `sim/field_plant.hpp` (the plant's
-  1-in overhang and 1-in-deep brackets).
+  1-in overhang and 1-in-deep brackets); since L6-A2 `config/wall_sensor_config.hpp` (`kWallMountMaxHeightInches`:
+  the robot file refuses a lens above the wall's printed top, 11.5 in).
   *Confidence:* **reasoned** (the wall heights are printed; the bracket's bottom measured off A8's printed scale —
   manual v2.0's drawings; v2.1 (2026-10-08) exists and was not readable on 2026-10-29: UNVERIFIED) ·
   **invented** (the overhang and the brackets' depth).
@@ -3687,7 +3691,9 @@ L6-B, whose robot table cites it.
   seats a wrong reading.
   *Source:* `localization/wall_reset.hpp` (`WallResetLimits`, every field labelled `PROVISIONAL (A4: HA-211)`;
   `SideMount`'s tolerances; `kMaxWallWindowSeconds`); `localization/localizer.hpp` (`travelSinceSeat`,
-  `turnedSinceHeadingSeed`, and their steps `kTurnCounterStepRadians` / `kTravelCounterStepInches`).
+  `turnedSinceHeadingSeed`, and their steps `kTurnCounterStepRadians` / `kTravelCounterStepInches`); since L6-A2
+  `config/wall_sensor_config.hpp` (`WallSensorsConfig::limits` — the robot file's copy — and the spans
+  `wallLimitsProblem` keeps a typed limit inside).
   *Confidence:* **invented** — each derived on paper from HA-204/205/209 and HA-20/21/83/84, none observed.
   *Settle:* L6 Step 0.3–0.8; the first field session's `[WALL]` lines; for the two steps, a still-robot IMU and
   odometry capture (60 s, the robot untouched): `turnedSinceHeadingSeed()` and `travelSinceSeat()` must stay at a

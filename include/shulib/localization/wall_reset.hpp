@@ -4,8 +4,9 @@
 // 2026-10-22): the geometry that turns one side distance sensor's reading into ONE field coordinate,
 // the gates that REFUSE rather than guess, the verdict, and the one log line. Nothing here moves the
 // estimate or reads a clock: the calls that do are `chassis::resetFromWall` (the explicit form over
-// sensor handles — chassis/wall_reset_call.hpp) and, from L6-A2, the everyday form over an auton's
-// context. Both run THESE functions, so no gate is written twice.
+// sensor handles — chassis/wall_reset_call.hpp) and `competition::resetFromWall` (the everyday form
+// over an auton's context — competition/auton_wall_reset.hpp, L6-A2). Both run THESE functions, so no gate
+// is written twice.
 //
 // ── What a wall reset is ─────────────────────────────────────────────────────────────────────────
 // A robot parked beside a field wall, nose along it and square to it, with a side sensor facing it:
@@ -342,7 +343,8 @@ inline constexpr double kMaxWallWindowSeconds = 0.6;
 enum class WallResetVerdict : std::uint8_t {
     /// The axis was re-seated.
     Seated,
-    /// The robot declares no wall sensors (the everyday form's context has no slot — L6-A2).
+    /// The robot declares no wall sensors (the everyday form: the robot's context has no wall-sensor
+    /// slot).
     NoSensor,
     /// The named side's sensor does not exist (the provider refused it); the detail is the reason.
     SensorAbsent,
@@ -354,7 +356,7 @@ enum class WallResetVerdict : std::uint8_t {
     MotionActive,
     /// A request, mount or limit field is unusable; the detail names it.
     BadRequest,
-    /// The auton's start is not a FIELD start (the everyday form — L6-A2).
+    /// The auton's start is not a FIELD start (the everyday form); the detail is the start mode's word.
     NotFieldStart,
     /// The beam is not within `squareWithin` of the wall's normal (or faces away from it).
     NotSquare,
@@ -380,7 +382,8 @@ enum class WallResetVerdict : std::uint8_t {
     Imprecise,
     /// The answer differs from the estimate by more than `maxCorrection`.
     Disagrees,
-    /// The run's deadline or a disable landed in the window (the everyday form — L6-A2).
+    /// The run's deadline or a disable landed in the window — or had already come when it was to begin
+    /// (`samples` 0; the line says which) — the everyday form.
     Cut
 };
 
@@ -491,8 +494,9 @@ struct WallResetReport {
     units::Length sampleDistance{};
     /// The refusing sample's confidence (rule 6).
     double sampleConfidence = 0.0;
-    /// BadRequest: the field's message; KeepOut: the span's name; SensorAbsent: the absence sentence.
-    /// A stable literal (or the Robot's copied sentence), "" when none.
+    /// BadRequest: the field's message; KeepOut: the span's name; SensorAbsent: the absence sentence;
+    /// NotFieldStart: the start mode's word ("RELATIVE", "UNSET" — L6-A2). A stable literal (or the
+    /// Robot's copied sentence), "" when none.
     const char* detail = "";
     /// KeepOut: a clean band for the beam centre was found along the wall.
     bool cleanFound = false;
@@ -510,7 +514,8 @@ struct WallResetReport {
 };
 
 /// One side as a reset reads it: the sensor, its read-fault count, its mount, and why it is absent.
-/// Built by the caller (the explicit form) or by the Robot (from L6-A2).
+/// Built by the caller (the explicit form) or by robot::Robot from the robot file's `walls` block
+/// (config/wall_sensor_config.hpp).
 struct WallSensor {
     /// The sensor; nullptr = absent (the reset refuses SensorAbsent with `absence`).
     hal::IDistance* sensor = nullptr;
@@ -544,7 +549,8 @@ struct WallResetLog {
     }
 };
 
-/// Both sides, the robot's limits and its log — the slot the robot's context carries from L6-A2.
+/// Both sides, the robot's limits and its log — the OPTIONAL slot the robot's context carries
+/// (`chassis::RobotContextConfig::walls`), which the everyday form finds through `chassis.deps().ctx`.
 struct WallSensors {
     /// The LEFT side's sensor.
     WallSensor left{};
@@ -1113,7 +1119,7 @@ struct WallAim {
 /// fault-free). It says the window is DONE at the first tick that refuses (moving, or a sample rule
 /// 6 refuses), once the window has `minSamples` over `window`, at `windowMax`, or at the buffer's
 /// capacity — never later. The explicit call drives it from `Chassis::waitUntil`'s predicate; the
-/// everyday form (L6-A2) from the run guard's wait. The wait's own ticks keep the estimate current.
+/// everyday form from the run guard's wait. The wait's own ticks keep the estimate current.
 ///
 /// RULE 5's SPEED is the estimate's DISPLACEMENT over the trailing `window`, per that time: on each
 /// tick, the distance from the pose of the latest earlier tick at least `window` back (or the
@@ -1294,7 +1300,10 @@ inline void appendWallResetLine(diag::lineformat::Line& line, const WallResetRep
             line.appendSanitized(rep.detail != nullptr ? rep.detail : "", 120);
             break;
         case WallResetVerdict::NotFieldStart:
-            line.appendLiteral("the auton does not start at a FIELD pose");
+            // The start mode's word, so RELATIVE and UNSET read apart.
+            line.appendLiteral("start ");
+            line.appendSanitized(rep.detail != nullptr && rep.detail[0] != '\0' ? rep.detail : "not FIELD", 16);
+            line.appendLiteral(" -- the season's walls are FIELD coordinates: declare a FIELD start");
             break;
         case WallResetVerdict::NotSquare:
             line.appendLiteral("beam ");
@@ -1420,7 +1429,12 @@ inline void appendWallResetLine(diag::lineformat::Line& line, const WallResetRep
             window();
             break;
         case WallResetVerdict::Cut:
-            line.appendLiteral("the run's deadline or a disable landed in the window; nothing changed");
+            // No sample: the run had already ended (a deadline passed, or a disable) when the window was
+            // to begin — the call came too late, which is not the window's fault.
+            line.appendLiteral(rep.samples > 0
+                                   ? "the run's deadline or a disable landed in the window; nothing changed"
+                                   : "the run's deadline or a disable came before the window began; nothing "
+                                     "changed");
             break;
     }
 }

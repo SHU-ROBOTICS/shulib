@@ -85,6 +85,15 @@ puts it under a `Chassis` is `wall_reset_rig.hpp`; it takes an optional `sim::De
 and its still-robot noise case run over one. The wall reset's log line is pinned byte for byte in
 `wall_reset_line_test.cpp`, and guide 11 quotes those strings.
 
+Since L6-A2 (2026-11-03) `wall_robot_rig.hpp` puts the same field under a whole `robot::Robot` built from a
+robot file that DECLARES its side sensors (robot two's shape, sensors on ports 4 and 5), over the fake
+device provider: the provider serves its own `FakeDistance` per port and has no bind hook for one, so
+the rig's pacer copies each side plant's published reading — and its read-fault state — into the
+provider's fakes after every plant step, and the Chassis's pacer is a `RunGuard`, so
+`competition::runAuton` runs an auton on it and the everyday wall reset samples through the guard's
+wait. `competition_wall_reset_test.cpp` builds its context by hand instead, so each side's sensor can
+be a COUNTING wrapper ("nothing was read" is a number).
+
 ## Strict by design
 
 The build uses `-Wall -Wextra -Wpedantic -Werror -Wshadow -Wconversion -Wsign-conversion

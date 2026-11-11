@@ -819,3 +819,794 @@ and test logs, `results.jsonl`, `final.log`, `sec7.log`). Started ~14:20; this e
   made strict), ML5 (the reset seats under an armed motion) RED. Restored tree green.
 - **Next for L6:** L6-A2 (the robot's side sensors and the everyday call) — the team lead's "Autons first" (2026-11-03) puts
   it ahead of the panel; VIS1-A1 has merged.
+
+---
+
+## L6-A2
+
+- **Started:** 2026-11-03 16:15 (`date`).
+- **Tree at start:** `59d93bb` (main: L6-A1 and VIS1-A1 merged and verified), clean, in the git worktree
+  `.claude/worktrees/l6-a2` (branch `l6-a2`) — NOT the main working tree.
+- **Go:** the team lead, 2026-10-22: "Accept all (Recommended)" — D1–D13; D2 AMENDS locked decision #4 for a
+  caller-invoked ONE-AXIS seat while no motion is active. His rulings of 2026-11-03 ("Autons first"): the wall
+  reset must be callable from a code auton well before 2026-11-21 (first competition 2026-11-23). The
+  coordinator's workflow run launched L6-A2 ONLY. Executor: opus. Do not commit; no `pros`; no `/dev/ttyACM*`.
+  Mutation backups and probes under `.claude/coordinator/scratch/l6-a2/` (never `/tmp`, never the repository root).
+- **Scope (§2.1's L6-A2 row, §1.4–§1.6, §1.12):** NEW `config/wall_sensor_config.hpp`,
+  `competition/wall_reset.hpp`, three test files (`wall_sensor_config_test.cpp`, `robot_wall_sensors_test.cpp`,
+  `competition_wall_reset_test.cpp`); CHANGED `config/robot_config.hpp`, `robot/robot.hpp`,
+  `chassis/robot_context.hpp`, `motion/motion_scheduler.hpp` (the shadow context's one line), the boot-line pins
+  (`boot_source_test`, `xdrive_config_test`, `robot_camera_test`). NOT: `version.hpp` (§1.8), L6-B (`src/`, HA-210
+  stays held), L6-C. Public documents (§3.1, five): the changelog, guide 03 (NEW section), guide 10, guide 15,
+  cookbook 05 (NEW recipe, compiled) — and `docs/api/`.
+
+### 16:15 — start
+- Read `docs/internal/RESUMING.md` (standing rules, pace rules 1–8) and, per the team lead's 2026-10-22 reading
+  ruling, the brief's header and answers block, "## Re-check — amendments" (RC1–RC48) in full, the Decisions (D1–D13)
+  in full, §1.2 (the listing, the rules, the verdict table, the sampling paragraph), §1.4–§1.6, §1.9, §1.12, §2.1–§2.3,
+  §3.1–§3.4, §4, §5, §6 and §7–§8 in full; L6-A1's log above and the coordinator's merge record (every hand-on to A2:
+  finding 23 — the NotFieldStart line's start mode; `AutonContext::mechanismService` since MECH-A4; `robot.hpp`'s
+  lines re-found after VIS1-A1's merge). This entry written before any code.
+
+### ~16:22 (approximate — no `date` was taken; corrected at 16:55) — the baseline, and what the tree says against the brief
+- **Baseline** (no binary existed: the briefing regenerated against its absence first, then `cmake -S test -B
+  build/test`, a full `cmake --build`): `suite_run.py green` → **2899 cases, 2953698 assertions** (the coordinator's
+  merge count). Logs: `scratch/l6-a2/{cmake_config,baseline_build}.log`.
+- **Re-read at the tip (landmine 18 — never a brief line number):** `chassis/wall_reset_call.hpp` — L6-A1 already
+  built the ONE sampler as `chassis::detail::runWallReset<Wait>(chassis, sensor, request, limits, wait, log)`, its
+  wait returning false for a CUT; `localization/wall_reset.hpp` — `WallSensors {left, right, limits, log}`,
+  `WallSensor::absence` defaulting to "not declared", `WallResetLog::record()`, the verdicts `NoSensor`,
+  `NotFieldStart`, `Cut` and their words already there (A1 appended them); `NotFieldStart`'s line prints a fixed
+  sentence (finding 23, handed to A2). `competition/auton_registry.hpp` — `AutonContext` has SIX members since
+  MECH-A4 (`mechanismService` appended); `StartPose::Mode {Unset, Field, Relative}`, `startModeWord()`,
+  `AutonEntry::effectiveStart()` (Unset for a route whose Start is `Free` and no entry start).
+  `sequence/run_guard.hpp` — `waitFor(pred, timeout)` → `GuardedWaitResult {Satisfied, TimedOut, RunExpired}`,
+  PRECONDITION `running()`. `motion/motion_scheduler.hpp` — the shadow context at the scheduler's constructor
+  (clock … vision; the motorGroups comment). `robot/robot.hpp` (VIS1-A1 merged) — `buildCamera(devices)` LAST in the
+  body, `copyCameraReason`, the three `describe()` formats end `"GPS %s tags ABSENT %s"` with the camera's words.
+  `config/robot_config.hpp` — `SensorsConfig {gps, camera}`, `PortUse` ends `Camera`, `portUseWord` the ONLY switch
+  on `PortUse` (`grep -rn 'case PortUse::' include src test | wc -l` → **11** at the base), `valid()`'s camera block
+  last in the first pass.
+- **The boot-line pins at the base** (`grep -rn 'tags ABSENT'`): `robot_camera_test.cpp` :347, :369, :415 (head),
+  :492, :497; `xdrive_config_test.cpp` :234; `boot_source_test.cpp` :393-394; `robot_builder_test.cpp` :883/:885/:888
+  (survives: `find` and ends-with). Guide 10 :769-772 quotes four banner tails. The programs print the banner in
+  `drive_program.cpp` (`%.220s`, then `logWrapped` — splits at 196) and `xdrive_program.cpp` (`%.180s`): robot two's
+  banner grows 179 → 192 bytes with " walls ABSENT", 206 with its prefix — wrapped into two log lines by the drive
+  program, nothing cut; the X-drive's 155 → 168, under its 180 and under TermSink's 200 with the prefix. No `src/`
+  change is needed (§7: `git diff -- src/` empty for A2).
+
+### ~16:50 (approximate — no `date` was taken; corrected at 16:55) — the code, the tests, and the first green suite
+- **Code (each re-read at the tip before editing):**
+  - NEW `config/wall_sensor_config.hpp`: `WallSensorConfig {port, mount}`, `WallSensorsConfig {left, right, limits,
+    note, declared()}`, constexpr `wallMountProblem` (a MEASURED mount only) and `wallLimitsProblem`, the bounds as
+    named constants.
+  - `config/robot_config.hpp`: the include; `SensorsConfig::walls` APPENDED after `camera`; `PortUse::WallSensor`
+    APPENDED after `Camera` and its `portUseWord` case ("a wall sensor"); `valid()`'s wall block AFTER the camera's
+    (port range naming the side, the RIGHT on the LEFT's port with its own sentence, the claim, each declared side's
+    measured mount, then the limits always); `valid()`'s doc.
+  - `chassis/robot_context.hpp`: `RobotContextConfig::walls` APPENDED (`localization::WallSensors*`, non-const,
+    nullptr default, a documented forward declaration — the context includes no localization header), the accessor
+    `wallSensors()`, the banner's OPTIONAL-slot section; the constructor's checks unchanged.
+  - `motion/motion_scheduler.hpp`: the shadow context's ONE line `.walls = deps.ctx->wallSensors()` and a comment
+    sentence (worded without the string "walls", so §7's grep finds exactly the one line).
+  - `robot/robot.hpp`: `walls_` declared BEFORE `ctx_`; `.walls = cfg_.sensors.walls.declared() ? &walls_ : nullptr`;
+    `buildWallSensors(devices)` in the body AFTER `buildCamera`; `buildWallSide` (catches a throwing provider, copies
+    the refusal into `wallAbsence_[2][160]`), `wallWords()` (`walls ABSENT` / `walls L4 R5` / `(ABSENT)` / `MOUNT
+    UNSET`, ≤ 41 bytes), inserted as `GPS %s tags ABSENT %s %s` (walls, then camera) in all three `describe()`
+    formats; the accessors `wallSensors()`, `wallSensor(side)` (both constnesses), `wallSensorAbsence(side)`; the
+    file banner's SIDE DISTANCE SENSORS section; `validate()` NOT changed.
+  - NEW `competition/auton_wall_reset.hpp` (**the brief's `competition/wall_reset.hpp` — renamed, a delta below**):
+    `competition::resetFromWall(AutonContext&, const WallResetRequest&)` — a precondition that the guard runs; the
+    start (`effectiveStart().mode() != Field` → `NotFieldStart`, `detail` = `startModeWord(mode)`); the slot (nullptr
+    → `NoSensor`); then `chassis::detail::runWallReset` with the guard's `waitFor` as the wait (RunExpired → CUT), the
+    slot's log, and `&ctx.telemetry` as the line's sink. Early refusals go through `detail::refuseWallReset` (the
+    report, ONE Warn line, filed when a slot exists).
+  - `chassis/wall_reset_call.hpp` (A1's): `runWallReset` gains a trailing optional `hal::ITelemetrySink* sink =
+    nullptr` (null = the chassis context's telemetry, as before); comments that said "from L6-A2" now name the file.
+  - `localization/wall_reset.hpp` (A1's): the `NotFieldStart` line prints `start <MODE> -- the season's walls are
+    FIELD coordinates: declare a FIELD start` (finding 23) — "start not FIELD" when a hand-built report carries no
+    mode; `detail`'s doc names the mode; the "from L6-A2" comments re-worded. `localization/override_walls.hpp`: one
+    comment sentence.
+- **Tests:** NEW `test/wall_sensor_config_test.cpp` (T12, 6 cases), `test/robot_wall_sensors_test.cpp` (T13 + S1, 7),
+  `test/competition_wall_reset_test.cpp` (T17, 9), the shared rig `test/wall_robot_rig.hpp` (a Robot built from a
+  robot file with walls over the fake provider and the field plant; the pacer copies each side plant's reading into
+  the provider's own `fakeDistance(4/5)` and its fault state into `fakeReadFaults`); CHANGED `cookbook_examples_test.cpp`
+  (NEW `cookbook-05c`, the recipe inside `namespace shulib::bench`, run through `runAuton` on the Robot, plus its
+  RELATIVE twin), `wall_reset_example_test.cpp` (NEW `guide-10x` — guide 10's `walls` listing, constexpr, built; NEW
+  `L6 guide-03 bands` — guide 03's table recomputed from `preCheck` on all four walls), `wall_reset_line_test.cpp`
+  (the NotFieldStart line: RELATIVE / UNSET / no mode), the boot-line pins (`robot_camera_test.cpp` ×5,
+  `xdrive_config_test.cpp` :234, `boot_source_test.cpp` :393 and its "193 bytes" comment → 206, wrapped).
+- **Suite:** `suite_run.py green` → **2921 cases** before the cookbook/guide cases (2899 + 22); with them the
+  `L6*,cookbook-05*,guide-10*` filter is **119 / 119**.
+- **Probe** `scratch/l6-a2/probe/bands.cpp` (the library's own `preCheck`, all four walls, a centred left sensor
+  10.5 in up, a 7-in reading): the clean stretches equal the brief's Q1b numbers — unmeasured cone 33.6–41.8 /
+  34.8–40.6 / 36.0–39.4 / none / none after 0 / 12 / 24 / 48 / 96 in of travel; a measured 18° cone 18.3–41.8 /
+  19.5–40.6 / 20.7–39.4 / 23.1–37.0 / 27.9–32.2 — the same on all four walls (`bands.txt`, `bands18.txt`).
+
+### 16:55 (`date`) — the documents, and the prose review (each grep run and its hits read BEFORE this entry)
+- **Public (§3.1's five):** `docs/changelog.md` — a NEW section at the top of `## API 2.5` ("Added and changed since
+  2.5 … No version bump"; the boot line's `walls` words called out as the visible change; what to do). **Guide 03** —
+  the NEW section "Re-seating one axis against a wall" (what a side sensor measures; the FIELD-start rule; the nine
+  checks in plain words, the beam height among them; the everyday call quoted from `cookbook-05c`; where to park and
+  the robot centre's arithmetic; the clean-stretch TABLE, recomputed from the library and pinned by the new
+  `L6 guide-03 bands` case; the D10 mounting advice; clear panels and the code strip; what it cannot catch → guide
+  14), its "Covers" line, one sentence in the distance-sensor bullet, the signatures line. **Guide 10** — the
+  section note (the everyday call and the robot file's block are in the library, not frozen), "Two forms" rewritten,
+  NEW "### The robot file's side sensors" (`guide-10x`'s constexpr listing, `valid()`'s refusals, the Robot's
+  accessors, the reset log, the optional slot, the boot line's four `walls` forms), NEW "### The everyday call, from
+  an auton", the explicit call's lateness sentence, the chapter's "Covers" line, the camera's four boot-line
+  examples gain `walls ABSENT`. **Guide 15** — five glossary entries (footprint, keep-out, seat, side sensor, wall
+  reset), alphabetical. **Cookbook 05** — NEW recipe "Re-seat x against a wall" (D4's sequence through `then()`,
+  quoted from `cookbook-05c`; why, watch out for), the chapter's case list, the re-seed recipe's pointer; the cookbook
+  README's row.
+- **Prose-review fixes outside the five (rule 4 — A2's code made them stale; logged as deltas):** guide 11 (the
+  WALL section's "(once it is in the library)", the `NoSensor` / `NotFieldStart` / `Cut` rows — `NotFieldStart`'s
+  "numbers" cell now names the start mode, finding 23), guide 14 (":333 Only its explicit form is in the library"
+  rewritten; the explicit call's lateness bullet gains the everyday call's cut; a NEW "Only a FIELD start" bullet),
+  `test/README.md` (the new rig), the HA register (the Source lines of HA-204, HA-205, HA-208 and HA-211 gain
+  `config/wall_sensor_config.hpp` — no new id: §4 assigns NONE to L6-A2; HA-210 stays held for L6-B).
+- **Internal:** `docs/roadmap.md` (the `[~]` L6 item: "L6-A2 BUILT 2026-11-03 (reviews owed)"), `REMAINING-WORK.md`
+  row 25's status cell, `build-order.md`'s L6 entry (a status line). NOT edited, for the coordinator: the roadmap's
+  "Now" paragraph and "Next for the wall reset: L6-A2" (:441-446 — the merge's), `build-order.md`'s first bold
+  `Next:`, the briefing's generated block beyond `generate`.
+- **The prose review (§3.4), each grep run and its hits read:**
+  1. `never snap|never-snap|nothing that reads a sensor|caller seed|relocalize` over `include/` and the public docs —
+     68 hits: the correctors' never-snap (complementary/EKF fusion, gps corrector, correction.hpp, debug_record,
+     plausibility guard), the Localizer's banner and `seatAxis` doc (A1's, still true — A2 adds no path to a seat
+     other than `seatAxis` through the shared sampler), guide 03 :118 (correctors — and the new section says the wall
+     reset is the one deliberate exception), guide 11's CLMP and heading audit, guide 12 :149 (A1's sentence, true),
+     guide 14 :103 (yaw), the glossary's "snap", the master plan's amended decision #4, the changelog (history).
+     Nothing stale.
+  2. `wall reset|re-seed|reseat` (minus `reseatHeading`) — every hit in the guides, cookbooks, roadmap, master plan
+     and `include/` read: the stale ones were guide 10's "is not in the library yet" / "will sample", guide 11's
+     "(once it is in the library)", guide 14 :333 — all FIXED above; the "from L6-A2" comments in
+     `chassis/wall_reset_call.hpp`, `localization/wall_reset.hpp` (five) and `override_walls.hpp` — FIXED (they now
+     name `competition/auton_wall_reset.hpp`); guide 14 :464 ("only a GPS, a tracking wheel or a wall reset would
+     see it" — true); the roadmap's "Now"/"Next" paragraph (the coordinator's at the merge).
+  3. `distance sensor|side sensor|IDistance` — guide 03 :92 (true; gained a pointer to the new section), guide 06's
+     in-band impostor, guide 13 :172, the faq's 393-inch entry, guide 10's piece-sensor lines, guide 11 :337, guide
+     14 :239/:244 (piece sensors), the master plan's HAL list, F4's row — all true; `hal/distance.hpp`'s two
+     sentences (A1's) still true.
+  4. `about −70|70 in|140` — guide 02 :17-18 "about −70 to +70" (true, "about"); the new section says ±70.2.
+  5. `HA-20[4-9]|HA-21[0-2]` both directions — code sites (include/src/test): HA-204 ×9, 205 ×11, 206 ×6, 207 ×6,
+     208 ×10, 209 ×6, 211 ×31, 212 ×10; register rows HA-204..209, 211, 212 (:430-437); HA-210 in neither (held for
+     L6-B). Every id has its row and every row a code site.
+
+### 16:57 (`date`) — every delta from the brief (each kept, with its reason)
+1. **The header is `competition/auton_wall_reset.hpp`, not the brief's `competition/wall_reset.hpp`.** The build's
+   API doc gate refused the brief's name: "two headers want the same page file … both -> docs/api/wall_reset.md"
+   (`api_doc_tool.py`'s `page_name()` drops the subsystem directory, so `localization/wall_reset.hpp` and
+   `competition/wall_reset.hpp` collide). Extending `page_name()` is a `tools/` change, which §7 keeps out of A2 (`git
+   diff --stat -- src/ tools/ Makefile` empty). The name sits beside `auton_registry.hpp` / `auton_menu.hpp`; the
+   function is the brief's, `competition::resetFromWall(ctx, request)`, unchanged. §7's two greps that name the
+   file were run against the new name.
+2. **The Robot hands the slot only when its config declares a side** (`.walls = cfg_.sensors.walls.declared() ?
+   &walls_ : nullptr`; §1.5 wrote `.walls = &walls_`). With the slot always set, a robot file with NO side declared
+   would refuse every reset `sensor absent: not declared`, where the brief's own verdict table gives the true word
+   for it: `NoSensor` — "this robot file declares no wall sensors: add the `walls` block". T13's "the context slot
+   non-null" is pinned for a robot that declares sensors; the no-side case pins nullptr (mutation MA3).
+3. **The line goes to `ctx.telemetry` through a new optional `sink` parameter of A1's shared sampler**
+   (`chassis::detail::runWallReset(…, log, sink = nullptr)`; null = the chassis context's telemetry, as before).
+   §1.12 item 4 asks for "ONE `[WALL]` line through `ctx.telemetry`", and the sampler wrote to `deps.ctx->telemetry()`
+   only. A `detail::` template, defaulted — the explicit call and every A1 test unchanged.
+4. **The wait's timeout is A1's `windowMax + kWallResetWaitBackstopSeconds` (1 s)**, not §1.12's "windowMax + two
+   ticks": it is the shared sampler's, and unreachable by construction (the predicate ends the window at
+   `windowMax` by the clock). A `TimedOut` is read like the explicit form's (evaluate the window); only `RunExpired`
+   is a CUT.
+5. **A PRECONDITION that the guard is running**, before anything else (the brief is silent). The guard's own
+   `waitFor` would throw anyway — but only AFTER the pre-checks, so a RELATIVE-start call outside a run would have
+   refused quietly and a FIELD-start one thrown: one program error, two behaviours. An `AutonContext` lives for one
+   guarded run (`runAuton` builds it inside `guard.run`), so outside one is a program error, loud (T17 pins both).
+6. **The start mode rides in the report's `detail`** ("RELATIVE" / "UNSET", `startModeWord`) — finding 23 asked A2 to
+   add "the mode to the report and the line". A new field would be a type the PURE `wall_reset.hpp` cannot name
+   (`StartPose::Mode` is `competition/`'s); `detail` is already the per-verdict field the line prints. The line:
+   `start RELATIVE -- the season's walls are FIELD coordinates: declare a FIELD start`.
+7. **`valid()` refuses a MEASURED mount with no provenance** (not in §1.4's list): D6 says each mount carries "a
+   provenance string (who measured, how, when)", and the camera's placement check refuses the same. An UNMEASURED
+   mount is never judged (M26).
+8. **The limits are checked ALWAYS, and as a superset of `wallResetProblem`'s** (§1.4 listed only the new spans):
+   every limit the reset itself would refuse as BAD REQUEST (squareWithin ≤ 20°, the cone 3–30°, spreadMax > 0,
+   minConfidence 0–1, still speeds > 0, errorBoundMax > 0, keepOutMargin ≥ 0, `window` ≤ 0.6 s — A1's
+   `kMaxWallWindowSeconds`) plus §1.4's tighter spans — so a valid robot file never meets BAD REQUEST from its own
+   limits; T12 pins that INVARIANT over 20 000 seeded draws (mutation MA1). Checked whether or not a side is
+   declared: a wrong block is wrong, and no older config writes one.
+9. **Both sides on one port has its own sentence** ("the LEFT and RIGHT wall sensors are both on port 4 -- one sensor
+   per side, each on its own port"): through the shared `claim` it would read "claimed by a wall sensor and by a wall
+   sensor". Every other collision is the shared claim's "naming both".
+10. **The walls words come from one helper that prints the whole phrase** (`walls ABSENT`, `walls L4 R5`, …), so the
+    three formats read `GPS %s tags ABSENT %s %s` (walls, camera) rather than `walls %s `.
+11. **A refused side's absence buffers are the Robot's** (`wallAbsence_[2][160]`, the camera's bound); a provider
+    that THROWS from `distance()` is caught and named, like the camera's (the brief's §1.5 named only a nullptr).
+12. **Tests beyond §1.9's three files:** the shared rig `test/wall_robot_rig.hpp` (a Robot over the fake provider and
+    the field plant — the provider has no bind hook for a distance sensor, so the pacer copies the plant's reading
+    into the provider's own fakes: no HAL change); `cookbook-05c` in `cookbook_examples_test.cpp` (as the brief says);
+    `guide-10x` (guide 10's `walls` listing, constexpr) and `L6 guide-03 bands` (guide 03's table, recomputed from
+    `preCheck`) in A1's `wall_reset_example_test.cpp`; the brief's §6.4 agreement test (VIS1's Toggle places and
+    length against L6's walls and keep-outs) in A1's `wall_reset_geometry_test.cpp` — owed by "the second-merged
+    run", which was L6-A1, built before VIS1-A1 merged; A2 is the first L6 run on a tree with both headers; and a
+    DISABLE-mid-window cut beside the deadline one (the docs claim both).
+13. **Public documents beyond §3.1's five** — guide 11, guide 14, the cookbook README, `test/README.md`, the HA
+    register's Source lines: each a prose-review fix A2's code made necessary (logged in the 16:55 entry).
+14. **HA: none registered.** §4's "Cited in code by" column assigns no id to L6-A2 (HA-204..209, 211, 212 are A1's;
+    HA-210 is L6-B's). A2's new code cites HA-204, 205, 208 and 211, whose rows' Source lines now name the file.
+
+### 2026-11-05 00:22 (`date`) — RESUMED after the stop (the team lead stopped all work at the 5-hour usage limit, 2026-11-03 ~17:30)
+- **What the stopped run left:** the code, tests and documents logged above (16:15–16:57); the mutation set prepared
+  (`scratch/l6-a2/mut/{make_muts.py,mutations.json,driver.py}` — 24 mutations, NONE run: no `results.jsonl`, `bak/`
+  empty, no `APPLIED.json`); `srcgate_selftest.log` EMPTY (17:08 — the gate's self-test was running when the stop came).
+- **A GATE SELF-TEST PLANT WAS LEFT IN `src/`** — the coordinator's audit missed it because it greps for "(self-test
+  plant", and this plant has no such marker: `src/robots/chassis_table.hpp` ended
+  `#ifdef SHULIB_ROBOT_TANK_2026 / static int self_test_directive_form; / #endif` (mtime 2026-11-03 17:08:46) —
+  `src_build_gate.py`'s case-19 one-chain plant on `CHASSIS_TABLE_PATH` (its `plants` list, the `#ifdef` form), killed
+  inside its `_plant` context. The file's WHOLE diff was the plant (A2 changes no `src/` file — §7). Copied to
+  `scratch/l6-a2/PLANT_FOUND__src__robots__chassis_table.hpp`, restored with `git checkout`, timestamp bumped;
+  `git diff --stat -- src/ tools/ Makefile` now EMPTY. Every other plant target the tool names (main.cpp,
+  bench_r3a.cpp, mechanism_table.hpp, robot_config.hpp's tail, build_selection_test.cpp, doctest.h, CMakeLists.txt,
+  boot_source.hpp, chassis_table_test.cpp, lv_obj_style.h, the Makefile) grepped for every plant string: none.
+  **For the coordinator:** the audit's plant grep should also look for `self_test_directive_form`, `gate1_selftest`
+  and `SelfTestUnhandled`.
+- **Next:** a fresh build (the binary removed first) and the suite, then the mutations, the gates, the reviews.
+
+### 2026-11-05 00:23–01:01 (`date` at each end) — the fresh build, the suite, the mutations
+- **Fresh build:** the binary removed, the briefing regenerated against its absence, then `cmake --build --clean-first`
+  (261 objects — nothing from the stopped run trusted). `suite_run.py green` → **2926 cases, 2954563 assertions**.
+- **The mutation driver** (`scratch/l6-a2/mut/driver.py`): per mutation, exact-once replacements that keep the line
+  count; the file backed up under `mut/bak/`, a marker `APPLIED.json` while it is live; the binary removed; `cmake --build
+  build/test --target shulib_tests` (make's dependency scan recompiles EVERY object that includes the file — each run's
+  object count recorded); the WHOLE suite under `ulimit -v 4194304` + `timeout 600`, its full output saved to
+  `mut/out/<id>.txt`; then the file restored byte for byte (sha-256 checked), its mtime bumped — in a `finally`, and on
+  SIGTERM / SIGHUP / SIGINT. **A driver defect found and fixed before any verdict was kept:** the first launch named
+  "failing" cases by every `TEST CASE:` header in the output — passing cases that print warnings too — so it could not
+  say WHICH test went red. Stopped by SIGTERM during M26 (its handler restored the file: sha equal to the backup, the
+  marker gone; the orphan check found no suite process of this worktree); the driver now names a case only when its
+  doctest block reports an `ERROR:`. That first partial run is `results.aborted.jsonl`, not counted.
+- **Results** (`mut/results.jsonl`; every file afterwards byte-identical to its backup — `cmp` over all of `bak/`):
+
+  | id | file | the mutation | verdict (objects rebuilt) | the case(s) that went red |
+  |---|---|---|---|---|
+  | M25 | robot_config.hpp | the wall port's claim removed | RED 1 (76) | T12 "a wall port claimed by anything else is refused NAMING BOTH" |
+  | M26 | robot_config.hpp | an UNMEASURED mount refused at boot | RED 2 (76) | T12 "an UNMEASURED mount is VALID…"; T13 boot-line words |
+  | M27 | robot.hpp | a refused side sensor refuses the robot | RED 3 (76) | T13 "a REFUSED side never refuses the robot…"; T13 "a provider that refuses with NO reason…" |
+  | M28 | robot.hpp | the provider's absence pointer kept, not copied | RED 2 (21) | T13 "…COPIED"; T13 "…NO reason…" |
+  | M31 | motion_scheduler.hpp | the shadow context's `.walls` line dropped | RED 12 (111) — *see below* | all of T17 that reach the sampler, cookbook-05c, T13's shadow / slot / S1 cases |
+  | M40 | auton_wall_reset.hpp | the start check dropped | RED 5 (109) | T17 RELATIVE, UNSET, the start-before-slot case, D3, cookbook-05c's RELATIVE twin |
+  | M41 | auton_wall_reset.hpp | sampling through the frozen `chassis.waitUntil` | RED 2 (3) | T17 deadline mid-window CUT; T17 DISABLE mid-window cut |
+  | MA1 | wall_sensor_config.hpp | the robot file's 0.6-s window bound dropped | RED 2 (76) | T12 every LIMITS bound; T12 "valid() ⊆ the reset's accept set" (the 20 000-draw invariant) |
+  | MA2 | robot_config.hpp | the both-sides-on-one-port check dropped | RED 1 (76) | T12 "…NAMING BOTH" |
+  | MA3 | robot.hpp | the slot handed in with no side declared | RED 1 (76) | T13 "port 0 on both sides: no slot…" |
+  | MA4 | robot.hpp | MOUNT UNSET read from the left side only | RED 1 (21) | T13 boot-line words |
+  | MA5 | robot.hpp | a refused side not marked `(ABSENT)` | RED 3 (21) | T13 refused-side cases (banner pins) |
+  | MA6 | robot.hpp | a throwing provider caught as `logic_error` only | RED 1 (21) | T13 "…one that THROWS…" |
+  | MA7 | auton_wall_reset.hpp | the line sent to the chassis's sink | RED 3 (22) | T17 SEATS (the line to the auton's sink), T17 deadline CUT, T17 refused side |
+  | MA8 | auton_wall_reset.hpp | the outcome not filed in the slot's log | RED 6 (3) | T17 SEATS, deadline CUT, DISABLE cut, refused side; cookbook-05c; T13/T17 S1 through the Robot |
+  | MA9 | auton_wall_reset.hpp | the guard-running precondition dropped | RED 1 (3) | T17 "a call with the guard NOT running is a PRECONDITION…" |
+  | MA10 | auton_wall_reset.hpp | the start mode's word not carried | RED 2 (3) | T17 RELATIVE line; T17 UNSET line |
+  | MA11 | auton_wall_reset.hpp | `entry.start` read instead of `effectiveStart()` | RED 1 (3) | T17 UNSET — the route whose Start states (or not) a heading |
+  | MA12 | auton_wall_reset.hpp | the slot judged before the start | RED 1 (3) | T17 "the start is judged BEFORE the slot" |
+  | MA13 | wall_sensor_config.hpp | the 11.5-in height edge made strict | RED 1 (76) | T12 every MEASURED-mount bound (11.5 exactly accepted) |
+  | MA14 | robot.hpp | the robot file's limits not carried | RED 1 (76) | T13 "…builds both side sensors…" (`rangeMax` 14 typed) |
+  | MA15 | robot.hpp | the read-fault count not handed to the side | RED 1 (21) | T13 "…builds both side sensors…" |
+  | MA16 | auton_wall_reset.hpp | a RunExpired read as an ended window | RED 2 (22) | T17 deadline CUT; T17 DISABLE cut |
+  | MA17 | wall_sensor_config.hpp | an unmeasured mount judged anyway | **BUILD-FAIL — caught at COMPILE time** by the test's own `static_assert` (`wall_sensor_config_test.cpp:111`, `static_assert(cfgns::wallMountProblem(kConstexprBlock.right.mount) == nullptr);  // unmeasured: none`); NOT counted as a run verdict (the rule: a mutant whose build fails is never counted) — its run-time twin is M26 (RED above) |
+  | MA18 | wall_sensor_config.hpp | the provenance check dropped | RED 1 (76) | T12 every MEASURED-mount bound |
+
+  **24 of 24 run-time mutations RED** (MA17 caught at compile time, not counted). The brief's own list for A2 —
+  M25, M26, M27, M28, M31, M40, M41 — all RED.
+- **What the run found in the TESTS (fixed, then re-verified):**
+  1. **M31 first went red by CRASHING the suite** (`rc -11`: SIGSEGV in `cookbook-05c` — the recipe's test hook read
+     `ctx.chassis.deps().ctx->wallSensors()->log.last` with no null check, so under M31 it dereferenced the null slot;
+     doctest died there, after 587 of 2926 cases — every later case unrun). A kill counts as caught, but a test that
+     crashes on the very defect it guards hides the rest of the suite. Fixed in `test/cookbook_examples_test.cpp`: the
+     hook resets `gCookbookWall` and reads the log only through a non-null slot (a default report's verdict is
+     `NoSensor`, never `Seated`, so the case cannot pass vacuously). The listing the cookbook quotes is unchanged
+     (`check-examples` matches line by line). **M31 re-run on a fresh link: RED 12, the whole suite ran (2926 cases,
+     12 failed, no crash)**; the first run's output kept as `mut/out/M31.first-run-crash.txt`.
+  2. **RC31 / landmine 23 had no pin through the EVERYDAY form.** T8's RC31 cases cover the explicit call; S1 through
+     the Robot (T13/T17) seats 2.5 in — over the pose guard's 2.25 in per tick — and checked nothing about it. Added to
+     that case: the applied correction is over 2.25 in (REQUIRE), and the Robot's fault latch raised NO `Implausible`
+     and NO `OdoStuck` over the run. **Proved to bite (MA19, a PROBE on code that is not A2's):** `LoopMonitor::reset()`
+     keeping `hasLast_` (every wait's first tick then has dt > 0) → RED 10 (111 objects), among them this case at
+     `robot_wall_sensors_test.cpp:487` (`2 == 0`), restored.
+- After the fixes, a fresh build: `suite_run.py green` → **2926 cases, 2954566 assertions** (+3 — the new checks).
+
+### 2026-11-05 ~01:01–01:37 (`date` at the end) — every gate on the fixed tree (fresh build first; logs in `scratch/l6-a2/`)
+- `suite_run.py green` → **2926 cases, 2954566 assertions**; the briefing regenerated after the binary existed.
+- `api_doc_tool.py`: generate (no `///` changed this session — the pages unchanged from the stopped run's); self-test
+  **OK**; check-coverage **5508 public entities across 199 headers, all documented**; check-fresh **rc 0**;
+  check-examples **669 quoted lines, all verbatim (11 source files); 6 whole-run listings, each one unbroken run**;
+  check-removability **no public doc references docs/internal/**.
+- `doc_staleness_audit.py` **clean**; `briefing_status.py check` **generated block current**.
+- `ctest -R compile_refusal` **255 of 255**.
+- ARM header gate over **242** headers (L6-A2 adds two): **rc 0**.
+- `src_build_gate.py self-test` **OK (269 detector cases, each against a real build)**; `check` **PASS (all 7 builds
+  link, 0 disallowed warnings)**. Afterwards: no plant string anywhere (`(self-test plant`, `self_test_directive_form`,
+  `gate1_selftest`, `SelfTestUnhandled`), `git diff --stat -- src/ tools/ Makefile` EMPTY.
+- §7's greps, each run: F4's `hal/distance.hpp` comment-only (prints nothing); no probe leak; no `setPose` /
+  `reseatHeading` / `headingBias` in the three calls' code (the brief's `competition/wall_reset.hpp` run as
+  `competition/auton_wall_reset.hpp` — delta 1); the plant independent; the localization headers PURE;
+  `grep -n walls motion_scheduler.hpp` → exactly ONE line (:668, the shadow's `.walls`); `case PortUse::` → **12** (11 at
+  the base + `WallSensor`); no `PROVISIONAL (A4` without an id; C7 empty; no `RCn` tag in a guide, cookbook, header or
+  compiled listing; no new "simulator"; the PROS-free and sim-layering guards empty.
+- HA, both directions: code sites HA-204 ×9, 205 ×11, 206 ×6, 207 ×6, 208 ×10, 209 ×6, 211 ×31, 212 ×10; register rows
+  HA-204..209, 211, 212; HA-210 in neither (L6-B's).
+- **Prose review, re-run this session (rule 4):** this session changed NO prose — only two test files and this log —
+  so the logged review of 16:55 stands; its greps re-run as a check: (1) `never snap|…|relocalize` over `include/` + the
+  public docs → 58 hits (the 16:55 entry counted 68 over a wider scope; the set read then is the same files); (2) the
+  stale-wording grep `from L6-A2|once it is in the library|is not in the library yet|everyday form (L6-A2)|later parts`
+  → EMPTY; nothing in `include/`, `docs/` or `test/` names the brief's `competition/wall_reset.hpp`; (4) `about −70|70
+  in|140` → only guide 02's "about −70 to +70" (true) and unrelated numbers.
+
+### 2026-11-05 ~01:40–01:54 (`date` at the end) — the review (round 1), its findings verified and dispositioned, the fixes
+- **Who reviewed:** this run has NO agent-spawning tool, so the independent review came through the `code-review`
+  skill (effort "high", forked — its own reviewer agents, READ-ONLY over this worktree's diff against `59d93bb`).
+  **The brief asks for THREE reviewers and a fresh verifier; this run could field one forked review plus this
+  executor's own whole-brief reading (the header, answers, RC1–RC48, D1–D13, §1.2's listing and rules, §1.4–§1.6,
+  §1.9, §1.12, §2.1–§2.3, §3, §4, §5, §6, §7, §8 in full). The other two reviewers and the fresh verifier are OWED —
+  for the coordinator to launch.** Each finding below was re-checked against the code before acting.
+- **Findings (10; the skill's summary said 9) and what was done:**
+  1. **`facing` never bounded** (REAL): `90.0` typed alone is 90 RADIANS (~116.6° wrapped) and passed `valid()`;
+     every reset would refuse NOT SQUARE with nothing at boot saying why. The camera's placement check bounds yaw to
+     (−180, 180] — the same bound added to `wallMountProblem` ("facing outside (-180, 180] degrees -- type it as N *
+     kWallDegToRad (90.0 alone is 90 RADIANS)"), edges typed as `N * kWallDegToRad` (180 accepted, −180 refused).
+  2. **A mount copied from the other side passes** (REAL): a LEFT block with the right's −90° refuses every reset NOT
+     SQUARE; with only the offset's sign wrong the answer is ~15 in off (DISAGREES at 3 in, SEATED 15 in wrong under a
+     generous `maxCorrection`). NEW constexpr `config::wallSideProblem(mount, side)`, called by `valid()` after
+     `wallMountProblem` for a MEASURED mount: the LEFT one's facing strictly inside (0°, 180°) and `left` > 0, the
+     RIGHT one's mirrored. **A delta from §1.4** (logged below). Why strict and why the offset too: a lens on or past
+     the centre line facing out a side looks through the robot's own body (D10: nothing of the robot's own in the cone).
+  3. **`minSamples` above windowMax/tick can never be reached** (DECLINED): `valid()` cannot know the tick — the
+     pacer's, not the config's (no tick constant exists in `include/`) — and the header's promise is "never BAD
+     REQUEST from its own limits", which holds; such a block refuses at run time with its own word. For the
+     coordinator: L6-B's robot file uses the defaults (5 of ≤ 50).
+  4. **`refuseWallReset` left `faultChannel` at its default `true`** (REAL): a NO SENSOR report claimed a fault
+     channel. Now set as the sampler sets it (`walls != nullptr && side.faults != nullptr`); T17 pins true for the
+     RELATIVE refusal (the side has a channel) and false for NO SENSOR. The suggested merge of the two tails is
+     declined: the early refusals have no `WallSensor` to hand the sampler, and the shared part is the line call.
+  5. **A call made AFTER the deadline read "landed in the window"** (REAL): `guard.waitFor` returns RunExpired at once,
+     no sample taken, and the line sent a student to debug a window that never ran. The CUT line now says, with
+     `samples == 0`, "the run's deadline or a disable came before the window began; nothing changed" (the verdict stays
+     CUT — nothing seated); `WallResetVerdict::Cut`'s doc and guide 11's row say so. NEW T17 case (the guard's wait run
+     past the deadline, then the call: CUT, 0 samples, zero latency, nothing read). L6-A1's byte-for-byte line test
+     (`wall_reset_line_test.cpp`) now pins BOTH forms (samples 7 / 0).
+  6. **The shadow context is still built field by field** (DECLINED — out of A2's scope): the brief's §1.6 and §7 make
+     A2's scheduler change exactly ONE carried line; rebuilding the shadow from a copy of the config (a
+     `RobotContext::config()` accessor) is a scheduler refactor. **For the coordinator:** a candidate follow-up — the
+     next optional slot would be dropped the same silent way; the new comment beside the line says so.
+  7. **`detail::wallFinite` duplicated `config::finiteNumber`** (REAL): removed; `wall_sensor_config.hpp` includes
+     `config/camera_config.hpp` for it (both in `shulib::config`; `robot_config.hpp` already includes both).
+  8. **`buildWallSide` / `copyWallReason` parallel the camera's** (DECLINED): the camera's helper writes a fixed
+     member and the words differ per device; merging would rewrite VIS1-A1's merged code for no behaviour change.
+  9. **S1's comment said "further from" the wall** (REAL — the robot is 2.5 in NEARER): fixed.
+  10. **`kWallWordsBytes`' comment said 41 bytes** (REAL — 41 characters, 42 with the NUL; the 48-byte buffer fits):
+      fixed.
+- **Documents moved with the fixes:** the header banner of `wall_sensor_config.hpp`, `RobotConfig::valid()`'s doc,
+  guide 10's refusal list, guide 11's Cut row, the changelog (the two new refusals; the cut line's second form);
+  `docs/api/` regenerated.
+- **Tests added:** T12 the facing edges (180 / −179.99 accepted; −180, 180.01, `90.0`, `-90.0` refused); NEW T12 "a
+  MEASURED mount must face out of, and sit on, its OWN side" (both sides' facing edges 0.01 / 179.99 / 0 / 180 and the
+  offset edges 0.01 / 0 / ∓7.5, an unmeasured copy valid, and through `valid()` with the side and port); T17
+  `faultChannel` checks; NEW T17 "a call made after the deadline has passed is CUT with no sample, at once"; the line
+  test's two CUT forms. Suite on a fresh build: **2928 cases, 2954620 assertions**.
+- **The fixes' mutations** (the same driver; each file byte-identical to its backup afterwards):
+
+  | id | file | the mutation | verdict (objects) | red case |
+  |---|---|---|---|---|
+  | MA20 | wall_sensor_config.hpp | the facing bound dropped | RED 1 (76) | T12 every MEASURED-mount bound |
+  | MA21 | wall_sensor_config.hpp | the LEFT side's facing check dropped | RED 1 (76) | T12 "…its OWN side…" |
+  | MA22 | wall_sensor_config.hpp | the RIGHT offset check made non-strict (`left` 0 accepted) — the equality edge | RED 1 (76) | T12 "…its OWN side…" |
+  | MA23 | robot_config.hpp | `valid()` never calls `wallSideProblem` | RED 1 (76) | T12 "…its OWN side…" (through `valid()`) |
+  | MA24 | wall_reset.hpp | the cut line ignores whether a sample was taken | RED 2 (79) | T17 "a call made after the deadline…"; T9 the line byte for byte |
+  | MA25 | auton_wall_reset.hpp | an early refusal's `faultChannel` left `true` | RED 1 (79) | T17 "no slot: 'no sensor'…" |
+
+### 2026-11-05 15:37 (`date`) — RESUMED after the second stop (the team lead dropped to one job at 92% of the session limit on 2026-11-05 ~02:07, then paused everything; resumed the same afternoon)
+- **What the stopped run left:** the round-1 fixes and their mutations MA20–MA25 (all RED, logged above, `results.jsonl`
+  ends at MA25 02:00:43); then a gate pass was IN PROGRESS (`last_build.log` 02:05, the api logs 02:06, `staleness.log`
+  02:07 EMPTY — killed mid-run). No entry was logged for that pass, so it is re-run whole below; nothing from it counted.
+- **Audit before trusting anything:** no `APPLIED.json`; no plant string (`(self-test plant`, `self_test_directive_form`,
+  `gate1_selftest`, `SelfTestUnhandled`) in `src/`, `include/`, `test/` or the Makefile; `git diff --stat -- src/ tools/
+  Makefile` EMPTY; no process of this worktree alive. Every mutated file against its LATEST backup (`cmp`): six
+  byte-identical; `robot/robot.hpp` differs from MA15's backup by ONE line, the logged round-1 fix 10 (the
+  `kWallWordsBytes` comment, "41 characters, 42 bytes with its NUL") — no live mutant.
+- **Next:** the binary removed, a fresh build, the suite, every gate; then the remaining reviews.
+
+### 2026-11-05 15:36–16:04 (`date` at each end) — the fresh build, the suite, the gate pass begun; reviews 2 and 3, verified and dispositioned
+- **Fresh build:** the binary removed, the briefing regenerated against its absence, `cmake -S test -B build/test`, then
+  `cmake --build --clean-first` (261 objects). `suite_run.py green` → **2928 cases, 2954620 assertions** (the round-1
+  count exactly). The gate script `scratch/l6-a2/gates.sh` (→ `gates.out`) started in the background at 15:41.
+- **Reviewers 2 and 3** came through the `code-review` skill again (forked, READ-ONLY over the diff against `59d93bb`):
+  reviewer 2 (effort "high") against the brief's A2 sections, test adversarialness and docs-versus-code; reviewer 3
+  (effort "medium") the WHOLE-BRIEF reader (all 2288 lines), told to report only what a narrow reading misses. **The
+  fresh verifier is still OWED — for the coordinator** (this run cannot spawn an agent of its own). Every finding below
+  was re-checked against the code by this executor before acting.
+- **Review 2 (9 findings):**
+  1. **Cookbook 05 said "The auton, as `src/team/autons.cpp` holds it"** (REAL — `src/team/autons.cpp` holds no
+     wall-reset auton; its one auton, `forty`, is `StartPose::relative()` at :80). Re-worded: "An auton as you would
+     write it in your team's `src/team/autons.cpp` … (The shipped `autons.cpp` holds no wall-reset auton yet: its
+     autons start RELATIVE, and this one needs a FIELD start.)"
+  2. **T12's LIMITS case claimed every edge but missed several** (REAL): the cone's 30° upper edge, `minConfidence` 0 /
+     −0.01, `beamMargin` 0, the still speeds' bounds, every "above 0" field's tiny-positive side, the infinities. Added
+     (each typed with the header's own `kWallDegToRad` — the same constant, so 30° lands ON the edge): +27 checks.
+     Mutation MB2 below.
+  3. **The round-1 entry said "A delta from §1.4 (logged below)" and no delta was logged** (REAL — a log defect): deltas
+     15 and 16 below. Read against §1.4: its list is "refuses, by name: …", not an exhaustive "only", and every added
+     refusal is a TYPED error in a MEASURED mount — the class §1.4 already refuses (and the camera's placement check
+     too); D5's "a refused sensor never refuses the robot" is about the DEVICE, which still never refuses. Flagged for
+     the coordinator all the same: it widens what stops a robot file at `valid()`.
+  4. **§1.5's "LAST, after the camera" had no pin** (REAL): every T13 case read results, never the request order. NEW
+     T13 case with a recording provider (`RecordingProvider` in `robot_wall_sensors_test.cpp`): the same robot file
+     with and without both sides, a mechanism (port 6) and a camera (port 3) declared — the requests with walls are
+     EXACTLY the requests without them, in order, then `distance 4, readFaults 4, distance 5, readFaults 5` and
+     nothing else. Mutation MB1 below.
+  5. **T17's two mid-window cuts checked x within 0.01 in (and the X travel counter) where the brief's T17 says "the
+     Localizer bit-identical"** (REAL). Both cases now snapshot the brief's T6 list (pose, heading bias, drift term, the
+     odometry's pose) plus both travel counters and the turn since the heading seed, compared with `==` — the parked
+     rig is bit-stable across a window (A1's T6 holds it). Mutation MB4 below.
+  6. **The header rename** (delta 1) — DECLINED here: the root cause is `tools/api_doc_tool.py`'s `page_name()`, a
+     `tools/` change §7 keeps out of A2. **For the coordinator** (with review 3's item 4): decide the name before the
+     merge — once students include `competition/auton_wall_reset.hpp` it is permanent.
+  7. **A CUT report's `before` is the estimate at the cut, not at the call** — DECLINED, no change: `before`'s doc
+     (`wall_reset.hpp` :451) is "the estimate's coordinate on `axis` when the reset judged it"; every WINDOWED verdict
+     (SEATED, DISAGREES, …) judges after the window too (`evaluateWallReset(…, loc.pose(), …)`), and the pre-check
+     refusals judge at the call because no time passes. A CUT is judged at the cut — the same meaning. A1's code.
+  8. **§6.4's agreement test took min/max over the Toggle spans** (REAL — a body shrunk inside its brackets passed). Now
+     a sweep from the near end: each span must start at or before where the last reached (the brackets adjoin the body
+     exactly — an equality the sweep accepts), and the sweep must reach the far end; exactly 3 spans. Mutation MB3.
+  9. **Two test comments claimed what the code does not do** (REAL): `robot_wall_sensors_test.cpp` "the one the Auton
+     Tester reads" (nothing reads it until L6-B) → "the one `Robot::wallSensors()` hands a program to read";
+     `competition_wall_reset_test.cpp` "asking for it reads the right sensor" → it judges the RIGHT mount and refuses
+     NOT SQUARE reading nothing — now pinned (`r.reads() == 0`; mutation MB5).
+- **Review 3 (7 findings, the whole brief):**
+  1. **Guide 10's `guide-10x` listing carried an INVENTED provenance** — `"tape, the build team, 2026-11-05"`, a
+     measurement that never happened, on ports 4/5 with the tolerances left to their defaults (REAL — landmine 16, "no
+     invented value, ever"; D6 (a): each number with its tolerance and a provenance). The listing (and its compiled
+     twin, line for line) now says "EVERY NUMBER HERE IS AN EXAMPLE ROBOT'S: type your own, measured, …", types
+     `positionTolerance` and `facingTolerance`, and its provenance is `"EXAMPLE: who measured, with what, on what
+     date"`; `guide-10x` pins the tolerances carried and the EXAMPLE prefix. **The same defect in A1's merged
+     `guide-10w` listing** (`"tape, 2026-10-29"`, guide 10 :440 and `wall_reset_example_test.cpp`) fixed the same way
+     (delta 17). `grep -rn 'tape, 20' docs include test` → one hit left, `wall_sensor_config_test.cpp`'s private
+     `goodMount()` fixture — a test value, never shown to a student.
+  2. **The Makefile "plant"** — NO CHANGE: the reviewer saw the src gate's self-test RUNNING (its own transient plant,
+     restored by the tool as each case ends); the coordinator's scope orders `self-test` on every build. Re-checked
+     after the gate pass ends (below).
+  3. **The briefing read "Suite: not built"** (REAL, a sequencing point): it had been regenerated before the build and
+     not after. Regenerated after the final suite (below).
+  4. **The roadmap's "Next for the wall reset: L6-A2" (:446) and build-order's "Next for L6: L6-A2"** — NO CHANGE, for
+     the coordinator: the 16:55 entry left both for the merge (the coordinator's convention). **And the brief itself
+     still names `competition/wall_reset.hpp`** (§1.12, §2.1, §7's greps, §9): an L6-B executor running §7's
+     `setPose|reseatHeading` grep against that path greps nothing and passes VACUOUSLY. **For the coordinator:** an
+     amendment to the brief (RC49) naming `competition/auton_wall_reset.hpp` — the brief is the coordinator's document.
+  5. **Guide 14, the changelog and guide 10 said every reset on robot two refuses `no sensor`** (REAL — the start is
+     judged first, and every shipped auton is RELATIVE: a student sees `not a field start`). All three now say a
+     FIELD-start auton's reset refuses `no sensor` and a RELATIVE one `not a field start` first. Cookbook 05 :209
+     (its own FIELD-start recipe) was already true.
+  6. **Public documents beyond §3.1's five** (delta 13) — NO CHANGE, for the coordinator: each was a prose-review fix
+     rule 4 required (A2's code made the old sentence false); pace rule 7 is a sizing rule, and this run cannot re-cut
+     the chunk. Possible merge conflicts with in-flight runs in guide 11 / guide 14 (IMU1 Part B) noted.
+  7. **Guide 03 never said to measure the mount from the same point the start poses name** (REAL — the brief's Step
+     0.1 (a): "start poses and the mount must use the SAME point"; a frame-corner mount goes ~1:1 into every seated
+     coordinate and inside `maxCorrection` nothing refuses it). Added to the mounting paragraph.
+- **More deltas from the brief (continuing 1–14):**
+  15. **`wallMountProblem` bounds `facing` to (−180°, 180°]** (round 1, finding 1) — not in §1.4's list; `90.0` typed
+      alone is 90 RADIANS, and every reset would refuse NOT SQUARE with nothing at boot saying why.
+  16. **`config::wallSideProblem(mount, side)`** (round 1, finding 2) — not in §1.4: a MEASURED mount must face out of
+      its own side (LEFT strictly inside (0°, 180°), RIGHT mirrored) and sit on its own side of the centre line (LEFT
+      `left` > 0, RIGHT < 0) — the sign of a block copied from the other side; D10: nothing of the robot's own in
+      the cone.
+  17. **A1's merged `guide-10w` listing changed** (review 3, finding 1): the invented provenance replaced, as in
+      `guide-10x`. The listing and its compiled twin changed together (`check-examples` matches line by line).
+
+### 2026-11-05 16:19–16:39 (`date` at each end) — the reviews' mutations, the final build and every gate
+- **The first gate pass** (`gates.out`, 15:41–16:19, the round-1 tree; its doc gates ran before reviews 2–3's edits, so
+  they were re-run below): api self-test OK, coverage 5509 entities, check-fresh rc 0, check-examples 669 lines,
+  removability clean; staleness clean; briefing current; ARM 242 headers rc 0; compile-refusal 255/255; CI greps empty;
+  `src_build_gate.py self-test` **OK (269 detector cases, each against a real build)**; `check` **PASS (all 7 builds)**;
+  afterwards no plant string anywhere and `git diff --stat -- src/ tools/ Makefile` EMPTY (review 3's "Makefile plant"
+  was this self-test's own, live at the time — restored by the tool).
+- **The reviews' mutations** (the same driver, 16:19–16:26; every file afterwards byte-identical to its backup):
+
+  | id | file | the mutation | verdict (objects) | red case |
+  |---|---|---|---|---|
+  | MB1 | robot.hpp | the side sensors requested BEFORE the camera | RED 1 (79) | T13 "the side sensors are requested LAST…" |
+  | MB2 | wall_sensor_config.hpp | the limits' 30° cone edge made strict | RED 1 (76) | T12 every bound of the LIMITS |
+  | MB3 | override_walls.hpp | the Toggle body keep-out shrunk to 0.8× inside its brackets | RED 1 (79) | §6.4 the two season headers agree |
+  | MB4 | wall_reset_call.hpp | a CUT nudges the OTHER axis 0.001 in | RED 3 (10) | T17 deadline cut; T17 DISABLE cut; T17 after-the-deadline cut |
+  | MB5 | wall_reset_call.hpp | the pre-check reads the sensor once | RED 3 (6) | T17 refused side (the RIGHT mount's `reads() == 0`); T17 after-the-deadline; A1's T4 |
+
+  MB4's 10 and MB5's 6 objects: `wall_reset_call.hpp` has SIX dependents (`*.o.d`: competition_wall_reset,
+  cookbook_examples, robot_wall_sensors, wall_reset_example, wall_reset_gates, wall_reset_plant) — all six rebuilt in
+  each (object mtimes checked for MB5); MB4's other four were MB3's restored `override_walls.hpp` dependents.
+  **With round 1: 35 of 35 run-time mutations RED** (MA17 caught at compile time, not counted; MA19 a probe).
+- **Final:** a `--clean-first` build (261 objects — nothing from a mutation run trusted); `suite_run.py green` →
+  **2929 cases, 2954674 assertions**; the briefing regenerated AFTER the binary existed ("2,929 cases / 2,954,674
+  assertions, 3 skipped — green"; review 3's item 3).
+- **The final gate pass** (`gates_final.out`, 16:30–16:38): api self-test **OK**; check-coverage **5509 public entities
+  across 199 headers, all documented**; check-fresh **rc 0**; check-examples **676 quoted lines, all verbatim (11 source
+  files); 6 whole-run listings, each one unbroken run**; check-removability **clean**; staleness **clean**; briefing
+  **current**; ARM header gate **242 headers, rc 0**; compile-refusal **255 of 255**; CI greps (PROS-free, sim-layering)
+  **empty**; `src_build_gate.py check` **PASS (all 7 builds link, 0 disallowed warnings)**; no plant;
+  `git diff --stat -- src/ tools/ Makefile` EMPTY. The src gate's SELF-TEST was not re-run on this tree: since its pass
+  at 16:1x only `test/` and `docs/` changed (every header byte-identical, `src/` and `tools/` untouched), and the
+  self-test exercises the tool's detectors, which did not change.
+- **§7's greps, re-run:** `grep -n walls motion_scheduler.hpp` → ONE line (:668); `case PortUse::` → 12; no
+  `setPose` / `reseatHeading` / `headingBias` in the two calls' code (one A1 comment saying "never setPose"); no `RCn`
+  tag in a guide, cookbook or header; no new "simulator" (the one added hit is this log's own sentence); HA-210 in no
+  code site (L6-B's).
+- **The prose review for THIS session's prose** (rule 4; each grep run, hits read): (1) `autons.cpp` near "holds" /
+  "wall" over the guides, cookbooks, changelog, README → only the re-worded cookbook 05 :147-148; (2) `no sensor|NO
+  SENSOR` over the public docs → guide 10 :501, :616 (fixed), :636 (lists the start check first — true), :802 (robot
+  two's mechanisms, unrelated); guide 14 :335 (fixed), :357 (heading, unrelated); guide 11 :420/:429 (the start word
+  listed first; the NoSensor row's remedy — true); guide 16/18 (claw sensors, unrelated); guide 03 :224 (unrelated); the
+  changelog :28 (fixed), :42 (after the start check — true), :73 (the slot's description — true); cookbook 05 :209 (its
+  FIELD-start recipe — true); (3) a public `provenance = "` not starting `EXAMPLE` → NONE; (4) `same point|start
+  poses name` → guide 03 :369, the new sentence only.
+- **For the coordinator:** (a) the FRESH VERIFIER is owed (this run cannot spawn one); (b) the header name (delta 1;
+  review 2's item 6) — decide before students include it; the brief's §1.12/§2.1/§7/§9 still name
+  `competition/wall_reset.hpp` — an RC49 so L6-B's §7 greps do not pass vacuously; (c) deltas 15–16 widen `valid()`
+  past §1.4's list (typed errors in a MEASURED mount only) — the team lead may want to see them; (d) public documents
+  beyond §3.1's five (delta 13; rule 7) and A1's `guide-10w` listing changed (delta 17); (e) the roadmap's "Now"/"Next"
+  and build-order's "Next" left for the merge; (f) the audit's plant grep should also look for
+  `self_test_directive_form`, `gate1_selftest` and `SelfTestUnhandled` (00:22 entry); (g) a follow-up candidate: the
+  scheduler's shadow context built field by field (round 1, finding 6). Files other in-flight chunks own: NONE edited
+  (no `calibration/*`, `vision/*`, `src/programs/bench_r3a.*`, `tools/`, `competition/auton_menu.hpp` or
+  `alliance.hpp`, `chassis/routine.hpp`); shared files touched on A2's own lines only: `mkdocs.yml`, the changelog
+  (top of `## API 2.5`), the HA register (four Source lines), `test/README.md`, the plan docs' L6 lines.
+- **State at close:** the tree holds L6-A2 complete, uncommitted, on branch `l6-a2`; no mutant, no plant, no stray file;
+  the suite binary is the clean build's.
+
+### 2026-11-05 16:57 (`date`) — the coordinator's three reviewers (correctness, tests, docs): 15 findings to re-check and disposition
+- **Audit before anything:** no `APPLIED.json` under `scratch/l6-a2/mut/`; no plant string (`self-test plant`,
+  `self_test_directive_form`, `gate1_selftest`, `SelfTestUnhandled`) in `src/`, `include/`, `test/` or the Makefile;
+  `git diff --stat -- src/ tools/ Makefile` EMPTY; no process of this worktree alive. The tests reviewer's mutations ran
+  on a COPY (`scratch/l6-a2/review-tests/tree`, its driver says so) — this worktree was never mutated by it.
+- Each finding is re-checked against the code before acting; the disposition entry follows when the fixes, their
+  mutations and the gates are done.
+
+### L6-A2 review findings and their disposition (the coordinator's three reviewers — correctness, tests, docs; 2026-11-05 16:57–18:06, `date` at each end)
+- **Who:** three reviewers the coordinator launched (lenses: correctness, tests, docs), 15 findings after dedupe. Each
+  was re-checked against the code by this executor before acting. The tests reviewer's 12 mutations ran on a COPY of
+  this tree (`scratch/l6-a2/review-tests/tree`); its survivors were re-cut here as `RT*` on THIS tree with this run's
+  driver (fresh link, the whole suite, every dependent recompiled, restored by sha).
+- **Correctness 1 — MOUNT UNSET and MOTION ACTIVE never driven through the everyday form, nor through a real Robot**
+  (REAL, a test gap; the behaviour was correct). NEW T17 cases on `wall_robot::WallWorld` (a `robot::Robot` built from
+  a robot file, the auton run through `competition::runAuton`): (a) the robot file's LEFT mount `measured = false` →
+  `mount unset`, no time, the Localizer bit-identical (the T6 list), the Robot's slot still says unmeasured, refused 1 /
+  seated 0, one WALL line; not `required` → the chain completes 2 steps; `required` → stopped `ActionFailed`, 1
+  skipped. (b) a `HoldPose` armed through `ctx.chassis.scheduler().async()` inside the routine → `motion active`, no
+  time, bit-identical, the hold STILL armed (the reset cancels nothing). Mutations MC1–MC4 below, all RED.
+- **Correctness 2 — deltas 7, 15 and 16 make a typo in a MEASURED mount refuse the whole robot at boot** (REAL as a
+  consequence; NOT changed — a decision for the team lead). Verified: `valid()` false → `robot::validate` not ok →
+  `competition_program.cpp:719-721` and `drive_program.cpp:646-647` log `the library graph REFUSED to build` and return
+  (no driver control, no auton). Kept as built because §1.4 itself already refuses typed errors in a measured mount
+  (height, offset, cone, tolerances, bias, accuracy) the same boot-fatal way, the camera's placement checks do the same
+  (VIS1-A1, merged), and robot two's boot config is validated by a host test before upload (`boot_source_test.cpp:380`
+  `validate(boot.config, …).ok` — L6-B's block, once it flows through `bootConfigFrom`, is covered there; L6-B should
+  pin that). Delta 7 (no provenance) is the one whose reset never reads the field — it follows the camera's identical
+  rule (D6: each mount carries its provenance). **The cost is now said to students:** guide 10's refusal list gains
+  "Any of these … stops the WHOLE robot from building … boot the robot once after every edit to the block, never first
+  at a match." **For the coordinator → the team lead (with the merge, or as RC49):** "a typo in a measured wall mount —
+  including a missing provenance — refuses the robot at boot, as the camera's placement does"; the alternative is to
+  move delta 7 (and optionally 15/16) from `valid()` to a boot-line warning and let the reset refuse BAD REQUEST.
+- **Tests 1 — the robot's typed limits never checked on the everyday call (T1 survived)** (REAL). NEW T17 on CtxRig: the
+  slot's `rangeMax` typed 6.5 in → the 7-in reading refuses `out of range` (the defaults SEAT the same rig — the SEATS
+  case), bit-identical, the line saying the typed ceiling; NEW T17 on the Robot through `runAuton`: the robot file with
+  the library's limits SEATS, the same file with `walls.limits.rangeMax = 6.5 in` refuses `out of range`, its line
+  `(window 2.00..6.50)`. **RT1 RED 2** (both new cases).
+- **Tests 2 + 3 — an early refusal's side, axis, before, fault channel, maxCorrection echo and Warn level pinned only at
+  their defaults (T2–T7 survived)** (REAL). NEW T17 "an early refusal reports the REQUEST's …": the RED wall (axis y)
+  with the RIGHT sensor, the right side's read-fault channel removed while the left keeps its own; two subcases (a
+  RELATIVE start with the slot; no slot): `side == Right`, `axis == Y`, `before == pose.y()` exactly (x and y > 1 in
+  apart), `faultChannel` false, `maxCorrection` 3, `required` false, level `Warn`, the filed copy's side/axis, and both
+  lines byte for byte (`red wall y REFUSED not a field start (RIGHT sensor): start RELATIVE -- …`, `red wall y REFUSED
+  no sensor (RIGHT sensor): this robot declares no wall sensors`). **RT2–RT7 each RED 1** (this case).
+- **Tests — the reviewer's T9 and T12 also survived; not reported as findings; re-checked: EQUIVALENT, no test can see
+  them.** T9 (a `TimedOut` read as a cut): unreachable — the predicate ends the window at `windowMax` by the clock,
+  under the wait's `windowMax + 1 s` timeout (delta 4). T12 (an early refusal's line given no mount and the default
+  limits): the line's `NoSensor` and `NotFieldStart` branches (`appendWallResetLine`) read neither the mount nor the
+  limits. Code kept as is (the real mount and limits are the right arguments should those lines ever print them).
+- **Tests 4 — the banner's walls buffer shrinkable below its longest form (T11 survived)** (REAL). NEW block in T13's
+  boot-line case: wall sensors on ports 19 and 21 (20 is a drive motor in this robot file), both refused, the right
+  mount unmeasured → the exact tail `walls L19(ABSENT) R21(ABSENT) MOUNT UNSET camera ABSENT` (41 characters, asserted).
+  **RT11 RED 1** (22 objects = `robot.hpp`'s 22 dependents in the suite target).
+- **Docs 1 — the header name differs from the accepted brief, and the brief's §7 grep names the old path** (REAL; NOT
+  changed here — the brief is the coordinator's document and the root-cause alternative is a `tools/` change §7 keeps
+  out of A2). **Recommendation for the coordinator, before the merge:** (a) keep `competition/auton_wall_reset.hpp`
+  (beside `auton_registry.hpp` / `auton_menu.hpp`; no tool change) and write RC49 renaming the brief's references (D4,
+  §1.2, §1.8, §1.12, §2.1, §7 — its `setPose|reseatHeading|headingBias` grep — and §9). §7's grep run against the new
+  path today: `auton_wall_reset.hpp` no hit; `wall_reset_call.hpp` one hit, A1's comment "never setPose"; and
+  `competition/wall_reset.hpp` does not exist (so the old grep WOULD pass vacuously — RC49 is needed).
+- **Docs 2 — the header said the Auton Tester "shows" the log** (REAL): `auton_wall_reset.hpp` step 4 now "what the Auton
+  Tester will read, from L6-B"; `wall_sensor_config.hpp`'s banner "G3a's robot panel is to write this block like every
+  other (it writes none yet)". `docs/api/` regenerated.
+- **Docs 3 — the recipe's includes never named** (REAL; verified: `auton_wall_reset.hpp` does not bring in
+  `override_walls.hpp`, and `src/team/autons.cpp:34-41` includes neither). Cookbook 05's recipe, guide 03's quote of it
+  and the changelog's "What you must do" now name both includes.
+- **Docs 4 — guide 11's SensorAbsent / MountUnset rows short of the brief's table** (REAL): SensorAbsent gains "the boot
+  line's `walls L4 R5(ABSENT)` says which side"; MountUnset "(the boot line says `MOUNT UNSET` until you do)".
+- **Docs 5 — the prose review left out §3.4's `startAt` grep** (REAL, a log defect). Run now over the guides, the
+  cookbooks, `docs/*.md` and `include/`: guide 16 :142-145 (no `startAt` in a registered auton — true, and the wall-reset
+  recipe uses the entry's FIELD start), guide 17 :79 (the same), guide 09 :76/:90/:107/:355, cookbooks 01–05 (each
+  `Routine::startAt` example; cookbook 05 :103-131 the D11 re-seed recipe and its "full seed" note — true, A2 adds
+  only the pointer), the changelog :175 (A1's entry) and :1851 (history), roadmap :144/:594/:604 (F10), the HA register
+  :535, `routine.hpp` :10/:66/:290. **None made stale by A2.**
+- **Docs 6 — behaviour changes beyond §1.4 / §1.2's table; one missing from the numbered deltas** (REAL for the
+  numbering): the CUT line's second form is now **delta 18** (below). Deltas 7, 8, 15, 16 and 18 are put to the
+  coordinator for the team lead (with correctness 2). Guide 14's possible conflict with IMU1 Part B: for the merge.
+- **Docs 7 — plan status lines and the changelog heading stale** (REAL): REMAINING-WORK row 25, the roadmap and
+  build-order now read "L6-A2 BUILT 2026-11-03–05 … three reviews in, the fresh verifier owed"; the changelog heading
+  "(built 2026-11-03–05)" — the landing date is the merge's to add, as for L6-A1.
+- **Docs 8 — the glossary's "footprint" tagged chapters that never use the word** (REAL): guide 03's check 3 now says
+  "widened by the beam's footprint (its spread at that range)"; the entry's tag is `[Ch. 3]` (guide 10 never used it).
+- **Docs 9 — a review tag in a shipped header** (REAL): `wall_reset.hpp`'s comment now "The start mode's word, so
+  RELATIVE and UNSET read apart."
+- **More deltas from the brief (continuing 1–17):**
+  18. **The CUT line has a second form** (round 1, finding 5): `samples == 0` → "the run's deadline or a disable came
+      before the window began; nothing changed" — in A1's `localization/wall_reset.hpp` (not in §2.1's A2 file list),
+      and the Cut row's remedy in guide 11 changed with it. The verdict stays `Cut`.
+- **Mutations of this round** (`mut/results.jsonl`, 17:0x–17:17; each file `cmp`-identical to its backup afterwards; no
+  `APPLIED.json` left):
+
+  | id | file | the mutation | verdict (objects) | red case(s) |
+  |---|---|---|---|---|
+  | RT1 | auton_wall_reset.hpp | the library's limits, not the slot's | RED 2 (3) | T17 slot's own limits; T17 on the Robot: typed limits |
+  | RT2 | auton_wall_reset.hpp | an early refusal's side not set | RED 1 (3) | T17 an early refusal reports the REQUEST's … |
+  | RT3 | auton_wall_reset.hpp | its axis not set | RED 1 (3) | the same |
+  | RT4 | auton_wall_reset.hpp | its maxCorrection not echoed | RED 1 (3) | the same |
+  | RT5 | auton_wall_reset.hpp | its line at Info, not Warn | RED 1 (3) | the same |
+  | RT6 | auton_wall_reset.hpp | its fault channel read from the LEFT side | RED 1 (3) | the same |
+  | RT7 | auton_wall_reset.hpp | its `before` read on x whatever the wall | RED 1 (3) | the same |
+  | RT11 | robot.hpp | the walls buffer 40 bytes | RED 1 (22) | T13 the boot line's walls words |
+  | MC1 | robot.hpp | the Robot forces `measured = true` copying the mount | RED 1 (22) | T17 on the Robot: mount UNMEASURED |
+  | MC2 | auton_wall_reset.hpp | the everyday form hands the sampler a side with `measured` forced | RED 1 (22*) | the same |
+  | MC3 | auton_wall_reset.hpp | the everyday form cancels an armed motion first | RED 1 (3) | T17 on the Robot: a hold armed … |
+  | MC4 | wall_reset_call.hpp | the sampler's motion check dropped | RED 2 (6) | T17 on the Robot: a hold armed …; A1's T4 |
+
+  Dependents in the suite target (`CMakeFiles/shulib_tests.dir/**/*.o.d`): `auton_wall_reset.hpp` 3, `robot.hpp` 22,
+  `wall_reset_call.hpp` 6 — every run rebuilt at least its file's dependents (*MC2's 22 = its 3 plus MC1's restored
+  `robot.hpp` dependents). **12 of 12 RED.** With the earlier rounds: **47 of 47 run-time mutations RED** (MA17 caught at
+  compile time, not counted; MA19 a probe).
+- **Tests added this round:** 4 cases in `competition_wall_reset_test.cpp` (T17: early-refusal fields with 2
+  subcases; the slot's limits; on the Robot: mount unmeasured ×2 runs, a hold armed, typed limits ×2 runs) + 1 block in
+  T13's banner case; both files' banners updated. Suite on a `--clean-first` build (261 objects; the binary removed and
+  the briefing regenerated against its absence first): **2934 cases, 2954791 assertions**; the briefing regenerated
+  AFTER the binary existed ("2,934 cases / 2,954,791 assertions, 3 skipped — green").
+- **The prose review for this round's prose** (each grep run, hits read): (1) `Auton Tester (shows|reads)` over
+  `include/` and the public docs → one hit, A1's `WallResetLog` doc (`wall_reset.hpp` :531 and its API page: "the Auton
+  Tester shows it …, from L6-B") — already qualified by "from L6-B", judged true, NOT changed (a `///` edit for no
+  change of meaning); (2) `includes neither|auton_wall_reset.hpp` over the guides, cookbooks and changelog → cookbook
+  05 :149-150, guide 03 :340-341, the changelog :94-95 (new, true), the changelog :35 and guide 10 :425 (true);
+  (3) `footprint` → guide 03 (new), the glossary, `wall_reset.hpp` and its API page, the master plan (A1's era, true);
+  (4) `REFUSED to build` → guide 10 :598 (new — the programs' exact string, `competition_program.cpp:720`); guide 17
+  :350's "the graph refused to build" (true); (5) `finding [0-9]|review finding` in `include/` → `ekf_fusion.hpp:187`
+  and `match_runner.hpp:30`, both older chunks' comments, none of A2's (the test files' "a review finding of
+  2026-11-05" comments are test provenance, never shown to a student).
+- **Every gate on the fixed tree** (`scratch/l6-a2/gates_r4.out`, 17:19:58–18:04:27; after the clean build and the
+  suite above): api self-test **OK**; check-coverage **5509 public entities across 199 headers, all documented**;
+  check-fresh **rc 0**; check-examples **676 quoted lines, all verbatim (11 source files); 6 whole-run listings**;
+  check-removability **clean**; staleness **clean**; briefing **current**; ARM header gate **242 headers, rc 0**;
+  compile-refusal **255 of 255**; CI greps (PROS-free, sim-layering) **empty**; `src_build_gate.py self-test` **OK (269
+  detector cases, each against a real build)**; `check` **PASS (all 7 builds link)**; no plant string (`self-test
+  plant`, `self_test_directive_form`, `gate1_selftest`, `SelfTestUnhandled`) in `src/`, `include/`, `test/` or the
+  Makefile; `git diff --stat -- src/ tools/ Makefile` EMPTY. This entry was written after the doc gates ran, so they
+  were re-run on it (next bullet).
+- **The doc gates re-run on this entry** (18:05): check-fresh rc 0; check-examples 676 lines verbatim; removability
+  clean; coverage 5509, all documented; staleness clean; briefing current.
+- **For the coordinator (open, none decidable by this run):** (a) the FRESH VERIFIER is still owed; (b) the header name —
+  RC49 renaming the brief's `competition/wall_reset.hpp` (docs 1; recommended: keep `auton_wall_reset.hpp`); (c) to the
+  team lead: deltas 7, 8, 15, 16 and 18 — above all that a typo in a MEASURED wall mount (a missing provenance
+  included) refuses the robot at boot (correctness 2); (d) guide 14 against IMU1 Part B at the merge; (e) the earlier
+  entry's items (e)–(g) stand.
+- **State at close:** L6-A2 complete and uncommitted on branch `l6-a2`; no mutant (`cmp` of every round-4 backup
+  against its file: identical; no `APPLIED.json`), no plant, no stray file; the suite binary is the clean build's
+  (2934 cases, green); `git diff --stat -- src/ tools/ Makefile` EMPTY.
+
+### Verification-round findings and their disposition (the fresh verifier's one finding; 2026-11-10 21:16–, `date` at the start)
+
+- **Before anything:** the verifier's probe and mutation left nothing behind. `localization/wall_reset.hpp` and
+  `test/competition_wall_reset_test.cpp` are `cmp`-identical to its backups (`verify/probe1/wr.bak`,
+  `orig_test.cpp`); there is no `APPLIED.json`; `git diff -- Makefile src/` holds no `self-test plant`.
+- **V1 — the CUT line's two forms split between 0 and 1 sample, but no test sat ON a one-sample cut (V11 survived)**
+  (minor). **REAL, re-checked.** Delta 18 picks the form with `rep.samples > 0` (`wall_reset.hpp`, the `Cut` case of
+  the line writer). The existing cases sat at 0 samples (the call after the deadline) and at about 5 (the deadline
+  0.05 s in; the disable 5 ticks in). T9's pure line check in `wall_reset_line_test.cpp` sat at **7**, so `samples > 1`
+  passed everywhere. The root cause is in the tests: the equality edge was never landed on. That breaks the standing
+  rule that a test claiming an edge lands on it exactly. The code is right and unchanged.
+  - **The fix** has two parts, so the edge is pinned at both levels:
+    1. A NEW T17 case in `competition_wall_reset_test.cpp`: "a DISABLE on the window's FIRST tick — exactly one
+       sample — is a cut that LANDED in the window". It sets `pacer.abandonAt = paces + 1`, REQUIREs
+       `rep.samples == 1`, and checks: verdict `Cut`; returned within one tick; `report.abandoned`; the Localizer
+       BIT-IDENTICAL (`checkSame`); the log's `refused == 1` with `last.verdict == Cut` and `last.samples == 1`; and
+       the line byte for byte ("left wall x REFUSED cut (LEFT sensor): the run's deadline or a disable landed in the
+       window; nothing changed"). The file's banner says the two forms' edge is checked on each side.
+    2. T9's line check moved from `samples = 7` to `samples = 1`, with a comment naming V11. Its 0-sample check
+       stays.
+  - **Proved RED** with the round-4 driver (`mut/driver.py`; restore in a finally and on SIGTERM/SIGHUP/SIGINT;
+    sha-256 checked; mtime bumped). The binary was removed each time, and **79 objects** were rebuilt each time. That
+    is every suite object whose `.o.d` names `localization/wall_reset.hpp`: 79 of 79.
+
+    | id | the mutation | verdict | red case(s) |
+    |---|---|---|---|
+    | V11 (new case only, before the T9 change) | `rep.samples > 0` → `> 1` | RED 1 | T17 a DISABLE on the window's FIRST tick |
+    | V11 (after the T9 change) | the same | RED 2 | that case; T9 every verdict's line, byte for byte |
+    | V11b (the other side of the edge) | `rep.samples > 0` → `>= 0` | RED 2 | T17 a call made after the deadline has passed …; T9 |
+
+    After each run, the file was `cmp`-identical to its backup, and no `APPLIED.json` was left. A `-Werror` build
+    failure would have been re-cut; none happened. Each verdict comes from the suite's own failure count, run under
+    `ulimit -v 4194304` and `timeout 600`.
+- **The prose review for this round** (grep run before this entry; each hit read): `came before the window|landed in the
+  window` over `docs/guide`, `docs/cookbook`, the changelog, `docs/api`, `include/` and `test/`. Hits: guide 11 :448
+  (the Cut row: "landed in the window" by default, "came before the window began" when no sample was taken; true),
+  `docs/api/wall_reset.md` :1361 and `wall_reset.hpp` :385 ("`samples` 0; the line says which"; true), the changelog
+  :87 (true), and `wall_reset.hpp` :1435-1436 (the code). **No prose changed meaning and none was stale.** No `///`
+  comment changed, so `docs/api` was not regenerated.
+- **Every gate on the fixed tree** follows in the next bullet. A gate pass started at 21:20 was stopped at the
+  staleness step, before the src gate's self-test could plant anything, so the T9 change could be made first. Its
+  five api results (all OK) were superseded.
+- **The fresh build and the suite** (21:24). The binary was removed, the briefing was regenerated against its absence,
+  and then the build ran (79 objects). `suite_run.py green` was run under `ulimit -v 4 GiB` and `timeout 600`:
+  **2935 cases, 2954809 assertions, green**. That is one case more than round 4 (the new T17 case). Moving T9's sample
+  count does not add an assertion. The briefing was regenerated AFTER the binary existed: "2,935 cases / 2,954,809
+  assertions, 3 skipped — green".
+- **Every gate on the fixed tree** (`scratch/l6-a2/gates_v1.out`, 21:25:41–22:03:45):
+  - api self-test **OK**
+  - check-coverage **5509 public entities across 199 headers, all documented**
+  - check-fresh **rc 0**
+  - check-examples **676 quoted lines, all verbatim (11 source files); 6 whole-run listings**
+  - check-removability **clean**
+  - staleness **clean**
+  - briefing **current**
+  - ARM header gate **242 headers, rc 0**
+  - compile-refusal **255 of 255**
+  - CI greps (PROS-free, sim-layering) **empty**
+  - `src_build_gate.py self-test` **OK (269 detector cases)**
+  - `check` **PASS (all 7 builds link)**
+  - no plant string in `src/`, `include/`, `test/` or the Makefile
+  - `git diff --stat -- src/ tools/ Makefile` **EMPTY**
+
+  This entry was written after the doc gates, so they were run again on it (next bullet).
+- **The doc gates re-run on this entry** (22:04):
+  - check-fresh rc 0
+  - check-examples: 676 lines, all verbatim
+  - removability: clean
+  - coverage: 5509 entities, all documented
+  - api self-test: OK
+  - briefing: current
+  - staleness: clean
+
+  At 22:04 staleness also noted that the test binary was older than `src/common/boot_source.hpp` and 9 more. This was
+  only a timestamp effect: the src gate's self-test plants files and restores them, and the restores were newer than
+  the binary. `git diff --stat -- src/ Makefile tools/` stayed EMPTY. Nothing was untrusted, but the step was redone
+  rather than explained away:
+  - the binary was removed and the briefing regenerated;
+  - a full rebuild ran (261 objects);
+  - the suite was **green: 2935 cases, 2954809 assertions**;
+  - the briefing was regenerated, and is current;
+  - staleness came back **clean, with no note**, and check-fresh returned rc 0 (22:08).
+- **State at close (verification round):**
+  - L6-A2 is complete and uncommitted on branch `l6-a2`.
+  - The one finding is fixed in the tests. The code is unchanged, so this round has no new delta from the brief.
+  - V11 and V11b are both RED. Run-time mutations over all rounds: **49 of 49 RED**.
+  - No mutant is left: every backup is `cmp`-identical to its file, and there is no `APPLIED.json`. No plant and no
+    stray file remain.
+  - The suite binary is the 22:08 clean build's.
+  - For the coordinator, the round-4 entry's open items (b)–(e) stand. Item (a), the fresh verifier, is now done.
+
+## L6-A2 — the coordinator's merge verification *(2026-11-10)*
+
+- **Squash** of `l6-a2` (base `59d93bb`) onto `d684f34` (IMU1 complete). Conflicts resolved by hand: the changelog (L6-A2's
+  entry at the top of `## API 2.5`, dated "2026-11-10 (built 2026-11-03–05)", above MECH-A6's), REMAINING-WORK rows 25–26
+  (a word-level three-way merge against the base), and the generated `docs/api/` pages and briefing (regenerated). Status
+  words moved to LANDED: the roadmap's L6 paragraph, build-order's L6 status line, REMAINING-WORK row 25; a roadmap "Now"
+  paragraph added. **The header name (delta 1) is KEPT** — `competition/auton_wall_reset.hpp` — and the brief gains
+  **RC49** (every reference to `competition/wall_reset.hpp` means the new path; §7's grep must name it). **Deltas 7, 15 and
+  16 kept** (a typo in a MEASURED wall mount refuses the robot at boot, as the camera's placement does; the host test of
+  the boot config catches it before an upload) — put to the team lead in plain words with the merge.
+- **Gates on the merged tree** (`.claude/coordinator/scratch/l6_a2_merge_verify.sh`, every binary capped): host build
+  clean; the suite green, 3,098 cases, 3,025,746 assertions; `src_build_gate.py` self-test OK and check PASS (all 7 builds
+  link); the ARM header gate CLEAN (242 headers); the api doc gates, the staleness audit and the briefing check clean; the
+  compile-refusal harness 255 of 255; no plant, no stray root file.
+- **The coordinator's own mutations** (`.claude/coordinator/muts_l6_a2_main.json`): **8 of 8 RED** — ML1 the FIELD-start
+  check dropped, ML2 a mid-window deadline not read as a cut, ML3 the `[WALL]` line sent nowhere, ML4 `facing` = 180°
+  refused, ML5 an empty provenance accepted, ML6 a RIGHT mount copied from the LEFT block accepted, ML7 the 11.5 in
+  height ceiling made exclusive, ML8 `declared()` blind to the right side. The restored tree relinked and ran green.
+- **L6-A2 LANDED.** Nothing has run on a robot. Next for L6: L6-B (robot two's sensors and the WALL bench page) — and,
+  since 2026-11-10, robot one's file (G1) declares its own side sensors.

@@ -3,8 +3,8 @@
 > **Covers:** the public operations on `Chassis` you write routines with — what each does, when
 > to use it, what it does when things go wrong, and the gotchas — and, since the mechanism core's
 > first part, how a robot's mechanisms are declared and wired, since the camera's first part, how the AI Vision
-> camera is declared and read, and since the wall reset's library core (L6-A1), how one coordinate is re-seated
-> against a field wall from a side distance sensor (the last sections before the gotchas). It is deliberately selective
+> camera is declared and read, and since the wall reset (L6), how one coordinate is re-seated against a field
+> wall from a side distance sensor, how the robot file declares its side sensors, and the call an auton makes. It is deliberately selective
 > rather than exhaustive: construction and the advanced accessors are covered where they matter
 > and skipped where they do not. The [generated API reference](../api/README.md) is the
 > exhaustive one, and it cannot disagree with the code. Plus typed units, per-call options, and the escape
@@ -408,10 +408,11 @@ show `cmd#0`). Until you need it, you don't need it.
 ## The wall reset — one axis against a field wall
 
 > **The banner at the top of this chapter does not cover this section.** The wall reset is in no
-> row of the [Freeze Register](../roadmap.md#freeze-register): `chassis::resetFromWall`, the request,
-> mount, limits and report types, the season's walls, and the Localizer's `seatAxis` and two counters
-> are not frozen and not signature-pinned, and they grow additively as the rest of the wall reset
-> lands (the everyday form and the robot file's side sensors).
+> row of the [Freeze Register](../roadmap.md#freeze-register): `chassis::resetFromWall` and
+> `competition::resetFromWall`, the request, mount, limits and report types, the season's walls, the
+> robot file's `walls` block, the Robot's side-sensor accessors, the context's `walls` slot, and the
+> Localizer's `seatAxis` and two counters are not frozen and not signature-pinned, and they grow
+> additively.
 
 *Host- and build-gated, NOT run on a robot.* When the robot has **parked beside a field wall, nose
 along it and square to it**, the side distance sensor facing that wall measures how far the wall is;
@@ -420,22 +421,24 @@ coordinate**: x against the left and right walls, y against the red and blue wal
 replaces that one coordinate of the estimate and nothing else — not the other coordinate, not the
 heading. It is a step you call, at a moment you chose; there is no background mode.
 
-Two forms. The **explicit** call, `chassis::resetFromWall(chassis, sensor, request, limits)`
+Two forms. The **everyday** call an auton writes, `competition::resetFromWall(ctx, request)`
+(`shulib/competition/auton_wall_reset.hpp`), finds the robot file's side sensors through the auton's
+context — [below](#the-everyday-call-from-an-auton); [Chapter 3](03-knowing-where-you-are.md#re-seating-one-axis-against-a-wall)
+teaches it and [cookbook 5](../cookbook/05-mixing-tiers.md#re-seat-x-against-a-wall) is the recipe. The
+**explicit** call, `chassis::resetFromWall(chassis, sensor, request, limits)`
 (`shulib/chassis/wall_reset_call.hpp`), takes the sensor handles you build — the form for a
-hand-wired Tier-3 robot and for the host tests. The everyday form an auton writes,
-`competition::resetFromWall(ctx, request)`, which finds the robot file's side sensors through the
-auton's context and refuses any start that is not a FIELD start, is **not in the library yet** (it
-lands with the robot file's side sensors). The explicit call (`guide-10w`):
+hand-wired Tier-3 robot and for the host tests. Both run the same checks. The explicit call (`guide-10w`):
 
 ```cpp
 // A hand-wired robot's left side sensor, as the wall reset reads it: the
-// sensor, its read-fault count, and the mount a student MEASURED.
+// sensor, its read-fault count, and the mount a student MEASURED (an
+// example robot's numbers: type your own robot's, measured).
 localization::SideMount mount{};
 mount.measured = true;
 mount.left = 7.5_in;     // out from the robot's centre
 mount.height = 10.5_in;  // the lens above the floor
 mount.facing = units::AngleDim{90.0 * localization::kWallDegToRad};  // straight out the left
-mount.provenance = "tape, 2026-10-29";
+mount.provenance = "EXAMPLE: who measured, with what, on what date";
 const localization::WallSensor left{&sensor, &faults, mount, "not declared"};
 
 // Re-seat x against the left wall: the beam square to it, on a clean
@@ -495,7 +498,7 @@ true when the coordinate moved; `continues()` is what a `then()` should return �
 `localization::wallResetVerdictWord(v)`: `SEATED`, or `REFUSED` and the first check that failed —
 `sensor absent`, `mount unset`, `not live`, `motion active`, `bad request`, `not square`, `keep-out`,
 `beam low`, `moving`, `read fault`, `no return`, `low confidence`, `out of range`, `too few samples`,
-`spread`, `imprecise`, `disagrees` (and, for the everyday form, `no sensor`, `not a field start`,
+`spread`, `imprecise`, `disagrees` (and, from the everyday call only, `no sensor`, `not a field start`,
 `cut`). [Chapter 11](11-reading-the-diagnostics.md#the-wall-reset-wall) says what each means and
 what to do about it.
 
@@ -507,8 +510,9 @@ on a keep-out, or the expected reading past the beam-height ceiling. Otherwise i
 no "timed out" line — then judges the samples and, when every check passes, SEATS. ONE log line
 either way (subsystem `WALL`). It **commands nothing to the drive**: stop first (`brake()`, a short
 pause) — a robot still coasting is refused `MOVING`. Blocking, at most `windowMax` (0.5 s) plus a
-tick — and that window is a wait the run guard cannot cut, so a deadline landing in it is acted on
-up to 0.5 s late (the everyday form will sample through the guard's own wait instead).
+tick — and in the explicit call that window is a wait the run guard cannot cut, so a deadline landing
+in it is acted on up to 0.5 s late (the everyday call samples through the guard's own wait instead,
+and is cut at once).
 
 **`Localizer::seatAxis(axis, value)`** is what SEATED calls — and why it is not `setPose`. It moves
 that one axis and leaves everything else exactly as it was: the other axis, the heading, the heading
@@ -539,6 +543,107 @@ not an abort; the report says what was applied.
 No sensor ever seats the heading — here or anywhere. And no reading check can tell a tall object at
 a plausible distance from the wall: [Chapter 14](14-what-it-cannot-do-yet.md#the-wall-reset-what-it-cannot-catch)
 says what the reset cannot catch.
+
+### The robot file's side sensors
+
+A robot's side distance sensors are robot facts, so they live in the robot file, beside the camera:
+**`config::WallSensorsConfig`** (`shulib/config/wall_sensor_config.hpp`) as **`RobotConfig::sensors.walls`**
+— for each side (`left`, `right`) the sensor's `port` (0 = none, the default) and its MEASURED `mount`,
+then the robot's `limits` (the defaults unless you type your own) and a `note`. As a robot file types
+it (`guide-10x`):
+
+```cpp
+// The robot file's side distance sensors: one on each side, its port,
+// and the mount a student MEASURED with a tape (UNSET until then: the
+// robot still boots, and every wall reset with that sensor refuses).
+// EVERY NUMBER HERE IS AN EXAMPLE ROBOT'S: type your own, measured, and
+// how well, and who measured it, how and when -- never these.
+constexpr config::WallSensorsConfig kWalls{
+    .left = {.port = 4,
+             .mount = {.measured = true,
+                       .left = 7.5_in,
+                       .height = 10.5_in,
+                       .facing = units::AngleDim{90.0 * localization::kWallDegToRad},
+                       .positionTolerance = 0.25_in,
+                       .facingTolerance = units::AngleDim{2.0 * localization::kWallDegToRad},
+                       .provenance = "EXAMPLE: who measured, with what, on what date"}},
+    .right = {.port = 5,
+              .mount = {.measured = true,
+                        .left = -7.5_in,
+                        .height = 10.5_in,
+                        .facing = units::AngleDim{-90.0 * localization::kWallDegToRad},
+                        .positionTolerance = 0.25_in,
+                        .facingTolerance = units::AngleDim{2.0 * localization::kWallDegToRad},
+                        .provenance = "EXAMPLE: who measured, with what, on what date"}},
+    .note = "an example robot: both at the fore-aft centre, 10.5 in up"};
+```
+
+**An UNMEASURED mount is not an error**: the robot boots and every reset with that sensor refuses
+`mount unset` — so the robot drives the day the sensors are plugged in, and the reset starts working
+the day someone measures them. `RobotConfig::valid()` refuses, naming the side and the port: a port past
+21; both sides on one port; a port anything else claims ("port 4 is claimed by the LEFT drive and by a
+wall sensor"); a MEASURED mount that cannot be right (`config::wallMountProblem`: a number that is not
+finite, a `facing` outside (−180°, 180°] — `90.0` typed alone is 90 RADIANS, so write
+`90.0 * localization::kWallDegToRad` —, the lens more than 24 in from the centre, a height outside (0,
+11.5] in — above the wall's top the beam reads past it —, a measured beam spread outside 3–30°, a
+tolerance of 0 or wider than 2 in / 10°, a bias past 2 in, a measured accuracy outside 0.05–2 in, no
+provenance; then `config::wallSideProblem`: a sensor that does not face out of its own side — the LEFT
+one's facing between 0 and 180°, the RIGHT one's between −180 and 0° — or does not sit on its own side
+of the robot's centre line — the LEFT one's `left` above 0, the RIGHT one's below 0 —, the usual sign of
+a block copied from the other side); and limits the reset could
+not use (`config::wallLimitsProblem` — every limit the reset itself would refuse, so a valid robot file
+never meets `bad request` from its own limits, and a few tighter: `rangeMin` at least 0.79 in, VEX's 20
+mm; 3–64 samples; `headingFloor` 0.5–10°). Any of these, like every refusal of `valid()` (the camera's
+placement checks included), stops the WHOLE robot from building: the program logs
+`the library graph REFUSED to build` and runs neither driver control nor an auton. So a typo in a
+measured mount shows at the first boot — boot the robot once after every edit to the block, never first
+at a match.
+
+**The Robot builds them** — last, after the camera — through the provider's `distance(port)` and
+`readFaults(port)`:
+
+```cpp
+cfg.sensors.walls = kWalls;
+robot::Robot robot{cfg, devices};
+// Each side as built: the sensor (nullptr when the provider refused
+// it) and why it is absent ("" exactly when it is there).
+hal::IDistance* left = robot.wallSensor(localization::WallSide::Left);
+const char* why = robot.wallSensorAbsence(localization::WallSide::Right);
+```
+
+`wallSensorAbsence(side)` reads `not declared` for port 0 and the provider's own sentence for a refused
+sensor (the host's fake provider says "port 5 has no distance sensor"). **A refused side sensor never refuses the robot** — a cable
+out must not cost a match — and neither does a provider that throws making one. `robot.wallSensors()`
+is both sides, the limits and the robot's **reset log** (how many resets SEATED and REFUSED, and the
+last report — what the Auton Tester will show). The context carries it as its one OPTIONAL slot,
+`RobotContext::wallSensors()` — nullptr when the robot file declares no side, and then every reset
+from a FIELD-start auton refuses `no sensor` (the start is judged first: a RELATIVE one refuses `not a
+field start`). The boot line says which sides exist, between `tags ABSENT` and the camera's words:
+
+```text
+... GPS ABSENT tags ABSENT walls ABSENT camera ABSENT
+... GPS ABSENT tags ABSENT walls L4 R5 camera ABSENT
+... GPS ABSENT tags ABSENT walls L4 R5(ABSENT) camera ABSENT
+... GPS ABSENT tags ABSENT walls L4 R5 MOUNT UNSET camera ABSENT
+```
+
+(no side declared; both built; the right refused — its reason is in `wallSensorAbsence()` and in every
+reset's refusal line, never on the boot line; a declared side's mount still unmeasured).
+
+### The everyday call, from an auton
+
+**`competition::resetFromWall(ctx, request)`** takes the auton's context and the request, and returns the
+same report: `r.then([&] { return competition::resetFromWall(ctx, {...}).continues(); }, "left wall x")`.
+Over the explicit call it adds what only the auton's context knows. **The start:** an auton whose start is
+not a FIELD start — RELATIVE, or UNSET (a route whose Start states no heading) — is refused `not a field
+start`, its line naming which, before anything is read: the season's walls are field coordinates. **The
+sensor:** the robot's own side sensor, mount and limits, through the context's slot (`no sensor` when the
+robot file declares none — and on the host test plant's tester rig, which builds no Robot). **The wait:**
+the window is sampled through the run guard's deadline-aware wait, so a deadline or a disable that lands
+mid-window cuts it at once (`cut`, nothing seated) — no lateness. **The record:** every outcome is filed in
+the robot's reset log, and the ONE `WALL` line goes to the auton's own telemetry. Calling it outside a
+live run is a program error (a precondition). Everything else — the checks, the seat, the report — is the
+explicit call's.
 
 ## Mechanisms — declared once, wired separately
 
@@ -766,10 +871,10 @@ OLDER V5 Vision sensor on the port, a cable out — leaves the camera ABSENT, an
 and drives**: a dead camera must never cost a match. The boot line's last words say which:
 
 ```text
-... GPS ABSENT tags ABSENT camera ABSENT
-... GPS ABSENT tags ABSENT camera port 3 set up, model OK
-... GPS ABSENT tags ABSENT camera port 3 set up, model DIFFERENT (class 0 is 'blueBall', the robot file expects 'redBluePin')
-... GPS ABSENT tags ABSENT camera port 3 ABSENT (port 3: a vision sensor (expected an AI Vision sensor))
+... GPS ABSENT tags ABSENT walls ABSENT camera ABSENT
+... GPS ABSENT tags ABSENT walls ABSENT camera port 3 set up, model OK
+... GPS ABSENT tags ABSENT walls ABSENT camera port 3 set up, model DIFFERENT (class 0 is 'blueBall', the robot file expects 'redBluePin')
+... GPS ABSENT tags ABSENT walls ABSENT camera port 3 ABSENT (port 3: a vision sensor (expected an AI Vision sensor))
 ```
 
 (Since the camera's first part a census names the AI Vision sensor "AI-VISION" — assuming the brain

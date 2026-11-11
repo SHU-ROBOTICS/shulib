@@ -12,6 +12,8 @@
 #include <array>
 #include <cmath>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "shulib/localization/axis.hpp"
 #include "shulib/localization/override_walls.hpp"
@@ -20,6 +22,7 @@
 #include "shulib/sim/field_plant.hpp"
 #include "shulib/sim/rng.hpp"
 #include "shulib/units/quantity.hpp"
+#include "shulib/vision/override_elements.hpp"
 
 namespace {
 
@@ -410,5 +413,68 @@ TEST_CASE("L6 T11 an own wall line in a rotated frame gives the same seat as the
         CHECK(loc::preCheck(rot, m, req, limits, Length{0.0}) == loc::WallResetVerdict::KeepOut);
         const loc::WallAim aim = loc::aimAt(rot, m, req.wall, limits, Length{0.0});
         CHECK(std::string{aim.keepOutWhy} == "my bracket");
+    }
+}
+
+// ═══ The season's facts in two headers (the L6 brief's §6.4) ══════════════════════════════════
+// Bug caught: the camera's season data (vision/override_elements.hpp — VIS1) and the wall reset's
+// (localization/override_walls.hpp — L6) drifting apart where they state the same fact: where each
+// Toggle sits, and how long it is. Neither header includes the other (L6 must not depend on VIS1), so
+// this test — written by the first L6 run built on a tree that has both (L6-A2) — includes both. Each
+// Toggle's centre must agree within 0.01 in (VIS1 types 70.2, L6 computes 70.205 from A10's mm), each
+// wall's side of the field must agree, and L6's Toggle keep-out (body and brackets) must cover VIS1's
+// whole Toggle length (25.8 in without its caps; L6 keeps out A8's 25.99 with them).
+TEST_CASE("L6 §6.4 the two season headers agree: every Toggle's place within 0.01 in, the field's side, and "
+          "the keep-out covers the camera's Toggle") {
+    namespace vov = shulib::vision::override2026;
+    const double vHalf = vov::kToggleFace.lengthIn / 2.0;
+    for (const vov::TogglePlace& t : vov::kTogglePlaces) {
+        CAPTURE(t.x);
+        CAPTURE(t.y);
+        int matched = 0;
+        for (const loc::FieldWall& w : loc::override2026::kWalls) {
+            const bool onX = w.axis == loc::Axis::X;
+            const double face = onX ? t.x : t.y;
+            const double along = onX ? t.y : t.x;
+            const double in = onX ? t.inX : t.inY;
+            if (std::abs(in) < 0.5 || std::abs(face - w.coord.value()) > 1.0) {
+                continue;  // not this wall
+            }
+            ++matched;
+            CHECK(std::abs(face - w.coord.value()) <= 0.01);
+            CHECK(along == 0.0);  // centred on its wall
+            CHECK(static_cast<double>(w.inward) == in);
+            // L6's Toggle spans (the body and both brackets) cover the camera's Toggle WITH NO GAP: swept
+            // in order from its near end, each span must start at or before where the last one reached
+            // (the brackets adjoin the body exactly — an equality the sweep accepts), and the sweep
+            // must reach its far end. A min/max over the spans would pass a body shrunk inside its
+            // brackets, leaving a stretch of Toggle face no keep-out names.
+            std::vector<std::pair<double, double>> spans;
+            for (const loc::WallKeepOut& k : w.keepOuts()) {
+                const std::string why{k.why};
+                if (why == "Toggle" || why == "Toggle bracket") {
+                    spans.emplace_back(k.from.value(), k.to.value());
+                }
+            }
+            REQUIRE(spans.size() == 3);
+            std::sort(spans.begin(), spans.end());
+            double reach = -vHalf;
+            bool gap = false;
+            for (const auto& [from, to] : spans) {
+                if (to <= reach) {
+                    continue;
+                }
+                if (from > reach) {
+                    gap = true;
+                    CAPTURE(reach);
+                    CAPTURE(from);
+                    break;
+                }
+                reach = to;
+            }
+            CHECK_FALSE(gap);
+            CHECK(reach >= vHalf);
+        }
+        CHECK(matched == 1);
     }
 }

@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 5,498 of them, across 197 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 5,528 of them, across 199 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -2658,6 +2658,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kVisionImageWidthPx` | constant | [vision_frames.md](vision_frames.md#kvisionimagewidthpx) |
 | `kWallDegToRad` | constant | [wall_reset.md](wall_reset.md#kwalldegtorad) |
 | `kWallInnerFace` | constant | [override_walls.md](override_walls.md#kwallinnerface) |
+| `kWallMinSamplesFloor` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallminsamplesfloor) |
+| `kWallMountMaxAccuracyInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountmaxaccuracyinches) |
+| `kWallMountMaxBiasInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountmaxbiasinches) |
+| `kWallMountMaxFacingToleranceDeg` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountmaxfacingtolerancedeg) |
+| `kWallMountMaxHeightInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountmaxheightinches) |
+| `kWallMountMaxOffsetInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountmaxoffsetinches) |
+| `kWallMountMaxPositionToleranceInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountmaxpositiontoleranceinches) |
+| `kWallMountMinAccuracyInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountminaccuracyinches) |
+| `kWallRangeFloorInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallrangefloorinches) |
 | `kWallResetWaitBackstopSeconds` | constant | [wall_reset_call.md](wall_reset_call.md#kwallresetwaitbackstopseconds) |
 | `kWalls` | constant | [override_walls.md](override_walls.md#kwalls) |
 | `kWarningCut` | constant | [calibrate_panel.md](calibrate_panel.md#kwarningcut) |
@@ -3598,6 +3607,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PortUse::MechanismSensor` | enumerator | [robot_config.md](robot_config.md#portuse-mechanismsensor) |
 | `PortUse::PodForward` | enumerator | [robot_config.md](robot_config.md#portuse-podforward) |
 | `PortUse::PodLateral` | enumerator | [robot_config.md](robot_config.md#portuse-podlateral) |
+| `PortUse::WallSensor` | enumerator | [robot_config.md](robot_config.md#portuse-wallsensor) |
 | `portUseWord` | free function | [robot_config.md](robot_config.md#portuseword) |
 | `Pose2d` | class | [pose2d.md](pose2d.md#class-pose2d) |
 | `Pose2d::approxEqual` | function | [pose2d.md](pose2d.md#pose2d-approxequal) |
@@ -4173,6 +4183,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ReplaceStep::None` | enumerator | [file_store.md](file_store.md#replacestep-none) |
 | `ReplaceStep::Open` | enumerator | [file_store.md](file_store.md#replacestep-open) |
 | `ReplaceStep::Write` | enumerator | [file_store.md](file_store.md#replacestep-write) |
+| `resetFromWall` | free function | [auton_wall_reset.md](auton_wall_reset.md#resetfromwall) |
 | `resetFromWall` | free function | [wall_reset_call.md](wall_reset_call.md#resetfromwall) |
 | `RestCapture` | class | [rest_capture.md](rest_capture.md#class-restcapture) |
 | `RestCapture::abort` | function | [rest_capture.md](rest_capture.md#restcapture-abort) |
@@ -4280,6 +4291,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Robot::Robot` | function | [robot.md](robot.md#robot-robot) |
 | `Robot::Robot (overload 2)` | function | [robot.md](robot.md#robot-robot-2) |
 | `Robot::Robot (overload 3)` | function | [robot.md](robot.md#robot-robot-3) |
+| `Robot::wallSensor` | function | [robot.md](robot.md#robot-wallsensor) |
+| `Robot::wallSensor (overload 2)` | function | [robot.md](robot.md#robot-wallsensor-2) |
+| `Robot::wallSensorAbsence` | function | [robot.md](robot.md#robot-wallsensorabsence) |
+| `Robot::wallSensors` | function | [robot.md](robot.md#robot-wallsensors) |
 | `Robot::~Robot` | function | [robot.md](robot.md#robot-destructor-robot) |
 | `RobotConfig` | struct | [robot_config.md](robot_config.md#struct-robotconfig) |
 | `RobotConfig::describe` | function | [robot_config.md](robot_config.md#robotconfig-describe) |
@@ -4308,6 +4323,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RobotContext::tags` | function | [robot_context.md](robot_context.md#robotcontext-tags) |
 | `RobotContext::telemetry` | function | [robot_context.md](robot_context.md#robotcontext-telemetry) |
 | `RobotContext::vision` | function | [robot_context.md](robot_context.md#robotcontext-vision) |
+| `RobotContext::wallSensors` | function | [robot_context.md](robot_context.md#robotcontext-wallsensors) |
 | `RobotContextConfig` | struct | [robot_context.md](robot_context.md#struct-robotcontextconfig) |
 | `RobotContextConfig::battery` | field | [robot_context.md](robot_context.md#robotcontextconfig-battery) |
 | `RobotContextConfig::clock` | field | [robot_context.md](robot_context.md#robotcontextconfig-clock) |
@@ -4317,6 +4333,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RobotContextConfig::tags` | field | [robot_context.md](robot_context.md#robotcontextconfig-tags) |
 | `RobotContextConfig::telemetry` | field | [robot_context.md](robot_context.md#robotcontextconfig-telemetry) |
 | `RobotContextConfig::vision` | field | [robot_context.md](robot_context.md#robotcontextconfig-vision) |
+| `RobotContextConfig::walls` | field | [robot_context.md](robot_context.md#robotcontextconfig-walls) |
 | `RobotIdentity` | struct | [robot_config.md](robot_config.md#struct-robotidentity) |
 | `RobotIdentity::name` | field | [robot_config.md](robot_config.md#robotidentity-name) |
 | `RobotIdentity::season` | field | [robot_config.md](robot_config.md#robotidentity-season) |
@@ -4731,6 +4748,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SensorsConfig` | struct | [robot_config.md](robot_config.md#struct-sensorsconfig) |
 | `SensorsConfig::camera` | field | [robot_config.md](robot_config.md#sensorsconfig-camera) |
 | `SensorsConfig::gps` | field | [robot_config.md](robot_config.md#sensorsconfig-gps) |
+| `SensorsConfig::walls` | field | [robot_config.md](robot_config.md#sensorsconfig-walls) |
 | `serialLine` | free function | [pros-char_sink.md](pros-char_sink.md#serialline) |
 | `serialWrapped` | free function | [pros-char_sink.md](pros-char_sink.md#serialwrapped) |
 | `serialWrapped (overload 2)` | free function | [pros-char_sink.md](pros-char_sink.md#serialwrapped-2) |
@@ -5415,6 +5433,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `WallKeepOut::kind` | field | [wall_reset.md](wall_reset.md#wallkeepout-kind) |
 | `WallKeepOut::to` | field | [wall_reset.md](wall_reset.md#wallkeepout-to) |
 | `WallKeepOut::why` | field | [wall_reset.md](wall_reset.md#wallkeepout-why) |
+| `wallLimitsProblem` | free function | [wall_sensor_config.md](wall_sensor_config.md#walllimitsproblem) |
+| `wallMountProblem` | free function | [wall_sensor_config.md](wall_sensor_config.md#wallmountproblem) |
 | `WallResetLimits` | struct | [wall_reset.md](wall_reset.md#struct-wallresetlimits) |
 | `WallResetLimits::alongDriftRate` | field | [wall_reset.md](wall_reset.md#wallresetlimits-alongdriftrate) |
 | `WallResetLimits::beamMargin` | field | [wall_reset.md](wall_reset.md#wallresetlimits-beammargin) |
@@ -5519,15 +5539,25 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `WallSensor::faults` | field | [wall_reset.md](wall_reset.md#wallsensor-faults) |
 | `WallSensor::mount` | field | [wall_reset.md](wall_reset.md#wallsensor-mount) |
 | `WallSensor::sensor` | field | [wall_reset.md](wall_reset.md#wallsensor-sensor) |
+| `WallSensorConfig` | struct | [wall_sensor_config.md](wall_sensor_config.md#struct-wallsensorconfig) |
+| `WallSensorConfig::mount` | field | [wall_sensor_config.md](wall_sensor_config.md#wallsensorconfig-mount) |
+| `WallSensorConfig::port` | field | [wall_sensor_config.md](wall_sensor_config.md#wallsensorconfig-port) |
 | `WallSensors` | struct | [wall_reset.md](wall_reset.md#struct-wallsensors) |
 | `WallSensors::left` | field | [wall_reset.md](wall_reset.md#wallsensors-left) |
 | `WallSensors::limits` | field | [wall_reset.md](wall_reset.md#wallsensors-limits) |
 | `WallSensors::log` | field | [wall_reset.md](wall_reset.md#wallsensors-log) |
 | `WallSensors::right` | field | [wall_reset.md](wall_reset.md#wallsensors-right) |
 | `WallSensors::side` | function | [wall_reset.md](wall_reset.md#wallsensors-side) |
+| `WallSensorsConfig` | struct | [wall_sensor_config.md](wall_sensor_config.md#struct-wallsensorsconfig) |
+| `WallSensorsConfig::declared` | function | [wall_sensor_config.md](wall_sensor_config.md#wallsensorsconfig-declared) |
+| `WallSensorsConfig::left` | field | [wall_sensor_config.md](wall_sensor_config.md#wallsensorsconfig-left) |
+| `WallSensorsConfig::limits` | field | [wall_sensor_config.md](wall_sensor_config.md#wallsensorsconfig-limits) |
+| `WallSensorsConfig::note` | field | [wall_sensor_config.md](wall_sensor_config.md#wallsensorsconfig-note) |
+| `WallSensorsConfig::right` | field | [wall_sensor_config.md](wall_sensor_config.md#wallsensorsconfig-right) |
 | `WallSide` | enum class | [wall_reset.md](wall_reset.md#enum-class-wallside) |
 | `WallSide::Left` | enumerator | [wall_reset.md](wall_reset.md#wallside-left) |
 | `WallSide::Right` | enumerator | [wall_reset.md](wall_reset.md#wallside-right) |
+| `wallSideProblem` | free function | [wall_sensor_config.md](wall_sensor_config.md#wallsideproblem) |
 | `wallSideWord` | free function | [wall_reset.md](wall_reset.md#wallsideword) |
 | `wallStill` | free function | [wall_reset.md](wall_reset.md#wallstill) |
 | `Watchdog` | class | [watchdog.md](watchdog.md#class-watchdog) |

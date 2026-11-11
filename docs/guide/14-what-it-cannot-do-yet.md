@@ -330,8 +330,11 @@ and the action are yours.
 The wall reset ([Chapter 10](10-the-api.md#the-wall-reset--one-axis-against-a-field-wall)) re-seats
 ONE coordinate from a side distance sensor parked beside a field wall. It is **host- and build-gated,
 NOT run on a robot**: every number below comes from the host test plant or from paper, and no
-distance-sensor reading of the team's robot exists yet. Only its explicit form is in the library;
-the robot file's side sensors and the everyday call an auton writes come in its later parts.
+distance-sensor reading of the team's robot exists yet. The library has the explicit call, the robot
+file's side sensors and the everyday call an auton writes
+([Chapter 3](03-knowing-where-you-are.md#re-seating-one-axis-against-a-wall)); robot two's robot file
+does not declare its side sensors yet, so on robot two a FIELD-start auton's reset refuses `no sensor`
+until it does (and a RELATIVE-start one refuses `not a field start` first, as it does on every robot).
 
 - **Something taller than a game piece, at a plausible distance, passes every check.** No reading
   check can tell it from the wall, and no document should say one can. On the host test plant: a
@@ -387,7 +390,12 @@ the robot file's side sensors and the everyday call an auton writes come in its 
   IMU's still jitter yet.
 - **The explicit call's window cannot be cut.** It samples inside a wait the run guard cannot
   interrupt, so a deadline or a disable that lands in the window is acted on up to `windowMax`
-  (0.5 s) late.
+  (0.5 s) late. The everyday call an auton writes samples through the run guard's own wait instead, and
+  is cut at once (`cut`, nothing seated).
+- **Only a FIELD start.** The everyday call refuses an auton that starts RELATIVE (or with no start
+  stated): the season's walls are field coordinates. The explicit call takes a `Chassis` and cannot see
+  the start, so under a relative estimate its author must use an own wall line with its own keep-outs —
+  or none.
 - **Every number is a belief** until measured — the sensor's accuracy, its beam's spread and how it
   answers two surfaces at once, whether the wall answers at all at that height, its update rate, the
   gate defaults (and the steps the Localizer counts turning and travel in), the field's dimensions

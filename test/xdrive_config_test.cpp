@@ -231,7 +231,8 @@ TEST_CASE("G1 2c xdrive 2: robot::Robot builds it over a provider into main.cpp'
         r.describe(banner, sizeof banner);
         CHECK(std::string{banner}
               == "X-drive INVENTED ports (HA-111) [] x-drive TYPED | wheels 1,2,-3,-4 | R 7.000 in | "
-                 "IMU10 | tracking-wheels | GPS present tags ABSENT camera ABSENT");  // VIS1-A1: was "vision ABSENT"
+                 "IMU10 | tracking-wheels | GPS present tags ABSENT walls ABSENT camera ABSENT");  // VIS1-A1: was "vision
+                 // ABSENT"; L6-A2: "walls ABSENT" (no side distance sensor declared)
         // The program logs it as "robot::Robot: <banner>" through TermSink, which cuts at 200.
         CHECK(std::strlen(banner) + std::strlen("robot::Robot: ") <= 200);
     }

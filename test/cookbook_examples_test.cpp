@@ -8,7 +8,7 @@
 //   cookbook-02a/b    -> docs/cookbook/02-when-a-step-fails.md
 //   cookbook-03a/b    -> docs/cookbook/03-timing-and-partners.md
 //   cookbook-04a/b    -> docs/cookbook/04-drivetrains.md
-//   cookbook-05a/b    -> docs/cookbook/05-mixing-tiers.md
+//   cookbook-05a/b/c  -> docs/cookbook/05-mixing-tiers.md
 //   cookbook-06a/b    -> docs/cookbook/06-driver-control.md
 //
 // The cookbook quotes these bodies VERBATIM — the same anti-rot rule the guide
@@ -32,6 +32,8 @@
 #include "motion_test_rig.hpp"
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/routine.hpp"
+#include "shulib/competition/auton_registry.hpp"
+#include "shulib/competition/auton_wall_reset.hpp"
 #include "shulib/hal/controller.hpp"
 #include "shulib/hal/fake/fake_controller.hpp"
 #include "shulib/hal/fake/fake_digital_out.hpp"
@@ -40,10 +42,13 @@
 #include "shulib/hal/mechanism.hpp"
 #include "shulib/kinematics/tank.hpp"
 #include "shulib/kinematics/x_drive.hpp"
+#include "shulib/localization/override_walls.hpp"
+#include "shulib/localization/wall_reset.hpp"
 #include "shulib/teleop/driver_control.hpp"
 #include "shulib/teleop/mechanism_binding.hpp"
 #include "shulib/teleop/teleop_loop.hpp"
 #include "shulib/units/literals.hpp"
+#include "wall_robot_rig.hpp"
 
 using namespace shulib::units::literals;
 using shulib::chassis::Chassis;
@@ -662,6 +667,82 @@ TEST_CASE("cookbook-05b: re-seeding the estimate in the middle of a routine") {
     CHECK(c.rig.loc.distanceSinceCorrection().value() == 0.0);
     // The robot did not move an inch: seeding changes belief, not position.
     CHECK(motion_rig::posErr(c.rig.h.truePose(), truthBefore) == doctest::Approx(0.0));
+}
+
+// ═══ cookbook-05c — re-seat x against a wall, the everyday call (docs/cookbook/05-mixing-tiers.md) ═══
+// The recipe is written as src/team/autons.cpp needs it — inside `namespace shulib::bench`, so
+// `chassis::`, `competition::` and `localization::` resolve from there (chunk L6-A2; the L6 brief's D4).
+namespace shulib::bench {
+namespace {
+
+localization::WallResetReport gCookbookWall{};  // what the recipe's reset said (for the test below)
+
+// A FIELD-start auton: placed at (-55.7, -50) facing +y, its left
+// side sensor about 7 in from the left wall.
+chassis::RoutineResult leftWallReset(competition::AutonContext& ctx) {
+    chassis::Routine r{ctx, "left-wall"};
+    r.face(-55.7_in, -38_in);      // a tank turns first
+    r.driveTo(-55.7_in, -38_in);   // a leg ALONG the left wall
+    r.turnTo(90_deg);              // square to the wall: a tank turns in place
+    r.then([&] { return competition::resetFromWall(ctx,
+                     {.wall = localization::override2026::kLeftWall,
+                      .sensor = localization::WallSide::Left,
+                      .maxCorrection = 3_in}).continues(); }, "left wall x");
+    // ...the rest of the auton drives from the re-seated x.
+    // (For the test below: the robot's own reset log. Read null-safely — a robot whose slot never
+    // reached the Chassis must fail this case as "no sensor", not crash the whole suite.)
+    gCookbookWall = {};
+    if (const localization::WallSensors* slot = ctx.chassis.deps().ctx->wallSensors()) {
+        gCookbookWall = slot->log.last;
+    }
+    return r.result();
+}
+
+competition::AutonEntry leftWallEntry() {
+    competition::AutonEntry e{};
+    e.name = "left wall";
+    e.kind = competition::AutonKind::Match;
+    e.routine = &leftWallReset;
+    e.start = competition::StartPose::field(-55.7_in, -50_in, 90_deg);  // a FIELD start
+    e.endActionAt = 25_s;
+    e.hardStopAt = 28_s;
+    return e;
+}
+
+}  // namespace
+}  // namespace shulib::bench
+
+// Bug caught: a recipe that does not compile in a student's auton file (an unqualified name that only
+// resolves in a test), or that teaches a sequence that does not seat — the robot is truly placed 2.5 in
+// nearer the wall than the auton's start says, so the leg ends 2.5 in off on x; through
+// competition::runAuton (the competition program's call) on a Robot whose robot file declares the side
+// sensors, the reset must SEAT x back to within 0.1 in of the truth. And the FIELD-start rule the
+// recipe states: the SAME auton registered with a RELATIVE start is refused "not a field start" — and,
+// not `required`, the auton goes on.
+TEST_CASE("cookbook-05c: re-seat x against the left wall from a FIELD-start auton, the everyday call") {
+    SUBCASE("a FIELD start: the leg ends 2.5 in off on x, and the wall puts it back") {
+        wall_robot::WallWorld world{Pose2d{Length{-58.2}, Length{-50.0}, 90_deg}};
+        shulib::robot::Robot& robot = world.build(wall_robot::robotWith(
+            wall_robot::wallsFor(wall_rig::trueLeft(), wall_rig::trueRight())));
+        const shulib::competition::AutonRunResult res = world.run(shulib::bench::leftWallEntry());
+        REQUIRE(res.outcome == shulib::competition::AutonRunOutcome::RoutineRan);
+        CAPTURE(shulib::localization::wallResetVerdictWord(shulib::bench::gCookbookWall.verdict));
+        CHECK(res.routine.ok);
+        REQUIRE(shulib::bench::gCookbookWall.seated());
+        CHECK(std::abs(robot.localizer().pose().x().value() - world.h.truePose().x().value()) < 0.1);
+        CHECK(shulib::bench::gCookbookWall.applied.value() == doctest::Approx(-2.5).epsilon(0.05));
+    }
+    SUBCASE("the same auton with a RELATIVE start: refused, and the auton goes on") {
+        wall_robot::WallWorld world{Pose2d{Length{-55.7}, Length{-50.0}, 90_deg}};
+        (void)world.build(wall_robot::robotWith(
+            wall_robot::wallsFor(wall_rig::trueLeft(), wall_rig::trueRight())));
+        shulib::competition::AutonEntry relative = shulib::bench::leftWallEntry();
+        relative.start = shulib::competition::StartPose::relative();
+        const shulib::competition::AutonRunResult res = world.run(relative);
+        REQUIRE(res.outcome == shulib::competition::AutonRunOutcome::RoutineRan);
+        CHECK(shulib::bench::gCookbookWall.verdict == shulib::localization::WallResetVerdict::NotFieldStart);
+        CHECK(res.routine.ok);  // not required: the chain went on
+    }
 }
 
 // ═══ cookbook-06a — two buttons drive a mechanism (docs/cookbook/06-driver-control.md) ═══

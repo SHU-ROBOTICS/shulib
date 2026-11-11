@@ -344,7 +344,7 @@ TEST_CASE("VIS1-A1 Robot: port 0 -- no camera, 'no camera is declared', and the 
     for (std::uint8_t p = 1; p <= 21; ++p) {
         CHECK_FALSE(w.devices.cameraMade(p));
     }
-    CHECK(endsWith(banner(robot), "tags ABSENT camera ABSENT"));
+    CHECK(endsWith(banner(robot), "tags ABSENT walls ABSENT camera ABSENT"));
 }
 
 TEST_CASE("VIS1-A1 Robot D5: a REFUSED camera never refuses the robot -- it builds and DRIVES, the camera "
@@ -366,7 +366,7 @@ TEST_CASE("VIS1-A1 Robot D5: a REFUSED camera never refuses the robot -- it buil
     REQUIRE(robot.context().driveMotors().size() == 2U);
     robot.context().driveMotors()[0]->setVoltage(shulib::units::Voltage{6.0});
     CHECK(w.devices.fakeMotor(11).commandedVoltage().value() == doctest::Approx(6.0));
-    CHECK(endsWith(banner(robot), "tags ABSENT camera port 3 ABSENT (port 3 has no AI Vision camera)"));
+    CHECK(endsWith(banner(robot), "tags ABSENT walls ABSENT camera port 3 ABSENT (port 3 has no AI Vision camera)"));
 
     // A provider that refuses with NO reason still leaves one.
     FakeWorld w2;
@@ -412,7 +412,7 @@ TEST_CASE("VIS1-A1 Robot: the boot line's camera words in EVERY state the seam r
     REQUIRE(robot.camera() != nullptr);
     shulib::hal::fake::FakeVisionFrames& cam = w.devices.fakeCamera(3);
     const std::string head = "Cam Bot [] tank TYPED | L 11,-12 R -13,14 | ipr L1.50000 R1.50000 W 12.000 in | "
-                             "IMU21 | drive-encoders | GPS ABSENT tags ABSENT ";
+                             "IMU21 | drive-encoders | GPS ABSENT tags ABSENT walls ABSENT ";  // L6-A2: the walls words
 
     // Default (nothing set): NOT set up.
     CHECK(banner(robot) == head + "camera port 3 NOT set up");
@@ -489,12 +489,12 @@ TEST_CASE("VIS1-A1 Robot: the H-DRIVE banner ends with the camera's words too (e
     const std::string b = banner(robot);
     CAPTURE(b);
     CHECK(b.find("h-drive TYPED") != std::string::npos);
-    CHECK(endsWith(b, "tags ABSENT camera port 3 set up, model OK"));
+    CHECK(endsWith(b, "tags ABSENT walls ABSENT camera port 3 set up, model OK"));
     CHECK(b.find("vision") == std::string::npos);
     FakeWorld w2;
     h.sensors.camera.port = 0;
     Robot none{h, w2.devices};
-    CHECK(endsWith(banner(none), "tags ABSENT camera ABSENT"));
+    CHECK(endsWith(banner(none), "tags ABSENT walls ABSENT camera ABSENT"));
 }
 
 TEST_CASE("VIS1-A1 Robot over the REAL provider and the shim: the Classroom model reads DIFFERENT naming "

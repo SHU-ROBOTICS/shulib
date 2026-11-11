@@ -2,8 +2,9 @@
 //
 // chassis::resetFromWall — the wall reset's EXPLICIT call (chunk L6-A1, 2026-10-29): re-seat ONE axis
 // of the estimate against a field wall from a side distance sensor, over sensor handles the caller
-// passes. The form for a hand-wired Tier-3 robot and for the host tests; from L6-A2 an auton uses the
-// everyday form over its context (`competition::resetFromWall(ctx, ...)`), which runs the same steps.
+// passes. The form for a hand-wired Tier-3 robot and for the host tests; an auton uses the everyday
+// form over its context (`competition::resetFromWall(ctx, ...)`, competition/auton_wall_reset.hpp — L6-A2),
+// which runs the same steps through the same sampler below.
 //
 // ── Why it sits HERE, at the facade's layer ──────────────────────────────────────────────────────
 // It needs the Chassis (the estimate, the scheduler's wait, the telemetry), and a localization/
@@ -31,7 +32,8 @@
 // ── The frozen wait ──────────────────────────────────────────────────────────────────────────────
 // `Chassis::waitUntil` is a wait the run guard cannot cut, so a deadline or a disable that lands
 // mid-window is acted on at most `windowMax` (0.5 s by default, never more than 1 s) late. The
-// everyday form (L6-A2) samples through the guard's deadline-aware wait instead and refuses CUT.
+// everyday form (competition/auton_wall_reset.hpp) samples through the guard's deadline-aware wait instead
+// and refuses CUT.
 //
 // ── A seat is a deliberate jump (the scheduler's pose guard) ────────────────────────────────────
 // The scheduler's plausibility guard raises an advisory IMPLAUSIBLE when one tick's pose change
@@ -60,19 +62,22 @@ inline constexpr double kWallResetWaitBackstopSeconds = 1.0;
 
 namespace detail {
 
-/// THE ONE SAMPLER both forms run (the explicit call below, and the everyday form from L6-A2): the
-/// setup and pre-checks, the window through `wait`, the verdict, the seat, the log line. `wait` is
-/// called once as `wait(pred, timeout)` with a predicate that returns true when the window is done
-/// and a `units::Time` timeout; it returns true when the wait ENDED (the predicate held), false when
-/// it was CUT (the everyday form's run guard: a deadline or a disable) — a cut window refuses CUT and
-/// seats nothing. `log` (may be null) is filed with the outcome.
+/// THE ONE SAMPLER both forms run (the explicit call below, and the everyday form in
+/// competition/auton_wall_reset.hpp): the setup and pre-checks, the window through `wait`, the verdict, the
+/// seat, the log line. `wait` is called once as `wait(pred, timeout)` with a predicate that returns
+/// true when the window is done and a `units::Time` timeout; it returns true when the wait ENDED (the
+/// predicate held), false when it was CUT (the everyday form's run guard: a deadline or a disable) — a
+/// cut window refuses CUT and seats nothing. `log` (may be null) is filed with the outcome. `sink`
+/// (may be null) is where the ONE line goes — the everyday form passes the auton's own
+/// (`AutonContext::telemetry`); null means the chassis context's telemetry.
 template <typename Wait>
 [[nodiscard]] localization::WallResetReport runWallReset(Chassis& chassis,
                                                          const localization::WallSensor& sensor,
                                                          const localization::WallResetRequest& request,
                                                          const localization::WallResetLimits& limits,
                                                          Wait&& wait,
-                                                         localization::WallResetLog* log = nullptr) {
+                                                         localization::WallResetLog* log = nullptr,
+                                                         hal::ITelemetrySink* sink = nullptr) {
     using localization::WallResetReport;
     using localization::WallResetVerdict;
     const motion::MotionDeps& deps = chassis.deps();
@@ -142,8 +147,8 @@ template <typename Wait>
 
     diag::lineformat::Line line;
     localization::appendWallResetLine(line, rep, request, sensor.mount, limits);
-    deps.ctx->telemetry().log(rep.seated() ? hal::LogLevel::Info : hal::LogLevel::Warn, "WALL",
-                              line.view());
+    hal::ITelemetrySink& out = sink != nullptr ? *sink : deps.ctx->telemetry();
+    out.log(rep.seated() ? hal::LogLevel::Info : hal::LogLevel::Warn, "WALL", line.view());
     if (log != nullptr) {
         log->record(rep);
     }
@@ -160,7 +165,7 @@ template <typename Wait>
 /// (subsystem "WALL"). Commands nothing to the drive. The heading tolerance and the along-wall drift
 /// allowance come from the Localizer's counters (`turnedSinceHeadingSeed`, `travelSinceSeat`). The
 /// window is a FROZEN wait: a deadline landing in it is acted on up to `windowMax` late (the
-/// everyday form, from L6-A2, is cut instead). Returns the report — a VALUE; `continues()` is what a
+/// everyday form, `competition::resetFromWall(ctx, ...)`, is cut instead). Returns the report — a VALUE; `continues()` is what a
 /// `then()` returns (D3).
 [[nodiscard]] inline localization::WallResetReport resetFromWall(Chassis& chassis,
                                                                  const localization::WallSensor& sensor,

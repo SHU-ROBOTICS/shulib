@@ -383,15 +383,18 @@ TEST_CASE("G1 2b test 6c: robot::Robot::portMap() equals the 2026-09-25 capture'
     char map[shulib::diag::kMaxPortMapBytes];
     robot->portMap(map, sizeof map);
     CHECK(std::string_view{map} == kCapturedPortMap);
-    // The NEW boot line the program prints as `robot::Robot: <this>` (193 bytes with its prefix,
-    // one TermSink message): typed by hand from robot.hpp's format, so a change to the banner shows
-    // up here and in the Part 2b banner diff at once.
+    // The NEW boot line the program prints as `robot::Robot: <this>` (206 bytes with its prefix since
+    // L6-A2's "walls ABSENT" — 193 before — so the drive program's logWrapped() splits it at a space
+    // into two TermSink messages, every word kept): typed by hand from robot.hpp's format, so a change
+    // to the banner shows up here and in the Part 2b banner diff at once.
     char banner[256];
     robot->describe(banner, sizeof banner);
     CHECK(std::string_view{banner}
           == "2026 TANK CHASSIS (robot two) [] tank MEASURED | L -16,17,-18,-20 R 11,-12,13,15 | "
              "ipr L1.25442 R1.36703 W 12.006 in | IMU2 | drive-encoders | GPS ABSENT tags ABSENT "
-             "camera ABSENT");  // VIS1-A1: was "vision ABSENT" (robot two's table declares no camera yet)
+             "walls ABSENT camera ABSENT");  // VIS1-A1: was "vision ABSENT" (robot two's table declares no
+                                             // camera yet); L6-A2: "walls ABSENT" (nor its side sensors yet
+                                             // — L6-B types them)
     // :95 — the description's own banner line, which the program prints beside robot.describe().
     char described[128];
     boot.config.drivetrain.tank.description.describe(described, sizeof described);

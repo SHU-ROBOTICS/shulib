@@ -16,6 +16,85 @@
 
 ## API 2.5
 
+### 2026-11-10 (built 2026-11-03–05) — the wall reset from an auton: the robot file's side distance sensors, built by the Robot, and the everyday call over the auton's context
+
+> Written when it was built (chunk L6-A2, the wall reset's second part — robot two's sensors are Part
+> B). **No version bump — every change is ADDITIVE and nothing in it is a frozen surface:** a new
+> header, new members APPENDED (with defaults) to `config::SensorsConfig`, `config::PortUse`,
+> `chassis::RobotContextConfig` and `robot::Robot`, none of which is in the
+> [Freeze Register](roadmap.md#freeze-register) (`RobotContext` is "NOT part of the F4 freeze" by its own
+> banner). **Every 2.5 program compiles and runs as before, with one visible change: the boot line**
+> (below). **Host only — nothing here has run on a robot;** robot two's robot file does not declare its
+> side sensors yet (Part B), so on robot two a FIELD-start auton's wall reset refuses `NO SENSOR` until
+> it does (a RELATIVE-start auton's refuses `not a field start` first, on every robot).
+> [Chapter 3](guide/03-knowing-where-you-are.md#re-seating-one-axis-against-a-wall) teaches it,
+> [cookbook 5](cookbook/05-mixing-tiers.md#re-seat-x-against-a-wall) is the recipe.
+
+**ADDED:**
+
+- **`competition::resetFromWall(ctx, request)`** (`competition/auton_wall_reset.hpp`) — THE EVERYDAY CALL an
+  auton writes, through `then()`:
+  `r.then([&] { return competition::resetFromWall(ctx, {.wall = localization::override2026::kLeftWall,
+  .sensor = localization::WallSide::Left, .maxCorrection = 3_in}).continues(); }, "left wall x");`. It
+  refuses — reading nothing, taking no time — when the auton's start is not a FIELD start
+  (`not a field start`, the line naming the mode: RELATIVE, or UNSET for a route whose Start states no
+  heading; the season's walls are field coordinates, so **a wall reset needs a FIELD start**) or when the
+  robot declares no wall sensors (`no sensor`); otherwise it runs every check of the explicit call over
+  the robot's own side sensor, mount and limits, and samples through the RUN GUARD's deadline-aware wait —
+  so a deadline or a disable that lands mid-window cuts it at once (`cut`, nothing seated), where the
+  explicit call's frozen wait would run on up to `windowMax` late. Every outcome is filed in the robot's
+  wall-reset log (seated and refused counts, the last report — what the Auton Tester will show, Part B);
+  ONE `WALL` line goes to the auton's own telemetry. Calling it outside a live run is a precondition (an
+  `AutonContext` lives for one guarded run).
+- **The robot file's side sensors — `config::WallSensorsConfig`** (`config/wall_sensor_config.hpp`), as
+  **`RobotConfig::sensors.walls`**: per side (`left`, `right`) the sensor's `port` (0 = none, the
+  default) and its MEASURED `mount` (`localization::SideMount` — UNSET until measured, which is NOT a
+  config error: the robot boots and every reset with that sensor refuses `MOUNT UNSET`), the robot's
+  `limits` (`localization::WallResetLimits`, the PROVISIONAL defaults unless typed) and a `note`.
+  `config::PortUse::WallSensor` (APPENDED; "a wall sensor"), and `RobotConfig::valid()` refuses, naming
+  the side and the port: a port past 21; both sides on one port; a port claimed by anything else, naming
+  both ("port 4 is claimed by the LEFT drive and by a wall sensor"); a MEASURED mount with a problem
+  (`config::wallMountProblem` — a number that is not finite, a `facing` outside (−180°, 180°] (`90.0`
+  typed alone is 90 radians), the lens more than 24 in from the centre, a height outside (0, 11.5] in —
+  the wall's top —, a measured cone outside 3–30°, a tolerance of 0 or past 2 in / 10°, a bias past 2
+  in, a measured accuracy outside 0.05–2 in, no provenance; then `config::wallSideProblem` — a sensor
+  that does not face out of, or sit on, its own side: the usual sign of a block copied from the other
+  side); and limits
+  with a problem (`config::wallLimitsProblem` — everything the reset itself would refuse as a bad
+  request, so a valid robot file never meets one, plus tighter spans: `rangeMin` at least 0.79 in,
+  3–64 samples, `headingFloor` 0.5–10°, `headingPerTurn` 0–0.1, `alongDriftRate` 0–0.5).
+- **`robot::Robot` builds the side sensors** — LAST in the constructor's body, after the camera, through
+  the provider's `distance(port)` and `readFaults(port)` (no provider change): **`wallSensor(side)`**
+  (nullptr when absent), **`wallSensorAbsence(side)`** ("" exactly when present; "not declared" for port
+  0; the provider's own sentence, COPIED, for a refused one), **`wallSensors()`** (both sides, the limits
+  and the reset log). **A refused side sensor never refuses the robot** — a cable out must not cost a
+  match — and neither does a provider that throws making one. `validate()` does not ask for them.
+- **`chassis::RobotContextConfig::walls`** — the context's first OPTIONAL slot (`localization::WallSensors*`,
+  nullptr by default — then the wall reset refuses `NO SENSOR`), with **`RobotContext::wallSensors()`**.
+  The constructor still requires every other slot. The Robot hands it in when its config declares a
+  side; the motion scheduler's shadow context (what `chassis.deps().ctx` is) carries it.
+
+**CHANGED (visible):**
+
+- **The boot line** (`Robot::describe()`, printed by the drive and X-drive programs as `robot::Robot:
+  ...`) gains the side sensors' words between `tags ABSENT` and the camera's: `walls ABSENT` (no side
+  declared — every program's line today), `walls L4 R5`, `walls L4 R5(ABSENT)` for a refused side,
+  `walls L4 R5 MOUNT UNSET` when a declared side's mount is unmeasured. Robot two's line grows from 179
+  to 192 bytes; the drive program already splits a long line at a space, so nothing is cut.
+- **The `not a field start` WALL line** now names the start mode: `start RELATIVE -- the season's walls
+  are FIELD coordinates: declare a FIELD start` (`start UNSET` for an unset one).
+- **The `cut` WALL line** has a second form for a call made after the run had already ended (no sample
+  taken): `the run's deadline or a disable came before the window began; nothing changed` — the call came
+  too late, not the window.
+
+**What you must do:** a test that pins the boot line's exact text adds ` walls ABSENT` after
+`tags ABSENT` (the library's own pins were updated). To use the wall reset from an auton: declare the
+side sensors in the robot file (ports, and each mount measured with a tape — Chapter 10), give the auton a
+FIELD start, park nose-along the wall and square (Chapter 3's recipe), include
+`shulib/competition/auton_wall_reset.hpp` and `shulib/localization/override_walls.hpp` in the auton
+file (the shipped `src/team/autons.cpp` includes neither), and call `competition::resetFromWall(ctx, …)`
+through `then()`.
+
 ### 2026-11-06 (built 2026-10-30) — the mechanism core, part 6 (its last): Bench Tests' station 13 shows every mechanism in its own units, powers one at a time behind six gates, and runs the direction check on the robot — no API change
 
 > Written when it was built (chunk MECH-A6, the last of the mechanism core's six parts) and corrected at

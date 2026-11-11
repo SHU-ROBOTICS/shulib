@@ -664,11 +664,14 @@ public:
                                                  .battery = &deps.ctx->battery(),
                                                  .telemetry = &stamperSink_,
                                                  .tags = &deps.ctx->tags(),
-                                                 .vision = &deps.ctx->vision()}},
+                                                 .vision = &deps.ctx->vision(),
+                                                 .walls = deps.ctx->wallSensors()}},
           // The stamped bundle is assembled FIELD BY FIELD (the ctx must be the shadow), so
           // every additive MotionDeps field has to be carried here by hand — motorGroups
           // (R3b Part 1) was found dropped by exactly this line: a fight on a coupled group
           // went unraised under the scheduler while the same motion, hand-ticked, raised it.
+          // The shadow context above is the same: its OPTIONAL wall-sensor slot (L6-A2) is
+          // carried by hand, or every everyday wall reset through a Chassis refuses NO SENSOR.
           schedDeps_{MotionDeps{.ctx = &shadowCtx_,
                                 .localizer = deps.localizer,
                                 .kinematics = deps.kinematics,

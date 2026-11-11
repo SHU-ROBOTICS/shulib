@@ -333,11 +333,13 @@ nav:
           - Acceptance run: api/acceptance_run.md
           - Auton menu: api/auton_menu.md
           - Auton registry: api/auton_registry.md
+          - Auton wall reset: api/auton_wall_reset.md
           - Match runner: api/match_runner.md
       - Config:
           - Camera config: api/camera_config.md
           - Robot config: api/robot_config.md
           - Route: api/route.md
+          - Wall sensor config: api/wall_sensor_config.md
       - Mechanism:
           - Devices: api/devices.md
           - Direction check: api/direction_check.md

@@ -27,7 +27,7 @@ inline constexpr double kWallResetWaitBackstopSeconds = 1.0
 
 Slack past `windowMax` given to the sampling wait's own timeout (seconds). Unreachable by construction — the predicate ends the window at `windowMax` by the clock — so it is code-level belt-and-braces, not an HA entry (Chassis's wait() backstop is the same idea).
 
-*constant, declared at [`include/shulib/chassis/wall_reset_call.hpp:59`](../../include/shulib/chassis/wall_reset_call.hpp#L59).*
+*constant, declared at [`include/shulib/chassis/wall_reset_call.hpp:61`](../../include/shulib/chassis/wall_reset_call.hpp#L61).*
 
 <a id="resetfromwall"></a>
 
@@ -37,23 +37,24 @@ Slack past `windowMax` given to the sampling wait's own timeout (seconds). Unrea
 [[nodiscard]] inline localization::WallResetReport resetFromWall(Chassis& chassis, const localization::WallSensor& sensor, const localization::WallResetRequest& request, const localization::WallResetLimits& limits)
 ```
 
-THE EXPLICIT CALL (L6-A1 — a hand-wired Tier-3 robot's form, and the host tests'): re-seat ONE axis of `chassis`'s estimate against `request.wall` from `sensor`, inside `limits` — blocking, at most `limits.windowMax` plus a tick; the setup and pre-checks first (no time, nothing read), then a window of samples inside `chassis.waitUntil` (its predicate ENDS the wait — no "timed out" line), the verdict, and, when SEATED, `Localizer::seatAxis` on that axis only. ONE log line either way (subsystem "WALL"). Commands nothing to the drive. The heading tolerance and the along-wall drift allowance come from the Localizer's counters (`turnedSinceHeadingSeed`, `travelSinceSeat`). The window is a FROZEN wait: a deadline landing in it is acted on up to `windowMax` late (the everyday form, from L6-A2, is cut instead). Returns the report — a VALUE; `continues()` is what a `then()` returns (D3).
+THE EXPLICIT CALL (L6-A1 — a hand-wired Tier-3 robot's form, and the host tests'): re-seat ONE axis of `chassis`'s estimate against `request.wall` from `sensor`, inside `limits` — blocking, at most `limits.windowMax` plus a tick; the setup and pre-checks first (no time, nothing read), then a window of samples inside `chassis.waitUntil` (its predicate ENDS the wait — no "timed out" line), the verdict, and, when SEATED, `Localizer::seatAxis` on that axis only. ONE log line either way (subsystem "WALL"). Commands nothing to the drive. The heading tolerance and the along-wall drift allowance come from the Localizer's counters (`turnedSinceHeadingSeed`, `travelSinceSeat`). The window is a FROZEN wait: a deadline landing in it is acted on up to `windowMax` late (the everyday form, `competition::resetFromWall(ctx, ...)`, is cut instead). Returns the report — a VALUE; `continues()` is what a `then()` returns (D3).
 
-*free function, declared at [`include/shulib/chassis/wall_reset_call.hpp:165`](../../include/shulib/chassis/wall_reset_call.hpp#L165).*
+*free function, declared at [`include/shulib/chassis/wall_reset_call.hpp:170`](../../include/shulib/chassis/wall_reset_call.hpp#L170).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 41 lines</summary>
+<summary>The header’s own reasoning — 43 lines</summary>
 
 ```text
 
  chassis::resetFromWall — the wall reset's EXPLICIT call (chunk L6-A1, 2026-10-29): re-seat ONE axis
  of the estimate against a field wall from a side distance sensor, over sensor handles the caller
- passes. The form for a hand-wired Tier-3 robot and for the host tests; from L6-A2 an auton uses the
- everyday form over its context (`competition::resetFromWall(ctx, ...)`), which runs the same steps.
+ passes. The form for a hand-wired Tier-3 robot and for the host tests; an auton uses the everyday
+ form over its context (`competition::resetFromWall(ctx, ...)`, competition/auton_wall_reset.hpp — L6-A2),
+ which runs the same steps through the same sampler below.
 
  ── Why it sits HERE, at the facade's layer ──────────────────────────────────────────────────────
  It needs the Chassis (the estimate, the scheduler's wait, the telemetry), and a localization/
@@ -81,7 +82,8 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  ── The frozen wait ──────────────────────────────────────────────────────────────────────────────
  `Chassis::waitUntil` is a wait the run guard cannot cut, so a deadline or a disable that lands
  mid-window is acted on at most `windowMax` (0.5 s by default, never more than 1 s) late. The
- everyday form (L6-A2) samples through the guard's deadline-aware wait instead and refuses CUT.
+ everyday form (competition/auton_wall_reset.hpp) samples through the guard's deadline-aware wait instead
+ and refuses CUT.
 
  ── A seat is a deliberate jump (the scheduler's pose guard) ────────────────────────────────────
  The scheduler's plausibility guard raises an advisory IMPLAUSIBLE when one tick's pose change

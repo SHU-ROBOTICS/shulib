@@ -1843,6 +1843,11 @@ written with them (D12 honesty reaching the data layer intact).
 > brief). It takes the alliance colour out of AF1's 2026-10-08 scope (above).
 
 ### L6 — the wall reset with the side distance sensors ⟵ BRIEF ANSWERED 2026-10-22
+> **Status 2026-11-10: L6-A2 LANDED** (built 2026-11-03–05; three reviews, a fresh verifier and its one test-gap fix; the robot file's side sensors — NEW `config/wall_sensor_config.hpp`,
+> `RobotConfig::sensors.walls`, `PortUse::WallSensor` —, the Robot building them, the context's first OPTIONAL slot and
+> the scheduler's shadow line, and the everyday call in NEW `competition/auton_wall_reset.hpp` — the brief's
+> `competition/wall_reset.hpp`, renamed for the API pages' one-page-per-name rule; [live log](chunks/L6-PROGRESS.md))
+> — host- and build-gated, NOT run on a robot. No version bump (§1.8).
 > **Status 2026-11-03: L6-A1 LANDED** (built 2026-10-29, reviewed, fixed and verified 2026-10-30; the library core — `Localizer::seatAxis` and
 > its two counters, `localization/{axis,wall_reset,override_walls}.hpp`, `chassis/wall_reset_call.hpp` (the EXPLICIT
 > call), `sim/field_plant.hpp`, cookbook 05's re-seed recipe fixed (D11); 64 new host cases (2,690 in all, green), 36 mutations RED;

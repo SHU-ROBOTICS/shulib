@@ -49,6 +49,7 @@
 
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/config/camera_config.hpp"
+#include "shulib/config/wall_sensor_config.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/hal/motor.hpp"
 #include "shulib/units/quantity.hpp"
@@ -328,6 +329,12 @@ struct GpsConfig {
 /// stays valid and builds the same robot. `robot::Robot` builds it through the device provider and a
 /// refused camera never refuses the robot (`Robot::camera()` / `cameraAbsence()`).
 ///
+/// THE SIDE DISTANCE SENSORS ARE DECLARED HERE since L6-A2 (2026-11-03): `walls` (its block's type is
+/// config/wall_sensor_config.hpp's) — one per side, each with its port (0 = none, the default, so every
+/// config written before it stays valid and builds the same robot) and its MEASURED mount, and the wall
+/// reset's limits. `robot::Robot` builds each declared side through the device provider; a refused
+/// sensor never refuses the robot (`Robot::wallSensor()` / `wallSensorAbsence()`).
+///
 /// TAGS ARE STILL DELIBERATELY ABSENT, and that is a statement about the tree rather than about the
 /// schema: no AprilTag adapter exists (R2b's tag part, after G3), so a field here would describe a
 /// reading the library cannot make. `robot::Robot` installs `hal::AbsentTagSource` and — because the
@@ -340,6 +347,9 @@ struct SensorsConfig {
     /// designated initializer that names only `.gps` stays complete (GCC's -Wmissing-field-initializers
     /// refuses one that omits a member without one).
     CameraConfig camera{};
+    /// The side distance sensors and the wall reset's limits (L6-A2, APPENDED): no side declared by
+    /// default. A default member initializer, for the same designated-initializer reason as `camera`.
+    WallSensorsConfig walls{};
 };
 
 /// A motor mechanism's DECLARED safe brake mode, as config data — what `robot::Robot` hands to
@@ -544,6 +554,7 @@ enum class PortUse : std::uint8_t {
     Mechanism,     ///< a mechanism motor
     MechanismSensor,  ///< a mechanism's rotation, distance or optical sensor (MECH-A1, appended)
     Camera,           ///< the AI Vision camera (VIS1-A1, appended)
+    WallSensor,       ///< a side distance sensor for the wall reset (L6-A2, appended)
 };
 
 /// A port claim as words, for the collision message — "port 7 is claimed by the LEFT drive and by
@@ -561,6 +572,7 @@ enum class PortUse : std::uint8_t {
         case PortUse::Mechanism: return "a mechanism motor";
         case PortUse::MechanismSensor: return "a mechanism sensor";
         case PortUse::Camera: return "the AI Vision camera";
+        case PortUse::WallSensor: return "a wall sensor";
     }
     return "something unnamed";
 }
@@ -625,6 +637,14 @@ struct RobotConfig {
     /// camera"); its settings' problem (`hal::aiVisionSettingsProblem`, named); a placement that is SET
     /// (`measured`) but has a problem (`cameraPlacementProblem`, named). An UNSET placement is NOT an
     /// error: the camera is built and read, and only its geometry consumers refuse.
+    /// SINCE L6-A2 (2026-11-03) the first pass also checks the SIDE DISTANCE SENSORS, after the camera:
+    /// for each side whose port is not 0, a port outside 1..21; the RIGHT side on the LEFT side's port
+    /// ("the LEFT and RIGHT wall sensors are both on port 4"); the port claimed by anything else, naming
+    /// both ("port 4 is claimed by the LEFT drive and by a wall sensor"); a MEASURED mount with a problem
+    /// (`wallMountProblem`, then `wallSideProblem` — a sensor that does not face out of, or sit on, its
+    /// own side — named with its side and port). Then the limits, always (`wallLimitsProblem`).
+    /// An UNMEASURED mount is NOT an error: the robot boots, and every wall reset with it refuses MOUNT
+    /// UNSET.
     ///
     /// WHAT IT DELIBERATELY DOES NOT CHECK, and why the omission is a design decision rather than
     /// a hole: that every kinematic wheel actually HAS a motor. A holonomic port left at 0 is
@@ -1025,6 +1045,62 @@ struct RobotConfig {
                     }
                     return false;
                 }
+            }
+        }
+        // ── the side distance sensors (L6-A2) — after the camera, so every older claim keeps its
+        //    message; a mount's numbers only once it says it was measured ──
+        {
+            const WallSensorsConfig& walls = sensors.walls;
+            const WallSensorConfig* side[2] = {&walls.left, &walls.right};
+            const char* const sideWord[2] = {"LEFT", "RIGHT"};
+            for (std::size_t s = 0; s < 2; ++s) {
+                const int port = static_cast<int>(side[s]->port);
+                if (port == 0) {
+                    continue;
+                }
+                if (port > static_cast<int>(hal::kMaxSmartPorts)) {
+                    if (why != nullptr && cap > 0) {
+                        std::snprintf(why, cap,
+                                      "the %s wall sensor's port %d is not a port in 1..21 (0 = no sensor)",
+                                      sideWord[s], port);
+                    }
+                    return false;
+                }
+                if (s == 1 && port == static_cast<int>(walls.left.port)) {
+                    if (why != nullptr && cap > 0) {
+                        std::snprintf(why, cap,
+                                      "the LEFT and RIGHT wall sensors are both on port %d -- one sensor "
+                                      "per side, each on its own port",
+                                      port);
+                    }
+                    return false;
+                }
+                if (!claim(port, PortUse::WallSensor)) {
+                    return false;
+                }
+            }
+            for (std::size_t s = 0; s < 2; ++s) {
+                if (side[s]->port == 0) {
+                    continue;
+                }
+                const char* problem = wallMountProblem(side[s]->mount);
+                if (problem == nullptr) {
+                    problem = wallSideProblem(side[s]->mount, s == 0 ? localization::WallSide::Left
+                                                                     : localization::WallSide::Right);
+                }
+                if (problem != nullptr) {
+                    if (why != nullptr && cap > 0) {
+                        std::snprintf(why, cap, "the %s wall sensor's mount (port %d): %s", sideWord[s],
+                                      static_cast<int>(side[s]->port), problem);
+                    }
+                    return false;
+                }
+            }
+            if (const char* problem = wallLimitsProblem(walls.limits)) {
+                if (why != nullptr && cap > 0) {
+                    std::snprintf(why, cap, "the wall sensors' limits: %s", problem);
+                }
+                return false;
             }
         }
 

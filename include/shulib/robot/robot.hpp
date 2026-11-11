@@ -140,6 +140,27 @@
 // read per period, from its own loop (VIS1's D10; the shared camera feed is the camera's next part). The
 // frozen `IVision` slot in the context stays hal::AbsentVision (D11).
 //
+// ── THE SIDE DISTANCE SENSORS: built from the config, ABSENT rather than refused (L6-A2) ──
+// For each side of `sensors.walls` whose port is not 0, the constructor's body asks the provider for
+// the distance sensor (`devices.distance(port)`) and its read-fault count (`devices.readFaults(port)`)
+// — LAST, after the camera, so every provider request before them, and so every graph built before
+// L6-A2, is exactly what it was. validate() does NOT ask for them. A sensor the provider will not make
+// leaves that side ABSENT — `wallSensor(side)` nullptr, `wallSensorAbsence(side)` the provider's own
+// sentence, COPIED (the provider's pointer is valid only until its next refusal) — and the robot
+// builds and drives: a cable out must never cost a match (the L6 brief's D5; the camera's rule), and a
+// provider that THROWS from distance() is caught and named the same way. `wallSensorAbsence(side)` is
+// "" EXACTLY when `wallSensor(side)` is non-null, "not declared" for port 0. Each side carries its
+// MEASURED mount from the config (an UNSET one is built all the same; every reset with it refuses
+// MOUNT UNSET), and the robot's limits ride beside them. The whole block — both sides, the limits and
+// the reset log — is the context's OPTIONAL `walls` slot (chassis/robot_context.hpp), which is how
+// the everyday wall reset (competition/auton_wall_reset.hpp) finds them through `chassis.deps().ctx`
+// — handed in only when the config declares a side; with none declared the slot is nullptr and the
+// reset's word is the true one, NO SENSOR (add the `walls` block). Filling the block in the body is
+// safe: the context only stores the pointer, and nothing reads the slot before the first reset. The boot line says which sides exist: `walls L4 R5`, `walls L4 R5(ABSENT)` for a
+// refused side (its reason is in wallSensorAbsence() and in the reset's refusal line, never on the
+// boot line), ` MOUNT UNSET` after them when a declared mount is unmeasured, `walls ABSENT` when no
+// side is declared.
+//
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // A Robot built from a config has driven the A2 host plant, through fakes, and nothing else.
 // No config has ever been used on a physical robot. Since T4 Part 3 "shulib Drive" builds its
@@ -188,6 +209,7 @@
 #include "shulib/localization/odometry.hpp"
 #include "shulib/localization/pilons_odometry.hpp"
 #include "shulib/localization/tracking_wheel.hpp"
+#include "shulib/localization/wall_reset.hpp"
 #include "shulib/motion/motion.hpp"
 #include "shulib/motion/motion_scheduler.hpp"
 #include "shulib/robot/mechanism_parts.hpp"
@@ -535,7 +557,8 @@ public:
     /// Default options build exactly the graph the two-argument form always built. LAST, after the
     /// whole drive graph, each configured mechanism with motors, or with 3-wire lines, is built —
     /// or recorded ABSENT with the provider's sentence (chunk T3 and its addendum B2; the file
-    /// header's MECHANISMS section).
+    /// header's MECHANISMS section); then the camera (VIS1-A1), then each declared side distance
+    /// sensor (L6-A2) — each ABSENT, never refused, when the provider will not make it.
     Robot(const config::RobotConfig& cfg, hal::IDeviceProvider& devices,
           const BuildOptions& options = {})
         : cfg_{prechecked(cfg, devices, options)},
@@ -586,7 +609,8 @@ public:
               .battery = &devices.battery(),
               .telemetry = &devices.telemetry(),
               .tags = &tags_,
-              .vision = &vision_}},
+              .vision = &vision_,
+              .walls = cfg_.sensors.walls.declared() ? &walls_ : nullptr}},
           deps_{.ctx = &ctx_,
                 .localizer = &localizer_,
                 .kinematics = kin_,
@@ -598,7 +622,8 @@ public:
                    effectiveTuning(cfg_)} {
         parts_.build(std::span<const config::MechanismConfig>{cfg_.mechanisms, cfg_.mechanismCount},
                      devices);
-        buildCamera(devices);  // VIS1-A1: LAST, after everything above (header: THE AI VISION CAMERA)
+        buildCamera(devices);  // VIS1-A1: after everything above (header: THE AI VISION CAMERA)
+        buildWallSensors(devices);  // L6-A2: LAST, after the camera (header: THE SIDE DISTANCE SENSORS)
     }
 
     /// Non-copyable: the graph is a web of references into this object's own storage.
@@ -767,6 +792,36 @@ public:
     /// `camera()` is non-null. Stable for the Robot's lifetime.
     [[nodiscard]] const char* cameraAbsence() const noexcept { return cameraAbsence_; }
 
+    // ── the side distance sensors (L6-A2; the file header's SIDE DISTANCE SENSORS section) ──────
+
+    /// Both sides as the wall reset reads them — each side's sensor (nullptr when absent), its
+    /// read-fault count, its MEASURED mount and why it is absent — the robot's limits and its reset
+    /// log (seated and refused counts, the last report). The object the context's OPTIONAL `walls`
+    /// slot points at when the config declares a side (with none declared the slot is nullptr — the
+    /// reset refuses NO SENSOR — and this reads "not declared" on both sides). Valid for the Robot's
+    /// lifetime.
+    [[nodiscard]] const localization::WallSensors& wallSensors() const noexcept { return walls_; }
+
+    /// The `side` distance sensor if it was BUILT — nullptr when the config declares none on that
+    /// side (port 0) or the provider refused it (`wallSensorAbsence(side)` says why). Owned by the
+    /// provider; valid for the Robot's lifetime. The Robot never reads it.
+    [[nodiscard]] hal::IDistance* wallSensor(localization::WallSide side) noexcept {
+        return walls_.side(side).sensor;
+    }
+    /// The `side` distance sensor, read-only (its readings are const).
+    [[nodiscard]] const hal::IDistance* wallSensor(localization::WallSide side) const noexcept {
+        return walls_.side(side).sensor;
+    }
+
+    /// Why `wallSensor(side)` is nullptr: "not declared" for port 0, the provider's own sentence for a
+    /// refused one (the host fake's: "port 5 has no distance sensor"), or a fixed sentence when the
+    /// provider gave none.
+    /// The empty string EXACTLY when `wallSensor(side)` is non-null. Stable for the Robot's lifetime.
+    [[nodiscard]] const char* wallSensorAbsence(localization::WallSide side) const noexcept {
+        const char* why = walls_.side(side).absence;
+        return why != nullptr ? why : "";
+    }
+
     /// The §18.5 session header's port map for this robot, generated from the config it was
     /// built with — `writePortMap(config(), out, cap)`, whose documentation gives the formats.
     /// Truncates rather than overflowing (the header field is `diag::kMaxPortMapBytes`, 96
@@ -778,8 +833,11 @@ public:
     /// sides' ports AS STORED (signs included — the one place a sign lives), any drive port
     /// ABSENT (`DEGRADED: absent 3,13` — only when there is one: built absent at boot, or marked
     /// absent mid-run by the driver loop's protections, T4 Part 2), the geometry that
-    /// governs, the estimator, and each optional device as present or ABSENT — LAST the camera
-    /// (VIS1-A1): "camera ABSENT" with none declared, "camera port 3 ABSENT (<why>)" refused, or
+    /// governs, the estimator, and each optional device as present or ABSENT — the side distance
+    /// sensors (L6-A2) after the tags: "walls L4 R5", "walls L4 R5(ABSENT)" for a refused side,
+    /// " MOUNT UNSET" after them when a declared side's mount is unmeasured, "walls ABSENT" with no
+    /// side declared — short and fixed-width, so the camera's reason stays the part a short buffer
+    /// cuts; LAST the camera (VIS1-A1): "camera ABSENT" with none declared, "camera port 3 ABSENT (<why>)" refused, or
     /// "camera port 3 " + `hal::cameraStatusWords(camera()->status())`, the adapter's reason after it
     /// in parentheses when it has one ("camera port 3 set up, model DIFFERENT (class 0 is 'blueBall',
     /// the robot file expects 'redBluePin')") — ASCII only, and LAST so a short buffer cuts the
@@ -799,6 +857,8 @@ public:
         char right[kSideCap] = "";
         char cam[kCameraWordsBytes] = "";
         cameraWords(cam, sizeof cam);
+        char walls[kWallWordsBytes] = "";
+        wallWords(walls, sizeof walls);
         const char* name = cfg_.identity.name[0] != '\0' ? cfg_.identity.name : "(unnamed)";
         switch (cfg_.drivetrain.kind) {
             case config::DrivetrainKind::Tank: {
@@ -809,7 +869,7 @@ public:
                 appendAbsent(absent, kSideCap);
                 std::snprintf(buf, cap,
                               "%s [%s] tank %s | L %s R %s%s%s | ipr L%.5f R%.5f W %.3f in | "
-                              "IMU%u | %s | GPS %s tags ABSENT %s",
+                              "IMU%u | %s | GPS %s tags ABSENT %s %s",
                               name, cfg_.identity.team,
                               d.source == hal::DescriptionSource::RobotMeasured ? "MEASURED"
                                                                                 : "TYPED",
@@ -818,7 +878,7 @@ public:
                               rightGeometry_.inchesPerRadian().value(), d.trackWidth.value(),
                               static_cast<unsigned>(d.imuPort),
                               config::odometryKindWord(cfg_.odometry.kind),
-                              gpsWord(), cam);
+                              gpsWord(), walls, cam);
                 return;
             }
             case config::DrivetrainKind::XDrive: {
@@ -826,10 +886,10 @@ public:
                 appendPorts(left, kSideCap, x.ports, 4);
                 std::snprintf(buf, cap,
                               "%s [%s] x-drive TYPED | wheels %s | R %.3f in | IMU%u | %s | "
-                              "GPS %s tags ABSENT %s",
+                              "GPS %s tags ABSENT %s %s",
                               name, cfg_.identity.team, left, x.driveRadius.value(),
                               static_cast<unsigned>(x.imuPort),
-                              config::odometryKindWord(cfg_.odometry.kind), gpsWord(), cam);
+                              config::odometryKindWord(cfg_.odometry.kind), gpsWord(), walls, cam);
                 return;
             }
             case config::DrivetrainKind::HDrive: {
@@ -837,10 +897,10 @@ public:
                 appendPorts(left, kSideCap, hcfg.ports, 3);
                 std::snprintf(buf, cap,
                               "%s [%s] h-drive TYPED | wheels %s | W %.3f in strafe@%.3f in | "
-                              "IMU%u | %s | GPS %s tags ABSENT %s",
+                              "IMU%u | %s | GPS %s tags ABSENT %s %s",
                               name, cfg_.identity.team, left, hcfg.trackWidth.value(),
                               hcfg.strafeWheelOffset.value(), static_cast<unsigned>(hcfg.imuPort),
-                              config::odometryKindWord(cfg_.odometry.kind), gpsWord(), cam);
+                              config::odometryKindWord(cfg_.odometry.kind), gpsWord(), walls, cam);
                 return;
             }
         }
@@ -1181,6 +1241,95 @@ private:
         }
     }
 
+    /// The longest wall part of the banner, NUL included: "walls L21(ABSENT) R21(ABSENT) MOUNT UNSET"
+    /// is 41 characters, 42 bytes with its NUL — fixed-width by design (no reason is ever printed here).
+    static constexpr std::size_t kWallWordsBytes = 48;
+    /// The longest side-sensor absence sentence kept, NUL included (the providers' refusals are 160 at
+    /// most — the camera's bound).
+    static constexpr std::size_t kWallReasonBytes = 160;
+
+    /// L6-A2: ask the provider for each declared side's distance sensor and its read-fault count — LAST,
+    /// after the camera — or record why there is none; hand each side its mount, and the robot its
+    /// limits. A refusal never refuses the robot (header: THE SIDE DISTANCE SENSORS), and neither does a
+    /// provider that THROWS — a breach of the interface, which says nullptr and a refusal — whose words
+    /// become the reason. Throws nothing.
+    void buildWallSensors(hal::IDeviceProvider& devices) {
+        const config::WallSensorsConfig& w = cfg_.sensors.walls;
+        walls_.limits = w.limits;
+        buildWallSide(devices, w.left, walls_.left, wallAbsence_[0], "LEFT");
+        buildWallSide(devices, w.right, walls_.right, wallAbsence_[1], "RIGHT");
+    }
+
+    /// One side of buildWallSensors(): `out` gets the sensor (or nullptr), its read-fault count, the
+    /// config's mount and the absence sentence, which lives in `reason` (this Robot's own buffer).
+    static void buildWallSide(hal::IDeviceProvider& devices, const config::WallSensorConfig& in,
+                              localization::WallSensor& out, char (&reason)[kWallReasonBytes],
+                              const char* sideWord) {
+        out.mount = in.mount;
+        out.sensor = nullptr;
+        out.faults = nullptr;
+        if (in.port == 0) {
+            out.absence = "not declared";
+            return;
+        }
+        out.absence = reason;
+        try {
+            out.sensor = devices.distance(in.port);
+        } catch (const std::exception& e) {
+            std::snprintf(reason, kWallReasonBytes,
+                          "the device provider threw making the %s wall sensor: %s", sideWord, e.what());
+            return;
+        } catch (...) {
+            std::snprintf(reason, kWallReasonBytes, "the device provider threw making the %s wall sensor",
+                          sideWord);
+            return;
+        }
+        if (out.sensor == nullptr) {
+            const char* why = devices.lastRefusal();
+            copyWallReason(reason, why != nullptr && why[0] != '\0'
+                                       ? why
+                                       : "the device provider refused the wall sensor and gave no reason");
+            return;
+        }
+        out.faults = devices.readFaults(in.port);
+        reason[0] = '\0';
+    }
+
+    /// Copy `why` into `reason`, bounded and always terminated.
+    static void copyWallReason(char (&reason)[kWallReasonBytes], const char* why) noexcept {
+        std::size_t n = 0;
+        for (; why[n] != '\0' && n + 1 < kWallReasonBytes; ++n) {
+            reason[n] = why[n];
+        }
+        reason[n] = '\0';
+    }
+
+    /// The side distance sensors' part of the banner (describe()'s documentation gives the forms),
+    /// bounded by `cap`, always terminated, ASCII by construction (ports and fixed words only).
+    void wallWords(char* out, std::size_t cap) const noexcept {
+        if (out == nullptr || cap == 0) {
+            return;
+        }
+        const config::WallSensorsConfig& w = cfg_.sensors.walls;
+        if (!w.declared()) {
+            std::snprintf(out, cap, "walls ABSENT");
+            return;
+        }
+        char l[16] = "";
+        char r[16] = "";
+        if (w.left.port != 0) {
+            std::snprintf(l, sizeof l, " L%u%s", static_cast<unsigned>(w.left.port),
+                          walls_.left.sensor == nullptr ? "(ABSENT)" : "");
+        }
+        if (w.right.port != 0) {
+            std::snprintf(r, sizeof r, " R%u%s", static_cast<unsigned>(w.right.port),
+                          walls_.right.sensor == nullptr ? "(ABSENT)" : "");
+        }
+        const bool unset = (w.left.port != 0 && !w.left.mount.measured)
+                           || (w.right.port != 0 && !w.right.mount.measured);
+        std::snprintf(out, cap, "walls%s%s%s", l, r, unset ? " MOUNT UNSET" : "");
+    }
+
     /// "GPS present" or "ABSENT", for the banner.
     [[nodiscard]] const char* gpsWord() const noexcept {
         return cfg_.sensors.gps.present ? "present" : "ABSENT";
@@ -1290,6 +1439,9 @@ private:
     std::size_t correctorCount_;
 
     localization::Localizer localizer_;
+    /// The side distance sensors, their limits and the reset log (L6-A2) — declared BEFORE the context
+    /// so `&walls_` can be handed to it; FILLED in the constructor's body, last (buildWallSensors()).
+    localization::WallSensors walls_{};
     chassis::RobotContext ctx_;
     motion::MotionDeps deps_;
     chassis::Chassis chassis_;
@@ -1309,6 +1461,10 @@ private:
     // ── the AI Vision camera, built in the constructor BODY, LAST (VIS1-A1) ─────────────
     hal::IVisionFrames* camera_ = nullptr;
     char cameraAbsence_[kCameraReasonBytes]{};
+
+    // ── the side distance sensors' absence sentences, LEFT then RIGHT (L6-A2) ──────────
+    // `walls_` (above, before the context) points into these for a refused side.
+    char wallAbsence_[2][kWallReasonBytes]{};
 };
 
 }  // namespace shulib::robot

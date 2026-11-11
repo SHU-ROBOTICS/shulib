@@ -465,6 +465,13 @@ not silently break them. This table is the spine of the no-staleness promise.
 > is host-tested. Its numbers come from the team at the bench (worksheet Station N); until then HA-213, HA-214,
 > HA-215, HA-04 and HA-109 stay unsettled.
 >
+> **Now (2026-11-10): L6-A2, the wall reset from an auton, has LANDED — host- and build-gated, never run on a robot.**
+> A robot file may declare its side distance sensors (`sensors.walls`: each side's port and MEASURED mount); the
+> robot builds them at boot and names each on its boot line, and a missing sensor never stops the robot. An auton
+> with a FIELD start calls `competition::resetFromWall(ctx, …)` beside a wall to re-seat one coordinate inside the same
+> refuse-rather-than-guess gates as L6-A1, sampled through the auton's own clock, so a deadline cuts it. A RELATIVE-start
+> auton is refused with "not a field start". **Next for the wall reset: L6-B** (robot two's sensors and the WALL bench page).
+>
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
 > robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver
@@ -1766,10 +1773,15 @@ all three and does not exist.*
   author's `maxCorrection`) — never the heading, never in the background. **L6-A1 LANDED 2026-11-03 (built 2026-10-29):** the library
   core — `Localizer::seatAxis` (one axis; the drift term, the quality and the odometry untouched) and its two
   counters, the pure gates (`localization/wall_reset.hpp`), the season's walls (`localization/override_walls.hpp`),
-  the EXPLICIT call (`chassis::resetFromWall`), the host test plant's field and side sensors. **Host- and
-  build-gated, NOT run on a robot.** Owed: L6-A2 (the robot file's side sensors and the everyday call
-  `competition::resetFromWall(ctx, …)`), L6-B (robot two's sensors, the WALL bench page, the tester's wall line), and
-  the measuring at the robot (the L6 brief's Step 0) — `[~]` until a robot has seated a real wall.
+  the EXPLICIT call (`chassis::resetFromWall`), the host test plant's field and side sensors. **L6-A2 LANDED
+  2026-11-10 (built 2026-11-03–05):** the robot file's side sensors (`config::WallSensorsConfig` as
+  `RobotConfig::sensors.walls`, `PortUse::WallSensor`, `valid()`'s checks), the Robot building them
+  (`wallSensor()`, `wallSensorAbsence()`, `wallSensors()`, the boot line's `walls` words — a refused sensor never
+  refuses the robot), the context's first OPTIONAL slot carried by the scheduler's shadow context, and the everyday
+  call `competition::resetFromWall(ctx, …)` (FIELD starts only; sampled through the run guard's wait — a deadline
+  cuts it). **Host- and build-gated, NOT run on a robot.** Owed: L6-B (robot two's sensors, the WALL bench page,
+  the tester's wall line), and the measuring at the robot (the L6 brief's Step 0) — `[~]` until a robot has seated a
+  real wall.
 
 **Alignment (WS7)**
 - [ ] `alignment/DockToGoal` — visual-servo (AprilTag/poly-cutout), current/distance/pose confirm,
