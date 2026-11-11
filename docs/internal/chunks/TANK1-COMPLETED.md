@@ -70,4 +70,4 @@ the host test plant, none of it yet on robot two (COMP-t's Station M is the firs
   two by IMU1's brief (§0.2, 2026-10-22) — the record's second read moved the adapter's baseline, so the
   Localizer's own rate was damaged (derived from the adapter's code and PROS's documented 10 ms copy, HA-213;
   never measured on a robot). IMU1 Part A fixed it in `ProsImu` — [IMU1's live log](IMU1-PROGRESS.md); its
-  completion record will follow Part B.)*
+  completion record will follow Part B.)* *(2026-11-05: it has — [IMU1-COMPLETED.md](IMU1-COMPLETED.md).)*

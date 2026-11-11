@@ -845,3 +845,936 @@ kept); `scratch/imu1-a/mut/M*.out` (each mutant's whole-suite output). Backups o
 - **Roadmap:** a "Now" paragraph for the part (the builder's run touched no roadmap line). IMU1 stays an OPEN chunk in the
   briefing until Part B (the bench stage, worksheet Station N) and its completion record.
 - **Next for IMU1:** Part B, on a free slot; Station M's floor runs (M.6) and K.5 may use this build from now on.
+
+---
+
+## Part B — the bench stage that measures the IMU on the robot (D3 (a)) *(started `date` 15:29, 2026-10-30)*
+
+- **Chunk:** IMU1 Part B ONLY — Bench Tests button 2's STAGE 2c (the IMU's copy cadence, its phase against a paced
+  wake, a stand-in for a motion tick's span, the gyro's integrated z beside the raw rotation's change) and worksheet
+  Station N. Brief: [`IMU1-imu-rate-once-per-tick.md`](IMU1-imu-rate-once-per-tick.md) — its answers block and
+  "Re-check — amendments" R1–R18 (R10 and R18 are Part B's) OVERRIDE its body.
+- **Executor model:** opus (Claude Opus 5.5, 1M context), a workflow-spawned executor.
+- **Tree at start:** `eab0f89` (main), clean, in the git worktree `.claude/worktrees/imu1-b` (branch `imu1-b`) — NOT
+  the main working tree. Part A is in it (`6798aa5`).
+- **Go:** the team lead's "Accept all (Recommended)" of 2026-10-22 (D1–D4; Parts A then B). Do not commit; no `pros`
+  command; no `/dev/ttyACM*`. Scratch and mutation backups under `.claude/coordinator/scratch/imu1-b/` only. Every test
+  binary under `(ulimit -v 4194304; timeout 600 …)`. **Host only: nothing here has run on a robot; the stage's numbers
+  come from Station N, run by the team.**
+- **In flight beside this run (not edited here):** MECH-A6 (worktree `mech-a6`: `src/programs/bench_r3a.{hpp,cpp}` —
+  the 3 × 5 menu, the grid, station 13; this run touches ONLY station 2's functions, each named below; whichever lands
+  second rebases); VIS1-A1 (merging: the camera device layer); G3a Part 1 (merging next); L6-A1; CAL1 Part A2b; the
+  STEP1 and MECH-S/TUNE1 briefs. Shared plan docs, the worksheet, the changelog and the HA register: own lines only.
+
+### RESUMED — Tue Nov 3 2026, `date` 12:49 *(the run of 2026-10-30 stopped at ~15:40 when the team lead paused all work)*
+- **What the stopped run left:** this section's header block above and nothing else — `git status` showed only this
+  log modified; `git diff -- src/ Makefile` EMPTY (no gate self-test plant, no mutant, no stage code); the scratch
+  directory `.claude/coordinator/scratch/imu1-b/` empty; no `build/`, `bin/` or `.d/` in the worktree. So nothing to
+  restore and nothing to redo: Part B starts here from the reading.
+- **Base still `eab0f89`** (`git log -1`); main has VIS1-A1 uncommitted on it and a 2-line change at the end of
+  `runR3a()` in `bench_r3a.cpp` (read only, `git diff --stat` in the main tree) — neither touches station 2.
+- **Fresh build first:** `rm -f build/test/shulib_tests`, `briefing_status.py generate` (the binary absent, so read
+  as unbuilt), `cmake -S test -B build/test`, then the build (below).
+
+### 12:56–13:05 — the reading, the base build *(appended at `date` 13:29)*
+- **Read** (the team lead's 2026-10-22 reading ruling): `RESUMING.md`; this log whole for Part A's hand-ons (its
+  "Where Part A stands now" and the coordinator's merge record: Part B, HA-04/HA-109's *Settle*, the completion
+  record after Part B); the brief's header and answers block, "Re-check — amendments" R1–R18 in full, the Decisions,
+  the plain words, §1 Part B (items 5–6), §2.1/§2.3/§2.5, §3.3, §3.4, §4 (HA-213..215 rows, the blast radii, the
+  amended entries), §5, §6, §7 (Part A and Part B), §8 in full and §9; the rest by heading. Then the code it cites,
+  at `eab0f89`: `src/programs/bench_r3a.cpp` (the banner, the includes, `emit`/`emitf`/`emitS`, the screen helpers,
+  `waitForTouch`, `twoButtonPrompt`, `panelLiteralFits`, STAGE 2's `reportImu` whole, STAGE 3's `reportMotorGroup`,
+  STAGE 5's `measureLoopRate`, `tImu`/`tAll`/`kMenu`), `hal/pros/imu.hpp` (Part A's hold, the gyro branch — both
+  sources through one `imuYawRateToCanonical`), `hal/pros/char_sink.hpp` (`serialLine`, `serialWrapped`), the
+  vendored `pros/imu.h` (`imu_get_rotation`, `imu_get_gyro_rate` → `imu_gyro_s_t`), `pros/motors.h`
+  (`motor_get_position`/`_actual_velocity`/`_current_draw`/`_voltage`), `pros/misc.h` (`battery_get_voltage`),
+  `pros/rtos.h` (`micros()` → `uint64_t`), `pros/error.h` (`PROS_ERR`, `PROS_ERR_F` = `INFINITY`),
+  `src/robots/chassis_table.hpp` (read only: `imuPort`, `left`/`right`, `absPort`), the worksheet (Station A, 4,
+  G.1, H, I), `docs/hardware-assumptions.md` (HA-04, HA-109, the IMU1 section), `test/source_pins.hpp`,
+  `test/bench_menu_grid_test.cpp` (the PROS-free `src/` header precedent), `.github/workflows/ci.yml`.
+- **Station N is still free** at the tip (`grep -rn "Station N"` over `docs/`: only IMU1's own Part A lines name it).
+  MECH-A6 (read only, its worktree's `git diff`) adds a **Station P** at the SAME place (after Station I) and two
+  `#include`s near mine (after `robots/chassis_table.hpp`, after `hal/pros/controller.hpp`) — whichever lands second
+  re-places its block (§6).
+- **Deltas between the brief's base `ceb17c0` and mine `eab0f89`, for Part B's files:** `bench_r3a.cpp`'s line numbers
+  moved (STAGE 2 is now `reportImu` :736, `tImu` ~:2914, `tAll` ~:2928, `kMaxMenu` :330) — re-anchored by function
+  name; STAGE 5 still paces with `pros::Task::delay_until(&prev, 10)`; the file still includes neither
+  `hal/pros/tick_pacer.hpp` nor `localization/`; `emit()` is SER1's `serialWrapped(nullptr, line)`. Nothing else the
+  brief's Part B cites moved in meaning.
+- **The base, fresh:** `cmake -S test -B build/test` + `cmake --build build/test -j8` → 49 s, exit 0, 0 warnings;
+  `(ulimit -v 4194304; timeout 600 python3 tools/suite_run.py green)` → **green — 2721 cases, 2937848 assertions**.
+  A copy of the base tree (`git archive eab0f89`) built in `scratch/imu1-b/base-tree/` gives the base binary
+  (`scratch/imu1-b/shulib_tests.base`) for the per-case comparison below.
+
+### 13:05–13:29 — the stage, its pure half, the tests *(appended at `date` 13:29)*
+- **NEW `src/programs/imu_timing.hpp`** (PROS-free, library-free, allocation-free; namespace
+  `shulib::bench::imu_timing`): every number the verdicts use, each a stated choice (`kCopyPeriodUs` 10 000,
+  `kBandUs` 1 000, `kMinIntervals` 20, `kPhaseWindowUs` 9 500 — the brief's, `kMinPhaseTicks` 20,
+  `kFixedDriftUsPerS` 10, `kHoldUs` 5 000 = `ProsImu::kRateHoldUs` (static_asserted in both the bench TU and the
+  host test), `kSpanWellUnderUs` = half of it, `kGyroMinWindowUs` 2 s — the brief's, `kGyroMinTurnDeg` 30,
+  `kGyroTolerance` 0.10 — the brief's "~10 %"); `Summary`/`summarize` (lower median); `usBetween`; `ChangeWatch` (a
+  change is an EXACT inequality — HA-213's same copy is the same double; a PROS_ERR_F read counted and skipped);
+  `cadenceFrom` + `judgeCadence`; `TickPhase`, `unwrapNear` (step in (−P/2, +P/2]), `phaseFrom` (least-squares drift
+  of the unwrapped offset) + `judgePhase` (no verdict unless 2c.1 found the 10 ms copy) + `secondsToCrossPeriod`;
+  `judgeSpan` (on the LONGEST span); `GyroTurn` (the trapezoid between consecutive good polls; the window from the
+  FIRST to the LAST change; a non-finite value or a clock gone backwards dropped whole; travel inside the window) +
+  `judgeGyro` (the sign judged only once the magnitudes agree) + `looksLikeRadians` + `mixedTurn` (STAGE 2's rule).
+- **`src/programs/bench_r3a.cpp` — the functions touched, every one (the coordinator's ask; MECH-A6 owns the rest):**
+  (1) the include block, +1 line `#include "programs/imu_timing.hpp"` (:75 — outside station 2's functions: see
+  the deltas); (2) a forward declaration `void imuTimingStage(std::uint8_t port);` just above STAGE 2's banner;
+  (3) `reportImu()` — +4 lines at the END of its `try` block, after the HA-02 verdict: the call
+  `imuTimingStage(kChassis.imuPort);` (so an adapter that REFUSED the device is not timed); (4) NEW, between
+  `reportImu()` and STAGE 3's banner: `namespace imu2c` (the panel words, `panel`, `foot`, `ul`, `collectCadence`,
+  `collectPhase`, `collectSpans`, `collectGyro`, `reportCadence`, `reportPhase`, `reportSpan`, `reportGyro`) and
+  `imuTimingStage()`. **Untouched:** `tImu`, `tAll`, `kMenu`, `MenuItem`, `kMaxMenu`, `g_verdict`, `menu_grid`,
+  `bench_r3a.hpp`, every other station's function, STAGE 5. `git diff -U0` hunks: `@@ -74,0 +75 @@`, `@@ -734,0
+  +736,2 @@`, `@@ -922,0 +926,4 @@ void reportImu`, `@@ -932,0 +940,455 @@` — nothing else.
+- **The stage, in order:** `rule("STAGE 2c ...")` and six lines of what it will do; `twoButtonPrompt` START / SKIP
+  (SKIP logs and returns — 7 RUN ALL reaches it through `tAll → tImu → reportImu`); a fixed panel `TURN IT SLOWLY` /
+  `ONE WAY - KEEP TURNING`, 2 s lead-in; **2c.1** a 2 s tight loop of `imu_get_rotation` with `micros()` read before
+  each read (Part A's clock-first), the change instants into a static 512-slot buffer; **2c.2** 100 ticks on
+  `pros::Task::delay_until(&prev, 10)`, each reading the rotation at the wake (the baseline) then polling until it
+  changes or 9.5 ms; **2c.3** `STOP - LET GO`, 100 ticks on the same pace, each: `micros()`, the tick's first IMU
+  read, every drive motor's `motor_get_position`/`_actual_velocity`/`_current_draw`/`_voltage` by `|port|` (raw, as
+  STAGE 3 reads), the battery, ONE `hal::pros::serialLine("[R3A] imu2c span ...")`, then `micros()` as the instant of
+  the tick's second IMU read, and that read; **2c.4** `NOW THE GYRO`, a touch, 2 s lead-in, a 3 s tight loop of
+  instant + rotation + `imu_get_gyro_rate().z` into `GyroTurn`; `STOP - DONE`; then the scroll back, the header
+  redrawn, and the four result blocks through `emit`/`emitf`/`emitS`. It commands no motor, writes no device, never
+  calls `ProsImu::yawRate()`, adds no pacer or Localizer include. Every MEDIUM / SMALL panel literal is
+  static_asserted with the file's own `panelLiteralFits` (28 / `kScreenCols`); verdict lines cut to ≤ 56 characters
+  so the panel's 54-column cut keeps the verdict.
+- **`make ROBOT=tank`** (from `rm -rf bin .d`): exit 0 in 8 s, `bin/hot.package.bin` 69 768 bytes; the only warnings are
+  the vendored `liblvgl` header's (present at the base too) — none from `bench_r3a.cpp`'s own lines.
+- **NEW `test/bench_imu_timing_test.cpp` — 32 cases** (prefix `IMU1-B`): the constants pinned to the library's hold;
+  `summarize` (lower median), `usBetween` (backwards → 0, the uint32 edge exact, one past it clamped); `ChangeWatch`
+  (baseline, no tolerance — `nextafter` is a change, PROS_ERR_F / NaN skipped); 2c.1 over a sample-and-hold model of
+  HA-213 polled as the stage polls (10 ms at 3 phases × 3 poll steps → HOLDS; 5 ms → FASTER; 20 ms → SLOWER; still
+  → NO CHANGE; a robot still for 40 % of the loop → the median still HOLDS and the long interval stays out of the
+  mean; the band's ends exactly; every verdict edge; a short scratch; a backwards instant); `unwrapNear` at ±P/2
+  exactly; 2c.2 (a fixed phase → drift exactly 0, FIXED; 1 µs/tick slower copy → 100 µs/s with one late wake that
+  would make endpoints read ~39; a copy drifting THROUGH the wake → +10 000 µs/s unwrapped, missed ticks counted; a
+  copy AT the wake → half the ticks missed, FIXED; missed ticks never in the median; no drift from one tick or one
+  instant; every verdict edge — 10.0 µs/s exactly FIXED, `nextafter` DRIFTING, no verdict without the cadence);
+  2c.3 (every edge; one 5.2 ms tick among 99 of 0.4 ms → OVER); 2c.4 (deg/s same sign at ±90 and 25 deg/s → AGREE;
+  opposite → OPPOSITE SIGN; rad/s → SCALE OFF + radians hint; another axis → SCALE OFF, no hint; still → NO TURN;
+  1.5 s of turn → TOO SHORT; the trapezoid EXACT to 1e-8 for a linear z on irregular steps with garbage z before the
+  first and after the last change; dropped polls bridged, a backwards clock dropped, two polls in one µs add no area;
+  travel inside the window; every verdict edge — 0.10 × 100.0 == 10.0 exactly, so 110 and 90 land ON the tolerance);
+  and four SOURCE PINS over the stage's code (comments stripped): the header PROS- and library-free and the bench
+  free of `tick_pacer.hpp` / `localization/`; the stage free of every motor command, device write, `yawRate(`,
+  `ProsTickPacer`, `localization::` and `#include`, and reading exactly what it says; printing only through
+  `emit*` and ONE `hal::pros::serialLine(`; `reportImu` calling it after the HA-02 verdict and before the catch,
+  `tAll` → `tImu` → `reportImu`, and the START / SKIP prompt before the first read.
+- Build: exit 0, no warning (the host's `-Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wdouble-promotion
+  -Werror`). `-tc="IMU1-B*"` → **32 / 32 passed, 389 assertions**. The whole suite → **green — 2753 cases** (2721 +
+  32). **Per-case comparison against the base binary** (doctest's XML reporter, both run under the cap, each from its
+  own tree): no case went missing, the 32 are new, and exactly five existing cases changed their ASSERTION COUNT
+  (still 0 failures each) — all five scan source files and so count the two new files and the new lines:
+  `P3-T3: "shulib Teleop" is retired everywhere …` (14 067 → 14 315), `P3-T3: the buttons left the mechanism table …`
+  (2 315 → 2 323), `P3-T3: the library's loop is called only by …` (46 → 47), `SAFE-SAVE A scan: no rename, remove …`
+  (274 → 275), `pin: no src/ code prints through stdout's FILE …` (1 292 → 1 322). Outputs:
+  `scratch/imu1-b/{base,mine-1}.xml`.
+
+### The deltas from the brief, each with its reason *(appended at `date` 13:29)*
+1. **A new PROS-free header and ONE new `#include` in `bench_r3a.cpp`** — §7 Part B item 2 says "the diff adds no
+   `#include` (no `tick_pacer.hpp`, no `localization/` — R10)". The coordinator's task asks for host tests of the
+   stage's pure parts, and the host cannot compile `bench_r3a.cpp`; so the arithmetic lives in
+   `src/programs/imu_timing.hpp` (the `bench_r3a.hpp` / `auton_tester_run.hpp` precedent). It includes only
+   `<algorithm> <cmath> <cstddef> <cstdint> <limits> <span>` — R10's concern (pulling the motion scheduler or a
+   Localizer into Bench Tests) is kept, and pinned by a test. **The include line is outside station 2's
+   functions** (the file's include block, :75); MECH-A6 adds includes two lines below it and further down — a
+   one-line, mechanical rebase for whichever lands second. **For the coordinator.**
+2. **The stand-in's serial line goes through `hal::pros::serialLine()`, not `emit()`** — the brief: "one serial line
+   through the stage's one-call path". `serialLine` IS SER1's one-call path; `emit()` would ALSO paint the panel
+   (PROS 4.2.2's `print_at` leaks per call — R3d Part 2F-2, the file's own note — 100 times) and write the SD card,
+   which a motion tick's record does not do on robot two. Every RESULT line goes through `emit`/`emitf`/`emitS`.
+3. **The span is bracketed by two real IMU reads** — the brief times "the device reads … between its two IMU
+   reads"; the stage makes the tick's first IMU read inside the span and stamps the instant of the second (clock
+   first, as `ProsImu` does), so the span is first-read-instant to second-read-instant.
+4. **START / SKIP, and a touch before 2c.4** — the brief asks that it "say on the panel what to do before it
+   starts reading"; the START / SKIP prompt does, and lets a RUN ALL or an HA-02-only run pass it by (`kMenu`'s
+   texts cannot change — MECH-A6's). The gyro part needs a different speed (the brief's "about a quarter turn a
+   second"), so it waits for a touch and gives a 2 s lead-in rather than change instructions mid-turn on a frozen
+   panel.
+5. **The thresholds the brief left open, chosen and stated in the header** (each with its reason): the cadence band
+   9 000–11 000 µs and ≥ 20 intervals, judged on the median (the brief: "cluster at 10 000 µs"); |drift| ≤ 10 µs/s
+   as FIXED over the 1 s, the drift a least-squares slope of the UNWRAPPED offsets (the brief: "its drift per
+   second"); 2c.3 judged on the max — under 2.5 ms "well under", ≥ 5 ms wrong (the brief: "well under 5 ms … a
+   LOWER bound"); the gyro's 30° minimum turn and a 3 s loop (the brief: first-to-last ≥ 2 s; "within ~10 %").
+   Extra printed numbers: 2c.1's in-band count and mean (a precise period), 2c.2's missed ticks, 2c.3's PROS_ERR
+   motor reads, 2c.4's travel and the radians hint.
+6. **The sign is judged only when the magnitudes agree** (the brief judges sign and ratio side by side): a z on the
+   wrong scale or axis says nothing trustworthy about `GyroRateZ`'s sign, and `GyroRateZ` needs both. And 2c.2
+   judges nothing unless 2c.1 found the 10 ms copy (its offsets are unwrapped at 10 ms).
+7. **The stage runs only after a GOOD STAGE 2** (inside `reportImu`'s `try`, after the HA-02 verdict) — the brief
+   says "after STAGE 2 on the same fresh ProsImu + ProsClock"; an adapter that refused the device has nothing to time.
+8. **HA-04 / HA-109's *Settle* wording** — the brief's §3.1 text says "both raw CW degrees"; written "both raw PROS
+   degrees" with the conventions named (the rotation CW-positive per HA-02; z's sign is the very question), as the
+   stage's own lines say.
+
+### The documents (pace rule 3) — §3.3, re-anchored by TEXT at `eab0f89` *(appended at `date` 13:34)*
+Public (§3.3: `docs/hardware-assumptions.md` only — plus the roadmap's "Now" paragraph the coordinator's task asks for):
+- **`docs/hardware-assumptions.md`** — HA-04's and HA-109's Index rows gain "IMU1 Part B's bench stage (Station N)"
+  beside R3; their *Settle* entries gain STAGE 2c (the comparison, both raw PROS degrees, the sign judged only once
+  the scale holds; HA-109's radians / other-axis readings), each "built, never run on a robot — not settled until
+  the bench prints it"; the IMU1 section's opening ("not built yet" → "built 2026-11-03, never run on a robot", and
+  "of HA-04 and HA-109"); HA-213's, HA-214's and HA-215's *Settle* made exact to what the stage judges (the median
+  of ≥ 20 intervals in 9 000–11 000 µs; first / median / last, the missed ticks, the least-squares drift, ≤ 10 µs/s
+  as fixed, nothing judged unless 2c.1 found the copy; the LONGEST stand-in span, < 2.5 ms "well under — not proof",
+  ≥ 5 ms wrong); the status block's IMU1 paragraph ("built 2026-11-03, never run on a robot"). **No new HA; nothing
+  marked settled** — "Status: 7 of 182 settled" and the Held line unchanged *(corrected 16:33 by the resumed run: this line said "181", Part A's figure; the register reads 182 at `eab0f89`)*. One more line, found by the prose
+  review: HA-120's citation of `bench_r3a.cpp`'s registry comment ("lines 135-145 since R2a") was already stale at
+  my base (the comment sits at 137–146 there) and my include moves it again — re-worded to "find it by that name"
+  with the two old ranges kept as history.
+- **`docs/roadmap.md`** — a "Now (2026-11-03)" paragraph after Part A's: IMU1 COMPLETE with Part B, host- and
+  build-gated, never run on a robot; what STAGE 2c measures in plain words; the five beliefs unsettled until the
+  team's bench run. No link into `docs/internal/` (removability gate clean).
+Deliberately NOT touched (public), each re-checked: `docs/changelog.md` (Bench Tests is not library API; no entry
+for a bench stage, as for R2a's stations — the changelog's two "HA-04" sentences, :118 and :125, stay true: the
+gyro still waits for its sign to be measured); `docs/faq.md` :70 (HA-04 "undocumented" — still true);
+`docs/guide/` (no chapter describes button 2's stages: `grep "Bench Tests\|rotate test\|STAGE 2"` → only guide 07's
+program list and guide 15's word "the tester"); `docs/api/` (no `///` changed under `include/shulib` —
+`check-fresh` silent, exit 0); `README.md`.
+
+Internal:
+- **The worksheet** (`chunks/R3a-BENCH-WORKSHEET.md`): NEW **Station N — THE IMU'S TIMING** after Station I (N.1
+  upload, as G.1's first line; N.2 run — STAGE 2 as before, then START, the slow turn, hands off, the touch and the
+  quarter-turn-a-second turn, N.2.1 what the operator did, N.2.2 a second boot; N.3 the four blocks word for word
+  with a table; N.4 what each number settles; what to send back). **Every quoted string checked against the source by
+  script** (the four blocks' 31 lines each matched to a format string of the stage, with the numbers made up; every
+  backticked panel string found in the stage's literals — the one exception, `WHICH WAY DID YOU TURN IT?`, is STAGE
+  2's own). Station 4 gains its one pointer line after the heading; Station A's row for button 2 gains "then STAGE
+  2c: turn it slowly ONE way when asked (**Station N**)". **For the coordinator:** MECH-A6 inserts its Station P at
+  this same point (after Station I) — whichever lands second places its station after the other's.
+- **`build-order.md`** — the IMU1 section gains the status line "2026-11-03: PART B BUILT — IMU1 COMPLETE … awaiting
+  the coordinator's check" (above Part A's, which I leave as it was written). The `**Next:**` block NOT moved (the
+  coordinator's).
+- **`REMAINING-WORK.md`** — row 32: Part A LANDED 2026-10-30 (`6798aa5`); Part B BUILT 2026-11-03; its robot step
+  Station N (~10 min). The totals NOT recomputed (the coordinator's re-pricing, as Part A's D-10).
+- **`HANDOFF-remaining-work.md`** NOT touched: its IMU1 sentence (:613-617, "IMU1 Part A BUILT 2026-10-29") is a dated
+  pointer inside TANK1's paragraph and stays true; the plan's live status is REMAINING-WORK and build-order.
+- **`IMU1-COMPLETED.md`** — NEW (IMU1's last part), in the house style of TANK1's and SER1's records.
+- **`PROJECT-BRIEFING.md`** — regenerated after a fresh build (below): IMU1 leaves OPEN CHUNKS with its record.
+
+### The prose review (rule 4) — the greps RUN FIRST (13:25), every hit read, then this written *(§3.4)*
+`grep -rIl --exclude-dir=api -F "<term>" docs README.md` (the `chunks/` records excluded from the listing — history),
+then each hit opened:
+- `bench_r3a` → `HANDOFF-remaining-work.md` :303 (the program list: "Bench Tests … `src/programs/bench_r3a.cpp`" —
+  true); `build-order.md` (my status line); `hardware-assumptions.md` :1884 (HA-120's line range — STALE, fixed, above)
+  and :2691 (SAFE-SAVE's probe extension — true).
+- `STAGE 2` (without "2c") → no hit outside the chunk records and the 2026-08-19 evidence logs (history, not edited).
+- `IMU + ROTATE` → only the evidence logs (history).
+- `Station 4` → no hit outside the worksheet (edited: the pointer).
+- `Station N` → only IMU1's own lines (the register, the roadmap, build-order, REMAINING-WORK) — each now says built.
+- `HA-04` → `faq.md` :70, `changelog.md` :118 and :125, the roadmap, the register — all true (dispositions above).
+- `HA-109` → `changelog.md` :118, the roadmap, the register — true.
+- `HA-213` / `HA-214` / `HA-215` → the register (edited), the changelog's IMU1 section (Part A's — true; it names no
+  bench result), the roadmap, build-order, HANDOFF (HA-213 inside TANK1's paragraph — true).
+- `imu_timing`, `STAGE 2c`, `button 2` → only my own new lines.
+- And `Bench Tests` over `docs/guide`, `README.md`, `docs/*.md` → guide 07 :143 (the program list — true), guide 15
+  :25 (the word "tester" — true), the register's and the roadmap's other stations — untouched by this part.
+
+### The mutations — 37, each on a FRESH binary, the WHOLE suite, red observed, restored *(13:13–13:50; appended at `date` 13:51)*
+Driver: `scratch/imu1-b/mutate_b.py` (each mutant: one exact replacement that must match once; the file backed up to
+`scratch/imu1-b/backup-<id>-*`; its timestamp bumped; `cmake --build build/test -j8` — the build's own output names
+every object it recompiled, recorded; then `(ulimit -v 4194304; timeout 600 ./build/test/shulib_tests
+--order-by=file)`, the WHOLE suite; restored in a `finally`, SIGTERM and SIGHUP raised as an exception so an
+interrupted run restores too; the restored file's sha256 checked and its timestamp bumped). **Every object depending
+on the mutated file was recompiled:** the compiler's dependency files name exactly ONE host object that includes
+`imu_timing.hpp` — `bench_imu_timing_test.cpp.o` — and every MB mutant's build recompiled it; no host object
+compiles `bench_r3a.cpp` (the pins read it at run time), so an MP mutant needs no recompile and its run reads the
+mutant text. **No mutant broke its build** (all compile under the host's `-Werror`). The first run of the driver
+stopped at MB4 on a decode error in Python (a failing case printed a non-UTF-8 byte) AFTER its `finally` had
+restored the file (checked: identical to its backup); the driver now decodes with `errors="replace"`, the binary was
+relinked from source and the briefing regenerated around it (the doc gate had caught the mutant link — "stale
+briefing" — exactly as it should), and the whole set was run again from MB1. Outputs: `scratch/imu1-b/mut-<id>.out`,
+`mut-results.json`, `mut-run.txt`; failing cases from `failed_cases.py` (a case counts only with an `ERROR:` line
+under its header). **37 of 37 CAUGHT, all restored** (both source files byte-identical to their pre-mutation copies
+afterwards).
+
+| # | Mutation | Red (every failing case) |
+|---|---|---|
+| MB1 | `summarize`: the UPPER median | summarize; (2c.2) a copy AT the wake |
+| MB2 | `ChangeWatch`: a PROS_ERR_F read not screened | ChangeWatch: a PROS_ERR_F read … |
+| MB3 | `ChangeWatch`: a 1e-9 tolerance | ChangeWatch: the first good read is a baseline … |
+| MB4 | cadence: the band's low end excluded | (2c.1) the band's ends are IN the band |
+| MB5 | cadence: the long intervals enter the in-band mean | (2c.1) a robot held still for part of the loop; the band's ends |
+| MB6 | `judgeCadence`: median 9000 → FASTER | (2c.1) HA-213's verdict at every edge |
+| MB7 | `unwrapNear`: no unwrap at all | unwrapNear; (2c.2) a phase that drifts THROUGH the wake |
+| MB8 | `unwrapNear`: +P/2 wrapped | unwrapNear |
+| MB9 | phase: drift from the ENDPOINTS | (2c.2) 1 us slower … least squares; drifts THROUGH the wake; a copy AT the wake |
+| MB10 | phase: missed ticks enter the median as 0 | (2c.2) a copy AT the wake |
+| MB11 | `judgePhase`: judged without the 10 ms copy | (2c.2) HA-214's verdict at every edge |
+| MB12 | `judgePhase`: exactly 10 us/s → DRIFTING | (2c.2) HA-214's verdict at every edge |
+| MB13 | `judgeSpan`: on the MEDIAN | (2c.3) judged on the LONGEST span |
+| MB14 | `judgeSpan`: 5000 us → CLOSE | (2c.3) judged on the LONGEST span |
+| MB15 | gyro: a left rectangle, not the trapezoid | (2c.4) the TRAPEZOID … exact for a ramp |
+| MB16 | gyro: the integral from the loop's start | (2c.4) AGREE; OPPOSITE sign; the TRAPEZOID; a dropped poll (4 cases) |
+| MB17 | gyro: a poll from before the last good one kept | (2c.4) a dropped poll … a clock gone backwards |
+| MB18 | `judgeGyro`: exactly 10 % → SCALE OFF | (2c.4) HA-04/HA-109's verdict at every edge |
+| MB19 | `judgeGyro`: the sign before the scale | (2c.4) RADIANS / another axis; verdict at every edge |
+| MB20 | `judgeGyro`: a 2.000 s window → TOO SHORT | (2c.4) verdict at every edge |
+| MB21 | gyro: the step into the first change counted as travel | (2c.4) travel inside the window |
+| MB22 | `mixedTurn`: exactly a fifth → MIXED | (2c.4) travel inside the window |
+| MB23 | gyro: a PROS_ERR_F z integrated | (2c.4) a dropped poll |
+| MB24 | `judgeCadence`: 20 intervals → TOO FEW | (2c.1) HA-213's verdict at every edge |
+| MB25 | `usBetween`: an equal pair is 1 us | usBetween |
+| MB26 | `judgeGyro`: a NaN turn passes the 30° check | (2c.4) verdict at every edge |
+| MP1 | the stage: `motor_move_voltage` in the stand-in | pins: STAGE 2c reads only |
+| MP2 | the stage: a `ProsImu` built and `yawRate()` read in 2c.4 (R18) | pins: STAGE 2c reads only |
+| MP3 | `reportImu` never calls the stage | pins: reportImu runs STAGE 2c … |
+| MP4 | the stage run on the REFUSED (catch) path | pins: reportImu runs STAGE 2c … |
+| MP5 | one result line through `std::printf` | pins: prints only through SER1's one-call path; AND SER1's own `pin: no src/ code prints through stdout's FILE` |
+| MP6 | the bench includes `hal/pros/tick_pacer.hpp` (R10) | pins: imu_timing.hpp PROS-free … no pacer |
+| MP7 | `imu_timing.hpp` includes `pros/rtos.hpp` | pins: imu_timing.hpp PROS-free … |
+| MP8 | no START / SKIP prompt | pins: reportImu runs STAGE 2c … (the prompt before the first read) |
+| MP9 | the stand-in's line through `emitf` (panel + SD) | pins: prints only through SER1's one-call path |
+| MP10 | 2c.2 paced by `pros::delay`, not `delay_until` | pins: STAGE 2c reads only (… paced as STAGE 5) |
+| MP11 | 7 RUN ALL no longer runs station 2 | pins: … and 7 RUN ALL still runs station 2 |
+
+Not counted: `kHoldUs` moved off `ProsImu::kRateHoldUs` — a build-time refusal by design (the `static_assert` in
+both `bench_r3a.cpp` and the host test), not a test verdict.
+
+### RESUMED AGAIN — Tue Nov 3 2026, `date` 15:49 *(the run stopped at ~14:50 when the team lead dropped to ONE job at 93 % of the session limit; resumed after the reset)*
+- **What the stopped run left, checked before anything else:** `git status` — the eight modified files and three new
+  ones this log names; `git diff --stat -- Makefile src/ tools/ include/ test/` → ONLY `src/programs/bench_r3a.cpp`
+  (+462); `grep -rn "self-test plant" Makefile src/` → EMPTY (the coordinator had already restored the Makefile the
+  killed `src_build_gate.py self-test` had planted, with `git checkout`). Both mutated sources are byte-identical to
+  their last mutation backups (`sha256sum`: `imu_timing.hpp` = `backup-MB26` = `5280c27d…`, `bench_r3a.cpp` =
+  `backup-MP11` = `7f23e4c6…`) — no live mutant. `build/test/shulib_tests` (13:48) and `bin/` (14:07, the killed
+  self-test's) are NOT trusted: the binary is removed and rebuilt from source before any result below.
+- **Where it stopped:** after the 37 mutations (logged above). NOT yet done, and done below: the "every other bench
+  station unchanged" proof (the object comparison had been run but not logged), the gates (the gate self-test was
+  the one killed), the final review of the completion record and the roadmap paragraph, and the closing section.
+
+### 15:50–15:56 — the resumed run's own review of the stage, before any gate *(appended at `date` 15:57)*
+Read whole, against the brief's §1 item 5, R10, R18 and landmines 15–17: `src/programs/imu_timing.hpp`, the stage
+(`git diff -- src/programs/bench_r3a.cpp`), the station runner (`runR3a()`'s dispatch: `kMenu[choice].run(g_found)`,
+then the verdict chip and `TOUCH TO RETURN TO MENU`), `rule()`, `screenEmit()`, `setVerdict()`, `twoButtonPrompt()`,
+`waitForTouch()`, and the test file's model and pins. Fresh build first: `rm -f build/test/shulib_tests`, briefing
+regenerated (binary absent), `cmake -S test -B build/test`, `cmake --build build/test -j8` → exit 0 in 47 s, no
+warning; `(ulimit -v 4194304; timeout 600 python3 tools/suite_run.py green)` → **green — 2753 cases, 2938525
+assertions**; `-tc="IMU1-B*"` → 32 / 32, 389 assertions.
+- **FOUND, and fixed — STAGE 2's results were erased from the panel the moment its HA-02 verdict printed.** Before
+  Part B, `reportImu()`'s last lines (PATH, NET, the HA-02 verdict) stayed on the panel until the runner's `TOUCH
+  TO RETURN TO MENU`. With STAGE 2c called at the end of `reportImu()`'s `try`, its `rule()` (which redraws the
+  header and clears the scroll when the panel is live) and then `twoButtonPrompt()` (which erases the whole screen)
+  ran at once — the operator never saw STAGE 2's verdict on the panel (it reached serial and the SD card only).
+  That changed station 2's own, already-run behaviour, which this part must not. **Fix (station 2's functions
+  only):** `imuTimingStage()`'s first act is `imu2c::foot(kColWarn, imu2c::kReadStage2)` —
+  `STAGE 2 done -- read it, then TOUCH for 2c` (43 characters, added to the SMALL-line `static_assert`) — and
+  `waitForTouch()`; then the rule and the prompt. **Pinned:** the pins case "reportImu runs STAGE 2c …" (renamed
+  "… holds that verdict on the panel, and …") gains three checks — exactly two `waitForTouch();` in the stage, the
+  first before `rule(`, and `rule(` before `twoButtonPrompt(` — and a new mutation MP12 (the hold deleted) is RED
+  (below). The worksheet's N.2 step 1 says what the panel shows and to touch; Station A's **7 RUN ALL** row gains
+  "then START (Station N) or SKIP STAGE 2c" (the prompt reaches RUN ALL too — a shared line, one clause, logged for
+  the coordinator: MECH-A6 also edits Station A's table).
+- **Checked, and kept (no change):** (1) station 2's verdict chip now ESCALATES with STAGE 2c's verdicts —
+  `setVerdict()` keeps the worst severity of the whole run, so a 2c warning ("turn it and re-run") or a WRONG makes
+  button 2's chip amber or red. Kept: the chip is the station's, and 2c is now part of the station; a SKIP prints no
+  severity and leaves STAGE 2's chip as it was. Said here because it is a visible change to station 2's grid colour.
+  (2) Many of the stage's DATA lines run past the panel's 54 columns (the longest, 2c.1's in-band line, ~83 with
+  numbers) and are cut there, as STAGE 2's own PATH line (~65) always was; every verdict line keeps its verdict
+  word inside 54, and Station N.3 copies the blocks from the SD card or the serial capture, which carry them whole.
+  (3) The busy loops' priority assumption, the 512-change buffer's overflow line, `phaseFrom`'s replayed unwrap
+  (the second pass starts from the same first offset, so the two passes unwrap identically), `unwrapNear`'s
+  (−P/2, +P/2] at both ends, `judgeGyro`'s NaN-safe `!(turn >= …)`, and `usBetween`'s clamp — each re-derived; no
+  defect.
+
+### 15:53–16:01 — the stage-code mutations RE-RUN on the fixed stage, and MP12 *(appended at `date` 16:03)*
+The hold changed `bench_r3a.cpp` and the pins case, so every MP mutant was re-observed on the new text. Driver
+`scratch/imu1-b/mutate_b2.py` — `mutate_b.py` with MP12 added and its outputs renamed (`backup2-*`, `mut2-*.out`,
+`mut2-results.json`, `mut2-run.txt`; failing cases by `failed_cases2.py`, a case counting only with an `ERROR:` line
+under its header); the same discipline (one exact replacement matching once, the timestamp bumped, `cmake --build`
+recording every recompiled object, the WHOLE suite under `(ulimit -v 4194304; timeout 600 …)`, restored in a
+`finally` with SIGTERM / SIGHUP raised as an exception, the restored file's sha256 checked). **12 of 12 CAUGHT, all
+restored** (`bench_r3a.cpp` = `backup2-MP1` = `7b125ee0…` afterwards; `imu_timing.hpp` = `5280c27d…`, unchanged):
+
+| # | Mutation | Red (every failing case) |
+|---|---|---|
+| MP1 | a `motor_move_voltage` in the stand-in | pins: STAGE 2c reads only … (R18) |
+| MP2 | a `ProsImu` built and `yawRate()` read in 2c.4 (R18) | pins: STAGE 2c reads only … (R18) |
+| MP3 | `reportImu` never calls the stage | pins: reportImu runs STAGE 2c …, holds that verdict on the panel, … |
+| MP4 | the stage run on the REFUSED (catch) path | pins: reportImu runs STAGE 2c … |
+| MP5 | one result line through `std::printf` | pins: prints only through SER1's one-call path; AND SER1's `pin: no src/ code prints through stdout's FILE …` |
+| MP6 | the bench includes `hal/pros/tick_pacer.hpp` (R10) | pins: imu_timing.hpp PROS-free … (R10) |
+| MP7 | `imu_timing.hpp` includes `pros/rtos.hpp` (recompiled `bench_imu_timing_test.cpp`) | pins: imu_timing.hpp PROS-free … |
+| MP8 | no START / SKIP prompt | pins: reportImu runs STAGE 2c … |
+| MP9 | the stand-in's line through `emitf` (panel + SD) | pins: prints only through SER1's one-call path |
+| MP10 | 2c.2 paced by `pros::delay`, not `delay_until` | pins: STAGE 2c reads only … |
+| MP11 | 7 RUN ALL no longer runs station 2 | pins: reportImu runs STAGE 2c … |
+| **MP12** | **the hold deleted — STAGE 2's results erased at once (NEW)** | pins: reportImu runs STAGE 2c …, holds that verdict on the panel, … |
+
+**The MB set (MB1–MB26, on `imu_timing.hpp`) is NOT re-run, and its 26 verdicts stand:** the header is byte-identical
+to the one they mutated (`5280c27d…`), its only host dependent is `bench_imu_timing_test.cpp.o`, and the test file
+changed only by three added CHECKs inside the pins case that reads `bench_r3a.cpp` — a case none of the 26 was
+caught by (`failed_cases.py`: 0 of the MB rows name it) — so every case that turned each MB red is unchanged.
+**The binary after the run:** removed and relinked from source (below) before any result.
+
+### 15:58 — "every other bench station unchanged", proven on the ARM object *(appended at `date` 16:03)*
+The previous run had built both trees but not logged the comparison; re-done on the FIXED stage. `scratch/imu1-b/
+base-tree` (`git archive eab0f89`) and `mine-tree` (this worktree's tree; its only difference from the worktree is
+`bench_r3a.cpp`, refreshed from `backup2-MP1` = the fixed file) each built with `make ROBOT=tank` (mine: exit 0, only
+`bench_r3a.cpp` recompiled; its one warning the vendored `liblvgl/core/lv_obj_style.h`'s, which the base build
+shows 8 times; `bin/hot.package.bin` 69 728 bytes). `objcmp2.py` disassembles `bin/programs/bench_r3a.cpp.o` from
+each (`arm-none-eabi-objdump -dr`), masks addresses, immediates fed by relocations and the compiler's numbered local
+labels, and compares function by function:
+`functions at base: 117 | identical: 116 | differ: 1 | new: 11 | gone: 0`.
+- **The one that differs is `tImu`, and only by inlining:** at the base `reportImu` was inlined into it (738
+  instructions); now `reportImu` is its own function (2 069 instructions, the stage inlined into it) and `tImu` is 6
+  — `f[imuPort] == E_DEVICE_IMU`, then a tail call to `reportImu`.
+- **New:** `reportImu`, `imu2c::panel`, `imu2c::foot`, `ChangeWatch::feed`, `GyroTurn::windowUs`, `summarize`,
+  `phaseFrom` and four `std::sort` helpers over `std::span<uint32_t>`.
+- **Every other function of the bench object — every other station's, the menu's, the grid's, STAGE 5's,
+  `runR3a()` — is instruction-identical to the base.** No other object's inputs changed: against `eab0f89` the only
+  `src/`/`include/`/`Makefile` change is `bench_r3a.cpp` (`git diff --stat`), and `imu_timing.hpp` is included by
+  `bench_r3a.cpp` and the host test only (`grep -rln`).
+
+### The deltas from the brief — two more, from the resumed run *(appended at `date` 16:33)*
+9. **STAGE 2's results are held on the panel until a touch before STAGE 2c starts** (`STAGE 2 done -- read it,
+   then TOUCH for 2c`) — the brief does not ask for it; it keeps station 2's existing behaviour (its HA-02 verdict
+   readable on the panel) that calling the stage at the end of `reportImu()` would otherwise erase. One more touch
+   in a station that already takes three; inside `imuTimingStage()` only.
+10. **Station A's `7 RUN ALL` row gains one clause** ("then START (Station N) or SKIP STAGE 2c") — §3.3 names only
+   button 2's row, but RUN ALL now meets the same prompt. A shared line (MECH-A6 edits Station A's table): one
+   clause, for the coordinator.
+
+### The prose review (rule 4), this round's additions — the greps RUN FIRST (16:32), every hit read
+`grep -rIn --exclude-dir=api -F "<term>" docs README.md`, IMU1's own records and the 2026-08-19 evidence logs left
+out: `TOUCH for 2c` / `read it, then TOUCH` → only the worksheet's N.2 step 1 (new, and it matches the literal);
+`kReadStage2` → none; `RUN ALL` → the worksheet's menu drawing (:75, unchanged), Station A's row (:96, edited) and
+N.2 step 2 (true), R2a's log (history); `STAGE 2c` and `Station N` → the roadmap, the register (HA-04, HA-109,
+HA-213..215, the IMU1 section, the status line), REMAINING-WORK row 32, build-order's new status line and the
+worksheet — each re-read, each true for the fixed stage (none describes the panel's sequence in a way the hold
+contradicts). build-order :1208 ("Part B … not started") is Part A's dated status line of 2026-10-29, kept as
+written beneath the new one. The earlier round's greps (13:25, above) re-checked at the tip with the same terms: no
+new hit.
+
+### The gates — every one re-run on the final tree *(16:05–16:33, the last lines as printed; the doc gates re-run after the last edit, below)*
+- Host build from a removed binary: `rm -f build/test/shulib_tests`, briefing regenerated (unbuilt), `cmake --build
+  build/test -j8` → exit 0, no warning (it recompiled `bench_imu_timing_test.cpp` and linked); `(ulimit -v
+  4194304; timeout 600 python3 tools/suite_run.py green)` → `suite run: green — 2753 cases, 2938530 assertions`;
+  `-tc="IMU1-B*"` → `test cases: 32 | 32 passed | 0 failed`, `assertions: 392 | 392 passed`. Briefing regenerated
+  AFTER the binary existed (`python3 tools/briefing_status.py generate` → `regenerated`).
+- `python3 tools/src_build_gate.py self-test` (from clean; the tree's 1 022 files hashed before, identical after —
+  no plant left in `src/`, `include/`, `test/`, `tools/`, the `Makefile` or `common.mk`) → `src build gate
+  self-test: OK (269 detector cases, each against a real build)` (24 min 22 s).
+- `python3 tools/src_build_gate.py check` → `src build gate: PASS (all 7 builds link; …)`: bench, xdrive, tank,
+  tank-drive, tank-calibrate, tank-autontest, tank-competition — each `exit 0, 11/11 TUs compiled, warnings: 8
+  vendor-ignored, 0 disallowed`.
+- The ARM header gate (`scratch/imu1-b/all.cpp`, 228 headers, `-Werror`) → `ARM compile gate: CLEAN`.
+- The CI greps → `library is PROS-free`; `layering holds: core is sim-free`.
+- `api_doc_tool.py` self-test `OK`; check-coverage `5060 public entities across 188 headers, all documented`;
+  check-fresh exit 0 (silent — no `///` changed under `include/shulib`, `docs/api/` not regenerated); check-examples
+  `600 quoted lines, all verbatim`; check-removability `no public doc references docs/internal/`.
+- `doc_staleness_audit.py` self-test `OK`; the audit `clean (31 live docs, 0 numeric claims checked)`.
+- `briefing_status.py` self-test `OK (38 cases …)`; check `generated block current`.
+- Not run here: the compile-refusal harness (no file under `include/shulib` or `test/compile_refusals/` changed).
+
+### Where Part B stands *(for the coordinator — nothing committed)*
+- **Built, host- and build-gated, never run on a robot.** STAGE 2c in `bench_r3a.cpp` (station 2's functions:
+  the include line, a forward declaration, 4 lines at the end of `reportImu()`'s `try`, the new `namespace imu2c`
+  and `imuTimingStage()`); `src/programs/imu_timing.hpp` (new); `test/bench_imu_timing_test.cpp` (new, 32 cases);
+  38 mutations RED; every other bench function instruction-identical to the base's.
+- **Documents:** `docs/hardware-assumptions.md`, `docs/roadmap.md` (public); the worksheet (Station N, Station 4's
+  pointer, Station A's rows for buttons 2 and 7), `build-order.md`, `REMAINING-WORK.md`, `PROJECT-BRIEFING.md`
+  (generated), this log, `IMU1-COMPLETED.md` (internal). NOT touched, with why: above ("The documents").
+- **For the coordinator:** (1) the include line at `bench_r3a.cpp` :75 sits two lines from MECH-A6's includes — a
+  mechanical rebase for whichever lands second; (2) MECH-A6's Station P goes at the same place as Station N (after
+  Station I) — the second to land places its station after the other's; (3) Station A's table rows for buttons 2
+  and 7 are shared lines MECH-A6 also edits; (4) button 2's verdict chip now escalates with STAGE 2c's verdicts
+  (above); (5) HA-213..215, HA-04 and HA-109 stay unsettled — the team's Station N run is the first look; the
+  register's "Status: 7 of 182 settled" and its Held line are unchanged.
+
+### The last rebuild and the doc gates after the last edit *(appended at `date` 16:37)*
+The staleness audit's first run after the gate self-test said `[cases/assertions NOT derived — the test binary is
+older than src/common/boot_source.hpp and 9 more, so it was not trusted]`: the self-test's restores bump the
+timestamps of the files it planted in (their contents identical — hashed above). So: `rm -f build/test/shulib_tests`,
+the briefing regenerated (unbuilt), `cmake --build build/test -j8` (246 objects recompiled, exit 0, no warning),
+`(ulimit -v 4194304; timeout 600 python3 tools/suite_run.py green)` → `suite run: green — 2753 cases, 2938530
+assertions`, the briefing regenerated from that binary (`PROJECT-BRIEFING.md`: 38 of 75 chunks, IMU1 out of OPEN
+CHUNKS and in the completed list, the suite line 2,753 / 2,938,530). Then, after every document edit of this run:
+api_doc_tool self-test `OK`, check-coverage `5060 public entities across 188 headers, all documented`,
+check-fresh exit 0, check-examples `600 quoted lines, all verbatim`, check-removability `no public doc references
+docs/internal/`; `doc_staleness_audit.py` self-test `OK` and the audit `clean (31 live docs, 0 numeric claims
+checked)`; `briefing_status.py check` → `generated block current`. **Nothing committed; no `pros` command; no
+`/dev/ttyACM*`; no mutant or plant left** (`git diff --stat -- Makefile common.mk include/ tools/` empty; both stage
+files equal their last pre-mutation copies).
+
+## IMU1-B review findings and their disposition *(the review round, from `date` 00:34, 2026-11-05)*
+
+Three reviewers (correctness, tests, docs) returned 18 findings — 4 major, 14 minor, two overlapping (the
+correctness lens's X4/X5 and the tests lens's Q1/Q4 are the same wiring gap). Each was re-checked against the
+tree before any fix; every one was real, and each is fixed at the root below. **Base unchanged:** `eab0f89`; no
+`pros` command, no `/dev/ttyACM*`, nothing committed. Pre-fix copies of the three source files:
+`scratch/imu1-b/review-fix/pre-*`. **Every function touched in `bench_r3a.cpp` this round is station 2's:** the
+`imu2c` namespace (`collectCadence` / `collectPhase` / `collectSpans` / `collectGyro` REMOVED — their loops moved
+to the header; NEW `nowUs`, `standInBody`; `reportCadence`, `reportPhase`, `reportSpan`, `reportGyro` changed) and
+`imuTimingStage()`; plus one comment paragraph above `namespace imu2c`. `reportImu`, `tImu`, `tAll`, `kMenu`, the
+grid and `bench_r3a.hpp` untouched.
+
+### Correctness
+- **C-1 (minor) — HA-214's FIXED / DRIFTING assumed an unmeasured wake jitter.** Re-checked: real.
+  `phaseFrom` measures each offset from the actual wake (`runPhase`'s `wake = nowUs()` after the wait), so a late
+  wake enters the offset one for one, and the slope's noise is the residual spread over √Sxx — about 4 µs/s at
+  20 µs of jitter, 10 µs/s at 50 µs, against a fixed 10 µs/s threshold; the header's "~6 × a few microseconds"
+  was a belief (STAGE 5 has never run). **Fix:** `phaseFrom` also returns the kept offsets' min / max, the
+  residual SD and the slope's standard error (`seValid` from three seen ticks); `judgePhase` reads DRIFTING only
+  when |drift| > 10 µs/s AND > `kDriftSigmas` (3) × SE, FIXED only when |drift| ≤ 10 µs/s AND 3 × SE ≤ 10 µs/s,
+  and anything else is the new `NotSeparable` — "no verdict: the wakes jitter too much to tell 10 us/s from none
+  in 1 s" (Warn). The stage prints the spread, `drift +x +- y us/s (3 SE; ...)` and `residual SD`. I made FIXED
+  symmetric too (the review asked only about false DRIFTING): a FIXED with a 3-SE band wider than 10 µs/s would
+  claim what the data cannot show. **Probe** (`review-fix/probe/probe_jitter.cpp`, 400 and 100 draws per point,
+  the real `runPhase` on a simulated clock): a fixed phase reads DRIFTING in 0–1 of 400 at σ = 20/30/50 µs (the
+  first build's rule: ~1.5 / 11 / 34 %, the reviewer's figures), FIXED in all at σ = 2 and 5 µs, and a real
+  100 µs/s drift reads DRIFTING in all at every σ up to 50 µs. **Tests:** the 3-SE and noise edges landing
+  exactly (3 × 10.0 == 30.0; 3 × (10/3) == 10.0, both REQUIRE'd), the jitter probe as a host case (≤ 1 DRIFTING
+  in 100 draws per σ; the first build's rule fails ≥ 30 at σ = 50 — asserted, so the case is seen to have teeth),
+  a real drift through the same jitter, the residual SD and SE against a hand-worked set (SE = 80 µs/s), a
+  straight line's residual exactly 0. **Docs:** worksheet N.3 (the block), its table's column, N.4's HA-214
+  bullet; the register's HA-214 *Settle*.
+- **C-2 (minor) — NO CHANGE / NO TURN on one change and on every read PROS_ERR.** Re-checked: real (with one
+  change `cadenceFrom` has no interval and the verdict was NoChange under "changes 1"; with every read PROS_ERR_F
+  nothing is stored and NoChange's text pointed at PROS's busy-read copy). **Fix:** `CadenceVerdict::NoReads` and
+  `GyroVerdict::NoReads` — "every read/poll was PROS_ERR -- no finding. Check the IMU's cable and port (STAGE 1),
+  and re-run." — judged FIRST; `judgeCadence` now takes the `ChangeWatch` and reads NoChange only on ZERO changes,
+  so one change is TOO FEW ("%lu change(s) only", with the 20-interval minimum printed); NO CHANGE's "that is the
+  finding" line prints only when PROS_ERR is 0, else "the IMU dropped reads -- check its cable; this run is no
+  finding about PROS's copy"; NO TURN prints the change count. **Tests:** 400 000 PROS_ERR reads through the real
+  `runCadence` → NoReads; one change → TooFew; n == 1 → TooFew (the reviewer's X2); a dead gyro loop and an
+  empty turn → NoReads; one change on good polls → NoTurn. N.4 restricted to `PROS_ERR 0`.
+- **C-3 (minor) — test gaps (X1 z crossing zero, X4 judgePhase's argument, X5 t1's place, X3 judgePhase's
+  order).** Re-checked: real. **Fix:** a trapezoid case on z = −50 + 40t across its zero on uneven stamps, exact
+  to 1e-8 against the closed form, and a genuinely both-ways turn (100 sin(πt/2) + 10t: up ~110°, back to −70°;
+  `mixedTurn` true) through the real `runGyro` → AGREE; X5 is now host-tested (the loops moved — T-3); X4
+  pinned (`imu2c::reportPhase(ph, it::judgePhase(ph, cadVerdict));`, and exactly one call of each judge); X3 cut
+  as MR11 (NoChange after TooFew).
+- **C-4 (minor) — unlogged delta: "distinct values" became a change count.** Re-checked: true (`grep -i distinct`
+  found nothing). **Logged:** delta 11 below; the completion record's deltas section names it.
+- **C-5 (minor) — STAGE 2c's intro painted and erased in the same instant.** Re-checked: real (`rule()` with the
+  scroll live redraws the header and clears; six `emit`s paint; `twoButtonPrompt` begins with `screen_erase()`).
+  **Fix:** `g_screenActive = false;` BEFORE the rule, so the rule and the intro go to serial + SD only and the
+  prompt is the panel's instruction (it already carries START, slowly, ONE way, and that the panel freezes).
+  Pinned (`waitForTouch(); g_screenActive = false; rule("STAGE 2c`, and no `g_screenActive = true` between the
+  rule and the prompt); mutation MS1.
+
+### Tests
+- **T-1 (major) — two of the 38 "caught" mutants broke the ARM build's warning policy.** Re-checked from the
+  reviewer's `review-tests/armcheck_mp.txt` (`MP3 ARM rc=0 nonvendor_warnings=1`, `MP10 ... nonvendor_warnings=1`)
+  and by reading: MP3 left `imuTimingStage` (anonymous namespace) unused → `-Wunused-function`, a FAILURE under
+  the src gate since G1 Part 2c; MP10 left `prev` unused. The first build's drivers (`mutate_b.py`,
+  `mutate_b2.py`) ran only the host build, which never compiles `bench_r3a.cpp`. **Fix:** this round's driver
+  (`review-fix/mutate_r.py`) runs `make ROBOT=tank` on EVERY mutant first and refuses (re-cut, never counted) any
+  whose ARM build fails, prints a warning outside `include/liblvgl/` / `include/pros/`, or does not recompile
+  `bench_r3a.cpp`; MP3 and MP10 are re-cut ARM-clean (MP3r: the call kept but guarded dead; MP10r: `delay` with
+  `prev` still read) and the first cuts are run through the same check to show the refusal (table below). The
+  completion record's "38 distinct, every one RED on a fresh build" is corrected (no MP mutant had been
+  compiled at all). The ARM-clean MP3r SURVIVED the first build's pin (it counted only the call's text) — the
+  pin now requires the call to be the try block's unconditional last statement.
+- **T-2 (major) — three thresholds could change with the suite green while the panel and the documents kept the
+  old numbers.** Re-checked: real (tests reached `kFixedDriftUsPerS`, `kMinIntervals`, `kMinPhaseTicks`,
+  `kPhaseWindowUs` only by name; the stage printed 10, 9500, 9000..11000, 2500 as literals). **Fix:** a constants
+  case pins every threshold to the value the worksheet and the register quote, and the stage now PRINTS every
+  threshold from its constant (`%lu` / `%.0f`), so the printed words cannot drift from the verdict. Mutations
+  MR3–MR6 (the reviewer's A1–A3, R6b).
+- **T-3 (major) — the stage's wiring and verdict-to-text mapping untested; the test re-implemented the loops.**
+  Re-checked: real (`cadenceInstants` / `phaseTicks` / `gyroTurn` were hand copies of `collect*`). **Fix:** the
+  four loops are now templates in `imu_timing.hpp` (`runCadence`, `runPhase`, `runSpans`, `runGyro`, over
+  `nowUs`, `waitTick` and the reads; still PROS-free, allocation-free); the stage instantiates them with
+  `imu2c::nowUs` (= `pros::micros()`), two `delay_until` lambdas and two read lambdas, each read NAMED ONCE
+  (`rotation`, `gyroZ` = `imu_get_gyro_rate(port).z`); the host helpers now call the SAME templates on a
+  `SimClock` — so Q4 (a backwards span), X5 and the clock-before-device rule are host-tested (`runSpans`: span =
+  40 + 300 + i exactly; `runCadence`: the instant 3402, never 3409). `judgeGyro(const GyroTurn&)` is what the
+  stage calls, so Q6 (swapped angles) cannot be written in the stage, and a host case proves the overload's order
+  (20° with ∫z 200 → TOO SMALL; swapped → SCALE OFF). The remaining wiring is pinned exactly (each loop's
+  arguments, each judge's input, each report's call; exact read counts; `gyro.z`; no heading/yaw read; the panel
+  back on before the first report — Q9). The verdict-to-text-and-chip mapping is pinned PER CASE: each `case`'s
+  `emitS` lines, in order, with their `Sev::` and no others (25 cases; Q7 and B5r), and each switch's case
+  count. **Not done as suggested, and why:** the reviewer offered a table of texts in the header; `emitS` carries
+  `__attribute__((format(printf, 2, 3)))`, and a table of format strings would trade the compiler's argument
+  check for a host test, while four cases print two chips each — the per-case pin keeps both.
+- **T-4 (minor) — judgeGyro's NaN guard and looksLikeRadians' `<=` edge unexercised.** Re-checked: real. In the
+  reviewed header both scale tests are `<=` comparisons (false for NaN and ∞) and `looksLikeRadians` refuses a
+  non-finite integral, so the explicit `isfinite` guard was UNREACHABLE by any input — removed, with a comment;
+  `judgeGyro(2, 2000000, 100.0, NaN) == ScaleOff` and `CHECK_FALSE(looksLikeRadians(0.0, 0.0))` added; the
+  radians edge is tested where it lands EXACTLY (a 45° turn: |z| = r·45 ± 0.10·r·45, both REQUIRE'd exact, IN, one
+  ulp outward OUT — found by searching turns 30–400° for exact landings). Mutations MR7 (a NaN-passing `!(>)`),
+  MR8 (`<`), MR9 (the zero-turn guard).
+- **T-5 (minor) — phaseFrom's short-scratch bound untested.** Real. A case hands a 3-slot span inside an 8-slot
+  buffer of sentinels: no sentinel touched, min / median / max from the three kept. MR10.
+- **T-6 (minor) — the ban list missed C++ motor commands.** Real. Added `.move(`, `.brake(`, `move_absolute`,
+  `move_relative`, `pros::Motor`, `ProsMotor`, `set_brake_mode`, `adi_`, and `imu_get_heading` / `imu_get_yaw`.
+  (Bare `move(` / `brake(`, the brief's grep, would also ban `std::move(`; the stage has neither — checked.)
+
+### Documents
+- **D-1 (major) — the record said T12 and L1–L3 were "written FIRST and seen RED".** Real (this log :86-87,
+  :484-504). Reworded to what the log records: R0 and T1–T11 written first (all red except R0, T3 (b) and T7,
+  green by design); T12 and L1–L3 added at the review, after the fix.
+- **D-2 (minor) — the history pointers to IMU1's record still pointed at the live log only.** Real. One dated
+  clause each in `TANK1-COMPLETED.md` and `DOCS2-API-DEFECTS.md` A17 (history not rewritten), and the record
+  now says it closes A17 and corrects TANK1's "immune".
+- **D-3 (minor) — button 2's dot now includes 2c's verdicts, and the worksheet never said so.** Real
+  (`setVerdict` keeps the worst). N.2 step 6 says it, and Station A's row 2 gains one clause in its "Finished
+  when" column (a shared table: one clause, for the coordinator).
+- **D-4 (minor) — HA-04 not judged when z reads as radians.** Real, and the reason in delta 6 was wrong for that
+  case. **Fixed in the code, not only the docs:** `judgeGyro` returns `RadiansSameSign` / `RadiansOppositeSign`
+  (HA-109 WRONG on its units; HA-04 judged — a sign does not depend on units); `ScaleOff` now means neither scale
+  (another axis), the only case where HA-04 is "not judged -- z is not about the yaw axis.". Delta 6 corrected
+  below; N.4's HA-04 and HA-109 bullets and the register's HA-04 / HA-109 *Settle* say so. MR19.
+- **D-5 (minor) — status words disagreed across documents.** Re-checked: the roadmap's "Now" paragraph says
+  LANDED because it is written as of the merge (Part A's did the same — "Now (2026-10-29): IMU1 Part A has
+  LANDED", committed at its merge); build-order, REMAINING-WORK row 32 and the record say BUILT because that is
+  true now. **Fix:** the record's header names exactly what the coordinator flips at the merge (its title and
+  "What is NOT done", build-order's status line, row 32); build-order's status line gains the review's date. For
+  the coordinator's merge record.
+- **D-6 (minor) — REMAINING-WORK §10 left out Station N.** Real. A bullet beside Stations H and I. The totals
+  table's IMU1 row left to the coordinator's re-pricing (as Part A's D-10).
+- **D-7 (minor) — the record left out the deltas that contradict §7.** Real. A "Deltas from the brief" section
+  (the new header and include against §7.2, the loops in it, changes not distinct values, the sign's rule,
+  HA-214's uncertainty, `serialLine`, the hold, the dot, Station A's RUN ALL clause).
+
+### Found by this round itself
+- **The doc gates run inside every host build.** `shulib_tests` depends on `shulib_doc_gates`, which re-runs when a
+  public document changes and checks the briefing against the binary ON DISK — before the link, so at a mutant
+  run, the previous mutant's link. My first two starts of the driver stopped on it (`HOST-BUILD-BROKEN`: "stale
+  briefing — RED 2 cases"), because I was editing `docs/hardware-assumptions.md` meanwhile. Those binary runs were
+  bounded (`suite_run.py`'s RLIMIT_AS 4 GiB, tools/suite_run.py:17), and the driver now also builds under
+  `ulimit -v 4194304`. **Fix:** both starts stopped by SIGTERM — the driver's handler restored the file each time
+  (sha256 of all three source files checked against `review-fix/pre-mutation-hashes.txt`: OK) — then a clean
+  binary built, the briefing regenerated around it, the gates re-run green, and the full run started with no gate
+  input edited until it ended (internal documents only meanwhile). The first stop's `pkill -f` also matched my own
+  shell; nothing else was affected.
+- Station N.3's `grep -A12` would cut a 2c.4 block of 14 lines (a mixed turn under AGREE): now `-A14`.
+
+### The deltas from the brief — one more, and delta 6 corrected *(2026-11-05)*
+11. **Changes, not distinct values** — §1 item 5: "print the number of distinct values". The stage prints the
+    number of CHANGES: for a one-way turn that is distinct values − 1, and the change instants are what the
+    cadence is built from; a both-ways turn can revisit a value, which a distinct count would hide.
+6. *(corrected)* **The sign is judged whenever z is about the yaw axis — in deg/s or in rad/s** — and not judged
+   only when z is neither (another axis says nothing about `GyroRateZ`'s sign). The first build withheld it in
+   the radians case too, with a reason that holds only for the wrong axis.
+
+### The mutations — 76, each ARM-checked, on a fresh binary, the WHOLE suite, red observed, restored *(00:51–01:40; driver `review-fix/mutate_r.py`)*
+Each mutant: one or more exact replacements (each matching once); the file backed up to
+`review-fix/backup-<id>-*`, its timestamp bumped; **`make ROBOT=tank` first** — REFUSED (re-cut, never counted) on a
+non-zero exit, any warning outside `include/liblvgl/` / `include/pros/`, or `bench_r3a.cpp` not recompiled; then the
+host build under `ulimit -v 4194304` (its output names every recompiled object — every header mutant recompiled
+`bench_imu_timing_test.cpp.o`, the header's only host dependent; a stage mutant needs none, the pins read the file at
+run time); then `(ulimit -v 4194304; timeout 600 ./build/test/shulib_tests --order-by=file)`, the WHOLE suite; the file
+restored in a `finally` (SIGTERM / SIGHUP raised as an exception — exercised twice this round, above), its sha256
+checked. Outputs: `review-fix/mut-<id>.out`, `mut-results-final.json`, `mut-run-final.txt`. **76 of 76 CAUGHT; 0
+ARM-refused; 0 build-broken; all restored** (the three source files equal `review-fix/pre-mutation-hashes.txt`
+afterwards). The first set's 26 header mutants (MB) were RE-RUN on the reviewed header (re-cut where its text
+changed: MB9, MB12, MB18, MB19), the stage set re-cut onto the new stage, and the reviewers' survivors cut as MR / MQ
+/ MS (their ids in each row). The one failing case outside `IMU1-B` is SER1's own stdout pin, on MP5 — correctly.
+The first build's MP3 and MP10 as cut, through the same check (`mut-results-orig.json`): **MP3o ARM-REFUSED**
+(`bench_r3a.cpp:1302:6: warning: ... imuTimingStage(uint8_t) defined but not used [-Wunused-function]` — the
+review's T-1, reproduced); MP10o on the new text is ARM-clean (the lambda still reads `phasePrev`) and CAUGHT — not
+counted in the 76 (the same mutation as MP10r).
+
+| # | Mutation | Red (every failing case, names cut) |
+|---|---|---|
+| MB1 | summarize: the UPPER median | summarize: min / LOWER median / max, the median always a m…; (2c.2): a copy AT the wake — a late wake MISSES it (counte… |
+| MB2 | ChangeWatch: a PROS_ERR_F read not screened | ChangeWatch: a PROS_ERR_F read is counted and skipped — ne…; (2c.1): an IMU that answers PROS_ERR on EVERY read is NO R… |
+| MB3 | ChangeWatch: a tolerance hides a small copy | ChangeWatch: the first good read is a baseline; a change i… |
+| MB4 | cadence: the band's low end excluded | (2c.1): the band's ends are IN the band, one microsecond p… |
+| MB5 | cadence: long intervals enter the in-band mean | (2c.1): a robot held still for part of the loop — the MEDI…; (2c.1): the band's ends are IN the band, one microsecond p… |
+| MB6 | judgeCadence: median 9000 reads FASTER | (2c.1): HA-213's verdict at every edge — the reads, the co… |
+| MB7 | unwrapNear: no unwrap at all | unwrapNear: the step lands in (-P/2, +P/2] — +P/2 kept, -P…; (2c.2): a phase that drifts THROUGH the wake is unwrapped… |
+| MB8 | unwrapNear: +P/2 wrapped | unwrapNear: the step lands in (-P/2, +P/2] — +P/2 kept, -P… |
+| MB9 | phase: drift from the ENDPOINTS | (2c.2): a copy 1 us slower than the wake grid drifts 100 u…; (2c.2): a phase that drifts THROUGH the wake is unwrapped…; (2c.2): a copy AT the wake — a late wake MISSES it (counte…; (2c.2): a FIXED phase seen through jittery wakes is never…; (2c.2): a REAL drift through the same jitter still reads D…; (2c.2): the residual SD and the slope's SE are the textboo… |
+| MB10 | phase: missed ticks enter the median as 0 | (2c.2): a copy AT the wake — a late wake MISSES it (counte… |
+| MB11 | judgePhase: judged without the 10 ms copy | (2c.2): HA-214's verdict at every edge — the cadence first… |
+| MB12 | judgePhase: exactly 10 us/s not FIXED | (2c.2): HA-214's verdict at every edge — the cadence first… |
+| MB13 | judgeSpan: on the MEDIAN | (2c.3): HA-215 is judged on the LONGEST span, at every edg… |
+| MB14 | judgeSpan: 5000 us reads CLOSE | (2c.3): HA-215 is judged on the LONGEST span, at every edg… |
+| MB15 | gyro: a left rectangle, not the trapezoid | (2c.4): the integral is the TRAPEZOID between the FIRST an…; (2c.4): a z that CROSSES ZERO between polls — the trapezoi… |
+| MB16 | gyro: the integral from the loop's start | (2c.4): z in deg/s with get_rotation()'s sign, a 3 s turn…; (2c.4): z with the OPPOSITE sign -> HA-04 WRONG, HA-109's…; (2c.4): the integral is the TRAPEZOID between the FIRST an…; (2c.4): a dropped poll is counted and bridged — a bad valu…; (2c.4): a z that CROSSES ZERO between polls — the trapezoi…; (2c.4): the stage's judge takes the TURN, so its four numb… |
+| MB17 | gyro: a poll from before the last good one kept | (2c.4): a dropped poll is counted and bridged — a bad valu… |
+| MB18 | judgeGyro: exactly 10 percent not AGREE | (2c.4): HA-04/HA-109's verdict at every edge — changes, wi… |
+| MB19 | judgeGyro: the sign judged before the scale | (2c.4): z in RADIANS per second -> HA-109 WRONG, the sign…; (2c.4): HA-04/HA-109's verdict at every edge — changes, wi…; (2c.4): a NaN integral is SCALE OFF; radians' edges land E… |
+| MB20 | judgeGyro: a 2.000 s window TOO SHORT | (2c.4): HA-04/HA-109's verdict at every edge — changes, wi…; (2c.4): the stage's judge takes the TURN, so its four numb…; (2c.4): a NaN integral is SCALE OFF; radians' edges land E… |
+| MB21 | gyro: the step into the first change counted | (2c.4): travel inside the window — rising minus falling IS… |
+| MB22 | mixedTurn: exactly a fifth MIXED | (2c.4): travel inside the window — rising minus falling IS… |
+| MB23 | gyro: a PROS_ERR_F z integrated | (2c.4): a dropped poll is counted and bridged — a bad valu… |
+| MB24 | judgeCadence: 20 intervals TOO FEW | (2c.1): HA-213's verdict at every edge — the reads, the co… |
+| MB25 | usBetween: an equal pair is 1 us | usBetween: a backwards or equal pair is 0, a huge gap is c…; (2c.2): the residual SD and the slope's SE are the textboo… |
+| MB26 | judgeGyro: a NaN turn passes the 30 deg check | (2c.4): HA-04/HA-109's verdict at every edge — changes, wi… |
+| MR1 | X1: no area where z changes sign | (2c.4): a z that CROSSES ZERO between polls — the trapezoi… |
+| MR2 | X2: one change / one interval reads NO CHANGE | (2c.1): HA-213's verdict at every edge — the reads, the co… |
+| MR3 | A1: kFixedDriftUsPerS 10 -> 25 | IMU1-B: every threshold is pinned to the value Station N a…; (2c.2): the jitter's edge — DRIFTING needs /drift/ > 3 SE,…; (2c.2): a FIXED phase seen through jittery wakes is never… |
+| MR4 | A2: kMinIntervals 20 -> 3 | IMU1-B: every threshold is pinned to the value Station N a… |
+| MR5 | A3: kMinPhaseTicks 20 -> 3 | IMU1-B: every threshold is pinned to the value Station N a… |
+| MR6 | R6b: kPhaseWindowUs 9500 -> 9700 | IMU1-B: every threshold is pinned to the value Station N a… |
+| MR7 | A4: a NaN integral passes the deg/s scale | (2c.4): a NaN integral is SCALE OFF; radians' edges land E… |
+| MR8 | R3: radians' edge excluded | (2c.4): a NaN integral is SCALE OFF; radians' edges land E… |
+| MR9 | R4: radians' zero-turn guard deleted | (2c.4): a NaN integral is SCALE OFF; radians' edges land E… |
+| MR10 | R9: phaseFrom's scratch bound deleted | (2c.2): a scratch smaller than the seen ticks keeps the fi… |
+| MR11 | X3: judgePhase's no-change after too-few | (2c.2): missed ticks are counted, never guessed, and never…; (2c.2): HA-214's verdict at every edge — the cadence first… |
+| MR12 | DRIFTING without the 3 SE test (the first build's rule) | (2c.2): the jitter's edge — DRIFTING needs /drift/ > 3 SE,…; (2c.2): a FIXED phase seen through jittery wakes is never… |
+| MR13 | FIXED without the noise test | (2c.2): the jitter's edge — DRIFTING needs /drift/ > 3 SE,…; (2c.2): a FIXED phase seen through jittery wakes is never… |
+| MR14 | SE: divided by Sxx, not its root | (2c.2): a FIXED phase seen through jittery wakes is never…; (2c.2): the residual SD and the slope's SE are the textboo… |
+| MR15 | SE: n, not n - 2, degrees of freedom | (2c.2): the residual SD and the slope's SE are the textboo… |
+| MR16 | judgeCadence: no NO READS | (2c.1): HA-213's verdict at every edge — the reads, the co…; (2c.1): an IMU that answers PROS_ERR on EVERY read is NO R… |
+| MR17 | judgeGyro(turn): no NO READS | (2c.4): the stage's judge takes the TURN, so its four numb… |
+| MR18 | Q6: judgeGyro(turn) swaps the angles | (2c.4): z in RADIANS per second -> HA-109 WRONG, the sign…; (2c.4): the stage's judge takes the TURN, so its four numb… |
+| MR19 | radians: the sign not judged (the first build) | (2c.4): z in RADIANS per second -> HA-109 WRONG, the sign…; (2c.4): a NaN integral is SCALE OFF; radians' edges land E… |
+| MR20 | runCadence: the instant read AFTER the device | (2c.1): runCadence stamps each change with the instant rea… |
+| MR21 | runCadence: overflow not counted | (2c.1): runCadence stamps each change with the instant rea… |
+| MR22 | runPhase: the offset at the poll's END | (2c.2): a fixed 10 ms copy -> the offset IS the phase, dri…; (2c.2): a copy 1 us slower than the wake grid drifts 100 u…; (2c.2): a copy AT the wake — a late wake MISSES it (counte… |
+| MR23 | runPhase: the window past 9.5 ms | (2c.2): a phase that drifts THROUGH the wake is unwrapped…; (2c.2): a copy AT the wake — a late wake MISSES it (counte… |
+| MR24 | X5: t1 after the second IMU read | (2c.3): runSpans times FIRST IMU read to the instant of th… |
+| MR25 | Q4: the span measured backwards | (2c.3): runSpans times FIRST IMU read to the instant of th… |
+| MR26 | runSpans: the first read's value lost | (2c.3): runSpans times FIRST IMU read to the instant of th… |
+| MR27 | runGyro: the rotation fed as z | (2c.4): z in deg/s with get_rotation()'s sign, a 3 s turn…; (2c.4): z with the OPPOSITE sign -> HA-04 WRONG, HA-109's…; (2c.4): z in RADIANS per second -> HA-109 WRONG, the sign…; (2c.4): a z that CROSSES ZERO between polls — the trapezoi… |
+| MP1 | a motor command in the stand-in | pins: STAGE 2c reads only — no motor command, no device wr… |
+| MP2 | ProsImu::yawRate() read (R18) | pins: STAGE 2c reads only — no motor command, no device wr… |
+| MP3r | MP3 re-cut ARM-clean: the call kept but dead | pins: reportImu runs STAGE 2c after STAGE 2's verdict, hol… |
+| MP4 | the stage run on the REFUSED path | pins: reportImu runs STAGE 2c after STAGE 2's verdict, hol… |
+| MP5 | one line through stdout's printf | pins: STAGE 2c prints only through SER1's one-call path; pin: no src/ code prints through stdout's FILE — every lin… |
+| MP6 | the pacer's header pulled in (R10) | pins: imu_timing.hpp is PROS-free and library-free (R10: n… |
+| MP7 | imu_timing.hpp: a PROS include | pins: imu_timing.hpp is PROS-free and library-free (R10: n… |
+| MP8 | no START / SKIP prompt | pins: reportImu runs STAGE 2c after STAGE 2's verdict, hol… |
+| MP9 | the stand-in's line through emitf (panel + SD) | pins: STAGE 2c prints only through SER1's one-call path |
+| MP10r | MP10 re-cut ARM-clean: 2c.2 paced by delay | pins: STAGE 2c reads only — no motor command, no device wr… |
+| MP11 | RUN ALL: station 2 dropped | pins: reportImu runs STAGE 2c after STAGE 2's verdict, hol… |
+| MP12 | STAGE 2's results erased at once | pins: reportImu runs STAGE 2c after STAGE 2's verdict, hol… |
+| MQ1 | Q1/X4: judgePhase given Holds | pins: STAGE 2c runs the header's loops with the robot's cl… |
+| MQ2 | Q2: gyro x, not z | pins: STAGE 2c reads only — no motor command, no device wr… |
+| MQ3 | Q3: 2c.4 reads the heading | pins: STAGE 2c reads only — no motor command, no device wr…; pins: STAGE 2c runs the header's loops with the robot's cl… |
+| MQ7 | Q7: WRONG FASTER with the PASS chip | pins: each verdict prints ITS OWN words with ITS OWN sever… |
+| MQ9 | Q9: the results never reach the panel | pins: reportImu runs STAGE 2c after STAGE 2's verdict, hol… |
+| MQ13 | Q13/B10: a C++ Motor's brake() in 2c.3 | pins: STAGE 2c reads only — no motor command, no device wr… |
+| MB5r | B5r: AGREE and OPPOSITE SIGN's lines swapped | pins: each verdict prints ITS OWN words with ITS OWN sever… |
+| MS1 | the intro painted on the panel, then erased | pins: reportImu runs STAGE 2c after STAGE 2's verdict, hol… |
+| MS2 | NO CHANGE's 'the finding' printed with PROS_ERR reads | pins: each verdict prints ITS OWN words with ITS OWN sever… |
+| MS3 | 2c.1 runs 3 s, not 2 | pins: STAGE 2c runs the header's loops with the robot's cl… |
+| MS4 | an extra IMU read (heading) in the stage | pins: STAGE 2c reads only — no motor command, no device wr… |
+
+### RESUMED — Thu Nov 5 2026, `date` 15:37 *(the fix run stopped partway on 2026-11-05 when the team lead dropped to one job at 92 % of the session limit and then paused all work)*
+- **What the stopped run left, checked before anything else:** every one of the 18 findings already dispositioned
+  above, and the 76 mutations logged; it stopped inside the final gates. `git status`: the ten modified files and
+  three new ones above — plus **`src/programs/zz_self_test.cpp` (untracked, 02:08), a `src_build_gate.py
+  self-test` plant** (its robot-two `static_assert` detector case; tools/src_build_gate.py :2844–2884 plant there)
+  that the killed self-test never removed, and that the coordinator's audit did not list. **Removed.** Every
+  gate-input file the run hashed before its gates (`review-fix/pre-gate-hashes.txt`, 1 022 files) is identical
+  (`sha256sum -c`: no line other than OK); the three source files equal `review-fix/pre-mutation-hashes.txt`
+  (no mutant left). `bench_r3a.cpp`'s 02:06 timestamp is a self-test restore's bump (contents identical).
+- **The binary relinked from source before any result** (15:38): `rm -f build/test/shulib_tests`, the briefing
+  regenerated (unbuilt), `cmake -S test -B build/test`, `cmake --build build/test -j8` under `ulimit -v 4194304` →
+  exit 0, 246 objects compiled, no warning (`scratch/imu1-b/resume-build.txt`); `(ulimit -v 4194304; timeout 600
+  python3 tools/suite_run.py green)` → `suite run: green — 2767 cases, 3000783 assertions`; `-tc="IMU1-B*"` →
+  `test cases: 46 | 46 passed | 0 failed`, `assertions: 62597 | 62597 passed`; the briefing regenerated from that
+  binary.
+- **The already-logged dispositions, re-verified** (none redone; none reverted):
+  - *The 76 mutations* stand for the final tree: the three source files have not changed since the run (their
+    sha256 equal `review-fix/pre-mutation-hashes.txt`, written before it), and `mut-results-final.json`, read
+    entry by entry, holds for every one of the 76: `make ROBOT=tank` exit 0, no warning outside the vendored trees,
+    `bench_r3a.cpp` recompiled, every header mutant's host build recompiled `bench_imu_timing_test.cpp.o`, at
+    least one failing case, the file restored — `CAUGHT` 76 of 76 (`mut-run-final.txt`: `DONE 76 caught of 76`).
+    So no mutation needed a re-run.
+  - *C-1's jitter probe*, recompiled against the final header and re-run (`review-fix/probe/probe_jitter_resume`,
+    100 draws per point as the file on disk stands; `probe_jitter_400`, the same at 400): a fixed phase reads
+    DRIFTING 0 of 100 at every σ (2–50 µs) and **0 / 1 / 0 of 400 at σ = 20 / 30 / 50 µs** — the log's "0–1 of 400",
+    reproduced; FIXED 400 of 400 at σ = 2 and 5 µs; a real 100 µs/s drift DRIFTING 400 of 400 at every σ (100 of
+    100 in the 100-draw run). A 30 µs/s drift reads DRIFTING 93 of 100 at σ = 30 µs and 39 at σ = 50 µs, the rest
+    NOT SEPARABLE (never FIXED) — the design's intent: no verdict, rather than a wrong one.
+  - *"Every other bench station unchanged", RE-PROVEN on the final stage* (the 2026-11-03 proof predates this
+    round's rewrite of station 2's functions). `scratch/imu1-b/mine-tree` refreshed with the final
+    `bench_r3a.cpp` (from `review-fix/backup-MS4-bench_r3a.cpp`, sha256 `df3bc1cd…` = the worktree's file — the
+    worktree's own copy was, at that moment, carrying the running gate self-test's plant, `this line is not C++`;
+    caught by its hash before use) and `imu_timing.hpp`; `make ROBOT=tank` → exit 0, only `bench_r3a.cpp`
+    recompiled, its one warning the vendored `liblvgl/core/lv_obj_style.h:94`'s, `bin/hot.package.bin` 71 208
+    bytes (`review-fix/resume-mine-make-tank.txt`). `objcmp2.py` against the base's object: `functions at base:
+    117 | identical: 116 | differ: 1 | new: 11 | gone: 0` — the one that differs is `tImu` (the inlining change
+    logged at 15:58 on 2026-11-03); the 11 new are the same set (`reportImu`, `imu2c::panel`, `imu2c::foot`,
+    `ChangeWatch::feed`, `GyroTurn::windowUs`, `summarize`, `phaseFrom`, four `std::sort` helpers) — the new
+    `run*` templates and `judge*` are inlined into `reportImu`. Every other function — every other station's,
+    the menu's, the grid's, STAGE 5's, `runR3a()` — is instruction-identical to the base's.
+- **The prose review (rule 4) for this round's words — the greps RUN FIRST (15:45), every hit read:**
+  `grep -rIn --exclude-dir=api -F "<term>" docs README.md`, this log and the brief left out, for the names this
+  round removed (`collectCadence`, `collectPhase`, `collectSpans`, `collectGyro` → no hit anywhere) and the
+  words it added (`NO READS`, `NoReads`, `not separable`, `NotSeparable`, `residual SD`, `3 SE`,
+  `kDriftSigmas`, `Radians`, `SCALE OFF`, `TOO FEW`, `imu_timing`, `distinct value`, `10 us/s`, `10 µs/s`). The hits
+  in the worksheet's Station N (N.3's sample block, its table header, N.4's HA-213/HA-214/HA-04/HA-109 bullets),
+  the register's HA-214 *Settle*, build-order's status line and `IMU1-COMPLETED.md` were each read against the
+  stage's own format strings (`bench_r3a.cpp`'s `emitS` / `emitf` lines in `imu2c`): N.3's sample lines match
+  the strings word for word (`spread of those offsets`, `drift ... +- ... us/s (3 SE; ...)`, `residual SD`,
+  `the wake (|drift| and 3 SE <= 10 us/s over 1 s).`, `max 731 < 2500 us`); N.4's `DRIFTS`, `no verdict --
+  drift ... +- ...`, `every read was PROS_ERR -- no finding.`, `change(s) only` and `HA-04: not judged -- z is
+  not about the yaw axis.` are the stage's words. The other hits (`TOO FEW MOTORS` in CAL1/R3d, `Radians` in
+  G1/R3d, H1's "distinct value", VIS1's SER1 heading) are other chunks' words — unrelated. Nothing stale found.
+- **The gates — every one re-run on the final tree** *(15:41–16:25)*:
+  - `python3 tools/src_build_gate.py self-test` (15:41–16:09) → `src build gate self-test: OK (269 detector
+    cases, each against a real build)`. Before it the tree's 1 022 gate-input files were hashed
+    (`review-fix/resume-pre-gate-hashes.txt`); after it `sha256sum -c` → every one OK, no `zz_self_test*` file
+    anywhere, `git status` outside `docs/` exactly `bench_r3a.cpp` modified and the two new files — no plant left.
+  - `python3 tools/src_build_gate.py check` → `src build gate: PASS (all 7 builds link; ...)` — bench, xdrive,
+    tank, tank-drive, tank-calibrate, tank-autontest, tank-competition: each `exit 0, 11/11 TUs compiled,
+    warnings: 8 vendor-ignored, 0 disallowed` (`review-fix/resume-gate-check.txt`).
+  - The ARM header gate (CI's command; `review-fix/all_headers_resume.cpp`, `TU includes 228 headers`,
+    `-Werror`) → `ARM compile gate: CLEAN`. The CI greps → `library is PROS-free`; `layering holds: core is
+    sim-free`.
+  - The self-test's restores bump timestamps, so the binary was relinked again: `rm -f build/test/shulib_tests`,
+    the briefing regenerated (unbuilt), `cmake --build build/test -j8` under `ulimit -v 4194304` → exit 0, 246
+    objects, no warning; `(ulimit -v 4194304; timeout 600 python3 tools/suite_run.py green)` → `suite run: green
+    — 2767 cases, 3000783 assertions`; the briefing regenerated from that binary.
+  - The doc gates, after this log's last edit: below.
+- **Where IMU1 Part B stands** *(for the coordinator — nothing committed)*: every one of the 18 review findings
+  dispositioned (above) and re-verified at this resumption; built, host- and build-gated, never run on a robot.
+  For the coordinator, unchanged from above: the include line and Station N's place beside MECH-A6's (a
+  mechanical rebase for whichever lands second); Station A's row 2 clause; button 2's dot now carries 2c's
+  verdicts (said in N.2 step 6); at the merge, the status words D-5 names (the record's title and "What is NOT
+  done", build-order's IMU1 status line, REMAINING-WORK row 32) move to LANDED, and the totals table's IMU1 row is
+  re-priced. HA-213/214/215, HA-04 and HA-109 stay unsettled until the team's Station N run. No `pros` command; no
+  `/dev/ttyACM*`; no mutant or plant left.
+- **The doc gates, after the last edit above** *(16:17)*: `api_doc_tool.py` self-test `OK`; check-coverage `5060
+  public entities across 188 headers, all documented`; check-fresh exit 0 (silent; no `///` changed); check-examples
+  `600 quoted lines, all verbatim`; check-removability `no public doc references docs/internal/`;
+  `doc_staleness_audit.py` self-test `OK` and the audit `clean (31 live docs, 0 numeric claims checked)`;
+  `briefing_status.py` self-test `OK (38 cases ...)` and check `generated block current`. Re-run once more after
+  appending this line: the same.
+
+## Verification-round findings and their disposition *(Part B; from `date` 16:45, 2026-11-05; appended at `date` 17:56)*
+
+A fresh verifier returned 2 findings (1 major, 1 minor). Each was re-checked against the tree before any fix. Both
+are real, and both are fixed at the root. **Base unchanged:** `eab0f89`. No `pros` command, no `/dev/ttyACM*`,
+nothing committed. **`bench_r3a.cpp` is NOT changed this round** (its sha256 equals
+`scratch/imu1-b/verif-fix/pre-fix-hashes.txt`), so no function of it changed, MECH-A6's included. The
+"every other bench station unchanged" proof above (116 of 117 identical, `tImu` the tail call) still holds as it
+stands. The changed files are `test/bench_imu_timing_test.cpp` (one new case, one case extended),
+`src/programs/imu_timing.hpp` (one comment), `IMU1-COMPLETED.md`, this log and the generated briefing. Pre-fix
+copies are in `scratch/imu1-b/verif-fix/pre-*`.
+
+- **V-1 (major): the data lines C-1 added, and the SKIP path, were unpinned.** Re-checked: real. The per-case
+  pin (`each verdict prints ITS OWN words`) reads only each `case`'s `emitS` lines. Every `emitf` data line of
+  the four result blocks, their branch heads and their derived locals (`noise`, `d`, `z`, `ratio`) could change
+  with the suite green. The SKIP branch's `g_screenActive = true;` was unguarded as well. **Shown before the
+  fix (16:49–17:00):** the verifier's V12–V14 and 13 more of the same class (W1–W13, below) were run against the pre-fix suite
+  (`verif-fix/mutate_w.py`, `SKIP_ARM=1`, `mut-run-before.txt`). **16 of 16 SURVIVED**, each `2767 | 2767
+  passed`. So the gap was wider than the finding: every number a result block prints was unguarded, not only the
+  ±.
+  **Fix (not narrowed to the four lines suggested):** a new source pin, `IMU1-B pins: every number a result block
+  prints is the field its words name, under the branch that prints it`. For each of `reportCadence`,
+  `reportPhase`, `reportSpan` and `reportGyro`, it names, in source order, every `emitf` / `emitS` statement with
+  its WHOLE argument list, every `if` / `else` head and every `const double` local. In those four functions that
+  includes the suggested `const double noise = it::kDriftSigmas * ph.driftSeUsPerS;`, the drift line `...,
+  ph.driftUsPerS, noise, it::kDriftSigmas, ul(it::kCopyPeriodUs));`, `if (ph.driftValid && ph.seValid) {`, the
+  residual line and the spread line. Each item must be found after the one before it. The pin then requires the
+  block's counts of `emitf(` + `emitS(`, `if (`, `else`, `const double ` and `?` to equal the list's own counts,
+  so no unlisted print, branch or derived value can join. It also refuses any early exit, matched as tokens
+  (`return;`, `return `, `for (`, `while (`, `do {`, `goto `, `throw `), because the printed words contain
+  "returned" and "while a loop". The list was generated from the source by `verif-fix/gen_pins.py` (squashed
+  as the test squashes). Then **every item was read by hand against its words before it went in**: each value
+  is the field its label names. Examples: `min` / `max` are `ph.minUs` / `ph.maxUs`; the `+-` is `noise` =
+  `kDriftSigmas` × SE, printed beside `(%.0f SE` fed `kDriftSigmas`; `z / rotation` is `z / d`; and HA-109's
+  ratio is `|z / d|`. No print was found wrong; the source is unchanged. **The SKIP:** the stage-flow pin now
+  requires `if (!start) { g_screenActive = true; drawHeader("STAGE 2c IMU TIMING"); screenClear(); emit("STAGE
+  2c SKIPPED by the operator -- nothing measured."); return; }` exactly once. It also requires that `return;` is
+  the stage's only one, after the prompt and before `it::runCadence(`.
+  **Mutations — 16, counted on the fixed tree (17:02–17:16)** (`verif-fix/mutate_w.py`, a copy of `review-fix/mutate_r.py`).
+  Each mutant was first built with `make ROBOT=tank`, which had to exit 0 with no warning outside the vendored
+  trees and with `bench_r3a.cpp` recompiled. Then came the host test target, then the WHOLE suite under
+  `(ulimit -v 4194304; timeout 600)`. The file was restored in a `finally` that also covers SIGTERM and SIGHUP,
+  and its hash was checked. The results are in `mut-results-final.json` and `mut-run-final.txt`: **16 of 16
+  CAUGHT; 0 ARM-refused; all restored**. The three source files equal `verif-fix/pre-mutation-hashes.txt`
+  afterwards. Each mutant was a stage mutant, which needs no host recompile: the pins read the file at run
+  time.
+
+  | # | Mutation | Before (pre-fix suite) | After — red case |
+  |---|---|---|---|
+  | V12 | SKIP leaves the scroll off (`g_screenActive = true;` deleted) | SURVIVED | reportImu runs STAGE 2c … (the stage-flow pin) |
+  | V13 | the drift line's `+-` is 1 SE (`ph.driftSeUsPerS` for `noise`) | SURVIVED | every number a result block prints … |
+  | V14 | SE and residual guarded dead (`&& ph.seen > 1000`) | SURVIVED | every number … |
+  | W1 | `noise` itself 1 SE (the drift line AND NOT SEPARABLE) | SURVIVED | every number … |
+  | W2 | NOT SEPARABLE's `+-` is 1 SE | SURVIVED | every number … |
+  | W3 | the residual SD line prints the SE | SURVIVED | every number … |
+  | W4 | the offsets' spread: min and max swapped | SURVIVED | every number … |
+  | W5 | 2c.1's intervals: median and max swapped | SURVIVED | every number … |
+  | W6 | 2c.1's overflow line guarded dead | SURVIVED | every number … |
+  | W7 | 2c.3's span line: the min printed as the median | SURVIVED | every number … |
+  | W8 | 2c.4's `z / rotation` printed inverted | SURVIVED | every number … |
+  | W9 | HA-109 WRONG's ratio inverted | SURVIVED | every number … |
+  | W10 | an early `return` in `reportPhase` | SURVIVED | every number … |
+  | W11 | the both-ways note's condition inverted | SURVIVED | every number … |
+  | W12 | 2c.4: polls and dropped swapped | SURVIVED | every number … |
+  | W13 | SKIP falls through into the reads (`return;` deleted) | SURVIVED | reportImu runs STAGE 2c … (the stage-flow pin) |
+
+  **The 76 earlier mutations still stand** (`mut-results-final.json` in `review-fix/`). This round only ADDED
+  assertions to the test file, and its header change is a comment, so a mutant red before is red now.
+- **V-2 (minor): `kRadPerDeg`'s comment still said the radians reading is "a hint ..., never a verdict of its
+  own".** Re-checked: real. It contradicts `judgeGyro`'s `RadiansSameSign` / `RadiansOppositeSign` (D-4's fix)
+  and the register's HA-109 *Settle*. **Fix:** the comment now says that an integrated z within
+  `kGyroTolerance` of this share of the rotation's change reads as rad/s about the yaw axis. That is
+  `judgeGyro`'s `Radians*` verdicts: HA-109 WRONG on its units, with the sign (HA-04) still judged.
+  `imu_timing.hpp` is under `src/programs/`, not a public header, so `docs/api` is not affected
+  (check-fresh below).
+- **The completion record** says it (`IMU1-COMPLETED.md`: the title's date clause, "What the reviews changed",
+  47 cases, seven pins, 2,768, the 16 mutations).
+
+### The prose review (rule 4) for this round's words *(greps RUN FIRST, 17:19, every hit read)*
+`grep -rIn --exclude-dir=api -F "<term>" docs README.md src/programs/imu_timing.hpp` was run, with this log and
+the brief left out. The terms were: `verdict of its own`, `never a verdict`, `a hint printed`, `46 cases`,
+`2,767`, `2767`, `six source pins`, `six of them source`, `kRadPerDeg`, `Radians*`, `(3 SE`, `+- `, `SKIPPED by
+the operator`. Results:
+- **The stale `kRadPerDeg` comment:** gone, and no other copy of it exists. `docs/hardware-assumptions.md:918`'s
+  "is its own verdict" now agrees with the code.
+- **`never a verdict`:** `imu_timing.hpp:76` is TOO FEW's (correct). The others belong to other chunks (VIS1,
+  L6, DOCS1, MECH, the F1 handoff, the briefing's method note), as does roadmap :692 / E2's "no verdict of its
+  own". All are unrelated.
+- **The counts:** only `IMU1-COMPLETED.md`, now 47 / seven / 2,768. Its `2,767` hits are the BEFORE run's
+  figure, which is right.
+- **The `+-`:** worksheet N.3's sample (`drift +2.9 +- 5.6 us/s (3 SE; least squares, unwrapped at 10000 us)`),
+  its table header ("drift +- 3 SE") and N.4's `no verdict -- drift ... +- ...` match the strings now pinned.
+- **The SKIP:** N.2 step 2's SKIP line matches the pinned `emit`.
+
+Nothing stale remains.
+
+### The gates — on the final tree *(17:17–17:56)*
+- **Host build:** `rm -f build/test/shulib_tests`, the briefing regenerated (unbuilt), `cmake -S test -B
+  build/test`, then `cmake --build build/test -j8` under `ulimit -v 4194304`. Exit 0, no warning. Then `(ulimit
+  -v 4194304; timeout 600 python3 tools/suite_run.py green)` gave `suite run: green — 2768 cases, 3000912
+  assertions`, and `-tc="IMU1-B*"` gave 47 of 47. The briefing was regenerated from that binary.
+- **`src_build_gate.py self-test`:** `OK (269 detector cases, each against a real build)`.
+- **`check`:** `PASS (all 7 builds link ...)`. bench, xdrive, tank, tank-drive, tank-calibrate, tank-autontest
+  and tank-competition each gave `exit 0, 11/11 TUs compiled, warnings: 8 vendor-ignored, 0 disallowed`.
+- **No plant left:** 1 471 tracked and untracked files were hashed before the self-test
+  (`verif-fix/pre-gate-hashes.txt`). `sha256sum -c` afterwards: every one OK, no `zz_self_test*` file, and
+  `git status` unchanged.
+- **The ARM header gate:** CI's command, `TU includes 228 headers`, `-Werror`, gave `ARM compile gate: CLEAN`.
+- **The CI greps:** `library is PROS-free` and `layering holds: core is sim-free`.
+- **The self-test's restores bump timestamps,** so the binary is relinked again after this log's edit, and the
+  doc gates are run last (below).
+- **Relinked after the self-test** *(17:57)*: `rm -f build/test/shulib_tests`, the briefing regenerated
+  (unbuilt), `cmake --build build/test -j8` under `ulimit -v 4194304` → exit 0, 246 objects, no warning;
+  `(ulimit -v 4194304; timeout 600 python3 tools/suite_run.py green)` → `suite run: green — 2768 cases, 3000912
+  assertions`; the briefing regenerated from that binary.
+- **The doc gates, after the last edit above:** `api_doc_tool.py` self-test `OK`; check-coverage `5060 public
+  entities across 188 headers, all documented`; check-fresh exit 0 (silent: no public `///` changed);
+  check-examples `600 quoted lines, all verbatim`; check-removability `no public doc references docs/internal/`;
+  `doc_staleness_audit.py` self-test `OK` and the audit `clean (31 live docs, 0 numeric claims checked)`;
+  `briefing_status.py` self-test `OK (38 cases ...)` and check `generated block current`. Re-run once more after
+  appending these lines: the same.
+- **Where IMU1 Part B stands** *(for the coordinator; nothing committed)*: both verification findings fixed and
+  logged; the stage's code unchanged this round; built, host- and build-gated, never run on a robot. Everything
+  the earlier "Where IMU1 Part B stands" hands the coordinator still holds (the rebase beside MECH-A6, Station A's
+  row 2 clause, the status words at the merge, the totals table's re-pricing).
+
+## Part B — the coordinator's merge verification *(2026-11-06 merge, committed 2026-11-10)*
+
+- **Squash** of `imu1-b` onto `5120dad` (MECH-A6, the MECH core complete). Conflicts resolved by hand: the roadmap's
+  "Now" paragraphs (both kept, IMU1 Part B's dated 2026-11-06), the bench worksheet (Station P — MECH-A6 — then
+  Station N — this part — both after Station I, each its own section), and the generated briefing (regenerated).
+  `bench_r3a.cpp` merged cleanly beside MECH-A6's includes. Status words moved from "built" to LANDED: build-order's
+  IMU1 line, REMAINING-WORK row 32, IMU1-COMPLETED.md's title and its "What is NOT done".
+- **Gates on the merged tree** (`.claude/coordinator/scratch/imu1_b_merge_verify.sh`, every binary capped): host
+  build clean; the suite green, 3062 cases, 3,024,635 assertions; `src_build_gate.py` self-test OK and check PASS
+  (all 7 builds link); the ARM header gate CLEAN (240 headers); the api doc gates, the staleness audit and the
+  briefing check clean; the compile-refusal harness 255 of 255; no plant, no stray root file.
+- **The coordinator's own mutations** (`.claude/coordinator/muts_imu1_b_main.json`, `mutate.py`, every dependent
+  object relinked, each file restored and hash-checked): **9 of 9 RED** — MI1 the median's lower middle, MI2 the band's
+  inclusive high edge, MI3 `unwrapNear`'s half-period tie, MI4/MI5 FIXED and DRIFTING each without the standard error,
+  MI6 the first step counted outside the gyro's window, MI7 the 30° edge, MI8b the mixed-turn fifth, MI9 the 5 ms span
+  edge. (MI8, `sameSign` with `>= 0`, was dropped before running as equivalent under the 30° floor.) The restored
+  tree relinked and ran green.
+- **IMU1 is COMPLETE.** Nothing of it has run on a robot; worksheet Station N is its first look.

@@ -78,6 +78,7 @@
 // ProsBlockSink device seam instead, which is exactly what that seam is for.
 
 #include "programs/bench_r3a.hpp"
+#include "programs/imu_timing.hpp"
 #include "robots/chassis_table.hpp"
 #include "robots/mechanism_table.hpp"
 
@@ -741,6 +742,8 @@ void census(pros::c::v5_device_e_t* found) {
     emit("what produced the phantom 'ADI expander' on 2026-08-18 (HA-120 predicted it).");
 }
 
+void imuTimingStage(std::uint8_t port);  // STAGE 2c (IMU1 Part B), below reportImu
+
 // ═══ STAGE 2 — IMU: raw PROS beside our canonical conversion. ════════════════
 void reportImu(bool present) {
     rule("STAGE 2  IMU (HA-02/03/04/05/23/108/109/110)");
@@ -929,6 +932,10 @@ void reportImu(bool present) {
             emitf("  You declared %s but the heading's dominant travel was %s.",
                   turnedCcw ? "CCW" : "CW", dominantCcw ? "CCW" : "CW");
         }
+
+        // STAGE 2c (IMU1 Part B): the IMU's own timing, on the IMU this stage just calibrated.
+        // Only on this path -- an adapter that refused the device (below) has nothing to time.
+        imuTimingStage(kChassis.imuPort);
     } catch (const PreconditionError& e) {
         // The rotate test suspends the scrolling log; restore it or this report
         // would land on serial and the SD card but never on the panel the
@@ -937,6 +944,466 @@ void reportImu(bool present) {
         emitS(Sev::Bad, "IMU ADAPTER REFUSED THE DEVICE: %s", e.what());
         emit("(that refusal IS the measurement -- record it verbatim)");
     }
+}
+
+// ═══ STAGE 2c — THE IMU'S TIMING (IMU1 Part B, 2026-11-03; HA-213/214/215, HA-04, HA-109) ═══
+// IMU1 Part A made ProsImu::yawRate() keep its answer for 5 ms, so every reader in one control
+// tick gets one value. That fix, and the residual it leaves, rest on PROS's 10 ms copy of the
+// IMU's readings (HA-213), the copy's unknown phase against the tick (HA-214) and a tick's reads
+// falling within 5 ms of its first (HA-215); the gyro's own rate -- the cure for the residual --
+// waits on its sign (HA-04) and its units (HA-109). None is measured. This stage is their first
+// look (worksheet Station N), in four parts: 2c.1 the cadence, 2c.2 the phase, 2c.3 a stand-in
+// for a tick's span, 2c.4 the gyro beside the rotation. What each part concludes is arithmetic in
+// programs/imu_timing.hpp -- PROS-free, host-tested (test/bench_imu_timing_test.cpp) -- and so are
+// the four loops that collect the numbers (runCadence / runPhase / runSpans / runGyro, templates the
+// stage gives pros::micros(), delay_until and the C API's reads; the IMU1-B review, 2026-11-05).
+// This function names the reads, runs the loops and prints.
+//
+// THE RULES IT KEEPS (the IMU1 brief's §1 item 5, its re-checks R10 and R18, landmines 15-17):
+//   * READ-ONLY. It reads imu_get_rotation, imu_get_gyro_rate, micros(), the drive motors'
+//     motor_get_* and the battery, and paces with pros::Task::delay_until; it commands no motor
+//     and writes no device.
+//   * NEVER ProsImu::yawRate(): it answers CANONICAL CCW rad/s, and held for 5 ms (IMU1 Part A)
+//     a tight loop sees it refresh at most every 5 ms. 2c.4 compares ANGLES, both RAW PROS
+//     degrees (R18).
+//   * Paced like STAGE 5 (delay_until), never ProsTickPacer -- whose header pulls the motion
+//     scheduler into this program -- and no Localizer, so 2c.3 is a STAND-IN BY PLAN (R10): the
+//     device reads a motion tick makes between its two IMU reads, and one serial line. A LOWER
+//     bound on a real tick's span, and it says so.
+//   * It ASKS before it reads (START or SKIP -- so 7 RUN ALL, which runs this too, and an HA-02
+//     check can pass it by) and records what it SAW, never what it asked for: a robot held still
+//     shows no copy, and the stage counts that and says "turn it", never guesses (landmine 15;
+//     the rotate test's 2026-08-19 lesson above).
+//   * It BUSY-READS (2c.1 2 s, 2c.2 up to 9.5 ms in each of 100 ticks, 2c.4 3 s), so every task
+//     below this one's priority -- the panel's redraw among them -- waits meanwhile; the panel
+//     says so first. Fine in a program that commands no motor; never copy it into one that drives
+//     (landmine 16). It ASSUMES PROS's copy is made above this task's priority -- unverified: a
+//     loop that sees no change while the robot turns is what a wrong assumption looks like, and
+//     the cadence line says so.
+//   * Every line through emit() / emitf() / emitS() (SER1's one-call path), except 2c.3's own
+//     serial line, which goes through hal::pros::serialLine() -- SER1's one call too -- because a
+//     motion tick's record goes to serial only: emit() would also paint the panel (PROS 4.2.2's
+//     print_at leaks per call -- R3d Part 2F-2) and write the SD card, which a tick does not.
+// Station 2's own functions only (reportImu calls this): never kMenu, menu_grid or bench_r3a.hpp
+// (MECH-A6's), and no new menu button.
+namespace imu2c {
+
+namespace it = imu_timing;
+
+static_assert(it::kHoldUs == hal::pros::ProsImu::kRateHoldUs,
+              "2c.3's verdict is judged against the library's rate hold: move them together");
+static_assert(it::kPhaseWindowUs < 10U * 1000U,
+              "2c.2's poll must end before the next 10 ms wake, or it makes that wake late");
+
+constexpr std::uint64_t kCadenceUs = 2000000;  // 2c.1: about 200 copies at 10 ms
+constexpr int kPhaseTicks = 100;               // 2c.2: one second of ticks
+constexpr int kSpanTicks = 100;                // 2c.3: one second of ticks
+constexpr std::uint64_t kGyroUs = 3000000;     // 2c.4: room for a >= 2 s first-to-last window
+constexpr std::uint32_t kTickMs = 10;          // the motion tick's period, as STAGE 5 paces it
+
+/// 2c.1's change instants. 512 is ~2.5 x a 10 ms copy's count in 2 s; a faster copy fills it, and
+/// the cadence line then says how many changes it could not keep (the median is still judged).
+constexpr std::size_t kMaxChanges = 512;
+
+// Static storage, not the task's stack: ~7 KB the bench's task stack need not carry.
+std::uint64_t g_changeAt[kMaxChanges];
+std::uint32_t g_scratch[kMaxChanges];
+it::TickPhase g_ticks[kPhaseTicks];
+std::uint32_t g_spans[kSpanTicks];
+
+// The fixed panel's words while hands are on the robot (the scroll is off). MEDIUM lines fit 28
+// characters (the rotate test's widest), SMALL lines kScreenCols -- checked here, as the menu's.
+constexpr const char* kTurnBig1 = "TURN IT SLOWLY";
+constexpr const char* kTurnBig2 = "ONE WAY - KEEP TURNING";
+constexpr const char* kTurnSmall1 = "by hand, until this says STOP (about 3 s)";
+constexpr const char* kTurnSmall2 = "2c.1 cadence 2 s, then 2c.2 phase 1 s";
+constexpr const char* kGyroBig1 = "NOW THE GYRO (2c.4)";
+constexpr const char* kGyroBig2 = "TOUCH, THEN TURN IT";
+constexpr const char* kGyroSmall1 = "ONE way, about a QUARTER TURN A SECOND,";
+constexpr const char* kGyroSmall2 = "until this says STOP (about 3 s)";
+constexpr const char* kSpanBig1 = "STOP - LET GO";
+constexpr const char* kSpanSmall1 = "2c.3: timing a stand-in tick for 1 s";
+constexpr const char* kSpanSmall2 = "nothing to do";
+constexpr const char* kDoneBig1 = "STOP - DONE";
+constexpr const char* kDoneSmall1 = "the four results follow";
+constexpr const char* kReadStage2 = "STAGE 2 done -- read it, then TOUCH for 2c";
+constexpr std::size_t kBigCols = 28;
+static_assert(panelLiteralFits(kTurnBig1, kBigCols) && panelLiteralFits(kTurnBig2, kBigCols)
+                  && panelLiteralFits(kGyroBig1, kBigCols) && panelLiteralFits(kGyroBig2, kBigCols)
+                  && panelLiteralFits(kSpanBig1, kBigCols) && panelLiteralFits(kDoneBig1, kBigCols),
+              "a STAGE 2c MEDIUM line no longer fits the panel");
+static_assert(panelLiteralFits(kTurnSmall1, kScreenCols) && panelLiteralFits(kTurnSmall2, kScreenCols)
+                  && panelLiteralFits(kGyroSmall1, kScreenCols)
+                  && panelLiteralFits(kGyroSmall2, kScreenCols)
+                  && panelLiteralFits(kSpanSmall1, kScreenCols)
+                  && panelLiteralFits(kSpanSmall2, kScreenCols)
+                  && panelLiteralFits(kDoneSmall1, kScreenCols)
+                  && panelLiteralFits(kReadStage2, kScreenCols),
+              "a STAGE 2c SMALL line no longer fits the panel");
+
+/// The fixed panel: two MEDIUM lines and two SMALL ones, where the rotate test puts its own.
+void panel(const char* big1, const char* big2, const char* small1, const char* small2) {
+    pros::c::screen_set_eraser(kColBg);
+    pros::c::screen_erase();
+    pros::c::screen_set_pen(kColText);
+    pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 44, "%s", big1);
+    pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 66, "%s", big2);
+    pros::c::screen_set_pen(kColDim);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 96, "%s", small1);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 110, "%s", small2);
+}
+
+/// The panel's footer line, replaced.
+void foot(std::uint32_t pen, const char* text) {
+    pros::c::screen_set_eraser(kColBg);
+    pros::c::screen_erase_rect(0, kFooterY, kUsableW, kUsableH);
+    pros::c::screen_set_pen(pen);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, kFooterY, "%s", text);
+}
+
+/// A size_t / uint32 for "%lu".
+unsigned long ul(std::size_t v) { return static_cast<unsigned long>(v); }
+
+/// The stage's clock: pros::micros(), read before every device read (the loops in imu_timing.hpp).
+std::uint64_t nowUs() { return pros::micros(); }
+
+/// 2c.3's stand-in body, between the tick's two IMU reads (imu_timing.hpp's runSpans makes those
+/// and stamps the span): each drive motor's position, velocity, current and voltage, the battery,
+/// and one serial line. Ports are read by |port|: raw, as STAGE 3 reads them.
+void standInBody(std::size_t tick, double rot, std::size_t& motorReads, std::size_t& motorErrors) {
+    double pos[2] = {0.0, 0.0};
+    double vel[2] = {0.0, 0.0};
+    long cur[2] = {0, 0};
+    long volt[2] = {0, 0};
+    const std::int8_t* sides[2] = {kChassis.left, kChassis.right};
+    const std::size_t counts[2] = {kChassis.leftCount, kChassis.rightCount};
+    for (int s = 0; s < 2; ++s) {
+        for (std::size_t k = 0; k < counts[s]; ++k) {
+            const std::int8_t raw = static_cast<std::int8_t>(absPort(sides[s][k]));
+            const double p = pros::c::motor_get_position(raw);
+            const double v = pros::c::motor_get_actual_velocity(raw);
+            const std::int32_t a = pros::c::motor_get_current_draw(raw);
+            const std::int32_t u = pros::c::motor_get_voltage(raw);
+            motorReads += 4;
+            motorErrors += (std::isfinite(p) ? 0U : 1U) + (std::isfinite(v) ? 0U : 1U)
+                           + (a == PROS_ERR ? 1U : 0U) + (u == PROS_ERR ? 1U : 0U);
+            if (k == 0) {  // the line carries each side's first motor, as a record carries a few
+                pos[s] = p;
+                vel[s] = v;
+                cur[s] = static_cast<long>(a);
+                volt[s] = static_cast<long>(u);
+            }
+        }
+    }
+    const long battery = static_cast<long>(pros::c::battery_get_voltage());
+    hal::pros::serialLine("[R3A] imu2c span %lu/%d (a stand-in record line) rot %.3f bat %ld"
+                          " | L %.1f %.1f %ld %ld | R %.1f %.1f %ld %ld",
+                          ul(tick + 1), kSpanTicks, rot, battery, pos[0], vel[0], cur[0], volt[0],
+                          pos[1], vel[1], cur[1], volt[1]);
+}
+
+void reportCadence(const it::ChangeWatch& watch, const it::Cadence& cad, std::size_t overflow,
+                   it::CadenceVerdict verdict) {
+    emit("-- 2c.1 CADENCE: the raw rotation, a tight loop for 2 s (HA-213) --");
+    emitf("  polls %lu, PROS_ERR %lu, changes %lu (raw deg, PROS's rotation)", ul(watch.polls()),
+          ul(watch.badReads()), ul(watch.changes()));
+    if (overflow > 0) {
+        emitf("  (%lu more changes than the %lu kept: the first %lu judged)", ul(overflow),
+              ul(kMaxChanges), ul(kMaxChanges));
+    }
+    emitf("  change intervals: n %lu  min %lu  median %lu  max %lu us", ul(cad.interval.n),
+          ul(cad.interval.min), ul(cad.interval.median), ul(cad.interval.max));
+    emitf("  in %lu..%lu us: %lu of %lu (below %lu, above %lu); their mean %.1f us",
+          ul(it::kCopyPeriodUs - it::kBandUs), ul(it::kCopyPeriodUs + it::kBandUs), ul(cad.inBand),
+          ul(cad.interval.n), ul(cad.below), ul(cad.above), cad.meanInBandUs);
+    switch (verdict) {
+        case it::CadenceVerdict::NoReads:
+            emitS(Sev::Warn, "HA-213: every read was PROS_ERR -- no finding.");
+            emit("  Check the IMU's cable and port (STAGE 1), and re-run.");
+            break;
+        case it::CadenceVerdict::NoChange:
+            emitS(Sev::Warn, "HA-213: NO CHANGE SEEN in 2 s -- turn it and re-run.");
+            if (watch.badReads() == 0) {
+                emit("  (if it repeats WHILE turning: PROS's copy is not made while a loop");
+                emit("   busy-reads -- that is the finding; write it down)");
+            } else {
+                emit("  (PROS_ERR above is not 0: the IMU dropped reads -- check its");
+                emit("   cable; this run is no finding about PROS's copy)");
+            }
+            break;
+        case it::CadenceVerdict::TooFew:
+            emitS(Sev::Warn, "HA-213: %lu change(s) only -- turn steadily; re-run.",
+                  ul(watch.changes()));
+            emitf("  (a verdict needs at least %lu intervals between changes)", ul(it::kMinIntervals));
+            break;
+        case it::CadenceVerdict::Holds:
+            emitS(Sev::Good, "HA-213 HOLDS: a change every ~10 ms (median %lu us).",
+                  ul(cad.interval.median));
+            break;
+        case it::CadenceVerdict::Faster:
+            emitS(Sev::Bad, "HA-213 WRONG, FASTER: median %lu us, not ~10000.",
+                  ul(cad.interval.median));
+            emit("  (IMU1's hold is still right; HA-214's residual is smaller)");
+            break;
+        case it::CadenceVerdict::Slower:
+            emitS(Sev::Warn, "HA-213: median %lu us -- SLOWER than 10 ms, or",
+                  ul(cad.interval.median));
+            emit("  the robot was still for most of the 2 s. Re-run turning");
+            emit("  steadily; if it repeats, HA-213 is WRONG (slower): a");
+            emit("  tick's one read can be 0.");
+            break;
+    }
+}
+
+void reportPhase(const it::Phase& ph, it::PhaseVerdict verdict) {
+    const double noise = it::kDriftSigmas * ph.driftSeUsPerS;
+    emit("-- 2c.2 PHASE: 100 ticks paced by delay_until(10 ms) (HA-214) --");
+    emitf("  copy's offset from the wake: first %ld  median %lu  last %ld us (%lu ticks)",
+          static_cast<long>(ph.firstUs), ul(ph.medianUs), static_cast<long>(ph.lastUs),
+          ul(ph.seen));
+    emitf("  spread of those offsets: min %lu  max %lu us", ul(ph.minUs), ul(ph.maxUs));
+    emitf("  no change within %lu us: %lu of %lu ticks", ul(it::kPhaseWindowUs), ul(ph.missed),
+          ul(ph.ticks));
+    if (ph.driftValid && ph.seValid) {
+        emitf("  drift %+.1f +- %.1f us/s (%.0f SE; least squares, unwrapped at %lu us)",
+              ph.driftUsPerS, noise, it::kDriftSigmas, ul(it::kCopyPeriodUs));
+        emitf("  residual SD %.1f us (the wakes' jitter, mostly)", ph.residualSdUs);
+    } else if (ph.driftValid) {
+        emitf("  drift %+.1f us/s (no SE: under three ticks saw a change)", ph.driftUsPerS);
+    } else {
+        emit("  drift: not measurable (under two ticks saw a change)");
+    }
+    switch (verdict) {
+        case it::PhaseVerdict::NoCadence:
+            emitS(Sev::Warn, "HA-214: no verdict -- 2c.1 did not find the 10 ms copy.");
+            break;
+        case it::PhaseVerdict::NoChange:
+            emitS(Sev::Warn, "HA-214: no tick saw a change -- turn it; re-run (or");
+            emit("  the copy lands in the last 0.5 ms before every wake: then every re-run says so)");
+            break;
+        case it::PhaseVerdict::TooFew:
+            emitS(Sev::Warn, "HA-214: only %lu ticks saw a change -- re-run.", ul(ph.seen));
+            break;
+        case it::PhaseVerdict::Fixed:
+            emitS(Sev::Good, "HA-214: phase FIXED -- the copy lands ~%lu us after", ul(ph.medianUs));
+            emitf("  the wake (|drift| and %.0f SE <= %.0f us/s over 1 s).", it::kDriftSigmas,
+                  it::kFixedDriftUsPerS);
+            emit("  Per boot: a re-run may differ.");
+            break;
+        case it::PhaseVerdict::Drifting:
+            emitS(Sev::Warn, "HA-214: the phase DRIFTS %+.1f us/s -- it crosses", ph.driftUsPerS);
+            emitf("  a whole 10 ms tick every ~%.0f s: every boot passes the bad band.",
+                  it::secondsToCrossPeriod(ph.driftUsPerS, it::kCopyPeriodUs));
+            break;
+        case it::PhaseVerdict::NotSeparable:
+            emitS(Sev::Warn, "HA-214: no verdict -- drift %+.1f +- %.1f us/s:", ph.driftUsPerS,
+                  noise);
+            emitf("  the wakes jitter too much to tell %.0f us/s from none", it::kFixedDriftUsPerS);
+            emit("  in 1 s. Re-run; send the numbers either way.");
+            break;
+    }
+}
+
+void reportSpan(const it::Summary& spans, std::size_t motorReads, std::size_t motorErrors,
+                it::SpanVerdict verdict) {
+    emit("-- 2c.3 TICK SPAN, a stand-in: 100 ticks paced as 2c.2 (HA-215) --");
+    emitf("  each: 2 IMU reads, %lu drive motors x 4 reads, the battery, 1 serial line",
+          ul(kChassis.leftCount + kChassis.rightCount));
+    emitf("  span, first IMU read to second: min %lu  median %lu  max %lu us", ul(spans.min),
+          ul(spans.median), ul(spans.max));
+    emit("  a LOWER bound on a motion tick's span: no Localizer arithmetic,");
+    emit("  no record build, no motor command");
+    emitf("  motor reads that returned PROS_ERR: %lu of %lu", ul(motorErrors), ul(motorReads));
+    switch (verdict) {
+        case it::SpanVerdict::NoTicks:
+            emitS(Sev::Warn, "HA-215: nothing was measured.");
+            break;
+        case it::SpanVerdict::WellUnder:
+            emitS(Sev::Good, "HA-215: well under the 5 ms hold (max %lu < %lu us);",
+                  ul(spans.max), ul(it::kSpanWellUnderUs));
+            emit("  a short stand-in is not proof -- the real tick does more.");
+            break;
+        case it::SpanVerdict::Close:
+            emitS(Sev::Warn, "HA-215: longest stand-in tick %lu us -- over half", ul(spans.max));
+            emit("  the 5 ms hold, and the real tick is longer still.");
+            break;
+        case it::SpanVerdict::Over:
+            emitS(Sev::Bad, "HA-215 WRONG here: the stand-in spanned %lu us", ul(spans.max));
+            emit("  -- at or over the 5 ms hold.");
+            break;
+    }
+}
+
+void reportGyro(const it::GyroTurn& turn, it::GyroVerdict verdict) {
+    const double d = turn.rotationChangeDeg();
+    const double z = turn.integratedZDeg();
+    const double ratio = d != 0.0 ? std::fabs(z / d) : 0.0;
+    emit("-- 2c.4 GYRO beside the rotation: a tight loop for 3 s (HA-04, HA-109) --");
+    emitf("  polls %lu, dropped %lu (PROS_ERR), rotation changes %lu", ul(turn.polls()),
+          ul(turn.badReads()), ul(turn.changes()));
+    emitf("  window, first to last change: %.3f s", static_cast<double>(turn.windowUs()) * 1e-6);
+    emitf("  rotation change  : %+9.2f deg (raw deg, PROS's rotation -- CW-positive per HA-02)", d);
+    emitf("  gyro z integrated: %+9.2f deg (raw z, integrated -- trapezoid on micros())", z);
+    if (d != 0.0) {
+        emitf("  z / rotation: %+.4f   travel in the window: rising %.1f, falling %.1f deg",
+              z / d, turn.risingDeg(), turn.fallingDeg());
+    }
+    if (it::mixedTurn(turn.risingDeg(), turn.fallingDeg())) {
+        emit("  (the turn went BOTH ways -- fine here: both angles saw the same motion)");
+    }
+    switch (verdict) {
+        case it::GyroVerdict::NoReads:
+            emitS(Sev::Warn, "HA-04/HA-109: every poll was PROS_ERR -- no finding.");
+            emit("  Check the IMU's cable and port (STAGE 1), and re-run.");
+            break;
+        case it::GyroVerdict::NoTurn:
+            emitS(Sev::Warn, "HA-04/HA-109: %lu rotation change(s) -- no turn seen;",
+                  ul(turn.changes()));
+            emit("  turn it ONE way until the panel says STOP; re-run.");
+            break;
+        case it::GyroVerdict::TooShort:
+            emitS(Sev::Warn, "HA-04/HA-109: turn spanned %.2f s (need >= %.0f s) --",
+                  static_cast<double>(turn.windowUs()) * 1e-6,
+                  static_cast<double>(it::kGyroMinWindowUs) * 1e-6);
+            emit("  keep turning until the panel says STOP, and re-run.");
+            break;
+        case it::GyroVerdict::TooSmall:
+            emitS(Sev::Warn, "HA-04/HA-109: turned only %.1f deg (need >= %.0f) --", std::fabs(d),
+                  it::kGyroMinTurnDeg);
+            emit("  turn it further (about a quarter turn a second), and re-run.");
+            break;
+        case it::GyroVerdict::Agree:
+            emitS(Sev::Good, "HA-04 HOLDS: z has get_rotation()'s sign, so");
+            emit("  GyroRateZ and the differentiated rate agree in sign");
+            emit("  through ProsImu's one negate.");
+            emitS(Sev::Good, "HA-109 HOLDS: the two agree within 10 percent --");
+            emit("  z is deg/s about the yaw axis.");
+            break;
+        case it::GyroVerdict::OppositeSign:
+            emitS(Sev::Bad, "HA-04 WRONG: z has the OPPOSITE sign to get_rotation()");
+            emit("  -- GyroRateZ would answer the rate NEGATED: never");
+            emit("  make it the default.");
+            emitS(Sev::Good, "HA-109's scale holds: within 10 percent.");
+            break;
+        case it::GyroVerdict::RadiansSameSign:
+            emitS(Sev::Bad, "HA-109 WRONG: |z| / |rotation| is %.4f, not ~1:", ratio);
+            emit("  one degree's radians -- z is RADIANS per second.");
+            emitS(Sev::Good, "HA-04 HOLDS: z has get_rotation()'s sign (a sign");
+            emit("  does not depend on units).");
+            break;
+        case it::GyroVerdict::RadiansOppositeSign:
+            emitS(Sev::Bad, "HA-109 WRONG: |z| / |rotation| is %.4f, not ~1:", ratio);
+            emit("  one degree's radians -- z is RADIANS per second.");
+            emitS(Sev::Bad, "HA-04 WRONG: z has the OPPOSITE sign to get_rotation()");
+            emit("  -- GyroRateZ would answer the rate NEGATED.");
+            break;
+        case it::GyroVerdict::ScaleOff:
+            emitS(Sev::Bad, "HA-109 WRONG: |z| / |rotation| is %.4f, not ~1.", ratio);
+            emit("  (neither deg/s nor rad/s about the yaw axis: another axis --");
+            emit("   the IMU's mounting -- or other units)");
+            emitS(Sev::Warn, "HA-04: not judged -- z is not about the yaw axis.");
+            break;
+    }
+    emit("  (whether get_rotation() itself is CW-positive is HA-02's: STAGE 2 above)");
+}
+
+}  // namespace imu2c
+
+void imuTimingStage(std::uint8_t port) {
+    namespace it = imu_timing;
+    // STAGE 2's results stay on the panel until the operator has read them. Without this the
+    // rule and prompt below would erase them the moment the HA-02 verdict printed; before IMU1
+    // Part B they stayed up until TOUCH TO RETURN TO MENU (found on the resumed run's review).
+    imu2c::foot(kColWarn, imu2c::kReadStage2);
+    waitForTouch();  // STAGE 2's results stay readable until here
+    // The rule and the intro go to serial + SD only: the prompt below erases the whole screen, so
+    // painting them on the panel would only flash them (the IMU1-B review, 2026-11-05). The
+    // prompt itself is the panel's instruction.
+    g_screenActive = false;
+    rule("STAGE 2c  IMU TIMING (HA-213/214/215; HA-04/HA-109)");
+    emit("IMU1 Part B: the IMU's own timing, in four parts --");
+    emit("  2c.1 cadence 2 s, 2c.2 phase 1 s: turn it SLOWLY, ONE way");
+    emit("  2c.3 tick span 1 s: hands off");
+    emit("  2c.4 gyro 3 s: ONE way, about a quarter turn a second");
+    emit("It busy-reads the IMU: the panel freezes while it reads.");
+    emit("It powers nothing, and reads raw PROS values only.");
+    const bool start = twoButtonPrompt("STAGE 2c: THE IMU'S TIMING", "about 15 s, by hand; it powers nothing",
+                                       "START", "then turn it by hand", "SKIP", "no 2c this run",
+                                       "START, then turn the robot SLOWLY, ONE way, while",
+                                       "the panel says TURN. It freezes while it reads.");
+    // The panel stays the instrument from here (the scroll off); the log goes to serial + SD.
+    if (!start) {
+        g_screenActive = true;
+        drawHeader("STAGE 2c  IMU TIMING");
+        screenClear();
+        emit("STAGE 2c SKIPPED by the operator -- nothing measured.");
+        return;
+    }
+    emit("operator: START");
+
+    // Every read the stage makes, named once: the raw rotation and the raw gyro z (R18).
+    const auto rotation = [port] { return pros::c::imu_get_rotation(port); };
+    const auto gyroZ = [port] { return pros::c::imu_get_gyro_rate(port).z; };
+
+    // 2c.1 and 2c.2, one slow turn.
+    imu2c::panel(imu2c::kTurnBig1, imu2c::kTurnBig2, imu2c::kTurnSmall1, imu2c::kTurnSmall2);
+    imu2c::foot(kColWarn, "reading starts in 2 s -- hands on, start turning");
+    pros::delay(2000);
+    imu2c::foot(kColWarn, "READING -- keep turning (the panel is frozen)");
+    pros::delay(20);  // let the panel draw before the loop holds the processor
+    it::ChangeWatch cadenceWatch;
+    const it::CadenceRun cadenceRun =
+        it::runCadence(imu2c::nowUs, rotation, imu2c::kCadenceUs, cadenceWatch,
+                       std::span<std::uint64_t>(imu2c::g_changeAt));
+    std::uint32_t phasePrev = pros::millis();
+    it::runPhase(imu2c::nowUs, [&phasePrev] { pros::Task::delay_until(&phasePrev, imu2c::kTickMs); },
+                 rotation, std::span<it::TickPhase>(imu2c::g_ticks));
+
+    // 2c.3, hands off.
+    imu2c::panel(imu2c::kSpanBig1, "", imu2c::kSpanSmall1, imu2c::kSpanSmall2);
+    pros::delay(20);
+    std::size_t motorReads = 0;
+    std::size_t motorErrors = 0;
+    std::uint32_t spanPrev = pros::millis();
+    it::runSpans(imu2c::nowUs, [&spanPrev] { pros::Task::delay_until(&spanPrev, imu2c::kTickMs); },
+                 rotation,
+                 [&motorReads, &motorErrors](std::size_t tick, double rot) {
+                     imu2c::standInBody(tick, rot, motorReads, motorErrors);
+                 },
+                 std::span<std::uint32_t>(imu2c::g_spans));
+
+    // 2c.4, a faster turn, after a touch.
+    imu2c::panel(imu2c::kGyroBig1, imu2c::kGyroBig2, imu2c::kGyroSmall1, imu2c::kGyroSmall2);
+    imu2c::foot(kColWarn, "TOUCH the screen to start");
+    waitForTouch();
+    emit("operator: touched for 2c.4");
+    imu2c::foot(kColWarn, "reading starts in 2 s -- hands on, start turning");
+    pros::delay(2000);
+    imu2c::foot(kColWarn, "READING -- keep turning (the panel is frozen)");
+    pros::delay(20);
+    it::GyroTurn turn;
+    it::runGyro(imu2c::nowUs, rotation, gyroZ, imu2c::kGyroUs, turn);
+    imu2c::panel(imu2c::kDoneBig1, "", imu2c::kDoneSmall1, "");
+    pros::delay(500);
+
+    // The four result blocks, on the scroll again.
+    g_screenActive = true;
+    drawHeader("STAGE 2c  IMU TIMING");
+    screenClear();
+    const it::Cadence cad =
+        it::cadenceFrom(std::span<const std::uint64_t>(imu2c::g_changeAt, cadenceRun.stored),
+                        std::span<std::uint32_t>(imu2c::g_scratch));
+    const it::CadenceVerdict cadVerdict = it::judgeCadence(cadenceWatch, cad.interval);
+    imu2c::reportCadence(cadenceWatch, cad, cadenceRun.overflow, cadVerdict);
+
+    const it::Phase ph = it::phaseFrom(std::span<const it::TickPhase>(imu2c::g_ticks),
+                                       it::kCopyPeriodUs, std::span<std::uint32_t>(imu2c::g_scratch));
+    imu2c::reportPhase(ph, it::judgePhase(ph, cadVerdict));
+
+    const it::Summary spans = it::summarize(std::span<std::uint32_t>(imu2c::g_spans));
+    imu2c::reportSpan(spans, motorReads, motorErrors, it::judgeSpan(spans));
+
+    imu2c::reportGyro(turn, it::judgeGyro(turn));
 }
 
 // ═══ STAGE 3 — motors: raw beside canonical, one line each. ══════════════════

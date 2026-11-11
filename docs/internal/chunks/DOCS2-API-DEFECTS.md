@@ -842,7 +842,7 @@ Sequence: hasFix() reads sample N -> true. pose() then reads sample N+1; if N+1 
 > (A4 register HA-213) the effect is not "only noisier" but BIASED — the Localizer's rate 0 on every tick for one
 > band of the copy's phase (derived and reproduced on the host test plant; never measured on a robot). IMU1 Part A (2026-10-29) makes `ProsImu::yawRate()` answer once per control tick; its
 > Part B is the "measured call patterns and a real loop rate" this deferral asked for — [IMU1's live
-> log](IMU1-PROGRESS.md), its completion record after Part B.)*
+> log](IMU1-PROGRESS.md), its completion record after Part B.)* *(2026-11-05: [IMU1-COMPLETED.md](IMU1-COMPLETED.md).)*
 
 <details>
 <summary>Evidence (7 lines)</summary>

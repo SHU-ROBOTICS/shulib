@@ -1189,6 +1189,16 @@ Found by COMP-t's brief (its probe 4). `MoveToPose` arrives only when the positi
 **DoD:** the 40 in auton and the acceptance run FINISH on the host test plant with either side up to 9 % weak, inside the unchanged arrival tolerance (or one the team lead rules on, with the numbers); the holonomic suites bit-identical; every steering claim red under its mutation; the facade's tank contract rewritten; COMP-t's predictions re-made from TANK1's tests before COMP-t is built. Nothing claimed on hardware until COMP-t's floor run.
 
 ### IMU1 — the IMU's yaw rate, read once per tick ⟵ NEW 2026-09-27 (reactive; found by TANK1's re-check)
+> **Status 2026-11-06: PART B LANDED — IMU1 COMPLETE, host- and build-gated, NOT run on a robot** (built 2026-11-03;
+> the coordinator's check passed at the merge) ([record](chunks/IMU1-COMPLETED.md), [live log](chunks/IMU1-PROGRESS.md), "Part B"). Part A
+> LANDED 2026-10-30 (`6798aa5`). Part B is Bench Tests button 2's STAGE 2c (`src/programs/bench_r3a.cpp`,
+> `imuTimingStage()`, station 2's functions only): the IMU's copy cadence, its phase against a `delay_until` wake and
+> the drift, a stand-in for a tick's span (a lower bound — R10), and the gyro's integrated z beside the raw
+> rotation's change (both raw PROS degrees — R18); it commands no motor and asks START / SKIP first. Its verdicts'
+> arithmetic is PROS-free in `src/programs/imu_timing.hpp`, host-tested with mutations; worksheet **Station N** is
+> its first run (~10 min) — HA-213/214/215, HA-04 and HA-109 stay unsettled until then. *(2026-11-05: its review
+> round's 18 findings fixed — the live log's "IMU1-B review findings and their disposition"; the coordinator's
+> merge record is the live log's last section.)*
 > **Status 2026-10-29: PART A BUILT, its review's and its verification round's findings fixed the same day — host-
 > and build-gated, NOT run on a robot; awaiting the coordinator's check** ([live log](chunks/IMU1-PROGRESS.md)):
 > `ProsImu::yawRate()` keeps its answer for `kRateHoldUs` = 5000 µs (half `ProsTickPacer::kTickMs`, pinned by a

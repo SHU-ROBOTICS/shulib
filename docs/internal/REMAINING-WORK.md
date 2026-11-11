@@ -144,7 +144,7 @@ Subtotal: ~10–12½ days.
 
 | # | Item | State | Its DoD's constraint | Size |
 |---|---|---|---|---|
-| 32 | **IMU1**: read the IMU's turn rate once per tick (the adapter keeps its answer for 5 ms, so every reader in a tick gets one value). Found by TANK1's re-check; its probe found the double read can turn the 40 in auton into a 5 s timeout in one timing band | **brief ✅ GO 2026-10-22** ("Accept all", D1–D4); **Part A BUILT 2026-10-29**, its review's and its verification round's findings fixed the same day (host- and build-gated, not run on a robot; awaiting the coordinator's check — [live log](chunks/IMU1-PROGRESS.md)); Part B (the bench stage, Station N) not started | must land **before Station M's floor run** (D4) and before any GPS- or tag-corrected robot runs a tank `moveTo` | ~1¼ + ~½ days (its brief) |
+| 32 | **IMU1**: read the IMU's turn rate once per tick (the adapter keeps its answer for 5 ms, so every reader in a tick gets one value). Found by TANK1's re-check; its probe found the double read can turn the 40 in auton into a 5 s timeout in one timing band | **brief ✅ GO 2026-10-22** ("Accept all", D1–D4); **Part A BUILT 2026-10-29**, its review's and its verification round's findings fixed the same day, LANDED 2026-10-30 (`6798aa5`); **Part B BUILT 2026-11-03, LANDED 2026-11-06 — IMU1 COMPLETE** — Bench Tests button 2's STAGE 2c, the IMU's timing (host- and build-gated, never run on a robot — [record](chunks/IMU1-COMPLETED.md), [live log](chunks/IMU1-PROGRESS.md)); its robot step is worksheet **Station N** (~10 min, any Bench Tests session) | must land **before Station M's floor run** (D4) and before any GPS- or tag-corrected robot runs a tank `moveTo` | ~1¼ + ~½ days (its brief) |
 
 ## 7. Chunks that close on the robot (robot-session-bound; not in the total)
 
@@ -186,6 +186,9 @@ Subtotal: ~10–12½ days.
   B1** (the plan's order). If a Calibrate run happens before B1, copy the record off the card first (G.0.1).
 - **Stations H and I (Bench Tests 11/12)**: the distance sensors and the camera, ~10 minutes, any time before
   R2b.
+- **Station N (Bench Tests button 2's STAGE 2c, ~10 minutes, any Bench Tests session)**: the IMU's 10 ms copy,
+  its phase against the tick, a lower bound on a tick's span, and the gyro's sign and units (HA-213/214/215,
+  HA-04, HA-109). A first look, not a settlement; making the gyro's own rate the default waits on it (IMU1, #32).
 - **VIS1's Step 0** (its [brief](chunks/VIS1-ai-vision-colours.md) §2.0, answered 2026-10-18): measure the camera's
   mount, read which AI model the camera carries, teach the three Toggle colours in VEXcode's AI Vision Utility, and
   hold a Toggle where the arm will push it. These first four steps need no new code — the next bench session. Their

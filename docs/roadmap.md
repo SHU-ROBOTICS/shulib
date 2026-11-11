@@ -456,6 +456,15 @@ not silently break them. This table is the spine of the no-staleness promise.
 > [chapter 19](guide/19-calibrating-your-robot.md). Register entry [HA-187](hardware-assumptions.md) holds the
 > watch's belief. No program uses it yet: **next for CAL1 is Part B** (robot two onto it).
 >
+> **Now (2026-11-06): IMU1 Part B, the bench stage, has LANDED — IMU1 is COMPLETE; host- and build-gated, never
+> run on a robot.** "Bench Tests" button 2 ends with a new STAGE 2c that measures the IMU's own timing while
+> someone turns the robot by hand: how often its readings refresh (PROS says every 10 ms), where that refresh
+> lands against the program's 10 ms tick and whether it drifts, a lower bound on how long a tick's reads take, and
+> whether the gyro's own turn rate has the right sign and units — what the gyro's rate waits on before it could
+> replace the computed one. It commands no motor and asks START or SKIP first; the arithmetic behind its verdicts
+> is host-tested. Its numbers come from the team at the bench (worksheet Station N); until then HA-213, HA-214,
+> HA-215, HA-04 and HA-109 stay unsettled.
+>
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
 > robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver

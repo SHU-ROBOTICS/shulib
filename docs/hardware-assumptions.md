@@ -172,7 +172,7 @@
 > readings are copied into the brain's buffer every 10 ms (sample-and-hold), that the copy's phase against the
 > tick is unknown and a copy next to a read (or between two positions of a tick's first read) gives a pair of
 > ticks 0 and about double, and that a tick's reads fall within 5 ms of its first with no reader between ticks.
-> None is measured; IMU1 Part B's bench stage (Station N) is their first look. It AMENDED HA-179 (its "The IMU
+> None is measured; IMU1 Part B's bench stage (Station N; built 2026-11-03, never run on a robot) is their first look. It AMENDED HA-179 (its "The IMU
 > read" paragraph: robot two's Localizer rate was not clean before IMU1; Station M.6 counts only on an IMU1
 > build), HA-22 (a REST record from a pre-IMU1 build is not its evidence; one doubled sample can remain), HA-32
 > and HA-102 (the hold groups reads by time). With them, 181.
@@ -253,7 +253,7 @@
 | HA-01 | GPS position axes: +X = East, +Y = North | **invented** | R3 |
 | HA-02 | IMU as-mounted heading is CW-positive | **CONFIRMED** 2026-08-19 on the bench bot: operator turned the robot LEFT/CCW and RAW `get_rotation()` went NEGATIVE (-0.073 -> -87.241 deg) while CANONICAL rose (+0.073 -> +87.241 deg). Raw decreasing on a CCW turn IS raw being CW-positive, exactly as claimed; and the adapter's negation therefore yields the CCW-positive canonical F1 requires. Evidence: `evidence/r3a-session-2026-08-19.log` run 2 | R3 |
 | HA-03 | `get_rotation()` is cumulative/unbounded (the required binding) | reasoned | R1/R3 |
-| HA-04 | IMU yaw-rate source sign (`get_gyro_rate().z` undocumented) | **invented** | R3 |
+| HA-04 | IMU yaw-rate source sign (`get_gyro_rate().z` undocumented) | **invented** | R3; IMU1 Part B's bench stage (Station N) |
 | HA-05 | Post-cal tare invalidates bootHeading; offset applied once | reasoned — **AMENDED** 2026-09-26 (COMP-a): the start heading's one owner is the chosen auton's start pose, applied at autonomous start through the Localizer's bias (`reseatHeading`) — bootHeading stays 0 and the IMU is never re-zeroed | R1/R3 |
 | HA-06 | Firmware GPS offset unset ⇒ `get_position()` = SENSOR pose | reasoned | R1/R3 |
 | HA-07 | GPS `get_error()` returns meters | reasoned | R3 |
@@ -358,7 +358,7 @@
 | HA-106 | `gps_status_s_t.yaw` is the CW-from-North heading in degrees | reasoned | R3 |
 | HA-107 | Controller LCD columns: 19 (HA-57) vs the vendored doc's [0-14] ⇒ 15 — CONFLICT | **invented** | R3 |
 | HA-108 | `Imu::reset(false)` starts calibration; one boot-time call is not a post-cal tare | reasoned | R3 |
-| HA-109 | `imu_gyro_s_t` is deg/s and z is the yaw axis (sign is HA-04's entry) | **invented** | R3 |
+| HA-109 | `imu_gyro_s_t` is deg/s and z is the yaw axis (sign is HA-04's entry) | **invented** | R3; IMU1 Part B's bench stage (Station N) |
 | HA-110 | IMU as-mounted pitch/roll sign conventions | **invented** | R3 |
 | HA-111 | The invented X-drive's port map and motor direction signs match the robot (`src/robots/xdrive_config.hpp` since G1 Part 2c; `src/main.cpp` before) | **invented — and MEASURED WRONG for the comp bot** 2026-08-13: real map is drive LEFT 15/16/17/18, RIGHT 11/12/14, IMU 4, no rotation sensors, no GPS. The xdrive build still carries the invented map, now as a config constant that refuses at boot on any robot that exists | R3 |
 | HA-112 | Teleop stick mapping signs + the feel layer's defaults are drivable (0.05 deadband, applied as a continuous rescale since T2; expo 0; slew off; the field-centric fallback latch) | **invented** | T2/R3 |
@@ -514,7 +514,16 @@ a config constant **by design** — a correction here never touches the core.
   *Confidence:* **invented** for `get_gyro_rate().z` (no documentation exists); reasoned for the
   differentiate-`get_rotation()` path.
   *Settle (R3):* bench: spin CW at a steady rate; the canonical yaw rate must be negative. Do it
-  for whichever source the R1 adapter picks.
+  for whichever source the R1 adapter picks. **Since IMU1 Part B (2026-11-03): Bench Tests button 2's
+  STAGE 2c, worksheet Station N** — the gyro's z integrated (trapezoid on `micros()` stamps) over one hand
+  turn, beside the raw rotation's change between the first and last change instants of the same window,
+  both raw PROS degrees, never `ProsImu::yawRate()` (canonical, and held 5 ms — IMU1's re-check R18): the
+  same sign means z shares `get_rotation()`'s convention, so `GyroRateZ` and the differentiated rate agree
+  in sign through `ProsImu`'s one negate (whether that convention is CW is HA-02's). The stage judges the
+  sign whenever z is about the yaw axis — the two magnitudes agreeing within 10 % in deg/s, OR in rad/s (a
+  sign does not depend on units) — and not when z is neither (another axis says nothing about this sign; the
+  printed `z / rotation` line still shows it); built, never run on a robot — not settled until the bench
+  prints it.
   *Blast radius if wrong:* a negated yaw rate breaks the drift-observability property Phase E
   depends on (heading and rate must move together — `imu_hostility.hpp` models them consistently
   for exactly this reason) and inverts E2's high-yaw-rate rejection. Since TANK1 (2026-09-27) it would
@@ -958,7 +967,12 @@ dependency order (battery scale before anything drives, signs before any closed 
   `hal/pros/imu.hpp` (the GyroRateZ branch).
   *Confidence:* **invented** — units asserted from community usage, not from the source.
   *Settle (R3, runbook step 8):* steady ~90°/s CW spin → |z| ≈ 90 raw and canonical ≈
-  −1.57 rad/s.
+  −1.57 rad/s. **Since IMU1 Part B (2026-11-03): Bench Tests button 2's STAGE 2c, worksheet Station N**
+  — the same comparison as HA-04's (the gyro's z integrated over one hand turn of at least 2 s and 30°,
+  beside the raw rotation's change over the same window, both raw PROS degrees): HA-109 holds if the two
+  magnitudes agree within 10 %; a ratio within 10 % of one degree's radians (0.0175) is its own verdict, z in
+  rad/s (HA-109 wrong on its units, the sign still judged for HA-04); anything else, near 0 among it, says z
+  is not the yaw axis. Built, never run on a robot — not settled until the bench prints it.
   *Blast radius if wrong:* the alternate yaw-rate branch is garbage — but it is OFF by default
   (differentiation is the default source) and the bench measures before anyone flips it.
   **Contained by the default.**
@@ -1653,8 +1667,9 @@ three times a tick; IMU1 Part A made the adapter keep its answer for 5 ms (`Pros
 read in one tick gets one value. The defect and the fix both rest on three beliefs no robot has shown —
 the IMU's 10 ms copy, its phase against the loop, and the spacing of a tick's reads. **None is measured.**
 The premise that IS measured: HA-101 (`micros()` is microseconds and monotonic), so two reads in one tick are
-microseconds apart. IMU1 Part B (a Bench Tests stage, worksheet Station N — not built yet) is the first
-measurement of all three.
+microseconds apart. IMU1 Part B (Bench Tests button 2's STAGE 2c, worksheet Station N — built 2026-11-03,
+never run on a robot) is the first measurement of all three, and of the gyro's sign and units (HA-04,
+HA-109).
 
 - [ ] **HA-213 — the V5 IMU's readings are copied into the shared buffer every 10 ms (sample-and-hold).**
   *Claim:* `get_rotation()` and `get_gyro_rate()` return what PROS last copied into the brain's shared memory
@@ -1667,7 +1682,9 @@ measurement of all three.
   "values are copied into the shared memory buffer only at 10ms intervals"); never observed on our brains.
   *Settle:* IMU1 Part B, Bench Tests button 2's STAGE 2c (worksheet Station N): a tight-loop read of the raw
   rotation while the robot is turned by hand, the intervals between its changes — HA-213 holds if they cluster
-  at 10 000 µs.
+  at 10 000 µs (the stage's 2c.1 judges the MEDIAN of at least 20 intervals inside 9 000–11 000 µs, and prints
+  how many fell inside and their mean; an IMU that answered PROS_ERR on every read is "no finding", never
+  "no change").
   *Blast radius if wrong — "faster"* (the buffer refreshes more often than 10 ms): before IMU1 the second read
   was a noisy short-interval derivative rather than 0, and the baseline still moved; IMU1's hold is still
   right, and HA-214's residual is smaller. **"Slower"** (e.g. 20 ms): a 10 ms tick's ONE read is 0 on
@@ -1692,7 +1709,12 @@ measurement of all three.
   HA-214"); `ProsImu::kRateHoldUs`'s doc.
   *Confidence:* **invented** (the phase, its drift) · **reasoned** (the consequence, from HA-213's model).
   *Settle:* IMU1 Part B's STAGE 2c, the copy's offset from the wake over 100 ticks and its drift per second (a
-  drift means every boot passes through the bad band).
+  drift means every boot passes through the bad band) — 2c.2 prints the first, median and last offset, the
+  ticks that saw no change, the offsets' spread, and the least-squares drift with its standard error (each
+  offset is measured from the actual wake, so the wake's jitter — unmeasured, STAGE 5 — enters it). It reads
+  FIXED only when |drift| ≤ 10 µs/s AND 3 standard errors ≤ 10 µs/s, DRIFTING only when |drift| exceeds
+  both 10 µs/s and 3 standard errors, and anything else as "no verdict: the wakes jitter too much to tell in
+  one second"; it judges nothing unless 2c.1 found the 10 ms copy.
   *Blast radius if wrong:* on an affected boot the Localizer's ω alternates 0 / ×2 tick to tick (the mean right,
   the noise large): TANK1's yaw observer (time constant 0.1 s, HA-179) averages most of it; `DriveBrake`'s exit
   and the calibrator's rest gate (`|ω|` under a floor) can pass on a 0 tick or fail on a ×2 tick; a corrector's
@@ -1713,8 +1735,9 @@ measurement of all three.
   *Confidence:* **reasoned** — HA-32/HA-102's anchored 100 Hz cadence (both themselves reasoned, unmeasured
   under load); the tick body's span is unmeasured on a brain.
   *Settle:* IMU1 Part B's STAGE 2c, the tick span — a stand-in, a LOWER bound (the device reads between a
-  motion tick's two IMU reads plus one serial line); Bench Tests STAGE 5 (LOOP RATE) for the wake jitter, which
-  has never run.
+  motion tick's two IMU reads plus one serial line; 2c.3 judges the LONGEST of 100 such ticks: under 2.5 ms
+  is "well under" — not proof — and 5 ms or more is HA-215 wrong on that brain); Bench Tests STAGE 5 (LOOP
+  RATE) for the wake jitter, which has never run.
   *Blast radius if wrong:* a tick body whose span between its first and last rate read JITTERS around 5 ms (a
   slow SD write on some ticks, a long record build) damages the Localizer's OWN first read on most ticks — the
   later read is fresh on some ticks and held on others, so the next tick's first read is held or not by chance
@@ -2175,8 +2198,8 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   (physical 1 → index 0, physical 21 → index 20, asserted directly through the shim's recorded
   `lastIndex`), and out-of-range ports are asserted never to reach PROS at all.
   *Confidence:* **reasoned** — the vendored text states it plainly, and it already cost a session:
-  `src/programs/bench_r3a.cpp`'s registry comment (just above `kMaxRegistryIndex`; lines 135-145 since
-  R2a, 112-122 before it) records 2026-08-18, when the tester scanned 1..21 as if the index
+  `src/programs/bench_r3a.cpp`'s registry comment (just above `kMaxRegistryIndex` — find it by that name:
+  lines 135-145 at R2a, 112-122 before it, and later chunks moved it again) records 2026-08-18, when the tester scanned 1..21 as if the index
   were physical, shifted every reading by one port and invented a device at index 21. HA-120 had
   PREDICTED exactly that (the 2026-08-13 "ADI expander" sighting came from index 21) and the
   prediction was not acted on. This entry exists so the mapping is a NAMED belief with a settle

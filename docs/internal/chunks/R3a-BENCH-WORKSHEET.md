@@ -95,12 +95,12 @@ Part 3:* the OLD "shulib Drive" (the typed table's open-loop drive — Station E
    | Button (as the log names it) | Hands? | What YOU do | Finished when |
    |---|---|---|---|
    | **1 DEVICE CENSUS** | — | nothing, just read it | you have noted every port and what is in it |
-   | **2 IMU + ROTATE** | **yes** | turn the whole robot counter-clockwise | the big number **ROSE** while you turned — if it fell, say so |
+   | **2 IMU + ROTATE** | **yes** | turn the whole robot counter-clockwise; then STAGE 2c: turn it slowly ONE way when asked (**Station N**) | the big number **ROSE** while you turned — if it fell, say so (button 2's dot also carries STAGE 2c's verdicts: read the HA-02 line for the sign — Station N) |
    | **3 MOTOR WATCH (live)** | **yes** | push the robot forward, OR spin one wheel — it records itself | the table showed UP/DOWN per port and you touched to save it |
    | **4 BATT/CTRL** | **yes** | pair a controller if it reads NOT CONNECTED | it reads CONNECTED (unblocks 4 register entries) |
    | **5 SD CARD PROBE** | — | nothing, unless it fails — then reformat FAT32 | all three steps pass, header chip reads PASS |
    | **6 LOOP RATE** | — | nothing, leave the robot still | min/max/mean are printed |
-   | **7 RUN ALL** | **yes** | be ready to rotate when test 2's readout appears | every test above has run once |
+   | **7 RUN ALL** | **yes** | be ready to rotate when test 2's readout appears, then START (Station N) or SKIP STAGE 2c | every test above has run once |
    | **8 MOTORS (static)** | — | nothing — a one-shot snapshot; use 3 to capture movement | you have seen each motor's raw and canonical position |
    | **9 SCREEN RULER** | **yes** | answer the four numbered questions on screen | all four answered — they fix the layout constants |
    | **10 DRIVE (POWERS)** | **yes — RED stripe** | **POWERS THE MOTORS.** Wheels off the ground; hold **L1** to drive | you drove at 3 V wheels-up, raised the ceiling with **R1**, touched to stop — see **Station D** |
@@ -237,6 +237,8 @@ Program-free port identification, done from the Devices screen:
 ---
 
 ## Station 4 — the IMU, live on the brain screen  *(HA-02, HA-110, HA-23)*
+
+*The IMU's TIMING — its 10 ms copy and the gyro's sign — needs code: Station N (IMU1 Part B, 2026-11-03).*
 
 The IMU convention is a **sign** question, and a wrong sign mirrors the whole world. Devices shows
 it live, so this needs no code.
@@ -1437,6 +1439,169 @@ first declares one; the page shows the lines only then)
    and, after a check, `[R3A] mech REC 2 'claw pivot 6' last check: OK (its + way): 'claw pivot 6': direction confirmed`.
 3. P.1.2's boot lines if any differs, P.7's numbers if a robot has a switch or a sensor, and anything
    surprising — a claw that moved without L1, a cut you did not expect — as observed.
+
+---
+
+## Station N — THE IMU'S TIMING  *(Bench Tests button 2's STAGE 2c, robot two — added IMU1 Part B, 2026-11-03; HA-213, HA-214, HA-215, HA-04, HA-109)*
+
+> **Read-only.** STAGE 2c reads the IMU, the drive motors and the battery, and powers nothing. **It has
+> NEVER RUN ON A ROBOT**: its screens are the same derived layout as STAGE 2's rotate test (if a line runs
+> off the right edge, write down which one, word for word).
+>
+> **What it answers:** IMU1 (Part A, 2026-10-29) made the IMU's turn rate answer ONCE per control tick —
+> the IMU adapter keeps its answer for 5 ms (`ProsImu::kRateHoldUs`). That fix, and what it leaves, rest
+> on three beliefs no robot has shown: PROS copies the IMU's readings into the brain **every 10 ms**
+> (HA-213); where that copy lands against the program's 10 ms tick is **unknown — fixed or drifting**
+> (HA-214); and a tick's reads all fall **within 5 ms** of its first (HA-215). The gyro's own turn rate,
+> which would cure what IMU1 leaves, waits on two more: its **sign** (HA-04) and its **units** (HA-109).
+> STAGE 2c is the first look at all five. It prints a verdict for each, but **the numbers are the
+> record** — write them down whatever the verdict says, and do not "correct" anything.
+>
+> **Robot two:** the IMU is on the port the chassis table names (STAGE 2's header says which); the stage
+> finds nothing itself and needs nothing typed.
+
+**N.1 — upload Bench Tests** (G.1's first line, from the committed tree that has IMU1 Part B — `git grep
+-c "STAGE 2c" src/programs/bench_r3a.cpp` prints a number above 0):
+
+```sh
+rm -rf bin .d && make ROBOT=tank && pros upload --slot 3 --name "Bench Tests"
+```
+
+- [ ] **N.1.1** Its BUILD stamp is the build you just made.
+- [ ] **N.1.2** The robot on a smooth floor (or a lazy Susan) where you can turn it by hand **about one
+      full turn**, ONE way, without lifting it; a card in the SD slot; the laptop on the USER port
+      capturing (G.7) if you can — 2c.3 writes 100 lines to the serial port only.
+
+**N.2 — run it** (every string below is copied from the code)
+
+1. Press **2 IMU + ROTATE** and do **STAGE 2 exactly as before** (Station A's row: turn it
+   counter-clockwise, then answer `WHICH WAY DID YOU TURN IT?`). STAGE 2's results stay on the panel,
+   with `STAGE 2 done -- read it, then TOUCH for 2c` at the bottom: read them, then touch.
+2. The panel asks `STAGE 2c: THE IMU'S TIMING` — `about 15 s, by hand; it powers nothing` — with two
+   buttons: **START** (`then turn it by hand`) and **SKIP** (`no 2c this run`). Press **START**. *(SKIP
+   writes `STAGE 2c SKIPPED by the operator -- nothing measured.` and ends button 2. 7 RUN ALL runs
+   button 2 too, so it asks there as well.)*
+3. The panel says `TURN IT SLOWLY` / `ONE WAY - KEEP TURNING` /
+   `by hand, until this says STOP (about 3 s)` and, at the bottom,
+   `reading starts in 2 s -- hands on, start turning`. Put both hands on the robot and **turn it
+   slowly, ONE way, without stopping**. When the bottom line reads
+   `READING -- keep turning (the panel is frozen)`, keep going: **the panel does not change while it
+   reads** — it is reading the IMU as fast as it can, and nothing else gets the processor. That is
+   expected.
+4. `STOP - LET GO` / `2c.3: timing a stand-in tick for 1 s` / `nothing to do`: hands off for about a
+   second.
+5. `NOW THE GYRO (2c.4)` / `TOUCH, THEN TURN IT` / `ONE way, about a QUARTER TURN A SECOND,` /
+   `until this says STOP (about 3 s)`, and at the bottom `TOUCH the screen to start`. Touch it, put
+   both hands back, and when `READING -- keep turning (the panel is frozen)` shows, **turn it ONE way
+   at about a quarter turn a second** — three-quarters of a turn in all — until `STOP - DONE`.
+6. The results scroll under the header `STAGE 2c  IMU TIMING`; TOUCH to continue when the panel fills.
+   **Button 2's status dot now shows the WORST verdict of STAGE 2 AND STAGE 2c** — a 2c warning (`turn it
+   and re-run`) makes it amber, a 2c `WRONG` red, even when STAGE 2's HA-02 line said CONFIRMED. Read
+   STAGE 2's HA-02 line for the sign; the dot alone does not say which stage coloured it. (SKIP leaves the
+   dot as STAGE 2 left it.)
+
+- [ ] **N.2.1** Which way did you turn it in step 3, and in step 5? (Looking down from above.) Did you
+      stop or turn back at any point? → step 3: ________  step 5: ________  stopped / turned back: ________
+- [ ] **N.2.2** *(For HA-214's "per boot", if there is time.)* Power-cycle the brain, run button 2
+      again the same way, and copy the second run's blocks too.
+
+**N.3 — copy the four result blocks word for word** (from `/usd/r3a_log.txt` or the serial capture —
+`strings <log> | grep -A14 -- '-- 2c\.'`). They look like this (every string from the code; the
+numbers made up):
+
+```text
+-- 2c.1 CADENCE: the raw rotation, a tight loop for 2 s (HA-213) --
+  polls 401233, PROS_ERR 0, changes 200 (raw deg, PROS's rotation)
+  change intervals: n 199  min 9988  median 10001  max 10013 us
+  in 9000..11000 us: 199 of 199 (below 0, above 0); their mean 10000.3 us
+HA-213 HOLDS: a change every ~10 ms (median 10001 us).
+-- 2c.2 PHASE: 100 ticks paced by delay_until(10 ms) (HA-214) --
+  copy's offset from the wake: first 3418  median 3420  last 3421 us (98 ticks)
+  spread of those offsets: min 3405  max 3433 us
+  no change within 9500 us: 2 of 100 ticks
+  drift +2.9 +- 5.6 us/s (3 SE; least squares, unwrapped at 10000 us)
+  residual SD 5.4 us (the wakes' jitter, mostly)
+HA-214: phase FIXED -- the copy lands ~3420 us after
+  the wake (|drift| and 3 SE <= 10 us/s over 1 s).
+  Per boot: a re-run may differ.
+-- 2c.3 TICK SPAN, a stand-in: 100 ticks paced as 2c.2 (HA-215) --
+  each: 2 IMU reads, 10 drive motors x 4 reads, the battery, 1 serial line
+  span, first IMU read to second: min 412  median 455  max 731 us
+  a LOWER bound on a motion tick's span: no Localizer arithmetic,
+  no record build, no motor command
+  motor reads that returned PROS_ERR: 0 of 4000
+HA-215: well under the 5 ms hold (max 731 < 2500 us);
+  a short stand-in is not proof -- the real tick does more.
+-- 2c.4 GYRO beside the rotation: a tight loop for 3 s (HA-04, HA-109) --
+  polls 310455, dropped 0 (PROS_ERR), rotation changes 297
+  window, first to last change: 2.960 s
+  rotation change  :   +262.41 deg (raw deg, PROS's rotation -- CW-positive per HA-02)
+  gyro z integrated:   +260.88 deg (raw z, integrated -- trapezoid on micros())
+  z / rotation: +0.9942   travel in the window: rising 262.4, falling 0.0 deg
+HA-04 HOLDS: z has get_rotation()'s sign, so
+  GyroRateZ and the differentiated rate agree in sign
+  through ProsImu's one negate.
+HA-109 HOLDS: the two agree within 10 percent --
+  z is deg/s about the yaw axis.
+  (whether get_rotation() itself is CW-positive is HA-02's: STAGE 2 above)
+```
+
+Before the blocks the log has `operator: START` and `operator: touched for 2c.4` (serial and SD only).
+2c.3's 100 serial lines —
+`[R3A] imu2c span 37/100 (a stand-in record line) rot ... bat ... | L ... | R ...` — are a stand-in for the line a motion tick prints; send them if you captured them, they are not
+results.
+
+| Run | 2c.1 median / in band / mean (us) | 2c.2 first / median / last, min / max (us), missed, drift +- 3 SE (us/s), residual SD | 2c.3 min / median / max (us) | 2c.4 window (s), rotation change, z integrated (deg) | the five verdict words |
+|---|---|---|---|---|---|
+| 1 | | | | | |
+| 2 (after a power-cycle, N.2.2) | | | | | |
+
+**N.4 — what each number settles — for whoever reads your numbers, NOT for you to act on.**
+
+- **HA-213 (the 10 ms copy)** holds if the change intervals cluster at **10 000 us** — the stage judges
+  the MEDIAN of at least 20 intervals inside 9 000–11 000 us. Clustered LOWER (`HA-213 WRONG, FASTER`):
+  the copy is faster than PROS's documented 10 ms — IMU1's hold is still right, and what it leaves is
+  smaller. `SLOWER` may be a hand that stopped turning: re-run turning steadily; if it repeats, a tick's
+  one read can be 0 even after IMU1 (a new chunk). `NO CHANGE SEEN` while the robot WAS turning **and with
+  `PROS_ERR 0`** would mean PROS does not copy while a loop busy-reads — write that down; it is a finding,
+  not a mistake. With PROS_ERR above 0 it is a flaky cable, not that finding (the stage says so), and
+  `every read was PROS_ERR -- no finding.` is a dead IMU: check its cable and port and re-run. `change(s)
+  only` (one change is not an interval) means turn steadily and re-run.
+- **HA-214 (the copy's phase)** is a NUMBER: how many microseconds after the tick's wake the copy lands
+  (2c.2's median), and whether it moves (its drift). Each offset is measured from the ACTUAL wake, so a
+  late wake shortens it: the `spread` and the `residual SD` show how much the wakes jittered, and the `+-`
+  beside the drift (3 standard errors) is how much drift that jitter alone could fake in one second.
+  `FIXED` = the drift is within 10 us/s AND the `+-` is too: it held still over that second; whether it
+  is the SAME on every boot is what N.2.2's second run says. `DRIFTS` = the drift is past 10 us/s AND past
+  its `+-`: it moves against the tick, so every boot passes through the narrow band where IMU1's residual
+  lives (a pair of ticks reading 0 and about double). `no verdict -- drift ... +- ...` = the wakes jittered
+  too much to tell in one second — not a failure; send the numbers (the residual SD is a first look at the
+  wake jitter STAGE 5 would measure). Many `no change within 9500 us` ticks with a steady turn means the
+  copy lands right at the wake — write the count down.
+- **HA-215 (a tick's reads within 5 ms)**: the stand-in is a LOWER bound — the device reads a motion tick
+  makes between its two IMU reads and one serial line, without the Localizer's arithmetic, the record's
+  build or a motor command. Well under 5 ms (the stage says so under 2.5 ms) is what IMU1 needs, but **a
+  short stand-in is not proof**; a long one is a warning, and 5 ms or more says HA-215 is wrong on this
+  brain. Nonzero `motor reads that returned PROS_ERR` means a drive motor did not answer — then the span
+  is shorter than a real tick's: say which ports (STAGE 1's census).
+- **HA-04 (the gyro's sign)** holds if the integrated z has the raw rotation's sign — both raw PROS
+  degrees, never the library's canonical rate. That means the gyro and the differentiated rotation agree
+  in sign through the adapter's one negate; whether the rotation itself is clockwise-positive is HA-02's
+  (STAGE 2 and Station 4.2). The stage judges the sign whenever z is about the turning axis — in deg/s or
+  in rad/s (HA-109's two readings below; a sign does not depend on units) — and says
+  `HA-04: not judged -- z is not about the yaw axis.` when it is neither (the sign of `z / rotation` is
+  still printed: copy it).
+- **HA-109 (the gyro's units)** holds if the two angles agree within 10 % (`z / rotation` between about
+  0.9 and 1.1, either sign). About 0.0175 means z is in radians per second (`z is RADIANS per second`, with
+  HA-04 still judged); about 0 means z is not the turning axis (the IMU mounted on its side?). The turn
+  must span at least 2 s and 30 degrees, or the stage says to turn further and judges nothing;
+  `every poll was PROS_ERR -- no finding.` is a dead IMU, as in 2c.1.
+- **Nothing here is settled until a person reads these numbers into the register.** A verdict on the
+  panel is the stage's arithmetic on one hand turn, not a measurement anyone has checked.
+
+**What to send back:** N.2.1's answers, the N.3 table, the four blocks word for word (both runs if you
+did N.2.2), the `operator:` lines, and anything surprising, as observed — a block that never appeared, a
+screen that stayed frozen, a turn you had to stop.
 
 ---
 
