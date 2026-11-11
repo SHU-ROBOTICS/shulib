@@ -33,7 +33,7 @@ class ProsBrainScreen final : public IBrainScreen
 
 The brain's own touch screen, through PROS (header). Holds only its print count.
 
-*class, declared at [`include/shulib/hal/pros/brain_screen.hpp:37`](../../include/shulib/hal/pros/brain_screen.hpp#L37).*
+*class, declared at [`include/shulib/hal/pros/brain_screen.hpp:38`](../../include/shulib/hal/pros/brain_screen.hpp#L38).*
 
 <a id="prosbrainscreen-fillrect"></a>
 
@@ -45,7 +45,7 @@ void fillRect(std::int16_t x0, std::int16_t y0, std::int16_t x1, std::int16_t y1
 
 screen_set_pen(rgb), then screen_fill_rect.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:40`](../../include/shulib/hal/pros/brain_screen.hpp#L40).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:41`](../../include/shulib/hal/pros/brain_screen.hpp#L41).*
 
 <a id="prosbrainscreen-outlinerect"></a>
 
@@ -57,7 +57,7 @@ void outlineRect(std::int16_t x0, std::int16_t y0, std::int16_t x1, std::int16_t
 
 screen_set_pen(rgb), then screen_draw_rect.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:46`](../../include/shulib/hal/pros/brain_screen.hpp#L46).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:47`](../../include/shulib/hal/pros/brain_screen.hpp#L47).*
 
 <a id="prosbrainscreen-eraserect"></a>
 
@@ -69,7 +69,7 @@ void eraseRect(std::int16_t x0, std::int16_t y0, std::int16_t x1, std::int16_t y
 
 screen_set_eraser(rgb), then screen_erase_rect.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:52`](../../include/shulib/hal/pros/brain_screen.hpp#L52).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:53`](../../include/shulib/hal/pros/brain_screen.hpp#L53).*
 
 <a id="prosbrainscreen-eraseall"></a>
 
@@ -81,7 +81,7 @@ void eraseAll(std::uint32_t rgb) override
 
 screen_set_eraser(rgb), then screen_erase.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:58`](../../include/shulib/hal/pros/brain_screen.hpp#L58).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:59`](../../include/shulib/hal/pros/brain_screen.hpp#L59).*
 
 <a id="prosbrainscreen-print"></a>
 
@@ -93,7 +93,7 @@ void print(ScreenTextSize size, std::int16_t x, std::int16_t y, std::uint32_t pe
 
 screenSafeLine(text, cols, padTo), then screen_set_eraser, screen_set_pen and screen_print_at(size, x, y, "%s", line) — printText()'s order.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:64`](../../include/shulib/hal/pros/brain_screen.hpp#L64).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:65`](../../include/shulib/hal/pros/brain_screen.hpp#L65).*
 
 <a id="prosbrainscreen-touch"></a>
 
@@ -105,7 +105,7 @@ screenSafeLine(text, cols, padTo), then screen_set_eraser, screen_set_pen and sc
 
 screen_touch_status(), an E_TOUCH_ERROR read reported as an error.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:75`](../../include/shulib/hal/pros/brain_screen.hpp#L75).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:76`](../../include/shulib/hal/pros/brain_screen.hpp#L76).*
 
 <a id="prosbrainscreen-prints"></a>
 
@@ -117,21 +117,22 @@ screen_touch_status(), an E_TOUCH_ERROR read reported as an error.
 
 Every print() through this object.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:85`](../../include/shulib/hal/pros/brain_screen.hpp#L85).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:86`](../../include/shulib/hal/pros/brain_screen.hpp#L86).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 20 lines</summary>
+<summary>The header’s own reasoning — 21 lines</summary>
 
 ```text
 
  ProsBrainScreen — hal::IBrainScreen over PROS's screen API (chunk CAL1, Part A1, 2026-10-08).
 
- Each call is the PROS sequence "shulib Calibrate" (src/programs/calibrate_program.cpp) makes
- inline today: set the pen (or the eraser), then draw. print() is the sequence of printText()
+ Each call is the PROS sequence robot two's own "shulib Calibrate" (src/programs/calibrate_program.cpp,
+ until CAL1 Part B made it the standard one, 2026-11-05) made inline: set the pen (or the eraser),
+ then draw. print() is the sequence of printText()
  (src/common/screen_text.hpp): the text through the sanitizer (hal::screenSafeLine(), the same
  rules), then set the eraser, set the pen, and print the sanitized line through a LITERAL "%s" —
  so no text a caller passes is ever read by VEXos as a format. The touch read is PROS's

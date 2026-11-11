@@ -38,8 +38,8 @@
 //       side travel over a NaN member
 //   N11 with every reading finite, current(), totalCurrent() and temperature() are the old reads,
 //       bit for bit (the order of the sum, the sign of a zero), against verbatim copies
-//   N12 the push over robot two's REAL wiring (five of ten ports read backward), a backward push
-//       answered BACK-first, and a travel exactly AT movedThreshold
+//   N12 the push over robot two's REAL wiring (five of ten ports read backward), a push led with
+//       the other end (every delta negative), and a travel exactly AT movedThreshold
 //
 // NOTHING HERE HAS RUN ON A ROBOT, and on robot two the exclusion is expected never to fire:
 // ProsMotor screens a non-finite read to the last good one before a group sees it (A4 register
@@ -1459,11 +1459,12 @@ struct N10Run {
 /// Robot two's calibration with a scripted operator (calibration_test_rig.hpp), stopped at the
 /// FIRST tick pushReady() is true — at rest, the push done, DONE about to be touched. There
 /// `inject` runs; then ONE more watched tick (so status() shows the push as the calibrator now
-/// reads it); then DONE and FRONT FIRST by hand; then `afterFront`; then the rig's operator
+/// reads it); then DONE by hand (the end that led is the front: no WHICH END since CAL1 Part B);
+/// then `afterDone`; then the rig's operator
 /// finishes the run. A clean run takes the SAME path with no injection, so the two are compared
 /// like for like.
 N10Run runN10(CalibRig& rig, const std::function<void(CalibRig&)>& inject,
-              const std::function<void(CalibRig&)>& afterFront,
+              const std::function<void(CalibRig&)>& afterDone,
               const std::function<void(CalibRig&, const calib_rig::Script&)>& hook = nullptr) {
     using shulib::calibration::Answer;
     using shulib::calibration::Phase;
@@ -1481,11 +1482,8 @@ N10Run runN10(CalibRig& rig, const std::function<void(CalibRig&)>& inject,
     out.movedWhileWatched = rig.cal.status().movedNow;
     out.readyAfterInjection = rig.cal.pushReady();
     rig.cal.answer(Answer::Done);
-    if (rig.cal.accepts(Answer::FrontFirst)) {
-        rig.cal.answer(Answer::FrontFirst);
-    }
-    if (afterFront) {
-        afterFront(rig);
+    if (afterDone) {
+        afterDone(rig);
     }
     calib_rig::RunOptions rest;
     rest.hook = hook;
@@ -1941,11 +1939,12 @@ constexpr int kRobotTwoRight[5] = {20, -19, 18, -17, 16};
 // the robot backward. On robot two's real wiring five of the ten drive ports read negative on a
 // forward push, so a signed median sits near 0, pushReady() never comes true, and a forced DONE is
 // refused PUSH_TOO_SHORT: calibration could never finish on the robot it was written for, with the
-// suite green. A push made BACKWARD and answered BACK-first (a flow the scale supports) reads all
-// ten negative. And the rule's boundary: a travel exactly AT movedThreshold "reaches" it.
+// suite green. A push LED WITH THE OTHER END (pushed backward: its leading end is that run's front —
+// until CAL1 Part B it was answered BACK-first instead) reads all ten negative. And the rule's
+// boundary: a travel exactly AT movedThreshold "reaches" it.
 // Mutations (review round, 2026-09-30): S1 (pushSummary() stores the signed delta), S3
 // (movedOnPush() compares with '>').
-TEST_CASE("DIAG1 N12: the push over robot two's real wiring, a backward push answered BACK-first, "
+TEST_CASE("DIAG1 N12: the push over robot two's real wiring, a push led with the other end, "
           "and a travel exactly at movedThreshold") {
     using shulib::calibration::Answer;
     using shulib::calibration::CalibratorConfig;
@@ -1998,11 +1997,10 @@ TEST_CASE("DIAG1 N12: the push over robot two's real wiring, a backward push ans
         CHECK(sameBits(rep.rightInchesPerRadian, plain.cal.report().rightInchesPerRadian));
     }
 
-    SUBCASE("(b) pushed BACKWARD and answered BACK-first: every delta negative") {
+    SUBCASE("(b) pushed BACKWARD -- led with the other end: every delta negative") {
         CalibRig rig{CalibratorConfig{}, calib_rig::calibPlant(0.0)};
         calib_rig::RunOptions opt;
         opt.pushDirection = -1.0;
-        opt.front = Answer::BackFirst;
         const N12Run b = runN12(rig, opt);
         const auto& rep = rig.cal.report();
         MESSAGE("N12(b): end ", static_cast<int>(b.end), " readyTicks ", b.readyTicks,
@@ -2014,26 +2012,25 @@ TEST_CASE("DIAG1 N12: the push over robot two's real wiring, a backward push ans
         CHECK(sameBits(rig.cal.status().pushTravelRad, medianDriveTravel(rep)));
         CHECK(rig.cal.status().pushTravelRad > 0.0);
         REQUIRE_MESSAGE(b.end == Phase::Done, std::string{rig.cal.reason()});
-        CHECK(rep.backFirst);
         for (std::size_t i = 0; i < 2 * CalibRig::kPerWheel; ++i) {
             CAPTURE(static_cast<int>(rig.ports[i]));
             CHECK(rep.ports[i].pushDeltaRad < 0.0);   // the shaft turned backward ...
-            CHECK(rep.ports[i].sign == 1);            // ... and BACK-first makes that forward
-            CHECK(rep.ports[i].pushTravelRad < 0.0);  // a back-first push's sign-corrected travel
+            CHECK(rep.ports[i].sign == -1);           // ... which is this run's sign, as captured
+            CHECK(rep.ports[i].pushTravelRad > 0.0);  // travel toward THIS run's front: positive
         }
-        // The back led the push, and the operator said so: the description is the plain run's —
-        // the same robot, the same front, every port forward, the same sides.
+        // The other end led the push, so it is this run's FRONT: the description is the plain
+        // run's robot FACING THE OTHER WAY — every port negated and on the other side.
         const auto& d = rig.cal.result();
         const auto& pd = plain.cal.result();
         for (int port = 11; port <= 20; ++port) {
             CAPTURE(port);
-            CHECK(d.signedPortOf(port) == port);
-            CHECK(d.signedPortOf(port) == pd.signedPortOf(port));
-            CHECK(d.sideOf(port) == pd.sideOf(port));
+            CHECK(d.signedPortOf(port) == -port);
+            CHECK(d.signedPortOf(port) == -pd.signedPortOf(port));
+            CHECK(d.sideOf(port) == -pd.sideOf(port));
         }
-        // And the same scale: the same shaft travel, the other way round.
-        CHECK(sameBits(rep.leftInchesPerRadian, plain.cal.report().leftInchesPerRadian));
-        CHECK(sameBits(rep.rightInchesPerRadian, plain.cal.report().rightInchesPerRadian));
+        // And the scales swapped with the sides: the same shaft travel, the other way round.
+        CHECK(sameBits(rep.leftInchesPerRadian, plain.cal.report().rightInchesPerRadian));
+        CHECK(sameBits(rep.rightInchesPerRadian, plain.cal.report().leftInchesPerRadian));
     }
 
     SUBCASE("(c) a travel exactly AT movedThreshold has moved: the rule is >=, as documented") {

@@ -20,11 +20,12 @@
 // one-call serial lines, 2026-10-15) — MOVED: the census, the declared-port drop, the refusals, the
 // calibrator, the touch, the serial record and RUN AGAIN are its code, in its order. What changed is
 // the CAL1 brief's §1.3 list and nothing else: the words that named robot two are the facts'; the
-// front is the push's (the program answers the calibrator's WHICH END question itself, the tick DONE
-// is accepted, so that screen is never painted — CAL1 Part B deletes the question); the save is
-// SAFE-SAVE B1's (calibration/record_store.hpp); and three things are new — the FRONT CHECK, the
-// WATCH of the declared ports, and the two HELD screens. That program stays robot two's until CAL1
-// Part B moves robot two onto this one.
+// front is the push's (CAL1 Part B, 2026-11-05, removed the calibrator's WHICH END question, which
+// this program had answered itself the tick DONE was accepted); the save is SAFE-SAVE B1's
+// (calibration/record_store.hpp); and three things are new — the FRONT CHECK, the WATCH of the
+// declared ports, and the two HELD screens. Since CAL1 Part B robot two runs THIS program: its
+// src/programs/calibrate_program.cpp is a 27-line glue over hal/pros/calibrate.hpp, with facts
+// derived from its tables (src/robots/calibrate_facts.hpp).
 //
 // ── It owns NO pixel and NO PROS call ───────────────────────────────────────────────
 // It paints through calibrate_screen.hpp onto an hal::IBrainScreen, builds its motors and its IMU
@@ -396,8 +397,6 @@ namespace detail {
 [[nodiscard]] inline const char* programAnswerWord(Answer a) noexcept {
     switch (a) {
         case Answer::Done: return "DONE";
-        case Answer::FrontFirst: return "FRONT FIRST";
-        case Answer::BackFirst: return "BACK FIRST";
         case Answer::Abort: return "ABORT";
     }
     return "?";
@@ -768,8 +767,7 @@ public:
                 record(*cal, run, now);  // the serial record — and, at Done, the check and the save
 
                 // ── paint the view, then read the touch against THAT view ──
-                PanelView drawn = gate->view(*cal, clock.now().value(), run.save, FrontRule::ByPush,
-                                             finishFacts(run));
+                PanelView drawn = gate->view(*cal, clock.now().value(), run.save, finishFacts(run));
                 painter_.render(drawn, now);
                 recordLayout(drawn, run);
 
@@ -788,12 +786,8 @@ public:
                         cal->answer(r.answer);
                         if (r.answer == Answer::Done) {
                             // The end that LED the push IS the front (the team lead, 2026-10-06):
-                            // the calibrator still asks WHICH END after DONE, so the program
-                            // answers it here, before any view is painted. CAL1 Part B deletes the
-                            // question, and this answer with it.
-                            if (cal->accepts(Answer::FrontFirst)) {
-                                cal->answer(Answer::FrontFirst);
-                            }
+                            // DONE takes the calibrator straight on to the pulses (CAL1 Part B
+                            // removed the WHICH END question this program used to answer here).
                             emitPushTable(*cal);
                             if (cal->phase() == Phase::SideAssign) {  // the push was accepted
                                 emitStillCandidates(*cal);
@@ -804,14 +798,12 @@ public:
                         record(*cal, run, now);  // a refusal at DONE, or the abort: its outcome now
                         // The step changed under the operator's finger: the new view goes up NOW,
                         // not on the next tick — its new buttons greyed for the arming delay.
-                        drawn = gate->view(*cal, clock.now().value(), run.save, FrontRule::ByPush,
-                                           finishFacts(run));
+                        drawn = gate->view(*cal, clock.now().value(), run.save, finishFacts(run));
                         painter_.render(drawn, now);
                         recordLayout(drawn, run);
                     } else if (r.action == TouchAction::SaveHeld) {
                         resolveHeld(run);
-                        drawn = gate->view(*cal, clock.now().value(), run.save, FrontRule::ByPush,
-                                           finishFacts(run));
+                        drawn = gate->view(*cal, clock.now().value(), run.save, finishFacts(run));
                         painter_.render(drawn, now);
                         recordLayout(drawn, run);
                     } else if (r.action == TouchAction::RunAgain) {

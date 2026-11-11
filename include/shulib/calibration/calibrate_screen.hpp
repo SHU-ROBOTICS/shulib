@@ -12,8 +12,8 @@
 // Its rules, its palette and its drawing calls, in their order, are those of the painter in
 // "shulib Calibrate" (src/programs/calibrate_program.cpp — `PanelPainter`, its header and button
 // helpers and its own screens, written at R3d Part 2F-2 on 2026-09-24), re-expressed through the
-// seam. That program keeps its own painter until CAL1 Part B moves robot two onto the library's
-// Calibrate and deletes it; this file is then the only one. Its words are the program's, with the
+// seam. CAL1 Part B (2026-11-05) moved robot two onto the library's Calibrate and deleted that
+// program and its painter; this file is the only one. Its words are the program's, with the
 // words that named robot two generalized for every team (no slot numbers, no "Bench Tests": a
 // team's project may have neither), and a few added for the standard program's refusals.
 //

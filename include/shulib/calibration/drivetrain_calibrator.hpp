@@ -11,7 +11,11 @@
 // width. The three facts it CANNOT discover — the cartridge (physically unobservable: the rotor
 // turns the same for every insert and the firmware already divides by whatever it was told), the
 // drivetrain KIND, and which end is the FRONT — are stated by a person, and the front is stated
-// PHYSICALLY, by which end they pushed first.
+// PHYSICALLY: the end that LEADS the push is the FRONT (the team lead's ruling, 2026-10-06; until
+// CAL1 Part B, 2026-11-05, the operator was asked afterwards which end went first — that question,
+// Answer::FrontFirst / BackFirst and CalibrationReport::backFirst are gone). A push led with the
+// other end yields every sign and both sides the other way round, which nothing in this class can
+// see; a program compares the result with the card's record (calibration/front_check.hpp).
 //
 // ── PROVEN ON THE PLANT; IT HAS NEVER FINISHED ON A ROBOT ───────────────────────────
 // Every property below is validated against the A2 host plant (sim/drive_plant.hpp) and nothing
@@ -54,8 +58,8 @@
 //                            tape, straight. Every candidate whose shaft moved by more than
 //                            movedThreshold is a DRIVE port and the DIRECTION it moved is its
 //                            SIGN; its travel is kept for the scale. The push must be straight
-//                            (straightBound) and long enough (minPushRad). Then the operator
-//                            says which end went first; BACK-first inverts every sign. Ports that
+//                            (straightBound) and long enough (minPushRad). The end that LED the
+//                            push is the FRONT: the signs stand as captured. Ports that
 //                            did not move are not drive motors and are never touched again.
 //                            A candidate whose push reading is NOT FINITE (NaN, ±Inf) did not
 //                            "move" either — it gave no reading — so it is not a drive port;
@@ -198,12 +202,12 @@ enum class Phase : std::uint8_t {
 };
 
 /// What the operator's touch means. Everything a person contributes to a calibration arrives
-/// through exactly this enum — there is no blocking prompt anywhere in the class.
+/// through exactly this enum — there is no blocking prompt anywhere in the class. Never persisted
+/// (the record stores no answer), so CAL1 Part B's removal of FrontFirst and BackFirst renumbered
+/// Abort safely: nothing on a card changed.
 enum class Answer : std::uint8_t {
-    Done,        ///< "I have finished pushing"
-    FrontFirst,  ///< the push led with the end the build team calls the FRONT
-    BackFirst,   ///< the push led with the other end — every captured sign inverts
-    Abort,       ///< stop now
+    Done,   ///< "I have finished pushing" — the end that led the push is the FRONT (CAL1)
+    Abort,  ///< stop now
 };
 
 /// WHY a run ended in Aborted — a CODE, so a panel can say it in plain words keyed on a value
@@ -368,7 +372,7 @@ struct CalibratorConfig {
 struct PortObservation {
     /// The candidate's port as handed in: always POSITIVE (the sign is captured, not given).
     std::int8_t port = 0;
-    /// The sign captured from the push, already inverted if the push was BACK-first: +1, −1, or 0
+    /// The sign captured from the push (the end that led it is the FRONT): +1, −1, or 0
     /// for a candidate that did not move and is therefore not a drive motor — or whose push
     /// reading was not finite, which is no reading and no sign (the push record says NO READING).
     std::int8_t sign = 0;
@@ -378,7 +382,7 @@ struct PortObservation {
     /// push is watched, then the number the sign was read off.
     double pushDeltaRad = 0.0;
     /// The same travel sign-corrected (sign × pushDeltaRad): the port's travel in the robot's
-    /// forward direction — positive for a front-first push, negative for a back-first one.
+    /// forward direction — positive, since the end that led the push is the front.
     /// Exactly +0.0 for a port that is not a drive motor — a still one, and (since DIAG1 Part B)
     /// one whose push reading was not finite (NO READING), where sign × pushDeltaRad would be
     /// 0 × ±Inf or 0 × NaN, a NaN.
@@ -444,8 +448,6 @@ struct CalibrationReport {
     std::uint8_t portCount = 0;
     /// How many of them moved on the push and are therefore drive motors.
     std::uint8_t drivePortCount = 0;
-    /// True when the operator answered BACK FIRST and every captured sign was inverted.
-    bool backFirst = false;
     /// The push's length, inches — CalibratorConfig::pushDistance, recorded once the push is taken.
     double pushDistanceIn = 0.0;
     /// The IMU's dtheta over the push, radians, signed — how straight the push actually was.
@@ -707,14 +709,7 @@ public:
         switch (step_) {
             case Step::PushWatching:
                 if (a == Answer::Done) {
-                    finishPushCapture();
-                    updateStatus();
-                    return;
-                }
-                break;
-            case Step::PushAwaitingFront:
-                if (a == Answer::FrontFirst || a == Answer::BackFirst) {
-                    applyFront(a == Answer::BackFirst);
+                    finishPushCapture();  // CAL1: the leading end IS the front (no question)
                     updateStatus();
                     return;
                 }
@@ -805,8 +800,6 @@ public:
         }
         switch (step_) {
             case Step::PushWatching: return a == Answer::Done;
-            case Step::PushAwaitingFront:
-                return a == Answer::FrontFirst || a == Answer::BackFirst;
             default: return false;
         }
     }
@@ -836,7 +829,6 @@ private:
     enum class Step : std::uint8_t {
         None,
         PushWatching,
-        PushAwaitingFront,
         SideRest,
         SidePulse,
         SpinRestBefore,
@@ -1109,18 +1101,15 @@ private:
             refuse(Refusal::PushTooShort, 0, msg);
             return;
         }
-        step_ = Step::PushAwaitingFront;
+        applyFront();  // CAL1 (the team lead, 2026-10-06): the end that LED the push is the front
     }
 
-    /// The front is whatever the operator says it is: a BACK-first push inverts every sign, and no
-    /// later step could ever see that it should have (every member would agree with every other,
-    /// all the wrong way round).
-    void applyFront(bool backFirst) {
-        report_.backFirst = backFirst;
+    /// The front is the end that LED the push (the team lead's ruling, 2026-10-06): the captured
+    /// signs stand as captured. A push that led with the other end gives every sign and both sides
+    /// the other way round — no later step could see it (every member agrees with every other) —
+    /// which is why a program compares the result with the card's record (front_check.hpp).
+    void applyFront() {
         for (std::size_t i = 0; i < n_; ++i) {
-            if (backFirst) {
-                sign_[i] = static_cast<std::int8_t>(-sign_[i]);
-            }
             report_.ports[i].sign = sign_[i];
             // A port with no sign has no travel: +0.0, not 0 × its delta — for a candidate with
             // no reading that product is 0 × ±Inf or 0 × NaN, a NaN (DIAG1 Part B review round).
@@ -1279,10 +1268,9 @@ private:
             return;
         }
         // The push-direction travel of a drive port is |its push delta| BY CONSTRUCTION (its raw
-        // sign is the direction it moved), so a BACK-first push — the robot moved backward in its
-        // own frame — gives the same scale as a front-first one. The median is taken over the
-        // travel CAPTURED AT DONE: the pulses have moved every shaft since.
-        const double forward = report_.backFirst ? -1.0 : 1.0;
+        // sign is the direction it moved, and the end that led is the front — CAL1), so it is
+        // positive. The median is taken over the travel CAPTURED AT DONE: the pulses have moved
+        // every shaft since.
         double median[2] = {0.0, 0.0};
         double spread[2] = {0.0, 0.0};
         const char* names[2] = {"LEFT", "RIGHT"};
@@ -1297,7 +1285,7 @@ private:
             double lo = 0.0;
             double hi = 0.0;
             for (std::size_t k = 0; k < count; ++k) {
-                v[k] = forward * report_.ports[idx[k]].pushTravelRad;
+                v[k] = report_.ports[idx[k]].pushTravelRad;
                 lo = (k == 0 || v[k] < lo) ? v[k] : lo;
                 hi = (k == 0 || v[k] > hi) ? v[k] : hi;
             }
@@ -1718,8 +1706,6 @@ private:
     [[nodiscard]] static const char* answerWord(Answer a) noexcept {
         switch (a) {
             case Answer::Done: return "DONE";
-            case Answer::FrontFirst: return "FRONT FIRST";
-            case Answer::BackFirst: return "BACK FIRST";
             case Answer::Abort: return "ABORT";
         }
         return "?";
@@ -1728,7 +1714,6 @@ private:
     [[nodiscard]] const char* waitingWord() const noexcept {
         switch (step_) {
             case Step::PushWatching: return "watching the push (waiting for DONE)";
-            case Step::PushAwaitingFront: return "waiting for FRONT FIRST or BACK FIRST";
             default: return "driving the motors (no answer is expected)";
         }
     }
@@ -1754,6 +1739,14 @@ private:
         status_.leftCount = left;
         status_.rightCount = right;
         if (step_ == Step::PushWatching) {
+            // The yaw RATE is read on every tick of the push, though the push itself never uses it
+            // (CAL1 Part B, 2026-11-05): the PROS IMU adapter's default rate is the derivative of
+            // the rotation between FRESH reads (hal/pros/imu.hpp, DifferentiateRotation), and
+            // atRest() skips its rate read while a motor turns — as every one does all push long —
+            // so DONE's first rest tick would read a rate averaged over the WHOLE push, and a robot
+            // turned by hand at 3 deg/s then read as still for that tick (IMU1's T11). Until Part B
+            // the WHICH END tick between DONE and the rest window took that stale read.
+            (void)imu_.yawRate();
             const PushSummary s = pushSummary();
             status_.movedNow = s.moved;
             status_.pushTravelRad = s.medianRad;
@@ -1780,15 +1773,7 @@ private:
                               cfg_.imuReadyTimeout.value());
                 return;
             case Phase::PushCapture: {
-                if (step_ == Step::PushAwaitingFront) {
-                    status_.prompt = "WHICH END WENT FIRST -- FRONT or BACK?";
-                    std::snprintf(status_.progress, sizeof status_.progress,
-                                  "%u drive port(s) captured, drift %+.1f deg",
-                                  static_cast<unsigned>(report_.drivePortCount),
-                                  report_.pushStraightnessRad / kDegreesToRadians);
-                    return;
-                }
-                std::snprintf(prompt_, sizeof prompt_, "PUSH IT %.0f IN FORWARD, then touch DONE.",
+                std::snprintf(prompt_, sizeof prompt_, "PUSH IT %.0f IN, FRONT FIRST, then touch DONE.",
                               cfg_.pushDistance.value());
                 status_.prompt = prompt_;
                 std::snprintf(status_.progress, sizeof status_.progress,

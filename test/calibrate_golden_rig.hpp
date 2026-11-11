@@ -70,6 +70,7 @@
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 #include "pros/shim_control.hpp"
+#include "robots/calibrate_facts.hpp"
 #include "shulib/calibration/calibrate_program.hpp"
 #include "shulib/calibration/calibration_record.hpp"
 #include "shulib/calibration/record_store.hpp"
@@ -137,17 +138,19 @@ struct Scenario {
     Seed seed = Seed::None;
 };
 
-/// Robot two's facts, written LITERALLY (what CAL1 Part B derives from its tables: Tank, BLUE, the
-/// two claw pivots, the robot's name, the typed IMU port as a cross-check — and NO typed drive
-/// ports: its table is not a description the boot can drive from), then the scenario's changes.
+/// Robot two's facts AS ITS GLUE DERIVES THEM (CAL1 Part B, 2026-11-05;
+/// src/programs/calibrate_program.cpp's own composition, src/robots/calibrate_facts.hpp):
+/// withTypedDriveFrom(calibrateFactsFor(robot two's chassis table, its mechanism list), the
+/// table) — Tank, BLUE, the two claw pivots by their names, the robot's name, the typed IMU port as
+/// a cross-check, and NO typed drive ports (its table is not a description the boot can drive
+/// from). Until Part B they were written here literally; every golden stayed UNCHANGED when they
+/// became derived (CAL1-PROGRESS.md, Part B), and test/calibrate_facts_test.cpp pins the derived
+/// facts against those literals. Then the scenario's changes.
 [[nodiscard]] inline shulib::calibration::CalibrateFacts factsFor(const Scenario& sc) {
-    shulib::calibration::CalibrateFacts f{};
-    f.drive = shulib::config::DrivetrainKind::Tank;
-    f.cartridge = shulib::hal::MotorCartridge::Blue;
-    f.mechanisms[0] = {6, "claw pivot 6"};
-    f.mechanisms[1] = {7, "claw pivot 7"};
-    f.robot = "2026 TANK CHASSIS (robot two)";
-    f.imuPortStated = 2;
+    shulib::calibration::CalibrateFacts f = shulib::bench::withTypedDriveFrom(
+        shulib::bench::calibrateFactsFor(shulib::bench::kRobotTwoChassis,
+                                         shulib::bench::robot_two::kRobotTwoMechanisms),
+        shulib::bench::kRobotTwoChassis);
     if (sc.typo12) {
         f.mechanisms[1].port = 12;  // claw pivot 7 typed as 12: a DRIVE port declared a mechanism
     }

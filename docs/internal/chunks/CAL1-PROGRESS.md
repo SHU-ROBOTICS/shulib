@@ -3861,3 +3861,610 @@ the one logged above ("Prose review … 2026-10-30 15:00–15:10"), and nothing 
   assertions, confirmed by compiling each mutant, not the mutation's own breakage). Restored tree green.
 - **Next for CAL1:** Part B (robot two onto the standard Calibrate; CAL1's facts mapping N9; the dated status line in
   chapter 19) — the auton library, ahead of the panel (the team lead's 2026-11-03 order).
+
+---
+
+## Part B — robot two onto the standard Calibrate, the WHICH END question removed, the side-by-side proof, the documents
+
+> **This run builds Part B ONLY** (the brief's §1.8, §1.2 "Changed library files in Part B" — C1's removal —, §2.B,
+> §3.2), on the team lead's go (2026-10-06 rulings; D1–D6 with D6 (a), 2026-10-08) and his order of 2026-11-05 (the
+> autons before Nov 21: Part B is what puts robot two on the library's Calibrate, whose recorded run is expected
+> to fix robot two's ~8 % distance error once the team re-runs it — not yet measured). Hand-ons carried: MECH-A5's N9 (map robot two's
+> `kMechanisms`, a `mechanism::MechanismTable`, into `CalibrateFacts` through `mechanism::declaredMotorPorts()` and
+> DELETE the drop call), A2b's (chapter 19's dated status line; HA-187's settle steps at Station G; the old goldens'
+> path beside `test/goldens/calibrate/`; `test/pros_calibrate_adapter_test.cpp` :7), D6 (a)'s check (C1: robot two
+> carries no typed ports — `withTypedDriveFrom` through the boot's own `tableToDescription`/`valid()`), and the
+> worksheet's two new reminders (COPY `shulib_drivetrain.bin` off the card before the first run of the new Calibrate;
+> a first run on an EMPTY card shows FIRST RECORD — nothing checks robot two's front there: its typed table is not
+> a reference until G3a Part 5's flip and HA-125/126 make it a valid description; against the card's camera-end
+> record, a push led with the 15/16 end shows FRONT FLIPPED). *(Reworded in the review round: the first wording
+> said FRONT FLIPPED was impossible against a camera-end record, which the code contradicts.)*
+>
+> Executor: **Claude Opus 5.5** (subagent of the coordinator's workflow run), working in the git worktree
+> `.claude/worktrees/cal1-b` (branch `cal1-b`, from `858b675`). The executor does not commit, push, run `pros`, or
+> touch the serial port. Scratch and backups: `.claude/coordinator/scratch/cal1-b/` (never `/tmp`, never the
+> repository root). Every test binary runs capped: `(ulimit -v 4194304; timeout 600 …)`. Nothing here has run on a
+> robot; "host test plant", never "simulator".
+
+### B.0 Start (2026-11-05 02:07 EST, `date`)
+
+- `docs/internal/RESUMING.md` read (pace rules 1–8, the standards). The brief read by the team lead's 2026-10-22
+  ruling: its header and answers, every Re-check / D6 (a) / "The check of D6 (a)" entry IN FULL, the Decisions IN
+  FULL, the landmines (§7), the coordination section (§5), §6, §8, and every section naming Part B (§1.1's robot-two
+  half, §1.2's "Changed library files in Part B", §1.8, §2.B, §3.2); the rest by heading. This log's Parts A1, A2a,
+  A2b and the three merge records read for every hand-on to B (listed in the block above). `MECH-PROGRESS.md`
+  `## MECH-A5` (A5-D8, notes item 3) read for N9.
+- **In flight beside this run (not edited here):** MECH-S-A (hal/, `mechanism/kinds.hpp`, `spec.hpp`), STEP1-A
+  (`chassis/routine.hpp`, the result words in `competition_screen.hpp` / `auton_tester_panel.hpp`), L6-A2 (config/,
+  `robot/robot.hpp`, `chassis/robot_context.hpp`, `competition/wall_reset.hpp`), IMU1 Part B (station 2's functions in
+  `bench_r3a.cpp`), MECH-A6 (`bench_r3a.*`).
+
+### B.R Resumption (2026-11-05 15:39 EST, `date`)
+
+- The run started at B.0 was STOPPED (the team lead's pause) after its reading and during its baseline build; it
+  edited nothing but this log (`git status`: only `CAL1-PROGRESS.md` modified; `git diff -- src/ Makefile`: empty, so
+  no `src_build_gate.py` self-test plant was left; no mutation had started, so no backup to restore).
+- Baseline on a FRESH link (`rm -f build/test/shulib_tests`, `cmake -S test -B build/test`, `cmake --build build/test
+  -j8`, exit 0): `python3 tools/suite_run.py green` under `ulimit -v 4194304; timeout 600` — **suite run: green —
+  2961 cases, 2955869 assertions** (main's merge-verified count, 2,961).
+- B.0's reading stands; this resumption re-read the brief's §1.1 (robot two's glue), §1.2 (C1, "Changed library files
+  in Part B"), §1.8, §2.B, §3.2, §5, §7 and A2b's hand-ons before editing.
+
+### B.1 The side-by-side proof — today's program captured BEFORE it is replaced (2026-11-05 15:42–15:50 EST)
+
+Landmine 17: the old program's goldens were captured first, from a frozen copy of the tree at `858b675`
+(`scratch/cal1-b/oldtree/`: `src/`, `include/`, `test/pros_shim/`, `test/calibrate_golden_rig.hpp`).
+
+- **The machine — the COMMITTED golden rig, not the brief's probe harness.** `scratch/cal1-b/oldrig/make_rig.py`
+  derives `old_rig.hpp` from `test/calibrate_golden_rig.hpp` with two edits only (its diff is 4 hunks): the run is
+  `shulib::bench::calibrateInitialize(kLabel, "0x00 field=no disabled=no auton=no")` + `shulib::bench::runCalibrate()`
+  (today's robot-two program) instead of the library's composition, and the operator answers today's WHICH END
+  question (FRONT FIRST; BACK FIRST in `oldback`) as the brief's `harness/harness.cpp` did. The plant, wiring, push,
+  taps and capture are the rig's byte for byte, so both sides ran on ONE machine. The old program's card root is
+  redirected by an overlay of `block_sink.hpp` / `block_source.hpp` whose only change is the default root
+  (`PROBE_CARD_ROOT`, a fixed scratch directory), built with `-DSHULIB_ROBOT_TANK_2026 -DSHULIB_PROGRAM_CALIBRATE`
+  and the goldens' stamp (`build_old.sh`). Delta from §2.B: the old goldens are kept in
+  `scratch/cal1-b/oldrig/golden_old/` (9 scenarios × serial, screen, card), not under `test/` — §2.B deletes them with
+  the old program anyway, and A2b's finding 21c showed `test/goldens/calibrate/` must hold exactly its 34 scenarios.
+- **The nine old scenarios** (`one clean slip18 curved nocard noimu disable flip-keep oldback`) all finished; the
+  declared ports 6 and 7 were never geared or commanded (0/0 each). `flip-keep` — the other end led and the operator
+  answered FRONT FIRST — saved a record whose FORWARD drives **0 of 10** motors forward: the silent reversal the
+  standard Calibrate's front check holds on. `oldback` (BACK FIRST answered) saved 10 of 10.
+- **The rule table** — the brief's `amend/classify2.py` copied to `scratch/cal1-b/sbs/classify_b.py` with TWO rules
+  added, both reason S (the save's words as A2a's review rounds landed them: `then writes them to … (a verified
+  backup shulib_drivetrain.bak first).` and `record file: … (written only after a COMPLETE run, a verified backup
+  shulib_drivetrain.bak first)`); the brief's rules stand. Without the two, each scenario showed exactly those two
+  lines as residuals and nothing else. Reasons: **G** generic words (robot two's become the standard program's),
+  **F** ruling (1) — the front is the end that leads the push (WHICH END gone, 1/5..5/5 → 1/4..4/4, the front check),
+  **S** SAFE-SAVE B1's save and words, **W** the declared-port watch and the declared port's name, **M** the
+  undeclared-motor words (Re-check R11), **T** timing on the 10 ms plant grid.
+- **Result (`sbs/classify_b.log`), serial logs, old → new (`test/goldens/calibrate/`):**
+
+  | scenario | old | new | differing | G | F | S | W | M | T | RESIDUAL |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | one | 138 | 139 | 67 | 19 | 19 | 7 | 8 | 0 | 14 | **0** |
+  | clean | 218 | 221 | 101 | 19 | 30 | 10 | 10 | 0 | 32 | **0** |
+  | slip18 | 135 | 136 | 69 | 19 | 19 | 7 | 8 | 2 | 14 | **0** |
+  | nocard | 137 | 137 | 70 | 19 | 19 | 10 | 8 | 0 | 14 | **0** |
+  | curved | 167 | 168 | 83 | 19 | 25 | 7 | 8 | 0 | 24 | **0** |
+  | noimu | 48 | 44 | 30 | 19 | 3 | 4 | 4 | 0 | 0 | **0** |
+  | disable | 99 | 98 | 57 | 19 | 18 | 4 | 8 | 0 | 8 | **0** |
+
+  The old counts equal the brief's P17 table line for line (138, 218, 135, 137, 167, 48, 99); the new equal it but
+  `curved` (168, not 170: A2a's review rounds; every line still claimed).
+- **The records (`sbs/cards.py`, `cards.log`):** `.bin` byte-IDENTICAL in `one`, `slip18`, `curved`; `clean` differs
+  in 6 bytes (33, 71: the scales' last bits; 176–179: the CRC) — the T class, as the brief measured; `nocard`,
+  `noimu`, `disable` write nothing on either side. The new program also writes `shulib_drivetrain.bak`, equal to its
+  `.bin` in every saved scenario (S).
+- **The timing control re-run:** the old program against ITSELF with the operator 0.1 s slower (`kReactSec` 0.4,
+  `old_rig_ctl`, `sbs/ctl.log`): only T lines differ (one 8, clean 18, slip18 8, nocard 8, curved 16, disable 4),
+  residual 0 — so the T rule claims only what an operator's timing moves.
+- **Negative control:** one invented line (`port 6: claw pivot 6 (declared) -- POWERED at 3 V`) added to a copy of the
+  new `one` → `RESIDUAL=1`, exit 1: the table is not vacuous.
+- To re-run: `oldrig/build_old.sh`, `old_rig <scenario> <out> oldrig/work` per scenario, then
+  `classify_b.py old new <list> NOROOT` after `sed 's#<card>/#/usd/#g'` on both sides (the rig normalizes the card
+  root to `<card>/`; the old program prints `/usd/` literally).
+
+### B.2 The build — robot two onto the standard Calibrate, and C1's removal (2026-11-05 15:50–16:40 EST)
+
+Backups of every edited file at `858b675` are in `scratch/cal1-b/bak/` (`*.858b675`).
+
+- **`src/`** (§1.8): `src/programs/calibrate_program.cpp` → the **27-line** glue, verbatim the brief's §1.1 form
+  (the old file was **1,397** lines — R8 asked Part B to write the count; the brief said 1,387);
+  `calibrate_program.hpp` → its five declarations (22 lines). `src/robots/calibrate_facts.hpp` NEW (N9: one fact per
+  MOTOR ROLE, the port from `mechanism::declaredMotorPorts()`, the name its mechanism's; `withTypedDriveFrom` through
+  the boot's own `tableToDescription()`/`valid()`; `kCalibrateFacts` + its `static_assert`). `src/main.cpp`:
+  Calibrate's three state-screen cases call `calibrateDisabled/Connected/Autonomous()`; Bench Tests and Drive keep
+  `benchStateScreen`. `src/common/screen_text.hpp`: `printText()`'s body is `hal::screenSafeLine(out, sizeof out,
+  text, calibration::budgetFor(size), padTo)` + the same three PROS calls and the counter. `src/build_selection.hpp`
+  and the `Makefile`: the refusal messages say "this robot's chassis table" (+ the Makefile's comment block).
+  `src/robots/mechanism_table.hpp`: `DroppedMechanismPorts` and `dropDeclaredMechanismPorts()` DELETED (their only
+  caller was the old program); `isDeclaredMechanismPort` stays (the brief: "the rest stay"; its own cases stay in
+  `mechanism_table_test.cpp`) with its comment re-pointed. `tools/src_build_gate.py`: `PROGRAM_ENTRY_SYMBOLS`'
+  Calibrate row gains the three state-screen names; case 26's `CALIBRATE_PLANT` is `src/robots/calibrate_facts.hpp`
+  with the anchor `calibrateFactsFor(kChassis, kMechanisms)` → `…mechanismTableFor(RobotId::BenchBot))` (R1); the
+  docstring's tank-calibrate paragraph, step 8's note and :221's example reworded.
+- **C1 (§1.2 "Changed library files in Part B")**: `drivetrain_calibrator.hpp` — `Answer::FrontFirst/BackFirst`,
+  `Step::PushAwaitingFront`, `CalibrationReport::backFirst`, the inversion and its `forward` factor removed;
+  `finishPushCapture()` calls `applyFront()` (no argument) straight to the pulses; the push prompt
+  `"PUSH IT %.0f IN, FRONT FIRST, then touch DONE."` (44 characters at 48 in; `prompt_` is 48 — the draft's longer
+  "FRONT END FIRST" form would have cut at 48). `calibrate_panel.hpp` — `PanelScreen::WhichEnd`, `FrontRule`, the
+  five-step headers, `kWhichEnd`, `kLabelFront/Back`, `kPushForward`, `kNextTouchDoneClear` and the `*4` headers
+  removed; `kHeaderImu/Push/Pulses/Spin` ARE the four-step words; `kNextTouchDone` = "touch DONE -- then stand clear";
+  `PanelButtonId::Front` → `SaveHeld`, `Back` removed; `kFrontBox/kBackBox` → `kChoiceLeftBox/kChoiceRightBox`;
+  `viewFor()`/`TouchGate::view()` lose the `rule` parameter. **Delta from the probe's `p2r`:** the probe renamed the
+  ByPush constants into the OLD names and kept `kPushForward` holding "PUSH FRONT FIRST"; this keeps
+  `kPushFrontFirst` (its name says its words) and removes `kPushForward` — one name fewer that lies.
+  `calibrate_program.hpp` (library) — the auto-answer and the three `FrontRule::ByPush` arguments removed, its header's
+  "That program stays robot two's until Part B" made true for after Part B. `hal/brain_screen.hpp` — the comment
+  "until CAL1 Part B makes printText() call this one" made past (a comment-only edit in `hal/`: flagged for MECH-S-A,
+  which owns `hal/` changes in flight — no line of theirs is near it).
+- **First measurement (15:56, fresh link):** suite **2,958 cases, 1 failed** — every one of the 34 goldens PASSED with
+  the facts DERIVED from robot two's tables and C1 removed (the brief's §2.B test 1 proof: derived facts = the literal
+  ones, and C1 changed nothing anyone sees or the card holds). The one red: **IMU1's T11**
+  (`test/imu_rate_once_per_tick_test.cpp`, "the calibrator never finds rest while the robot is turned by hand at
+  3 deg/s"): `status().atRest` TRUE for one tick, at every phase.
+- **T11, root-caused (probe `scratch/cal1-b/probe_t11/`, `atRest()` instrumented WITHOUT adding a read):** the PROS IMU
+  adapter's default rate differentiates the rotation between FRESH reads (`hal/pros/imu.hpp` :208-210 says so), and
+  `atRest()` skips its rate read while any motor turns — all push long. So DONE's first rest tick read a rate averaged
+  over the whole push: **−0.00333 rad/s** (the hand turn's 1.56° over ~8 s) at t = 8.18, then the true **−0.05236**
+  (3°/s) at 8.19. Before C1 the WHICH END tick took that stale read (old flow: −0.00224 at 8.18 in PushCapture, where
+  T11 does not count). Moving the hand turn earlier (45 in) changed nothing — the window is the whole push.
+  **Considered and REJECTED:** reading the rate on every `atRest()` call (no short-circuit) — it fixes T11 but moves
+  the rest timing after EVERY pulse: 245 pulse lines, 43 loop lines and **10 record files** (4–6 bytes each) across the
+  goldens — a calibrator behaviour change beyond Part B (measured, `scratch/cal1-b/gold_atrest/`; reverted, the
+  function byte-identical to `858b675`'s). **Taken:** one read of the rate on every tick of the PUSH
+  (`updateStatus()`'s PushWatching branch, `(void)imu_.yawRate();`, commented) — exactly what the WHICH END tick used
+  to provide, earlier. Result: T11 GREEN (unedited); 33 goldens unchanged; **`curved` moved by ONE tick, classified
+  T:** run 1's curved push reaches rest one tick sooner (its rate is now fresh), so `loop: 1027 ticks` → `1026` and
+  the screen's `drift +40.0 deg -- TOO CURVED` line is drawn one draw later (after `10 of 10 turned`, not before);
+  no record byte changed (run 1 is refused; `curved.card.txt` identical). The two files taken from
+  `SHULIB_GOLDEN_OUT` by hand (the old ones in `bak/goldens/`).
+- **Re-pinned tests (C1, §2.B test 5; each edit's before/after):** `calibration_test_rig.hpp` — `RunOptions::front`
+  and the script's stage 2 (the WHICH END answer) gone; DONE goes straight on. `drivetrain_calibrator_test.cpp` —
+  test 5 REWRITTEN: a push led with the OTHER end (the plant pushed backward), against BOTH runs' LITERAL ports
+  (front-led LEFT −11 +12..+15 | RIGHT +16..+20; other-end LEFT −16..−20 | RIGHT +11 −12..−15), positive travel in
+  both, the sides' scales swapped (Approx 1e-9 — measured equal); test 4's `backFirst` check gone; test 19's stray
+  answer is now a second DONE during the pulses ("DONE arrived while the run was driving the motors"); test 21 sweeps
+  {Done, Abort} at the push and at the first powered step; test 29's two "awaiting FRONT/BACK" checks are "straight to
+  SideAssign". `median_nonfinite_test.cpp` — `runN10`'s FRONT FIRST answer gone (`afterFront` → `afterDone`); N12(b)
+  re-pinned: pushed backward = led with the other end, sign −1, travel > 0, every port negated and on the other side,
+  the scales swapped (`sameBits`, measured). `calibrate_panel_test.cpp` — P1/P3 no WhichEnd; `buttonMeansSomething`'s
+  SaveHeld = false (no held view here); P2's DONE line; P4 the FRONT/BACK transitions gone and **DONE → PULSES pinned
+  WITH ONE STATED EXCEPTION** (below); P5's post-DONE layout is the PULSES (ABORT alone, armed at 0 s); P6's stale-DONE
+  check now in SideAssign. `calibrate_panel_additions_test.cpp` — **N1 DELETED** (A2's test 9, the defaulted view vs
+  `AskedAfterPush`: the parameter is gone); N2 re-pinned (only DONE and ABORT while a run runs, nothing in the middle
+  boxes, no SaveHeld outside a held view; the defaulted call shows 1/4 and the rule); N3–N6 `SaveHeld` /
+  `kChoiceLeftBox` / `kChoiceRightBox`, no `rule` argument. `mechanism_table_test.cpp` — the filter helper, the
+  "candidate filter, in place" case and **the Calibrate call-site pin REMOVED** (the call no longer exists; the drop
+  RUNS now: `calibrate_program_test.cpp` T6/T6d and the goldens); the two cases that also ran the filter keep their
+  predicate checks; the source reader's own case stays (its `codeOnly` still pins the table file's text).
+  `calibrate_golden_rig.hpp` / `calibrate_golden_test.cpp` — the facts are the glue's composition (test 1).
+- **FOR THE TEAM LEAD (found by P4's re-pin, not fixed — a design choice) — FIXED in the review round (below,
+  finding 1): the PULSES' ABORT stays in its slot until the first pulse drives a motor.** With WHICH END gone, DONE leads straight
+  to the PULSES screen, whose ABORT spans the whole button row (`kAbortRow`) and is never delayed. A reflexive second
+  tap where DONE was is therefore an ABORT: the run stops (0 V + Coast), RUN AGAIN starts over — the safe direction,
+  but the 48 in push is lost. Robot two's old program put WHICH END's two middle boxes there (P4's original
+  invariant). The library program has behaved this way since A2a (it answered WHICH END in the same tick). P4 pins it
+  as it is; the worksheet's Station G tells the operator (touch DONE once, then stand clear). A fix would be a held
+  "STAND CLEAR" view between DONE and the first pulse, or a narrower ABORT in the first rest window — the team lead's
+  call.
+
+### B.3 New tests, the documents, and the prose review (2026-11-05 16:00–16:30 EST)
+
+- **New tests:** `test/calibrate_facts_test.cpp` (F1–F5: robot two's derived facts = the A2b literals field by field,
+  the names the list's own storage; one fact per MOTOR role in `declaredMotorPorts()`' order for every robot and two
+  fixtures — robot y's two-motor DR4B gives `{3 dr4b},{4 dr4b}`, its sensor ports 8/9/10 never facts — and
+  `declaredMechanism()` ≡ `isDeclaredMechanismPort()` for ports 0..22; the bench bot BLUE, the X-drive's cartridge
+  unset, every `cartridgeFact`; D6 (a)'s parity for every RobotId with each robot's invalidity REASON asserted
+  (robot two "inches per radian", the bench bot "LEFT side has no ports", the X-drive "cartridge byte 0"), robot two's
+  table made valid → LEFT −11 12 −13 14 −15 | RIGHT 20 −19 18 −17 16, eight facts undone one at a time → none, a
+  stale typed list REPLACED; the glue's and `main.cpp`'s source pins — the brief's test 4). `test/screen_text_test.cpp`
+  (X1–X3: the sanitizer through `printText`, each size's cut at its edge, the pad; the call order eraser → pen →
+  `print_at format '%s'`; `g_screenPrints`). Suite **2,966 cases, 0 failed** (2,961 − N1 − the filter case − the
+  call-site pin + 3 + 5).
+- **Comments re-pointed:** `test/pros_calibrate_adapter_test.cpp` :7 (A2b's hand-on: "the belief is HA-187 in
+  docs/hardware-assumptions.md"); `brain_screen_test.cpp` S2's header and BUG-CAUGHT (one rule now; S2 holds a copy
+  from coming back) and P-painter's "today's program" → R3d's; `calibrate_screen.hpp`, `hal/pros/brain_screen.hpp`
+  (past tense for the deleted program — **a comment-only edit in `hal/pros/`, flagged for MECH-S-A**);
+  `src/common/boot_source.hpp` :106 (Calibrate's census words).
+- **Documents (§3.2):** the changelog (a new top entry under API 2.5: "Changed since 2.5 — the WHICH END question
+  removed", BEHAVIOUR CHANGE, What you must do, the rule table's reasons, the DONE double-tap); the worksheet
+  (Station G's box, G.0.1 — **COPY both files before the FIRST run of the new Calibrate**, delete BOTH to reset —,
+  G.0.4 rewritten from the code with the brief's corrected robot-two sentence, G.2, G.3, G.4's screen table
+  1/4..4/4 / PUSH FRONT FIRST / no WHICH END row / the held rows / touch DONE ONCE, a new **G.4b** — the front check's
+  lines, the two held screens' words and choices, the NOTEs, **HA-187's settle steps G.4b.1 (turn ONE pivot by hand,
+  the watch names it alone, the save waits) and G.4b.2 (an unconfigured claw's evidence line)** —, RUN AGAIN's
+  paragraph rewritten for the safe save and SAVE UNCONFIRMED, G.5.1, G.7, what to send back; Station 6; the WHICH
+  END IS FORWARD box's sentence; J.2's two lines; M.0.2); HA-139 (the settle `cmp` of BOTH files, the 2026-09-25
+  evidence by date, the blast radius naming the library's save and the boot's load), HA-153/155 and the field-disable
+  entry's source pointers; `faq.md` (Calibrate saves through it; B2 still to come); guide 07; chapter 19's dated
+  status line (A2b's hand-on 5); README (the touch-screen adapter IS built now, into robot two's Calibrate — the old
+  sentence was false; `src/robots/`'s row); `docs/api/` regenerated; HANDOFF (the copy-first item CLOSED, S1b's line,
+  the calibration list); build-order (the Next clause, CAL1's status, the SAFE-SAVE and CAL1 deviations rows);
+  REMAINING-WORK rows 18b and 28; the roadmap's "Now (2026-11-05)" paragraph (no link into `docs/internal/`).
+- **DELTA — the coordinator's hand-on said "a first library Calibrate on an EMPTY card shows FRONT FLIPPED until
+  G3a Part 5"; the code says otherwise** (golden `one`: an empty card → `FIRST RECORD -- the end you pushed first is
+  FRONT`; robot two carries no typed ports, so nothing checks an empty card's first push — the brief's check of D6
+  (a), C1). FRONT FLIPPED appears against a RECORD on the card whose front is the other end. The worksheet says what
+  the code does (G.0.4: with the 2026-09-25 record kept on the card the card's record decides; with none, FIRST
+  RECORD), and the brief's own corrected sentence is quoted. Flagged for the coordinator.
+- **Prose review, logged (grepped BEFORE this entry; `docs/`, `README.md`, `include/`, `src/`, `test/`, `tools/`;
+  chunk logs, briefs of other chunks, transcripts, goldens and `docs/api/` read as history and left):** `WHICH END`,
+  `FRONT FIRST`, `BACK FIRST`, `FRONT or BACK`, `front or back` (0), `FrontFirst`, `BackFirst`, `backFirst`,
+  `PushAwaitingFront` (0), `FrontRule`, `AskedAfterPush`, `kFrontBox`, `kBackBox`, `1/5`, `5/5`, `PUSH IT FORWARD`,
+  `saveAndReadBack`, `calibrate_program` (`.cpp` citations), `dropDeclaredMechanismPorts`, `claw pivot (declared)`,
+  `restart slot 4` (0), `robot two MEASURES`, `screen_text`, `benchStateScreen`, `shulib_drivetrain.bak`, `off the
+  card`. Living hits that remain, each read: Bench Tests' own MOTOR WATCH question (`bench_r3a.cpp`'s `backFirst`,
+  worksheet D.1.2/F.2.1 — kept, §1.8/§4); `drive_program.cpp`'s "WHICH END IS FORWARD" (Drive's box, a different
+  thing); the new changelog entry and my own comments naming the removed names as removed; `1/5`/`5/5` hits are
+  other counts (motor groups, tolerances); `test/calibrate_program_test.cpp` :295-296 assert the OLD words are
+  ABSENT (kept: they are still true and still guard); `benchStateScreen` in the gate (`SHARED_BENCH_NAMES`: Bench
+  Tests and Drive still use it); guide 12 :331 ("the drive program in this build does not read the backup yet" —
+  still true, B2). **Found and NOT edited (another in-flight chunk's file):** `src/programs/bench_r3a.cpp` :238 cites
+  "src/programs/calibrate_program.cpp's header" for the format-string belief — now a 27-line glue; MECH-A6 / IMU1
+  Part B own that file (for the coordinator). Landmine 12's two `codeOnly` copies (`mechanism_table_test.cpp`,
+  `record_store_platform_scan_test.cpp`) and robot two's fixture in `boot_source_test.cpp` are LEFT in place — B2's
+  consolidation (Re-check R8).
+
+### B.4 Mutations — each on a FRESH link, capped, SEEN red, restored (2026-11-05 16:49–16:58 EST, from the files' times: the discarded first run 16:49:36–16:50:35, the counted runs 16:53:34–16:57:58; the "17:00–17:40" first written here was not a reading — corrected in the review round)
+
+Driver `scratch/cal1-b/mut/mutate.py` (list `muts.json`): back the file up, ONE exact replacement (asserted once),
+touch, `rm build/test/shulib_tests`, rebuild (`--target shulib_tests/fast` — the doc gates' `check-fresh` fails on a
+header mutant's shifted line numbers, which would make it "BUILD FAILED", not a verdict; the first header run did
+exactly that and is NOT counted, `mut/run2_headers/`), run the named cases under `ulimit -v 4194304; timeout 600`,
+restore in `finally` and on SIGTERM/SIGHUP/SIGINT, touch the restored file. Every dependent object recompiled (a
+`calibrate_panel.hpp` / `drivetrain_calibrator.hpp` mutant rebuilt 25–30 test objects). The FIRST full run built
+nothing (the briefing's "Next up" was stale, so the doc gate stopped every build) — discarded (`mut/run1_failed/`),
+the briefing regenerated, the run repeated. After the last mutant every anchor reads restored (a scripted check) and
+`git diff -- Makefile src/` holds no "(self-test plant".
+
+| # (brief) | mutant | caught by (the TEST's assertion) |
+|---|---|---|
+| 1 | B1a the glue clears the cartridge before `runCalibrate` | F5 :379 (the glue's pinned `runCalibrate`) |
+| 1 | B1b `calibrateFactsFor` clears the cartridge | F1 :212 `REQUIRE(f.cartridge.has_value())`; golden `one` :448 (the run refused) |
+| 2 | B2 `main.cpp`'s Calibrate `disabled()` → `benchStateScreen` | F5 :402 and :407 (main.cpp's pins). Also the gate's step 8 by design (the symbol `calibrateDisabled` would be absent from the package) — NOT run on this mutant |
+| 3 | B3 `calibrateFactsFor` drops entries from index 1 | F1 :215/:216/:219; F2; golden `one` (12 failed checks) |
+| 4 | B4 `printText` back to its own copy, `'%'` passed | X1 and S2 (17 failed checks) |
+| 5 | B5 a question left reachable after DONE (a SaveHeld box in the middle on the first pulse) | N2 (only DONE/ABORT while running, nothing in the middle boxes) and golden `one` (1,670 failed checks) |
+| 6 | B6 the side rule flipped by the push's overall sign | test 5 :449 `REQUIRE(… == Phase::Done)` — the run REFUSED (its spin went the wrong way), so this is the calibrator's own guard, not the literal ports. Re-cut as **B6b**: |
+| 6 | B6b the RECORD keeps each port's physical side on an other-end push (signs flipped only; the run completes) | test 5 :468 `o.sideOf(11) == +1`, :472 … (10 failed checks — the literal ports) |
+| 7 | case 26's plant left on `calibrate_program.cpp` | the gate's own `_replace` raises `plant target must occur exactly once in …/src/programs/calibrate_program.cpp: b'dropDeclaredMechanismPorts(kMechanisms,'` before writing (`scratch/cal1-b/m7_r1.py`); the new plant on `calibrate_facts.hpp` plants and restores. The full `self-test` on the real edit: OK (269 cases) |
+| 8 | B8 the mapping ignores `valid()` | F1 :224 `noTyped(f)`, F4 :328; golden `one` (FRONT MATCHES… instead of FIRST RECORD) |
+| 9 | B9 the mapping swaps the sides | F4 :337/:338 (the made-valid literal ports) and the parity :117 |
+| 10 | B10 the mapping dropped | F4 :337/:338 and :117 |
+| 11 | B11 the glue runs `kCalibrateFacts` bare | F5 :379 — and ONLY F5 (golden `one` passed: on robot two it is equivalent, as the brief measured) |
+| — | B12 the push-tick rate read removed | IMU1 T11 and golden `curved` |
+| — | B13 every fact named by the FIRST mechanism | F1 :215/:219, F2 (robot y's names), golden `one` |
+| — | B14 `printText` sets the pen before the eraser | X2 :107/:108 |
+| — | B15 SaveHeld acts off a held view | **SURVIVED at first** (every reachable view that draws SaveHeld is held); a case was ADDED to N4 (a SAVED view with a SaveHeld box drawn on it does nothing) → RED :329 |
+
+None was killed by the cap or the timeout; none broke its own build (a `-Werror` failure would have been re-cut).
+
+### B.5 The gates — on the final tree (2026-11-05 16:24–16:49 EST from the output files' times, the briefing regenerated 16:59; outputs `scratch/cal1-b/gates/`; the "16:16–17:45" first written here was not a reading — corrected in the review round)
+
+- Suite (fresh link, `suite_run.py green`, capped): **suite run: green — 2966 cases, 2960617 assertions.**
+- `src_build_gate.py self-test`: **OK (269 detector cases, each against a real build)**; `check`: **PASS (all 7 builds
+  link; …)** — `tank-calibrate` "exit 0, 11/11 TUs compiled, warnings: 8 vendor-ignored, 0 disallowed, … beacons
+  (variant, robot), program and stdio printers checked". (Honest note: the self-test ran while I made comment-only
+  edits to three headers and `src/common/boot_source.hpp`, and while `m7_r1.py` planted and restored
+  `calibrate_facts.hpp` for an instant; `check` then ran on the final `src/`, which no edit has touched since — the
+  mutations restored it byte for byte.)
+- `make ROBOT=tank PROGRAM=calibrate` → `arm-none-eabi-strings` on `bin/hot.package.{elf,bin}`: present `MEASURES ITS
+  OWN DRIVETRAIN`, `FRONT FLIPPED`, `MECHANISM PORT TURNED`, `checked against your typed drive ports`, `FRONT MATCHES,
+  SOME TYPED PORTS DIFFER`, `NO SD CARD in the brain`, `shulib-robot-variant=tank-calibrate`; ABSENT `WHICH END FIRST?`,
+  `KEEP OLD`, `claw pivot (declared)`, `robot two MEASURES` (0 each). The beacon unchanged.
+- ARM header gate over **240** headers: exit 0. The two CI greps: empty.
+- `api_doc_tool`: self-test OK; coverage "5480 public entities across 197 headers, all documented"; check-fresh
+  clean; check-examples "638 quoted lines, all verbatim"; check-removability "no public doc references
+  docs/internal/" (it had caught one — HA-139's new line named the R3d log; reworded). `doc_staleness_audit.py`:
+  clean. `briefing_status.py` generated (binary removed first, rebuilt, regenerated) and `check`: current.
+
+### B.6 Close of Part B (2026-11-05 ~17:03 EST, the write time of this log and `CAL1-COMPLETED.md`, 17:03:14; the "17:45, `date`" first written here was NOT a `date` reading — corrected in the review round) — the DoD, item by item
+
+- [x] The side-by-side proof logged (B.1): every comparable scenario, every reason, residual 0; the records; the timing
+  control re-run; a negative control.
+- [x] Tests 1–6 green (1: the golden test on derived facts — 34 unchanged by the facts and C1, `curved` then moved one
+  tick by the push-read fix, classified T; 2: F1–F4; 3: the call-site pin removed; 4: F5; 5: the re-pins; 6: X1–X3);
+  mutations 1–11 RED (6 as B6b, 7 by the gate's own assertion) plus B12–B15; the suite's count 2,966.
+- [x] `src_build_gate.py self-test && check`: all 7 builds link, 0 disallowed warnings, `tank-calibrate`'s beacon
+  unchanged.
+- [x] The `tank-calibrate` package carries the library's strings and not the old ones.
+- [x] Docs per §3.2 (B.3), the status pointers (build-order's Next clause and CAL1 status, the roadmap's Now, REMAINING
+  18b) say BUILT / lands at the merge; `CAL1-COMPLETED.md` written.
+- Nothing committed, nothing pushed, no `pros`, no serial port.
+
+**For the coordinator (merge):** (1) shared files touched, only my lines: `docs/changelog.md` (a new top entry under
+API 2.5), `docs/hardware-assumptions.md` (HA-139's settle/evidence/blast radius; HA-153/155 and the field-disable
+entry's source pointers; no number added — HA-187 stays CAL1's only), `docs/roadmap.md` (one Now paragraph),
+`build-order.md` (the Next clause's CAL1 phrase, CAL1's status, two deviations rows), `REMAINING-WORK.md` (18b, 28),
+`HANDOFF-remaining-work.md` (three passages), the worksheet (Station G, 6, J.2, M.0.2, the WHICH END IS FORWARD box),
+`docs/api/` and the briefing (generated — regenerate after the merge), README, faq, guide 07 and 19. (2) Files another
+in-flight chunk owns that I touched: `include/shulib/hal/brain_screen.hpp` and `include/shulib/hal/pros/brain_screen.hpp`
+(comment-only; MECH-S-A owns `hal/` changes), `test/brain_screen_test.cpp` (comments), and `src/common/boot_source.hpp`
+(one comment line). NOT touched though stale: `src/programs/bench_r3a.cpp` :238 (MECH-A6 / IMU1 Part B). (3)
+`drivetrain_calibrator.hpp` gained one rate read per push tick (B.2) — IMU1 Part B should know (its T11 is the pin).
+(4) The FRONT FLIPPED-on-empty-card hand-on contradicts the code (B.3's delta). (5) The DONE double-tap → ABORT
+finding is the team lead's (B.2). (6) At the merge: "BUILT … lands at the coordinator's merge" in build-order (Next
+clause and CAL1 status), the roadmap's Now, REMAINING 18b and the changelog heading ("built") → LANDED with the date.
+
+## CAL1-B review findings and their disposition (2026-11-05 17:17 EST, `date`, the round's start)
+
+> Three reviewers (correctness, tests, docs) returned 16 findings; each was re-checked against the code before
+> anything was changed. The builder again: Claude Opus 5.5, worktree `.claude/worktrees/cal1-b`, nothing committed,
+> no `pros`, no serial port. Scratch: `scratch/cal1-b/fix2/` (mutation driver `mut/mutate2.py`, list `mut/muts2.json`,
+> backups `mut/backup/`, the goldens' classifier `classify_abort.py`, gates `gates/`). Nothing here has run on a
+> robot.
+
+### The findings, each re-checked, and what was done (17:17–17:55)
+
+1. **(correctness, major) A reflexive second tap where DONE was ABORTED robot two's run; the header promised it
+   could not happen — REAL, FIXED at the root.** Re-checked: `kPrimarySlot` lies inside `kAbortRow`; the SideAssign
+   view drew ABORT on `kAbortRow` from its first frame; P4 pinned the tap → `Answer::Abort` as "the header's
+   exception", which the header (:26-28) never stated. The builder's B.2 had called it the team lead's design
+   choice; it is not a new design: the panel's own stated rule (no button of a new layout under the touch that
+   caused it — the 2026-09-24 lesson) was being broken by the library's code, so the fix restores the rule. **Fix
+   (`calibrate_panel.hpp`, SideAssign):** ABORT is `kAbortRow` once a motor has been DRIVEN — a pulse driving now
+   (`st.pulsing`) or one recorded (`cal.report().pulseCount > 0`) — and `kAbortSlot` before (the rest window after
+   DONE lasts ≥ `restSettleTime`, 0.5 s by default). The SPIN keeps the row throughout. The header's rule and
+   `kAbortRow`'s comment now say so. **Tests:** P3 splits the PULSES' ABORT rectangles by the calibrator's own state
+   (slot before any drive, never under DONE's hit box; row on the first pulse's driving ticks AND every later rest);
+   P4's DONE → PULSES case has no exception (nothing under DONE at once and after arming; the run still in
+   SideAssign; ABORT in its slot) and then drives to the first pulse and pins the row: a tap on DONE's old spot is
+   now ABORT, every motor safe; P5 pins `kAbortSlot` on the first PULSES frame. **Goldens:** every scenario that
+   reaches the pulses moved, and only by this — per run one more `screen: 3/4 PULSES: … | [ABORT]` line (the layout
+   changes when ABORT widens), the loop line's screen-print count +1, and on the screen log ABORT drawn in its slot
+   (5 lines) before the row's redraw (one line drawn in another order); **no card file changed**.
+   `fix2/classify_abort.py` (rules: that PULSES `screen:` line; the five slot-ABORT draw/erase lines; the same loop
+   line with a higher count; a line moved by the redraw) over all 102 files: **66 differ, RESIDUAL 0**
+   (`classify_abort.log`); negative control (an invented `POWERED` line in `one.serial.log`) → RESIDUAL 1. The old
+   goldens are backed up in `fix2/bak_goldens/`. T1a/T1q's verbatim loop lines 218 → 219 prints (commented). The
+   side-by-side proof of B.1 compared the old program with the PRE-fix goldens; this change adds exactly the lines
+   the classifier above claims, so B.1's table plus this one cover old → final. **Documents:** chapter 19 (ABORT's
+   place, and that a second tap where DONE was does nothing), the changelog's last Robot-two sentence (now the fix,
+   with its serial/screen effect), the worksheet's G.4 (reading the screen, the "touch DONE once" paragraph, the
+   PULSES row), CAL1-COMPLETED (no longer "for the team lead"; his to overrule). **For the coordinator:** this is
+   a screen behaviour change in the standard Calibrate every team uses — flag it to the team lead as made, with
+   the reason above; reverting it is one line.
+2. **(correctness, minor) Part B's header blockquote said FRONT FLIPPED is impossible against a camera-end record —
+   REAL, FIXED.** Reworded to the code's fact (an EMPTY card shows FIRST RECORD and nothing checks the front; against
+   the card's camera-end record a 15/16-end push shows FRONT FLIPPED), marked as reworded.
+3. **(correctness, minor) The B.4 driver's `--target shulib_tests/fast` can relink without recompiling dependents —
+   ACCEPTED as a method defect; B.4's verdicts re-examined.** Every B.4 mutant counted was RED, impossible without a
+   rebuilt binary, so those stand (the reviewer agrees). The one SURVIVED verdict (B15's first run) was RE-RUN
+   (`B15_recheck_full_suite`): all **25** dependent objects deleted and recompiled (proved by their files), the WHOLE
+   suite run: **2,968 cases, ONE assertion failed — N4 :329**, the case added for B15. So the first survival was
+   real (nothing else catches it), and N4's case is what does. This round's driver `fix2/mut/mutate2.py` deletes
+   every object whose depfile names the mutated file, requires each to exist again after the build, and logs
+   `objects_deleted` / `objects_recompiled` per verdict; a mutant whose dependents did not rebuild is NOT COUNTED (its
+   first run had a depfile-matching bug — depfiles spell `…/test/../<file>` — and counted NOTHING:
+   `fix2/mut/run1_uncounted/`; re-run after the fix).
+4. **(tests, major) Surviving mutant R1 — `kCalibrateFacts` built over an empty mechanism list — REAL, FIXED.**
+   Re-checked: on the host `kMechanisms` is empty, so F1's pointer check and `factsProblem()` cannot see it. **Fix
+   (`src/robots/calibrate_facts.hpp`):** `mechanismFactsAre(f, m)` — `f`'s mechanism facts are exactly
+   `mechanism::declaredMotorPorts(m)`, in order, count included (every later entry port 0 and no name), each named by
+   a name of `m`'s own storage — and `static_assert(mechanismFactsAre(kCalibrateFacts, kMechanisms), …)`; plus F5's
+   source pin of `kCalibrateFacts = calibrateFactsFor(kChassis, kMechanisms);` and of the static_assert, and NEW
+   **F6** (true for every robot's list, both fixtures and the empty list; false for no list vs robot two's and the
+   reverse, robot y's, a port off, the order swapped, an entry added, a name past the list, a stray LAST entry, an
+   entry dropped, a copied name, a null name). **R1 re-run:** host — RED, **F5 :513** (the source pin; F6 cannot see
+   it on the host, by construction); ARM — `make ROBOT=tank PROGRAM=calibrate` on the mutant: exit 2, ONE error,
+   `calibrate_facts.hpp:135: static assertion failed: this build's Calibrate facts do not list exactly this build's
+   mechanism motor ports` — the check's OWN assertion (`fix2/mut/R1_arm_make.log`), restored by a trap and `cmp`'d.
+5. **(tests, major) B.4/B.5/B.6 carried times that never happened — REAL, FIXED.** From the files' times: B.4's
+   mutations 16:49:36–16:57:58 (counted 16:53:34–16:57:58), B.5's gate outputs 16:24:30–16:49:20 (briefing 16:59:47),
+   the close ~17:03 (this log and CAL1-COMPLETED written 17:03:14). The three headings now carry those, each saying
+   the first wording was not a reading. CAL1-COMPLETED and the briefing carried no time of B.4–B.6.
+6. **(tests, minor) Surviving mutants R2/R3 — Calibrate cases swapped between `main.cpp`'s entry functions — REAL,
+   FIXED.** F5 now cuts `codeOnly(main.cpp)` into `initialize()`, `disabled()`, `competition_initialize()`,
+   `autonomous()`, `opcontrol()` (a brace matcher, `functionBody()`, that skips braces in string literals and
+   refuses an absent, duplicated or unclosed signature — pinned by NEW **F5b**) and requires each Calibrate call in
+   its own function's `case Program::Calibrate:`, nowhere else in the file, and no other Calibrate entry in that
+   function; `runCalibrate(` once. **R2** (the reviewer's swap of runCalibrate/calibrateAutonomous) and **R3**
+   (calibrateDisabled/calibrateConnected) re-run as simultaneous two-anchor swaps: both RED, F5 :537/:542. The gate's
+   docstring no longer implies step 8 sees WHERE the symbols are called (presence only; F5 is the placement check).
+7. **(docs, major) G.4b said the drive's boot reads the backup — REAL, FIXED.** Re-checked `boot_source.cpp` :39
+   (`ProsBlockSource card{kRecordFileName}`, no fallback). G.4b now: the FRONT CHECK reads the record file, else its
+   backup (`loadRecord()`); the drive's boot only the record file until SAFE-SAVE B2.
+8. **(docs, major) HANDOFF credited the slot-4 program with a robot run it never had — REAL, FIXED.** :309-313 now:
+   slot 4 is the standard Calibrate since CAL1 Part B over `calibrate_facts.hpp`, never run on a robot; R3d's own
+   first ran 2026-09-24 (run 1 SPIN_DISAGREE, run 2 no capture); the recorded rerun owed on the new program. The
+   worksheet's Station G closing box (R3d Part 2F "HAS RUN") got the same correction (found by this round's prose
+   review).
+9. **(docs, minor) REMAINING-WORK still said the rerun waits for B1 — REAL, FIXED** (:185: unblocked by CAL1 Part B,
+   B1 in the build, row 28; copy BOTH files before the first run, G.0.1). B.3's prose review read the `off the card`
+   hits but missed this one — logged here.
+10. **(docs, minor) README's rewritten sentence still said distance and ADI digital out are constructed by no program
+    — REAL, FIXED.** Re-checked: `bench_r3a.cpp` :2521 constructs `ProsDistance`; robot two's pneumatic claw reaches
+    `ProsDeviceProvider::digitalOut()` through `robot/mechanism_parts.hpp` :268 in the programs that boot its
+    mechanisms. The sentence now says so, claims neither confirmed on a device, and keeps optical and ADI digital in
+    as constructed by no program.
+11. **(docs, minor) A NOT SAVED path leaves the drive unbootable until B2 — REAL, FIXED.** Re-checked
+    `record_store.hpp` :848-852 (`earlierInBackup && before == Primary` → "The record file … is damaged; the earlier
+    record is safe in the backup.") with `boot_source.cpp` :39 and robot two's invalid table. RUN AGAIN's paragraph
+    and G.5.1 now name that line and say "shulib Drive" refuses to boot until Calibrate saves again or B2 lands —
+    copy both files.
+12. **(docs, minor) Station G's stale "the front you chose"; MOTOR WATCH's answer — REAL, FIXED.** G.5.2 leads with
+    the camera-end split (LEFT 16 17 18 20 / RIGHT 11..15, 4/5) and the 15/16-end one as the swap (with FRONT FLIPPED
+    against a camera-end record); G.6.3 "the end that led the push in G.4 — G.0.4: the camera end"; G.2.2 says to
+    answer BACK FIRST to `WHICH WAY DID YOU PUSH IT?` (re-checked `bench_r3a.cpp` :1209: the table's front, the 15/16
+    end; the answer sets `g_watch.signsFromBackwardPush`). D.0.7's "the front you chose" (:330) is the table's own
+    front, another station — left.
+13. **(docs, minor) G.4b.2 did not carry A2b's gearing hand-on — REAL, LOGGED AND REWORDED.** The `watch:` lines print
+    degrees only (`calibrate_program.hpp` :1196) and an untouched pivot reads +0.0 whatever its gearing, so Station G
+    CANNOT read an unconfigured claw's `motor_get_gearing`. G.4b.2 now says so and asks for a MEASURED hand turn of
+    pivot 6 beside the line's degrees (their ratio is evidence on the scale); the gearing read itself stays HA-187's
+    unowned settle (an extension of Bench Tests' raw probes). A2b's hand-on item 1 is therefore only PARTLY carried.
+14. **(docs, minor) Four deltas from the brief not logged as deltas — REAL, LOGGED here:**
+    - (a) §2.B test 2 says the bench bot's facts carry "an UNSET cartridge"; its table says BLUE
+      (`chassis_table.hpp` :164) and F3 asserts BLUE — the brief was wrong, the test follows the table.
+    - (b) §2.B moves the classifier's rule table "into the test as data", and §6 has the coordinator re-run the
+      proof "from the committed harness". The table, the harness (`oldrig/`) and the old goldens stay in
+      `scratch/cal1-b/` (`sbs/classify_b.py`, `oldrig/`, `oldrig/golden_old/`): the old side is a program Part B
+      DELETES, so no committed test could rebuild it, and A2b's finding 21c keeps `test/goldens/calibrate/` to its 34
+      scenarios. The coordinator re-runs from scratch (B.1's "To re-run").
+    - (c) §3.2 puts the corrected robot-two sentence where the operator reads the finished screen's NOTE; it is in
+      G.0.4. G.4b's FIRST RECORD bullet now points there (if the 15/16 end led: G.0.4's recovery).
+    - (d) §1.8 says "Nothing else in `src/`"; `src/common/boot_source.hpp` :106 was edited (one comment line,
+      Calibrate's census words) — a delta, listed for the coordinator in B.6 as another chunk's file.
+15. **(docs, minor) The roadmap and Station G said the rerun "fixes" the ~8 % error — REAL, FIXED.** Now "expected
+    to fix … (not yet measured)" in the roadmap's Now, Station G's box (with "the cause of the 2026-09-25 record's
+    short scale is not established"), REMAINING-WORK, build-order's CAL1 status, CAL1-COMPLETED (two places) and
+    this Part's header.
+16. **(docs, minor) Chapter 19 lacked the touch-DONE-once warning — RESOLVED by finding 1's fix.** No warning is
+    needed now; chapter 19's ABORT paragraph says where ABORT is, that it covers the whole row once a motor is
+    powered, and that a second tap where DONE was does nothing.
+
+### Mutation pass — this round's, each with every dependent object deleted and recompiled (17:31–17:35 EST, the ARM run 17:46; `fix2/mut/results_173440.json`. The driver's first run, 17:31, is in `run1_uncounted/`: its depfile bug counted nothing for a header, so only its R3 — a file F5 reads at run time, no object depends on it — and R_B1 — its one object deleted and rebuilt, 1/1 — are taken from it)
+
+| mutant | deleted / recompiled | caught by (the TEST's assertion) |
+|---|---|---|
+| R_A1 the PULSES' ABORT on the row at once (the old behaviour) | 25 / 25 | P3 :396/:397, P4 :482/:485/:489, P5, golden `one` :448 |
+| R_A2 the row only WHILE pulsing (narrow between pulses) | 25 / 25 | P3 :402 (1,490), golden `one` |
+| R_A3 the row only after a RECORDED pulse (narrow during the first) | 25 / 25 | P3 :402 (41), P4 :506, golden `one` |
+| R_A4 the slot throughout | 25 / 25 | P3 :402, P4 :506, golden `one` |
+| R1 `kCalibrateFacts` over `MechanismTable{}` | 2 / 2 | host F5 :513 (the source pin); ARM: the static_assert's own message (finding 4) |
+| R_F1 `mechanismFactsAre` skips the count | 2 / 2 | F6 :345, :364, :369, :372 |
+| R_F2 `mechanismFactsAre` skips the names | 2 / 2 | F6 :383 |
+| R2 runCalibrate ⇄ calibrateAutonomous between `autonomous()`/`opcontrol()` | source read at run time | F5 :537, :542 |
+| R3 calibrateDisabled ⇄ calibrateConnected between `disabled()`/`competition_initialize()` | source read at run time | F5 :537, :542 |
+| R_B1 `functionBody()` ignores string literals | 1 / 1 | F5b :552 |
+| B15 re-check (finding 3), the WHOLE suite | 25 / 25 | ONLY N4 :329 (1 of 2,960,703 assertions) |
+
+None was killed by the cap or the timeout; none broke its own build. After the last mutant every anchor reads
+restored (grep) and `git diff -- Makefile src/` holds no "(self-test plant".
+
+### Resumption of the fix round (2026-11-10 20:55 EST, `date`; the round had stopped at the 5-hour limit ~18:30 on 2026-11-05, the laptop off until 11-10)
+
+> The builder again: Claude Opus 5.5, same worktree, nothing committed, no `pros`, no serial port. Scratch:
+> `scratch/cal1-b/fix3/` (driver `mut/mutate3.py` = `fix2/mut/mutate2.py` writing to `fix3/`, the same
+> `muts2.json`; gates `gates/`). Nothing here has run on a robot.
+
+- **What the stop left.** All 16 findings above were already dispositioned and their fixes are in the tree
+  (each spot-checked by grep against its entry: the panel header's rule and `driven` at :897, `mechanismFactsAre` and
+  its static_assert, G.4b :924–925, HANDOFF :309–313, REMAINING-WORK :185–187, README :97–101, chapter 19's ABORT
+  paragraph, the "expected to fix … (not yet measured)" wording). The round's log stopped after its mutation table;
+  its gates had run (`fix2/gates/`, 17:46–18:26) but were never logged. **No mutation or plant was left applied:**
+  all 12 backups in `fix2/mut/backup/` are byte-identical (`cmp`) to the current files, and
+  `git diff -- Makefile src/` holds no "(self-test plant".
+- **Why the mutations were re-run.** `test/calibrate_panel_test.cpp` was written at 17:49:40, AFTER the round's
+  mutation pass (17:31–17:35), and its failing lines moved by +3 (P3 :396/:397 → :399/:400 …) — so the table above
+  was not observed against the final tests. All 11 were re-run on the final tree, each with every dependent object
+  deleted and recompiled (the driver refuses a verdict otherwise), capped (4 GiB, 600 s):
+  `fix3/mut/results_210113.json`, `_210224`, `_210336` (21:00–21:04 EST).
+
+| mutant | deleted / recompiled | caught by (the TEST's assertion, final line numbers) |
+|---|---|---|
+| R_A1 the PULSES' ABORT on the row at once | 25 / 25 | P3 :399/:400, P4 :485/:488/:492/:493/:499, P5 :554, golden `one` :448 |
+| R_A2 the row only WHILE pulsing | 25 / 25 | P3 :405, golden `one` :448 |
+| R_A3 the row only after a RECORDED pulse | 25 / 25 | P3 :405, P4 :509, golden `one` :448 |
+| R_A4 the slot throughout | 25 / 25 | P3 :405, P4 :509/:511, golden `one` :448 |
+| R1 `kCalibrateFacts` over `MechanismTable{}` | 2 / 25 (both dependents among them) | host F5 :513 (the source pin); ARM below |
+| R_F1 `mechanismFactsAre` skips the count | 2 / 2 | F6 :345, :364, :369, :372 |
+| R_F2 `mechanismFactsAre` skips the names | 2 / 2 | F6 :383 |
+| R2 runCalibrate ⇄ calibrateAutonomous | source read at run time | F5 :537, :542 |
+| R3 calibrateDisabled ⇄ calibrateConnected | source read at run time | F5 :537, :542 |
+| R_B1 `functionBody()` ignores string literals | 1 / 1 | F5b :552 |
+| B15 re-check, the WHOLE suite | 25 / 25 | ONLY N4 :329 (1 of 2,960,703 assertions, 2,968 cases) |
+
+  R1 on ARM re-run (21:05): `make ROBOT=tank PROGRAM=calibrate` on the mutant → exit 2, one error,
+  `calibrate_facts.hpp:135:32: static assertion failed: this build's Calibrate facts do not list exactly this
+  build's mechanism motor ports` — the check's own assertion (`fix3/mut/R1_arm_make.log`); restored by a trap,
+  `cmp`'d. None was killed by the cap or the timeout; none broke its own build. Every backup `cmp`s equal after.
+- **The prose review (grepped ~21:10 EST, between the mutations and the 21:36 `date` reading; every living hit read):** `touch DONE once`, `header's exception`,
+  `FRONT FLIPPED is impossible`, `constructed by no program`, `waits for **SAFE-SAVE B1`, `is what fixes`,
+  `the run that fixes` → 0 living hits. `front you chose` → worksheet :330 only (D.0.7, the table's own front —
+  left, finding 12). `else its backup` → G.4b :924 (fixed), and the library's own words (changelog :444,
+  `calibrate_program.hpp` :41, `record_store.hpp` :648, their docs/api pages): they describe the LIBRARY's boot
+  rule (`loadRecord()`), which is true; robot two's program boot reading only the record file until SAFE-SAVE B2
+  is stated on the worksheet — left. `HAS RUN` → worksheet :1163, already corrected (finding 8). `WHICH END` →
+  the changelog's removal entries, the roadmap's Now, and Station F's unrelated "WHICH END IS FORWARD" — left.
+- **A defect in the round's own gate script, found here:** its last step ran `make ROBOT=tank PROGRAM=calibrate`
+  after `src_build_gate.py check`, which had left the LAST of its seven builds in `bin/` (`tank-competition`); make
+  said "Nothing to be done" and every strings count read 0 — including the beacon, which must be present. The
+  18:26 run's zeros were never logged as a pass. Re-done properly: `rm -rf bin .d`, then the calibrate build
+  (below).
+
+### The gates on the final tree (2026-11-10 20:56–21:49 EST, `date` at both ends; outputs `scratch/cal1-b/fix3/gates/`)
+
+- Fresh relink first (the binary on disk could have been a mutant): `rm -f build/test/shulib_tests`, configure,
+  `briefing_status.py generate` (read as unbuilt), a FULL build (263 compile/link steps, 0 warnings), the suite,
+  generate again. After the mutations the same again (the 25 objects the last restore touched recompiled).
+- `python3 tools/suite_run.py green` (capped): **green — 2,968 cases, 2,960,703 assertions** (20:59 and 21:05).
+- `src_build_gate.py self-test`: OK (269 detector cases, each against a real build). `check`: PASS — all 7 builds
+  link, 0 disallowed warnings; `tank-calibrate` 11/11 TUs, beacons and program asserted.
+- ARM header gate over **240** headers: exit 0, no output; its control (a float→int narrowing) exit 1 as it must.
+  The CI greps: the library is PROS-free outside `hal/pros/`; the core is sim-free.
+- `api_doc_tool`: check-fresh clean; check-examples "638 quoted lines, all verbatim"; self-test OK;
+  check-coverage "5480 public entities across 197 headers, all documented"; check-removability clean.
+- `doc_staleness_audit.py` clean; `briefing_status.py check`: current. Both re-run after this entry was written
+  (21:45–21:49): a last fresh relink (the gate's self-test had touched `src/`; 263 steps, 0 warnings), the suite green
+  again (2,968 / 2,960,703), the briefing regenerated, then the audit clean — now with the binary TRUSTED (the
+  18:26 and 21:43 runs had read it as older than `src/` and derived no counts) — `briefing_status.py check`
+  current, `api_doc_tool` check-fresh and check-removability clean, no plant.
+- `rm -rf bin .d; make ROBOT=tank PROGRAM=calibrate` (exit 0) → `arm-none-eabi-strings -a` on
+  `bin/hot.package.{elf,bin}`: present `MEASURES ITS OWN DRIVETRAIN` (4), `FRONT FLIPPED` (6), `MECHANISM PORT
+  TURNED` (6), `shulib-robot-variant=tank-calibrate` (3), `checked against your typed drive ports` (2),
+  `FRONT MATCHES, SOME TYPED PORTS DIFFER` (2), `NO SD CARD in the brain` (2); ABSENT `WHICH END FIRST?`,
+  `KEEP OLD`, `claw pivot (declared)`, `robot two MEASURES` (0 each) (`strings_clean.log`).
+- No self-test plant: `git diff -- Makefile src/ | grep -c '(self-test plant'` = 0.
+
+**For the coordinator:** finding 1's fix is a screen behaviour change in the standard Calibrate every team uses
+(PULSES' ABORT in its slot until the first pulse drives a motor, the whole row after) — made because the panel's
+own stated rule was being broken; flag it to the team lead as made; reverting it is one line (:897). The fix round
+is complete; nothing committed.
+
+## Verification-round findings and their disposition — Part B's verification round (2026-11-10 21:58 EST, `date`)
+
+One finding, minor; real; fixed at the line.
+
+1. **The roadmap's new Now paragraph had one line without the blockquote marker** (finding 15's rewording in the
+   fix round wrapped `error (not yet measured).` onto a line with no leading `> `). Re-checked: `docs/roadmap.md`
+   :464 was the only such line. **Fixed:** the line now reads `> error (not yet measured).`, like every other line
+   of that paragraph. **Re-scan:** every added line of `git diff -U0 -- '*.md'` that follows an added `>` line and
+   is not blank was listed — **no hits** (blank lines after a quote, which end it, are not counted). No other text
+   changed; no code changed.
+
+**Gates re-run on the final tree** (outputs `scratch/cal1-b/fix4/gates/`; the results are below this line, written
+after the run).
+
+- 21:59–22:36 EST (`date` at both ends). Fresh relink first: `rm -f build/test/shulib_tests`, configure,
+  `briefing_status.py generate` (read as unbuilt), a FULL build (0 warnings), the suite, generate again.
+- `python3 tools/suite_run.py green` (capped, `ulimit -v 4194304; timeout 600`): **green — 2,968 cases, 2,960,703
+  assertions** (unchanged: no code changed).
+- `src_build_gate.py self-test`: OK (269 detector cases, each against a real build). `check`: PASS — all 7 builds
+  link, 0 disallowed warnings; `tank-calibrate` 11/11 TUs, beacons and program asserted.
+- ARM header gate over **240** headers: exit 0, no output; its control (a float→int narrowing) exit 1 as it must.
+  The CI greps: the library is PROS-free outside `hal/pros/`; the core is sim-free.
+- `api_doc_tool`: check-fresh clean; check-examples "638 quoted lines, all verbatim"; self-test OK;
+  check-coverage "5480 public entities across 197 headers, all documented"; check-removability clean.
+- `doc_staleness_audit.py` clean (binary not trusted: the gate's self-test had touched `src/`, so a last relink
+  follows); `briefing_status.py check`: current.
+- `rm -rf bin .d; make ROBOT=tank PROGRAM=calibrate` (exit 0; the script now clears `bin/` first, the last
+  round's defect) → `arm-none-eabi-strings -a`: present `MEASURES ITS OWN DRIVETRAIN` (4), `FRONT MATCHES, SOME
+  TYPED PORTS DIFFER` (2), `NO SD CARD in the brain` (2), `FRONT FLIPPED` (6), `MECHANISM PORT TURNED` (6),
+  `shulib-robot-variant=tank-calibrate` (3); ABSENT `WHICH END FIRST?`, `KEEP OLD`, `claw pivot (declared)`,
+  `robot two MEASURES` (0 each).
+- No self-test plant: `git diff -- Makefile src/ | grep -c '(self-test plant'` = 0.
+- After this entry was written: a last fresh relink, the suite, the briefing regenerated, then the audit, the
+  briefing check and api_doc_tool check-fresh / check-removability (results in the next line).
+- 22:36–22:41 EST: last fresh relink (267 steps, 0 warnings); the suite green again (2,968 / 2,960,703); the
+  briefing regenerated; `doc_staleness_audit.py` clean with the binary TRUSTED; `briefing_status.py check`
+  current; `api_doc_tool` check-fresh and check-removability clean; no plant. Nothing committed.
+
+## Part B — the coordinator's merge verification *(2026-11-11)*
+
+- **Squash** of `cal1-b` (base `858b675`) onto `49d1a22` (MECH-S-A). Conflicts resolved by hand: the register's Station J line
+  (main's MECH-A6 direction-check text kept, CAL1-B's `claw pivot 6` naming taken), the roadmap (CAL1 Part B's "Now" paragraph
+  after MECH-S-A's, re-worded as LANDED — CAL1 COMPLETE), the changelog (CAL1-B's entry at the top of `## API 2.5`, dated
+  "2026-11-11 (built 2026-11-05)"), build-order's `Next:` line (a word-level three-way merge against `858b675`), and the generated
+  `docs/api/` pages and briefing. Status words moved to LANDED: build-order (the CAL1 status line and the chunk table's row),
+  REMAINING-WORK row 18b, CAL1-COMPLETED.md's title and its parts table.
+- **Gates on the merged tree** (`.claude/coordinator/scratch/cal1_b_merge_verify.sh`, every binary capped): the suite green;
+  `src_build_gate.py` self-test OK and check PASS (all 7 builds link); the ARM header gate CLEAN (243 headers); the doc gates and
+  the briefing check clean; the compile-refusal harness 258 of 258; no plant, no stray root file.
+- **The coordinator's own mutations** (`muts_cal1_b_main.json`): **4 of 4 RED** — MC1 the facts carry no robot name, MC2 typed
+  drive ports taken from a table the boot cannot drive from, MC3 the stated IMU port dropped, MC4 the push tick's yaw read removed
+  (the first rest tick then reads a whole-push average). The restored tree relinked and ran green.
+- **CAL1 Part B LANDED — CAL1 is COMPLETE.** Nothing of it has run on a robot; the team's recorded Calibrate rerun on robot two
+  (copy both files off the card first) is its first.

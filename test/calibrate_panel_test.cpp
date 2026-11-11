@@ -14,10 +14,17 @@
 //   P2  DONE is not drawn at 0 or 1 moved, nor before far enough, nor while the robot moves; it is
 //       drawn once pushReady() says so                  (the same mutation)
 //   P3  ABORT has the identical rectangle on every screen that shows it; the powered screens widen
-//       it to the whole row, which contains that rectangle         (move ABORT on one screen)
+//       it to the whole row, which contains that rectangle — the PULSES from the first tick a pulse
+//       DRIVES a motor (that pulse's own ticks and every rest after it), never before
+//                                   (move ABORT on one screen; widen the PULSES' ABORT at once, only
+//                                    while pulsing, only after a recorded pulse, or never)
 //   P4  no button of a new layout lies under the button whose touch caused the change — a second
-//       tap where DONE / FRONT / ABORT was lands on NOTHING, even after the arming delay
-//                                                        (put FRONT where DONE was)
+//       tap where DONE / ABORT was lands on NOTHING, even after the arming delay — DONE -> PULSES
+//       included, with no exception: since CAL1 Part B removed the WHICH END screen DONE leads
+//       straight to the PULSES, whose ABORT stays in its slot until the first pulse drives (the Part
+//       B review round's fix; before it a reflexive second tap there ABORTED the run); once a motor
+//       is driven, a tap on DONE's old spot is an ABORT and leaves every motor safe
+//                                                        (put a non-ABORT button where DONE was)
 //   P5  the arming delay: a tap on a new button within 0.5 s lands on nothing; at 0.5 s it counts;
 //       ABORT is never delayed                          (drop the arming delay)
 //   P6  TouchGate: the release edge only; stale x/y never act; an error read is ignored and never
@@ -50,7 +57,6 @@ using shulib::calibration::hitTest;
 using shulib::calibration::kAbortRow;
 using shulib::calibration::kAbortSlot;
 using shulib::calibration::kArmingDelaySeconds;
-using shulib::calibration::kFrontBox;
 using shulib::calibration::kHeaderCols;
 using shulib::calibration::kHitPadX;
 using shulib::calibration::kHitPadY;
@@ -119,8 +125,7 @@ constexpr double kArmed = 10.0;
 [[nodiscard]] bool buttonMeansSomething(const PanelButton& b, const DrivetrainCalibrator& cal) {
     switch (b.id) {
         case PanelButtonId::Done: return cal.accepts(Answer::Done) && cal.pushReady();
-        case PanelButtonId::Front: return cal.accepts(Answer::FrontFirst);
-        case PanelButtonId::Back: return cal.accepts(Answer::BackFirst);
+        case PanelButtonId::SaveHeld: return false;  // a HELD screen's alone: no run here holds
         case PanelButtonId::Abort: return cal.accepts(Answer::Abort) && running(cal.phase());
         case PanelButtonId::RunAgain: return !running(cal.phase());
     }
@@ -164,6 +169,11 @@ void checkText(const PanelView& v) {
 struct Observed {
     std::set<PanelScreen> screens;
     std::vector<PanelRect> abortRects[8];  // per PanelScreen
+    // the PULSES' ABORT split by whether a motor has been DRIVEN yet (a pulse driving now, or one
+    // recorded) — the calibrator's own state, read independently of the panel's rule
+    std::vector<PanelRect> pulsesBeforeDrive;
+    std::vector<PanelRect> pulsesDriven;
+    int firstPulseDrivingViews = 0;  // views while the FIRST pulse drives (none recorded yet)
     int views = 0;
 };
 
@@ -183,6 +193,12 @@ void observe(CalibRig& rig, Observed& seen) {
         if (b.id == PanelButtonId::Abort) {
             abort = true;
             seen.abortRects[static_cast<std::size_t>(v.screen)].push_back(b.rect);
+            if (v.screen == PanelScreen::Pulses) {
+                const bool driving = rig.cal.status().pulsing;
+                const bool recorded = rig.cal.report().pulseCount > 0;
+                (driving || recorded ? seen.pulsesDriven : seen.pulsesBeforeDrive).push_back(b.rect);
+                seen.firstPulseDrivingViews += driving && !recorded ? 1 : 0;
+            }
         }
         runAgain = runAgain || b.id == PanelButtonId::RunAgain;
     }
@@ -264,9 +280,8 @@ TEST_CASE("CalibratePanel P1: every button drawn live is accepted by the calibra
         REQUIRE(observedRun(rig, opt, seen) == Phase::Aborted);
     }
     // Every screen was reached, so "every reachable state" is not a hope.
-    for (const PanelScreen s : {PanelScreen::ImuWait, PanelScreen::Push, PanelScreen::WhichEnd,
-                                PanelScreen::Pulses, PanelScreen::Spin, PanelScreen::Saved,
-                                PanelScreen::Stopped}) {
+    for (const PanelScreen s : {PanelScreen::ImuWait, PanelScreen::Push, PanelScreen::Pulses,
+                                PanelScreen::Spin, PanelScreen::Saved, PanelScreen::Stopped}) {
         CAPTURE(static_cast<int>(s));
         CHECK(seen.screens.count(s) == 1);
     }
@@ -345,7 +360,7 @@ TEST_CASE("CalibratePanel P2: DONE is not drawn at 0 or 1 moved, nor before far 
         const PanelButton* done = findButton(v, PanelButtonId::Done);
         REQUIRE(done != nullptr);
         CHECK(done->rect == kPrimarySlot);
-        CHECK(hasLine(v, "touch DONE -- then say which end"));
+        CHECK(hasLine(v, "touch DONE -- then stand clear"));
         CHECK(v.lines[2].tone == PanelTone::Green);  // the live count turns green when ready
     }
 }
@@ -359,8 +374,7 @@ TEST_CASE("CalibratePanel P3: ABORT has the identical rectangle on every screen 
     CalibRig idle{CalibratorConfig{}, calibPlant(0.0)};
     seen.abortRects[static_cast<std::size_t>(PanelScreen::NotStarted)].push_back(
         findButton(viewFor(idle.cal, kArmed), PanelButtonId::Abort)->rect);
-    for (const PanelScreen s : {PanelScreen::NotStarted, PanelScreen::ImuWait, PanelScreen::Push,
-                                PanelScreen::WhichEnd}) {
+    for (const PanelScreen s : {PanelScreen::NotStarted, PanelScreen::ImuWait, PanelScreen::Push}) {
         CAPTURE(static_cast<int>(s));
         const auto& rects = seen.abortRects[static_cast<std::size_t>(s)];
         REQUIRE_FALSE(rects.empty());
@@ -368,14 +382,28 @@ TEST_CASE("CalibratePanel P3: ABORT has the identical rectangle on every screen 
             CHECK(r == kAbortSlot);
         }
     }
-    for (const PanelScreen s : {PanelScreen::Pulses, PanelScreen::Spin}) {
-        CAPTURE(static_cast<int>(s));
-        const auto& rects = seen.abortRects[static_cast<std::size_t>(s)];
+    // The SPIN: the whole row throughout. The PULSES: the usual slot in the rest window DONE's touch
+    // leads to, and the whole row from the first tick a pulse DRIVES a motor — the first pulse's
+    // own driving ticks included (a rule on "a pulse recorded" alone would leave them narrow), and
+    // every rest window between pulses after it (a rule on "pulsing now" alone would narrow those).
+    {
+        const auto& rects = seen.abortRects[static_cast<std::size_t>(PanelScreen::Spin)];
         REQUIRE_FALSE(rects.empty());
         for (const PanelRect& r : rects) {
             CHECK(r == kAbortRow);
             CHECK(within(kAbortSlot, r));  // a thumb on the usual ABORT spot still hits ABORT
         }
+    }
+    REQUIRE_FALSE(seen.pulsesBeforeDrive.empty());
+    for (const PanelRect& r : seen.pulsesBeforeDrive) {
+        CHECK(r == kAbortSlot);
+        CHECK_FALSE(overlaps(hitBox(r), hitBox(kPrimarySlot)));  // nothing where DONE was
+    }
+    REQUIRE(seen.firstPulseDrivingViews > 0);
+    REQUIRE(seen.pulsesDriven.size() > static_cast<std::size_t>(seen.firstPulseDrivingViews));
+    for (const PanelRect& r : seen.pulsesDriven) {
+        CHECK(r == kAbortRow);
+        CHECK(within(kAbortSlot, r));
     }
     CHECK(seen.abortRects[static_cast<std::size_t>(PanelScreen::Saved)].empty());
     CHECK(seen.abortRects[static_cast<std::size_t>(PanelScreen::Stopped)].empty());
@@ -383,7 +411,11 @@ TEST_CASE("CalibratePanel P3: ABORT has the identical rectangle on every screen 
 
 // ═══ P4. The double-tap hazard ══════════════════════════════════════════════════════
 // On robot two, FRONT FIRST appeared exactly where DONE had just been; every FRONT answer that
-// night landed inside DONE's old box. A reflexive second tap would answer the next question.
+// night landed inside DONE's old box. A reflexive second tap would answer the next question. (That
+// WHICH END screen is gone since CAL1 Part B; DONE now leads to the PULSES, whose ABORT stays in its
+// usual slot until the first pulse drives a motor — so the rule holds there too, with no exception:
+// CAL1 Part B's review round. Before it the PULSES' ABORT filled the row at once, DONE's box included,
+// and a reflexive second tap ABORTED the run and lost the push.)
 TEST_CASE("CalibratePanel P4: no button of a new layout lies under the button whose touch caused "
           "the change — a second tap there lands on nothing, even after the arming delay") {
     struct Transition {
@@ -394,23 +426,13 @@ TEST_CASE("CalibratePanel P4: no button of a new layout lies under the button wh
     };
     std::vector<Transition> cases;
     {
-        RunOptions o;  // DONE → which end
-        cases.push_back({"DONE -> WHICH END", PanelButtonId::Done, o, 0.0});
+        RunOptions o;  // DONE → the pulses (CAL1 Part B: the end that led is the front)
+        cases.push_back({"DONE -> PULSES", PanelButtonId::Done, o, 0.0});
     }
     {
         RunOptions o;  // DONE on a curved push → STOPPED
         o.curve = 0.85;
         cases.push_back({"DONE -> STOPPED (curved)", PanelButtonId::Done, o, 0.0});
-    }
-    {
-        RunOptions o;
-        o.front = Answer::FrontFirst;
-        cases.push_back({"FRONT -> PULSES", PanelButtonId::Front, o, 0.0});
-    }
-    {
-        RunOptions o;
-        o.front = Answer::BackFirst;
-        cases.push_back({"BACK -> PULSES", PanelButtonId::Back, o, 0.0});
     }
     {
         RunOptions o;
@@ -469,6 +491,29 @@ TEST_CASE("CalibratePanel P4: no button of a new layout lies under the button wh
         const auto late = gate.touch(tapAt(releases, causing), armed, rig.cal);
         CHECK(late.action == TouchAction::None);
         CHECK(late.hit == -1);
+        if (name == "DONE -> PULSES") {
+            // The run is still going (the tap did nothing), and ABORT is where it always is.
+            REQUIRE(after.screen == PanelScreen::Pulses);
+            CHECK(rig.cal.phase() == Phase::SideAssign);
+            REQUIRE(findButton(after, PanelButtonId::Abort) != nullptr);
+            CHECK(findButton(after, PanelButtonId::Abort)->rect == kAbortSlot);
+            // Once the first pulse DRIVES a motor ABORT fills the row: a thumb anywhere in it —
+            // DONE's old spot too — now stops the powered robot (the safe direction).
+            RunOptions go;
+            go.stopWhen = [](CalibRig& r) { return r.cal.status().pulsing; };
+            REQUIRE(runCalibration(rig, go) == Phase::SideAssign);
+            CHECK(rig.cal.report().pulseCount == 0);  // the FIRST pulse, still driving
+            now += 0.01;
+            const PanelView powered = gate.view(rig.cal, now);
+            REQUIRE(findButton(powered, PanelButtonId::Abort) != nullptr);
+            CHECK(findButton(powered, PanelButtonId::Abort)->rect == kAbortRow);
+            const auto stop = gate.touch(tapAt(releases, causing), powered, rig.cal);
+            REQUIRE(stop.action == TouchAction::Answer);
+            CHECK(stop.answer == Answer::Abort);
+            rig.cal.answer(stop.answer);
+            CHECK(rig.cal.phase() == Phase::Aborted);
+            CHECK(safeStateHolds(rig));
+        }
     }
 }
 
@@ -501,12 +546,13 @@ TEST_CASE("CalibratePanel P5: a tap on a new button within the arming delay land
     REQUIRE(r.action == TouchAction::Answer);
     CHECK(r.answer == Answer::Done);
     rig.cal.answer(r.answer);
-    // The new layout (FRONT / BACK): greyed at once — but ABORT answers at 0.0 s.
+    // The new layout (the PULSES, since CAL1 Part B removed WHICH END): ABORT answers at 0.0 s.
     now += 0.01;
     v = gate.view(rig.cal, now);
-    REQUIRE(v.screen == PanelScreen::WhichEnd);
-    CHECK_FALSE(findButton(v, PanelButtonId::Front)->armed);
-    CHECK(gate.touch(tapAt(releases, kFrontBox), v, rig.cal).action == TouchAction::None);
+    REQUIRE(v.screen == PanelScreen::Pulses);
+    REQUIRE(v.buttonCount == 1);  // ABORT alone, in its usual slot until the first pulse drives
+    CHECK(findButton(v, PanelButtonId::Abort)->rect == kAbortSlot);
+    CHECK(findButton(v, PanelButtonId::Abort)->armed);
     r = gate.touch(tapAt(releases, kAbortSlot), v, rig.cal);
     CHECK(r.action == TouchAction::Answer);
     CHECK(r.answer == Answer::Abort);
@@ -545,11 +591,12 @@ TEST_CASE("CalibratePanel P6: release edge only, stale coordinates never act, an
     // A STALE view: DONE is still painted, but the calibrator has moved on (the answer above was
     // sent). A tap on the painted DONE must not reach answer() — it would REFUSE the run.
     rig.cal.answer(real.answer);
-    REQUIRE(rig.cal.accepts(Answer::FrontFirst));
+    REQUIRE(rig.cal.phase() == Phase::SideAssign);  // the pulses began (CAL1 Part B: no WHICH END)
+    REQUIRE_FALSE(rig.cal.accepts(Answer::Done));
     const auto stale = gate.touch(TouchSample{false, 7, cx, cy}, v, rig.cal);
     CHECK(stale.hit == 0);                        // it hit the painted DONE …
     CHECK(stale.action == TouchAction::None);     // … and nothing was sent
-    CHECK(rig.cal.phase() == Phase::PushCapture);
+    CHECK(rig.cal.phase() == Phase::SideAssign);
     // RUN AGAIN painted on a stale view while the run is still going: nothing.
     PanelView fake = v;
     fake.buttons[0] = PanelButton{PanelButtonId::RunAgain, kRunAgainBox, "RUN AGAIN", true};

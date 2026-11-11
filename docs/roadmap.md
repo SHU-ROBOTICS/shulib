@@ -483,6 +483,16 @@ not silently break them. This table is the spine of the no-staleness promise.
 > [Chapter 18](guide/18-mechanisms.md#current-caps--how-hard-a-string-is-pulled) teaches it. **Next for
 > MECH-S/TUNE1 is TUNE1-A** (live tuning's library); the slack watch (MECH-S-B) is after the 21st.
 >
+> **Now (2026-11-11): CAL1 Part B has LANDED — CAL1 is COMPLETE; host- and build-gated, NOT run on a robot**
+> (built 2026-11-05). Robot two's "shulib Calibrate" (slot 4) IS now the library's standard Calibrate: a 27-line file over
+> facts taken from robot two's own tables, so nothing is typed twice. The WHICH END question is gone from the
+> library — the end that LEADS the push is the robot's front, checked against the card's record before anything
+> is saved — and the save is the safe one (a verified backup first). Side by side on one host test plant, every
+> line the new program prints differently from the old one has a named reason. See the
+> [changelog](changelog.md) (the WHICH END question removed). **Next with it:** the team's recorded Calibrate
+> rerun on robot two (copy both files off the card first) — the run expected to fix robot two's ~8 % distance
+> error (not yet measured).
+>
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
 > robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver

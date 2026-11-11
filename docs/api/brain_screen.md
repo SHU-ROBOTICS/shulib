@@ -365,13 +365,13 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  conversion with no argument behind it; and VEXos's fonts carry ASCII only. Sanitizing costs
  nothing if the belief is wrong and saves the screen if it is right. screenSafeLine()
  below is the screen's sanitizer for the library — every IBrainScreen::print() passes its text
- through it, so a caller can never hand VEXos a format character. Its rules are, byte for byte,
- those of printText() in src/common/screen_text.hpp (the robot programs' one path to the screen,
- written for "shulib Calibrate" at R3d Part 2F-2 on 2026-09-24): '%' and control bytes become '?',
- a UTF-8 en or em dash becomes '-', any other non-ASCII character becomes ONE '?', the text is cut
- at the size's budget, then padded with spaces (never past the budget). In this part the two are
- the same rules in two places — a host test feeds both the same inputs and requires the same
- bytes — until CAL1 Part B makes printText() call this one, leaving one rule. (Bench Tests,
+ through it, so a caller can never hand VEXos a format character. Its rules are those printText()
+ (src/common/screen_text.hpp, the robot programs' one path to the screen, written for "shulib
+ Calibrate" at R3d Part 2F-2 on 2026-09-24) was written with: '%' and control bytes become '?', a
+ UTF-8 en or em dash becomes '-', any other non-ASCII character becomes ONE '?', the text is cut at
+ the size's budget, then padded with spaces (never past the budget). In CAL1 Part A1 the two were
+ the same rules in two places, held equal by a host test; since CAL1 Part B (2026-11-05)
+ printText() CALLS this one, so there is one rule. (Bench Tests,
  src/programs/bench_r3a.cpp, keeps its own copy at its 54-column scrolling-log width, which ran on
  hardware as it is; whether Bench Tests joins the library is decided with the starter project.)
 

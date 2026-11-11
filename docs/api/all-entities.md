@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 5,560 of them, across 200 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 5,542 of them, across 200 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -130,9 +130,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `AngularVelocity` | type alias | [quantity.md](quantity.md#angularvelocity) |
 | `Answer` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-answer) |
 | `Answer::Abort` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-abort) |
-| `Answer::BackFirst` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-backfirst) |
 | `Answer::Done` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-done) |
-| `Answer::FrontFirst` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-frontfirst) |
 | `appendNum` | free function | [line_format.md](line_format.md#appendnum) |
 | `appendOdomTickAudit` | free function | [odom_tick_audit.md](odom_tick_audit.md#appendodomtickaudit) |
 | `AppendOpen` | enum class | [pros-block_sink.md](pros-block_sink.md#enum-class-appendopen) |
@@ -523,7 +521,6 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `calibrateStateScreen` | free function | [calibrate_program.md](calibrate_program.md#calibratestatescreen) |
 | `calibrateStateScreen` | free function | [pros-calibrate.md](pros-calibrate.md#calibratestatescreen) |
 | `CalibrationReport` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-calibrationreport) |
-| `CalibrationReport::backFirst` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-backfirst) |
 | `CalibrationReport::drivePortCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-driveportcount) |
 | `CalibrationReport::excludedCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-excludedcount) |
 | `CalibrationReport::excludedPorts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-excludedports) |
@@ -1654,9 +1651,6 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FrontChoice` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-frontchoice) |
 | `FrontChoice::New` | enumerator | [calibrate_panel.md](calibrate_panel.md#frontchoice-new) |
 | `FrontChoice::None` | enumerator | [calibrate_panel.md](calibrate_panel.md#frontchoice-none) |
-| `FrontRule` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-frontrule) |
-| `FrontRule::AskedAfterPush` | enumerator | [calibrate_panel.md](calibrate_panel.md#frontrule-askedafterpush) |
-| `FrontRule::ByPush` | enumerator | [calibrate_panel.md](calibrate_panel.md#frontrule-bypush) |
 | `FrontVerdict` | enum class | [front_check.md](front_check.md#enum-class-frontverdict) |
 | `FrontVerdict::Flipped` | enumerator | [front_check.md](front_check.md#frontverdict-flipped) |
 | `FrontVerdict::Same` | enumerator | [front_check.md](front_check.md#frontverdict-same) |
@@ -2337,7 +2331,6 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kArcStraightEps` | constant | [arc_step.md](arc_step.md#karcstraighteps) |
 | `kArmingDelaySeconds` | constant | [calibrate_panel.md](calibrate_panel.md#karmingdelayseconds) |
 | `kArmingDelaySeconds` | constant | [touch_panel.md](touch_panel.md#karmingdelayseconds) |
-| `kBackBox` | constant | [calibrate_panel.md](calibrate_panel.md#kbackbox) |
 | `kBlueWall` | constant | [override_walls.md](override_walls.md#kbluewall) |
 | `kBoxEdgePx` | constant | [camera_geometry.md](camera_geometry.md#kboxedgepx) |
 | `kBrainAdiLines` | constant | [device_provider.md](device_provider.md#kbrainadilines) |
@@ -2347,6 +2340,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kCapRecheckSeconds` | constant | [service.md](service.md#kcaprecheckseconds) |
 | `kCapSignatureMarginAmps` | constant | [service.md](service.md#kcapsignaturemarginamps) |
 | `kCartridgeUnset` | constant | [calibrate_screen.md](calibrate_screen.md#kcartridgeunset) |
+| `kChoiceLeftBox` | constant | [calibrate_panel.md](calibrate_panel.md#kchoiceleftbox) |
+| `kChoiceRightBox` | constant | [calibrate_panel.md](calibrate_panel.md#kchoicerightbox) |
 | `kColAbortFill` | constant | [calibrate_screen.md](calibrate_screen.md#kcolabortfill) |
 | `kColAmber` | constant | [calibrate_screen.md](calibrate_screen.md#kcolamber) |
 | `kColBg` | constant | [calibrate_screen.md](calibrate_screen.md#kcolbg) |
@@ -2409,7 +2404,6 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kFormatVersion` | constant | [blackbox_format.md](blackbox_format.md#kformatversion) |
 | `kFrameHeaderBytes` | constant | [blackbox_format.md](blackbox_format.md#kframeheaderbytes) |
 | `kFrameOverheadBytes` | constant | [shul2_format.md](shul2_format.md#kframeoverheadbytes) |
-| `kFrontBox` | constant | [calibrate_panel.md](calibrate_panel.md#kfrontbox) |
 | `kFrontRule` | constant | [calibrate_panel.md](calibrate_panel.md#kfrontrule) |
 | `kFullReasonOnSerial` | constant | [calibrate_panel.md](calibrate_panel.md#kfullreasononserial) |
 | `kGpsDefaultNorthHeadingDeg` | constant | [gps_conversion.md](gps_conversion.md#kgpsdefaultnorthheadingdeg) |
@@ -2422,22 +2416,17 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kHeaderFlipped` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderflipped) |
 | `kHeaderIdle` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderidle) |
 | `kHeaderImu` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderimu) |
-| `kHeaderImu4` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderimu4) |
 | `kHeaderMeasured` | constant | [calibrate_panel.md](calibrate_panel.md#kheadermeasured) |
 | `kHeaderMechTurned` | constant | [calibrate_panel.md](calibrate_panel.md#kheadermechturned) |
 | `kHeaderNotSaved` | constant | [calibrate_panel.md](calibrate_panel.md#kheadernotsaved) |
 | `kHeaderPulses` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderpulses) |
-| `kHeaderPulses4` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderpulses4) |
 | `kHeaderPush` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderpush) |
-| `kHeaderPush4` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderpush4) |
 | `kHeaderSaved` | constant | [calibrate_panel.md](calibrate_panel.md#kheadersaved) |
 | `kHeaderSavedNew` | constant | [calibrate_panel.md](calibrate_panel.md#kheadersavednew) |
 | `kHeaderSpin` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderspin) |
-| `kHeaderSpin4` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderspin4) |
 | `kHeaderStarting` | constant | [calibrate_screen.md](calibrate_screen.md#kheaderstarting) |
 | `kHeaderStopped` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderstopped) |
 | `kHeaderStopped` | constant | [calibrate_screen.md](calibrate_screen.md#kheaderstopped) |
-| `kHeaderWhichEnd` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderwhichend) |
 | `kHeadingErrorMaxDeg` | constant | [accuracy.md](accuracy.md#kheadingerrormaxdeg) |
 | `kHelloInvariantBytes` | constant | [shul2_format.md](shul2_format.md#khelloinvariantbytes) |
 | `kHelloPayloadBytes` | constant | [shul2_format.md](shul2_format.md#khellopayloadbytes) |
@@ -2460,9 +2449,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kInstallVisionPoller` | constant | [absent_vision.md](absent_vision.md#kinstallvisionpoller) |
 | `kInstallVisionPoller<AbsentVision>` | constant | [absent_vision.md](absent_vision.md#kinstallvisionpollerabsentvision) |
 | `kLabelAbort` | constant | [calibrate_panel.md](calibrate_panel.md#klabelabort) |
-| `kLabelBack` | constant | [calibrate_panel.md](calibrate_panel.md#klabelback) |
 | `kLabelDone` | constant | [calibrate_panel.md](calibrate_panel.md#klabeldone) |
-| `kLabelFront` | constant | [calibrate_panel.md](calibrate_panel.md#klabelfront) |
 | `kLabelNew` | constant | [calibrate_panel.md](calibrate_panel.md#klabelnew) |
 | `kLabelRunAgain` | constant | [calibrate_panel.md](calibrate_panel.md#klabelrunagain) |
 | `kLabelSave` | constant | [calibrate_panel.md](calibrate_panel.md#klabelsave) |
@@ -2565,7 +2552,6 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kNextSaves` | constant | [calibrate_panel.md](calibrate_panel.md#knextsaves) |
 | `kNextSpins` | constant | [calibrate_panel.md](calibrate_panel.md#knextspins) |
 | `kNextTouchDone` | constant | [calibrate_panel.md](calibrate_panel.md#knexttouchdone) |
-| `kNextTouchDoneClear` | constant | [calibrate_panel.md](calibrate_panel.md#knexttouchdoneclear) |
 | `kNextTwitch` | constant | [calibrate_panel.md](calibrate_panel.md#knexttwitch) |
 | `kNoAutonName` | constant | [auton_registry.md](auton_registry.md#knoautonname) |
 | `kNoIndependentStallSourceNote` | constant | [odo_stall_check.md](odo_stall_check.md#knoindependentstallsourcenote) |
@@ -2602,7 +2588,6 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kProvenanceBytes` | constant | [calibration_record.md](calibration_record.md#kprovenancebytes) |
 | `kPublishedCloseAccuracyInches` | constant | [wall_reset.md](wall_reset.md#kpublishedcloseaccuracyinches) |
 | `kPublishedFarAccuracyFraction` | constant | [wall_reset.md](wall_reset.md#kpublishedfaraccuracyfraction) |
-| `kPushForward` | constant | [calibrate_panel.md](calibrate_panel.md#kpushforward) |
 | `kPushFrontFirst` | constant | [calibrate_panel.md](calibrate_panel.md#kpushfrontfirst) |
 | `kRecommendedBufferBytes` | constant | [sd_sink.md](sd_sink.md#krecommendedbufferbytes) |
 | `kRecordBackupFileName` | constant | [calibration_record.md](calibration_record.md#krecordbackupfilename) |
@@ -2692,7 +2677,6 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kWallResetWaitBackstopSeconds` | constant | [wall_reset_call.md](wall_reset_call.md#kwallresetwaitbackstopseconds) |
 | `kWalls` | constant | [override_walls.md](override_walls.md#kwalls) |
 | `kWarningCut` | constant | [calibrate_panel.md](calibrate_panel.md#kwarningcut) |
-| `kWhichEnd` | constant | [calibrate_panel.md](calibrate_panel.md#kwhichend) |
 | `kWidthTable` | constant | [shul2_format.md](shul2_format.md#kwidthtable) |
 
 ## L
@@ -3438,10 +3422,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PanelButton::rect` | field | [calibrate_panel.md](calibrate_panel.md#panelbutton-rect) |
 | `PanelButtonId` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-panelbuttonid) |
 | `PanelButtonId::Abort` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-abort) |
-| `PanelButtonId::Back` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-back) |
 | `PanelButtonId::Done` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-done) |
-| `PanelButtonId::Front` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-front) |
 | `PanelButtonId::RunAgain` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-runagain) |
+| `PanelButtonId::SaveHeld` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-saveheld) |
 | `panelLayoutHolds` | free function | [calibrate_panel.md](calibrate_panel.md#panellayoutholds) |
 | `PanelLine` | struct | [calibrate_panel.md](calibrate_panel.md#struct-panelline) |
 | `PanelLine::size` | field | [calibrate_panel.md](calibrate_panel.md#panelline-size) |
@@ -3465,7 +3448,6 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PanelScreen::Saved` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-saved) |
 | `PanelScreen::Spin` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-spin) |
 | `PanelScreen::Stopped` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-stopped) |
-| `PanelScreen::WhichEnd` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-whichend) |
 | `PanelTone` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-paneltone) |
 | `PanelTone::Amber` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-amber) |
 | `PanelTone::Blue` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-blue) |

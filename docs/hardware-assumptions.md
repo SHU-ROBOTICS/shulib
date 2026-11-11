@@ -2326,15 +2326,25 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   therefore a belief that only a brain can settle, and it is written down as one instead of being
   claimed by a test that could not see it.
   *Settle (R3d Part 3, Station G):* run "shulib Calibrate" to `SAVED` — which is itself the
-  measurement, because the program writes, flushes, CLOSES, re-opens through `ProsBlockSource`,
-  reads back and compares the bytes before it says the word (ruling P5). Then pull the card and
-  compare the 180 bytes on a laptop (`cmp`, or `xxd`), which settles it independently of the
-  program's own opinion.
-  *Blast radius if wrong:* `NOT SAVED` on the brain, in red, with the reason — the read-back is
-  precisely what makes this failure loud instead of silent. The worse variant, a file that reads
-  back subtly changed and still passes a byte compare, cannot happen: the compare IS byte-exact,
-  and the CRC would refuse the difference at the next boot. **Contained:** one adapter and the
-  Done path of one program.
+  measurement, because the program writes, flushes, CLOSES, re-opens, reads back and compares the
+  bytes before it says the word (ruling P5). Then pull the card and compare on a laptop: **since CAL1
+  Part B (2026-11-05) robot two's Calibrate is the library's standard one, which saves through
+  SAFE-SAVE's `saveRecordSafely` (`calibration/record_store.hpp`, over `hal/pros/file_store.hpp`'s
+  `ProsFileStore`) — after a SAVED run BOTH files, `shulib_drivetrain.bin` and its backup
+  `shulib_drivetrain.bak`, are 180 bytes and byte-identical (`cmp`, or `xxd`)**, which settles it
+  independently of the program's own opinion (worksheet Station G, the RUN AGAIN paragraph).
+  *Evidence so far:* a record written by R3d's own Calibrate (through `ProsBlockSink`) decoded at
+  every one of eight boots of "shulib Teleop" on the evening of 2026-09-25 (`calibration record: DECODED`) — a
+  read of what a write left, on the brain, by date; not yet the `cmp` above, and not yet through the
+  library's save.
+  *Blast radius if wrong:* `NOT SAVED` (or `SAVE UNCONFIRMED`) on the brain, with the reason — the
+  read-back is precisely what makes this failure loud instead of silent. The worse variant, a file that
+  reads back subtly changed and still passes a byte compare, cannot happen: the compare IS byte-exact,
+  and the CRC would refuse the difference at the next boot. **Reaches:** the library's safe save
+  (`saveRecordSafely`: its every step reads back, so a wrong mode is a refused save, never a silent
+  one) and the boot's load (`loadRecord` / the drive program's `calibration record:` line), which would
+  then refuse the record — the drive program boots from the typed table or refuses, never from a
+  changed record.
 
 - [ ] **HA-140 — a CRC-32 over the calibration record is worth its four bytes, where the
   blackbox's format deliberately carries none (a DESIGN note under HA-122).**
@@ -2577,7 +2587,8 @@ first below). HA-142 to HA-146 are DEFECTS2's (above); HA-148 to HA-152 were res
 are unused. HA-153 to HA-156 are beliefs about motors NOBODY HAS SEEN YET: the team lead reported
 the two claw pivots on 2026-09-26, no census or capture has shown a motor on port 6 or 7, and
 nothing has commanded either on a robot. `src/robots/mechanism_table.hpp` declares them;
-`src/programs/calibrate_program.cpp` acts on the declaration (it never makes 6 or 7 a drive candidate);
+the standard Calibrate acts on the declaration through `src/robots/calibrate_facts.hpp` (it never makes 6 or 7 a
+drive candidate; robot two's own `src/programs/calibrate_program.cpp` did until CAL1 Part B, 2026-11-05);
 "shulib Drive" builds them and robot two's driver file drives them (since T4 Part 3; "shulib Teleop"
 did from T3's Teleop wiring, its Part 2, the same day, until then) — host- and build-gated, never
 run. Worksheet Station J is their first run.
@@ -2623,8 +2634,9 @@ run. Worksheet Station J is their first run.
   `clawPivot7` — `.cartridge = Red`, `.motors = {Forward}` — and their `wire(..., motors(6))` /
   `motors(7)` lines; the file's banner is tagged `A4 register HA-153`, the declarations' comment
   `HA-153`): the ports, the cartridge and the signs (`Forward`, the motor's own forward; `Reversed`
-  is the flip, since MECH-A5 — until then a `+6` / `+7` port); `src/programs/calibrate_program.cpp`
-  drops 6 and 7 from its drive candidates on this belief, and every program that boots robot two
+  is the flip, since MECH-A5 — until then a `+6` / `+7` port); the standard Calibrate (robot two's
+  since CAL1 Part B, its facts mapped by `src/robots/calibrate_facts.hpp`) drops 6 and 7 from its drive
+  candidates on this belief, and every program that boots robot two
   from the record builds both pivots from it (`src/common/boot_source.hpp`, through
   `mechanism::toMechanismConfig`) and names them as claw pivots in its port check; robot two's
   driver file binds R1/R2 and L1/L2 to them by declaration (`src/team/robot_two_driver.hpp`'s
@@ -2638,7 +2650,7 @@ run. Worksheet Station J is their first run.
   DIRECTION is not even reported: "forward" is the name of a button, not a measured rotation, and
   the `+` signs are the table's unmeasured starting point.
   *Settle (worksheet Station J):* Bench Tests' DEVICE CENSUS shows MOTOR on 6 and 7; the insert
-  colour read off each motor; Calibrate prints `port 6: claw pivot (declared) -- not a candidate,
+  colour read off each motor; Calibrate prints `port 6: claw pivot 6 (declared) -- not a candidate,
   not touched` and the same for 7; **the bench page's direction check — Bench Tests' station 13
   (MECH-A6, built 2026-10-30, not yet run), worksheet Station P: a + jog of each pivot at 3 V and
   "which way did it go?", the verdict naming the declaration's line** — then J's direction check —
@@ -2703,8 +2715,10 @@ run. Worksheet Station J is their first run.
   to every check shulib runs before power: the census, Calibrate's declared-port drop, the boot
   check's port check against the record, the provider's kind check. False only if the registry could tell
   one motor from another, which its API (HA-138, HA-141) does not offer.
-  *Source:* `src/programs/calibrate_program.cpp` (the declared-port drop, tagged `A4 register HA-155`): it
-  drops PORTS, trusting that the cable in port 6 is the claw's; `src/robots/mechanism_table.hpp`. The
+  *Source:* the standard Calibrate's declared-port drop (`include/shulib/calibration/calibrate_program.hpp`,
+  over the facts `src/robots/calibrate_facts.hpp` maps from the mechanism list — since CAL1 Part B,
+  2026-11-05; robot two's own `src/programs/calibrate_program.cpp`, tagged `A4 register HA-155`, until
+  then): it drops PORTS, trusting that the cable in port 6 is the claw's; `src/robots/mechanism_table.hpp`. The
   boot check already says the same of two DRIVE cables swapped with each other ("NOT CHECKED: two
   drive cables swapped WITH EACH OTHER look identical here").
   *Confidence:* reasoned (what the registry reports).
@@ -2927,8 +2941,9 @@ were built in parallel; both have since landed, with the numbers below it.)
   returns, braking the drive before the task is torn down — the loop the X-drive runs too, since G1
   Part 2c moved it out of `src/main.cpp`, whose own X-drive loop said "PROS deletes the task on disable
   and a deleted task runs no destructor" until then; corrected at T4 Part 3's review, 2026-10-08),
-  `src/programs/calibrate_program.cpp` ("A FIELD DISABLE is NOT a C++ exit — PROS deletes the
-  opcontrol task and a deleted task runs no destructors", for its all-stop guard — the old
+  `src/programs/calibrate_program.cpp` until CAL1 Part B ("A FIELD DISABLE is NOT a C++ exit — PROS
+  deletes the opcontrol task and a deleted task runs no destructors", for its all-stop guard; the
+  standard Calibrate, `include/shulib/calibration/calibrate_program.hpp`, says it since) — the old
   `src/programs/drive_program.cpp` said it nearly word for word for its own guard until T4 Part 3
   replaced that program; the new one says it for its storage: the driver file is held in the
   program's static state, never on the opcontrol task's stack, "because the loop holds the inputs by

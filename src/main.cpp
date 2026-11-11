@@ -30,6 +30,9 @@
 //   make ROBOT=tank PROGRAM=autontest  "shulib Auton Tester" src/programs/auton_tester_program.cpp
 //                                                           + src/team/autons.cpp       (slot 2)
 //   make ROBOT=tank PROGRAM=calibrate  "shulib Calibrate"   src/programs/calibrate_program.cpp  (slot 4)
+//                                                           = the standard Calibrate (CAL1,
+//                                                           hal/pros/calibrate.hpp) over
+//                                                           src/robots/calibrate_facts.hpp
 //   make ROBOT=tank PROGRAM=competition "shulib Competition" src/programs/competition_program.cpp
 //                                                           + src/team/ (slot 6; slot 5 is held)
 //   (PROGRAM=library — "shulib Teleop", slot 2 until T4 Part 3 — is RETIRED: an $(error) naming
@@ -179,9 +182,11 @@ void disabled() {
     switch (kProgram) {
         case Program::BenchTests:
         case Program::Drive:
-        case Program::Calibrate:
             shulib::bench::benchStateScreen(
                 "DISABLED", "VEXos reports the robot DISABLED, so the driver task is not running.");
+            return;
+        case Program::Calibrate:
+            shulib::bench::calibrateDisabled();  // the standard Calibrate's state screen (CAL1)
             return;
         case Program::InventedXDrive:
             return;
@@ -202,10 +207,12 @@ void competition_initialize() {
     switch (kProgram) {
         case Program::BenchTests:
         case Program::Drive:
-        case Program::Calibrate:
             shulib::bench::benchStateScreen(
                 "FIELD CONTROL CONNECTED",
                 "A competition switch or field is connected through the controller.");
+            return;
+        case Program::Calibrate:
+            shulib::bench::calibrateConnected();  // the standard Calibrate's state screen (CAL1)
             return;
         case Program::InventedXDrive:
             return;
@@ -242,10 +249,7 @@ void autonomous() {
             shulib::bench::driveAutonomous();
             return;
         case Program::Calibrate:
-            shulib::bench::benchStateScreen(
-                "AUTONOMOUS",
-                "No motion here, ever: calibration powers the motors and lives under driver "
-                "control, where a person is standing by the battery.");
+            shulib::bench::calibrateAutonomous();  // the standard Calibrate's: no motion, ever (CAL1)
             return;
         case Program::InventedXDrive:
             shulib::bench::xdriveAutonomous();  // one serial line; no screen, no motion

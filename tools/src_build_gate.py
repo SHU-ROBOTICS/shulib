@@ -36,9 +36,12 @@ $(error))
                                          calibration record (src/programs/drive_program.cpp); slot 1
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_DRIVE
-  tank-calibrate ROBOT=tank PROGRAM=calibrate "shulib Calibrate" (R3d Part 2): the robot MEASURES
-                                         its own drivetrain (src/programs/calibrate_program.cpp) and
-                                         writes /usd/shulib_drivetrain.bin; slot 4
+  tank-calibrate ROBOT=tank PROGRAM=calibrate "shulib Calibrate" (R3d Part 2; since CAL1 Part B the
+                                         library's standard Calibrate, hal/pros/calibrate.hpp, over
+                                         src/robots/calibrate_facts.hpp, glued by
+                                         src/programs/calibrate_program.cpp): the robot MEASURES its
+                                         own drivetrain and writes /usd/shulib_drivetrain.bin (a
+                                         verified backup, .bak, first); slot 4
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_CALIBRATE
   tank-autontest ROBOT=tank PROGRAM=autontest "shulib Auton Tester" (COMP-t): runs ONE of the
@@ -135,8 +138,12 @@ tank-competition)
     FAILS (a program's own name missing, or another's present); it cannot pass silently. What
     it does NOT see: the
     sentences src/main.cpp paints itself (the DISABLED / FIELD CONTROL reasons and the tester's
-    and Calibrate's AUTONOMOUS reasons are main.cpp's own literals, no program's symbol) — a
-    swap there shows the wrong sentence and passes.
+    AUTONOMOUS reason are main.cpp's own literals, no program's symbol) — a swap there shows the
+    wrong sentence and passes. (Calibrate's three state screens are its own symbols since CAL1
+    Part B — calibrateDisabled, calibrateConnected, calibrateAutonomous — so their PRESENCE is
+    checked; WHICH entry function calls each is not — two swapped between functions keep every
+    symbol linked. test/calibrate_facts_test.cpp's F5 pins each Calibrate case inside its own
+    function in src/main.cpp's source.)
  9. Asserts ONE-CALL WRITES (SER1, 2026-10-08; A4 register HA-189): no src/ OBJECT prints
     through stdio. Every task on the brain shares ONE stdout FILE, line-buffered, and the
     vendored newlib's per-FILE locks are no-op stubs — so two tasks inside printf/puts/fwrite on
@@ -215,7 +222,7 @@ Once per `check`, before any build — step 0, five source checks:
   under [one-chain], because naming a robot's table IS choosing a robot outside the chain):
   every robot's tables are defined in every build under their own names (so the host suite can
   read them), which lets a program name ANOTHER robot's — `tableSideOf(kRobotTwoChassis, port)`
-  in the bench tester, `mechanismTableFor(RobotId::BenchBot)` in Calibrate — by a one-token
+  in the bench tester, `mechanismTableFor(RobotId::BenchBot)` in Calibrate's facts — by a one-token
   edit that no beacon, symbol or static_assert would notice. So the per-robot names — every
   table the two table files define (`constexpr ChassisTable|MechanismTable <name>`), their
   selection functions (`constexpr const …Table& <name>(RobotId …)`) and every name those
@@ -541,7 +548,9 @@ PROGRAM_ENTRY_SYMBOLS = {
     "BenchTests": ("shulib::bench::testerInitialize", "shulib::bench::runR3a"),
     "Drive": ("shulib::bench::driveInitialize", "shulib::bench::kDriveAutonomousReason",
               "shulib::bench::driveAutonomous", "shulib::bench::runDrive"),
-    "Calibrate": ("shulib::bench::calibrateInitialize", "shulib::bench::runCalibrate"),
+    "Calibrate": ("shulib::bench::calibrateInitialize", "shulib::bench::calibrateDisabled",
+                  "shulib::bench::calibrateConnected", "shulib::bench::calibrateAutonomous",
+                  "shulib::bench::runCalibrate"),
     "InventedXDrive": ("shulib::bench::xdriveInitialize", "shulib::bench::xdriveAutonomous",
                        "shulib::bench::runXdrive"),
     "AutonTester": ("shulib::bench::autonTesterInitialize",),
@@ -1881,7 +1890,7 @@ LIBRARY_PLANT = os.path.join(REPO, "include", "shulib", "config", "robot_config.
 TEST_PLANT = os.path.join(REPO, "test", "build_selection_test.cpp")                 # (19)
 VENDORED_TEST_PLANT = os.path.join(REPO, "test", "vendor", "doctest.h")              # (19)
 DRIVE_PLANT = os.path.join(REPO, "src", "programs", "drive_program.cpp")     # (26, 28, 29, 30)
-CALIBRATE_PLANT = os.path.join(REPO, "src", "programs", "calibrate_program.cpp")   # (26)
+CALIBRATE_PLANT = os.path.join(REPO, "src", "robots", "calibrate_facts.hpp")      # (26)
 CMAKE_PLANT = os.path.join(REPO, "test", "CMakeLists.txt")                          # (27)
 COMMON_PLANT = os.path.join(REPO, "src", "common", "boot_source.hpp")               # (28)
 TEAM_DIR = os.path.join(REPO, "src", "team")                                        # (28)
@@ -2563,8 +2572,9 @@ def do_self_test():
     #     program is reported; the review's own mutations (the bench tester's IMU from robot two's
     #     table; shulib Drive's mechanism service bound over the bench bot's mechanisms — re-pointed at
     #     MECH-A5 from its claw boot lines, which left the file (and at T4 Part 3 from the OLD Drive's
-    #     ports from the bench bot's chassis table); Calibrate dropping the bench bot's mechanisms, i.e. none — its claws become
-    #     drive candidates) are reported; a library header
+    #     ports from the bench bot's chassis table); Calibrate's facts mapping the bench bot's mechanisms, i.e. none — its
+    #     claws become drive candidates; re-pointed at CAL1 Part B from the old program's drop call,
+    #     deleted with it, to the facts that replaced it) are reported; a library header
     #     is read too. NOT reported: the tables themselves, test/, a static_assert's argument (T3
     #     Part 2's checks on robot two's claws), a comment, a string. A table added for a new robot
     #     is covered the moment it exists, and a table file whose selection function step 0 cannot
@@ -2585,8 +2595,8 @@ def do_self_test():
             (SRC_PLANT, "ProsImu imu{kChassis.imuPort", "ProsImu imu{kRobotTwoChassis.imuPort"),
             (DRIVE_PLANT, "st.mechanisms->bind(kMechanisms, ",
              "st.mechanisms->bind(mechanismTableFor(RobotId::BenchBot), "),
-            (CALIBRATE_PLANT, "dropDeclaredMechanismPorts(kMechanisms,",
-             "dropDeclaredMechanismPorts(mechanismTableFor(RobotId::BenchBot),")):
+            (CALIBRATE_PLANT, "calibrateFactsFor(kChassis, kMechanisms)",
+             "calibrateFactsFor(kChassis, mechanismTableFor(RobotId::BenchBot))")):
         rel = os.path.relpath(where, REPO)
         with _replace(where, old, new):
             found = one_chain_problems()

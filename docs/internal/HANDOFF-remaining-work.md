@@ -278,8 +278,8 @@ AprilTag adapter.** Drivetrain:
 Calibration: `calibration/drivetrain_calibrator.hpp`, `calibration_record.hpp` (180-byte, CRC-32),
 `boot_check.hpp`, `calibrate_panel.hpp` (the calibrator's screens and touch), (SAFE-SAVE Part A) `record_store.hpp`
 (the safe save), (CAL1 Part A1) `calibrate_screen.hpp` (the painter) and `front_check.hpp` (`compareFronts`), and
-(CAL1 Part A2a) `calibrate_program.hpp` (the standard Calibrate, `CalibrateProgram` — host-only; no program builds
-it yet), and (R5a Part A) `drive_characterization.hpp`, `drive_characterizer.hpp`, `feedforward_fit.hpp` and
+(CAL1 Part A2a) `calibrate_program.hpp` (the standard Calibrate, `CalibrateProgram` — host-tested; since CAL1 Part B,
+2026-11-05, robot two's "shulib Calibrate" in slot 4, over `src/robots/calibrate_facts.hpp`; not yet run on a robot), and (R5a Part A) `drive_characterization.hpp`, `drive_characterizer.hpp`, `feedforward_fit.hpp` and
 `rest_capture.hpp` (the GAINS and REST measurements; Calibrate runs them in R5a Part C). Driver control: `teleop/stick_mapping.hpp` (raw, used by the bench tester's DRIVE
 station; the OLD shulib Drive used it until T4 Part 3),
 `coupled_side_monitor.hpp`, `drivetrain_degradation.hpp`, and T2's `input_shaping.hpp`,
@@ -308,9 +308,11 @@ slot 3, the measuring tool; `src/programs/bench_r3a.cpp`), **shulib Drive** (`PR
 record (the typed table cannot describe the drivetrain, see §2), with the library's drive protections, the
 claws and "shulib Teleop"'s diagnostics as its DETAILS page; **never run** — the OLD "shulib Drive" it replaced
 drove robot two open-loop on 2026-09-17, and the "shulib Teleop" it retired (`PROGRAM=library`, slot 2, now an
-`$(error)`) drove it from the record on 2026-09-25), **shulib Calibrate** (`PROGRAM=calibrate`, slot 4, `src/programs/calibrate_program.cpp`;
-**first ran on robot two 2026-09-24** — run 1 stopped on `SPIN_DISAGREE`, run 2 finished with no
-serial capture; its recorded reproduction run is still owed), **shulib Auton Tester** (`PROGRAM=autontest`,
+`$(error)`) drove it from the record on 2026-09-25), **shulib Calibrate** (`PROGRAM=calibrate`, slot 4 — since
+CAL1 Part B (2026-11-05) the library's STANDARD Calibrate: `src/programs/calibrate_program.cpp` is a 27-line glue
+over `src/robots/calibrate_facts.hpp`; **never run on a robot in this form**. R3d's own Calibrate, which it replaced,
+first ran on robot two 2026-09-24 — run 1 stopped on `SPIN_DISAGREE`, run 2 finished with no serial capture; the
+recorded rerun is still owed, on the new program), **shulib Auton Tester** (`PROGRAM=autontest`,
 slot 2 — slot 7 until T4 Part 3 —, `src/programs/auton_tester_program.cpp`; COMP-t, 2026-09-28 — runs one of the team's
 autons from `src/team/autons.cpp` on the bench through `competition::runAuton`; **never run**), **shulib
 Competition** (`PROGRAM=competition`, slot 6 — slot 5 stays the team's old-code fallback —
@@ -581,9 +583,11 @@ is a plan change for jal to confirm in the brief (Q7).
 back to a verified backup.** BRIEFED (`chunks/SAFE-SAVE-calibrate-save-and-teleop-label.md`; every
 recommendation accepted). The brain cannot rename or delete a file, so today a failed save can erase the
 record the programs boot from ("shulib Drive" since T4 Part 3, Teleop until then; the Auton Tester and
-the competition program too) while its NOT SAVED text says the old one survived. **Until Part B1 is in the
-build: copy `shulib_drivetrain.bin` off the card on a laptop, dated, before ANY Calibrate run** (worksheet
-G.0.1). Part A (the library) now; B1 (Calibrate's save) after T3 Part 2 and 2c-final, before the next
+the competition program too) while its NOT SAVED text says the old one survived. ~~Until Part B1 is in the
+build: copy `shulib_drivetrain.bin` off the card on a laptop, dated, before ANY Calibrate run~~ — **CLOSED
+2026-11-05 by CAL1 Part B:** robot two's Calibrate is the library's standard one, which saves through B1's
+`saveRecordSafely`; worksheet G.0.1 now asks for ONE copy of both files before the FIRST run of the new
+program (it has never run on a robot), and B2 (the boot's fallback) is still to come. Part A (the library) now; B1 (Calibrate's save) after T3 Part 2 and 2c-final, before the next
 Calibrate rerun; B2 (the boot's fallback, and the boot-source words Teleop said — "shulib Drive"'s and
 the competition program's since T4 Part 3) after COMP-b. **Status 2026-09-29: Part A BUILT
 in the `safesave-a` worktree, host- and build-gated, awaiting the coordinator's verification** (the store
@@ -763,7 +767,8 @@ you mean so its in-progress edits cannot reach a package.
   plan's status line, `docs/vexbuilder-integration.md`. "shulib Drive" driving from the record (Teleop
   until T4 Part 3) is the library driving open-loop through its own graph — say exactly that, not more.
 - **S1b. The 40 in auton on the bench — worksheet Station M** (COMP-t, "shulib Auton Tester"; after
-  S1's Calibrate rerun if the team wants a truer 40 in — copy the record off the card first, G.0.1):
+  S1's Calibrate rerun if the team wants a truer 40 in — before the FIRST run of the standard Calibrate,
+  copy both files off the card, G.0.1):
   the forward check (EST x must RISE — a STOP condition), the aborts wheels up, a wheels-up full run,
   then three floor runs on the tape with serial captured (the RESULT word, END x and y, the faults
   line, the TSTR count, the tape along and beside the line — HA-179, HA-180), the SD log across a

@@ -87,6 +87,7 @@
 [R3D] drive ports, signed: +9 -11 +12 -13 +14 -15 +16 -17 +18 -19 +20  (11 to pulse, one at a time)
 [R3D] phase: PULSES | port 9 (1 of 11) settling at 3.0 V, yaw +0.0 deg
 [R3D] screen: 3/4 PULSES: STAND CLEAR / TWITCHING MOTORS / PORT 9  3 V | [ABORT]
+[R3D] screen: 3/4 PULSES: STAND CLEAR / TWITCHING MOTORS / PORT 9  3 V | [ABORT]
 [R3D] pulse port 9 (1 of 11) 3.0 V yaw +0.00 deg own +242.7 deg others 0.0 deg: under the floor -- next level
 [R3D] pulse port 9 (1 of 11) 6.0 V yaw +0.00 deg own +630.9 deg others 0.0 deg: under the floor -- next level
 [R3D] pulse port 9 (1 of 11) 9.0 V yaw +0.00 deg own +1051.5 deg others 0.0 deg: LEFT OUT (decoupled)
@@ -141,7 +142,7 @@
 [R3D] COPY THE 'MEASURED tank ...' LINE ABOVE DOWN. Then touch RUN AGAIN and check
 [R3D] the two runs agree -- a number that does not reproduce is not a measurement
 [R3D] (the tolerances, 2 pct for a scale and 3 pct for the width, are HA-136, invented).
-[R3D] loop: 5774 ticks, worst gap between two ticks 10 ms (a powered step stops past 100 ms); 228 screen prints so far
+[R3D] loop: 5774 ticks, worst gap between two ticks 10 ms (a powered step stops past 100 ms); 229 screen prints so far
 [R3D] screen: SAVED: LEFT 5  RIGHT 5 / ipr L 1.62500 R 1.62500 / track 12.500 in | [RUN AGAIN]
 [R3D] the field disabled the robot after the run had finished -- nothing was powered
 [R3D] competition state changed: status bits 0x01 field=no disabled=yes auton=no -- calibration runs ONLY in driver control, enabled

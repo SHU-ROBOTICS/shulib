@@ -83,6 +83,7 @@
 [R3D] drive ports, signed: -11 -13 +14 -15 +16 -17 +18 -19 +20  (9 to pulse, one at a time)
 [R3D] phase: PULSES | port 11 (1 of 9) settling at 3.0 V, yaw +0.0 deg
 [R3D] screen: 3/4 PULSES: STAND CLEAR / TWITCHING MOTORS / PORT 11  3 V | [ABORT]
+[R3D] screen: 3/4 PULSES: STAND CLEAR / TWITCHING MOTORS / PORT 11  3 V | [ABORT]
 [R3D] pulse port 11 (1 of 9) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
 [R3D] pulse port 11 (1 of 9) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
 [R3D] pulse port 11 (1 of 9) 9.0 V yaw -6.47 deg own +49.8 deg others 49.8 deg: LEFT
@@ -130,7 +131,7 @@
 [R3D] If it is a mechanism the push turns (an intake on the floor), touch SAVE and keep it
 [R3D] declared. If it is a DRIVE motor, touch RUN AGAIN (nothing is saved), then stop: fix the
 [R3D] robot's facts or the wiring, rebuild, upload. NOTHING IS SAVED YET.
-[R3D] loop: 5519 ticks, worst gap between two ticks 10 ms (a powered step stops past 100 ms); 207 screen prints so far
+[R3D] loop: 5519 ticks, worst gap between two ticks 10 ms (a powered step stops past 100 ms); 208 screen prints so far
 [R3D] screen: MECHANISM PORT TURNED: NOTHING SAVED YET / port 12: 1692 deg, drive 1692 deg / the card's record DRIVES with port 12 | [SAVE] [RUN AGAIN]
 [R3D] touch: x=120 y=115 release=2 on SAVE -> SAVE AS PUSHED
 [R3D] watch: SAVE -- port 12 stays a declared mechanism; this record has no port 12

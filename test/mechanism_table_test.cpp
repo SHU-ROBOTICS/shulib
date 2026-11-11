@@ -5,8 +5,13 @@
 // WHERE each declaration was written (the recorded path, pinned by its suffix); the region G3a's
 // generator wraps, byte for byte the test fixture's; the selection for EVERY robot; the drive check
 // over every smart ROLE and the IMU (mechanismsClearOf — a SENSOR on a drive port included, the MECH
-// brief's M29); "is this a declared mechanism port"; "shulib Calibrate"'s candidate filter as a pure
-// function over the new list; and the one Calibrate call site pinned by reading its source.
+// brief's M29); and "is this a declared mechanism port". (Until CAL1 Part B, 2026-11-05, this file
+// also ran "shulib Calibrate"'s candidate filter, dropDeclaredMechanismPorts(), and pinned its one
+// call site by reading src/programs/calibrate_program.cpp: both are GONE with that program. Robot two
+// runs the standard Calibrate now, whose declared-port drop reads its FACTS — mapped from this list
+// by src/robots/calibrate_facts.hpp, pinned by test/calibrate_facts_test.cpp — and RUNS on the host
+// test plant: test/calibrate_program_test.cpp's T6 cases and the goldens of
+// test/calibrate_golden_test.cpp.)
 //
 // WHAT LEFT WITH THE OLD ENTRY TYPES (MECH-A5). The cases that broke the table's own five
 // consistency checks one field at a time (an UNSET field, a port of 0 / 22 / a repeat, a line of 0 /
@@ -22,13 +27,7 @@
 // src/build_selection.hpp's chain takes its #else (the bench build) and none is declared. The
 // selection itself, mechanismTableFor(), is called for EVERY robot below.
 //
-// WHAT THIS TU CANNOT DO: run the call site. src/programs/calibrate_program.cpp is a whole PROS program
-// (pros/screen.h, pros/misc.h and the rest are not in the host shim). So the filter's LOGIC lives in
-// the table's pure dropDeclaredMechanismPorts(), which the cases here RUN; and what is left at the call
-// site is pinned by reading the program's code, comments stripped, EXACTLY (the last case) — UNCHANGED
-// by MECH-A5: the call reads `kMechanisms`, which IS the new list (the MECH brief's N9 fallback; CAL1
-// Part B replaces the drop). What that cannot see — that the lines print on the robot and no claw
-// moves — is worksheet Station J's.
+// What no host test can see — that no claw moves on the robot — is worksheet Station J's.
 
 #include "doctest.h"
 
@@ -48,8 +47,6 @@
 #include "shulib/mechanism/wiring.hpp"
 
 using shulib::bench::ChassisTable;
-using shulib::bench::dropDeclaredMechanismPorts;
-using shulib::bench::DroppedMechanismPorts;
 using shulib::bench::isDeclaredMechanismPort;
 using shulib::bench::kMaxPort;
 using shulib::bench::kMechanisms;
@@ -71,47 +68,7 @@ namespace {
 /// checks ran on the original only).
 [[nodiscard]] MechanismTable robotTwo() { return two::kRobotTwoMechanisms; }
 
-[[nodiscard]] std::vector<int> asInts(const std::int8_t* p, std::size_t n) {
-    std::vector<int> v;
-    for (std::size_t i = 0; i < n; ++i) v.push_back(static_cast<int>(p[i]));
-    return v;
-}
-
-/// What one call of Calibrate's filter left behind: the count it returned, the WHOLE port array
-/// afterwards (every slot the caller handed in, so a stale port past the kept ones is visible),
-/// and the dropped list.
-struct Filtered {
-    std::size_t kept;
-    std::vector<int> array;
-    std::vector<int> dropped;
-
-    /// The first `kept` slots: the ports that stay drive candidates.
-    [[nodiscard]] std::vector<int> keptPorts() const {
-        return {array.begin(), array.begin() + static_cast<std::ptrdiff_t>(kept)};
-    }
-    /// Every slot past the kept ones: must all be 0 (never a port).
-    [[nodiscard]] bool tailCleared() const {
-        for (std::size_t i = kept; i < array.size(); ++i) {
-            if (array[i] != 0) return false;
-        }
-        return true;
-    }
-};
-
-/// Runs the filter the way Calibrate does — in place on a port array — with the dropped list
-/// PRE-FILLED WITH GARBAGE, so a filter that forgot to reset it shows the garbage.
-[[nodiscard]] Filtered filter(const MechanismTable& t, const std::vector<int>& ports) {
-    std::vector<std::int8_t> v;
-    for (const int p : ports) v.push_back(static_cast<std::int8_t>(p));
-    DroppedMechanismPorts dropped{};
-    for (std::int8_t& p : dropped.ports) p = 99;
-    dropped.count = 3;
-    const std::size_t kept =
-        dropDeclaredMechanismPorts(t, std::span<std::int8_t>{v.data(), v.size()}, dropped);
-    return Filtered{kept, asInts(v.data(), v.size()), asInts(dropped.ports, dropped.count)};
-}
-
-/// src/programs/calibrate_program.cpp's CODE: every comment removed and every run of whitespace squeezed
+/// A source file's CODE: every comment removed and every run of whitespace squeezed
 /// to one space, so a pinned statement matches however clang-format wraps it, and a statement
 /// that has been commented out no longer counts as present. String and character literals are
 /// copied whole (a "//" inside one is not a comment; the spaces inside one are kept); a ' right
@@ -403,11 +360,6 @@ TEST_CASE("mechanism table: the HOST build's selection is 'none' -- only robot t
         CAPTURE(p);
         CHECK_FALSE(isDeclaredMechanismPort(kMechanisms, p));
     }
-    // On the host the filter therefore keeps everything, in order.
-    const Filtered f = filter(kMechanisms, {6, 7, 11, 20});
-    CHECK(f.kept == 4);
-    CHECK(f.array == std::vector<int>{6, 7, 11, 20});
-    CHECK(f.dropped.empty());
 }
 
 TEST_CASE("mechanism table: the selection -- mechanismTableFor() gives robot two its claws and every "
@@ -485,10 +437,10 @@ TEST_CASE("mechanism table: 'is this a declared mechanism port' -- 6 and 7 yes, 
 }
 
 TEST_CASE("mechanism table: the predicate's 1..21 guard at its EDGES -- a mechanism on port 21 "
-          "or port 1 is declared and dropped; 0 and 22 are never ports") {
+          "or port 1 is declared; 0 and 22 are never ports") {
     // BUG CAUGHT: an off-by-one in the guard (`port >= 21`, `port < 2`). Robot two's claws are on 6
     // and 7, where no such slip shows; a mechanism added later on port 21 (free on robot two) or port
-    // 1 would then NOT be dropped, and Calibrate would gear, coast and pulse it with the suite green.
+    // 1 would then not count as declared.
     MechanismTable edges = robotTwo();
     edges.wiring[0].motors[0] = 21;
     edges.wiring[1].motors[0] = 1;
@@ -498,10 +450,6 @@ TEST_CASE("mechanism table: the predicate's 1..21 guard at its EDGES -- a mechan
         CAPTURE(p);
         CHECK_FALSE(isDeclaredMechanismPort(edges, p));
     }
-    const Filtered f = filter(edges, {1, 2, 11, 20, 21});
-    CHECK(f.keptPorts() == std::vector<int>{2, 11, 20});
-    CHECK(f.dropped == std::vector<int>{1, 21});
-    CHECK(f.tailCleared());
     // A role OUTSIDE 1..21 (a list the build refuses) never makes that number a port.
     for (const int bad : {22, 0, 255}) {
         CAPTURE(bad);
@@ -511,69 +459,6 @@ TEST_CASE("mechanism table: the predicate's 1..21 guard at its EDGES -- a mechan
         CHECK_FALSE(isDeclaredMechanismPort(beyond, 0));
         CHECK(isDeclaredMechanismPort(beyond, 7));  // the other entry still counts
     }
-}
-
-TEST_CASE("mechanism table: Calibrate's candidate filter, in place -- the census's 6, 7, 11-18, "
-          "20 leave EXACTLY the drive ports at the front, in order, zeros after, 6 and 7 dropped") {
-    // BUG CAUGHT: a filter that drops a drive port, keeps a claw, reorders the list (the
-    // calibrator's port list and its motor list must stay index-aligned), duplicates or loses a
-    // port while re-listing in place, leaves a stale port past the kept ones, returns a count
-    // that is not the number kept, or carries an old dropped list into the log.
-    // The list is robot two's census as it will read once the claws are plugged in: the drive
-    // motors the 2026-09-24/25 captures saw (11-18 and 20; 19 unplugged) plus 6 and 7.
-    const Filtered f = filter(two::kRobotTwoMechanisms, {6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 20});
-    CHECK(f.kept == 9);
-    CHECK(f.array == std::vector<int>{11, 12, 13, 14, 15, 16, 17, 18, 20, 0, 0});  // every slot
-    CHECK(f.dropped == std::vector<int>{6, 7});  // and NOT the 99s the list was pre-filled with
-
-    // Order is the CENSUS's, not sorted: an interleaved list comes back in its own order, the
-    // claws in the middle and at the end.
-    const Filtered mixed = filter(two::kRobotTwoMechanisms, {20, 7, 11, 6, 3});
-    CHECK(mixed.kept == 3);
-    CHECK(mixed.array == std::vector<int>{20, 11, 3, 0, 0});
-    CHECK(mixed.dropped == std::vector<int>{7, 6});
-    const Filtered last = filter(two::kRobotTwoMechanisms, {11, 12, 6});
-    CHECK(last.array == std::vector<int>{11, 12, 0});
-    CHECK(last.dropped == std::vector<int>{6});
-
-    // The claws UNPLUGGED (today's captures): nothing is dropped, nothing moves, nothing is said.
-    const Filtered today = filter(two::kRobotTwoMechanisms, {11, 12, 13, 14, 15, 16, 17, 18, 20});
-    CHECK(today.kept == 9);
-    CHECK(today.array == std::vector<int>{11, 12, 13, 14, 15, 16, 17, 18, 20});
-    CHECK(today.dropped.empty());
-
-    // Only the claws plugged in: both dropped, no candidate left (Calibrate then refuses on its
-    // own "at least two" check, which now counts motors besides the declared mechanisms).
-    const Filtered onlyClaws = filter(two::kRobotTwoMechanisms, {6, 7});
-    CHECK(onlyClaws.kept == 0);
-    CHECK(onlyClaws.array == std::vector<int>{0, 0});
-    CHECK(onlyClaws.dropped == std::vector<int>{6, 7});
-
-    // An empty census: nothing kept, and the garbage-filled dropped list comes back EMPTY.
-    const Filtered none = filter(two::kRobotTwoMechanisms, {});
-    CHECK(none.kept == 0);
-    CHECK(none.array.empty());
-    CHECK(none.dropped.empty());
-
-    // Every one of the 21 ports at once (a full brain): 19 kept, 2 dropped, order kept.
-    std::vector<int> all;
-    std::vector<int> expect;
-    for (int p = 1; p <= kMaxPort; ++p) {
-        all.push_back(p);
-        if (p != 6 && p != 7) expect.push_back(p);
-    }
-    const Filtered full = filter(two::kRobotTwoMechanisms, all);
-    CHECK(full.kept == 19);
-    CHECK(full.keptPorts() == expect);
-    CHECK(full.tailCleared());
-    CHECK(full.dropped == std::vector<int>{6, 7});
-
-    // More declared ports than the dropped list holds (impossible from a census, which lists each
-    // port once): every one still LEAVES the candidates; only the log would miss the extras.
-    const Filtered flood = filter(two::kRobotTwoMechanisms, std::vector<int>(25, 6));
-    CHECK(flood.kept == 0);
-    CHECK(flood.tailCleared());
-    CHECK(flood.dropped.size() == static_cast<std::size_t>(kMaxPort));
 }
 
 TEST_CASE("mechanism table: THE DRIVE CHECK -- no role, a MOTOR or a SENSOR, on a drive port (either "
@@ -654,7 +539,7 @@ TEST_CASE("mechanism table: the selection checks name robot two by ADDRESS, and 
     CHECK(occurrences(code, "static_assert(clearOfItsDrive(kMechanisms, kChassis),") == 1);
 }
 
-TEST_CASE("mechanism table: the source reader this suite pins Calibrate with -- comments go, "
+TEST_CASE("mechanism table: the source reader this suite pins the table file with -- comments go, "
           "literals stay whole, whitespace squeezes to one space") {
     // BUG CAUGHT: a reader that leaves comments in (a statement commented out would still "be
     // there"), cuts a string at a "//" inside it, squeezes the spaces inside a literal (the pinned
@@ -666,81 +551,4 @@ TEST_CASE("mechanism table: the source reader this suite pins Calibrate with -- 
     CHECK(codeOnly("n = 1'000; // gone\nm = 2;") == "n = 1'000; m = 2;");
     CHECK(codeOnly("// n = f(x);\n") == "");
     CHECK(codeOnly("\n\t  {\n  }\n") == "{ }");
-}
-
-TEST_CASE("mechanism table: shulib Calibrate's ONE call site -- right after the census has filled "
-          "the list, EXACTLY as pinned, and step 4 builds from the filtered list only") {
-    // BUG CAUGHT: the call deleted, commented out, moved ABOVE the census loop (it would filter an
-    // empty list, and the loop would then add 6 and 7 back as candidates), moved after step 4
-    // (every claw already geared BLUE and set to Coast), fed some other table, its count thrown
-    // away, the log loop walking the wrong list (the line Station J.2 checks would name drive
-    // ports), the list touched again between the filter and step 4, or step 4 building from a
-    // second copy of the census that the filter never saw.
-    //
-    // WHY BY READING THE SOURCE: runCalibrate() is a whole PROS program (pros/screen.h,
-    // pros/misc.h and the screen, touch and SD code have no host shim), so it cannot be compiled,
-    // let alone run, here. The LOGIC is in dropDeclaredMechanismPorts(), which the cases above
-    // RUN; what is left at the call site — one assignment, one log loop, and where they sit — is
-    // pinned here as text, EXACTLY: this case fails on any edit to those lines, and whoever edits
-    // them updates this case in the same change. What text cannot show — that the lines print on
-    // the robot and no claw moves — is worksheet Station J.2's.
-    std::ifstream in{std::string{SHULIB_SOURCE_DIR} + "/src/programs/calibrate_program.cpp"};
-    REQUIRE(in.good());
-    std::stringstream text;
-    text << in.rdbuf();
-    const std::string code = codeOnly(text.str());
-    REQUIRE(code.size() > 20000);
-
-    // 1. THE FILTER, right where the census has FINISHED filling the list: the census loop's motor
-    //    branch (it fills ports[], the ONE list), the loop's end, the census's closing count line,
-    //    then the filter block — contiguous, so the block cannot move above the loop, and nothing
-    //    can come between the census and the filter.
-    const std::string filterSite =
-        "if (kind == hal::DeviceKind::Motor && n < hal::kMaxSmartPorts) { "
-        "ports[n] = static_cast<std::int8_t>(p); ++n; } } "
-        "emitf(\"  %u motor(s), %d IMU(s)\", static_cast<unsigned>(n), imuCount); "
-        "{ DroppedMechanismPorts dropped{}; "
-        "n = dropDeclaredMechanismPorts(kMechanisms, {ports, n}, dropped); "
-        "for (std::size_t i = 0; i < dropped.count; ++i) { "
-        "emitf(\"port %d: claw pivot (declared) -- not a candidate, not touched\", "
-        "static_cast<int>(dropped.ports[i])); } }";
-    const std::size_t filter = code.find(filterSite);
-    REQUIRE_MESSAGE(filter != std::string::npos,
-                    "the census + filter block no longer reads exactly as pinned");
-    CHECK(code.find(filterSite, filter + 1) == std::string::npos);
-    const std::size_t census = code.find("emit(\"STAGE 0  DEVICE CENSUS");
-    REQUIRE(census != std::string::npos);
-    CHECK(census < filter);
-    // Exactly one call: a second one would be a second filter to keep in step.
-    const std::size_t call = code.find("dropDeclaredMechanismPorts(");
-    REQUIRE(call != std::string::npos);
-    CHECK(code.find("dropDeclaredMechanismPorts(", call + 1) == std::string::npos);
-
-    // 2. STEP 4 builds each adapter from ports[i] — the filtered list — and from nothing else.
-    const std::string step4 =
-        "for (std::size_t i = 0; i < n; ++i) { const int port = ports[i]; try { "
-        "candidates[built].port = port; ports[built] = static_cast<std::int8_t>(port); "
-        "candidates[built].motor.emplace(ports[built], gearset); ++built; }";
-    const std::size_t build = code.find(step4);
-    REQUIRE_MESSAGE(build != std::string::npos, "step 4's loop no longer reads exactly as pinned");
-    const std::size_t firstAdapter = code.find(".motor.emplace(");
-    REQUIRE(firstAdapter != std::string::npos);
-    CHECK(filter < build);
-    CHECK(firstAdapter > build);  // the FIRST adapter anywhere is step 4's
-    // The census writes no second copy of the list: nothing reads a candidate's port before step 4
-    // has written it.
-    CHECK(code.find("candidates[i].port") == std::string::npos);
-    CHECK(code.find("candidates[n].port") == std::string::npos);
-
-    // 3. Between the filter and step 4, nothing changes the count or the list.
-    const std::size_t after = filter + filterSite.size();
-    const std::string between = code.substr(after, build - after);
-    for (const char* write : {"ports[", " n = ", " n += ", " n -= ", "++n", "--n", "n++", "n--",
-                              "&n", "std::span"}) {
-        CAPTURE(write);
-        CHECK(between.find(write) == std::string::npos);
-    }
-
-    // The program includes the table it filters by (written from src/ since SRC1).
-    CHECK(code.find("#include \"robots/mechanism_table.hpp\"") != std::string::npos);
 }

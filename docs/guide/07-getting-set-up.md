@@ -140,7 +140,9 @@ mental model, which matters more:
   bound to it — and
   `src/robots/xdrive_config.hpp` shows a robot typed by hand as a `constexpr RobotConfig` (the
   invented X-drive, built the same way by `src/programs/xdrive_program.cpp`). The other programs are
-  the bench tester ("Bench Tests"), "shulib Calibrate", "shulib Auton Tester"
+  the bench tester ("Bench Tests"), "shulib Calibrate" (the library's standard Calibrate, with robot
+  two's facts derived from its tables in `src/robots/calibrate_facts.hpp` — a team's own is one file,
+  [chapter 19](19-calibrating-your-robot.md)), "shulib Auton Tester"
   (`src/programs/auton_tester_program.cpp`, `make ROBOT=tank PROGRAM=autontest`) and "shulib
   Competition" (`src/programs/competition_program.cpp`, `make ROBOT=tank PROGRAM=competition`);
   `src/common/` holds what those programs share — the boot source, the competition-state screens, the

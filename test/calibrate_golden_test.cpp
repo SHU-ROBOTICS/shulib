@@ -10,9 +10,11 @@
 // its untyped control, typed-undecodable, typed-undecodable-flip, typed-tie, typed-nocommon,
 // typed-watch-typo) and the check of D6 (a)'s eight (typed-partial, empty-watch-untyped,
 // undecodable-untyped, bakonly-garbage-untyped, bakonly-garbage-typed, emptyfile-untyped,
-// nocard-watch-again, typed-nocard). Robot two's facts are written LITERALLY, with NO typed drive ports
-// (what CAL1 Part B derives: its table is not a description the boot can drive from); the typed
-// scenarios add their own.
+// nocard-watch-again, typed-nocard). Robot two's facts are DERIVED from its tables exactly as its glue
+// derives them (CAL1 Part B: withTypedDriveFrom(calibrateFactsFor(kRobotTwoChassis,
+// kRobotTwoMechanisms), kRobotTwoChassis) — the rig's factsFor()), with NO typed drive ports (its
+// table is not a description the boot can drive from); every golden stayed unchanged when they
+// stopped being written literally (A2b wrote them so); the typed scenarios add their own.
 //
 // THE GOLDENS (test/goldens/calibrate/<scenario>.serial.log, .screen.log, .card.txt) were made by this
 // test from the library as it stood at CAL1 Part A2b, and BEFORE they were committed every file was

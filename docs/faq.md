@@ -172,9 +172,12 @@ says only what it re-read at the end: `SAVED`, `NOT SAVED` with what the card no
 UNCONFIRMED` when the card could not be read back. On a FAT card, `GAINS.BIN` and `gains.bin` are one
 file, and the brain's card is taken to follow that rule (not yet measured), so the library requires a
 backup's name to differ from its record's by more than letter case. To reset a card on purpose, delete
-**both** files on a laptop. None of this has run on a robot yet, and **the programs do
-not use it yet**: until "shulib Calibrate" saves through it, a Calibrate run that says NOT SAVED may
-already have emptied `shulib_drivetrain.bin` — copy that file off the card on a laptop before every rerun.
+**both** files on a laptop. None of this has run on a robot yet. **"shulib Calibrate" saves through it**
+— the library's standard Calibrate, which robot two's slot-4 program has been since 2026-11-05 — so a
+Calibrate run that says NOT SAVED leaves the record that was on the card. What is still to come is the
+other half: the drive program's boot reads only `shulib_drivetrain.bin`, and falls back to the backup
+only once SAFE-SAVE's Part B2 lands. Copy both files off the card on a laptop before the first run of a
+Calibrate build you have not run before.
 
 ## My program uploaded fine and prints nothing. Is the code broken?
 

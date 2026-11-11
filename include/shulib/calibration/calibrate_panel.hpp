@@ -12,7 +12,8 @@
 // the next question. None of that was testable, because all of it lived in a PROS-bound
 // program. This header is the part of the screen that decides WHAT it says and WHICH touches
 // mean something — so those decisions are unit-tested on the host rather than eyeballed on the
-// robot. The program (src/programs/calibrate_program.cpp, Part 2F-2) only RENDERS a PanelView.
+// robot. The program (calibration/calibrate_program.hpp since CAL1; robot two's own
+// src/programs/calibrate_program.cpp before CAL1 Part B) only RENDERS a PanelView.
 //
 // ── What it decides ─────────────────────────────────────────────────────────────────
 //  * viewFor(): per state, a header colour and word, an instruction of at most two LARGE lines,
@@ -20,9 +21,11 @@
 //  * The layout rules that make a mis-tap harmless, checked at COMPILE time on the constants and
 //    at test time on every reachable view:
 //      - ABORT sits in the SAME rectangle in every state that shows it; in the two POWERED
-//        phases it grows to the whole button row, which still contains that rectangle.
+//        phases it grows to the whole button row, which still contains that rectangle — the
+//        PULSES from the moment their first pulse drives a motor, not before: the PULSES are
+//        what a touch of DONE leads to, and DONE lies in that row (CAL1 Part B review round).
 //      - DONE is drawn only when DrivetrainCalibrator::pushReady() says so.
-//      - Questions (FRONT / BACK) and RUN AGAIN are boxes in the MIDDLE of the screen, never in
+//      - The held screens' two choices and RUN AGAIN are boxes in the MIDDLE of the screen, never in
 //        the button row — so no button of a new layout lies under the button whose touch
 //        caused the change (the double-tap hazard).
 //      - After EVERY layout change the new non-ABORT buttons are drawn greyed and dead for
@@ -34,15 +37,17 @@
 //    screen explains a stop from a CODE, never by parsing prose.
 //  * wrapWords(): breaks text only at spaces — it never splits a word or a number, and it never
 //    drops text silently (it says when the text did not fit).
-//  * (CAL1 Part A2a, 2026-10-18 — ADDITIONS ONLY: every existing call paints today's screen, field
-//    for field) the standard Calibrate's screens (calibration/calibrate_program.hpp): FrontRule
-//    ByPush (four steps, PUSH FRONT FIRST, the front rule — never the WHICH END view); the two HELD
-//    screens, FRONT FLIPPED and MECHANISM PORT TURNED (SaveOutcome::Held, FinishFacts::hold; the
-//    second once per declared port that turned, FinishFacts::holdPort, its boxes re-greyed each
-//    time), whose left box is today's FRONT FIRST id relabelled and read as
-//    TouchAction::SaveHeld; the SAVED header after USE NEW; and the finished screen's NOTE row. No
-//    PanelButtonId is added — today's program and tests switch over them; CAL1 Part B renames and
-//    removes them.
+//  * (CAL1 Part A2a, 2026-10-18) the standard Calibrate's screens (calibration/calibrate_program.hpp):
+//    the two HELD screens, FRONT FLIPPED and MECHANISM PORT TURNED (SaveOutcome::Held,
+//    FinishFacts::hold; the second once per declared port that turned, FinishFacts::holdPort, its
+//    boxes re-greyed each time), whose left box is PanelButtonId::SaveHeld, read as
+//    TouchAction::SaveHeld; the SAVED header after USE NEW; and the finished screen's NOTE row.
+//  * (CAL1 Part B, 2026-11-05 — a BEHAVIOUR CHANGE, the team lead's ruling of 2026-10-06: the end
+//    that LEADS the push is the FRONT) the WHICH END question is GONE: four steps (1/4..4/4), PUSH
+//    FRONT FIRST, the front rule while the IMU warms up; no WhichEnd screen, no FrontRule parameter,
+//    no FRONT FIRST / BACK FIRST buttons. The held screen's left box is PanelButtonId::SaveHeld (the
+//    FRONT FIRST id until Part B), its right box RUN AGAIN; both are kChoiceLeftBox /
+//    kChoiceRightBox, the two middle boxes FRONT FIRST and BACK FIRST used to fill.
 //  * (CAL1 Part A2b, 2026-10-30 — additions, plus ONE behaviour-preserving edit) the team lead's
 //    D6 (a): with no usable record on the card, the program checks the front against the team's
 //    TYPED drive ports, and the FRONT FLIPPED screen then paints their words
@@ -50,8 +55,8 @@
 //    agreed, the front agreed but some port did not, or the typed ports must be fixed after USE
 //    NEW). The one edit to an existing line: panelChips() copies its chips with "%.*s" of exactly
 //    `used` characters instead of "%s" (the same characters — GCC's -Wformat-truncation at -O1,
-//    the comment there; today's Calibrate program re-measured byte-identical on it in CAL1 A2b's
-//    review).
+//    the comment there; robot two's own Calibrate program, before CAL1 Part B replaced it,
+//    re-measured byte-identical on it in CAL1 A2b's review).
 //
 // ── What it does NOT decide ─────────────────────────────────────────────────────────
 // Pixels a font lands on, colours' RGB values, the build stamp, redraw-only-what-changed, the
@@ -166,12 +171,15 @@ inline constexpr PanelRect kHeaderBar{0, 0, 479, 26};
 inline constexpr PanelRect kPrimarySlot{6, 180, 300, 234};
 /// ABORT's place in EVERY state that shows it — the bottom right. Never moves under a thumb.
 inline constexpr PanelRect kAbortSlot{330, 180, 474, 234};
-/// ABORT in the two POWERED phases: the whole button row, still containing kAbortSlot.
+/// ABORT in the two POWERED phases: the whole button row, still containing kAbortSlot — the PULSES'
+/// only once their first pulse has driven a motor (until then kAbortSlot: DONE's touch leads there,
+/// and kPrimarySlot lies in this row), the SPIN's throughout.
 inline constexpr PanelRect kAbortRow{6, 180, 474, 234};
-/// FRONT FIRST: a big box in the MIDDLE, never in the button row.
-inline constexpr PanelRect kFrontBox{6, 72, 234, 158};
-/// BACK FIRST: the same, on the right.
-inline constexpr PanelRect kBackBox{246, 72, 474, 158};
+/// A held screen's left box (USE NEW / SAVE, CAL1): a big box in the MIDDLE, never in the button
+/// row — the rectangle FRONT FIRST had until CAL1 Part B removed the WHICH END question.
+inline constexpr PanelRect kChoiceLeftBox{6, 72, 234, 158};
+/// A held screen's RUN AGAIN: the same, on the right (BACK FIRST's rectangle until CAL1 Part B).
+inline constexpr PanelRect kChoiceRightBox{246, 72, 474, 158};
 /// RUN AGAIN on the outcome screens: middle right, clear of the button row.
 inline constexpr PanelRect kRunAgainBox{246, 112, 474, 158};
 
@@ -208,8 +216,7 @@ enum class PanelTone : std::uint8_t {
 enum class PanelScreen : std::uint8_t {
     NotStarted,  ///< the calibrator is Idle
     ImuWait,     ///< hands off while the IMU starts
-    Push,        ///< push it forward along the tape
-    WhichEnd,    ///< FRONT or BACK first?
+    Push,        ///< push it, FRONT END FIRST, along the tape
     Pulses,      ///< powered: one motor at a time (AMBER)
     Spin,        ///< powered: the spin (AMBER)
     Saved,       ///< the run finished (SAVED / NOT SAVED / MEASURED)
@@ -243,7 +250,7 @@ enum class HoldReason : std::uint8_t {
 };
 
 /// What the program tells the finished and held screens (CAL1): the panel cannot know these. The
-/// default is today's finished screen exactly — no hold, no NOTE, no front choice.
+/// default is the plain finished screen — no hold, no NOTE, no front choice.
 struct FinishFacts {
     FrontChoice front = FrontChoice::None;  ///< New: the SAVED header says the front is new
     HoldReason hold = HoldReason::None;     ///< which held screen — read only with SaveOutcome::Held
@@ -261,17 +268,10 @@ struct FinishFacts {
     bool typedPorts = false;
 };
 
-/// How the front is decided (CAL1, Parts A — Part B removes AskedAfterPush and this parameter).
-enum class FrontRule : std::uint8_t {
-    AskedAfterPush,  ///< today's: the WHICH END question after DONE
-    ByPush,          ///< the standard Calibrate: the end that leads the push IS the front
-};
-
 /// Which button.
 enum class PanelButtonId : std::uint8_t {
     Done,      ///< "I have finished pushing" — drawn only when pushReady()
-    Front,     ///< FRONT FIRST
-    Back,      ///< BACK FIRST
+    SaveHeld,  ///< (CAL1) a held screen's left box: USE NEW / SAVE — save this run as measured
     Abort,     ///< stop now — always armed
     RunAgain,  ///< on the outcome screens: the program rebuilds the calibrator
 };
@@ -407,15 +407,13 @@ namespace panel_text {
 /// Header words (kHeaderCols).
 inline constexpr std::string_view kHeaderIdle = "CALIBRATE";
 /// See kHeaderIdle.
-inline constexpr std::string_view kHeaderImu = "1/5 IMU";
+inline constexpr std::string_view kHeaderImu = "1/4 IMU";
 /// See kHeaderIdle.
-inline constexpr std::string_view kHeaderPush = "2/5 PUSH";
+inline constexpr std::string_view kHeaderPush = "2/4 PUSH";
 /// See kHeaderIdle.
-inline constexpr std::string_view kHeaderWhichEnd = "3/5 WHICH END";
+inline constexpr std::string_view kHeaderPulses = "3/4 PULSES";
 /// See kHeaderIdle.
-inline constexpr std::string_view kHeaderPulses = "4/5 PULSES";
-/// See kHeaderIdle.
-inline constexpr std::string_view kHeaderSpin = "5/5 SPIN";
+inline constexpr std::string_view kHeaderSpin = "4/4 SPIN";
 /// See kHeaderIdle.
 inline constexpr std::string_view kHeaderSaved = "SAVED";
 /// See kHeaderIdle.
@@ -431,10 +429,6 @@ inline constexpr std::string_view kHandsOff = "HANDS OFF";
 /// See kNotStarted.
 inline constexpr std::string_view kImuWarming = "IMU WARMING UP";
 /// See kNotStarted.
-inline constexpr std::string_view kPushForward = "PUSH IT FORWARD";
-/// See kNotStarted.
-inline constexpr std::string_view kWhichEnd = "WHICH END FIRST?";
-/// See kNotStarted.
 inline constexpr std::string_view kStandClear = "STAND CLEAR";
 /// See kNotStarted.
 inline constexpr std::string_view kTwitching = "TWITCHING MOTORS";
@@ -447,7 +441,7 @@ inline constexpr std::string_view kNextDoneWhenMoved = "DONE shows once the moto
 /// See kNextDoneWhenMoved.
 inline constexpr std::string_view kNextLetGo = "let go -- DONE shows when it stops";
 /// See kNextDoneWhenMoved.
-inline constexpr std::string_view kNextTouchDone = "touch DONE -- then say which end";
+inline constexpr std::string_view kNextTouchDone = "touch DONE -- then stand clear";
 /// See kNextDoneWhenMoved.
 inline constexpr std::string_view kNextTwitch = "NEXT: motors twitch -- stand clear";
 /// See kNextDoneWhenMoved.
@@ -471,34 +465,20 @@ inline constexpr std::string_view kFullReasonOnSerial = "the full reason is on t
 /// Button labels (MEDIUM; a label also fits its box: 12 characters).
 inline constexpr std::string_view kLabelDone = "DONE";
 /// See kLabelDone.
-inline constexpr std::string_view kLabelFront = "FRONT FIRST";
-/// See kLabelDone.
-inline constexpr std::string_view kLabelBack = "BACK FIRST";
-/// See kLabelDone.
 inline constexpr std::string_view kLabelAbort = "ABORT";
 /// See kLabelDone.
 inline constexpr std::string_view kLabelRunAgain = "RUN AGAIN";
-/// The standard Calibrate's step headers (FrontRule::ByPush, CAL1): four steps, no WHICH END.
-inline constexpr std::string_view kHeaderImu4 = "1/4 IMU";
-/// See kHeaderImu4.
-inline constexpr std::string_view kHeaderPush4 = "2/4 PUSH";
-/// See kHeaderImu4.
-inline constexpr std::string_view kHeaderPulses4 = "3/4 PULSES";
-/// See kHeaderImu4.
-inline constexpr std::string_view kHeaderSpin4 = "4/4 SPIN";
 /// Header word: the FRONT FLIPPED held screen (CAL1).
 inline constexpr std::string_view kHeaderFlipped = "FRONT FLIPPED";
 /// Header word: the held screen when a declared mechanism motor turned with the push (CAL1).
 inline constexpr std::string_view kHeaderMechTurned = "MECHANISM PORT TURNED";
 /// Header word: SAVED after USE NEW (CAL1).
 inline constexpr std::string_view kHeaderSavedNew = "SAVED -- NEW FRONT";
-/// LARGE: the push instruction under FrontRule::ByPush.
+/// LARGE: the push instruction — the end that leads the push is the FRONT (CAL1).
 inline constexpr std::string_view kPushFrontFirst = "PUSH FRONT FIRST";
 /// LARGE: every held screen's headline.
 inline constexpr std::string_view kNothingSavedYet = "NOTHING SAVED YET";
-/// MEDIUM: the NEXT line once DONE shows, under ByPush.
-inline constexpr std::string_view kNextTouchDoneClear = "touch DONE -- then stand clear";
-/// MEDIUM: the rule, shown while the IMU warms up, under ByPush.
+/// MEDIUM: the rule, shown while the IMU warms up (CAL1).
 inline constexpr std::string_view kFrontRule = "the end that leads the push is FRONT";
 /// MEDIUM: FRONT FLIPPED — what the records say (never what the operator did: a LEFT/RIGHT cable
 /// swap gives the same record as the other end leading).
@@ -515,8 +495,7 @@ inline constexpr std::string_view kMechNotOnCard = "it is declared a mechanism: 
 inline constexpr std::string_view kMechSave = "SAVE: it is a mechanism the push turns -- keep it";
 /// SMALL: MECHANISM PORT TURNED — RUN AGAIN's case.
 inline constexpr std::string_view kMechAgain = "RUN AGAIN = save nothing: a drive motor? fix facts";
-/// Label: the held screen's left box on FRONT FLIPPED (today's FRONT FIRST button, relabelled — no
-/// new PanelButtonId before CAL1 Part B: today's program and tests switch over the ids).
+/// Label: the held screen's left box (PanelButtonId::SaveHeld) on FRONT FLIPPED.
 inline constexpr std::string_view kLabelNew = "USE NEW";
 /// Label: the held screen's left box on MECHANISM PORT TURNED.
 inline constexpr std::string_view kLabelSave = "SAVE";
@@ -555,13 +534,13 @@ struct Checked {
 /// EVERY literal above with its budget — the list the compile-time check walks.
 inline constexpr Checked kAll[] = {
     {kHeaderIdle, kHeaderCols},      {kHeaderImu, kHeaderCols},
-    {kHeaderPush, kHeaderCols},      {kHeaderWhichEnd, kHeaderCols},
-    {kHeaderPulses, kHeaderCols},    {kHeaderSpin, kHeaderCols},
+    {kHeaderPush, kHeaderCols},      {kHeaderPulses, kHeaderCols},
+    {kHeaderSpin, kHeaderCols},
     {kHeaderSaved, kHeaderCols},     {kHeaderNotSaved, kHeaderCols},
     {kHeaderMeasured, kHeaderCols},  {kHeaderStopped, kHeaderCols},
     {kNotStarted, kLargeCols},       {kHandsOff, kLargeCols},
-    {kImuWarming, kLargeCols},       {kPushForward, kLargeCols},
-    {kWhichEnd, kLargeCols},         {kStandClear, kLargeCols},
+    {kImuWarming, kLargeCols},       {kPushFrontFirst, kLargeCols},
+    {kStandClear, kLargeCols},
     {kTwitching, kLargeCols},        {kSpinning, kLargeCols},
     {kSettling, kLargeCols},         {kNextDoneWhenMoved, kMediumCols},
     {kNextLetGo, kMediumCols},       {kNextTouchDone, kMediumCols},
@@ -570,14 +549,11 @@ inline constexpr Checked kAll[] = {
     {kSpinAgain, kMediumCols},       {kSpinFirst, kMediumCols},
     {kCopyThenRunAgain, kSmallCols}, {kCopyNow, kSmallCols},
     {kCopyThese, kSmallCols},        {kFullReasonOnSerial, kSmallCols},
-    {kLabelDone, 12},                {kLabelFront, 12},
-    {kLabelBack, 12},                {kLabelAbort, 12},
+    {kLabelDone, 12},                {kLabelAbort, 12},
     {kLabelRunAgain, 12},
-    {kHeaderImu4, kHeaderCols},      {kHeaderPush4, kHeaderCols},
-    {kHeaderPulses4, kHeaderCols},   {kHeaderSpin4, kHeaderCols},
     {kHeaderFlipped, kHeaderCols},   {kHeaderMechTurned, kHeaderCols},
-    {kHeaderSavedNew, kHeaderCols},  {kPushFrontFirst, kLargeCols},
-    {kNothingSavedYet, kLargeCols},  {kNextTouchDoneClear, kMediumCols},
+    {kHeaderSavedNew, kHeaderCols},
+    {kNothingSavedYet, kLargeCols},
     {kFrontRule, kMediumCols},       {kFlipWhat, kMediumCols},
     {kFlipAgain, kSmallCols},        {kFlipNew, kSmallCols},
     {kFlipWarn, kSmallCols},         {kMechNotOnCard, kSmallCols},
@@ -613,12 +589,12 @@ static_assert(panelLiteralsFit(),
               "contains a percent sign");
 
 /// True when the fixed layout keeps its promises: everything on the screen above row 236; ABORT's
-/// slot inside the powered row; and no middle box (FRONT, BACK, RUN AGAIN) whose HIT box reaches
-/// the hit box of anything in the button row — so a second tap where DONE or ABORT was lands on
-/// nothing in the next layout. FRONT and BACK do not touch each other.
+/// slot inside the powered row; and no middle box (a held screen's two choices, RUN AGAIN) whose
+/// HIT box reaches the hit box of anything in the button row — so a second tap where DONE or ABORT
+/// was lands on nothing in the next layout. The two choices do not touch each other.
 [[nodiscard]] constexpr bool panelLayoutHolds() noexcept {
     const PanelRect all[] = {kHeaderBar, kPrimarySlot, kAbortSlot, kAbortRow,
-                             kFrontBox,  kBackBox,     kRunAgainBox};
+                             kChoiceLeftBox, kChoiceRightBox, kRunAgainBox};
     for (const PanelRect& r : all) {
         if (r.x0 < 0 || r.y0 < 0 || r.x1 >= kPanelWidth || r.y1 > kPanelLastRow || r.x0 > r.x1
             || r.y0 > r.y1) {
@@ -628,13 +604,13 @@ static_assert(panelLiteralsFit(),
     if (!within(kAbortSlot, kAbortRow) || overlaps(hitBox(kPrimarySlot), hitBox(kAbortSlot))) {
         return false;
     }
-    const PanelRect middle[] = {kFrontBox, kBackBox, kRunAgainBox};
+    const PanelRect middle[] = {kChoiceLeftBox, kChoiceRightBox, kRunAgainBox};
     for (const PanelRect& m : middle) {
         if (overlaps(hitBox(m), hitBox(kAbortRow)) || overlaps(hitBox(m), hitBox(kPrimarySlot))) {
             return false;
         }
     }
-    return !overlaps(hitBox(kFrontBox), hitBox(kBackBox));
+    return !overlaps(hitBox(kChoiceLeftBox), hitBox(kChoiceRightBox));
 }
 static_assert(panelLayoutHolds(),
               "calibrate_panel: the fixed layout breaks a promise (off screen, ABORT moved out of "
@@ -802,18 +778,16 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
 /// kArmingDelaySeconds (TouchGate::view() tracks it); `save` tells the finished screen whether the
 /// program managed to write the result. A pure function of the calibrator's public queries.
 ///
-/// CAL1 (additions only — the defaults are today's screens, field for field): `rule` ByPush is the
-/// standard Calibrate's — four steps (1/4..4/4), PUSH FRONT FIRST, the front rule while the IMU
-/// warms up, and never the WHICH END view (the program answers that question itself, the tick DONE
-/// is accepted). `save` Held paints the held screen `finish.hold` names — FRONT FLIPPED or
-/// MECHANISM PORT TURNED, NOTHING SAVED YET, a left box (today's FRONT FIRST id, labelled USE NEW
-/// or SAVE) and RUN AGAIN (today's id, which discards the run). `finish.front` New makes a SAVED
+/// CAL1: four steps (1/4..4/4), PUSH FRONT FIRST, the front rule while the IMU warms up — the end
+/// that leads the push is the FRONT, so there is no WHICH END question (removed by CAL1 Part B).
+/// `save` Held paints the held screen `finish.hold` names — FRONT FLIPPED or MECHANISM PORT TURNED,
+/// NOTHING SAVED YET, a left box (SaveHeld, labelled USE NEW or SAVE) and RUN AGAIN (which discards
+/// the run). `finish.front` New makes a SAVED
 /// header "SAVED -- NEW FRONT" in amber; `finish.note` is one amber SMALL row on the finished
 /// screen (a calibrator warning that needs two rows is then cut to one, ending " ...").
 [[nodiscard]] inline PanelView viewFor(const DrivetrainCalibrator& cal,
                                        double secondsSinceLayoutChange,
                                        SaveOutcome save = SaveOutcome::NotAttempted,
-                                       FrontRule rule = FrontRule::AskedAfterPush,
                                        const FinishFacts& finish = FinishFacts{}) {
     using namespace panel_text;
     using detail::addPanelButton;
@@ -823,7 +797,6 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
     const CalibratorStatus& st = cal.status();
     const CalibratorConfig& cfg = cal.config();
     const double secs = secondsSinceLayoutChange;
-    const bool byPush = rule == FrontRule::ByPush;
     char buf[kPanelLineCap];
 
     switch (cal.phase()) {
@@ -837,38 +810,25 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
         case Phase::WaitImu:
             v.screen = PanelScreen::ImuWait;
             v.headerTone = PanelTone::Blue;
-            v.headerWord = byPush ? kHeaderImu4.data() : kHeaderImu.data();
+            v.headerWord = kHeaderImu.data();
             addPanelLine(v, d::kTextX, d::kInstr1Y, TextSize::Large, PanelTone::White, kHandsOff);
             addPanelLine(v, d::kTextX, d::kInstr2Y, TextSize::Large, PanelTone::White, kImuWarming);
             std::snprintf(buf, sizeof buf, "%.1f s", st.phaseSeconds);
             addPanelLine(v, d::kTextX, d::kLiveY, TextSize::Large, PanelTone::Amber, buf);
-            if (byPush) {  // CAL1: the rule, before the push it governs
-                addPanelLine(v, d::kTextX, d::kDetailY, TextSize::Medium, PanelTone::White,
-                             kFrontRule);
-            }
+            // CAL1: the rule, before the push it governs
+            addPanelLine(v, d::kTextX, d::kDetailY, TextSize::Medium, PanelTone::White, kFrontRule);
             std::snprintf(buf, sizeof buf, "NEXT: push it %.0f in along the tape",
                           cfg.pushDistance.value());
             addPanelLine(v, d::kTextX, d::kNextY, TextSize::Medium, PanelTone::White, buf);
             addPanelButton(v, PanelButtonId::Abort, kAbortSlot, kLabelAbort, secs);
             return v;
         case Phase::PushCapture: {
-            if (!byPush && cal.accepts(Answer::FrontFirst)) {
-                v.screen = PanelScreen::WhichEnd;
-                v.headerTone = PanelTone::Blue;
-                v.headerWord = kHeaderWhichEnd.data();
-                addPanelLine(v, d::kTextX, d::kInstr1Y, TextSize::Large, PanelTone::White, kWhichEnd);
-                addPanelLine(v, d::kTextX, d::kNextY, TextSize::Medium, PanelTone::Amber, kNextTwitch);
-                addPanelButton(v, PanelButtonId::Front, kFrontBox, kLabelFront, secs);
-                addPanelButton(v, PanelButtonId::Back, kBackBox, kLabelBack, secs);
-                addPanelButton(v, PanelButtonId::Abort, kAbortSlot, kLabelAbort, secs);
-                return v;
-            }
             v.screen = PanelScreen::Push;
             v.headerTone = PanelTone::Blue;
-            v.headerWord = byPush ? kHeaderPush4.data() : kHeaderPush.data();
+            v.headerWord = kHeaderPush.data();
             const bool ready = cal.pushReady();
             addPanelLine(v, d::kTextX, d::kInstr1Y, TextSize::Large, PanelTone::White,
-                         byPush ? kPushFrontFirst : kPushForward);
+                         kPushFrontFirst);
             std::snprintf(buf, sizeof buf, "%.0f IN ALONG TAPE", cfg.pushDistance.value());
             addPanelLine(v, d::kTextX, d::kInstr2Y, TextSize::Large, PanelTone::White, buf);
             std::snprintf(buf, sizeof buf, "%u of %u turned", static_cast<unsigned>(st.movedNow),
@@ -886,7 +846,7 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
                     curved ? PanelTone::Red : PanelTone::White, buf);
             if (ready) {
                 addPanelLine(v, d::kTextX, d::kNextY, TextSize::Medium, PanelTone::Green,
-                        byPush ? kNextTouchDoneClear : kNextTouchDone);
+                        kNextTouchDone);
             } else if (st.movedNow < 2) {
                 addPanelLine(v, d::kTextX, d::kNextY, TextSize::Medium, PanelTone::White,
                         kNextDoneWhenMoved);
@@ -908,7 +868,7 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
         case Phase::SideAssign: {
             v.screen = PanelScreen::Pulses;
             v.headerTone = PanelTone::Amber;
-            v.headerWord = byPush ? kHeaderPulses4.data() : kHeaderPulses.data();
+            v.headerWord = kHeaderPulses.data();
             addPanelLine(v, d::kTextX, d::kInstr1Y, TextSize::Large, PanelTone::Amber, kStandClear);
             addPanelLine(v, d::kTextX, d::kInstr2Y, TextSize::Large, PanelTone::Amber, kTwitching);
             std::snprintf(buf, sizeof buf, "PORT %d  %.0f V", static_cast<int>(st.pulsePort),
@@ -929,13 +889,19 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
             }
             d::panelChips(cal, buf, sizeof buf);
             addPanelLine(v, d::kTextX, d::kNextY, TextSize::Medium, PanelTone::White, buf);
-            addPanelButton(v, PanelButtonId::Abort, kAbortRow, kLabelAbort, secs);
+            // ABORT grows to the whole row once a motor has been DRIVEN — a pulse is driving now, or
+            // one has been (its record is in the report) — and not before: a touch of DONE leads
+            // straight here, and DONE's box lies in that row, so until then a reflexive second tap
+            // where DONE was lands on nothing (the double-tap rule above; CAL1 Part B review round).
+            // The rest window before the first pulse lasts at least restSettleTime (0.5 s).
+            const bool driven = st.pulsing || cal.report().pulseCount > 0;
+            addPanelButton(v, PanelButtonId::Abort, driven ? kAbortRow : kAbortSlot, kLabelAbort, secs);
             return v;
         }
         case Phase::SpinTest: {
             v.screen = PanelScreen::Spin;
             v.headerTone = PanelTone::Amber;
-            v.headerWord = byPush ? kHeaderSpin4.data() : kHeaderSpin.data();
+            v.headerWord = kHeaderSpin.data();
             addPanelLine(v, d::kTextX, d::kInstr1Y, TextSize::Large, PanelTone::Amber, kStandClear);
             addPanelLine(v, d::kTextX, d::kInstr2Y, TextSize::Large, PanelTone::Amber, kSpinning);
             if (st.spinDirection != 0.0) {
@@ -959,10 +925,9 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
         }
         case Phase::Done: {
             if (save == SaveOutcome::Held) {
-                // CAL1: nothing is written until the operator touches the left box (USE NEW or
-                // SAVE — today's FRONT FIRST id, relabelled: no new PanelButtonId before Part B,
-                // because today's program and tests switch over the ids) or RUN AGAIN (today's id,
-                // in the middle right: it discards this run). A field disable writes nothing.
+                // CAL1: nothing is written until the operator touches the left box (SaveHeld:
+                // USE NEW or SAVE) or RUN AGAIN (in the middle right: it discards this run). A
+                // field disable writes nothing.
                 v.screen = PanelScreen::Held;
                 v.headerTone = PanelTone::Amber;
                 addPanelLine(v, d::kTextX, d::kInstr1Y, TextSize::Large, PanelTone::Amber,
@@ -978,7 +943,7 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
                                  kMechSave);
                     addPanelLine(v, d::kTextX, d::kSmall3Y, TextSize::Small, PanelTone::Amber,
                                  kMechAgain);
-                    addPanelButton(v, PanelButtonId::Front, kFrontBox, kLabelSave, secs);
+                    addPanelButton(v, PanelButtonId::SaveHeld, kChoiceLeftBox, kLabelSave, secs);
                 } else {
                     // CAL1 D6 (a): checked against the TYPED drive ports, the three lines that
                     // name the reference are theirs; the header, the headline, RUN AGAIN's case
@@ -993,9 +958,9 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
                                  typed ? kFlipNewTyped : kFlipNew);
                     addPanelLine(v, d::kTextX, d::kSmall3Y, TextSize::Small, PanelTone::Amber,
                                  typed ? kFlipWarnTyped : kFlipWarn);
-                    addPanelButton(v, PanelButtonId::Front, kFrontBox, kLabelNew, secs);
+                    addPanelButton(v, PanelButtonId::SaveHeld, kChoiceLeftBox, kLabelNew, secs);
                 }
-                addPanelButton(v, PanelButtonId::RunAgain, kBackBox, kLabelRunAgain, secs);
+                addPanelButton(v, PanelButtonId::RunAgain, kChoiceRightBox, kLabelRunAgain, secs);
                 return v;
             }
             const bool newFront = finish.front == FrontChoice::New;
@@ -1183,17 +1148,16 @@ public:
 
     /// The view to paint now. Restarts the arming clock at `nowSeconds` whenever the layout
     /// (layoutKey()) differs from the last view this returned — so the program never has to track
-    /// it, and a new layout's buttons come up greyed on the very first frame they appear. `rule`
-    /// and `finish` are viewFor()'s (CAL1; the defaults are today's). CAL1: on a held screen the
+    /// it, and a new layout's buttons come up greyed on the very first frame they appear. `finish`
+    /// is viewFor()'s (CAL1; the default is no hold, no NOTE). CAL1: on a held screen the
     /// clock ALSO restarts when the QUESTION changes — the hold's reason, or (MECHANISM PORT TURNED,
     /// one screen per port) its port: FRONT FLIPPED's USE NEW and every MECHANISM PORT TURNED's
     /// SAVE share one box and one id, so layoutKey() alone cannot see the next question arrive, and
     /// a reflexive second tap would land on the next question's live box.
     [[nodiscard]] PanelView view(const DrivetrainCalibrator& cal, double nowSeconds,
                                  SaveOutcome save = SaveOutcome::NotAttempted,
-                                 FrontRule rule = FrontRule::AskedAfterPush,
                                  const FinishFacts& finish = FinishFacts{}) {
-        PanelView v = viewFor(cal, haveKey_ ? nowSeconds - changedAt_ : 0.0, save, rule, finish);
+        PanelView v = viewFor(cal, haveKey_ ? nowSeconds - changedAt_ : 0.0, save, finish);
         const std::uint32_t key = layoutKey(v);
         const HoldReason hold = v.screen == PanelScreen::Held ? finish.hold : HoldReason::None;
         const int holdPort = hold == HoldReason::MechanismTurned ? finish.holdPort : 0;
@@ -1203,16 +1167,15 @@ public:
             lastHold_ = hold;
             lastHoldPort_ = holdPort;
             changedAt_ = nowSeconds;
-            v = viewFor(cal, 0.0, save, rule, finish);
+            v = viewFor(cal, 0.0, save, finish);
         }
         return v;
     }
 
     /// One touch read against the view that is ON THE SCREEN (`drawn`). A new release that lands on
     /// an armed button becomes an answer only if the calibrator still accepts it now (DONE also
-    /// needs pushReady()); RUN AGAIN only once the run has ended. CAL1: on a HELD screen the left
-    /// box (the FRONT FIRST id, relabelled) is SaveHeld — never an answer — and only while the run
-    /// is Done.
+    /// needs pushReady()); RUN AGAIN only once the run has ended. CAL1: a HELD screen's left box is
+    /// SaveHeld — never an answer — and only on a held screen while the run is Done.
     [[nodiscard]] TouchResult touch(const TouchSample& s, const PanelView& drawn,
                                     const DrivetrainCalibrator& cal) {
         TouchResult r{};
@@ -1232,15 +1195,11 @@ public:
                 }
                 return r;
             case PanelButtonId::Done: return offer(r, cal, Answer::Done, cal.pushReady());
-            case PanelButtonId::Front:
-                if (drawn.screen == PanelScreen::Held) {  // CAL1: USE NEW / SAVE, never an answer
-                    if (cal.phase() == Phase::Done) {
-                        r.action = TouchAction::SaveHeld;
-                    }
-                    return r;
+            case PanelButtonId::SaveHeld:
+                if (drawn.screen == PanelScreen::Held && cal.phase() == Phase::Done) {
+                    r.action = TouchAction::SaveHeld;  // CAL1: USE NEW / SAVE, never an answer
                 }
-                return offer(r, cal, Answer::FrontFirst, true);
-            case PanelButtonId::Back: return offer(r, cal, Answer::BackFirst, true);
+                return r;
             case PanelButtonId::Abort: return offer(r, cal, Answer::Abort, true);
         }
         return r;

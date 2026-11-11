@@ -77,10 +77,12 @@
 //     kRobotTwoMechanisms at build, and bound to the service by each declaration's name at boot;
 //   * the team's autons (src/team/autons.cpp): `using namespace robot_two;`, then a step names a
 //     declaration (`r.set(claw["closed"])`);
-//   * "shulib Calibrate" (src/programs/calibrate_program.cpp): the census's motor ports go through
-//     dropDeclaredMechanismPorts() BEFORE any ProsMotor is built, so a declared pivot is never a drive
-//     candidate. (CAL1 Part B replaces that drop with the standard Calibrate's facts, which map this list
-//     — the MECH brief's N9; until then the drop below reads the new list.)
+//   * "shulib Calibrate" (the standard Calibrate since CAL1 Part B, 2026-11-05):
+//     src/robots/calibrate_facts.hpp maps this list into its facts — one declared port per motor role,
+//     mechanism::declaredMotorPorts(), named by its mechanism (the MECH brief's N9) — and the program
+//     drops those ports from its census BEFORE any motor is made, so a declared pivot is never a drive
+//     candidate, and WATCHES them during the push without commanding them. (Until CAL1 Part B robot
+//     two's own Calibrate dropped them through dropDeclaredMechanismPorts(), deleted with it.)
 //
 // PROS-FREE ON PURPOSE: plain declarations and pure helpers, so the host test includes it from src/.
 // It lives in src/, not include/shulib/, because it is a per-robot composition fact, not library API.
@@ -195,8 +197,10 @@ consteval bool clearOfItsDrive(const MechanismTable& m, const ChassisTable& c) {
     return true;
 }
 
-/// True when PHYSICAL smart port `port` (1..21) carries a declared mechanism MOTOR in `t` — the
-/// predicate "shulib Calibrate" drops census ports by (dropDeclaredMechanismPorts, below). A Reversed
+/// True when PHYSICAL smart port `port` (1..21) carries a declared mechanism MOTOR in `t` — the same
+/// set of ports the standard Calibrate's facts declare for this list (src/robots/calibrate_facts.hpp,
+/// through mechanism::declaredMotorPorts(); until CAL1 Part B robot two's own Calibrate dropped its
+/// census ports by this predicate). A Reversed
 /// motor is still its physical port (the wiring holds physical ports; the direction is the
 /// declaration's); a port outside 1..21 is never one; a 3-wire line is NEVER a smart port (line A is not
 /// port 1). MOTOR roles only, as before MECH-A5: the census lists the ports that answer as MOTORS, and a
@@ -214,44 +218,6 @@ constexpr bool isDeclaredMechanismPort(const MechanismTable& t, int port) {
         }
     }
     return false;
-}
-
-/// The declared mechanism ports "shulib Calibrate" took out of its candidate list, in the order the
-/// census listed them: the ports its `claw pivot (declared)` log lines name.
-struct DroppedMechanismPorts {
-    std::int8_t ports[kMaxPort];
-    std::size_t count;
-};
-
-/// "shulib Calibrate"'s candidate filter (chunk T3), run IN PLACE on the census's own port list, so
-/// Calibrate keeps ONE list. `ports` holds the census's motor ports (physical, positive). Every declared
-/// mechanism motor port of `t` leaves it and is appended to `dropped` (which is reset first); the ports
-/// that stay DRIVE CANDIDATES move to the front, in the census's order, and every slot past them is set
-/// to 0 (never a port). Returns how many stayed. Calibrate calls it ONCE, after the census and BEFORE
-/// any ProsMotor is built. `[[nodiscard]]`: a call whose count is thrown away would leave Calibrate's
-/// old count over a list that now holds fewer ports. The brain has 21 ports, so `dropped` (21 slots)
-/// never fills; if it somehow did, a declared port would still LEAVE the list and only be missing from
-/// the log.
-///
-/// CAL1 Part B DELETES this (the MECH brief's N9: the standard Calibrate maps this list into its own
-/// facts); MECH-A5 landed first, so the drop reads the new list — the call in calibrate_program.cpp is
-/// unchanged, because kMechanisms IS the new list.
-[[nodiscard]] constexpr std::size_t dropDeclaredMechanismPorts(const MechanismTable& t,
-                                                               std::span<std::int8_t> ports,
-                                                               DroppedMechanismPorts& dropped) {
-    constexpr std::size_t cap = static_cast<std::size_t>(kMaxPort);
-    dropped = DroppedMechanismPorts{};
-    std::size_t kept = 0;
-    for (std::size_t i = 0; i < ports.size(); ++i) {
-        const std::int8_t p = ports[i];  // read before any write: kept <= i, always
-        if (isDeclaredMechanismPort(t, p)) {
-            if (dropped.count < cap) dropped.ports[dropped.count++] = p;
-        } else {
-            ports[kept++] = p;
-        }
-    }
-    for (std::size_t i = kept; i < ports.size(); ++i) ports[i] = 0;
-    return kept;
 }
 
 // ═══ THE COMPILE-TIME CHECKS ═══════════════════════════════════════════════════════════════

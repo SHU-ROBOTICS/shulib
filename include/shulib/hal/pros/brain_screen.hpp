@@ -2,8 +2,9 @@
 //
 // ProsBrainScreen — hal::IBrainScreen over PROS's screen API (chunk CAL1, Part A1, 2026-10-08).
 //
-// Each call is the PROS sequence "shulib Calibrate" (src/programs/calibrate_program.cpp) makes
-// inline today: set the pen (or the eraser), then draw. print() is the sequence of printText()
+// Each call is the PROS sequence robot two's own "shulib Calibrate" (src/programs/calibrate_program.cpp,
+// until CAL1 Part B made it the standard one, 2026-11-05) made inline: set the pen (or the eraser),
+// then draw. print() is the sequence of printText()
 // (src/common/screen_text.hpp): the text through the sanitizer (hal::screenSafeLine(), the same
 // rules), then set the eraser, set the pen, and print the sanitized line through a LITERAL "%s" —
 // so no text a caller passes is ever read by VEXos as a format. The touch read is PROS's

@@ -268,7 +268,9 @@ TEST_CASE("CalibrateProgram T1a: one clean run on an empty card -- every decisio
                    "STOPS at 15.0 deg the wrong way; 20 s timeout; the two ways agree within 5.0 pct"));
     CHECK(countPrefix(L, "config: ") == 3);
     // the loop's own record at DONE, verbatim: every tick 10 ms apart on the plant (T1q stalls one)
-    CHECK(has(rig, "loop: 5496 ticks, worst gap between two ticks 10 ms (a powered step stops past 100 ms); 218 "
+    // (219 prints: the PULSES' ABORT is redrawn once, from its slot to the row, when the first pulse
+    // drives a motor — CAL1 Part B's review round; 218 before it)
+    CHECK(has(rig, "loop: 5496 ticks, worst gap between two ticks 10 ms (a powered step stops past 100 ms); 219 "
                    "screen prints so far"));
     // the push, live: the first tick's count, a line when the count changes (the ports moving; the
     // push far enough, one wheel turn), a keepalive 5 s after the last line while only the travel
@@ -789,7 +791,7 @@ TEST_CASE("CalibrateProgram T1q: one slow tick (50 ms) -- the loop's worst gap s
     Rig rig{sc};
     rig.run(robotTwoFacts());
     REQUIRE_FALSE(rig.timedOut);
-    CHECK(has(rig, "loop: 5492 ticks, worst gap between two ticks 50 ms (a powered step stops past 100 ms); 218 "
+    CHECK(has(rig, "loop: 5492 ticks, worst gap between two ticks 50 ms (a powered step stops past 100 ms); 219 "
                    "screen prints so far"));
     CHECK(describe(decoded(rig.fileBytes(kRecordFileName))) == measured(rig));
 }

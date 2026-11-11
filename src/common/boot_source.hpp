@@ -103,7 +103,8 @@ namespace shulib::bench {
 // own build checks now refuse what that refused, and its order is the config's.)
 
 /// The words the boot check uses for a declared mechanism MOTOR port that carries a motor the
-/// description does not list — Calibrate's own words for them ("claw pivot (declared)"), because
+/// description does not list — Calibrate's words for them (its census line, "claw pivot 6 (declared)"
+/// since CAL1 Part B; "claw pivot (declared)" before it), because
 /// every MOTOR role robot two declares is a claw pivot; a list that declares another kind of motor
 /// mechanism changes this with it (L9 Part B's boot wording makes it the program's).
 inline constexpr const char* kDeclaredMotorLabel = "claw pivots (declared, not drive motors)";

@@ -179,7 +179,8 @@ private:
 /// Where the scripted operator is — handed to a case's hook every tick.
 struct Script {
     int tick = 0;
-    int stage = 0;         ///< 0 pushing, 1 pushed (waiting to touch DONE), 2 DONE touched, 3 hands off
+    int stage = 0;         ///< 0 pushing, 1 pushed (waiting to touch DONE), 3 DONE touched: hands off (2, the
+                           ///< WHICH END answer, left with CAL1 Part B)
     double pushed = 0.0;   ///< TRUE inches the robot has travelled while the harness pushed
     bool paused = false;   ///< the push is paused (RunOptions::pauseAtInches)
 };
@@ -193,8 +194,9 @@ struct RunOptions {
     /// silently straighten out because both sides clamped to the same 12 V.
     double pushVolts = 2.2;
     double curve = 1.0;         ///< right-side volts relative to left during the push
-    double pushDirection = 1.0; ///< −1 pushes the plant backward
-    Answer front = Answer::FrontFirst;
+    /// −1 pushes the plant backward: the push then LEADS with the plant's other end, which is the
+    /// FRONT of that run (CAL1 Part B: there is no WHICH END answer to give any more)
+    double pushDirection = 1.0;
     double plantKs = kUsualKs;  ///< the plant's static-friction dead band, for the exact stop
     /// The scripted operator touches DONE only once pushReady() says so — what the panel does.
     /// false = DONE the moment the harness stops pushing, ready or not (an old screen).
@@ -207,7 +209,7 @@ struct RunOptions {
 };
 
 /// Drive a whole calibration with `cal` (the rig's own, or one rebuilt in place — case 32): the
-/// operator pushes when asked, answers when asked, and stands clear while the calibrator drives.
+/// operator pushes when asked, touches DONE, and stands clear while the calibrator drives.
 /// Returns the phase the run ended in (or was stopped in).
 inline Phase runWith(CalibRig& rig, DrivetrainCalibrator& cal, const RunOptions& opt) {
     Script s;
@@ -267,12 +269,9 @@ inline Phase runWith(CalibRig& rig, DrivetrainCalibrator& cal, const RunOptions&
                 }
             } else if (s.stage == 1) {
                 if (!opt.waitForReady || cal.pushReady()) {
-                    cal.answer(Answer::Done);
-                    s.stage = 2;
+                    cal.answer(Answer::Done);  // the end that led the push is the front (CAL1)
+                    s.stage = 3;
                 }
-            } else if (s.stage == 2) {
-                cal.answer(opt.front);
-                s.stage = 3;
             }
         }
         cal.tick();

@@ -95,17 +95,17 @@ current state, so here it is, third heading from the top:
   store the calibration record's safe save uses, which is not counted as an adapter of its own), the
   brain's device list, the loop pacer, and real time).
   The motor, IMU, battery, controller and clock adapters and the SD-card writer have met real
-  devices on the bench. **Distance, optical, ADI digital in and out, and the brain's touch screen
-  are constructed by no program yet** — no V5 build compiles them into a package, and none has
-  touched a physical device (the touch screen's calls are the ones robot two's Calibrate program
-  makes itself today; the adapter is the library's standard Calibrate's, which no program builds
-  yet) — and GPS
+  devices on the bench. **Distance** is constructed by Bench Tests (its distance station) and **ADI
+  digital out** by the programs that boot robot two's mechanisms (its pneumatic claw, 3-wire line A);
+  this README claims neither confirmed on a device. **Optical and ADI digital in are constructed by no
+  program yet** — no V5 build compiles them into a package — and **the brain's touch screen adapter is built only into robot two's "shulib Calibrate"** (the
+  library's standard Calibrate since 2026-11-05), which has not run on a robot in that form — and GPS
   and rotation appear only in the X-drive build, which has never run. All
   eighteen are host-tested against a hand-written stand-in for PROS, which proves the glue is
   faithful to *our beliefs* about PROS — units, signs, error values — and cannot prove the
   beliefs themselves; every such belief is a labelled entry in the assumptions register (HA-94
-  onward) — except two the touch-screen adapter shares with robot two's Calibrate program, read from
-  the SDK and not yet entered: that PROS re-reads printed text as a format string, and that each
+  onward) — except two the touch-screen adapter shares with the robot programs' own screen path
+  (`src/common/screen_text.hpp`), read from the SDK and not yet entered: that PROS re-reads printed text as a format string, and that each
   print leaks its buffer (the adapter sanitizes and counts its prints either way). Only the
   X-drive build (`make ROBOT=xdrive`) carries an invented, labelled port map; the default build
   and robot two's builds use port tables measured on those robots (robot two's is owed a
@@ -317,8 +317,9 @@ src/                the robot programs, one folder per job (every include writte
   build_selection.hpp  the one place a build's switches are read — it picks the program and
                     the robot together
   robots/           what each robot IS: the per-robot tables (every robot's ports; robot two's
-                    claws, declared in the mechanism core's words) and the invented X-drive (a
-                    RobotConfig constant)
+                    claws, declared in the mechanism core's words), the invented X-drive (a
+                    RobotConfig constant), and the standard Calibrate's facts, derived from the
+                    tables (calibrate_facts.hpp)
   team/             the team's own code — where students edit: robot two's driver file (which
                     button does what, the feel; shulib Drive runs it on its own, and the
                     competition program's driver control runs it) and the team's autons

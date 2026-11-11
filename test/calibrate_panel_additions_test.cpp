@@ -1,20 +1,18 @@
 // calibration::viewFor / TouchGate — CAL1 Part A2a's ADDITIONS to the calibration panel (the brief's
 // §2.A test 9, and the panel's half of the held screens), driven over the same plant and scripted
 // operator as the panel's own cases (calibration_test_rig.hpp). NOTHING HERE HAS RUN ON A ROBOT.
-// test/calibrate_panel_test.cpp is today's panel's, and is not edited (§2.A test 9: no existing
-// test TU is).
+// test/calibrate_panel_test.cpp is the panel's own (CAL1 Part B re-pinned it when the WHICH END
+// question left the library).
 //
 // Each case names the bug it catches:
-//   N1  the DEFAULTS ARE TODAY'S SCREENS: every view of four runs (clean, slipping, curved, aborted),
-//       at three arming times and every SaveOutcome today's program passes, is the same field for
-//       field whether viewFor()/TouchGate::view() are called as today's program calls them or with
-//       FrontRule::AskedAfterPush and FinishFacts{} spelled out — so a default flipped to the
-//       standard Calibrate's (ByPush) turns this red
-//   N2  ByPush: never the WHICH END view or a FRONT/BACK button, in every state of a run; the four
-//       steps 1/4..4/4; the front rule while the IMU warms up; PUSH FRONT FIRST; the DONE line
+//   (N1 — the defaulted viewFor() equal to FrontRule::AskedAfterPush spelled out — was DELETED by
+//       CAL1 Part B with the parameter it compared: there is one behaviour now, ByPush's, and N2 pins it)
+//   N2  the front is the push's: in every state of a run only DONE and ABORT are ever offered (no
+//       question about the front, nothing in the middle boxes before the run ends); the four steps
+//       1/4..4/4; the front rule while the IMU warms up; PUSH FRONT FIRST; the DONE line
 //   N3  the held views: FRONT FLIPPED's and MECHANISM PORT TURNED's words, sizes and places, the
-//       left box (today's FRONT FIRST id) labelled USE NEW / SAVE and RUN AGAIN beside it, every
-//       line inside its budget and clear of both boxes
+//       left box (SaveHeld) labelled USE NEW / SAVE and RUN AGAIN beside it, every line inside its
+//       budget and clear of both boxes
 //   N4  TouchGate on a held screen: the left box is SaveHeld (never an answer), RUN AGAIN is
 //       RunAgain, and neither acts unless the run has ended
 //   N5  the arming clock restarts when the HOLD's question changes — FRONT FLIPPED's USE NEW and
@@ -40,12 +38,11 @@ using namespace calib_rig;
 using shulib::calibration::budgetFor;
 using shulib::calibration::FinishFacts;
 using shulib::calibration::FrontChoice;
-using shulib::calibration::FrontRule;
 using shulib::calibration::heightFor;
 using shulib::calibration::HoldReason;
 using shulib::calibration::kArmingDelaySeconds;
-using shulib::calibration::kBackBox;
-using shulib::calibration::kFrontBox;
+using shulib::calibration::kChoiceLeftBox;
+using shulib::calibration::kChoiceRightBox;
 using shulib::calibration::kHeaderCols;
 using shulib::calibration::kPanelLastRow;
 using shulib::calibration::kPanelWidth;
@@ -103,22 +100,6 @@ std::string viewDiff(const PanelView& a, const PanelView& b) {
 }
 
 void checkSameView(const PanelView& a, const PanelView& b) { CHECK(viewDiff(a, b) == ""); }
-
-/// Views compared and the first that differed (with where), for one CHECK per run.
-struct Tally {
-    int compared = 0;
-    int differing = 0;
-    std::string first;
-    void add(const PanelView& a, const PanelView& b, const char* what) {
-        ++compared;
-        const std::string d = viewDiff(a, b);
-        if (!d.empty()) {
-            if (differing++ == 0) {
-                first = std::string{what} + ": " + d;
-            }
-        }
-    }
-};
 
 /// The pixel box a line occupies (the panel test's estimate: the budget spread over 472 pixels).
 PanelRect lineBox(const shulib::calibration::PanelLine& l) {
@@ -199,65 +180,13 @@ TouchSample tapAt(std::int32_t& releases, const PanelRect& r) {
 
 }  // namespace
 
-TEST_CASE("CalibratePanel additions N1: the defaulted viewFor() and TouchGate::view() ARE today's screens -- "
-          "field for field against AskedAfterPush and FinishFacts{} spelled out, in every state of four runs") {
-    Tally tally;
-    const auto check = [&tally](const DrivetrainCalibrator& cal) {
-        for (const double t : {0.0, 0.25, kArmed}) {
-            for (const SaveOutcome s : {SaveOutcome::NotAttempted, SaveOutcome::Saved, SaveOutcome::NotSaved}) {
-                const PanelView today = s == SaveOutcome::NotAttempted ? viewFor(cal, t) : viewFor(cal, t, s);
-                tally.add(today, viewFor(cal, t, s, FrontRule::AskedAfterPush, FinishFacts{}), "viewFor");
-            }
-        }
-    };
-    {
-        CalibRig rig{CalibratorConfig{}, calibPlant(0.0)};
-        REQUIRE(drive(rig, RunOptions{}, check) == Phase::Done);
-    }
-    {
-        CalibRig rig{CalibratorConfig{}, calibPlant(0.0, kUsualKs, 0.7)};
-        rig.setFault(1, 2, MemberFault::Decoupled);
-        REQUIRE(drive(rig, RunOptions{}, check) == Phase::Done);
-    }
-    {
-        CalibRig rig{CalibratorConfig{}, calibPlant(0.0)};
-        RunOptions opt;
-        opt.curve = 0.85;
-        REQUIRE(drive(rig, opt, check) == Phase::Aborted);
-    }
-    {
-        CalibRig rig{CalibratorConfig{}, calibPlant(0.0)};
-        RunOptions opt;
-        opt.hook = [](CalibRig& r, const Script&) {
-            if (r.cal.status().pulseOrdinal == 4 && r.cal.status().pulsing) {
-                r.cal.answer(Answer::Abort);
-            }
-        };
-        REQUIRE(drive(rig, opt, check) == Phase::Aborted);
-    }
-    // TouchGate::view(), defaulted and spelled out, over the same calibrator and clock: two gates,
-    // the same layout changes, the same arming.
-    {
-        CalibRig rig{CalibratorConfig{}, calibPlant(0.0)};
-        TouchGate a{0};
-        TouchGate b{0};
-        double now = 0.0;
-        REQUIRE(drive(rig, RunOptions{}, [&](const DrivetrainCalibrator& cal) {
-                    now += 0.01;
-                    tally.add(a.view(cal, now),
-                              b.view(cal, now, SaveOutcome::NotAttempted, FrontRule::AskedAfterPush, FinishFacts{}),
-                              "TouchGate::view");
-                }) == Phase::Done);
-    }
-    MESSAGE("views compared: ", tally.compared);
-    CAPTURE(tally.first);
-    CHECK(tally.differing == 0);
-    CHECK(tally.compared > 50000);  // every tick of five runs, at three times and three outcomes
-}
-
-TEST_CASE("CalibratePanel additions N2: under ByPush the WHICH END view and its FRONT/BACK buttons never "
-          "appear; the steps are 1/4..4/4, the front rule shows while the IMU warms up, the push says PUSH "
-          "FRONT FIRST") {
+TEST_CASE("CalibratePanel additions N2: the front is the push's -- only DONE and ABORT are offered while a run "
+          "runs, nothing in the middle boxes; the steps are 1/4..4/4, the front rule shows while the IMU warms "
+          "up, the push says PUSH FRONT FIRST") {
+    // BUG CAUGHT (re-pinned by CAL1 Part B): a question about the front left reachable — any view of a
+    // running run offering a button that is not DONE or ABORT, or anything in the held screens' two
+    // middle boxes before the run has ended (the old WHICH END screen's FRONT FIRST / BACK FIRST sat
+    // exactly there).
     std::vector<std::string> headers;
     bool sawRule = false;
     bool sawPushFront = false;
@@ -265,11 +194,18 @@ TEST_CASE("CalibratePanel additions N2: under ByPush the WHICH END view and its 
     int views = 0;
     CalibRig rig{CalibratorConfig{}, calibPlant(0.0)};
     REQUIRE(drive(rig, RunOptions{}, [&](const DrivetrainCalibrator& cal) {
-                const PanelView v = viewFor(cal, kArmed, SaveOutcome::NotAttempted, FrontRule::ByPush);
+                const PanelView v = viewFor(cal, kArmed, SaveOutcome::NotAttempted);
                 ++views;
-                CHECK(v.screen != PanelScreen::WhichEnd);
-                CHECK(findButton(v, PanelButtonId::Front) == nullptr);
-                CHECK(findButton(v, PanelButtonId::Back) == nullptr);
+                if (cal.phase() != Phase::Done && cal.phase() != Phase::Aborted) {
+                    for (std::size_t b = 0; b < v.buttonCount; ++b) {
+                        CAPTURE(v.buttons[b].label);
+                        CHECK((v.buttons[b].id == PanelButtonId::Done
+                               || v.buttons[b].id == PanelButtonId::Abort));
+                        CHECK_FALSE(overlaps(v.buttons[b].rect, kChoiceLeftBox));
+                        CHECK_FALSE(overlaps(v.buttons[b].rect, kChoiceRightBox));
+                    }
+                }
+                CHECK(findButton(v, PanelButtonId::SaveHeld) == nullptr);  // only a HELD view has it
                 checkLayout(v);
                 if (headers.empty() || headers.back() != v.headerWord) {
                     headers.emplace_back(v.headerWord);
@@ -289,12 +225,15 @@ TEST_CASE("CalibratePanel additions N2: under ByPush the WHICH END view and its 
     CHECK(sawPushFront);
     CHECK(sawDoneLine);
     CHECK(views > 1000);
-    // The rule is ByPush's alone: today's IMU screen has no such line.
+    // The defaulted call IS this behaviour (there is no other since CAL1 Part B): the IMU step of a
+    // fresh run, through TouchGate::view() too, shows the rule under 1/4.
     CalibRig fresh{CalibratorConfig{}, calibPlant(0.0)};
     fresh.cal.start(facts());  // started, not yet ticked: the IMU step
     REQUIRE(fresh.cal.phase() == Phase::WaitImu);
-    CHECK_FALSE(hasLine(viewFor(fresh.cal, kArmed), "the end that leads the push is FRONT"));
-    CHECK(std::string{viewFor(fresh.cal, kArmed).headerWord} == "1/5 IMU");
+    CHECK(hasLine(viewFor(fresh.cal, kArmed), "the end that leads the push is FRONT", 138));
+    CHECK(std::string{viewFor(fresh.cal, kArmed).headerWord} == "1/4 IMU");
+    TouchGate g{0};
+    CHECK(std::string{g.view(fresh.cal, 0.0).headerWord} == "1/4 IMU");
 }
 
 TEST_CASE("CalibratePanel additions N3: the held views -- FRONT FLIPPED's and MECHANISM PORT TURNED's words in "
@@ -303,7 +242,7 @@ TEST_CASE("CalibratePanel additions N3: the held views -- FRONT FLIPPED's and ME
     finishClean(rig);
     FinishFacts flip;
     flip.hold = HoldReason::FrontFlipped;
-    const PanelView f = viewFor(rig.cal, kArmed, SaveOutcome::Held, FrontRule::ByPush, flip);
+    const PanelView f = viewFor(rig.cal, kArmed, SaveOutcome::Held, flip);
     CHECK(f.screen == PanelScreen::Held);
     CHECK(f.headerTone == PanelTone::Amber);
     CHECK(std::string{f.headerWord} == "FRONT FLIPPED");
@@ -318,11 +257,11 @@ TEST_CASE("CalibratePanel additions N3: the held views -- FRONT FLIPPED's and ME
     CHECK(hasLine(f, "USE NEW after a wrong push reverses every auton", 212));
     CHECK(f.lines[4].tone == PanelTone::Amber);
     REQUIRE(f.buttonCount == 2);
-    CHECK(f.buttons[0].id == PanelButtonId::Front);  // today's id, relabelled — no new id before Part B
-    CHECK(f.buttons[0].rect == kFrontBox);
+    CHECK(f.buttons[0].id == PanelButtonId::SaveHeld);
+    CHECK(f.buttons[0].rect == kChoiceLeftBox);
     CHECK(std::string{f.buttons[0].label} == "USE NEW");
     CHECK(f.buttons[1].id == PanelButtonId::RunAgain);
-    CHECK(f.buttons[1].rect == kBackBox);
+    CHECK(f.buttons[1].rect == kChoiceRightBox);
     CHECK(std::string{f.buttons[1].label} == "RUN AGAIN");
     checkLayout(f);
 
@@ -330,7 +269,7 @@ TEST_CASE("CalibratePanel additions N3: the held views -- FRONT FLIPPED's and ME
     mech.hold = HoldReason::MechanismTurned;
     mech.holdLine1 = "port 12: 1692 deg, drive 1692 deg";
     mech.holdLine2 = "the card's record DRIVES with port 12";
-    const PanelView m = viewFor(rig.cal, kArmed, SaveOutcome::Held, FrontRule::ByPush, mech);
+    const PanelView m = viewFor(rig.cal, kArmed, SaveOutcome::Held, mech);
     CHECK(std::string{m.headerWord} == "MECHANISM PORT TURNED");
     REQUIRE(m.lineCount == 5);
     CHECK(hasLine(m, "NOTHING SAVED YET", 30));
@@ -339,18 +278,18 @@ TEST_CASE("CalibratePanel additions N3: the held views -- FRONT FLIPPED's and ME
     CHECK(hasLine(m, "SAVE: it is a mechanism the push turns -- keep it", 196));
     CHECK(hasLine(m, "RUN AGAIN = save nothing: a drive motor? fix facts", 212));
     REQUIRE(m.buttonCount == 2);
-    CHECK(m.buttons[0].id == PanelButtonId::Front);
+    CHECK(m.buttons[0].id == PanelButtonId::SaveHeld);
     CHECK(std::string{m.buttons[0].label} == "SAVE");
     CHECK(m.buttons[1].id == PanelButtonId::RunAgain);
     checkLayout(m);
     // no card record that drives with the port: the panel's own line
     mech.holdLine2 = nullptr;
-    const PanelView m2 = viewFor(rig.cal, kArmed, SaveOutcome::Held, FrontRule::ByPush, mech);
+    const PanelView m2 = viewFor(rig.cal, kArmed, SaveOutcome::Held, mech);
     CHECK(hasLine(m2, "it is declared a mechanism: not in this record", 180));
     // The SAME layout key for both held questions (why N5's restart exists)
     CHECK(shulib::calibration::layoutKey(f) == shulib::calibration::layoutKey(m));
     // A hold is read only with SaveOutcome::Held: the same facts with Saved paint the SAVED screen
-    const PanelView s = viewFor(rig.cal, kArmed, SaveOutcome::Saved, FrontRule::ByPush, flip);
+    const PanelView s = viewFor(rig.cal, kArmed, SaveOutcome::Saved, flip);
     CHECK(s.screen == PanelScreen::Saved);
 }
 
@@ -362,14 +301,14 @@ TEST_CASE("CalibratePanel additions N4: TouchGate on a held screen -- the left b
     flip.hold = HoldReason::FrontFlipped;
     std::int32_t releases = 0;
     TouchGate gate{0};
-    PanelView v = gate.view(rig.cal, 0.0, SaveOutcome::Held, FrontRule::ByPush, flip);
-    v = gate.view(rig.cal, 1.0, SaveOutcome::Held, FrontRule::ByPush, flip);  // armed
+    PanelView v = gate.view(rig.cal, 0.0, SaveOutcome::Held, flip);
+    v = gate.view(rig.cal, 1.0, SaveOutcome::Held, flip);  // armed
     REQUIRE(v.buttons[0].armed);
-    auto r = gate.touch(tapAt(releases, kFrontBox), v, rig.cal);
+    auto r = gate.touch(tapAt(releases, kChoiceLeftBox), v, rig.cal);
     CHECK(r.newRelease);
     CHECK(r.action == TouchAction::SaveHeld);
     CHECK(rig.cal.phase() == Phase::Done);  // nothing was answered to the calibrator
-    r = gate.touch(tapAt(releases, kBackBox), v, rig.cal);
+    r = gate.touch(tapAt(releases, kChoiceRightBox), v, rig.cal);
     CHECK(r.action == TouchAction::RunAgain);
     // a held view over a calibrator that is still running (a stale view): the left box does nothing
     CalibRig running{CalibratorConfig{}, calibPlant(0.0)};
@@ -377,9 +316,17 @@ TEST_CASE("CalibratePanel additions N4: TouchGate on a held screen -- the left b
     running.cal.tick();
     REQUIRE(running.cal.phase() != Phase::Done);
     TouchGate g2{0};
-    r = g2.touch(tapAt(releases, kFrontBox), v, running.cal);
+    r = g2.touch(tapAt(releases, kChoiceLeftBox), v, running.cal);
     CHECK(r.action == TouchAction::None);
     CHECK(running.cal.phase() != Phase::Done);
+    // SaveHeld acts ONLY from a HELD view (CAL1 Part B): a view that is not held — the finished
+    // screen after the save — never saves again, even if a SaveHeld box were drawn on it.
+    PanelView saved = viewFor(rig.cal, kArmed, SaveOutcome::Saved);
+    REQUIRE(saved.screen == PanelScreen::Saved);
+    REQUIRE(saved.buttonCount < 3);
+    saved.buttons[saved.buttonCount++] = PanelButton{PanelButtonId::SaveHeld, kChoiceLeftBox, "USE NEW", true};
+    TouchGate g3{releases};
+    CHECK(g3.touch(tapAt(releases, kChoiceLeftBox), saved, rig.cal).action == TouchAction::None);
 }
 
 TEST_CASE("CalibratePanel additions N5: the arming clock RESTARTS when the hold's question changes -- the "
@@ -393,27 +340,27 @@ TEST_CASE("CalibratePanel additions N5: the arming clock RESTARTS when the hold'
     mech.holdLine1 = "port 6: 1692 deg, drive 1692 deg";
     TouchGate gate{0};
     std::int32_t releases = 0;
-    PanelView v = gate.view(rig.cal, 0.0, SaveOutcome::Held, FrontRule::ByPush, flip);
+    PanelView v = gate.view(rig.cal, 0.0, SaveOutcome::Held, flip);
     CHECK_FALSE(v.buttons[0].armed);
-    v = gate.view(rig.cal, 1.0, SaveOutcome::Held, FrontRule::ByPush, flip);
+    v = gate.view(rig.cal, 1.0, SaveOutcome::Held, flip);
     REQUIRE(v.buttons[0].armed);
-    REQUIRE(gate.touch(tapAt(releases, kFrontBox), v, rig.cal).action == TouchAction::SaveHeld);
+    REQUIRE(gate.touch(tapAt(releases, kChoiceLeftBox), v, rig.cal).action == TouchAction::SaveHeld);
     // the second question, 0.1 s later: same box, same id, same layout key — and GREYED
-    v = gate.view(rig.cal, 1.1, SaveOutcome::Held, FrontRule::ByPush, mech);
+    v = gate.view(rig.cal, 1.1, SaveOutcome::Held, mech);
     CHECK(std::string{v.headerWord} == "MECHANISM PORT TURNED");
     CHECK_FALSE(v.buttons[0].armed);
     CHECK_FALSE(v.buttons[1].armed);
-    const auto reflex = gate.touch(tapAt(releases, kFrontBox), v, rig.cal);
+    const auto reflex = gate.touch(tapAt(releases, kChoiceLeftBox), v, rig.cal);
     CHECK(reflex.newRelease);
     CHECK(reflex.action == TouchAction::None);
     // armed again only after the full delay from the change, never sooner
-    v = gate.view(rig.cal, 1.1 + kArmingDelaySeconds - 0.01, SaveOutcome::Held, FrontRule::ByPush, mech);
+    v = gate.view(rig.cal, 1.1 + kArmingDelaySeconds - 0.01, SaveOutcome::Held, mech);
     CHECK_FALSE(v.buttons[0].armed);
-    v = gate.view(rig.cal, 1.1 + kArmingDelaySeconds, SaveOutcome::Held, FrontRule::ByPush, mech);
+    v = gate.view(rig.cal, 1.1 + kArmingDelaySeconds, SaveOutcome::Held, mech);
     CHECK(v.buttons[0].armed);
-    CHECK(gate.touch(tapAt(releases, kFrontBox), v, rig.cal).action == TouchAction::SaveHeld);
+    CHECK(gate.touch(tapAt(releases, kChoiceLeftBox), v, rig.cal).action == TouchAction::SaveHeld);
     // and the same hold, asked again, does NOT restart the clock (only a CHANGE of question does)
-    v = gate.view(rig.cal, 3.0, SaveOutcome::Held, FrontRule::ByPush, mech);
+    v = gate.view(rig.cal, 3.0, SaveOutcome::Held, mech);
     CHECK(v.buttons[0].armed);
 }
 
@@ -432,26 +379,26 @@ TEST_CASE("CalibratePanel additions N5b: one MECHANISM PORT TURNED question per 
     port12.holdLine2 = "the card's record DRIVES with port 12";
     TouchGate gate{0};
     std::int32_t releases = 0;
-    PanelView v = gate.view(rig.cal, 0.0, SaveOutcome::Held, FrontRule::ByPush, port6);
+    PanelView v = gate.view(rig.cal, 0.0, SaveOutcome::Held, port6);
     CHECK_FALSE(v.buttons[0].armed);
-    v = gate.view(rig.cal, 1.0, SaveOutcome::Held, FrontRule::ByPush, port6);
+    v = gate.view(rig.cal, 1.0, SaveOutcome::Held, port6);
     REQUIRE(v.buttons[0].armed);
     const std::uint32_t key6 = layoutKey(v);
-    REQUIRE(gate.touch(tapAt(releases, kFrontBox), v, rig.cal).action == TouchAction::SaveHeld);
+    REQUIRE(gate.touch(tapAt(releases, kChoiceLeftBox), v, rig.cal).action == TouchAction::SaveHeld);
     // port 12's question, 0.1 s later: the same layout key — and GREYED, both boxes
-    v = gate.view(rig.cal, 1.1, SaveOutcome::Held, FrontRule::ByPush, port12);
+    v = gate.view(rig.cal, 1.1, SaveOutcome::Held, port12);
     CHECK(layoutKey(v) == key6);
     CHECK_FALSE(v.buttons[0].armed);
     CHECK_FALSE(v.buttons[1].armed);
-    const auto reflex = gate.touch(tapAt(releases, kFrontBox), v, rig.cal);
+    const auto reflex = gate.touch(tapAt(releases, kChoiceLeftBox), v, rig.cal);
     CHECK(reflex.newRelease);
     CHECK(reflex.action == TouchAction::None);
-    v = gate.view(rig.cal, 1.1 + kArmingDelaySeconds - 0.01, SaveOutcome::Held, FrontRule::ByPush, port12);
+    v = gate.view(rig.cal, 1.1 + kArmingDelaySeconds - 0.01, SaveOutcome::Held, port12);
     CHECK_FALSE(v.buttons[0].armed);
-    v = gate.view(rig.cal, 1.1 + kArmingDelaySeconds, SaveOutcome::Held, FrontRule::ByPush, port12);
+    v = gate.view(rig.cal, 1.1 + kArmingDelaySeconds, SaveOutcome::Held, port12);
     CHECK(v.buttons[0].armed);
     // the same port again: no restart
-    v = gate.view(rig.cal, 3.0, SaveOutcome::Held, FrontRule::ByPush, port12);
+    v = gate.view(rig.cal, 3.0, SaveOutcome::Held, port12);
     CHECK(v.buttons[0].armed);
     // FRONT FLIPPED reads no port: a holdPort beside it changes nothing
     FinishFacts flipA;
@@ -460,10 +407,10 @@ TEST_CASE("CalibratePanel additions N5b: one MECHANISM PORT TURNED question per 
     FinishFacts flipB = flipA;
     flipB.holdPort = 9;
     TouchGate g2{0};
-    v = g2.view(rig.cal, 0.0, SaveOutcome::Held, FrontRule::ByPush, flipA);
-    v = g2.view(rig.cal, 1.0, SaveOutcome::Held, FrontRule::ByPush, flipA);
+    v = g2.view(rig.cal, 0.0, SaveOutcome::Held, flipA);
+    v = g2.view(rig.cal, 1.0, SaveOutcome::Held, flipA);
     REQUIRE(v.buttons[0].armed);
-    v = g2.view(rig.cal, 1.1, SaveOutcome::Held, FrontRule::ByPush, flipB);
+    v = g2.view(rig.cal, 1.1, SaveOutcome::Held, flipB);
     CHECK(v.buttons[0].armed);
 }
 
@@ -476,9 +423,9 @@ TEST_CASE("CalibratePanel additions N6: the finished screen -- the NOTE takes th
         REQUIRE(warning.size() > shulib::calibration::kSmallCols);  // the case needs two rows
         FinishFacts note;
         note.note = "FIRST RECORD -- the end you pushed first is FRONT";
-        const PanelView v = viewFor(rig.cal, kArmed, SaveOutcome::Saved, FrontRule::ByPush, note);
+        const PanelView v = viewFor(rig.cal, kArmed, SaveOutcome::Saved, note);
         checkLayout(v);
-        const PanelView plain = viewFor(rig.cal, kArmed, SaveOutcome::Saved, FrontRule::ByPush);
+        const PanelView plain = viewFor(rig.cal, kArmed, SaveOutcome::Saved);
         // without a NOTE: today's two warning rows, 196 and 212, both amber
         int warningRows = 0;
         for (std::size_t i = 0; i < plain.lineCount; ++i) {
@@ -513,20 +460,20 @@ TEST_CASE("CalibratePanel additions N6: the finished screen -- the NOTE takes th
         FinishFacts f;
         f.note = "FRONT NOT CHECKED -- see the log";
         f.front = FrontChoice::New;
-        const PanelView v = viewFor(rig.cal, kArmed, SaveOutcome::Saved, FrontRule::ByPush, f);
+        const PanelView v = viewFor(rig.cal, kArmed, SaveOutcome::Saved, f);
         CHECK(std::string{v.headerWord} == "SAVED -- NEW FRONT");
         CHECK(v.headerTone == PanelTone::Amber);
         CHECK(hasLine(v, "FRONT NOT CHECKED -- see the log", 212));
         checkLayout(v);
-        const PanelView ns = viewFor(rig.cal, kArmed, SaveOutcome::NotSaved, FrontRule::ByPush, f);
+        const PanelView ns = viewFor(rig.cal, kArmed, SaveOutcome::NotSaved, f);
         CHECK(std::string{ns.headerWord} == "NOT SAVED");
         CHECK(ns.headerTone == PanelTone::Red);
-        const PanelView plain = viewFor(rig.cal, kArmed, SaveOutcome::Saved, FrontRule::ByPush);
+        const PanelView plain = viewFor(rig.cal, kArmed, SaveOutcome::Saved);
         CHECK(std::string{plain.headerWord} == "SAVED");
         CHECK(plain.headerTone == PanelTone::Green);
         // an empty NOTE is no NOTE
         FinishFacts empty;
         empty.note = "";
-        checkSameView(viewFor(rig.cal, kArmed, SaveOutcome::Saved, FrontRule::ByPush, empty), plain);
+        checkSameView(viewFor(rig.cal, kArmed, SaveOutcome::Saved, empty), plain);
     }
 }

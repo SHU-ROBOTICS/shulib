@@ -16,9 +16,10 @@ through the library's own test devices and through its real PROS adapters over t
 stand-in for PROS, and 34 runs of it are compared line for line with recorded ones. The measurement
 inside it — the calibrator — ran on a real robot (robot two) in an earlier form on 2026-09-24. Every
 threshold in it is invented for a first run (register entry HA-136). Treat everything below as what
-the code is written and tested to do, not as something a robot has shown. As of 2026-10-30 no
-program in this repository runs the standard Calibrate yet; robot two's own "shulib Calibrate"
-(slot 4) moves onto it in CAL1's next part.
+the code is written and tested to do, not as something a robot has shown. Since 2026-11-05 this
+repository's own "shulib Calibrate" (robot two, slot 4) IS the standard Calibrate: its facts are
+derived from robot two's tables (`src/robots/calibrate_facts.hpp`) instead of typed in a file like
+the one below — and deriving them changed none of the 34 recorded runs the library's tests hold.
 
 ## What it measures, and what you state
 
@@ -131,7 +132,10 @@ the floor at one end of a tape at least 48 inches long:
    down, then touch **RUN AGAIN** and push once more: two runs that agree are a measurement; two
    that do not are not.
 
-**ABORT** stops a run at any step; every motor is left at 0 V and coasting. A field disable, or
+**ABORT** stops a run at any step; every motor is left at 0 V and coasting. It is the red button at
+the bottom right; once a motor is powered — from the first pulse on — it covers the whole bottom row,
+so a touch anywhere there stops the robot. Until then a second tap where DONE was does nothing: the
+run goes on to the pulses. A field disable, or
 the start of autonomous, ends the program the same way (Calibrate runs only in driver control,
 enabled).
 

@@ -17,9 +17,11 @@
 //
 // Each case names the bug it catches and the mutation that must turn it red:
 //    4  push capture: ten drive ports found, the two REVERSED ones with sign −1, the two motors
-//       that never moved excluded                          (threshold → 0; the BackFirst inversion)
+//       that never moved excluded                          (threshold → 0; a sign inverted)
 //    4b the movedThreshold attacked from BOTH sides on a full 48 in push
-//    5  the same push answered BACK FIRST inverts every sign, swaps the sides, keeps the scale
+//    5  a push LED WITH THE OTHER END (CAL1 Part B: the end that leads the push is the front):
+//       every port on the other side with the other sign, the sides' scales swapped — against
+//       the front-led run's LITERAL ports and scales             (swap the yaw-sign → side rule)
 //    6  side assignment: the yaw's sign names the side (at 9 V, the level that turns this plant),
 //       a REVERSED member advances POSITIVE on its own encoder     (swap the yaw-sign → side rule)
 //    7  a member whose reading contradicts its command is REFUSED, naming the port
@@ -360,7 +362,6 @@ TEST_CASE("DrivetrainCalibrator 4: the one push finds exactly the ten drive port
     const auto& rep = rig.cal.report();
     CHECK(rep.portCount == 12);
     CHECK(rep.drivePortCount == 10);
-    CHECK_FALSE(rep.backFirst);
     CHECK(rep.pushDistanceIn == 48.0);
     for (int w = 0; w < 2; ++w) {
         for (std::size_t k = 0; k < CalibRig::kPerWheel; ++k) {
@@ -424,44 +425,74 @@ TEST_CASE("DrivetrainCalibrator 4b: movedThreshold from BOTH sides — the same 
     }
 }
 
-// ═══ 5. The front is what the operator says ═════════════════════════════════════════
-// Bug caught: assuming the push direction. A BACK-first push captures every sign backwards, and
-// no later step could ever see it — every member would agree with every other, all the wrong way.
-TEST_CASE("DrivetrainCalibrator 5: the same push answered BACK FIRST inverts every captured sign, "
-          "swaps the sides, and gives the same scale") {
+// ═══ 5. The front is the end that LEADS the push ═════════════════════════════════════
+// Bug caught (re-pinned by CAL1 Part B, which removed the WHICH END question and its BACK FIRST
+// inversion): a calibrator that does not take the leading end as the front. A push led with the
+// OTHER end is a push of a robot facing the other way: every port must come out on the OTHER side
+// with the OTHER sign, and the sides' scales swapped. Asserted against the LITERAL ports of both
+// runs — a property of the whole run, not of one sign flip — so a calibrator that inverted the
+// signs but kept the sides (or kept the signs and swapped the sides) is red here. Nothing in the
+// calibrator can tell which end the builders call the front: a program compares the result with
+// the card's record (calibration/front_check.hpp).
+TEST_CASE("DrivetrainCalibrator 5: a push led with the OTHER end puts every port on the other side "
+          "with the other sign, and swaps the sides' scales -- literal ports, both runs") {
     CalibRig front{CalibratorConfig{}, calibPlant(0.0)};
-    front.setFault(0, 0, MemberFault::Reversed);
+    front.setFault(0, 0, MemberFault::Reversed);  // port 11 wired backwards
     front.cal.start(facts());
     REQUIRE(runCalibration(front, RunOptions{}) == Phase::Done);
 
-    CalibRig back{CalibratorConfig{}, calibPlant(0.0)};
-    back.setFault(0, 0, MemberFault::Reversed);
-    back.cal.start(facts());
+    CalibRig other{CalibratorConfig{}, calibPlant(0.0)};
+    other.setFault(0, 0, MemberFault::Reversed);
+    other.cal.start(facts());
     RunOptions opt;
-    opt.front = Answer::BackFirst;
-    const Phase end = runCalibration(back, opt);
+    opt.pushDirection = -1.0;  // the plant pushed backward: the push LEADS with its other end
+    REQUIRE(runCalibration(other, opt) == Phase::Done);
 
-    CHECK(back.cal.report().backFirst);
-    for (std::size_t i = 0; i < 2 * CalibRig::kPerWheel; ++i) {
-        CAPTURE(back.ports[i]);
-        CHECK(back.cal.report().ports[i].sign == -front.cal.report().ports[i].sign);
-        CHECK(back.cal.report().ports[i].sign != 0);
-        // The robot went BACKWARD in its own frame: the sign-corrected travel is negative.
-        CHECK(back.cal.report().ports[i].pushTravelRad < 0.0);
+    const DrivetrainDescription& f = front.cal.result();
+    const DrivetrainDescription& o = other.cal.result();
+    // The front-led run, literally: LEFT -11 +12 +13 +14 +15 | RIGHT +16 +17 +18 +19 +20.
+    CHECK(f.signedPortOf(11) == -11);
+    CHECK(f.sideOf(11) == -1);
+    for (int p = 12; p <= 15; ++p) {
+        CAPTURE(p);
+        CHECK(f.signedPortOf(p) == p);
+        CHECK(f.sideOf(p) == -1);
     }
-    // A back-first push also swaps which side is which — the robot is the same, the FRONT is the
-    // other end, so what was the left side is now the right. With every sign consistently
-    // inverted the pulses do not contradict, and the description is a valid description OF A
-    // ROBOT FACING THE OTHER WAY.
-    REQUIRE(end == Phase::Done);
-    CHECK(back.cal.result().signedPortOf(11) == 11);   // was −11 front-first
-    CHECK(back.cal.result().signedPortOf(12) == -12);  // was +12
-    CHECK(back.cal.result().sideOf(11) == -front.cal.result().sideOf(11));
-    CHECK(back.cal.result().sideOf(11) == -back.cal.result().sideOf(20));
-    // One push gives the scale either way round: the travel is the same shaft travel.
-    CHECK(back.cal.report().leftInchesPerRadian == front.cal.report().rightInchesPerRadian);
-    CHECK(back.cal.report().rightInchesPerRadian == front.cal.report().leftInchesPerRadian);
-    CHECK(back.cal.result().trackWidth.value()
+    for (int p = 16; p <= 20; ++p) {
+        CAPTURE(p);
+        CHECK(f.signedPortOf(p) == p);
+        CHECK(f.sideOf(p) == +1);
+    }
+    // The other-end-led run, literally: LEFT -16 -17 -18 -19 -20 | RIGHT +11 -12 -13 -14 -15.
+    CHECK(o.signedPortOf(11) == 11);
+    CHECK(o.sideOf(11) == +1);
+    for (int p = 12; p <= 15; ++p) {
+        CAPTURE(p);
+        CHECK(o.signedPortOf(p) == -p);
+        CHECK(o.sideOf(p) == +1);
+    }
+    for (int p = 16; p <= 20; ++p) {
+        CAPTURE(p);
+        CHECK(o.signedPortOf(p) == -p);
+        CHECK(o.sideOf(p) == -1);
+    }
+    CHECK(o.left.count == 5);
+    CHECK(o.right.count == 5);
+    // Every drive port's travel is in the direction of ITS run's front: positive in both runs (the
+    // sign is the direction the port moved, and the end that led is the front).
+    for (std::size_t i = 0; i < 2 * CalibRig::kPerWheel; ++i) {
+        CAPTURE(other.ports[i]);
+        CHECK(other.cal.report().ports[i].sign == -front.cal.report().ports[i].sign);
+        CHECK(other.cal.report().ports[i].pushTravelRad > 0.0);
+        CHECK(front.cal.report().ports[i].pushTravelRad > 0.0);
+    }
+    // The scales follow the sides: the other run's LEFT is the front run's RIGHT wheel. The push
+    // lands on 48 in either way (the harness trims its last tick), so the numbers agree to 1e-9.
+    CHECK(other.cal.report().leftInchesPerRadian
+          == doctest::Approx(front.cal.report().rightInchesPerRadian).epsilon(1e-9));
+    CHECK(other.cal.report().rightInchesPerRadian
+          == doctest::Approx(front.cal.report().leftInchesPerRadian).epsilon(1e-9));
+    CHECK(other.cal.result().trackWidth.value()
           == doctest::Approx(front.cal.result().trackWidth.value()).epsilon(1e-9));
 }
 
@@ -1085,16 +1116,19 @@ TEST_CASE("DrivetrainCalibrator 19: the caller contract is enforced, including t
     CHECK_THROWS_AS(construct(c), PreconditionError);
 
     // An answer that arrives out of order refuses rather than silently doing nothing.
+    // (Part 2F-2: this used the retired Answer::Distance48; until CAL1 Part B it sent FRONT FIRST
+    // while the push was still being watched. With DONE and ABORT the only answers left, the stray
+    // touch is a second DONE once the pulses have begun.)
     CalibRig stray{CalibratorConfig{}, calibPlant(0.0)};
     stray.cal.start(facts());
-    stray.cal.tick();
-    // (Part 2F-2: this used the retired Answer::Distance48; FRONT FIRST while the push is still
-    // being watched is the same out-of-order touch on the live surface.)
-    REQUIRE(stray.cal.accepts(Answer::Done));  // the IMU is ready: the push is being watched
-    stray.cal.answer(Answer::FrontFirst);
+    RunOptions strayOpt;
+    strayOpt.stopWhen = [](CalibRig& r) { return r.cal.phase() == Phase::SideAssign; };
+    REQUIRE(runCalibration(stray, strayOpt) == Phase::SideAssign);
+    REQUIRE_FALSE(stray.cal.accepts(Answer::Done));
+    stray.cal.answer(Answer::Done);
     requireRefusal(stray, Refusal::OutOfOrder, 0);
-    CHECK(reasonMentions(stray.cal, "FRONT FIRST"));
-    CHECK(reasonMentions(stray.cal, "waiting for DONE"));
+    CHECK(reasonMentions(stray.cal, "DONE arrived"));
+    CHECK(reasonMentions(stray.cal, "driving the motors"));
     CHECK(reasonMentions(stray.cal, "nothing was recorded"));
 }
 
@@ -1105,21 +1139,25 @@ TEST_CASE("DrivetrainCalibrator 19: the caller contract is enforced, including t
 // answer and ends the run — right, but it makes a wrong BUTTON destructive. accepts() is the
 // query; THIS case is what stops it drifting from answer(), because it never asserts a
 // hard-coded expectation: for every waiting step and EVERY Answer it runs the real answer() on a
-// FRESH rig and requires the two to agree. (2F-1: the push has two waiting steps now. 2F-2: the
-// three retired distance answers are gone from the enum, so the sweep is every Answer there is.)
-TEST_CASE("DrivetrainCalibrator 21: accepts() agrees with answer(), at every waiting step") {
-    enum class Stop { PushWatching, PushAwaitingFront };
-    const Stop stops[] = {Stop::PushWatching, Stop::PushAwaitingFront};
-    const Answer answers[] = {Answer::Done, Answer::FrontFirst, Answer::BackFirst, Answer::Abort};
+// FRESH rig and requires the two to agree. (2F-1: the push had two waiting steps. 2F-2: the
+// three retired distance answers are gone from the enum, so the sweep is every Answer there is.
+// CAL1 Part B: the WHICH END step and its two answers are gone too — the push has ONE waiting step,
+// and the sweep adds the first powered step, where only ABORT may be offered.)
+TEST_CASE("DrivetrainCalibrator 21: accepts() agrees with answer(), at the waiting step and the "
+          "first powered one") {
+    enum class Stop { PushWatching, Pulses };
+    const Stop stops[] = {Stop::PushWatching, Stop::Pulses};
+    const Answer answers[] = {Answer::Done, Answer::Abort};
 
     const auto driveTo = [](CalibRig& rig, Stop stop) {
         rig.cal.start(facts());
         RunOptions opt;
         opt.stopWhen = [stop](CalibRig& r) {
             return stop == Stop::PushWatching ? r.cal.pushReady()
-                                              : r.cal.accepts(Answer::FrontFirst);
+                                              : r.cal.phase() == Phase::SideAssign;
         };
-        REQUIRE(runCalibration(rig, opt) == Phase::PushCapture);
+        REQUIRE(runCalibration(rig, opt)
+                == (stop == Stop::PushWatching ? Phase::PushCapture : Phase::SideAssign));
     };
 
     for (const Stop stop : stops) {
@@ -1143,8 +1181,6 @@ TEST_CASE("DrivetrainCalibrator 21: accepts() agrees with answer(), at every wai
     CalibRig idle{CalibratorConfig{}, calibPlant(0.0)};
     CHECK(idle.cal.accepts(Answer::Abort));
     CHECK_FALSE(idle.cal.accepts(Answer::Done));          // Idle: nothing is waiting
-    CHECK_FALSE(idle.cal.accepts(Answer::FrontFirst));
-    CHECK_FALSE(idle.cal.accepts(Answer::BackFirst));
     CHECK_FALSE(idle.cal.pushReady());
 }
 
@@ -1494,8 +1530,8 @@ TEST_CASE("DrivetrainCalibrator 29: pushReady() says not-ready exactly where the
         CHECK_FALSE(rig.cal.status().atRest);
         CHECK_FALSE(rig.cal.pushReady());
         rig.cal.answer(Answer::Done);
-        CHECK(rig.cal.phase() == Phase::PushCapture);
-        CHECK(rig.cal.accepts(Answer::FrontFirst));  // accepted: awaiting FRONT/BACK
+        CHECK(rig.cal.phase() == Phase::SideAssign);  // accepted: the end that led is the front (CAL1)
+        CHECK_FALSE(rig.cal.accepts(Answer::Done));
     }
     SUBCASE("at rest in the motors but the robot still rotating: not ready") {
         HandTurn hand;
@@ -1525,8 +1561,8 @@ TEST_CASE("DrivetrainCalibrator 29: pushReady() says not-ready exactly where the
         CHECK(rig.cal.status().pushFarEnough);
         CHECK(rig.cal.status().atRest);
         rig.cal.answer(Answer::Done);
-        CHECK(rig.cal.phase() == Phase::PushCapture);
-        CHECK(rig.cal.accepts(Answer::FrontFirst));
+        CHECK(rig.cal.phase() == Phase::SideAssign);  // straight on to the pulses (CAL1 Part B)
+        CHECK_FALSE(rig.cal.accepts(Answer::Done));
         CHECK_FALSE(rig.cal.pushReady());  // false outside the push-watching step
     }
 }

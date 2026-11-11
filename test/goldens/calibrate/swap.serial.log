@@ -82,6 +82,7 @@
 [R3D] drive ports, signed: +11 -12 +13 -14 +15 -16 +17 -18 +19 -20  (10 to pulse, one at a time)
 [R3D] phase: PULSES | port 11 (1 of 10) settling at 3.0 V, yaw +0.0 deg
 [R3D] screen: 3/4 PULSES: STAND CLEAR / TWITCHING MOTORS / PORT 11  3 V | [ABORT]
+[R3D] screen: 3/4 PULSES: STAND CLEAR / TWITCHING MOTORS / PORT 11  3 V | [ABORT]
 [R3D] pulse port 11 (1 of 10) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
 [R3D] pulse port 11 (1 of 10) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
 [R3D] pulse port 11 (1 of 10) 9.0 V yaw +6.47 deg own +49.8 deg others 49.8 deg: RIGHT
@@ -132,7 +133,7 @@
 [R3D] and the drive cables were swapped between the sides, or the front was changed on
 [R3D] purpose (touch USE NEW: saved as pushed). The records cannot tell these apart.
 [R3D] USE NEW after a wrong push reverses every auton. NOTHING IS SAVED YET.
-[R3D] loop: 5498 ticks, worst gap between two ticks 10 ms (a powered step stops past 100 ms); 218 screen prints so far
+[R3D] loop: 5498 ticks, worst gap between two ticks 10 ms (a powered step stops past 100 ms); 219 screen prints so far
 [R3D] screen: FRONT FLIPPED: NOTHING SAVED YET / the card calls the end you led BACK / RUN AGAIN: you led with the BACK by mistake | [USE NEW] [RUN AGAIN]
 [R3D] touch: x=120 y=115 release=2 on USE NEW -> SAVE AS PUSHED
 [R3D] front: USE NEW -- the end pushed first THIS time is the FRONT (saved as pushed)

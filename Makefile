@@ -123,15 +123,19 @@ endif
 #                                         "shulib Drive", whose DETAILS page carries its diagnostics
 #                                         (the team lead's ruling R5). An $(error) below says so; the
 #                                         define is NOT re-pointed at another program.
-#     make ROBOT=tank PROGRAM=calibrate → "shulib Calibrate" (R3d Part 2, 2026-09-18): the robot
+#     make ROBOT=tank PROGRAM=calibrate → "shulib Calibrate" (R3d Part 2, 2026-09-18; the library's
+#                                         standard Calibrate since CAL1 Part B, 2026-11-05, over
+#                                         src/robots/calibrate_facts.hpp): the robot
 #                                         MEASURES ITS OWN drivetrain — which ports drive, which
 #                                         way each is wired, which side each is on, inches per
 #                                         radian per side, the effective track width — and writes
-#                                         the answer to /usd/shulib_drivetrain.bin for "shulib
+#                                         the answer to /usd/shulib_drivetrain.bin (a verified
+#                                         backup, shulib_drivetrain.bak, first) for "shulib
 #                                         Drive" to boot from (slot 4,
 #                                         `pros upload --slot 4 --name "shulib Calibrate"`).
-#                                         It POWERS THE MOTORS. It has run on robot two since
-#                                         2026-09-24 (its recorded reproduction run is still owed).
+#                                         It POWERS THE MOTORS. R3d's own Calibrate ran on robot
+#                                         two from 2026-09-24 (its recorded reproduction run is
+#                                         still owed); the standard one has not run on a robot.
 #     make ROBOT=tank PROGRAM=autontest → "shulib Auton Tester" (COMP-t, 2026-09-28): runs ONE of
 #                                         the team's autons (src/team/autons.cpp) on the bench from
 #                                         RUN on the brain's screen — a 3 s countdown, then
@@ -154,8 +158,8 @@ endif
 # hides the tester behind a timeout is one more thing to explain at a field.
 # `drive`, `calibrate`, `autontest` and `competition` are only meaningful on robot two — `drive`
 # because only robot two has a driver file and a calibration record, `calibrate` because the
-# calibrator only supports a tank drivetrain and takes the cartridge from robot two's chassis
-# table, `autontest` and `competition` because the team's autons (and, for `competition`, its
+# calibrator only supports a tank drivetrain and takes the cartridge from this robot's chassis
+# table (the standard Calibrate since CAL1 Part B, src/robots/calibrate_facts.hpp), `autontest` and `competition` because the team's autons (and, for `competition`, its
 # driver file) are robot two's and only robot two boots from a calibration record; so any of the
 # four with any other ROBOT is an $(error), not a program that refuses at boot. Any other PROGRAM
 # value is an $(error) too — the same silent-no-op class GATE1 closed for ROBOT — and so is the
@@ -175,7 +179,7 @@ else ifeq ($(PROGRAM),library)
 $(error PROGRAM=library was retired at T4: "shulib Teleop"'s diagnostics are "shulib Drive"'s DETAILS page -- use make ROBOT=tank PROGRAM=drive)
 else ifeq ($(PROGRAM),calibrate)
 ifneq ($(ROBOT),tank)
-$(error PROGRAM=calibrate needs ROBOT=tank — the calibrator supports only a tank drivetrain and takes the cartridge from robot two's chassis table; '$(ROBOT)' cannot be calibrated by it)
+$(error PROGRAM=calibrate needs ROBOT=tank — the calibrator supports only a tank drivetrain and takes the cartridge from this robot's chassis table; '$(ROBOT)' cannot be calibrated by it)
 endif
 override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_CALIBRATE
 else ifeq ($(PROGRAM),autontest)

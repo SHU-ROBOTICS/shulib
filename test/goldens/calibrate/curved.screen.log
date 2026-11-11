@@ -78,8 +78,8 @@ print M 8 138 pen=e2564a eraser=101418 'drift +35.6 deg -- TOO CURVED'
 print M 8 138 pen=e2564a eraser=101418 'drift +36.7 deg -- TOO CURVED'
 print M 8 138 pen=e2564a eraser=101418 'drift +37.9 deg -- TOO CURVED'
 print M 8 138 pen=e2564a eraser=101418 'drift +38.9 deg -- TOO CURVED'
-print M 8 138 pen=e2564a eraser=101418 'drift +40.0 deg -- TOO CURVED'
 print L 8 102 pen=39c36e eraser=101418 '10 of 10 turned'
+print M 8 138 pen=e2564a eraser=101418 'drift +40.0 deg -- TOO CURVED'
 print M 8 160 pen=39c36e eraser=101418 'touch DONE -- then stand clear    '
 fill 6 180 300 234 pen=3a4450
 rect 6 180 300 234 pen=9aa4ae
@@ -141,11 +141,16 @@ print L 8 66 pen=e8b23a eraser=101418 'TWITCHING MOTORS'
 print L 8 102 pen=e8b23a eraser=101418 'PORT 11  3 V'
 print M 8 138 pen=f0f0f0 eraser=101418 'settling -- hands off'
 print M 8 160 pen=f0f0f0 eraser=101418 ''
+fill 330 180 474 234 pen=b0302a
+rect 330 180 474 234 pen=e2564a
+rect 331 181 473 233 pen=e2564a
+print M 370 197 pen=f0f0f0 eraser=b0302a 'ABORT'
+print M 8 138 pen=f0f0f0 eraser=101418 '1 of 10  yaw +0.0 of 2.0 deg'
+erase 330 180 474 234 eraser=101418
 fill 6 180 474 234 pen=b0302a
 rect 6 180 474 234 pen=e2564a
 rect 7 181 473 233 pen=e2564a
 print M 208 197 pen=f0f0f0 eraser=b0302a 'ABORT'
-print M 8 138 pen=f0f0f0 eraser=101418 '1 of 10  yaw +0.0 of 2.0 deg'
 print L 8 102 pen=e8b23a eraser=101418 'PORT 11  6 V'
 print M 8 138 pen=f0f0f0 eraser=101418 'settling -- hands off       '
 print M 8 138 pen=f0f0f0 eraser=101418 '1 of 10  yaw +0.0 of 2.0 deg'

@@ -297,7 +297,8 @@ moves the whole develop-upload-read loop off the robot and onto a desk.
 - [ ] **6.2** Card size: ________ GB. *(Note it — very large cards are the usual failure.)*
 - [ ] **6.3** Insert it into the brain's slot. Does it **seat and click**? **YES / NO**
 - [ ] **6.4** Power-cycle with the card in. Does the brain boot **normally**? **YES / NO**
-- [ ] Leave the card **in**.
+- [ ] Leave the card **in**. *(Since CAL1 Part B, Calibrate keeps TWO files on it: the record,
+      `shulib_drivetrain.bin`, and its verified backup, `shulib_drivetrain.bak` — Station G.)*
 
 > The rest of HA-122 — `usd_is_installed()`, the `/usd/` path convention, and the
 > yank-the-card-after-a-flush durability test — needs the R3a validation binary and is **not**
@@ -469,8 +470,11 @@ this station's, reworded for the library's protections.
 >    the **15/16 end** — the other end. MOTOR WATCH's `AGREES` / `DISAGREES` rows compare against the
 >    TABLE, so in **F.2.1** push the TABLE's front (15/16) first; a push led by the camera end and
 >    answered FRONT FIRST shows every recorded port DISAGREES — the 180° turn, not a wiring fault.
->    (Station G.2.2 uses MOTOR WATCH differently: it records UP/DOWN per port for the front chosen in
+>    (Station G.2.2 uses MOTOR WATCH differently: it records UP/DOWN per port for the camera-end push of
 >    G.0.4.)
+>    Since CAL1 Part B, Calibrate checks a new record's front against the card's record before it
+>    saves — or, with no record on the card, against typed drive ports the drive program could drive
+>    from; robot two's table is not one yet, so its FIRST record is checked against nothing (G.0.4).
 > 3. The boot says `CROSS-CHECK: the MEASURED record and the typed chassis table disagree about 10
 >    port(s)`. That is mostly this 180° turn (every sign flips) plus ports 14 and 19 (only the table
 >    lists them). **Do not edit the table on that warning** — there is no ruling to, and the table
@@ -732,7 +736,7 @@ opposite end. So F.5 compares the FEEL, wheels up, at the 12 V ceiling, **never 
 
 ---
 
-## Station G — CALIBRATE, then DRIVE FROM THE RECORD  *("shulib Calibrate" + "shulib Drive", robot two — added R3d Part 2, 2026-09-18; REWRITTEN from the code at R3d Part 2F-2, 2026-09-24; its driving half "shulib Teleop"'s until T4 Part 3)*
+## Station G — CALIBRATE, then DRIVE FROM THE RECORD  *("shulib Calibrate" + "shulib Drive", robot two — added R3d Part 2, 2026-09-18; REWRITTEN from the code at R3d Part 2F-2, 2026-09-24, and again at CAL1 Part B, 2026-11-05, for the standard Calibrate; its driving half "shulib Teleop"'s until T4 Part 3)*
 
 > ⚠ **Written for you to run ALONE.** Two things happen here. First, **the robot measures its own
 > drivetrain**: which ports drive, which way each motor is wired, which side each is on, how far
@@ -753,7 +757,21 @@ opposite end. So F.5 compares the FEEL, wheels up, at the 12 V ceiling, **never 
 > through the push and every pulse and STOPPED on `SPIN_DISAGREE` (the two spin directions' track
 > widths 20.3 % apart; nothing saved); run 2 finished by the team lead's report, with no serial
 > capture — [R3d-PROGRESS.md](R3d-PROGRESS.md), RUN 1 / RUN 2. Every threshold in it is still
-> invented for a first run (A4 register HA-136). **The screen's text sizes are DERIVED, not measured:** the
+> invented for a first run (A4 register HA-136).
+>
+> **Since CAL1 Part B (2026-11-05) slot 4 is the library's STANDARD Calibrate** — the same calibrator,
+> inside the program every team gets (guide chapter 19), with robot two's facts taken from its own tables
+> (`src/robots/calibrate_facts.hpp`). What changed for you: **there is no WHICH END question** — the end
+> that LEADS the push is the FRONT; before it saves, it **checks the new front against the record on the
+> card** and HOLDS the save if they disagree (FRONT FLIPPED); it **watches the claw pivots** (6 and 7)
+> during the push and HOLDS the save if one turned (MECHANISM PORT TURNED); and it **saves safely** — a
+> verified backup, `shulib_drivetrain.bak`, first, so a NOT SAVED run no longer erases the record. **This
+> program has not run on a robot.** Everything below is written from its code (`viewFor()`'s screens and
+> `run()`'s serial lines, as the host test plant's recorded runs show them). A recorded re-run here is what
+> should fix robot two's ~8 % distance error (Station M, M.0.4) — expected, not yet measured: the cause of the
+> 2026-09-25 record's short scale is not established — so record it.
+>
+> **The screen's text sizes are DERIVED, not measured:** the
 > character budgets (18 LARGE, 36 MEDIUM, 50 SMALL per line) come from the longest lines earlier
 > programs showed legibly on this brain; Bench Tests button **9 SCREEN RULER** is what would
 > measure them. If a line on the calibrate screen runs off the right edge, write down which one,
@@ -768,25 +786,46 @@ opposite end. So F.5 compares the FEEL, wheels up, at the 12 V ceiling, **never 
 
 - [ ] **G.0.1** Charged battery in. **A FAT32-formatted SD card in the brain's card slot** — the
       calibration is written to it; without a card the run still happens but the answer is on
-      screen and in the log only. (Bench Tests button **5 SD CARD PROBE** checks a card.)
-      **Before any Calibrate run on a card that already holds a record, copy
-      `shulib_drivetrain.bin` off the card on a laptop, and date the copy.** Until the SAFE-SAVE fix
-      to Calibrate's save is in the build, a NOT SAVED run can erase it, and that copy is the only way
-      back (added 2026-09-26).
+      screen and in the log only, and the front is not checked (`card       : NO SD CARD in the
+      brain -- nothing can be saved, and the FRONT is not checked`). (Bench Tests button **5 SD CARD
+      PROBE** checks a card.)
+      **⚠ BEFORE THE FIRST RUN OF THE NEW CALIBRATE: COPY `shulib_drivetrain.bin` off the card on a
+      laptop, and date the copy** (and `shulib_drivetrain.bak` if the card has one). The 2026-09-25
+      record is the one robot two drives from today; the new program has never run on a robot, and
+      that copy is the way back whatever happens. **COPY, do not move or delete** — with the record
+      still on the card, the new run's front is CHECKED against it (G.0.4). After that first run the
+      save is SAFE-SAVE's: the record file is replaced only after a verified backup of it, and a NOT
+      SAVED run leaves the card's record as it was. **To start from an empty card, delete BOTH files**
+      (`shulib_drivetrain.bin` AND `shulib_drivetrain.bak`): with either one there, the card still
+      holds a record — or one that does not decode, which is said, not ignored.
 - [ ] **G.0.2** **3 m clear in every direction** and a **second person at the battery** for
       everything from G.4 on. The calibration JERKS each drive motor on its own and then SPINS THE
       ROBOT IN PLACE, twice, under power.
 - [ ] **G.0.3** **A tape line on the floor, straight, at least 48 in long** (two field tiles),
       with a START mark and a mark **48 in** further on — and room past it for the robot's own
       length. There is ONE push, and it is always 48 in: the program has no distance question.
-- [ ] **G.0.4** **Decide which end is the FRONT, before you push anything.** Whatever end you push
-      first and call FRONT becomes the front: "shulib Drive" will drive "forward" toward it. (The
-      typed table calls the end with ports **15 and 16** the front; the rebuild may have changed
-      that — the 2026-09-24 census pushes came out with every sign inverted. The record on the card
-      since 2026-09-25 took the OTHER end — the camera (AI Vision, port 3) end, 11/20 — as its
-      front, so a new record pushed from the 15/16 end reverses "shulib Drive"'s forward: Station F, WHICH
-      END IS FORWARD. There is no ruling on which end; write down the one you chose.) → the FRONT is
-      the end with ports **______**.
+- [ ] **G.0.4** **THE FRONT IS THE END THAT LEADS THE PUSH — push robot two with the CAMERA end
+      leading.** Nothing asks which end went first: the end you push first IS the front the record
+      saves, and "shulib Drive", the Auton Tester and the competition program drive "forward" toward
+      it. Robot two's front since its 2026-09-25 record — and its driver's — is the **AI Vision
+      (camera, port 3) end, the 11/20 end.** The **15/16 end**, which `src/robots/chassis_table.hpp`
+      calls the front, is its **BACK** (Station F, WHICH END IS FORWARD).
+      **What checks you** (before anything is saved — G.4b):
+      - **With the 2026-09-25 record on the card (the normal case — G.0.1 said copy, not move):** the
+        card's record decides. A camera-end push gives `SAME FRONT` and saves. A 15/16-end push stops
+        on **FRONT FLIPPED** (`the card calls the end you led BACK`): touch **RUN AGAIN** and push
+        again with the camera end leading.
+      - **With NO record on the card, nothing checks robot two's front.** Calibrate checks a first
+        record against typed drive ports only when the drive program could drive from them, and robot
+        two's typed table cannot: its track width and gear ratio are not typed. Push with the CAMERA
+        end leading. The finished screen says `FIRST RECORD -- the end you pushed first is FRONT`. If
+        the 15/16 end led by mistake, that record is reversed: touch RUN AGAIN and push with the camera
+        end leading. The screen then says FRONT FLIPPED against the record just saved; touch **USE
+        NEW** (you are changing the front back on purpose).
+      (Until G3a Part 5 flips robot two's typed table to the camera end AND its track width and ratio
+      are typed (HA-125, HA-126), robot two's typed ports are never the reference; whoever makes the
+      table valid rewords these two bullets in the same change.) → the end that led: **camera / 15/16**
+      ______
 - [ ] **G.0.5** Read the **DO NOT** list at the end of this sheet. The two that bite here:
       **never start a program from the CONTROLLER's own menu** (HA-128 — it arms a pretend match
       and the program never gets driver control; its one exception, slot 6 at Station K, is not
@@ -828,13 +867,17 @@ refused from a robot that is unplugged.
 - [ ] **G.2.1** Run **slot 3 "Bench Tests"**, button **1 DEVICE CENSUS**. Expected for robot two
       tonight: **nine MOTORs (11–18 and 20)**, the IMU on port 2, the radio on port 1, the AI
       Vision on 3 and the distance sensors on 4 and 5. *(Once the claw pivots are plugged in
-      (T3, 2026-09-26): also MOTOR on **6 and 7** — eleven motors. Calibrate leaves those two
-      alone; Station J.)*
+      (T3, 2026-09-26): also MOTOR on **6 and 7** — eleven motors. Calibrate never powers those two;
+      it READS them during the push and holds the save if one turned — G.4b, Station J.)*
       → motors found **____** · IMU on port **____** · the full list, as printed:
         ______________________________________________
-- [ ] **G.2.2** Button **3 MOTOR WATCH (live)**: push the whole robot **FRONT-FIRST** (the front
-      you chose in G.0.4) along its length, then touch to save. Write down UP/DOWN per port — it is
-      the independent check on the signs the calibration will capture.
+- [ ] **G.2.2** Button **3 MOTOR WATCH (live)**: push the whole robot **with the CAMERA end leading**
+      (G.0.4) along its length, then touch to save. MOTOR WATCH then asks its own question, `WHICH WAY
+      DID YOU PUSH IT?` — answer **BACK FIRST**: it compares against the TABLE, whose front is the 15/16
+      end (Station F's WHICH END IS FORWARD box), so a camera-end push is the table's BACK FIRST (your
+      answer sets the signs DRIVE uses: `bench_r3a.cpp`'s MOTOR WATCH).
+      Write down UP/DOWN per port — it is the independent check on the signs the calibration will
+      capture.
       → per port: ______________________________________________
 - [ ] **G.2.3** If the census shows a drive motor missing, **re-seat that cable and re-run the
       census** before going on.
@@ -845,7 +888,7 @@ The team lead skipped this on 2026-09-24 ("it gets confusing"), and it is option
 that the program stops when the robot cannot turn. If you do it: robot **on blocks, no wheel
 touching anything**, start **slot 4**, and turn every wheel by hand, both sides, the same way,
 several turns, in place of the push (DONE appears only once the shafts have turned at least one
-wheel turn and everything is still again). Answer FRONT/BACK as if you had pushed it. At the first
+wheel turn and everything is still again), then touch DONE. At the first
 drive port that motor's wheels jerk three times (3, 6, 9 V) and — because the robot cannot turn
 on blocks — it **stops**, red, `STOPPED -- MOTORS OFF`, usually with `IT ROLLED` /
 `it moved but did not turn` / `on the FLOOR? then report the port` (the gear train turned but the
@@ -854,32 +897,98 @@ stuck?`. **That is the program working.** → skipped / stopped with: __________
 
 **G.4 — the run, on the floor**
 
-Robot on the floor, **front at the tape's START mark, facing along the tape**, 3 m clear, second
-person at the battery. Start **slot 4 "shulib Calibrate"** from the **brain's** screen.
+Robot on the floor, **the CAMERA end at the tape's START mark, facing along the tape** (G.0.4), 3 m
+clear, second person at the battery. Start **slot 4 "shulib Calibrate"** from the **brain's** screen.
+The serial log's `card       :` line says, before you push, what the front will be checked against
+(`no usable record yet -- this run's push decides the FRONT` on an empty card).
 
 **Reading the screen.** The coloured **bar across the top** is the state: **BLUE** = nothing is
 powered, **AMBER** = motors are powered — **stand clear**, **GREEN** = saved, **RED** = stopped.
-Its left end names the step (`1/5 IMU` … `5/5 SPIN`). Under it: the instruction in LARGE letters,
+Its left end names the step (`1/4 IMU` … `4/4 SPIN`). Under it: the instruction in LARGE letters,
 then ONE big live number, then a line that says what happens next. **Buttons:** **ABORT** is the red
 button at the **bottom right** on every running screen, and in the two AMBER steps it widens to the
-**whole bottom row**. **DONE** is the green button at the **bottom left**, and it only appears when
-the push is good. **FRONT FIRST / BACK FIRST** and **RUN AGAIN** are big boxes in the **middle** of
-the screen — never where DONE was, so a second tap on DONE cannot answer them. **Every new button
-except ABORT is GREY for half a second before it works** — wait for its colour; ABORT always
-works. The screen is resistive: a
+**whole bottom row** — in `3/4 PULSES` from the first jerk of a motor, not before. **DONE** is the green button at the **bottom left**, and it only appears when
+the push is good. **RUN AGAIN** and a held screen's two choices (**USE NEW** or **SAVE**, beside
+**RUN AGAIN** — G.4b) are big boxes in the **middle** of the screen, never in the button row.
+**Touch DONE once.** The very next screen is `3/4 PULSES`; until its first motor jerks (at least half a
+second of settling), its ABORT stays at the bottom RIGHT, so a second tap where DONE was lands on
+nothing. From the first jerk ABORT is the whole bottom row: any touch there stops everything at once
+(RUN AGAIN starts over, and the push is lost). (The old program asked WHICH END there; the new one goes
+straight to the pulses — CAL1 Part B, its review round kept the second tap harmless.) **Every new button except ABORT is GREY for half a second before it
+works** — wait for its colour; ABORT always works. The screen is resistive: a
 **firm press**, and it reads the moment you **LIFT** your finger.
 
 | Top bar | The screen says | You do |
 |---|---|---|
 | (blue) `CALIBRATE` | `HANDS OFF` · `STARTING UP` · `finding the motors and the IMU` | nothing — a second or two |
-| (blue) `1/5 IMU` | `HANDS OFF` · `IMU WARMING UP` · the seconds counting · `NEXT: push it 48 in along the tape` · ABORT | **do not touch the robot**, about 2 s |
-| (blue) `2/5 PUSH` | `PUSH IT FORWARD` · `48 IN ALONG TAPE` · big amber `0 of 9 turned` · `drift +0.0 deg` · `DONE shows once the motors turn` · ABORT | **Push the whole robot FORWARD, front first, straight along the tape, from START to the 48 in mark. Then LET GO and step back.** The big number counts drive motors whose shafts have turned — **9 of 9** tonight (a motor that is not on the drivetrain never counts, and does not need to). The bottom line walks you through it: `keep pushing -- the full 48 in` (not far enough yet) → `let go -- DONE shows when it stops` (far enough; the robot or your hand is still moving) → green `touch DONE -- then say which end`, and the big number turns **GREEN**. **Straight matters:** if the drift line turns **red** — `drift +3.4 deg -- TOO CURVED` — the push turned the robot more than 3 degrees, and DONE will stop the run (`PUSH CURVED`); touch RUN AGAIN and push again, straighter |
-| (blue) `2/5 PUSH`, DONE shown | the same, with a green **DONE** bottom left (grey for half a second first) | touch **DONE** once. **DONE appears only when the push is good:** at least 2 motors turned, their shafts turned at least one wheel turn (6.28 rad), and the robot and every motor are STILL. If it never appears: push the full 48 in; take your hands off the robot |
-| (blue) `3/5 WHICH END` | `WHICH END FIRST?` · two big boxes in the middle, `FRONT FIRST` and `BACK FIRST` (grey for half a second) · amber `NEXT: motors twitch -- stand clear` · ABORT | touch **FRONT FIRST** if the front led (as G.0.4 and the push asked), **BACK FIRST** if the back led. Answer what you actually did — a wrong answer reverses every motor and nothing later can catch it. Then **step back: the next screen powers the motors** |
-| **(AMBER)** `4/5 PULSES` | `STAND CLEAR` · `TWITCHING MOTORS` · `PORT 12  6 V` (which motor, at which level) · `settling -- hands off` between jerks, `3 of 9  yaw -1.2 of 2.0 deg` during one (green once past 2 degrees) · the sides as they are decided, e.g. `L 11 12  R 16` (`OUT 18` for a port left out) · **ABORT is the whole bottom row** | **hands off, stand clear, touch nothing but ABORT.** One drive motor at a time is pulsed for 0.4 s — first at **3 V**; if the robot turned less than **2 degrees**, again at **6 V**, then **9 V**. Two degrees is small: a point 7 to 10 in from where the robot turns moves about **a quarter to a third of an inch**. At 9 V it is a visible **jerk** of one corner, not a drive. Between jerks it waits for the robot and every motor to be still — **any touch on the robot delays it**. The side of each motor is read from which way the robot turned. Nine motors take about a minute |
-| **(AMBER)** `5/5 SPIN` | `STAND CLEAR` · `SPINNING` · `CCW 0.8/2 TURNS` (then `CW ...`) · `at 3 V`, or amber `at 6 V -- stepped up` · `NEXT: it saves -- stay clear` · between the two directions: `SETTLING` · `hands off -- it spins next` / `hands off -- it spins again` · **ABORT is the whole bottom row** | ⚠ **STAND WELL CLEAR.** It spins the robot in place **two full turns counter-clockwise, then two clockwise**, at 3 V. **Two safety stops:** if it spins the **WRONG way** by more than **15 degrees** it stops at once (`SPUN WRONG WAY` / `the sides came out swapped`); if it has not turned **5 degrees within 2 s**, it steps up to **6 V** once, and if it still does not turn within 2 s it stops (`COULD NOT SPIN`). A spin that starts but takes over 20 s also stops (`SPIN TOO SLOW`). 3 m clear, second person at the battery, finger ready |
-| **(GREEN)** `SAVED` / **(RED)** `NOT SAVED` | the numbers (G.5) · RUN AGAIN, the big box middle right | read G.5 |
+| (blue) `1/4 IMU` | `HANDS OFF` · `IMU WARMING UP` · the seconds counting · `the end that leads the push is FRONT` · `NEXT: push it 48 in along the tape` · ABORT | **do not touch the robot**, about 2 s |
+| (blue) `2/4 PUSH` | `PUSH FRONT FIRST` · `48 IN ALONG TAPE` · big amber `0 of 9 turned` · `drift +0.0 deg` · `DONE shows once the motors turn` · ABORT | **Push the whole robot, the CAMERA end leading (G.0.4), straight along the tape, from START to the 48 in mark. Then LET GO and step back.** The big number counts drive motors whose shafts have turned — **9 of 9** tonight (a motor that is not on the drivetrain never counts, and does not need to). The bottom line walks you through it: `keep pushing -- the full 48 in` (not far enough yet) → `let go -- DONE shows when it stops` (far enough; the robot or your hand is still moving) → green `touch DONE -- then stand clear`, and the big number turns **GREEN**. **Straight matters:** if the drift line turns **red** — `drift +3.4 deg -- TOO CURVED` — the push turned the robot more than 3 degrees, and DONE will stop the run (`PUSH CURVED`); touch RUN AGAIN and push again, straighter |
+| (blue) `2/4 PUSH`, DONE shown | the same, with a green **DONE** bottom left (grey for half a second first) | touch **DONE** ONCE — then **step back: the next screen powers the motors**. **DONE appears only when the push is good:** at least 2 motors turned, their shafts turned at least one wheel turn (6.28 rad), and the robot and every motor are STILL. If it never appears: push the full 48 in; take your hands off the robot |
+| **(AMBER)** `3/4 PULSES` | `STAND CLEAR` · `TWITCHING MOTORS` · `PORT 12  6 V` (which motor, at which level) · `settling -- hands off` between jerks, `3 of 9  yaw -1.2 of 2.0 deg` during one (green once past 2 degrees) · the sides as they are decided, e.g. `L 11 12  R 16` (`OUT 18` for a port left out) · ABORT bottom right until the first jerk, then **the whole bottom row** | **hands off, stand clear, touch nothing but ABORT.** One drive motor at a time is pulsed for 0.4 s — first at **3 V**; if the robot turned less than **2 degrees**, again at **6 V**, then **9 V**. Two degrees is small: a point 7 to 10 in from where the robot turns moves about **a quarter to a third of an inch**. At 9 V it is a visible **jerk** of one corner, not a drive. Between jerks it waits for the robot and every motor to be still — **any touch on the robot delays it**. The side of each motor is read from which way the robot turned. Nine motors take about a minute |
+| **(AMBER)** `4/4 SPIN` | `STAND CLEAR` · `SPINNING` · `CCW 0.8/2 TURNS` (then `CW ...`) · `at 3 V`, or amber `at 6 V -- stepped up` · `NEXT: it saves -- stay clear` · between the two directions: `SETTLING` · `hands off -- it spins next` / `hands off -- it spins again` · **ABORT is the whole bottom row** | ⚠ **STAND WELL CLEAR.** It spins the robot in place **two full turns counter-clockwise, then two clockwise**, at 3 V. **Two safety stops:** if it spins the **WRONG way** by more than **15 degrees** it stops at once (`SPUN WRONG WAY` / `the sides came out swapped`); if it has not turned **5 degrees within 2 s**, it steps up to **6 V** once, and if it still does not turn within 2 s it stops (`COULD NOT SPIN`). A spin that starts but takes over 20 s also stops (`SPIN TOO SLOW`). 3 m clear, second person at the battery, finger ready |
+| **(AMBER)** `FRONT FLIPPED` / `MECHANISM PORT TURNED` | `NOTHING SAVED YET` · what the records say · two boxes in the middle: **USE NEW** (or **SAVE**) and **RUN AGAIN** | **the save is HELD — read G.4b before you touch anything.** Nothing is written until you choose |
+| **(GREEN)** `SAVED` (amber `SAVED -- NEW FRONT` after USE NEW) / **(RED)** `NOT SAVED` | the numbers (G.5) · sometimes one amber NOTE row (G.4b) · RUN AGAIN, the big box middle right | read G.5 |
 | **(RED)** `STOPPED -- MOTORS OFF` | a big red headline, what happened, what to do, `PORT n` when a port is to blame, the first lines of the reason in small grey, `the full reason is on the serial log` if it is longer · RUN AGAIN | every motor is at 0 V and coasting — the robot can be pushed. **Copy the headline and the PORT line.** Fix what it says, then touch **RUN AGAIN** |
+
+**G.4b — before it saves: the FRONT CHECK, the WATCH, the held screens and the NOTE**
+
+At DONE (after the MEASURED lines, before anything is written) the program compares this run with the
+card's record, port by port — the record file, else its backup (the library's `loadRecord()` rule). The
+drive program's boot reads ONLY the record file until SAFE-SAVE Part B2 lands (RUN AGAIN, below). The
+serial log says which, in one line:
+- `front check: the card holds no record yet -- this is the FIRST: the end that led the push is the FRONT`
+  — an empty card. Saved; the finished screen's NOTE: `FIRST RECORD -- the end you pushed first is FRONT`.
+  Nothing checked that front (robot two's typed table is not a reference — G.0.4): if the 15/16 end led,
+  follow G.0.4's recovery (push again with the camera end leading; RUN AGAIN / USE NEW as G.0.4 says).
+- `front check against shulib_drivetrain.bin: 10 drive port(s) in both -- 10 agree, 0 flipped, ...: SAME FRONT`
+  — saved, no NOTE.
+- `front check: NOT DONE -- the card's record does not decode; ...` (a line per file, with its reason) or
+  `front check: CANNOT TELL (no drive port in common, or no majority) -- ...` — saved, NOTE
+  `FRONT NOT CHECKED -- see the log`: **check that the robot drives the right way** (G.6.3).
+- `front check: NOT DONE -- no SD card in the brain (nothing can be saved either)`.
+- **FRONT FLIPPED** — `FRONT FLIPPED -- the card's record calls the end that LED this push its BACK.`
+  The save is HELD. The screen (amber `FRONT FLIPPED`): `NOTHING SAVED YET` · `the card calls the end you
+  led BACK` · `RUN AGAIN: you led with the BACK by mistake` · `USE NEW: you led with the FRONT (cables
+  swapped?)` · amber `USE NEW after a wrong push reverses every auton` · boxes **USE NEW** and **RUN AGAIN**.
+  The records cannot tell a wrong push from LEFT/RIGHT cables swapped at the brain, so YOU decide:
+  - **RUN AGAIN** — the BACK led by mistake (on robot two: the 15/16 end): nothing is saved
+    (`RUN AGAIN on a held screen -- NOTHING SAVED: this run is discarded, the card keeps its record`);
+    push again, camera end leading.
+  - **USE NEW** — the FRONT led and the card's record is the wrong one (or the drive cables were swapped
+    on purpose): saved AS PUSHED, header amber `SAVED -- NEW FRONT`. Every auton tuned on the old record
+    now drives the other way — only on purpose.
+  - A field disable on the held screen saves nothing and says so.
+- **MECHANISM PORT TURNED** — a DECLARED claw pivot turned with the push as far as a drive motor does
+  (`MECHANISM PORT TURNED -- port 6 is declared a mechanism but turned with the push (port 6: 1692 deg,
+  drive 1692 deg).`). The save is HELD, one screen per port that turned (after FRONT FLIPPED, if both):
+  `NOTHING SAVED YET` · `port 6: 1692 deg, drive 1692 deg` · `it is declared a mechanism: not in this
+  record` (or `the card's record DRIVES with port 6` — then it may be a DRIVE motor declared by mistake)
+  · `SAVE: it is a mechanism the push turns -- keep it` · amber `RUN AGAIN = save nothing: a drive
+  motor? fix facts` · boxes **SAVE** and **RUN AGAIN**. A claw pivot the push turned through its own
+  gears (not a drive motor) → **SAVE**; the finished screen's NOTE then says `PORT 6 KEPT AS A MECHANISM
+  -- see the log`. If it IS a drive motor → RUN AGAIN, and it is a code fix (the robot's mechanism list).
+  The watch only READS the pivots: `watch: port 6 (claw pivot 6) did not turn with the push (+0.0 deg)`
+  is the normal line, one per pivot.
+
+- [ ] **G.4b.1 HA-187 — the watch's read writes nothing (settle it here, once).** With both claw pivots
+      plugged in, run one calibration and, **during the push, turn claw pivot 6 by hand** (not 7) through
+      a good part of its travel. At DONE: the serial log has a `WARNING: port 6 ...` line and
+      `watch: port 6 ...` naming ONLY port 6; the save waits on **MECHANISM PORT TURNED** for port 6;
+      port 7's line says it did not turn, **and pivot 7 has not moved**. Touch **SAVE** (it is a
+      mechanism). Through the whole run neither pivot was driven, held or let go limp by the program
+      (J.2.3). → port 6 named alone **YES / NO** · held on MECHANISM PORT TURNED **YES / NO** · pivot 7
+      still **YES / NO** · the WARNING and watch lines, word for word: ______________________________
+- [ ] **G.4b.2 HA-187's evidence line.** Before ANY program has configured the claws this power cycle
+      (power the brain on and start Calibrate first — not Drive, not Bench Tests), the watch reads each
+      pivot's position through PROS's C API in the units and gearing the motor reports. Copy the
+      `watch: port 6 ...` and `watch: port 7 ...` lines word for word; their degrees are scaled by the
+      gearing an UNCONFIGURED claw reports (`motor_get_gearing`), which nothing has measured yet (HA-187
+      (2)). **These lines cannot settle that gearing**: they print degrees only, and an untouched pivot
+      reads `+0.0 deg` whatever its gearing. To get evidence on the scale, turn pivot 6 by hand (G.4b.1)
+      through an angle you MEASURE (a protractor or marked positions), and write both the measured angle
+      and the line's degrees — their ratio is the evidence. Reading `motor_get_gearing` itself is an
+      extension of Bench Tests' raw probes nothing owns yet (HA-187). → the two lines: __________________
+      → pivot 6 turned by hand **______ deg** (measured) · the line said **______ deg**
 
 **LEFT OUT — a motor that turns but moves nothing.** If a motor's own shaft turns (20 degrees or
 more) at 9 V while no other drive motor moves more than 5 degrees, its gear is **slipping or stripped** — port
@@ -903,23 +1012,41 @@ not move on the push moved during a pulse. `PUSH NOT SEEN` / `PUSH CURVED` / `PU
 push. `ONE SIDE ONLY`: every motor turned it the same way — check the wiring. `MOTOR FIGHTING`: one
 motor fought its side during the spin — check that port before driving. `YOU STOPPED IT`: ABORT.
 
-**RUN AGAIN.** On the finished screen and on the stopped screen, **RUN AGAIN** is the big blue box
-in the middle, on the right (grey for half a second first). It starts a **completely new run** in
-the same program — a new calibrator, nothing carried over from the last run; the IMU does not warm
-up again. Put the robot back at the START mark first. **Every run that says SAVED REPLACES the
-record on the card**. **A run that STOPS writes nothing. A run that says NOT SAVED may already have
-ERASED the record that was on the card** (found 2026-09-26; the program's own NOT SAVED text says the
-opposite and is wrong until the SAFE-SAVE fix to Calibrate's save is in the build). Copy the record off
-the card first (G.0.1).
+**RUN AGAIN.** On the finished screen, the stopped screen and a held screen, **RUN AGAIN** is the big
+blue box in the middle, on the right (grey for half a second first). It starts a **completely new run**
+in the same program — a new calibrator, nothing carried over from the last run; the IMU does not warm
+up again. Put the robot back at the START mark first. **What reaches the card (SAFE-SAVE, since CAL1
+Part B):** a run that says **SAVED** first made sure `shulib_drivetrain.bak` held a verified copy of
+the card's earlier record, then wrote the new record to `shulib_drivetrain.bin`, then refreshed the
+backup, reading each file back — so after a SAVED run both files are 180 bytes and identical (`cmp` on
+a laptop; HA-139). **A run that STOPS, a held
+run discarded with RUN AGAIN, and a held run the field disabled write NOTHING** — the log says what the
+card holds (`the card keeps its record`, or `the card is unchanged (it holds no usable record)`). **A
+NOT SAVED run leaves the card's record as it was** and says why — with ONE exception: if the NOT SAVED
+lines say `The record file /usd/shulib_drivetrain.bin is damaged; the earlier record is safe in the
+backup.`, the record file no longer holds a record and, until SAFE-SAVE Part B2 lands, **"shulib Drive"
+will REFUSE to boot** (it reads only the record file, and robot two's typed table is not a valid
+description) until Calibrate saves again or B2 lands — copy BOTH files off the card. **`SAVE UNCONFIRMED`** means the card
+did not read back the same way twice, or was pulled: this run cannot say which record the next boot
+will use — copy BOTH files off the card, then start "shulib Drive" and read its `calibration record:`
+line. Until SAFE-SAVE Part B2 lands the drive program's boot reads only the record file, so after a
+SAVE UNCONFIRMED it may refuse to boot until Calibrate saves again (or B2 lands). **To reset to an empty
+card, delete BOTH files.**
 
 **G.5 — how to know it calibrated correctly**
 
 - [ ] **G.5.1 SAVED.** The top bar is **GREEN** and says `SAVED`, and the small line reads
-      `NEXT: copy these, then RUN AGAIN to check`. On serial: `SAVED -- /usd/shulib_drivetrain.bin:
-      written, flushed, RE-READ and compared byte for byte`. **RED `NOT SAVED`** with
+      `NEXT: copy these, then RUN AGAIN to check` (after USE NEW the header is amber `SAVED -- NEW
+      FRONT`). On serial: `SAVED -- /usd/shulib_drivetrain.bin: written, RE-READ and compared byte for
+      byte (180 bytes), and re-read at the end.` and `The backup /usd/shulib_drivetrain.bak re-reads
+      identical. The next boot reads the record file.` — both files now hold the new record (the
+      earlier one was the backup only while the record file was being replaced). **RED `NOT SAVED`** with
       `NOT SAVED -- copy these numbers NOW` means the numbers are on screen and in the log only — the
-      serial log's `NOT SAVED -- <reason>` line says why (`no SD card in the brain`, `the card refused
-      the write`, …). → **SAVED / NOT SAVED** · reason if not: ______________________
+      serial log's `NOT SAVED -- <reason>` line says why (`no SD card in the brain.`, `the new record did
+      not stick in ...`, …) — and the card's earlier record is still there, in the record file or (when
+      a line says `The record file ... is damaged; the earlier record is safe in the backup.`) only in
+      the backup: then "shulib Drive" refuses to boot until Calibrate saves again or SAFE-SAVE B2 lands
+      (RUN AGAIN, above) — copy both files off the card. → **SAVED / NOT SAVED** · reason if not: ______________________
 - [ ] **G.5.2 The numbers.** The screen shows the ports per side (`LEFT 5  RIGHT 4`), both scales
       (`ipr L 1.37500 R 1.37500`), the track width (`track 13.700 in`) and any `LEFT OUT` port. The
       serial log's MEASURED line has them in one line — **copy it EXACTLY**:
@@ -927,12 +1054,13 @@ the card first (G.0.1).
       the signed ports of each side (`LEFT  (signed, AS MEASURED): ...`). → the MEASURED line:
       ______________________________________________
       Check each against what the robot IS:
-      - **Ports per side — which side is LEFT depends on the front you chose (G.0.4).** Robot two
-        tonight, with the **15/16 end** first: **LEFT 11 12 13 14 15** (five), **RIGHT 16 17 18 20**
-        (four; port 19 unplugged). With the **camera (11/20) end** first the sides swap: **LEFT 16
-        17 18 20**, **RIGHT 11 12 13 14 15**. A motor on the wrong side, or a split other than 5/4
-        (4/5 camera end first), is a finding — write it down. (A LEFT OUT port makes that side one
-        shorter; see above.)
+      - **Ports per side — which side is LEFT depends on the end that LED the push (G.4; G.0.4 says
+        the camera end).** Robot two tonight, with the **camera (11/20) end** leading, as G.0.4 asks:
+        **LEFT 16 17 18 20** (four; port 19 unplugged), **RIGHT 11 12 13 14 15** (five). Had the
+        **15/16 end** led, the sides swap: **LEFT 11 12 13 14 15**, **RIGHT 16 17 18 20** (and the
+        front check said FRONT FLIPPED against a camera-end record — G.4b). A motor on the wrong side,
+        or a split other than 4/5 (5/4 with the 15/16 end leading), is a finding — write it down. (A
+        LEFT OUT port makes that side one shorter; see above.)
       - **`ipr` near 1.375, and L ≈ R.** A 2.75 in wheel driven 1:1 by its motor moves 1.375 in
         (its radius) per radian of motor shaft. **A different value means gearing** and tells you the
         ratio: wheel turns per motor turn = ipr ÷ 1.375 (e.g. 2.29 → the wheel turns 5/3 as fast
@@ -971,8 +1099,8 @@ the card first (G.0.1).
       dead in total, refuses).
 - [ ] **G.6.3** Now run **Station F's F.2 and F.4 checks** against this boot — F.2.2 (wheels up,
       DETAILS' `est` leaves `UNINIT`, MORE's L and R rows read `4/4 present  0 disagree` on the
-      2026-09-25 record — `4+4 PRESENT` in the serial boot lines), F.2.3 (forward is toward the end you
-      pushed first in G.4 — the front you chose in G.0.4; `hdg` goes DOWN on a right-stick RIGHT push),
+      2026-09-25 record — `4+4 PRESENT` in the serial boot lines), F.2.3 (forward is toward the end that
+      led the push in G.4 — G.0.4: the camera end; `hdg` goes DOWN on a right-stick RIGHT push),
       F.2.4 (full-stick volts wheels up), F.4.1 (the ground run, `est` on DETAILS), F.5 (the feel).
       Fill in their boxes on that page. The serial boot
       lines carry the rest: the record's ports (`[SES] ports MEASURED L -16 +17 -18 -20 R +11 -12
@@ -1002,25 +1130,29 @@ strings ~/calibrate-*.log | grep R3D     # every line this program printed
 **The port numbers RENUMBER between plug-ins** (HA-129), so re-run `pros lsusb` every single time.
 Start the `cat` BEFORE you start the program, or you will miss the banner. What a run prints, in
 order, every line starting `[R3D]`:
-- the banner and `BUILD STAMP:`, the census (`STAGE 0`) — and, when a claw pivot is plugged in,
-  `port 6: claw pivot (declared) -- not a candidate, not touched` (and 7; Station J.2) —
-  `CARTRIDGE BELIEF`, the IMU port, three `config:` lines (every threshold the run used),
-  `===== RUN 1 =====`;
+- the banner (`the robot MEASURES ITS OWN DRIVETRAIN`, `The end that LEADS the push is the FRONT`) and
+  `BUILD STAMP:`, `robot      : 2026 TANK CHASSIS (robot two)`, `card       : ...` (what the front will
+  be checked against), the census (`STAGE 0`) — and, when a claw pivot is plugged in,
+  `port 6: claw pivot 6 (declared) -- not a candidate, not touched` (and 7; Station J.2) —
+  `CARTRIDGE BELIEF`, the IMU port, three `config:` lines (every threshold the run used), the
+  `watch      :` line, `===== RUN 1 =====`;
 - `phase: ...` at each step; `screen: <top bar>: <first lines> | [buttons]` whenever the layout
   changes (what you were looking at); `touch: x=.. y=.. release=.. on <button> -> ...` for EVERY
   touch, including why one did nothing (`the button was still GREYED (arming)`, `no button there`);
   `push live: ...` as the moved count changes;
 - at DONE, the **PUSH TABLE**: one `push port N travel +1692.4 deg MOVED sign +1` line per motor,
   then `push: 9 of 9 candidates moved, drift ..., median travel ...`;
-- `front: FRONT FIRST -- ...` and `drive ports, signed: -11 +12 ...`;
+- one `watch: port 6 (claw pivot 6) ...` line per declared pivot, then `front: the end that LED the
+  push is the FRONT -- the signs stand as captured` and `drive ports, signed: -11 +12 ...`;
 - **one line per pulse**: `pulse port 12 (2 of 10) 9.0 V yaw -6.47 deg own +49.8 deg others 49.8
   deg: LEFT` (the verdict is `under the floor -- next level`, `LEFT`, `RIGHT`, `LEFT OUT
   (decoupled)`, `ROLLED`, `STILL` or `CONTRADICTION`); `LEFT OUT: port 18 ...` when one is;
 - **one line per spin direction**: `spin CCW 3.0 V yaw +720.2 deg L -78.56 in R +78.56 in W 12.500
   in 7.43 s`;
 - `===== RUN 1 ENDED: DONE =====`, the **MEASURED** line, the signed ports per side, `LEFT OUT`,
-  both scales, the width, the push's spread, both spin widths, then `SAVED -- ...` or
-  `NOT SAVED -- <reason>` — or `===== RUN 1 ENDED: STOPPED =====` and
+  both scales, the width, the push's spread, both spin widths, the `front check ...` line (G.4b),
+  then `SAVED -- ...` (and the backup's line) or `NOT SAVED -- <reason>` — or
+  `===== RUN 1 ENDED: STOPPED =====` and
   `STOPPED [PULSE_ROLLED port 11]: <the whole reason>`;
 - `loop: N ticks, worst gap between two ticks N ms ...` (a powered step stops itself past 100 ms);
 - after RUN AGAIN: `===== RUN 2 -- RUN AGAIN: a NEW calibrator, nothing carried over =====`.
@@ -1029,9 +1161,9 @@ robot, not from robot two.)
 
 **What to send back**
 
-1. The census from **G.2.1** and the per-port UP/DOWN from **G.2.2**, and which end you called
-   the FRONT (G.0.4).
-2. **G.3** if you did it.
+1. The census from **G.2.1** and the per-port UP/DOWN from **G.2.2**, and which end LED the push
+   (G.0.4), and the `card       :` and `front check` lines.
+2. **G.3** if you did it, and **G.4b.1–G.4b.2** (HA-187).
 3. Every **stop**, word for word: the red headline, the `PORT` line — and the log.
 4. Both `MEASURED` lines (**G.5.2**, **G.5.3**), whether each said SAVED, and the tape width.
 5. `est x` at the 48 in mark (**G.6.4**), the `boot source:` line (**G.6.1**) and Station F's F.2,
@@ -1040,8 +1172,9 @@ robot, not from robot two.)
 7. The log files from **G.7** (the calibrate runs and the "shulib Drive" run), and any line on the
    calibrate screen that ran off its edge.
 
-> **THIS VERSION OF "shulib Calibrate" (R3d Part 2F) HAS RUN — AND ITS RECORDED REPRODUCTION RUN
-> IS STILL OWED.** It first ran on robot two on 2026-09-24 (run 1 STOPPED on `SPIN_DISAGREE`, run 2
+> **R3d Part 2F's "shulib Calibrate" HAS RUN — AND ITS RECORDED REPRODUCTION RUN IS STILL OWED, now on the
+> standard Calibrate that replaced it in slot 4 (CAL1 Part B, 2026-11-05; NOT run on a robot).** R3d's first ran on
+> robot two on 2026-09-24 (run 1 STOPPED on `SPIN_DISAGREE`, run 2
 > finished, unrecorded — [R3d-PROGRESS.md](R3d-PROGRESS.md)). Every threshold is still
 > invented for a first run (HA-136); the screen's text budgets and positions are derived from earlier screens,
 > not measured. **Expect it to stop more than it succeeds the first time, and treat every stop as
@@ -1685,9 +1818,13 @@ Right after the census (`STAGE 0 ...`, one line per device, then `11 motor(s), 1
 lines — copied from the code, final:
 
 ```
-[R3D] port 6: claw pivot (declared) -- not a candidate, not touched
-[R3D] port 7: claw pivot (declared) -- not a candidate, not touched
+[R3D] port 6: claw pivot 6 (declared) -- not a candidate, not touched
+[R3D] port 7: claw pivot 7 (declared) -- not a candidate, not touched
 ```
+
+*(Since CAL1 Part B each line names its pivot — the mechanism's name in robot two's mechanism list; a
+declared port the census did NOT find says `port 6: claw pivot 6 (declared) -- the census found NO
+MOTOR there`.)*
 
 - [ ] **J.2.1** Both lines present. → **YES / NO**. If the census printed `MOTOR` on 6 or 7 and its
       line is MISSING, **stop and send the log** — Calibrate would then have written BLUE gearing to
@@ -2014,8 +2151,9 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
 
 - [ ] **M.0.1** A charged battery and a **FAT32 card** in the brain (the run log goes there — M.7).
 - [ ] **M.0.2** **If you re-run Calibrate first** (for a truer 40 in — M.6), **G.0.1's rule applies:
-      copy `shulib_drivetrain.bin` off the card on a laptop, dated, first** — and do it only after
-      SAFE-SAVE B1 is in the build (until then a NOT SAVED run can erase the record).
+      copy `shulib_drivetrain.bin` (and `.bak`) off the card on a laptop, dated, first.** The save is
+      SAFE-SAVE's since CAL1 Part B (a verified backup first; a NOT SAVED run leaves the record), and the
+      new front is checked against the card's record (Station G, G.0.4 and G.4b).
 - [ ] **M.0.3** **3 m clear ahead** of the robot, and a second person at the battery.
 - [ ] **M.0.4** A **straight tape at least 60 in long** on the floor, with a **START** mark, a **40 in**
       mark and a **43.6 in** mark. *Why 43.6:* on 2026-09-25 the saved record read `est x` 44 at a taped

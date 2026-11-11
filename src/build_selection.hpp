@@ -87,7 +87,7 @@
 #error "PROGRAM=drive needs ROBOT=tank -- only robot two has a driver file and a calibration record"
 #endif
 #if defined(SHULIB_PROGRAM_CALIBRATE) && !defined(SHULIB_ROBOT_TANK_2026)
-#error "PROGRAM=calibrate needs ROBOT=tank -- the calibrator supports only a tank drivetrain and takes the cartridge from robot two's chassis table"
+#error "PROGRAM=calibrate needs ROBOT=tank -- the calibrator supports only a tank drivetrain and takes the cartridge from this robot's chassis table"
 #endif
 #if defined(SHULIB_PROGRAM_AUTONTEST) && !defined(SHULIB_ROBOT_TANK_2026)
 #error "PROGRAM=autontest needs ROBOT=tank -- the team's autons (src/team/autons.cpp) are robot two's, and only robot two boots from a calibration record"

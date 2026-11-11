@@ -3,8 +3,8 @@
 //
 // HONEST LIMIT (the shim's own, shim_control.hpp): these cases test the shell against our BELIEF
 // about PROS — the vendored headers' C reads, competition calls and serial descriptor, transcribed
-// into the shim — not the belief itself. The belief that a C read WRITES nothing to the motor is the
-// one CAL1 registers as HA-187 (in Part A2b); hardware settles it.
+// into the shim — not the belief itself. The belief that a C read WRITES nothing to the motor is
+// HA-187 in docs/hardware-assumptions.md; hardware settles it.
 //
 // Each case names the bug it catches:
 //   PC1 the WATCH's read: motor_get_position() turned into output-shaft degrees by the units

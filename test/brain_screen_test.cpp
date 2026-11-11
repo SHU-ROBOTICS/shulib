@@ -13,8 +13,9 @@
 //                                                        ('%' passed through)
 //   S2  the sanitizer and the robot programs' printText() (src/common/screen_text.hpp, through the
 //       host PROS shim) give the SAME bytes for the same text, size and pad — a fixed corpus and
-//       5,000 random byte strings: the two copies of one rule, held equal until CAL1 Part B
-//       leaves one
+//       5,000 random byte strings: two copies of one rule until CAL1 Part B, which made printText()
+//       CALL the sanitizer (test/screen_text_test.cpp pins that path); this case now holds a copy
+//       from coming back
 //   S3  FakeBrainScreen records each call in the shim's words, sanitizes, counts prints; its touch:
 //       a press moves the place and not the release count, a release the count; an error read is
 //       PROS's (every field -1), never the last tap
@@ -253,9 +254,10 @@ TEST_CASE("BrainScreen S1: the sanitizer -- format characters, control bytes, no
 
 TEST_CASE("BrainScreen S2: the sanitizer and the robot programs' printText() give the same bytes "
           "for the same text, size and pad") {
-    // BUG CAUGHT: the two copies of the rule drifting apart before CAL1 Part B makes printText()
-    // call screenSafeLine() — a library screen and a program screen would then draw the same text
-    // differently, and a host test of one would say nothing about the other.
+    // BUG CAUGHT: two copies of the rule drifting apart — until CAL1 Part B printText() carried its
+    // own; since Part B it calls screenSafeLine(), and this holds a second copy from coming back
+    // unseen — a library screen and a program screen would then draw the same text differently, and a
+    // host test of one would say nothing about the other.
     using shulib::bench::printText;
     std::vector<std::string> corpus = {
         "",
@@ -402,8 +404,9 @@ TEST_CASE("CalibratePainter P1: the first render, call for call -- the content e
     // build time moved or drawn in a colour that does not read on the bar; a button's edge drawn
     // once; a label not centred at the MEDIUM budget's width; the content erased in the wrong
     // colour or not below the header bar; the order of the draws changed (the PROS calls would
-    // then differ from today's program's). Written out by hand from today's program's painter
-    // (src/programs/calibrate_program.cpp, paintHeader / eraseContent / paintButton / render).
+    // then differ from R3d's program's). Written out by hand from R3d's program's painter
+    // (src/programs/calibrate_program.cpp until CAL1 Part B, paintHeader / eraseContent / paintButton /
+    // render).
     FakeBrainScreen s;
     CalibratePainter p{s, "BUILD 12:34:56"};
     p.render(pushView(), 0.0);

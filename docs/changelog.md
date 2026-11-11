@@ -16,6 +16,69 @@
 
 ## API 2.5
 
+### 2026-11-11 (built 2026-11-05) — the WHICH END question removed: the end that leads the push is the front; robot two runs the standard Calibrate
+
+> Written when it was built (chunk CAL1, Part B — the last of its four parts). **BEHAVIOUR CHANGE in an
+> unfrozen layer — no version bump:** `calibration/` is in no row of the
+> [Freeze Register](roadmap.md#freeze-register), so removing and renaming its members is not a breaking change
+> to a frozen surface (the policy in `include/shulib/version.hpp`). **Host only — robot two's Calibrate has not
+> run on a robot in this form** (the calibrator inside it ran on robot two on 2026-09-24).
+
+**Why:** the team lead's ruling of 2026-10-06 — the robot's FRONT is never asked or typed: the end that LEADS
+Calibrate's push is the front, with a flip warning. The standard Calibrate (2.5's "the standard Calibrate"
+entry below) already never asked; robot two's own program still did. This part moves robot two onto the
+standard Calibrate and takes the question out of the library.
+
+**BEHAVIOUR CHANGE (removed and renamed — `calibration/`):**
+
+- `calibration::Answer::FrontFirst` and `Answer::BackFirst` are **removed** (`Answer` is `Done, Abort`; it is
+  never stored, so nothing on a card changes). `DrivetrainCalibrator`'s DONE goes straight on to the pulses:
+  the end that led the push is the front, and the captured signs stand as captured. A push led with the
+  other end gives every port the other sign AND the other side — the robot facing the other way — which is
+  why a program checks the result against the card's record (`calibration/front_check.hpp`).
+- `calibration::CalibrationReport::backFirst` is **removed**.
+- `calibration::PanelScreen::WhichEnd` and `calibration::FrontRule` (with `viewFor()`'s and
+  `TouchGate::view()`'s `rule` parameter) are **removed**: every screen is the standard Calibrate's — four
+  steps (`1/4 IMU` .. `4/4 SPIN`), `PUSH FRONT FIRST`, the front rule while the IMU warms up.
+- `calibration::PanelButtonId::Front` is **renamed `SaveHeld`** (a held screen's USE NEW / SAVE) and
+  `PanelButtonId::Back` is **removed**; `kFrontBox` / `kBackBox` are **renamed `kChoiceLeftBox` /
+  `kChoiceRightBox`** (the same rectangles, in the middle of the screen).
+- In `calibration::panel_text`: `kHeaderImu`, `kHeaderPush`, `kHeaderPulses`, `kHeaderSpin` now hold the
+  four-step words, and `kHeaderImu4` .. `kHeaderSpin4` are removed; `kNextTouchDone` is `"touch DONE -- then
+  stand clear"` and `kNextTouchDoneClear` is removed; `kPushForward`, `kWhichEnd`, `kHeaderWhichEnd`,
+  `kLabelFront` and `kLabelBack` are removed (`kPushFrontFirst` stays).
+- `DrivetrainCalibrator` reads the IMU's yaw rate on every tick of the push (nothing of the push uses it):
+  the PROS IMU adapter's default rate is the derivative of the rotation between fresh reads, so without it
+  the first rest tick after DONE read a rate averaged over the whole push, and a robot turned by hand read
+  as still for that one tick. The WHICH END step used to take that stale read. On the host test plant the
+  one visible change is a curved push reaching rest one tick sooner.
+
+**What you must do:** a program that answered `Answer::FrontFirst` / `BackFirst` answers nothing now —
+delete the call (DONE is the last answer); a program that names `PanelButtonId::Front` uses `SaveHeld`
+(`Back` is gone), `kFrontBox` / `kBackBox` use `kChoiceLeftBox` / `kChoiceRightBox`, and a `viewFor()` /
+`TouchGate::view()` call drops its `FrontRule` argument. No program outside this repository is known to
+use them. A team on the standard Calibrate (chapter 19's 21-line file) changes nothing.
+
+**Robot two (this repository's programs, not library API):** `make ROBOT=tank PROGRAM=calibrate` — slot 4,
+the `tank-calibrate` beacon — is now the standard Calibrate: `src/programs/calibrate_program.cpp` is a 27-line
+glue (it was the 1,397-line program), and robot two's facts are DERIVED from its two tables by
+`src/robots/calibrate_facts.hpp` (Tank, its cartridge, one declared port per mechanism motor, named by its
+mechanism; no typed drive ports, because its typed table is not one the drive program could drive from —
+its track width and gear ratio are unset). Every one of the 34 recorded runs of 2.5's standard Calibrate
+was unchanged by deriving the facts and removing the question. Against robot two's OLD program, the same
+seven comparable runs on one host test plant differ only in lines that each have a named reason — G
+(robot two's words become the standard program's), F (the front is the end that leads the push: no WHICH
+END, steps 1/4..4/4, the front check), S (the safe save and its words), W (the declared-port watch, and a
+declared port named by its mechanism), M (the words that say an undeclared motor may be a mechanism), T
+(timing on the 10 ms plant grid) — with none left over; the saved records are byte-identical (`one`,
+`slip18`, `curved`) or differ only in a scale's last bits (`clean`), and the new program also writes the
+backup. One more (the standard Calibrate's screen, every team's): after DONE the PULSES screen's ABORT
+stays in its usual place at the bottom right until the first pulse powers a motor, and only then covers
+the whole button row — so a reflexive second tap where DONE was lands on nothing, as the screen's own
+rule says no button may (since 2.5 the PULSES' ABORT had covered the row from the first frame, and the
+second tap aborted the run). The PULSES screen is drawn once more when it widens: one more `screen:`
+line per run, and the loop line's screen-print count one higher.
+
 ### 2026-11-10 (built 2026-11-05) — a mechanism's current cap: the most each motor may draw, written into the motors at boot and enforced by the motors themselves — how hard a string lift's string is pulled
 
 > Written when it was built (chunk MECH-S-A, the first part of a string lift's safety — the slack watch
