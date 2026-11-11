@@ -120,9 +120,18 @@ inline constexpr int kApiMajor = 2;
 /// `-Wswitch -Werror` it stops compiling without one — shulib's competition program and Auton Tester
 /// each gained one); every other 2.4 program compiles and runs exactly as before.
 /// docs/changelog.md, API 2.5, lists all of it.
-inline constexpr int kApiMinor = 5;
+/// 6 = chunk STEP1-A (2026-11-11; built 2026-11-05), care on every auton step, by the additive paths of
+/// register rows F6 and F10: `MotionOptions` and `TurnOptions` gain an arrival tolerance (a loosened
+/// settle, D2), `Routine` gains `onFail(OnFail)` / `label(name)` with `carryOn` / `skipTo("x")`, the
+/// APPENDED enumerator `RoutineStopCause::MechanismNotStarted` (== 6, pinned) and six appended
+/// `RoutineResult` fields. No frozen member changed shape, no enumerator moved; a routine with no
+/// `onFail` follows the default rule bit for bit. ONE thing to do, as at 2.1 and 2.5: a `switch` over
+/// `RoutineStopCause` that lists every value needs a `MechanismNotStarted` case. (The coordinator
+/// numbered it at the merge, in a follow-up commit: the squash first landed without the bump.)
+/// docs/changelog.md, API 2.6, lists it.
+inline constexpr int kApiMinor = 6;
 
 /// "major.minor", for session headers / logs that want one printable token.
-inline constexpr const char* kApiVersionString = "2.5";
+inline constexpr const char* kApiVersionString = "2.6";
 
 }  // namespace shulib

@@ -24,7 +24,7 @@
 > constructor (`Routine r{ctx, "name"}`), the mechanism steps (`move`, `run`, `set`, `spinUp`,
 > `home`, `stop`, the START forms, `waitUntilDone` — [Chapter 18](18-mechanisms.md#in-an-auton--one-line-per-step)),
 > an appended `MechanismStepFailed` (a `switch` over every `RoutineStopCause` needs its case) and
-> an appended `RoutineResult::mechanismVerdict`. Then the on-failure choice arrived the same
+> an appended `RoutineResult::mechanismVerdict`. Then, at 2.6, the on-failure choice arrived the same
 > way — `onFail(...)` and `label(...)`, an appended `MechanismNotStarted` (one more `switch` case) and
 > six appended `RoutineResult` fields ([below](#choosing-what-a-failure-does-onfail-and-label)) —
 > and it was **pinned the day it landed**, because the route maker generates code against it.

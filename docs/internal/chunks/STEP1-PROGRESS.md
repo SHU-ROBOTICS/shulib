@@ -479,3 +479,8 @@ removed, the briefing generated, a full build, the briefing generated again, a b
   `rate·t/e == rate` there). The restored tree relinked and ran green.
 - **STEP1-A LANDED.** Nothing has run on a robot. STEP1-B (building on a snapshot of STEP1-A) re-reads this tip at its merge;
   CURVE1-A builds on it.
+- **Follow-up (2026-11-11, the coordinator's own miss):** the squash `196cdfc` landed WITHOUT the minor bump the brief (§1.1
+  :434) assigns STEP1-A — the builder's delta 1 left the number to the merge, and the merge forgot it. STEP1-A appends to the
+  FROZEN rows F6 and F10 (version.hpp's policy: additive growth of a frozen surface bumps the minor), so `kApiMinor` 5 → **6**,
+  `kApiVersionString` "2.6", its history paragraph; the changelog's STEP1-A entry now sits under a new `## API 2.6` heading
+  and says so; guide 09's history line names 2.6. STEP1-B (brief :552) and CURVE1-A take the next numbers at their merges.

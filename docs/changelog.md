@@ -14,13 +14,13 @@
 > after the fact from those comments and the project records; everything above it was
 > written when the change landed.
 
-## API 2.5
+## API 2.6
 
 ### 2026-11-11 (built 2026-11-05) — care on every auton step: an arrival tolerance, and a per-step choice to stop, carry on, or skip ahead to a named step
 
 > Written when it was built (chunk STEP1-A, the route maker's library half, part A — partway triggers
-> are part B). **No version bump in this entry** — every change is ADDITIVE; the coordinator numbers
-> the minor at merge. **Every 2.5 program compiles and runs exactly as before**, with ONE thing to do
+> are part B). **API 2.6** — every change is ADDITIVE, on the additive paths of the frozen rows F6 and F10, so the
+> minor goes up (numbered by the coordinator at the merge). **Every 2.5 program compiles and runs exactly as before**, with ONE thing to do
 > (below): a `Routine` with no `onFail` follows the default rule bit for bit — seven golden chains (every
 > chassis step form, five failure kinds, and robot x's mechanism steps) captured from the base tree read byte-identical,
 > and every existing test passes unchanged. **Host only — nothing here has run on a robot;** how far
@@ -79,6 +79,8 @@ skip never landed), naming the first failed step; under the default rule every l
 **What you must do:** one thing, as at 2.1 and 2.5's first entry: a `switch` over `RoutineStopCause`
 that lists every value needs a `MechanismNotStarted` case (under `-Wswitch -Werror` it stops compiling
 without one — the Auton Tester's and the competition program's each gained one). Nothing else.
+
+## API 2.5
 
 ### 2026-11-11 (built 2026-11-05) — the WHICH END question removed: the end that leads the push is the front; robot two runs the standard Calibrate
 
