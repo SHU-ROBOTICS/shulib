@@ -16,6 +16,48 @@
 
 ## API 2.6
 
+### 2026-11-11 (built 2026-11-10) — live tuning's library: a mechanism's numbers changed while the robot runs, inside the build's own rules, undone, and copied back out as the lines its robot file needs
+
+> Written when it was built (chunk TUNE1-A — the library half of live tuning; "shulib Tune", the program
+> that puts it on the brain screen, is the next part; the copied numbers are written into the robot file
+> by hand). **No version bump — every change is ADDITIVE and nothing in it is a frozen surface:**
+> a new header, new members on the mechanism service and its position slot, and one new member on
+> `control::Pid` (C1's layer, not in the Freeze Register). **Nothing any program does changes:** no
+> program includes the new header yet, and nothing else calls the new members. **Host only — nothing
+> here has run on a robot.** [Chapter 18](guide/18-mechanisms.md#or-on-the-robot-live-tuning) teaches it;
+> [Chapter 11](guide/11-reading-the-diagnostics.md) reads its lines.
+
+**ADDED:**
+
+- **`mechanism::LiveTuning`** (`mechanism/live_tuning.hpp`) — a COPY of a robot's mechanism table that the
+  mechanism service runs (`table()`, then `attach(service)`, which checks the service runs this copy):
+  `apply(i, Tunable, value)` and `step(i, Tunable, ±1, fine)` change one number inside the rules (the
+  build's own check first, then the live bounds it lacks — a number the robot file states past one may
+  step back toward it —, then the slot's state — between steps, between ticks, a travel limit never past
+  a held target nor, holding nothing, past where it is) and have the service re-derive it; `undo()` (16 deep) and `reset(i)`
+  (the robot file's numbers, bit for bit); `copyBlock(i, sink)` — the `TUNE` lines to write back into the
+  declaration, the smallest set that builds to exactly what ran (a patch, member by member; a number the
+  file states at exactly its worked-out value is left out). A current cap changed live stays in the
+  motors after the program unless it is reset or undone first (HA-220). With it: `Tunable`, `StepRule`,
+  `Parameter` / `parametersOf()` / `parameterOf()` / `offered()`, `tunableValue()` / `setTunable()` /
+  `tunableUnit()`, `steppedValue()`, `tuningRefusal()` / `tuningProblem()`, `LiveRefusal` /
+  `liveRefusalText()`, `Applied`, and the constants `kLiveUndoDepth` (16), `kLiveKvMostTimesStarting` (2 —
+  invented), `kLiveFirstKaSeconds` (0.01 s) and `kCopyNumberChars` (24).
+- **`MechanismService::rederive(i, what)`** and **`canRederive(i)`** — the slot re-reads what it copied from
+  its spec at bind (the PIDs' gains, BUMPLESS; its stall and homing detectors; its limits in degrees and
+  the soft stop's acceleration; its current cap, re-written — or written back to the motor's 2.5 A default
+  when a live cap is removed), with one `MECH` Info line; refused (false, nothing said) inside a tick,
+  while that mechanism's step runs, or — a position mechanism — when its spec's travel limits fail
+  `takesRange` (read once, before anything is re-derived; a caller that wrote the spec puts the old one
+  back).
+- **`PositionSlot::holding()`, `heldButtonMoving()`, `takesRange(candidate)`** — whether it holds a
+  target, whether a held button moves it, and whether new travel limits may be given to it now (never
+  past its held target, never under a held button, and, holding nothing, never past where it is).
+- **`control::Pid::setGains(kP, kI, kD)`** and **`Pid::config()`** — new gains with no jump of their own:
+  the integral TERM is kept (the accumulator rescaled), the derivative's baseline kept.
+
+**What you must do:** nothing.
+
 ### 2026-11-11 (built 2026-11-05) — care on every auton step: an arrival tolerance, and a per-step choice to stop, carry on, or skip ahead to a named step
 
 > Written when it was built (chunk STEP1-A, the route maker's library half, part A — partway triggers

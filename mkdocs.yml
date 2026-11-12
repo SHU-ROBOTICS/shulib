@@ -346,6 +346,7 @@ nav:
           - Direction check: api/direction_check.md
           - Driver inputs: api/driver_inputs.md
           - Kinds: api/kinds.md
+          - Live tuning: api/live_tuning.md
           - Route ids: api/route_ids.md
           - Service: api/service.md
           - Spec: api/spec.md

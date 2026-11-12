@@ -372,6 +372,22 @@ worth recognizing on sight:
   (HA-219). Power the
   robot off and on: a cap another program left is believed to go with the power (HA-220); one that
   comes back with every motor plugged in is VEXos's own.
+- **Live tuning** (tag `MECH`, Info — only a program that tunes on the brain, never a match program;
+  [Ch. 18](18-mechanisms.md#or-on-the-robot-live-tuning)): every change applied says what changed,
+  `'lift': retuned live -- kP 0.25 -> 0.3125`; an undo `'lift': retuned live -- undo: kP 0.3125 -> 0.25`;
+  a reset `'lift': retuned live -- RESET: the robot file's numbers`. A cap changed live says the cap's own
+  boot line again (above), with its 0.2 A margin Warn when a signature is now that close to it — and a
+  cap changed live and never reset stays in the motors after the program ends: the next program's line
+  about a limit it found (above) is that cap. A cap REMOVED live (an undo or a reset back to none) writes each motor back to
+  its default: `'lift': current cap 2.30 A removed live -- each motor's limit written back to the motor's 2.50 A default`,
+  or a Warn per motor that did not go back:
+  `'lift': motor 1 (port 1) did not go back to the motor's 2.50 A default after its live cap was removed: it reads 2.30 A`
+  — that motor pushes with less than its full 2.5 A until the robot is powered off (HA-220).
+- **The COPY block** (tag `TUNE`, Info, when a tuning program copies a mechanism's numbers out): a begin
+  line naming the declaration's file and line (here an example line), `'lift': copy begins -- write these into its declaration (tuned live): src/robots/mechanism_table.hpp:41`,
+  one line per member to write in (`.tuning.kP = 0.3125`, `.stall = {.amps = 1.95, .belowMotorRpm = 5, .lasting = 0.5_s}`),
+  and an end line with their count, `'lift': copy ends -- 2 lines`. A block whose end line is missing was
+  cut: copy it again. What to do with it: [Ch. 18](18-mechanisms.md#or-on-the-robot-live-tuning).
 - **A computed target clamped** (Warn, tag `MECH`, once per step): `'arm': target 175.00 clamped to the
   travel limit 160.00 (soft stop)`, or a flywheel's `'flywheel': speed 4000 rpm clamped to its free
   speed 3600 rpm` — a target computed while the auton ran was past what the robot file allows; the step

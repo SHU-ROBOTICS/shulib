@@ -21,7 +21,9 @@
 > — the bench page ([below](#the-bench-page--bench-tests-station-13)) — shows every declared mechanism in
 > its declared units and runs the direction check on the robot. Since then, **current caps** (`.currentCap` —
 > [below](#current-caps--how-hard-a-string-is-pulled)): the most each motor of a mechanism may draw, set in the
-> motor itself. Still to come: a watch for a snapped string, and live tuning on the robot. Everything below is
+> motor itself. And **live tuning's library** ([below](#or-on-the-robot-live-tuning)): a mechanism's numbers changed
+> while it runs, inside the build's own rules, undone, and copied back out as the lines its robot file needs. Still to
+> come: a watch for a snapped string, and "shulib Tune", the program that puts live tuning on the brain screen. Everything below is
 > measured on the **host test plant** — invented models of an
 > arm, a lift and a flywheel ([HA-183](../hardware-assumptions.md)) — and the library's own numbers in
 > it are invented starting values ([HA-182](../hardware-assumptions.md)). **Nothing here has run on a
@@ -342,8 +344,8 @@ the heaviest **hold** (with a game piece) < the stall signature < the cap − 0.
   (HA-222, not checked on this robot) — divided by your safety margin.
 
 **Where the hold and the peak come from.** No page of the library shows a mechanism motor's current
-yet: live tuning, a later part, will report each move's peak and the settled hold, with and without a
-piece. Until then shulib gives you no reading — a PROS program of your own can print a motor's
+yet: the Tune program (live tuning's next part) will report each move's peak and the settled hold, with
+and without a piece. Until then shulib gives you no reading — a PROS program of your own can print a motor's
 `get_current_draw()` (milliamps) while it holds and moves the lift; without one, start from the order
 above and the boot's warnings, and treat your numbers as unmeasured.
 
@@ -409,6 +411,109 @@ then `within` (a mechanism that cannot settle inside 1.5° needs a wider toleran
 On the host test plant the starting values reached 143 of 144 deliberately mismatched moves — the one
 miss was a plant slower than its own cartridge, reported TIMED_OUT, as it should be. A real arm is not
 the host test plant: tune on the robot.
+
+### Or on the robot: live tuning
+
+The numbers above are found on the ROBOT, not at a desk — so a mechanism's numbers can also be changed
+**while the robot runs**, its response watched, and the result copied back into the robot file. The
+library half of that is in (`mechanism/live_tuning.hpp`, since 2026-11-10); **the program that puts it on
+the brain screen — "shulib Tune" — is the next part**, so today only a program you write can call it.
+Nothing here has run on a robot.
+
+**How it is wired.** A program keeps a `mechanism::LiveTuning` — a COPY of the robot file's table, in
+static storage beside its service — and runs the mechanism service over the copy:
+
+```cpp
+mechanism::LiveTuning tuning{kRobotTwoMechanisms};  // a COPY of the robot file's list
+service.bind(tuning.table(), devices, clock, faults, sink);  // the service runs the copy
+tuning.attach(service);  // checked: the service runs THIS copy
+```
+
+`tuning.step(i, Tunable::KP, +1)` is one [+] press on mechanism `i`'s kP; `tuning.apply(i, t, value)` sets
+a number outright. Either one is checked, applied, and the mechanism's slot re-reads what it copied (its
+loops' gains, its stall detectors, its limits in degrees, its current cap), with one line:
+`'lift': retuned live -- kP 0.25 -> 0.3125`. **The robot file is never written:** leaving the program or
+a reboot runs the robot file's numbers again, and every program but the one that tunes always does —
+with **one exception, the current cap:** a cap changed live is written into the motors, and a motor
+keeps a limit after the program that set it ends (believed — the team has not measured it), so the
+next program reports the limit it finds but, if its robot file states no cap, does not undo it.
+**Before leaving, `tuning.reset(i)` every mechanism whose cap you changed** (or undo back to the file's
+cap): that writes the robot file's cap back — or the motor's 2.5 A default when the file states none.
+
+**What is live.** An Arm or a Lift: its ten `.tuning` numbers, its gravity hold, its stall signature, its
+homing push and homing signature (when it homes by switch or by stall), its current cap, and its travel
+limits — **narrowed only**. A Flywheel: kS, kV, kP, kI, its at-speed band and time, its stall signature,
+its cap (no kA — the robot file cannot say a flywheel's). A Power mechanism: its maxVolts, its stall
+signature (if it states one) and its cap. **Not live:** presets (an auton finds a preset by its VALUE —
+change "high" live and `lift["high"]` would find nothing; jog the lift to the height you want and read
+the number off), the gearing, the shape, how it homes, and a pneumatic's anything.
+
+**What a press does:** a gain ×1.25 or ÷1.25 (FINE: 1.05); volts and amps ±0.05; a speed, an
+acceleration or a stall's rpm ×1.05 or ÷1.05 (about 5 %); "within" ±0.05 in or ±0.5°; a time ±0.05 s; a travel limit ±0.25 in
+or ±1°. A number that starts at **0** cannot leave it by a factor: kA's first [+] is kV × 0.01 s (the
+feedforward of a 10 ms lag), then ×1.25; a [−] below that first step goes back to 0. A press never
+removes a current cap (0 A would be NO cap — the motor's full 2.5 A).
+
+**What it refuses** — one sentence each, and nothing changes:
+- anything **the build would refuse** — the build's own sentence (a stall signature at or above the cap,
+  a travel limit past a preset or the home position, a settle time below 0 …);
+- **a number the robot file cannot say.** In `.tuning`, 0 means "the starting value", so kP, kI, kD, kV
+  and the settle time are never set to 0 (kD at 0 would come back as 0.004 from the file); kS and kA are
+  never negative; nothing that is not a finite number;
+- **a kV past twice its starting value** (12 V over the output's free speed — the bound is the
+  library's, invented) and **a top speed past the output's free speed** (the build accepts a 500 in/s
+  top speed on a lift that turns at most 7.85 in/s; live tuning does not);
+- **a travel limit wider than the robot file's**, a homing push turned around, and a stated cap removed;
+- **while a step runs** on that mechanism — a change waits until the step ends — and from inside the
+  service's tick;
+- **a narrowed limit that leaves out where the mechanism is HOLDING** ("it holds at 20.00 in, outside the
+  new limits: move it inside first"), any limit change while a held button moves it, and — when it holds
+  nothing (after a STOP, say) — **a narrowed limit that leaves out where it IS** ("it is at 19.95 in,
+  outside the new limits: move it inside first"). A hold is never moved by a change, now or at the next
+  hold: a HOME of a lift that rests at its stop, or letting go of a held button, starts a hold where it
+  is, kept inside the limits — past a new limit, that would jump the target with no smooth move (8 in on
+  a 1.5 in spool, at the starting kP, asks 153 V; the motor gives its −11 V at once). Where it IS is
+  read again by the service as the change is applied; a lift still coasting or sagging across the new
+  limit between the two reads gets the same refusal, and nothing is changed or recorded.
+
+A rule above judges only a number that DIFFERS from the robot file's: a number as your file states it
+is the build's to judge, so a file the build accepted can always be tuned. And a number your file
+states PAST a bound — a top speed of 10 in/s on a lift that turns at most 7.85 — can always be stepped
+back TOWARD it: a change is refused only when it is further past than your file's own number.
+
+**Undo.** `tuning.undo()` takes back the last change — whichever mechanism it was on — up to 16 back;
+`tuning.reset(i)` puts mechanism `i` back to the robot file's numbers, bit for bit (and can itself be
+undone). Both wait while that mechanism's step runs, and an undo that would narrow a limit past where
+it holds, or is, waits too (move it inside first).
+
+**Copying the numbers back: the COPY block.** `tuning.copyBlock(i, sink)` logs a block of lines (tag
+`TUNE`) to write into the mechanism's declaration — the SMALLEST set that builds to exactly what ran:
+
+```text
+'lift': copy begins -- write these into its declaration (tuned live): src/robots/mechanism_table.hpp:41
+.tuning.kP = 0.3125
+.tuning.kD = 0.01
+.tuning.maxSpeed = 2
+.tuning.maxAcceleration = 23.561944901923447
+'lift': copy ends -- 4 lines
+```
+
+(This lift's file says `.tuning = {.kD = 0.01}`; kP and the top speed were changed live. The begin
+line names the file and line of the mechanism's own declaration — here, an example line.)
+
+Each member it names — and only a member changed live — is written WHOLE, the way the declaration
+writes it (`.stall = {...}`, `.home = homeByStall(...)`): replace that member in your declaration and
+leave every other one as it is. Its `.tuning` lines (when a `.tuning` number changed) are the whole
+`.tuning = {...}` your declaration then needs, in its member order — every one changed, and every one
+the library would otherwise work out DIFFERENTLY: a number your file states that the library would not
+work out the same (the 0.01 kD above), and a changed top speed's acceleration as it ran (the file would
+otherwise make it the new top speed in 0.25 s), while a kV nobody touched stays unstated. One catch: a
+number your file states at EXACTLY the value the library would work out anyway cannot be told from one
+it works out, so it is left out — your declaration builds to the same numbers today, but after a
+cartridge or gearing change that number would follow the library's working-out. **Write them in by
+hand**, replacing your `.tuning = {...}` with the block's lines. **If the cartridge, the gearing or the
+spool changes later, RESET and tune again:** a number a COPY states stays exactly as it was tuned. Each number is printed in the
+shortest form that reads back as the same number, and every line fits the terminal's 200 characters.
 
 ## In an auton — one line per step
 

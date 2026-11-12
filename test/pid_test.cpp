@@ -108,3 +108,75 @@ TEST_CASE("Pid: construction rejects bad config") {
     CHECK_THROWS_AS((Pid{{.integralLimit = -1.0}, clk}), PreconditionError);
     CHECK_THROWS_AS((Pid{{.kP = nan}, clk}), PreconditionError);
 }
+
+// ── setGains (chunk TUNE1-A, 2026-11-10 — live tuning's BUMPLESS rule) ──────────────────────
+// A gain changed mid-loop must make no jump of its own: the integral TERM (kI·∫e, the volts it adds)
+// survives, not the raw accumulator. Each case runs a TWIN that keeps its gains and pins the difference
+// at the next update to exactly what the new gains account for.
+
+TEST_CASE("Pid::setGains: a new kI keeps the integral TERM -- the next update differs from its twin's by only the new gain's share of this tick") {
+    FakeClock clk;
+    Pid pid{{.kP = 0.5, .kI = 0.4, .kD = 0.05}, clk};
+    Pid twin{{.kP = 0.5, .kI = 0.4, .kD = 0.05}, clk};
+    for (int i = 0; i < 50; ++i) {  // wind the integral: a steady error of 3 for 0.5 s
+        (void)pid.update(10.0, 7.0);
+        (void)twin.update(10.0, 7.0);
+        clk.advance(Time{0.01});
+    }
+    const double term = 0.4 * pid.integralAccumulator();
+    REQUIRE(term > 0.5);  // ~0.6 V wound in: a kept accumulator would show
+    pid.setGains(0.5, 0.8, 0.05);
+    CHECK(0.8 * pid.integralAccumulator() == doctest::Approx(term).epsilon(1e-12));  // the TERM, not the accumulator
+    CHECK(pid.config().kI == 0.8);
+    const double a = pid.update(10.0, 7.0);
+    const double b = twin.update(10.0, 7.0);
+    CHECK(std::abs((a - b) - 0.4 * 3.0 * 0.01) < 1e-12);  // (0.8 − 0.4)·e·dt: nothing beyond it
+    CHECK(std::abs(a - b) < 0.05);                         // a kept accumulator jumps by ~0.6 V
+}
+
+TEST_CASE("Pid::setGains: a new kP changes the next output by exactly ΔkP x the error; the derivative's baseline is kept (no first-call reset)") {
+    FakeClock clk;
+    Pid pid{{.kP = 0.5, .kD = 0.2}, clk};
+    Pid twin{{.kP = 0.5, .kD = 0.2}, clk};
+    (void)pid.update(10.0, 4.0);
+    (void)twin.update(10.0, 4.0);
+    clk.advance(Time{0.1});
+    pid.setGains(2.0, 0.0, 0.2);
+    const double a = pid.update(10.0, 5.0);  // the measurement moved 1 in 0.1 s: D = −0.2·10 = −2 on BOTH
+    const double b = twin.update(10.0, 5.0);
+    CHECK(b == doctest::Approx(0.5 * 5.0 - 2.0));
+    CHECK(a == doctest::Approx(2.0 * 5.0 - 2.0));  // D still applied: the baseline was kept
+    CHECK(std::abs((a - b) - 1.5 * 5.0) < 1e-12);
+}
+
+TEST_CASE("Pid::setGains: an UNCHANGED kI leaves the accumulator bit for bit; a new kI of 0 clears it; from 0 it starts at 0; limits kept") {
+    FakeClock clk;
+    Pid pid{{.kP = 1.0, .kI = 0.3, .integralLimit = 2.0, .outputMin = -5.0, .outputMax = 5.0}, clk};
+    (void)pid.update(4.0, 1.0);
+    clk.advance(Time{0.02});
+    (void)pid.update(4.0, 1.0);
+    const double acc = pid.integralAccumulator();
+    REQUIRE(acc != 0.0);
+    pid.setGains(2.0, 0.3, 0.1);
+    // bit for bit. (TUNE1-A's review: an UNGUARDED rescale would pass this too, and no input can tell them
+    // apart — every accumulator a Pid can hold is fl(w / kI) (update()'s back-calculation, setGains'
+    // rescale, or 0), and that is a fixed point of fl(fl(kI·x) / kI): 0 of 20,000,000 random (w, kI) pairs
+    // moved. So setGains' `kI != cfg_.kI` guard states the intent; its mutant is EQUIVALENT — logged.)
+    CHECK(pid.integralAccumulator() == acc);
+    CHECK(pid.config().integralLimit == 2.0);
+    CHECK(pid.config().outputMax == 5.0);
+    pid.setGains(2.0, 0.0, 0.1);
+    CHECK(pid.integralAccumulator() == 0.0);
+    pid.setGains(2.0, 0.6, 0.1);
+    CHECK(pid.integralAccumulator() == 0.0);
+}
+
+TEST_CASE("Pid::setGains: a gain that is not finite is a precondition (the constructor's rule), and nothing changes") {
+    FakeClock clk;
+    Pid pid{{.kP = 1.0, .kI = 0.5}, clk};
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    CHECK_THROWS_AS(pid.setGains(nan, 0.5, 0.0), PreconditionError);
+    CHECK_THROWS_AS(pid.setGains(1.0, std::numeric_limits<double>::infinity(), 0.0), PreconditionError);
+    CHECK(pid.config().kP == 1.0);
+    CHECK(pid.config().kI == 0.5);
+}

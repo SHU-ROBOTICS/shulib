@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 5,568 of them, across 200 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 5,678 of them, across 201 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -141,6 +141,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `appendTimestamp` | free function | [line_format.md](line_format.md#appendtimestamp) |
 | `appendUnsigned` | free function | [line_format.md](line_format.md#appendunsigned) |
 | `appendWallResetLine` | free function | [wall_reset.md](wall_reset.md#appendwallresetline) |
+| `Applied` | struct | [live_tuning.md](live_tuning.md#struct-applied) |
+| `Applied::build` | field | [live_tuning.md](live_tuning.md#applied-build) |
+| `Applied::ok` | field | [live_tuning.md](live_tuning.md#applied-ok) |
+| `Applied::sentence` | field | [live_tuning.md](live_tuning.md#applied-sentence) |
+| `Applied::why` | field | [live_tuning.md](live_tuning.md#applied-why) |
 | `AppliedCorrection` | struct | [correction.md](correction.md#struct-appliedcorrection) |
 | `AppliedCorrection::audit` | field | [correction.md](correction.md#appliedcorrection-audit) |
 | `AppliedCorrection::clamped` | field | [correction.md](correction.md#appliedcorrection-clamped) |
@@ -2361,6 +2366,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kCompetitionDisabled` | constant | [calibrate_program.md](calibrate_program.md#kcompetitiondisabled) |
 | `kControllerButtonCount` | constant | [mechanism_binding.md](mechanism_binding.md#kcontrollerbuttoncount) |
 | `kCopyNow` | constant | [calibrate_panel.md](calibrate_panel.md#kcopynow) |
+| `kCopyNumberChars` | constant | [live_tuning.md](live_tuning.md#kcopynumberchars) |
 | `kCopyThenRunAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythenrunagain) |
 | `kCopyThese` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythese) |
 | `kCornerKeepOut` | constant | [override_walls.md](override_walls.md#kcornerkeepout) |
@@ -2462,7 +2468,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kLastPeerDataType` | constant | [shul2_format.md](shul2_format.md#klastpeerdatatype) |
 | `kLastRuntimeDataType` | constant | [shul2_format.md](shul2_format.md#klastruntimedatatype) |
 | `kLeftWall` | constant | [override_walls.md](override_walls.md#kleftwall) |
+| `kLiveFirstKaSeconds` | constant | [live_tuning.md](live_tuning.md#klivefirstkaseconds) |
+| `kLiveKvMostTimesStarting` | constant | [live_tuning.md](live_tuning.md#klivekvmosttimesstarting) |
 | `kLiveRepaintSeconds` | constant | [calibrate_screen.md](calibrate_screen.md#kliverepaintseconds) |
+| `kLiveUndoDepth` | constant | [live_tuning.md](live_tuning.md#kliveundodepth) |
 | `kLoaderCentre` | constant | [override_walls.md](override_walls.md#kloadercentre) |
 | `kLoaderHalfWidth` | constant | [override_walls.md](override_walls.md#kloaderhalfwidth) |
 | `kLoadZoneDepth` | constant | [override_walls.md](override_walls.md#kloadzonedepth) |
@@ -2659,6 +2668,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kTogglePlaces` | constant | [override_elements.md](override_elements.md#ktoggleplaces) |
 | `kTooFewMotors` | constant | [calibrate_screen.md](calibrate_screen.md#ktoofewmotors) |
 | `kTriagePayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktriagepayloadbytes) |
+| `kTunableCount` | constant | [live_tuning.md](live_tuning.md#ktunablecount) |
 | `kTwitching` | constant | [calibrate_panel.md](calibrate_panel.md#ktwitching) |
 | `kTypeOffset` | constant | [shul2_format.md](shul2_format.md#ktypeoffset) |
 | `kVersionMajor` | constant | [shul2_format.md](shul2_format.md#kversionmajor) |
@@ -2770,6 +2780,48 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `lines (overload 5)` | type alias | [wiring.md](wiring.md#lines-5) |
 | `linkage` | free function | [kinds.md](kinds.md#linkage) |
 | `linkage (overload 2)` | type alias | [kinds.md](kinds.md#linkage-2) |
+| `LiveRefusal` | enum class | [live_tuning.md](live_tuning.md#enum-class-liverefusal) |
+| `LiveRefusal::BuildRefuses` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-buildrefuses) |
+| `LiveRefusal::CapRemoved` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-capremoved) |
+| `LiveRefusal::FeedforwardNegative` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-feedforwardnegative) |
+| `LiveRefusal::GainNotAbove0` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-gainnotabove0) |
+| `LiveRefusal::HeldButtonMoving` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-heldbuttonmoving) |
+| `LiveRefusal::HomingPushTurned` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-homingpushturned) |
+| `LiveRefusal::InsideATick` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-insideatick) |
+| `LiveRefusal::KvPastTwiceStarting` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-kvpasttwicestarting) |
+| `LiveRefusal::LeavesOutHeldTarget` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-leavesoutheldtarget) |
+| `LiveRefusal::LeavesOutWhereItIs` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-leavesoutwhereitis) |
+| `LiveRefusal::None` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-none) |
+| `LiveRefusal::NotANumber` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-notanumber) |
+| `LiveRefusal::NothingToUndo` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-nothingtoundo) |
+| `LiveRefusal::NotLive` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-notlive) |
+| `LiveRefusal::RangeWidened` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-rangewidened) |
+| `LiveRefusal::SettleIs0` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-settleis0) |
+| `LiveRefusal::StepRunning` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-steprunning) |
+| `LiveRefusal::TopSpeedPastFree` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-topspeedpastfree) |
+| `liveRefusalText` | free function | [live_tuning.md](live_tuning.md#liverefusaltext) |
+| `LiveTuning` | class | [live_tuning.md](live_tuning.md#class-livetuning) |
+| `LiveTuning::apply` | function | [live_tuning.md](live_tuning.md#livetuning-apply) |
+| `LiveTuning::attach` | function | [live_tuning.md](live_tuning.md#livetuning-attach) |
+| `LiveTuning::attached` | function | [live_tuning.md](live_tuning.md#livetuning-attached) |
+| `LiveTuning::changed` | function | [live_tuning.md](live_tuning.md#livetuning-changed) |
+| `LiveTuning::copyBlock` | function | [live_tuning.md](live_tuning.md#livetuning-copyblock) |
+| `LiveTuning::count` | function | [live_tuning.md](live_tuning.md#livetuning-count) |
+| `LiveTuning::declared` | function | [live_tuning.md](live_tuning.md#livetuning-declared) |
+| `LiveTuning::LiveTuning` | function | [live_tuning.md](live_tuning.md#livetuning-livetuning) |
+| `LiveTuning::LiveTuning (overload 2)` | function | [live_tuning.md](live_tuning.md#livetuning-livetuning-2) |
+| `LiveTuning::LiveTuning (overload 3)` | function | [live_tuning.md](live_tuning.md#livetuning-livetuning-3) |
+| `LiveTuning::operator=` | function | [live_tuning.md](live_tuning.md#livetuning-operator-eq) |
+| `LiveTuning::operator= (overload 2)` | function | [live_tuning.md](live_tuning.md#livetuning-operator-eq-2) |
+| `LiveTuning::reset` | function | [live_tuning.md](live_tuning.md#livetuning-reset) |
+| `LiveTuning::spec` | function | [live_tuning.md](live_tuning.md#livetuning-spec) |
+| `LiveTuning::step` | function | [live_tuning.md](live_tuning.md#livetuning-step) |
+| `LiveTuning::stepped` | function | [live_tuning.md](live_tuning.md#livetuning-stepped) |
+| `LiveTuning::table` | function | [live_tuning.md](live_tuning.md#livetuning-table) |
+| `LiveTuning::undo` | function | [live_tuning.md](live_tuning.md#livetuning-undo) |
+| `LiveTuning::undoDepth` | function | [live_tuning.md](live_tuning.md#livetuning-undodepth) |
+| `LiveTuning::value` | function | [live_tuning.md](live_tuning.md#livetuning-value) |
+| `LiveTuning::~LiveTuning` | function | [live_tuning.md](live_tuning.md#livetuning-destructor-livetuning) |
 | `LoadedRecord` | struct | [record_store.md](record_store.md#struct-loadedrecord) |
 | `LoadedRecord::backup` | field | [record_store.md](record_store.md#loadedrecord-backup) |
 | `LoadedRecord::description` | field | [record_store.md](record_store.md#loadedrecord-description) |
@@ -2972,6 +3024,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MechanismService::bind` | function | [service.md](service.md#mechanismservice-bind) |
 | `MechanismService::bind (overload 2)` | function | [service.md](service.md#mechanismservice-bind-2) |
 | `MechanismService::bound` | function | [service.md](service.md#mechanismservice-bound) |
+| `MechanismService::canRederive` | function | [service.md](service.md#mechanismservice-canrederive) |
 | `MechanismService::clock` | function | [service.md](service.md#mechanismservice-clock) |
 | `MechanismService::enterAutonomous` | function | [service.md](service.md#mechanismservice-enterautonomous) |
 | `MechanismService::enterDriverControl` | function | [service.md](service.md#mechanismservice-enterdrivercontrol) |
@@ -2996,6 +3049,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MechanismService::pneumatic` | function | [service.md](service.md#mechanismservice-pneumatic) |
 | `MechanismService::position` | function | [service.md](service.md#mechanismservice-position) |
 | `MechanismService::power` | function | [service.md](service.md#mechanismservice-power) |
+| `MechanismService::rederive` | function | [service.md](service.md#mechanismservice-rederive) |
 | `MechanismService::size` | function | [service.md](service.md#mechanismservice-size) |
 | `MechanismService::slot` | function | [service.md](service.md#mechanismservice-slot) |
 | `MechanismService::slotFor` | function | [service.md](service.md#mechanismservice-slotfor) |
@@ -3387,6 +3441,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `OdoStallCheckConfig::setAllWheels` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-setallwheels) |
 | `OdoStallCheckConfig::wheels` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-wheels) |
 | `OdoStallCheckConfig::window` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-window) |
+| `offered` | free function | [live_tuning.md](live_tuning.md#offered) |
 | `OnFail` | struct | [routine.md](routine.md#struct-onfail) |
 | `OnFail` | type alias | [routine.md](routine.md#onfail) |
 | `OnFail::Kind` | enum class | [routine.md](routine.md#enum-class-onfail-kind) |
@@ -3476,6 +3531,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PanelView::lineCount` | field | [calibrate_panel.md](calibrate_panel.md#panelview-linecount) |
 | `PanelView::lines` | field | [calibrate_panel.md](calibrate_panel.md#panelview-lines) |
 | `PanelView::screen` | field | [calibrate_panel.md](calibrate_panel.md#panelview-screen) |
+| `Parameter` | struct | [live_tuning.md](live_tuning.md#struct-parameter) |
+| `Parameter::id` | field | [live_tuning.md](live_tuning.md#parameter-id) |
+| `Parameter::member` | field | [live_tuning.md](live_tuning.md#parameter-member) |
+| `Parameter::name` | field | [live_tuning.md](live_tuning.md#parameter-name) |
+| `Parameter::rule` | field | [live_tuning.md](live_tuning.md#parameter-rule) |
+| `ParameterList` | struct | [live_tuning.md](live_tuning.md#struct-parameterlist) |
+| `ParameterList::count` | field | [live_tuning.md](live_tuning.md#parameterlist-count) |
+| `ParameterList::items` | field | [live_tuning.md](live_tuning.md#parameterlist-items) |
+| `parameterOf` | free function | [live_tuning.md](live_tuning.md#parameterof) |
+| `parametersOf` | free function | [live_tuning.md](live_tuning.md#parametersof) |
 | `PathRunner` | class | [path_runner.md](path_runner.md#class-pathrunner) |
 | `PathRunner::operator=` | function | [path_runner.md](path_runner.md#pathrunner-operator-eq) |
 | `PathRunner::operator= (overload 2)` | function | [path_runner.md](path_runner.md#pathrunner-operator-eq-2) |
@@ -3498,10 +3563,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Phase::SpinTest` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-spintest) |
 | `Phase::WaitImu` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-waitimu) |
 | `Pid` | class | [pid.md](pid.md#class-pid) |
+| `Pid::config` | function | [pid.md](pid.md#pid-config) |
 | `Pid::integralAccumulator` | function | [pid.md](pid.md#pid-integralaccumulator) |
 | `Pid::lastError` | function | [pid.md](pid.md#pid-lasterror) |
 | `Pid::Pid` | function | [pid.md](pid.md#pid-pid) |
 | `Pid::reset` | function | [pid.md](pid.md#pid-reset) |
+| `Pid::setGains` | function | [pid.md](pid.md#pid-setgains) |
 | `Pid::update` | function | [pid.md](pid.md#pid-update) |
 | `PidConfig` | struct | [pid.md](pid.md#struct-pidconfig) |
 | `PidConfig::integralLimit` | field | [pid.md](pid.md#pidconfig-integrallimit) |
@@ -3696,7 +3763,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Positions::Positions (overload 2)` | function | [kinds.md](kinds.md#positions-positions-2) |
 | `Positions::tooMany` | field | [kinds.md](kinds.md#positions-toomany) |
 | `PositionSlot` | class | [service.md](service.md#class-positionslot) |
+| `PositionSlot::heldButtonMoving` | function | [service.md](service.md#positionslot-heldbuttonmoving) |
 | `PositionSlot::holdHere` | function | [service.md](service.md#positionslot-holdhere) |
+| `PositionSlot::holding` | function | [service.md](service.md#positionslot-holding) |
 | `PositionSlot::home` | function | [service.md](service.md#positionslot-home) |
 | `PositionSlot::homed` | function | [service.md](service.md#positionslot-homed) |
 | `PositionSlot::jog` | function | [service.md](service.md#positionslot-jog) |
@@ -3707,6 +3776,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PositionSlot::PositionSlot` | function | [service.md](service.md#positionslot-positionslot) |
 | `PositionSlot::release` | function | [service.md](service.md#positionslot-release) |
 | `PositionSlot::softStops` | function | [service.md](service.md#positionslot-softstops) |
+| `PositionSlot::takesRange` | function | [service.md](service.md#positionslot-takesrange) |
 | `PositionSlot::target` | function | [service.md](service.md#positionslot-target) |
 | `PositionSpec` | struct | [spec.md](spec.md#struct-positionspec) |
 | `PositionSpec::absoluteSensorAtZeroDeg` | field | [spec.md](spec.md#positionspec-absolutesensoratzerodeg) |
@@ -4824,6 +4894,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SettleFloorReport::speedMargin` | field | [rest_capture.md](rest_capture.md#settlefloorreport-speedmargin) |
 | `SettleFloorReport::speedNoise` | field | [rest_capture.md](rest_capture.md#settlefloorreport-speednoise) |
 | `SettleFloorReport::speedWarn` | field | [rest_capture.md](rest_capture.md#settlefloorreport-speedwarn) |
+| `setTunable` | free function | [live_tuning.md](live_tuning.md#settunable) |
 | `shapeAxis` | free function | [input_shaping.md](input_shaping.md#shapeaxis) |
 | `shapeRequest` | free function | [input_shaping.md](input_shaping.md#shaperequest) |
 | `shapeToChassisSpeeds` | free function | [driver_control.md](driver_control.md#shapetochassisspeeds) |
@@ -5059,11 +5130,21 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StaticRoutes::count` | function | [route.md](route.md#staticroutes-count) |
 | `StaticRoutes::route` | function | [route.md](route.md#staticroutes-route) |
 | `StaticRoutes::StaticRoutes` | function | [route.md](route.md#staticroutes-staticroutes) |
+| `steppedValue` | free function | [live_tuning.md](live_tuning.md#steppedvalue) |
 | `StepReport` | struct | [service.md](service.md#struct-stepreport) |
 | `StepReport::countedDone` | field | [service.md](service.md#stepreport-counteddone) |
 | `StepReport::doneBy` | field | [service.md](service.md#stepreport-doneby) |
 | `StepReport::elapsed` | field | [service.md](service.md#stepreport-elapsed) |
 | `StepReport::outcome` | field | [service.md](service.md#stepreport-outcome) |
+| `StepRule` | enum class | [live_tuning.md](live_tuning.md#enum-class-steprule) |
+| `StepRule::Amps` | enumerator | [live_tuning.md](live_tuning.md#steprule-amps) |
+| `StepRule::Gain` | enumerator | [live_tuning.md](live_tuning.md#steprule-gain) |
+| `StepRule::Limit` | enumerator | [live_tuning.md](live_tuning.md#steprule-limit) |
+| `StepRule::Percent` | enumerator | [live_tuning.md](live_tuning.md#steprule-percent) |
+| `StepRule::Reached` | enumerator | [live_tuning.md](live_tuning.md#steprule-reached) |
+| `StepRule::Seconds` | enumerator | [live_tuning.md](live_tuning.md#steprule-seconds) |
+| `StepRule::Volts` | enumerator | [live_tuning.md](live_tuning.md#steprule-volts) |
+| `StepRule::ZeroGain` | enumerator | [live_tuning.md](live_tuning.md#steprule-zerogain) |
 | `StickInput` | struct | [stick_mapping.md](stick_mapping.md#struct-stickinput) |
 | `StickInput::connected` | field | [stick_mapping.md](stick_mapping.md#stickinput-connected) |
 | `StickInput::leftX` | field | [stick_mapping.md](stick_mapping.md#stickinput-leftx) |
@@ -5347,7 +5428,36 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TriageInfo::faultTime` | field | [blackbox_format.md](blackbox_format.md#triageinfo-faulttime) |
 | `TriageInfo::precedingTicks` | field | [blackbox_format.md](blackbox_format.md#triageinfo-precedingticks) |
 | `TriageInfo::tickIndex` | field | [blackbox_format.md](blackbox_format.md#triageinfo-tickindex) |
+| `Tunable` | enum class | [live_tuning.md](live_tuning.md#enum-class-tunable) |
+| `Tunable::AtSpeedBand` | enumerator | [live_tuning.md](live_tuning.md#tunable-atspeedband) |
+| `Tunable::AtSpeedTime` | enumerator | [live_tuning.md](live_tuning.md#tunable-atspeedtime) |
+| `Tunable::CurrentCap` | enumerator | [live_tuning.md](live_tuning.md#tunable-currentcap) |
+| `Tunable::GravityHold` | enumerator | [live_tuning.md](live_tuning.md#tunable-gravityhold) |
+| `Tunable::HomeStallAmps` | enumerator | [live_tuning.md](live_tuning.md#tunable-homestallamps) |
+| `Tunable::HomeStallLasting` | enumerator | [live_tuning.md](live_tuning.md#tunable-homestalllasting) |
+| `Tunable::HomeStallRpm` | enumerator | [live_tuning.md](live_tuning.md#tunable-homestallrpm) |
+| `Tunable::HomeVolts` | enumerator | [live_tuning.md](live_tuning.md#tunable-homevolts) |
+| `Tunable::KA` | enumerator | [live_tuning.md](live_tuning.md#tunable-ka) |
+| `Tunable::KD` | enumerator | [live_tuning.md](live_tuning.md#tunable-kd) |
+| `Tunable::KI` | enumerator | [live_tuning.md](live_tuning.md#tunable-ki) |
+| `Tunable::KP` | enumerator | [live_tuning.md](live_tuning.md#tunable-kp) |
+| `Tunable::KS` | enumerator | [live_tuning.md](live_tuning.md#tunable-ks) |
+| `Tunable::KV` | enumerator | [live_tuning.md](live_tuning.md#tunable-kv) |
+| `Tunable::MaxAcceleration` | enumerator | [live_tuning.md](live_tuning.md#tunable-maxacceleration) |
+| `Tunable::MaxSpeed` | enumerator | [live_tuning.md](live_tuning.md#tunable-maxspeed) |
+| `Tunable::MaxVolts` | enumerator | [live_tuning.md](live_tuning.md#tunable-maxvolts) |
+| `Tunable::RangeMax` | enumerator | [live_tuning.md](live_tuning.md#tunable-rangemax) |
+| `Tunable::RangeMin` | enumerator | [live_tuning.md](live_tuning.md#tunable-rangemin) |
+| `Tunable::Settle` | enumerator | [live_tuning.md](live_tuning.md#tunable-settle) |
+| `Tunable::StallAmps` | enumerator | [live_tuning.md](live_tuning.md#tunable-stallamps) |
+| `Tunable::StallLasting` | enumerator | [live_tuning.md](live_tuning.md#tunable-stalllasting) |
+| `Tunable::StallRpm` | enumerator | [live_tuning.md](live_tuning.md#tunable-stallrpm) |
+| `Tunable::Within` | enumerator | [live_tuning.md](live_tuning.md#tunable-within) |
+| `tunableUnit` | free function | [live_tuning.md](live_tuning.md#tunableunit) |
+| `tunableValue` | free function | [live_tuning.md](live_tuning.md#tunablevalue) |
 | `TuningConfig` | type alias | [robot_config.md](robot_config.md#tuningconfig) |
+| `tuningProblem` | free function | [live_tuning.md](live_tuning.md#tuningproblem) |
+| `tuningRefusal` | free function | [live_tuning.md](live_tuning.md#tuningrefusal) |
 | `TurnTo` | class | [turn_to.md](turn_to.md#class-turnto) |
 | `TurnTo::cancel` | function | [turn_to.md](turn_to.md#turnto-cancel) |
 | `TurnTo::exitReason` | function | [turn_to.md](turn_to.md#turnto-exitreason) |

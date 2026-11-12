@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 5,568 of them across 200 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 5,678 of them across 201 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -294,6 +294,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Direction check](direction_check.md) | [`mechanism/direction_check.hpp`](../../include/shulib/mechanism/direction_check.hpp) | mechanism/direction_check.hpp — THE DIRECTION CHECK's judgement. |
 | [Driver inputs](driver_inputs.md) | [`mechanism/driver_inputs.hpp`](../../include/shulib/mechanism/driver_inputs.hpp) | mechanism/driver_inputs.hpp — THE DRIVER FILE'S MECHANISM CONTROLS: hold-to-run, toggle, preset and the homing controls, each naming its mechanism by its DECLARATION, checked at build against the robot's list, and run THROUGH the mechanism service. |
 | [Kinds](kinds.md) | [`mechanism/kinds.hpp`](../../include/shulib/mechanism/kinds.hpp) | mechanism/kinds.hpp — WHAT A MECHANISM IS, the way a team writes it. |
+| [Live tuning](live_tuning.md) | [`mechanism/live_tuning.hpp`](../../include/shulib/mechanism/live_tuning.hpp) | mechanism/live_tuning.hpp — LIVE TUNING's library half: a mechanism's numbers changed WHILE THE ROBOT RUNS, inside the same rules as the build, undone, and copied back out as the lines its robot file needs (chunk TUNE1-A, 2026-11-10; the MECH-S/TUNE1 brief'… |
 | [Route ids](route_ids.md) | [`mechanism/route_ids.hpp`](../../include/shulib/mechanism/route_ids.hpp) | mechanism/route_ids.hpp — EVERY MECHANISM'S ACTIONS AS ROUTE IDS, automatically (the mechanism core, chunk MECH-A1, 2026-10-08; the team lead's ruling of 2026-10-08, MECH-PANEL-requirements §4 item 7b: "an arm's presets as arm_stow, arm_score; an intake's i… |
 | [Service](service.md) | [`mechanism/service.hpp`](../../include/shulib/mechanism/service.hpp) | mechanism/service.hpp — THE MECHANISM SERVICE: one object, ticked once per control tick, that runs every mechanism's behaviour. |
 | [Spec](spec.md) | [`mechanism/spec.hpp`](../../include/shulib/mechanism/spec.hpp) | mechanism/spec.hpp — ONE MECHANISM AS DATA, and THE BUILD CHECK. |
@@ -347,7 +348,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 5,568 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 5,678 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

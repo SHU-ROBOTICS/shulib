@@ -508,7 +508,8 @@ protected:
     /// back, said once (per motor and in all) or warned per motor; a signature within
     /// kCapSignatureMarginAmps of it warned; NO cap: every motor's limit READ, nothing written, a limit
     /// other than the 2.5 A default said once with both possible causes. A pneumatic or ABSENT
-    /// mechanism has no motor: nothing. Only from the constructor (bind).
+    /// mechanism has no motor: nothing. From the constructor (bind) — and, since TUNE1-A, from a live
+    /// re-derive whose stated cap or signature changed (rederiveSlot()).
     void bootCurrentCap() {
         if (mech_ == nullptr || spec_->kind == Kind::Pneumatic) {
             return;
@@ -690,6 +691,95 @@ protected:
         return std::isfinite(a) ? std::clamp(a, -9999.99, 9999.99) : -1.0;
     }
 
+    // ── LIVE TUNING: the slot re-reads its spec (chunk TUNE1-A, 2026-11-05; the MECH-S/TUNE1 brief's
+    //    §1.2 — MechanismService::rederive() is the only caller) ─────────────────────────────────
+    /// RE-DERIVE what this slot COPIED from its spec at bind (the brief's P6: the PIDs copy their gains,
+    /// the stall detectors their signatures, the soft stop its limits — a spec changed under a slot
+    /// without this changes nothing, or worse, half of the numbers): the kind's own copies first
+    /// (rederiveKind()), then the CURRENT CAP when the cap or a signature changed — a stated cap through
+    /// MECH-S-A's own boot path (bootCurrentCap(): written to every motor, read back, said, the 0.2 A
+    /// margin re-judged), and a cap REMOVED (live, or by undoing one added live) by writing each motor
+    /// back to its 2.5 A default, said once — the limit the Tune program set must not stay in the motor
+    /// (the brief's D12 (b)). Everything the slot reads from its spec every tick (the feedforward, the
+    /// gravity hold, the tolerance, a top speed at the next move) needs nothing here. An ABSENT slot
+    /// re-derives its copies and touches no device.
+    void rederiveSlot() {
+        const bool signatureChanged = rederiveKind();
+        const double cap = spec_->currentCapAmps;
+        if (spec_->kind == Kind::Pneumatic || (cap == capInMotors_ && !(signatureChanged && cap > 0.0))) {
+            capInMotors_ = cap;
+            return;
+        }
+        const double was = capInMotors_;
+        capInMotors_ = cap;
+        if (mech_ == nullptr) {
+            return;
+        }
+        if (cap > 0.0) {
+            bootCurrentCap();  // MECH-S-A's path: write, read back, say; the margin Warns
+            return;
+        }
+        if (!(was > 0.0)) {
+            return;  // no cap before, none now: nothing was ever written
+        }
+        const std::size_t n = std::min<std::size_t>(spec_->motorCount, kDevicesMaxMotors);
+        bool allTook = true;
+        char line[240];
+        char place[40];
+        for (std::size_t m = 0; m < n; ++m) {
+            // (capState_ is not touched: the re-check runs only under a stated cap, and a cap stated again
+            // goes through bootCurrentCap(), which sets every motor's — TUNE1-A's review, MY10)
+            hal::IMotorCurrentLimit* lim = devices_.currentLimits[m];
+            if (lim == nullptr) {
+                continue;
+            }
+            const bool accepted = lim->setCurrentLimit(hal::kDefaultMotorCurrentLimit);
+            const double reads = lim->currentLimit().value();
+            if (accepted && milliamps(reads) == defaultMilliamps()) {
+                continue;
+            }
+            allTook = false;
+            motorPlace(m, place, sizeof place);
+            std::snprintf(line, sizeof line,
+                          "'%.23s': motor %u (%.32s) did not go back to the motor's 2.50 A default after its live "
+                          "cap was removed: it reads %.2f A",
+                          spec_->name, static_cast<unsigned>(m + 1), place, clampAmps(reads));
+            host_->telemetry->log(hal::LogLevel::Warn, "MECH", line);
+        }
+        if (allTook) {
+            std::snprintf(line, sizeof line,
+                          "'%.23s': current cap %.2f A removed live -- each motor's limit written back to the "
+                          "motor's 2.50 A default",
+                          spec_->name, clampAmps(was));
+            host_->telemetry->log(hal::LogLevel::Info, "MECH", line);
+        }
+    }
+    /// The kind's own re-derive (rederiveSlot()); true when a STATED stall or homing signature changed
+    /// (the cap's 0.2 A margin is then judged again). A pneumatic copies nothing.
+    virtual bool rederiveKind() { return false; }
+    /// Whether the slot takes its (re-written) spec NOW — MechanismService::rederive() asks it ONCE, before
+    /// anything is re-derived, and refuses on false (TUNE1-A's verification round: the decision is one
+    /// read of the slot, never a precondition after the spec is written). Only a position slot can refuse
+    /// (PositionSlot::takesRange()).
+    [[nodiscard]] virtual bool takesSpecNow() const { return true; }
+    /// A stall detector made to match `s` (TUNE1-A): built when `wanted` and it has none or one of
+    /// another signature, dropped when not `wanted`; an unchanged one is KEPT, its window with it — a
+    /// re-derive for a gain must not restart a stall that is half-way to tripping. True when it changed.
+    static bool refreshDetector(std::optional<manipulation::StallDetector>& d, const StallSpec& s, bool wanted) {
+        if (!wanted) {
+            const bool had = d.has_value();
+            d.reset();
+            return had;
+        }
+        if (d.has_value() && d->config().currentAtLeast.value() == s.amps &&
+            d->config().speedAtMost.value() == s.speedRadS && d->config().persistence.value() == s.time) {
+            return false;
+        }
+        d.emplace(manipulation::StallConfig{units::Current{s.amps}, units::AngularVelocity{s.speedRadS},
+                                            units::Time{s.time}});
+        return true;
+    }
+
     /// One tick of the behaviour at clock time `t` (only while active and holding the claim).
     virtual void tickBehaviour(double t) = 0;
     /// Forget the kind's own behaviour state (a hold-to-run's volts, a step's condition).
@@ -721,6 +811,9 @@ protected:
     };
     std::array<CapState, kDevicesMaxMotors> capState_{};  ///< per motor, the re-check's last finding
     double nextCapCheck_ = 0.0;  ///< the clock time of the next once-a-second re-check
+    /// The cap this slot last put in its motors, A (0: none — the boot wrote nothing): what a live
+    /// re-derive compares the spec's against (TUNE1-A). Declared after `spec_`, so it starts at the bind's.
+    double capInMotors_ = spec_->currentCapAmps;
 };
 
 /// POWER: run at a voltage until a done-condition, within a bound; the driver's hold-to-run.
@@ -947,6 +1040,17 @@ private:
         } else {
             finishStep(t, MechanismOutcome::TimedOut, DoneBy::None);
         }
+    }
+    /// LIVE TUNING (TUNE1-A; Slot::rederiveSlot()): the stall detector matched to the spec's signature;
+    /// a hold-to-run in progress clamped to a lowered maxVolts at once (its next drive() would — this
+    /// tick must not run past it). A step's volts are never re-read: a re-derive is refused while one runs.
+    bool rederiveKind() override {
+        const PowerSpec& q = spec_->power;
+        const bool changed = refreshDetector(stall_, q.stall, q.stall.stated());
+        if (driving_) {
+            volts_ = std::clamp(volts_, -q.maxVolts, q.maxVolts);
+        }
+        return changed;
     }
     double volts_ = 0.0;
     bool driving_ = false;              ///< a hold-to-run is in progress (not a step)
@@ -1184,8 +1288,81 @@ public:
     /// The OUTPUT angle in degrees (an angle sensor's reading when one is wired, else the motor
     /// encoders through the gearing), with its zero applied once homed. 0 when ABSENT.
     [[nodiscard]] double jointDeg() const { return mech_ != nullptr ? rawJointDeg() + offsetDeg_ : 0.0; }
+    /// True while it HOLDS a target (TUNE1-A — what live tuning's "never narrowed past where it is
+    /// holding" reads): homed and active in a hold (after a move, a release of a hold-to-run, a homing)
+    /// or a held button's soft stop at a limit. Its target is target().
+    [[nodiscard]] bool holding() const noexcept {
+        return active_ && homed_ && (mode_ == Mode::Hold || (mode_ == Mode::Jog && limitDir_ != 0.0));
+    }
+    /// True while a HELD BUTTON moves it (TUNE1-A): a hold-to-run in progress that the soft stop has not
+    /// taken over at a limit (once it has, holding() is true instead).
+    [[nodiscard]] bool heldButtonMoving() const noexcept {
+        return active_ && mode_ == Mode::Jog && limitDir_ == 0.0;
+    }
+    /// Whether a live re-derive may give it `candidate`'s travel limits NOW (TUNE1-A) — live tuning's
+    /// check BEFORE it writes the spec (for its reason and sentence) and rederive()'s refusal AFTER (the
+    /// decision that counts), through this one function. The where-it-is clause READS THE SENSOR, so the
+    /// two calls can disagree when a reading moves between them (a coasting or drifting lift, jitter at the
+    /// limit): rederive() then REFUSES — nothing re-derived, nothing said — and live tuning puts the old
+    /// spec back and records nothing (TUNE1-A's verification round). False while it HOLDS a target the
+    /// new limits leave out (the brief's re-check #7: a hold is never moved — refused instead); while a
+    /// held button moves it and the
+    /// limits change (the soft stop would meet a push against a limit it was not braking for); and,
+    /// homed and neither, when the new limits leave WHERE IT IS further outside them than the limits in
+    /// force do (TUNE1-A's review: the next hold — a HOME of a mechanism that rests at its stop, a
+    /// holdHere(), a timed-out move — begins at where it is CLAMPED inside the limits, so a limit
+    /// narrowed past it there would make that hold a jump with no smooth move: 8 in narrowed away asks
+    /// −11 V at once; a widening, or a change that leaves it as far outside as it was, never does).
+    /// Compared in OUTPUT DEGREES, the hold's and the soft stop's own unit, so a target set by a move to
+    /// exactly the new limit is inside it.
+    [[nodiscard]] bool takesRange(const PositionSpec& candidate) const noexcept {
+        const double a = positionToAngleDeg(candidate, candidate.minPosition);
+        const double b = positionToAngleDeg(candidate, candidate.maxPosition);
+        const double lo = std::min(a, b);
+        const double hi = std::max(a, b);
+        if (holding()) {
+            return toDeg_ >= lo && toDeg_ <= hi;
+        }
+        if (heldButtonMoving()) {
+            return lo == minDeg_ && hi == maxDeg_;
+        }
+        if (!homed_ || mech_ == nullptr) {
+            return true;  // no limits act before homing; an ABSENT one never holds
+        }
+        const double jd = jointDeg();
+        const auto outside = [jd](double l, double h) { return std::max(std::max(l - jd, jd - h), 0.0); };
+        return !(outside(lo, hi) > outside(minDeg_, maxDeg_));
+    }
 
 private:
+    /// Its travel limits taken NOW (Slot::takesSpecNow()): takesRange() of the spec it runs — read once,
+    /// by MechanismService::rederive(), before anything is re-derived.
+    [[nodiscard]] bool takesSpecNow() const override { return takesRange(spec_->position); }
+    /// LIVE TUNING (TUNE1-A; Slot::rederiveSlot()): the two loops' gains (BUMPLESS — Pid::setGains keeps
+    /// the hold's integral TERM), the stall and homing-stall detectors matched to the spec, and the
+    /// travel limits in output degrees and the soft stop's acceleration recomputed. A hold is NEVER moved:
+    /// a range narrowed past the held target, or past where it is when it holds nothing (the brief's
+    /// re-check #7 — holdAt()'s re-clamp is a jump to a new target with no smooth move: 8 in × 76.4 °/in ×
+    /// kP 0.25 asks 153 V), never reaches here — MechanismService::rederive() asked takesSpecNow() just
+    /// before and REFUSED it (TUNE1-A's verification round: once a PRECONDITION here, but its where-it-is
+    /// clause reads the sensor, and a reading that moved since live tuning's own check threw out of a
+    /// refusal-checked change with the spec half-applied).
+    bool rederiveKind() override {
+        const PositionSpec& p = spec_->position;
+        const double a = positionToAngleDeg(p, p.minPosition);
+        const double b = positionToAngleDeg(p, p.maxPosition);
+        const double lo = std::min(a, b);
+        const double hi = std::max(a, b);
+        movePid_.setGains(p.kP, 0.0, p.kD);  // the MOVE loop is P + D only (header)
+        holdPid_.setGains(p.kP, p.kI, p.kD);
+        bool changed = refreshDetector(stall_, p.stall, p.stall.stated());
+        changed = refreshDetector(homeStall_, p.homeStall, p.home == HomeMethod::Stall && p.homeStall.stated()) ||
+                  changed;
+        minDeg_ = lo;
+        maxDeg_ = hi;
+        accelDeg_ = p.maxAcceleration > 0.0 ? p.maxAcceleration * degPerUnit() : 1.0;
+        return changed;
+    }
     /// What the slot is doing.
     enum class Mode : std::uint8_t { Idle, Move, Hold, Home, Jog };
 
@@ -1659,9 +1836,24 @@ private:
         inBandSince_ = -1.0;
         lastT_ = -1.0;
     }
+    /// LIVE TUNING (TUNE1-A; Slot::rederiveSlot()): the stall detector matched to the spec's signature,
+    /// and the speed integral BUMPLESS across a kI change — Pid::setGains' rule: the TERM kI·∫e survives
+    /// (the accumulator rescaled by kI_old / kI_new, then held inside the new clamp; cleared at a new kI
+    /// of 0). kS, kV, kP and the band are read from the spec every tick.
+    bool rederiveKind() override {
+        const SpeedSpec& q = spec_->speed;
+        if (q.kI != kIOfIntegral_) {
+            integral_ = q.kI > 0.0 ? std::clamp(kIOfIntegral_ * integral_ / q.kI, -kSpeedIntegralLimitVolts / q.kI,
+                                                kSpeedIntegralLimitVolts / q.kI)
+                                   : 0.0;
+            kIOfIntegral_ = q.kI;
+        }
+        return refreshDetector(stall_, q.stall, q.stall.stated());
+    }
 
     static constexpr double kPi = 3.14159265358979323846;
 
+    double kIOfIntegral_ = spec_->speed.kI;  ///< the kI `integral_` was accumulated under (TUNE1-A)
     std::optional<manipulation::StallDetector> stall_;  ///< the stated signature (N10)
     double targetRadS_ = 0.0;   ///< the target, output rad/s
     double integral_ = 0.0;     ///< the speed error's integral, rad
@@ -2090,6 +2282,51 @@ public:
     [[nodiscard]] hal::ITelemetrySink& telemetry() const {
         SHULIB_PRECONDITION(host_.telemetry != nullptr, "MechanismService::telemetry: not bound");
         return *host_.telemetry;
+    }
+
+    // ── LIVE TUNING (chunk TUNE1-A, 2026-11-05; the MECH-S/TUNE1 brief's §1.2) ─────────────────────
+    /// RE-READ mechanism `index`'s spec after live tuning changed it IN PLACE (mechanism/live_tuning.hpp
+    /// owns the table this service is bound over, so the slot's spec already IS the new one; what it
+    /// copied at bind is stale until this runs — the brief's landmine 10). The slot re-derives every
+    /// copy (Slot::rederiveSlot(): the PIDs' gains bumpless, the stall detectors, the limits in degrees,
+    /// the soft stop's acceleration, the cap re-written when it changed) and ONE Info line says it:
+    ///     'lift': retuned live -- kP 0.25 -> 0.3125
+    /// (`what`: the change in words, printed as given — live tuning gives each number in its shortest
+    /// form; nullptr says "its numbers re-read"). REFUSED — false, nothing
+    /// re-derived, nothing said — while a tick runs (from a predicate, a sink, anything a tick calls),
+    /// while that slot's STEP runs (a change is applied only BETWEEN steps: the brief's D8), and — a
+    /// position mechanism — when the spec's travel limits leave out the target it HOLDS, change while a
+    /// held button moves it, or (holding nothing) leave WHERE IT IS further outside them
+    /// (PositionSlot::takesRange(), read ONCE here, before anything is re-derived: a hold is never moved —
+    /// the brief's re-check #7). A hold, a spin, a held button go on through it and pick the new numbers
+    /// up at the next tick. Live tuning checks the same conditions BEFORE it writes the spec (for its
+    /// sentence) and puts the old one back if this still refuses — a reading that moved between the two
+    /// can make it refuse here. A caller that wrote the spec itself must put the old one back on false:
+    /// the slot runs the table it was bound over. PRECONDITIONS: bound; `index` below size(); the slot's
+    /// spec passes the build's check (specRefusal) — live tuning's own rules are stricter still
+    /// (mechanism::tuningRefusal).
+    [[nodiscard]] bool rederive(std::size_t index, const char* what = nullptr) {
+        SHULIB_PRECONDITION(bound(), "MechanismService::rederive: not bound");
+        SHULIB_PRECONDITION(index < host_.count, "MechanismService::rederive: no mechanism at this index");
+        if (!canRederive(index)) {
+            return false;
+        }
+        Slot& s = *host_.slots[index];
+        SHULIB_PRECONDITION(specRefusal(s.spec()) == Refusal::None, specProblem(s.spec()));
+        if (!s.takesSpecNow()) {
+            return false;  // the ONE read of where it is that counts (TUNE1-A's verification round)
+        }
+        s.rederiveSlot();
+        char line[240];
+        std::snprintf(line, sizeof line, "'%.23s': retuned live -- %.180s", s.name(),
+                      what != nullptr ? what : "its numbers re-read");
+        host_.telemetry->log(hal::LogLevel::Info, "MECH", line);
+        return true;
+    }
+    /// Whether rederive(`index`) would run NOW: bound, `index` one of its mechanisms, no tick running,
+    /// and no step running on that slot (TUNE1-A).
+    [[nodiscard]] bool canRederive(std::size_t index) const noexcept {
+        return bound() && index < host_.count && !inTick_ && !host_.slots[index]->running();
     }
 
 private:

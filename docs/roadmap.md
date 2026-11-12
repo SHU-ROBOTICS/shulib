@@ -500,6 +500,15 @@ not silently break them. This table is the spine of the no-staleness promise.
 > competition screen say "DONE, 2 FAILED" in amber when a run carried on past failures. **Next for STEP1: STEP1-B**
 > (triggers partway through a drive — building now); then CURVE1 (curves) builds on it.
 >
+> **Now (2026-11-11): TUNE1-A, live tuning's library, has LANDED — host-only.** A program can run the
+> mechanism service over a COPY of the robot file's list (`mechanism::LiveTuning`) and change a mechanism's
+> numbers while it runs — its gains, speeds, stall signature, cap, travel limits (narrowed only) — inside
+> the build's own check plus the bounds the build lacks, between steps only and never past a held target
+> (or, holding nothing, past where it is);
+> undo (16 deep) and reset to the robot file's numbers; and a COPY block of the lines to write back into the
+> declaration, the smallest set that builds to exactly what ran. No program uses it yet: **next is TUNE1-B1**,
+> "shulib Tune" on the brain. [Chapter 18](guide/18-mechanisms.md#or-on-the-robot-live-tuning) teaches it.
+>
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
 > robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver
