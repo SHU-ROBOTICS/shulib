@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 6,062 of them, across 206 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 6,091 of them, across 207 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -763,6 +763,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Chassis::lastExitReason` | function | [chassis.md](chassis.md#chassis-lastexitreason) |
 | `Chassis::motionConfig` | function | [chassis.md](chassis.md#chassis-motionconfig) |
 | `Chassis::moveTo` | function | [chassis.md](chassis.md#chassis-moveto) |
+| `Chassis::moveTo (overload 2)` | function | [chassis.md](chassis.md#chassis-moveto-2) |
 | `Chassis::operator=` | function | [chassis.md](chassis.md#chassis-operator-eq) |
 | `Chassis::operator= (overload 2)` | function | [chassis.md](chassis.md#chassis-operator-eq-2) |
 | `Chassis::pose` | function | [chassis.md](chassis.md#chassis-pose) |
@@ -774,6 +775,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Chassis::strafeAuthority` | function | [chassis.md](chassis.md#chassis-strafeauthority) |
 | `Chassis::strafeTo` | function | [chassis.md](chassis.md#chassis-strafeto) |
 | `Chassis::turnTo` | function | [chassis.md](chassis.md#chassis-turnto) |
+| `Chassis::turnTo (overload 2)` | function | [chassis.md](chassis.md#chassis-turnto-2) |
 | `Chassis::wait` | function | [chassis.md](chassis.md#chassis-wait) |
 | `Chassis::waitUntil` | function | [chassis.md](chassis.md#chassis-waituntil) |
 | `Chassis::~Chassis` | function | [chassis.md](chassis.md#chassis-destructor-chassis) |
@@ -2687,6 +2689,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMetalPerimeterInnerFace` | constant | [override_walls.md](override_walls.md#kmetalperimeterinnerface) |
 | `kMetersToInches` | constant | [gps_conversion.md](gps_conversion.md#kmeterstoinches) |
 | `kMinAnsweringPerSide` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kminansweringperside) |
+| `kMinLegLength` | constant | [leg_progress.md](leg_progress.md#kminleglength) |
+| `kMinTurnRad` | constant | [leg_progress.md](leg_progress.md#kminturnrad) |
 | `kModelClassCount` | constant | [override_elements.md](override_elements.md#kmodelclasscount) |
 | `kMoreOnSerial` | constant | [calibrate_screen.md](calibrate_screen.md#kmoreonserial) |
 | `kMotorsRefused` | constant | [calibrate_screen.md](calibrate_screen.md#kmotorsrefused) |
@@ -2867,6 +2871,20 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `LayoutKey::mix` | function | [touch_panel.md](touch_panel.md#layoutkey-mix) |
 | `LayoutKey::mix (overload 2)` | function | [touch_panel.md](touch_panel.md#layoutkey-mix-2) |
 | `LayoutKey::value` | function | [touch_panel.md](touch_panel.md#layoutkey-value) |
+| `LegObserver` | struct | [chassis.md](chassis.md#struct-legobserver) |
+| `LegObserver::context` | field | [chassis.md](chassis.md#legobserver-context) |
+| `LegObserver::fn` | field | [chassis.md](chassis.md#legobserver-fn) |
+| `LegProgress` | struct | [leg_progress.md](leg_progress.md#struct-legprogress) |
+| `LegProgress::along` | field | [leg_progress.md](leg_progress.md#legprogress-along) |
+| `LegProgress::fraction` | field | [leg_progress.md](leg_progress.md#legprogress-fraction) |
+| `LegProgress::hasDirection` | field | [leg_progress.md](leg_progress.md#legprogress-hasdirection) |
+| `LegProgress::headingToleranceRad` | field | [leg_progress.md](leg_progress.md#legprogress-headingtolerancerad) |
+| `LegProgress::length` | field | [leg_progress.md](leg_progress.md#legprogress-length) |
+| `LegProgress::live` | field | [leg_progress.md](leg_progress.md#legprogress-live) |
+| `LegProgress::positionTolerance` | field | [leg_progress.md](leg_progress.md#legprogress-positiontolerance) |
+| `LegProgress::sizeRad` | field | [leg_progress.md](leg_progress.md#legprogress-sizerad) |
+| `LegProgress::turnedRad` | field | [leg_progress.md](leg_progress.md#legprogress-turnedrad) |
+| `legProgressAlong` | free function | [leg_progress.md](leg_progress.md#legprogressalong) |
 | `Length` | type alias | [quantity.md](quantity.md#length) |
 | `LevelFilterSink` | class | [level_filter_sink.md](level_filter_sink.md#class-levelfiltersink) |
 | `LevelFilterSink::clearLevels` | function | [level_filter_sink.md](level_filter_sink.md#levelfiltersink-clearlevels) |
@@ -3407,6 +3425,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotionScheduler::motionsTimedOut` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-motionstimedout) |
 | `MotionScheduler::operator=` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-operator-eq) |
 | `MotionScheduler::operator= (overload 2)` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-operator-eq-2) |
+| `MotionScheduler::pendingAbortFault` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-pendingabortfault) |
 | `MotionScheduler::runFinalHeadingDrift` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-runfinalheadingdrift) |
 | `MotionScheduler::runHasHeadingData` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-runhasheadingdata) |
 | `MotionScheduler::runMaxHeadingDrift` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-runmaxheadingdrift) |
@@ -3931,6 +3950,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Positions::Positions (overload 2)` | function | [kinds.md](kinds.md#positions-positions-2) |
 | `Positions::tooMany` | field | [kinds.md](kinds.md#positions-toomany) |
 | `PositionSlot` | class | [service.md](service.md#class-positionslot) |
+| `PositionSlot::checkHome` | function | [service.md](service.md#positionslot-checkhome) |
+| `PositionSlot::checkMoveTo` | function | [service.md](service.md#positionslot-checkmoveto) |
 | `PositionSlot::heldButtonMoving` | function | [service.md](service.md#positionslot-heldbuttonmoving) |
 | `PositionSlot::holdHere` | function | [service.md](service.md#positionslot-holdhere) |
 | `PositionSlot::holding` | function | [service.md](service.md#positionslot-holding) |
@@ -4010,6 +4031,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Power::stall` | field | [kinds.md](kinds.md#power-stall) |
 | `power_maxvolts_is_not_in_above_0_and_at_most_12` | free function | [spec.md](spec.md#power_maxvolts_is_not_in_above_0_and_at_most_12) |
 | `PowerSlot` | class | [service.md](service.md#class-powerslot) |
+| `PowerSlot::checkRun` | function | [service.md](service.md#powerslot-checkrun) |
 | `PowerSlot::commandedVolts` | function | [service.md](service.md#powerslot-commandedvolts) |
 | `PowerSlot::drive` | function | [service.md](service.md#powerslot-drive) |
 | `PowerSlot::PowerSlot` | function | [service.md](service.md#powerslot-powerslot) |
@@ -4677,6 +4699,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `routeIdsOf` | free function | [route_ids.md](route_ids.md#routeidsof) |
 | `Routine` | class | [routine.md](routine.md#class-routine) |
 | `Routine` | type alias | [routine.md](routine.md#routine) |
+| `Routine::afterDistance` | function | [routine.md](routine.md#routine-afterdistance) |
+| `Routine::afterTurning` | function | [routine.md](routine.md#routine-afterturning) |
+| `Routine::ArmedLeg` | field | [routine.md](routine.md#routine-armedleg) |
+| `Routine::atPercent` | function | [routine.md](routine.md#routine-atpercent) |
 | `Routine::brake` | function | [routine.md](routine.md#routine-brake) |
 | `Routine::chassis` | function | [routine.md](routine.md#routine-chassis) |
 | `Routine::curveTo` | function | [routine.md](routine.md#routine-curveto) |
@@ -4726,6 +4752,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Routine::stop (overload 2)` | function | [routine.md](routine.md#routine-stop-2) |
 | `Routine::strafeTo` | function | [routine.md](routine.md#routine-strafeto) |
 | `Routine::then` | function | [routine.md](routine.md#routine-then) |
+| `Routine::TriggerMark` | field | [routine.md](routine.md#routine-triggermark) |
 | `Routine::turnTo` | function | [routine.md](routine.md#routine-turnto) |
 | `Routine::waitFor` | function | [routine.md](routine.md#routine-waitfor) |
 | `Routine::waitUntilDone` | function | [routine.md](routine.md#routine-waituntildone) |
@@ -5233,6 +5260,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SpeedGoal::rpm` | field | [kinds.md](kinds.md#speedgoal-rpm) |
 | `SpeedSlot` | class | [service.md](service.md#class-speedslot) |
 | `SpeedSlot::atSpeed` | function | [service.md](service.md#speedslot-atspeed) |
+| `SpeedSlot::checkSpinUp` | function | [service.md](service.md#speedslot-checkspinup) |
 | `SpeedSlot::rpm` | function | [service.md](service.md#speedslot-rpm) |
 | `SpeedSlot::SpeedSlot` | function | [service.md](service.md#speedslot-speedslot) |
 | `SpeedSlot::spinning` | function | [service.md](service.md#speedslot-spinning) |
@@ -5842,6 +5870,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TuningConfig` | type alias | [robot_config.md](robot_config.md#tuningconfig) |
 | `tuningProblem` | free function | [live_tuning.md](live_tuning.md#tuningproblem) |
 | `tuningRefusal` | free function | [live_tuning.md](live_tuning.md#tuningrefusal) |
+| `turnProgress` | free function | [leg_progress.md](leg_progress.md#turnprogress) |
 | `TurnTo` | class | [turn_to.md](turn_to.md#class-turnto) |
 | `TurnTo::cancel` | function | [turn_to.md](turn_to.md#turnto-cancel) |
 | `TurnTo::exitReason` | function | [turn_to.md](turn_to.md#turnto-exitreason) |

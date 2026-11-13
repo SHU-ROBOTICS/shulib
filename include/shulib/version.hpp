@@ -136,9 +136,17 @@ inline constexpr int kApiMajor = 2;
 /// (`CurveConfig`), appended last. No frozen member changed shape, no enumerator was added or moved;
 /// every 2.6 program compiles and runs exactly as before (a six-leg route of today's verbs hashes
 /// byte-identical, tank and X-drive). Nothing to do. docs/changelog.md, API 2.7, lists it.
-inline constexpr int kApiMinor = 7;
+/// 8 = chunk STEP1-B (2026-11-13; built 2026-11-11), triggers partway through a drive, by the additive
+/// paths of F6 and F10: `Chassis::moveTo(pose, options, LegObserver)` / `turnTo(heading, options,
+/// LegObserver)` and `chassis::LegObserver` (pinned; its member set additive-open), the Routine's
+/// partway-trigger arms `atPercent` / `afterDistance` / `afterTurning` and their handles (NOT pinned:
+/// they lead only to the mechanism START forms, which stay open), the new header motion/leg_progress.hpp.
+/// No frozen member changed shape, no enumerator was added or moved; a routine with no trigger runs
+/// exactly as before (STEP1-A's golden chains byte-identical). Nothing to do. docs/changelog.md, API
+/// 2.8, lists it.
+inline constexpr int kApiMinor = 8;
 
 /// "major.minor", for session headers / logs that want one printable token.
-inline constexpr const char* kApiVersionString = "2.7";
+inline constexpr const char* kApiVersionString = "2.8";
 
 }  // namespace shulib

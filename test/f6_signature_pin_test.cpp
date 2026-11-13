@@ -66,6 +66,7 @@ namespace {
 using shulib::chassis::Chassis;
 using shulib::chassis::ChassisConfig;
 using shulib::chassis::CurvePoint;
+using shulib::chassis::LegObserver;
 using shulib::chassis::MotionOptions;
 using shulib::chassis::TrajectoryResult;
 using shulib::control::ExitReason;
@@ -319,6 +320,14 @@ SHULIB_F6_PIN(F6MotionConfig<Chassis>,
 SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().moveTo(std::declval<const Pose2d&>(),
                                                        std::declval<const MotionOptions&>()),
                        "Chassis::moveTo");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().moveTo(std::declval<const Pose2d&>(),
+                                                       std::declval<const MotionOptions&>(),
+                                                       std::declval<LegObserver>()),
+                       "Chassis::moveTo (the observer overload, STEP1-B)");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().turnTo(std::declval<Angle>(),
+                                                       std::declval<const MotionOptions&>(),
+                                                       std::declval<LegObserver>()),
+                       "Chassis::turnTo (the observer overload, STEP1-B)");
 SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().strafeTo(std::declval<Length>(),
                                                          std::declval<Length>(),
                                                          std::declval<const MotionOptions&>()),
@@ -415,6 +424,36 @@ concept F6OptionsHeadingTolerance = requires {
 };
 SHULIB_F6_PIN(F6OptionsHeadingTolerance<MotionOptions>,
               "MotionOptions::headingTolerance : math::Angle (appended at STEP1-A)");
+
+// STEP1-B (2026-11-11): the leg OBSERVER — the two overloads and LegObserver's two members, pinned the
+// day they land (the STEP1 brief's D1, re-check #4: F6 pins them; motion::LegProgress, what the observer
+// receives, stays OPEN to new fields — no pin covers its field list). ADDED pins only — no pin above changed.
+template <typename C>
+concept F6MoveToObserved = requires {
+    static_cast<ExitReason (C::*)(const Pose2d&, const MotionOptions&, LegObserver)>(&C::moveTo);
+};
+SHULIB_F6_PIN(F6MoveToObserved<Chassis>,
+              "Chassis::moveTo(const Pose2d&, const MotionOptions&, LegObserver) -> ExitReason (appended at STEP1-B)");
+
+template <typename C>
+concept F6TurnToObserved = requires {
+    static_cast<ExitReason (C::*)(Angle, const MotionOptions&, LegObserver)>(&C::turnTo);
+};
+SHULIB_F6_PIN(F6TurnToObserved<Chassis>,
+              "Chassis::turnTo(Angle, const MotionOptions&, LegObserver) -> ExitReason (appended at STEP1-B)");
+
+template <typename T>
+concept F6LegObserverFn = requires {
+    requires std::is_same_v<decltype(T::fn), void (*)(void*, const shulib::motion::LegProgress&)>;
+};
+SHULIB_F6_PIN(F6LegObserverFn<LegObserver>,
+              "LegObserver::fn : void (*)(void* context, const motion::LegProgress&) (appended at STEP1-B)");
+
+template <typename T>
+concept F6LegObserverContext = requires { requires std::is_same_v<decltype(T::context), void*>; };
+SHULIB_F6_PIN(F6LegObserverContext<LegObserver>, "LegObserver::context : void* (appended at STEP1-B)");
+// (No pin on LegObserver's SHAPE: its two members are pinned the way MotionOptions' fields are, and its member
+// SET stays additive-open like theirs — this file's banner. STEP1-B's review fix round removed a shape pin.)
 
 template <typename T>
 concept F6OptionsValidate = requires {

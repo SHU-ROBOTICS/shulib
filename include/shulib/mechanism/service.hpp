@@ -829,18 +829,15 @@ public:
                                                      units::Time{spec.power.stall.time}});
         }
     }
-    /// Start running at `volts` (clamped to the declaration's maxVolts) until `until`, bounded by
-    /// `bound`. Returns at once; the service ticks it, and EVERY exit applies the declared safe state
-    /// and releases the claim. PRECONDITIONS (nothing is commanded when one fails — a condition that
-    /// can never be met is the team's mistake, said where it is made): `volts` finite; `bound` finite
-    /// and > 0; a time condition finite, > 0 and at most `bound` (shorter than it beside another
-    /// condition: `orAfter`); `seesPiece` / `stopsSeeingPiece` only on a mechanism whose DECLARATION
-    /// has a piece sensor, named on this robot; `stalls` only with a stated stall signature; one
-    /// mechanism's sensor (`!until.conflicting()`, and the step's own sensor beside a named one only
-    /// when the name is this mechanism's — `until.readsOwnSensorToo()`); a named mechanism has a name.
-    void run(units::Voltage volts, Until until, units::Time bound) {
-        // Every precondition BEFORE anything changes: a refused step commands nothing, takes no claim
-        // and bumps no command number (the brief's D7 — a condition that can never be met).
+    /// STEP1-B (the STEP1 brief's D8 (a)): run()'s preconditions, in run()'s order with run()'s
+    /// messages — every one of them, and nothing else. run() calls it first; a Routine's partway
+    /// trigger (`r.atPercent(60).startRun(...)`) calls it where the trigger is WRITTEN, so a trigger
+    /// written wrong throws on its own line, every run, whether or not the drive ever reaches its
+    /// mark. It reads only its arguments, this slot's declaration and the robot's list (peer()) —
+    /// never run state — so the answer at the trigger's line is the answer when it fires. A check a
+    /// later chunk adds to run() goes HERE, and triggers get it too. Returns the slot whose piece
+    /// sensor the condition reads (this one, or the named peer).
+    [[nodiscard]] const Slot* checkRun(units::Voltage volts, const Until& until, units::Time bound) const {
         SHULIB_PRECONDITION(std::isfinite(volts.value()), "r.run(...): the volts must be a finite number");
         SHULIB_PRECONDITION(std::isfinite(bound.value()) && bound.value() > 0.0,
                             "r.run(...): the time limit must be finite and above 0");
@@ -876,6 +873,22 @@ public:
                                 "r.run(...): its time (orAfter's) must be shorter than the step's time limit -- "
                                 "the time limit would always end it first");
         }
+        return sensor;
+    }
+    /// Start running at `volts` (clamped to the declaration's maxVolts) until `until`, bounded by
+    /// `bound`. Returns at once; the service ticks it, and EVERY exit applies the declared safe state
+    /// and releases the claim. PRECONDITIONS (nothing is commanded when one fails — a condition that
+    /// can never be met is the team's mistake, said where it is made): `volts` finite; `bound` finite
+    /// and > 0; a time condition finite, > 0 and at most `bound` (shorter than it beside another
+    /// condition: `orAfter`); `seesPiece` / `stopsSeeingPiece` only on a mechanism whose DECLARATION
+    /// has a piece sensor, named on this robot; `stalls` only with a stated stall signature; one
+    /// mechanism's sensor (`!until.conflicting()`, and the step's own sensor beside a named one only
+    /// when the name is this mechanism's — `until.readsOwnSensorToo()`); a named mechanism has a name.
+    void run(units::Voltage volts, Until until, units::Time bound) {
+        // Every precondition BEFORE anything changes: a refused step commands nothing, takes no claim
+        // and bumps no command number (the brief's D7 — a condition that can never be met). STEP1-B:
+        // they are checkRun()'s, so a partway trigger checks the SAME list where it is written.
+        const Slot* sensor = checkRun(volts, until, bound);
         const double t = now();
         if (!beginStep(bound.value(), t)) {
             return;
@@ -1110,6 +1123,18 @@ public:
         }
     }
 
+    /// STEP1-B (the STEP1 brief's D8 (a)): moveTo()'s preconditions, in moveTo()'s order with its
+    /// messages — every one of them, and nothing else (checkRun()'s rule: moveTo() calls it first, a
+    /// partway trigger calls it where it is written; it reads only its arguments and the declaration).
+    void checkMoveTo(double pos, units::Time bound, bool computed = true) const {
+        const PositionSpec& p = spec_->position;
+        SHULIB_PRECONDITION(std::isfinite(pos), "PositionSlot::moveTo: the target must be a finite number");
+        SHULIB_PRECONDITION(std::isfinite(bound.value()) && bound.value() > 0.0,
+                            "r.move(...): the time limit must be finite and above 0");
+        SHULIB_PRECONDITION(computed || (pos >= p.minPosition && pos <= p.maxPosition),
+                            "PositionSlot::moveTo: a CONSTANT target outside the travel limits (the build refuses "
+                            "these; a computed one is clamped -- clampedTo(x))");
+    }
     /// Move to `pos` (the mechanism's units) within `bound`, then HOLD there (file header). Before it
     /// has found its zero: NOT_HOMED, the safe state, nothing moves. A COMPUTED target past a travel
     /// limit is CLAMPED to it and logged once ("target 175.00 clamped to the travel limit 160.00 (soft
@@ -1118,12 +1143,7 @@ public:
     /// travel limits.
     void moveTo(double pos, units::Time bound, bool computed = true) {
         const PositionSpec& p = spec_->position;
-        SHULIB_PRECONDITION(std::isfinite(pos), "PositionSlot::moveTo: the target must be a finite number");
-        SHULIB_PRECONDITION(std::isfinite(bound.value()) && bound.value() > 0.0,
-                            "r.move(...): the time limit must be finite and above 0");
-        SHULIB_PRECONDITION(computed || (pos >= p.minPosition && pos <= p.maxPosition),
-                            "PositionSlot::moveTo: a CONSTANT target outside the travel limits (the build refuses "
-                            "these; a computed one is clamped -- clampedTo(x))");
+        checkMoveTo(pos, bound, computed);  // STEP1-B: the preconditions, shared with a partway trigger
         const double t = now();
         if (!beginStep(bound.value(), t)) {
             return;
@@ -1181,6 +1201,16 @@ public:
         stepStart_ = t;  // not a step: when this behaviour began (a stall's line counts from here)
         beginHold();
     }
+    /// STEP1-B (the STEP1 brief's D8 (a)): home()'s preconditions, in home()'s order with its messages
+    /// — every one of them, and nothing else (checkRun()'s rule).
+    void checkHome(units::Time bound) const {
+        const PositionSpec& p = spec_->position;
+        SHULIB_PRECONDITION(std::isfinite(bound.value()) && bound.value() > 0.0,
+                            "r.home(...): the time limit must be finite and above 0");
+        SHULIB_PRECONDITION(p.home != HomeMethod::None,
+                            "r.home(...): the mechanism is declared neverHomed -- it has no way to find its zero "
+                            "(give it .home = homeBySwitch / homeByStall / restsAtStop / absoluteSensor)");
+    }
     /// FIND ITS ZERO by the declaration's method, within `bound`: a homing push (`homeBySwitch`: until
     /// its switch is pressed on a fresh read; `homeByStall`: until its homing signature trips) — then
     /// SUCCEEDED, holding there, its zero logged; out of time TIMED_OUT, the safe state, the zero it
@@ -1194,11 +1224,7 @@ public:
     /// (`neverHomed` has no way to find its zero).
     void home(units::Time bound) {
         const PositionSpec& p = spec_->position;
-        SHULIB_PRECONDITION(std::isfinite(bound.value()) && bound.value() > 0.0,
-                            "r.home(...): the time limit must be finite and above 0");
-        SHULIB_PRECONDITION(p.home != HomeMethod::None,
-                            "r.home(...): the mechanism is declared neverHomed -- it has no way to find its zero "
-                            "(give it .home = homeBySwitch / homeByStall / restsAtStop / absoluteSensor)");
+        checkHome(bound);  // STEP1-B: the preconditions, shared with a partway trigger
         const double t = now();
         if (!beginStep(bound.value(), t)) {
             return;
@@ -1722,6 +1748,17 @@ public:
                                                      units::Time{spec.speed.stall.time}});
         }
     }
+    /// STEP1-B (the STEP1 brief's D8 (a)): spinUp()'s preconditions, in spinUp()'s order with its
+    /// messages — every one of them, and nothing else (checkRun()'s rule).
+    void checkSpinUp(double rpmGoal, units::Time bound, bool computed = true) const {
+        const SpeedSpec& q = spec_->speed;
+        SHULIB_PRECONDITION(std::isfinite(rpmGoal), "SpeedSlot::spinUp: the speed must be a finite number");
+        SHULIB_PRECONDITION(std::isfinite(bound.value()) && bound.value() > 0.0,
+                            "r.spinUp(...): the time limit must be finite and above 0");
+        SHULIB_PRECONDITION(computed || std::abs(rpmGoal) <= q.maxRpm,
+                            "SpeedSlot::spinUp: a CONSTANT speed past the free speed (the build refuses these; a "
+                            "computed one is clamped -- clampedTo(x))");
+    }
     /// Spin up to `rpm` (output rpm) within `bound`: SUCCEEDED once "at speed" (within the band for its
     /// time), and it KEEPS spinning; out of time TIMED_OUT, and it still spins (an unreachable speed is
     /// not a fault; a jam trips the stall signature). A COMPUTED speed past the free speed is CLAMPED
@@ -1730,12 +1767,7 @@ public:
     void spinUp(double rpmTarget, units::Time bound, bool computed = true) {
         const SpeedSpec& q = spec_->speed;
         double rpmGoal = rpmTarget;
-        SHULIB_PRECONDITION(std::isfinite(rpmGoal), "SpeedSlot::spinUp: the speed must be a finite number");
-        SHULIB_PRECONDITION(std::isfinite(bound.value()) && bound.value() > 0.0,
-                            "r.spinUp(...): the time limit must be finite and above 0");
-        SHULIB_PRECONDITION(computed || std::abs(rpmGoal) <= q.maxRpm,
-                            "SpeedSlot::spinUp: a CONSTANT speed past the free speed (the build refuses these; a "
-                            "computed one is clamped -- clampedTo(x))");
+        checkSpinUp(rpmGoal, bound, computed);  // STEP1-B: the preconditions, shared with a partway trigger
         const double t = now();
         if (!beginStep(bound.value(), t)) {
             return;

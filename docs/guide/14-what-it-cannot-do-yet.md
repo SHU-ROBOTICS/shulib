@@ -263,8 +263,11 @@ verbs), and this project freezes surfaces after a second consumer has stressed t
 And, since the mechanism core's fourth part, whether **the mechanism steps** (`r.move`, `r.run`,
 `r.set`, `r.spinUp`, `r.home`, `r.stop`, the START forms and `waitUntilDone`), **the second
 constructor** `Routine r{ctx, "name"}` and **`lastMechanism()`** join F10's freeze is **not yet
-ruled** — the register's F10 row gives both readings, and they are not pinned meanwhile. An auton
-that uses them may need an edit if their spelling moves before that ruling.
+ruled** — the register's F10 row gives both readings, and they are not pinned meanwhile. The
+partway triggers that lead to the START forms — **`atPercent`, `afterDistance`, `afterTurning`** and
+the two handles they return — are unpinned in the same way (and ride only the six drive and turn
+legs; `strafeTo` and `followTrajectory` take no trigger yet). An auton that uses any of them may need
+an edit if their spelling moves before that ruling.
 The [Freeze Register](../roadmap.md#freeze-register) remains the authority on what is and
 isn't stable (the coordinate conventions, units, accuracy targets, hardware interfaces,
 kinematics contract, both API tiers but for the pieces named above and — since 2026-09-18 —

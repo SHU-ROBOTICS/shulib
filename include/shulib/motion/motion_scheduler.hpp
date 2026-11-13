@@ -904,6 +904,13 @@ public:
     [[nodiscard]] int motionsCancelled() const noexcept { return cancelledCount_; }
     /// Fault-policy + task-boundary aborts (abortFault != None).
     [[nodiscard]] int motionsAborted() const noexcept { return abortedCount_; }
+    /// STEP1-B: the abort-mask fault raised since the ACTIVE motion started — the one the fault
+    /// policy cancels it for at the end of the tick now running (tick(): after a Running tick, the
+    /// same test) — or None: no motion, or none raised. Read-only. A watcher called inside the
+    /// motion's tick asks it to tell the tick that will END the motion from one that will not.
+    [[nodiscard]] diag::FaultCode pendingAbortFault() const noexcept {
+        return active_ != nullptr ? newlyRaisedAbortFault() : diag::FaultCode::None;
+    }
     /// Every motion that reached a boundary: settled + timed out + cancelled + aborted,
     /// a partition with no double counting. This is the number that tells a caller
     /// whether anything actually ran, which lastExitReason() cannot — it reads Settled

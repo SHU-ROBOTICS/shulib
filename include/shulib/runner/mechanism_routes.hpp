@@ -19,7 +19,8 @@
 // `intake_until_piece [12, 3000]` is `r.run(intake, 12_volt, seesPiece, 3_s)`, `claw_closed` is
 // `r.set(claw["closed"])`. The marker BLOCKS at its waypoint until the step's verdict (markers fire
 // only after a leg SETTLES — F8's ruling R2 — so a route marker never runs while driving; a step that
-// starts mid-leg is the mechanism core's later "triggers partway through a drive"). SUCCEEDED — and
+// starts mid-leg is a Routine's PARTWAY TRIGGER since STEP1-B, `r.atPercent(60).startMove(...).driveTo(...)`
+// (chassis/routine.hpp) — a Routine form only: route markers stay blocking, F8 unchanged). SUCCEEDED — and
 // UNCONFIRMED counted done (robot two's sensorless grab, the team lead's Q2 (c)) — continue the
 // route; every other verdict returns to the PathRunner, whose policy stops the route (MarkerFailed,
 // the verdict in its line). A flywheel's spin and an arm's hold go on after their marker (the service

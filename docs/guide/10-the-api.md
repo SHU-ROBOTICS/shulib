@@ -422,7 +422,31 @@ your own motion types). This is "Tier 3" in the project's
 in. Two things to know even if you never use it: it's the *same* one-motion-at-a-time slot the
 verbs use (an async motion and a verb pre-empt each other — that's a feature), and motions built
 from raw materials rather than `chassis.deps()` lose their id stamp in the diagnostics (records
-show `cmd#0`). Until you need it, you don't need it.
+show `cmd#0`). Until you need it, you don't need it. One step short of it: `moveTo(pose, options,
+observer)` and `turnTo(heading, options, observer)` run the same leg as the plain verbs and call a
+`chassis::LegObserver` — a function pointer and a context — after every tick that did not end the leg,
+with its progress (the distance along the straight line from its start, or the angle turned); it runs
+inside the tick, so it may not block, cancel or throw. It is how a recipe's partway triggers watch a
+drive ([Chapter 9](09-the-recipe-api.md#partway-through-a-drive-triggers)), and an observer that does
+nothing leaves the leg exactly as the plain verb runs it. From `guide-10i`:
+
+```cpp
+struct Halfway {
+    bool reached = false;
+    static void onTick(void* self, const shulib::motion::LegProgress& p) {  // inside the tick: no blocking
+        if (p.live && p.fraction >= 0.5) {
+            static_cast<Halfway*>(self)->reached = true;
+        }
+    }
+};
+shulib::control::ExitReason watchedDrive(shulib::chassis::Chassis& chassis, Halfway& halfway) {
+    const shulib::math::Pose2d target{40_in, 0_in, 0_deg};
+    return chassis.moveTo(target, {}, shulib::chassis::LegObserver{&Halfway::onTick, &halfway});
+}
+```
+
+It is never called on the tick that ends the leg — the motion's own last tick, or one the scheduler's
+fault policy ends (`scheduler().pendingAbortFault()` names that fault while the tick runs).
 
 ## The wall reset — one axis against a field wall
 

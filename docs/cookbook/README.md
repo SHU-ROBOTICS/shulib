@@ -29,7 +29,9 @@ Every recipe has the same four parts:
    every robot build compiles it, and
    [`test/robot_two_driver_test.cpp`](../../test/robot_two_driver_test.cpp) runs it on every
    build. Chapter 7's mechanism recipes are compiled and run in
-   [`test/mechanism_auton_example_test.cpp`](../../test/mechanism_auton_example_test.cpp), and
+   [`test/mechanism_auton_example_test.cpp`](../../test/mechanism_auton_example_test.cpp) (its
+   partway-trigger recipe in
+   [`test/routine_trigger_example_test.cpp`](../../test/routine_trigger_example_test.cpp)), and
    chapter 2's two on-failure recipes in
    [`test/routine_on_fail_example_test.cpp`](../../test/routine_on_fail_example_test.cpp).)
 3. **Why it is written this way** — the reasoning, so you can change it safely.
@@ -104,6 +106,7 @@ so it cannot disagree with the code.
 | Recipe | Use this when |
 |---|---|
 | [An arm with presets, held while the robot drives](07-mechanisms.md#an-arm-with-presets-held-while-the-robot-drives) | An arm or a lift must get to a height and stay there while the robot drives |
+| [Start the lift partway through a drive](07-mechanisms.md#start-the-lift-partway-through-a-drive) | A mechanism should start partway along a drive — not before it, not after it |
 
 ---
 

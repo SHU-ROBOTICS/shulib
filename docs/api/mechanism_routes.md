@@ -36,7 +36,7 @@ inline constexpr std::size_t kMechanismRouteDocBytes = 112
 
 The longest doc one derived id carries, bytes (NUL included) — "intake: run until the piece is gone; args[0] = volts, args[1] = time limit, ms" with a 23-character name fits with room.
 
-*constant, declared at [`include/shulib/runner/mechanism_routes.hpp:61`](../../include/shulib/runner/mechanism_routes.hpp#L61).*
+*constant, declared at [`include/shulib/runner/mechanism_routes.hpp:62`](../../include/shulib/runner/mechanism_routes.hpp#L62).*
 
 <a id="class-mechanismroutes"></a>
 
@@ -48,7 +48,7 @@ class MechanismRoutes
 
 One robot's mechanism route ids, bound to its chassis and mechanism service (file header). ONE lives in the program's static storage beside its registry (the registry keeps pointers into it); register after the service is bound. Non-copyable and non-movable for the same reason.
 
-*class, declared at [`include/shulib/runner/mechanism_routes.hpp:66`](../../include/shulib/runner/mechanism_routes.hpp#L66).*
+*class, declared at [`include/shulib/runner/mechanism_routes.hpp:67`](../../include/shulib/runner/mechanism_routes.hpp#L67).*
 
 <a id="mechanismroutes-mechanismroutes"></a>
 
@@ -60,7 +60,7 @@ MechanismRoutes(chassis::Chassis& chassis, mechanism::MechanismService& service,
 
 Derive `robot`'s ids (routeIdsOf — the build already refused a list whose ids cannot be published) and write each one's doc. Borrows all four: they must outlive this object (static storage in a program). Registers nothing — registerInto() does.
 
-*function, declared at [`include/shulib/runner/mechanism_routes.hpp:71`](../../include/shulib/runner/mechanism_routes.hpp#L71).*
+*function, declared at [`include/shulib/runner/mechanism_routes.hpp:72`](../../include/shulib/runner/mechanism_routes.hpp#L72).*
 
 <a id="mechanismroutes-mechanismroutes-2"></a>
 
@@ -72,7 +72,7 @@ MechanismRoutes(const MechanismRoutes&) = delete
 
 Non-copyable: the registry holds pointers into this object.
 
-*function, declared at [`include/shulib/runner/mechanism_routes.hpp:81`](../../include/shulib/runner/mechanism_routes.hpp#L81).*
+*function, declared at [`include/shulib/runner/mechanism_routes.hpp:82`](../../include/shulib/runner/mechanism_routes.hpp#L82).*
 
 <a id="mechanismroutes-operator-eq"></a>
 
@@ -84,7 +84,7 @@ MechanismRoutes& operator=(const MechanismRoutes&) = delete
 
 Non-copyable: the registry holds pointers into this object. Non-copy-assignable (the copy constructor's reason).
 
-*function, declared at [`include/shulib/runner/mechanism_routes.hpp:83`](../../include/shulib/runner/mechanism_routes.hpp#L83).*
+*function, declared at [`include/shulib/runner/mechanism_routes.hpp:84`](../../include/shulib/runner/mechanism_routes.hpp#L84).*
 
 <a id="mechanismroutes-mechanismroutes-3"></a>
 
@@ -96,7 +96,7 @@ MechanismRoutes(MechanismRoutes&&) = delete
 
 Non-copyable: the registry holds pointers into this object. Non-copy-assignable (the copy constructor's reason). Non-movable (the copy constructor's reason).
 
-*function, declared at [`include/shulib/runner/mechanism_routes.hpp:85`](../../include/shulib/runner/mechanism_routes.hpp#L85).*
+*function, declared at [`include/shulib/runner/mechanism_routes.hpp:86`](../../include/shulib/runner/mechanism_routes.hpp#L86).*
 
 <a id="mechanismroutes-operator-eq-2"></a>
 
@@ -108,7 +108,7 @@ MechanismRoutes& operator=(MechanismRoutes&&) = delete
 
 Non-copyable: the registry holds pointers into this object. Non-copy-assignable (the copy constructor's reason). Non-movable (the copy constructor's reason). Non-move-assignable (the copy constructor's reason).
 
-*function, declared at [`include/shulib/runner/mechanism_routes.hpp:87`](../../include/shulib/runner/mechanism_routes.hpp#L87).*
+*function, declared at [`include/shulib/runner/mechanism_routes.hpp:88`](../../include/shulib/runner/mechanism_routes.hpp#L88).*
 
 <a id="mechanismroutes-destructor-mechanismroutes"></a>
 
@@ -120,7 +120,7 @@ Non-copyable: the registry holds pointers into this object. Non-copy-assignable 
 
 Non-copyable: the registry holds pointers into this object. Non-copy-assignable (the copy constructor's reason). Non-movable (the copy constructor's reason). Non-move-assignable (the copy constructor's reason). Nothing to release.
 
-*function, declared at [`include/shulib/runner/mechanism_routes.hpp:89`](../../include/shulib/runner/mechanism_routes.hpp#L89).*
+*function, declared at [`include/shulib/runner/mechanism_routes.hpp:90`](../../include/shulib/runner/mechanism_routes.hpp#L90).*
 
 <a id="mechanismroutes-registerinto"></a>
 
@@ -132,7 +132,7 @@ void registerInto(CommandRegistry& registry)
 
 THE ONE CALL: every id into `registry`, in the list's order, each with its doc and its arg count. PRECONDITIONS: this robot's ids can be published (the build refuses a list whose ids cannot, so a hand-built table is the only way here); and the registry's own — room for every id, and none already registered (calling this twice is a duplicate).
 
-*function, declared at [`include/shulib/runner/mechanism_routes.hpp:95`](../../include/shulib/runner/mechanism_routes.hpp#L95).*
+*function, declared at [`include/shulib/runner/mechanism_routes.hpp:96`](../../include/shulib/runner/mechanism_routes.hpp#L96).*
 
 <a id="mechanismroutes-ids"></a>
 
@@ -144,7 +144,7 @@ THE ONE CALL: every id into `registry`, in the list's order, each with its doc a
 
 The ids, as derived (routeIdsOf).
 
-*function, declared at [`include/shulib/runner/mechanism_routes.hpp:104`](../../include/shulib/runner/mechanism_routes.hpp#L104).*
+*function, declared at [`include/shulib/runner/mechanism_routes.hpp:105`](../../include/shulib/runner/mechanism_routes.hpp#L105).*
 
 <a id="mechanismroutes-doc"></a>
 
@@ -156,14 +156,14 @@ The ids, as derived (routeIdsOf).
 
 Id `i`'s doc, as the manifest publishes it. PRECONDITION: `i` below ids().count.
 
-*function, declared at [`include/shulib/runner/mechanism_routes.hpp:106`](../../include/shulib/runner/mechanism_routes.hpp#L106).*
+*function, declared at [`include/shulib/runner/mechanism_routes.hpp:107`](../../include/shulib/runner/mechanism_routes.hpp#L107).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 36 lines</summary>
+<summary>The header’s own reasoning — 37 lines</summary>
 
 ```text
 
@@ -186,7 +186,8 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  `intake_until_piece [12, 3000]` is `r.run(intake, 12_volt, seesPiece, 3_s)`, `claw_closed` is
  `r.set(claw["closed"])`. The marker BLOCKS at its waypoint until the step's verdict (markers fire
  only after a leg SETTLES — F8's ruling R2 — so a route marker never runs while driving; a step that
- starts mid-leg is the mechanism core's later "triggers partway through a drive"). SUCCEEDED — and
+ starts mid-leg is a Routine's PARTWAY TRIGGER since STEP1-B, `r.atPercent(60).startMove(...).driveTo(...)`
+ (chassis/routine.hpp) — a Routine form only: route markers stay blocking, F8 unchanged). SUCCEEDED — and
  UNCONFIRMED counted done (robot two's sensorless grab, the team lead's Q2 (c)) — continue the
  route; every other verdict returns to the PathRunner, whose policy stops the route (MarkerFailed,
  the verdict in its line). A flywheel's spin and an arm's hold go on after their marker (the service

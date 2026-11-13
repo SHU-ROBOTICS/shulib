@@ -469,6 +469,19 @@ worth recognizing on sight:
   nothing because it named another robot's mechanism (a different kind or units, or a preset or
   position this robot's mechanism of that name lacks), and the routine carried on past it,
   reads `mechanism NOT STARTED (its start did nothing: another robot's declaration)`.
+- **A partway trigger** (tag `RTN`, [Ch. 9](09-the-recipe-api.md#partway-through-a-drive-triggers)): a drive
+  whose trigger's START was refused when it fired ends, after the drive, with `... (driveTo): mechanism
+  step FAILED (NOT_HOMED: its trigger at 60 % on 'lift')` (or `ABSENT` / `REFUSED`; the mechanism's own
+  `MECH` line says why; with two refused, the first refused is named; a START given a name reads
+  `its trigger 'raise' at 60 % on 'lift'`) — the drive itself ran to its end; a drive that failed on its own keeps its own
+  word and names the refusal in brackets, `motion TIMEOUT (its trigger at 10 % on 'lift' was NOT_HOMED)`.
+  `step 1 (driveTo): trigger after 50.0 in on 'lift' did not fire: the drive was 40.0 in` (Warn) — the
+  mark was past the end of the drive, so the drive arrived without reaching it. A later wait on a
+  mechanism whose trigger never fired reads `mechanism NOT STARTED (the trigger never fired: the robot
+  did not reach the mark)` (or `... its drive was skipped`). `routine 'x': 1 trigger(s) armed but no
+  drive followed: they never fired` (Warn) — a trigger line with no drive after it ended the auton
+  (`... a trigger's mark was written but no start and no drive followed: it never fired`, for a line
+  that ended at its mark).
 - **A routine stopped by a mechanism step** (Warn, tag `RTN`): `routine 'score-three' STOPPED at step 4
   (intake): mechanism step FAILED (TIMED_OUT) — skipping the rest; drive safed` — the step's verdict in
   the brackets (its own `MECH` line above says why), the rest of the auton skipped

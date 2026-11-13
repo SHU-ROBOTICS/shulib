@@ -197,10 +197,36 @@
 // bound in proportion (motion::loosenedSettle — the speed bound is what ends a
 // drive leg, so a distance alone would change nothing).
 //
+// ═══ The leg OBSERVER (chunk STEP1-B, 2026-11-11; F6-additive) ═══════════════════════
+// moveTo / turnTo each have a third-argument overload taking a LegObserver: a
+// function pointer and a context (no heap — runner::Handler's pattern) called
+// ONCE after every tick of the leg that did NOT end it, with the leg's progress
+// (motion/leg_progress.hpp: the distance along the straight line from its live
+// start, or the angle turned — the STEP1 brief's D7 (a)). It is how a Routine's
+// partway trigger ("at 60 % of this drive, start the lift") watches a drive, and
+// the Tier-3 spelling of the same thing (a recipe is never the only way). The
+// overload builds EXACTLY the motion the plain verb builds and runs it inside a
+// private decorator IMotion that forwards every member — name() included, so the
+// records and lastCompleted() say "MoveToPose" / "TurnTo" as ever — through the
+// SAME runBlocking (waitUntilSettled: no trailing pace after the exit tick; a
+// waitUntil-built observer paces once more and is not bit-identical — the brief's
+// probe P5). An observer that does nothing leaves the leg bit-identical to the
+// plain verb. The observer is never called on the exit tick or after it — the
+// motion's own exit tick, nor a Running tick the scheduler's fault policy ends
+// (an abort-mask fault raised since the leg started: MotionScheduler::
+// pendingAbortFault(), the scheduler's own test) — and is called with `live`
+// false through the boot wait. It runs INSIDE the scheduler's
+// tick: it must not call a blocking verb, async() or cancel() (the scheduler's
+// own preconditions refuse them there), and it must not throw — a
+// PreconditionError out of it is the scheduler's task-boundary catch (the leg
+// ends Cancelled with FaultCode::Precondition), so an observer that can fail
+// catches its own (the Routine's trigger does: chassis/routine.hpp, B7).
+//
 // Single-task by contract, like everything it composes. Not copyable/movable
 // (it owns the scheduler, which is pinned by its self-referential stamp).
 
 #include <cmath>
+#include <cstdint>
 #include <initializer_list>
 #include <span>
 #include <utility>
@@ -219,6 +245,7 @@
 #include "shulib/motion/curve_path.hpp"
 #include "shulib/motion/drive_brake.hpp"
 #include "shulib/motion/hold_pose.hpp"
+#include "shulib/motion/leg_progress.hpp"
 #include "shulib/motion/motion.hpp"
 #include "shulib/motion/motion_config.hpp"
 #include "shulib/motion/motion_scheduler.hpp"
@@ -341,6 +368,19 @@ struct TrajectoryResult {
     }
 };
 
+/// STEP1-B: what a moveTo / turnTo OBSERVER overload calls after every tick of the leg that did not
+/// end it — neither the motion's exit tick nor one the scheduler's fault policy ends (the file banner's
+/// "leg OBSERVER"): `fn(context, progress)`. A plain function pointer and a
+/// context pointer — no heap, no std::function (runner::Handler's pattern). `fn` null = no observer
+/// (the leg runs exactly as the plain verb). It runs INSIDE the scheduler's tick: no blocking verb,
+/// no async() or cancel(), and it must not throw (the banner says why).
+struct LegObserver {
+    /// Called once per non-exit tick with the leg's progress; null = nothing is called.
+    void (*fn)(void* context, const motion::LegProgress& progress) = nullptr;
+    /// Handed back to `fn` untouched (the caller's object, borrowed for the leg).
+    void* context = nullptr;
+};
+
 /// The public facade every autonomous routine is written against: the blocking
 /// motion verbs, the frame-explicit manual verb, control, state, and the Tier-3
 /// seam — over one owned MotionScheduler. FROZEN (register row F6, locked
@@ -404,6 +444,30 @@ public:
         motion::TurnTo m{sched_.deps(), heading, effectiveConfig(options),
                          options.timeout.value()};
         return runBlocking(m);
+    }
+
+    /// STEP1-B: moveTo, WATCHED — the same motion, run the same way, with `observer` called after
+    /// every tick that did not end the leg, given the distance covered along the straight line from
+    /// the leg's live start to `target` (the file banner's "leg OBSERVER"). A null `observer.fn`:
+    /// exactly moveTo(target, options). (F6-additive, pinned; a Routine's partway triggers ride it.)
+    control::ExitReason moveTo(const math::Pose2d& target, const MotionOptions& options, LegObserver observer) {
+        options.validate();
+        const motion::MotionConfig cfg = effectiveConfig(options);
+        motion::MoveToPose m{sched_.deps(), target, cfg, options.timeout.value()};
+        ObservedLeg leg{m, sched_, observer, cfg, ObservedLeg::Kind::Drive, target};
+        return runBlocking(leg);
+    }
+
+    /// STEP1-B: turnTo, WATCHED — as the moveTo overload above, the progress being the angle turned
+    /// toward `heading` since the turn's live start (the short way, as turnTo turns). A null
+    /// `observer.fn`: exactly turnTo(heading, options). (F6-additive, pinned.)
+    control::ExitReason turnTo(math::Angle heading, const MotionOptions& options, LegObserver observer) {
+        options.validate();
+        const motion::MotionConfig cfg = effectiveConfig(options);
+        motion::TurnTo m{sched_.deps(), heading, cfg, options.timeout.value()};
+        ObservedLeg leg{m, sched_, observer, cfg, ObservedLeg::Kind::Turn,
+                        math::Pose2d{units::Length{0.0}, units::Length{0.0}, heading}};
+        return runBlocking(leg);
     }
 
     /// Chain `waypoints` as sequential moveTo legs, settling at each; stop at
@@ -671,6 +735,69 @@ private:
 
     private:
         motion::MotionScheduler* sched_;
+    };
+
+    /// STEP1-B: the observer overloads' decorator — an IMotion that IS the inner motion to the
+    /// scheduler (every member forwarded; name() too, so records and lastCompleted() keep "MoveToPose"
+    /// / "TurnTo") and, after each inner tick that returned Running, calls the observer ONCE with the
+    /// progress computed from the pose that tick used (the scheduler advances the localizer BEFORE the
+    /// tick and nothing moves it until the next one). Never on the exit tick, never after it — and
+    /// never on a Running tick the scheduler is about to END by its fault policy (an abort-mask fault
+    /// raised since the leg started, latched before the tick or raised inside it: the scheduler
+    /// cancels the motion right after this tick returns, on the same test,
+    /// MotionScheduler::pendingAbortFault(); nothing between the two can raise one). The
+    /// start pose is captured at the inner motion's first LIVE tick (its state turns Running there —
+    /// the boot wait reports WaitingForEstimate), and start() re-arms the capture with the motion.
+    class ObservedLeg final : public motion::IMotion {
+    public:
+        enum class Kind : std::uint8_t { Drive, Turn };
+        ObservedLeg(motion::IMotion& inner, const motion::MotionScheduler& sched, LegObserver observer,
+                    const motion::MotionConfig& cfg, Kind kind, const math::Pose2d& target) noexcept
+            : inner_{&inner}, sched_{&sched}, observer_{observer}, kind_{kind}, target_{target},
+              positionTolerance_{units::Length{cfg.translationSettle.maxError}},
+              headingToleranceRad_{cfg.headingSettle.maxError} {}
+        void start() override {
+            inner_->start();
+            captured_ = false;
+        }
+        [[nodiscard]] control::ExitReason tick() override {
+            const control::ExitReason r = inner_->tick();
+            if (r != control::ExitReason::Running || observer_.fn == nullptr) {
+                return r;  // the exit tick (or no observer): nothing is called
+            }
+            if (sched_->pendingAbortFault() != diag::FaultCode::None) {
+                return r;  // the scheduler ends the leg after THIS tick (its fault abort): an exit tick too
+            }
+            motion::LegProgress p{};
+            if (inner_->state() == motion::MotionState::Running) {
+                const math::Pose2d pose = sched_->deps().localizer->pose();
+                if (!captured_) {
+                    start_ = pose;
+                    captured_ = true;
+                }
+                p = kind_ == Kind::Drive ? motion::legProgressAlong(start_, target_, pose)
+                                         : motion::turnProgress(start_.heading(), target_.heading(), pose.heading());
+            }
+            p.positionTolerance = positionTolerance_;
+            p.headingToleranceRad = headingToleranceRad_;
+            observer_.fn(observer_.context, p);
+            return r;
+        }
+        void cancel() override { inner_->cancel(); }
+        [[nodiscard]] control::ExitReason exitReason() const noexcept override { return inner_->exitReason(); }
+        [[nodiscard]] motion::MotionState state() const noexcept override { return inner_->state(); }
+        [[nodiscard]] const char* name() const noexcept override { return inner_->name(); }
+
+    private:
+        motion::IMotion* inner_;
+        const motion::MotionScheduler* sched_;
+        LegObserver observer_;
+        Kind kind_;
+        math::Pose2d target_;
+        units::Length positionTolerance_;
+        double headingToleranceRad_;
+        math::Pose2d start_{};
+        bool captured_ = false;
     };
 
     /// async + waitUntilSettled, exception-safe (DetachGuard above). The

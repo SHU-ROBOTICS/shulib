@@ -38,8 +38,8 @@
 // (runner/mechanism_routes.hpp) — each marker blocks through a Routine step until its
 // verdict, and what goes on after it (an arm's hold, a flywheel's spin) is the mechanism
 // service's, which ticks every mechanism inside every shulib wait. A step that must start
-// mid-leg is the mechanism core's later work ("triggers partway through a drive"); for an
-// F1 operation the idiom is unchanged: a handler that STARTS it and a later marker that
+// mid-leg is a Routine's partway trigger since STEP1-B (chassis/routine.hpp; route markers stay
+// blocking, F8 unchanged); for an F1 operation the idiom is unchanged: a handler that STARTS it and a later marker that
 // confirms it (manipulation/mechanism_op.hpp).
 //
 // ── A doc per id (chunk MECH-A4, F8-additive) ───────────────────────────────────────

@@ -656,7 +656,9 @@ the next line (a drive) runs WHILE the mechanism works; `r.waitUntilDone(intake,
 step's verdict later (at once if it is already over). On the host test plant robot x's arm held 95° within
 1.16° through a 1.8 s, 40 in drive, its intake — started before the drive — stopped on its sensor at
 T+2.00 s while the drive was still running, its lift and flywheel reached 9.7 in and 3000 rpm during
-the same drive, and the service ticked exactly once per pace (180 paces, 180 ticks).
+the same drive, and the service ticked exactly once per pace (180 paces, 180 ticks). A START can also wait for a mark
+partway through the drive — `r.atPercent(60).startMove(lift["high"], 5_s).driveTo(40_in, 0_in)` starts the lift
+24 in into a 40 in drive ([Chapter 9's partway triggers](09-the-recipe-api.md#partway-through-a-drive-triggers)).
 
 **The verdicts, and what each does to the chain:** SUCCEEDED goes on; **UNCONFIRMED counted done** — no
 sensor exists to confirm it, like robot two's sensorless claw — goes on (the team lead's ruling);

@@ -30,6 +30,9 @@
 > and it was **pinned the day it landed**, because the route maker generates code against it.
 > And with chunk CURVE1 (after 2.6), two more **steps** were appended in one block, `curveTo` and
 > `reverseCurveTo` ([below](#the-steps)), pinned the day they landed, nothing else changing shape.
+> Partway triggers came after them (at 2.8), the same additive way (`atPercent`, `afterDistance`, `afterTurning` —
+> [below](#partway-through-a-drive-triggers)), and they are **not pinned**: they lead only to the
+> mechanism START forms, which stay open.
 > **Not frozen:** `then()`, deliberately — and, until a decision still open, the mechanism steps,
 > the second constructor and `lastMechanism()` (the Freeze Register's F10 row gives both readings;
 > they are not pinned meanwhile). `then()` is the seam mechanisms plug
@@ -47,7 +50,9 @@ The code in this chapter is compiled and run in
 [`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp), cases `guide-09a`
 through `guide-09d`, and the on-failure section's in
 [`test/routine_on_fail_example_test.cpp`](../../test/routine_on_fail_example_test.cpp), case
-`guide-09e`. The fine print lives in the header,
+`guide-09e`, and the partway triggers' in
+[`test/routine_trigger_example_test.cpp`](../../test/routine_trigger_example_test.cpp), case
+`guide-09f`. The fine print lives in the header,
 [`include/shulib/chassis/routine.hpp`](../../include/shulib/chassis/routine.hpp), whose
 opening commentary — like `chassis.hpp`'s — is meant to be read.
 
@@ -289,6 +294,94 @@ loosens **both, in proportion**: 2 in means "within 2 in and slower than 4 in/s"
 test plant the 40 in drive takes 1.80 s with the robot's own numbers and 1.35 s within 2 in. A
 tolerance tighter than the robot's own tightens only the distance. The leg can end with the robot
 still rolling a little; how far a real robot coasts after that has not been measured yet.
+
+## Partway through a drive: triggers
+
+A START form (`startMove`, `startHome`, `startRun`, `startSpinUp` —
+[Chapter 18](18-mechanisms.md#in-an-auton--one-line-per-step)) runs a mechanism while the next drive
+goes on. A **trigger** waits to start it until the robot is partway through that drive: "at 60 % of
+this drive, start raising the lift". From `guide-09f`:
+
+```cpp
+RoutineResult partway(AutonContext& ctx) {
+    Routine r{ctx, "partway"};
+    r.afterTurning(45_deg).startSpinUp(flywheel["shoot"], 2_s).turnTo(90_deg);
+    r.atPercent(60).startMove(lift["high"], 5_s)          // at 24 in of the 40, the lift starts up
+     .afterDistance(10_in).startRun(intake, 12_volt, seesPiece.orAfter(2_s), 3_s)
+     .driveTo(0_in, 40_in);
+    r.waitUntilDone(intake, 2_s);
+    r.waitUntilDone(lift, 3_s);
+    r.waitUntilDone(flywheel, 1_s);
+    return r.result();
+}
+```
+
+One line is a mark, a START, and the drive it rides: `r.atPercent(60).startMove(...).driveTo(...)`.
+The drive is one of six: `driveTo`, `reverseTo` and `moveTo`, or the turns `turnTo`, `face` and
+`faceAway`. `strafeTo` and `followTrajectory` do not take triggers yet. Up to four triggers ride one
+drive, each on a different mechanism. `waitUntilDone` collects a trigger's
+step after the drive, exactly as it collects a start form's.
+
+**The three marks.**
+
+- **`atPercent(p)`** — `p` % of the drive, above 0 and at most 100. On a drive, "60 %" is the
+  distance covered **along the straight line** from where the drive started to its target — not the
+  distance still to go (a robot that starts off its line would gain "progress" by sliding sideways)
+  and not the path its wheels travelled. On a turn it is the share of the angle turned. Any of the six.
+- **`afterDistance(d)`** — `d` along that same line: a **drive's** mark (`driveTo`, `reverseTo`,
+  `moveTo`). Above 0.
+- **`afterTurning(a)`** — `a` turned toward the target, the short way: a **turn's** mark (`turnTo`,
+  `face`, `faceAway`). Above 0. It is an angle, so it is wrapped: `270_deg` reads as −90° and is
+  refused (a turn never turns more than 180°).
+
+A mark of the wrong kind does not compile: `afterDistance(...)` before a `turnTo`, or
+`afterDistance` and `afterTurning` on one drive, stops the build with a sentence that says why. So
+does a blocking step after a mark (`.move`, `.run`, `.set`): a trigger only **starts** a step.
+
+**When it fires.** Once, on the first tick the robot reaches the mark. Never before the drive has a
+live position, never on the tick the drive ends (an aborting fault such as `ODO_STUCK` included), and
+never once the auton's time is up — not even as a drive arrives on the deadline itself. Two cases
+need a word:
+
+- **A drive that arrives just short.** A drive ends when it is within its arrival tolerance, not at
+  the exact end — on the host test plant the 40 in drive stops 0.24 in short, at 99.4 %. So a drive
+  that **arrives** fires each trigger still waiting **as it arrives**, if the mark is **on the
+  drive**: a percent always; a distance or an angle no further than the drive's length (or angle) plus
+  its arrival tolerance. `afterDistance(40_in)` fires on that 40 in drive; `afterDistance(50_in)` never
+  does, and the routine says so (`trigger after 50.0 in on 'lift' did not fire: the drive was 40.0
+  in`).
+- **A drive that ends any other way** — timed out, cancelled, cut by the deadline, skipped after a
+  stop or jumped by a skip — fires nothing it had not fired already.
+
+A trigger that never fired is not a crash later: a `waitUntilDone` on its mechanism **fails,
+counted**, as `MechanismNotStarted` ("the trigger never fired: the robot did not reach the mark"),
+under the wait's own `onFail` choice — never an older step's verdict on that mechanism.
+
+**A trigger is part of its drive.** It adds no step: the drive is recorded once, after it returns.
+If a trigger's START is refused when it fires — the mechanism was not built this boot, it is not on
+this robot, another owner holds it, or it is not homed — the drive is **not** interrupted. It runs to
+its own end, and then the drive step fails (`MechanismStepFailed`, with that verdict, under the drive
+step's own `onFail` choice). With two refused, the drive's line names the one that was refused
+**first**. The name a START takes last (`startMove(lift["high"], 2_s, "raise")`) names the trigger in
+those lines: `its trigger 'raise' at 60 % on 'lift'`.
+
+**A trigger written wrong is caught on its own line, every run.** The START's arguments go through the
+mechanism's own checks where you write the trigger — the same checks its blocking step runs. So
+`startRun(intake, 12_volt, seesPiece, 2_s)` on a mechanism with no piece sensor throws at that line
+on the bench, even on a run whose drive stops before the mark.
+
+**The rules for writing one.** `onFail` and `label` go **before** the mark and apply to the drive:
+`r.onFail(carryOn).label("lift").atPercent(60).startMove(...).driveTo(...)`. Between the mark and the
+drive, nothing else may be called on the routine — a trigger line that ends without its drive (or at
+its mark, with no START) is a mistake the compiler warns about (an error in the project's own builds),
+the next step on the routine refuses, and a routine that ends with one still waiting logs a `Warn`
+saying it never fired. Keep the line whole: a handle kept in a variable drives once, and only the line
+that made it. A
+trigger is a recipe step; the same thing one tier down is `chassis.moveTo(pose, options, observer)`
+([Chapter 10](10-the-api.md)).
+
+Nothing about triggers has run on a robot. How soon after the mark a real mechanism starts moving,
+and how close the position estimate's "arrived" is to the tape, are unmeasured.
 
 ## Tank drives, and the no-cliff rule
 

@@ -14,6 +14,70 @@
 > after the fact from those comments and the project records; everything above it was
 > written when the change landed.
 
+## API 2.8
+
+### 2026-11-13 (built 2026-11-11) — triggers partway through a drive: "at 60 % of this drive, start raising the lift"
+
+> Written when it was built (chunk STEP1-B, the route maker's library half, part B). **API 2.8** — every
+> change is ADDITIVE, on the additive paths of F6 and F10, so the minor goes up (numbered by the coordinator at the merge). **Every 2.6
+> program compiles and runs exactly as before:** nothing that exists changed shape or behaviour — a drive
+> with no trigger takes the same path it always took, and the new observer overloads, unused, leave a
+> leg bit-identical to the plain verb (every pace's pose, the exit tick and the record compared exactly,
+> on two host test plants). **Host only — nothing here has run on a robot;** how soon after its mark a
+> real mechanism starts (A4: HA-217) and how close the estimate's "arrived" is to the tape (HA-218) are
+> unmeasured. [Chapter 9](guide/09-the-recipe-api.md#partway-through-a-drive-triggers) teaches it;
+> [cookbook 7](cookbook/07-mechanisms.md#start-the-lift-partway-through-a-drive) has the recipe.
+
+**ADDED (Freeze Register row F10's additive path — NOT pinned: the trigger words stay OPEN, like the
+mechanism START forms they lead to, the team lead's D1):**
+
+- **`Routine::atPercent(p)`**, **`afterDistance(d)`**, **`afterTurning(a)`** — a mark on the NEXT leg (one
+  of six: `driveTo`, `reverseTo`, `moveTo`, `turnTo`, `face`, `faceAway`; `strafeTo` and
+  `followTrajectory` take no trigger yet), followed by one of the four START forms (`startMove`, `startHome`, `startRun`, `startSpinUp`) and
+  then the leg: `r.atPercent(60).startMove(lift["high"], 5_s).driveTo(40_in, 0_in)`. Up to four per leg,
+  each on a different mechanism. "60 %" is the distance covered along the straight line from the leg's
+  live start to its target (the angle turned, on a turn); `afterDistance` is a drive's mark,
+  `afterTurning` a turn's — the wrong kind does not compile, nor does a blocking step after a mark. A
+  trigger fires ONCE, the first tick its mark is reached — never before the leg is live, never on the
+  tick that ends it (a fault abort's included), never once the run guard's time is up (an arrival on
+  the deadline tick included). A leg that ARRIVES fires each trigger still
+  waiting whose mark is ON the leg (no further than its length plus its arrival tolerance); a leg that
+  ends any other way fires none. An unfired trigger's later `waitUntilDone` answers
+  `MechanismNotStarted` ("the trigger never fired"), never a throw or an older verdict. A trigger is part
+  of its drive step (it counts no step); a START refused when it fires (ABSENT, REFUSED, NOT_HOMED) never
+  interrupts the drive — the drive step then fails, under its own `onFail` choice, naming the trigger
+  refused FIRST (a START's `name`, if given, names the trigger in that line). A trigger written
+  wrong throws on its own line, every run (the mechanism's own checks, below). Two handle types,
+  `Routine::TriggerMark<Kinds>` and `Routine::ArmedLeg<Kinds>`, both `[[nodiscard]]`; a handle acts
+  only for the line that made it (kept and used later, it is refused); a line that ends at its mark or
+  without its drive is refused by the next call, and a Routine destroyed with one still pending logs
+  one Warn.
+- **`mechanism::PowerSlot::checkRun`**, **`PositionSlot::checkMoveTo`** / **`checkHome`**,
+  **`SpeedSlot::checkSpinUp`** — each start command's precondition list, moved out of the command
+  unchanged (same checks, same order, same messages) so a trigger runs the SAME list where it is
+  written. The commands call them first; behaviour is unchanged.
+- **`motion::LegProgress`**, **`motion::legProgressAlong`**, **`motion::turnProgress`**
+  (`motion/leg_progress.hpp`, pure) — a leg's progress as a trigger reads it. `LegProgress` stays open
+  to new fields.
+
+**ADDED (Freeze Register row F6, the additive path; pinned the day they landed):**
+
+- **`Chassis::moveTo(pose, options, LegObserver)`** and **`Chassis::turnTo(heading, options,
+  LegObserver)`**, and **`chassis::LegObserver`** (`fn` and `context`) — the same leg as the plain
+  verb, with an observer called after every tick that did not end it (nor one the scheduler's fault
+  abort ends). The Tier-3 spelling of what a trigger does; it runs inside the tick (no blocking, no
+  cancel, no throw).
+
+**ADDED (outside F6 — the scheduler's own surface, reached through `scheduler()`):**
+**`motion::MotionScheduler::pendingAbortFault()`** — the abort-mask fault raised since the active motion
+started (the one its fault policy cancels it for at the end of the running tick), or `None`. Read-only;
+the observer overloads ask it so a watcher is never called on a tick the fault abort ends.
+
+**CHANGED (comment only):** `runner/mechanism_routes.hpp` says a step that starts mid-leg is now a
+Routine's partway trigger; route markers stay blocking (F8 unchanged).
+
+**What you must do:** nothing.
+
 ## API 2.7
 
 ### 2026-11-12 (built 2026-11-11) — curves: `curveTo` / `reverseCurveTo`, the robot flows through points instead of stopping at each

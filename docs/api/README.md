@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 6,062 of them across 206 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 6,091 of them across 207 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -43,6 +43,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Curve path](curve_path.md) | [`motion/curve_path.hpp`](../../include/shulib/motion/curve_path.hpp) | curve_path.hpp — the PURE path of the curve verbs (chunk CURVE1, 2026-11): the smooth path a curveTo / reverseCurveTo drives, built from the robot's live pose and the author's points, its speed plan, and the refusals and warnings a path earns before the rob… |
 | [Drive brake](drive_brake.md) | [`motion/drive_brake.hpp`](../../include/shulib/motion/drive_brake.hpp) | DriveBrake — stop the drivetrain and confirm it stopped. |
 | [Hold pose](hold_pose.md) | [`motion/hold_pose.hpp`](../../include/shulib/motion/hold_pose.hpp) | HoldPose — actively hold a FIELD pose against disturbance. |
+| [Leg progress](leg_progress.md) | [`motion/leg_progress.hpp`](../../include/shulib/motion/leg_progress.hpp) | leg_progress.hpp — how far a drive or a turn has got, as a PARTWAY TRIGGER reads it (chunk STEP1-B, 2026-11-11; the STEP1 brief's D7 (a)). |
 | [Motion](motion.md) | [`motion/motion.hpp`](../../include/shulib/motion/motion.hpp) | IMotion — the contract every motion primitive implements. |
 | [Motion config](motion_config.md) | [`motion/motion_config.hpp`](../../include/shulib/motion/motion_config.hpp) | MotionConfig — the shared knobs of the C1 motion primitives. |
 | [Motion scheduler](motion_scheduler.md) | [`motion/motion_scheduler.hpp`](../../include/shulib/motion/motion_scheduler.hpp) | MotionScheduler — the thing that actually runs a routine. |
@@ -353,7 +354,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 6,062 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 6,091 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

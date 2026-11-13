@@ -20,6 +20,8 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
+#include <cstdint>
 #include <functional>
 #include <span>
 #include <stdexcept>
@@ -925,4 +927,176 @@ TEST_CASE("MECH-A2 enterAutonomous (D1): a foreign claim released WITHOUT its ca
                     "cancelled -- it may have lived on a deleted task)") != lines.end());
     CHECK(lines.back() == "'claw': CANCELLED in 0.00s (autonomous began)");
     CHECK(r.svc.enterAutonomous() == 0);  // nothing left the second time
+}
+
+// ── STEP1-B (the STEP1 brief's D8 (a)): the four start commands' CHECK FUNCTIONS ─────────────────────────
+// checkRun / checkMoveTo / checkHome / checkSpinUp are each command's precondition list, moved out so a
+// Routine's partway trigger runs the SAME list where the trigger is written. The rule each case attacks:
+// the check throws EXACTLY what its command throws — the same message, case for case, every refusal and
+// every edge the command accepts — and checking changes nothing (no command number, no step).
+
+namespace {
+/// A declaration with no `.name` (the words refuse one at build; Until::sees() stores "").
+struct Nameless {
+    struct {
+        const char* text = "";
+    } name;
+};
+/// The command's message and the check's, for one set of arguments.
+struct Pair {
+    std::string command;
+    std::string check;
+};
+}  // namespace
+
+TEST_CASE("STEP1-B D8 (a): checkRun throws exactly what run() throws -- every refusal, every accepted edge") {
+    // Bug caught: SM32's twin in the service — a check that drifted from its command (a precondition
+    // added to run() but not to the trigger's check: a trigger written wrong then shows only on runs whose
+    // drive reaches the mark), a reordered list (a different message for the same mistake), or a check
+    // that commands something.
+    Rig x{rx::kRobotXMechanisms};
+    Rig two{r2::kRobotTwoMechanisms};
+    mech::PowerSlot& intake = x.svc.power(3);     // a distance piece sensor, no stall signature
+    mech::PowerSlot& pivot = two.svc.power(0);    // claw pivot 6: no piece sensor, no stall signature
+    const Nameless nameless;
+    struct Case {
+        const char* what;
+        mech::PowerSlot* slot;
+        Voltage volts;
+        Until until;
+        Time bound;
+        bool refused;
+    };
+    const Case cases[] = {
+        {"NaN volts", &intake, Voltage{NAN}, Until::bound(), 1_s, true},
+        {"bound 0", &intake, 12_volt, Until::bound(), 0_s, true},
+        {"bound NaN", &intake, 12_volt, Until::bound(), Time{NAN}, true},
+        {"bound -1", &intake, 12_volt, Until::bound(), Time{-1.0}, true},
+        {"bound inf", &intake, 12_volt, Until::bound(), Time{INFINITY}, true},
+        {"two mechanisms' sensors", &intake, 12_volt, Until::sees(rx::arm) | Until::stopsSeeing(rx::lift), 1_s, true},
+        {"a nameless declaration", &intake, 12_volt, Until::sees(nameless), 1_s, true},
+        {"a sensor not on this robot", &intake, 12_volt, Until::sees(mech_fixture::robot_y::roller), 1_s, true},
+        {"its own sensor beside another's", &intake, 12_volt, Until::sees() | Until::stopsSeeing(rx::arm), 1_s, true},
+        {"a named mechanism with no sensor", &intake, 12_volt, Until::sees(rx::arm), 1_s, true},
+        {"seesPiece with no sensor", &pivot, 12_volt, Until::sees(), 1_s, true},
+        {"stopsSeeingPiece with no sensor", &pivot, 12_volt, Until::stopsSeeing(), 1_s, true},
+        {"stalls with no signature", &pivot, 12_volt, Until::stalled(), 1_s, true},
+        {"a time of 0", &intake, 12_volt, Until::time(0_s), 1_s, true},
+        {"a NaN time", &intake, 12_volt, Until::time(Time{NAN}), 1_s, true},
+        {"a time past the bound", &intake, 12_volt, Until::time(Time{1.5}), 1_s, true},
+        {"orAfter EQUAL to the bound", &intake, 12_volt, Until::sees().orAfter(1_s), 1_s, true},
+        // the edges the command ACCEPTS: the check must accept them too
+        {"a time EQUAL to the bound (alone)", &intake, 12_volt, Until::time(1_s), 1_s, false},
+        {"orAfter just under the bound", &intake, 12_volt, Until::sees().orAfter(Time{0.999}), 1_s, false},
+        {"its own sensor beside its own name", &intake, 12_volt, Until::sees() | Until::stopsSeeing(rx::intake), 1_s, false},
+        {"a plain run", &pivot, 12_volt, Until::time(0.5_s), 0.5_s, false},
+        {"volts past the max (clamped, not refused)", &pivot, Voltage{40.0}, Until::bound(), 1_s, false},
+    };
+    for (const Case& c : cases) {
+        CAPTURE(c.what);
+        const std::uint32_t seq0 = c.slot->commandSeq();
+        const std::uint32_t begun0 = c.slot->stepsBegun();
+        Pair p;
+        p.check = preconditionOf([&] { (void)c.slot->checkRun(c.volts, c.until, c.bound); });
+        CHECK(c.slot->commandSeq() == seq0);  // checking commands nothing
+        CHECK(c.slot->stepsBegun() == begun0);
+        p.command = preconditionOf([&] { c.slot->run(c.volts, c.until, c.bound); });
+        CHECK(p.check == p.command);
+        CHECK(p.check.empty() == !c.refused);
+        if (c.refused) {
+            CHECK(c.slot->stepsBegun() == begun0);  // the command refused it before anything changed
+        } else {
+            c.slot->stop();
+        }
+    }
+    // checkRun's answer is the sensor run() reads: its own, or the named one.
+    CHECK(intake.checkRun(12_volt, Until::sees(), 1_s) == &intake);
+    CHECK(intake.checkRun(12_volt, Until::sees() | Until::stopsSeeing(rx::intake), 1_s) == &intake);
+}
+
+TEST_CASE("STEP1-B D8 (a): checkMoveTo / checkHome / checkSpinUp throw exactly what their commands throw") {
+    // Bug caught: as checkRun's — a position or speed check that drifted from moveTo / home / spinUp,
+    // including the EDGES (a constant target exactly ON a travel limit, a constant speed exactly AT the
+    // free speed: accepted by the command, so by the check).
+    Rig x{rx::kRobotXMechanisms};
+    Rig y{mech_fixture::robot_y::kRobotYMechanisms};
+    mech::PositionSlot& arm = x.svc.position(0);  // range 0..160 degrees
+    mech::SpeedSlot& fly = x.svc.speed(2);
+    mech::PositionSlot& tilt = y.svc.position(3);  // declared neverHomed
+    const double maxRpm = fly.spec().speed.maxRpm;
+    REQUIRE(maxRpm > 0.0);
+    struct MoveCase {
+        const char* what;
+        double pos;
+        Time bound;
+        bool computed;
+        bool refused;
+    };
+    const MoveCase moves[] = {
+        {"NaN target", NAN, 1_s, true, true},
+        {"bound 0", 90.0, 0_s, false, true},
+        {"bound NaN", 90.0, Time{NAN}, false, true},
+        {"a constant past the top", std::nextafter(160.0, 161.0), 1_s, false, true},
+        {"a constant under the bottom", std::nextafter(0.0, -1.0), 1_s, false, true},
+        {"a constant ON the top", 160.0, 1_s, false, false},
+        {"a constant ON the bottom", 0.0, 1_s, false, false},
+        {"a computed one past the top (clamped)", 175.0, 1_s, true, false},
+    };
+    for (const MoveCase& c : moves) {
+        CAPTURE(c.what);
+        const std::uint32_t seq0 = arm.commandSeq();
+        const std::string check = preconditionOf([&] { arm.checkMoveTo(c.pos, c.bound, c.computed); });
+        CHECK(arm.commandSeq() == seq0);
+        const std::string command = preconditionOf([&] { arm.moveTo(c.pos, c.bound, c.computed); });
+        CHECK(check == command);
+        CHECK(check.empty() == !c.refused);
+    }
+    struct HomeCase {
+        const char* what;
+        mech::PositionSlot* slot;
+        Time bound;
+        bool refused;
+    };
+    const HomeCase homes[] = {
+        {"bound 0", &arm, 0_s, true},
+        {"bound inf", &arm, Time{INFINITY}, true},
+        {"neverHomed", &tilt, 1_s, true},
+        {"neverHomed AND bound 0 (the bound's message first)", &tilt, 0_s, true},
+        {"rests at its stop", &arm, 1_s, false},
+    };
+    for (const HomeCase& c : homes) {
+        CAPTURE(c.what);
+        const std::uint32_t seq0 = c.slot->commandSeq();
+        const std::string check = preconditionOf([&] { c.slot->checkHome(c.bound); });
+        CHECK(c.slot->commandSeq() == seq0);
+        const std::string command = preconditionOf([&] { c.slot->home(c.bound); });
+        CHECK(check == command);
+        CHECK(check.empty() == !c.refused);
+    }
+    CHECK(preconditionOf([&] { tilt.checkHome(0_s); }).find("the time limit") != std::string::npos);
+    struct SpinCase {
+        const char* what;
+        double rpm;
+        Time bound;
+        bool computed;
+        bool refused;
+    };
+    const SpinCase spins[] = {
+        {"NaN speed", NAN, 1_s, true, true},
+        {"bound 0", 1000.0, 0_s, false, true},
+        {"a constant past the free speed", std::nextafter(maxRpm, 2.0 * maxRpm), 1_s, false, true},
+        {"a constant past it, reversed", -std::nextafter(maxRpm, 2.0 * maxRpm), 1_s, false, true},
+        {"a constant AT the free speed", maxRpm, 1_s, false, false},
+        {"a computed one past it (clamped)", 2.0 * maxRpm, 1_s, true, false},
+    };
+    for (const SpinCase& c : spins) {
+        CAPTURE(c.what);
+        const std::uint32_t seq0 = fly.commandSeq();
+        const std::string check = preconditionOf([&] { fly.checkSpinUp(c.rpm, c.bound, c.computed); });
+        CHECK(fly.commandSeq() == seq0);
+        const std::string command = preconditionOf([&] { fly.spinUp(c.rpm, c.bound, c.computed); });
+        CHECK(check == command);
+        CHECK(check.empty() == !c.refused);
+        fly.stop();
+    }
 }

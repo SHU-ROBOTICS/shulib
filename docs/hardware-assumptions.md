@@ -36,12 +36,12 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-188 (CAL1's second number, released unused — never reissued), HA-192..HA-203, HA-204..HA-215, HA-216..HA-218 (STEP1's: HA-216 registered by STEP1-A; HA-217..HA-218 held for STEP1-B), HA-224..HA-227 (MECH-S/TUNE1's — its HA-219..HA-223 registered by MECH-S-A).
+> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-188 (CAL1's second number, released unused — never reissued), HA-192..HA-203, HA-204..HA-215, HA-216..HA-218 (STEP1's: HA-216 registered by STEP1-A, HA-217..HA-218 by STEP1-B — all three landed), HA-224..HA-227 (MECH-S/TUNE1's — its HA-219..HA-223 registered by MECH-S-A).
 > The briefing names the next free number above every row AND every held one (`tools/briefing_status.py`
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 214 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 216 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -241,6 +241,14 @@
 > invented); that drive-encoder odometry stays as true on a curve as on a straight (HA-249, reasoned); and
 > that a curve fits the auton task's stack and its 10 ms tick (HA-250, reasoned). **None is measured;**
 > Station C (after Station M) is their first look. With them, 214.
+>
+> **STEP1-B (triggers partway through a drive; built 2026-11-11) added TWO — HA-217 and HA-218, both reasoned** —
+> that a partway trigger's mechanism starts within about 1–2 ticks of the estimate crossing its mark (the command
+> is issued in the drive's tick; the service acts on it at the next pace), and that a trigger fired as a leg
+> ARRIVES (the team lead's D6 (i)) puts the mechanism within the leg's tolerance of the author's mark only as far
+> as the position estimate's "arrived" is true. On the host test plant the service answers the same tick and the
+> estimate tracks truth to about 0.01 in; robot two's motor response, task timing and odometry drift are
+> unmeasured. With them, 216.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither is **HA-181** (G3a, the robot panel: its amended brief), held the same way (the
 > mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
@@ -479,13 +487,14 @@
 | HA-213 | The V5 IMU's readings (`get_rotation()`, `get_gyro_rate()`) are copied into the brain's shared buffer every 10 ms, so every read between two copies returns the SAME value (sample-and-hold) | reasoned (the vendored `pros/imu.hpp`, `set_data_rate`'s doc); never observed on our brains | IMU1 (Part B's bench stage, Station N) |
 | HA-214 | The phase of that 10 ms copy against the motion tick's wake is unknown (fixed per boot, or drifting); a copy within a read's jitter of the tick's ONE rate read, or between two positions of the tick's FIRST read, makes a pair of ticks read 0 and about double — IMU1's hold does not cure it | **invented** (the phase) · reasoned (the consequence) | IMU1 (Part B's bench stage, Station N) |
 | HA-215 | Every rate read of one control tick falls within 5 ms of the tick's first, consecutive ticks' first reads are 5 ms or more apart, and no reader outside the loop's tick reads the rate — what `ProsImu::kRateHoldUs` (5 ms) rests on | reasoned (HA-32/HA-102, themselves unmeasured under load) | IMU1 (Part B's bench stage, a lower bound); Bench Tests STAGE 5 |
+| HA-216 | A leg that ends under a loosened arrival tolerance — still moving at up to the scaled speed bound (4 in/s at 2 in; a turn up to 1.31 rad/s, ~75°/s, at 5°) — comes to rest within that tolerance on robot two | **reasoned** (the host test plant stops dead on the exit tick; robot two's coast unmeasured) | an Auton Tester run of the 40 in leg at 2 in, tape-measured; the 90° turn at 5°, the END heading against the IMU at rest |
+| HA-217 | A partway trigger's mechanism starts within ~1–2 ticks (10–20 ms) of the position estimate crossing its mark: the command is issued inside the drive's tick, and the mechanism service acts on it at the next pace | **reasoned** (the host test plant's service and motors answer the same tick; at 40 in/s a tick is 0.4 in of drive) | a bench run logging the mark's tick against the mechanism's first motion |
+| HA-218 | A trigger fired as a leg ARRIVES (D6 (i): its mark ON the leg, the leg ended within its tolerance) puts the mechanism within the leg's tolerance of the author's mark, because the position ESTIMATE says the leg arrived — true only as far as the estimate is (odometry drift over the leg) | **reasoned** (on the host test plant the estimate and truth agree to ~0.01 in) | the 40 in floor run of HA-216, the estimate's END against the tape |
 | HA-219 | A V5 motor given `motor_set_current_limit(L)` draws at most about L from then on — enforced by the motor itself within one 10 ms control tick, under any command, under Hold at 0 V, during a disable and with nothing ticking | reasoned (the vendored `pros/motors.h`: "The motor will reduce its output at 1000 mA instead of the default 2500 mA") · the speed **invented** | the Tune program (a later part): a capped lift pushed into its top stop, the current trace |
 | HA-220 | A limit set by one program can persist in the motor into the next, and a motor that loses power mid-run comes back at its 2500 mA default — so the library READS every mechanism motor's limit at every boot (writing only a stated cap) and re-checks capped ones each second | **unverified** (HA-98's open question, extended to the limit) | MECH-S Step 0.4: a cap set, the program stopped from the brain, the next program's boot read-back; a capped motor's cable pulled and re-seated |
 | HA-221 | With more than 8 motors plugged in, VEXos may lower each motor's limit below what was set (robot two runs 10); a cap below VEXos's own share behaves as stated — and writing 2500 mA over a share at every boot would fight it, so a mechanism with no cap is only READ | **unverified** (HA-172's open question) | MECH-S Step 0.4: robot two's boot read-back with all 10 motors plugged in |
 | HA-222 | The string's pull is the motor's current times its torque per amp through the gearing over the spool's radius — about 10 lbf per amp per motor for a red cartridge on a 1.5 in spool; the rotor's and the carriage's MOMENTUM at a hard stop add a pull no current cap limits | reasoned (physics) · the number **unverified** (the published stall torque, from memory) | a spring scale on the string at a held current |
 | HA-223 | A stalled motor held at its cap reads within ~0.1 A of the cap, so a stall signature MORE than ~0.2 A below the cap trips (the boot's Warn for one not more than 0.2 A below — exactly 0.2 A included — rests on it) | **invented** (the host test plant reads exactly the cap — it is not a motor) | the Tune program: a capped lift held against its top stop, the reading |
->
-| HA-216 | A leg that ends under a loosened arrival tolerance — still moving at up to the scaled speed bound (4 in/s at 2 in; a turn up to 1.31 rad/s, ~75°/s, at 5°) — comes to rest within that tolerance on robot two | **reasoned** (the host test plant stops dead on the exit tick; robot two's coast unmeasured) | an Auton Tester run of the 40 in leg at 2 in, tape-measured; the 90° turn at 5°, the END heading against the IMU at rest |
 | HA-246 | `CurveConfig`'s look-ahead (8 in), bend grip (60 in/s²), accelerations (200 / 120 in/s², the plan rising from 12 in/s), hand-off (12 in, 5°, 0.3 in; last at ⅓ inside TANK1's window) and end speed (×0.6) let robot two follow a curve and settle at its end within the default rule — and robot one on robot two's numbers until its own check — and guide 05's run-up rule (a miss up to 6 / 12 in from 2½ / 3 ft back, nose within 20°) holds on the robot within ~6 in | **invented** (host test plant: 12–17 of the 17 drivable routes under every weak side and lag tried; the run-up rule pinned by CV23; no slip in the plant, neither robot's lag measured) | Station C.1–C.3, C.5 (C.5b the run-up) on robot two; C.1 on robot one |
 | HA-247 | Robot two does not slide sideways in a bend taken at sqrt(bendAccel / curvature) — its tyres hold 60 in/s² (≈ 0.16 g) of sideways push | **reasoned** (VEX tyres commonly grip well above it; never measured; the plant has no slip) | Station C.3 |
 | HA-248 | A healthy robot two never points more than 60° off its curve for 0.25 s nor makes under 1 in of progress in 0.75 s outside the last 12 in, and a dead side does one or the other within ~3 s | **invented** (host: 0 trips in 153 healthy runs, worst 25.9° off; a dead side stopped within 2.7 s, early deaths included) | every Station C log (no false "curve lost"); the dead-side half host-only |
@@ -2005,6 +2014,45 @@ first look at each.
   (bounded, once per curve; review of 2026-11-12). *Settle:* Station C's loop-monitor overrun count —
   read the period of each curve's FIRST tick as well as the steady ones. *Blast radius if wrong:* a stack overflow on the brain (no message), or late ticks.
   **Contained:** the size is pinned at compile time.
+---
+
+### STEP1-B's additions — a partway trigger on a real robot (2026-11-11)
+
+STEP1-B added TRIGGERS partway through a drive (`r.atPercent(60).startMove(lift["high"], 5_s).driveTo(...)`,
+`chassis/routine.hpp`): the drive's observer reads the position estimate every tick and starts the
+mechanism the first tick it reaches the mark; a leg that ARRIVES just short fires a mark that is on the leg
+as it arrives (the team lead's D6 (i)). Two beliefs carry what the host test plant cannot show.
+
+- [ ] **HA-217 — a partway trigger's mechanism starts within about 1–2 ticks of its mark.**
+  *Claim:* the mechanism a trigger starts begins to move within about 1–2 control ticks (10–20 ms) of the
+  tick on which the position estimate first reaches the mark: the START is commanded inside the drive's
+  tick (`Routine::fire`), and the mechanism service acts on it at the next pace.
+  *Source:* `include/shulib/chassis/routine.hpp` (the "STEP1-B: partway triggers" block — "A4: HA-217");
+  `test/routine_trigger_test.cpp` (ST9: on the host test plant the command lands on the mark's own tick).
+  *Confidence:* **reasoned** — on the host test plant the service and the motor models answer on the same
+  tick; robot two's motor response and its task timing are unmeasured. At 40 in/s each tick is 0.4 in of
+  drive.
+  *Settle:* a bench run logging the tick the mark is reached against the mechanism's first measured motion
+  (its encoder), on robot one's cascade.
+  *Blast radius if wrong:* the mechanism starts LATER along the drive than the mark says — a lift raised at
+  "60 %" may begin at 65 %. The author's mark absorbs it once measured. **Contained:** one trigger's
+  timing; nothing about the drive changes (a trigger never touches the leg).
+- [ ] **HA-218 — a trigger fired as its leg arrives is as close to its mark as the estimate is to the tape.**
+  *Claim:* a trigger fired as a leg ARRIVES — its mark on the leg (no further than the leg's length plus its
+  arrival tolerance), the leg settled within that tolerance — puts the mechanism within the leg's tolerance
+  of the author's mark, because the position ESTIMATE says the leg arrived; that is true only as far as the
+  estimate is (odometry drift over the leg).
+  *Source:* `include/shulib/chassis/routine.hpp` (the "STEP1-B: partway triggers" block — "A4: HA-218");
+  `include/shulib/motion/leg_progress.hpp` (progress is read from the estimate); `test/routine_trigger_test.cpp`
+  (ST22 and ST36: the settle fire on the host test plant).
+  *Confidence:* **reasoned** — on the host test plant the estimate tracks truth to about 0.01 in over the 40 in
+  leg (the STEP1 brief's probe P3); robot two's drift is the odometry entries' question.
+  *Settle:* HA-216's floor run of the 40 in leg — the estimate's END against the tape.
+  *Blast radius if wrong:* a mark near a leg's end fires where the ESTIMATE arrived, which may be short of or
+  past where the robot really is — a lift raised a little early or late at the end of a leg. **Contained:**
+  only marks near a leg's end that the leg did not cross inside a tick; a mark crossed mid-leg is the same
+  estimate every motion steers by.
+
 ---
 
 ## Robot 2 — the 2026 tank chassis (added 2026-09-14, R3b Parts 1–3)

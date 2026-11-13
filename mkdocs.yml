@@ -163,6 +163,7 @@ nav:
           - Curve path: api/curve_path.md
           - Drive brake: api/drive_brake.md
           - Hold pose: api/hold_pose.md
+          - Leg progress: api/leg_progress.md
           - Motion: api/motion.md
           - Motion config: api/motion_config.md
           - Motion scheduler: api/motion_scheduler.md

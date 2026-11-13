@@ -8,7 +8,7 @@
 
 MotionScheduler — the thing that actually runs a routine.
 
-This header declares **8** types (86 members) and **1** free function.
+This header declares **8** types (87 members) and **1** free function.
 
 Extracted from [`include/shulib/motion/motion_scheduler.hpp`](../../include/shulib/motion/motion_scheduler.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -100,6 +100,7 @@ Extracted from [`include/shulib/motion/motion_scheduler.hpp`](../../include/shul
   - [`motionsTimedOut`](#motionscheduler-motionstimedout)
   - [`motionsCancelled`](#motionscheduler-motionscancelled)
   - [`motionsAborted`](#motionscheduler-motionsaborted)
+  - [`pendingAbortFault`](#motionscheduler-pendingabortfault)
   - [`completedCount`](#motionscheduler-completedcount)
   - [`loopMonitor`](#motionscheduler-loopmonitor)
   - [`setBoundaryObserver`](#motionscheduler-setboundaryobserver)
@@ -1142,6 +1143,18 @@ Fault-policy + task-boundary aborts (abortFault != None).
 
 *function, declared at [`include/shulib/motion/motion_scheduler.hpp:906`](../../include/shulib/motion/motion_scheduler.hpp#L906).*
 
+<a id="motionscheduler-pendingabortfault"></a>
+
+### `MotionScheduler::pendingAbortFault`
+
+```cpp
+[[nodiscard]] diag::FaultCode pendingAbortFault() const noexcept
+```
+
+STEP1-B: the abort-mask fault raised since the ACTIVE motion started — the one the fault policy cancels it for at the end of the tick now running (tick(): after a Running tick, the same test) — or None: no motion, or none raised. Read-only. A watcher called inside the motion's tick asks it to tell the tick that will END the motion from one that will not.
+
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:911`](../../include/shulib/motion/motion_scheduler.hpp#L911).*
+
 <a id="motionscheduler-completedcount"></a>
 
 ### `MotionScheduler::completedCount`
@@ -1152,7 +1165,7 @@ Fault-policy + task-boundary aborts (abortFault != None).
 
 Every motion that reached a boundary: settled + timed out + cancelled + aborted, a partition with no double counting. This is the number that tells a caller whether anything actually ran, which lastExitReason() cannot — it reads Settled on a scheduler that has never been given a motion.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:911`](../../include/shulib/motion/motion_scheduler.hpp#L911).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:918`](../../include/shulib/motion/motion_scheduler.hpp#L918).*
 
 <a id="motionscheduler-loopmonitor"></a>
 
@@ -1164,7 +1177,7 @@ Every motion that reached a boundary: settled + timed out + cancelled + aborted,
 
 The scheduler's own tick-timing watchdog, for worstDt() / overrunCount() after a run. The scheduler ticks it once per tick and RE-BASELINES it at every async() and at the top of each blocking wait — that drops only the previous tick's timestamp, so a deliberate gap in which the caller's own code ran between motions is not reported as an overrun. Nothing here ever clears the statistics: worstDt() and overrunCount() are WHOLE-RUN totals, not per-motion ones. A gap between two of the caller's own tick() calls is NOT re-baselined and does count as an overrun.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:921`](../../include/shulib/motion/motion_scheduler.hpp#L921).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:928`](../../include/shulib/motion/motion_scheduler.hpp#L928).*
 
 <a id="motionscheduler-setboundaryobserver"></a>
 
@@ -1176,7 +1189,7 @@ void setBoundaryObserver(IMotionObserver* observer) noexcept
 
 Attach/replace the boundary observer (nullptr detaches). One observer: the C5 reporter is the intended consumer; fan-out belongs to a composite the caller writes if ever needed. Contract in IMotionObserver.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:928`](../../include/shulib/motion/motion_scheduler.hpp#L928).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:935`](../../include/shulib/motion/motion_scheduler.hpp#L935).*
 
 <a id="motionscheduler-boundaryobserver"></a>
 
@@ -1188,7 +1201,7 @@ Attach/replace the boundary observer (nullptr detaches). One observer: the C5 re
 
 The attached observer, or nullptr. NON-OWNING: the scheduler neither deletes it nor extends its lifetime, so detach before the observer dies.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:931`](../../include/shulib/motion/motion_scheduler.hpp#L931).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:938`](../../include/shulib/motion/motion_scheduler.hpp#L938).*
 
 <a id="motionscheduler-runhasheadingdata"></a>
 
@@ -1200,7 +1213,7 @@ The attached observer, or nullptr. NON-OWNING: the scheduler neither deletes it 
 
 The run's heading story for the §18.3 summary: max / final of the PER-MOTION BOUNDARY drifts (|final heading error| of each motion that produced path data). Deliberately not mid-tick transients: a 90° turn passes through 90° of "error" by design, and a summary that reported it would bury the real story — how headings LANDED.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:938`](../../include/shulib/motion/motion_scheduler.hpp#L938).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:945`](../../include/shulib/motion/motion_scheduler.hpp#L945).*
 
 <a id="motionscheduler-runmaxheadingdrift"></a>
 
@@ -1212,7 +1225,7 @@ The run's heading story for the §18.3 summary: max / final of the PER-MOTION BO
 
 The largest |final heading error|, in RADIANS, over every motion boundary that produced path data; 0 while runHasHeadingData() is false. BOUNDARY values only — a 90° turn passes through 90° of error by design, and counting that would bury the story this reports. Never reset: one scheduler is one run.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:943`](../../include/shulib/motion/motion_scheduler.hpp#L943).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:950`](../../include/shulib/motion/motion_scheduler.hpp#L950).*
 
 <a id="motionscheduler-runfinalheadingdrift"></a>
 
@@ -1224,7 +1237,7 @@ The largest |final heading error|, in RADIANS, over every motion boundary that p
 
 |final heading error|, in RADIANS, at the LAST boundary that produced path data — where the run's heading actually LANDED, as opposed to its worst moment. 0 while runHasHeadingData() is false, which is not the same as a run that landed square.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:949`](../../include/shulib/motion/motion_scheduler.hpp#L949).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:956`](../../include/shulib/motion/motion_scheduler.hpp#L956).*
 
 <a id="motionscheduler-attribution"></a>
 
@@ -1236,7 +1249,7 @@ The largest |final heading error|, in RADIANS, over every motion boundary that p
 
 The D-3 attribution instrument, when enabled (nullptr when off).
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:954`](../../include/shulib/motion/motion_scheduler.hpp#L954).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:961`](../../include/shulib/motion/motion_scheduler.hpp#L961).*
 
 <a id="motionscheduler-kmaxstalledpaces"></a>
 
@@ -1248,7 +1261,7 @@ static constexpr int kMaxStalledPaces = 100
 
 Consecutive pace() calls that may fail to advance the clock before the scheduler declares the pacer broken (header: nothing may hang). Pure logic constant — no hardware claim, hence no register entry.
 
-*field, declared at [`include/shulib/motion/motion_scheduler.hpp:961`](../../include/shulib/motion/motion_scheduler.hpp#L961).*
+*field, declared at [`include/shulib/motion/motion_scheduler.hpp:968`](../../include/shulib/motion/motion_scheduler.hpp#L968).*
 
 ## Design commentary, from the header
 

@@ -59,7 +59,12 @@
 // and a brace-list overload (four steps), each exactly one Chassis call through motionStep — a
 // non-Settled curve is a MotionFailed stop (or carries on / skips under onFail), its verdict in
 // RoutineResult::exit. No new stop cause: a refused start and a lost curve are motion failures
-// whose Warn names them. Partway triggers (chunk STEP1-B, later) will not cover curves at first.
+// whose Warn names them. Partway triggers (chunk STEP1-B, below) do not cover curves yet.
+// PARTWAY TRIGGERS (chunk STEP1-B, 2026-11-11; the same additive path, in one delimited block in the
+// class, "STEP1-B: partway triggers", plus its state, declared last, and the door's one armed check)
+// are NOT pinned: the three arms atPercent / afterDistance / afterTurning and the two handles they
+// return lead only to the mechanism START forms, which stay open (the team lead's ruling of
+// 2026-10-29; the STEP1 brief's D1). Pinning them later is additive; un-freezing them would not be.
 //
 // NOT frozen, deliberately: **then()** — its accepted return types and its
 // `name` default were left out of F10 because they were chosen before
@@ -235,11 +240,13 @@
 // this object). Copying is disabled: two handles sharing stop-state counters
 // would let a stopped chain's twin keep driving.
 
+#include <algorithm>
 #include <cmath>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <exception>
 #include <functional>
 #include <initializer_list>
 #include <span>
@@ -257,6 +264,7 @@
 #include "shulib/math/angle.hpp"
 #include "shulib/math/pose2d.hpp"
 #include "shulib/mechanism/service.hpp"  // MECH-A4: the mechanism steps run through the service
+#include "shulib/motion/leg_progress.hpp"
 #include "shulib/motion/motion_scheduler.hpp"
 #include "shulib/sequence/run_guard.hpp"  // STEP1-A: the cut rule asks the auton's guard
 #include "shulib/units/quantity.hpp"
@@ -282,6 +290,18 @@ template <class Context>
 concept RoutineContextWithGuard = requires(Context& c) {
     { c.guard } -> std::convertible_to<sequence::RunGuard&>;
 };
+/// STEP1-B: which legs a partway trigger's mark can measure — a bit mask the trigger handles carry in
+/// their TYPE, so a mark of the wrong kind is refused when the code is compiled (the STEP1 brief's
+/// re-check #3): a percent measures either; inches only a drive; degrees only a turn.
+inline constexpr unsigned kTriggerDriveLegs = 1u;
+/// STEP1-B: the turn bit of the mask (kTriggerDriveLegs').
+inline constexpr unsigned kTriggerTurnLegs = 2u;
+/// STEP1-B: either kind (a percent).
+inline constexpr unsigned kTriggerAnyLeg = kTriggerDriveLegs | kTriggerTurnLegs;
+/// STEP1-B: a `false` that depends on `T`, for a refusal's static_assert (it fires only where it is
+/// called, never when its class is built).
+template <class T>
+inline constexpr bool kTriggerRefused = !std::is_same_v<T, T>;
 }  // namespace detail
 
 // ═══ STEP1-A: the on-failure choice — BEGIN (the types; pinned, F10) ═════════════════════════════
@@ -415,7 +435,31 @@ public:
     Routine& operator=(const Routine&) = delete;
     Routine(Routine&&) = delete;
     Routine& operator=(Routine&&) = delete;
-    ~Routine() = default;
+    /// STEP1-B: a Routine destroyed with a partway trigger still ARMED — its handle was discarded, and
+    /// that line was the auton's last, so no later step's precondition could say so — logs ONE Warn:
+    /// the triggers never fired. The same for a line that ENDED AT ITS MARK (`r.atPercent(60);` — a
+    /// mark written, no start after it). Nothing when nothing is armed; a log failure is swallowed (a
+    /// destructor never throws).
+    ~Routine() {
+        if (armedCount_ == 0 && !pendingMark_) {
+            return;
+        }
+        try {
+            char line[160];
+            if (armedCount_ == 0) {
+                std::snprintf(line, sizeof line,
+                              "routine '%.24s': a trigger's mark was written but no start and no drive followed: "
+                              "it never fired",
+                              name_);
+            } else {
+                std::snprintf(line, sizeof line,
+                              "routine '%.24s': %d trigger(s) armed but no drive followed: they never fired", name_,
+                              armedCount_);
+            }
+            chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line);
+        } catch (...) {  // NOLINT(bugprone-empty-catch): a destructor must not throw
+        }
+    }
 
     // ── the steps (each: exactly one Chassis call; header semantics) ───────────────
 
@@ -701,6 +745,7 @@ public:
     /// PRECONDITIONS (thrown; nothing recorded): not two onFail() in a row; a SkipTo has a non-empty
     /// target.
     Routine& onFail(OnFail choice) {
+        requireUnarmed();  // STEP1-B (B9): onFail comes BEFORE a trigger's arm, never while one is armed
         SHULIB_PRECONDITION(!pendingFailSet_,
                             "r.onFail(...): two in a row -- each onFail binds to the ONE step after it; write "
                             "the step between them");
@@ -735,6 +780,7 @@ public:
     /// onFail(skipTo(...)) already written for the same step names this label.
     /// PRECONDITIONS (thrown; nothing recorded): not two label() in a row; `name` not null, not "".
     Routine& label(const char* name) {
+        requireUnarmed();  // STEP1-B (B9): label comes BEFORE a trigger's arm, never while one is armed
         SHULIB_PRECONDITION(pendingLabel_ == nullptr,
                             "r.label(...): two in a row -- a label names the ONE step after it");
         SHULIB_PRECONDITION(name != nullptr && name[0] != '\0',
@@ -996,6 +1042,277 @@ public:
     [[nodiscard]] const mechanism::StepReport& lastMechanism() const noexcept { return lastMech_; }
     // ═══ MECH-A4: the mechanism steps — END ═══════════════════════════════════════════════════
 
+    // ═══ STEP1-B: partway triggers — BEGIN (NOT pinned — the file header) ═════════════════════
+    // "At 60 % of this drive, start raising the lift": a mechanism START that rides a drive or a turn
+    // and fires PARTWAY THROUGH it, the first tick the robot reaches its mark (the STEP1 brief's
+    // §1.2, D6–D8; the team lead's answers of 2026-11-03).
+    //
+    //   r.atPercent(60).startMove(lift["high"], 2_s).driveTo(0_in, 48_in);
+    //   r.afterDistance(20_in).startRun(intake, 12_volt, seesPiece, 3_s)
+    //    .atPercent(90).startHome(arm, 1_s).driveTo(40_in, 0_in);
+    //   r.afterTurning(45_deg).startSpinUp(flywheel["shoot"], 2_s).turnTo(90_deg);
+    //   r.waitUntilDone(lift, 1_s);  // collects the trigger's step, like any start form's
+    //
+    // THE MARK (D7 (a)). atPercent(p): the share of the leg — the distance covered ALONG THE STRAIGHT
+    // LINE from where the leg started (its first live tick) to its target, or on a turn the angle
+    // turned toward it (motion/leg_progress.hpp); above 0 and at most 100. afterDistance(d): inches
+    // along that line, a DRIVE's mark only (driveTo / reverseTo / moveTo); above 0. afterTurning(a):
+    // the angle turned, a TURN's mark only (turnTo / face / faceAway); above 0 — a math::Angle, so
+    // 270_deg wraps to -90 and is refused, said. A mark of the wrong kind does not COMPILE; up to 4
+    // triggers ride one leg, on four different mechanisms.
+    //
+    // WHEN IT FIRES. Once, on the first tick whose progress reaches the mark (>=) — never before the
+    // leg is live, never on the tick that ends it (its own exit tick, or a tick the scheduler's fault
+    // abort ends — an ODO_STUCK, say), never once the run guard's time is up (the deadline tick ticks
+    // the motion once more before the guard cuts it: the brief's probe P6). A leg
+    // that ARRIVES (Settled) fires each trigger still unfired AS IT ARRIVES if its mark is ON the leg
+    // — a percent always; a distance or an angle no further than the leg's size from its live start
+    // plus its arrival tolerance (D6 (i), narrowed) — so "at 100 %" fires on a drive that settles
+    // 0.24 in short. A mark past that ("after 50 in" on a 40 in drive) never fires, and the step says
+    // so. A leg that ends any other way — timed out, cancelled, cut, jumped by a skip, skipped after a
+    // stop — fires none (the team lead's D15 (a)). An unfired trigger marks its mechanism: a later
+    // waitUntilDone() answers MechanismNotStarted, "the trigger never fired", never an older step's
+    // verdict and never a throw. ON A ROBOT, unmeasured: how soon after the mark the mechanism really
+    // starts (the command is issued in the drive's tick, the service acts at the next pace —
+    // A4: HA-217), and how close a fire AT THE ARRIVAL is to the author's mark (the estimate's
+    // "arrived" against the tape — A4: HA-218).
+    //
+    // A TRIGGER IS PART OF ITS DRIVE STEP (D7 (a)). Arming counts no step; the drive is recorded ONCE,
+    // after it returns: its own failure if it failed; else, if a fired trigger's start was ABSENT,
+    // REFUSED or NOT_HOMED, MechanismStepFailed with the verdict of the FIRST such trigger to fire,
+    // under the drive step's own onFail choice; else a success. A refused start NEVER interrupts the drive: the fire has its own short
+    // path (command the mechanism, note it, keep its report) and touches nothing of the chain inside
+    // the tick — the start steps' own path ends in Chassis::cancel(), which the scheduler refuses
+    // from inside a tick (the brief's L16). After the leg, lastMechanism() is the first failing
+    // trigger's start report, else the last to fire's. A start form's `name` names the trigger in
+    // its lines ("its trigger 'raise' at 60 % on 'lift'") — the step itself is the drive's.
+    //
+    // A TRIGGER WRITTEN WRONG IS CAUGHT ON ITS OWN LINE, EVERY RUN (D8 (a)): the start's arguments
+    // go through the mechanism's OWN checks (mechanism/service.hpp's checkRun / checkMoveTo /
+    // checkHome / checkSpinUp — the very list its blocking step runs) where the trigger is written,
+    // even when the drive it rides will be skipped — a bench run whose drive stops early still shows
+    // it. So the fire cannot throw one; if it ever did, the error is held until the drive returns and
+    // thrown then (B7) — never a fake "Cancelled" drive.
+    //
+    // THE ARMING RULES (B9). onFail() / label() come BEFORE the first arm and bind to the leg. While
+    // a trigger is armed — or a mark is written and its start not yet — the ONLY way on is the line
+    // itself: any other call on the Routine (a step, onFail, label, another r.atPercent) is a
+    // precondition. A handle acts only for ITS line: a handle kept past its leg, or used after another
+    // line was armed, is a precondition (a handle drives once, the line that armed it). A
+    // precondition thrown by an arm (a range, a kind, the start's own checks, two triggers on one
+    // mechanism) or by the leg itself clears every armed trigger and the pending modifiers before it
+    // propagates. The handles are [[nodiscard]] — discarding one is a WARNING (an error in the gate
+    // and CI, only a warning in a plain `make`), so the next call on the Routine refuses, and a
+    // Routine destroyed with a trigger still armed (or a mark still unstarted) logs one Warn.
+
+private:
+    /// STEP1-B: a trigger's mark — what it measures and where (a percent as a FRACTION of the leg,
+    /// inches, or radians turned). Declared here, above the handles that carry it.
+    struct TriggerSpec {
+        /// What the mark measures.
+        enum class Mark : std::uint8_t { Percent, Distance, Turned };
+        Mark mark = Mark::Percent;  ///< what it measures
+        double value = 0.0;         ///< the fraction (0, 1], inches > 0, or radians > 0
+    };
+
+public:
+    template <unsigned Kinds>
+    class ArmedLeg;
+
+    /// STEP1-B: what atPercent() / afterDistance() / afterTurning() return — a mark waiting for its
+    /// mechanism START. Its ONLY steps are the four start forms (each ARMS a trigger and returns the
+    /// ArmedLeg handle); the blocking forms and set() are refused when the code is compiled. `Kinds`
+    /// is the legs its mark can measure (detail::kTriggerDriveLegs / kTriggerTurnLegs). Each start
+    /// form's last argument, `name`, names the TRIGGER in its lines ("its trigger 'raise' at 60 % on
+    /// 'lift'"); the step those lines belong to is the drive's (a trigger counts no step of its own).
+    template <unsigned Kinds>
+    class [[nodiscard]] TriggerMark {
+    public:
+        /// move()'s START, fired at the mark: `r.atPercent(60).startMove(lift["high"], 2_s)`.
+        ArmedLeg<Kinds> startMove(mechanism::PositionGoal goal, units::Time bound, const char* name = nullptr) {
+            r_->armMove(mark_, gen_, goal, bound, name);
+            return ArmedLeg<Kinds>{*r_, gen_};
+        }
+        /// home()'s START for an arm, fired at the mark.
+        ArmedLeg<Kinds> startHome(const mechanism::Arm& m, units::Time bound, const char* name = nullptr) {
+            r_->armHome(mark_, gen_, m, bound, name);
+            return ArmedLeg<Kinds>{*r_, gen_};
+        }
+        /// home()'s START for a lift, fired at the mark.
+        ArmedLeg<Kinds> startHome(const mechanism::Lift& m, units::Time bound, const char* name = nullptr) {
+            r_->armHome(mark_, gen_, m, bound, name);
+            return ArmedLeg<Kinds>{*r_, gen_};
+        }
+        /// run()'s START with a done-condition, fired at the mark.
+        ArmedLeg<Kinds> startRun(const mechanism::Power& m, units::Voltage volts, mechanism::Until until,
+                                 units::Time bound, const char* name = nullptr) {
+            r_->armRun(mark_, gen_, m, volts, until, bound, name);
+            return ArmedLeg<Kinds>{*r_, gen_};
+        }
+        /// run()'s START for a time, fired at the mark.
+        ArmedLeg<Kinds> startRun(const mechanism::Power& m, units::Voltage volts, units::Time time,
+                                 const char* name = nullptr) {
+            r_->armRun(mark_, gen_, m, volts, mechanism::Until::time(time), time, name);
+            return ArmedLeg<Kinds>{*r_, gen_};
+        }
+        /// spinUp()'s START, fired at the mark.
+        ArmedLeg<Kinds> startSpinUp(mechanism::SpeedGoal goal, units::Time bound, const char* name = nullptr) {
+            r_->armSpinUp(mark_, gen_, goal, bound, name);
+            return ArmedLeg<Kinds>{*r_, gen_};
+        }
+        /// `.move(...)` after a mark: refused — a trigger STARTS a step (startMove).
+        template <class First, class... Rest>
+        Routine& move(First&&, Rest&&...) {
+            static_assert(detail::kTriggerRefused<First>,
+                          "a partway trigger STARTS a step: write .startMove(...) -- a blocking move cannot run "
+                          "inside a drive; collect it after the drive with r.waitUntilDone(...)");
+            return *r_;
+        }
+        /// `.home(...)` after a mark: refused — startHome.
+        template <class First, class... Rest>
+        Routine& home(First&&, Rest&&...) {
+            static_assert(detail::kTriggerRefused<First>,
+                          "a partway trigger STARTS a step: write .startHome(...) -- a blocking home cannot run "
+                          "inside a drive; collect it after the drive with r.waitUntilDone(...)");
+            return *r_;
+        }
+        /// `.run(...)` after a mark: refused — startRun.
+        template <class First, class... Rest>
+        Routine& run(First&&, Rest&&...) {
+            static_assert(detail::kTriggerRefused<First>,
+                          "a partway trigger STARTS a step: write .startRun(...) -- a blocking run cannot run "
+                          "inside a drive; collect it after the drive with r.waitUntilDone(...)");
+            return *r_;
+        }
+        /// `.spinUp(...)` after a mark: refused — startSpinUp.
+        template <class First, class... Rest>
+        Routine& spinUp(First&&, Rest&&...) {
+            static_assert(detail::kTriggerRefused<First>,
+                          "a partway trigger STARTS a step: write .startSpinUp(...) -- a blocking spinUp cannot "
+                          "run inside a drive; collect it after the drive with r.waitUntilDone(...)");
+            return *r_;
+        }
+        /// `.set(...)` after a mark: refused — a pneumatic's set has no start form.
+        template <class First, class... Rest>
+        Routine& set(First&&, Rest&&...) {
+            static_assert(detail::kTriggerRefused<First>,
+                          "a partway trigger STARTS a step, and set() has no start form: put r.set(...) before or "
+                          "after the drive (a trigger can startMove / startHome / startRun / startSpinUp)");
+            return *r_;
+        }
+
+    private:
+        friend class Routine;
+        template <unsigned>
+        friend class ArmedLeg;
+        TriggerMark(Routine& r, TriggerSpec mark, std::uint32_t gen) noexcept : r_{&r}, mark_{mark}, gen_{gen} {}
+        Routine* r_;
+        TriggerSpec mark_;
+        std::uint32_t gen_;  ///< the trigger LINE it belongs to (Routine::armGen_ when it was written)
+    };
+
+    /// STEP1-B: what a trigger's start form returns — the leg its triggers ride, armed. Its ONLY
+    /// members are the leg steps and the three arms (another trigger on the same leg; at most 4).
+    /// [[nodiscard]]: a trigger with no drive after it never fires (the block's arming rules). The
+    /// legs `Kinds` does not allow are refused when the code is compiled, naming the mark.
+    template <unsigned Kinds>
+    class [[nodiscard]] ArmedLeg {
+    public:
+        /// The leg: Routine::moveTo, watched by the armed triggers (a DRIVE leg).
+        Routine& moveTo(const math::Pose2d& target, const MotionOptions& options = {}) {
+            static_assert((Kinds & detail::kTriggerDriveLegs) != 0,
+                          "after N degrees is a turn's mark -- a drive has no degrees turned; use afterDistance or atPercent");
+            return r_->armedMoveTo(gen_, target, options);
+        }
+        /// The leg: Routine::driveTo, watched (a DRIVE leg).
+        Routine& driveTo(units::Length x, units::Length y, const MotionOptions& options = {}) {
+            static_assert((Kinds & detail::kTriggerDriveLegs) != 0,
+                          "after N degrees is a turn's mark -- a drive has no degrees turned; use afterDistance or atPercent");
+            return r_->armedDriveTo(gen_, "driveTo", x, y, options, false);
+        }
+        /// The leg: Routine::reverseTo, watched (a DRIVE leg).
+        Routine& reverseTo(units::Length x, units::Length y, const MotionOptions& options = {}) {
+            static_assert((Kinds & detail::kTriggerDriveLegs) != 0,
+                          "after N degrees is a turn's mark -- a drive has no degrees turned; use afterDistance or atPercent");
+            return r_->armedDriveTo(gen_, "reverseTo", x, y, options, true);
+        }
+        /// The leg: Routine::turnTo, watched (a TURN leg).
+        Routine& turnTo(math::Angle heading, const MotionOptions& options = {}) {
+            static_assert((Kinds & detail::kTriggerTurnLegs) != 0,
+                          "after N inches is a drive's mark -- a turn has no inches; use afterTurning or atPercent");
+            return r_->armedTurnTo(gen_, heading, options);
+        }
+        /// The leg: Routine::face, watched (a TURN leg).
+        Routine& face(units::Length x, units::Length y, const MotionOptions& options = {}) {
+            static_assert((Kinds & detail::kTriggerTurnLegs) != 0,
+                          "after N inches is a drive's mark -- a turn has no inches; use afterTurning or atPercent");
+            return r_->armedFace(gen_, "face", x, y, options, false);
+        }
+        /// The leg: Routine::faceAway, watched (a TURN leg).
+        Routine& faceAway(units::Length x, units::Length y, const MotionOptions& options = {}) {
+            static_assert((Kinds & detail::kTriggerTurnLegs) != 0,
+                          "after N inches is a drive's mark -- a turn has no inches; use afterTurning or atPercent");
+            return r_->armedFace(gen_, "faceAway", x, y, options, true);
+        }
+        /// Another trigger on this leg, at a percent of it.
+        [[nodiscard]] TriggerMark<Kinds> atPercent(double percent) {
+            r_->requireLine(gen_);
+            return TriggerMark<Kinds>{*r_, r_->percentMark(percent), r_->openMark(gen_)};
+        }
+        /// Another trigger on this leg, after a distance along it — a drive's mark.
+        [[nodiscard]] TriggerMark<(Kinds & detail::kTriggerDriveLegs)> afterDistance(units::Length distance) {
+            static_assert((Kinds & detail::kTriggerDriveLegs) != 0,
+                          "after N inches is a drive's mark -- this leg already has a turn's mark (afterTurning): "
+                          "one leg is a drive OR a turn; use atPercent for a mark either can carry");
+            r_->requireLine(gen_);
+            return TriggerMark<(Kinds & detail::kTriggerDriveLegs)>{*r_, r_->distanceMark(distance), r_->openMark(gen_)};
+        }
+        /// Another trigger on this leg, after an angle turned — a turn's mark.
+        [[nodiscard]] TriggerMark<(Kinds & detail::kTriggerTurnLegs)> afterTurning(math::Angle angle) {
+            static_assert((Kinds & detail::kTriggerTurnLegs) != 0,
+                          "after N degrees is a turn's mark -- this leg already has a drive's mark (afterDistance): "
+                          "one leg is a drive OR a turn; use atPercent for a mark either can carry");
+            r_->requireLine(gen_);
+            return TriggerMark<(Kinds & detail::kTriggerTurnLegs)>{*r_, r_->turnedMark(angle), r_->openMark(gen_)};
+        }
+
+    private:
+        friend class Routine;
+        template <unsigned>
+        friend class TriggerMark;
+        ArmedLeg(Routine& r, std::uint32_t gen) noexcept : r_{&r}, gen_{gen} {}
+        Routine* r_;
+        std::uint32_t gen_;  ///< the trigger LINE it belongs to: only that line's leg may drive it
+    };
+
+    /// STEP1-B: a trigger at `percent` % of the next leg (above 0, at most 100): the share of the
+    /// distance along the straight line from the leg's live start to its target — or of the angle,
+    /// on a turn (the block's header, D7 (a)). Any leg. PRECONDITIONS (thrown; everything armed or
+    /// pending cleared first): finite, in (0, 100]; no trigger already armed (chain a second one on
+    /// the ArmedLeg handle instead).
+    [[nodiscard]] TriggerMark<detail::kTriggerAnyLeg> atPercent(double percent) {
+        requireUnarmed();
+        const TriggerSpec spec = percentMark(percent);
+        return TriggerMark<detail::kTriggerAnyLeg>{*this, spec, openMark(newLine())};
+    }
+    /// STEP1-B: a trigger `distance` along the next leg's straight line from its live start — a
+    /// DRIVE's mark (driveTo / reverseTo / moveTo; a turn after it does not compile). PRECONDITIONS:
+    /// finite and > 0; no trigger already armed.
+    [[nodiscard]] TriggerMark<detail::kTriggerDriveLegs> afterDistance(units::Length distance) {
+        requireUnarmed();
+        const TriggerSpec spec = distanceMark(distance);
+        return TriggerMark<detail::kTriggerDriveLegs>{*this, spec, openMark(newLine())};
+    }
+    /// STEP1-B: a trigger once the next leg has turned `angle` toward its target — a TURN's mark
+    /// (turnTo / face / faceAway; a drive after it does not compile). PRECONDITIONS: > 0 (an Angle is
+    /// wrapped into (-180°, 180°], so 270_deg is -90° and refused); no trigger already armed.
+    [[nodiscard]] TriggerMark<detail::kTriggerTurnLegs> afterTurning(math::Angle angle) {
+        requireUnarmed();
+        const TriggerSpec spec = turnedMark(angle);
+        return TriggerMark<detail::kTriggerTurnLegs>{*this, spec, openMark(newLine())};
+    }
+    // ═══ STEP1-B: partway triggers — END ══════════════════════════════════════════════════════
+
     // ── the whole-chain verdict ────────────────────────────────────────────────────
 
     /// True while no step has failed (and none was skipped). (STEP1-A: a step that failed under
@@ -1110,11 +1427,15 @@ private:
 
     enum class Door : std::uint8_t { Run, Skipped, Jumped };
 
-    /// STEP1-A: the door's whole rule. The pending modifiers bind to THIS step (used up whatever
+    /// STEP1-A: the door's whole rule (STEP1-B: `armedLeg` is a trigger handle's leg — every other step
+    /// meets the armed check first). The pending modifiers bind to THIS step (used up whatever
     /// happens to it); its label is remembered; a pending skip either STOPS (the guard's time is up —
     /// a skip never resumes scoring after the buzzer), LANDS (this step carries its label), or JUMPS
     /// this step; then today's rule — a stopped chain skips it.
-    Door enterStep(const char* name) {
+    Door enterStep(const char* name, bool armedLeg = false) {
+        if (!armedLeg) {
+            requireUnarmed();  // STEP1-B (B9 (2)): with a trigger armed, its handle's leg is the only way on
+        }
         cur_ = pendingFailSet_ ? pendingFail_ : stopChain;
         curLabel_ = pendingLabel_;
         pendingFail_ = stopChain;
@@ -1497,6 +1818,16 @@ private:
     /// NAME on this robot, or one of that name that is not what the step names (another robot's
     /// declaration — a different kind, units, preset or position; autons are per robot).
     Routine& notOnThisRobot(const char* mechanismName, const char* step) {
+        logNotOnThisRobot(mechanismName);
+        lastMech_ = mechanism::StepReport{.outcome = manipulation::MechanismOutcome::Absent};
+        recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
+                   manipulation::mechanismOutcomeName(manipulation::MechanismOutcome::Absent),
+                   manipulation::MechanismOutcome::Absent);
+        return *this;
+    }
+    /// notOnThisRobot()'s LOGGING half (factored out at STEP1-B, so a partway trigger's fire — inside
+    /// a tick, where the recording half must never run — says the same sentence).
+    void logNotOnThisRobot(const char* mechanismName) {
         const char* n = mechanismName != nullptr ? mechanismName : "?";
         char line[220];
         if (!mechs().bound()) {
@@ -1514,11 +1845,6 @@ private:
                           n);
         }
         chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "MECH", line);
-        lastMech_ = mechanism::StepReport{.outcome = manipulation::MechanismOutcome::Absent};
-        recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
-                   manipulation::mechanismOutcomeName(manipulation::MechanismOutcome::Absent),
-                   manipulation::MechanismOutcome::Absent);
-        return *this;
     }
     /// A STARTING step that found nothing to start: notOnThisRobot(), and (STEP1-A, A6) the same-named
     /// slot, when this robot has one, marked — its start did nothing, so a later wait on it (reachable
@@ -1584,6 +1910,462 @@ private:
     }
     // ═══ MECH-A4: the mechanism steps' machinery — END ════════════════════════════════════════
 
+    // ═══ STEP1-B: partway triggers' machinery — BEGIN ═══════════════════════════════════════════
+    /// How many triggers ride one leg (the brief's §1.2).
+    static constexpr int kMaxTriggers = 4;
+
+    /// Which start a trigger fires.
+    enum class TriggerStart : std::uint8_t { Move, Home, Run, SpinUp };
+
+    /// One armed trigger: its mark, its start's arguments, the slot ARMING found (null = not on this
+    /// robot: it fires ABSENT), and what happened when it fired.
+    struct Trigger {
+        TriggerSpec spec{};
+        TriggerStart start = TriggerStart::Move;
+        const char* mechanismName = nullptr;  ///< the declaration's name (marks, B8, the lines)
+        mechanism::PositionSlot* position = nullptr;
+        mechanism::PowerSlot* power = nullptr;
+        mechanism::SpeedSlot* speed = nullptr;
+        double target = 0.0;  ///< Move: the position; SpinUp: the rpm
+        bool computed = true;
+        units::Time bound{0.0};
+        units::Voltage volts{0.0};
+        mechanism::Until until = mechanism::Until::bound();
+        const char* name = nullptr;  ///< the start form's `name` (null = none): said in the trigger's lines
+        bool fired = false;
+        std::uint32_t fireOrder = 0;     ///< when it fired, among this Routine's fires (B6: the FIRST failing)
+        mechanism::StepReport report{};  ///< the slot's report right after the fire's command
+        std::exception_ptr error{};      ///< B7's backstop: a precondition the fire's command threw
+        [[nodiscard]] mechanism::Slot* slot() const noexcept {
+            if (position != nullptr) {
+                return position;
+            }
+            if (power != nullptr) {
+                return power;
+            }
+            return speed;
+        }
+    };
+
+    /// B9 (3): a precondition from the trigger machinery leaves the Routine UNARMED, with no modifier
+    /// pending (a host test that catches it finds the counters untouched and nothing armed).
+    void disarm() noexcept {
+        armedCount_ = 0;
+        pendingMark_ = false;
+        pendingFail_ = stopChain;
+        pendingFailSet_ = false;
+        pendingLabel_ = nullptr;
+    }
+    /// B9 (2): with a trigger armed the only way on is its handle — any other call on the Routine is a
+    /// precondition (deterministic: the bench finds it). Clears first (B9 (3)).
+    void requireUnarmed() {
+        const bool armed = armedCount_ != 0;
+        const bool marked = pendingMark_;
+        if (armed || marked) {
+            disarm();
+        }
+        SHULIB_PRECONDITION(!armed,
+                            "Routine: a partway trigger is armed, so its drive must come next, on its handle -- "
+                            "r.atPercent(60).startMove(lift[\"high\"], 2_s).driveTo(0_in, 48_in); (a trigger "
+                            "line that ends without its drive does nothing)");
+        SHULIB_PRECONDITION(!marked,
+                            "Routine: a partway trigger's mark is written, so its start and its drive must come "
+                            "next -- r.atPercent(60).startMove(lift[\"high\"], 2_s).driveTo(0_in, 48_in); (a "
+                            "trigger line that ends at its mark does nothing)");
+    }
+    /// A NEW trigger line (r.atPercent / afterDistance / afterTurning, after requireUnarmed): its
+    /// number, which every handle the line returns carries (B9 (2): a handle drives ITS line only).
+    std::uint32_t newLine() noexcept { return ++armGen_; }
+    /// A mark written on line `gen`: pending until its start form arms it (a line that ENDS at the
+    /// mark is refused by the next call, or said by the destructor). Returns `gen`.
+    std::uint32_t openMark(std::uint32_t gen) noexcept {
+        pendingMark_ = true;
+        return gen;
+    }
+    /// B9 (2): an ArmedLeg handle acts only for the line now armed — its own, with no mark pending.
+    /// A kept handle used after its leg ran, after its line was cleared, or after ANOTHER line was
+    /// armed is a precondition (the other line's kinds would ride the wrong leg). Clears first.
+    void requireLine(std::uint32_t gen) {
+        const bool ran = armedCount_ == 0;
+        const bool other = !ran && gen != armGen_;
+        const bool marked = !ran && !other && pendingMark_;
+        if (ran || other || marked) {
+            disarm();
+        }
+        SHULIB_PRECONDITION(!ran, "Routine: this trigger handle's drive already ran -- a handle drives once");
+        SHULIB_PRECONDITION(!other, "Routine: this trigger handle is from an EARLIER trigger line -- another line "
+                                    "is armed now; a handle drives once, on the line that armed it");
+        SHULIB_PRECONDITION(!marked, "Routine: a partway trigger's mark is written on this handle but not "
+                                     "started -- write its start (startMove / startHome / startRun / startSpinUp) "
+                                     "before the drive");
+    }
+    /// The three marks' range checks (the brief's re-check #3), each clearing first (B9 (3)).
+    TriggerSpec percentMark(double percent) {
+        const bool ok = std::isfinite(percent) && percent > 0.0 && percent <= 100.0;
+        if (!ok) {
+            disarm();
+        }
+        SHULIB_PRECONDITION(ok, "r.atPercent(...): the percent must be above 0 and at most 100 (\"at 0 %\" is a "
+                                "start step written BEFORE the drive: r.startMove(...).driveTo(...))");
+        return TriggerSpec{TriggerSpec::Mark::Percent, percent / 100.0};
+    }
+    TriggerSpec distanceMark(units::Length distance) {
+        const bool ok = std::isfinite(distance.value()) && distance.value() > 0.0;
+        if (!ok) {
+            disarm();
+        }
+        SHULIB_PRECONDITION(ok, "r.afterDistance(...): the distance must be finite and above 0");
+        return TriggerSpec{TriggerSpec::Mark::Distance, distance.value()};
+    }
+    TriggerSpec turnedMark(math::Angle angle) {
+        const bool ok = angle.radians() > 0.0;
+        if (!ok) {
+            disarm();
+        }
+        SHULIB_PRECONDITION(ok, "r.afterTurning(...): the angle must be above 0 (an angle is wrapped into "
+                                "(-180, 180] degrees, so 270_deg is -90 and a turn never turns more than 180)");
+        return TriggerSpec{TriggerSpec::Mark::Turned, angle.radians()};
+    }
+
+    /// ARM one trigger: the room (4 per leg), one per mechanism (B8 — the second would cancel the
+    /// first mid-leg, the service's newer-command rule), the service (mechs()'s own precondition), the
+    /// slot (`find`, noexcept; null = not on this robot) and the start's OWN checks (`check`, D8 (a)).
+    /// Anything thrown clears first (B9 (3)); nothing is commanded.
+    template <class Find>
+    void arm(Trigger t, std::uint32_t gen, Find&& findAndCheck) {
+        try {
+            SHULIB_PRECONDITION(pendingMark_ && gen == armGen_,
+                                "Routine: this trigger mark was already started, or is from an earlier trigger "
+                                "line -- write the mark, its start and its drive on ONE line");
+            SHULIB_PRECONDITION(armedCount_ < kMaxTriggers,
+                                "Routine: at most 4 partway triggers ride one drive");
+            for (int i = 0; i < armedCount_; ++i) {
+                SHULIB_PRECONDITION(!sameLabel(armed_[i].mechanismName, t.mechanismName),
+                                    "Routine: two partway triggers on ONE mechanism in one drive -- the second "
+                                    "would cancel the first mid-drive (the most recent command wins); start it "
+                                    "once, or split the drive");
+            }
+            findAndCheck(mechs(), t);
+        } catch (...) {
+            disarm();
+            throw;
+        }
+        armed_[armedCount_++] = t;
+        pendingMark_ = false;
+    }
+    void armMove(TriggerSpec spec, std::uint32_t gen, const mechanism::PositionGoal& goal, units::Time bound,
+                 const char* name) {
+        Trigger t{};
+        t.spec = spec;
+        t.name = name;
+        t.start = TriggerStart::Move;
+        t.mechanismName = goal.mechanismName;
+        t.target = goal.value;
+        t.computed = goal.computed;
+        t.bound = bound;
+        arm(t, gen, [&goal](mechanism::MechanismService& svc, Trigger& armed) {
+            armed.position = svc.find(goal);
+            if (armed.position != nullptr) {
+                armed.position->checkMoveTo(armed.target, armed.bound, armed.computed);
+            }
+        });
+    }
+    template <class Declared>
+    void armHome(TriggerSpec spec, std::uint32_t gen, const Declared& d, units::Time bound, const char* name) {
+        Trigger t{};
+        t.spec = spec;
+        t.name = name;
+        t.start = TriggerStart::Home;
+        t.mechanismName = d.name.text;
+        t.bound = bound;
+        arm(t, gen, [&d](mechanism::MechanismService& svc, Trigger& armed) {
+            armed.position = svc.find(d);
+            if (armed.position != nullptr) {
+                armed.position->checkHome(armed.bound);
+            }
+        });
+    }
+    void armRun(TriggerSpec spec, std::uint32_t gen, const mechanism::Power& d, units::Voltage volts,
+                mechanism::Until until, units::Time bound, const char* name) {
+        Trigger t{};
+        t.spec = spec;
+        t.name = name;
+        t.start = TriggerStart::Run;
+        t.mechanismName = d.name.text;
+        t.volts = volts;
+        t.until = until;
+        t.bound = bound;
+        arm(t, gen, [&d](mechanism::MechanismService& svc, Trigger& armed) {
+            armed.power = svc.find(d);
+            if (armed.power != nullptr) {
+                (void)armed.power->checkRun(armed.volts, armed.until, armed.bound);
+            }
+        });
+    }
+    void armSpinUp(TriggerSpec spec, std::uint32_t gen, const mechanism::SpeedGoal& goal, units::Time bound,
+                   const char* name) {
+        Trigger t{};
+        t.spec = spec;
+        t.name = name;
+        t.start = TriggerStart::SpinUp;
+        t.mechanismName = goal.mechanismName;
+        t.target = goal.rpm;
+        t.computed = goal.computed;
+        t.bound = bound;
+        arm(t, gen, [&goal](mechanism::MechanismService& svc, Trigger& armed) {
+            armed.speed = svc.find(goal);
+            if (armed.speed != nullptr) {
+                armed.speed->checkSpinUp(armed.target, armed.bound, armed.computed);
+            }
+        });
+    }
+
+    /// Clears the armed triggers when an armed leg ends — normally or by a throw (B9 (3)).
+    struct DisarmOnExit {
+        Routine& r;
+        ~DisarmOnExit() { r.disarm(); }
+    };
+
+    /// THE ARMED LEG: the door (a skipped or jumped leg fires nothing and marks each trigger's
+    /// mechanism — ST32), then ONE observed Chassis call, then the one record (finishLeg).
+    template <class Leg>
+    Routine& runArmedLeg(std::uint32_t gen, const char* name, Leg&& leg) {
+        requireLine(gen);  // B9 (2): this handle's own line, armed, no mark pending — or a precondition
+        DisarmOnExit scope{*this};
+        if (enterStep(name, /*armedLeg=*/true) != Door::Run) {
+            for (int i = 0; i < armedCount_; ++i) {
+                markNotStarted(armed_[i].mechanismName, "the trigger never fired: its drive was skipped");
+            }
+            return *this;
+        }
+        legProgress_ = motion::LegProgress{};
+        const control::ExitReason exit = leg(LegObserver{&Routine::onLegProgress, this});
+        return finishLeg(name, exit);
+    }
+    Routine& armedMoveTo(std::uint32_t gen, const math::Pose2d& target, const MotionOptions& options) {
+        return runArmedLeg(gen, "moveTo", [&](LegObserver o) { return chassis_->moveTo(target, options, o); });
+    }
+    Routine& armedDriveTo(std::uint32_t gen, const char* name, units::Length x, units::Length y,
+                          const MotionOptions& options, bool reverse) {
+        return runArmedLeg(gen, name, [&](LegObserver o) {
+            // the bearing when the step RUNS, after its door — driveTo / reverseTo's own order
+            const math::Angle b = reverse ? bearingTo(x, y) + math::Angle::radians(math::Angle::kPi) : bearingTo(x, y);
+            return chassis_->moveTo(math::Pose2d{x, y, b}, options, o);
+        });
+    }
+    Routine& armedTurnTo(std::uint32_t gen, math::Angle heading, const MotionOptions& options) {
+        return runArmedLeg(gen, "turnTo", [&](LegObserver o) { return chassis_->turnTo(heading, options, o); });
+    }
+    Routine& armedFace(std::uint32_t gen, const char* name, units::Length x, units::Length y,
+                       const MotionOptions& options, bool away) {
+        return runArmedLeg(gen, name, [&](LegObserver o) {
+            const math::Angle b = away ? bearingTo(x, y) + math::Angle::radians(math::Angle::kPi) : bearingTo(x, y);
+            return chassis_->turnTo(b, options, o);
+        });
+    }
+
+    /// The observer the armed leg hands the chassis (LegObserver's function pointer).
+    static void onLegProgress(void* self, const motion::LegProgress& p) {
+        static_cast<Routine*>(self)->observeLeg(p);
+    }
+    /// INSIDE the motion's tick: remember the progress; fire each unfired trigger whose mark this tick
+    /// reached (B1) — never before the leg is live, never once the guard's time is up (B2). The
+    /// observer is never called on the exit tick, nor on a tick the scheduler's fault abort ends (the
+    /// chassis's decorator), so neither is a fire.
+    void observeLeg(const motion::LegProgress& p) {
+        legProgress_ = p;
+        if (!p.live || timeIsUp()) {
+            return;
+        }
+        for (int i = 0; i < armedCount_; ++i) {
+            if (!armed_[i].fired && markReached(armed_[i].spec, p)) {
+                fire(armed_[i]);
+            }
+        }
+    }
+    /// B1: the mark reached (>=).
+    [[nodiscard]] static bool markReached(const TriggerSpec& s, const motion::LegProgress& p) noexcept {
+        switch (s.mark) {
+            case TriggerSpec::Mark::Percent:
+                return p.fraction >= s.value;
+            case TriggerSpec::Mark::Distance:
+                return p.along.value() >= s.value;
+            case TriggerSpec::Mark::Turned:
+                return p.turnedRad >= s.value;
+        }
+        return false;
+    }
+    /// B3: a mark ON the leg — a percent always; a distance or an angle no further than the leg's size
+    /// from its live start plus its EFFECTIVE arrival tolerance (D6 (i), narrowed).
+    [[nodiscard]] static bool markOnLeg(const TriggerSpec& s, const motion::LegProgress& p) noexcept {
+        switch (s.mark) {
+            case TriggerSpec::Mark::Percent:
+                return true;
+            case TriggerSpec::Mark::Distance:
+                return s.value <= p.length.value() + p.positionTolerance.value();
+            case TriggerSpec::Mark::Turned:
+                return s.value <= p.sizeRad + p.headingToleranceRad;
+        }
+        return false;
+    }
+    /// THE FIRE (the brief's §1.2 "the fire's own path", L16): the slot's command → noteStarted → keep
+    /// the slot's start report. Nothing of the chain's machinery — no door, no record, no stop, no
+    /// cancel — so a refused start (ABSENT / REFUSED / NOT_HOMED) never touches the drive: the leg
+    /// runs to its own verdict and finishLeg() records the drive step once. A trigger whose
+    /// mechanism is not on this robot fires ABSENT (nothing commanded; notOnThisRobot's sentence).
+    /// B7: the try wraps ONLY the command and catches PreconditionError only; the error is held and
+    /// thrown when the leg returns (under D8 (a) the command cannot throw one: arming ran its checks).
+    void fire(Trigger& t) {
+        t.fired = true;
+        t.fireOrder = ++fires_;
+        mechanism::Slot* s = t.slot();
+        if (s == nullptr) {
+            logNotOnThisRobot(t.mechanismName);
+            markNotStarted(t.mechanismName, "its start did nothing: another robot's declaration");
+            t.report = mechanism::StepReport{.outcome = manipulation::MechanismOutcome::Absent};
+            return;
+        }
+        try {
+            switch (t.start) {
+                case TriggerStart::Move:
+                    t.position->moveTo(t.target, t.bound, t.computed);
+                    break;
+                case TriggerStart::Home:
+                    t.position->home(t.bound);
+                    break;
+                case TriggerStart::Run:
+                    t.power->run(t.volts, t.until, t.bound);
+                    break;
+                case TriggerStart::SpinUp:
+                    t.speed->spinUp(t.target, t.bound, t.computed);
+                    break;
+            }
+        } catch (const PreconditionError&) {
+            t.error = std::current_exception();
+            return;
+        }
+        noteStarted(*s);
+        t.report = s->lastStep();
+    }
+    /// A trigger's mark in words, for a line ("at 60 %", "after 20.0 in", "after 45.0 deg").
+    static void describeMark(const TriggerSpec& s, char* out, std::size_t n) noexcept {
+        switch (s.mark) {
+            case TriggerSpec::Mark::Percent:
+                std::snprintf(out, n, "at %.0f %%", s.value * 100.0);
+                return;
+            case TriggerSpec::Mark::Distance:
+                std::snprintf(out, n, "after %.1f in", std::min(s.value, 99999.0));
+                return;
+            case TriggerSpec::Mark::Turned:
+                std::snprintf(out, n, "after %.1f deg", s.value * 180.0 / math::Angle::kPi);
+                return;
+        }
+        std::snprintf(out, n, "?");
+    }
+    /// A trigger in words, for a line: its name if the start form was given one, its mark, its mechanism
+    /// ("'raise' at 60 % on 'lift'", "after 20.0 in on 'intake'").
+    static void describeTrigger(const Trigger& t, char* out, std::size_t n) noexcept {
+        char mark[32];
+        describeMark(t.spec, mark, sizeof mark);
+        if (t.name != nullptr) {
+            std::snprintf(out, n, "'%.23s' %s on '%.23s'", t.name, mark, t.mechanismName);
+        } else {
+            std::snprintf(out, n, "%s on '%.23s'", mark, t.mechanismName);
+        }
+    }
+    /// AFTER THE LEG, outside the tick: B7's re-throw; B3's settle fire; B4's marks (and B3's line for
+    /// a mark past the leg); then the drive step recorded ONCE (D7 (a), B6).
+    Routine& finishLeg(const char* name, control::ExitReason exit) {
+        rethrowHeldError();
+        const bool settled = exit == control::ExitReason::Settled;
+        if (settled && !timeIsUp()) {
+            for (int i = 0; i < armedCount_; ++i) {
+                if (!armed_[i].fired && markOnLeg(armed_[i].spec, legProgress_)) {
+                    fire(armed_[i]);  // D6 (i): it arrived, within the tolerance the step accepts
+                }
+            }
+            rethrowHeldError();
+        }
+        const Trigger* failing = nullptr;
+        const Trigger* lastFired = nullptr;
+        for (int i = 0; i < armedCount_; ++i) {
+            Trigger& t = armed_[i];
+            if (!t.fired) {
+                markNotStarted(t.mechanismName, "the trigger never fired: the robot did not reach the mark");
+                if (settled && !markOnLeg(t.spec, legProgress_)) {
+                    warnMarkPastLeg(name, t);
+                }
+                continue;
+            }
+            // B6: the FIRST to fail and the LAST to fire, in the order they FIRED (not armed)
+            if (lastFired == nullptr || t.fireOrder > lastFired->fireOrder) {
+                lastFired = &t;
+            }
+            const manipulation::MechanismOutcome o = t.report.outcome;
+            if ((o == manipulation::MechanismOutcome::Absent || o == manipulation::MechanismOutcome::Refused ||
+                 o == manipulation::MechanismOutcome::NotHomed) &&
+                (failing == nullptr || t.fireOrder < failing->fireOrder)) {
+                failing = &t;
+            }
+        }
+        if (failing != nullptr) {
+            lastMech_ = failing->report;
+        } else if (lastFired != nullptr) {
+            lastMech_ = lastFired->report;
+        }
+        char what[96];
+        char detail[160];
+        if (!settled) {
+            const char* d = nullptr;
+            if (failing != nullptr) {
+                describeTrigger(*failing, what, sizeof what);
+                std::snprintf(detail, sizeof detail, "its trigger %s was %s", what,
+                              manipulation::mechanismOutcomeName(failing->report.outcome));
+                d = detail;
+            }
+            recordStop(name, RoutineStopCause::MotionFailed, exit, d);
+        } else if (failing != nullptr) {
+            describeTrigger(*failing, what, sizeof what);
+            std::snprintf(detail, sizeof detail, "%s: its trigger %s",
+                          manipulation::mechanismOutcomeName(failing->report.outcome), what);
+            recordStop(name, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running, detail,
+                       failing->report.outcome);
+        } else {
+            recordSuccess();
+        }
+        return *this;
+    }
+    /// B7: the first error a fire held, thrown now (the triggers are cleared on the way out).
+    void rethrowHeldError() {
+        for (int i = 0; i < armedCount_; ++i) {
+            if (armed_[i].error) {
+                std::rethrow_exception(armed_[i].error);
+            }
+        }
+    }
+    /// B3: a mark past a leg that ARRIVED never fires — said once, after the leg.
+    /// The mark's kind IS the leg's: a Distance mark rides only a drive and a Turned mark only a turn
+    /// (the handles' kinds, requireLine — a kept handle cannot carry one line's marks onto another's
+    /// leg — and arm()'s line check — nor can a kept mark); a Percent mark is always on the leg, so it
+    /// never reaches here.
+    void warnMarkPastLeg(const char* name, const Trigger& t) {
+        char what[96];
+        describeTrigger(t, what, sizeof what);
+        char line[240];
+        if (t.spec.mark == TriggerSpec::Mark::Turned) {
+            std::snprintf(line, sizeof line,
+                          "routine '%.24s': step %d (%.24s): trigger %s did not fire: the turn was %.1f deg",
+                          name_, steps_ + 1, name, what, legProgress_.sizeRad * 180.0 / math::Angle::kPi);
+        } else {
+            std::snprintf(line, sizeof line,
+                          "routine '%.24s': step %d (%.24s): trigger %s did not fire: the drive was %.1f in",
+                          name_, steps_ + 1, name, what, std::min(legProgress_.length.value(), 99999.0));
+        }
+        chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line);
+    }
+    // ═══ STEP1-B: partway triggers' machinery — END ═════════════════════════════════════════════
+
+
     Chassis* chassis_;
     const char* name_;
     /// `Running` = "no trajectory has run yet" (see lastTrajectory()). NOT a
@@ -1636,6 +2418,13 @@ private:
     SkipOrigin skipFrom_{};
     /// Per slot index: why a later waitUntilDone() answers MechanismNotStarted (null = not marked).
     const char* notStartedWhy_[mechanism::kMaxMechanisms]{};
+    // ═══ STEP1-B: the partway triggers' state (declared LAST, after STEP1-A's) ═══════════════════
+    Trigger armed_[kMaxTriggers]{};          ///< the triggers armed for the next leg
+    int armedCount_ = 0;                     ///< how many (0 = unarmed)
+    bool pendingMark_ = false;               ///< a mark written, its start form not yet run (B9 (2))
+    std::uint32_t armGen_ = 0;               ///< the current trigger LINE's number (newLine())
+    std::uint32_t fires_ = 0;                ///< fires so far (each trigger's fireOrder)
+    motion::LegProgress legProgress_{};      ///< the leg's last progress (its geometry, for B3)
 };
 
 }  // namespace shulib::chassis

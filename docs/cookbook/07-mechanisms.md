@@ -10,7 +10,8 @@ section.
 
 Listings are compiled and run in
 [`test/mechanism_auton_example_test.cpp`](../../test/mechanism_auton_example_test.cpp), case
-`cookbook-07a`, over robot x (an invented robot with one of each kind of mechanism).
+`cookbook-07a`, and [`test/routine_trigger_example_test.cpp`](../../test/routine_trigger_example_test.cpp),
+case `cookbook-07b`, over robot x (an invented robot with one of each kind of mechanism).
 
 ---
 
@@ -73,3 +74,54 @@ preset(arm["high"], Button::Up, 1.5_s),
   only letting go of R1 ends it. State the arm's `.amps` below what its hold draws when stopped, or
   accept that the driver's thumb ends that push
   ([chapter 18's jam section](../guide/18-mechanisms.md#jam-signatures--what-a-stall-looks-like-and-the-recipe)).
+
+---
+
+## Start the lift partway through a drive
+
+**Use this when:** a lift (or an arm, an intake, a flywheel) should be on its way up while the robot is
+still driving — but not from the very start of the drive: raised too early it tips the robot, blocks
+the camera, or hits a field element on the way.
+
+One line holds the mark, the START and the drive it rides. The lift starts the tick the robot is 60 %
+of the way along the drive; the routine collects it afterwards, like any start form's step.
+
+```cpp
+RoutineResult liftOnTheWay(AutonContext& ctx) {
+    Routine r{ctx, "lift-on-the-way"};
+    r.atPercent(60).startMove(lift["high"], 5_s).driveTo(40_in, 0_in);  // at 24 in, the lift starts up
+    r.waitUntilDone(lift, 3_s);      // up by now (or the routine says why it is not)
+    r.run(intake, -12_volt, 0.5_s);  // score
+    return r.result();
+}
+```
+
+**Why it is written this way.**
+
+- **It saves the lift's whole climb from the drive's time.** On the host test plant the lift needs
+  4.1 s for its 22 in. Written lift-THEN-drive, this auton ends at 6.45 s; with the trigger it ends
+  at 5.06 s — the lift rises while the robot covers the last 16 in, and keeps rising after.
+- **"60 %" is distance along the line from where the drive started to its target** — 24 in of this
+  40 in drive — not time, and not the distance still to go. `afterDistance(24_in)` says the same in
+  inches; `afterTurning(45_deg)` is the mark for a turn
+  ([Chapter 9](../guide/09-the-recipe-api.md#partway-through-a-drive-triggers)).
+- **The bound is the lift's own, counted from when the trigger fires.** `5_s` is the move's time limit,
+  as on any `startMove`; `waitUntilDone(lift, 3_s)` is how much longer the routine will wait for it
+  once the drive is done.
+- **The trigger is part of the drive step.** If the lift's start is refused when the robot reaches the
+  mark (not homed, not plugged in), the drive still finishes — then that step fails, saying why, and
+  the routine stops (or carries on, under `r.onFail(carryOn)` written before the mark).
+
+**Watch out for:**
+
+- **A drive that ends early fires nothing.** If the drive times out at 50 %, the lift never starts, and
+  the `waitUntilDone` fails — counted, "the trigger never fired" — rather than waiting for a lift that
+  is not moving. Give the drive a timeout it can meet, or put `r.onFail(carryOn)` in front of the wait.
+- **A mark past the end never fires.** A drive that arrives just short of its target (0.24 in short
+  here) still fires a mark at 100 % or at its full length — but not "after 50 in" on a 40 in drive;
+  the routine logs that it did not fire.
+- **Write the drive on the SAME line.** A trigger line that ends without its drive is a compiler
+  warning (an error in this project's own builds); the routine's next step refuses, and a routine that
+  ends with one still waiting logs that it never fired.
+- **Nothing here has run on a robot.** How soon after the mark the real lift starts to move, and how
+  close the robot's estimate of "60 %" is to the tape, are unmeasured.
