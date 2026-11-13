@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 6,249 of them, across 210 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 6,386 of them, across 211 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -330,6 +330,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BackupLoad::count` | field | [record_store.md](record_store.md#backupload-count) |
 | `BackupLoad::from` | field | [record_store.md](record_store.md#backupload-from) |
 | `BackupLoad::primary` | field | [record_store.md](record_store.md#backupload-primary) |
+| `bandAtLookSpotProblem` | free function | [toggle_visit.md](toggle_visit.md#bandatlookspotproblem) |
 | `beamCeiling` | free function | [wall_reset.md](wall_reset.md#beamceiling) |
 | `BlackboxHeader` | struct | [blackbox_format.md](blackbox_format.md#struct-blackboxheader) |
 | `BlackboxHeader::alliance` | function | [blackbox_format.md](blackbox_format.md#blackboxheader-alliance) |
@@ -810,6 +811,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ChassisSpeeds::omega` | function | [twist2d.md](twist2d.md#chassisspeeds-omega) |
 | `ChassisSpeeds::vx` | function | [twist2d.md](twist2d.md#chassisspeeds-vx) |
 | `ChassisSpeeds::vy` | function | [twist2d.md](twist2d.md#chassisspeeds-vy) |
+| `checkAndFlipToggle` | free function | [toggle_visit.md](toggle_visit.md#checkandfliptoggle) |
 | `checkAutonEntry` | free function | [auton_registry.md](auton_registry.md#checkautonentry) |
 | `checkCurve` | free function | [curve_path.md](curve_path.md#checkcurve) |
 | `Checked` | struct | [calibrate_panel.md](calibrate_panel.md#struct-checked) |
@@ -1581,6 +1583,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ExitReason::Settled` | enumerator | [exit_group.md](exit_group.md#exitreason-settled) |
 | `ExitReason::TimedOut` | enumerator | [exit_group.md](exit_group.md#exitreason-timedout) |
 | `explainAsToggleFace` | free function | [toggle_tracker.md](toggle_tracker.md#explainastoggleface) |
+| `ExplicitToggleCamera` | struct | [toggle_visit.md](toggle_visit.md#struct-explicittogglecamera) |
+| `ExplicitToggleCamera::feed` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-feed) |
+| `ExplicitToggleCamera::headingToleranceDeg` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-headingtolerancedeg) |
+| `ExplicitToggleCamera::model` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-model) |
+| `ExplicitToggleCamera::poseTolerance` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-posetolerance) |
+| `ExplicitToggleCamera::tracker` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-tracker) |
 | `expoCurve` | free function | [input_shaping.md](input_shaping.md#expocurve) |
 
 ## F
@@ -1753,6 +1761,19 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FitVerdict::SignMismatch` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-signmismatch) |
 | `FitVerdict::TooFewSamples` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-toofewsamples) |
 | `fitVerdictName` | free function | [feedforward_fit.md](feedforward_fit.md#fitverdictname) |
+| `FlipperGoal` | struct | [toggle_visit.md](toggle_visit.md#struct-flippergoal) |
+| `FlipperGoal::FlipperGoal` | function | [toggle_visit.md](toggle_visit.md#flippergoal-flippergoal) |
+| `FlipperGoal::FlipperGoal (overload 2)` | function | [toggle_visit.md](toggle_visit.md#flippergoal-flippergoal-2) |
+| `FlipperGoal::FlipperGoal (overload 3)` | function | [toggle_visit.md](toggle_visit.md#flippergoal-flippergoal-3) |
+| `FlipperGoal::Kind` | enum class | [toggle_visit.md](toggle_visit.md#enum-class-flippergoal-kind) |
+| `FlipperGoal::kind` | field | [toggle_visit.md](toggle_visit.md#flippergoal-kind) |
+| `FlipperGoal::Kind::Passive` | enumerator | [toggle_visit.md](toggle_visit.md#flippergoal-kind-passive) |
+| `FlipperGoal::Kind::Pneumatic` | enumerator | [toggle_visit.md](toggle_visit.md#flippergoal-kind-pneumatic) |
+| `FlipperGoal::Kind::Position` | enumerator | [toggle_visit.md](toggle_visit.md#flippergoal-kind-position) |
+| `FlipperGoal::mechanismName` | function | [toggle_visit.md](toggle_visit.md#flippergoal-mechanismname) |
+| `FlipperGoal::passive` | function | [toggle_visit.md](toggle_visit.md#flippergoal-passive) |
+| `FlipperGoal::pneumatic` | field | [toggle_visit.md](toggle_visit.md#flippergoal-pneumatic) |
+| `FlipperGoal::position` | field | [toggle_visit.md](toggle_visit.md#flippergoal-position) |
 | `Flywheel` | struct | [kinds.md](kinds.md#struct-flywheel) |
 | `Flywheel` | type alias | [kinds.md](kinds.md#flywheel) |
 | `Flywheel::angleSensor` | field | [kinds.md](kinds.md#flywheel-anglesensor) |
@@ -2491,6 +2512,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kArmingDelaySeconds` | constant | [calibrate_panel.md](calibrate_panel.md#karmingdelayseconds) |
 | `kArmingDelaySeconds` | constant | [touch_panel.md](touch_panel.md#karmingdelayseconds) |
 | `kBlue` | constant | [tune_program.md](tune_program.md#kblue) |
+| `kBlueWall` | constant | [override_elements.md](override_elements.md#kbluewall) |
 | `kBlueWall` | constant | [override_walls.md](override_walls.md#kbluewall) |
 | `kBodyY` | constant | [tune_panel.md](tune_panel.md#kbodyy) |
 | `kBottomDepthHiIn` | constant | [toggle_tracker.md](toggle_tracker.md#kbottomdepthhiin) |
@@ -2629,6 +2651,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kLargeTitleY` | constant | [tune_panel.md](tune_panel.md#klargetitley) |
 | `kLastPeerDataType` | constant | [shul2_format.md](shul2_format.md#klastpeerdatatype) |
 | `kLastRuntimeDataType` | constant | [shul2_format.md](shul2_format.md#klastruntimedatatype) |
+| `kLeftWall` | constant | [override_elements.md](override_elements.md#kleftwall) |
 | `kLeftWall` | constant | [override_walls.md](override_walls.md#kleftwall) |
 | `kLightBlue` | constant | [tune_program.md](tune_program.md#klightblue) |
 | `kLiveFirstKaSeconds` | constant | [live_tuning.md](live_tuning.md#klivefirstkaseconds) |
@@ -2778,10 +2801,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kRecordPrefixBytes` | constant | [calibration_record.md](calibration_record.md#krecordprefixbytes) |
 | `kRecordVersion` | constant | [calibration_record.md](calibration_record.md#krecordversion) |
 | `kRed` | constant | [tune_program.md](tune_program.md#kred) |
+| `kRedWall` | constant | [override_elements.md](override_elements.md#kredwall) |
 | `kRedWall` | constant | [override_walls.md](override_walls.md#kredwall) |
 | `kRepeatability` | constant | [accuracy.md](accuracy.md#krepeatability) |
 | `kReproScaleTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreproscaletolerance) |
 | `kReproWidthTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreprowidthtolerance) |
+| `kRightWall` | constant | [override_elements.md](override_elements.md#krightwall) |
 | `kRightWall` | constant | [override_walls.md](override_walls.md#krightwall) |
 | `kRolePeer` | constant | [shul2_format.md](shul2_format.md#krolepeer) |
 | `kRoleRuntime` | constant | [shul2_format.md](shul2_format.md#kroleruntime) |
@@ -2844,6 +2869,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kToggleFace` | constant | [override_elements.md](override_elements.md#ktoggleface) |
 | `kToggleHalfLength` | constant | [override_walls.md](override_walls.md#ktogglehalflength) |
 | `kTogglePlaces` | constant | [override_elements.md](override_elements.md#ktoggleplaces) |
+| `kToggleQuadrantColour` | constant | [override_elements.md](override_elements.md#ktogglequadrantcolour) |
+| `kToggleVisitTickSeconds` | constant | [toggle_visit.md](toggle_visit.md#ktogglevisittickseconds) |
+| `kToggleVisitWaitSlackSeconds` | constant | [toggle_visit.md](toggle_visit.md#ktogglevisitwaitslackseconds) |
 | `kTooFewMotors` | constant | [calibrate_screen.md](calibrate_screen.md#ktoofewmotors) |
 | `kTriagePayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktriagepayloadbytes) |
 | `kTunableCount` | constant | [live_tuning.md](live_tuning.md#ktunablecount) |
@@ -3099,6 +3127,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `LogLine::nonTextBytes` | field | [shul2_format.md](shul2_format.md#logline-nontextbytes) |
 | `LogLine::t` | field | [shul2_format.md](shul2_format.md#logline-t) |
 | `LogLine::tag` | field | [shul2_format.md](shul2_format.md#logline-tag) |
+| `lookAtToggle` | free function | [toggle_visit.md](toggle_visit.md#lookattoggle) |
 | `LoopMonitor` | class | [loop_monitor.md](loop_monitor.md#class-loopmonitor) |
 | `LoopMonitor::LoopMonitor` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-loopmonitor) |
 | `LoopMonitor::overrunCount` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-overruncount) |
@@ -3688,6 +3717,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `opticalSensor` | free function | [kinds.md](kinds.md#opticalsensor) |
 | `opticalSensor (overload 2)` | type alias | [kinds.md](kinds.md#opticalsensor-2) |
 | `opticalUnitIntervalToCanonical` | free function | [optical_conversion.md](optical_conversion.md#opticalunitintervaltocanonical) |
+| `oursFor` | free function | [toggle_visit.md](toggle_visit.md#oursfor) |
 | `overlaps` | free function | [calibrate_panel.md](calibrate_panel.md#overlaps) |
 | `overlaps` | free function | [touch_panel.md](touch_panel.md#overlaps) |
 
@@ -4378,6 +4408,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `QuadrantColour` | enum class | [override_elements.md](override_elements.md#enum-class-quadrantcolour) |
+| `quadrantColour` | free function | [override_elements.md](override_elements.md#quadrantcolour) |
+| `QuadrantColour::Blue` | enumerator | [override_elements.md](override_elements.md#quadrantcolour-blue) |
+| `QuadrantColour::Red` | enumerator | [override_elements.md](override_elements.md#quadrantcolour-red) |
+| `QuadrantColour::Unset` | enumerator | [override_elements.md](override_elements.md#quadrantcolour-unset) |
 | `Quantity` | class | [quantity.md](quantity.md#class-quantity) |
 | `Quantity::operator*` | function | [quantity.md](quantity.md#quantity-operator-star) |
 | `Quantity::operator* (overload 2)` | function | [quantity.md](quantity.md#quantity-operator-star-2) |
@@ -5662,6 +5697,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleColourIds::blue` | field | [toggle_tracker.md](toggle_tracker.md#togglecolourids-blue) |
 | `ToggleColourIds::red` | field | [toggle_tracker.md](toggle_tracker.md#togglecolourids-red) |
 | `ToggleColourIds::yellow` | field | [toggle_tracker.md](toggle_tracker.md#togglecolourids-yellow) |
+| `toggleColourOf` | free function | [toggle_visit.md](toggle_visit.md#togglecolourof) |
 | `toggleColourWord` | free function | [toggle_tracker.md](toggle_tracker.md#togglecolourword) |
 | `ToggleFace` | struct | [override_elements.md](override_elements.md#struct-toggleface) |
 | `ToggleFace::bottomHiIn` | field | [override_elements.md](override_elements.md#toggleface-bottomhiin) |
@@ -5683,6 +5719,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleFaceMeasure::impliedLength` | field | [toggle_tracker.md](toggle_tracker.md#togglefacemeasure-impliedlength) |
 | `ToggleFaceMeasure::range` | field | [toggle_tracker.md](toggle_tracker.md#togglefacemeasure-range) |
 | `ToggleFaceMeasure::sideClipped` | field | [toggle_tracker.md](toggle_tracker.md#togglefacemeasure-sideclipped) |
+| `ToggleId` | enum class | [override_elements.md](override_elements.md#enum-class-toggleid) |
+| `ToggleId::BlueWall` | enumerator | [override_elements.md](override_elements.md#toggleid-bluewall) |
+| `ToggleId::LeftWall` | enumerator | [override_elements.md](override_elements.md#toggleid-leftwall) |
+| `ToggleId::RedWall` | enumerator | [override_elements.md](override_elements.md#toggleid-redwall) |
+| `ToggleId::RightWall` | enumerator | [override_elements.md](override_elements.md#toggleid-rightwall) |
+| `ToggleId::Unset` | enumerator | [override_elements.md](override_elements.md#toggleid-unset) |
+| `toggleIndex` | free function | [override_elements.md](override_elements.md#toggleindex) |
+| `toggleName` | free function | [override_elements.md](override_elements.md#togglename) |
 | `TogglePlace` | struct | [override_elements.md](override_elements.md#struct-toggleplace) |
 | `TogglePlace::inX` | field | [override_elements.md](override_elements.md#toggleplace-inx) |
 | `TogglePlace::inY` | field | [override_elements.md](override_elements.md#toggleplace-iny) |
@@ -5716,6 +5760,97 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleView::range` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-range) |
 | `ToggleView::toggleIndex` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-toggleindex) |
 | `ToggleView::why` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-why) |
+| `toggleVisit` | free function | [toggle_visit.md](toggle_visit.md#togglevisit) |
+| `toggleVisitCeilTick` | free function | [toggle_visit.md](toggle_visit.md#togglevisitceiltick) |
+| `toggleVisitNeedSeconds` | free function | [toggle_visit.md](toggle_visit.md#togglevisitneedseconds) |
+| `ToggleVisitProblem` | enum class | [toggle_visit.md](toggle_visit.md#enum-class-togglevisitproblem) |
+| `ToggleVisitProblem::BackBoundUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-backboundunset) |
+| `ToggleVisitProblem::DriveBoundUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-driveboundunset) |
+| `ToggleVisitProblem::FlipBoundUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-flipboundunset) |
+| `ToggleVisitProblem::FlipperKindsDiffer` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-flipperkindsdiffer) |
+| `ToggleVisitProblem::LookFromUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-lookfromunset) |
+| `ToggleVisitProblem::LookWithinUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-lookwithinunset) |
+| `ToggleVisitProblem::MarginUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-marginunset) |
+| `ToggleVisitProblem::MaxImageAgeUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-maximageageunset) |
+| `ToggleVisitProblem::MaxPushes` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-maxpushes) |
+| `ToggleVisitProblem::None` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-none) |
+| `ToggleVisitProblem::NotFinite` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-notfinite) |
+| `ToggleVisitProblem::OffByTooLarge` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-offbytoolarge) |
+| `ToggleVisitProblem::OffByUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-offbyunset) |
+| `ToggleVisitProblem::PushFromUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-pushfromunset) |
+| `ToggleVisitProblem::PushNotNearer` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-pushnotnearer) |
+| `ToggleVisitProblem::SameGoalTwice` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-samegoaltwice) |
+| `ToggleVisitProblem::SettleUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-settleunset) |
+| `ToggleVisitProblem::ToggleUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-toggleunset) |
+| `ToggleVisitProblem::TwoMechanisms` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-twomechanisms) |
+| `toggleVisitProblemOf` | free function | [toggle_visit.md](toggle_visit.md#togglevisitproblemof) |
+| `toggleVisitProblemSentence` | free function | [toggle_visit.md](toggle_visit.md#togglevisitproblemsentence) |
+| `ToggleVisitReport` | struct | [toggle_visit.md](toggle_visit.md#struct-togglevisitreport) |
+| `ToggleVisitReport::after` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-after) |
+| `ToggleVisitReport::afterTooEarly` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-aftertooearly) |
+| `ToggleVisitReport::back` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-back) |
+| `ToggleVisitReport::bearing` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-bearing) |
+| `ToggleVisitReport::before` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-before) |
+| `ToggleVisitReport::detail` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-detail) |
+| `ToggleVisitReport::driveIn` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-drivein) |
+| `ToggleVisitReport::driveOut` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-driveout) |
+| `ToggleVisitReport::fullStroke` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-fullstroke) |
+| `ToggleVisitReport::lensFromWallIn` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-lensfromwallin) |
+| `ToggleVisitReport::ok` | function | [toggle_visit.md](toggle_visit.md#togglevisitreport-ok) |
+| `ToggleVisitReport::ours` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-ours) |
+| `ToggleVisitReport::outcome` | function | [toggle_visit.md](toggle_visit.md#togglevisitreport-outcome) |
+| `ToggleVisitReport::positionChecked` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-positionchecked) |
+| `ToggleVisitReport::push` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-push) |
+| `ToggleVisitReport::pushes` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-pushes) |
+| `ToggleVisitReport::range` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-range) |
+| `ToggleVisitReport::seconds` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-seconds) |
+| `ToggleVisitReport::secondsLeftAtCheck` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-secondsleftatcheck) |
+| `ToggleVisitReport::secondsLeftAtStart` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-secondsleftatstart) |
+| `ToggleVisitReport::secondsNeeded` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-secondsneeded) |
+| `ToggleVisitReport::toggle` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-toggle) |
+| `ToggleVisitReport::verdict` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-verdict) |
+| `ToggleVisitReport::wallChecked` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-wallchecked) |
+| `ToggleVisitReport::whyAfter` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-whyafter) |
+| `ToggleVisitReport::whyBefore` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-whybefore) |
+| `ToggleVisitRequest` | struct | [toggle_visit.md](toggle_visit.md#struct-togglevisitrequest) |
+| `ToggleVisitRequest::back` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-back) |
+| `ToggleVisitRequest::backBound` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-backbound) |
+| `ToggleVisitRequest::driveBound` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-drivebound) |
+| `ToggleVisitRequest::flipBound` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-flipbound) |
+| `ToggleVisitRequest::flipper` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-flipper) |
+| `ToggleVisitRequest::lookFrom` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-lookfrom) |
+| `ToggleVisitRequest::lookWithin` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-lookwithin) |
+| `ToggleVisitRequest::margin` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-margin) |
+| `ToggleVisitRequest::maxImageAge` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-maximageage) |
+| `ToggleVisitRequest::maxPushes` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-maxpushes) |
+| `ToggleVisitRequest::offBy` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-offby) |
+| `ToggleVisitRequest::pushFrom` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-pushfrom) |
+| `ToggleVisitRequest::settle` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-settle) |
+| `ToggleVisitRequest::toggle` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-toggle) |
+| `toggleVisitRequestProblem` | free function | [toggle_visit.md](toggle_visit.md#togglevisitrequestproblem) |
+| `ToggleVisitVerdict` | enum class | [toggle_visit.md](toggle_visit.md#enum-class-togglevisitverdict) |
+| `ToggleVisitVerdict::AlreadyOurs` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-alreadyours) |
+| `ToggleVisitVerdict::Cut` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-cut) |
+| `ToggleVisitVerdict::DriveFailed` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-drivefailed) |
+| `ToggleVisitVerdict::Flipped` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-flipped) |
+| `ToggleVisitVerdict::FlipperNotReady` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-flippernotready) |
+| `ToggleVisitVerdict::FlipperStuck` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-flipperstuck) |
+| `ToggleVisitVerdict::FrozenBeforePush` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-frozenbeforepush) |
+| `ToggleVisitVerdict::NoCamera` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-nocamera) |
+| `ToggleVisitVerdict::NoChange` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-nochange) |
+| `ToggleVisitVerdict::NotAtSpot` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-notatspot) |
+| `ToggleVisitVerdict::NotEnoughTime` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-notenoughtime) |
+| `ToggleVisitVerdict::NoTimeForSecondPush` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-notimeforsecondpush) |
+| `ToggleVisitVerdict::NotSkills` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-notskills) |
+| `ToggleVisitVerdict::OursAfterShortStroke` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-oursaftershortstroke) |
+| `ToggleVisitVerdict::RetractedForTime` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-retractedfortime) |
+| `ToggleVisitVerdict::SeenNotOurs` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-seennotours) |
+| `ToggleVisitVerdict::StillNotOurs` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-stillnotours) |
+| `ToggleVisitVerdict::UnknownAfter` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-unknownafter) |
+| `ToggleVisitVerdict::UnknownBefore` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-unknownbefore) |
+| `ToggleVisitVerdict::Unset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-unset) |
+| `ToggleVisitVerdict::WrongWall` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-wrongwall) |
+| `toggleVisitWord` | free function | [toggle_visit.md](toggle_visit.md#togglevisitword) |
 | `ToggleWhy` | enum class | [toggle_tracker.md](toggle_tracker.md#enum-class-togglewhy) |
 | `ToggleWhy::CameraFrozen` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-camerafrozen) |
 | `ToggleWhy::CameraFull` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-camerafull) |
@@ -5765,6 +5900,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TouchSample::x` | field | [touch_panel.md](touch_panel.md#touchsample-x) |
 | `TouchSample::y` | field | [calibrate_panel.md](calibrate_panel.md#touchsample-y) |
 | `TouchSample::y` | field | [touch_panel.md](touch_panel.md#touchsample-y) |
+| `towardWallRadians` | free function | [toggle_visit.md](toggle_visit.md#towardwallradians) |
 | `TrackingWheel` | class | [tracking_wheel.md](tracking_wheel.md#class-trackingwheel) |
 | `TrackingWheel::forward` | function | [tracking_wheel.md](tracking_wheel.md#trackingwheel-forward) |
 | `TrackingWheel::lateral` | function | [tracking_wheel.md](tracking_wheel.md#trackingwheel-lateral) |
@@ -6356,6 +6492,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `within` | free function | [kinds.md](kinds.md#within) |
 | `within` | free function | [touch_panel.md](touch_panel.md#within) |
 | `within (overload 2)` | type alias | [kinds.md](kinds.md#within-2) |
+| `worstCaseSeconds` | free function | [toggle_visit.md](toggle_visit.md#worstcaseseconds) |
 | `Wrapped` | struct | [calibrate_panel.md](calibrate_panel.md#struct-wrapped) |
 | `Wrapped::complete` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-complete) |
 | `Wrapped::count` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-count) |

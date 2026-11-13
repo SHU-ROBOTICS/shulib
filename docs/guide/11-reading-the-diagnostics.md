@@ -14,8 +14,9 @@ answerable from a text file, at the field, without a debugger. Everything below 
 format the code produces today — every example is copied from output that the test suite pins
 byte-for-byte (`test/term_sink_test.cpp`, `test/run_summary_test.cpp`,
 `test/motion_result_test.cpp`, `test/session_header_test.cpp`, for the `ODO_STUCK` line
-`test/odom_tick_audit_test.cpp` and, for the wall reset's `WALL` lines,
-`test/wall_reset_line_test.cpp` hold the golden strings). If the
+`test/odom_tick_audit_test.cpp`, for the wall reset's `WALL` lines
+`test/wall_reset_line_test.cpp` and, for the Toggle visit's `TGL` lines,
+`test/toggle_visit_line_test.cpp` hold the golden strings). If the
 format ever changes, those tests change with it — trust them over this page and tell the guide
 maintainer.
 
@@ -245,6 +246,8 @@ worth recognizing on sight:
   said again.
 - **A wall reset** (tag `WALL`, Info when it seated, Warn when it refused) — one line per call;
   [its own section below](#the-wall-reset-wall) reads it word by word.
+- **A Toggle visit** (tag `TGL`, Info for the two successes, Warn otherwise) — one line per visit,
+  beside the flipper's own `MECH` lines; [its own section below](#the-toggle-visit-tgl) reads it.
 - **Fault-policy aborts** (Warn, from the scheduler):
   `[SCH] fault abort: ODO_STUCK — cancelling MoveToPose` — pairs with a `✗FAULT_ABORT` result
   line moments later.
@@ -578,6 +581,74 @@ error on that axis at the reset point; the largest seen plus ~1 in is the drift 
 correct. Never set it near the gap to the nearest thing a wrong reading could mistake for the wall
 — a tight limit is the one defence the reading checks cannot give
 ([Chapter 14](14-what-it-cannot-do-yet.md#the-wall-reset-what-it-cannot-catch)).
+
+## The Toggle visit (TGL)
+
+The Toggle step ([Chapter 20](20-the-camera.md#checking-and-flipping-a-toggle-in-a-skills-route)) writes
+**exactly one line per visit**, tag `TGL` — `Info` (no level tag) for the two successes, `Warn` for everything
+else — at most 160 bytes, ASCII. The flipper's own `[MECH]` lines for each push and retract appear beside it.
+One line of each common shape. Each is pinned byte for byte (after its `[t=…]` prefix) by
+`test/toggle_visit_line_test.cpp`, which makes every one from a scene on the host test plant — and fails if this
+page quotes anything else. The numbers are that plant's placeholders; nothing here has run on a robot:
+
+```text
+[t=   9.52] [TGL] right wall Toggle: YELLOW -> RED after 2 pushes, 9.5s (ours RED), wall not checked (relative start), seating not checked
+[t=   0.16] [TGL] red wall Toggle: already RED (ours), nothing pushed, 0.2s, wall not checked (relative start), seating not checked
+[t=   0.16] [WARN][TGL] right wall Toggle: not at the spot -- band at 17.2-30.8 in, look spot 16.0 +- 6.0 in -- nothing pushed
+[t=   0.60] [WARN][TGL] right wall Toggle: UNKNOWN before (another colour directly above) -- nothing pushed, wall not checked (relative start)
+[t=   0.00] [WARN][TGL] right wall Toggle: wrong wall -- heading 60 deg, its wall is at 0 deg -- nothing pushed
+[t=   0.16] [WARN][TGL] right wall Toggle: not now -- 6.3s left, needs 13.1s -- nothing pushed
+[t=   4.10] [WARN][TGL] right wall Toggle: NO CHANGE -- still YELLOW after 1 push (sticky, or a camera frozen since before), wall not checked (relative start)
+[t=   4.54] [WARN][TGL] right wall Toggle: RED after a SHORT stroke (push STALLED) -- maybe stuck part-way, not counted
+[t=   2.89] [WARN][TGL] right wall Toggle: FLIPPER STUCK -- 'flip arm' did not reach its back position (STALLED); the robot stays put
+[t=  54.89] [WARN][TGL] right wall Toggle: retracted for time after 1 push -- 0.1s left, the robot is off it
+[t=   1.79] [WARN][TGL] right wall Toggle: the drive in did not arrive (timed out) after 0 pushes
+[t=   1.04] [WARN][TGL] right wall Toggle: camera frozen? seen on the drive in -- push 1 not made, YELLOW before, the robot drove back out
+```
+
+Word by word: the Toggle's name (`right wall Toggle`, `left wall Toggle`, `blue wall Toggle`, `red wall
+Toggle`), then what happened. What to do for each:
+
+- **`A -> B after n pushes ... (ours B)`** — FLIPPED: it shows our colour after a full stroke. **`already X
+  (ours)`** — nothing was pushed. Both end `seating not checked`: the camera cannot see whether the Toggle sits
+  flat — watch it at the bench (Chapter 14).
+- **`wall not checked (relative start)`** — the route started RELATIVE, so the step could not check the robot
+  faces the named Toggle's wall. Use a FIELD start for a skills route.
+- **`not a SKILLS auton (MATCH)`** — the step runs only in a skills auton.
+- **`no camera -- <why>`** — no camera feed, an unmeasured mount, or a tracker number refused (the sentence
+  names it).
+- **`flipper not ready -- '<name>' <why>`** — not on this robot, absent at boot, not homed, still running a
+  step, or not at its back position. The step never moves it there: put it there in the route first.
+- **`wrong wall -- heading H deg, its wall is at W deg`** — a FIELD start, and the robot faces more than 45
+  degrees away from the named Toggle's wall: the route named the wrong Toggle, or turned wrong.
+- **`UNKNOWN before (<reason>)`** — no sure colour within `lookWithin`; the reason is the tracker's
+  ([Chapter 20](20-the-camera.md#the-toggle-tracker-red-blue-yellow--or-unknown-with-the-reason)). Square up, check the look distance, check the colours.
+- **`not at the spot -- band at a-b in, look spot L +- O in`** — the band's range interval is not wholly inside
+  the window: the robot is too near or too far. **`estimate D in from the wall`** instead: a FIELD start whose
+  estimate says the robot is not at the look spot.
+- **`not now -- s left, needs n`** — the run's time left does not cover the visit (`n` is
+  `worstCaseSeconds`: each push's drive in, its frozen-camera hold, push, retract, settle, drive out and look). **`no time for push 2`** —
+  push 1 turned it to the third colour and one more push does not fit.
+- **`NO CHANGE`** — after push 1 it shows what it showed before: a sticky Toggle, or a camera frozen since
+  before the push. **`STILL NOT OURS`** — after the last allowed push it is not ours.
+- **`UNKNOWN after n pushes (<reason>)`** — no sure colour after the push; `no picture after the retract`
+  means the camera had colours, but none from after the flipper came back and the camera moved.
+- **`<colour> after a SHORT stroke (push STALLED)`** — it reads ours, but the push stopped short: it may be
+  stuck part-way. Not counted.
+- **`FLIPPER STUCK`** — the retract did not reach `back`; the robot stays where it is (driving out would drag
+  the Toggle). The route's next step decides — retract again with a longer bound, then back off.
+- **`retracted for time`** — time ran short while the flipper was out: it came back at once and the robot
+  drove off the Toggle.
+- **`the drive in|out did not arrive`** — the step's own straight drive timed out (`driveBound`) or was
+  stopped: something in the way, or a bound too short. After a drive in that did not arrive nothing was pushed and
+  the robot drove back out; after a drive OUT that did not arrive there is no look after (the robot is not at the
+  look spot) and no second push.
+- **`camera frozen? seen on the drive in -- push n not made`** — as the robot drove in, the lens moved and the
+  band's box in the picture did not move at all: the camera's picture is stale, so the colour the push would rest
+  on may be too. Nothing was pushed; the robot drove back out. Check the camera's cable and the Brain's
+  devices screen; the route's next step decides.
+- **`CUT by the run's end`** — the period ended during the visit; the route stops.
+- **`seen (ours X), look only`** — `lookAtToggle`'s answer: a sure colour at the spot, not ours, nothing pushed.
 
 ## Every fault code
 

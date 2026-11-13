@@ -75,6 +75,77 @@ struct TogglePlace {
 inline constexpr TogglePlace kTogglePlaces[4] = {
     {70.2, 0.0, -1.0, 0.0}, {-70.2, 0.0, 1.0, 0.0}, {0.0, 70.2, 0.0, -1.0}, {0.0, -70.2, 0.0, 1.0}};
 
+// ── Which Toggle, and its Quadrant's colour (chunk AF1S-A1, 2026-11-11) ──────────────
+// In a SKILLS run a Toggle helps only when it shows ITS OWN QUADRANT's colour: v2.0 <RSC3>a-iii-1
+// ("Toggles only confer Ownership of Pins when the Toggle matches the color of its Quadrant") — the
+// v2.1 change log (read 2026-11-10) re-words the rule for "Pin Half" and keeps it in substance. Which
+// Quadrant each Toggle belongs to is read from v2.0 Figure Q-1 (Red 1 against the red alliance's wall,
+// Red 2 against the wall on the red station's RIGHT; Blue 1 against the blue alliance's wall, Blue 2
+// against the red station's LEFT) with pA15's start orientation (each Toggle yellow into the field,
+// its Quadrant's colour facing OUT). In F1 (+x to the right as seen from the red station, the red wall
+// at y = -70.2): RIGHT wall RED, LEFT wall BLUE, BLUE wall BLUE, RED wall RED. A READING of two drawings,
+// not a measurement: A4 register HA-243 (reasoned), settled on the event's field. DATA ONLY — its own
+// small colour type, not vision::ToggleColour (that lives in toggle_tracker.hpp, which includes this
+// header: a circular include otherwise); competition/toggle_visit.hpp maps one to the other.
+
+/// WHICH Toggle — in kTogglePlaces' order (index = the id less one). Unset (0) names none.
+enum class ToggleId : std::uint8_t {
+    Unset = 0,  ///< no Toggle named (refused by every consumer)
+    RightWall,  ///< the right wall's (x = +70.2) — kTogglePlaces[0]
+    LeftWall,   ///< the left wall's (x = -70.2) — kTogglePlaces[1]
+    BlueWall,   ///< the blue alliance's wall's (y = +70.2) — kTogglePlaces[2]
+    RedWall,    ///< the red alliance's wall's (y = -70.2) — kTogglePlaces[3]
+};
+
+/// The named handles a route writes (`toggles::kRedWall`).
+namespace toggles {
+/// The right wall's Toggle (x = +70.2) — a RED Quadrant's (HA-243).
+inline constexpr ToggleId kRightWall = ToggleId::RightWall;
+/// The left wall's Toggle (x = -70.2) — a BLUE Quadrant's (HA-243).
+inline constexpr ToggleId kLeftWall = ToggleId::LeftWall;
+/// The blue alliance's wall's Toggle (y = +70.2) — a BLUE Quadrant's (HA-243).
+inline constexpr ToggleId kBlueWall = ToggleId::BlueWall;
+/// The red alliance's wall's Toggle (y = -70.2) — a RED Quadrant's (HA-243).
+inline constexpr ToggleId kRedWall = ToggleId::RedWall;
+}  // namespace toggles
+
+/// A Quadrant's colour — this header's own (header: the circular include).
+enum class QuadrantColour : std::uint8_t {
+    Unset = 0,  ///< no colour (an Unset Toggle's)
+    Red,        ///< a red Quadrant
+    Blue,       ///< a blue Quadrant
+};
+
+/// Each Toggle's Quadrant colour, in kTogglePlaces' order: right RED, left BLUE, blue wall BLUE, red
+/// wall RED (header; A4 register HA-243 — reasoned from Figure Q-1 and pA15, unmeasured).
+inline constexpr QuadrantColour kToggleQuadrantColour[4] = {QuadrantColour::Red, QuadrantColour::Blue,
+                                                           QuadrantColour::Blue, QuadrantColour::Red};
+
+/// The index of `id` in kTogglePlaces (0..3), or -1 for Unset or a byte outside the enum.
+[[nodiscard]] constexpr int toggleIndex(ToggleId id) noexcept {
+    const int i = static_cast<int>(id) - 1;
+    return i >= 0 && i < 4 ? i : -1;
+}
+
+/// The Quadrant colour of `id`'s Toggle — Unset for Unset or a byte outside the enum.
+[[nodiscard]] constexpr QuadrantColour quadrantColour(ToggleId id) noexcept {
+    const int i = toggleIndex(id);
+    return i < 0 ? QuadrantColour::Unset : kToggleQuadrantColour[i];
+}
+
+/// The Toggle's name for a log line: "right wall Toggle", "left wall Toggle", "blue wall Toggle", "red
+/// wall Toggle"; "unnamed Toggle" for Unset or a byte outside the enum.
+[[nodiscard]] constexpr const char* toggleName(ToggleId id) noexcept {
+    switch (id) {
+        case ToggleId::RightWall: return "right wall Toggle";
+        case ToggleId::LeftWall: return "left wall Toggle";
+        case ToggleId::BlueWall: return "blue wall Toggle";
+        case ToggleId::RedWall: return "red wall Toggle";
+        case ToggleId::Unset: break;
+    }
+    return "unnamed Toggle";
+}
+
 /// A Scoring Object's size (the glossary).
 struct PieceSize {
     double diameterIn = 0.0;  ///< across, inches

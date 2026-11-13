@@ -16,6 +16,65 @@
 
 ## API 2.8
 
+### 2026-11-13 (built 2026-11-11) — the Toggle flip for a SKILLS run, as one route step: look, flip only when it is not its Quadrant's colour, look again (the explicit form)
+
+> Written when it was built (chunk AF1S, run A1). **Added (no version bump):** every name below is new and lives
+> in a layer no row of the [Freeze Register](roadmap.md#freeze-register) freezes. **Host- and build-gated, NOT
+> run on a robot:** no Toggle, no flipper and no camera reading of a real Toggle exist in this project.
+
+**Why:** the team lead's rulings of 2026-11-10 — the first competition (2026-11-21) is SKILLS only, and its
+reliable form of the Toggle flip is a route step: the route drives to each Toggle, the front camera checks its
+colour, and the robot flips it only if it is not already ours. In a skills run "ours" is each Toggle's own
+Quadrant's colour (the manual's `<RSC3>`). The plan for the 21st stays the team's blind two-push flip written with
+the mechanism steps they have; this step replaces it once it has flipped a real Toggle.
+
+**Added:**
+
+- `competition::checkAndFlipToggle(camera, chassis, guard, service, entry, request, sink)`
+  (`competition/toggle_visit.hpp`) — the step over explicit handles; returns a `ToggleVisitReport` (a value:
+  the verdict, the colours before and after, the pushes, each flipper step's `StepReport`, the time) whose
+  `outcome()` a route's `then()` takes. Its rules, each tested on the host test plant: refused unless a SKILLS auton, a usable camera,
+  the flipper ready AT `back` (never moved there by the step) and, with a FIELD start, the robot facing the
+  named Toggle's wall; a LOOK for a sure colour; at the spot only when the band's WHOLE range interval lies
+  inside `lookFrom ± offBy` (containment — never overlap); nothing more when it is already ours; begun only when
+  the run's time left covers every push it may need; drive in WITHOUT blocking, push, `back` on ANY verdict,
+  settle, drive out; look again counting only a picture from after the retract once the camera has moved; a
+  second push only on the third colour, never a third. FLIPPED means "shows our colour after a FULL stroke" —
+  every success line ends `seating not checked`; a short stroke that reads ours is `OursAfterShortStroke`, a
+  failure. A camera that shows itself FROZEN on the drive in (the lens moves, the picture does not) stops the
+  drive there and nothing is pushed (`FrozenBeforePush`) — with the camera's position check on as well; when
+  the drive in would reach the Toggle before the frozen picture is older than `maxImageAge` can explain, the
+  step HOLDS before anything touches it (at most `maxImageAge` a push, counted in `worstCaseSeconds`); a drive in or out that does not arrive is `DriveFailed`;
+  a pneumatic flipper whose `flipBound` or `backBound` is shorter than its move time plus its confirm window (the
+  most its slot waits) is refused as not ready. The
+  report says whether the camera's position check ran (`positionChecked`). ONE `[TGL]` line per visit, each
+  shape pinned byte for byte by a test.
+- `competition::lookAtToggle(...)` (the look alone; it moves nothing), `competition::worstCaseSeconds(request)`
+  (the time check's own sum), `competition::toggleVisit({...})` (a request checked AT BUILD — a problem stops the
+  build by name), `toggleVisitRequestProblem` / `toggleVisitProblemOf`, `bandAtLookSpotProblem`,
+  `towardWallRadians`, `oursFor`, `toggleVisitWord`, and the types `ToggleVisitRequest`, `FlipperGoal` (an Arm's
+  or a Lift's preset, a Pneumatic's position, or PASSIVE — a fixed bar the drive itself strokes),
+  `ToggleVisitVerdict`, `ToggleVisitReport`, `ExplicitToggleCamera`.
+- `vision::override2026::ToggleId`, the handles `toggles::kRightWall` / `kLeftWall` / `kBlueWall` / `kRedWall`,
+  `QuadrantColour`, `kToggleQuadrantColour` (the right and red walls' RED, the left and blue walls' BLUE — a
+  reading of the manual's Figure Q-1 and pA15), `toggleIndex`, `quadrantColour`, `toggleName`
+  (`vision/override_elements.hpp`, data only).
+- Test-only: `sim::TogglePlant` (`sim/toggle_plant.hpp`) — the host Toggle: three faces in a roll order, a
+  stroke that rolls one face (two when over-rolling, none when sticky, stuck part-way when jammed), a passive
+  stroke, a seat time, contact, and the game's colour (yellow while touched or unseated); it draws its true
+  faces into the host camera model.
+
+**What it cannot catch** ([guide chapter 14](guide/14-what-it-cannot-do-yet.md#the-toggle-flip-in-a-skills-route-what-it-cannot-catch)):
+a Toggle stuck part-way reads as set; a lookalike the camera's checks cannot tell from a face; our other robot
+flipping the Toggle between the look and the push; a pneumatic flipper's stroke (nothing senses the rod — a
+blocked cylinder counts as a full stroke); where the flipper lands (the route's driving). No team auton can call
+it yet: the robot's camera reaches an auton in the next part. Guide
+[chapter 20](guide/20-the-camera.md#checking-and-flipping-a-toggle-in-a-skills-route) explains the step;
+[chapter 11](guide/11-reading-the-diagnostics.md#the-toggle-visit-tgl) reads its line.
+
+**Hardware Assumptions:** HA-231, HA-232, HA-234 and HA-235 (AF1's, reused) and HA-243..HA-245 (new) registered;
+AF1's HA-228..HA-230, HA-233 and HA-236 and ALLY1's/L4's HA-237..HA-242 held. **None is measured.**
+
 ### 2026-11-13 (built 2026-11-03, reviewed and fixed to 2026-11-12) — what the AI Vision camera means: the Toggle's colour (or UNKNOWN, with the reason), one named piece (or none), and one read per period for both
 
 > Written when it was built (chunk VIS1, part A2 of three: what the camera means; the device was part A1,

@@ -4,14 +4,16 @@
 > first** — it shows how the robot file declares the AI Vision camera, what the library writes to it at
 > every boot, what a FRAME is, and how pixels become directions and distances that carry their error.
 > This chapter is what the camera MEANS: the Toggle tracker (RED, BLUE, YELLOW — or UNKNOWN, with the
-> reason), the piece finder (take ONE named piece, or none), and the feed that reads the camera once per
-> period for both. Each one says only what it is sure of; everything else is UNKNOWN, and UNKNOWN never
-> triggers anything.
+> reason), the piece finder (take ONE named piece, or none), the feed that reads the camera once per
+> period for both, and the one step that acts on the tracker — checking and flipping a Toggle in a skills
+> route. Each one says only what it is sure of; everything else is UNKNOWN, and UNKNOWN never triggers
+> anything.
 >
 > **What exists, and what does not yet.** The camera's first part (the device, the frame, the geometry)
-> and its second (this chapter) are in. Robot two's camera and its bench page are the camera's third part;
-> the automatic flip, driving to a piece and choosing our alliance colour are later chunks that USE what
-> is here — none of them exists yet. **No AI Vision sensor has run this code.** Every number below is
+> and its second (this chapter) are in, and so is the skills Toggle step (in its form over explicit handles —
+> an auton reaches the camera in a later part). Robot two's camera and its bench page are the camera's third
+> part; the automatic flip in driver control, driving to a piece and choosing our alliance colour are later
+> chunks that USE what is here — none of them exists yet. **No AI Vision sensor has run this code.** Every number below is
 > from the host test plant's camera model (written with its own projection, so a sign error in the
 > library cannot cancel out) looking through a TRUE camera set somewhere inside the stated tolerances —
 > and the beliefs it rests on are HA-192 to HA-203 in the
@@ -311,10 +313,104 @@ length beyond its near end, whichever way it lies — so a lying piece needs a g
 To take pieces from farther out: measure the mount tighter, or let the route's tolerance be wider where
 the pieces are far apart.
 
+## Checking and flipping a Toggle in a skills route
+
+In a SKILLS run a Toggle helps only when it shows **its own Quadrant's colour** — the Game Manual's
+`<RSC3>`: a red Quadrant's Toggle wants RED, a blue Quadrant's wants BLUE. One library call does the whole
+visit as a route step: `competition::checkAndFlipToggle` (chunk AF1S-A1; its form over handles). **No team
+auton can call it yet**: the robot's camera reaches an auton's context in the next part (AF1S-A2) — until
+then the step runs only in a hand-wired program and the host tests. The route parks the robot at a **look spot**, square in
+front of a named Toggle; the step looks, does **nothing** if the Toggle already shows ours, and otherwise
+drives straight in, pushes with the flipper, retracts, drives straight back out and looks again — a second
+push only when the first turned the Toggle to the third colour, never a third. Every doubt does nothing more
+and is reported; the route decides what comes next.
+
+**Which Toggle is ours is never typed.** The route names WHICH Toggle (`toggles::kRedWall`, `kRightWall`,
+`kBlueWall`, `kLeftWall`); its Quadrant's colour comes from one season table (`vision::override2026::
+kToggleQuadrantColour`): the red wall's and the right wall's RED, the blue wall's and the left wall's BLUE.
+That table is a reading of the manual's drawings, not a measurement (A4 register HA-243) — check it on the
+event's field: standing at the red station, the Toggle on the wall to your right should start with RED facing
+out. A MATCH auton is refused (`not a SKILLS auton`): its "ours" is the alliance's, which comes later.
+
+**The look spot is not the push spot.** On the host camera model a lens 10 in up and level names the colour
+from about 12 in out and not nearer ("cut by the image" at 4–6 in, "maybe the bottom face" at 8–10 in) — and
+only when the robot is near SQUARE (turned 8 degrees at 16 in it reads nothing: "another colour directly
+above"); these 10-in figures are re-run and pinned by this release's tests. On an earlier build of the
+tracker, 6 in up read from 18 in, 8 in up from 14 in and 12 in up from 24 in — not re-run since, and not
+pinned. A flipper reaches the face from a few inches. So the robot looks from `lookFrom` (about 14–24 in back,
+your number) and the step itself drives straight in to `pushFrom` and back. End the approach square —
+`face(...)` or `turnTo(...)`, especially after a curve. The look and the push can never be one spot: the step refuses a distance between them of twice the
+tracker's `frozenMoveIn` or less (the look after must move the camera to see a frozen one).
+
+**"At the spot" is checked by the camera — coarsely.** The band's WHOLE range interval must lie inside
+`lookFrom ± offBy`, never merely overlap it (the interval is 5–18 in wide; overlap accepted a robot 8–11 in
+too far). On the host camera model, a 10-in lens 16 in out with `offBy` 6 is accepted from a true 14 to 17 in
+and refused at 18 in and farther; a lens near the Toggle's height hardly ranges at all. With a FIELD start the
+step also checks the estimate is within `offBy` of the look spot — its lens distance from the wall's inner
+face, which takes the Toggle's face to sit at that inner face (where it really sits is unmeasured, HA-201;
+a set-back shifts the check by as much) — and that the robot faces the named Toggle's wall (within 45
+degrees) — the one check that catches a route naming the wrong Toggle. **Where the flipper lands is
+the route's driving, not the camera's** (HA-244).
+
+**The look after is made MOVING, and only after the retract.** Parked, a frozen camera reads exactly like a
+still scene. So the tracker is fed on every read from the look before, through the drive in, the push, the
+retract and the drive out; the colour after counts only from a picture taken after the retract ended (the
+read's time less `maxImageAge`) and after the camera has moved past `frozenMoveIn` — a camera that froze
+anywhere in between ends the visit UNKNOWN AFTER (the reason "camera frozen?", or — frozen close to the
+Toggle — the reason its last picture gave). A camera that froze BEFORE the
+look — parked, its stale picture read as sure — shows itself on the drive in (the camera moves, its picture
+does not, still so once the picture is newer than `maxImageAge` can explain): the drive in stops there and
+nothing is pushed (FROZEN BEFORE PUSH). If the drive in would reach the Toggle before that — a `maxImageAge`
+longer than the rest of the drive — the step HOLDS first: a motor or pneumatic flipper's drive in arrives and
+waits before pushing, a passive bar's drive in stops where the camera first looks frozen; it keeps reading for
+at most `maxImageAge` and then either ends FROZEN BEFORE PUSH or, the camera live again, pushes (a passive bar
+drives on). With a pose bound stated, this check reads the camera WITHOUT the
+tracker's position check, which would otherwise drop a frozen picture's drifting band as "no band". Every motion inside the step is
+started without blocking and waited through the run guard, so the camera is read the whole time and the
+period's end cuts the step at once.
+
+**"FLIPPED" is not "set".** The game counts a Toggle as set only when it sits flat and no robot touches it; a
+Toggle stuck part-way through its roll shows the face it is rolling TO, and the camera reads that colour sure.
+So FLIPPED means "it shows our colour after a FULL stroke" (the push SUCCEEDED; a passive bar reached the push
+spot), every success line ends `seating not checked`, and a stroke that stopped short and then reads ours is
+OURS AFTER A SHORT STROKE — a failure. Whether a full stroke always seats the Toggle is Step 0's to check by
+eye (HA-232).
+
+**The time.** A visit is begun only when the run's time left covers all of it: `worstCaseSeconds(request)` —
+each push's drive in (and its frozen-camera hold, `maxImageAge`), push, retract, settle, drive out and look,
+every bound rounded up to the 10-ms tick, two ticks a push, plus your margin — for the most pushes it may need; the second push again only when one more
+fits. If time is lost anyway while the flipper is out (a loop that stalled), it retracts at once, drives out
+and ends RETRACTED FOR TIME: the robot must be off the Toggle at the buzzer.
+
+**Three flippers.** A motor flipper (an `Arm` or a `Lift`: two presets), a pneumatic one (two positions), or a
+PASSIVE bar (no mechanism: the drive in and out is the stroke). `.flipper = flip["out"], .back = flip["stow"]`;
+both left out is the passive bar. The step never moves the flipper to `back` to make it ready — the route
+does: a flipper away from `back` is FLIPPER NOT READY. A retract that does not reach `back` is FLIPPER STUCK,
+and the robot does **not** drive out (it would drag the Toggle). A **pneumatic** flipper's stroke is not
+sensed — its step succeeds once the valve has held for the move time — so a blocked cylinder counts as a full
+stroke and a caught one as back (Chapter 14); its `flipBound` and `backBound` must each be at least its move
+time plus its confirm window, or it is FLIPPER NOT READY.
+
+**The numbers Step 0 measures** (every one the team's — an unset one is refused by name): the flipper's kind,
+its stroke and its times (`flipBound`, `backBound`), the Toggle's settle time (`settle`), whether one stroke
+rolls exactly one face and which way round (HA-231), the camera's picture age (`maxImageAge`, HA-192 — the
+longest a lagging picture trails the robot, not a guess "to be safe": every push's time grows by it), the
+colours taught on the real faces, the look spot (`lookFrom` and `offBy`: park 3 in too far and too near and
+see NOT AT THE SPOT; and how far the Toggle's face sits out from the wall's inner face, HA-201, for a FIELD
+start's distance check), the push spot (`pushFrom`: does anything of the robot touch the Toggle there?), and the
+drive in and out's worst time (`driveBound`, HA-244). A request built as a constant through
+`competition::toggleVisit({...})` is checked at build.
+
+**What it cannot catch** is [Chapter 14](14-what-it-cannot-do-yet.md#the-toggle-flip-in-a-skills-route-what-it-cannot-catch)'s;
+its one log line, word by word, is [Chapter 11](11-reading-the-diagnostics.md#the-toggle-visit-tgl)'s. **Nothing
+here has run on a robot.** The plan for the first competition is the team's own blind two-push flip with the
+mechanism steps they already have; the checked step replaces it only once it has flipped a real Toggle.
+
 ## What none of this does
 
-It moves nothing, flips nothing, drives nowhere. Pushing a Toggle (with the colour confirmed at the push
-point), driving to a piece, and choosing our colour are later chunks that build on it. It does not read
+The tracker and the finder move nothing, flip nothing, drive nowhere; the skills Toggle step above is the one place
+the camera's word moves a flipper, and only in a SKILLS auton. Driving to a piece, choosing our colour for a
+match, and the automatic flip in driver control are later chunks that build on it. It does not read
 AprilTags. And until a real camera has been read — the bench's camera station measures the mount, the
 model's names, the colours under event light, the picture's age and a read's cost — every number on this
 page is the host plant's.
@@ -322,4 +418,4 @@ page is the host plant's.
 ---
 
 *Next: back to [the guide's index](README.md). For exact signatures: [the generated API
-reference](../api/README.md) — `camera_feed`, `toggle_tracker` and `piece_finder`.*
+reference](../api/README.md) — `camera_feed`, `toggle_tracker`, `piece_finder` and `toggle_visit`.*

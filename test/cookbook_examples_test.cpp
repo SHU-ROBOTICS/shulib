@@ -10,6 +10,8 @@
 //   cookbook-04a/b    -> docs/cookbook/04-drivetrains.md
 //   cookbook-05a/b/c  -> docs/cookbook/05-mixing-tiers.md
 //   cookbook-06a/b    -> docs/cookbook/06-driver-control.md
+//   cookbook-08a      -> the skills Toggle visit (AF1S-A1's route, over the EXPLICIT form; its page, "A skills
+//                        route that visits the Toggles", is AF1S-A2's — with the everyday form over ctx)
 //
 // The cookbook quotes these bodies VERBATIM — the same anti-rot rule the guide
 // uses (docs/internal/guide-maintenance.md rule 1), extended to docs/cookbook/.
@@ -48,6 +50,7 @@
 #include "shulib/teleop/mechanism_binding.hpp"
 #include "shulib/teleop/teleop_loop.hpp"
 #include "shulib/units/literals.hpp"
+#include "toggle_visit_rig.hpp"
 #include "wall_robot_rig.hpp"
 
 using namespace shulib::units::literals;
@@ -954,4 +957,71 @@ TEST_CASE("cookbook-06b: one button toggles a pneumatic claw, holding it does no
     CHECK(pivotMotor.commandedVoltage().value() == 0.0);  // the pivot was never driven
     // The watch-out, checked: with A still the re-zero button, the same set is refused.
     CHECK_FALSE(validBindings(bindings, toggles, ControllerButton::A));
+}
+
+// cookbook-08a (AF1S-A1): a FIELD-start SKILLS route that visits three Toggles, each from a look spot it reaches
+// SQUARE (face, drive, turn), through competition::checkAndFlipToggle's explicit form. Every number is a
+// PLACEHOLDER for Step 0's. The host plants: the right wall's Toggle already RED (ours — a red Quadrant), the blue
+// wall's YELLOW (a blue Quadrant's: two pushes, Y -> R -> B), the red wall's YELLOW and STICKY. Without STEP1-A's
+// onFail (not in this base), the sticky visit's NO CHANGE stops the route — the default stop — and the guard's end
+// action parks. AF1S-A2 rewrites the visit line in the everyday form and adds onFail(skipTo(...)).
+TEST_CASE("cookbook-08a: a skills route that visits three Toggles — one already ours, one flipped, one sticky "
+          "(the route stops there)") {
+    namespace ov = shulib::vision::override2026;
+    namespace sc = shulib::competition;
+    tv_rig::Options o = tv_rig::scene(tv_rig::Form::Arm);
+    o.toggle.fieldId = tv_rig::kRed;  // the right wall's: already ours
+    o.toggle.bottomId = tv_rig::kYellow;
+    o.toggle.outerId = tv_rig::kBlue;
+    shulib::sim::TogglePlantConfig blue = tv_rig::redSideToggle();
+    blue.bottomId = tv_rig::kRed;  // the blue side's mirror: Y -> R -> B
+    blue.outerId = tv_rig::kBlue;
+    shulib::sim::TogglePlantConfig red = tv_rig::redSideToggle();
+    red.mode = shulib::sim::ToggleMode::Sticky;
+    o.others.push_back(tv_rig::onWall(blue, ov::toggles::kBlueWall));
+    o.others.push_back(tv_rig::onWall(red, ov::toggles::kRedWall));
+    tv_rig::Rig rig{o};
+    const sc::AutonEntry entry = tv_rig::Rig::entry(sc::AutonKind::Skills, sc::StartPose::field(rig.truth()));
+
+    shulib::chassis::RoutineResult result{};
+    rig.runGuarded([&] {
+        // The team's numbers (Step 0), once; each visit names its Toggle.
+        auto visit = [&](ov::ToggleId which) {
+            sc::ToggleVisitRequest request = tv_rig::armRequest(which);
+            return sc::checkAndFlipToggle(rig.cam, rig.chassis, rig.guard, &rig.svc, entry, request, rig.sink)
+                .outcome();
+        };
+        Routine r{rig.chassis, "skills toggles"};
+        r.then([&] { return visit(ov::toggles::kRightWall); }, "right wall Toggle")
+            .face(0_in, 47.2_in, {.timeout = 3_s})
+            .driveTo(0_in, 47.2_in, {.timeout = 6_s})
+            .turnTo(90_deg, {.timeout = 3_s})
+            .then([&] { return visit(ov::toggles::kBlueWall); }, "blue wall Toggle")
+            .face(0_in, -47.2_in, {.timeout = 3_s})
+            .driveTo(0_in, -47.2_in, {.timeout = 8_s})
+            .turnTo(-90_deg, {.timeout = 3_s})
+            .then([&] { return visit(ov::toggles::kRedWall); }, "red wall Toggle")
+            .brake({.timeout = 1.5_s});
+        result = r.result();
+    });
+
+    CHECK_FALSE(result.ok);
+    CHECK(result.stoppedAt == 9);
+    CHECK(std::string{result.stoppedName} == "red wall Toggle");
+    CHECK(result.skipped == 1);  // the brake: the guard's end action parks instead
+    // The plants are the judges: ours untouched, the blue Quadrant's flipped to BLUE, the sticky one still yellow.
+    CHECK(rig.toggle.strokes() == 0);
+    CHECK(rig.toggle.scoredColour() == tv_rig::kRed);
+    CHECK(rig.others[0]->strokes() == 2);
+    CHECK(rig.others[0]->scoredColour() == tv_rig::kBlue);
+    CHECK(rig.others[1]->strokes() == 1);
+    CHECK(rig.others[1]->scoredColour() == tv_rig::kYellow);
+    const std::vector<std::string> lines = rig.lines("TGL");
+    REQUIRE(lines.size() == 3U);
+    CHECK(lines[0].find("already RED (ours)") != std::string::npos);
+    CHECK(lines[1].find("YELLOW -> BLUE after 2 pushes") != std::string::npos);
+    CHECK(lines[2].find("NO CHANGE") != std::string::npos);
+    for (const std::string& l : lines) {
+        CHECK(l.find("wall not checked") == std::string::npos);  // a FIELD start: every wall checked
+    }
 }

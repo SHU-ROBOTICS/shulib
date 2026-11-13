@@ -448,6 +448,61 @@ one named piece ([chapter 20](20-the-camera.md)). What that is worth, and what i
   of jitter plus rounding) made standing Pins' positions miss by up to 1.8 in.
 - **No tags.** The camera's AprilTags stay off; no camera has been pointed at a tag by this project.
 
+## The Toggle flip in a skills route: what it cannot catch
+
+The Toggle step ([Chapter 20](20-the-camera.md#checking-and-flipping-a-toggle-in-a-skills-route)) looks at a
+Toggle with the front camera, flips it only when it is not its Quadrant's colour, and looks again. It is
+**host- and build-gated, NOT run on a robot**: no Toggle, no flipper and no camera reading of a real Toggle
+exist in this project yet, and every number below is the host test plant's. **No team auton can call it yet:**
+this release has only its explicit form, over handles a hand-wired program passes; the robot's camera reaches
+an auton's context in the next part of the work (AF1S-A2), and until then a skills route flips Toggles blind.
+
+- **"FLIPPED" is not "set".** The camera cannot see whether a Toggle has SETTLED flat. One stuck part-way
+  through its roll shows the face it is rolling TO, and reads that colour sure — on the host test plant a
+  Toggle jammed 50 or 100 degrees into its roll toward ours read ours, the step said FLIPPED, and the game
+  counted it yellow (the test pins this). So every success line ends `seating not checked`, and a stroke that
+  stopped short and then reads ours is a failure. Whether every full stroke seats the Toggle is checked by eye
+  at the bench (A4 register HA-232) — nothing on the field can.
+- **A frozen camera, parked.** A camera that keeps answering with its last picture reads exactly like a still
+  scene while the robot stands still — so the look BEFORE, parked at the look spot, can read a stale picture
+  as sure. The step's own driving is what shows it: on the drive in the lens moves and the picture does not, so
+  the step stops there and pushes nothing (`FROZEN BEFORE PUSH`), once the unmoved picture is newer than the
+  camera's lag (`maxImageAge`) can explain — with the camera's position check on as well (that check alone
+  would drop the frozen picture's band as "no band"; the frozen check reads the camera without it). If the
+  drive in would reach the Toggle first (a `maxImageAge` longer than the rest of the drive), the step holds
+  before anything touches the Toggle until it can tell (at most `maxImageAge`, counted in the time check). And it never accepts the look after from where it pushed: it backs
+  out first and counts only pictures from after the retract, once the camera has moved. Never remove the
+  back-off "to save time". What it still cannot catch: a stale picture that says the Toggle is ALREADY ours —
+  nothing is driven, so nothing shows the camera frozen (the Toggle is left as it truly is, unflipped); and,
+  for a PASSIVE bar, a Toggle the bar reaches before the camera has moved `frozenMoveIn` on the drive in
+  (before a frozen camera CAN look frozen): the bar strokes it on the stale look, and the line still says
+  `FROZEN BEFORE PUSH ... push 1 not made` (on the host test plant, a 16-in look spot and a 2-in
+  `frozenMoveIn`: a bar touching from 12 in is stopped in time, one touching from 14 in is not). Keep a
+  passive bar's look spot well back of where it first touches the Toggle.
+- **A lookalike.** A coloured band the camera's checks cannot tell from a Toggle's face is read as one (A4
+  register HA-199). On the host test plant, with the Toggle's own faces unseen, a blue plate at the face's
+  height 4 in in front of the wall made the step push a Toggle that already showed ours — with the camera's
+  position check on as well as off (its tolerance admitted 4 in); the same plate 1.4 in lower was refused as
+  not at the spot. The position check, with a pose the team trusts (right after a wall reset), turns most
+  lookalikes away; none that sits where a Toggle's face is.
+- **Our other robot, mid-visit.** Between the look and the push the camera, at most mounts, cannot name a
+  colour (it is too close; a high, tilted lens can). If our other robot flips the Toggle in that moment, the step
+  pushes it anyway — the route keeps the other robot away from a Toggle being visited.
+- **A pneumatic flipper is not sensed.** A cylinder's step reports success once its valve has held the
+  commanded position for its move time — nothing measures where the rod went. So for a pneumatic flipper "a
+  full stroke" and "back" mean "the move time passed": a cylinder blocked half-way by a jammed Toggle still
+  counts as a full stroke, and one caught on the Toggle on the way back counts as back, and the robot drives
+  out with it (on the host test plant both are pinned). `OURS AFTER A SHORT STROKE` and `FLIPPER STUCK` come
+  only from a motor flipper. Watch a pneumatic flipper's strokes at the bench (A4 register HA-235).
+- **The spot check is coarse.** The camera catches only gross arrival errors (a 10-in lens 16 in out: refused
+  at 2 in too far, accepted at 1 in; a lens near the Toggle's height hardly ranges at all). Where the flipper
+  lands is the route's driving (HA-244).
+- **A robot touching the Toggle** after the step ends, and **the pieces it holds** (`<SG6>`: holding more than
+  one Pin or one Cup, a robot may not touch a Toggle) are the route's — the library cannot see either.
+- **A wrong side wall.** Which side wall's Toggle is a red Quadrant's is a reading of the manual's drawings
+  (HA-243). Under a RELATIVE start a route that names the wrong Toggle flips it to the wrong colour, said only by
+  `wall not checked (relative start)` in its line; a FIELD start checks the robot faces the named wall.
+
 ## No easier tiers yet
 
 The project's [accessibility model](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet)

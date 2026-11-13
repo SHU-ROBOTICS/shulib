@@ -36,12 +36,12 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-188 (CAL1's second number, released unused — never reissued), HA-192..HA-203, HA-204..HA-215, HA-216..HA-218 (STEP1's: HA-216 registered by STEP1-A, HA-217..HA-218 by STEP1-B — all three landed), HA-224..HA-227 (MECH-S/TUNE1's — its HA-219..HA-223 registered by MECH-S-A).
+> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-188 (CAL1's second number, released unused — never reissued), HA-192..HA-203, HA-204..HA-215, HA-216..HA-218 (STEP1's: HA-216 registered by STEP1-A, HA-217..HA-218 by STEP1-B — all three landed), HA-224..HA-227 (MECH-S/TUNE1's — its HA-219..HA-223 registered by MECH-S-A), HA-228..HA-230, HA-233 and HA-236 (AF1's — the driver-control auto-flipper's; its HA-231, HA-232, HA-234 and HA-235 registered by AF1S-A1, which reuses them), HA-237..HA-242 (ALLY1's and L4's).
 > The briefing names the next free number above every row AND every held one (`tools/briefing_status.py`
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 216 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 223 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -250,6 +250,17 @@
 > as the position estimate's "arrived" is true. On the host test plant the service answers the same tick and the
 > estimate tracks truth to about 0.01 in; robot two's motor response, task timing and odometry drift are
 > unmeasured. With them, 216.
+>
+> **AF1S-A1 (the Toggle flip for a skills run, the step; built 2026-11-11) added SEVEN.** Four of AF1's held
+> numbers are REUSED — they mean the same thing here: one flipper stroke rolls a Toggle exactly one face, the
+> research's order (HA-231, reasoned); a FULL stroke seats it, which the camera cannot check (HA-232, invented);
+> the run's end safes the flipper, it does not retract it (HA-234, reasoned); a sticky Toggle's push is cut by
+> the flipper's stall signature or its bound before it damages the Toggle (HA-235, invented). Three are new: each
+> Toggle's Quadrant colour, read from two drawings (HA-243, reasoned); the step's straight drive in and out puts
+> the flipper within reach because the ROUTE arrived — the camera's spot check refuses only gross errors (HA-244,
+> invented); and a real field's camera names the colour from the look spot as the host camera model predicts
+> (HA-245, invented). AF1's HA-228..HA-230 (the Optical), HA-233 (the field timer) and HA-236 (the flipper's
+> ports — robot one's, with G1) stay held. **None is measured.** With them, 223.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither is **HA-181** (G3a, the robot panel: its amended brief), held the same way (the
 > mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
@@ -496,6 +507,13 @@
 | HA-221 | With more than 8 motors plugged in, VEXos may lower each motor's limit below what was set (robot two runs 10); a cap below VEXos's own share behaves as stated — and writing 2500 mA over a share at every boot would fight it, so a mechanism with no cap is only READ | **unverified** (HA-172's open question) | MECH-S Step 0.4: robot two's boot read-back with all 10 motors plugged in |
 | HA-222 | The string's pull is the motor's current times its torque per amp through the gearing over the spool's radius — about 10 lbf per amp per motor for a red cartridge on a 1.5 in spool; the rotor's and the carriage's MOMENTUM at a hard stop add a pull no current cap limits | reasoned (physics) · the number **unverified** (the published stall torque, from memory) | a spring scale on the string at a held current |
 | HA-223 | A stalled motor held at its cap reads within ~0.1 A of the cap, so a stall signature MORE than ~0.2 A below the cap trips (the boot's Warn for one not more than 0.2 A below — exactly 0.2 A included — rests on it) | **invented** (the host test plant reads exactly the cap — it is not a motor) | the Tune program: a capped lift held against its top stop, the reading |
+| HA-231 | One flipper stroke rolls a Toggle exactly ONE face, always the same way round, and the retract does not roll it back; the research's per-side order (a red-side Toggle Y -> B -> R, a blue-side the mirror) — so from yellow every skills Toggle needs TWO pushes | **reasoned** (pA15 + geometry; AF1's research) | AF1S Step 0.1, on a red-side and a blue-side mounting |
+| HA-232 | The Toggle seats (`<SC4>`a) within `settle` after the retract — after EVERY FULL stroke, never left stuck part-way — because the camera cannot check it: a Toggle stuck part-way reads its destination colour "sure" | **invented** | AF1S Step 0.1: twenty full strokes, each checked by eye |
+| HA-234 | At the run's end a V5 motor in its declared safe brake mode does not move the flipper toward `back` — a flipper out at 0:00 stays out (why the step's time check and its retract-now rule exist) | **reasoned** (the guard safes, it does not retract) | a timed run with the flipper out at its end |
+| HA-235 | A push stopped by a sticky Toggle is cut by the flipper's stall signature (or `flipBound`) before it damages the Toggle (`<R18>`a); a PNEUMATIC flipper has neither — nothing senses its rod, so its "full stroke" and "back" are only "the move time passed" | **invented** | AF1S Step 0.1 with the Toggle held |
+| HA-243 | Each Toggle's Quadrant colour in F1: the RED wall's and the RIGHT wall's (x = +70.2) RED, the BLUE wall's and the LEFT wall's BLUE; every Toggle starts a skills run yellow into the field, its Quadrant's colour out | **reasoned** (Figure Q-1 with pA15, read 2026-11-10) | AF1S Step 0.7, on the event's field |
+| HA-244 | The step's straight drive in and out of `lookFrom - pushFrom` puts the flipper within its reach of the face and the robot back within `offBy` of the look spot, on a square robot — because the ROUTE arrived within its allowance: the camera's spot check refuses only GROSS arrival errors | **invented** | AF1S Step 0.4, 0.5, 0.6 |
+| HA-245 | On a real field the camera names the Toggle's colour from the look spot as the host camera model predicts (about 12–24 in out, within ~3 degrees of square, for a lens 6–12 in up — only the 10-in lens's figures are re-run and pinned by this release's tests; the 6-, 8- and 12-in ones come from an earlier build of the tracker, not re-run since): the wall below hides the bottom face from a low lens, the taught colours hold under event light, the flipper at stow is not in the picture | **invented** | AF1S Step 0.3, 0.4 |
 | HA-246 | `CurveConfig`'s look-ahead (8 in), bend grip (60 in/s²), accelerations (200 / 120 in/s², the plan rising from 12 in/s), hand-off (12 in, 5°, 0.3 in; last at ⅓ inside TANK1's window) and end speed (×0.6) let robot two follow a curve and settle at its end within the default rule — and robot one on robot two's numbers until its own check — and guide 05's run-up rule (a miss up to 6 / 12 in from 2½ / 3 ft back, nose within 20°) holds on the robot within ~6 in | **invented** (host test plant: 12–17 of the 17 drivable routes under every weak side and lag tried; the run-up rule pinned by CV23; no slip in the plant, neither robot's lag measured) | Station C.1–C.3, C.5 (C.5b the run-up) on robot two; C.1 on robot one |
 | HA-247 | Robot two does not slide sideways in a bend taken at sqrt(bendAccel / curvature) — its tyres hold 60 in/s² (≈ 0.16 g) of sideways push | **reasoned** (VEX tyres commonly grip well above it; never measured; the plant has no slip) | Station C.3 |
 | HA-248 | A healthy robot two never points more than 60° off its curve for 0.25 s nor makes under 1 in of progress in 0.75 s outside the last 12 in, and a dead side does one or the other within ~3 s | **invented** (host: 0 trips in 153 healthy runs, worst 25.9° off; a dead side stopped within 2.7 s, early deaths included) | every Station C log (no false "curve lost"); the dead-side half host-only |
@@ -2090,6 +2108,108 @@ as it arrives (the team lead's D6 (i)). Two beliefs carry what the host test pla
   only marks near a leg's end that the leg did not cross inside a tick; a mark crossed mid-leg is the same
   estimate every motion steers by.
 
+
+---
+
+### AF1S-A1's additions — the Toggle flip for a skills run (2026-11-11)
+
+A skills route parks the robot at a LOOK SPOT square in front of a named Toggle; `competition::checkAndFlipToggle`
+looks with the front camera, flips the Toggle with the flipper only if it is not already its Quadrant's colour,
+and looks again after (`include/shulib/competition/toggle_visit.hpp`). Seven beliefs come with it — four of AF1's
+(the driver-control auto-flipper's brief, which held HA-228..HA-236) reused because they mean the same thing, three
+new. **None is measured: no Toggle, no flipper and no camera reading of a real Toggle exist in this project.**
+
+- [ ] **HA-231 — one stroke rolls one face, always the same way round.**
+  *Claim:* one full flipper stroke rolls a Toggle exactly ONE face, the same way round every time, and the
+  retract does not roll it back; on the research's reading a red-side Toggle goes Y -> B -> R and a blue-side one
+  the mirror, so from yellow every skills Toggle needs TWO pushes, passing through the other colour.
+  *Source:* `include/shulib/competition/toggle_visit.hpp` (rule 6: push 2 only on the THIRD colour; the time check
+  budgets two pushes); `include/shulib/sim/toggle_plant.hpp` (the host Toggle's roll order is the test's choice).
+  *Confidence:* **reasoned** (pA15 and the geometry, AF1's research — no Toggle has been pushed).
+  *Settle:* AF1S Step 0.1 — on a real or mock Toggle at field height, mounted as a red-side and as a blue-side one.
+  *Blast radius if wrong:* the RULE holds either way (it looks after every push — the brief's P3); the TIME does
+  not — a Toggle needing one push costs less than budgeted, one that over-rolls is caught by the look after.
+
+- [ ] **HA-232 — a full stroke seats the Toggle; the camera cannot check it.**
+  *Claim:* after every FULL stroke (the push SUCCEEDED; a passive bar reached the push spot) the Toggle sits flat
+  within `settle` and is never left stuck part-way. The camera cannot tell: a Toggle stuck part-way shows the face
+  it is rolling TO, and reads that colour "sure" (VIS1-A2's banner; on this project's host camera model, a Toggle
+  jammed 50 or 100 degrees into its roll read as its destination — `test/toggle_visit_scenes_test.cpp`'s T14).
+  *Source:* `include/shulib/competition/toggle_visit.hpp` (`ToggleVisitRequest::settle`; FLIPPED only after a full
+  stroke — OURS AFTER A SHORT STROKE otherwise; every success line ends `seating not checked`).
+  *Confidence:* **invented**.
+  *Settle:* AF1S Step 0.1 — twenty full strokes, each checked by eye for a Toggle stuck part-way.
+  *Blast radius if wrong:* a route counts a Toggle flipped that the game counts yellow. **Contained only by the
+  words:** the line says `seating not checked`; nothing in the library can see it.
+
+- [ ] **HA-234 — the run's end safes the flipper; it does not retract it.**
+  *Claim:* at the run's end a V5 motor in its declared safe brake mode does not move the flipper toward `back`, so
+  a flipper out at 0:00 stays out — touching the Toggle, which then counts yellow (`<SC4>`b).
+  *Source:* `include/shulib/competition/toggle_visit.hpp` (rule 4's time check: a visit that may need two pushes
+  is begun only when both fit; rule 5's retract-now).
+  *Confidence:* **reasoned** — the run guard safes, it does not retract.
+  *Settle:* a timed run with the flipper out at its end.
+  *Blast radius if wrong:* none worse — the time rules are then more careful than needed.
+
+- [ ] **HA-235 — a sticky Toggle's push is cut before it damages the Toggle.**
+  *Claim:* a push stopped by a sticky Toggle is ended by the flipper's stall signature (STALLED) or by `flipBound`
+  (TIMED_OUT) before it damages the Toggle (`<R18>`a); the step then retracts on the next tick.
+  *Source:* `include/shulib/competition/toggle_visit.hpp` (rule 5: `back` on ANY verdict); the flipper's own
+  `.stall` signature in the robot file.
+  *Confidence:* **invented**.
+  *Settle:* AF1S Step 0.1 — the push run against a Toggle held by hand; the `[MECH]` line's verdict and time.
+  *Blast radius if wrong:* a stalled push pushes harder or longer than the Toggle takes. **Contained:** the bound.
+  *A pneumatic flipper:* no stall signature and no sensed position — its step SUCCEEDS once the valve has held the
+  commanded position for its move time. So a cylinder blocked part-way by a jammed Toggle counts as a FULL stroke,
+  one caught on the Toggle on the way back counts as back (the robot then drives out with it), and the step's
+  `OURS AFTER A SHORT STROKE` and `FLIPPER STUCK` come only from a motor flipper (both pinned on the host test
+  plant). Settle it by eye at Step 0.1: twenty strokes against a Toggle held part-way, and on the way back.
+
+- [ ] **HA-243 — each Toggle's Quadrant colour.**
+  *Claim:* in F1 (+x to the right as seen from the red station; the red wall at y = -70.2) the RED wall's and the
+  RIGHT wall's Toggles are RED Quadrants', the BLUE wall's and the LEFT wall's BLUE — Figure Q-1 (Red 1 on the red
+  alliance's wall, Red 2 on the wall to the red station's right; Blue 1 on the blue alliance's, Blue 2 to the red
+  station's left) read with pA15 (each Toggle starts yellow into the field, its Quadrant's colour facing out).
+  *Source:* `include/shulib/vision/override_elements.hpp` (`kToggleQuadrantColour`, `toggles::`);
+  `include/shulib/competition/toggle_visit.hpp` ("ours" is the named Toggle's Quadrant colour).
+  *Confidence:* **reasoned** — two drawings of the Game Manual v2.0, read 2026-11-10 (v2.1's change log changes
+  neither).
+  *Settle:* AF1S Step 0.7 — standing at the red station on the event's field: is the Toggle on the wall to the
+  RIGHT the one with RED facing out?
+  *Blast radius if wrong:* every visit to a side wall's Toggle flips it to the colour that scores nothing.
+  **Contained:** one table of four entries.
+
+- [ ] **HA-244 — the drive in and out lands where the route arrived; the spot check is coarse.**
+  *Claim:* the step's straight drive of `lookFrom - pushFrom` along the robot's heading puts the flipper within
+  its reach of the face, and back within `offBy` of the look spot, on a square robot — because the ROUTE arrived
+  within its allowance. The camera's at-the-spot check (the band's WHOLE range interval inside the window)
+  refuses only GROSS arrival errors: on the host camera model, a 10-in lens 16 in out is accepted from a true 14
+  to 17 in and refused at 18 in and farther; a lens near the Toggle's height hardly ranges (on the host camera
+  model a 12-in lens accepted a true 22–33 in at a 24-in look spot — a host-model result, not pinned by a test).
+  With a FIELD start the step also compares the estimate's lens distance from the wall's INNER face with
+  `lookFrom`, which takes the Toggle's face to sit at that inner face — where it sits is HA-201's, unmeasured.
+  *Source:* `include/shulib/competition/toggle_visit.hpp` (`ToggleVisitRequest::{offBy, pushFrom, driveBound}`,
+  `bandAtLookSpotProblem`).
+  *Confidence:* **invented**.
+  *Settle:* AF1S Step 0.4 (park 3 in too far and 3 in too near: NOT AT THE SPOT?; and how far the Toggle's face
+  sits out from the wall's inner face), 0.5 (the push spot), 0.6 (ten drives in and out: the worst time, where
+  the robot ends, where the flipper lands).
+  *Blast radius if wrong:* the flipper pushes air (NO CHANGE) or lands off the face. **Contained:** the look after.
+
+- [ ] **HA-245 — the camera names the colour from the look spot on a real field.**
+  *Claim:* on a real field the camera names a Toggle's colour from the look spot as the host camera model
+  predicts — about 12–24 in out and within ~3 degrees of square, for a lens 6–12 in up (only the 10-in lens's
+  figures are re-run and pinned by this release's tests; the 6-, 8- and 12-in ones come from an earlier build of
+  the tracker and have not been re-run) — with the wall below the
+  Toggle hiding its bottom face from a low lens (the model draws no wall), the taught colours holding under event
+  light, and the flipper at stow out of the picture.
+  *Source:* `include/shulib/competition/toggle_visit.hpp` (`ToggleVisitRequest::lookFrom`); guide chapter 19's
+  "Checking and flipping a Toggle in a skills route".
+  *Confidence:* **invented** — the camera's own beliefs (HA-192..HA-203) cover the device; this is the look
+  spot's geometry on our robot.
+  *Settle:* AF1S Step 0.3 (the colours on the real faces) and 0.4 (the look spot, square and turned).
+  *Blast radius if wrong:* every visit ends UNKNOWN BEFORE (nothing pushed) or NOT AT THE SPOT. **Contained:** a
+  doubt does nothing.
 ---
 
 ## Robot 2 — the 2026 tank chassis (added 2026-09-14, R3b Parts 1–3)

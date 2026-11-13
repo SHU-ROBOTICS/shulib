@@ -341,6 +341,7 @@ nav:
           - Auton registry: api/auton_registry.md
           - Auton wall reset: api/auton_wall_reset.md
           - Match runner: api/match_runner.md
+          - Toggle visit: api/toggle_visit.md
       - Config:
           - Camera config: api/camera_config.md
           - Robot config: api/robot_config.md

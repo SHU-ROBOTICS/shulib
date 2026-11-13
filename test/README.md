@@ -145,6 +145,14 @@ documented here and in their own headers:
   the tracker's and the finder's numbers the brief's probes used (`tcfg()`, `fcfg()` — the team's own
   come from the bench), a seated Toggle on the +x wall, a robot parked square to it, Pins, and hand-made
   frames. Test-only (no `TEST_CASE` in it); its numbers are never a library default.
+- **`sim::TogglePlant`** (`include/shulib/sim/toggle_plant.hpp`, since AF1S-A1), the host Toggle — three faces
+  in a roll order the test picks; a stroke (a flipper's TRUE angle passing `rollDeg` outward with the robot's
+  front within reach, or a passive bar's approach) rolls one face, two when over-rolling, none when sticky
+  (an attached `sim::ArmPlant` is then stopped where it meets it), and leaves it stuck part-way when jammed;
+  it seats after its seat time, counts contacts while its seated face is "ours", and answers the game's
+  colour (`scoredColour()`: yellow while touched or unseated). It draws its TRUE faces into a
+  `sim::CameraPlant` and includes nothing from `vision/`. The Toggle step's tests use it as their oracle
+  (`test/toggle_visit_rig.hpp`; its own tests are `test/sim_toggle_plant_test.cpp`).
 
 ## Vendored dependency
 

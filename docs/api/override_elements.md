@@ -8,7 +8,7 @@
 
 The 2026-27 Override season's facts the camera code needs — the Toggle's coloured faces, where the Toggles are, the Pin and the Cup, and the class table of VEX's Override AI model.
 
-This header declares **4** types (19 members), **2** free functions, and **6** constants.
+This header declares **6** types (27 members), **5** free functions, and **11** constants.
 
 Extracted from [`include/shulib/vision/override_elements.hpp`](../../include/shulib/vision/override_elements.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -30,6 +30,24 @@ Extracted from [`include/shulib/vision/override_elements.hpp`](../../include/shu
   - [`inX`](#toggleplace-inx)
   - [`inY`](#toggleplace-iny)
 - [`kTogglePlaces`](#ktoggleplaces) — *constant*
+- [`enum class ToggleId`](#enum-class-toggleid)
+  - [`Unset`](#toggleid-unset)
+  - [`RightWall`](#toggleid-rightwall)
+  - [`LeftWall`](#toggleid-leftwall)
+  - [`BlueWall`](#toggleid-bluewall)
+  - [`RedWall`](#toggleid-redwall)
+- [`kRightWall`](#krightwall) — *constant*
+- [`kLeftWall`](#kleftwall) — *constant*
+- [`kBlueWall`](#kbluewall) — *constant*
+- [`kRedWall`](#kredwall) — *constant*
+- [`enum class QuadrantColour`](#enum-class-quadrantcolour)
+  - [`Unset`](#quadrantcolour-unset)
+  - [`Red`](#quadrantcolour-red)
+  - [`Blue`](#quadrantcolour-blue)
+- [`kToggleQuadrantColour`](#ktogglequadrantcolour) — *constant*
+- [`toggleIndex`](#toggleindex) — *free function*
+- [`quadrantColour`](#quadrantcolour) — *free function*
+- [`toggleName`](#togglename) — *free function*
 - [`struct PieceSize`](#struct-piecesize)
   - [`diameterIn`](#piecesize-diameterin)
   - [`heightIn`](#piecesize-heightin)
@@ -238,6 +256,222 @@ The four Toggles, one centred on each wall: pA10 puts each on its wall's centrel
 
 *constant, declared at [`include/shulib/vision/override_elements.hpp:75`](../../include/shulib/vision/override_elements.hpp#L75).*
 
+<a id="enum-class-toggleid"></a>
+
+## `enum class ToggleId`
+
+```cpp
+enum class ToggleId : std::uint8_t
+```
+
+WHICH Toggle — in kTogglePlaces' order (index = the id less one). Unset (0) names none.
+
+*enum class, declared at [`include/shulib/vision/override_elements.hpp:92`](../../include/shulib/vision/override_elements.hpp#L92).*
+
+<a id="toggleid-unset"></a>
+
+### `ToggleId::Unset`
+
+```cpp
+Unset = 0
+```
+
+no Toggle named (refused by every consumer)
+
+*enumerator, declared at [`include/shulib/vision/override_elements.hpp:93`](../../include/shulib/vision/override_elements.hpp#L93).*
+
+<a id="toggleid-rightwall"></a>
+
+### `ToggleId::RightWall`
+
+```cpp
+RightWall
+```
+
+the right wall's (x = +70.2) — kTogglePlaces[0]
+
+*enumerator, declared at [`include/shulib/vision/override_elements.hpp:94`](../../include/shulib/vision/override_elements.hpp#L94).*
+
+<a id="toggleid-leftwall"></a>
+
+### `ToggleId::LeftWall`
+
+```cpp
+LeftWall
+```
+
+the left wall's (x = -70.2) — kTogglePlaces[1]
+
+*enumerator, declared at [`include/shulib/vision/override_elements.hpp:95`](../../include/shulib/vision/override_elements.hpp#L95).*
+
+<a id="toggleid-bluewall"></a>
+
+### `ToggleId::BlueWall`
+
+```cpp
+BlueWall
+```
+
+the blue alliance's wall's (y = +70.2) — kTogglePlaces[2]
+
+*enumerator, declared at [`include/shulib/vision/override_elements.hpp:96`](../../include/shulib/vision/override_elements.hpp#L96).*
+
+<a id="toggleid-redwall"></a>
+
+### `ToggleId::RedWall`
+
+```cpp
+RedWall
+```
+
+the red alliance's wall's (y = -70.2) — kTogglePlaces[3]
+
+*enumerator, declared at [`include/shulib/vision/override_elements.hpp:97`](../../include/shulib/vision/override_elements.hpp#L97).*
+
+<a id="krightwall"></a>
+
+## `kRightWall`
+
+```cpp
+inline constexpr ToggleId kRightWall = ToggleId::RightWall
+```
+
+The right wall's Toggle (x = +70.2) — a RED Quadrant's (HA-243).
+
+*constant, declared at [`include/shulib/vision/override_elements.hpp:103`](../../include/shulib/vision/override_elements.hpp#L103).*
+
+<a id="kleftwall"></a>
+
+## `kLeftWall`
+
+```cpp
+inline constexpr ToggleId kLeftWall = ToggleId::LeftWall
+```
+
+The left wall's Toggle (x = -70.2) — a BLUE Quadrant's (HA-243).
+
+*constant, declared at [`include/shulib/vision/override_elements.hpp:105`](../../include/shulib/vision/override_elements.hpp#L105).*
+
+<a id="kbluewall"></a>
+
+## `kBlueWall`
+
+```cpp
+inline constexpr ToggleId kBlueWall = ToggleId::BlueWall
+```
+
+The blue alliance's wall's Toggle (y = +70.2) — a BLUE Quadrant's (HA-243).
+
+*constant, declared at [`include/shulib/vision/override_elements.hpp:107`](../../include/shulib/vision/override_elements.hpp#L107).*
+
+<a id="kredwall"></a>
+
+## `kRedWall`
+
+```cpp
+inline constexpr ToggleId kRedWall = ToggleId::RedWall
+```
+
+The red alliance's wall's Toggle (y = -70.2) — a RED Quadrant's (HA-243).
+
+*constant, declared at [`include/shulib/vision/override_elements.hpp:109`](../../include/shulib/vision/override_elements.hpp#L109).*
+
+<a id="enum-class-quadrantcolour"></a>
+
+## `enum class QuadrantColour`
+
+```cpp
+enum class QuadrantColour : std::uint8_t
+```
+
+A Quadrant's colour — this header's own (header: the circular include).
+
+*enum class, declared at [`include/shulib/vision/override_elements.hpp:113`](../../include/shulib/vision/override_elements.hpp#L113).*
+
+<a id="quadrantcolour-unset"></a>
+
+### `QuadrantColour::Unset`
+
+```cpp
+Unset = 0
+```
+
+no colour (an Unset Toggle's)
+
+*enumerator, declared at [`include/shulib/vision/override_elements.hpp:114`](../../include/shulib/vision/override_elements.hpp#L114).*
+
+<a id="quadrantcolour-red"></a>
+
+### `QuadrantColour::Red`
+
+```cpp
+Red
+```
+
+a red Quadrant
+
+*enumerator, declared at [`include/shulib/vision/override_elements.hpp:115`](../../include/shulib/vision/override_elements.hpp#L115).*
+
+<a id="quadrantcolour-blue"></a>
+
+### `QuadrantColour::Blue`
+
+```cpp
+Blue
+```
+
+a blue Quadrant
+
+*enumerator, declared at [`include/shulib/vision/override_elements.hpp:116`](../../include/shulib/vision/override_elements.hpp#L116).*
+
+<a id="ktogglequadrantcolour"></a>
+
+## `kToggleQuadrantColour`
+
+```cpp
+inline constexpr QuadrantColour kToggleQuadrantColour[4] = {QuadrantColour::Red, QuadrantColour::Blue, QuadrantColour::Blue, QuadrantColour::Red}
+```
+
+Each Toggle's Quadrant colour, in kTogglePlaces' order: right RED, left BLUE, blue wall BLUE, red wall RED (header; A4 register HA-243 — reasoned from Figure Q-1 and pA15, unmeasured).
+
+*constant, declared at [`include/shulib/vision/override_elements.hpp:121`](../../include/shulib/vision/override_elements.hpp#L121).*
+
+<a id="toggleindex"></a>
+
+## `toggleIndex`
+
+```cpp
+[[nodiscard]] constexpr int toggleIndex(ToggleId id) noexcept
+```
+
+The index of `id` in kTogglePlaces (0..3), or -1 for Unset or a byte outside the enum.
+
+*free function, declared at [`include/shulib/vision/override_elements.hpp:125`](../../include/shulib/vision/override_elements.hpp#L125).*
+
+<a id="quadrantcolour"></a>
+
+## `quadrantColour`
+
+```cpp
+[[nodiscard]] constexpr QuadrantColour quadrantColour(ToggleId id) noexcept
+```
+
+The Quadrant colour of `id`'s Toggle — Unset for Unset or a byte outside the enum.
+
+*free function, declared at [`include/shulib/vision/override_elements.hpp:131`](../../include/shulib/vision/override_elements.hpp#L131).*
+
+<a id="togglename"></a>
+
+## `toggleName`
+
+```cpp
+[[nodiscard]] constexpr const char* toggleName(ToggleId id) noexcept
+```
+
+The Toggle's name for a log line: "right wall Toggle", "left wall Toggle", "blue wall Toggle", "red wall Toggle"; "unnamed Toggle" for Unset or a byte outside the enum.
+
+*free function, declared at [`include/shulib/vision/override_elements.hpp:138`](../../include/shulib/vision/override_elements.hpp#L138).*
+
 <a id="struct-piecesize"></a>
 
 ## `struct PieceSize`
@@ -248,7 +482,7 @@ struct PieceSize
 
 A Scoring Object's size (the glossary).
 
-*struct, declared at [`include/shulib/vision/override_elements.hpp:79`](../../include/shulib/vision/override_elements.hpp#L79).*
+*struct, declared at [`include/shulib/vision/override_elements.hpp:150`](../../include/shulib/vision/override_elements.hpp#L150).*
 
 <a id="piecesize-diameterin"></a>
 
@@ -260,7 +494,7 @@ double diameterIn = 0.0
 
 across, inches
 
-*field, declared at [`include/shulib/vision/override_elements.hpp:80`](../../include/shulib/vision/override_elements.hpp#L80).*
+*field, declared at [`include/shulib/vision/override_elements.hpp:151`](../../include/shulib/vision/override_elements.hpp#L151).*
 
 <a id="piecesize-heightin"></a>
 
@@ -272,7 +506,7 @@ double heightIn = 0.0
 
 standing, inches
 
-*field, declared at [`include/shulib/vision/override_elements.hpp:81`](../../include/shulib/vision/override_elements.hpp#L81).*
+*field, declared at [`include/shulib/vision/override_elements.hpp:152`](../../include/shulib/vision/override_elements.hpp#L152).*
 
 <a id="kpinsize"></a>
 
@@ -284,7 +518,7 @@ inline constexpr PieceSize kPinSize{1.6, 6.5}
 
 A Pin: "approximately 1.6 in (40 mm) in diameter and 6.5 in (165 mm) tall" (the glossary).
 
-*constant, declared at [`include/shulib/vision/override_elements.hpp:84`](../../include/shulib/vision/override_elements.hpp#L84).*
+*constant, declared at [`include/shulib/vision/override_elements.hpp:155`](../../include/shulib/vision/override_elements.hpp#L155).*
 
 <a id="kcupsize"></a>
 
@@ -296,7 +530,7 @@ inline constexpr PieceSize kCupSize{3.15, 6.5}
 
 A Cup: "approximately 3.15 in (80 mm) in diameter and 6.5 in (164.5 mm) tall" (the glossary).
 
-*constant, declared at [`include/shulib/vision/override_elements.hpp:86`](../../include/shulib/vision/override_elements.hpp#L86).*
+*constant, declared at [`include/shulib/vision/override_elements.hpp:157`](../../include/shulib/vision/override_elements.hpp#L157).*
 
 <a id="enum-class-modelclass"></a>
 
@@ -308,7 +542,7 @@ enum class ModelClass : std::uint8_t
 
 The Override AI model's classes, as api.vex.com lists them for VEXcode (read 2026-10-15: "Override: 0 redBluePin, 1 blueYellowPin, 2 redYellowPin, 3 yellowPin, 4 cup"). Whether a PROS program sees these names for these ids is A4 register HA-197 — the adapter checks them BY NAME before an id means anything (hal::ModelCheck).
 
-*enum class, declared at [`include/shulib/vision/override_elements.hpp:92`](../../include/shulib/vision/override_elements.hpp#L92).*
+*enum class, declared at [`include/shulib/vision/override_elements.hpp:163`](../../include/shulib/vision/override_elements.hpp#L163).*
 
 <a id="modelclass-redbluepin"></a>
 
@@ -320,7 +554,7 @@ RedBluePin = 0
 
 a Pin, half red and half blue
 
-*enumerator, declared at [`include/shulib/vision/override_elements.hpp:93`](../../include/shulib/vision/override_elements.hpp#L93).*
+*enumerator, declared at [`include/shulib/vision/override_elements.hpp:164`](../../include/shulib/vision/override_elements.hpp#L164).*
 
 <a id="modelclass-blueyellowpin"></a>
 
@@ -332,7 +566,7 @@ BlueYellowPin = 1
 
 a Pin, half blue and half yellow
 
-*enumerator, declared at [`include/shulib/vision/override_elements.hpp:94`](../../include/shulib/vision/override_elements.hpp#L94).*
+*enumerator, declared at [`include/shulib/vision/override_elements.hpp:165`](../../include/shulib/vision/override_elements.hpp#L165).*
 
 <a id="modelclass-redyellowpin"></a>
 
@@ -344,7 +578,7 @@ RedYellowPin = 2
 
 a Pin, half red and half yellow
 
-*enumerator, declared at [`include/shulib/vision/override_elements.hpp:95`](../../include/shulib/vision/override_elements.hpp#L95).*
+*enumerator, declared at [`include/shulib/vision/override_elements.hpp:166`](../../include/shulib/vision/override_elements.hpp#L166).*
 
 <a id="modelclass-yellowpin"></a>
 
@@ -356,7 +590,7 @@ YellowPin = 3
 
 a Pin, all yellow
 
-*enumerator, declared at [`include/shulib/vision/override_elements.hpp:96`](../../include/shulib/vision/override_elements.hpp#L96).*
+*enumerator, declared at [`include/shulib/vision/override_elements.hpp:167`](../../include/shulib/vision/override_elements.hpp#L167).*
 
 <a id="modelclass-cup"></a>
 
@@ -368,7 +602,7 @@ Cup = 4
 
 a Cup
 
-*enumerator, declared at [`include/shulib/vision/override_elements.hpp:97`](../../include/shulib/vision/override_elements.hpp#L97).*
+*enumerator, declared at [`include/shulib/vision/override_elements.hpp:168`](../../include/shulib/vision/override_elements.hpp#L168).*
 
 <a id="kmodelclasscount"></a>
 
@@ -380,7 +614,7 @@ inline constexpr std::uint8_t kModelClassCount = 5
 
 How many classes the table names.
 
-*constant, declared at [`include/shulib/vision/override_elements.hpp:100`](../../include/shulib/vision/override_elements.hpp#L100).*
+*constant, declared at [`include/shulib/vision/override_elements.hpp:171`](../../include/shulib/vision/override_elements.hpp#L171).*
 
 <a id="koverrideclassnames"></a>
 
@@ -392,7 +626,7 @@ inline constexpr const char* kOverrideClassNames[kModelClassCount] = { "redBlueP
 
 The table a robot file hands the adapter (`hal::AiVisionSettings::expectedClasses`): the camera must name exactly these, in this order, before an Object id is believed (A4 register HA-197). VEX's spelling; the camera's own is read at the bench — a different one fails SAFE (every object withheld, the boot line naming the first name that differed).
 
-*constant, declared at [`include/shulib/vision/override_elements.hpp:106`](../../include/shulib/vision/override_elements.hpp#L106).*
+*constant, declared at [`include/shulib/vision/override_elements.hpp:177`](../../include/shulib/vision/override_elements.hpp#L177).*
 
 <a id="modelclassname"></a>
 
@@ -404,7 +638,7 @@ The table a robot file hands the adapter (`hal::AiVisionSettings::expectedClasse
 
 The class's name as VEX spells it (`kOverrideClassNames[id]`), or nullptr for an id outside the table.
 
-*free function, declared at [`include/shulib/vision/override_elements.hpp:110`](../../include/shulib/vision/override_elements.hpp#L110).*
+*free function, declared at [`include/shulib/vision/override_elements.hpp:181`](../../include/shulib/vision/override_elements.hpp#L181).*
 
 <a id="modelclasssize"></a>
 
@@ -416,7 +650,7 @@ The class's name as VEX spells it (`kOverrideClassNames[id]`), or nullptr for an
 
 The class's physical size — a Pin's for ids 0..3, the Cup's for 4 — or nullptr for an id outside the table.
 
-*free function, declared at [`include/shulib/vision/override_elements.hpp:116`](../../include/shulib/vision/override_elements.hpp#L116).*
+*free function, declared at [`include/shulib/vision/override_elements.hpp:187`](../../include/shulib/vision/override_elements.hpp#L187).*
 
 ## Design commentary, from the header
 
