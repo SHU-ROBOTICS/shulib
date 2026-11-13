@@ -23,7 +23,12 @@ on:
 
 jobs:
   host-tests:
-    runs-on: ubuntu-latest
+    # PINNED to ubuntu-24.04 (2026-11-13): 'ubuntu-latest' moved to an image with GCC 15.2, whose new
+    # -Wunused-result reading of [[nodiscard]] inside doctest's CHECK_THROWS_AS failed the strict build
+    # on every push since mid-October -- while every local gate runs GCC 13.3 (Ubuntu 24.04). CI must
+    # judge the tree with the compiler the gates use; moving to GCC 15 is its own change (the tests
+    # made clean under it, verified), never a silent runner upgrade.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -156,7 +161,12 @@ jobs:
   #    tools/src_build_gate.py's header. A missing toolchain FAILS; never skips.
   #  What is still NOT here: uploading to or running on a brain (chunks R3a/R3b/R3c).
   arm-compile-gate:
-    runs-on: ubuntu-latest
+    # PINNED to ubuntu-24.04 (2026-11-13): 'ubuntu-latest' moved to an image with GCC 15.2, whose new
+    # -Wunused-result reading of [[nodiscard]] inside doctest's CHECK_THROWS_AS failed the strict build
+    # on every push since mid-October -- while every local gate runs GCC 13.3 (Ubuntu 24.04). CI must
+    # judge the tree with the compiler the gates use; moving to GCC 15 is its own change (the tests
+    # made clean under it, verified), never a silent runner upgrade.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
