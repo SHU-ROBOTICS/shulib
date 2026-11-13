@@ -6,7 +6,8 @@
 > primitives — an earlier revision said "F2 (mechanism primitives)", which is two mistakes:
 > chunk F2 is the sequence engine, and the mechanism seam was F1) and G2 (the
 > canonical command-id registry)**, and the two data specimens characterized here are the real
-> inputs **G4's `.shupaths` importer** must be able to read.
+> inputs G4's `.shupaths` importer would have had to read (that importer was dropped on 2026-09-26;
+> the specimens remain the record of the legacy vocabulary).
 >
 > **Method:** extracted **mechanically** (scripts in §6), from all four places commands existed
 > in `legacy/`; the hand-reading only interprets what the scripts found. Nothing below is from
@@ -63,7 +64,7 @@ Seven distinct ids exist across all sources (6 declared + 1 that appears only in
 | Legacy id | Authored in data? | What it did / meant | v2 home today | Status |
 |---|---|---|---|---|
 | `MOVE_WITH_HEADING` | **yes** — 826 CSV + 635 `.c` + 10 `main.cpp` rows | Move to `(x, y)` holding a commanded `heading`, at `speed`. The only motion verb the planner emitted; in practice never executed from data (no runner) | **C1 `MoveToPose`** (decoupled x/y/θ — exactly "move with heading") via **C2 `MotionScheduler`**, surfaced as **C4 `Chassis::moveTo`**; per-segment speed = motion-config speed budget / G2 segment constraints | **Covered** — v2's core motion verb is a strict superset (profiled, watchdog-bounded, exit-reasoned) |
-| `NONE` | **yes** — 18 CSV rows + 1 `main.cpp` row, **absent from both enums** | Path-segment boundary marker: every one has `speed=0`; the 18 markers (file start, file end, 16 internal) delimit **17** move segments of 12–115 waypoints | **G2** needs an explicit no-op/waypoint-only marker in the canonical vocabulary (or the importer folds boundaries into `paths[]` segment structure, which `.vexbot` already has) | **GAP (named):** G2 must decide boundary-marker representation; G4 must consume `NONE` rows (see §5) |
+| `NONE` | **yes** — 18 CSV rows + 1 `main.cpp` row, **absent from both enums** | Path-segment boundary marker: every one has `speed=0`; the 18 markers (file start, file end, 16 internal) delimit **17** move segments of 12–115 waypoints | **ANSWERED at G2 (2026-09-18): `NONE` is NOT an id.** A waypoint IS a segment in the frozen vocabulary, so the boundary has no content left to carry; the importer folds the rows into waypoint boundaries and emits no marker | **GAP CLOSED** on the G2 half (the absence of a `none` id is pinned by the F8 freeze test, so no future built-in can quietly give the legacy spelling a meaning). **Still G4's:** the importer must consume `NONE` rows and drop them (see §5) |
 | `PICK_UP` | **no** — enum only | Intended: acquire a game piece (floor pickup) | Phase F′ **`intakeUntilCapture`** (master plan §14, bottleneck #1) | Covered by plan, not yet built — F-phase |
 | `PLACE` | **no** — enum only | Intended: place/score a held piece | Phase F′ **`buildStack`** / `liftToLevel`+place sequence (§14) | Covered by plan, not yet built — F-phase |
 | `SCOOP` | **no** — enum only | Intended: scoop-style floor acquisition (mechanism variant of pick-up) | Phase F′ intake family; whether "scoop" is a distinct verb is a **build-team mechanism decision**, not a software one | Covered by plan; flag: don't mint two ids for one mechanism until the mechanism exists |
@@ -74,7 +75,7 @@ Seven distinct ids exist across all sources (6 declared + 1 that appears only in
 reached* — the planner could only emit `MOVE_WITH_HEADING` (+ `NONE`). So the honest legacy-derived
 requirement is not "support these five ids"; it is: **(a)** the motion verb + boundary marker are
 the proven minimum a planner emits, and **(b)** mechanism ids must be *registerable by the team*
-(`runner.on(...)`) precisely because the mechanism set churns season to season — legacy hard-coding
+(`registry.on(...)`) precisely because the mechanism set churns season to season — legacy hard-coding
 the season's verbs into an enum is the anti-pattern G2's registry replaces.
 
 ### Duplicate-declaration hazard (why porting any of this was rejected)
@@ -154,18 +155,23 @@ about everything else**. G4 must treat these as two dialects of one format:
    flagged risk rather than a blocker — but recovering it is now G4's job, not a matter of
    copying a file that is sitting there.
 
-**For G2's manifest:** nothing in the legacy vocabulary demands a new *canonical* id beyond what
-§14/§16.3 already plan. The legacy-derived additions to G2's requirements are exactly two:
-an explicit **waypoint-only/boundary marker** semantics decision (`NONE`'s successor), and the
-**registry-not-enum** principle §2 documents (which G2 already embodies).
+**For G2's manifest — SHIPPED 2026-09-18**, and this paragraph's prediction held: nothing in the
+legacy vocabulary demanded a new *canonical* id beyond what §14/§16.3 already planned. The two
+legacy-derived additions to G2's requirements both landed: the **waypoint-only/boundary marker**
+semantics decision (`NONE` has no successor — a waypoint IS a segment; the absence is frozen), and
+the **registry-not-enum** principle §2 documents, which `runner::CommandRegistry` embodies. The
+manifest's format and its four library-owned built-ins are in
+[`vexbuilder-integration.md`](vexbuilder-integration.md) §4.2.
 
 ---
 
 ## 5. Command-id gaps, stated precisely
 
-- **`NONE` (boundary marker):** no v2 representation *decision* yet. Not a missing feature —
-  `.vexbot` `paths[]` segments can absorb it structurally — but G2 must make the call and G4 must
-  implement the mapping. **Owner: G2 (decision), G4 (mapping).**
+- ~~**`NONE` (boundary marker):** no v2 representation *decision* yet.~~ **DECIDED at G2,
+  2026-09-18: `NONE` is not an id and never will be.** `.vexbot` `paths[]` segments absorb it
+  structurally, exactly as this entry predicted they could — a waypoint IS a segment, so there is
+  nothing left for a boundary marker to say. **Still open: G4's mapping** — the importer must
+  consume the 18 `NONE` rows and emit no marker for them. **Owner: G4 (mapping).**
 - **Seat/settle wiggle (`oscillation`):** used in real routines, in no plan by name.
   **Owner: the scoring-primitives brief (Phase F′), as a candidate micro-primitive.** *(Recorded
   at C6 under the pre-split name "F2"; chunk F2 became the sequence engine and never carried

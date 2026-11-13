@@ -71,7 +71,7 @@ with current test counts and build instructions.
 
 ## The honest part
 
-**This library has never driven a robot.** Everything it does has been verified on a
+**This library has never driven a robot under its own control.** Everything it does has been verified on a
 simulated robot — a software model of motors, sensors, and physics that was deliberately built to
 misbehave the way real hardware misbehaves (sensors that lie during startup, wheels that slip,
 batteries that sag). That is real verification and we trust it, but simulation is not a robot,

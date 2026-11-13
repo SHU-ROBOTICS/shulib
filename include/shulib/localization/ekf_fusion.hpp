@@ -55,7 +55,9 @@
 //     of the Kalman gain is ZEROED, so a GPS cannot rotate the robot's idea of the field
 //     through a cross-covariance term. That preserves E2's T3 ruling under the swap, and it is
 //     the reason the published heading is still bit-identical to the raw IMU on a tree with no
-//     heading-providing corrector.
+//     heading-providing corrector — and no caller seed: Localizer::reseatHeading() (COMP-a)
+//     sets the bias outside this filter, so after a competition auton starts the published
+//     heading is the raw IMU plus that seed, and this filter's increments add to it.
 //
 // REJECTED — let the EKF own the published heading and delete the re-stamp. Tidier algebra, and
 // a structural change to both M2's decision #4 and E3's design: a policy that can return an

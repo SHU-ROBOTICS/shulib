@@ -4,11 +4,69 @@
 //
 // BINDS:
 //  * move_voltage(mV)          ← setVoltage()   (motor_conversion.hpp, HA-94)
+//  * brake()                   ← setVoltage() at 0 mV under a commanded Brake/Hold, and
+//                                setBrakeMode() while stopped (DEFECTS2 — below)
 //  * get_position() [degrees]  → position()     (motorPositionDegToCanonical, HA-95)
 //  * get_actual_velocity() RPM → velocity()     (motorRpmToCanonical, HA-96)
 //  * get_current_draw() mA     → current()      (motorMilliampsToCanonical, HA-97)
 //  * get_temperature() °C      → temperature()  (identity — already canonical)
 //  * set/get_brake_mode        ↔ setBrakeMode()/brakeMode() (mapped both ways below)
+//  * set/get_current_limit mA  ↔ setCurrentLimit()/currentLimit() — hal::IMotorCurrentLimit,
+//                                the F4-additive sibling (chunk MECH-S-A, below)
+//
+// THE CURRENT LIMIT (chunk MECH-S-A, 2026-11-05; A4 register HA-219..HA-221): ProsMotor is ALSO an
+// hal::IMotorCurrentLimit (hal/motor_current_limit.hpp) — IMotor itself is untouched (F4). The
+// limit is the MOTOR's own (PROS motor_set_current_limit: "The motor will reduce its output at
+// 1000 mA instead of the default 2500 mA"), kept by the DEVICE: setCurrentLimit() sends the
+// amperes as mA (motorCurrentLimitToMilliamps — the one A→mA, motor_conversion.hpp) and answers
+// whether the port ACCEPTED the write; currentLimit() READS THE DEVICE BACK (never the request's
+// echo — a VEXos share, HA-221, or a limit left by another program, HA-220, must show). A read
+// the port refuses (PROS_ERR) answers the last good reading — the motor's documented 2.5 A
+// default before any good read — and counts in faultedReads(), as the other screened reads do.
+// Nothing here sets a limit at construction: which motors get one, and when, is the mechanism
+// service's (mechanism/service.hpp — D12 (b): a motor whose mechanism states no cap is only read).
+//
+// THE STOP — HOW A BRAKE MODE REACHES THE MOTOR (chunk DEFECTS2, 2026-09-26;
+// A4 register HA-142): PROS applies a brake mode ONLY through brake(). move_voltage()
+// "will not respect brake modes, and simply sets the voltage" (vendored motors.h:253-254;
+// the same note on motor_move, :52); brake() "stops the motor using the currently
+// configured brake mode ... sets motor velocity to zero, which will cause it to act
+// according to the set brake mode" (motors.hpp:260-284). Until DEFECTS2 this adapter only
+// ever called move_voltage(), so every stop in the library — a mechanism's declared Hold, the
+// drive's "0 V + Brake" cancel — was a 0 V command whose mode, by PROS's own documentation, the
+// motor ignored: on a V5, Hold went limp and Brake coasted (reasoned from that text — never
+// observed), while every host test passed (the shim had no brake(), the fakes echo the mode,
+// and the A2 plant pins a wheel at 0 V). The rule now:
+//   * setVoltage() whose MILLIVOLTS round to 0 (the value SENT — a 0.4 mV command is a stop,
+//     never keyed on the raw double), under a mode THIS PROGRAM commanded through
+//     setBrakeMode() that is Brake or Hold ⇒ brake(). Issued on the TRANSITION into that stop
+//     only: a zero command repeated under the same mode (a live operation re-sends its volts
+//     every tick; DriveBrake re-commands Brake + 0 V every tick) sends nothing more, because a
+//     repeated brake() under Hold may re-capture the held position and let a loaded shaft creep
+//     (A4 register HA-144, invented).
+//   * Coast, or NO mode commanded yet ⇒ move_voltage(0) on every call, exactly as before
+//     DEFECTS2. Calibrate, the old shulib Drive (until T4 Part 3) and the tester's DRIVE station
+//     set Coast and their measured behaviour rests on this 0 V path (what a motor physically does
+//     at 0 V is A4 register HA-143 — unknown).
+//   * setBrakeMode() while the last command was 0 mV RE-ISSUES the stop under the new mode, so
+//     the order of the two calls never matters: Hold-then-0 V and 0 V-then-Hold both hold, and
+//     Hold-then-0 V-then-Coast leaves the motor at 0 V as Coast always meant.
+//   * Any non-zero command leaves the stop (move_voltage replaces it — A4 register HA-146).
+//   * A call the port REFUSES (PROS_ERR — a dropout) is never believed. brake() stops under
+//     whatever the device's REGISTER holds, so a set_brake_mode() the port refused is re-sent
+//     before the next brake(), and the stop is recorded only when BOTH were accepted; until
+//     then every zero command retries. A caller that sends its zero ONCE (applySafeState() at
+//     an operation's exit, T3's binding) gets no retry if the port is down at that moment —
+//     the limit every refused command has had, move_voltage(0) included.
+// KEYED ON THE COMMANDED MODE, NEVER ON brakeMode_: the ctor SEEDS brakeMode_ from the device
+// (the T7 fallback, below), and a drive motor an earlier program left in Hold would otherwise
+// brake() at centred sticks in a program that never asked for Hold. A motor this program never
+// gave a mode stays on move_voltage(0) at zero, whatever the device remembers (HA-98).
+// The stop record is per ADAPTER OBJECT: two ProsMotors on one port (IMotor's copy semantics)
+// each believe only their own history, and nothing here can see a VEXos disable
+// (A4 register HA-145): after a re-enable, a zero repeated under the same mode sends nothing new.
+// The fix lives HERE, below every wrapper (MotorGroup, the hostile fakes, test wrappers), so
+// each inherits it; IMotor's signature is unchanged (F4) — no stop verb was added above.
 //
 // WHY THE CTOR DEMANDS A GEARSET AND SETS UNITS EXPLICITLY (trap A, HA-98):
 // pros::Motor's ctor defaults are MotorGears::invalid / MotorUnits::invalid,
@@ -44,7 +102,7 @@
 // prototype for this brief made that mistake; it compiles, passes a clamp
 // test, and turns a programming error into a robot that coasts.
 //
-// HA register: HA-94..HA-98 (docs/hardware-assumptions.md).
+// HA register: HA-94..HA-98, HA-142..HA-146, HA-219..HA-221 (docs/hardware-assumptions.md).
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -55,10 +113,12 @@
 
 #include <cmath>
 #include <cstdint>
+#include <optional>
 
 #include "shulib/core/check.hpp"
 #include "shulib/hal/motor.hpp"
 #include "shulib/hal/motor_conversion.hpp"
+#include "shulib/hal/motor_current_limit.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::hal::pros {
@@ -73,21 +133,22 @@ enum class MotorGearset {
 };
 
 /// IMotor over a real pros::Motor — the adapter that converts V5 units to canonical ones
-/// exactly once, at the edge. Three contracts a caller should know: the constructor CONFIGURES
+/// exactly once, at the edge. Four contracts a caller should know: the constructor CONFIGURES
 /// the device (degrees + the stated gearset) and reads both back, so a miswired port fails at
 /// boot rather than mid-match; a NEGATIVE port reverses the motor inside PROS and this adapter
-/// never negates on top of that; and the four MEASUREMENT reads — position(), velocity(),
-/// current(), temperature() — screen the PROS_ERR / PROS_ERR_F sentinels by HOLDING THE LAST
-/// GOOD VALUE rather than propagating a sentinel or substituting zero, because a frozen reading
-/// is what the loop's odometry cross-checks are built to notice while a zeroed encoder would
-/// look exactly like a robot that stopped. faultedReads() counts those four and only those
-/// four. The other two accessors sit OUTSIDE that scheme: commandedVoltage() is a local mirror
-/// of the last applied command and touches no device, and brakeMode() does screen the device's
-/// `invalid` — to the last COMMANDED mode — but without counting it, so a port whose brake-mode
-/// read fails on every tick still reports faultedReads() == 0. Read the counter as a signal
-/// about the sensor path, not about the port as a whole. This adapter does not raise faults;
-/// raising is the loop layer's policy.
-class ProsMotor final : public IMotor {
+/// never negates on top of that; a ZERO command under a Brake or Hold mode that this program
+/// commanded is sent as PROS brake() — the one call that applies a mode — while Coast, or no
+/// commanded mode, stays a 0 V command (header: THE STOP; before DEFECTS2 every zero was 0 V and
+/// no mode ever reached the motor); and the five screened READS — position(), velocity(),
+/// current(), temperature() and brakeMode() — handle the PROS_ERR / PROS_ERR_F / `invalid`
+/// sentinels by HOLDING THE LAST GOOD VALUE (for brakeMode(), the last mode this adapter
+/// commanded or seeded) rather than propagating a sentinel or substituting zero, because a
+/// frozen reading is what the loop's odometry cross-checks are built to notice while a zeroed
+/// encoder would look exactly like a robot that stopped. faultedReads() counts every one of
+/// those five screens — six since MECH-S-A, with currentLimit() (header: THE CURRENT LIMIT).
+/// commandedVoltage() sits outside the scheme: a local mirror of the last applied command that
+/// touches no device. This adapter does not raise faults; raising is the loop layer's policy.
+class ProsMotor final : public IMotor, public IMotorCurrentLimit {
 public:
     /// `port`: 1..21, NEGATIVE to reverse (PROS applies the reversal — once).
     /// `gearset`: the physical cartridge color. The ctor configures the device
@@ -117,13 +178,26 @@ public:
         }
     }
 
-    /// Clamp to ±kMaxMotorVoltage, REJECT non-finite (never coerce — L4), send
-    /// as millivolts (HA-94). commandedVoltage() reflects the value APPLIED.
+    /// Clamp to ±kMaxMotorVoltage, REJECT non-finite (never coerce — L4), send as millivolts
+    /// (HA-94). commandedVoltage() is the clamped volts, UNROUNDED, however the command was sent
+    /// — so a sub-millivolt command reads back as itself (0.0004 V) although the wire sent a
+    /// stop. When the millivolts SENT are 0 and this program's last setBrakeMode() was Brake
+    /// or Hold, the stop goes out as PROS brake() instead of move_voltage(0) — once, on the way
+    /// INTO the stop; a zero repeated under the same mode sends nothing more (header: THE STOP,
+    /// HA-142/HA-144). Coast, or no mode commanded yet, sends move_voltage(0) every time, as
+    /// before.
     void setVoltage(units::Voltage volts) override {
         SHULIB_PRECONDITION(std::isfinite(volts.value()),
                             "ProsMotor::setVoltage: voltage must be finite");
+        const std::int32_t millivolts = motorVoltageToMillivolts(volts);
         commanded_ = motorVoltageApplied(volts);
-        motor_.move_voltage(motorVoltageToMillivolts(volts));
+        atZero_ = millivolts == 0;  // keyed on what is SENT, never on the raw double
+        if (atZero_) {
+            stopAtZero(/*fromModeChange=*/false);
+            return;
+        }
+        motor_.move_voltage(millivolts);
+        stoppedUnder_.reset();  // a driving command replaces any stop (HA-146)
     }
 
     /// The voltage this adapter last APPLIED, after the ±kMaxMotorVoltage clamp. A locally
@@ -132,20 +206,34 @@ public:
     /// faults. 0 V until the first setVoltage().
     [[nodiscard]] units::Voltage commandedVoltage() const override { return commanded_; }
 
-    /// Send the brake mode to the device AND remember it: the remembered value is what
-    /// brakeMode() falls back to when the device's own read comes back invalid (T7). Only that
-    /// FALLBACK starts at Coast: the ctor configures encoder units and gearing but never a
-    /// brake mode, and brakeMode() reads the DEVICE first — so until this is called at least
-    /// once, the value you observe is whatever mode the motor is still holding from an earlier
-    /// program, which is the persistent-device-state trap the header describes for encoder
-    /// units. Call this during setup if the mode has to be known rather than inherited.
+    /// Send the brake mode to the device AND remember it twice: as the value brakeMode() falls
+    /// back to when the device's own read comes back invalid (T7), and as the mode THIS PROGRAM
+    /// commanded, which is what decides how a zero command is sent (header: THE STOP). If the
+    /// last command was a zero, the stop is RE-ISSUED under the new mode — brake() for Brake or
+    /// Hold (unless already stopped under that very mode), move_voltage(0) for Coast when the
+    /// motor was in a brake() stop — so mode-then-zero and zero-then-mode end the same way.
+    /// Whether the port ACCEPTED the write is kept as well: a refused one is re-sent before the
+    /// next brake(), which stops under the device's register (header: THE STOP).
+    /// The ctor configures encoder units and gearing but never a brake mode, and brakeMode()
+    /// reads the DEVICE first — so until this is called at least once, the value you observe is
+    /// whatever mode the motor is still holding from an earlier program (the persistent-device-
+    /// state trap the header describes for encoder units), and a zero command is sent as 0 V
+    /// whatever that inherited mode is. Call this during setup if the mode has to be applied
+    /// rather than inherited.
     void setBrakeMode(BrakeMode mode) override {
         brakeMode_ = mode;
-        motor_.set_brake_mode(toProsBrake(mode));
+        commandedMode_ = mode;
+        modeOnDevice_ = motor_.set_brake_mode(toProsBrake(mode)) == 1;
+        if (atZero_) {
+            stopAtZero(/*fromModeChange=*/true);
+        }
     }
 
-    /// Reads the DEVICE back and maps to the canonical enum; an unreadable
-    /// device (MotorBrake::invalid) holds the last commanded mode (T7).
+    /// Reads the DEVICE back and maps to the canonical enum; an unreadable device
+    /// (MotorBrake::invalid) holds the last commanded mode — or, before any command, the mode
+    /// the ctor read from the device (T7) — and COUNTS a faulted read, like the other four
+    /// screens. This reports the device's configured mode; it says nothing about whether the
+    /// motor is currently stopped under it (header: THE STOP).
     [[nodiscard]] BrakeMode brakeMode() const override {
         const auto raw = motor_.get_brake_mode();
         if (raw == ::pros::v5::MotorBrake::invalid) {
@@ -208,14 +296,78 @@ public:
         return lastTemperature_;
     }
 
-    /// How many of the four MEASUREMENT reads (position/velocity/current/temperature) were
-    /// screened to last-good — cumulative for the life of the object, never reset. T7
+    /// Send the motor its own current limit, in mA (header: THE CURRENT LIMIT; HA-219). True when
+    /// the port ACCEPTED the write (PROS answered 1); false when it refused it (PROS_ERR — a dropout),
+    /// and nothing is remembered. Read it back with currentLimit(): true is not proof the motor holds
+    /// `limit` (HA-221) — nor that it holds the exact double: the device holds whole milliamps, so a
+    /// 2.4995 A limit is sent, and read back, as 2500 mA. PRECONDITION (motorCurrentLimitToMilliamps'):
+    /// `limit` finite, from 0.001 A to 2.5 A.
+    [[nodiscard]] bool setCurrentLimit(units::Current limit) override {
+        return motor_.set_current_limit(motorCurrentLimitToMilliamps(limit)) == 1;
+    }
+
+    /// The limit the DEVICE reports now, canonical amperes (header). Sentinel-screened like the
+    /// other reads: PROS_ERR holds the last good reading — the documented 2.5 A default before any
+    /// good read — and counts a faulted read.
+    [[nodiscard]] units::Current currentLimit() const override {
+        const std::int32_t ma = motor_.get_current_limit();
+        if (ma == PROS_ERR) {
+            faultedReads_ += 1;
+            return lastLimit_;
+        }
+        lastLimit_ = motorMilliampsToCanonical(static_cast<double>(ma));
+        return lastLimit_;
+    }
+
+    /// How many of the six screened READS (position/velocity/current/temperature/brakeMode and,
+    /// since MECH-S-A, currentLimit) were screened to last-good — cumulative for the life of the
+    /// object, never reset. T7
     /// observability: telemetry and the loop's health policy can see a flaky port without
-    /// this seam growing a validity channel F4 does not have. brakeMode()'s own screening is
-    /// deliberately NOT tallied here, so 0 does not mean the port is healthy.
+    /// this seam growing a validity channel F4 does not have. brakeMode() has been counted
+    /// since DEFECTS1 (I9/E1); this comment said otherwise until DEFECTS2. COMMANDS are not
+    /// counted: a move_voltage() or brake() the port refuses leaves this number unchanged.
     [[nodiscard]] int faultedReads() const noexcept { return faultedReads_; }
 
 private:
+    /// Send the stop for a zero command under the mode THIS PROGRAM commanded (header: THE
+    /// STOP). `fromModeChange` = called from setBrakeMode(), re-issuing a stop already in force.
+    ///   * Brake/Hold commanded: brake(), unless the motor is already in a brake() stop under
+    ///     that very mode — the transition rule (HA-144). brake() stops under whatever the
+    ///     device's REGISTER holds, so a set_brake_mode() the port refused is re-sent first; and
+    ///     the stop is recorded only when PROS answered 1 to BOTH. A refusal of either (PROS_ERR)
+    ///     leaves no record, so the next zero command retries instead of believing a stop that
+    ///     never happened — or one that happened under the register's stale mode. brake() is
+    ///     sent even when the mode write was refused: a stop under the wrong mode, not believed,
+    ///     beats leaving the motor on whatever it was last driven at.
+    ///   * Coast, or no mode commanded: move_voltage(0). From setVoltage() on every call (the
+    ///     pre-DEFECTS2 wire traffic, unchanged); from setBrakeMode() only when leaving a brake()
+    ///     stop, since a 0 V command already in force needs no repeat. The register does not
+    ///     matter here: move_voltage() ignores it (HA-142).
+    /// Adds no throwing path: setBrakeMode()/setVoltage(0) are what the scheduler's implicitly
+    /// noexcept destructor calls (motion_scheduler.hpp).
+    void stopAtZero(bool fromModeChange) {
+        const bool applyMode = commandedMode_.has_value() && *commandedMode_ != BrakeMode::Coast;
+        if (applyMode) {
+            if (stoppedUnder_ != commandedMode_) {
+                if (!modeOnDevice_) {
+                    modeOnDevice_ = motor_.set_brake_mode(toProsBrake(*commandedMode_)) == 1;
+                }
+                const bool stopped = motor_.brake() == 1;
+                if (stopped && modeOnDevice_) {
+                    stoppedUnder_ = commandedMode_;
+                } else {
+                    stoppedUnder_.reset();
+                }
+            }
+            return;
+        }
+        if (fromModeChange && !stoppedUnder_.has_value()) {
+            return;  // already at 0 V under voltage control: nothing to re-issue
+        }
+        motor_.move_voltage(0);
+        stoppedUnder_.reset();
+    }
+
     [[nodiscard]] static ::pros::v5::MotorGears toProsGears(MotorGearset g) {
         switch (g) {
             case MotorGearset::Red: return ::pros::v5::MotorGears::red;
@@ -246,7 +398,22 @@ private:
 
     ::pros::v5::Motor motor_;
     units::Voltage commanded_{0.0};
+    /// The T7 FALLBACK for brakeMode() — seeded from the DEVICE by the ctor, then the last
+    /// commanded mode. Never consulted for the stop (header: THE STOP — the seeded-mode trap).
     BrakeMode brakeMode_ = BrakeMode::Coast;
+    /// The mode THIS PROGRAM last commanded through setBrakeMode(); empty until the first call.
+    /// The ONLY input to how a zero command is sent.
+    std::optional<BrakeMode> commandedMode_;
+    /// The port ACCEPTED the last set_brake_mode() of commandedMode_ (answered 1). False while
+    /// a refused write has not yet been re-sent successfully — the stop then re-sends it before
+    /// its brake(), because brake() stops under the register, not under commandedMode_.
+    bool modeOnDevice_ = false;
+    /// The last setVoltage() SENT 0 mV (false until the first command) — what makes
+    /// setBrakeMode() re-issue the stop under its new mode.
+    bool atZero_ = false;
+    /// The motor is in a brake() stop issued under this mode, not yet replaced by a
+    /// move_voltage(); empty otherwise. What makes a repeated zero send nothing.
+    std::optional<BrakeMode> stoppedUnder_;
     // `mutable` because IMotor's readers are const but screening must remember
     // the last good value (T7's hold-last-good) — logically these caches are
     // part of the READ, not of the object's commanded state.
@@ -254,6 +421,8 @@ private:
     mutable units::AngularVelocity lastVelocity_{0.0};
     mutable units::Current lastCurrent_{0.0};
     mutable double lastTemperature_ = 20.0;
+    /// currentLimit()'s last good reading; the motor's documented default before the first one.
+    mutable units::Current lastLimit_ = kDefaultMotorCurrentLimit;
     mutable int faultedReads_ = 0;
 };
 

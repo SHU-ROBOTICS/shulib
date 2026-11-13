@@ -88,6 +88,8 @@
 // exempts nothing. After run() returns the guard is inert again — the robot
 // belongs to the caller (post-run code, driver control) and a guard that kept
 // refusing forever would fight the next mode.
+//   The latch reaches CLAIMED MECHANISMS too (the mechanism core, MECH-A2, the
+// team lead's N1 (a), 2026-10-08) — see "Reaching the mechanisms" below.
 //
 // ── The waits (T4): what is deadline-aware and what CANNOT be ───────────────────────
 // waitFor()/pause() here are deadline-aware: they return RunExpired at the
@@ -115,6 +117,33 @@
 // is NOT enough and the guard never relies on it alone: a live operation
 // re-commands its voltage on its next tick, restoring voltage but not brake
 // mode — the half-safe `brake=Hold, V=9.0` that passes any mode-only check.
+// A mechanism that THROWS there (a broken adapter) skips nothing: every listed
+// mechanism is attempted, then the first exception propagates; the unwind path's
+// own cancel-all drops its repeat, so a throwing safe state is a loud error the
+// caller catches, never std::terminate (COMP-t's review, 2026-09-29, measured).
+//   THE LATCH CUTS CLAIMED MECHANISMS (MECH-A2; N1 (a), the team lead's "accept
+// all", 2026-10-08). A mechanism step waits through Chassis::waitUntil — a FROZEN
+// wait this guard cannot cut (the waits section above) — so before this, an intake
+// step still running at endActionAt ran on to its own bound: measured 1.01 s late
+// with 12.0 V·s past the cut on a 2 s step, and on a 5 s one 2.02 s late — the
+// hard stop fired during scoring and the end action (the park) FAILED; after a
+// disable, up to 2.52 s late, which COMP-b's opcontrol() waits out. Now, in the
+// two branches of pace() that cut the motion, the latch also calls cancel() on
+// every listed mechanism whose claim has a REGISTERED claimant (a mechanism-service
+// slot, an F1 operation): inert, safe, released — the step ends CANCELLED at the
+// next pace, its frozen wait sees it, and the routine unwinds (measured: 0.01 s
+// late, 0.0 V·s; the end action ran and succeeded). WHERE it runs, exactly:
+//   * the DEADLINE cut never runs inside the end action (`!inEndAction_`, as the
+//     motion cut) — the end action's own steps are exempt from the deadline;
+//   * an ABANDON (a disable) cuts claimed mechanisms EVERYWHERE, the end action
+//     included — B1's "exempts nothing" (measured: a step inside the end action,
+//     cut 0.02 s after the disable, 0.1 V·s).
+// An UNCLAIMED mechanism is NOT re-safed every pace: a repeated brake under Hold
+// re-captures its point and lets a loaded shaft creep (HA-144) — run()'s
+// cancel-all still makes every listed mechanism safe, as before. Each cut is
+// counted (RunGuardReport::mechanismCuts; a refused retry counts again) and the
+// run's first cut is logged once. A BEHAVIOUR CHANGE for F1 operations too: one
+// with a registered claimant now stops at the deadline, not at its own bound.
 //
 // ── Verdict honesty (T5) ────────────────────────────────────────────────────────────
 // GuardedWaitResult is a sequence-layer vocabulary, minted because no existing
@@ -124,12 +153,54 @@
 // verdict is reported in the RunGuardReport and logged — never as the
 // caller's motion verdict, and never silently.
 //
-// FREEZES NOTHING. Single consumer today (F4's student-authored routines are
-// hardware-gated; D1 ruled G2 out) — the register says "open by design" out
-// loud, and nothing here may freeze on one consumer's evidence.
+// ── ABANDON: a third way for a run to end, and it is a LATCH (COMP-a, ruling B1) ────
+// A competition program must be able to end a run that is NOT out of time: the
+// field disabled the robot, or the match left autonomous, while the routine was
+// mid-motion. requestAbandon() is that door, and what it does is deliberately
+// small — ONE atomic store, callable from any task and from inside a pacer (the
+// competition program's watch calls it from ITS pace(), which runs inside this
+// guard's pace(); a store cannot re-enter anything). Everything else happens on
+// the run's own task, through machinery the deadline already proved:
+//   * from the next check on, the run behaves EXACTLY as after endActionAt, with
+//     no exemption for the end action: pace() cuts any active motion BEFORE the
+//     world advances (one commanded tick per refused start, zero plant travel —
+//     the ordering pin, B22), and waitFor()/pause() return RunExpired and
+//     expired() reads true, without throwing;
+//   * run() — never requestAbandon() — sees the flag when scoring returns: it
+//     performs the FULL cancel-all (drive, then every listed mechanism: claimant
+//     cancelled, anonymous claim force-released, declared safe state applied),
+//     SKIPS the end action (a disabled robot's motors are off; the park cannot
+//     run, and an end action started into a disable is a routine commanding a
+//     robot the field has taken back), and disarms at its normal exit, with
+//     RunGuardReport::abandoned set.
+// Rejected: an abandon that DISARMS. The routine is still on the stack, inside a
+// blocking verb whose motion lives in the scheduler's slot; a disarmed guard
+// would pass every later pace() straight through, so the routine's next verb
+// would drive the robot the field just disabled, and every guard call after it
+// would throw "no run is live" out of the routine instead of unwinding it. The
+// latch lets the routine unwind NORMALLY, on its own stack, so nothing dangles
+// (ruling C5 of the COMP brief: why PROS killing the task was rejected).
+// A request made while no run is live is dropped when the next run arms (a stale
+// request from the last run must not abandon the next one at T+0) — so a
+// program's watch requests on the competition STATE, every tick a run is live,
+// not once on its edge.
+//
+// FREEZES NOTHING. TWO consumers since COMP-a: the host suites, and
+// competition::runAuton (match_runner.hpp), the competition program's auton
+// runner — which is why requestAbandon() could be added without a version bump.
+// pacesTotal() (COMP-t, 2026-09-28) is additive the same way: a counter every pace
+// increments, read by the Auton Tester's boot to prove its pacer chain. The
+// mechanism cut and RunGuardReport::mechanismCuts (MECH-A2, 2026-10-15) change no
+// signature — but they change BEHAVIOUR (an operation with a registered claimant
+// now stops at the deadline), so the changelog says so.
+// The freeze itself is the team lead's call (Freeze Register row F12), and one
+// program that has not run on a robot is not yet the evidence a freeze wants.
 
+#include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
+#include <exception>
 #include <functional>
 #include <span>
 #include <type_traits>
@@ -199,11 +270,21 @@ struct RunGuardReport {
     /// True iff the deadline latched scoring off (false: scoring returned on
     /// its own and the end action started early — the caller was done).
     bool scoringCut = false;
-    bool endActionRan = false;        ///< the callable was invoked (always, unless a throw unwound run())
-    bool endActionSucceeded = false;  ///< its verdict, per the four accepted return types
+    /// The callable was invoked — always, unless a throw unwound run() or the run was
+    /// ABANDONED before scoring returned (then it is skipped, and this stays false).
+    bool endActionRan = false;
+    /// Its verdict, per the four accepted return types — and FALSE whenever the run was
+    /// abandoned, even if an end action already under way returned success: a verdict
+    /// about a park the field disabled halfway through is not a success.
+    bool endActionSucceeded = false;
     bool floorFired = false;          ///< hardStopAt arrived during the run
-    /// Scheduler cancels the guard performed after the latch (the first is
-    /// the cut; the rest are refused retries). Zero plant travel either way.
+    /// requestAbandon() latched during this run (file banner: ABANDON). The cancel-all
+    /// ran, the end action was skipped if it had not started (`endActionRan` false), and
+    /// the guard disarmed at run()'s normal exit.
+    bool abandoned = false;
+    /// Scheduler cancels the guard performed after the latch — the deadline's or an
+    /// abandon's (the first is the cut; the rest are refused retries). Zero plant travel
+    /// either way.
     int postExpiryCancels = 0;
     /// Anonymous claims force-released at cancel-all (should be zero —
     /// register claimants).
@@ -213,8 +294,15 @@ struct RunGuardReport {
     /// guard as its pacer — the guard was never in the loop and its
     /// guarantee never applied (Warn-logged).
     int pacesSeen = 0;
+    /// Claimed mechanisms the latch CANCELLED after the deadline or an abandon (MECH-A2, the file
+    /// banner's mechanism cut): a mechanism step cut mid-wait counts one; a refused retry counts
+    /// again. The hard floor's sweep (every mechanism, claimed or not) is `floorFired`'s, not counted
+    /// here; nor is run()'s own cancel-all.
+    int mechanismCuts = 0;
     units::Time scoringEnded{0.0};    ///< clock at scoring()'s return, from run start
-    units::Time endActionEnded{0.0};  ///< clock at the end action's return, from run start
+    /// Clock at the end action's return, from run start — 0 when the end action never ran
+    /// (an abandoned run skips it; read `endActionRan` before this).
+    units::Time endActionEnded{0.0};
 };
 
 /// The run-scoped deadline owner (file banner). Construct it around the real
@@ -255,35 +343,73 @@ public:
     /// load-bearing (0.0000 in vs 10.79 in of post-deadline travel, measured)
     /// and pinned by test. Inert pass-through when no run is live.
     void pace() override {
+        ++pacesTotal_;  // every pace, run or not: a program proves its pacer chain with it
         if (running_) {
             ++pacesSeen_;
             const double now = clock_->now().value();
             if (now >= floorDeadline_) {
                 fireFloor(now);
+            } else if (abandonRequested()) {
+                // B1: exactly the deadline latch, and it exempts NOTHING — not even the
+                // end action (a park driven into a disable is the thing being refused).
+                // The mechanism cut runs here too, the end action included (N1, D5).
+                noteAbandoned(now);
+                cutActiveMotion();
+                cutClaimedMechanisms();
             } else if (now >= actDeadline_ && !inEndAction_) {
+                // The DEADLINE: never inside the end action, for the motion and the
+                // mechanisms alike (N1, D5).
                 noteExpired(now);
                 cutActiveMotion();
+                cutClaimedMechanisms();
             }
         }
         inner_->pace();  // the world advances AFTER the checks (the ordering pin)
     }
 
+    // ── abandon (file banner: ABANDON — a latch, never a disarm) ───────────────────
+
+    /// Ask the live run to END NOW, cleanly: one atomic store and nothing else, so it is
+    /// safe from any task and from inside a pacer's pace() (the competition program's
+    /// watch). From the next check on, every motion is cut before the world advances,
+    /// every guard wait returns RunExpired and expired() reads true; when scoring
+    /// returns, run() performs the full cancel-all, SKIPS the end action and disarms at
+    /// its normal exit, reporting `abandoned`. It never disarms the guard itself.
+    /// With no run live it is harmless: the request is dropped when the next run arms.
+    void requestAbandon() noexcept { abandon_.store(true); }
+
+    /// True once requestAbandon() has been called since the current (or, after run()
+    /// returned, the most recent) run armed. Readable from any task.
+    [[nodiscard]] bool abandonRequested() const noexcept { return abandon_.load(); }
+
+    /// Every pace() since construction, whether or not a run was live (RunGuardReport's
+    /// `pacesSeen` counts only a run's, so nothing in the report can say anything about the
+    /// wiring BEFORE a run). A program reads it before and after one idle tick to PROVE its
+    /// Chassis is paced through this guard -- the wiring run() itself cannot verify (it only
+    /// warns, after a run, when `pacesSeen` is 0). The Auton Tester refuses its boot when that
+    /// proof fails (COMP-t, 2026-09-28: additive). The pacing task only.
+    [[nodiscard]] std::uint64_t pacesTotal() const noexcept { return pacesTotal_; }
+
     // ── live observers (callable from scoring / the end action, during run()) ──────
 
     /// True once the CURRENT phase's deadline has passed: endActionAt during
-    /// scoring, hardStopAt during the end action. The retry-loop idiom:
+    /// scoring, hardStopAt during the end action — or at once, in either phase, once
+    /// the run has been abandoned. The retry-loop idiom:
     /// `while (!guard.expired() && ...) { ... }` — an unconditional retry
     /// loop is the one stall the guard cannot end (banner, honesty section).
     [[nodiscard]] bool expired() const {
         SHULIB_PRECONDITION(running_, "RunGuard::expired: no run is live");
-        return clock_->now().value() >= phaseDeadline();
+        return abandonRequested() || clock_->now().value() >= phaseDeadline();
     }
 
     /// Time left before the current phase's deadline (never negative).
     /// During the end action this counts down to the hard stop — the
-    /// "hold position until the buzzer" budget.
+    /// "hold position until the buzzer" budget. Zero once the run is abandoned.
     [[nodiscard]] units::Time remaining() const {
         SHULIB_PRECONDITION(running_, "RunGuard::remaining: no run is live");
+        if (abandonRequested()) {
+            return units::Time{0.0};
+        }
         const double left = phaseDeadline() - clock_->now().value();
         return units::Time{left > 0.0 ? left : 0.0};
     }
@@ -363,10 +489,19 @@ public:
     ///      in any motion verdict your scoring code saw;
     ///   5. final cancel-all + disarm — the guard hands the robot back safe
     ///      and goes inert.
+    /// If the run was ABANDONED (requestAbandon()) by the time scoring returns,
+    /// step 4 is SKIPPED: the cancel-all of step 3 is the last act, and the guard
+    /// disarms here, at run()'s normal exit, with RunGuardReport::abandoned set.
+    /// An abandon that arrives DURING the end action cuts its motions like any
+    /// other (the latch exempts nothing) and voids its verdict.
     /// If scoring() or endAction() THROWS (a precondition — a programming
     /// error), the guard cancels-all and safes on the unwind and RETHROWS: a
     /// broken program stays loud, and the guard does not drive to a pose on
-    /// its behalf (converting a throw into a park would hide the bug).
+    /// its behalf (converting a throw into a park would hide the bug). A
+    /// mechanism whose claimant or safe state throws does not stop the sweep:
+    /// every listed mechanism is still attempted, then the first such exception
+    /// propagates like any other throw — and the unwind never throws a second
+    /// one (that would be std::terminate).
     ///
     /// `chassis` MUST be the one constructed with THIS guard as its pacer —
     /// the guard has no way to verify that wiring, so it counts: a finished
@@ -384,21 +519,28 @@ public:
             std::forward<Scoring>(scoring)();
             report.scoringCut = expired_;
             report.scoringEnded = sinceStart();
-            cancelAll();  // strictly precedes the act (banner: T2)
-            logActStart();
-            inEndAction_ = true;
-            report.endActionRan = true;
-            report.endActionSucceeded = invokeEndAction(std::forward<EndAction>(endAction));
-            inEndAction_ = false;
-            report.endActionEnded = sinceStart();
-            cancelAll();  // hand the robot back safe, whatever the action left
+            cancelAll();  // strictly precedes the act (banner: T2); an abandon's full cancel-all
+            if (!abandonRequested()) {
+                logActStart();
+                inEndAction_ = true;
+                report.endActionRan = true;
+                report.endActionSucceeded = invokeEndAction(std::forward<EndAction>(endAction));
+                inEndAction_ = false;
+                report.endActionEnded = sinceStart();
+                cancelAll();  // hand the robot back safe, whatever the action left
+            }
             unwind.disarm();
+        }
+        report.abandoned = abandonRequested();
+        if (report.abandoned) {
+            report.endActionSucceeded = false;  // no verdict survives an abandon (field doc)
         }
         logVerdict(report);
         report.floorFired = floorFired_;
         report.postExpiryCancels = postExpiryCancels_;
         report.anonymousClaimsReleased = anonymousReleases_;
         report.pacesSeen = pacesSeen_;
+        report.mechanismCuts = mechanismCuts_;
         disarm();
         return report;
     }
@@ -411,13 +553,25 @@ private:
 
     /// Cancel-all + disarm on an exception unwinding run() (member comment
     /// on run()). Mirrors the facade's DetachGuard shape.
+    ///
+    /// NEVER THROWS (COMP-t's review, 2026-09-29). It runs while one exception is
+    /// already in flight, and a second one leaving a destructor is std::terminate —
+    /// measured: a mechanism whose applySafeState() threw made the NORMAL path's
+    /// cancel-all throw, and this destructor's cancel-all threw again (exit 134),
+    /// so the program died instead of reaching its handler. The cancel-all here is
+    /// still complete (safeMechanisms() attempts every mechanism whatever one of
+    /// them throws); anything it throws is dropped, because the exception already
+    /// unwinding is the one the caller must see.
     class RunUnwindGuard {
     public:
         explicit RunUnwindGuard(RunGuard& guard) noexcept : guard_{&guard} {}
         ~RunUnwindGuard() {
             if (guard_ != nullptr) {
                 guard_->inEndAction_ = false;
-                guard_->cancelAll();
+                try {
+                    guard_->cancelAll();
+                } catch (...) {  // NOLINT(bugprone-empty-catch): see the class comment
+                }
                 guard_->disarm();
             }
         }
@@ -430,6 +584,10 @@ private:
     };
 
     void arm(chassis::Chassis& chassis, const RunGuardConfig& config) {
+        // FIRST: a request left over from the last run (or made while idle) must not
+        // abandon this one at T+0 (banner: ABANDON). A request made from here on is kept.
+        abandon_.store(false);
+        abandonNoted_ = false;
         sched_ = &chassis.scheduler();
         clock_ = &chassis.deps().ctx->clock();
         telemetry_ = &chassis.deps().ctx->telemetry();
@@ -444,6 +602,8 @@ private:
         postExpiryCancels_ = 0;
         anonymousReleases_ = 0;
         pacesSeen_ = 0;
+        mechanismCuts_ = 0;
+        cutNoted_ = false;
         running_ = true;
         char buf[96];
         std::snprintf(buf, sizeof buf,
@@ -485,6 +645,10 @@ private:
             fireFloor(now);  // a wait can reach the floor before any pace does
             return true;
         }
+        if (abandonRequested()) {
+            noteAbandoned(now);  // a wait can see the abandon before any pace does
+            return true;
+        }
         if (!inEndAction_ && now >= actDeadline_) {
             noteExpired(now);  // a wait can see expiry before any pace does
             return true;
@@ -507,10 +671,25 @@ private:
         telemetry_->log(hal::LogLevel::Warn, "SEQ", buf);
     }
 
+    /// The abandon latch's one log line (banner: ABANDON), once per run. ASCII only:
+    /// it is new text, and the competition program may copy SEQ lines to its screen.
+    void noteAbandoned(double now) {
+        if (abandonNoted_) {
+            return;
+        }
+        abandonNoted_ = true;
+        char buf[112];
+        std::snprintf(buf, sizeof buf,
+                      "run ABANDONED at T+%.2fs -- motions refused from here, %s",
+                      now - startTime_,
+                      inEndAction_ ? "the end action is cut" : "the end action will be skipped");
+        telemetry_->log(hal::LogLevel::Warn, "SEQ", buf);
+    }
+
     /// The latch's enforcement: any motion live after the deadline (outside
-    /// the end action) is cancelled — the first is the cut that unwinds the
-    /// caller's blocking verb, the rest are refused retries. Counted; the
-    /// refusals Warn once (a retry storm would flood the transcript — 300
+    /// the end action) or after an abandon (anywhere) is cancelled — the first is the
+    /// cut that unwinds the caller's blocking verb, the rest are refused retries.
+    /// Counted; the refusals Warn once (a retry storm would flood the transcript — 300
     /// cancel boundaries were measured buying nothing but telemetry).
     void cutActiveMotion() {
         if (!sched_->hasActiveMotion()) {
@@ -521,8 +700,50 @@ private:
         if (postExpiryCancels_ >= 2 && !warnedRefusal_) {
             warnedRefusal_ = true;
             telemetry_->log(hal::LogLevel::Warn, "SEQ",
-                            "post-deadline motion refused (further refusals are "
-                            "counted, not logged)");
+                            abandonRequested()
+                                ? "motion refused after the abandon (further refusals are "
+                                  "counted, not logged)"
+                                : "post-deadline motion refused (further refusals are "
+                                  "counted, not logged)");
+        }
+    }
+
+    /// The latch reaches MECHANISMS too (banner: the mechanism cut; N1 (a)). Every listed
+    /// mechanism whose claim has a REGISTERED claimant — a mechanism-service slot, an F1
+    /// operation — is cancelled now: inert, safe, released, so a mechanism step blocked in a
+    /// FROZEN wait ends CANCELLED at this pace instead of running on to its own bound. An
+    /// unclaimed mechanism is NOT re-safed here (a repeated Hold re-captures its point,
+    /// HA-144); an anonymous claim is left for run()'s cancel-all, which force-releases it with
+    /// its Warn. Counted (mechanismCuts); the run's first cut is logged once. EVERY mechanism is
+    /// attempted whatever one claimant throws, then the first exception propagates — the
+    /// safeMechanisms() rule (COMP-t's review).
+    void cutClaimedMechanisms() {
+        std::exception_ptr first;
+        for (hal::IMechanism* m : mechanisms_) {
+            try {
+                hal::ICancellable* claimant = m->claimant();
+                if (claimant == nullptr) {
+                    continue;
+                }
+                claimant->cancel();
+                ++mechanismCuts_;
+                if (!cutNoted_) {
+                    cutNoted_ = true;
+                    char buf[160];
+                    std::snprintf(buf, sizeof buf,
+                                  "mechanism '%.40s' cut %s -- its operation cancelled into its safe "
+                                  "state (later cuts are counted, not logged)",
+                                  m->name(), abandonRequested() ? "after the abandon" : "at the deadline");
+                    telemetry_->log(hal::LogLevel::Warn, "SEQ", buf);
+                }
+            } catch (...) {
+                if (!first) {
+                    first = std::current_exception();
+                }
+            }
+        }
+        if (first) {
+            std::rethrow_exception(first);
         }
     }
 
@@ -552,22 +773,37 @@ private:
     /// safe + released), anonymous claims force-released with a Warn, then
     /// the declared safe state regardless — order pinned by test, because
     /// applySafeState() without the cancel lasts exactly one tick.
+    ///
+    /// EVERY mechanism is attempted, whatever one of them throws (COMP-t's review,
+    /// 2026-09-29): a throwing claimant or safe state no longer skips the mechanisms
+    /// after it. The FIRST exception is rethrown once the sweep is done, so a broken
+    /// adapter stays loud (run()'s unwind path then drops its repeat — RunUnwindGuard).
     void safeMechanisms() {
+        std::exception_ptr first;
         for (hal::IMechanism* m : mechanisms_) {
-            hal::ICancellable* claimant = m->claimant();
-            if (claimant != nullptr) {
-                claimant->cancel();
-            } else if (m->claimed()) {
-                m->releaseClaim();
-                ++anonymousReleases_;
-                char buf[112];
-                std::snprintf(buf, sizeof buf,
-                              "mechanism '%s': anonymous claim force-released — register "
-                              "a claimant so the guard can cancel the operation",
-                              m->name());
-                telemetry_->log(hal::LogLevel::Warn, "SEQ", buf);
+            try {
+                hal::ICancellable* claimant = m->claimant();
+                if (claimant != nullptr) {
+                    claimant->cancel();
+                } else if (m->claimed()) {
+                    m->releaseClaim();
+                    ++anonymousReleases_;
+                    char buf[112];
+                    std::snprintf(buf, sizeof buf,
+                                  "mechanism '%s': anonymous claim force-released — register "
+                                  "a claimant so the guard can cancel the operation",
+                                  m->name());
+                    telemetry_->log(hal::LogLevel::Warn, "SEQ", buf);
+                }
+                m->applySafeState();
+            } catch (...) {
+                if (!first) {
+                    first = std::current_exception();
+                }
             }
-            m->applySafeState();
+        }
+        if (first) {
+            std::rethrow_exception(first);
         }
     }
 
@@ -588,7 +824,13 @@ private:
     }
 
     void logVerdict(const RunGuardReport& report) {
-        if (report.endActionSucceeded) {
+        if (report.abandoned) {
+            telemetry_->log(hal::LogLevel::Warn, "SEQ",
+                            report.endActionRan
+                                ? "run ABANDONED during the end-of-run action -- its verdict "
+                                  "is void, devices safed"
+                                : "run ABANDONED -- end-of-run action skipped, devices safed");
+        } else if (report.endActionSucceeded) {
             telemetry_->log(hal::LogLevel::Info, "SEQ", "end-of-run action succeeded");
         } else {
             telemetry_->log(hal::LogLevel::Warn, "SEQ",
@@ -634,9 +876,16 @@ private:
     bool floorFired_ = false;
     bool inEndAction_ = false;
     bool warnedRefusal_ = false;
+    bool abandonNoted_ = false;  // the abandon Warn is logged once per run
     int postExpiryCancels_ = 0;
     int anonymousReleases_ = 0;
     int pacesSeen_ = 0;
+    int mechanismCuts_ = 0;      // claimed mechanisms the latch cancelled (cutClaimedMechanisms)
+    bool cutNoted_ = false;      // the first cut's Warn is logged once per run
+    std::uint64_t pacesTotal_ = 0;  // every pace since construction (pacesTotal())
+    // The ONE member another task may write (banner: ABANDON). Everything else here
+    // belongs to the run's own task, as before.
+    std::atomic<bool> abandon_{false};
 };
 
 }  // namespace shulib::sequence

@@ -37,7 +37,7 @@ struct PlausibilityConfig
 
 The physical envelope PoseDeltaGuard judges a tick's pose delta against. The defaults are deliberately GENEROUS hardware claims, not a tuned trip point: they sit far above anything a VEX drivetrain reaches, so a false positive requires the estimate to be wrong by construction. That makes this a bug detector, not a performance limit — tightening it toward the real envelope trades that guarantee for sensitivity. Nothing here bounds a COMMAND.
 
-*struct, declared at [`include/shulib/diag/plausibility_guard.hpp:60`](../../include/shulib/diag/plausibility_guard.hpp#L60).*
+*struct, declared at [`include/shulib/diag/plausibility_guard.hpp:65`](../../include/shulib/diag/plausibility_guard.hpp#L65).*
 
 <a id="plausibilityconfig-maxspeed"></a>
 
@@ -49,7 +49,7 @@ units::Velocity maxSpeed{150.0}
 
 Physical maximum linear speed the robot could conceivably reach. PROVISIONAL (A4: HA-56) — a 600 rpm 4" drive tops out near 125 in/s.
 
-*field, declared at [`include/shulib/diag/plausibility_guard.hpp:63`](../../include/shulib/diag/plausibility_guard.hpp#L63).*
+*field, declared at [`include/shulib/diag/plausibility_guard.hpp:68`](../../include/shulib/diag/plausibility_guard.hpp#L68).*
 
 <a id="plausibilityconfig-maxyawrate"></a>
 
@@ -61,7 +61,7 @@ units::AngularVelocity maxYawRate{20.0}
 
 Physical maximum yaw rate. PROVISIONAL (A4: HA-56) — ~3 rev/s is far past any real chassis.
 
-*field, declared at [`include/shulib/diag/plausibility_guard.hpp:66`](../../include/shulib/diag/plausibility_guard.hpp#L66).*
+*field, declared at [`include/shulib/diag/plausibility_guard.hpp:71`](../../include/shulib/diag/plausibility_guard.hpp#L71).*
 
 <a id="plausibilityconfig-margin"></a>
 
@@ -73,7 +73,7 @@ double margin = 1.5
 
 Headroom multiplier over the physical maxima (fusion nudges, discretization — header note). Logic constant. Must be >= 1.
 
-*field, declared at [`include/shulib/diag/plausibility_guard.hpp:69`](../../include/shulib/diag/plausibility_guard.hpp#L69).*
+*field, declared at [`include/shulib/diag/plausibility_guard.hpp:74`](../../include/shulib/diag/plausibility_guard.hpp#L74).*
 
 <a id="plausibilityconfig-validate"></a>
 
@@ -85,7 +85,7 @@ void validate() const
 
 Raise a LOUD precondition if any field is unusable (non-finite or non-positive maxima, margin < 1). Note the polarity — and note what it is NOT: SHULIB_PRECONDITION does not crash. It throws a catchable PreconditionError, and the on-robot policy raises FaultCode::Precondition on the latch BEFORE throwing (core/check.hpp). What separates this from the header's three invariants is RECOVERY, not loudness: they raise Implausible mid-tick and the run continues on a safe value, while this runs at CONSTRUCTION — PoseDeltaGuard's ctor, so in practice while the scheduler is being built at setup — when no motion is in flight for the scheduler's task boundary to convert the throw into a FAULT_ABORT. It therefore leaves the constructor rather than costing one motion, which is the intent: a nonsense envelope is a programming error in the setup, not a runtime anomaly the guard is here to survive. PoseDeltaGuard's constructor already calls it; call it yourself only when you build a config without one.
 
-*function, declared at [`include/shulib/diag/plausibility_guard.hpp:83`](../../include/shulib/diag/plausibility_guard.hpp#L83).*
+*function, declared at [`include/shulib/diag/plausibility_guard.hpp:88`](../../include/shulib/diag/plausibility_guard.hpp#L88).*
 
 <a id="class-posedeltaguard"></a>
 
@@ -97,7 +97,7 @@ class PoseDeltaGuard
 
 Invariant 1 (header): per-tick pose delta within the physical envelope.
 
-*class, declared at [`include/shulib/diag/plausibility_guard.hpp:94`](../../include/shulib/diag/plausibility_guard.hpp#L94).*
+*class, declared at [`include/shulib/diag/plausibility_guard.hpp:99`](../../include/shulib/diag/plausibility_guard.hpp#L99).*
 
 <a id="posedeltaguard-posedeltaguard"></a>
 
@@ -109,7 +109,7 @@ explicit PoseDeltaGuard(const PlausibilityConfig& config = {})
 
 COPIES `config` and validates it (loud on a nonsense envelope), so later edits to the caller's config never reach this guard. Starts with NO baseline: the first check() only records a pose and returns false, because one sample is not yet a delta.
 
-*function, declared at [`include/shulib/diag/plausibility_guard.hpp:99`](../../include/shulib/diag/plausibility_guard.hpp#L99).*
+*function, declared at [`include/shulib/diag/plausibility_guard.hpp:104`](../../include/shulib/diag/plausibility_guard.hpp#L104).*
 
 <a id="posedeltaguard-check"></a>
 
@@ -121,7 +121,7 @@ bool check(const math::Pose2d& pose, units::Time dt, FaultLatch& faults)
 
 Feed one tick's estimate. `dt` is the measured tick dt; dt <= 0 (the baseline tick after construction/reset) only re-baselines — there is no interval to judge. Returns true iff THIS tick's delta is implausible (raising Implausible on the latch only on a NEW episode — header note).
 
-*function, declared at [`include/shulib/diag/plausibility_guard.hpp:107`](../../include/shulib/diag/plausibility_guard.hpp#L107).*
+*function, declared at [`include/shulib/diag/plausibility_guard.hpp:112`](../../include/shulib/diag/plausibility_guard.hpp#L112).*
 
 <a id="posedeltaguard-reset"></a>
 
@@ -133,7 +133,7 @@ void reset() noexcept
 
 Forget the baseline before a DELIBERATE teleport (e.g. setPose re-seeding between runs) so intent is not reported as pathology.
 
-*function, declared at [`include/shulib/diag/plausibility_guard.hpp:140`](../../include/shulib/diag/plausibility_guard.hpp#L140).*
+*function, declared at [`include/shulib/diag/plausibility_guard.hpp:145`](../../include/shulib/diag/plausibility_guard.hpp#L145).*
 
 <a id="kcommandauditmargin"></a>
 
@@ -145,7 +145,7 @@ inline constexpr double kCommandAuditMargin = 1.01
 
 Float headroom for the pipeline self-checks (invariants 2/3): the values were clamped by the same arithmetic that audits them, so anything past 1% is a real regression, not rounding.
 
-*constant, declared at [`include/shulib/diag/plausibility_guard.hpp:152`](../../include/shulib/diag/plausibility_guard.hpp#L152).*
+*constant, declared at [`include/shulib/diag/plausibility_guard.hpp:157`](../../include/shulib/diag/plausibility_guard.hpp#L157).*
 
 <a id="commandwithincapability"></a>
 
@@ -157,7 +157,7 @@ Float headroom for the pipeline self-checks (invariants 2/3): the values were cl
 
 Invariant 2 (header): the FINAL body command respects the configured budgets. True = plausible. False = Implausible raised (caller decides recovery; the shipped pipeline's own clamps make reaching false a pipeline regression).
 
-*free function, declared at [`include/shulib/diag/plausibility_guard.hpp:157`](../../include/shulib/diag/plausibility_guard.hpp#L157).*
+*free function, declared at [`include/shulib/diag/plausibility_guard.hpp:162`](../../include/shulib/diag/plausibility_guard.hpp#L162).*
 
 <a id="recoverwheelvoltage"></a>
 
@@ -169,14 +169,14 @@ Invariant 2 (header): the FINAL body command respects the configured budgets. Tr
 
 Invariant 3 (header): one wheel volt, made consistent with the battery ceiling. ALWAYS returns a safe value (the FiniteGuard shape): finite in-range volts pass untouched; non-finite → Implausible + 0 V; over-ceiling → Implausible + clamped.
 
-*free function, declared at [`include/shulib/diag/plausibility_guard.hpp:183`](../../include/shulib/diag/plausibility_guard.hpp#L183).*
+*free function, declared at [`include/shulib/diag/plausibility_guard.hpp:188`](../../include/shulib/diag/plausibility_guard.hpp#L188).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 40 lines</summary>
+<summary>The header’s own reasoning — 45 lines</summary>
 
 ```text
 
@@ -218,7 +218,12 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  over an exact clamp. Both are logic constants. The PHYSICAL MAXIMA defaults are
  hardware claims: PROVISIONAL (A4: HA-56) — generous upper bounds no VEX
  drivetrain approaches, so a false positive requires the estimate to be wrong by
- construction; R3/R5 replace them with measured envelopes.
+ construction; R3/R5 replace them with measured envelopes. ONE deliberate exception
+ (L6-A1, 2026-10-29): a wall reset's seat (Localizer::seatAxis) is a caller-made jump
+ of up to the author's maxCorrection; it is forgiven on the dt-0 tick every verb and
+ wait begins with, but a Tier-3 loop that ticks the scheduler itself sees ONE advisory
+ IMPLAUSIBLE after a seat over 2.25 in while the estimate is right (the wall reset's
+ WALL line just before it says so) — chassis/wall_reset_call.hpp.
 ```
 
 </details>

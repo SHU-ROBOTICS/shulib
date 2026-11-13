@@ -11,9 +11,19 @@
 // error MEASURABLE rather than inferred.
 //
 // ── The tick pipeline (step(dt)) ────────────────────────────────────────────────────
-//   1. read each FakeMotor's commandedVoltage()   (post ±12 V clamp — the F4 contract)
+//   1. read each WHEEL's command                  (post ±12 V clamp — the F4 contract):
+//        the primary's commandedVoltage() when every member of the wheel was commanded
+//        the same volts, else the members' mean — wheelCommand(), the coupled-train
+//        model added at R3d Part 1 (T6b); a one-member wheel is the original line
 //   2. DegradationModel::effectiveVoltage()       (A3 seam; identity today)
-//   3. MotorModel::advance() per wheel            (the inverted-feedforward "dynamics")
+//   3. MotorModel::advance() per wheel            (the inverted-feedforward "dynamics") — every
+//        wheel on DrivePlantConfig::wheelFf unless its slot of wheelFfOverride is filled (R5a
+//        Part A: per-wheel gains, so a test can tell LEFT from RIGHT; empty by default, and an
+//        empty slot runs the very MotorModel object the plant always ran — bit for bit)
+//   3b. COAST-FOLLOW (R3d Part 2F-1; OFF by default — DrivePlantConfig::coastFollow = 0):
+//        a wheel whose every coupled member is at 0 V AND in BrakeMode::Coast turns at
+//        coastFollow × the driven wheel's spin instead of sitting pinned — see the config
+//        field; with the default the original loop runs, bit for bit
 //   4. DegradationModel::wheelMotionVelocity()    (A3 slip seam; identity today)
 //   5. IKinematics::forward(motion wheels)        → the TRUE body twist
 //   6. advanceTruth() (RK4 sub-stepping)          → the TRUE pose   [NEVER arcStep —
@@ -86,6 +96,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <optional>
 #include <span>
 
 #include "shulib/core/check.hpp"
@@ -128,10 +139,12 @@ struct TrackingWheelSpec {
 };
 
 struct DrivePlantConfig {
-    /// Per-wheel surface-speed feedforward gains (see motor_model.hpp). The defaults
+    /// Per-wheel surface-speed feedforward gains (see motor_model.hpp), shared by EVERY wheel
+    /// whose wheelFfOverride slot is empty — which, by default, is all of them. The defaults
     /// are PLACEHOLDERS in the right order of magnitude for a V5 drive (≈70 in/s free
-    /// speed at 12 V with a little static offset) — NOT measurements. R5 measures the
-    /// real ones; R6 feeds them back here. (A4 register HA-45.)
+    /// speed at 12 V with a little static offset) — NOT measurements. shulib Calibrate's GAINS
+    /// step (chunk R5a) is built to measure the real ones on a robot, and has not yet; R6 feeds
+    /// measured ones back here. (A4 register HA-45.)
     control::FeedforwardGains wheelFf{.kS = 1.0, .kV = 12.0 / 70.0, .kA = 0.0};
     /// For drive-encoder synthesis (inches). Diameter AND the implied 1:1 wheel↔shaft
     /// gearing are unmeasured guesses until the drivetrain exists (A4 register HA-13/HA-14).
@@ -142,11 +155,95 @@ struct DrivePlantConfig {
     units::Length gpsRmsError{1.0};          ///< reported GPS rms (A3 inflates via the seam)
     bool gpsHasFix = true;                   ///< A3 drops it via the seam
     std::uint64_t seed = 1;                  ///< the run's ONE random seed (rng.hpp)
+    /// COAST-FOLLOW, κ in [0, 1] (R3d Part 2F-1). **0 — the default — is the plant every suite
+    /// before 2F-1 ran on, bit for bit:** a wheel commanded 0 V spins at 0, i.e. an unpowered wheel
+    /// is PINNED, an implicit perfect brake. That made the calibrator's one-sided pulse a PIVOT about
+    /// the idle side on the host, always — and on robot two the idle side COASTS, so a host test
+    /// could never fail the way the robot did (the Part 2F brief, §0).
+    ///
+    /// With κ > 0, a wheel whose EVERY coupled member is commanded exactly 0 V AND reports
+    /// BrakeMode::Coast (the plant reads the brake mode for this and for nothing else) turns at
+    /// κ × the mean spin of the wheels that are NOT coasting, instead of 0. On a tank, one side
+    /// driven at v with the other coasting gives ω = (1 − κ)·v / W and vx = (1 + κ)·v / 2: κ = 0 is
+    /// the pinned pivot, κ = 1 is pure translation — the one-sided push ROLLS the robot and turns it
+    /// not at all. A Brake/Hold side at 0 V stays pinned whatever κ is.
+    ///
+    /// **That pinned Brake/Hold wheel is what the V5 adapter produces only since DEFECTS2
+    /// (2026-09-26).** Until then ProsMotor sent every zero as 0 V, which PROS documents as
+    /// ignoring the brake mode (A4 register HA-142) — so on a robot every "0 V + Brake" and
+    /// "0 V + Hold" stop was the unresisted 0 V case, while this plant pinned the wheel. Now a zero
+    /// under a Brake/Hold the program commanded goes out as PROS brake(), and the plant's pin is
+    /// the right SHAPE; how hard a real motor brakes or holds is still not modelled (HA-53, HA-92).
+    ///
+    /// **It is a KINEMATIC stand-in, and INVENTED (A4 register HA-137).** The plant models no mass,
+    /// no inertia and no scrub (motor_model.hpp's honesty boundary), so κ is not derived from a wheel
+    /// type: lateral scrub (traction wheels) pushes a real robot toward κ → 1, while a rigid body
+    /// with a truly free-rolling, scrub-free idle side turns MORE than a pinned pivot (its idle side
+    /// runs slightly backward — a negative κ, which this field does not allow). What κ buys the host
+    /// is the FAILING regime: it lets a test drive the calibrator into "the robot rolled instead of
+    /// turning", which the pinned plant could never produce. Precondition: 0 ≤ κ ≤ 1, and κ > 0
+    /// only on a two-wheel (tank) kinematics — "the driven wheel's spin" means nothing on four
+    /// wheels pointing four ways.
+    double coastFollow = 0.0;
+    /// The fraction of its train's shaft travel a MemberFault::Decoupled member's encoder still
+    /// sees, in [0, 1] (R3d Part 2F-1). 0 — the default — is the fault as the Part 2F brief defines
+    /// it: the member's reading is its OWN free spin and nothing else. Above 0 it also carries that
+    /// fraction of the train's travel — a slipping gear that still drags its motor along when the
+    /// WHEEL turns it (a hand push), while its motor cannot turn the wheel: robot two's port 18,
+    /// which travels 22–33 % short on a push (A4 register HA-130). INVENTED, a sim shape only.
+    double decoupledDrag = 0.0;
+    /// PER-WHEEL gains (chunk R5a Part A, additive): slot i, when filled, gives wheel i — the
+    /// drivetrain's canonical wheel order, 0 = LEFT and 1 = RIGHT on a tank — its OWN gains in
+    /// place of `wheelFf`, for its motor model AND for the free spin of any Decoupled member on
+    /// it. Until R5a every wheel shared one `wheelFf`, so no host test could tell a drivetrain's
+    /// two sides apart: a characterizer that swapped LEFT for RIGHT, or read one side twice,
+    /// fitted the same numbers either way. Empty — the default, every slot — runs the SAME
+    /// MotorModel object every plant before R5a ran, so a default plant is bit-identical
+    /// (drive_plant_per_wheel_test.cpp pins the override path against the shared one; the
+    /// development log on the shulib-v2 branch records a pristine-tree hash of eight default runs
+    /// matching after the change).
+    /// Preconditions: a filled slot satisfies MotorModel's (finite, kV > 0, kS >= 0, kA >= 0),
+    /// and no slot at or past the kinematics' wheelCount() is filled. Appended last, so every
+    /// designated initializer of this struct keeps compiling. The numbers a test puts here are
+    /// as INVENTED as `wheelFf`'s.
+    std::array<std::optional<control::FeedforwardGains>,
+               static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+        wheelFfOverride{};
+};
+
+/// How one COUPLED member of a wheel misbehaves (R3b Part 1 — the hal::MotorGroup
+/// detector tests). The plant writes the same synthesized shaft state into every member
+/// of a wheel; a faulted member is what that state looks like through a broken port.
+enum class MemberFault {
+    None,         ///< healthy: the wheel's true shaft position and spin, like every mate
+    Frozen,       ///< a dead port: HOLDS whatever it last reported (position AND velocity —
+                  ///< ProsMotor's last-good screen), from the tick the fault is set on
+    SignFlipped,  ///< a member wired the wrong way round on the READ side only: reports the
+                  ///< NEGATED shaft position and spin of its mates while its command still
+                  ///< reaches the train the right way (what a fight looks like to a detector).
+                  ///< Its semantics are pinned by motor_group_plant_test 3–4 and the monitor
+                  ///< tests and must not change — Reversed below is the NEW, separate member.
+    Reversed,     ///< a motor physically WIRED BACKWARDS through a POSITIVE port (chunk R3d
+                  ///< Part 1, T6a): its readings are negated exactly like SignFlipped AND its
+                  ///< commanded volts are negated before the motor model, so +V drives the
+                  ///< train the wrong way. This is the fault a sign-capture calibration has to
+                  ///< discover; SignFlipped could not model it, because there the command
+                  ///< still goes the right way.
+    Decoupled,    ///< a motor whose gear SLIPS (R3d Part 2F-1 — robot two's port 18): its command
+                  ///< does NOT reach the train (it is left out of wheelCommand()'s mean), and its
+                  ///< encoder reports its OWN free spin under its own command — integrated through
+                  ///< the plant's motor model from the tick the fault is set — plus
+                  ///< DrivePlantConfig::decoupledDrag of the train's travel since then. Not passed
+                  ///< through the encoder seam: a fault model, not a sensor model. Appended, like
+                  ///< Reversed, so no existing value moves.
 };
 
 class DrivePlant {
 public:
     static constexpr int kMaxTrackingWheels = 4;
+    /// Extra coupled members a wheel may carry beyond its primary FakeMotor (robot two has
+    /// five per side; a V5 brain has 21 ports).
+    static constexpr int kMaxExtraMembersPerWheel = 20;
 
     /// All references/pointees must outlive the plant. `motors` must match
     /// kinematics.wheelCount() and be in the drivetrain's canonical wheel order.
@@ -194,6 +291,24 @@ public:
         SHULIB_PRECONDITION(cfg_.truthSubsteps >= 1, "DrivePlant: truthSubsteps must be >= 1");
         SHULIB_PRECONDITION(cfg_.batteryVoltage.value() >= 0.0,
                             "DrivePlant: batteryVoltage must be >= 0");
+        SHULIB_PRECONDITION(cfg_.coastFollow >= 0.0 && cfg_.coastFollow <= 1.0,
+                            "DrivePlant: coastFollow must be in [0, 1]");
+        SHULIB_PRECONDITION(cfg_.coastFollow == 0.0 || n_ == 2,
+                            "DrivePlant: coastFollow > 0 is defined for a two-wheel (tank) "
+                            "kinematics only");
+        SHULIB_PRECONDITION(cfg_.decoupledDrag >= 0.0 && cfg_.decoupledDrag <= 1.0,
+                            "DrivePlant: decoupledDrag must be in [0, 1]");
+        // Per-wheel gains (R5a Part A). A filled slot gets its own MotorModel, whose constructor
+        // is the gains' validation; an empty slot keeps modelFor() on `model_` (bit-identity).
+        for (std::size_t i = 0; i < cfg_.wheelFfOverride.size(); ++i) {
+            if (!cfg_.wheelFfOverride[i].has_value()) {
+                continue;
+            }
+            SHULIB_PRECONDITION(i < motors.size(),
+                                "DrivePlant: wheelFfOverride names a wheel the kinematics does not "
+                                "have");
+            wheelModel_[i].emplace(*cfg_.wheelFfOverride[i]);
+        }
 
         // Seed every sensor from the INITIAL truth before any controller runs, so the
         // first tick reads a consistent world (odometry seeded from imu.heading() sees
@@ -214,13 +329,19 @@ public:
 
         // 1–4: voltage → spin → motion, per wheel, through the A3 seams.
         kinematics::WheelSpeeds motion{n_};
-        for (int i = 0; i < n_; ++i) {
-            const auto idx = static_cast<std::size_t>(i);
-            const units::Voltage commanded = motors_[idx]->commandedVoltage();
-            const units::Voltage effective =
-                degradation_.effectiveVoltage(i, commanded, now, rng_);
-            wheelSpin_[idx] = model_.advance(wheelSpin_[idx], effective, dt);
-            motion.set(i, degradation_.wheelMotionVelocity(i, wheelSpin_[idx], now, rng_));
+        if (cfg_.coastFollow == 0.0) {
+            // THE ORIGINAL LOOP, untouched: with coast-follow off (the default) every existing
+            // scenario draws its degradation seams in exactly the order it always did.
+            for (int i = 0; i < n_; ++i) {
+                const auto idx = static_cast<std::size_t>(i);
+                const units::Voltage commanded = wheelCommand(idx);  // the coupled-train model (T6b)
+                const units::Voltage effective =
+                    degradation_.effectiveVoltage(i, commanded, now, rng_);
+                wheelSpin_[idx] = modelFor(idx).advance(wheelSpin_[idx], effective, dt);
+                motion.set(i, degradation_.wheelMotionVelocity(i, wheelSpin_[idx], now, rng_));
+            }
+        } else {
+            stepWheelsCoastFollow(now, dt, motion);  // 3b — only when configured (header)
         }
 
         // 5: the TRUE body twist, via the frozen F5 contract (header: shared on purpose).
@@ -234,6 +355,9 @@ public:
 
         // 8: sensors, from truth, through the seams.
         integrateEncoders(dt);
+        if (anyDecoupled_) {
+            advanceDecoupled(dt);  // a slipping member's own free spin (MemberFault::Decoupled)
+        }
         synthesizeSensors();
 
         // 9: one per-tick record — A1's lazy-build contract, so NullSink pays nothing.
@@ -244,6 +368,10 @@ public:
             r.wheelCount = n_;
             for (int i = 0; i < n_; ++i) {
                 const auto idx = static_cast<std::size_t>(i);
+                // The COMMAND a controller issued, not wheelCommand()'s train model: the
+                // record is telemetry of what the stack asked for, and under a MotorGroup's
+                // fan-out (the only way the library commands a coupled side) the two are the
+                // same value anyway.
                 r.wheelVoltage[idx] = motors_[idx]->commandedVoltage();
             }
             r.imuYaw = imu_.heading();        // what the (possibly degraded) sensor reports
@@ -269,7 +397,292 @@ public:
     /// The run's one seeded random source (scenario generation + A3 degradation draws).
     [[nodiscard]] Rng& rng() noexcept { return rng_; }
 
+    // ── Coupled members (R3b Part 1) ──────────────────────────────────────────────
+    /// Attach EXTRA FakeMotors to wheel `wheel`: from now on every sensor synthesis writes the
+    /// SAME shaft position and spin into each of them as into the wheel's primary motor —
+    /// N motors on one gear train, which is physical truth for a coupled side. Since R3d
+    /// Part 1 the plant reads the wheel's COMMAND from all of them through wheelCommand():
+    /// the primary's value when a hal::MotorGroup has fanned one voltage to every member
+    /// (the original path, bit for bit), the members' mean when they differ — so pulsing a
+    /// single member of a train moves the train. One member per wheel — no call — is the default
+    /// and is bit-identical to a plant that never had this method (the whole suite is the
+    /// pin). Non-owning: the fakes and the array must outlive the plant. Precondition:
+    /// wheel in range, count <= kMaxExtraMembersPerWheel, all non-null; may be called once
+    /// per wheel.
+    void attachCoupledMembers(int wheel, std::span<hal::fake::FakeMotor* const> extra) {
+        SHULIB_PRECONDITION(wheel >= 0 && wheel < n_,
+                            "DrivePlant::attachCoupledMembers: wheel out of range");
+        SHULIB_PRECONDITION(extra.size() <= static_cast<std::size_t>(kMaxExtraMembersPerWheel),
+                            "DrivePlant::attachCoupledMembers: too many members");
+        const auto w = static_cast<std::size_t>(wheel);
+        SHULIB_PRECONDITION(extraCount_[w] == 0,
+                            "DrivePlant::attachCoupledMembers: wheel already has members");
+        for (std::size_t i = 0; i < extra.size(); ++i) {
+            SHULIB_PRECONDITION(extra[i] != nullptr,
+                                "DrivePlant::attachCoupledMembers: a member is null");
+            extra_[w][i] = extra[i];
+        }
+        extraCount_[w] = static_cast<int>(extra.size());
+        // Seed the new members from the CURRENT truth, exactly as the constructor seeds the
+        // primary, so a group formed after construction reads one consistent shaft.
+        writeCoupledMembers(w, lastPosition_[w], lastVelocity_[w]);
+    }
+
+    /// Degrade one member of `wheel` from the NEXT synthesis on: `member` 0 is the primary
+    /// FakeMotor handed to the constructor, 1.. are the attached members in order. A Frozen
+    /// member keeps the values it holds NOW (freeze it at rest and it reports 0 rad/s while
+    /// its mates turn — the frozen-encoder signature the group's median must ignore and its
+    /// monitor must count); a SignFlipped member reports its mates' state negated. A Decoupled
+    /// member starts from the reading it holds NOW, and from the next step reports that plus its
+    /// own free spin plus decoupledDrag of the train's travel (MemberFault::Decoupled).
+    void setMemberFault(int wheel, int member, MemberFault fault) {
+        SHULIB_PRECONDITION(wheel >= 0 && wheel < n_, "DrivePlant::setMemberFault: wheel out of range");
+        const auto w = static_cast<std::size_t>(wheel);
+        SHULIB_PRECONDITION(member >= 0 && member <= extraCount_[w],
+                            "DrivePlant::setMemberFault: member out of range");
+        const auto m = static_cast<std::size_t>(member);
+        if (fault == MemberFault::Decoupled && memberFault_[w][m] != MemberFault::Decoupled) {
+            // Anchor the slip where the member stands: its reading does not jump when its gear
+            // lets go, it simply stops following the train from here on.
+            const hal::fake::FakeMotor& fm = (m == 0) ? *motors_[w] : *extra_[w][m - 1];
+            decoupledAnchorPos_[w][m] = fm.position().value();
+            decoupledAnchorTrain_[w][m] = driveShaft_[w];
+            decoupledOwnShaft_[w][m] = 0.0;
+            decoupledOwnSpin_[w][m] = 0.0;
+            anyDecoupled_ = true;
+        }
+        memberFault_[w][m] = fault;
+    }
+
 private:
+    /// Write one member's reading under its fault (header of MemberFault).
+    static void writeMember(hal::fake::FakeMotor& m, MemberFault fault, units::AngleDim pos,
+                            units::AngularVelocity vel) {
+        switch (fault) {
+            case MemberFault::None:
+                m.setPosition(pos);
+                m.setVelocity(vel);
+                return;
+            case MemberFault::Frozen:
+                return;  // holds its last reading, like a dead port through ProsMotor
+            case MemberFault::SignFlipped:
+            case MemberFault::Reversed:
+                // Both report the negated shaft: from the READ side a motor wired
+                // backwards and a member fighting its mates look exactly alike. They
+                // differ only on the COMMAND side (effectiveMemberVolts).
+                m.setPosition(units::AngleDim{-pos.value()});
+                m.setVelocity(units::AngularVelocity{-vel.value()});
+                return;
+            case MemberFault::Decoupled:
+                // Never reached: a Decoupled member's reading needs the plant's own state and
+                // is written by writeDecoupled(); every caller routes it there first.
+                return;
+        }
+    }
+
+    /// Write member `m` of wheel `w` under MemberFault::Decoupled: where it stood when its gear
+    /// let go, plus decoupledDrag of the train's travel since then, plus its own free spin.
+    /// `trainVel` is the wheel's synthesized shaft rate this tick.
+    void writeDecoupled(std::size_t w, std::size_t m, units::AngularVelocity trainVel) {
+        hal::fake::FakeMotor& fm = (m == 0) ? *motors_[w] : *extra_[w][m - 1];
+        const double r = 0.5 * cfg_.driveWheelDiameter.value();
+        fm.setPosition(units::AngleDim{decoupledAnchorPos_[w][m]
+                                       + cfg_.decoupledDrag
+                                             * (driveShaft_[w] - decoupledAnchorTrain_[w][m])
+                                       + decoupledOwnShaft_[w][m]});
+        fm.setVelocity(units::AngularVelocity{cfg_.decoupledDrag * trainVel.value()
+                                              + decoupledOwnSpin_[w][m] / r});
+    }
+
+    /// The motor model wheel `w` turns under: its own, when DrivePlantConfig::wheelFfOverride
+    /// filled its slot, else the shared `model_` — the SAME object every plant before R5a used,
+    /// which is what keeps a default plant bit-identical (not merely equal gains: one object, one
+    /// set of instructions).
+    [[nodiscard]] const MotorModel& modelFor(std::size_t w) const noexcept {
+        return wheelModel_[w].has_value() ? *wheelModel_[w] : model_;
+    }
+
+    /// True when member `m` of wheel `w` is Decoupled.
+    [[nodiscard]] bool isDecoupled(std::size_t w, std::size_t m) const noexcept {
+        return memberFault_[w][m] == MemberFault::Decoupled;
+    }
+
+    /// Advance every Decoupled member's OWN free spin by one step, from its own command, through
+    /// the plant's motor model (the same inverted feedforward a wheel turns under — torque-free,
+    /// like everything here; a motor spinning free of its train is not claimed to be faster).
+    void advanceDecoupled(units::Time dt) {
+        const double r = 0.5 * cfg_.driveWheelDiameter.value();
+        for (int i = 0; i < n_; ++i) {
+            const auto w = static_cast<std::size_t>(i);
+            for (int k = 0; k <= extraCount_[w]; ++k) {
+                const auto m = static_cast<std::size_t>(k);
+                if (!isDecoupled(w, m)) {
+                    continue;
+                }
+                const hal::fake::FakeMotor& fm = (m == 0) ? *motors_[w] : *extra_[w][m - 1];
+                decoupledOwnSpin_[w][m] = modelFor(w)
+                                              .advance(units::Velocity{decoupledOwnSpin_[w][m]},
+                                                       fm.commandedVoltage(), dt)
+                                              .value();
+                decoupledOwnShaft_[w][m] += decoupledOwnSpin_[w][m] * dt.value() / r;
+            }
+        }
+    }
+
+    /// True when wheel `w` is COASTING in the coast-follow sense: every member whose command
+    /// reaches the train is at exactly 0 V and reports BrakeMode::Coast. A wheel with no coupled
+    /// member left (every one Decoupled) is unpowered too, and coasts if they all coast.
+    [[nodiscard]] bool wheelCoasting(std::size_t w) const {
+        for (int k = 0; k <= extraCount_[w]; ++k) {
+            const auto m = static_cast<std::size_t>(k);
+            if (isDecoupled(w, m)) {
+                continue;  // its command never reaches the train (MemberFault::Decoupled)
+            }
+            const hal::fake::FakeMotor& fm = (m == 0) ? *motors_[w] : *extra_[w][m - 1];
+            if (fm.commandedVoltage().value() != 0.0 || fm.brakeMode() != hal::BrakeMode::Coast) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// Steps 1–4 with coast-follow on (DrivePlantConfig::coastFollow > 0). Three passes instead
+    /// of the original interleaved loop, because a coasting wheel's spin depends on the OTHER
+    /// wheel's: every wheel's command → spin first, then the coasting wheels follow, then the
+    /// motion seam. The seams are therefore drawn in a different ORDER from the original loop —
+    /// which is why this is a separate path that only a κ > 0 configuration ever takes.
+    void stepWheelsCoastFollow(units::Time now, units::Time dt, kinematics::WheelSpeeds& motion) {
+        bool coasting[static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)]{};
+        double drivenSum = 0.0;
+        int driven = 0;
+        for (int i = 0; i < n_; ++i) {
+            const auto idx = static_cast<std::size_t>(i);
+            const units::Voltage commanded = wheelCommand(idx);
+            const units::Voltage effective =
+                degradation_.effectiveVoltage(i, commanded, now, rng_);
+            wheelSpin_[idx] = modelFor(idx).advance(wheelSpin_[idx], effective, dt);
+            coasting[idx] = wheelCoasting(idx);
+            if (!coasting[idx]) {
+                drivenSum += wheelSpin_[idx].value();
+                ++driven;
+            }
+        }
+        if (driven > 0) {
+            const double follow = cfg_.coastFollow * drivenSum / static_cast<double>(driven);
+            for (int i = 0; i < n_; ++i) {
+                const auto idx = static_cast<std::size_t>(i);
+                if (coasting[idx]) {
+                    wheelSpin_[idx] = units::Velocity{follow};
+                }
+            }
+        }
+        for (int i = 0; i < n_; ++i) {
+            const auto idx = static_cast<std::size_t>(i);
+            motion.set(i, degradation_.wheelMotionVelocity(i, wheelSpin_[idx], now, rng_));
+        }
+    }
+
+    /// The volts a member's command actually delivers to the train: a Reversed member is
+    /// wired backwards, so its commanded volts turn the gear train the other way. Applied to
+    /// EVERY member wherever its command is read (the primary on the equal-command path, and
+    /// every member inside the mean) — the negation belongs to the member's wiring, not to
+    /// its position in the array. Identity for every other fault, which is what keeps the
+    /// pre-existing suite bit-identical.
+    [[nodiscard]] static double effectiveMemberVolts(double commanded, MemberFault fault) noexcept {
+        return fault == MemberFault::Reversed ? -commanded : commanded;
+    }
+
+    /// The volts wheel `w` actually turns under — the COUPLED-TRAIN COMMAND MODEL (R3d
+    /// Part 1, T6b). Until R3d the plant read a wheel's command from its PRIMARY member
+    /// alone, so a calibrator pulsing ONE extra member of a five-motor train would have
+    /// moved nothing at all and its test would have passed for the wrong reason.
+    ///
+    /// The rule, and why it is shaped this way:
+    ///   * if every member of the wheel is commanded the SAME volts — EXACT comparison, which
+    ///     is what a hal::MotorGroup's fan-out always produces — the wheel's command is the
+    ///     PRIMARY's value: the pre-R3d path, bit for bit, which is why
+    ///     motor_group_plant_test 7's five-member equivalence pin survives unchanged;
+    ///   * otherwise the wheel turns at the MEAN of its members' effective volts — a
+    ///     velocity-driven model of a train pulled by some of its motors while the rest
+    ///     free-wheel. It is TORQUE-FREE like everything else here (motor_model.hpp's
+    ///     honesty boundary): it does not claim what force five motors exert on one shaft,
+    ///     only that the train follows the average of what it is being asked for. That makes it
+    ///     OPTIMISTIC — a real motor back-driving four gearboxes reaches less than 1/N — so it is
+    ///     a registered SIM belief, settled by R6's back-fit (A4 register HA-137).
+    ///
+    /// A MemberFault::Decoupled member's command does not reach the train (R3d Part 2F-1): when
+    /// a wheel has one, its command is taken over the COUPLED members only — their common value
+    /// when they agree, else their mean — and 0 V when none is left. A wheel with no Decoupled
+    /// member never enters that branch, so every pre-2F-1 path is the one below, unchanged.
+    [[nodiscard]] units::Voltage wheelCommand(std::size_t w) const {
+        if (anyDecoupled_) {
+            for (int k = 0; k <= extraCount_[w]; ++k) {
+                if (isDecoupled(w, static_cast<std::size_t>(k))) {
+                    return coupledOnlyCommand(w);
+                }
+            }
+        }
+        const double primary = motors_[w]->commandedVoltage().value();
+        const int extras = extraCount_[w];
+        bool allSame = true;
+        for (int k = 0; k < extras; ++k) {
+            if (extra_[w][static_cast<std::size_t>(k)]->commandedVoltage().value() != primary) {
+                allSame = false;  // exact compare, on purpose (header)
+                break;
+            }
+        }
+        if (allSame) {
+            return units::Voltage{effectiveMemberVolts(primary, memberFault_[w][0])};
+        }
+        double sum = effectiveMemberVolts(primary, memberFault_[w][0]);
+        for (int k = 0; k < extras; ++k) {
+            const auto kIdx = static_cast<std::size_t>(k);
+            sum += effectiveMemberVolts(extra_[w][kIdx]->commandedVoltage().value(),
+                                        memberFault_[w][kIdx + 1]);
+        }
+        return units::Voltage{sum / static_cast<double>(extras + 1)};
+    }
+
+    /// wheelCommand() for a wheel that has at least one Decoupled member: the same rule over the
+    /// members whose command still reaches the train.
+    [[nodiscard]] units::Voltage coupledOnlyCommand(std::size_t w) const {
+        double first = 0.0;
+        double sum = 0.0;
+        int count = 0;
+        bool allSame = true;
+        for (int k = 0; k <= extraCount_[w]; ++k) {
+            const auto m = static_cast<std::size_t>(k);
+            if (isDecoupled(w, m)) {
+                continue;
+            }
+            const hal::fake::FakeMotor& fm = (m == 0) ? *motors_[w] : *extra_[w][m - 1];
+            const double v = effectiveMemberVolts(fm.commandedVoltage().value(), memberFault_[w][m]);
+            if (count == 0) {
+                first = v;
+            } else if (v != first) {
+                allSame = false;  // exact compare, as wheelCommand()
+            }
+            sum += v;
+            ++count;
+        }
+        if (count == 0) {
+            return units::Voltage{0.0};  // no member drives this train at all
+        }
+        return units::Voltage{allSame ? first : sum / static_cast<double>(count)};
+    }
+
+    /// The attached members of wheel `w` (never the primary — its write is the original
+    /// synthesis line, kept as it was for bit-identity).
+    void writeCoupledMembers(std::size_t w, units::AngleDim pos, units::AngularVelocity vel) {
+        for (int i = 0; i < extraCount_[w]; ++i) {
+            const auto idx = static_cast<std::size_t>(i);
+            if (isDecoupled(w, idx + 1)) {
+                writeDecoupled(w, idx + 1, vel);
+                continue;
+            }
+            writeMember(*extra_[w][idx], memberFault_[w][idx + 1], pos, vel);
+        }
+    }
     /// Advance the cumulative encoder shafts by this tick's travel (constant twist
     /// over the tick ⇒ travel = velocity·dt exactly; no quadrature needed because
     /// BODY-frame rates are constant even when the field path curves).
@@ -306,9 +719,22 @@ private:
         const double r = 0.5 * cfg_.driveWheelDiameter.value();
         for (int i = 0; i < n_; ++i) {
             const auto idx = static_cast<std::size_t>(i);
-            motors_[idx]->setPosition(degradation_.driveEncoderPosition(
-                i, units::AngleDim{driveShaft_[idx]}, now, rng_));
-            motors_[idx]->setVelocity(units::AngularVelocity{wheelSpin_[idx].value() / r});
+            const units::AngleDim pos = degradation_.driveEncoderPosition(
+                i, units::AngleDim{driveShaft_[idx]}, now, rng_);
+            const units::AngularVelocity vel{wheelSpin_[idx].value() / r};
+            // The primary: the ORIGINAL two writes (bit-identical when unfaulted), then the
+            // coupled members, each under its own fault (R3b Part 1).
+            if (memberFault_[idx][0] == MemberFault::None) {
+                motors_[idx]->setPosition(pos);
+                motors_[idx]->setVelocity(vel);
+            } else if (memberFault_[idx][0] == MemberFault::Decoupled) {
+                writeDecoupled(idx, 0, vel);
+            } else {
+                writeMember(*motors_[idx], memberFault_[idx][0], pos, vel);
+            }
+            lastPosition_[idx] = pos;
+            lastVelocity_[idx] = vel;
+            writeCoupledMembers(idx, pos, vel);
         }
         for (int i = 0; i < nTracking_; ++i) {
             const auto idx = static_cast<std::size_t>(i);
@@ -334,6 +760,10 @@ private:
     hal::ITelemetrySink& sink_;
     DrivePlantConfig cfg_;
     MotorModel model_;
+    /// Per-wheel models for the filled slots of cfg_.wheelFfOverride (R5a Part A); empty
+    /// slots read `model_` through modelFor().
+    std::array<std::optional<MotorModel>, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+        wheelModel_{};
     Rng rng_;
 
     std::array<hal::fake::FakeMotor*, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
@@ -349,6 +779,33 @@ private:
     std::array<double, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
         driveShaft_{};  // cumulative radians
     std::array<double, static_cast<std::size_t>(kMaxTrackingWheels)> trackingShaft_{};  // radians
+
+    // Coupled members per wheel (R3b Part 1): the attached fakes, how many, each member's
+    // fault (index 0 = the primary), and the last synthesized reading so a late attach seeds
+    // its members consistently.
+    std::array<std::array<hal::fake::FakeMotor*, static_cast<std::size_t>(kMaxExtraMembersPerWheel)>,
+               static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+        extra_{};
+    std::array<int, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)> extraCount_{};
+    std::array<std::array<MemberFault, static_cast<std::size_t>(kMaxExtraMembersPerWheel) + 1>,
+               static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+        memberFault_{};
+    std::array<units::AngleDim, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+        lastPosition_{};
+    std::array<units::AngularVelocity, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+        lastVelocity_{};
+
+    // MemberFault::Decoupled state (R3d Part 2F-1), per wheel per member (index 0 = primary):
+    // the reading and the train's raw shaft when the gear let go, and the member's own free
+    // spin since (surface in/s, and its integral in shaft radians). `anyDecoupled_` keeps every
+    // plant that never sets the fault on the original code paths.
+    using PerMember = std::array<std::array<double, static_cast<std::size_t>(kMaxExtraMembersPerWheel) + 1>,
+                                 static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>;
+    PerMember decoupledAnchorPos_{};
+    PerMember decoupledAnchorTrain_{};
+    PerMember decoupledOwnShaft_{};
+    PerMember decoupledOwnSpin_{};
+    bool anyDecoupled_ = false;
 };
 
 }  // namespace shulib::sim

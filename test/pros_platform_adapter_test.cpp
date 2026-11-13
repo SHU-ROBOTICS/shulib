@@ -98,10 +98,13 @@ TEST_CASE("ProsBattery: sentinel reads hold last-good — never zero (a 0 V read
     CHECK(b.faultedReads() == 3);
 }
 
-TEST_CASE("ProsCharSink: verbatim bytes, flushed, never throws (the ICharSink contract)") {
+TEST_CASE("ProsCharSink: verbatim bytes, unbuffered, never throws (the ICharSink contract)") {
     // BUG CAUGHT: sanitizing/reframing in the sink (the FORMATTER owns that —
     // double-sanitizing corrupts the §18.3 line shape), or buffering without
-    // flush (a crash eats the last lines — the ones that matter).
+    // flush (a crash eats the last lines — the ones that matter). Since SER1
+    // (2026-10-08) there is no buffer to flush: each write() is ONE direct
+    // write() on the FILE's descriptor (test/serial_line_test.cpp pins the
+    // one-call shape, the pending-bytes case and the constructor's one flush).
     std::FILE* f = std::tmpfile();
     REQUIRE(f != nullptr);
     {

@@ -18,8 +18,10 @@
 // 2. NEVER THROW, NEVER READ PAST THE END. The files that matter most are the damaged
 //    ones — a run that died mid-write, a card pulled at the wrong moment. Every read
 //    goes through a bounds-latching cursor, and a non-finite heading (which the Angle
-//    type refuses by precondition) decodes to zero with `corrupt()` raised rather than
-//    aborting the program that is trying to read the evidence.
+//    type refuses by precondition) decodes to zero with decodeTick()'s `corrupt` flag
+//    raised rather than aborting the program that is trying to read the evidence. (Since
+//    H1 Part A1 a wheelCount byte above the 8-wide wheel arrays decodes as 8 with the same
+//    flag, so a consumer that loops to it cannot index past them.)
 // 3. TRUNCATION IS A RESULT, NOT AN ERROR. A cut file decodes up to the cut and SAYS
 //    SO: truncated() is true, the frames before the cut are all delivered, and sawEnd()
 //    is false because the graceful-end frame never arrived. That combination — good
@@ -36,8 +38,9 @@
 // What is detected: a file that is not a blackbox (BadMagic), a version this build does
 // not know (UnsupportedVersion), a layout whose declared widths disagree (LayoutMismatch),
 // a cut (truncated()), a frame kind this build lacks (skippedFrames()), and a decoded
-// value that is implausible on its face — a non-finite heading raises corrupt() rather
-// than tripping Angle's precondition.
+// value that is implausible on its face — a non-finite heading raises decodeTick()'s
+// `corrupt` flag rather than tripping Angle's precondition, and so (since H1 Part A1) does
+// a wheelCount above DebugRecord::kMaxWheels, decoded as 8.
 //
 // What is NOT detected: there is deliberately NO per-frame checksum, so a bit flip inside
 // a frame this build CAN interpret, landing on a value that is merely wrong rather than
@@ -50,6 +53,11 @@
 // consumer needs end-to-end integrity (a wire protocol over a lossy link is the obvious
 // case, and F9 is exactly that), it must add its own frame check rather than inherit one
 // from here that does not exist. (Boundary verified during E1's independent review.)
+// SHUL/2 did exactly that (chunk H1 Part A1): every frame of the wire carries a CRC-32
+// over its type, sequence, length and payload, verified before anything inside is read,
+// and its reader (diag/shul2_reader.hpp) resynchronises past a failed frame instead of
+// stopping. The blackbox FILE still has no check — the wire's CRC protects bytes on the
+// wire, not bytes on the card.
 //
 // Allocation-free and PROS-free, like everything in this tree: it reads a span the
 // caller already holds (a whole file loaded into a buffer, or the bytes a test just

@@ -7,11 +7,15 @@
 #include "doctest.h"
 
 #include <array>
+#include <cmath>
 #include <numbers>
 #include <span>
 
 #include "shulib/chassis/robot_context.hpp"
 #include "shulib/core/check.hpp"
+#include "shulib/hal/absent_gps.hpp"
+#include "shulib/hal/absent_tag_source.hpp"
+#include "shulib/hal/absent_vision.hpp"
 #include "shulib/hal/fake/fake_battery.hpp"
 #include "shulib/hal/fake/fake_clock.hpp"
 #include "shulib/hal/fake/fake_gps.hpp"
@@ -30,6 +34,9 @@
 using shulib::PreconditionError;
 using shulib::chassis::RobotContext;
 using shulib::chassis::RobotContextConfig;
+using shulib::hal::AbsentGps;
+using shulib::hal::AbsentTagSource;
+using shulib::hal::AbsentVision;
 using shulib::hal::IMotor;
 using shulib::hal::LogLevel;
 using shulib::hal::NullSink;
@@ -112,6 +119,62 @@ TEST_CASE("RobotContext: a null or empty handle is rejected at construction") {
     RobotContextConfig nullTelemetry = b.config();
     nullTelemetry.telemetry = nullptr;
     CHECK_THROWS_AS((RobotContext{nullTelemetry}), PreconditionError);
+
+    // The negative half of the R3b §6.2 absent-device ruling: absence is EXPLICIT, never
+    // permissive. A robot with no GPS/camera wires &absentGps/&absentTags/&absentVision; a
+    // literal nullptr therefore still means "I forgot", and it must stay LOUD at construction.
+    // Bug caught: relaxing a precondition to "support absence" — which would turn every
+    // forgotten handle into a silent mid-auton null dereference. (Also the red for mutation 3.)
+    RobotContextConfig nullGps = b.config();
+    nullGps.gps = nullptr;
+    CHECK_THROWS_AS((RobotContext{nullGps}), PreconditionError);
+
+    RobotContextConfig nullTags = b.config();
+    nullTags.tags = nullptr;
+    CHECK_THROWS_AS((RobotContext{nullTags}), PreconditionError);
+
+    RobotContextConfig nullVision = b.config();
+    nullVision.vision = nullptr;
+    CHECK_THROWS_AS((RobotContext{nullVision}), PreconditionError);
+}
+
+TEST_CASE("RobotContext: deliberate absence constructs, and every accessor stays usable") {
+    // The positive half of the §6.2 ruling: a robot with no GPS, no tag source and no camera
+    // is a SUPPORTED configuration, spelled out at the call site — `.gps = &absentGps` — with
+    // ZERO change to the preconditions above. Bug caught: an absent-device class that fails
+    // construction, or an accessor whose reference is not usable for the whole run (a pose
+    // that is non-finite, an rmsError a finite-guard would trip on).
+    Bench b;
+    AbsentGps absentGps;
+    AbsentTagSource absentTags;
+    AbsentVision absentVision;
+
+    RobotContextConfig cfg = b.config();
+    cfg.gps = &absentGps;        // deliberate absence: the bench robot has no GPS
+    cfg.tags = &absentTags;      // no AI Vision / coprocessor
+    cfg.vision = &absentVision;  // no object detection either
+
+    RobotContext ctx{cfg};
+
+    // The absent seams answer, forever, with the honest nothing their headers promise.
+    CHECK(ctx.gps().hasFix() == false);
+    CHECK(std::isfinite(ctx.gps().pose().x().value()));
+    CHECK(std::isfinite(ctx.gps().pose().y().value()));
+    CHECK(std::isfinite(ctx.gps().pose().heading().radians()));
+    CHECK(std::isfinite(ctx.gps().rmsError().value()));
+    CHECK(ctx.gps().rmsError().value() >= 0.0);
+    CHECK(ctx.tags().tags().empty());
+    CHECK(ctx.vision().objects().empty());
+
+    // And the present seams are untouched by their neighbours' absence.
+    b.clock.advance(Time{0.25});
+    b.imu.setHeading(Angle::degrees(45.0));
+    b.battery.setVoltage(Voltage{11.7});
+    CHECK(ctx.clock().now().value() == doctest::Approx(0.25));
+    CHECK(ctx.imu().heading().approxEqual(Angle::degrees(45.0)));
+    CHECK(ctx.battery().voltage().value() == doctest::Approx(11.7));
+    CHECK(static_cast<int>(ctx.driveMotors().size()) == 4);
+    ctx.telemetry().log(LogLevel::Info, "TEST", "fully-absent context wired");  // no throw
 }
 
 TEST_CASE("RobotContext: M1 DoD — the kinematics pipeline runs through the context") {

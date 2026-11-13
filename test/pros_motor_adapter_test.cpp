@@ -209,3 +209,366 @@ TEST_CASE("E2: the T7 brake-mode fallback is seeded from the device, not from a 
     pros::shim::motorState(7).disconnected = true;
     CHECK(fresh.brakeMode() == BrakeMode::Coast);
 }
+
+// ═══ DEFECTS2 — a brake mode reaches the motor only through brake() ═════════════════════
+// PROS applies a brake mode ONLY in brake(): move_voltage() "will not respect brake modes"
+// (vendored motors.h:253-254). Until DEFECTS2 this adapter sent every zero as move_voltage(0),
+// so a declared Hold went limp and the drive's "0 V + Brake" coasted on a V5 — and every host
+// test passed, because the shim had no brake() and its `brake` field had nothing to do with how
+// the motor was driven. The shim now carries a per-port CONTROL STATE (Voltage / Stopped, and the
+// mode a stop was issued under), so each case below asserts the thing that reaches the motor —
+// never the adapter's own brakeMode() echo, which read Hold all through the defect.
+
+namespace {
+
+using pros::shim::MotorControl;
+
+/// Port `p` is STOPPED by brake() under `mode` — the only state in which PROS applies a mode.
+bool stoppedUnder(int p, pros::v5::MotorBrake mode) {
+    const auto& s = pros::shim::motorState(p);
+    return s.control == MotorControl::Stopped && s.stoppedUnder == mode;
+}
+
+/// Port `p` is under VOLTAGE control at exactly 0 mV — the brake mode IGNORED (HA-142).
+bool zeroVoltsModeIgnored(int p) {
+    const auto& s = pros::shim::motorState(p);
+    return s.control == MotorControl::Voltage && s.lastVoltageMv == 0;
+}
+
+}  // namespace
+
+TEST_CASE("DEFECTS2 a1: Hold at 0 V reaches the motor as brake() — the stopped state, not 0 V") {
+    // BUG CAUGHT (mutation "revert to plain move_voltage(0)"): the defect itself — a declared
+    // Hold sent as a 0 V command whose mode PROS ignores. brakeMode() reads Hold either way, so
+    // only the control state can tell the two apart.
+    pros::shim::resetAll();
+    ProsMotor m{6, MotorGearset::Green};
+    m.setBrakeMode(BrakeMode::Hold);
+    m.setVoltage(Voltage{8.0});
+    const int movesBefore = pros::shim::motorState(6).moveVoltageCalls;
+    m.setVoltage(Voltage{0.0});
+    CHECK(stoppedUnder(6, pros::v5::MotorBrake::hold));
+    CHECK(pros::shim::motorState(6).brakeCalls == 1);
+    CHECK(pros::shim::motorState(6).moveVoltageCalls == movesBefore);  // no 0 V command beside it
+    CHECK(m.commandedVoltage().value() == 0.0);  // the applied volts stay 0 V (brief item 1)
+    CHECK(m.brakeMode() == BrakeMode::Hold);
+}
+
+TEST_CASE("DEFECTS2 a2: Brake at 0 V reaches the motor as brake() under Brake") {
+    // BUG CAUGHT: the drive's cancel safe state ("0 V + Brake") coasting on a V5 — the same
+    // defect for the other mode, and the one every library cancel path goes through.
+    pros::shim::resetAll();
+    ProsMotor m{11, MotorGearset::Blue};
+    m.setVoltage(Voltage{-12.0});
+    m.setBrakeMode(BrakeMode::Brake);
+    m.setVoltage(Voltage{0.0});
+    CHECK(stoppedUnder(11, pros::v5::MotorBrake::brake));
+    CHECK(pros::shim::motorState(11).brakeCalls == 1);
+}
+
+TEST_CASE("DEFECTS2 a3 (the control): Coast at 0 V is STILL move_voltage(0) — every call, no "
+          "brake()") {
+    // BUG CAUGHT (mutation "drop the Coast branch" — Coast would brake): Calibrate, shulib Drive
+    // and the tester's DRIVE station set Coast, and their MEASURED behaviour (HA-137) rests on
+    // the 0 V path. Coast must send exactly what it sent before DEFECTS2: move_voltage(0) on
+    // every zero command, and never brake().
+    pros::shim::resetAll();
+    ProsMotor m{3, MotorGearset::Green};
+    m.setBrakeMode(BrakeMode::Coast);
+    m.setVoltage(Voltage{5.0});
+    const int movesBefore = pros::shim::motorState(3).moveVoltageCalls;
+    for (int tick = 0; tick < 4; ++tick) {
+        m.setVoltage(Voltage{0.0});
+    }
+    CHECK(zeroVoltsModeIgnored(3));
+    CHECK(pros::shim::motorState(3).brakeCalls == 0);
+    CHECK(pros::shim::motorState(3).moveVoltageCalls == movesBefore + 4);  // one per call
+    // And re-stating Coast while at 0 V sends nothing beyond set_brake_mode (pre-DEFECTS2 traffic).
+    m.setBrakeMode(BrakeMode::Coast);
+    CHECK(pros::shim::motorState(3).moveVoltageCalls == movesBefore + 4);
+    CHECK(pros::shim::motorState(3).brakeCalls == 0);
+}
+
+TEST_CASE("DEFECTS2 a4: a non-zero command after a hold LEAVES the stop — and the next zero "
+          "stops again") {
+    // BUG CAUGHT: a stop that latches — a held claw that will not move when commanded, or (the
+    // mirror) an adapter that believes it is still stopped after driving and so never re-stops.
+    pros::shim::resetAll();
+    ProsMotor m{7, MotorGearset::Red};
+    m.setBrakeMode(BrakeMode::Hold);
+    m.setVoltage(Voltage{0.0});
+    REQUIRE(stoppedUnder(7, pros::v5::MotorBrake::hold));
+    m.setVoltage(Voltage{6.0});
+    CHECK(pros::shim::motorState(7).control == MotorControl::Voltage);
+    CHECK(pros::shim::motorState(7).lastVoltageMv == 6000);
+    m.setVoltage(Voltage{0.0});
+    CHECK(stoppedUnder(7, pros::v5::MotorBrake::hold));
+    CHECK(pros::shim::motorState(7).brakeCalls == 2);  // one stop per transition into zero
+}
+
+TEST_CASE("DEFECTS2 a5: the ORDER of mode and zero never matters — Hold then 0 V, 0 V then Hold") {
+    // BUG CAUGHT (mutation "drop the re-issue in setBrakeMode"): a caller that commands 0 V
+    // first and declares the mode second (a mechanism stopped, THEN told to hold) — the mode
+    // lands in the device's register but nothing applies it: the shaft stays at 0 V, limp.
+    pros::shim::resetAll();
+    SUBCASE("mode, then zero") {
+        ProsMotor m{8, MotorGearset::Green};
+        m.setVoltage(Voltage{4.0});
+        m.setBrakeMode(BrakeMode::Hold);
+        m.setVoltage(Voltage{0.0});
+        CHECK(stoppedUnder(8, pros::v5::MotorBrake::hold));
+        CHECK(pros::shim::motorState(8).brakeCalls == 1);
+    }
+    SUBCASE("zero, then mode — the stop is re-issued UNDER the new mode") {
+        ProsMotor m{8, MotorGearset::Green};
+        m.setBrakeMode(BrakeMode::Coast);
+        m.setVoltage(Voltage{4.0});
+        m.setVoltage(Voltage{0.0});
+        REQUIRE(zeroVoltsModeIgnored(8));
+        m.setBrakeMode(BrakeMode::Hold);
+        CHECK(stoppedUnder(8, pros::v5::MotorBrake::hold));  // brake() came AFTER set_brake_mode
+        CHECK(pros::shim::motorState(8).brakeCalls == 1);
+    }
+    SUBCASE("stopped under Brake, then Hold: re-stopped under Hold") {
+        ProsMotor m{8, MotorGearset::Green};
+        m.setBrakeMode(BrakeMode::Brake);
+        m.setVoltage(Voltage{0.0});
+        REQUIRE(stoppedUnder(8, pros::v5::MotorBrake::brake));
+        m.setBrakeMode(BrakeMode::Hold);
+        CHECK(stoppedUnder(8, pros::v5::MotorBrake::hold));
+        CHECK(pros::shim::motorState(8).brakeCalls == 2);
+    }
+    SUBCASE("stopped under Hold, then Coast: back to 0 V, as Coast has always meant") {
+        ProsMotor m{8, MotorGearset::Green};
+        m.setBrakeMode(BrakeMode::Hold);
+        m.setVoltage(Voltage{0.0});
+        REQUIRE(stoppedUnder(8, pros::v5::MotorBrake::hold));
+        m.setBrakeMode(BrakeMode::Coast);
+        CHECK(zeroVoltsModeIgnored(8));
+        CHECK(pros::shim::motorState(8).brakeCalls == 1);
+    }
+    SUBCASE("a mode change while DRIVING issues no stop") {
+        ProsMotor m{8, MotorGearset::Green};
+        m.setVoltage(Voltage{4.0});
+        m.setBrakeMode(BrakeMode::Hold);
+        CHECK(pros::shim::motorState(8).control == MotorControl::Voltage);
+        CHECK(pros::shim::motorState(8).lastVoltageMv == 4000);
+        CHECK(pros::shim::motorState(8).brakeCalls == 0);
+    }
+}
+
+TEST_CASE("DEFECTS2 a6: the decision is keyed on the MILLIVOLTS SENT — a sub-millivolt command "
+          "is a stop") {
+    // BUG CAUGHT (mutation "key on the raw double"): 0.0004 V rounds to 0 mV on the wire — a
+    // command indistinguishable from zero at the motor — but is not == 0.0. Keyed on the double,
+    // it would go out as move_voltage(0) with the mode ignored: a controller that settles to
+    // within half a millivolt of zero would never hold. And the converse: 0.0006 V is 1 mV, a
+    // DRIVING command, and must not stop.
+    pros::shim::resetAll();
+    ProsMotor m{9, MotorGearset::Green};
+    m.setBrakeMode(BrakeMode::Hold);
+    m.setVoltage(Voltage{3.0});
+    m.setVoltage(Voltage{0.0004});
+    CHECK(stoppedUnder(9, pros::v5::MotorBrake::hold));
+    CHECK(m.commandedVoltage().value() == doctest::Approx(0.0004));  // APPLIED volts, unrounded
+    m.setVoltage(Voltage{0.0006});
+    CHECK(pros::shim::motorState(9).control == MotorControl::Voltage);
+    CHECK(pros::shim::motorState(9).lastVoltageMv == 1);
+    m.setVoltage(Voltage{-0.0004});
+    CHECK(stoppedUnder(9, pros::v5::MotorBrake::hold));
+    CHECK(pros::shim::motorState(9).brakeCalls == 2);
+}
+
+TEST_CASE("DEFECTS2 a7 (the seeded-mode trap): a port the DEVICE left in Hold, never given a mode "
+          "by this program, does NOT brake at zero") {
+    // BUG CAUGHT (mutation "key on the device-seeded brakeMode_"): the ctor seeds brakeMode_ from
+    // the device for the T7 fallback (E2). A drive motor an earlier program left in Hold would
+    // then brake() at centred sticks in a program that never asked for Hold. The stop keys on
+    // what THIS program commanded; with nothing commanded a zero stays move_voltage(0), exactly
+    // as before DEFECTS2.
+    pros::shim::resetAll();
+    pros::shim::motorState(12).brake = pros::v5::MotorBrake::hold;  // left by another program
+    ProsMotor m{12, MotorGearset::Blue};
+    REQUIRE(m.brakeMode() == BrakeMode::Hold);  // the seed is real — the trap is armed
+    m.setVoltage(Voltage{6.0});
+    m.setVoltage(Voltage{0.0});
+    CHECK(pros::shim::motorState(12).brakeCalls == 0);
+    CHECK(zeroVoltsModeIgnored(12));
+    // Once THIS program says Hold, the same zero holds.
+    m.setBrakeMode(BrakeMode::Hold);
+    CHECK(stoppedUnder(12, pros::v5::MotorBrake::hold));
+}
+
+TEST_CASE("DEFECTS2 a8: a zero REPEATED under the same mode sends no second brake() — the stop is "
+          "issued on the transition, never every tick") {
+    // BUG CAUGHT (mutation "brake() on every zero"): landmine 2. A live operation re-sends its
+    // volts every tick, and DriveBrake re-commands Brake + 0 V every tick; a brake() per tick
+    // under Hold may re-capture the held position each time and let a loaded shaft creep
+    // (HA-144, invented). Ten ticks of the DriveBrake pattern: ONE brake().
+    pros::shim::resetAll();
+    ProsMotor m{13, MotorGearset::Green};
+    m.setVoltage(Voltage{9.0});
+    for (int tick = 0; tick < 10; ++tick) {
+        m.setBrakeMode(BrakeMode::Hold);
+        m.setVoltage(Voltage{0.0});
+    }
+    CHECK(stoppedUnder(13, pros::v5::MotorBrake::hold));
+    CHECK(pros::shim::motorState(13).brakeCalls == 1);
+    CHECK(pros::shim::motorState(13).setBrakeModeCalls == 10);  // the mode itself: as before
+}
+
+TEST_CASE("DEFECTS2 a9: a brake() the port REFUSES is not believed — the next zero retries it") {
+    // BUG CAUGHT (mutation "record the stop whatever brake() returned"): a port that drops for
+    // one tick answers PROS_ERR; believing the stop happened would make every later zero send
+    // nothing, and the motor would come back from the dropout un-stopped.
+    pros::shim::resetAll();
+    ProsMotor m{14, MotorGearset::Green};
+    m.setBrakeMode(BrakeMode::Hold);
+    m.setVoltage(Voltage{5.0});
+    pros::shim::motorState(14).disconnected = true;
+    m.setVoltage(Voltage{0.0});
+    CHECK(pros::shim::motorState(14).brakeCalls == 0);  // refused
+    pros::shim::motorState(14).disconnected = false;
+    m.setVoltage(Voltage{0.0});
+    CHECK(stoppedUnder(14, pros::v5::MotorBrake::hold));
+    CHECK(pros::shim::motorState(14).brakeCalls == 1);
+}
+
+TEST_CASE("DEFECTS2 a9b: a set_brake_mode() the port REFUSES is not believed either — brake() "
+          "stops under the device's REGISTER, so the mode is re-sent before it") {
+    // BUG CAUGHT (review finding; mutations "drop the mode re-send" and "believe the stop whatever
+    // the mode write returned"): brake() applies the register, not what this program meant. A
+    // mode write lost to a dropout, followed by a zero once the port is back, used to stop the
+    // motor under the register's OLD mode (Coast here) and record it as Hold — after which every
+    // zero sent nothing: the claw limp while the adapter believed it held.
+    pros::shim::resetAll();  // a fresh port's register is Coast
+    ProsMotor m{14, MotorGearset::Green};
+    m.setVoltage(Voltage{5.0});
+    SUBCASE("the dropout spans setBrakeMode(); the port is back for the zero") {
+        pros::shim::motorState(14).disconnected = true;
+        m.setBrakeMode(BrakeMode::Hold);  // refused: the register stays Coast
+        pros::shim::motorState(14).disconnected = false;
+        REQUIRE(pros::shim::motorState(14).brake == pros::v5::MotorBrake::coast);
+        m.setVoltage(Voltage{0.0});  // ONE zero — the one-shot caller's whole chance
+        CHECK(pros::shim::motorState(14).brake == pros::v5::MotorBrake::hold);  // re-sent first
+        CHECK(stoppedUnder(14, pros::v5::MotorBrake::hold));
+        CHECK(pros::shim::motorState(14).setBrakeModeCalls == 1);
+        CHECK(pros::shim::motorState(14).brakeCalls == 1);
+        m.setVoltage(Voltage{0.0});  // and now it IS believed: a repeat sends nothing
+        CHECK(pros::shim::motorState(14).brakeCalls == 1);
+        CHECK(pros::shim::motorState(14).setBrakeModeCalls == 1);
+    }
+    SUBCASE("the mode write refused twice, brake() accepted: stopped, NOT believed, retried") {
+        pros::shim::motorState(14).refuseSetBrakeMode = 2;  // setBrakeMode() and the re-send
+        m.setBrakeMode(BrakeMode::Hold);
+        m.setVoltage(Voltage{0.0});
+        // The motor did stop — under the register's Coast, which is not what was asked.
+        CHECK(stoppedUnder(14, pros::v5::MotorBrake::coast));
+        CHECK(pros::shim::motorState(14).brakeCalls == 1);
+        m.setVoltage(Voltage{0.0});  // the next zero retries BOTH calls
+        CHECK(stoppedUnder(14, pros::v5::MotorBrake::hold));
+        CHECK(pros::shim::motorState(14).brakeCalls == 2);
+        m.setVoltage(Voltage{0.0});
+        CHECK(pros::shim::motorState(14).brakeCalls == 2);  // believed only now
+    }
+    SUBCASE("the control: a mode write that was accepted is never re-sent by the stop") {
+        m.setBrakeMode(BrakeMode::Hold);
+        m.setVoltage(Voltage{0.0});
+        CHECK(stoppedUnder(14, pros::v5::MotorBrake::hold));
+        CHECK(pros::shim::motorState(14).setBrakeModeCalls == 1);  // the pre-review traffic
+    }
+}
+
+TEST_CASE("DEFECTS2 a10: a non-finite command under Hold is still REJECTED and touches nothing") {
+    // BUG CAUGHT: the new zero path swallowing the L4 rejection (a NaN "rounding" to a stop).
+    pros::shim::resetAll();
+    ProsMotor m{15, MotorGearset::Green};
+    m.setBrakeMode(BrakeMode::Hold);
+    m.setVoltage(Voltage{5.0});
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    CHECK_THROWS_AS(m.setVoltage(Voltage{nan}), PreconditionError);
+    CHECK(pros::shim::motorState(15).brakeCalls == 0);
+    CHECK(pros::shim::motorState(15).lastVoltageMv == 5000);
+    CHECK(m.commandedVoltage().value() == doctest::Approx(5.0));
+}
+
+TEST_CASE("DEFECTS2 a11: a DRIVING command clears the zero record — a mode stated after zero, "
+          "then drive, issues no stop") {
+    // BUG CAUGHT (review finding; mutation "atZero_ set only inside the zero branch" — a record
+    // that sticks after the FIRST stop): a5's "mode change while driving" starts from an adapter
+    // that was never at zero, so it could not see it. With the record stuck, every setBrakeMode()
+    // to Brake or Hold after one stop re-issues a stop over a RUNNING motor — under a Brake or
+    // Hold release mode the driver loop's per-tick re-assert would stop the drive dead on every
+    // driving tick, and a mechanism re-stating its mode mid-motion would stop.
+    pros::shim::resetAll();
+    ProsMotor m{10, MotorGearset::Green};
+    m.setBrakeMode(BrakeMode::Hold);
+    m.setVoltage(Voltage{0.0});
+    REQUIRE(stoppedUnder(10, pros::v5::MotorBrake::hold));
+    m.setVoltage(Voltage{6.0});
+    REQUIRE(pros::shim::motorState(10).control == MotorControl::Voltage);
+    const int movesBefore = pros::shim::motorState(10).moveVoltageCalls;
+    SUBCASE("the same mode re-stated (the driver loop's re-assert)") {
+        m.setBrakeMode(BrakeMode::Hold);
+    }
+    SUBCASE("another stopping mode") {
+        m.setBrakeMode(BrakeMode::Brake);
+    }
+    SUBCASE("Coast") {
+        m.setBrakeMode(BrakeMode::Coast);
+    }
+    CHECK(pros::shim::motorState(10).control == MotorControl::Voltage);
+    CHECK(pros::shim::motorState(10).lastVoltageMv == 6000);
+    CHECK(pros::shim::motorState(10).brakeCalls == 1);  // the first stop only
+    CHECK(pros::shim::motorState(10).moveVoltageCalls == movesBefore);  // no 0 V either
+}
+
+// ═══ MECH-S-A: THE CURRENT LIMIT through the shim (the MECH-S brief's CA11; HA-219..HA-221) ═══════
+
+TEST_CASE("MECH-S-A CA11 ProsMotor: setCurrentLimit sends mA to the DEVICE; currentLimit reads the device back in A") {
+    pros::shim::resetMotors();
+    ProsMotor m{-4, MotorGearset::Red};  // reversed: the limit is the port's, sign or not
+    auto& s = pros::shim::motorState(4);
+    CHECK(s.setCurrentLimitCalls == 0);  // construction sets no limit (the service decides — D12 (b))
+    CHECK(m.currentLimit().value() == 2.5);  // the device's default, READ
+    CHECK(m.setCurrentLimit(shulib::units::Current{1.2}));
+    CHECK(s.currentLimitMa == 1200);     // BUG CAUGHT (MA5): A -> mA x 100 sends 120
+    CHECK(s.setCurrentLimitCalls == 1);
+    CHECK(m.currentLimit().value() == 1.2);
+    // READ BACK, never the request's echo: the device changed under the adapter (another program, VEXos)
+    s.currentLimitMa = 1800;
+    CHECK(m.currentLimit().value() == doctest::Approx(1.8));
+    // the device keeps ITS number, not the asked one (HA-221's share): the read-back says so
+    s.currentLimitTakesInsteadMa = 2000;
+    CHECK(m.setCurrentLimit(shulib::units::Current{1.2}));  // accepted ...
+    CHECK(m.currentLimit().value() == doctest::Approx(2.0));  // ... and the truth read back
+    CHECK(m.faultedReads() == 0);
+}
+
+TEST_CASE("MECH-S-A CA11 ProsMotor: a refused write is false and changes nothing; a refused READ holds the last good one and COUNTS") {
+    pros::shim::resetMotors();
+    ProsMotor m{5, MotorGearset::Green};
+    auto& s = pros::shim::motorState(5);
+    REQUIRE(m.setCurrentLimit(shulib::units::Current{1.0}));
+    REQUIRE(m.currentLimit().value() == 1.0);
+    s.refuseSetCurrentLimit = 1;
+    CHECK_FALSE(m.setCurrentLimit(shulib::units::Current{1.5}));  // PROS_ERR -> false
+    CHECK(s.currentLimitMa == 1000);
+    CHECK(m.faultedReads() == 0);  // a refused COMMAND is not a screened read
+    s.failCurrentLimitReads = 1;
+    CHECK(m.currentLimit().value() == 1.0);  // the last good reading, never PROS_ERR's 2147483.647 A
+    CHECK(m.faultedReads() == 1);
+    CHECK(m.currentLimit().value() == 1.0);  // answers again: fresh
+    CHECK(m.faultedReads() == 1);
+    // a port that NEVER answered: the documented default, counted
+    pros::shim::resetMotors();
+    ProsMotor dead{6, MotorGearset::Green};
+    pros::shim::motorState(6).disconnected = true;
+    CHECK(dead.currentLimit().value() == 2.5);
+    CHECK(dead.faultedReads() == 1);
+    CHECK_FALSE(dead.setCurrentLimit(shulib::units::Current{1.0}));
+    // and a limit no build could state never reaches the wire
+    pros::shim::motorState(6).disconnected = false;
+    CHECK_THROWS_AS((void)dead.setCurrentLimit(shulib::units::Current{3.0}), PreconditionError);
+    CHECK(pros::shim::motorState(6).setCurrentLimitCalls == 0);
+}

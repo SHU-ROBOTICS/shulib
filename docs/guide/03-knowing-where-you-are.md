@@ -1,7 +1,8 @@
 # 3 — Knowing where you are
 
 > **Covers:** odometry (how a robot tracks its own position), why the estimate drifts, what each
-> sensor can and cannot tell you, and how the library combines them.
+> sensor can and cannot tell you, how the library combines them, and how an auton re-seats one
+> coordinate against a field wall from a side distance sensor.
 > **Read this if:** you want to understand why the robot's idea of "where am I" is a guess, and
 > what makes the guess good or bad.
 > **Assumes:** [Chapter 2](02-the-field-and-coordinates.md) — pose, heading, coordinates.
@@ -91,7 +92,8 @@ estimate back toward truth. Each such sensor knows one kind of thing and fails o
   Needs the marker in view and good lighting; more moving parts.
 - **Distance sensors** (a laser rangefinder, roughly) tell you how far the nearest surface is
   along one line. Pressed near a wall you know, that's a one-dimensional position fix. It cannot
-  tell a wall from a robot passing by.
+  tell a wall from a robot passing by. (The wall reset, [below](#re-seating-one-axis-against-a-wall),
+  is how an auton uses one.)
 - **Optical sensors** see color up close — "there is something orange right here." Useful for
   game-piece handling; useless for position.
 
@@ -214,9 +216,13 @@ previous rule was thrown away. It was not. Every degree the robot actually turns
 the IMU, tick by tick, exactly as before. What the tag corrector learns is a slowly-moving
 **bias** — "the IMU reads about three degrees low today" — which is added to the IMU's answer.
 The robot's reported heading is *the IMU's reading plus a learned correction*, and that
-correction is allowed to move only a fraction of a degree per tick. There is no code path
-anywhere that assigns the robot a heading. A yaw reset in the middle of a match would be worse
-than a position jump, because every field-relative command issued afterwards would inherit it.
+correction is allowed to move only a fraction of a degree per tick. No sensor and no corrector
+can assign the robot a heading. A yaw reset in the middle of a match would be worse than a
+position jump, because every field-relative command issued afterwards would inherit it. (The one
+place a heading IS set is the start of an auton: `competition::runAuton` sets it from the start
+pose the auton declares, through `Localizer::reseatHeading` — the heading's twin of `setPose`.
+That is you telling the robot which way you placed it, before anything moves; no sensor can reach
+it.)
 
 The checks it runs before it will move anything, each one a way tag data can be wrong:
 
@@ -261,6 +267,122 @@ The checks it runs before it will move anything, each one a way tag data can be 
   **Driving Skills** — where there is no strip at all — the tag corrector is the only absolute
   source of anything. That is the event where this feature is worth the most, and also the one
   where nothing else can catch its mistakes.
+
+## Re-seating one axis against a wall
+
+*Host- and build-gated, NOT run on a robot.* Everything above is about sensors that **nudge** the
+estimate a little every tick. The wall reset is different: a step your auton calls, at a moment you
+chose, that **re-seats one coordinate** of the estimate from a side distance sensor — and nothing else.
+
+**What a side sensor measures.** A V5 Distance Sensor on the robot's side, facing straight out, tells
+you how far the nearest surface is along its beam. Park the robot **beside a field wall, nose along it,
+square to it**, and that reading — from where the sensor sits on the robot — is the robot's distance
+from that wall: **ONE coordinate**. Against the left or right wall it is x; against the red or blue
+wall it is y. It says nothing about the other coordinate, and nothing about which way the robot faces
+(one range cannot give both a distance and an angle), so the reset replaces that one coordinate and
+leaves the other, the heading and the estimate's own record of how far it has drifted exactly as they
+were. "Corrections never snap" (above) is about the correctors; the wall reset is the one deliberate
+exception — a one-coordinate jump you asked for, while nothing is moving, never larger than the
+`maxCorrection` you state.
+
+**A wall reset needs a FIELD start.** The season's walls are field coordinates — their inner faces at
+±70.2 in from the field's centre (the game manual's drawings; the metal perimeter is 0.045 in wider
+per wall, inside the field's own tolerance) — and so is every stretch of wall the reset keeps out. An
+auton that starts RELATIVE (wherever the robot is placed becomes (0, 0)) has its own origin, so "the
+left wall at x = −70.2" names nothing in its frame: the reset refuses it, `not a field start`, before
+it reads anything. Give the auton a FIELD start (`StartPose::field(...)`) and place the robot on that
+mark.
+
+**The checks, in order, in plain words.** The reset refuses — saying which check, in one `WALL` log line
+([Chapter 11](11-reading-the-diagnostics.md#the-wall-reset-wall) reads it) — unless every one passes:
+
+1. **The setup.** A FIELD start; a sensor on that side (the robot file declares it — [Chapter
+   10](10-the-api.md#the-robot-files-side-sensors)); its mount measured; the estimate live; nothing moving
+   under a motion; a `maxCorrection` stated.
+2. **Square.** By the estimate's heading, the beam within 5° of straight at the wall.
+3. **A clean stretch.** The beam not landing on the Toggle, its brackets, a Loader, a corner, a VEX U Load
+   Zone or — until the beam's spread is measured — the start pieces; widened by the beam's footprint (its
+   spread at that range), a 3-in margin, and 10 % of the distance driven since that along-the-wall
+   coordinate was last set (the reset does not measure along the wall, so it allows for drift there).
+4. **The beam's height.** The reading short enough that the beam's lower edge stays above a standing
+   game piece (6.5 in): about 10.8 in of reading for a lens 10.5 in up, 9.2 in at 10 in up, and only
+   about 6 in at 9 in up — a sensor mounted low can hardly use the reset.
+5. **Still.** The robot not moving or turning while it reads.
+6. **Every reading real.** No fault on the port, a real return, enough confidence, 2–16 in.
+7. **Enough readings, and consistent.** At least 5 over at least 0.15 s, within 0.5 in of each other;
+   the middle one (the median) is the answer, and it too must be under the height limit.
+8. **Precise enough.** The answer's worst-case error at most 1.0 in.
+9. **Agrees.** The answer within `maxCorrection` of where the estimate thinks the robot is.
+
+Then it SEATS that coordinate. A refusal leaves the estimate exactly as it was and the auton goes on —
+unless the request says `required = true`, when the routine stops there. The reset never moves the
+robot: stop first (a robot still coasting is refused `moving`). And it samples through the run's own
+clock, so a deadline that lands while it reads cuts it at once (`cut`), never late.
+
+**The call, in an auton** — the whole recipe is [cookbook 5](../cookbook/05-mixing-tiers.md#re-seat-x-against-a-wall):
+
+```cpp
+chassis::RoutineResult leftWallReset(competition::AutonContext& ctx) {
+    chassis::Routine r{ctx, "left-wall"};
+    r.face(-55.7_in, -38_in);      // a tank turns first
+    r.driveTo(-55.7_in, -38_in);   // a leg ALONG the left wall
+    r.turnTo(90_deg);              // square to the wall: a tank turns in place
+    r.then([&] { return competition::resetFromWall(ctx,
+                     {.wall = localization::override2026::kLeftWall,
+                      .sensor = localization::WallSide::Left,
+                      .maxCorrection = 3_in}).continues(); }, "left wall x");
+    // ...the rest of the auton drives from the re-seated x.
+    return r.result();
+}
+```
+
+with the auton registered at a FIELD start —
+`e.start = competition::StartPose::field(-55.7_in, -50_in, 90_deg);  // a FIELD start`. The auton file needs two includes for it — `shulib/competition/auton_wall_reset.hpp` (the call) and
+`shulib/localization/override_walls.hpp` (the season's walls); the shipped `autons.cpp` includes neither.
+
+**Where to park.** Nose along the wall, squared up with a `turnTo`, the sensor reading about **6–8 in** —
+under the beam-height limit, inside 2–16 in, with room for `maxCorrection` either way. The robot's
+centre is then at the wall plus the sensor's sideways offset plus the reading: for a sensor 7.5 in out
+from the centre and a 7-in reading beside the left wall, x = −70.2 + 7.5 + 7 = −55.7 (the listing's
+leg). **Where the beam may land** — the stretch of wall, measured from the wall's centre either way,
+where the beam's centre must hit at a 7-in reading (the same on all four walls: the Loaders sit inside
+the Load Zones):
+
+| Distance driven since that along-the-wall coordinate was set | Beam spread unmeasured | Beam spread measured (±18°) |
+|---|---|---|
+| 0 (right after a start or a reset of the other coordinate) | 33.6–41.8 in | 18.3–41.8 in |
+| 12 in | 34.8–40.6 in | 19.5–40.6 in |
+| 24 in | 36.0–39.4 in | 20.7–39.4 in |
+| 48 in | none | 23.1–37.0 in |
+| 96 in | none | 27.9–32.2 in |
+
+So **reset early in a leg** — or reset the other coordinate first: a reset against the perpendicular
+wall sets the along-the-wall coordinate, and the stretch opens up again. A `keep-out` refusal prints
+where the beam landed and the nearest clean stretch.
+
+**Mounting the sensors** (advice for the build team): each lens **10–10.5 in above the floor**, below
+the wall's top (11.5 in); **at the robot's fore-aft centre** — there a small heading error barely moves
+the answer, while 5 in forward of it the precision check refuses from the first reset; **at least 2.5
+in inboard** of anything on that side, so a robot touching the wall still reads 2 in or more; facing
+straight out, rigid, with nothing of the robot's own — an arm, a claw in any position — in the beam.
+Then **measure** the mount with a tape (forward, left, height, facing, how well each was measured, who
+measured it) and type it into the robot file; until then every reset with that sensor refuses
+`mount unset`. Measure `forward` and `left` **from the same point your autons' start poses name** —
+the robot's centre: midway between the left and right wheels' contact lines, and midway along the
+wheelbase (on a tank, the point it turns about). A mount measured from a frame corner while the start
+poses name the centre puts the difference straight into every seated coordinate, and inside
+`maxCorrection` nothing refuses it.
+
+**Clear wall panels, and the GPS code strip.** On the metal perimeter the wall is partly clear panels;
+a report (unconfirmed) says the sensor can see through them. Then the reset usually refuses — but it
+can seat wrong by up to `maxCorrection` when something solid stands just behind the panel. VEX U and
+skills fields also carry the GPS code strip — black and white squares right where the beam lands —
+and whether a black square reads like a white one is not published. Check both at your event.
+
+**What it cannot catch.** Something taller than a game piece at a believable distance — a partner
+robot beside yours, a stack against the wall — passes every check; the defences are a tight
+`maxCorrection` and parking where the route says. [Chapter 14](14-what-it-cannot-do-yet.md#the-wall-reset-what-it-cannot-catch)
+lists the rest.
 
 ## Knowing how wrong you might be
 
@@ -381,9 +503,12 @@ smaller than the things you have not measured yet.
 - **Always set the starting pose first.** Odometry is a running total; `setPose` is where the
   total starts. Place the robot carefully to match — every inch of placement error is error the
   run starts with. (Heading is special: it's owned by the IMU, which calibrates at power-on. The
-  wiring code establishes the starting heading; your `setPose` sets position. If a tag corrector
-  has already learned that the IMU reads a little low, `setPose` keeps that correction — moving
-  the robot says nothing about which way the gyro is wrong.)
+  wiring code establishes the heading the robot boots with; your `setPose` sets position. If a tag
+  corrector has already learned that the IMU reads a little low, `setPose` keeps that correction —
+  moving the robot says nothing about which way the gyro is wrong. An auton run through
+  `competition::runAuton` is seated differently: its declared start pose sets position AND heading
+  at the instant it starts, which also throws away whatever the IMU drifted while the robot sat
+  waiting for the match.)
 - **Expect drift, and design around it — but know which run you are in, and what you have
   wired.** In Autonomous, with the strip visible, position drift is bounded by the GPS corrector
   and a long routine is not inherently worse than a short one. In **Driving Skills there is no
@@ -401,7 +526,7 @@ smaller than the things you have not measured yet.
 
 ## The exact signatures
 
-The estimator's exact surface: [`Localizer`](../api/localizer.md) (including its `Quality` classes), [`PilonsOdometry`](../api/pilons_odometry.md), [`TrackingWheel`](../api/tracking_wheel.md), the corrector seam [`ICorrector`](../api/i_corrector.md) with [`GpsCorrector`](../api/gps_corrector.md) and [`AprilTagCorrector`](../api/apriltag_corrector.md), and the swappable filter behind [`IFusionPolicy`](../api/i_fusion_policy.md) — [complementary](../api/complementary_fusion.md) (the default) or [EKF](../api/ekf_fusion.md).
+The estimator's exact surface: [`Localizer`](../api/localizer.md) (including its `Quality` classes), [`PilonsOdometry`](../api/pilons_odometry.md), [`TrackingWheel`](../api/tracking_wheel.md), the corrector seam [`ICorrector`](../api/i_corrector.md) with [`GpsCorrector`](../api/gps_corrector.md) and [`AprilTagCorrector`](../api/apriltag_corrector.md), and the swappable filter behind [`IFusionPolicy`](../api/i_fusion_policy.md) — [complementary](../api/complementary_fusion.md) (the default) or [EKF](../api/ekf_fusion.md). The wall reset: the everyday call [`competition::resetFromWall`](../api/auton_wall_reset.md), its checks and report ([`wall_reset`](../api/wall_reset.md)), the season's walls ([`override_walls`](../api/override_walls.md)) and the robot file's side sensors ([`wall_sensor_config`](../api/wall_sensor_config.md)).
 
 ---
 

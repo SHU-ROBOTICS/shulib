@@ -102,6 +102,29 @@ public:
         return std::clamp(out, cfg_.outputMin, cfg_.outputMax);
     }
 
+    /// NEW GAINS, BUMPLESS (chunk TUNE1-A, 2026-11-05 — live tuning): kP, kI and kD replaced, the
+    /// limits and every history kept. The integral TERM (kI·∫e·dt, the volts the integral adds) is what
+    /// survives, not the raw accumulator: the accumulator is rescaled `integral = kI_old·integral /
+    /// kI_new`, so a hold that has wound in 1.2 V against a wrong gravity number still adds 1.2 V on the
+    /// next update — a gain change makes no jump of its own (the accumulator kept as it is would jump the
+    /// term to kI_new/kI_old times itself). A NEW kI of exactly 0 clears the accumulator (with kI 0 it is
+    /// never advanced, and the term is 0 either way); an unchanged kI leaves it bit for bit. The
+    /// derivative's remembered measurement and the dt baseline are kept, so the next update is an
+    /// ordinary one, not a first. PRECONDITION: every gain finite (the constructor's rule).
+    void setGains(double kP, double kI, double kD) {
+        SHULIB_PRECONDITION(std::isfinite(kP) && std::isfinite(kI) && std::isfinite(kD),
+                            "Pid::setGains: gains must be finite");
+        if (kI != cfg_.kI) {
+            integral_ = kI != 0.0 ? cfg_.kI * integral_ / kI : 0.0;
+        }
+        cfg_.kP = kP;
+        cfg_.kI = kI;
+        cfg_.kD = kD;
+    }
+
+    /// The gains and bounds in force (setGains() changes the three gains; nothing else does).
+    [[nodiscard]] const PidConfig& config() const noexcept { return cfg_; }
+
     /// Clear integral + derivative history (e.g. between motions). Gains/limits unchanged.
     void reset() {
         integral_ = 0.0;

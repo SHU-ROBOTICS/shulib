@@ -4,11 +4,13 @@
 > reference, not a forward plan. Most of what follows is now shipped code — where a section still
 > describes something unbuilt, it says so in place. Living document.
 >
-> **The one status line that governs everything:** shulib **has never driven a robot.** No
+> **The one status line that governs everything:** shulib **has never driven a robot under its
+> own control.** No
 > control loop has ever closed on hardware, no wheel has ever turned under the library's own
 > steering. What *has* happened: the code boots on a V5 brain, and the hardware adapters have
 > commanded real motors and read real sensors at a bench, proving their unit conversions correct
-> on one robot, once. Everything above that seam is verified against a simulator only.
+> on one robot, once, and a driver has since driven a second robot with the sticks through them
+> (open-loop, 2026-09-17). Everything above that seam is verified against a simulator only.
 >
 > **What this is:** a design & architecture reference for shulib — the reasoning behind the
 > shape, including the alternatives that were rejected.
@@ -73,9 +75,36 @@ shulib v2 inverts both:
 - **Division:** VEX U (VURC). **Two robots per team**, used together (incl. Skills, `<VURS2>`):
   - **24" robot — X-drive** (4 omni @ 45°, full holonomic).
   - **15" robot — H-drive** (tank + transverse strafe wheel; limited strafe authority).
+
+  > **AMENDED 2026-10-08 (team lead): BOTH robots are 15" this season** ("both bots are going to be 15\""). `<VUR1>`
+  > allows a 24" and a 15"; the team builds two 15" robots. `<SG2>`a's 24" × 24" footprint applies all match, so
+  > either may reach out to 24". Both carry a Toggle auto-flipper (a motor arm).
+
+  > **AMENDED 2026-09-14 (team lead):** the plan above was the June intent. **Both fall-2026
+  > competition robots are TANK drives** — robot two's chassis was built in September (five
+  > coupled motors per side, four wheels per side) and robot one follows the same pattern. **The
+  > X-drive is built in the spring semester** and the holonomic work is finished then. Nothing
+  > holonomic in this plan is withdrawn: the kinematics, the pseudo-inverse and the decoupled
+  > motion verbs are built and proven in simulation and wait for a chassis. What it changes is
+  > *order*: the fall runs on tank — the library's own drive of robot two, self-calibration,
+  > measured gains, no-code authoring, driver feel, scoring — and the holonomic validation (R3c)
+  > moves to spring. The build order's deviations table carries the row.
 - **Sensors (full stack, both robots):** V5 IMU, V5 Rotation sensors w/ dedicated tracking
   wheels, **V5 GPS**, **AI Vision**, Optical, Distance. VEX U also legalizes **onboard compute**
   (Raspberry Pi / Coral, `<VUR12>`) and **LIDAR/spinning sensors** (`<VUG3>`).
+  *(2026-09-14: robot two carries an IMU only so far. **DECISION, team lead, 2026-09-14: the
+  fall tank robots get NO tracking wheels / rotation sensors** — the finished sensor set is IMU +
+  GPS + AI Vision + Distance, and odometry runs from the drive motors' own encoders
+  (`DriveEncoderOdometry`), corrected by GPS and AprilTags. Consequences, recorded so they are not
+  rediscovered: (1) between fixes the estimate is exposed to wheel slip and to contact, which the
+  encoders cannot see — so the GPS is the priority purchase and the routines are tuned brisk in
+  the open and careful at the goals; (2) R3d's calibration must measure the drive-encoder distance
+  scale per side (a push along a tape) and R4 must measure this chassis's encoder-odometry drift
+  with and without GPS correction, so the decision can be revisited with a number rather than an
+  argument; (3) `PilonsOdometry` and the tracking-wheel plant channels stay as built for the
+  spring X-drive and for any robot that fits pods later. The estimate of the cost, given in
+  September as a judgment and not a measurement: a controlled skills run keeps most of the
+  achievable accuracy; a match autonomous with contact gives up more.)*
 - **Game / Skills scoring (Override):** red/blue Pin = **5**; yellow Pin = **10** _if Owned_
   (quadrant Toggle set to your color, or robot ends in the Midfield for Midfield yellows);
   Robot in the **Midfield** at end = **8**. Objects: **Pins** (two colored halves) and **Cups**
@@ -239,9 +268,11 @@ consume facade verbs and sit at skills level. The device seam itself (`IMechanis
 `MotorMechanism`, `PneumaticMechanism`, `IDigitalOut`) lives in `hal/` — outside the F4 freeze,
 register row F11._
 
-**IO / Tools** — `io/Trajectory` + `.vexbot` `paths[]` reader (+ legacy `.shupaths` importer); `io/Telemetry` SHUL/2
+**IO / Tools** — `io/Trajectory` + `.vexbot` `paths[]` reader (the legacy `.shupaths` importer was dropped 2026-09-26); `io/Telemetry` SHUL/2
 (ports/absorbs `logger.hpp` into the new core **before** the end-of-M2 legacy deletion, fixing its 3 known bugs — §18.6); `tools/sysid` (offline kS/kV/kA least-squares → emits **constants**,
-not code) + on-robot tuner.
+not code) + on-robot tuner. *(Reframed 2026-09-26 by the team lead: the gains are measured by the
+robot inside shulib Calibrate and kept on the SD card, never committed as constants — chunk R5a; a
+small laptop re-fit that checks the brain's arithmetic replaces the offline tool.)*
 
 ---
 
@@ -356,6 +387,11 @@ from scratch; the integrator is in `localization/arc_step.hpp`):
   non-finite. A non-finite tick **freezes** the position (never writes NaN into the persistent pose); an
   oversized-but-finite tick is flagged yet still integrated. Recovery beyond that is the fusion layer's.
   (Hardened by the 2026-06-19 localization red-team: 5 lenses, every finding adversarially re-verified.)
+  *(Since the 2026-08-15 defect pass the gate has a third check — either wheel's, or since 2026-09-14
+  either drive side's, `|Δtravel| > maxTickTravel` (36 in; hardware register HA-123) — and since
+  2026-09-26 `lastTickAudit()` records which check tripped and the values it saw, which the
+  `ODO_STUCK` fault line prints. Per-tick Δθ being small also assumes the IMU's heading is continuous
+  tick to tick — register HA-160, questioned by robot evidence on 2026-09-25.)*
 
 ---
 
@@ -511,6 +547,12 @@ compiled-path artifact + full schema-hash handshake (versioned JSON `.vexbot` fi
 | 4 | GPS/AprilTag aggressiveness | Innovation-bounded, covariance-weighted, per-tick-clamped **gated nudge (never snap)** + hard dead-reckon-only flag. `relocalize()` feeds this corrector — it does not snap. Clamp/gate/gain are M3-tuned (mechanism locked, numbers open); complementary tier realizes the same contract heuristically. | **Locked 2026-06-19** |
 | 5 | H-drive model | `strafeAuthority()` = **pure read-only query** returning the max sustainable lateral speed as a fraction of `maxLinearSpeed` (XDrive 1.0, HDrive ~0.35 *sysid-measured default, not a constant*, Tank 0.0); the **motion/Chassis layer** reads it to clamp commanded `vy` + trigger the fallback — kinematics does **not** clamp inside `toWheels()`. Telemetry-visible (`strafeFallbackActive`). | **Locked 2026-06-19** · *clarified at C3 (2026-08-06), see note* |
 
+> **Amendment to decision #4 (2026-10-22, the team lead's go on the L6 brief, D2 (a)).** Decision #4 stays locked
+> for every corrector and every other relocalization; it now reads: "… `relocalize()` feeds this corrector — it does
+> not snap, **except a caller-invoked ONE-AXIS wall reset (L6), which seats that axis only while no motion is active,
+> inside gates whose largest jump is the author's `maxCorrection`; no sensor ever seats the heading**." The hazard
+> never-snap guards against — a pose jump mid-motion — cannot arise: the reset refuses while any motion is active.
+
 > **C3 clarification to decision #5 — semantics sharpened, decision unchanged.** Two wordings above were
 > imprecise and are corrected here rather than silently in place, because #5 is a locked row.
 > 1. **The cap is absolute, not a ratio.** The original text said max sustainable `|vy|/|vx|`. C3 confirmed
@@ -533,7 +575,7 @@ compiled-path artifact + full schema-hash handshake (versioned JSON `.vexbot` fi
 | 8 | Skills routing / robot roles | X = tall scorer, H = Toggle-owner + parker (§14) | **Filled; build-team decisions open** |
 | 9 | Settling & filtering primitives | OkapiLib-style `SettledUtil` (err+deriv+time) on all motion exits; composable `filters/` (EMA/median) for **task-sensor/alignment** conditioning only — **excluded** from the EKF measurement path (§4a, §13 #4) | **Locked 2026-06-19** |
 | 10 | Robot-config seam | `.vexbot` → codegen `robot_config.hpp` (primary) + optional **SD-card runtime loader** (same `robotProfile` schema → same `RobotConfig`); both behind `IRobotConfig` (§16.2). Interface = Freeze F4/M1, schema = Freeze F7/M5. | **Locked 2026-06-19** |
-| 11 | Path command model | Command-**id registry** (`runner.on("intake_in",…)`), NOT embedded C++ `code_template`. shulib owns the canonical id **manifest** (VexBuilder reads it); unknown id → WARN+skip; optional typed-args on markers (§16.3) | **Locked 2026-06-19** |
+| 11 | Path command model | Command-**id registry** (`registry.on("intake_in",…)`), NOT embedded C++ `code_template`. shulib owns the canonical id **manifest** (VexBuilder reads it); unknown id → WARN+skip; optional typed-args on markers (§16.3) | **Locked 2026-06-19** |
 | 12 | Canonical ecosystem formats | shulib **defines** the `robotProfile` + `paths` sub-schemas inside `.vexbot` (+ command-id vocab) and `SHUL/2`; VexBuilder produces them. `.shupaths` + standalone planner **retired** (§16.1) | **Locked** |
 | 13 | Sim seam timing | **Define** the `SHUL/2` schema + `hal/sim` seam at design time (so M6 is a plug-in); **implement** the wire + sim adapter at M6 (F9); wire to Rapier at VexBuilder Phase 7. Scope = `hal/sim` + wire sink only (does **not** move `TermSink` M2 / `SdSink` M3); `hal/sim` is exercisable via `hal/fake` even if Rapier never lands. | **Locked 2026-06-19** |
 | 14 | VexBuilder must add | Explicit drivetrain fields (kind/trackWidth/wheelDia) in `.vexbot` so config isn't geometry-inferred (§16.2 caveat) | **Cross-team ask** |
@@ -573,6 +615,12 @@ for denial value.
 - **15" H-drive = Toggle-owner + match-load cycler + parker.** Self-aligning vertical clamp
   (standing/match-load only — sidesteps floor pickup, the season's hardest unsolved problem) +
   poly-cutout passive dock. Owns the other two Toggles and **parks the Midfield (+8)** at the buzzer.
+
+> **Rules check 2026-10-08 (the auto-flipper research, Override manual v2.0):** a Toggle counts only at the end of
+> autonomous and of the match, and a robot TOUCHING it then makes it yellow (`<SC4>`b) — so "hold/brake on it" and
+> "wedge-jam" below LOSE the Toggle at the buzzer; a wedge cannot be left behind (`<GG8>`), and Q&A 3135's allowance for
+> wedging is provisional. In Skills a Toggle owns only when it shows its QUADRANT's colour (`<RSC3>`a-iii-1), not ours.
+> Scoring is per visible yellow HALF (`<SC3>`c). The concepts below are the June intent, kept as history.
 
 ### Two 60s routing concepts (separate per-robot autons)
 - **Concept A — X-drive tall-tower (~90–130 pts):** own home Toggle (t0–4) → preload + deny the
@@ -656,7 +704,8 @@ physics sim (Tauri / React / Rust+SQLite) — saving everything in **one `.vexbo
 shulib is the **runtime**: it ingests that file and runs it, today and for robots not yet designed.
 **Decision (locked):** the standalone `.shupaths` format and the separate Python path planner are
 **retired** — paths now live inside `.vexbot` alongside the robot, so a routine can never fall out
-of version-sync with the robot it was drawn for. A one-way importer migrates existing `.shupaths`.
+of version-sync with the robot it was drawn for. A one-way importer for existing `.shupaths` was planned
+and dropped on 2026-09-26: nothing reads them.
 
 **16.0 — Principle: shulib defines the contracts; VexBuilder implements them.** Because shulib's
 core depends only on the PROS-free **HAL** (§5), the *exact same* motion/localization/auton code
@@ -698,7 +747,7 @@ Two ingestion paths, **same** in-memory types behind `IRobotConfig` / `IRouteSou
    boot — so a non-coder re-exports a file and re-runs **without recompiling**. Same interface, gated.
 
 `RobotBuilder.from(profile)` returns a fully wired `Chassis` (drivetrain + kinematics + localizer +
-sensors); `runner.load(route)` arms a routine. **"VexBuilder file → working robot + auton" is two
+sensors); `runner.run(route)` executes a routine. **"VexBuilder file → working robot + auton" is two
 lines.** _Standalone preserved:_ a code-fluent team can build `RobotConfig` and `Route` directly in
 C++ with **no file at all** — `.vexbot` is the on-ramp, not a dependency. _Honest caveat:_ the shipped
 `.vexbot` doesn't yet carry drivetrain type / track width / wheel diameter as first-class fields —
@@ -710,23 +759,24 @@ fields as the contract.
 `x,y,heading,headingMode,motion,reverse,constraints,markers`); shulib's `PathRunner` executes
 profiled motion per segment with marker callbacks. The legacy planner embedded **C++ snippets**
 (`code_template:"mech.intakeIn();"`) — a data/code coupling we reject. Instead markers carry command
-**ids** (`"intake_in"`) and the student registers handlers **once**. The intended spelling,
-sketched — `PathRunner` does not exist yet, so this is design, not code you can write today (and
-it is fenced as text for that reason: every `cpp` block in this project's documentation is a
-compiled, verbatim-quoted example, and a sketch of a future API cannot be one):
+**ids** (`"intake_in"`) and the student registers handlers **once**. The spelling, as built at
+chunk G2 (2026-09-18, host-proven; the handler is a callable that must OUTLIVE the registry, so it
+is a named object rather than a temporary — fenced as text because every `cpp` block in this
+project's documentation is a compiled, verbatim-quoted example, and this line is an excerpt):
 
 ```text
-runner.on("intake_in", []{ intake.in(); });   // data-driven: the AUTON is data, not code
+registry.on("intake_in", intakeIn);   // data-driven: the AUTON is data, not code
 ```
 
 This is the keystone of the no-code story (§17): a routine is **data a non-coder authors in
 VexBuilder**, executed by a library the coders maintain. (A codegen mode may emit the **same
-id→handler bindings** as a generated `runner.on(...)` registration table at compile time — never
+id→handler bindings** as a generated `registry.on(...)` registration table at compile time — never
 free-form code, so the data/code split holds.) shulib **owns the canonical command-id vocabulary**,
 exported as a manifest VexBuilder reads to populate its command picker; an **unknown id** logs a WARN
 fault and is skipped, never crashes (§16.5, §18.4). Markers may carry an optional **typed-args** object
 (e.g. `{id:"lift_to_level", args:{level:3}}`) so parametric primitives don't explode into one id per
-value. The `.shupaths` importer maps old `code_template` strings to ids best-effort, flagging any it can't.
+value. (The `.shupaths` importer that would have mapped old `code_template` strings to ids was dropped on
+2026-09-26.)
 
 **16.4 — Seam 3: Simulation & telemetry (`SHUL/2`).** When Rapier lands, shulib runs *unmodified*
 in-sim through `hal/sim`, which speaks `SHUL/2` over VexBuilder's agent socket (discovered via
@@ -794,8 +844,11 @@ comparable. Sinks sit behind the `ITelemetrySink` HAL seam (M1), `NullSink` defa
 | `BrainHud` | optional on-brain HUD/summary screen | add-on | **add-on / Frontier** |
 
 `SHUL/2` v1 **is** the serialized `DebugRecord` (Freeze F9) — define the schema once, every sink
-serializes it (text / binary / wire). `TermSink` is not the JSON wire; it's a *pretty-printer* for
-humans.
+serializes it (text / binary / wire). `TermSink` is not the wire; it's a *pretty-printer* for
+humans. The wire is **binary, not JSON** (decided at H1, 2026-09-26; built host-only 2026-09-29):
+little-endian binary64 with a CRC on every frame, and its Tick and Summary payloads are the blackbox's
+own bytes — JSON cannot carry NaN or ±Inf, and a double survives decimal text only with 17 digits
+and a correct parser on both ends. The format is `vexbuilder-integration.md` §5.2.
 
 **18.2 — The `DebugRecord` (per-tick snapshot).** Captured each control tick, rate-budgeted:
 `t`, `dt`, target/measured `Pose2d`, per-axis error, commanded `(vx,vy,ω)`, per-wheel `V`+`I`,
@@ -803,7 +856,10 @@ IMU yaw+yaw-rate, active command id/state, **dead-reckon flag**, **quality flag*
 trace / filter trust weights, gating `(residual, Mahalanobis, reason)`, applied-correction
 `(dx,dy,dθ)` + `clampedThisTick` (audits *never-snap*, §13 #4), `strafeFallbackActive` (§13 #5),
 **fault code**, battery `V`/`I`. Competition build routes it to `NullSink` (≈free); dev build to
-`TermSink` (+`SdSink`).
+`TermSink` (+`SdSink`). *(A "competition build" in this section means a build with diagnostics off — a
+design option. The team's match program, "shulib Competition" (COMP-b, 2026-09-30), is not one today:
+it routes the records to `TermSink` on USB serial like every robot-two program and appends its run
+lines to the SD card — guide chapter 17.)*
 
 **18.3 — Readable terminal output (the headline requirement).** Leveled
 (`ERROR`/`WARN`/`INFO`/`DEBUG`/`TRACE`, compile-time `TRACE` strip off the hot path), tagged by

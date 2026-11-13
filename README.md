@@ -57,10 +57,19 @@ core never touches PROS directly (that separation is load-bearing; see the layou
   safe state: motor mechanisms go safe on every exit, while a discrete actuator keeps a state it
   successfully commanded and goes safe only on cancel — a clamp whose safe state is "open" would
   fling its game piece the instant a grab succeeded. The library ships the grammar, not the
-  nouns; there is no `shulib::Intake` and never will be.
+  nouns; there is no `shulib::Intake` and never will be. On top of that grammar sits the
+  **mechanism core**: a team DECLARES each mechanism once in its robot file — an arm, a lift, a
+  flywheel, a power roller, a pneumatic — and wires it separately, the build refusing each mistake
+  by name; one mechanism service runs them all each tick (a move and its hold, homing, a spin to
+  speed, a run until a piece sensor sees a piece, a valve's position), every behaviour watched for a
+  jam; an auton runs a mechanism on one line (`r.move(arm["score"], 1.5_s)`), a driver file puts
+  them on buttons (hold-to-run, toggles, presets), and a route's markers fire each mechanism's
+  published ids. Robot two's programs run its two claw pivots and its pneumatic claw this way
+  (guide chapters 16–18; host-tested only — none of it has run on a robot yet).
 - **A guaranteed end of run**: wrap the tick pacer and a routine gets a hard deadline — the
-  active motion is cut at the instant you name, every later motion is *refused* (a latch, not a
-  pause), your end action runs strictly after cancel-all, and an unconditional floor fires
+  active motion — and every mechanism operation still running that registered its claim, as the
+  library's own do — is cut at the instant you name, every later motion is *refused* (a latch,
+  not a pause), your end action runs strictly after cancel-all, and an unconditional floor fires
   regardless. The library refuses to know your strategy: no field coordinate, no park pose, no
   default match length, no default lead time. Both instants and the action are yours.
 - **Diagnostics**: per-tick structured records, leveled logs, first-fault latching, brownout and
@@ -74,22 +83,33 @@ core never touches PROS directly (that separation is load-bearing; see the layou
 
 ## What it is NOT yet
 
-**This library has never driven a robot.** That is the single most important fact about its
+**This library has never driven a robot under its own control.** That is the single most important fact about its
 current state, so here it is, third heading from the top:
 
 - **Everything about motion and control is verified off-robot**, against a simulated plant and
   simulated sensors. The simulation was built to be hostile, not flattering — but it is still
   simulation, and **not one control loop has ever closed on hardware.**
-- Fourteen hardware adapters now exist (`include/shulib/hal/pros/` — motors, IMU, GPS, battery,
+- Eighteen hardware adapters exist (`include/shulib/hal/pros/` — motors, IMU, GPS, battery,
   encoders, controller, distance, optical, ADI digital in and out, USB serial, the controller
-  LCD, the SD card, and real time). `src/main.cpp` wires the nine from the first adapter chunk;
-  the five newest are host-tested but constructed nowhere yet, so the V5 build does not even
-  compile them and **none of those five has ever touched a physical device.** All fourteen are
-  host-tested against a hand-written stand-in for PROS, which proves the glue is faithful to
-  *our beliefs* about PROS — units, signs, error values — and cannot prove the beliefs
-  themselves; every such belief is a labelled entry in the assumptions register (HA-94 onward).
-  The shipped port map is an explicitly labelled guess, and the one robot we have measured does
-  not match it.
+  LCD, the brain's own touch screen, the SD card (write and read — and, built over those two, the
+  store the calibration record's safe save uses, which is not counted as an adapter of its own), the
+  brain's device list, the loop pacer, and real time).
+  The motor, IMU, battery, controller and clock adapters and the SD-card writer have met real
+  devices on the bench. **Distance** is constructed by Bench Tests (its distance station) and **ADI
+  digital out** by the programs that boot robot two's mechanisms (its pneumatic claw, 3-wire line A);
+  this README claims neither confirmed on a device. **Optical and ADI digital in are constructed by no
+  program yet** — no V5 build compiles them into a package — and **the brain's touch screen adapter is built only into robot two's "shulib Calibrate"** (the
+  library's standard Calibrate since 2026-11-05), which has not run on a robot in that form — and GPS
+  and rotation appear only in the X-drive build, which has never run. All
+  eighteen are host-tested against a hand-written stand-in for PROS, which proves the glue is
+  faithful to *our beliefs* about PROS — units, signs, error values — and cannot prove the
+  beliefs themselves; every such belief is a labelled entry in the assumptions register (HA-94
+  onward) — except two the touch-screen adapter shares with the robot programs' own screen path
+  (`src/common/screen_text.hpp`), read from the SDK and not yet entered: that PROS re-reads printed text as a format string, and that each
+  print leaks its buffer (the adapter sanitizes and counts its prints either way). Only the
+  X-drive build (`make ROBOT=xdrive`) carries an invented, labelled port map; the default build
+  and robot two's builds use port tables measured on those robots (robot two's is owed a
+  re-measure after its drivetrain was rebuilt).
 - **What has been confirmed on hardware — and only this.** On 2026-08-12 the package was built,
   uploaded, and booted on a V5 brain, where it constructed its whole object graph and printed
   its diagnostics banner over USB serial. Every motor and sensor it spoke to was still a fake.
@@ -98,11 +118,21 @@ current state, so here it is, third heading from the top:
   assumptions against a turning wheel — on one robot, once, which is an observation and not
   proof of portability. What those two runs establish is narrow and real: the build-and-upload
   path works, the library makes no host-only assumption that breaks on ARM, and the adapters'
-  conversions are measured rather than believed. **Nothing was ever steered.** They establish
-  nothing whatsoever about motion, accuracy, or control.
+  conversions are measured rather than believed. Later bench sessions added a little more: the
+  SD card written and read back and the IMU's heading direction confirmed (2026-08-18/19, the
+  old robot); robot two's ports and every drive motor's direction measured (2026-09-10); and a
+  driver drove robot two with the sticks through the library's hardware adapters — open-loop, no
+  library steering — once (2026-09-17, the team lead's report; no log was captured). **Nothing
+  was ever steered.** None of it establishes anything about motion, accuracy, or control.
 - Every physical constant in the tree (gains, geometry, sensor noise) is a labeled stand-in.
   [`docs/hardware-assumptions.md`](docs/hardware-assumptions.md) inventories them as falsifiable
   claims, each with its blast radius if wrong and the measurement that settles it.
+- **A program now exists in which the robot measures its own drivetrain** — which ports drive,
+  which way each motor is wired, which side each is on, the per-side inches per radian and the
+  effective track width — and writes the answer to the SD card for the teleop program to boot
+  from. **It has run on robot two (2026-09-24): one run stopped on its own consistency check and
+  one finished with no log captured, so its recorded reproduction run is still owed.** Every
+  threshold in it is an invented first guess, proven against the host test plant.
 - The vision/AprilTag corrector exists, but **no camera has ever been pointed at a tag by this
   project**, and the library deliberately ships **no map of where the tags are** — that is your
   input, and nobody here can cite one. Its accuracy claims are simulation claims
@@ -140,9 +170,9 @@ unnoticed. Since 2026-08-12 that is no longer only a compile-time claim: the pac
 observed booting on a real V5 brain and constructing its full object graph there. Since the
 adapters landed, the suite also compiles and RUNS the hardware glue itself, against a
 programmable stand-in for PROS — with the honest limit that a stand-in can only check the glue
-against our beliefs about PROS, never the beliefs. One bench session (2026-08-13) has since
-checked a handful of those beliefs against real devices and found them right. *Driving* a robot
-remains unverified, and will be until the hardware-validation phase walks the rest of its
+against our beliefs about PROS, never the beliefs. A few bench sessions (2026-08-13 onward)
+have since checked a handful of those beliefs against real devices and found them right.
+*Steering* a robot remains unverified, and will be until the hardware-validation phase walks the rest of its
 prepared bench checklist.
 
 ## Build and test
@@ -173,8 +203,10 @@ axis oracle that needs a GPS in front of a field strip — and they stay skipped
 validation measures them.
 
 The V5 package (compiles and links the real ARM binary; uploading needs a V5 brain and
-[pros-cli](https://pros.cs.purdue.edu/v5/getting-started/), and remember — it boots, it does
-not drive):
+[pros-cli](https://pros.cs.purdue.edu/v5/getting-started/)). The default build is the bench
+tester for the measured bench robot; `make ROBOT=tank PROGRAM=…` builds robot two's programs, and
+`make ROBOT=… PROGRAM=tune` "shulib Tune" (slot 7) for any robot with mechanisms.
+Remember that no program here has steered a robot yet:
 
 ```sh
 make            # produces bin/hot.package.bin + bin/cold.package.bin
@@ -220,13 +252,23 @@ angle, or duration belongs), every motion carries its own timeout, and if a faul
 mid-motion (say, the odometry catches a wheel lying) the motion aborts into a safe state and the
 exit reason says so.
 
-Wiring a `Chassis` is ordinary C++ too — construct a kinematics preset, the hardware interfaces,
-the localizer, and hand them over; no config file or code generator is ever required.
-`src/main.cpp` is the complete, commented wiring example (real `hal/pros` adapters, with a port
-map labelled as the invention it is — the one robot we have measured does not match it, and
-correcting that is hardware-validation work rather than a build step), and the test suite builds
-the same stack in one place against simulated hardware (`test/chassis_facade_test.cpp`, the
-"standalone" case).
+Wiring a `Chassis` is ordinary C++ too, and there are two ways to do it. The on-ramp is the
+builder: describe the robot as a `config::RobotConfig`, and `robot::Robot` builds the whole graph
+from it over a device provider — `robot::validate()` names the port or the field that is wrong
+before anything is constructed. `src/programs/drive_program.cpp` ("shulib Drive") is the worked example
+on a real robot: robot two's config comes from the calibration record on its SD card, and
+`hal::pros::ProsDeviceProvider` supplies the real adapters. (A typed port table is the fallback in
+general, but robot two's cannot describe its drivetrain — its track width and gearing are unset —
+so without a record "shulib Drive" refuses to build.) The longhand
+— construct a kinematics preset, the hardware interfaces, the localizer, and hand them over — is
+always available (Tier 3), and no config file or code generator is ever required: the test suite
+builds the same stack by hand in one place against the host test plant
+(`test/chassis_facade_test.cpp`, the "standalone" case). No program in `src/` wires a graph by hand
+any more: which program a build is, and which robot's tables it carries, are chosen together by one
+`#if` chain in `src/build_selection.hpp` (the only place the `make ROBOT=… PROGRAM=…` switches are
+read), `src/main.cpp` only hands the PROS entry points to that program, and the one other robot
+described there — an X-drive whose port map is labelled as the invention it is — is a
+`constexpr RobotConfig` (`src/robots/xdrive_config.hpp`) built the same way as robot two's.
 
 ## How the tree is laid out
 
@@ -234,20 +276,74 @@ the same stack in one place against simulated hardware (`test/chassis_facade_tes
 include/shulib/     the library — pure C++20, PROS-free by CI guard
   units/ math/      typed quantities (inches/radians/seconds), Pose2d, frames, wrapped angles
   spec/             frozen accuracy targets
-  hal/              the hardware interfaces (motor, IMU, GPS, clock, distance, optical,
-                    digital in/out, controller, mechanism, …) + in-memory fakes
+  hal/              the hardware interfaces (motor, motor groups, IMU, GPS, clock, distance,
+                    optical, digital in/out, controller, mechanism, device provider, …) + fakes
     pros/           the real V5 adapters over the PROS SDK — the ONE exempted path (see rule 1)
+  calibration/      the drivetrain self-calibrator, its screen model and the painter that draws
+                    it, its SD-card record and its safe save and load (a verified backup copy),
+                    the boot check, the front check, and the standard Calibrate program itself
+                    (a team states its facts; its robot shell is hal/pros/calibrate.hpp)
+  config/           a robot and a route described as DATA (RobotConfig, Route)
+  robot/            robot::Robot — the whole library graph built from a RobotConfig (its
+                    mechanisms' motors, lines and sensor roles built by MechanismParts)
+  mechanism/        a mechanism declared once (what it is: kind, gearing, homing, presets)
+                    and wired separately (where it is plugged in) — each mistake refused at
+                    build by name; the route ids derived from the declarations; the
+                    mechanism SERVICE that runs every one each tick (power, pneumatic,
+                    position — arms, lifts — and speed — flywheels; host-only so far); the
+                    driver file's controls (presets on buttons) and the direction check's
+                    judgement (which Bench Tests' station 13 MECHANISMS runs on the robot —
+                    built, not yet run on one)
+  runner/           runs a Route: the path runner, the command-id registry, the manifest,
+                    and every mechanism's route ids bound in one call
+  teleop/           driver control: stick mapping, input shaping, drive modes, field-centric,
+                    mechanism buttons (and the mechanism service's driver controls)
   kinematics/       drivetrain math: X-drive, tank, H-drive behind one contract
   control/          PID, feedforward, motion profiles, settling, watchdogs
   localization/     odometry, tracking wheels, the fused localizer + correction seam
   motion/           motion primitives, the one-active-motion scheduler, stall cross-check
   manipulation/     bounded mechanism operations (run-until-confirmed, actuate-and-confirm)
-  sequence/         the end-of-run guard — cuts and latches motion on a hard schedule
+  sequence/         the end-of-run guard — cuts and latches motion on a hard schedule, or on an
+                    abandon (a mid-auton disable)
+  competition/      the competition program's library half: the auton registry, the selector
+                    model, the auton runner (start-pose re-seat + guard), the acceptance run
+  ui/               the generic brain-screen panel pieces (budgets, hit boxes, the touch edge)
   core/             the precondition policy (one place decides what a broken contract does)
   chassis/          the public facade (Chassis) + the composition root (RobotContext)
   diag/             structured records, sinks, fault latch, health/loop monitors
   sim/              the host plant + hostile sensor models (tests only — see rule 2)
-src/main.cpp        the PROS entry point — wires the core to the hal/pros adapters
+src/                the robot programs, one folder per job (every include written from src/:
+                    #include "robots/chassis_table.hpp"):
+  main.cpp          the PROS entry point — it hands each entry point to the build's program
+  build_selection.hpp  the one place a build's switches are read — it picks the program and
+                    the robot together
+  robots/           what each robot IS: the per-robot tables (every robot's ports; robot two's
+                    claws, declared in the mechanism core's words), the invented X-drive (a
+                    RobotConfig constant), and the standard Calibrate's facts, derived from the
+                    tables (calibrate_facts.hpp)
+  team/             the team's own code — where students edit: robot two's driver file (which
+                    button does what, the feel; shulib Drive runs it on its own, and the
+                    competition program's driver control runs it) and the team's autons
+                    (autons.cpp — every auton the robot can run, one list both auton programs
+                    read; the host suite compiles it and runs every auton in it)
+  programs/         one program each: the bench tester, shulib Drive (robot two's driver file on
+                    robot::Robot, with its MAIN / DETAILS / MORE pages), shulib Calibrate, the
+                    X-drive's program, shulib Auton Tester (runs one of the team's autons on the
+                    bench from the brain's screen, through the competition program's own call —
+                    guide chapter 16), shulib Competition (THE program for a match: the auton
+                    chosen on the brain's menu runs in autonomous() on the program's own task,
+                    then driver control runs the team's driver file — guide chapter 17) and
+                    shulib Tune (slot 7: live tuning of the mechanisms on the brain screen, for
+                    any robot with mechanisms — guide chapter 18); this shulib Drive, the Auton
+                    Tester, Competition and Tune have not run on a robot yet, and no X-drive
+                    robot exists
+  common/           what the programs share: the boot source, the state screens, the screen
+                    text path and the painters (the selector, the refusal screen), the
+                    fault-latch hook, every driver file's plumbing (driver_file.hpp) and the
+                    driver-control heading, the driver-control screen's words (the drive
+                    protections' row, the controller's lines, the mechanisms' boot lines and
+                    the claw row), the log copy's and the dropped autons' boot lines, and an
+                    auton run's boot chain proof and program-error stop
 test/               the host suite (doctest) against plant + hostile sims + a PROS shim
                     (test/pros_shim/ — the programmable SDK stand-in the adapter tests run on;
                     its headers refuse to compile outside the host test build, on purpose)
@@ -260,8 +356,8 @@ Two structural rules, both enforced by CI grep-guards, keep the design honest:
 1. **The library never includes PROS** — except `include/shulib/hal/pros/`, the adapter
    directory built to, which the guard exempts by exact path and nothing else. Everything else
    under `include/shulib/` compiles on any C++20 compiler — which is exactly what makes a host
-   suite of this size possible. `src/main.cpp` is the other deliberate PROS toucher, outside the
-   library tree.
+   suite of this size possible. `src/` — the programs, outside the library tree — is the other
+   deliberate PROS toucher.
 2. **The core never includes the simulator.** Code under test can only see sensor interfaces,
    never the simulated ground truth — so a test can grade the estimator against a truth the
    estimator provably cannot peek at.

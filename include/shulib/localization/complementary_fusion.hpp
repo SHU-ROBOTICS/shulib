@@ -85,8 +85,10 @@ struct ComplementaryFusionConfig {
     double maxHeadingGain = 0.15;
     /// Per-tick heading budget as a RATE: at most `maxHeadingNudgeRate · dt` of bias change in
     /// one tick, loop-rate-independent, exactly as maxNudgeRate bounds position. This is the
-    /// never-snap bound for yaw — the number that makes "a yaw reset can never happen" a
-    /// property of the code rather than a promise. 10 deg/s. PROVISIONAL (A4: HA-82).
+    /// never-snap bound for yaw — the number that makes "no CORRECTOR can reset the yaw" a
+    /// property of the code rather than a promise. (The one heading assignment in the tree is a
+    /// CALLER seed outside the fusion path, Localizer::reseatHeading — the competition
+    /// program's start pose, never a sensor.) 10 deg/s. PROVISIONAL (A4: HA-82).
     units::AngularVelocity maxHeadingNudgeRate{10.0 * math::Angle::kPi / 180.0};
 };
 

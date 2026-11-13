@@ -41,6 +41,11 @@ The schema space was reserved, and the fields are wire-pinned by test
 | `tickPhase[5]` User | `Time` | **0 — RESERVED** | G2 markers / mechanisms |
 | `tickPhase[6..7]` | `Time` | **0 — SPARE** | unassigned pre-freeze capacity: a new phase is a vocabulary append, never a wire reshape |
 
+**Appended since, before F9 (2026-09-27, TANK1):** `tankSteerActive` (`bool`, the record's last field) —
+set by `MoveToPose` on a tank when its steering changed the tick's yaw command by more than its legibility
+floor; carried by the blackbox as tick-flags bit 2 (a bit every earlier writer wrote 0, so the file format
+version stayed 1) and by TermSink as ` TSTR`. H1's wire decoder should expose that bit rather than ignore it.
+
 The `TickPhase` index vocabulary (values 0–5 defined, 6–7 spare; `kTickPhaseSlots = 8`) lives in
 `debug_record.hpp` beside `GateReason`, explicit-valued and append-only. `FaultCode` gained
 `Implausible = 10` (append-only) for D-5. **Also on the seam since C5** (not per-tick, but F9's
@@ -49,6 +54,17 @@ semantics, bounded strings) that E1's SdSink and H1's wire may serialize; and th
 vocabulary `diag::MotionOutcome` (0–4, wire-pinned). H1 should freeze `DebugRecord`, `GateReason`,
 `TickPhase`, `FaultCode`, and decide whether SHUL/2 v1 also carries `RunSummary`/`MotionOutcome` or
 defers them to v2 — both are already wire-stable either way.
+
+**Answered at H1 (the team lead's ruling of 2026-09-26; the format built host-only 2026-09-29, NOT yet
+frozen — the freeze is H1's last part).** SHUL/2 v1 carries five frame types: Hello, **Tick** (the
+`DebugRecord`, as the blackbox's own 428 bytes), **Log** (the message channel, which the blackbox omits),
+**Summary** (`RunSummary`, as the blackbox's own 168 bytes) and End. It does **not** carry
+`MotionOutcome` or per-motion results as data: no seam channel carries them — they ride `log()` as
+text, so they reach the wire inside Log frames, verbatim; a data frame for them is an additive type
+later. It carries no Triage frame either (a stream carries every tick, the faulting one included). The
+`tankSteerActive` bit above arrives as tick-flags bit 2 with no wire code of its own — the Tick IS the
+blackbox's bytes — and the wire's decoder exposes it. The whole format is `vexbuilder-integration.md`
+§5.2.
 
 ---
 
@@ -77,13 +93,13 @@ pose — the guard is load-bearing), and C1 as `TermSink`'s first consumer found
 
 | Item | Chunk |
 |---|---|
-| Per-motion result line (target vs final · overshoot · drift · time · exit-reason) | C5 |
+| Per-motion result line (target vs final · overshoot · drift · time · exit-reason) | C5 (a tank's translating lines gained the final cross-track error, ` xt`, at TANK1 Part B, 2026-09-28 — API 2.3) |
 | Session header (git hash, routine id, alliance, port map, battery start) | C5 |
 | End-of-run summary block | C5 |
 | `SdSink` — binary blackbox to `/usd/` | E1 ✅ (the sink, the format and the decoder; the `/usd/` adapter itself is R1's — E1 ships `hal::IBlockSink` and a host fake) |
 | Estimator introspection (residual, Mahalanobis, accept/reject reason, covariance trace) | E1 → **E4 ✅** (E1 built and proved the PATH with a synthetic corrector; E2/E3 filled the residuals and the corrector-side reasons; **E4 filled the last two slots from a real filter covariance** — `gateMahalanobis` from `S = H P Hᵀ + R` and `covarianceTrace` as the position block in in². Both are re-read from decoded blackbox bytes. Zero on complementary-tier records by design, so old files keep their meaning) |
 | Latched brownout marker + graceful-end contract | E1 ✅ |
-| `SHUL/2` wire protocol (**F9 freeze**) | H1 |
+| `SHUL/2` wire protocol (**F9 freeze**) | H1 — **Part A1 ✅ 2026-09-29, host-only**: the format (binary, a CRC on every frame; Tick and Summary are the blackbox's bytes) and its reader. The sink is Part A2; the F9 freeze is Part B. Never crossed a real link |
 | Run record/replay | H2 |
 | On-brain live PID/FF tuner | H3 |
 
@@ -123,6 +139,9 @@ the sim clock doesn't advance intra-tick; nullptr in `MotionSchedulerConfig` = o
 the scheduler brackets Localization and Motion, stamps the last COMPLETED tick's breakdown onto
 records (one-tick lag, documented on the field), and the LOOP_OVERRUN path logs
 `overrun attribution: loc …ms · mot …ms · other …ms (worst mot)` — the overrun now has a NAME.
+*(Since T4 Part 3, 2026-10-08: once per overrun EPISODE, beside LOOP_OVERRUN's own line, which is
+logged once per episode too — a slow stretch used to log both on every tick, and the programs' SD
+copy of the log made each a card write inside the slow tick; every tick is still counted.)*
 `test/tick_attribution_test.cpp` + the e2e attribution case.
 
 **D-4. ✅ DELIVERED (content + seam; PROS glue → R1, as planned).** Controller-screen fault display.
@@ -224,10 +243,22 @@ for items already on this list, plus one genuinely uncovered detector:
   three tracking wheels — zero-delta-while-others-move (500 ms threshold) plus long-run L/R travel
   ratio (< 50%) — told the team **which** wheel died, not just *that* odometry was implausible.
   v2 today: `OdoStallCheck` (C1) detects "odometry stuck vs drive spinning" at motion level, and
-  its own header defers the **estimator-side detector to E-phase**. When that E-phase detector is
+  its own header defers the **estimator-side detector to E-phase**. *(Since R3b Parts 1–3,
+  2026-09-14: on a drivetrain whose odometry IS the drive encoders — robot two, no tracking
+  wheels — that comparison is a tautology, and the check is configured with
+  `independentMotionSource = false` so it never reports a verdict; the encoder-vs-IMU heading
+  cross-check `DriveEncoderOdometry::lastHeadingDisagreement()` is the observable the future
+  detector for such a chassis will use — hardware register HA-131.)* When that E-phase detector is
   built, the legacy mutual-comparison approach is the proven requirements input: it needs
   *which-wheel* attribution, structured (`fault=ODO_STUCK wheel=L`), not a banner. **Owner: the
-  E-phase estimator-side detector named in `motion/odo_stall_check.hpp`.**
+  E-phase estimator-side detector named in `motion/odo_stall_check.hpp`.** *(Since DIAG1,
+  2026-09-26 — a NARROWER thing, not that detector: the odometry's per-tick trust gate now says
+  which of its checks refused a tick and the values it saw, on the `ODO_STUCK` line itself —
+  `implausible odometry tick why=TRAVEL dth=0.000rad h0=… h1=… L=40.000in R=0.000in`, with
+  `fwd=`/`lat=` for tracking pods (`diag/odom_tick_audit.hpp`). That attributes ONE implausible
+  tick to a side or pod; it cannot see a wheel that goes quiet over a window, which is the
+  stall case above, and the which-wheel detector is still owed. It came from robot two's two
+  unexplained `implausible odometry tick` faults on 2026-09-25, whose lines named nothing.)*
 - **Drive-side veer/imbalance triage** (`legacy main.cpp` [VEER]/[OPCTL]): L/R average-velocity
   imbalance % + per-side temperature deltas, with a diagnosis matrix (slower AND hotter ⇒ tight
   gearbox; balanced motors but veering ⇒ odom-wheel contact). The team lived this failure hard
@@ -266,7 +297,9 @@ on the `shulib-v2` branch.
 1. **One record, many sinks.** New diagnostics extend `DebugRecord`; sinks only ever *format*. Bench,
    terminal, field, and sim traces stay directly comparable.
 2. **Zero cost in a competition build.** `NullSink` default and `wantsRecord()` so the record isn't
-   even built. Anything added here honours that.
+   even built. Anything added here honours that. (A "competition build" here means one with
+   diagnostics off. The team's match program, "shulib Competition" — COMP-b, 2026-09-30, guide
+   chapter 17 — is not one today: it logs to USB serial like every robot-two program.)
 3. **Structured fields, not essays.** The legacy code's prose diagnosis trees and ALL-CAPS banners are
    the anti-pattern §18 exists to prevent.
 4. **Log and recover, never crash.** A diagnostic that can take down an auton is worse than no

@@ -1,0 +1,403 @@
+// auton_tester_source_test.cpp — source pins for what the host cannot compile: "shulib Auton
+// Tester"'s program TU (src/programs/auton_tester_program.cpp includes pros/screen.h) and
+// src/main.cpp's cases for it (chunk COMP-t, 2026-09-28; the brief's §5 source pins, the re-check's
+// findings 4, 6, 9 and 12). Read through SHULIB_SOURCE_DIR (the api_reference_fidelity_test
+// pattern); comments are stripped before any code pin, so a sentence that mentions a name is never
+// mistaken for a call.
+//
+// A pin catches only the spellings it names — that is why the boot also PROVES the pacer chain at
+// run time (pacerChainProven, host-tested in test/auton_abort_watch_test.cpp (13b)). What only a
+// pin can guard is said where it is: the disabled read (mutation 23 — the host cannot call PROS,
+// and no bench station can disable the robot) and the exact Robot construction (mutation 24).
+
+#include "doctest.h"
+
+#include <cstddef>
+#include <regex>
+#include <string>
+
+#include "source_pins.hpp"
+
+namespace {
+
+// The source-pin helpers were this file's until COMP-b (2026-09-30) moved them, unchanged, to
+// test/source_pins.hpp for the competition program's pins too (one copy, never two).
+using source_pins::bodyOf;
+using source_pins::count;
+using source_pins::readFile;
+using source_pins::squash;
+using source_pins::stringLiterals;
+using source_pins::stripComments;
+
+const std::string kProgramFile = "src/programs/auton_tester_program.cpp";
+
+}  // namespace
+
+// Bug caught (mutation 17): the program calling runAuton itself — the tester's sequence (the
+// countdown, the quiet tick, the one try) would be bypassed, and the host tests would test a
+// sequence the robot never runs.
+TEST_CASE("pins: the program runs autons ONLY through runTesterOnce") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    CHECK(count(code, "runTesterOnce(") == 1);
+    CHECK(count(code, "runAuton(") == 0);
+    CHECK(count(code, "registerAutons(") == 1);
+}
+
+// Bug caught (T4 Part 3; the team lead's ruling of 2026-10-02 on COMP-b's C5, applied here because
+// this program registers through the same function): one auton entry the registry refuses costing
+// the tester's whole boot -- every OTHER auton untestable until the bad one is fixed -- because the
+// registry was built to throw; or a dropped entry never named (PICK would just be missing it), or
+// named in words of the program's own (the two programs' lines would drift).
+TEST_CASE("pins: the tester's registry DROPS a refused entry and names it in the shared words") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    CHECK(count(code, "st.registry.emplace(") == 1);
+    CHECK(count(code, "st.registry.emplace(kAutonPeriods, competition::OnRefusal::DropEntry);") == 1);
+    CHECK(count(squash(code), "st.registry.emplace(kAutonPeriods, "
+                              "competition::OnRefusal::DropEntry); registerAutons(*st.registry);")
+          == 1);
+    CHECK(count(code, "#include \"common/dropped_autons.hpp\"") == 1);
+    // `false`: the tester's opcontrol() drives nothing, so its line must not say driver control
+    // still runs (the T4-3 review).
+    CHECK(count(squash(code), "sayDroppedAutons(*st.registry, false, [](const char* dropped) { "
+                              "logBoth(hal::LogLevel::Warn, dropped); });")
+          == 1);
+    CHECK(count(code, "refusedCount(") == 0);
+    const std::size_t sayAt = code.find("sayDroppedAutons(");
+    const std::size_t taskAt = code.find("st.task.emplace(");
+    REQUIRE(sayAt != std::string::npos);
+    CHECK(sayAt < taskAt);
+}
+
+// Bug caught (the re-check's finding 4; mutations 24 and 25; the mechanism service since MECH-A5):
+// the Robot built WITHOUT the options that carry the guard (`buildOptions()` passed straight through
+// — the guard never paces, and no abort can stop a motion), or built on the watch (the abandon
+// requested and never acted on); the MECHANISM SERVICE left out of the chain (guard -> watch: every
+// mechanism step of an auton waits on a mechanism nothing ticks — the MECH brief's P1 control case),
+// constructed AFTER the Robot (the Chassis takes its pacer once — landmine 1), bound outside the try,
+// over devices other than the Robot's own (landmine 20), or after the proof (an unbound service ticks
+// nothing: the proof would refuse every boot); the route ids registered before the bind, outside the
+// try, or never (mutation M47: every route marker an unknown id); the chain proof moved after the
+// task starts or out of the try (a failed proof would not refuse); and the unbuild resetting the
+// Robot before the service (MECH-A5's review: ~MechanismService reads every slot's mechanism, and
+// those, the fault latch and the clock are the Robot's — a refused boot read destroyed objects).
+TEST_CASE("pins: the Robot is built WITH opts, the guard its pacer, the chain guard -> service -> watch, "
+          "the service bound and the route ids registered in the try, the chain proven before the task") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    CHECK(count(code, "st.robot.emplace(st.boot.built.config, *st.devices, opts);") == 1);
+    CHECK(count(code, "st.robot.emplace(") == 1);
+    CHECK(count(code, "robot::validate(st.boot.built.config, *st.devices, opts)") == 1);
+    CHECK(count(code, "opts.pacer = &*st.guard;") == 1);
+    CHECK(count(code, ".pacer =") == 1);
+    // THE CHAIN (inside out): painter -> watch -> service -> guard.
+    CHECK(count(code, "st.painter.emplace(st.devices->pacer())") == 1);
+    CHECK(count(code, "st.watch.emplace(*st.painter") == 1);
+    CHECK(count(code, "st.mechanisms.emplace(*st.watch);") == 1);
+    CHECK(count(code, "st.guard.emplace(*st.mechanisms);") == 1);
+    CHECK(count(code, "st.guard.emplace(") == 1);
+    CHECK(count(code, "st.mechanisms.emplace(") == 1);
+    CHECK(count(code, "attachGuard(") == 1);
+    // THE BIND: over the Robot's OWN built devices, the robot's clock, latch and sink.
+    CHECK(count(squash(code), "st.mechanisms->bind(kMechanisms, st.robot->mechanismParts().devices(), "
+                              "st.robot->context().clock(), st.robot->faults(), st.robot->context().telemetry());")
+          == 1);
+    CHECK(count(code, "->bind(") == 1);
+    // THE ROUTE REGISTRY: one registry, the robot's route ids over its Chassis and service, ONE call.
+    CHECK(count(code, "st.commands.emplace();") == 1);
+    CHECK(count(code, "st.routes.emplace(st.robot->chassis(), *st.mechanisms, kMechanisms, "
+                      "st.devices->telemetry());") == 1);
+    CHECK(count(code, "st.routes->registerInto(*st.commands);") == 1);
+    CHECK(count(code, "registerInto(") == 1);
+
+    CHECK(count(code, "pacerChainMissing(") == 1);
+    CHECK(count(code, "pacerChainProven(") == 0);
+    const std::size_t tryAt = code.find("    try {\n        st.devices.emplace();");
+    const std::size_t catchAt = code.find("} catch (const PreconditionError& e) {\n        unbuild();");
+    const std::size_t serviceAt = code.find("st.mechanisms.emplace(");
+    const std::size_t robotAt = code.find("st.robot.emplace(");
+    const std::size_t bindAt = code.find("st.mechanisms->bind(");
+    const std::size_t routesAt = code.find("st.routes->registerInto(");
+    const std::size_t proofAt = code.find("pacerChainMissing(");
+    const std::size_t registerAt = code.find("registerAutons(");
+    const std::size_t taskAt = code.find("st.task.emplace(");
+    REQUIRE(tryAt != std::string::npos);
+    REQUIRE(catchAt != std::string::npos);
+    CHECK(tryAt < serviceAt);
+    CHECK(serviceAt < robotAt);  // constructed BEFORE the Robot (the Chassis takes its pacer once)
+    CHECK(robotAt < bindAt);     // bound AFTER it, over its devices
+    CHECK(bindAt < routesAt);    // the route ids after the bind
+    CHECK(routesAt < proofAt);
+    CHECK(bindAt < proofAt);     // an unbound service ticks nothing: the proof needs it bound
+    CHECK(proofAt < catchAt);  // inside the try: a throw or a false proof refuses the boot
+    CHECK(tryAt < registerAt);
+    CHECK(registerAt < catchAt);
+    CHECK(catchAt < taskAt);
+    CHECK(count(code, "st.task.emplace(&testerTask, nullptr, TASK_PRIORITY_DEFAULT, "
+                      "TASK_STACK_DEPTH_DEFAULT,") == 1);
+    CHECK(count(code, "st.task.emplace(") == 1);
+    // THE UNBUILD, each object before what its destructor reads: the service before the Robot.
+    CHECK(count(squash(code), "const auto unbuild = [&st] { st.screen.reset(); st.registry.reset(); "
+                              "st.routes.reset(); st.commands.reset(); st.mechanisms.reset(); st.robot.reset(); "
+                              "st.guard.reset(); st.watch.reset(); st.painter.reset(); st.inputs.reset(); "
+                              "st.master.reset(); st.devices.reset(); };") == 1);
+}
+
+// Bug caught (the re-check's finding 4; mutations 21-23): the PROS reads widened past one line
+// each — the press/release counts or the error status read in the program, where no host test can
+// see them, or the disabled flag dropped (mutation 23: this pin is its ONLY guard).
+TEST_CASE("pins: PROS's two reads are ONE line each, through the host-tested reductions") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    CHECK(squash(bodyOf(code, "TesterTouch readTouch()"))
+          == "return testerTouchFrom(pros::c::screen_touch_status(), "
+             "static_cast<int>(pros::E_TOUCH_ERROR));");
+    CHECK(squash(bodyOf(code, "AbortInputs read() override"))
+          == "return abortInputsFrom(readTouch(), *master_, "
+             "pros::c::competition_is_disabled() != 0);");
+    CHECK(count(code, "screen_touch_status") == 1);
+    CHECK(count(code, "press_count") == 0);
+    CHECK(count(code, "release_count") == 0);
+    CHECK(count(code, "competition_is_disabled") == 1);
+}
+
+// Bug caught (the re-check's finding 6): a throw after boot killing the task silently (a C++
+// exception out of a PROS task function is std::terminate, the drive in whatever state it was
+// last given) — the task's whole body must be one try whose handlers stop the tester, then idle.
+TEST_CASE("pins: the tester's task is one try, both handlers stop the tester, then it idles") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    const std::string body = squash(bodyOf(code, "void testerTask(void*"));
+    CHECK(body.rfind("TesterState& st = state(); try {", 0) == 0);
+    CHECK(count(body, "} catch (const PreconditionError& e) { stopTheTester(e.what()); }") == 1);
+    // (COMP-t's review) any other std::exception stops the tester in its OWN words.
+    CHECK(count(body, "} catch (const std::exception& e) { stopTheTester(e.what());") == 1);
+    CHECK(body.find("catch (const std::exception& e)") < body.find("catch (...)"));
+    CHECK(count(body, "catch (...) { stopTheTester(\"an unknown exception\"); }") == 1);
+    const std::size_t lastCatch = body.find("catch (...)");
+    const std::size_t idle = body.find("for (;;) { pros::delay(100); }");
+    CHECK(idle != std::string::npos);
+    CHECK(lastCatch < idle);
+    CHECK(body.size() - (idle + std::string{"for (;;) { pros::delay(100); }"}.size()) == 0);
+    // stopTheTester's screen footer is the literal the file checks at compile time.
+    const std::string stop = bodyOf(code, "void stopTheTester(const char* what) noexcept");
+    CHECK(count(stop, "\"The drive is stopped (0 V + Brake). Restart the program.\"") == 1);
+    CHECK(count(code, "kStoppedFooter =\n    \"The drive is stopped (0 V + Brake). Restart the "
+                      "program.\";") == 1);
+}
+
+// Bug caught (the re-check's finding 12): the SD log bypassing the adapter that owns /usd/ — a raw
+// fopen (SAFE-SAVE's platform scan allows it in three files only), a /usd/ literal (a second owner
+// of the prefix), or the log opened truncating (every reboot erases the session's runs).
+TEST_CASE("pins: the SD run log goes through the adapter's Append mode, and names no /usd/") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    CHECK(count(code, "fopen") == 0);
+    CHECK(count(code, "\"/usd/") == 0);
+    for (const std::string& lit : stringLiterals(code)) {
+        CHECK_MESSAGE(lit.find("/usd/") == std::string::npos, "a /usd/ literal: ", lit);
+    }
+    CHECK(count(code, "ProsFileMode::Append") == 1);
+    // (COMP-b, 2026-09-30) the file's name is stated ONCE, in src/common/auton_run_log.hpp, for
+    // both programs that append to it; the tester's constant is that one.
+    CHECK(count(code, "constexpr const char* kSdRunLogFile = kAutonRunLogFile;") == 1);
+    CHECK(count(stripComments(readFile("src/common/auton_run_log.hpp")),
+                "inline constexpr const char* kAutonRunLogFile = \"shulib_auton_runs.txt\";")
+          == 1);
+}
+
+// Bug caught: the program commanding the drive itself — every motion the tester makes must be the
+// auton's, through runAuton, under the guard.
+TEST_CASE("pins: the program names no motion verb") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    for (const char* verb : {".drive(", ".moveTo(", ".turnTo(", ".brake(", "setVoltage(",
+                             "move_voltage", "cancel(", ".hold(", ".face("}) {
+        CAPTURE(verb);
+        CHECK(count(code, verb) == 0);
+    }
+}
+
+// Bug caught (T4's N4): a slot number in a string the robot prints — the slot is the documents'
+// to name (it moves from 7 to 2 when T4 Part 3 retires Teleop), and a printed one would go stale.
+TEST_CASE("pins: no string in the tester's files names a slot number") {
+    const std::regex slot{"slot[ -]*[0-9]", std::regex::icase};
+    for (const char* file : {"src/programs/auton_tester_program.cpp",
+                             "src/programs/auton_tester_program.hpp",
+                             "src/programs/auton_tester_panel.hpp",
+                             "src/programs/auton_tester_run.hpp",
+                             "src/programs/auton_abort_watch.hpp", "src/team/autons.cpp",
+                             "src/team/autons.hpp"}) {
+        CAPTURE(file);
+        for (const std::string& lit : stringLiterals(stripComments(readFile(file)))) {
+            CHECK_MESSAGE(!std::regex_search(lit, slot), "a slot number in: ", lit);
+        }
+    }
+}
+
+// Bug caught (the re-check's finding 9): a PROS header in a file the host suite compiles as
+// PROS-free. The CI grep covers include/shulib only, and the host shim provides pros/rtos.hpp and
+// pros/misc.hpp — so such an include would still compile on the host and hide a robot-only call.
+TEST_CASE("pins: the pure tester headers and the students' file include no pros/ header") {
+    const std::regex prosInclude{R"(#\s*include\s*[<"]pros/)"};
+    for (const char* file : {"src/programs/auton_abort_watch.hpp",
+                             "src/programs/auton_tester_run.hpp",
+                             "src/programs/auton_tester_panel.hpp", "src/team/autons.hpp",
+                             "src/team/autons.cpp"}) {
+        CAPTURE(file);
+        CHECK_FALSE(std::regex_search(stripComments(readFile(file)), prosInclude));
+    }
+}
+
+// Bug caught (mutation 18's family): src/main.cpp doing something in the tester's build from a
+// PROS entry point other than initialize() — a second painter over the tester's screen, an auton in
+// autonomous(), or driver control in opcontrol() (the tester's task owns the robot; PROS deletes
+// the competition tasks on a mode change — HA-161).
+TEST_CASE("pins: src/main.cpp's AutonTester cases outside initialize() only return") {
+    const std::string code = stripComments(readFile("src/main.cpp"));
+    for (const char* fn : {"void disabled()", "void competition_initialize()",
+                           "void autonomous()", "void opcontrol()"}) {
+        CAPTURE(fn);
+        const std::string body = bodyOf(code, fn);
+        const std::size_t at = body.find("case Program::AutonTester:");
+        REQUIRE(at != std::string::npos);
+        std::size_t end = body.find("case Program::", at + 1);
+        if (end == std::string::npos) {
+            end = body.rfind('}');  // the switch's closing brace
+        }
+        CHECK(squash(body.substr(at, end - at)) == "case Program::AutonTester: return;");
+    }
+    const std::string init = squash(bodyOf(code, "void initialize()"));
+    CHECK(count(init, "case Program::AutonTester: shulib::bench::autonTesterInitialize("
+                      "kVariantBeacon, bootStatusBits(bits, sizeof bits)); return;") == 1);
+}
+
+// ── COMP-t's review (2026-09-29): the program code that FEEDS and ACTS ON the safety rules ──────
+
+// Bug caught (the review's P1-P6, each of which SURVIVED the whole suite and the gate): the RUN
+// gate's inputs forged in readFacts — `f.bootFromRecord = true` (D9 bypassed: a typed-table boot
+// could drive the 40 in toward the operator), `f.competitionStatus = 0` (RUN under a field or a
+// switch), `f.controllerConnected = true` (RUN without the abort's hands); the chain proof's refusal
+// made unreachable (`&& st.runs < 0`: R13's "refused, not warned" as strong as an unchecked if);
+// RESULT's finger-down wait dropped (`showResult(rec, …, false)`); the painter's full repaint on a
+// button change dropped (a touch tested against a frame not on the screen). runAllowed() and
+// pacerChainProven() are host-tested; the program lines that feed them are not host-compiled
+// (pros/screen.h), so they are pinned WHOLE here, the way the two PROS reads are.
+TEST_CASE("pins: readFacts, the painter's repaint rule, the chain proof's refusal, RESULT's finger") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    CHECK(squash(bodyOf(code, "TesterFacts readFacts() {"))
+          == "TesterState& st = state(); const robot::Robot& r = *st.robot; TesterFacts f; f.now = "
+             "r.context().clock().now().value(); f.estimate = r.localizer().pose(); f.estimateLive = "
+             "r.localizer().qualityClass() != localization::Localizer::Quality::Uninitialized; "
+             "f.controllerConnected = st.master->isConnected(); f.competitionStatus = "
+             "pros::c::competition_get_status(); f.abortCause = st.watch->cause(); f.sdLogging = "
+             "st.sdLog.has_value(); f.bootFromRecord = st.boot.source == "
+             "calibration::BootSource::UseRecord; f.faultCount = r.faults().faultCount(); "
+             "f.lastFault = r.faults().lastFault(); f.buildStamp = kBuildTimeText.data(); return f;");
+    CHECK(count(code, ".bootFromRecord") == 1);  // set in readFacts, and nowhere else
+    CHECK(count(code, ".competitionStatus") == 1);
+    CHECK(count(code, ".controllerConnected") == 1);
+
+    CHECK(squash(bodyOf(code, "void ScreenPacer::pace() {"))
+          == "if (enabled_) { const TesterFacts f = readFacts(); const TesterView next = "
+             "state().screen->view(f); if (!paintedOnce_ || !sameButtons(next, painted_)) { "
+             "paintFrame(next); painted_ = next; paintedAt_ = f.now; paintedOnce_ = true; } else if "
+             "(f.now - paintedAt_ >= kLiveRepaintSeconds) { paintText(painted_, next); painted_ = "
+             "next; paintedAt_ = f.now; } } inner_->pace();");
+
+    const std::string init = squash(bodyOf(code, "void autonTesterInitialize("));
+    CHECK(count(init, "if (const ChainGap gap = pacerChainMissing(st.robot->chassis(), *st.guard, *st.mechanisms, "
+                      "*st.watch); gap != ChainGap::None) { char chain[192]; std::snprintf(chain, sizeof chain, "
+                      "\"%.150s -- a build error, not a robot fault\", chainGapWords(gap)); unbuild(); "
+                      "refuse(\"the tester's pacer chain is WRONG\", chain); return; }") == 1);
+    const std::size_t proof = init.find("if (const ChainGap gap = pacerChainMissing(");
+    REQUIRE(proof != std::string::npos);
+    const std::size_t proofEnd = init.find("} } catch (const PreconditionError& e) {", proof);
+    REQUIRE(proofEnd != std::string::npos);
+    const std::string refusal = init.substr(proof, proofEnd - proof);
+    CHECK(refusal.size() - refusal.rfind("); return;") == std::string{"); return;"}.size() + 1);
+
+    const std::string runOne = squash(bodyOf(code, "void runOne(int index, std::int32_t "));
+    CHECK(count(runOne, "const TesterTouch t = readTouch(); "
+                        "st.screen->showResult(rec, t.sample.releaseCount, t.fingerDown);") == 1);
+    CHECK(count(code, "showResult(") == 1);
+}
+
+// Bug caught (the review's M2 and M4, both SURVIVING the suite and a clean package build; the
+// mechanism service since MECH-A5): the Robot's PRESENT mechanisms never reaching the guard — runOne
+// handing runTesterOnce no service (runAuton's span overload with nothing in it), or no route
+// registry (every ROUTE auton refused); the last-resort stop safing nothing; the boot line counting
+// something else than the service's built mechanisms. The service is handed to the run and the stop,
+// and the boot's "N of M mechanisms present" reads its count.
+TEST_CASE("pins: the mechanism service and the route registry are handed to the run, the service's "
+          "mechanisms to the stop and the boot line") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    CHECK(count(code, "presentCount") == 0);
+    CHECK(count(code, "st.present") == 0);
+    const std::string runOne = squash(bodyOf(code, "void runOne(int index, std::int32_t "));
+    CHECK(count(runOne, "st.devices->telemetry(), *st.mechanisms, &*st.commands, observer, runPressCount);") == 1);
+    const std::string stop = squash(bodyOf(code, "void stopTheTester(const char* what) noexcept"));
+    CHECK(count(stop, "stopAfterProgramError(st.robot->chassis(), st.mechanisms->mechanisms(), *st.watch);") == 1);
+    CHECK(count(code, "static_cast<int>(st.mechanisms->mechanisms().size())") == 1);
+    // The mechanism boot lines (no driver controls: this program drives nothing) and the ROUTES line.
+    CHECK(count(squash(code), "mechanismBootLines(kMechanisms, *st.robot, *st.mechanisms, nullptr, [&st](const "
+                              "MechanismLine& m) { st.devices->telemetry().log(m.level, \"MECH\", m.text); });")
+          == 1);
+    CHECK(count(code, "logBoth(hal::LogLevel::Info, routesBootLine(st.routes->ids()).text);") == 1);
+}
+
+// Bug caught (the review, 2026-09-29): a finger that lands between the read whose release touched
+// RUN and the watch's arm never aborting — runTesterOnce arms with RUN's own read's press count
+// (host-tested, run (15b)), and the program must hand it the count of THAT read, not a later one.
+TEST_CASE("pins: RUN's own touch read is the abort's touch baseline") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    const std::string task = squash(bodyOf(code, "void testerTask(void*"));
+    CHECK(count(task, "const TesterTouch t = readTouch(); const TesterAction a = "
+                      "st.screen->touch(t.sample, st.painter->drawn(), readFacts()); if (a.kind == "
+                      "TesterActionKind::Run) { runOne(a.entry, t.pressCount); }") == 1);
+    CHECK(count(code, "runOne(") == 2);  // its definition and that one call
+}
+
+// Bug caught (the review, 2026-09-29): the boot line cut past TermSink's 199 bytes at a real build
+// hash (the SD path lost). The program prints the three lines testerBootLines() makes (host-tested
+// at every field's worst case, run (23b)), and no one-line boot format of its own.
+TEST_CASE("pins: the boot lines are testerBootLines', all three logged") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    CHECK(count(code, "testerBootLines(") == 1);
+    CHECK(count(squash(code), "for (const char* bootLine : boot.line) { "
+                              "logBoth(hal::LogLevel::Info, bootLine); }") == 1);
+    for (const std::string& lit : stringLiterals(code)) {
+        CHECK_MESSAGE(lit.find("boot: shulib") == std::string::npos, "a boot line here: ", lit);
+        CHECK_MESSAGE(lit.find("boot source") == std::string::npos, "a boot line here: ", lit);
+        CHECK_MESSAGE(lit.find("SD run log") == std::string::npos, "an SD boot line here: ", lit);
+    }
+}
+
+// ── COMP-b's first step (2026-09-30, the COMP brief's ND3 (b)): the shared pieces MOVED ─────────
+
+// Bug caught: a COPY left behind by the move — the tester keeping its own palette, painters,
+// refusal painter, chain proof or touch reduction beside the shared ones in src/common/ (two copies
+// drift; the COMP brief's B11: "never copied") — or a call site not re-pointed. The tester's
+// pixels, pages and proofs are the shared code's since this step; these pins say so mechanically.
+TEST_CASE("pins: the tester calls the SHARED painters, chain proof, stop and touch reduction") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    // The painters: the shared ones, and none of the tester's own left.
+    CHECK(count(code, "paintRefusalScreen(RefusalScreen{") == 1);
+    CHECK(count(code, "paintMenuFrame(v.menu);") == 1);
+    CHECK(count(code, "paintMenuText(was.menu, now.menu);") == 1);
+    CHECK(count(code, "void paintRefusal(") == 0);
+    CHECK(count(code, "rgb(") == 0);
+    CHECK(count(code, "0x1E5AA8") == 0);  // the palette lives in src/common/screen_paint.hpp
+    CHECK(count(code, "screen_erase") == 0);
+    CHECK(count(code, "screen_fill_rect") == 0);
+    CHECK(count(code, "printText(") == 0);  // every string reaches the screen via the painters
+    // The chain proof and the stop: the shared ones; the tester's header keeps only the wrapper.
+    const std::string run = stripComments(readFile("src/programs/auton_tester_run.hpp"));
+    CHECK(count(run, "bool pacerChainProven(") == 0);
+    CHECK(count(run, "#include \"common/guarded_run.hpp\"") == 1);
+    CHECK(squash(bodyOf(run, "AbortWatch& watch) noexcept"))
+          == "stopAfterProgramError(chassis, present); watch.disarm();");
+    // The touch reduction: the shared one, plus the tester's finger-down fact.
+    const std::string watch = stripComments(readFile("src/programs/auton_abort_watch.hpp"));
+    CHECK(count(watch, "screenTouchFrom(t, touchErrorStatus)") == 1);
+    CHECK(count(watch, "t.press_count") == 0);
+    CHECK(count(watch, "t.release_count") == 0);
+    // The status bits: defined once, in src/common/state_screens.hpp.
+    const std::string panel = stripComments(readFile("src/programs/auton_tester_panel.hpp"));
+    CHECK(count(panel, "kStatusDisabled =") == 0);
+    CHECK(count(stripComments(readFile("src/common/state_screens.hpp")), "kStatusDisabled =") == 1);
+}

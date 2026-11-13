@@ -4,7 +4,7 @@ Recipes for the shape of a routine: starting, visiting places, doing something a
 
 Every listing here is compiled and run in
 [`test/cookbook_examples_test.cpp`](../../test/cookbook_examples_test.cpp), cases `cookbook-01a`
-through `cookbook-01c`.
+through `cookbook-01d`.
 
 ---
 
@@ -24,11 +24,14 @@ RoutineResult skeleton(Chassis& chassis) {
 
 **Why it is written this way.**
 
-- `startAt` is the first line of every auton. It tells the pose estimator where you physically
-  placed the robot. Skip it and every field coordinate afterwards is measured from wherever the
-  estimator happened to start, which is the origin — so the robot drives to the wrong place with
-  complete confidence. (Heading is not seeded here; the IMU owns it. See
-  [Chapter 3](../guide/03-knowing-where-you-are.md).)
+- `startAt` is the first line of every auton you run yourself. It tells the pose estimator where
+  you physically placed the robot. Skip it and every field coordinate afterwards is measured from
+  wherever the estimator happened to start, which is the origin — so the robot drives to the wrong
+  place with complete confidence. (Heading is not seeded here; the IMU owns it. See
+  [Chapter 3](../guide/03-knowing-where-you-are.md).) An auton registered for
+  `competition::runAuton` is the exception: its entry's `start` is seated for it — position AND
+  heading — before its first line, so it has no `startAt`
+  ([Chapter 16](../guide/16-testing-an-auton-on-the-bench.md)).
 - `brake` at the end is not decoration. Without it the routine returns while the last motion's
   residual velocity is still bleeding off, and "where the robot ended up" becomes a matter of
   luck. `brake` blocks until the estimate says the robot is genuinely at rest.
@@ -112,7 +115,7 @@ RoutineResult twoGoalSideRun(Chassis& chassis, Intake& intake) {
 
 The test that compiles this listing also holds what the prose claims: eleven steps, six of them
 motions, two releases, the robot genuinely within an inch and a half of the parking pose on the
-simulator's ground truth — and the whole run finishing in about 7.5 seconds of simulated time,
+host test plant's ground truth — and the whole run finishing in about 7.5 seconds of plant time,
 inside a short autonomous window with room to spare.
 
 **Why it is written this way.**
@@ -151,10 +154,10 @@ CHECK(good.lastTrajectory().completedLegs == 3);
 
 **Why it is written this way.**
 
-- `followTrajectory` is a chain of `moveTo` legs that **settles at every waypoint**. That is the
-  documented motion model today: there is no blending through corners yet
-  ([Chapter 14](../guide/14-what-it-cannot-do-yet.md)). So five close waypoints cost five settle
-  times; prefer fewer, farther apart.
+- `followTrajectory` is a chain of `moveTo` legs that **settles at every waypoint** — it does not
+  blend through corners ([Chapter 14](../guide/14-what-it-cannot-do-yet.md)). So five close
+  waypoints cost five settle times; prefer fewer, farther apart — or, to flow through the points
+  without stopping, write a curve ([below](#flow-through-points-a-curve-and-its-fallback)).
 - The options — including the timeout — apply **per leg**, not to the whole path. `{.timeout =
   8_s}` over three waypoints permits twenty-four seconds, not eight.
 - `lastTrajectory()` is the only place the leg count survives. The chain flattens a trajectory
@@ -164,6 +167,73 @@ CHECK(good.lastTrajectory().completedLegs == 3);
 **Watch out for:** a non-finite waypoint. The whole call is rejected before the robot moves at
 all, rather than driving three legs and then throwing — which is what you want, but it means a
 typo in waypoint five stops waypoint one.
+
+---
+
+## Flow through points: a curve, and its fallback
+
+**Use this when:** a tank route stops and turns at a point it only needs to pass through, and you
+want it to flow through instead.
+
+```cpp
+constexpr bool kUseCurves = false;  // OFF until the curve has passed its robot session (Station C)
+
+Routine& toTheGoal(Routine& r, bool useCurves) {
+    if (useCurves) {
+        r.curveTo({{24_in, 12_in}, {48_in, 24_in, 0_deg}}, {.timeout = 4_s});
+    } else {
+        r.face(48_in, 24_in).driveTo(48_in, 24_in, {.timeout = 4_s}).turnTo(0_deg);
+    }
+    return r;
+}
+
+RoutineResult curveThereAndBack(Chassis& chassis, bool useCurves) {
+    Routine r{chassis, "curves"};
+    toTheGoal(r, useCurves);
+    if (useCurves) {
+        r.reverseCurveTo({{24_in, 12_in}, {0_in, 0_in, 0_deg}}, {.timeout = 4_s});
+    } else {
+        r.faceAway(0_in, 0_in).reverseTo(0_in, 0_in, {.timeout = 4_s}).turnTo(0_deg);
+    }
+    return r.result();
+}
+
+// The call in the skills file: the one switch decides every curve in it.
+RoutineResult skillsOpening(Chassis& chassis) { return curveThereAndBack(chassis, kUseCurves); }
+```
+
+**Why it is written this way.**
+
+- `curveTo` drives ONE smooth path from where the robot is, along its nose, through `(24, 12)`,
+  and ends at `(48, 24)` facing 0° — without stopping at `(24, 12)`. A point written `{x, y}` lets
+  the library pick the smooth direction there; `{x, y, heading}` says which way the robot points
+  as it passes. The end is an ordinary `moveTo`: it stops and is judged like any drive.
+- **A heading is the robot's NOSE, also backwards.** `reverseCurveTo` drives with the back
+  leading, and its last point says `0_deg` because the robot finishes facing 0° — not 180°, which
+  is the way it travels. Writing the travel direction makes the path double back, and the curve is
+  refused before the robot moves (one Warn names the point).
+- **Do not list the robot's own spot as the first point.** The curve already starts where the
+  robot is. A point without a heading within an inch of the robot is dropped (one Info line); one
+  with a heading is refused.
+- **A curve into a pose that must be exact starts 2½ ft back along that pose's line for a sideways
+  miss up to 6 in, 3 ft for up to 1 ft ([Chapter 5](../guide/05-getting-there.md#a-sideways-miss-what-a-curve-fixes-and-from-how-far));
+  closer, write `face` + `driveTo` + `turnTo`.**
+- `kUseCurves` is the fallback the team writes with every curve: EVERY curve sits inside an
+  `if (useCurves)`, and its `else` branch is today's turn-drive-turn — the steps the team already
+  writes (proven, like everything here, on the host test plant until the robot session). The curve
+  runs only once it has passed on the robot. Doing nothing — leaving it `false` — must be the safe
+  choice, so a curve outside the `if` is a bug: with the switch off it would still run. The switch
+  is passed down from ONE place, the call in the skills file (`skillsOpening` above).
+- The `.timeout` covers the WHOLE curve, end included. Give a skills curve one near its real time:
+  once the curve has handed its last inches to the end `moveTo`, and on a robot pushing a wall with
+  spinning wheels, only the timeout stops it.
+
+**Watch out for:** a first point behind the robot (more than 90° off its nose). The curve will not
+plan the turn for you: it is refused with "turn first: face()" and the step fails. `face()` first,
+or start the curve somewhere it can leave along the nose. Backwards it is the robot's BACK that
+must point within 90° of the first point: a `reverseCurveTo` whose first point is in front of the
+robot is refused with "... off the robot's back ... turn first: faceAway()". On a look spot (squaring up to a wall
+before a camera look), keep any `headingTolerance` at 3° or less.
 
 ---
 

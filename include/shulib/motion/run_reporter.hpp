@@ -144,6 +144,8 @@ public:
         r.finalPose = completed.finalPose;
         r.overshoot = completed.overshoot;
         r.drift = completed.drift;
+        r.hasCrossTrack = completed.hasCrossTrack;  // TANK1 Part B: the tank's ` xt` column
+        r.crossTrack = completed.crossTrack;
         diag::emitResultLine(*out_, r);
     }
 

@@ -3,19 +3,81 @@
 
 # Every public entity, alphabetically
 
-All 1,632 of them, across 115 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 6,386 of them, across 211 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
 The [reference overview](README.md) says what is deliberately *not* here, and why.
 
-[A](#a) · [B](#b) · [C](#c) · [D](#d) · [E](#e) · [F](#f) · [G](#g) · [H](#h) · [I](#i) · [K](#k) · [L](#l) · [M](#m) · [N](#n) · [O](#o) · [P](#p) · [Q](#q) · [R](#r) · [S](#s) · [T](#t) · [V](#v) · [W](#w) · [X](#x) · [Y](#y)
+[A](#a) · [B](#b) · [C](#c) · [D](#d) · [E](#e) · [F](#f) · [G](#g) · [H](#h) · [I](#i) · [J](#j) · [K](#k) · [L](#l) · [M](#m) · [N](#n) · [O](#o) · [P](#p) · [Q](#q) · [R](#r) · [S](#s) · [T](#t) · [U](#u) · [V](#v) · [W](#w) · [X](#x) · [Y](#y)
 
 ## A
 
 | Name | Kind | Page |
 |---|---|---|
+| `a_control_names_a_button_that_is_not_one_of_the_twelve` | free function | [driver_inputs.md](driver_inputs.md#a_control_names_a_button_that_is_not_one_of_the_twelve) |
+| `a_control_names_a_mechanism_this_robot_does_not_have` | free function | [driver_inputs.md](driver_inputs.md#a_control_names_a_mechanism_this_robot_does_not_have) |
+| `a_current_cap_must_be_above_0_and_at_most_2_5_A` | free function | [spec.md](spec.md#a_current_cap_must_be_above_0_and_at_most_2_5_a) |
+| `a_current_cap_must_be_at_least_0_001_A_a_motor_holds_whole_milliamps` | free function | [spec.md](spec.md#a_current_cap_must_be_at_least_0_001_a_a_motor_holds_whole_milliamps) |
+| `a_distance_piece_sensor_needs_its_sees_within_distance_more_than_zero` | free function | [spec.md](spec.md#a_distance_piece_sensor_needs_its_sees_within_distance_more_than_zero) |
+| `a_hold_needs_volts_above_0_and_at_most_12` | free function | [driver_inputs.md](driver_inputs.md#a_hold_needs_volts_above_0_and_at_most_12) |
+| `a_home_switch_role_on_a_mechanism_that_is_not_position` | free function | [spec.md](spec.md#a_home_switch_role_on_a_mechanism_that_is_not_position) |
+| `a_homing_control_on_a_mechanism_that_is_never_homed` | free function | [driver_inputs.md](driver_inputs.md#a_homing_control_on_a_mechanism_that_is_never_homed) |
+| `a_limit_switch_is_a_three_wire_device_give_it_a_letter` | free function | [wiring.md](wiring.md#a_limit_switch_is_a_three_wire_device_give_it_a_letter) |
+| `a_mechanism_has_no_driver_control_mark_it_autonOnly_if_that_is_meant` | free function | [driver_inputs.md](driver_inputs.md#a_mechanism_has_no_driver_control_mark_it_autononly_if_that_is_meant) |
+| `a_mechanism_has_no_name` | free function | [spec.md](spec.md#a_mechanism_has_no_name) |
+| `a_mechanism_marked_autonOnly_also_has_a_control` | free function | [driver_inputs.md](driver_inputs.md#a_mechanism_marked_autononly_also_has_a_control) |
+| `a_mechanism_name_does_not_fit_twenty_three_characters` | free function | [spec.md](spec.md#a_mechanism_name_does_not_fit_twenty_three_characters) |
+| `a_mechanism_that_must_be_homed_has_no_way_to_home_in_driver_control` | free function | [driver_inputs.md](driver_inputs.md#a_mechanism_that_must_be_homed_has_no_way_to_home_in_driver_control) |
+| `a_mechanisms_kind_is_unset` | free function | [spec.md](spec.md#a_mechanisms_kind_is_unset) |
+| `a_motor_mechanism_has_three_wire_line_roles_make_two_mechanisms` | free function | [spec.md](spec.md#a_motor_mechanism_has_three_wire_line_roles_make_two_mechanisms) |
+| `a_motor_mechanism_is_wired_with_motors_like_motors_6_not_lines` | free function | [wiring.md](wiring.md#a_motor_mechanism_is_wired_with_motors_like_motors_6_not_lines) |
+| `a_motor_mechanism_needs_one_to_four_motor_roles` | free function | [spec.md](spec.md#a_motor_mechanism_needs_one_to_four_motor_roles) |
+| `a_motor_mechanisms_cartridge_is_unset` | free function | [spec.md](spec.md#a_motor_mechanisms_cartridge_is_unset) |
+| `a_motor_mechanisms_safe_brake_mode_is_unset` | free function | [spec.md](spec.md#a_motor_mechanisms_safe_brake_mode_is_unset) |
+| `a_motor_port_is_a_number_like_6_a_letter_in_quotes_is_a_three_wire_port` | free function | [wiring.md](wiring.md#a_motor_port_is_a_number_like_6_a_letter_in_quotes_is_a_three_wire_port) |
+| `a_never_homed_mechanism_needs_unhomedVolts_for_its_buttons_to_move_it` | free function | [driver_inputs.md](driver_inputs.md#a_never_homed_mechanism_needs_unhomedvolts_for_its_buttons_to_move_it) |
+| `a_piece_sensor_cannot_be_a_rotation_sensor` | free function | [spec.md](spec.md#a_piece_sensor_cannot_be_a_rotation_sensor) |
+| `a_piece_sensor_is_a_smart_sensor_give_it_a_port_number` | free function | [wiring.md](wiring.md#a_piece_sensor_is_a_smart_sensor_give_it_a_port_number) |
+| `a_pneumatic_is_wired_with_lines_like_lines_A_not_motors` | free function | [wiring.md](wiring.md#a_pneumatic_is_wired_with_lines_like_lines_a_not_motors) |
+| `a_pneumatic_mechanism_has_motor_roles` | free function | [spec.md](spec.md#a_pneumatic_mechanism_has_motor_roles) |
+| `a_pneumatic_mechanism_needs_one_or_two_line_roles` | free function | [spec.md](spec.md#a_pneumatic_mechanism_needs_one_or_two_line_roles) |
+| `a_position_states_a_different_number_of_levels_than_the_wiring_has_lines` | free function | [wiring.md](wiring.md#a_position_states_a_different_number_of_levels_than_the_wiring_has_lines) |
+| `a_preset_on_a_mechanism_that_is_never_homed` | free function | [driver_inputs.md](driver_inputs.md#a_preset_on_a_mechanism_that_is_never_homed) |
+| `a_preset_or_a_homing_needs_a_time_limit_above_zero` | free function | [driver_inputs.md](driver_inputs.md#a_preset_or_a_homing_needs_a_time_limit_above_zero) |
+| `a_preset_or_position_name_does_not_fit_fifteen_characters` | free function | [spec.md](spec.md#a_preset_or_position_name_does_not_fit_fifteen_characters) |
+| `a_route_id_does_not_fit_23_characters_shorten_the_mechanism_or_preset_name` | free function | [route_ids.md](route_ids.md#a_route_id_does_not_fit_23_characters_shorten_the_mechanism_or_preset_name) |
+| `a_route_id_is_one_of_the_librarys_own_wait_ms_brake_hold_ms_log` | free function | [route_ids.md](route_ids.md#a_route_id_is_one_of_the_librarys_own_wait_ms_brake_hold_ms_log) |
+| `a_smart_port_is_not_a_number_from_1_to_21_or_more_than_four_motors` | free function | [wiring.md](wiring.md#a_smart_port_is_not_a_number_from_1_to_21_or_more_than_four_motors) |
+| `a_smart_port_is_used_twice` | free function | [wiring.md](wiring.md#a_smart_port_is_used_twice) |
+| `a_stall_signature_needs_belowMotorRpm_above_0` | free function | [spec.md](spec.md#a_stall_signature_needs_belowmotorrpm_above_0) |
+| `a_stall_signature_needs_its_amps_above_0` | free function | [spec.md](spec.md#a_stall_signature_needs_its_amps_above_0) |
+| `a_stall_signature_needs_lasting_above_0` | free function | [spec.md](spec.md#a_stall_signature_needs_lasting_above_0) |
+| `a_stall_signatures_amps_must_be_below_the_current_cap_it_could_never_trip` | free function | [spec.md](spec.md#a_stall_signatures_amps_must_be_below_the_current_cap_it_could_never_trip) |
+| `a_stall_signatures_amps_must_be_below_the_motors_2_5_A_current_limit` | free function | [spec.md](spec.md#a_stall_signatures_amps_must_be_below_the_motors_2_5_a_current_limit) |
+| `a_three_wire_port_is_a_letter_in_quotes_like_A_a_number_is_a_smart_port` | free function | [wiring.md](wiring.md#a_three_wire_port_is_a_letter_in_quotes_like_a_a_number_is_a_smart_port) |
+| `a_three_wire_port_is_not_a_letter_from_A_to_H_or_more_than_two_lines` | free function | [wiring.md](wiring.md#a_three_wire_port_is_not_a_letter_from_a_to_h_or_more_than_two_lines) |
+| `a_three_wire_port_is_used_twice` | free function | [wiring.md](wiring.md#a_three_wire_port_is_used_twice) |
+| `a_toggle_is_for_a_two_position_pneumatic_or_a_flywheel_speed` | free function | [driver_inputs.md](driver_inputs.md#a_toggle_is_for_a_two_position_pneumatic_or_a_flywheel_speed) |
+| `a_toggle_needs_a_two_position_pneumatic_or_a_flywheel_named_speed` | free function | [driver_inputs.md](driver_inputs.md#a_toggle_needs_a_two_position_pneumatic_or_a_flywheel_named_speed) |
+| `a_toggle_on_a_flywheel_names_its_speed_like_toggle_flywheel_shoot` | free function | [driver_inputs.md](driver_inputs.md#a_toggle_on_a_flywheel_names_its_speed_like_toggle_flywheel_shoot) |
+| `AbsentGps` | class | [absent_gps.md](absent_gps.md#class-absentgps) |
+| `AbsentGps::hasFix` | function | [absent_gps.md](absent_gps.md#absentgps-hasfix) |
+| `AbsentGps::kNoInformationRmsInches` | field | [absent_gps.md](absent_gps.md#absentgps-knoinformationrmsinches) |
+| `AbsentGps::pose` | function | [absent_gps.md](absent_gps.md#absentgps-pose) |
+| `AbsentGps::rmsError` | function | [absent_gps.md](absent_gps.md#absentgps-rmserror) |
+| `AbsentTagSource` | class | [absent_tag_source.md](absent_tag_source.md#class-absenttagsource) |
+| `AbsentTagSource::tags` | function | [absent_tag_source.md](absent_tag_source.md#absenttagsource-tags) |
+| `AbsentVision` | class | [absent_vision.md](absent_vision.md#class-absentvision) |
+| `AbsentVision::objects` | function | [absent_vision.md](absent_vision.md#absentvision-objects) |
+| `absolute_homing_the_sensors_reading_at_zero_must_be_in_from_0_up_to_360` | free function | [spec.md](spec.md#absolute_homing_the_sensors_reading_at_zero_must_be_in_from_0_up_to_360) |
+| `absoluteSensor` | free function | [kinds.md](kinds.md#absolutesensor) |
+| `absoluteSensor (overload 2)` | type alias | [kinds.md](kinds.md#absolutesensor-2) |
 | `Acceleration` | type alias | [quantity.md](quantity.md#acceleration) |
+| `acceptanceRun` | free function | [acceptance_run.md](acceptance_run.md#acceptancerun) |
+| `acceptanceRunEntry` | free function | [acceptance_run.md](acceptance_run.md#acceptancerunentry) |
+| `accepted` | free function | [shul2_format.md](shul2_format.md#accepted) |
+| `acceptRecord` | free function | [record_store.md](record_store.md#acceptrecord) |
 | `ActuateAndConfirm` | class | [mechanism_op.md](mechanism_op.md#class-actuateandconfirm) |
 | `ActuateAndConfirm::ActuateAndConfirm` | function | [mechanism_op.md](mechanism_op.md#actuateandconfirm-actuateandconfirm) |
 | `ActuateAndConfirm::ActuateAndConfirm (overload 2)` | function | [mechanism_op.md](mechanism_op.md#actuateandconfirm-actuateandconfirm-2) |
@@ -33,8 +95,22 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ActuateAndConfirmConfig::actuationTime` | field | [mechanism_op.md](mechanism_op.md#actuateandconfirmconfig-actuationtime) |
 | `ActuateAndConfirmConfig::confirmWindow` | field | [mechanism_op.md](mechanism_op.md#actuateandconfirmconfig-confirmwindow) |
 | `ActuateAndConfirmConfig::target` | field | [mechanism_op.md](mechanism_op.md#actuateandconfirmconfig-target) |
+| `aimAt` | free function | [wall_reset.md](wall_reset.md#aimat) |
+| `AiVisionSettings` | struct | [vision_frames.md](vision_frames.md#struct-aivisionsettings) |
+| `AiVisionSettings::colourCount` | field | [vision_frames.md](vision_frames.md#aivisionsettings-colourcount) |
+| `AiVisionSettings::colourMerge` | field | [vision_frames.md](vision_frames.md#aivisionsettings-colourmerge) |
+| `AiVisionSettings::colours` | field | [vision_frames.md](vision_frames.md#aivisionsettings-colours) |
+| `AiVisionSettings::expectedClassCount` | field | [vision_frames.md](vision_frames.md#aivisionsettings-expectedclasscount) |
+| `AiVisionSettings::expectedClasses` | field | [vision_frames.md](vision_frames.md#aivisionsettings-expectedclasses) |
+| `AiVisionSettings::objects` | field | [vision_frames.md](vision_frames.md#aivisionsettings-objects) |
+| `aiVisionSettingsProblem` | free function | [vision_frames.md](vision_frames.md#aivisionsettingsproblem) |
+| `allFit` | free function | [calibrate_screen.md](calibrate_screen.md#allfit) |
+| `alongAxis` | free function | [axis.md](axis.md#alongaxis) |
 | `AlwaysConfirmed` | struct | [mechanism_op.md](mechanism_op.md#struct-alwaysconfirmed) |
 | `AlwaysConfirmed::operator()` | function | [mechanism_op.md](mechanism_op.md#alwaysconfirmed-operator-call) |
+| `an_angle_sensor_is_a_smart_sensor_give_it_a_port_number` | free function | [wiring.md](wiring.md#an_angle_sensor_is_a_smart_sensor_give_it_a_port_number) |
+| `an_angle_sensor_role_on_a_mechanism_that_is_not_position_or_speed` | free function | [spec.md](spec.md#an_angle_sensor_role_on_a_mechanism_that_is_not_position_or_speed) |
+| `an_optical_piece_sensor_needs_its_proximity_threshold_in_above_0_and_at_most_1` | free function | [spec.md](spec.md#an_optical_piece_sensor_needs_its_proximity_threshold_in_above_0_and_at_most_1) |
 | `Angle` | class | [angle.md](angle.md#class-angle) |
 | `Angle::Angle` | function | [angle.md](angle.md#angle-angle) |
 | `Angle::approxEqual` | function | [angle.md](angle.md#angle-approxequal) |
@@ -47,12 +123,30 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Angle::operator- (overload 2)` | function | [angle.md](angle.md#angle-operator-minus-2) |
 | `Angle::radians` | function | [angle.md](angle.md#angle-radians) |
 | `Angle::radians (overload 2)` | function | [angle.md](angle.md#angle-radians-2) |
+| `angleDegToPosition` | free function | [spec.md](spec.md#angledegtoposition) |
 | `AngleDim` | type alias | [quantity.md](quantity.md#angledim) |
+| `angleSensor` | free function | [wiring.md](wiring.md#anglesensor) |
+| `angleSensor (overload 2)` | type alias | [wiring.md](wiring.md#anglesensor-2) |
 | `AngularVelocity` | type alias | [quantity.md](quantity.md#angularvelocity) |
+| `Answer` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-answer) |
+| `Answer::Abort` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-abort) |
+| `Answer::Done` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-done) |
+| `appendCurveCheckWords` | free function | [curve_path.md](curve_path.md#appendcurvecheckwords) |
 | `appendNum` | free function | [line_format.md](line_format.md#appendnum) |
+| `appendOdomTickAudit` | free function | [odom_tick_audit.md](odom_tick_audit.md#appendodomtickaudit) |
+| `AppendOpen` | enum class | [pros-block_sink.md](pros-block_sink.md#enum-class-appendopen) |
+| `AppendOpen::Appended` | enumerator | [pros-block_sink.md](pros-block_sink.md#appendopen-appended) |
+| `AppendOpen::Created` | enumerator | [pros-block_sink.md](pros-block_sink.md#appendopen-created) |
+| `AppendOpen::Refused` | enumerator | [pros-block_sink.md](pros-block_sink.md#appendopen-refused) |
 | `appendPadded` | free function | [line_format.md](line_format.md#appendpadded) |
 | `appendTimestamp` | free function | [line_format.md](line_format.md#appendtimestamp) |
 | `appendUnsigned` | free function | [line_format.md](line_format.md#appendunsigned) |
+| `appendWallResetLine` | free function | [wall_reset.md](wall_reset.md#appendwallresetline) |
+| `Applied` | struct | [live_tuning.md](live_tuning.md#struct-applied) |
+| `Applied::build` | field | [live_tuning.md](live_tuning.md#applied-build) |
+| `Applied::ok` | field | [live_tuning.md](live_tuning.md#applied-ok) |
+| `Applied::sentence` | field | [live_tuning.md](live_tuning.md#applied-sentence) |
+| `Applied::why` | field | [live_tuning.md](live_tuning.md#applied-why) |
 | `AppliedCorrection` | struct | [correction.md](correction.md#struct-appliedcorrection) |
 | `AppliedCorrection::audit` | field | [correction.md](correction.md#appliedcorrection-audit) |
 | `AppliedCorrection::clamped` | field | [correction.md](correction.md#appliedcorrection-clamped) |
@@ -98,17 +192,146 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `AprilTagCorrectorConfig::minRange` | field | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrectorconfig-minrange) |
 | `AprilTagCorrectorConfig::postFixStdDev` | field | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrectorconfig-postfixstddev) |
 | `AprilTagCorrectorConfig::stdDevPerInch` | field | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrectorconfig-stddevperinch) |
+| `ArcadeBody` | constant | [teleop_loop.md](teleop_loop.md#arcadebody) |
+| `ArcadeField` | constant | [teleop_loop.md](teleop_loop.md#arcadefield) |
+| `arcadeRequest` | free function | [drive_modes.md](drive_modes.md#arcaderequest) |
 | `arcStep` | free function | [arc_step.md](arc_step.md#arcstep) |
+| `Arm` | struct | [kinds.md](kinds.md#struct-arm) |
+| `Arm` | type alias | [kinds.md](kinds.md#arm) |
+| `Arm::angleSensor` | field | [kinds.md](kinds.md#arm-anglesensor) |
+| `Arm::cartridge` | field | [kinds.md](kinds.md#arm-cartridge) |
+| `Arm::clampedTo` | function | [kinds.md](kinds.md#arm-clampedto) |
+| `Arm::currentCap` | field | [kinds.md](kinds.md#arm-currentcap) |
+| `Arm::gearing` | field | [kinds.md](kinds.md#arm-gearing) |
+| `Arm::gravity` | field | [kinds.md](kinds.md#arm-gravity) |
+| `Arm::home` | field | [kinds.md](kinds.md#arm-home) |
+| `Arm::motors` | field | [kinds.md](kinds.md#arm-motors) |
+| `Arm::name` | field | [kinds.md](kinds.md#arm-name) |
+| `Arm::operator[]` | function | [kinds.md](kinds.md#arm-operator-index) |
+| `Arm::presets` | field | [kinds.md](kinds.md#arm-presets) |
+| `Arm::range` | field | [kinds.md](kinds.md#arm-range) |
+| `Arm::requires` | function | [kinds.md](kinds.md#arm-requires) |
+| `Arm::safe` | field | [kinds.md](kinds.md#arm-safe) |
+| `Arm::spec` | function | [kinds.md](kinds.md#arm-spec) |
+| `Arm::stall` | field | [kinds.md](kinds.md#arm-stall) |
+| `Arm::to` | function | [kinds.md](kinds.md#arm-to) |
+| `Arm::tuning` | field | [kinds.md](kinds.md#arm-tuning) |
+| `Arm::unhomedVolts` | field | [kinds.md](kinds.md#arm-unhomedvolts) |
+| `ArmingClock` | class | [touch_panel.md](touch_panel.md#class-armingclock) |
+| `ArmingClock::armedAfter` | function | [touch_panel.md](touch_panel.md#armingclock-armedafter) |
+| `ArmingClock::observe` | function | [touch_panel.md](touch_panel.md#armingclock-observe) |
+| `AtSpeed` | struct | [kinds.md](kinds.md#struct-atspeed) |
+| `AtSpeed::lasting` | field | [kinds.md](kinds.md#atspeed-lasting) |
+| `AtSpeed::rpm` | field | [kinds.md](kinds.md#atspeed-rpm) |
+| `AutonContext` | struct | [auton_registry.md](auton_registry.md#struct-autoncontext) |
+| `AutonContext` | type alias | [auton_registry.md](auton_registry.md#autoncontext) |
+| `AutonContext::chassis` | field | [auton_registry.md](auton_registry.md#autoncontext-chassis) |
+| `AutonContext::entry` | field | [auton_registry.md](auton_registry.md#autoncontext-entry) |
+| `AutonContext::guard` | field | [auton_registry.md](auton_registry.md#autoncontext-guard) |
+| `AutonContext::mechanisms` | field | [auton_registry.md](auton_registry.md#autoncontext-mechanisms) |
+| `AutonContext::mechanismService` | field | [auton_registry.md](auton_registry.md#autoncontext-mechanismservice) |
+| `AutonContext::telemetry` | field | [auton_registry.md](auton_registry.md#autoncontext-telemetry) |
+| `AutonEndAction` | type alias | [auton_registry.md](auton_registry.md#autonendaction) |
+| `AutonEntry` | struct | [auton_registry.md](auton_registry.md#struct-autonentry) |
+| `AutonEntry::effectiveStart` | function | [auton_registry.md](auton_registry.md#autonentry-effectivestart) |
+| `AutonEntry::endAction` | field | [auton_registry.md](auton_registry.md#autonentry-endaction) |
+| `AutonEntry::endActionAt` | field | [auton_registry.md](auton_registry.md#autonentry-endactionat) |
+| `AutonEntry::hardStopAt` | field | [auton_registry.md](auton_registry.md#autonentry-hardstopat) |
+| `AutonEntry::kind` | field | [auton_registry.md](auton_registry.md#autonentry-kind) |
+| `AutonEntry::name` | field | [auton_registry.md](auton_registry.md#autonentry-name) |
+| `AutonEntry::route` | field | [auton_registry.md](auton_registry.md#autonentry-route) |
+| `AutonEntry::routine` | field | [auton_registry.md](auton_registry.md#autonentry-routine) |
+| `AutonEntry::start` | field | [auton_registry.md](auton_registry.md#autonentry-start) |
+| `AutonKind` | enum class | [auton_registry.md](auton_registry.md#enum-class-autonkind) |
+| `AutonKind::Match` | enumerator | [auton_registry.md](auton_registry.md#autonkind-match) |
+| `AutonKind::Skills` | enumerator | [auton_registry.md](auton_registry.md#autonkind-skills) |
+| `AutonKind::Unset` | enumerator | [auton_registry.md](auton_registry.md#autonkind-unset) |
+| `autonKindWord` | free function | [auton_registry.md](auton_registry.md#autonkindword) |
+| `AutonMenu` | class | [auton_menu.md](auton_menu.md#class-autonmenu) |
+| `AutonMenu::AutonMenu` | function | [auton_menu.md](auton_menu.md#autonmenu-autonmenu) |
+| `AutonMenu::AutonMenu (overload 2)` | function | [auton_menu.md](auton_menu.md#autonmenu-autonmenu-2) |
+| `AutonMenu::AutonMenu (overload 3)` | function | [auton_menu.md](auton_menu.md#autonmenu-autonmenu-3) |
+| `AutonMenu::choice` | function | [auton_menu.md](auton_menu.md#autonmenu-choice) |
+| `AutonMenu::chosenEntry` | function | [auton_menu.md](auton_menu.md#autonmenu-chosenentry) |
+| `AutonMenu::lockChoice` | function | [auton_menu.md](auton_menu.md#autonmenu-lockchoice) |
+| `AutonMenu::locked` | function | [auton_menu.md](auton_menu.md#autonmenu-locked) |
+| `AutonMenu::operator=` | function | [auton_menu.md](auton_menu.md#autonmenu-operator-eq) |
+| `AutonMenu::operator= (overload 2)` | function | [auton_menu.md](auton_menu.md#autonmenu-operator-eq-2) |
+| `AutonMenu::page` | function | [auton_menu.md](auton_menu.md#autonmenu-page) |
+| `AutonMenu::pageCount` | function | [auton_menu.md](auton_menu.md#autonmenu-pagecount) |
+| `AutonMenu::touch` | function | [auton_menu.md](auton_menu.md#autonmenu-touch) |
+| `AutonMenu::unlock` | function | [auton_menu.md](auton_menu.md#autonmenu-unlock) |
+| `AutonMenu::view` | function | [auton_menu.md](auton_menu.md#autonmenu-view) |
+| `AutonMenu::~AutonMenu` | function | [auton_menu.md](auton_menu.md#autonmenu-destructor-autonmenu) |
+| `autonOnly` | free function | [driver_inputs.md](driver_inputs.md#autononly) |
+| `autonOnly (overload 2)` | type alias | [driver_inputs.md](driver_inputs.md#autononly-2) |
+| `AutonPeriods` | struct | [auton_registry.md](auton_registry.md#struct-autonperiods) |
+| `AutonPeriods::match` | field | [auton_registry.md](auton_registry.md#autonperiods-match) |
+| `AutonPeriods::periodFor` | function | [auton_registry.md](auton_registry.md#autonperiods-periodfor) |
+| `AutonPeriods::skills` | field | [auton_registry.md](auton_registry.md#autonperiods-skills) |
+| `AutonPeriods::validate` | function | [auton_registry.md](auton_registry.md#autonperiods-validate) |
+| `AutonRegistry` | class | [auton_registry.md](auton_registry.md#class-autonregistry) |
+| `AutonRegistry::add` | function | [auton_registry.md](auton_registry.md#autonregistry-add) |
+| `AutonRegistry::at` | function | [auton_registry.md](auton_registry.md#autonregistry-at) |
+| `AutonRegistry::AutonRegistry` | function | [auton_registry.md](auton_registry.md#autonregistry-autonregistry) |
+| `AutonRegistry::check` | function | [auton_registry.md](auton_registry.md#autonregistry-check) |
+| `AutonRegistry::empty` | function | [auton_registry.md](auton_registry.md#autonregistry-empty) |
+| `AutonRegistry::find` | function | [auton_registry.md](auton_registry.md#autonregistry-find) |
+| `AutonRegistry::onRefusal` | function | [auton_registry.md](auton_registry.md#autonregistry-onrefusal) |
+| `AutonRegistry::periodFor` | function | [auton_registry.md](auton_registry.md#autonregistry-periodfor) |
+| `AutonRegistry::periods` | function | [auton_registry.md](auton_registry.md#autonregistry-periods) |
+| `AutonRegistry::refusal` | function | [auton_registry.md](auton_registry.md#autonregistry-refusal) |
+| `AutonRegistry::refusedCount` | function | [auton_registry.md](auton_registry.md#autonregistry-refusedcount) |
+| `AutonRegistry::size` | function | [auton_registry.md](auton_registry.md#autonregistry-size) |
+| `AutonRoutine` | type alias | [auton_registry.md](auton_registry.md#autonroutine) |
+| `AutonRunOutcome` | enum class | [match_runner.md](match_runner.md#enum-class-autonrunoutcome) |
+| `AutonRunOutcome::NotStarted` | enumerator | [match_runner.md](match_runner.md#autonrunoutcome-notstarted) |
+| `AutonRunOutcome::Refused` | enumerator | [match_runner.md](match_runner.md#autonrunoutcome-refused) |
+| `AutonRunOutcome::RouteRan` | enumerator | [match_runner.md](match_runner.md#autonrunoutcome-routeran) |
+| `AutonRunOutcome::RoutineRan` | enumerator | [match_runner.md](match_runner.md#autonrunoutcome-routineran) |
+| `autonRunOutcomeWord` | free function | [match_runner.md](match_runner.md#autonrunoutcomeword) |
+| `AutonRunResult` | struct | [match_runner.md](match_runner.md#struct-autonrunresult) |
+| `AutonRunResult::armedAt` | field | [match_runner.md](match_runner.md#autonrunresult-armedat) |
+| `AutonRunResult::guard` | field | [match_runner.md](match_runner.md#autonrunresult-guard) |
+| `AutonRunResult::imuAtSeat` | field | [match_runner.md](match_runner.md#autonrunresult-imuatseat) |
+| `AutonRunResult::liveAfter` | field | [match_runner.md](match_runner.md#autonrunresult-liveafter) |
+| `AutonRunResult::outcome` | field | [match_runner.md](match_runner.md#autonrunresult-outcome) |
+| `AutonRunResult::route` | field | [match_runner.md](match_runner.md#autonrunresult-route) |
+| `AutonRunResult::routine` | field | [match_runner.md](match_runner.md#autonrunresult-routine) |
+| `AutonRunResult::seated` | field | [match_runner.md](match_runner.md#autonrunresult-seated) |
+| `AutonRunResult::started` | function | [match_runner.md](match_runner.md#autonrunresult-started) |
+| `AutonRunResult::why` | field | [match_runner.md](match_runner.md#autonrunresult-why) |
+| `AutonVerdict` | struct | [auton_registry.md](auton_registry.md#struct-autonverdict) |
+| `AutonVerdict::ok` | field | [auton_registry.md](auton_registry.md#autonverdict-ok) |
+| `AutonVerdict::why` | field | [auton_registry.md](auton_registry.md#autonverdict-why) |
+| `Axis` | enum class | [axis.md](axis.md#enum-class-axis) |
+| `Axis::X` | enumerator | [axis.md](axis.md#axis-x) |
+| `Axis::Y` | enumerator | [axis.md](axis.md#axis-y) |
+| `axisErrorBound` | free function | [wall_reset.md](wall_reset.md#axiserrorbound) |
+| `axisFromReading` | free function | [wall_reset.md](wall_reset.md#axisfromreading) |
 | `AxisGains` | struct | [motion_config.md](motion_config.md#struct-axisgains) |
 | `AxisGains::integralLimit` | field | [motion_config.md](motion_config.md#axisgains-integrallimit) |
 | `AxisGains::kD` | field | [motion_config.md](motion_config.md#axisgains-kd) |
 | `AxisGains::kI` | field | [motion_config.md](motion_config.md#axisgains-ki) |
 | `AxisGains::kP` | field | [motion_config.md](motion_config.md#axisgains-kp) |
+| `axisLetter` | free function | [axis.md](axis.md#axisletter) |
+| `AxisShaping` | struct | [input_shaping.md](input_shaping.md#struct-axisshaping) |
+| `AxisShaping::deadband` | field | [input_shaping.md](input_shaping.md#axisshaping-deadband) |
+| `AxisShaping::expo` | field | [input_shaping.md](input_shaping.md#axisshaping-expo) |
+| `AxisShaping::valid` | function | [input_shaping.md](input_shaping.md#axisshaping-valid) |
 
 ## B
 
 | Name | Kind | Page |
 |---|---|---|
+| `BackupLoad` | struct | [record_store.md](record_store.md#struct-backupload) |
+| `BackupLoad::backup` | field | [record_store.md](record_store.md#backupload-backup) |
+| `BackupLoad::bytes` | field | [record_store.md](record_store.md#backupload-bytes) |
+| `BackupLoad::count` | field | [record_store.md](record_store.md#backupload-count) |
+| `BackupLoad::from` | field | [record_store.md](record_store.md#backupload-from) |
+| `BackupLoad::primary` | field | [record_store.md](record_store.md#backupload-primary) |
+| `bandAtLookSpotProblem` | free function | [toggle_visit.md](toggle_visit.md#bandatlookspotproblem) |
+| `beamCeiling` | free function | [wall_reset.md](wall_reset.md#beamceiling) |
 | `BlackboxHeader` | struct | [blackbox_format.md](blackbox_format.md#struct-blackboxheader) |
 | `BlackboxHeader::alliance` | function | [blackbox_format.md](blackbox_format.md#blackboxheader-alliance) |
 | `BlackboxHeader::alliance_` | field | [blackbox_format.md](blackbox_format.md#blackboxheader-alliance_) |
@@ -142,13 +365,91 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BlackboxReader::truncated` | function | [blackbox_reader.md](blackbox_reader.md#blackboxreader-truncated) |
 | `BlackboxReader::truncatedFrameType` | function | [blackbox_reader.md](blackbox_reader.md#blackboxreader-truncatedframetype) |
 | `BlackboxReader::usable` | function | [blackbox_reader.md](blackbox_reader.md#blackboxreader-usable) |
+| `BlockCharSink` | class | [block_char_sink.md](block_char_sink.md#class-blockcharsink) |
+| `BlockCharSink::BlockCharSink` | function | [block_char_sink.md](block_char_sink.md#blockcharsink-blockcharsink) |
+| `BlockCharSink::droppedWrites` | function | [block_char_sink.md](block_char_sink.md#blockcharsink-droppedwrites) |
+| `BlockCharSink::write` | function | [block_char_sink.md](block_char_sink.md#blockcharsink-write) |
+| `Blue` | constant | [kinds.md](kinds.md#blue) |
 | `BodyTravel` | struct | [arc_step.md](arc_step.md#struct-bodytravel) |
 | `BodyTravel::forward` | field | [arc_step.md](arc_step.md#bodytravel-forward) |
 | `BodyTravel::lateral` | field | [arc_step.md](arc_step.md#bodytravel-lateral) |
+| `BootDecision` | enum class | [boot_check.md](boot_check.md#enum-class-bootdecision) |
+| `BootDecision::Degraded` | enumerator | [boot_check.md](boot_check.md#bootdecision-degraded) |
+| `BootDecision::Ok` | enumerator | [boot_check.md](boot_check.md#bootdecision-ok) |
+| `BootDecision::Refuse` | enumerator | [boot_check.md](boot_check.md#bootdecision-refuse) |
+| `bootDecisionWord` | free function | [boot_check.md](boot_check.md#bootdecisionword) |
+| `BootPortStatus` | struct | [boot_check.md](boot_check.md#struct-bootportstatus) |
+| `BootPortStatus::found` | field | [boot_check.md](boot_check.md#bootportstatus-found) |
+| `BootPortStatus::port` | field | [boot_check.md](boot_check.md#bootportstatus-port) |
+| `BootPortStatus::side` | field | [boot_check.md](boot_check.md#bootportstatus-side) |
+| `BootPortStatus::signedPort` | field | [boot_check.md](boot_check.md#bootportstatus-signedport) |
+| `BootPortStatus::state` | field | [boot_check.md](boot_check.md#bootportstatus-state) |
+| `BootReadsBackup` | enum class | [record_store.md](record_store.md#enum-class-bootreadsbackup) |
+| `BootReadsBackup::No` | enumerator | [record_store.md](record_store.md#bootreadsbackup-no) |
+| `BootReadsBackup::Yes` | enumerator | [record_store.md](record_store.md#bootreadsbackup-yes) |
+| `BootSource` | enum class | [boot_check.md](boot_check.md#enum-class-bootsource) |
+| `BootSource::Refuse` | enumerator | [boot_check.md](boot_check.md#bootsource-refuse) |
+| `BootSource::UseRecord` | enumerator | [boot_check.md](boot_check.md#bootsource-userecord) |
+| `BootSource::UseTable` | enumerator | [boot_check.md](boot_check.md#bootsource-usetable) |
+| `BootSourceChoice` | struct | [boot_check.md](boot_check.md#struct-bootsourcechoice) |
+| `BootSourceChoice::source` | field | [boot_check.md](boot_check.md#bootsourcechoice-source) |
+| `BootSourceChoice::why` | field | [boot_check.md](boot_check.md#bootsourcechoice-why) |
+| `BootVerdict` | struct | [boot_check.md](boot_check.md#struct-bootverdict) |
+| `BootVerdict::decision` | field | [boot_check.md](boot_check.md#bootverdict-decision) |
+| `BootVerdict::declaredCount` | field | [boot_check.md](boot_check.md#bootverdict-declaredcount) |
+| `BootVerdict::declaredPorts` | field | [boot_check.md](boot_check.md#bootverdict-declaredports) |
+| `BootVerdict::degradation` | field | [boot_check.md](boot_check.md#bootverdict-degradation) |
+| `BootVerdict::imuFound` | field | [boot_check.md](boot_check.md#bootverdict-imufound) |
+| `BootVerdict::imuOk` | field | [boot_check.md](boot_check.md#bootverdict-imuok) |
+| `BootVerdict::imuPort` | field | [boot_check.md](boot_check.md#bootverdict-imuport) |
+| `BootVerdict::isMissing` | function | [boot_check.md](boot_check.md#bootverdict-ismissing) |
+| `BootVerdict::missingCount` | field | [boot_check.md](boot_check.md#bootverdict-missingcount) |
+| `BootVerdict::newCount` | field | [boot_check.md](boot_check.md#bootverdict-newcount) |
+| `BootVerdict::newPorts` | field | [boot_check.md](boot_check.md#bootverdict-newports) |
+| `BootVerdict::portCount` | field | [boot_check.md](boot_check.md#bootverdict-portcount) |
+| `BootVerdict::ports` | field | [boot_check.md](boot_check.md#bootverdict-ports) |
+| `BootVerdict::reason` | field | [boot_check.md](boot_check.md#bootverdict-reason) |
+| `BootVerdict::swappedCount` | field | [boot_check.md](boot_check.md#bootverdict-swappedcount) |
+| `BootVerdict::usable` | function | [boot_check.md](boot_check.md#bootverdict-usable) |
+| `boundAtImage` | free function | [camera_geometry.md](camera_geometry.md#boundatimage) |
+| `Brake` | constant | [kinds.md](kinds.md#brake) |
 | `BrakeMode` | enum class | [motor.md](motor.md#enum-class-brakemode) |
 | `BrakeMode::Brake` | enumerator | [motor.md](motor.md#brakemode-brake) |
 | `BrakeMode::Coast` | enumerator | [motor.md](motor.md#brakemode-coast) |
 | `BrakeMode::Hold` | enumerator | [motor.md](motor.md#brakemode-hold) |
+| `BrakeWord` | struct | [kinds.md](kinds.md#struct-brakeword) |
+| `BrakeWord::drive` | field | [kinds.md](kinds.md#brakeword-drive) |
+| `BrakeWord::operator config::SafeBrakeMode` | function | [kinds.md](kinds.md#brakeword-operator-config-safebrakemode) |
+| `BrakeWord::operator hal::BrakeMode` | function | [kinds.md](kinds.md#brakeword-operator-hal-brakemode) |
+| `BrakeWord::safe` | field | [kinds.md](kinds.md#brakeword-safe) |
+| `budgetFor` | free function | [calibrate_panel.md](calibrate_panel.md#budgetfor) |
+| `budgetFor` | free function | [touch_panel.md](touch_panel.md#budgetfor) |
+| `BuildOptions` | struct | [robot.md](robot.md#struct-buildoptions) |
+| `BuildOptions::absentDrivePorts` | field | [robot.md](robot.md#buildoptions-absentdriveports) |
+| `BuildOptions::isAbsent` | function | [robot.md](robot.md#buildoptions-isabsent) |
+| `BuildOptions::pacer` | field | [robot.md](robot.md#buildoptions-pacer) |
+| `BuildVerdict` | struct | [robot.md](robot.md#struct-buildverdict) |
+| `BuildVerdict::ok` | field | [robot.md](robot.md#buildverdict-ok) |
+| `BuildVerdict::why` | field | [robot.md](robot.md#buildverdict-why) |
+| `BuiltinCommand` | struct | [route.md](route.md#struct-builtincommand) |
+| `BuiltinCommand::doc` | field | [route.md](route.md#builtincommand-doc) |
+| `BuiltinCommand::firstArgIsDurationMs` | field | [route.md](route.md#builtincommand-firstargisdurationms) |
+| `BuiltinCommand::id` | field | [route.md](route.md#builtincommand-id) |
+| `BuiltinCommand::maxArgs` | field | [route.md](route.md#builtincommand-maxargs) |
+| `BuiltinCommand::minArgs` | field | [route.md](route.md#builtincommand-minargs) |
+| `Button` | type alias | [teleop_loop.md](teleop_loop.md#button) |
+| `button_A_does_two_jobs` | free function | [driver_inputs.md](driver_inputs.md#button_a_does_two_jobs) |
+| `button_B_does_two_jobs` | free function | [driver_inputs.md](driver_inputs.md#button_b_does_two_jobs) |
+| `button_Down_does_two_jobs` | free function | [driver_inputs.md](driver_inputs.md#button_down_does_two_jobs) |
+| `button_L1_does_two_jobs` | free function | [driver_inputs.md](driver_inputs.md#button_l1_does_two_jobs) |
+| `button_L2_does_two_jobs` | free function | [driver_inputs.md](driver_inputs.md#button_l2_does_two_jobs) |
+| `button_Left_does_two_jobs` | free function | [driver_inputs.md](driver_inputs.md#button_left_does_two_jobs) |
+| `button_R1_does_two_jobs` | free function | [driver_inputs.md](driver_inputs.md#button_r1_does_two_jobs) |
+| `button_R2_does_two_jobs` | free function | [driver_inputs.md](driver_inputs.md#button_r2_does_two_jobs) |
+| `button_Right_does_two_jobs` | free function | [driver_inputs.md](driver_inputs.md#button_right_does_two_jobs) |
+| `button_Up_does_two_jobs` | free function | [driver_inputs.md](driver_inputs.md#button_up_does_two_jobs) |
+| `button_X_does_two_jobs` | free function | [driver_inputs.md](driver_inputs.md#button_x_does_two_jobs) |
+| `button_Y_does_two_jobs` | free function | [driver_inputs.md](driver_inputs.md#button_y_does_two_jobs) |
 | `ButtonEdge` | class | [controller.md](controller.md#class-buttonedge) |
 | `ButtonEdge::update` | function | [controller.md](controller.md#buttonedge-update) |
 | `ByteReader` | class | [blackbox_format.md](blackbox_format.md#class-bytereader) |
@@ -180,21 +481,301 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `calibrateAutonomous` | free function | [pros-calibrate.md](pros-calibrate.md#calibrateautonomous) |
+| `calibrateBootBanner` | free function | [calibrate_program.md](calibrate_program.md#calibratebootbanner) |
+| `calibrateConnected` | free function | [pros-calibrate.md](pros-calibrate.md#calibrateconnected) |
+| `CalibrateDevices` | struct | [calibrate_program.md](calibrate_program.md#struct-calibratedevices) |
+| `CalibrateDevices::card` | field | [calibrate_program.md](calibrate_program.md#calibratedevices-card) |
+| `CalibrateDevices::devices` | field | [calibrate_program.md](calibrate_program.md#calibratedevices-devices) |
+| `CalibrateDevices::io` | field | [calibrate_program.md](calibrate_program.md#calibratedevices-io) |
+| `CalibrateDevices::registry` | field | [calibrate_program.md](calibrate_program.md#calibratedevices-registry) |
+| `CalibrateDevices::screen` | field | [calibrate_program.md](calibrate_program.md#calibratedevices-screen) |
+| `calibrateDisabled` | free function | [pros-calibrate.md](pros-calibrate.md#calibratedisabled) |
+| `CalibrateFacts` | struct | [calibrate_program.md](calibrate_program.md#struct-calibratefacts) |
+| `CalibrateFacts::cartridge` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-cartridge) |
+| `CalibrateFacts::drive` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-drive) |
+| `CalibrateFacts::imuPortStated` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-imuportstated) |
+| `CalibrateFacts::mechanisms` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-mechanisms) |
+| `CalibrateFacts::robot` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-robot) |
+| `CalibrateFacts::typedDrive` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-typeddrive) |
+| `calibrateInitialize` | free function | [pros-calibrate.md](pros-calibrate.md#calibrateinitialize) |
+| `CalibrateIo` | class | [calibrate_program.md](calibrate_program.md#class-calibrateio) |
+| `CalibrateIo::CalibrateIo` | function | [calibrate_program.md](calibrate_program.md#calibrateio-calibrateio) |
+| `CalibrateIo::CalibrateIo (overload 2)` | function | [calibrate_program.md](calibrate_program.md#calibrateio-calibrateio-2) |
+| `CalibrateIo::CalibrateIo (overload 3)` | function | [calibrate_program.md](calibrate_program.md#calibrateio-calibrateio-3) |
+| `CalibrateIo::competitionStatus` | function | [calibrate_program.md](calibrate_program.md#calibrateio-competitionstatus) |
+| `CalibrateIo::delayMs` | function | [calibrate_program.md](calibrate_program.md#calibrateio-delayms) |
+| `CalibrateIo::line` | function | [calibrate_program.md](calibrate_program.md#calibrateio-line) |
+| `CalibrateIo::operator=` | function | [calibrate_program.md](calibrate_program.md#calibrateio-operator-eq) |
+| `CalibrateIo::operator= (overload 2)` | function | [calibrate_program.md](calibrate_program.md#calibrateio-operator-eq-2) |
+| `CalibrateIo::readShaftDegrees` | function | [calibrate_program.md](calibrate_program.md#calibrateio-readshaftdegrees) |
+| `CalibrateIo::~CalibrateIo` | function | [calibrate_program.md](calibrate_program.md#calibrateio-destructor-calibrateio) |
+| `CalibratePainter` | class | [calibrate_screen.md](calibrate_screen.md#class-calibratepainter) |
+| `CalibratePainter::CalibratePainter` | function | [calibrate_screen.md](calibrate_screen.md#calibratepainter-calibratepainter) |
+| `CalibratePainter::invalidate` | function | [calibrate_screen.md](calibrate_screen.md#calibratepainter-invalidate) |
+| `CalibratePainter::paintCannot` | function | [calibrate_screen.md](calibrate_screen.md#calibratepainter-paintcannot) |
+| `CalibratePainter::paintNotDriverControl` | function | [calibrate_screen.md](calibrate_screen.md#calibratepainter-paintnotdrivercontrol) |
+| `CalibratePainter::paintStarting` | function | [calibrate_screen.md](calibrate_screen.md#calibratepainter-paintstarting) |
+| `CalibratePainter::paintStateScreen` | function | [calibrate_screen.md](calibrate_screen.md#calibratepainter-paintstatescreen) |
+| `CalibratePainter::render` | function | [calibrate_screen.md](calibrate_screen.md#calibratepainter-render) |
+| `CalibrateProgram` | class | [calibrate_program.md](calibrate_program.md#class-calibrateprogram) |
+| `CalibrateProgram::CalibrateProgram` | function | [calibrate_program.md](calibrate_program.md#calibrateprogram-calibrateprogram) |
+| `CalibrateProgram::CalibrateProgram (overload 2)` | function | [calibrate_program.md](calibrate_program.md#calibrateprogram-calibrateprogram-2) |
+| `CalibrateProgram::kPushLogKeepaliveSeconds` | field | [calibrate_program.md](calibrate_program.md#calibrateprogram-kpushlogkeepaliveseconds) |
+| `CalibrateProgram::kPushLogMinSeconds` | field | [calibrate_program.md](calibrate_program.md#calibrateprogram-kpushlogminseconds) |
+| `CalibrateProgram::operator=` | function | [calibrate_program.md](calibrate_program.md#calibrateprogram-operator-eq) |
+| `CalibrateProgram::run` | function | [calibrate_program.md](calibrate_program.md#calibrateprogram-run) |
+| `calibrateStateScreen` | free function | [calibrate_program.md](calibrate_program.md#calibratestatescreen) |
+| `calibrateStateScreen` | free function | [pros-calibrate.md](pros-calibrate.md#calibratestatescreen) |
+| `CalibrationReport` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-calibrationreport) |
+| `CalibrationReport::drivePortCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-driveportcount) |
+| `CalibrationReport::excludedCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-excludedcount) |
+| `CalibrationReport::excludedPorts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-excludedports) |
+| `CalibrationReport::leftInchesPerRadian` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-leftinchesperradian) |
+| `CalibrationReport::leftMedianRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-leftmedianrad) |
+| `CalibrationReport::leftSpreadRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-leftspreadrad) |
+| `CalibrationReport::portCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-portcount) |
+| `CalibrationReport::ports` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-ports) |
+| `CalibrationReport::pulseCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-pulsecount) |
+| `CalibrationReport::pulses` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-pulses) |
+| `CalibrationReport::pushDistanceIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-pushdistancein) |
+| `CalibrationReport::pushStraightnessRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-pushstraightnessrad) |
+| `CalibrationReport::rightInchesPerRadian` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-rightinchesperradian) |
+| `CalibrationReport::rightMedianRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-rightmedianrad) |
+| `CalibrationReport::rightSpreadRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-rightspreadrad) |
+| `CalibrationReport::spinCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-spincount) |
+| `CalibrationReport::spins` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-spins) |
+| `CalibrationReport::widthCcwIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-widthccwin) |
+| `CalibrationReport::widthCwIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-widthcwin) |
+| `CalibrationReport::widthDisagreement` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-widthdisagreement) |
+| `CalibratorConfig` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-calibratorconfig) |
+| `CalibratorConfig::commandTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-commandtimeout) |
+| `CalibratorConfig::decoupledOwnMin` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-decoupledownmin) |
+| `CalibratorConfig::imuReadyTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-imureadytimeout) |
+| `CalibratorConfig::minPushRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-minpushrad) |
+| `CalibratorConfig::monitor` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-monitor) |
+| `CalibratorConfig::movedThreshold` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-movedthreshold) |
+| `CalibratorConfig::pulseLevelCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pulselevelcount) |
+| `CalibratorConfig::pulseLevels` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pulselevels) |
+| `CalibratorConfig::pulseTime` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pulsetime) |
+| `CalibratorConfig::pulseYawFloor` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pulseyawfloor) |
+| `CalibratorConfig::pushDistance` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pushdistance) |
+| `CalibratorConfig::restFloor` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-restfloor) |
+| `CalibratorConfig::restSettleTime` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-restsettletime) |
+| `CalibratorConfig::restTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-resttimeout) |
+| `CalibratorConfig::restYawRateFloor` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-restyawratefloor) |
+| `CalibratorConfig::spinAgreement` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinagreement) |
+| `CalibratorConfig::spinLevelCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinlevelcount) |
+| `CalibratorConfig::spinLevels` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinlevels) |
+| `CalibratorConfig::spinStartTime` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinstarttime) |
+| `CalibratorConfig::spinStartYaw` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinstartyaw) |
+| `CalibratorConfig::spinTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spintimeout) |
+| `CalibratorConfig::spinTurns` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinturns) |
+| `CalibratorConfig::spinWrongWay` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinwrongway) |
+| `CalibratorConfig::straightBound` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-straightbound) |
+| `CalibratorStatus` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-calibratorstatus) |
+| `CalibratorStatus::atRest` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-atrest) |
+| `CalibratorStatus::candidates` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-candidates) |
+| `CalibratorStatus::driftRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-driftrad) |
+| `CalibratorStatus::excludedCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-excludedcount) |
+| `CalibratorStatus::leftCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-leftcount) |
+| `CalibratorStatus::liveYawRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-liveyawrad) |
+| `CalibratorStatus::movedNow` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-movednow) |
+| `CalibratorStatus::phase` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-phase) |
+| `CalibratorStatus::phaseSeconds` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-phaseseconds) |
+| `CalibratorStatus::progress` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-progress) |
+| `CalibratorStatus::prompt` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-prompt) |
+| `CalibratorStatus::pulseLevelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pulselevelvolts) |
+| `CalibratorStatus::pulseOrdinal` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pulseordinal) |
+| `CalibratorStatus::pulsePort` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pulseport) |
+| `CalibratorStatus::pulseTotal` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pulsetotal) |
+| `CalibratorStatus::pulsing` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pulsing) |
+| `CalibratorStatus::pushFarEnough` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pushfarenough) |
+| `CalibratorStatus::pushTravelRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pushtravelrad) |
+| `CalibratorStatus::rightCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-rightcount) |
+| `CalibratorStatus::spinDirection` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-spindirection) |
+| `CalibratorStatus::spinLevelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-spinlevelvolts) |
+| `CalibratorStatus::spinTurns` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-spinturns) |
+| `CameraConfig` | struct | [camera_config.md](camera_config.md#struct-cameraconfig) |
+| `CameraConfig::note` | field | [camera_config.md](camera_config.md#cameraconfig-note) |
+| `CameraConfig::placement` | field | [camera_config.md](camera_config.md#cameraconfig-placement) |
+| `CameraConfig::port` | field | [camera_config.md](camera_config.md#cameraconfig-port) |
+| `CameraConfig::settings` | field | [camera_config.md](camera_config.md#cameraconfig-settings) |
+| `CameraCorner` | struct | [camera_geometry.md](camera_geometry.md#struct-cameracorner) |
+| `CameraCorner::cx` | field | [camera_geometry.md](camera_geometry.md#cameracorner-cx) |
+| `CameraCorner::cy` | field | [camera_geometry.md](camera_geometry.md#cameracorner-cy) |
+| `CameraCorner::fx` | field | [camera_geometry.md](camera_geometry.md#cameracorner-fx) |
+| `CameraCorner::fy` | field | [camera_geometry.md](camera_geometry.md#cameracorner-fy) |
+| `CameraCorner::h` | field | [camera_geometry.md](camera_geometry.md#cameracorner-h) |
+| `CameraCorner::pitch` | field | [camera_geometry.md](camera_geometry.md#cameracorner-pitch) |
+| `CameraCorner::yaw` | field | [camera_geometry.md](camera_geometry.md#cameracorner-yaw) |
+| `CameraFeed` | class | [camera_feed.md](camera_feed.md#class-camerafeed) |
+| `CameraFeed::CameraFeed` | function | [camera_feed.md](camera_feed.md#camerafeed-camerafeed) |
+| `CameraFeed::latest` | function | [camera_feed.md](camera_feed.md#camerafeed-latest) |
+| `CameraFeed::stats` | function | [camera_feed.md](camera_feed.md#camerafeed-stats) |
+| `CameraFeed::tick` | function | [camera_feed.md](camera_feed.md#camerafeed-tick) |
+| `CameraFeedConfig` | struct | [camera_feed.md](camera_feed.md#struct-camerafeedconfig) |
+| `CameraFeedConfig::minReadPeriodSeconds` | field | [camera_feed.md](camera_feed.md#camerafeedconfig-minreadperiodseconds) |
+| `cameraFeedConfigProblem` | free function | [camera_feed.md](camera_feed.md#camerafeedconfigproblem) |
+| `CameraFeedStats` | struct | [camera_feed.md](camera_feed.md#struct-camerafeedstats) |
+| `CameraFeedStats::coloursWithheld` | field | [camera_feed.md](camera_feed.md#camerafeedstats-colourswithheld) |
+| `CameraFeedStats::lastReadSeconds` | field | [camera_feed.md](camera_feed.md#camerafeedstats-lastreadseconds) |
+| `CameraFeedStats::notConfigured` | field | [camera_feed.md](camera_feed.md#camerafeedstats-notconfigured) |
+| `CameraFeedStats::objectsWithheld` | field | [camera_feed.md](camera_feed.md#camerafeedstats-objectswithheld) |
+| `CameraFeedStats::partialFaults` | field | [camera_feed.md](camera_feed.md#camerafeedstats-partialfaults) |
+| `CameraFeedStats::readFaults` | field | [camera_feed.md](camera_feed.md#camerafeedstats-readfaults) |
+| `CameraFeedStats::reads` | field | [camera_feed.md](camera_feed.md#camerafeedstats-reads) |
+| `CameraFeedStats::slowestReadSeconds` | field | [camera_feed.md](camera_feed.md#camerafeedstats-slowestreadseconds) |
+| `CameraFeedStats::truncated` | field | [camera_feed.md](camera_feed.md#camerafeedstats-truncated) |
+| `CameraFeedStats::usable` | field | [camera_feed.md](camera_feed.md#camerafeedstats-usable) |
 | `CameraIntrinsics` | struct | [vision_conversion.md](vision_conversion.md#struct-cameraintrinsics) |
 | `CameraIntrinsics::cx` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-cx) |
 | `CameraIntrinsics::cy` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-cy) |
 | `CameraIntrinsics::fx` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-fx) |
 | `CameraIntrinsics::fy` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-fy) |
+| `CameraModel` | class | [camera_geometry.md](camera_geometry.md#class-cameramodel) |
+| `CameraModel::bearing` | function | [camera_geometry.md](camera_geometry.md#cameramodel-bearing) |
+| `CameraModel::CameraModel` | function | [camera_geometry.md](camera_geometry.md#cameramodel-cameramodel) |
+| `CameraModel::eachCorner` | function | [camera_geometry.md](camera_geometry.md#cameramodel-eachcorner) |
+| `CameraModel::elevation` | function | [camera_geometry.md](camera_geometry.md#cameramodel-elevation) |
+| `CameraModel::fieldFix` | function | [camera_geometry.md](camera_geometry.md#cameramodel-fieldfix) |
+| `CameraModel::fx` | function | [camera_geometry.md](camera_geometry.md#cameramodel-fx) |
+| `CameraModel::fy` | function | [camera_geometry.md](camera_geometry.md#cameramodel-fy) |
+| `CameraModel::groundRange` | function | [camera_geometry.md](camera_geometry.md#cameramodel-groundrange) |
+| `CameraModel::groundRangeAt` | function | [camera_geometry.md](camera_geometry.md#cameramodel-groundrangeat) |
+| `CameraModel::inViewForCertain` | function | [camera_geometry.md](camera_geometry.md#cameramodel-inviewforcertain) |
+| `CameraModel::nominal` | function | [camera_geometry.md](camera_geometry.md#cameramodel-nominal) |
+| `CameraModel::opticsTolerance` | function | [camera_geometry.md](camera_geometry.md#cameramodel-opticstolerance) |
+| `CameraModel::placement` | function | [camera_geometry.md](camera_geometry.md#cameramodel-placement) |
+| `CameraModel::project` | function | [camera_geometry.md](camera_geometry.md#cameramodel-project) |
+| `CameraModel::rangeToPlane` | function | [camera_geometry.md](camera_geometry.md#cameramodel-rangetoplane) |
+| `CameraModel::ray` | function | [camera_geometry.md](camera_geometry.md#cameramodel-ray) |
+| `CameraModel::sizeRange` | function | [camera_geometry.md](camera_geometry.md#cameramodel-sizerange) |
+| `CameraModel::sizeRangeAt` | function | [camera_geometry.md](camera_geometry.md#cameramodel-sizerangeat) |
+| `cameraModelProblem` | free function | [camera_geometry.md](camera_geometry.md#cameramodelproblem) |
 | `CameraMount` | struct | [vision_conversion.md](vision_conversion.md#struct-cameramount) |
 | `CameraMount::x` | field | [vision_conversion.md](vision_conversion.md#cameramount-x) |
 | `CameraMount::y` | field | [vision_conversion.md](vision_conversion.md#cameramount-y) |
 | `CameraMount::yaw` | field | [vision_conversion.md](vision_conversion.md#cameramount-yaw) |
+| `CameraOptics` | struct | [camera_geometry.md](camera_geometry.md#struct-cameraoptics) |
+| `CameraOptics::fovTolerance` | field | [camera_geometry.md](camera_geometry.md#cameraoptics-fovtolerance) |
+| `CameraOptics::heightPx` | field | [camera_geometry.md](camera_geometry.md#cameraoptics-heightpx) |
+| `CameraOptics::hfovDeg` | field | [camera_geometry.md](camera_geometry.md#cameraoptics-hfovdeg) |
+| `CameraOptics::vfovDeg` | field | [camera_geometry.md](camera_geometry.md#cameraoptics-vfovdeg) |
+| `CameraOptics::widthPx` | field | [camera_geometry.md](camera_geometry.md#cameraoptics-widthpx) |
+| `CameraPlacement` | struct | [camera_config.md](camera_config.md#struct-cameraplacement) |
+| `CameraPlacement::forward` | field | [camera_config.md](camera_config.md#cameraplacement-forward) |
+| `CameraPlacement::height` | field | [camera_config.md](camera_config.md#cameraplacement-height) |
+| `CameraPlacement::heightTolerance` | field | [camera_config.md](camera_config.md#cameraplacement-heighttolerance) |
+| `CameraPlacement::left` | field | [camera_config.md](camera_config.md#cameraplacement-left) |
+| `CameraPlacement::measured` | field | [camera_config.md](camera_config.md#cameraplacement-measured) |
+| `CameraPlacement::pitchDeg` | field | [camera_config.md](camera_config.md#cameraplacement-pitchdeg) |
+| `CameraPlacement::pitchToleranceDeg` | field | [camera_config.md](camera_config.md#cameraplacement-pitchtolerancedeg) |
+| `CameraPlacement::positionTolerance` | field | [camera_config.md](camera_config.md#cameraplacement-positiontolerance) |
+| `CameraPlacement::provenance` | field | [camera_config.md](camera_config.md#cameraplacement-provenance) |
+| `CameraPlacement::yawDeg` | field | [camera_config.md](camera_config.md#cameraplacement-yawdeg) |
+| `CameraPlacement::yawToleranceDeg` | field | [camera_config.md](camera_config.md#cameraplacement-yawtolerancedeg) |
+| `cameraPlacementProblem` | free function | [camera_config.md](camera_config.md#cameraplacementproblem) |
+| `CameraStatus` | struct | [vision_frames.md](vision_frames.md#struct-camerastatus) |
+| `CameraStatus::configured` | field | [vision_frames.md](vision_frames.md#camerastatus-configured) |
+| `CameraStatus::model` | field | [vision_frames.md](vision_frames.md#camerastatus-model) |
+| `CameraStatus::modelProblem` | field | [vision_frames.md](vision_frames.md#camerastatus-modelproblem) |
+| `CameraStatus::setupProblem` | field | [vision_frames.md](vision_frames.md#camerastatus-setupproblem) |
+| `cameraStatusWords` | free function | [vision_frames.md](vision_frames.md#camerastatuswords) |
+| `CaptureStatus` | enum class | [shul2_reader.md](shul2_reader.md#enum-class-capturestatus) |
+| `CaptureStatus::Empty` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-empty) |
+| `CaptureStatus::NoFrame` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-noframe) |
+| `CaptureStatus::NoSession` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-nosession) |
+| `CaptureStatus::Ok` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-ok) |
+| `CaptureStatus::Refused` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-refused) |
+| `captureStatusName` | free function | [shul2_reader.md](shul2_reader.md#capturestatusname) |
+| `carryOn` | constant | [routine.md](routine.md#carryon) |
+| `carryOn (overload 2)` | type alias | [routine.md](routine.md#carryon-2) |
+| `cartridgeWord` | free function | [drivetrain_description.md](drivetrain_description.md#cartridgeword) |
+| `changeHere` | free function | [direction_check.md](direction_check.md#changehere) |
+| `CharacterizationSource` | enum class | [drive_characterization.md](drive_characterization.md#enum-class-characterizationsource) |
+| `CharacterizationSource::Measured` | enumerator | [drive_characterization.md](drive_characterization.md#characterizationsource-measured) |
+| `CharacterizationSource::Unset` | enumerator | [drive_characterization.md](drive_characterization.md#characterizationsource-unset) |
+| `CharacterizerConfig` | struct | [drive_characterizer.md](drive_characterizer.md#struct-characterizerconfig) |
+| `CharacterizerConfig::asymRefuse` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-asymrefuse) |
+| `CharacterizerConfig::asymWarn` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-asymwarn) |
+| `CharacterizerConfig::clearAheadAndBehind` | function | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-clearaheadandbehind) |
+| `CharacterizerConfig::commandTimeout` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-commandtimeout) |
+| `CharacterizerConfig::curveGuard` | function | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-curveguard) |
+| `CharacterizerConfig::fit` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-fit) |
+| `CharacterizerConfig::imuReadyTimeout` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-imureadytimeout) |
+| `CharacterizerConfig::monitor` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-monitor) |
+| `CharacterizerConfig::rampMax` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-rampmax) |
+| `CharacterizerConfig::rampRate` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-ramprate) |
+| `CharacterizerConfig::restFloor` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-restfloor) |
+| `CharacterizerConfig::restSettleTime` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-restsettletime) |
+| `CharacterizerConfig::restTimeout` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-resttimeout) |
+| `CharacterizerConfig::restYawRateFloor` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-restyawratefloor) |
+| `CharacterizerConfig::segmentDistance` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-segmentdistance) |
+| `CharacterizerConfig::segmentTimeout` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-segmenttimeout) |
+| `CharacterizerConfig::sidewaysExcursion` | function | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-sidewaysexcursion) |
+| `CharacterizerConfig::stepVolts` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-stepvolts) |
+| `CharacterizerConfig::stopBound` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-stopbound) |
+| `CharacterizerConfig::tempGuard` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-tempguard) |
+| `CharacterizerConfig::timing` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-timing) |
+| `CharacterizerConfig::valid` | function | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-valid) |
+| `CharacterizerPhase` | enum class | [drive_characterizer.md](drive_characterizer.md#enum-class-characterizerphase) |
+| `CharacterizerPhase::Aborted` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-aborted) |
+| `CharacterizerPhase::Done` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-done) |
+| `CharacterizerPhase::Driving` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-driving) |
+| `CharacterizerPhase::Idle` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-idle) |
+| `CharacterizerPhase::Rest` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-rest) |
+| `CharacterizerPhase::Stopping` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-stopping) |
+| `CharacterizerPhase::WaitImu` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-waitimu) |
+| `CharacterizerRefusal` | enum class | [drive_characterizer.md](drive_characterizer.md#enum-class-characterizerrefusal) |
+| `CharacterizerRefusal::Aborted` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-aborted) |
+| `CharacterizerRefusal::CurveExceeded` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-curveexceeded) |
+| `CharacterizerRefusal::Fight` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-fight) |
+| `CharacterizerRefusal::FitRefused` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-fitrefused) |
+| `CharacterizerRefusal::ImuNotReady` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-imunotready) |
+| `CharacterizerRefusal::MissedTick` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-missedtick) |
+| `CharacterizerRefusal::None` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-none) |
+| `CharacterizerRefusal::RestTimeout` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-resttimeout) |
+| `CharacterizerRefusal::StopTooLong` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-stoptoolong) |
+| `CharacterizerRefusal::TooHot` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-toohot) |
+| `characterizerRefusalName` | free function | [drive_characterizer.md](drive_characterizer.md#characterizerrefusalname) |
+| `CharacterizerReport` | struct | [drive_characterizer.md](drive_characterizer.md#struct-characterizerreport) |
+| `CharacterizerReport::asymmetryWarning` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-asymmetrywarning) |
+| `CharacterizerReport::combined` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-combined) |
+| `CharacterizerReport::curveGuardRad` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-curveguardrad) |
+| `CharacterizerReport::emptySegmentWarning` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-emptysegmentwarning) |
+| `CharacterizerReport::fit` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-fit) |
+| `CharacterizerReport::kVAsymmetry` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-kvasymmetry) |
+| `CharacterizerReport::segmentCount` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-segmentcount) |
+| `CharacterizerReport::segments` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-segments) |
+| `CharacterizerReport::timing` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-timing) |
+| `CharacterizerSample` | struct | [drive_characterizer.md](drive_characterizer.md#struct-characterizersample) |
+| `CharacterizerSample::battery` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-battery) |
+| `CharacterizerSample::headingRad` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-headingrad) |
+| `CharacterizerSample::maxCurrent` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-maxcurrent) |
+| `CharacterizerSample::position` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-position) |
+| `CharacterizerSample::powered` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-powered) |
+| `CharacterizerSample::segment` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-segment) |
+| `CharacterizerSample::speed` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-speed) |
+| `CharacterizerSample::t` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-t) |
+| `CharacterizerSample::valid` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-valid) |
+| `CharacterizerSample::volts` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-volts) |
+| `CharacterizerStatus` | struct | [drive_characterizer.md](drive_characterizer.md#struct-characterizerstatus) |
+| `CharacterizerStatus::atRest` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-atrest) |
+| `CharacterizerStatus::curveRad` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-curverad) |
+| `CharacterizerStatus::phase` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-phase) |
+| `CharacterizerStatus::segment` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-segment) |
+| `CharacterizerStatus::stopIn` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-stopin) |
+| `CharacterizerStatus::travelIn` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-travelin) |
+| `CharacterizerStatus::volts` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-volts) |
 | `Chassis` | class | [chassis.md](chassis.md#class-chassis) |
 | `Chassis::brake` | function | [chassis.md](chassis.md#chassis-brake) |
 | `Chassis::cancel` | function | [chassis.md](chassis.md#chassis-cancel) |
 | `Chassis::Chassis` | function | [chassis.md](chassis.md#chassis-chassis) |
 | `Chassis::Chassis (overload 2)` | function | [chassis.md](chassis.md#chassis-chassis-2) |
 | `Chassis::Chassis (overload 3)` | function | [chassis.md](chassis.md#chassis-chassis-3) |
+| `Chassis::curveTo` | function | [chassis.md](chassis.md#chassis-curveto) |
+| `Chassis::curveTo (overload 2)` | function | [chassis.md](chassis.md#chassis-curveto-2) |
 | `Chassis::deps` | function | [chassis.md](chassis.md#chassis-deps) |
 | `Chassis::drive` | function | [chassis.md](chassis.md#chassis-drive) |
 | `Chassis::followTrajectory` | function | [chassis.md](chassis.md#chassis-followtrajectory) |
@@ -204,15 +785,19 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Chassis::lastExitReason` | function | [chassis.md](chassis.md#chassis-lastexitreason) |
 | `Chassis::motionConfig` | function | [chassis.md](chassis.md#chassis-motionconfig) |
 | `Chassis::moveTo` | function | [chassis.md](chassis.md#chassis-moveto) |
+| `Chassis::moveTo (overload 2)` | function | [chassis.md](chassis.md#chassis-moveto-2) |
 | `Chassis::operator=` | function | [chassis.md](chassis.md#chassis-operator-eq) |
 | `Chassis::operator= (overload 2)` | function | [chassis.md](chassis.md#chassis-operator-eq-2) |
 | `Chassis::pose` | function | [chassis.md](chassis.md#chassis-pose) |
+| `Chassis::reverseCurveTo` | function | [chassis.md](chassis.md#chassis-reversecurveto) |
+| `Chassis::reverseCurveTo (overload 2)` | function | [chassis.md](chassis.md#chassis-reversecurveto-2) |
 | `Chassis::scheduler` | function | [chassis.md](chassis.md#chassis-scheduler) |
 | `Chassis::scheduler (overload 2)` | function | [chassis.md](chassis.md#chassis-scheduler-2) |
 | `Chassis::setPose` | function | [chassis.md](chassis.md#chassis-setpose) |
 | `Chassis::strafeAuthority` | function | [chassis.md](chassis.md#chassis-strafeauthority) |
 | `Chassis::strafeTo` | function | [chassis.md](chassis.md#chassis-strafeto) |
 | `Chassis::turnTo` | function | [chassis.md](chassis.md#chassis-turnto) |
+| `Chassis::turnTo (overload 2)` | function | [chassis.md](chassis.md#chassis-turnto-2) |
 | `Chassis::wait` | function | [chassis.md](chassis.md#chassis-wait) |
 | `Chassis::waitUntil` | function | [chassis.md](chassis.md#chassis-waituntil) |
 | `Chassis::~Chassis` | function | [chassis.md](chassis.md#chassis-destructor-chassis) |
@@ -226,6 +811,36 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ChassisSpeeds::omega` | function | [twist2d.md](twist2d.md#chassisspeeds-omega) |
 | `ChassisSpeeds::vx` | function | [twist2d.md](twist2d.md#chassisspeeds-vx) |
 | `ChassisSpeeds::vy` | function | [twist2d.md](twist2d.md#chassisspeeds-vy) |
+| `checkAndFlipToggle` | free function | [toggle_visit.md](toggle_visit.md#checkandfliptoggle) |
+| `checkAutonEntry` | free function | [auton_registry.md](auton_registry.md#checkautonentry) |
+| `checkCurve` | free function | [curve_path.md](curve_path.md#checkcurve) |
+| `Checked` | struct | [calibrate_panel.md](calibrate_panel.md#struct-checked) |
+| `Checked` | struct | [calibrate_screen.md](calibrate_screen.md#struct-checked) |
+| `Checked::cols` | field | [calibrate_panel.md](calibrate_panel.md#checked-cols) |
+| `Checked::cols` | field | [calibrate_screen.md](calibrate_screen.md#checked-cols) |
+| `Checked::lines` | field | [calibrate_screen.md](calibrate_screen.md#checked-lines) |
+| `Checked::text` | field | [calibrate_panel.md](calibrate_panel.md#checked-text) |
+| `Checked::text` | field | [calibrate_screen.md](calibrate_screen.md#checked-text) |
+| `chooseBootSource` | free function | [boot_check.md](boot_check.md#choosebootsource) |
+| `chooseEffective` | free function | [record_store.md](record_store.md#chooseeffective) |
+| `clearOfDrive` | free function | [wiring.md](wiring.md#clearofdrive) |
+| `Coast` | constant | [kinds.md](kinds.md#coast) |
+| `ColourDescriptor` | struct | [vision_frames.md](vision_frames.md#struct-colourdescriptor) |
+| `ColourDescriptor::blue` | field | [vision_frames.md](vision_frames.md#colourdescriptor-blue) |
+| `ColourDescriptor::green` | field | [vision_frames.md](vision_frames.md#colourdescriptor-green) |
+| `ColourDescriptor::hueRange` | field | [vision_frames.md](vision_frames.md#colourdescriptor-huerange) |
+| `ColourDescriptor::id` | field | [vision_frames.md](vision_frames.md#colourdescriptor-id) |
+| `ColourDescriptor::name` | field | [vision_frames.md](vision_frames.md#colourdescriptor-name) |
+| `ColourDescriptor::provenance` | field | [vision_frames.md](vision_frames.md#colourdescriptor-provenance) |
+| `ColourDescriptor::red` | field | [vision_frames.md](vision_frames.md#colourdescriptor-red) |
+| `ColourDescriptor::saturationRange` | field | [vision_frames.md](vision_frames.md#colourdescriptor-saturationrange) |
+| `colourDescriptorProblem` | free function | [vision_frames.md](vision_frames.md#colourdescriptorproblem) |
+| `CommandEntry` | struct | [command_registry.md](command_registry.md#struct-commandentry) |
+| `CommandEntry::argCount` | field | [command_registry.md](command_registry.md#commandentry-argcount) |
+| `CommandEntry::doc` | field | [command_registry.md](command_registry.md#commandentry-doc) |
+| `CommandEntry::handler` | field | [command_registry.md](command_registry.md#commandentry-handler) |
+| `CommandEntry::id` | field | [command_registry.md](command_registry.md#commandentry-id) |
+| `CommandEntry::idView` | function | [command_registry.md](command_registry.md#commandentry-idview) |
 | `CommandIdStampSink` | class | [motion_scheduler.md](motion_scheduler.md#class-commandidstampsink) |
 | `CommandIdStampSink::activeId` | function | [motion_scheduler.md](motion_scheduler.md#commandidstampsink-activeid) |
 | `CommandIdStampSink::beginTick` | function | [motion_scheduler.md](motion_scheduler.md#commandidstampsink-begintick) |
@@ -237,14 +852,26 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CommandIdStampSink::setTickPhases` | function | [motion_scheduler.md](motion_scheduler.md#commandidstampsink-settickphases) |
 | `CommandIdStampSink::summarize` | function | [motion_scheduler.md](motion_scheduler.md#commandidstampsink-summarize) |
 | `CommandIdStampSink::wantsRecord` | function | [motion_scheduler.md](motion_scheduler.md#commandidstampsink-wantsrecord) |
+| `commandIdValid` | free function | [route.md](route.md#commandidvalid) |
+| `commandIdView` | free function | [route.md](route.md#commandidview) |
 | `CommandOutcome` | struct | [command_pipeline.md](command_pipeline.md#struct-commandoutcome) |
 | `CommandOutcome::body` | field | [command_pipeline.md](command_pipeline.md#commandoutcome-body) |
 | `CommandOutcome::strafeFallback` | field | [command_pipeline.md](command_pipeline.md#commandoutcome-strafefallback) |
+| `CommandRegistry` | class | [command_registry.md](command_registry.md#class-commandregistry) |
+| `CommandRegistry::CommandRegistry` | function | [command_registry.md](command_registry.md#commandregistry-commandregistry) |
+| `CommandRegistry::count` | function | [command_registry.md](command_registry.md#commandregistry-count) |
+| `CommandRegistry::find` | function | [command_registry.md](command_registry.md#commandregistry-find) |
+| `CommandRegistry::ids` | function | [command_registry.md](command_registry.md#commandregistry-ids) |
+| `CommandRegistry::on` | function | [command_registry.md](command_registry.md#commandregistry-on) |
+| `CommandRegistry::on (overload 2)` | function | [command_registry.md](command_registry.md#commandregistry-on-2) |
+| `CommandRegistry::on (overload 3)` | function | [command_registry.md](command_registry.md#commandregistry-on-3) |
 | `commandWithinCapability` | free function | [plausibility_guard.md](plausibility_guard.md#commandwithincapability) |
+| `compareFronts` | free function | [front_check.md](front_check.md#comparefronts) |
 | `CompensatedVoltage` | struct | [feedforward.md](feedforward.md#struct-compensatedvoltage) |
 | `CompensatedVoltage::brownoutLimited` | field | [feedforward.md](feedforward.md#compensatedvoltage-brownoutlimited) |
 | `CompensatedVoltage::voltage` | field | [feedforward.md](feedforward.md#compensatedvoltage-voltage) |
 | `compensateForBattery` | free function | [feedforward.md](feedforward.md#compensateforbattery) |
+| `competitionWords` | free function | [calibrate_program.md](calibrate_program.md#competitionwords) |
 | `compiledBuildHash` | free function | [build_info.md](build_info.md#compiledbuildhash) |
 | `ComplementaryFusion` | class | [complementary_fusion.md](complementary_fusion.md#class-complementaryfusion) |
 | `ComplementaryFusion::ComplementaryFusion` | function | [complementary_fusion.md](complementary_fusion.md#complementaryfusion-complementaryfusion) |
@@ -258,10 +885,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ComplementaryFusionConfig::maxNudgeRate` | field | [complementary_fusion.md](complementary_fusion.md#complementaryfusionconfig-maxnudgerate) |
 | `CompletedMotion` | struct | [motion_scheduler.md](motion_scheduler.md#struct-completedmotion) |
 | `CompletedMotion::abortFault` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-abortfault) |
+| `CompletedMotion::crossTrack` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-crosstrack) |
 | `CompletedMotion::drift` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-drift) |
 | `CompletedMotion::endTime` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-endtime) |
 | `CompletedMotion::exit` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-exit) |
 | `CompletedMotion::finalPose` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-finalpose) |
+| `CompletedMotion::hasCrossTrack` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-hascrosstrack) |
 | `CompletedMotion::hasPathData` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-haspathdata) |
 | `CompletedMotion::id` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-id) |
 | `CompletedMotion::name` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-name) |
@@ -269,6 +898,39 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CompletedMotion::preempted` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-preempted) |
 | `CompletedMotion::startTime` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-starttime) |
 | `CompletedMotion::targetPose` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-targetpose) |
+| `Confirm` | enum class | [spec.md](spec.md#enum-class-confirm) |
+| `Confirm::None` | enumerator | [spec.md](spec.md#confirm-none) |
+| `Confirm::Sees` | enumerator | [spec.md](spec.md#confirm-sees) |
+| `Confirm::StopsSeeing` | enumerator | [spec.md](spec.md#confirm-stopsseeing) |
+| `constantGravity` | free function | [kinds.md](kinds.md#constantgravity) |
+| `constantGravity (overload 2)` | type alias | [kinds.md](kinds.md#constantgravity-2) |
+| `Constraints` | struct | [route.md](route.md#struct-constraints) |
+| `Constraints::maxAngular` | field | [route.md](route.md#constraints-maxangular) |
+| `Constraints::maxLinear` | field | [route.md](route.md#constraints-maxlinear) |
+| `Constraints::timeout` | field | [route.md](route.md#constraints-timeout) |
+| `contains` | free function | [calibrate_panel.md](calibrate_panel.md#contains) |
+| `contains` | free function | [touch_panel.md](touch_panel.md#contains) |
+| `continuousDeadband` | free function | [input_shaping.md](input_shaping.md#continuousdeadband) |
+| `Control` | struct | [driver_inputs.md](driver_inputs.md#struct-control) |
+| `Control::back` | field | [driver_inputs.md](driver_inputs.md#control-back) |
+| `Control::bound` | field | [driver_inputs.md](driver_inputs.md#control-bound) |
+| `Control::button` | field | [driver_inputs.md](driver_inputs.md#control-button) |
+| `Control::kind` | field | [driver_inputs.md](driver_inputs.md#control-kind) |
+| `Control::mechanism` | field | [driver_inputs.md](driver_inputs.md#control-mechanism) |
+| `Control::mechanismKind` | field | [driver_inputs.md](driver_inputs.md#control-mechanismkind) |
+| `Control::mechanismName` | field | [driver_inputs.md](driver_inputs.md#control-mechanismname) |
+| `Control::position` | field | [driver_inputs.md](driver_inputs.md#control-position) |
+| `Control::presetName` | field | [driver_inputs.md](driver_inputs.md#control-presetname) |
+| `Control::units` | field | [driver_inputs.md](driver_inputs.md#control-units) |
+| `Control::value` | field | [driver_inputs.md](driver_inputs.md#control-value) |
+| `Control::volts` | field | [driver_inputs.md](driver_inputs.md#control-volts) |
+| `ControlKind` | enum class | [driver_inputs.md](driver_inputs.md#enum-class-controlkind) |
+| `ControlKind::AutonOnly` | enumerator | [driver_inputs.md](driver_inputs.md#controlkind-autononly) |
+| `ControlKind::Hold` | enumerator | [driver_inputs.md](driver_inputs.md#controlkind-hold) |
+| `ControlKind::HomeAtDriverStart` | enumerator | [driver_inputs.md](driver_inputs.md#controlkind-homeatdriverstart) |
+| `ControlKind::HomeOnPress` | enumerator | [driver_inputs.md](driver_inputs.md#controlkind-homeonpress) |
+| `ControlKind::Preset` | enumerator | [driver_inputs.md](driver_inputs.md#controlkind-preset) |
+| `ControlKind::Toggle` | enumerator | [driver_inputs.md](driver_inputs.md#controlkind-toggle) |
 | `ControllerAxis` | enum class | [controller.md](controller.md#enum-class-controlleraxis) |
 | `ControllerAxis::LeftX` | enumerator | [controller.md](controller.md#controlleraxis-leftx) |
 | `ControllerAxis::LeftY` | enumerator | [controller.md](controller.md#controlleraxis-lefty) |
@@ -288,12 +950,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ControllerButton::Up` | enumerator | [controller.md](controller.md#controllerbutton-up) |
 | `ControllerButton::X` | enumerator | [controller.md](controller.md#controllerbutton-x) |
 | `ControllerButton::Y` | enumerator | [controller.md](controller.md#controllerbutton-y) |
+| `controllerButtonWord` | free function | [mechanism_binding.md](mechanism_binding.md#controllerbuttonword) |
 | `ControllerFaultDisplay` | class | [controller_display.md](controller_display.md#class-controllerfaultdisplay) |
 | `ControllerFaultDisplay::ControllerFaultDisplay` | function | [controller_display.md](controller_display.md#controllerfaultdisplay-controllerfaultdisplay) |
 | `ControllerFaultDisplay::update` | function | [controller_display.md](controller_display.md#controllerfaultdisplay-update) |
 | `ControllerId` | enum class | [pros-controller.md](pros-controller.md#enum-class-controllerid) |
 | `ControllerId::Master` | enumerator | [pros-controller.md](pros-controller.md#controllerid-master) |
 | `ControllerId::Partner` | enumerator | [pros-controller.md](pros-controller.md#controllerid-partner) |
+| `controls` | free function | [driver_inputs.md](driver_inputs.md#controls) |
+| `controls (overload 2)` | type alias | [driver_inputs.md](driver_inputs.md#controls-2) |
+| `copyScreenText` | free function | [touch_panel.md](touch_panel.md#copyscreentext) |
 | `CorrectionProposal` | struct | [correction.md](correction.md#struct-correctionproposal) |
 | `CorrectionProposal::confidence` | field | [correction.md](correction.md#correctionproposal-confidence) |
 | `CorrectionProposal::fieldPose` | field | [correction.md](correction.md#correctionproposal-fieldpose) |
@@ -301,12 +967,147 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CorrectionProposal::providesHeading` | field | [correction.md](correction.md#correctionproposal-providesheading) |
 | `CorrectionProposal::selfAudit` | field | [correction.md](correction.md#correctionproposal-selfaudit) |
 | `CorrectionProposal::valid` | field | [correction.md](correction.md#correctionproposal-valid) |
+| `cosine` | free function | [kinds.md](kinds.md#cosine) |
+| `cosine (overload 2)` | type alias | [kinds.md](kinds.md#cosine-2) |
+| `CoupledSideMonitor` | class | [coupled_side_monitor.md](coupled_side_monitor.md#class-coupledsidemonitor) |
+| `CoupledSideMonitor::config` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-config) |
+| `CoupledSideMonitor::CoupledSideMonitor` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-coupledsidemonitor) |
+| `CoupledSideMonitor::CoupledSideMonitor (overload 2)` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-coupledsidemonitor-2) |
+| `CoupledSideMonitor::disagreeTicks` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-disagreeticks) |
+| `CoupledSideMonitor::reset` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-reset) |
+| `CoupledSideMonitor::update` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-update) |
+| `crc32Ieee` | free function | [calibration_record.md](calibration_record.md#crc32ieee) |
+| `crc32Ieee` | free function | [crc32.md](crc32.md#crc32ieee) |
 | `Current` | type alias | [quantity.md](quantity.md#current) |
+| `CurrentCap` | struct | [kinds.md](kinds.md#struct-currentcap) |
+| `CurrentCap::amps` | field | [kinds.md](kinds.md#currentcap-amps) |
+| `CurveCheck` | struct | [curve_path.md](curve_path.md#struct-curvecheck) |
+| `CurveCheck::angle` | field | [curve_path.md](curve_path.md#curvecheck-angle) |
+| `CurveCheck::distance` | field | [curve_path.md](curve_path.md#curvecheck-distance) |
+| `CurveCheck::point` | field | [curve_path.md](curve_path.md#curvecheck-point) |
+| `CurveCheck::reverse` | field | [curve_path.md](curve_path.md#curvecheck-reverse) |
+| `CurveCheck::tightestRadius` | field | [curve_path.md](curve_path.md#curvecheck-tightestradius) |
+| `CurveCheck::verdict` | field | [curve_path.md](curve_path.md#curvecheck-verdict) |
+| `CurveCheck::why` | field | [curve_path.md](curve_path.md#curvecheck-why) |
+| `CurveConfig` | struct | [motion_config.md](motion_config.md#struct-curveconfig) |
+| `CurveConfig::accel` | field | [motion_config.md](motion_config.md#curveconfig-accel) |
+| `CurveConfig::bendAccel` | field | [motion_config.md](motion_config.md#curveconfig-bendaccel) |
+| `CurveConfig::decel` | field | [motion_config.md](motion_config.md#curveconfig-decel) |
+| `CurveConfig::endSpeedGain` | field | [motion_config.md](motion_config.md#curveconfig-endspeedgain) |
+| `CurveConfig::handoffCross` | field | [motion_config.md](motion_config.md#curveconfig-handoffcross) |
+| `CurveConfig::handoffDistance` | field | [motion_config.md](motion_config.md#curveconfig-handoffdistance) |
+| `CurveConfig::handoffHeading` | field | [motion_config.md](motion_config.md#curveconfig-handoffheading) |
+| `CurveConfig::handoffLast` | field | [motion_config.md](motion_config.md#curveconfig-handofflast) |
+| `CurveConfig::lookAhead` | field | [motion_config.md](motion_config.md#curveconfig-lookahead) |
+| `CurveConfig::lostHeading` | field | [motion_config.md](motion_config.md#curveconfig-lostheading) |
+| `CurveConfig::lostTime` | field | [motion_config.md](motion_config.md#curveconfig-losttime) |
+| `CurveConfig::maxStartOff` | field | [motion_config.md](motion_config.md#curveconfig-maxstartoff) |
+| `CurveConfig::searchWindow` | field | [motion_config.md](motion_config.md#curveconfig-searchwindow) |
+| `CurveConfig::stuckTime` | field | [motion_config.md](motion_config.md#curveconfig-stucktime) |
+| `CurveConfig::valid` | function | [motion_config.md](motion_config.md#curveconfig-valid) |
+| `CurveFollow` | class | [curve_follow.md](curve_follow.md#class-curvefollow) |
+| `CurveFollow::cancel` | function | [curve_follow.md](curve_follow.md#curvefollow-cancel) |
+| `CurveFollow::CurveFollow` | function | [curve_follow.md](curve_follow.md#curvefollow-curvefollow) |
+| `CurveFollow::curveStatus` | function | [curve_follow.md](curve_follow.md#curvefollow-curvestatus) |
+| `CurveFollow::endMotion` | function | [curve_follow.md](curve_follow.md#curvefollow-endmotion) |
+| `CurveFollow::endPose` | function | [curve_follow.md](curve_follow.md#curvefollow-endpose) |
+| `CurveFollow::exitReason` | function | [curve_follow.md](curve_follow.md#curvefollow-exitreason) |
+| `CurveFollow::name` | function | [curve_follow.md](curve_follow.md#curvefollow-name) |
+| `CurveFollow::path` | function | [curve_follow.md](curve_follow.md#curvefollow-path) |
+| `CurveFollow::start` | function | [curve_follow.md](curve_follow.md#curvefollow-start) |
+| `CurveFollow::state` | function | [curve_follow.md](curve_follow.md#curvefollow-state) |
+| `CurveFollow::tick` | function | [curve_follow.md](curve_follow.md#curvefollow-tick) |
+| `CurveGuard` | enum class | [curve_follow.md](curve_follow.md#enum-class-curveguard) |
+| `CurveGuard::Heading` | enumerator | [curve_follow.md](curve_follow.md#curveguard-heading) |
+| `CurveGuard::None` | enumerator | [curve_follow.md](curve_follow.md#curveguard-none) |
+| `CurveGuard::Progress` | enumerator | [curve_follow.md](curve_follow.md#curveguard-progress) |
+| `CurveHandoff` | enum class | [curve_follow.md](curve_follow.md#enum-class-curvehandoff) |
+| `CurveHandoff::Clean` | enumerator | [curve_follow.md](curve_follow.md#curvehandoff-clean) |
+| `CurveHandoff::EndOfPath` | enumerator | [curve_follow.md](curve_follow.md#curvehandoff-endofpath) |
+| `CurveHandoff::LastResort` | enumerator | [curve_follow.md](curve_follow.md#curvehandoff-lastresort) |
+| `CurveHandoff::None` | enumerator | [curve_follow.md](curve_follow.md#curvehandoff-none) |
+| `CurveInvalid` | enum class | [curve_path.md](curve_path.md#enum-class-curveinvalid) |
+| `CurveInvalid::AtRobot` | enumerator | [curve_path.md](curve_path.md#curveinvalid-atrobot) |
+| `CurveInvalid::DoublesBack` | enumerator | [curve_path.md](curve_path.md#curveinvalid-doublesback) |
+| `CurveInvalid::NoDirection` | enumerator | [curve_path.md](curve_path.md#curveinvalid-nodirection) |
+| `CurveInvalid::None` | enumerator | [curve_path.md](curve_path.md#curveinvalid-none) |
+| `CurveInvalid::NoPoints` | enumerator | [curve_path.md](curve_path.md#curveinvalid-nopoints) |
+| `CurveInvalid::TooClose` | enumerator | [curve_path.md](curve_path.md#curveinvalid-tooclose) |
+| `CurvePath` | class | [curve_path.md](curve_path.md#class-curvepath) |
+| `CurvePath::at` | function | [curve_path.md](curve_path.md#curvepath-at) |
+| `CurvePath::authorPoints` | function | [curve_path.md](curve_path.md#curvepath-authorpoints) |
+| `CurvePath::build` | function | [curve_path.md](curve_path.md#curvepath-build) |
+| `CurvePath::built` | function | [curve_path.md](curve_path.md#curvepath-built) |
+| `CurvePath::CurvePath` | function | [curve_path.md](curve_path.md#curvepath-curvepath) |
+| `CurvePath::droppedFirstDistance` | function | [curve_path.md](curve_path.md#curvepath-droppedfirstdistance) |
+| `CurvePath::endPose` | function | [curve_path.md](curve_path.md#curvepath-endpose) |
+| `CurvePath::firstDrivenPoint` | function | [curve_path.md](curve_path.md#curvepath-firstdrivenpoint) |
+| `CurvePath::invalidFacts` | function | [curve_path.md](curve_path.md#curvepath-invalidfacts) |
+| `CurvePath::kBendAhead` | field | [curve_path.md](curve_path.md#curvepath-kbendahead) |
+| `CurvePath::knotS` | function | [curve_path.md](curve_path.md#curvepath-knots) |
+| `CurvePath::kPlanStartSpeed` | field | [curve_path.md](curve_path.md#curvepath-kplanstartspeed) |
+| `CurvePath::kSamples` | field | [curve_path.md](curve_path.md#curvepath-ksamples) |
+| `CurvePath::kScanStep` | field | [curve_path.md](curve_path.md#curvepath-kscanstep) |
+| `CurvePath::lastPoint` | function | [curve_path.md](curve_path.md#curvepath-lastpoint) |
+| `CurvePath::length` | function | [curve_path.md](curve_path.md#curvepath-length) |
+| `CurvePath::lookAheadPoint` | function | [curve_path.md](curve_path.md#curvepath-lookaheadpoint) |
+| `CurvePath::project` | function | [curve_path.md](curve_path.md#curvepath-project) |
+| `CurvePath::reverse` | function | [curve_path.md](curve_path.md#curvepath-reverse) |
+| `CurvePath::sampleCount` | function | [curve_path.md](curve_path.md#curvepath-samplecount) |
+| `CurvePath::sampleS` | function | [curve_path.md](curve_path.md#curvepath-samples) |
+| `CurvePath::sampleSpeed` | function | [curve_path.md](curve_path.md#curvepath-samplespeed) |
+| `CurvePath::segments` | function | [curve_path.md](curve_path.md#curvepath-segments) |
+| `CurvePath::speedLimitAt` | function | [curve_path.md](curve_path.md#curvepath-speedlimitat) |
+| `CurvePath::startAngleOff` | function | [curve_path.md](curve_path.md#curvepath-startangleoff) |
+| `CurvePath::tightestAt` | function | [curve_path.md](curve_path.md#curvepath-tightestat) |
+| `CurvePath::tightestRadius` | function | [curve_path.md](curve_path.md#curvepath-tightestradius) |
+| `CurvePhase` | enum class | [curve_follow.md](curve_follow.md#enum-class-curvephase) |
+| `CurvePhase::Done` | enumerator | [curve_follow.md](curve_follow.md#curvephase-done) |
+| `CurvePhase::Ending` | enumerator | [curve_follow.md](curve_follow.md#curvephase-ending) |
+| `CurvePhase::Idle` | enumerator | [curve_follow.md](curve_follow.md#curvephase-idle) |
+| `CurvePhase::Pursuing` | enumerator | [curve_follow.md](curve_follow.md#curvephase-pursuing) |
+| `CurvePhase::Waiting` | enumerator | [curve_follow.md](curve_follow.md#curvephase-waiting) |
+| `CurvePoint` | struct | [curve_path.md](curve_path.md#struct-curvepoint) |
+| `CurvePoint` | type alias | [chassis.md](chassis.md#curvepoint) |
+| `CurvePoint::CurvePoint` | function | [curve_path.md](curve_path.md#curvepoint-curvepoint) |
+| `CurvePoint::CurvePoint (overload 2)` | function | [curve_path.md](curve_path.md#curvepoint-curvepoint-2) |
+| `CurvePoint::hasHeading` | field | [curve_path.md](curve_path.md#curvepoint-hasheading) |
+| `CurvePoint::heading` | field | [curve_path.md](curve_path.md#curvepoint-heading) |
+| `CurvePoint::x` | field | [curve_path.md](curve_path.md#curvepoint-x) |
+| `CurvePoint::y` | field | [curve_path.md](curve_path.md#curvepoint-y) |
+| `CurveSample` | struct | [curve_path.md](curve_path.md#struct-curvesample) |
+| `CurveSample::curvature` | field | [curve_path.md](curve_path.md#curvesample-curvature) |
+| `CurveSample::direction` | field | [curve_path.md](curve_path.md#curvesample-direction) |
+| `CurveSample::heading` | field | [curve_path.md](curve_path.md#curvesample-heading) |
+| `CurveSample::x` | field | [curve_path.md](curve_path.md#curvesample-x) |
+| `CurveSample::y` | field | [curve_path.md](curve_path.md#curvesample-y) |
+| `CurveStatus` | struct | [curve_follow.md](curve_follow.md#struct-curvestatus) |
+| `CurveStatus::commandedSpeed` | field | [curve_follow.md](curve_follow.md#curvestatus-commandedspeed) |
+| `CurveStatus::curvature` | field | [curve_follow.md](curve_follow.md#curvestatus-curvature) |
+| `CurveStatus::guard` | field | [curve_follow.md](curve_follow.md#curvestatus-guard) |
+| `CurveStatus::handoff` | field | [curve_follow.md](curve_follow.md#curvestatus-handoff) |
+| `CurveStatus::handoffHeadingError` | field | [curve_follow.md](curve_follow.md#curvestatus-handoffheadingerror) |
+| `CurveStatus::headingOffPath` | field | [curve_follow.md](curve_follow.md#curvestatus-headingoffpath) |
+| `CurveStatus::length` | field | [curve_follow.md](curve_follow.md#curvestatus-length) |
+| `CurveStatus::lookX` | field | [curve_follow.md](curve_follow.md#curvestatus-lookx) |
+| `CurveStatus::lookY` | field | [curve_follow.md](curve_follow.md#curvestatus-looky) |
+| `CurveStatus::phase` | field | [curve_follow.md](curve_follow.md#curvestatus-phase) |
+| `CurveStatus::s` | field | [curve_follow.md](curve_follow.md#curvestatus-s) |
+| `CurveStatus::speedLimit` | field | [curve_follow.md](curve_follow.md#curvestatus-speedlimit) |
+| `CurveStatus::startCheck` | field | [curve_follow.md](curve_follow.md#curvestatus-startcheck) |
+| `CurveStatus::yawCorrection` | field | [curve_follow.md](curve_follow.md#curvestatus-yawcorrection) |
+| `CurveVerdict` | enum class | [curve_path.md](curve_path.md#enum-class-curveverdict) |
+| `CurveVerdict::Invalid` | enumerator | [curve_path.md](curve_path.md#curveverdict-invalid) |
+| `CurveVerdict::Ok` | enumerator | [curve_path.md](curve_path.md#curveverdict-ok) |
+| `CurveVerdict::StartBehind` | enumerator | [curve_path.md](curve_path.md#curveverdict-startbehind) |
+| `CurveVerdict::TightBend` | enumerator | [curve_path.md](curve_path.md#curveverdict-tightbend) |
+| `curveYawObserverStep` | free function | [curve_follow.md](curve_follow.md#curveyawobserverstep) |
 
 ## D
 
 | Name | Kind | Page |
 |---|---|---|
+| `deadbanded` | free function | [stick_mapping.md](stick_mapping.md#deadbanded) |
 | `DebugRecord` | struct | [debug_record.md](debug_record.md#struct-debugrecord) |
 | `DebugRecord::activeCommandId` | field | [debug_record.md](debug_record.md#debugrecord-activecommandid) |
 | `DebugRecord::activeCommandState` | field | [debug_record.md](debug_record.md#debugrecord-activecommandstate) |
@@ -339,22 +1140,123 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DebugRecord::qualityClass` | field | [debug_record.md](debug_record.md#debugrecord-qualityclass) |
 | `DebugRecord::strafeFallbackActive` | field | [debug_record.md](debug_record.md#debugrecord-strafefallbackactive) |
 | `DebugRecord::t` | field | [debug_record.md](debug_record.md#debugrecord-t) |
+| `DebugRecord::tankSteerActive` | field | [debug_record.md](debug_record.md#debugrecord-tanksteeractive) |
 | `DebugRecord::targetPose` | field | [debug_record.md](debug_record.md#debugrecord-targetpose) |
 | `DebugRecord::tickPhase` | field | [debug_record.md](debug_record.md#debugrecord-tickphase) |
 | `DebugRecord::wheelCount` | field | [debug_record.md](debug_record.md#debugrecord-wheelcount) |
 | `DebugRecord::wheelCurrent` | field | [debug_record.md](debug_record.md#debugrecord-wheelcurrent) |
 | `DebugRecord::wheelVoltage` | field | [debug_record.md](debug_record.md#debugrecord-wheelvoltage) |
+| `declaredMechanism` | free function | [calibrate_program.md](calibrate_program.md#declaredmechanism) |
+| `declaredMotorPorts` | free function | [wiring.md](wiring.md#declaredmotorports) |
+| `DeclaredMotorPorts` | struct | [boot_check.md](boot_check.md#struct-declaredmotorports) |
+| `DeclaredMotorPorts::label` | field | [boot_check.md](boot_check.md#declaredmotorports-label) |
+| `DeclaredMotorPorts::ports` | field | [boot_check.md](boot_check.md#declaredmotorports-ports) |
 | `decodeEnd` | free function | [blackbox_format.md](blackbox_format.md#decodeend) |
+| `decodeEnd` | free function | [shul2_format.md](shul2_format.md#decodeend) |
 | `decodeHeader` | free function | [blackbox_format.md](blackbox_format.md#decodeheader) |
+| `decodeHello` | free function | [shul2_format.md](shul2_format.md#decodehello) |
+| `decodeLog` | free function | [shul2_format.md](shul2_format.md#decodelog) |
+| `decodeRecord` | free function | [calibration_record.md](calibration_record.md#decoderecord) |
 | `decodeSummary` | free function | [blackbox_format.md](blackbox_format.md#decodesummary) |
+| `decodeSummary` | free function | [shul2_format.md](shul2_format.md#decodesummary) |
 | `decodeTick` | free function | [blackbox_format.md](blackbox_format.md#decodetick) |
+| `decodeTick` | free function | [shul2_format.md](shul2_format.md#decodetick) |
 | `decodeTriage` | free function | [blackbox_format.md](blackbox_format.md#decodetriage) |
+| `DegradationVerdict` | struct | [drivetrain_degradation.md](drivetrain_degradation.md#struct-degradationverdict) |
+| `DegradationVerdict::leftDead` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-leftdead) |
+| `DegradationVerdict::reason` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-reason) |
+| `DegradationVerdict::rightDead` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-rightdead) |
+| `DegradationVerdict::totalDead` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-totaldead) |
+| `DegradationVerdict::verdict` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-verdict) |
+| `DegreePreset` | struct | [kinds.md](kinds.md#struct-degreepreset) |
+| `DegreePreset::name` | field | [kinds.md](kinds.md#degreepreset-name) |
+| `DegreePreset::value` | field | [kinds.md](kinds.md#degreepreset-value) |
+| `DegreeRange` | struct | [kinds.md](kinds.md#struct-degreerange) |
+| `DegreeRange::max` | field | [kinds.md](kinds.md#degreerange-max) |
+| `DegreeRange::min` | field | [kinds.md](kinds.md#degreerange-min) |
 | `desaturateUniform` | free function | [desaturate.md](desaturate.md#desaturateuniform) |
+| `describeWallReset` | free function | [wall_reset.md](wall_reset.md#describewallreset) |
+| `DescriptionSource` | enum class | [drivetrain_description.md](drivetrain_description.md#enum-class-descriptionsource) |
+| `DescriptionSource::RobotMeasured` | enumerator | [drivetrain_description.md](drivetrain_description.md#descriptionsource-robotmeasured) |
+| `DescriptionSource::TypedTable` | enumerator | [drivetrain_description.md](drivetrain_description.md#descriptionsource-typedtable) |
+| `Detection` | struct | [vision_frames.md](vision_frames.md#struct-detection) |
+| `Detection::angleTenths` | field | [vision_frames.md](vision_frames.md#detection-angletenths) |
+| `Detection::clipped` | function | [vision_frames.md](vision_frames.md#detection-clipped) |
+| `Detection::height` | field | [vision_frames.md](vision_frames.md#detection-height) |
+| `Detection::id` | field | [vision_frames.md](vision_frames.md#detection-id) |
+| `Detection::kind` | field | [vision_frames.md](vision_frames.md#detection-kind) |
+| `Detection::left` | field | [vision_frames.md](vision_frames.md#detection-left) |
+| `Detection::score` | field | [vision_frames.md](vision_frames.md#detection-score) |
+| `Detection::top` | field | [vision_frames.md](vision_frames.md#detection-top) |
+| `Detection::width` | field | [vision_frames.md](vision_frames.md#detection-width) |
+| `DetectionKind` | enum class | [vision_frames.md](vision_frames.md#enum-class-detectionkind) |
+| `DetectionKind::Code` | enumerator | [vision_frames.md](vision_frames.md#detectionkind-code) |
+| `DetectionKind::Colour` | enumerator | [vision_frames.md](vision_frames.md#detectionkind-colour) |
+| `DetectionKind::Object` | enumerator | [vision_frames.md](vision_frames.md#detectionkind-object) |
+| `DeviceKind` | enum class | [device_registry.md](device_registry.md#enum-class-devicekind) |
+| `DeviceKind::Adi` | enumerator | [device_registry.md](device_registry.md#devicekind-adi) |
+| `DeviceKind::AiVision` | enumerator | [device_registry.md](device_registry.md#devicekind-aivision) |
+| `DeviceKind::Distance` | enumerator | [device_registry.md](device_registry.md#devicekind-distance) |
+| `DeviceKind::Gps` | enumerator | [device_registry.md](device_registry.md#devicekind-gps) |
+| `DeviceKind::Imu` | enumerator | [device_registry.md](device_registry.md#devicekind-imu) |
+| `DeviceKind::Motor` | enumerator | [device_registry.md](device_registry.md#devicekind-motor) |
+| `DeviceKind::None` | enumerator | [device_registry.md](device_registry.md#devicekind-none) |
+| `DeviceKind::Optical` | enumerator | [device_registry.md](device_registry.md#devicekind-optical) |
+| `DeviceKind::Other` | enumerator | [device_registry.md](device_registry.md#devicekind-other) |
+| `DeviceKind::Radio` | enumerator | [device_registry.md](device_registry.md#devicekind-radio) |
+| `DeviceKind::Rotation` | enumerator | [device_registry.md](device_registry.md#devicekind-rotation) |
+| `DeviceKind::Vision` | enumerator | [device_registry.md](device_registry.md#devicekind-vision) |
+| `deviceKindWord` | free function | [device_registry.md](device_registry.md#devicekindword) |
+| `Devices` | struct | [devices.md](devices.md#struct-devices) |
+| `Devices::absence` | field | [devices.md](devices.md#devices-absence) |
+| `Devices::angleSensor` | field | [devices.md](devices.md#devices-anglesensor) |
+| `Devices::currentLimits` | field | [devices.md](devices.md#devices-currentlimits) |
+| `Devices::homeSwitch` | field | [devices.md](devices.md#devices-homeswitch) |
+| `Devices::homeSwitchFaults` | field | [devices.md](devices.md#devices-homeswitchfaults) |
+| `Devices::motors` | field | [devices.md](devices.md#devices-motors) |
+| `Devices::pieceDistance` | field | [devices.md](devices.md#devices-piecedistance) |
+| `Devices::pieceFaults` | field | [devices.md](devices.md#devices-piecefaults) |
+| `Devices::pieceOptical` | field | [devices.md](devices.md#devices-pieceoptical) |
+| `Devices::pieceSwitch` | field | [devices.md](devices.md#devices-pieceswitch) |
+| `Devices::pneumatic` | field | [devices.md](devices.md#devices-pneumatic) |
+| `direct` | constant | [kinds.md](kinds.md#direct) |
+| `direct (overload 2)` | type alias | [kinds.md](kinds.md#direct-2) |
+| `DirectionFinding` | enum class | [direction_check.md](direction_check.md#enum-class-directionfinding) |
+| `DirectionFinding::AwaitingPerson` | enumerator | [direction_check.md](direction_check.md#directionfinding-awaitingperson) |
+| `DirectionFinding::BackDriven` | enumerator | [direction_check.md](direction_check.md#directionfinding-backdriven) |
+| `DirectionFinding::CableOnAnotherMechanism` | enumerator | [direction_check.md](direction_check.md#directionfinding-cableonanothermechanism) |
+| `DirectionFinding::DidNotMove` | enumerator | [direction_check.md](direction_check.md#directionfinding-didnotmove) |
+| `DirectionFinding::FightOrJam` | enumerator | [direction_check.md](direction_check.md#directionfinding-fightorjam) |
+| `DirectionFinding::MechanismReversed` | enumerator | [direction_check.md](direction_check.md#directionfinding-mechanismreversed) |
+| `DirectionFinding::MotorFights` | enumerator | [direction_check.md](direction_check.md#directionfinding-motorfights) |
+| `DirectionFinding::Ok` | enumerator | [direction_check.md](direction_check.md#directionfinding-ok) |
+| `DirectionFinding::SensorReversed` | enumerator | [direction_check.md](direction_check.md#directionfinding-sensorreversed) |
+| `DirectionObservation` | struct | [direction_check.md](direction_check.md#struct-directionobservation) |
+| `DirectionObservation::commandVolts` | field | [direction_check.md](direction_check.md#directionobservation-commandvolts) |
+| `DirectionObservation::hasAngleSensor` | field | [direction_check.md](direction_check.md#directionobservation-hasanglesensor) |
+| `DirectionObservation::motorDeltaRad` | field | [direction_check.md](direction_check.md#directionobservation-motordeltarad) |
+| `DirectionObservation::motorPeakAmps` | field | [direction_check.md](direction_check.md#directionobservation-motorpeakamps) |
+| `DirectionObservation::person` | field | [direction_check.md](direction_check.md#directionobservation-person) |
+| `DirectionObservation::sensorDeltaRad` | field | [direction_check.md](direction_check.md#directionobservation-sensordeltarad) |
+| `DirectionVerdict` | struct | [direction_check.md](direction_check.md#struct-directionverdict) |
+| `DirectionVerdict::finding` | field | [direction_check.md](direction_check.md#directionverdict-finding) |
+| `DirectionVerdict::fix` | field | [direction_check.md](direction_check.md#directionverdict-fix) |
+| `DirectionVerdict::role` | field | [direction_check.md](direction_check.md#directionverdict-role) |
 | `DisplayController` | enum class | [pros-line_display.md](pros-line_display.md#enum-class-displaycontroller) |
 | `DisplayController::Master` | enumerator | [pros-line_display.md](pros-line_display.md#displaycontroller-master) |
 | `DisplayController::Partner` | enumerator | [pros-line_display.md](pros-line_display.md#displaycontroller-partner) |
 | `distanceConfidenceToCanonical` | free function | [distance_conversion.md](distance_conversion.md#distanceconfidencetocanonical) |
 | `distanceMmToCanonical` | free function | [distance_conversion.md](distance_conversion.md#distancemmtocanonical) |
+| `distanceSensor` | free function | [kinds.md](kinds.md#distancesensor) |
+| `distanceSensor (overload 2)` | type alias | [kinds.md](kinds.md#distancesensor-2) |
+| `DoneBy` | enum class | [until.md](until.md#enum-class-doneby) |
+| `DoneBy::None` | enumerator | [until.md](until.md#doneby-none) |
+| `DoneBy::Reached` | enumerator | [until.md](until.md#doneby-reached) |
+| `DoneBy::Sees` | enumerator | [until.md](until.md#doneby-sees) |
+| `DoneBy::Stalled` | enumerator | [until.md](until.md#doneby-stalled) |
+| `DoneBy::StopsSeeing` | enumerator | [until.md](until.md#doneby-stopsseeing) |
+| `DoneBy::Time` | enumerator | [until.md](until.md#doneby-time) |
+| `doneByWord` | free function | [until.md](until.md#donebyword) |
 | `DriveBrake` | class | [drive_brake.md](drive_brake.md#class-drivebrake) |
 | `DriveBrake::cancel` | function | [drive_brake.md](drive_brake.md#drivebrake-cancel) |
 | `DriveBrake::DriveBrake` | function | [drive_brake.md](drive_brake.md#drivebrake-drivebrake) |
@@ -364,11 +1266,215 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveBrake::start` | function | [drive_brake.md](drive_brake.md#drivebrake-start) |
 | `DriveBrake::state` | function | [drive_brake.md](drive_brake.md#drivebrake-state) |
 | `DriveBrake::tick` | function | [drive_brake.md](drive_brake.md#drivebrake-tick) |
+| `DriveCharacterization` | struct | [drive_characterization.md](drive_characterization.md#struct-drivecharacterization) |
+| `DriveCharacterization::combined` | function | [drive_characterization.md](drive_characterization.md#drivecharacterization-combined) |
+| `DriveCharacterization::hasGains` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-hasgains) |
+| `DriveCharacterization::hasRest` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-hasrest) |
+| `DriveCharacterization::kVAsymmetry` | function | [drive_characterization.md](drive_characterization.md#drivecharacterization-kvasymmetry) |
+| `DriveCharacterization::left` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-left) |
+| `DriveCharacterization::provenance` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-provenance) |
+| `DriveCharacterization::rampTiming` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-ramptiming) |
+| `DriveCharacterization::rest` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-rest) |
+| `DriveCharacterization::right` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-right) |
+| `DriveCharacterization::source` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-source) |
+| `DriveCharacterization::valid` | function | [drive_characterization.md](drive_characterization.md#drivecharacterization-valid) |
+| `DriveCharacterizer` | class | [drive_characterizer.md](drive_characterizer.md#class-drivecharacterizer) |
+| `DriveCharacterizer::abort` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-abort) |
+| `DriveCharacterizer::config` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-config) |
+| `DriveCharacterizer::DriveCharacterizer` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-drivecharacterizer) |
+| `DriveCharacterizer::DriveCharacterizer (overload 2)` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-drivecharacterizer-2) |
+| `DriveCharacterizer::lastSample` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-lastsample) |
+| `DriveCharacterizer::operator=` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-operator-eq) |
+| `DriveCharacterizer::phase` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-phase) |
+| `DriveCharacterizer::reason` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-reason) |
+| `DriveCharacterizer::refusal` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-refusal) |
+| `DriveCharacterizer::refusalPort` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-refusalport) |
+| `DriveCharacterizer::report` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-report) |
+| `DriveCharacterizer::result` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-result) |
+| `DriveCharacterizer::start` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-start) |
+| `DriveCharacterizer::status` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-status) |
+| `DriveCharacterizer::tick` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-tick) |
+| `DriveCharacterizer::warning` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-warning) |
+| `DriveEncoderOdometry` | class | [drive_encoder_odometry.md](drive_encoder_odometry.md#class-driveencoderodometry) |
+| `DriveEncoderOdometry::DriveEncoderOdometry` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-driveencoderodometry) |
+| `DriveEncoderOdometry::lastDeltaImplausible` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-lastdeltaimplausible) |
+| `DriveEncoderOdometry::lastHeadingDisagreement` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-lastheadingdisagreement) |
+| `DriveEncoderOdometry::lastSideTravel` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-lastsidetravel) |
+| `DriveEncoderOdometry::lastTickAudit` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-lasttickaudit) |
+| `DriveEncoderOdometry::leftInchesPerRadian` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-leftinchesperradian) |
+| `DriveEncoderOdometry::pose` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-pose) |
+| `DriveEncoderOdometry::rightInchesPerRadian` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-rightinchesperradian) |
+| `DriveEncoderOdometry::setPose` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-setpose) |
+| `DriveEncoderOdometry::trackWidth` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-trackwidth) |
+| `DriveEncoderOdometry::update` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-update) |
+| `DriveEncoderOdometryConfig` | struct | [drive_encoder_odometry.md](drive_encoder_odometry.md#struct-driveencoderodometryconfig) |
+| `DriveEncoderOdometryConfig::maxTickRotation` | field | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometryconfig-maxtickrotation) |
+| `DriveEncoderOdometryConfig::maxTickTravel` | field | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometryconfig-maxticktravel) |
+| `DriveGeometry` | struct | [drive_geometry.md](drive_geometry.md#struct-drivegeometry) |
+| `DriveGeometry::fromDiameter` | function | [drive_geometry.md](drive_geometry.md#drivegeometry-fromdiameter) |
+| `DriveGeometry::fromInchesPerRadian` | function | [drive_geometry.md](drive_geometry.md#drivegeometry-frominchesperradian) |
+| `DriveGeometry::inchesPerRadian` | function | [drive_geometry.md](drive_geometry.md#drivegeometry-inchesperradian) |
+| `DriveGeometry::motorToWheelRatio` | field | [drive_geometry.md](drive_geometry.md#drivegeometry-motortowheelratio) |
+| `DriveGeometry::valid` | function | [drive_geometry.md](drive_geometry.md#drivegeometry-valid) |
+| `DriveGeometry::wheelRadius` | field | [drive_geometry.md](drive_geometry.md#drivegeometry-wheelradius) |
+| `DriveMode` | enum class | [drive_modes.md](drive_modes.md#enum-class-drivemode) |
+| `DriveMode::ArcadeBody` | enumerator | [drive_modes.md](drive_modes.md#drivemode-arcadebody) |
+| `DriveMode::ArcadeField` | enumerator | [drive_modes.md](drive_modes.md#drivemode-arcadefield) |
+| `DriveMode::TankSticks` | enumerator | [drive_modes.md](drive_modes.md#drivemode-tanksticks) |
+| `DriveProtection` | class | [drive_protection.md](drive_protection.md#class-driveprotection) |
+| `DriveProtection::afterDrive` | function | [drive_protection.md](drive_protection.md#driveprotection-afterdrive) |
+| `DriveProtection::beforeDrive` | function | [drive_protection.md](drive_protection.md#driveprotection-beforedrive) |
+| `DriveProtection::commandAllowed` | function | [drive_protection.md](drive_protection.md#driveprotection-commandallowed) |
+| `DriveProtection::config` | function | [drive_protection.md](drive_protection.md#driveprotection-config) |
+| `DriveProtection::DriveProtection` | function | [drive_protection.md](drive_protection.md#driveprotection-driveprotection) |
+| `DriveProtection::DriveProtection (overload 2)` | function | [drive_protection.md](drive_protection.md#driveprotection-driveprotection-2) |
+| `DriveProtection::DriveProtection (overload 3)` | function | [drive_protection.md](drive_protection.md#driveprotection-driveprotection-3) |
+| `DriveProtection::enter` | function | [drive_protection.md](drive_protection.md#driveprotection-enter) |
+| `DriveProtection::onDisable` | function | [drive_protection.md](drive_protection.md#driveprotection-ondisable) |
+| `DriveProtection::operator=` | function | [drive_protection.md](drive_protection.md#driveprotection-operator-eq) |
+| `DriveProtection::operator= (overload 2)` | function | [drive_protection.md](drive_protection.md#driveprotection-operator-eq-2) |
+| `DriveProtection::state` | function | [drive_protection.md](drive_protection.md#driveprotection-state) |
+| `DriveProtection::~DriveProtection` | function | [drive_protection.md](drive_protection.md#driveprotection-destructor-driveprotection) |
+| `DriveProtectionConfig` | struct | [drive_protection.md](drive_protection.md#struct-driveprotectionconfig) |
+| `DriveProtectionConfig::cutTicks` | field | [drive_protection.md](drive_protection.md#driveprotectionconfig-cutticks) |
+| `DriveProtectionConfig::frozenSuspectReads` | field | [drive_protection.md](drive_protection.md#driveprotectionconfig-frozensuspectreads) |
+| `DriveProtectionConfig::maxCutsLogged` | field | [drive_protection.md](drive_protection.md#driveprotectionconfig-maxcutslogged) |
+| `DriveProtectionConfig::overCurrentAmps` | field | [drive_protection.md](drive_protection.md#driveprotectionconfig-overcurrentamps) |
+| `DriveProtectionConfig::overCurrentCuts` | field | [drive_protection.md](drive_protection.md#driveprotectionconfig-overcurrentcuts) |
+| `DriveProtectionConfig::overCurrentTicks` | field | [drive_protection.md](drive_protection.md#driveprotectionconfig-overcurrentticks) |
+| `DriveProtectionState` | struct | [drive_protection.md](drive_protection.md#struct-driveprotectionstate) |
+| `DriveProtectionState::cutCount` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-cutcount) |
+| `DriveProtectionState::cutTicksLeft` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-cutticksleft) |
+| `DriveProtectionState::dead` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-dead) |
+| `DriveProtectionState::frozen` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-frozen) |
+| `DriveProtectionState::groupCount` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-groupcount) |
+| `DriveProtectionState::lastCut` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-lastcut) |
+| `DriveProtectionState::mode` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-mode) |
+| `DriveProtectionState::overCurrentWarnings` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-overcurrentwarnings) |
+| `DriveProtectionState::peakAmps` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-peakamps) |
+| `DriveProtectionState::verdict` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-verdict) |
+| `DriverControls` | struct | [driver_inputs.md](driver_inputs.md#struct-drivercontrols) |
+| `DriverControls` | type alias | [driver_inputs.md](driver_inputs.md#drivercontrols) |
+| `DriverControls::all` | function | [driver_inputs.md](driver_inputs.md#drivercontrols-all) |
+| `DriverControls::avoids` | function | [driver_inputs.md](driver_inputs.md#drivercontrols-avoids) |
+| `DriverControls::c` | field | [driver_inputs.md](driver_inputs.md#drivercontrols-c) |
+| `DriverControls::count` | field | [driver_inputs.md](driver_inputs.md#drivercontrols-count) |
+| `DriverControls::kCap` | field | [driver_inputs.md](driver_inputs.md#drivercontrols-kcap) |
+| `DriveRequest` | struct | [stick_mapping.md](stick_mapping.md#struct-driverequest) |
+| `DriveRequest::forward` | field | [stick_mapping.md](stick_mapping.md#driverequest-forward) |
+| `DriveRequest::left` | field | [stick_mapping.md](stick_mapping.md#driverequest-left) |
+| `DriveRequest::yawCcw` | field | [stick_mapping.md](stick_mapping.md#driverequest-yawccw) |
+| `DriverInputs` | class | [driver_inputs.md](driver_inputs.md#class-driverinputs) |
+| `DriverInputs::avoids` | function | [driver_inputs.md](driver_inputs.md#driverinputs-avoids) |
+| `DriverInputs::bind` | function | [driver_inputs.md](driver_inputs.md#driverinputs-bind) |
+| `DriverInputs::bound` | function | [driver_inputs.md](driver_inputs.md#driverinputs-bound) |
+| `DriverInputs::boundTo` | function | [driver_inputs.md](driver_inputs.md#driverinputs-boundto) |
+| `DriverInputs::DriverInputs` | function | [driver_inputs.md](driver_inputs.md#driverinputs-driverinputs) |
+| `DriverInputs::DriverInputs (overload 2)` | function | [driver_inputs.md](driver_inputs.md#driverinputs-driverinputs-2) |
+| `DriverInputs::DriverInputs (overload 3)` | function | [driver_inputs.md](driver_inputs.md#driverinputs-driverinputs-3) |
+| `DriverInputs::enter` | function | [driver_inputs.md](driver_inputs.md#driverinputs-enter) |
+| `DriverInputs::kCap` | field | [driver_inputs.md](driver_inputs.md#driverinputs-kcap) |
+| `DriverInputs::operator=` | function | [driver_inputs.md](driver_inputs.md#driverinputs-operator-eq) |
+| `DriverInputs::operator= (overload 2)` | function | [driver_inputs.md](driver_inputs.md#driverinputs-operator-eq-2) |
+| `DriverInputs::tick` | function | [driver_inputs.md](driver_inputs.md#driverinputs-tick) |
+| `DriverInputs::~DriverInputs` | function | [driver_inputs.md](driver_inputs.md#driverinputs-destructor-driverinputs) |
+| `DriverLoopConfig` | struct | [teleop_loop.md](teleop_loop.md#struct-driverloopconfig) |
+| `DriverLoopConfig` | type alias | [teleop_loop.md](teleop_loop.md#driverloopconfig) |
+| `DriverLoopConfig::protection` | field | [teleop_loop.md](teleop_loop.md#driverloopconfig-protection) |
+| `DriverLoopConfig::releaseBrakeMode` | field | [teleop_loop.md](teleop_loop.md#driverloopconfig-releasebrakemode) |
+| `DriverLoopConfig::rezeroButton` | field | [teleop_loop.md](teleop_loop.md#driverloopconfig-rezerobutton) |
+| `DriverLoopConfig::tickPeriod` | field | [teleop_loop.md](teleop_loop.md#driverloopconfig-tickperiod) |
+| `DriverProfile` | struct | [input_shaping.md](input_shaping.md#struct-driverprofile) |
+| `DriverProfile` | type alias | [teleop_loop.md](teleop_loop.md#driverprofile) |
+| `DriverProfile::forward` | field | [input_shaping.md](input_shaping.md#driverprofile-forward) |
+| `DriverProfile::left` | field | [input_shaping.md](input_shaping.md#driverprofile-left) |
+| `DriverProfile::mode` | field | [input_shaping.md](input_shaping.md#driverprofile-mode) |
+| `DriverProfile::slew` | field | [input_shaping.md](input_shaping.md#driverprofile-slew) |
+| `DriverProfile::valid` | function | [input_shaping.md](input_shaping.md#driverprofile-valid) |
+| `DriverProfile::yaw` | field | [input_shaping.md](input_shaping.md#driverprofile-yaw) |
+| `DriveShaper` | class | [driver_control.md](driver_control.md#class-driveshaper) |
+| `DriveShaper::DriveShaper` | function | [driver_control.md](driver_control.md#driveshaper-driveshaper) |
+| `DriveShaper::fieldCentric` | function | [driver_control.md](driver_control.md#driveshaper-fieldcentric) |
+| `DriveShaper::profile` | function | [driver_control.md](driver_control.md#driveshaper-profile) |
+| `DriveShaper::reset` | function | [driver_control.md](driver_control.md#driveshaper-reset) |
+| `DriveShaper::rezero` | function | [driver_control.md](driver_control.md#driveshaper-rezero) |
+| `DriveShaper::setProfile` | function | [driver_control.md](driver_control.md#driveshaper-setprofile) |
+| `DriveShaper::shape` | function | [driver_control.md](driver_control.md#driveshaper-shape) |
+| `DriveShaper::state` | function | [driver_control.md](driver_control.md#driveshaper-state) |
+| `DriveShaperState` | struct | [driver_control.md](driver_control.md#struct-driveshaperstate) |
+| `DriveShaperState::controllerAbsent` | field | [driver_control.md](driver_control.md#driveshaperstate-controllerabsent) |
+| `DriveShaperState::fieldCentric` | field | [driver_control.md](driver_control.md#driveshaperstate-fieldcentric) |
+| `DriveShaperState::slewOutput` | field | [driver_control.md](driver_control.md#driveshaperstate-slewoutput) |
+| `DriveSide` | struct | [rest_capture.md](rest_capture.md#struct-driveside) |
+| `DriveSide::inchesPerRadian` | field | [rest_capture.md](rest_capture.md#driveside-inchesperradian) |
+| `DriveSide::members` | field | [rest_capture.md](rest_capture.md#driveside-members) |
+| `DriveSideDescription` | struct | [drivetrain_description.md](drivetrain_description.md#struct-drivesidedescription) |
+| `DriveSideDescription::count` | field | [drivetrain_description.md](drivetrain_description.md#drivesidedescription-count) |
+| `DriveSideDescription::inchesPerRadian` | field | [drivetrain_description.md](drivetrain_description.md#drivesidedescription-inchesperradian) |
+| `DriveSideDescription::signedPorts` | field | [drivetrain_description.md](drivetrain_description.md#drivesidedescription-signedports) |
+| `driveSideValid` | free function | [rest_capture.md](rest_capture.md#drivesidevalid) |
+| `DrivetrainCalibrator` | class | [drivetrain_calibrator.md](drivetrain_calibrator.md#class-drivetraincalibrator) |
+| `DrivetrainCalibrator::abort` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-abort) |
+| `DrivetrainCalibrator::accepts` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-accepts) |
+| `DrivetrainCalibrator::answer` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-answer) |
+| `DrivetrainCalibrator::config` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-config) |
+| `DrivetrainCalibrator::DrivetrainCalibrator` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-drivetraincalibrator) |
+| `DrivetrainCalibrator::DrivetrainCalibrator (overload 2)` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-drivetraincalibrator-2) |
+| `DrivetrainCalibrator::operator=` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-operator-eq) |
+| `DrivetrainCalibrator::phase` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-phase) |
+| `DrivetrainCalibrator::pushReady` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-pushready) |
+| `DrivetrainCalibrator::reason` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-reason) |
+| `DrivetrainCalibrator::refusal` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-refusal) |
+| `DrivetrainCalibrator::refusalPort` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-refusalport) |
+| `DrivetrainCalibrator::report` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-report) |
+| `DrivetrainCalibrator::result` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-result) |
+| `DrivetrainCalibrator::start` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-start) |
+| `DrivetrainCalibrator::status` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-status) |
+| `DrivetrainCalibrator::tick` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-tick) |
+| `DrivetrainCalibrator::warning` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-warning) |
+| `DrivetrainConfig` | struct | [robot_config.md](robot_config.md#struct-drivetrainconfig) |
+| `DrivetrainConfig::cartridge` | function | [robot_config.md](robot_config.md#drivetrainconfig-cartridge) |
+| `DrivetrainConfig::driveMotorCount` | function | [robot_config.md](robot_config.md#drivetrainconfig-drivemotorcount) |
+| `DrivetrainConfig::hdrive` | field | [robot_config.md](robot_config.md#drivetrainconfig-hdrive) |
+| `DrivetrainConfig::imuPort` | function | [robot_config.md](robot_config.md#drivetrainconfig-imuport) |
+| `DrivetrainConfig::kind` | field | [robot_config.md](robot_config.md#drivetrainconfig-kind) |
+| `DrivetrainConfig::kindOf` | function | [robot_config.md](robot_config.md#drivetrainconfig-kindof) |
+| `DrivetrainConfig::tank` | field | [robot_config.md](robot_config.md#drivetrainconfig-tank) |
+| `DrivetrainConfig::wheelCount` | function | [robot_config.md](robot_config.md#drivetrainconfig-wheelcount) |
+| `DrivetrainConfig::xdrive` | field | [robot_config.md](robot_config.md#drivetrainconfig-xdrive) |
+| `DrivetrainDescription` | struct | [drivetrain_description.md](drivetrain_description.md#struct-drivetraindescription) |
+| `DrivetrainDescription::cartridge` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-cartridge) |
+| `DrivetrainDescription::describe` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-describe) |
+| `DrivetrainDescription::imuPort` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-imuport) |
+| `DrivetrainDescription::kind` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-kind) |
+| `DrivetrainDescription::left` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-left) |
+| `DrivetrainDescription::leftGeometry` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-leftgeometry) |
+| `DrivetrainDescription::portMagnitude` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-portmagnitude) |
+| `DrivetrainDescription::provenance` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-provenance) |
+| `DrivetrainDescription::right` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-right) |
+| `DrivetrainDescription::rightGeometry` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-rightgeometry) |
+| `DrivetrainDescription::sideOf` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-sideof) |
+| `DrivetrainDescription::signedPortOf` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-signedportof) |
+| `DrivetrainDescription::source` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-source) |
+| `DrivetrainDescription::trackWidth` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-trackwidth) |
+| `DrivetrainDescription::valid` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-valid) |
+| `DrivetrainKind` | enum class | [drivetrain_description.md](drivetrain_description.md#enum-class-drivetrainkind) |
+| `DrivetrainKind` | enum class | [robot_config.md](robot_config.md#enum-class-drivetrainkind) |
+| `DrivetrainKind::HDrive` | enumerator | [robot_config.md](robot_config.md#drivetrainkind-hdrive) |
+| `DrivetrainKind::Tank` | enumerator | [drivetrain_description.md](drivetrain_description.md#drivetrainkind-tank) |
+| `DrivetrainKind::Tank` | enumerator | [robot_config.md](robot_config.md#drivetrainkind-tank) |
+| `DrivetrainKind::XDrive` | enumerator | [robot_config.md](robot_config.md#drivetrainkind-xdrive) |
+| `drivetrainKindWord` | free function | [robot_config.md](robot_config.md#drivetrainkindword) |
+| `DriveVerdict` | enum class | [drivetrain_degradation.md](drivetrain_degradation.md#enum-class-driveverdict) |
+| `DriveVerdict::Drive` | enumerator | [drivetrain_degradation.md](drivetrain_degradation.md#driveverdict-drive) |
+| `DriveVerdict::DriveDegraded` | enumerator | [drivetrain_degradation.md](drivetrain_degradation.md#driveverdict-drivedegraded) |
+| `DriveVerdict::Refuse` | enumerator | [drivetrain_degradation.md](drivetrain_degradation.md#driveverdict-refuse) |
 
 ## E
 
 | Name | Kind | Page |
 |---|---|---|
+| `effectiveCone` | free function | [wall_reset.md](wall_reset.md#effectivecone) |
 | `EkfFusion` | class | [ekf_fusion.md](ekf_fusion.md#class-ekffusion) |
 | `EkfFusion::acceptedFixes` | function | [ekf_fusion.md](ekf_fusion.md#ekffusion-acceptedfixes) |
 | `EkfFusion::consecutiveRejects` | function | [ekf_fusion.md](ekf_fusion.md#ekffusion-consecutiverejects) |
@@ -416,19 +1522,55 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `emitSessionHeader` | free function | [session_info.md](session_info.md#emitsessionheader) |
 | `emitTriageBlock` | free function | [triage.md](triage.md#emittriageblock) |
 | `encodeEnd` | free function | [blackbox_format.md](blackbox_format.md#encodeend) |
+| `encodeEnd` | free function | [shul2_format.md](shul2_format.md#encodeend) |
+| `encodeFrame` | free function | [shul2_format.md](shul2_format.md#encodeframe) |
 | `encodeFrameHeader` | free function | [blackbox_format.md](blackbox_format.md#encodeframeheader) |
 | `encodeHeader` | free function | [blackbox_format.md](blackbox_format.md#encodeheader) |
+| `encodeHello` | free function | [shul2_format.md](shul2_format.md#encodehello) |
+| `encodeLog` | free function | [shul2_format.md](shul2_format.md#encodelog) |
+| `encodeRecord` | free function | [calibration_record.md](calibration_record.md#encoderecord) |
 | `encodeSummary` | free function | [blackbox_format.md](blackbox_format.md#encodesummary) |
 | `encodeTick` | free function | [blackbox_format.md](blackbox_format.md#encodetick) |
 | `encodeTriage` | free function | [blackbox_format.md](blackbox_format.md#encodetriage) |
 | `EndInfo` | struct | [blackbox_format.md](blackbox_format.md#struct-endinfo) |
+| `EndInfo` | struct | [shul2_format.md](shul2_format.md#struct-endinfo) |
 | `EndInfo::brownout` | field | [blackbox_format.md](blackbox_format.md#endinfo-brownout) |
 | `EndInfo::bytesBefore` | field | [blackbox_format.md](blackbox_format.md#endinfo-bytesbefore) |
 | `EndInfo::deviceFailed` | field | [blackbox_format.md](blackbox_format.md#endinfo-devicefailed) |
 | `EndInfo::droppedFrames` | field | [blackbox_format.md](blackbox_format.md#endinfo-droppedframes) |
 | `EndInfo::endTime` | field | [blackbox_format.md](blackbox_format.md#endinfo-endtime) |
+| `EndInfo::endTime` | field | [shul2_format.md](shul2_format.md#endinfo-endtime) |
+| `EndInfo::framesFailed` | field | [shul2_format.md](shul2_format.md#endinfo-framesfailed) |
+| `EndInfo::framesOffered` | field | [shul2_format.md](shul2_format.md#endinfo-framesoffered) |
+| `EndInfo::linesSeen` | field | [shul2_format.md](shul2_format.md#endinfo-linesseen) |
+| `EndInfo::linesTruncated` | field | [shul2_format.md](shul2_format.md#endinfo-linestruncated) |
 | `EndInfo::messagesSeen` | field | [blackbox_format.md](blackbox_format.md#endinfo-messagesseen) |
+| `EndInfo::notOpenDropped` | field | [shul2_format.md](shul2_format.md#endinfo-notopendropped) |
+| `EndInfo::recordsSeen` | field | [shul2_format.md](shul2_format.md#endinfo-recordsseen) |
 | `EndInfo::tickFrames` | field | [blackbox_format.md](blackbox_format.md#endinfo-tickframes) |
+| `EntryProblem` | enum class | [wiring.md](wiring.md#enum-class-entryproblem) |
+| `entryProblem` | free function | [wiring.md](wiring.md#entryproblem) |
+| `EntryProblem::AngleSensorExtra` | enumerator | [wiring.md](wiring.md#entryproblem-anglesensorextra) |
+| `EntryProblem::AngleSensorUnplugged` | enumerator | [wiring.md](wiring.md#entryproblem-anglesensorunplugged) |
+| `EntryProblem::HomeSwitchExtra` | enumerator | [wiring.md](wiring.md#entryproblem-homeswitchextra) |
+| `EntryProblem::HomeSwitchUnplugged` | enumerator | [wiring.md](wiring.md#entryproblem-homeswitchunplugged) |
+| `EntryProblem::LevelsVsLines` | enumerator | [wiring.md](wiring.md#entryproblem-levelsvslines) |
+| `EntryProblem::LineExtra` | enumerator | [wiring.md](wiring.md#entryproblem-lineextra) |
+| `EntryProblem::LinePastH` | enumerator | [wiring.md](wiring.md#entryproblem-linepasth) |
+| `EntryProblem::LineRoleUnbound` | enumerator | [wiring.md](wiring.md#entryproblem-lineroleunbound) |
+| `EntryProblem::MotorPortExtra` | enumerator | [wiring.md](wiring.md#entryproblem-motorportextra) |
+| `EntryProblem::MotorRoleUnbound` | enumerator | [wiring.md](wiring.md#entryproblem-motorroleunbound) |
+| `EntryProblem::NameDiffers` | enumerator | [wiring.md](wiring.md#entryproblem-namediffers) |
+| `EntryProblem::None` | enumerator | [wiring.md](wiring.md#entryproblem-none) |
+| `EntryProblem::PieceSensorExtra` | enumerator | [wiring.md](wiring.md#entryproblem-piecesensorextra) |
+| `EntryProblem::PieceSensorUnplugged` | enumerator | [wiring.md](wiring.md#entryproblem-piecesensorunplugged) |
+| `EntryProblem::PieceSwitchExtra` | enumerator | [wiring.md](wiring.md#entryproblem-pieceswitchextra) |
+| `EntryProblem::PieceSwitchUnplugged` | enumerator | [wiring.md](wiring.md#entryproblem-pieceswitchunplugged) |
+| `EntryProblem::SmartPortPast21` | enumerator | [wiring.md](wiring.md#entryproblem-smartportpast21) |
+| `entryProblemText` | free function | [wiring.md](wiring.md#entryproblemtext) |
+| `evaluateDegradation` | free function | [drivetrain_degradation.md](drivetrain_degradation.md#evaluatedegradation) |
+| `evaluateRuntimeDegradation` | free function | [drivetrain_degradation.md](drivetrain_degradation.md#evaluateruntimedegradation) |
+| `evaluateWallReset` | free function | [wall_reset.md](wall_reset.md#evaluatewallreset) |
 | `ExitGroup` | class | [exit_group.md](exit_group.md#class-exitgroup) |
 | `ExitGroup::check` | function | [exit_group.md](exit_group.md#exitgroup-check) |
 | `ExitGroup::ExitGroup` | function | [exit_group.md](exit_group.md#exitgroup-exitgroup) |
@@ -440,11 +1582,28 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ExitReason::Running` | enumerator | [exit_group.md](exit_group.md#exitreason-running) |
 | `ExitReason::Settled` | enumerator | [exit_group.md](exit_group.md#exitreason-settled) |
 | `ExitReason::TimedOut` | enumerator | [exit_group.md](exit_group.md#exitreason-timedout) |
+| `explainAsToggleFace` | free function | [toggle_tracker.md](toggle_tracker.md#explainastoggleface) |
+| `ExplicitToggleCamera` | struct | [toggle_visit.md](toggle_visit.md#struct-explicittogglecamera) |
+| `ExplicitToggleCamera::feed` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-feed) |
+| `ExplicitToggleCamera::headingToleranceDeg` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-headingtolerancedeg) |
+| `ExplicitToggleCamera::model` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-model) |
+| `ExplicitToggleCamera::poseTolerance` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-posetolerance) |
+| `ExplicitToggleCamera::tracker` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-tracker) |
+| `expoCurve` | free function | [input_shaping.md](input_shaping.md#expocurve) |
 
 ## F
 
 | Name | Kind | Page |
 |---|---|---|
+| `FactsList` | enum class | [calibrate_program.md](calibrate_program.md#enum-class-factslist) |
+| `FactsList::Mechanisms` | enumerator | [calibrate_program.md](calibrate_program.md#factslist-mechanisms) |
+| `FactsList::TypedLeft` | enumerator | [calibrate_program.md](calibrate_program.md#factslist-typedleft) |
+| `FactsList::TypedRight` | enumerator | [calibrate_program.md](calibrate_program.md#factslist-typedright) |
+| `factsProblem` | free function | [calibrate_program.md](calibrate_program.md#factsproblem) |
+| `FactsProblem` | struct | [calibrate_program.md](calibrate_program.md#struct-factsproblem) |
+| `FactsProblem::entry` | field | [calibrate_program.md](calibrate_program.md#factsproblem-entry) |
+| `FactsProblem::list` | field | [calibrate_program.md](calibrate_program.md#factsproblem-list) |
+| `FactsProblem::why` | field | [calibrate_program.md](calibrate_program.md#factsproblem-why) |
 | `faultBit` | free function | [motion_scheduler.md](motion_scheduler.md#faultbit) |
 | `FaultCode` | enum class | [fault.md](fault.md#enum-class-faultcode) |
 | `FaultCode::Brownout` | enumerator | [fault.md](fault.md#faultcode-brownout) |
@@ -454,6 +1613,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FaultCode::LoopOverrun` | enumerator | [fault.md](fault.md#faultcode-loopoverrun) |
 | `FaultCode::MechanismStalled` | enumerator | [fault.md](fault.md#faultcode-mechanismstalled) |
 | `FaultCode::MotionTimeout` | enumerator | [fault.md](fault.md#faultcode-motiontimeout) |
+| `FaultCode::MotorGroupDisagree` | enumerator | [fault.md](fault.md#faultcode-motorgroupdisagree) |
 | `FaultCode::MotorOverTemp` | enumerator | [fault.md](fault.md#faultcode-motorovertemp) |
 | `FaultCode::NanPose` | enumerator | [fault.md](fault.md#faultcode-nanpose) |
 | `FaultCode::None` | enumerator | [fault.md](fault.md#faultcode-none) |
@@ -470,26 +1630,224 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FaultLatch::lastFault` | function | [fault.md](fault.md#faultlatch-lastfault) |
 | `FaultLatch::raise` | function | [fault.md](fault.md#faultlatch-raise) |
 | `FaultLatch::raiseCount` | function | [fault.md](fault.md#faultlatch-raisecount) |
+| `FaultLatch::raiseRepeat` | function | [fault.md](fault.md#faultlatch-raiserepeat) |
 | `Feedforward` | class | [feedforward.md](feedforward.md#class-feedforward) |
 | `Feedforward::calculate` | function | [feedforward.md](feedforward.md#feedforward-calculate) |
 | `Feedforward::calculate (overload 2)` | function | [feedforward.md](feedforward.md#feedforward-calculate-2) |
 | `Feedforward::Feedforward` | function | [feedforward.md](feedforward.md#feedforward-feedforward) |
+| `FeedforwardFit` | class | [feedforward_fit.md](feedforward_fit.md#class-feedforwardfit) |
+| `FeedforwardFit::add` | function | [feedforward_fit.md](feedforward_fit.md#feedforwardfit-add) |
+| `FeedforwardFit::admitted` | function | [feedforward_fit.md](feedforward_fit.md#feedforwardfit-admitted) |
+| `FeedforwardFit::config` | function | [feedforward_fit.md](feedforward_fit.md#feedforwardfit-config) |
+| `FeedforwardFit::excluded` | function | [feedforward_fit.md](feedforward_fit.md#feedforwardfit-excluded) |
+| `FeedforwardFit::FeedforwardFit` | function | [feedforward_fit.md](feedforward_fit.md#feedforwardfit-feedforwardfit) |
+| `FeedforwardFit::result` | function | [feedforward_fit.md](feedforward_fit.md#feedforwardfit-result) |
 | `FeedforwardGains` | struct | [feedforward.md](feedforward.md#struct-feedforwardgains) |
 | `FeedforwardGains::kA` | field | [feedforward.md](feedforward.md#feedforwardgains-ka) |
 | `FeedforwardGains::kS` | field | [feedforward.md](feedforward.md#feedforwardgains-ks) |
 | `FeedforwardGains::kV` | field | [feedforward.md](feedforward.md#feedforwardgains-kv) |
+| `FieldCentric` | class | [field_centric.md](field_centric.md#class-fieldcentric) |
+| `FieldCentric::fellBack` | function | [field_centric.md](field_centric.md#fieldcentric-fellback) |
+| `FieldCentric::FieldCentric` | function | [field_centric.md](field_centric.md#fieldcentric-fieldcentric) |
+| `FieldCentric::request` | function | [field_centric.md](field_centric.md#fieldcentric-request) |
+| `FieldCentric::reset` | function | [field_centric.md](field_centric.md#fieldcentric-reset) |
+| `FieldCentric::Result` | struct | [field_centric.md](field_centric.md#struct-fieldcentric-result) |
+| `FieldCentric::Result::request` | field | [field_centric.md](field_centric.md#fieldcentric-result-request) |
+| `FieldCentric::Result::state` | field | [field_centric.md](field_centric.md#fieldcentric-result-state) |
+| `FieldCentric::rezero` | function | [field_centric.md](field_centric.md#fieldcentric-rezero) |
+| `FieldCentric::state` | function | [field_centric.md](field_centric.md#fieldcentric-state) |
+| `FieldCentric::zeroRadians` | function | [field_centric.md](field_centric.md#fieldcentric-zeroradians) |
+| `FieldCentricReason` | enum class | [field_centric.md](field_centric.md#enum-class-fieldcentricreason) |
+| `FieldCentricReason::Active` | enumerator | [field_centric.md](field_centric.md#fieldcentricreason-active) |
+| `FieldCentricReason::HeadingNotTrusted` | enumerator | [field_centric.md](field_centric.md#fieldcentricreason-headingnottrusted) |
+| `FieldCentricReason::LatchedUntilRezero` | enumerator | [field_centric.md](field_centric.md#fieldcentricreason-latcheduntilrezero) |
+| `FieldCentricReason::NotSelected` | enumerator | [field_centric.md](field_centric.md#fieldcentricreason-notselected) |
+| `FieldCentricState` | struct | [field_centric.md](field_centric.md#struct-fieldcentricstate) |
+| `FieldCentricState::active` | field | [field_centric.md](field_centric.md#fieldcentricstate-active) |
+| `FieldCentricState::fellBack` | field | [field_centric.md](field_centric.md#fieldcentricstate-fellback) |
+| `FieldCentricState::reason` | field | [field_centric.md](field_centric.md#fieldcentricstate-reason) |
 | `FieldDelta` | struct | [arc_step.md](arc_step.md#struct-fielddelta) |
 | `FieldDelta::dx` | field | [arc_step.md](arc_step.md#fielddelta-dx) |
 | `FieldDelta::dy` | field | [arc_step.md](arc_step.md#fielddelta-dy) |
+| `FieldFix` | struct | [camera_geometry.md](camera_geometry.md#struct-fieldfix) |
+| `FieldFix::radius` | field | [camera_geometry.md](camera_geometry.md#fieldfix-radius) |
+| `FieldFix::valid` | field | [camera_geometry.md](camera_geometry.md#fieldfix-valid) |
+| `FieldFix::x` | field | [camera_geometry.md](camera_geometry.md#fieldfix-x) |
+| `FieldFix::y` | field | [camera_geometry.md](camera_geometry.md#fieldfix-y) |
 | `fieldToRobot` | free function | [frame.md](frame.md#fieldtorobot) |
+| `FieldWall` | struct | [wall_reset.md](wall_reset.md#struct-fieldwall) |
+| `FieldWall::axis` | field | [wall_reset.md](wall_reset.md#fieldwall-axis) |
+| `FieldWall::coord` | field | [wall_reset.md](wall_reset.md#fieldwall-coord) |
+| `FieldWall::frame` | field | [wall_reset.md](wall_reset.md#fieldwall-frame) |
+| `FieldWall::inward` | field | [wall_reset.md](wall_reset.md#fieldwall-inward) |
+| `FieldWall::keepOut` | field | [wall_reset.md](wall_reset.md#fieldwall-keepout) |
+| `FieldWall::keepOutCount` | field | [wall_reset.md](wall_reset.md#fieldwall-keepoutcount) |
+| `FieldWall::keepOuts` | function | [wall_reset.md](wall_reset.md#fieldwall-keepouts) |
+| `FieldWall::line` | function | [wall_reset.md](wall_reset.md#fieldwall-line) |
+| `FieldWall::name` | field | [wall_reset.md](wall_reset.md#fieldwall-name) |
+| `FileHolds` | enum class | [record_store.md](record_store.md#enum-class-fileholds) |
+| `FileHolds::Absent` | enumerator | [record_store.md](record_store.md#fileholds-absent) |
+| `FileHolds::Earlier` | enumerator | [record_store.md](record_store.md#fileholds-earlier) |
+| `FileHolds::New` | enumerator | [record_store.md](record_store.md#fileholds-new) |
+| `FileHolds::NotAccepted` | enumerator | [record_store.md](record_store.md#fileholds-notaccepted) |
+| `FileHolds::NotMeasured` | enumerator | [record_store.md](record_store.md#fileholds-notmeasured) |
+| `FileHolds::Other` | enumerator | [record_store.md](record_store.md#fileholds-other) |
+| `FileRead` | struct | [record_store.md](record_store.md#struct-fileread) |
+| `FileRead::accepted` | field | [record_store.md](record_store.md#fileread-accepted) |
+| `FileRead::count` | field | [record_store.md](record_store.md#fileread-count) |
+| `FileRead::opened` | field | [record_store.md](record_store.md#fileread-opened) |
+| `FileRead::path` | field | [record_store.md](record_store.md#fileread-path) |
+| `FileRead::tried` | field | [record_store.md](record_store.md#fileread-tried) |
+| `FileRead::why` | field | [record_store.md](record_store.md#fileread-why) |
+| `findBuiltinCommand` | free function | [route.md](route.md#findbuiltincommand) |
+| `FinishFacts` | struct | [calibrate_panel.md](calibrate_panel.md#struct-finishfacts) |
+| `FinishFacts::front` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-front) |
+| `FinishFacts::hold` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-hold) |
+| `FinishFacts::holdLine1` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-holdline1) |
+| `FinishFacts::holdLine2` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-holdline2) |
+| `FinishFacts::holdPort` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-holdport) |
+| `FinishFacts::note` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-note) |
+| `FinishFacts::typedPorts` | field | [calibrate_panel.md](calibrate_panel.md#finishfacts-typedports) |
+| `finiteNumber` | free function | [camera_config.md](camera_config.md#finitenumber) |
+| `FitConfig` | struct | [feedforward_fit.md](feedforward_fit.md#struct-fitconfig) |
+| `FitConfig::alphaMin` | function | [feedforward_fit.md](feedforward_fit.md#fitconfig-alphamin) |
+| `FitConfig::currentGuard` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-currentguard) |
+| `FitConfig::dtTolerance` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-dttolerance) |
+| `FitConfig::freeSpeedMax` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-freespeedmax) |
+| `FitConfig::freeSpeedMin` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-freespeedmin) |
+| `FitConfig::kAMax` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-kamax) |
+| `FitConfig::kAMin` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-kamin) |
+| `FitConfig::kSMax` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-ksmax) |
+| `FitConfig::kSMin` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-ksmin) |
+| `FitConfig::maxResidualRms` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-maxresidualrms) |
+| `FitConfig::minSamples` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-minsamples) |
+| `FitConfig::minSpeed` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-minspeed) |
+| `FitConfig::nominalDt` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-nominaldt) |
+| `FitConfig::tauMinFraction` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-tauminfraction) |
+| `FitConfig::valid` | function | [feedforward_fit.md](feedforward_fit.md#fitconfig-valid) |
+| `FitExclusion` | enum class | [feedforward_fit.md](feedforward_fit.md#enum-class-fitexclusion) |
+| `FitExclusion::DeadBand` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitexclusion-deadband) |
+| `FitExclusion::None` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitexclusion-none) |
+| `FitExclusion::NonFinite` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitexclusion-nonfinite) |
+| `FitExclusion::OffNominalDt` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitexclusion-offnominaldt) |
+| `FitExclusion::OverCurrent` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitexclusion-overcurrent) |
+| `FitExclusion::Stop` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitexclusion-stop) |
+| `fitExclusionName` | free function | [feedforward_fit.md](feedforward_fit.md#fitexclusionname) |
+| `FitResult` | struct | [feedforward_fit.md](feedforward_fit.md#struct-fitresult) |
+| `FitResult::alpha` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-alpha) |
+| `FitResult::beta` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-beta) |
+| `FitResult::excluded` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-excluded) |
+| `FitResult::gains` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-gains) |
+| `FitResult::gamma` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-gamma) |
+| `FitResult::kABelowResolution` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-kabelowresolution) |
+| `FitResult::residualRms` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-residualrms) |
+| `FitResult::samples` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-samples) |
+| `FitResult::verdict` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-verdict) |
+| `FitResult::voltsMax` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-voltsmax) |
+| `FitResult::voltsMin` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-voltsmin) |
+| `fits` | free function | [calibrate_screen.md](calibrate_screen.md#fits) |
+| `FitSample` | struct | [feedforward_fit.md](feedforward_fit.md#struct-fitsample) |
+| `FitSample::dt` | field | [feedforward_fit.md](feedforward_fit.md#fitsample-dt) |
+| `FitSample::maxCurrent` | field | [feedforward_fit.md](feedforward_fit.md#fitsample-maxcurrent) |
+| `FitSample::speedAfter` | field | [feedforward_fit.md](feedforward_fit.md#fitsample-speedafter) |
+| `FitSample::speedBefore` | field | [feedforward_fit.md](feedforward_fit.md#fitsample-speedbefore) |
+| `FitSample::volts` | field | [feedforward_fit.md](feedforward_fit.md#fitsample-volts) |
+| `FitVerdict` | enum class | [feedforward_fit.md](feedforward_fit.md#enum-class-fitverdict) |
+| `FitVerdict::Implausible` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-implausible) |
+| `FitVerdict::NonPhysical` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-nonphysical) |
+| `FitVerdict::NotExcited` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-notexcited) |
+| `FitVerdict::Ok` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-ok) |
+| `FitVerdict::PoorFit` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-poorfit) |
+| `FitVerdict::SignMismatch` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-signmismatch) |
+| `FitVerdict::TooFewSamples` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-toofewsamples) |
+| `fitVerdictName` | free function | [feedforward_fit.md](feedforward_fit.md#fitverdictname) |
+| `FlipperGoal` | struct | [toggle_visit.md](toggle_visit.md#struct-flippergoal) |
+| `FlipperGoal::FlipperGoal` | function | [toggle_visit.md](toggle_visit.md#flippergoal-flippergoal) |
+| `FlipperGoal::FlipperGoal (overload 2)` | function | [toggle_visit.md](toggle_visit.md#flippergoal-flippergoal-2) |
+| `FlipperGoal::FlipperGoal (overload 3)` | function | [toggle_visit.md](toggle_visit.md#flippergoal-flippergoal-3) |
+| `FlipperGoal::Kind` | enum class | [toggle_visit.md](toggle_visit.md#enum-class-flippergoal-kind) |
+| `FlipperGoal::kind` | field | [toggle_visit.md](toggle_visit.md#flippergoal-kind) |
+| `FlipperGoal::Kind::Passive` | enumerator | [toggle_visit.md](toggle_visit.md#flippergoal-kind-passive) |
+| `FlipperGoal::Kind::Pneumatic` | enumerator | [toggle_visit.md](toggle_visit.md#flippergoal-kind-pneumatic) |
+| `FlipperGoal::Kind::Position` | enumerator | [toggle_visit.md](toggle_visit.md#flippergoal-kind-position) |
+| `FlipperGoal::mechanismName` | function | [toggle_visit.md](toggle_visit.md#flippergoal-mechanismname) |
+| `FlipperGoal::passive` | function | [toggle_visit.md](toggle_visit.md#flippergoal-passive) |
+| `FlipperGoal::pneumatic` | field | [toggle_visit.md](toggle_visit.md#flippergoal-pneumatic) |
+| `FlipperGoal::position` | field | [toggle_visit.md](toggle_visit.md#flippergoal-position) |
+| `Flywheel` | struct | [kinds.md](kinds.md#struct-flywheel) |
+| `Flywheel` | type alias | [kinds.md](kinds.md#flywheel) |
+| `Flywheel::angleSensor` | field | [kinds.md](kinds.md#flywheel-anglesensor) |
+| `Flywheel::at` | function | [kinds.md](kinds.md#flywheel-at) |
+| `Flywheel::atSpeed` | field | [kinds.md](kinds.md#flywheel-atspeed) |
+| `Flywheel::cartridge` | field | [kinds.md](kinds.md#flywheel-cartridge) |
+| `Flywheel::clampedTo` | function | [kinds.md](kinds.md#flywheel-clampedto) |
+| `Flywheel::currentCap` | field | [kinds.md](kinds.md#flywheel-currentcap) |
+| `Flywheel::freeRpm` | function | [kinds.md](kinds.md#flywheel-freerpm) |
+| `Flywheel::gearing` | field | [kinds.md](kinds.md#flywheel-gearing) |
+| `Flywheel::motors` | field | [kinds.md](kinds.md#flywheel-motors) |
+| `Flywheel::name` | field | [kinds.md](kinds.md#flywheel-name) |
+| `Flywheel::operator[]` | function | [kinds.md](kinds.md#flywheel-operator-index) |
+| `Flywheel::presets` | field | [kinds.md](kinds.md#flywheel-presets) |
+| `Flywheel::safe` | field | [kinds.md](kinds.md#flywheel-safe) |
+| `Flywheel::spec` | function | [kinds.md](kinds.md#flywheel-spec) |
+| `Flywheel::stall` | field | [kinds.md](kinds.md#flywheel-stall) |
+| `Flywheel::tuning` | field | [kinds.md](kinds.md#flywheel-tuning) |
+| `formatPulseRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatpulserecord) |
+| `formatPushRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatpushrecord) |
+| `formatSaveReport` | free function | [record_store.md](record_store.md#formatsavereport) |
+| `formatSpinRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatspinrecord) |
+| `Forward` | constant | [kinds.md](kinds.md#forward) |
+| `Forward (overload 2)` | type alias | [kinds.md](kinds.md#forward-2) |
 | `Frame` | enum class | [frame.md](frame.md#enum-class-frame) |
 | `Frame::Body` | enumerator | [frame.md](frame.md#frame-body) |
 | `Frame::Field` | enumerator | [frame.md](frame.md#frame-field) |
+| `FrameStatus` | enum class | [vision_frames.md](vision_frames.md#enum-class-framestatus) |
+| `FrameStatus::NotConfigured` | enumerator | [vision_frames.md](vision_frames.md#framestatus-notconfigured) |
+| `FrameStatus::NotRead` | enumerator | [vision_frames.md](vision_frames.md#framestatus-notread) |
+| `FrameStatus::Ok` | enumerator | [vision_frames.md](vision_frames.md#framestatus-ok) |
+| `FrameStatus::PartialFault` | enumerator | [vision_frames.md](vision_frames.md#framestatus-partialfault) |
+| `FrameStatus::ReadFault` | enumerator | [vision_frames.md](vision_frames.md#framestatus-readfault) |
 | `FrameType` | enum class | [blackbox_format.md](blackbox_format.md#enum-class-frametype) |
+| `FrameType` | enum class | [shul2_format.md](shul2_format.md#enum-class-frametype) |
 | `FrameType::End` | enumerator | [blackbox_format.md](blackbox_format.md#frametype-end) |
+| `FrameType::End` | enumerator | [shul2_format.md](shul2_format.md#frametype-end) |
+| `FrameType::Hello` | enumerator | [shul2_format.md](shul2_format.md#frametype-hello) |
+| `FrameType::Log` | enumerator | [shul2_format.md](shul2_format.md#frametype-log) |
 | `FrameType::Summary` | enumerator | [blackbox_format.md](blackbox_format.md#frametype-summary) |
+| `FrameType::Summary` | enumerator | [shul2_format.md](shul2_format.md#frametype-summary) |
 | `FrameType::Tick` | enumerator | [blackbox_format.md](blackbox_format.md#frametype-tick) |
+| `FrameType::Tick` | enumerator | [shul2_format.md](shul2_format.md#frametype-tick) |
 | `FrameType::Triage` | enumerator | [blackbox_format.md](blackbox_format.md#frametype-triage) |
+| `FrontCheck` | struct | [front_check.md](front_check.md#struct-frontcheck) |
+| `FrontCheck::agree` | field | [front_check.md](front_check.md#frontcheck-agree) |
+| `FrontCheck::flipped` | field | [front_check.md](front_check.md#frontcheck-flipped) |
+| `FrontCheck::onlyEarlier` | field | [front_check.md](front_check.md#frontcheck-onlyearlier) |
+| `FrontCheck::onlyNow` | field | [front_check.md](front_check.md#frontcheck-onlynow) |
+| `FrontCheck::shared` | field | [front_check.md](front_check.md#frontcheck-shared) |
+| `FrontCheck::sideOnly` | field | [front_check.md](front_check.md#frontcheck-sideonly) |
+| `FrontCheck::signOnly` | field | [front_check.md](front_check.md#frontcheck-signonly) |
+| `FrontCheck::verdict` | field | [front_check.md](front_check.md#frontcheck-verdict) |
+| `FrontChoice` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-frontchoice) |
+| `FrontChoice::New` | enumerator | [calibrate_panel.md](calibrate_panel.md#frontchoice-new) |
+| `FrontChoice::None` | enumerator | [calibrate_panel.md](calibrate_panel.md#frontchoice-none) |
+| `FrontVerdict` | enum class | [front_check.md](front_check.md#enum-class-frontverdict) |
+| `FrontVerdict::Flipped` | enumerator | [front_check.md](front_check.md#frontverdict-flipped) |
+| `FrontVerdict::Same` | enumerator | [front_check.md](front_check.md#frontverdict-same) |
+| `FrontVerdict::Undetermined` | enumerator | [front_check.md](front_check.md#frontverdict-undetermined) |
+| `frontVerdictWord` | free function | [front_check.md](front_check.md#frontverdictword) |
+| `FrozenReadingDetector` | class | [coupled_side_monitor.md](coupled_side_monitor.md#class-frozenreadingdetector) |
+| `FrozenReadingDetector::floors` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-floors) |
+| `FrozenReadingDetector::FrozenReadingDetector` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-frozenreadingdetector) |
+| `FrozenReadingDetector::frozenTicks` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-frozenticks) |
+| `FrozenReadingDetector::latchedMask` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-latchedmask) |
+| `FrozenReadingDetector::repeatReads` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-repeatreads) |
+| `FrozenReadingDetector::reset` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-reset) |
+| `FrozenReadingDetector::suspectReads` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-suspectreads) |
+| `FrozenReadingDetector::update` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-update) |
+| `FrozenVerdict` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-frozenverdict) |
+| `FrozenVerdict::frozenMask` | field | [coupled_side_monitor.md](coupled_side_monitor.md#frozenverdict-frozenmask) |
+| `FrozenVerdict::latchedMask` | field | [coupled_side_monitor.md](coupled_side_monitor.md#frozenverdict-latchedmask) |
+| `FrozenVerdict::suspectMask` | field | [coupled_side_monitor.md](coupled_side_monitor.md#frozenverdict-suspectmask) |
 | `FusionResult` | struct | [correction.md](correction.md#struct-fusionresult) |
 | `FusionResult::applied` | field | [correction.md](correction.md#fusionresult-applied) |
 | `FusionResult::appliedConfidence` | field | [correction.md](correction.md#fusionresult-appliedconfidence) |
@@ -507,6 +1865,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `gainsPlausible` | free function | [feedforward_fit.md](feedforward_fit.md#gainsplausible) |
 | `GateAudit` | struct | [correction.md](correction.md#struct-gateaudit) |
 | `GateAudit::covarianceTrace` | field | [correction.md](correction.md#gateaudit-covariancetrace) |
 | `GateAudit::mahalanobis` | field | [correction.md](correction.md#gateaudit-mahalanobis) |
@@ -528,6 +1887,23 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `GateReason::RejectedSensorQuality` | enumerator | [debug_record.md](debug_record.md#gatereason-rejectedsensorquality) |
 | `GateReason::RejectedStaleFix` | enumerator | [debug_record.md](debug_record.md#gatereason-rejectedstalefix) |
 | `GateReason::RejectedTagRange` | enumerator | [debug_record.md](debug_record.md#gatereason-rejectedtagrange) |
+| `Gearing` | struct | [kinds.md](kinds.md#struct-gearing) |
+| `Gearing::Gearing` | function | [kinds.md](kinds.md#gearing-gearing) |
+| `Gearing::Gearing (overload 2)` | function | [kinds.md](kinds.md#gearing-gearing-2) |
+| `Gearing::motorTurnsPerTurn` | field | [kinds.md](kinds.md#gearing-motorturnsperturn) |
+| `Gearing::operator*` | function | [kinds.md](kinds.md#gearing-operator-star) |
+| `gears` | free function | [kinds.md](kinds.md#gears) |
+| `gears (overload 2)` | type alias | [kinds.md](kinds.md#gears-2) |
+| `Geometry` | enum class | [spec.md](spec.md#enum-class-geometry) |
+| `Geometry::Arm` | enumerator | [spec.md](spec.md#geometry-arm) |
+| `Geometry::Rotary` | enumerator | [spec.md](spec.md#geometry-rotary) |
+| `Geometry::Spool` | enumerator | [spec.md](spec.md#geometry-spool) |
+| `Geometry::Table` | enumerator | [spec.md](spec.md#geometry-table) |
+| `GpsConfig` | struct | [robot_config.md](robot_config.md#struct-gpsconfig) |
+| `GpsConfig::leverArmForward` | field | [robot_config.md](robot_config.md#gpsconfig-leverarmforward) |
+| `GpsConfig::leverArmLeft` | field | [robot_config.md](robot_config.md#gpsconfig-leverarmleft) |
+| `GpsConfig::port` | field | [robot_config.md](robot_config.md#gpsconfig-port) |
+| `GpsConfig::present` | field | [robot_config.md](robot_config.md#gpsconfig-present) |
 | `GpsCorrector` | class | [gps_corrector.md](gps_corrector.md#class-gpscorrector) |
 | `GpsCorrector::acceptedFixes` | function | [gps_corrector.md](gps_corrector.md#gpscorrector-acceptedfixes) |
 | `GpsCorrector::GpsCorrector` | function | [gps_corrector.md](gps_corrector.md#gpscorrector-gpscorrector) |
@@ -555,6 +1931,17 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `gpsRmsErrorToCanonical` | free function | [gps_conversion.md](gps_conversion.md#gpsrmserrortocanonical) |
 | `gpsSensorPose` | free function | [gps_conversion.md](gps_conversion.md#gpssensorpose) |
 | `gpsToRobotPose` | free function | [gps_conversion.md](gps_conversion.md#gpstorobotpose) |
+| `grabs` | constant | [kinds.md](kinds.md#grabs) |
+| `grabs (overload 2)` | type alias | [kinds.md](kinds.md#grabs-2) |
+| `Gravity` | enum class | [spec.md](spec.md#enum-class-gravity) |
+| `Gravity::Constant` | enumerator | [spec.md](spec.md#gravity-constant) |
+| `Gravity::Cosine` | enumerator | [spec.md](spec.md#gravity-cosine) |
+| `Gravity::None` | enumerator | [spec.md](spec.md#gravity-none) |
+| `GravityTerm` | struct | [kinds.md](kinds.md#struct-gravityterm) |
+| `GravityTerm::kind` | field | [kinds.md](kinds.md#gravityterm-kind) |
+| `GravityTerm::levelAtDeg` | field | [kinds.md](kinds.md#gravityterm-levelatdeg) |
+| `GravityTerm::volts` | field | [kinds.md](kinds.md#gravityterm-volts) |
+| `Green` | constant | [kinds.md](kinds.md#green) |
 | `GuardedWaitResult` | enum class | [run_guard.md](run_guard.md#enum-class-guardedwaitresult) |
 | `GuardedWaitResult::RunExpired` | enumerator | [run_guard.md](run_guard.md#guardedwaitresult-runexpired) |
 | `GuardedWaitResult::Satisfied` | enumerator | [run_guard.md](run_guard.md#guardedwaitresult-satisfied) |
@@ -564,21 +1951,42 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `Handler` | struct | [command_registry.md](command_registry.md#struct-handler) |
+| `Handler::ctx` | field | [command_registry.md](command_registry.md#handler-ctx) |
+| `Handler::fn` | field | [command_registry.md](command_registry.md#handler-fn) |
+| `hasTypedDrive` | free function | [calibrate_program.md](calibrate_program.md#hastypeddrive) |
 | `hDrive` | free function | [h_drive.md](h_drive.md#hdrive) |
 | `HDriveConfig` | struct | [h_drive.md](h_drive.md#struct-hdriveconfig) |
 | `HDriveConfig::strafeSpeedRatio` | field | [h_drive.md](h_drive.md#hdriveconfig-strafespeedratio) |
 | `HDriveConfig::strafeTractionDerate` | field | [h_drive.md](h_drive.md#hdriveconfig-strafetractionderate) |
 | `HDriveConfig::strafeWheelOffset` | field | [h_drive.md](h_drive.md#hdriveconfig-strafewheeloffset) |
 | `HDriveConfig::trackWidth` | field | [h_drive.md](h_drive.md#hdriveconfig-trackwidth) |
+| `HDriveDrivetrain` | struct | [robot_config.md](robot_config.md#struct-hdrivedrivetrain) |
+| `HDriveDrivetrain::cartridge` | field | [robot_config.md](robot_config.md#hdrivedrivetrain-cartridge) |
+| `HDriveDrivetrain::imuPort` | field | [robot_config.md](robot_config.md#hdrivedrivetrain-imuport) |
+| `HDriveDrivetrain::ports` | field | [robot_config.md](robot_config.md#hdrivedrivetrain-ports) |
+| `HDriveDrivetrain::strafeWheelOffset` | field | [robot_config.md](robot_config.md#hdrivedrivetrain-strafewheeloffset) |
+| `HDriveDrivetrain::trackWidth` | field | [robot_config.md](robot_config.md#hdrivedrivetrain-trackwidth) |
+| `HeadingMode` | enum class | [route.md](route.md#enum-class-headingmode) |
+| `HeadingMode::Fixed` | enumerator | [route.md](route.md#headingmode-fixed) |
+| `HeadingMode::Free` | enumerator | [route.md](route.md#headingmode-free) |
+| `headingModeWord` | free function | [route.md](route.md#headingmodeword) |
+| `HeadingSample` | struct | [teleop_loop.md](teleop_loop.md#struct-headingsample) |
+| `HeadingSample::radians` | field | [teleop_loop.md](teleop_loop.md#headingsample-radians) |
+| `HeadingSample::trusted` | field | [teleop_loop.md](teleop_loop.md#headingsample-trusted) |
+| `headingTolerance` | free function | [wall_reset.md](wall_reset.md#headingtolerance) |
 | `HealthMonitor` | class | [health_monitor.md](health_monitor.md#class-healthmonitor) |
 | `HealthMonitor::brownedOut` | function | [health_monitor.md](health_monitor.md#healthmonitor-brownedout) |
 | `HealthMonitor::HealthMonitor` | function | [health_monitor.md](health_monitor.md#healthmonitor-healthmonitor) |
 | `HealthMonitor::imuLost` | function | [health_monitor.md](health_monitor.md#healthmonitor-imulost) |
+| `HealthMonitor::motorGroupDisagreeing` | function | [health_monitor.md](health_monitor.md#healthmonitor-motorgroupdisagreeing) |
 | `HealthMonitor::Observations` | struct | [health_monitor.md](health_monitor.md#struct-healthmonitor-observations) |
 | `HealthMonitor::Observations::batteryVolts` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-batteryvolts) |
 | `HealthMonitor::Observations::fixGated` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-fixgated) |
+| `HealthMonitor::Observations::groupMembersDisagreeing` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-groupmembersdisagreeing) |
 | `HealthMonitor::Observations::imuReady` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-imuready) |
 | `HealthMonitor::Observations::maxMotorTempC` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-maxmotortempc) |
+| `HealthMonitor::Observations::odomAudit` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-odomaudit) |
 | `HealthMonitor::Observations::odomImplausible` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-odomimplausible) |
 | `HealthMonitor::Observations::odomStalled` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-odomstalled) |
 | `HealthMonitor::reset` | function | [health_monitor.md](health_monitor.md#healthmonitor-reset) |
@@ -587,10 +1995,78 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `HealthMonitorConfig::brownoutRecoverVolts` | field | [health_monitor.md](health_monitor.md#healthmonitorconfig-brownoutrecovervolts) |
 | `HealthMonitorConfig::brownoutVolts` | field | [health_monitor.md](health_monitor.md#healthmonitorconfig-brownoutvolts) |
 | `HealthMonitorConfig::maxMotorTempC` | field | [health_monitor.md](health_monitor.md#healthmonitorconfig-maxmotortempc) |
+| `HeightAt` | struct | [kinds.md](kinds.md#struct-heightat) |
+| `HeightAt` | type alias | [kinds.md](kinds.md#heightat) |
+| `HeightAt::degrees` | field | [kinds.md](kinds.md#heightat-degrees) |
+| `HeightAt::height` | field | [kinds.md](kinds.md#heightat-height) |
+| `heightFor` | free function | [calibrate_panel.md](calibrate_panel.md#heightfor) |
+| `heightFor` | free function | [touch_panel.md](touch_panel.md#heightfor) |
+| `Hello` | struct | [shul2_format.md](shul2_format.md#struct-hello) |
+| `Hello::alliance` | field | [shul2_format.md](shul2_format.md#hello-alliance) |
+| `Hello::apiMajor` | field | [shul2_format.md](shul2_format.md#hello-apimajor) |
+| `Hello::apiMinor` | field | [shul2_format.md](shul2_format.md#hello-apiminor) |
+| `Hello::buildHash` | field | [shul2_format.md](shul2_format.md#hello-buildhash) |
+| `Hello::complete` | field | [shul2_format.md](shul2_format.md#hello-complete) |
+| `Hello::declared` | field | [shul2_format.md](shul2_format.md#hello-declared) |
+| `Hello::epochSeconds` | field | [shul2_format.md](shul2_format.md#hello-epochseconds) |
+| `Hello::flags` | field | [shul2_format.md](shul2_format.md#hello-flags) |
+| `Hello::payloadBytes` | field | [shul2_format.md](shul2_format.md#hello-payloadbytes) |
+| `Hello::portMap` | field | [shul2_format.md](shul2_format.md#hello-portmap) |
+| `Hello::role` | field | [shul2_format.md](shul2_format.md#hello-role) |
+| `Hello::routineId` | field | [shul2_format.md](shul2_format.md#hello-routineid) |
+| `Hello::side` | field | [shul2_format.md](shul2_format.md#hello-side) |
+| `Hello::signature` | field | [shul2_format.md](shul2_format.md#hello-signature) |
+| `Hello::versionMajor` | field | [shul2_format.md](shul2_format.md#hello-versionmajor) |
+| `Hello::versionMinor` | field | [shul2_format.md](shul2_format.md#hello-versionminor) |
+| `High` | constant | [kinds.md](kinds.md#high) |
+| `High (overload 2)` | type alias | [kinds.md](kinds.md#high-2) |
+| `hitBox` | free function | [calibrate_panel.md](calibrate_panel.md#hitbox) |
+| `hitBox` | free function | [touch_panel.md](touch_panel.md#hitbox) |
+| `hitTest` | free function | [calibrate_panel.md](calibrate_panel.md#hittest) |
+| `hitTest` | free function | [touch_panel.md](touch_panel.md#hittest) |
+| `Hold` | constant | [kinds.md](kinds.md#hold) |
 | `HoldPose` | class | [hold_pose.md](hold_pose.md#class-holdpose) |
 | `HoldPose::HoldPose` | function | [hold_pose.md](hold_pose.md#holdpose-holdpose) |
 | `HoldPose::HoldPose (overload 2)` | function | [hold_pose.md](hold_pose.md#holdpose-holdpose-2) |
 | `HoldPose::name` | function | [hold_pose.md](hold_pose.md#holdpose-name) |
+| `HoldReason` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-holdreason) |
+| `HoldReason::FrontFlipped` | enumerator | [calibrate_panel.md](calibrate_panel.md#holdreason-frontflipped) |
+| `HoldReason::MechanismTurned` | enumerator | [calibrate_panel.md](calibrate_panel.md#holdreason-mechanismturned) |
+| `HoldReason::None` | enumerator | [calibrate_panel.md](calibrate_panel.md#holdreason-none) |
+| `homeAtDriverStart` | free function | [driver_inputs.md](driver_inputs.md#homeatdriverstart) |
+| `homeAtDriverStart (overload 2)` | free function | [driver_inputs.md](driver_inputs.md#homeatdriverstart-2) |
+| `homeAtDriverStart (overload 3)` | free function | [driver_inputs.md](driver_inputs.md#homeatdriverstart-3) |
+| `homeAtDriverStart (overload 4)` | type alias | [driver_inputs.md](driver_inputs.md#homeatdriverstart-4) |
+| `homeByStall` | free function | [kinds.md](kinds.md#homebystall) |
+| `homeByStall (overload 2)` | free function | [kinds.md](kinds.md#homebystall-2) |
+| `homeByStall (overload 3)` | type alias | [kinds.md](kinds.md#homebystall-3) |
+| `homeBySwitch` | free function | [kinds.md](kinds.md#homebyswitch) |
+| `homeBySwitch (overload 2)` | free function | [kinds.md](kinds.md#homebyswitch-2) |
+| `homeBySwitch (overload 3)` | type alias | [kinds.md](kinds.md#homebyswitch-3) |
+| `HomeMethod` | enum class | [spec.md](spec.md#enum-class-homemethod) |
+| `HomeMethod::Absolute` | enumerator | [spec.md](spec.md#homemethod-absolute) |
+| `HomeMethod::None` | enumerator | [spec.md](spec.md#homemethod-none) |
+| `HomeMethod::RestsAtStop` | enumerator | [spec.md](spec.md#homemethod-restsatstop) |
+| `HomeMethod::Stall` | enumerator | [spec.md](spec.md#homemethod-stall) |
+| `HomeMethod::Switch` | enumerator | [spec.md](spec.md#homemethod-switch) |
+| `homeOnPress` | free function | [driver_inputs.md](driver_inputs.md#homeonpress) |
+| `homeOnPress (overload 2)` | free function | [driver_inputs.md](driver_inputs.md#homeonpress-2) |
+| `homeOnPress (overload 3)` | free function | [driver_inputs.md](driver_inputs.md#homeonpress-3) |
+| `homeOnPress (overload 4)` | type alias | [driver_inputs.md](driver_inputs.md#homeonpress-4) |
+| `homeOnPress_and_homeAtDriverStart_are_for_an_arm_or_a_lift` | free function | [driver_inputs.md](driver_inputs.md#homeonpress_and_homeatdriverstart_are_for_an_arm_or_a_lift) |
+| `homeSwitch` | free function | [wiring.md](wiring.md#homeswitch) |
+| `homeSwitch (overload 2)` | type alias | [wiring.md](wiring.md#homeswitch-2) |
+| `Homing` | struct | [kinds.md](kinds.md#struct-homing) |
+| `Homing::at` | field | [kinds.md](kinds.md#homing-at) |
+| `Homing::method` | field | [kinds.md](kinds.md#homing-method) |
+| `Homing::sensorAtZeroDeg` | field | [kinds.md](kinds.md#homing-sensoratzerodeg) |
+| `Homing::stall` | field | [kinds.md](kinds.md#homing-stall) |
+| `Homing::volts` | field | [kinds.md](kinds.md#homing-volts) |
+| `HumanFacts` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-humanfacts) |
+| `HumanFacts::cartridge` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#humanfacts-cartridge) |
+| `HumanFacts::imuPort` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#humanfacts-imuport) |
+| `HumanFacts::kind` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#humanfacts-kind) |
+| `HumanFacts::provenance` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#humanfacts-provenance) |
 
 ## I
 
@@ -615,6 +2091,29 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IBlockSink::operator= (overload 2)` | function | [block_sink.md](block_sink.md#iblocksink-operator-eq-2) |
 | `IBlockSink::write` | function | [block_sink.md](block_sink.md#iblocksink-write) |
 | `IBlockSink::~IBlockSink` | function | [block_sink.md](block_sink.md#iblocksink-destructor-iblocksink) |
+| `IBlockSource` | class | [block_source.md](block_source.md#class-iblocksource) |
+| `IBlockSource::IBlockSource` | function | [block_source.md](block_source.md#iblocksource-iblocksource) |
+| `IBlockSource::IBlockSource (overload 2)` | function | [block_source.md](block_source.md#iblocksource-iblocksource-2) |
+| `IBlockSource::IBlockSource (overload 3)` | function | [block_source.md](block_source.md#iblocksource-iblocksource-3) |
+| `IBlockSource::isOpen` | function | [block_source.md](block_source.md#iblocksource-isopen) |
+| `IBlockSource::operator=` | function | [block_source.md](block_source.md#iblocksource-operator-eq) |
+| `IBlockSource::operator= (overload 2)` | function | [block_source.md](block_source.md#iblocksource-operator-eq-2) |
+| `IBlockSource::readAll` | function | [block_source.md](block_source.md#iblocksource-readall) |
+| `IBlockSource::~IBlockSource` | function | [block_source.md](block_source.md#iblocksource-destructor-iblocksource) |
+| `IBrainScreen` | class | [brain_screen.md](brain_screen.md#class-ibrainscreen) |
+| `IBrainScreen::eraseAll` | function | [brain_screen.md](brain_screen.md#ibrainscreen-eraseall) |
+| `IBrainScreen::eraseRect` | function | [brain_screen.md](brain_screen.md#ibrainscreen-eraserect) |
+| `IBrainScreen::fillRect` | function | [brain_screen.md](brain_screen.md#ibrainscreen-fillrect) |
+| `IBrainScreen::IBrainScreen` | function | [brain_screen.md](brain_screen.md#ibrainscreen-ibrainscreen) |
+| `IBrainScreen::IBrainScreen (overload 2)` | function | [brain_screen.md](brain_screen.md#ibrainscreen-ibrainscreen-2) |
+| `IBrainScreen::IBrainScreen (overload 3)` | function | [brain_screen.md](brain_screen.md#ibrainscreen-ibrainscreen-3) |
+| `IBrainScreen::operator=` | function | [brain_screen.md](brain_screen.md#ibrainscreen-operator-eq) |
+| `IBrainScreen::operator= (overload 2)` | function | [brain_screen.md](brain_screen.md#ibrainscreen-operator-eq-2) |
+| `IBrainScreen::outlineRect` | function | [brain_screen.md](brain_screen.md#ibrainscreen-outlinerect) |
+| `IBrainScreen::print` | function | [brain_screen.md](brain_screen.md#ibrainscreen-print) |
+| `IBrainScreen::prints` | function | [brain_screen.md](brain_screen.md#ibrainscreen-prints) |
+| `IBrainScreen::touch` | function | [brain_screen.md](brain_screen.md#ibrainscreen-touch) |
+| `IBrainScreen::~IBrainScreen` | function | [brain_screen.md](brain_screen.md#ibrainscreen-destructor-ibrainscreen) |
 | `ICancellable` | class | [mechanism.md](mechanism.md#class-icancellable) |
 | `ICancellable::cancel` | function | [mechanism.md](mechanism.md#icancellable-cancel) |
 | `ICancellable::ICancellable` | function | [mechanism.md](mechanism.md#icancellable-icancellable) |
@@ -658,6 +2157,38 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ICorrector::operator= (overload 2)` | function | [i_corrector.md](i_corrector.md#icorrector-operator-eq-2) |
 | `ICorrector::propose` | function | [i_corrector.md](i_corrector.md#icorrector-propose) |
 | `ICorrector::~ICorrector` | function | [i_corrector.md](i_corrector.md#icorrector-destructor-icorrector) |
+| `IDeviceProvider` | class | [device_provider.md](device_provider.md#class-ideviceprovider) |
+| `IDeviceProvider::aiVision` | function | [device_provider.md](device_provider.md#ideviceprovider-aivision) |
+| `IDeviceProvider::battery` | function | [device_provider.md](device_provider.md#ideviceprovider-battery) |
+| `IDeviceProvider::clock` | function | [device_provider.md](device_provider.md#ideviceprovider-clock) |
+| `IDeviceProvider::currentLimit` | function | [device_provider.md](device_provider.md#ideviceprovider-currentlimit) |
+| `IDeviceProvider::digitalIn` | function | [device_provider.md](device_provider.md#ideviceprovider-digitalin) |
+| `IDeviceProvider::digitalOut` | function | [device_provider.md](device_provider.md#ideviceprovider-digitalout) |
+| `IDeviceProvider::distance` | function | [device_provider.md](device_provider.md#ideviceprovider-distance) |
+| `IDeviceProvider::gps` | function | [device_provider.md](device_provider.md#ideviceprovider-gps) |
+| `IDeviceProvider::IDeviceProvider` | function | [device_provider.md](device_provider.md#ideviceprovider-ideviceprovider) |
+| `IDeviceProvider::IDeviceProvider (overload 2)` | function | [device_provider.md](device_provider.md#ideviceprovider-ideviceprovider-2) |
+| `IDeviceProvider::IDeviceProvider (overload 3)` | function | [device_provider.md](device_provider.md#ideviceprovider-ideviceprovider-3) |
+| `IDeviceProvider::imu` | function | [device_provider.md](device_provider.md#ideviceprovider-imu) |
+| `IDeviceProvider::lastRefusal` | function | [device_provider.md](device_provider.md#ideviceprovider-lastrefusal) |
+| `IDeviceProvider::lineReadFaults` | function | [device_provider.md](device_provider.md#ideviceprovider-linereadfaults) |
+| `IDeviceProvider::motor` | function | [device_provider.md](device_provider.md#ideviceprovider-motor) |
+| `IDeviceProvider::operator=` | function | [device_provider.md](device_provider.md#ideviceprovider-operator-eq) |
+| `IDeviceProvider::operator= (overload 2)` | function | [device_provider.md](device_provider.md#ideviceprovider-operator-eq-2) |
+| `IDeviceProvider::optical` | function | [device_provider.md](device_provider.md#ideviceprovider-optical) |
+| `IDeviceProvider::pacer` | function | [device_provider.md](device_provider.md#ideviceprovider-pacer) |
+| `IDeviceProvider::readFaults` | function | [device_provider.md](device_provider.md#ideviceprovider-readfaults) |
+| `IDeviceProvider::rotation` | function | [device_provider.md](device_provider.md#ideviceprovider-rotation) |
+| `IDeviceProvider::telemetry` | function | [device_provider.md](device_provider.md#ideviceprovider-telemetry) |
+| `IDeviceProvider::~IDeviceProvider` | function | [device_provider.md](device_provider.md#ideviceprovider-destructor-ideviceprovider) |
+| `IDeviceRegistry` | class | [device_registry.md](device_registry.md#class-ideviceregistry) |
+| `IDeviceRegistry::IDeviceRegistry` | function | [device_registry.md](device_registry.md#ideviceregistry-ideviceregistry) |
+| `IDeviceRegistry::IDeviceRegistry (overload 2)` | function | [device_registry.md](device_registry.md#ideviceregistry-ideviceregistry-2) |
+| `IDeviceRegistry::IDeviceRegistry (overload 3)` | function | [device_registry.md](device_registry.md#ideviceregistry-ideviceregistry-3) |
+| `IDeviceRegistry::operator=` | function | [device_registry.md](device_registry.md#ideviceregistry-operator-eq) |
+| `IDeviceRegistry::operator= (overload 2)` | function | [device_registry.md](device_registry.md#ideviceregistry-operator-eq-2) |
+| `IDeviceRegistry::pluggedKind` | function | [device_registry.md](device_registry.md#ideviceregistry-pluggedkind) |
+| `IDeviceRegistry::~IDeviceRegistry` | function | [device_registry.md](device_registry.md#ideviceregistry-destructor-ideviceregistry) |
 | `IDigitalIn` | class | [digital_in.md](digital_in.md#class-idigitalin) |
 | `IDigitalIn::IDigitalIn` | function | [digital_in.md](digital_in.md#idigitalin-idigitalin) |
 | `IDigitalIn::IDigitalIn (overload 2)` | function | [digital_in.md](digital_in.md#idigitalin-idigitalin-2) |
@@ -684,6 +2215,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IDistance::operator=` | function | [distance.md](distance.md#idistance-operator-eq) |
 | `IDistance::operator= (overload 2)` | function | [distance.md](distance.md#idistance-operator-eq-2) |
 | `IDistance::~IDistance` | function | [distance.md](distance.md#idistance-destructor-idistance) |
+| `IFileStore` | class | [file_store.md](file_store.md#class-ifilestore) |
+| `IFileStore::cardPresent` | function | [file_store.md](file_store.md#ifilestore-cardpresent) |
+| `IFileStore::IFileStore` | function | [file_store.md](file_store.md#ifilestore-ifilestore) |
+| `IFileStore::IFileStore (overload 2)` | function | [file_store.md](file_store.md#ifilestore-ifilestore-2) |
+| `IFileStore::IFileStore (overload 3)` | function | [file_store.md](file_store.md#ifilestore-ifilestore-3) |
+| `IFileStore::operator=` | function | [file_store.md](file_store.md#ifilestore-operator-eq) |
+| `IFileStore::operator= (overload 2)` | function | [file_store.md](file_store.md#ifilestore-operator-eq-2) |
+| `IFileStore::read` | function | [file_store.md](file_store.md#ifilestore-read) |
+| `IFileStore::replace` | function | [file_store.md](file_store.md#ifilestore-replace) |
+| `IFileStore::~IFileStore` | function | [file_store.md](file_store.md#ifilestore-destructor-ifilestore) |
 | `IFusionPolicy` | class | [i_fusion_policy.md](i_fusion_policy.md#class-ifusionpolicy) |
 | `IFusionPolicy::fuse` | function | [i_fusion_policy.md](i_fusion_policy.md#ifusionpolicy-fuse) |
 | `IFusionPolicy::IFusionPolicy` | function | [i_fusion_policy.md](i_fusion_policy.md#ifusionpolicy-ifusionpolicy) |
@@ -800,8 +2341,42 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IMotor::temperature` | function | [motor.md](motor.md#imotor-temperature) |
 | `IMotor::velocity` | function | [motor.md](motor.md#imotor-velocity) |
 | `IMotor::~IMotor` | function | [motor.md](motor.md#imotor-destructor-imotor) |
+| `IMotorCurrentLimit` | class | [motor_current_limit.md](motor_current_limit.md#class-imotorcurrentlimit) |
+| `IMotorCurrentLimit::currentLimit` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-currentlimit) |
+| `IMotorCurrentLimit::IMotorCurrentLimit` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-imotorcurrentlimit) |
+| `IMotorCurrentLimit::IMotorCurrentLimit (overload 2)` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-imotorcurrentlimit-2) |
+| `IMotorCurrentLimit::IMotorCurrentLimit (overload 3)` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-imotorcurrentlimit-3) |
+| `IMotorCurrentLimit::operator=` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-operator-eq) |
+| `IMotorCurrentLimit::operator= (overload 2)` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-operator-eq-2) |
+| `IMotorCurrentLimit::setCurrentLimit` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-setcurrentlimit) |
+| `IMotorCurrentLimit::~IMotorCurrentLimit` | function | [motor_current_limit.md](motor_current_limit.md#imotorcurrentlimit-destructor-imotorcurrentlimit) |
 | `imuHeadingToCanonical` | free function | [imu_conversion.md](imu_conversion.md#imuheadingtocanonical) |
 | `imuYawRateToCanonical` | free function | [imu_conversion.md](imu_conversion.md#imuyawratetocanonical) |
+| `InchPreset` | struct | [kinds.md](kinds.md#struct-inchpreset) |
+| `InchPreset::name` | field | [kinds.md](kinds.md#inchpreset-name) |
+| `InchPreset::value` | field | [kinds.md](kinds.md#inchpreset-value) |
+| `InchRange` | struct | [kinds.md](kinds.md#struct-inchrange) |
+| `InchRange::max` | field | [kinds.md](kinds.md#inchrange-max) |
+| `InchRange::min` | field | [kinds.md](kinds.md#inchrange-min) |
+| `Interval` | struct | [camera_geometry.md](camera_geometry.md#struct-interval) |
+| `Interval::contains` | function | [camera_geometry.md](camera_geometry.md#interval-contains) |
+| `Interval::hi` | field | [camera_geometry.md](camera_geometry.md#interval-hi) |
+| `Interval::lo` | field | [camera_geometry.md](camera_geometry.md#interval-lo) |
+| `Interval::mid` | function | [camera_geometry.md](camera_geometry.md#interval-mid) |
+| `Interval::valid` | field | [camera_geometry.md](camera_geometry.md#interval-valid) |
+| `Interval::width` | function | [camera_geometry.md](camera_geometry.md#interval-width) |
+| `IOdometry` | class | [odometry.md](odometry.md#class-iodometry) |
+| `IOdometry::IOdometry` | function | [odometry.md](odometry.md#iodometry-iodometry) |
+| `IOdometry::IOdometry (overload 2)` | function | [odometry.md](odometry.md#iodometry-iodometry-2) |
+| `IOdometry::IOdometry (overload 3)` | function | [odometry.md](odometry.md#iodometry-iodometry-3) |
+| `IOdometry::lastDeltaImplausible` | function | [odometry.md](odometry.md#iodometry-lastdeltaimplausible) |
+| `IOdometry::lastTickAudit` | function | [odometry.md](odometry.md#iodometry-lasttickaudit) |
+| `IOdometry::operator=` | function | [odometry.md](odometry.md#iodometry-operator-eq) |
+| `IOdometry::operator= (overload 2)` | function | [odometry.md](odometry.md#iodometry-operator-eq-2) |
+| `IOdometry::pose` | function | [odometry.md](odometry.md#iodometry-pose) |
+| `IOdometry::setPose` | function | [odometry.md](odometry.md#iodometry-setpose) |
+| `IOdometry::update` | function | [odometry.md](odometry.md#iodometry-update) |
+| `IOdometry::~IOdometry` | function | [odometry.md](odometry.md#iodometry-destructor-iodometry) |
 | `IOptical` | class | [optical.md](optical.md#class-ioptical) |
 | `IOptical::brightness` | function | [optical.md](optical.md#ioptical-brightness) |
 | `IOptical::hue` | function | [optical.md](optical.md#ioptical-hue) |
@@ -824,6 +2399,22 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IPoseSource::quality` | function | [i_pose_source.md](i_pose_source.md#iposesource-quality) |
 | `IPoseSource::twist` | function | [i_pose_source.md](i_pose_source.md#iposesource-twist) |
 | `IPoseSource::~IPoseSource` | function | [i_pose_source.md](i_pose_source.md#iposesource-destructor-iposesource) |
+| `IReadFaults` | class | [read_faults.md](read_faults.md#class-ireadfaults) |
+| `IReadFaults::faultedReads` | function | [read_faults.md](read_faults.md#ireadfaults-faultedreads) |
+| `IReadFaults::IReadFaults` | function | [read_faults.md](read_faults.md#ireadfaults-ireadfaults) |
+| `IReadFaults::IReadFaults (overload 2)` | function | [read_faults.md](read_faults.md#ireadfaults-ireadfaults-2) |
+| `IReadFaults::IReadFaults (overload 3)` | function | [read_faults.md](read_faults.md#ireadfaults-ireadfaults-3) |
+| `IReadFaults::operator=` | function | [read_faults.md](read_faults.md#ireadfaults-operator-eq) |
+| `IReadFaults::operator= (overload 2)` | function | [read_faults.md](read_faults.md#ireadfaults-operator-eq-2) |
+| `IReadFaults::~IReadFaults` | function | [read_faults.md](read_faults.md#ireadfaults-destructor-ireadfaults) |
+| `IRobotConfig` | class | [robot_config.md](robot_config.md#class-irobotconfig) |
+| `IRobotConfig::config` | function | [robot_config.md](robot_config.md#irobotconfig-config) |
+| `IRobotConfig::IRobotConfig` | function | [robot_config.md](robot_config.md#irobotconfig-irobotconfig) |
+| `IRobotConfig::IRobotConfig (overload 2)` | function | [robot_config.md](robot_config.md#irobotconfig-irobotconfig-2) |
+| `IRobotConfig::IRobotConfig (overload 3)` | function | [robot_config.md](robot_config.md#irobotconfig-irobotconfig-3) |
+| `IRobotConfig::operator=` | function | [robot_config.md](robot_config.md#irobotconfig-operator-eq) |
+| `IRobotConfig::operator= (overload 2)` | function | [robot_config.md](robot_config.md#irobotconfig-operator-eq-2) |
+| `IRobotConfig::~IRobotConfig` | function | [robot_config.md](robot_config.md#irobotconfig-destructor-irobotconfig) |
 | `IRotation` | class | [rotation.md](rotation.md#class-irotation) |
 | `IRotation::IRotation` | function | [rotation.md](rotation.md#irotation-irotation) |
 | `IRotation::IRotation (overload 2)` | function | [rotation.md](rotation.md#irotation-irotation-2) |
@@ -833,7 +2424,22 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IRotation::position` | function | [rotation.md](rotation.md#irotation-position) |
 | `IRotation::velocity` | function | [rotation.md](rotation.md#irotation-velocity) |
 | `IRotation::~IRotation` | function | [rotation.md](rotation.md#irotation-destructor-irotation) |
+| `IRouteSource` | class | [route.md](route.md#class-iroutesource) |
+| `IRouteSource::at` | function | [route.md](route.md#iroutesource-at) |
+| `IRouteSource::count` | function | [route.md](route.md#iroutesource-count) |
+| `IRouteSource::IRouteSource` | function | [route.md](route.md#iroutesource-iroutesource) |
+| `IRouteSource::IRouteSource (overload 2)` | function | [route.md](route.md#iroutesource-iroutesource-2) |
+| `IRouteSource::IRouteSource (overload 3)` | function | [route.md](route.md#iroutesource-iroutesource-3) |
+| `IRouteSource::operator=` | function | [route.md](route.md#iroutesource-operator-eq) |
+| `IRouteSource::operator= (overload 2)` | function | [route.md](route.md#iroutesource-operator-eq-2) |
+| `IRouteSource::route` | function | [route.md](route.md#iroutesource-route) |
+| `IRouteSource::~IRouteSource` | function | [route.md](route.md#iroutesource-destructor-iroutesource) |
+| `isControllerButton` | free function | [mechanism_binding.md](mechanism_binding.md#iscontrollerbutton) |
 | `isFinitePose` | free function | [finite_guard.md](finite_guard.md#isfinitepose) |
+| `isPneumaticLevel` | free function | [robot_config.md](robot_config.md#ispneumaticlevel) |
+| `isSafeBrakeMode` | free function | [robot_config.md](robot_config.md#issafebrakemode) |
+| `isSmartPort` | free function | [device_registry.md](device_registry.md#issmartport) |
+| `isUsableReading` | free function | [motor_group.md](motor_group.md#isusablereading) |
 | `ITagSource` | class | [vision.md](vision.md#class-itagsource) |
 | `ITagSource::ITagSource` | function | [vision.md](vision.md#itagsource-itagsource) |
 | `ITagSource::ITagSource (overload 2)` | function | [vision.md](vision.md#itagsource-itagsource-2) |
@@ -869,48 +2475,469 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IVision::operator=` | function | [vision.md](vision.md#ivision-operator-eq) |
 | `IVision::operator= (overload 2)` | function | [vision.md](vision.md#ivision-operator-eq-2) |
 | `IVision::~IVision` | function | [vision.md](vision.md#ivision-destructor-ivision) |
+| `IVisionFrames` | class | [vision_frames.md](vision_frames.md#class-ivisionframes) |
+| `IVisionFrames::IVisionFrames` | function | [vision_frames.md](vision_frames.md#ivisionframes-ivisionframes) |
+| `IVisionFrames::IVisionFrames (overload 2)` | function | [vision_frames.md](vision_frames.md#ivisionframes-ivisionframes-2) |
+| `IVisionFrames::IVisionFrames (overload 3)` | function | [vision_frames.md](vision_frames.md#ivisionframes-ivisionframes-3) |
+| `IVisionFrames::operator=` | function | [vision_frames.md](vision_frames.md#ivisionframes-operator-eq) |
+| `IVisionFrames::operator= (overload 2)` | function | [vision_frames.md](vision_frames.md#ivisionframes-operator-eq-2) |
+| `IVisionFrames::read` | function | [vision_frames.md](vision_frames.md#ivisionframes-read) |
+| `IVisionFrames::status` | function | [vision_frames.md](vision_frames.md#ivisionframes-status) |
+| `IVisionFrames::~IVisionFrames` | function | [vision_frames.md](vision_frames.md#ivisionframes-destructor-ivisionframes) |
+
+## J
+
+| Name | Kind | Page |
+|---|---|---|
+| `judgeDirection` | free function | [direction_check.md](direction_check.md#judgedirection) |
+| `judgePneumatic` | free function | [direction_check.md](direction_check.md#judgepneumatic) |
 
 ## K
 
 | Name | Kind | Page |
 |---|---|---|
+| `kAbortRow` | constant | [calibrate_panel.md](calibrate_panel.md#kabortrow) |
+| `kAbortSlot` | constant | [calibrate_panel.md](calibrate_panel.md#kabortslot) |
+| `kAcceptanceRunName` | constant | [acceptance_run.md](acceptance_run.md#kacceptancerunname) |
+| `kAiVisionOptics` | constant | [camera_geometry.md](camera_geometry.md#kaivisionoptics) |
+| `kAll` | constant | [calibrate_panel.md](calibrate_panel.md#kall) |
+| `kAll` | constant | [calibrate_screen.md](calibrate_screen.md#kall) |
+| `kAmber` | constant | [tune_program.md](tune_program.md#kamber) |
 | `kApiMajor` | constant | [version.md](version.md#kapimajor) |
+| `kApiMajorByte` | constant | [shul2_format.md](shul2_format.md#kapimajorbyte) |
 | `kApiMinor` | constant | [version.md](version.md#kapiminor) |
+| `kApiMinorByte` | constant | [shul2_format.md](shul2_format.md#kapiminorbyte) |
 | `kApiVersionString` | constant | [version.md](version.md#kapiversionstring) |
 | `kArcStraightEps` | constant | [arc_step.md](arc_step.md#karcstraighteps) |
+| `kArmingDelaySeconds` | constant | [calibrate_panel.md](calibrate_panel.md#karmingdelayseconds) |
+| `kArmingDelaySeconds` | constant | [touch_panel.md](touch_panel.md#karmingdelayseconds) |
+| `kBlue` | constant | [tune_program.md](tune_program.md#kblue) |
+| `kBlueWall` | constant | [override_elements.md](override_elements.md#kbluewall) |
+| `kBlueWall` | constant | [override_walls.md](override_walls.md#kbluewall) |
+| `kBodyY` | constant | [tune_panel.md](tune_panel.md#kbodyy) |
+| `kBottomDepthHiIn` | constant | [toggle_tracker.md](toggle_tracker.md#kbottomdepthhiin) |
+| `kBottomDepthLoIn` | constant | [toggle_tracker.md](toggle_tracker.md#kbottomdepthloin) |
+| `kBoxEdgePx` | constant | [camera_geometry.md](camera_geometry.md#kboxedgepx) |
+| `kBrainAdiLines` | constant | [device_provider.md](device_provider.md#kbrainadilines) |
+| `kBuildTimeCols` | constant | [calibrate_screen.md](calibrate_screen.md#kbuildtimecols) |
+| `kBuiltinCommandCount` | constant | [route.md](route.md#kbuiltincommandcount) |
+| `kBuiltinCommands` | constant | [route.md](route.md#kbuiltincommands) |
+| `kCapRecheckSeconds` | constant | [service.md](service.md#kcaprecheckseconds) |
+| `kCapSignatureMarginAmps` | constant | [service.md](service.md#kcapsignaturemarginamps) |
+| `kCartridgeUnset` | constant | [calibrate_screen.md](calibrate_screen.md#kcartridgeunset) |
+| `kChoiceLeftBox` | constant | [calibrate_panel.md](calibrate_panel.md#kchoiceleftbox) |
+| `kChoiceRightBox` | constant | [calibrate_panel.md](calibrate_panel.md#kchoicerightbox) |
+| `kColAbortFill` | constant | [calibrate_screen.md](calibrate_screen.md#kcolabortfill) |
+| `kColAmber` | constant | [calibrate_screen.md](calibrate_screen.md#kcolamber) |
+| `kColBg` | constant | [calibrate_screen.md](calibrate_screen.md#kcolbg) |
+| `kColBlue` | constant | [calibrate_screen.md](calibrate_screen.md#kcolblue) |
+| `kColEdge` | constant | [calibrate_screen.md](calibrate_screen.md#kcoledge) |
+| `kColGreen` | constant | [calibrate_screen.md](calibrate_screen.md#kcolgreen) |
+| `kColGrey` | constant | [calibrate_screen.md](calibrate_screen.md#kcolgrey) |
+| `kColGreyFill` | constant | [calibrate_screen.md](calibrate_screen.md#kcolgreyfill) |
+| `kColRed` | constant | [calibrate_screen.md](calibrate_screen.md#kcolred) |
+| `kColText` | constant | [calibrate_screen.md](calibrate_screen.md#kcoltext) |
 | `kCommandAuditMargin` | constant | [plausibility_guard.md](plausibility_guard.md#kcommandauditmargin) |
 | `kCompactThresholdBytes` | constant | [line_format.md](line_format.md#kcompactthresholdbytes) |
+| `kCompetitionAutonomous` | constant | [calibrate_program.md](calibrate_program.md#kcompetitionautonomous) |
+| `kCompetitionConnected` | constant | [calibrate_program.md](calibrate_program.md#kcompetitionconnected) |
+| `kCompetitionDisabled` | constant | [calibrate_program.md](calibrate_program.md#kcompetitiondisabled) |
+| `kControllerButtonCount` | constant | [mechanism_binding.md](mechanism_binding.md#kcontrollerbuttoncount) |
+| `kCopyNow` | constant | [calibrate_panel.md](calibrate_panel.md#kcopynow) |
+| `kCopyNumberChars` | constant | [live_tuning.md](live_tuning.md#kcopynumberchars) |
+| `kCopyThenRunAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythenrunagain) |
+| `kCopyThese` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythese) |
+| `kCornerKeepOut` | constant | [override_walls.md](override_walls.md#kcornerkeepout) |
+| `kCrcBytes` | constant | [shul2_format.md](shul2_format.md#kcrcbytes) |
+| `kCupSize` | constant | [override_elements.md](override_elements.md#kcupsize) |
+| `kCurveMinSpacing` | constant | [curve_path.md](curve_path.md#kcurveminspacing) |
+| `kDefaultDeadband` | constant | [input_shaping.md](input_shaping.md#kdefaultdeadband) |
+| `kDefaultExpo` | constant | [input_shaping.md](input_shaping.md#kdefaultexpo) |
 | `kDefaultFlightRingTicks` | constant | [sd_sink.md](sd_sink.md#kdefaultflightringticks) |
+| `kDefaultMotorCurrentLimit` | constant | [motor_current_limit.md](motor_current_limit.md#kdefaultmotorcurrentlimit) |
+| `kDegreesToRadians` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kdegreestoradians) |
+| `kDegToRad` | constant | [camera_geometry.md](camera_geometry.md#kdegtorad) |
+| `kDevicesMaxMotors` | constant | [devices.md](devices.md#kdevicesmaxmotors) |
+| `kDiagnosisTool` | constant | [calibrate_screen.md](calibrate_screen.md#kdiagnosistool) |
 | `kDistanceConfidenceAvailableAboveMm` | constant | [distance_conversion.md](distance_conversion.md#kdistanceconfidenceavailableabovemm) |
 | `kDistanceConfidenceFullScale` | constant | [distance_conversion.md](distance_conversion.md#kdistanceconfidencefullscale) |
 | `kDistanceNoObjectMm` | constant | [distance_conversion.md](distance_conversion.md#kdistancenoobjectmm) |
 | `kDockedHeadingTypicalDeg` | constant | [accuracy.md](accuracy.md#kdockedheadingtypicaldeg) |
 | `kDockedPositionError` | constant | [accuracy.md](accuracy.md#kdockedpositionerror) |
+| `kDriveUnset` | constant | [calibrate_screen.md](calibrate_screen.md#kdriveunset) |
+| `keepOutActive` | free function | [wall_reset.md](wall_reset.md#keepoutactive) |
+| `KeepOutKind` | enum class | [wall_reset.md](wall_reset.md#enum-class-keepoutkind) |
+| `KeepOutKind::Fixed` | enumerator | [wall_reset.md](wall_reset.md#keepoutkind-fixed) |
+| `KeepOutKind::PieceZone` | enumerator | [wall_reset.md](wall_reset.md#keepoutkind-piecezone) |
+| `KeepOutKind::Toggle` | enumerator | [wall_reset.md](wall_reset.md#keepoutkind-toggle) |
 | `kEndPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#kendpayloadbytes) |
+| `kEndPayloadBytes` | constant | [shul2_format.md](shul2_format.md#kendpayloadbytes) |
+| `kFactsBad` | constant | [calibrate_screen.md](calibrate_screen.md#kfactsbad) |
+| `kFaultIdle` | constant | [calibrate_screen.md](calibrate_screen.md#kfaultidle) |
+| `kFileReasonBytes` | constant | [record_store.md](record_store.md#kfilereasonbytes) |
+| `kFindingDevices` | constant | [calibrate_screen.md](calibrate_screen.md#kfindingdevices) |
+| `kFirstPeerDataType` | constant | [shul2_format.md](shul2_format.md#kfirstpeerdatatype) |
+| `kFirstRuntimeDataType` | constant | [shul2_format.md](shul2_format.md#kfirstruntimedatatype) |
+| `kFitExclusionReasons` | constant | [feedforward_fit.md](feedforward_fit.md#kfitexclusionreasons) |
+| `kFitRankTolerance` | constant | [feedforward_fit.md](feedforward_fit.md#kfitranktolerance) |
+| `kFlagsOffset` | constant | [shul2_format.md](shul2_format.md#kflagsoffset) |
+| `kFlipAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kflipagain) |
+| `kFlipNew` | constant | [calibrate_panel.md](calibrate_panel.md#kflipnew) |
+| `kFlipNewTyped` | constant | [calibrate_panel.md](calibrate_panel.md#kflipnewtyped) |
+| `kFlipWarn` | constant | [calibrate_panel.md](calibrate_panel.md#kflipwarn) |
+| `kFlipWarnTyped` | constant | [calibrate_panel.md](calibrate_panel.md#kflipwarntyped) |
+| `kFlipWhat` | constant | [calibrate_panel.md](calibrate_panel.md#kflipwhat) |
+| `kFlipWhatTyped` | constant | [calibrate_panel.md](calibrate_panel.md#kflipwhattyped) |
 | `kFormatVersion` | constant | [blackbox_format.md](blackbox_format.md#kformatversion) |
 | `kFrameHeaderBytes` | constant | [blackbox_format.md](blackbox_format.md#kframeheaderbytes) |
+| `kFrameOverheadBytes` | constant | [shul2_format.md](shul2_format.md#kframeoverheadbytes) |
+| `kFrontRule` | constant | [calibrate_panel.md](calibrate_panel.md#kfrontrule) |
+| `kFullReasonOnSerial` | constant | [calibrate_panel.md](calibrate_panel.md#kfullreasononserial) |
 | `kGpsDefaultNorthHeadingDeg` | constant | [gps_conversion.md](gps_conversion.md#kgpsdefaultnorthheadingdeg) |
+| `kGreen` | constant | [tune_program.md](tune_program.md#kgreen) |
+| `kGrey` | constant | [tune_program.md](tune_program.md#kgrey) |
+| `kGreyFill` | constant | [tune_program.md](tune_program.md#kgreyfill) |
+| `kGround` | constant | [tune_program.md](tune_program.md#kground) |
+| `kHandsOff` | constant | [calibrate_panel.md](calibrate_panel.md#khandsoff) |
+| `kHandsOff` | constant | [calibrate_screen.md](calibrate_screen.md#khandsoff) |
+| `kHeaderBar` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderbar) |
 | `kHeaderBytes` | constant | [blackbox_format.md](blackbox_format.md#kheaderbytes) |
+| `kHeaderCannot` | constant | [calibrate_screen.md](calibrate_screen.md#kheadercannot) |
+| `kHeaderCols` | constant | [calibrate_panel.md](calibrate_panel.md#kheadercols) |
+| `kHeaderFlipped` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderflipped) |
+| `kHeaderIdle` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderidle) |
+| `kHeaderImu` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderimu) |
+| `kHeaderMeasured` | constant | [calibrate_panel.md](calibrate_panel.md#kheadermeasured) |
+| `kHeaderMechTurned` | constant | [calibrate_panel.md](calibrate_panel.md#kheadermechturned) |
+| `kHeaderNotSaved` | constant | [calibrate_panel.md](calibrate_panel.md#kheadernotsaved) |
+| `kHeaderPulses` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderpulses) |
+| `kHeaderPush` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderpush) |
+| `kHeaderSaved` | constant | [calibrate_panel.md](calibrate_panel.md#kheadersaved) |
+| `kHeaderSavedNew` | constant | [calibrate_panel.md](calibrate_panel.md#kheadersavednew) |
+| `kHeaderSpin` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderspin) |
+| `kHeaderStarting` | constant | [calibrate_screen.md](calibrate_screen.md#kheaderstarting) |
+| `kHeaderStopped` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderstopped) |
+| `kHeaderStopped` | constant | [calibrate_screen.md](calibrate_screen.md#kheaderstopped) |
 | `kHeadingErrorMaxDeg` | constant | [accuracy.md](accuracy.md#kheadingerrormaxdeg) |
+| `kHelloInvariantBytes` | constant | [shul2_format.md](shul2_format.md#khelloinvariantbytes) |
+| `kHelloPayloadBytes` | constant | [shul2_format.md](shul2_format.md#khellopayloadbytes) |
+| `kHitPadX` | constant | [calibrate_panel.md](calibrate_panel.md#khitpadx) |
+| `kHitPadX` | constant | [touch_panel.md](touch_panel.md#khitpadx) |
+| `kHitPadY` | constant | [calibrate_panel.md](calibrate_panel.md#khitpady) |
+| `kHitPadY` | constant | [touch_panel.md](touch_panel.md#khitpady) |
+| `kHoldIntegralLimitVolts` | constant | [service.md](service.md#kholdintegrallimitvolts) |
+| `kImuCount` | constant | [calibrate_screen.md](calibrate_screen.md#kimucount) |
+| `kImuRefused` | constant | [calibrate_screen.md](calibrate_screen.md#kimurefused) |
+| `kImuWarming` | constant | [calibrate_panel.md](calibrate_panel.md#kimuwarming) |
+| `Kind` | enum class | [spec.md](spec.md#enum-class-kind) |
+| `Kind::Pneumatic` | enumerator | [spec.md](spec.md#kind-pneumatic) |
+| `Kind::Position` | enumerator | [spec.md](spec.md#kind-position) |
+| `Kind::Power` | enumerator | [spec.md](spec.md#kind-power) |
+| `Kind::Speed` | enumerator | [spec.md](spec.md#kind-speed) |
+| `kindWord` | free function | [spec.md](spec.md#kindword) |
+| `kInstallTagCorrector` | constant | [absent_tag_source.md](absent_tag_source.md#kinstalltagcorrector) |
+| `kInstallTagCorrector<AbsentTagSource>` | constant | [absent_tag_source.md](absent_tag_source.md#kinstalltagcorrectorabsenttagsource) |
+| `kInstallVisionPoller` | constant | [absent_vision.md](absent_vision.md#kinstallvisionpoller) |
+| `kInstallVisionPoller<AbsentVision>` | constant | [absent_vision.md](absent_vision.md#kinstallvisionpollerabsentvision) |
+| `kLabelAbort` | constant | [calibrate_panel.md](calibrate_panel.md#klabelabort) |
+| `kLabelDone` | constant | [calibrate_panel.md](calibrate_panel.md#klabeldone) |
+| `kLabelNew` | constant | [calibrate_panel.md](calibrate_panel.md#klabelnew) |
+| `kLabelRunAgain` | constant | [calibrate_panel.md](calibrate_panel.md#klabelrunagain) |
+| `kLabelSave` | constant | [calibrate_panel.md](calibrate_panel.md#klabelsave) |
+| `kLargeCols` | constant | [calibrate_panel.md](calibrate_panel.md#klargecols) |
+| `kLargeCols` | constant | [touch_panel.md](touch_panel.md#klargecols) |
+| `kLargeHeight` | constant | [calibrate_panel.md](calibrate_panel.md#klargeheight) |
+| `kLargeHeight` | constant | [touch_panel.md](touch_panel.md#klargeheight) |
+| `kLargeTitleY` | constant | [tune_panel.md](tune_panel.md#klargetitley) |
+| `kLastPeerDataType` | constant | [shul2_format.md](shul2_format.md#klastpeerdatatype) |
+| `kLastRuntimeDataType` | constant | [shul2_format.md](shul2_format.md#klastruntimedatatype) |
+| `kLeftWall` | constant | [override_elements.md](override_elements.md#kleftwall) |
+| `kLeftWall` | constant | [override_walls.md](override_walls.md#kleftwall) |
+| `kLightBlue` | constant | [tune_program.md](tune_program.md#klightblue) |
+| `kLiveFirstKaSeconds` | constant | [live_tuning.md](live_tuning.md#klivefirstkaseconds) |
+| `kLiveKvMostTimesStarting` | constant | [live_tuning.md](live_tuning.md#klivekvmosttimesstarting) |
+| `kLiveRepaintSeconds` | constant | [calibrate_screen.md](calibrate_screen.md#kliverepaintseconds) |
+| `kLiveUndoDepth` | constant | [live_tuning.md](live_tuning.md#kliveundodepth) |
+| `kLoaderCentre` | constant | [override_walls.md](override_walls.md#kloadercentre) |
+| `kLoaderHalfWidth` | constant | [override_walls.md](override_walls.md#kloaderhalfwidth) |
+| `kLoadZoneDepth` | constant | [override_walls.md](override_walls.md#kloadzonedepth) |
+| `kLogFixedBytes` | constant | [shul2_format.md](shul2_format.md#klogfixedbytes) |
+| `kLogMessageTruncated` | constant | [shul2_format.md](shul2_format.md#klogmessagetruncated) |
+| `kLogTagTruncated` | constant | [shul2_format.md](shul2_format.md#klogtagtruncated) |
 | `kMagic` | constant | [blackbox_format.md](blackbox_format.md#kmagic) |
+| `kManifestSchemaVersion` | constant | [manifest.md](manifest.md#kmanifestschemaversion) |
+| `kMaxAutonNameChars` | constant | [auton_registry.md](auton_registry.md#kmaxautonnamechars) |
+| `kMaxAutonRefusals` | constant | [auton_registry.md](auton_registry.md#kmaxautonrefusals) |
+| `kMaxAutons` | constant | [auton_registry.md](auton_registry.md#kmaxautons) |
+| `kMaxColourDescriptors` | constant | [vision_frames.md](vision_frames.md#kmaxcolourdescriptors) |
+| `kMaxCommands` | constant | [command_registry.md](command_registry.md#kmaxcommands) |
+| `kMaxCurvePoints` | constant | [curve_path.md](curve_path.md#kmaxcurvepoints) |
+| `kMaxDeadTotal` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kmaxdeadtotal) |
 | `kMaxFieldBytes` | constant | [session_info.md](session_info.md#kmaxfieldbytes) |
+| `kMaxFrameBytes` | constant | [shul2_format.md](shul2_format.md#kmaxframebytes) |
 | `kMaxHashBytes` | constant | [session_info.md](session_info.md#kmaxhashbytes) |
+| `kMaxLineRoles` | constant | [spec.md](spec.md#kmaxlineroles) |
+| `kMaxMarkerArgs` | constant | [route.md](route.md#kmaxmarkerargs) |
+| `kMaxMarkerIdBytes` | constant | [route.md](route.md#kmaxmarkeridbytes) |
+| `kMaxMarkersPerWaypoint` | constant | [route.md](route.md#kmaxmarkersperwaypoint) |
+| `kMaxMechanismPorts` | constant | [calibrate_program.md](calibrate_program.md#kmaxmechanismports) |
+| `kMaxMechanisms` | constant | [robot_config.md](robot_config.md#kmaxmechanisms) |
+| `kMaxMechanisms` | constant | [spec.md](spec.md#kmaxmechanisms) |
+| `kMaxMotorRoles` | constant | [spec.md](spec.md#kmaxmotorroles) |
+| `kMaxMotorsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxmotorspermechanism) |
 | `kMaxMotorVoltage` | constant | [motor.md](motor.md#kmaxmotorvoltage) |
+| `kMaxPayloadBytes` | constant | [shul2_format.md](shul2_format.md#kmaxpayloadbytes) |
+| `kMaxPitchSpanDeg` | constant | [camera_geometry.md](camera_geometry.md#kmaxpitchspandeg) |
+| `kMaxPneumaticPositions` | constant | [spec.md](spec.md#kmaxpneumaticpositions) |
+| `kMaxPneumaticsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxpneumaticspermechanism) |
 | `kMaxPortMapBytes` | constant | [session_info.md](session_info.md#kmaxportmapbytes) |
+| `kMaxPresets` | constant | [spec.md](spec.md#kmaxpresets) |
+| `kMaxProtectedGroups` | constant | [drive_protection.md](drive_protection.md#kmaxprotectedgroups) |
+| `kMaxPulseLevels` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxpulselevels) |
+| `kMaxPulseRecords` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxpulserecords) |
+| `kMaxRouteIds` | constant | [route_ids.md](route_ids.md#kmaxrouteids) |
+| `kMaxSideMembers` | constant | [coupled_side_monitor.md](coupled_side_monitor.md#kmaxsidemembers) |
+| `kMaxSmartPorts` | constant | [drivetrain_description.md](drivetrain_description.md#kmaxsmartports) |
+| `kMaxSpinLevels` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxspinlevels) |
+| `kMaxStoredFileBytes` | constant | [record_store.md](record_store.md#kmaxstoredfilebytes) |
+| `kMaxTablePoints` | constant | [spec.md](spec.md#kmaxtablepoints) |
+| `kMaxVisionClassNames` | constant | [vision_frames.md](vision_frames.md#kmaxvisionclassnames) |
+| `kMaxVisionDetections` | constant | [vision_frames.md](vision_frames.md#kmaxvisiondetections) |
+| `kMaxWallKeepOuts` | constant | [wall_reset.md](wall_reset.md#kmaxwallkeepouts) |
+| `kMaxWallSamples` | constant | [wall_reset.md](wall_reset.md#kmaxwallsamples) |
+| `kMaxWallWindowSeconds` | constant | [wall_reset.md](wall_reset.md#kmaxwallwindowseconds) |
+| `kMaxWaypoints` | constant | [route.md](route.md#kmaxwaypoints) |
+| `kMechAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kmechagain) |
+| `kMechanismRouteDocBytes` | constant | [mechanism_routes.md](mechanism_routes.md#kmechanismroutedocbytes) |
+| `kMechNotOnCard` | constant | [calibrate_panel.md](calibrate_panel.md#kmechnotoncard) |
+| `kMechSave` | constant | [calibrate_panel.md](calibrate_panel.md#kmechsave) |
+| `kMediumCols` | constant | [calibrate_panel.md](calibrate_panel.md#kmediumcols) |
+| `kMediumCols` | constant | [touch_panel.md](touch_panel.md#kmediumcols) |
+| `kMediumHeight` | constant | [calibrate_panel.md](calibrate_panel.md#kmediumheight) |
+| `kMediumHeight` | constant | [touch_panel.md](touch_panel.md#kmediumheight) |
+| `kMenuEntriesPerPage` | constant | [auton_menu.md](auton_menu.md#kmenuentriesperpage) |
+| `kMenuEntryRow0` | constant | [auton_menu.md](auton_menu.md#kmenuentryrow0) |
+| `kMenuEntryRow1` | constant | [auton_menu.md](auton_menu.md#kmenuentryrow1) |
+| `kMenuEntryRows` | constant | [auton_menu.md](auton_menu.md#kmenuentryrows) |
+| `kMenuHeaderBar` | constant | [auton_menu.md](auton_menu.md#kmenuheaderbar) |
+| `kMenuHeaderPrefix` | constant | [auton_menu.md](auton_menu.md#kmenuheaderprefix) |
+| `kMenuHintText` | constant | [auton_menu.md](auton_menu.md#kmenuhinttext) |
+| `kMenuLockedText` | constant | [auton_menu.md](auton_menu.md#kmenulockedtext) |
+| `kMenuMaxButtons` | constant | [auton_menu.md](auton_menu.md#kmenumaxbuttons) |
+| `kMenuNextLabel` | constant | [auton_menu.md](auton_menu.md#kmenunextlabel) |
+| `kMenuNextSlot` | constant | [auton_menu.md](auton_menu.md#kmenunextslot) |
+| `kMenuNoneInfo` | constant | [auton_menu.md](auton_menu.md#kmenunoneinfo) |
+| `kMenuNoneLabel` | constant | [auton_menu.md](auton_menu.md#kmenunonelabel) |
+| `kMenuNoneSlot` | constant | [auton_menu.md](auton_menu.md#kmenunoneslot) |
+| `kMenuPrevLabel` | constant | [auton_menu.md](auton_menu.md#kmenuprevlabel) |
+| `kMenuPrevSlot` | constant | [auton_menu.md](auton_menu.md#kmenuprevslot) |
+| `kMenuRefusalTurnSeconds` | constant | [auton_menu.md](auton_menu.md#kmenurefusalturnseconds) |
+| `kMenuRefusedPrefix` | constant | [auton_menu.md](auton_menu.md#kmenurefusedprefix) |
+| `kMetalPerimeterInnerFace` | constant | [override_walls.md](override_walls.md#kmetalperimeterinnerface) |
 | `kMetersToInches` | constant | [gps_conversion.md](gps_conversion.md#kmeterstoinches) |
+| `kMinAnsweringPerSide` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kminansweringperside) |
+| `kMinLegLength` | constant | [leg_progress.md](leg_progress.md#kminleglength) |
+| `kMinTurnRad` | constant | [leg_progress.md](leg_progress.md#kminturnrad) |
+| `kModelClassCount` | constant | [override_elements.md](override_elements.md#kmodelclasscount) |
+| `kMoreOnSerial` | constant | [calibrate_screen.md](calibrate_screen.md#kmoreonserial) |
+| `kMotorsRefused` | constant | [calibrate_screen.md](calibrate_screen.md#kmotorsrefused) |
+| `kNameBytes` | constant | [spec.md](spec.md#knamebytes) |
+| `kNdc1` | constant | [calibrate_screen.md](calibrate_screen.md#kndc1) |
+| `kNdc2` | constant | [calibrate_screen.md](calibrate_screen.md#kndc2) |
+| `kNdc3` | constant | [calibrate_screen.md](calibrate_screen.md#kndc3) |
+| `kNdc4` | constant | [calibrate_screen.md](calibrate_screen.md#kndc4) |
+| `kNdc5` | constant | [calibrate_screen.md](calibrate_screen.md#kndc5) |
+| `kNextDoneWhenMoved` | constant | [calibrate_panel.md](calibrate_panel.md#knextdonewhenmoved) |
+| `kNextLetGo` | constant | [calibrate_panel.md](calibrate_panel.md#knextletgo) |
+| `kNextSaves` | constant | [calibrate_panel.md](calibrate_panel.md#knextsaves) |
+| `kNextSpins` | constant | [calibrate_panel.md](calibrate_panel.md#knextspins) |
+| `kNextTouchDone` | constant | [calibrate_panel.md](calibrate_panel.md#knexttouchdone) |
+| `kNextTwitch` | constant | [calibrate_panel.md](calibrate_panel.md#knexttwitch) |
+| `kNoAutonName` | constant | [auton_registry.md](auton_registry.md#knoautonname) |
+| `kNoIndependentStallSourceNote` | constant | [odo_stall_check.md](odo_stall_check.md#knoindependentstallsourcenote) |
+| `kNotDriverControl` | constant | [calibrate_screen.md](calibrate_screen.md#knotdrivercontrol) |
+| `kNoteCols` | constant | [calibrate_panel.md](calibrate_panel.md#knotecols) |
+| `kNoteFirst` | constant | [calibrate_panel.md](calibrate_panel.md#knotefirst) |
+| `kNoteFixTyped` | constant | [calibrate_panel.md](calibrate_panel.md#knotefixtyped) |
+| `kNoteNotChecked` | constant | [calibrate_panel.md](calibrate_panel.md#knotenotchecked) |
+| `kNoteTypedPartial` | constant | [calibrate_panel.md](calibrate_panel.md#knotetypedpartial) |
+| `kNoteTypedSame` | constant | [calibrate_panel.md](calibrate_panel.md#knotetypedsame) |
+| `kNothingOrSomethingElseMoved` | constant | [direction_check.md](direction_check.md#knothingorsomethingelsemoved) |
+| `kNothingPowered` | constant | [calibrate_screen.md](calibrate_screen.md#knothingpowered) |
+| `kNothingSavedYet` | constant | [calibrate_panel.md](calibrate_panel.md#knothingsavedyet) |
+| `kNotStarted` | constant | [calibrate_panel.md](calibrate_panel.md#knotstarted) |
+| `kNotTank` | constant | [calibrate_screen.md](calibrate_screen.md#knottank) |
+| `kOdomAuditDetailMaxBytes` | constant | [odom_tick_audit.md](odom_tick_audit.md#kodomauditdetailmaxbytes) |
+| `kOdomAuditPrecision` | constant | [odom_tick_audit.md](odom_tick_audit.md#kodomauditprecision) |
+| `kOdoStallMaxWheels` | constant | [odo_stall_check.md](odo_stall_check.md#kodostallmaxwheels) |
+| `kOverrideClassNames` | constant | [override_elements.md](override_elements.md#koverrideclassnames) |
+| `kPanelLastRow` | constant | [calibrate_panel.md](calibrate_panel.md#kpanellastrow) |
+| `kPanelLastRow` | constant | [touch_panel.md](touch_panel.md#kpanellastrow) |
+| `kPanelLineCap` | constant | [calibrate_panel.md](calibrate_panel.md#kpanellinecap) |
+| `kPanelMaxButtons` | constant | [calibrate_panel.md](calibrate_panel.md#kpanelmaxbuttons) |
+| `kPanelMaxLines` | constant | [calibrate_panel.md](calibrate_panel.md#kpanelmaxlines) |
+| `kPanelWidth` | constant | [calibrate_panel.md](calibrate_panel.md#kpanelwidth) |
+| `kPanelWidth` | constant | [touch_panel.md](touch_panel.md#kpanelwidth) |
+| `kParamY` | constant | [tune_panel.md](tune_panel.md#kparamy) |
+| `kPayloadBytesOffset` | constant | [shul2_format.md](shul2_format.md#kpayloadbytesoffset) |
+| `kPayloadOffset` | constant | [shul2_format.md](shul2_format.md#kpayloadoffset) |
+| `kPinSize` | constant | [override_elements.md](override_elements.md#kpinsize) |
+| `kPitch` | constant | [tune_panel.md](tune_panel.md#kpitch) |
 | `kPositionErrorEndOfRun` | constant | [accuracy.md](accuracy.md#kpositionerrorendofrun) |
+| `kPostureSlackIn` | constant | [piece_finder.md](piece_finder.md#kpostureslackin) |
+| `kPrimarySlot` | constant | [calibrate_panel.md](calibrate_panel.md#kprimaryslot) |
+| `kProgramFault` | constant | [calibrate_screen.md](calibrate_screen.md#kprogramfault) |
+| `kProtectionTextBytes` | constant | [drive_protection.md](drive_protection.md#kprotectiontextbytes) |
+| `kProvenanceBytes` | constant | [calibration_record.md](calibration_record.md#kprovenancebytes) |
+| `kPublishedCloseAccuracyInches` | constant | [wall_reset.md](wall_reset.md#kpublishedcloseaccuracyinches) |
+| `kPublishedFarAccuracyFraction` | constant | [wall_reset.md](wall_reset.md#kpublishedfaraccuracyfraction) |
+| `kPushFrontFirst` | constant | [calibrate_panel.md](calibrate_panel.md#kpushfrontfirst) |
 | `kRecommendedBufferBytes` | constant | [sd_sink.md](sd_sink.md#krecommendedbufferbytes) |
+| `kRecordBackupFileName` | constant | [calibration_record.md](calibration_record.md#krecordbackupfilename) |
+| `kRecordBytes` | constant | [calibration_record.md](calibration_record.md#krecordbytes) |
+| `kRecordFileName` | constant | [calibration_record.md](calibration_record.md#krecordfilename) |
+| `kRecordMagic` | constant | [calibration_record.md](calibration_record.md#krecordmagic) |
+| `kRecordPayloadBytes` | constant | [calibration_record.md](calibration_record.md#krecordpayloadbytes) |
+| `kRecordPrefixBytes` | constant | [calibration_record.md](calibration_record.md#krecordprefixbytes) |
+| `kRecordVersion` | constant | [calibration_record.md](calibration_record.md#krecordversion) |
+| `kRed` | constant | [tune_program.md](tune_program.md#kred) |
+| `kRedWall` | constant | [override_elements.md](override_elements.md#kredwall) |
+| `kRedWall` | constant | [override_walls.md](override_walls.md#kredwall) |
 | `kRepeatability` | constant | [accuracy.md](accuracy.md#krepeatability) |
+| `kReproScaleTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreproscaletolerance) |
+| `kReproWidthTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreprowidthtolerance) |
+| `kRightWall` | constant | [override_elements.md](override_elements.md#krightwall) |
+| `kRightWall` | constant | [override_walls.md](override_walls.md#krightwall) |
+| `kRolePeer` | constant | [shul2_format.md](shul2_format.md#krolepeer) |
+| `kRoleRuntime` | constant | [shul2_format.md](shul2_format.md#kroleruntime) |
+| `kRow1` | constant | [tune_panel.md](tune_panel.md#krow1) |
+| `kRow2` | constant | [tune_panel.md](tune_panel.md#krow2) |
+| `kRow3` | constant | [tune_panel.md](tune_panel.md#krow3) |
+| `kRunAgainBox` | constant | [calibrate_panel.md](calibrate_panel.md#krunagainbox) |
+| `kSafetyY` | constant | [tune_panel.md](tune_panel.md#ksafetyy) |
+| `kSaveReportLineBytes` | constant | [record_store.md](record_store.md#ksavereportlinebytes) |
+| `kScreenLineBytes` | constant | [brain_screen.md](brain_screen.md#kscreenlinebytes) |
+| `kSegmentCount` | constant | [drive_characterizer.md](drive_characterizer.md#ksegmentcount) |
+| `kSequenceOffset` | constant | [shul2_format.md](shul2_format.md#ksequenceoffset) |
+| `kSerialCutMarker` | constant | [pros-char_sink.md](pros-char_sink.md#kserialcutmarker) |
+| `kSerialLineBytes` | constant | [pros-char_sink.md](pros-char_sink.md#kseriallinebytes) |
+| `kSerialTagBytes` | constant | [pros-char_sink.md](pros-char_sink.md#kserialtagbytes) |
+| `kSerialWriteMaxBytes` | constant | [pros-char_sink.md](pros-char_sink.md#kserialwritemaxbytes) |
+| `kSettling` | constant | [calibrate_panel.md](calibrate_panel.md#ksettling) |
+| `kSettlingHandsOff` | constant | [calibrate_panel.md](calibrate_panel.md#ksettlinghandsoff) |
+| `kSignature` | constant | [shul2_format.md](shul2_format.md#ksignature) |
+| `kSmallCols` | constant | [calibrate_panel.md](calibrate_panel.md#ksmallcols) |
+| `kSmallCols` | constant | [touch_panel.md](touch_panel.md#ksmallcols) |
+| `kSmallHeight` | constant | [calibrate_panel.md](calibrate_panel.md#ksmallheight) |
+| `kSmallHeight` | constant | [touch_panel.md](touch_panel.md#ksmallheight) |
+| `kSpeedIntegralLimitVolts` | constant | [service.md](service.md#kspeedintegrallimitvolts) |
+| `kSpeedIntegralWindow` | constant | [service.md](service.md#kspeedintegralwindow) |
+| `kSpinAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kspinagain) |
+| `kSpinFirst` | constant | [calibrate_panel.md](calibrate_panel.md#kspinfirst) |
+| `kSpinning` | constant | [calibrate_panel.md](calibrate_panel.md#kspinning) |
+| `kStandClear` | constant | [calibrate_panel.md](calibrate_panel.md#kstandclear) |
+| `kStartingUp` | constant | [calibrate_screen.md](calibrate_screen.md#kstartingup) |
+| `kStartPiecesInner` | constant | [override_walls.md](override_walls.md#kstartpiecesinner) |
+| `kStartPiecesOuter` | constant | [override_walls.md](override_walls.md#kstartpiecesouter) |
+| `kState1` | constant | [calibrate_screen.md](calibrate_screen.md#kstate1) |
+| `kState3` | constant | [calibrate_screen.md](calibrate_screen.md#kstate3) |
+| `kState4` | constant | [calibrate_screen.md](calibrate_screen.md#kstate4) |
+| `kState5` | constant | [calibrate_screen.md](calibrate_screen.md#kstate5) |
+| `kStateNameAutonomous` | constant | [calibrate_screen.md](calibrate_screen.md#kstatenameautonomous) |
+| `kStateNameConnected` | constant | [calibrate_screen.md](calibrate_screen.md#kstatenameconnected) |
+| `kStateNameDisabled` | constant | [calibrate_screen.md](calibrate_screen.md#kstatenamedisabled) |
+| `kStateWhyAutonomous` | constant | [calibrate_screen.md](calibrate_screen.md#kstatewhyautonomous) |
+| `kStateWhyConnected` | constant | [calibrate_screen.md](calibrate_screen.md#kstatewhyconnected) |
+| `kStateWhyDisabled` | constant | [calibrate_screen.md](calibrate_screen.md#kstatewhydisabled) |
+| `kStateY` | constant | [tune_panel.md](tune_panel.md#kstatey) |
+| `kStatusY` | constant | [tune_panel.md](tune_panel.md#kstatusy) |
+| `kStickDeadband` | constant | [stick_mapping.md](stick_mapping.md#kstickdeadband) |
+| `kStorePathBytes` | constant | [file_store.md](file_store.md#kstorepathbytes) |
+| `kStoreReadSlackBytes` | constant | [record_store.md](record_store.md#kstorereadslackbytes) |
 | `kStrafeFallbackNoiseFraction` | constant | [command_pipeline.md](command_pipeline.md#kstrafefallbacknoisefraction) |
 | `kSummaryPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ksummarypayloadbytes) |
+| `kSync0` | constant | [shul2_format.md](shul2_format.md#ksync0) |
+| `kSync1` | constant | [shul2_format.md](shul2_format.md#ksync1) |
+| `kTankSteerNoiseFraction` | constant | [tank_steer.md](tank_steer.md#ktanksteernoisefraction) |
+| `kText` | constant | [tune_program.md](tune_program.md#ktext) |
+| `kThisReader` | constant | [shul2_format.md](shul2_format.md#kthisreader) |
 | `kTickPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktickpayloadbytes) |
 | `kTickPhaseSlots` | constant | [debug_record.md](debug_record.md#ktickphaseslots) |
+| `kTitleY` | constant | [tune_panel.md](tune_panel.md#ktitley) |
+| `kToggleAtSpeedWindowSeconds` | constant | [driver_inputs.md](driver_inputs.md#ktoggleatspeedwindowseconds) |
+| `kToggleBodyHalf` | constant | [override_walls.md](override_walls.md#ktogglebodyhalf) |
+| `kToggleFace` | constant | [override_elements.md](override_elements.md#ktoggleface) |
+| `kToggleHalfLength` | constant | [override_walls.md](override_walls.md#ktogglehalflength) |
+| `kTogglePlaces` | constant | [override_elements.md](override_elements.md#ktoggleplaces) |
+| `kToggleQuadrantColour` | constant | [override_elements.md](override_elements.md#ktogglequadrantcolour) |
+| `kToggleVisitTickSeconds` | constant | [toggle_visit.md](toggle_visit.md#ktogglevisittickseconds) |
+| `kToggleVisitWaitSlackSeconds` | constant | [toggle_visit.md](toggle_visit.md#ktogglevisitwaitslackseconds) |
+| `kTooFewMotors` | constant | [calibrate_screen.md](calibrate_screen.md#ktoofewmotors) |
 | `kTriagePayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktriagepayloadbytes) |
+| `kTunableCount` | constant | [live_tuning.md](live_tuning.md#ktunablecount) |
+| `kTuneCompetitionAutonomous` | constant | [tune_program.md](tune_program.md#ktunecompetitionautonomous) |
+| `kTuneCompetitionConnected` | constant | [tune_program.md](tune_program.md#ktunecompetitionconnected) |
+| `kTuneCompetitionDisabled` | constant | [tune_program.md](tune_program.md#ktunecompetitiondisabled) |
+| `kTuneHoldSeconds` | constant | [tune_program.md](tune_program.md#ktuneholdseconds) |
+| `kTuneHomeSeconds` | constant | [tune_program.md](tune_program.md#ktunehomeseconds) |
+| `kTuneJogDeadband` | constant | [tune_program.md](tune_program.md#ktunejogdeadband) |
+| `kTuneJogMostVolts` | constant | [tune_program.md](tune_program.md#ktunejogmostvolts) |
+| `kTuneLogFile` | constant | [pros-tune.md](pros-tune.md#ktunelogfile) |
+| `kTuneMaxButtons` | constant | [tune_panel.md](tune_panel.md#ktunemaxbuttons) |
+| `kTuneMaxLines` | constant | [tune_panel.md](tune_panel.md#ktunemaxlines) |
+| `kTuneMaxSamples` | constant | [tune_program.md](tune_program.md#ktunemaxsamples) |
+| `kTunePowerTestSeconds` | constant | [tune_program.md](tune_program.md#ktunepowertestseconds) |
+| `kTuneSpeedTestSeconds` | constant | [tune_program.md](tune_program.md#ktunespeedtestseconds) |
+| `kTuneTag` | constant | [tune_program.md](tune_program.md#ktunetag) |
+| `kTuneTargetNameBytes` | constant | [tune_program.md](tune_program.md#ktunetargetnamebytes) |
+| `kTuneTestExtraSeconds` | constant | [tune_program.md](tune_program.md#ktunetestextraseconds) |
+| `kTuneTestMostSeconds` | constant | [tune_program.md](tune_program.md#ktunetestmostseconds) |
+| `kTuneTestPlanFactor` | constant | [tune_program.md](tune_program.md#ktunetestplanfactor) |
+| `kTwitching` | constant | [calibrate_panel.md](calibrate_panel.md#ktwitching) |
+| `kTypeOffset` | constant | [shul2_format.md](shul2_format.md#ktypeoffset) |
+| `kVersionMajor` | constant | [shul2_format.md](shul2_format.md#kversionmajor) |
+| `kVersionMinor` | constant | [shul2_format.md](shul2_format.md#kversionminor) |
+| `kVisionImageHeightPx` | constant | [vision_frames.md](vision_frames.md#kvisionimageheightpx) |
+| `kVisionImageWidthPx` | constant | [vision_frames.md](vision_frames.md#kvisionimagewidthpx) |
+| `kWallDegToRad` | constant | [wall_reset.md](wall_reset.md#kwalldegtorad) |
+| `kWallInnerFace` | constant | [override_walls.md](override_walls.md#kwallinnerface) |
+| `kWallMinSamplesFloor` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallminsamplesfloor) |
+| `kWallMountMaxAccuracyInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountmaxaccuracyinches) |
+| `kWallMountMaxBiasInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountmaxbiasinches) |
+| `kWallMountMaxFacingToleranceDeg` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountmaxfacingtolerancedeg) |
+| `kWallMountMaxHeightInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountmaxheightinches) |
+| `kWallMountMaxOffsetInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountmaxoffsetinches) |
+| `kWallMountMaxPositionToleranceInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountmaxpositiontoleranceinches) |
+| `kWallMountMinAccuracyInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallmountminaccuracyinches) |
+| `kWallRangeFloorInches` | constant | [wall_sensor_config.md](wall_sensor_config.md#kwallrangefloorinches) |
+| `kWallResetWaitBackstopSeconds` | constant | [wall_reset_call.md](wall_reset_call.md#kwallresetwaitbackstopseconds) |
+| `kWalls` | constant | [override_walls.md](override_walls.md#kwalls) |
+| `kWarningCut` | constant | [calibrate_panel.md](calibrate_panel.md#kwarningcut) |
+| `kWidthTable` | constant | [shul2_format.md](shul2_format.md#kwidthtable) |
 
 ## L
 
 | Name | Kind | Page |
 |---|---|---|
+| `LayoutKey` | class | [touch_panel.md](touch_panel.md#class-layoutkey) |
+| `layoutKey` | free function | [calibrate_panel.md](calibrate_panel.md#layoutkey) |
+| `LayoutKey::mix` | function | [touch_panel.md](touch_panel.md#layoutkey-mix) |
+| `LayoutKey::mix (overload 2)` | function | [touch_panel.md](touch_panel.md#layoutkey-mix-2) |
+| `LayoutKey::value` | function | [touch_panel.md](touch_panel.md#layoutkey-value) |
+| `LegObserver` | struct | [chassis.md](chassis.md#struct-legobserver) |
+| `LegObserver::context` | field | [chassis.md](chassis.md#legobserver-context) |
+| `LegObserver::fn` | field | [chassis.md](chassis.md#legobserver-fn) |
+| `LegProgress` | struct | [leg_progress.md](leg_progress.md#struct-legprogress) |
+| `LegProgress::along` | field | [leg_progress.md](leg_progress.md#legprogress-along) |
+| `LegProgress::fraction` | field | [leg_progress.md](leg_progress.md#legprogress-fraction) |
+| `LegProgress::hasDirection` | field | [leg_progress.md](leg_progress.md#legprogress-hasdirection) |
+| `LegProgress::headingToleranceRad` | field | [leg_progress.md](leg_progress.md#legprogress-headingtolerancerad) |
+| `LegProgress::length` | field | [leg_progress.md](leg_progress.md#legprogress-length) |
+| `LegProgress::live` | field | [leg_progress.md](leg_progress.md#legprogress-live) |
+| `LegProgress::positionTolerance` | field | [leg_progress.md](leg_progress.md#legprogress-positiontolerance) |
+| `LegProgress::sizeRad` | field | [leg_progress.md](leg_progress.md#legprogress-sizerad) |
+| `LegProgress::turnedRad` | field | [leg_progress.md](leg_progress.md#legprogress-turnedrad) |
+| `legProgressAlong` | free function | [leg_progress.md](leg_progress.md#legprogressalong) |
 | `Length` | type alias | [quantity.md](quantity.md#length) |
 | `LevelFilterSink` | class | [level_filter_sink.md](level_filter_sink.md#class-levelfiltersink) |
 | `LevelFilterSink::clearLevels` | function | [level_filter_sink.md](level_filter_sink.md#levelfiltersink-clearlevels) |
@@ -921,21 +2948,135 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `LevelFilterSink::setLevel` | function | [level_filter_sink.md](level_filter_sink.md#levelfiltersink-setlevel) |
 | `LevelFilterSink::summarize` | function | [level_filter_sink.md](level_filter_sink.md#levelfiltersink-summarize) |
 | `LevelFilterSink::wantsRecord` | function | [level_filter_sink.md](level_filter_sink.md#levelfiltersink-wantsrecord) |
+| `Levels` | struct | [kinds.md](kinds.md#struct-levels) |
+| `Levels::count` | field | [kinds.md](kinds.md#levels-count) |
+| `Levels::l` | field | [kinds.md](kinds.md#levels-l) |
+| `Levels::Levels` | function | [kinds.md](kinds.md#levels-levels) |
+| `Levels::Levels (overload 2)` | function | [kinds.md](kinds.md#levels-levels-2) |
+| `Levels::tooMany` | field | [kinds.md](kinds.md#levels-toomany) |
+| `Lift` | struct | [kinds.md](kinds.md#struct-lift) |
+| `Lift` | type alias | [kinds.md](kinds.md#lift) |
+| `Lift::angleSensor` | field | [kinds.md](kinds.md#lift-anglesensor) |
+| `Lift::cartridge` | field | [kinds.md](kinds.md#lift-cartridge) |
+| `Lift::clampedTo` | function | [kinds.md](kinds.md#lift-clampedto) |
+| `Lift::currentCap` | field | [kinds.md](kinds.md#lift-currentcap) |
+| `Lift::gearing` | field | [kinds.md](kinds.md#lift-gearing) |
+| `Lift::gravity` | field | [kinds.md](kinds.md#lift-gravity) |
+| `Lift::home` | field | [kinds.md](kinds.md#lift-home) |
+| `Lift::motors` | field | [kinds.md](kinds.md#lift-motors) |
+| `Lift::name` | field | [kinds.md](kinds.md#lift-name) |
+| `Lift::operator[]` | function | [kinds.md](kinds.md#lift-operator-index) |
+| `Lift::presets` | field | [kinds.md](kinds.md#lift-presets) |
+| `Lift::range` | field | [kinds.md](kinds.md#lift-range) |
+| `Lift::safe` | field | [kinds.md](kinds.md#lift-safe) |
+| `Lift::shape` | field | [kinds.md](kinds.md#lift-shape) |
+| `Lift::spec` | function | [kinds.md](kinds.md#lift-spec) |
+| `Lift::stall` | field | [kinds.md](kinds.md#lift-stall) |
+| `Lift::to` | function | [kinds.md](kinds.md#lift-to) |
+| `Lift::to (overload 2)` | function | [kinds.md](kinds.md#lift-to-2) |
+| `Lift::tuning` | field | [kinds.md](kinds.md#lift-tuning) |
+| `Lift::unhomedVolts` | field | [kinds.md](kinds.md#lift-unhomedvolts) |
+| `LiftShape` | struct | [kinds.md](kinds.md#struct-liftshape) |
+| `LiftShape::armLengthIn` | field | [kinds.md](kinds.md#liftshape-armlengthin) |
+| `LiftShape::geometry` | field | [kinds.md](kinds.md#liftshape-geometry) |
+| `LiftShape::pivotHeightIn` | field | [kinds.md](kinds.md#liftshape-pivotheightin) |
+| `LiftShape::points` | field | [kinds.md](kinds.md#liftshape-points) |
+| `LiftShape::spoolDiameterIn` | field | [kinds.md](kinds.md#liftshape-spooldiameterin) |
+| `LiftShape::stages` | field | [kinds.md](kinds.md#liftshape-stages) |
+| `LiftShape::table` | field | [kinds.md](kinds.md#liftshape-table) |
+| `limitSwitch` | free function | [kinds.md](kinds.md#limitswitch) |
+| `limitSwitch (overload 2)` | type alias | [kinds.md](kinds.md#limitswitch-2) |
+| `Line` | enum class | [wiring.md](wiring.md#enum-class-line) |
 | `Line` | struct | [line_format.md](line_format.md#struct-line) |
+| `Line::A` | enumerator | [wiring.md](wiring.md#line-a) |
 | `Line::appendLiteral` | function | [line_format.md](line_format.md#line-appendliteral) |
 | `Line::appendRaw` | function | [line_format.md](line_format.md#line-appendraw) |
 | `Line::appendSanitized` | function | [line_format.md](line_format.md#line-appendsanitized) |
+| `Line::B` | enumerator | [wiring.md](wiring.md#line-b) |
 | `Line::buf` | field | [line_format.md](line_format.md#line-buf) |
+| `Line::C` | enumerator | [wiring.md](wiring.md#line-c) |
+| `Line::D` | enumerator | [wiring.md](wiring.md#line-d) |
+| `Line::E` | enumerator | [wiring.md](wiring.md#line-e) |
+| `Line::F` | enumerator | [wiring.md](wiring.md#line-f) |
+| `Line::G` | enumerator | [wiring.md](wiring.md#line-g) |
+| `Line::H` | enumerator | [wiring.md](wiring.md#line-h) |
 | `Line::kCapacity` | field | [line_format.md](line_format.md#line-kcapacity) |
 | `Line::n` | field | [line_format.md](line_format.md#line-n) |
+| `Line::None` | enumerator | [wiring.md](wiring.md#line-none) |
 | `Line::view` | function | [line_format.md](line_format.md#line-view) |
+| `lineLetter` | free function | [wiring.md](wiring.md#lineletter) |
+| `LinePorts` | struct | [wiring.md](wiring.md#struct-lineports) |
+| `LinePorts::bad` | field | [wiring.md](wiring.md#lineports-bad) |
+| `LinePorts::count` | field | [wiring.md](wiring.md#lineports-count) |
+| `LinePorts::file` | field | [wiring.md](wiring.md#lineports-file) |
+| `LinePorts::line` | field | [wiring.md](wiring.md#lineports-line) |
+| `LinePorts::lineNo` | field | [wiring.md](wiring.md#lineports-lineno) |
+| `lines` | free function | [wiring.md](wiring.md#lines) |
+| `lines (overload 2)` | free function | [wiring.md](wiring.md#lines-2) |
+| `lines (overload 3)` | free function | [wiring.md](wiring.md#lines-3) |
+| `lines (overload 4)` | free function | [wiring.md](wiring.md#lines-4) |
+| `lines (overload 5)` | type alias | [wiring.md](wiring.md#lines-5) |
+| `linkage` | free function | [kinds.md](kinds.md#linkage) |
+| `linkage (overload 2)` | type alias | [kinds.md](kinds.md#linkage-2) |
+| `LiveRefusal` | enum class | [live_tuning.md](live_tuning.md#enum-class-liverefusal) |
+| `LiveRefusal::BuildRefuses` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-buildrefuses) |
+| `LiveRefusal::CapRemoved` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-capremoved) |
+| `LiveRefusal::FeedforwardNegative` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-feedforwardnegative) |
+| `LiveRefusal::GainNotAbove0` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-gainnotabove0) |
+| `LiveRefusal::HeldButtonMoving` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-heldbuttonmoving) |
+| `LiveRefusal::HomingPushTurned` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-homingpushturned) |
+| `LiveRefusal::InsideATick` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-insideatick) |
+| `LiveRefusal::KvPastTwiceStarting` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-kvpasttwicestarting) |
+| `LiveRefusal::LeavesOutHeldTarget` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-leavesoutheldtarget) |
+| `LiveRefusal::LeavesOutWhereItIs` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-leavesoutwhereitis) |
+| `LiveRefusal::None` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-none) |
+| `LiveRefusal::NotANumber` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-notanumber) |
+| `LiveRefusal::NothingToUndo` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-nothingtoundo) |
+| `LiveRefusal::NotLive` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-notlive) |
+| `LiveRefusal::RangeWidened` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-rangewidened) |
+| `LiveRefusal::SettleIs0` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-settleis0) |
+| `LiveRefusal::StepRunning` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-steprunning) |
+| `LiveRefusal::TopSpeedPastFree` | enumerator | [live_tuning.md](live_tuning.md#liverefusal-topspeedpastfree) |
+| `liveRefusalText` | free function | [live_tuning.md](live_tuning.md#liverefusaltext) |
+| `LiveTuning` | class | [live_tuning.md](live_tuning.md#class-livetuning) |
+| `LiveTuning::apply` | function | [live_tuning.md](live_tuning.md#livetuning-apply) |
+| `LiveTuning::attach` | function | [live_tuning.md](live_tuning.md#livetuning-attach) |
+| `LiveTuning::attached` | function | [live_tuning.md](live_tuning.md#livetuning-attached) |
+| `LiveTuning::changed` | function | [live_tuning.md](live_tuning.md#livetuning-changed) |
+| `LiveTuning::copyBlock` | function | [live_tuning.md](live_tuning.md#livetuning-copyblock) |
+| `LiveTuning::count` | function | [live_tuning.md](live_tuning.md#livetuning-count) |
+| `LiveTuning::declared` | function | [live_tuning.md](live_tuning.md#livetuning-declared) |
+| `LiveTuning::LiveTuning` | function | [live_tuning.md](live_tuning.md#livetuning-livetuning) |
+| `LiveTuning::LiveTuning (overload 2)` | function | [live_tuning.md](live_tuning.md#livetuning-livetuning-2) |
+| `LiveTuning::LiveTuning (overload 3)` | function | [live_tuning.md](live_tuning.md#livetuning-livetuning-3) |
+| `LiveTuning::operator=` | function | [live_tuning.md](live_tuning.md#livetuning-operator-eq) |
+| `LiveTuning::operator= (overload 2)` | function | [live_tuning.md](live_tuning.md#livetuning-operator-eq-2) |
+| `LiveTuning::reset` | function | [live_tuning.md](live_tuning.md#livetuning-reset) |
+| `LiveTuning::spec` | function | [live_tuning.md](live_tuning.md#livetuning-spec) |
+| `LiveTuning::step` | function | [live_tuning.md](live_tuning.md#livetuning-step) |
+| `LiveTuning::stepped` | function | [live_tuning.md](live_tuning.md#livetuning-stepped) |
+| `LiveTuning::table` | function | [live_tuning.md](live_tuning.md#livetuning-table) |
+| `LiveTuning::undo` | function | [live_tuning.md](live_tuning.md#livetuning-undo) |
+| `LiveTuning::undoDepth` | function | [live_tuning.md](live_tuning.md#livetuning-undodepth) |
+| `LiveTuning::value` | function | [live_tuning.md](live_tuning.md#livetuning-value) |
+| `LiveTuning::~LiveTuning` | function | [live_tuning.md](live_tuning.md#livetuning-destructor-livetuning) |
+| `LoadedRecord` | struct | [record_store.md](record_store.md#struct-loadedrecord) |
+| `LoadedRecord::backup` | field | [record_store.md](record_store.md#loadedrecord-backup) |
+| `LoadedRecord::description` | field | [record_store.md](record_store.md#loadedrecord-description) |
+| `LoadedRecord::from` | field | [record_store.md](record_store.md#loadedrecord-from) |
+| `LoadedRecord::primary` | field | [record_store.md](record_store.md#loadedrecord-primary) |
+| `loadRecord` | free function | [record_store.md](record_store.md#loadrecord) |
+| `loadWithBackup` | free function | [record_store.md](record_store.md#loadwithbackup) |
 | `Localizer` | class | [localizer.md](localizer.md#class-localizer) |
 | `Localizer::distanceSinceCorrection` | function | [localizer.md](localizer.md#localizer-distancesincecorrection) |
 | `Localizer::headingBias` | function | [localizer.md](localizer.md#localizer-headingbias) |
 | `Localizer::isDeadReckoning` | function | [localizer.md](localizer.md#localizer-isdeadreckoning) |
 | `Localizer::kMaxCorrectors` | field | [localizer.md](localizer.md#localizer-kmaxcorrectors) |
+| `Localizer::kTravelCounterStepInches` | field | [localizer.md](localizer.md#localizer-ktravelcounterstepinches) |
+| `Localizer::kTurnCounterStepRadians` | field | [localizer.md](localizer.md#localizer-kturncounterstepradians) |
 | `Localizer::lastCorrection` | function | [localizer.md](localizer.md#localizer-lastcorrection) |
 | `Localizer::lastOdomDeltaImplausible` | function | [localizer.md](localizer.md#localizer-lastodomdeltaimplausible) |
+| `Localizer::lastOdomTickAudit` | function | [localizer.md](localizer.md#localizer-lastodomtickaudit) |
 | `Localizer::Localizer` | function | [localizer.md](localizer.md#localizer-localizer) |
 | `Localizer::pose` | function | [localizer.md](localizer.md#localizer-pose) |
 | `Localizer::Quality` | enum class | [localizer.md](localizer.md#enum-class-localizer-quality) |
@@ -945,7 +3086,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Localizer::Quality::Degraded` | enumerator | [localizer.md](localizer.md#localizer-quality-degraded) |
 | `Localizer::Quality::Uninitialized` | enumerator | [localizer.md](localizer.md#localizer-quality-uninitialized) |
 | `Localizer::qualityClass` | function | [localizer.md](localizer.md#localizer-qualityclass) |
+| `Localizer::reseatHeading` | function | [localizer.md](localizer.md#localizer-reseatheading) |
+| `Localizer::seatAxis` | function | [localizer.md](localizer.md#localizer-seataxis) |
 | `Localizer::setPose` | function | [localizer.md](localizer.md#localizer-setpose) |
+| `Localizer::travelSinceSeat` | function | [localizer.md](localizer.md#localizer-travelsinceseat) |
+| `Localizer::turnedSinceHeadingSeed` | function | [localizer.md](localizer.md#localizer-turnedsinceheadingseed) |
 | `Localizer::twist` | function | [localizer.md](localizer.md#localizer-twist) |
 | `Localizer::update` | function | [localizer.md](localizer.md#localizer-update) |
 | `LocalizerConfig` | struct | [localizer.md](localizer.md#struct-localizerconfig) |
@@ -954,25 +3099,60 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `LocalizerConfig::maxDt` | field | [localizer.md](localizer.md#localizerconfig-maxdt) |
 | `LocalizerConfig::minDt` | field | [localizer.md](localizer.md#localizerconfig-mindt) |
 | `LocalizerConfig::qFloor` | field | [localizer.md](localizer.md#localizerconfig-qfloor) |
+| `LogCopySink` | class | [log_copy_sink.md](log_copy_sink.md#class-logcopysink) |
+| `LogCopySink::contendedLines` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-contendedlines) |
+| `LogCopySink::copy` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-copy) |
+| `LogCopySink::emit` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-emit) |
+| `LogCopySink::kGapTag` | field | [log_copy_sink.md](log_copy_sink.md#logcopysink-kgaptag) |
+| `LogCopySink::log` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-log) |
+| `LogCopySink::LogCopySink` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-logcopysink) |
+| `LogCopySink::LogCopySink (overload 2)` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-logcopysink-2) |
+| `LogCopySink::LogCopySink (overload 3)` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-logcopysink-3) |
+| `LogCopySink::operator=` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-operator-eq) |
+| `LogCopySink::operator= (overload 2)` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-operator-eq-2) |
+| `LogCopySink::primary` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-primary) |
+| `LogCopySink::summarize` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-summarize) |
+| `LogCopySink::wantsRecord` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-wantsrecord) |
 | `LogLevel` | enum class | [telemetry_sink.md](telemetry_sink.md#enum-class-loglevel) |
 | `LogLevel::Debug` | enumerator | [telemetry_sink.md](telemetry_sink.md#loglevel-debug) |
 | `LogLevel::Error` | enumerator | [telemetry_sink.md](telemetry_sink.md#loglevel-error) |
 | `LogLevel::Info` | enumerator | [telemetry_sink.md](telemetry_sink.md#loglevel-info) |
 | `LogLevel::Trace` | enumerator | [telemetry_sink.md](telemetry_sink.md#loglevel-trace) |
 | `LogLevel::Warn` | enumerator | [telemetry_sink.md](telemetry_sink.md#loglevel-warn) |
+| `logLevelFromWire` | free function | [shul2_format.md](shul2_format.md#loglevelfromwire) |
+| `LogLine` | struct | [shul2_format.md](shul2_format.md#struct-logline) |
+| `LogLine::flags` | field | [shul2_format.md](shul2_format.md#logline-flags) |
+| `LogLine::level` | field | [shul2_format.md](shul2_format.md#logline-level) |
+| `LogLine::message` | field | [shul2_format.md](shul2_format.md#logline-message) |
+| `LogLine::nonTextBytes` | field | [shul2_format.md](shul2_format.md#logline-nontextbytes) |
+| `LogLine::t` | field | [shul2_format.md](shul2_format.md#logline-t) |
+| `LogLine::tag` | field | [shul2_format.md](shul2_format.md#logline-tag) |
+| `lookAtToggle` | free function | [toggle_visit.md](toggle_visit.md#lookattoggle) |
 | `LoopMonitor` | class | [loop_monitor.md](loop_monitor.md#class-loopmonitor) |
 | `LoopMonitor::LoopMonitor` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-loopmonitor) |
 | `LoopMonitor::overrunCount` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-overruncount) |
+| `LoopMonitor::overrunEpisodes` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-overrunepisodes) |
 | `LoopMonitor::reset` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-reset) |
 | `LoopMonitor::tick` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-tick) |
 | `LoopMonitor::worstDt` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-worstdt) |
 | `LoopMonitorConfig` | struct | [loop_monitor.md](loop_monitor.md#struct-loopmonitorconfig) |
 | `LoopMonitorConfig::budget` | field | [loop_monitor.md](loop_monitor.md#loopmonitorconfig-budget) |
+| `loosenedSettle` | free function | [motion_config.md](motion_config.md#loosenedsettle) |
+| `Low` | constant | [kinds.md](kinds.md#low) |
+| `Low (overload 2)` | type alias | [kinds.md](kinds.md#low-2) |
 
 ## M
 
 | Name | Kind | Page |
 |---|---|---|
+| `magnitudeOf` | free function | [coupled_side_monitor.md](coupled_side_monitor.md#magnitudeof) |
+| `mapSticks` | free function | [stick_mapping.md](stick_mapping.md#mapsticks) |
+| `mapSticksToChassisSpeeds` | free function | [stick_mapping.md](stick_mapping.md#mapstickstochassisspeeds) |
+| `Marker` | struct | [route.md](route.md#struct-marker) |
+| `Marker::argCount` | field | [route.md](route.md#marker-argcount) |
+| `Marker::args` | field | [route.md](route.md#marker-args) |
+| `Marker::id` | field | [route.md](route.md#marker-id) |
+| `markerIdView` | free function | [route.md](route.md#markeridview) |
 | `MatrixKinematics` | class | [matrix_kinematics.md](matrix_kinematics.md#class-matrixkinematics) |
 | `MatrixKinematics::desaturate` | function | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-desaturate) |
 | `MatrixKinematics::forward` | function | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-forward) |
@@ -984,6 +3164,47 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MatrixKinematics::Wheel::turnInches` | field | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-wheel-turninches) |
 | `MatrixKinematics::Wheel::v` | field | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-wheel-v) |
 | `MatrixKinematics::wheelCount` | function | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-wheelcount) |
+| `measured` | free function | [kinds.md](kinds.md#measured) |
+| `measured (overload 2)` | type alias | [kinds.md](kinds.md#measured-2) |
+| `MechanismBinding` | class | [mechanism_binding.md](mechanism_binding.md#class-mechanismbinding) |
+| `MechanismBinding::forwardButton` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-forwardbutton) |
+| `MechanismBinding::makeSafe` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-makesafe) |
+| `MechanismBinding::mechanism` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-mechanism) |
+| `MechanismBinding::MechanismBinding` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-mechanismbinding) |
+| `MechanismBinding::MechanismBinding (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-mechanismbinding-2) |
+| `MechanismBinding::MechanismBinding (overload 3)` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-mechanismbinding-3) |
+| `MechanismBinding::operator=` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-operator-eq) |
+| `MechanismBinding::operator= (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-operator-eq-2) |
+| `MechanismBinding::releasedLeftoverClaim` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-releasedleftoverclaim) |
+| `MechanismBinding::releaseLeftoverClaim` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-releaseleftoverclaim) |
+| `MechanismBinding::reset` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-reset) |
+| `MechanismBinding::reverseButton` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-reversebutton) |
+| `MechanismBinding::State` | enum class | [mechanism_binding.md](mechanism_binding.md#enum-class-mechanismbinding-state) |
+| `MechanismBinding::state` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-state) |
+| `MechanismBinding::State::Forward` | enumerator | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-state-forward) |
+| `MechanismBinding::State::Idle` | enumerator | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-state-idle) |
+| `MechanismBinding::State::Inert` | enumerator | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-state-inert) |
+| `MechanismBinding::State::Reverse` | enumerator | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-state-reverse) |
+| `MechanismBinding::State::Stopped` | enumerator | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-state-stopped) |
+| `MechanismBinding::tick` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-tick) |
+| `MechanismBinding::volts` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-volts) |
+| `MechanismBinding::~MechanismBinding` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-destructor-mechanismbinding) |
+| `MechanismConfig` | struct | [robot_config.md](robot_config.md#struct-mechanismconfig) |
+| `MechanismConfig::cartridge` | field | [robot_config.md](robot_config.md#mechanismconfig-cartridge) |
+| `MechanismConfig::distancePort` | field | [robot_config.md](robot_config.md#mechanismconfig-distanceport) |
+| `MechanismConfig::motorCount` | field | [robot_config.md](robot_config.md#mechanismconfig-motorcount) |
+| `MechanismConfig::motorPorts` | field | [robot_config.md](robot_config.md#mechanismconfig-motorports) |
+| `MechanismConfig::name` | field | [robot_config.md](robot_config.md#mechanismconfig-name) |
+| `MechanismConfig::opticalPort` | field | [robot_config.md](robot_config.md#mechanismconfig-opticalport) |
+| `MechanismConfig::pneumaticCount` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticcount) |
+| `MechanismConfig::pneumaticPorts` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticports) |
+| `MechanismConfig::pneumaticSafe` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticsafe) |
+| `MechanismConfig::pneumaticSafeByLine` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticsafebyline) |
+| `MechanismConfig::pneumaticStart` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticstart) |
+| `MechanismConfig::pneumaticStartByLine` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticstartbyline) |
+| `MechanismConfig::rotationPort` | field | [robot_config.md](robot_config.md#mechanismconfig-rotationport) |
+| `MechanismConfig::safeMode` | field | [robot_config.md](robot_config.md#mechanismconfig-safemode) |
+| `MechanismConfig::switchLines` | field | [robot_config.md](robot_config.md#mechanismconfig-switchlines) |
 | `MechanismDeps` | struct | [mechanism_op.md](mechanism_op.md#struct-mechanismdeps) |
 | `MechanismDeps::clock` | field | [mechanism_op.md](mechanism_op.md#mechanismdeps-clock) |
 | `MechanismDeps::faults` | field | [mechanism_op.md](mechanism_op.md#mechanismdeps-faults) |
@@ -991,15 +3212,201 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MechanismDeps::validate` | function | [mechanism_op.md](mechanism_op.md#mechanismdeps-validate) |
 | `MechanismDeps::validatedClock` | function | [mechanism_op.md](mechanism_op.md#mechanismdeps-validatedclock) |
 | `MechanismOutcome` | enum class | [mechanism_outcome.md](mechanism_outcome.md#enum-class-mechanismoutcome) |
+| `MechanismOutcome` | type alias | [service.md](service.md#mechanismoutcome) |
+| `MechanismOutcome::Absent` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-absent) |
 | `MechanismOutcome::Cancelled` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-cancelled) |
+| `MechanismOutcome::NotHomed` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-nothomed) |
+| `MechanismOutcome::Refused` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-refused) |
 | `MechanismOutcome::Running` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-running) |
 | `MechanismOutcome::Stalled` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-stalled) |
 | `MechanismOutcome::Succeeded` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-succeeded) |
 | `MechanismOutcome::TimedOut` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-timedout) |
 | `MechanismOutcome::Unconfirmed` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-unconfirmed) |
 | `mechanismOutcomeName` | free function | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcomename) |
+| `MechanismParts` | class | [mechanism_parts.md](mechanism_parts.md#class-mechanismparts) |
+| `MechanismParts::absence` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-absence) |
+| `MechanismParts::build` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-build) |
+| `MechanismParts::built` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-built) |
+| `MechanismParts::builtAt` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-builtat) |
+| `MechanismParts::config` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-config) |
+| `MechanismParts::devices` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-devices) |
+| `MechanismParts::indexOf` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-indexof) |
+| `MechanismParts::kMaxRoles` | field | [mechanism_parts.md](mechanism_parts.md#mechanismparts-kmaxroles) |
+| `MechanismParts::kReasonBytes` | field | [mechanism_parts.md](mechanism_parts.md#mechanismparts-kreasonbytes) |
+| `MechanismParts::MechanismParts` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-mechanismparts) |
+| `MechanismParts::MechanismParts (overload 2)` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-mechanismparts-2) |
+| `MechanismParts::MechanismParts (overload 3)` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-mechanismparts-3) |
+| `MechanismParts::motorAt` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-motorat) |
+| `MechanismParts::operator=` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-operator-eq) |
+| `MechanismParts::operator= (overload 2)` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-operator-eq-2) |
+| `MechanismParts::pneumaticAt` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-pneumaticat) |
+| `MechanismParts::roles` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-roles) |
+| `MechanismParts::size` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-size) |
+| `MechanismParts::~MechanismParts` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-destructor-mechanismparts) |
+| `MechanismPort` | struct | [calibrate_program.md](calibrate_program.md#struct-mechanismport) |
+| `MechanismPort::name` | field | [calibrate_program.md](calibrate_program.md#mechanismport-name) |
+| `MechanismPort::port` | field | [calibrate_program.md](calibrate_program.md#mechanismport-port) |
+| `MechanismRoutes` | class | [mechanism_routes.md](mechanism_routes.md#class-mechanismroutes) |
+| `MechanismRoutes::doc` | function | [mechanism_routes.md](mechanism_routes.md#mechanismroutes-doc) |
+| `MechanismRoutes::ids` | function | [mechanism_routes.md](mechanism_routes.md#mechanismroutes-ids) |
+| `MechanismRoutes::MechanismRoutes` | function | [mechanism_routes.md](mechanism_routes.md#mechanismroutes-mechanismroutes) |
+| `MechanismRoutes::MechanismRoutes (overload 2)` | function | [mechanism_routes.md](mechanism_routes.md#mechanismroutes-mechanismroutes-2) |
+| `MechanismRoutes::MechanismRoutes (overload 3)` | function | [mechanism_routes.md](mechanism_routes.md#mechanismroutes-mechanismroutes-3) |
+| `MechanismRoutes::operator=` | function | [mechanism_routes.md](mechanism_routes.md#mechanismroutes-operator-eq) |
+| `MechanismRoutes::operator= (overload 2)` | function | [mechanism_routes.md](mechanism_routes.md#mechanismroutes-operator-eq-2) |
+| `MechanismRoutes::registerInto` | function | [mechanism_routes.md](mechanism_routes.md#mechanismroutes-registerinto) |
+| `MechanismRoutes::~MechanismRoutes` | function | [mechanism_routes.md](mechanism_routes.md#mechanismroutes-destructor-mechanismroutes) |
+| `mechanisms` | free function | [wiring.md](wiring.md#mechanisms) |
+| `mechanisms (overload 2)` | free function | [wiring.md](wiring.md#mechanisms-2) |
+| `mechanisms (overload 3)` | type alias | [wiring.md](wiring.md#mechanisms-3) |
+| `MechanismService` | class | [service.md](service.md#class-mechanismservice) |
+| `MechanismService::bind` | function | [service.md](service.md#mechanismservice-bind) |
+| `MechanismService::bind (overload 2)` | function | [service.md](service.md#mechanismservice-bind-2) |
+| `MechanismService::bound` | function | [service.md](service.md#mechanismservice-bound) |
+| `MechanismService::canRederive` | function | [service.md](service.md#mechanismservice-canrederive) |
+| `MechanismService::clock` | function | [service.md](service.md#mechanismservice-clock) |
+| `MechanismService::enterAutonomous` | function | [service.md](service.md#mechanismservice-enterautonomous) |
+| `MechanismService::enterDriverControl` | function | [service.md](service.md#mechanismservice-enterdrivercontrol) |
+| `MechanismService::faults` | function | [service.md](service.md#mechanismservice-faults) |
+| `MechanismService::find` | function | [service.md](service.md#mechanismservice-find) |
+| `MechanismService::find (overload 2)` | function | [service.md](service.md#mechanismservice-find-2) |
+| `MechanismService::find (overload 3)` | function | [service.md](service.md#mechanismservice-find-3) |
+| `MechanismService::find (overload 4)` | function | [service.md](service.md#mechanismservice-find-4) |
+| `MechanismService::find (overload 5)` | function | [service.md](service.md#mechanismservice-find-5) |
+| `MechanismService::find (overload 6)` | function | [service.md](service.md#mechanismservice-find-6) |
+| `MechanismService::find (overload 7)` | function | [service.md](service.md#mechanismservice-find-7) |
+| `MechanismService::find (overload 8)` | function | [service.md](service.md#mechanismservice-find-8) |
+| `MechanismService::leaveDriverControl` | function | [service.md](service.md#mechanismservice-leavedrivercontrol) |
+| `MechanismService::leftoverClaimsReleased` | function | [service.md](service.md#mechanismservice-leftoverclaimsreleased) |
+| `MechanismService::mechanisms` | function | [service.md](service.md#mechanismservice-mechanisms) |
+| `MechanismService::MechanismService` | function | [service.md](service.md#mechanismservice-mechanismservice) |
+| `MechanismService::MechanismService (overload 2)` | function | [service.md](service.md#mechanismservice-mechanismservice-2) |
+| `MechanismService::MechanismService (overload 3)` | function | [service.md](service.md#mechanismservice-mechanismservice-3) |
+| `MechanismService::operator=` | function | [service.md](service.md#mechanismservice-operator-eq) |
+| `MechanismService::operator= (overload 2)` | function | [service.md](service.md#mechanismservice-operator-eq-2) |
+| `MechanismService::pace` | function | [service.md](service.md#mechanismservice-pace) |
+| `MechanismService::pneumatic` | function | [service.md](service.md#mechanismservice-pneumatic) |
+| `MechanismService::position` | function | [service.md](service.md#mechanismservice-position) |
+| `MechanismService::power` | function | [service.md](service.md#mechanismservice-power) |
+| `MechanismService::rederive` | function | [service.md](service.md#mechanismservice-rederive) |
+| `MechanismService::size` | function | [service.md](service.md#mechanismservice-size) |
+| `MechanismService::slot` | function | [service.md](service.md#mechanismservice-slot) |
+| `MechanismService::slotFor` | function | [service.md](service.md#mechanismservice-slotfor) |
+| `MechanismService::slotPtr` | function | [service.md](service.md#mechanismservice-slotptr) |
+| `MechanismService::speed` | function | [service.md](service.md#mechanismservice-speed) |
+| `MechanismService::telemetry` | function | [service.md](service.md#mechanismservice-telemetry) |
+| `MechanismService::tickFromDriverLoop` | function | [service.md](service.md#mechanismservice-tickfromdriverloop) |
+| `MechanismService::ticks` | function | [service.md](service.md#mechanismservice-ticks) |
+| `MechanismService::~MechanismService` | function | [service.md](service.md#mechanismservice-destructor-mechanismservice) |
+| `MechanismSpec` | struct | [spec.md](spec.md#struct-mechanismspec) |
+| `MechanismSpec::angleSensor` | field | [spec.md](spec.md#mechanismspec-anglesensor) |
+| `MechanismSpec::cartridge` | field | [spec.md](spec.md#mechanismspec-cartridge) |
+| `MechanismSpec::currentCapAmps` | field | [spec.md](spec.md#mechanismspec-currentcapamps) |
+| `MechanismSpec::declaredFile` | field | [spec.md](spec.md#mechanismspec-declaredfile) |
+| `MechanismSpec::declaredLine` | field | [spec.md](spec.md#mechanismspec-declaredline) |
+| `MechanismSpec::homeSwitch` | field | [spec.md](spec.md#mechanismspec-homeswitch) |
+| `MechanismSpec::kind` | field | [spec.md](spec.md#mechanismspec-kind) |
+| `MechanismSpec::lineCount` | field | [spec.md](spec.md#mechanismspec-linecount) |
+| `MechanismSpec::motorCount` | field | [spec.md](spec.md#mechanismspec-motorcount) |
+| `MechanismSpec::motors` | field | [spec.md](spec.md#mechanismspec-motors) |
+| `MechanismSpec::name` | field | [spec.md](spec.md#mechanismspec-name) |
+| `MechanismSpec::pieceSensor` | field | [spec.md](spec.md#mechanismspec-piecesensor) |
+| `MechanismSpec::pneumatic` | field | [spec.md](spec.md#mechanismspec-pneumatic) |
+| `MechanismSpec::position` | field | [spec.md](spec.md#mechanismspec-position) |
+| `MechanismSpec::power` | field | [spec.md](spec.md#mechanismspec-power) |
+| `MechanismSpec::presetNameTooLong` | field | [spec.md](spec.md#mechanismspec-presetnametoolong) |
+| `MechanismSpec::safeMode` | field | [spec.md](spec.md#mechanismspec-safemode) |
+| `MechanismSpec::speed` | field | [spec.md](spec.md#mechanismspec-speed) |
+| `MechanismTable` | struct | [wiring.md](wiring.md#struct-mechanismtable) |
+| `MechanismTable` | type alias | [wiring.md](wiring.md#mechanismtable) |
+| `MechanismTable::count` | field | [wiring.md](wiring.md#mechanismtable-count) |
+| `MechanismTable::declared` | field | [wiring.md](wiring.md#mechanismtable-declared) |
+| `MechanismTable::indexOf` | function | [wiring.md](wiring.md#mechanismtable-indexof) |
+| `MechanismTable::specs` | field | [wiring.md](wiring.md#mechanismtable-specs) |
+| `MechanismTable::specSpan` | function | [wiring.md](wiring.md#mechanismtable-specspan) |
+| `MechanismTable::wiring` | field | [wiring.md](wiring.md#mechanismtable-wiring) |
+| `MechanismTable::wiringSpan` | function | [wiring.md](wiring.md#mechanismtable-wiringspan) |
+| `MechanismWiring` | struct | [wiring.md](wiring.md#struct-mechanismwiring) |
+| `MechanismWiring::angleSensor` | field | [wiring.md](wiring.md#mechanismwiring-anglesensor) |
+| `MechanismWiring::file` | field | [wiring.md](wiring.md#mechanismwiring-file) |
+| `MechanismWiring::homeSwitch` | field | [wiring.md](wiring.md#mechanismwiring-homeswitch) |
+| `MechanismWiring::line` | field | [wiring.md](wiring.md#mechanismwiring-line) |
+| `MechanismWiring::lines` | field | [wiring.md](wiring.md#mechanismwiring-lines) |
+| `MechanismWiring::mechanism` | field | [wiring.md](wiring.md#mechanismwiring-mechanism) |
+| `MechanismWiring::motors` | field | [wiring.md](wiring.md#mechanismwiring-motors) |
+| `MechanismWiring::pieceSensorPort` | field | [wiring.md](wiring.md#mechanismwiring-piecesensorport) |
+| `MechanismWiring::pieceSwitch` | field | [wiring.md](wiring.md#mechanismwiring-pieceswitch) |
+| `medianInPlace` | free function | [motor_group.md](motor_group.md#medianinplace) |
+| `MemberAbsenceDetector` | class | [coupled_side_monitor.md](coupled_side_monitor.md#class-memberabsencedetector) |
+| `MemberAbsenceDetector::absent` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-absent) |
+| `MemberAbsenceDetector::MemberAbsenceDetector` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-memberabsencedetector) |
+| `MemberAbsenceDetector::MemberAbsenceDetector (overload 2)` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-memberabsencedetector-2) |
+| `MemberAbsenceDetector::reason` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-reason) |
+| `MemberAbsenceDetector::update` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-update) |
+| `MemberReading` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-memberreading) |
+| `MemberReading::positionRad` | field | [coupled_side_monitor.md](coupled_side_monitor.md#memberreading-positionrad) |
+| `MemberReading::present` | field | [coupled_side_monitor.md](coupled_side_monitor.md#memberreading-present) |
+| `MemberReading::velocityRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#memberreading-velocityrads) |
+| `MemberSample` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-membersample) |
+| `MemberSample::present` | field | [coupled_side_monitor.md](coupled_side_monitor.md#membersample-present) |
+| `MemberSample::velocityRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#membersample-velocityrads) |
+| `MenuButton` | struct | [auton_menu.md](auton_menu.md#struct-menubutton) |
+| `MenuButton::armed` | field | [auton_menu.md](auton_menu.md#menubutton-armed) |
+| `MenuButton::chosen` | field | [auton_menu.md](auton_menu.md#menubutton-chosen) |
+| `MenuButton::entry` | field | [auton_menu.md](auton_menu.md#menubutton-entry) |
+| `MenuButton::id` | field | [auton_menu.md](auton_menu.md#menubutton-id) |
+| `MenuButton::label` | field | [auton_menu.md](auton_menu.md#menubutton-label) |
+| `MenuButton::rect` | field | [auton_menu.md](auton_menu.md#menubutton-rect) |
+| `MenuButtonId` | enum class | [auton_menu.md](auton_menu.md#enum-class-menubuttonid) |
+| `MenuButtonId::Entry` | enumerator | [auton_menu.md](auton_menu.md#menubuttonid-entry) |
+| `MenuButtonId::Next` | enumerator | [auton_menu.md](auton_menu.md#menubuttonid-next) |
+| `MenuButtonId::None` | enumerator | [auton_menu.md](auton_menu.md#menubuttonid-none) |
+| `MenuButtonId::Prev` | enumerator | [auton_menu.md](auton_menu.md#menubuttonid-prev) |
+| `MenuLine` | struct | [auton_menu.md](auton_menu.md#struct-menuline) |
+| `MenuLine::size` | field | [auton_menu.md](auton_menu.md#menuline-size) |
+| `MenuLine::text` | field | [auton_menu.md](auton_menu.md#menuline-text) |
+| `MenuLine::tone` | field | [auton_menu.md](auton_menu.md#menuline-tone) |
+| `MenuLine::x` | field | [auton_menu.md](auton_menu.md#menuline-x) |
+| `MenuLine::y` | field | [auton_menu.md](auton_menu.md#menuline-y) |
+| `MenuTouch` | struct | [auton_menu.md](auton_menu.md#struct-menutouch) |
+| `MenuTouch::action` | field | [auton_menu.md](auton_menu.md#menutouch-action) |
+| `MenuTouch::choice` | field | [auton_menu.md](auton_menu.md#menutouch-choice) |
+| `MenuTouch::hit` | field | [auton_menu.md](auton_menu.md#menutouch-hit) |
+| `MenuTouch::newRelease` | field | [auton_menu.md](auton_menu.md#menutouch-newrelease) |
+| `MenuTouchAction` | enum class | [auton_menu.md](auton_menu.md#enum-class-menutouchaction) |
+| `MenuTouchAction::Chose` | enumerator | [auton_menu.md](auton_menu.md#menutouchaction-chose) |
+| `MenuTouchAction::None` | enumerator | [auton_menu.md](auton_menu.md#menutouchaction-none) |
+| `MenuTouchAction::Paged` | enumerator | [auton_menu.md](auton_menu.md#menutouchaction-paged) |
+| `MenuTouchAction::RefusedLocked` | enumerator | [auton_menu.md](auton_menu.md#menutouchaction-refusedlocked) |
+| `MenuView` | struct | [auton_menu.md](auton_menu.md#struct-menuview) |
+| `MenuView::buttonCount` | field | [auton_menu.md](auton_menu.md#menuview-buttoncount) |
+| `MenuView::buttons` | field | [auton_menu.md](auton_menu.md#menuview-buttons) |
+| `MenuView::header` | field | [auton_menu.md](auton_menu.md#menuview-header) |
+| `MenuView::info` | field | [auton_menu.md](auton_menu.md#menuview-info) |
+| `MenuView::locked` | field | [auton_menu.md](auton_menu.md#menuview-locked) |
+| `MenuView::page` | field | [auton_menu.md](auton_menu.md#menuview-page) |
+| `MenuView::pageCount` | field | [auton_menu.md](auton_menu.md#menuview-pagecount) |
+| `MenuView::status` | field | [auton_menu.md](auton_menu.md#menuview-status) |
+| `ModelCheck` | enum class | [vision_frames.md](vision_frames.md#enum-class-modelcheck) |
+| `ModelCheck::Different` | enumerator | [vision_frames.md](vision_frames.md#modelcheck-different) |
+| `ModelCheck::Matches` | enumerator | [vision_frames.md](vision_frames.md#modelcheck-matches) |
+| `ModelCheck::NotAsked` | enumerator | [vision_frames.md](vision_frames.md#modelcheck-notasked) |
+| `ModelCheck::Unreadable` | enumerator | [vision_frames.md](vision_frames.md#modelcheck-unreadable) |
+| `ModelClass` | enum class | [override_elements.md](override_elements.md#enum-class-modelclass) |
+| `ModelClass::BlueYellowPin` | enumerator | [override_elements.md](override_elements.md#modelclass-blueyellowpin) |
+| `ModelClass::Cup` | enumerator | [override_elements.md](override_elements.md#modelclass-cup) |
+| `ModelClass::RedBluePin` | enumerator | [override_elements.md](override_elements.md#modelclass-redbluepin) |
+| `ModelClass::RedYellowPin` | enumerator | [override_elements.md](override_elements.md#modelclass-redyellowpin) |
+| `ModelClass::YellowPin` | enumerator | [override_elements.md](override_elements.md#modelclass-yellowpin) |
+| `modelClassName` | free function | [override_elements.md](override_elements.md#modelclassname) |
+| `modelClassSize` | free function | [override_elements.md](override_elements.md#modelclasssize) |
+| `modeRequest` | free function | [drive_modes.md](drive_modes.md#moderequest) |
+| `more_controls_than_fit` | free function | [driver_inputs.md](driver_inputs.md#more_controls_than_fit) |
+| `more_mechanisms_than_a_robot_can_have` | free function | [wiring.md](wiring.md#more_mechanisms_than_a_robot_can_have) |
+| `more_route_ids_than_a_route_registry_holds_32` | free function | [route_ids.md](route_ids.md#more_route_ids_than_a_route_registry_holds_32) |
 | `MotionConfig` | struct | [motion_config.md](motion_config.md#struct-motionconfig) |
 | `MotionConfig::brakeSettle` | field | [motion_config.md](motion_config.md#motionconfig-brakesettle) |
+| `MotionConfig::curve` | field | [motion_config.md](motion_config.md#motionconfig-curve) |
 | `MotionConfig::defaultTimeout` | field | [motion_config.md](motion_config.md#motionconfig-defaulttimeout) |
 | `MotionConfig::heading` | field | [motion_config.md](motion_config.md#motionconfig-heading) |
 | `MotionConfig::headingSettle` | field | [motion_config.md](motion_config.md#motionconfig-headingsettle) |
@@ -1008,6 +3415,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotionConfig::maxWheelSpeed` | field | [motion_config.md](motion_config.md#motionconfig-maxwheelspeed) |
 | `MotionConfig::rotationRadius` | field | [motion_config.md](motion_config.md#motionconfig-rotationradius) |
 | `MotionConfig::stall` | field | [motion_config.md](motion_config.md#motionconfig-stall) |
+| `MotionConfig::tankSteer` | field | [motion_config.md](motion_config.md#motionconfig-tanksteer) |
 | `MotionConfig::translation` | field | [motion_config.md](motion_config.md#motionconfig-translation) |
 | `MotionConfig::translationSettle` | field | [motion_config.md](motion_config.md#motionconfig-translationsettle) |
 | `MotionConfig::validate` | function | [motion_config.md](motion_config.md#motionconfig-validate) |
@@ -1018,11 +3426,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotionDeps::health` | field | [motion.md](motion.md#motiondeps-health) |
 | `MotionDeps::kinematics` | field | [motion.md](motion.md#motiondeps-kinematics) |
 | `MotionDeps::localizer` | field | [motion.md](motion.md#motiondeps-localizer) |
+| `MotionDeps::motorGroups` | field | [motion.md](motion.md#motiondeps-motorgroups) |
 | `MotionDeps::validate` | function | [motion.md](motion.md#motiondeps-validate) |
 | `MotionDeps::validatedClock` | function | [motion.md](motion.md#motiondeps-validatedclock) |
 | `MotionOptions` | struct | [chassis.md](chassis.md#struct-motionoptions) |
+| `MotionOptions::headingTolerance` | field | [chassis.md](chassis.md#motionoptions-headingtolerance) |
 | `MotionOptions::maxAngularSpeed` | field | [chassis.md](chassis.md#motionoptions-maxangularspeed) |
 | `MotionOptions::maxLinearSpeed` | field | [chassis.md](chassis.md#motionoptions-maxlinearspeed) |
+| `MotionOptions::positionTolerance` | field | [chassis.md](chassis.md#motionoptions-positiontolerance) |
 | `MotionOptions::timeout` | field | [chassis.md](chassis.md#motionoptions-timeout) |
 | `MotionOptions::validate` | function | [chassis.md](chassis.md#motionoptions-validate) |
 | `MotionOutcome` | enum class | [motion_result.md](motion_result.md#enum-class-motionoutcome) |
@@ -1035,9 +3446,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `motionOutcomeName` | free function | [motion_result.md](motion_result.md#motionoutcomename) |
 | `MotionResult` | struct | [motion_result.md](motion_result.md#struct-motionresult) |
 | `MotionResult::abortFault` | field | [motion_result.md](motion_result.md#motionresult-abortfault) |
+| `MotionResult::crossTrack` | field | [motion_result.md](motion_result.md#motionresult-crosstrack) |
 | `MotionResult::drift` | field | [motion_result.md](motion_result.md#motionresult-drift) |
 | `MotionResult::duration` | field | [motion_result.md](motion_result.md#motionresult-duration) |
 | `MotionResult::finalPose` | field | [motion_result.md](motion_result.md#motionresult-finalpose) |
+| `MotionResult::hasCrossTrack` | field | [motion_result.md](motion_result.md#motionresult-hascrosstrack) |
 | `MotionResult::hasPathData` | field | [motion_result.md](motion_result.md#motionresult-haspathdata) |
 | `MotionResult::id` | field | [motion_result.md](motion_result.md#motionresult-id) |
 | `MotionResult::name` | field | [motion_result.md](motion_result.md#motionresult-name) |
@@ -1066,6 +3479,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotionScheduler::motionsTimedOut` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-motionstimedout) |
 | `MotionScheduler::operator=` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-operator-eq) |
 | `MotionScheduler::operator= (overload 2)` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-operator-eq-2) |
+| `MotionScheduler::pendingAbortFault` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-pendingabortfault) |
 | `MotionScheduler::runFinalHeadingDrift` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-runfinalheadingdrift) |
 | `MotionScheduler::runHasHeadingData` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-runhasheadingdata) |
 | `MotionScheduler::runMaxHeadingDrift` | function | [motion_scheduler.md](motion_scheduler.md#motionscheduler-runmaxheadingdrift) |
@@ -1088,8 +3502,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotionState::WaitingForEstimate` | enumerator | [motion.md](motion.md#motionstate-waitingforestimate) |
 | `MotionStatsSink` | class | [motion_scheduler.md](motion_scheduler.md#class-motionstatssink) |
 | `MotionStatsSink::beginMotion` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-beginmotion) |
+| `MotionStatsSink::crossTrack` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-crosstrack) |
 | `MotionStatsSink::drift` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-drift) |
 | `MotionStatsSink::emit` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-emit) |
+| `MotionStatsSink::hadDirection` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-haddirection) |
 | `MotionStatsSink::hasData` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-hasdata) |
 | `MotionStatsSink::log` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-log) |
 | `MotionStatsSink::MotionStatsSink` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-motionstatssink) |
@@ -1097,14 +3513,53 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotionStatsSink::summarize` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-summarize) |
 | `MotionStatsSink::targetPose` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-targetpose) |
 | `MotionStatsSink::wantsRecord` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-wantsrecord) |
+| `Motor` | struct | [kinds.md](kinds.md#struct-motor) |
+| `Motor::changeAt` | field | [kinds.md](kinds.md#motor-changeat) |
+| `Motor::present` | field | [kinds.md](kinds.md#motor-present) |
+| `Motor::reversed` | field | [kinds.md](kinds.md#motor-reversed) |
+| `MotorCartridge` | enum class | [drivetrain_description.md](drivetrain_description.md#enum-class-motorcartridge) |
+| `MotorCartridge::Blue` | enumerator | [drivetrain_description.md](drivetrain_description.md#motorcartridge-blue) |
+| `MotorCartridge::Green` | enumerator | [drivetrain_description.md](drivetrain_description.md#motorcartridge-green) |
+| `MotorCartridge::Red` | enumerator | [drivetrain_description.md](drivetrain_description.md#motorcartridge-red) |
+| `motorCurrentLimitToMilliamps` | free function | [motor_conversion.md](motor_conversion.md#motorcurrentlimittomilliamps) |
 | `MotorGearset` | enum class | [pros-motor.md](pros-motor.md#enum-class-motorgearset) |
 | `MotorGearset::Blue` | enumerator | [pros-motor.md](pros-motor.md#motorgearset-blue) |
 | `MotorGearset::Green` | enumerator | [pros-motor.md](pros-motor.md#motorgearset-green) |
 | `MotorGearset::Red` | enumerator | [pros-motor.md](pros-motor.md#motorgearset-red) |
+| `MotorGroup` | class | [motor_group.md](motor_group.md#class-motorgroup) |
+| `MotorGroup::absentMask` | function | [motor_group.md](motor_group.md#motorgroup-absentmask) |
+| `MotorGroup::brakeMode` | function | [motor_group.md](motor_group.md#motorgroup-brakemode) |
+| `MotorGroup::commandedVoltage` | function | [motor_group.md](motor_group.md#motorgroup-commandedvoltage) |
+| `MotorGroup::current` | function | [motor_group.md](motor_group.md#motorgroup-current) |
+| `MotorGroup::disagreeingMask` | function | [motor_group.md](motor_group.md#motorgroup-disagreeingmask) |
+| `MotorGroup::disagreeingMembers` | function | [motor_group.md](motor_group.md#motorgroup-disagreeingmembers) |
+| `MotorGroup::evaluateDisagreement` | function | [motor_group.md](motor_group.md#motorgroup-evaluatedisagreement) |
+| `MotorGroup::isPresent` | function | [motor_group.md](motor_group.md#motorgroup-ispresent) |
+| `MotorGroup::kMaxMembers` | field | [motor_group.md](motor_group.md#motorgroup-kmaxmembers) |
+| `MotorGroup::label` | function | [motor_group.md](motor_group.md#motorgroup-label) |
+| `MotorGroup::lastVerdict` | function | [motor_group.md](motor_group.md#motorgroup-lastverdict) |
+| `MotorGroup::markAbsent` | function | [motor_group.md](motor_group.md#motorgroup-markabsent) |
+| `MotorGroup::member` | function | [motor_group.md](motor_group.md#motorgroup-member) |
+| `MotorGroup::memberCount` | function | [motor_group.md](motor_group.md#motorgroup-membercount) |
+| `MotorGroup::monitorExcludedMask` | function | [motor_group.md](motor_group.md#motorgroup-monitorexcludedmask) |
+| `MotorGroup::MotorGroup` | function | [motor_group.md](motor_group.md#motorgroup-motorgroup) |
+| `MotorGroup::nonFiniteReads` | function | [motor_group.md](motor_group.md#motorgroup-nonfinitereads) |
+| `MotorGroup::position` | function | [motor_group.md](motor_group.md#motorgroup-position) |
+| `MotorGroup::presentCount` | function | [motor_group.md](motor_group.md#motorgroup-presentcount) |
+| `MotorGroup::resetDisagreement` | function | [motor_group.md](motor_group.md#motorgroup-resetdisagreement) |
+| `MotorGroup::runtimeAbsentMask` | function | [motor_group.md](motor_group.md#motorgroup-runtimeabsentmask) |
+| `MotorGroup::setBrakeMode` | function | [motor_group.md](motor_group.md#motorgroup-setbrakemode) |
+| `MotorGroup::setMonitorExcluded` | function | [motor_group.md](motor_group.md#motorgroup-setmonitorexcluded) |
+| `MotorGroup::setVoltage` | function | [motor_group.md](motor_group.md#motorgroup-setvoltage) |
+| `MotorGroup::temperature` | function | [motor_group.md](motor_group.md#motorgroup-temperature) |
+| `MotorGroup::thresholds` | function | [motor_group.md](motor_group.md#motorgroup-thresholds) |
+| `MotorGroup::totalCurrent` | function | [motor_group.md](motor_group.md#motorgroup-totalcurrent) |
+| `MotorGroup::velocity` | function | [motor_group.md](motor_group.md#motorgroup-velocity) |
 | `MotorMechanism` | class | [mechanism.md](mechanism.md#class-motormechanism) |
 | `MotorMechanism::applySafeState` | function | [mechanism.md](mechanism.md#motormechanism-applysafestate) |
 | `MotorMechanism::commandedVoltage` | function | [mechanism.md](mechanism.md#motormechanism-commandedvoltage) |
 | `MotorMechanism::maxCurrent` | function | [mechanism.md](mechanism.md#motormechanism-maxcurrent) |
+| `MotorMechanism::meanPosition` | function | [mechanism.md](mechanism.md#motormechanism-meanposition) |
 | `MotorMechanism::meanVelocity` | function | [mechanism.md](mechanism.md#motormechanism-meanvelocity) |
 | `MotorMechanism::MotorMechanism` | function | [mechanism.md](mechanism.md#motormechanism-motormechanism) |
 | `MotorMechanism::motors` | function | [mechanism.md](mechanism.md#motormechanism-motors) |
@@ -1112,8 +3567,34 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotorMechanism::safeBrakeMode` | function | [mechanism.md](mechanism.md#motormechanism-safebrakemode) |
 | `MotorMechanism::setVoltage` | function | [mechanism.md](mechanism.md#motormechanism-setvoltage) |
 | `motorMilliampsToCanonical` | free function | [motor_conversion.md](motor_conversion.md#motormilliampstocanonical) |
+| `MotorPorts` | struct | [wiring.md](wiring.md#struct-motorports) |
+| `MotorPorts::bad` | field | [wiring.md](wiring.md#motorports-bad) |
+| `MotorPorts::count` | field | [wiring.md](wiring.md#motorports-count) |
+| `MotorPorts::file` | field | [wiring.md](wiring.md#motorports-file) |
+| `MotorPorts::line` | field | [wiring.md](wiring.md#motorports-line) |
+| `MotorPorts::port` | field | [wiring.md](wiring.md#motorports-port) |
 | `motorPositionDegToCanonical` | free function | [motor_conversion.md](motor_conversion.md#motorpositiondegtocanonical) |
+| `MotorRole` | struct | [spec.md](spec.md#struct-motorrole) |
+| `MotorRole::file` | field | [spec.md](spec.md#motorrole-file) |
+| `MotorRole::line` | field | [spec.md](spec.md#motorrole-line) |
+| `MotorRole::reversed` | field | [spec.md](spec.md#motorrole-reversed) |
+| `MotorRole::source` | field | [spec.md](spec.md#motorrole-source) |
 | `motorRpmToCanonical` | free function | [motor_conversion.md](motor_conversion.md#motorrpmtocanonical) |
+| `motors` | free function | [wiring.md](wiring.md#motors) |
+| `Motors` | struct | [kinds.md](kinds.md#struct-motors) |
+| `motors (overload 2)` | free function | [wiring.md](wiring.md#motors-2) |
+| `motors (overload 3)` | free function | [wiring.md](wiring.md#motors-3) |
+| `motors (overload 4)` | free function | [wiring.md](wiring.md#motors-4) |
+| `motors (overload 5)` | free function | [wiring.md](wiring.md#motors-5) |
+| `motors (overload 6)` | free function | [wiring.md](wiring.md#motors-6) |
+| `motors (overload 7)` | type alias | [wiring.md](wiring.md#motors-7) |
+| `Motors::count` | field | [kinds.md](kinds.md#motors-count) |
+| `Motors::file` | field | [kinds.md](kinds.md#motors-file) |
+| `Motors::line` | field | [kinds.md](kinds.md#motors-line) |
+| `Motors::m` | field | [kinds.md](kinds.md#motors-m) |
+| `Motors::Motors` | function | [kinds.md](kinds.md#motors-motors) |
+| `Motors::Motors (overload 2)` | function | [kinds.md](kinds.md#motors-motors-2) |
+| `Motors::tooMany` | field | [kinds.md](kinds.md#motors-toomany) |
 | `motorVoltageApplied` | free function | [motor_conversion.md](motor_conversion.md#motorvoltageapplied) |
 | `motorVoltageToMillivolts` | free function | [motor_conversion.md](motor_conversion.md#motorvoltagetomillivolts) |
 | `MoveToPose` | class | [move_to_pose.md](move_to_pose.md#class-movetopose) |
@@ -1124,6 +3605,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MoveToPose::setTarget` | function | [move_to_pose.md](move_to_pose.md#movetopose-settarget) |
 | `MoveToPose::start` | function | [move_to_pose.md](move_to_pose.md#movetopose-start) |
 | `MoveToPose::state` | function | [move_to_pose.md](move_to_pose.md#movetopose-state) |
+| `MoveToPose::tankSteerStatus` | function | [move_to_pose.md](move_to_pose.md#movetopose-tanksteerstatus) |
 | `MoveToPose::target` | function | [move_to_pose.md](move_to_pose.md#movetopose-target) |
 | `MoveToPose::tick` | function | [move_to_pose.md](move_to_pose.md#movetopose-tick) |
 
@@ -1131,6 +3613,22 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `Name` | struct | [kinds.md](kinds.md#struct-name) |
+| `Name::file` | field | [kinds.md](kinds.md#name-file) |
+| `Name::line` | field | [kinds.md](kinds.md#name-line) |
+| `Name::Name` | function | [kinds.md](kinds.md#name-name) |
+| `Name::Name (overload 2)` | function | [kinds.md](kinds.md#name-name-2) |
+| `Name::text` | field | [kinds.md](kinds.md#name-text) |
+| `NamedPosition` | struct | [kinds.md](kinds.md#struct-namedposition) |
+| `NamedPosition::confirm` | field | [kinds.md](kinds.md#namedposition-confirm) |
+| `NamedPosition::levels` | field | [kinds.md](kinds.md#namedposition-levels) |
+| `NamedPosition::name` | field | [kinds.md](kinds.md#namedposition-name) |
+| `nameOf` | free function | [spec.md](spec.md#nameof) |
+| `negotiate` | free function | [shul2_format.md](shul2_format.md#negotiate) |
+| `neverHomed` | constant | [kinds.md](kinds.md#neverhomed) |
+| `neverHomed (overload 2)` | type alias | [kinds.md](kinds.md#neverhomed-2) |
+| `noGravity` | constant | [kinds.md](kinds.md#nogravity) |
+| `noGravity (overload 2)` | type alias | [kinds.md](kinds.md#nogravity-2) |
 | `NullCorrector` | class | [i_corrector.md](i_corrector.md#class-nullcorrector) |
 | `NullCorrector::name` | function | [i_corrector.md](i_corrector.md#nullcorrector-name) |
 | `NullCorrector::propose` | function | [i_corrector.md](i_corrector.md#nullcorrector-propose) |
@@ -1146,18 +3644,58 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ObjectObservation::bearing` | field | [vision.md](vision.md#objectobservation-bearing) |
 | `ObjectObservation::classId` | field | [vision.md](vision.md#objectobservation-classid) |
 | `ObjectObservation::confidence` | field | [vision.md](vision.md#objectobservation-confidence) |
+| `OdometryConfig` | struct | [robot_config.md](robot_config.md#struct-odometryconfig) |
+| `OdometryConfig::kind` | field | [robot_config.md](robot_config.md#odometryconfig-kind) |
+| `OdometryConfig::wheels` | field | [robot_config.md](robot_config.md#odometryconfig-wheels) |
+| `OdometryKind` | enum class | [robot_config.md](robot_config.md#enum-class-odometrykind) |
+| `OdometryKind::DriveEncoders` | enumerator | [robot_config.md](robot_config.md#odometrykind-driveencoders) |
+| `OdometryKind::TrackingWheels` | enumerator | [robot_config.md](robot_config.md#odometrykind-trackingwheels) |
+| `odometryKindWord` | free function | [robot_config.md](robot_config.md#odometrykindword) |
+| `OdomTickAudit` | struct | [odom_tick_audit.md](odom_tick_audit.md#struct-odomtickaudit) |
+| `OdomTickAudit::dTheta` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-dtheta) |
+| `OdomTickAudit::headingAfter` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-headingafter) |
+| `OdomTickAudit::headingBefore` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-headingbefore) |
+| `OdomTickAudit::labels` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-labels) |
+| `OdomTickAudit::nonFinite` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-nonfinite) |
+| `OdomTickAudit::rotation` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-rotation) |
+| `OdomTickAudit::travel` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-travel) |
+| `OdomTickAudit::travelA` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-travela) |
+| `OdomTickAudit::travelB` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-travelb) |
+| `OdomTickAudit::tripped` | function | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-tripped) |
+| `OdomTravelLabels` | enum class | [odom_tick_audit.md](odom_tick_audit.md#enum-class-odomtravellabels) |
+| `OdomTravelLabels::DriveSides` | enumerator | [odom_tick_audit.md](odom_tick_audit.md#odomtravellabels-drivesides) |
+| `OdomTravelLabels::TrackingWheels` | enumerator | [odom_tick_audit.md](odom_tick_audit.md#odomtravellabels-trackingwheels) |
 | `OdoStallCheck` | class | [odo_stall_check.md](odo_stall_check.md#class-odostallcheck) |
+| `OdoStallCheck::canDetectStall` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-candetectstall) |
 | `OdoStallCheck::kMaxWheels` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheck-kmaxwheels) |
+| `OdoStallCheck::lastObservedMotion` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-lastobservedmotion) |
+| `OdoStallCheck::lastSpinTravel` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-lastspintravel) |
 | `OdoStallCheck::OdoStallCheck` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-odostallcheck) |
 | `OdoStallCheck::reset` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-reset) |
 | `OdoStallCheck::stalled` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-stalled) |
 | `OdoStallCheck::update` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-update) |
 | `OdoStallCheckConfig` | struct | [odo_stall_check.md](odo_stall_check.md#struct-odostallcheckconfig) |
+| `OdoStallCheckConfig::independentMotionSource` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-independentmotionsource) |
 | `OdoStallCheckConfig::minSpinTravel` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-minspintravel) |
 | `OdoStallCheckConfig::motionRatio` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-motionratio) |
 | `OdoStallCheckConfig::rotationRadius` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-rotationradius) |
-| `OdoStallCheckConfig::wheelRadius` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-wheelradius) |
+| `OdoStallCheckConfig::setAllWheels` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-setallwheels) |
+| `OdoStallCheckConfig::wheels` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-wheels) |
 | `OdoStallCheckConfig::window` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-window) |
+| `offered` | free function | [live_tuning.md](live_tuning.md#offered) |
+| `OnFail` | struct | [routine.md](routine.md#struct-onfail) |
+| `OnFail` | type alias | [routine.md](routine.md#onfail) |
+| `OnFail::Kind` | enum class | [routine.md](routine.md#enum-class-onfail-kind) |
+| `OnFail::kind` | field | [routine.md](routine.md#onfail-kind) |
+| `OnFail::Kind::CarryOn` | enumerator | [routine.md](routine.md#onfail-kind-carryon) |
+| `OnFail::Kind::SkipTo` | enumerator | [routine.md](routine.md#onfail-kind-skipto) |
+| `OnFail::Kind::Stop` | enumerator | [routine.md](routine.md#onfail-kind-stop) |
+| `OnFail::target` | field | [routine.md](routine.md#onfail-target) |
+| `OnRefusal` | enum class | [auton_registry.md](auton_registry.md#enum-class-onrefusal) |
+| `OnRefusal::DropEntry` | enumerator | [auton_registry.md](auton_registry.md#onrefusal-dropentry) |
+| `OnRefusal::Throw` | enumerator | [auton_registry.md](auton_registry.md#onrefusal-throw) |
+| `onScreen` | free function | [touch_panel.md](touch_panel.md#onscreen) |
+| `openForAppend` | free function | [pros-block_sink.md](pros-block_sink.md#openforappend) |
 | `operator""_deg` | free function | [literals.md](literals.md#operator-quote-quote-_deg) |
 | `operator""_deg (overload 2)` | free function | [literals.md](literals.md#operator-quote-quote-_deg-2) |
 | `operator""_in` | free function | [literals.md](literals.md#operator-quote-quote-_in) |
@@ -1176,17 +3714,103 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `operator/` | free function | [quantity.md](quantity.md#operator-slash) |
 | `opticalHueToCanonical` | free function | [optical_conversion.md](optical_conversion.md#opticalhuetocanonical) |
 | `opticalProximityToCanonical` | free function | [optical_conversion.md](optical_conversion.md#opticalproximitytocanonical) |
+| `opticalSensor` | free function | [kinds.md](kinds.md#opticalsensor) |
+| `opticalSensor (overload 2)` | type alias | [kinds.md](kinds.md#opticalsensor-2) |
 | `opticalUnitIntervalToCanonical` | free function | [optical_conversion.md](optical_conversion.md#opticalunitintervaltocanonical) |
+| `oursFor` | free function | [toggle_visit.md](toggle_visit.md#oursfor) |
+| `overlaps` | free function | [calibrate_panel.md](calibrate_panel.md#overlaps) |
+| `overlaps` | free function | [touch_panel.md](touch_panel.md#overlaps) |
 
 ## P
 
 | Name | Kind | Page |
 |---|---|---|
+| `PanelButton` | struct | [calibrate_panel.md](calibrate_panel.md#struct-panelbutton) |
+| `PanelButton::armed` | field | [calibrate_panel.md](calibrate_panel.md#panelbutton-armed) |
+| `PanelButton::id` | field | [calibrate_panel.md](calibrate_panel.md#panelbutton-id) |
+| `PanelButton::label` | field | [calibrate_panel.md](calibrate_panel.md#panelbutton-label) |
+| `PanelButton::rect` | field | [calibrate_panel.md](calibrate_panel.md#panelbutton-rect) |
+| `PanelButtonId` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-panelbuttonid) |
+| `PanelButtonId::Abort` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-abort) |
+| `PanelButtonId::Done` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-done) |
+| `PanelButtonId::RunAgain` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-runagain) |
+| `PanelButtonId::SaveHeld` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-saveheld) |
+| `panelLayoutHolds` | free function | [calibrate_panel.md](calibrate_panel.md#panellayoutholds) |
+| `PanelLine` | struct | [calibrate_panel.md](calibrate_panel.md#struct-panelline) |
+| `PanelLine::size` | field | [calibrate_panel.md](calibrate_panel.md#panelline-size) |
+| `PanelLine::text` | field | [calibrate_panel.md](calibrate_panel.md#panelline-text) |
+| `PanelLine::tone` | field | [calibrate_panel.md](calibrate_panel.md#panelline-tone) |
+| `PanelLine::x` | field | [calibrate_panel.md](calibrate_panel.md#panelline-x) |
+| `PanelLine::y` | field | [calibrate_panel.md](calibrate_panel.md#panelline-y) |
+| `panelLiteralsFit` | free function | [calibrate_panel.md](calibrate_panel.md#panelliteralsfit) |
+| `PanelRect` | struct | [calibrate_panel.md](calibrate_panel.md#struct-panelrect) |
+| `PanelRect::operator==` | function | [calibrate_panel.md](calibrate_panel.md#panelrect-operator-eq-eq) |
+| `PanelRect::x0` | field | [calibrate_panel.md](calibrate_panel.md#panelrect-x0) |
+| `PanelRect::x1` | field | [calibrate_panel.md](calibrate_panel.md#panelrect-x1) |
+| `PanelRect::y0` | field | [calibrate_panel.md](calibrate_panel.md#panelrect-y0) |
+| `PanelRect::y1` | field | [calibrate_panel.md](calibrate_panel.md#panelrect-y1) |
+| `PanelScreen` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-panelscreen) |
+| `PanelScreen::Held` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-held) |
+| `PanelScreen::ImuWait` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-imuwait) |
+| `PanelScreen::NotStarted` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-notstarted) |
+| `PanelScreen::Pulses` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-pulses) |
+| `PanelScreen::Push` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-push) |
+| `PanelScreen::Saved` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-saved) |
+| `PanelScreen::Spin` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-spin) |
+| `PanelScreen::Stopped` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-stopped) |
+| `PanelTone` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-paneltone) |
+| `PanelTone::Amber` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-amber) |
+| `PanelTone::Blue` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-blue) |
+| `PanelTone::Green` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-green) |
+| `PanelTone::Grey` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-grey) |
+| `PanelTone::Red` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-red) |
+| `PanelTone::White` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-white) |
+| `PanelView` | struct | [calibrate_panel.md](calibrate_panel.md#struct-panelview) |
+| `PanelView::buttonCount` | field | [calibrate_panel.md](calibrate_panel.md#panelview-buttoncount) |
+| `PanelView::buttons` | field | [calibrate_panel.md](calibrate_panel.md#panelview-buttons) |
+| `PanelView::headerTone` | field | [calibrate_panel.md](calibrate_panel.md#panelview-headertone) |
+| `PanelView::headerWord` | field | [calibrate_panel.md](calibrate_panel.md#panelview-headerword) |
+| `PanelView::lineCount` | field | [calibrate_panel.md](calibrate_panel.md#panelview-linecount) |
+| `PanelView::lines` | field | [calibrate_panel.md](calibrate_panel.md#panelview-lines) |
+| `PanelView::screen` | field | [calibrate_panel.md](calibrate_panel.md#panelview-screen) |
+| `Parameter` | struct | [live_tuning.md](live_tuning.md#struct-parameter) |
+| `Parameter::id` | field | [live_tuning.md](live_tuning.md#parameter-id) |
+| `Parameter::member` | field | [live_tuning.md](live_tuning.md#parameter-member) |
+| `Parameter::name` | field | [live_tuning.md](live_tuning.md#parameter-name) |
+| `Parameter::rule` | field | [live_tuning.md](live_tuning.md#parameter-rule) |
+| `ParameterList` | struct | [live_tuning.md](live_tuning.md#struct-parameterlist) |
+| `ParameterList::count` | field | [live_tuning.md](live_tuning.md#parameterlist-count) |
+| `ParameterList::items` | field | [live_tuning.md](live_tuning.md#parameterlist-items) |
+| `parameterOf` | free function | [live_tuning.md](live_tuning.md#parameterof) |
+| `parametersOf` | free function | [live_tuning.md](live_tuning.md#parametersof) |
+| `PathRunner` | class | [path_runner.md](path_runner.md#class-pathrunner) |
+| `PathRunner::operator=` | function | [path_runner.md](path_runner.md#pathrunner-operator-eq) |
+| `PathRunner::operator= (overload 2)` | function | [path_runner.md](path_runner.md#pathrunner-operator-eq-2) |
+| `PathRunner::PathRunner` | function | [path_runner.md](path_runner.md#pathrunner-pathrunner) |
+| `PathRunner::PathRunner (overload 2)` | function | [path_runner.md](path_runner.md#pathrunner-pathrunner-2) |
+| `PathRunner::PathRunner (overload 3)` | function | [path_runner.md](path_runner.md#pathrunner-pathrunner-3) |
+| `PathRunner::run` | function | [path_runner.md](path_runner.md#pathrunner-run) |
+| `PathRunner::~PathRunner` | function | [path_runner.md](path_runner.md#pathrunner-destructor-pathrunner) |
+| `PersonSaw` | enum class | [direction_check.md](direction_check.md#enum-class-personsaw) |
+| `PersonSaw::ItsPlusWay` | enumerator | [direction_check.md](direction_check.md#personsaw-itsplusway) |
+| `PersonSaw::NotAsked` | enumerator | [direction_check.md](direction_check.md#personsaw-notasked) |
+| `PersonSaw::NothingOrSomethingElseMoved` | enumerator | [direction_check.md](direction_check.md#personsaw-nothingorsomethingelsemoved) |
+| `PersonSaw::TheOtherWay` | enumerator | [direction_check.md](direction_check.md#personsaw-theotherway) |
+| `Phase` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-phase) |
+| `Phase::Aborted` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-aborted) |
+| `Phase::Done` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-done) |
+| `Phase::Idle` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-idle) |
+| `Phase::PushCapture` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-pushcapture) |
+| `Phase::SideAssign` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-sideassign) |
+| `Phase::SpinTest` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-spintest) |
+| `Phase::WaitImu` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-waitimu) |
 | `Pid` | class | [pid.md](pid.md#class-pid) |
+| `Pid::config` | function | [pid.md](pid.md#pid-config) |
 | `Pid::integralAccumulator` | function | [pid.md](pid.md#pid-integralaccumulator) |
 | `Pid::lastError` | function | [pid.md](pid.md#pid-lasterror) |
 | `Pid::Pid` | function | [pid.md](pid.md#pid-pid) |
 | `Pid::reset` | function | [pid.md](pid.md#pid-reset) |
+| `Pid::setGains` | function | [pid.md](pid.md#pid-setgains) |
 | `Pid::update` | function | [pid.md](pid.md#pid-update) |
 | `PidConfig` | struct | [pid.md](pid.md#struct-pidconfig) |
 | `PidConfig::integralLimit` | field | [pid.md](pid.md#pidconfig-integrallimit) |
@@ -1195,8 +3819,75 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PidConfig::kP` | field | [pid.md](pid.md#pidconfig-kp) |
 | `PidConfig::outputMax` | field | [pid.md](pid.md#pidconfig-outputmax) |
 | `PidConfig::outputMin` | field | [pid.md](pid.md#pidconfig-outputmin) |
+| `PieceFinder` | class | [piece_finder.md](piece_finder.md#class-piecefinder) |
+| `PieceFinder::answer` | function | [piece_finder.md](piece_finder.md#piecefinder-answer) |
+| `PieceFinder::kMax` | field | [piece_finder.md](piece_finder.md#piecefinder-kmax) |
+| `PieceFinder::PieceFinder` | function | [piece_finder.md](piece_finder.md#piecefinder-piecefinder) |
+| `PieceFinder::Result` | struct | [piece_finder.md](piece_finder.md#struct-piecefinder-result) |
+| `PieceFinder::Result::border` | field | [piece_finder.md](piece_finder.md#piecefinder-result-border) |
+| `PieceFinder::Result::inside` | field | [piece_finder.md](piece_finder.md#piecefinder-result-inside) |
+| `PieceFinder::Result::sighting` | field | [piece_finder.md](piece_finder.md#piecefinder-result-sighting) |
+| `PieceFinder::Result::verdict` | field | [piece_finder.md](piece_finder.md#piecefinder-result-verdict) |
+| `PieceFinder::Result::why` | field | [piece_finder.md](piece_finder.md#piecefinder-result-why) |
+| `PieceFinder::setTarget` | function | [piece_finder.md](piece_finder.md#piecefinder-settarget) |
+| `PieceFinder::update` | function | [piece_finder.md](piece_finder.md#piecefinder-update) |
+| `PieceFinderConfig` | struct | [piece_finder.md](piece_finder.md#struct-piecefinderconfig) |
+| `PieceFinderConfig::aliveSeconds` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-aliveseconds) |
+| `PieceFinderConfig::holdSeconds` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-holdseconds) |
+| `PieceFinderConfig::lyingAspect` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-lyingaspect) |
+| `PieceFinderConfig::minScore` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-minscore) |
+| `PieceFinderConfig::raisedMinIn` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-raisedminin) |
+| `PieceFinderConfig::standingAspect` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-standingaspect) |
+| `PieceFinderConfig::viewMarginPx` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-viewmarginpx) |
+| `pieceFinderConfigProblem` | free function | [piece_finder.md](piece_finder.md#piecefinderconfigproblem) |
+| `pieceSensor` | free function | [wiring.md](wiring.md#piecesensor) |
+| `pieceSensor (overload 2)` | type alias | [wiring.md](wiring.md#piecesensor-2) |
+| `PieceSighting` | struct | [piece_finder.md](piece_finder.md#struct-piecesighting) |
+| `PieceSighting::bearing` | field | [piece_finder.md](piece_finder.md#piecesighting-bearing) |
+| `PieceSighting::box` | field | [piece_finder.md](piece_finder.md#piecesighting-box) |
+| `PieceSighting::classId` | field | [piece_finder.md](piece_finder.md#piecesighting-classid) |
+| `PieceSighting::fix` | field | [piece_finder.md](piece_finder.md#piecesighting-fix) |
+| `PieceSighting::groundRange` | field | [piece_finder.md](piece_finder.md#piecesighting-groundrange) |
+| `PieceSighting::nearerThanIn` | field | [piece_finder.md](piece_finder.md#piecesighting-nearerthanin) |
+| `PieceSighting::posture` | field | [piece_finder.md](piece_finder.md#piecesighting-posture) |
+| `PieceSighting::sizeRange` | field | [piece_finder.md](piece_finder.md#piecesighting-sizerange) |
+| `PieceSize` | struct | [override_elements.md](override_elements.md#struct-piecesize) |
+| `PieceSize::diameterIn` | field | [override_elements.md](override_elements.md#piecesize-diameterin) |
+| `PieceSize::heightIn` | field | [override_elements.md](override_elements.md#piecesize-heightin) |
+| `PieceTarget` | struct | [piece_finder.md](piece_finder.md#struct-piecetarget) |
+| `PieceTarget::classMask` | field | [piece_finder.md](piece_finder.md#piecetarget-classmask) |
+| `PieceTarget::toleranceIn` | field | [piece_finder.md](piece_finder.md#piecetarget-tolerancein) |
+| `PieceTarget::want` | field | [piece_finder.md](piece_finder.md#piecetarget-want) |
+| `PieceTarget::x` | field | [piece_finder.md](piece_finder.md#piecetarget-x) |
+| `PieceTarget::y` | field | [piece_finder.md](piece_finder.md#piecetarget-y) |
+| `pieceTargetProblem` | free function | [piece_finder.md](piece_finder.md#piecetargetproblem) |
+| `PieceVerdict` | enum class | [piece_finder.md](piece_finder.md#enum-class-pieceverdict) |
+| `PieceVerdict::Ambiguous` | enumerator | [piece_finder.md](piece_finder.md#pieceverdict-ambiguous) |
+| `PieceVerdict::Found` | enumerator | [piece_finder.md](piece_finder.md#pieceverdict-found) |
+| `PieceVerdict::None` | enumerator | [piece_finder.md](piece_finder.md#pieceverdict-none) |
+| `PieceVerdict::NotInView` | enumerator | [piece_finder.md](piece_finder.md#pieceverdict-notinview) |
+| `PieceVerdict::Unknown` | enumerator | [piece_finder.md](piece_finder.md#pieceverdict-unknown) |
+| `pieceVerdictWords` | free function | [piece_finder.md](piece_finder.md#pieceverdictwords) |
+| `PieceWhy` | enum class | [piece_finder.md](piece_finder.md#enum-class-piecewhy) |
+| `PieceWhy::CameraFull` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-camerafull) |
+| `PieceWhy::CameraSilent` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-camerasilent) |
+| `PieceWhy::ErrorLargerThanTolerance` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-errorlargerthantolerance) |
+| `PieceWhy::ModelNotConfirmed` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-modelnotconfirmed) |
+| `PieceWhy::NoRead` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-noread) |
+| `PieceWhy::NoTarget` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-notarget) |
+| `PieceWhy::NotHeldYet` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-notheldyet) |
+| `PieceWhy::NothingThere` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-nothingthere) |
+| `PieceWhy::Ok` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-ok) |
+| `PieceWhy::OnTheBorder` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-ontheborder) |
+| `PieceWhy::OutOfView` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-outofview) |
+| `PieceWhy::ReadNotUsable` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-readnotusable) |
+| `PieceWhy::TwoInside` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-twoinside) |
+| `PieceWhy::UnmeasurableInside` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-unmeasurableinside) |
+| `PieceWhy::WrongPostureInside` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-wrongpostureinside) |
+| `pieceWhyWords` | free function | [piece_finder.md](piece_finder.md#piecewhywords) |
 | `PilonsOdometry` | class | [pilons_odometry.md](pilons_odometry.md#class-pilonsodometry) |
 | `PilonsOdometry::lastDeltaImplausible` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-lastdeltaimplausible) |
+| `PilonsOdometry::lastTickAudit` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-lasttickaudit) |
 | `PilonsOdometry::PilonsOdometry` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-pilonsodometry) |
 | `PilonsOdometry::pose` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-pose) |
 | `PilonsOdometry::setPose` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-setpose) |
@@ -1209,14 +3900,105 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PlausibilityConfig::maxSpeed` | field | [plausibility_guard.md](plausibility_guard.md#plausibilityconfig-maxspeed) |
 | `PlausibilityConfig::maxYawRate` | field | [plausibility_guard.md](plausibility_guard.md#plausibilityconfig-maxyawrate) |
 | `PlausibilityConfig::validate` | function | [plausibility_guard.md](plausibility_guard.md#plausibilityconfig-validate) |
+| `Pneumatic` | struct | [kinds.md](kinds.md#struct-pneumatic) |
+| `Pneumatic` | type alias | [kinds.md](kinds.md#pneumatic) |
+| `Pneumatic::changeAt` | field | [kinds.md](kinds.md#pneumatic-changeat) |
+| `Pneumatic::confirmWithin` | field | [kinds.md](kinds.md#pneumatic-confirmwithin) |
+| `Pneumatic::moveTime` | field | [kinds.md](kinds.md#pneumatic-movetime) |
+| `Pneumatic::name` | field | [kinds.md](kinds.md#pneumatic-name) |
+| `Pneumatic::operator[]` | function | [kinds.md](kinds.md#pneumatic-operator-index) |
+| `Pneumatic::pieceSensor` | field | [kinds.md](kinds.md#pneumatic-piecesensor) |
+| `Pneumatic::positions` | field | [kinds.md](kinds.md#pneumatic-positions) |
+| `Pneumatic::safe` | field | [kinds.md](kinds.md#pneumatic-safe) |
+| `Pneumatic::spec` | function | [kinds.md](kinds.md#pneumatic-spec) |
+| `Pneumatic::start` | field | [kinds.md](kinds.md#pneumatic-start) |
+| `Pneumatic::to` | function | [kinds.md](kinds.md#pneumatic-to) |
+| `pneumatic_a_position_has_no_name` | free function | [spec.md](spec.md#pneumatic_a_position_has_no_name) |
+| `pneumatic_actuationtime_must_be_more_than_zero` | free function | [spec.md](spec.md#pneumatic_actuationtime_must_be_more_than_zero) |
+| `pneumatic_confirmwithin_must_not_be_negative` | free function | [spec.md](spec.md#pneumatic_confirmwithin_must_not_be_negative) |
+| `pneumatic_its_safe_names_none_of_its_positions` | free function | [spec.md](spec.md#pneumatic_its_safe_names_none_of_its_positions) |
+| `pneumatic_its_start_names_none_of_its_positions` | free function | [spec.md](spec.md#pneumatic_its_start_names_none_of_its_positions) |
+| `pneumatic_start_or_safe_is_not_one_of_its_positions` | free function | [spec.md](spec.md#pneumatic_start_or_safe_is_not_one_of_its_positions) |
+| `pneumatic_two_or_three_positions` | free function | [spec.md](spec.md#pneumatic_two_or_three_positions) |
+| `pneumatic_two_positions_have_the_same_line_levels` | free function | [spec.md](spec.md#pneumatic_two_positions_have_the_same_line_levels) |
+| `PneumaticGoal` | struct | [kinds.md](kinds.md#struct-pneumaticgoal) |
+| `PneumaticGoal::mechanism` | field | [kinds.md](kinds.md#pneumaticgoal-mechanism) |
+| `PneumaticGoal::mechanismName` | field | [kinds.md](kinds.md#pneumaticgoal-mechanismname) |
+| `PneumaticGoal::position` | field | [kinds.md](kinds.md#pneumaticgoal-position) |
+| `PneumaticGoal::positionName` | field | [kinds.md](kinds.md#pneumaticgoal-positionname) |
+| `PneumaticLevel` | enum class | [robot_config.md](robot_config.md#enum-class-pneumaticlevel) |
+| `PneumaticLevel::High` | enumerator | [robot_config.md](robot_config.md#pneumaticlevel-high) |
+| `PneumaticLevel::Low` | enumerator | [robot_config.md](robot_config.md#pneumaticlevel-low) |
+| `pneumaticLevelWord` | free function | [robot_config.md](robot_config.md#pneumaticlevelword) |
 | `PneumaticMechanism` | class | [mechanism.md](mechanism.md#class-pneumaticmechanism) |
 | `PneumaticMechanism::applySafeState` | function | [mechanism.md](mechanism.md#pneumaticmechanism-applysafestate) |
 | `PneumaticMechanism::commanded` | function | [mechanism.md](mechanism.md#pneumaticmechanism-commanded) |
+| `PneumaticMechanism::commandedLevel` | function | [mechanism.md](mechanism.md#pneumaticmechanism-commandedlevel) |
+| `PneumaticMechanism::kMaxPerLineLevels` | field | [mechanism.md](mechanism.md#pneumaticmechanism-kmaxperlinelevels) |
 | `PneumaticMechanism::lines` | function | [mechanism.md](mechanism.md#pneumaticmechanism-lines) |
 | `PneumaticMechanism::name` | function | [mechanism.md](mechanism.md#pneumaticmechanism-name) |
+| `PneumaticMechanism::perLine` | function | [mechanism.md](mechanism.md#pneumaticmechanism-perline) |
 | `PneumaticMechanism::PneumaticMechanism` | function | [mechanism.md](mechanism.md#pneumaticmechanism-pneumaticmechanism) |
+| `PneumaticMechanism::PneumaticMechanism (overload 2)` | function | [mechanism.md](mechanism.md#pneumaticmechanism-pneumaticmechanism-2) |
+| `PneumaticMechanism::PneumaticMechanism (overload 3)` | function | [mechanism.md](mechanism.md#pneumaticmechanism-pneumaticmechanism-3) |
 | `PneumaticMechanism::safeCommand` | function | [mechanism.md](mechanism.md#pneumaticmechanism-safecommand) |
+| `PneumaticMechanism::safeLevel` | function | [mechanism.md](mechanism.md#pneumaticmechanism-safelevel) |
 | `PneumaticMechanism::set` | function | [mechanism.md](mechanism.md#pneumaticmechanism-set) |
+| `PneumaticMechanism::setLevels` | function | [mechanism.md](mechanism.md#pneumaticmechanism-setlevels) |
+| `PneumaticPositionSpec` | struct | [spec.md](spec.md#struct-pneumaticpositionspec) |
+| `PneumaticPositionSpec::confirm` | field | [spec.md](spec.md#pneumaticpositionspec-confirm) |
+| `PneumaticPositionSpec::levelCount` | field | [spec.md](spec.md#pneumaticpositionspec-levelcount) |
+| `PneumaticPositionSpec::levels` | field | [spec.md](spec.md#pneumaticpositionspec-levels) |
+| `PneumaticPositionSpec::name` | field | [spec.md](spec.md#pneumaticpositionspec-name) |
+| `PneumaticSlot` | class | [service.md](service.md#class-pneumaticslot) |
+| `PneumaticSlot::commandedPosition` | function | [service.md](service.md#pneumaticslot-commandedposition) |
+| `PneumaticSlot::kNoPosition` | field | [service.md](service.md#pneumaticslot-knoposition) |
+| `PneumaticSlot::lastStepBound` | function | [service.md](service.md#pneumaticslot-laststepbound) |
+| `PneumaticSlot::PneumaticSlot` | function | [service.md](service.md#pneumaticslot-pneumaticslot) |
+| `PneumaticSlot::set` | function | [service.md](service.md#pneumaticslot-set) |
+| `PneumaticSpec` | struct | [spec.md](spec.md#struct-pneumaticspec) |
+| `PneumaticSpec::actuationTime` | field | [spec.md](spec.md#pneumaticspec-actuationtime) |
+| `PneumaticSpec::confirmWindow` | field | [spec.md](spec.md#pneumaticspec-confirmwindow) |
+| `PneumaticSpec::levelsFile` | field | [spec.md](spec.md#pneumaticspec-levelsfile) |
+| `PneumaticSpec::levelsLine` | field | [spec.md](spec.md#pneumaticspec-levelsline) |
+| `PneumaticSpec::levelsSource` | field | [spec.md](spec.md#pneumaticspec-levelssource) |
+| `PneumaticSpec::positionCount` | field | [spec.md](spec.md#pneumaticspec-positioncount) |
+| `PneumaticSpec::positions` | field | [spec.md](spec.md#pneumaticspec-positions) |
+| `PneumaticSpec::safe` | field | [spec.md](spec.md#pneumaticspec-safe) |
+| `PneumaticSpec::safeNamed` | field | [spec.md](spec.md#pneumaticspec-safenamed) |
+| `PneumaticSpec::start` | field | [spec.md](spec.md#pneumaticspec-start) |
+| `PneumaticSpec::startNamed` | field | [spec.md](spec.md#pneumaticspec-startnamed) |
+| `PortClass` | enum class | [boot_check.md](boot_check.md#enum-class-portclass) |
+| `PortClass::Missing` | enumerator | [boot_check.md](boot_check.md#portclass-missing) |
+| `PortClass::Present` | enumerator | [boot_check.md](boot_check.md#portclass-present) |
+| `PortClass::Swapped` | enumerator | [boot_check.md](boot_check.md#portclass-swapped) |
+| `portClassWord` | free function | [boot_check.md](boot_check.md#portclassword) |
+| `PortObservation` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-portobservation) |
+| `PortObservation::excluded` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-excluded) |
+| `PortObservation::port` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-port) |
+| `PortObservation::pulseLevelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pulselevelvolts) |
+| `PortObservation::pulseOthersRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pulseothersrad) |
+| `PortObservation::pulseShaftRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pulseshaftrad) |
+| `PortObservation::pulseYawRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pulseyawrad) |
+| `PortObservation::pushDeltaRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pushdeltarad) |
+| `PortObservation::pushTravelRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pushtravelrad) |
+| `PortObservation::side` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-side) |
+| `PortObservation::sign` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-sign) |
+| `PortObservation::verdict` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-verdict) |
+| `PortUse` | enum class | [robot_config.md](robot_config.md#enum-class-portuse) |
+| `PortUse::Camera` | enumerator | [robot_config.md](robot_config.md#portuse-camera) |
+| `PortUse::DriveLeft` | enumerator | [robot_config.md](robot_config.md#portuse-driveleft) |
+| `PortUse::DriveRight` | enumerator | [robot_config.md](robot_config.md#portuse-driveright) |
+| `PortUse::DriveWheel` | enumerator | [robot_config.md](robot_config.md#portuse-drivewheel) |
+| `PortUse::Free` | enumerator | [robot_config.md](robot_config.md#portuse-free) |
+| `PortUse::Gps` | enumerator | [robot_config.md](robot_config.md#portuse-gps) |
+| `PortUse::Imu` | enumerator | [robot_config.md](robot_config.md#portuse-imu) |
+| `PortUse::Mechanism` | enumerator | [robot_config.md](robot_config.md#portuse-mechanism) |
+| `PortUse::MechanismSensor` | enumerator | [robot_config.md](robot_config.md#portuse-mechanismsensor) |
+| `PortUse::PodForward` | enumerator | [robot_config.md](robot_config.md#portuse-podforward) |
+| `PortUse::PodLateral` | enumerator | [robot_config.md](robot_config.md#portuse-podlateral) |
+| `PortUse::WallSensor` | enumerator | [robot_config.md](robot_config.md#portuse-wallsensor) |
+| `portUseWord` | free function | [robot_config.md](robot_config.md#portuseword) |
 | `Pose2d` | class | [pose2d.md](pose2d.md#class-pose2d) |
 | `Pose2d::approxEqual` | function | [pose2d.md](pose2d.md#pose2d-approxequal) |
 | `Pose2d::heading` | function | [pose2d.md](pose2d.md#pose2d-heading) |
@@ -1224,6 +4006,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Pose2d::Pose2d (overload 2)` | function | [pose2d.md](pose2d.md#pose2d-pose2d-2) |
 | `Pose2d::x` | function | [pose2d.md](pose2d.md#pose2d-x) |
 | `Pose2d::y` | function | [pose2d.md](pose2d.md#pose2d-y) |
+| `PoseBound` | struct | [camera_geometry.md](camera_geometry.md#struct-posebound) |
+| `PoseBound::headingToleranceDeg` | field | [camera_geometry.md](camera_geometry.md#posebound-headingtolerancedeg) |
+| `PoseBound::pose` | field | [camera_geometry.md](camera_geometry.md#posebound-pose) |
+| `PoseBound::positionTolerance` | field | [camera_geometry.md](camera_geometry.md#posebound-positiontolerance) |
 | `PoseDeltaGuard` | class | [plausibility_guard.md](plausibility_guard.md#class-posedeltaguard) |
 | `PoseDeltaGuard::check` | function | [plausibility_guard.md](plausibility_guard.md#posedeltaguard-check) |
 | `PoseDeltaGuard::PoseDeltaGuard` | function | [plausibility_guard.md](plausibility_guard.md#posedeltaguard-posedeltaguard) |
@@ -1232,12 +4018,163 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PoseMotionOptions::captureHeadingAtLive` | field | [move_to_pose.md](move_to_pose.md#posemotionoptions-captureheadingatlive) |
 | `PoseMotionOptions::capturePoseAtLive` | field | [move_to_pose.md](move_to_pose.md#posemotionoptions-captureposeatlive) |
 | `PoseMotionOptions::holdFor` | field | [move_to_pose.md](move_to_pose.md#posemotionoptions-holdfor) |
+| `PoseMotionOptions::tankSteer` | field | [move_to_pose.md](move_to_pose.md#posemotionoptions-tanksteer) |
+| `position_a_lift_is_in_inches` | free function | [spec.md](spec.md#position_a_lift_is_in_inches) |
+| `position_a_lifts_shape_is_unset_give_it_spool_linkage_or_measured` | free function | [spec.md](spec.md#position_a_lifts_shape_is_unset_give_it_spool_linkage_or_measured) |
+| `position_a_lookup_table_needs_two_to_eight_points` | free function | [spec.md](spec.md#position_a_lookup_table_needs_two_to_eight_points) |
+| `position_a_preset_has_no_name` | free function | [spec.md](spec.md#position_a_preset_has_no_name) |
+| `position_a_preset_is_outside_the_travel_limits` | free function | [spec.md](spec.md#position_a_preset_is_outside_the_travel_limits) |
+| `position_a_rotary_mechanism_is_in_degrees` | free function | [spec.md](spec.md#position_a_rotary_mechanism_is_in_degrees) |
+| `position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor` | free function | [spec.md](spec.md#position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its_angle_sensor) |
+| `position_absolute_homing_needs_an_anglesensor_rotation_role` | free function | [spec.md](spec.md#position_absolute_homing_needs_an_anglesensor_rotation_role) |
+| `position_an_arm_needs_one_to_three_stages` | free function | [spec.md](spec.md#position_an_arm_needs_one_to_three_stages) |
+| `position_an_arms_travel_limits_reach_past_its_linkage_the_height_formula_has_no_inverse_there` | free function | [spec.md](spec.md#position_an_arms_travel_limits_reach_past_its_linkage_the_height_formula_has_no_inverse_there) |
+| `position_arm_length_must_be_more_than_zero` | free function | [spec.md](spec.md#position_arm_length_must_be_more_than_zero) |
+| `position_gearratio_must_be_more_than_zero` | free function | [spec.md](spec.md#position_gearratio_must_be_more_than_zero) |
+| `position_gravity_unset` | free function | [spec.md](spec.md#position_gravity_unset) |
+| `position_homing_by_switch_needs_a_homeswitch_role` | free function | [spec.md](spec.md#position_homing_by_switch_needs_a_homeswitch_role) |
+| `position_homing_method_unset` | free function | [spec.md](spec.md#position_homing_method_unset) |
+| `position_homing_needs_homevolts` | free function | [spec.md](spec.md#position_homing_needs_homevolts) |
+| `position_more_presets_than_fit` | free function | [spec.md](spec.md#position_more_presets_than_fit) |
+| `position_spool_diameter_must_be_more_than_zero` | free function | [spec.md](spec.md#position_spool_diameter_must_be_more_than_zero) |
+| `position_stall_homing_needs_its_stall_signature` | free function | [spec.md](spec.md#position_stall_homing_needs_its_stall_signature) |
+| `position_the_gravity_hold_must_be_within_12_volts_either_way` | free function | [spec.md](spec.md#position_the_gravity_hold_must_be_within_12_volts_either_way) |
+| `position_the_home_position_is_outside_the_travel_limits` | free function | [spec.md](spec.md#position_the_home_position_is_outside_the_travel_limits) |
+| `position_the_homing_push_must_be_within_12_volts_either_way` | free function | [spec.md](spec.md#position_the_homing_push_must_be_within_12_volts_either_way) |
+| `position_the_homing_push_points_away_from_its_home_end` | free function | [spec.md](spec.md#position_the_homing_push_points_away_from_its_home_end) |
+| `position_the_lookup_table_is_not_strictly_increasing` | free function | [spec.md](spec.md#position_the_lookup_table_is_not_strictly_increasing) |
+| `position_the_profile_needs_maxvelocity_and_maxacceleration_more_than_zero` | free function | [spec.md](spec.md#position_the_profile_needs_maxvelocity_and_maxacceleration_more_than_zero) |
+| `position_the_settle_time_must_not_be_negative` | free function | [spec.md](spec.md#position_the_settle_time_must_not_be_negative) |
+| `position_the_stall_signature_is_unset_a_held_mechanism_must_never_sit_at_stall_current` | free function | [spec.md](spec.md#position_the_stall_signature_is_unset_a_held_mechanism_must_never_sit_at_stall_current) |
+| `position_tolerance_must_be_more_than_zero` | free function | [spec.md](spec.md#position_tolerance_must_be_more_than_zero) |
+| `position_travel_limits_missing_or_min_at_least_max` | free function | [spec.md](spec.md#position_travel_limits_missing_or_min_at_least_max) |
+| `position_unhomedvolts_must_be_from_0_to_12` | free function | [spec.md](spec.md#position_unhomedvolts_must_be_from_0_to_12) |
+| `position_units_unset` | free function | [spec.md](spec.md#position_units_unset) |
+| `PositionGoal` | struct | [kinds.md](kinds.md#struct-positiongoal) |
+| `PositionGoal::computed` | field | [kinds.md](kinds.md#positiongoal-computed) |
+| `PositionGoal::mechanism` | field | [kinds.md](kinds.md#positiongoal-mechanism) |
+| `PositionGoal::mechanismName` | field | [kinds.md](kinds.md#positiongoal-mechanismname) |
+| `PositionGoal::presetName` | field | [kinds.md](kinds.md#positiongoal-presetname) |
+| `PositionGoal::units` | field | [kinds.md](kinds.md#positiongoal-units) |
+| `PositionGoal::value` | field | [kinds.md](kinds.md#positiongoal-value) |
+| `Positions` | struct | [kinds.md](kinds.md#struct-positions) |
+| `Positions::count` | field | [kinds.md](kinds.md#positions-count) |
+| `Positions::file` | field | [kinds.md](kinds.md#positions-file) |
+| `Positions::line` | field | [kinds.md](kinds.md#positions-line) |
+| `Positions::p` | field | [kinds.md](kinds.md#positions-p) |
+| `Positions::Positions` | function | [kinds.md](kinds.md#positions-positions) |
+| `Positions::Positions (overload 2)` | function | [kinds.md](kinds.md#positions-positions-2) |
+| `Positions::tooMany` | field | [kinds.md](kinds.md#positions-toomany) |
+| `PositionSlot` | class | [service.md](service.md#class-positionslot) |
+| `PositionSlot::checkHome` | function | [service.md](service.md#positionslot-checkhome) |
+| `PositionSlot::checkMoveTo` | function | [service.md](service.md#positionslot-checkmoveto) |
+| `PositionSlot::heldButtonMoving` | function | [service.md](service.md#positionslot-heldbuttonmoving) |
+| `PositionSlot::holdHere` | function | [service.md](service.md#positionslot-holdhere) |
+| `PositionSlot::holding` | function | [service.md](service.md#positionslot-holding) |
+| `PositionSlot::home` | function | [service.md](service.md#positionslot-home) |
+| `PositionSlot::homed` | function | [service.md](service.md#positionslot-homed) |
+| `PositionSlot::jog` | function | [service.md](service.md#positionslot-jog) |
+| `PositionSlot::jointDeg` | function | [service.md](service.md#positionslot-jointdeg) |
+| `PositionSlot::moveTo` | function | [service.md](service.md#positionslot-moveto) |
+| `PositionSlot::moveToPreset` | function | [service.md](service.md#positionslot-movetopreset) |
+| `PositionSlot::position` | function | [service.md](service.md#positionslot-position) |
+| `PositionSlot::PositionSlot` | function | [service.md](service.md#positionslot-positionslot) |
+| `PositionSlot::release` | function | [service.md](service.md#positionslot-release) |
+| `PositionSlot::softStops` | function | [service.md](service.md#positionslot-softstops) |
+| `PositionSlot::takesRange` | function | [service.md](service.md#positionslot-takesrange) |
+| `PositionSlot::target` | function | [service.md](service.md#positionslot-target) |
+| `PositionSpec` | struct | [spec.md](spec.md#struct-positionspec) |
+| `PositionSpec::absoluteSensorAtZeroDeg` | field | [spec.md](spec.md#positionspec-absolutesensoratzerodeg) |
+| `PositionSpec::armLengthIn` | field | [spec.md](spec.md#positionspec-armlengthin) |
+| `PositionSpec::armStages` | field | [spec.md](spec.md#positionspec-armstages) |
+| `PositionSpec::gearRatio` | field | [spec.md](spec.md#positionspec-gearratio) |
+| `PositionSpec::geometry` | field | [spec.md](spec.md#positionspec-geometry) |
+| `PositionSpec::gravity` | field | [spec.md](spec.md#positionspec-gravity) |
+| `PositionSpec::home` | field | [spec.md](spec.md#positionspec-home) |
+| `PositionSpec::homePosition` | field | [spec.md](spec.md#positionspec-homeposition) |
+| `PositionSpec::homeStall` | field | [spec.md](spec.md#positionspec-homestall) |
+| `PositionSpec::homeVolts` | field | [spec.md](spec.md#positionspec-homevolts) |
+| `PositionSpec::horizontalAt` | field | [spec.md](spec.md#positionspec-horizontalat) |
+| `PositionSpec::kA` | field | [spec.md](spec.md#positionspec-ka) |
+| `PositionSpec::kD` | field | [spec.md](spec.md#positionspec-kd) |
+| `PositionSpec::kG` | field | [spec.md](spec.md#positionspec-kg) |
+| `PositionSpec::kI` | field | [spec.md](spec.md#positionspec-ki) |
+| `PositionSpec::kP` | field | [spec.md](spec.md#positionspec-kp) |
+| `PositionSpec::kS` | field | [spec.md](spec.md#positionspec-ks) |
+| `PositionSpec::kV` | field | [spec.md](spec.md#positionspec-kv) |
+| `PositionSpec::maxAcceleration` | field | [spec.md](spec.md#positionspec-maxacceleration) |
+| `PositionSpec::maxPosition` | field | [spec.md](spec.md#positionspec-maxposition) |
+| `PositionSpec::maxVelocity` | field | [spec.md](spec.md#positionspec-maxvelocity) |
+| `PositionSpec::minPosition` | field | [spec.md](spec.md#positionspec-minposition) |
+| `PositionSpec::pivotHeightIn` | field | [spec.md](spec.md#positionspec-pivotheightin) |
+| `PositionSpec::presetCount` | field | [spec.md](spec.md#positionspec-presetcount) |
+| `PositionSpec::presets` | field | [spec.md](spec.md#positionspec-presets) |
+| `PositionSpec::settleTime` | field | [spec.md](spec.md#positionspec-settletime) |
+| `PositionSpec::spoolDiameterIn` | field | [spec.md](spec.md#positionspec-spooldiameterin) |
+| `PositionSpec::stall` | field | [spec.md](spec.md#positionspec-stall) |
+| `PositionSpec::table` | field | [spec.md](spec.md#positionspec-table) |
+| `PositionSpec::tablePoints` | field | [spec.md](spec.md#positionspec-tablepoints) |
+| `PositionSpec::tolerance` | field | [spec.md](spec.md#positionspec-tolerance) |
+| `PositionSpec::unhomedVolts` | field | [spec.md](spec.md#positionspec-unhomedvolts) |
+| `PositionSpec::units` | field | [spec.md](spec.md#positionspec-units) |
+| `positionStartingValues` | free function | [kinds.md](kinds.md#positionstartingvalues) |
+| `positionToAngleDeg` | free function | [spec.md](spec.md#positiontoangledeg) |
+| `PositionTuning` | struct | [kinds.md](kinds.md#struct-positiontuning) |
+| `PositionTuning::kA` | field | [kinds.md](kinds.md#positiontuning-ka) |
+| `PositionTuning::kD` | field | [kinds.md](kinds.md#positiontuning-kd) |
+| `PositionTuning::kI` | field | [kinds.md](kinds.md#positiontuning-ki) |
+| `PositionTuning::kP` | field | [kinds.md](kinds.md#positiontuning-kp) |
+| `PositionTuning::kS` | field | [kinds.md](kinds.md#positiontuning-ks) |
+| `PositionTuning::kV` | field | [kinds.md](kinds.md#positiontuning-kv) |
+| `PositionTuning::maxAcceleration` | field | [kinds.md](kinds.md#positiontuning-maxacceleration) |
+| `PositionTuning::maxSpeed` | field | [kinds.md](kinds.md#positiontuning-maxspeed) |
+| `PositionTuning::settle` | field | [kinds.md](kinds.md#positiontuning-settle) |
+| `PositionTuning::within` | field | [kinds.md](kinds.md#positiontuning-within) |
+| `PosixWrite` | struct | [pros-char_sink.md](pros-char_sink.md#struct-posixwrite) |
+| `PosixWrite::operator()` | function | [pros-char_sink.md](pros-char_sink.md#posixwrite-operator-call) |
+| `Posture` | enum class | [piece_finder.md](piece_finder.md#enum-class-posture) |
+| `Posture::Lying` | enumerator | [piece_finder.md](piece_finder.md#posture-lying) |
+| `Posture::OnFloor` | enumerator | [piece_finder.md](piece_finder.md#posture-onfloor) |
+| `Posture::Raised` | enumerator | [piece_finder.md](piece_finder.md#posture-raised) |
+| `Posture::Unsure` | enumerator | [piece_finder.md](piece_finder.md#posture-unsure) |
+| `postureWord` | free function | [piece_finder.md](piece_finder.md#postureword) |
+| `Power` | struct | [kinds.md](kinds.md#struct-power) |
+| `Power` | type alias | [kinds.md](kinds.md#power) |
 | `Power` | type alias | [quantity.md](quantity.md#power) |
+| `Power::cartridge` | field | [kinds.md](kinds.md#power-cartridge) |
+| `Power::currentCap` | field | [kinds.md](kinds.md#power-currentcap) |
+| `Power::maxVolts` | field | [kinds.md](kinds.md#power-maxvolts) |
+| `Power::motors` | field | [kinds.md](kinds.md#power-motors) |
+| `Power::name` | field | [kinds.md](kinds.md#power-name) |
+| `Power::operator[]` | function | [kinds.md](kinds.md#power-operator-index) |
+| `Power::pieceSensor` | field | [kinds.md](kinds.md#power-piecesensor) |
+| `Power::safe` | field | [kinds.md](kinds.md#power-safe) |
+| `Power::spec` | function | [kinds.md](kinds.md#power-spec) |
+| `Power::stall` | field | [kinds.md](kinds.md#power-stall) |
+| `power_maxvolts_is_not_in_above_0_and_at_most_12` | free function | [spec.md](spec.md#power_maxvolts_is_not_in_above_0_and_at_most_12) |
+| `PowerSlot` | class | [service.md](service.md#class-powerslot) |
+| `PowerSlot::checkRun` | function | [service.md](service.md#powerslot-checkrun) |
+| `PowerSlot::commandedVolts` | function | [service.md](service.md#powerslot-commandedvolts) |
+| `PowerSlot::drive` | function | [service.md](service.md#powerslot-drive) |
+| `PowerSlot::PowerSlot` | function | [service.md](service.md#powerslot-powerslot) |
+| `PowerSlot::run` | function | [service.md](service.md#powerslot-run) |
+| `PowerSlot::stop` | function | [service.md](service.md#powerslot-stop) |
+| `PowerSpec` | struct | [spec.md](spec.md#struct-powerspec) |
+| `PowerSpec::maxVolts` | field | [spec.md](spec.md#powerspec-maxvolts) |
+| `PowerSpec::stall` | field | [spec.md](spec.md#powerspec-stall) |
+| `preCheck` | free function | [wall_reset.md](wall_reset.md#precheck) |
 | `precondition_failed` | free function | [check.md](check.md#precondition_failed) |
 | `PreconditionError` | struct | [check.md](check.md#struct-preconditionerror) |
 | `PreconditionError::logic_error` | alias | [check.md](check.md#preconditionerror-logic_error) |
 | `PreconditionHandler` | type alias | [check.md](check.md#preconditionhandler) |
 | `preconditionHandler (overload 2)` | free function | [check.md](check.md#preconditionhandler-2) |
+| `preset` | free function | [driver_inputs.md](driver_inputs.md#preset) |
+| `Preset` | struct | [spec.md](spec.md#struct-preset) |
+| `preset (overload 2)` | free function | [driver_inputs.md](driver_inputs.md#preset-2) |
+| `preset (overload 3)` | free function | [driver_inputs.md](driver_inputs.md#preset-3) |
+| `preset (overload 4)` | type alias | [driver_inputs.md](driver_inputs.md#preset-4) |
+| `Preset::name` | field | [spec.md](spec.md#preset-name) |
+| `Preset::value` | field | [spec.md](spec.md#preset-value) |
 | `ProfileConstraints` | struct | [trapezoid_profile.md](trapezoid_profile.md#struct-profileconstraints) |
 | `ProfileConstraints::maxAcceleration` | field | [trapezoid_profile.md](trapezoid_profile.md#profileconstraints-maxacceleration) |
 | `ProfileConstraints::maxVelocity` | field | [trapezoid_profile.md](trapezoid_profile.md#profileconstraints-maxvelocity) |
@@ -1245,12 +4182,33 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProfileState::acceleration` | field | [trapezoid_profile.md](trapezoid_profile.md#profilestate-acceleration) |
 | `ProfileState::position` | field | [trapezoid_profile.md](trapezoid_profile.md#profilestate-position) |
 | `ProfileState::velocity` | field | [trapezoid_profile.md](trapezoid_profile.md#profilestate-velocity) |
+| `ProsAiVision` | class | [pros-ai_vision.md](pros-ai_vision.md#class-prosaivision) |
+| `ProsAiVision::configured` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-configured) |
+| `ProsAiVision::faultedReads` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-faultedreads) |
+| `ProsAiVision::kModeMask` | field | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-kmodemask) |
+| `ProsAiVision::kRetrySeconds` | field | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-kretryseconds) |
+| `ProsAiVision::kVerifySeconds` | field | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-kverifyseconds) |
+| `ProsAiVision::model` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-model) |
+| `ProsAiVision::modelProblem` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-modelproblem) |
+| `ProsAiVision::operator=` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-operator-eq) |
+| `ProsAiVision::operator= (overload 2)` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-operator-eq-2) |
+| `ProsAiVision::ProsAiVision` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-prosaivision) |
+| `ProsAiVision::ProsAiVision (overload 2)` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-prosaivision-2) |
+| `ProsAiVision::ProsAiVision (overload 3)` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-prosaivision-3) |
+| `ProsAiVision::read` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-read) |
+| `ProsAiVision::settings` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-settings) |
+| `ProsAiVision::settingsLost` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-settingslost) |
+| `ProsAiVision::setupProblem` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-setupproblem) |
+| `ProsAiVision::setups` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-setups) |
+| `ProsAiVision::status` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-status) |
+| `ProsAiVision::~ProsAiVision` | function | [pros-ai_vision.md](pros-ai_vision.md#prosaivision-destructor-prosaivision) |
 | `ProsBattery` | class | [pros-battery.md](pros-battery.md#class-prosbattery) |
 | `ProsBattery::capacity` | function | [pros-battery.md](pros-battery.md#prosbattery-capacity) |
 | `ProsBattery::current` | function | [pros-battery.md](pros-battery.md#prosbattery-current) |
 | `ProsBattery::faultedReads` | function | [pros-battery.md](pros-battery.md#prosbattery-faultedreads) |
 | `ProsBattery::voltage` | function | [pros-battery.md](pros-battery.md#prosbattery-voltage) |
 | `ProsBlockSink` | class | [pros-block_sink.md](pros-block_sink.md#class-prosblocksink) |
+| `ProsBlockSink::appendOpen` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-appendopen) |
 | `ProsBlockSink::flush` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-flush) |
 | `ProsBlockSink::isOpen` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-isopen) |
 | `ProsBlockSink::operator=` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-operator-eq) |
@@ -1259,10 +4217,35 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsBlockSink::ProsBlockSink` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-prosblocksink) |
 | `ProsBlockSink::ProsBlockSink (overload 2)` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-prosblocksink-2) |
 | `ProsBlockSink::ProsBlockSink (overload 3)` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-prosblocksink-3) |
+| `ProsBlockSink::ProsBlockSink (overload 4)` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-prosblocksink-4) |
 | `ProsBlockSink::write` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-write) |
 | `ProsBlockSink::~ProsBlockSink` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-destructor-prosblocksink) |
+| `ProsBlockSource` | class | [pros-block_source.md](pros-block_source.md#class-prosblocksource) |
+| `ProsBlockSource::isOpen` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-isopen) |
+| `ProsBlockSource::operator=` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-operator-eq) |
+| `ProsBlockSource::operator= (overload 2)` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-operator-eq-2) |
+| `ProsBlockSource::path` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-path) |
+| `ProsBlockSource::ProsBlockSource` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-prosblocksource) |
+| `ProsBlockSource::ProsBlockSource (overload 2)` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-prosblocksource-2) |
+| `ProsBlockSource::ProsBlockSource (overload 3)` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-prosblocksource-3) |
+| `ProsBlockSource::readAll` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-readall) |
+| `ProsBlockSource::~ProsBlockSource` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-destructor-prosblocksource) |
+| `ProsBrainScreen` | class | [pros-brain_screen.md](pros-brain_screen.md#class-prosbrainscreen) |
+| `ProsBrainScreen::eraseAll` | function | [pros-brain_screen.md](pros-brain_screen.md#prosbrainscreen-eraseall) |
+| `ProsBrainScreen::eraseRect` | function | [pros-brain_screen.md](pros-brain_screen.md#prosbrainscreen-eraserect) |
+| `ProsBrainScreen::fillRect` | function | [pros-brain_screen.md](pros-brain_screen.md#prosbrainscreen-fillrect) |
+| `ProsBrainScreen::outlineRect` | function | [pros-brain_screen.md](pros-brain_screen.md#prosbrainscreen-outlinerect) |
+| `ProsBrainScreen::print` | function | [pros-brain_screen.md](pros-brain_screen.md#prosbrainscreen-print) |
+| `ProsBrainScreen::prints` | function | [pros-brain_screen.md](pros-brain_screen.md#prosbrainscreen-prints) |
+| `ProsBrainScreen::touch` | function | [pros-brain_screen.md](pros-brain_screen.md#prosbrainscreen-touch) |
+| `ProsCalibrateIo` | class | [pros-calibrate.md](pros-calibrate.md#class-proscalibrateio) |
+| `ProsCalibrateIo::competitionStatus` | function | [pros-calibrate.md](pros-calibrate.md#proscalibrateio-competitionstatus) |
+| `ProsCalibrateIo::delayMs` | function | [pros-calibrate.md](pros-calibrate.md#proscalibrateio-delayms) |
+| `ProsCalibrateIo::line` | function | [pros-calibrate.md](pros-calibrate.md#proscalibrateio-line) |
+| `ProsCalibrateIo::readShaftDegrees` | function | [pros-calibrate.md](pros-calibrate.md#proscalibrateio-readshaftdegrees) |
 | `ProsCharSink` | class | [pros-char_sink.md](pros-char_sink.md#class-proscharsink) |
 | `ProsCharSink::ProsCharSink` | function | [pros-char_sink.md](pros-char_sink.md#proscharsink-proscharsink) |
+| `ProsCharSink::ProsCharSink (overload 2)` | function | [pros-char_sink.md](pros-char_sink.md#proscharsink-proscharsink-2) |
 | `ProsCharSink::write` | function | [pros-char_sink.md](pros-char_sink.md#proscharsink-write) |
 | `ProsClock` | class | [pros-clock.md](pros-clock.md#class-prosclock) |
 | `ProsClock::now` | function | [pros-clock.md](pros-clock.md#prosclock-now) |
@@ -1271,6 +4254,42 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsController::isConnected` | function | [pros-controller.md](pros-controller.md#proscontroller-isconnected) |
 | `ProsController::pressed` | function | [pros-controller.md](pros-controller.md#proscontroller-pressed) |
 | `ProsController::ProsController` | function | [pros-controller.md](pros-controller.md#proscontroller-proscontroller) |
+| `ProsDeviceProvider` | class | [pros-device_provider.md](pros-device_provider.md#class-prosdeviceprovider) |
+| `ProsDeviceProvider::aiVision` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-aivision) |
+| `ProsDeviceProvider::battery` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-battery) |
+| `ProsDeviceProvider::clock` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-clock) |
+| `ProsDeviceProvider::currentLimit` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-currentlimit) |
+| `ProsDeviceProvider::digitalIn` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-digitalin) |
+| `ProsDeviceProvider::digitalOut` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-digitalout) |
+| `ProsDeviceProvider::distance` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-distance) |
+| `ProsDeviceProvider::gps` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-gps) |
+| `ProsDeviceProvider::imu` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-imu) |
+| `ProsDeviceProvider::kRefusalBytes` | field | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-krefusalbytes) |
+| `ProsDeviceProvider::kSlots` | field | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-kslots) |
+| `ProsDeviceProvider::lastRefusal` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-lastrefusal) |
+| `ProsDeviceProvider::lineReadFaults` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-linereadfaults) |
+| `ProsDeviceProvider::motor` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-motor) |
+| `ProsDeviceProvider::operator=` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-operator-eq) |
+| `ProsDeviceProvider::operator= (overload 2)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-operator-eq-2) |
+| `ProsDeviceProvider::optical` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-optical) |
+| `ProsDeviceProvider::pacer` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-pacer) |
+| `ProsDeviceProvider::ProsDeviceProvider` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider) |
+| `ProsDeviceProvider::ProsDeviceProvider (overload 2)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-2) |
+| `ProsDeviceProvider::ProsDeviceProvider (overload 3)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-3) |
+| `ProsDeviceProvider::ProsDeviceProvider (overload 4)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-4) |
+| `ProsDeviceProvider::ProsDeviceProvider (overload 5)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-5) |
+| `ProsDeviceProvider::readFaults` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-readfaults) |
+| `ProsDeviceProvider::rotation` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-rotation) |
+| `ProsDeviceProvider::serialCopyAppendOpen` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-serialcopyappendopen) |
+| `ProsDeviceProvider::serialCopyDroppedLines` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-serialcopydroppedlines) |
+| `ProsDeviceProvider::serialCopyOpen` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-serialcopyopen) |
+| `ProsDeviceProvider::serialCopyPath` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-serialcopypath) |
+| `ProsDeviceProvider::telemetry` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-telemetry) |
+| `ProsDeviceProvider::~ProsDeviceProvider` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-destructor-prosdeviceprovider) |
+| `ProsDeviceRegistry` | class | [pros-device_registry.md](pros-device_registry.md#class-prosdeviceregistry) |
+| `ProsDeviceRegistry::kindOf` | function | [pros-device_registry.md](pros-device_registry.md#prosdeviceregistry-kindof) |
+| `ProsDeviceRegistry::pluggedKind` | function | [pros-device_registry.md](pros-device_registry.md#prosdeviceregistry-pluggedkind) |
+| `ProsDeviceRegistry::ProsDeviceRegistry` | function | [pros-device_registry.md](pros-device_registry.md#prosdeviceregistry-prosdeviceregistry) |
 | `ProsDigitalIn` | class | [pros-digital_in.md](pros-digital_in.md#class-prosdigitalin) |
 | `ProsDigitalIn::faultedReads` | function | [pros-digital_in.md](pros-digital_in.md#prosdigitalin-faultedreads) |
 | `ProsDigitalIn::ProsDigitalIn` | function | [pros-digital_in.md](pros-digital_in.md#prosdigitalin-prosdigitalin) |
@@ -1288,6 +4307,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsDistance::distance` | function | [pros-distance.md](pros-distance.md#prosdistance-distance) |
 | `ProsDistance::faultedReads` | function | [pros-distance.md](pros-distance.md#prosdistance-faultedreads) |
 | `ProsDistance::ProsDistance` | function | [pros-distance.md](pros-distance.md#prosdistance-prosdistance) |
+| `ProsFileMode` | enum class | [pros-block_sink.md](pros-block_sink.md#enum-class-prosfilemode) |
+| `ProsFileMode::Append` | enumerator | [pros-block_sink.md](pros-block_sink.md#prosfilemode-append) |
+| `ProsFileMode::Truncate` | enumerator | [pros-block_sink.md](pros-block_sink.md#prosfilemode-truncate) |
+| `ProsFileStore` | class | [pros-file_store.md](pros-file_store.md#class-prosfilestore) |
+| `ProsFileStore::cardPresent` | function | [pros-file_store.md](pros-file_store.md#prosfilestore-cardpresent) |
+| `ProsFileStore::ProsFileStore` | function | [pros-file_store.md](pros-file_store.md#prosfilestore-prosfilestore) |
+| `ProsFileStore::ProsFileStore (overload 2)` | function | [pros-file_store.md](pros-file_store.md#prosfilestore-prosfilestore-2) |
+| `ProsFileStore::read` | function | [pros-file_store.md](pros-file_store.md#prosfilestore-read) |
+| `ProsFileStore::replace` | function | [pros-file_store.md](pros-file_store.md#prosfilestore-replace) |
 | `ProsGps` | class | [pros-gps.md](pros-gps.md#class-prosgps) |
 | `ProsGps::faultedReads` | function | [pros-gps.md](pros-gps.md#prosgps-faultedreads) |
 | `ProsGps::hasFix` | function | [pros-gps.md](pros-gps.md#prosgps-hasfix) |
@@ -1299,6 +4327,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsImu::faultedReads` | function | [pros-imu.md](pros-imu.md#prosimu-faultedreads) |
 | `ProsImu::heading` | function | [pros-imu.md](pros-imu.md#prosimu-heading) |
 | `ProsImu::isReady` | function | [pros-imu.md](pros-imu.md#prosimu-isready) |
+| `ProsImu::kRateHoldUs` | field | [pros-imu.md](pros-imu.md#prosimu-krateholdus) |
 | `ProsImu::pitch` | function | [pros-imu.md](pros-imu.md#prosimu-pitch) |
 | `ProsImu::ProsImu` | function | [pros-imu.md](pros-imu.md#prosimu-prosimu) |
 | `ProsImu::roll` | function | [pros-imu.md](pros-imu.md#prosimu-roll) |
@@ -1310,10 +4339,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsMotor::brakeMode` | function | [pros-motor.md](pros-motor.md#prosmotor-brakemode) |
 | `ProsMotor::commandedVoltage` | function | [pros-motor.md](pros-motor.md#prosmotor-commandedvoltage) |
 | `ProsMotor::current` | function | [pros-motor.md](pros-motor.md#prosmotor-current) |
+| `ProsMotor::currentLimit` | function | [pros-motor.md](pros-motor.md#prosmotor-currentlimit) |
 | `ProsMotor::faultedReads` | function | [pros-motor.md](pros-motor.md#prosmotor-faultedreads) |
 | `ProsMotor::position` | function | [pros-motor.md](pros-motor.md#prosmotor-position) |
 | `ProsMotor::ProsMotor` | function | [pros-motor.md](pros-motor.md#prosmotor-prosmotor) |
 | `ProsMotor::setBrakeMode` | function | [pros-motor.md](pros-motor.md#prosmotor-setbrakemode) |
+| `ProsMotor::setCurrentLimit` | function | [pros-motor.md](pros-motor.md#prosmotor-setcurrentlimit) |
 | `ProsMotor::setVoltage` | function | [pros-motor.md](pros-motor.md#prosmotor-setvoltage) |
 | `ProsMotor::temperature` | function | [pros-motor.md](pros-motor.md#prosmotor-temperature) |
 | `ProsMotor::velocity` | function | [pros-motor.md](pros-motor.md#prosmotor-velocity) |
@@ -1332,11 +4363,56 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsTickPacer` | class | [pros-tick_pacer.md](pros-tick_pacer.md#class-prostickpacer) |
 | `ProsTickPacer::kTickMs` | field | [pros-tick_pacer.md](pros-tick_pacer.md#prostickpacer-ktickms) |
 | `ProsTickPacer::pace` | function | [pros-tick_pacer.md](pros-tick_pacer.md#prostickpacer-pace) |
+| `ProsTuneIo` | class | [pros-tune.md](pros-tune.md#class-prostuneio) |
+| `ProsTuneIo::competitionStatus` | function | [pros-tune.md](pros-tune.md#prostuneio-competitionstatus) |
+| `ProsTuneShell` | class | [pros-tune.md](pros-tune.md#class-prostuneshell) |
+| `ProsTuneShell::devices` | function | [pros-tune.md](pros-tune.md#prostuneshell-devices) |
+| `ProsTuneShell::operator=` | function | [pros-tune.md](pros-tune.md#prostuneshell-operator-eq) |
+| `ProsTuneShell::operator= (overload 2)` | function | [pros-tune.md](pros-tune.md#prostuneshell-operator-eq-2) |
+| `ProsTuneShell::program` | function | [pros-tune.md](pros-tune.md#prostuneshell-program) |
+| `ProsTuneShell::ProsTuneShell` | function | [pros-tune.md](pros-tune.md#prostuneshell-prostuneshell) |
+| `ProsTuneShell::ProsTuneShell (overload 2)` | function | [pros-tune.md](pros-tune.md#prostuneshell-prostuneshell-2) |
+| `ProsTuneShell::ProsTuneShell (overload 3)` | function | [pros-tune.md](pros-tune.md#prostuneshell-prostuneshell-3) |
+| `ProsTuneShell::~ProsTuneShell` | function | [pros-tune.md](pros-tune.md#prostuneshell-destructor-prostuneshell) |
+| `ProtectionMode` | enum class | [drive_protection.md](drive_protection.md#enum-class-protectionmode) |
+| `ProtectionMode::Cut` | enumerator | [drive_protection.md](drive_protection.md#protectionmode-cut) |
+| `ProtectionMode::Degraded` | enumerator | [drive_protection.md](drive_protection.md#protectionmode-degraded) |
+| `ProtectionMode::Driving` | enumerator | [drive_protection.md](drive_protection.md#protectionmode-driving) |
+| `ProtectionMode::Refused` | enumerator | [drive_protection.md](drive_protection.md#protectionmode-refused) |
+| `PulseRecord` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-pulserecord) |
+| `PulseRecord::levelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-levelvolts) |
+| `PulseRecord::ordinal` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-ordinal) |
+| `PulseRecord::othersMaxRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-othersmaxrad) |
+| `PulseRecord::ownRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-ownrad) |
+| `PulseRecord::port` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-port) |
+| `PulseRecord::verdict` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-verdict) |
+| `PulseRecord::yawRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-yawrad) |
+| `PulseVerdict` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-pulseverdict) |
+| `PulseVerdict::Contradiction` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-contradiction) |
+| `PulseVerdict::Decoupled` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-decoupled) |
+| `PulseVerdict::Left` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-left) |
+| `PulseVerdict::None` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-none) |
+| `PulseVerdict::Right` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-right) |
+| `PulseVerdict::Rolled` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-rolled) |
+| `PulseVerdict::Still` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-still) |
+| `PulseVerdict::Weak` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-weak) |
+| `pulseVerdictWord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdictword) |
+| `PutRecord` | struct | [record_store.md](record_store.md#struct-putrecord) |
+| `PutRecord::attempted` | field | [record_store.md](record_store.md#putrecord-attempted) |
+| `PutRecord::readCount` | field | [record_store.md](record_store.md#putrecord-readcount) |
+| `PutRecord::readOpened` | field | [record_store.md](record_store.md#putrecord-readopened) |
+| `PutRecord::reported` | field | [record_store.md](record_store.md#putrecord-reported) |
+| `PutRecord::verified` | field | [record_store.md](record_store.md#putrecord-verified) |
 
 ## Q
 
 | Name | Kind | Page |
 |---|---|---|
+| `QuadrantColour` | enum class | [override_elements.md](override_elements.md#enum-class-quadrantcolour) |
+| `quadrantColour` | free function | [override_elements.md](override_elements.md#quadrantcolour) |
+| `QuadrantColour::Blue` | enumerator | [override_elements.md](override_elements.md#quadrantcolour-blue) |
+| `QuadrantColour::Red` | enumerator | [override_elements.md](override_elements.md#quadrantcolour-red) |
+| `QuadrantColour::Unset` | enumerator | [override_elements.md](override_elements.md#quadrantcolour-unset) |
 | `Quantity` | class | [quantity.md](quantity.md#class-quantity) |
 | `Quantity::operator*` | function | [quantity.md](quantity.md#quantity-operator-star) |
 | `Quantity::operator* (overload 2)` | function | [quantity.md](quantity.md#quantity-operator-star-2) |
@@ -1367,6 +4443,34 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RateLimitedSink::RateLimitedSink` | function | [rate_limit_sink.md](rate_limit_sink.md#ratelimitedsink-ratelimitedsink) |
 | `RateLimitedSink::summarize` | function | [rate_limit_sink.md](rate_limit_sink.md#ratelimitedsink-summarize) |
 | `RateLimitedSink::wantsRecord` | function | [rate_limit_sink.md](rate_limit_sink.md#ratelimitedsink-wantsrecord) |
+| `ReaderCounters` | struct | [shul2_reader.md](shul2_reader.md#struct-readercounters) |
+| `ReaderCounters::bytesSkipped` | field | [shul2_reader.md](shul2_reader.md#readercounters-bytesskipped) |
+| `ReaderCounters::crcFailures` | field | [shul2_reader.md](shul2_reader.md#readercounters-crcfailures) |
+| `ReaderCounters::endDisagreements` | field | [shul2_reader.md](shul2_reader.md#readercounters-enddisagreements) |
+| `ReaderCounters::extensionBytesIgnored` | field | [shul2_reader.md](shul2_reader.md#readercounters-extensionbytesignored) |
+| `ReaderCounters::framesDelivered` | field | [shul2_reader.md](shul2_reader.md#readercounters-framesdelivered) |
+| `ReaderCounters::framesInRefusedSessions` | field | [shul2_reader.md](shul2_reader.md#readercounters-framesinrefusedsessions) |
+| `ReaderCounters::framesOutsideSession` | field | [shul2_reader.md](shul2_reader.md#readercounters-framesoutsidesession) |
+| `ReaderCounters::framesVerified` | field | [shul2_reader.md](shul2_reader.md#readercounters-framesverified) |
+| `ReaderCounters::helloMismatches` | field | [shul2_reader.md](shul2_reader.md#readercounters-hellomismatches) |
+| `ReaderCounters::helloRepeats` | field | [shul2_reader.md](shul2_reader.md#readercounters-hellorepeats) |
+| `ReaderCounters::lateJoins` | field | [shul2_reader.md](shul2_reader.md#readercounters-latejoins) |
+| `ReaderCounters::lengthOverruns` | field | [shul2_reader.md](shul2_reader.md#readercounters-lengthoverruns) |
+| `ReaderCounters::linkLostFrames` | field | [shul2_reader.md](shul2_reader.md#readercounters-linklostframes) |
+| `ReaderCounters::lostFrames` | field | [shul2_reader.md](shul2_reader.md#readercounters-lostframes) |
+| `ReaderCounters::refusedSessions` | field | [shul2_reader.md](shul2_reader.md#readercounters-refusedsessions) |
+| `ReaderCounters::sessions` | field | [shul2_reader.md](shul2_reader.md#readercounters-sessions) |
+| `ReaderCounters::sessionsEnded` | field | [shul2_reader.md](shul2_reader.md#readercounters-sessionsended) |
+| `ReaderCounters::sessionsLinkLossUnknown` | field | [shul2_reader.md](shul2_reader.md#readercounters-sessionslinklossunknown) |
+| `ReaderCounters::staleFrames` | field | [shul2_reader.md](shul2_reader.md#readercounters-staleframes) |
+| `ReaderCounters::truncated` | field | [shul2_reader.md](shul2_reader.md#readercounters-truncated) |
+| `ReaderCounters::truncatedAt` | field | [shul2_reader.md](shul2_reader.md#readercounters-truncatedat) |
+| `ReaderCounters::unknownTypeSkipped` | field | [shul2_reader.md](shul2_reader.md#readercounters-unknowntypeskipped) |
+| `ReaderCounters::wrongWidthSkipped` | field | [shul2_reader.md](shul2_reader.md#readercounters-wrongwidthskipped) |
+| `ReaderProfile` | struct | [shul2_format.md](shul2_format.md#struct-readerprofile) |
+| `ReaderProfile::rows` | field | [shul2_format.md](shul2_format.md#readerprofile-rows) |
+| `ReaderProfile::versionMajor` | field | [shul2_format.md](shul2_format.md#readerprofile-versionmajor) |
+| `readingAccuracy` | free function | [wall_reset.md](wall_reset.md#readingaccuracy) |
 | `ReadStatus` | enum class | [blackbox_reader.md](blackbox_reader.md#enum-class-readstatus) |
 | `ReadStatus::BadMagic` | enumerator | [blackbox_reader.md](blackbox_reader.md#readstatus-badmagic) |
 | `ReadStatus::Empty` | enumerator | [blackbox_reader.md](blackbox_reader.md#readstatus-empty) |
@@ -1375,9 +4479,265 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ReadStatus::Ok` | enumerator | [blackbox_reader.md](blackbox_reader.md#readstatus-ok) |
 | `ReadStatus::UnsupportedVersion` | enumerator | [blackbox_reader.md](blackbox_reader.md#readstatus-unsupportedversion) |
 | `readStatusName` | free function | [blackbox_reader.md](blackbox_reader.md#readstatusname) |
+| `RecordFileRead` | struct | [record_store.md](record_store.md#struct-recordfileread) |
+| `RecordFileRead::count` | field | [record_store.md](record_store.md#recordfileread-count) |
+| `RecordFileRead::decoded` | field | [record_store.md](record_store.md#recordfileread-decoded) |
+| `RecordFileRead::opened` | field | [record_store.md](record_store.md#recordfileread-opened) |
+| `RecordFileRead::path` | field | [record_store.md](record_store.md#recordfileread-path) |
+| `RecordFileRead::tried` | field | [record_store.md](record_store.md#recordfileread-tried) |
+| `RecordFileRead::why` | field | [record_store.md](record_store.md#recordfileread-why) |
 | `recoverFinite` | free function | [finite_guard.md](finite_guard.md#recoverfinite) |
 | `recoverFinitePose` | free function | [finite_guard.md](finite_guard.md#recoverfinitepose) |
 | `recoverWheelVoltage` | free function | [plausibility_guard.md](plausibility_guard.md#recoverwheelvoltage) |
+| `Rect` | struct | [touch_panel.md](touch_panel.md#struct-rect) |
+| `Rect::operator==` | function | [touch_panel.md](touch_panel.md#rect-operator-eq-eq) |
+| `Rect::x0` | field | [touch_panel.md](touch_panel.md#rect-x0) |
+| `Rect::x1` | field | [touch_panel.md](touch_panel.md#rect-x1) |
+| `Rect::y0` | field | [touch_panel.md](touch_panel.md#rect-y0) |
+| `Rect::y1` | field | [touch_panel.md](touch_panel.md#rect-y1) |
+| `Red` | constant | [kinds.md](kinds.md#red) |
+| `Refusal` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-refusal) |
+| `Refusal` | enum class | [spec.md](spec.md#enum-class-refusal) |
+| `Refusal::Aborted` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-aborted) |
+| `Refusal::AbsoluteHomingTheSensorSReadingAtZeroMustBeIn0360` | enumerator | [spec.md](spec.md#refusal-absolutehomingthesensorsreadingatzeromustbein0360) |
+| `Refusal::ACurrentCapMustBeAbove0AndAtMost25A` | enumerator | [spec.md](spec.md#refusal-acurrentcapmustbeabove0andatmost25a) |
+| `Refusal::ACurrentCapMustBeAtLeastOneMilliamp` | enumerator | [spec.md](spec.md#refusal-acurrentcapmustbeatleastonemilliamp) |
+| `Refusal::ADistancePieceSensorNeedsItsSeesWithinDistance0` | enumerator | [spec.md](spec.md#refusal-adistancepiecesensorneedsitsseeswithindistance0) |
+| `Refusal::AHomeSwitchRoleOnAMechanismThatIsNotPosition` | enumerator | [spec.md](spec.md#refusal-ahomeswitchroleonamechanismthatisnotposition) |
+| `Refusal::AMechanismHasNoName` | enumerator | [spec.md](spec.md#refusal-amechanismhasnoname) |
+| `Refusal::AMechanismNameDoesNotFit23Characters` | enumerator | [spec.md](spec.md#refusal-amechanismnamedoesnotfit23characters) |
+| `Refusal::AMechanismSKindIsUNSET` | enumerator | [spec.md](spec.md#refusal-amechanismskindisunset) |
+| `Refusal::AMotorMechanismHas3WireLineRolesMakeTwoMechanisms` | enumerator | [spec.md](spec.md#refusal-amotormechanismhas3wirelinerolesmaketwomechanisms) |
+| `Refusal::AMotorMechanismNeeds14MotorRoles` | enumerator | [spec.md](spec.md#refusal-amotormechanismneeds14motorroles) |
+| `Refusal::AMotorMechanismSCartridgeIsUNSET` | enumerator | [spec.md](spec.md#refusal-amotormechanismscartridgeisunset) |
+| `Refusal::AMotorMechanismSSafeBrakeModeIsUNSET` | enumerator | [spec.md](spec.md#refusal-amotormechanismssafebrakemodeisunset) |
+| `Refusal::AnAngleSensorRoleOnAMechanismThatIsNotPositionOrSpeed` | enumerator | [spec.md](spec.md#refusal-ananglesensorroleonamechanismthatisnotpositionorspeed) |
+| `Refusal::AnOpticalPieceSensorNeedsItsProximityThresholdIn01` | enumerator | [spec.md](spec.md#refusal-anopticalpiecesensorneedsitsproximitythresholdin01) |
+| `Refusal::APieceSensorCannotBeARotationSensor` | enumerator | [spec.md](spec.md#refusal-apiecesensorcannotbearotationsensor) |
+| `Refusal::APneumaticMechanismHasMotorRoles` | enumerator | [spec.md](spec.md#refusal-apneumaticmechanismhasmotorroles) |
+| `Refusal::APneumaticMechanismNeeds12LineRoles` | enumerator | [spec.md](spec.md#refusal-apneumaticmechanismneeds12lineroles) |
+| `Refusal::APresetOrPositionNameDoesNotFit15Characters` | enumerator | [spec.md](spec.md#refusal-apresetorpositionnamedoesnotfit15characters) |
+| `Refusal::AStallSignatureMustBeBelowTheCurrentCap` | enumerator | [spec.md](spec.md#refusal-astallsignaturemustbebelowthecurrentcap) |
+| `Refusal::AStallSignatureNeedsAmpsAbove0` | enumerator | [spec.md](spec.md#refusal-astallsignatureneedsampsabove0) |
+| `Refusal::AStallSignatureNeedsBelowMotorRpmAbove0` | enumerator | [spec.md](spec.md#refusal-astallsignatureneedsbelowmotorrpmabove0) |
+| `Refusal::AStallSignatureNeedsLastingAbove0` | enumerator | [spec.md](spec.md#refusal-astallsignatureneedslastingabove0) |
+| `Refusal::AStallSignatureSAmpsMustBeBelowTheMotorS25ACurrentLimit` | enumerator | [spec.md](spec.md#refusal-astallsignaturesampsmustbebelowthemotors25acurrentlimit) |
+| `Refusal::ImuNotReady` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-imunotready) |
+| `Refusal::InvalidDescription` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-invaliddescription) |
+| `Refusal::MissedTick` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-missedtick) |
+| `Refusal::NonDriveMoved` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-nondrivemoved) |
+| `Refusal::None` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-none) |
+| `Refusal::None` | enumerator | [spec.md](spec.md#refusal-none) |
+| `Refusal::OneSided` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-onesided) |
+| `Refusal::OutOfOrder` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-outoforder) |
+| `Refusal::Pneumatic2Or3Positions` | enumerator | [spec.md](spec.md#refusal-pneumatic2or3positions) |
+| `Refusal::PneumaticActuationTimeMustBe0` | enumerator | [spec.md](spec.md#refusal-pneumaticactuationtimemustbe0) |
+| `Refusal::PneumaticAPositionHasNoName` | enumerator | [spec.md](spec.md#refusal-pneumaticapositionhasnoname) |
+| `Refusal::PneumaticItsSafeNamesNoneOfItsPositions` | enumerator | [spec.md](spec.md#refusal-pneumaticitssafenamesnoneofitspositions) |
+| `Refusal::PneumaticItsStartNamesNoneOfItsPositions` | enumerator | [spec.md](spec.md#refusal-pneumaticitsstartnamesnoneofitspositions) |
+| `Refusal::PneumaticStartSafeIsNotOneOfItsPositions` | enumerator | [spec.md](spec.md#refusal-pneumaticstartsafeisnotoneofitspositions) |
+| `Refusal::PneumaticTheConfirmWindowIsNegative` | enumerator | [spec.md](spec.md#refusal-pneumatictheconfirmwindowisnegative) |
+| `Refusal::PneumaticTwoPositionsHaveTheSameLineLevels` | enumerator | [spec.md](spec.md#refusal-pneumatictwopositionshavethesamelinelevels) |
+| `Refusal::PositionAbsoluteHomingNeedsAnAngleSensorRotationRole` | enumerator | [spec.md](spec.md#refusal-positionabsolutehomingneedsananglesensorrotationrole) |
+| `Refusal::PositionAbsoluteHomingTravelSpansAWholeSensorTurn` | enumerator | [spec.md](spec.md#refusal-positionabsolutehomingtravelspansawholesensorturn) |
+| `Refusal::PositionALiftIsInInches` | enumerator | [spec.md](spec.md#refusal-positionaliftisininches) |
+| `Refusal::PositionALookupTableNeeds28Points` | enumerator | [spec.md](spec.md#refusal-positionalookuptableneeds28points) |
+| `Refusal::PositionAnArmNeeds13Stages` | enumerator | [spec.md](spec.md#refusal-positionanarmneeds13stages) |
+| `Refusal::PositionAnArmSTravelLimitsReachPastItsLinkageTheHeightFormul` | enumerator | [spec.md](spec.md#refusal-positionanarmstravellimitsreachpastitslinkagetheheightformul) |
+| `Refusal::PositionAPresetHasNoName` | enumerator | [spec.md](spec.md#refusal-positionapresethasnoname) |
+| `Refusal::PositionAPresetIsOutsideTheTravelLimits` | enumerator | [spec.md](spec.md#refusal-positionapresetisoutsidethetravellimits) |
+| `Refusal::PositionArmLengthMustBe0` | enumerator | [spec.md](spec.md#refusal-positionarmlengthmustbe0) |
+| `Refusal::PositionARotaryMechanismIsInDegrees` | enumerator | [spec.md](spec.md#refusal-positionarotarymechanismisindegrees) |
+| `Refusal::PositionGearRatioMustBe0` | enumerator | [spec.md](spec.md#refusal-positiongearratiomustbe0) |
+| `Refusal::PositionGeometryUNSET` | enumerator | [spec.md](spec.md#refusal-positiongeometryunset) |
+| `Refusal::PositionGravityUNSET` | enumerator | [spec.md](spec.md#refusal-positiongravityunset) |
+| `Refusal::PositionHomingBySwitchNeedsAHomeSwitchRole` | enumerator | [spec.md](spec.md#refusal-positionhomingbyswitchneedsahomeswitchrole) |
+| `Refusal::PositionHomingMethodUNSET` | enumerator | [spec.md](spec.md#refusal-positionhomingmethodunset) |
+| `Refusal::PositionHomingNeedsHomeVolts` | enumerator | [spec.md](spec.md#refusal-positionhomingneedshomevolts) |
+| `Refusal::PositionHomingPushesAwayFromItsHomeEnd` | enumerator | [spec.md](spec.md#refusal-positionhomingpushesawayfromitshomeend) |
+| `Refusal::PositionMorePresetsThanFit` | enumerator | [spec.md](spec.md#refusal-positionmorepresetsthanfit) |
+| `Refusal::PositionSpoolDiameterMustBe0` | enumerator | [spec.md](spec.md#refusal-positionspooldiametermustbe0) |
+| `Refusal::PositionStallHomingNeedsItsStallSignature` | enumerator | [spec.md](spec.md#refusal-positionstallhomingneedsitsstallsignature) |
+| `Refusal::PositionTheGravityHoldIsPast12Volts` | enumerator | [spec.md](spec.md#refusal-positionthegravityholdispast12volts) |
+| `Refusal::PositionTheHomePositionIsOutsideTheTravelLimits` | enumerator | [spec.md](spec.md#refusal-positionthehomepositionisoutsidethetravellimits) |
+| `Refusal::PositionTheHomingPushIsPast12Volts` | enumerator | [spec.md](spec.md#refusal-positionthehomingpushispast12volts) |
+| `Refusal::PositionTheLookupTableIsNotStrictlyIncreasing` | enumerator | [spec.md](spec.md#refusal-positionthelookuptableisnotstrictlyincreasing) |
+| `Refusal::PositionTheProfileNeedsMaxVelocityAndMaxAcceleration0` | enumerator | [spec.md](spec.md#refusal-positiontheprofileneedsmaxvelocityandmaxacceleration0) |
+| `Refusal::PositionTheSettleTimeIsNegative` | enumerator | [spec.md](spec.md#refusal-positionthesettletimeisnegative) |
+| `Refusal::PositionTheStallSignatureIsUNSET` | enumerator | [spec.md](spec.md#refusal-positionthestallsignatureisunset) |
+| `Refusal::PositionToleranceMustBe0` | enumerator | [spec.md](spec.md#refusal-positiontolerancemustbe0) |
+| `Refusal::PositionTravelLimitsMissingOrMinMax` | enumerator | [spec.md](spec.md#refusal-positiontravellimitsmissingorminmax) |
+| `Refusal::PositionUnhomedVoltsIsNotIn0To12` | enumerator | [spec.md](spec.md#refusal-positionunhomedvoltsisnotin0to12) |
+| `Refusal::PositionUnitsUNSET` | enumerator | [spec.md](spec.md#refusal-positionunitsunset) |
+| `Refusal::PowerMaxVoltsIsNotIn012` | enumerator | [spec.md](spec.md#refusal-powermaxvoltsisnotin012) |
+| `Refusal::PulseContradiction` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pulsecontradiction) |
+| `Refusal::PulseRolled` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pulserolled) |
+| `Refusal::PulseStill` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pulsestill) |
+| `Refusal::PushCurved` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pushcurved) |
+| `Refusal::PushTooFew` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pushtoofew) |
+| `Refusal::PushTooShort` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pushtooshort) |
+| `Refusal::RestTimeout` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-resttimeout) |
+| `Refusal::SpeedAPresetHasNoName` | enumerator | [spec.md](spec.md#refusal-speedapresethasnoname) |
+| `Refusal::SpeedAPresetIsPastMaxRpm` | enumerator | [spec.md](spec.md#refusal-speedapresetispastmaxrpm) |
+| `Refusal::SpeedGearRatioAndMaxRpmMustBe0` | enumerator | [spec.md](spec.md#refusal-speedgearratioandmaxrpmmustbe0) |
+| `Refusal::SpeedMorePresetsThanFit` | enumerator | [spec.md](spec.md#refusal-speedmorepresetsthanfit) |
+| `Refusal::SpeedTheAtSpeedBandMustBe0` | enumerator | [spec.md](spec.md#refusal-speedtheatspeedbandmustbe0) |
+| `Refusal::SpeedTheAtSpeedLastingIsNegative` | enumerator | [spec.md](spec.md#refusal-speedtheatspeedlastingisnegative) |
+| `Refusal::SpeedTheStallSignatureIsUNSET` | enumerator | [spec.md](spec.md#refusal-speedthestallsignatureisunset) |
+| `Refusal::SpinDisagree` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spindisagree) |
+| `Refusal::SpinFight` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinfight) |
+| `Refusal::SpinNoStart` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinnostart) |
+| `Refusal::SpinTimeout` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spintimeout) |
+| `Refusal::SpinWidthInvalid` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinwidthinvalid) |
+| `Refusal::SpinWrongWay` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinwrongway) |
+| `Refusal::TheAngleSensorRoleIsNotARotationSensor` | enumerator | [spec.md](spec.md#refusal-theanglesensorroleisnotarotationsensor) |
+| `Refusal::TheHomeSwitchRoleIsNotALimitSwitch` | enumerator | [spec.md](spec.md#refusal-thehomeswitchroleisnotalimitswitch) |
+| `Refusal::TwoPresetsOrPositionsShareAName` | enumerator | [spec.md](spec.md#refusal-twopresetsorpositionsshareaname) |
+| `refusalName` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusalname) |
+| `refusalText` | free function | [spec.md](spec.md#refusaltext) |
+| `refuse` | free function | [spec.md](spec.md#refuse) |
+| `refuseRouteIds` | free function | [route_ids.md](route_ids.md#refuserouteids) |
+| `ReleaseEdge` | class | [touch_panel.md](touch_panel.md#class-releaseedge) |
+| `ReleaseEdge::ReleaseEdge` | function | [touch_panel.md](touch_panel.md#releaseedge-releaseedge) |
+| `ReleaseEdge::take` | function | [touch_panel.md](touch_panel.md#releaseedge-take) |
+| `releases` | constant | [kinds.md](kinds.md#releases) |
+| `releases (overload 2)` | type alias | [kinds.md](kinds.md#releases-2) |
+| `ReplaceStep` | enum class | [file_store.md](file_store.md#enum-class-replacestep) |
+| `ReplaceStep::Flush` | enumerator | [file_store.md](file_store.md#replacestep-flush) |
+| `ReplaceStep::NoCard` | enumerator | [file_store.md](file_store.md#replacestep-nocard) |
+| `ReplaceStep::None` | enumerator | [file_store.md](file_store.md#replacestep-none) |
+| `ReplaceStep::Open` | enumerator | [file_store.md](file_store.md#replacestep-open) |
+| `ReplaceStep::Write` | enumerator | [file_store.md](file_store.md#replacestep-write) |
+| `resetFromWall` | free function | [auton_wall_reset.md](auton_wall_reset.md#resetfromwall) |
+| `resetFromWall` | free function | [wall_reset_call.md](wall_reset_call.md#resetfromwall) |
+| `RestCapture` | class | [rest_capture.md](rest_capture.md#class-restcapture) |
+| `RestCapture::abort` | function | [rest_capture.md](rest_capture.md#restcapture-abort) |
+| `RestCapture::captureSeconds` | function | [rest_capture.md](rest_capture.md#restcapture-captureseconds) |
+| `RestCapture::config` | function | [rest_capture.md](rest_capture.md#restcapture-config) |
+| `RestCapture::operator=` | function | [rest_capture.md](rest_capture.md#restcapture-operator-eq) |
+| `RestCapture::phase` | function | [rest_capture.md](rest_capture.md#restcapture-phase) |
+| `RestCapture::reason` | function | [rest_capture.md](rest_capture.md#restcapture-reason) |
+| `RestCapture::refusal` | function | [rest_capture.md](rest_capture.md#restcapture-refusal) |
+| `RestCapture::refusalPort` | function | [rest_capture.md](rest_capture.md#restcapture-refusalport) |
+| `RestCapture::RestCapture` | function | [rest_capture.md](rest_capture.md#restcapture-restcapture) |
+| `RestCapture::RestCapture (overload 2)` | function | [rest_capture.md](rest_capture.md#restcapture-restcapture-2) |
+| `RestCapture::start` | function | [rest_capture.md](rest_capture.md#restcapture-start) |
+| `RestCapture::summary` | function | [rest_capture.md](rest_capture.md#restcapture-summary) |
+| `RestCapture::tick` | function | [rest_capture.md](rest_capture.md#restcapture-tick) |
+| `RestCapture::unreadSides` | function | [rest_capture.md](rest_capture.md#restcapture-unreadsides) |
+| `RestCaptureConfig` | struct | [rest_capture.md](rest_capture.md#struct-restcaptureconfig) |
+| `RestCaptureConfig::duration` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-duration) |
+| `RestCaptureConfig::imuReadyTimeout` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-imureadytimeout) |
+| `RestCaptureConfig::moveBound` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-movebound) |
+| `RestCaptureConfig::restFloor` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-restfloor) |
+| `RestCaptureConfig::restSettleTime` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-restsettletime) |
+| `RestCaptureConfig::restTimeout` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-resttimeout) |
+| `RestCaptureConfig::restYawRateFloor` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-restyawratefloor) |
+| `RestCaptureConfig::settleMarginWarn` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-settlemarginwarn) |
+| `RestCaptureConfig::timing` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-timing) |
+| `RestCaptureConfig::turnBound` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-turnbound) |
+| `RestCaptureConfig::valid` | function | [rest_capture.md](rest_capture.md#restcaptureconfig-valid) |
+| `RestPhase` | enum class | [rest_capture.md](rest_capture.md#enum-class-restphase) |
+| `RestPhase::Aborted` | enumerator | [rest_capture.md](rest_capture.md#restphase-aborted) |
+| `RestPhase::Capture` | enumerator | [rest_capture.md](rest_capture.md#restphase-capture) |
+| `RestPhase::Done` | enumerator | [rest_capture.md](rest_capture.md#restphase-done) |
+| `RestPhase::Idle` | enumerator | [rest_capture.md](rest_capture.md#restphase-idle) |
+| `RestPhase::Settle` | enumerator | [rest_capture.md](rest_capture.md#restphase-settle) |
+| `RestPhase::WaitImu` | enumerator | [rest_capture.md](rest_capture.md#restphase-waitimu) |
+| `RestRefusal` | enum class | [rest_capture.md](rest_capture.md#enum-class-restrefusal) |
+| `RestRefusal::Aborted` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-aborted) |
+| `RestRefusal::ImuNotReady` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-imunotready) |
+| `RestRefusal::Moved` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-moved) |
+| `RestRefusal::None` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-none) |
+| `RestRefusal::RestTimeout` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-resttimeout) |
+| `RestRefusal::Turned` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-turned) |
+| `restRefusalName` | free function | [rest_capture.md](rest_capture.md#restrefusalname) |
+| `restsAtStop` | free function | [kinds.md](kinds.md#restsatstop) |
+| `restsAtStop (overload 2)` | free function | [kinds.md](kinds.md#restsatstop-2) |
+| `restsAtStop (overload 3)` | type alias | [kinds.md](kinds.md#restsatstop-3) |
+| `RestSummary` | struct | [drive_characterization.md](drive_characterization.md#struct-restsummary) |
+| `RestSummary::driftDegPerMin` | function | [drive_characterization.md](drive_characterization.md#restsummary-driftdegpermin) |
+| `RestSummary::driftRadPerS` | field | [drive_characterization.md](drive_characterization.md#restsummary-driftradpers) |
+| `RestSummary::driftSigmaWalk` | field | [drive_characterization.md](drive_characterization.md#restsummary-driftsigmawalk) |
+| `RestSummary::driftSigmaWhite` | field | [drive_characterization.md](drive_characterization.md#restsummary-driftsigmawhite) |
+| `RestSummary::driftTurnBiasBound` | function | [drive_characterization.md](drive_characterization.md#restsummary-driftturnbiasbound) |
+| `RestSummary::durationS` | field | [drive_characterization.md](drive_characterization.md#restsummary-durations) |
+| `RestSummary::encoderMoveMaxIn` | field | [drive_characterization.md](drive_characterization.md#restsummary-encodermovemaxin) |
+| `RestSummary::encoderTurnMaxRad` | field | [drive_characterization.md](drive_characterization.md#restsummary-encoderturnmaxrad) |
+| `RestSummary::encoderTurnRad` | field | [drive_characterization.md](drive_characterization.md#restsummary-encoderturnrad) |
+| `RestSummary::headingSigmaRad` | field | [drive_characterization.md](drive_characterization.md#restsummary-headingsigmarad) |
+| `RestSummary::maxHeadingStepRad` | field | [drive_characterization.md](drive_characterization.md#restsummary-maxheadingsteprad) |
+| `RestSummary::samples` | field | [drive_characterization.md](drive_characterization.md#restsummary-samples) |
+| `RestSummary::speedSigma` | field | [drive_characterization.md](drive_characterization.md#restsummary-speedsigma) |
+| `RestSummary::stepRateSigma` | field | [drive_characterization.md](drive_characterization.md#restsummary-stepratesigma) |
+| `RestSummary::structureRatio` | field | [drive_characterization.md](drive_characterization.md#restsummary-structureratio) |
+| `RestSummary::structureRatioDefined` | function | [drive_characterization.md](drive_characterization.md#restsummary-structureratiodefined) |
+| `RestSummary::timing` | field | [drive_characterization.md](drive_characterization.md#restsummary-timing) |
+| `RestSummary::yawRateMean` | field | [drive_characterization.md](drive_characterization.md#restsummary-yawratemean) |
+| `RestSummary::yawRateSigma` | field | [drive_characterization.md](drive_characterization.md#restsummary-yawratesigma) |
+| `Reversed` | constant | [kinds.md](kinds.md#reversed) |
+| `Reversed (overload 2)` | type alias | [kinds.md](kinds.md#reversed-2) |
+| `Robot` | class | [robot.md](robot.md#class-robot) |
+| `Robot::builtMechanismAt` | function | [robot.md](robot.md#robot-builtmechanismat) |
+| `Robot::builtMechanismAt (overload 2)` | function | [robot.md](robot.md#robot-builtmechanismat-2) |
+| `Robot::camera` | function | [robot.md](robot.md#robot-camera) |
+| `Robot::camera (overload 2)` | function | [robot.md](robot.md#robot-camera-2) |
+| `Robot::cameraAbsence` | function | [robot.md](robot.md#robot-cameraabsence) |
+| `Robot::chassis` | function | [robot.md](robot.md#robot-chassis) |
+| `Robot::chassis (overload 2)` | function | [robot.md](robot.md#robot-chassis-2) |
+| `Robot::config` | function | [robot.md](robot.md#robot-config) |
+| `Robot::context` | function | [robot.md](robot.md#robot-context) |
+| `Robot::context (overload 2)` | function | [robot.md](robot.md#robot-context-2) |
+| `Robot::describe` | function | [robot.md](robot.md#robot-describe) |
+| `Robot::driveOdometry` | function | [robot.md](robot.md#robot-driveodometry) |
+| `Robot::faults` | function | [robot.md](robot.md#robot-faults) |
+| `Robot::faults (overload 2)` | function | [robot.md](robot.md#robot-faults-2) |
+| `Robot::hasGpsCorrector` | function | [robot.md](robot.md#robot-hasgpscorrector) |
+| `Robot::health` | function | [robot.md](robot.md#robot-health) |
+| `Robot::health (overload 2)` | function | [robot.md](robot.md#robot-health-2) |
+| `Robot::localizer` | function | [robot.md](robot.md#robot-localizer) |
+| `Robot::localizer (overload 2)` | function | [robot.md](robot.md#robot-localizer-2) |
+| `Robot::mechanism` | function | [robot.md](robot.md#robot-mechanism) |
+| `Robot::mechanism (overload 2)` | function | [robot.md](robot.md#robot-mechanism-2) |
+| `Robot::mechanismAbsence` | function | [robot.md](robot.md#robot-mechanismabsence) |
+| `Robot::mechanismAt` | function | [robot.md](robot.md#robot-mechanismat) |
+| `Robot::mechanismAt (overload 2)` | function | [robot.md](robot.md#robot-mechanismat-2) |
+| `Robot::mechanismCount` | function | [robot.md](robot.md#robot-mechanismcount) |
+| `Robot::mechanismParts` | function | [robot.md](robot.md#robot-mechanismparts) |
+| `Robot::mechanisms` | function | [robot.md](robot.md#robot-mechanisms) |
+| `Robot::motorGroupCount` | function | [robot.md](robot.md#robot-motorgroupcount) |
+| `Robot::operator=` | function | [robot.md](robot.md#robot-operator-eq) |
+| `Robot::operator= (overload 2)` | function | [robot.md](robot.md#robot-operator-eq-2) |
+| `Robot::pneumaticMechanism` | function | [robot.md](robot.md#robot-pneumaticmechanism) |
+| `Robot::pneumaticMechanism (overload 2)` | function | [robot.md](robot.md#robot-pneumaticmechanism-2) |
+| `Robot::pneumaticMechanismAt` | function | [robot.md](robot.md#robot-pneumaticmechanismat) |
+| `Robot::pneumaticMechanismAt (overload 2)` | function | [robot.md](robot.md#robot-pneumaticmechanismat-2) |
+| `Robot::portMap` | function | [robot.md](robot.md#robot-portmap) |
+| `Robot::Robot` | function | [robot.md](robot.md#robot-robot) |
+| `Robot::Robot (overload 2)` | function | [robot.md](robot.md#robot-robot-2) |
+| `Robot::Robot (overload 3)` | function | [robot.md](robot.md#robot-robot-3) |
+| `Robot::wallSensor` | function | [robot.md](robot.md#robot-wallsensor) |
+| `Robot::wallSensor (overload 2)` | function | [robot.md](robot.md#robot-wallsensor-2) |
+| `Robot::wallSensorAbsence` | function | [robot.md](robot.md#robot-wallsensorabsence) |
+| `Robot::wallSensors` | function | [robot.md](robot.md#robot-wallsensors) |
+| `Robot::~Robot` | function | [robot.md](robot.md#robot-destructor-robot) |
+| `RobotConfig` | struct | [robot_config.md](robot_config.md#struct-robotconfig) |
+| `RobotConfig::describe` | function | [robot_config.md](robot_config.md#robotconfig-describe) |
+| `RobotConfig::drivetrain` | field | [robot_config.md](robot_config.md#robotconfig-drivetrain) |
+| `RobotConfig::identity` | field | [robot_config.md](robot_config.md#robotconfig-identity) |
+| `RobotConfig::mechanismCount` | field | [robot_config.md](robot_config.md#robotconfig-mechanismcount) |
+| `RobotConfig::mechanisms` | field | [robot_config.md](robot_config.md#robotconfig-mechanisms) |
+| `RobotConfig::odometry` | field | [robot_config.md](robot_config.md#robotconfig-odometry) |
+| `RobotConfig::perLineLevelsValid` | function | [robot_config.md](robot_config.md#robotconfig-perlinelevelsvalid) |
+| `RobotConfig::sameName` | function | [robot_config.md](robot_config.md#robotconfig-samename) |
+| `RobotConfig::sensors` | field | [robot_config.md](robot_config.md#robotconfig-sensors) |
+| `RobotConfig::terminatedName` | function | [robot_config.md](robot_config.md#robotconfig-terminatedname) |
+| `RobotConfig::tuning` | field | [robot_config.md](robot_config.md#robotconfig-tuning) |
+| `RobotConfig::valid` | function | [robot_config.md](robot_config.md#robotconfig-valid) |
+| `RobotConfig::validCartridge` | function | [robot_config.md](robot_config.md#robotconfig-validcartridge) |
+| `RobotConfig::validImuPort` | function | [robot_config.md](robot_config.md#robotconfig-validimuport) |
+| `RobotConfig::validPod` | function | [robot_config.md](robot_config.md#robotconfig-validpod) |
+| `RobotConfig::validWheelPort` | function | [robot_config.md](robot_config.md#robotconfig-validwheelport) |
 | `RobotContext` | class | [robot_context.md](robot_context.md#class-robotcontext) |
 | `RobotContext::battery` | function | [robot_context.md](robot_context.md#robotcontext-battery) |
 | `RobotContext::clock` | function | [robot_context.md](robot_context.md#robotcontext-clock) |
@@ -1388,6 +4748,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RobotContext::tags` | function | [robot_context.md](robot_context.md#robotcontext-tags) |
 | `RobotContext::telemetry` | function | [robot_context.md](robot_context.md#robotcontext-telemetry) |
 | `RobotContext::vision` | function | [robot_context.md](robot_context.md#robotcontext-vision) |
+| `RobotContext::wallSensors` | function | [robot_context.md](robot_context.md#robotcontext-wallsensors) |
 | `RobotContextConfig` | struct | [robot_context.md](robot_context.md#struct-robotcontextconfig) |
 | `RobotContextConfig::battery` | field | [robot_context.md](robot_context.md#robotcontextconfig-battery) |
 | `RobotContextConfig::clock` | field | [robot_context.md](robot_context.md#robotcontextconfig-clock) |
@@ -1397,55 +4758,177 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RobotContextConfig::tags` | field | [robot_context.md](robot_context.md#robotcontextconfig-tags) |
 | `RobotContextConfig::telemetry` | field | [robot_context.md](robot_context.md#robotcontextconfig-telemetry) |
 | `RobotContextConfig::vision` | field | [robot_context.md](robot_context.md#robotcontextconfig-vision) |
+| `RobotContextConfig::walls` | field | [robot_context.md](robot_context.md#robotcontextconfig-walls) |
+| `RobotIdentity` | struct | [robot_config.md](robot_config.md#struct-robotidentity) |
+| `RobotIdentity::name` | field | [robot_config.md](robot_config.md#robotidentity-name) |
+| `RobotIdentity::season` | field | [robot_config.md](robot_config.md#robotidentity-season) |
+| `RobotIdentity::team` | field | [robot_config.md](robot_config.md#robotidentity-team) |
 | `robotToField` | free function | [frame.md](frame.md#robottofield) |
+| `RoleFact` | struct | [devices.md](devices.md#struct-rolefact) |
+| `RoleFact::degradeOnly` | field | [devices.md](devices.md#rolefact-degradeonly) |
+| `RoleFact::line` | field | [devices.md](devices.md#rolefact-line) |
+| `RoleFact::port` | field | [devices.md](devices.md#rolefact-port) |
+| `RoleFact::refusal` | field | [devices.md](devices.md#rolefact-refusal) |
+| `RoleFact::role` | field | [devices.md](devices.md#rolefact-role) |
+| `RoleFact::state` | field | [devices.md](devices.md#rolefact-state) |
+| `roleLine` | free function | [wiring.md](wiring.md#roleline) |
+| `RolePort` | struct | [wiring.md](wiring.md#struct-roleport) |
+| `RolePort::bad` | field | [wiring.md](wiring.md#roleport-bad) |
+| `RolePort::letter` | field | [wiring.md](wiring.md#roleport-letter) |
+| `RolePort::line` | field | [wiring.md](wiring.md#roleport-line) |
+| `RolePort::port` | field | [wiring.md](wiring.md#roleport-port) |
+| `RolePort::Role` | enum class | [wiring.md](wiring.md#enum-class-roleport-role) |
+| `RolePort::Role::Angle` | enumerator | [wiring.md](wiring.md#roleport-role-angle) |
+| `RolePort::Role::HomeSwitch` | enumerator | [wiring.md](wiring.md#roleport-role-homeswitch) |
+| `RolePort::Role::Piece` | enumerator | [wiring.md](wiring.md#roleport-role-piece) |
+| `RoleState` | enum class | [devices.md](devices.md#enum-class-rolestate) |
+| `RoleState::NotAsked` | enumerator | [devices.md](devices.md#rolestate-notasked) |
+| `RoleState::NotCheckable` | enumerator | [devices.md](devices.md#rolestate-notcheckable) |
+| `RoleState::Present` | enumerator | [devices.md](devices.md#rolestate-present) |
+| `RoleState::Refused` | enumerator | [devices.md](devices.md#rolestate-refused) |
 | `rotationCentidegPerSecToCanonical` | free function | [rotation_conversion.md](rotation_conversion.md#rotationcentidegpersectocanonical) |
 | `rotationCentidegToCanonical` | free function | [rotation_conversion.md](rotation_conversion.md#rotationcentidegtocanonical) |
+| `rotationSensor` | free function | [kinds.md](kinds.md#rotationsensor) |
+| `rotationSensor (overload 2)` | type alias | [kinds.md](kinds.md#rotationsensor-2) |
+| `Route` | struct | [route.md](route.md#struct-route) |
+| `Route::count` | field | [route.md](route.md#route-count) |
+| `Route::name` | field | [route.md](route.md#route-name) |
+| `Route::valid` | function | [route.md](route.md#route-valid) |
+| `Route::waypoints` | field | [route.md](route.md#route-waypoints) |
+| `RouteAction` | enum class | [route_ids.md](route_ids.md#enum-class-routeaction) |
+| `RouteAction::GoToPreset` | enumerator | [route_ids.md](route_ids.md#routeaction-gotopreset) |
+| `RouteAction::Home` | enumerator | [route_ids.md](route_ids.md#routeaction-home) |
+| `RouteAction::Run` | enumerator | [route_ids.md](route_ids.md#routeaction-run) |
+| `RouteAction::RunUntilGone` | enumerator | [route_ids.md](route_ids.md#routeaction-rununtilgone) |
+| `RouteAction::RunUntilPiece` | enumerator | [route_ids.md](route_ids.md#routeaction-rununtilpiece) |
+| `RouteAction::SetPosition` | enumerator | [route_ids.md](route_ids.md#routeaction-setposition) |
+| `RouteAction::SpinUp` | enumerator | [route_ids.md](route_ids.md#routeaction-spinup) |
+| `RouteAction::Stop` | enumerator | [route_ids.md](route_ids.md#routeaction-stop) |
+| `RouteId` | struct | [route_ids.md](route_ids.md#struct-routeid) |
+| `RouteId::action` | field | [route_ids.md](route_ids.md#routeid-action) |
+| `RouteId::argCount` | field | [route_ids.md](route_ids.md#routeid-argcount) |
+| `RouteId::id` | field | [route_ids.md](route_ids.md#routeid-id) |
+| `RouteId::index` | field | [route_ids.md](route_ids.md#routeid-index) |
+| `RouteId::mechanism` | field | [route_ids.md](route_ids.md#routeid-mechanism) |
+| `RouteId::view` | function | [route_ids.md](route_ids.md#routeid-view) |
+| `RouteIdProblem` | enum class | [route_ids.md](route_ids.md#enum-class-routeidproblem) |
+| `RouteIdProblem::Builtin` | enumerator | [route_ids.md](route_ids.md#routeidproblem-builtin) |
+| `RouteIdProblem::Duplicate` | enumerator | [route_ids.md](route_ids.md#routeidproblem-duplicate) |
+| `RouteIdProblem::None` | enumerator | [route_ids.md](route_ids.md#routeidproblem-none) |
+| `RouteIdProblem::TooLong` | enumerator | [route_ids.md](route_ids.md#routeidproblem-toolong) |
+| `RouteIdProblem::TooMany` | enumerator | [route_ids.md](route_ids.md#routeidproblem-toomany) |
+| `routeIdProblemText` | free function | [route_ids.md](route_ids.md#routeidproblemtext) |
+| `RouteIds` | struct | [route_ids.md](route_ids.md#struct-routeids) |
+| `RouteIds::count` | field | [route_ids.md](route_ids.md#routeids-count) |
+| `RouteIds::ids` | field | [route_ids.md](route_ids.md#routeids-ids) |
+| `RouteIds::offending` | field | [route_ids.md](route_ids.md#routeids-offending) |
+| `RouteIds::problem` | field | [route_ids.md](route_ids.md#routeids-problem) |
+| `routeIdsOf` | free function | [route_ids.md](route_ids.md#routeidsof) |
 | `Routine` | class | [routine.md](routine.md#class-routine) |
+| `Routine` | type alias | [routine.md](routine.md#routine) |
+| `Routine::afterDistance` | function | [routine.md](routine.md#routine-afterdistance) |
+| `Routine::afterTurning` | function | [routine.md](routine.md#routine-afterturning) |
+| `Routine::ArmedLeg` | field | [routine.md](routine.md#routine-armedleg) |
+| `Routine::atPercent` | function | [routine.md](routine.md#routine-atpercent) |
 | `Routine::brake` | function | [routine.md](routine.md#routine-brake) |
 | `Routine::chassis` | function | [routine.md](routine.md#routine-chassis) |
+| `Routine::curveTo` | function | [routine.md](routine.md#routine-curveto) |
+| `Routine::curveTo (overload 2)` | function | [routine.md](routine.md#routine-curveto-2) |
 | `Routine::driveTo` | function | [routine.md](routine.md#routine-driveto) |
 | `Routine::face` | function | [routine.md](routine.md#routine-face) |
+| `Routine::faceAway` | function | [routine.md](routine.md#routine-faceaway) |
 | `Routine::followTrajectory` | function | [routine.md](routine.md#routine-followtrajectory) |
 | `Routine::followTrajectory (overload 2)` | function | [routine.md](routine.md#routine-followtrajectory-2) |
 | `Routine::hold` | function | [routine.md](routine.md#routine-hold) |
+| `Routine::home` | function | [routine.md](routine.md#routine-home) |
+| `Routine::home (overload 2)` | function | [routine.md](routine.md#routine-home-2) |
+| `Routine::label` | function | [routine.md](routine.md#routine-label) |
+| `Routine::lastMechanism` | function | [routine.md](routine.md#routine-lastmechanism) |
 | `Routine::lastTrajectory` | function | [routine.md](routine.md#routine-lasttrajectory) |
+| `Routine::move` | function | [routine.md](routine.md#routine-move) |
 | `Routine::moveTo` | function | [routine.md](routine.md#routine-moveto) |
 | `Routine::ok` | function | [routine.md](routine.md#routine-ok) |
+| `Routine::onFail` | function | [routine.md](routine.md#routine-onfail) |
 | `Routine::operator=` | function | [routine.md](routine.md#routine-operator-eq) |
 | `Routine::operator= (overload 2)` | function | [routine.md](routine.md#routine-operator-eq-2) |
 | `Routine::pause` | function | [routine.md](routine.md#routine-pause) |
+| `Routine::requires` | function | [routine.md](routine.md#routine-requires) |
+| `Routine::requires (overload 2)` | function | [routine.md](routine.md#routine-requires-2) |
+| `Routine::requires (overload 3)` | function | [routine.md](routine.md#routine-requires-3) |
 | `Routine::result` | function | [routine.md](routine.md#routine-result) |
+| `Routine::reverseCurveTo` | function | [routine.md](routine.md#routine-reversecurveto) |
+| `Routine::reverseCurveTo (overload 2)` | function | [routine.md](routine.md#routine-reversecurveto-2) |
+| `Routine::reverseTo` | function | [routine.md](routine.md#routine-reverseto) |
 | `Routine::Routine` | function | [routine.md](routine.md#routine-routine) |
 | `Routine::Routine (overload 2)` | function | [routine.md](routine.md#routine-routine-2) |
 | `Routine::Routine (overload 3)` | function | [routine.md](routine.md#routine-routine-3) |
+| `Routine::Routine (overload 4)` | function | [routine.md](routine.md#routine-routine-4) |
+| `Routine::run` | function | [routine.md](routine.md#routine-run) |
+| `Routine::run (overload 2)` | function | [routine.md](routine.md#routine-run-2) |
+| `Routine::run (overload 3)` | function | [routine.md](routine.md#routine-run-3) |
+| `Routine::set` | function | [routine.md](routine.md#routine-set) |
+| `Routine::spinUp` | function | [routine.md](routine.md#routine-spinup) |
 | `Routine::startAt` | function | [routine.md](routine.md#routine-startat) |
+| `Routine::startHome` | function | [routine.md](routine.md#routine-starthome) |
+| `Routine::startHome (overload 2)` | function | [routine.md](routine.md#routine-starthome-2) |
+| `Routine::startMove` | function | [routine.md](routine.md#routine-startmove) |
+| `Routine::startRun` | function | [routine.md](routine.md#routine-startrun) |
+| `Routine::startRun (overload 2)` | function | [routine.md](routine.md#routine-startrun-2) |
+| `Routine::startSpinUp` | function | [routine.md](routine.md#routine-startspinup) |
+| `Routine::stop` | function | [routine.md](routine.md#routine-stop) |
+| `Routine::stop (overload 2)` | function | [routine.md](routine.md#routine-stop-2) |
 | `Routine::strafeTo` | function | [routine.md](routine.md#routine-strafeto) |
 | `Routine::then` | function | [routine.md](routine.md#routine-then) |
+| `Routine::TriggerMark` | field | [routine.md](routine.md#routine-triggermark) |
 | `Routine::turnTo` | function | [routine.md](routine.md#routine-turnto) |
 | `Routine::waitFor` | function | [routine.md](routine.md#routine-waitfor) |
+| `Routine::waitUntilDone` | function | [routine.md](routine.md#routine-waituntildone) |
 | `Routine::~Routine` | function | [routine.md](routine.md#routine-destructor-routine) |
 | `RoutineResult` | struct | [routine.md](routine.md#struct-routineresult) |
+| `RoutineResult` | type alias | [routine.md](routine.md#routineresult) |
 | `RoutineResult::cause` | field | [routine.md](routine.md#routineresult-cause) |
 | `RoutineResult::completed` | field | [routine.md](routine.md#routineresult-completed) |
 | `RoutineResult::exit` | field | [routine.md](routine.md#routineresult-exit) |
+| `RoutineResult::failedOn` | field | [routine.md](routine.md#routineresult-failedon) |
+| `RoutineResult::firstFailedAt` | field | [routine.md](routine.md#routineresult-firstfailedat) |
+| `RoutineResult::firstFailedCause` | field | [routine.md](routine.md#routineresult-firstfailedcause) |
+| `RoutineResult::firstFailedName` | field | [routine.md](routine.md#routineresult-firstfailedname) |
+| `RoutineResult::jumped` | field | [routine.md](routine.md#routineresult-jumped) |
+| `RoutineResult::mechanismVerdict` | field | [routine.md](routine.md#routineresult-mechanismverdict) |
 | `RoutineResult::ok` | field | [routine.md](routine.md#routineresult-ok) |
 | `RoutineResult::skipped` | field | [routine.md](routine.md#routineresult-skipped) |
+| `RoutineResult::skipPendingTo` | field | [routine.md](routine.md#routineresult-skippendingto) |
 | `RoutineResult::steps` | field | [routine.md](routine.md#routineresult-steps) |
 | `RoutineResult::stoppedAt` | field | [routine.md](routine.md#routineresult-stoppedat) |
 | `RoutineResult::stoppedName` | field | [routine.md](routine.md#routineresult-stoppedname) |
 | `RoutineStopCause` | enum class | [routine.md](routine.md#enum-class-routinestopcause) |
 | `RoutineStopCause::ActionFailed` | enumerator | [routine.md](routine.md#routinestopcause-actionfailed) |
 | `RoutineStopCause::MechanismFailed` | enumerator | [routine.md](routine.md#routinestopcause-mechanismfailed) |
+| `RoutineStopCause::MechanismNotStarted` | enumerator | [routine.md](routine.md#routinestopcause-mechanismnotstarted) |
+| `RoutineStopCause::MechanismStepFailed` | enumerator | [routine.md](routine.md#routinestopcause-mechanismstepfailed) |
 | `RoutineStopCause::MotionFailed` | enumerator | [routine.md](routine.md#routinestopcause-motionfailed) |
 | `RoutineStopCause::None` | enumerator | [routine.md](routine.md#routinestopcause-none) |
 | `RoutineStopCause::WaitTimedOut` | enumerator | [routine.md](routine.md#routinestopcause-waittimedout) |
+| `RpmPreset` | struct | [kinds.md](kinds.md#struct-rpmpreset) |
+| `RpmPreset::name` | field | [kinds.md](kinds.md#rpmpreset-name) |
+| `RpmPreset::rpm` | field | [kinds.md](kinds.md#rpmpreset-rpm) |
+| `runAuton` | free function | [match_runner.md](match_runner.md#runauton) |
+| `runAuton (overload 2)` | free function | [match_runner.md](match_runner.md#runauton-2) |
+| `runCalibrate` | free function | [pros-calibrate.md](pros-calibrate.md#runcalibrate) |
+| `runDriverControl` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol) |
+| `runDriverControl (overload 2)` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol-2) |
+| `runDriverControl (overload 3)` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol-3) |
+| `runDriverControl (overload 4)` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol-4) |
 | `RunGuard` | class | [run_guard.md](run_guard.md#class-runguard) |
+| `RunGuard::abandonRequested` | function | [run_guard.md](run_guard.md#runguard-abandonrequested) |
 | `RunGuard::expired` | function | [run_guard.md](run_guard.md#runguard-expired) |
 | `RunGuard::operator=` | function | [run_guard.md](run_guard.md#runguard-operator-eq) |
 | `RunGuard::operator= (overload 2)` | function | [run_guard.md](run_guard.md#runguard-operator-eq-2) |
 | `RunGuard::pace` | function | [run_guard.md](run_guard.md#runguard-pace) |
+| `RunGuard::pacesTotal` | function | [run_guard.md](run_guard.md#runguard-pacestotal) |
 | `RunGuard::pause` | function | [run_guard.md](run_guard.md#runguard-pause) |
 | `RunGuard::remaining` | function | [run_guard.md](run_guard.md#runguard-remaining) |
+| `RunGuard::requestAbandon` | function | [run_guard.md](run_guard.md#runguard-requestabandon) |
 | `RunGuard::run` | function | [run_guard.md](run_guard.md#runguard-run) |
 | `RunGuard::RunGuard` | function | [run_guard.md](run_guard.md#runguard-runguard) |
 | `RunGuard::RunGuard (overload 2)` | function | [run_guard.md](run_guard.md#runguard-runguard-2) |
@@ -1459,15 +4942,26 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RunGuardConfig::mechanisms` | field | [run_guard.md](run_guard.md#runguardconfig-mechanisms) |
 | `RunGuardConfig::validate` | function | [run_guard.md](run_guard.md#runguardconfig-validate) |
 | `RunGuardReport` | struct | [run_guard.md](run_guard.md#struct-runguardreport) |
+| `RunGuardReport::abandoned` | field | [run_guard.md](run_guard.md#runguardreport-abandoned) |
 | `RunGuardReport::anonymousClaimsReleased` | field | [run_guard.md](run_guard.md#runguardreport-anonymousclaimsreleased) |
 | `RunGuardReport::endActionEnded` | field | [run_guard.md](run_guard.md#runguardreport-endactionended) |
 | `RunGuardReport::endActionRan` | field | [run_guard.md](run_guard.md#runguardreport-endactionran) |
 | `RunGuardReport::endActionSucceeded` | field | [run_guard.md](run_guard.md#runguardreport-endactionsucceeded) |
 | `RunGuardReport::floorFired` | field | [run_guard.md](run_guard.md#runguardreport-floorfired) |
+| `RunGuardReport::mechanismCuts` | field | [run_guard.md](run_guard.md#runguardreport-mechanismcuts) |
 | `RunGuardReport::pacesSeen` | field | [run_guard.md](run_guard.md#runguardreport-pacesseen) |
 | `RunGuardReport::postExpiryCancels` | field | [run_guard.md](run_guard.md#runguardreport-postexpirycancels) |
 | `RunGuardReport::scoringCut` | field | [run_guard.md](run_guard.md#runguardreport-scoringcut) |
 | `RunGuardReport::scoringEnded` | field | [run_guard.md](run_guard.md#runguardreport-scoringended) |
+| `RunReport` | struct | [path_runner.md](path_runner.md#struct-runreport) |
+| `RunReport::lastExit` | field | [path_runner.md](path_runner.md#runreport-lastexit) |
+| `RunReport::legsRun` | field | [path_runner.md](path_runner.md#runreport-legsrun) |
+| `RunReport::legsSkipped` | field | [path_runner.md](path_runner.md#runreport-legsskipped) |
+| `RunReport::markersFired` | field | [path_runner.md](path_runner.md#runreport-markersfired) |
+| `RunReport::ok` | function | [path_runner.md](path_runner.md#runreport-ok) |
+| `RunReport::reason` | field | [path_runner.md](path_runner.md#runreport-reason) |
+| `RunReport::stoppedAt` | field | [path_runner.md](path_runner.md#runreport-stoppedat) |
+| `RunReport::unknownIds` | field | [path_runner.md](path_runner.md#runreport-unknownids) |
 | `RunReporter` | class | [run_reporter.md](run_reporter.md#class-runreporter) |
 | `RunReporter::finishRun` | function | [run_reporter.md](run_reporter.md#runreporter-finishrun) |
 | `RunReporter::onMotionComplete` | function | [run_reporter.md](run_reporter.md#runreporter-onmotioncomplete) |
@@ -1478,6 +4972,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RunReporter::RunReporter (overload 3)` | function | [run_reporter.md](run_reporter.md#runreporter-runreporter-3) |
 | `RunReporter::sessionStart` | function | [run_reporter.md](run_reporter.md#runreporter-sessionstart) |
 | `RunReporter::~RunReporter` | function | [run_reporter.md](run_reporter.md#runreporter-destructor-runreporter) |
+| `RunStopCause` | enum class | [path_runner.md](path_runner.md#enum-class-runstopcause) |
+| `RunStopCause::MarkerFailed` | enumerator | [path_runner.md](path_runner.md#runstopcause-markerfailed) |
+| `RunStopCause::MotionFailed` | enumerator | [path_runner.md](path_runner.md#runstopcause-motionfailed) |
+| `RunStopCause::None` | enumerator | [path_runner.md](path_runner.md#runstopcause-none) |
+| `runStopCauseWord` | free function | [path_runner.md](path_runner.md#runstopcauseword) |
 | `RunSummary` | struct | [run_summary.md](run_summary.md#struct-runsummary) |
 | `RunSummary::batteryEnd` | field | [run_summary.md](run_summary.md#runsummary-batteryend) |
 | `RunSummary::batteryStart` | field | [run_summary.md](run_summary.md#runsummary-batterystart) |
@@ -1501,6 +5000,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RunSummary::setBuildHash` | function | [run_summary.md](run_summary.md#runsummary-setbuildhash) |
 | `RunSummary::setRoutineId` | function | [run_summary.md](run_summary.md#runsummary-setroutineid) |
 | `RunSummary::worstLoopDt` | field | [run_summary.md](run_summary.md#runsummary-worstloopdt) |
+| `runTune` | free function | [pros-tune.md](pros-tune.md#runtune) |
 | `RunUntilConfirmed` | class | [mechanism_op.md](mechanism_op.md#class-rununtilconfirmed) |
 | `RunUntilConfirmed::cancel` | function | [mechanism_op.md](mechanism_op.md#rununtilconfirmed-cancel) |
 | `RunUntilConfirmed::name` | function | [mechanism_op.md](mechanism_op.md#rununtilconfirmed-name) |
@@ -1524,6 +5024,76 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | Name | Kind | Page |
 |---|---|---|
 | `safeAngle` | free function | [blackbox_format.md](blackbox_format.md#safeangle) |
+| `SafeBrakeMode` | enum class | [robot_config.md](robot_config.md#enum-class-safebrakemode) |
+| `SafeBrakeMode::Brake` | enumerator | [robot_config.md](robot_config.md#safebrakemode-brake) |
+| `SafeBrakeMode::Coast` | enumerator | [robot_config.md](robot_config.md#safebrakemode-coast) |
+| `SafeBrakeMode::Hold` | enumerator | [robot_config.md](robot_config.md#safebrakemode-hold) |
+| `safeBrakeModeWord` | free function | [robot_config.md](robot_config.md#safebrakemodeword) |
+| `safeReplace` | free function | [record_store.md](record_store.md#safereplace) |
+| `sameAiVisionSettings` | free function | [vision_frames.md](vision_frames.md#sameaivisionsettings) |
+| `sameFileOnCard` | free function | [file_store.md](file_store.md#samefileoncard) |
+| `sameVisionText` | free function | [vision_frames.md](vision_frames.md#samevisiontext) |
+| `sampleVerdict` | free function | [wall_reset.md](wall_reset.md#sampleverdict) |
+| `SaveOutcome` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-saveoutcome) |
+| `SaveOutcome::Held` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-held) |
+| `SaveOutcome::NotAttempted` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notattempted) |
+| `SaveOutcome::NotSaved` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notsaved) |
+| `SaveOutcome::Saved` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-saved) |
+| `saveRecordSafely` | free function | [record_store.md](record_store.md#saverecordsafely) |
+| `SaveRefusal` | enum class | [record_store.md](record_store.md#enum-class-saverefusal) |
+| `SaveRefusal::BytesRefused` | enumerator | [record_store.md](record_store.md#saverefusal-bytesrefused) |
+| `SaveRefusal::DescriptionInvalid` | enumerator | [record_store.md](record_store.md#saverefusal-descriptioninvalid) |
+| `SaveRefusal::EncodeFailed` | enumerator | [record_store.md](record_store.md#saverefusal-encodefailed) |
+| `SaveRefusal::NoCard` | enumerator | [record_store.md](record_store.md#saverefusal-nocard) |
+| `SaveRefusal::None` | enumerator | [record_store.md](record_store.md#saverefusal-none) |
+| `SaveReport` | struct | [record_store.md](record_store.md#struct-savereport) |
+| `SaveReport::backupAfter` | field | [record_store.md](record_store.md#savereport-backupafter) |
+| `SaveReport::backupDisagreed` | field | [record_store.md](record_store.md#savereport-backupdisagreed) |
+| `SaveReport::backupFirst` | field | [record_store.md](record_store.md#savereport-backupfirst) |
+| `SaveReport::backupPath` | field | [record_store.md](record_store.md#savereport-backuppath) |
+| `SaveReport::backupRefresh` | field | [record_store.md](record_store.md#savereport-backuprefresh) |
+| `SaveReport::before` | field | [record_store.md](record_store.md#savereport-before) |
+| `SaveReport::effective` | field | [record_store.md](record_store.md#savereport-effective) |
+| `SaveReport::length` | field | [record_store.md](record_store.md#savereport-length) |
+| `SaveReport::outcome` | field | [record_store.md](record_store.md#savereport-outcome) |
+| `SaveReport::primaryAfter` | field | [record_store.md](record_store.md#savereport-primaryafter) |
+| `SaveReport::primaryDisagreed` | field | [record_store.md](record_store.md#savereport-primarydisagreed) |
+| `SaveReport::primaryOpenedForWriting` | function | [record_store.md](record_store.md#savereport-primaryopenedforwriting) |
+| `SaveReport::primaryPath` | field | [record_store.md](record_store.md#savereport-primarypath) |
+| `SaveReport::primaryWrite` | field | [record_store.md](record_store.md#savereport-primarywrite) |
+| `SaveReport::refused` | field | [record_store.md](record_store.md#savereport-refused) |
+| `SaveReport::restore` | field | [record_store.md](record_store.md#savereport-restore) |
+| `SaveReport::unconfirmed` | field | [record_store.md](record_store.md#savereport-unconfirmed) |
+| `SaveReport::why` | field | [record_store.md](record_store.md#savereport-why) |
+| `SaveResult` | enum class | [record_store.md](record_store.md#enum-class-saveresult) |
+| `SaveResult::NotSaved` | enumerator | [record_store.md](record_store.md#saveresult-notsaved) |
+| `SaveResult::Saved` | enumerator | [record_store.md](record_store.md#saveresult-saved) |
+| `SaveResult::Unconfirmed` | enumerator | [record_store.md](record_store.md#saveresult-unconfirmed) |
+| `scanFrame` | free function | [shul2_format.md](shul2_format.md#scanframe) |
+| `ScanKind` | enum class | [shul2_format.md](shul2_format.md#enum-class-scankind) |
+| `ScanKind::Frame` | enumerator | [shul2_format.md](shul2_format.md#scankind-frame) |
+| `ScanKind::NeedMore` | enumerator | [shul2_format.md](shul2_format.md#scankind-needmore) |
+| `ScanKind::Skip` | enumerator | [shul2_format.md](shul2_format.md#scankind-skip) |
+| `ScanResult` | struct | [shul2_format.md](shul2_format.md#struct-scanresult) |
+| `ScanResult::consumed` | field | [shul2_format.md](shul2_format.md#scanresult-consumed) |
+| `ScanResult::flags` | field | [shul2_format.md](shul2_format.md#scanresult-flags) |
+| `ScanResult::kind` | field | [shul2_format.md](shul2_format.md#scanresult-kind) |
+| `ScanResult::payload` | field | [shul2_format.md](shul2_format.md#scanresult-payload) |
+| `ScanResult::reason` | field | [shul2_format.md](shul2_format.md#scanresult-reason) |
+| `ScanResult::seq` | field | [shul2_format.md](shul2_format.md#scanresult-seq) |
+| `ScanResult::type` | field | [shul2_format.md](shul2_format.md#scanresult-type) |
+| `screenSafeLine` | free function | [brain_screen.md](brain_screen.md#screensafeline) |
+| `screenText` | free function | [calibrate_panel.md](calibrate_panel.md#screentext) |
+| `screenText` | free function | [touch_panel.md](touch_panel.md#screentext) |
+| `ScreenTextSize` | enum class | [brain_screen.md](brain_screen.md#enum-class-screentextsize) |
+| `ScreenTextSize::Large` | enumerator | [brain_screen.md](brain_screen.md#screentextsize-large) |
+| `ScreenTextSize::Medium` | enumerator | [brain_screen.md](brain_screen.md#screentextsize-medium) |
+| `ScreenTextSize::Small` | enumerator | [brain_screen.md](brain_screen.md#screentextsize-small) |
+| `ScreenTouch` | struct | [brain_screen.md](brain_screen.md#struct-screentouch) |
+| `ScreenTouch::error` | field | [brain_screen.md](brain_screen.md#screentouch-error) |
+| `ScreenTouch::releaseCount` | field | [brain_screen.md](brain_screen.md#screentouch-releasecount) |
+| `ScreenTouch::x` | field | [brain_screen.md](brain_screen.md#screentouch-x) |
+| `ScreenTouch::y` | field | [brain_screen.md](brain_screen.md#screentouch-y) |
 | `SdSink` | class | [sd_sink.md](sd_sink.md#class-sdsink) |
 | `SdSink::brownout` | function | [sd_sink.md](sd_sink.md#sdsink-brownout) |
 | `SdSink::bytesBuffered` | function | [sd_sink.md](sd_sink.md#sdsink-bytesbuffered) |
@@ -1560,12 +5130,88 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SdSinkStorage` | struct | [sd_sink.md](sd_sink.md#struct-sdsinkstorage) |
 | `SdSinkStorage::buffer` | field | [sd_sink.md](sd_sink.md#sdsinkstorage-buffer) |
 | `SdSinkStorage::ring` | field | [sd_sink.md](sd_sink.md#sdsinkstorage-ring) |
+| `seesPiece` | constant | [until.md](until.md#seespiece) |
+| `SeesPiece` | struct | [until.md](until.md#struct-seespiece) |
+| `seesPiece (overload 2)` | type alias | [until.md](until.md#seespiece-2) |
+| `SeesPiece::operator()` | function | [until.md](until.md#seespiece-operator-call) |
+| `SeesPiece::SeesPiece` | function | [until.md](until.md#seespiece-seespiece) |
+| `SegmentEnd` | enum class | [drive_characterizer.md](drive_characterizer.md#enum-class-segmentend) |
+| `SegmentEnd::Distance` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentend-distance) |
+| `SegmentEnd::None` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentend-none) |
+| `SegmentEnd::RampTop` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentend-ramptop) |
+| `SegmentEnd::Timeout` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentend-timeout) |
+| `segmentEndName` | free function | [drive_characterizer.md](drive_characterizer.md#segmentendname) |
+| `SegmentKind` | enum class | [drive_characterizer.md](drive_characterizer.md#enum-class-segmentkind) |
+| `SegmentKind::QuasiBackward` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentkind-quasibackward) |
+| `SegmentKind::QuasiForward` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentkind-quasiforward) |
+| `SegmentKind::StepBackward` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentkind-stepbackward) |
+| `SegmentKind::StepForward` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentkind-stepforward) |
+| `segmentKindName` | free function | [drive_characterizer.md](drive_characterizer.md#segmentkindname) |
+| `SegmentRecord` | struct | [drive_characterizer.md](drive_characterizer.md#struct-segmentrecord) |
+| `SegmentRecord::admitted` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-admitted) |
+| `SegmentRecord::batteryMean` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-batterymean) |
+| `SegmentRecord::batteryMin` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-batterymin) |
+| `SegmentRecord::encoderCurveRad` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-encodercurverad) |
+| `SegmentRecord::end` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-end) |
+| `SegmentRecord::excluded` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-excluded) |
+| `SegmentRecord::imuMinusEncoderRad` | function | [drive_characterizer.md](drive_characterizer.md#segmentrecord-imuminusencoderrad) |
+| `SegmentRecord::imuYawRad` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-imuyawrad) |
+| `SegmentRecord::kind` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-kind) |
+| `SegmentRecord::lastVolts` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-lastvolts) |
+| `SegmentRecord::maxHeadingStepRad` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-maxheadingsteprad) |
+| `SegmentRecord::maxTemperature` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-maxtemperature) |
+| `SegmentRecord::seconds` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-seconds) |
+| `SegmentRecord::stopIn` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-stopin) |
+| `SegmentRecord::stopped` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-stopped) |
+| `SegmentRecord::timing` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-timing) |
+| `SegmentRecord::travelIn` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-travelin) |
+| `Sensor` | struct | [kinds.md](kinds.md#struct-sensor) |
+| `Sensor::changeAt` | field | [kinds.md](kinds.md#sensor-changeat) |
+| `Sensor::file` | field | [kinds.md](kinds.md#sensor-file) |
+| `Sensor::kind` | field | [kinds.md](kinds.md#sensor-kind) |
+| `Sensor::line` | field | [kinds.md](kinds.md#sensor-line) |
+| `Sensor::pressedLevel` | field | [kinds.md](kinds.md#sensor-pressedlevel) |
+| `Sensor::reversed` | field | [kinds.md](kinds.md#sensor-reversed) |
+| `Sensor::seesProximity` | field | [kinds.md](kinds.md#sensor-seesproximity) |
+| `Sensor::seesWithinIn` | field | [kinds.md](kinds.md#sensor-seeswithinin) |
+| `SensorKind` | enum class | [spec.md](spec.md#enum-class-sensorkind) |
+| `SensorKind::Distance` | enumerator | [spec.md](spec.md#sensorkind-distance) |
+| `SensorKind::None` | enumerator | [spec.md](spec.md#sensorkind-none) |
+| `SensorKind::Optical` | enumerator | [spec.md](spec.md#sensorkind-optical) |
+| `SensorKind::Rotation` | enumerator | [spec.md](spec.md#sensorkind-rotation) |
+| `SensorKind::Switch` | enumerator | [spec.md](spec.md#sensorkind-switch) |
+| `SensorRole` | struct | [spec.md](spec.md#struct-sensorrole) |
+| `SensorRole::file` | field | [spec.md](spec.md#sensorrole-file) |
+| `SensorRole::kind` | field | [spec.md](spec.md#sensorrole-kind) |
+| `SensorRole::line` | field | [spec.md](spec.md#sensorrole-line) |
+| `SensorRole::pressedLevel` | field | [spec.md](spec.md#sensorrole-pressedlevel) |
+| `SensorRole::reversed` | field | [spec.md](spec.md#sensorrole-reversed) |
+| `SensorRole::seesProximity` | field | [spec.md](spec.md#sensorrole-seesproximity) |
+| `SensorRole::seesWithinIn` | field | [spec.md](spec.md#sensorrole-seeswithinin) |
+| `SensorRole::source` | field | [spec.md](spec.md#sensorrole-source) |
+| `SensorsConfig` | struct | [robot_config.md](robot_config.md#struct-sensorsconfig) |
+| `SensorsConfig::camera` | field | [robot_config.md](robot_config.md#sensorsconfig-camera) |
+| `SensorsConfig::gps` | field | [robot_config.md](robot_config.md#sensorsconfig-gps) |
+| `SensorsConfig::walls` | field | [robot_config.md](robot_config.md#sensorsconfig-walls) |
+| `serialLine` | free function | [pros-char_sink.md](pros-char_sink.md#serialline) |
+| `serialWrapped` | free function | [pros-char_sink.md](pros-char_sink.md#serialwrapped) |
+| `serialWrapped (overload 2)` | free function | [pros-char_sink.md](pros-char_sink.md#serialwrapped-2) |
 | `SessionInfo` | struct | [session_info.md](session_info.md#struct-sessioninfo) |
 | `SessionInfo::alliance` | field | [session_info.md](session_info.md#sessioninfo-alliance) |
 | `SessionInfo::buildHash` | field | [session_info.md](session_info.md#sessioninfo-buildhash) |
 | `SessionInfo::portMap` | field | [session_info.md](session_info.md#sessioninfo-portmap) |
 | `SessionInfo::routineId` | field | [session_info.md](session_info.md#sessioninfo-routineid) |
 | `SessionInfo::side` | field | [session_info.md](session_info.md#sessioninfo-side) |
+| `SessionReport` | struct | [shul2_reader.md](shul2_reader.md#struct-sessionreport) |
+| `SessionReport::end` | field | [shul2_reader.md](shul2_reader.md#sessionreport-end) |
+| `SessionReport::hello` | field | [shul2_reader.md](shul2_reader.md#sessionreport-hello) |
+| `SessionReport::helloSeq` | field | [shul2_reader.md](shul2_reader.md#sessionreport-helloseq) |
+| `SessionReport::lateJoin` | field | [shul2_reader.md](shul2_reader.md#sessionreport-latejoin) |
+| `SessionReport::linkLossKnown` | field | [shul2_reader.md](shul2_reader.md#sessionreport-linklossknown) |
+| `SessionReport::linkLostFrames` | field | [shul2_reader.md](shul2_reader.md#sessionreport-linklostframes) |
+| `SessionReport::lostFrames` | field | [shul2_reader.md](shul2_reader.md#sessionreport-lostframes) |
+| `SessionReport::sawEnd` | field | [shul2_reader.md](shul2_reader.md#sessionreport-sawend) |
+| `SessionReport::verdict` | field | [shul2_reader.md](shul2_reader.md#sessionreport-verdict) |
 | `setPreconditionHandler` | free function | [check.md](check.md#setpreconditionhandler) |
 | `SettleConfig` | struct | [settled_util.md](settled_util.md#struct-settleconfig) |
 | `SettleConfig::maxError` | field | [settled_util.md](settled_util.md#settleconfig-maxerror) |
@@ -1576,6 +5222,214 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SettledUtil::reset` | function | [settled_util.md](settled_util.md#settledutil-reset) |
 | `SettledUtil::SettledUtil` | function | [settled_util.md](settled_util.md#settledutil-settledutil) |
 | `SettledUtil::update` | function | [settled_util.md](settled_util.md#settledutil-update) |
+| `settleFloorReport` | free function | [rest_capture.md](rest_capture.md#settlefloorreport) |
+| `SettleFloorReport` | struct | [rest_capture.md](rest_capture.md#struct-settlefloorreport) |
+| `SettleFloorReport::headingMargin` | field | [rest_capture.md](rest_capture.md#settlefloorreport-headingmargin) |
+| `SettleFloorReport::headingRateFloor` | field | [rest_capture.md](rest_capture.md#settlefloorreport-headingratefloor) |
+| `SettleFloorReport::headingRateNoise` | field | [rest_capture.md](rest_capture.md#settlefloorreport-headingratenoise) |
+| `SettleFloorReport::headingWarn` | field | [rest_capture.md](rest_capture.md#settlefloorreport-headingwarn) |
+| `SettleFloorReport::speedFloor` | field | [rest_capture.md](rest_capture.md#settlefloorreport-speedfloor) |
+| `SettleFloorReport::speedMargin` | field | [rest_capture.md](rest_capture.md#settlefloorreport-speedmargin) |
+| `SettleFloorReport::speedNoise` | field | [rest_capture.md](rest_capture.md#settlefloorreport-speednoise) |
+| `SettleFloorReport::speedWarn` | field | [rest_capture.md](rest_capture.md#settlefloorreport-speedwarn) |
+| `setTunable` | free function | [live_tuning.md](live_tuning.md#settunable) |
+| `shapeAxis` | free function | [input_shaping.md](input_shaping.md#shapeaxis) |
+| `shapeRequest` | free function | [input_shaping.md](input_shaping.md#shaperequest) |
+| `shapeToChassisSpeeds` | free function | [driver_control.md](driver_control.md#shapetochassisspeeds) |
+| `Shul2Reader` | class | [shul2_reader.md](shul2_reader.md#class-shul2reader) |
+| `Shul2Reader::bytesConsumed` | function | [shul2_reader.md](shul2_reader.md#shul2reader-bytesconsumed) |
+| `Shul2Reader::counters` | function | [shul2_reader.md](shul2_reader.md#shul2reader-counters) |
+| `Shul2Reader::drain` | function | [shul2_reader.md](shul2_reader.md#shul2reader-drain) |
+| `Shul2Reader::finished` | function | [shul2_reader.md](shul2_reader.md#shul2reader-finished) |
+| `Shul2Reader::Frame` | struct | [shul2_reader.md](shul2_reader.md#struct-shul2reader-frame) |
+| `Shul2Reader::Frame::flags` | field | [shul2_reader.md](shul2_reader.md#shul2reader-frame-flags) |
+| `Shul2Reader::Frame::payload` | field | [shul2_reader.md](shul2_reader.md#shul2reader-frame-payload) |
+| `Shul2Reader::Frame::seq` | field | [shul2_reader.md](shul2_reader.md#shul2reader-frame-seq) |
+| `Shul2Reader::Frame::type` | field | [shul2_reader.md](shul2_reader.md#shul2reader-frame-type) |
+| `Shul2Reader::hasSession` | function | [shul2_reader.md](shul2_reader.md#shul2reader-hassession) |
+| `Shul2Reader::latestSession` | function | [shul2_reader.md](shul2_reader.md#shul2reader-latestsession) |
+| `Shul2Reader::next` | function | [shul2_reader.md](shul2_reader.md#shul2reader-next) |
+| `Shul2Reader::Shul2Reader` | function | [shul2_reader.md](shul2_reader.md#shul2reader-shul2reader) |
+| `Shul2Reader::status` | function | [shul2_reader.md](shul2_reader.md#shul2reader-status) |
+| `SideCharacterization` | struct | [drive_characterization.md](drive_characterization.md#struct-sidecharacterization) |
+| `SideCharacterization::alpha` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-alpha) |
+| `SideCharacterization::gains` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-gains) |
+| `SideCharacterization::kABelowResolution` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-kabelowresolution) |
+| `SideCharacterization::members` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-members) |
+| `SideCharacterization::residualRms` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-residualrms) |
+| `SideCharacterization::samples` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-samples) |
+| `SideCharacterization::voltsMax` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-voltsmax) |
+| `SideCharacterization::voltsMin` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-voltsmin) |
+| `SideCount` | struct | [drivetrain_degradation.md](drivetrain_degradation.md#struct-sidecount) |
+| `SideCount::answering` | field | [drivetrain_degradation.md](drivetrain_degradation.md#sidecount-answering) |
+| `SideCount::expected` | field | [drivetrain_degradation.md](drivetrain_degradation.md#sidecount-expected) |
+| `SideMember` | struct | [rest_capture.md](rest_capture.md#struct-sidemember) |
+| `SideMember::motor` | field | [rest_capture.md](rest_capture.md#sidemember-motor) |
+| `SideMember::port` | field | [rest_capture.md](rest_capture.md#sidemember-port) |
+| `SideMember::sign` | field | [rest_capture.md](rest_capture.md#sidemember-sign) |
+| `SideMonitorConfig` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-sidemonitorconfig) |
+| `SideMonitorConfig::commandFloorV` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-commandfloorv) |
+| `SideMonitorConfig::movingFloorRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-movingfloorrads) |
+| `SideMonitorConfig::nearZeroFraction` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-nearzerofraction) |
+| `SideMonitorConfig::oppositeFloorRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-oppositefloorrads) |
+| `SideMonitorConfig::persistTicks` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-persistticks) |
+| `SideMount` | struct | [wall_reset.md](wall_reset.md#struct-sidemount) |
+| `SideMount::coneHalfAngle` | field | [wall_reset.md](wall_reset.md#sidemount-conehalfangle) |
+| `SideMount::facing` | field | [wall_reset.md](wall_reset.md#sidemount-facing) |
+| `SideMount::facingTolerance` | field | [wall_reset.md](wall_reset.md#sidemount-facingtolerance) |
+| `SideMount::forward` | field | [wall_reset.md](wall_reset.md#sidemount-forward) |
+| `SideMount::height` | field | [wall_reset.md](wall_reset.md#sidemount-height) |
+| `SideMount::left` | field | [wall_reset.md](wall_reset.md#sidemount-left) |
+| `SideMount::measured` | field | [wall_reset.md](wall_reset.md#sidemount-measured) |
+| `SideMount::positionTolerance` | field | [wall_reset.md](wall_reset.md#sidemount-positiontolerance) |
+| `SideMount::provenance` | field | [wall_reset.md](wall_reset.md#sidemount-provenance) |
+| `SideMount::rangeAccuracy` | field | [wall_reset.md](wall_reset.md#sidemount-rangeaccuracy) |
+| `SideMount::rangeBias` | field | [wall_reset.md](wall_reset.md#sidemount-rangebias) |
+| `SideMount::toggleChecked` | field | [wall_reset.md](wall_reset.md#sidemount-togglechecked) |
+| `sidePosition` | free function | [rest_capture.md](rest_capture.md#sideposition) |
+| `sideSpeed` | free function | [rest_capture.md](rest_capture.md#sidespeed) |
+| `sideTravel` | free function | [rest_capture.md](rest_capture.md#sidetravel) |
+| `SideTravel` | struct | [drive_encoder_odometry.md](drive_encoder_odometry.md#struct-sidetravel) |
+| `SideTravel::left` | field | [drive_encoder_odometry.md](drive_encoder_odometry.md#sidetravel-left) |
+| `SideTravel::right` | field | [drive_encoder_odometry.md](drive_encoder_odometry.md#sidetravel-right) |
+| `SideVerdict` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-sideverdict) |
+| `SideVerdict::disagreeingMask` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-disagreeingmask) |
+| `SideVerdict::evaluated` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-evaluated) |
+| `SideVerdict::fastestRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-fastestrads) |
+| `SideVerdict::persistedCount` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-persistedcount) |
+| `SideVerdict::persistedMask` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-persistedmask) |
+| `SideVerdict::presentCount` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-presentcount) |
+| `SideVolts` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-sidevolts) |
+| `SideVolts::left` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidevolts-left) |
+| `SideVolts::right` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidevolts-right) |
+| `sightPiece` | free function | [piece_finder.md](piece_finder.md#sightpiece) |
+| `SkipReason` | enum class | [shul2_format.md](shul2_format.md#enum-class-skipreason) |
+| `SkipReason::CrcMismatch` | enumerator | [shul2_format.md](shul2_format.md#skipreason-crcmismatch) |
+| `SkipReason::LengthTooLarge` | enumerator | [shul2_format.md](shul2_format.md#skipreason-lengthtoolarge) |
+| `SkipReason::None` | enumerator | [shul2_format.md](shul2_format.md#skipreason-none) |
+| `SkipReason::NoSync` | enumerator | [shul2_format.md](shul2_format.md#skipreason-nosync) |
+| `skipTo` | free function | [routine.md](routine.md#skipto) |
+| `skipTo (overload 2)` | type alias | [routine.md](routine.md#skipto-2) |
+| `SlewConfig` | struct | [slew_limiter.md](slew_limiter.md#struct-slewconfig) |
+| `SlewConfig::ratePerSecond` | field | [slew_limiter.md](slew_limiter.md#slewconfig-ratepersecond) |
+| `SlewLimiter` | class | [slew_limiter.md](slew_limiter.md#class-slewlimiter) |
+| `SlewLimiter::isOff` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-isoff) |
+| `SlewLimiter::ratePerSecond` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-ratepersecond) |
+| `SlewLimiter::reset` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-reset) |
+| `SlewLimiter::SlewLimiter` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-slewlimiter) |
+| `SlewLimiter::SlewLimiter (overload 2)` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-slewlimiter-2) |
+| `SlewLimiter::SlewLimiter (overload 3)` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-slewlimiter-3) |
+| `SlewLimiter::update` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-update) |
+| `SlewLimiter::value` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-value) |
+| `Slot` | class | [service.md](service.md#class-slot) |
+| `Slot::absence` | function | [service.md](service.md#slot-absence) |
+| `Slot::built` | function | [service.md](service.md#slot-built) |
+| `Slot::cancel` | function | [service.md](service.md#slot-cancel) |
+| `Slot::commandSeq` | function | [service.md](service.md#slot-commandseq) |
+| `Slot::declaresPieceSensor` | function | [service.md](service.md#slot-declarespiecesensor) |
+| `Slot::hasPieceSensor` | function | [service.md](service.md#slot-haspiecesensor) |
+| `Slot::holdsClaim` | function | [service.md](service.md#slot-holdsclaim) |
+| `Slot::homeSwitchPressed` | function | [service.md](service.md#slot-homeswitchpressed) |
+| `Slot::index` | function | [service.md](service.md#slot-index) |
+| `Slot::kind` | function | [service.md](service.md#slot-kind) |
+| `Slot::lastStep` | function | [service.md](service.md#slot-laststep) |
+| `Slot::name` | function | [service.md](service.md#slot-name) |
+| `Slot::operator=` | function | [service.md](service.md#slot-operator-eq) |
+| `Slot::operator= (overload 2)` | function | [service.md](service.md#slot-operator-eq-2) |
+| `Slot::pieceSensorMissing` | function | [service.md](service.md#slot-piecesensormissing) |
+| `Slot::pieceSensorPlace` | function | [service.md](service.md#slot-piecesensorplace) |
+| `Slot::running` | function | [service.md](service.md#slot-running) |
+| `Slot::Seen` | enum class | [service.md](service.md#enum-class-slot-seen) |
+| `Slot::seen` | function | [service.md](service.md#slot-seen) |
+| `Slot::Seen::No` | enumerator | [service.md](service.md#slot-seen-no) |
+| `Slot::Seen::Unknown` | enumerator | [service.md](service.md#slot-seen-unknown) |
+| `Slot::Seen::Yes` | enumerator | [service.md](service.md#slot-seen-yes) |
+| `Slot::sees` | function | [service.md](service.md#slot-sees) |
+| `Slot::Slot` | function | [service.md](service.md#slot-slot) |
+| `Slot::Slot (overload 2)` | function | [service.md](service.md#slot-slot-2) |
+| `Slot::spec` | function | [service.md](service.md#slot-spec) |
+| `Slot::stepsBegun` | function | [service.md](service.md#slot-stepsbegun) |
+| `Slot::~Slot` | function | [service.md](service.md#slot-destructor-slot) |
+| `smart_port_10_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_10_is_used_twice) |
+| `smart_port_11_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_11_is_used_twice) |
+| `smart_port_12_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_12_is_used_twice) |
+| `smart_port_13_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_13_is_used_twice) |
+| `smart_port_14_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_14_is_used_twice) |
+| `smart_port_15_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_15_is_used_twice) |
+| `smart_port_16_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_16_is_used_twice) |
+| `smart_port_17_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_17_is_used_twice) |
+| `smart_port_18_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_18_is_used_twice) |
+| `smart_port_19_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_19_is_used_twice) |
+| `smart_port_1_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_1_is_used_twice) |
+| `smart_port_20_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_20_is_used_twice) |
+| `smart_port_21_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_21_is_used_twice) |
+| `smart_port_2_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_2_is_used_twice) |
+| `smart_port_3_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_3_is_used_twice) |
+| `smart_port_4_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_4_is_used_twice) |
+| `smart_port_5_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_5_is_used_twice) |
+| `smart_port_6_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_6_is_used_twice) |
+| `smart_port_7_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_7_is_used_twice) |
+| `smart_port_8_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_8_is_used_twice) |
+| `smart_port_9_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_9_is_used_twice) |
+| `specProblem` | free function | [spec.md](spec.md#specproblem) |
+| `specRefusal` | free function | [spec.md](spec.md#specrefusal) |
+| `speed_a_preset_has_no_name` | free function | [spec.md](spec.md#speed_a_preset_has_no_name) |
+| `speed_a_preset_is_past_its_free_speed` | free function | [spec.md](spec.md#speed_a_preset_is_past_its_free_speed) |
+| `speed_gearratio_and_its_free_speed_must_be_more_than_zero` | free function | [spec.md](spec.md#speed_gearratio_and_its_free_speed_must_be_more_than_zero) |
+| `speed_more_presets_than_fit` | free function | [spec.md](spec.md#speed_more_presets_than_fit) |
+| `speed_the_at_speed_band_must_be_more_than_zero` | free function | [spec.md](spec.md#speed_the_at_speed_band_must_be_more_than_zero) |
+| `speed_the_at_speed_lasting_must_not_be_negative` | free function | [spec.md](spec.md#speed_the_at_speed_lasting_must_not_be_negative) |
+| `speed_the_stall_signature_is_unset_a_jammed_wheel_must_never_sit_at_stall_current` | free function | [spec.md](spec.md#speed_the_stall_signature_is_unset_a_jammed_wheel_must_never_sit_at_stall_current) |
+| `SpeedGoal` | struct | [kinds.md](kinds.md#struct-speedgoal) |
+| `SpeedGoal::computed` | field | [kinds.md](kinds.md#speedgoal-computed) |
+| `SpeedGoal::mechanism` | field | [kinds.md](kinds.md#speedgoal-mechanism) |
+| `SpeedGoal::mechanismName` | field | [kinds.md](kinds.md#speedgoal-mechanismname) |
+| `SpeedGoal::presetName` | field | [kinds.md](kinds.md#speedgoal-presetname) |
+| `SpeedGoal::rpm` | field | [kinds.md](kinds.md#speedgoal-rpm) |
+| `SpeedSlot` | class | [service.md](service.md#class-speedslot) |
+| `SpeedSlot::atSpeed` | function | [service.md](service.md#speedslot-atspeed) |
+| `SpeedSlot::checkSpinUp` | function | [service.md](service.md#speedslot-checkspinup) |
+| `SpeedSlot::rpm` | function | [service.md](service.md#speedslot-rpm) |
+| `SpeedSlot::SpeedSlot` | function | [service.md](service.md#speedslot-speedslot) |
+| `SpeedSlot::spinning` | function | [service.md](service.md#speedslot-spinning) |
+| `SpeedSlot::spinUp` | function | [service.md](service.md#speedslot-spinup) |
+| `SpeedSlot::spinUpPreset` | function | [service.md](service.md#speedslot-spinuppreset) |
+| `SpeedSlot::stop` | function | [service.md](service.md#speedslot-stop) |
+| `SpeedSlot::targetRpm` | function | [service.md](service.md#speedslot-targetrpm) |
+| `SpeedSpec` | struct | [spec.md](spec.md#struct-speedspec) |
+| `SpeedSpec::atSpeedBandRpm` | field | [spec.md](spec.md#speedspec-atspeedbandrpm) |
+| `SpeedSpec::atSpeedTime` | field | [spec.md](spec.md#speedspec-atspeedtime) |
+| `SpeedSpec::gearRatio` | field | [spec.md](spec.md#speedspec-gearratio) |
+| `SpeedSpec::kA` | field | [spec.md](spec.md#speedspec-ka) |
+| `SpeedSpec::kI` | field | [spec.md](spec.md#speedspec-ki) |
+| `SpeedSpec::kP` | field | [spec.md](spec.md#speedspec-kp) |
+| `SpeedSpec::kS` | field | [spec.md](spec.md#speedspec-ks) |
+| `SpeedSpec::kV` | field | [spec.md](spec.md#speedspec-kv) |
+| `SpeedSpec::maxRpm` | field | [spec.md](spec.md#speedspec-maxrpm) |
+| `SpeedSpec::presetCount` | field | [spec.md](spec.md#speedspec-presetcount) |
+| `SpeedSpec::presets` | field | [spec.md](spec.md#speedspec-presets) |
+| `SpeedSpec::stall` | field | [spec.md](spec.md#speedspec-stall) |
+| `speedStartingValues` | free function | [kinds.md](kinds.md#speedstartingvalues) |
+| `SpeedTuning` | struct | [kinds.md](kinds.md#struct-speedtuning) |
+| `SpeedTuning::kI` | field | [kinds.md](kinds.md#speedtuning-ki) |
+| `SpeedTuning::kP` | field | [kinds.md](kinds.md#speedtuning-kp) |
+| `SpeedTuning::kS` | field | [kinds.md](kinds.md#speedtuning-ks) |
+| `SpeedTuning::kV` | field | [kinds.md](kinds.md#speedtuning-kv) |
+| `SpinRecord` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-spinrecord) |
+| `SpinRecord::direction` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-direction) |
+| `SpinRecord::leftTravelIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-lefttravelin) |
+| `SpinRecord::levelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-levelvolts) |
+| `SpinRecord::rightTravelIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-righttravelin) |
+| `SpinRecord::seconds` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-seconds) |
+| `SpinRecord::widthIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-widthin) |
+| `SpinRecord::yawRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-yawrad) |
+| `spool` | free function | [kinds.md](kinds.md#spool) |
+| `spool (overload 2)` | type alias | [kinds.md](kinds.md#spool-2) |
+| `Stall` | struct | [kinds.md](kinds.md#struct-stall) |
+| `Stall` | type alias | [kinds.md](kinds.md#stall) |
+| `Stall::amps` | field | [kinds.md](kinds.md#stall-amps) |
+| `Stall::belowMotorRpm` | field | [kinds.md](kinds.md#stall-belowmotorrpm) |
+| `Stall::lasting` | field | [kinds.md](kinds.md#stall-lasting) |
 | `StallConfig` | struct | [stall_detector.md](stall_detector.md#struct-stallconfig) |
 | `StallConfig::currentAtLeast` | field | [stall_detector.md](stall_detector.md#stallconfig-currentatleast) |
 | `StallConfig::persistence` | field | [stall_detector.md](stall_detector.md#stallconfig-persistence) |
@@ -1585,6 +5439,77 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StallDetector::reset` | function | [stall_detector.md](stall_detector.md#stalldetector-reset) |
 | `StallDetector::StallDetector` | function | [stall_detector.md](stall_detector.md#stalldetector-stalldetector) |
 | `StallDetector::update` | function | [stall_detector.md](stall_detector.md#stalldetector-update) |
+| `stalls` | constant | [until.md](until.md#stalls) |
+| `stalls (overload 2)` | type alias | [until.md](until.md#stalls-2) |
+| `StallSpec` | struct | [spec.md](spec.md#struct-stallspec) |
+| `StallSpec::amps` | field | [spec.md](spec.md#stallspec-amps) |
+| `StallSpec::speedRadS` | field | [spec.md](spec.md#stallspec-speedrads) |
+| `StallSpec::stated` | function | [spec.md](spec.md#stallspec-stated) |
+| `StallSpec::time` | field | [spec.md](spec.md#stallspec-time) |
+| `StallSpec::written` | function | [spec.md](spec.md#stallspec-written) |
+| `startingValuesLine` | free function | [wiring.md](wiring.md#startingvaluesline) |
+| `startModeWord` | free function | [auton_registry.md](auton_registry.md#startmodeword) |
+| `StartPose` | class | [auton_registry.md](auton_registry.md#class-startpose) |
+| `StartPose::field` | function | [auton_registry.md](auton_registry.md#startpose-field) |
+| `StartPose::field (overload 2)` | function | [auton_registry.md](auton_registry.md#startpose-field-2) |
+| `StartPose::isSet` | function | [auton_registry.md](auton_registry.md#startpose-isset) |
+| `StartPose::Mode` | enum class | [auton_registry.md](auton_registry.md#enum-class-startpose-mode) |
+| `StartPose::mode` | function | [auton_registry.md](auton_registry.md#startpose-mode) |
+| `StartPose::Mode::Field` | enumerator | [auton_registry.md](auton_registry.md#startpose-mode-field) |
+| `StartPose::Mode::Relative` | enumerator | [auton_registry.md](auton_registry.md#startpose-mode-relative) |
+| `StartPose::Mode::Unset` | enumerator | [auton_registry.md](auton_registry.md#startpose-mode-unset) |
+| `StartPose::pose` | function | [auton_registry.md](auton_registry.md#startpose-pose) |
+| `StartPose::relative` | function | [auton_registry.md](auton_registry.md#startpose-relative) |
+| `StartPose::sameAs` | function | [auton_registry.md](auton_registry.md#startpose-sameas) |
+| `StartPose::StartPose` | function | [auton_registry.md](auton_registry.md#startpose-startpose) |
+| `StaticRobotConfig` | class | [robot_config.md](robot_config.md#class-staticrobotconfig) |
+| `StaticRobotConfig::config` | function | [robot_config.md](robot_config.md#staticrobotconfig-config) |
+| `StaticRobotConfig::StaticRobotConfig` | function | [robot_config.md](robot_config.md#staticrobotconfig-staticrobotconfig) |
+| `StaticRoutes` | class | [route.md](route.md#class-staticroutes) |
+| `StaticRoutes::at` | function | [route.md](route.md#staticroutes-at) |
+| `StaticRoutes::count` | function | [route.md](route.md#staticroutes-count) |
+| `StaticRoutes::route` | function | [route.md](route.md#staticroutes-route) |
+| `StaticRoutes::StaticRoutes` | function | [route.md](route.md#staticroutes-staticroutes) |
+| `steppedValue` | free function | [live_tuning.md](live_tuning.md#steppedvalue) |
+| `StepReport` | struct | [service.md](service.md#struct-stepreport) |
+| `StepReport::countedDone` | field | [service.md](service.md#stepreport-counteddone) |
+| `StepReport::doneBy` | field | [service.md](service.md#stepreport-doneby) |
+| `StepReport::elapsed` | field | [service.md](service.md#stepreport-elapsed) |
+| `StepReport::outcome` | field | [service.md](service.md#stepreport-outcome) |
+| `StepRule` | enum class | [live_tuning.md](live_tuning.md#enum-class-steprule) |
+| `StepRule::Amps` | enumerator | [live_tuning.md](live_tuning.md#steprule-amps) |
+| `StepRule::Gain` | enumerator | [live_tuning.md](live_tuning.md#steprule-gain) |
+| `StepRule::Limit` | enumerator | [live_tuning.md](live_tuning.md#steprule-limit) |
+| `StepRule::Percent` | enumerator | [live_tuning.md](live_tuning.md#steprule-percent) |
+| `StepRule::Reached` | enumerator | [live_tuning.md](live_tuning.md#steprule-reached) |
+| `StepRule::Seconds` | enumerator | [live_tuning.md](live_tuning.md#steprule-seconds) |
+| `StepRule::Volts` | enumerator | [live_tuning.md](live_tuning.md#steprule-volts) |
+| `StepRule::ZeroGain` | enumerator | [live_tuning.md](live_tuning.md#steprule-zerogain) |
+| `StickInput` | struct | [stick_mapping.md](stick_mapping.md#struct-stickinput) |
+| `StickInput::connected` | field | [stick_mapping.md](stick_mapping.md#stickinput-connected) |
+| `StickInput::leftX` | field | [stick_mapping.md](stick_mapping.md#stickinput-leftx) |
+| `StickInput::leftY` | field | [stick_mapping.md](stick_mapping.md#stickinput-lefty) |
+| `StickInput::rightX` | field | [stick_mapping.md](stick_mapping.md#stickinput-rightx) |
+| `StickInput::rightY` | field | [stick_mapping.md](stick_mapping.md#stickinput-righty) |
+| `stopChain` | constant | [routine.md](routine.md#stopchain) |
+| `stopChain (overload 2)` | type alias | [routine.md](routine.md#stopchain-2) |
+| `stoppedWords` | free function | [calibrate_panel.md](calibrate_panel.md#stoppedwords) |
+| `StoppedWords` | struct | [calibrate_panel.md](calibrate_panel.md#struct-stoppedwords) |
+| `StoppedWords::doLine` | field | [calibrate_panel.md](calibrate_panel.md#stoppedwords-doline) |
+| `StoppedWords::headline` | field | [calibrate_panel.md](calibrate_panel.md#stoppedwords-headline) |
+| `StoppedWords::why` | field | [calibrate_panel.md](calibrate_panel.md#stoppedwords-why) |
+| `stopsSeeingPiece` | constant | [until.md](until.md#stopsseeingpiece) |
+| `StopsSeeingPiece` | struct | [until.md](until.md#struct-stopsseeingpiece) |
+| `stopsSeeingPiece (overload 2)` | type alias | [until.md](until.md#stopsseeingpiece-2) |
+| `StopsSeeingPiece::operator()` | function | [until.md](until.md#stopsseeingpiece-operator-call) |
+| `StopsSeeingPiece::StopsSeeingPiece` | function | [until.md](until.md#stopsseeingpiece-stopsseeingpiece) |
+| `StoreRead` | struct | [file_store.md](file_store.md#struct-storeread) |
+| `StoreRead::count` | field | [file_store.md](file_store.md#storeread-count) |
+| `StoreRead::opened` | field | [file_store.md](file_store.md#storeread-opened) |
+| `StoreRead::path` | field | [file_store.md](file_store.md#storeread-path) |
+| `StoreReplace` | struct | [file_store.md](file_store.md#struct-storereplace) |
+| `StoreReplace::failed` | field | [file_store.md](file_store.md#storereplace-failed) |
+| `StoreReplace::path` | field | [file_store.md](file_store.md#storereplace-path) |
 | `StrafeTo` | class | [strafe_to.md](strafe_to.md#class-strafeto) |
 | `StrafeTo::name` | function | [strafe_to.md](strafe_to.md#strafeto-name) |
 | `StrafeTo::StrafeTo` | function | [strafe_to.md](strafe_to.md#strafeto-strafeto) |
@@ -1624,6 +5549,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TagProvenance::Measured` | enumerator | [tag_map.md](tag_map.md#tagprovenance-measured) |
 | `TagProvenance::Specified` | enumerator | [tag_map.md](tag_map.md#tagprovenance-specified) |
 | `TagProvenance::Unspecified` | enumerator | [tag_map.md](tag_map.md#tagprovenance-unspecified) |
+| `TankDrivetrain` | struct | [robot_config.md](robot_config.md#struct-tankdrivetrain) |
+| `TankDrivetrain::description` | field | [robot_config.md](robot_config.md#tankdrivetrain-description) |
 | `TankKinematics` | class | [tank.md](tank.md#class-tankkinematics) |
 | `TankKinematics::desaturate` | function | [tank.md](tank.md#tankkinematics-desaturate) |
 | `TankKinematics::forward` | function | [tank.md](tank.md#tankkinematics-forward) |
@@ -1631,12 +5558,63 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TankKinematics::TankKinematics` | function | [tank.md](tank.md#tankkinematics-tankkinematics) |
 | `TankKinematics::toWheels` | function | [tank.md](tank.md#tankkinematics-towheels) |
 | `TankKinematics::wheelCount` | function | [tank.md](tank.md#tankkinematics-wheelcount) |
+| `tankLeadCross` | free function | [tank_steer.md](tank_steer.md#tankleadcross) |
+| `tankLegEngages` | free function | [tank_steer.md](tank_steer.md#tanklegengages) |
+| `tankLineError` | free function | [tank_steer.md](tank_steer.md#tanklineerror) |
+| `TankLineError` | struct | [tank_steer.md](tank_steer.md#struct-tanklineerror) |
+| `TankLineError::along` | field | [tank_steer.md](tank_steer.md#tanklineerror-along) |
+| `TankLineError::cross` | field | [tank_steer.md](tank_steer.md#tanklineerror-cross) |
+| `tankRequest` | free function | [drive_modes.md](drive_modes.md#tankrequest) |
+| `tankRequest (overload 2)` | free function | [drive_modes.md](drive_modes.md#tankrequest-2) |
+| `tankSideVolts` | free function | [coupled_side_monitor.md](coupled_side_monitor.md#tanksidevolts) |
+| `tankSteerAngle` | free function | [tank_steer.md](tank_steer.md#tanksteerangle) |
+| `TankSteerConfig` | struct | [motion_config.md](motion_config.md#struct-tanksteerconfig) |
+| `TankSteerConfig::crossGain` | field | [motion_config.md](motion_config.md#tanksteerconfig-crossgain) |
+| `TankSteerConfig::fadeDistance` | field | [motion_config.md](motion_config.md#tanksteerconfig-fadedistance) |
+| `TankSteerConfig::leadTime` | field | [motion_config.md](motion_config.md#tanksteerconfig-leadtime) |
+| `TankSteerConfig::maxSteer` | field | [motion_config.md](motion_config.md#tanksteerconfig-maxsteer) |
+| `TankSteerConfig::valid` | function | [motion_config.md](motion_config.md#tanksteerconfig-valid) |
+| `TankSteerConfig::yawCorrectionLimit` | field | [motion_config.md](motion_config.md#tanksteerconfig-yawcorrectionlimit) |
+| `TankSteerConfig::yawObserverTime` | field | [motion_config.md](motion_config.md#tanksteerconfig-yawobservertime) |
+| `TankSteerStatus` | struct | [tank_steer.md](tank_steer.md#struct-tanksteerstatus) |
+| `TankSteerStatus::bend` | field | [tank_steer.md](tank_steer.md#tanksteerstatus-bend) |
+| `TankSteerStatus::cross` | field | [tank_steer.md](tank_steer.md#tanksteerstatus-cross) |
+| `TankSteerStatus::crossAhead` | field | [tank_steer.md](tank_steer.md#tanksteerstatus-crossahead) |
+| `TankSteerStatus::eligible` | field | [tank_steer.md](tank_steer.md#tanksteerstatus-eligible) |
+| `TankSteerStatus::engaged` | field | [tank_steer.md](tank_steer.md#tanksteerstatus-engaged) |
+| `TankSteerStatus::yawCorrection` | field | [tank_steer.md](tank_steer.md#tanksteerstatus-yawcorrection) |
+| `TankSticks` | constant | [teleop_loop.md](teleop_loop.md#tanksticks) |
 | `TermSink` | class | [term_sink.md](term_sink.md#class-termsink) |
 | `TermSink::emit` | function | [term_sink.md](term_sink.md#termsink-emit) |
 | `TermSink::log` | function | [term_sink.md](term_sink.md#termsink-log) |
 | `TermSink::summarize` | function | [term_sink.md](term_sink.md#termsink-summarize) |
 | `TermSink::TermSink` | function | [term_sink.md](term_sink.md#termsink-termsink) |
 | `TermSink::wantsRecord` | function | [term_sink.md](term_sink.md#termsink-wantsrecord) |
+| `TextSize` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-textsize) |
+| `TextSize` | enum class | [touch_panel.md](touch_panel.md#enum-class-textsize) |
+| `TextSize::Large` | enumerator | [calibrate_panel.md](calibrate_panel.md#textsize-large) |
+| `TextSize::Large` | enumerator | [touch_panel.md](touch_panel.md#textsize-large) |
+| `TextSize::Medium` | enumerator | [calibrate_panel.md](calibrate_panel.md#textsize-medium) |
+| `TextSize::Medium` | enumerator | [touch_panel.md](touch_panel.md#textsize-medium) |
+| `TextSize::Small` | enumerator | [calibrate_panel.md](calibrate_panel.md#textsize-small) |
+| `TextSize::Small` | enumerator | [touch_panel.md](touch_panel.md#textsize-small) |
+| `the_angle_sensor_role_is_not_a_rotation_sensor` | free function | [spec.md](spec.md#the_angle_sensor_role_is_not_a_rotation_sensor) |
+| `the_home_switch_role_is_not_a_limit_switch` | free function | [spec.md](spec.md#the_home_switch_role_is_not_a_limit_switch) |
+| `the_mechanism_has_a_sensor_the_wiring_does_not_plug_in` | free function | [wiring.md](wiring.md#the_mechanism_has_a_sensor_the_wiring_does_not_plug_in) |
+| `the_same_mechanism_is_wired_twice` | free function | [wiring.md](wiring.md#the_same_mechanism_is_wired_twice) |
+| `the_wiring_gives_a_different_number_of_lines_than_the_mechanism_has` | free function | [wiring.md](wiring.md#the_wiring_gives_a_different_number_of_lines_than_the_mechanism_has) |
+| `the_wiring_gives_a_different_number_of_motors_than_the_mechanism_has` | free function | [wiring.md](wiring.md#the_wiring_gives_a_different_number_of_motors_than_the_mechanism_has) |
+| `the_wiring_names_another_mechanism_than_its_declaration` | free function | [wiring.md](wiring.md#the_wiring_names_another_mechanism_than_its_declaration) |
+| `the_wiring_plugs_in_a_sensor_the_mechanism_does_not_have` | free function | [wiring.md](wiring.md#the_wiring_plugs_in_a_sensor_the_mechanism_does_not_have) |
+| `the_wiring_plugs_in_the_same_sensor_twice` | free function | [wiring.md](wiring.md#the_wiring_plugs_in_the_same_sensor_twice) |
+| `three_wire_port_A_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_a_is_used_twice) |
+| `three_wire_port_B_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_b_is_used_twice) |
+| `three_wire_port_C_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_c_is_used_twice) |
+| `three_wire_port_D_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_d_is_used_twice) |
+| `three_wire_port_E_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_e_is_used_twice) |
+| `three_wire_port_F_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_f_is_used_twice) |
+| `three_wire_port_G_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_g_is_used_twice) |
+| `three_wire_port_H_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_h_is_used_twice) |
 | `throwingPreconditionHandler` | free function | [check.md](check.md#throwingpreconditionhandler) |
 | `TickAttribution` | class | [tick_attribution.md](tick_attribution.md#class-tickattribution) |
 | `TickAttribution::abandonTick` | function | [tick_attribution.md](tick_attribution.md#tickattribution-abandontick) |
@@ -1668,7 +5646,261 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TickPhase::Telemetry` | enumerator | [debug_record.md](debug_record.md#tickphase-telemetry) |
 | `TickPhase::User` | enumerator | [debug_record.md](debug_record.md#tickphase-user) |
 | `tickPhaseName` | free function | [tick_attribution.md](tick_attribution.md#tickphasename) |
+| `TickTimingConfig` | struct | [tick_timing_stats.md](tick_timing_stats.md#struct-ticktimingconfig) |
+| `TickTimingConfig::budget` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingconfig-budget) |
+| `TickTimingConfig::nominal` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingconfig-nominal) |
+| `TickTimingStats` | class | [tick_timing_stats.md](tick_timing_stats.md#class-ticktimingstats) |
+| `TickTimingStats::config` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingstats-config) |
+| `TickTimingStats::rebaseline` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingstats-rebaseline) |
+| `TickTimingStats::reset` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingstats-reset) |
+| `TickTimingStats::summary` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingstats-summary) |
+| `TickTimingStats::tick` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingstats-tick) |
+| `TickTimingStats::TickTimingStats` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingstats-ticktimingstats) |
+| `TickTimingSummary` | struct | [tick_timing_stats.md](tick_timing_stats.md#struct-ticktimingsummary) |
+| `TickTimingSummary::count` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-count) |
+| `TickTimingSummary::maxS` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-maxs) |
+| `TickTimingSummary::meanS` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-means) |
+| `TickTimingSummary::minS` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-mins) |
+| `TickTimingSummary::overBudget` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-overbudget) |
+| `TickTimingSummary::overDouble` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-overdouble) |
+| `TickTimingSummary::sigmaS` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-sigmas) |
+| `TickTimingSummary::valid` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-valid) |
 | `Time` | type alias | [quantity.md](quantity.md#time) |
+| `toBrakeMode` | free function | [robot_config.md](robot_config.md#tobrakemode) |
+| `toChassisSpeeds` | free function | [stick_mapping.md](stick_mapping.md#tochassisspeeds) |
+| `toggle` | free function | [driver_inputs.md](driver_inputs.md#toggle) |
+| `toggle (overload 2)` | free function | [driver_inputs.md](driver_inputs.md#toggle-2) |
+| `toggle (overload 3)` | free function | [driver_inputs.md](driver_inputs.md#toggle-3) |
+| `toggle (overload 4)` | free function | [driver_inputs.md](driver_inputs.md#toggle-4) |
+| `toggle (overload 5)` | type alias | [driver_inputs.md](driver_inputs.md#toggle-5) |
+| `ToggleBinding` | class | [mechanism_binding.md](mechanism_binding.md#class-togglebinding) |
+| `ToggleBinding::button` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-button) |
+| `ToggleBinding::enter` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-enter) |
+| `ToggleBinding::entered` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-entered) |
+| `ToggleBinding::initialState` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-initialstate) |
+| `ToggleBinding::mechanism` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-mechanism) |
+| `ToggleBinding::operator=` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-operator-eq) |
+| `ToggleBinding::operator= (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-operator-eq-2) |
+| `ToggleBinding::releasedLeftoverClaim` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-releasedleftoverclaim) |
+| `ToggleBinding::releaseLeftoverClaim` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-releaseleftoverclaim) |
+| `ToggleBinding::tick` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-tick) |
+| `ToggleBinding::ToggleBinding` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding) |
+| `ToggleBinding::ToggleBinding (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding-2) |
+| `ToggleBinding::ToggleBinding (overload 3)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding-3) |
+| `ToggleBinding::~ToggleBinding` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-destructor-togglebinding) |
+| `ToggleColour` | enum class | [toggle_tracker.md](toggle_tracker.md#enum-class-togglecolour) |
+| `ToggleColour::Blue` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglecolour-blue) |
+| `ToggleColour::Red` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglecolour-red) |
+| `ToggleColour::Unknown` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglecolour-unknown) |
+| `ToggleColour::Yellow` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglecolour-yellow) |
+| `ToggleColourIds` | struct | [toggle_tracker.md](toggle_tracker.md#struct-togglecolourids) |
+| `ToggleColourIds::blue` | field | [toggle_tracker.md](toggle_tracker.md#togglecolourids-blue) |
+| `ToggleColourIds::red` | field | [toggle_tracker.md](toggle_tracker.md#togglecolourids-red) |
+| `ToggleColourIds::yellow` | field | [toggle_tracker.md](toggle_tracker.md#togglecolourids-yellow) |
+| `toggleColourOf` | free function | [toggle_visit.md](toggle_visit.md#togglecolourof) |
+| `toggleColourWord` | free function | [toggle_tracker.md](toggle_tracker.md#togglecolourword) |
+| `ToggleFace` | struct | [override_elements.md](override_elements.md#struct-toggleface) |
+| `ToggleFace::bottomHiIn` | field | [override_elements.md](override_elements.md#toggleface-bottomhiin) |
+| `ToggleFace::bottomIn` | field | [override_elements.md](override_elements.md#toggleface-bottomin) |
+| `ToggleFace::flatBottomIn` | field | [override_elements.md](override_elements.md#toggleface-flatbottomin) |
+| `ToggleFace::lengthIn` | field | [override_elements.md](override_elements.md#toggleface-lengthin) |
+| `ToggleFace::setBackHiIn` | field | [override_elements.md](override_elements.md#toggleface-setbackhiin) |
+| `ToggleFace::setBackLoIn` | field | [override_elements.md](override_elements.md#toggleface-setbackloin) |
+| `ToggleFace::topIn` | field | [override_elements.md](override_elements.md#toggleface-topin) |
+| `ToggleFace::wallTopIn` | field | [override_elements.md](override_elements.md#toggleface-walltopin) |
+| `ToggleFaceGate` | enum class | [toggle_tracker.md](toggle_tracker.md#enum-class-togglefacegate) |
+| `ToggleFaceGate::Cut` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglefacegate-cut) |
+| `ToggleFaceGate::Explained` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglefacegate-explained) |
+| `ToggleFaceGate::NotExplained` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglefacegate-notexplained) |
+| `ToggleFaceGate::TooThin` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglefacegate-toothin) |
+| `ToggleFaceMeasure` | struct | [toggle_tracker.md](toggle_tracker.md#struct-togglefacemeasure) |
+| `ToggleFaceMeasure::aspect` | field | [toggle_tracker.md](toggle_tracker.md#togglefacemeasure-aspect) |
+| `ToggleFaceMeasure::gate` | field | [toggle_tracker.md](toggle_tracker.md#togglefacemeasure-gate) |
+| `ToggleFaceMeasure::impliedLength` | field | [toggle_tracker.md](toggle_tracker.md#togglefacemeasure-impliedlength) |
+| `ToggleFaceMeasure::range` | field | [toggle_tracker.md](toggle_tracker.md#togglefacemeasure-range) |
+| `ToggleFaceMeasure::sideClipped` | field | [toggle_tracker.md](toggle_tracker.md#togglefacemeasure-sideclipped) |
+| `ToggleId` | enum class | [override_elements.md](override_elements.md#enum-class-toggleid) |
+| `ToggleId::BlueWall` | enumerator | [override_elements.md](override_elements.md#toggleid-bluewall) |
+| `ToggleId::LeftWall` | enumerator | [override_elements.md](override_elements.md#toggleid-leftwall) |
+| `ToggleId::RedWall` | enumerator | [override_elements.md](override_elements.md#toggleid-redwall) |
+| `ToggleId::RightWall` | enumerator | [override_elements.md](override_elements.md#toggleid-rightwall) |
+| `ToggleId::Unset` | enumerator | [override_elements.md](override_elements.md#toggleid-unset) |
+| `toggleIndex` | free function | [override_elements.md](override_elements.md#toggleindex) |
+| `toggleName` | free function | [override_elements.md](override_elements.md#togglename) |
+| `TogglePlace` | struct | [override_elements.md](override_elements.md#struct-toggleplace) |
+| `TogglePlace::inX` | field | [override_elements.md](override_elements.md#toggleplace-inx) |
+| `TogglePlace::inY` | field | [override_elements.md](override_elements.md#toggleplace-iny) |
+| `TogglePlace::x` | field | [override_elements.md](override_elements.md#toggleplace-x) |
+| `TogglePlace::y` | field | [override_elements.md](override_elements.md#toggleplace-y) |
+| `ToggleTracker` | class | [toggle_tracker.md](toggle_tracker.md#class-toggletracker) |
+| `ToggleTracker::ToggleTracker` | function | [toggle_tracker.md](toggle_tracker.md#toggletracker-toggletracker) |
+| `ToggleTracker::update` | function | [toggle_tracker.md](toggle_tracker.md#toggletracker-update) |
+| `ToggleTracker::view` | function | [toggle_tracker.md](toggle_tracker.md#toggletracker-view) |
+| `ToggleTrackerConfig` | struct | [toggle_tracker.md](toggle_tracker.md#struct-toggletrackerconfig) |
+| `ToggleTrackerConfig::aliveSeconds` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-aliveseconds) |
+| `ToggleTrackerConfig::bearingWindowDeg` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-bearingwindowdeg) |
+| `ToggleTrackerConfig::frozenMoveIn` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-frozenmovein) |
+| `ToggleTrackerConfig::frozenTurnDeg` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-frozenturndeg) |
+| `ToggleTrackerConfig::holdSeconds` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-holdseconds) |
+| `ToggleTrackerConfig::ids` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-ids) |
+| `ToggleTrackerConfig::maxFixRadiusIn` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-maxfixradiusin) |
+| `ToggleTrackerConfig::maxLengthFraction` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-maxlengthfraction) |
+| `ToggleTrackerConfig::maxPoseToleranceIn` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-maxposetolerancein) |
+| `ToggleTrackerConfig::maxRangeIn` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-maxrangein) |
+| `ToggleTrackerConfig::minAspect` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-minaspect) |
+| `ToggleTrackerConfig::minLengthFraction` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-minlengthfraction) |
+| `ToggleTrackerConfig::minRangeIn` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-minrangein) |
+| `ToggleTrackerConfig::positionToleranceIn` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-positiontolerancein) |
+| `toggleTrackerConfigProblem` | free function | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfigproblem) |
+| `ToggleView` | struct | [toggle_tracker.md](toggle_tracker.md#struct-toggleview) |
+| `ToggleView::bearing` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-bearing) |
+| `ToggleView::colour` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-colour) |
+| `ToggleView::heldSeconds` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-heldseconds) |
+| `ToggleView::positionChecked` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-positionchecked) |
+| `ToggleView::range` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-range) |
+| `ToggleView::toggleIndex` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-toggleindex) |
+| `ToggleView::why` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-why) |
+| `toggleVisit` | free function | [toggle_visit.md](toggle_visit.md#togglevisit) |
+| `toggleVisitCeilTick` | free function | [toggle_visit.md](toggle_visit.md#togglevisitceiltick) |
+| `toggleVisitNeedSeconds` | free function | [toggle_visit.md](toggle_visit.md#togglevisitneedseconds) |
+| `ToggleVisitProblem` | enum class | [toggle_visit.md](toggle_visit.md#enum-class-togglevisitproblem) |
+| `ToggleVisitProblem::BackBoundUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-backboundunset) |
+| `ToggleVisitProblem::DriveBoundUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-driveboundunset) |
+| `ToggleVisitProblem::FlipBoundUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-flipboundunset) |
+| `ToggleVisitProblem::FlipperKindsDiffer` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-flipperkindsdiffer) |
+| `ToggleVisitProblem::LookFromUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-lookfromunset) |
+| `ToggleVisitProblem::LookWithinUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-lookwithinunset) |
+| `ToggleVisitProblem::MarginUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-marginunset) |
+| `ToggleVisitProblem::MaxImageAgeUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-maximageageunset) |
+| `ToggleVisitProblem::MaxPushes` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-maxpushes) |
+| `ToggleVisitProblem::None` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-none) |
+| `ToggleVisitProblem::NotFinite` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-notfinite) |
+| `ToggleVisitProblem::OffByTooLarge` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-offbytoolarge) |
+| `ToggleVisitProblem::OffByUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-offbyunset) |
+| `ToggleVisitProblem::PushFromUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-pushfromunset) |
+| `ToggleVisitProblem::PushNotNearer` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-pushnotnearer) |
+| `ToggleVisitProblem::SameGoalTwice` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-samegoaltwice) |
+| `ToggleVisitProblem::SettleUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-settleunset) |
+| `ToggleVisitProblem::ToggleUnset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-toggleunset) |
+| `ToggleVisitProblem::TwoMechanisms` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitproblem-twomechanisms) |
+| `toggleVisitProblemOf` | free function | [toggle_visit.md](toggle_visit.md#togglevisitproblemof) |
+| `toggleVisitProblemSentence` | free function | [toggle_visit.md](toggle_visit.md#togglevisitproblemsentence) |
+| `ToggleVisitReport` | struct | [toggle_visit.md](toggle_visit.md#struct-togglevisitreport) |
+| `ToggleVisitReport::after` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-after) |
+| `ToggleVisitReport::afterTooEarly` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-aftertooearly) |
+| `ToggleVisitReport::back` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-back) |
+| `ToggleVisitReport::bearing` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-bearing) |
+| `ToggleVisitReport::before` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-before) |
+| `ToggleVisitReport::detail` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-detail) |
+| `ToggleVisitReport::driveIn` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-drivein) |
+| `ToggleVisitReport::driveOut` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-driveout) |
+| `ToggleVisitReport::fullStroke` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-fullstroke) |
+| `ToggleVisitReport::lensFromWallIn` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-lensfromwallin) |
+| `ToggleVisitReport::ok` | function | [toggle_visit.md](toggle_visit.md#togglevisitreport-ok) |
+| `ToggleVisitReport::ours` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-ours) |
+| `ToggleVisitReport::outcome` | function | [toggle_visit.md](toggle_visit.md#togglevisitreport-outcome) |
+| `ToggleVisitReport::positionChecked` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-positionchecked) |
+| `ToggleVisitReport::push` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-push) |
+| `ToggleVisitReport::pushes` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-pushes) |
+| `ToggleVisitReport::range` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-range) |
+| `ToggleVisitReport::seconds` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-seconds) |
+| `ToggleVisitReport::secondsLeftAtCheck` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-secondsleftatcheck) |
+| `ToggleVisitReport::secondsLeftAtStart` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-secondsleftatstart) |
+| `ToggleVisitReport::secondsNeeded` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-secondsneeded) |
+| `ToggleVisitReport::toggle` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-toggle) |
+| `ToggleVisitReport::verdict` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-verdict) |
+| `ToggleVisitReport::wallChecked` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-wallchecked) |
+| `ToggleVisitReport::whyAfter` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-whyafter) |
+| `ToggleVisitReport::whyBefore` | field | [toggle_visit.md](toggle_visit.md#togglevisitreport-whybefore) |
+| `ToggleVisitRequest` | struct | [toggle_visit.md](toggle_visit.md#struct-togglevisitrequest) |
+| `ToggleVisitRequest::back` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-back) |
+| `ToggleVisitRequest::backBound` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-backbound) |
+| `ToggleVisitRequest::driveBound` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-drivebound) |
+| `ToggleVisitRequest::flipBound` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-flipbound) |
+| `ToggleVisitRequest::flipper` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-flipper) |
+| `ToggleVisitRequest::lookFrom` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-lookfrom) |
+| `ToggleVisitRequest::lookWithin` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-lookwithin) |
+| `ToggleVisitRequest::margin` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-margin) |
+| `ToggleVisitRequest::maxImageAge` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-maximageage) |
+| `ToggleVisitRequest::maxPushes` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-maxpushes) |
+| `ToggleVisitRequest::offBy` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-offby) |
+| `ToggleVisitRequest::pushFrom` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-pushfrom) |
+| `ToggleVisitRequest::settle` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-settle) |
+| `ToggleVisitRequest::toggle` | field | [toggle_visit.md](toggle_visit.md#togglevisitrequest-toggle) |
+| `toggleVisitRequestProblem` | free function | [toggle_visit.md](toggle_visit.md#togglevisitrequestproblem) |
+| `ToggleVisitVerdict` | enum class | [toggle_visit.md](toggle_visit.md#enum-class-togglevisitverdict) |
+| `ToggleVisitVerdict::AlreadyOurs` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-alreadyours) |
+| `ToggleVisitVerdict::Cut` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-cut) |
+| `ToggleVisitVerdict::DriveFailed` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-drivefailed) |
+| `ToggleVisitVerdict::Flipped` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-flipped) |
+| `ToggleVisitVerdict::FlipperNotReady` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-flippernotready) |
+| `ToggleVisitVerdict::FlipperStuck` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-flipperstuck) |
+| `ToggleVisitVerdict::FrozenBeforePush` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-frozenbeforepush) |
+| `ToggleVisitVerdict::NoCamera` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-nocamera) |
+| `ToggleVisitVerdict::NoChange` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-nochange) |
+| `ToggleVisitVerdict::NotAtSpot` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-notatspot) |
+| `ToggleVisitVerdict::NotEnoughTime` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-notenoughtime) |
+| `ToggleVisitVerdict::NoTimeForSecondPush` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-notimeforsecondpush) |
+| `ToggleVisitVerdict::NotSkills` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-notskills) |
+| `ToggleVisitVerdict::OursAfterShortStroke` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-oursaftershortstroke) |
+| `ToggleVisitVerdict::RetractedForTime` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-retractedfortime) |
+| `ToggleVisitVerdict::SeenNotOurs` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-seennotours) |
+| `ToggleVisitVerdict::StillNotOurs` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-stillnotours) |
+| `ToggleVisitVerdict::UnknownAfter` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-unknownafter) |
+| `ToggleVisitVerdict::UnknownBefore` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-unknownbefore) |
+| `ToggleVisitVerdict::Unset` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-unset) |
+| `ToggleVisitVerdict::WrongWall` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-wrongwall) |
+| `toggleVisitWord` | free function | [toggle_visit.md](toggle_visit.md#togglevisitword) |
+| `ToggleWhy` | enum class | [toggle_tracker.md](toggle_tracker.md#enum-class-togglewhy) |
+| `ToggleWhy::CameraFrozen` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-camerafrozen) |
+| `ToggleWhy::CameraFull` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-camerafull) |
+| `ToggleWhy::CameraSilent` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-camerasilent) |
+| `ToggleWhy::ColourAbove` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-colourabove) |
+| `ToggleWhy::ConflictingPartialBand` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-conflictingpartialband) |
+| `ToggleWhy::CutByImage` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-cutbyimage) |
+| `ToggleWhy::MaybeBottomFace` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-maybebottomface) |
+| `ToggleWhy::NoBand` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-noband) |
+| `ToggleWhy::NoRead` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-noread) |
+| `ToggleWhy::NotHeldYet` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-notheldyet) |
+| `ToggleWhy::ReadNotUsable` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-readnotusable) |
+| `ToggleWhy::Sure` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-sure) |
+| `ToggleWhy::TwoColours` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-twocolours) |
+| `toggleWhyWords` | free function | [toggle_tracker.md](toggle_tracker.md#togglewhywords) |
+| `toLineValue` | free function | [robot_config.md](robot_config.md#tolinevalue) |
+| `toMechanismConfig` | free function | [wiring.md](wiring.md#tomechanismconfig) |
+| `Tone` | enum class | [touch_panel.md](touch_panel.md#enum-class-tone) |
+| `Tone::Amber` | enumerator | [touch_panel.md](touch_panel.md#tone-amber) |
+| `Tone::Blue` | enumerator | [touch_panel.md](touch_panel.md#tone-blue) |
+| `Tone::Green` | enumerator | [touch_panel.md](touch_panel.md#tone-green) |
+| `Tone::Grey` | enumerator | [touch_panel.md](touch_panel.md#tone-grey) |
+| `Tone::Red` | enumerator | [touch_panel.md](touch_panel.md#tone-red) |
+| `Tone::White` | enumerator | [touch_panel.md](touch_panel.md#tone-white) |
+| `topFaceAllowanceIn` | free function | [piece_finder.md](piece_finder.md#topfaceallowancein) |
+| `TouchAction` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-touchaction) |
+| `TouchAction::Answer` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-answer) |
+| `TouchAction::None` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-none) |
+| `TouchAction::RunAgain` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-runagain) |
+| `TouchAction::SaveHeld` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-saveheld) |
+| `TouchGate` | class | [calibrate_panel.md](calibrate_panel.md#class-touchgate) |
+| `TouchGate::touch` | function | [calibrate_panel.md](calibrate_panel.md#touchgate-touch) |
+| `TouchGate::TouchGate` | function | [calibrate_panel.md](calibrate_panel.md#touchgate-touchgate) |
+| `TouchGate::view` | function | [calibrate_panel.md](calibrate_panel.md#touchgate-view) |
+| `TouchResult` | struct | [calibrate_panel.md](calibrate_panel.md#struct-touchresult) |
+| `TouchResult::action` | field | [calibrate_panel.md](calibrate_panel.md#touchresult-action) |
+| `TouchResult::answer` | field | [calibrate_panel.md](calibrate_panel.md#touchresult-answer) |
+| `TouchResult::hit` | field | [calibrate_panel.md](calibrate_panel.md#touchresult-hit) |
+| `TouchResult::newRelease` | field | [calibrate_panel.md](calibrate_panel.md#touchresult-newrelease) |
+| `TouchSample` | struct | [calibrate_panel.md](calibrate_panel.md#struct-touchsample) |
+| `TouchSample` | struct | [touch_panel.md](touch_panel.md#struct-touchsample) |
+| `TouchSample::error` | field | [calibrate_panel.md](calibrate_panel.md#touchsample-error) |
+| `TouchSample::error` | field | [touch_panel.md](touch_panel.md#touchsample-error) |
+| `TouchSample::releaseCount` | field | [calibrate_panel.md](calibrate_panel.md#touchsample-releasecount) |
+| `TouchSample::releaseCount` | field | [touch_panel.md](touch_panel.md#touchsample-releasecount) |
+| `TouchSample::x` | field | [calibrate_panel.md](calibrate_panel.md#touchsample-x) |
+| `TouchSample::x` | field | [touch_panel.md](touch_panel.md#touchsample-x) |
+| `TouchSample::y` | field | [calibrate_panel.md](calibrate_panel.md#touchsample-y) |
+| `TouchSample::y` | field | [touch_panel.md](touch_panel.md#touchsample-y) |
+| `towardWallRadians` | free function | [toggle_visit.md](toggle_visit.md#towardwallradians) |
 | `TrackingWheel` | class | [tracking_wheel.md](tracking_wheel.md#class-trackingwheel) |
 | `TrackingWheel::forward` | function | [tracking_wheel.md](tracking_wheel.md#trackingwheel-forward) |
 | `TrackingWheel::lateral` | function | [tracking_wheel.md](tracking_wheel.md#trackingwheel-lateral) |
@@ -1679,6 +5911,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TrackingWheel::Role::Forward` | enumerator | [tracking_wheel.md](tracking_wheel.md#trackingwheel-role-forward) |
 | `TrackingWheel::Role::Lateral` | enumerator | [tracking_wheel.md](tracking_wheel.md#trackingwheel-role-lateral) |
 | `TrackingWheel::travelDelta` | function | [tracking_wheel.md](tracking_wheel.md#trackingwheel-traveldelta) |
+| `TrackingWheelConfig` | struct | [robot_config.md](robot_config.md#struct-trackingwheelconfig) |
+| `TrackingWheelConfig::offset` | field | [robot_config.md](robot_config.md#trackingwheelconfig-offset) |
+| `TrackingWheelConfig::port` | field | [robot_config.md](robot_config.md#trackingwheelconfig-port) |
+| `TrackingWheelConfig::wheelDiameter` | field | [robot_config.md](robot_config.md#trackingwheelconfig-wheeldiameter) |
+| `TrackingWheelsOdometry` | struct | [robot_config.md](robot_config.md#struct-trackingwheelsodometry) |
+| `TrackingWheelsOdometry::forward` | field | [robot_config.md](robot_config.md#trackingwheelsodometry-forward) |
+| `TrackingWheelsOdometry::lateral` | field | [robot_config.md](robot_config.md#trackingwheelsodometry-lateral) |
 | `TrajectoryResult` | struct | [chassis.md](chassis.md#struct-trajectoryresult) |
 | `TrajectoryResult::completedLegs` | field | [chassis.md](chassis.md#trajectoryresult-completedlegs) |
 | `TrajectoryResult::exit` | field | [chassis.md](chassis.md#trajectoryresult-exit) |
@@ -1695,6 +5934,237 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TriageInfo::faultTime` | field | [blackbox_format.md](blackbox_format.md#triageinfo-faulttime) |
 | `TriageInfo::precedingTicks` | field | [blackbox_format.md](blackbox_format.md#triageinfo-precedingticks) |
 | `TriageInfo::tickIndex` | field | [blackbox_format.md](blackbox_format.md#triageinfo-tickindex) |
+| `Tunable` | enum class | [live_tuning.md](live_tuning.md#enum-class-tunable) |
+| `Tunable::AtSpeedBand` | enumerator | [live_tuning.md](live_tuning.md#tunable-atspeedband) |
+| `Tunable::AtSpeedTime` | enumerator | [live_tuning.md](live_tuning.md#tunable-atspeedtime) |
+| `Tunable::CurrentCap` | enumerator | [live_tuning.md](live_tuning.md#tunable-currentcap) |
+| `Tunable::GravityHold` | enumerator | [live_tuning.md](live_tuning.md#tunable-gravityhold) |
+| `Tunable::HomeStallAmps` | enumerator | [live_tuning.md](live_tuning.md#tunable-homestallamps) |
+| `Tunable::HomeStallLasting` | enumerator | [live_tuning.md](live_tuning.md#tunable-homestalllasting) |
+| `Tunable::HomeStallRpm` | enumerator | [live_tuning.md](live_tuning.md#tunable-homestallrpm) |
+| `Tunable::HomeVolts` | enumerator | [live_tuning.md](live_tuning.md#tunable-homevolts) |
+| `Tunable::KA` | enumerator | [live_tuning.md](live_tuning.md#tunable-ka) |
+| `Tunable::KD` | enumerator | [live_tuning.md](live_tuning.md#tunable-kd) |
+| `Tunable::KI` | enumerator | [live_tuning.md](live_tuning.md#tunable-ki) |
+| `Tunable::KP` | enumerator | [live_tuning.md](live_tuning.md#tunable-kp) |
+| `Tunable::KS` | enumerator | [live_tuning.md](live_tuning.md#tunable-ks) |
+| `Tunable::KV` | enumerator | [live_tuning.md](live_tuning.md#tunable-kv) |
+| `Tunable::MaxAcceleration` | enumerator | [live_tuning.md](live_tuning.md#tunable-maxacceleration) |
+| `Tunable::MaxSpeed` | enumerator | [live_tuning.md](live_tuning.md#tunable-maxspeed) |
+| `Tunable::MaxVolts` | enumerator | [live_tuning.md](live_tuning.md#tunable-maxvolts) |
+| `Tunable::RangeMax` | enumerator | [live_tuning.md](live_tuning.md#tunable-rangemax) |
+| `Tunable::RangeMin` | enumerator | [live_tuning.md](live_tuning.md#tunable-rangemin) |
+| `Tunable::Settle` | enumerator | [live_tuning.md](live_tuning.md#tunable-settle) |
+| `Tunable::StallAmps` | enumerator | [live_tuning.md](live_tuning.md#tunable-stallamps) |
+| `Tunable::StallLasting` | enumerator | [live_tuning.md](live_tuning.md#tunable-stalllasting) |
+| `Tunable::StallRpm` | enumerator | [live_tuning.md](live_tuning.md#tunable-stallrpm) |
+| `Tunable::Within` | enumerator | [live_tuning.md](live_tuning.md#tunable-within) |
+| `tunableUnit` | free function | [live_tuning.md](live_tuning.md#tunableunit) |
+| `tunableValue` | free function | [live_tuning.md](live_tuning.md#tunablevalue) |
+| `TuneButton` | enum class | [tune_panel.md](tune_panel.md#enum-class-tunebutton) |
+| `TuneButton::Again` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-again) |
+| `TuneButton::Back` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-back) |
+| `TuneButton::Copy` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-copy) |
+| `TuneButton::Exit` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-exit) |
+| `TuneButton::Fine` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-fine) |
+| `TuneButton::Go` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-go) |
+| `TuneButton::Home` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-home) |
+| `TuneButton::Minus` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-minus) |
+| `TuneButton::NextMech` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-nextmech) |
+| `TuneButton::NextParam` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-nextparam) |
+| `TuneButton::Plus` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-plus) |
+| `TuneButton::PrevMech` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-prevmech) |
+| `TuneButton::PrevParam` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-prevparam) |
+| `TuneButton::Ready` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-ready) |
+| `TuneButton::Reset` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-reset) |
+| `TuneButton::Stop` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-stop) |
+| `TuneButton::StringCheck` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-stringcheck) |
+| `TuneButton::TestA` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-testa) |
+| `TuneButton::TestB` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-testb) |
+| `TuneButton::TuneAgain` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-tuneagain) |
+| `TuneButton::Undo` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-undo) |
+| `TuneButtonView` | struct | [tune_panel.md](tune_panel.md#struct-tunebuttonview) |
+| `TuneButtonView::armed` | field | [tune_panel.md](tune_panel.md#tunebuttonview-armed) |
+| `TuneButtonView::id` | field | [tune_panel.md](tune_panel.md#tunebuttonview-id) |
+| `TuneButtonView::label` | field | [tune_panel.md](tune_panel.md#tunebuttonview-label) |
+| `TuneButtonView::rect` | field | [tune_panel.md](tune_panel.md#tunebuttonview-rect) |
+| `TuneButtonView::tone` | field | [tune_panel.md](tune_panel.md#tunebuttonview-tone) |
+| `TuneDevices` | struct | [tune_program.md](tune_program.md#struct-tunedevices) |
+| `TuneDevices::controller` | field | [tune_program.md](tune_program.md#tunedevices-controller) |
+| `TuneDevices::devices` | field | [tune_program.md](tune_program.md#tunedevices-devices) |
+| `TuneDevices::io` | field | [tune_program.md](tune_program.md#tunedevices-io) |
+| `TuneDevices::screen` | field | [tune_program.md](tune_program.md#tunedevices-screen) |
+| `TuneFacts` | struct | [tune_panel.md](tune_panel.md#struct-tunefacts) |
+| `TuneFacts::anyCapChanged` | field | [tune_panel.md](tune_panel.md#tunefacts-anycapchanged) |
+| `TuneFacts::armed` | field | [tune_panel.md](tune_panel.md#tunefacts-armed) |
+| `TuneFacts::busy` | field | [tune_panel.md](tune_panel.md#tunefacts-busy) |
+| `TuneFacts::buttonHeld` | field | [tune_panel.md](tune_panel.md#tunefacts-buttonheld) |
+| `TuneFacts::confirmWhat` | field | [tune_panel.md](tune_panel.md#tunefacts-confirmwhat) |
+| `TuneFacts::controller` | field | [tune_panel.md](tune_panel.md#tunefacts-controller) |
+| `TuneFacts::copiedAtExit` | field | [tune_panel.md](tune_panel.md#tunefacts-copiedatexit) |
+| `TuneFacts::field` | field | [tune_panel.md](tune_panel.md#tunefacts-field) |
+| `TuneFacts::fine` | field | [tune_panel.md](tune_panel.md#tunefacts-fine) |
+| `TuneFacts::limitsWritten` | field | [tune_panel.md](tune_panel.md#tunefacts-limitswritten) |
+| `TuneFacts::m` | field | [tune_panel.md](tune_panel.md#tunefacts-m) |
+| `TuneFacts::mech` | field | [tune_panel.md](tune_panel.md#tunefacts-mech) |
+| `TuneFacts::mechCount` | field | [tune_panel.md](tune_panel.md#tunefacts-mechcount) |
+| `TuneFacts::next` | field | [tune_panel.md](tune_panel.md#tunefacts-next) |
+| `TuneFacts::page` | field | [tune_panel.md](tune_panel.md#tunefacts-page) |
+| `TuneFacts::param` | field | [tune_panel.md](tune_panel.md#tunefacts-param) |
+| `TuneFacts::paramCount` | field | [tune_panel.md](tune_panel.md#tunefacts-paramcount) |
+| `TuneFacts::report` | field | [tune_panel.md](tune_panel.md#tunefacts-report) |
+| `TuneFacts::resetAtExit` | field | [tune_panel.md](tune_panel.md#tunefacts-resetatexit) |
+| `TuneFacts::sel` | field | [tune_panel.md](tune_panel.md#tunefacts-sel) |
+| `TuneFacts::status` | field | [tune_panel.md](tune_panel.md#tunefacts-status) |
+| `TuneFacts::stoppedWhy` | field | [tune_panel.md](tune_panel.md#tunefacts-stoppedwhy) |
+| `TuneFacts::testA` | field | [tune_panel.md](tune_panel.md#tunefacts-testa) |
+| `TuneFacts::testAName` | field | [tune_panel.md](tune_panel.md#tunefacts-testaname) |
+| `TuneFacts::testB` | field | [tune_panel.md](tune_panel.md#tunefacts-testb) |
+| `TuneFacts::testBName` | field | [tune_panel.md](tune_panel.md#tunefacts-testbname) |
+| `TuneFacts::undoDepth` | field | [tune_panel.md](tune_panel.md#tunefacts-undodepth) |
+| `tuneHit` | free function | [tune_panel.md](tune_panel.md#tunehit) |
+| `tuneInitialize` | free function | [pros-tune.md](pros-tune.md#tuneinitialize) |
+| `TuneIo` | class | [tune_program.md](tune_program.md#class-tuneio) |
+| `TuneIo::competitionStatus` | function | [tune_program.md](tune_program.md#tuneio-competitionstatus) |
+| `TuneIo::operator=` | function | [tune_program.md](tune_program.md#tuneio-operator-eq) |
+| `TuneIo::operator= (overload 2)` | function | [tune_program.md](tune_program.md#tuneio-operator-eq-2) |
+| `TuneIo::TuneIo` | function | [tune_program.md](tune_program.md#tuneio-tuneio) |
+| `TuneIo::TuneIo (overload 2)` | function | [tune_program.md](tune_program.md#tuneio-tuneio-2) |
+| `TuneIo::TuneIo (overload 3)` | function | [tune_program.md](tune_program.md#tuneio-tuneio-3) |
+| `TuneIo::~TuneIo` | function | [tune_program.md](tune_program.md#tuneio-destructor-tuneio) |
+| `tuneLabelCols` | free function | [tune_panel.md](tune_panel.md#tunelabelcols) |
+| `TuneLine` | struct | [tune_panel.md](tune_panel.md#struct-tuneline) |
+| `TuneLine::size` | field | [tune_panel.md](tune_panel.md#tuneline-size) |
+| `TuneLine::text` | field | [tune_panel.md](tune_panel.md#tuneline-text) |
+| `TuneLine::tone` | field | [tune_panel.md](tune_panel.md#tuneline-tone) |
+| `TuneLine::x` | field | [tune_panel.md](tune_panel.md#tuneline-x) |
+| `TuneLine::y` | field | [tune_panel.md](tune_panel.md#tuneline-y) |
+| `TuneMechFacts` | struct | [tune_panel.md](tune_panel.md#struct-tunemechfacts) |
+| `TuneMechFacts::active` | field | [tune_panel.md](tune_panel.md#tunemechfacts-active) |
+| `TuneMechFacts::built` | field | [tune_panel.md](tune_panel.md#tunemechfacts-built) |
+| `TuneMechFacts::capChanged` | field | [tune_panel.md](tune_panel.md#tunemechfacts-capchanged) |
+| `TuneMechFacts::changed` | field | [tune_panel.md](tune_panel.md#tunemechfacts-changed) |
+| `TuneMechFacts::homed` | field | [tune_panel.md](tune_panel.md#tunemechfacts-homed) |
+| `TuneMechFacts::homes` | field | [tune_panel.md](tune_panel.md#tunemechfacts-homes) |
+| `TuneMechFacts::kind` | field | [tune_panel.md](tune_panel.md#tunemechfacts-kind) |
+| `TuneMechFacts::lastVerdict` | field | [tune_panel.md](tune_panel.md#tunemechfacts-lastverdict) |
+| `TuneMechFacts::name` | field | [tune_panel.md](tune_panel.md#tunemechfacts-name) |
+| `TuneMechFacts::now` | field | [tune_panel.md](tune_panel.md#tunemechfacts-now) |
+| `TuneMechFacts::target` | field | [tune_panel.md](tune_panel.md#tunemechfacts-target) |
+| `TuneMechFacts::units` | field | [tune_panel.md](tune_panel.md#tunemechfacts-units) |
+| `TuneMoveFacts` | struct | [tune_program.md](tune_program.md#struct-tunemovefacts) |
+| `TuneMoveFacts::bound` | field | [tune_program.md](tune_program.md#tunemovefacts-bound) |
+| `TuneMoveFacts::capAmps` | field | [tune_program.md](tune_program.md#tunemovefacts-capamps) |
+| `TuneMoveFacts::kind` | field | [tune_program.md](tune_program.md#tunemovefacts-kind) |
+| `TuneMoveFacts::outcome` | field | [tune_program.md](tune_program.md#tunemovefacts-outcome) |
+| `TuneMoveFacts::seconds` | field | [tune_program.md](tune_program.md#tunemovefacts-seconds) |
+| `TuneMoveFacts::stallAmps` | field | [tune_program.md](tune_program.md#tunemovefacts-stallamps) |
+| `TuneMoveFacts::start` | field | [tune_program.md](tune_program.md#tunemovefacts-start) |
+| `TuneMoveFacts::stoppedBy` | field | [tune_program.md](tune_program.md#tunemovefacts-stoppedby) |
+| `TuneMoveFacts::target` | field | [tune_program.md](tune_program.md#tunemovefacts-target) |
+| `TuneMoveFacts::test` | field | [tune_program.md](tune_program.md#tunemovefacts-test) |
+| `TuneMoveFacts::unit` | field | [tune_program.md](tune_program.md#tunemovefacts-unit) |
+| `TuneMoveFacts::within` | field | [tune_program.md](tune_program.md#tunemovefacts-within) |
+| `TunePage` | enum class | [tune_panel.md](tune_panel.md#enum-class-tunepage) |
+| `TunePage::Clear` | enumerator | [tune_panel.md](tune_panel.md#tunepage-clear) |
+| `TunePage::Confirm` | enumerator | [tune_panel.md](tune_panel.md#tunepage-confirm) |
+| `TunePage::Exited` | enumerator | [tune_panel.md](tune_panel.md#tunepage-exited) |
+| `TunePage::Report` | enumerator | [tune_panel.md](tune_panel.md#tunepage-report) |
+| `TunePage::Stopped` | enumerator | [tune_panel.md](tune_panel.md#tunepage-stopped) |
+| `TunePage::StringCheck` | enumerator | [tune_panel.md](tune_panel.md#tunepage-stringcheck) |
+| `TunePage::Tune` | enumerator | [tune_panel.md](tune_panel.md#tunepage-tune) |
+| `TuneParamFacts` | struct | [tune_panel.md](tune_panel.md#struct-tuneparamfacts) |
+| `TuneParamFacts::capNone` | field | [tune_panel.md](tune_panel.md#tuneparamfacts-capnone) |
+| `TuneParamFacts::file` | field | [tune_panel.md](tune_panel.md#tuneparamfacts-file) |
+| `TuneParamFacts::name` | field | [tune_panel.md](tune_panel.md#tuneparamfacts-name) |
+| `TuneParamFacts::rule` | field | [tune_panel.md](tune_panel.md#tuneparamfacts-rule) |
+| `TuneParamFacts::unit` | field | [tune_panel.md](tune_panel.md#tuneparamfacts-unit) |
+| `TuneParamFacts::value` | field | [tune_panel.md](tune_panel.md#tuneparamfacts-value) |
+| `tunePositionBound` | free function | [tune_program.md](tune_program.md#tunepositionbound) |
+| `TuneProgram` | class | [tune_program.md](tune_program.md#class-tuneprogram) |
+| `TuneProgram::bootBanner` | function | [tune_program.md](tune_program.md#tuneprogram-bootbanner) |
+| `TuneProgram::busy` | function | [tune_program.md](tune_program.md#tuneprogram-busy) |
+| `TuneProgram::capsWrittenBack` | function | [tune_program.md](tune_program.md#tuneprogram-capswrittenback) |
+| `TuneProgram::confirmed` | function | [tune_program.md](tune_program.md#tuneprogram-confirmed) |
+| `TuneProgram::copiedAtExit` | function | [tune_program.md](tune_program.md#tuneprogram-copiedatexit) |
+| `TuneProgram::copy` | function | [tune_program.md](tune_program.md#tuneprogram-copy) |
+| `TuneProgram::copyChanged` | function | [tune_program.md](tune_program.md#tuneprogram-copychanged) |
+| `TuneProgram::drawn` | function | [tune_program.md](tune_program.md#tuneprogram-drawn) |
+| `TuneProgram::enter` | function | [tune_program.md](tune_program.md#tuneprogram-enter) |
+| `TuneProgram::holdSamples` | function | [tune_program.md](tune_program.md#tuneprogram-holdsamples) |
+| `TuneProgram::lastBound` | function | [tune_program.md](tune_program.md#tuneprogram-lastbound) |
+| `TuneProgram::made` | function | [tune_program.md](tune_program.md#tuneprogram-made) |
+| `TuneProgram::moveSamples` | function | [tune_program.md](tune_program.md#tuneprogram-movesamples) |
+| `TuneProgram::operator=` | function | [tune_program.md](tune_program.md#tuneprogram-operator-eq) |
+| `TuneProgram::operator= (overload 2)` | function | [tune_program.md](tune_program.md#tuneprogram-operator-eq-2) |
+| `TuneProgram::page` | function | [tune_program.md](tune_program.md#tuneprogram-page) |
+| `TuneProgram::parts` | function | [tune_program.md](tune_program.md#tuneprogram-parts) |
+| `TuneProgram::report` | function | [tune_program.md](tune_program.md#tuneprogram-report) |
+| `TuneProgram::resetAtExit` | function | [tune_program.md](tune_program.md#tuneprogram-resetatexit) |
+| `TuneProgram::run` | function | [tune_program.md](tune_program.md#tuneprogram-run) |
+| `TuneProgram::selected` | function | [tune_program.md](tune_program.md#tuneprogram-selected) |
+| `TuneProgram::service` | function | [tune_program.md](tune_program.md#tuneprogram-service) |
+| `TuneProgram::shown` | function | [tune_program.md](tune_program.md#tuneprogram-shown) |
+| `TuneProgram::status` | function | [tune_program.md](tune_program.md#tuneprogram-status) |
+| `TuneProgram::step` | function | [tune_program.md](tune_program.md#tuneprogram-step) |
+| `TuneProgram::TuneProgram` | function | [tune_program.md](tune_program.md#tuneprogram-tuneprogram) |
+| `TuneProgram::TuneProgram (overload 2)` | function | [tune_program.md](tune_program.md#tuneprogram-tuneprogram-2) |
+| `TuneProgram::TuneProgram (overload 3)` | function | [tune_program.md](tune_program.md#tuneprogram-tuneprogram-3) |
+| `TuneProgram::tuning` | function | [tune_program.md](tune_program.md#tuneprogram-tuning) |
+| `TuneProgram::uncopied` | function | [tune_program.md](tune_program.md#tuneprogram-uncopied) |
+| `TuneProgram::undoTrackedDepth` | function | [tune_program.md](tune_program.md#tuneprogram-undotrackeddepth) |
+| `TuneProgram::~TuneProgram` | function | [tune_program.md](tune_program.md#tuneprogram-destructor-tuneprogram) |
+| `TuneReport` | struct | [tune_panel.md](tune_panel.md#struct-tunereport) |
+| `TuneReport::bound` | field | [tune_panel.md](tune_panel.md#tunereport-bound) |
+| `TuneReport::capAmps` | field | [tune_panel.md](tune_panel.md#tunereport-capamps) |
+| `TuneReport::finalError` | field | [tune_panel.md](tune_panel.md#tunereport-finalerror) |
+| `TuneReport::hasFinalError` | field | [tune_panel.md](tune_panel.md#tunereport-hasfinalerror) |
+| `TuneReport::holdAmps` | field | [tune_panel.md](tune_panel.md#tunereport-holdamps) |
+| `TuneReport::holdEnded` | field | [tune_panel.md](tune_panel.md#tunereport-holdended) |
+| `TuneReport::holdStopped` | field | [tune_panel.md](tune_panel.md#tunereport-holdstopped) |
+| `TuneReport::kind` | field | [tune_panel.md](tune_panel.md#tunereport-kind) |
+| `TuneReport::overshoot` | field | [tune_panel.md](tune_panel.md#tunereport-overshoot) |
+| `TuneReport::peakAmps` | field | [tune_panel.md](tune_panel.md#tunereport-peakamps) |
+| `TuneReport::seconds` | field | [tune_panel.md](tune_panel.md#tunereport-seconds) |
+| `TuneReport::settle` | field | [tune_panel.md](tune_panel.md#tunereport-settle) |
+| `TuneReport::stallAmps` | field | [tune_panel.md](tune_panel.md#tunereport-stallamps) |
+| `TuneReport::stoppedBy` | field | [tune_panel.md](tune_panel.md#tunereport-stoppedby) |
+| `TuneReport::target` | field | [tune_panel.md](tune_panel.md#tunereport-target) |
+| `TuneReport::test` | field | [tune_panel.md](tune_panel.md#tunereport-test) |
+| `TuneReport::unit` | field | [tune_panel.md](tune_panel.md#tunereport-unit) |
+| `TuneReport::verdict` | field | [tune_panel.md](tune_panel.md#tunereport-verdict) |
+| `TuneReport::warnCapNotAbovePeak` | field | [tune_panel.md](tune_panel.md#tunereport-warncapnotabovepeak) |
+| `TuneReport::warnStallNotAboveHold` | field | [tune_panel.md](tune_panel.md#tunereport-warnstallnotabovehold) |
+| `tuneReportFrom` | free function | [tune_program.md](tune_program.md#tunereportfrom) |
+| `TuneSample` | struct | [tune_program.md](tune_program.md#struct-tunesample) |
+| `TuneSample::amps` | field | [tune_program.md](tune_program.md#tunesample-amps) |
+| `TuneSample::t` | field | [tune_program.md](tune_program.md#tunesample-t) |
+| `TuneSample::x` | field | [tune_program.md](tune_program.md#tunesample-x) |
+| `tuneShell` | free function | [pros-tune.md](pros-tune.md#tuneshell) |
+| `tuneTargets` | free function | [tune_program.md](tune_program.md#tunetargets) |
+| `TuneTargets` | struct | [tune_program.md](tune_program.md#struct-tunetargets) |
+| `TuneTargets::a` | field | [tune_program.md](tune_program.md#tunetargets-a) |
+| `TuneTargets::aName` | field | [tune_program.md](tune_program.md#tunetargets-aname) |
+| `TuneTargets::b` | field | [tune_program.md](tune_program.md#tunetargets-b) |
+| `TuneTargets::bName` | field | [tune_program.md](tune_program.md#tunetargets-bname) |
+| `TuneTest` | enum class | [tune_panel.md](tune_panel.md#enum-class-tunetest) |
+| `TuneTest::A` | enumerator | [tune_panel.md](tune_panel.md#tunetest-a) |
+| `TuneTest::B` | enumerator | [tune_panel.md](tune_panel.md#tunetest-b) |
+| `TuneTest::None` | enumerator | [tune_panel.md](tune_panel.md#tunetest-none) |
+| `tuneTestLabel` | free function | [tune_program.md](tune_program.md#tunetestlabel) |
+| `tuneView` | free function | [tune_panel.md](tune_panel.md#tuneview) |
+| `TuneView` | struct | [tune_panel.md](tune_panel.md#struct-tuneview) |
+| `TuneView::button` | function | [tune_panel.md](tune_panel.md#tuneview-button) |
+| `TuneView::buttonCount` | field | [tune_panel.md](tune_panel.md#tuneview-buttoncount) |
+| `TuneView::buttons` | field | [tune_panel.md](tune_panel.md#tuneview-buttons) |
+| `TuneView::layoutKey` | function | [tune_panel.md](tune_panel.md#tuneview-layoutkey) |
+| `TuneView::lineCount` | field | [tune_panel.md](tune_panel.md#tuneview-linecount) |
+| `TuneView::lines` | field | [tune_panel.md](tune_panel.md#tuneview-lines) |
+| `TuneView::page` | field | [tune_panel.md](tune_panel.md#tuneview-page) |
+| `TuningConfig` | type alias | [robot_config.md](robot_config.md#tuningconfig) |
+| `tuningProblem` | free function | [live_tuning.md](live_tuning.md#tuningproblem) |
+| `tuningRefusal` | free function | [live_tuning.md](live_tuning.md#tuningrefusal) |
+| `turnProgress` | free function | [leg_progress.md](leg_progress.md#turnprogress) |
 | `TurnTo` | class | [turn_to.md](turn_to.md#class-turnto) |
 | `TurnTo::cancel` | function | [turn_to.md](turn_to.md#turnto-cancel) |
 | `TurnTo::exitReason` | function | [turn_to.md](turn_to.md#turnto-exitreason) |
@@ -1711,13 +6181,84 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Twist2d::Twist2d (overload 2)` | function | [twist2d.md](twist2d.md#twist2d-twist2d-2) |
 | `Twist2d::vx` | function | [twist2d.md](twist2d.md#twist2d-vx) |
 | `Twist2d::vy` | function | [twist2d.md](twist2d.md#twist2d-vy) |
+| `two_controls_of_the_same_kind_on_one_mechanism` | free function | [driver_inputs.md](driver_inputs.md#two_controls_of_the_same_kind_on_one_mechanism) |
+| `two_mechanisms_share_a_name` | free function | [wiring.md](wiring.md#two_mechanisms_share_a_name) |
+| `two_presets_or_positions_share_a_name` | free function | [spec.md](spec.md#two_presets_or_positions_share_a_name) |
+| `two_route_ids_are_the_same_rename_a_mechanism_a_preset_or_a_position` | free function | [route_ids.md](route_ids.md#two_route_ids_are_the_same_rename_a_mechanism_a_preset_or_a_position) |
+| `typedDriveDescription` | free function | [calibrate_program.md](calibrate_program.md#typeddrivedescription) |
+| `TypedDrivePorts` | struct | [calibrate_program.md](calibrate_program.md#struct-typeddriveports) |
+| `TypedDrivePorts::left` | field | [calibrate_program.md](calibrate_program.md#typeddriveports-left) |
+| `TypedDrivePorts::right` | field | [calibrate_program.md](calibrate_program.md#typeddriveports-right) |
+| `typedDrivePortsFrom` | free function | [calibrate_program.md](calibrate_program.md#typeddriveportsfrom) |
+
+## U
+
+| Name | Kind | Page |
+|---|---|---|
+| `UnconfirmedWhy` | enum class | [record_store.md](record_store.md#enum-class-unconfirmedwhy) |
+| `UnconfirmedWhy::CardGone` | enumerator | [record_store.md](record_store.md#unconfirmedwhy-cardgone) |
+| `UnconfirmedWhy::None` | enumerator | [record_store.md](record_store.md#unconfirmedwhy-none) |
+| `UnconfirmedWhy::NothingOpened` | enumerator | [record_store.md](record_store.md#unconfirmedwhy-nothingopened) |
+| `UnconfirmedWhy::ReadBackDiffers` | enumerator | [record_store.md](record_store.md#unconfirmedwhy-readbackdiffers) |
+| `Units` | enum class | [spec.md](spec.md#enum-class-units) |
+| `Units::Degrees` | enumerator | [spec.md](spec.md#units-degrees) |
+| `Units::Inches` | enumerator | [spec.md](spec.md#units-inches) |
+| `Until` | class | [until.md](until.md#class-until) |
+| `Until::bound` | function | [until.md](until.md#until-bound) |
+| `Until::conflicting` | function | [until.md](until.md#until-conflicting) |
+| `Until::has` | function | [until.md](until.md#until-has) |
+| `Until::kSees` | field | [until.md](until.md#until-ksees) |
+| `Until::kSelf` | field | [until.md](until.md#until-kself) |
+| `Until::kStalled` | field | [until.md](until.md#until-kstalled) |
+| `Until::kStops` | field | [until.md](until.md#until-kstops) |
+| `Until::kTime` | field | [until.md](until.md#until-ktime) |
+| `Until::operator\|` | function | [until.md](until.md#until-operator-or) |
+| `Until::orAfter` | function | [until.md](until.md#until-orafter) |
+| `Until::readsOwnSensorToo` | function | [until.md](until.md#until-readsownsensortoo) |
+| `Until::seconds` | function | [until.md](until.md#until-seconds) |
+| `Until::sees` | function | [until.md](until.md#until-sees) |
+| `Until::sees (overload 2)` | function | [until.md](until.md#until-sees-2) |
+| `Until::sensor` | function | [until.md](until.md#until-sensor) |
+| `Until::stalled` | function | [until.md](until.md#until-stalled) |
+| `Until::stopsSeeing` | function | [until.md](until.md#until-stopsseeing) |
+| `Until::stopsSeeing (overload 2)` | function | [until.md](until.md#until-stopsseeing-2) |
+| `Until::time` | function | [until.md](until.md#until-time) |
+| `utf8Prefix` | free function | [shul2_format.md](shul2_format.md#utf8prefix) |
 
 ## V
 
 | Name | Kind | Page |
 |---|---|---|
+| `validate` | free function | [robot.md](robot.md#validate) |
 | `validatedConfig` | free function | [motion_config.md](motion_config.md#validatedconfig) |
+| `validBindings` | free function | [mechanism_binding.md](mechanism_binding.md#validbindings) |
+| `validBindings (overload 2)` | free function | [mechanism_binding.md](mechanism_binding.md#validbindings-2) |
+| `validProtectionConfig` | free function | [drive_protection.md](drive_protection.md#validprotectionconfig) |
 | `Velocity` | type alias | [quantity.md](quantity.md#velocity) |
+| `Verdict` | enum class | [shul2_format.md](shul2_format.md#enum-class-verdict) |
+| `Verdict::BadSignature` | enumerator | [shul2_format.md](shul2_format.md#verdict-badsignature) |
+| `Verdict::Exact` | enumerator | [shul2_format.md](shul2_format.md#verdict-exact) |
+| `Verdict::LayoutMismatch` | enumerator | [shul2_format.md](shul2_format.md#verdict-layoutmismatch) |
+| `Verdict::NewerMinor` | enumerator | [shul2_format.md](shul2_format.md#verdict-newerminor) |
+| `Verdict::OlderMinor` | enumerator | [shul2_format.md](shul2_format.md#verdict-olderminor) |
+| `Verdict::RefusedMajor` | enumerator | [shul2_format.md](shul2_format.md#verdict-refusedmajor) |
+| `verdictName` | free function | [shul2_format.md](shul2_format.md#verdictname) |
+| `verifyAgainstRegistry` | free function | [boot_check.md](boot_check.md#verifyagainstregistry) |
+| `verifyAgainstRegistry (overload 2)` | free function | [boot_check.md](boot_check.md#verifyagainstregistry-2) |
+| `viewFor` | free function | [calibrate_panel.md](calibrate_panel.md#viewfor) |
+| `VisionFrame` | struct | [vision_frames.md](vision_frames.md#struct-visionframe) |
+| `VisionFrame::coloursWithheld` | field | [vision_frames.md](vision_frames.md#visionframe-colourswithheld) |
+| `VisionFrame::count` | field | [vision_frames.md](vision_frames.md#visionframe-count) |
+| `VisionFrame::detections` | field | [vision_frames.md](vision_frames.md#visionframe-detections) |
+| `VisionFrame::model` | field | [vision_frames.md](vision_frames.md#visionframe-model) |
+| `VisionFrame::objectsWithheld` | field | [vision_frames.md](vision_frames.md#visionframe-objectswithheld) |
+| `VisionFrame::readAt` | field | [vision_frames.md](vision_frames.md#visionframe-readat) |
+| `VisionFrame::readSeq` | field | [vision_frames.md](vision_frames.md#visionframe-readseq) |
+| `VisionFrame::reportedCount` | field | [vision_frames.md](vision_frames.md#visionframe-reportedcount) |
+| `VisionFrame::skipped` | field | [vision_frames.md](vision_frames.md#visionframe-skipped) |
+| `VisionFrame::status` | field | [vision_frames.md](vision_frames.md#visionframe-status) |
+| `VisionFrame::truncated` | field | [vision_frames.md](vision_frames.md#visionframe-truncated) |
+| `VisionFrame::usable` | function | [vision_frames.md](vision_frames.md#visionframe-usable) |
 | `Voltage` | type alias | [quantity.md](quantity.md#voltage) |
 
 ## W
@@ -1727,6 +6268,155 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `WaitResult` | enum class | [motion_scheduler.md](motion_scheduler.md#enum-class-waitresult) |
 | `WaitResult::Satisfied` | enumerator | [motion_scheduler.md](motion_scheduler.md#waitresult-satisfied) |
 | `WaitResult::TimedOut` | enumerator | [motion_scheduler.md](motion_scheduler.md#waitresult-timedout) |
+| `WallAim` | struct | [wall_reset.md](wall_reset.md#struct-wallaim) |
+| `WallAim::along` | field | [wall_reset.md](wall_reset.md#wallaim-along) |
+| `WallAim::beamHalfWidth` | field | [wall_reset.md](wall_reset.md#wallaim-beamhalfwidth) |
+| `WallAim::ceiling` | field | [wall_reset.md](wall_reset.md#wallaim-ceiling) |
+| `WallAim::cleanFound` | field | [wall_reset.md](wall_reset.md#wallaim-cleanfound) |
+| `WallAim::cleanFrom` | field | [wall_reset.md](wall_reset.md#wallaim-cleanfrom) |
+| `WallAim::cleanTo` | field | [wall_reset.md](wall_reset.md#wallaim-cleanto) |
+| `WallAim::cone` | field | [wall_reset.md](wall_reset.md#wallaim-cone) |
+| `WallAim::drift` | field | [wall_reset.md](wall_reset.md#wallaim-drift) |
+| `WallAim::expectedRange` | field | [wall_reset.md](wall_reset.md#wallaim-expectedrange) |
+| `WallAim::keepOutWhy` | field | [wall_reset.md](wall_reset.md#wallaim-keepoutwhy) |
+| `WallAim::margin` | field | [wall_reset.md](wall_reset.md#wallaim-margin) |
+| `WallAim::offSquare` | field | [wall_reset.md](wall_reset.md#wallaim-offsquare) |
+| `WallAim::widening` | field | [wall_reset.md](wall_reset.md#wallaim-widening) |
+| `WallFrame` | enum class | [wall_reset.md](wall_reset.md#enum-class-wallframe) |
+| `WallFrame::Field` | enumerator | [wall_reset.md](wall_reset.md#wallframe-field) |
+| `WallFrame::Own` | enumerator | [wall_reset.md](wall_reset.md#wallframe-own) |
+| `WallKeepOut` | struct | [wall_reset.md](wall_reset.md#struct-wallkeepout) |
+| `WallKeepOut::from` | field | [wall_reset.md](wall_reset.md#wallkeepout-from) |
+| `WallKeepOut::kind` | field | [wall_reset.md](wall_reset.md#wallkeepout-kind) |
+| `WallKeepOut::to` | field | [wall_reset.md](wall_reset.md#wallkeepout-to) |
+| `WallKeepOut::why` | field | [wall_reset.md](wall_reset.md#wallkeepout-why) |
+| `wallLimitsProblem` | free function | [wall_sensor_config.md](wall_sensor_config.md#walllimitsproblem) |
+| `wallMountProblem` | free function | [wall_sensor_config.md](wall_sensor_config.md#wallmountproblem) |
+| `WallResetLimits` | struct | [wall_reset.md](wall_reset.md#struct-wallresetlimits) |
+| `WallResetLimits::alongDriftRate` | field | [wall_reset.md](wall_reset.md#wallresetlimits-alongdriftrate) |
+| `WallResetLimits::beamMargin` | field | [wall_reset.md](wall_reset.md#wallresetlimits-beammargin) |
+| `WallResetLimits::coneHalfAngle` | field | [wall_reset.md](wall_reset.md#wallresetlimits-conehalfangle) |
+| `WallResetLimits::errorBoundMax` | field | [wall_reset.md](wall_reset.md#wallresetlimits-errorboundmax) |
+| `WallResetLimits::headingFloor` | field | [wall_reset.md](wall_reset.md#wallresetlimits-headingfloor) |
+| `WallResetLimits::headingPerTurn` | field | [wall_reset.md](wall_reset.md#wallresetlimits-headingperturn) |
+| `WallResetLimits::keepOutMargin` | field | [wall_reset.md](wall_reset.md#wallresetlimits-keepoutmargin) |
+| `WallResetLimits::minConfidence` | field | [wall_reset.md](wall_reset.md#wallresetlimits-minconfidence) |
+| `WallResetLimits::minSamples` | field | [wall_reset.md](wall_reset.md#wallresetlimits-minsamples) |
+| `WallResetLimits::pieceTop` | field | [wall_reset.md](wall_reset.md#wallresetlimits-piecetop) |
+| `WallResetLimits::rangeMax` | field | [wall_reset.md](wall_reset.md#wallresetlimits-rangemax) |
+| `WallResetLimits::rangeMin` | field | [wall_reset.md](wall_reset.md#wallresetlimits-rangemin) |
+| `WallResetLimits::spreadMax` | field | [wall_reset.md](wall_reset.md#wallresetlimits-spreadmax) |
+| `WallResetLimits::squareWithin` | field | [wall_reset.md](wall_reset.md#wallresetlimits-squarewithin) |
+| `WallResetLimits::stillSpeed` | field | [wall_reset.md](wall_reset.md#wallresetlimits-stillspeed) |
+| `WallResetLimits::stillTurn` | field | [wall_reset.md](wall_reset.md#wallresetlimits-stillturn) |
+| `WallResetLimits::window` | field | [wall_reset.md](wall_reset.md#wallresetlimits-window) |
+| `WallResetLimits::windowMax` | field | [wall_reset.md](wall_reset.md#wallresetlimits-windowmax) |
+| `WallResetLog` | struct | [wall_reset.md](wall_reset.md#struct-wallresetlog) |
+| `WallResetLog::last` | field | [wall_reset.md](wall_reset.md#wallresetlog-last) |
+| `WallResetLog::record` | function | [wall_reset.md](wall_reset.md#wallresetlog-record) |
+| `WallResetLog::refused` | field | [wall_reset.md](wall_reset.md#wallresetlog-refused) |
+| `WallResetLog::seated` | field | [wall_reset.md](wall_reset.md#wallresetlog-seated) |
+| `wallResetProblem` | free function | [wall_reset.md](wall_reset.md#wallresetproblem) |
+| `WallResetReport` | struct | [wall_reset.md](wall_reset.md#struct-wallresetreport) |
+| `WallResetReport::along` | field | [wall_reset.md](wall_reset.md#wallresetreport-along) |
+| `WallResetReport::alongUncertainty` | field | [wall_reset.md](wall_reset.md#wallresetreport-alonguncertainty) |
+| `WallResetReport::applied` | field | [wall_reset.md](wall_reset.md#wallresetreport-applied) |
+| `WallResetReport::axis` | field | [wall_reset.md](wall_reset.md#wallresetreport-axis) |
+| `WallResetReport::beamHalfWidth` | field | [wall_reset.md](wall_reset.md#wallresetreport-beamhalfwidth) |
+| `WallResetReport::before` | field | [wall_reset.md](wall_reset.md#wallresetreport-before) |
+| `WallResetReport::ceiling` | field | [wall_reset.md](wall_reset.md#wallresetreport-ceiling) |
+| `WallResetReport::cleanFound` | field | [wall_reset.md](wall_reset.md#wallresetreport-cleanfound) |
+| `WallResetReport::cleanFrom` | field | [wall_reset.md](wall_reset.md#wallresetreport-cleanfrom) |
+| `WallResetReport::cleanTo` | field | [wall_reset.md](wall_reset.md#wallresetreport-cleanto) |
+| `WallResetReport::cone` | field | [wall_reset.md](wall_reset.md#wallresetreport-cone) |
+| `WallResetReport::continues` | function | [wall_reset.md](wall_reset.md#wallresetreport-continues) |
+| `WallResetReport::detail` | field | [wall_reset.md](wall_reset.md#wallresetreport-detail) |
+| `WallResetReport::errorBound` | field | [wall_reset.md](wall_reset.md#wallresetreport-errorbound) |
+| `WallResetReport::expectedRange` | field | [wall_reset.md](wall_reset.md#wallresetreport-expectedrange) |
+| `WallResetReport::faultChannel` | field | [wall_reset.md](wall_reset.md#wallresetreport-faultchannel) |
+| `WallResetReport::headingTolerance` | field | [wall_reset.md](wall_reset.md#wallresetreport-headingtolerance) |
+| `WallResetReport::keepOutMargin` | field | [wall_reset.md](wall_reset.md#wallresetreport-keepoutmargin) |
+| `WallResetReport::maxCorrection` | field | [wall_reset.md](wall_reset.md#wallresetreport-maxcorrection) |
+| `WallResetReport::measured` | field | [wall_reset.md](wall_reset.md#wallresetreport-measured) |
+| `WallResetReport::median` | field | [wall_reset.md](wall_reset.md#wallresetreport-median) |
+| `WallResetReport::offSquare` | field | [wall_reset.md](wall_reset.md#wallresetreport-offsquare) |
+| `WallResetReport::required` | field | [wall_reset.md](wall_reset.md#wallresetreport-required) |
+| `WallResetReport::sampleConfidence` | field | [wall_reset.md](wall_reset.md#wallresetreport-sampleconfidence) |
+| `WallResetReport::sampleDistance` | field | [wall_reset.md](wall_reset.md#wallresetreport-sampledistance) |
+| `WallResetReport::sampleIndex` | field | [wall_reset.md](wall_reset.md#wallresetreport-sampleindex) |
+| `WallResetReport::samples` | field | [wall_reset.md](wall_reset.md#wallresetreport-samples) |
+| `WallResetReport::seated` | function | [wall_reset.md](wall_reset.md#wallresetreport-seated) |
+| `WallResetReport::side` | field | [wall_reset.md](wall_reset.md#wallresetreport-side) |
+| `WallResetReport::speedSeen` | field | [wall_reset.md](wall_reset.md#wallresetreport-speedseen) |
+| `WallResetReport::spread` | field | [wall_reset.md](wall_reset.md#wallresetreport-spread) |
+| `WallResetReport::turnSeen` | field | [wall_reset.md](wall_reset.md#wallresetreport-turnseen) |
+| `WallResetReport::verdict` | field | [wall_reset.md](wall_reset.md#wallresetreport-verdict) |
+| `WallResetReport::windowSpan` | field | [wall_reset.md](wall_reset.md#wallresetreport-windowspan) |
+| `WallResetRequest` | struct | [wall_reset.md](wall_reset.md#struct-wallresetrequest) |
+| `WallResetRequest::maxCorrection` | field | [wall_reset.md](wall_reset.md#wallresetrequest-maxcorrection) |
+| `WallResetRequest::name` | field | [wall_reset.md](wall_reset.md#wallresetrequest-name) |
+| `WallResetRequest::required` | field | [wall_reset.md](wall_reset.md#wallresetrequest-required) |
+| `WallResetRequest::sensor` | field | [wall_reset.md](wall_reset.md#wallresetrequest-sensor) |
+| `WallResetRequest::wall` | field | [wall_reset.md](wall_reset.md#wallresetrequest-wall) |
+| `WallResetVerdict` | enum class | [wall_reset.md](wall_reset.md#enum-class-wallresetverdict) |
+| `WallResetVerdict::BadRequest` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-badrequest) |
+| `WallResetVerdict::BeamLow` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-beamlow) |
+| `WallResetVerdict::Cut` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-cut) |
+| `WallResetVerdict::Disagrees` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-disagrees) |
+| `WallResetVerdict::Imprecise` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-imprecise) |
+| `WallResetVerdict::KeepOut` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-keepout) |
+| `WallResetVerdict::LowConfidence` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-lowconfidence) |
+| `WallResetVerdict::MotionActive` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-motionactive) |
+| `WallResetVerdict::MountUnset` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-mountunset) |
+| `WallResetVerdict::Moving` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-moving) |
+| `WallResetVerdict::NoReturn` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-noreturn) |
+| `WallResetVerdict::NoSensor` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-nosensor) |
+| `WallResetVerdict::NotFieldStart` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-notfieldstart) |
+| `WallResetVerdict::NotLive` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-notlive) |
+| `WallResetVerdict::NotSquare` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-notsquare) |
+| `WallResetVerdict::OutOfRange` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-outofrange) |
+| `WallResetVerdict::ReadFault` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-readfault) |
+| `WallResetVerdict::Seated` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-seated) |
+| `WallResetVerdict::SensorAbsent` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-sensorabsent) |
+| `WallResetVerdict::Spread` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-spread) |
+| `WallResetVerdict::TooFewSamples` | enumerator | [wall_reset.md](wall_reset.md#wallresetverdict-toofewsamples) |
+| `wallResetVerdictWord` | free function | [wall_reset.md](wall_reset.md#wallresetverdictword) |
+| `WallSample` | struct | [wall_reset.md](wall_reset.md#struct-wallsample) |
+| `WallSample::at` | field | [wall_reset.md](wall_reset.md#wallsample-at) |
+| `WallSample::confidence` | field | [wall_reset.md](wall_reset.md#wallsample-confidence) |
+| `WallSample::distance` | field | [wall_reset.md](wall_reset.md#wallsample-distance) |
+| `WallSample::faultMoved` | field | [wall_reset.md](wall_reset.md#wallsample-faultmoved) |
+| `WallSampler` | class | [wall_reset.md](wall_reset.md#class-wallsampler) |
+| `WallSampler::maxTwist` | function | [wall_reset.md](wall_reset.md#wallsampler-maxtwist) |
+| `WallSampler::samples` | function | [wall_reset.md](wall_reset.md#wallsampler-samples) |
+| `WallSampler::step` | function | [wall_reset.md](wall_reset.md#wallsampler-step) |
+| `WallSampler::WallSampler` | function | [wall_reset.md](wall_reset.md#wallsampler-wallsampler) |
+| `WallSensor` | struct | [wall_reset.md](wall_reset.md#struct-wallsensor) |
+| `WallSensor::absence` | field | [wall_reset.md](wall_reset.md#wallsensor-absence) |
+| `WallSensor::faults` | field | [wall_reset.md](wall_reset.md#wallsensor-faults) |
+| `WallSensor::mount` | field | [wall_reset.md](wall_reset.md#wallsensor-mount) |
+| `WallSensor::sensor` | field | [wall_reset.md](wall_reset.md#wallsensor-sensor) |
+| `WallSensorConfig` | struct | [wall_sensor_config.md](wall_sensor_config.md#struct-wallsensorconfig) |
+| `WallSensorConfig::mount` | field | [wall_sensor_config.md](wall_sensor_config.md#wallsensorconfig-mount) |
+| `WallSensorConfig::port` | field | [wall_sensor_config.md](wall_sensor_config.md#wallsensorconfig-port) |
+| `WallSensors` | struct | [wall_reset.md](wall_reset.md#struct-wallsensors) |
+| `WallSensors::left` | field | [wall_reset.md](wall_reset.md#wallsensors-left) |
+| `WallSensors::limits` | field | [wall_reset.md](wall_reset.md#wallsensors-limits) |
+| `WallSensors::log` | field | [wall_reset.md](wall_reset.md#wallsensors-log) |
+| `WallSensors::right` | field | [wall_reset.md](wall_reset.md#wallsensors-right) |
+| `WallSensors::side` | function | [wall_reset.md](wall_reset.md#wallsensors-side) |
+| `WallSensorsConfig` | struct | [wall_sensor_config.md](wall_sensor_config.md#struct-wallsensorsconfig) |
+| `WallSensorsConfig::declared` | function | [wall_sensor_config.md](wall_sensor_config.md#wallsensorsconfig-declared) |
+| `WallSensorsConfig::left` | field | [wall_sensor_config.md](wall_sensor_config.md#wallsensorsconfig-left) |
+| `WallSensorsConfig::limits` | field | [wall_sensor_config.md](wall_sensor_config.md#wallsensorsconfig-limits) |
+| `WallSensorsConfig::note` | field | [wall_sensor_config.md](wall_sensor_config.md#wallsensorsconfig-note) |
+| `WallSensorsConfig::right` | field | [wall_sensor_config.md](wall_sensor_config.md#wallsensorsconfig-right) |
+| `WallSide` | enum class | [wall_reset.md](wall_reset.md#enum-class-wallside) |
+| `WallSide::Left` | enumerator | [wall_reset.md](wall_reset.md#wallside-left) |
+| `WallSide::Right` | enumerator | [wall_reset.md](wall_reset.md#wallside-right) |
+| `wallSideProblem` | free function | [wall_sensor_config.md](wall_sensor_config.md#wallsideproblem) |
+| `wallSideWord` | free function | [wall_reset.md](wall_reset.md#wallsideword) |
+| `wallStill` | free function | [wall_reset.md](wall_reset.md#wallstill) |
 | `Watchdog` | class | [watchdog.md](watchdog.md#class-watchdog) |
 | `Watchdog::elapsed` | function | [watchdog.md](watchdog.md#watchdog-elapsed) |
 | `Watchdog::expired` | function | [watchdog.md](watchdog.md#watchdog-expired) |
@@ -1734,6 +6424,24 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Watchdog::start` | function | [watchdog.md](watchdog.md#watchdog-start) |
 | `Watchdog::started` | function | [watchdog.md](watchdog.md#watchdog-started) |
 | `Watchdog::Watchdog` | function | [watchdog.md](watchdog.md#watchdog-watchdog) |
+| `Waypoint` | struct | [route.md](route.md#struct-waypoint) |
+| `Waypoint::constraints` | field | [route.md](route.md#waypoint-constraints) |
+| `Waypoint::heading` | field | [route.md](route.md#waypoint-heading) |
+| `Waypoint::headingMode` | field | [route.md](route.md#waypoint-headingmode) |
+| `Waypoint::markerCount` | field | [route.md](route.md#waypoint-markercount) |
+| `Waypoint::markers` | field | [route.md](route.md#waypoint-markers) |
+| `Waypoint::motion` | field | [route.md](route.md#waypoint-motion) |
+| `Waypoint::reverse` | field | [route.md](route.md#waypoint-reverse) |
+| `Waypoint::x` | field | [route.md](route.md#waypoint-x) |
+| `Waypoint::y` | field | [route.md](route.md#waypoint-y) |
+| `WaypointMotion` | enum class | [route.md](route.md#enum-class-waypointmotion) |
+| `WaypointMotion::DriveTo` | enumerator | [route.md](route.md#waypointmotion-driveto) |
+| `WaypointMotion::Hold` | enumerator | [route.md](route.md#waypointmotion-hold) |
+| `WaypointMotion::MoveToPose` | enumerator | [route.md](route.md#waypointmotion-movetopose) |
+| `WaypointMotion::Start` | enumerator | [route.md](route.md#waypointmotion-start) |
+| `WaypointMotion::StrafeTo` | enumerator | [route.md](route.md#waypointmotion-strafeto) |
+| `WaypointMotion::TurnTo` | enumerator | [route.md](route.md#waypointmotion-turnto) |
+| `waypointMotionWord` | free function | [route.md](route.md#waypointmotionword) |
 | `WheelSpeeds` | class | [wheel_speeds.md](wheel_speeds.md#class-wheelspeeds) |
 | `WheelSpeeds::approxEqual` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-approxequal) |
 | `WheelSpeeds::kMaxWheels` | field | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-kmaxwheels) |
@@ -1743,12 +6451,68 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `WheelSpeeds::size` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-size) |
 | `WheelSpeeds::WheelSpeeds` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-wheelspeeds) |
 | `WheelSpeeds::WheelSpeeds (overload 2)` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-wheelspeeds-2) |
+| `Which` | enum class | [record_store.md](record_store.md#enum-class-which) |
+| `Which::Backup` | enumerator | [record_store.md](record_store.md#which-backup) |
+| `Which::None` | enumerator | [record_store.md](record_store.md#which-none) |
+| `Which::Primary` | enumerator | [record_store.md](record_store.md#which-primary) |
+| `whileHeld` | free function | [driver_inputs.md](driver_inputs.md#whileheld) |
+| `whileHeld (overload 2)` | free function | [driver_inputs.md](driver_inputs.md#whileheld-2) |
+| `whileHeld (overload 3)` | free function | [driver_inputs.md](driver_inputs.md#whileheld-3) |
+| `whileHeld (overload 4)` | free function | [driver_inputs.md](driver_inputs.md#whileheld-4) |
+| `whileHeld (overload 5)` | type alias | [driver_inputs.md](driver_inputs.md#whileheld-5) |
+| `whileHeld_is_for_a_power_mechanism_an_arm_or_a_lift_use_toggle_or_preset` | free function | [driver_inputs.md](driver_inputs.md#whileheld_is_for_a_power_mechanism_an_arm_or_a_lift_use_toggle_or_preset) |
+| `WidthRow` | struct | [shul2_format.md](shul2_format.md#struct-widthrow) |
+| `WidthRow::end` | field | [shul2_format.md](shul2_format.md#widthrow-end) |
+| `WidthRow::hello` | field | [shul2_format.md](shul2_format.md#widthrow-hello) |
+| `WidthRow::logFixed` | field | [shul2_format.md](shul2_format.md#widthrow-logfixed) |
+| `WidthRow::summary` | field | [shul2_format.md](shul2_format.md#widthrow-summary) |
+| `WidthRow::tick` | field | [shul2_format.md](shul2_format.md#widthrow-tick) |
+| `wire` | free function | [wiring.md](wiring.md#wire) |
+| `wire (overload 2)` | free function | [wiring.md](wiring.md#wire-2) |
+| `wire (overload 3)` | free function | [wiring.md](wiring.md#wire-3) |
+| `wire (overload 4)` | free function | [wiring.md](wiring.md#wire-4) |
+| `wire (overload 5)` | free function | [wiring.md](wiring.md#wire-5) |
+| `wire (overload 6)` | free function | [wiring.md](wiring.md#wire-6) |
+| `wire (overload 7)` | free function | [wiring.md](wiring.md#wire-7) |
+| `wire (overload 8)` | type alias | [wiring.md](wiring.md#wire-8) |
+| `Wired` | struct | [wiring.md](wiring.md#struct-wired) |
+| `Wired::declared` | field | [wiring.md](wiring.md#wired-declared) |
+| `Wired::spec` | field | [wiring.md](wiring.md#wired-spec) |
+| `Wired::wiring` | field | [wiring.md](wiring.md#wired-wiring) |
+| `wireHere` | free function | [direction_check.md](direction_check.md#wirehere) |
+| `WireLevel` | enum class | [shul2_format.md](shul2_format.md#enum-class-wirelevel) |
+| `wireLevel` | free function | [shul2_format.md](shul2_format.md#wirelevel) |
+| `WireLevel::Debug` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-debug) |
+| `WireLevel::Error` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-error) |
+| `WireLevel::Info` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-info) |
+| `WireLevel::Trace` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-trace) |
+| `WireLevel::Warn` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-warn) |
+| `wiringProblem` | free function | [wiring.md](wiring.md#wiringproblem) |
+| `within` | free function | [calibrate_panel.md](calibrate_panel.md#within) |
+| `within` | free function | [kinds.md](kinds.md#within) |
+| `within` | free function | [touch_panel.md](touch_panel.md#within) |
+| `within (overload 2)` | type alias | [kinds.md](kinds.md#within-2) |
+| `worstCaseSeconds` | free function | [toggle_visit.md](toggle_visit.md#worstcaseseconds) |
+| `Wrapped` | struct | [calibrate_panel.md](calibrate_panel.md#struct-wrapped) |
+| `Wrapped::complete` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-complete) |
+| `Wrapped::count` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-count) |
+| `Wrapped::line` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-line) |
+| `wrapWords` | free function | [calibrate_panel.md](calibrate_panel.md#wrapwords) |
+| `writeManifest` | free function | [manifest.md](manifest.md#writemanifest) |
+| `writeManifestEntry` | free function | [manifest.md](manifest.md#writemanifestentry) |
+| `writePortMap` | free function | [robot.md](robot.md#writeportmap) |
+| `writeWhole` | free function | [pros-char_sink.md](pros-char_sink.md#writewhole) |
 
 ## X
 
 | Name | Kind | Page |
 |---|---|---|
 | `xDrive` | free function | [x_drive.md](x_drive.md#xdrive) |
+| `XDriveDrivetrain` | struct | [robot_config.md](robot_config.md#struct-xdrivedrivetrain) |
+| `XDriveDrivetrain::cartridge` | field | [robot_config.md](robot_config.md#xdrivedrivetrain-cartridge) |
+| `XDriveDrivetrain::driveRadius` | field | [robot_config.md](robot_config.md#xdrivedrivetrain-driveradius) |
+| `XDriveDrivetrain::imuPort` | field | [robot_config.md](robot_config.md#xdrivedrivetrain-imuport) |
+| `XDriveDrivetrain::ports` | field | [robot_config.md](robot_config.md#xdrivedrivetrain-ports) |
 
 ## Y
 

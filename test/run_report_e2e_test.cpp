@@ -795,6 +795,50 @@ TEST_CASE("C5 e2e: scheduler attribution measures phases, stamps records, and th
     CHECK(named);
 }
 
+// Bug caught (T4 Part 3, the T4-3 review): a slow STRETCH logging one LOOP_OVERRUN line and one
+// attribution line PER TICK — through the programs' SD log copy, a card write and a flush inside
+// every slow tick. Two slow ticks in a row are ONE episode: ONE of each line, while the latch and
+// the monitor still count both ticks (the per-tick story rides the records).
+TEST_CASE("C5 e2e (T4-3): two slow ticks in a row are one overrun EPISODE -- one LOOP_OVERRUN line "
+          "and one attribution line, both ticks counted") {
+    const auto kin = xDrive(Length{7.0});
+    AutoAdvanceClock attClock{0.0005};
+    MotionSchedulerConfig cfg;
+    cfg.attributionClock = &attClock;
+    FakeTelemetrySink sink;
+    SchedulerRig s{kin, plantConfig(), &sink, nullptr, cfg};
+    BusyMotion busy{s.sched.deps(), attClock, 8};
+    s.sched.async(busy);
+    int predCalls = 0;
+    const WaitResult wr = s.sched.waitUntil(
+        [&] {
+            ++predCalls;
+            if (predCalls == 3 || predCalls == 4) {  // two consecutive gaps: one episode
+                s.rig.h.clock().advance(Time{0.030});
+            }
+            return !s.sched.hasActiveMotion();
+        },
+        5.0);
+    CHECK(wr == WaitResult::Satisfied);
+    CHECK(s.sched.loopMonitor().overrunCount() == 2);
+    CHECK(s.sched.loopMonitor().overrunEpisodes() == 1);
+    CHECK(s.rig.latch.raiseCount(FaultCode::LoopOverrun) == 2);
+    int overrunLines = 0;  // the latch's log channel (the rig's faultSink)
+    for (int i = 0; i < s.rig.faultSink.size(); ++i) {
+        if (s.rig.faultSink.at(i).message.find("fault=LOOP_OVERRUN") != std::string::npos) {
+            ++overrunLines;
+        }
+    }
+    int attributionLines = 0;  // the scheduler's telemetry
+    for (int i = 0; i < sink.size(); ++i) {
+        if (sink.at(i).message.find("overrun attribution:") != std::string::npos) {
+            ++attributionLines;
+        }
+    }
+    CHECK(overrunLines == 1);
+    CHECK(attributionLines == 1);
+}
+
 // ═══ The observer seam's guard rails ═══════════════════════════════════════════════
 
 namespace {

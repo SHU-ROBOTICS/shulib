@@ -5,7 +5,9 @@
 #   Run:        ./build/test/shulib_tests        (or: ctest --test-dir build/test)
 #
 # This build is completely separate from the PROS ARM Makefile. It compiles only
-# the dependency-free core so we can catch bugs off-robot, fast.
+# the dependency-free core so we can catch bugs off-robot, fast — the library's
+# headers, the host tests, and (since COMP-t) ONE .cpp from src/: the team's
+# PROS-free auton file, src/team/autons.cpp (see target_sources below).
 cmake_minimum_required(VERSION 3.20)
 project(shulib_tests CXX)
 
@@ -29,10 +31,18 @@ add_compile_options(
 # If git is unavailable the macro is NOT defined and the loud MISSING path runs
 # (test/session_header_test.cpp turns that into a visible failure here, where git
 # does exist — never a silently plausible placeholder). Evaluated at CONFIGURE
-# time; the CONFIGURE_DEPENDS on .git/HEAD re-runs it when the checked-out commit
-# moves (a dirty-flag change without a commit can lag until the next reconfigure
-# — an accepted, documented staleness for the HOST suite; the R1 robot Makefile
+# time; the CONFIGURE_DEPENDS below re-run it when the checked-out commit moves
+# (a dirty-flag change without a commit can lag until the next reconfigure — an
+# accepted, documented staleness for the HOST suite; the R1 robot Makefile
 # evaluates per build).
+#
+# WHICH FILE MOVES WHEN THE COMMIT MOVES (fixed 2026-09-24, audit coord#0): this
+# watched `.git/HEAD` alone until then, and on a branch that file holds
+# `ref: refs/heads/<branch>` and does NOT change when a commit lands — so the
+# configure never re-ran, and build/test carried `d9d0ee3-dirty` five commits
+# after d9d0ee3. The reflog (`logs/HEAD`) is appended on EVERY move of HEAD —
+# commit, checkout, reset, rebase, pull — so it is watched too. Both paths come
+# from `git rev-parse --git-path`, which is also right inside a linked worktree.
 execute_process(
   COMMAND git describe --always --dirty --abbrev=7
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
@@ -42,8 +52,21 @@ execute_process(
 if(NOT SHULIB_GIT_HASH STREQUAL "")
   add_compile_definitions(SHULIB_BUILD_HASH="${SHULIB_GIT_HASH}")
   message(STATUS "shulib build hash: ${SHULIB_GIT_HASH}")
-  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/../.git/HEAD")
+  foreach(_shulib_git_file HEAD logs/HEAD)
+    execute_process(
+      COMMAND git rev-parse --git-path ${_shulib_git_file}
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
+      OUTPUT_VARIABLE _shulib_git_path
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_QUIET)
+    get_filename_component(_shulib_git_path "${_shulib_git_path}" ABSOLUTE
+                           BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
+    # A missing file (reflog disabled) is skipped rather than watched: a
+    # configure dependency that does not exist breaks the generated build.
+    if(EXISTS "${_shulib_git_path}")
+      set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_shulib_git_path}")
+    endif()
+  endforeach()
 else()
   message(WARNING "shulib: git hash unavailable — SHULIB_BUILD_HASH not defined; "
                   "the session header will be LOUDLY missing (by design)")
@@ -57,9 +80,38 @@ file(GLOB TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
 
 add_executable(shulib_tests test_main.cpp ${TEST_SOURCES})
 
+# THE ONE src/ .cpp THE HOST BUILDS (chunk COMP-t, 2026-09-28): the team's autons,
+# src/team/autons.cpp. It is PROS-free by design, and it is exactly what the robot
+# runs — so the host suite runs every auton in it on the host test plant through
+# the Auton Tester's own run sequence (test/autons_test.cpp), and a change to an
+# auton is tested before it is uploaded. Every other src/ file stays robot-only
+# (the programs include PROS); a PROS-free src/ header the host needs is included
+# from src/ through the root below, never compiled here.
+target_sources(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp")
+
+# ── THE SUITE'S OWN FLAGS, as ONE INTERFACE target (chunk MECH-A1, 2026-10-08) ──────────────
+# Every include root, option and define below used to be PRIVATE to shulib_tests. The mechanism
+# core's compile-refusal harness (compile_refusals/, below) must compile its translation units
+# with EXACTLY the suite's flags — a refusal proven under different flags proves nothing about the
+# suite's — so the flags now live on `shulib_test_flags`, which both link: one definition, no copy
+# to drift. (The warning set is the directory's add_compile_options above, which every target here
+# already shares.) The suite's compile command is byte-identical to what it was (MECH-PROGRESS.md
+# records the before/after diff of one TU's command).
+add_library(shulib_test_flags INTERFACE)
+target_link_libraries(shulib_tests PRIVATE shulib_test_flags)
+
 # shulib headers (added as we build them); doctest as a system header.
-target_include_directories(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include")
-target_include_directories(shulib_tests SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
+target_include_directories(shulib_test_flags INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+target_include_directories(shulib_test_flags SYSTEM INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
+
+# src/'s own include root (chunk SRC1, 2026-09-27) — the same one the PROS Makefile gives the
+# robot build (its EXTRA_INCDIR comment carries the whole reasoning). The tests that read a
+# robot's tables or a program's pure helpers include them as src/ does, written FROM src/:
+# `#include "robots/chassis_table.hpp"`, `#include "common/boot_source.hpp"`, never `../src/…`.
+# -iquote (quoted includes only), not -I; the joined spelling keeps it ONE option, which CMake's
+# option de-duplication cannot split. tools/src_build_gate.py's step 0 [include-root] fails any
+# path two roots could both answer, so the search order never decides which file is meant.
+target_compile_options(shulib_test_flags INTERFACE "-iquote${CMAKE_CURRENT_SOURCE_DIR}/../src")
 
 # ── The host PROS shim (chunk R1a) ──────────────────────────────────────────────────
 # hal/pros adapters #include <pros/*.hpp>. On the HOST they must resolve to
@@ -73,14 +125,14 @@ target_include_directories(shulib_tests SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_D
 # (The shim tests the adapter against our BELIEF about PROS; it cannot test
 # the belief — hardware tests the belief. pros_shim/pros/shim_control.hpp
 # carries the full statement.)
-target_include_directories(shulib_tests BEFORE PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/pros_shim")
-target_compile_definitions(shulib_tests PRIVATE SHULIB_HOST_PROS_SHIM)
+target_include_directories(shulib_test_flags BEFORE INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/pros_shim")
+target_compile_definitions(shulib_test_flags INTERFACE SHULIB_HOST_PROS_SHIM)
 
 # The API-reference fidelity test reads the COMMITTED docs/api/ markdown and
 # compares its rendered signatures against the headers, so it needs to know
 # where the source tree is. (It fails loudly if it cannot open the files —
 # a fidelity test that skips is decoration.)
-target_compile_definitions(shulib_tests PRIVATE
+target_compile_definitions(shulib_test_flags INTERFACE
   SHULIB_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/..")
 
 # ── The documentation gates (chunk D3) ──────────────────────────────────────────────
@@ -98,7 +150,13 @@ target_compile_definitions(shulib_tests PRIVATE
 #                   runs of the tool. (Also catches a hand-written file dropped
 #                   into docs/api/, which is generated in full.)
 #   check-examples  every ```cpp line in the public documentation must appear
-#                   VERBATIM in a compiled example test. That rule has existed
+#                   VERBATIM in a compiled example test — or, since T4 Part 1a,
+#                   in a team file a chapter quotes from (a robot's driver file,
+#                   src/team/*_driver.hpp, and since COMP-t the team's auton
+#                   file, src/team/autons.cpp; the tool's EXAMPLE_SOURCE_GLOBS
+#                   lists the kinds — and each listing of either must also be
+#                   an unbroken run of it, WHOLE_RUN_SOURCE_GLOBS, so a line
+#                   added to the file inside a listed part fails too). That rule has existed
 #                   since C8 — but it lived only in an internal verify script,
 #                   so until D3 a rotted example passed the build AND passed
 #                   CI. Found by mutation; a rule nothing runs is a convention.
@@ -148,13 +206,19 @@ set(SHULIB_DOC_STAMP "${CMAKE_CURRENT_BINARY_DIR}/doc_gates.stamp")
 # must re-run the gates, or a drift introduced after the last build sits green
 # until something unrelated forces a rebuild. CONFIGURE_DEPENDS so a new
 # chapter or a new examples file is picked up without a manual cmake re-run.
+# The example sources are the tool's EXAMPLE_SOURCE_GLOBS, each kind here too:
+# the example tests, (since T4 Part 1a) a robot's driver file, which the
+# cookbook quotes part by part, and (since COMP-t) the team's auton file, which
+# guide chapter 16 quotes — an edit to either must re-run the verbatim scan.
 file(GLOB SHULIB_DOC_INPUTS CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/../README.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/guide/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/cookbook/*.md"
-  "${CMAKE_CURRENT_SOURCE_DIR}/*example*_test.cpp")
+  "${CMAKE_CURRENT_SOURCE_DIR}/*example*_test.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/*_driver.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp")
 
 # ── EVERY header and EVERY generated page is an input (chunk DOCS2) ──────────
 # Until DOCS2 the gate depended on two headers and three pages, because those
@@ -208,6 +272,10 @@ add_custom_command(
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-fresh
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-examples
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-removability
+  # The briefing tool's chunk/part rule (COMP-t's merge, 2026-09-29) decides its position line;
+  # its self-test needs no briefing, so it runs on the published tree too.
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/briefing_status.py" self-test
   ${SHULIB_BRIEFING_CMD}
   # staleness  the four gates above check that documentation EXISTS and is
   #            well-formed; none has an opinion about whether a sentence is
@@ -239,6 +307,8 @@ add_custom_command(
     ${SHULIB_BRIEFING_DEP}
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/briefing_status.py"
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py"
+    # The bounded suite run both of them use (2026-10-22): a change to its bounds re-runs the gate.
+    "${CMAKE_CURRENT_SOURCE_DIR}/../tools/suite_run.py"
     ${SHULIB_DOC_INPUTS}
   COMMENT "shulib doc gates: coverage, freshness, verbatim examples, removability"
   VERBATIM)
@@ -246,3 +316,13 @@ add_custom_target(shulib_doc_gates DEPENDS "${SHULIB_DOC_STAMP}")
 add_dependencies(shulib_tests shulib_doc_gates)
 
 add_test(NAME shulib_tests COMMAND shulib_tests)
+
+# ── THE COMPILE-REFUSAL HARNESS (chunk MECH-A1, 2026-10-08; the MECH brief's §3.0) ──────────
+# The mechanism core refuses a robot file's mistakes AT BUILD, each by name (a consteval check calls
+# a function whose NAME is the reason). A refusal no test can see is one a mutation can delete, so
+# every refusal a robot file can reach has a translation unit in compile_refusals/ that must FAIL
+# to compile, naming its reason (all but the two unreachable "used twice" fallbacks in
+# mechanism/wiring.hpp — test/README.md says which); each is a CTest (`ctest -R compile_refusal`), run by CI beside the suite. The TUs are NOT
+# part of shulib_tests (they are EXCLUDE_FROM_ALL object targets): compile_refusals/CMakeLists.txt
+# and run_refusal.py say how a TU is judged.
+add_subdirectory(compile_refusals)

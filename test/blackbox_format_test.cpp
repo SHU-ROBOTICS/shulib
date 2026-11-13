@@ -86,6 +86,7 @@ DebugRecord groundTruth(double k) {
     r.correctionDTheta = units::AngleDim{0.03125 + k};
     r.clampedThisTick = true;
     r.strafeFallbackActive = true;
+    r.tankSteerActive = true;  // TANK1: tick flags bit 2
     r.fault = FaultCode::OdoStuck;
     r.batteryVoltage = units::Voltage{12.4 + k};
     r.batteryCurrent = units::Current{5.5 + k};
@@ -137,6 +138,7 @@ void checkSameRecord(const DebugRecord& a, const DebugRecord& b) {
     CHECK(a.correctionDTheta.value() == b.correctionDTheta.value());
     CHECK(a.clampedThisTick == b.clampedThisTick);
     CHECK(a.strafeFallbackActive == b.strafeFallbackActive);
+    CHECK(a.tankSteerActive == b.tankSteerActive);
     CHECK(a.fault == b.fault);
     CHECK(a.batteryVoltage.value() == b.batteryVoltage.value());
     CHECK(a.batteryCurrent.value() == b.batteryCurrent.value());
@@ -561,6 +563,7 @@ TEST_CASE("blackbox golden: every tick field sits at its documented offset") {
         {"flags: clamped", 123, 1ULL, 1, [](DebugRecord& r) { r.clampedThisTick = true; }},
         {"flags: strafe fallback", 123, 2ULL, 1,
          [](DebugRecord& r) { r.strafeFallbackActive = true; }},
+        {"flags: tank steer", 123, 4ULL, 1, [](DebugRecord& r) { r.tankSteerActive = true; }},
         {"droppedRecords", 124, 41ULL, 4, [](DebugRecord& r) { r.droppedRecords = 41; }},
         {"droppedLines", 128, 42ULL, 4, [](DebugRecord& r) { r.droppedLines = 42; }},
         {"wheelVoltage[0]", 132, 0x3FF0000000000000ULL, 8,
@@ -634,6 +637,38 @@ TEST_CASE("blackbox golden: a default record encodes to 428 zero bytes") {
         CAPTURE(i);
         CHECK(static_cast<std::uint8_t>(b[i]) == 0U);
     }
+}
+
+// TANK1 gave tick flags bit 2 a meaning (tankSteerActive) WITHOUT a kFormatVersion bump,
+// because every earlier writer wrote that bit as 0 (blackbox_format.hpp's flags note). Would
+// catch: bit 2 not encoded or not decoded (M22), a bit-2 meaning that leaks into bits 0-1, and
+// any of bits 3-7 written non-zero (they stay reserved) — and pins that a file written BEFORE
+// TANK1 (flags byte 0x03 at most) decodes tankSteerActive as false, which is true of it.
+TEST_CASE("blackbox: tick flags bit 2 = tankSteerActive (TANK1), bits 3-7 written 0, "
+          "an older writer's byte decodes it false") {
+    DebugRecord all{};
+    all.clampedThisTick = true;
+    all.strafeFallbackActive = true;
+    all.tankSteerActive = true;
+    auto b = encodeOneTick(all);
+    CHECK(static_cast<std::uint8_t>(b[123]) == 0x07U);  // exactly bits 0-2; 3-7 zero
+
+    // A pre-TANK1 writer's byte: both old flags set, bit 2 clear.
+    b[123] = std::byte{0x03};
+    DebugRecord out;
+    bool corrupt = false;
+    REQUIRE(bb::decodeTick(b, out, corrupt));
+    CHECK(out.clampedThisTick);
+    CHECK(out.strafeFallbackActive);
+    CHECK_FALSE(out.tankSteerActive);
+
+    // Bit 2 alone decodes to the tank flag alone.
+    b[123] = std::byte{0x04};
+    REQUIRE(bb::decodeTick(b, out, corrupt));
+    CHECK_FALSE(out.clampedThisTick);
+    CHECK_FALSE(out.strafeFallbackActive);
+    CHECK(out.tankSteerActive);
+    CHECK(bb::kFormatVersion == 1);  // the ruling: a meaning for a 0-written bit is not a bump
 }
 
 // Would catch: a frame prefix that stops being {type, reserved, u16 length} — the one

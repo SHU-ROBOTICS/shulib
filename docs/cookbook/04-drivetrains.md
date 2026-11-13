@@ -29,12 +29,20 @@ r.startAt(Pose2d{-24_in, -24_in, 0_deg})
 
 - **`face` then `driveTo`, always, in that order.** `face(x, y)` turns the robot to point at a
   field location; `driveTo(x, y)` drives there with that same bearing as the target heading, so
-  the approach is a straight line the drivetrain can actually follow.
-- **You are still writing the turn.** shulib's motion verbs never insert a turn on your behalf —
-  that is a deliberate rule, because a library that silently turns your robot is a library you
-  cannot predict. `face(x, y)` *is* your turn, written in field words instead of `atan2`.
-  ([Chapter 10](../guide/10-the-api.md) shows the hand-written version; they produce identical
-  motion.)
+  the approach is a straight line the drivetrain can actually follow. It is also what lets the
+  leg be *steered*: a tank `moveTo` (and so `driveTo`) that starts within 15° of its target
+  heading steers back onto that line when a weaker side pulls it off, and a leg right after
+  `face` starts within about a degree of it. A leg that starts further off is not steered, and
+  the log says `turn first: face()`.
+- **You are still writing the turn.** No shulib motion verb plans a turn on your behalf — that is
+  a deliberate rule, because a library that turns your robot toward places you did not aim it is
+  a library you cannot predict. `face(x, y)` *is* your turn, written in field words instead of
+  `atan2`. ([Chapter 10](../guide/10-the-api.md) shows the hand-written version; they produce
+  identical motion.) Said exactly, since API 2.3: on a tank, `moveTo` may bend the heading it
+  *aims for* up to 15° toward the line you drew while it drives — visibly (the `TSTR` flag in the
+  log), never toward the target point, and never more. (The robot's actual heading follows that
+  aim with a lag, so it can pass 15° by a degree or two — on the host test plant, with motor lag
+  added or after the robot was held in place mid-leg.)
 - **The bearing is computed when the step runs**, not when you write it. If the previous leg
   ended a little short, `face` still points at the real target from where the robot really is.
 
@@ -43,8 +51,12 @@ r.startAt(Pose2d{-24_in, -24_in, 0_deg})
 - **`strafeTo` on a tank.** It will not error at the call — it runs, fails to move sideways, and
   honestly returns `TimedOut` at whatever budget you gave it. That is the library refusing to
   pretend, but it costs you the whole timeout, and in a chain it stops the routine.
-- **`moveTo` to a pose that is sideways of you.** Same outcome, same reason. On tank, treat
-  `moveTo` as "drive to a point I am already pointed at, and finish at this heading".
+- **`moveTo` to a pose that is sideways of you.** A point beside you, or far off the heading you
+  hold, is the same outcome for the same reason: an honest `TimedOut`. On the host test plant a
+  target a few inches off your heading is steered out over a 40 in leg (less over a short one);
+  how much on a real robot depends on motor lag nobody has measured yet, and a point beside you
+  is never steered out — face the point. On tank, treat `moveTo` as "drive to a point I am
+  already pointed at, and finish at this heading".
 - **Turning costs time you have to budget.** The routine above spends about six seconds of
   simulated time on two turns and two drives. On an X-drive the same route needs no turns at all.
 

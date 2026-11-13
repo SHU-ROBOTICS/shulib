@@ -65,6 +65,8 @@ namespace {
 
 using shulib::chassis::Chassis;
 using shulib::chassis::ChassisConfig;
+using shulib::chassis::CurvePoint;
+using shulib::chassis::LegObserver;
 using shulib::chassis::MotionOptions;
 using shulib::chassis::TrajectoryResult;
 using shulib::control::ExitReason;
@@ -141,6 +143,61 @@ concept F6FollowBraces = requires {
 };
 SHULIB_F6_PIN(F6FollowBraces<Chassis>,
               "Chassis::followTrajectory({...}, options) -> TrajectoryResult (brace form)");
+
+// ── CURVE1 (API 2.7, F6-additive): the curve verbs, APPENDED and pinned the day they land ──
+// Four verbs (span + brace form, forward + reverse) and their parameter type, CurvePoint, frozen
+// as the verbs' parameter type: its two constructors and its four members. ADDED pins only.
+template <typename C>
+concept F6CurveSpan = requires {
+    static_cast<ExitReason (C::*)(std::span<const CurvePoint>, const MotionOptions&)>(
+        &C::curveTo);
+};
+SHULIB_F6_PIN(F6CurveSpan<Chassis>,
+              "Chassis::curveTo(span<const CurvePoint>, const MotionOptions&) -> ExitReason");
+
+template <typename C>
+concept F6CurveBraces = requires {
+    static_cast<ExitReason (C::*)(std::initializer_list<CurvePoint>, const MotionOptions&)>(
+        &C::curveTo);
+};
+SHULIB_F6_PIN(F6CurveBraces<Chassis>,
+              "Chassis::curveTo({...}, const MotionOptions&) -> ExitReason (brace form)");
+
+template <typename C>
+concept F6ReverseCurveSpan = requires {
+    static_cast<ExitReason (C::*)(std::span<const CurvePoint>, const MotionOptions&)>(
+        &C::reverseCurveTo);
+};
+SHULIB_F6_PIN(F6ReverseCurveSpan<Chassis>,
+              "Chassis::reverseCurveTo(span<const CurvePoint>, const MotionOptions&) -> "
+              "ExitReason");
+
+template <typename C>
+concept F6ReverseCurveBraces = requires {
+    static_cast<ExitReason (C::*)(std::initializer_list<CurvePoint>, const MotionOptions&)>(
+        &C::reverseCurveTo);
+};
+SHULIB_F6_PIN(F6ReverseCurveBraces<Chassis>,
+              "Chassis::reverseCurveTo({...}, const MotionOptions&) -> ExitReason (brace form)");
+
+SHULIB_F6_PIN((std::is_same_v<CurvePoint, shulib::motion::CurvePoint>),
+              "chassis::CurvePoint == motion::CurvePoint (the alias)");
+SHULIB_F6_PIN((std::is_nothrow_constructible_v<CurvePoint, Length, Length>),
+              "CurvePoint(Length x, Length y) noexcept — a point without a heading");
+SHULIB_F6_PIN((std::is_nothrow_constructible_v<CurvePoint, Length, Length, Angle>),
+              "CurvePoint(Length x, Length y, Angle heading) noexcept — a headed point");
+SHULIB_F6_PIN(!std::is_default_constructible_v<CurvePoint>,
+              "CurvePoint has NO default constructor (it would mean a point at the origin)");
+
+template <typename T>
+concept F6CurvePointMembers = requires {
+    requires std::is_same_v<decltype(T::x), Length>;
+    requires std::is_same_v<decltype(T::y), Length>;
+    requires std::is_same_v<decltype(T::heading), Angle>;
+    requires std::is_same_v<decltype(T::hasHeading), bool>;
+};
+SHULIB_F6_PIN(F6CurvePointMembers<CurvePoint>,
+              "CurvePoint { Length x; Length y; Angle heading; bool hasHeading; }");
 
 template <typename C>
 concept F6Brake = requires {
@@ -263,6 +320,14 @@ SHULIB_F6_PIN(F6MotionConfig<Chassis>,
 SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().moveTo(std::declval<const Pose2d&>(),
                                                        std::declval<const MotionOptions&>()),
                        "Chassis::moveTo");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().moveTo(std::declval<const Pose2d&>(),
+                                                       std::declval<const MotionOptions&>(),
+                                                       std::declval<LegObserver>()),
+                       "Chassis::moveTo (the observer overload, STEP1-B)");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().turnTo(std::declval<Angle>(),
+                                                       std::declval<const MotionOptions&>(),
+                                                       std::declval<LegObserver>()),
+                       "Chassis::turnTo (the observer overload, STEP1-B)");
 SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().strafeTo(std::declval<Length>(),
                                                          std::declval<Length>(),
                                                          std::declval<const MotionOptions&>()),
@@ -274,6 +339,14 @@ SHULIB_F6_NOT_NOEXCEPT(
     std::declval<Chassis&>().followTrajectory(std::declval<std::span<const Pose2d>>(),
                                               std::declval<const MotionOptions&>()),
     "Chassis::followTrajectory(span)");
+SHULIB_F6_NOT_NOEXCEPT(
+    std::declval<Chassis&>().curveTo(std::declval<std::span<const CurvePoint>>(),
+                                     std::declval<const MotionOptions&>()),
+    "Chassis::curveTo(span)");
+SHULIB_F6_NOT_NOEXCEPT(
+    std::declval<Chassis&>().reverseCurveTo(std::declval<std::span<const CurvePoint>>(),
+                                            std::declval<const MotionOptions&>()),
+    "Chassis::reverseCurveTo(span)");
 SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().brake(std::declval<const MotionOptions&>()),
                        "Chassis::brake");
 SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().hold(std::declval<Time>(),
@@ -335,6 +408,53 @@ concept F6OptionsMaxAngular = requires {
 SHULIB_F6_PIN(F6OptionsMaxAngular<MotionOptions>,
               "MotionOptions::maxAngularSpeed : units::AngularVelocity");
 
+// STEP1-A (2026-11-05): the two ARRIVAL TOLERANCES, APPENDED after the three above by the field set's
+// additive path, and pinned the day they land (their types: a Length, and a heading-typed Angle so
+// `5_deg` reads like every heading). ADDED pins only — no pin above changed.
+template <typename T>
+concept F6OptionsPositionTolerance = requires {
+    requires std::is_same_v<decltype(T::positionTolerance), Length>;
+};
+SHULIB_F6_PIN(F6OptionsPositionTolerance<MotionOptions>,
+              "MotionOptions::positionTolerance : units::Length (appended at STEP1-A)");
+
+template <typename T>
+concept F6OptionsHeadingTolerance = requires {
+    requires std::is_same_v<decltype(T::headingTolerance), Angle>;
+};
+SHULIB_F6_PIN(F6OptionsHeadingTolerance<MotionOptions>,
+              "MotionOptions::headingTolerance : math::Angle (appended at STEP1-A)");
+
+// STEP1-B (2026-11-11): the leg OBSERVER — the two overloads and LegObserver's two members, pinned the
+// day they land (the STEP1 brief's D1, re-check #4: F6 pins them; motion::LegProgress, what the observer
+// receives, stays OPEN to new fields — no pin covers its field list). ADDED pins only — no pin above changed.
+template <typename C>
+concept F6MoveToObserved = requires {
+    static_cast<ExitReason (C::*)(const Pose2d&, const MotionOptions&, LegObserver)>(&C::moveTo);
+};
+SHULIB_F6_PIN(F6MoveToObserved<Chassis>,
+              "Chassis::moveTo(const Pose2d&, const MotionOptions&, LegObserver) -> ExitReason (appended at STEP1-B)");
+
+template <typename C>
+concept F6TurnToObserved = requires {
+    static_cast<ExitReason (C::*)(Angle, const MotionOptions&, LegObserver)>(&C::turnTo);
+};
+SHULIB_F6_PIN(F6TurnToObserved<Chassis>,
+              "Chassis::turnTo(Angle, const MotionOptions&, LegObserver) -> ExitReason (appended at STEP1-B)");
+
+template <typename T>
+concept F6LegObserverFn = requires {
+    requires std::is_same_v<decltype(T::fn), void (*)(void*, const shulib::motion::LegProgress&)>;
+};
+SHULIB_F6_PIN(F6LegObserverFn<LegObserver>,
+              "LegObserver::fn : void (*)(void* context, const motion::LegProgress&) (appended at STEP1-B)");
+
+template <typename T>
+concept F6LegObserverContext = requires { requires std::is_same_v<decltype(T::context), void*>; };
+SHULIB_F6_PIN(F6LegObserverContext<LegObserver>, "LegObserver::context : void* (appended at STEP1-B)");
+// (No pin on LegObserver's SHAPE: its two members are pinned the way MotionOptions' fields are, and its member
+// SET stays additive-open like theirs — this file's banner. STEP1-B's review fix round removed a shape pin.)
+
 template <typename T>
 concept F6OptionsValidate = requires {
     static_cast<void (T::*)() const>(&T::validate);
@@ -387,6 +507,8 @@ concept TerseSpellingsStillCompile = requires(C& c, const Pose2d& p, Length l, A
     { c.followTrajectory({p, p}) } -> std::same_as<TrajectoryResult>;
     { c.brake() } -> std::same_as<ExitReason>;
     { c.hold(t) } -> std::same_as<ExitReason>;
+    { c.curveTo({CurvePoint{l, l}, CurvePoint{l, l, a}}) } -> std::same_as<ExitReason>;
+    { c.reverseCurveTo({CurvePoint{l, l, a}}) } -> std::same_as<ExitReason>;
 };
 SHULIB_F6_PIN(TerseSpellingsStillCompile<Chassis>,
               "the defaulted MotionOptions spellings (moveTo(pose) etc.)");
@@ -415,9 +537,11 @@ SHULIB_F6_PIN(TerseSpellingsStillCompile<Chassis>,
 //
 // Bug now caught: kApiMinor is bumped for an additive change and
 // kApiVersionString is not updated with it (or vice versa). That token is the
-// one printable version — main.cpp carries a TODO(R1) to emit it in the §18.5
-// session header — so a desync would label every on-robot transcript and every
-// blackbox file with an API version the build is not. Provenance that is
+// one printable version — meant for the §18.5 session header (this said "main.cpp
+// carries a TODO(R1) to emit it" until G1 Part 2c: no such marker has existed since
+// R1a, and diag::SessionInfo has no version field yet) — so a desync would label every
+// on-robot transcript and every blackbox file that carries it with an API version the
+// build is not. Provenance that is
 // silently wrong is worse than absent, because it looks authoritative.
 //
 // kApiMinor is deliberately NOT pinned to any value: additive growth is legal

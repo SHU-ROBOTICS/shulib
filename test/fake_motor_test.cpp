@@ -92,3 +92,70 @@ TEST_CASE("FakeMotor: brake mode / current / temperature default and round-trip"
     CHECK(m.current().value() == doctest::Approx(2.5));
     CHECK(m.temperature() == doctest::Approx(48.0));
 }
+
+// ═══ MECH-S-A: the motor's own CURRENT LIMIT (hal::IMotorCurrentLimit) on the fake ═══════════════
+// What a test leans on: it REMEMBERS (2.5 A until set — the V5 default), it counts every write that
+// reached it (refused ones too), and its three knobs do what a real device can: refuse, answer another
+// number, lose power. And it refuses a limit no build could have stated (precondition).
+
+TEST_CASE("MECH-S-A FakeMotor: the limit starts at the V5's 2.5 A, is remembered, and every write is COUNTED") {
+    FakeMotor m;
+    CHECK(m.currentLimit().value() == doctest::Approx(2.5));
+    CHECK(m.currentLimitWrites() == 0);
+    CHECK(m.setCurrentLimit(Current{1.2}));
+    CHECK(m.currentLimit().value() == 1.2);  // exactly what was asked
+    CHECK(m.currentLimitWrites() == 1);
+    CHECK(m.setCurrentLimit(Current{2.5}));  // the default exactly: allowed
+    CHECK(m.currentLimit().value() == 2.5);
+    CHECK(m.currentLimitWrites() == 2);
+    // the limit is not the reading: the fake enforces nothing (the plant does)
+    m.setCurrent(Current{2.4});
+    CHECK(m.current().value() == doctest::Approx(2.4));
+}
+
+TEST_CASE("MECH-S-A FakeMotor: the knobs -- refuse (false, unchanged, still counted), another number, lose power, set by someone else") {
+    FakeMotor m;
+    REQUIRE(m.setCurrentLimit(Current{1.0}));
+    m.refuseCurrentLimit(true);
+    CHECK_FALSE(m.setCurrentLimit(Current{1.5}));
+    CHECK(m.currentLimit().value() == 1.0);   // BUG CAUGHT: a refused write that still changed the device
+    CHECK(m.currentLimitWrites() == 2);       // it REACHED the device
+    m.refuseCurrentLimit(false);
+    m.currentLimitTakesInstead(2.0);
+    CHECK(m.setCurrentLimit(Current{1.2}));   // accepted ...
+    CHECK(m.currentLimit().value() == 2.0);   // ... but the device holds its own number (HA-221)
+    m.currentLimitTakesInstead(0.0);
+    REQUIRE(m.setCurrentLimit(Current{1.2}));
+    m.losePower();
+    CHECK(m.currentLimit().value() == 2.5);   // back at the default (HA-220)
+    m.setDeviceCurrentLimit(Current{1.8});
+    CHECK(m.currentLimit().value() == 1.8);
+    CHECK(m.currentLimitWrites() == 4);       // neither a power loss nor another's setting is a write
+}
+
+TEST_CASE("MECH-S-A FakeMotor: a limit no build could state is a PRECONDITION -- 0, under one milliamp, negative, past 2.5 A, NaN, infinity") {
+    FakeMotor m;
+    for (const double bad : {0.0, 0.0009, -1.0, 2.5000001, 3.0, std::numeric_limits<double>::quiet_NaN(),
+                             std::numeric_limits<double>::infinity()}) {
+        CAPTURE(bad);
+        CHECK_THROWS_AS((void)m.setCurrentLimit(Current{bad}), PreconditionError);
+    }
+    CHECK(m.currentLimitWrites() == 0);  // refused before it reached the "device"
+    CHECK(m.currentLimit().value() == 2.5);
+    CHECK(m.setCurrentLimit(Current{0.001}));  // one milliamp, the smallest a build can state
+}
+
+TEST_CASE("MECH-S-A FakeMotor: every currentLimit() READ is counted (the re-check's pace is a test's to see); a write is not a read") {
+    FakeMotor m;
+    CHECK(m.currentLimitReads() == 0);
+    (void)m.currentLimit();
+    (void)m.currentLimit();
+    CHECK(m.currentLimitReads() == 2);
+    REQUIRE(m.setCurrentLimit(Current{1.2}));
+    m.losePower();
+    m.setDeviceCurrentLimit(Current{1.8});
+    CHECK(m.currentLimitReads() == 2);  // a write, a power loss and another's setting read nothing
+    const FakeMotor& asConst = m;
+    (void)asConst.currentLimit();       // through a const reference too (the interface's read is const)
+    CHECK(m.currentLimitReads() == 3);
+}

@@ -47,6 +47,7 @@
 #include <utility>
 
 #include "shulib/hal/digital_in.hpp"
+#include "shulib/hal/read_faults.hpp"
 
 namespace shulib::hal::pros {
 
@@ -68,7 +69,11 @@ namespace shulib::hal::pros {
 /// the wire lands is a construction fact, never a type.
 ///
 /// `state()` is const but caches, so one instance must not be read concurrently from two tasks.
-class ProsDigitalIn final : public IDigitalIn {
+///
+/// ALSO an `IReadFaults` (MECH-A1, 2026-10-08): faultedReads() is reachable through the F4-additive
+/// sibling seam (hal/read_faults.hpp), so the mechanism core never takes a HELD level for a home.
+/// It counts only a REFUSED read; an unplugged line is not one (HA-158, HA-184).
+class ProsDigitalIn final : public IDigitalIn, public IReadFaults {
 public:
     /// Brain ADI port ('a'–'h', 'A'–'H', or 1–8).
     explicit ProsDigitalIn(std::uint8_t adiPort) : line_{adiPort} {}
@@ -89,8 +94,9 @@ public:
         return lastState_;
     }
 
-    /// How many reads were screened to last-good (T7 observability).
-    [[nodiscard]] int faultedReads() const noexcept { return faultedReads_; }
+    /// How many reads were screened to last-good (T7 observability). Monotonic; the
+    /// `IReadFaults` answer (MECH-A1).
+    [[nodiscard]] int faultedReads() const noexcept override { return faultedReads_; }
 
 private:
     ::pros::adi::DigitalIn line_;

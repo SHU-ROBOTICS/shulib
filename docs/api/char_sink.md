@@ -33,7 +33,7 @@ class ICharSink
 
 Where formatted diagnostic BYTES physically go — a terminal, a captured string in a test, later a serial port. Injecting the character device is what makes TermSink's output a testable claim: a host test asserts its exact bytes against a golden string, which hard-coding std::cout would have made impossible. Sanitization is the FORMATTER's job, not a sink's; a sink takes the bytes verbatim. NOT one of the frozen ten runtime robot-HAL interfaces — this is an additive diagnostics-output seam.
 
-*class, declared at [`include/shulib/hal/char_sink.hpp:29`](../../include/shulib/hal/char_sink.hpp#L29).*
+*class, declared at [`include/shulib/hal/char_sink.hpp:30`](../../include/shulib/hal/char_sink.hpp#L30).*
 
 <a id="icharsink-destructor-icharsink"></a>
 
@@ -43,9 +43,9 @@ Where formatted diagnostic BYTES physically go — a terminal, a captured string
 virtual ~ICharSink() = default
 ```
 
-Polymorphic-base plumbing: the destructor is virtual so a sink may be owned and destroyed through an `ICharSink*`, and declaring it suppresses the implicit copy/move, which are re-defaulted here. Defaulted rather than deleted because this seam holds no state — but the concrete sinks DO (a FILE* on the robot, a captured std::string in tests), so copying THROUGH this base slices one down to the empty interface. Nothing in the library owns a sink: TermSink keeps an `ICharSink&`, so the sink must outlive every TermSink pointed at it, and opening/closing the device stays the caller's job.
+Polymorphic-base plumbing: the destructor is virtual so a sink may be owned and destroyed through an `ICharSink*`, and declaring it suppresses the implicit copy/move, which are re-defaulted here. Defaulted rather than deleted because this seam holds no state — but the concrete sinks DO (a file descriptor on the robot, a captured std::string in tests), so copying THROUGH this base slices one down to the empty interface. Nothing in the library owns a sink: TermSink keeps an `ICharSink&`, so the sink must outlive every TermSink pointed at it, and opening/closing the device stays the caller's job.
 
-*function, declared at [`include/shulib/hal/char_sink.hpp:39`](../../include/shulib/hal/char_sink.hpp#L39).*
+*function, declared at [`include/shulib/hal/char_sink.hpp:40`](../../include/shulib/hal/char_sink.hpp#L40).*
 
 <a id="icharsink-icharsink"></a>
 
@@ -57,7 +57,7 @@ ICharSink() = default
 
 *Covered by the comment on [`~ICharSink`](#icharsink-destructor-icharsink) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/char_sink.hpp:40`](../../include/shulib/hal/char_sink.hpp#L40).*
+*function, declared at [`include/shulib/hal/char_sink.hpp:41`](../../include/shulib/hal/char_sink.hpp#L41).*
 
 <a id="icharsink-icharsink-2"></a>
 
@@ -69,7 +69,7 @@ ICharSink(const ICharSink&) = default
 
 *Covered by the comment on [`~ICharSink`](#icharsink-destructor-icharsink) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/char_sink.hpp:41`](../../include/shulib/hal/char_sink.hpp#L41).*
+*function, declared at [`include/shulib/hal/char_sink.hpp:42`](../../include/shulib/hal/char_sink.hpp#L42).*
 
 <a id="icharsink-icharsink-3"></a>
 
@@ -81,7 +81,7 @@ ICharSink(ICharSink&&) = default
 
 *Covered by the comment on [`~ICharSink`](#icharsink-destructor-icharsink) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/char_sink.hpp:42`](../../include/shulib/hal/char_sink.hpp#L42).*
+*function, declared at [`include/shulib/hal/char_sink.hpp:43`](../../include/shulib/hal/char_sink.hpp#L43).*
 
 <a id="icharsink-operator-eq"></a>
 
@@ -93,7 +93,7 @@ ICharSink& operator=(const ICharSink&) = default
 
 *Covered by the comment on [`~ICharSink`](#icharsink-destructor-icharsink) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/char_sink.hpp:43`](../../include/shulib/hal/char_sink.hpp#L43).*
+*function, declared at [`include/shulib/hal/char_sink.hpp:44`](../../include/shulib/hal/char_sink.hpp#L44).*
 
 <a id="icharsink-operator-eq-2"></a>
 
@@ -105,7 +105,7 @@ ICharSink& operator=(ICharSink&&) = default
 
 *Covered by the comment on [`~ICharSink`](#icharsink-destructor-icharsink) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/char_sink.hpp:44`](../../include/shulib/hal/char_sink.hpp#L44).*
+*function, declared at [`include/shulib/hal/char_sink.hpp:45`](../../include/shulib/hal/char_sink.hpp#L45).*
 
 <a id="icharsink-write"></a>
 
@@ -117,14 +117,14 @@ virtual void write(std::string_view text) = 0
 
 Write `text` verbatim to the device. MUST NOT throw.
 
-*function, declared at [`include/shulib/hal/char_sink.hpp:47`](../../include/shulib/hal/char_sink.hpp#L47).*
+*function, declared at [`include/shulib/hal/char_sink.hpp:48`](../../include/shulib/hal/char_sink.hpp#L48).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 15 lines</summary>
+<summary>The header’s own reasoning — 16 lines</summary>
 
 ```text
 
@@ -136,7 +136,8 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
 
  NOT part of the frozen F4 ten (that freeze covers the 10 runtime robot-HAL
  interfaces); this is an ADDITIVE diagnostics-output seam introduced at chunk A1.
- R1 adds the on-robot stdout adapter; test/ uses hal::fake::FakeCharSink.
+ R1 added the on-robot adapter (hal/pros/char_sink.hpp: the USB serial's descriptor, one
+ write() per line since SER1); test/ uses hal::fake::FakeCharSink.
 
  Contract: write() takes the bytes verbatim (the FORMATTER owns sanitization — see
  TermSink), is called synchronously on the caller's task, and MUST NOT throw. One

@@ -1,0 +1,142 @@
+[R3D] booted: shulib CALIBRATE build [shulib-robot-variant=tank-calibrate].
+[R3D] the robot MEASURES ITS OWN DRIVETRAIN -- which ports drive, which way each
+[R3D] is wired, which side each is on, inches per radian per side, and the
+[R3D] EFFECTIVE track width -- then writes them to /usd/shulib_drivetrain.bin (a verified backup shulib_drivetrain.bak first).
+[R3D] It POWERS THE MOTORS. The end that LEADS the push is the FRONT. Every threshold
+[R3D] in it is INVENTED (A4 register HA-136).
+[R3D] nothing is constructed at boot: the motors are found when driver control starts.
+[R3D] BUILD STAMP Oct  6 2026 12:00:00
+[R3D] competition status at boot: 0x00 field=no disabled=no auton=no -- calibration runs only in DRIVER CONTROL, enabled; any other state stops the run and says so.
+[R3D] 
+[R3D] ################################################################
+[R3D] #  shulib CALIBRATE -- the robot MEASURES ITS OWN DRIVETRAIN
+[R3D] #  which ports drive, which way each is wired, which side, inches per radian
+[R3D] #  per side, and the EFFECTIVE track width -- then writes them to the SD card.
+[R3D] #  It POWERS THE MOTORS. The end that LEADS the push is the FRONT.
+[R3D] #  Every threshold in it is INVENTED for a first run (A4 register HA-136).
+[R3D] ################################################################
+[R3D] BUILD STAMP: Oct  6 2026 12:00:00   <-- must match the build you just uploaded
+[R3D] build hash : <hash>
+[R3D] robot      : 2026 TANK CHASSIS (robot two)
+[R3D] record file: /usd/shulib_drivetrain.bin (written only after a COMPLETE run, a verified backup shulib_drivetrain.bak first)
+[R3D] opcontrol entry; competition status 0x00
+[R3D] card       : no usable record yet -- this run's FRONT is checked against your typed drive ports
+[R3D] STAGE 0  DEVICE CENSUS (registry only; nothing is constructed yet)
+[R3D]   PORT  device      (no typed port list is consulted for this)
+[R3D]      1  RADIO
+[R3D]      2  IMU
+[R3D]      6  MOTOR
+[R3D]      7  MOTOR
+[R3D]     11  MOTOR
+[R3D]     12  MOTOR
+[R3D]     13  MOTOR
+[R3D]     14  MOTOR
+[R3D]     15  MOTOR
+[R3D]     16  MOTOR
+[R3D]     17  MOTOR
+[R3D]     18  MOTOR
+[R3D]     19  MOTOR
+[R3D]     20  MOTOR
+[R3D]   12 motor(s), 1 IMU(s)
+[R3D] port 6: claw pivot 6 (declared) -- not a candidate, not touched
+[R3D] port 7: claw pivot 7 (declared) -- not a candidate, not touched
+[R3D] CARTRIDGE BELIEF: BLUE 600 rpm -- stated by a human and UNVERIFIABLE from inside (every cartridge spins the rotor the same)
+[R3D] IMU        : port 2, DISCOVERED from the registry (stated 2)
+[R3D] IMU calibrating (HA-23 says ~2 s) -- keep the robot STILL until the screen says to push it
+[R3D] calibrator started: 10 candidate(s), kind Tank, cartridge BLUE 600 rpm, IMU port 2, provenance "shulib Calibrate Oct  6 2026 12:00:00"
+[R3D] config: push 48 in along a tape; a port MOVED past 5.0 deg of shaft; the push straight within 3.0 deg and at least 6.28 rad (one wheel turn) of median travel
+[R3D] config: pulses ramp 3.0/6.0/9.0 V for 0.40 s each, a side needs 2.0 deg of yaw; a port whose own shaft turns 20 deg with nothing else moving is LEFT OUT; rest = motors under 0.05 rad/s AND yaw rate under 2.0 deg/s for 0.5 s
+[R3D] config: spin 2 turns each way, levels 3.0 then 6.0 V; must turn 5.0 deg within 2.0 s per level; STOPS at 15.0 deg the wrong way; 20 s timeout; the two ways agree within 5.0 pct
+[R3D] ONE PUSH, 48 in, FRONT END FIRST, along a tape -- the end that leads is the FRONT;
+[R3D] then STAND CLEAR: one motor at a time jerks (3, then 6, then 9 V), then it spins
+[R3D] both ways. INVENTED numbers.
+[R3D] watch      : the declared mechanism ports are READ during the push, never commanded;
+[R3D]              one that turns with the push is named at DONE, and the save waits
+[R3D] ===== RUN 1 =====
+[R3D] phase: IMU | 0.0 s of 5.0 s
+[R3D] screen: 1/4 IMU: HANDS OFF / IMU WARMING UP / 0.0 s | [ABORT]
+[R3D] phase: PUSH | 0 of 10 moved, drift +0.0 deg, travel 0.0 rad
+[R3D] push live: 0 of 10 moved, drift +0.0 deg, travel 0.0 rad
+[R3D] screen: 2/4 PUSH: PUSH FRONT FIRST / 48 IN ALONG TAPE / 0 of 10 turned | [ABORT]
+[R3D] push live: 10 of 10 moved, drift +0.0 deg, travel 0.9 rad
+[R3D] push live: 10 of 10 moved, drift +0.0 deg, travel 6.3 rad
+[R3D] push live: 10 of 10 moved, drift +0.0 deg, travel 24.4 rad
+[R3D] push live: 10 of 10 moved, drift +0.0 deg, travel 29.5 rad -- READY
+[R3D] screen: 2/4 PUSH: PUSH FRONT FIRST / 48 IN ALONG TAPE / 10 of 10 turned | [DONE] [ABORT]
+[R3D] touch: x=153 y=207 release=1 on DONE -> ANSWER DONE
+[R3D] PUSH TABLE at DONE (travel AS READ; the end that led the push is the FRONT; MOVED = past 5.0 deg):
+[R3D]   push port 11 travel +1692.4 deg MOVED sign +1
+[R3D]   push port 12 travel -1692.4 deg MOVED sign -1
+[R3D]   push port 13 travel +1692.4 deg MOVED sign +1
+[R3D]   push port 14 travel -1692.4 deg MOVED sign -1
+[R3D]   push port 15 travel +1692.4 deg MOVED sign +1
+[R3D]   push port 16 travel -1692.4 deg MOVED sign -1
+[R3D]   push port 17 travel +1692.4 deg MOVED sign +1
+[R3D]   push port 18 travel -1692.4 deg MOVED sign -1
+[R3D]   push port 19 travel +1692.4 deg MOVED sign +1
+[R3D]   push port 20 travel -1692.4 deg MOVED sign -1
+[R3D] push: 10 of 10 candidates moved, drift +0.00 deg (bound 3.00), median travel 29.54 rad (need 6.28)
+[R3D] watch: port 6 (claw pivot 6) did not turn with the push (+0.0 deg)
+[R3D] watch: port 7 (claw pivot 7) did not turn with the push (+0.0 deg)
+[R3D] front: the end that LED the push is the FRONT -- the signs stand as captured
+[R3D] drive ports, signed: +11 -12 +13 -14 +15 -16 +17 -18 +19 -20  (10 to pulse, one at a time)
+[R3D] phase: PULSES | port 11 (1 of 10) settling at 3.0 V, yaw +0.0 deg
+[R3D] screen: 3/4 PULSES: STAND CLEAR / TWITCHING MOTORS / PORT 11  3 V | [ABORT]
+[R3D] screen: 3/4 PULSES: STAND CLEAR / TWITCHING MOTORS / PORT 11  3 V | [ABORT]
+[R3D] pulse port 11 (1 of 10) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 11 (1 of 10) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 11 (1 of 10) 9.0 V yaw +6.47 deg own +49.8 deg others 49.8 deg: RIGHT
+[R3D] pulse port 12 (2 of 10) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 12 (2 of 10) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 12 (2 of 10) 9.0 V yaw +6.47 deg own +49.8 deg others 49.8 deg: RIGHT
+[R3D] pulse port 13 (3 of 10) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 13 (3 of 10) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 13 (3 of 10) 9.0 V yaw +6.31 deg own +48.5 deg others 48.5 deg: RIGHT
+[R3D] pulse port 14 (4 of 10) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 14 (4 of 10) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 14 (4 of 10) 9.0 V yaw +6.31 deg own +48.5 deg others 48.5 deg: RIGHT
+[R3D] pulse port 15 (5 of 10) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 15 (5 of 10) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 15 (5 of 10) 9.0 V yaw +6.31 deg own +48.5 deg others 48.5 deg: RIGHT
+[R3D] pulse port 16 (6 of 10) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 16 (6 of 10) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 16 (6 of 10) 9.0 V yaw -6.31 deg own +48.5 deg others 48.5 deg: LEFT
+[R3D] pulse port 17 (7 of 10) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 17 (7 of 10) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 17 (7 of 10) 9.0 V yaw -6.31 deg own +48.5 deg others 48.5 deg: LEFT
+[R3D] pulse port 18 (8 of 10) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 18 (8 of 10) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 18 (8 of 10) 9.0 V yaw -6.47 deg own +49.8 deg others 49.8 deg: LEFT
+[R3D] pulse port 19 (9 of 10) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 19 (9 of 10) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 19 (9 of 10) 9.0 V yaw -6.31 deg own +48.5 deg others 48.5 deg: LEFT
+[R3D] pulse port 20 (10 of 10) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 20 (10 of 10) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 20 (10 of 10) 9.0 V yaw -6.47 deg own +49.8 deg others 49.8 deg: LEFT
+[R3D] phase: SPIN | CCW 0.00 of 2.00 turns at 0.0 V
+[R3D] screen: 4/4 SPIN: STAND CLEAR / SPINNING / SETTLING | [ABORT]
+[R3D] spin CCW 3.0 V yaw +720.2 deg L -78.56 in R +78.56 in W 12.500 in 7.43 s
+[R3D] spin CW 3.0 V yaw -720.2 deg L +78.56 in R -78.56 in W 12.500 in 7.43 s
+[R3D] ===== RUN 1 ENDED: DONE =====
+[R3D] MEASURED tank BLUE 600 rpm: L5/R5 ports, ipr L1.62500 R1.62500, W 12.500 in
+[R3D] provenance: shulib Calibrate Oct  6 2026 12:00:00 | ROBOT-MEASURED: 10 ports, push 48 in, W 12.500 in
+[R3D]   LEFT  (signed, AS MEASURED): -16 +17 -18 +19 -20  (5 ports)
+[R3D]   RIGHT (signed, AS MEASURED): +11 -12 +13 -14 +15  (5 ports)
+[R3D]   LEFT OUT: none
+[R3D]   inches per radian: LEFT 1.625000  RIGHT 1.625000  (L/R 1.0000)
+[R3D]   effective track width: 12.5000 in (LARGER than a tape's -- a turning tank scrubs; HA-135)
+[R3D]   push: 48 in, drift +0.00 deg, median travel LEFT 29.5385 rad RIGHT 29.5385 rad, spread LEFT 0.0000 rad RIGHT 0.0000 rad (a short member shows as spread -- HA-130)
+[R3D]   spin widths: CCW 12.5000 in, CW 12.5000 in, disagreement 0.00 pct
+[R3D] front check: the card holds no record yet -- checking against your typed drive ports instead
+[R3D] typed drive ports: LEFT -11 +12 -13 +14 -15 | RIGHT +20 -19 +18 -17 +16
+[R3D] front check against your typed drive ports: 10 drive port(s) in both -- 0 agree, 10 flipped, 0 sign only, 0 side only; 0 in the typed ports only, 0 in this run's only: FRONT FLIPPED
+[R3D] FRONT FLIPPED -- your typed drive ports call the end that LED this push its BACK.
+[R3D] Either the BACK led by mistake (touch RUN AGAIN: nothing is saved), or the FRONT led
+[R3D] and the typed ports are wrong, or the drive cables were swapped since they were typed
+[R3D] (touch USE NEW: saved as pushed -- then fix the typed ports). The push cannot tell
+[R3D] these apart. USE NEW reverses every auton tuned on the typed ports. NOTHING IS SAVED YET.
+[R3D] loop: 5498 ticks, worst gap between two ticks 10 ms (a powered step stops past 100 ms); 219 screen prints so far
+[R3D] screen: FRONT FLIPPED: NOTHING SAVED YET / typed ports: the end you led is BACK / RUN AGAIN: you led with the BACK by mistake | [USE NEW] [RUN AGAIN]
+[R3D] the field disabled the robot on the held FRONT FLIPPED screen -- NOTHING SAVED: the card is unchanged (it holds no usable record)
+[R3D] competition state changed: status bits 0x01 field=no disabled=yes auton=no -- calibration runs ONLY in driver control, enabled
+[R3D] STOPPED by the field/competition state -- every motor at 0 V, coast.

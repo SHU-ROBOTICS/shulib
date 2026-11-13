@@ -81,7 +81,7 @@ struct MechanismDeps
 
 The dependencies every mechanism operation shares, as NAMED pointers (designated initializers at the call site), validated non-null — the MotionDeps pattern, not a third convention. Deliberately SMALLER than MotionDeps: no localizer (no estimate is read), no kinematics (nothing to desaturate), no HealthMonitor (the loop owner ticks it). All pointees must outlive the operation.
 
-*struct, declared at [`include/shulib/manipulation/mechanism_op.hpp:152`](../../include/shulib/manipulation/mechanism_op.hpp#L152).*
+*struct, declared at [`include/shulib/manipulation/mechanism_op.hpp:157`](../../include/shulib/manipulation/mechanism_op.hpp#L157).*
 
 <a id="mechanismdeps-clock"></a>
 
@@ -93,7 +93,7 @@ hal::IClock* clock = nullptr
 
 watchdog / deadlines / stall window
 
-*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:153`](../../include/shulib/manipulation/mechanism_op.hpp#L153).*
+*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:158`](../../include/shulib/manipulation/mechanism_op.hpp#L158).*
 
 <a id="mechanismdeps-faults"></a>
 
@@ -105,7 +105,7 @@ diag::FaultLatch* faults = nullptr
 
 run-scoped latch (MechanismStalled)
 
-*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:154`](../../include/shulib/manipulation/mechanism_op.hpp#L154).*
+*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:159`](../../include/shulib/manipulation/mechanism_op.hpp#L159).*
 
 <a id="mechanismdeps-telemetry"></a>
 
@@ -117,7 +117,7 @@ hal::ITelemetrySink* telemetry = nullptr
 
 the Warn lines (TimedOut/Unconfirmed)
 
-*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:155`](../../include/shulib/manipulation/mechanism_op.hpp#L155).*
+*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:160`](../../include/shulib/manipulation/mechanism_op.hpp#L160).*
 
 <a id="mechanismdeps-validate"></a>
 
@@ -129,7 +129,7 @@ void validate() const
 
 Every dependency non-null, or a loud precondition naming the one that is not. Each operation calls it at CONSTRUCTION, so a forgotten pointer is an error at the wiring site rather than a null dereference on the first tick.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:160`](../../include/shulib/manipulation/mechanism_op.hpp#L160).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:165`](../../include/shulib/manipulation/mechanism_op.hpp#L165).*
 
 <a id="mechanismdeps-validatedclock"></a>
 
@@ -141,7 +141,7 @@ Every dependency non-null, or a loud precondition naming the one that is not. Ea
 
 validate(), then hand out the clock — for a member-initializer list's FIRST dependency use (MotionDeps' own trick), so a null pointer trips the precondition instead of being dereferenced.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:169`](../../include/shulib/manipulation/mechanism_op.hpp#L169).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:174`](../../include/shulib/manipulation/mechanism_op.hpp#L174).*
 
 <a id="class-imechanismop"></a>
 
@@ -153,7 +153,7 @@ class IMechanismOp : public hal::ICancellable
 
 The operation contract (file banner). Pure-virtual cancel() ON PURPOSE, exactly as IMotion rules: an operation type without a cancellation story is the forgettable-safety-step failure mode; every implementer must state one.  Since F2 the contract IS a hal::ICancellable: an operation registers itself on the mechanism's claim at start() (tryClaim(*this)), which is how the end-of-run guard — holding only span<hal::IMechanism*> — reaches a live operation and renders it inert at the deadline (mechanism.hpp's claimant- hook banner carries the measured failure this closes). cancel()'s meaning is unchanged; the base only makes it reachable from the hal tier.
 
-*class, declared at [`include/shulib/manipulation/mechanism_op.hpp:185`](../../include/shulib/manipulation/mechanism_op.hpp#L185).*
+*class, declared at [`include/shulib/manipulation/mechanism_op.hpp:190`](../../include/shulib/manipulation/mechanism_op.hpp#L190).*
 
 <a id="imechanismop-destructor-imechanismop"></a>
 
@@ -165,7 +165,7 @@ The operation contract (file banner). Pure-virtual cancel() ON PURPOSE, exactly 
 
 Interface plumbing: the destructor is virtual through hal::ICancellable, so an operation may be owned and destroyed through either base, and the rest are restated because declaring a destructor suppresses the implicit moves. Defaulting them here is base-class boilerplate, NOT permission to copy an operation — a concrete operation holds a mechanism claim and a claimant registration pointing at itself, so both library operations delete all four.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:193`](../../include/shulib/manipulation/mechanism_op.hpp#L193).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:198`](../../include/shulib/manipulation/mechanism_op.hpp#L198).*
 
 <a id="imechanismop-imechanismop"></a>
 
@@ -177,7 +177,7 @@ IMechanismOp() = default
 
 *Covered by the comment on [`~IMechanismOp`](#imechanismop-destructor-imechanismop) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:194`](../../include/shulib/manipulation/mechanism_op.hpp#L194).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:199`](../../include/shulib/manipulation/mechanism_op.hpp#L199).*
 
 <a id="imechanismop-imechanismop-2"></a>
 
@@ -189,7 +189,7 @@ IMechanismOp(const IMechanismOp&) = default
 
 *Covered by the comment on [`~IMechanismOp`](#imechanismop-destructor-imechanismop) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:195`](../../include/shulib/manipulation/mechanism_op.hpp#L195).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:200`](../../include/shulib/manipulation/mechanism_op.hpp#L200).*
 
 <a id="imechanismop-imechanismop-3"></a>
 
@@ -201,7 +201,7 @@ IMechanismOp(IMechanismOp&&) = default
 
 *Covered by the comment on [`~IMechanismOp`](#imechanismop-destructor-imechanismop) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:196`](../../include/shulib/manipulation/mechanism_op.hpp#L196).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:201`](../../include/shulib/manipulation/mechanism_op.hpp#L201).*
 
 <a id="imechanismop-operator-eq"></a>
 
@@ -213,7 +213,7 @@ IMechanismOp& operator=(const IMechanismOp&) = default
 
 *Covered by the comment on [`~IMechanismOp`](#imechanismop-destructor-imechanismop) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:197`](../../include/shulib/manipulation/mechanism_op.hpp#L197).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:202`](../../include/shulib/manipulation/mechanism_op.hpp#L202).*
 
 <a id="imechanismop-operator-eq-2"></a>
 
@@ -225,7 +225,7 @@ IMechanismOp& operator=(IMechanismOp&&) = default
 
 *Covered by the comment on [`~IMechanismOp`](#imechanismop-destructor-imechanismop) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:198`](../../include/shulib/manipulation/mechanism_op.hpp#L198).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:203`](../../include/shulib/manipulation/mechanism_op.hpp#L203).*
 
 <a id="imechanismop-start"></a>
 
@@ -237,7 +237,7 @@ virtual void start() = 0
 
 Arm the operation: claim the mechanism (loud precondition if another operation holds it), reset detectors, arm the watchdog/deadlines. Re-callable — a finished operation re-arms completely.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:203`](../../include/shulib/manipulation/mechanism_op.hpp#L203).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:208`](../../include/shulib/manipulation/mechanism_op.hpp#L208).*
 
 <a id="imechanismop-tick"></a>
 
@@ -249,7 +249,7 @@ Arm the operation: claim the mechanism (loud precondition if another operation h
 
 One step (see the tick contract). Precondition: start() has been called.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:206`](../../include/shulib/manipulation/mechanism_op.hpp#L206).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:211`](../../include/shulib/manipulation/mechanism_op.hpp#L211).*
 
 <a id="imechanismop-cancel"></a>
 
@@ -261,7 +261,7 @@ void cancel() override = 0
 
 Stop from outside (see the cancel contract). Idempotent; never raises; applies the mechanism's declared safe state whenever started. Overrides hal::ICancellable — this is the member the claimant hook exposes.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:211`](../../include/shulib/manipulation/mechanism_op.hpp#L211).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:216`](../../include/shulib/manipulation/mechanism_op.hpp#L216).*
 
 <a id="imechanismop-outcome"></a>
 
@@ -273,7 +273,7 @@ Stop from outside (see the cancel contract). Idempotent; never raises; applies t
 
 The verdict of the most recent tick (Running before the first, and before start()).
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:215`](../../include/shulib/manipulation/mechanism_op.hpp#L215).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:220`](../../include/shulib/manipulation/mechanism_op.hpp#L220).*
 
 <a id="imechanismop-started"></a>
 
@@ -285,7 +285,7 @@ The verdict of the most recent tick (Running before the first, and before start(
 
 True once start() has been called (stays true after an exit).
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:218`](../../include/shulib/manipulation/mechanism_op.hpp#L218).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:223`](../../include/shulib/manipulation/mechanism_op.hpp#L223).*
 
 <a id="imechanismop-name"></a>
 
@@ -297,7 +297,7 @@ True once start() has been called (stays true after an exit).
 
 Stable short name for logs / step labels (e.g. "grab").
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:221`](../../include/shulib/manipulation/mechanism_op.hpp#L221).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:226`](../../include/shulib/manipulation/mechanism_op.hpp#L226).*
 
 <a id="imechanismop-finished"></a>
 
@@ -309,7 +309,7 @@ Stable short name for logs / step labels (e.g. "grab").
 
 Convenience: exited with a real verdict (defined from the virtuals so it can never disagree with them).
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:225`](../../include/shulib/manipulation/mechanism_op.hpp#L225).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:230`](../../include/shulib/manipulation/mechanism_op.hpp#L230).*
 
 <a id="struct-alwaysconfirmed"></a>
 
@@ -321,7 +321,7 @@ struct AlwaysConfirmed
 
 A caller-supplied confirmation that always holds: "completion IS the confirmation" — for fire-and-forget actions (deploy an actuator) where no sensor exists to ask. Using it is a visible, greppable declaration that an action is unverified, which is exactly what an invisible default would hide.
 
-*struct, declared at [`include/shulib/manipulation/mechanism_op.hpp:234`](../../include/shulib/manipulation/mechanism_op.hpp#L234).*
+*struct, declared at [`include/shulib/manipulation/mechanism_op.hpp:239`](../../include/shulib/manipulation/mechanism_op.hpp#L239).*
 
 <a id="alwaysconfirmed-operator-call"></a>
 
@@ -333,7 +333,7 @@ A caller-supplied confirmation that always holds: "completion IS the confirmatio
 
 Always true, on every call. In ActuateAndConfirm that means "confirmed the instant the actuation deadline passes"; in RunUntilConfirmed it means the FIRST tick Succeeds with zero volts ever commanded — which is why this belongs on discrete actuators and is a mistake on a motor operation.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:239`](../../include/shulib/manipulation/mechanism_op.hpp#L239).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:244`](../../include/shulib/manipulation/mechanism_op.hpp#L244).*
 
 <a id="struct-rununtilconfirmedconfig"></a>
 
@@ -345,7 +345,7 @@ struct RunUntilConfirmedConfig
 
 RunUntilConfirmed's three numbers, all REQUIRED and all validated at construction — there is no library default for a voltage, a budget or a jam threshold, because every one of them is a fact about one mechanism on one robot. Zero-initializing this struct does not get you a working operation; it gets you a loud precondition.
 
-*struct, declared at [`include/shulib/manipulation/mechanism_op.hpp:247`](../../include/shulib/manipulation/mechanism_op.hpp#L247).*
+*struct, declared at [`include/shulib/manipulation/mechanism_op.hpp:252`](../../include/shulib/manipulation/mechanism_op.hpp#L252).*
 
 <a id="rununtilconfirmedconfig-voltage"></a>
 
@@ -357,7 +357,7 @@ units::Voltage voltage
 
 Commanded while running (finite, non-zero — a 0 V "run" is a nonsense request, refused loudly at construction).
 
-*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:250`](../../include/shulib/manipulation/mechanism_op.hpp#L250).*
+*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:255`](../../include/shulib/manipulation/mechanism_op.hpp#L255).*
 
 <a id="rununtilconfirmedconfig-timeout"></a>
 
@@ -369,7 +369,7 @@ units::Time timeout
 
 Watchdog budget (finite, > 0). Typed time, the D2 discipline.
 
-*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:252`](../../include/shulib/manipulation/mechanism_op.hpp#L252).*
+*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:257`](../../include/shulib/manipulation/mechanism_op.hpp#L257).*
 
 <a id="rununtilconfirmedconfig-stall"></a>
 
@@ -381,7 +381,7 @@ StallConfig stall
 
 Jam/stall thresholds — REQUIRED, per mechanism, no library defaults (stall_detector.hpp says why).
 
-*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:255`](../../include/shulib/manipulation/mechanism_op.hpp#L255).*
+*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:260`](../../include/shulib/manipulation/mechanism_op.hpp#L260).*
 
 <a id="class-rununtilconfirmed"></a>
 
@@ -393,7 +393,7 @@ template <typename Confirm> class RunUntilConfirmed final : public IMechanismOp
 
 Run a motor mechanism at a fixed voltage until a caller-supplied confirmation holds. The season-free skeleton of intakeUntilCapture and every "spin until the sensor says so" verb. Possible verdicts: Succeeded / Stalled / TimedOut / Cancelled. `Unconfirmed` is UNREACHABLE here by construction and that is honest: an open-ended run has no notion of "the action completed" separate from its confirmation, so a world that never confirms is a timeout, not a completed-but-unconfirmed act (contrast ActuateAndConfirm, where actuation completing is a fact of its own).  WHAT CONFIRMS is deliberately a caller-supplied predicate: hue for a Toggle, proximity for a cup, a current signature for a capture — that meaning is season- and robot-specific and belongs above this layer (hal/vision.hpp's opaque-classId house rule, applied to actions). The predicate is TRUSTED: a predicate that lies "confirmed" produces a false Succeeded, which is why F3's primitives must confirm on real sensors — the F1 hostile suite demonstrates the boundary rather than pretending to close it. Checked at the TOP of every tick, before any command (true on entry ⇒ Succeeded with zero volts ever commanded — already holding the ring must not spin the intake; the C2 pred-before-first-tick shape).
 
-*class, declared at [`include/shulib/manipulation/mechanism_op.hpp:278`](../../include/shulib/manipulation/mechanism_op.hpp#L278).*
+*class, declared at [`include/shulib/manipulation/mechanism_op.hpp:283`](../../include/shulib/manipulation/mechanism_op.hpp#L283).*
 
 <a id="rununtilconfirmed-rununtilconfirmed"></a>
 
@@ -405,7 +405,7 @@ RunUntilConfirmed(hal::MotorMechanism& mech, const MechanismDeps& deps, const Ru
 
 `mech` must outlive the operation; `opName` must be a stable literal.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:284`](../../include/shulib/manipulation/mechanism_op.hpp#L284).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:289`](../../include/shulib/manipulation/mechanism_op.hpp#L289).*
 
 <a id="rununtilconfirmed-destructor-rununtilconfirmed"></a>
 
@@ -417,7 +417,7 @@ RunUntilConfirmed(hal::MotorMechanism& mech, const MechanismDeps& deps, const Ru
 
 F2 (rule-of-three, found building the end-of-run guard): an operation destroyed MID-FLIGHT — the timeout-mismatch idiom, where the caller's wait gives up before the op's own watchdog — previously left its mechanism CLAIMED FOREVER and ENERGIZED at the last commanded voltage: no code path stopped it, and the stuck claim made the end action's own operation throw at start(). Destruction now cancels a still-running operation (declared safe state, claim + claimant released). A FINISHED operation is deliberately untouched: cancel() would re-apply the safe state, and on a discrete actuator that un-does the completed action (the T4 persist rule).
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:307`](../../include/shulib/manipulation/mechanism_op.hpp#L307).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:312`](../../include/shulib/manipulation/mechanism_op.hpp#L312).*
 
 <a id="rununtilconfirmed-rununtilconfirmed-2"></a>
 
@@ -429,7 +429,7 @@ RunUntilConfirmed(const RunUntilConfirmed&) = delete
 
 Non-copyable/non-movable (F2): the claim is a resource and the mechanism's registered claimant points at THIS object — a copy would double-release the claim and a move would leave the registration dangling. Construct where it will live; start() re-arms for retries.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:317`](../../include/shulib/manipulation/mechanism_op.hpp#L317).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:322`](../../include/shulib/manipulation/mechanism_op.hpp#L322).*
 
 <a id="rununtilconfirmed-rununtilconfirmed-3"></a>
 
@@ -441,7 +441,7 @@ RunUntilConfirmed(RunUntilConfirmed&&) = delete
 
 *Covered by the comment on [`RunUntilConfirmed (overload 2)`](#rununtilconfirmed-rununtilconfirmed-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:318`](../../include/shulib/manipulation/mechanism_op.hpp#L318).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:323`](../../include/shulib/manipulation/mechanism_op.hpp#L323).*
 
 <a id="rununtilconfirmed-operator-eq"></a>
 
@@ -453,7 +453,7 @@ RunUntilConfirmed& operator=(const RunUntilConfirmed&) = delete
 
 *Covered by the comment on [`RunUntilConfirmed (overload 2)`](#rununtilconfirmed-rununtilconfirmed-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:319`](../../include/shulib/manipulation/mechanism_op.hpp#L319).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:324`](../../include/shulib/manipulation/mechanism_op.hpp#L324).*
 
 <a id="rununtilconfirmed-operator-eq-2"></a>
 
@@ -465,7 +465,7 @@ RunUntilConfirmed& operator=(RunUntilConfirmed&&) = delete
 
 *Covered by the comment on [`RunUntilConfirmed (overload 2)`](#rununtilconfirmed-rununtilconfirmed-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:320`](../../include/shulib/manipulation/mechanism_op.hpp#L320).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:325`](../../include/shulib/manipulation/mechanism_op.hpp#L325).*
 
 <a id="rununtilconfirmed-start"></a>
 
@@ -477,7 +477,7 @@ void start() override
 
 Claim the mechanism and register this object as its claimant (loud precondition if another operation already holds it — cancel that one first), forget any partial stall window, and arm the watchdog HERE; no code path disarms it, so a world that never confirms still exits. Re-callable: a finished operation re-arms completely for a retry, and a claim this object already holds is kept rather than re-taken. Commands nothing by itself.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:328`](../../include/shulib/manipulation/mechanism_op.hpp#L328).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:333`](../../include/shulib/manipulation/mechanism_op.hpp#L333).*
 
 <a id="rununtilconfirmed-tick"></a>
 
@@ -489,7 +489,7 @@ Claim the mechanism and register this object as its claimant (loud precondition 
 
 One step, in an order pinned by test: confirmation FIRST (success outranks a simultaneous stall or timeout), then the stall detector, then the watchdog; the configured voltage is commanded only when none of the three fired — so a confirmation already true on entry Succeeds with zero volts ever reaching the motors. EVERY exit applies the mechanism's declared safe state and releases the claim, so a caller can never be left owing a stop. Once finished it is a no-op returning the cached verdict. Precondition: start() has been called.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:349`](../../include/shulib/manipulation/mechanism_op.hpp#L349).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:354`](../../include/shulib/manipulation/mechanism_op.hpp#L354).*
 
 <a id="rununtilconfirmed-cancel"></a>
 
@@ -501,7 +501,7 @@ void cancel() override
 
 Make the mechanism safe NOW: the declared safe state is applied on every call made after start(), idempotently, but the VERDICT is written only if the operation was still running — an operation that Succeeded stays Succeeded, because rewriting history would lie to whoever reads outcome() later. Before start() it is a complete no-op. Raises no fault: cancellation is a commanded, normal act. This is also what the end-of-run guard reaches through the mechanism's registered claimant.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:379`](../../include/shulib/manipulation/mechanism_op.hpp#L379).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:384`](../../include/shulib/manipulation/mechanism_op.hpp#L384).*
 
 <a id="rununtilconfirmed-outcome"></a>
 
@@ -513,7 +513,7 @@ Make the mechanism safe NOW: the declared safe state is applied on every call ma
 
 The verdict of the most recent tick, cached: Running before the first tick and before start(), then frozen at whichever of Succeeded / Stalled / TimedOut / Cancelled ended the operation, until the next start() re-arms.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:406`](../../include/shulib/manipulation/mechanism_op.hpp#L406).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:411`](../../include/shulib/manipulation/mechanism_op.hpp#L411).*
 
 <a id="rununtilconfirmed-started"></a>
 
@@ -525,7 +525,7 @@ The verdict of the most recent tick, cached: Running before the first tick and b
 
 True from the first start() onward — including after an exit, and after a cancel(). Nothing clears it, so it answers "has this ever run?", not "is it running?" (pair it with outcome() != Running, or just call finished()).
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:410`](../../include/shulib/manipulation/mechanism_op.hpp#L410).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:415`](../../include/shulib/manipulation/mechanism_op.hpp#L415).*
 
 <a id="rununtilconfirmed-name"></a>
 
@@ -537,7 +537,7 @@ True from the first start() onward — including after an exit, and after a canc
 
 The `opName` handed to the constructor, returned unchanged and not copied. It is what the MechanismStalled fault detail and the timeout Warn line quote, so it is the string you grep a transcript for.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:414`](../../include/shulib/manipulation/mechanism_op.hpp#L414).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:419`](../../include/shulib/manipulation/mechanism_op.hpp#L419).*
 
 <a id="struct-actuateandconfirmconfig"></a>
 
@@ -549,7 +549,7 @@ struct ActuateAndConfirmConfig
 
 ActuateAndConfirm's schedule: WHAT to command, how long the hardware needs to do it, and how long afterwards proof may take to arrive. Both times are validated finite and >= 0 at construction and become ABSOLUTE instants at start() — they are this operation's watchdog, so no later path can extend them. The physical actuation time is a measured property of the cylinder, not a number the library can supply.
 
-*struct, declared at [`include/shulib/manipulation/mechanism_op.hpp:482`](../../include/shulib/manipulation/mechanism_op.hpp#L482).*
+*struct, declared at [`include/shulib/manipulation/mechanism_op.hpp:487`](../../include/shulib/manipulation/mechanism_op.hpp#L487).*
 
 <a id="actuateandconfirmconfig-target"></a>
 
@@ -561,7 +561,7 @@ bool target = true
 
 The commanded line state (what it means physically is the mechanism's).
 
-*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:484`](../../include/shulib/manipulation/mechanism_op.hpp#L484).*
+*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:489`](../../include/shulib/manipulation/mechanism_op.hpp#L489).*
 
 <a id="actuateandconfirmconfig-actuationtime"></a>
 
@@ -573,7 +573,7 @@ units::Time actuationTime
 
 How long the actuation physically takes before the world can honestly be asked about it (finite, >= 0). The confirmation is NOT consulted before this deadline: a clamp's "closed" sensor may still be reporting the PREVIOUS grab, and confirming on the pre-actuation state is the silent- success door. Invented values are R4's to measure; register them (HA).
 
-*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:490`](../../include/shulib/manipulation/mechanism_op.hpp#L490).*
+*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:495`](../../include/shulib/manipulation/mechanism_op.hpp#L495).*
 
 <a id="actuateandconfirmconfig-confirmwindow"></a>
 
@@ -585,7 +585,7 @@ units::Time confirmWindow
 
 How long after actuation the confirmation may take to arrive (finite, >= 0; 0 = one check exactly at the actuation deadline). Expiring with the confirmation still false is the Unconfirmed verdict.
 
-*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:494`](../../include/shulib/manipulation/mechanism_op.hpp#L494).*
+*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:499`](../../include/shulib/manipulation/mechanism_op.hpp#L499).*
 
 <a id="class-actuateandconfirm"></a>
 
@@ -597,7 +597,7 @@ template <typename Confirm> class ActuateAndConfirm final : public IMechanismOp
 
 Fire a discrete actuator, wait out its physical actuation time, then require a caller-supplied confirmation within a bounded window. The season-free skeleton of clampActuate+clampConfirm and deployActuator — and the operation that makes `Unconfirmed` REAL: the command completed (time passed, the solenoid was told), the mechanism is healthy, and the world reports the thing did not happen. Possible verdicts: Succeeded / Unconfirmed / Cancelled. `Stalled` is unreachable (no current channel exists on a solenoid — digital_out.hpp) and `TimedOut` is unreachable because the deadline pair IS the watchdog (file banner): both instants are fixed at start() and a monotonic clock reaches them. With AlwaysConfirmed, completion is the confirmation (deploy — visibly unverified by declaration).  ON EXIT (the T4 split, banner): Succeeded and Unconfirmed LEAVE THE COMMANDED STATE IN PLACE — the completed actuation persists (a successful grab must not be un-grabbed by its own success); only cancel() applies the declared safe state.
 
-*class, declared at [`include/shulib/manipulation/mechanism_op.hpp:515`](../../include/shulib/manipulation/mechanism_op.hpp#L515).*
+*class, declared at [`include/shulib/manipulation/mechanism_op.hpp:520`](../../include/shulib/manipulation/mechanism_op.hpp#L520).*
 
 <a id="actuateandconfirm-actuateandconfirm"></a>
 
@@ -609,7 +609,7 @@ ActuateAndConfirm(hal::PneumaticMechanism& mech, const MechanismDeps& deps, cons
 
 `mech` must outlive the operation; `opName` must be a stable literal.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:521`](../../include/shulib/manipulation/mechanism_op.hpp#L521).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:526`](../../include/shulib/manipulation/mechanism_op.hpp#L526).*
 
 <a id="actuateandconfirm-destructor-actuateandconfirm"></a>
 
@@ -621,7 +621,7 @@ ActuateAndConfirm(hal::PneumaticMechanism& mech, const MechanismDeps& deps, cons
 
 Cancel-on-destruction for a MID-FLIGHT operation; a finished one is untouched (RunUntilConfirmed's destructor note — the T4 persist rule is the reason the guard is conditional, and it matters MOST here: an unconditional cancel would force the declared safe state onto every successfully-grabbed clamp the moment its operation went out of scope).
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:540`](../../include/shulib/manipulation/mechanism_op.hpp#L540).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:545`](../../include/shulib/manipulation/mechanism_op.hpp#L545).*
 
 <a id="actuateandconfirm-actuateandconfirm-2"></a>
 
@@ -633,7 +633,7 @@ ActuateAndConfirm(const ActuateAndConfirm&) = delete
 
 Non-copyable/non-movable (F2): same claim-resource reasoning as RunUntilConfirmed.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:548`](../../include/shulib/manipulation/mechanism_op.hpp#L548).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:553`](../../include/shulib/manipulation/mechanism_op.hpp#L553).*
 
 <a id="actuateandconfirm-actuateandconfirm-3"></a>
 
@@ -645,7 +645,7 @@ ActuateAndConfirm(ActuateAndConfirm&&) = delete
 
 *Covered by the comment on [`ActuateAndConfirm (overload 2)`](#actuateandconfirm-actuateandconfirm-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:549`](../../include/shulib/manipulation/mechanism_op.hpp#L549).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:554`](../../include/shulib/manipulation/mechanism_op.hpp#L554).*
 
 <a id="actuateandconfirm-operator-eq"></a>
 
@@ -657,7 +657,7 @@ ActuateAndConfirm& operator=(const ActuateAndConfirm&) = delete
 
 *Covered by the comment on [`ActuateAndConfirm (overload 2)`](#actuateandconfirm-actuateandconfirm-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:550`](../../include/shulib/manipulation/mechanism_op.hpp#L550).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:555`](../../include/shulib/manipulation/mechanism_op.hpp#L555).*
 
 <a id="actuateandconfirm-operator-eq-2"></a>
 
@@ -669,7 +669,7 @@ ActuateAndConfirm& operator=(ActuateAndConfirm&&) = delete
 
 *Covered by the comment on [`ActuateAndConfirm (overload 2)`](#actuateandconfirm-actuateandconfirm-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:551`](../../include/shulib/manipulation/mechanism_op.hpp#L551).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:556`](../../include/shulib/manipulation/mechanism_op.hpp#L556).*
 
 <a id="actuateandconfirm-start"></a>
 
@@ -681,7 +681,7 @@ void start() override
 
 Claim the mechanism and register this object as its claimant (loud precondition if another operation already holds it), then compute the deadline pair ONCE from the clock — actuation, then confirm. Those two absolute instants ARE this operation's bound: no later path extends them, so an erratic dt cannot stretch the budget and a clock jump cannot skip it. Re-callable; a finished operation re-arms for a retry. Commands nothing by itself — the first tick() is what fires the actuator.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:560`](../../include/shulib/manipulation/mechanism_op.hpp#L560).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:565`](../../include/shulib/manipulation/mechanism_op.hpp#L565).*
 
 <a id="actuateandconfirm-tick"></a>
 
@@ -693,7 +693,7 @@ Claim the mechanism and register this object as its claimant (loud precondition 
 
 One step: re-command the target line state (idempotent — the solenoid holds it), then ask the confirmation ONLY past the actuation deadline. Before that instant the operation stays Running WITHOUT consulting the world, because a clamp's "closed" sensor may still be reporting the previous grab and confirming on the pre-actuation state is the silent-success door. On exit the COMMANDED STATE STAYS PUT for both Succeeded and Unconfirmed — a successful grab must not be un-grabbed by its own success, and an unconfirmed one is left where it is for the caller's retry/undo decision. The claim is released on every exit. Once finished it commands nothing. Precondition: start().
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:586`](../../include/shulib/manipulation/mechanism_op.hpp#L586).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:591`](../../include/shulib/manipulation/mechanism_op.hpp#L591).*
 
 <a id="actuateandconfirm-cancel"></a>
 
@@ -705,7 +705,7 @@ void cancel() override
 
 The ONLY path that forces the declared safe state onto this actuator — every other exit leaves the commanded state in place. Applied on every call made after start(), idempotently, so it can and does un-do a completed actuation: that is deliberate, and it is how a team says "the clamp stays closed at the buzzer" or "the cylinder retracts inside the expansion limit" through the mechanism's declared safe value. The verdict of an already-finished operation is preserved; before start() it is a complete no-op; it raises no fault.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:616`](../../include/shulib/manipulation/mechanism_op.hpp#L616).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:621`](../../include/shulib/manipulation/mechanism_op.hpp#L621).*
 
 <a id="actuateandconfirm-outcome"></a>
 
@@ -717,7 +717,7 @@ The ONLY path that forces the declared safe state onto this actuator — every o
 
 The verdict of the most recent tick, cached: Running before the first tick and before start(), then frozen at Succeeded, Unconfirmed or Cancelled — Stalled and TimedOut are unreachable for this operation (no current channel on a solenoid; the deadline pair is the watchdog).
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:641`](../../include/shulib/manipulation/mechanism_op.hpp#L641).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:646`](../../include/shulib/manipulation/mechanism_op.hpp#L646).*
 
 <a id="actuateandconfirm-started"></a>
 
@@ -729,7 +729,7 @@ The verdict of the most recent tick, cached: Running before the first tick and b
 
 True from the first start() onward — including after an exit. Nothing clears it, so it answers "has this ever run?", not "is it running?".
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:644`](../../include/shulib/manipulation/mechanism_op.hpp#L644).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:649`](../../include/shulib/manipulation/mechanism_op.hpp#L649).*
 
 <a id="actuateandconfirm-name"></a>
 
@@ -741,14 +741,14 @@ True from the first start() onward — including after an exit. Nothing clears i
 
 The `opName` handed to the constructor, returned unchanged and not copied. The Unconfirmed Warn line quotes it, so it is the string that identifies this actuation in a transcript.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:648`](../../include/shulib/manipulation/mechanism_op.hpp#L648).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:653`](../../include/shulib/manipulation/mechanism_op.hpp#L653).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 126 lines, click to expand</summary>
+<summary>The header’s own reasoning — 131 lines, click to expand</summary>
 
 ```text
 
@@ -812,8 +812,13 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  ── Which exits apply the safe state — split by actuation physics (T4) ──────────────
  MOTOR operations end in the declared safe state on EVERY path — Succeeded,
  Stalled, TimedOut, Cancelled: "capture, and the intake stops"; "arrive, and
- the lift holds" (safe mode Hold + 0 V IS the hold). A motor left energized is
- the forgettable-safety-step failure mode A1 exists to prevent, so no exit may
+ the lift holds" (safe mode Hold + 0 V IS the hold — on a V5 only since
+ DEFECTS2, 2026-09-26, when the PROS adapter began sending that zero as
+ brake(), the one PROS call that applies a mode; before it, the zero went out
+ as a plain 0 V, which PROS documents as ignoring the mode, so a declared Hold
+ went limp: hal/pros/motor.hpp, THE STOP, A4 register HA-142 — and how hard
+ it holds under load is still HA-92). A motor left energized is the
+ forgettable-safety-step failure mode A1 exists to prevent, so no exit may
  depend on the caller remembering to stop it. An open-ended behavior — keep
  the intake spinning while driving to the next goal — is deliberately NOT an
  operation: command the mechanism directly (mech.setVoltage(...)) and own the

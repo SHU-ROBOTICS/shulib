@@ -27,7 +27,7 @@ Extracted from [`include/shulib/hal/imu_conversion.hpp`](../../include/shulib/ha
 
 Convert a V5 IMU heading into a canonical field heading. imuHeadingDegCw : degrees, CW-positive, measured from the calibration orientation. bootHeading     : the robot's canonical field heading AT calibration (per-robot config). Returns the canonical heading (CCW-positive, wrapped to (-π, π]). Non-finite input is rejected by Angle::degrees (a NaN can never enter the type).
 
-*free function, declared at [`include/shulib/hal/imu_conversion.hpp:46`](../../include/shulib/hal/imu_conversion.hpp#L46).*
+*free function, declared at [`include/shulib/hal/imu_conversion.hpp:51`](../../include/shulib/hal/imu_conversion.hpp#L51).*
 
 <a id="imuyawratetocanonical"></a>
 
@@ -39,14 +39,14 @@ Convert a V5 IMU heading into a canonical field heading. imuHeadingDegCw : degre
 
 Convert a V5 IMU yaw rate (deg/s, CW-positive) to canonical rad/s (CCW-positive). A rate does not wrap; this is the sanctioned deg/s→rad/s conversion (negate for CW→CCW).  CAVEAT (adapter): the CW-positive convention proven for heading does NOT automatically extend to the rate source. PROS exposes no CW yaw-rate scalar — get_gyro_rate() returns a raw body-axis struct whose z sign is UNDOCUMENTED. Prefer deriving yaw rate by differentiating get_rotation() (documented CW-positive) so this negate is provably correct; otherwise bench-verify get_gyro_rate().z's sign before trusting it. (A4 register HA-04; R3 settles it.)
 
-*free function, declared at [`include/shulib/hal/imu_conversion.hpp:61`](../../include/shulib/hal/imu_conversion.hpp#L61).*
+*free function, declared at [`include/shulib/hal/imu_conversion.hpp:66`](../../include/shulib/hal/imu_conversion.hpp#L66).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 30 lines</summary>
+<summary>The header’s own reasoning — 35 lines</summary>
 
 ```text
 
@@ -74,6 +74,11 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
   * bootHeading has ONE owner: the robot's canonical START heading (the init Pose2d
     handed to the Localizer). The offset is applied exactly ONCE, here at the HAL edge;
     no downstream consumer (odometry / Localizer / EKF) re-applies it. (A4 register HA-05.)
+    Since COMP-a (HA-05 as amended) the competition program leaves bootHeading at 0
+    (hal/pros/device_provider.hpp) and seats the start heading when an auton STARTS, from
+    the auton's declared start pose, through the Localizer's bias
+    (Localizer::reseatHeading) — the auton is chosen after boot, so the boot cannot know
+    it. That is a seed of the published heading, not a second application of this offset.
 
  ON-ROBOT VALIDATION still required: confirm the as-mounted sensor matches its own
  CW-positive doc strings (bench: a known +90° CW spin must DECREASE canonical heading

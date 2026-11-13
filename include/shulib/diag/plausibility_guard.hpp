@@ -38,7 +38,12 @@
 // over an exact clamp. Both are logic constants. The PHYSICAL MAXIMA defaults are
 // hardware claims: PROVISIONAL (A4: HA-56) — generous upper bounds no VEX
 // drivetrain approaches, so a false positive requires the estimate to be wrong by
-// construction; R3/R5 replace them with measured envelopes.
+// construction; R3/R5 replace them with measured envelopes. ONE deliberate exception
+// (L6-A1, 2026-10-29): a wall reset's seat (Localizer::seatAxis) is a caller-made jump
+// of up to the author's maxCorrection; it is forgiven on the dt-0 tick every verb and
+// wait begins with, but a Tier-3 loop that ticks the scheduler itself sees ONE advisory
+// IMPLAUSIBLE after a seat over 2.25 in while the estimate is right (the wall reset's
+// WALL line just before it says so) — chassis/wall_reset_call.hpp.
 
 #include <cmath>
 #include <cstdio>

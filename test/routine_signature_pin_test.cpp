@@ -53,6 +53,7 @@
 namespace {
 
 using shulib::chassis::Chassis;
+using shulib::chassis::CurvePoint;
 using shulib::chassis::MotionOptions;
 using shulib::chassis::Routine;
 using shulib::chassis::RoutineResult;
@@ -156,6 +157,62 @@ template <typename R>
 concept F10Pause = requires { static_cast<R& (R::*)(Time)>(&R::pause); };
 SHULIB_F10_PIN(F10Pause<Routine>, "Routine::pause(units::Time) -> Routine&");
 
+// The two steps APPENDED at chunk L9 (API 2.4) — the additive path the banner names, taken for
+// real. They are pinned the day they land, in exactly the shape of their forward twins (driveTo
+// and face above), so from here on they are as frozen as every step before them. ADDED pins
+// only: no pin above changed to make room for them.
+template <typename R>
+concept F10ReverseTo = requires {
+    static_cast<R& (R::*)(Length, Length, const MotionOptions&)>(&R::reverseTo);
+};
+SHULIB_F10_PIN(F10ReverseTo<Routine>,
+               "Routine::reverseTo(Length, Length, const MotionOptions&) -> Routine& "
+               "(appended at L9, API 2.4)");
+
+template <typename R>
+concept F10FaceAway = requires {
+    static_cast<R& (R::*)(Length, Length, const MotionOptions&)>(&R::faceAway);
+};
+SHULIB_F10_PIN(F10FaceAway<Routine>,
+               "Routine::faceAway(Length, Length, const MotionOptions&) -> Routine& "
+               "(appended at L9, API 2.4)");
+
+// CURVE1 (API 2.7): the four curve steps, APPENDED in routine.hpp's one block "CURVE1: curves" and
+// pinned the day they land, in the shape of their facade verbs (span + brace form, forward and
+// reverse). ADDED pins only.
+template <typename R>
+concept F10CurveSpan = requires {
+    static_cast<R& (R::*)(std::span<const CurvePoint>, const MotionOptions&)>(&R::curveTo);
+};
+SHULIB_F10_PIN(F10CurveSpan<Routine>,
+               "Routine::curveTo(span<const CurvePoint>, const MotionOptions&) -> Routine& "
+               "(appended at CURVE1)");
+
+template <typename R>
+concept F10CurveBraces = requires {
+    static_cast<R& (R::*)(std::initializer_list<CurvePoint>, const MotionOptions&)>(&R::curveTo);
+};
+SHULIB_F10_PIN(F10CurveBraces<Routine>,
+               "Routine::curveTo({...}, const MotionOptions&) -> Routine& (appended at CURVE1)");
+
+template <typename R>
+concept F10ReverseCurveSpan = requires {
+    static_cast<R& (R::*)(std::span<const CurvePoint>, const MotionOptions&)>(
+        &R::reverseCurveTo);
+};
+SHULIB_F10_PIN(F10ReverseCurveSpan<Routine>,
+               "Routine::reverseCurveTo(span<const CurvePoint>, const MotionOptions&) -> "
+               "Routine& (appended at CURVE1)");
+
+template <typename R>
+concept F10ReverseCurveBraces = requires {
+    static_cast<R& (R::*)(std::initializer_list<CurvePoint>, const MotionOptions&)>(
+        &R::reverseCurveTo);
+};
+SHULIB_F10_PIN(F10ReverseCurveBraces<Routine>,
+               "Routine::reverseCurveTo({...}, const MotionOptions&) -> Routine& (appended at "
+               "CURVE1)");
+
 // The template step, pinned through an exact instantiation — the deduced
 // signature including the typed timeout and the defaulted step name.
 using PredPtr = bool (*)();
@@ -235,6 +292,33 @@ SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().waitFor(std::declval<PredPtr>()
                                                          std::declval<Time>(),
                                                          std::declval<const char*>()),
                         "Routine::waitFor");
+// L9's two steps: both reach bearingTo's precondition and a facade verb's option check, so a
+// noexcept on either would turn "the robot is already on that point" into std::terminate.
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().reverseTo(std::declval<Length>(),
+                                                           std::declval<Length>(),
+                                                           std::declval<const MotionOptions&>()),
+                        "Routine::reverseTo");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().faceAway(std::declval<Length>(),
+                                                          std::declval<Length>(),
+                                                          std::declval<const MotionOptions&>()),
+                        "Routine::faceAway");
+
+// CURVE1's four steps: each reaches the facade's preconditions (1..16 finite points, the options),
+// so a noexcept would turn a NaN point into std::terminate.
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().curveTo(std::declval<std::span<const CurvePoint>>(),
+                                                         std::declval<const MotionOptions&>()),
+                        "Routine::curveTo(span)");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().curveTo(std::declval<std::initializer_list<CurvePoint>>(),
+                                                         std::declval<const MotionOptions&>()),
+                        "Routine::curveTo({...})");
+SHULIB_F10_NOT_NOEXCEPT(
+    std::declval<Routine&>().reverseCurveTo(std::declval<std::span<const CurvePoint>>(),
+                                            std::declval<const MotionOptions&>()),
+    "Routine::reverseCurveTo(span)");
+SHULIB_F10_NOT_NOEXCEPT(
+    std::declval<Routine&>().reverseCurveTo(std::declval<std::initializer_list<CurvePoint>>(),
+                                            std::declval<const MotionOptions&>()),
+    "Routine::reverseCurveTo({...})");
 
 // ── the whole-chain verdict (every one noexcept — see the header note) ────────────
 template <typename R>
@@ -320,6 +404,83 @@ SHULIB_F10_PIN(static_cast<int>(RoutineStopCause::MechanismFailed) == 4,
                "RoutineStopCause::MechanismFailed == 4 (append-only enum; APPENDED at F1 "
                "via the sanctioned additive path — a re-meaning of it is what this pin "
                "would catch)");
+// APPENDED at chunk MECH-A4 (API 2.5), by the same path: a failing mechanism STEP. Pinned the day it
+// landed, beside its neighbours — ADDED, no pin above changed.
+SHULIB_F10_PIN(static_cast<int>(RoutineStopCause::MechanismStepFailed) == 5,
+               "RoutineStopCause::MechanismStepFailed == 5 (append-only enum; APPENDED at MECH-A4 — "
+               "MechanismFailed keeps 4 and its F1 meaning)");
+
+// ── MECH-A4's other additions: what is pinned, and what is deliberately NOT ──────────
+// The appended RoutineResult field is pinned by TYPE (a frozen return type's field): read beside
+// `cause`, it must stay a mechanism verdict. The mechanism STEPS (move / run / set / spinUp / home /
+// stop / waitUntilDone and their start forms), the context constructor and lastMechanism() are
+// NOT pinned: whether they join F10's freeze is an OPEN decision (the Freeze Register's F10 row;
+// routine.hpp's banner gives both readings — they take the unfrozen mechanism seam's types, as
+// then() does, or they take L9's additive path and are pinned). Pinning them later is additive.
+// ADDITIVE growth: no pin above moved, and the frozen constructor's three pins still hold beside
+// the new overload.
+template <typename T>
+concept F10ResMechanismVerdict = requires {
+    requires std::is_same_v<decltype(T::mechanismVerdict), shulib::manipulation::MechanismOutcome>;
+};
+SHULIB_F10_PIN(F10ResMechanismVerdict<RoutineResult>,
+               "RoutineResult::mechanismVerdict : manipulation::MechanismOutcome (appended at MECH-A4)");
+
+// ── STEP1-A (2026-11-05): the ON-FAILURE CHOICE, pinned the day it lands (the team lead's D1) ────
+// A route maker generates autons against these spellings, so they must not drift: the two modifiers,
+// OnFail's three spellings, the appended stop cause and the six appended result fields. ADDED pins
+// only — no pin above changed. NOT pinned (deliberately, like the mechanism steps): the context
+// constructor's new reading of a `guard` member, and STEP1-B's partway-trigger arms when they land.
+using shulib::chassis::OnFail;
+template <typename R>
+concept F10OnFail = requires(R& r) {
+    static_cast<R& (R::*)(OnFail)>(&R::onFail);
+    { r.onFail(shulib::chassis::carryOn) } -> std::same_as<R&>;
+};
+SHULIB_F10_PIN(F10OnFail<Routine>, "Routine::onFail(OnFail) -> Routine& (appended at STEP1-A)");
+
+template <typename R>
+concept F10Label = requires(R& r) {
+    static_cast<R& (R::*)(const char*)>(&R::label);
+    { r.label("x") } -> std::same_as<R&>;
+};
+SHULIB_F10_PIN(F10Label<Routine>, "Routine::label(const char*) -> Routine& (appended at STEP1-A)");
+
+SHULIB_F10_PIN((std::is_same_v<decltype(shulib::chassis::stopChain), const OnFail>),
+               "stopChain : const OnFail (an inline constexpr value; appended at STEP1-A)");
+SHULIB_F10_PIN((std::is_same_v<decltype(shulib::chassis::carryOn), const OnFail>),
+               "carryOn : const OnFail (an inline constexpr value; appended at STEP1-A)");
+SHULIB_F10_PIN(shulib::chassis::stopChain.kind == OnFail::Kind::Stop && shulib::chassis::stopChain.target == nullptr,
+               "stopChain's meaning: the default rule (appended at STEP1-A)");
+SHULIB_F10_PIN(shulib::chassis::carryOn.kind == OnFail::Kind::CarryOn && shulib::chassis::carryOn.target == nullptr,
+               "carryOn's meaning: count the failure and go on (appended at STEP1-A)");
+SHULIB_F10_PIN((std::is_same_v<decltype(&shulib::chassis::skipTo), OnFail (*)(const char*)>),
+               "skipTo(const char*) -> OnFail (appended at STEP1-A)");
+
+SHULIB_F10_PIN(static_cast<int>(RoutineStopCause::MechanismNotStarted) == 6,
+               "RoutineStopCause::MechanismNotStarted == 6 (append-only enum; APPENDED at STEP1-A — "
+               "MechanismStepFailed keeps 5)");
+
+template <typename T>
+concept F10ResStep1A = requires {
+    requires std::is_same_v<decltype(T::failedOn), int>;
+    requires std::is_same_v<decltype(T::firstFailedAt), int>;
+    requires std::is_same_v<decltype(T::firstFailedName), const char*>;
+    requires std::is_same_v<decltype(T::firstFailedCause), RoutineStopCause>;
+    requires std::is_same_v<decltype(T::jumped), int>;
+    requires std::is_same_v<decltype(T::skipPendingTo), const char*>;
+};
+SHULIB_F10_PIN(F10ResStep1A<RoutineResult>,
+               "RoutineResult's six STEP1-A fields: failedOn int, firstFailedAt int, firstFailedName const "
+               "char*, firstFailedCause RoutineStopCause, jumped int, skipPendingTo const char*");
+
+// The modifiers mutate the chain's state: never callable on a const Routine.
+template <typename R>
+concept F10ConstOnFail = requires(const R& r) { r.onFail(shulib::chassis::carryOn); };
+SHULIB_F10_PIN(!F10ConstOnFail<Routine>, "onFail staying non-const (appended at STEP1-A)");
+template <typename R>
+concept F10ConstLabel = requires(const R& r) { r.label("x"); };
+SHULIB_F10_PIN(!F10ConstLabel<Routine>, "label staying non-const (appended at STEP1-A)");
 
 // ── the defaulted call spellings (default args are not part of a function type) ───
 template <typename R>
@@ -339,6 +500,26 @@ concept F10TerseSpellings = requires(R& r, const Pose2d& p, Length l, Angle a, T
 };
 SHULIB_F10_PIN(F10TerseSpellings<Routine>,
                "the defaulted spellings (moveTo(pose), waitFor(pred, t), ...)");
+
+// L9's two steps' defaulted spellings — a concept of their own, so the pin above stays
+// byte-for-byte what it was (additive growth adds pins; it does not edit them).
+template <typename R>
+concept F10TerseSpellingsReversed = requires(R& r, Length l) {
+    { r.reverseTo(l, l) } -> std::same_as<R&>;
+    { r.faceAway(l, l) } -> std::same_as<R&>;
+};
+SHULIB_F10_PIN(F10TerseSpellingsReversed<Routine>,
+               "the defaulted spellings reverseTo(x, y) and faceAway(x, y)");
+
+// CURVE1's steps' defaulted spellings (brace form, no options) — their own concept, so the pins
+// above stay byte-for-byte what they were.
+template <typename R>
+concept F10TerseSpellingsCurves = requires(R& r, Length l, Angle a) {
+    { r.curveTo({CurvePoint{l, l}, CurvePoint{l, l, a}}) } -> std::same_as<R&>;
+    { r.reverseCurveTo({CurvePoint{l, l, a}}) } -> std::same_as<R&>;
+};
+SHULIB_F10_PIN(F10TerseSpellingsCurves<Routine>,
+               "the defaulted spellings curveTo({...}) and reverseCurveTo({...})");
 
 // ── NEGATIVE pins: typed time is a FROZEN SEMANTIC, not just a signature ──────────
 // A bare double where a duration belongs must stay uncompilable. Adding an
@@ -363,6 +544,17 @@ concept F10ConstStep = requires(const R& r, const Pose2d& p) { r.moveTo(p); };
 SHULIB_F10_PIN(!F10ConstStep<Routine>,
                "steps staying non-const (a const chain cannot secretly advance)");
 
+// …and the same for L9's two steps, each its own pin (added, not folded into the one above).
+template <typename R>
+concept F10ConstReverseTo = requires(const R& r, Length l) { r.reverseTo(l, l); };
+SHULIB_F10_PIN(!F10ConstReverseTo<Routine>,
+               "reverseTo staying non-const (a const chain cannot secretly advance)");
+
+template <typename R>
+concept F10ConstFaceAway = requires(const R& r, Length l) { r.faceAway(l, l); };
+SHULIB_F10_PIN(!F10ConstFaceAway<Routine>,
+               "faceAway staying non-const (a const chain cannot secretly advance)");
+
 #undef SHULIB_F10_PIN
 
 // The pins above are the test; this case exists so the file registers in the
@@ -382,17 +574,25 @@ SHULIB_F10_PIN(!F10ConstStep<Routine>,
 // kApiMinor = 1 with the string left at "2.0" passed all three former lines.
 //
 // Bug now caught: the printable version and the numeric version disagree.
-// That token is what a session header prints (main.cpp TODO(R1)), so a desync
-// mislabels every on-robot transcript and blackbox file.
+// That token is the one printable API version, meant for the session header, so a desync
+// would mislabel every on-robot transcript and blackbox file that carries it. (This comment
+// said "main.cpp TODO(R1)" until G1 Part 2c: no such marker has existed since R1a, and
+// diag::SessionInfo has no version field yet — no program prints the token today.)
 //
-// kApiMinor is deliberately unpinned — additive growth is legal. Saying so is
-// the point; a vacuous assertion says it in a way that looks like a test.
+// kApiMinor is not pinned to a value; it has a floor — additive growth is legal
+// and must never fail this pin, but the growth F10 itself has had must not be
+// silently undone. (A vacuous `>= 0` would say "unpinned" in a way that looks
+// like a test; a floor at F10's own last growth says something true.)
 TEST_CASE("F10 pin: the frozen Routine surface is API major 2 and the mechanism exists") {
     CHECK(shulib::kApiMajor == 2);
 
     char expected[16];
     std::snprintf(expected, sizeof expected, "%d.%d", shulib::kApiMajor, shulib::kApiMinor);
     CHECK(std::string_view{shulib::kApiVersionString} == std::string_view{expected});
+
+    // F10 grew additively at 2.4 (L9: reverseTo and faceAway) and again at 2.5 (MECH-A4: the
+    // appended MechanismStepFailed and mechanismVerdict), so the minor must have moved past L9's 4.
+    CHECK(shulib::kApiMinor >= 5);
 }
 
 }  // namespace

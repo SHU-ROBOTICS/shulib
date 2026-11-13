@@ -11,8 +11,18 @@
 // arrays), so adding fields here later is safe.
 //
 // Built from a RobotContextConfig of NAMED pointers (designated initializers at the call
-// site); the constructor validates them all non-null, then the accessors hand out
+// site); the constructor validates every REQUIRED one non-null, then the accessors hand out
 // references so consumers write `ctx.clock().now()` rather than juggling pointers.
+//
+// ── The first OPTIONAL slot: the wall sensors (chunk L6-A2, 2026-11-03) ─────────────
+// `walls` is the one slot the constructor does NOT require: nullptr means "this robot declares no
+// wall sensors", and the wall reset then refuses NO SENSOR — so every existing caller (the host
+// harness, the rigs, the Robot before L6-A2) compiles and runs unchanged. It is a pointer handed
+// out as a pointer (`wallSensors()`), never a reference, because null is a real answer here. This
+// context only FORWARD-DECLARES its type and never dereferences it (it sees only the L0 interfaces;
+// the type lives in localization/wall_reset.hpp). The pointer is NON-CONST: the everyday wall reset
+// files each outcome in the slot's log. motion::MotionScheduler's shadow context carries it field by
+// field like every other slot — a slot not carried there is nullptr in every `chassis.deps().ctx`.
 
 #include <span>
 
@@ -25,6 +35,12 @@
 #include "shulib/hal/telemetry_sink.hpp"
 #include "shulib/hal/vision.hpp"
 
+namespace shulib::localization {
+/// Forward declaration only (localization/wall_reset.hpp defines it): this context stores the OPTIONAL
+/// wall-sensor slot's pointer and never reads through it, so it includes no localization header.
+struct WallSensors;
+}  // namespace shulib::localization
+
 namespace shulib::chassis {
 
 /// The HAL handles a robot is built from. Pointers so fields are NAMED at the call site
@@ -33,8 +49,11 @@ struct RobotContextConfig {
     hal::IClock* clock = nullptr;             ///< the single source of now; seconds, monotonic
     /// The drive motors, in kinematic wheel order: element i is commanded with wheel speed i of
     /// the installed IKinematics, so a wrong order drives the robot the wrong way in silence.
-    /// The caller must supply at least as many motors as that kinematics has wheels — nothing
-    /// checks the count. This is a non-owning VIEW: the pointer ARRAY must outlive the context.
+    /// ONE entry per kinematic wheel — N physical motors on a side go behind one
+    /// hal::MotorGroup (R3b Part 1). This context checks only that the span is non-empty and
+    /// all-non-null; motion::MotionDeps::validate() is where the count is checked, and it
+    /// demands EQUALITY with the kinematics' wheel count. This is a non-owning VIEW: the
+    /// pointer ARRAY must outlive the context.
     std::span<hal::IMotor* const> driveMotors;
     hal::IImu* imu = nullptr;                 ///< heading and yaw rate, canonical CCW radians
     hal::IGps* gps = nullptr;                 ///< absolute fix; off-strip its hasFix() reads false
@@ -42,6 +61,11 @@ struct RobotContextConfig {
     hal::ITelemetrySink* telemetry = nullptr; ///< every log line and DebugRecord; NullSink = off
     hal::ITagSource* tags = nullptr;          ///< AprilTags as body-frame poses (the M3 corrector)
     hal::IVision* vision = nullptr;           ///< object bearings for M4 manipulation targeting
+    /// OPTIONAL (L6-A2, appended): the robot's side distance sensors, their limits and the reset log —
+    /// nullptr = this robot declares no wall sensors, and the wall reset refuses NO SENSOR. The ONE
+    /// slot the constructor does NOT require. Non-const: the everyday wall reset files its outcome in
+    /// the slot's log. Must outlive the context when set.
+    localization::WallSensors* walls = nullptr;
 };
 
 /// The composition root: the ONE object that differs between the real robot, the simulator and a
@@ -54,10 +78,11 @@ struct RobotContextConfig {
 /// only ever as fresh as the caller's own call.
 class RobotContext {
 public:
-    /// Validates the whole config up front — every handle non-null and driveMotors non-empty —
-    /// through SHULIB_PRECONDITION, so a mis-wired robot fails at construction naming the handle
+    /// Validates the whole config up front — every REQUIRED handle non-null and driveMotors
+    /// non-empty (`walls` is optional and never checked) — through SHULIB_PRECONDITION, so a mis-wired robot fails at construction naming the handle
     /// it is missing, instead of dereferencing null halfway through an auton. The count of drive
-    /// motors is checked only for emptiness, never against the kinematics' wheel count.
+    /// motors is checked here only for emptiness; motion::MotionDeps::validate() checks it for
+    /// EQUALITY against the kinematics' wheel count (the context never sees the kinematics).
     explicit RobotContext(const RobotContextConfig& cfg) : cfg_{cfg} {
         SHULIB_PRECONDITION(cfg_.clock != nullptr, "RobotContext: clock is null");
         SHULIB_PRECONDITION(!cfg_.driveMotors.empty(), "RobotContext: driveMotors is empty");
@@ -76,8 +101,8 @@ public:
     /// why consumers write `ctx.clock().now()` and never test a pointer.
     [[nodiscard]] hal::IClock& clock() const { return *cfg_.clock; }
     /// The drive motors, in kinematic wheel order. A VIEW of the caller's array, so it is only
-    /// as alive as that array; guaranteed non-empty, but NOT guaranteed to match the wheel count
-    /// of the installed kinematics — that pairing is the caller's to get right.
+    /// as alive as that array; guaranteed non-empty here, and guaranteed to EQUAL the wheel
+    /// count of the installed kinematics once a motion::MotionDeps has validated the pairing.
     [[nodiscard]] std::span<hal::IMotor* const> driveMotors() const { return cfg_.driveMotors; }
     /// The IMU, already canonical: CCW-positive radians, +X = 0. Nothing above this call converts
     /// an angle. Gate trust on isReady() at boot — a calibrating IMU reports garbage that moves.
@@ -97,6 +122,10 @@ public:
     /// The object/colour detection source. A separate seam from tags() so one adapter can serve
     /// both, or either alone, without a consumer of one depending on the other.
     [[nodiscard]] hal::IVision& vision() const { return *cfg_.vision; }
+    /// The robot's side distance sensors (L6-A2) — nullptr when this robot declares none (the one
+    /// OPTIONAL slot; the wall reset then refuses NO SENSOR). A pointer, as handed in: this context
+    /// never dereferences it.
+    [[nodiscard]] localization::WallSensors* wallSensors() const noexcept { return cfg_.walls; }
 
 private:
     RobotContextConfig cfg_;

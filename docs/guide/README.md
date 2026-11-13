@@ -10,17 +10,22 @@ order — each chapter assumes the ones before it and says so in its header.
 | 2 | [The field and coordinates](02-the-field-and-coordinates.md) | Coordinates, pose, field-relative vs robot-relative |
 | 3 | [Knowing where you are](03-knowing-where-you-are.md) | Odometry, drift, what each sensor knows, fusion |
 | 4 | [Drivetrains](04-drivetrains.md) | Holonomic vs tank vs H-drive; kinematics; strafe authority |
-| 5 | [Getting there: control](05-getting-there.md) | PID without anxiety, feedforward, settling, the watchdog |
+| 5 | [Getting there: control](05-getting-there.md) | PID without anxiety, feedforward, settling, the watchdog, curves |
 | 6 | [How things fail](06-how-things-fail.md) | Drift, slip, dead sensors, brownout — and the fault philosophy |
 | 7 | [Getting set up](07-getting-set-up.md) | Build, run the tests, read the output, the repo layout |
 | 8 | [Your first routine](08-your-first-routine.md) | The full tutorial, every line explained |
 | 9 | [The recipe API](09-the-recipe-api.md) | Tier 2: a routine as a chain of steps, and what happens when one fails |
 | 10 | [The API, as prose](10-the-api.md) | Every verb: what, when, failure behavior, gotchas |
-| 11 | [Reading the diagnostics](11-reading-the-diagnostics.md) | The transcript line by line; every fault code |
+| 11 | [Reading the diagnostics](11-reading-the-diagnostics.md) | The transcript line by line; every fault code; printing your own lines |
 | 12 | [When things go wrong](12-when-things-go-wrong.md) | Symptom-first troubleshooting |
 | 13 | [Extending the library](13-extending-the-library.md) | The layers, the testing bar, adding drivetrains/motions |
 | 14 | [What it can't do yet](14-what-it-cannot-do-yet.md) | The honest limits, each linked to its tracking doc |
 | 15 | [Glossary](15-glossary.md) | Every term, one sentence |
+| 16 | [Testing an auton on the bench](16-testing-an-auton-on-the-bench.md) | "shulib Auton Tester", the team's auton file, and reading a run against the tape |
+| 17 | [The competition program](17-the-competition-program.md) | "shulib Competition": the auton chosen on the brain's menu in `autonomous()`, what ends it, driver control, the refusals |
+| 18 | [Mechanisms: arms, lifts, flywheels — in autons, on buttons, on routes](18-mechanisms.md) | How a position and a speed mechanism move, hold, find their zero, stay inside their limits and stop on a jam; the starting values and `.tuning`; a mechanism step on one line of an auton, the driver file's controls, every mechanism's route ids run, the direction check's judgement, and the bench page that runs it (Bench Tests' station 13) |
+| 19 | [Calibrating your robot](19-calibrating-your-robot.md) | The standard "shulib Calibrate": the three facts you state, your 21-line file, one run, what each ending means, FRONT FLIPPED and MECHANISM PORT TURNED, listing every mechanism motor, the optional typed drive ports |
+| 20 | [The camera: which colour the Toggle shows, and which piece is which](20-the-camera.md) | One loop reads the camera for everyone; the Toggle tracker (RED, BLUE, YELLOW — or UNKNOWN with the reason); the piece finder (take ONE named piece, or none); freshness as time; where the camera sits; what a colour means and what it cannot tell |
 
 ## The other two documents
 
@@ -45,8 +50,11 @@ hand is a fact that will go stale.
 ### How it's organised
 
 Numbered files, one topic each, so updating a topic means editing one file. Chapters 1–6 are
-concepts (no code) and should rot slowly; 7–12 touch the code and rot fast — check them first
-when the API moves. (Chapter 9 was a deliberately reserved slot from the start; the Tier-2
+concepts (no code) and should rot slowly; 7–12 and 16–19 touch the code and rot fast — check
+them first when the API moves. (Chapter 16, the bench auton tester, was added after the glossary
+at chunk COMP-t, chapter 17, the competition program, after it at COMP-b, chapter 18, the
+mechanisms, at MECH-A3, and chapter 19, calibrating your robot, at CAL1 — so the glossary kept its
+number.) (Chapter 9 was a deliberately reserved slot from the start; the Tier-2
 recipe chapter filled it at chunk D1 as an *added file*, with nothing renumbered — the
 pattern to reuse.) Add future chapters either into a reserved slot or at the end (before the
 glossary stays the glossary — renumber only as a last resort, in one commit, updating every
@@ -68,9 +76,16 @@ only by a person running an internal script — so a listing could drift from th
 compiles it and pass both the build and CI. (It was found by deliberately introducing the
 drift: a chapter's `300_ms` retyped to `300_s` built clean and passed the whole suite.) The
 build and CI now run a scan that requires every non-blank line inside a ```` ```cpp ```` block in
-any public document to appear verbatim in a compiled example test, and the example sources are
-matched by a glob, so a new examples file is covered the moment it exists. The same run also
-checks that no public document links into the development-process notes.
+any public document to appear verbatim in a compiled source: a compiled example test, or one of
+the team's files under `src/team/` that a chapter quotes (today: robot two's driver file,
+`src/team/robot_two_driver.hpp`, which the cookbook's chapter 6 quotes, and the team's auton
+file, `src/team/autons.cpp`, which chapters 16 and 17 quote — the host suite compiles it and runs
+every auton in it) — never the rest of `src/`. A listing of either file must also be one unbroken run
+of the file's lines, so a line added to the file inside a part a chapter shows fails the scan
+too. The sources are matched by
+globs, one per kind of file, so a new examples file is covered the moment it exists, and a kind
+that matches no file fails the scan. The same run also checks that no public document links into
+the development-process notes.
 
 **Where this applies:** `docs/guide/`, `docs/cookbook/`, `docs/*.md`, and the repo `README.md`.
 It deliberately does *not* apply to `docs/api/`, which is generated in full and checked by a
@@ -149,5 +164,5 @@ the test suite.
 Written the way a patient senior member explains things sitting next to someone. Plain
 sentences; no marketing. Define every term at first use (and mirror it in the glossary). Prefer
 a concrete number to an abstraction, and a reason to a rule. Admit what's hard and what's
-unverified — this library has never driven a robot, and the guide says so wherever it matters.
+unverified — this library has never driven a robot under its own control, and the guide says so wherever it matters.
 If a sentence sounds like a tagline, delete it.

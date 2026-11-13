@@ -25,12 +25,12 @@ Extracted from [`include/shulib/hal/pros/digital_in.hpp`](../../include/shulib/h
 ## `class ProsDigitalIn`
 
 ```cpp
-class ProsDigitalIn final : public IDigitalIn
+class ProsDigitalIn final : public IDigitalIn, public IReadFaults
 ```
 
-`IDigitalIn` over `pros::adi::DigitalIn` — a limit switch or bumper line behind the HAL.  Binds `get_value()` and NEVER `get_new_press()`: PROS's ADI edge detection CONSUMES the press as it reads it, so with two consumers one silently misses every press. Edge detection belongs above the seam in `hal::ButtonEdge`, one instance per consumer. A guard test greps this file to keep the forbidden binding structurally absent.  A REFUSED READ IS SCREENED, not passed through. `get_value()` answers PROS_ERR on a dead port, and PROS_ERR is not 0, so an unscreened binding would report a dead port as PRESSED — a homing switch permanently "pressed" is a lift that believes it is home while it climbs into the hard stop. This adapter holds the last good level instead and counts the read in `faultedReads()`. Mapping to `false` would be no better: a hard "released" is as much a lie as a hard "pressed", and the consumer's cross-checks (homing travel limits) are designed around last-good.  Two constructors, one class: a brain ADI port, or an expander's {smart port, ADI port}. Where the wire lands is a construction fact, never a type.  `state()` is const but caches, so one instance must not be read concurrently from two tasks.
+`IDigitalIn` over `pros::adi::DigitalIn` — a limit switch or bumper line behind the HAL.  Binds `get_value()` and NEVER `get_new_press()`: PROS's ADI edge detection CONSUMES the press as it reads it, so with two consumers one silently misses every press. Edge detection belongs above the seam in `hal::ButtonEdge`, one instance per consumer. A guard test greps this file to keep the forbidden binding structurally absent.  A REFUSED READ IS SCREENED, not passed through. `get_value()` answers PROS_ERR on a dead port, and PROS_ERR is not 0, so an unscreened binding would report a dead port as PRESSED — a homing switch permanently "pressed" is a lift that believes it is home while it climbs into the hard stop. This adapter holds the last good level instead and counts the read in `faultedReads()`. Mapping to `false` would be no better: a hard "released" is as much a lie as a hard "pressed", and the consumer's cross-checks (homing travel limits) are designed around last-good.  Two constructors, one class: a brain ADI port, or an expander's {smart port, ADI port}. Where the wire lands is a construction fact, never a type.  `state()` is const but caches, so one instance must not be read concurrently from two tasks.  ALSO an `IReadFaults` (MECH-A1, 2026-10-08): faultedReads() is reachable through the F4-additive sibling seam (hal/read_faults.hpp), so the mechanism core never takes a HELD level for a home. It counts only a REFUSED read; an unplugged line is not one (HA-158, HA-184).
 
-*class, declared at [`include/shulib/hal/pros/digital_in.hpp:71`](../../include/shulib/hal/pros/digital_in.hpp#L71).*
+*class, declared at [`include/shulib/hal/pros/digital_in.hpp:76`](../../include/shulib/hal/pros/digital_in.hpp#L76).*
 
 <a id="prosdigitalin-prosdigitalin"></a>
 
@@ -42,7 +42,7 @@ explicit ProsDigitalIn(std::uint8_t adiPort)
 
 Brain ADI port ('a'–'h', 'A'–'H', or 1–8).
 
-*function, declared at [`include/shulib/hal/pros/digital_in.hpp:74`](../../include/shulib/hal/pros/digital_in.hpp#L74).*
+*function, declared at [`include/shulib/hal/pros/digital_in.hpp:79`](../../include/shulib/hal/pros/digital_in.hpp#L79).*
 
 <a id="prosdigitalin-prosdigitalin-2"></a>
 
@@ -54,7 +54,7 @@ ProsDigitalIn(std::uint8_t smartPort, std::uint8_t adiPort)
 
 Expander form: {smartPort 1–21, adiPort as above}.
 
-*function, declared at [`include/shulib/hal/pros/digital_in.hpp:77`](../../include/shulib/hal/pros/digital_in.hpp#L77).*
+*function, declared at [`include/shulib/hal/pros/digital_in.hpp:82`](../../include/shulib/hal/pros/digital_in.hpp#L82).*
 
 <a id="prosdigitalin-state"></a>
 
@@ -66,19 +66,19 @@ Expander form: {smartPort 1–21, adiPort as above}.
 
 The raw level via get_value() — NEVER the consuming get_new_press() (header). PROS_ERR is screened to the last good level (T7).
 
-*function, declared at [`include/shulib/hal/pros/digital_in.hpp:82`](../../include/shulib/hal/pros/digital_in.hpp#L82).*
+*function, declared at [`include/shulib/hal/pros/digital_in.hpp:87`](../../include/shulib/hal/pros/digital_in.hpp#L87).*
 
 <a id="prosdigitalin-faultedreads"></a>
 
 ### `ProsDigitalIn::faultedReads`
 
 ```cpp
-[[nodiscard]] int faultedReads() const noexcept
+[[nodiscard]] int faultedReads() const noexcept override
 ```
 
-How many reads were screened to last-good (T7 observability).
+How many reads were screened to last-good (T7 observability). Monotonic; the `IReadFaults` answer (MECH-A1).
 
-*function, declared at [`include/shulib/hal/pros/digital_in.hpp:93`](../../include/shulib/hal/pros/digital_in.hpp#L93).*
+*function, declared at [`include/shulib/hal/pros/digital_in.hpp:99`](../../include/shulib/hal/pros/digital_in.hpp#L99).*
 
 ## Design commentary, from the header
 

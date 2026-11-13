@@ -27,12 +27,12 @@ Extracted from [`include/shulib/hal/pros/optical.hpp`](../../include/shulib/hal/
 ## `class ProsOptical`
 
 ```cpp
-class ProsOptical final : public IOptical
+class ProsOptical final : public IOptical, public IReadFaults
 ```
 
-IOptical over pros::Optical — the game-object colour/proximity confirm sensor behind the HAL. Every reader SCREENS the device's failure sentinel and returns the last good value instead of the failure: never INFINITY, which would break the F4 finiteness contract downstream, and never a 0 written OVER a good reading, because hue 0.0 IS a colour (red) — a zeroed failure would answer "what colour is this game piece" confidently and wrongly. The cache itself STARTS at 0.0, so a sensor that has never once read successfully (unplugged at boot) does serve hue() == 0.0 on every call; faultedReads(), which counts every screen, is the only channel that separates that from a sensor staring at a steady red object, because this seam has no confidence() to say so (T7). The readers are const but update that held-value cache, so const here does not mean safe to poll from two tasks at once. Raising a fault is the loop layer's job, not this seam's.
+IOptical over pros::Optical — the game-object colour/proximity confirm sensor behind the HAL. Every reader SCREENS the device's failure sentinel and returns the last good value instead of the failure: never INFINITY, which would break the F4 finiteness contract downstream, and never a 0 written OVER a good reading, because hue 0.0 IS a colour (red) — a zeroed failure would answer "what colour is this game piece" confidently and wrongly. The cache itself STARTS at 0.0, so a sensor that has never once read successfully (unplugged at boot) does serve hue() == 0.0 on every call; faultedReads(), which counts every screen, is the only channel that separates that from a sensor staring at a steady red object, because this seam has no confidence() to say so (T7). The readers are const but update that held-value cache, so const here does not mean safe to poll from two tasks at once. Raising a fault is the loop layer's job, not this seam's.  ALSO an `IReadFaults` (MECH-A1, 2026-10-08): faultedReads() is reachable through the F4-additive sibling seam (hal/read_faults.hpp), so the mechanism core can tell a HELD proximity from a measured one — the only channel this seam has, as the paragraph above says.
 
-*class, declared at [`include/shulib/hal/pros/optical.hpp:60`](../../include/shulib/hal/pros/optical.hpp#L60).*
+*class, declared at [`include/shulib/hal/pros/optical.hpp:65`](../../include/shulib/hal/pros/optical.hpp#L65).*
 
 <a id="prosoptical-prosoptical"></a>
 
@@ -44,7 +44,7 @@ explicit ProsOptical(std::uint8_t port)
 
 `port`: 1..21.
 
-*function, declared at [`include/shulib/hal/pros/optical.hpp:63`](../../include/shulib/hal/pros/optical.hpp#L63).*
+*function, declared at [`include/shulib/hal/pros/optical.hpp:68`](../../include/shulib/hal/pros/optical.hpp#L68).*
 
 <a id="prosoptical-hue"></a>
 
@@ -56,7 +56,7 @@ explicit ProsOptical(std::uint8_t port)
 
 Color hue [0, 360) — sentinel-screened to last good (T7).
 
-*function, declared at [`include/shulib/hal/pros/optical.hpp:66`](../../include/shulib/hal/pros/optical.hpp#L66).*
+*function, declared at [`include/shulib/hal/pros/optical.hpp:71`](../../include/shulib/hal/pros/optical.hpp#L71).*
 
 <a id="prosoptical-saturation"></a>
 
@@ -68,7 +68,7 @@ Color hue [0, 360) — sentinel-screened to last good (T7).
 
 Colour purity in [0, 1]: how strongly coloured the reading is, independent of how bright. A low saturation means hue() is describing something near grey and is not a colour call worth acting on. Sentinel-screened to last good (T7); 0.0 until the first successful read.
 
-*function, declared at [`include/shulib/hal/pros/optical.hpp:79`](../../include/shulib/hal/pros/optical.hpp#L79).*
+*function, declared at [`include/shulib/hal/pros/optical.hpp:84`](../../include/shulib/hal/pros/optical.hpp#L84).*
 
 <a id="prosoptical-brightness"></a>
 
@@ -80,7 +80,7 @@ Colour purity in [0, 1]: how strongly coloured the reading is, independent of ho
 
 The light level the sensor sees, in [0, 1] — a brightness, not a distance; proximity() is the distance channel. Sentinel-screened to last good (T7); 0.0 until the first good read.
 
-*function, declared at [`include/shulib/hal/pros/optical.hpp:91`](../../include/shulib/hal/pros/optical.hpp#L91).*
+*function, declared at [`include/shulib/hal/pros/optical.hpp:96`](../../include/shulib/hal/pros/optical.hpp#L96).*
 
 <a id="prosoptical-proximity"></a>
 
@@ -92,19 +92,19 @@ The light level the sensor sees, in [0, 1] — a brightness, not a distance; pro
 
 [0, 1], ≈1 = close (HA-117's unmeasured polarity — header note).
 
-*function, declared at [`include/shulib/hal/pros/optical.hpp:102`](../../include/shulib/hal/pros/optical.hpp#L102).*
+*function, declared at [`include/shulib/hal/pros/optical.hpp:107`](../../include/shulib/hal/pros/optical.hpp#L107).*
 
 <a id="prosoptical-faultedreads"></a>
 
 ### `ProsOptical::faultedReads`
 
 ```cpp
-[[nodiscard]] int faultedReads() const noexcept
+[[nodiscard]] int faultedReads() const noexcept override
 ```
 
-How many reads were screened to last-good (T7 observability).
+How many reads were screened to last-good (T7 observability). Monotonic; the `IReadFaults` answer (MECH-A1).
 
-*function, declared at [`include/shulib/hal/pros/optical.hpp:113`](../../include/shulib/hal/pros/optical.hpp#L113).*
+*function, declared at [`include/shulib/hal/pros/optical.hpp:119`](../../include/shulib/hal/pros/optical.hpp#L119).*
 
 ## Design commentary, from the header
 

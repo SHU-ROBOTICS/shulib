@@ -1,7 +1,9 @@
 # The shulib cookbook
 
 > **What this is:** short, complete answers to "how do I write the routine I am trying to write
-> right now." Every recipe is a real compiled program that runs against the simulator.
+> right now." Every recipe is a real compiled program that runs on the host test plant — and the
+> last section of chapter 6 is a real file from the project, robot two's driver file, which runs
+> on the host through a stand-in for PROS.
 > **What this is not:** a course. The [user guide](../guide/README.md) teaches the ideas in order;
 > this book assumes you already have a robot object and a deadline.
 
@@ -21,8 +23,17 @@ Every recipe has the same four parts:
 1. **Use this when** — the situation, in one sentence. Skim these to find your recipe.
 2. **The recipe** — code you can paste. It is quoted *verbatim* from
    [`test/cookbook_examples_test.cpp`](../../test/cookbook_examples_test.cpp), where it is
-   compiled and run against the simulated robot on every build. If a recipe stopped working,
-   that file would go red before you ever saw it.
+   compiled and run on the host test plant on every build. If a recipe stopped working,
+   that file would go red before you ever saw it. (Chapter 6's last section quotes robot two's
+   driver file, [`src/team/robot_two_driver.hpp`](../../src/team/robot_two_driver.hpp), instead:
+   every robot build compiles it, and
+   [`test/robot_two_driver_test.cpp`](../../test/robot_two_driver_test.cpp) runs it on every
+   build. Chapter 7's mechanism recipes are compiled and run in
+   [`test/mechanism_auton_example_test.cpp`](../../test/mechanism_auton_example_test.cpp) (its
+   partway-trigger recipe in
+   [`test/routine_trigger_example_test.cpp`](../../test/routine_trigger_example_test.cpp)), and
+   chapter 2's two on-failure recipes in
+   [`test/routine_on_fail_example_test.cpp`](../../test/routine_on_fail_example_test.cpp).)
 3. **Why it is written this way** — the reasoning, so you can change it safely.
 4. **Watch out for** — the mistake this recipe exists to prevent.
 
@@ -45,13 +56,16 @@ so it cannot disagree with the code.
 | [A two-goal side run](01-getting-there.md#a-two-goal-side-run) | Your auton visits several places and does something at each |
 | [A reusable scoring step](01-getting-there.md#a-reusable-scoring-step) | The same three-or-four-step sequence appears more than once |
 | [A waypoint sweep](01-getting-there.md#a-waypoint-sweep) | You want one call to drive a whole path |
+| [Flow through points: a curve, and its fallback](01-getting-there.md#flow-through-points-a-curve-and-its-fallback) | A tank route should pass through a point without stopping and turning there |
 
 ### [2 — When a step fails](02-when-a-step-fails.md)
 
 | Recipe | Use this when |
 |---|---|
 | [Bail out and park somewhere useful](02-when-a-step-fails.md#bail-out-and-park-somewhere-useful) | A failed grab should abandon the plan, not carry on with empty jaws |
-| [Attempt something and keep going](02-when-a-step-fails.md#attempt-something-and-keep-going) | One missed goal in a sweep should not end the routine |
+| [Attempt something and keep going](02-when-a-step-fails.md#attempt-something-and-keep-going) | One missed goal in a sweep should not end the routine, and you want its outcome in a variable |
+| [Carry on past a missed piece](02-when-a-step-fails.md#carry-on-past-a-missed-piece) | A grab can miss, and a miss should cost that piece, not the auton |
+| [Give up on this piece, go for the next](02-when-a-step-fails.md#give-up-on-this-piece-go-for-the-next) | A miss makes the next few steps pointless, but not the rest |
 | [Recover from a broken sweep](02-when-a-step-fails.md#recover-from-a-broken-sweep) | A trajectory stopped partway and you need to know how far it got |
 
 ### [3 — Timing and teammates](03-timing-and-partners.md)
@@ -77,6 +91,22 @@ so it cannot disagree with the code.
 | [Call the full API mid-routine](05-mixing-tiers.md#call-the-full-api-mid-routine) | A recipe step cannot express what this one leg needs |
 | [Make a direct call count as a step](05-mixing-tiers.md#make-a-direct-call-count-as-a-step) | You dropped a tier and still want the chain to stop if it fails |
 | [Re-seed the estimate mid-routine](05-mixing-tiers.md#re-seed-the-estimate-mid-routine) | The robot has just squared itself against a wall |
+| [Re-seat x against a wall](05-mixing-tiers.md#re-seat-x-against-a-wall) | The robot is parked beside a field wall and a side distance sensor faces it |
+
+### [6 — Driver control](06-driver-control.md)
+
+| Recipe | Use this when |
+|---|---|
+| [Drive a mechanism from two buttons](06-driver-control.md#drive-a-mechanism-from-two-buttons) | A claw, arm or intake moves while a button is held and stops when the driver lets go |
+| [Open and close a pneumatic claw with one button](06-driver-control.md#open-and-close-a-pneumatic-claw-with-one-button) | A claw on air opens on one press and closes on the next |
+| [A whole driver file: robot two's](06-driver-control.md#a-whole-driver-file-robot-twos) | You want one robot's buttons, feel and loop in one file a student can defend |
+
+### [7 — Mechanisms](07-mechanisms.md)
+
+| Recipe | Use this when |
+|---|---|
+| [An arm with presets, held while the robot drives](07-mechanisms.md#an-arm-with-presets-held-while-the-robot-drives) | An arm or a lift must get to a height and stay there while the robot drives |
+| [Start the lift partway through a drive](07-mechanisms.md#start-the-lift-partway-through-a-drive) | A mechanism should start partway along a drive — not before it, not after it |
 
 ---
 
@@ -84,11 +114,14 @@ so it cannot disagree with the code.
 
 **1. Steps run as you chain them.** A `Routine` is not a plan that executes later; each step
 blocks until its motion ends. The routine happens in the order it reads. That is why you can put
-a `printf`, a sensor read, or a whole `if` between two steps and nothing surprising happens.
+a printed line, a sensor read, or a whole `if` between two steps and nothing surprising happens.
+(Print with `serialLine`, never `printf` — the guide's
+[chapter 11](../guide/11-reading-the-diagnostics.md) says why.)
 
 **2. A failed step stops the chain and parks the robot.** Everything after it is skipped and
 logged. You do not have to check anything for the robot to be safe — you check `r.ok()` when you
-want to *do* something different, not to prevent a crash.
+want to *do* something different, not to prevent a crash. (That is the default: a step written
+after `onFail(carryOn)` or `onFail(skipTo("..."))` goes on instead — chapter 2's last recipes.)
 
 **3. Nothing here is a ceiling.** Every step is one call on the `Chassis` object underneath, and
 that object is one line away (`r.chassis()`, or the reference you already have). When a recipe
@@ -109,7 +142,9 @@ defeat. [Chapter 10](../guide/10-the-api.md) is that API in prose.
 - **Strategy.** Which goals to score, in which order, is your team's to decide and defend. The
   recipes use plausible field points as scaffolding; none of them is an argument about what a
   good auton does.
-- **Anything untested.** If it is not in `test/cookbook_examples_test.cpp`, it is not in here.
+- **Anything untested.** If it is not in `test/cookbook_examples_test.cpp` (or, for chapter 6's
+  driver file, `test/robot_two_driver_test.cpp`; for chapter 7's recipes and chapter 2's on-failure
+  ones, the two example tests named above), it is not in here.
 
 ---
 

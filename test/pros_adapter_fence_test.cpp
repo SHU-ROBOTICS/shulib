@@ -11,7 +11,8 @@
 //  * every <pros/...> include sits INSIDE a fence;
 //  * the forbidden PROS calls are ABSENT as text: the tare family in the IMU
 //    adapter (HA-05), set_offset/initialize_full in the GPS adapter (HA-06),
-//    get_digital_new_press in the controller adapter (HA-104/trap C);
+//    get_digital_new_press in the controller adapter (HA-104/trap C); and (VIS1-A1) the AI
+//    Vision adapter's reset, white-balance, tag-family, USB-overlay and colour-code calls;
 //  * every shim header carries the #error + SHULIB_HOST_PROS_SHIM gate
 //    (mutation M12's subject) — a shim that can compile outside the host test
 //    build is a robot binary that drives nothing.
@@ -74,10 +75,25 @@ TEST_CASE("fence: every adapter's suppression set is EXACTLY -Wshadow + -Wsign-c
     // compile, and from then on real conversion bugs in the include chain are
     // invisible. Also catches a fence with a MISSING flag, which would break
     // the ARM gate on PROS's own headers.
+    //
+    // ── THE ONE WIDENING, and why it is not the hole this test exists to close ──────
+    // (chunk R3d Part 2.) `-Wdeprecated-declarations` is permitted as a THIRD flag, and
+    // ONLY in a file that includes "pros/apix.h". device_registry.hpp is the only adapter
+    // that must: `registry_get_plugged_type` is declared nowhere else, apix.h pulls api.h,
+    // api.h pulls pros/llemu.hpp, and llemu's `pros::lcd` namespace is `[[deprecated]]`
+    // unless liblvgl's own llemu is in the include path — so the ARM header gate fails on
+    // VENDORED code this tree neither uses nor may edit. The src build gate already ignores
+    // exactly that category BY PATH (include/pros/); the header gate has no path filter, so
+    // it is done by flag, in one file, named here.
+    //
+    // This does NOT reopen M11's hole. M11 was "-Wconversion added so OUR sloppy adapter
+    // compiles" — a diagnostic about the adapter's own arithmetic. -Wdeprecated-declarations
+    // cannot hide an arithmetic defect, it is gated on an include nobody else has, and both
+    // mandatory flags are still demanded. Every other flag, in every file, still fails.
     for (const auto& f : filesIn(kAdapterDir, ".hpp")) {
         const std::string src = readFile(f);
         if (src.find("#include \"pros/") == std::string::npos) {
-            // char_sink.hpp: deliberately PROS-free (stdout only) — no fence needed.
+            // char_sink.hpp: deliberately PROS-free (write() on a descriptor only) — no fence.
             CHECK(src.find("#pragma GCC diagnostic") == std::string::npos);
             continue;
         }
@@ -94,8 +110,18 @@ TEST_CASE("fence: every adapter's suppression set is EXACTLY -Wshadow + -Wsign-c
             ignoredCount += 1;
             at += 1;
         }
-        CHECK_MESSAGE(ignoredCount == 2, f.filename().string(),
-                      ": suppression set must be exactly two flags, found ", ignoredCount);
+        const bool includesApix = src.find("#include \"pros/apix.h\"") != std::string::npos;
+        const bool hasDeprecated =
+            src.find("#pragma GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+            != std::string::npos;
+        const std::size_t allowed = includesApix && hasDeprecated ? 3U : 2U;
+        CHECK_MESSAGE(ignoredCount == allowed, f.filename().string(),
+                      ": suppression set must be exactly ", allowed, " flags, found ",
+                      ignoredCount);
+        const bool deprecatedIsLegal = hasDeprecated ? includesApix : true;
+        CHECK_MESSAGE(deprecatedIsLegal, f.filename().string(),
+                      ": -Wdeprecated-declarations is allowed ONLY in the adapter that must "
+                      "include pros/apix.h (see this test's header note)");
         CHECK(src.find("#pragma GCC diagnostic ignored \"-Wshadow\"") != std::string::npos);
         CHECK(src.find("#pragma GCC diagnostic ignored \"-Wsign-conversion\"")
               != std::string::npos);
@@ -165,6 +191,16 @@ TEST_CASE("forbidden calls are textually absent from the adapters (the contract 
     const std::string digitalIn =
         withoutLineComments(readFile(kAdapterDir / "digital_in.hpp"));
     CHECK(digitalIn.find("get_new_press") == std::string::npos);
+
+    // (VIS1-A1) The AI Vision adapter: never a camera reset (it might drop the AI model the VEXcode
+    // Utility chose), never a white balance (it moves every colour the team measured), no tag family
+    // (no tags), no USB overlay (a bench aid), no colour code. Its header NAMES each while saying
+    // why; the code calls none — the shim's counters prove it at run time, this pins the text.
+    const std::string aiVision = withoutLineComments(readFile(kAdapterDir / "ai_vision.hpp"));
+    for (const char* banned : {"aivision_reset", "aivision_start_awb", "aivision_set_tag_family",
+                               "aivision_set_usb_bounding_box_overlay", "aivision_set_code"}) {
+        CHECK_MESSAGE(aiVision.find(banned) == std::string::npos, "ai_vision.hpp calls ", banned);
+    }
 }
 
 TEST_CASE("adapters: PROS includes are QUOTED, never angle-bracketed (the -iquote lesson)") {

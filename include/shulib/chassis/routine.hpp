@@ -7,17 +7,64 @@
 // This surface is FROZEN, as its own register row (F10) rather than as part of
 // F6: the facade it delegates to is a different tier and can version
 // independently. Frozen: the constructor (both spellings, noexcept),
-// non-copyable/non-movable, ELEVEN steps — startAt / moveTo / driveTo /
+// non-copyable/non-movable, THIRTEEN steps — startAt / moveTo / driveTo /
 // strafeTo / turnTo / face / followTrajectory (span + brace) / brake / hold /
-// pause / waitFor — the four observers ok / result / lastTrajectory / chassis,
-// the types RoutineResult (all eight fields) and RoutineStopCause (append-only,
+// pause / waitFor, and reverseTo / faceAway, the two APPENDED at chunk L9
+// (API 2.4) by exactly the additive path below and pinned the day they
+// landed — the four observers ok / result / lastTrajectory / chassis,
+// the types RoutineResult (all FIFTEEN fields — nine through MECH-A4, whose
+// mechanismVerdict is pinned by type; six appended at STEP1-A, each pinned by
+// type) and RoutineStopCause (append-only,
 // existing values fixed), the documented error policy below, and typed time as
 // a SEMANTIC (hold(0.3) must not compile). Enforced structurally:
 // test/routine_signature_pin_test.cpp fails the build, naming F10, if any of
 // those drifts. Changes only with a major API-version bump plus a migration
 // note (include/shulib/version.hpp); ADDITIVE growth — new steps, new
 // observers, new RoutineResult fields, appended RoutineStopCause enumerators —
-// stays legal and is the intended path.
+// stays legal and is the intended path (F1 used it for the stop cause, L9 for
+// two steps: no existing member moved either time).
+//
+// The MECHANISM STEPS (the mechanism core, chunk MECH-A4, API 2.5) took the same
+// path, and what they added is in ONE delimited block below ("MECH-A4: the
+// mechanism steps"): the appended stop cause MechanismStepFailed (its value
+// pinned, like every enumerator's), the appended RoutineResult field
+// mechanismVerdict, a SECOND constructor `Routine r{ctx, "name"}` (a new
+// overload — the frozen `Routine(Chassis&, const char*)` is untouched), the
+// steps move / startMove / home / startHome / run / startRun / set / spinUp /
+// startSpinUp / stop / waitUntilDone, the observer lastMechanism(), and four
+// refusal templates that name the right step when a team writes the wrong one.
+// NOT pinned, and NOT YET RULED: whether the mechanism steps, the context
+// constructor and lastMechanism() join this freeze is an OPEN decision (the
+// Freeze Register's F10 row says so). Proposed at MECH-A4: not yet — every one
+// of them takes the mechanism seam's types (register row F11, NOT frozen), as
+// then() below does, and then() stays out of F10 for exactly that reason. The
+// other reading is the additive path L9 took (its two steps pinned the day they
+// landed). Until it is ruled they are unpinned: pinning them later is additive,
+// un-freezing them would not be. Stated out loud for the reason the then()
+// paragraph gives: silence in a freeze reads as "frozen too".
+//
+// THE ON-FAILURE CHOICE (chunk STEP1-A, 2026-11-05; the same additive path, in TWO delimited blocks
+// below, "STEP1-A: the on-failure choice" — the types at namespace scope, the modifiers in the
+// class — plus its state, declared last, and the policy's edits inside the existing steps, each
+// marked "STEP1-A") is PINNED the day it lands, the way L9's steps were (the
+// team lead's D1, 2026-11-03: a route maker generates code against it, so it must not drift): the
+// two modifiers onFail(OnFail) and label(const char*), OnFail's three spellings (stopChain,
+// carryOn, skipTo("x")), the appended stop cause MechanismNotStarted (== 6) and the six appended
+// RoutineResult fields (failedOn, firstFailedAt, firstFailedName, firstFailedCause, jumped,
+// skipPendingTo) — test/routine_signature_pin_test.cpp. The context constructor also learns the
+// auton's run guard (when the context has a `guard`); it stays unpinned, as at MECH-A4.
+//
+// THE CURVE STEPS (chunk CURVE1, 2026-11; the same additive path, in ONE delimited block below,
+// "CURVE1: curves") are PINNED the day they land, like L9's: curveTo / reverseCurveTo, each a span
+// and a brace-list overload (four steps), each exactly one Chassis call through motionStep — a
+// non-Settled curve is a MotionFailed stop (or carries on / skips under onFail), its verdict in
+// RoutineResult::exit. No new stop cause: a refused start and a lost curve are motion failures
+// whose Warn names them. Partway triggers (chunk STEP1-B, below) do not cover curves yet.
+// PARTWAY TRIGGERS (chunk STEP1-B, 2026-11-11; the same additive path, in one delimited block in the
+// class, "STEP1-B: partway triggers", plus its state, declared last, and the door's one armed check)
+// are NOT pinned: the three arms atPercent / afterDistance / afterTurning and the two handles they
+// return lead only to the mechanism START forms, which stay open (the team lead's ruling of
+// 2026-10-29; the STEP1 brief's D1). Pinning them later is additive; un-freezing them would not be.
 //
 // NOT frozen, deliberately: **then()** — its accepted return types and its
 // `name` default were left out of F10 because they were chosen before
@@ -63,14 +110,28 @@
 // ═══ Tier discipline: this layer DELEGATES ═══════════════════════════════════════
 // Every step is exactly one Chassis call (§17: tiers are strict supersets — a
 // recipe is never the only way to do something). There is no motion logic
-// here: no gains, no kinematics, no exit criteria, no fault policy. The two
-// "field vocabulary" steps, face(x, y) and driveTo(x, y), compute ONE argument
-// (the bearing from the live pose estimate to a field point — pure trig) and
-// then delegate to turnTo / moveTo; that keeps C1's D12 intact on tank drives
-// (the AUTHOR still writes the turn — face() IS the author's turn, said in
-// field words), and a hand-written turnTo(atan2(...)) remains bit-identical
-// to it by construction. Dropping from Tier 2 to Tier 3 is deleting the
-// Routine object and keeping every verb.
+// here: no gains, no kinematics, no exit criteria, no fault policy. The four
+// "field vocabulary" steps — face(x, y) and driveTo(x, y), and their reversed
+// twins faceAway(x, y) and reverseTo(x, y) (L9, API 2.4) — each compute ONE
+// argument (the bearing from the live pose estimate to a field point — pure
+// trig — plus π for the reversed pair) and then delegate to turnTo / moveTo;
+// that keeps C1's D12 intact on tank drives (the AUTHOR still writes the turn
+// — face() IS the author's turn, said in field words, and faceAway() is the
+// same turn for backing into a point), and a hand-written turnTo(atan2(...))
+// — or turnTo(atan2(...) + π) — remains bit-identical to it by construction.
+// Since TANK1 (API 2.3) face() is also what makes a
+// tank's driveTo leg steerable: a tank moveTo steers back onto its line only
+// for a leg that starts within 15° of its target heading, and a leg right
+// after face() starts within about a degree of it — the library still plans
+// no turn (chassis.hpp: TANK STEERING). faceAway() does the same for a
+// reverseTo leg, which starts as far off its heading as the robot's BACK is
+// turned from the point: 180° from a robot facing the point (not steered),
+// about 0 after driving straight out from it (steered, no faceAway() needed).
+// To flow THROUGH points instead of stopping at each, a tank route writes
+// curveTo / reverseCurveTo (CURVE1, the block below) — the one place the library
+// steers toward a point, and only toward one on the path the author drew.
+// Dropping from Tier 2 to Tier 3 is deleting the Routine object and keeping
+// every verb.
 //
 // ═══ The error policy (decided, documented, tested — design constraint 4) ═════════
 // A fluent chain makes it EASY to swallow an ExitReason, so the chain acts on
@@ -98,10 +159,58 @@
 //     untouched (the bad call never ran).
 //
 // A routine that must CONTINUE past a failure (a sweep that shrugs off one
-// missed goal) branches on the verbs directly — that is one step down the
-// tier ladder, not a rewrite, and mixing the two styles in one routine is
-// supported and tested (steps and direct facade calls interleave freely,
-// because eager execution keeps program order = field order).
+// missed goal) writes onFail(carryOn) in front of that step (STEP1-A, below),
+// or branches on the verbs directly — that is one step down the tier ladder,
+// not a rewrite, and mixing the two styles in one routine is supported and
+// tested (steps and direct facade calls interleave freely, because eager
+// execution keeps program order = field order).
+//
+// ═══ The on-failure CHOICE (chunk STEP1-A, additive; pinned) ══════════════════════
+// The policy above is the DEFAULT, unchanged bit for bit. Two modifiers, written
+// in front of a step, change it for THAT step only:
+//
+//     r.onFail(carryOn).driveTo(-24_in, -36_in, {.timeout = 2.5_s});
+//     r.onFail(skipTo("third piece")).run(intake, 12_volt, seesPiece, 2_s);
+//     r.label("third piece").face(0_in, 48_in);
+//
+//   * onFail(carryOn): a failure is COUNTED (RoutineResult::failedOn and the
+//     first one's step, name and cause), Warn-logged, and the drive is safed
+//     exactly as a stop safes it — then the next step runs, from rest, where the
+//     robot is. ok() goes false; the stop fields stay clean (stoppedAt 0).
+//   * onFail(skipTo("x")): as carryOn, then every step until the next one
+//     label("x") names is PASSED OVER (counted in `steps` and `jumped`, one Info
+//     line each) and the auton goes on AT that step. A skip only goes FORWARD (the
+//     chain runs its lines as it reaches them; it never stores them): a target
+//     already passed — the last 32 labels are remembered, a label on a step a skip
+//     jumped included; one further back reads as a target that never comes — or
+//     the failing step's own label STOPS the chain there, said "behind it" (and Warned at the
+//     onFail line itself, every run, so a bench run shows it first); a target
+//     that never comes jumps every remaining step (RoutineResult::skipPendingTo).
+//   * onFail(stopChain): today's rule, spelled out. label("x") names the next
+//     step — it is not a step, so the step numbers do not move.
+//   * Each modifier binds to exactly ONE step and is used up at its door — run,
+//     skipped after a stop, jumped, or throwing. Two in a row, an empty or null
+//     name: precondition throws. Names are stored, not copied: string literals.
+//
+// TWO RULES SIT ABOVE EVERY CHOICE:
+//   1. THE CUT ALWAYS STOPS. A step's choice is IGNORED and the chain stops when
+//      its verdict is CANCELLED (a motion's exit, a mechanism step's verdict, or a
+//      then() action's ExitReason / MechanismOutcome — whatever cancelled it: the
+//      deadline, an abandon, the fault policy, a replaced step), or when the
+//      routine's run guard is running and expired() (the deadline passed or the
+//      run was abandoned); a skip still looking for its step then stops at the
+//      next step's door. A carry-on chain must never keep issuing steps past the
+//      buzzer. The guard comes from the context constructor (`Routine r{ctx,
+//      "x"}` in an auton); a routine with NO guard — Routine r{chassis} — keeps
+//      only the CANCELLED half, and Warns once at its first carryOn / skipTo.
+//   2. NOTHING NEW THROWS on a run-dependent path. A waitUntilDone() on a
+//      mechanism whose START a skip jumped answers a counted failure,
+//      RoutineStopCause::MechanismNotStarted ("its start was skipped"), under the
+//      wait's own choice — never a throw, never an older step's verdict. So does
+//      one whose start did nothing because its goal is another robot's (a different
+//      kind or units, or a preset or position this robot's same-named mechanism
+//      lacks) and the chain carried on past it ("its start did nothing: another
+//      robot's declaration").
 //
 // ═══ then(): the mechanism seam (filled at F1; still unfrozen — see above) ═══════
 // then() accepts any callable returning void (always succeeds), bool, or
@@ -112,6 +221,10 @@
 // CALLABLE, so a member function is passed as `then([&] { intake.in(); })` —
 // `then(intake.in)` is valid C++ only for a callable data member, and the
 // documentation spells the lambda form everywhere for that reason (T5).
+// Since MECH-A4 a robot's DECLARED mechanisms need no then(): each has its own
+// steps — `r.move(arm["score"], 1.5_s)`, `r.run(intake, 12_volt, seesPiece,
+// 3_s)` — run by the mechanism service, with their own verdict policy (the
+// MECH-A4 block below). then() stays the seam for anything else.
 //
 // ═══ What a recipe deliberately CANNOT do (the documented gaps) ══════════════════
 //   * drive(speeds, Frame) — a recipe is a SEQUENCE; drive() is a per-
@@ -127,10 +240,17 @@
 // this object). Copying is disabled: two handles sharing stop-state counters
 // would let a stopped chain's twin keep driving.
 
+#include <algorithm>
 #include <cmath>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <exception>
 #include <functional>
 #include <initializer_list>
 #include <span>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -143,10 +263,79 @@
 #include "shulib/manipulation/mechanism_outcome.hpp"
 #include "shulib/math/angle.hpp"
 #include "shulib/math/pose2d.hpp"
+#include "shulib/mechanism/service.hpp"  // MECH-A4: the mechanism steps run through the service
+#include "shulib/motion/leg_progress.hpp"
 #include "shulib/motion/motion_scheduler.hpp"
+#include "shulib/sequence/run_guard.hpp"  // STEP1-A: the cut rule asks the auton's guard
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::chassis {
+
+namespace detail {
+/// MECH-A4: what the context constructor reads — a `chassis` (a Chassis&) and a `mechanismService`
+/// (a MechanismService*): competition::AutonContext, or a route binder's own two-member context.
+template <class Context>
+concept RoutineContext = requires(Context& c) {
+    { c.chassis } -> std::convertible_to<Chassis&>;
+    { c.mechanismService } -> std::convertible_to<mechanism::MechanismService*>;
+};
+/// MECH-A4: a mechanism DECLARATION (an Arm, a Lift, a Flywheel, a Power, a Pneumatic) — it has a
+/// `.name`.
+template <class Declared>
+concept MechanismDeclaration = requires(const Declared& d) { d.name.text; };
+/// STEP1-A: a context that ALSO carries the auton's run guard (competition::AutonContext's
+/// `guard`; any struct with a `guard` member that is a sequence::RunGuard). The context
+/// constructor borrows it for the cut rule; a context without one builds a guard-less Routine.
+template <class Context>
+concept RoutineContextWithGuard = requires(Context& c) {
+    { c.guard } -> std::convertible_to<sequence::RunGuard&>;
+};
+/// STEP1-B: which legs a partway trigger's mark can measure — a bit mask the trigger handles carry in
+/// their TYPE, so a mark of the wrong kind is refused when the code is compiled (the STEP1 brief's
+/// re-check #3): a percent measures either; inches only a drive; degrees only a turn.
+inline constexpr unsigned kTriggerDriveLegs = 1u;
+/// STEP1-B: the turn bit of the mask (kTriggerDriveLegs').
+inline constexpr unsigned kTriggerTurnLegs = 2u;
+/// STEP1-B: either kind (a percent).
+inline constexpr unsigned kTriggerAnyLeg = kTriggerDriveLegs | kTriggerTurnLegs;
+/// STEP1-B: a `false` that depends on `T`, for a refusal's static_assert (it fires only where it is
+/// called, never when its class is built).
+template <class T>
+inline constexpr bool kTriggerRefused = !std::is_same_v<T, T>;
+}  // namespace detail
+
+// ═══ STEP1-A: the on-failure choice — BEGIN (the types; pinned, F10) ═════════════════════════════
+/// What a step does when it FAILS — the value `r.onFail(...)` takes (the file banner's "on-failure
+/// choice"). Written with one of its three spellings: `stopChain` (the default rule: stop, safe the
+/// drive, skip the rest), `carryOn` (count it, safe the drive, run the next step) or `skipTo("x")`
+/// (count it, safe the drive, pass over every step until the one `r.label("x")` names). A plain
+/// value: build it with those three, not by hand — `r.onFail` refuses a SkipTo with no target.
+struct OnFail {
+    /// Which of the three.
+    enum class Kind : std::uint8_t {
+        Stop,     ///< the default rule (stopChain)
+        CarryOn,  ///< count the failure and run the next step (carryOn)
+        SkipTo,   ///< count the failure and pass over every step until `target`'s label (skipTo)
+    };
+    Kind kind = Kind::Stop;        ///< which choice
+    const char* target = nullptr;  ///< SkipTo's label — a stable literal (stored, not copied)
+};
+/// The default rule, spelled out: the failing step stops the chain (`r.onFail(stopChain)`).
+inline constexpr OnFail stopChain{OnFail::Kind::Stop, nullptr};
+/// Count the failure, safe the drive, run the next step from where the robot is
+/// (`r.onFail(carryOn)`).
+inline constexpr OnFail carryOn{OnFail::Kind::CarryOn, nullptr};
+/// Count the failure, safe the drive, pass over every step until the one labelled `label`
+/// (`r.onFail(skipTo("third piece"))` ... `r.label("third piece")`). Skips go FORWARD only.
+/// `label` is stored, not copied (a string literal), and matched whole and case-sensitively.
+/// PRECONDITION: `label` not null and not empty.
+[[nodiscard]] inline OnFail skipTo(const char* label) {
+    SHULIB_PRECONDITION(label != nullptr && label[0] != '\0',
+                        "skipTo(...): the step to skip to needs a name -- skipTo(\"third piece\"), matching "
+                        "a later r.label(\"third piece\")");
+    return OnFail{OnFail::Kind::SkipTo, label};
+}
+// ═══ STEP1-A: the on-failure choice — END (the types) ════════════════════════════════════════════
 
 /// Why a Routine stopped early. `None` = it never stopped. Append-only: F1/F3
 /// mechanism failures arrive as new enumerators, never as re-meanings.
@@ -160,6 +349,17 @@ enum class RoutineStopCause {
                       ///< the stop log line names which, and the operation object
                       ///< itself remains the authority on the exact outcome
                       ///< (APPENDED at chunk F1, per the append-only rule above)
+    MechanismStepFailed,  ///< a mechanism STEP (move, run, set, spinUp, home, stop, waitUntilDone —
+                          ///< and their start forms' starts) ended other than SUCCEEDED or an
+                          ///< UNCONFIRMED counted done; the verdict is RoutineResult::mechanismVerdict
+                          ///< and the stop line names it. MechanismFailed keeps its F1 meaning (a
+                          ///< then()-action's verdict). (APPENDED at chunk MECH-A4, API 2.5.)
+    MechanismNotStarted,  ///< a waitUntilDone() whose START never ran: a skip jumped the step that
+                          ///< would have started it, or that step did nothing because its goal is
+                          ///< another robot's and the chain carried on (STEP1-A) — or, from STEP1-B,
+                          ///< its partway trigger never fired. Never a throw, never an older step's verdict;
+                          ///< RoutineResult::mechanismVerdict stays `Running` (nothing ran).
+                          ///< (APPENDED at chunk STEP1-A, == 6.)
 };
 
 /// What a Routine did — the whole-chain verdict, readable at any point (it is
@@ -180,6 +380,23 @@ struct RoutineResult {
     /// means "no motion verdict here" — the stop was a wait or an action, or
     /// nothing stopped (the same "none yet" convention as CompletedMotion).
     control::ExitReason exit = control::ExitReason::Running;
+    /// The failing MECHANISM step's verdict — TimedOut / Stalled / Absent / NotHomed / Refused /
+    /// Cancelled / an Unconfirmed NOT counted done. `Running` means "no mechanism verdict here":
+    /// read `cause` first — only `MechanismStepFailed` puts one here. (APPENDED at chunk MECH-A4,
+    /// API 2.5.)
+    manipulation::MechanismOutcome mechanismVerdict = manipulation::MechanismOutcome::Running;
+    // ── STEP1-A (APPENDED; types pinned, F10). The nine fields above keep their meaning — "where
+    //    the chain STOPPED" — so under carryOn / skipTo `stoppedAt` stays 0 unless a stop happens,
+    //    and `skipped` still counts only the steps after a stop. These say the rest. ──────────────
+    int failedOn = 0;       ///< steps that FAILED and the chain went on (carryOn / skipTo)
+    int firstFailedAt = 0;  ///< 1-based index of the first of them; 0 = none
+    const char* firstFailedName = "";  ///< its verb/name ("" = none)
+    /// Its cause — read `firstFailedAt` first (None when no step failed and went on).
+    RoutineStopCause firstFailedCause = RoutineStopCause::None;
+    int jumped = 0;  ///< steps a skip passed over (counted in `steps`, never run)
+    /// The label a skip is still looking for — "" when none is. Non-empty at the end of a run: the
+    /// skip never landed, and nothing ran after its failure.
+    const char* skipPendingTo = "";
 };
 
 /// The Tier-2 recipe chain: a complete autonomous routine as a sequence of
@@ -195,6 +412,20 @@ public:
     explicit Routine(Chassis& chassis, const char* name = "routine") noexcept
         : chassis_{&chassis}, name_{name} {}
 
+    /// MECH-A4 (API 2.5; a NEW overload — the frozen constructor above is untouched): `Routine
+    /// r{ctx, "score-three"}` in an auton — the chassis AND the robot's mechanism service, from the
+    /// auton's context (competition::AutonContext; any type with these two members). Borrows both
+    /// (each must outlive the Routine). A program that runs autons without a service leaves
+    /// `mechanismService` null: the chassis steps run as ever, and a mechanism step is a loud
+    /// precondition naming the fix. Not frozen (the file header).
+    /// STEP1-A: when the context also has a `guard` (AutonContext does), the Routine borrows it for
+    /// the cut rule — a step that fails once the guard is running and expired() STOPS the chain
+    /// whatever its onFail choice (the file banner). A context without one builds a guard-less
+    /// Routine, as Routine(Chassis&) does.
+    template <detail::RoutineContext Context>
+    explicit Routine(Context& ctx, const char* name = "routine") noexcept
+        : chassis_{&ctx.chassis}, name_{name}, mechs_{ctx.mechanismService}, guard_{guardOf(ctx)} {}
+
     /// Neither copyable nor movable, and there is no reset(): one chain is one
     /// run. Two handles sharing the stop-state counters would let a stopped
     /// chain's twin keep driving — the failure the whole error policy exists to
@@ -204,7 +435,31 @@ public:
     Routine& operator=(const Routine&) = delete;
     Routine(Routine&&) = delete;
     Routine& operator=(Routine&&) = delete;
-    ~Routine() = default;
+    /// STEP1-B: a Routine destroyed with a partway trigger still ARMED — its handle was discarded, and
+    /// that line was the auton's last, so no later step's precondition could say so — logs ONE Warn:
+    /// the triggers never fired. The same for a line that ENDED AT ITS MARK (`r.atPercent(60);` — a
+    /// mark written, no start after it). Nothing when nothing is armed; a log failure is swallowed (a
+    /// destructor never throws).
+    ~Routine() {
+        if (armedCount_ == 0 && !pendingMark_) {
+            return;
+        }
+        try {
+            char line[160];
+            if (armedCount_ == 0) {
+                std::snprintf(line, sizeof line,
+                              "routine '%.24s': a trigger's mark was written but no start and no drive followed: "
+                              "it never fired",
+                              name_);
+            } else {
+                std::snprintf(line, sizeof line,
+                              "routine '%.24s': %d trigger(s) armed but no drive followed: they never fired", name_,
+                              armedCount_);
+            }
+            chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line);
+        } catch (...) {  // NOLINT(bugprone-empty-catch): a destructor must not throw
+        }
+    }
 
     // ── the steps (each: exactly one Chassis call; header semantics) ───────────────
 
@@ -228,7 +483,11 @@ public:
     /// target heading is the bearing from the live pose estimate to (x, y),
     /// computed when this step RUNS (after the steps before it). On tank,
     /// face(x, y) first so the approach is a line the drivetrain can follow
-    /// (C1's honesty: tank verbs never plan turns — face() is YOUR turn).
+    /// (C1's honesty: tank verbs never plan turns — face() is YOUR turn); it is
+    /// also what makes the leg steerable — a tank moveTo steers back onto its
+    /// line only when the leg starts within 15° of its target heading, and logs
+    /// "turn first: face()" when it does not (chassis.hpp: TANK STEERING). To flow
+    /// through points instead of stopping at each, curveTo (CURVE1).
     Routine& driveTo(units::Length x, units::Length y, const MotionOptions& options = {}) {
         if (skipIfStopped("driveTo")) {
             return *this;
@@ -236,6 +495,31 @@ public:
         const math::Angle bearing = bearingTo(x, y);
         return runMotion("driveTo",
                          chassis_->moveTo(math::Pose2d{x, y, bearing}, options));
+    }
+
+    /// Drive to the FIELD point (x, y) and arrive with the robot's BACK toward it: one moveTo
+    /// whose target heading is the bearing from the live pose estimate to (x, y) plus π, computed
+    /// when this step RUNS — driveTo turned around, and exactly a route's DriveTo waypoint with
+    /// `reverse` set (runner/path_runner.hpp spells the `+ π` the same way, so a route and a recipe
+    /// that name the same leg stay bit-identical). The caller's options pass through whole.
+    /// The leg starts as far off its target heading as the robot's back is turned from the point,
+    /// so after faceAway(x, y) it drives BACKWARDS the whole way, on any drive. Without it: a
+    /// holonomic drive rotates in flight — it still arrives turned round, but its nose leads early
+    /// in the leg. A tank never plans the turn (faceAway() is YOUR turn) and steers a leg back onto
+    /// its line only when it starts within 15° of its target heading: from a robot FACING the
+    /// point it starts 180° off, is not steered, logs "turn first: face()" — for a backwards leg
+    /// that turn is faceAway() — and times out beside the point (chassis.hpp: TANK STEERING); a
+    /// tank that just drove straight out from the point already has its back to it and needs no
+    /// faceAway(). No robot has run a reverseTo yet (robot two has reversed only under driver
+    /// control): whether a tank backs up as far as its calibration says is register entry HA-167.
+    /// (Appended at chunk L9, API 2.4.)
+    Routine& reverseTo(units::Length x, units::Length y, const MotionOptions& options = {}) {
+        if (skipIfStopped("reverseTo")) {
+            return *this;
+        }
+        // Angle re-wraps, so + π is the whole operation (path_runner.hpp's DriveTo, verbatim).
+        const math::Angle away = bearingTo(x, y) + math::Angle::radians(math::Angle::kPi);
+        return runMotion("reverseTo", chassis_->moveTo(math::Pose2d{x, y, away}, options));
     }
 
     /// Translate to FIELD (x, y) holding the current heading (Chassis::strafeTo;
@@ -260,6 +544,21 @@ public:
         }
         const math::Angle bearing = bearingTo(x, y);
         return runMotion("face", chassis_->turnTo(bearing, options));
+    }
+
+    /// Rotate in place so the robot's BACK points at the FIELD point (x, y): one turnTo whose
+    /// target is the bearing from the live pose estimate to (x, y) plus π, computed when this
+    /// step runs — face() turned around, and the turn that goes before a reverseTo(x, y) on a
+    /// tank, or on any drive whose back must lead the whole way ("back into the goal" in field
+    /// words). The caller's options pass through whole (a turn in place reads the timeout and
+    /// the yaw budget); turnTo(atan2(...) + π) by hand is bit-identical. (Appended at chunk L9,
+    /// API 2.4.)
+    Routine& faceAway(units::Length x, units::Length y, const MotionOptions& options = {}) {
+        if (skipIfStopped("faceAway")) {
+            return *this;
+        }
+        const math::Angle away = bearingTo(x, y) + math::Angle::radians(math::Angle::kPi);
+        return runMotion("faceAway", chassis_->turnTo(away, options));
     }
 
     /// Chain waypoints as sequential moveTo legs (Chassis::followTrajectory —
@@ -287,6 +586,35 @@ public:
                                                               waypoints.size()},
                                 options);
     }
+
+    // ═══ CURVE1: curves — BEGIN (API 2.7, F10-additive; pinned) ══════════════════════════════
+    /// Drive one SMOOTH path from where the robot is, along its nose, through `points` without
+    /// stopping at them, ending like moveTo at the last (Chassis::curveTo): `{x, y}` or
+    /// `{x, y, heading}`, 1 to 16 points, a heading is the robot's NOSE, never list the robot's own
+    /// spot. A refused curve (first point behind the robot, a path that doubles back) or a lost one
+    /// fails the step like any drive — its Warn names why. (CURVE1.)
+    Routine& curveTo(std::span<const CurvePoint> points, const MotionOptions& options = {}) {
+        return motionStep("curveTo", [&] { return chassis_->curveTo(points, options); });
+    }
+
+    /// Brace-list convenience: r.curveTo({{24_in, 12_in}, {48_in, 24_in, 0_deg}}).
+    Routine& curveTo(std::initializer_list<CurvePoint> points, const MotionOptions& options = {}) {
+        return curveTo(std::span<const CurvePoint>{points.begin(), points.size()}, options);
+    }
+
+    /// curveTo with the robot's BACK leading (Chassis::reverseCurveTo). Every heading is still
+    /// the NOSE's: backing into a spot facing 0 deg ends with `0_deg`. (CURVE1.)
+    Routine& reverseCurveTo(std::span<const CurvePoint> points, const MotionOptions& options = {}) {
+        return motionStep("reverseCurveTo",
+                          [&] { return chassis_->reverseCurveTo(points, options); });
+    }
+
+    /// Brace-list convenience: r.reverseCurveTo({{-12_in, 30_in}, {-36_in, 36_in, 0_deg}}).
+    Routine& reverseCurveTo(std::initializer_list<CurvePoint> points,
+                            const MotionOptions& options = {}) {
+        return reverseCurveTo(std::span<const CurvePoint>{points.begin(), points.size()}, options);
+    }
+    // ═══ CURVE1: curves — END ═════════════════════════════════════════════════════════════
 
     /// Controlled stop: 0 V under Brake until the estimate certifies rest
     /// (Chassis::brake — a C4 candidate adopted into F6 at D2).
@@ -365,6 +693,9 @@ public:
     /// verdict "succeeds" whatever happened — the same sharp edge as dropping
     /// a direct facade call's ExitReason (guide chapter 9), owned the same way.
     /// `name` labels the step in stop/skip log lines (stable literal).
+    /// STEP1-A: an action that returns `ExitReason::Cancelled` or `MechanismOutcome::Cancelled` is
+    /// CANCELLED, and stops the chain whatever its onFail choice (the cut rule; a `bool` false is
+    /// an ordinary failure, which carryOn / skipTo may go on from).
     template <typename Action>
     Routine& then(Action&& action, const char* name = "action") {
         if (skipIfStopped(name)) {
@@ -375,6 +706,7 @@ public:
         control::ExitReason exit = control::ExitReason::Running;
         const char* detail = nullptr;
         RoutineStopCause failCause = RoutineStopCause::ActionFailed;
+        bool cancelled = false;  // STEP1-A: a CANCELLED action stops the chain whatever its choice
         if constexpr (std::is_void_v<R>) {
             std::invoke(action);
         } else if constexpr (std::is_same_v<R, control::ExitReason>) {
@@ -385,6 +717,7 @@ public:
             succeeded = (mo == manipulation::MechanismOutcome::Succeeded);
             failCause = RoutineStopCause::MechanismFailed;
             detail = manipulation::mechanismOutcomeName(mo);
+            cancelled = (mo == manipulation::MechanismOutcome::Cancelled);
         } else {
             static_assert(std::is_constructible_v<bool, R>,
                           "Routine::then: the action must return void, bool, "
@@ -394,15 +727,598 @@ public:
         if (succeeded) {
             recordSuccess();
         } else {
-            recordStop(name, failCause, exit, detail);
+            recordStop(name, failCause, exit, detail, manipulation::MechanismOutcome::Running, cancelled);
         }
         return *this;
     }
 
+    // ═══ STEP1-A: the on-failure choice — BEGIN (the modifiers; pinned, F10) ═══════════════════════
+    /// What the NEXT step does if it fails: `r.onFail(carryOn).driveTo(...)`,
+    /// `r.onFail(skipTo("third piece")).run(...)`, `r.onFail(stopChain)` (the default, spelled out).
+    /// It binds to exactly one step and is used up at that step's door — whether the step runs, is
+    /// skipped after a stop, is jumped by a skip, or throws. It is not a step (the step numbers do
+    /// not move). Above every choice: a CANCELLED verdict, or a guard that is running and expired,
+    /// STOPS the chain (the file banner's two rules). Logs one Warn — once per Routine — when the
+    /// Routine has NO run guard (a carry-on chain there cannot be stopped by the deadline), and one
+    /// Warn when a skipTo's target is already BEHIND (a label this routine has passed, or the next
+    /// step's own label): a skip only goes forward, so that step's failure would stop the chain.
+    /// PRECONDITIONS (thrown; nothing recorded): not two onFail() in a row; a SkipTo has a non-empty
+    /// target.
+    Routine& onFail(OnFail choice) {
+        requireUnarmed();  // STEP1-B (B9): onFail comes BEFORE a trigger's arm, never while one is armed
+        SHULIB_PRECONDITION(!pendingFailSet_,
+                            "r.onFail(...): two in a row -- each onFail binds to the ONE step after it; write "
+                            "the step between them");
+        SHULIB_PRECONDITION(choice.kind != OnFail::Kind::SkipTo ||
+                                (choice.target != nullptr && choice.target[0] != '\0'),
+                            "r.onFail(...): a skip needs the name of the step to skip to -- write "
+                            "skipTo(\"third piece\")");
+        pendingFail_ = choice;
+        pendingFailSet_ = true;
+        if (choice.kind != OnFail::Kind::Stop && guard_ == nullptr && !warnedNoGuard_) {
+            warnedNoGuard_ = true;
+            diag::lineformat::Line line;
+            line.appendLiteral("routine '");
+            line.appendLiteral(name_);
+            line.appendLiteral("': on-failure choices with no run guard — the deadline cannot stop this routine; "
+                               "build it as Routine r{ctx, \"");
+            line.appendLiteral(name_);
+            line.appendLiteral("\"} in an auton");
+            chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line.view());
+        }
+        if (choice.kind == OnFail::Kind::SkipTo &&
+            (labelSeen(choice.target) || sameLabel(pendingLabel_, choice.target))) {
+            warnBehind(choice.target);
+        }
+        return *this;
+    }
+
+    /// Name the NEXT step, so a `skipTo("...")` before it can land there:
+    /// `r.label("third piece").face(0_in, 48_in)`. Not a step of its own (the step numbers do not
+    /// move); used up at that step's door. Matched whole and case-sensitively; stored, not copied —
+    /// a string literal (a std::string's c_str() would dangle). Logs the "behind" Warn when an
+    /// onFail(skipTo(...)) already written for the same step names this label.
+    /// PRECONDITIONS (thrown; nothing recorded): not two label() in a row; `name` not null, not "".
+    Routine& label(const char* name) {
+        requireUnarmed();  // STEP1-B (B9): label comes BEFORE a trigger's arm, never while one is armed
+        SHULIB_PRECONDITION(pendingLabel_ == nullptr,
+                            "r.label(...): two in a row -- a label names the ONE step after it");
+        SHULIB_PRECONDITION(name != nullptr && name[0] != '\0',
+                            "r.label(...): a label needs a name -- r.label(\"third piece\")");
+        pendingLabel_ = name;
+        if (pendingFailSet_ && pendingFail_.kind == OnFail::Kind::SkipTo && sameLabel(pendingFail_.target, name)) {
+            warnBehind(name);
+        }
+        return *this;
+    }
+    // ═══ STEP1-A: the on-failure choice — END (the modifiers) ═══════════════════════════════════════
+
+    // ═══ MECH-A4: the mechanism steps — BEGIN (API 2.5; not frozen — the file header) ═════════
+    // ONE eager call per step, each naming its mechanism by its DECLARATION (or a goal the
+    // declaration made — a preset, a constant, a computed target), each run by the robot's
+    // mechanism service (mechanism/service.hpp), which this Routine reaches through the context
+    // constructor above. A BLOCKING step commands, then waits for the step's verdict within its
+    // `bound` — the step's own time limit, always stated; the service's deadline ends the step,
+    // and this wait's backstop is the bound plus kMechanismWaitSlackSeconds. A START form commands
+    // and returns at once (the next drive runs while the service ticks the step);
+    // waitUntilDone() collects it later.
+    //
+    //   r.move(arm["score"], 1.5_s);                       // a preset (checked at BUILD)
+    //   r.move(arm.to(120), 1.5_s);                        // a constant (past a limit: no build)
+    //   r.move(lift.clampedTo(h), 2_s);                    // a computed one (clamped, logged)
+    //   r.run(intake, 12_volt, seesPiece, 3_s);            // until its sensor sees a piece
+    //   r.run(intake, 12_volt, seesPiece.orAfter(2.5_s), 3_s);  // ... or after 2.5 s
+    //   r.run(clawPivot6, 12_volt, 0.4_s);                 // for 0.4 s
+    //   r.set(claw["closed"]);                             // a pneumatic position
+    //   r.spinUp(flywheel["shoot"], 2_s);                  // until "at speed"; it keeps spinning
+    //   r.home(lift, 1.5_s);  r.stop(flywheel);
+    //   r.startRun(intake, 12_volt, seesPiece, 3_s).driveTo(40_in, 0_in).waitUntilDone(intake, 1_s);
+    //
+    // THE VERDICT POLICY (each rule pinned by a test): SUCCEEDED continues; UNCONFIRMED COUNTED
+    // DONE (no sensor exists to confirm it — the team lead's Q2 (c): robot two's sensorless claw)
+    // continues; EVERY other verdict stops the chain as RoutineStopCause::MechanismStepFailed, with
+    // the verdict in the stop line, in RoutineResult::mechanismVerdict and in lastMechanism(). A
+    // START form stops the chain only when the start itself is ABSENT, REFUSED or NOT_HOMED. A step
+    // on a mechanism this robot's list does not have is ABSENT, said, and stops the chain. A
+    // blocking wait during which the service NEVER ticked stops the chain TIMED_OUT, saying the
+    // service is not in the chassis pacer's chain (the program's wiring fault, found on the first
+    // blocking step). After its step a mechanism keeps its behaviour — an arm HOLDS, a flywheel
+    // keeps spinning — until another command, the run guard's end of run, or driver control.
+    // STEP1-A: "stops the chain" above is the DEFAULT; a step written after r.onFail(carryOn) or
+    // r.onFail(skipTo("x")) goes on (or skips) instead, except that a CANCELLED verdict, and any
+    // failure once the auton's time is up, always stops. A starting step (the start forms, and
+    // move / home / run / spinUp / set) that a skip JUMPS — or that did nothing because its goal is
+    // another robot's — marks its mechanism (by name): a later waitUntilDone() on it answers
+    // MechanismNotStarted.
+    //
+    // THE HONEST LIMIT: the service ticks only inside a shulib motion, wait or pause (and the
+    // driver loop). An auton's own busy loop — `pros::delay`, a then() action that blocks — STARVES
+    // it, and a starved service leaves every mechanism at its LAST command: not held, not limited,
+    // not safe. In an auton, wait with r.pause() / r.waitFor().
+    //
+    // PRECONDITIONS (thrown, the error policy above: the bad call never ran, the counters are
+    // untouched): the Routine was built from a context with a mechanism service; a bound finite and
+    // > 0; and every precondition of the service's own command (a time condition longer than its
+    // bound, a sensor condition on a mechanism that declares no piece sensor, `stalls` with no
+    // stall signature, homing a mechanism declared neverHomed, ...).
+
+    /// Move an arm or a lift to `goal` within `bound`, then HOLD it there (`arm["score"]`,
+    /// `arm.to(120)`, `lift.to(18_in)`, `lift.clampedTo(h)`). Out of time: TIMED_OUT, and it holds
+    /// where it stopped.
+    Routine& move(mechanism::PositionGoal goal, units::Time bound, const char* name = nullptr) {
+        return positionStep(goal, bound, name, /*wait=*/true);
+    }
+    /// move()'s START form: commands the move and returns at once; waitUntilDone() collects it.
+    Routine& startMove(mechanism::PositionGoal goal, units::Time bound, const char* name = nullptr) {
+        return positionStep(goal, bound, name, /*wait=*/false);
+    }
+    /// Find an ARM's zero by its declaration's homing method, within `bound` (then it holds there).
+    Routine& home(const mechanism::Arm& m, units::Time bound, const char* name = nullptr) {
+        return homeStep(m, bound, name, /*wait=*/true);
+    }
+    /// Find a LIFT's zero by its declaration's homing method, within `bound`.
+    Routine& home(const mechanism::Lift& m, units::Time bound, const char* name = nullptr) {
+        return homeStep(m, bound, name, /*wait=*/true);
+    }
+    /// home()'s START form, for an arm (homing while the robot drives).
+    Routine& startHome(const mechanism::Arm& m, units::Time bound, const char* name = nullptr) {
+        return homeStep(m, bound, name, /*wait=*/false);
+    }
+    /// home()'s START form, for a lift.
+    Routine& startHome(const mechanism::Lift& m, units::Time bound, const char* name = nullptr) {
+        return homeStep(m, bound, name, /*wait=*/false);
+    }
+    /// Run a POWER mechanism at `volts` until `until` holds (seesPiece, seesPiece(grip),
+    /// stopsSeeingPiece, stalls, `seesPiece.orAfter(2.5_s)`), within `bound`; its declared safe
+    /// state at the end, however it ends.
+    Routine& run(const mechanism::Power& m, units::Voltage volts, mechanism::Until until, units::Time bound,
+                 const char* name = nullptr) {
+        return powerStep(m, volts, until, bound, name, /*wait=*/true);
+    }
+    /// Run a POWER mechanism at `volts` for `time`: SUCCEEDED when the time is up.
+    Routine& run(const mechanism::Power& m, units::Voltage volts, units::Time time, const char* name = nullptr) {
+        return powerStep(m, volts, mechanism::Until::time(time), time, name, /*wait=*/true);
+    }
+    /// run()'s START form, with a done-condition.
+    Routine& startRun(const mechanism::Power& m, units::Voltage volts, mechanism::Until until, units::Time bound,
+                      const char* name = nullptr) {
+        return powerStep(m, volts, until, bound, name, /*wait=*/false);
+    }
+    /// run()'s START form, for a time.
+    Routine& startRun(const mechanism::Power& m, units::Voltage volts, units::Time time, const char* name = nullptr) {
+        return powerStep(m, volts, mechanism::Until::time(time), time, name, /*wait=*/false);
+    }
+    /// Put a PNEUMATIC mechanism in a named position (`claw["closed"]`). Its time is the robot
+    /// file's `.moveTime` (plus `.confirmWithin` when a sensor confirms it), so the step states no
+    /// bound. A `grabs` position with no sensor ends UNCONFIRMED, counted done: the chain goes on.
+    Routine& set(mechanism::PneumaticGoal goal, const char* name = nullptr) {
+        const char* step = name != nullptr ? name : goal.mechanismName;
+        if (startingStepPassed(step, goal.mechanismName)) {
+            return *this;
+        }
+        mechanism::PneumaticSlot* m = mechs().find(goal);
+        if (m == nullptr) {
+            return startNotOnThisRobot(goal.mechanismName, step);
+        }
+        m->set(goal.position);
+        noteStarted(*m);
+        return awaitMechanism(*m, units::Time{m->lastStepBound()}, step);
+    }
+    /// Spin a FLYWHEEL up (`flywheel["shoot"]`, `flywheel.at(3000)`, `flywheel.clampedTo(x)`): the
+    /// step SUCCEEDS at speed and the wheel KEEPS spinning until stop(), the guard or driver control.
+    Routine& spinUp(mechanism::SpeedGoal goal, units::Time bound, const char* name = nullptr) {
+        return speedStep(goal, bound, name, /*wait=*/true);
+    }
+    /// spinUp()'s START form (the wheel spins up while the robot drives).
+    Routine& startSpinUp(mechanism::SpeedGoal goal, units::Time bound, const char* name = nullptr) {
+        return speedStep(goal, bound, name, /*wait=*/false);
+    }
+    /// Stop a POWER mechanism now — its declared safe state (a running step on it ends CANCELLED).
+    /// SUCCEEDED, unless it is ABSENT this boot or ANOTHER owner holds its claim (REFUSED: the stop
+    /// did nothing).
+    Routine& stop(const mechanism::Power& m, const char* name = nullptr) {
+        const char* step = name != nullptr ? name : m.name.text;
+        if (skipIfStopped(step)) {
+            return *this;
+        }
+        mechanism::PowerSlot* s = mechs().find(m);
+        if (s == nullptr) {
+            return notOnThisRobot(m.name.text, step);
+        }
+        const std::uint32_t before = s->commandSeq();
+        s->stop();
+        return stoppedMechanism(*s, before, step);
+    }
+    /// Stop a FLYWHEEL now — its declared safe state. As stop(const Power&).
+    Routine& stop(const mechanism::Flywheel& m, const char* name = nullptr) {
+        const char* step = name != nullptr ? name : m.name.text;
+        if (skipIfStopped(step)) {
+            return *this;
+        }
+        mechanism::SpeedSlot* s = mechs().find(m);
+        if (s == nullptr) {
+            return notOnThisRobot(m.name.text, step);
+        }
+        const std::uint32_t before = s->commandSeq();
+        s->stop();
+        return stoppedMechanism(*s, before, step);
+    }
+    /// Wait (at most `bound` more) for the verdict of the step THIS routine last began on `m` — a
+    /// START form's, usually; a step that already ended answers at once. A step that something
+    /// OUTSIDE this routine replaced meanwhile ended CANCELLED, and so does this one.
+    /// STEP1-A: when a skip JUMPED the step that would have started `m` — or that step did nothing
+    /// because its goal is another robot's (a different kind or units, or a preset or position this
+    /// robot's same-named mechanism lacks) — and no later step began one, the wait FAILS, counted —
+    /// RoutineStopCause::MechanismNotStarted, "its start was skipped" (or "its start did nothing:
+    /// another robot's declaration") — under its own onFail choice; never a throw, never an older step's verdict
+    /// (mechanismVerdict stays Running, lastMechanism() is the default report). A wait never clears
+    /// that mark, so a second wait answers the same.
+    /// PRECONDITIONS: `bound` finite and > 0; this routine began a step on `m` (or a skip jumped
+    /// one, or one did nothing as above).
+    template <detail::MechanismDeclaration Declared>
+    Routine& waitUntilDone(const Declared& m, units::Time bound, const char* name = nullptr) {
+        const char* step = name != nullptr ? name : m.name.text;
+        if (skipIfStopped(step)) {
+            return *this;
+        }
+        SHULIB_PRECONDITION(std::isfinite(bound.value()) && bound.value() > 0.0,
+                            "r.waitUntilDone(...): the time limit must be finite and above 0");
+        auto* s = mechs().find(m);
+        if (s == nullptr) {
+            return notOnThisRobot(m.name.text, step);
+        }
+        // STEP1-A (A6): a slot whose start a skip JUMPED answers a counted failure, BEFORE the
+        // precondition below — never a throw, never the verdict of an older step on it. A wait never
+        // clears the mark (only a step that begins a step on the slot does), so a second wait
+        // answers the same.
+        if (s->index() < mechanism::kMaxMechanisms && notStartedWhy_[s->index()] != nullptr) {
+            lastMech_ = mechanism::StepReport{};  // nothing ran: the default report (Running)
+            recordStop(step, RoutineStopCause::MechanismNotStarted, control::ExitReason::Running,
+                       notStartedWhy_[s->index()]);
+            return *this;
+        }
+        const std::uint32_t mine = startedSeq_[s->index()];
+        SHULIB_PRECONDITION(mine != 0,
+                            "r.waitUntilDone(...): this routine started no step on that mechanism -- start one "
+                            "first (r.startRun / r.startMove / r.startSpinUp / r.startHome)");
+        if (s->stepsBegun() != mine) {
+            // Something outside this routine began a newer step on it: the one this routine started
+            // was replaced (CANCELLED by the service, said) and has no verdict of its own to wait for.
+            lastMech_ = mechanism::StepReport{.outcome = manipulation::MechanismOutcome::Cancelled};
+            recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
+                       "CANCELLED: a newer command replaced the step this routine started",
+                       manipulation::MechanismOutcome::Cancelled);
+            return *this;
+        }
+        return awaitMechanism(*s, bound, step);
+    }
+
+    // The WRONG STEP FOR THE KIND, refused BY NAME where the team calls it: each is a template only
+    // so its static_assert fires at the team's line ("required from here"), never as a list of the
+    // overloads that did not match.
+
+    /// `r.run(arm, ...)`: refused — run() is a power mechanism's step.
+    template <class D, class... Rest>
+        requires(std::same_as<D, mechanism::Arm> || std::same_as<D, mechanism::Lift> ||
+                 std::same_as<D, mechanism::Flywheel> || std::same_as<D, mechanism::Pneumatic>)
+    Routine& run(const D&, Rest&&...) {
+        static_assert(sizeof(D) == 0,
+                      "r.run(...) is for a POWER mechanism -- move an arm or a lift with r.move(arm[\"score\"], "
+                      "1.5_s), spin a flywheel up with r.spinUp(flywheel[\"shoot\"], 2_s), set a pneumatic with "
+                      "r.set(claw[\"open\"])");
+        return *this;
+    }
+    /// `r.run(intake, 12, 1_s)`: refused — volts carry their unit.
+    template <class V, class... Rest>
+        requires std::is_arithmetic_v<V>
+    Routine& run(const mechanism::Power&, V, Rest&&...) {
+        static_assert(sizeof(V) == 0, "volts are written with their unit: 12_volt, not 12");
+        return *this;
+    }
+    /// `r.move(intake, ...)` / `r.move(arm, ...)`: refused — move() takes a TARGET.
+    template <class D, class... Rest>
+        requires(std::same_as<D, mechanism::Arm> || std::same_as<D, mechanism::Lift> ||
+                 std::same_as<D, mechanism::Power> || std::same_as<D, mechanism::Flywheel> ||
+                 std::same_as<D, mechanism::Pneumatic>)
+    Routine& move(const D&, Rest&&...) {
+        static_assert(sizeof(D) == 0,
+                      "r.move(...) takes a TARGET: arm[\"score\"], arm.to(95), lift.to(18_in) (a power mechanism "
+                      "runs: r.run(intake, 12_volt, 1_s); a pneumatic is set: r.set(claw[\"open\"]))");
+        return *this;
+    }
+    /// `r.stop(arm)`: refused — an arm or a lift holds, a pneumatic keeps its position.
+    template <class D, class... Rest>
+        requires(std::same_as<D, mechanism::Arm> || std::same_as<D, mechanism::Lift> ||
+                 std::same_as<D, mechanism::Pneumatic>)
+    Routine& stop(const D&, Rest&&...) {
+        static_assert(sizeof(D) == 0,
+                      "r.stop(...) is for a power mechanism or a flywheel -- an arm or a lift HOLDS where its "
+                      "last step left it, and a pneumatic keeps its position (r.set(claw[\"open\"]))");
+        return *this;
+    }
+
+    /// The most recent mechanism step's report — its verdict, what ended it, whether an UNCONFIRMED
+    /// was counted done, how long it took. Before any mechanism step: the default report (`Running`).
+    [[nodiscard]] const mechanism::StepReport& lastMechanism() const noexcept { return lastMech_; }
+    // ═══ MECH-A4: the mechanism steps — END ═══════════════════════════════════════════════════
+
+    // ═══ STEP1-B: partway triggers — BEGIN (NOT pinned — the file header) ═════════════════════
+    // "At 60 % of this drive, start raising the lift": a mechanism START that rides a drive or a turn
+    // and fires PARTWAY THROUGH it, the first tick the robot reaches its mark (the STEP1 brief's
+    // §1.2, D6–D8; the team lead's answers of 2026-11-03).
+    //
+    //   r.atPercent(60).startMove(lift["high"], 2_s).driveTo(0_in, 48_in);
+    //   r.afterDistance(20_in).startRun(intake, 12_volt, seesPiece, 3_s)
+    //    .atPercent(90).startHome(arm, 1_s).driveTo(40_in, 0_in);
+    //   r.afterTurning(45_deg).startSpinUp(flywheel["shoot"], 2_s).turnTo(90_deg);
+    //   r.waitUntilDone(lift, 1_s);  // collects the trigger's step, like any start form's
+    //
+    // THE MARK (D7 (a)). atPercent(p): the share of the leg — the distance covered ALONG THE STRAIGHT
+    // LINE from where the leg started (its first live tick) to its target, or on a turn the angle
+    // turned toward it (motion/leg_progress.hpp); above 0 and at most 100. afterDistance(d): inches
+    // along that line, a DRIVE's mark only (driveTo / reverseTo / moveTo); above 0. afterTurning(a):
+    // the angle turned, a TURN's mark only (turnTo / face / faceAway); above 0 — a math::Angle, so
+    // 270_deg wraps to -90 and is refused, said. A mark of the wrong kind does not COMPILE; up to 4
+    // triggers ride one leg, on four different mechanisms.
+    //
+    // WHEN IT FIRES. Once, on the first tick whose progress reaches the mark (>=) — never before the
+    // leg is live, never on the tick that ends it (its own exit tick, or a tick the scheduler's fault
+    // abort ends — an ODO_STUCK, say), never once the run guard's time is up (the deadline tick ticks
+    // the motion once more before the guard cuts it: the brief's probe P6). A leg
+    // that ARRIVES (Settled) fires each trigger still unfired AS IT ARRIVES if its mark is ON the leg
+    // — a percent always; a distance or an angle no further than the leg's size from its live start
+    // plus its arrival tolerance (D6 (i), narrowed) — so "at 100 %" fires on a drive that settles
+    // 0.24 in short. A mark past that ("after 50 in" on a 40 in drive) never fires, and the step says
+    // so. A leg that ends any other way — timed out, cancelled, cut, jumped by a skip, skipped after a
+    // stop — fires none (the team lead's D15 (a)). An unfired trigger marks its mechanism: a later
+    // waitUntilDone() answers MechanismNotStarted, "the trigger never fired", never an older step's
+    // verdict and never a throw. ON A ROBOT, unmeasured: how soon after the mark the mechanism really
+    // starts (the command is issued in the drive's tick, the service acts at the next pace —
+    // A4: HA-217), and how close a fire AT THE ARRIVAL is to the author's mark (the estimate's
+    // "arrived" against the tape — A4: HA-218).
+    //
+    // A TRIGGER IS PART OF ITS DRIVE STEP (D7 (a)). Arming counts no step; the drive is recorded ONCE,
+    // after it returns: its own failure if it failed; else, if a fired trigger's start was ABSENT,
+    // REFUSED or NOT_HOMED, MechanismStepFailed with the verdict of the FIRST such trigger to fire,
+    // under the drive step's own onFail choice; else a success. A refused start NEVER interrupts the drive: the fire has its own short
+    // path (command the mechanism, note it, keep its report) and touches nothing of the chain inside
+    // the tick — the start steps' own path ends in Chassis::cancel(), which the scheduler refuses
+    // from inside a tick (the brief's L16). After the leg, lastMechanism() is the first failing
+    // trigger's start report, else the last to fire's. A start form's `name` names the trigger in
+    // its lines ("its trigger 'raise' at 60 % on 'lift'") — the step itself is the drive's.
+    //
+    // A TRIGGER WRITTEN WRONG IS CAUGHT ON ITS OWN LINE, EVERY RUN (D8 (a)): the start's arguments
+    // go through the mechanism's OWN checks (mechanism/service.hpp's checkRun / checkMoveTo /
+    // checkHome / checkSpinUp — the very list its blocking step runs) where the trigger is written,
+    // even when the drive it rides will be skipped — a bench run whose drive stops early still shows
+    // it. So the fire cannot throw one; if it ever did, the error is held until the drive returns and
+    // thrown then (B7) — never a fake "Cancelled" drive.
+    //
+    // THE ARMING RULES (B9). onFail() / label() come BEFORE the first arm and bind to the leg. While
+    // a trigger is armed — or a mark is written and its start not yet — the ONLY way on is the line
+    // itself: any other call on the Routine (a step, onFail, label, another r.atPercent) is a
+    // precondition. A handle acts only for ITS line: a handle kept past its leg, or used after another
+    // line was armed, is a precondition (a handle drives once, the line that armed it). A
+    // precondition thrown by an arm (a range, a kind, the start's own checks, two triggers on one
+    // mechanism) or by the leg itself clears every armed trigger and the pending modifiers before it
+    // propagates. The handles are [[nodiscard]] — discarding one is a WARNING (an error in the gate
+    // and CI, only a warning in a plain `make`), so the next call on the Routine refuses, and a
+    // Routine destroyed with a trigger still armed (or a mark still unstarted) logs one Warn.
+
+private:
+    /// STEP1-B: a trigger's mark — what it measures and where (a percent as a FRACTION of the leg,
+    /// inches, or radians turned). Declared here, above the handles that carry it.
+    struct TriggerSpec {
+        /// What the mark measures.
+        enum class Mark : std::uint8_t { Percent, Distance, Turned };
+        Mark mark = Mark::Percent;  ///< what it measures
+        double value = 0.0;         ///< the fraction (0, 1], inches > 0, or radians > 0
+    };
+
+public:
+    template <unsigned Kinds>
+    class ArmedLeg;
+
+    /// STEP1-B: what atPercent() / afterDistance() / afterTurning() return — a mark waiting for its
+    /// mechanism START. Its ONLY steps are the four start forms (each ARMS a trigger and returns the
+    /// ArmedLeg handle); the blocking forms and set() are refused when the code is compiled. `Kinds`
+    /// is the legs its mark can measure (detail::kTriggerDriveLegs / kTriggerTurnLegs). Each start
+    /// form's last argument, `name`, names the TRIGGER in its lines ("its trigger 'raise' at 60 % on
+    /// 'lift'"); the step those lines belong to is the drive's (a trigger counts no step of its own).
+    template <unsigned Kinds>
+    class [[nodiscard]] TriggerMark {
+    public:
+        /// move()'s START, fired at the mark: `r.atPercent(60).startMove(lift["high"], 2_s)`.
+        ArmedLeg<Kinds> startMove(mechanism::PositionGoal goal, units::Time bound, const char* name = nullptr) {
+            r_->armMove(mark_, gen_, goal, bound, name);
+            return ArmedLeg<Kinds>{*r_, gen_};
+        }
+        /// home()'s START for an arm, fired at the mark.
+        ArmedLeg<Kinds> startHome(const mechanism::Arm& m, units::Time bound, const char* name = nullptr) {
+            r_->armHome(mark_, gen_, m, bound, name);
+            return ArmedLeg<Kinds>{*r_, gen_};
+        }
+        /// home()'s START for a lift, fired at the mark.
+        ArmedLeg<Kinds> startHome(const mechanism::Lift& m, units::Time bound, const char* name = nullptr) {
+            r_->armHome(mark_, gen_, m, bound, name);
+            return ArmedLeg<Kinds>{*r_, gen_};
+        }
+        /// run()'s START with a done-condition, fired at the mark.
+        ArmedLeg<Kinds> startRun(const mechanism::Power& m, units::Voltage volts, mechanism::Until until,
+                                 units::Time bound, const char* name = nullptr) {
+            r_->armRun(mark_, gen_, m, volts, until, bound, name);
+            return ArmedLeg<Kinds>{*r_, gen_};
+        }
+        /// run()'s START for a time, fired at the mark.
+        ArmedLeg<Kinds> startRun(const mechanism::Power& m, units::Voltage volts, units::Time time,
+                                 const char* name = nullptr) {
+            r_->armRun(mark_, gen_, m, volts, mechanism::Until::time(time), time, name);
+            return ArmedLeg<Kinds>{*r_, gen_};
+        }
+        /// spinUp()'s START, fired at the mark.
+        ArmedLeg<Kinds> startSpinUp(mechanism::SpeedGoal goal, units::Time bound, const char* name = nullptr) {
+            r_->armSpinUp(mark_, gen_, goal, bound, name);
+            return ArmedLeg<Kinds>{*r_, gen_};
+        }
+        /// `.move(...)` after a mark: refused — a trigger STARTS a step (startMove).
+        template <class First, class... Rest>
+        Routine& move(First&&, Rest&&...) {
+            static_assert(detail::kTriggerRefused<First>,
+                          "a partway trigger STARTS a step: write .startMove(...) -- a blocking move cannot run "
+                          "inside a drive; collect it after the drive with r.waitUntilDone(...)");
+            return *r_;
+        }
+        /// `.home(...)` after a mark: refused — startHome.
+        template <class First, class... Rest>
+        Routine& home(First&&, Rest&&...) {
+            static_assert(detail::kTriggerRefused<First>,
+                          "a partway trigger STARTS a step: write .startHome(...) -- a blocking home cannot run "
+                          "inside a drive; collect it after the drive with r.waitUntilDone(...)");
+            return *r_;
+        }
+        /// `.run(...)` after a mark: refused — startRun.
+        template <class First, class... Rest>
+        Routine& run(First&&, Rest&&...) {
+            static_assert(detail::kTriggerRefused<First>,
+                          "a partway trigger STARTS a step: write .startRun(...) -- a blocking run cannot run "
+                          "inside a drive; collect it after the drive with r.waitUntilDone(...)");
+            return *r_;
+        }
+        /// `.spinUp(...)` after a mark: refused — startSpinUp.
+        template <class First, class... Rest>
+        Routine& spinUp(First&&, Rest&&...) {
+            static_assert(detail::kTriggerRefused<First>,
+                          "a partway trigger STARTS a step: write .startSpinUp(...) -- a blocking spinUp cannot "
+                          "run inside a drive; collect it after the drive with r.waitUntilDone(...)");
+            return *r_;
+        }
+        /// `.set(...)` after a mark: refused — a pneumatic's set has no start form.
+        template <class First, class... Rest>
+        Routine& set(First&&, Rest&&...) {
+            static_assert(detail::kTriggerRefused<First>,
+                          "a partway trigger STARTS a step, and set() has no start form: put r.set(...) before or "
+                          "after the drive (a trigger can startMove / startHome / startRun / startSpinUp)");
+            return *r_;
+        }
+
+    private:
+        friend class Routine;
+        template <unsigned>
+        friend class ArmedLeg;
+        TriggerMark(Routine& r, TriggerSpec mark, std::uint32_t gen) noexcept : r_{&r}, mark_{mark}, gen_{gen} {}
+        Routine* r_;
+        TriggerSpec mark_;
+        std::uint32_t gen_;  ///< the trigger LINE it belongs to (Routine::armGen_ when it was written)
+    };
+
+    /// STEP1-B: what a trigger's start form returns — the leg its triggers ride, armed. Its ONLY
+    /// members are the leg steps and the three arms (another trigger on the same leg; at most 4).
+    /// [[nodiscard]]: a trigger with no drive after it never fires (the block's arming rules). The
+    /// legs `Kinds` does not allow are refused when the code is compiled, naming the mark.
+    template <unsigned Kinds>
+    class [[nodiscard]] ArmedLeg {
+    public:
+        /// The leg: Routine::moveTo, watched by the armed triggers (a DRIVE leg).
+        Routine& moveTo(const math::Pose2d& target, const MotionOptions& options = {}) {
+            static_assert((Kinds & detail::kTriggerDriveLegs) != 0,
+                          "after N degrees is a turn's mark -- a drive has no degrees turned; use afterDistance or atPercent");
+            return r_->armedMoveTo(gen_, target, options);
+        }
+        /// The leg: Routine::driveTo, watched (a DRIVE leg).
+        Routine& driveTo(units::Length x, units::Length y, const MotionOptions& options = {}) {
+            static_assert((Kinds & detail::kTriggerDriveLegs) != 0,
+                          "after N degrees is a turn's mark -- a drive has no degrees turned; use afterDistance or atPercent");
+            return r_->armedDriveTo(gen_, "driveTo", x, y, options, false);
+        }
+        /// The leg: Routine::reverseTo, watched (a DRIVE leg).
+        Routine& reverseTo(units::Length x, units::Length y, const MotionOptions& options = {}) {
+            static_assert((Kinds & detail::kTriggerDriveLegs) != 0,
+                          "after N degrees is a turn's mark -- a drive has no degrees turned; use afterDistance or atPercent");
+            return r_->armedDriveTo(gen_, "reverseTo", x, y, options, true);
+        }
+        /// The leg: Routine::turnTo, watched (a TURN leg).
+        Routine& turnTo(math::Angle heading, const MotionOptions& options = {}) {
+            static_assert((Kinds & detail::kTriggerTurnLegs) != 0,
+                          "after N inches is a drive's mark -- a turn has no inches; use afterTurning or atPercent");
+            return r_->armedTurnTo(gen_, heading, options);
+        }
+        /// The leg: Routine::face, watched (a TURN leg).
+        Routine& face(units::Length x, units::Length y, const MotionOptions& options = {}) {
+            static_assert((Kinds & detail::kTriggerTurnLegs) != 0,
+                          "after N inches is a drive's mark -- a turn has no inches; use afterTurning or atPercent");
+            return r_->armedFace(gen_, "face", x, y, options, false);
+        }
+        /// The leg: Routine::faceAway, watched (a TURN leg).
+        Routine& faceAway(units::Length x, units::Length y, const MotionOptions& options = {}) {
+            static_assert((Kinds & detail::kTriggerTurnLegs) != 0,
+                          "after N inches is a drive's mark -- a turn has no inches; use afterTurning or atPercent");
+            return r_->armedFace(gen_, "faceAway", x, y, options, true);
+        }
+        /// Another trigger on this leg, at a percent of it.
+        [[nodiscard]] TriggerMark<Kinds> atPercent(double percent) {
+            r_->requireLine(gen_);
+            return TriggerMark<Kinds>{*r_, r_->percentMark(percent), r_->openMark(gen_)};
+        }
+        /// Another trigger on this leg, after a distance along it — a drive's mark.
+        [[nodiscard]] TriggerMark<(Kinds & detail::kTriggerDriveLegs)> afterDistance(units::Length distance) {
+            static_assert((Kinds & detail::kTriggerDriveLegs) != 0,
+                          "after N inches is a drive's mark -- this leg already has a turn's mark (afterTurning): "
+                          "one leg is a drive OR a turn; use atPercent for a mark either can carry");
+            r_->requireLine(gen_);
+            return TriggerMark<(Kinds & detail::kTriggerDriveLegs)>{*r_, r_->distanceMark(distance), r_->openMark(gen_)};
+        }
+        /// Another trigger on this leg, after an angle turned — a turn's mark.
+        [[nodiscard]] TriggerMark<(Kinds & detail::kTriggerTurnLegs)> afterTurning(math::Angle angle) {
+            static_assert((Kinds & detail::kTriggerTurnLegs) != 0,
+                          "after N degrees is a turn's mark -- this leg already has a drive's mark (afterDistance): "
+                          "one leg is a drive OR a turn; use atPercent for a mark either can carry");
+            r_->requireLine(gen_);
+            return TriggerMark<(Kinds & detail::kTriggerTurnLegs)>{*r_, r_->turnedMark(angle), r_->openMark(gen_)};
+        }
+
+    private:
+        friend class Routine;
+        template <unsigned>
+        friend class TriggerMark;
+        ArmedLeg(Routine& r, std::uint32_t gen) noexcept : r_{&r}, gen_{gen} {}
+        Routine* r_;
+        std::uint32_t gen_;  ///< the trigger LINE it belongs to: only that line's leg may drive it
+    };
+
+    /// STEP1-B: a trigger at `percent` % of the next leg (above 0, at most 100): the share of the
+    /// distance along the straight line from the leg's live start to its target — or of the angle,
+    /// on a turn (the block's header, D7 (a)). Any leg. PRECONDITIONS (thrown; everything armed or
+    /// pending cleared first): finite, in (0, 100]; no trigger already armed (chain a second one on
+    /// the ArmedLeg handle instead).
+    [[nodiscard]] TriggerMark<detail::kTriggerAnyLeg> atPercent(double percent) {
+        requireUnarmed();
+        const TriggerSpec spec = percentMark(percent);
+        return TriggerMark<detail::kTriggerAnyLeg>{*this, spec, openMark(newLine())};
+    }
+    /// STEP1-B: a trigger `distance` along the next leg's straight line from its live start — a
+    /// DRIVE's mark (driveTo / reverseTo / moveTo; a turn after it does not compile). PRECONDITIONS:
+    /// finite and > 0; no trigger already armed.
+    [[nodiscard]] TriggerMark<detail::kTriggerDriveLegs> afterDistance(units::Length distance) {
+        requireUnarmed();
+        const TriggerSpec spec = distanceMark(distance);
+        return TriggerMark<detail::kTriggerDriveLegs>{*this, spec, openMark(newLine())};
+    }
+    /// STEP1-B: a trigger once the next leg has turned `angle` toward its target — a TURN's mark
+    /// (turnTo / face / faceAway; a drive after it does not compile). PRECONDITIONS: > 0 (an Angle is
+    /// wrapped into (-180°, 180°], so 270_deg is -90° and refused); no trigger already armed.
+    [[nodiscard]] TriggerMark<detail::kTriggerTurnLegs> afterTurning(math::Angle angle) {
+        requireUnarmed();
+        const TriggerSpec spec = turnedMark(angle);
+        return TriggerMark<detail::kTriggerTurnLegs>{*this, spec, openMark(newLine())};
+    }
+    // ═══ STEP1-B: partway triggers — END ══════════════════════════════════════════════════════
+
     // ── the whole-chain verdict ────────────────────────────────────────────────────
 
-    /// True while no step has failed (and none was skipped).
-    [[nodiscard]] bool ok() const noexcept { return stoppedAt_ == 0; }
+    /// True while no step has failed (and none was skipped). (STEP1-A: a step that failed under
+    /// onFail(carryOn) / skipTo counts as failed too — under the default rule failedOn is always 0,
+    /// so this reads exactly as it always has.)
+    [[nodiscard]] bool ok() const noexcept { return stoppedAt_ == 0 && failedOn_ == 0; }
 
     /// The chain verdict so far (a snapshot — see RoutineResult).
     [[nodiscard]] RoutineResult result() const noexcept {
@@ -415,6 +1331,13 @@ public:
         r.stoppedName = stoppedName_;
         r.cause = cause_;
         r.exit = exit_;
+        r.mechanismVerdict = mechStop_;  // MECH-A4
+        r.failedOn = failedOn_;          // STEP1-A
+        r.firstFailedAt = firstFailedAt_;
+        r.firstFailedName = firstFailedName_;
+        r.firstFailedCause = firstFailedCause_;
+        r.jumped = jumped_;
+        r.skipPendingTo = skipTo_ != nullptr ? skipTo_ : "";
         return r;
     }
 
@@ -447,8 +1370,8 @@ private:
         const double dx = (x - here.x()).value();
         const double dy = (y - here.y()).value();
         SHULIB_PRECONDITION(std::hypot(dx, dy) > 1e-9,
-                            "Routine: face/driveTo target is (numerically) where the "
-                            "robot already is — no defined bearing");
+                            "Routine: face/driveTo/faceAway/reverseTo target is (numerically) "
+                            "where the robot already is — no defined bearing");
         return math::Angle::radians(std::atan2(dy, dx));
     }
 
@@ -472,10 +1395,91 @@ private:
         return *this;
     }
 
-    /// True (and the step recorded as skipped) when the chain has stopped.
-    [[nodiscard]] bool skipIfStopped(const char* name) {
+    /// Every step's DOOR: true (and the step recorded) when it must not run — skipped after a stop,
+    /// or (STEP1-A) jumped by a pending skip. One call per step, always its first line.
+    [[nodiscard]] bool skipIfStopped(const char* name) { return enterStep(name) != Door::Run; }
+
+    /// A STARTING mechanism step's door (STEP1-A, A6): as skipIfStopped(), and a step a skip JUMPS
+    /// marks the slot named `mechanismName` "its start was skipped" (markNotStarted()).
+    [[nodiscard]] bool startingStepPassed(const char* name, const char* mechanismName) {
+        const Door d = enterStep(name);
+        if (d == Door::Jumped) {
+            markNotStarted(mechanismName, "its start was skipped");
+        }
+        return d != Door::Run;
+    }
+    /// STEP1-A (A6): mark the slot this robot has under `mechanismName`, so a later waitUntilDone() on it
+    /// answers MechanismNotStarted (`why`) — never a throw, never an older step's verdict. Found by NAME
+    /// (unique on a robot), NOT by the step's goal: a goal of another robot's same-named mechanism (its
+    /// kind, units, preset or position) finds nothing, yet a later wait on this robot's declaration of that
+    /// name finds the slot (review finding, 2026-11-05). Only when the Routine has a service (slotFor()
+    /// is the service's noexcept lookup; a chassis-only Routine's mechs() would throw); a name this
+    /// robot lacks marks nothing — a later wait on it ends ABSENT as well.
+    void markNotStarted(const char* mechanismName, const char* why) noexcept {
+        if (mechs_ == nullptr) {
+            return;
+        }
+        if (const mechanism::Slot* slot = mechs_->slotFor(mechanismName);
+            slot != nullptr && slot->index() < mechanism::kMaxMechanisms) {
+            notStartedWhy_[slot->index()] = why;
+        }
+    }
+
+    enum class Door : std::uint8_t { Run, Skipped, Jumped };
+
+    /// STEP1-A: the door's whole rule (STEP1-B: `armedLeg` is a trigger handle's leg — every other step
+    /// meets the armed check first). The pending modifiers bind to THIS step (used up whatever
+    /// happens to it); its label is remembered; a pending skip either STOPS (the guard's time is up —
+    /// a skip never resumes scoring after the buzzer), LANDS (this step carries its label), or JUMPS
+    /// this step; then today's rule — a stopped chain skips it.
+    Door enterStep(const char* name, bool armedLeg = false) {
+        if (!armedLeg) {
+            requireUnarmed();  // STEP1-B (B9 (2)): with a trigger armed, its handle's leg is the only way on
+        }
+        cur_ = pendingFailSet_ ? pendingFail_ : stopChain;
+        curLabel_ = pendingLabel_;
+        pendingFail_ = stopChain;
+        pendingFailSet_ = false;
+        pendingLabel_ = nullptr;
+        if (curLabel_ != nullptr) {
+            rememberLabel(curLabel_);
+        }
+        if (skipTo_ != nullptr && stoppedAt_ == 0) {
+            if (timeIsUp()) {
+                stopPendingSkip();  // then this step is skipped, below, as after any stop
+            } else if (sameLabel(curLabel_, skipTo_)) {
+                diag::lineformat::Line line;
+                line.appendLiteral("routine '");
+                line.appendLiteral(name_);
+                line.appendLiteral("': the skip to '");
+                line.appendLiteral(skipTo_);
+                line.appendLiteral("' landed at step ");
+                diag::lineformat::appendUnsigned(line, static_cast<unsigned long>(steps_ + 1));
+                line.appendLiteral(" (");
+                line.appendLiteral(name);
+                line.appendLiteral(")");
+                chassis_->deps().ctx->telemetry().log(hal::LogLevel::Info, "RTN", line.view());
+                skipTo_ = nullptr;
+                return Door::Run;
+            } else {
+                ++steps_;
+                ++jumped_;
+                diag::lineformat::Line line;
+                line.appendLiteral("routine '");
+                line.appendLiteral(name_);
+                line.appendLiteral("': step ");
+                diag::lineformat::appendUnsigned(line, static_cast<unsigned long>(steps_));
+                line.appendLiteral(" (");
+                line.appendLiteral(name);
+                line.appendLiteral(") jumped — skipping to '");
+                line.appendLiteral(skipTo_);
+                line.appendLiteral("'");
+                chassis_->deps().ctx->telemetry().log(hal::LogLevel::Info, "RTN", line.view());
+                return Door::Jumped;
+            }
+        }
         if (stoppedAt_ == 0) {
-            return false;
+            return Door::Run;
         }
         ++steps_;
         ++skipped_;
@@ -489,7 +1493,7 @@ private:
         line.appendLiteral(") skipped — stopped at step ");
         diag::lineformat::appendUnsigned(line, static_cast<unsigned long>(stoppedAt_));
         chassis_->deps().ctx->telemetry().log(hal::LogLevel::Info, "RTN", line.view());
-        return true;
+        return Door::Skipped;
     }
 
     void recordSuccess() noexcept {
@@ -497,20 +1501,57 @@ private:
         ++completed_;
     }
 
-    /// The stop half of the error policy: record, SAFE the drive (cancel is
-    /// idempotent and defined-safe with or without an active motion), Warn.
+    /// A step FAILED: the error policy, and (STEP1-A) the step's on-failure choice. Under the
+    /// default — and whenever the cut rule applies (a CANCELLED verdict, or the guard's time is up)
+    /// — it is the stop half of the policy: record, SAFE the drive (cancel is idempotent and
+    /// defined-safe with or without an active motion), Warn. A skip whose target is BEHIND stops
+    /// too, said. Otherwise (carryOn / skipTo) the failure is counted, the drive safed the same
+    /// way, and the chain goes on (or starts skipping).
     /// `detail` (optional) names the specific verdict inside the cause — F1's
     /// mechanism outcomes use it, so a transcript says WHICH way a grab failed.
+    /// `verdict` is a mechanism STEP's verdict: RoutineResult::mechanismVerdict when this becomes
+    /// the stop. `cancelled` marks a CANCELLED verdict `exit` and `verdict` cannot carry (a then()
+    /// action's MechanismOutcome::Cancelled).
     /// Note the layering: a mechanism operation has already safed its OWN
     /// mechanism on every exit path (mechanism_op.hpp); this stop parks the
     /// DRIVE on top of that.
     void recordStop(const char* name, RoutineStopCause cause, control::ExitReason exit,
-                    const char* detail = nullptr) {
+                    const char* detail = nullptr,
+                    manipulation::MechanismOutcome verdict = manipulation::MechanismOutcome::Running,
+                    bool cancelled = false) {
         ++steps_;
+        const OnFail choice = cur_;
+        if (choice.kind != OnFail::Kind::Stop) {
+            // THE CUT ALWAYS STOPS (the file banner's first rule): the choice is ignored.
+            const bool wasCancelled = cancelled || exit == control::ExitReason::Cancelled ||
+                                      verdict == manipulation::MechanismOutcome::Cancelled;
+            if (wasCancelled || timeIsUp()) {
+                stopHere(name, cause, exit, detail, verdict,
+                         wasCancelled ? " — the step was CANCELLED, so its on-failure choice is ignored"
+                                      : " — the time is up, so its on-failure choice is ignored");
+                return;
+            }
+            if (choice.kind == OnFail::Kind::SkipTo && labelSeen(choice.target)) {
+                stopHere(name, cause, exit, detail, verdict, nullptr, choice.target);
+                return;
+            }
+            carryOnFrom(name, cause, exit, detail, verdict, choice);
+            return;
+        }
+        stopHere(name, cause, exit, detail, verdict);
+    }
+
+    /// The chain STOPS at the step just counted (steps_): today's stop, word for word, plus a
+    /// clause when an on-failure choice was overruled (`why`) or a skip target is behind
+    /// (`behindTarget`).
+    void stopHere(const char* name, RoutineStopCause cause, control::ExitReason exit, const char* detail,
+                  manipulation::MechanismOutcome verdict, const char* why = nullptr,
+                  const char* behindTarget = nullptr) {
         stoppedAt_ = steps_;
         stoppedName_ = name;
         cause_ = cause;
         exit_ = exit;
+        mechStop_ = verdict;
         chassis_->cancel();  // 0 V + Brake — the routine parks where it stopped
         diag::lineformat::Line line;
         line.appendLiteral("routine '");
@@ -526,8 +1567,135 @@ private:
             line.appendLiteral(detail);
             line.appendLiteral(")");
         }
+        if (why != nullptr) {
+            line.appendLiteral(why);
+        }
+        if (behindTarget != nullptr) {
+            line.appendLiteral(" — its skip target '");
+            line.appendLiteral(behindTarget);
+            line.appendLiteral("' is behind it: a skip only goes forward");
+        }
         line.appendLiteral(" — skipping the rest; drive safed");
         chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line.view());
+    }
+
+    /// STEP1-A: a failure the chain goes on from (carryOn), or starts skipping from (skipTo):
+    /// counted, the drive safed exactly as a stop safes it, one Warn.
+    void carryOnFrom(const char* name, RoutineStopCause cause, control::ExitReason exit, const char* detail,
+                     manipulation::MechanismOutcome verdict, OnFail choice) {
+        ++failedOn_;
+        if (firstFailedAt_ == 0) {
+            firstFailedAt_ = steps_;
+            firstFailedName_ = name;
+            firstFailedCause_ = cause;
+        }
+        chassis_->cancel();  // the same safe state a stop leaves: the next step starts from rest
+        diag::lineformat::Line line;
+        line.appendLiteral("routine '");
+        line.appendLiteral(name_);
+        line.appendLiteral("': step ");
+        diag::lineformat::appendUnsigned(line, static_cast<unsigned long>(steps_));
+        line.appendLiteral(" (");
+        line.appendLiteral(name);
+        line.appendLiteral(") FAILED: ");
+        line.appendLiteral(stopCauseText(cause, exit));
+        if (detail != nullptr) {
+            line.appendLiteral(" (");
+            line.appendLiteral(detail);
+            line.appendLiteral(")");
+        }
+        if (choice.kind == OnFail::Kind::SkipTo) {
+            line.appendLiteral(" — skipping to '");
+            line.appendLiteral(choice.target);
+            line.appendLiteral("'; drive safed");
+            skipTo_ = choice.target;
+            skipFrom_ = SkipOrigin{steps_, name, cause, exit, verdict};
+        } else {
+            line.appendLiteral(" — carrying on; drive safed");
+        }
+        chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line.view());
+    }
+
+    /// STEP1-A (A5): the guard's time ran out while a skip was still looking for its step. The skip
+    /// never resumes scoring after the buzzer: its failure becomes the chain's STOP, exactly as if
+    /// the failing step had chosen stop (the cut rule ignores the choice) — so it leaves the
+    /// carried-on count, and every step from here on is skipped. It does NOT cancel the drive: the
+    /// failure already safed it (carryOnFrom, as a stop would have), and from the deadline on this
+    /// chain must do exactly what the default chain does — whose skipped steps cancel nothing, and
+    /// whose stray Tier-3 motion the guard's latch cuts (ST15 (d)'s stray-motion case).
+    void stopPendingSkip() {
+        const char* target = skipTo_;
+        skipTo_ = nullptr;
+        --failedOn_;
+        if (firstFailedAt_ == skipFrom_.at) {
+            firstFailedAt_ = 0;
+            firstFailedName_ = "";
+            firstFailedCause_ = RoutineStopCause::None;
+        }
+        stoppedAt_ = skipFrom_.at;
+        stoppedName_ = skipFrom_.name;
+        cause_ = skipFrom_.cause;
+        exit_ = skipFrom_.exit;
+        mechStop_ = skipFrom_.verdict;
+        diag::lineformat::Line line;
+        line.appendLiteral("routine '");
+        line.appendLiteral(name_);
+        line.appendLiteral("' STOPPED at step ");
+        diag::lineformat::appendUnsigned(line, static_cast<unsigned long>(stoppedAt_));
+        line.appendLiteral(" (");
+        line.appendLiteral(stoppedName_);
+        line.appendLiteral("): ");
+        line.appendLiteral(stopCauseText(cause_, exit_));
+        line.appendLiteral(" — the time ran out while skipping to '");
+        line.appendLiteral(target);
+        line.appendLiteral("' — skipping the rest; drive safed");
+        chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line.view());
+    }
+
+    /// STEP1-A: the cut rule's guard read — running() FIRST (expired() throws with no run live, and
+    /// programs build AutonContexts over idle guards), and false with no guard at all.
+    [[nodiscard]] bool timeIsUp() const { return guard_ != nullptr && guard_->running() && guard_->expired(); }
+
+    /// STEP1-A: whole-string, case-sensitive; a null never matches.
+    [[nodiscard]] static bool sameLabel(const char* a, const char* b) noexcept {
+        return a != nullptr && b != nullptr && std::string_view{a} == std::string_view{b};
+    }
+    /// STEP1-A: remember a label this routine has passed (the last kLabelMemory; no heap).
+    void rememberLabel(const char* label) noexcept {
+        labels_[labelCount_ % kLabelMemory] = label;
+        ++labelCount_;
+    }
+    /// STEP1-A: has this routine passed a step labelled `label` (within the last kLabelMemory)?
+    [[nodiscard]] bool labelSeen(const char* label) const noexcept {
+        const std::size_t n = labelCount_ < kLabelMemory ? labelCount_ : kLabelMemory;
+        for (std::size_t i = 0; i < n; ++i) {
+            if (sameLabel(labels_[i], label)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /// STEP1-A: the Warn when a skip's target is behind it as it is WRITTEN (every run that reaches
+    /// the line, so a bench run shows it before a match does). Nothing else changes.
+    void warnBehind(const char* target) {
+        diag::lineformat::Line line;
+        line.appendLiteral("routine '");
+        line.appendLiteral(name_);
+        line.appendLiteral("': step ");
+        diag::lineformat::appendUnsigned(line, static_cast<unsigned long>(steps_ + 1));
+        line.appendLiteral(": its skip target '");
+        line.appendLiteral(target);
+        line.appendLiteral("' is behind it: a skip only goes forward (if the step fails, the routine stops)");
+        chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line.view());
+    }
+    /// STEP1-A: the context's run guard, when it has one.
+    template <class Context>
+    [[nodiscard]] static sequence::RunGuard* guardOf(Context& ctx) noexcept {
+        if constexpr (detail::RoutineContextWithGuard<Context>) {
+            return &static_cast<sequence::RunGuard&>(ctx.guard);
+        } else {
+            return nullptr;
+        }
     }
 
     [[nodiscard]] static const char* stopCauseText(RoutineStopCause cause,
@@ -549,9 +1717,654 @@ private:
                 return "action FAILED";
             case RoutineStopCause::MechanismFailed:
                 return "mechanism FAILED";
+            case RoutineStopCause::MechanismStepFailed:
+                return "mechanism step FAILED";
+            case RoutineStopCause::MechanismNotStarted:
+                return "mechanism NOT STARTED";
         }
         return "stopped";
     }
+
+    // ═══ MECH-A4: the mechanism steps' machinery — BEGIN ══════════════════════════════════════
+    /// The wait's backstop past a step's own bound (the service's deadline ends the step first).
+    static constexpr double kMechanismWaitSlackSeconds = 0.25;
+
+    /// The service, or a loud precondition naming the fix (a Routine built from a bare Chassis, or
+    /// from a context whose program passed no service).
+    [[nodiscard]] mechanism::MechanismService& mechs() const {
+        SHULIB_PRECONDITION(mechs_ != nullptr,
+                            "Routine: a mechanism step needs the robot's mechanism service -- construct it as "
+                            "Routine r{ctx, \"name\"} in an auton, in a program that passes its mechanism service "
+                            "to runAuton");
+        return *mechs_;
+    }
+    /// Remember that THIS routine began the slot's current step (waitUntilDone() collects only it).
+    void noteStarted(const mechanism::Slot& s) noexcept {
+        if (s.index() < mechanism::kMaxMechanisms) {
+            startedSeq_[s.index()] = s.stepsBegun();
+            notStartedWhy_[s.index()] = nullptr;  // STEP1-A (A6): only a step that BEGAN one clears the mark
+        }
+    }
+    /// Wait for `m`'s step, then record it under the verdict policy (the block's header).
+    Routine& awaitMechanism(mechanism::Slot& m, units::Time bound, const char* step) {
+        const long ticks0 = mechs().ticks();
+        if (m.running()) {
+            (void)chassis_->waitUntil([&m] { return !m.running(); },
+                                      units::Time{bound.value() + kMechanismWaitSlackSeconds});
+        }
+        lastMech_ = m.lastStep();
+        if (m.running()) {
+            // The WAIT ran out before the step's verdict: the chain stops TIMED_OUT, said. The step
+            // itself runs on to its own bound (the guard's cancel-all ends it with the run).
+            lastMech_.outcome = manipulation::MechanismOutcome::TimedOut;
+            recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
+                       mechs().ticks() == ticks0
+                           ? "TIMED_OUT: the mechanism service never ticked -- it is not in the chassis pacer's chain"
+                           : "TIMED_OUT: no verdict within the wait's bound; the step runs on to its own",
+                       manipulation::MechanismOutcome::TimedOut);
+            return *this;
+        }
+        const manipulation::MechanismOutcome o = lastMech_.outcome;
+        if (o == manipulation::MechanismOutcome::Succeeded ||
+            (o == manipulation::MechanismOutcome::Unconfirmed && lastMech_.countedDone)) {
+            recordSuccess();
+        } else {
+            recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
+                       manipulation::mechanismOutcomeName(o), o);
+        }
+        return *this;
+    }
+    /// A START form's record: the chain stops only when the start itself was ABSENT, REFUSED or
+    /// NOT_HOMED (nothing runs); anything else — still running, or already done — continues.
+    Routine& startedMechanism(const mechanism::Slot& m, const char* step) {
+        lastMech_ = m.lastStep();
+        const manipulation::MechanismOutcome o = lastMech_.outcome;
+        if (o == manipulation::MechanismOutcome::Absent || o == manipulation::MechanismOutcome::Refused ||
+            o == manipulation::MechanismOutcome::NotHomed) {
+            recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
+                       manipulation::mechanismOutcomeName(o), o);
+        } else {
+            recordSuccess();
+        }
+        return *this;
+    }
+    /// A stop step's record. The slot's stop() bumps the command number exactly when it acted; when
+    /// it did not, the mechanism is ABSENT this boot or ANOTHER owner holds its claim (REFUSED) —
+    /// either way nothing was stopped, said in the step's MECH line format, and the chain stops.
+    Routine& stoppedMechanism(const mechanism::Slot& s, std::uint32_t seqBefore, const char* step) {
+        if (s.commandSeq() != seqBefore) {
+            lastMech_ = mechanism::StepReport{.outcome = manipulation::MechanismOutcome::Succeeded};
+            recordSuccess();
+            return *this;
+        }
+        const manipulation::MechanismOutcome o =
+            s.built() ? manipulation::MechanismOutcome::Refused : manipulation::MechanismOutcome::Absent;
+        char line[200];
+        if (s.built()) {
+            std::snprintf(line, sizeof line, "'%.23s': REFUSED in 0.00s (another owner holds its claim: the stop did "
+                          "nothing)", s.name());
+        } else {
+            std::snprintf(line, sizeof line, "'%.23s': ABSENT in 0.00s (not built at boot: %.120s)", s.name(),
+                          s.absence());
+        }
+        chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "MECH", line);
+        lastMech_ = mechanism::StepReport{.outcome = o};
+        recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
+                   manipulation::mechanismOutcomeName(o), o);
+        return *this;
+    }
+    /// A step whose mechanism this robot's service cannot find: ABSENT, said, and the chain stops —
+    /// nothing was commanded. Three sentences: the service is not bound at all, no mechanism of that
+    /// NAME on this robot, or one of that name that is not what the step names (another robot's
+    /// declaration — a different kind, units, preset or position; autons are per robot).
+    Routine& notOnThisRobot(const char* mechanismName, const char* step) {
+        logNotOnThisRobot(mechanismName);
+        lastMech_ = mechanism::StepReport{.outcome = manipulation::MechanismOutcome::Absent};
+        recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
+                   manipulation::mechanismOutcomeName(manipulation::MechanismOutcome::Absent),
+                   manipulation::MechanismOutcome::Absent);
+        return *this;
+    }
+    /// notOnThisRobot()'s LOGGING half (factored out at STEP1-B, so a partway trigger's fire — inside
+    /// a tick, where the recording half must never run — says the same sentence).
+    void logNotOnThisRobot(const char* mechanismName) {
+        const char* n = mechanismName != nullptr ? mechanismName : "?";
+        char line[220];
+        if (!mechs().bound()) {
+            std::snprintf(line, sizeof line,
+                          "'%.23s': the mechanism service is not bound (the program bound no robot list): the step "
+                          "did nothing",
+                          n);
+        } else if (mechs().slotFor(mechanismName) == nullptr) {
+            std::snprintf(line, sizeof line,
+                          "'%.23s' is not on this robot (its wiring list does not have it): the step did nothing", n);
+        } else {
+            std::snprintf(line, sizeof line,
+                          "'%.23s' on this robot is not the mechanism this step names (another robot's declaration: "
+                          "a different kind, units, preset or position): the step did nothing",
+                          n);
+        }
+        chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "MECH", line);
+    }
+    /// A STARTING step that found nothing to start: notOnThisRobot(), and (STEP1-A, A6) the same-named
+    /// slot, when this robot has one, marked — its start did nothing, so a later wait on it (reachable
+    /// under onFail(carryOn)) answers MechanismNotStarted rather than throwing or collecting an older step's
+    /// verdict. Under the default the chain stops here and the mark is never read.
+    Routine& startNotOnThisRobot(const char* mechanismName, const char* step) {
+        markNotStarted(mechanismName, "its start did nothing: another robot's declaration");
+        return notOnThisRobot(mechanismName, step);
+    }
+    Routine& positionStep(const mechanism::PositionGoal& goal, units::Time bound, const char* name, bool wait) {
+        const char* step = name != nullptr ? name : goal.mechanismName;
+        if (startingStepPassed(step, goal.mechanismName)) {
+            return *this;
+        }
+        mechanism::PositionSlot* m = mechs().find(goal);
+        if (m == nullptr) {
+            return startNotOnThisRobot(goal.mechanismName, step);
+        }
+        m->moveTo(goal.value, bound, goal.computed);
+        noteStarted(*m);
+        return wait ? awaitMechanism(*m, bound, step) : startedMechanism(*m, step);
+    }
+    template <class Declared>
+    Routine& homeStep(const Declared& d, units::Time bound, const char* name, bool wait) {
+        const char* step = name != nullptr ? name : d.name.text;
+        if (startingStepPassed(step, d.name.text)) {
+            return *this;
+        }
+        mechanism::PositionSlot* m = mechs().find(d);
+        if (m == nullptr) {
+            return startNotOnThisRobot(d.name.text, step);
+        }
+        m->home(bound);
+        noteStarted(*m);
+        return wait ? awaitMechanism(*m, bound, step) : startedMechanism(*m, step);
+    }
+    Routine& powerStep(const mechanism::Power& d, units::Voltage volts, mechanism::Until until, units::Time bound,
+                       const char* name, bool wait) {
+        const char* step = name != nullptr ? name : d.name.text;
+        if (startingStepPassed(step, d.name.text)) {
+            return *this;
+        }
+        mechanism::PowerSlot* m = mechs().find(d);
+        if (m == nullptr) {
+            return startNotOnThisRobot(d.name.text, step);
+        }
+        m->run(volts, until, bound);
+        noteStarted(*m);
+        return wait ? awaitMechanism(*m, bound, step) : startedMechanism(*m, step);
+    }
+    Routine& speedStep(const mechanism::SpeedGoal& goal, units::Time bound, const char* name, bool wait) {
+        const char* step = name != nullptr ? name : goal.mechanismName;
+        if (startingStepPassed(step, goal.mechanismName)) {
+            return *this;
+        }
+        mechanism::SpeedSlot* m = mechs().find(goal);
+        if (m == nullptr) {
+            return startNotOnThisRobot(goal.mechanismName, step);
+        }
+        m->spinUp(goal.rpm, bound, goal.computed);
+        noteStarted(*m);
+        return wait ? awaitMechanism(*m, bound, step) : startedMechanism(*m, step);
+    }
+    // ═══ MECH-A4: the mechanism steps' machinery — END ════════════════════════════════════════
+
+    // ═══ STEP1-B: partway triggers' machinery — BEGIN ═══════════════════════════════════════════
+    /// How many triggers ride one leg (the brief's §1.2).
+    static constexpr int kMaxTriggers = 4;
+
+    /// Which start a trigger fires.
+    enum class TriggerStart : std::uint8_t { Move, Home, Run, SpinUp };
+
+    /// One armed trigger: its mark, its start's arguments, the slot ARMING found (null = not on this
+    /// robot: it fires ABSENT), and what happened when it fired.
+    struct Trigger {
+        TriggerSpec spec{};
+        TriggerStart start = TriggerStart::Move;
+        const char* mechanismName = nullptr;  ///< the declaration's name (marks, B8, the lines)
+        mechanism::PositionSlot* position = nullptr;
+        mechanism::PowerSlot* power = nullptr;
+        mechanism::SpeedSlot* speed = nullptr;
+        double target = 0.0;  ///< Move: the position; SpinUp: the rpm
+        bool computed = true;
+        units::Time bound{0.0};
+        units::Voltage volts{0.0};
+        mechanism::Until until = mechanism::Until::bound();
+        const char* name = nullptr;  ///< the start form's `name` (null = none): said in the trigger's lines
+        bool fired = false;
+        std::uint32_t fireOrder = 0;     ///< when it fired, among this Routine's fires (B6: the FIRST failing)
+        mechanism::StepReport report{};  ///< the slot's report right after the fire's command
+        std::exception_ptr error{};      ///< B7's backstop: a precondition the fire's command threw
+        [[nodiscard]] mechanism::Slot* slot() const noexcept {
+            if (position != nullptr) {
+                return position;
+            }
+            if (power != nullptr) {
+                return power;
+            }
+            return speed;
+        }
+    };
+
+    /// B9 (3): a precondition from the trigger machinery leaves the Routine UNARMED, with no modifier
+    /// pending (a host test that catches it finds the counters untouched and nothing armed).
+    void disarm() noexcept {
+        armedCount_ = 0;
+        pendingMark_ = false;
+        pendingFail_ = stopChain;
+        pendingFailSet_ = false;
+        pendingLabel_ = nullptr;
+    }
+    /// B9 (2): with a trigger armed the only way on is its handle — any other call on the Routine is a
+    /// precondition (deterministic: the bench finds it). Clears first (B9 (3)).
+    void requireUnarmed() {
+        const bool armed = armedCount_ != 0;
+        const bool marked = pendingMark_;
+        if (armed || marked) {
+            disarm();
+        }
+        SHULIB_PRECONDITION(!armed,
+                            "Routine: a partway trigger is armed, so its drive must come next, on its handle -- "
+                            "r.atPercent(60).startMove(lift[\"high\"], 2_s).driveTo(0_in, 48_in); (a trigger "
+                            "line that ends without its drive does nothing)");
+        SHULIB_PRECONDITION(!marked,
+                            "Routine: a partway trigger's mark is written, so its start and its drive must come "
+                            "next -- r.atPercent(60).startMove(lift[\"high\"], 2_s).driveTo(0_in, 48_in); (a "
+                            "trigger line that ends at its mark does nothing)");
+    }
+    /// A NEW trigger line (r.atPercent / afterDistance / afterTurning, after requireUnarmed): its
+    /// number, which every handle the line returns carries (B9 (2): a handle drives ITS line only).
+    std::uint32_t newLine() noexcept { return ++armGen_; }
+    /// A mark written on line `gen`: pending until its start form arms it (a line that ENDS at the
+    /// mark is refused by the next call, or said by the destructor). Returns `gen`.
+    std::uint32_t openMark(std::uint32_t gen) noexcept {
+        pendingMark_ = true;
+        return gen;
+    }
+    /// B9 (2): an ArmedLeg handle acts only for the line now armed — its own, with no mark pending.
+    /// A kept handle used after its leg ran, after its line was cleared, or after ANOTHER line was
+    /// armed is a precondition (the other line's kinds would ride the wrong leg). Clears first.
+    void requireLine(std::uint32_t gen) {
+        const bool ran = armedCount_ == 0;
+        const bool other = !ran && gen != armGen_;
+        const bool marked = !ran && !other && pendingMark_;
+        if (ran || other || marked) {
+            disarm();
+        }
+        SHULIB_PRECONDITION(!ran, "Routine: this trigger handle's drive already ran -- a handle drives once");
+        SHULIB_PRECONDITION(!other, "Routine: this trigger handle is from an EARLIER trigger line -- another line "
+                                    "is armed now; a handle drives once, on the line that armed it");
+        SHULIB_PRECONDITION(!marked, "Routine: a partway trigger's mark is written on this handle but not "
+                                     "started -- write its start (startMove / startHome / startRun / startSpinUp) "
+                                     "before the drive");
+    }
+    /// The three marks' range checks (the brief's re-check #3), each clearing first (B9 (3)).
+    TriggerSpec percentMark(double percent) {
+        const bool ok = std::isfinite(percent) && percent > 0.0 && percent <= 100.0;
+        if (!ok) {
+            disarm();
+        }
+        SHULIB_PRECONDITION(ok, "r.atPercent(...): the percent must be above 0 and at most 100 (\"at 0 %\" is a "
+                                "start step written BEFORE the drive: r.startMove(...).driveTo(...))");
+        return TriggerSpec{TriggerSpec::Mark::Percent, percent / 100.0};
+    }
+    TriggerSpec distanceMark(units::Length distance) {
+        const bool ok = std::isfinite(distance.value()) && distance.value() > 0.0;
+        if (!ok) {
+            disarm();
+        }
+        SHULIB_PRECONDITION(ok, "r.afterDistance(...): the distance must be finite and above 0");
+        return TriggerSpec{TriggerSpec::Mark::Distance, distance.value()};
+    }
+    TriggerSpec turnedMark(math::Angle angle) {
+        const bool ok = angle.radians() > 0.0;
+        if (!ok) {
+            disarm();
+        }
+        SHULIB_PRECONDITION(ok, "r.afterTurning(...): the angle must be above 0 (an angle is wrapped into "
+                                "(-180, 180] degrees, so 270_deg is -90 and a turn never turns more than 180)");
+        return TriggerSpec{TriggerSpec::Mark::Turned, angle.radians()};
+    }
+
+    /// ARM one trigger: the room (4 per leg), one per mechanism (B8 — the second would cancel the
+    /// first mid-leg, the service's newer-command rule), the service (mechs()'s own precondition), the
+    /// slot (`find`, noexcept; null = not on this robot) and the start's OWN checks (`check`, D8 (a)).
+    /// Anything thrown clears first (B9 (3)); nothing is commanded.
+    template <class Find>
+    void arm(Trigger t, std::uint32_t gen, Find&& findAndCheck) {
+        try {
+            SHULIB_PRECONDITION(pendingMark_ && gen == armGen_,
+                                "Routine: this trigger mark was already started, or is from an earlier trigger "
+                                "line -- write the mark, its start and its drive on ONE line");
+            SHULIB_PRECONDITION(armedCount_ < kMaxTriggers,
+                                "Routine: at most 4 partway triggers ride one drive");
+            for (int i = 0; i < armedCount_; ++i) {
+                SHULIB_PRECONDITION(!sameLabel(armed_[i].mechanismName, t.mechanismName),
+                                    "Routine: two partway triggers on ONE mechanism in one drive -- the second "
+                                    "would cancel the first mid-drive (the most recent command wins); start it "
+                                    "once, or split the drive");
+            }
+            findAndCheck(mechs(), t);
+        } catch (...) {
+            disarm();
+            throw;
+        }
+        armed_[armedCount_++] = t;
+        pendingMark_ = false;
+    }
+    void armMove(TriggerSpec spec, std::uint32_t gen, const mechanism::PositionGoal& goal, units::Time bound,
+                 const char* name) {
+        Trigger t{};
+        t.spec = spec;
+        t.name = name;
+        t.start = TriggerStart::Move;
+        t.mechanismName = goal.mechanismName;
+        t.target = goal.value;
+        t.computed = goal.computed;
+        t.bound = bound;
+        arm(t, gen, [&goal](mechanism::MechanismService& svc, Trigger& armed) {
+            armed.position = svc.find(goal);
+            if (armed.position != nullptr) {
+                armed.position->checkMoveTo(armed.target, armed.bound, armed.computed);
+            }
+        });
+    }
+    template <class Declared>
+    void armHome(TriggerSpec spec, std::uint32_t gen, const Declared& d, units::Time bound, const char* name) {
+        Trigger t{};
+        t.spec = spec;
+        t.name = name;
+        t.start = TriggerStart::Home;
+        t.mechanismName = d.name.text;
+        t.bound = bound;
+        arm(t, gen, [&d](mechanism::MechanismService& svc, Trigger& armed) {
+            armed.position = svc.find(d);
+            if (armed.position != nullptr) {
+                armed.position->checkHome(armed.bound);
+            }
+        });
+    }
+    void armRun(TriggerSpec spec, std::uint32_t gen, const mechanism::Power& d, units::Voltage volts,
+                mechanism::Until until, units::Time bound, const char* name) {
+        Trigger t{};
+        t.spec = spec;
+        t.name = name;
+        t.start = TriggerStart::Run;
+        t.mechanismName = d.name.text;
+        t.volts = volts;
+        t.until = until;
+        t.bound = bound;
+        arm(t, gen, [&d](mechanism::MechanismService& svc, Trigger& armed) {
+            armed.power = svc.find(d);
+            if (armed.power != nullptr) {
+                (void)armed.power->checkRun(armed.volts, armed.until, armed.bound);
+            }
+        });
+    }
+    void armSpinUp(TriggerSpec spec, std::uint32_t gen, const mechanism::SpeedGoal& goal, units::Time bound,
+                   const char* name) {
+        Trigger t{};
+        t.spec = spec;
+        t.name = name;
+        t.start = TriggerStart::SpinUp;
+        t.mechanismName = goal.mechanismName;
+        t.target = goal.rpm;
+        t.computed = goal.computed;
+        t.bound = bound;
+        arm(t, gen, [&goal](mechanism::MechanismService& svc, Trigger& armed) {
+            armed.speed = svc.find(goal);
+            if (armed.speed != nullptr) {
+                armed.speed->checkSpinUp(armed.target, armed.bound, armed.computed);
+            }
+        });
+    }
+
+    /// Clears the armed triggers when an armed leg ends — normally or by a throw (B9 (3)).
+    struct DisarmOnExit {
+        Routine& r;
+        ~DisarmOnExit() { r.disarm(); }
+    };
+
+    /// THE ARMED LEG: the door (a skipped or jumped leg fires nothing and marks each trigger's
+    /// mechanism — ST32), then ONE observed Chassis call, then the one record (finishLeg).
+    template <class Leg>
+    Routine& runArmedLeg(std::uint32_t gen, const char* name, Leg&& leg) {
+        requireLine(gen);  // B9 (2): this handle's own line, armed, no mark pending — or a precondition
+        DisarmOnExit scope{*this};
+        if (enterStep(name, /*armedLeg=*/true) != Door::Run) {
+            for (int i = 0; i < armedCount_; ++i) {
+                markNotStarted(armed_[i].mechanismName, "the trigger never fired: its drive was skipped");
+            }
+            return *this;
+        }
+        legProgress_ = motion::LegProgress{};
+        const control::ExitReason exit = leg(LegObserver{&Routine::onLegProgress, this});
+        return finishLeg(name, exit);
+    }
+    Routine& armedMoveTo(std::uint32_t gen, const math::Pose2d& target, const MotionOptions& options) {
+        return runArmedLeg(gen, "moveTo", [&](LegObserver o) { return chassis_->moveTo(target, options, o); });
+    }
+    Routine& armedDriveTo(std::uint32_t gen, const char* name, units::Length x, units::Length y,
+                          const MotionOptions& options, bool reverse) {
+        return runArmedLeg(gen, name, [&](LegObserver o) {
+            // the bearing when the step RUNS, after its door — driveTo / reverseTo's own order
+            const math::Angle b = reverse ? bearingTo(x, y) + math::Angle::radians(math::Angle::kPi) : bearingTo(x, y);
+            return chassis_->moveTo(math::Pose2d{x, y, b}, options, o);
+        });
+    }
+    Routine& armedTurnTo(std::uint32_t gen, math::Angle heading, const MotionOptions& options) {
+        return runArmedLeg(gen, "turnTo", [&](LegObserver o) { return chassis_->turnTo(heading, options, o); });
+    }
+    Routine& armedFace(std::uint32_t gen, const char* name, units::Length x, units::Length y,
+                       const MotionOptions& options, bool away) {
+        return runArmedLeg(gen, name, [&](LegObserver o) {
+            const math::Angle b = away ? bearingTo(x, y) + math::Angle::radians(math::Angle::kPi) : bearingTo(x, y);
+            return chassis_->turnTo(b, options, o);
+        });
+    }
+
+    /// The observer the armed leg hands the chassis (LegObserver's function pointer).
+    static void onLegProgress(void* self, const motion::LegProgress& p) {
+        static_cast<Routine*>(self)->observeLeg(p);
+    }
+    /// INSIDE the motion's tick: remember the progress; fire each unfired trigger whose mark this tick
+    /// reached (B1) — never before the leg is live, never once the guard's time is up (B2). The
+    /// observer is never called on the exit tick, nor on a tick the scheduler's fault abort ends (the
+    /// chassis's decorator), so neither is a fire.
+    void observeLeg(const motion::LegProgress& p) {
+        legProgress_ = p;
+        if (!p.live || timeIsUp()) {
+            return;
+        }
+        for (int i = 0; i < armedCount_; ++i) {
+            if (!armed_[i].fired && markReached(armed_[i].spec, p)) {
+                fire(armed_[i]);
+            }
+        }
+    }
+    /// B1: the mark reached (>=).
+    [[nodiscard]] static bool markReached(const TriggerSpec& s, const motion::LegProgress& p) noexcept {
+        switch (s.mark) {
+            case TriggerSpec::Mark::Percent:
+                return p.fraction >= s.value;
+            case TriggerSpec::Mark::Distance:
+                return p.along.value() >= s.value;
+            case TriggerSpec::Mark::Turned:
+                return p.turnedRad >= s.value;
+        }
+        return false;
+    }
+    /// B3: a mark ON the leg — a percent always; a distance or an angle no further than the leg's size
+    /// from its live start plus its EFFECTIVE arrival tolerance (D6 (i), narrowed).
+    [[nodiscard]] static bool markOnLeg(const TriggerSpec& s, const motion::LegProgress& p) noexcept {
+        switch (s.mark) {
+            case TriggerSpec::Mark::Percent:
+                return true;
+            case TriggerSpec::Mark::Distance:
+                return s.value <= p.length.value() + p.positionTolerance.value();
+            case TriggerSpec::Mark::Turned:
+                return s.value <= p.sizeRad + p.headingToleranceRad;
+        }
+        return false;
+    }
+    /// THE FIRE (the brief's §1.2 "the fire's own path", L16): the slot's command → noteStarted → keep
+    /// the slot's start report. Nothing of the chain's machinery — no door, no record, no stop, no
+    /// cancel — so a refused start (ABSENT / REFUSED / NOT_HOMED) never touches the drive: the leg
+    /// runs to its own verdict and finishLeg() records the drive step once. A trigger whose
+    /// mechanism is not on this robot fires ABSENT (nothing commanded; notOnThisRobot's sentence).
+    /// B7: the try wraps ONLY the command and catches PreconditionError only; the error is held and
+    /// thrown when the leg returns (under D8 (a) the command cannot throw one: arming ran its checks).
+    void fire(Trigger& t) {
+        t.fired = true;
+        t.fireOrder = ++fires_;
+        mechanism::Slot* s = t.slot();
+        if (s == nullptr) {
+            logNotOnThisRobot(t.mechanismName);
+            markNotStarted(t.mechanismName, "its start did nothing: another robot's declaration");
+            t.report = mechanism::StepReport{.outcome = manipulation::MechanismOutcome::Absent};
+            return;
+        }
+        try {
+            switch (t.start) {
+                case TriggerStart::Move:
+                    t.position->moveTo(t.target, t.bound, t.computed);
+                    break;
+                case TriggerStart::Home:
+                    t.position->home(t.bound);
+                    break;
+                case TriggerStart::Run:
+                    t.power->run(t.volts, t.until, t.bound);
+                    break;
+                case TriggerStart::SpinUp:
+                    t.speed->spinUp(t.target, t.bound, t.computed);
+                    break;
+            }
+        } catch (const PreconditionError&) {
+            t.error = std::current_exception();
+            return;
+        }
+        noteStarted(*s);
+        t.report = s->lastStep();
+    }
+    /// A trigger's mark in words, for a line ("at 60 %", "after 20.0 in", "after 45.0 deg").
+    static void describeMark(const TriggerSpec& s, char* out, std::size_t n) noexcept {
+        switch (s.mark) {
+            case TriggerSpec::Mark::Percent:
+                std::snprintf(out, n, "at %.0f %%", s.value * 100.0);
+                return;
+            case TriggerSpec::Mark::Distance:
+                std::snprintf(out, n, "after %.1f in", std::min(s.value, 99999.0));
+                return;
+            case TriggerSpec::Mark::Turned:
+                std::snprintf(out, n, "after %.1f deg", s.value * 180.0 / math::Angle::kPi);
+                return;
+        }
+        std::snprintf(out, n, "?");
+    }
+    /// A trigger in words, for a line: its name if the start form was given one, its mark, its mechanism
+    /// ("'raise' at 60 % on 'lift'", "after 20.0 in on 'intake'").
+    static void describeTrigger(const Trigger& t, char* out, std::size_t n) noexcept {
+        char mark[32];
+        describeMark(t.spec, mark, sizeof mark);
+        if (t.name != nullptr) {
+            std::snprintf(out, n, "'%.23s' %s on '%.23s'", t.name, mark, t.mechanismName);
+        } else {
+            std::snprintf(out, n, "%s on '%.23s'", mark, t.mechanismName);
+        }
+    }
+    /// AFTER THE LEG, outside the tick: B7's re-throw; B3's settle fire; B4's marks (and B3's line for
+    /// a mark past the leg); then the drive step recorded ONCE (D7 (a), B6).
+    Routine& finishLeg(const char* name, control::ExitReason exit) {
+        rethrowHeldError();
+        const bool settled = exit == control::ExitReason::Settled;
+        if (settled && !timeIsUp()) {
+            for (int i = 0; i < armedCount_; ++i) {
+                if (!armed_[i].fired && markOnLeg(armed_[i].spec, legProgress_)) {
+                    fire(armed_[i]);  // D6 (i): it arrived, within the tolerance the step accepts
+                }
+            }
+            rethrowHeldError();
+        }
+        const Trigger* failing = nullptr;
+        const Trigger* lastFired = nullptr;
+        for (int i = 0; i < armedCount_; ++i) {
+            Trigger& t = armed_[i];
+            if (!t.fired) {
+                markNotStarted(t.mechanismName, "the trigger never fired: the robot did not reach the mark");
+                if (settled && !markOnLeg(t.spec, legProgress_)) {
+                    warnMarkPastLeg(name, t);
+                }
+                continue;
+            }
+            // B6: the FIRST to fail and the LAST to fire, in the order they FIRED (not armed)
+            if (lastFired == nullptr || t.fireOrder > lastFired->fireOrder) {
+                lastFired = &t;
+            }
+            const manipulation::MechanismOutcome o = t.report.outcome;
+            if ((o == manipulation::MechanismOutcome::Absent || o == manipulation::MechanismOutcome::Refused ||
+                 o == manipulation::MechanismOutcome::NotHomed) &&
+                (failing == nullptr || t.fireOrder < failing->fireOrder)) {
+                failing = &t;
+            }
+        }
+        if (failing != nullptr) {
+            lastMech_ = failing->report;
+        } else if (lastFired != nullptr) {
+            lastMech_ = lastFired->report;
+        }
+        char what[96];
+        char detail[160];
+        if (!settled) {
+            const char* d = nullptr;
+            if (failing != nullptr) {
+                describeTrigger(*failing, what, sizeof what);
+                std::snprintf(detail, sizeof detail, "its trigger %s was %s", what,
+                              manipulation::mechanismOutcomeName(failing->report.outcome));
+                d = detail;
+            }
+            recordStop(name, RoutineStopCause::MotionFailed, exit, d);
+        } else if (failing != nullptr) {
+            describeTrigger(*failing, what, sizeof what);
+            std::snprintf(detail, sizeof detail, "%s: its trigger %s",
+                          manipulation::mechanismOutcomeName(failing->report.outcome), what);
+            recordStop(name, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running, detail,
+                       failing->report.outcome);
+        } else {
+            recordSuccess();
+        }
+        return *this;
+    }
+    /// B7: the first error a fire held, thrown now (the triggers are cleared on the way out).
+    void rethrowHeldError() {
+        for (int i = 0; i < armedCount_; ++i) {
+            if (armed_[i].error) {
+                std::rethrow_exception(armed_[i].error);
+            }
+        }
+    }
+    /// B3: a mark past a leg that ARRIVED never fires — said once, after the leg.
+    /// The mark's kind IS the leg's: a Distance mark rides only a drive and a Turned mark only a turn
+    /// (the handles' kinds, requireLine — a kept handle cannot carry one line's marks onto another's
+    /// leg — and arm()'s line check — nor can a kept mark); a Percent mark is always on the leg, so it
+    /// never reaches here.
+    void warnMarkPastLeg(const char* name, const Trigger& t) {
+        char what[96];
+        describeTrigger(t, what, sizeof what);
+        char line[240];
+        if (t.spec.mark == TriggerSpec::Mark::Turned) {
+            std::snprintf(line, sizeof line,
+                          "routine '%.24s': step %d (%.24s): trigger %s did not fire: the turn was %.1f deg",
+                          name_, steps_ + 1, name, what, legProgress_.sizeRad * 180.0 / math::Angle::kPi);
+        } else {
+            std::snprintf(line, sizeof line,
+                          "routine '%.24s': step %d (%.24s): trigger %s did not fire: the drive was %.1f in",
+                          name_, steps_ + 1, name, what, std::min(legProgress_.length.value(), 99999.0));
+        }
+        chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line);
+    }
+    // ═══ STEP1-B: partway triggers' machinery — END ═════════════════════════════════════════════
+
 
     Chassis* chassis_;
     const char* name_;
@@ -565,6 +2378,74 @@ private:
     const char* stoppedName_ = "";
     RoutineStopCause cause_ = RoutineStopCause::None;
     control::ExitReason exit_ = control::ExitReason::Running;
+    // ═══ MECH-A4 (declared LAST, so the frozen constructor's initializer order is untouched) ═══
+    mechanism::MechanismService* mechs_ = nullptr;  ///< the robot's service; null = a chassis-only routine
+    mechanism::StepReport lastMech_{};              ///< lastMechanism()
+    /// The failing mechanism step's verdict (RoutineResult::mechanismVerdict); Running = none.
+    manipulation::MechanismOutcome mechStop_ = manipulation::MechanismOutcome::Running;
+    /// Per slot index: the slot's stepsBegun() right after THIS routine began a step on it (0 = none).
+    std::uint32_t startedSeq_[mechanism::kMaxMechanisms]{};
+    // ═══ STEP1-A: the on-failure choice's state (declared LAST, after MECH-A4's, so neither
+    //     constructor's initializer order moves) ══════════════════════════════════════════════════
+    /// How many step labels the "behind" check remembers (D3: past this, a behind target reads as
+    /// one that never comes — the robot does the same either way).
+    static constexpr std::size_t kLabelMemory = 32;
+    /// The context's run guard (the cut rule); null = a guard-less Routine (Routine(Chassis&), or a
+    /// context with no `guard`).
+    sequence::RunGuard* guard_ = nullptr;
+    OnFail pendingFail_ = stopChain;     ///< onFail() written for the next step
+    bool pendingFailSet_ = false;        ///< ... and whether one was (two in a row is refused)
+    const char* pendingLabel_ = nullptr; ///< label() written for the next step
+    OnFail cur_ = stopChain;             ///< the step in progress' choice (bound at its door)
+    const char* curLabel_ = nullptr;     ///< the step in progress' label
+    bool warnedNoGuard_ = false;         ///< the guard-less Warn, once
+    const char* labels_[kLabelMemory]{}; ///< the labels passed, a ring
+    std::size_t labelCount_ = 0;         ///< how many were ever remembered
+    int failedOn_ = 0;
+    int firstFailedAt_ = 0;
+    const char* firstFailedName_ = "";
+    RoutineStopCause firstFailedCause_ = RoutineStopCause::None;
+    int jumped_ = 0;
+    const char* skipTo_ = nullptr;  ///< the label a skip is looking for (null = none)
+    /// The failure a pending skip started from (stopPendingSkip() makes it the stop).
+    struct SkipOrigin {
+        int at = 0;
+        const char* name = "";
+        RoutineStopCause cause = RoutineStopCause::None;
+        control::ExitReason exit = control::ExitReason::Running;
+        manipulation::MechanismOutcome verdict = manipulation::MechanismOutcome::Running;
+    };
+    SkipOrigin skipFrom_{};
+    /// Per slot index: why a later waitUntilDone() answers MechanismNotStarted (null = not marked).
+    const char* notStartedWhy_[mechanism::kMaxMechanisms]{};
+    // ═══ STEP1-B: the partway triggers' state (declared LAST, after STEP1-A's) ═══════════════════
+    Trigger armed_[kMaxTriggers]{};          ///< the triggers armed for the next leg
+    int armedCount_ = 0;                     ///< how many (0 = unarmed)
+    bool pendingMark_ = false;               ///< a mark written, its start form not yet run (B9 (2))
+    std::uint32_t armGen_ = 0;               ///< the current trigger LINE's number (newLine())
+    std::uint32_t fires_ = 0;                ///< fires so far (each trigger's fireOrder)
+    motion::LegProgress legProgress_{};      ///< the leg's last progress (its geometry, for B3)
 };
 
 }  // namespace shulib::chassis
+
+// MECH-A4: an AUTON's words, beside the robot file's mechanism words (mechanism/kinds.hpp), so a
+// team's auton reads `RoutineResult scoreThree(AutonContext& ctx) { Routine r{ctx, "score-three"};
+// ... }` with no library namespace in it — `using namespace robot_two;` brings them, because the
+// robot's namespace says `using namespace mechanism::words;`. (AutonContext joins them in
+// competition/auton_registry.hpp.)
+namespace shulib::mechanism::words {
+/// An auton's step chain: `Routine r{ctx, "name"}`.
+using chassis::Routine;
+/// What an auton returns: `return r.result();`.
+using chassis::RoutineResult;
+/// STEP1-A: the on-failure choice's words, so a generated auton needs no namespace either —
+/// `r.onFail(carryOn)`: count the failure and run the next step.
+using chassis::carryOn;
+/// What `r.onFail(...)` takes.
+using chassis::OnFail;
+/// `r.onFail(skipTo("x"))`: count the failure and pass over every step until `r.label("x")`.
+using chassis::skipTo;
+/// `r.onFail(stopChain)`: the default rule, spelled out.
+using chassis::stopChain;
+}  // namespace shulib::mechanism::words

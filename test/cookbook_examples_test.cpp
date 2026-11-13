@@ -8,7 +8,10 @@
 //   cookbook-02a/b    -> docs/cookbook/02-when-a-step-fails.md
 //   cookbook-03a/b    -> docs/cookbook/03-timing-and-partners.md
 //   cookbook-04a/b    -> docs/cookbook/04-drivetrains.md
-//   cookbook-05a/b    -> docs/cookbook/05-mixing-tiers.md
+//   cookbook-05a/b/c  -> docs/cookbook/05-mixing-tiers.md
+//   cookbook-06a/b    -> docs/cookbook/06-driver-control.md
+//   cookbook-08a      -> the skills Toggle visit (AF1S-A1's route, over the EXPLICIT form; its page, "A skills
+//                        route that visits the Toggles", is AF1S-A2's — with the everyday form over ctx)
 //
 // The cookbook quotes these bodies VERBATIM — the same anti-rot rule the guide
 // uses (docs/internal/guide-maintenance.md rule 1), extended to docs/cookbook/.
@@ -31,10 +34,24 @@
 #include "motion_test_rig.hpp"
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/routine.hpp"
+#include "shulib/competition/auton_registry.hpp"
+#include "shulib/competition/auton_wall_reset.hpp"
+#include "shulib/hal/controller.hpp"
+#include "shulib/hal/fake/fake_controller.hpp"
+#include "shulib/hal/fake/fake_digital_out.hpp"
+#include "shulib/hal/fake/fake_motor.hpp"
 #include "shulib/hal/fake/fake_telemetry_sink.hpp"
+#include "shulib/hal/mechanism.hpp"
 #include "shulib/kinematics/tank.hpp"
 #include "shulib/kinematics/x_drive.hpp"
+#include "shulib/localization/override_walls.hpp"
+#include "shulib/localization/wall_reset.hpp"
+#include "shulib/teleop/driver_control.hpp"
+#include "shulib/teleop/mechanism_binding.hpp"
+#include "shulib/teleop/teleop_loop.hpp"
 #include "shulib/units/literals.hpp"
+#include "toggle_visit_rig.hpp"
+#include "wall_robot_rig.hpp"
 
 using namespace shulib::units::literals;
 using shulib::chassis::Chassis;
@@ -43,6 +60,20 @@ using shulib::chassis::RoutineResult;
 using shulib::chassis::RoutineStopCause;
 using shulib::chassis::TrajectoryResult;
 using shulib::control::ExitReason;
+using shulib::hal::BrakeMode;
+using shulib::hal::ControllerButton;
+using shulib::hal::MotorMechanism;
+using shulib::hal::PneumaticMechanism;
+using shulib::math::ChassisSpeeds;
+using shulib::teleop::DriverLoopConfig;
+using shulib::teleop::DriverProfile;
+using shulib::teleop::DriveShaper;
+using shulib::teleop::DriveShaperState;
+using shulib::teleop::HeadingSample;
+using shulib::teleop::MechanismBinding;
+using shulib::teleop::runDriverControl;
+using shulib::teleop::ToggleBinding;
+using shulib::teleop::validBindings;
 using shulib::math::Pose2d;
 using shulib::units::Length;
 using shulib::units::Time;
@@ -229,11 +260,37 @@ Time lateralBudget(Chassis& chassis, Length distance, double safety) {
     return Time{safety * std::abs(distance.value()) / reach};
 }
 
+
+// cookbook-01d (CURVE1): flowing through points, and the fallback the team writes with every curve.
+constexpr bool kUseCurves = false;  // OFF until the curve has passed its robot session (Station C)
+
+Routine& toTheGoal(Routine& r, bool useCurves) {
+    if (useCurves) {
+        r.curveTo({{24_in, 12_in}, {48_in, 24_in, 0_deg}}, {.timeout = 4_s});
+    } else {
+        r.face(48_in, 24_in).driveTo(48_in, 24_in, {.timeout = 4_s}).turnTo(0_deg);
+    }
+    return r;
+}
+
+RoutineResult curveThereAndBack(Chassis& chassis, bool useCurves) {
+    Routine r{chassis, "curves"};
+    toTheGoal(r, useCurves);
+    if (useCurves) {
+        r.reverseCurveTo({{24_in, 12_in}, {0_in, 0_in, 0_deg}}, {.timeout = 4_s});
+    } else {
+        r.faceAway(0_in, 0_in).reverseTo(0_in, 0_in, {.timeout = 4_s}).turnTo(0_deg);
+    }
+    return r.result();
+}
+
+// The call in the skills file: the one switch decides every curve in it.
+RoutineResult skillsOpening(Chassis& chassis) { return curveThereAndBack(chassis, kUseCurves); }
 }  // namespace
 
 // ═══════════════════════════════════════════════════════════════════════════════════
 // The cases. Every one runs its recipe against the plant and grades it on the
-// simulator's GROUND TRUTH, which the robot's own estimate never sees.
+// host test plant's GROUND TRUTH, which the robot's own estimate never sees.
 // ═══════════════════════════════════════════════════════════════════════════════════
 
 // Bug caught: the cookbook's opening claim — "this is the shape of every
@@ -327,6 +384,70 @@ TEST_CASE("cookbook-01c: a waypoint sweep, and what a broken sweep leaves you") 
 // energized after the stop, or the fallback chain silently doing nothing. Also
 // pins the confusing-but-documented detail the chapter warns about: a
 // non-motion stop leaves `exit` at Running.
+// Bug caught: a recipe that shows the curve verbs wrong — the S not settling at the goal facing 0,
+// the backwards curve not coming back with the NOSE still at 0 (its heading is the nose), the
+// fallback (today's face + driveTo + turnTo) not reaching the same pose, or a curve left OUTSIDE the
+// switch (with kUseCurves false it would still run, untested on the robot). On a TANK, as both
+// robots are.
+TEST_CASE("cookbook-01d: flowing through points — a curve, a backwards curve, and the fallback") {
+    for (const bool useCurves : {kUseCurves, true}) {
+        CAPTURE(useCurves);
+        shulib::kinematics::TankKinematics tank{12_in};
+        motion_rig::ChassisRig c{tank};
+        Routine r{c.chassis, "goal"};
+        toTheGoal(r, useCurves);
+        CHECK(r.ok());
+        CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{48_in, 24_in, 0_deg}) < 0.5);
+        CHECK(std::abs(c.rig.h.truePose().heading().errorTo(0_deg)) < 0.02);
+    }
+    // Every curve that runs logs its plan line ("curve: 2 points, ...") when it starts — count them.
+    auto curveLines = [](const shulib::hal::fake::FakeTelemetrySink& s) {
+        int n = 0;
+        for (int i = 0; i < s.size(); ++i) {
+            n += s.at(i).message.rfind("curve", 0) == 0 ? 1 : 0;
+        }
+        return n;
+    };
+    {
+        shulib::kinematics::TankKinematics tank{12_in};
+        shulib::hal::fake::FakeTelemetrySink sink;
+        motion_rig::ChassisRig c{tank, motion_rig::plantConfig(), &sink};
+        const RoutineResult res = curveThereAndBack(c.chassis, true);
+        CHECK(res.ok);
+        CHECK(res.completed == 2);
+        CHECK(curveLines(sink) >= 2);  // the counter below SEES a curve's lines (not vacuous)
+        CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{}) < 0.5);
+        CHECK(std::abs(c.rig.h.truePose().heading().errorTo(0_deg)) < 0.02);  // backed in, nose at 0
+    }
+    // The switch as shipped (false): the WHOLE routine is today's steps — not one curve runs, there
+    // or back (a curve left outside the `if` would run untested on the robot) — and it still gets
+    // there and back.
+    static_assert(!kUseCurves, "the recipe ships with curves OFF");
+    shulib::kinematics::TankKinematics tank{12_in};
+    shulib::hal::fake::FakeTelemetrySink sink;
+    motion_rig::ChassisRig c{tank, motion_rig::plantConfig(), &sink};
+    const RoutineResult res = skillsOpening(c.chassis);
+    CHECK(res.ok);
+    CHECK(res.completed == 6);  // face, driveTo, turnTo; faceAway, reverseTo, turnTo
+    CHECK(curveLines(sink) == 0);
+    CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{}) < 0.5);
+    CHECK(std::abs(c.rig.h.truePose().heading().errorTo(0_deg)) < 0.02);
+}
+
+// Bug caught: guide 05's two curve lines (quoted verbatim from here) going stale — the S not ending
+// at (48, 24) facing 0, or the backwards curve, whose last heading is the NOSE, not ending facing 0.
+TEST_CASE("guide-05: the two curve lines of Chapter 5, on a tank") {
+    shulib::kinematics::TankKinematics tank{12_in};
+    motion_rig::ChassisRig c{tank};
+    Routine r{c.chassis, "guide-05"};
+    r.curveTo({{24_in, 12_in}, {48_in, 24_in, 0_deg}});         // through (24, 12), end at (48, 24) facing 0°
+    CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{48_in, 24_in, 0_deg}) < 0.5);
+    r.reverseCurveTo({{-12_in, 30_in}, {-36_in, 36_in, 0_deg}});  // backing, still FACING 0° at the end
+    CHECK(r.ok());
+    CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{-36_in, 36_in, 0_deg}) < 0.5);
+    CHECK(std::abs(c.rig.h.truePose().heading().errorTo(0_deg)) < 0.02);
+}
+
 TEST_CASE("cookbook-02a: bail out when a grab fails — and park somewhere useful") {
     const auto kin = shulib::kinematics::xDrive(7_in);
     auto simCfg = motion_rig::plantConfig();
@@ -609,24 +730,298 @@ TEST_CASE("cookbook-05a: mixing tiers — a direct call that fails is invisible"
 // startAt() mid-chain must move the ESTIMATE and nothing else — if it also
 // moved the robot, or if it silently no-op'd once the chain had started, a team
 // squaring against a wall would be re-seeding into a lie. Ground truth is the
-// control: it must not move at all.
+// control: it must not move at all. And (chunk L6-A1, the L6 brief's D11 — a
+// flaw in the earlier recipe, fixed where it was made): a wall at x = 36 in
+// measures x ONLY — the recipe keeps y. The robot drives along y = 12 in, NOT 0,
+// so a recipe that wrote 0_in for y (the old one) turns this red (the brief's
+// M30); and startAt is a full seed — it clears the drift term for both axes.
 TEST_CASE("cookbook-05b: re-seeding the estimate in the middle of a routine") {
     const auto kin = shulib::kinematics::xDrive(7_in);
     motion_rig::ChassisRig c{kin};
 
     Routine r{c.chassis, "relocalize"};
-    r.startAt(Pose2d{0_in, 0_in, 0_deg}).driveTo(24_in, 0_in, {.timeout = 5_s});
+    r.startAt(Pose2d{0_in, 12_in, 0_deg}).driveTo(24_in, 12_in, {.timeout = 5_s});
     REQUIRE(r.ok());
 
     const Pose2d truthBefore = c.rig.h.truePose();
+    const double yBefore = c.chassis.pose().y().value();
+    REQUIRE(c.rig.loc.distanceSinceCorrection().value() > 20.0);
 
-    // Pretend the robot has just squared itself against the wall at x = 36 in:
-    // the measurement is better than the estimate, so overwrite the estimate.
+    // Pretend the robot has just squared itself against a wall at x = 36 in:
+    // a wall measures ONE axis, so overwrite x and keep y and the heading.
     // (The step is called startAt even here — see the chapter's note.)
-    r.startAt(Pose2d{36_in, 0_in, c.chassis.pose().heading()});
+    r.startAt(Pose2d{36_in, c.chassis.pose().y(), c.chassis.pose().heading()});
 
     CHECK(r.ok());
     CHECK(c.chassis.pose().x().value() == doctest::Approx(36.0));
+    CHECK(c.chassis.pose().y().value() == yBefore);  // the wall said nothing about y
+    CHECK(yBefore == doctest::Approx(12.0).epsilon(0.02));
+    // startAt is a FULL seed: the drift term restarts for both axes (the wall reset does not).
+    CHECK(c.rig.loc.distanceSinceCorrection().value() == 0.0);
     // The robot did not move an inch: seeding changes belief, not position.
     CHECK(motion_rig::posErr(c.rig.h.truePose(), truthBefore) == doctest::Approx(0.0));
+}
+
+// ═══ cookbook-05c — re-seat x against a wall, the everyday call (docs/cookbook/05-mixing-tiers.md) ═══
+// The recipe is written as src/team/autons.cpp needs it — inside `namespace shulib::bench`, so
+// `chassis::`, `competition::` and `localization::` resolve from there (chunk L6-A2; the L6 brief's D4).
+namespace shulib::bench {
+namespace {
+
+localization::WallResetReport gCookbookWall{};  // what the recipe's reset said (for the test below)
+
+// A FIELD-start auton: placed at (-55.7, -50) facing +y, its left
+// side sensor about 7 in from the left wall.
+chassis::RoutineResult leftWallReset(competition::AutonContext& ctx) {
+    chassis::Routine r{ctx, "left-wall"};
+    r.face(-55.7_in, -38_in);      // a tank turns first
+    r.driveTo(-55.7_in, -38_in);   // a leg ALONG the left wall
+    r.turnTo(90_deg);              // square to the wall: a tank turns in place
+    r.then([&] { return competition::resetFromWall(ctx,
+                     {.wall = localization::override2026::kLeftWall,
+                      .sensor = localization::WallSide::Left,
+                      .maxCorrection = 3_in}).continues(); }, "left wall x");
+    // ...the rest of the auton drives from the re-seated x.
+    // (For the test below: the robot's own reset log. Read null-safely — a robot whose slot never
+    // reached the Chassis must fail this case as "no sensor", not crash the whole suite.)
+    gCookbookWall = {};
+    if (const localization::WallSensors* slot = ctx.chassis.deps().ctx->wallSensors()) {
+        gCookbookWall = slot->log.last;
+    }
+    return r.result();
+}
+
+competition::AutonEntry leftWallEntry() {
+    competition::AutonEntry e{};
+    e.name = "left wall";
+    e.kind = competition::AutonKind::Match;
+    e.routine = &leftWallReset;
+    e.start = competition::StartPose::field(-55.7_in, -50_in, 90_deg);  // a FIELD start
+    e.endActionAt = 25_s;
+    e.hardStopAt = 28_s;
+    return e;
+}
+
+}  // namespace
+}  // namespace shulib::bench
+
+// Bug caught: a recipe that does not compile in a student's auton file (an unqualified name that only
+// resolves in a test), or that teaches a sequence that does not seat — the robot is truly placed 2.5 in
+// nearer the wall than the auton's start says, so the leg ends 2.5 in off on x; through
+// competition::runAuton (the competition program's call) on a Robot whose robot file declares the side
+// sensors, the reset must SEAT x back to within 0.1 in of the truth. And the FIELD-start rule the
+// recipe states: the SAME auton registered with a RELATIVE start is refused "not a field start" — and,
+// not `required`, the auton goes on.
+TEST_CASE("cookbook-05c: re-seat x against the left wall from a FIELD-start auton, the everyday call") {
+    SUBCASE("a FIELD start: the leg ends 2.5 in off on x, and the wall puts it back") {
+        wall_robot::WallWorld world{Pose2d{Length{-58.2}, Length{-50.0}, 90_deg}};
+        shulib::robot::Robot& robot = world.build(wall_robot::robotWith(
+            wall_robot::wallsFor(wall_rig::trueLeft(), wall_rig::trueRight())));
+        const shulib::competition::AutonRunResult res = world.run(shulib::bench::leftWallEntry());
+        REQUIRE(res.outcome == shulib::competition::AutonRunOutcome::RoutineRan);
+        CAPTURE(shulib::localization::wallResetVerdictWord(shulib::bench::gCookbookWall.verdict));
+        CHECK(res.routine.ok);
+        REQUIRE(shulib::bench::gCookbookWall.seated());
+        CHECK(std::abs(robot.localizer().pose().x().value() - world.h.truePose().x().value()) < 0.1);
+        CHECK(shulib::bench::gCookbookWall.applied.value() == doctest::Approx(-2.5).epsilon(0.05));
+    }
+    SUBCASE("the same auton with a RELATIVE start: refused, and the auton goes on") {
+        wall_robot::WallWorld world{Pose2d{Length{-55.7}, Length{-50.0}, 90_deg}};
+        (void)world.build(wall_robot::robotWith(
+            wall_robot::wallsFor(wall_rig::trueLeft(), wall_rig::trueRight())));
+        shulib::competition::AutonEntry relative = shulib::bench::leftWallEntry();
+        relative.start = shulib::competition::StartPose::relative();
+        const shulib::competition::AutonRunResult res = world.run(relative);
+        REQUIRE(res.outcome == shulib::competition::AutonRunOutcome::RoutineRan);
+        CHECK(shulib::bench::gCookbookWall.verdict == shulib::localization::WallResetVerdict::NotFieldStart);
+        CHECK(res.routine.ok);  // not required: the chain went on
+    }
+}
+
+// ═══ cookbook-06a — two buttons drive a mechanism (docs/cookbook/06-driver-control.md) ═══
+// Bug caught: a driver-control recipe that teaches something the loop does not do — a claw that
+// keeps driving after the button is let go, a binding that silently shares the loop's DEFAULT
+// re-zero button (L1), or a claw that moves the drive. The claw here is a fake motor behind a
+// one-motor mechanism; the loop runs on the host test plant, ten ticks, R1 held for ticks 2..5.
+TEST_CASE("cookbook-06a: two buttons drive a claw, letting go holds it, and the drive is "
+          "untouched") {
+    const shulib::kinematics::TankKinematics kin{11_in};
+    motion_rig::ChassisRig c{kin};
+    shulib::hal::fake::FakeController controller;
+    DriveShaper shaper{DriverProfile{}};
+    shulib::hal::fake::FakeMotor clawMotor;
+    int tick = 0;
+    std::vector<double> clawVolts;
+    std::vector<double> driveVolts;
+    const auto disabled = [&] {
+        controller.setPressed(ControllerButton::R1, tick >= 2 && tick < 6);
+        return tick >= 10;
+    };
+    const auto heading = [] { return HeadingSample{.radians = 0.0, .trusted = true}; };
+    const auto panel = [&](const ChassisSpeeds&, bool, const DriveShaperState&) {
+        clawVolts.push_back(clawMotor.commandedVoltage().value());
+        driveVolts.push_back(c.rig.h.motor(0).commandedVoltage().value());
+        ++tick;
+    };
+    // The program's own screen line. Here a refusal FAILS the test, so the recipe's refusal
+    // branch (which then returns) can never pass it vacuously.
+    const auto showOnScreen = [](const char* line) { FAIL_CHECK(line); };
+
+    // Two claws that move separately are TWO mechanisms, one motor each.
+    shulib::hal::IMotor* clawMotors[1] = {&clawMotor};
+    MotorMechanism claw{clawMotors, BrakeMode::Hold, "claw"};
+    MechanismBinding clawButtons{claw, ControllerButton::R1, ControllerButton::R2, 12_volt};
+    MechanismBinding* bindings[1] = {&clawButtons};
+
+    // L1 is the loop's default re-zero button: state one the claws do not use.
+    const DriverLoopConfig loop{.tickPeriod = 10_ms, .rezeroButton = ControllerButton::A};
+    char why[160] = "";
+    if (!validBindings(bindings, loop.rezeroButton, why, sizeof why)) {
+        showOnScreen(why);  // say what is wrong while the program still can...
+        return;             // ...and never start the loop, which would refuse it by throwing
+    }
+    runDriverControl(c.chassis, controller, c.pacer, shaper, loop, bindings,
+                     disabled, heading, panel);
+
+    REQUIRE(clawVolts.size() == 10U);
+    const std::vector<double> expected{0, 0, 12, 12, 12, 12, 0, 0, 0, 0};
+    CHECK(clawVolts == expected);                   // full power only while R1 is down
+    CHECK(clawMotor.brakeMode() == BrakeMode::Hold);  // and it HOLDS once let go
+    for (const double v : driveVolts) {
+        CHECK(v == 0.0);  // sticks centred: the claw buttons moved nothing else
+    }
+    // The watch-out, checked: with the loop's DEFAULT re-zero button, the same set is refused.
+    CHECK(validBindings(bindings, DriverLoopConfig{}.rezeroButton));  // R1/R2 do not clash with L1
+    MechanismBinding onL1{claw, ControllerButton::L1, ControllerButton::L2, 12_volt};
+    MechanismBinding* clashing[1] = {&onL1};
+    CHECK_FALSE(validBindings(clashing, DriverLoopConfig{}.rezeroButton));
+}
+
+// ═══ cookbook-06b — one button opens and closes a pneumatic claw (docs/cookbook/06-driver-control.md) ═══
+// Bug caught: a toggle recipe that teaches something the loop does not do — a claw that chatters
+// while the button is held, a claw that moves on a field disable, a claw button that is also the
+// re-zero button, or a claw that disturbs the pivot beside it. The solenoid here is a fake line
+// behind a one-line mechanism; the loop runs on the host test plant, ten ticks, A held for ticks
+// 2..5, then the disable.
+TEST_CASE("cookbook-06b: one button toggles a pneumatic claw, holding it does nothing more, and "
+          "a disable leaves the claw where it is") {
+    const shulib::kinematics::TankKinematics kin{11_in};
+    motion_rig::ChassisRig c{kin};
+    shulib::hal::fake::FakeController controller;
+    DriveShaper shaper{DriverProfile{}};
+    shulib::hal::fake::FakeMotor pivotMotor;
+    shulib::hal::fake::FakeDigitalOut clawSolenoid;
+    // The pivot from the recipe above, on R1/R2: the claw is added BESIDE it.
+    shulib::hal::IMotor* pivotMotors[1] = {&pivotMotor};
+    MotorMechanism pivot{pivotMotors, BrakeMode::Hold, "claw pivot"};
+    MechanismBinding pivotButtons{pivot, ControllerButton::R1, ControllerButton::R2, 12_volt};
+    MechanismBinding* bindings[1] = {&pivotButtons};
+
+    // ONE constant says which level opens the claw: if A closes it instead, flip it here.
+    constexpr bool kClawOpen = true;
+    shulib::hal::IDigitalOut* clawLines[1] = {&clawSolenoid};
+    PneumaticMechanism claw{clawLines, !kClawOpen, "claw"};  // its safe level: closed
+    ToggleBinding clawButton{claw, ControllerButton::A, !kClawOpen};  // it starts closed
+    ToggleBinding* toggles[1] = {&clawButton};
+
+    int tick = 0;
+    std::vector<bool> clawOpen;
+    const auto disabled = [&] {
+        controller.setPressed(ControllerButton::A, tick >= 2 && tick < 6);
+        return tick >= 10;
+    };
+    const auto heading = [] { return HeadingSample{.radians = 0.0, .trusted = true}; };
+    const auto panel = [&](const ChassisSpeeds&, bool, const DriveShaperState&) {
+        clawOpen.push_back(clawSolenoid.commanded() == kClawOpen);
+        ++tick;
+    };
+    // The program's own screen line. Here a refusal FAILS the test, so the recipe's refusal
+    // branch (which then returns) can never pass it vacuously.
+    const auto showOnScreen = [](const char* line) { FAIL_CHECK(line); };
+
+    // A is the claw now, so the field-centric re-zero moves to another button.
+    const DriverLoopConfig loop{.tickPeriod = 10_ms, .rezeroButton = ControllerButton::Y};
+    char why[160] = "";
+    if (!validBindings(bindings, toggles, loop.rezeroButton, why, sizeof why)) {
+        showOnScreen(why);
+        return;
+    }
+    runDriverControl(c.chassis, controller, c.pacer, shaper, loop, bindings, toggles,
+                     disabled, heading, panel);
+
+    REQUIRE(clawOpen.size() == 10U);
+    const std::vector<bool> expected{false, false, true, true, true, true, true, true, true, true};
+    CHECK(clawOpen == expected);              // one press, one flip — held for four ticks
+    CHECK(clawSolenoid.setCount() == 2);      // closed at the start, open on the press: that is all
+    CHECK(clawSolenoid.commanded() == kClawOpen);  // and the disable left it OPEN
+    CHECK(pivotMotor.commandedVoltage().value() == 0.0);  // the pivot was never driven
+    // The watch-out, checked: with A still the re-zero button, the same set is refused.
+    CHECK_FALSE(validBindings(bindings, toggles, ControllerButton::A));
+}
+
+// cookbook-08a (AF1S-A1): a FIELD-start SKILLS route that visits three Toggles, each from a look spot it reaches
+// SQUARE (face, drive, turn), through competition::checkAndFlipToggle's explicit form. Every number is a
+// PLACEHOLDER for Step 0's. The host plants: the right wall's Toggle already RED (ours — a red Quadrant), the blue
+// wall's YELLOW (a blue Quadrant's: two pushes, Y -> R -> B), the red wall's YELLOW and STICKY. Without STEP1-A's
+// onFail (not in this base), the sticky visit's NO CHANGE stops the route — the default stop — and the guard's end
+// action parks. AF1S-A2 rewrites the visit line in the everyday form and adds onFail(skipTo(...)).
+TEST_CASE("cookbook-08a: a skills route that visits three Toggles — one already ours, one flipped, one sticky "
+          "(the route stops there)") {
+    namespace ov = shulib::vision::override2026;
+    namespace sc = shulib::competition;
+    tv_rig::Options o = tv_rig::scene(tv_rig::Form::Arm);
+    o.toggle.fieldId = tv_rig::kRed;  // the right wall's: already ours
+    o.toggle.bottomId = tv_rig::kYellow;
+    o.toggle.outerId = tv_rig::kBlue;
+    shulib::sim::TogglePlantConfig blue = tv_rig::redSideToggle();
+    blue.bottomId = tv_rig::kRed;  // the blue side's mirror: Y -> R -> B
+    blue.outerId = tv_rig::kBlue;
+    shulib::sim::TogglePlantConfig red = tv_rig::redSideToggle();
+    red.mode = shulib::sim::ToggleMode::Sticky;
+    o.others.push_back(tv_rig::onWall(blue, ov::toggles::kBlueWall));
+    o.others.push_back(tv_rig::onWall(red, ov::toggles::kRedWall));
+    tv_rig::Rig rig{o};
+    const sc::AutonEntry entry = tv_rig::Rig::entry(sc::AutonKind::Skills, sc::StartPose::field(rig.truth()));
+
+    shulib::chassis::RoutineResult result{};
+    rig.runGuarded([&] {
+        // The team's numbers (Step 0), once; each visit names its Toggle.
+        auto visit = [&](ov::ToggleId which) {
+            sc::ToggleVisitRequest request = tv_rig::armRequest(which);
+            return sc::checkAndFlipToggle(rig.cam, rig.chassis, rig.guard, &rig.svc, entry, request, rig.sink)
+                .outcome();
+        };
+        Routine r{rig.chassis, "skills toggles"};
+        r.then([&] { return visit(ov::toggles::kRightWall); }, "right wall Toggle")
+            .face(0_in, 47.2_in, {.timeout = 3_s})
+            .driveTo(0_in, 47.2_in, {.timeout = 6_s})
+            .turnTo(90_deg, {.timeout = 3_s})
+            .then([&] { return visit(ov::toggles::kBlueWall); }, "blue wall Toggle")
+            .face(0_in, -47.2_in, {.timeout = 3_s})
+            .driveTo(0_in, -47.2_in, {.timeout = 8_s})
+            .turnTo(-90_deg, {.timeout = 3_s})
+            .then([&] { return visit(ov::toggles::kRedWall); }, "red wall Toggle")
+            .brake({.timeout = 1.5_s});
+        result = r.result();
+    });
+
+    CHECK_FALSE(result.ok);
+    CHECK(result.stoppedAt == 9);
+    CHECK(std::string{result.stoppedName} == "red wall Toggle");
+    CHECK(result.skipped == 1);  // the brake: the guard's end action parks instead
+    // The plants are the judges: ours untouched, the blue Quadrant's flipped to BLUE, the sticky one still yellow.
+    CHECK(rig.toggle.strokes() == 0);
+    CHECK(rig.toggle.scoredColour() == tv_rig::kRed);
+    CHECK(rig.others[0]->strokes() == 2);
+    CHECK(rig.others[0]->scoredColour() == tv_rig::kBlue);
+    CHECK(rig.others[1]->strokes() == 1);
+    CHECK(rig.others[1]->scoredColour() == tv_rig::kYellow);
+    const std::vector<std::string> lines = rig.lines("TGL");
+    REQUIRE(lines.size() == 3U);
+    CHECK(lines[0].find("already RED (ours)") != std::string::npos);
+    CHECK(lines[1].find("YELLOW -> BLUE after 2 pushes") != std::string::npos);
+    CHECK(lines[2].find("NO CHANGE") != std::string::npos);
+    for (const std::string& l : lines) {
+        CHECK(l.find("wall not checked") == std::string::npos);  // a FIELD start: every wall checked
+    }
 }

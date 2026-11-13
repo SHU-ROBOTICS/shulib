@@ -133,6 +133,11 @@ nav:
       - 13 — Extending the library: guide/13-extending-the-library.md
       - 14 — What it cannot do yet: guide/14-what-it-cannot-do-yet.md
       - 15 — Glossary: guide/15-glossary.md
+      - 16 — Testing an auton on the bench: guide/16-testing-an-auton-on-the-bench.md
+      - 17 — The competition program: guide/17-the-competition-program.md
+      - 18 — Mechanisms: guide/18-mechanisms.md
+      - 19 — Calibrating your robot: guide/19-calibrating-your-robot.md
+      - 20 — The camera: guide/20-the-camera.md
 
   - Cookbook:
       - cookbook/README.md
@@ -141,6 +146,8 @@ nav:
       - Timing and partners: cookbook/03-timing-and-partners.md
       - Drivetrains: cookbook/04-drivetrains.md
       - Mixing tiers: cookbook/05-mixing-tiers.md
+      - Driver control: cookbook/06-driver-control.md
+      - Mechanisms: cookbook/07-mechanisms.md
 
 # BEGIN GENERATED API NAV — regenerate with: python3 tools/api_doc_tool.py generate
   - API reference:
@@ -150,10 +157,14 @@ nav:
           - Chassis: api/chassis.md
           - Robot context: api/robot_context.md
           - Routine: api/routine.md
+          - Wall reset call: api/wall_reset_call.md
       - Motion:
           - Command pipeline: api/command_pipeline.md
+          - Curve follow: api/curve_follow.md
+          - Curve path: api/curve_path.md
           - Drive brake: api/drive_brake.md
           - Hold pose: api/hold_pose.md
+          - Leg progress: api/leg_progress.md
           - Motion: api/motion.md
           - Motion config: api/motion_config.md
           - Motion scheduler: api/motion_scheduler.md
@@ -161,6 +172,7 @@ nav:
           - Odometry stall check: api/odo_stall_check.md
           - Run reporter: api/run_reporter.md
           - Strafe to: api/strafe_to.md
+          - Tank steer: api/tank_steer.md
           - Turn to: api/turn_to.md
       - Control:
           - Exit group: api/exit_group.md
@@ -180,17 +192,22 @@ nav:
       - Localization:
           - AprilTag corrector: api/apriltag_corrector.md
           - Arc step: api/arc_step.md
+          - Axis: api/axis.md
           - Complementary fusion: api/complementary_fusion.md
           - Correction: api/correction.md
+          - Drive encoder odometry: api/drive_encoder_odometry.md
           - EKF fusion: api/ekf_fusion.md
           - GPS corrector: api/gps_corrector.md
           - ICorrector: api/i_corrector.md
           - IFusionPolicy: api/i_fusion_policy.md
           - IPoseSource: api/i_pose_source.md
           - Localizer: api/localizer.md
+          - Odometry: api/odometry.md
+          - Override walls: api/override_walls.md
           - Pilons odometry: api/pilons_odometry.md
           - Tag map: api/tag_map.md
           - Tracking wheel: api/tracking_wheel.md
+          - Wall reset: api/wall_reset.md
       - Manipulation:
           - Mechanism op: api/mechanism_op.md
           - Mechanism outcome: api/mechanism_outcome.md
@@ -202,21 +219,27 @@ nav:
           - Blackbox reader: api/blackbox_reader.md
           - Build info: api/build_info.md
           - Controller display: api/controller_display.md
+          - Crc32: api/crc32.md
           - Debug record: api/debug_record.md
           - Fault: api/fault.md
           - Finite guard: api/finite_guard.md
           - Health monitor: api/health_monitor.md
           - Level filter sink: api/level_filter_sink.md
           - Line format: api/line_format.md
+          - Log copy sink: api/log_copy_sink.md
           - Loop monitor: api/loop_monitor.md
           - Motion result: api/motion_result.md
+          - Odom tick audit: api/odom_tick_audit.md
           - Plausibility guard: api/plausibility_guard.md
           - Rate limit sink: api/rate_limit_sink.md
           - Run summary: api/run_summary.md
           - SD sink: api/sd_sink.md
           - Session info: api/session_info.md
+          - Shul2 format: api/shul2_format.md
+          - Shul2 reader: api/shul2_reader.md
           - Term sink: api/term_sink.md
           - Tick attribution: api/tick_attribution.md
+          - Tick timing stats: api/tick_timing_stats.md
           - Trace: api/trace.md
           - Triage: api/triage.md
       - Math and frames:
@@ -228,16 +251,27 @@ nav:
           - Literals: api/literals.md
           - Quantity: api/quantity.md
       - HAL — the hardware seams:
+          - Absent GPS: api/absent_gps.md
+          - Absent tag source: api/absent_tag_source.md
+          - Absent vision: api/absent_vision.md
           - Battery: api/battery.md
+          - Block char sink: api/block_char_sink.md
           - Block sink: api/block_sink.md
+          - Block source: api/block_source.md
+          - Brain screen: api/brain_screen.md
           - Char sink: api/char_sink.md
           - Clock: api/clock.md
           - Controller: api/controller.md
           - Controller conversion: api/controller_conversion.md
+          - Device provider: api/device_provider.md
+          - Device registry: api/device_registry.md
           - Digital in: api/digital_in.md
           - Digital out: api/digital_out.md
           - Distance: api/distance.md
           - Distance conversion: api/distance_conversion.md
+          - Drive geometry: api/drive_geometry.md
+          - Drivetrain description: api/drivetrain_description.md
+          - File store: api/file_store.md
           - GPS: api/gps.md
           - GPS conversion: api/gps_conversion.md
           - IMU: api/imu.md
@@ -246,23 +280,34 @@ nav:
           - Mechanism: api/mechanism.md
           - Motor: api/motor.md
           - Motor conversion: api/motor_conversion.md
+          - Motor current limit: api/motor_current_limit.md
+          - Motor group: api/motor_group.md
           - Null sink: api/null_sink.md
           - Optical: api/optical.md
           - Optical conversion: api/optical_conversion.md
+          - Read faults: api/read_faults.md
           - Rotation: api/rotation.md
           - Rotation conversion: api/rotation_conversion.md
           - Telemetry sink: api/telemetry_sink.md
           - Vision: api/vision.md
           - Vision conversion: api/vision_conversion.md
+          - Vision frames: api/vision_frames.md
       - HAL — the PROS adapters:
+          - Ai vision (PROS): api/pros-ai_vision.md
           - Battery (PROS): api/pros-battery.md
           - Block sink (PROS): api/pros-block_sink.md
+          - Block source (PROS): api/pros-block_source.md
+          - Brain screen (PROS): api/pros-brain_screen.md
+          - Calibrate (PROS): api/pros-calibrate.md
           - Char sink (PROS): api/pros-char_sink.md
           - Clock (PROS): api/pros-clock.md
           - Controller (PROS): api/pros-controller.md
+          - Device provider (PROS): api/pros-device_provider.md
+          - Device registry (PROS): api/pros-device_registry.md
           - Digital in (PROS): api/pros-digital_in.md
           - Digital out (PROS): api/pros-digital_out.md
           - Distance (PROS): api/pros-distance.md
+          - File store (PROS): api/pros-file_store.md
           - GPS (PROS): api/pros-gps.md
           - IMU (PROS): api/pros-imu.md
           - Line display (PROS): api/pros-line_display.md
@@ -270,12 +315,79 @@ nav:
           - Optical (PROS): api/pros-optical.md
           - Rotation (PROS): api/pros-rotation.md
           - Tick pacer (PROS): api/pros-tick_pacer.md
+          - Tune (PROS): api/pros-tune.md
       - Core:
           - Check: api/check.md
       - Spec:
           - Accuracy: api/accuracy.md
       - Top level:
           - Version: api/version.md
+      - Calibration:
+          - Boot check: api/boot_check.md
+          - Calibrate panel: api/calibrate_panel.md
+          - Calibrate program: api/calibrate_program.md
+          - Calibrate screen: api/calibrate_screen.md
+          - Calibration record: api/calibration_record.md
+          - Drive characterization: api/drive_characterization.md
+          - Drive characterizer: api/drive_characterizer.md
+          - Drivetrain calibrator: api/drivetrain_calibrator.md
+          - Feedforward fit: api/feedforward_fit.md
+          - Front check: api/front_check.md
+          - Record store: api/record_store.md
+          - Rest capture: api/rest_capture.md
+      - Competition:
+          - Acceptance run: api/acceptance_run.md
+          - Auton menu: api/auton_menu.md
+          - Auton registry: api/auton_registry.md
+          - Auton wall reset: api/auton_wall_reset.md
+          - Match runner: api/match_runner.md
+          - Toggle visit: api/toggle_visit.md
+      - Config:
+          - Camera config: api/camera_config.md
+          - Robot config: api/robot_config.md
+          - Route: api/route.md
+          - Wall sensor config: api/wall_sensor_config.md
+      - Mechanism:
+          - Devices: api/devices.md
+          - Direction check: api/direction_check.md
+          - Driver inputs: api/driver_inputs.md
+          - Kinds: api/kinds.md
+          - Live tuning: api/live_tuning.md
+          - Route ids: api/route_ids.md
+          - Service: api/service.md
+          - Spec: api/spec.md
+          - Tune panel: api/tune_panel.md
+          - Tune program: api/tune_program.md
+          - Until: api/until.md
+          - Wiring: api/wiring.md
+      - Robot:
+          - Mechanism parts: api/mechanism_parts.md
+          - Robot: api/robot.md
+      - Runner:
+          - Command registry: api/command_registry.md
+          - Manifest: api/manifest.md
+          - Mechanism routes: api/mechanism_routes.md
+          - Path runner: api/path_runner.md
+      - Teleop:
+          - Coupled side monitor: api/coupled_side_monitor.md
+          - Drive modes: api/drive_modes.md
+          - Drive protection: api/drive_protection.md
+          - Driver control: api/driver_control.md
+          - Drivetrain degradation: api/drivetrain_degradation.md
+          - Field centric: api/field_centric.md
+          - Input shaping: api/input_shaping.md
+          - Mechanism binding: api/mechanism_binding.md
+          - Slew limiter: api/slew_limiter.md
+          - Stick mapping: api/stick_mapping.md
+          - Teleop loop: api/teleop_loop.md
+      - Ui:
+          - Touch panel: api/touch_panel.md
+      - Vision:
+          - Camera feed: api/camera_feed.md
+          - Camera geometry: api/camera_geometry.md
+          - Override elements: api/override_elements.md
+          - Piece finder: api/piece_finder.md
+          - Toggle tracker: api/toggle_tracker.md
 # END GENERATED API NAV
 
   - FAQ: faq.md
@@ -286,4 +398,5 @@ nav:
       - Architecture and decisions: shulib-v2-master-plan.md
       - Hardware assumptions: hardware-assumptions.md
       - Diagnostics plan: diagnostics-plan.md
+      - VexBuilder integration: vexbuilder-integration.md
       - Legacy command vocabulary: legacy-command-vocabulary.md

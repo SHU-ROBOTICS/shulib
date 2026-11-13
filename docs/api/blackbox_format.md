@@ -106,7 +106,7 @@ inline constexpr char kMagic[4] = {'S', 'H', 'B', 'B'}
 
 The four magic bytes every blackbox file starts with ("SHulib BlackBox").
 
-*constant, declared at [`include/shulib/diag/blackbox_format.hpp:70`](../../include/shulib/diag/blackbox_format.hpp#L70).*
+*constant, declared at [`include/shulib/diag/blackbox_format.hpp:77`](../../include/shulib/diag/blackbox_format.hpp#L77).*
 
 <a id="kformatversion"></a>
 
@@ -116,9 +116,9 @@ The four magic bytes every blackbox file starts with ("SHulib BlackBox").
 inline constexpr std::uint16_t kFormatVersion = 1
 ```
 
-On-disk format version. BUMP THIS whenever any layout below changes — a reader refuses a version it was not built for rather than misreading it (header note).
+On-disk format version. BUMP THIS whenever any layout below changes — a reader refuses a version it was not built for rather than misreading it (header note). Giving a meaning to a tick-flags bit every earlier writer wrote as 0 is not a layout change (bit 2, TANK1: see the tick record's flags note), so it did not bump.
 
-*constant, declared at [`include/shulib/diag/blackbox_format.hpp:74`](../../include/shulib/diag/blackbox_format.hpp#L74).*
+*constant, declared at [`include/shulib/diag/blackbox_format.hpp:83`](../../include/shulib/diag/blackbox_format.hpp#L83).*
 
 <a id="kheaderbytes"></a>
 
@@ -130,7 +130,7 @@ inline constexpr std::size_t kHeaderBytes = 256
 
 Size of the fixed file header, in bytes (v1). Fixed width so a reader can seek past it without parsing, and generous enough to hold full provenance.
 
-*constant, declared at [`include/shulib/diag/blackbox_format.hpp:78`](../../include/shulib/diag/blackbox_format.hpp#L78).*
+*constant, declared at [`include/shulib/diag/blackbox_format.hpp:87`](../../include/shulib/diag/blackbox_format.hpp#L87).*
 
 <a id="kframeheaderbytes"></a>
 
@@ -142,7 +142,7 @@ inline constexpr std::size_t kFrameHeaderBytes = 4
 
 Size of the per-frame prefix: {u8 type, u8 reserved, u16 payloadBytes}.
 
-*constant, declared at [`include/shulib/diag/blackbox_format.hpp:81`](../../include/shulib/diag/blackbox_format.hpp#L81).*
+*constant, declared at [`include/shulib/diag/blackbox_format.hpp:90`](../../include/shulib/diag/blackbox_format.hpp#L90).*
 
 <a id="ktickpayloadbytes"></a>
 
@@ -154,7 +154,7 @@ inline constexpr std::size_t kTickPayloadBytes = 428
 
 Payload size of one Tick frame (v1). Pinned by the golden test; the encoder asserts it wrote exactly this many bytes.
 
-*constant, declared at [`include/shulib/diag/blackbox_format.hpp:85`](../../include/shulib/diag/blackbox_format.hpp#L85).*
+*constant, declared at [`include/shulib/diag/blackbox_format.hpp:94`](../../include/shulib/diag/blackbox_format.hpp#L94).*
 
 <a id="ksummarypayloadbytes"></a>
 
@@ -166,7 +166,7 @@ inline constexpr std::size_t kSummaryPayloadBytes = 168
 
 Payload size of one Summary frame (v1).
 
-*constant, declared at [`include/shulib/diag/blackbox_format.hpp:88`](../../include/shulib/diag/blackbox_format.hpp#L88).*
+*constant, declared at [`include/shulib/diag/blackbox_format.hpp:97`](../../include/shulib/diag/blackbox_format.hpp#L97).*
 
 <a id="ktriagepayloadbytes"></a>
 
@@ -178,7 +178,7 @@ inline constexpr std::size_t kTriagePayloadBytes = 24 + kTickPayloadBytes
 
 Payload size of one Triage frame (v1): the D-7 triage fields PLUS the complete record of the tick the fault fired on (header note on dump ordering in sd_sink.hpp).
 
-*constant, declared at [`include/shulib/diag/blackbox_format.hpp:92`](../../include/shulib/diag/blackbox_format.hpp#L92).*
+*constant, declared at [`include/shulib/diag/blackbox_format.hpp:101`](../../include/shulib/diag/blackbox_format.hpp#L101).*
 
 <a id="kendpayloadbytes"></a>
 
@@ -190,7 +190,7 @@ inline constexpr std::size_t kEndPayloadBytes = 28
 
 Payload size of one End frame (v1) — the graceful-end stamp.
 
-*constant, declared at [`include/shulib/diag/blackbox_format.hpp:95`](../../include/shulib/diag/blackbox_format.hpp#L95).*
+*constant, declared at [`include/shulib/diag/blackbox_format.hpp:104`](../../include/shulib/diag/blackbox_format.hpp#L104).*
 
 <a id="enum-class-frametype"></a>
 
@@ -202,7 +202,7 @@ enum class FrameType : std::uint8_t
 
 What a frame carries. WIRE-STABLE: explicit values, append-only — an unknown type is skipped by length, never guessed at.
 
-*enum class, declared at [`include/shulib/diag/blackbox_format.hpp:99`](../../include/shulib/diag/blackbox_format.hpp#L99).*
+*enum class, declared at [`include/shulib/diag/blackbox_format.hpp:108`](../../include/shulib/diag/blackbox_format.hpp#L108).*
 
 <a id="frametype-tick"></a>
 
@@ -214,7 +214,7 @@ Tick = 1
 
 one DebugRecord (kTickPayloadBytes)
 
-*enumerator, declared at [`include/shulib/diag/blackbox_format.hpp:100`](../../include/shulib/diag/blackbox_format.hpp#L100).*
+*enumerator, declared at [`include/shulib/diag/blackbox_format.hpp:109`](../../include/shulib/diag/blackbox_format.hpp#L109).*
 
 <a id="frametype-summary"></a>
 
@@ -226,7 +226,7 @@ Summary = 2
 
 one RunSummary (kSummaryPayloadBytes)
 
-*enumerator, declared at [`include/shulib/diag/blackbox_format.hpp:101`](../../include/shulib/diag/blackbox_format.hpp#L101).*
+*enumerator, declared at [`include/shulib/diag/blackbox_format.hpp:110`](../../include/shulib/diag/blackbox_format.hpp#L110).*
 
 <a id="frametype-triage"></a>
 
@@ -238,7 +238,7 @@ Triage = 3
 
 the D-7 fault triage block + the fault tick's own record
 
-*enumerator, declared at [`include/shulib/diag/blackbox_format.hpp:102`](../../include/shulib/diag/blackbox_format.hpp#L102).*
+*enumerator, declared at [`include/shulib/diag/blackbox_format.hpp:111`](../../include/shulib/diag/blackbox_format.hpp#L111).*
 
 <a id="frametype-end"></a>
 
@@ -250,7 +250,7 @@ End = 4
 
 the graceful-end stamp: counts, brownout latch, end time
 
-*enumerator, declared at [`include/shulib/diag/blackbox_format.hpp:103`](../../include/shulib/diag/blackbox_format.hpp#L103).*
+*enumerator, declared at [`include/shulib/diag/blackbox_format.hpp:112`](../../include/shulib/diag/blackbox_format.hpp#L112).*
 
 <a id="struct-triageinfo"></a>
 
@@ -262,7 +262,7 @@ struct TriageInfo
 
 The D-7 triage block, as data: which fault, when, on which tick, and how many preceding ticks follow it in the file. The record of the fault tick itself travels in the same frame (see sd_sink.hpp's dump-ordering rule).
 
-*struct, declared at [`include/shulib/diag/blackbox_format.hpp:109`](../../include/shulib/diag/blackbox_format.hpp#L109).*
+*struct, declared at [`include/shulib/diag/blackbox_format.hpp:118`](../../include/shulib/diag/blackbox_format.hpp#L118).*
 
 <a id="triageinfo-fault"></a>
 
@@ -274,7 +274,7 @@ FaultCode fault = FaultCode::None
 
 the fault that triggered the dump
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:110`](../../include/shulib/diag/blackbox_format.hpp#L110).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:119`](../../include/shulib/diag/blackbox_format.hpp#L119).*
 
 <a id="triageinfo-brownout"></a>
 
@@ -286,7 +286,7 @@ bool brownout = false
 
 the latched brownout marker at dump time
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:111`](../../include/shulib/diag/blackbox_format.hpp#L111).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:120`](../../include/shulib/diag/blackbox_format.hpp#L120).*
 
 <a id="triageinfo-tickindex"></a>
 
@@ -298,7 +298,7 @@ std::uint32_t tickIndex = 0
 
 how many records the sink had seen when it fired
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:112`](../../include/shulib/diag/blackbox_format.hpp#L112).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:121`](../../include/shulib/diag/blackbox_format.hpp#L121).*
 
 <a id="triageinfo-faulttime"></a>
 
@@ -310,7 +310,7 @@ double faultTime = 0.0
 
 the fault tick's `t`, seconds since the run epoch
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:113`](../../include/shulib/diag/blackbox_format.hpp#L113).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:122`](../../include/shulib/diag/blackbox_format.hpp#L122).*
 
 <a id="triageinfo-precedingticks"></a>
 
@@ -322,7 +322,7 @@ std::uint32_t precedingTicks = 0
 
 Tick frames that follow, oldest first (0 when streaming)
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:114`](../../include/shulib/diag/blackbox_format.hpp#L114).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:123`](../../include/shulib/diag/blackbox_format.hpp#L123).*
 
 <a id="struct-endinfo"></a>
 
@@ -334,7 +334,7 @@ struct EndInfo
 
 The end frame: what the sink knows about its own run when it closes cleanly. A file WITHOUT this frame ended abruptly — that absence is the truncation signal a reader can act on.
 
-*struct, declared at [`include/shulib/diag/blackbox_format.hpp:120`](../../include/shulib/diag/blackbox_format.hpp#L120).*
+*struct, declared at [`include/shulib/diag/blackbox_format.hpp:129`](../../include/shulib/diag/blackbox_format.hpp#L129).*
 
 <a id="endinfo-tickframes"></a>
 
@@ -346,7 +346,7 @@ std::uint32_t tickFrames = 0
 
 Tick frames staged over the run
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:121`](../../include/shulib/diag/blackbox_format.hpp#L121).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:130`](../../include/shulib/diag/blackbox_format.hpp#L130).*
 
 <a id="endinfo-droppedframes"></a>
 
@@ -358,7 +358,7 @@ std::uint32_t droppedFrames = 0
 
 frames dropped for want of buffer (byte budget)
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:122`](../../include/shulib/diag/blackbox_format.hpp#L122).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:131`](../../include/shulib/diag/blackbox_format.hpp#L131).*
 
 <a id="endinfo-bytesbefore"></a>
 
@@ -370,7 +370,7 @@ std::uint32_t bytesBefore = 0
 
 Bytes of this file that PRECEDE this frame — i.e. the frame's own offset. A reader can verify it against where it actually found the frame, which is how a file that was appended to, interleaved, or spliced gives itself away. (It is NOT "bytes the device confirmed": at close() the bulk of a caller-paced run is still staged and goes out in the same write as this frame, so that figure would read 0 for the most common run of all.)
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:129`](../../include/shulib/diag/blackbox_format.hpp#L129).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:138`](../../include/shulib/diag/blackbox_format.hpp#L138).*
 
 <a id="endinfo-messagesseen"></a>
 
@@ -382,7 +382,7 @@ std::uint32_t messagesSeen = 0
 
 log() lines handed to the sink and NOT carried (header note)
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:130`](../../include/shulib/diag/blackbox_format.hpp#L130).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:139`](../../include/shulib/diag/blackbox_format.hpp#L139).*
 
 <a id="endinfo-brownout"></a>
 
@@ -394,7 +394,7 @@ bool brownout = false
 
 the latched brownout marker
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:131`](../../include/shulib/diag/blackbox_format.hpp#L131).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:140`](../../include/shulib/diag/blackbox_format.hpp#L140).*
 
 <a id="endinfo-devicefailed"></a>
 
@@ -406,7 +406,7 @@ bool deviceFailed = false
 
 a write() or flush() reported failure during the run
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:132`](../../include/shulib/diag/blackbox_format.hpp#L132).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:141`](../../include/shulib/diag/blackbox_format.hpp#L141).*
 
 <a id="endinfo-endtime"></a>
 
@@ -418,7 +418,7 @@ double endTime = 0.0
 
 clock time at close, seconds since the run epoch
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:133`](../../include/shulib/diag/blackbox_format.hpp#L133).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:142`](../../include/shulib/diag/blackbox_format.hpp#L142).*
 
 <a id="struct-blackboxheader"></a>
 
@@ -430,7 +430,7 @@ struct BlackboxHeader
 
 A decoded file header. Value type with bounded storage, like RunSummary: a decoded header must never hold views into a buffer the caller may free.
 
-*struct, declared at [`include/shulib/diag/blackbox_format.hpp:138`](../../include/shulib/diag/blackbox_format.hpp#L138).*
+*struct, declared at [`include/shulib/diag/blackbox_format.hpp:147`](../../include/shulib/diag/blackbox_format.hpp#L147).*
 
 <a id="blackboxheader-formatversion"></a>
 
@@ -442,7 +442,7 @@ std::uint16_t formatVersion = 0
 
 as read from the file
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:139`](../../include/shulib/diag/blackbox_format.hpp#L139).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:148`](../../include/shulib/diag/blackbox_format.hpp#L148).*
 
 <a id="blackboxheader-headerbytes"></a>
 
@@ -454,7 +454,7 @@ std::uint16_t headerBytes = 0
 
 self-declared header size (lets a reader seek)
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:140`](../../include/shulib/diag/blackbox_format.hpp#L140).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:149`](../../include/shulib/diag/blackbox_format.hpp#L149).*
 
 <a id="blackboxheader-tickrecordbytes"></a>
 
@@ -466,7 +466,7 @@ std::uint16_t tickRecordBytes = 0
 
 self-declared Tick payload size (cross-checked)
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:141`](../../include/shulib/diag/blackbox_format.hpp#L141).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:150`](../../include/shulib/diag/blackbox_format.hpp#L150).*
 
 <a id="blackboxheader-flags"></a>
 
@@ -478,7 +478,7 @@ std::uint16_t flags = 0
 
 reserved, 0 in v1
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:142`](../../include/shulib/diag/blackbox_format.hpp#L142).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:151`](../../include/shulib/diag/blackbox_format.hpp#L151).*
 
 <a id="blackboxheader-epochseconds"></a>
 
@@ -490,7 +490,7 @@ double epochSeconds = 0.0
 
 the injected clock's reading when the file opened
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:143`](../../include/shulib/diag/blackbox_format.hpp#L143).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:152`](../../include/shulib/diag/blackbox_format.hpp#L152).*
 
 <a id="blackboxheader-ringcapacity"></a>
 
@@ -502,7 +502,7 @@ std::uint32_t ringCapacity = 0
 
 flight-recorder ring size the writer was configured with
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:144`](../../include/shulib/diag/blackbox_format.hpp#L144).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:153`](../../include/shulib/diag/blackbox_format.hpp#L153).*
 
 <a id="blackboxheader-bytebudget"></a>
 
@@ -514,7 +514,7 @@ std::uint32_t byteBudget = 0
 
 RAM byte budget the writer was configured with
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:145`](../../include/shulib/diag/blackbox_format.hpp#L145).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:154`](../../include/shulib/diag/blackbox_format.hpp#L154).*
 
 <a id="blackboxheader-buildhash"></a>
 
@@ -526,7 +526,7 @@ RAM byte budget the writer was configured with
 
 The git build hash the run was built from. EMPTY means MISSING — render it loudly and never invent a plausible value (§18.5, build_info.hpp).
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:149`](../../include/shulib/diag/blackbox_format.hpp#L149).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:158`](../../include/shulib/diag/blackbox_format.hpp#L158).*
 
 <a id="blackboxheader-routineid"></a>
 
@@ -538,7 +538,7 @@ The git build hash the run was built from. EMPTY means MISSING — render it lou
 
 The routine id the run was started with (may be empty).
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:151`](../../include/shulib/diag/blackbox_format.hpp#L151).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:160`](../../include/shulib/diag/blackbox_format.hpp#L160).*
 
 <a id="blackboxheader-alliance"></a>
 
@@ -550,7 +550,7 @@ The routine id the run was started with (may be empty).
 
 Alliance as free text ("red"/"blue"/"skills"); may be empty.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:153`](../../include/shulib/diag/blackbox_format.hpp#L153).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:162`](../../include/shulib/diag/blackbox_format.hpp#L162).*
 
 <a id="blackboxheader-side"></a>
 
@@ -562,7 +562,7 @@ Alliance as free text ("red"/"blue"/"skills"); may be empty.
 
 Side as free text ("left"/"right"); may be empty.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:155`](../../include/shulib/diag/blackbox_format.hpp#L155).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:164`](../../include/shulib/diag/blackbox_format.hpp#L164).*
 
 <a id="blackboxheader-portmap"></a>
 
@@ -574,7 +574,7 @@ Side as free text ("left"/"right"); may be empty.
 
 The caller-authored port map; may be empty.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:157`](../../include/shulib/diag/blackbox_format.hpp#L157).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:166`](../../include/shulib/diag/blackbox_format.hpp#L166).*
 
 <a id="blackboxheader-buildhash_"></a>
 
@@ -586,7 +586,7 @@ char buildHash_[48] = ""
 
 Storage for buildHash() — written by the decoder, NUL-terminated.
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:160`](../../include/shulib/diag/blackbox_format.hpp#L160).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:169`](../../include/shulib/diag/blackbox_format.hpp#L169).*
 
 <a id="blackboxheader-routineid_"></a>
 
@@ -598,7 +598,7 @@ char routineId_[32] = ""
 
 Storage for routineId().
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:162`](../../include/shulib/diag/blackbox_format.hpp#L162).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:171`](../../include/shulib/diag/blackbox_format.hpp#L171).*
 
 <a id="blackboxheader-alliance_"></a>
 
@@ -610,7 +610,7 @@ char alliance_[16] = ""
 
 Storage for alliance().
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:164`](../../include/shulib/diag/blackbox_format.hpp#L164).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:173`](../../include/shulib/diag/blackbox_format.hpp#L173).*
 
 <a id="blackboxheader-side_"></a>
 
@@ -622,7 +622,7 @@ char side_[16] = ""
 
 Storage for side().
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:166`](../../include/shulib/diag/blackbox_format.hpp#L166).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:175`](../../include/shulib/diag/blackbox_format.hpp#L175).*
 
 <a id="blackboxheader-portmap_"></a>
 
@@ -634,7 +634,7 @@ char portMap_[96] = ""
 
 Storage for portMap().
 
-*field, declared at [`include/shulib/diag/blackbox_format.hpp:168`](../../include/shulib/diag/blackbox_format.hpp#L168).*
+*field, declared at [`include/shulib/diag/blackbox_format.hpp:177`](../../include/shulib/diag/blackbox_format.hpp#L177).*
 
 <a id="class-bytewriter"></a>
 
@@ -646,7 +646,7 @@ class ByteWriter
 
 Little-endian byte writer with a hard end: a write that would not fit writes NOTHING and latches overflow, so an undersized buffer can never corrupt neighbouring memory and can never half-write a field. Callers check ok().
 
-*class, declared at [`include/shulib/diag/blackbox_format.hpp:174`](../../include/shulib/diag/blackbox_format.hpp#L174).*
+*class, declared at [`include/shulib/diag/blackbox_format.hpp:183`](../../include/shulib/diag/blackbox_format.hpp#L183).*
 
 <a id="bytewriter-bytewriter"></a>
 
@@ -658,7 +658,7 @@ explicit ByteWriter(std::span<std::byte> out) noexcept
 
 Write into `out`, starting at offset 0.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:177`](../../include/shulib/diag/blackbox_format.hpp#L177).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:186`](../../include/shulib/diag/blackbox_format.hpp#L186).*
 
 <a id="bytewriter-u8"></a>
 
@@ -670,7 +670,7 @@ void u8(std::uint8_t v) noexcept
 
 Append one unsigned byte.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:180`](../../include/shulib/diag/blackbox_format.hpp#L180).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:189`](../../include/shulib/diag/blackbox_format.hpp#L189).*
 
 <a id="bytewriter-boolean"></a>
 
@@ -682,7 +682,7 @@ void boolean(bool v) noexcept
 
 Append a bool as 0x00 / 0x01.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:187`](../../include/shulib/diag/blackbox_format.hpp#L187).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:196`](../../include/shulib/diag/blackbox_format.hpp#L196).*
 
 <a id="bytewriter-u16"></a>
 
@@ -694,7 +694,7 @@ void u16(std::uint16_t v) noexcept
 
 Append a 16-bit unsigned value, little-endian.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:189`](../../include/shulib/diag/blackbox_format.hpp#L189).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:198`](../../include/shulib/diag/blackbox_format.hpp#L198).*
 
 <a id="bytewriter-u32"></a>
 
@@ -706,7 +706,7 @@ void u32(std::uint32_t v) noexcept
 
 Append a 32-bit unsigned value, little-endian.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:197`](../../include/shulib/diag/blackbox_format.hpp#L197).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:206`](../../include/shulib/diag/blackbox_format.hpp#L206).*
 
 <a id="bytewriter-i32"></a>
 
@@ -718,7 +718,7 @@ void i32(std::int32_t v) noexcept
 
 Append a 32-bit signed value as two's complement, little-endian.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:206`](../../include/shulib/diag/blackbox_format.hpp#L206).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:215`](../../include/shulib/diag/blackbox_format.hpp#L215).*
 
 <a id="bytewriter-f64"></a>
 
@@ -730,7 +730,7 @@ void f64(double v) noexcept
 
 Append an IEEE-754 binary64 value, little-endian (bit pattern preserved, so a NaN or an infinity survives the trip exactly as it was recorded).
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:209`](../../include/shulib/diag/blackbox_format.hpp#L209).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:218`](../../include/shulib/diag/blackbox_format.hpp#L218).*
 
 <a id="bytewriter-text"></a>
 
@@ -742,7 +742,7 @@ void text(std::string_view s, std::size_t fieldBytes) noexcept
 
 Append `fieldBytes` of text: `s` truncated to fit, NUL-padded to the full width. Fixed width by design — a variable-length string would make every later offset depend on run-time content.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:222`](../../include/shulib/diag/blackbox_format.hpp#L222).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:231`](../../include/shulib/diag/blackbox_format.hpp#L231).*
 
 <a id="bytewriter-zeros"></a>
 
@@ -754,7 +754,7 @@ void zeros(std::size_t n) noexcept
 
 Append `n` zero bytes (reserved space).
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:232`](../../include/shulib/diag/blackbox_format.hpp#L232).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:241`](../../include/shulib/diag/blackbox_format.hpp#L241).*
 
 <a id="bytewriter-offset"></a>
 
@@ -766,7 +766,7 @@ Append `n` zero bytes (reserved space).
 
 How many bytes have been appended.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:241`](../../include/shulib/diag/blackbox_format.hpp#L241).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:250`](../../include/shulib/diag/blackbox_format.hpp#L250).*
 
 <a id="bytewriter-ok"></a>
 
@@ -778,7 +778,7 @@ How many bytes have been appended.
 
 False once any append did not fit (nothing was written for that append).
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:243`](../../include/shulib/diag/blackbox_format.hpp#L243).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:252`](../../include/shulib/diag/blackbox_format.hpp#L252).*
 
 <a id="class-bytereader"></a>
 
@@ -790,7 +790,7 @@ class ByteReader
 
 Little-endian byte reader with a hard end: a read past the end yields zero and latches exhaustion, so a truncated or corrupt file can never read out of bounds and can never half-read a field. Callers check ok().
 
-*class, declared at [`include/shulib/diag/blackbox_format.hpp:262`](../../include/shulib/diag/blackbox_format.hpp#L262).*
+*class, declared at [`include/shulib/diag/blackbox_format.hpp:271`](../../include/shulib/diag/blackbox_format.hpp#L271).*
 
 <a id="bytereader-bytereader"></a>
 
@@ -802,7 +802,7 @@ explicit ByteReader(std::span<const std::byte> in) noexcept
 
 Read from `in`, starting at offset 0.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:265`](../../include/shulib/diag/blackbox_format.hpp#L265).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:274`](../../include/shulib/diag/blackbox_format.hpp#L274).*
 
 <a id="bytereader-u8"></a>
 
@@ -814,7 +814,7 @@ Read from `in`, starting at offset 0.
 
 Read one unsigned byte (0 past the end).
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:268`](../../include/shulib/diag/blackbox_format.hpp#L268).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:277`](../../include/shulib/diag/blackbox_format.hpp#L277).*
 
 <a id="bytereader-boolean"></a>
 
@@ -826,7 +826,7 @@ Read one unsigned byte (0 past the end).
 
 Read a bool: any nonzero byte is true.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:275`](../../include/shulib/diag/blackbox_format.hpp#L275).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:284`](../../include/shulib/diag/blackbox_format.hpp#L284).*
 
 <a id="bytereader-u16"></a>
 
@@ -838,7 +838,7 @@ Read a bool: any nonzero byte is true.
 
 Read a 16-bit unsigned value, little-endian.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:277`](../../include/shulib/diag/blackbox_format.hpp#L277).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:286`](../../include/shulib/diag/blackbox_format.hpp#L286).*
 
 <a id="bytereader-u32"></a>
 
@@ -850,7 +850,7 @@ Read a 16-bit unsigned value, little-endian.
 
 Read a 32-bit unsigned value, little-endian.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:286`](../../include/shulib/diag/blackbox_format.hpp#L286).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:295`](../../include/shulib/diag/blackbox_format.hpp#L295).*
 
 <a id="bytereader-i32"></a>
 
@@ -862,7 +862,7 @@ Read a 32-bit unsigned value, little-endian.
 
 Read a 32-bit signed value (two's complement), little-endian.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:297`](../../include/shulib/diag/blackbox_format.hpp#L297).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:306`](../../include/shulib/diag/blackbox_format.hpp#L306).*
 
 <a id="bytereader-f64"></a>
 
@@ -874,7 +874,7 @@ Read a 32-bit signed value (two's complement), little-endian.
 
 Read an IEEE-754 binary64 value, little-endian (bit pattern preserved).
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:299`](../../include/shulib/diag/blackbox_format.hpp#L299).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:308`](../../include/shulib/diag/blackbox_format.hpp#L308).*
 
 <a id="bytereader-text"></a>
 
@@ -886,7 +886,7 @@ void text(char* dst, std::size_t dstBytes, std::size_t fieldBytes) noexcept
 
 Read `fieldBytes` of NUL-padded text into `dst` (capacity `dstBytes`, always NUL-terminated). Bytes beyond the destination are consumed and discarded, so the cursor stays aligned no matter how the caller sized its storage.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:314`](../../include/shulib/diag/blackbox_format.hpp#L314).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:323`](../../include/shulib/diag/blackbox_format.hpp#L323).*
 
 <a id="bytereader-skip"></a>
 
@@ -898,7 +898,7 @@ void skip(std::size_t n) noexcept
 
 Skip `n` bytes (reserved space).
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:327`](../../include/shulib/diag/blackbox_format.hpp#L327).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:336`](../../include/shulib/diag/blackbox_format.hpp#L336).*
 
 <a id="bytereader-offset"></a>
 
@@ -910,7 +910,7 @@ Skip `n` bytes (reserved space).
 
 How many bytes have been consumed.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:333`](../../include/shulib/diag/blackbox_format.hpp#L333).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:342`](../../include/shulib/diag/blackbox_format.hpp#L342).*
 
 <a id="bytereader-ok"></a>
 
@@ -922,7 +922,7 @@ How many bytes have been consumed.
 
 False once any read ran past the end.
 
-*function, declared at [`include/shulib/diag/blackbox_format.hpp:335`](../../include/shulib/diag/blackbox_format.hpp#L335).*
+*function, declared at [`include/shulib/diag/blackbox_format.hpp:344`](../../include/shulib/diag/blackbox_format.hpp#L344).*
 
 <a id="encodeheader"></a>
 
@@ -934,7 +934,7 @@ False once any read ran past the end.
 
 Encode the 256-byte file header into `out`. Returns the bytes written (0 if `out` is too small). Provenance strings are copied in, truncated to their field widths — an EMPTY build hash stays empty, because MISSING must stay loud all the way to disk.
 
-*free function, declared at [`include/shulib/diag/blackbox_format.hpp:365`](../../include/shulib/diag/blackbox_format.hpp#L365).*
+*free function, declared at [`include/shulib/diag/blackbox_format.hpp:374`](../../include/shulib/diag/blackbox_format.hpp#L374).*
 
 <a id="decodeheader"></a>
 
@@ -946,7 +946,7 @@ Encode the 256-byte file header into `out`. Returns the bytes written (0 if `out
 
 Decode a file header. Returns false if `in` is shorter than the header or the magic does not match; the VERSION is decoded but NOT judged here — BlackboxReader owns the refusal policy, and a caller inspecting a rejected file still wants to see what version it claims to be.
 
-*free function, declared at [`include/shulib/diag/blackbox_format.hpp:395`](../../include/shulib/diag/blackbox_format.hpp#L395).*
+*free function, declared at [`include/shulib/diag/blackbox_format.hpp:404`](../../include/shulib/diag/blackbox_format.hpp#L404).*
 
 <a id="encodetick"></a>
 
@@ -956,9 +956,9 @@ Decode a file header. Returns false if `in` is shorter than the header or the ma
 [[nodiscard]] inline std::size_t encodeTick(std::span<std::byte> out, const DebugRecord& r) noexcept
 ```
 
-Encode one DebugRecord. Returns the bytes written, or 0 if `out` was too small or the layout did not come out to exactly kTickPayloadBytes (a loud, testable failure rather than a silently short record).
+Encode one DebugRecord. Returns the bytes written, or 0 if `out` was too small or the layout did not come out to exactly kTickPayloadBytes (a loud, testable failure rather than a silently short record). `wheelCount` is written clamped to [0, DebugRecord::kMaxWheels] (since H1 Part A1; above 255 it used to wrap).
 
-*free function, declared at [`include/shulib/diag/blackbox_format.hpp:440`](../../include/shulib/diag/blackbox_format.hpp#L440).*
+*free function, declared at [`include/shulib/diag/blackbox_format.hpp:455`](../../include/shulib/diag/blackbox_format.hpp#L455).*
 
 <a id="safeangle"></a>
 
@@ -970,7 +970,7 @@ Encode one DebugRecord. Returns the bytes written, or 0 if `out` was too small o
 
 Rebuild an Angle from a decoded radian value WITHOUT trusting the file: a corrupt or truncated blackbox can contain any bit pattern, and math::Angle's factory rejects non-finite input by precondition. A decoder that throws on a corrupt file is a decoder you cannot use on the file you most need to read, so a non-finite heading decodes to zero and `corrupt` is raised for the caller to see.
 
-*free function, declared at [`include/shulib/diag/blackbox_format.hpp:500`](../../include/shulib/diag/blackbox_format.hpp#L500).*
+*free function, declared at [`include/shulib/diag/blackbox_format.hpp:520`](../../include/shulib/diag/blackbox_format.hpp#L520).*
 
 <a id="decodetick"></a>
 
@@ -980,9 +980,9 @@ Rebuild an Angle from a decoded radian value WITHOUT trusting the file: a corrup
 [[nodiscard]] inline bool decodeTick(std::span<const std::byte> in, DebugRecord& r, bool& corrupt) noexcept
 ```
 
-Decode one DebugRecord. Returns false if the payload is not exactly kTickPayloadBytes. `corrupt` is set (never cleared) when a field could not be represented — today: a non-finite heading, which decodes to zero (safeAngle).
+Decode one DebugRecord. Returns false if the payload is not exactly kTickPayloadBytes. `corrupt` is set (never cleared) when a field could not be represented — a non-finite heading, which decodes to zero (safeAngle), or a wheelCount above DebugRecord::kMaxWheels, which decodes as kMaxWheels (since H1 Part A1).
 
-*free function, declared at [`include/shulib/diag/blackbox_format.hpp:511`](../../include/shulib/diag/blackbox_format.hpp#L511).*
+*free function, declared at [`include/shulib/diag/blackbox_format.hpp:532`](../../include/shulib/diag/blackbox_format.hpp#L532).*
 
 <a id="encodesummary"></a>
 
@@ -994,7 +994,7 @@ Decode one DebugRecord. Returns false if the payload is not exactly kTickPayload
 
 Encode one RunSummary. `blackboxDropped` is the SINK's own drop count, passed in rather than read from the summary so the file always carries the writer's live figure even when the caller assembled the summary before the last drop. Returns the bytes written, or 0 on a layout/space failure.
 
-*free function, declared at [`include/shulib/diag/blackbox_format.hpp:592`](../../include/shulib/diag/blackbox_format.hpp#L592).*
+*free function, declared at [`include/shulib/diag/blackbox_format.hpp:625`](../../include/shulib/diag/blackbox_format.hpp#L625).*
 
 <a id="decodesummary"></a>
 
@@ -1006,7 +1006,7 @@ Encode one RunSummary. `blackboxDropped` is the SINK's own drop count, passed in
 
 Decode one RunSummary; `blackboxDropped` receives the sink's own drop count. Returns false if the payload is not exactly kSummaryPayloadBytes.
 
-*free function, declared at [`include/shulib/diag/blackbox_format.hpp:623`](../../include/shulib/diag/blackbox_format.hpp#L623).*
+*free function, declared at [`include/shulib/diag/blackbox_format.hpp:656`](../../include/shulib/diag/blackbox_format.hpp#L656).*
 
 <a id="encodetriage"></a>
 
@@ -1018,7 +1018,7 @@ Decode one RunSummary; `blackboxDropped` receives the sink's own drop count. Ret
 
 Encode the D-7 triage block plus the complete record of the tick the fault fired on. Returns the bytes written, or 0 on a layout/space failure.
 
-*free function, declared at [`include/shulib/diag/blackbox_format.hpp:663`](../../include/shulib/diag/blackbox_format.hpp#L663).*
+*free function, declared at [`include/shulib/diag/blackbox_format.hpp:696`](../../include/shulib/diag/blackbox_format.hpp#L696).*
 
 <a id="decodetriage"></a>
 
@@ -1030,7 +1030,7 @@ Encode the D-7 triage block plus the complete record of the tick the fault fired
 
 Decode a triage frame and the fault tick's record. Returns false if the payload is not exactly kTriagePayloadBytes.
 
-*free function, declared at [`include/shulib/diag/blackbox_format.hpp:688`](../../include/shulib/diag/blackbox_format.hpp#L688).*
+*free function, declared at [`include/shulib/diag/blackbox_format.hpp:721`](../../include/shulib/diag/blackbox_format.hpp#L721).*
 
 <a id="encodeend"></a>
 
@@ -1042,7 +1042,7 @@ Decode a triage frame and the fault tick's record. Returns false if the payload 
 
 Encode the graceful-end stamp. Its PRESENCE is the signal that the run closed cleanly; its absence is how a reader knows a file was cut short. Returns the bytes written, or 0 on a layout/space failure.
 
-*free function, declared at [`include/shulib/diag/blackbox_format.hpp:711`](../../include/shulib/diag/blackbox_format.hpp#L711).*
+*free function, declared at [`include/shulib/diag/blackbox_format.hpp:744`](../../include/shulib/diag/blackbox_format.hpp#L744).*
 
 <a id="decodeend"></a>
 
@@ -1054,7 +1054,7 @@ Encode the graceful-end stamp. Its PRESENCE is the signal that the run closed cl
 
 Decode the graceful-end stamp. Returns false if the payload is not exactly kEndPayloadBytes.
 
-*free function, declared at [`include/shulib/diag/blackbox_format.hpp:729`](../../include/shulib/diag/blackbox_format.hpp#L729).*
+*free function, declared at [`include/shulib/diag/blackbox_format.hpp:762`](../../include/shulib/diag/blackbox_format.hpp#L762).*
 
 <a id="encodeframeheader"></a>
 
@@ -1066,14 +1066,14 @@ Decode the graceful-end stamp. Returns false if the payload is not exactly kEndP
 
 Write a frame prefix {type, reserved, payloadBytes} into `out`. Returns the bytes written (kFrameHeaderBytes) or 0 if it did not fit.
 
-*free function, declared at [`include/shulib/diag/blackbox_format.hpp:747`](../../include/shulib/diag/blackbox_format.hpp#L747).*
+*free function, declared at [`include/shulib/diag/blackbox_format.hpp:780`](../../include/shulib/diag/blackbox_format.hpp#L780).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 52 lines, click to expand</summary>
+<summary>The header’s own reasoning — 59 lines, click to expand</summary>
 
 ```text
 
@@ -1124,10 +1124,17 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
 
  ── What H1 (F9, the SHUL/2 wire) inherits ──────────────────────────────────────────
  This is a PERSISTENCE contract the moment a file exists, but it is deliberately NOT
- the wire: SHUL/2 is streamed, sequenced and versioned on its own terms. What H1
- should reuse is the FIELD ORDER of encodeTick() (it follows debug_record.hpp's own
- declaration order, so a schema append lands at the end on both) and the refuse-don't-
- misread rule. Nothing here freezes anything: F9 is H1's, and E1 freezes nothing.
+ the wire: SHUL/2 is streamed, sequenced, checked and versioned on its own terms
+ (diag/shul2_format.hpp, chunk H1 Part A1). What it inherits is stronger than a field
+ order: SHUL/2's Tick and Summary payloads ARE this file's bytes — the wire calls
+ encodeTick()/encodeSummary() and these decoders, and has no encoder of its own, so a
+ Tick payload read off the SD card can be re-wrapped as a SHUL/2 frame without decoding
+ it. The consequence runs this way: once F9 freezes (H1 Part B), the tick and summary
+ layouts below are frozen with it, and a later change to the file's layout must fork its
+ own encoder rather than move the wire's (the SHUL/2 Tick golden fails if it does not).
+ What the wire does NOT inherit is this file's refuse-any-other-width rule (its reader
+ accepts a newer minor's longer frames) or its lack of a check (every SHUL/2 frame
+ carries a CRC). Nothing here freezes anything yet: F9 is H1 Part B's.
 ```
 
 </details>

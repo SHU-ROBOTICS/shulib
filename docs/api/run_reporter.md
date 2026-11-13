@@ -143,7 +143,7 @@ void finishRun()
 
 Assemble the §18.3 run summary from live state and hand it to the sink's summarize() channel (TermSink renders the block). Call once, at run end.
 
-*function, declared at [`include/shulib/motion/run_reporter.hpp:152`](../../include/shulib/motion/run_reporter.hpp#L152).*
+*function, declared at [`include/shulib/motion/run_reporter.hpp:154`](../../include/shulib/motion/run_reporter.hpp#L154).*
 
 ## Design commentary, from the header
 
