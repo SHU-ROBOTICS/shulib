@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 330" width="360" height="330" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="Heading angles: 0 degrees along +X, increasing counterclockwise">
+<title>Heading: 0° points along +X (right), angles grow counterclockwise: 90° along +Y, 180° along −X, 270° (or −90°) along −Y</title>
+<defs><marker id="ah2" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="12" refX="13" refY="6" orient="auto"><path d="M0,0 L14,6 L0,12 z" fill="#222"/></marker><marker id="ah3" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="12" refX="13" refY="6" orient="auto"><path d="M0,0 L14,6 L0,12 z" fill="#7a3db8"/></marker></defs>
+<rect width="360" height="330" fill="#ffffff"/>
+<circle cx="180" cy="165" r="95" fill="#eef1f4" stroke="#c5ccd3"/>
+<line x1="180" y1="165" x2="275.0" y2="165.0" stroke="#222" stroke-width="2.5" marker-end="url(#ah2)"/>
+<text x="287.0" y="169.0" text-anchor="start" font-size="13" fill="#222">0°  (+X, right)</text>
+<line x1="180" y1="165" x2="180.0" y2="70.0" stroke="#222" stroke-width="2.5" marker-end="url(#ah2)"/>
+<text x="180.0" y="56.0" text-anchor="middle" font-size="13" fill="#222">90°  (+Y, toward blue)</text>
+<line x1="180" y1="165" x2="85.0" y2="165.0" stroke="#222" stroke-width="2.5" marker-end="url(#ah2)"/>
+<text x="73.0" y="169.0" text-anchor="end" font-size="13" fill="#222">180°  (−X)</text>
+<line x1="180" y1="165" x2="180.0" y2="260.0" stroke="#222" stroke-width="2.5" marker-end="url(#ah2)"/>
+<text x="180.0" y="288.0" text-anchor="middle" font-size="13" fill="#222">270° = −90°  (−Y, toward red)</text>
+<path d="M235,165 A55,55 0 0 0 180,110" fill="none" stroke="#7a3db8" stroke-width="2.5" marker-end="url(#ah3)"/>
+<text x="224" y="121" font-size="13" fill="#4b2275" font-weight="bold">counter-</text>
+<text x="224" y="135" font-size="13" fill="#4b2275" font-weight="bold">clockwise</text>
+</svg>

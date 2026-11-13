@@ -21,6 +21,8 @@ graph in math class:
 So (24, 36) means: 24 inches right of center, 36 inches toward the far side. Every position in
 every routine, every log line, and every test is written this way.
 
+![The real Override field from above, seen from behind the red alliance station: (0, 0) at the centre goal, +X to the right, +Y toward the blue station, with the points (0, 0), (24, 36), (48, 0) and (−48, −24) marked](../assets/field-coordinates.png)
+
 One convention, applied everywhere, matters more than which convention it is. The single worst
 class of robot bug is two pieces of code silently disagreeing about what the numbers mean — one
 thinks Y points left, another thinks Y points forward, and the robot drives somewhere confidently
@@ -37,6 +39,8 @@ measured as an angle:
 
 - **0° points along +X** (to the right, from the audience's view).
 - Angles increase **counterclockwise**: 90° points along +Y, 180° points along −X.
+
+![Heading: 0° points along +X (right); angles grow counterclockwise, so 90° points toward the blue station, 180° along −X and 270° (the same as −90°) toward the red station](../assets/field-heading.svg)
 
 This is the standard math-class convention. Note that it is *not* the compass convention
 (compasses put 0 at north and go clockwise) — the V5's inertial sensor actually reports

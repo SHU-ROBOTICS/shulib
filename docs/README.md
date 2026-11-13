@@ -1,112 +1,108 @@
 # shulib documentation
 
-shulib is a holonomic-native autonomous library for VEX U robots, built by the Seton Hall
-University robotics team. This is everything written about it.
-
-> **Honest status.** shulib has **never driven a robot under its own control.** No control loop has ever closed on
-> hardware, no wheel has ever turned under the library's own steering, and no path has ever been
-> followed. What *has* happened on real hardware is narrower and worth stating exactly: the code
-> booted on a V5 brain (2026-08-12) and built its whole object graph there against fakes, and
-> then on 2026-08-13 the hardware adapters commanded eight real motors and read real sensors,
-> proving their unit conversions correct against a turning wheel — on one robot, once. Later
-> bench sessions measured a second robot's ports and motor directions, and a driver has driven
-> that robot with the sticks through the adapters (open-loop, once, 2026-09-17).
-> Everything above that seam — motion, accuracy, control — is verified only against a host
-> simulator with deliberately hostile sensor models: the logic is proven, and nearly every
-> physical constant is still an estimate.
-> [What it cannot do yet](guide/14-what-it-cannot-do-yet.md) is specific about which is which,
-> and the [hardware assumptions register](hardware-assumptions.md) lists every number still
-> waiting on a measurement.
+shulib is the autonomous and driver-control library for Seton Hall University's VEX U robots. It
+knows where the robot is on the field, drives it there, runs its mechanisms, and tells you plainly
+what happened — and why, when something goes wrong.
 
 ---
 
-## What this is, in one minute
+## What do you want to do?
 
-A robot in an autonomous period has to answer three questions continuously, and shulib is the
-library that answers them: **where am I** (odometry fused with an inertial sensor, corrected by
-a GPS and by AprilTags), **how do I get over there** (motion that translates and rotates at the
-same time and independently — our robots slide sideways, so the library is built around that
-rather than treating it as an afterthought), and **what just happened** (structured diagnostics
-on every tick, plus a blackbox that survives without a laptop).
+### Drive the robot
 
-Most VEX teams use LemLib, which drives only tank robots. Ours are X-drive and H-drive, so
-LemLib cannot drive them at all. That is why this exists.
+- **Set up the programs and upload them** — [Getting set up](guide/07-getting-set-up.md) lists every
+  program, its slot on the brain, and the one command that builds it.
+- **Put your mechanisms on the controller's buttons** — [Driver control](cookbook/06-driver-control.md):
+  a mechanism on two buttons, a pneumatic claw on one, and a whole driver file to copy from.
+- **On competition day** — [The competition program](guide/17-the-competition-program.md): choosing
+  the auton on the brain's screen, what the screen tells you, and what happens when a match starts.
 
-The honest shape of the project: **the thinking half is done and heavily tested** — three
-drivetrain types, sensor fusion, motion, sequencing, a guaranteed safe stop, and two ways to
-write a routine. **The hardware half is new** — the adapters exist and have been checked once at
-a bench. **The "usable without writing C++" promise is not built yet**; routines are C++ today.
+### Write an autonomous route
+
+- **Your first route** — [Your first routine](guide/08-your-first-routine.md), then
+  [the recipe API](guide/09-the-recipe-api.md) for every step a route can take.
+- **When a step fails** — [carry on, skip ahead, or stop](guide/09-the-recipe-api.md#choosing-what-a-failure-does-onfail-and-label),
+  and the [recipe for it](cookbook/02-when-a-step-fails.md).
+- **Smooth curves instead of stop-and-turn** — [Flowing through points](guide/05-getting-there.md#flowing-through-points-curves),
+  and [cookbook 1](cookbook/01-getting-there.md) for the recipe and its fallback.
+- **Start a mechanism partway through a drive** ("at 60 % of this drive, raise the cascade") —
+  [Triggers](guide/09-the-recipe-api.md#partway-through-a-drive-triggers).
+- **Re-zero the robot's position against a wall** — [Re-seating one axis against a wall](guide/03-knowing-where-you-are.md#re-seating-one-axis-against-a-wall).
+- **Check and flip a Toggle in a skills run** — [the Toggle step](guide/20-the-camera.md#checking-and-flipping-a-toggle-in-a-skills-route).
+- **Try a route on the bench before the field** — [Testing an auton on the bench](guide/16-testing-an-auton-on-the-bench.md).
+
+### Add, tune or test a mechanism
+
+- **Declare a lift, arm, claw, roller or piston, put it on buttons and use it in a route** —
+  [Mechanisms](guide/18-mechanisms.md), with the [recipe](cookbook/07-mechanisms.md).
+- **Protect a string lift with a current cap** — [Current caps](guide/18-mechanisms.md#current-caps--how-hard-a-string-is-pulled).
+- **Tune it on the robot, no laptop code** — [the Tune program](guide/18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen):
+  change the numbers on the brain's screen, watch the result, copy the lines back into your robot file.
+
+### Set up or check a robot
+
+- **Calibrate the drivetrain** — [Calibrating your robot](guide/19-calibrating-your-robot.md): one run
+  that measures the drive and saves it to the SD card.
+- **Use the camera** — [The camera](guide/20-the-camera.md): what it sees, how a Toggle's colour is
+  judged, and what it cannot tell.
+- **Understand a log line, an error or a refusal** — [Reading the diagnostics](guide/11-reading-the-diagnostics.md),
+  [When things go wrong](guide/12-when-things-go-wrong.md), and the [FAQ](faq.md).
+
+### Learn how it works
+
+The [user guide](guide/README.md) read in order assumes no robotics background: the field and its
+coordinates, how a robot knows where it is, the drivetrains, and how it gets from one place to
+another — before any code appears. The [glossary](guide/15-glossary.md) defines every term.
+
+### Look something up
+
+- **What is not built yet** — [What it cannot do yet](guide/14-what-it-cannot-do-yet.md).
+- **The exact signature of anything** — the [API reference](api/README.md), generated from the code
+  so it can never disagree with it, with an [A–Z index](api/all-entities.md). For routes you mostly
+  need two pages: [`Chassis`](api/chassis.md) and [`Routine`](api/routine.md).
+- **What changed, and whether it affects you** — the [changelog](changelog.md).
 
 ---
 
-## Start here
+## Why this library exists
 
-**New to this?** Read the [user guide](guide/README.md) in order. It assumes no robotics
-background and defines every term at first use — the first four chapters explain the field,
-coordinates, odometry, and drivetrains before any code appears.
+Most VEX teams use LemLib, which drives only tank robots. Our robots have been X-drive and H-drive,
+which LemLib cannot drive at all — that is why this exists. This season both of our robots are
+tanks, and shulib drives them as well.
 
-**Writing a routine right now?** Go to the [cookbook](cookbook/README.md). It is meant to be read
-out of order, mid-task: find the thing you are trying to do, take the recipe, adapt it.
-
-**Need the exact signature?** The [API reference](api/README.md) is generated from the headers, so
-it cannot disagree with the code — one page per header, plus an
-[A–Z index of every public entity](api/all-entities.md). If you are writing a routine you need two
-of those pages, [`Chassis`](api/chassis.md) and [`Routine`](api/routine.md); the rest is the
-machinery underneath.
-
-**Hit something surprising?** The [FAQ](faq.md) covers the behaviour the reference cannot carry —
-why a distance sensor reads 393 inches, why a pneumatic fired at boot, why `hasFix()` is false all
-match in Driving Skills. The [changelog](changelog.md) says what changed and whether it breaks you.
+It is built around three questions a robot answers all the time: **where am I** (odometry fused with
+the inertial sensor, corrected against field walls and, when available, a GPS or AprilTags), **how do
+I get over there** (motion that can translate and turn at the same time — an X-drive or H-drive robot
+can slide sideways, so the library is built around that rather than treating it as an afterthought;
+it drives tank robots too), and **what just happened** (a plain record of every step, plus a blackbox
+log that survives without a laptop).
 
 ---
 
-## The three documents, and why there are three
+## How these documents stay true
 
-They answer different questions, and each links to the others rather than repeating them.
+Documentation that drifts is worse than none, because people trust it. These are enforced by the
+build itself, not by anyone remembering:
 
-| Document | Answers | Read it |
-|---|---|---|
-| [**User guide**](guide/README.md) | *How does any of this work?* | In order, once |
-| [**Cookbook**](cookbook/README.md) | *How do I do the specific thing I need?* | Out of order, repeatedly |
-| [**API reference**](api/README.md) | *What exactly exists, and what is its type?* | As a lookup |
-
-The guide teaches; the reference enumerates. Where they overlap, the guide explains *why* and the
-reference states *what* — if you find them disagreeing about a fact, the reference is right, because
-it is generated from the source.
-
----
-
-## How these stay true
-
-Documentation that drifts is worse than no documentation, because people trust it. Four properties
-are enforced by the build itself, not by anyone remembering:
-
-- **Every code example compiles and runs.** Examples live in the test suite and the prose quotes
-  them verbatim; a build fails if a listing drifts from the code that compiles it.
-- **The API reference is regenerated from the headers**, and the build fails if the committed copy
-  is out of date.
-- **Every public entity in every shipped header is documented**, or the build fails naming it,
-  with its file and line. All 1,775 of them — types, members, nested types, free functions,
-  constants and type aliases — across every header under `include/shulib/`. Being gated is not
-  the same as being frozen: it costs one comment edit and a regeneration to change a documented
-  seam, whereas changing a *frozen* signature fails a compile-time pin naming the Freeze Register
-  row. The reference says so on its own front page rather than leaving you to infer it.
-- **The frozen surfaces are pinned at compile time** — a changed signature on `Chassis` or
-  `Routine` fails the build with the register row it violates.
+- **Every code example compiles and runs.** Examples live in the test suite, and the pages quote them
+  word for word; the build fails if a listing drifts from the code that compiles it.
+- **The API reference is regenerated from the code,** and the build fails if the published copy is
+  out of date — and if any public part of the library is left undocumented.
+- **The parts teams build on are frozen,** and changing one fails the build, naming the rule it broke.
 
 ---
 
 ## Reference material
 
-- [**Roadmap**](roadmap.md) — every milestone and task, the Freeze Register, and an honest
-  "you are here"
-- [**Architecture and design decisions**](shulib-v2-master-plan.md) — why the library is shaped
-  the way it is, including the alternatives that were rejected
-- [**Hardware assumptions register**](hardware-assumptions.md) — every physical constant that is
-  currently an estimate, what it would take to measure it, and what breaks if it is wrong
-- [**Diagnostics plan**](diagnostics-plan.md) — the telemetry and observability contract
+- [**Roadmap**](roadmap.md) — every milestone and task, and where the project is now
+- [**Architecture and design decisions**](shulib-v2-master-plan.md) — why the library is shaped the
+  way it is, including the alternatives that were rejected
+- [**Hardware assumptions register**](hardware-assumptions.md) — every physical number that is still
+  an estimate, how it will be measured, and what breaks if it is wrong
+- [**Diagnostics plan**](diagnostics-plan.md) — the telemetry and logging contract
+- [**VEXBuilder integration**](vexbuilder-integration.md) — how routes drawn in VEXBuilder map onto the library
 - [**Legacy command vocabulary**](legacy-command-vocabulary.md) — what the previous codebase's
-  routine format meant, preserved for the eventual importer
+  routine format meant
 
 ---
 
