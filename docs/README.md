@@ -4,18 +4,6 @@ shulib is the autonomous and driver-control library for Seton Hall University's 
 knows where the robot is on the field, drives it there, runs its mechanisms, and tells you plainly
 what happened — and why, when something goes wrong.
 
-> **Where it stands (November 2026).** The library is large and heavily tested on a computer model
-> of the robot: drives, turns and smooth curves; route steps that can carry on or skip ahead when one
-> fails; mechanism actions partway through a drive; wall resets; a cascade lift with a current cap
-> and live tuning on the brain's screen; a standard Calibrate; and the AI Vision camera checking a
-> Toggle's colour. **None of that has yet driven a robot under the library's own control** — the
-> robots this season are being built now, and the first sessions on them are this month. What *has*
-> run on real hardware is narrower: the hardware layer booted on a V5 brain, turned real motors, read
-> real sensors, and let a driver drive a robot with the sticks. Every physical number the library
-> still has to measure is listed in the [hardware assumptions register](hardware-assumptions.md),
-> and [what it cannot do yet](guide/14-what-it-cannot-do-yet.md) says exactly which parts are proven
-> and which are not.
-
 ---
 
 ## What do you want to do?
@@ -68,6 +56,7 @@ another — before any code appears. The [glossary](guide/15-glossary.md) define
 
 ### Look something up
 
+- **What is not built yet** — [What it cannot do yet](guide/14-what-it-cannot-do-yet.md).
 - **The exact signature of anything** — the [API reference](api/README.md), generated from the code
   so it can never disagree with it, with an [A–Z index](api/all-entities.md). For routes you mostly
   need two pages: [`Chassis`](api/chassis.md) and [`Routine`](api/routine.md).
@@ -105,7 +94,7 @@ build itself, not by anyone remembering:
 
 ## Reference material
 
-- [**Roadmap**](roadmap.md) — every milestone and task, and an honest "you are here"
+- [**Roadmap**](roadmap.md) — every milestone and task, and where the project is now
 - [**Architecture and design decisions**](shulib-v2-master-plan.md) — why the library is shaped the
   way it is, including the alternatives that were rejected
 - [**Hardware assumptions register**](hardware-assumptions.md) — every physical number that is still
