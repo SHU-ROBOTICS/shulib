@@ -1,0 +1,17 @@
+erase 0 27 479 235 eraser=101418
+fill 0 0 479 26 pen=1e5aa8
+print M 8 4 pen=f0f0f0 eraser=1e5aa8 'CALIBRATE'
+print S 340 7 pen=f0f0f0 eraser=1e5aa8 'BUILD 12:00:00'
+print L 8 30 pen=f0f0f0 eraser=101418 'HANDS OFF'
+print L 8 66 pen=f0f0f0 eraser=101418 'STARTING UP'
+print M 8 110 pen=9aa4ae eraser=101418 'finding the motors and the IMU'
+erase 0 27 479 235 eraser=101418
+fill 0 0 479 26 pen=e2564a
+print M 8 4 pen=101418 eraser=e2564a 'CANNOT START'
+print S 340 7 pen=101418 eraser=e2564a 'BUILD 12:00:00'
+print L 8 34 pen=e2564a eraser=101418 'IMU COUNT NOT 1'
+print M 8 76 pen=f0f0f0 eraser=101418 'the registry reports 0 IMUs; this'
+print M 8 98 pen=f0f0f0 eraser=101418 'procedure needs exactly one'
+print S 8 146 pen=e8b23a eraser=101418 'plug in exactly one inertial sensor and run again'
+print S 8 186 pen=9aa4ae eraser=101418 'nothing is powered -- fix it, then restart it'
+print S 8 202 pen=9aa4ae eraser=101418 'the census is on the serial log'

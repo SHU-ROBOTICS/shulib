@@ -6,15 +6,15 @@
 // to rest. If the move is too short to reach maxVelocity it degrades to a TRIANGLE (peak
 // speed < maxVelocity, no cruise). (S-curve is a later sibling.)
 //
-// NOTHING IN THE TREE INSTANTIATES ONE YET, and this note is here because the header used
-// to say the opposite. It claimed "the velocity target feeds Feedforward; the position
-// target feeds the per-axis Pid" and "the motion layer instantiates one per axis" — both
-// describe an INTENDED wiring, not a real one. The C1 motions run per-axis Pid plus
-// Feedforward directly against the live error, with the speed cap applied in the command
-// pipeline; no profile is generated anywhere, and the only consumer of this class in the
-// repository is its own test. That is a gap, not a bug — profiled motion is future work —
-// but a header that describes an integration it does not have is a lie a generated
-// reference then publishes, so it says the true thing now.
+// ITS ONE CONSUMER is the mechanism core's POSITION behaviour (mechanism/service.hpp, since
+// MECH-A3): an arm's or a lift's move is one of these in output degrees, tracked by P + D
+// with feedforward, a fresh hold loop taking over when it ends. THE DRIVE DOES NOT USE IT:
+// the C1 motions run per-axis Pid plus Feedforward directly against the live error, with
+// the speed cap applied in the command pipeline, and no drive motion generates a profile —
+// profiled drive motion is future work. (This note once said nothing instantiated one at
+// all, written because the header before it claimed "the motion layer instantiates one per
+// axis" — an INTENDED wiring, not a real one; a header that describes an integration it
+// does not have is a lie a generated reference then publishes.)
 //
 // Bare doubles, like the rest of control: the CALLER picks the distance unit and supplies
 // matching unit/s and unit/s² (inches and radians are what a motion layer would use).
@@ -28,7 +28,7 @@ namespace shulib::control {
 
 /// The envelope a profile must stay inside. Bare doubles by design: the CALLER picks the
 /// distance unit and these are that unit per second and per second² — inches and radians
-/// are what a motion layer would use, though none instantiates one today (header note).
+/// are what a motion layer would use; the mechanism core's moves use output degrees (header note).
 struct ProfileConstraints {
     double maxVelocity = 0.0;      ///< Cruise-speed cap; must be > 0 (the 0 default is unusable)
     double maxAcceleration = 0.0;  ///< Ramp rate, used for BOTH ramps (accel == decel); must be > 0
@@ -48,9 +48,9 @@ struct ProfileState {
 /// on target — degrading to a triangle when the move is too short to reach cruise speed.
 /// Built once per move and then IMMUTABLE: sample(t) is a pure function of t, so the same
 /// t always returns the same state, re-sampling is free, and nothing advances a baseline.
-/// **It has no consumer in this library yet** — the shipped motions servo the live error
-/// with Pid + Feedforward and generate no profile. Shipped, tested, and waiting for the
-/// profiled-motion work; the header note says why that is written down rather than implied.
+/// **Its one consumer is the mechanism core's position moves** (mechanism/service.hpp); the
+/// drive's motions servo the live error with Pid + Feedforward and generate no profile —
+/// profiled drive motion is still future work (the header note).
 class TrapezoidProfile {
 public:
     /// Plan a move of SIGNED `distance` under `c`. `distance` and both constraints must be
@@ -136,8 +136,8 @@ public:
     /// isDone() would spin forever on a NaN clock instead of failing fast. **This member
     /// is deliberately NOT noexcept**, because the precondition handler throws and a
     /// noexcept frame would turn a caller bug into std::terminate; the drop is a breaking
-    /// signature change by version.hpp's rule, taken because this class has no consumer in
-    /// the tree but its own test and a hang is the worse failure.
+    /// signature change by version.hpp's rule, taken when this class had no consumer in the
+    /// tree but its own test, and because a hang is the worse failure.
     [[nodiscard]] bool isDone(double t) const {
         SHULIB_PRECONDITION(std::isfinite(t), "TrapezoidProfile::isDone: t must be finite");
         return t >= duration_;

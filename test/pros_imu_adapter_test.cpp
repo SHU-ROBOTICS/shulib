@@ -139,13 +139,17 @@ TEST_CASE("ProsImu: differentiation branch — d/dt of get_rotation, CW→CCW ne
 TEST_CASE("ProsImu: gyro branch — get_gyro_rate().z through the same canonical negate (T4)") {
     // BUG CAUGHT: the flag shipping an untested second branch (an untaken
     // branch on a robot is where bugs hide). z = +45 deg/s CW must read
-    // canonical −0.7853981633974483 rad/s.
+    // canonical −0.7853981633974483 rad/s. Since IMU1 the rate is held for
+    // the rest of its tick (ProsImu::kRateHoldUs), so the second z is read a
+    // tick later, and a read at the same instant answers the first.
     pros::shim::resetAll();
     FakeClock clock;
     ProsImu imu = readyImu(16, clock, Angle::degrees(0.0), YawRateSource::GyroRateZ);
     pros::shim::imuState(16).gyroZDegPerSecCw = 45.0;
     CHECK(imu.yawRate().value() == doctest::Approx(-0.7853981633974483));
     pros::shim::imuState(16).gyroZDegPerSecCw = -90.0;
+    CHECK(imu.yawRate().value() == doctest::Approx(-0.7853981633974483));  // same tick: held
+    clock.advance(Time{0.01});
     CHECK(imu.yawRate().value() == doctest::Approx(1.5707963267948966));
 }
 

@@ -8,12 +8,13 @@
 
 Chassis — the public facade every auton is written against.
 
-This header declares **4** types (36 members).
+This header declares **5** types (46 members) and **1** type alias.
 
 Extracted from [`include/shulib/chassis/chassis.hpp`](../../include/shulib/chassis/chassis.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 
+- [`CurvePoint`](#curvepoint) — *type alias*
 - [`struct ChassisConfig`](#struct-chassisconfig)
   - [`motion`](#chassisconfig-motion)
   - [`scheduler`](#chassisconfig-scheduler)
@@ -21,12 +22,17 @@ Extracted from [`include/shulib/chassis/chassis.hpp`](../../include/shulib/chass
   - [`timeout`](#motionoptions-timeout)
   - [`maxLinearSpeed`](#motionoptions-maxlinearspeed)
   - [`maxAngularSpeed`](#motionoptions-maxangularspeed)
+  - [`positionTolerance`](#motionoptions-positiontolerance)
+  - [`headingTolerance`](#motionoptions-headingtolerance)
   - [`validate`](#motionoptions-validate)
 - [`struct TrajectoryResult`](#struct-trajectoryresult)
   - [`exit`](#trajectoryresult-exit)
   - [`completedLegs`](#trajectoryresult-completedlegs)
   - [`totalLegs`](#trajectoryresult-totallegs)
   - [`succeeded`](#trajectoryresult-succeeded)
+- [`struct LegObserver`](#struct-legobserver)
+  - [`fn`](#legobserver-fn)
+  - [`context`](#legobserver-context)
 - [`class Chassis`](#class-chassis)
   - [`Chassis`](#chassis-chassis)
   - [`Chassis (overload 2)`](#chassis-chassis-2)
@@ -37,8 +43,14 @@ Extracted from [`include/shulib/chassis/chassis.hpp`](../../include/shulib/chass
   - [`moveTo`](#chassis-moveto)
   - [`strafeTo`](#chassis-strafeto)
   - [`turnTo`](#chassis-turnto)
+  - [`moveTo (overload 2)`](#chassis-moveto-2)
+  - [`turnTo (overload 2)`](#chassis-turnto-2)
   - [`followTrajectory`](#chassis-followtrajectory)
   - [`followTrajectory (overload 2)`](#chassis-followtrajectory-2)
+  - [`curveTo`](#chassis-curveto)
+  - [`curveTo (overload 2)`](#chassis-curveto-2)
+  - [`reverseCurveTo`](#chassis-reversecurveto)
+  - [`reverseCurveTo (overload 2)`](#chassis-reversecurveto-2)
   - [`brake`](#chassis-brake)
   - [`hold`](#chassis-hold)
   - [`wait`](#chassis-wait)
@@ -55,6 +67,18 @@ Extracted from [`include/shulib/chassis/chassis.hpp`](../../include/shulib/chass
   - [`scheduler`](#chassis-scheduler)
   - [`scheduler (overload 2)`](#chassis-scheduler-2)
 
+<a id="curvepoint"></a>
+
+## `CurvePoint`
+
+```cpp
+using CurvePoint = motion::CurvePoint
+```
+
+One point of a curve verb (curveTo / reverseCurveTo): `{x, y}` or `{x, y, heading}` — the motion layer's motion::CurvePoint, named here so an auton never needs the motion namespace (and, in braces, never names the type at all). CURVE1, F6-additive.
+
+*type alias, declared at [`include/shulib/chassis/chassis.hpp:262`](../../include/shulib/chassis/chassis.hpp#L262).*
+
 <a id="struct-chassisconfig"></a>
 
 ## `struct ChassisConfig`
@@ -65,7 +89,7 @@ struct ChassisConfig
 
 Everything configurable about a Chassis, in one place. Both members are the lower layers' own config types passed through WHOLE — so an additive field there (e.g. a future per-wheel speed budget in MotionConfig, the C3 §11 flag) flows through this surface with no reshape.
 
-*struct, declared at [`include/shulib/chassis/chassis.hpp:173`](../../include/shulib/chassis/chassis.hpp#L173).*
+*struct, declared at [`include/shulib/chassis/chassis.hpp:268`](../../include/shulib/chassis/chassis.hpp#L268).*
 
 <a id="chassisconfig-motion"></a>
 
@@ -77,7 +101,7 @@ motion::MotionConfig motion{}
 
 gains/budgets/tolerances (HA-50/51/52)
 
-*field, declared at [`include/shulib/chassis/chassis.hpp:174`](../../include/shulib/chassis/chassis.hpp#L174).*
+*field, declared at [`include/shulib/chassis/chassis.hpp:269`](../../include/shulib/chassis/chassis.hpp#L269).*
 
 <a id="chassisconfig-scheduler"></a>
 
@@ -89,7 +113,7 @@ motion::MotionSchedulerConfig scheduler{}
 
 fault policy mask + loop monitor
 
-*field, declared at [`include/shulib/chassis/chassis.hpp:175`](../../include/shulib/chassis/chassis.hpp#L175).*
+*field, declared at [`include/shulib/chassis/chassis.hpp:270`](../../include/shulib/chassis/chassis.hpp#L270).*
 
 <a id="struct-motionoptions"></a>
 
@@ -101,7 +125,7 @@ struct MotionOptions
 
 Per-call knobs for the blocking verbs. 0 (the default) = "use the ChassisConfig value". Validated finite and >= 0 at each call.  FROZEN F6 NOTE (D2): the fields BELOW are frozen (name/type/meaning); the field SET is deliberately additive-open — a future knob is a new field with a 0/"config default" meaning, never a reshape of these.
 
-*struct, declared at [`include/shulib/chassis/chassis.hpp:184`](../../include/shulib/chassis/chassis.hpp#L184).*
+*struct, declared at [`include/shulib/chassis/chassis.hpp:279`](../../include/shulib/chassis/chassis.hpp#L279).*
 
 <a id="motionoptions-timeout"></a>
 
@@ -113,7 +137,7 @@ units::Time timeout{0.0}
 
 Watchdog bound for this motion, INCLUDING any boot wait. Typed time (D2): `{.timeout = 5_s}` / `{.timeout = 500_ms}` — a bare double does not compile, so "500 meaning milliseconds" cannot silently become 500 seconds of match time.
 
-*field, declared at [`include/shulib/chassis/chassis.hpp:189`](../../include/shulib/chassis/chassis.hpp#L189).*
+*field, declared at [`include/shulib/chassis/chassis.hpp:284`](../../include/shulib/chassis/chassis.hpp#L284).*
 
 <a id="motionoptions-maxlinearspeed"></a>
 
@@ -125,7 +149,7 @@ units::Velocity maxLinearSpeed{0.0}
 
 Field-frame linear speed budget for this motion (in/s) — the norm cap AND the base of the strafe-authority clamp, exactly as in MotionConfig. The per-wheel budget (maxWheelSpeed) is deliberately NOT scaled with it: that is a hardware envelope, not a per-leg intent.
 
-*field, declared at [`include/shulib/chassis/chassis.hpp:194`](../../include/shulib/chassis/chassis.hpp#L194).*
+*field, declared at [`include/shulib/chassis/chassis.hpp:289`](../../include/shulib/chassis/chassis.hpp#L289).*
 
 <a id="motionoptions-maxangularspeed"></a>
 
@@ -137,7 +161,31 @@ units::AngularVelocity maxAngularSpeed{0.0}
 
 Yaw-rate budget for this motion (rad/s).
 
-*field, declared at [`include/shulib/chassis/chassis.hpp:196`](../../include/shulib/chassis/chassis.hpp#L196).*
+*field, declared at [`include/shulib/chassis/chassis.hpp:291`](../../include/shulib/chassis/chassis.hpp#L291).*
+
+<a id="motionoptions-positiontolerance"></a>
+
+### `MotionOptions::positionTolerance`
+
+```cpp
+units::Length positionTolerance{0.0}
+```
+
+ARRIVAL TOLERANCE for this motion's position: "arrive within 2 in" is `{.positionTolerance = 2_in}`. 0 (the default) = the robot's own settle numbers (MotionConfig::translationSettle), bit for bit. A leg ends when the robot is close enough AND slow enough, and on a drive leg the SPEED bound is the one that decides (the robot is already well inside 0.5 in when it first slows under 1 in/s) — so a tolerance looser than the robot's own loosens BOTH, in proportion: 2 in means "within 2 in and slower than 4 in/s" (0.5 in / 1 in/s scaled by 2 / 0.5). A tolerance TIGHTER than the robot's own tightens only the distance. motion::loosenedSettle is the one formula (it is total: a robot whose own distance is 0 keeps its own speed bound). The leg can therefore end with the robot still rolling at up to that speed: it stops dead on the host test plant, and how far a real robot coasts after it is unmeasured (A4: HA-216). Read by every verb whose motion reads the translation settle — moveTo, driveTo / reverseTo (through moveTo), each followTrajectory leg, strafeTo, hold() (Settled iff within it when the hold window ends), and curveTo / reverseCurveTo (through the curve's end moveTo — CURVE1); turnTo / face / faceAway and brake() ignore it. Validated finite and >= 0. (APPENDED at STEP1-A, after the frozen three, so every designated initializer keeps compiling.)
+
+*field, declared at [`include/shulib/chassis/chassis.hpp:311`](../../include/shulib/chassis/chassis.hpp#L311).*
+
+<a id="motionoptions-headingtolerance"></a>
+
+### `MotionOptions::headingTolerance`
+
+```cpp
+math::Angle headingTolerance{}
+```
+
+ARRIVAL TOLERANCE for this motion's heading: "within 5°" is `{.headingTolerance = 5_deg}`. A zero Angle (the default) = the robot's own MotionConfig::headingSettle, bit for bit. The same rule as positionTolerance, on the heading settle (1.15° / 0.30 rad/s on the defaults): looser loosens the distance AND the turn-rate bound in proportion (5° → 1.31 rad/s, about 75°/s), tighter tightens only the distance (a smaller rate bound could sit inside the IMU's noise and never settle — motion_config.hpp's header). Read by turnTo / face / faceAway, by every MoveToPose-engine verb above (each also settles its heading), and by curveTo / reverseCurveTo (through the curve's end moveTo — CURVE1); brake() ignores it. A math::Angle, so it is written 2_deg like every heading — and so it is wrapped: a negative value, or one that WRAPS to a negative one (359_deg stores −1°), is refused at the call, never read as a size. (APPENDED at STEP1-A.)
+
+*field, declared at [`include/shulib/chassis/chassis.hpp:326`](../../include/shulib/chassis/chassis.hpp#L326).*
 
 <a id="motionoptions-validate"></a>
 
@@ -149,7 +197,7 @@ void validate() const
 
 Reject nonsense before anything moves: every field must be finite and >= 0. Called by each verb at the door, so a bad option value is a loud error at the call site rather than a mystery mid-motion.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:201`](../../include/shulib/chassis/chassis.hpp#L201).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:331`](../../include/shulib/chassis/chassis.hpp#L331).*
 
 <a id="struct-trajectoryresult"></a>
 
@@ -161,7 +209,7 @@ struct TrajectoryResult
 
 What followTrajectory did — which leg count it completed and how the last attempted leg exited. (ExitReason alone would lose WHERE the chain broke; the next thing a routine does after a failed trajectory legitimately depends on how far it got.)
 
-*struct, declared at [`include/shulib/chassis/chassis.hpp:217`](../../include/shulib/chassis/chassis.hpp#L217).*
+*struct, declared at [`include/shulib/chassis/chassis.hpp:356`](../../include/shulib/chassis/chassis.hpp#L356).*
 
 <a id="trajectoryresult-exit"></a>
 
@@ -173,7 +221,7 @@ control::ExitReason exit = control::ExitReason::Settled
 
 last attempted leg's verdict
 
-*field, declared at [`include/shulib/chassis/chassis.hpp:218`](../../include/shulib/chassis/chassis.hpp#L218).*
+*field, declared at [`include/shulib/chassis/chassis.hpp:357`](../../include/shulib/chassis/chassis.hpp#L357).*
 
 <a id="trajectoryresult-completedlegs"></a>
 
@@ -185,7 +233,7 @@ int completedLegs = 0
 
 legs that SETTLED (== totalLegs on success)
 
-*field, declared at [`include/shulib/chassis/chassis.hpp:219`](../../include/shulib/chassis/chassis.hpp#L219).*
+*field, declared at [`include/shulib/chassis/chassis.hpp:358`](../../include/shulib/chassis/chassis.hpp#L358).*
 
 <a id="trajectoryresult-totallegs"></a>
 
@@ -197,7 +245,7 @@ int totalLegs = 0
 
 waypoints given
 
-*field, declared at [`include/shulib/chassis/chassis.hpp:220`](../../include/shulib/chassis/chassis.hpp#L220).*
+*field, declared at [`include/shulib/chassis/chassis.hpp:359`](../../include/shulib/chassis/chassis.hpp#L359).*
 
 <a id="trajectoryresult-succeeded"></a>
 
@@ -209,7 +257,43 @@ waypoints given
 
 True only if the last attempted leg SETTLED and every leg was completed. Note what this means for a value-initialized TrajectoryResult (0 of 0 legs, exit Settled): it reads as success. That is correct here — this verb requires at least one waypoint, so a result it produces always has legs — but any code that holds a TrajectoryResult BEFORE running one must initialize `exit` to Running instead (Routine::lastTrajectory does).
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:227`](../../include/shulib/chassis/chassis.hpp#L227).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:366`](../../include/shulib/chassis/chassis.hpp#L366).*
+
+<a id="struct-legobserver"></a>
+
+## `struct LegObserver`
+
+```cpp
+struct LegObserver
+```
+
+STEP1-B: what a moveTo / turnTo OBSERVER overload calls after every tick of the leg that did not end it — neither the motion's exit tick nor one the scheduler's fault policy ends (the file banner's "leg OBSERVER"): `fn(context, progress)`. A plain function pointer and a context pointer — no heap, no std::function (runner::Handler's pattern). `fn` null = no observer (the leg runs exactly as the plain verb). It runs INSIDE the scheduler's tick: no blocking verb, no async() or cancel(), and it must not throw (the banner says why).
+
+*struct, declared at [`include/shulib/chassis/chassis.hpp:377`](../../include/shulib/chassis/chassis.hpp#L377).*
+
+<a id="legobserver-fn"></a>
+
+### `LegObserver::fn`
+
+```cpp
+void (*fn)(void* context, const motion::LegProgress& progress) = nullptr
+```
+
+Called once per non-exit tick with the leg's progress; null = nothing is called.
+
+*field, declared at [`include/shulib/chassis/chassis.hpp:379`](../../include/shulib/chassis/chassis.hpp#L379).*
+
+<a id="legobserver-context"></a>
+
+### `LegObserver::context`
+
+```cpp
+void* context = nullptr
+```
+
+Handed back to `fn` untouched (the caller's object, borrowed for the leg).
+
+*field, declared at [`include/shulib/chassis/chassis.hpp:381`](../../include/shulib/chassis/chassis.hpp#L381).*
 
 <a id="class-chassis"></a>
 
@@ -221,7 +305,7 @@ class Chassis
 
 The public facade every autonomous routine is written against: the blocking motion verbs, the frame-explicit manual verb, control, state, and the Tier-3 seam — over one owned MotionScheduler. FROZEN (register row F6, locked 2026-08-12); the file banner above carries the design reasoning behind every shape here, and is meant to be read before changing anything.
 
-*class, declared at [`include/shulib/chassis/chassis.hpp:237`](../../include/shulib/chassis/chassis.hpp#L237).*
+*class, declared at [`include/shulib/chassis/chassis.hpp:389`](../../include/shulib/chassis/chassis.hpp#L389).*
 
 <a id="chassis-chassis"></a>
 
@@ -233,7 +317,7 @@ explicit Chassis(const motion::MotionDeps& deps, motion::ITickPacer& pacer, cons
 
 `deps` is the same validated bundle every motion takes; `pacer` is the seam through which the world advances during blocking verbs (host sim: step the plant; robot: delay to the tick boundary — R1/R3 build that one). All deps pointees AND the pacer must outlive the Chassis; the facade borrows, it does not own (header: construction).
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:244`](../../include/shulib/chassis/chassis.hpp#L244).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:396`](../../include/shulib/chassis/chassis.hpp#L396).*
 
 <a id="chassis-chassis-2"></a>
 
@@ -245,7 +329,7 @@ Chassis(const Chassis&) = delete
 
 Neither copyable nor movable: the Chassis OWNS the scheduler, which is pinned in place by its own self-referential command-id stamp, so a copy or a move would leave that stamp pointing at the wrong object. Hold a `Chassis&`; construct it once, where it will live.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:254`](../../include/shulib/chassis/chassis.hpp#L254).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:406`](../../include/shulib/chassis/chassis.hpp#L406).*
 
 <a id="chassis-chassis-3"></a>
 
@@ -257,7 +341,7 @@ Chassis(Chassis&&) = delete
 
 *Covered by the comment on [`Chassis (overload 2)`](#chassis-chassis-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:255`](../../include/shulib/chassis/chassis.hpp#L255).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:407`](../../include/shulib/chassis/chassis.hpp#L407).*
 
 <a id="chassis-operator-eq"></a>
 
@@ -269,7 +353,7 @@ Chassis& operator=(const Chassis&) = delete
 
 *Covered by the comment on [`Chassis (overload 2)`](#chassis-chassis-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:256`](../../include/shulib/chassis/chassis.hpp#L256).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:408`](../../include/shulib/chassis/chassis.hpp#L408).*
 
 <a id="chassis-operator-eq-2"></a>
 
@@ -281,7 +365,7 @@ Chassis& operator=(Chassis&&) = delete
 
 *Covered by the comment on [`Chassis (overload 2)`](#chassis-chassis-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:257`](../../include/shulib/chassis/chassis.hpp#L257).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:409`](../../include/shulib/chassis/chassis.hpp#L409).*
 
 <a id="chassis-destructor-chassis"></a>
 
@@ -293,7 +377,7 @@ Chassis& operator=(Chassis&&) = delete
 
 *Covered by the comment on [`Chassis (overload 2)`](#chassis-chassis-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:258`](../../include/shulib/chassis/chassis.hpp#L258).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:410`](../../include/shulib/chassis/chassis.hpp#L410).*
 
 <a id="chassis-moveto"></a>
 
@@ -303,9 +387,9 @@ Chassis& operator=(Chassis&&) = delete
 control::ExitReason moveTo(const math::Pose2d& target, const MotionOptions& options = {})
 ```
 
-Drive to `target` (FIELD pose): the decoupled holonomic engine — translation and rotation simultaneous and independent (C1's thesis).
+Drive to `target` (FIELD pose): the decoupled holonomic engine — translation and rotation simultaneous and independent (C1's thesis). On a tank, a leg that starts within 15° of its target heading also steers back onto its line while it drives, and a leg that starts farther off runs unsteered and logs one Warn (header: TANK STEERING). It never plans a turn.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:264`](../../include/shulib/chassis/chassis.hpp#L264).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:419`](../../include/shulib/chassis/chassis.hpp#L419).*
 
 <a id="chassis-strafeto"></a>
 
@@ -315,9 +399,9 @@ Drive to `target` (FIELD pose): the decoupled holonomic engine — translation a
 control::ExitReason strafeTo(units::Length x, units::Length y, const MotionOptions& options = {})
 ```
 
-Translate to FIELD (x, y) while actively HOLDING the heading the robot has at its first live tick. On tank (authority 0) an off-line target honestly exits TimedOut (C1's drivetrain honesty).
+Translate to FIELD (x, y) while actively HOLDING the heading the robot has at its first live tick. On tank (authority 0) an off-line target honestly exits TimedOut (C1's drivetrain honesty) — unchanged by TANK1: strafeTo never takes moveTo's tank steering, because holding the heading it found IS its contract (on a tank, a moveTo with the current heading is the translate that steers).
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:274`](../../include/shulib/chassis/chassis.hpp#L274).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:432`](../../include/shulib/chassis/chassis.hpp#L432).*
 
 <a id="chassis-turnto"></a>
 
@@ -329,7 +413,31 @@ control::ExitReason turnTo(math::Angle heading, const MotionOptions& options = {
 
 Rotate in place to a FIELD heading, always the short way (F3's shortest signed error; exact ±180° resolves CCW, deterministically).
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:284`](../../include/shulib/chassis/chassis.hpp#L284).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:442`](../../include/shulib/chassis/chassis.hpp#L442).*
+
+<a id="chassis-moveto-2"></a>
+
+### `Chassis::moveTo (overload 2)`
+
+```cpp
+control::ExitReason moveTo(const math::Pose2d& target, const MotionOptions& options, LegObserver observer)
+```
+
+STEP1-B: moveTo, WATCHED — the same motion, run the same way, with `observer` called after every tick that did not end the leg, given the distance covered along the straight line from the leg's live start to `target` (the file banner's "leg OBSERVER"). A null `observer.fn`: exactly moveTo(target, options). (F6-additive, pinned; a Routine's partway triggers ride it.)
+
+*function, declared at [`include/shulib/chassis/chassis.hpp:453`](../../include/shulib/chassis/chassis.hpp#L453).*
+
+<a id="chassis-turnto-2"></a>
+
+### `Chassis::turnTo (overload 2)`
+
+```cpp
+control::ExitReason turnTo(math::Angle heading, const MotionOptions& options, LegObserver observer)
+```
+
+STEP1-B: turnTo, WATCHED — as the moveTo overload above, the progress being the angle turned toward `heading` since the turn's live start (the short way, as turnTo turns). A null `observer.fn`: exactly turnTo(heading, options). (F6-additive, pinned.)
+
+*function, declared at [`include/shulib/chassis/chassis.hpp:464`](../../include/shulib/chassis/chassis.hpp#L464).*
 
 <a id="chassis-followtrajectory"></a>
 
@@ -341,7 +449,7 @@ TrajectoryResult followTrajectory(std::span<const math::Pose2d> waypoints, const
 
 Chain `waypoints` as sequential moveTo legs, settling at each; stop at the first non-Settled leg (header: followTrajectory). `options` apply PER LEG (each leg is one scheduled motion with its own watchdog). Precondition: at least one waypoint. G2 boundary in the header.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:295`](../../include/shulib/chassis/chassis.hpp#L295).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:477`](../../include/shulib/chassis/chassis.hpp#L477).*
 
 <a id="chassis-followtrajectory-2"></a>
 
@@ -353,7 +461,55 @@ TrajectoryResult followTrajectory(std::initializer_list<math::Pose2d> waypoints,
 
 Brace-list convenience: followTrajectory({a, b, c}).
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:324`](../../include/shulib/chassis/chassis.hpp#L324).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:506`](../../include/shulib/chassis/chassis.hpp#L506).*
+
+<a id="chassis-curveto"></a>
+
+### `Chassis::curveTo`
+
+```cpp
+control::ExitReason curveTo(std::span<const CurvePoint> points, const MotionOptions& options = {})
+```
+
+Drive a SMOOTH path from where the robot is, along its nose, through `points` (FIELD inches; 1 to 16; `{x, y}` or `{x, y, heading}` — a heading is the robot's NOSE), without stopping at them, and END like moveTo at the last point (header: curveTo). Refuses before moving — TimedOut, one Warn naming the point — a first point more than 90 deg off the nose ("turn first: face()") or a path that doubles back; stops a curve it has lost. Options as on moveTo (the timeout covers the WHOLE curve; the arrival tolerances reach its end). Preconditions, checked before anything moves: 1 to 16 points, every x and y finite.
+
+*function, declared at [`include/shulib/chassis/chassis.hpp:522`](../../include/shulib/chassis/chassis.hpp#L522).*
+
+<a id="chassis-curveto-2"></a>
+
+### `Chassis::curveTo (overload 2)`
+
+```cpp
+control::ExitReason curveTo(std::initializer_list<CurvePoint> points, const MotionOptions& options = {})
+```
+
+Brace-list convenience: curveTo({{24_in, 12_in}, {48_in, 24_in, 0_deg}}).
+
+*function, declared at [`include/shulib/chassis/chassis.hpp:528`](../../include/shulib/chassis/chassis.hpp#L528).*
+
+<a id="chassis-reversecurveto"></a>
+
+### `Chassis::reverseCurveTo`
+
+```cpp
+control::ExitReason reverseCurveTo(std::span<const CurvePoint> points, const MotionOptions& options = {})
+```
+
+curveTo with the robot's BACK leading the whole way. Every heading is still the robot's NOSE (a robot backing into a spot facing 0 deg ends with `0_deg`, not 180): writing the direction of travel makes the path double back, and it is refused.
+
+*function, declared at [`include/shulib/chassis/chassis.hpp:536`](../../include/shulib/chassis/chassis.hpp#L536).*
+
+<a id="chassis-reversecurveto-2"></a>
+
+### `Chassis::reverseCurveTo (overload 2)`
+
+```cpp
+control::ExitReason reverseCurveTo(std::initializer_list<CurvePoint> points, const MotionOptions& options = {})
+```
+
+Brace-list convenience: reverseCurveTo({{-12_in, 30_in}, {-36_in, 36_in, 0_deg}}).
+
+*function, declared at [`include/shulib/chassis/chassis.hpp:542`](../../include/shulib/chassis/chassis.hpp#L542).*
 
 <a id="chassis-brake"></a>
 
@@ -365,7 +521,7 @@ control::ExitReason brake(const MotionOptions& options = {})
 
 Stop the drivetrain (0 V under Brake) and block until the ESTIMATE certifies rest (or the watchdog fires). The controlled end-of-motion stop; cancel() is the uncontrolled one.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:336`](../../include/shulib/chassis/chassis.hpp#L336).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:553`](../../include/shulib/chassis/chassis.hpp#L553).*
 
 <a id="chassis-hold"></a>
 
@@ -377,7 +533,7 @@ control::ExitReason hold(units::Time duration, const MotionOptions& options = {}
 
 Actively hold the pose the robot has at its first live tick for `duration`, driving back any disturbance with full holonomic authority; Settled iff still within tolerance when the window ends. `duration` must be finite and > 0 (HoldPose's precondition). Typed time (D2): hold(500_ms) — hold(500) does not compile, so "500 meaning milliseconds" cannot hold pose for 500 s of a 15 s auton.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:348`](../../include/shulib/chassis/chassis.hpp#L348).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:565`](../../include/shulib/chassis/chassis.hpp#L565).*
 
 <a id="chassis-wait"></a>
 
@@ -389,7 +545,7 @@ void wait(units::Time duration)
 
 Wait, commanding nothing, for `duration` — then return. The world keeps advancing and the active motion (if any) keeps ticking — the same contract as waitUntil; the drive keeps whatever state the last verb left it in (after a settled motion: stopped). Deliberately DISTINCT from hold(): wait() never energizes the drive — this is the "sit still for the alliance partner" beat (D2; adopted from D1's finding that the naive waitUntil(false-pred, t) spelling logs a spurious Warn on every deliberate pause, and the Warn-free spelling needed Tier-3 plumbing). Returns void: a wait has no failure mode — a pacer that stops advancing the clock trips the scheduler's loud precondition, a programming error rather than a verdict. Warn-free and bounded by construction: the deadline predicate is time-monotone, so the internal timeout backstop is unreachable slack. `duration` must be finite and > 0 (typed: wait(2_s) / wait(500_ms)).
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:368`](../../include/shulib/chassis/chassis.hpp#L368).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:585`](../../include/shulib/chassis/chassis.hpp#L585).*
 
 <a id="chassis-drive"></a>
 
@@ -401,7 +557,7 @@ void drive(const math::ChassisSpeeds& speeds, math::Frame frame)
 
 Command a chassis velocity directly, in the frame the CALLER names (no default — header: drive). Pre-empts any active motion; owns one loop iteration (estimate update → shared pipeline → health → record). Precondition: all three components finite.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:385`](../../include/shulib/chassis/chassis.hpp#L385).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:602`](../../include/shulib/chassis/chassis.hpp#L602).*
 
 <a id="chassis-cancel"></a>
 
@@ -413,7 +569,7 @@ void cancel()
 
 Stop the active motion into the defined safe state (0 V + Brake); with no active motion this is the PANIC STOP and still safes the drive.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:429`](../../include/shulib/chassis/chassis.hpp#L429).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:646`](../../include/shulib/chassis/chassis.hpp#L646).*
 
 <a id="chassis-waituntil"></a>
 
@@ -425,7 +581,7 @@ template <typename Pred> [[nodiscard]] motion::WaitResult waitUntil(Pred&& pred,
 
 Block until `pred()` holds or `timeout` elapses (required, finite, >= 0; 0 = an honest poll) — the return says which. The active motion (if any) keeps ticking throughout; the world keeps advancing. Timing out logs one Warn and raises NO fault (a timed-out wait is a strategy branch, not a pathology). C2's verb, re-exported with typed time at the public edge (D2); the scheduler's own seconds-double signature is interior, per F3's internal-seconds convention.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:439`](../../include/shulib/chassis/chassis.hpp#L439).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:656`](../../include/shulib/chassis/chassis.hpp#L656).*
 
 <a id="chassis-pose"></a>
 
@@ -437,7 +593,7 @@ Block until `pred()` holds or `timeout` elapses (required, finite, >= 0; 0 = an 
 
 The current fused FIELD pose estimate.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:446`](../../include/shulib/chassis/chassis.hpp#L446).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:663`](../../include/shulib/chassis/chassis.hpp#L663).*
 
 <a id="chassis-setpose"></a>
 
@@ -449,7 +605,7 @@ void setPose(const math::Pose2d& pose)
 
 Seed / teleport the estimated POSITION (x, y) — heading stays IMU-owned (the Localizer's structural choice). Call at auton start with the measured starting pose.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:451`](../../include/shulib/chassis/chassis.hpp#L451).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:668`](../../include/shulib/chassis/chassis.hpp#L668).*
 
 <a id="chassis-strafeauthority"></a>
 
@@ -461,7 +617,7 @@ Seed / teleport the estimated POSITION (x, y) — heading stays IMU-owned (the L
 
 Read-only passthrough of the drivetrain's sustainable lateral authority (fraction of the linear budget; F5). Routine authors budgeting lateral legs legitimately want it — the difference between a 2 s and a 3 s leg on the H-bot (C3 §11 #2, adopted).
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:457`](../../include/shulib/chassis/chassis.hpp#L457).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:674`](../../include/shulib/chassis/chassis.hpp#L674).*
 
 <a id="chassis-lastexitreason"></a>
 
@@ -473,7 +629,7 @@ Read-only passthrough of the drivetrain's sustainable lateral authority (fractio
 
 Exit reason of the most recently finished motion (Settled on a virgin chassis — completedCount() via scheduler() says whether anything ran).
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:463`](../../include/shulib/chassis/chassis.hpp#L463).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:680`](../../include/shulib/chassis/chassis.hpp#L680).*
 
 <a id="chassis-lastcompleted"></a>
 
@@ -485,7 +641,7 @@ Exit reason of the most recently finished motion (Settled on a virgin chassis �
 
 The most recent motion boundary — id/name/exit/abortFault/times (C5's raw material; abortFault names a fault-policy cause).
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:469`](../../include/shulib/chassis/chassis.hpp#L469).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:686`](../../include/shulib/chassis/chassis.hpp#L686).*
 
 <a id="chassis-motionconfig"></a>
 
@@ -497,7 +653,7 @@ The most recent motion boundary — id/name/exit/abortFault/times (C5's raw mate
 
 The config the verbs run under (per-call options override per motion).
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:474`](../../include/shulib/chassis/chassis.hpp#L474).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:691`](../../include/shulib/chassis/chassis.hpp#L691).*
 
 <a id="chassis-deps"></a>
 
@@ -509,7 +665,7 @@ The config the verbs run under (per-call options override per motion).
 
 The STAMPED deps bundle — build custom IMotions from THIS and their records carry command ids like the built-in verbs' do.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:480`](../../include/shulib/chassis/chassis.hpp#L480).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:697`](../../include/shulib/chassis/chassis.hpp#L697).*
 
 <a id="chassis-scheduler"></a>
 
@@ -521,7 +677,7 @@ The STAMPED deps bundle — build custom IMotions from THIS and their records ca
 
 The owned scheduler, for async composition / caller-paced tick() / counters. It is the SAME single motion slot the verbs use: async() here pre-empts a facade verb's motion and vice versa (one-active- motion is structural, never relaxed).
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:486`](../../include/shulib/chassis/chassis.hpp#L486).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:703`](../../include/shulib/chassis/chassis.hpp#L703).*
 
 <a id="chassis-scheduler-2"></a>
 
@@ -533,14 +689,14 @@ The owned scheduler, for async composition / caller-paced tick() / counters. It 
 
 The same scheduler, read-only — for counters and last-motion state from a `const Chassis&`. Identical object and identical semantics to the non-const overload; the two differ only in what they let you do.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:490`](../../include/shulib/chassis/chassis.hpp#L490).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:707`](../../include/shulib/chassis/chassis.hpp#L707).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 140 lines, click to expand</summary>
+<summary>The header’s own reasoning — 225 lines, click to expand</summary>
 
 ```text
 
@@ -574,6 +730,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
 
    verbs      moveTo · strafeTo · turnTo · followTrajectory · drive(speeds, Frame)
               brake · hold · wait  (C4 candidates + the D2 addition, all in F6)
+              curveTo · reverseCurveTo  (chunk CURVE1, appended F6-additively)
    control    cancel (panic stop) · waitUntil(pred, timeout)
    state      pose · setPose · strafeAuthority · lastExitReason · lastCompleted
    Tier 3     scheduler() · deps() — the no-ceiling seam
@@ -607,7 +764,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  These are facade-level API behaviour — user code WILL depend on them:
 
   * BLOCKING VERBS: each of moveTo/strafeTo/turnTo/followTrajectory/brake/
-    hold is async() + waitUntilSettled() on the owned scheduler — it returns
+    hold (and curveTo/reverseCurveTo, CURVE1) is async() + waitUntilSettled() on the owned scheduler — it returns
     only when the motion exits, and CANNOT hang: the motion's own watchdog
     bounds it (C1, mutation-proven), including any boot wait; a pacer that
     stops advancing the clock trips a loud precondition (C2). The returned
@@ -639,7 +796,36 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
     (record strafeFallbackActive → TermSink " SFB"), never silent. There is
     deliberately NO polling getter for it: a live-polled bool invites
     control-flow coupling to a telemetry concept (C3 §11's recommendation,
-    adopted). On tank, laterally-offset targets honestly exit TimedOut.
+    adopted). On tank, see TANK STEERING, next.
+  * TANK STEERING (TANK1, API 2.3 — this item replaced the sentence "On
+    tank, laterally-offset targets honestly exit TimedOut"): on a drive with
+    NO strafe authority (strafeAuthority() exactly 0 — a tank, or an H-drive
+    configured with a dead strafe wheel), moveTo keeps a leg on its LINE, the
+    line through the target point along the target heading. The heading it
+    servoes to is bent toward that line (0.1 rad per inch off it — counted
+    where the robot will be tankSteer.leadTime = 0.06 s ahead at its heading
+    and commanded speed, so the bend eases while the robot closes on the line
+    instead of carrying it across — never more than
+    MotionConfig::tankSteer.maxSteer = 15°, faded to 0 over the last 6 in),
+    and the yaw the robot makes that the heading loop did not ask for — a
+    weaker side's pull — is measured and cancelled (at most 1.5 rad/s). A leg
+    that arrives with the steering off arrives with it on (host test plant,
+    2026-09-28: a 24 563-leg grid, motor lags to ~0.18 s; at ~0.24 s a few
+    legs starting 10–14° off their heading do not — docs/changelog.md, 2.3).
+    It never aims at the target POINT and never plans a turn: a leg that
+    STARTS more than maxSteer off its target heading is not steered at all —
+    it runs exactly as before TANK1 and logs ONE Warn ("... -- turn first:
+    face()"). Telemetry-visible like SFB: record tankSteerActive → TermSink
+    " TSTR". What still exits TimedOut on a tank: a point beside the robot
+    on its own heading (nothing to steer along); an offset larger than a 15°
+    bend removes over the leg — no size is promised, it depends on the leg's
+    length and the drivetrain's motor lag (host test plant, 2026-09-28);
+    every strafeTo (holding its heading is its contract). A PathRunner leg
+    with HeadingMode::Free targets the heading the robot has at leg start,
+    so it steers toward an off-line point by at most 15°.
+    `tankSteer.maxSteer = 0` restores the pre-TANK1 tank's motion exactly.
+    Nothing of it has run on a robot. The curve verbs (below) steer toward a
+    point ON their own path — the only verbs that do (C1 D12's dated note).
 
  ═══ drive(ChassisSpeeds, Frame) — the frame-explicit manual verb ═════════════════
  The verb a driver-control loop calls every iteration (field-centric or
@@ -675,11 +861,66 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  verb exists now because F6 freezes the VERB SET; a richer Trajectory type
  arrives as an ADDITIVE overload, never a reshape of this one.
 
+ ═══ curveTo / reverseCurveTo — the curve follower (chunk CURVE1, F6-additive) ═════
+ Flow THROUGH points instead of stopping at each: r.curveTo({{24_in, 12_in},
+ {48_in, 24_in, 0_deg}}) drives one smooth path from where the robot is, along
+ its nose, through (24, 12), ending at (48, 24) facing 0 deg. Pure pursuit on a
+ smoothed path (motion/curve_follow.hpp, motion/curve_path.hpp), slowing BEFORE
+ each bend; up to 16 points; a heading is ALWAYS the robot's NOSE (also on
+ reverseCurveTo, whose back leads); do not list the robot's own spot.
+  * STARTS along the nose. Refused before the robot moves (TimedOut, one Warn
+    naming the point, MotionTimeout): a first point more than 90 deg off the
+    nose ("turn first: face()" — the library still plans no turn), and a path
+    that doubles back (points on top of each other, a heading pointing back).
+  * ENDS as an ordinary moveTo: the last inches are a MoveToPose with TANK1's
+    steering, judged by the same arrival check and the same per-call
+    tolerances. A curve stops at its end; rolling into the next step is not
+    offered.
+  * STOPS a curve it has lost: 60 deg off the path for 0.25 s (checked until
+    the end's hand-off, the last 12 in included), or under 1 in of progress
+    in 0.75 s (not in the last 12 in, where the end is slow on purpose). From
+    the hand-off on, only the timeout bounds it. The timeout covers the WHOLE
+    curve and always names CurveTo.
+  * C1's D12 (the library never aims at a point): by the team lead's ruling
+    (2026-10-30) these two verbs, and only they, aim at a point a look-ahead
+    ahead ON THE PATH THE AUTHOR DREW (or its end's line extended) — pure
+    pursuit. Every other verb is unchanged, bit for bit. Proven on the host
+    test plant only; the knobs are MotionConfig::curve (PROVISIONAL, HA-246).
+
  ═══ Options (per-call, additive-extensible) ══════════════════════════════════════
  MotionOptions carries the per-call knobs every real auton needs (a slow
  precise approach leg is table stakes). 0 means "use the config default".
  An options STRUCT (not positional parameters) is deliberate: post-freeze,
- new knobs are added fields — no signature change, no migration.
+ new knobs are added fields — no signature change, no migration. STEP1-A
+ (2026-11-05) took that path: positionTolerance / headingTolerance, the
+ per-call ARRIVAL TOLERANCE, which loosens the settle's distance AND its speed
+ bound in proportion (motion::loosenedSettle — the speed bound is what ends a
+ drive leg, so a distance alone would change nothing).
+
+ ═══ The leg OBSERVER (chunk STEP1-B, 2026-11-11; F6-additive) ═══════════════════════
+ moveTo / turnTo each have a third-argument overload taking a LegObserver: a
+ function pointer and a context (no heap — runner::Handler's pattern) called
+ ONCE after every tick of the leg that did NOT end it, with the leg's progress
+ (motion/leg_progress.hpp: the distance along the straight line from its live
+ start, or the angle turned — the STEP1 brief's D7 (a)). It is how a Routine's
+ partway trigger ("at 60 % of this drive, start the lift") watches a drive, and
+ the Tier-3 spelling of the same thing (a recipe is never the only way). The
+ overload builds EXACTLY the motion the plain verb builds and runs it inside a
+ private decorator IMotion that forwards every member — name() included, so the
+ records and lastCompleted() say "MoveToPose" / "TurnTo" as ever — through the
+ SAME runBlocking (waitUntilSettled: no trailing pace after the exit tick; a
+ waitUntil-built observer paces once more and is not bit-identical — the brief's
+ probe P5). An observer that does nothing leaves the leg bit-identical to the
+ plain verb. The observer is never called on the exit tick or after it — the
+ motion's own exit tick, nor a Running tick the scheduler's fault policy ends
+ (an abort-mask fault raised since the leg started: MotionScheduler::
+ pendingAbortFault(), the scheduler's own test) — and is called with `live`
+ false through the boot wait. It runs INSIDE the scheduler's
+ tick: it must not call a blocking verb, async() or cancel() (the scheduler's
+ own preconditions refuse them there), and it must not throw — a
+ PreconditionError out of it is the scheduler's task-boundary catch (the leg
+ ends Cancelled with FaultCode::Precondition), so an observer that can fail
+ catches its own (the Routine's trigger does: chassis/routine.hpp, B7).
 
  Single-task by contract, like everything it composes. Not copyable/movable
  (it owns the scheduler, which is pinned by its self-referential stamp).

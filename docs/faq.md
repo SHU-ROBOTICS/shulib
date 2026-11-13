@@ -19,11 +19,28 @@ infinity). The `hal/pros` adapters screen every read **before** any conversion:
   estimator dead-reckons past the gap. That path is exercised millions of times in the host
   suite.
 - **Sensors without one** (motors, rotation sensors, the battery) hold their **last good
-  value** and count the screened reads (each adapter's `faultedReads()`). Deliberately NOT
+  value** and count the screened reads (each adapter's `faultedReads()`; for the distance and
+  optical sensors and a 3-wire input, also through `hal::IReadFaults` since the mechanism core's
+  first part, so that its service never takes a held value for a fresh one; since the core's second
+  part the service reads that count for a PIECE sensor, and since its third for a HOME switch; since
+  its fifth, robot two's three programs build the service).
+  Deliberately NOT
   zero: a zeroed encoder reads as "the robot stopped", which is exactly the lie that makes a
   dead-encoder runaway invisible — a *frozen* value is what the health layer's
   wheels-spin-but-no-motion cross-check is designed to catch, raising `ODO_STUCK` and (by
-  default) aborting the active motion into a safe brake.
+  default) aborting the active motion into a safe brake. *(On a robot whose odometry IS the
+  drive encoders that cross-check cannot run — register entry HA-131. What is left is the
+  odometry's own per-tick trust gate, and it sees only the value the odometry reads. On a side
+  driven by ONE motor, a port that holds and then wakes more than 36 in on trips it, and the
+  `ODO_STUCK` line names the side and the jump, `why=TRAVEL … L=… R=…`; a smaller jump passes
+  unflagged. On a side driven by a motor GROUP the odometry reads the members' MEDIAN, so one
+  held member is absorbed and the gate never sees it: a `TRAVEL` there means enough of that
+  side's members jumped together to move the median (on a four-motor side, two of them). The
+  group-level check is `MOTOR_GROUP_DISAGREE`, which compares each member's velocity with its
+  mates'; whether it catches a member whose velocity is held as well is not established. In
+  DRIVER CONTROL, since T4 Part 2, the library's drive protections look for exactly that member —
+  its position and velocity repeating while its side turns — and mark it absent after 250 ms, with a
+  log line naming the port; in an autonomous motion nothing does.)*
 - **The conversions themselves throw on a sentinel** — a fail-loud backstop, not the normal
   path; the adapters exist to make it unreachable (register entry HA-08).
 
@@ -93,11 +110,17 @@ state to LOW** — so a bare construction physically moves any cylinder whose "s
 the high state, at boot, before any of your code runs (HA-119).
 
 shulib's `ProsDigitalOut` makes the default impossible: the initial state is a **required**
-constructor argument. State it, and make it the same value as the owning
-`PneumaticMechanism`'s declared safe state — then boot drives the line straight to safe, once,
-with no glitch through the wrong state. If your robot moves at power-on, look for a digital
-line whose constructor argument disagrees with its mechanism's safe state (or for a raw
-`pros::adi::DigitalOut` constructed beside the adapter, riding the LOW default).
+constructor argument. State it, and make it the level the owning `PneumaticMechanism` must be
+at boot — its declared safe state, or, for a mechanism in a `config::RobotConfig`, its
+`pneumaticStart` level (the `robot::Robot` hands that level to the device provider, which drives
+the line to it once, when it is made) — then boot drives the line straight there, once, with no
+glitch through the wrong state. (One open question: on a field — and when a program is started
+from the controller's own menu — the program starts with the brain DISABLED, and whether the
+brain acts on a 3-wire write made then, or only once the robot is enabled, has not been measured:
+the assumptions register's HA-157.) If your robot moves at power-on, look for a digital line
+whose boot level disagrees with what its mechanism must be at boot (for a config-built robot,
+check `pneumaticStart`), or for a raw `pros::adi::DigitalOut` constructed beside the adapter,
+riding the LOW default.
 
 ## The code said the SD-card writes succeeded — where did my log go?
 
@@ -108,7 +131,9 @@ documents *"DO NOT PREPEND YOUR PATHS WITH /usd/"* — while `fopen` reaches the
 through paths that start with `/usd/` (HA-122). Get it backwards and you either list nothing
 or write nowhere. shulib's `ProsBlockSink` owns the prefix in exactly one place: you hand it a
 bare file name (a leading `/` is rejected loudly at construction), and it builds the real
-path itself.
+path itself. An append open is the adapter's too (`ProsFileMode::Append`, for a log kept across
+reboots), and it never empties an existing file: it creates one only after asking whether the
+file was there (HA-177).
 
 **The missing card.** A sink with no card behind it must not stop the robot — so
 `ProsBlockSink` constructs successfully either way and simply **refuses**: `write()` returns
@@ -118,6 +143,41 @@ those return values — the seam makes them `[[nodiscard]]` for exactly this rea
 one honest limit even with a card: small writes sit in a buffer and can report accepted while
 the card is already refusing — the failure then lands on `flush()`, which is why its result is
 a `bool` too.
+
+## Can a program rename or delete a file on the SD card?
+
+No — not on PROS 4.2.2. A program on the brain can **read** a whole file, **replace** a file by opening
+it with `"wb"`, and open one with `"ab"` (C's append mode); it cannot rename, delete or `stat()` a file,
+and it cannot open one read-write to change it in place (HA-166). Read from PROS's and newlib's own
+vendored libraries on 2026-09-26: `rename()` is a link followed by an unlink, and PROS defines both of
+those — and `stat()` and `mkdir()` — as stubs that fail with `ENOSYS`; a read-write open (`"r+b"`) is
+refused with `EINVAL`; and `"wb"` goes to VEXos's create-a-file call, which is taken to empty an existing
+file **at the open**, before a single byte is written (reasoned from those libraries, not yet measured),
+while `"ab"` goes to a different VEXos call — what that one does to an existing file is not yet measured
+either. On a laptop, and in the host test suite, rename and remove work — so code that saves "write a
+temporary file, then rename it" passes every host test and then fails on the robot.
+
+That is why the library saves the calibration record with a **verified backup copy** instead of a rename
+(`calibration::saveRecordSafely()`, in `calibration/record_store.hpp`): the old record is first copied to
+`shulib_drivetrain.bak` and read back, only then is `shulib_drivetrain.bin` replaced and read back, and
+then the backup is refreshed. It is designed so that whatever fails part-way — a full card, a pulled
+card, a power cut — the card still holds the record that was in effect before, or the new one, and
+`calibration::loadRecord()` falls back to the backup when the record file does not decode. That rests on
+two beliefs about the card that no robot has tested yet (HA-166 (4) and (5): writing one file never
+damages another, and a file that reads back whole is really on the card), and it does not cover two
+faults in the same save when the first is the card misreading a file at the save's very first reads in a
+way its checks cannot see — the record file read as damaged twice in a row, or a stale copy of a file
+read in place of what it now holds — and the second a failed write or a power cut. The save's report
+says only what it re-read at the end: `SAVED`, `NOT SAVED` with what the card now holds, or `SAVE
+UNCONFIRMED` when the card could not be read back. On a FAT card, `GAINS.BIN` and `gains.bin` are one
+file, and the brain's card is taken to follow that rule (not yet measured), so the library requires a
+backup's name to differ from its record's by more than letter case. To reset a card on purpose, delete
+**both** files on a laptop. None of this has run on a robot yet. **"shulib Calibrate" saves through it**
+— the library's standard Calibrate, which robot two's slot-4 program has been since 2026-11-05 — so a
+Calibrate run that says NOT SAVED leaves the record that was on the card. What is still to come is the
+other half: the drive program's boot reads only `shulib_drivetrain.bin`, and falls back to the backup
+only once SAFE-SAVE's Part B2 lands. Copy both files off the card on a laptop before the first run of a
+Calibrate build you have not run before.
 
 ## My program uploaded fine and prints nothing. Is the code broken?
 
@@ -169,9 +229,10 @@ consumer owns its own tiny `ButtonEdge` — every consumer sees every press. If 
 driver code that used `get_digital_new_press()`, replace each call site with a `ButtonEdge`
 member and feed it `pressed(...)` once per loop.
 
-## Why doesn't shulib use PROS's `registry_get_plugged_type()` to find devices?
+## How does shulib handle PROS's `registry_get_plugged_type()` and its zero-indexed ports?
 
-Because it has a different port convention from the rest of the SDK, and mixing them fails
+It uses it — through exactly one adapter, with the conversion on exactly one line, because the
+registry has a different port convention from the rest of the SDK and mixing them fails
 *silently*.
 
 `registry_get_plugged_type()` is **zero-indexed** — its own documentation says "the device plugged
@@ -184,9 +245,20 @@ the device APIs land on the wrong hardware. A bench probe written this way once 
 motor and a dead IMU" on a robot where both were perfectly healthy: it was asking the motor API
 about the port where the IMU actually lived, and `ENODEV` looks exactly like a dead motor.
 
-No shulib adapter calls the registry. Each adapter takes the port you give it and passes it
-straight to the one-indexed device API, so there is only ever one convention in play. If you write
-your own port-scanning diagnostic, that is where the trap is waiting — add one, not zero.
+So the library contains the trap rather than avoiding it. `hal::IDeviceRegistry` is stated in
+**physical ports, 1–21**, like everything else you will ever type; `hal::pros::ProsDeviceRegistry`
+is the only place in the tree that subtracts one, on a single marked line, and its test asserts the
+mapping **from both ends** (physical 1 reads index 0, physical 21 reads index 20) plus that a port
+outside 1–21 answers "empty" without the platform being called at all. Every ordinary device
+adapter still takes the port you give it and passes it straight to the one-indexed device API, so
+there is only ever one convention in play at a call site.
+
+Two things need the registry and cannot be written without it: "shulib Calibrate" builds its
+candidate list from the ports that actually carry a motor (a calibration that starts from a typed
+list can only ever confirm the typing), and "shulib Drive" checks its calibration record against
+the ports **before it constructs a single adapter**, so a rewired robot is refused instead of
+driven. If you write your own port-scanning diagnostic, use the seam rather than the raw call —
+that is where the trap is waiting, and adding one rather than zero is the whole of it.
 
 ## I'm porting shulib to non-PROS hardware. What does "the shim tests the adapter, not the belief" mean for me?
 

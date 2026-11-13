@@ -8,7 +8,7 @@
 
 Fault discipline (master plan §18.4; WS13, chunk A1) — the stable numeric fault-code enum and the latched first-fault capture.
 
-This header declares **2** types (21 members) and **1** free function.
+This header declares **2** types (23 members) and **1** free function.
 
 Extracted from [`include/shulib/diag/fault.hpp`](../../include/shulib/diag/fault.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -27,10 +27,12 @@ Extracted from [`include/shulib/diag/fault.hpp`](../../include/shulib/diag/fault
   - [`MotorOverTemp`](#faultcode-motorovertemp)
   - [`Implausible`](#faultcode-implausible)
   - [`MechanismStalled`](#faultcode-mechanismstalled)
+  - [`MotorGroupDisagree`](#faultcode-motorgroupdisagree)
 - [`faultCodeName`](#faultcodename) — *free function*
 - [`class FaultLatch`](#class-faultlatch)
   - [`FaultLatch`](#faultlatch-faultlatch)
   - [`raise`](#faultlatch-raise)
+  - [`raiseRepeat`](#faultlatch-raiserepeat)
   - [`hasFault`](#faultlatch-hasfault)
   - [`raiseCount`](#faultlatch-raisecount)
   - [`firstFault`](#faultlatch-firstfault)
@@ -49,7 +51,7 @@ enum class FaultCode : std::uint16_t
 
 Stable numeric fault codes (§18.4). WIRE-STABLE: explicit values, append-only — pinned by test. `None` (0) means "no fault" and is not raisable.
 
-*enum class, declared at [`include/shulib/diag/fault.hpp:44`](../../include/shulib/diag/fault.hpp#L44).*
+*enum class, declared at [`include/shulib/diag/fault.hpp:58`](../../include/shulib/diag/fault.hpp#L58).*
 
 <a id="faultcode-none"></a>
 
@@ -61,7 +63,7 @@ None = 0
 
 no fault (the DebugRecord default; never latched)
 
-*enumerator, declared at [`include/shulib/diag/fault.hpp:45`](../../include/shulib/diag/fault.hpp#L45).*
+*enumerator, declared at [`include/shulib/diag/fault.hpp:59`](../../include/shulib/diag/fault.hpp#L59).*
 
 <a id="faultcode-precondition"></a>
 
@@ -73,7 +75,7 @@ Precondition = 1
 
 SHULIB_PRECONDITION violated (routed here on-robot via the check.hpp policy seam; host builds throw instead — §18.4)
 
-*enumerator, declared at [`include/shulib/diag/fault.hpp:46`](../../include/shulib/diag/fault.hpp#L46).*
+*enumerator, declared at [`include/shulib/diag/fault.hpp:60`](../../include/shulib/diag/fault.hpp#L60).*
 
 <a id="faultcode-nanpose"></a>
 
@@ -85,7 +87,7 @@ NanPose = 2
 
 a non-finite pose/quantity was caught and recovered from
 
-*enumerator, declared at [`include/shulib/diag/fault.hpp:48`](../../include/shulib/diag/fault.hpp#L48).*
+*enumerator, declared at [`include/shulib/diag/fault.hpp:62`](../../include/shulib/diag/fault.hpp#L62).*
 
 <a id="faultcode-loopoverrun"></a>
 
@@ -97,7 +99,7 @@ LoopOverrun = 3
 
 a control tick blew its dt budget (corrupts PID dt → §18.4)
 
-*enumerator, declared at [`include/shulib/diag/fault.hpp:49`](../../include/shulib/diag/fault.hpp#L49).*
+*enumerator, declared at [`include/shulib/diag/fault.hpp:63`](../../include/shulib/diag/fault.hpp#L63).*
 
 <a id="faultcode-odostuck"></a>
 
@@ -109,7 +111,7 @@ OdoStuck = 4
 
 odometry implausible / wheel stuck (raised by the C/E layers)
 
-*enumerator, declared at [`include/shulib/diag/fault.hpp:50`](../../include/shulib/diag/fault.hpp#L50).*
+*enumerator, declared at [`include/shulib/diag/fault.hpp:64`](../../include/shulib/diag/fault.hpp#L64).*
 
 <a id="faultcode-imulost"></a>
 
@@ -121,7 +123,7 @@ ImuLost = 5
 
 IMU not ready / lost mid-run
 
-*enumerator, declared at [`include/shulib/diag/fault.hpp:51`](../../include/shulib/diag/fault.hpp#L51).*
+*enumerator, declared at [`include/shulib/diag/fault.hpp:65`](../../include/shulib/diag/fault.hpp#L65).*
 
 <a id="faultcode-gpsgatereject"></a>
 
@@ -133,7 +135,7 @@ GpsGateReject = 6
 
 a GPS fix was rejected by the fusion gate (E2)
 
-*enumerator, declared at [`include/shulib/diag/fault.hpp:52`](../../include/shulib/diag/fault.hpp#L52).*
+*enumerator, declared at [`include/shulib/diag/fault.hpp:66`](../../include/shulib/diag/fault.hpp#L66).*
 
 <a id="faultcode-brownout"></a>
 
@@ -145,7 +147,7 @@ Brownout = 7
 
 battery collapsed below the brownout threshold
 
-*enumerator, declared at [`include/shulib/diag/fault.hpp:53`](../../include/shulib/diag/fault.hpp#L53).*
+*enumerator, declared at [`include/shulib/diag/fault.hpp:67`](../../include/shulib/diag/fault.hpp#L67).*
 
 <a id="faultcode-motiontimeout"></a>
 
@@ -157,7 +159,7 @@ MotionTimeout = 8
 
 a motion hit its watchdog (FAULT_ABORT / TimedOut, C1/C2)
 
-*enumerator, declared at [`include/shulib/diag/fault.hpp:54`](../../include/shulib/diag/fault.hpp#L54).*
+*enumerator, declared at [`include/shulib/diag/fault.hpp:68`](../../include/shulib/diag/fault.hpp#L68).*
 
 <a id="faultcode-motorovertemp"></a>
 
@@ -169,7 +171,7 @@ MotorOverTemp = 9
 
 a motor crossed the thermal-throttle threshold (~55 °C) — the droop corrupts kS/kV/kA, so it must be visible (§8/§18.4; APPENDED at chunk A3, per the append-only rule above)
 
-*enumerator, declared at [`include/shulib/diag/fault.hpp:55`](../../include/shulib/diag/fault.hpp#L55).*
+*enumerator, declared at [`include/shulib/diag/fault.hpp:69`](../../include/shulib/diag/fault.hpp#L69).*
 
 <a id="faultcode-implausible"></a>
 
@@ -181,7 +183,7 @@ Implausible = 10
 
 a physical-plausibility invariant fired: per-tick pose delta beyond the drivetrain's physical maximum, a commanded speed outside its budget, or a wheel volt inconsistent with the battery ceiling (diagnostics-plan D-5 — FiniteGuard's log-and-recover posture extended beyond finiteness; APPENDED at chunk C5, per the append-only rule above)
 
-*enumerator, declared at [`include/shulib/diag/fault.hpp:58`](../../include/shulib/diag/fault.hpp#L58).*
+*enumerator, declared at [`include/shulib/diag/fault.hpp:72`](../../include/shulib/diag/fault.hpp#L72).*
 
 <a id="faultcode-mechanismstalled"></a>
 
@@ -193,7 +195,19 @@ MechanismStalled = 11
 
 a mechanism's stall detector tripped: stall-grade current with the shaft not turning, held past the persistence window — a jam or mechanical bind (manipulation layer, T6: the one mechanism failure that IS a pathology; an operation merely timing out raises nothing — see manipulation/mechanism_op.hpp. Lands on the CONTINUE side of the C2 abort mask by default: a jammed intake must not abort a drive. APPENDED at chunk F1, per the append-only rule above)
 
-*enumerator, declared at [`include/shulib/diag/fault.hpp:64`](../../include/shulib/diag/fault.hpp#L64).*
+*enumerator, declared at [`include/shulib/diag/fault.hpp:78`](../../include/shulib/diag/fault.hpp#L78).*
+
+<a id="faultcode-motorgroupdisagree"></a>
+
+### `FaultCode::MotorGroupDisagree`
+
+```cpp
+MotorGroupDisagree = 12
+```
+
+a member of a hal::MotorGroup has PERSISTENTLY disagreed with its coupled group — turning against the command or not turning while its mates do (a wrong sign, a stripped gear, a frozen encoder on one of N coupled motors). Raised by HealthMonitor from the group's shared coupled-side monitor (teleop/coupled_side_monitor.hpp); lands on the CONTINUE side of the scheduler's default abort mask — in a motion the drive still works with one bad member and the driver must be told, not stopped (hal/motor_group.hpp header); in DRIVER CONTROL, since T4 Part 2, the library's drive protections also CUT the drive for 1 s on the same persisted verdict, then re-arm (teleop/drive_protection.hpp). APPENDED at chunk R3b Part 1, per the append-only rule above.
+
+*enumerator, declared at [`include/shulib/diag/fault.hpp:87`](../../include/shulib/diag/fault.hpp#L87).*
 
 <a id="faultcodename"></a>
 
@@ -205,7 +219,7 @@ a mechanism's stall detector tripped: stall-grade current with the shaft not tur
 
 The §18.4 spelling of each code, for TermSink lines and the run summary. Never returns null; an out-of-range cast renders as "UNKNOWN" (never a crash).
 
-*free function, declared at [`include/shulib/diag/fault.hpp:77`](../../include/shulib/diag/fault.hpp#L77).*
+*free function, declared at [`include/shulib/diag/fault.hpp:104`](../../include/shulib/diag/fault.hpp#L104).*
 
 <a id="class-faultlatch"></a>
 
@@ -217,7 +231,7 @@ class FaultLatch
 
 Latched first-fault capture + cascade counting (§18.4). See the header note for the root-cause rationale and the noexcept/concurrency contracts.
 
-*class, declared at [`include/shulib/diag/fault.hpp:97`](../../include/shulib/diag/fault.hpp#L97).*
+*class, declared at [`include/shulib/diag/fault.hpp:125`](../../include/shulib/diag/fault.hpp#L125).*
 
 <a id="faultlatch-faultlatch"></a>
 
@@ -227,9 +241,9 @@ Latched first-fault capture + cascade counting (§18.4). See the header note for
 FaultLatch(hal::ITelemetrySink& sink, hal::IClock& clock) noexcept
 ```
 
-Both references must outlive the latch. The sink receives one Error-level line per raised fault; the clock timestamps the first fault.
+Both references must outlive the latch. The sink receives one Error-level line per raise() — none for a raiseRepeat() but the run's first fault; the clock timestamps the first fault.
 
-*function, declared at [`include/shulib/diag/fault.hpp:101`](../../include/shulib/diag/fault.hpp#L101).*
+*function, declared at [`include/shulib/diag/fault.hpp:130`](../../include/shulib/diag/fault.hpp#L130).*
 
 <a id="faultlatch-raise"></a>
 
@@ -241,7 +255,19 @@ void raise(FaultCode code, std::string_view subsystem, std::string_view detail) 
 
 Raise a fault: latch it (first-fault immutably), count it, and log one structured Error line — `fault=<NAME> n=<count>[ FIRST] <detail>`. Raising FaultCode::None is a defensive NO-OP (it is "no fault", and the error path must never crash — a precondition throw here would turn a bad raise into a dead robot).
 
-*function, declared at [`include/shulib/diag/fault.hpp:108`](../../include/shulib/diag/fault.hpp#L108).*
+*function, declared at [`include/shulib/diag/fault.hpp:137`](../../include/shulib/diag/fault.hpp#L137).*
+
+<a id="faultlatch-raiserepeat"></a>
+
+### `FaultLatch::raiseRepeat`
+
+```cpp
+void raiseRepeat(FaultCode code, std::string_view subsystem, std::string_view detail) noexcept
+```
+
+Raise `code` as the CONTINUATION of an episode whose opening raise() was already logged: latched, counted and tallied exactly as raise() — faultCount(), raiseCount(), lastFault() and every per-tick fault stamp see it — but with NO line (the header's ONE LINE PER EPISODE). One exception keeps the root cause loud: when this is the FIRST fault since construction or clear(), it is logged exactly as raise() would log it. FaultCode::None is a no-op, as for raise().
+
+*function, declared at [`include/shulib/diag/fault.hpp:147`](../../include/shulib/diag/fault.hpp#L147).*
 
 <a id="faultlatch-hasfault"></a>
 
@@ -253,7 +279,7 @@ Raise a fault: latch it (first-fault immutably), count it, and log one structure
 
 True once ANY fault has been raised since construction/clear(), and true for the rest of the run thereafter — this is a LATCH, not a live "is something wrong right now" query, and nothing but clear() lowers it. Raising FaultCode::None is a no-op and never sets it. For triage read firstFault(): the root cause is the first fault, not the last or the loudest.
 
-*function, declared at [`include/shulib/diag/fault.hpp:142`](../../include/shulib/diag/fault.hpp#L142).*
+*function, declared at [`include/shulib/diag/fault.hpp:155`](../../include/shulib/diag/fault.hpp#L155).*
 
 <a id="faultlatch-raisecount"></a>
 
@@ -263,9 +289,9 @@ True once ANY fault has been raised since construction/clear(), and true for the
 [[nodiscard]] int raiseCount(FaultCode code) const noexcept
 ```
 
-How many times `code` has been raised since construction/clear(). ADDED at chunk C2 (additive, like the A3 MotorOverTemp append): the scheduler's fault policy must distinguish a fault raised DURING the current motion from one latched by an earlier motion — a since-clear bitmask cannot see a RE-raise (a dead encoder that faulted in motion 1 must still abort motion 2), so the latch keeps a per-code tally. Saturates at UINT16_MAX; codes beyond the fixed slot capacity (far past today's 11) count only in faultCount().
+How many times `code` has been raised since construction/clear(). ADDED at chunk C2 (additive, like the A3 MotorOverTemp append): the scheduler's fault policy must distinguish a fault raised DURING the current motion from one latched by an earlier motion — a since-clear bitmask cannot see a RE-raise (a dead encoder that faulted in motion 1 must still abort motion 2), so the latch keeps a per-code tally. Saturates at UINT16_MAX; codes beyond the fixed slot capacity (far past today's 12) count only in faultCount().
 
-*function, declared at [`include/shulib/diag/fault.hpp:150`](../../include/shulib/diag/fault.hpp#L150).*
+*function, declared at [`include/shulib/diag/fault.hpp:163`](../../include/shulib/diag/fault.hpp#L163).*
 
 <a id="faultlatch-firstfault"></a>
 
@@ -277,7 +303,7 @@ How many times `code` has been raised since construction/clear(). ADDED at chunk
 
 The ROOT CAUSE: the first fault raised since construction/clear() (None if none).
 
-*function, declared at [`include/shulib/diag/fault.hpp:155`](../../include/shulib/diag/fault.hpp#L155).*
+*function, declared at [`include/shulib/diag/fault.hpp:168`](../../include/shulib/diag/fault.hpp#L168).*
 
 <a id="faultlatch-firstfaulttime"></a>
 
@@ -289,7 +315,7 @@ The ROOT CAUSE: the first fault raised since construction/clear() (None if none)
 
 When the first fault was raised (Time{0} if none, or if the clock threw).
 
-*function, declared at [`include/shulib/diag/fault.hpp:157`](../../include/shulib/diag/fault.hpp#L157).*
+*function, declared at [`include/shulib/diag/fault.hpp:170`](../../include/shulib/diag/fault.hpp#L170).*
 
 <a id="faultlatch-lastfault"></a>
 
@@ -301,7 +327,7 @@ When the first fault was raised (Time{0} if none, or if the clock threw).
 
 The most recent fault in the cascade (None if none) — display only, never triage.
 
-*function, declared at [`include/shulib/diag/fault.hpp:159`](../../include/shulib/diag/fault.hpp#L159).*
+*function, declared at [`include/shulib/diag/fault.hpp:172`](../../include/shulib/diag/fault.hpp#L172).*
 
 <a id="faultlatch-faultcount"></a>
 
@@ -313,7 +339,7 @@ The most recent fault in the cascade (None if none) — display only, never tria
 
 Total faults raised since construction/clear() (first + cascade).
 
-*function, declared at [`include/shulib/diag/fault.hpp:161`](../../include/shulib/diag/fault.hpp#L161).*
+*function, declared at [`include/shulib/diag/fault.hpp:174`](../../include/shulib/diag/fault.hpp#L174).*
 
 <a id="faultlatch-clear"></a>
 
@@ -325,14 +351,14 @@ void clear() noexcept
 
 Reset between runs. The first-fault latch is immutable WITHIN a run by design; only an explicit new-run boundary may clear it.
 
-*function, declared at [`include/shulib/diag/fault.hpp:165`](../../include/shulib/diag/fault.hpp#L165).*
+*function, declared at [`include/shulib/diag/fault.hpp:178`](../../include/shulib/diag/fault.hpp#L178).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 28 lines</summary>
+<summary>The header’s own reasoning — 42 lines</summary>
 
 ```text
 
@@ -345,7 +371,21 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  pose) typically triggers a burst of follow-on faults (odom stuck, gate rejects, motion
  timeout). At 2am you need the ROOT CAUSE, and it is the first fault, not the loudest or
  the last. FaultLatch therefore records the first (code + time) immutably until clear(),
- while still counting and logging every subsequent fault in the cascade.
+ while still counting every subsequent fault in the cascade and logging each (an episode's
+ continuations excepted — below).
+
+ ONE LINE PER EPISODE, where a monitor raises every tick (raiseRepeat(), chunk T4 Part 3,
+ 2026-10-08): a monitor whose condition holds for many ticks in a row — LoopMonitor's slow loop
+ — still raises on EVERY tick (the count, the per-code tally and each tick's fault stamp stay
+ true), but logs only the episode's FIRST raise. A line per tick was noise on serial and, since
+ the programs keep a copy of their log on the SD card (diag/log_copy_sink.hpp), one card write
+ and one flush inside every slow tick — the very cost that keeps the loop slow. HealthMonitor's
+ faults and the plausibility guard's pose check already raised once per episode. The per-CALL
+ guards still raise (and log) every offending call — finite_guard.hpp's NaN recoveries and the
+ plausibility guard's command and wheel-volt audits: each is a defect (a non-finite value, a
+ command past the robot's capability), not a state a healthy run sits in, and a defect that
+ repeats every tick also repeats its line, on serial and in the card copy. Left so (the T4-3
+ review): stated here for whoever meets one.
 
  Why the enum values are EXPLICIT and never reordered: these numbers go on the F9 wire
  (the SHUL/2 serialization of DebugRecord, frozen at H1) and into SdSink blackbox files

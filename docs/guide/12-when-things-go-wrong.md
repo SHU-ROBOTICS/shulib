@@ -72,15 +72,35 @@ say. Where a diagnosis depends on an unverified assumption, the
   - *Physically blocked / jammed:* error stopped shrinking at a constant value partway. In sim:
     an unreachable target. On a robot: a wall, a defender, a game piece under the chassis.
   - *Unreachable by drivetrain:* a sideways target on tank ([Chapter 4](04-drivetrains.md)).
-    Fix: the turn-then-drive idiom ([Chapter 10](10-the-api.md), `guide-10b`).
+    Fix: the turn-then-drive idiom ([Chapter 10](10-the-api.md), `guide-10b`). Tell the three
+    tank cases apart by the lines just before the result:
+    - a `[WARN][MOT] tank moveTo not steered … turn first: face()` line at the start of the leg —
+      the leg started too far off its heading to be steered. Face the point first (`faceAway()`
+      it first, for a `reverseTo`).
+    - `TSTR` on the tick lines right to the end — the leg was being steered but the drift (a
+      weak side) or the offset from its line was bigger than the steering is allowed to remove.
+      The result line's `xt` says how far beside its line it stopped, and on which side
+      ([Chapter 11](11-reading-the-diagnostics.md#per-motion-result-lines)). When the leg
+      started on its line (faced at its point) and `xt` is an inch or more, the sign names the
+      weak side: on the host test plant a weaker right side leaves such a leg to the right of its
+      line (a negative `xt`), whether it drove forward or backed up. A leg that started *beside*
+      its line can end on the side it started from instead, whichever side is weak. And a
+      smaller `xt` names no side: with motor lag the steering can carry a leg a little past its
+      line — on the host test plant, with 0.12 s of lag, a 60 in leg with its right side 25 %
+      weak stopped at `xt   0.42"`, to the *left*. Check the drive for a weak side; face the
+      point so the leg starts on its line.
+    - a `strafeTo` leg — `strafeTo` never steers on a tank; that timeout is unchanged and
+      expected.
   - *Waiting for sensors the whole time:* tick lines show `▸1` (waiting-for-estimate) for the
     entire duration — the estimate never went live. A sensor didn't boot; on hardware, check
     the IMU.
   - *Almost settled, never quite:* error hovers just outside tolerance, or bounces through
     zero. That's a tuning/settling story — see "it oscillates" below.
 - **`✗FAULT_ABORT=CODE`** — the fault policy stopped it deliberately. The code (almost always
-  `ODO_STUCK`) is the story; see its row in [Chapter 11](11-reading-the-diagnostics.md) and
-  check the physical sensor.
+  `ODO_STUCK`) is the story; see its row in [Chapter 11](11-reading-the-diagnostics.md). Its
+  fault line says which check fired and on what numbers
+  ([reading an `ODO_STUCK` line](11-reading-the-diagnostics.md#reading-an-odo_stuck-line)) —
+  check the sensor *that* names, not every sensor.
 - **`✗SUPERSEDED` / `✗CANCELLED`** — *your code* ended it: something called the next verb (or
   `cancel()`) early. Look at your routine's logic — a mis-nested `if`, a `waitUntil` that
   returned sooner than you assumed.
@@ -116,16 +136,24 @@ This is [Chapter 5](05-getting-there.md)'s control-tuning material made audible:
   sensor.
 - **Position right-ish, heading wrong:** the IMU path — and heading error *becomes* position
   error as you drive ([Chapter 2](02-the-field-and-coordinates.md)), so catch it early. Look
-  for `IMU_LOST`, or on hardware suspect drift/calibration
+  for `IMU_LOST`, or an `ODO_STUCK` reading `why=ROT` (the heading moved further in one tick
+  than a robot turns — the register's HA-160 is that open question), or on hardware suspect
+  drift/calibration
   (the register's HA-20 is the relevant open assumption — an *uncorrected* V5 IMU is expected to
   drift toward the spec limit over a 60 s run. Heading correction now exists — AprilTags are the
   one absolute heading source in the library — but it needs a camera and a tag map you supply,
   and it has never seen a real tag).
 - **The estimate jumps:** a fusion correction landed (look for `CLMP`) — or something worse
-  (`flt=NAN_POSE`, `IMPLAUSIBLE`). The never-snap rule means visible teleports should not
-  happen; a real jump with no flags is a bug — capture the transcript and report it.
+  (`flt=NAN_POSE`, `IMPLAUSIBLE`, or an `ODO_STUCK` whose line reads `why=TRAVEL` or `why=ROT`:
+  the odometry flags such a tick but still counts it, so the jump is in the estimate). The
+  never-snap rule means visible teleports should not happen; a real jump with no flags is a
+  bug — capture the transcript and report it. (A wall reset's seat IS a deliberate jump of one
+  coordinate — its `WALL` line says `SEATED` and by how much; a loop that ticks the scheduler itself
+  may see one advisory `IMPLAUSIBLE` right after a seat over ~2.25 in, and that one is benign.)
 - **The pose froze:** `NAN_POSE`'s designed behavior is freezing position rather than
-  corrupting it, and `ODO_STUCK` means it *should* have frozen. The transcript will say.
+  corrupting it. An `ODO_STUCK` reading `wheels spin but odometry reports no motion` is a frozen
+  sensor caught in the act, and one reading `why=NONFINITE` held position for that one tick.
+  The transcript will say.
 
 ## "It won't build" (your code, not the robot)
 
@@ -164,9 +192,21 @@ The run-scoped guard ([Chapter 6](06-how-things-fail.md)) leaves a clear trail u
 - **`hard stop … all devices safed unconditionally`:** the floor fired mid-action. Whatever
   was still running was cut and every listed device forced safe. If this happens every run,
   your end action does not fit its runway.
+- **`run ABANDONED at T+… -- motions refused from here`**, then **`run ABANDONED -- end-of-run
+  action skipped`:** working as designed — the program ended the run itself because the field
+  disabled the robot (or left autonomous) mid-run. The end action is skipped on purpose: the
+  robot no longer belongs to your auton. The first line's `T+` says when it happened.
 - **The run went long anyway, in a wait:** a frozen-surface wait (`pause`, `waitFor`,
   `chassis.waitUntil`) cannot be cut and pays its own remaining budget —
-  [Chapter 9](09-the-recipe-api.md) has the exact bound and the deadline-aware alternative.
+  [Chapter 9](09-the-recipe-api.md) has the exact bound and the deadline-aware alternative. (A
+  wait on a mechanism operation is the exception: the guard cuts the OPERATION, and the wait sees
+  it end one pace later — the next line.)
+- **`mechanism 'intake' cut at the deadline -- its operation cancelled into its safe state`** (or
+  `cut after the abandon`): a mechanism step or operation was still running when the deadline (or
+  the field's disable) arrived, and the guard cancelled it — the step's own `MECH` line reads
+  `CANCELLED` ([Chapter 11](11-reading-the-diagnostics.md)). Said once per run; the report's
+  `mechanismCuts` counts every one. If it happens every run, that step does not finish before your
+  end-action time: give it a shorter time limit, or move it earlier in the auton.
 - **`anonymous claim force-released`:** a mechanism was claimed by something the guard cannot
   see into (a hand-rolled operation using the bare claim). The guard freed the claim so the
   end action could run, but it could not make the unknown operation inert — register a
@@ -174,8 +214,9 @@ The run-scoped guard ([Chapter 6](06-how-things-fail.md)) leaves a clear trail u
 
 ## "The transcript itself looks wrong"
 
-- **Result lines say `n/a`:** record stream not connected — expected in competition builds and
-  in the tutorial's first wiring ([Chapter 8](08-your-first-routine.md)).
+- **Result lines say `n/a`:** record stream not connected — expected in a build with diagnostics
+  off (none of the team's programs is one today) and in the tutorial's first wiring
+  ([Chapter 8](08-your-first-routine.md)).
 - **Lines missing:** check for `throttled …: dropped N lines` notices and the summary's
   `dropped` field (rate limiting), or a level filter you configured and forgot.
 - **No lines at all, and the upload said it worked:** suspect the *cable* before the code. When
@@ -185,6 +226,113 @@ The run-scoped guard ([Chapter 6](06-how-things-fail.md)) leaves a clear trail u
   checking the cable was wrong — including a confident "linking the library breaks the binary"
   that a control test disproved. The [FAQ](../faq.md) has the full version.
 - **`build MISSING`:** the binary lost its identity stamp — Chapter 11's session-header note.
+
+## "The drive stops for a second, or a motor is reported dead" (driver control)
+
+Since the drive protections moved into the library's driver loop ([Chapter 10](10-the-api.md)),
+driver control can stop the drive by itself, and it always says why on the log, tag `TEL`. Find
+the line first; each one names the ports.
+
+- **`CUT: FIGHT on LEFT -- port(s) 18 -- both sides 0 V for 1 s, cut #1, then re-arm`**, then
+  `re-armed after cut #1 (1 s at 0 V)`: a drive motor ran against its side for 250 ms. The
+  `at the cut:` lines after it give every motor's speed, current and temperature at that tick —
+  the named one reads the other way, or far slower than its mates. **Likely:** a wrong sign for
+  that port (a record from another wiring — recalibrate), a slipping or broken gear, a motor
+  wired backwards. A cut that comes back every 1.25 s while the stick is held is the same fight
+  each time. `CUT: whole LEFT side OPPOSITE/stalled vs command` means every motor on the side
+  disagreed — the side as a whole is wired or signed backwards. **Two to rule out:** a full-speed
+  stick reversal that takes longer than 250 ms to turn the train around (register entry HA-132);
+  and ONE cut a moment after the robot hits a wall under a held stick, naming one port and not
+  coming back — that motor's reported speed settled to 0 sooner than its mates', which still
+  reported motion, and since the encoder check (the team lead's ruling, 2026-10-01) that one cut is
+  the rule's accepted price for never marking such a motor dead (register entry HA-175).
+- **`CUT: port 17 (LEFT) over 2.4 A for 250 ms …`**: one drive motor drew more than 2.4 A for
+  250 ms while its side was driven. **Likely:** pushing a wall or a robot (a V5 motor at its
+  current limit is believed to draw about 2.5 A, the PROS default — register entry HA-154, not
+  measured), or a fight too locked to turn anything. **One to rule out:** a full-stick reversal at
+  speed, or a full-stick launch from rest, that holds the limit for 250 ms — a cut in the middle of
+  ordinary driving. If the robot must push, `DriverLoopConfig::protection.overCurrentCuts = false`
+  makes this a logged warning instead; the push check is how you find out what your robot draws
+  (HA-176: a wall push, a reversal and a launch). The `drive: LEFT peak …` line written when you let
+  go of the stick records the highest current of that stretch.
+- **`WARNING: port 18 (LEFT) went ABSENT at runtime: reads frozen for 250 ms while its side
+  answered`**: that motor's readings stopped changing while its side turned — a port that stopped
+  answering (a cable, a port, a motor). It is dropped from every reading and still commanded; the
+  robot drives on degraded, and the next line re-counts the dead. Check its cable and port; it stays
+  ABSENT until the program is restarted, even if it answers again.
+- **`REFUSED: more than 2 motors dead in total -- 0 V for the rest of the run …`** (or `REFUSED at
+  the start of driver control: …` with a `dead:` list): three or more drive motors are dead in total
+  — a harness, a bank of ports, a battery — and the drive stays at 0 V until the program is
+  restarted. Fix the robot first; a restart with the same fault refuses again — at boot, if those
+  ports are dead then, or once more than two are dead again.
+- **A motor reported dead that is not:** the rule marks a motor whose position AND reported speed
+  repeat while its side is plainly turning — its own reported speed says so, or a side-mate's
+  ENCODER is still moving — and only when at least as many of its side answer. A whole side
+  stopping together (a wall) marks nobody, however unevenly its motors' reported speeds settle: a
+  mate whose encoder has stopped is no evidence, whatever its lagging report still says (the team
+  lead's encoder check, 2026-10-01). The known gaps are beside a motor whose gear SLIPS (robot two's
+  port 18), whose encoder keeps turning while its mates stall: a side ALREADY down to two can have
+  its last live mate marked; and on a full side, ONE stalled motor whose readings flicker, or whose
+  reported speed settles sooner than its mates', can get one or two live motors marked — and a
+  second push then the last one, which stops the drive (register entry HA-175). Fixing the slipping
+  gear removes them. Capture the log lines around it — they are the evidence that number needs.
+
+None of these lines has been seen on a robot yet; the rules and their numbers are host-tested only.
+
+## "Calibrate held its save, or left a note" (shulib Calibrate)
+
+The standard Calibrate ([Chapter 19](19-calibrating-your-robot.md)) waits for you before saving
+when something does not add up, and leaves one amber NOTE on the finished screen when there is
+something to check. Each screen and note, and what to do:
+
+- **FRONT FLIPPED** (*the card calls the end you led BACK*) — the card's record calls the end that
+  led this push its back. **Nothing is saved yet.** Two causes look identical in the records: you
+  pushed with the **back** leading by mistake → touch **RUN AGAIN** and push front first; or the
+  front led and the **LEFT and RIGHT drive cables were swapped between the sides**, or you changed
+  the front on purpose → touch **USE NEW** (saved as pushed). USE NEW after a wrong push reverses
+  every auton.
+- **FRONT FLIPPED** with *typed ports: the end you led is BACK* — the card held no usable record,
+  and the drive ports your facts TYPE call the end you led the back. **RUN AGAIN** after a wrong
+  push; **USE NEW** when the front led — then fix the typed ports, which are wrong (or the cables
+  moved since they were typed).
+- **MECHANISM PORT TURNED** (*port 12: 1692 deg, drive 1692 deg*) — a motor you declared as a
+  mechanism turned with the push like a drive motor. **SAVE** if it is a mechanism the push turns
+  (an intake on the floor): it stays declared. **RUN AGAIN** if it is a drive motor — a typo in the
+  facts or a mechanism cable in a drive port: fix the facts or the wiring, rebuild, upload. One
+  screen per port that turned; nothing is saved until every one is answered SAVE.
+- **NOTE: FRONT NOT CHECKED -- see the log** — the card's record does not decode (the log names each
+  file and why), or the check could not tell (no drive port in common, or no majority). Saved as
+  measured: check the robot drives forward the right way before you run an auton.
+- **NOTE: FIRST RECORD -- the end you pushed first is FRONT** — the card held no record, so there
+  was nothing to compare with. If that end is not the front your autons use, the record just saved
+  is reversed: touch **RUN AGAIN** and push with the other end leading. Calibrate then shows **FRONT
+  FLIPPED** against the record just saved — touch **USE NEW** (you are changing the front back on
+  purpose), not RUN AGAIN, which would keep the reversed record.
+- **NOTE: FRONT MATCHES YOUR TYPED DRIVE PORTS** — the card held no usable record, and every typed
+  drive port agrees with this push. Nothing to do.
+- **NOTE: FRONT MATCHES, SOME TYPED PORTS DIFFER -- see log** — the front agrees with your typed
+  drive ports, but the log names each port where they and this push differ: a wrong **sign**, the
+  other **side**, or a port in one list only. Fix each typed port it names, or anything that still
+  drives from them fights itself. A typed port missing from this push may still be right — it was
+  LEFT OUT, declared, or did not turn: check the run's `LEFT OUT` and `watch:` lines.
+- **NOTE: FIX YOUR TYPED DRIVE PORTS -- see the log** — you touched USE NEW against the typed ports:
+  they now call the saved front the back. Correct them, or anything that still drives from them
+  drives the robot backwards.
+- **`LEFT OUT`, or a refused pulse, names a port that is a mechanism** — that motor was not
+  declared, so Calibrate treated it as a drive candidate and powered it. Declare it in the facts'
+  `.mechanisms` (every motor that is not a drive motor).
+- **CANNOT START: FACTS REFUSED / NOT A TANK / DRIVE KIND UNSET / CARTRIDGE UNSET / TOO FEW
+  MOTORS** — refused before anything was powered; the screen's second line says which entry or
+  fact. TOO FEW MOTORS names the ports you declared as mechanisms: is one of them a drive motor?
+- **SAVE UNCONFIRMED** (the log; the screen says NOT SAVED) — the card stopped answering mid-save,
+  so the run cannot say which record the next boot uses. Put the card back if it was pulled, copy
+  both files off it on a laptop, and start the drive program to read its calibration line.
+- **NOT SAVED, and the log says the record file is damaged** — the earlier record is safe in the
+  backup (`shulib_drivetrain.bak`), but the drive program in this build does not read the backup
+  yet, so its next boot refuses: rerun Calibrate, or on a laptop copy `shulib_drivetrain.bak` over
+  `shulib_drivetrain.bin`.
+
+None of these screens has been seen on a robot yet; they are host-tested only.
 
 ## When you're stuck
 

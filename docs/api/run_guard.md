@@ -8,7 +8,7 @@
 
 RunGuard — the run-scoped deadline owner and the guaranteed END-OF-RUN ACTION.
 
-This header declares **4** types (29 members).
+This header declares **4** types (34 members).
 
 Extracted from [`include/shulib/sequence/run_guard.hpp`](../../include/shulib/sequence/run_guard.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -28,9 +28,11 @@ Extracted from [`include/shulib/sequence/run_guard.hpp`](../../include/shulib/se
   - [`endActionRan`](#runguardreport-endactionran)
   - [`endActionSucceeded`](#runguardreport-endactionsucceeded)
   - [`floorFired`](#runguardreport-floorfired)
+  - [`abandoned`](#runguardreport-abandoned)
   - [`postExpiryCancels`](#runguardreport-postexpirycancels)
   - [`anonymousClaimsReleased`](#runguardreport-anonymousclaimsreleased)
   - [`pacesSeen`](#runguardreport-pacesseen)
+  - [`mechanismCuts`](#runguardreport-mechanismcuts)
   - [`scoringEnded`](#runguardreport-scoringended)
   - [`endActionEnded`](#runguardreport-endactionended)
 - [`class RunGuard`](#class-runguard)
@@ -41,6 +43,9 @@ Extracted from [`include/shulib/sequence/run_guard.hpp`](../../include/shulib/se
   - [`operator= (overload 2)`](#runguard-operator-eq-2)
   - [`~RunGuard`](#runguard-destructor-runguard)
   - [`pace`](#runguard-pace)
+  - [`requestAbandon`](#runguard-requestabandon)
+  - [`abandonRequested`](#runguard-abandonrequested)
+  - [`pacesTotal`](#runguard-pacestotal)
   - [`expired`](#runguard-expired)
   - [`remaining`](#runguard-remaining)
   - [`running`](#runguard-running)
@@ -58,7 +63,7 @@ enum class GuardedWaitResult
 
 The guard's wait verdict (banner: verdict honesty). DISTINCT from WaitResult on purpose: RunExpired is a fact about the RUN, not the wait, and it must be impossible to read as success.
 
-*enum class, declared at [`include/shulib/sequence/run_guard.hpp:153`](../../include/shulib/sequence/run_guard.hpp#L153).*
+*enum class, declared at [`include/shulib/sequence/run_guard.hpp:224`](../../include/shulib/sequence/run_guard.hpp#L224).*
 
 <a id="guardedwaitresult-satisfied"></a>
 
@@ -70,7 +75,7 @@ Satisfied
 
 the predicate became true before any deadline
 
-*enumerator, declared at [`include/shulib/sequence/run_guard.hpp:154`](../../include/shulib/sequence/run_guard.hpp#L154).*
+*enumerator, declared at [`include/shulib/sequence/run_guard.hpp:225`](../../include/shulib/sequence/run_guard.hpp#L225).*
 
 <a id="guardedwaitresult-timedout"></a>
 
@@ -82,7 +87,7 @@ TimedOut
 
 the WAIT's own timeout elapsed first (run still live)
 
-*enumerator, declared at [`include/shulib/sequence/run_guard.hpp:155`](../../include/shulib/sequence/run_guard.hpp#L155).*
+*enumerator, declared at [`include/shulib/sequence/run_guard.hpp:226`](../../include/shulib/sequence/run_guard.hpp#L226).*
 
 <a id="guardedwaitresult-runexpired"></a>
 
@@ -94,7 +99,7 @@ RunExpired
 
 the RUN's deadline passed — stop scoring; wins ties with Satisfied (a satisfied-but-expired wait must still halt the chain — the measured predicate-folding trap)
 
-*enumerator, declared at [`include/shulib/sequence/run_guard.hpp:156`](../../include/shulib/sequence/run_guard.hpp#L156).*
+*enumerator, declared at [`include/shulib/sequence/run_guard.hpp:227`](../../include/shulib/sequence/run_guard.hpp#L227).*
 
 <a id="struct-runguardconfig"></a>
 
@@ -106,7 +111,7 @@ struct RunGuardConfig
 
 One run's schedule + reach. Everything is REQUIRED and caller-supplied: there is deliberately no default here to invent (banner).
 
-*struct, declared at [`include/shulib/sequence/run_guard.hpp:163`](../../include/shulib/sequence/run_guard.hpp#L163).*
+*struct, declared at [`include/shulib/sequence/run_guard.hpp:234`](../../include/shulib/sequence/run_guard.hpp#L234).*
 
 <a id="runguardconfig-endactionat"></a>
 
@@ -118,7 +123,7 @@ units::Time endActionAt{0.0}
 
 When scoring stops and the end action starts, measured from run() start. The caller computes the lead ("park takes ~6 s") — the library has no number to offer that would not be an invented one.
 
-*field, declared at [`include/shulib/sequence/run_guard.hpp:167`](../../include/shulib/sequence/run_guard.hpp#L167).*
+*field, declared at [`include/shulib/sequence/run_guard.hpp:238`](../../include/shulib/sequence/run_guard.hpp#L238).*
 
 <a id="runguardconfig-hardstopat"></a>
 
@@ -130,7 +135,7 @@ units::Time hardStopAt{0.0}
 
 The unconditional safe floor, measured from run() start. At this instant every device is forced safe and everything — the end action included — is refused. Must be >= endActionAt; the gap is the end action's runway (equal instants = zero runway: legal, and the end action's motions will all be refused — supply distinct instants if it must MOVE).
 
-*field, declared at [`include/shulib/sequence/run_guard.hpp:174`](../../include/shulib/sequence/run_guard.hpp#L174).*
+*field, declared at [`include/shulib/sequence/run_guard.hpp:245`](../../include/shulib/sequence/run_guard.hpp#L245).*
 
 <a id="runguardconfig-mechanisms"></a>
 
@@ -142,7 +147,7 @@ std::span<hal::IMechanism* const> mechanisms{}
 
 Every mechanism the run touches (may be empty). cancel-all reaches operations through the claim's registered claimant (mechanism.hpp); list a mechanism here or the guard cannot see it at the deadline.
 
-*field, declared at [`include/shulib/sequence/run_guard.hpp:178`](../../include/shulib/sequence/run_guard.hpp#L178).*
+*field, declared at [`include/shulib/sequence/run_guard.hpp:249`](../../include/shulib/sequence/run_guard.hpp#L249).*
 
 <a id="runguardconfig-validate"></a>
 
@@ -154,7 +159,7 @@ void validate() const
 
 Reject a schedule that could not mean anything, before a run arms: both instants finite, endActionAt > 0, hardStopAt >= endActionAt, and no null in `mechanisms`. run() calls it at the door, so a bad number is a loud error at the call site instead of a deadline that silently never arrives.
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:184`](../../include/shulib/sequence/run_guard.hpp#L184).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:255`](../../include/shulib/sequence/run_guard.hpp#L255).*
 
 <a id="struct-runguardreport"></a>
 
@@ -166,7 +171,7 @@ struct RunGuardReport
 
 What one guarded run did — the guard's own account, kept SEPARATE from every motion verdict the caller's code saw (banner: verdict honesty).
 
-*struct, declared at [`include/shulib/sequence/run_guard.hpp:198`](../../include/shulib/sequence/run_guard.hpp#L198).*
+*struct, declared at [`include/shulib/sequence/run_guard.hpp:269`](../../include/shulib/sequence/run_guard.hpp#L269).*
 
 <a id="runguardreport-scoringcut"></a>
 
@@ -178,7 +183,7 @@ bool scoringCut = false
 
 True iff the deadline latched scoring off (false: scoring returned on its own and the end action started early — the caller was done).
 
-*field, declared at [`include/shulib/sequence/run_guard.hpp:201`](../../include/shulib/sequence/run_guard.hpp#L201).*
+*field, declared at [`include/shulib/sequence/run_guard.hpp:272`](../../include/shulib/sequence/run_guard.hpp#L272).*
 
 <a id="runguardreport-endactionran"></a>
 
@@ -188,9 +193,9 @@ True iff the deadline latched scoring off (false: scoring returned on its own an
 bool endActionRan = false
 ```
 
-the callable was invoked (always, unless a throw unwound run())
+The callable was invoked — always, unless a throw unwound run() or the run was ABANDONED before scoring returned (then it is skipped, and this stays false).
 
-*field, declared at [`include/shulib/sequence/run_guard.hpp:202`](../../include/shulib/sequence/run_guard.hpp#L202).*
+*field, declared at [`include/shulib/sequence/run_guard.hpp:275`](../../include/shulib/sequence/run_guard.hpp#L275).*
 
 <a id="runguardreport-endactionsucceeded"></a>
 
@@ -200,9 +205,9 @@ the callable was invoked (always, unless a throw unwound run())
 bool endActionSucceeded = false
 ```
 
-its verdict, per the four accepted return types
+Its verdict, per the four accepted return types — and FALSE whenever the run was abandoned, even if an end action already under way returned success: a verdict about a park the field disabled halfway through is not a success.
 
-*field, declared at [`include/shulib/sequence/run_guard.hpp:203`](../../include/shulib/sequence/run_guard.hpp#L203).*
+*field, declared at [`include/shulib/sequence/run_guard.hpp:279`](../../include/shulib/sequence/run_guard.hpp#L279).*
 
 <a id="runguardreport-floorfired"></a>
 
@@ -214,7 +219,19 @@ bool floorFired = false
 
 hardStopAt arrived during the run
 
-*field, declared at [`include/shulib/sequence/run_guard.hpp:204`](../../include/shulib/sequence/run_guard.hpp#L204).*
+*field, declared at [`include/shulib/sequence/run_guard.hpp:280`](../../include/shulib/sequence/run_guard.hpp#L280).*
+
+<a id="runguardreport-abandoned"></a>
+
+### `RunGuardReport::abandoned`
+
+```cpp
+bool abandoned = false
+```
+
+requestAbandon() latched during this run (file banner: ABANDON). The cancel-all ran, the end action was skipped if it had not started (`endActionRan` false), and the guard disarmed at run()'s normal exit.
+
+*field, declared at [`include/shulib/sequence/run_guard.hpp:284`](../../include/shulib/sequence/run_guard.hpp#L284).*
 
 <a id="runguardreport-postexpirycancels"></a>
 
@@ -224,9 +241,9 @@ hardStopAt arrived during the run
 int postExpiryCancels = 0
 ```
 
-Scheduler cancels the guard performed after the latch (the first is the cut; the rest are refused retries). Zero plant travel either way.
+Scheduler cancels the guard performed after the latch — the deadline's or an abandon's (the first is the cut; the rest are refused retries). Zero plant travel either way.
 
-*field, declared at [`include/shulib/sequence/run_guard.hpp:207`](../../include/shulib/sequence/run_guard.hpp#L207).*
+*field, declared at [`include/shulib/sequence/run_guard.hpp:288`](../../include/shulib/sequence/run_guard.hpp#L288).*
 
 <a id="runguardreport-anonymousclaimsreleased"></a>
 
@@ -238,7 +255,7 @@ int anonymousClaimsReleased = 0
 
 Anonymous claims force-released at cancel-all (should be zero — register claimants).
 
-*field, declared at [`include/shulib/sequence/run_guard.hpp:210`](../../include/shulib/sequence/run_guard.hpp#L210).*
+*field, declared at [`include/shulib/sequence/run_guard.hpp:291`](../../include/shulib/sequence/run_guard.hpp#L291).*
 
 <a id="runguardreport-pacesseen"></a>
 
@@ -250,7 +267,19 @@ int pacesSeen = 0
 
 pace() calls observed while the run was live. ZERO after a run whose scoring did real work means the Chassis was NOT constructed with this guard as its pacer — the guard was never in the loop and its guarantee never applied (Warn-logged).
 
-*field, declared at [`include/shulib/sequence/run_guard.hpp:215`](../../include/shulib/sequence/run_guard.hpp#L215).*
+*field, declared at [`include/shulib/sequence/run_guard.hpp:296`](../../include/shulib/sequence/run_guard.hpp#L296).*
+
+<a id="runguardreport-mechanismcuts"></a>
+
+### `RunGuardReport::mechanismCuts`
+
+```cpp
+int mechanismCuts = 0
+```
+
+Claimed mechanisms the latch CANCELLED after the deadline or an abandon (MECH-A2, the file banner's mechanism cut): a mechanism step cut mid-wait counts one; a refused retry counts again. The hard floor's sweep (every mechanism, claimed or not) is `floorFired`'s, not counted here; nor is run()'s own cancel-all.
+
+*field, declared at [`include/shulib/sequence/run_guard.hpp:301`](../../include/shulib/sequence/run_guard.hpp#L301).*
 
 <a id="runguardreport-scoringended"></a>
 
@@ -262,7 +291,7 @@ units::Time scoringEnded{0.0}
 
 clock at scoring()'s return, from run start
 
-*field, declared at [`include/shulib/sequence/run_guard.hpp:216`](../../include/shulib/sequence/run_guard.hpp#L216).*
+*field, declared at [`include/shulib/sequence/run_guard.hpp:302`](../../include/shulib/sequence/run_guard.hpp#L302).*
 
 <a id="runguardreport-endactionended"></a>
 
@@ -272,9 +301,9 @@ clock at scoring()'s return, from run start
 units::Time endActionEnded{0.0}
 ```
 
-clock at the end action's return, from run start
+Clock at the end action's return, from run start — 0 when the end action never ran (an abandoned run skips it; read `endActionRan` before this).
 
-*field, declared at [`include/shulib/sequence/run_guard.hpp:217`](../../include/shulib/sequence/run_guard.hpp#L217).*
+*field, declared at [`include/shulib/sequence/run_guard.hpp:305`](../../include/shulib/sequence/run_guard.hpp#L305).*
 
 <a id="class-runguard"></a>
 
@@ -286,7 +315,7 @@ class RunGuard final : public motion::ITickPacer
 
 The run-scoped deadline owner (file banner). Construct it around the real pacer, give the Chassis the guard AS its pacer, then wrap the whole auton in run(). Inert by construction: until run() is live, pace() is a pure pass-through — zero clock reads, zero behavior change (the D3 §2.1 instruction: a deadline must be opt-in and inert by default; wiring the guard in must not change an existing routine by one tick).  motion::ITickPacer& real = ...;             // plant pacer / R1's delay sequence::RunGuard guard{real}; chassis::Chassis chassis{deps, guard, cfg}; // the guard IS the pacer ... const sequence::RunGuardReport rep = guard.run(chassis, runCfg, [&] { /* scoring: Routine chain, verbs, guard.waitFor(...) */ }, [&] { /* end action: YOUR pose, YOUR re-verify */ return true; });  Not copyable/movable: the Chassis holds a reference to it as the pacer.
 
-*class, declared at [`include/shulib/sequence/run_guard.hpp:236`](../../include/shulib/sequence/run_guard.hpp#L236).*
+*class, declared at [`include/shulib/sequence/run_guard.hpp:324`](../../include/shulib/sequence/run_guard.hpp#L324).*
 
 <a id="runguard-runguard"></a>
 
@@ -298,7 +327,7 @@ explicit RunGuard(motion::ITickPacer& inner) noexcept
 
 `inner` advances the real world (host: step the plant; robot: delay to the tick boundary) and must outlive the guard.
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:240`](../../include/shulib/sequence/run_guard.hpp#L240).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:328`](../../include/shulib/sequence/run_guard.hpp#L328).*
 
 <a id="runguard-runguard-2"></a>
 
@@ -310,7 +339,7 @@ RunGuard(const RunGuard&) = delete
 
 Pinned where it is constructed: the Chassis holds this object BY REFERENCE as its pacer, so a copy would be paced by nobody and a move would leave the Chassis pacing a corpse. The destructor releases nothing — the guard owns no device and holds only non-owning pointers to the inner pacer and, while a run is live, the chassis's scheduler, clock and telemetry.
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:247`](../../include/shulib/sequence/run_guard.hpp#L247).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:335`](../../include/shulib/sequence/run_guard.hpp#L335).*
 
 <a id="runguard-runguard-3"></a>
 
@@ -322,7 +351,7 @@ RunGuard(RunGuard&&) = delete
 
 *Covered by the comment on [`RunGuard (overload 2)`](#runguard-runguard-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:248`](../../include/shulib/sequence/run_guard.hpp#L248).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:336`](../../include/shulib/sequence/run_guard.hpp#L336).*
 
 <a id="runguard-operator-eq"></a>
 
@@ -334,7 +363,7 @@ RunGuard& operator=(const RunGuard&) = delete
 
 *Covered by the comment on [`RunGuard (overload 2)`](#runguard-runguard-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:249`](../../include/shulib/sequence/run_guard.hpp#L249).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:337`](../../include/shulib/sequence/run_guard.hpp#L337).*
 
 <a id="runguard-operator-eq-2"></a>
 
@@ -346,7 +375,7 @@ RunGuard& operator=(RunGuard&&) = delete
 
 *Covered by the comment on [`RunGuard (overload 2)`](#runguard-runguard-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:250`](../../include/shulib/sequence/run_guard.hpp#L250).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:338`](../../include/shulib/sequence/run_guard.hpp#L338).*
 
 <a id="runguard-destructor-runguard"></a>
 
@@ -358,7 +387,7 @@ RunGuard& operator=(RunGuard&&) = delete
 
 *Covered by the comment on [`RunGuard (overload 2)`](#runguard-runguard-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:251`](../../include/shulib/sequence/run_guard.hpp#L251).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:339`](../../include/shulib/sequence/run_guard.hpp#L339).*
 
 <a id="runguard-pace"></a>
 
@@ -370,7 +399,43 @@ void pace() override
 
 The pacer seam (banner: how the deadline reaches running code). The deadline checks run BEFORE the world advances — the ordering is load-bearing (0.0000 in vs 10.79 in of post-deadline travel, measured) and pinned by test. Inert pass-through when no run is live.
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:257`](../../include/shulib/sequence/run_guard.hpp#L257).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:345`](../../include/shulib/sequence/run_guard.hpp#L345).*
+
+<a id="runguard-requestabandon"></a>
+
+### `RunGuard::requestAbandon`
+
+```cpp
+void requestAbandon() noexcept
+```
+
+Ask the live run to END NOW, cleanly: one atomic store and nothing else, so it is safe from any task and from inside a pacer's pace() (the competition program's watch). From the next check on, every motion is cut before the world advances, every guard wait returns RunExpired and expired() reads true; when scoring returns, run() performs the full cancel-all, SKIPS the end action and disarms at its normal exit, reporting `abandoned`. It never disarms the guard itself. With no run live it is harmless: the request is dropped when the next run arms.
+
+*function, declared at [`include/shulib/sequence/run_guard.hpp:379`](../../include/shulib/sequence/run_guard.hpp#L379).*
+
+<a id="runguard-abandonrequested"></a>
+
+### `RunGuard::abandonRequested`
+
+```cpp
+[[nodiscard]] bool abandonRequested() const noexcept
+```
+
+True once requestAbandon() has been called since the current (or, after run() returned, the most recent) run armed. Readable from any task.
+
+*function, declared at [`include/shulib/sequence/run_guard.hpp:383`](../../include/shulib/sequence/run_guard.hpp#L383).*
+
+<a id="runguard-pacestotal"></a>
+
+### `RunGuard::pacesTotal`
+
+```cpp
+[[nodiscard]] std::uint64_t pacesTotal() const noexcept
+```
+
+Every pace() since construction, whether or not a run was live (RunGuardReport's `pacesSeen` counts only a run's, so nothing in the report can say anything about the wiring BEFORE a run). A program reads it before and after one idle tick to PROVE its Chassis is paced through this guard -- the wiring run() itself cannot verify (it only warns, after a run, when `pacesSeen` is 0). The Auton Tester refuses its boot when that proof fails (COMP-t, 2026-09-28: additive). The pacing task only.
+
+*function, declared at [`include/shulib/sequence/run_guard.hpp:391`](../../include/shulib/sequence/run_guard.hpp#L391).*
 
 <a id="runguard-expired"></a>
 
@@ -380,9 +445,9 @@ The pacer seam (banner: how the deadline reaches running code). The deadline che
 [[nodiscard]] bool expired() const
 ```
 
-True once the CURRENT phase's deadline has passed: endActionAt during scoring, hardStopAt during the end action. The retry-loop idiom: `while (!guard.expired() && ...) { ... }` — an unconditional retry loop is the one stall the guard cannot end (banner, honesty section).
+True once the CURRENT phase's deadline has passed: endActionAt during scoring, hardStopAt during the end action — or at once, in either phase, once the run has been abandoned. The retry-loop idiom: `while (!guard.expired() && ...) { ... }` — an unconditional retry loop is the one stall the guard cannot end (banner, honesty section).
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:277`](../../include/shulib/sequence/run_guard.hpp#L277).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:400`](../../include/shulib/sequence/run_guard.hpp#L400).*
 
 <a id="runguard-remaining"></a>
 
@@ -392,9 +457,9 @@ True once the CURRENT phase's deadline has passed: endActionAt during scoring, h
 [[nodiscard]] units::Time remaining() const
 ```
 
-Time left before the current phase's deadline (never negative). During the end action this counts down to the hard stop — the "hold position until the buzzer" budget.
+Time left before the current phase's deadline (never negative). During the end action this counts down to the hard stop — the "hold position until the buzzer" budget. Zero once the run is abandoned.
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:285`](../../include/shulib/sequence/run_guard.hpp#L285).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:408`](../../include/shulib/sequence/run_guard.hpp#L408).*
 
 <a id="runguard-running"></a>
 
@@ -406,7 +471,7 @@ Time left before the current phase's deadline (never negative). During the end a
 
 True only while run() is executing — scoring OR the end action. That window is exactly when expired(), remaining(), waitFor() and pause() may be called at all (outside it they trip a precondition) and exactly when pace() checks deadlines rather than passing straight through. False before the first run and again the moment run() returns: the robot belongs to the caller then.
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:296`](../../include/shulib/sequence/run_guard.hpp#L296).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:422`](../../include/shulib/sequence/run_guard.hpp#L422).*
 
 <a id="runguard-waitfor"></a>
 
@@ -418,7 +483,7 @@ template <typename Pred> [[nodiscard]] GuardedWaitResult waitFor(Pred&& pred, un
 
 Block until `pred` holds, the wait's own `timeout` elapses, or the run's live deadline passes — the return says which, and RunExpired wins a tie with Satisfied (banner: verdict honesty). Implemented over C2's waitUntil with a composite predicate, so every C2 guard (finite timeout, stalled-pace loudness, no blocking verbs in `pred`) applies unchanged; at the deadline it returns with zero latency and `pred` is not called again — a scoring predicate that ticks an operation stops being ticked the instant scoring time is over (the latch, applied to waits). The active motion keeps ticking throughout, exactly as C2's wait — until the pace-side latch cuts it.
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:311`](../../include/shulib/sequence/run_guard.hpp#L311).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:437`](../../include/shulib/sequence/run_guard.hpp#L437).*
 
 <a id="runguard-pause"></a>
 
@@ -430,7 +495,7 @@ Block until `pred` holds, the wait's own `timeout` elapses, or the run's live de
 
 Sleep `duration`, or less if the run's live deadline arrives first — Satisfied means the full duration was slept, RunExpired means the run cut it short (TimedOut is unreachable: the sleep IS the timeout). The deadline-aware twin of Chassis::wait / Routine::pause, which cannot be cut (banner: T4) — the "wait for the alliance partner, but never past the budget" beat. `duration` must be finite and > 0.
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:331`](../../include/shulib/sequence/run_guard.hpp#L331).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:457`](../../include/shulib/sequence/run_guard.hpp#L457).*
 
 <a id="runguard-run"></a>
 
@@ -440,16 +505,16 @@ Sleep `duration`, or less if the run's live deadline arrives first — Satisfied
 template <typename Scoring, typename EndAction> RunGuardReport run(chassis::Chassis& chassis, const RunGuardConfig& config, Scoring&& scoring, EndAction&& endAction)
 ```
 
-Execute one guarded run (file banner carries the whole design): 1. arm — capture the run start from the chassis clock; deadlines become absolute instants; the pacer checks go live; 2. `scoring()` — your auton, written against the ordinary frozen surface (Routine chains, blocking verbs, guard.waitFor). It ends when it returns — early because it finished, or because the deadline cut its motions/waits and its chain stopped; 3. cancel-all — active motion cancelled, every listed mechanism's claimant cancelled, claims cleared, declared safe states applied. STRICTLY before step 4 (a stalled operation's unreleased claim would make the end action's own operation throw at start()); 4. `endAction()` — YOUR final act, running in your own call context through the same public verbs, bounded by the hard floor. Return void (always "performed"), bool, ExitReason (Settled = success) or MechanismOutcome (Succeeded = success) — then()'s exact convention. Its verdict lands in the report and the log, never in any motion verdict your scoring code saw; 5. final cancel-all + disarm — the guard hands the robot back safe and goes inert. If scoring() or endAction() THROWS (a precondition — a programming error), the guard cancels-all and safes on the unwind and RETHROWS: a broken program stays loud, and the guard does not drive to a pose on its behalf (converting a throw into a park would hide the bug).  `chassis` MUST be the one constructed with THIS guard as its pacer — the guard has no way to verify that wiring, so it counts: a finished run that saw zero pace() calls Warn-logs that the guarantee never applied (RunGuardReport::pacesSeen).
+Execute one guarded run (file banner carries the whole design): 1. arm — capture the run start from the chassis clock; deadlines become absolute instants; the pacer checks go live; 2. `scoring()` — your auton, written against the ordinary frozen surface (Routine chains, blocking verbs, guard.waitFor). It ends when it returns — early because it finished, or because the deadline cut its motions/waits and its chain stopped; 3. cancel-all — active motion cancelled, every listed mechanism's claimant cancelled, claims cleared, declared safe states applied. STRICTLY before step 4 (a stalled operation's unreleased claim would make the end action's own operation throw at start()); 4. `endAction()` — YOUR final act, running in your own call context through the same public verbs, bounded by the hard floor. Return void (always "performed"), bool, ExitReason (Settled = success) or MechanismOutcome (Succeeded = success) — then()'s exact convention. Its verdict lands in the report and the log, never in any motion verdict your scoring code saw; 5. final cancel-all + disarm — the guard hands the robot back safe and goes inert. If the run was ABANDONED (requestAbandon()) by the time scoring returns, step 4 is SKIPPED: the cancel-all of step 3 is the last act, and the guard disarms here, at run()'s normal exit, with RunGuardReport::abandoned set. An abandon that arrives DURING the end action cuts its motions like any other (the latch exempts nothing) and voids its verdict. If scoring() or endAction() THROWS (a precondition — a programming error), the guard cancels-all and safes on the unwind and RETHROWS: a broken program stays loud, and the guard does not drive to a pose on its behalf (converting a throw into a park would hide the bug). A mechanism whose claimant or safe state throws does not stop the sweep: every listed mechanism is still attempted, then the first such exception propagates like any other throw — and the unwind never throws a second one (that would be std::terminate).  `chassis` MUST be the one constructed with THIS guard as its pacer — the guard has no way to verify that wiring, so it counts: a finished run that saw zero pace() calls Warn-logs that the guarantee never applied (RunGuardReport::pacesSeen).
 
-*function, declared at [`include/shulib/sequence/run_guard.hpp:376`](../../include/shulib/sequence/run_guard.hpp#L376).*
+*function, declared at [`include/shulib/sequence/run_guard.hpp:511`](../../include/shulib/sequence/run_guard.hpp#L511).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 128 lines, click to expand</summary>
+<summary>The header’s own reasoning — 196 lines, click to expand</summary>
 
 ```text
 
@@ -541,6 +606,8 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  exempts nothing. After run() returns the guard is inert again — the robot
  belongs to the caller (post-run code, driver control) and a guard that kept
  refusing forever would fight the next mode.
+   The latch reaches CLAIMED MECHANISMS too (the mechanism core, MECH-A2, the
+ team lead's N1 (a), 2026-10-08) — see "Reaching the mechanisms" below.
 
  ── The waits (T4): what is deadline-aware and what CANNOT be ───────────────────────
  waitFor()/pause() here are deadline-aware: they return RunExpired at the
@@ -568,6 +635,33 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  is NOT enough and the guard never relies on it alone: a live operation
  re-commands its voltage on its next tick, restoring voltage but not brake
  mode — the half-safe `brake=Hold, V=9.0` that passes any mode-only check.
+ A mechanism that THROWS there (a broken adapter) skips nothing: every listed
+ mechanism is attempted, then the first exception propagates; the unwind path's
+ own cancel-all drops its repeat, so a throwing safe state is a loud error the
+ caller catches, never std::terminate (COMP-t's review, 2026-09-29, measured).
+   THE LATCH CUTS CLAIMED MECHANISMS (MECH-A2; N1 (a), the team lead's "accept
+ all", 2026-10-08). A mechanism step waits through Chassis::waitUntil — a FROZEN
+ wait this guard cannot cut (the waits section above) — so before this, an intake
+ step still running at endActionAt ran on to its own bound: measured 1.01 s late
+ with 12.0 V·s past the cut on a 2 s step, and on a 5 s one 2.02 s late — the
+ hard stop fired during scoring and the end action (the park) FAILED; after a
+ disable, up to 2.52 s late, which COMP-b's opcontrol() waits out. Now, in the
+ two branches of pace() that cut the motion, the latch also calls cancel() on
+ every listed mechanism whose claim has a REGISTERED claimant (a mechanism-service
+ slot, an F1 operation): inert, safe, released — the step ends CANCELLED at the
+ next pace, its frozen wait sees it, and the routine unwinds (measured: 0.01 s
+ late, 0.0 V·s; the end action ran and succeeded). WHERE it runs, exactly:
+   * the DEADLINE cut never runs inside the end action (`!inEndAction_`, as the
+     motion cut) — the end action's own steps are exempt from the deadline;
+   * an ABANDON (a disable) cuts claimed mechanisms EVERYWHERE, the end action
+     included — B1's "exempts nothing" (measured: a step inside the end action,
+     cut 0.02 s after the disable, 0.1 V·s).
+ An UNCLAIMED mechanism is NOT re-safed every pace: a repeated brake under Hold
+ re-captures its point and lets a loaded shaft creep (HA-144) — run()'s
+ cancel-all still makes every listed mechanism safe, as before. Each cut is
+ counted (RunGuardReport::mechanismCuts; a refused retry counts again) and the
+ run's first cut is logged once. A BEHAVIOUR CHANGE for F1 operations too: one
+ with a registered claimant now stops at the deadline, not at its own bound.
 
  ── Verdict honesty (T5) ────────────────────────────────────────────────────────────
  GuardedWaitResult is a sequence-layer vocabulary, minted because no existing
@@ -577,9 +671,48 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  verdict is reported in the RunGuardReport and logged — never as the
  caller's motion verdict, and never silently.
 
- FREEZES NOTHING. Single consumer today (F4's student-authored routines are
- hardware-gated; D1 ruled G2 out) — the register says "open by design" out
- loud, and nothing here may freeze on one consumer's evidence.
+ ── ABANDON: a third way for a run to end, and it is a LATCH (COMP-a, ruling B1) ────
+ A competition program must be able to end a run that is NOT out of time: the
+ field disabled the robot, or the match left autonomous, while the routine was
+ mid-motion. requestAbandon() is that door, and what it does is deliberately
+ small — ONE atomic store, callable from any task and from inside a pacer (the
+ competition program's watch calls it from ITS pace(), which runs inside this
+ guard's pace(); a store cannot re-enter anything). Everything else happens on
+ the run's own task, through machinery the deadline already proved:
+   * from the next check on, the run behaves EXACTLY as after endActionAt, with
+     no exemption for the end action: pace() cuts any active motion BEFORE the
+     world advances (one commanded tick per refused start, zero plant travel —
+     the ordering pin, B22), and waitFor()/pause() return RunExpired and
+     expired() reads true, without throwing;
+   * run() — never requestAbandon() — sees the flag when scoring returns: it
+     performs the FULL cancel-all (drive, then every listed mechanism: claimant
+     cancelled, anonymous claim force-released, declared safe state applied),
+     SKIPS the end action (a disabled robot's motors are off; the park cannot
+     run, and an end action started into a disable is a routine commanding a
+     robot the field has taken back), and disarms at its normal exit, with
+     RunGuardReport::abandoned set.
+ Rejected: an abandon that DISARMS. The routine is still on the stack, inside a
+ blocking verb whose motion lives in the scheduler's slot; a disarmed guard
+ would pass every later pace() straight through, so the routine's next verb
+ would drive the robot the field just disabled, and every guard call after it
+ would throw "no run is live" out of the routine instead of unwinding it. The
+ latch lets the routine unwind NORMALLY, on its own stack, so nothing dangles
+ (ruling C5 of the COMP brief: why PROS killing the task was rejected).
+ A request made while no run is live is dropped when the next run arms (a stale
+ request from the last run must not abandon the next one at T+0) — so a
+ program's watch requests on the competition STATE, every tick a run is live,
+ not once on its edge.
+
+ FREEZES NOTHING. TWO consumers since COMP-a: the host suites, and
+ competition::runAuton (match_runner.hpp), the competition program's auton
+ runner — which is why requestAbandon() could be added without a version bump.
+ pacesTotal() (COMP-t, 2026-09-28) is additive the same way: a counter every pace
+ increments, read by the Auton Tester's boot to prove its pacer chain. The
+ mechanism cut and RunGuardReport::mechanismCuts (MECH-A2, 2026-10-15) change no
+ signature — but they change BEHAVIOUR (an operation with a registered claimant
+ now stops at the deadline), so the changelog says so.
+ The freeze itself is the team lead's call (Freeze Register row F12), and one
+ program that has not run on a robot is not yet the evidence a freeze wants.
 ```
 
 </details>

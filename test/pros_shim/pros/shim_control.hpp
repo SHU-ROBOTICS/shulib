@@ -30,6 +30,8 @@ Only test/CMakeLists.txt defines SHULIB_HOST_PROS_SHIM."
 #endif
 
 #include "pros/adi.hpp"
+#include "pros/ai_vision.h"
+#include "pros/apix.h"
 #include "pros/distance.hpp"
 #include "pros/gps.hpp"
 #include "pros/imu.hpp"
@@ -55,6 +57,8 @@ inline void resetAll() {
     resetOpticals();
     resetAdi();
     resetUsd();
+    resetRegistry();
+    resetAiVisions();  // VIS1-A1: the AI Vision camera (pros/ai_vision.h)
 }
 
 }  // namespace pros::shim

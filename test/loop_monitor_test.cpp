@@ -145,3 +145,51 @@ TEST_CASE("LoopMonitor: a non-positive budget is rejected at construction") {
     CHECK_THROWS_AS((LoopMonitor{rig.clock, rig.latch, LoopMonitorConfig{Time{-0.01}}}),
                     PreconditionError);
 }
+
+// ═══ ONE LINE PER EPISODE (T4 Part 3, the T4-3 review, 2026-10-08) ═════════════════════════════
+
+// Bug caught: a loop that STAYS slow logging an Error line on every tick (50 a second at a 20 ms
+// tick — and, through the programs' SD log copy, one card write and one flush inside each slow
+// tick); a repeat that stops COUNTING (overrunCount(), the latch's faultCount/raiseCount); an
+// episode that never ends (a second slow stretch after a healthy tick, or after reset(), said
+// nothing); or the episode count drifting from the lines said.
+TEST_CASE("LoopMonitor: a slow STRETCH logs ONE line; every slow tick still counts; a healthy tick "
+          "or reset() ends the episode") {
+    Rig rig;
+    LoopMonitor mon{rig.clock, rig.latch, LoopMonitorConfig{Time{0.5}}};
+
+    (void)mon.tick();  // baseline
+    for (int i = 0; i < 5; ++i) {  // five slow ticks in a row: one episode
+        rig.clock.advance(Time{0.75});
+        (void)mon.tick();
+    }
+    CHECK(mon.overrunCount() == 5);
+    CHECK(mon.overrunEpisodes() == 1);
+    CHECK(rig.latch.faultCount() == 5);
+    CHECK(rig.latch.raiseCount(FaultCode::LoopOverrun) == 5);
+    REQUIRE(rig.sink.size() == 1);
+    CHECK(rig.sink.at(0).message == "fault=LOOP_OVERRUN n=1 FIRST dt=0.7500 budget=0.5000");
+
+    rig.clock.advance(Time{0.25});  // a healthy tick ends it
+    (void)mon.tick();
+    rig.clock.advance(Time{1.0});  // the next slow tick opens a NEW episode, said with its count
+    (void)mon.tick();
+    rig.clock.advance(Time{1.0});
+    (void)mon.tick();
+    CHECK(mon.overrunCount() == 7);
+    CHECK(mon.overrunEpisodes() == 2);
+    REQUIRE(rig.sink.size() == 2);
+    CHECK(rig.sink.at(1).message == "fault=LOOP_OVERRUN n=6 dt=1.0000 budget=0.5000");
+
+    // reset() mid-episode: the gap is not an overrun, and the next slow tick is a new episode.
+    mon.reset();
+    rig.clock.advance(Time{100.0});
+    (void)mon.tick();  // baseline only
+    rig.clock.advance(Time{0.5});  // exactly AT the budget: an overrun (inclusive)
+    (void)mon.tick();
+    CHECK(mon.overrunCount() == 8);
+    CHECK(mon.overrunEpisodes() == 3);
+    REQUIRE(rig.sink.size() == 3);
+    CHECK(rig.sink.at(2).message == "fault=LOOP_OVERRUN n=8 dt=0.5000 budget=0.5000");
+    CHECK(mon.overrunEpisodes() <= mon.overrunCount());
+}

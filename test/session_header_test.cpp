@@ -12,6 +12,7 @@
 #include "doctest.h"
 
 #include <cctype>
+#include <cstddef>
 #include <string>
 #include <string_view>
 
@@ -154,11 +155,24 @@ TEST_CASE("build hash plumbing: THIS build carries a real, sane git identity") {
     // placeholder someone hard-coded to appease the emptiness check.
     CHECK(hash.size() >= 7);
     CHECK(hash.size() <= 47);
-    for (const char c : hash) {
+    // ONE assertion over the whole string, naming the first offending byte. This was a CHECK
+    // per character until 2026-09-24 (audit coord#0), which made the SUITE'S ASSERTION COUNT
+    // depend on the hash's length: a `-dirty` suffix added six, so a recorded count went stale
+    // with no code changed, and the briefing gate refused the next honest build.
+    std::size_t firstBad = hash.size();
+    for (std::size_t i = 0; i < hash.size(); ++i) {
+        const char c = hash[i];
         const bool ok = (std::isalnum(static_cast<unsigned char>(c)) != 0) || c == '.'
                         || c == '-' || c == '_';
-        CHECK(ok);
+        if (!ok) {
+            firstBad = i;
+            break;
+        }
     }
+    const std::string hashText{hash};
+    CAPTURE(hashText);
+    CAPTURE(firstBad);
+    CHECK(firstBad == hash.size());
     CHECK(hash != "unknown");
     CHECK(hash != "0000000");
 }

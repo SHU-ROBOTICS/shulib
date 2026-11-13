@@ -16,6 +16,8 @@
 //     last told, possibly by a different program on a different day (HA-95/HA-98)
 //   * get_actual_velocity() returns RPM                    (motors.hpp:404; HA-96)
 //   * get_current_draw() returns mA                        (motors.hpp:426; HA-97)
+//   * set_current_limit() takes, and get_current_limit() returns, mA; the
+//     default is 2500 (motors.hpp:974, :1237; motors.h; MECH-S-A, HA-219)
 //   * get_temperature() returns °C — identity, no conversion function needed
 //
 // shulib canonical (F3): volts, radians (cumulative, non-wrapping AngleDim),
@@ -106,6 +108,21 @@ namespace shulib::hal {
     SHULIB_PRECONDITION(std::isfinite(milliamps),
                         "motorMilliampsToCanonical: current must be finite (screen PROS_ERR first)");
     return units::Current{milliamps / 1000.0};
+}
+
+/// Canonical amperes → the V5's set_current_limit() milliamp argument, rounded
+/// to the nearest integer milliamp (chunk MECH-S-A; HA-219). The A→mA multiply
+/// happens exactly once, here; the read-back comes home through
+/// motorMilliampsToCanonical() above. Get it wrong by 1000× and a 1.2 A cap is
+/// sent as 1 mA (the motor barely turns) or 1 200 000 mA (no cap at all) — and
+/// the read-back would agree with the mistake, so only this function's own test
+/// can see it. PRECONDITION: `limit` finite, at least 0.001 A (one milliamp — anything smaller would
+/// round to 0 mA, a motor with no torque) and at most 2.5 A (hal::kDefaultMotorCurrentLimit — the build
+/// refuses any other cap first: mechanism/spec.hpp's refusals 71 and 73).
+[[nodiscard]] inline std::int32_t motorCurrentLimitToMilliamps(units::Current limit) {
+    SHULIB_PRECONDITION(std::isfinite(limit.value()) && limit.value() >= 0.001 && limit.value() <= 2.5,
+                        "motorCurrentLimitToMilliamps: the limit must be finite, from 0.001 A to 2.5 A");
+    return static_cast<std::int32_t>(std::lround(limit.value() * 1000.0));
 }
 
 }  // namespace shulib::hal

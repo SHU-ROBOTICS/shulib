@@ -42,6 +42,7 @@ TEST_CASE("FaultCode: numeric values are wire-stable (F9) — a reorder turns th
     CHECK(static_cast<std::uint16_t>(FaultCode::MotorOverTemp) == 9);      // appended at A3
     CHECK(static_cast<std::uint16_t>(FaultCode::Implausible) == 10);       // appended at C5
     CHECK(static_cast<std::uint16_t>(FaultCode::MechanismStalled) == 11);  // appended at F1
+    CHECK(static_cast<std::uint16_t>(FaultCode::MotorGroupDisagree) == 12);  // appended at R3b P1
     // Wire width is part of the freeze: one uint16 slot.
     static_assert(std::is_same_v<std::underlying_type_t<FaultCode>, std::uint16_t>);
 }
@@ -59,6 +60,7 @@ TEST_CASE("faultCodeName: §18.4 spellings; out-of-range renders, never crashes"
     CHECK(std::string_view{faultCodeName(FaultCode::MotorOverTemp)} == "MOTOR_OVER_TEMP");
     CHECK(std::string_view{faultCodeName(FaultCode::Implausible)} == "IMPLAUSIBLE");
     CHECK(std::string_view{faultCodeName(FaultCode::MechanismStalled)} == "MECHANISM_STALLED");
+    CHECK(std::string_view{faultCodeName(FaultCode::MotorGroupDisagree)} == "MOTOR_GROUP_DISAGREE");
     // A corrupted/future code must render as a token, not read off the end of anything.
     CHECK(std::string_view{faultCodeName(static_cast<FaultCode>(999))} == "UNKNOWN");
 }
@@ -188,4 +190,73 @@ TEST_CASE("FaultLatch: a contract-violating (throwing) sink cannot crash raise()
     CHECK(latch.hasFault());
     CHECK(latch.firstFault() == FaultCode::NanPose);
     CHECK(latch.faultCount() == 1);
+}
+
+// ═══ raiseRepeat(): one line per EPISODE (T4 Part 3, the T4-3 review, 2026-10-08) ═══════════════
+
+// Bug caught: a repeat that LOGS (a slow loop writes a line per tick again — into the SD copy, one
+// card write and one flush inside every slow tick), or one that does not COUNT (faultCount(),
+// raiseCount() and lastFault() under-report the episode, and the scheduler's per-motion fault
+// policy and each tick's fault stamp stop seeing it).
+TEST_CASE("FaultLatch: raiseRepeat() counts, tallies and latches exactly as raise(), with NO line") {
+    FakeTelemetrySink sink;
+    FakeClock clock;
+    FaultLatch latch{sink, clock};
+
+    latch.raise(FaultCode::LoopOverrun, "DIAG", "dt=0.0200");  // the episode's opening raise
+    latch.raiseRepeat(FaultCode::LoopOverrun, "DIAG", "dt=0.0210");
+    latch.raiseRepeat(FaultCode::LoopOverrun, "DIAG", "dt=0.0220");
+    CHECK(latch.faultCount() == 3);
+    CHECK(latch.raiseCount(FaultCode::LoopOverrun) == 3);
+    CHECK(latch.firstFault() == FaultCode::LoopOverrun);
+    CHECK(latch.lastFault() == FaultCode::LoopOverrun);
+    REQUIRE(sink.size() == 1);  // the opening raise only
+    CHECK(sink.at(0).message == "fault=LOOP_OVERRUN n=1 FIRST dt=0.0200");
+
+    // A repeat of ANOTHER code still sets lastFault (display) without a line; a later raise()
+    // says its true count — the repeats were counted.
+    latch.raiseRepeat(FaultCode::MotorOverTemp, "PWR", "temp=56.0C");
+    CHECK(latch.lastFault() == FaultCode::MotorOverTemp);
+    CHECK(latch.raiseCount(FaultCode::MotorOverTemp) == 1);
+    latch.raise(FaultCode::Brownout, "PWR", "");
+    REQUIRE(sink.size() == 2);
+    CHECK(sink.at(1).message == "fault=BROWNOUT n=5");
+}
+
+// Bug caught: the root cause going SILENT — a repeat that is the run's FIRST fault (the latch was
+// cleared mid-episode) must still be said, or triage reads a first fault nothing ever logged.
+TEST_CASE("FaultLatch: raiseRepeat() that is the FIRST fault since clear() is logged; None is a no-op") {
+    FakeTelemetrySink sink;
+    FakeClock clock;
+    FaultLatch latch{sink, clock};
+
+    latch.raiseRepeat(FaultCode::None, "DIAG", "ignored");
+    CHECK_FALSE(latch.hasFault());
+    CHECK(sink.empty());
+
+    clock.set(Time{4.5});
+    latch.raiseRepeat(FaultCode::LoopOverrun, "DIAG", "dt=0.0300 budget=0.0150");
+    REQUIRE(sink.size() == 1);
+    CHECK(sink.at(0).level == LogLevel::Error);
+    CHECK(sink.at(0).subsystem == "DIAG");
+    CHECK(sink.at(0).message == "fault=LOOP_OVERRUN n=1 FIRST dt=0.0300 budget=0.0150");
+    CHECK(latch.firstFaultTime().value() == doctest::Approx(4.5));
+
+    latch.clear();
+    latch.raiseRepeat(FaultCode::LoopOverrun, "DIAG", "dt=0.0310");
+    REQUIRE(sink.size() == 2);  // a new run's first fault: said again
+    CHECK(sink.at(1).message == "fault=LOOP_OVERRUN n=1 FIRST dt=0.0310");
+    latch.raiseRepeat(FaultCode::LoopOverrun, "DIAG", "dt=0.0320");
+    CHECK(sink.size() == 2);
+}
+
+// Bug caught: a throwing sink escaping raiseRepeat() (it is noexcept: a throw would terminate).
+TEST_CASE("FaultLatch: raiseRepeat() survives a throwing sink; the latch still latches") {
+    ThrowingSink sink;
+    FakeClock clock;
+    FaultLatch latch{sink, clock};
+    latch.raiseRepeat(FaultCode::NanPose, "LOC", "first, so it logs -- and the sink throws");
+    latch.raiseRepeat(FaultCode::NanPose, "LOC", "a repeat");
+    CHECK(latch.faultCount() == 2);
+    CHECK(latch.firstFault() == FaultCode::NanPose);
 }

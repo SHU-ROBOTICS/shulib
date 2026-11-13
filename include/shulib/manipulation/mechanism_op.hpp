@@ -60,8 +60,13 @@
 // ── Which exits apply the safe state — split by actuation physics (T4) ──────────────
 // MOTOR operations end in the declared safe state on EVERY path — Succeeded,
 // Stalled, TimedOut, Cancelled: "capture, and the intake stops"; "arrive, and
-// the lift holds" (safe mode Hold + 0 V IS the hold). A motor left energized is
-// the forgettable-safety-step failure mode A1 exists to prevent, so no exit may
+// the lift holds" (safe mode Hold + 0 V IS the hold — on a V5 only since
+// DEFECTS2, 2026-09-26, when the PROS adapter began sending that zero as
+// brake(), the one PROS call that applies a mode; before it, the zero went out
+// as a plain 0 V, which PROS documents as ignoring the mode, so a declared Hold
+// went limp: hal/pros/motor.hpp, THE STOP, A4 register HA-142 — and how hard
+// it holds under load is still HA-92). A motor left energized is the
+// forgettable-safety-step failure mode A1 exists to prevent, so no exit may
 // depend on the caller remembering to stop it. An open-ended behavior — keep
 // the intake spinning while driving to the next goal — is deliberately NOT an
 // operation: command the mechanism directly (mech.setVoltage(...)) and own the

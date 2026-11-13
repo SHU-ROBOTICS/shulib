@@ -8,6 +8,18 @@
 //  * Task::delay_until(prev, delta) wakes at *prev + delta and updates *prev to
 //    the wake instant — constant-cadence pacing (vendored rtos.hpp:737-760; HA-102)
 //
+// THE ADVANCE HOOK (chunk CAL1, Part A1, 2026-10-08): a test may install
+// shim::advanceHook(), called with the clock's value before and after every
+// advanceUs() — so after every delay(), and after every Task::delay_until() that
+// blocks — so a host test plant can step in step with a program's own waits,
+// whichever of the two it paces with (the library's ProsTickPacer, which a
+// program's 10 ms loop runs on, waits with delay_until). It is a TEST seam, not a
+// PROS belief: with no hook installed (the default, and what resetTime()
+// restores) every call here behaves exactly as it did before the hook existed —
+// delay_until's wait is advanceUs(wake − now), which sets the clock to the wake
+// instant as the direct assignment did, and a wake instant already past still
+// moves nothing (and so calls no hook).
+//
 // HONEST LIMIT: this shim tests the adapter against OUR BELIEF about PROS; it
 // cannot test the belief. Hardware tests the belief (bench runbook).
 
@@ -32,9 +44,28 @@ inline TimeState& timeState() {
     static TimeState s;
     return s;
 }
-inline void resetTime() { timeState() = TimeState{}; }
-/// Advance the shim clock (µs) — stands in for real time passing.
-inline void advanceUs(std::uint64_t us) { timeState().nowUs += us; }
+/// CAL1: called with the clock's value before and after every advanceUs() — every delay(), every
+/// delay_until() that blocks (null = none, the default) — header. A host test steps a plant in it;
+/// it must not call advanceUs(), delay() or delay_until() itself.
+using AdvanceHook = void (*)(std::uint64_t fromUs, std::uint64_t toUs);
+inline AdvanceHook& advanceHook() {
+    static AdvanceHook h = nullptr;
+    return h;
+}
+/// Reset the clock and its counters, and uninstall any advance hook.
+inline void resetTime() {
+    timeState() = TimeState{};
+    advanceHook() = nullptr;
+}
+/// Advance the shim clock (µs) — stands in for real time passing — then call the advance hook,
+/// if one is installed.
+inline void advanceUs(std::uint64_t us) {
+    const std::uint64_t from = timeState().nowUs;
+    timeState().nowUs += us;
+    if (advanceHook() != nullptr) {
+        advanceHook()(from, timeState().nowUs);
+    }
+}
 }  // namespace shim
 
 inline std::uint32_t millis() {
@@ -65,7 +96,10 @@ public:
             static_cast<std::uint64_t>(*prev_time) + static_cast<std::uint64_t>(delta);
         const std::uint64_t targetUs = targetMs * 1000u;
         if (targetUs > s.nowUs) {
-            s.nowUs = targetUs;  // "block" until the wake instant
+            // "block" until the wake instant — through advanceUs(), so an installed advance
+            // hook sees this wait as it sees a delay() (CAL1); with none, the clock is set to
+            // the wake instant exactly as before.
+            shim::advanceUs(targetUs - s.nowUs);
         }
         *prev_time = static_cast<std::uint32_t>(targetMs);
     }

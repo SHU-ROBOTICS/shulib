@@ -22,6 +22,14 @@
 //  * tare/tare_rotation/set_rotation/tare_heading/set_heading are COUNTED —
 //    the HA-05 contract says the adapter must never call them; a nonzero count
 //    in a test is a red flag, literally
+//  * (IMU1, 2026-10-29) the IMU's readings are COPIED into the brain's shared
+//    buffer every 10 ms (vendored imu.hpp:150-156, set_data_rate's doc; HA-213),
+//    so every read between two copies returns the SAME value — sample-and-hold.
+//    The shim does not impose it (every existing suite keeps "returns what the
+//    test set"): a test that needs it installs `rotationAt`, and
+//    test/imu_buffer_model.hpp is that model. `rotationReads` / `gyroReads`
+//    count the device reads that reached a port, so a test can see a read the
+//    adapter should not have made (IMU1's "a held read touches nothing")
 //
 // HONEST LIMIT: this shim tests the adapter against OUR BELIEF about PROS; it
 // cannot test the belief. Hardware tests the belief (bench runbook).
@@ -57,6 +65,12 @@ struct ImuPortState {
     bool disconnected = false;
     int resetCalls = 0;
     int tareFamilyCalls = 0;  ///< tare/tare_rotation/set_rotation/tare_heading/set_heading
+    /// IMU1: when set, get_rotation() returns rotationAt(port) — after the disconnected /
+    /// calibrating screens — instead of rotationDegCw: a test's model of the 10 ms copy (HA-213;
+    /// test/imu_buffer_model.hpp). Null, the default resetImus() restores, = rotationDegCw.
+    double (*rotationAt)(int port) = nullptr;
+    int rotationReads = 0;  ///< IMU1: get_rotation() calls that reached the port, screened too
+    int gyroReads = 0;      ///< IMU1: get_gyro_rate() calls that reached the port, screened too
 };
 inline std::array<ImuPortState, 22>& imuPorts() {
     static std::array<ImuPortState, 22> ports{};
@@ -75,8 +89,12 @@ public:
     explicit Imu(const std::uint8_t port) : port_{static_cast<std::int8_t>(port)} {}
 
     double get_rotation() const {
-        const auto& s = shim::imuState(port_);
-        return (s.disconnected || s.calibrating) ? static_cast<double>(PROS_ERR_F) : s.rotationDegCw;
+        auto& s = shim::imuState(port_);
+        s.rotationReads += 1;  // IMU1: every device read, a screened one included
+        if (s.disconnected || s.calibrating) {
+            return static_cast<double>(PROS_ERR_F);
+        }
+        return s.rotationAt != nullptr ? s.rotationAt(port_) : s.rotationDegCw;
     }
 
     /// Wrapped [0,360) — deliberately DIFFERENT from get_rotation() outside the
@@ -96,7 +114,8 @@ public:
     bool is_calibrating() const { return shim::imuState(port_).calibrating; }
 
     imu_gyro_s_t get_gyro_rate() const {
-        const auto& s = shim::imuState(port_);
+        auto& s = shim::imuState(port_);
+        s.gyroReads += 1;  // IMU1: every device read, a screened one included
         if (s.disconnected || s.calibrating) {
             return imu_gyro_s_t{PROS_ERR_F, PROS_ERR_F, PROS_ERR_F};
         }

@@ -24,6 +24,11 @@
 //  * bootHeading has ONE owner: the robot's canonical START heading (the init Pose2d
 //    handed to the Localizer). The offset is applied exactly ONCE, here at the HAL edge;
 //    no downstream consumer (odometry / Localizer / EKF) re-applies it. (A4 register HA-05.)
+//    Since COMP-a (HA-05 as amended) the competition program leaves bootHeading at 0
+//    (hal/pros/device_provider.hpp) and seats the start heading when an auton STARTS, from
+//    the auton's declared start pose, through the Localizer's bias
+//    (Localizer::reseatHeading) — the auton is chosen after boot, so the boot cannot know
+//    it. That is a seed of the published heading, not a second application of this offset.
 //
 // ON-ROBOT VALIDATION still required: confirm the as-mounted sensor matches its own
 // CW-positive doc strings (bench: a known +90° CW spin must DECREASE canonical heading

@@ -194,7 +194,7 @@ TEST_CASE("OdoStallCheck: invalid configs are rejected loudly") {
     bad.minSpinTravel = Length{0.0};
     CHECK_THROWS_AS((OdoStallCheck{bad}), shulib::PreconditionError);
     bad = {};
-    bad.wheelRadius = Length{-1.0};
+    bad.wheels[0] = shulib::hal::DriveGeometry{Length{-1.0}, 1.0};  // per-wheel since R3b Part 2
     CHECK_THROWS_AS((OdoStallCheck{bad}), shulib::PreconditionError);
     bad = {};
     bad.rotationRadius = Length{0.0};

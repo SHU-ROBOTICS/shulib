@@ -1,0 +1,259 @@
+<!-- GENERATED FILE — DO NOT EDIT BY HAND.
+     Source: include/shulib/teleop/driver_control.hpp
+     Regenerate: python3 tools/api_doc_tool.py generate
+     The host test build fails if this file is out of date, so an edit here
+     is reverted by the next build rather than reviewed. Edit the header. -->
+
+# `driver_control.hpp`
+
+DriveShaper — the whole feel layer in one object and one call per tick.
+
+This header declares **2** types (11 members) and **1** free function.
+
+Extracted from [`include/shulib/teleop/driver_control.hpp`](../../include/shulib/teleop/driver_control.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+
+## Contents
+
+- [`struct DriveShaperState`](#struct-driveshaperstate)
+  - [`fieldCentric`](#driveshaperstate-fieldcentric)
+  - [`slewOutput`](#driveshaperstate-slewoutput)
+  - [`controllerAbsent`](#driveshaperstate-controllerabsent)
+- [`class DriveShaper`](#class-driveshaper)
+  - [`DriveShaper`](#driveshaper-driveshaper)
+  - [`shape`](#driveshaper-shape)
+  - [`state`](#driveshaper-state)
+  - [`rezero`](#driveshaper-rezero)
+  - [`profile`](#driveshaper-profile)
+  - [`setProfile`](#driveshaper-setprofile)
+  - [`reset`](#driveshaper-reset)
+  - [`fieldCentric`](#driveshaper-fieldcentric)
+- [`shapeToChassisSpeeds`](#shapetochassisspeeds) — *free function*
+
+<a id="struct-driveshaperstate"></a>
+
+## `struct DriveShaperState`
+
+```cpp
+struct DriveShaperState
+```
+
+Everything a panel needs to show about the feel layer after a tick, and everything a test needs to see inside it. Copied out by value; nothing here is a handle into the shaper.
+
+*struct, declared at [`include/shulib/teleop/driver_control.hpp:62`](../../include/shulib/teleop/driver_control.hpp#L62).*
+
+<a id="driveshaperstate-fieldcentric"></a>
+
+### `DriveShaperState::fieldCentric`
+
+```cpp
+FieldCentricState fieldCentric{}
+```
+
+Field-centric's indication for the tick just run — `NotSelected` while the profile's mode is a body-frame one (field_centric.hpp).
+
+*field, declared at [`include/shulib/teleop/driver_control.hpp:65`](../../include/shulib/teleop/driver_control.hpp#L65).*
+
+<a id="driveshaperstate-slewoutput"></a>
+
+### `DriveShaperState::slewOutput`
+
+```cpp
+DriveRequest slewOutput{}
+```
+
+The three slew limiters' outputs after the tick just run — i.e. the request as it stood AFTER shaping and slew and BEFORE any field-centric rotation. Equal to the returned request whenever field-centric is not rotating, which is how a panel can show the cost of the rate limit without a second computation.
+
+*field, declared at [`include/shulib/teleop/driver_control.hpp:70`](../../include/shulib/teleop/driver_control.hpp#L70).*
+
+<a id="driveshaperstate-controllerabsent"></a>
+
+### `DriveShaperState::controllerAbsent`
+
+```cpp
+bool controllerAbsent = false
+```
+
+True when the tick just run saw a disconnected controller and zeroed everything (HA-103). Distinct from "the sticks were centred", which is the whole reason `isConnected()` exists.
+
+*field, declared at [`include/shulib/teleop/driver_control.hpp:74`](../../include/shulib/teleop/driver_control.hpp#L74).*
+
+<a id="class-driveshaper"></a>
+
+## `class DriveShaper`
+
+```cpp
+class DriveShaper
+```
+
+The composed feel layer: one driver's profile, three rate limiters and one field-centric mapper, called once per tick.  Construct one per driver, hold it for the life of the program, and call `shape()` in the teleop loop. It is copyable (it is just numbers), but a copy carries the limiters' history, so copy it to snapshot a driver's tuning, not to hand control over.
+
+*class, declared at [`include/shulib/teleop/driver_control.hpp:83`](../../include/shulib/teleop/driver_control.hpp#L83).*
+
+<a id="driveshaper-driveshaper"></a>
+
+### `DriveShaper::DriveShaper`
+
+```cpp
+explicit constexpr DriveShaper(const DriverProfile& profile = {}) noexcept
+```
+
+A shaper running `profile` — by default the shipped profile: deadband 0.05, no expo, no slew, ArcadeBody. The profile is COPIED, so later edits to the caller's object never reach a live shaper; `setProfile()` is the way to change one.
+
+*function, declared at [`include/shulib/teleop/driver_control.hpp:88`](../../include/shulib/teleop/driver_control.hpp#L88).*
+
+<a id="driveshaper-shape"></a>
+
+### `DriveShaper::shape`
+
+```cpp
+[[nodiscard]] DriveRequest shape(const StickInput& in, double dtSeconds, double headingRadians, bool headingTrusted) noexcept
+```
+
+One tick: sticks and elapsed time in, the body-frame request to command out.  The order is mode -> shaping -> slew -> rotation (see the file header for why each step sits where it does). The returned request is always in the ROBOT's frame, so the caller commands `Frame::Body` whatever the mode — field-centric is handled here and never by the facade.  `dtSeconds` is the time since the previous call, from the caller's pacer. It is only read by the rate limiters, so with the shipped (slew-off) profile its value cannot change the answer at all. A non-positive or NaN dt freezes the limiters rather than letting them take an unbounded step.  `headingRadians` / `headingTrusted` are the robot's estimated heading and the caller's verdict on it (the estimate is live and no IMU_LOST fault is latched). Both are ignored unless the profile's mode is `ArcadeField`.  A DISCONNECTED CONTROLLER (HA-103) returns the all-zero request AND resets the three limiters to zero. The limiters are reset rather than ramped because a controller that drops mid-match must stop the robot NOW: a rate limit exists to protect the drivetrain from a driver, not to keep a robot rolling after its driver is gone. Field-centric's latch is deliberately NOT disturbed — a lost radio link says nothing about the heading, and clearing the latch behind the driver's back is exactly the flicker the latch exists to prevent.
+
+*function, declared at [`include/shulib/teleop/driver_control.hpp:117`](../../include/shulib/teleop/driver_control.hpp#L117).*
+
+<a id="driveshaper-state"></a>
+
+### `DriveShaper::state`
+
+```cpp
+[[nodiscard]] constexpr const DriveShaperState& state() const noexcept
+```
+
+What the last `shape()` call did — for a panel, and for a test that wants to see inside the pipeline. All-default before the first tick.
+
+*function, declared at [`include/shulib/teleop/driver_control.hpp:154`](../../include/shulib/teleop/driver_control.hpp#L154).*
+
+<a id="driveshaper-rezero"></a>
+
+### `DriveShaper::rezero`
+
+```cpp
+constexpr void rezero(double headingRadians) noexcept
+```
+
+"The way the robot is facing now is away from me" — the driver's field-centric button. Sets the zero and clears the fallback latch (field_centric.hpp::rezero) — except on a heading that is not a finite number, which keeps the old zero and SETS the latch instead. Harmless in a body-frame mode, where it simply pre-arms the zero for a later mode switch.
+
+*function, declared at [`include/shulib/teleop/driver_control.hpp:160`](../../include/shulib/teleop/driver_control.hpp#L160).*
+
+<a id="driveshaper-profile"></a>
+
+### `DriveShaper::profile`
+
+```cpp
+[[nodiscard]] constexpr const DriverProfile& profile() const noexcept
+```
+
+The profile in force. Returned by const reference; the shaper owns its copy.
+
+*function, declared at [`include/shulib/teleop/driver_control.hpp:165`](../../include/shulib/teleop/driver_control.hpp#L165).*
+
+<a id="driveshaper-setprofile"></a>
+
+### `DriveShaper::setProfile`
+
+```cpp
+constexpr void setProfile(const DriverProfile& profile) noexcept
+```
+
+Swap in another driver's tuning. The limiters are rebuilt at the new rate and RESET — carrying a limiter's history across a rate change would make the first tick after the switch obey neither rate. Field-centric's zero and latch survive, because the driver's notion of "away from me" is not a tuning parameter.
+
+*function, declared at [`include/shulib/teleop/driver_control.hpp:171`](../../include/shulib/teleop/driver_control.hpp#L171).*
+
+<a id="driveshaper-reset"></a>
+
+### `DriveShaper::reset`
+
+```cpp
+constexpr void reset() noexcept
+```
+
+Forget every tick that came before: limiters to zero, field-centric's zero and latch cleared, reported state blank. What a program calls when control changes hands or teleop restarts — never something a match does on its own.
+
+*function, declared at [`include/shulib/teleop/driver_control.hpp:182`](../../include/shulib/teleop/driver_control.hpp#L182).*
+
+<a id="driveshaper-fieldcentric"></a>
+
+### `DriveShaper::fieldCentric`
+
+```cpp
+[[nodiscard]] constexpr const FieldCentric& fieldCentric() const noexcept
+```
+
+Field-centric's own state, for a caller that wants the latch between ticks (the per-tick indication is in `state().fieldCentric`).
+
+*function, declared at [`include/shulib/teleop/driver_control.hpp:192`](../../include/shulib/teleop/driver_control.hpp#L192).*
+
+<a id="shapetochassisspeeds"></a>
+
+## `shapeToChassisSpeeds`
+
+```cpp
+[[nodiscard]] inline math::ChassisSpeeds shapeToChassisSpeeds(DriveShaper& shaper, const StickInput& in, double dtSeconds, double headingRadians, bool headingTrusted, units::Velocity maxLinear, units::AngularVelocity maxAngular)
+```
+
+The whole feel layer plus the speed budgets, in one call — the teleop loop's line. Shapes the sticks and scales the result into the body-frame `ChassisSpeeds` that `Chassis::drive(…, Frame::Body)` takes.  The frame is ALWAYS Body, including in field-centric mode: the rotation already happened inside `shape()`. `maxLinear` / `maxAngular` are the caller's MotionConfig budgets (HA-50, provisional), passed in rather than read here so nothing in this header needs a chassis.
+
+*free function, declared at [`include/shulib/teleop/driver_control.hpp:212`](../../include/shulib/teleop/driver_control.hpp#L212).*
+
+## Design commentary, from the header
+
+The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
+
+<details markdown="1">
+<summary>The header’s own reasoning — 49 lines, click to expand</summary>
+
+```text
+
+ DriveShaper — the whole feel layer in one object and one call per tick
+ (chunk T2). Sticks and a dt go in, a body-frame DriveRequest comes out.
+
+ THE ORDER IS THE CONTRACT: mode -> shaping -> slew -> rotation.
+
+   1. MODE (drive_modes.hpp)      raw sticks -> a DriveRequest, signs applied,
+                                  nothing shaped. A disconnected controller is
+                                  all zero here (HA-103).
+   2. SHAPING (input_shaping.hpp) per-axis continuous deadband, then expo.
+   3. SLEW (slew_limiter.hpp)     per-axis rate limit. OFF by default.
+   4. ROTATION (field_centric.hpp) field-centric's minus-heading rotation, or
+                                  its latched fallback. Only for ArcadeField.
+
+ Neither adjacent pair commutes, and both orderings were chosen rather than
+ stumbled into:
+
+   * SHAPING BEFORE SLEW. A slew limit is specified in units of the signal it
+     limits, per second. Put a curve AFTER the limiter and the rate the driver
+     asked for is no longer the rate the drivetrain sees — expo would scale it
+     by a factor that depends on where the stick is. Shaping first means
+     "1.5 per second" means 1.5 of the commanded request per second, always.
+   * ROTATION LAST. The slew limit belongs in the DRIVER's frame. Limit after
+     rotating and a robot spinning under a perfectly still stick generates a
+     rotating target that the limiter then fights, turning "hold the stick
+     still" into a drifting, heading-dependent command. Rotating last leaves
+     the limiter looking at exactly what the driver's hands are doing.
+
+ ONE CALL PER TICK, NO BUFFER, NO QUEUE, NO ALLOCATION. `shape()` computes
+ this tick's answer from this tick's inputs; the only state it carries between
+ ticks is the three limiters' last outputs and field-centric's zero and latch,
+ which is the state a rate limit and a latch ARE. That is what makes the
+ one-tick-latency property true by CONSTRUCTION rather than by measurement:
+ a stick step at tick k reaches the commanded motor volts at tick k, pinned
+ through the host plant in test/driver_control_test.cpp. PERCEIVED latency is
+ NOT claimed — real input-to-motion latency is PROS call cost plus loop rate,
+ and both are unmeasured.
+
+ NUMBERS IN, A REQUEST OUT. This object never reads a controller and never
+ reads a chassis. The caller builds a StickInput from its IController and
+ passes the heading and its trust verdict as a number and a bool. A host test
+ therefore drives the whole feel layer without either, and the two drivers VEX
+ U runs are two DriveShapers rather than an argument anywhere.
+
+ A DISCONNECTED CONTROLLER SHORT-CIRCUITS EVERYTHING, including the limiters,
+ which are reset to zero rather than ramped down. See shape().
+
+ EVERY DEFAULT IS INVENTED — PROVISIONAL (A4: HA-112). No driver has felt any
+ of this. PROS-free, allocation-free, no std::string, no std::function.
+```
+
+</details>

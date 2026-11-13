@@ -52,9 +52,10 @@ an intention in the present tense is how a roadmap starts lying:
   a *simulated* plant whose drift magnitudes are invented — with the worst instantaneous error
   touching 1.065°. The acceptance test for the real claim is one of the three deliberately skipped
   tests.
-- **It's provably correct.** The core runs off-robot in automated tests and inside our simulator, so
-  bugs are caught before they cost a match. **Status: real, and bounded by what a simulator can
-  prove.** It proves *logic*, not constants — and the library has never driven a robot.
+- **It's provably correct.** The core runs off-robot in automated tests and on our host test plant,
+  so bugs are caught before they cost a match. **Status: real, and bounded by what a host test plant
+  can prove.** It proves *logic*, not constants — and the library has never driven a robot under its own
+  control.
 
 shulib is one half of a two-tool ecosystem:
 
@@ -136,32 +137,505 @@ not silently break them. This table is the spine of the no-staleness promise.
 | F3 | **Units & `Angle` semantics** — internal inches + radians + **seconds**; degrees only at the API edge; one wrap type normalized to `(-π,π]`; `shortestError(a,b)==wrap(b-a)` with the exact-180° case → **+π** (not −π), pinned by a red-on-failure test | Every numeric API signature | M0 | ✅ **LOCKED 2026-06-19** |
 | F4 | **HAL interface signatures** — the 10 runtime HAL interfaces `IClock`/`IMotor`/`IRotation`/`IImu`/`IGps`/`IDistance`/`IOptical`/`IBattery`/`ITelemetrySink`/`IVision`+`ITagSource`. *(The config-ingestion seam `IRobotConfig`/`IRouteSource` — decision #10 — is authored at M5 with its `RobotConfig`/`Route` schema, F7/F8; not part of this runtime-HAL freeze.)* | All three runtime targets (robot/sim/test) | M1 | ✅ **LOCKED 2026-06-19** *(freeze-reviewed by a 30-agent full-set pass + exercised by `RobotContext`; the `hal/pros` adapters were built at R1a/R1b and were never toolchain-blocked — what is still open is on-V5 validation under a closed loop, which is R3's)* |
 | F5 | **`IKinematics` contract** — twist `(vx,vy,ω)` ⇄ wheels + desaturate + `strafeAuthority()` (a **pure read-only query** = max sustainable \|vy\|/\|vx\|; the motion layer clamps, kinematics never clamps inside `toWheels()` — §13 #5) | All motion code; new drivetrains | M1 | ✅ **LOCKED 2026-06-19** *(host-validated by X-drive + tank; on-V5 number-match pending)* |
-| F6 | **Public `Chassis` API** — the whole facade surface, by group: **construction** `Chassis(deps, pacer, config = {})` + non-copyable/non-movable; **blocking verbs** `moveTo` / `strafeTo` / `turnTo` / `followTrajectory` (span + brace overloads) / `brake` / `hold(Time)` / `wait(Time)` — the last three adopted at D2; **manual verb** `drive(ChassisSpeeds, Frame)`, `Frame` required; **control** `cancel()` / `waitUntil(pred, Time)`; **state** `pose` / `setPose` / `strafeAuthority` / `lastExitReason` / `lastCompleted` / `motionConfig`; **Tier-3 seam** `deps()` / `scheduler()` (both overloads); **three public types** `ChassisConfig` / `MotionOptions` (existing fields frozen; the field *set* additive-open by design) / `TrajectoryResult` (incl. `succeeded()`); **plus the documented semantics** the header carries (blocking + watchdog, pre-empt, cancel safe state, fault policy, wait-for-live, strafe-fallback visibility). Time is typed `units::Time` across the surface (the D2 retype; `hold(500)` does not compile). **Deliberately OUTSIDE F6:** `Routine` / `RoutineResult` / `RoutineStopCause` — they froze at D3 as their own row **F10** (a different tier, versioning independently); the `MotionScheduler` / `MotionDeps` member surfaces reached through `scheduler()`/`deps()` (C1/C2's layers — only the accessors freeze here); the lower-layer config fields reached through `ChassisConfig` (they belong to their layers). Enforced structurally: compile-time signature pin `test/f6_signature_pin_test.cpp` (36 pins, mutation-proven) + the version mechanism `include/shulib/version.hpp` (API 2.0, breaking-vs-additive policy written) | Every auton ever written on shulib | M2 | ✅ **LOCKED 2026-08-12** *(at D2, after D1's second consumer; the nine-item critique rulings + rejected alternatives are the D2 completion record's centrepiece)* |
+| F6 | **Public `Chassis` API** — the whole facade surface, by group: **construction** `Chassis(deps, pacer, config = {})` + non-copyable/non-movable; **blocking verbs** `moveTo` / `strafeTo` / `turnTo` / `followTrajectory` (span + brace overloads) / `brake` / `hold(Time)` / `wait(Time)` — the last three adopted at D2 — and `curveTo` / `reverseCurveTo` (span + brace overloads, four verbs), appended at CURVE1-A (below); **manual verb** `drive(ChassisSpeeds, Frame)`, `Frame` required; **control** `cancel()` / `waitUntil(pred, Time)`; **state** `pose` / `setPose` / `strafeAuthority` / `lastExitReason` / `lastCompleted` / `motionConfig`; **Tier-3 seam** `deps()` / `scheduler()` (both overloads); **three public types** `ChassisConfig` / `MotionOptions` (existing fields frozen; the field *set* additive-open by design — STEP1-A (2026-11-05) took that path: `positionTolerance` / `headingTolerance`, the per-call arrival tolerance, appended after the three and their types pinned) / `TrajectoryResult` (incl. `succeeded()`) — and, appended at CURVE1-A, a fourth, `CurvePoint` (= `motion::CurvePoint`, the curve verbs' parameter type: two constructors, four members, no default constructor). CURVE1-A (2026-11-11, API 2.7 — numbered at the merge) took the additive path for the verb set and that type, pinned the day they landed, no existing pin edited; **appended at STEP1-B (built 2026-11-11, API 2.8 — numbered at the merge), pinned the day they landed:** the leg OBSERVER — `moveTo(pose, options, LegObserver)` / `turnTo(heading, options, LegObserver)` and `LegObserver`'s two members (`fn`, `context`) — the members pinned, the member SET additive-open, as `MotionOptions`' is; `motion::LegProgress`, what the observer receives, stays open to new fields (no pin covers its list); **plus the documented semantics** the header carries (blocking + watchdog, pre-empt, cancel safe state, fault policy, wait-for-live, strafe-fallback visibility — TANK1, 2026-09-27: the tank sentence of the strafe-fallback semantics rewritten, API 2.3). Time is typed `units::Time` across the surface (the D2 retype; `hold(500)` does not compile). **Deliberately OUTSIDE F6:** `Routine` / `RoutineResult` / `RoutineStopCause` — they froze at D3 as their own row **F10** (a different tier, versioning independently); the `MotionScheduler` / `MotionDeps` member surfaces reached through `scheduler()`/`deps()` (C1/C2's layers — only the accessors freeze here); the lower-layer config fields reached through `ChassisConfig` (they belong to their layers). Enforced structurally: compile-time signature pin `test/f6_signature_pin_test.cpp` (67 pins as of STEP1-B — 51 `SHULIB_F6_PIN` + 16 `SHULIB_F6_NOT_NOEXCEPT`, as `tools/briefing_status.py` counts them; 61 at CURVE1-A; 50 at STEP1-A; 48 before it; this row said 36 until STEP1-A, the `SHULIB_F6_PIN` count alone; mutation-proven) + the version mechanism `include/shulib/version.hpp` (API 2.0, breaking-vs-additive policy written) | Every auton ever written on shulib | M2 | ✅ **LOCKED 2026-08-12** *(at D2, after D1's second consumer; the nine-item critique rulings + rejected alternatives are the D2 completion record's centrepiece)* |
 | F7 | **`robotProfile` sub-schema** inside `.vexbot` — drivetrain/odometry/sensors/mechanisms/corrections | Config codegen; every robot file | M5 | 🎯 *(coordinate with VexBuilder)* |
-| F8 | **`paths[]` sub-schema + command-id vocabulary** inside `.vexbot` | Every data-driven routine | M5 | 🎯 *(coordinate with VexBuilder)* |
+| F8 | **`paths[]` sub-schema + command-id vocabulary** — BOTH halves of the routine contract, the in-memory one and the on-disk one. **FROZEN:** the data types `config::Route` (`name[32]`, `waypoints[32]`, `count`) / `Waypoint` (`x`, `y`, `heading`, `headingMode`, `motion`, `reverse`, `constraints`, `markers[4]`, `markerCount`) / `Marker` (`id[24]`, `args[2]`, `argCount`) / `Constraints` (`maxLinear`, `maxAngular`, `timeout`); the **enumerator VALUES** of `WaypointMotion` (`Start`=1 … `Hold`=6) and `HeadingMode` (`Fixed`=1, `Free`=2) — a generator persists them as integer literals, so a renumbering is invisible at every call site and catastrophic in a file exported last season; the capacities `kMaxWaypoints`=32 / `kMaxMarkersPerWaypoint`=4 / `kMaxMarkerArgs`=2 / `kMaxMarkerIdBytes`=24; the **id vocabulary rule** (1–23 bytes of `[a-z0-9_]`, so no id ever needs escaping on any of the four paths it travels — a C++ literal, a manifest line, a `.vexbot` field, a picker button); the **four library-owned built-in ids and their arities** `wait_ms(1)` / `brake(0)` / `hold_ms(1)` / `log(0..2)` **in that order** (the manifest's order is part of its bytes); `runner::CommandRegistry`'s public members (`on` ×2, `find`, `count`, `ids` — and a third `on(id, handler, argCount, doc)` APPENDED at MECH-A4, 2026-10-29, API 2.5, pinned), `runner::Handler`/`CommandEntry` (`CommandEntry::doc` APPENDED at MECH-A4, pinned; the manifest prints a registered id's doc, and a registry without docs writes the same bytes — the golden unchanged), `PathRunner::run(const Route&) -> RunReport` and `RunReport`'s seven fields; `writeManifest`'s signature, field names and record order; and the **file** schema's field names and value vocabularies in [`vexbuilder-integration.md`](vexbuilder-integration.md) §4.1–4.3. **ADDITIVE under `kApiMinor`:** new enumerators AT THE END, new built-in ids AT THE END, new `RunReport` fields, new registry members, new optional file fields, new manifest fields — and **relaxing** a `Route::valid()` rule (tightening one is breaking; G2 relaxed exactly one, R6 below). **Deliberately NOT frozen, said out loud because silence in this register reads as frozen:** the WORDING of the runner's log lines and of `valid()`'s refusal messages (the BEHAVIOUR is frozen — one Warn per unknown id naming the id and the waypoint index, one Warn on a stop, one Info per `log` marker — the sentences are not); and `motion: "arc"`, which is a **named gap** rather than an omission (no facade verb performed an arc when F8 locked, and F8 must not freeze something the library cannot do — it arrives additively; since CURVE1-A, 2026-11-11, `curveTo` performs one, and `"arc"` itself is CURVE1-B's, after the 21st). **The one behavioural change G2 made to G1's data rules (R6):** a `MoveToPose` with `HeadingMode::Free` is now LEGAL and means *keep the heading the estimate has when the leg starts*; `TurnTo` keeps refusing `Free`. Enforced structurally: compile-time signature pin `test/f8_signature_pin_test.cpp` (mutation-proven — `run()` gaining `noexcept`, `count()` changing return type, a widened id charset and a reordered built-in each fail the build NAMING F8) + the byte-exact manifest golden in `test/manifest_test.cpp` + `include/shulib/version.hpp` (API **2.2** at the lock, carrying the G2 additive note) | Every data-driven routine | M5 | ✅ **LOCKED 2026-09-18** *(at G2, whose acceptance test is differential rather than tolerance-based: the same five legs written once as DATA and once as a `Routine` chain drive two identically-seeded host plants **bit-identically** — per-tick ground truth by `memcmp`, every commanded volt an exact double. **Host plant only: no route has ever executed on a robot.**)* |
 | F9 | **`SHUL/2` telemetry wire protocol** (v1) — the wire serialization of `DebugRecord` (§18) | Sim, record/replay, tuner, VexBuilder overlay; **every sink (`TermSink`/`SdSink`/`Shul2Sink`) shares the `DebugRecord` schema** | M6 | 🎯 |
-| F10 | **Public `Routine` API (the Tier-2 recipe layer)** — construction `Routine(chassis, name = "routine")` `noexcept` + non-copyable/non-movable; **eleven steps**, each returning `Routine&`: `startAt` / `moveTo` / `driveTo` / `strafeTo` / `turnTo` / `face` / `followTrajectory` (span + brace overloads) / `brake` / `hold(Time)` / `pause(Time)` / `waitFor(pred, Time, name)`; **four observers** `ok()` / `result()` / `lastTrajectory()` / `chassis()`, all `noexcept`; **two public types** `RoutineResult` (all eight fields) and `RoutineStopCause` (**append-only** — the existing enumerator *values* are pinned, because a re-meaning is invisible at every call site); **plus the documented semantics**: eager execution (a step runs when it is chained), the stop/safe/skip/report error policy, preconditions throwing through with the chain's counters untouched, `lastTrajectory()` reading `exit = Running` until a trajectory has run, and typed time as a SEMANTIC (`hold(0.3)` must not compile). **Deliberately OUTSIDE F10:** `then()` — the mechanism seam, whose accepted return types and `name` default are a placeholder chosen before mechanisms existed (F1/F3 build them), so freezing it would commit to a guess; and the exact WORDING of the stop/skip log lines (the behaviour is frozen, the sentence is not). A **separate row from F6**, not an amendment: the recipe layer is a strict client of the facade, a different tier that can version independently, and amending F6 would retroactively blur what F6 promised on its own lock date. Enforced structurally: compile-time signature pin `test/routine_signature_pin_test.cpp` (37 pins, 16-mutation-proven, every `noexcept` pin using the compound-requirement detector that D2's hole #1 taught) + `include/shulib/version.hpp` | Every Tier-2 auton ever written on shulib | M7 | ✅ **LOCKED 2026-08-12** *(at D3, after the cookbook — its second consumer — wrote fourteen recipes against it and needed zero changes to the surface; the critique and its rulings are the D3 completion record's centrepiece)* |
+| F10 | **Public `Routine` API (the Tier-2 recipe layer)** — construction `Routine(chassis, name = "routine")` `noexcept` + non-copyable/non-movable; **fifteen steps**, each returning `Routine&`: `startAt` / `moveTo` / `driveTo` / `strafeTo` / `turnTo` / `face` / `followTrajectory` (span + brace overloads) / `brake` / `hold(Time)` / `pause(Time)` / `waitFor(pred, Time, name)` — the eleven locked here — and `reverseTo` / `faceAway`, **appended at L9 (2026-09-29, API 2.4)** by the additive path this row allows, pinned the day they landed with no existing pin edited; **appended at MECH-A4 (2026-10-22, API 2.5)** by the same path: `RoutineStopCause::MechanismStepFailed` (`== 5`, pinned) and the `RoutineResult::mechanismVerdict` field (its type pinned); **appended at STEP1-A (2026-11-05) and pinned the day it landed (the team lead's D1, 2026-11-03 — the route maker generates code against it):** the on-failure choice — `onFail(OnFail)` / `label(const char*)`, `OnFail`'s three spellings `stopChain` / `carryOn` / `skipTo(const char*)`, `RoutineStopCause::MechanismNotStarted` (`== 6`) and six `RoutineResult` fields (`failedOn`, `firstFailedAt`, `firstFailedName`, `firstFailedCause`, `jumped`, `skipPendingTo`), with the deadline-always-stops rule as documented semantics (STEP1-B's partway-trigger arms `atPercent` / `afterDistance` / `afterTurning` and the two handles they return, added at STEP1-B (built 2026-11-11, API 2.8), stay OPEN like the mechanism START forms they lead to — not pinned); **appended at CURVE1-A (2026-11-11, API 2.7 — numbered at the merge) and pinned the day they landed:** the curve steps `curveTo` / `reverseCurveTo` (two steps, span + brace list — four overloads), in one block, each one Chassis call; **four observers** `ok()` / `result()` / `lastTrajectory()` / `chassis()`, all `noexcept`; **two public types** `RoutineResult` (all fifteen fields — nine through MECH-A4, whose `mechanismVerdict` was appended there with its type pinned, and six appended at STEP1-A, each with its type pinned) and `RoutineStopCause` (**append-only** — the existing enumerator *values* are pinned, because a re-meaning is invisible at every call site); **plus the documented semantics**: eager execution (a step runs when it is chained), the stop/safe/skip/report error policy, preconditions throwing through with the chain's counters untouched, `lastTrajectory()` reading `exit = Running` until a trajectory has run, and typed time as a SEMANTIC (`hold(0.3)` must not compile). **Deliberately OUTSIDE F10:** `then()` — the mechanism seam, whose accepted return types and `name` default are a placeholder chosen before mechanisms existed (F1/F3 build them), so freezing it would commit to a guess; and the exact WORDING of the stop/skip log lines (the behaviour is frozen, the sentence is not). **OPEN — the team lead ruled 2026-10-29: leave it open for now (pinning later is additive) (MECH-A4, 2026-10-29):** whether the mechanism STEPS (`move` / `run` / `set` / `spinUp` / `home` / `stop` / `waitUntilDone` and the START forms), the context constructor `Routine(ctx, name)` and `lastMechanism()` join this freeze. They are NOT pinned meanwhile. *Proposed:* not yet — every one takes the mechanism seam's types (F11, not frozen; its trigger as this register states it: "F3's scoring primitives, on hardware"), as `then()` does, and `then()` is outside F10 for exactly that reason. *The alternative:* L9's additive path, pinned the day they landed. Pinning them later is additive; un-freezing them would not be. A **separate row from F6**, not an amendment: the recipe layer is a strict client of the facade, a different tier that can version independently, and amending F6 would retroactively blur what F6 promised on its own lock date. Enforced structurally: compile-time signature pin `test/routine_signature_pin_test.cpp` (79 pins as of CURVE1-A — 61 `SHULIB_F10_PIN` + 18 `SHULIB_F10_NOT_NOEXCEPT`, as `tools/briefing_status.py` counts them; 70 at STEP1-A; 59 at MECH-A4; 57 at L9; this row said 37 from the lock until 2026-09-29, stale since F1 added pins; 16-mutation-proven at D3; each of L9's seven — two member-type pins, two `noexcept` pins, the defaulted spellings and two non-const pins — seen failing the build under its own mutation when they landed; every `noexcept` pin using the compound-requirement detector that D2's hole #1 taught) + `include/shulib/version.hpp` | Every Tier-2 auton ever written on shulib | M7 | ✅ **LOCKED 2026-08-12** *(at D3, after the cookbook — its second consumer — wrote fourteen recipes against it and needed zero changes to the surface; the critique and its rulings are the D3 completion record's centrepiece)* |
 | F11 | **Mechanism seam + operation contract** — `hal::IMechanism` / `MotorMechanism` / `PneumaticMechanism` / `IDigitalOut` (the device level, an F4 **sibling explicitly outside that freeze** — F4's locked row is untouched) and `manipulation::IMechanismOp` / `MechanismOutcome` / the two generic operations (the bounded-operation level). **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at F1 (2026-08-13) deliberately BEFORE any concrete mechanism exists, so sequencing shapes the seam rather than hardware; it freezes only after its second real consumer — **F3's scoring primitives, on hardware** — has stressed it, the same build → second consumer → freeze path F6 and F10 took. Additive-growth notes ride the headers; `then()`'s mechanism branch stays unfrozen with it. *(**AMENDED at DOCS2, 2026-08-14 — this seam IS now in the api-doc coverage set.** The original ruling, made at F1 and cited by F12/F13/F14 as precedent, was that gating an unfrozen seam would pin it. Re-examined when the reference was expanded to the whole tree, that conflates two different mechanisms: changing a FROZEN signature fails a compile-time pin naming the register row and costs a major version bump plus a migration note, whereas a gated-but-unfrozen member costs one `///` edit and a regeneration. That is friction, not a freeze — and it is friction this project already imposes on itself, since documentation is a deliverable here. **Nothing about this seam's shape is frozen by being documented**, and the freeze trigger below is unchanged.)* | chunk F2's end-of-run guard (the claimant hook + cancel-all reach operations through this seam); F3's primitives; G1's `RobotBuilder`; H2's `hal/sim`; R1's adapters | — (candidate: F3) | 🚧 **open by design** |
-| F12 | **Sequence engine (`sequence/run_guard.hpp`)** — `RunGuard` (the run-scoped deadline owner + guaranteed end-of-run action), `RunGuardConfig`/`RunGuardReport`/`GuardedWaitResult`. **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at chunk F2 (2026-08-13) with **one consumer** — F4's student-authored routines are hardware-gated (Phase F′) and D1 ruled G2 does not consume the recipe chain — and nothing freezes on one consumer's evidence. Both instants are caller-supplied with no defaults; the library holds no field coordinate, no park pose, no match length. *(**AMENDED at DOCS2, 2026-08-14 — `sequence/run_guard.hpp` IS now generated and gated.** This row's original parenthetical rested entirely on "the F11 precedent"; see F11 for why that precedent was overturned. Being documented freezes nothing: the freeze trigger below is unchanged, and `RunGuard`'s shape can still move for one `///` edit and a regeneration.)* | F4's routines (the second consumer and the freeze trigger) | — (candidate: F4) | 🚧 **open by design** |
+| F12 | **Sequence engine (`sequence/run_guard.hpp`)** — `RunGuard` (the run-scoped deadline owner + guaranteed end-of-run action), `RunGuardConfig`/`RunGuardReport`/`GuardedWaitResult`. **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at chunk F2 (2026-08-13) with **one consumer** — F4's student-authored routines are hardware-gated (Phase F′) and D1 ruled G2 does not consume the recipe chain — and nothing freezes on one consumer's evidence. Both instants are caller-supplied with no defaults; the library holds no field coordinate, no park pose, no match length. *(**AMENDED at DOCS2, 2026-08-14 — `sequence/run_guard.hpp` IS now generated and gated.** This row's original parenthetical rested entirely on "the F11 precedent"; see F11 for why that precedent was overturned. Being documented freezes nothing: the freeze trigger below is unchanged, and `RunGuard`'s shape can still move for one `///` edit and a regeneration.)* | F4's routines (the second consumer and the freeze trigger); **COMP-a's `competition::runAuton` (2026-09-26) — a second consumer on the host**, which added `requestAbandon()` / `RunGuardReport::abandoned` additively (and COMP-t's auton tester, 2026-09-28, added `pacesTotal()` the same way — its boot's proof that the guard is the chassis's pacer; its review, 2026-09-29, made the safing sweep attempt every mechanism when one throws, and the unwind never throw twice; MECH-A2, 2026-10-15, made the latch also cancel every CLAIMED mechanism at the deadline and at an abandon — a BEHAVIOUR change, no signature change — and appended `RunGuardReport::mechanismCuts`) *(the evidence for the team lead's freeze call, stated rather than acted on: two consumers, both host-only; neither has run on a robot, and the competition program that will exercise it on one is COMP-b — nothing is frozen here)* | — (candidate: F4) | 🚧 **open by design** |
 | F13 | **Driver-input seam (`hal/controller.hpp`)** — `IController` (axes normalized [-1,1], button LEVELS, positive `isConnected()`, master/partner by construction), `ControllerAxis`/`ControllerButton`, `ButtonEdge` (per-consumer edge detection — PROS's consuming `get_digital_new_press()` is banned by contract, HA-104), `hal::fake::FakeController`, and the `hal/pros` adapter tree it rode in with (`ProsController` + the other R1a adapters — adapters are implementations, not contracts, and no adapter surface freezes here either). **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at R1a (2026-08-13) absorbing Phase T's T1, an F4-additive sibling exactly as F1's `IDigitalOut` was — F4's locked row is untouched. Freeze trigger: a second real consumer — **T2's driver-control layer** is the first; T2/T3 stress it, then it freezes on the F6/F10 path. *(**AMENDED at DOCS2, 2026-08-14 — `hal/controller.hpp` and the `hal/pros` adapters ARE now generated and gated.** This row's original parenthetical rested entirely on "the F11/F12 precedent"; see F11 for why that precedent was overturned. Adapters in particular lose nothing: they were already declared implementations rather than contracts, and documenting an implementation does not promote it to one.)* | T2's teleop layer (first consumer: `src/main.cpp`'s R1a drive loop); T3's mechanism bindings | — (candidate: T3) | 🚧 **open by design** |
 | F14 | **Digital-input seam (`hal/digital_in.hpp`)** — `IDigitalIn` (one member: the raw level of a digital input line; no debounce, no edge state, no validity channel — each a documented ruling in the header), `hal::fake::FakeDigitalIn`, and the `hal/pros` `ProsDigitalIn` adapter (an implementation, not a contract — nothing about it freezes). **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at R1b (2026-08-14) as an F4-additive sibling exactly as `IDigitalOut` (F11) and `IController` (F13) were — F4's locked row is untouched. **And stated more loudly than its siblings: this seam was built on an OPEN QUESTION, not a consumer** — the lift-homing switch-or-stall decision (asked 2026-08-13) is still unanswered; the seam exists on the "cheap now, expensive to discover at R3" ruling, and if the answer comes back "stall" it is a small unused sibling, a cost accepted in writing when it was ruled in. Freeze trigger: a real consumer — F3's homing routine, if the answer is "switch" — then a second, on the F6/F10 path. *(**AMENDED at DOCS2, 2026-08-14 — `hal/digital_in.hpp` IS now generated and gated.** This row's original parenthetical rested entirely on "the F11/F12/F13 precedent"; see F11 for why that precedent was overturned. Worth noting for this row specifically: the seam's three deliberate absences — no debounce, no edge state, no validity channel — were already rulings written into the header, and generating a page from that header publishes those rulings rather than hiding them.)* | F3's homing (conditional on the open decision); any bumper/limit-switch consumer | — (candidate: post-F3) | 🚧 **open by design** |
+| F15 | **The camera's frame seam (`hal/vision_frames.hpp`) and the camera's library code** — `hal::IVisionFrames` (`read()` a FRAME at a time, `status()` touching nothing), `VisionFrame` / `Detection` / `FrameStatus` / `ModelCheck` / `CameraStatus`, `AiVisionSettings` / `ColourDescriptor` and their refusals; `config::CameraConfig` / `CameraPlacement` (`config/camera_config.hpp`); and `vision/*` (`camera_geometry.hpp`, `override_elements.hpp`, and since VIS1-A2 `toggle_tracker.hpp`, `piece_finder.hpp` and `camera_feed.hpp`) — plus the `hal/pros` `ProsAiVision` adapter, an implementation and not a contract. **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at VIS1-A1 (2026-10-18–22) as an F4-additive SIBLING exactly as `IDigitalOut` (F11), `IController` (F13) and `IDigitalIn` (F14) were — F4's locked `IVision` is untouched, byte for byte, and stays `AbsentVision` in the Robot (VIS1's D11): it has no type, no box and no time, and no consumer. **Built with no consumer at all** — the Toggle tracker, the piece finder and the camera feed (VIS1-A2, host-tested only) are its first; AF1-S's skills Toggle step (`competition/toggle_visit.hpp`, AF1S-A1, landed 2026-11-13; it reads `override_elements.hpp`'s new Quadrant table and ACTS on the tracker) the first to move a mechanism on the camera's word; AF1 (the driver-control auto-flip) and L4 (drive to a piece) the ones that will stress it; and no AI Vision sensor has been read through it. Freeze trigger: those consumers on hardware, on the F6/F10 path. Generated and gated like every header (F11's DOCS2 amendment): being documented freezes nothing. | VIS1-A2's tracker, finder and feed; AF1-S's `competition/toggle_visit.hpp`; AF1; L4; VIS1-B's bench page | — (candidate: after AF1 / L4 on hardware) | 🚧 **open by design** |
 
 ---
 
 ## Milestones at a glance
 
-> **You are here:** **M1 complete; M2 control + localization complete; Phase A COMPLETE
-> (2026-08-06); Phase C COMPLETE (2026-08-10) — C1–C7 all closed. M2's STRUCTURAL clause closed
+> **You are here:** **M1 host-side complete (F4 + F5 locked; M1's on-V5 DoD is open, owned by R3b);
+> M2 control + localization complete; Phase A COMPLETE (2026-08-06); Phase C COMPLETE (2026-08-11)
+> — C1–C8 all closed. *(Corrected 2026-09-24: this line said "M1 complete" while M1's badge is
+> 🎯 and its DoD needs identical numbers on the V5, and "C1–C7 … 2026-08-10" though C8 closed the
+> phase a day later.)* M2's STRUCTURAL clause closed
 > at C7: the pre-rebuild tree is deleted, `make` produces an uploadable V5 package again, and
-> `src/main.cpp` wires the v2 stack alone. M2's ON-ROBOT clause is OPEN, owned by R3 — the
+> `src/main.cpp` wires the v2 stack alone. M2's ON-ROBOT clause is OPEN, owned by R3b — the
 > library has NEVER DRIVEN a physical robot. The drivetrain-and-driver hal/pros adapters
 > landed at R1a (2026-08-13, host-tested against a shim of PROS — see the R1a entry below),
 > and the mechanism-sensor adapters at R1b (2026-08-14 — see the R1b entry below). All of
 > Phase E, F1, F2, R1a and R1b are committed on `shulib-v2`. **DOCS1** (the full documentation
 > pass) and **DOCS2** (the generated reference over the whole public API — 1,625 public entities
-> across 115 headers, all gated) are both done; what remains before R3 is **the release to
-> `main`**, and the only question riding with it is whether to push at all. First motion is
-> still R3's.**
+> across 115 headers at the time; 2,307 across 145 at 2026-09-24, all gated) are both done. **THE RELEASE HAPPENED on 2026-08-15** —
+> `origin/main` is `c778c11`, docs.shurobotics.com publishes everything through DEFECTS1, and
+> the procedure is now `RELEASING.md` + `tools/release.py` rather than folklore. *(This sentence
+> read "what remains before R3 is the release to `main`, and the only question riding with it is
+> whether to push at all" for two days after the push — the status pointer is the one line in
+> this file that must never be stale, and it was.)* First motion is still open.
+>
+> **GATE1 — the `src/` build gate — landed 2026-08-19** (committed `7d3e7ce`; completion record in
+> the development log, `shulib-v2` branch): CI now runs the REAL `make` for every robot variant,
+> compile AND link, through `tools/src_build_gate.py` (`self-test`, then `check`), so `src/main.cpp`
+> is no longer the one file no gate could see. Two records were corrected by measurement — the
+> on-robot link is NOT blocked (`make` links at `arm-none-eabi-g++ 13.2.1`), and `make ROBOT=xdrive`
+> replaces a documented flag that silently built the wrong robot. *Its close-out — this paragraph
+> and the record — was written 2026-09-10, three weeks late: the gap this pointer exists to prevent.
+> Proven on a GitHub runner on 2026-09-10: the first push since 2026-08-17 (39 commits) ran both CI
+> jobs green at `89b00f2`, the build gate included, for all three robot variants.*
+>
+> **A SECOND ROBOT exists (2026-09-10): the season's tank chassis** — five coupled motors per side
+> driving four wheels per side, no sensors mounted yet, cartridges read blue off a motor, 2.75 in
+> wheels. **R3b session 2** (briefed and committed `d92a9fe`) builds pieces 1 and 2 for it in a
+> teleop-first order, with a bench-tester DRIVE station first so the build team can drive it under
+> the library's *adapters* (not its motion stack — the library has still never driven a robot), and
+> pulls a new chunk **R3d** (drivetrain self-calibration + persistence + boot verification) forward
+> from E5. **Session 2's Part 0 LANDED 2026-09-10:** the bench tester carries a per-variant
+> chassis table (robot two's ports stayed UNSET until the build team reported them later the same
+> day — nothing was guessed; now LEFT 11–15 / RIGHT 20–16 back-to-front, front = the 15/16 end,
+> cartridge blue read off a motor, IMU still none; the census confirms the ports), MOTOR WATCH watches every motor
+> the census finds and captures each port's sign from a whole-robot push, and a new station 10
+> DRIVE powers the drive motors through the library's `ProsMotor`/`ProsController` adapters behind
+> six safety gates (refuse-unless-captured, wheels-up first with a ground mode unlocked only by a
+> clean wheels-up run, a held dead-man button, a 3 V ceiling stepped by button, a coupled-motor
+> fighting cut-out, and 0 V on every exit path). The stick → `ChassisSpeeds` mapping moved out of
+> `src/main.cpp` into the PROS-free `shulib/teleop/stick_mapping.hpp` (chunk T2's seam), pinned
+> bit-for-bit against the old loop's code; `make ROBOT=tank` is the third validated variant and the
+> `src/` build gate asserts all three by define AND by a beacon string in the linked package.
+> **First hardware session on robot two, later on 2026-09-10:** the tester uploaded and ran on its
+> brain (VEXos 1.1.5, PROS 4.2.2); the census found nine of the ten table motors (port 19 silent —
+> a cable to re-seat, so the table stays "not measured"); `ProsBattery` and `ProsController` made
+> their first hardware reads; the touch menu was proven working by a touch readout after "the
+> screen does not work" turned out to be a pretend match imposed when the program was launched
+> from the controller's own menu (the tester lives in driver control, and VEXos was reporting a
+> field). **Same evening, second session:** all ten motors answered the census after three cables
+> were re-seated, an IMU appeared on port 2 (now in the table, `measured` true), the controller
+> read CONNECTED, two hand pushes captured every motor's sign (port 18 ~20 % short both times),
+> and station 10 DRIVE ran on hardware with **ten `ProsMotor`s constructed, gearset written and
+> read back, all six gates passed** — but the commanded volts stayed at zero with the dead-man
+> held, so **no motor has yet been powered and nothing has turned**; whether the left stick was
+> deflected or the axis read is wrong on hardware is the first check of the next session. **The
+> library's motion stack has still never driven a robot.** Pieces 1 and 2 (the motor group; the
+> odometry seam) are next and unstarted; M1's badge has not moved.
+>
+> **R3b Part 0b — the DRIVE PROGRAM (written, verified and committed 2026-09-10 late; both
+> programs were uploaded to robot two's brain the same day; and on 2026-09-17 the team lead
+> reported that "shulib Drive did run and work well" — the first time this project's code has
+> moved a robot, through the adapters, which confirms the table's ports, signs and cartridge by
+> outcome; no log was captured, so cuts and currents are unrecorded):**
+> robot two is
+> driven **through the library's adapters** by a
+> program that just drives — `make ROBOT=tank PROGRAM=drive`, "shulib Drive" in its own slot (the
+> team lead's ruling: a program picked by name from the brain's slot list, not a chooser inside
+> Bench Tests). The measured signs (`LEFT −11 +12 −13 +14 −15 | RIGHT +20 −19 +18 −17 +16`) and the
+> IMU on port 2 live in ONE chassis table (`src/robots/chassis_table.hpp`) shared by the tester and the
+> drive program; MOTOR WATCH cross-checks a push against them per port. The program tolerates dead
+> ports under a pure, host-tested policy (`shulib/teleop/drivetrain_degradation.hpp`: drive degraded
+> unless a side has fewer than three answering motors or more than two are dead in total), detects a
+> port dying at runtime, and turns the tester's fighting-motor and over-current cut-outs into
+> one-second non-fatal cuts through a pure, host-tested evaluator
+> (`shulib/teleop/coupled_side_monitor.hpp`) — every mutation the brief lists observed red. The
+> build gate then proved four builds. **The motion stack had still not driven a robot** — the
+> drive program is adapters and open-loop volts, and says so at boot.
+>
+> **R3b Parts 1–3 — THE LIBRARY BUILDS FOR ROBOT TWO (written and verified 2026-09-14; NOT run):**
+> `hal::MotorGroup` (Part 1), the `IOdometry` seam with `DriveEncoderOdometry` and the one
+> `hal::DriveGeometry` (Part 2), and a third program (Part 3): `make ROBOT=tank PROGRAM=library`
+> → **"shulib Teleop"**, slot 2 — robot two's whole object graph (ten `ProsMotor`s from the
+> table's signed ports behind two groups, `ProsImu`, explicit absent GPS/tags/vision,
+> drive-encoder odometry, fusion, `Localizer`, `RobotContext`, `MotionDeps`, `Chassis`) built from
+> `src/robots/chassis_table.hpp`, driven by the R1a teleop loop through `Chassis::drive(speeds,
+> Frame::Body)` — the one loop function both graphs now share. The build gate proved five builds
+> (six since R3d Part 2 added "shulib Calibrate"). *(Since R3d Part 2 this graph is built from a
+> `hal::DrivetrainDescription` — the SD card's calibration record first, the typed table second —
+> rather than straight from the table; the paragraph above records Parts 1–3 as they landed.)*
+> **It has NOT run.** It cannot yet: the table's geometry is UNSET (track width, motor→wheel
+> ratio — never guessed; the team lead measures, the coordinator types), and the program REFUSES
+> at boot with the missing fields on screen until then. The first run is wheels-up, then the
+> ground, with the coordinator and the team lead; M1's badge does not move here. *(True as
+> written on 2026-09-14. Since then it HAS run: the R3d Part 2 version, booting from the
+> calibration record rather than the table, drove robot two on 2026-09-25 — eight starts,
+> open-loop under driver control through the library's own graph; no library-commanded motion has
+> run (R3b open). G1 Part 2b rebuilt it on `robot::Robot`, and that version has not run.)* With
+> drive-encoder odometry the stall cross-check has no independent source and is configured not
+> to lie about it. **Plan ruling the same day (team lead): BOTH of this season's competition
+> robots are TANK drives for the fall semester; the X-drive is built in spring 2027 and the
+> holonomic validation (R3c) moves there** — the holonomic code stays as built and sim-proven.
+>
+> **R3d BRIEFED 2026-09-17, with robot two apart and R3b still open on its bench run.** The team
+> lead's direction: complete the library with whatever needs no robot. R3d Part 1 — the drivetrain
+> description (one representation, two sources: the calibrator and the typed table) and the
+> self-calibrator proven against the host plant — is briefed and waits for the go; Part 2
+> (persistence with a checksum, the SD read seam, the registry seam, boot verification, the
+> programs) and Part 3 (the bench session, where R3b also closes) follow. R3d's gate — the motor
+> group and the odometry seam — is in the tree; starting it before R3b's bench run is a scheduling
+> decision, not a dependency change. The two typed numbers the table waits for (track width, the
+> motor→wheel ratio) are no longer waited on: the robot measures them at Part 3, and the typed
+> table stays as the fallback. **T2's library half LANDED 2026-09-18** (driver feel: continuous deadband, expo, slew off by default, the three drive modes, field-centric with a latched fallback — host-proven in an isolated worktree in parallel with R3d; the teleop loop and the drive programs are NOT yet re-pointed at it, so every package built today keeps yesterday's feel). **R3d Part 1 LANDED 2026-09-18 — host-only:** `hal::DrivetrainDescription`
+> (the one representation, with the typed table now a second source through `tableToDescription()`),
+> `hal::DriveGeometry::fromInchesPerRadian` for a scale a robot measured rather than a person typed,
+> and `calibration::DrivetrainCalibrator` — a tick-driven, non-blocking, allocation-free state
+> machine that finds the drive ports and their polarity from a powerless hand push, names each
+> port's side from the IMU's yaw sign under a single-member pulse, takes each side's inches per
+> radian from one push along a tape (the MEDIAN, the same statistic the motor group will report
+> with), and measures the effective track width from a spin each way. It is proven against the A2
+> plant to 1e-9 on the scale and 1e-6 on the width, reproduces itself across four hostile seeds, and
+> refuses — naming the port — on a contradiction, a fight, a wheels-up run, a curved push, a missed
+> tick or any timeout, always into 0 V and coast. **It has never moved a physical drivetrain.**
+>
+> **R3d Part 2 LANDED 2026-09-18 — still host-only, and now there is a PROGRAM to run it in.** The
+> calibrator's answer has somewhere to go and something that reads it back: a fixed-width, CRC-32'd
+> record on the SD card (`calibration/calibration_record.hpp`, 180 bytes, refused by name on magic,
+> version, length, CRC or a self-contradictory description, pinned by a byte-exact golden whose
+> bytes came from a second implementation of the layout); the read half of the block seam
+> (`hal/block_source.hpp` + the `/usd/` adapter); a port census seam over PROS's zero-indexed
+> registry (`hal/device_registry.hpp`, the one `port − 1` in the tree, tested from both ends); a
+> boot check that compares a record against the ports **before any adapter is constructed** and
+> refuses a rewired robot while tolerating a dead one (`calibration/boot_check.hpp`, over the same
+> dead-port policy "shulib Drive" uses); an ABSENT member in `hal::MotorGroup` (a `nullptr` slot,
+> skipped and excluded from every read, with all-present groups bit-identical); **a fourth program,
+> `make ROBOT=tank PROGRAM=calibrate` → "shulib Calibrate" (slot 4)**, in which the robot measures
+> its own drivetrain and writes the answer to the card; and **"shulib Teleop" rebuilt on the
+> description** — the card's record first, the typed table second with a warning on the panel, a
+> refusal naming both when neither can describe a drivetrain. The build gate proves **six builds**.
+> **NEITHER PROGRAM HAS RUN ON HARDWARE**, the register's three new entries (HA-138/139/140) are all
+> unsettled, and Part 3 is the bench session — **not yet held: robot two's brain has not enumerated
+> on this laptop's USB since 2026-09-18.** R3b is still open on its bench run; **the library's
+> motion stack has still never driven a robot.**
+>
+> **G1 Part 1 LANDED 2026-09-18 — host-only: a robot can now be described as DATA and built from
+> it.** `config/robot_config.hpp` (`RobotConfig`, embedding R3d's `hal::DrivetrainDescription` by
+> value for a tank rather than mirroring it, plus the two holonomic kinds, the odometry choice, the
+> GPS, mechanism types and the tuning), `config/route.hpp` (`Route`/`Waypoint`/`Marker` — ids and
+> typed args, never code), the `hal::IDeviceProvider` seam with a host `FakeDeviceProvider`, and
+> `robot::Robot`, which owns the whole PROS-free graph and borrows its devices by port. The
+> acceptance test is bit-identity: a tank config and an X-drive config each drive the A2 plant with
+> per-tick ground truth `memcmp`-equal to the hand-wired graph, clean and hostile. **The PROS
+> provider and `src/main.cpp` are Part 2 — `main.cpp` is NOT one line shorter yet**, no config has
+> ever built a graph over a real device, and the motion stack still has not driven a robot. *(True of
+> that day; Parts 2a and 2b, below, have since landed.)*
+>
+> **G2 LANDED 2026-09-18 — host-only, and F8 is LOCKED.** `runner::PathRunner` runs a `Route`
+> through the facade (first failure stops and safes the drive; markers fire on a settled leg
+> only), `runner::CommandRegistry` binds command ids to code (`registry.on(...)`, four
+> library-owned built-ins, no heap), and `runner::writeManifest` exports the id vocabulary for
+> VexBuilder's picker. A route executes on the host test plant bit-identically to the same legs
+> written as a `Routine`. **Nothing of Phase G has run on a robot.**
+>
+> **G1 Part 2a LANDED 2026-09-24 — host-only: the library half of G1 Part 2.** (Part 2's brief was
+> revised that morning, after an audit found four defects in it, into three parts: the library
+> half, shulib Teleop on the library, `main.cpp` as a dispatcher.) `hal::pros::ProsDeviceProvider`
+> — the on-robot device provider: real adapters made on demand, one per port, and a port refused
+> BY NAME when the brain's registry says it is empty or carries the wrong kind, before anything is
+> opened (the new belief it rests on is HA-141); dead drive ports in the builder
+> (`robot::BuildOptions` — the boot check's missing ports become absent group members, never
+> requested, and the builder applies no dead-port policy of its own); the session header's port map
+> generated from the config (`Robot::portMap()`, byte-identical to the text `src/` prints by hand);
+> and the driver-control loop, `teleop::runDriverControl`, PROS-free and proven on the host plant
+> under a fake controller. **No program uses any of it yet: `src/` is unchanged, `main.cpp` is not
+> one line shorter, and none of it has run on a robot** — the provider has been tested only against
+> the host's stand-in for the PROS headers. *(True of that day; since G1 Part 2b, below, "shulib
+> Teleop" uses all four, and none of it has run on a robot still.)*
+>
+> **G1 Part 2b LANDED 2026-09-26 — "shulib Teleop" is rebuilt on the library, and THIS version has
+> not run on a robot.** `src/programs/teleop_program.cpp` (deleted at T4 Part 3) builds `robot::Robot` over
+> `hal::pros::ProsDeviceProvider` from a shared boot source (`src/common/boot_source.{hpp,cpp}`: the card's
+> calibration record, else the typed table, else refuse — the decisions unchanged) and drives through
+> `teleop::runDriverControl` with the driver-feel layer's default profile (the team lead chose the
+> switch on 2026-09-26: the same as the old mapping except for a continuous deadband around the
+> stick's centre; no driver has felt it). `src/main.cpp`'s tank-library branches forward to it
+> (1,340 → 722 lines; the invented X-drive graph stays until Part 2c). The previous, hand-wired
+> version drove robot two from the calibration record on 2026-09-25 — eight starts, open-loop under a
+> driver, the first time the library's own object graph drove the robot; no library-commanded motion
+> has run.
+>
+> **Now (2026-10-08): T4 is COMPLETE — the driver program has LANDED, host- and build-gated, NOT run on a
+> robot.** The new "shulib Drive" (slot 1) runs the team's driver file with the library's drive protections;
+> "shulib Teleop" is retired; the Auton Tester is on slot 2; the competition program (slot 6) shows the
+> PROTECTION row on its driver page; "shulib Drive" and the competition program keep an SD copy of their log;
+> and an auton the registry refuses is dropped and named, never the boot. Seven builds. **Next: the mechanism
+> core (MECH) with the standard Calibrate (CAL1) beside it, then a documentation redo (DOCS3) before the panel.**
+>
+> **Now (2026-10-08, later): MECH-A1, the mechanism core's first part of six, has LANDED — host-only.** A robot
+> file declares each mechanism once (`Arm`, `Lift`, `Flywheel`, `Power`, `Pneumatic` — what it IS, never a port)
+> and wires it separately (`mechanisms(wire(arm, motors(1)), …)`); the build refuses, each by name, 69 kinds of
+> mistake in one mechanism's spec (52 of them a declaration can make; the rest only an entry built by hand), and the
+> wiring's, the route ids' and the words' own — 132 named reasons in all — and every mechanism's actions are route ids derived at build; the robot
+> builds every role (motors, lines, angle sensor, home switch, piece sensor) through its device provider, one
+> boot fact per role, and counts a sensor's screened reads.
+>
+> **Now (2026-10-15): SER1 is COMPLETE — host- and build-gated, NOT run on a robot.** Every line shulib sends to
+> the brain's serial stream leaves in ONE `write()` that PROS's own serial lock keeps whole, never through the C
+> library's shared, unlocked stdout buffer (HA-189, fixed in code, settled only at the bench); the `src/` build
+> gate refuses any program object that names stdio's FILEs or calls a stdout/stderr printer
+> (its completion record is in the development log, as every chunk's is).
+>
+> **Now (2026-10-15): MECH-A2, the second part, has LANDED — host-only.** One mechanism SERVICE, ticked once per
+> control tick (inside a drive's wait under the run guard, or at the driver loop's stated place), runs every power
+> and pneumatic mechanism: a step until a piece sensor sees (or stops seeing) a piece, until a stall, or for a time,
+> always within its time limit; a sensor that stops answering is never read as an answer. The run guard's deadline
+> (and a disable) now CUTS a mechanism step instead of letting it run to its own limit.
+>
+> **Now (2026-10-22): MECH-A3, the third part (built 2026-10-15), has LANDED — host-only.** The service now runs
+> POSITION and SPEED mechanisms too: an arm or a lift moves on a smooth plan and HOLDS, finds its zero at every homing moment (at boot
+> with no motion, or by a homing push) and says where its zero went, stays inside its travel (a computed target
+> clamped, a push held AT the limit), and a timed-out move holds where it stopped; a flywheel spins to "at speed" and
+> keeps spinning. A stated stall signature watches every behaviour. The library's starting gains are PROVISIONAL
+> (HA-182) until `.tuning` replaces them, worded for a boot line the programs print from MECH-A5 — the guide's new
+> chapter 18 teaches all of it. No program builds
+> the service yet, and no auton step calls it: **next is MECH-A4 (auton steps, driver controls, route markers — API
+> 2.5), with CAL1 beside the core.**
+>
+> **Now (2026-10-29): MECH-A4, the fourth part, has LANDED (built 2026-10-22; reviewed, fixed and
+> verified through 2026-10-29) — host-only; the team lead's three rulings of 2026-10-29: the steps' freeze stays OPEN for now, the driver-start home's exception (A4-D26) and U5's stricter build rule (A4-D27) ACCEPTED.** A mechanism step is ONE line of an auton (`r.move(arm["score"], 1.5_s)`, `r.run(intake, 12_volt,
+> seesPiece, 3_s)`, `r.set(claw["closed"])`, the START forms that let the robot drive while a mechanism works), with
+> one verdict policy (SUCCEEDED and a sensorless grab counted done go on, every other verdict stops the auton,
+> named); a driver file's controls (`whileHeld`, `toggle`, `preset`, the homing controls — the most recent input
+> wins); every mechanism's route ids run by one registration; and the direction check's judgement (API **2.5**).
+> No program builds the service yet: **next is MECH-A5 — robot two's tables, its driver file and the programs move
+> onto it — with CAL1 before A5.** **The team lead's ordering ruling of 2026-10-29:** the panel's foundation (the
+> robot file and its generator into C++) starts right after MECH-A5 lands, beside the camera, the wall reset and
+> the auto-flipper instead of after them; their panel pages plug in as each lands, and the documentation redo
+> (DOCS3) follows the panel and documents it. Nothing is dropped; the auto-flipper stays fully in. **Later the same
+> day he set a date: the panel by 2026-11-21.** The fifth mechanism part (robot two's claws on the library's
+> mechanisms) and the panel's first part are building side by side; the camera's later parts, the alliance colour,
+> driving to a piece and the auto-flipper come after the panel.
+>
+> **Now (2026-10-30): MECH-A5, the fifth part, has LANDED (built 2026-10-29; reviewed, fixed and verified) —
+> host-only; no API change.** Robot two's claws are declarations in the core's words, every program that boots
+> robot two runs them on ONE mechanism service (its boot lines, its route ids, its chain proven), and robot two's
+> driver file is three lines of controls — its claws behave exactly as before on every input. Host- and build-gated
+> only. **Next: MECH-A6, the core's last part; G3a Part 1 (the robot file and its generator) builds beside A5 under
+> the team lead's PANEL SPRINT (2026-10-29: the panel by 2026-11-21); CAL1 maps the core's list after A5.**
+> **MECH-A6 LANDED 2026-11-06 (built 2026-10-30) — the mechanism core is COMPLETE, host-only** — Bench Tests' station 13 MECHANISMS: every declared mechanism in its
+> declared units, powered one at a time behind six gates, the direction check run on the robot (the menu now 3 × 5;
+> no API change; host- and build-gated, never run on a robot). The core is COMPLETE when A6 lands.
+>
+> **Now (2026-10-15): CAL1 Part A1, the standard Calibrate's seams, has LANDED — host-only.** The brain's screen is
+> now a seam with ONE sanitizer (`hal::IBrainScreen`, `hal::screenSafeLine()`), a painter draws Calibrate's screens
+> on it (`calibration/calibrate_screen.hpp`), and `calibration::compareFronts()` judges whether a new Calibrate's
+> front matches the saved record's — or, for a first Calibrate, the robot's typed drive ports (the team lead's
+> D6 (a)). No program uses them yet: **next for CAL1 is Part A2a, the standard Calibrate program.**
+>
+> **Now (2026-10-29): CAL1 Part A2a, the standard Calibrate program, has LANDED — host-only** (built 2026-10-18–22,
+> reviewed and fixed 2026-10-22–29).
+> `calibration::CalibrateProgram` is robot two's Calibrate moved into the library over those seams: a team states
+> only its drive kind, its drive motors' cartridge and EVERY motor that is not a drive motor, and the program finds
+> and measures the rest. The end that leads the push is the front; before anything is saved the new record is
+> checked against the card's, and a FLIPPED front holds the save (USE NEW or RUN AGAIN); a declared mechanism
+> motor that turned with the push holds it too — one question per such motor (SAVE or RUN AGAIN); the save is the
+> safe save. The whole program
+> runs in the host test suite on the host test plant, and `hal/pros/calibrate.hpp` is its thin robot shell. No
+> program uses it yet — robot two's Calibrate is unchanged until Part B: **next for CAL1 is Part A2b** (a team's
+> typed drive ports as the reference when the card holds no record, the proof through the real PROS shell, the
+> guide chapter).
+>
+> **Now (2026-10-29): IMU1 Part A has LANDED — host-only.** The robot's IMU adapter now answers its turn rate ONCE per
+> control tick: a second read within 5 ms gets the first read's answer, so the Localizer, a tank's steering and the
+> rest gates all see the same number (a second read used to come back as about 0 or a spike, which on the host test
+> plant could turn the 40 in auton into a timeout). Nothing has run on a robot; Station M's floor runs wait for this
+> build. **Next for IMU1 is Part B**, a short Bench Tests stage that measures the IMU on the robot.
+>
+> **Now (2026-10-30): VIS1-A1, the AI Vision camera as a device, has LANDED — host-only.** A robot file declares the
+> camera (its port, the colours and AI model the library writes to it, and its measured mount), the robot builds it at
+> boot, writes its settings and reads each back, and checks the camera's AI model by NAME before any object counts; a
+> missing or wrong camera leaves it ABSENT and the robot still drives. One read is one frame with its status, and a
+> camera model turns a box into a bearing, a range and a field position, each an interval over the stated tolerances.
+> Nothing reads the camera yet and no AI Vision sensor has run this code: **next for the camera is VIS1-A2** (what
+> it sees — the Toggle's colour, a named piece) — moved ahead of the panel by the team lead's ruling of 2026-11-03.
+>
+> **Now (2026-11-03): L6-A1, the wall reset's library core, has LANDED — host-only.** A robot parked square beside a field
+> wall can re-seat ONE coordinate of its estimate from a side distance sensor's reading — never the heading, never in
+> the background, and only inside gates that REFUSE rather than guess (the beam square to the wall and off the
+> season's keep-outs, the robot still, every sample clean, the answer within the author's own `maxCorrection`). This
+> part is the library core with the explicit call over hand-wired handles; no program and no robot sensor uses it yet.
+> **Next for the wall reset: L6-A2** (the robot's side sensors and the everyday call from an auton), then L6-B (robot two).
+>
+> **Now (2026-11-03): CAL1 Part A2b has LANDED — host-only** (built 2026-10-30).
+> A team whose drive program already types its drive ports may state them (`CalibrateFacts::typedDrive`); with no
+> usable record on the card they are the front check's reference, in their own words — the team lead's D6 (a). The
+> program now runs through its REAL PROS shell in the host suite, 34 scenarios held to committed goldens, and the
+> team's whole Calibrate file — 21 lines — is compiled and run there and shown in the guide's
+> [chapter 19](guide/19-calibrating-your-robot.md). Register entry [HA-187](hardware-assumptions.md) holds the
+> watch's belief. No program uses it yet: **next for CAL1 is Part B** (robot two onto it).
+>
+> **Now (2026-11-06): IMU1 Part B, the bench stage, has LANDED — IMU1 is COMPLETE; host- and build-gated, never
+> run on a robot.** "Bench Tests" button 2 ends with a new STAGE 2c that measures the IMU's own timing while
+> someone turns the robot by hand: how often its readings refresh (PROS says every 10 ms), where that refresh
+> lands against the program's 10 ms tick and whether it drifts, a lower bound on how long a tick's reads take, and
+> whether the gyro's own turn rate has the right sign and units — what the gyro's rate waits on before it could
+> replace the computed one. It commands no motor and asks START or SKIP first; the arithmetic behind its verdicts
+> is host-tested. Its numbers come from the team at the bench (worksheet Station N); until then HA-213, HA-214,
+> HA-215, HA-04 and HA-109 stay unsettled.
+>
+> **Now (2026-11-10): L6-A2, the wall reset from an auton, has LANDED — host- and build-gated, never run on a robot.**
+> A robot file may declare its side distance sensors (`sensors.walls`: each side's port and MEASURED mount); the
+> robot builds them at boot and names each on its boot line, and a missing sensor never stops the robot. An auton
+> with a FIELD start calls `competition::resetFromWall(ctx, …)` beside a wall to re-seat one coordinate inside the same
+> refuse-rather-than-guess gates as L6-A1, sampled through the auton's own clock, so a deadline cuts it. A RELATIVE-start
+> auton is refused with "not a field start". **Next for the wall reset: L6-B** (robot two's sensors and the WALL bench page).
+>
+> **Now (2026-11-10): MECH-S-A, a mechanism's current cap, has LANDED — host-only.** A robot file may state
+> `.currentCap = {.amps = …}` on a Power, an Arm, a Lift or a Flywheel: the most each motor may draw, written
+> into the motors at boot and enforced by the motors themselves — how hard robot one's string cascade will
+> pull its strings once its robot file exists. The build refuses a cap below 0, above 2.5 A or under one
+> milliamp (a cap written as 0 is no cap) and any stall or homing signature at or above it; the boot warns
+> when a signature is not more than 0.2 A below it; a mechanism with no cap is only read, never
+> written (robot two states none, so its boot is unchanged while its claw motors read 2.5 A). Register entries
+> [HA-219..HA-223](hardware-assumptions.md) hold its beliefs; nothing has run on a robot.
+> [Chapter 18](guide/18-mechanisms.md#current-caps--how-hard-a-string-is-pulled) teaches it. **Next for
+> MECH-S/TUNE1 is TUNE1-A** (live tuning's library); the slack watch (MECH-S-B) is after the 21st.
+>
+> **Now (2026-11-11): CAL1 Part B has LANDED — CAL1 is COMPLETE; host- and build-gated, NOT run on a robot**
+> (built 2026-11-05). Robot two's "shulib Calibrate" (slot 4) IS now the library's standard Calibrate: a 27-line file over
+> facts taken from robot two's own tables, so nothing is typed twice. The WHICH END question is gone from the
+> library — the end that LEADS the push is the robot's front, checked against the card's record before anything
+> is saved — and the save is the safe one (a verified backup first). Side by side on one host test plant, every
+> line the new program prints differently from the old one has a named reason. See the
+> [changelog](changelog.md) (the WHICH END question removed). **Next with it:** the team's recorded Calibrate
+> rerun on robot two (copy both files off the card first) — the run expected to fix robot two's ~8 % distance
+> error (not yet measured).
+>
+> **Now (2026-11-11): STEP1-A, care on every auton step, has LANDED — host- and build-gated, never run on a robot.**
+> Each drive or turn may state its own arrival tolerance (`{.positionTolerance = 2_in}`), which loosens the distance AND the
+> settle speed together; and each step may choose what happens if it fails: `r.onFail(carryOn)`, `r.onFail(skipTo("x"))`
+> with `r.label("x")` further on, or the default STOP. A cut (the deadline, a cancel) always stops. The Auton Tester and the
+> competition screen say "DONE, 2 FAILED" in amber when a run carried on past failures. **Next for STEP1: STEP1-B**
+> (triggers partway through a drive — building now); then CURVE1 (curves) builds on it.
+>
+> **Now (2026-11-11): TUNE1-A, live tuning's library, has LANDED — host-only.** A program can run the
+> mechanism service over a COPY of the robot file's list (`mechanism::LiveTuning`) and change a mechanism's
+> numbers while it runs — its gains, speeds, stall signature, cap, travel limits (narrowed only) — inside
+> the build's own check plus the bounds the build lacks, between steps only and never past a held target
+> (or, holding nothing, past where it is);
+> undo (16 deep) and reset to the robot file's numbers; and a COPY block of the lines to write back into the
+> declaration, the smallest set that builds to exactly what ran. No program uses it yet: **next is TUNE1-B1**,
+> "shulib Tune" on the brain. [Chapter 18](guide/18-mechanisms.md#or-on-the-robot-live-tuning) teaches it.
+>
+> **Now (2026-11-12): CURVE1-A, curves, has LANDED (API 2.7) — host- and build-gated, never run on a robot.**
+> `r.curveTo({...})` / `r.reverseCurveTo({...})` drive a smooth path through up to 16 points without stopping at each:
+> pure pursuit chasing a point 8 in ahead, braking before bends at one "grip" number, the last inches handed to an ordinary
+> `moveTo` so a curve ends square (within ~1°). A path that cannot be driven is refused before the robot moves; a robot
+> that loses the path (a dead side) stops the step within ~2 s. A curve fixes a 6 in sideways miss from 2½ ft back and a
+> 1 ft miss from 3 ft. **Next:** one curve session on the robot (Station C); the skills route switches legs to curves
+> only where it passes.
+>
+> **Now (2026-11-13): STEP1-B, triggers partway through a drive, has LANDED (API 2.8) — host- and build-gated, never
+> run on a robot.** A drive or turn can start a mechanism part-way: `r.atPercent(60, cascade["level3"]).driveTo(...)`,
+> `afterDistance`, `afterTurning` — up to 4 per leg, each checked on its own line every run. A trigger fires only if
+> its mark is on the drive; one that never fires (a skipped or stopped leg) is a counted failure the next wait reports.
+> Drives with no trigger run exactly as before. **STEP1 is complete before the 21st** (A + B); curves take triggers later.
+>
+> **Now (2026-11-13): VIS1-A2, what the camera means, has LANDED — host-only; no AI Vision sensor has run it.** One loop
+> reads the camera for everyone (`vision::CameraFeed`); the Toggle tracker answers RED, BLUE, YELLOW or UNKNOWN with its
+> reason (a frozen camera, two colours, a band cut by the image, not held long enough…), never a guess; the piece finder
+> names one piece or none. [Chapter 20](guide/20-the-camera.md) teaches it. **Next:** the checked Toggle step (AF1S-A1)
+> on top of it, then the camera reachable from an auton (AF1S-A2); the camera's Step 0 at the robot (mount, colours, model).
+>
+> **Now (2026-11-11): TUNE1-B1, "shulib Tune", is BUILT — host-only, in review.** `make ROBOT=tank
+> PROGRAM=tune` (slot 7; the Makefile's row is ROBOT-generic — any robot whose mechanism table is not empty;
+> robot one gets it by registering its table plus the four build lines every robot adds — its ROBOT value in
+> `MECHANISM_ROBOTS`, its chain branch and guard term, its `<robot>-tune` gate build) builds ONLY the
+> mechanisms, after READY; TEST A / TEST B with a
+> report (overshoot, settle, peak, final error, the hold current and its warnings), HOME, the stick, UNDO,
+> RESET, COPY (terminal and `/usd/tune_log.txt`, appended; EXIT copies what no COPY carried); every mechanism released on any controller
+> button, a dropped controller, a field or a disable; every cap it changed written back on RESET, on leaving
+> a page and on EXIT. The match builds carry no live-tuning code (the gate's step 8). It has not run on a
+> robot. [Chapter 18](guide/18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen) teaches it.
+>
+> **Now (2026-11-13): AF1S-A1, the Toggle flip for a SKILLS run, has LANDED (built 2026-11-11);
+> host- and build-gated, NOT run on a robot.** For the first competition (skills only, 2026-11-21) the
+> driver-control auto-flipper waits until after the event; what comes first is ONE route step,
+> `competition::checkAndFlipToggle`: from a look spot square in front of a named Toggle it reads the Toggle's colour
+> with the front camera (VIS1-A2's tracker, itself still being finished), does nothing if the Toggle already shows
+> its Quadrant's colour, and otherwise drives in, pushes with the flipper, backs out and looks again — never a
+> push on our colour or on UNKNOWN, and "FLIPPED" never claims the Toggle is set. This part is its form over
+> explicit handles; **next: AF1S-A2**, the robot's camera reachable from an auton. Until it has flipped a real
+> Toggle, the team's own blind two-push flip is the plan for the 21st.
+>
+> **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
+> slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
+> robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver
+> program replaces Teleop) runs one of the team's autons on the bench from RUN on the brain's screen
+> — a 3 s countdown, then the competition program's own `competition::runAuton` call; any controller
+> button, a touch, the controller dropping or a disable aborts — and the team's auton file,
+> `src/team/autons.cpp`, holds the 40 in auton and the acceptance run (guide chapter 16). Before it,
+> TANK1 Part A landed (`moveTo` on a tank steers back onto its line — the team lead: "Fix the library
+> first"), so on the host test plant the 40 in finishes with a side up to about a quarter weaker.
+> **Next: the competition program (COMP-b)**, which calls the same `registerAutons()`; the tester's
+> first run on robot two is the bench worksheet's Station M. T4's driver file (Part 1a)
+> has LANDED, host- and build-gated: robot two's buttons, feel and driver loop in one file,
+> `src/team/robot_two_driver.hpp`, which the competition program's `opcontrol()` runs since COMP-b
+> (built 2026-09-30, not run on a robot — the M4 Sequencing row), and so will the driver program
+> that replaces the old "shulib Drive"; "shulib Teleop" retires when that
+> lands. G1 is COMPLETE** — Part 2c and its final run have landed: one
+> chain in `src/build_selection.hpp` picks each build's program and robot, and `src/main.cpp` only
+> dispatches. — the team lead's order of 2026-09-26; 2c, DIAG1 and COMP's library half were built in
+> parallel and merge one at a time — DIAG1 has landed: an `ODO_STUCK` line from the odometry's trust
+> gate now names the check that fired and its values, so the next one on the robot can be explained. The brake-mode fix has landed (host- and build-gated, not run on
+> a robot): a Brake or Hold the library commands now reaches the V5 motor through PROS's `brake()`,
+> and "shulib Teleop" still COASTS when the sticks are released (his ruling). **T3 has landed, both
+> parts, the same way — host- and build-gated, NOT run on a robot:** "shulib Teleop" now drives
+> robot two's claws — R1/R2 the pivot on port 6, L1/L2 the one on port 7 (full power while held,
+> holding on release), A opens and closes the pneumatic claw on 3-wire port A (closed at the
+> start, kept through a disable), and the field-centric re-zero moved to Y. The boot names the
+> pivots as claw pivots (a record that took a claw port as a drive port refuses, "recalibrate"), a
+> missing claw is ABSENT while the drive runs, and the panel's two fault rows became one to make
+> room for a claw row. No claw has moved yet — worksheet Station J is the first sight. Still owed from the bench
+> session: a recorded Calibrate reproduction run (the saved distance scale reads about 8 % short)
+> and the sensor stations. *(R2a landed the same evening, build-gated and not run: Bench Tests'
+> stations 11 DISTANCE and 12 AI VISION — see the R2 row under M1 — so the same bench session can
+> also check what the distance sensors and the AI Vision camera report.)* The bench session can
+> close R3d; it cannot close R3b or M1, because no uploaded program commands a `moveTo` yet.
+> *(COMP-a — COMP's LIBRARY half — was built in parallel in an isolated worktree on the team lead's
+> ruling of 2026-09-26 and has LANDED, host-proven only: the auton registry, the selector model, the
+> auton runner with the start-pose re-seat, and the abandon latch; see the M4 Sequencing row. COMP-b,
+> the program itself, followed COMP-t: built 2026-09-30, host- and build-gated, not run on a robot.)*
+> **`src/` was reorganized before the next programs are built (SRC1, 2026-09-27, the team lead's
+> request):** `src/robots/` is what each robot IS (its tables), `src/team/` the team's own code —
+> where students edit; its first file is robot two's driver file (T4 Part 1a), and the team's
+> auton list, `src/team/autons.cpp`, came with the auton tester (COMP-t) — `src/programs/`
+> one program each, and `src/common/` what the programs share; `main.cpp` and
+> `build_selection.hpp` stay at the top. No file was renamed and no program's logic changed: the
+> six packages print each file's new path where a message names one, and otherwise hold the same
+> functions and data, linked in a new order. The `src/` build gate now fails any path a second
+> include root could answer, and any `src/` path a program prints that names no file.
+>
+> **The bench session BEGAN 2026-09-24** — the brain is on USB again. The device census and motor
+> watch ran on robot two; shulib Calibrate ran and STOPPED at its side-assignment pulse (one motor at
+> 3 V for 0.4 s turned the robot 0.17°, under its invented 2° floor), and its screen proved hard to
+> follow. (That night, no calibration record existed, so nothing built on the library could boot on the robot.) A
+> fix to Calibrate came ahead of Part 2b, in two halves. **The library half LANDED 2026-09-24,
+> host-only:** the calibrator now takes one 48 in push, its side pulse ramps 3 → 6 → 9 V and names a
+> slipping motor (leaving it out) instead of stopping, the spin has two safety guards (the wrong way;
+> cannot start), every stop carries a code and the port, and the screen's logic is a pure, host-tested
+> model — proven on a host plant that can now fail the way the robot did (an idle side that coasts, a
+> motor that slips), and on nothing else. **The program half LANDED the same day — build-checked, NOT
+> yet run on the robot:** "shulib Calibrate" now paints that model (and only what changed), reads
+> every touch through its touch gate, offers RUN AGAIN on the finished and stopped screens, and
+> prints a serial record a capture can be read by — one line per pulse and per spin direction, the
+> push table, the result or the stop's code and port. Its screen's text sizes are derived from lines
+> earlier programs showed on this brain, not measured. (Of five Calibrate starts that night, one
+> cleared the 2° floor on seven motors before stopping.) **The rebuilt program RAN on robot two that
+> evening (2026-09-24, the second session):** run 1 got through the push and every pulse — the ramp found the
+> sides at 6 V and left out one slipping motor — and STOPPED because its two spin directions
+> measured track widths 20 % apart (the bound, 5 %, is invented); nothing was saved. Run 2 finished
+> by the team lead's report, but the brain was off USB, so whether it saved and what it measured
+> are not yet known.
+>
+> **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
+> held against the one that arrived, four of its six scope items are impossible on it and its DoD
+> clause is blocked on **library code, not hardware**. **M1's badge therefore slips from R3 to
+> R3b**: M1's DoD is *"identical numbers in a host test and on the V5, swapping only
+> `RobotContext`"*, and `RobotContext` precondition-requires a `gps`/`tags`/`vision` this robot
+> does not have. Three capability gaps were measured at the seam and are R3b's — see M2's
+> "what R3b must build" block below.**
+>
+> **R3b piece 3 — the absent-device ruling — landed 2026-08-19** (R3b is `[~]`, NOT closed):
+> `AbsentGps`/`AbsentTagSource`/`AbsentVision` live in `hal/` beside `NullSink`, the
+> `RobotContext` preconditions are UNCHANGED (absence is explicit — `.gps = &absentGps` — and
+> omission still throws), an absent source is never polled (the `kInstallTagCorrector` /
+> `kInstallVisionPoller` wiring rule), and `src/main.cpp` ships no `hal/fake/` type. Five of
+> five mutation checks observed red then restored green. **Pieces 1 (multi-motor aggregation)
+> and 2 (`IOdometry` / drive-encoder odometry) landed 2026-09-14 (R3b Parts 1–3, below); M1's
+> badge stays unflipped until the library has driven a robot.**
 > **The auton API exists and is FROZEN at BOTH tiers — F6 (`Chassis`) LOCKED at D2 and F10
 > (`Routine`, the recipe layer) LOCKED at D3, both 2026-08-12, API 2.0**
 > (built at C4, stressed by D1's second consumer, ruled and pinned at D2):
@@ -552,9 +1026,11 @@ not silently break them. This table is the spine of the no-staleness promise.
 > its own layer: guide ch. 14 still said "no shulib code has ever read a real sensor" and
 > "no adapter has ever touched a physical device" — both false since R1a's bench session;
 > corrected to the platform-layer-only truth.
-> **Next: DOCS1 — the full documentation pass, then the release to `main`** (called 2026-08-14;
-> merging to `main` is what publishes docs.shurobotics.com, so the documentation pass IS the
-> release gate). **Then R3 — first motion, walked from the bench runbook (now 20 steps).**
+> *History (the next step as called on 2026-08-14 — all of it since done: DOCS1 closed, the release
+> to `main` happened 2026-08-15, and R3 was split into R3a–R3d on 2026-08-17):* DOCS1 — the full
+> documentation pass, then the release to `main` (merging to `main` is what publishes
+> docs.shurobotics.com, so the documentation pass IS the release gate); then R3 — first motion,
+> walked from the bench runbook (then 20 steps).
 > (Phase T's T1 was delivered at R1a, per the recorded split ruling; that line previously said
 > Phase T and went stale the day the split was ruled — corrected at R1a.)**
 > (There is no Phase B: the original hardware phase was resequenced to Phase R when the
@@ -815,8 +1291,25 @@ adapters at R1b (2026-08-14), all host-tested against the shim; on-V5 validation
   prefix, HA-122). STILL not done: the vision adapter (R2's), `src/main.cpp` wiring for the
   new five (deliberately untouched — it carries an invented X-drive config no robot matches),
   and everything on-robot: none of the five has ever touched a physical sensor.*
-- [ ] Vendor & extend the existing `ai_vision.hpp` wrapper into the `hal/pros` `IVision`/`ITagSource`
+- [~] Vendor & extend the existing `ai_vision.hpp` wrapper into the `hal/pros` `IVision`/`ITagSource`
   adapter (object mode **and** AprilTag mode).
+  *`[~]` at R2a (2026-09-24): the EVIDENCE half exists, the adapter does NOT. R2 was split: Bench
+  Tests gained two stations that show what robot two's sensors report — **11 DISTANCE** (every
+  distance sensor's raw PROS reads beside the `ProsDistance` adapter's inches and confidence) and
+  **12 AI VISION** (tag and object detection and the camera's USB bounding-box overlay turned on,
+  the object count, temperature, how often the data changes, each detection's type, id or class
+  name and box or tag corners as PROS reports them, and a tag-family cycle) — with a RECORD button
+  that writes one line per sensor or detection to serial and the SD card. Ports are discovered from
+  the brain's registry. Build-gated; **neither station has run on a robot.** The adapter itself
+  (R2b) is written afterwards from those records, not from beliefs.*
+  *VIS1-A1 (2026-10-22) pulled the camera's OBJECTS-and-COLOURS half FORWARD, before the stations
+  have run (the team lead's rulings of 2026-10-08 and 2026-10-14: the Toggle auto-flipper and driving
+  to a piece both need it before the panel): `hal::pros::ProsAiVision` reads the camera a frame at a
+  time through a SIBLING seam, `hal::IVisionFrames` (Freeze Register row F15, NOT FROZEN) — not
+  through `IVision`/`ITagSource`, whose TAG part stays R2b's, after G3 (tags stay OFF). So that half
+  was written from the vendored header and `libpros.a` on beliefs registered as HA-192..HA-203, none
+  measured; station 12's records settle them. Still `[~]`: no tag adapter, and no camera has yet been
+  read by this one.*
 - [~] `hal/fake/*` deterministic doubles (injectable clock) for host tests. *Done 2026-06-19:
   `FakeClock` (monotonicity-enforcing), `FakeMotor` (real clamp/validation + injectable encoder),
   `FakeImu` (canonical injectable incl. ±180° seam), `FakeGps` (canonical pose + fix/error, safe no-fix
@@ -847,8 +1340,11 @@ adapters at R1b (2026-08-14), all host-tested against the shim; on-V5 validation
   over-budget peak-onto-limit, uniform ratio/direction preservation, all-zero no-op, non-positive budget
   rejected; wired into both drives' `desaturate()` and tested via the `MatrixKinematics` delegation path.
   Mutation-checked (inverting the scale factor goes red).*
-- [ ] *(M2 carry-forward)* generalize `MatrixKinematics::forward()` to the full `(AᵀA)⁻¹Aᵀ` pseudo-inverse
+- [x] *(M2 carry-forward)* generalize `MatrixKinematics::forward()` to the full `(AᵀA)⁻¹Aᵀ` pseudo-inverse
   for non-orthogonal drives (H-drive's off-center strafe wheel). Relaxes a precondition only — F5-safe.
+  *Done at chunk C3 (2026-08-06): `forward()` is the full least-squares pseudo-inverse, `AᵀA` inverted
+  once in closed form at construction (`kinematics/matrix_kinematics.hpp`). This box stayed `[ ]`
+  until 2026-09-24 although the work was recorded done under M2.*
 
 **Definition of Done:** a trivial motion's kinematics produce identical numbers in a host gtest and on
 the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-frozen; the `hal/pros` adapters landed at R1a/R1b, and the on-V5 kinematics number-match awaits R3 — not a toolchain)*.
@@ -866,7 +1362,9 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
   owns unit consistency. `control/` added to the CI PROS-free guard.*
 - [x] `Feedforward{kS,kV,kA}`; **voltage/brownout compensation**. *`control/feedforward.hpp` +
   `test/feedforward_test.cpp` (7 cases): `V = kS·sign(v) + kV·v + kA·a` (typed Velocity/Acceleration
-  in, Voltage out; bare gains from sysid), kS follows the velocity sign and is zero at rest;
+  in, Voltage out; bare gains — to be measured by the robot in shulib Calibrate's GAINS step (built as
+  library in R5a Part A; Calibrate runs it from Part C; not yet on a robot); a measured kA is recorded,
+  not applied), kS follows the velocity sign and is zero at rest;
   `compensateForBattery()` limits a desired voltage to ±battery and flags brownout-saturation (the park
   fires as the battery collapses). Mutation-checked (kS-sign and the battery clamp each go red).*
 - [x] `MotionProfile` (trapezoid). *`control/trapezoid_profile.hpp` + `test/trapezoid_profile_test.cpp`
@@ -884,7 +1382,24 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
 - [x] **Motion watchdog** (hard timeout — a motion can never hang). *`control/watchdog.hpp` +
   `test/exit_group_test.cpp`: clock-driven, start()/expired()/elapsed()/reset(); expires at/after the
   timeout, never before start; mutation-checked (the `>=` boundary reds). Consumed by `ExitGroup`.*
-- [ ] `tools/sysid` offline kS/kV/kA least-squares → emits **constants**; one on-robot ramp routine.
+- [~] ~~`tools/sysid` offline kS/kV/kA least-squares → emits **constants**; one on-robot ramp routine.~~
+  **Reframed 2026-09-26 (the team lead's ruling): kS/kV/kA are measured BY THE ROBOT, inside shulib
+  Calibrate, and kept on the SD card beside the drivetrain record — never typed or committed as
+  constants** (chunk R5a, four parts). *Part A (2026-09-29) — the measurements as library, HOST-PROVEN
+  ONLY:* the fit runs on the brain (`calibration/feedforward_fit.hpp` — the discrete feedforward law by
+  incremental QR, no differentiated velocity; each exclusion counted by reason; a verdict per side); the
+  ramp routine is the GAINS step (`calibration/drive_characterizer.hpp` — two ramps and two steps, each
+  side fitted separately, a curve guard read from the ENCODERS, 0 V + Brake at a normal segment end and
+  its stopping distance measured, 0 V + Coast on every refusal); the stationary capture is the REST step
+  (`calibration/rest_capture.hpp` — the IMU's drift with its σ under both noise structures, the per-tick
+  rate noise against the settle floors); both record their loop timing (`diag/tick_timing_stats.hpp`);
+  the host test plant can give each wheel its own gains. Evidence: 78 new host test cases and every
+  listed mutation run red (63 on 2026-09-29, 15 more in its review of 2026-10-04; recorded in the
+  development log on the `shulib-v2` branch); A4 register HA-170..HA-174. **Nothing has been measured on a robot, and no program runs these yet:**
+  Part B puts the result on the card and makes the robot builder consume it, Part C adds the GAINS and
+  REST steps to shulib Calibrate (with a small laptop re-fit that cross-checks the brain's arithmetic
+  from the raw samples), Part D makes every program say which gains it used. A measured kA is recorded, not applied — the motion layer applies the cruise
+  form only.
 
 **Motion (WS6)**
 - [x] `IMotion`; `MoveToPose` (decoupled x/y/θ), `TurnTo`, `StrafeTo`, `driveBrake`, `holdPose`.
@@ -943,6 +1458,11 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
   (`IPoseSource`/`ICorrector`/`IFusionPolicy`); `ComplementaryFusion` gated nudge (accumulates + never
   snaps); fused `Twist2d` + measurable `quality()`. 43-agent red-team (caught + fixed the no-accumulation CRITICAL).
 - [ ] IMU cold-calibrate at boot; per-boot bias characterization; tip detection (pitch/roll).
+  *(R5a Part A, 2026-09-29: the per-boot bias can now be measured by library code — the REST step built
+  for shulib Calibrate (`calibration/rest_capture.hpp`, host-proven only; Calibrate runs it from Part C)
+  reports the drift with its σ under both noise structures, one boot per run (A4 register HA-173: a
+  sample, never a correction).
+  Nothing has been measured; boot-time bias estimation and tip detection are untouched.)*
 
 **Host sim plant & closed-loop harness (WS10/WS2)** — *added 2026-08-01 by chunk A2.
 This task was the roadmap's incompleteness bug: this milestone's DoD (and M4's) requires "settles
@@ -1006,6 +1526,22 @@ DoD in Phases C–F depends on it.*
   then was restored. *Evidence: `hardware-assumptions.md`; `.github/workflows/ci.yml`; suite
   unchanged at 429/681,086 (no new test surface, by design); the A4 completion record, incl.
   the Phase A retrospective (development log, `shulib-v2` branch).*
+- [x] **The `src/` build gate (chunk GATE1, reactive, 2026-08-19)** — the ARM job above compiled
+  every HEADER and never `src/` itself, and the `Makefile` records a data abort that shipped from
+  exactly that blind spot. `tools/src_build_gate.py check` now drives the REAL `make` for every
+  robot variant (`ROBOT=bench` and `ROBOT=xdrive` at GATE1; `ROBOT=tank` since R3b session 2,
+  2026-09-10), compile AND link, forced-fresh with the compiled
+  TU count printed; errors fail, vendored warnings are ignored by path, everything else fails
+  (`-Wunused-function` excepted by category at GATE1, the residual hole stated in the tool — *a
+  FAILURE like every other category since G1 Part 2c's final run, 2026-09-26, the team lead's
+  ruling*), and a missing toolchain FAILS rather than skips. `self-test` plants five faults against real builds
+  first. Two records were corrected by measurement: the on-robot link is NOT blocked (the gate IS
+  the build), and `make ROBOT=xdrive` replaces a documented flag that silently built the wrong
+  robot. *Evidence: `tools/src_build_gate.py`; `.github/workflows/ci.yml` (`arm-compile-gate`, two
+  added steps); 10 self-test cases; 5 mutations observed red then restored; re-verified PASS on
+  2026-09-10 at `7d3e7ce`; the GATE1 completion record (development log, `shulib-v2` branch);
+  and the job itself green on a GitHub runner on 2026-09-10 at `89b00f2`, first push since
+  2026-08-17, three variants.*
 
 **Facade (WS — Chassis)**
 - [x] `Chassis` public verbs (F6): `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)`.
@@ -1075,7 +1611,11 @@ DoD in Phases C–F depends on it.*
   injected (`git describe --always --dirty`; the test CMake does it; the PROS Makefile gains the
   same line at R1), and a missing hash is LOUD ([ERROR][SES] + the literal token MISSING), never
   a plausible placeholder — pinned by golden. Port map is caller-authored text at C5 (the core
-  HAL has no port numbers); G1's RobotBuilder generates it. Battery start is READ, not typed.*
+  HAL has no port numbers); G1's RobotBuilder generates it. Battery start is READ, not typed.
+  (Since G1 Part 2a, 2026-09-24, the generator exists — `robot::Robot::portMap()`; since G1 Part
+  2b, 2026-09-26, "shulib Teleop" prints its session header's port map from it, byte-identical to
+  the hand-built text it replaced. The invented X-drive graph in `src/main.cpp` still builds its
+  own by hand until Part 2c.)*
 - [x] Fix the three inherited `logger.hpp` bugs (`escapeJSONString` unapplied, dead `sendDebugMessages`, racing flush) before building on it.
   *Resolved at chunk A1 by **clean-room supersession**, per the execution plan's "Explicitly rejected"
   note (re-derive, don't copy): nothing builds on `logger.hpp`, and the replacement designs each
@@ -1113,7 +1653,8 @@ DoD in Phases C–F depends on it.*
   deleted (34 files); the CI PROS-free guard covers all of `include/shulib/`; the new `shulib/` is
   the only tree. The **F6 freeze clause closed at D2 (2026-08-12)** — LOCKED, enumerated,
   pin-enforced. `[~]` not `[x]` because one clause is NOT done and is owned elsewhere:
-  **hardware-validation on the V5 is OPEN (R3)** — this package has never driven a robot.
+  **hardware-validation on the V5 is OPEN (R3b)** — this package has never driven a robot under its
+  own control.
   (The "cannot until R1's adapters exist" this line carried closed at R1a — the adapters
   exist and main.cpp wires them; what remains open is R3's bench-and-drive clause itself.)
   (It has been **booted** on a V5 brain, 2026-08-12:
@@ -1131,6 +1672,82 @@ clause is true STRUCTURALLY — the new core is the only thing `main.cpp` wires,
 compiles, links, and would boot — but "runs" has never been demonstrated on a V5: that is R3's
 on-robot clause, still open. **The F6 freeze closed at D2 (2026-08-12)** — LOCKED in the
 register above, pin-enforced. This milestone does not close until the on-robot clause does.*
+
+#### What R3b must BUILD before the on-robot clause can close — a roadmap incompleteness bug, found 2026-08-17
+
+> **By this roadmap's own rule** — *"if something needs doing and isn't on this page, that's a bug in
+> the roadmap"* — these three are a bug, and they are the second one of this class the project has
+> found (the first was the missing host plant, which became A2 and the critical path). All three were
+> **measured at the seam**, not inferred, while scoping first motion against the robot that actually
+> arrived; each row below cites the source file and line that carries the gap, so the claim is
+> checkable from the shipped tree. Roughly 150 lines of library code between them, all host-provable
+> against the A2 plant, and **all three are then validatable on the available tank bot** — none needs a
+> competition robot.
+
+- [x] **Multi-motor-per-side aggregation — DONE at R3b Part 1 (2026-09-14, on the host; not yet
+      run on a robot).** The gap as measured: `motion/command_pipeline.hpp` maps one kinematic wheel
+      to exactly one motor, and `motion/motion.hpp` guarded it with `>=` — so a real drivetrain with
+      2–5 motors per side was **accepted**, and the surplus motors were **never given a voltage and
+      never given a brake mode, with no fault raised** (measured on the bench bot's then-7-motor
+      drive with a negative control: 2 commanded at +4.4286 V, 5 silent). Delivered:
+      `hal/motor_group.hpp` — `hal::MotorGroup`, N ≥ 1 coupled motors behind ONE `IMotor` (fan-out
+      commands; MEDIAN position/velocity so a dead port's frozen reading cannot drag the side;
+      per-member mean current with the sum exposed; max temperature; the drive program's
+      coupled-side monitor reused as the disagreement observable, one evaluation per tick);
+      `MotionDeps::validate()` now demands EQUALITY between motors and wheels, naming the group;
+      `FaultCode::MotorGroupDisagree = 12`, raised by `HealthMonitor` per episode through
+      `tickHealthObservables()` (so it fires in `drive()` and every motion), continue-degraded by
+      default; the A2 plant writes one wheel's state into every coupled member and can freeze or
+      sign-flip one. Evidence: `test/motor_group_test.cpp` + `test/motor_group_plant_test.cpp` (11
+      cases; an N = 1 group and five-per-side groups are BIT-IDENTICAL to bare motors through the
+      clean and the hostile tank sweeps; a frozen member is ignored by the median and counted; a
+      fighting member raises the fault and the motion still settles), nine mutations observed red
+      then restored green; the whole pre-existing suite unchanged to the assertion.
+      `kinematics/tank.hpp:80`'s "the HAL's business" now names a HAL facility that exists.
+- [x] **An odometry path that does not require two dedicated rotation sensors — DONE at R3b
+      Part 2 (2026-09-14, on the host; not yet run on a robot).** The gap as measured: the chain
+      motion → `IPoseSource` → `Localizer` → `PilonsOdometry` → 2 × `IRotation` was hard —
+      `Localizer` took a **concrete** `PilonsOdometry&`, there was no `IOdometry` seam, and
+      `PilonsOdometry` precondition-requires both a Forward and a Lateral wheel. **LemLib does
+      drive-encoder odometry and shulib could not.** Delivered: `localization/odometry.hpp` —
+      `IOdometry`, the four members the Localizer actually uses; `PilonsOdometry` implements it
+      with no behavioural change (the whole suite unchanged to the assertion) and `Localizer` takes
+      `IOdometry&` (source-compatible); `localization/drive_encoder_odometry.hpp` —
+      `DriveEncoderOdometry` from the two side motors (the groups) + the IMU: IMU-owned heading
+      exactly as Pilons, centre forward = (ΔL+ΔR)/2 and lateral = 0 by `tank.hpp`'s written
+      decision, the same `arcStep`, the same trust gate, plus the encoder-vs-IMU heading
+      cross-check as an observable; `hal/drive_geometry.hpp` — the **gear ratio's one home**
+      (DEFECTS1 `A29` closed in shape: wheel radius × motor→wheel ratio, per side, consumed by
+      BOTH the odometry and the stall check, whose config is now per-wheel). Evidence:
+      `test/drive_encoder_odometry_test.cpp` (7 cases: within 1e-6 in of the A2 truth every tick
+      through straight/arc/spin/reverse; a 2 % right-side scale error drifts by exactly the
+      predicted 1 %; the cross-check fires under injected slip with the predicted sign and
+      magnitude and is silent through arcs; gate parity with Pilons; stall check and odometry
+      agree on implied travel from one geometry object, bit for bit), eleven mutations observed
+      red then restored green. On robot two the stall check has NO independent motion source and
+      is configured not to report a verdict (hardware register HA-131).
+- [x] **An absent-device ruling — DONE at R3b piece 3 (2026-08-19).** The gap as measured:
+      `chassis/robot_context.hpp:62-73` precondition-requires `gps`, `tags` and `vision` non-null;
+      most robots have none of the three, and `src/main.cpp` shipped `FakeTagSource`/`FakeVision`
+      as stubs — a *test fake* and an *absent-device null object* are different things and only one
+      belongs in a competition binary. **This was what blocked M1's "swapping only `RobotContext`"
+      clause on the bench bot.** Delivered: `hal/absent_gps.hpp` / `hal/absent_tag_source.hpp` /
+      `hal/absent_vision.hpp` (beside `NullSink`, NOT in `hal/fake/`), preconditions UNCHANGED
+      (omission still throws; absence is spelled `.gps = &absentGps`), the never-poll wiring rule
+      `kInstallTagCorrector`/`kInstallVisionPoller` (an absent source polled would fabricate the
+      corrector's "camera alive, no tags" liveness record), `src/main.cpp` free of `hal/fake/`
+      with the absence announced once at boot. Evidence: `test/absent_device_test.cpp` (5 cases —
+      incl. a `Localizer`+`GpsCorrector`-over-`AbsentGps` run proven **bit-identical** to no
+      corrector at all) + `test/robot_context_test.cpp` extended (omission-throws for all three,
+      fully-absent context constructs); suite 1157 / 1,538,101; 5/5 mutations red-then-green.
+      **M1's badge still does not flip** — its DoD needs pieces 1–2 and an actual V5 number-match,
+      which remain R3b's open half.
+
+*What this class of miss teaches, recorded because it generalizes: the A4 register inventoried every
+unproven **constant** and none of the unproven **shapes**. Three capability gaps sat in the tree for
+months behind a register that was working exactly as designed — they were simply not the kind of
+thing it holds. A "what does the library assume about the STRUCTURE of a robot" list would have caught
+all three and does not exist.*
 
 ---
 
@@ -1227,6 +1844,22 @@ register above, pin-enforced. This milestone does not close until the on-robot c
   itself never exceeds it.
 - [ ] **Calibration routines + persistence** (wheel scale/offset, GPS lever-arm, camera mount, IMU
   bias) — saved to SD/config.
+- [~] **The wall reset (L6): one axis re-seated against a field wall from a side distance sensor** — a robot
+  parked square along a wall re-seats x (left/right walls) or y (red/blue walls) from the side sensor facing it,
+  inside gates that REFUSE rather than guess (the beam square, off the season's keep-outs, under the
+  beam-height ceiling, a still robot, every sample clean, a precise answer agreeing with the estimate within the
+  author's `maxCorrection`) — never the heading, never in the background. **L6-A1 LANDED 2026-11-03 (built 2026-10-29):** the library
+  core — `Localizer::seatAxis` (one axis; the drift term, the quality and the odometry untouched) and its two
+  counters, the pure gates (`localization/wall_reset.hpp`), the season's walls (`localization/override_walls.hpp`),
+  the EXPLICIT call (`chassis::resetFromWall`), the host test plant's field and side sensors. **L6-A2 LANDED
+  2026-11-10 (built 2026-11-03–05):** the robot file's side sensors (`config::WallSensorsConfig` as
+  `RobotConfig::sensors.walls`, `PortUse::WallSensor`, `valid()`'s checks), the Robot building them
+  (`wallSensor()`, `wallSensorAbsence()`, `wallSensors()`, the boot line's `walls` words — a refused sensor never
+  refuses the robot), the context's first OPTIONAL slot carried by the scheduler's shadow context, and the everyday
+  call `competition::resetFromWall(ctx, …)` (FIELD starts only; sampled through the run guard's wait — a deadline
+  cuts it). **Host- and build-gated, NOT run on a robot.** Owed: L6-B (robot two's sensors, the WALL bench page,
+  the tester's wall line), and the measuring at the robot (the L6 brief's Step 0) — `[~]` until a robot has seated a
+  real wall.
 
 **Alignment (WS7)**
 - [ ] `alignment/DockToGoal` — visual-servo (AprilTag/poly-cutout), current/distance/pose confirm,
@@ -1247,8 +1880,9 @@ register above, pin-enforced. This milestone does not close until the on-robot c
   background task" decision was kept, and writes are caller-paced (E1 completion record, T1).
   **The on-robot `/usd/` adapter was R1b's** (2026-08-14): `hal/pros/block_sink.hpp`
   (`ProsBlockSink`) gates on `usd_is_installed()`, refuses rather than throws with no card, and owns
-  the `/usd/` prefix in exactly one place. E1 shipped the seam and a host fake, nothing PROS. It has
-  never been run against a physical SD card.
+  the `/usd/` prefix in exactly one place. E1 shipped the seam and a host fake, nothing PROS. *(This
+  line said "It has never been run against a physical SD card" until G1 Part 2b's prose review: the
+  adapter wrote a real SD card and read it back on 2026-08-18/19, on the old robot.)*
 - [~] **Estimator introspection** in the fusion DoD: per-correction residual + Mahalanobis distance +
   accept/reject reason; per-tick covariance trace (or trust weights) — the quantities that *certify* < 1°.
   **HALF at E1:** the PATH exists and is proven end to end (corrector → `GateAudit` on the fusion
@@ -1287,7 +1921,49 @@ is required, not optional, to hold < 1°.)*
   `[x]`, for two honest reasons: the seam is **deliberately unfrozen** until F3 — its second
   consumer — stresses it (register row F11), and **no mechanism hardware has ever moved** —
   the per-mechanism safe-state physics is HA-92, a registered guess.
+- [~] **The mechanism core (MECH, six runs A1–A6; the team lead's go 2026-10-08)** — **A1 LANDED 2026-10-08,
+  host-only**: the five declarations and their words (`mechanism/kinds.hpp`), one mechanism as data and its
+  build refusals (`spec.hpp`: 63 at A1, 69 after its review, 70 since A3), the wiring checked at build (`wiring.hpp`), route ids derived at build
+  (`route_ids.hpp`), every role built at boot (`robot/mechanism_parts.hpp`, `mechanism/devices.hpp`), the
+  read-fault seam (`hal/read_faults.hpp`), the config's sensor roles and `valid()`'s claims of them, and a
+  compile-refusal harness in CI (every build refusal must fail to compile naming its reason). `[~]` until A6:
+  the service (A2), position and speed (A3), auton steps and driver controls (A4), robot two and the programs
+  (A5), the bench page (A6) are to come, and **no mechanism has moved through it** (HA-184, HA-186 new).
+  **A2 LANDED 2026-10-15, host-only**: the mechanism service (`mechanism/service.hpp` — the pacer seam and the driver
+  loop's place, exactly one tick per control tick; a slot per mechanism as its claimant; the three mode changes),
+  done-conditions (`mechanism/until.hpp`), the POWER and PNEUMATIC behaviours, piece sensors as positive evidence and
+  the read-fault rule, the outcomes ABSENT / NOT_HOMED / REFUSED, the run guard's latch cutting claimed mechanisms
+  (N1, a behaviour change), and the host test plant's mechanism models (`sim/mechanism_plant.hpp`, HA-183). No
+  program builds the service yet.
+  **A3 LANDED 2026-10-22 (built 2026-10-15), host-only**: the POSITION behaviour (`PositionSlot`: moves, holds,
+  every homing moment with its zero log, the soft stop, every hold target clamped, NOT_HOMED before homing) and the SPEED behaviour
+  (`SpeedSlot`), the stall watch on every behaviour, the starting values' boot line (HA-182), `bind()` taking every
+  kind, and a 70th build refusal (absolute homing over a whole sensor turn); the guide's chapter 18.
+  **A4 LANDED 2026-10-29 (built 2026-10-22, reviewed, fixed and verified; the team lead's three rulings of 2026-10-29: the steps' freeze stays OPEN for now, the driver-start home's exception (A4-D26) and U5's stricter build rule (A4-D27) ACCEPTED), host-only**: the Routine's mechanism steps and
+  their verdict policy (API 2.5: the context constructor, `MechanismStepFailed`, `mechanismVerdict`), `runAuton`'s and
+  `runDriverControl`'s mechanism-service overloads, the driver file's controls (`mechanism/driver_inputs.hpp`), the
+  direction check's judgement, the route binder (`runner/mechanism_routes.hpp`) and the registry's per-id doc; T3's
+  bindings superseded, kept. Still `[~]`: robot two and the programs (A5), the bench page (A6).
+  **A5 LANDED 2026-10-30 (built 2026-10-29; no API change), host- and build-gated**: robot two's claws as
+  declarations (`src/robots/mechanism_table.hpp`, the drive check per robot), ONE mechanism service in every program
+  that boots robot two (the competition program and the Auton Tester prove guard -> service -> watch at boot), the
+  per-role boot lines and the route ids registered, robot two's driver file as three lines of controls over
+  `src/common/driver_file.hpp` (its claws byte-identical to T3's bindings, tick for tick), `driverHeading()` in
+  `src/common/driver_heading.hpp`, `driver_controls.hpp` retired, the src gate's rule per robot (HA-185 new). No
+  mechanism has moved through it on a robot. Still `[~]`: the bench page (A6).
+  **A6 LANDED 2026-11-06 (built 2026-10-30; no API change), host- and build-gated**: Bench Tests' station 13
+  MECHANISMS (`src/programs/bench_r3a.{hpp,cpp}`) — every declared mechanism in its declared units, powered one at a
+  time behind six gates, the direction check run on the robot, `[R3A] mech` RECORD lines; the menu 3 × 5. Never run
+  on a robot (worksheet Station P is its first run). Its review's fix round 2026-11-03 (31 findings) wrote the core's
+  completion record (BUILT, not landed). Still `[~]` until A6 lands (its
+  verification, then the merge flips these rows) — then the core is complete; "MECH on hardware" (the freeze
+  trigger) stays open.
 - [ ] `setQuadrantToggle` (index N clicks on the 3-state Toggle + Optical color confirm) — *highest-value primitive*.
+  - [x] **AF1S-A1 (LANDED 2026-11-13; built 2026-11-11):** its SKILLS form, `competition::checkAndFlipToggle` — look with the
+    front camera, push only when the Toggle is not its Quadrant's colour, at most two pushes, look again; camera only
+    (no Optical sensor — the team lead's ruling of 2026-11-03), so "FLIPPED" means "shows our colour after a full
+    stroke", never "set". Host- and build-gated, NOT run on a robot; `[~]` until a robot has flipped a Toggle in a
+    skills route and the camera agreed. Next: AF1S-A2 (the camera reachable from an auton).
 - [ ] `orientToScoringHalf` (yellow-side-out: color-sense → pass-through vs flip) — *second highest-value*.
 - [ ] `intakeUntilCapture` (counter-roller, retry, sensor-confirm).
 - [ ] `liftToLevel` (homing + linkage-aware mapping + sag-comp PID hold).
@@ -1305,6 +1981,46 @@ is required, not optional, to hold < 1°.)*
   exist), and the frozen F6/F10 waits pay their documented lateness (guide ch. 9). The name is
   deliberately not "park guard": the library never learns what parking is — both instants and the
   action are caller-supplied with no defaults.
+- [~] **The competition program's LIBRARY half — chunk COMP-a (2026-09-26), HOST-PROVEN ONLY:**
+  `robot::BuildOptions::pacer` (the guard reaches a Robot's chassis), `RunGuard::requestAbandon()`
+  (a mid-auton disable ends the run cleanly — a latch, never a disarm), `Localizer::reseatHeading`
+  (the start heading is the chosen auton's, seated when it starts — HA-05 amended), and
+  `include/shulib/competition/` (`AutonRegistry`, `AutonMenu`, `runAuton`, the acceptance run) on
+  `include/shulib/ui/`'s generic panel pieces. Proven on the host test plant with the end action
+  firing on a stalled routine, the hard stop forcing safe, an abandon cutting a routine mid-motion,
+  and a start pose that lands the routine although the IMU disagrees by 90 degrees. Kept `[~]`:
+  the PROGRAM is COMP-b (`src/`, the eighth build, after the auton tester COMP-t), and nothing here has run on a robot.
+- [~] **A bench path for the 40 in auton — chunk COMP-t (2026-09-28), HOST- AND BUILD-GATED, NOT
+  RUN ON A ROBOT:** "shulib Auton Tester" (`src/programs/auton_tester_program.cpp`, the seventh
+  build, `PROGRAM=autontest`) runs a registered auton through `competition::runAuton` on a Chassis
+  paced by a `RunGuard` — the same call and the same guaranteed end as `autonomous()`; only the
+  trigger differs (RUN and a 3 s countdown; any button, a touch, the controller dropping or a
+  disable aborts through the guard's abandon, within one more tick). The students' auton file
+  `src/team/autons.{hpp,cpp}` (the 40 in auton, the acceptance run) is compiled by every build and by
+  the host suite, which runs each auton through the tester's own run sequence: on the host test
+  plant the 40 in FINISHES with a side up to ×0.723 weak and stops honestly (MOTION_TIMEOUT, the brake
+  run) at ×0.65. The boot PROVES its pacer chain (`RunGuard::pacesTotal()`, additive) or refuses; the
+  SD run log appends across reboots (`ProsBlockSink`'s Append mode — HA-177). Kept `[~]`: nothing has
+  run on a robot (worksheet Station M), and a field disable, the Timed Run and the hand-over to
+  driver control stay with COMP-b's Station K.
+- [~] **The competition program — chunk COMP-b (2026-09-30), HOST- AND BUILD-GATED, NOT RUN ON A
+  ROBOT:** "shulib Competition" (`src/programs/competition_program.cpp`, the EIGHTH build,
+  `PROGRAM=competition`, slot 6) — **the guaranteed park now reaches a real program**: the auton
+  chosen on the brain's menu (NONE by default; LOCKED at the start) runs in `autonomous()` on the
+  program's OWN task through `competition::runAuton`, under a `RunGuard` whose inner pacer is the
+  program's competition watch; a disable or the end of the autonomous period abandons it within one
+  more tick, and every path out of a request — a throw included — publishes a terminal word that
+  `opcontrol()` waits for with no upper bound before it runs the team's driver file. A typed-table
+  boot refuses every auton (driver control still runs); a program error stops the robot safely and
+  refuses later autons until a restart. Its decisions are PROS-free headers the host suite runs on
+  the plant with the real watch (the request, the watch, the screen owner, the pages), its program
+  code is held by source pins, its boot proves its pacer chain or refuses, and the gate builds,
+  links and checks it; guide chapter 17. Kept `[~]`: it is UNRUN — worksheet Station K (the
+  controller's Timed Run, measured first: HA-162; HA-161 settled from its own lines) is its first
+  run. Its driver control runs the library's drive protections (T4 Part 2a, through the driver
+  file), with their PROTECTION row on the driver page and the push check (Station K.8) since T4 Part 3;
+  since T4 Part 3 too, an auton entry the registry refuses is DROPPED, never the boot (the team lead's
+  C5 ruling, 2026-10-02), and its log has an appended SD copy (`comp_log.txt`).
 - [x] **The v1 combinator ruling (chunk F2, explicit):** the engine ships as **the wall-clock guard +
   deadline-aware waits + the existing async handle (`scheduler()`)** — exactly the smaller v1 this
   document and the master plan's cut-list sanctioned. `Sequence`/`Parallel`/`Race` types are **not
@@ -1338,19 +2054,52 @@ only the INPUT half is missing.*
   *consumes* the press, so a shared detector starves the second consumer (HA-104); the seam reports
   levels and the ban is guard-test-pinned. An **F4-additive sibling, outside that freeze**, exactly as
   `IDigitalOut` was; recorded as register row F13, **not frozen** — T2 is its first real consumer.
-- [ ] **Input shaping + drive modes** — the chunk that decides whether the robot feels controllable.
+- [~] **Input shaping + drive modes** *(T2, 2026-09-18: built and host-proven in `teleop/` — continuous deadband, expo, slew off by default, arcade/field/tank modes, one-tick latency pinned on the plant. From G1 Part 2b (2026-09-26) "shulib Teleop" drove through it, and since T4 Part 3 robot two's driver file does — `teleop::runDriverControl`, the default profile, field-centric OFF — run by the new "shulib Drive" and the competition program, neither of which has run on a robot; the bench tester's DRIVE station keeps the raw mapping until a driver has compared the two on the robot. No driver has felt it)* — the chunk that decides whether the robot feels controllable.
   **Continuous** deadband (the naive form jumps 0 → threshold and is what "twitchy" actually means),
   monotonic response curves through `(0,0)` and `(±1,±1)`, configurable slew that is **off by default**
   (it protects the drivetrain and adds lag; lag is the enemy of feel), one-tick input→motor latency
   pinned, and field-centric / robot-centric / arcade / tank modes.
-- [ ] **Field-centric's honest failure mode** — field-centric rotates the driver's stick frame by the
+- [~] **Field-centric's honest failure mode** *(T2, 2026-09-18: the fallback is a LATCH cleared only by the driver's re-zero, the indication is a state struct for a panel. From G1 Part 2b (2026-09-26) "shulib Teleop"'s panel showed the state in words (OFF / ON / FELL BACK / LATCHED) — since T4 Part 3 the new "shulib Drive"'s DETAILS page does — and the loop binds the re-zero to a button — A at 2b, **Y since T3 Part 2 (2026-09-26)**, because A became the pneumatic claw's toggle (the team lead's ruling), stated in robot two's driver file since T4 — with field-centric itself selectable but OFF; none of it has run on a robot)* — field-centric rotates the driver's stick frame by the
   *estimated* heading, so degraded heading silently rotates the controls away from reality while
   everything still appears to work. Requires a documented fallback to robot-centric, a driver-accessible
   re-zero, and a visible indication. Not shippable without it.
-- [ ] **Button bindings / driver macros** — bind a button to a mechanism operation (the F1 seam) or a
-  chassis action. The binding mechanism is the library's; which button does what is the team's.
+- [~] **Button bindings / driver macros** *(T3, 2026-09-26 — MECHANISM BUTTONS DONE, host- and
+  build-gated, NOT RUN ON A ROBOT; chassis MACROS not started. **Superseded, kept (MECH-A4, 2026-10-29,
+  N4):** a robot with declared mechanisms states its buttons as the mechanism core's driver controls
+  (`whileHeld` / `toggle` / `preset` / homing, through the mechanism service); T3's bindings and their loop
+  overloads stay for a program with no service. Part 1: hold-to-run and toggle
+  bindings in `teleop/mechanism_binding.hpp` and `runDriverControl`'s bindings overloads, with
+  mechanisms built from the config by `robot::Robot`. Part 2: "shulib Teleop" drives robot two's
+  claws with them — R1/R2 the pivot on port 6, L1/L2 the one on port 7 (12 V while held, HOLD on
+  release, both buttons of one pivot ⇒ hold), A toggles the pneumatic claw on 3-wire A (CLOSED at
+  the start, kept through a disable), the field-centric re-zero on Y; a claim an autonomous
+  operation left on a bound mechanism is RELEASED when driver control starts, and logged. The team
+  lead's ruling amends the rule below: stick-interrupt applies to chassis MACROS only — for a
+  mechanism button, releasing the button is the stop, asserted at the motors. No claw has moved;
+  worksheet Station J is the first sight)* — bind a button to a mechanism operation (the F1 seam)
+  or a chassis action. The binding mechanism is the library's; which button does what is the team's.
   **A macro must never take the robot away from its driver**: interruptible by stick input within one
   tick, and releasing the button cancels the operation and safes the mechanism.
+- [~] **The driver program** *(T4, 2026-09-27 — Part 1a LANDED, host- and build-gated: the driver file
+  `src/team/robot_two_driver.hpp` and its generic half `src/common/driver_controls.hpp` (deleted at MECH-A5, 2026-10-29 — `src/common/driver_file.hpp` and `driver_heading.hpp` replaced it), held by
+  `test/robot_two_driver_test.cpp` and `test/driver_controls_test.cpp` (deleted at MECH-A5 with its header; its heading cases moved to `test/driver_heading_test.cpp`); the competition program's
+  `opcontrol()` runs it since COMP-b (2026-10-02), and nothing of it has run on a robot. **Part 2a LANDED 2026-10-01, host- and build-gated:** the old
+  drive's protections inside `teleop::runDriverControl` for every program (`teleop/drive_protection.hpp`,
+  `teleop::FrozenReadingDetector`, `hal::MotorGroup::markAbsent`; `test/drive_protection_test.cpp`),
+  not run on a robot, with known gaps — live motors marked dead at a wall: at any wall, one whose
+  speed report settles well before its mates' (CLOSED by the encoder check the team lead ruled
+  2026-10-01, built in Part 3's early step, at the cost of one 1 s fight cut); beside a slipping drive
+  gear, more easily (kept until its gear is fixed; A4 register HA-175). Parts 1b and 2b folded into
+  Part 3 (2b's items are its late step); **Part 3 LANDED 2026-10-08 — T4 COMPLETE** (built 2026-10-04/06, reviewed
+  2026-10-07, its findings fixed and verified 2026-10-08): the new "shulib Drive" (slot 1) runs the driver file with MAIN / DETAILS / MORE pages,
+  "shulib Teleop" retired (seven builds), the Auton Tester in slot 2, the buttons in the driver file
+  only, the PROTECTION row and the push check, an SD copy of "shulib Drive"'s and the competition
+  program's logs, and one refused auton entry dropped, never the boot — none of it run on a robot;
+  Stations F, J and K are its first runs)* — ONE readable driver file for robot
+  two (which button does what, the feel), run by the new "shulib Drive" and by the competition
+  program's `opcontrol()`, never copied; the old drive's protections (a dead drive motor, a motor
+  fighting its side, over-current) moved into the library's driver loop for every program; "shulib
+  Teleop" retired when it lands.
 
 **Definition of Done:** the two reference routines (X tall-tower, H Toggle-own + park) run end-to-end
 in host sim; a deliberately stalled scoring loop still ends with the robot parked in the Midfield; and
@@ -1365,7 +2114,21 @@ R4.)*
 *From a project file to a running robot, no hand-wiring.*
 
 **Config ingestion (WS9)**
-- [ ] `IRobotConfig` + `RobotBuilder.from(profile)` → a fully wired `Chassis`.
+- [~] `IRobotConfig` + `RobotBuilder.from(profile)` → a fully wired `Chassis`.
+  *G1 Part 1, 2026-09-18: the TYPES and the BUILDER landed and are proven on the host —
+  `config::RobotConfig` / `config::Route` / `config::IRobotConfig` / `config::IRouteSource`,
+  the `hal::IDeviceProvider` seam with `hal::fake::FakeDeviceProvider`, and `robot::Robot`,
+  whose `Chassis` drives the A2 plant BIT-IDENTICALLY to the hand-wired graph (tank and
+  X-drive, clean and hostile). Spelled `robot::Robot{config, devices}` rather than
+  `RobotBuilder.from(profile)`: `Chassis` is non-movable, so a factory returning one by value
+  was rejected in favour of `validate(config, devices)` + construction-in-place.
+  *G1 Part 2a, 2026-09-24: `hal::pros::ProsDeviceProvider` landed (host-tested through the PROS
+  shim only), with dead drive ports honoured by the builder and the port map generated.*
+  *G1 Part 2b, 2026-09-26: the first program on the builder — "shulib Teleop"
+  (`src/programs/teleop_program.cpp`, deleted at T4 Part 3) builds `robot::Robot` over the provider from the calibration record;
+  that version has not run on a robot.*
+  **OPEN:** the `src/main.cpp` collapse (G1 Part 2c), and the codegen that fills these types from a
+  `.vexbot` (G3).*
 - [ ] **`robotProfile` sub-schema** (F7) — drivetrain/odometry/sensors/mechanisms/corrections.
 - [ ] **Codegen tool** `.vexbot` → `robot_config.hpp` (config **and** routines, `inline constexpr`).
 - [ ] SD-card runtime loader (optional — re-export + re-run without recompiling).
@@ -1373,13 +2136,30 @@ R4.)*
 - [ ] `schemaVersion` negotiation + additive migration (future `.vexbot` files still load).
 
 **Path authoring (WS8)**
-- [ ] `io/Trajectory`: read **`project.paths[]`** from `.vexbot`; **legacy `.shupaths` importer**
-  (maps old `code_template` strings → command-ids best-effort, flags the rest).
-- [ ] `PathRunner` — profiled per-segment execution + marker callbacks.
-- [ ] **Command-id registry** `runner.on("intake_in", fn)` (F8) — the no-code keystone.
+- [ ] `io/Trajectory`: read **`project.paths[]`** from `.vexbot`. *(G3. The READER is the whole of what
+  is left in this bullet — the thing it feeds now exists. The legacy `.shupaths` importer once listed
+  here was DROPPED on 2026-09-26: paths live only in `.vexbot`.)*
+- [x] `PathRunner` — per-waypoint execution through the frozen `Chassis` verbs + marker callbacks
+  (**G2, 2026-09-18, host plant only**). D1's error policy verbatim: the first non-Settled leg or
+  the first failed marker stops the route, `chassis.cancel()` safes the drive, every later waypoint
+  is skipped and counted into `RunReport`. Markers fire on `ExitReason::Settled` ONLY.
+  *(“Profiled” per-segment velocity blending is NOT in this and never was G2's — it is the
+  roadmap's blending item, a measured Frontier. The checkbox is for execution + markers.)*
+- [x] **Command-id registry** `registry.on("intake_in", fn)` (F8) — the no-code keystone
+  (**G2, 2026-09-18**): fixed capacity, no heap, no `std::function`; a handler is a plain function
+  pointer plus a NON-OWNING context pointer, and a callable's return type is adapted exactly as
+  `Routine::then()` adapts it (pinned against it behaviourally, on the same lambdas). Four ids are
+  library-owned and cannot be re-bound.
+- [x] **The command-id manifest** `runner::writeManifest` (**G2, 2026-09-18**) — one JSON object per
+  line, built-ins first in a frozen order, then registrations in registration order, with a
+  byte-exact golden test. This is **VexBuilder ask #4**, and shipping it unblocked their picker.
 
 **Definition of Done:** a team member who cannot code builds a robot + a routine in VexBuilder,
-exports one `.vexbot`, and the robot runs it. **Freezes:** F7, F8.
+exports one `.vexbot`, and the robot runs it. **Freezes:** F7, **F8 ✅ locked 2026-09-18 at G2.**
+*(The DoD itself is not met and is not close: nothing reads a `.vexbot` yet, and no route has ever
+run on a robot. What G2 settled is the half that does not need the file — a `Route` built in C++ and
+a `Route` parsed from one are the same object and run through the same code, which is what makes the
+file path testable before the file format exists.)*
 
 ---
 
@@ -1387,7 +2167,7 @@ exports one `.vexbot`, and the robot runs it. **Freezes:** F7, F8.
 *See the robot; tune it without a laptop; run it in simulation.*
 
 **Telemetry & tuning (WS10/WS13)** — *the `Shul2Sink` wire on top of the `DebugRecord`; `TermSink`/`SdSink` already shipped at M2/M3 (§18)*
-- [ ] **`SHUL/2`** — the versioned, sequenced **wire serialization of `DebugRecord`** behind the same `ITelemetrySink` seam (F9).
+- [~] **`SHUL/2`** — the versioned, sequenced **wire serialization of `DebugRecord`** behind the same `ITelemetrySink` seam (F9). *Partial, H1 Part A1 (2026-09-29, host-only): the binary format (a CRC on every frame; the Tick and Summary are the blackbox's bytes) and its reader, [`vexbuilder-integration.md`](vexbuilder-integration.md) §5.2. Owed: the sink (H1 Part A2) and the F9 freeze (Part B); the wire has never crossed a real link.*
 - [ ] Run **record/replay** (for VexBuilder visualize/overlay).
 - [ ] On-brain **live PID/FF tuner**; *(add-on)* on-brain HUD/summary screen.
 
@@ -1462,9 +2242,12 @@ tuned on the brain mid-session. **Freezes:** F9.
 **Definition of Done:** a brand-new member follows the 10-minute guide to a running auton without
 help; the API reference is live on the website.
 
-*Status of that DoD, stated plainly: both clauses are OPEN.* The 10-minute guide starts in
+*Status of that DoD, stated plainly: the website clause is met; the guide clause is OPEN.* The 10-minute guide starts in
 VexBuilder and cannot honestly be written until G4 builds it. The API reference exists, is
-generated and gated, and is **not live anywhere** — there is no site. And the human clause is
+generated and gated, and **is live** at docs.shurobotics.com since 2026-08-14 (published from
+`main`, so it shows the last release, not the working branch) — that clause is met. *(This sentence
+said "not live anywhere — there is no site" until 2026-09-24, contradicting the checkbox above it.)*
+The human clause is
 still human: C8 recorded that no genuinely-new reader had used the guide, and D3 cannot close
 that either — nobody read the cookbook cold. It needs a real person, and it now has a named
 owner rather than a hope (see "you are here").
@@ -1492,7 +2275,9 @@ Each maps to an ○ cell in the [Capability Catalog](shulib-v2-master-plan.md#15
 - **Localization:** LIDAR scan-match corrector; Pi/Coral-fused absolute pose; ZUPT.
 - **Control:** adaptive gains; learned feedforward from logged runs; learned-friction tables.
 - **Manipulation:** vision-servo grasp; closed-loop stack verification.
-- **Path/sim:** in-lib spline/Squiggles-style smoothing; full Rapier physics round-trip; live
+- **Path/sim:** in-lib spline/Squiggles-style smoothing (partly delivered: CURVE1-A, 2026-11-11, smooths a
+  curve verb's points into one path — a cubic Hermite through every point, Catmull-Rom directions for
+  points without a heading, `motion/curve_path.hpp`; a general path/trajectory generator is still Frontier); full Rapier physics round-trip; live
   edit-path → re-sim; binary compiled-path artifact + schema-hash handshake.
 - **Telemetry/diagnostics:** on-brain HUD/summary screen (add-on); cloud run library; auto-tune from replays.
 - **Authoring:** a GUI sequence builder in VexBuilder writing `paths[]` directly.
@@ -1544,14 +2329,88 @@ grows by adding rows here, never by renaming these.
 shulib *defines* the contracts; VexBuilder *produces* them. These are the things the VexBuilder side
 must add for the integration to close. They are tracked here so the dependency is never invisible.
 
+> **The full operational detail — every field, every schema, both sides' ordered work lists, and an
+> honest list of what can still move — is in [`vexbuilder-integration.md`](vexbuilder-integration.md).**
+> That document is written FOR the person finishing VexBuilder and is the one to hand over. This
+> section is the index.
+>
+> **Ownership, 2026-08-17:** finishing VexBuilder is owned by the former programming chair (now VP);
+> the **agent-socket work (#3a) is taken by the programming chair.**
+>
+> **The reciprocal half is the part this section used to hide.** These asks read as though shulib were
+> waiting on VexBuilder. It is not — or rather, it is not *only* that: **shulib has built none of the
+> code that consumes any of these contracts.** *(Corrected 2026-09-18, G1 Part 1: the first of them
+> is no longer unbuilt.)* `IRobotConfig` / `IRouteSource` and the builder landed host-only at **G1
+> Part 1** — the in-memory types exist and a config produces a driving `Chassis`; the PROS provider
+> and the `main.cpp` collapse are G1 Part 2 *(the provider landed host-only at Part 2a, 2026-09-24;
+> the `main.cpp` collapse is Parts 2b/2c)*. *(Corrected again 2026-09-18, G2: the second of them is
+> no longer unbuilt either.)* **You are here: `PathRunner`, the command-id registry and the exported
+> manifest landed at G2 and F8 is LOCKED** — a `Route` executes on the host plant, bit-identically to
+> the same legs hand-written as a `Routine`, and VexBuilder's picker is unblocked. The `.vexbot`
+> codegen and the `SHUL/2` wire are still unbuilt (G3–G4, H1), and **nothing in Phase G has run on a
+> robot.** *(Corrected 2026-09-29, H1 Part A1: the `SHUL/2` wire's format and its reader now exist,
+> host-only; its sink and the F9 freeze do not, and it has never crossed a real link.)*
+> Listing only one side's obligations is how a
+> two-sided dependency turns into a stall with each side believing it is blocked. Both lists are below.
+
+### What VexBuilder must add
+
 1. **Add `project.paths[]`** to the `.vexbot` schema (routines now live in the project file, not the
-   retired `.shupaths`). → unblocks F8, M5.
+   retired `.shupaths`). → M5. *(It said "unblocks F8": F8 was locked on 2026-09-18 without it —
+   shulib froze the `paths[]` schema itself, in [`vexbuilder-integration.md`](vexbuilder-integration.md)
+   §4.1–4.3, for VexBuilder to adopt.)*
 2. **Add explicit drivetrain fields** (`kind` / `trackWidth` / `wheelDiameter`) to the robot config so
    shulib doesn't have to *infer* them from part geometry (brittle). → firms up F7, M5.
 3. **Expose the agent socket for `SHUL/2`** (already discoverable via `server.json`) and, when the
    Rapier sim lands, feed simulated sensors in / render pose out. → M6.
+   **(3a — the socket itself, taken by the programming chair. Independent of everything else and
+   startable now; H1 defines the wire unilaterally and needs no sim to be built or tested.)**
 4. **Consume the shulib command-id manifest** to populate VexBuilder's command picker, so authored
-   `paths[]` only reference ids shulib actually handles. → unblocks F8, M5.
+   `paths[]` only reference ids shulib actually handles. → M5. *(F8 is locked; the manifest this
+   consumes exists — row B below.)*
+5. **Add the `project.robotProfile` block** shulib specifies (drivetrain / odometry / sensors /
+   mechanisms / corrections). → F7. *Added 2026-08-17: it was implied by #2 and never stated as its
+   own ask, so it had no owner.*
+6. **Build the electrical UI.** ⚠️ **This is VexBuilder's true critical path and it was missing from
+   this list entirely.** `.vexbot` v2.0.0 ships `electrical{motors,sensors,pneumatics}` as **empty
+   arrays because the UI was never built** — and that is the *source data* for `robotProfile`. Asks #2
+   and #5 cannot be satisfied without it. → gates F7, M5.
+7. **Emit a per-motor `gearRatio`** (`{motorTeeth, wheelTeeth}`) in the drivetrain block. *Added
+   2026-08-17.* shulib had **no gear-ratio concept anywhere** when this was asked; since R3b
+   (2026-09-14) `hal::DriveGeometry` carries a per-side motor-to-wheel ratio — and at
+   least one team robot is believed to be geared **differently on the left and right sides**, so this
+   must be per-motor and must not be hoisted to a single drivetrain-level field.
+
+### What shulib owes VexBuilder — the reciprocal list
+
+| # | shulib must ship | Unblocks | Chunk | Gated on VexBuilder? |
+|---|---|---|---|---|
+| A | `IRobotConfig` / `IRouteSource` / the builder | everything downstream | **G1** | no — **Part 1 DELIVERED 2026-09-18** (`config/robot_config.hpp`, `config/route.hpp`, `robot::Robot` — spelled `Robot{config, devices}`, not `RobotBuilder`); **Part 2a DELIVERED 2026-09-24, host-only** (the PROS device provider, absent drive ports, the generated port map, the driver-control loop); **Part 2b DELIVERED 2026-09-26, build-gated** ("shulib Teleop" moved onto it; that version not run on a robot); Part 2c (`main.cpp` as a dispatcher) is next |
+| B | ✅ `PathRunner`, the command-id registry, and the **exported manifest** | **VexBuilder ask #4** (the picker) — **DELIVERED 2026-09-18**; the format is [`vexbuilder-integration.md`](vexbuilder-integration.md) §4.2.3 | **G2** | no |
+| C′ | The robot profile (revised to the human-stated facts, plus a `controls` block), its generator to the C++ tables, and an optional VS Code robot panel | editing a robot without C++ | **G3a** (added 2026-09-26, before G3) | no |
+| C | `.vexbot` ingestion (into G3a's generator) + the SD runtime loader | a `.vexbot` actually running a robot | **G3** | yes — asks #1, #2, #5, #6 |
+| D | ~~The `.shupaths` one-way importer~~ — **DROPPED 2026-09-26** (paths live only in `.vexbot`) | — | — | — |
+| E | The `SHUL/2` wire protocol | **VexBuilder ask #3** | **H1** | **no — the wire is defined unilaterally** |
+| F | The `hal/sim` adapter + record/replay | the sim seam closing | **H2** | yes — Rapier |
+
+**The two that unblock each other soonest, and neither waits on the other:** shulib's **G2 manifest**
+unblocks VexBuilder's picker, and VexBuilder's **electrical UI + drivetrain fields** unblock shulib's
+G3 ingestion. Those are the right two to run in parallel first. **Half of that is now done
+(2026-09-18): the manifest shipped.** VexBuilder's electrical UI is the one item on the critical path
+between the two projects that only the other side can move.
+
+### Joint decisions neither side can make alone
+
+- ~~**Boundary-marker representation.**~~ **ANSWERED at G2, 2026-09-18: `NONE` is not an id and
+  never will be.** The legacy vocabulary's `NONE` appeared 18 times as a path-segment boundary and
+  was absent from both legacy enums; in this vocabulary **a waypoint IS a segment**, so the boundary
+  has no content left to carry. G4's importer folds the rows into waypoints and emits no marker for
+  them; the picker never renders one. The absence is pinned by the F8 freeze test, so a future
+  built-in cannot quietly give the legacy spelling a meaning it was ruled out of having.
+- **How much of the id vocabulary to mint up front.** Only ONE motion id was ever actually emitted by
+  the legacy planner (`MOVE_WITH_HEADING`); the five manipulation ids were declared and never used,
+  and the primitives behind them are gated on the build team's final mechanism decisions. The picker
+  should be built for a manifest that **grows**, with nothing hardcoded.
 
 ---
 

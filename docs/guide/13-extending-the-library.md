@@ -12,6 +12,8 @@ Everything in `include/shulib/` sits in a deliberate stack — each layer only k
 ones below it:
 
 ```text
+competition/    the competition program's library half: autons as data,
+                the selector model, the auton runner
 chassis/        the facade (Chassis) — what routines talk to            [Ch. 10]
 sequence/       the run guard — a whole-run deadline + guaranteed end   [Ch. 6]
 motion/         motion primitives + the one-at-a-time scheduler         [Ch. 5]
@@ -26,6 +28,7 @@ hal/            the hardware interfaces — motors, sensors, the mechanism
 hal/pros/       the real-hardware adapters over the PROS SDK — the ONE
                 place the library touches VEX's software
 units/ math/    typed quantities, Angle, Pose2d, the frame transforms   [Ch. 2]
+ui/             brain-screen panel pieces (budgets, hit boxes, touches)
 sim/            the simulated robot (tests only!)
 ```
 
@@ -35,8 +38,8 @@ Two structural rules are enforced by CI (automated checks that run on every comm
 1. **The library never includes PROS** (the V5 runtime) — except the adapter directory built
    to, `include/shulib/hal/pros/`, which the check exempts by exact path and nothing else.
    Everything else under `include/shulib/` compiles on any C++20 compiler — which is precisely
-   what makes the massive host-side test suite possible (`src/main.cpp`, outside the library
-   tree, is the other deliberate PROS toucher). If your change needs something from PROS
+   what makes the massive host-side test suite possible (`src/` — the programs, outside the
+   library tree — is the other deliberate PROS toucher). If your change needs something from PROS
    anywhere else in the library, the design is wrong — the need belongs behind a `hal/`
    interface, with the PROS call living in a `hal/pros/` adapter.
 2. **The core never includes the simulator.** Code under test can only see sensor interfaces —
@@ -134,7 +137,8 @@ found fully formed in its own predecessor.)
 
 **Level 1 — the devices** ([`hal/mechanism.hpp`](../../include/shulib/hal/mechanism.hpp)):
 `MotorMechanism` is a group of motors on one shaft, commanded as one; `PneumaticMechanism`
-is one air circuit behind one or more digital lines. Both are built from the same hardware
+is one air circuit behind one or more digital lines (commanded as one level, or — since the
+mechanism core — one level per line, for named positions that differ across its lines). Both are built from the same hardware
 interfaces the rest of the library uses, so they run identically on fakes (tests), the
 simulator, and — through the `hal/pros/` adapters — the robot. The one decision you MUST make
 at construction is the **declared safe state**, and it is per-mechanism because no single
@@ -156,10 +160,13 @@ answer until there is a robot; the assumptions register tracks it (HA-92).
 On the robot, one construction fact matters enough to state here: **building the pneumatic
 line adapter actuates the port** — the V5 drives a digital output the moment the object is
 constructed, so `ProsDigitalOut` makes its initial state a *required* argument with no
-default. Pass it the same value you declare as the mechanism's safe state and boot drives
-the line straight to safe, once, with no glitch through the wrong state; mismatch them and
-the cylinder physically moves at power-on (the [FAQ](../faq.md) entry "Why did my pneumatic
-fire the moment the robot booted?" is this exact story). The confirm sensors have their
+default. Pass it the level the mechanism must be at boot — the safe state you declare for it,
+or, for a mechanism in a `config::RobotConfig`, its stated `pneumaticStart` (a `robot::Robot`
+hands that level to the device provider for you) — and boot drives the line straight there,
+once, with no glitch through the wrong state; state the wrong one and the cylinder physically
+moves at power-on (the [FAQ](../faq.md) entry "Why did my pneumatic fire the moment the robot
+booted?" is this exact story, and says what is still unmeasured about a brain that boots
+disabled). The confirm sensors have their
 adapters too — `ProsDistance`, `ProsOptical`, and `ProsDigitalIn` for a limit switch or bumper,
 which is the obvious confirmation for a clamp or a homed lift — and each carries a trap note
 worth reading before your predicate thresholds on it. A distance sensor with nothing in view
@@ -195,10 +202,14 @@ double-driving it.
 Three practical notes. First, keep a list of your mechanisms as `hal::IMechanism*` — the
 run guard's cancel-all ([Chapter 6](06-how-things-fail.md)) takes exactly that list and
 forces every one of them safe at the buzzer, which is the whole reason the base interface
-exists. Second, if you write your OWN operation type (not the two shipped shapes), claim
+exists. (A `robot::Robot` built from a `config::RobotConfig` builds the motor and pneumatic
+mechanisms its config declares and hands you that list: `Robot::mechanisms()`, with each one also
+reachable by name through `Robot::mechanism("…")` or `Robot::pneumaticMechanism("…")`.)
+Second, if you write your OWN operation type (not the two shipped shapes), claim
 the mechanism with the **registering** overload — `tryClaim(*this)`, implementing
 `hal::ICancellable`, exactly as the shipped operations do — or the guard cannot reach your
-operation at the deadline: it can repaint the device safe, but a live operation re-commands
+operation at the deadline (a registered one it cancels the moment the deadline passes, or the field
+disables the robot, and again at its cancel-all): it can repaint the device safe, but a live operation re-commands
 its voltage on its very next tick, and the guard will only be able to force-release your
 claim and warn (`anonymous claim force-released` in the transcript is this). Third, your
 confirmation predicate is *trusted*: an operation cannot second-guess its only eye on the

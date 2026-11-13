@@ -44,7 +44,7 @@ would move the failure rather than fix it: a header added later and forgotten
 is invisible to the generator AND to the coverage gate, which is the exact
 "silently absent, and the reference still looks complete" failure described
 above. So the list is a glob, on the same reasoning already recorded below for
-EXAMPLE_SOURCE_GLOB: a gate you must remember to update when adding a file is a
+EXAMPLE_SOURCE_GLOBS: a gate you must remember to update when adding a file is a
 gate that rots.
 
 WHAT DOCS2 FOUND WHEN IT POINTED THE PARSER AT THE REST OF THE TREE
@@ -392,8 +392,67 @@ def _normalize(text):
     return re.sub(r"\s+", " ", " ".join(lines)).strip()
 
 
+# A leading attribute-specifier-seq: `[[nodiscard]]`, `[[gnu::format(printf, 1, 2)]]`.
+# (SER1, 2026-10-08.) The name and the kind are read from the first `(` at depth
+# zero, and an attribute's own `(` came first: `[[gnu::format(printf, 1, 2)]] inline
+# void serialLine(...)` was named "?" — published under that name and counted as
+# documented by the coverage gate. `[[nodiscard]]` never showed it (no parenthesis).
+LEADING_ATTRIBUTES = re.compile(r"^\s*(?:\[\[[^\]]*\]\]\s*)+")
+
+
+def _without_leading_attributes(sig):
+    """The declaration with its leading `[[...]]` attributes removed — for reading
+    the name and the kind only; the rendered signature keeps them."""
+    return LEADING_ATTRIBUTES.sub("", sig)
+
+
+# A parenthesised POINTER (or reference) declarator where a parameter list would
+# be: `R (*fn)(args)`, `R (&fn)(args)`, `R (Owner::*fn)(args)` — a field (or a
+# constant) holding a function, not a function. (SER1's review, 2026-10-15: the
+# reader took `manipulation::MechanismOutcome (*fn)(void* ctx, …)` for a function
+# named after its return type, and the coverage gate passed it.)
+POINTER_DECLARATOR = re.compile(
+    r"\(\s*(?:[A-Za-z_]\w*::)*[*&]+\s*(?:const\s+)?([A-Za-z_]\w*)\s*\)\s*\(")
+
+# What a member's or an entity's NAME may look like once read: an identifier (a
+# destructor's `~` allowed), a template specialization's `name<args>`, or an
+# operator. Anything else — `?`, `1]`, a type — is the name reader misreading the
+# declaration, and the coverage gate FAILS it (do_check_coverage): a misread name is
+# published under a heading nobody can search for, and it used to count as
+# documented. (SER1's review, 2026-10-15.)
+READABLE_NAME = re.compile(r"^(?:~?[A-Za-z_]\w*(?:<.+>)?|operator\b.+)$")
+
+# A lone keyword is never a name either, though it looks like an identifier: it is
+# what the reader returned for a CONVERSION operator before it learned that shape —
+# `explicit operator bool() const` would have been published as `bool`, and READABLE_NAME
+# alone would have passed it. (SER1's review, resumed 2026-10-15: MECH-A1's
+# `BrakeWord`, kinds.hpp, declares `operator config::SafeBrakeMode()` and
+# `operator hal::BrakeMode()`; the reader named them after the TYPE.)
+NOT_A_NAME = frozenset({
+    "auto", "bool", "char", "char8_t", "char16_t", "char32_t", "class", "const",
+    "consteval", "constexpr", "constinit", "decltype", "double", "enum", "explicit",
+    "extern", "final", "float", "friend", "inline", "int", "long", "mutable", "noexcept",
+    "operator", "override", "return", "short", "signed", "static", "struct", "template",
+    "typename", "union", "unsigned", "virtual", "void", "volatile", "wchar_t",
+})
+
+
+def unreadable_name(name):
+    """True when `name` is not a shape READABLE_NAME allows, or is a lone keyword —
+    the reader misread it."""
+    return not READABLE_NAME.match(name or "") or name in NOT_A_NAME
+
+
+# A CONVERSION operator's head, read up to its parameter list: `operator bool`,
+# `operator config::SafeBrakeMode`, `operator const char*`. Its name is the keyword
+# with the type it converts to; without this the head's last token — the TYPE — was
+# the name. (SER1's review, resumed 2026-10-15; see NOT_A_NAME.)
+CONVERSION_OPERATOR_HEAD = re.compile(r"\boperator\s+([^()]*?)\s*$")
+
+
 def _member_name(sig):
     """The identifier a human would call this member, from its rendered form."""
+    sig = _without_leading_attributes(sig)
     # A using-declaration names its alias, and the name is NOT the last token
     # before the first `(` — `using PreconditionHandler = void (*)(const char*)`
     # would otherwise be called "void".
@@ -422,6 +481,14 @@ def _member_name(sig):
             if ch == "=":
                 break            # an initializer, not a parameter list
             if ch == "(":
+                pointer = POINTER_DECLARATOR.match(sig, i)
+                if pointer:
+                    return pointer.group(1)   # `R (*fn)(args)`: the field is `fn`
+                conversion = CONVERSION_OPERATOR_HEAD.search(sig[:i])
+                if conversion and conversion.group(1):
+                    # `operator config::SafeBrakeMode()`: the name is the keyword and
+                    # the type, not the type alone.
+                    return "operator " + re.sub(r"\s+", " ", conversion.group(1))
                 return _bare_identifier(sig[:i])
     # No parameter list: a field or a constant. Name is the identifier before
     # = or { or ;.
@@ -435,6 +502,15 @@ def _bare_identifier(head):
     anchor and an index row carrying the bound would not match what a reader
     searches for.
     """
+    # Every `[...]` group first, innermost out — a bound may hold spaces
+    # (`char label[ui::kMediumCols + 1]`) or come twice (`char line[Lines][Cols + 1]`),
+    # and the last TOKEN was then `1]` (SER1's review, 2026-10-15: three fields in the
+    # shipped reference were published as `1]`).
+    while True:
+        stripped = re.sub(r"\[[^\[\]]*\]", "", head)
+        if stripped == head:
+            break
+        head = stripped
     tokens = head.strip().split()
     if not tokens:
         return "?"
@@ -980,11 +1056,13 @@ def _looks_like_function(sig):
     The first has a `(` at depth zero, after an `=`. The second has one inside a
     brace initializer, which was not tracked at all. So a top-level `=` ends the
     search (everything after it is an initializer), and braces are a depth.
+    A leading `[[...]]` attribute is skipped: its own `(` is not a parameter list.
     """
+    sig = _without_leading_attributes(sig)
     if OPERATOR_NAME.search(sig):
         return True                       # every operator declaration is one
     angle = brace = 0
-    for ch in sig:
+    for i, ch in enumerate(sig):
         if ch == "<":
             angle += 1
         elif ch == ">":
@@ -997,7 +1075,8 @@ def _looks_like_function(sig):
             if ch == "=":
                 return False
             if ch == "(":
-                return True
+                # `R (*fn)(args)` declares a pointer to a function: a field.
+                return not POINTER_DECLARATOR.match(sig, i)
     return False
 
 
@@ -1668,32 +1747,64 @@ def do_generate(outroot=None):
     return written
 
 
-def do_check_coverage(only=None):
-    """Report every public entity with no /// documentation.
-
-    `only` narrows the report to one header — the whole tree is 115 headers, and
-    someone documenting one of them needs the list for that one, not a wall.
-    It narrows the REPORT, never the gate: the build always runs it unfiltered.
-    """
-    missing = []
-    pages = build_pages()
-    if only:
-        only = only.replace(os.sep, "/")
-        pages = [p for p in pages if p[0]["header"].endswith(only)]
-        if not pages:
-            raise SystemExit(f"api_doc_tool: no target header matches {only!r}")
+def coverage_problems(pages):
+    """(missing, unreadable) over `pages`: every public entity with no /// documentation, and
+    every one whose NAME the reader could not read (unreadable_name) — each as
+    (header, line, name, signature)."""
+    missing, unreadable = [], []
     for target, _banner, entries in pages:
         for section in sections_of(entries):
+            if unreadable_name(section.name):
+                unreadable.append((target["header"], section.line, section.name,
+                                   section.signature or section.name))
             if not section.documented:
                 what = (f"{section.kind} {section.qualified}"
                         if isinstance(section, TypeDecl) else section.name)
                 missing.append((target["header"], section.line, what,
                                 section.signature or what))
             for mem in getattr(section, "members", []):
+                if unreadable_name(mem.name):
+                    unreadable.append((target["header"], mem.line,
+                                       f"{section.qualified}::{mem.name}", mem.signature))
                 if not mem.documented:
                     missing.append((target["header"], mem.line,
                                     f"{section.qualified}::{mem.name}",
                                     mem.signature))
+    return missing, unreadable
+
+
+def do_check_coverage(only=None, pages=None):
+    """Report every public entity with no /// documentation, and FAIL on any
+    entity whose name the reader could not read (coverage_problems).
+
+    `only` narrows the report to one header — the whole tree is 115 headers, and
+    someone documenting one of them needs the list for that one, not a wall.
+    It narrows the REPORT, never the gate: the build always runs it unfiltered.
+    `pages` is the self-test's: a page set checked in place of the tree's
+    (build_pages()), so both failures are proved on planted entities.
+    """
+    if pages is None:
+        pages = build_pages()
+    if only:
+        only = only.replace(os.sep, "/")
+        pages = [p for p in pages if p[0]["header"].endswith(only)]
+        if not pages:
+            raise SystemExit(f"api_doc_tool: no target header matches {only!r}")
+    missing, unreadable = coverage_problems(pages)
+    if unreadable:
+        print("", file=sys.stderr)
+        print(f"DOC COVERAGE FAILURE — the name reader could not read {len(unreadable)} "
+              "public entities' names.", file=sys.stderr)
+        print("Each would be published under a heading nobody can search for (`?`, `1]`, a "
+              "type),", file=sys.stderr)
+        print("and counted as documented. Teach _member_name() the declaration's shape.",
+              file=sys.stderr)
+        print("", file=sys.stderr)
+        for header, line, name, sig in unreadable:
+            print(f"  UNREADABLE NAME: {name!r}", file=sys.stderr)
+            print(f"      at {header}:{line}", file=sys.stderr)
+            print(f"      {sig}", file=sys.stderr)
+        return 1
     if not missing:
         total = sum(1 for _t, _b, e in pages for s in sections_of(e)
                     for _ in [s] + list(getattr(s, "members", [])))
@@ -1805,10 +1916,60 @@ def do_check_fresh():
 PUBLIC_DOC_GLOBS = ["docs/*.md", "docs/guide/*.md", "docs/cookbook/*.md", "docs/api/*.md"]
 PUBLIC_DOC_FILES = ["README.md", "test/README.md"]
 
-# The compiled-example sources are a GLOB, not a list: a gate you must remember
-# to update when adding a file is a gate that rots (the same reasoning as the
-# ARM gate's generated header list).
-EXAMPLE_SOURCE_GLOB = "test/*example*_test.cpp"
+# The compiled sources a public document may quote, as GLOBS, never as a list of
+# files: a gate you must remember to update when adding a file is a gate that
+# rots (the same reasoning as the ARM gate's generated header list).
+#
+# ONE GLOB PER KIND OF FILE (chunk T4 Part 1a, 2026-09-27 — until then this was
+# one glob, EXAMPLE_SOURCE_GLOB, the example tests alone). Each entry names one
+# KIND of compiled file that a chapter may quote from, and each must match at
+# least one file — a glob that matches nothing is a kind the scan silently
+# stopped reading, which is worse than failing:
+#   * test/*example*_test.cpp — the compiled example tests: every listing the
+#     guide and the cookbook teach from is compiled and RUN there;
+#   * src/team/*_driver.hpp — a robot's DRIVER FILE (T4): the team's own driver
+#     code, which the cookbook shows part by part ("A whole driver file": the
+#     controls, the feel, bind() and run()). It is compiled by every robot build
+#     and host-tested (test/robot_two_driver_test.cpp for robot two's), so a quote
+#     of it is held to the code as a listing is — and, by the whole-run rule
+#     below, each such listing to an unbroken run of the file;
+#   * src/team/autons.cpp — the team's AUTON FILE (COMP-t, 2026-09-28): the
+#     autons the robot runs, which guide chapter 16 quotes piece by piece. The
+#     host suite compiles it and runs every auton in it on the host test plant
+#     (test/autons_test.cpp), and every robot build compiles it, so a quote of it
+#     is a quote of what the robot runs — and, by the whole-run rule, each
+#     listing is an unbroken run of it (a listing of an auton that skips a line
+#     misstates the auton).
+# It is NEVER widened to all of src/: a program's plumbing is not something a
+# public document teaches from, and a quote of it would pass this scan while
+# describing code no reader should copy. The guide's README states the same
+# scope in prose ("the team's files under src/team/ that a chapter quotes").
+EXAMPLE_SOURCE_GLOBS = ["test/*example*_test.cpp", "src/team/*_driver.hpp",
+                        "src/team/autons.cpp"]
+
+# THE WHOLE-RUN RULE, for the kinds a chapter shows AS THE FILE READS (T4 Part
+# 1a's review, 2026-09-27). The scan checks MEMBERSHIP: every quoted line must
+# be a line of some source. That catches a quoted line that changed or went —
+# NOT a line ADDED to the file inside the part a listing shows. A third control
+# added to a driver file's kHolds leaves every quoted line present, so the
+# cookbook's "one line per mechanism" listing would go silently one control
+# short (seen: an `{"intake", …}` line added to robot two's driver file, and
+# the membership scan stayed green). G3a's robot panel is going to write
+# exactly that part of the file. So, for each kind listed here: a listing ALL
+# of whose lines are lines of one file of the kind must ALSO be ONE UNBROKEN
+# RUN of that file's non-blank lines — nothing skipped, nothing reordered.
+# Blank lines are ignored on both sides, and a listing may start and stop
+# anywhere in the file. A listing that mixes lines from two files is held to
+# membership only. Each entry must also be an EXAMPLE_SOURCE_GLOBS entry (its
+# lines have to pass membership first); the scan fails if one is not. The
+# example tests are NOT a whole-run kind (the rule was made for the file G3a
+# will write): a recipe may still leave out lines of its test, such as a CHECK,
+# between the lines it shows. Measured when the rule was added: all 46 listings
+# that lie wholly inside one example test are unbroken runs already, so adding
+# that kind here would need no chapter re-quoted — a separate decision. The
+# team's auton file joined at COMP-t (the coordinator's ruling, 2026-09-27: a
+# listing of an auton that skips a line misstates the auton).
+WHOLE_RUN_SOURCE_GLOBS = ["src/team/*_driver.hpp", "src/team/autons.cpp"]
 
 # The C7 removability property: docs/internal/ must be droppable without
 # breaking a single public link.
@@ -1857,7 +2018,12 @@ def _public_docs():
 
 
 def do_check_examples():
-    """Every ```cpp line in public docs must appear VERBATIM in a compiled test.
+    """Every ```cpp line in public docs must appear VERBATIM in a compiled source.
+
+    The compiled sources are EXAMPLE_SOURCE_GLOBS: the example tests, and the
+    team's files a chapter quotes from (a robot's driver file, since T4; the
+    team's auton file, since COMP-t). A listing of a WHOLE_RUN_SOURCE_GLOBS file
+    must also be one unbroken run of it (the rule's reasoning is at that list).
 
     CAMPAIGN FIND (D3, mutations H1 and H6): this rule has existed since C8 and
     was enforced only by the internal verify harness — so a rotted example
@@ -1865,46 +2031,88 @@ def do_check_examples():
     survived everything. The rule is only a mechanism when a machine runs it.
     """
     import glob as _glob
-    sources = sorted(_glob.glob(os.path.join(REPO, EXAMPLE_SOURCE_GLOB)))
-    if not sources:
-        print("DOC EXAMPLE SCAN: no test/*example*_test.cpp found — the scan would "
-              "pass vacuously, which is worse than failing.", file=sys.stderr)
-        return 1
+    sources = []
+    for pattern in EXAMPLE_SOURCE_GLOBS:
+        matched = sorted(_glob.glob(os.path.join(REPO, pattern)))
+        if not matched:
+            print(f"DOC EXAMPLE SCAN: no file matches {pattern} — the scan would stop "
+                  "reading that kind of source without a word, which is worse than "
+                  "failing.", file=sys.stderr)
+            return 1
+        sources.extend(matched)
     known = set()
     for src in sources:
         for line in open(src, encoding="utf-8").read().splitlines():
             known.add(line.strip())
+    # The whole-run kinds (WHOLE_RUN_SOURCE_GLOBS): each file's non-blank lines,
+    # in order.
+    whole = []
+    for pattern in WHOLE_RUN_SOURCE_GLOBS:
+        if pattern not in EXAMPLE_SOURCE_GLOBS:
+            print(f"DOC EXAMPLE SCAN: {pattern} is a whole-run kind but not an "
+                  "EXAMPLE_SOURCE_GLOBS entry — its lines could never pass the "
+                  "membership scan it builds on.", file=sys.stderr)
+            return 1
+        for path in sorted(_glob.glob(os.path.join(REPO, pattern))):
+            lines = [l.strip() for l in open(path, encoding="utf-8").read().splitlines()
+                     if l.strip()]
+            whole.append((os.path.relpath(path, REPO), lines))
+
+    def _one_run(quoted, lines):
+        n = len(quoted)
+        return any(lines[i:i + n] == quoted for i in range(len(lines) - n + 1))
 
     bad = []
+    broken = []
     checked = 0
+    runs = 0
     for rel in _public_docs():
         if rel.startswith("docs/api/"):
             continue  # generated in full; check-fresh is the stronger rule (above)
         text = open(os.path.join(REPO, rel), encoding="utf-8").read()
         for bi, block in enumerate(re.findall(r"```cpp\n(.*?)```", text, re.S), 1):
-            for line in block.splitlines():
-                s = line.strip()
-                if not s:
-                    continue
-                checked += 1
-                if s not in known:
-                    bad.append((rel, bi, s))
-    if not bad:
+            quoted = [line.strip() for line in block.splitlines() if line.strip()]
+            missing = [s for s in quoted if s not in known]
+            checked += len(quoted)
+            bad.extend((rel, bi, s) for s in missing)
+            if missing or not quoted:
+                continue  # membership already failed it (or there is nothing to place)
+            owners = [src for src, lines in whole if set(quoted) <= set(lines)]
+            if not owners:
+                continue  # not a listing of a whole-run file: membership is the rule
+            runs += 1
+            if not any(_one_run(quoted, lines) for src, lines in whole if src in owners):
+                broken.append((rel, bi, owners[0]))
+    if not bad and not broken:
         print(f"doc example scan: {checked} quoted lines, all verbatim "
-              f"({len(sources)} source files)")
+              f"({len(sources)} source files); {runs} listings of whole-run files, "
+              "each one unbroken run")
         return 0
-    print("", file=sys.stderr)
-    print("NOT VERBATIM — a documented example has drifted from the code that "
-          "compiles it.", file=sys.stderr)
-    print("Fix the EXAMPLE TEST first, then re-quote the listing from it. Never "
-          "hand-edit", file=sys.stderr)
-    print("the markdown toward agreement: only one of the two sides is checked "
-          "by a compiler.", file=sys.stderr)
-    print("", file=sys.stderr)
-    for rel, bi, line in bad[:40]:
-        print(f"  {rel} (block {bi}): {line}", file=sys.stderr)
-    if len(bad) > 40:
-        print(f"  … and {len(bad) - 40} more", file=sys.stderr)
+    if bad:
+        print("", file=sys.stderr)
+        print("NOT VERBATIM — a documented listing has drifted from the compiled "
+              "source it quotes.", file=sys.stderr)
+        print("Fix the SOURCE first — the example test, or the team's file under "
+              "src/team/ — then re-quote", file=sys.stderr)
+        print("the listing from it. Never hand-edit the markdown toward agreement: "
+              "only one of the two", file=sys.stderr)
+        print("sides is checked by a compiler.", file=sys.stderr)
+        print("", file=sys.stderr)
+        for rel, bi, line in bad[:40]:
+            print(f"  {rel} (block {bi}): {line}", file=sys.stderr)
+        if len(bad) > 40:
+            print(f"  … and {len(bad) - 40} more", file=sys.stderr)
+    if broken:
+        print("", file=sys.stderr)
+        print("NOT ONE UNBROKEN RUN — a listing of a team file skips or reorders "
+              "its lines: a line was", file=sys.stderr)
+        print("added to the file inside the part the listing shows (or the listing "
+              "leaves one out). Re-quote", file=sys.stderr)
+        print("the listing from the file, so it shows every line of that part.",
+              file=sys.stderr)
+        print("", file=sys.stderr)
+        for rel, bi, src in broken:
+            print(f"  {rel} (block {bi}): a listing of {src}", file=sys.stderr)
     return 1
 
 
@@ -1981,6 +2189,13 @@ inline int freeHelper(int a, int b = 2) { return a + b; }
 template <typename T>
 inline T freeTemplate(T v) { return v; }
 
+/// A free function behind a PARENTHESISED attribute (SER1's serialLine shape):
+/// named for the identifier before its parameter list, not the attribute's `(`.
+[[gnu::format(printf, 1, 2)]] inline void attributed(const char* fmt, ...) {}
+
+/// A constant behind a parenthesised attribute: a constant, not a function.
+[[deprecated("fixture")]] inline constexpr int kAttributed = 1;
+
 /// Two overloads of one operator, plus a different operator, all of which
 /// reduce to the same characters once punctuation is stripped.
 constexpr Count operator""_ct(unsigned long long v) { return static_cast<Count>(v); }
@@ -2047,6 +2262,28 @@ struct Initializers {
     double scaled{(3.0 + 4.0) * 2.0};
     /// A genuine function, for contrast: the `(` here is a parameter list.
     double scale(double by) const { return scaled * by; }
+};
+
+/// DECLARATORS THE NAME READER MISREAD IN THE SHIPPED TREE (SER1's review,
+/// 2026-10-15): an array bound with a space in it, a second bound, and a
+/// pointer-to-function field — published as `1]`, `1]` and the field's RETURN
+/// TYPE (a "function"), every one counted as documented.
+struct Declarators {
+    /// A width, for the bounds below.
+    static constexpr int kCols = 4;
+    /// An array whose bound has spaces in it.
+    char label[kCols + 1]{};
+    /// Two bounds.
+    char grid[2][kCols + 1]{};
+    /// A pointer to a function: a FIELD named `callback`.
+    int (*callback)(void* ctx, int n) = nullptr;
+    /// Conversion operators (resumed review, 2026-10-15): each was named after its
+    /// TYPE — `bool`, `std::size_t`, `char*` — the first two passing as names.
+    explicit operator bool() const noexcept { return true; }
+    /// To a qualified type, the shape MECH-A1's BrakeWord declares.
+    constexpr operator std::size_t() const noexcept { return 4; }
+    /// To a pointer, with a cv-qualifier in the type.
+    operator const char*() const noexcept { return label; }
 };
 
 /// A documented class.
@@ -2151,7 +2388,7 @@ def do_self_test():
         # coverage gate vacuously green — the worst possible failure here).
         names = [t.name for t in types]
         check(names == ["Colour", "Sized", "Wrapped", "Thing", "Derived",
-                        "Initializers", "Widget"], f"types found: {names}")
+                        "Initializers", "Declarators", "Widget"], f"types found: {names}")
         by = {t.name: t for t in types}
 
         # Bug caught: FOUND IN THE SHIPPED TREE by a reader, not by any gate. A
@@ -2199,9 +2436,23 @@ def do_self_test():
         # spec/accuracy.hpp and all of version.hpp.
         fnames = [m.name for m in frees]
         check(fnames == ["kPunctuation", "kSemicolon", "kOpenBrace", "Count",
-                         "freeHelper", "freeTemplate", 'operator""_ct'],
+                         "freeHelper", "freeTemplate", "attributed", "kAttributed",
+                         'operator""_ct'],
               f"namespace-scope entities: {fnames}")
         fby = {m.name: m for m in frees}
+        # Bug caught (SER1, 2026-10-08): a declaration opening with a PARENTHESISED
+        # attribute was named after the attribute — `[[gnu::format(printf, 1, 2)]]
+        # inline void serialLine(...)` rendered as "?" in docs/api/, and the
+        # coverage gate counted "?" as documented. And the kind half: an
+        # attribute's `(` read as a parameter list made a constant a function.
+        check("attributed" in fby and fby["attributed"].kind == "free function",
+              f"a function behind [[gnu::format(...)]] is named and kinded: {fnames}")
+        check("kAttributed" in fby and fby["kAttributed"].kind == "constant",
+              f"a constant behind [[deprecated(...)]] is a constant: "
+              f"{fby.get('kAttributed') and fby['kAttributed'].kind}")
+        check(fby.get("attributed") is not None and fby["attributed"].signature.startswith(
+                  "[[gnu::format(printf, 1, 2)]] inline void attributed("),
+              "the rendered signature keeps the attribute")
         check(fby["kPunctuation"].kind == "constant", "constant kind")
         # Bug caught: FOUND BY MUTATION (DOCS2 campaign M3, which stayed GREEN on
         # the first fixture). `kPunctuation`'s three literals happen to BALANCE,
@@ -2254,6 +2505,91 @@ def do_self_test():
               f"…and keeps it whole: {init['scaled'].signature!r}")
         check(init["scale"].kind == "function",
               "a real parameter list is still a function")
+
+        # Bug caught (SER1's review, 2026-10-15): FOUND IN THE SHIPPED TREE when
+        # the coverage gate learned to fail on an unreadable name — three fields
+        # published as `1]` (an array bound with a space, a second bound) and a
+        # pointer-to-function field published as a FUNCTION named after its
+        # return type. Each name, and the pointer's kind, pinned.
+        decl = {m.name: m for m in by["Declarators"].members}
+        check(set(decl) == {"kCols", "label", "grid", "callback", "operator bool",
+                            "operator std::size_t", "operator const char*"},
+              f"Declarators: {sorted(decl)}")
+        # Bug caught (SER1's review, resumed 2026-10-15): a CONVERSION operator named
+        # after its type — `bool` passed as a name; MECH-A1's
+        # `operator config::SafeBrakeMode()` failed the gate as unreadable. Named
+        # `operator <type>`, kinded a function, and anchored apart.
+        for conv in ("operator bool", "operator std::size_t", "operator const char*"):
+            check(decl.get(conv) is not None and decl[conv].kind == "function",
+                  f"a conversion operator is a function named {conv!r}: "
+                  f"{decl.get(conv) and decl[conv].kind}")
+        conv_anchors = {_spell(n) for n in ("operator bool", "operator std::size_t",
+                                            "operator const char*")}
+        check(len(conv_anchors) == 3 and all(a.startswith("operator-") for a in conv_anchors),
+              f"conversion operators anchor apart: {sorted(conv_anchors)}")
+        check(decl.get("callback") is not None and decl["callback"].kind == "field",
+              f"a pointer-to-function field is a field: "
+              f"{decl.get('callback') and decl['callback'].kind}")
+        check(decl.get("grid") is not None and
+              decl["grid"].signature == "char grid[2][kCols + 1]{}",
+              f"…and the rendered signature keeps both bounds: "
+              f"{decl.get('grid') and decl['grid'].signature!r}")
+
+        # Bug caught (SER1's review, 2026-10-15): the coverage gate counting an
+        # entity whose name the reader could not read — `?` (serialLine, before
+        # the attribute skip), `1]`, a type — as documented. The clean fixture
+        # has none; a planted `?` member, `1]` member, lone-keyword `bool` member
+        # (a conversion operator read before the reader knew the shape) and `?`
+        # namespace-scope entity must each be REPORTED, and a documented one stays
+        # documented (the name check is its own failure, not a coverage miss).
+        fixture_pages = [({"header": "fixture.hpp"}, banner, entries)]
+        _missing, unreadable = coverage_problems(fixture_pages)
+        check(unreadable == [], f"the clean fixture has no unreadable name: {unreadable}")
+        planted = [Member("field", "?", "int ? = 0", ["documented"], 1),
+                   Member("field", "1]", "char x[n + 1]", ["documented"], 2),
+                   Member("function", "bool", "explicit operator bool() const", ["documented"],
+                          4)]
+        for m in planted:
+            m.owner = by["Thing"]
+        by["Thing"].members.extend(planted)
+        stray = Member("constant", "?", "[[odd(\"]\")]] int odd = 0", ["documented"], 3)
+        entries.append(stray)
+        try:
+            _missing, unreadable = coverage_problems(fixture_pages)
+            names_found = [u[2] for u in unreadable]
+            check(names_found.count("Thing::?") == 1 and "Thing::1]" in names_found
+                  and "Thing::bool" in names_found and "?" in names_found,
+                  f"planted unreadable names were not all reported: {names_found}")
+        finally:
+            for m in planted:
+                by["Thing"].members.remove(m)
+            entries.remove(stray)
+
+        # Bug caught (SER1's verification, 2026-10-15): the check above proves
+        # coverage_problems() REPORTS a misread name — not that check-coverage
+        # FAILS on one. With the failing branch lost, the tree (which has no
+        # misread name) passes every gate, and the next shape the reader misreads
+        # is published as `?` again. One page whose every entity is documented:
+        # with a name the reader could not read, check-coverage must return 1 and
+        # print it; with that name readable it must pass — the control, so the
+        # failure is the NAME's, not a coverage miss.
+        import contextlib
+        import io
+        for name, want in (("?", 1), ("1]", 1), ("bool", 1), ("readableName", 0)):
+            page = [({"header": "fixture.hpp"}, banner,
+                     [Member("constant", name, "int odd = 0", ["documented"], 7)])]
+            out, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                rc = do_check_coverage(pages=page)
+            said = err.getvalue()
+            check(rc == want,
+                  f"check-coverage on a documented {name!r}: rc {rc}, not {want}: {said}")
+            if want:
+                check(f"UNREADABLE NAME: {name!r}" in said and "fixture.hpp:7" in said,
+                      f"check-coverage did not name the unreadable {name!r}: {said}")
+            else:
+                check(said == "" and "all documented" in out.getvalue(),
+                      f"check-coverage failed a readable, documented name: {said}")
 
         # Bug caught: enumerators not treated as members, so an undocumented
         # enumerator would never be reported.
@@ -2475,6 +2811,158 @@ def do_self_test():
         # the other and the reference is short by a whole file.
         outs = [t["out"] for t, _b, _e in pages]
         check(len(outs) == len(set(outs)), "page paths are unique")
+
+        # ── check-examples reads every KIND in EXAMPLE_SOURCE_GLOBS, and only those (T4 1a) ──
+        # Bug caught: a quote of a team file a chapter shows whole (robot two's
+        # driver file, src/team/robot_two_driver.hpp) drifting from the file while
+        # the scan stays green — because the scan read test/ only, or because a glob
+        # that matches nothing (the file renamed) silently drops that kind; and the
+        # opposite hole, a glob widened to all of src/, which would let a chapter
+        # quote a program's plumbing. A fixture tree, run through the real check.
+        import contextlib
+        import io
+        ex = os.path.join(tmp, "examples-fixture")
+
+        def _put(rel, text):
+            path = os.path.join(ex, rel)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(text)
+
+        def _scan():
+            global REPO
+            saved = REPO
+            REPO = ex
+            try:
+                with contextlib.redirect_stdout(io.StringIO()), \
+                        contextlib.redirect_stderr(io.StringIO()):
+                    return do_check_examples()
+            finally:
+                REPO = saved
+
+        _put("test/fixture_example_test.cpp", "    int onlyInTheExample = 1;\n")
+        _put("src/team/fixture_driver.hpp",
+             "    static constexpr int kOnlyInTheDriverFile = 7;  // a driver line\n")
+        # The auton kind (COMP-t): its glob names ONE file, so the fixture must have it or
+        # every scan below fails on "no file matches" rather than on what it tests.
+        autons_whole = ("void registerAutons(Registry& registry) {\n"
+                        "    // 1. THE 40 IN AUTON.\n"
+                        "    forty.name = \"40in forward\";  // what the menu shows\n"
+                        "\n"
+                        "    forty.endActionAt = 27_s;\n"
+                        "    registry.add(forty);\n"
+                        "}\n")
+        _put("src/team/autons.cpp", autons_whole)
+        _put("src/programs/fixture_program.cpp", "    int onlyInAProgram = 3;\n")
+        quote = ("```cpp\nstatic constexpr int kOnlyInTheDriverFile = 7;  // a driver line\n"
+                 "int onlyInTheExample = 1;\n```\n")
+        _put("docs/cookbook/fixture.md", quote)
+        check(_scan() == 0,
+              "check-examples: a line only a driver file holds is VERBATIM (passes)")
+        _put("docs/cookbook/fixture.md", quote.replace("= 7;", "= 8;"))
+        check(_scan() == 1,
+              "check-examples: a drifted driver-file quote fails")
+        _put("docs/cookbook/fixture.md", "```cpp\nint onlyInAProgram = 3;\n```\n")
+        check(_scan() == 1,
+              "check-examples: a line only a program file holds fails (never all of src/)")
+        _put("docs/cookbook/fixture.md", "```cpp\nint onlyInTheExample = 1;\n```\n")
+        check(_scan() == 0, "check-examples: the fixture's example line passes on its own")
+
+        # ── the WHOLE-RUN rule (WHOLE_RUN_SOURCE_GLOBS; T4 Part 1a's review) ──
+        # Bug caught: a control ADDED to a driver file inside the part a chapter
+        # lists (every quoted line still present, so membership stays green) —
+        # the listing silently one control short; and the same rule wrongly
+        # applied to an example test, whose recipes skip the test's CHECKs.
+        driver_whole = ("    static constexpr int kOnlyInTheDriverFile = 7;  // a driver line\n"
+                        "    static constexpr int kHolds[] = {\n"
+                        "        1,  // pivot six\n"
+                        "\n"
+                        "        2,  // pivot seven\n"
+                        "    };\n")
+        _put("src/team/fixture_driver.hpp", driver_whole)
+        listing = ("```cpp\nstatic constexpr int kHolds[] = {\n    1,  // pivot six\n"
+                   "    2,  // pivot seven\n};\n```\n")
+        _put("docs/cookbook/fixture.md", listing)
+        check(_scan() == 0,
+              "check-examples: a listing that is one unbroken run of a driver file passes "
+              "(blank lines ignored on both sides)")
+        _put("src/team/fixture_driver.hpp",
+             driver_whole.replace("        2,  // pivot seven\n",
+                                  "        2,  // pivot seven\n"
+                                  "        3,  // an intake, added to the file only\n"))
+        check(_scan() == 1,
+              "check-examples: a line ADDED to a driver file inside a listed part fails, "
+              "though every quoted line is still in the file")
+        _put("src/team/fixture_driver.hpp", driver_whole)
+        _put("docs/cookbook/fixture.md",
+             "```cpp\nstatic constexpr int kHolds[] = {\n    2,  // pivot seven\n"
+             "    1,  // pivot six\n```\n")
+        check(_scan() == 1,
+              "check-examples: a listing of a driver file with its lines REORDERED fails")
+        _put("docs/cookbook/fixture.md",
+             "```cpp\nstatic constexpr int kHolds[] = {\n    2,  // pivot seven\n```\n")
+        check(_scan() == 1,
+              "check-examples: a listing of a driver file that SKIPS a line of its part "
+              "fails")
+        _put("src/team/fixture_driver.hpp",
+             "    static constexpr int kOnlyInTheDriverFile = 7;  // a driver line\n")
+        _put("test/fixture_example_test.cpp",
+             "    int onlyInTheExample = 1;\n    CHECK(onlyInTheExample == 1);\n"
+             "    int alsoInTheExample = 2;\n")
+        _put("docs/cookbook/fixture.md",
+             "```cpp\nint onlyInTheExample = 1;\nint alsoInTheExample = 2;\n```\n")
+        check(_scan() == 0,
+              "check-examples: an example test is not a whole-run kind — a recipe that leaves "
+              "out the test's CHECK passes")
+        saved_whole = WHOLE_RUN_SOURCE_GLOBS[:]
+        WHOLE_RUN_SOURCE_GLOBS[:] = ["src/team/*_notalisted_kind.hpp"]
+        try:
+            check(_scan() == 1,
+                  "check-examples: a whole-run kind that is not an EXAMPLE_SOURCE_GLOBS "
+                  "entry fails")
+        finally:
+            WHOLE_RUN_SOURCE_GLOBS[:] = saved_whole
+        _put("docs/cookbook/fixture.md", "```cpp\nint onlyInTheExample = 1;\n```\n")
+
+        # ── the team's auton file (COMP-t): a quoted kind AND a whole-run kind ──
+        # Bug caught: guide 16's quote of an auton drifting from src/team/autons.cpp (the
+        # robot running 44 in while the chapter still says 40) with the scan green; and a
+        # listing of an auton that SKIPS a line of it (an added step, or the schedule's
+        # endActionAt dropped from the listing) — the auton misstated, every quoted line
+        # still present.
+        autons_listing = ("```cpp\nvoid registerAutons(Registry& registry) {\n"
+                          "// 1. THE 40 IN AUTON.\n"
+                          "forty.name = \"40in forward\";  // what the menu shows\n"
+                          "forty.endActionAt = 27_s;\nregistry.add(forty);\n}\n```\n")
+        _put("docs/guide/fixture.md", autons_listing)
+        check(_scan() == 0,
+              "check-examples: a listing that is one unbroken run of the auton file passes")
+        _put("docs/guide/fixture.md", autons_listing.replace("27_s", "28_s"))
+        check(_scan() == 1, "check-examples: a drifted quote of the auton file fails")
+        _put("docs/guide/fixture.md", autons_listing.replace("forty.endActionAt = 27_s;\n", ""))
+        check(_scan() == 1,
+              "check-examples: a listing of the auton file that SKIPS one of its lines fails "
+              "(the auton file is a whole-run kind)")
+        _put("docs/guide/fixture.md", "```cpp\nint onlyInTheExample = 1;\n```\n")
+        os.remove(os.path.join(ex, "src/team/autons.cpp"))
+        with contextlib.redirect_stdout(io.StringIO()):
+            err = io.StringIO()
+            saved_repo = globals()["REPO"]
+            globals()["REPO"] = ex
+            try:
+                with contextlib.redirect_stderr(err):
+                    rc = do_check_examples()
+            finally:
+                globals()["REPO"] = saved_repo
+        check(rc == 1 and "src/team/autons.cpp" in err.getvalue(),
+              "check-examples: the auton file missing fails, NAMING its glob")
+        _put("src/team/autons.cpp", autons_whole)
+        check(_scan() == 0, "check-examples: the auton file restored, the fixture passes again")
+
+        os.remove(os.path.join(ex, "src/team/fixture_driver.hpp"))
+        check(_scan() == 1,
+              "check-examples: a kind whose glob matches NO file fails, even when no quote "
+              "reads it")
 
         # ── the two removability screens must not drift apart again (DOCS1) ──
         # This gate runs at BUILD time; prepare_site.py's runs at PUBLISH time.

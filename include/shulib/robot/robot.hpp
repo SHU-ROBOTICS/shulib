@@ -1,0 +1,1470 @@
+#pragma once
+//
+// robot::Robot — a config::RobotConfig, wired (chunk G1 Part 1, 2026-09-18).
+//
+// ── What this class is ──────────────────────────────────────────────────────────────
+// The composition root, written once, for every robot this library will ever run. It owns
+// the whole PROS-free object graph — kinematics, motor groups, geometry, odometry, fusion,
+// the GPS corrector when there is a GPS, the Localizer, the fault latch, the health
+// monitor, the RobotContext, the MotionDeps and the Chassis — and it BORROWS the devices
+// from an hal::IDeviceProvider, which is the one object that knows what a port is on this
+// target. Two lines at the composition root:
+//
+//     hal::pros::ProsDeviceProvider devices;      // the adapters, made on demand, by port
+//     robot::Robot robot{kRobotConfig, devices};  // the whole graph, wired
+//
+// and `robot.chassis()` is the same facade a hand-wired graph produces. The provider on the first
+// line exists since G1 Part 2a (hal/pros/device_provider.hpp, host-tested through the PROS shim);
+// since G1 Part 2b the programs that drive robot two are built from these two pieces ("shulib
+// Teleop" first, which T4 Part 3 retired; "shulib Drive", src/programs/drive_program.cpp, since
+// then). On a brain the second line is spelled the way those programs spell it: `robot::validate()`
+// first (it names the port or the field before anything is constructed), then
+// `std::optional<Robot>::emplace` into storage that lives for the whole program, once, from
+// `initialize()` (below: a Robot is constructed where it will live).
+//
+// ── IT ADDS A WAY TO WIRE; IT NEVER CHANGES THE PHYSICS (ruling B4) ─────────────────
+// The graph below is the SAME objects, in the SAME order, with the SAME arguments as the
+// hand-written graphs src/main.cpp carried (robot two's until G1 Part 2b; the invented X-drive's
+// until 2c) and as the host rigs. That is not an aspiration:
+// it is the acceptance test. test/robot_builder_test.cpp drives a builder-made Chassis and
+// a hand-wired one across the A2 plant and requires the per-tick ground-truth samples to be
+// memcmp-EQUAL, the commanded volts equal, and the exit reason and tick count equal —
+// through a clean and a hostile scenario. If the builder and the longhand disagree by one
+// ulp, the builder has changed something, and a rounding note is not an acceptable answer.
+//
+// THE BUILDER CONSTRUCTS AND NEVER TICKS. No localizer update, no motion tick, no motor
+// write happens anywhere in this file. That is what makes the ordering above a discipline
+// rather than a hazard — nothing here has an observable time-ordering, because no time
+// passes and no device is written during construction. ONE exception, and it is not a
+// command the builder invents (T3's addendum B2): a 3-wire line cannot be MADE without being
+// DRIVEN (A4 register HA-119), so a pneumatic mechanism's lines are asked for at the config's
+// stated START level, and on a brain that is the moment they take it — last, after the whole
+// drive graph (the MECHANISMS section below).
+//
+// ── validate() is PURE and TOTAL; construction PRECONDITIONS on it (ruling B3) ──────
+// A robot that cannot be built says WHICH PORT OR FIELD before a single object exists. That
+// is the R3b refusal-at-boot rule, made library: `validate(cfg, devices)` checks the config
+// against its own rules, makes the F5 wheel-count cross-check, and asks the provider for
+// every device the config names — returning a verdict with a sentence. The constructor runs
+// exactly that check FIRST and throws PreconditionError carrying the same sentence.
+//
+// Rejected: a factory returning std::optional<Robot>. Chassis is non-copyable and
+// non-movable (its scheduler is pinned by a self-referential command-id stamp), so Robot is
+// too, and returning one by value would depend on elision games the V5 toolchain should not
+// be asked to play. A Robot is constructed WHERE IT WILL LIVE: on a brain, an EMPTY
+// `std::optional<Robot>` that lives for the program, emplaced ONCE from `initialize()` —
+// src/programs/drive_program.cpp's pattern. Never a `static Robot r{…}`: at namespace scope it is built
+// before `initialize()` has installed the on-robot precondition handler, in an order across
+// translation units nobody controls; inside a function, one whose constructor THROWS is
+// constructed again on the next call, and PROS calls opcontrol() again after every disable. In a
+// test, `std::optional<Robot>::emplace` too.
+//
+// ── ABSENT IS NOT NULL ──────────────────────────────────────────────────────────────
+// A robot with no GPS gets hal::AbsentGps in its context and NO corrector in its Localizer.
+// It never gets a nullptr (RobotContext's preconditions throw on one, and they are right to)
+// and it never gets a fake — a test double inside a competition binary erases the difference
+// between "no device is installed" and "a test injects here". Tags and the frozen `hal::IVision`
+// are ABSENT unconditionally (hal::AbsentTagSource, hal::AbsentVision): no AprilTag adapter exists
+// yet (R2b's tag part), and `IVision` has no consumer — the AI Vision camera is read a FRAME at a
+// time through `hal::IVisionFrames` instead (the CAMERA section below; VIS1's D11).
+//
+// ── ABSENT DRIVE PORTS: the boot check decides, the builder obeys (G1 Part 2a, M1) ──
+// A tank drive port the boot check found DEAD (calibration/boot_check.hpp — the registry is read
+// BEFORE any adapter exists, and the dead-port policy, teleop::evaluateDegradation, is applied
+// there, once) is handed to the builder in `BuildOptions::absentDrivePorts`. Such a port is
+// NEVER requested from the provider and becomes a `nullptr` slot in its side's MotorGroup — the
+// group's ABSENT member (hal/motor_group.hpp), which it skips when commanding and excludes from
+// every read. The builder applies NO policy of its own: re-running the policy over provider
+// refusals was the rejected alternative, because it would report a dead port twice, silently
+// tolerate a motor that ANSWERS the registry but rejects its configuration, and refuse every
+// robot with fewer than three motors a side. So the builder refuses only what is structurally
+// wrong with the list — a port that is not one of the description's drive ports, a list on a
+// drivetrain that is not a tank, a side left with no present member — and everything the
+// provider will not make still refuses the build, as before. With no absent ports (the
+// default) every byte of the graph is what it was: Part 1's bit-identity cases are the pin.
+// A port that dies AFTER boot is not the builder's either: the driver loop's protections
+// (teleop/drive_protection.hpp, T4 Part 2) mark it ABSENT in its group mid-run
+// (MotorGroup::markAbsent — out of every read, still commanded), and describe() names it
+// from then on; nothing is ever rebuilt. Each group is labelled with its slots' port numbers,
+// so those lines name the port.
+//
+// ── MECHANISMS: built from the config, ABSENT rather than refused (chunk T3) ────────
+// Every `config::MechanismConfig` with motors becomes ONE hal::MotorMechanism, built in the
+// constructor's BODY — after the whole drive graph, so the drive's construction order, its
+// provider requests and its behaviour are exactly what they were (the bit-identity cases are
+// still the pin, and one with mechanisms configured has joined them). Each motor is asked for
+// with the MECHANISM's own signed port and cartridge; the mechanism gets its DECLARED safe brake
+// mode and its config name (borrowed from this Robot's own copy of the config). validate() does
+// NOT ask for mechanism motors: a motor the provider will not make leaves THAT mechanism ABSENT —
+// mechanismAt() is nullptr, mechanismAbsence() carries the provider's own sentence naming the
+// port — and the rest of the robot builds and drives, because an unplugged claw must not stop a
+// robot from driving (the dead-port rule's spirit). A port a mechanism shares with the drive
+// never gets this far: RobotConfig::valid() refuses the collision before anything is asked for.
+// Since T3's addendum B2, a mechanism with 3-wire lines and no motors becomes ONE
+// hal::PneumaticMechanism: each line asked for with the config's START level (making a line
+// drives it — the one device write above), the mechanism's DECLARED safe level, its config name;
+// pneumaticMechanism(name) finds it, and mechanisms() carries it beside the motor ones. A line the
+// provider will not make leaves that mechanism ABSENT, like a motor. A mechanism with both motors
+// and lines never gets here (valid() refuses it), and one with neither is reported as not built.
+// The lookups by name and index are TYPED (a binding needs the concrete type), so a null from
+// one of them does not mean "absent": builtMechanismAt(i) is the kind-neutral "is it built?", and
+// mechanismAbsence(i) is empty exactly when it is non-null. A boot or panel line that reports
+// each declared mechanism asks those two — never mechanismAt(), which is null for a built claw.
+// On a field, a Robot built in initialize() is built while the brain is DISABLED, so whether a
+// line's start level reaches the valve then, or only at the enable, is A4 register HA-157's too.
+// The builder still never ticks and never commands a motor: a mechanism is first made safe by
+// whatever drives it (a teleop::MechanismBinding at the driver-control loop's entry, an
+// operation's exit), and a pneumatic one's first level after the start level is the driver's
+// (a teleop::ToggleBinding) or an operation's.
+// SINCE THE MECHANISM CORE (MECH-A1, 2026-10-08) the building is robot::MechanismParts'
+// (robot/mechanism_parts.hpp): the storage and the code that were here moved there, unchanged in
+// what they build for every config before MECH-A1, and it builds the SENSOR roles a config now
+// states too — an angle sensor (refused = the mechanism ABSENT), a home switch, a piece sensor
+// (refused = it runs WITHOUT one) — with one fact per role for the boot lines. The Robot owns one,
+// built LAST as before, and every accessor below forwards to it; mechanismParts() hands it out
+// whole (its devices() are what the mechanism service binds over — MECH-A2).
+//
+// ── THE AI VISION CAMERA: built from the config, ABSENT rather than refused (VIS1-A1) ──
+// A config whose `sensors.camera.port` is not 0 gets its camera built LAST, in the constructor's
+// body after the mechanisms — so every provider request before it, and so every graph built before
+// VIS1-A1, is exactly what it was. `devices.aiVision(port, settings)` writes the camera's settings
+// (the provider's banner); validate() does NOT ask for it. A camera the provider will not make — an
+// empty port, the OLDER Vision sensor on it, a cable out — leaves `camera()` nullptr and
+// `cameraAbsence()` carrying the provider's own sentence, and the robot builds and drives: a dead
+// camera must never stop a robot from driving a match (VIS1's D5; a mechanism's refused piece sensor
+// is the same rule) — and a provider that THROWS from aiVision() (a breach of its interface) is caught
+// and named the same way. `cameraAbsence()` is "" EXACTLY when `camera()` is non-null, "no camera is
+// declared" for port 0. The builder never reads a frame (no tick, no poll): the boot line's camera
+// words come from `IVisionFrames::status()`, which touches nothing — "camera port 3 set up, model OK"
+// — never from a downcast to the PROS adapter. Who reads frames, and how often, is the consumer's: one
+// read per period, from its own loop (VIS1's D10; the shared camera feed is vision::CameraFeed,
+// vision/camera_feed.hpp). The frozen `IVision` slot in the context stays hal::AbsentVision (D11).
+//
+// ── THE SIDE DISTANCE SENSORS: built from the config, ABSENT rather than refused (L6-A2) ──
+// For each side of `sensors.walls` whose port is not 0, the constructor's body asks the provider for
+// the distance sensor (`devices.distance(port)`) and its read-fault count (`devices.readFaults(port)`)
+// — LAST, after the camera, so every provider request before them, and so every graph built before
+// L6-A2, is exactly what it was. validate() does NOT ask for them. A sensor the provider will not make
+// leaves that side ABSENT — `wallSensor(side)` nullptr, `wallSensorAbsence(side)` the provider's own
+// sentence, COPIED (the provider's pointer is valid only until its next refusal) — and the robot
+// builds and drives: a cable out must never cost a match (the L6 brief's D5; the camera's rule), and a
+// provider that THROWS from distance() is caught and named the same way. `wallSensorAbsence(side)` is
+// "" EXACTLY when `wallSensor(side)` is non-null, "not declared" for port 0. Each side carries its
+// MEASURED mount from the config (an UNSET one is built all the same; every reset with it refuses
+// MOUNT UNSET), and the robot's limits ride beside them. The whole block — both sides, the limits and
+// the reset log — is the context's OPTIONAL `walls` slot (chassis/robot_context.hpp), which is how
+// the everyday wall reset (competition/auton_wall_reset.hpp) finds them through `chassis.deps().ctx`
+// — handed in only when the config declares a side; with none declared the slot is nullptr and the
+// reset's word is the true one, NO SENSOR (add the `walls` block). Filling the block in the body is
+// safe: the context only stores the pointer, and nothing reads the slot before the first reset. The boot line says which sides exist: `walls L4 R5`, `walls L4 R5(ABSENT)` for a
+// refused side (its reason is in wallSensorAbsence() and in the reset's refusal line, never on the
+// boot line), ` MOUNT UNSET` after them when a declared mount is unmeasured, `walls ABSENT` when no
+// side is declared.
+//
+// ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
+// A Robot built from a config has driven the A2 host plant, through fakes, and nothing else.
+// No config has ever been used on a physical robot. Since T4 Part 3 "shulib Drive" builds its
+// graph with this class over the on-robot provider (src/programs/drive_program.cpp), as "shulib
+// Teleop" did from G1 Part 2b until T4 Part 3 retired it; THIS version of the program has not run
+// on hardware. Since G1 Part 2c the invented X-drive is built the same way
+// (src/robots/xdrive_config.hpp, src/programs/xdrive_program.cpp) and no program wires a graph by hand; its ports
+// are invented, so it refuses at boot on every robot that exists.
+//
+// PROS-free, sim-free, allocation-free in the control path (the graph is one in-place
+// aggregate, sized by hal::kMaxSmartPorts — no unique_ptr anywhere, as with every other
+// graph in this tree).
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <exception>
+#include <optional>
+#include <span>
+
+#include "shulib/chassis/chassis.hpp"
+#include "shulib/chassis/robot_context.hpp"
+#include "shulib/config/robot_config.hpp"
+#include "shulib/core/check.hpp"
+#include "shulib/diag/fault.hpp"
+#include "shulib/diag/health_monitor.hpp"
+#include "shulib/hal/absent_gps.hpp"
+#include "shulib/hal/absent_tag_source.hpp"
+#include "shulib/hal/absent_vision.hpp"
+#include "shulib/hal/device_provider.hpp"
+#include "shulib/hal/drive_geometry.hpp"
+#include "shulib/hal/mechanism.hpp"
+#include "shulib/hal/motor_group.hpp"
+#include "shulib/kinematics/h_drive.hpp"
+#include "shulib/kinematics/matrix_kinematics.hpp"
+#include "shulib/kinematics/tank.hpp"
+#include "shulib/kinematics/wheel_speeds.hpp"
+#include "shulib/kinematics/x_drive.hpp"
+#include "shulib/localization/complementary_fusion.hpp"
+#include "shulib/localization/drive_encoder_odometry.hpp"
+#include "shulib/localization/gps_corrector.hpp"
+#include "shulib/localization/i_corrector.hpp"
+#include "shulib/localization/localizer.hpp"
+#include "shulib/localization/odometry.hpp"
+#include "shulib/localization/pilons_odometry.hpp"
+#include "shulib/localization/tracking_wheel.hpp"
+#include "shulib/localization/wall_reset.hpp"
+#include "shulib/motion/motion.hpp"
+#include "shulib/motion/motion_scheduler.hpp"
+#include "shulib/robot/mechanism_parts.hpp"
+
+namespace shulib::robot {
+
+/// The answer to "can this robot be built, on this target, right now?" — one bool and one
+/// sentence. The sentence is what a person reads off the brain screen when the robot refuses to
+/// boot, so it names the PORT or the FIELD and nothing else; 192 bytes is enough for the longest
+/// message any check below can produce and small enough to sit on a boot stack.
+struct BuildVerdict {
+    /// True when every check passed and `Robot` may be constructed from the same pair.
+    bool ok = false;
+    /// The FIRST thing that was wrong, naming the port or the config field. Empty when `ok`.
+    char why[192]{};
+};
+
+/// What the builder is told about THIS boot that the config cannot say: which tank drive ports the
+/// boot check found dead, and (since COMP-a) a pacer to put between the chassis and the provider's.
+/// Default-constructed, it changes nothing — every Part 1 caller's graph is byte-for-byte what it
+/// was. The two fields have DIFFERENT lifetimes, and that is the thing to read before passing one:
+/// `absentDrivePorts` is read during construction only; `pacer` is kept for the Robot's whole life.
+struct BuildOptions {
+    /// Tank drive ports the boot check reported MISSING, as port MAGNITUDES 1..21 — exactly the
+    /// numbers `calibration::BootVerdict::isMissing()` answers for. Each becomes an ABSENT
+    /// (`nullptr`) member of its side's MotorGroup and is never requested from the provider. A
+    /// repeated entry is harmless (membership, not a count). BORROWED: read during `validate()`
+    /// and during `Robot`'s construction only, never kept — the Robot recovers what it needs
+    /// from its own groups.
+    std::span<const int> absentDrivePorts = {};
+
+    /// The pacer the Chassis is built with, or `nullptr` (the default) for `devices.pacer()` —
+    /// exactly the graph every earlier caller got. A competition program passes its
+    /// `sequence::RunGuard` here (constructed around `devices.pacer()` BEFORE the Robot), because
+    /// the guard's deadline reaches a running motion only through the pacer seam
+    /// (run_guard.hpp's banner) and a Chassis takes its pacer once, at construction.
+    ///
+    /// BORROWED FOR THE ROBOT'S WHOLE LIFE — unlike `absentDrivePorts`, this is NOT read during
+    /// construction only: the Chassis keeps the reference (chassis.hpp's constructor), so the
+    /// pacer must outlive the Robot. Declared after `absentDrivePorts` so the designated spelling
+    /// reads in declaration order: `robot::BuildOptions{.absentDrivePorts = ..., .pacer = &guard}`.
+    /// `validate()` does not read it (a pacer is not a device and cannot be refused).
+    motion::ITickPacer* pacer = nullptr;
+
+    /// True when physical port `port` is in `absentDrivePorts`.
+    [[nodiscard]] constexpr bool isAbsent(int port) const noexcept {
+        for (const int p : absentDrivePorts) {
+            if (p == port) {
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
+/// Can `cfg` be built with `devices`? PURE, TOTAL, and the precondition `Robot`'s constructor
+/// runs (ruling B3). Four passes, in this order:
+///
+///  1. **The config's own rules** — `config::RobotConfig::valid()`, whose message (including a
+///     tank description's own refusal, verbatim) surfaces unchanged.
+///  2. **The F5 cross-check** — the number of KINEMATIC WHEELS the drivetrain has must equal the
+///     number of `hal::IMotor` handles the builder will put in the context. This is the same
+///     check `motion::MotionDeps::validate()` makes at the bottom of the stack, and it is the
+///     ONLY thing standing between a config typo and an unchecked `std::span::operator[]` on the
+///     hot path — so it is made HERE too, before the deps exist, where it can name the config
+///     field instead of saying "3 != 4". (It lives in exactly these two places and nowhere else;
+///     `RobotConfig::valid()` deliberately does not duplicate it — see its documentation.)
+///  3. **The absent ports** (`options.absentDrivePorts`, G1 Part 2a) — refused, naming the port,
+///     when the list is given for a drivetrain that is not a tank (only a tank side is a group
+///     that can carry a hole), when a port in it is not one of the description's drive ports,
+///     or when it would leave a side with NO present member. Nothing else: the dead-port
+///     POLICY was applied by the boot check that produced the list (header, ruling M1).
+///  4. **Every device obtainable** — each drive port that is not absent, the IMU, the GPS if one
+///     is configured, and each tracking-wheel encoder is requested from the provider. The first
+///     `nullptr` becomes the verdict, carrying the provider's own `lastRefusal()` so the port
+///     that is empty or dead is named by the layer that actually looked. An absent port is
+///     never asked for, so a dead port is named once — by the boot check — and never twice.
+///     MECHANISM motors are deliberately not asked for here (chunk T3): one the provider will
+///     not make leaves that mechanism ABSENT when the Robot is built, and never refuses the robot.
+///     Nor are a pneumatic mechanism's 3-wire lines (addendum B2): asking for one DRIVES it, and
+///     the only refusal the on-robot provider can make — a line outside 1..8 — is pass 1's.
+///     Their CONFIG is checked in pass 1 (cartridge, safe brake mode, safe and start levels,
+///     ports and lines that collide with the drive or each other).
+///
+/// It is not `const` on the provider because obtaining a device may construct one; it is
+/// idempotent, so calling it and then constructing a `Robot` asks for the same objects twice and
+/// gets the same addresses both times.
+[[nodiscard]] inline BuildVerdict validate(const config::RobotConfig& cfg,
+                                           hal::IDeviceProvider& devices,
+                                           const BuildOptions& options = {}) {
+    BuildVerdict verdict;
+    if (!cfg.valid(verdict.why, sizeof verdict.why)) {
+        return verdict;
+    }
+    const int wheels = cfg.drivetrain.wheelCount();
+    const int motors = cfg.drivetrain.driveMotorCount();
+    if (wheels != motors) {
+        std::snprintf(verdict.why, sizeof verdict.why,
+                      "%s drivetrain has %d kinematic wheels but %d motor ports -- a wheel whose "
+                      "port is 0 has nothing to command (check drivetrain.ports)",
+                      config::drivetrainKindWord(cfg.drivetrain.kind), wheels, motors);
+        return verdict;
+    }
+    if (!options.absentDrivePorts.empty()) {
+        if (cfg.drivetrain.kind != config::DrivetrainKind::Tank) {
+            std::snprintf(verdict.why, sizeof verdict.why,
+                          "absent drive port %d was given for a %s drivetrain -- only a tank "
+                          "side can run with an absent member",
+                          options.absentDrivePorts.front(),
+                          config::drivetrainKindWord(cfg.drivetrain.kind));
+            return verdict;
+        }
+        const hal::DrivetrainDescription& d = cfg.drivetrain.tank.description;
+        for (const int p : options.absentDrivePorts) {
+            if (d.sideOf(p) == 0) {  // sideOf matches |stored port| == p, so -11 or 0 is no match
+                std::snprintf(verdict.why, sizeof verdict.why,
+                              "absent port %d is not one of this drivetrain's drive ports "
+                              "(absent ports are port numbers 1..21 from the boot check)",
+                              p);
+                return verdict;
+            }
+        }
+        const hal::DriveSideDescription* sides[2] = {&d.left, &d.right};
+        const char* names[2] = {"LEFT", "RIGHT"};
+        for (std::size_t s = 0; s < 2; ++s) {
+            const hal::DriveSideDescription& side = *sides[s];
+            std::size_t present = 0;
+            char ports[72] = "";
+            std::size_t used = 0;
+            for (std::size_t i = 0; i < side.count; ++i) {
+                const int port = hal::DrivetrainDescription::portMagnitude(side.signedPorts[i]);
+                if (!options.isAbsent(port)) {
+                    ++present;
+                }
+                char one[8] = "";
+                std::snprintf(one, sizeof one, "%s%d", i == 0 ? "" : " ", port);
+                for (std::size_t k = 0; one[k] != '\0' && used + 1 < sizeof ports; ++k) {
+                    ports[used++] = one[k];
+                }
+                ports[used] = '\0';
+            }
+            if (present == 0) {
+                std::snprintf(verdict.why, sizeof verdict.why,
+                              "every %s drive port is absent (ports %s) -- a side needs at least "
+                              "one motor that answers",
+                              names[s], ports);
+                return verdict;
+            }
+        }
+    }
+    const hal::MotorCartridge cartridge = cfg.drivetrain.cartridge();
+    const auto askMotor = [&](std::int8_t signedPort, const char* role) noexcept -> bool {
+        if (devices.motor(signedPort, cartridge) != nullptr) {
+            return true;
+        }
+        std::snprintf(verdict.why, sizeof verdict.why, "%s cannot be made: %s", role,
+                      devices.lastRefusal());
+        return false;
+    };
+    switch (cfg.drivetrain.kind) {
+        case config::DrivetrainKind::Tank: {
+            const hal::DrivetrainDescription& d = cfg.drivetrain.tank.description;
+            // An ABSENT port is skipped, never asked for: the boot check has already named it,
+            // and asking would name it a second time (ruling M2).
+            for (std::size_t i = 0; i < d.left.count; ++i) {
+                if (options.isAbsent(hal::DrivetrainDescription::portMagnitude(
+                        d.left.signedPorts[i]))) {
+                    continue;
+                }
+                if (!askMotor(d.left.signedPorts[i], "a LEFT drive motor")) {
+                    return verdict;
+                }
+            }
+            for (std::size_t i = 0; i < d.right.count; ++i) {
+                if (options.isAbsent(hal::DrivetrainDescription::portMagnitude(
+                        d.right.signedPorts[i]))) {
+                    continue;
+                }
+                if (!askMotor(d.right.signedPorts[i], "a RIGHT drive motor")) {
+                    return verdict;
+                }
+            }
+            break;
+        }
+        case config::DrivetrainKind::XDrive:
+            for (const std::int8_t p : cfg.drivetrain.xdrive.ports) {
+                if (!askMotor(p, "an X-drive wheel motor")) {
+                    return verdict;
+                }
+            }
+            break;
+        case config::DrivetrainKind::HDrive:
+            for (const std::int8_t p : cfg.drivetrain.hdrive.ports) {
+                if (!askMotor(p, "an H-drive wheel motor")) {
+                    return verdict;
+                }
+            }
+            break;
+    }
+    if (devices.imu(cfg.drivetrain.imuPort()) == nullptr) {
+        std::snprintf(verdict.why, sizeof verdict.why, "the IMU cannot be made: %s",
+                      devices.lastRefusal());
+        return verdict;
+    }
+    if (cfg.sensors.gps.present
+        && devices.gps(cfg.sensors.gps.port, cfg.sensors.gps.leverArmForward,
+                       cfg.sensors.gps.leverArmLeft)
+               == nullptr) {
+        std::snprintf(verdict.why, sizeof verdict.why, "the GPS cannot be made: %s",
+                      devices.lastRefusal());
+        return verdict;
+    }
+    if (cfg.odometry.kind == config::OdometryKind::TrackingWheels) {
+        if (devices.rotation(cfg.odometry.wheels.forward.port) == nullptr) {
+            std::snprintf(verdict.why, sizeof verdict.why,
+                          "the forward tracking wheel cannot be made: %s", devices.lastRefusal());
+            return verdict;
+        }
+        if (devices.rotation(cfg.odometry.wheels.lateral.port) == nullptr) {
+            std::snprintf(verdict.why, sizeof verdict.why,
+                          "the lateral tracking wheel cannot be made: %s", devices.lastRefusal());
+            return verdict;
+        }
+    }
+    verdict.ok = true;
+    return verdict;
+}
+
+/// The §18.5 session header's PORT MAP for `cfg` — the text `diag::SessionInfo::portMap` carries
+/// — generated from the config, so it cannot drift from the wiring (the "G1 generates" promise in
+/// diag/session_info.hpp). `Robot::portMap()` is this over the Robot's own config; it is a free
+/// function as well so the formatting can be tested on a description no valid Robot could carry
+/// (a 21-port side).
+///
+/// The formats are the ones src/main.cpp printed by hand, so moving a program onto the builder
+/// changed no session header (G1 Part 2b moved "shulib Teleop" — retired at T4 Part 3 — and G1
+/// Part 2c the invented X-drive):
+///
+///  * **tank** — the retired `tankPortMapString()`'s: the description's source word, both sides' SIGNED
+///    ports as stored (`%+d`, space-separated, each side capped at 39 characters), the IMU, then
+///    — only when configured — `GPS<n>` and the two pods `ROTF<n> ROTL<n>`, then both sides'
+///    inches per radian and the track width. For a drive-encoder tank without a GPS (robot two)
+///    the text is byte-for-byte what `tankPortMapString()` printed (pinned against a transcription
+///    of it in test/robot_builder_test.cpp, and against robot two's 2026-09-25 capture in
+///    test/boot_source_test.cpp).
+///  * **X-drive** — `portMapString()`'s: `FL BL BR FR` (the F5 wheel order), the two pods, the
+///    GPS when present, the IMU.
+///  * **H-drive** — the same shape: `L R S` (left line, right line, strafe wheel), pods, GPS, IMU.
+///
+/// Deliberately NOT marked for absent ports: this is what the robot is WIRED to be; a dead port
+/// is `describe()`'s and the panel's to announce. Bounded BY HAND — assembled in a generous local
+/// buffer and copied into `out` with an explicit bound, never a moving `snprintf` (the on-robot
+/// build gate treats `-Wformat-truncation` as an error) — so it truncates rather than
+/// overflowing and writes a NUL whenever `cap > 0`. Does not validate: it formats what is stored.
+inline void writePortMap(const config::RobotConfig& cfg, char* out, std::size_t cap) noexcept {
+    if (out == nullptr || cap == 0) {
+        return;
+    }
+    // One side's signed ports, "%+d" space-separated, capped by hand — the retired
+    // tankPortMapString()'s loop.
+    const auto sidePorts = [](char* dst, std::size_t dstCap, const std::int8_t* ports,
+                              std::size_t count) noexcept {
+        std::size_t used = 0;
+        for (std::size_t i = 0; i < count; ++i) {
+            char one[8] = "";
+            std::snprintf(one, sizeof one, "%s%+d", i != 0 ? " " : "", static_cast<int>(ports[i]));
+            for (std::size_t k = 0; one[k] != '\0' && used + 1 < dstCap; ++k) {
+                dst[used++] = one[k];
+            }
+            dst[used] = '\0';
+        }
+    };
+    char gps[12] = "";
+    if (cfg.sensors.gps.present) {
+        std::snprintf(gps, sizeof gps, " GPS%u", static_cast<unsigned>(cfg.sensors.gps.port));
+    }
+    char pods[24] = "";
+    if (cfg.odometry.kind == config::OdometryKind::TrackingWheels) {
+        std::snprintf(pods, sizeof pods, " ROTF%d ROTL%d",
+                      static_cast<int>(cfg.odometry.wheels.forward.port),
+                      static_cast<int>(cfg.odometry.wheels.lateral.port));
+    }
+    char full[224] = "UNSET drivetrain";  // overwritten by every known kind below
+    switch (cfg.drivetrain.kind) {
+        case config::DrivetrainKind::Tank: {
+            const hal::DrivetrainDescription& d = cfg.drivetrain.tank.description;
+            constexpr std::size_t kSideCap = 40;  // tankPortMapString()'s, so 2b's switch was exact
+            char l[kSideCap] = "";
+            char r[kSideCap] = "";
+            sidePorts(l, kSideCap, d.left.signedPorts, d.left.count);
+            sidePorts(r, kSideCap, d.right.signedPorts, d.right.count);
+            std::snprintf(full, sizeof full, "%s L %s R %s IMU%u%s%s ipr %.4f/%.4f TW%.2f",
+                          d.source == hal::DescriptionSource::RobotMeasured ? "MEASURED" : "TYPED",
+                          l, r, static_cast<unsigned>(d.imuPort), gps, pods,
+                          d.left.inchesPerRadian.value(), d.right.inchesPerRadian.value(),
+                          d.trackWidth.value());
+            break;
+        }
+        case config::DrivetrainKind::XDrive: {
+            const config::XDriveDrivetrain& x = cfg.drivetrain.xdrive;
+            std::snprintf(full, sizeof full, "FL%d BL%d BR%d FR%d%s%s IMU%u",
+                          static_cast<int>(x.ports[0]), static_cast<int>(x.ports[1]),
+                          static_cast<int>(x.ports[2]), static_cast<int>(x.ports[3]), pods, gps,
+                          static_cast<unsigned>(x.imuPort));
+            break;
+        }
+        case config::DrivetrainKind::HDrive: {
+            const config::HDriveDrivetrain& hcfg = cfg.drivetrain.hdrive;
+            std::snprintf(full, sizeof full, "L%d R%d S%d%s%s IMU%u",
+                          static_cast<int>(hcfg.ports[0]), static_cast<int>(hcfg.ports[1]),
+                          static_cast<int>(hcfg.ports[2]), pods, gps,
+                          static_cast<unsigned>(hcfg.imuPort));
+            break;
+        }
+    }
+    // The ONE bound: copy by hand, stop one short of `cap`, always terminate.
+    std::size_t n = 0;
+    for (; full[n] != '\0' && n + 1 < cap; ++n) {
+        out[n] = full[n];
+    }
+    out[n] = '\0';
+}
+
+/// A whole robot: the PROS-free object graph a `config::RobotConfig` describes, owned, with its
+/// devices borrowed from an `hal::IDeviceProvider`.
+///
+/// **The provider must outlive the Robot**, and so must everything the provider borrows (on the
+/// host: the harness whose clock, battery, sink and pacer it was given). The Robot owns the
+/// graph; it owns no hardware, by ruling B2.
+///
+/// Neither copyable nor movable, for the same structural reason `chassis::Chassis` is not: the
+/// graph is a web of references into this object's own storage, so a copy or a move would leave
+/// half of it pointing at the wrong place. Construct it where it will live.
+class Robot {
+public:
+    /// Build the whole graph. PRECONDITION: `validate(cfg, devices, options)` passes — and this
+    /// runs it, with the SAME options, so a config that cannot be built throws
+    /// `PreconditionError` carrying the verdict's own sentence, before any member exists. `cfg`
+    /// is COPIED (a boot sequence that decodes a record into a local and hands out a reference to
+    /// it is the dangling-reference bug this copy makes impossible); `devices` is borrowed and
+    /// must outlive the Robot; `options.absentDrivePorts` is read during construction only (its
+    /// absent ports become `nullptr` group members and are never requested — G1 Part 2a, ruling
+    /// M1), so that span may die as soon as the constructor returns — but `options.pacer`, when
+    /// set, is KEPT by the Chassis and must outlive the Robot (COMP-a; `BuildOptions::pacer`).
+    /// Default options build exactly the graph the two-argument form always built. LAST, after the
+    /// whole drive graph, each configured mechanism with motors, or with 3-wire lines, is built —
+    /// or recorded ABSENT with the provider's sentence (chunk T3 and its addendum B2; the file
+    /// header's MECHANISMS section); then the camera (VIS1-A1), then each declared side distance
+    /// sensor (L6-A2) — each ABSENT, never refused, when the provider will not make it.
+    Robot(const config::RobotConfig& cfg, hal::IDeviceProvider& devices,
+          const BuildOptions& options = {})
+        : cfg_{prechecked(cfg, devices, options)},
+          tankKin_{makeTankKinematics(cfg_)},
+          matrixKin_{makeMatrixKinematics(cfg_)},
+          kin_{tankKin_.has_value() ? static_cast<const kinematics::IKinematics*>(&*tankKin_)
+                                    : static_cast<const kinematics::IKinematics*>(&*matrixKin_)},
+          wiring_{wireMotors(cfg_, devices, options)},
+          left_{makeSideGroup(cfg_, wiring_.leftMembers, wiring_.leftLabels, wiring_.leftCount)},
+          right_{makeSideGroup(cfg_, wiring_.rightMembers, wiring_.rightLabels,
+                               wiring_.rightCount)},
+          driveMotors_{makeDriveMotors(wiring_, left_, right_)},
+          driveMotorCount_{static_cast<std::size_t>(cfg_.drivetrain.driveMotorCount())},
+          groups_{makeGroupArray(left_, right_)},
+          groupCount_{left_.has_value() ? std::size_t{2} : std::size_t{0}},
+          imu_{devices.imu(cfg_.drivetrain.imuPort())},
+          absentGps_{},
+          gps_{cfg_.sensors.gps.present ? devices.gps(cfg_.sensors.gps.port,
+                                                      cfg_.sensors.gps.leverArmForward,
+                                                      cfg_.sensors.gps.leverArmLeft)
+                                        : static_cast<hal::IGps*>(&absentGps_)},
+          tags_{},
+          vision_{},
+          faults_{devices.telemetry(), devices.clock()},
+          health_{faults_},
+          leftGeometry_{sideGeometry(cfg_, /*right=*/false)},
+          rightGeometry_{sideGeometry(cfg_, /*right=*/true)},
+          driveOdom_{makeDriveEncoderOdometry(cfg_, left_, right_, *imu_, leftGeometry_,
+                                              rightGeometry_)},
+          pilonsOdom_{makePilonsOdometry(cfg_, devices, *imu_)},
+          odom_{driveOdom_.has_value()
+                    ? static_cast<localization::IOdometry*>(&*driveOdom_)
+                    : static_cast<localization::IOdometry*>(&*pilonsOdom_)},
+          fusion_{},
+          gpsCorrector_{makeGpsCorrector(cfg_, devices, *gps_, *imu_)},
+          correctors_{gpsCorrector_.has_value()
+                          ? static_cast<localization::ICorrector*>(&*gpsCorrector_)
+                          : nullptr},
+          correctorCount_{gpsCorrector_.has_value() ? std::size_t{1} : std::size_t{0}},
+          localizer_{devices.clock(), *imu_, *odom_, fusion_,
+                     std::span<localization::ICorrector* const>{correctors_.data(),
+                                                                correctorCount_}},
+          ctx_{chassis::RobotContextConfig{
+              .clock = &devices.clock(),
+              .driveMotors = std::span<hal::IMotor* const>{driveMotors_.data(), driveMotorCount_},
+              .imu = imu_,
+              .gps = gps_,
+              .battery = &devices.battery(),
+              .telemetry = &devices.telemetry(),
+              .tags = &tags_,
+              .vision = &vision_,
+              .walls = cfg_.sensors.walls.declared() ? &walls_ : nullptr}},
+          deps_{.ctx = &ctx_,
+                .localizer = &localizer_,
+                .kinematics = kin_,
+                .faults = &faults_,
+                .health = &health_,
+                .motorGroups =
+                    std::span<hal::MotorGroup* const>{groups_.data(), groupCount_}},
+          chassis_{deps_, options.pacer != nullptr ? *options.pacer : devices.pacer(),
+                   effectiveTuning(cfg_)} {
+        parts_.build(std::span<const config::MechanismConfig>{cfg_.mechanisms, cfg_.mechanismCount},
+                     devices);
+        buildCamera(devices);  // VIS1-A1: after everything above (header: THE AI VISION CAMERA)
+        buildWallSensors(devices);  // L6-A2: LAST, after the camera (header: THE SIDE DISTANCE SENSORS)
+    }
+
+    /// Non-copyable: the graph is a web of references into this object's own storage.
+    Robot(const Robot&) = delete;
+    /// Non-movable, same reasoning — and `chassis::Chassis` is non-movable in any case.
+    Robot(Robot&&) = delete;
+    /// Non-copy-assignable, same reasoning.
+    Robot& operator=(const Robot&) = delete;
+    /// Non-move-assignable, same reasoning.
+    Robot& operator=(Robot&&) = delete;
+    /// Destroys the graph. The provider and everything it borrows must still be alive.
+    ~Robot() = default;
+
+    /// The public facade every auton is written against — the whole point of the class.
+    [[nodiscard]] chassis::Chassis& chassis() noexcept { return chassis_; }
+    /// The facade, read-only.
+    [[nodiscard]] const chassis::Chassis& chassis() const noexcept { return chassis_; }
+
+    /// The fused estimator, for a caller that wants the quality class or a corrector's record
+    /// rather than just the pose.
+    [[nodiscard]] localization::Localizer& localizer() noexcept { return localizer_; }
+    /// The estimator, read-only.
+    [[nodiscard]] const localization::Localizer& localizer() const noexcept { return localizer_; }
+
+    /// The run-scoped fault latch — what the run summary and the boot banner read.
+    [[nodiscard]] diag::FaultLatch& faults() noexcept { return faults_; }
+    /// The fault latch, read-only.
+    [[nodiscard]] const diag::FaultLatch& faults() const noexcept { return faults_; }
+
+    /// The health monitor (the A3 pathology → fault policy).
+    [[nodiscard]] diag::HealthMonitor& health() noexcept { return health_; }
+    /// The health monitor, read-only.
+    [[nodiscard]] const diag::HealthMonitor& health() const noexcept { return health_; }
+
+    /// The one object every layer reads hardware through — the Tier-3 seam for code that wants a
+    /// device this facade does not expose.
+    [[nodiscard]] chassis::RobotContext& context() noexcept { return ctx_; }
+    /// The context, read-only.
+    [[nodiscard]] const chassis::RobotContext& context() const noexcept { return ctx_; }
+
+    /// The config this robot was built from, as stored.
+    [[nodiscard]] const config::RobotConfig& config() const noexcept { return cfg_; }
+
+    /// Whether this robot has a GPS corrector installed — the observable half of "absent is
+    /// explicit": false means `hal::AbsentGps` is in the context and the Localizer's corrector
+    /// span is EMPTY, not that a corrector is present and quiet.
+    [[nodiscard]] bool hasGpsCorrector() const noexcept { return gpsCorrector_.has_value(); }
+
+    /// How many `hal::MotorGroup`s this robot has — 2 on a tank (one per side), 0 on a holonomic
+    /// drivetrain, whose wheels are single motors.
+    [[nodiscard]] std::size_t motorGroupCount() const noexcept { return groupCount_; }
+
+    /// The drive-encoder odometry this robot runs, for a panel that wants its cross-check (the
+    /// per-side distances beside the fused estimate) — or `nullptr` when this robot runs
+    /// tracking wheels instead. Read-only: the Localizer owns the updating.
+    [[nodiscard]] const localization::DriveEncoderOdometry* driveOdometry() const noexcept {
+        return driveOdom_.has_value() ? &*driveOdom_ : nullptr;
+    }
+
+    // ── the mechanisms (chunk T3; the file header's MECHANISMS section) ───────────────
+
+    /// How many mechanisms the config declares, built or not, of both kinds —
+    /// `config().mechanismCount`. `builtMechanismAt()`, `mechanismAt()`, `pneumaticMechanismAt()`
+    /// and `mechanismAbsence()` take an index below this.
+    [[nodiscard]] std::size_t mechanismCount() const noexcept { return cfg_.mechanismCount; }
+
+    /// The `i`-th declared mechanism if it was BUILT, of EITHER kind — nullptr when it is ABSENT,
+    /// has nothing to build, or `i` is not below `mechanismCount()`. This is THE "is this one
+    /// built?" question: a boot line or a panel row that reports each declared mechanism asks
+    /// this (and prints its `name()`), never `mechanismAt()`, which is nullptr for a built
+    /// PNEUMATIC mechanism too and would report a working claw as absent.
+    /// `mechanismAbsence(i)` is empty exactly when this is non-null.
+    [[nodiscard]] hal::IMechanism* builtMechanismAt(std::size_t i) noexcept {
+        return parts_.builtAt(i);
+    }
+    /// The `i`-th declared mechanism if it was built, read-only (same rules).
+    [[nodiscard]] const hal::IMechanism* builtMechanismAt(std::size_t i) const noexcept {
+        return parts_.builtAt(i);
+    }
+
+    /// The `i`-th declared mechanism as a BUILT MOTOR mechanism — or nullptr when it is ABSENT
+    /// (the provider refused one of its motors), is a pneumatic mechanism (see
+    /// `pneumaticMechanismAt()`), has nothing to build, or `i` is not below `mechanismCount()`.
+    /// A TYPED lookup, for code that needs the motor type (a `teleop::MechanismBinding`): null
+    /// here does NOT mean "absent" — `builtMechanismAt()` answers that.
+    [[nodiscard]] hal::MotorMechanism* mechanismAt(std::size_t i) noexcept {
+        return parts_.motorAt(i);
+    }
+    /// The `i`-th declared mechanism, read-only (same rules).
+    [[nodiscard]] const hal::MotorMechanism* mechanismAt(std::size_t i) const noexcept {
+        return parts_.motorAt(i);
+    }
+
+    /// The `i`-th declared mechanism as a BUILT PNEUMATIC mechanism (addendum B2) — or nullptr
+    /// when it is ABSENT (the provider refused one of its lines), is a motor mechanism (see
+    /// `mechanismAt()`), has nothing to build, or `i` is not below `mechanismCount()`. Typed,
+    /// like `mechanismAt()`: null here does not mean "absent" either.
+    [[nodiscard]] hal::PneumaticMechanism* pneumaticMechanismAt(std::size_t i) noexcept {
+        return parts_.pneumaticAt(i);
+    }
+    /// The `i`-th declared pneumatic mechanism, read-only (same rules).
+    [[nodiscard]] const hal::PneumaticMechanism* pneumaticMechanismAt(std::size_t i) const noexcept {
+        return parts_.pneumaticAt(i);
+    }
+
+    /// Why the `i`-th declared mechanism was NOT built: the provider's own sentence (naming the
+    /// port or the 3-wire line) for an ABSENT one, a fixed sentence for one with nothing to
+    /// build, and "no mechanism is declared at this index" for an `i` not below
+    /// `mechanismCount()`. The empty string EXACTLY when `builtMechanismAt(i)` is non-null — a
+    /// built mechanism of either kind, and nothing else. Stable for the Robot's lifetime.
+    [[nodiscard]] const char* mechanismAbsence(std::size_t i) const noexcept {
+        return parts_.absence(i);
+    }
+
+    /// The BUILT MOTOR mechanism whose config name is `name` — nullptr when no declared mechanism
+    /// has that name (or `name` is null), when that one was not built, or when it is a pneumatic
+    /// mechanism (`pneumaticMechanism()` finds those: the lookup is typed because a binding needs
+    /// the concrete type, and the library does not downcast). Names are unique: the config's
+    /// `valid()` refuses two mechanisms with one name.
+    [[nodiscard]] hal::MotorMechanism* mechanism(const char* name) noexcept {
+        return mechanismAt(mechanismIndex(name));
+    }
+    /// The named mechanism, read-only (same rules).
+    [[nodiscard]] const hal::MotorMechanism* mechanism(const char* name) const noexcept {
+        return mechanismAt(mechanismIndex(name));
+    }
+
+    /// The BUILT PNEUMATIC mechanism whose config name is `name` (addendum B2) — what a
+    /// `teleop::ToggleBinding` is bound to. nullptr when no declared mechanism has that name (or
+    /// `name` is null), when that one was not built, or when it is a motor mechanism.
+    [[nodiscard]] hal::PneumaticMechanism* pneumaticMechanism(const char* name) noexcept {
+        return pneumaticMechanismAt(mechanismIndex(name));
+    }
+    /// The named pneumatic mechanism, read-only (same rules).
+    [[nodiscard]] const hal::PneumaticMechanism* pneumaticMechanism(const char* name) const noexcept {
+        return pneumaticMechanismAt(mechanismIndex(name));
+    }
+
+    /// Every BUILT mechanism of BOTH kinds, in config order, as the `hal::IMechanism*` span an
+    /// end-of-run guard walks (`sequence::RunGuardConfig::mechanisms`) — an ABSENT one is not in
+    /// it, because there is nothing there to make safe. Empty on a robot with none. The storage is
+    /// this Robot's, so the span is valid for the Robot's lifetime.
+    [[nodiscard]] std::span<hal::IMechanism* const> mechanisms() noexcept {
+        return parts_.built();
+    }
+
+    /// Every role of every mechanism, as this Robot built them (MECH-A1; the file header's
+    /// MECHANISMS section): `devices()` — what the mechanism service binds over, the SAME objects
+    /// mechanisms() lists for the guard —, `roles(i)` — each role's boot-line facts —, and the
+    /// per-index lookups the accessors above forward to. Valid for the Robot's lifetime.
+    [[nodiscard]] const MechanismParts& mechanismParts() const noexcept { return parts_; }
+
+    // ── the AI Vision camera (VIS1-A1; the file header's CAMERA section) ───────────────
+
+    /// The robot's AI Vision camera if it was BUILT — nullptr when the config declares none (port 0)
+    /// or the provider refused it (`cameraAbsence()` says why). Owned by the provider; valid for the
+    /// Robot's lifetime. Reading frames from it is the consumer's (one read per period, from its own
+    /// loop); the Robot never reads one.
+    [[nodiscard]] hal::IVisionFrames* camera() noexcept { return camera_; }
+    /// The camera, read-only (its status() is const; reading a frame is not).
+    [[nodiscard]] const hal::IVisionFrames* camera() const noexcept { return camera_; }
+
+    /// Why `camera()` is nullptr: "no camera is declared" for port 0, the provider's own sentence
+    /// naming the port for a refused one ("port 3: nothing plugged in (expected an AI Vision
+    /// sensor)"), or a fixed sentence when the provider gave none. The empty string EXACTLY when
+    /// `camera()` is non-null. Stable for the Robot's lifetime.
+    [[nodiscard]] const char* cameraAbsence() const noexcept { return cameraAbsence_; }
+
+    // ── the side distance sensors (L6-A2; the file header's SIDE DISTANCE SENSORS section) ──────
+
+    /// Both sides as the wall reset reads them — each side's sensor (nullptr when absent), its
+    /// read-fault count, its MEASURED mount and why it is absent — the robot's limits and its reset
+    /// log (seated and refused counts, the last report). The object the context's OPTIONAL `walls`
+    /// slot points at when the config declares a side (with none declared the slot is nullptr — the
+    /// reset refuses NO SENSOR — and this reads "not declared" on both sides). Valid for the Robot's
+    /// lifetime.
+    [[nodiscard]] const localization::WallSensors& wallSensors() const noexcept { return walls_; }
+
+    /// The `side` distance sensor if it was BUILT — nullptr when the config declares none on that
+    /// side (port 0) or the provider refused it (`wallSensorAbsence(side)` says why). Owned by the
+    /// provider; valid for the Robot's lifetime. The Robot never reads it.
+    [[nodiscard]] hal::IDistance* wallSensor(localization::WallSide side) noexcept {
+        return walls_.side(side).sensor;
+    }
+    /// The `side` distance sensor, read-only (its readings are const).
+    [[nodiscard]] const hal::IDistance* wallSensor(localization::WallSide side) const noexcept {
+        return walls_.side(side).sensor;
+    }
+
+    /// Why `wallSensor(side)` is nullptr: "not declared" for port 0, the provider's own sentence for a
+    /// refused one (the host fake's: "port 5 has no distance sensor"), or a fixed sentence when the
+    /// provider gave none.
+    /// The empty string EXACTLY when `wallSensor(side)` is non-null. Stable for the Robot's lifetime.
+    [[nodiscard]] const char* wallSensorAbsence(localization::WallSide side) const noexcept {
+        const char* why = walls_.side(side).absence;
+        return why != nullptr ? why : "";
+    }
+
+    /// The §18.5 session header's port map for this robot, generated from the config it was
+    /// built with — `writePortMap(config(), out, cap)`, whose documentation gives the formats.
+    /// Truncates rather than overflowing (the header field is `diag::kMaxPortMapBytes`, 96
+    /// bytes); writes a NUL whenever cap > 0. Use this, never `describe()`, for the header:
+    /// the banner is longer than the field.
+    void portMap(char* out, std::size_t cap) const noexcept { writePortMap(cfg_, out, cap); }
+
+    /// The BANNER LINE: identity, the drivetrain kind and where its numbers came from, both
+    /// sides' ports AS STORED (signs included — the one place a sign lives), any drive port
+    /// ABSENT (`DEGRADED: absent 3,13` — only when there is one: built absent at boot, or marked
+    /// absent mid-run by the driver loop's protections, T4 Part 2), the geometry that
+    /// governs, the estimator, and each optional device as present or ABSENT — the side distance
+    /// sensors (L6-A2) after the tags: "walls L4 R5", "walls L4 R5(ABSENT)" for a refused side,
+    /// " MOUNT UNSET" after them when a declared side's mount is unmeasured, "walls ABSENT" with no
+    /// side declared — short and fixed-width, so the camera's reason stays the part a short buffer
+    /// cuts; LAST the camera (VIS1-A1): "camera ABSENT" with none declared, "camera port 3 ABSENT (<why>)" refused, or
+    /// "camera port 3 " + `hal::cameraStatusWords(camera()->status())`, the adapter's reason after it
+    /// in parentheses when it has one ("camera port 3 set up, model DIFFERENT (class 0 is 'blueBall',
+    /// the robot file expects 'redBluePin')") — ASCII only, and LAST so a short buffer cuts the
+    /// camera's reason, never the drive. Until VIS1-A1 the line ended "vision ABSENT". Truncates
+    /// rather than overflowing; writes at least a NUL whenever cap > 0.
+    ///
+    /// It is built from the CONFIG this robot was constructed with, not from a second copy of the
+    /// numbers, so it cannot drift from the wiring — the same property src/main.cpp's retired
+    /// `portMapString()` had and for the same reason. The absent ports are read back from the
+    /// two groups' own slots, which were built from the same description in the same order.
+    void describe(char* buf, std::size_t cap) const {
+        if (buf == nullptr || cap == 0) {
+            return;
+        }
+        constexpr std::size_t kSideCap = 72;
+        char left[kSideCap] = "";
+        char right[kSideCap] = "";
+        char cam[kCameraWordsBytes] = "";
+        cameraWords(cam, sizeof cam);
+        char walls[kWallWordsBytes] = "";
+        wallWords(walls, sizeof walls);
+        const char* name = cfg_.identity.name[0] != '\0' ? cfg_.identity.name : "(unnamed)";
+        switch (cfg_.drivetrain.kind) {
+            case config::DrivetrainKind::Tank: {
+                const hal::DrivetrainDescription& d = cfg_.drivetrain.tank.description;
+                appendPorts(left, kSideCap, d.left.signedPorts, d.left.count);
+                appendPorts(right, kSideCap, d.right.signedPorts, d.right.count);
+                char absent[kSideCap] = "";
+                appendAbsent(absent, kSideCap);
+                std::snprintf(buf, cap,
+                              "%s [%s] tank %s | L %s R %s%s%s | ipr L%.5f R%.5f W %.3f in | "
+                              "IMU%u | %s | GPS %s tags ABSENT %s %s",
+                              name, cfg_.identity.team,
+                              d.source == hal::DescriptionSource::RobotMeasured ? "MEASURED"
+                                                                                : "TYPED",
+                              left, right, absent[0] != '\0' ? " | DEGRADED: absent " : "",
+                              absent, leftGeometry_.inchesPerRadian().value(),
+                              rightGeometry_.inchesPerRadian().value(), d.trackWidth.value(),
+                              static_cast<unsigned>(d.imuPort),
+                              config::odometryKindWord(cfg_.odometry.kind),
+                              gpsWord(), walls, cam);
+                return;
+            }
+            case config::DrivetrainKind::XDrive: {
+                const config::XDriveDrivetrain& x = cfg_.drivetrain.xdrive;
+                appendPorts(left, kSideCap, x.ports, 4);
+                std::snprintf(buf, cap,
+                              "%s [%s] x-drive TYPED | wheels %s | R %.3f in | IMU%u | %s | "
+                              "GPS %s tags ABSENT %s %s",
+                              name, cfg_.identity.team, left, x.driveRadius.value(),
+                              static_cast<unsigned>(x.imuPort),
+                              config::odometryKindWord(cfg_.odometry.kind), gpsWord(), walls, cam);
+                return;
+            }
+            case config::DrivetrainKind::HDrive: {
+                const config::HDriveDrivetrain& hcfg = cfg_.drivetrain.hdrive;
+                appendPorts(left, kSideCap, hcfg.ports, 3);
+                std::snprintf(buf, cap,
+                              "%s [%s] h-drive TYPED | wheels %s | W %.3f in strafe@%.3f in | "
+                              "IMU%u | %s | GPS %s tags ABSENT %s %s",
+                              name, cfg_.identity.team, left, hcfg.trackWidth.value(),
+                              hcfg.strafeWheelOffset.value(), static_cast<unsigned>(hcfg.imuPort),
+                              config::odometryKindWord(cfg_.odometry.kind), gpsWord(), walls, cam);
+                return;
+            }
+        }
+        std::snprintf(buf, cap, "%s [%s] UNSET drivetrain", name, cfg_.identity.team);
+    }
+
+private:
+    /// The borrowed `hal::IMotor` handles, gathered from the provider BY PORT before any group
+    /// exists. One array per tank side (a side is N physical motors behind one group); one flat
+    /// array for a holonomic drivetrain, whose wheels are single motors in the F5 wheel order.
+    struct MotorWiring {
+        /// The LEFT side's members, in the description's stored order. Tank only.
+        hal::IMotor* leftMembers[hal::kMaxSmartPorts]{};
+        /// The RIGHT side's members. Tank only.
+        hal::IMotor* rightMembers[hal::kMaxSmartPorts]{};
+        /// How many entries of `leftMembers` are real.
+        std::size_t leftCount = 0;
+        /// How many entries of `rightMembers` are real.
+        std::size_t rightCount = 0;
+        /// Each LEFT slot's port NUMBER (the signed port's magnitude), in the same order — the
+        /// labels the side's MotorGroup prints a member by (T4 Part 2). Tank only.
+        int leftLabels[hal::kMaxSmartPorts]{};
+        /// Each RIGHT slot's port number, the same way. Tank only.
+        int rightLabels[hal::kMaxSmartPorts]{};
+        /// The holonomic wheels' motors, in the F5 wheel order. Holonomic only.
+        hal::IMotor* wheels[static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)]{};
+        /// How many entries of `wheels` are real.
+        std::size_t wheelCount = 0;
+    };
+
+    /// Run the verdict — WITH the constructor's options, so a port the boot check reported
+    /// absent is not asked for here either — and throw its sentence if it fails, then hand back
+    /// `cfg` for the member initializer. Being the FIRST member's initializer is what makes the
+    /// refusal happen before any object exists (ruling B3). (Dropping the options here was the
+    /// audit's defect 1: a robot a tolerant validate() had passed threw inside its own
+    /// constructor. Test 2 constructs one to keep that from coming back.)
+    [[nodiscard]] static const config::RobotConfig& prechecked(const config::RobotConfig& cfg,
+                                                               hal::IDeviceProvider& devices,
+                                                               const BuildOptions& options) {
+        const BuildVerdict verdict = validate(cfg, devices, options);
+        SHULIB_PRECONDITION(verdict.ok, verdict.why);
+        return cfg;
+    }
+
+    /// The tank kinematics, or nothing on a holonomic drivetrain. The track width comes from the
+    /// description as ONE number and is never retyped — MEASURED from a powered spin (effectively
+    /// larger than a tape's, HA-135) or typed, and either way it arrives here already decided.
+    [[nodiscard]] static std::optional<kinematics::TankKinematics> makeTankKinematics(
+        const config::RobotConfig& cfg) {
+        if (cfg.drivetrain.kind != config::DrivetrainKind::Tank) {
+            return std::nullopt;
+        }
+        return std::optional<kinematics::TankKinematics>{
+            std::in_place, cfg.drivetrain.tank.description.trackWidth};
+    }
+
+    /// The holonomic kinematics (x_drive.hpp's or h_drive.hpp's coefficient table), or nothing on
+    /// a tank. Value-constructed from config DATA, exactly as chassis.hpp's standalone recipe
+    /// does it by hand.
+    [[nodiscard]] static std::optional<kinematics::MatrixKinematics> makeMatrixKinematics(
+        const config::RobotConfig& cfg) {
+        switch (cfg.drivetrain.kind) {
+            case config::DrivetrainKind::XDrive:
+                return std::optional<kinematics::MatrixKinematics>{
+                    kinematics::xDrive(cfg.drivetrain.xdrive.driveRadius)};
+            case config::DrivetrainKind::HDrive:
+                return std::optional<kinematics::MatrixKinematics>{kinematics::hDrive(
+                    {.trackWidth = cfg.drivetrain.hdrive.trackWidth,
+                     .strafeWheelOffset = cfg.drivetrain.hdrive.strafeWheelOffset})};
+            case config::DrivetrainKind::Tank:
+                break;
+        }
+        return std::nullopt;
+    }
+
+    /// Ask the provider for every drive motor the config names, handing each signed port over AS
+    /// STORED so the sign is applied exactly once, inside the adapter. A null here would be a
+    /// provider that refused after `validate()` said it would not — a contract breach, and a loud
+    /// one, because the alternative is an UNPLANNED nullptr inside a MotorGroup.
+    ///
+    /// The one PLANNED nullptr: a tank port in `options.absentDrivePorts` is not asked for at all
+    /// and its slot is left empty — the group's ABSENT member, in the description's own order so
+    /// every index a panel shows still means the same port (src/main.cpp's hand-wired `TankMotors`
+    /// kept its slots for the same reason, until G1 Part 2b retired it). `validate()` has already refused a list that is not a tank's,
+    /// names a port that is not a drive port, or empties a side.
+    [[nodiscard]] static MotorWiring wireMotors(const config::RobotConfig& cfg,
+                                                hal::IDeviceProvider& devices,
+                                                const BuildOptions& options) {
+        MotorWiring w;
+        const hal::MotorCartridge cartridge = cfg.drivetrain.cartridge();
+        const auto take = [&](std::int8_t signedPort) -> hal::IMotor* {
+            hal::IMotor* m = devices.motor(signedPort, cartridge);
+            SHULIB_PRECONDITION(m != nullptr,
+                                "robot::Robot: the provider refused a drive motor that "
+                                "validate() had already obtained");
+            return m;
+        };
+        const auto takeUnlessAbsent = [&](std::int8_t signedPort) -> hal::IMotor* {
+            return options.isAbsent(hal::DrivetrainDescription::portMagnitude(signedPort))
+                       ? nullptr
+                       : take(signedPort);
+        };
+        switch (cfg.drivetrain.kind) {
+            case config::DrivetrainKind::Tank: {
+                const hal::DrivetrainDescription& d = cfg.drivetrain.tank.description;
+                for (std::size_t i = 0; i < d.left.count; ++i) {
+                    w.leftLabels[w.leftCount] =
+                        hal::DrivetrainDescription::portMagnitude(d.left.signedPorts[i]);
+                    w.leftMembers[w.leftCount++] = takeUnlessAbsent(d.left.signedPorts[i]);
+                }
+                for (std::size_t i = 0; i < d.right.count; ++i) {
+                    w.rightLabels[w.rightCount] =
+                        hal::DrivetrainDescription::portMagnitude(d.right.signedPorts[i]);
+                    w.rightMembers[w.rightCount++] = takeUnlessAbsent(d.right.signedPorts[i]);
+                }
+                break;
+            }
+            case config::DrivetrainKind::XDrive:
+                for (const std::int8_t p : cfg.drivetrain.xdrive.ports) {
+                    w.wheels[w.wheelCount++] = take(p);
+                }
+                break;
+            case config::DrivetrainKind::HDrive:
+                for (const std::int8_t p : cfg.drivetrain.hdrive.ports) {
+                    w.wheels[w.wheelCount++] = take(p);
+                }
+                break;
+        }
+        return w;
+    }
+
+    /// ONE `hal::MotorGroup` over a tank side's members — the object that IS the motor for that
+    /// kinematic wheel (R3b Part 1: N physical motors on one side go behind one group, or the
+    /// surplus is silently uncommanded) — labelled with each slot's PORT NUMBER, so the driver
+    /// loop's protections name a port a pit crew can find (T4 Part 2; the labels live in
+    /// `wiring_`, which outlives the group). Nothing on a holonomic drivetrain, whose wheels are
+    /// single motors.
+    [[nodiscard]] static std::optional<hal::MotorGroup> makeSideGroup(
+        const config::RobotConfig& cfg, hal::IMotor* const* members, const int* labels,
+        std::size_t count) {
+        if (cfg.drivetrain.kind != config::DrivetrainKind::Tank) {
+            return std::nullopt;
+        }
+        return std::optional<hal::MotorGroup>{
+            std::in_place, std::span<hal::IMotor* const>{members, count},
+            teleop::SideMonitorConfig{}, std::span<const int>{labels, count}};
+    }
+
+    /// The context's drive-motor array, in KINEMATIC WHEEL ORDER: the two groups on a tank
+    /// (0 = left, 1 = right, as `kinematics::TankKinematics` numbers them), or the holonomic
+    /// wheels straight through in the F5 order.
+    [[nodiscard]] static std::array<hal::IMotor*,
+                                    static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+    makeDriveMotors(const MotorWiring& wiring, std::optional<hal::MotorGroup>& left,
+                    std::optional<hal::MotorGroup>& right) {
+        std::array<hal::IMotor*, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+            out{};
+        if (left.has_value()) {
+            out[0] = &*left;
+            out[1] = &*right;
+            return out;
+        }
+        for (std::size_t i = 0; i < wiring.wheelCount && i < out.size(); ++i) {
+            out[i] = wiring.wheels[i];
+        }
+        return out;
+    }
+
+    /// The groups the health tick evaluates each loop (`motion::MotionDeps::motorGroups`), or an
+    /// array of nulls with count 0 on a holonomic drivetrain.
+    [[nodiscard]] static std::array<hal::MotorGroup*, 2> makeGroupArray(
+        std::optional<hal::MotorGroup>& left, std::optional<hal::MotorGroup>& right) {
+        if (!left.has_value()) {
+            return {nullptr, nullptr};
+        }
+        return {&*left, &*right};
+    }
+
+    /// One side's drive geometry, straight from the description — a separate object per side,
+    /// because a calibration measures each side separately and an asymmetric drivetrain is
+    /// representable. A holonomic drivetrain has no per-side wheel scale in its config (its
+    /// odometry is the tracking wheels), so it gets the library default, which nothing reads.
+    [[nodiscard]] static hal::DriveGeometry sideGeometry(const config::RobotConfig& cfg,
+                                                          bool right) {
+        if (cfg.drivetrain.kind != config::DrivetrainKind::Tank) {
+            return hal::DriveGeometry{};
+        }
+        const hal::DrivetrainDescription& d = cfg.drivetrain.tank.description;
+        return right ? d.rightGeometry() : d.leftGeometry();
+    }
+
+    /// Drive-encoder odometry over the two side GROUPS (R3b Part 2) — or nothing when this robot
+    /// runs tracking wheels. The groups are the IMotors it reads, so a frozen member is already
+    /// excluded by the group's median before the estimator ever sees a number.
+    [[nodiscard]] static std::optional<localization::DriveEncoderOdometry>
+    makeDriveEncoderOdometry(const config::RobotConfig& cfg, std::optional<hal::MotorGroup>& left,
+                             std::optional<hal::MotorGroup>& right, hal::IImu& imu,
+                             hal::DriveGeometry leftGeometry, hal::DriveGeometry rightGeometry) {
+        if (cfg.odometry.kind != config::OdometryKind::DriveEncoders) {
+            return std::nullopt;
+        }
+        return std::optional<localization::DriveEncoderOdometry>{
+            std::in_place,  imu,          *left,
+            *right,         leftGeometry, rightGeometry,
+            cfg.drivetrain.tank.description.trackWidth};
+    }
+
+    /// Two-pod (Pilons) odometry — or nothing when this robot runs drive encoders. The ROLE of
+    /// each wheel is fixed by which factory builds it, so a pair that would have been handed over
+    /// in the wrong order cannot be expressed here at all.
+    [[nodiscard]] static std::optional<localization::PilonsOdometry> makePilonsOdometry(
+        const config::RobotConfig& cfg, hal::IDeviceProvider& devices, hal::IImu& imu) {
+        if (cfg.odometry.kind != config::OdometryKind::TrackingWheels) {
+            return std::nullopt;
+        }
+        const config::TrackingWheelConfig& f = cfg.odometry.wheels.forward;
+        const config::TrackingWheelConfig& l = cfg.odometry.wheels.lateral;
+        hal::IRotation* forwardSensor = devices.rotation(f.port);
+        hal::IRotation* lateralSensor = devices.rotation(l.port);
+        SHULIB_PRECONDITION(forwardSensor != nullptr && lateralSensor != nullptr,
+                            "robot::Robot: the provider refused a tracking-wheel encoder that "
+                            "validate() had already obtained");
+        return std::optional<localization::PilonsOdometry>{
+            std::in_place, imu,
+            localization::TrackingWheel::forward(*forwardSensor, f.wheelDiameter, f.offset),
+            localization::TrackingWheel::lateral(*lateralSensor, l.wheelDiameter, l.offset)};
+    }
+
+    /// The GPS corrector — installed if and only if the config says a GPS is present. When it is
+    /// absent there is NO corrector and the Localizer's corrector span is empty, which is a
+    /// different thing from a corrector that never proposes: a quiet corrector still shows in the
+    /// records as a live source, and a robot that has no GPS must not look like one that has a
+    /// silent one (landmine 5).
+    [[nodiscard]] static std::optional<localization::GpsCorrector> makeGpsCorrector(
+        const config::RobotConfig& cfg, hal::IDeviceProvider& devices, hal::IGps& gps,
+        hal::IImu& imu) {
+        if (!cfg.sensors.gps.present) {
+            return std::nullopt;
+        }
+        return std::optional<localization::GpsCorrector>{std::in_place, devices.clock(), gps, imu};
+    }
+
+    /// The ChassisConfig the facade is built with: the caller's tuning, plus the one thing the
+    /// builder knows and a person should not have to retype — the stall check's per-wheel drive
+    /// geometry, and the fact that a drivetrain whose odometry IS its drive encoders has no
+    /// independent motion source to cross-check against (odo_stall_check.hpp's §2 ruling).
+    /// Exactly what `src/main.cpp`'s `tankChassisConfig()` did by hand until G1 Part 2b, and
+    /// applied only where that function applied it: a holonomic drivetrain's config carries no
+    /// per-wheel scale, so its tuning is passed through untouched — which is also what main.cpp's
+    /// hand-wired X-drive graph did until G1 Part 2c built it here.
+    [[nodiscard]] static config::TuningConfig effectiveTuning(const config::RobotConfig& cfg) {
+        config::TuningConfig tuning = cfg.tuning;
+        if (cfg.drivetrain.kind == config::DrivetrainKind::Tank) {
+            tuning.motion.stall.setAllWheels(cfg.drivetrain.tank.description.leftGeometry());
+            tuning.motion.stall.independentMotionSource =
+                cfg.odometry.kind != config::OdometryKind::DriveEncoders;
+        }
+        return tuning;
+    }
+
+    /// The longest camera part of the banner, NUL included (header: the words, a reason in parentheses).
+    static constexpr std::size_t kCameraWordsBytes = 224;
+    /// The longest camera absence sentence kept, NUL included (the providers' refusals are 160 at most).
+    static constexpr std::size_t kCameraReasonBytes = 160;
+
+    /// VIS1-A1: ask the provider for the configured camera — LAST, after the mechanisms — or record why
+    /// there is none. A refusal never refuses the robot (header: THE AI VISION CAMERA), and neither does a
+    /// provider that THROWS — a breach of the interface, which says nullptr and a refusal — whose words
+    /// become the reason. Throws nothing.
+    void buildCamera(hal::IDeviceProvider& devices) {
+        const config::CameraConfig& cam = cfg_.sensors.camera;
+        if (cam.port == 0) {
+            copyCameraReason("no camera is declared");
+            return;
+        }
+        try {
+            camera_ = devices.aiVision(cam.port, cam.settings);
+        } catch (const std::exception& e) {
+            camera_ = nullptr;
+            std::snprintf(cameraAbsence_, sizeof cameraAbsence_,
+                          "the device provider threw making the camera: %s", e.what());
+            return;
+        } catch (...) {
+            camera_ = nullptr;
+            copyCameraReason("the device provider threw making the camera");
+            return;
+        }
+        if (camera_ == nullptr) {
+            const char* why = devices.lastRefusal();
+            copyCameraReason(why != nullptr && why[0] != '\0'
+                                 ? why
+                                 : "the device provider refused the camera and gave no reason");
+            return;
+        }
+        cameraAbsence_[0] = '\0';
+    }
+
+    /// Copy `why` into `cameraAbsence_`, bounded and always terminated.
+    void copyCameraReason(const char* why) noexcept {
+        std::size_t n = 0;
+        for (; why[n] != '\0' && n + 1 < kCameraReasonBytes; ++n) {
+            cameraAbsence_[n] = why[n];
+        }
+        cameraAbsence_[n] = '\0';
+    }
+
+    /// The camera's part of the banner (describe()'s documentation gives the forms), bounded by `cap`,
+    /// always terminated, every byte outside printable ASCII replaced by '?' — the reasons come from a
+    /// provider or an adapter this class does not control, and the line reaches the brain's screen.
+    void cameraWords(char* out, std::size_t cap) const noexcept {
+        if (out == nullptr || cap == 0) {
+            return;
+        }
+        const unsigned port = cfg_.sensors.camera.port;
+        if (port == 0) {
+            std::snprintf(out, cap, "camera ABSENT");
+        } else if (camera_ == nullptr) {
+            std::snprintf(out, cap, "camera port %u ABSENT (%s)", port, cameraAbsence_);
+        } else {
+            const hal::CameraStatus st = camera_->status();
+            const char* reason = !st.configured ? st.setupProblem
+                                 : (st.model == hal::ModelCheck::Different
+                                    || st.model == hal::ModelCheck::Unreadable)
+                                     ? st.modelProblem
+                                     : "";
+            if (reason != nullptr && reason[0] != '\0') {
+                std::snprintf(out, cap, "camera port %u %s (%s)", port, hal::cameraStatusWords(st),
+                              reason);
+            } else {
+                std::snprintf(out, cap, "camera port %u %s", port, hal::cameraStatusWords(st));
+            }
+        }
+        for (std::size_t k = 0; out[k] != '\0'; ++k) {
+            const auto byte = static_cast<unsigned char>(out[k]);
+            if (byte < 0x20U || byte >= 0x7FU) {
+                out[k] = '?';
+            }
+        }
+    }
+
+    /// The longest wall part of the banner, NUL included: "walls L21(ABSENT) R21(ABSENT) MOUNT UNSET"
+    /// is 41 characters, 42 bytes with its NUL — fixed-width by design (no reason is ever printed here).
+    static constexpr std::size_t kWallWordsBytes = 48;
+    /// The longest side-sensor absence sentence kept, NUL included (the providers' refusals are 160 at
+    /// most — the camera's bound).
+    static constexpr std::size_t kWallReasonBytes = 160;
+
+    /// L6-A2: ask the provider for each declared side's distance sensor and its read-fault count — LAST,
+    /// after the camera — or record why there is none; hand each side its mount, and the robot its
+    /// limits. A refusal never refuses the robot (header: THE SIDE DISTANCE SENSORS), and neither does a
+    /// provider that THROWS — a breach of the interface, which says nullptr and a refusal — whose words
+    /// become the reason. Throws nothing.
+    void buildWallSensors(hal::IDeviceProvider& devices) {
+        const config::WallSensorsConfig& w = cfg_.sensors.walls;
+        walls_.limits = w.limits;
+        buildWallSide(devices, w.left, walls_.left, wallAbsence_[0], "LEFT");
+        buildWallSide(devices, w.right, walls_.right, wallAbsence_[1], "RIGHT");
+    }
+
+    /// One side of buildWallSensors(): `out` gets the sensor (or nullptr), its read-fault count, the
+    /// config's mount and the absence sentence, which lives in `reason` (this Robot's own buffer).
+    static void buildWallSide(hal::IDeviceProvider& devices, const config::WallSensorConfig& in,
+                              localization::WallSensor& out, char (&reason)[kWallReasonBytes],
+                              const char* sideWord) {
+        out.mount = in.mount;
+        out.sensor = nullptr;
+        out.faults = nullptr;
+        if (in.port == 0) {
+            out.absence = "not declared";
+            return;
+        }
+        out.absence = reason;
+        try {
+            out.sensor = devices.distance(in.port);
+        } catch (const std::exception& e) {
+            std::snprintf(reason, kWallReasonBytes,
+                          "the device provider threw making the %s wall sensor: %s", sideWord, e.what());
+            return;
+        } catch (...) {
+            std::snprintf(reason, kWallReasonBytes, "the device provider threw making the %s wall sensor",
+                          sideWord);
+            return;
+        }
+        if (out.sensor == nullptr) {
+            const char* why = devices.lastRefusal();
+            copyWallReason(reason, why != nullptr && why[0] != '\0'
+                                       ? why
+                                       : "the device provider refused the wall sensor and gave no reason");
+            return;
+        }
+        out.faults = devices.readFaults(in.port);
+        reason[0] = '\0';
+    }
+
+    /// Copy `why` into `reason`, bounded and always terminated.
+    static void copyWallReason(char (&reason)[kWallReasonBytes], const char* why) noexcept {
+        std::size_t n = 0;
+        for (; why[n] != '\0' && n + 1 < kWallReasonBytes; ++n) {
+            reason[n] = why[n];
+        }
+        reason[n] = '\0';
+    }
+
+    /// The side distance sensors' part of the banner (describe()'s documentation gives the forms),
+    /// bounded by `cap`, always terminated, ASCII by construction (ports and fixed words only).
+    void wallWords(char* out, std::size_t cap) const noexcept {
+        if (out == nullptr || cap == 0) {
+            return;
+        }
+        const config::WallSensorsConfig& w = cfg_.sensors.walls;
+        if (!w.declared()) {
+            std::snprintf(out, cap, "walls ABSENT");
+            return;
+        }
+        char l[16] = "";
+        char r[16] = "";
+        if (w.left.port != 0) {
+            std::snprintf(l, sizeof l, " L%u%s", static_cast<unsigned>(w.left.port),
+                          walls_.left.sensor == nullptr ? "(ABSENT)" : "");
+        }
+        if (w.right.port != 0) {
+            std::snprintf(r, sizeof r, " R%u%s", static_cast<unsigned>(w.right.port),
+                          walls_.right.sensor == nullptr ? "(ABSENT)" : "");
+        }
+        const bool unset = (w.left.port != 0 && !w.left.mount.measured)
+                           || (w.right.port != 0 && !w.right.mount.measured);
+        std::snprintf(out, cap, "walls%s%s%s", l, r, unset ? " MOUNT UNSET" : "");
+    }
+
+    /// "GPS present" or "ABSENT", for the banner.
+    [[nodiscard]] const char* gpsWord() const noexcept {
+        return cfg_.sensors.gps.present ? "present" : "ABSENT";
+    }
+
+    /// Write `count` signed ports into `out` as "1,-2,3", bounded by `cap` and always
+    /// NUL-terminated. Appended BY HAND rather than with a moving snprintf for the same reason
+    /// src/main.cpp's `tankPortMapString()` did it: the compiler cannot bound a
+    /// `cap - strlen(dst)` argument, so -Wformat-truncation fires on a call that is in fact safe,
+    /// and the on-robot build gate treats that warning as an error.
+    static void appendPorts(char* out, std::size_t cap, const std::int8_t* ports,
+                            std::size_t count) {
+        std::size_t n = 0;
+        for (std::size_t i = 0; i < count; ++i) {
+            char one[8] = "";
+            std::snprintf(one, sizeof one, "%s%d", i == 0 ? "" : ",",
+                          static_cast<int>(ports[i]));
+            for (std::size_t k = 0; one[k] != '\0' && n + 1 < cap; ++k) {
+                out[n++] = one[k];
+            }
+        }
+        if (cap > 0) {
+            out[n < cap ? n : cap - 1] = '\0';
+        }
+    }
+
+    /// Write the port numbers (magnitudes, "3,13") of every drive slot that is not PRESENT — a
+    /// boot hole, or a member marked ABSENT mid-run (T4 Part 2) — LEFT side then RIGHT, read back
+    /// from the groups' own slots, which were built from the description in its stored order, so
+    /// slot i IS the description's port i. Empty on a complete robot and on a holonomic one.
+    /// Bounded by hand like appendPorts(), always NUL-terminated.
+    void appendAbsent(char* out, std::size_t cap) const {
+        if (cap == 0) {
+            return;
+        }
+        out[0] = '\0';
+        if (!left_.has_value()) {
+            return;  // holonomic: no groups, nothing can be absent
+        }
+        const hal::DrivetrainDescription& d = cfg_.drivetrain.tank.description;
+        const hal::DriveSideDescription* sides[2] = {&d.left, &d.right};
+        const hal::MotorGroup* groups[2] = {&*left_, &*right_};
+        std::size_t n = 0;
+        for (std::size_t s = 0; s < 2; ++s) {
+            for (std::size_t i = 0; i < sides[s]->count; ++i) {
+                if (groups[s]->isPresent(i)) {
+                    continue;
+                }
+                char one[8] = "";
+                std::snprintf(one, sizeof one, "%s%d", n == 0 ? "" : ",",
+                              hal::DrivetrainDescription::portMagnitude(sides[s]->signedPorts[i]));
+                for (std::size_t k = 0; one[k] != '\0' && n + 1 < cap; ++k) {
+                    out[n++] = one[k];
+                }
+                out[n] = '\0';
+            }
+        }
+    }
+
+    // ── the graph, in CONSTRUCTION ORDER (declaration order IS initialization order) ────
+    //    kinematics → motors → groups → sensors → diagnostics → geometry → odometry →
+    //    fusion → correctors → localizer → context → deps → chassis. The same list, in the
+    //    same order, as src/main.cpp's hand-wired graphs (its TankRobot until G1 Part 2b; its
+    //    X-drive Robot until 2c).
+
+    /// The config this robot was built from, COPIED (see the constructor).
+    ///
+    /// The PROVIDER is deliberately NOT stored beside it. Every device this graph needs was taken
+    /// during construction and is held where it is used; a second handle to the provider would be
+    /// an unused member that reads like an ownership claim, and ruling B2 is that the builder owns
+    /// no hardware. The provider must still outlive the Robot — the class banner and the
+    /// constructor both say so — but that is a lifetime contract, not a field.
+    config::RobotConfig cfg_;
+
+    std::optional<kinematics::TankKinematics> tankKin_;
+    std::optional<kinematics::MatrixKinematics> matrixKin_;
+    const kinematics::IKinematics* kin_;
+
+    MotorWiring wiring_;
+    std::optional<hal::MotorGroup> left_;
+    std::optional<hal::MotorGroup> right_;
+    std::array<hal::IMotor*, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+        driveMotors_;
+    std::size_t driveMotorCount_;
+    std::array<hal::MotorGroup*, 2> groups_;
+    std::size_t groupCount_;
+
+    hal::IImu* imu_;
+    hal::AbsentGps absentGps_;
+    hal::IGps* gps_;
+    hal::AbsentTagSource tags_;
+    hal::AbsentVision vision_;
+
+    diag::FaultLatch faults_;
+    diag::HealthMonitor health_;
+
+    hal::DriveGeometry leftGeometry_;
+    hal::DriveGeometry rightGeometry_;
+
+    std::optional<localization::DriveEncoderOdometry> driveOdom_;
+    std::optional<localization::PilonsOdometry> pilonsOdom_;
+    localization::IOdometry* odom_;
+    localization::ComplementaryFusion fusion_;
+
+    std::optional<localization::GpsCorrector> gpsCorrector_;
+    std::array<localization::ICorrector*, 1> correctors_;
+    std::size_t correctorCount_;
+
+    localization::Localizer localizer_;
+    /// The side distance sensors, their limits and the reset log (L6-A2) — declared BEFORE the context
+    /// so `&walls_` can be handed to it; FILLED in the constructor's body, last (buildWallSensors()).
+    localization::WallSensors walls_{};
+    chassis::RobotContext ctx_;
+    motion::MotionDeps deps_;
+    chassis::Chassis chassis_;
+
+    // ── the mechanisms, built in the constructor BODY, after everything above ──────────
+    // (robot::MechanismParts since MECH-A1: the slots, buildMechanisms() and buildPneumatic()
+    // that were here moved there.)
+
+    /// The index of the declared mechanism named `name`, or `mechanismCount()` when none is (or
+    /// `name` is null) — MechanismParts::indexOf over its copy of the config's names.
+    [[nodiscard]] std::size_t mechanismIndex(const char* name) const noexcept {
+        return parts_.indexOf(name);
+    }
+
+    MechanismParts parts_{};
+
+    // ── the AI Vision camera, built in the constructor BODY, LAST (VIS1-A1) ─────────────
+    hal::IVisionFrames* camera_ = nullptr;
+    char cameraAbsence_[kCameraReasonBytes]{};
+
+    // ── the side distance sensors' absence sentences, LEFT then RIGHT (L6-A2) ──────────
+    // `walls_` (above, before the context) points into these for a refused side.
+    char wallAbsence_[2][kWallReasonBytes]{};
+};
+
+}  // namespace shulib::robot

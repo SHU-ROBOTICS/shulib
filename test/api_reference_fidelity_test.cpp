@@ -150,6 +150,13 @@ TEST_CASE("D3 doc fidelity: docs/api/routine.md renders the header's real signat
         page, "Routine& driveTo(units::Length x, units::Length y, "
               "const MotionOptions& options = {})"));
     CHECK(rendersSignature(page, "Routine& pause(units::Time duration)"));
+    // L9's two appended steps (API 2.4) reach the reference with their defaulted options.
+    CHECK(rendersSignature(
+        page, "Routine& reverseTo(units::Length x, units::Length y, "
+              "const MotionOptions& options = {})"));
+    CHECK(rendersSignature(
+        page, "Routine& faceAway(units::Length x, units::Length y, "
+              "const MotionOptions& options = {})"));
 
     // Template steps, with their default name arguments intact.
     CHECK(rendersSignature(
@@ -190,7 +197,8 @@ TEST_CASE("D3 doc fidelity: the index lists every member of both surfaces") {
                              "Chassis::strafeAuthority", "Chassis::lastExitReason",
                              "Chassis::lastCompleted", "Chassis::motionConfig",
                              "Chassis::deps", "Routine::startAt", "Routine::driveTo",
-                             "Routine::face", "Routine::followTrajectory",
+                             "Routine::face", "Routine::reverseTo", "Routine::faceAway",
+                             "Routine::followTrajectory",
                              "Routine::pause", "Routine::waitFor", "Routine::then",
                              "Routine::ok", "Routine::result", "Routine::lastTrajectory",
                              "Routine::chassis", "MotionOptions::timeout",

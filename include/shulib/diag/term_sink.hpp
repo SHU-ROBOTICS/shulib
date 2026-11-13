@@ -2,7 +2,9 @@
 //
 // TermSink — the human-readable terminal stream, the PRIMARY dev/debug surface (master
 // plan §18.3; WS13, chunk A1). A pretty-printer for humans: leveled, subsystem-tagged,
-// column-aligned lines — never prose, never the JSON wire (that is Shul2Sink at H1).
+// column-aligned lines — never prose, never the wire (SHUL/2 is BINARY, not JSON: its
+// format and reader are diag/shul2_format.hpp and shul2_reader.hpp; its sink, Shul2Sink,
+// is H1 Part A2's).
 //
 // Injected dependencies (the pattern control/ set): the clock stamps leveled messages;
 // the character sink is where bytes go — which is what makes every line here a golden-
@@ -16,9 +18,10 @@
 //                     — timestamped from the RECORD's t (not the clock), so replayed
 //                       records render identically to live ones; idle ticks (no active
 //                       command) are tagged [LOC]. Trailing flags appear only when set:
-//                       " DR" (dead-reckoning), " SFB" (strafe fallback), " CLMP"
-//                       (nudge clamped), " flt=NAME" (fault this tick). The line shows
-//                       the HEADLINE fields; the full record belongs to SdSink/SHUL/2.
+//                       " DR" (dead-reckoning), " SFB" (strafe fallback), " TSTR" (tank
+//                       steering, TANK1), " CLMP" (nudge clamped), " flt=NAME" (fault
+//                       this tick). The line shows the HEADLINE fields; the full record
+//                       belongs to SdSink/SHUL/2.
 //   run summary:      summarize(RunSummary) renders the §18.3 one-screen block (chunk
 //                     C5) — six lines, unstamped, byte-pinned by golden test. The
 //                     per-motion RESULT LINE does not enter here: it rides log() as
@@ -106,9 +109,10 @@ public:
     /// makes a replayed record render byte-identically to a live one. The tick is tagged [MOT]
     /// when it carries a command id OR a non-idle motion state (a C1 motion running standalone has
     /// id 0, so discriminating on the id alone once rendered an ACTIVE motion as "[LOC] idle"),
-    /// and "[LOC] idle" only when both are zero. Trailing flags are appended ONLY when set: " DR",
-    /// " SFB", " CLMP", " flt=NAME". Angles print in degrees, and a non-finite value renders as a
-    /// deterministic "NaN"/"+Inf"/"-Inf" token rather than libc's locale-varying spelling.
+    /// and "[LOC] idle" only when both are zero. Trailing flags are appended ONLY when set, in
+    /// this order: " DR", " SFB", " TSTR" (TANK1's tank steering), " CLMP", " flt=NAME". Angles
+    /// print in degrees, and a non-finite value renders as a deterministic "NaN"/"+Inf"/"-Inf"
+    /// token rather than libc's locale-varying spelling.
     void emit(const DebugRecord& r) override {
         Line line;
         appendTimestamp(line, r.t.value());
@@ -152,6 +156,9 @@ public:
         }
         if (r.strafeFallbackActive) {
             line.appendLiteral(" SFB");
+        }
+        if (r.tankSteerActive) {
+            line.appendLiteral(" TSTR");
         }
         if (r.clampedThisTick) {
             line.appendLiteral(" CLMP");

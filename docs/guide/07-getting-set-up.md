@@ -119,12 +119,47 @@ mental model, which matters more:
   the raw device, applies the unit conversion **exactly once**, and hands the core a canonical
   value — every unit belief it rests on is catalogued in the
   [Hardware Assumptions Register](../hardware-assumptions.md) (HA-94 onward).
-- **`src/main.cpp`** — the program that runs on a real V5 brain: it wires the library to the
-  adapters above and is the worked example of constructing a whole robot in plain C++. Its
-  port map is an explicitly labelled guess — and a robot *has* now been measured, which the map
-  has not caught up with: the one machine the team has is a tank drive with no tracking wheels
-  and no GPS, and `main.cpp` still describes an X-drive with both. Re-wiring it is
-  hardware-validation work, not a build step.
+- **`src/`** — the programs that run on a real V5 brain, one folder per job: **`src/robots/`** is
+  what each robot IS (its ports, motor directions and mechanisms), **`src/team/`** is the team's
+  own code — where students edit: robot two's driver file, `src/team/robot_two_driver.hpp` (which
+  button does what and the driving feel, in one file; "shulib Drive" runs it on its own, and the
+  competition program's driver control runs it, [Chapter 17](17-the-competition-program.md)), and
+  the team's autons,
+  `src/team/autons.cpp` (every autonomous routine the robot can run, listed by `registerAutons()` —
+  the one file the host suite also compiles, and runs every auton in; the auton tester runs them on
+  the bench, [Chapter 16](16-testing-an-auton-on-the-bench.md), and the competition program in a
+  match, [Chapter 17](17-the-competition-program.md)) —
+  **`src/programs/`** holds one program each, and **`src/common/`** what the programs share.
+  Every include of one of these files is written from `src/` —
+  `#include "robots/chassis_table.hpp"` — the same in every folder. `src/build_selection.hpp` is
+  where a build becomes one program on one robot: the `make ROBOT=… PROGRAM=…` switches are read
+  there and nowhere else, by one chain that picks the program and the robot's tables together.
+  `src/main.cpp` is the PROS entry point, and all it does is hand each PROS entry point to that
+  program. "shulib Drive" (`src/programs/drive_program.cpp`) is the worked example of building a
+  whole robot — `robot::Robot` from a config over the real adapters, then robot two's driver file
+  bound to it — and
+  `src/robots/xdrive_config.hpp` shows a robot typed by hand as a `constexpr RobotConfig` (the
+  invented X-drive, built the same way by `src/programs/xdrive_program.cpp`). The other programs are
+  the bench tester ("Bench Tests"), "shulib Calibrate" (the library's standard Calibrate, with robot
+  two's facts derived from its tables in `src/robots/calibrate_facts.hpp` — a team's own is one file,
+  [chapter 19](19-calibrating-your-robot.md)), "shulib Auton Tester"
+  (`src/programs/auton_tester_program.cpp`, `make ROBOT=tank PROGRAM=autontest`), "shulib
+  Competition" (`src/programs/competition_program.cpp`, `make ROBOT=tank PROGRAM=competition`) and
+  "shulib Tune" (`src/programs/tune_program.cpp`, `make ROBOT=tank PROGRAM=tune` — any robot with
+  mechanisms; slot 7 — live tuning of the mechanisms on the brain screen,
+  [Chapter 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen));
+  `src/common/` holds what those programs share — the boot source, the competition-state screens, the
+  painters, every driver file's plumbing (`src/common/driver_file.hpp`), and the driver-control
+  screen's words (`src/common/driver_panel.hpp`: the drive protections' row, the controller's lines,
+  and the mechanisms' boot lines and the claw row, whose buttons are the driver file's); and the
+  per-robot tables in `src/robots/` carry every robot's ports, and robot two's claws, declared in the
+  mechanism core's words (`src/robots/mechanism_table.hpp`). (Wiring a robot by hand, object by
+  object, is still possible — the test suite's standalone case does it — but no program here does
+  any more.) Which robot a build targets is
+  chosen at `make` time: the X-drive build's port map is an
+  explicitly labelled guess (no such robot exists yet), while the tank builds use port tables
+  measured on the old bench robot and on robot two — and robot two's graph is built from the calibration record the
+  robot writes to its own SD card.
 - **`test/pros_shim/`** — a hand-written, programmable stand-in for the PROS SDK, used only by
   the host test build so the adapters can be compiled and *run* on your laptop. It is
   structurally unable to reach a robot build (its headers refuse to compile outside the test
@@ -139,20 +174,22 @@ mental model, which matters more:
 For completeness, the path that exists today: `make` at the repo root cross-compiles a real,
 uploadable V5 package, and `pros upload` puts it on a brain. Booting has been done (2026-08-12:
 uploaded, booted, printed its banner over USB), and since the hardware-adapter work landed the
-package wires **real device adapters** — motors, IMU, GPS, battery, rotation sensors, the
-controller — rather than in-memory fakes, including a first driver-control loop.
+package wires **real device adapters** — motors, IMU, battery, the controller, and on the
+X-drive build GPS and rotation sensors — rather than in-memory fakes, including a first
+driver-control loop.
 
 What that does *not* yet mean, stated as plainly as the robot itself states it over serial:
-**the library has still never driven a robot** — no control loop has ever closed, and no wheel
+**the library has still never driven a robot under its own control** — no control loop has ever closed, and no wheel
 has ever turned under the library's own steering. The adapters are host-tested against a
 programmable stand-in for PROS, which proves the glue is faithful to our *beliefs* about PROS
 — units, signs, error values — and cannot prove the beliefs themselves
-(the [FAQ](../faq.md) unpacks that sentence). One bench session (2026-08-13) has since checked a
-handful of those beliefs against real devices and found them right, which is a real result and a
-narrow one: it validated the *platform layer* on one robot, once.
+(the [FAQ](../faq.md) unpacks that sentence). A few bench sessions (2026-08-13 onward) have since
+checked a handful of those beliefs against real devices and found them right, and a driver has
+driven robot two with the sticks through the adapters once — a real result and a narrow one: it
+validated the *platform layer*, open-loop, not the library's steering.
 
-The shipped port map is a labelled guess, and it does **not** match the robot that was measured.
-A wrong **motor** port does refuse loudly at boot — `ProsMotor` configures the device and reads
+Only the X-drive build's port map is a labelled guess; the tank builds use measured port tables
+(robot two's is owed a re-measure since its drivetrain was rebuilt). A wrong **motor** port does refuse loudly at boot — `ProsMotor` configures the device and reads
 the configuration back — but do not generalise that to every device: the sensor adapters screen
 bad reads and hold their last good value rather than refusing, so a mis-mapped sensor degrades
 quietly instead of stopping you.

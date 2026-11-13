@@ -10,11 +10,14 @@
 // CYLINDER MOVES WHEN THIS OBJECT IS BUILT. This adapter therefore REFUSES
 // the default: `initialState` is a REQUIRED constructor argument, so the
 // author must state what the line should be at boot — and that statement
-// must AGREE with the owning PneumaticMechanism's declared safe state
-// (mechanism.hpp), or there is a window at boot where the line is wrong and
-// "wrong" means physically moving. A safety step a caller can forget is a
-// safety step that WILL be forgotten (the legacy escapeJSONString lesson);
-// this one cannot be skipped, only stated.
+// must AGREE with what the owning PneumaticMechanism must be at boot: its
+// declared safe state (mechanism.hpp), or — for a mechanism built from a
+// config — its stated START level (config::MechanismConfig::pneumaticStart,
+// which robot::Robot hands the device provider; T3's addendum B2) — or there
+// is a window at boot where the line is wrong and "wrong" means physically
+// moving. A safety step a caller can forget is a safety step that WILL be
+// forgotten (the legacy escapeJSONString lesson); this one cannot be
+// skipped, only stated.
 //
 // BINDS:
 //  * ctor(init_state) — the boot actuation, stated explicitly (HA-119)
@@ -60,17 +63,18 @@ namespace shulib::hal::pros {
 /// CONSTRUCTING ONE IS A PHYSICAL ACTION: PROS drives the line from its own constructor, so on a
 /// pneumatic clamp the cylinder moves the moment this object is built. That is why `initialState`
 /// is a required argument with NO default — the author must state the boot level, and must state
-/// one that agrees with the owning PneumaticMechanism's declared safe state, or there is a window
-/// at boot where the line is wrong and "wrong" means physically moving. A write the port refuses
-/// is COUNTED (faultedWrites), never raised: the seam has no validity channel by design, and
-/// commanded() goes on reporting the caller's intent, which is exactly what makes a refused write
-/// visible as a divergence instead of a device that silently agrees with itself.
+/// the one the owning PneumaticMechanism must be at boot (its declared safe state, or a config's
+/// stated start level), or there is a window at boot where the line is wrong and "wrong" means
+/// physically moving. A write the port refuses is COUNTED (faultedWrites), never raised: the seam
+/// has no validity channel by design, and commanded() goes on reporting the caller's intent, which
+/// is exactly what makes a refused write visible as a divergence instead of a device that silently
+/// agrees with itself.
 class ProsDigitalOut final : public IDigitalOut {
 public:
     /// Brain ADI port ('a'–'h', 'A'–'H', or 1–8). CONSTRUCTION DRIVES THE
     /// LINE to `initialState` — a physical action (header). `initialState`
-    /// is required, no default: state what the boot level must be, and make
-    /// it agree with the owning mechanism's declared safe state.
+    /// is required, no default: state what the boot level must be — what
+    /// the owning mechanism must be at boot (header).
     ProsDigitalOut(std::uint8_t adiPort, bool initialState)
         : line_{adiPort, initialState}, commanded_{initialState} {}
 

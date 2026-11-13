@@ -43,6 +43,7 @@
 
 #include "shulib/hal/optical.hpp"
 #include "shulib/hal/optical_conversion.hpp"
+#include "shulib/hal/read_faults.hpp"
 
 namespace shulib::hal::pros {
 
@@ -57,7 +58,11 @@ namespace shulib::hal::pros {
 /// confidence() to say so (T7).
 /// The readers are const but update that held-value cache, so const here does not mean safe to
 /// poll from two tasks at once. Raising a fault is the loop layer's job, not this seam's.
-class ProsOptical final : public IOptical {
+///
+/// ALSO an `IReadFaults` (MECH-A1, 2026-10-08): faultedReads() is reachable through the F4-additive
+/// sibling seam (hal/read_faults.hpp), so the mechanism core can tell a HELD proximity from a
+/// measured one — the only channel this seam has, as the paragraph above says.
+class ProsOptical final : public IOptical, public IReadFaults {
 public:
     /// `port`: 1..21.
     explicit ProsOptical(std::uint8_t port) : sensor_{port} {}
@@ -109,8 +114,9 @@ public:
         return lastProximity_;
     }
 
-    /// How many reads were screened to last-good (T7 observability).
-    [[nodiscard]] int faultedReads() const noexcept { return faultedReads_; }
+    /// How many reads were screened to last-good (T7 observability). Monotonic; the
+    /// `IReadFaults` answer (MECH-A1).
+    [[nodiscard]] int faultedReads() const noexcept override { return faultedReads_; }
 
 private:
     mutable ::pros::v5::Optical sensor_;  // PROS's readers are non-const

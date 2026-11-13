@@ -1,0 +1,454 @@
+<!-- GENERATED FILE — DO NOT EDIT BY HAND.
+     Source: include/shulib/hal/device_provider.hpp
+     Regenerate: python3 tools/api_doc_tool.py generate
+     The host test build fails if this file is out of date, so an edit here
+     is reverted by the next build rather than reviewed. Edit the header. -->
+
+# `device_provider.hpp`
+
+IDeviceProvider — devices BY PORT, and the one target-specific seam a builder needs.
+
+This header declares **1** type (23 members) and **1** constant.
+
+Extracted from [`include/shulib/hal/device_provider.hpp`](../../include/shulib/hal/device_provider.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+
+## Contents
+
+- [`kBrainAdiLines`](#kbrainadilines) — *constant*
+- [`class IDeviceProvider`](#class-ideviceprovider)
+  - [`~IDeviceProvider`](#ideviceprovider-destructor-ideviceprovider)
+  - [`IDeviceProvider`](#ideviceprovider-ideviceprovider)
+  - [`IDeviceProvider (overload 2)`](#ideviceprovider-ideviceprovider-2)
+  - [`IDeviceProvider (overload 3)`](#ideviceprovider-ideviceprovider-3)
+  - [`operator=`](#ideviceprovider-operator-eq)
+  - [`operator= (overload 2)`](#ideviceprovider-operator-eq-2)
+  - [`motor`](#ideviceprovider-motor)
+  - [`imu`](#ideviceprovider-imu)
+  - [`gps`](#ideviceprovider-gps)
+  - [`rotation`](#ideviceprovider-rotation)
+  - [`digitalOut`](#ideviceprovider-digitalout)
+  - [`distance`](#ideviceprovider-distance)
+  - [`optical`](#ideviceprovider-optical)
+  - [`digitalIn`](#ideviceprovider-digitalin)
+  - [`aiVision`](#ideviceprovider-aivision)
+  - [`readFaults`](#ideviceprovider-readfaults)
+  - [`lineReadFaults`](#ideviceprovider-linereadfaults)
+  - [`currentLimit`](#ideviceprovider-currentlimit)
+  - [`clock`](#ideviceprovider-clock)
+  - [`battery`](#ideviceprovider-battery)
+  - [`telemetry`](#ideviceprovider-telemetry)
+  - [`pacer`](#ideviceprovider-pacer)
+  - [`lastRefusal`](#ideviceprovider-lastrefusal)
+
+<a id="kbrainadilines"></a>
+
+## `kBrainAdiLines`
+
+```cpp
+inline constexpr std::uint8_t kBrainAdiLines = 8
+```
+
+The brain's own 3-wire (ADI) ports, lettered A..H on the brain and numbered 1..8 on this seam (A = 1). An expander's lines are not on the seam.
+
+*constant, declared at [`include/shulib/hal/device_provider.hpp:133`](../../include/shulib/hal/device_provider.hpp#L133).*
+
+<a id="class-ideviceprovider"></a>
+
+## `class IDeviceProvider`
+
+```cpp
+class IDeviceProvider
+```
+
+Devices by port, made or looked up on demand and owned by the provider (ruling B2).  The per-port accessors are NOT const: obtaining a device may construct one, and the provider is the object that then owns it. They are also not `noexcept` by declaration — an implementation is free to be, and both shipped ones are — because refusing to construct is spelled as a nullptr return rather than as an exception, and pinning `noexcept` on the interface would forbid an implementation that legitimately allocates its storage lazily.
+
+*class, declared at [`include/shulib/hal/device_provider.hpp:142`](../../include/shulib/hal/device_provider.hpp#L142).*
+
+<a id="ideviceprovider-destructor-ideviceprovider"></a>
+
+### `IDeviceProvider::~IDeviceProvider`
+
+```cpp
+virtual ~IDeviceProvider() = default
+```
+
+Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at).
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:149`](../../include/shulib/hal/device_provider.hpp#L149).*
+
+<a id="ideviceprovider-ideviceprovider"></a>
+
+### `IDeviceProvider::IDeviceProvider`
+
+```cpp
+IDeviceProvider() = default
+```
+
+Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:151`](../../include/shulib/hal/device_provider.hpp#L151).*
+
+<a id="ideviceprovider-ideviceprovider-2"></a>
+
+### `IDeviceProvider::IDeviceProvider (overload 2)`
+
+```cpp
+IDeviceProvider(const IDeviceProvider&) = default
+```
+
+Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize. Copyable at the base, because the base holds no state; concrete providers decide.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:153`](../../include/shulib/hal/device_provider.hpp#L153).*
+
+<a id="ideviceprovider-ideviceprovider-3"></a>
+
+### `IDeviceProvider::IDeviceProvider (overload 3)`
+
+```cpp
+IDeviceProvider(IDeviceProvider&&) = default
+```
+
+Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize. Copyable at the base, because the base holds no state; concrete providers decide. Movable, same reasoning as the copy constructor.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:155`](../../include/shulib/hal/device_provider.hpp#L155).*
+
+<a id="ideviceprovider-operator-eq"></a>
+
+### `IDeviceProvider::operator=`
+
+```cpp
+IDeviceProvider& operator=(const IDeviceProvider&) = default
+```
+
+Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize. Copyable at the base, because the base holds no state; concrete providers decide. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:157`](../../include/shulib/hal/device_provider.hpp#L157).*
+
+<a id="ideviceprovider-operator-eq-2"></a>
+
+### `IDeviceProvider::operator= (overload 2)`
+
+```cpp
+IDeviceProvider& operator=(IDeviceProvider&&) = default
+```
+
+Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize. Copyable at the base, because the base holds no state; concrete providers decide. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning. Move-assignable, same reasoning.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:159`](../../include/shulib/hal/device_provider.hpp#L159).*
+
+<a id="ideviceprovider-motor"></a>
+
+### `IDeviceProvider::motor`
+
+```cpp
+[[nodiscard]] virtual IMotor* motor(std::int8_t signedPort, MotorCartridge cartridge) = 0
+```
+
+The motor on `signedPort` — |p| in 1..kMaxSmartPorts, SIGN = the PROS reversal, handed over AS STORED so the sign is applied exactly once, in the adapter (the one-place-for-a- sign rule that hal/motor_group.hpp and hal/drivetrain_description.hpp both state). `cartridge` is the human-stated gearset. Returns nullptr and sets lastRefusal() when the port is out of range, empty, or carries something that is not a motor. Idempotent: the same port yields the same object.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:167`](../../include/shulib/hal/device_provider.hpp#L167).*
+
+<a id="ideviceprovider-imu"></a>
+
+### `IDeviceProvider::imu`
+
+```cpp
+[[nodiscard]] virtual IImu* imu(std::uint8_t port) = 0
+```
+
+The inertial sensor on physical `port`, 1..kMaxSmartPorts. Returns nullptr + a refusal on a port that cannot serve one. Idempotent.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:171`](../../include/shulib/hal/device_provider.hpp#L171).*
+
+<a id="ideviceprovider-gps"></a>
+
+### `IDeviceProvider::gps`
+
+```cpp
+[[nodiscard]] virtual IGps* gps(std::uint8_t port, units::Length leverArmForward, units::Length leverArmLeft) = 0
+```
+
+The GPS on physical `port`, with its lever arm from the robot centre (`leverArmForward` is the +X body coordinate, `leverArmLeft` the +Y). The lever arm is a CONSTRUCTION argument rather than a later setter because the adapter removes it at the HAL edge, once, and a GPS that has already been read with the wrong arm has already lied. Returns nullptr + a refusal on a port that cannot serve one. Idempotent.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:178`](../../include/shulib/hal/device_provider.hpp#L178).*
+
+<a id="ideviceprovider-rotation"></a>
+
+### `IDeviceProvider::rotation`
+
+```cpp
+[[nodiscard]] virtual IRotation* rotation(std::uint8_t port) = 0
+```
+
+The rotation sensor on physical `port`, 1..kMaxSmartPorts — a tracking wheel's encoder. Returns nullptr + a refusal on a port that cannot serve one. Idempotent.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:183`](../../include/shulib/hal/device_provider.hpp#L183).*
+
+<a id="ideviceprovider-digitalout"></a>
+
+### `IDeviceProvider::digitalOut`
+
+```cpp
+[[nodiscard]] virtual IDigitalOut* digitalOut(std::uint8_t line, bool initialState) = 0
+```
+
+The digital output on the brain's 3-wire port `line`, 1..kBrainAdiLines (= A..H; a letter byte such as 'A' is NOT translated — state the number) — a pneumatic solenoid's line. MAKING ONE DRIVES IT: the line is set to `initialState` the moment it is made (on a brain, inside `pros::adi::DigitalOut`'s constructor — A4 register HA-119), so the level is STATED here, never defaulted: state what the mechanism must be at program start. Returns nullptr and sets lastRefusal() for a line outside 1..8. Idempotent: the same line yields the same object, driven only when it was MADE — a later request drives nothing. PRECONDITION: a later request for a made line states the SAME `initialState` (one line, one configuration — two parts of a program disagreeing about a line's boot level is not a wiring fault). Nothing can refuse an EMPTY line: the brain's registry cannot see a solenoid (header; HA-158). PRECONDITION (since MECH-A1): the line was not made as a digitalIn() — one line, one direction. Added in T3's addendum B2 (2026-09-26); every implementer must answer it.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:197`](../../include/shulib/hal/device_provider.hpp#L197).*
+
+<a id="ideviceprovider-distance"></a>
+
+### `IDeviceProvider::distance`
+
+```cpp
+[[nodiscard]] virtual IDistance* distance(std::uint8_t port) = 0
+```
+
+The DISTANCE sensor on physical `port`, 1..kMaxSmartPorts — a mechanism's piece sensor (MECH-A1). Returns nullptr and sets lastRefusal() when the port is out of range, empty, or carries something else. Idempotent: the same port yields the same object. Every implementer must answer it.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:203`](../../include/shulib/hal/device_provider.hpp#L203).*
+
+<a id="ideviceprovider-optical"></a>
+
+### `IDeviceProvider::optical`
+
+```cpp
+[[nodiscard]] virtual IOptical* optical(std::uint8_t port) = 0
+```
+
+The OPTICAL sensor on physical `port`, 1..kMaxSmartPorts — a mechanism's piece sensor (MECH-A1). nullptr + a refusal on a port that cannot serve one. Idempotent. Every implementer must answer it.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:208`](../../include/shulib/hal/device_provider.hpp#L208).*
+
+<a id="ideviceprovider-digitalin"></a>
+
+### `IDeviceProvider::digitalIn`
+
+```cpp
+[[nodiscard]] virtual IDigitalIn* digitalIn(std::uint8_t line) = 0
+```
+
+The digital INPUT on the brain's 3-wire port `line`, 1..kBrainAdiLines (A = 1) — a limit switch (MECH-A1). Reading one drives nothing, and making one drives nothing. nullptr + a refusal ONLY for a line outside 1..8 on the brain: its registry cannot see a 3-wire device (header; HA-158), so an in-range line is always made. PRECONDITION: the line was not made as a digitalOut() (one line, one direction — and digitalOut() states the converse). Idempotent.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:215`](../../include/shulib/hal/device_provider.hpp#L215).*
+
+<a id="ideviceprovider-aivision"></a>
+
+### `IDeviceProvider::aiVision`
+
+```cpp
+[[nodiscard]] virtual IVisionFrames* aiVision(std::uint8_t port, const AiVisionSettings& settings) = 0
+```
+
+The AI VISION CAMERA on physical `port`, 1..kMaxSmartPorts, set up with `settings` (VIS1-A1; the header's camera section). Returns nullptr and sets lastRefusal() when the port is out of range, empty, or carries anything but an AI Vision sensor (the OLDER Vision sensor included), when `aiVisionSettingsProblem(settings)` names a problem, or when a camera was already made on `port` with settings that are not `sameAiVisionSettings` — never a precondition: a refused camera never stops a robot. MAKING ONE WRITES ITS SETTINGS to the camera. Idempotent for equal settings: the same port yields the same object. Every implementer must answer it.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:224`](../../include/shulib/hal/device_provider.hpp#L224).*
+
+<a id="ideviceprovider-readfaults"></a>
+
+### `IDeviceProvider::readFaults`
+
+```cpp
+[[nodiscard]] virtual const IReadFaults* readFaults(std::uint8_t port) const noexcept = 0
+```
+
+The READ-FAULT count of the device this provider made on smart `port` that screens its reads: a piece sensor made with distance() or optical() — how a consumer tells a HELD value from a measured one (hal/read_faults.hpp) — or the camera made with aiVision() (since VIS1-A1: its failed and torn reads). nullptr when no such device was made there, or when this provider's devices never screen a read. Never makes anything. Every implementer must answer it (header).
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:231`](../../include/shulib/hal/device_provider.hpp#L231).*
+
+<a id="ideviceprovider-linereadfaults"></a>
+
+### `IDeviceProvider::lineReadFaults`
+
+```cpp
+[[nodiscard]] virtual const IReadFaults* lineReadFaults(std::uint8_t line) const noexcept = 0
+```
+
+The READ-FAULT count of the digital input this provider made on 3-wire `line` with digitalIn(); nullptr when none was made there (or it never screens a read). Never makes anything. Every implementer must answer it.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:236`](../../include/shulib/hal/device_provider.hpp#L236).*
+
+<a id="ideviceprovider-currentlimit"></a>
+
+### `IDeviceProvider::currentLimit`
+
+```cpp
+[[nodiscard]] virtual IMotorCurrentLimit* currentLimit(std::uint8_t port) noexcept = 0
+```
+
+The CURRENT LIMIT of the motor this provider made on physical smart `port`, 1..kMaxSmartPorts (MECH-S-A; the header's current-limit section): the motor's own limit, set and read back. nullptr when no motor was made there, or when the motor there cannot limit its current. Never makes anything. Every implementer must answer it.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:242`](../../include/shulib/hal/device_provider.hpp#L242).*
+
+<a id="ideviceprovider-clock"></a>
+
+### `IDeviceProvider::clock`
+
+```cpp
+[[nodiscard]] virtual IClock& clock() = 0
+```
+
+The run's clock. PORT-LESS and never refused: every target has one, and a robot without a clock cannot report that it has no clock.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:246`](../../include/shulib/hal/device_provider.hpp#L246).*
+
+<a id="ideviceprovider-battery"></a>
+
+### `IDeviceProvider::battery`
+
+```cpp
+[[nodiscard]] virtual IBattery& battery() = 0
+```
+
+The battery. Port-less and never refused, same reasoning as the clock.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:249`](../../include/shulib/hal/device_provider.hpp#L249).*
+
+<a id="ideviceprovider-telemetry"></a>
+
+### `IDeviceProvider::telemetry`
+
+```cpp
+[[nodiscard]] virtual ITelemetrySink& telemetry() = 0
+```
+
+The one diagnostics sink for this robot. Port-less and never refused: a NullSink is a valid answer and is what "telemetry is off" means, so there is nothing to refuse.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:253`](../../include/shulib/hal/device_provider.hpp#L253).*
+
+<a id="ideviceprovider-pacer"></a>
+
+### `IDeviceProvider::pacer`
+
+```cpp
+[[nodiscard]] virtual motion::ITickPacer& pacer() = 0
+```
+
+The tick pacer — how the world advances during a blocking verb. Port-less and never refused. See the header note on the forward declaration.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:257`](../../include/shulib/hal/device_provider.hpp#L257).*
+
+<a id="ideviceprovider-lastrefusal"></a>
+
+### `IDeviceProvider::lastRefusal`
+
+```cpp
+[[nodiscard]] virtual const char* lastRefusal() const noexcept = 0
+```
+
+Why the most recent device request returned nullptr, naming the PORT. The empty string when nothing has been refused. The returned pointer is owned by the provider and stays valid until the next refusal, which is enough for a builder that reads it immediately and copies it into a verdict.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:263`](../../include/shulib/hal/device_provider.hpp#L263).*
+
+## Design commentary, from the header
+
+The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
+
+<details markdown="1">
+<summary>The header’s own reasoning — 101 lines, click to expand</summary>
+
+```text
+
+ IDeviceProvider — devices BY PORT, and the one target-specific seam a builder needs
+ (chunk G1 Part 1, 2026-09-18).
+
+ ── Why this seam exists ────────────────────────────────────────────────────────────
+ robot/robot.hpp turns a config::RobotConfig into the whole PROS-free object graph. To do
+ that it needs actual devices, and a device is the ONE thing a config cannot contain: a
+ port number is data, an `hal::IMotor` is a live object that only the target knows how to
+ make. Ruling B2: the provider makes them and OWNS them; the builder BORROWS.
+
+ That ownership split is not tidiness. Every F4 seam in this tree is a REFERENCE — the
+ RobotContext, the Localizer, the MotorGroup all borrow — so ownership has to sit
+ somewhere that outlives the graph. The provider is that somewhere on every target, and it
+ is the only file that knows what a port is:
+
+     host tests   hal::fake::FakeDeviceProvider   — fakes from fixed storage, plant-bindable
+     the robot    hal::pros::ProsDeviceProvider   — one std::optional per port (G1 Part 2a;
+                                                    host-tested through the PROS shim, not
+                                                    yet used by any program in src/)
+     the sim      whatever hal/sim ends up being  — H2's
+
+ Because the seam is a reference and the PROVIDER holds the storage, the same
+ `robot::Robot` code serves all three with no `#ifdef` and no `pros/` include anywhere
+ above hal/pros — which is the F4 principle applied to CONSTRUCTION rather than to reads.
+
+ ── A device that cannot be made returns NULLPTR, and says which port ───────────────
+ "Port 13 is empty" is the most common thing that will ever go wrong with a robot, and it
+ deserves a sentence, not a stack unwind. So a provider that cannot make a device returns
+ nullptr and records WHY in lastRefusal(), naming the port; the builder turns that into a
+ refusal before any object exists — never a fake in a competition binary, never an unplanned
+ null in the graph (landmine 5: absent is EXPLICIT, and it is spelled `hal::AbsentGps`, not
+ `nullptr`).
+
+ On the V5, HOW a dead port is found is not uniform, and this paragraph used to get it wrong
+ (it said every adapter's constructor throws on a dead port — corrected at G1 Part 2a, after the
+ 2026-09-24 audit measured otherwise). Only ProsMotor fails loudly, through its HA-98 read-back;
+ ProsImu's and ProsRotation's constructors cannot throw at all, and ProsGps DEFERS its check on a
+ device it cannot read. So hal::pros::ProsDeviceProvider asks the brain's port REGISTRY what is
+ plugged in before it constructs anything (A4 register HA-141), refuses an empty or wrong-kind
+ port on that answer, and ALSO catches an adapter's throw per device (a motor that answers the
+ registry but rejects its configuration). Both checks name the port.
+
+ A 3-WIRE (ADI) LINE IS THE EXCEPTION, and says so (T3's addendum B2, 2026-09-26). The brain's
+ eight 3-wire ports, A..H, are not smart ports: a pneumatic solenoid on one has no digital
+ identity, the registry cannot see it, and an unplugged line reads exactly like a working one
+ (A4 register HA-158; hal/digital_out.hpp's no-validity note). So digitalOut() can refuse only a
+ line that is not one of the eight — on the brain nothing can tell it a solenoid is missing. And
+ MAKING a line DRIVES it (HA-119), which is why the line's level is an argument of the request.
+
+ ── THE MECHANISM SENSORS, and their READ-FAULT counts (chunk MECH-A1, 2026-10-08) ──────
+ The mechanism core builds every ROLE a mechanism declares (robot/mechanism_parts.hpp): its
+ motors or lines as before, and now its sensors — a rotation sensor as its angle sensor (the
+ existing rotation()), a distance or an optical sensor as its PIECE sensor (distance(), optical()),
+ and a limit switch on a 3-wire line (digitalIn()). A smart sensor is refused like any port device
+ (on the brain: the registry's kind answer, HA-141); a 3-wire INPUT, like an output, is refused only
+ outside 1..8 (HA-158) — and one line is ONE direction: asking for a line as an input after it was
+ made an output, or the reverse, is a precondition (two parts of a program disagreeing about one
+ wire). Beside each piece sensor and switch the provider answers its READ-FAULT count
+ (readFaults(port), lineReadFaults(line) — hal/read_faults.hpp says why: a held value is otherwise
+ indistinguishable from a measured one). Those two are PURE like the rest: a provider that forgot
+ them would silently re-open the false "piece gone" the count exists to stop.
+
+ ── THE AI VISION CAMERA (chunk VIS1-A1, 2026-10-18) ────────────────────────────────────
+ aiVision(port, settings) makes the robot's camera — an hal::IVisionFrames (hal/vision_frames.hpp) —
+ refused like any smart-port device (on the brain: the registry's kind answer, which since VIS1-A1
+ tells the AI Vision sensor from the OLDER Vision sensor — that the registry reports an AI Vision
+ sensor as E_DEVICE_AIVISION and never as the older sensor's E_DEVICE_VISION is UNMEASURED: no census
+ has yet printed a word that tells the two apart) and refused for a settings block with a problem
+ (`aiVisionSettingsProblem`). MAKING ONE WRITES THE CAMERA: its colours and detection
+ modes are written (and read back) the moment it is constructed, and its AI model is checked by name
+ (A4 register HA-196, HA-197) — like an IMU, whose calibration starts when it is made. A second
+ request with EQUAL settings returns the same camera; a request with DIFFERENT settings is REFUSED —
+ not a precondition, as a motor's second configuration is, because a camera never stops a robot from
+ driving (VIS1's D5: a disagreement about it costs the camera, never the program). readFaults(port)
+ answers the camera too, once it was made: a camera is an IReadFaults (a failed or torn read).
+
+ ── A MOTOR'S OWN CURRENT LIMIT (chunk MECH-S-A, 2026-11-05) ───────────────────────────
+ currentLimit(port) answers the hal::IMotorCurrentLimit (hal/motor_current_limit.hpp) of the motor
+ this provider made on `port` — the F4-additive sibling beside IMotor, through which the mechanism
+ service sets a mechanism's stated current cap and reads every mechanism motor's limit back. Like
+ readFaults() it LOOKS UP, never makes: nullptr when no motor was made there, or when this provider's
+ motor there cannot limit its current (a host test's motor bound as a bare IMotor). It is PURE like
+ the rest: a provider that forgot it would leave every stated cap unset with no error — the service
+ says so at boot ("this provider cannot cap a motor"), but only an implementer that answers can cap.
+
+ ── IDEMPOTENCE IS PART OF THE CONTRACT ─────────────────────────────────────────────
+ Asking twice for the same port must return the SAME object. The graph borrows these
+ pointers and holds them for the life of the robot; a provider that made a second adapter
+ on the second call would leave half the graph pointing at an object nobody ticks. Every
+ implementation therefore looks up first and constructs only on a miss.
+
+ ── Why ITickPacer is only FORWARD-DECLARED here ────────────────────────────────────
+ The pacer belongs on this seam: "advance the world to the next control tick" is exactly as
+ target-specific as "give me the motor on port 3" (host: step the A2 plant; robot:
+ delay_until the 10 ms boundary), and the provider is the one object that knows the target.
+ But motion/motion_scheduler.hpp, where ITickPacer lives, sits four layers ABOVE hal/, and
+ making an L0 header include it would invert the layering for one reference. A reference to
+ an incomplete type is all a declaration needs, so the include stays where it belongs — in
+ the consumer, which already has the whole motion stack.
+
+ PROS-free, sim-free, allocation-free.
+```
+
+</details>

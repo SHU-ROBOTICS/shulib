@@ -36,7 +36,10 @@
 // in the manipulation layer (operation exit, cancel, failure) and F2's park
 // guard land here, so the declaration is applied by construction, not by
 // convention. Whether BrakeMode::Hold actually holds a LOADED cascade lift is a
-// hardware claim no host test can verify: PROVISIONAL (A4: HA-92).
+// hardware claim no host test can verify: PROVISIONAL (A4: HA-92). (Until
+// DEFECTS2, 2026-09-26, the declaration did not even reach a V5: the PROS
+// adapter sent the zero as 0 V, which ignores the mode. It now sends it as
+// brake() — hal/pros/motor.hpp, THE STOP, A4 register HA-142.)
 //
 // ── The operation claim (T3) ────────────────────────────────────────────────────────
 // Two mechanisms running at once is required (intake while the lift settles).
@@ -272,6 +275,19 @@ public:
         return units::AngularVelocity{sum / static_cast<double>(motors_.size())};
     }
 
+    /// Mean output-shaft ANGLE across the group, radians, CUMULATIVE (each motor's position() never
+    /// wraps — motor.hpp). One coupled shaft, so the mean IS the shaft, exactly as meanVelocity()
+    /// argues; each motor's own direction is already applied by its adapter (the signed port), so
+    /// a mirrored motor reads the same way as its mate. The position reader a position controller
+    /// needs (the mechanism core, MECH-A1; read by MECH-A3's behaviours).
+    [[nodiscard]] units::AngleDim meanPosition() const {
+        double sum = 0.0;
+        for (const IMotor* m : motors_) {
+            sum += m->position().value();
+        }
+        return units::AngleDim{sum / static_cast<double>(motors_.size())};
+    }
+
     /// The devices themselves — for readers this grammar does not cover
     /// (per-motor position for F3's liftToLevel homing, temperatures). Handing
     /// out the seam rather than wrapping every reader keeps this class honest
@@ -289,6 +305,11 @@ private:
 /// is per-mechanism for the same reason the brake mode is (T4): whether "safe
 /// at the buzzer" means clamp-closed (keep the goal) or cylinder-retracted
 /// (inside expansion limits) is a fact about the robot, not about the library.
+/// Since the mechanism core (MECH-A1, 2026-10-08) it has a second, PER-LINE form
+/// as well: one declared safe level per line and `setLevels()`, for a mechanism
+/// whose named positions are different level patterns across its lines (a
+/// three-position hood on two). The fan-out form and its constructor are
+/// unchanged; the two forms differ only in what applySafeState() drives.
 class PneumaticMechanism : public IMechanism {
 public:
     /// `lines` (non-empty, all non-null) must outlive the mechanism; `safe` is
@@ -302,11 +323,67 @@ public:
         SHULIB_PRECONDITION(mechName != nullptr, "PneumaticMechanism: name is null");
     }
 
+    /// The most lines the PER-LINE form below stores a safe level for (fixed storage; the robot
+    /// config allows two per mechanism, config::kMaxPneumaticsPerMechanism).
+    static constexpr std::size_t kMaxPerLineLevels = 4;
+
+    /// The PER-LINE form (the mechanism core, MECH-A1): each line has its OWN declared safe level,
+    /// `safeLevels[i]` for `lines[i]`. A mechanism whose positions need different levels on
+    /// different lines — a three-position hood on two lines: down = low/low, middle = high/low,
+    /// up = high/high — then has a declared safe POSITION that applySafeState() applies, so the
+    /// end-of-run guard needs no knowledge of the mechanism. The single-level constructor above is
+    /// unchanged and is what a mechanism whose safe position is one level on every line uses.
+    /// PRECONDITIONS: `lines` non-empty, all non-null, at most kMaxPerLineLevels; one safe level
+    /// per line; `mechName` non-null and a stable literal.
+    PneumaticMechanism(std::span<IDigitalOut* const> lines, std::span<const bool> safeLevels,
+                       const char* mechName)
+        : lines_{lines}, safe_{!safeLevels.empty() && safeLevels[0]}, name_{mechName}, perLine_{true} {
+        SHULIB_PRECONDITION(!lines_.empty(), "PneumaticMechanism: lines is empty");
+        SHULIB_PRECONDITION(lines_.size() <= kMaxPerLineLevels,
+                            "PneumaticMechanism: more lines than kMaxPerLineLevels");
+        SHULIB_PRECONDITION(safeLevels.size() == lines_.size(),
+                            "PneumaticMechanism: one safe level per line");
+        for (const IDigitalOut* d : lines_) {
+            SHULIB_PRECONDITION(d != nullptr, "PneumaticMechanism: a line is null");
+        }
+        SHULIB_PRECONDITION(mechName != nullptr, "PneumaticMechanism: name is null");
+        for (std::size_t i = 0; i < lines_.size(); ++i) {
+            safeLevels_[i] = safeLevels[i];
+        }
+    }
+
+    /// The per-line form from a C ARRAY of safe levels — `const bool safe[2]{true, false};
+    /// PneumaticMechanism hood{lines, safe, "hood"};`. Needed, not sugar: without it an array
+    /// argument DECAYS to a pointer and converts to `bool` (a standard conversion, which overload
+    /// resolution prefers to the span's user-defined one), so the call would silently pick the
+    /// single-level constructor with `safe = true` (found by MECH-A1's own test, whose braces turned
+    /// it into a narrowing error). An array binds here exactly and forwards to the span form.
+    template <std::size_t N>
+    PneumaticMechanism(std::span<IDigitalOut* const> lines, const bool (&safeLevels)[N], const char* mechName)
+        : PneumaticMechanism(lines, std::span<const bool>{safeLevels, N}, mechName) {}
+
     /// Command every line.
     void set(bool value) {
         for (IDigitalOut* d : lines_) {
             d->set(value);
         }
+    }
+
+    /// Command EACH line its own level — `levels[i]` to line i, in the construction order (the
+    /// mechanism core's positions, MECH-A1). PRECONDITION: one level per line.
+    void setLevels(std::span<const bool> levels) {
+        SHULIB_PRECONDITION(levels.size() == lines_.size(),
+                            "PneumaticMechanism::setLevels: one level per line");
+        for (std::size_t i = 0; i < lines_.size(); ++i) {
+            lines_[i]->set(levels[i]);
+        }
+    }
+
+    /// What line `i` was last commanded — its DEVICE readback, never this object's record (the
+    /// bottom-of-stack rule commanded() follows). PRECONDITION: `i` is below the line count.
+    [[nodiscard]] bool commandedLevel(std::size_t i) const {
+        SHULIB_PRECONDITION(i < lines_.size(), "PneumaticMechanism::commandedLevel: no such line");
+        return lines_[i]->commanded();
     }
 
     /// The command the DEVICE actually got (first line's readback — the same
@@ -316,15 +393,35 @@ public:
 
     /// The declared safe state: every line driven to `safe`. ONE command, not the motor
     /// version's brake-then-zero two-step — a solenoid has no coast phase to slip through.
-    /// Still only a command: nothing here is evidence the air actually moved.
-    void applySafeState() override { set(safe_); }
+    /// Still only a command: nothing here is evidence the air actually moved. The PER-LINE form
+    /// drives each line to ITS declared safe level instead — the declared safe POSITION.
+    void applySafeState() override {
+        if (!perLine_) {
+            set(safe_);
+            return;
+        }
+        for (std::size_t i = 0; i < lines_.size(); ++i) {
+            lines_[i]->set(safeLevels_[i]);
+        }
+    }
 
     /// The `mechName` pointer given at construction, returned verbatim — BORROWED, never
     /// copied, so the literal must outlive the mechanism.
     [[nodiscard]] const char* name() const noexcept override { return name_; }
 
-    /// The declared safe command (construction-time fact, for tests/logs).
+    /// The declared safe command (construction-time fact, for tests/logs). For the PER-LINE form,
+    /// line 0's safe level — read safeLevel(i) for the others.
     [[nodiscard]] bool safeCommand() const noexcept { return safe_; }
+
+    /// Whether this mechanism was built in the PER-LINE form (one declared safe level per line).
+    [[nodiscard]] bool perLine() const noexcept { return perLine_; }
+
+    /// Line `i`'s declared safe level: its own in the per-line form, the one safe command otherwise.
+    /// PRECONDITION: `i` is below the line count.
+    [[nodiscard]] bool safeLevel(std::size_t i) const {
+        SHULIB_PRECONDITION(i < lines_.size(), "PneumaticMechanism::safeLevel: no such line");
+        return perLine_ ? safeLevels_[i] : safe_;
+    }
 
     /// The lines themselves, in the construction order — for anything this fan-out
     /// grammar does not cover (driving one cylinder of a pair alone on a bench check).
@@ -335,6 +432,8 @@ private:
     std::span<IDigitalOut* const> lines_;
     bool safe_;
     const char* name_;
+    bool perLine_ = false;                     // MECH-A1: set only by the per-line constructor
+    bool safeLevels_[kMaxPerLineLevels]{};     // read only when perLine_
 };
 
 }  // namespace shulib::hal

@@ -35,7 +35,7 @@ struct SessionInfo
 
 Provenance for one run. string_views: the caller keeps the storage alive for the emitSessionHeader() call only (they are read synchronously, never retained — RunSummary re-copies what it needs into bounded arrays).
 
-*struct, declared at [`include/shulib/diag/session_info.hpp:41`](../../include/shulib/diag/session_info.hpp#L41).*
+*struct, declared at [`include/shulib/diag/session_info.hpp:46`](../../include/shulib/diag/session_info.hpp#L46).*
 
 <a id="sessioninfo-buildhash"></a>
 
@@ -47,7 +47,7 @@ std::string_view buildHash{}
 
 From diag::compiledBuildHash() in the app's own TU. EMPTY = missing = LOUD.
 
-*field, declared at [`include/shulib/diag/session_info.hpp:43`](../../include/shulib/diag/session_info.hpp#L43).*
+*field, declared at [`include/shulib/diag/session_info.hpp:48`](../../include/shulib/diag/session_info.hpp#L48).*
 
 <a id="sessioninfo-routineid"></a>
 
@@ -59,7 +59,7 @@ std::string_view routineId{}
 
 e.g. "redLeftTall"
 
-*field, declared at [`include/shulib/diag/session_info.hpp:44`](../../include/shulib/diag/session_info.hpp#L44).*
+*field, declared at [`include/shulib/diag/session_info.hpp:49`](../../include/shulib/diag/session_info.hpp#L49).*
 
 <a id="sessioninfo-alliance"></a>
 
@@ -71,7 +71,7 @@ std::string_view alliance{}
 
 "red" / "blue" / "skills"
 
-*field, declared at [`include/shulib/diag/session_info.hpp:45`](../../include/shulib/diag/session_info.hpp#L45).*
+*field, declared at [`include/shulib/diag/session_info.hpp:50`](../../include/shulib/diag/session_info.hpp#L50).*
 
 <a id="sessioninfo-side"></a>
 
@@ -83,7 +83,7 @@ std::string_view side{}
 
 "left" / "right"
 
-*field, declared at [`include/shulib/diag/session_info.hpp:46`](../../include/shulib/diag/session_info.hpp#L46).*
+*field, declared at [`include/shulib/diag/session_info.hpp:51`](../../include/shulib/diag/session_info.hpp#L51).*
 
 <a id="sessioninfo-portmap"></a>
 
@@ -93,9 +93,9 @@ std::string_view side{}
 std::string_view portMap{}
 ```
 
-caller-authored at C5; G1 generates (header note)
+caller-authored at C5; robot::Robot::portMap() generates it (header note)
 
-*field, declared at [`include/shulib/diag/session_info.hpp:47`](../../include/shulib/diag/session_info.hpp#L47).*
+*field, declared at [`include/shulib/diag/session_info.hpp:52`](../../include/shulib/diag/session_info.hpp#L52).*
 
 <a id="kmaxhashbytes"></a>
 
@@ -107,7 +107,7 @@ inline constexpr std::size_t kMaxHashBytes = 47
 
 Bounds for the header's caller-controlled fields (sanitized appends; the sink itself re-sanitizes — defense in depth, and these keep one field from eating the line).
 
-*constant, declared at [`include/shulib/diag/session_info.hpp:53`](../../include/shulib/diag/session_info.hpp#L53).*
+*constant, declared at [`include/shulib/diag/session_info.hpp:58`](../../include/shulib/diag/session_info.hpp#L58).*
 
 <a id="kmaxfieldbytes"></a>
 
@@ -119,7 +119,7 @@ inline constexpr std::size_t kMaxFieldBytes = 24
 
 routine/alliance/side
 
-*constant, declared at [`include/shulib/diag/session_info.hpp:54`](../../include/shulib/diag/session_info.hpp#L54).*
+*constant, declared at [`include/shulib/diag/session_info.hpp:59`](../../include/shulib/diag/session_info.hpp#L59).*
 
 <a id="kmaxportmapbytes"></a>
 
@@ -131,7 +131,7 @@ inline constexpr std::size_t kMaxPortMapBytes = 96
 
 the port map is the long one
 
-*constant, declared at [`include/shulib/diag/session_info.hpp:55`](../../include/shulib/diag/session_info.hpp#L55).*
+*constant, declared at [`include/shulib/diag/session_info.hpp:60`](../../include/shulib/diag/session_info.hpp#L60).*
 
 <a id="emitsessionheader"></a>
 
@@ -143,14 +143,14 @@ inline void emitSessionHeader(hal::ITelemetrySink& sink, const SessionInfo& info
 
 Emit the §18.5 session header: three [SES] Info lines (plus the [ERROR][SES] line FIRST when the hash is missing). `batteryStart` must be a live reading (header note). Byte shapes pinned by test/session_header_test.cpp.  [t=   0.00] [SES] run start · build 0b4948a-dirty · routine "redLeftTall" [t=   0.00] [SES] alliance red · side left · batt 12.40V [t=   0.00] [SES] ports L1,2,3 R4,5,6 IMU10
 
-*free function, declared at [`include/shulib/diag/session_info.hpp:64`](../../include/shulib/diag/session_info.hpp#L64).*
+*free function, declared at [`include/shulib/diag/session_info.hpp:69`](../../include/shulib/diag/session_info.hpp#L69).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 27 lines</summary>
+<summary>The header’s own reasoning — 32 lines</summary>
 
 ```text
 
@@ -175,7 +175,12 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  Field notes:
    * portMap is CALLER-AUTHORED text at C5 ("L1,2,3 R4,5,6 IMU10"): the core HAL
      deliberately has no port numbers (fakes don't have ports), so the honest v1
-     is a pass-through string; G1's RobotBuilder generates it from the profile.
+     is a pass-through string. Since G1 Part 2a the builder GENERATES it from the
+     robot's config — robot::Robot::portMap() / robot::writePortMap(), in the same
+     text src/main.cpp's hand-built port maps printed. Since G1 Part 2b the programs built
+     on robot::Robot print their port map from it ("shulib Teleop" first, then the invented
+     X-drive at G1 Part 2c, src/programs/xdrive_program.cpp; "shulib Drive" since T4 Part 3,
+     src/programs/drive_program.cpp): no program builds a port map by hand any more.
    * alliance/side are free text ("red"/"left"/"skills"); empty fields render as
      "-" so a blank never silently vanishes from a column.
    * battery start is READ, not caller-typed — a typed 12.6 that was actually

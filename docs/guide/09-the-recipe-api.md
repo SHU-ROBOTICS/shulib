@@ -9,16 +9,33 @@
 
 > **Stability.** Both tiers are now **frozen**: the `Chassis` API underneath
 > ([Freeze Register](../roadmap.md#freeze-register) row F6) and `Routine` itself (row F10),
-> both locked 2026-08-12. Every step spelling, every observer, `RoutineResult` and
-> `RoutineStopCause` change only with a major API-version bump plus a migration note
+> both locked 2026-08-12. Every step spelling and every observer (but the ones listed as not
+> frozen below), `RoutineResult` and `RoutineStopCause` change only with a major API-version bump
+> plus a migration note
 > ([`include/shulib/version.hpp`](../../include/shulib/version.hpp)), and the freeze is enforced
 > by a compile-time signature pin
 > ([`test/routine_signature_pin_test.cpp`](../../test/routine_signature_pin_test.cpp)) that
 > fails the build if a spelling drifts. New steps arrive *additively* — and that path has since
-> been used for real: `RoutineStopCause` gained an **appended** `MechanismFailed`, which is a
-> minor version bump (2.0 → 2.1), not a breaking change. Existing enumerator *values* are
-> pinned; only the end of the list grows. If you `switch` exhaustively, add the new case.
-> **One exception, deliberately:** `then()` is **not** frozen. It is the seam mechanisms plug
+> been used for real, five times. First `RoutineStopCause` gained an **appended** `MechanismFailed`,
+> which is a minor version bump (2.0 → 2.1), not a breaking change: existing enumerator *values*
+> are pinned and only the end of the list grows, so if you `switch` exhaustively, add the new
+> case. Then, at 2.4, two new **steps** were appended, `reverseTo` and `faceAway` (below), with
+> nothing that already existed changing shape. And at 2.5 the mechanism core added a second
+> constructor (`Routine r{ctx, "name"}`), the mechanism steps (`move`, `run`, `set`, `spinUp`,
+> `home`, `stop`, the START forms, `waitUntilDone` — [Chapter 18](18-mechanisms.md#in-an-auton--one-line-per-step)),
+> an appended `MechanismStepFailed` (a `switch` over every `RoutineStopCause` needs its case) and
+> an appended `RoutineResult::mechanismVerdict`. Then, at 2.6, the on-failure choice arrived the same
+> way — `onFail(...)` and `label(...)`, an appended `MechanismNotStarted` (one more `switch` case) and
+> six appended `RoutineResult` fields ([below](#choosing-what-a-failure-does-onfail-and-label)) —
+> and it was **pinned the day it landed**, because the route maker generates code against it.
+> And with chunk CURVE1 (after 2.6), two more **steps** were appended in one block, `curveTo` and
+> `reverseCurveTo` ([below](#the-steps)), pinned the day they landed, nothing else changing shape.
+> Partway triggers came after them (at 2.8), the same additive way (`atPercent`, `afterDistance`, `afterTurning` —
+> [below](#partway-through-a-drive-triggers)), and they are **not pinned**: they lead only to the
+> mechanism START forms, which stay open.
+> **Not frozen:** `then()`, deliberately — and, until a decision still open, the mechanism steps,
+> the second constructor and `lastMechanism()` (the Freeze Register's F10 row gives both readings;
+> they are not pinned meanwhile). `then()` is the seam mechanisms plug
 > into. Mechanisms now *exist* — the seam was filled, and `then()` accepts a mechanism
 > operation's `MechanismOutcome` as a fourth return type — but the surface stays unfrozen until
 > a second real consumer has stressed it, which is this project's standing rule for freezing.
@@ -31,7 +48,11 @@ teaches the layer; the cookbook uses it.
 
 The code in this chapter is compiled and run in
 [`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp), cases `guide-09a`
-through `guide-09d`. The fine print lives in the header,
+through `guide-09d`, and the on-failure section's in
+[`test/routine_on_fail_example_test.cpp`](../../test/routine_on_fail_example_test.cpp), case
+`guide-09e`, and the partway triggers' in
+[`test/routine_trigger_example_test.cpp`](../../test/routine_trigger_example_test.cpp), case
+`guide-09f`. The fine print lives in the header,
 [`include/shulib/chassis/routine.hpp`](../../include/shulib/chassis/routine.hpp), whose
 opening commentary — like `chassis.hpp`'s — is meant to be read.
 
@@ -79,7 +100,7 @@ RoutineResult firstRecipe(Chassis& chassis) {
 Read it out loud: start here, drive there, approach slowly, slide sideways, face the corner,
 hold, park. The test that compiles this listing also asserts what the prose claims: all seven
 steps succeed, six of them are motions (`startAt` only seeds the pose estimate), and the
-robot genuinely ends within an inch of the last target — measured on the simulator's ground
+robot genuinely ends within an inch of the last target — measured on the host test plant's ground
 truth, which the robot's own estimate never sees.
 
 Everything you learned in chapter 8 still applies underneath: the per-call options struct
@@ -95,26 +116,36 @@ verb's full behavior and gotchas, and they all apply verbatim.
 
 | Step | What the robot does | Delegates to |
 |---|---|---|
-| `startAt(pose)` | Seeds the pose estimate with the measured starting pose — every auton's first line | `setPose` |
+| `startAt(pose)` | Seeds the pose estimate with the measured starting pose — the first line of every auton you run yourself (one registered for `competition::runAuton` has none: its entry's `start` is seated for it — [Chapter 16](16-testing-an-auton-on-the-bench.md)) | `setPose` |
 | `moveTo(pose, opts)` | Drives to a field pose, translating and rotating at once | `moveTo` |
 | `driveTo(x, y, opts)` | Drives to a field *point*, arriving facing it (heading = the bearing, computed when the step runs) | `moveTo` |
+| `reverseTo(x, y, opts)` | Drives to a field point and arrives with its *back* to it (heading = the bearing + 180°, computed when the step runs) — backwards the whole way after a `faceAway` | `moveTo` |
 | `strafeTo(x, y, opts)` | Translates to a field point while holding the current heading | `strafeTo` |
 | `turnTo(heading, opts)` | Rotates in place to a field heading, the short way | `turnTo` |
 | `face(x, y, opts)` | Rotates in place to *face* a field point (the bearing, computed when the step runs) | `turnTo` |
+| `faceAway(x, y, opts)` | Rotates in place to turn its *back* to a field point (the bearing + 180°) — the turn before a `reverseTo` | `turnTo` |
 | `followTrajectory({…}, opts)` | Drives waypoints as chained moves; a leg that fails stops it | `followTrajectory` |
+| `curveTo({…}, opts)` | Drives ONE smooth path through up to 16 points without stopping at them, and ends like a `moveTo` — refused before it moves if its first point is more than 90° off the nose ([Chapter 5](05-getting-there.md#flowing-through-points-curves)) | `curveTo` |
+| `reverseCurveTo({…}, opts)` | The same, backing: the robot's BACK leads; every heading is still the NOSE's | `reverseCurveTo` |
 | `brake(opts)` | Controlled stop: 0 V under brake until the estimate certifies rest | `brake` |
 | `hold(duration, opts)` | Actively holds the current pose against disturbance | `hold` |
 | `pause(duration)` | Waits, motors idle — the "wait for your partner" beat | `wait` |
 | `waitFor(pred, timeout)` | Waits for a condition; if the deadline passes first, **the chain stops** | `waitUntil` |
 | `then(action, name)` | Runs your code between motions (see the mechanism seam, below) | — |
 
-`face` and `driveTo` deserve one sentence of honesty: they are *argument sugar*, not new
-motion. Each computes a single number — the bearing from the current pose estimate to the
-point you named — and hands it to `turnTo` / `moveTo`. That matters most on a tank drive,
+`face` and `driveTo` — and their turned-around twins `faceAway` and `reverseTo` — deserve one
+sentence of honesty: they are *argument sugar*, not new motion. Each computes a single number —
+the bearing from the current pose estimate to the point you named, plus 180° for the two
+turned-around twins — and hands it to `turnTo` / `moveTo`. That matters most on a tank drive,
 where [Chapter 4](04-drivetrains.md) explained the drivetrain cannot slide sideways and
 [Chapter 10](10-the-api.md) showed you the turn-then-drive idiom with `atan2`. `face(x, y)`
 **is** that idiom's turn, written in field words — you are still the one deciding to turn,
-which is exactly the honesty rule tank verbs follow everywhere in shulib.
+which is exactly the honesty rule tank verbs follow everywhere in shulib. On a tank it is also
+what makes the next leg *steerable*: since API 2.3 a tank `moveTo` (and so `driveTo`) steers
+back onto its line when a weaker side pulls it off, but only for a leg that starts within 15° of
+its target heading — which a leg right after `face()` does. A `driveTo` with no `face()` before
+it starts as far off its heading as the point is off your nose; past 15° it is not steered and
+the log says `turn first: face()` ([Chapter 11](11-reading-the-diagnostics.md)).
 
 ## When a step fails
 
@@ -135,8 +166,10 @@ a `waitFor` deadline passes with the condition still false, or a `then` action r
 failure.
 
 **Read `result().cause` before `result().exit`.** `cause` says what *kind* of thing stopped the
-chain (`MotionFailed`, `WaitTimedOut`, `ActionFailed`, or `MechanismFailed` when a mechanism
-operation returned any verdict other than `Succeeded`); `exit` carries a motion's verdict and is
+chain (`MotionFailed`, `WaitTimedOut`, `ActionFailed`, `MechanismFailed` when a `then()` action's
+mechanism operation returned any verdict other than `Succeeded`, or `MechanismStepFailed` when one of
+the mechanism core's steps did — its verdict then in `result().mechanismVerdict`,
+[Chapter 18](18-mechanisms.md#in-an-auton--one-line-per-step)); `exit` carries a motion's verdict and is
 only meaningful when the cause is `MotionFailed`. After a failed wait or a failed action, `exit`
 reads `Running`, which means "no motion verdict here" — not "still going". It is the same
 "nothing yet" convention `lastCompleted()` uses, and it surprises everyone once.
@@ -186,10 +219,169 @@ Two deliberate edges of the policy:
   timeout is a programming error, and it stays as loud through the recipe layer as through
   the facade ([Chapter 10](10-the-api.md)'s misuse rules). The chain's counters don't move;
   the bad call simply never ran.
-- **Wanting to continue past a failure is legitimate — and it is one tier down, not a
-  rewrite.** Call `chassis.moveTo(...)` directly for the legs where you want to branch on the
-  `ExitReason` yourself, and use chain steps for the rest. Mixing is fully supported; that's
-  next.
+- **Wanting to continue past a failure is legitimate.** The chain can do it for
+  you, one step at a time: write `onFail(carryOn)` or `onFail(skipTo("..."))` in front of that
+  step (the next section). And it is still one tier down, not a rewrite: call
+  `chassis.moveTo(...)` directly for the legs where you want to branch on the `ExitReason`
+  yourself, and use chain steps for the rest. Mixing is fully supported.
+
+## Choosing what a failure does: `onFail` and `label`
+
+The policy above is the **default**, and it does not change. You can change it for
+**one step at a time**, by writing a modifier in front of that step. From `guide-09e`:
+
+```cpp
+RoutineResult threeChoices(AutonContext& ctx) {
+    Routine r{ctx, "three-choices"};
+    r.onFail(carryOn).driveTo(24_in, 0_in, {.timeout = 2.5_s, .positionTolerance = 1_in});
+    r.onFail(skipTo("third piece")).run(intake, 12_volt, seesPiece, 2_s);
+    r.move(arm["score"], 1.5_s);
+    r.label("third piece").face(0_in, 48_in, {.headingTolerance = 3_deg});
+    return r.result();
+}
+```
+
+- **`onFail(carryOn)`** — if this step fails, the failure is **counted** and said (one `Warn`:
+  `... FAILED: ... — carrying on; drive safed`), the drive is parked exactly as a stop parks it,
+  and the next step runs from where the robot is. `r.ok()` goes false, `result().failedOn`
+  counts the failures, and `firstFailedAt` / `firstFailedName` / `firstFailedCause` name the
+  first one. The stop fields stay clean: `stoppedAt` is still 0, because nothing stopped.
+- **`onFail(skipTo("third piece"))`** — as `carryOn`, then every step until the one
+  `label("third piece")` names is **passed over** — counted in `steps` and in `jumped`, one
+  `Info` line each, never run — and the auton goes on **at** that step. In the listing above a
+  missed piece skips the score, not the rest of the auton.
+- **`onFail(stopChain)`** is the default rule, spelled out. No `onFail` at all means the same.
+- **`label("...")`** names the next step. It is not a step itself, so the step numbers on the
+  brain's screen do not move. Names are matched whole and case-sensitively (`"B2"`, `"b"` and
+  `"B "` are not `"B"`), and they are stored, not copied: write string literals.
+
+Each modifier binds to **exactly one step** — the next one — and is used up there, whatever
+happens to that step (it runs, it is skipped after a stop, a skip jumps it, or it throws). Two
+`onFail`s (or two `label`s) in a row, and an empty name, are programming errors: they throw.
+
+**A skip only goes forward.** The chain runs its lines as it reaches them; it never stores them,
+so it cannot go back. A skip whose target is a label the routine has **already passed** — a label
+on a step an earlier skip jumped counts as passed — or the failing step's own label stops the
+chain right there, and its stop line says the target is
+behind it. That mistake is also logged where it is **written**, as a `Warn` on the `onFail` line
+on every run, so a bench run whose step succeeds still shows it. A target that **never comes** (a
+misspelling) jumps every remaining step; `result().skipPendingTo` names it. The routine remembers
+the last 32 labels it passed; a target further back than that reads as one that never comes.
+
+**Two rules sit above every choice.**
+
+1. **The deadline always stops.** A step whose verdict is **CANCELLED** — the run guard cut it at
+   the deadline, an abandon, the fault policy, a step replaced from outside, or a `then()` action
+   that returned `Cancelled` — stops the chain whatever it chose. So does any failure once the
+   auton's time is up, and a skip still looking for its step when the time runs out. A carry-on
+   auton must never keep issuing steps past the buzzer.
+2. **Nothing new throws.** A `waitUntilDone(intake, ...)` whose `startRun(intake, ...)` a skip
+   jumped does not crash the auton and does not answer an older run of the intake: it **fails,
+   counted**, as `MechanismNotStarted` ("its start was skipped"), under the wait's own choice. So
+   does a wait whose start did nothing because it named another robot's mechanism (a different kind
+   or units, or a preset or position this robot's mechanism of that name lacks), when
+   the chain carried on past that start ("its start did nothing: another robot's declaration").
+
+The deadline rule needs the auton's run guard, and the Routine gets it from the **context**:
+write `Routine r{ctx, "name"}` in an auton that takes `AutonContext& ctx`, as every listing here
+does. A Routine built from a bare chassis (`Routine r{chassis, "name"}`) has only the CANCELLED
+half of the rule, and says so once, with a `Warn`, at its first `carryOn` or `skipTo`.
+
+**An arrival tolerance, per step.** `{.positionTolerance = 1_in}` means "arrive within 1 in";
+`{.headingTolerance = 3_deg}` means "within 3°". A leg ends when the robot is close enough **and**
+slow enough, and on a drive the speed is what decides — so a tolerance looser than the robot's own
+loosens **both, in proportion**: 2 in means "within 2 in and slower than 4 in/s". On the host
+test plant the 40 in drive takes 1.80 s with the robot's own numbers and 1.35 s within 2 in. A
+tolerance tighter than the robot's own tightens only the distance. The leg can end with the robot
+still rolling a little; how far a real robot coasts after that has not been measured yet.
+
+## Partway through a drive: triggers
+
+A START form (`startMove`, `startHome`, `startRun`, `startSpinUp` —
+[Chapter 18](18-mechanisms.md#in-an-auton--one-line-per-step)) runs a mechanism while the next drive
+goes on. A **trigger** waits to start it until the robot is partway through that drive: "at 60 % of
+this drive, start raising the lift". From `guide-09f`:
+
+```cpp
+RoutineResult partway(AutonContext& ctx) {
+    Routine r{ctx, "partway"};
+    r.afterTurning(45_deg).startSpinUp(flywheel["shoot"], 2_s).turnTo(90_deg);
+    r.atPercent(60).startMove(lift["high"], 5_s)          // at 24 in of the 40, the lift starts up
+     .afterDistance(10_in).startRun(intake, 12_volt, seesPiece.orAfter(2_s), 3_s)
+     .driveTo(0_in, 40_in);
+    r.waitUntilDone(intake, 2_s);
+    r.waitUntilDone(lift, 3_s);
+    r.waitUntilDone(flywheel, 1_s);
+    return r.result();
+}
+```
+
+One line is a mark, a START, and the drive it rides: `r.atPercent(60).startMove(...).driveTo(...)`.
+The drive is one of six: `driveTo`, `reverseTo` and `moveTo`, or the turns `turnTo`, `face` and
+`faceAway`. `strafeTo` and `followTrajectory` do not take triggers yet. Up to four triggers ride one
+drive, each on a different mechanism. `waitUntilDone` collects a trigger's
+step after the drive, exactly as it collects a start form's.
+
+**The three marks.**
+
+- **`atPercent(p)`** — `p` % of the drive, above 0 and at most 100. On a drive, "60 %" is the
+  distance covered **along the straight line** from where the drive started to its target — not the
+  distance still to go (a robot that starts off its line would gain "progress" by sliding sideways)
+  and not the path its wheels travelled. On a turn it is the share of the angle turned. Any of the six.
+- **`afterDistance(d)`** — `d` along that same line: a **drive's** mark (`driveTo`, `reverseTo`,
+  `moveTo`). Above 0.
+- **`afterTurning(a)`** — `a` turned toward the target, the short way: a **turn's** mark (`turnTo`,
+  `face`, `faceAway`). Above 0. It is an angle, so it is wrapped: `270_deg` reads as −90° and is
+  refused (a turn never turns more than 180°).
+
+A mark of the wrong kind does not compile: `afterDistance(...)` before a `turnTo`, or
+`afterDistance` and `afterTurning` on one drive, stops the build with a sentence that says why. So
+does a blocking step after a mark (`.move`, `.run`, `.set`): a trigger only **starts** a step.
+
+**When it fires.** Once, on the first tick the robot reaches the mark. Never before the drive has a
+live position, never on the tick the drive ends (an aborting fault such as `ODO_STUCK` included), and
+never once the auton's time is up — not even as a drive arrives on the deadline itself. Two cases
+need a word:
+
+- **A drive that arrives just short.** A drive ends when it is within its arrival tolerance, not at
+  the exact end — on the host test plant the 40 in drive stops 0.24 in short, at 99.4 %. So a drive
+  that **arrives** fires each trigger still waiting **as it arrives**, if the mark is **on the
+  drive**: a percent always; a distance or an angle no further than the drive's length (or angle) plus
+  its arrival tolerance. `afterDistance(40_in)` fires on that 40 in drive; `afterDistance(50_in)` never
+  does, and the routine says so (`trigger after 50.0 in on 'lift' did not fire: the drive was 40.0
+  in`).
+- **A drive that ends any other way** — timed out, cancelled, cut by the deadline, skipped after a
+  stop or jumped by a skip — fires nothing it had not fired already.
+
+A trigger that never fired is not a crash later: a `waitUntilDone` on its mechanism **fails,
+counted**, as `MechanismNotStarted` ("the trigger never fired: the robot did not reach the mark"),
+under the wait's own `onFail` choice — never an older step's verdict on that mechanism.
+
+**A trigger is part of its drive.** It adds no step: the drive is recorded once, after it returns.
+If a trigger's START is refused when it fires — the mechanism was not built this boot, it is not on
+this robot, another owner holds it, or it is not homed — the drive is **not** interrupted. It runs to
+its own end, and then the drive step fails (`MechanismStepFailed`, with that verdict, under the drive
+step's own `onFail` choice). With two refused, the drive's line names the one that was refused
+**first**. The name a START takes last (`startMove(lift["high"], 2_s, "raise")`) names the trigger in
+those lines: `its trigger 'raise' at 60 % on 'lift'`.
+
+**A trigger written wrong is caught on its own line, every run.** The START's arguments go through the
+mechanism's own checks where you write the trigger — the same checks its blocking step runs. So
+`startRun(intake, 12_volt, seesPiece, 2_s)` on a mechanism with no piece sensor throws at that line
+on the bench, even on a run whose drive stops before the mark.
+
+**The rules for writing one.** `onFail` and `label` go **before** the mark and apply to the drive:
+`r.onFail(carryOn).label("lift").atPercent(60).startMove(...).driveTo(...)`. Between the mark and the
+drive, nothing else may be called on the routine — a trigger line that ends without its drive (or at
+its mark, with no START) is a mistake the compiler warns about (an error in the project's own builds),
+the next step on the routine refuses, and a routine that ends with one still waiting logs a `Warn`
+saying it never fired. Keep the line whole: a handle kept in a variable drives once, and only the line
+that made it. A
+trigger is a recipe step; the same thing one tier down is `chassis.moveTo(pose, options, observer)`
+([Chapter 10](10-the-api.md)).
+
+Nothing about triggers has run on a robot. How soon after the mark a real mechanism starts moving,
+and how close the position estimate's "arrived" is to the tape, are unmeasured.
 
 ## Tank drives, and the no-cliff rule
 
@@ -216,6 +408,24 @@ r.driveTo(24_in, 24_in, {.timeout = 8_s}).brake();
 CHECK(r.ok());
 ```
 
+**Backing into a point** is the same idiom turned around: `faceAway(x, y)` turns the robot's
+*back* to the point, then `reverseTo(x, y)` drives backwards onto it and arrives with its back to
+it. On a tank the turn is still yours to write, for the same two reasons as `face()`: a tank
+cannot slide onto the line, and only a leg that starts within 15° of its heading is steered. A
+`reverseTo` leg starts as far off its heading as the robot's *back* is turned from the point — so
+right after `faceAway()` it starts within about a degree, and a robot that just drove straight
+out from the point already has its back to it and can back straight back without one. From a
+robot *facing* the point, though, a `reverseTo` with no `faceAway()` starts 180° off: it is not
+steered, the log says `tank moveTo not steered: it starts 180.0 deg off its target heading …
+turn first: face()` (for a backwards leg, that turn is `faceAway()`), and on the host test plant
+the robot swings round through the half turn as it drives and the step times out beside the
+point — almost 8 in beside it at the end of a 43 in leg, and still about an inch at the end of a
+6 in one. A holonomic drive arrives turned round without `faceAway()`, because it rotates in
+flight — which means its nose leads for the early part of the leg; write `faceAway()` first if
+the robot's back must lead the whole way (a mechanism on the back, say). Nothing here has run on
+a robot yet: whether a tank backs up exactly as far as its calibration says is an open entry,
+HA-167, in the [Hardware Assumptions Register](../hardware-assumptions.md).
+
 Because steps run eagerly, recipe steps and direct `chassis.` calls interleave in plain
 program order — the chain object keeps counting only its own steps, and the scheduler
 underneath sees one honest sequence of motions. Outgrowing recipes never means rewriting a
@@ -240,7 +450,10 @@ inside the action — has that verdict honored. And since the mechanism layer la
 mechanism operation's `MechanismOutcome`: **only `Succeeded` continues the chain.** A grab
 that completed but was never confirmed reports `Unconfirmed`, stops the chain as
 `MechanismFailed`, and the transcript names the exact verdict — a failed grab cannot be
-mistaken for a successful one, and there is no way to spell it that would.
+mistaken for a successful one, and there is no way to spell it that would. (A mechanism DECLARED in
+the robot file needs no `then()`: it has its own one-line steps, run by the mechanism service, with
+their own verdict policy — [Chapter 18](18-mechanisms.md#in-an-auton--one-line-per-step). `then()` is
+the seam for anything else.)
 
 Here is the whole idiom, compiled and run by the test suite. The operation never owns a
 loop: you start it, the chassis's own `waitUntil` ticks it once per control tick (this also
@@ -297,6 +510,14 @@ while a chain is executing:
   term — the wait it was standing in — because its next motion step is refused and stops the
   chain. Consecutive `pause()` steps each pay in full (a pause never fails, so it never stops
   the chain). Budget waits tightly.
+- **A mechanism operation is cut too** (since the mechanism core's second part). An operation still
+  running at the deadline — the grab in the listing above, ticked inside the chassis's
+  `waitUntil`, or a mechanism-service step — is cancelled into its declared safe state at the
+  next pace, so the wait standing on it sees it end one pace after the deadline and its verdict
+  reads `Cancelled` (which stops the chain). The guard reaches it through the claim it
+  registered; an operation of your own that claims ANONYMOUSLY is not reached until the guard's
+  cancel-all ([Chapter 13](13-extending-the-library.md) says how to register). The wait's own
+  lateness bound above still applies to a wait on anything else.
 
 When the wait itself is the thing that must respect the deadline — "wait for the partner, but
 never past our budget" — use the guard's own wait through `then()`. Only `Satisfied` continues

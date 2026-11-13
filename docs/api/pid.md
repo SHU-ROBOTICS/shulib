@@ -8,7 +8,7 @@
 
 Pid — a single-axis PID controller.
 
-This header declares **2** types (11 members).
+This header declares **2** types (13 members).
 
 Extracted from [`include/shulib/control/pid.hpp`](../../include/shulib/control/pid.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -24,6 +24,8 @@ Extracted from [`include/shulib/control/pid.hpp`](../../include/shulib/control/p
 - [`class Pid`](#class-pid)
   - [`Pid`](#pid-pid)
   - [`update`](#pid-update)
+  - [`setGains`](#pid-setgains)
+  - [`config`](#pid-config)
   - [`reset`](#pid-reset)
   - [`lastError`](#pid-lasterror)
   - [`integralAccumulator`](#pid-integralaccumulator)
@@ -148,6 +150,30 @@ One control step: returns the clamped control output for (setpoint − measureme
 
 *function, declared at [`include/shulib/control/pid.hpp:78`](../../include/shulib/control/pid.hpp#L78).*
 
+<a id="pid-setgains"></a>
+
+### `Pid::setGains`
+
+```cpp
+void setGains(double kP, double kI, double kD)
+```
+
+NEW GAINS, BUMPLESS (chunk TUNE1-A, 2026-11-05 — live tuning): kP, kI and kD replaced, the limits and every history kept. The integral TERM (kI·∫e·dt, the volts the integral adds) is what survives, not the raw accumulator: the accumulator is rescaled `integral = kI_old·integral / kI_new`, so a hold that has wound in 1.2 V against a wrong gravity number still adds 1.2 V on the next update — a gain change makes no jump of its own (the accumulator kept as it is would jump the term to kI_new/kI_old times itself). A NEW kI of exactly 0 clears the accumulator (with kI 0 it is never advanced, and the term is 0 either way); an unchanged kI leaves it bit for bit. The derivative's remembered measurement and the dt baseline are kept, so the next update is an ordinary one, not a first. PRECONDITION: every gain finite (the constructor's rule).
+
+*function, declared at [`include/shulib/control/pid.hpp:114`](../../include/shulib/control/pid.hpp#L114).*
+
+<a id="pid-config"></a>
+
+### `Pid::config`
+
+```cpp
+[[nodiscard]] const PidConfig& config() const noexcept
+```
+
+The gains and bounds in force (setGains() changes the three gains; nothing else does).
+
+*function, declared at [`include/shulib/control/pid.hpp:126`](../../include/shulib/control/pid.hpp#L126).*
+
 <a id="pid-reset"></a>
 
 ### `Pid::reset`
@@ -158,7 +184,7 @@ void reset()
 
 Clear integral + derivative history (e.g. between motions). Gains/limits unchanged.
 
-*function, declared at [`include/shulib/control/pid.hpp:106`](../../include/shulib/control/pid.hpp#L106).*
+*function, declared at [`include/shulib/control/pid.hpp:129`](../../include/shulib/control/pid.hpp#L129).*
 
 <a id="pid-lasterror"></a>
 
@@ -170,7 +196,7 @@ Clear integral + derivative history (e.g. between motions). Gains/limits unchang
 
 setpoint − measurement as of the most recent update(), for telemetry — the law never reads it back. 0 before the first update() and after reset(); recorded on every tick, including the dt ≤ 0 ticks that contribute only P.
 
-*function, declared at [`include/shulib/control/pid.hpp:116`](../../include/shulib/control/pid.hpp#L116).*
+*function, declared at [`include/shulib/control/pid.hpp:139`](../../include/shulib/control/pid.hpp#L139).*
 
 <a id="pid-integralaccumulator"></a>
 
@@ -182,7 +208,7 @@ setpoint − measurement as of the most recent update(), for telemetry — the l
 
 The raw ∫e·dt in error·seconds, AFTER the anti-windup back-calculation — multiply by kI to recover the I-term that was actually added. Stays exactly 0 when kI == 0 (nothing accumulates) and is zeroed by reset(). Exposed so a test can prove the clamp bounds the accumulator itself and not just the output.
 
-*function, declared at [`include/shulib/control/pid.hpp:122`](../../include/shulib/control/pid.hpp#L122).*
+*function, declared at [`include/shulib/control/pid.hpp:145`](../../include/shulib/control/pid.hpp#L145).*
 
 ## Design commentary, from the header
 

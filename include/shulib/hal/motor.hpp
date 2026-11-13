@@ -25,18 +25,31 @@ namespace shulib::hal {
 /// desaturation that decides which wheel gives way when the kinematics ask for more than exists.
 inline constexpr units::Voltage kMaxMotorVoltage{12.0};  // V5 hard limit (volts)
 
-/// Behavior when the motor is at zero command. The V5 distinguishes coasting from active
-/// braking/holding — voltage 0 is COAST, NOT a hold, which the guaranteed end-of-run park
-/// (§M4) and holdPose/driveBrake (§M2) depend on.
+/// What a motor does when it is commanded to ZERO. The contract: a stop is "set the mode, then
+/// setVoltage(0)" — either order — and the motor then behaves as the mode says; with no mode ever
+/// set, or Coast, a zero is simply no voltage. The guaranteed end-of-run park (§M4) and
+/// holdPose/driveBrake (§M2) depend on that difference. How it reaches a V5 is the adapter's
+/// business, and it is not obvious: PROS applies a mode ONLY through its brake() call —
+/// move_voltage() "will not respect brake modes" — so ProsMotor sends a zero under a Brake or
+/// Hold the program commanded as brake(), and every other zero as 0 V (hal/pros/motor.hpp, THE
+/// STOP; A4 register HA-142). Until DEFECTS2 (2026-09-26) every zero went out as 0 V, so by
+/// PROS's own text no Brake or Hold stop in the library applied its mode on a V5. The fakes echo
+/// the mode and the A2 plant pins a wheel at 0 V under Brake/Hold: neither is evidence of what a
+/// motor does.
 enum class BrakeMode {
-    /// Undriven and unresisted — the shaft free-wheels. This is where setVoltage(0) alone
-    /// leaves a motor, which is why the guaranteed park sets a MODE instead of commanding zero.
+    /// PROS: the motor "coasts when stopped". The zero goes out as 0 V and the shaft is left
+    /// undriven — BELIEVED to free-wheel, which Calibrate's one-sided pulses and the plant's
+    /// coast-follow model rest on; what a V5 physically does at 0 V is A4 register HA-143
+    /// (unknown).
     Coast,
-    /// Electronically brakes the shaft to a stop and resists being turned, but does not remember
-    /// where it stopped: shove the robot afterwards and it stays shoved.
+    /// PROS: the motor "brakes when stopped". Resists being turned while stopped. That it does
+    /// not return to where it stopped (shove the robot and it stays shoved) is our belief, not
+    /// PROS's text.
     Brake,
-    /// Actively drives back to the position the shaft held when the command went to zero — the
-    /// only mode that DEFENDS a pose. holdPose/driveBrake and the guaranteed park are built on it.
+    /// PROS: the motor "actively holds position when stopped" — the only mode that DEFENDS a
+    /// position; holdPose/driveBrake and the guaranteed park are built on it. WHICH position is
+    /// held (believed: the shaft's when the stop was issued — and a repeated stop may re-capture
+    /// it, A4 register HA-144) and how hard it holds under load (HA-92) are not in PROS's text.
     Hold
 };
 
@@ -79,8 +92,9 @@ public:
     /// The voltage actually applied after clamping (telemetry/test readback).
     [[nodiscard]] virtual units::Voltage commandedVoltage() const = 0;
 
-    /// Set / read the brake mode. Hold is the active position hold the guaranteed park relies
-    /// on — distinct from setVoltage(0) (= coast).
+    /// Set the mode a ZERO command stops under (BrakeMode's contract: mode and zero, either
+    /// order). Hold is the active position hold the guaranteed park relies on; without a mode
+    /// set, or under Coast, setVoltage(0) is just no voltage.
     virtual void setBrakeMode(BrakeMode mode) = 0;
     /// The mode currently in effect. Not guaranteed to be a pure echo of setBrakeMode(): an
     /// adapter over real hardware reads the DEVICE back (ProsMotor does, falling back to the last

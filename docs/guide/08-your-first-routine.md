@@ -12,7 +12,8 @@
 
 **Every line of code in this chapter is real, compiled, and runs in the test suite** — the file
 [`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp) contains exactly the code
-you see here (test cases `guide-08a`, `guide-08b`, `guide-08c`), and CI runs it on every commit.
+you see here (test cases `guide-08a`, `guide-08b`, `guide-08c`, `guide-08d`), and CI runs it on
+every commit.
 You have two ways to follow along:
 
 1. **Run the finished thing first** (recommended — you see the destination before the journey):
@@ -47,9 +48,11 @@ robot, unchanged.
 Three parts, and keeping them separate in your head is most of the learning:
 
 1. **The wiring** — build a `Chassis` out of parts: a drivetrain description, hardware,
-   localization, diagnostics. Done once, at startup. (On a real robot this lives in
-   `src/main.cpp`; go look at it later — it's the same shape with the real `hal/pros`
-   adapters plugged into the slots your test wiring fills with fakes.)
+   localization, diagnostics. Done once, at startup. (On a real robot the same parts are built
+   from the real `hal/pros` adapters, plugged into the slots your test wiring fills with fakes —
+   `src/programs/drive_program.cpp` does it for robot two through `robot::Robot`, the two-line form at
+   the end of Step 2. `src/build_selection.hpp` chooses which program runs, on which robot, and
+   `src/main.cpp` only hands it the PROS entry points.)
 2. **The routine** — a plain function that tells the chassis what to do. This is the part
    you'll write many of.
 3. **The report** — reading what actually happened.
@@ -152,7 +155,8 @@ strategy, and it's yours.
 
 Now the part that builds the `Chassis` the routine drives. It's longer, but it's written once,
 and every piece is a concept you've already met. This is test case `guide-08a`, and it is also,
-piece for piece, the structure of `src/main.cpp`:
+piece for piece, the graph `robot::Robot` builds for you (the end of this step) — the structure
+`src/main.cpp` used to spell out by hand:
 
 ```cpp
 namespace k = shulib::kinematics;
@@ -163,7 +167,7 @@ namespace loc = shulib::localization;
 const k::MatrixKinematics kin = k::xDrive(7_in);
 
 // Step 2 — the robot. On a real V5 the hal/pros adapters go here (they
-// exist; src/main.cpp wires them); here it is the simulated robot the
+// exist; a device provider supplies them); here it is the host test plant the
 // whole library is tested against. The feedforward constants describe
 // the robot being driven — they MUST match between plant and
 // controller (chapter 5).
@@ -213,7 +217,8 @@ robot is physically placed (`initialPose`) — the simulation's equivalent of pu
 the field — and we give it feedforward constants (`kS`, `kV`, `kA`,
 [Chapter 5](05-getting-there.md)) describing its motors. On a real robot, this step becomes
 "construct the objects that talk to real hardware" — and **those adapters now exist**
-(`include/shulib/hal/pros/`, built in the R1 chunks; `src/main.cpp` is the worked example). This
+(`include/shulib/hal/pros/`, built in the R1 chunks; `src/programs/drive_program.cpp` is the worked
+example). This
 harness implements the *same interfaces* they do, which is exactly why the routine below does
 not change between them.
 
@@ -247,6 +252,74 @@ is built (`ProsTickPacer`). This one little seam is precisely where "simulated t
 time" swap, and it's why the routine can't tell the difference.
 
 Finally `Chassis chassis{deps, pacer, cfg};` — the object the routine drives.
+
+### The same wiring, in two lines
+
+Steps 3 to 5 are the same every time: the drivetrain decides the kinematics, the sensors decide
+the odometry, and everything after that is plumbing. So the library can do that plumbing for you,
+from a description of the robot written as **data**. This is test case `guide-08d` — the same
+simulated X-drive as above, the same routine, built a second way:
+
+```cpp
+// The same X-drive, described as DATA: which port drives which wheel, and
+// where the IMU and the two tracking wheels are plugged in.
+shulib::config::RobotConfig config{
+    .drivetrain = {.kind = shulib::config::DrivetrainKind::XDrive,
+                   .xdrive = {.ports = {1, 2, 3, 4},  // FL, BL, BR, FR
+                              .cartridge = shulib::hal::MotorCartridge::Green,
+                              .imuPort = 10,
+                              .driveRadius = 7_in}},
+    .odometry = {.kind = shulib::config::OdometryKind::TrackingWheels,
+                 .wheels = {.forward = {.port = 6, .wheelDiameter = 2_in, .offset = -3_in},
+                            .lateral = {.port = 7, .wheelDiameter = 2_in,
+                                        .offset = -4.5_in}}}};
+config.tuning.motion.wheelFf = {.kS = 1.2, .kV = 0.17, .kA = 0.0};  // matches step 2
+
+// Line one: ask. The verdict names the port or the field that is wrong,
+// before a single object exists.
+const shulib::robot::BuildVerdict verdict = shulib::robot::validate(config, devices);
+REQUIRE(verdict.ok);
+
+// Line two: build. Steps 3 to 5 above, wired, in one line.
+shulib::robot::Robot built{config, devices};
+
+// The routine does not know, or care, how its chassis was built.
+const ExitReason outcome = firstRoutine(built.chassis());
+```
+
+**`RobotConfig`** is the whole robot as one value — which ports drive which wheels (with their
+signs, when a motor is mounted backwards), where the IMU is, which odometry it runs, what the
+motion layer is tuned to. A person can type one, and a calibration or a file can produce one.
+
+**`devices`** is the one new idea: a *device provider*, the object that knows what a port is. The
+config says "the front-left motor is on port 1"; the provider is what turns "port 1" into a motor
+you can command. In this test it is the host's provider, bound to the simulated robot's motors and
+sensors (the test file shows the binding). On a V5 brain it is
+`shulib::hal::pros::ProsDeviceProvider`, which opens the real hardware port by port — and before
+it opens anything on a smart port it asks the brain what is actually plugged into that port, so an
+empty or wrong port becomes a sentence naming it (`port 13: nothing plugged in (expected a motor)`)
+instead of a crash or a sensor that silently reads zero. (The brain's 3-wire ports are the one
+exception: nothing can see a pneumatic valve on one, so a line is opened on trust.)
+
+**`validate`** is the question "can this robot be built, right now?", answered with a yes or a
+sentence naming the port or the field that is wrong. **`Robot`** is the answer being yes: it builds
+the same objects the longhand wiring above builds, in the same order — the test suite drives a
+builder-made robot and a hand-wired one side by side on the host test plant and requires them to
+agree to the last bit. `built.chassis()` is the same `Chassis` your routine already takes.
+
+The longhand stays, and it stays worth reading: it is exactly what `Robot` does for you, and it is
+the path you take (Tier 3 in the project's
+[accessibility model](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet))
+when you need something the builder does not build. One honest note: every program in `src/` that
+builds a robot builds it this way, and no program wires a graph by hand any more. "shulib Drive", in
+`src/programs/drive_program.cpp`, builds its `robot::Robot` from robot two's calibration record (the
+auton tester builds robot two the same way) — and it has not run on a robot yet (a program before
+it, "shulib Teleop", drove robot two open-loop under a driver on 2026-09-25, in a version wired by
+hand). The other kind is an X-drive typed as a `constexpr RobotConfig`
+in `src/robots/xdrive_config.hpp` — worth reading as the shape of a robot described by hand — whose ports
+are invented, so on every robot that exists it refuses at boot, naming the first port that is not
+what it says. Nothing built this way has run on a robot, and the on-robot provider has only been
+tested against a host stand-in for the PROS headers.
 
 ## Step 3 — the report, and running it
 

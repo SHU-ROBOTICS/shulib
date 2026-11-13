@@ -179,6 +179,7 @@
 #include "shulib/diag/tick_attribution.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
 #include "shulib/motion/motion.hpp"
+#include "shulib/motion/tank_steer.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::motion {
@@ -402,7 +403,11 @@ private:
 ///     for capture-at-live motions, a not-yet-real target: aggregating them
 ///     would fabricate numbers, the exact lie the brief bans);
 ///   * target is re-sampled per record (capture-at-live motions publish it from
-///     the first live tick; TurnTo/DriveBrake publish a here-anchored target).
+///     the first live tick; TurnTo/DriveBrake publish a here-anchored target);
+///   * EXCEPT for one question, which is answered from the target of the FIRST live
+///     record (TANK1 Part B): did the motion set out to TRANSLATE? (hadDirection()).
+///     The latest target cannot answer it — a here-anchored target FOLLOWS the robot,
+///     so a turn that a weak side drags sideways would read as a translation.
 class MotionStatsSink final : public hal::ITelemetrySink {
 public:
     /// `inner` is NON-OWNING and must outlive this sink; every call is forwarded to it.
@@ -444,6 +449,8 @@ public:
         // !hasData() ⇒ every aggregate reads its default.
         startPose_ = math::Pose2d{};
         target_ = math::Pose2d{};
+        firstTarget_ = math::Pose2d{};   // TANK1 Part B — the same invariant
+        lastMeasured_ = math::Pose2d{};
     }
 
     /// True iff at least one live (Running) record was aggregated.
@@ -474,6 +481,33 @@ public:
         return units::AngleDim{lastAbsHeadErr_};
     }
 
+    /// TANK1 Part B: true iff the motion set out to TRANSLATE — the target it published on its
+    /// FIRST live record lies at least kHoldEpsilonIn (0.1 in) from where the robot was on that
+    /// record. Judged on that first target, NOT the latest (header: aggregation rules): TurnTo and
+    /// DriveBrake publish a target anchored at the robot's CURRENT position, so the latest target
+    /// minus the start is how far the turn or the stop was dragged — on the host test plant a
+    /// tank turn with one side 9 % weak ends ~0.8 in from where it began, and a latest-target
+    /// test called it a translation. A capture-here HoldPose captures "here" on that same first
+    /// live record, so it has no direction either; a moveTo, a strafeTo and a HoldPose built with
+    /// an explicit spot away from the robot (Tier 3) do. False while !hasData() (both poses read
+    /// their defaults).
+    [[nodiscard]] bool hadDirection() const noexcept {
+        return std::hypot(firstTarget_.x().value() - startPose_.x().value(),
+                          firstTarget_.y().value() - startPose_.y().value())
+               >= kHoldEpsilonIn;
+    }
+
+    /// TANK1 Part B: the last aggregated estimate's signed distance (inches) off the LINE through
+    /// the target point along the target heading, + to the LEFT of the target heading —
+    /// tankLineError(...).cross (motion/tank_steer.hpp), of the same record drift() reads and of
+    /// the target targetPose() serves (the latest published; constant for every shipped motion
+    /// that has a direction). Computed when asked, not per tick: a cos, a sin and four multiplies
+    /// at the boundary. 0 while !hasData(). Meaningful for any motion; the SCHEDULER decides when
+    /// it is worth a result-line column (CompletedMotion::hasCrossTrack).
+    [[nodiscard]] units::Length crossTrack() const noexcept {
+        return units::Length{tankLineError(lastMeasured_, target_).cross};
+    }
+
 private:
     /// Below this start→target distance a motion is "stationary-target" (turn /
     /// hold / brake) and overshoot degrades to worst-wander (header). Well under
@@ -494,8 +528,10 @@ private:
         if (!sawRunning_) {
             sawRunning_ = true;
             startPose_ = r.measuredPose;
+            firstTarget_ = r.targetPose;  // TANK1 Part B: what the motion set out to do
         }
         target_ = r.targetPose;
+        lastMeasured_ = r.measuredPose;
         const double dx = r.measuredPose.x().value() - target_.x().value();
         const double dy = r.measuredPose.y().value() - target_.y().value();
         const double axx = target_.x().value() - startPose_.x().value();
@@ -517,6 +553,8 @@ private:
     hal::ITelemetrySink* inner_;
     math::Pose2d startPose_{};
     math::Pose2d target_{};
+    math::Pose2d firstTarget_{};   ///< the FIRST live record's target (hadDirection())
+    math::Pose2d lastMeasured_{};  ///< the last aggregated record's estimate (crossTrack())
     double maxProj_ = 0.0;
     double maxDist_ = 0.0;
     double lastAbsHeadErr_ = 0.0;
@@ -551,6 +589,24 @@ struct CompletedMotion {
     math::Pose2d targetPose{};    ///< the motion's published target (last sampled)
     units::Length overshoot{};    ///< worst excursion past the target (see semantics)
     units::AngleDim drift{};      ///< |final heading error|
+
+    // ── TANK1 Part B additions (appended; the result line's ` xt` column) ──────────────
+    /// True iff the result line carries the final cross-track error: the record stream flowed
+    /// (hasPathData), the motion set out to TRANSLATE (MotionStatsSink::hadDirection() — judged on
+    /// its first live target, so a turn, a brake or a hold of "here" never qualifies), and the
+    /// drivetrain's strafeAuthority() is EXACTLY 0 — a tank, the one drive that cannot strafe a
+    /// sideways error out (the same test as MoveToPose's tank steering; an H-drive whose strafe
+    /// wheel is declared dead reports 0 and is treated alike). Whatever TankSteerConfig::maxSteer
+    /// is: the column is a diagnostic, kept with the steering switched off. Whatever the exit — a
+    /// user cancel, a pre-emption and a fault abort included. False on every drivetrain with any
+    /// strafe authority (every X-drive, every H-drive with a live strafe wheel), so their result
+    /// lines are unchanged byte for byte; false by default (the "none yet" record
+    /// Chassis::lastCompleted() returns before any motion ran claims no cross-track number).
+    bool hasCrossTrack = false;
+    /// The final estimate's signed distance off the target's line (the line through targetPose
+    /// along its heading), inches, + to the LEFT of the target heading
+    /// (MotionStatsSink::crossTrack()). Valid iff hasCrossTrack; 0 otherwise.
+    units::Length crossTrack{};
 };
 
 /// Boundary-observer seam (chunk C5): the scheduler calls this SYNCHRONOUSLY at
@@ -608,12 +664,20 @@ public:
                                                  .battery = &deps.ctx->battery(),
                                                  .telemetry = &stamperSink_,
                                                  .tags = &deps.ctx->tags(),
-                                                 .vision = &deps.ctx->vision()}},
+                                                 .vision = &deps.ctx->vision(),
+                                                 .walls = deps.ctx->wallSensors()}},
+          // The stamped bundle is assembled FIELD BY FIELD (the ctx must be the shadow), so
+          // every additive MotionDeps field has to be carried here by hand — motorGroups
+          // (R3b Part 1) was found dropped by exactly this line: a fight on a coupled group
+          // went unraised under the scheduler while the same motion, hand-ticked, raised it.
+          // The shadow context above is the same: its OPTIONAL wall-sensor slot (L6-A2) is
+          // carried by hand, or every everyday wall reset through a Chassis refuses NO SENSOR.
           schedDeps_{MotionDeps{.ctx = &shadowCtx_,
                                 .localizer = deps.localizer,
                                 .kinematics = deps.kinematics,
                                 .faults = deps.faults,
-                                .health = deps.health}},
+                                .health = deps.health,
+                                .motorGroups = deps.motorGroups}},
           loopMonitor_{deps.ctx->clock(), *deps.faults, config.loopMonitor},
           poseGuard_{config.plausibility} {
         if (cfg_.attributionClock != nullptr) {
@@ -840,6 +904,13 @@ public:
     [[nodiscard]] int motionsCancelled() const noexcept { return cancelledCount_; }
     /// Fault-policy + task-boundary aborts (abortFault != None).
     [[nodiscard]] int motionsAborted() const noexcept { return abortedCount_; }
+    /// STEP1-B: the abort-mask fault raised since the ACTIVE motion started — the one the fault
+    /// policy cancels it for at the end of the tick now running (tick(): after a Running tick, the
+    /// same test) — or None: no motion, or none raised. Read-only. A watcher called inside the
+    /// motion's tick asks it to tell the tick that will END the motion from one that will not.
+    [[nodiscard]] diag::FaultCode pendingAbortFault() const noexcept {
+        return active_ != nullptr ? newlyRaisedAbortFault() : diag::FaultCode::None;
+    }
     /// Every motion that reached a boundary: settled + timed out + cancelled + aborted,
     /// a partition with no double counting. This is the number that tells a caller
     /// whether anything actually ran, which lastExitReason() cannot — it reads Settled
@@ -1013,11 +1084,14 @@ private:
         // E1: the estimator's account of the tick just localized, stamped onto every
         // record this tick emits (motion or idle) — see CommandIdStampSink's header.
         stamperSink_.setEstimatorAudit(schedDeps_.localizer->lastCorrection());
+        const int episodesBefore = loopMonitor_.overrunEpisodes();
         const units::Time dt = loopMonitor_.tick();
         // D-3 payoff: when this tick's dt says the PREVIOUS tick overran
         // (LoopMonitor just raised), name who consumed it — the last completed
-        // attribution IS that tick (tick_attribution.hpp's lag note).
-        if (dt.value() >= cfg_.loopMonitor.budget.value() && att_.has_value()
+        // attribution IS that tick (tick_attribution.hpp's lag note). Said ONCE per
+        // overrun EPISODE, beside LOOP_OVERRUN's own line (loop_monitor.hpp, ONE LINE
+        // PER EPISODE; T4 Part 3): every later slow tick's phases ride its records.
+        if (loopMonitor_.overrunEpisodes() > episodesBefore && att_.has_value()
             && att_->hasCompletedTick()) {
             char buf[112];
             std::snprintf(buf, sizeof buf,
@@ -1086,6 +1160,10 @@ private:
                   bool preempted = false) {
         const MotionStatsSink& stats = statsHolder_.sink;
         const bool hasData = stats.hasData();
+        // TANK1 Part B: the ` xt` column's rule (CompletedMotion::hasCrossTrack). `== 0.0`
+        // exactly, as MoveToPose's tank test is: any strafe authority at all is not a tank.
+        const bool hasCrossTrack = hasData && stats.hadDirection()
+                                   && schedDeps_.kinematics->strafeAuthority() == 0.0;
         last_ = CompletedMotion{.id = currentId_,
                                 .name = active_->name(),
                                 .exit = exit,
@@ -1099,7 +1177,10 @@ private:
                                 .hasPathData = hasData,
                                 .targetPose = hasData ? stats.targetPose() : math::Pose2d{},
                                 .overshoot = hasData ? stats.overshoot() : units::Length{0.0},
-                                .drift = hasData ? stats.drift() : units::AngleDim{0.0}};
+                                .drift = hasData ? stats.drift() : units::AngleDim{0.0},
+                                .hasCrossTrack = hasCrossTrack,
+                                .crossTrack = hasCrossTrack ? stats.crossTrack()
+                                                            : units::Length{0.0}};
         lastExit_ = exit;
         switch (exit) {
             case control::ExitReason::Settled: ++settledCount_; break;

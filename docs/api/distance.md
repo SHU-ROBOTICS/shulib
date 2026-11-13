@@ -32,7 +32,7 @@ Extracted from [`include/shulib/hal/distance.hpp`](../../include/shulib/hal/dist
 class IDistance
 ```
 
-A time-of-flight rangefinder behind the HAL, canonical at the seam: inches out of distance(), a [0, 1] confidence out of confidence(). Read confidence() FIRST — "nothing in range" arrives there as ~0 while distance() stays finite and reports a plausible- looking far wall, so a caller that trusts distance() alone acts on empty air. Consumers are the manipulation sensor-confirm and the docking distance-fallback.
+A time-of-flight rangefinder behind the HAL, canonical at the seam: inches out of distance(), a [0, 1] confidence out of confidence(). Read confidence() FIRST — "nothing in range" arrives there as ~0 while distance() stays finite and reports a plausible- looking far wall, so a caller that trusts distance() alone acts on empty air. Consumers are the manipulation sensor-confirm, the docking distance-fallback and the wall reset (L6).
 
 *class, declared at [`include/shulib/hal/distance.hpp:20`](../../include/shulib/hal/distance.hpp#L20).*
 
@@ -146,8 +146,8 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  converts mm→inches and normalizes the raw confidence (0–63 → 0–1) exactly once.
 
  Callers threshold confidence() for "object present" — never trust distance() when
- confidence() is ~0 (out of range / no return). Used for manipulation sensor-confirm
- and the docking distance-fallback (master plan §M3/§M4).
+ confidence() is ~0 (out of range / no return). Used for manipulation sensor-confirm,
+ the docking distance-fallback (master plan §M3/§M4) and the wall reset (L6).
 ```
 
 </details>

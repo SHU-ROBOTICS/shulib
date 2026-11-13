@@ -7,8 +7,22 @@
 // turn-then-drive sequencing anywhere in this file, and the simultaneity test
 // pins that a diagonal move with a heading change happens as ONE motion. (That
 // sequencing is precisely LemLib's tank-coupled behaviour this project exists
-// to beat; C3's H-drive strafe FALLBACK is the only sanctioned exception, and
-// it is telemetry-visible by contract.)
+// to beat.) Two sanctioned exceptions, each telemetry-visible by contract:
+//   * C3's strafe FALLBACK — on a drive with limited strafe authority, body |vy|
+//     is clamped while vx and ω keep full authority (record flag SFB);
+//   * TANK1's tank steering — on a drive with NO strafe authority (a tank;
+//     strafeAuthority() exactly 0), a plain MoveToPose whose leg STARTS within
+//     tankSteer.maxSteer (15°) of its target heading bends its heading setpoint
+//     toward the target's LINE (through the target point, along the target
+//     heading) by at most maxSteer, faded to 0 at the target — steering on
+//     where the robot will be off that line tankSteer.leadTime ahead, so the
+//     bend eases while it closes on the line — and cancels the
+//     measured yaw it did not ask for (a weaker side's), bounded by
+//     yawCorrectionLimit (record flag TSTR). What it is NOT: a planned turn.
+//     Nothing in it aims at the target POINT (tank_steer.hpp), and a leg that
+//     starts farther off its heading is not steered at all — it runs exactly as
+//     before TANK1 and logs one Warn ("turn first: face()"). StrafeTo and
+//     HoldPose never steer (PoseMotionOptions::tankSteer stays false).
 //
 // ── The per-tick pipeline (frames and clamps annotated — the F1/F5 choreography) ────
 //   1. pose  = Localizer::pose()                                  [FIELD]
@@ -18,7 +32,12 @@
 //   3. three decoupled PIDs → (vx, vy) in/s, ω rad/s              [FIELD]
 //      heading PID is fed (setpoint 0, measurement −eh): the error the PID
 //      differentiates is CONTINUOUS near the target (no wrap in its input),
-//      and D-on-measurement stays live for a future kD.
+//      and D-on-measurement stays live for a future kD. On an ENGAGED tank
+//      leg (TANK1, above) it is fed the error to the BENT setpoint instead
+//      (eh_s = heading.errorTo(target heading + bend), the bend taken from the
+//      cross-track error predicted leadTime ahead — tank_steer.hpp), and the
+//      yaw correction is subtracted from its output; every other leg is fed
+//      −eh exactly.
 //   4–8. applyCommandPipeline (command_pipeline.hpp — extracted from here at
 //      C4 so the Chassis facade's drive() shares ONE choreography): |ω| clamp;
 //      uniform norm cap; fieldToRobot (THE one F1 rotation); body |vy| clamped
@@ -55,6 +74,7 @@
 #include "shulib/control/settled_util.hpp"
 #include "shulib/control/watchdog.hpp"
 #include "shulib/diag/debug_record.hpp"
+#include "shulib/diag/line_format.hpp"
 #include "shulib/math/frame.hpp"
 #include "shulib/math/pose2d.hpp"
 #include "shulib/math/twist2d.hpp"
@@ -62,6 +82,7 @@
 #include "shulib/motion/motion.hpp"
 #include "shulib/motion/motion_config.hpp"
 #include "shulib/motion/odo_stall_check.hpp"
+#include "shulib/motion/tank_steer.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::motion {
@@ -72,6 +93,12 @@ struct PoseMotionOptions {
     bool captureHeadingAtLive = false;  ///< StrafeTo: hold the first-live heading
     bool capturePoseAtLive = false;     ///< HoldPose: hold the first-live pose
     double holdFor = 0.0;               ///< > 0 ⇒ hold-mode exit (HoldPose)
+    /// TANK1: this motion may steer a tank back onto its target's line. Only the public
+    /// MoveToPose constructor sets it; StrafeTo (a translation that HOLDS heading) and
+    /// HoldPose (no line to steer along) leave it false, so on a tank they move exactly as
+    /// before. (Their result lines are another matter: the scheduler gives a tank's StrafeTo,
+    /// and a HoldPose of a spot away from the robot, TANK1 Part B's ` xt` column — a report.)
+    bool tankSteer = false;
 };
 
 /// Drive to a FIELD-frame pose with three INDEPENDENT controllers — field-x, field-y and
@@ -81,6 +108,11 @@ struct PoseMotionOptions {
 /// error), so it composes two SettledUtils and one Watchdog rather than one scalar exit.
 /// StrafeTo and HoldPose are this same engine with different capture/exit options.
 ///
+/// On a TANK (strafeAuthority() exactly 0) a leg that starts within config.tankSteer.maxSteer of
+/// its target heading also steers back onto the target's LINE while it drives (TANK1 — the file
+/// header; MotionConfig::tankSteer; tankSteerStatus()), and a leg that starts farther off runs
+/// unsteered and logs one Warn. It never plans a turn: face() the point first.
+///
 /// A MoveToPose owns no loop and no thread: the caller ticks it, having updated the
 /// Localizer first, until tick() returns something other than Running.
 class MoveToPose : public IMotion {
@@ -89,17 +121,28 @@ public:
     /// motion INCLUDING any boot wait; 0 selects config.defaultTimeout.
     MoveToPose(const MotionDeps& deps, const math::Pose2d& target,
                const MotionConfig& config = {}, double timeout = 0.0)
-        : MoveToPose(deps, target, config, timeout, PoseMotionOptions{}) {}
+        : MoveToPose(deps, target, config, timeout, PoseMotionOptions{.tankSteer = true}) {}
 
     /// Arm, or fully re-arm: the three PIDs, both settle detectors and the stall check are
     /// reset, the watchdog clock restarts, and the state drops back to WaitingForEstimate.
     /// Commands no motors. A capture-at-first-live target (StrafeTo's heading, HoldPose's
     /// pose) is re-armed too, so a re-started motion captures again from the CURRENT estimate
     /// rather than reusing the previous run's. A plain MoveToPose keeps its explicit target.
+    /// TANK1's state is re-armed too: the engage decision is made again at the next first live
+    /// tick, and the yaw correction starts from 0.
     void start() override {
         pidX_.reset();
         pidY_.reset();
         pidH_.reset();
+        tankDecided_ = false;
+        tankEngaged_ = false;
+        yawDisturbance_ = 0.0;
+        lastOmegaCmd_ = 0.0;
+        lastVxCmd_ = 0.0;
+        hasOmegaCmd_ = false;
+        lastCross_ = 0.0;
+        lastCrossAhead_ = 0.0;
+        lastBend_ = 0.0;
         settledTrans_.reset();
         settledHead_.reset();
         stall_.reset();
@@ -172,6 +215,18 @@ public:
         const double errY = target_.y().value() - pose.y().value();       // in
         const double errH = pose.heading().errorTo(target_.heading());    // rad
 
+        // ── TANK1: engage tank steering or not — decided ONCE, at the first live tick ──
+        // Never at start() (the boot window has no heading — the wait-for-live contract), and
+        // never per tick (a leg the heading loop turned into the window mid-run would then be
+        // steered: the library making the author's turn).
+        if (!tankDecided_) {
+            tankDecided_ = true;
+            tankEngaged_ = tankEligible_ && tankLegEngages(errH, cfg_.tankSteer);
+            if (tankEligible_ && !tankEngaged_) {
+                warnNotSteered(errH);  // never silent: say why this leg will not be steered
+            }
+        }
+
         // ── exit verdict FIRST (Settled beats a simultaneous TimedOut) ────────
         const bool transSettled = settledTrans_.update(std::hypot(errX, errY));
         const bool headSettled = settledHead_.update(errH);
@@ -196,7 +251,59 @@ public:
         // ── the three DECOUPLED per-axis controllers (FIELD frame) ────────────
         const double vxF = pidX_.update(target_.x().value(), pose.x().value());  // in/s
         const double vyF = pidY_.update(target_.y().value(), pose.y().value());  // in/s
-        const double w = pidH_.update(0.0, -errH);                               // rad/s
+        // TANK1 (tank only, engaged legs only): the heading loop servoes to the target
+        // heading BENT toward the target's line, minus the measured yaw the loop did not ask
+        // for (a weaker side's). Everywhere else this is C1's line, unchanged. Every constant
+        // this path reads is MotionConfig::tankSteer's, PROVISIONAL (A4: HA-179) — tuned on the
+        // host test plant, never on a robot. The path also depends on the SIGN of the
+        // Localizer's yaw rate agreeing with the heading's (HA-04; HA-179's blast radius).
+        double w = 0.0;                                                           // rad/s
+        bool tankActive = false;
+        if (tankEngaged_) {
+            // The bend steers on the cross-track error leadTime ahead (tank_steer.hpp: the lead),
+            // predicted from this tick's heading and the forward speed commanded LAST tick — the
+            // same command the observer below compares against; 0 before the first command.
+            // Nothing here reads a sensor (the pose is the Localizer's, already this tick's).
+            const TankLineError line = tankLineError(pose, target_);
+            const TankLineError ahead{
+                .along = line.along,
+                .cross = tankLeadCross(line, -errH, lastVxCmd_, cfg_.tankSteer)};
+            const double delta = tankSteerAngle(ahead, cfg_.tankSteer);
+            const double errHs =
+                pose.heading().errorTo(target_.heading() + math::Angle::radians(delta));
+            // The yaw observer: the DIFFERENCE between the yaw rate the robot made and the yaw
+            // rate this loop asked for last tick (after the omega clamp, before desaturation),
+            // low-passed and cancelled. That difference is a weaker side, a scrubbing wheel or a
+            // push -- and also desaturation at full speed, motor lag, or rotation that is blocked.
+            // Because it learns the difference and not the heading error, a turn the robot DOES
+            // follow is not accumulated (a leg's own opening turn -- where an integral of the
+            // heading error winds up, motion_tank_steer_test.cpp P5); while the robot cannot
+            // follow, it integrates like one, bounded by yawCorrectionLimit, and decays within
+            // about yawObserverTime once the robot rotates again (P8). The rate is the one the
+            // Localizer read THIS tick (loc.twist(), finite-guarded there): the value the estimate
+            // used, pinned by P14. (Before IMU1 a second ctx.imu().yawRate() would have been ~0
+            // or a spike -- derived, never measured; ProsImu answers once per tick -- its header.)
+            // It holds its estimate while the IMU is not ready.
+            if (hasOmegaCmd_ && dt.value() > 0.0 && ctx.imu().isReady()) {
+                const double unexplained = loc.twist().omega().value() - lastOmegaCmd_;
+                const double a = dt.value() / (cfg_.tankSteer.yawObserverTime + dt.value());
+                yawDisturbance_ = std::clamp(yawDisturbance_ + a * (unexplained - yawDisturbance_),
+                                             -cfg_.tankSteer.yawCorrectionLimit,
+                                             cfg_.tankSteer.yawCorrectionLimit);
+            }
+            w = pidH_.update(0.0, -errHs) - yawDisturbance_;
+            // What TANK1 changed this tick: the bend's P-share plus the correction. Above the
+            // legibility floor it lights the record's flag (TermSink " TSTR").
+            const double contribution =
+                cfg_.heading.kP * math::Angle::radians(errHs - errH).radians() - yawDisturbance_;
+            tankActive = std::abs(contribution)
+                         > kTankSteerNoiseFraction * cfg_.maxAngularSpeed.value();
+            lastCross_ = line.cross;
+            lastCrossAhead_ = ahead.cross;
+            lastBend_ = delta;
+        } else {
+            w = pidH_.update(0.0, -errH);  // C1's line — every holonomic and un-engaged leg
+        }
 
         // ── clamps → F1 rotation → authority clamp → wheels → volts: the ONE
         // shared choreography (command_pipeline.hpp — extracted from this file
@@ -211,13 +318,24 @@ public:
         // structurally unreachable (authority 1.0 + the norm cap ⇒ |body vy| ≤
         // vyLimit, pinned by test); on the H-drive it engages exactly when a
         // leg out-demands the strafe wheel; on tank it marks any real lateral
-        // demand as undeliverable. The flag observes the clamp; it never
-        // alters it.
+        // demand as undeliverable — and on an engaged tank leg that demand is
+        // what TANK1's bend (above) is steering out, so SFB lights less there,
+        // beside TSTR. The flag observes the clamp; it never alters it (TANK1
+        // changes only ω, never the translation command).
         const CommandOutcome cmd = applyCommandPipeline(
             deps_, cfg_, ff_,
             math::ChassisSpeeds{units::Velocity{vxF}, units::Velocity{vyF},
                                 units::AngularVelocity{w}},
             math::Frame::Field, pose.heading());
+        if (tankEngaged_) {
+            // TANK1's observer compares NEXT tick's measured rate against THIS: the body ω after
+            // the ω clamp and before desaturation (cmd.body). The clamp's own shortfall is
+            // therefore never read as a disturbance; desaturation's is (bounded, as above).
+            // The bend's lead predicts from this tick's body forward speed, from the same cmd.
+            lastOmegaCmd_ = cmd.body.omega().value();
+            lastVxCmd_ = cmd.body.vx().value();
+            hasOmegaCmd_ = true;
+        }
 
         // ── A3 containment: stall cross-check + health observables ────────────
         const auto motors = ctx.driveMotors();
@@ -229,6 +347,7 @@ public:
             diag::DebugRecord r = baseRecord(ctx, loc, now, dt, pose, errX, errY, errH);
             r.commanded = math::robotToField(cmd.body, pose.heading());
             r.strafeFallbackActive = cmd.strafeFallback;  // C3 — never silent (TermSink "SFB")
+            r.tankSteerActive = tankActive;               // TANK1 — never silent (TermSink "TSTR")
             for (std::size_t i = 0; i < motors.size()
                                     && i < static_cast<std::size_t>(diag::DebugRecord::kMaxWheels);
                  ++i) {
@@ -284,6 +403,20 @@ public:
     /// own names, so a StrafeTo never reports as its base class.
     [[nodiscard]] const char* name() const noexcept override { return "MoveToPose"; }
 
+    /// TANK1's account of the most recent tick that computed a command (all zero / false off a
+    /// tank, and before the first live tick; the exit tick commands nothing, so after it this
+    /// still describes the tick before): whether this motion may steer, whether this run does,
+    /// and that tick's cross-track error, the predicted one the bend steered on, the bend and
+    /// the yaw correction.
+    [[nodiscard]] TankSteerStatus tankSteerStatus() const noexcept {
+        return TankSteerStatus{.eligible = tankEligible_,
+                               .engaged = tankEngaged_,
+                               .cross = lastCross_,
+                               .crossAhead = lastCrossAhead_,
+                               .bend = lastBend_,
+                               .yawCorrection = yawDisturbance_};
+    }
+
     /// The FIELD-frame target (after any first-live-tick capture).
     [[nodiscard]] const math::Pose2d& target() const noexcept { return target_; }
 
@@ -329,6 +462,30 @@ protected:
         SHULIB_PRECONDITION(std::isfinite(target.x().value())
                                 && std::isfinite(target.y().value()),
                             "MoveToPose: target position must be finite");
+        // TANK1's gate: the drivetrain has NO lateral authority, this motion is a plain
+        // MoveToPose, and the feature is not switched off. Exactly == 0.0, not a type check:
+        // "no lateral authority at all" is the property that makes a sideways error
+        // uncorrectable by strafing, and it is the one honest signal — an H-drive whose strafe
+        // wheel is declared dead (strafeTractionDerate 0) reports 0 too and IS a tank for this
+        // purpose, which a TankKinematics check would miss; a type check would also bind this
+        // layer to a concrete kinematics class.
+        tankEligible_ = options.tankSteer && deps.kinematics->strafeAuthority() == 0.0
+                        && cfg_.tankSteer.maxSteer > 0.0;
+    }
+
+    /// TANK1's one log line, at the first live tick of a tank leg that starts too far off its
+    /// heading to be steered: the leg then runs exactly as before TANK1 and will most likely
+    /// time out, and the author deserves to know why before reading the TIMEOUT. Built with
+    /// the ONE §18.3 formatter (line_format.hpp); ASCII only.
+    void warnNotSteered(double errH) {
+        constexpr double kRadToDeg = 180.0 / math::Angle::kPi;
+        diag::lineformat::Line line;
+        line.appendLiteral("tank moveTo not steered: it starts ");
+        diag::lineformat::appendNum(line, std::abs(errH) * kRadToDeg, 1, 1);
+        line.appendLiteral(" deg off its target heading (steers within ");
+        diag::lineformat::appendNum(line, cfg_.tankSteer.maxSteer * kRadToDeg, 1, 1);
+        line.appendLiteral(" deg) -- turn first: face()");
+        deps_.ctx->telemetry().log(hal::LogLevel::Warn, "MOT", line.view());
     }
 
     /// Slack added to holdFor so a hold cannot be cut short by clock granularity. It is NOT
@@ -461,6 +618,16 @@ protected:
     double holdStart_ = 0.0;
     double lastTickTime_ = 0.0;
     bool hasTick_ = false;
+    bool tankEligible_ = false;    // TANK1: tank + plain MoveToPose + not switched off
+    bool tankDecided_ = false;     // TANK1: the engage decision has been made this run
+    bool tankEngaged_ = false;     // TANK1: this run steers (decided at the first live tick)
+    double yawDisturbance_ = 0.0;  // TANK1: estimated unexplained yaw rate (rad/s), cancelled
+    double lastOmegaCmd_ = 0.0;    // TANK1: last tick's commanded body yaw rate (rad/s)
+    double lastVxCmd_ = 0.0;       // TANK1: last tick's commanded body forward speed (in/s)
+    bool hasOmegaCmd_ = false;     // TANK1: lastOmegaCmd_ holds a real command
+    double lastCross_ = 0.0;       // TANK1: last tick's cross-track error (in) — status only
+    double lastCrossAhead_ = 0.0;  // TANK1: last tick's predicted cross (in) — status only
+    double lastBend_ = 0.0;        // TANK1: last tick's bend (rad) — status only
 };
 
 }  // namespace shulib::motion
