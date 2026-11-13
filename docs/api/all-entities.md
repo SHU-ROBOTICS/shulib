@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 6,091 of them, across 207 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 6,249 of them, across 210 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -608,6 +608,25 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CameraCorner::h` | field | [camera_geometry.md](camera_geometry.md#cameracorner-h) |
 | `CameraCorner::pitch` | field | [camera_geometry.md](camera_geometry.md#cameracorner-pitch) |
 | `CameraCorner::yaw` | field | [camera_geometry.md](camera_geometry.md#cameracorner-yaw) |
+| `CameraFeed` | class | [camera_feed.md](camera_feed.md#class-camerafeed) |
+| `CameraFeed::CameraFeed` | function | [camera_feed.md](camera_feed.md#camerafeed-camerafeed) |
+| `CameraFeed::latest` | function | [camera_feed.md](camera_feed.md#camerafeed-latest) |
+| `CameraFeed::stats` | function | [camera_feed.md](camera_feed.md#camerafeed-stats) |
+| `CameraFeed::tick` | function | [camera_feed.md](camera_feed.md#camerafeed-tick) |
+| `CameraFeedConfig` | struct | [camera_feed.md](camera_feed.md#struct-camerafeedconfig) |
+| `CameraFeedConfig::minReadPeriodSeconds` | field | [camera_feed.md](camera_feed.md#camerafeedconfig-minreadperiodseconds) |
+| `cameraFeedConfigProblem` | free function | [camera_feed.md](camera_feed.md#camerafeedconfigproblem) |
+| `CameraFeedStats` | struct | [camera_feed.md](camera_feed.md#struct-camerafeedstats) |
+| `CameraFeedStats::coloursWithheld` | field | [camera_feed.md](camera_feed.md#camerafeedstats-colourswithheld) |
+| `CameraFeedStats::lastReadSeconds` | field | [camera_feed.md](camera_feed.md#camerafeedstats-lastreadseconds) |
+| `CameraFeedStats::notConfigured` | field | [camera_feed.md](camera_feed.md#camerafeedstats-notconfigured) |
+| `CameraFeedStats::objectsWithheld` | field | [camera_feed.md](camera_feed.md#camerafeedstats-objectswithheld) |
+| `CameraFeedStats::partialFaults` | field | [camera_feed.md](camera_feed.md#camerafeedstats-partialfaults) |
+| `CameraFeedStats::readFaults` | field | [camera_feed.md](camera_feed.md#camerafeedstats-readfaults) |
+| `CameraFeedStats::reads` | field | [camera_feed.md](camera_feed.md#camerafeedstats-reads) |
+| `CameraFeedStats::slowestReadSeconds` | field | [camera_feed.md](camera_feed.md#camerafeedstats-slowestreadseconds) |
+| `CameraFeedStats::truncated` | field | [camera_feed.md](camera_feed.md#camerafeedstats-truncated) |
+| `CameraFeedStats::usable` | field | [camera_feed.md](camera_feed.md#camerafeedstats-usable) |
 | `CameraIntrinsics` | struct | [vision_conversion.md](vision_conversion.md#struct-cameraintrinsics) |
 | `CameraIntrinsics::cx` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-cx) |
 | `CameraIntrinsics::cy` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-cy) |
@@ -622,6 +641,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CameraModel::fx` | function | [camera_geometry.md](camera_geometry.md#cameramodel-fx) |
 | `CameraModel::fy` | function | [camera_geometry.md](camera_geometry.md#cameramodel-fy) |
 | `CameraModel::groundRange` | function | [camera_geometry.md](camera_geometry.md#cameramodel-groundrange) |
+| `CameraModel::groundRangeAt` | function | [camera_geometry.md](camera_geometry.md#cameramodel-groundrangeat) |
 | `CameraModel::inViewForCertain` | function | [camera_geometry.md](camera_geometry.md#cameramodel-inviewforcertain) |
 | `CameraModel::nominal` | function | [camera_geometry.md](camera_geometry.md#cameramodel-nominal) |
 | `CameraModel::opticsTolerance` | function | [camera_geometry.md](camera_geometry.md#cameramodel-opticstolerance) |
@@ -630,6 +650,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CameraModel::rangeToPlane` | function | [camera_geometry.md](camera_geometry.md#cameramodel-rangetoplane) |
 | `CameraModel::ray` | function | [camera_geometry.md](camera_geometry.md#cameramodel-ray) |
 | `CameraModel::sizeRange` | function | [camera_geometry.md](camera_geometry.md#cameramodel-sizerange) |
+| `CameraModel::sizeRangeAt` | function | [camera_geometry.md](camera_geometry.md#cameramodel-sizerangeat) |
 | `cameraModelProblem` | free function | [camera_geometry.md](camera_geometry.md#cameramodelproblem) |
 | `CameraMount` | struct | [vision_conversion.md](vision_conversion.md#struct-cameramount) |
 | `CameraMount::x` | field | [vision_conversion.md](vision_conversion.md#cameramount-x) |
@@ -1559,6 +1580,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ExitReason::Running` | enumerator | [exit_group.md](exit_group.md#exitreason-running) |
 | `ExitReason::Settled` | enumerator | [exit_group.md](exit_group.md#exitreason-settled) |
 | `ExitReason::TimedOut` | enumerator | [exit_group.md](exit_group.md#exitreason-timedout) |
+| `explainAsToggleFace` | free function | [toggle_tracker.md](toggle_tracker.md#explainastoggleface) |
 | `expoCurve` | free function | [input_shaping.md](input_shaping.md#expocurve) |
 
 ## F
@@ -2471,6 +2493,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kBlue` | constant | [tune_program.md](tune_program.md#kblue) |
 | `kBlueWall` | constant | [override_walls.md](override_walls.md#kbluewall) |
 | `kBodyY` | constant | [tune_panel.md](tune_panel.md#kbodyy) |
+| `kBottomDepthHiIn` | constant | [toggle_tracker.md](toggle_tracker.md#kbottomdepthhiin) |
+| `kBottomDepthLoIn` | constant | [toggle_tracker.md](toggle_tracker.md#kbottomdepthloin) |
 | `kBoxEdgePx` | constant | [camera_geometry.md](camera_geometry.md#kboxedgepx) |
 | `kBrainAdiLines` | constant | [device_provider.md](device_provider.md#kbrainadilines) |
 | `kBuildTimeCols` | constant | [calibrate_screen.md](calibrate_screen.md#kbuildtimecols) |
@@ -2737,6 +2761,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kPinSize` | constant | [override_elements.md](override_elements.md#kpinsize) |
 | `kPitch` | constant | [tune_panel.md](tune_panel.md#kpitch) |
 | `kPositionErrorEndOfRun` | constant | [accuracy.md](accuracy.md#kpositionerrorendofrun) |
+| `kPostureSlackIn` | constant | [piece_finder.md](piece_finder.md#kpostureslackin) |
 | `kPrimarySlot` | constant | [calibrate_panel.md](calibrate_panel.md#kprimaryslot) |
 | `kProgramFault` | constant | [calibrate_screen.md](calibrate_screen.md#kprogramfault) |
 | `kProtectionTextBytes` | constant | [drive_protection.md](drive_protection.md#kprotectiontextbytes) |
@@ -3764,11 +3789,72 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PidConfig::kP` | field | [pid.md](pid.md#pidconfig-kp) |
 | `PidConfig::outputMax` | field | [pid.md](pid.md#pidconfig-outputmax) |
 | `PidConfig::outputMin` | field | [pid.md](pid.md#pidconfig-outputmin) |
+| `PieceFinder` | class | [piece_finder.md](piece_finder.md#class-piecefinder) |
+| `PieceFinder::answer` | function | [piece_finder.md](piece_finder.md#piecefinder-answer) |
+| `PieceFinder::kMax` | field | [piece_finder.md](piece_finder.md#piecefinder-kmax) |
+| `PieceFinder::PieceFinder` | function | [piece_finder.md](piece_finder.md#piecefinder-piecefinder) |
+| `PieceFinder::Result` | struct | [piece_finder.md](piece_finder.md#struct-piecefinder-result) |
+| `PieceFinder::Result::border` | field | [piece_finder.md](piece_finder.md#piecefinder-result-border) |
+| `PieceFinder::Result::inside` | field | [piece_finder.md](piece_finder.md#piecefinder-result-inside) |
+| `PieceFinder::Result::sighting` | field | [piece_finder.md](piece_finder.md#piecefinder-result-sighting) |
+| `PieceFinder::Result::verdict` | field | [piece_finder.md](piece_finder.md#piecefinder-result-verdict) |
+| `PieceFinder::Result::why` | field | [piece_finder.md](piece_finder.md#piecefinder-result-why) |
+| `PieceFinder::setTarget` | function | [piece_finder.md](piece_finder.md#piecefinder-settarget) |
+| `PieceFinder::update` | function | [piece_finder.md](piece_finder.md#piecefinder-update) |
+| `PieceFinderConfig` | struct | [piece_finder.md](piece_finder.md#struct-piecefinderconfig) |
+| `PieceFinderConfig::aliveSeconds` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-aliveseconds) |
+| `PieceFinderConfig::holdSeconds` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-holdseconds) |
+| `PieceFinderConfig::lyingAspect` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-lyingaspect) |
+| `PieceFinderConfig::minScore` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-minscore) |
+| `PieceFinderConfig::raisedMinIn` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-raisedminin) |
+| `PieceFinderConfig::standingAspect` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-standingaspect) |
+| `PieceFinderConfig::viewMarginPx` | field | [piece_finder.md](piece_finder.md#piecefinderconfig-viewmarginpx) |
+| `pieceFinderConfigProblem` | free function | [piece_finder.md](piece_finder.md#piecefinderconfigproblem) |
 | `pieceSensor` | free function | [wiring.md](wiring.md#piecesensor) |
 | `pieceSensor (overload 2)` | type alias | [wiring.md](wiring.md#piecesensor-2) |
+| `PieceSighting` | struct | [piece_finder.md](piece_finder.md#struct-piecesighting) |
+| `PieceSighting::bearing` | field | [piece_finder.md](piece_finder.md#piecesighting-bearing) |
+| `PieceSighting::box` | field | [piece_finder.md](piece_finder.md#piecesighting-box) |
+| `PieceSighting::classId` | field | [piece_finder.md](piece_finder.md#piecesighting-classid) |
+| `PieceSighting::fix` | field | [piece_finder.md](piece_finder.md#piecesighting-fix) |
+| `PieceSighting::groundRange` | field | [piece_finder.md](piece_finder.md#piecesighting-groundrange) |
+| `PieceSighting::nearerThanIn` | field | [piece_finder.md](piece_finder.md#piecesighting-nearerthanin) |
+| `PieceSighting::posture` | field | [piece_finder.md](piece_finder.md#piecesighting-posture) |
+| `PieceSighting::sizeRange` | field | [piece_finder.md](piece_finder.md#piecesighting-sizerange) |
 | `PieceSize` | struct | [override_elements.md](override_elements.md#struct-piecesize) |
 | `PieceSize::diameterIn` | field | [override_elements.md](override_elements.md#piecesize-diameterin) |
 | `PieceSize::heightIn` | field | [override_elements.md](override_elements.md#piecesize-heightin) |
+| `PieceTarget` | struct | [piece_finder.md](piece_finder.md#struct-piecetarget) |
+| `PieceTarget::classMask` | field | [piece_finder.md](piece_finder.md#piecetarget-classmask) |
+| `PieceTarget::toleranceIn` | field | [piece_finder.md](piece_finder.md#piecetarget-tolerancein) |
+| `PieceTarget::want` | field | [piece_finder.md](piece_finder.md#piecetarget-want) |
+| `PieceTarget::x` | field | [piece_finder.md](piece_finder.md#piecetarget-x) |
+| `PieceTarget::y` | field | [piece_finder.md](piece_finder.md#piecetarget-y) |
+| `pieceTargetProblem` | free function | [piece_finder.md](piece_finder.md#piecetargetproblem) |
+| `PieceVerdict` | enum class | [piece_finder.md](piece_finder.md#enum-class-pieceverdict) |
+| `PieceVerdict::Ambiguous` | enumerator | [piece_finder.md](piece_finder.md#pieceverdict-ambiguous) |
+| `PieceVerdict::Found` | enumerator | [piece_finder.md](piece_finder.md#pieceverdict-found) |
+| `PieceVerdict::None` | enumerator | [piece_finder.md](piece_finder.md#pieceverdict-none) |
+| `PieceVerdict::NotInView` | enumerator | [piece_finder.md](piece_finder.md#pieceverdict-notinview) |
+| `PieceVerdict::Unknown` | enumerator | [piece_finder.md](piece_finder.md#pieceverdict-unknown) |
+| `pieceVerdictWords` | free function | [piece_finder.md](piece_finder.md#pieceverdictwords) |
+| `PieceWhy` | enum class | [piece_finder.md](piece_finder.md#enum-class-piecewhy) |
+| `PieceWhy::CameraFull` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-camerafull) |
+| `PieceWhy::CameraSilent` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-camerasilent) |
+| `PieceWhy::ErrorLargerThanTolerance` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-errorlargerthantolerance) |
+| `PieceWhy::ModelNotConfirmed` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-modelnotconfirmed) |
+| `PieceWhy::NoRead` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-noread) |
+| `PieceWhy::NoTarget` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-notarget) |
+| `PieceWhy::NotHeldYet` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-notheldyet) |
+| `PieceWhy::NothingThere` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-nothingthere) |
+| `PieceWhy::Ok` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-ok) |
+| `PieceWhy::OnTheBorder` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-ontheborder) |
+| `PieceWhy::OutOfView` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-outofview) |
+| `PieceWhy::ReadNotUsable` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-readnotusable) |
+| `PieceWhy::TwoInside` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-twoinside) |
+| `PieceWhy::UnmeasurableInside` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-unmeasurableinside) |
+| `PieceWhy::WrongPostureInside` | enumerator | [piece_finder.md](piece_finder.md#piecewhy-wrongpostureinside) |
+| `pieceWhyWords` | free function | [piece_finder.md](piece_finder.md#piecewhywords) |
 | `PilonsOdometry` | class | [pilons_odometry.md](pilons_odometry.md#class-pilonsodometry) |
 | `PilonsOdometry::lastDeltaImplausible` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-lastdeltaimplausible) |
 | `PilonsOdometry::lastTickAudit` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-lasttickaudit) |
@@ -4016,6 +4102,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PositionTuning::within` | field | [kinds.md](kinds.md#positiontuning-within) |
 | `PosixWrite` | struct | [pros-char_sink.md](pros-char_sink.md#struct-posixwrite) |
 | `PosixWrite::operator()` | function | [pros-char_sink.md](pros-char_sink.md#posixwrite-operator-call) |
+| `Posture` | enum class | [piece_finder.md](piece_finder.md#enum-class-posture) |
+| `Posture::Lying` | enumerator | [piece_finder.md](piece_finder.md#posture-lying) |
+| `Posture::OnFloor` | enumerator | [piece_finder.md](piece_finder.md#posture-onfloor) |
+| `Posture::Raised` | enumerator | [piece_finder.md](piece_finder.md#posture-raised) |
+| `Posture::Unsure` | enumerator | [piece_finder.md](piece_finder.md#posture-unsure) |
+| `postureWord` | free function | [piece_finder.md](piece_finder.md#postureword) |
 | `Power` | struct | [kinds.md](kinds.md#struct-power) |
 | `Power` | type alias | [kinds.md](kinds.md#power) |
 | `Power` | type alias | [quantity.md](quantity.md#power) |
@@ -5175,6 +5267,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SideVolts` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-sidevolts) |
 | `SideVolts::left` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidevolts-left) |
 | `SideVolts::right` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidevolts-right) |
+| `sightPiece` | free function | [piece_finder.md](piece_finder.md#sightpiece) |
 | `SkipReason` | enum class | [shul2_format.md](shul2_format.md#enum-class-skipreason) |
 | `SkipReason::CrcMismatch` | enumerator | [shul2_format.md](shul2_format.md#skipreason-crcmismatch) |
 | `SkipReason::LengthTooLarge` | enumerator | [shul2_format.md](shul2_format.md#skipreason-lengthtoolarge) |
@@ -5560,6 +5653,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleBinding::ToggleBinding (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding-2) |
 | `ToggleBinding::ToggleBinding (overload 3)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding-3) |
 | `ToggleBinding::~ToggleBinding` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-destructor-togglebinding) |
+| `ToggleColour` | enum class | [toggle_tracker.md](toggle_tracker.md#enum-class-togglecolour) |
+| `ToggleColour::Blue` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglecolour-blue) |
+| `ToggleColour::Red` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglecolour-red) |
+| `ToggleColour::Unknown` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglecolour-unknown) |
+| `ToggleColour::Yellow` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglecolour-yellow) |
+| `ToggleColourIds` | struct | [toggle_tracker.md](toggle_tracker.md#struct-togglecolourids) |
+| `ToggleColourIds::blue` | field | [toggle_tracker.md](toggle_tracker.md#togglecolourids-blue) |
+| `ToggleColourIds::red` | field | [toggle_tracker.md](toggle_tracker.md#togglecolourids-red) |
+| `ToggleColourIds::yellow` | field | [toggle_tracker.md](toggle_tracker.md#togglecolourids-yellow) |
+| `toggleColourWord` | free function | [toggle_tracker.md](toggle_tracker.md#togglecolourword) |
 | `ToggleFace` | struct | [override_elements.md](override_elements.md#struct-toggleface) |
 | `ToggleFace::bottomHiIn` | field | [override_elements.md](override_elements.md#toggleface-bottomhiin) |
 | `ToggleFace::bottomIn` | field | [override_elements.md](override_elements.md#toggleface-bottomin) |
@@ -5569,11 +5672,65 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleFace::setBackLoIn` | field | [override_elements.md](override_elements.md#toggleface-setbackloin) |
 | `ToggleFace::topIn` | field | [override_elements.md](override_elements.md#toggleface-topin) |
 | `ToggleFace::wallTopIn` | field | [override_elements.md](override_elements.md#toggleface-walltopin) |
+| `ToggleFaceGate` | enum class | [toggle_tracker.md](toggle_tracker.md#enum-class-togglefacegate) |
+| `ToggleFaceGate::Cut` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglefacegate-cut) |
+| `ToggleFaceGate::Explained` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglefacegate-explained) |
+| `ToggleFaceGate::NotExplained` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglefacegate-notexplained) |
+| `ToggleFaceGate::TooThin` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglefacegate-toothin) |
+| `ToggleFaceMeasure` | struct | [toggle_tracker.md](toggle_tracker.md#struct-togglefacemeasure) |
+| `ToggleFaceMeasure::aspect` | field | [toggle_tracker.md](toggle_tracker.md#togglefacemeasure-aspect) |
+| `ToggleFaceMeasure::gate` | field | [toggle_tracker.md](toggle_tracker.md#togglefacemeasure-gate) |
+| `ToggleFaceMeasure::impliedLength` | field | [toggle_tracker.md](toggle_tracker.md#togglefacemeasure-impliedlength) |
+| `ToggleFaceMeasure::range` | field | [toggle_tracker.md](toggle_tracker.md#togglefacemeasure-range) |
+| `ToggleFaceMeasure::sideClipped` | field | [toggle_tracker.md](toggle_tracker.md#togglefacemeasure-sideclipped) |
 | `TogglePlace` | struct | [override_elements.md](override_elements.md#struct-toggleplace) |
 | `TogglePlace::inX` | field | [override_elements.md](override_elements.md#toggleplace-inx) |
 | `TogglePlace::inY` | field | [override_elements.md](override_elements.md#toggleplace-iny) |
 | `TogglePlace::x` | field | [override_elements.md](override_elements.md#toggleplace-x) |
 | `TogglePlace::y` | field | [override_elements.md](override_elements.md#toggleplace-y) |
+| `ToggleTracker` | class | [toggle_tracker.md](toggle_tracker.md#class-toggletracker) |
+| `ToggleTracker::ToggleTracker` | function | [toggle_tracker.md](toggle_tracker.md#toggletracker-toggletracker) |
+| `ToggleTracker::update` | function | [toggle_tracker.md](toggle_tracker.md#toggletracker-update) |
+| `ToggleTracker::view` | function | [toggle_tracker.md](toggle_tracker.md#toggletracker-view) |
+| `ToggleTrackerConfig` | struct | [toggle_tracker.md](toggle_tracker.md#struct-toggletrackerconfig) |
+| `ToggleTrackerConfig::aliveSeconds` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-aliveseconds) |
+| `ToggleTrackerConfig::bearingWindowDeg` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-bearingwindowdeg) |
+| `ToggleTrackerConfig::frozenMoveIn` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-frozenmovein) |
+| `ToggleTrackerConfig::frozenTurnDeg` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-frozenturndeg) |
+| `ToggleTrackerConfig::holdSeconds` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-holdseconds) |
+| `ToggleTrackerConfig::ids` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-ids) |
+| `ToggleTrackerConfig::maxFixRadiusIn` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-maxfixradiusin) |
+| `ToggleTrackerConfig::maxLengthFraction` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-maxlengthfraction) |
+| `ToggleTrackerConfig::maxPoseToleranceIn` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-maxposetolerancein) |
+| `ToggleTrackerConfig::maxRangeIn` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-maxrangein) |
+| `ToggleTrackerConfig::minAspect` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-minaspect) |
+| `ToggleTrackerConfig::minLengthFraction` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-minlengthfraction) |
+| `ToggleTrackerConfig::minRangeIn` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-minrangein) |
+| `ToggleTrackerConfig::positionToleranceIn` | field | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfig-positiontolerancein) |
+| `toggleTrackerConfigProblem` | free function | [toggle_tracker.md](toggle_tracker.md#toggletrackerconfigproblem) |
+| `ToggleView` | struct | [toggle_tracker.md](toggle_tracker.md#struct-toggleview) |
+| `ToggleView::bearing` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-bearing) |
+| `ToggleView::colour` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-colour) |
+| `ToggleView::heldSeconds` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-heldseconds) |
+| `ToggleView::positionChecked` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-positionchecked) |
+| `ToggleView::range` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-range) |
+| `ToggleView::toggleIndex` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-toggleindex) |
+| `ToggleView::why` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-why) |
+| `ToggleWhy` | enum class | [toggle_tracker.md](toggle_tracker.md#enum-class-togglewhy) |
+| `ToggleWhy::CameraFrozen` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-camerafrozen) |
+| `ToggleWhy::CameraFull` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-camerafull) |
+| `ToggleWhy::CameraSilent` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-camerasilent) |
+| `ToggleWhy::ColourAbove` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-colourabove) |
+| `ToggleWhy::ConflictingPartialBand` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-conflictingpartialband) |
+| `ToggleWhy::CutByImage` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-cutbyimage) |
+| `ToggleWhy::MaybeBottomFace` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-maybebottomface) |
+| `ToggleWhy::NoBand` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-noband) |
+| `ToggleWhy::NoRead` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-noread) |
+| `ToggleWhy::NotHeldYet` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-notheldyet) |
+| `ToggleWhy::ReadNotUsable` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-readnotusable) |
+| `ToggleWhy::Sure` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-sure) |
+| `ToggleWhy::TwoColours` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglewhy-twocolours) |
+| `toggleWhyWords` | free function | [toggle_tracker.md](toggle_tracker.md#togglewhywords) |
 | `toLineValue` | free function | [robot_config.md](robot_config.md#tolinevalue) |
 | `toMechanismConfig` | free function | [wiring.md](wiring.md#tomechanismconfig) |
 | `Tone` | enum class | [touch_panel.md](touch_panel.md#enum-class-tone) |
@@ -5583,6 +5740,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Tone::Grey` | enumerator | [touch_panel.md](touch_panel.md#tone-grey) |
 | `Tone::Red` | enumerator | [touch_panel.md](touch_panel.md#tone-red) |
 | `Tone::White` | enumerator | [touch_panel.md](touch_panel.md#tone-white) |
+| `topFaceAllowanceIn` | free function | [piece_finder.md](piece_finder.md#topfaceallowancein) |
 | `TouchAction` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-touchaction) |
 | `TouchAction::Answer` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-answer) |
 | `TouchAction::None` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-none) |

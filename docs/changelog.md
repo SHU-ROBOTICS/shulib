@@ -16,6 +16,73 @@
 
 ## API 2.8
 
+### 2026-11-13 (built 2026-11-03, reviewed and fixed to 2026-11-12) — what the AI Vision camera means: the Toggle's colour (or UNKNOWN, with the reason), one named piece (or none), and one read per period for both
+
+> Written when it was built (chunk VIS1, part A2 of three: what the camera means; the device was part A1,
+> robot two's camera and the bench page are part B). **No version bump — every change is ADDITIVE:** three
+> new headers and two new members of `vision::CameraModel`, a class in no row of the
+> [Freeze Register](roadmap.md#freeze-register) (row F15: the camera's frames and `vision/*`, NOT FROZEN).
+> **No program uses them yet** — the automatic flip, driving to a piece and our alliance colour are later
+> chunks — so every program builds and drives exactly as before. **Host only — no AI Vision sensor has run
+> this code;** every number below is the host test plant's camera model, looking through a true camera set
+> inside the stated tolerances. [Guide chapter 20](guide/20-the-camera.md) is the whole story.
+
+- **`vision::CameraFeed`** (`vision/camera_feed.hpp`) — the program's own loop calls `tick()` once per pass;
+  the feed reads the camera at most once per `minReadPeriodSeconds` (the team's number; UNSET refused),
+  never twice in one call, and hands the SAME frame to every consumer through `latest()` — the latest READ,
+  a fault frame included, never the last good one held. `stats()` counts the reads by status and times
+  each one with the loop's clock (the last and the slowest — what HA-203 needs from the bench). No task, no
+  allocation.
+- **`vision::ToggleTracker`** (`vision/toggle_tracker.hpp`) — `update(frame, poseBound)` / `view(now)` →
+  `ToggleView {colour, why, heldSeconds, bearing, range, positionChecked, toggleIndex}`: RED, BLUE or
+  YELLOW only when one band of that colour passed every gate (kind and id; a long, flat band taller than
+  its edges' jitter; not cut by the picture — a side-clipped band judged only when it spans the centre
+  column; ONE camera of the tolerance box explains its two edges as the face's lower edge and top edge
+  with the face's lean, and its length as a Toggle's; not the Toggle's bottom face; inside the bearing and
+  range windows; optionally, on a Toggle's face line) on every usable read for `holdSeconds` — the SAME
+  band throughout (its direction and range from the lens agreeing read to read) — with a usable read
+  within `aliveSeconds`; otherwise UNKNOWN with one of twelve reasons (two colours, another
+  colour cut or maybe a bottom face beside it, another colour directly above, camera full, frozen, silent,
+  not held yet, ...). A colour is the face the camera SEES, never a "set" Toggle. Every threshold is the
+  team's (`toggleTrackerConfigProblem` refuses an UNSET one by name). `ToggleView::range` is a bound over
+  every camera of the tolerance box. `explainAsToggleFace()` gives a bench page the library's measurements
+  of one band with no team threshold. Telling the bottom face from the field face rests on the camera
+  detecting the field face whenever it detects the bottom face (HA-199, for the bench).
+- **`vision::PieceFinder`** (`vision/piece_finder.hpp`) — a route's `PieceTarget {classMask, x, y,
+  toleranceIn, want}` (refused by `pieceTargetProblem` when unset) and the team's `PieceFinderConfig`
+  (`pieceFinderConfigProblem`); `answer(now)` → FOUND (exactly one candidate of the type and posture whose
+  whole error disc is inside the tolerance, none on the border, held), NONE, AMBIGUOUS, NOT IN VIEW (the
+  whole tolerance disc, at the floor and at a Pin's height, not certainly in the picture) or UNKNOWN (no
+  target set among its reasons) — never the nearest of several. `sightPiece()` interprets one Object: ON THE
+  FLOOR, RAISED, LYING or UNSURE, its bearing, ranges and field fix; a box narrow enough to stand is ON THE
+  FLOOR only when its width is a Pin's at the range it agreed on and no camera could see it lying toward
+  the lens. `minScore` and `viewMarginPx` mean something at 0, so their UNSET is −1.
+  **`PieceFinderConfig::raisedMinIn`** — the lowest a raised piece sits on the field (a Goal's top), read
+  from the manual's field drawings — is a team number this part added beyond its brief: agreeing with the floor is
+  not enough far out or from a high lens (a Pin on a Goal agreed through a camera at the tolerance box's
+  far edge, and its fix missed it), so ON THE FLOOR also needs no camera of the box able to see it raised
+  that much.
+- **`vision::CameraModel::groundRangeAt()` / `sizeRangeAt()`** — the ground and size ranges for ONE camera
+  of the tolerance box, for a consumer that checks a consistency one camera at a time; `groundRange()` and
+  `sizeRange()` are now their hulls (unchanged answers).
+- **What you must do:** nothing — no existing call changes. A consumer that wants the camera builds a feed,
+  a tracker and a finder from the team's numbers and ticks the feed from its own loop (chapter 19).
+- **Tested** (host only; the suite 2,815 → 2,944 cases): the tracker's gates against their lookalikes
+  through the host camera model; the bottom face never reported, including with the robot turned −30..+30
+  degrees (390 parkings, 0 wrong colours) and with the Toggle's real lower shape (2,288 parkings, 0 wrong) —
+  and, the field face's detection removed, reported (the stated dependency, pinned); the mount table D9's
+  advice rests on (a 10-in level lens reports from ~70 in to ~12 in; a lens at 12¼ in level never); floor
+  Pins across the picture never RAISED, Goal Pins and lying Pins never ON THE FLOOR, every fix holding the
+  true centre (true cameras at the tolerance box's edges, box edges jittered by 1 px), and each term of a
+  fix's far end but the off-axis factor shown needed by a near-exactly measured camera; the decision
+  thresholds' edges landed on exactly (the hold, alive, aspect, window, colour-above, bottom-face, frozen,
+  length, position-gate and finder in/border/out edges); every config refusal by its words. Mutations:
+  see the run's record — the survivors are named there, each judged. **Open:** a Pin about 30 degrees off
+  the camera's axis, close in, seen by a near-exactly measured camera with its box's bottom edge a pixel
+  low (inside the stated jitter) — its field position missed it by 0.02 in past the stated radius, because
+  the box's centre column is the Pin's TOP's, not its middle's; the finder's arithmetic for it is not fixed
+  yet (no program uses the finder before drive-to-piece).
+
 ### 2026-11-13 (built 2026-11-11) — triggers partway through a drive: "at 60 % of this drive, start raising the lift"
 
 > Written when it was built (chunk STEP1-B, the route maker's library half, part B). **API 2.8** — every

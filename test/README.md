@@ -140,6 +140,11 @@ documented here and in their own headers:
   camera. It projects with its OWN code and includes nothing from `vision/`: a sign error in the library's
   geometry cannot cancel out in a test that uses both (`test/sim_camera_plant_test.cpp` holds its own
   anchors). Its banner lists what it does not model.
+- **`test/camera_scene_rig.hpp`** (VIS1-A2) — the camera's meaning tests share it: the mount the library
+  believes and the TRUE camera the host camera model looks through (moved inside the stated tolerances),
+  the tracker's and the finder's numbers the brief's probes used (`tcfg()`, `fcfg()` — the team's own
+  come from the bench), a seated Toggle on the +x wall, a robot parked square to it, Pins, and hand-made
+  frames. Test-only (no `TEST_CASE` in it); its numbers are never a library default.
 
 ## Vendored dependency
 

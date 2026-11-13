@@ -405,6 +405,49 @@ until it does (and a RELATIVE-start one refuses `not a field start` first, as it
   (the two legal perimeters differ by 0.045 in a wall): the
   [hardware-assumptions register](../hardware-assumptions.md), HA-204 to HA-209, HA-211 and HA-212.
 
+## The camera reads colours and pieces — on a host model, and with limits it states
+
+Since the camera's second part the library turns the AI Vision camera's frames into a Toggle's colour and
+one named piece ([chapter 20](20-the-camera.md)). What that is worth, and what it cannot do:
+
+- **No AI Vision sensor has run this code.** Every number in chapter 20 is the host test plant's camera
+  model looking through a true camera set inside the stated tolerances; the optics, the frame rate, the
+  picture's age, the read's cost, the model's class names, the colours under event light and the
+  Toggle's real shape are all unmeasured beliefs (HA-192 to HA-203).
+- **A colour is the face the camera SEES, never a "set" Toggle.** A Toggle stuck mid-roll can show the
+  colour it is rolling toward, and nothing the camera measures tells seated from rolled or touched from
+  untouched. Anything that pushes a Toggle needs the colour confirmed at the push point by a sensor that
+  sees colour there.
+- **Lookalikes.** With the position gate off, a red band of the wrong size near a wall can read as a face
+  (70 of 540 on the host plant), and so can a red LED strip on the wall top from 20 in and closer — the
+  position gate, with a pose the team trusts, turns those away. It cannot turn away a red strip about a
+  Toggle's length lying ON a Toggle's face line: that reads as the face from about 22 in out, gate or no
+  gate.
+- **The bottom face is told apart only if the face above it is SEEN.** If the field face's detection
+  vanished on every read (glare) while its bottom face's fired, the bottom face's colour could read as sure;
+  the bench checks the real camera never misses the face that way.
+- **A frozen camera is caught only while the camera moves.** Parked, a frozen camera and a still scene
+  look the same.
+- **Close in, only square.** At 14–20 in, turned even 5 degrees, the colour is UNKNOWN (an 11-in lens
+  keeps it at 5 degrees one way at 20 in); at 30 in an 8-in lens still needs square; nowhere past 15
+  degrees — never a wrong colour, but no colour either.
+- **Where the camera sits decides what it sees.** A lens about level with the face's lower edge (11¾–12¾
+  in) is blind to the colour at most distances.
+- **The picture's age is unmeasured**, so a field position from the camera is a bound only with the robot
+  stopped until the bench measures it.
+- **A piece is FOUND only close in.** With a mount measured to ±1 degree, the middle of three Pins a foot
+  apart is FOUND (within 6 in) only from about 22–23 in; from a high lens far out, a Pin on a Goal
+  cannot be told from one on the floor, and close in a Pin lying toward the camera cannot be told from a
+  standing one, so both are UNSURE (never taken for a floor piece).
+- **A field position near the picture's side can be a hair short.** For a Pin about 30 degrees off the
+  axis and close in, from a near-exactly measured camera, the host plant showed the position missing the
+  Pin by 0.02 in past its stated radius (the box's centre column belongs to the Pin's top). The finder's
+  arithmetic for it is not fixed yet; nothing uses the finder before drive-to-piece.
+- **A field position is only as good as a box's edges.** It assumes each reported edge is within 2 px of
+  the piece's true edge, rounding included (HA-202); edges farther off than that (on the host plant, 2 px
+  of jitter plus rounding) made standing Pins' positions miss by up to 1.8 in.
+- **No tags.** The camera's AprilTags stay off; no camera has been pointed at a tag by this project.
+
 ## No easier tiers yet
 
 The project's [accessibility model](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet)

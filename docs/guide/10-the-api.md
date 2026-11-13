@@ -886,11 +886,11 @@ numbers — this is the map:
 ## The camera — a frame at a time
 
 The V5 AI Vision camera is declared in the robot file like any device — its port, what the library writes
-to it, and where it sits — and the Robot builds it at boot through the device provider. Nothing in the
-library READS it yet: the camera's consumers (a Toggle colour tracker, a piece finder that takes one named
-piece, and a feed that reads once per period for both) are the camera's next part. What exists now is the
-device, the frame, and the geometry that turns a box into directions and distances. **No AI Vision sensor
-has been read by this code yet; everything below has run on the host test plant only.**
+to it, and where it sits — and the Robot builds it at boot through the device provider. This section is
+the device, the frame, and the geometry that turns a box into directions and distances; what the camera
+MEANS — a feed that reads it once per period for everyone, a Toggle colour tracker, and a piece finder that
+takes one named piece — is [chapter 20](20-the-camera.md). **No AI Vision sensor has been read by this
+code yet; everything below has run on the host test plant only.**
 
 **The robot file's camera block** (`config::CameraConfig`, in `sensors.camera`): the port (0, the
 default, means no camera); the SETTINGS the library writes at every boot — the colour descriptors the

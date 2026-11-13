@@ -1792,7 +1792,9 @@ written with them (D12 honesty reaching the data layer intact).
 > `hal/pros/ai_vision.hpp` (`ProsAiVision`: settings written and read back, the model checked by name, a failed read a
 > ReadFault frame), `config/camera_config.hpp` (the robot file's camera block), `vision/camera_geometry.hpp` (intervals
 > over every tolerance) and `vision/override_elements.hpp`, the host camera model; HA-192..HA-203 registered. Host only.
-> **Next: VIS1-A2** (the Toggle tracker, the piece finder, the feed), then VIS1-B and the panel's camera page (S2) — by
+> **Status 2026-11-13: VIS1-A2 LANDED** (built 2026-11-03, reviewed, fixed and verified through 2026-11-12; the Toggle
+> tracker, the piece finder, the camera feed; guide chapter 20). **Next: AF1S-A1** (the checked Toggle step, built on it), then
+> AF1S-A2 (the camera in autons); VIS1-B and the panel's camera page (S2) after the 21st. *(Before:)* **Next: VIS1-A2** (the Toggle tracker, the piece finder, the feed), then VIS1-B and the panel's camera page (S2) — by
 > G3a's D20 order the camera comes LAST of the five slots' queue (after the route maker, the string-lift safety and the
 > wall page); the panel brief's dates put S2 at ~Nov 25–Dec 2.
 > **Status 2026-11-03: BEFORE THE 21st AGAIN** — the team lead's rulings of 2026-11-03 ("Autons first"; then "this is extremely important though can we not get this done??" — "Everything incl. flipper", within the usage limits): VIS1-A2 (building), VIS1-B, ALLY1 and L4 (briefed

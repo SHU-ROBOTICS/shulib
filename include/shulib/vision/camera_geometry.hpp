@@ -41,6 +41,10 @@
 // through eachCorner() — "is there one camera, inside the stated tolerances, that sees this box as X?" —
 // never by overlapping two intervals each widened over every corner, which double-counts the common
 // error (VIS1's probes: 129 of 540 lookalike bands passed with overlapped intervals, 86 per corner).
+// groundRangeAt() and sizeRangeAt() answer for ONE such camera (VIS1-A2). The corners are cameras inside
+// the tolerances, so "SOME corner explains it" is an honest yes; but they are not EVERY camera (the
+// interior points above are not corners), so "NO camera explains it" is shown from the whole-box
+// intervals, never from the corners alone (VIS1-A2's piece finder: its RAISED verdict).
 //
 // ── The camera's axis, and what is not modelled ─────────────────────────────────────
 // The optical axis is taken square to the housing's back face, where the team measures pitch and yaw
@@ -104,7 +108,11 @@ inline constexpr CameraOptics kAiVisionOptics{74.0, 63.0, 0.05, hal::kVisionImag
 
 /// A box edge's jitter, pixels, for every edge-derived quantity — a model object's box AND a colour
 /// band's top and bottom rows (A4 register HA-202: invented until the bench records boxes of a still
-/// object). A band no taller than two of these cannot be measured.
+/// object). It bounds the REPORTED integer edge against the true silhouette's edge — the camera's rounding
+/// and any bias included, not only the spread from read to read: an edge farther off than this makes every
+/// interval built on it short (the host test plant's 2 px of jitter plus its rounding reaches ~3 px, and a
+/// standing Pin's floor fix then missed it by up to 1.8 in). A band no taller than two of these cannot be
+/// measured.
 inline constexpr double kBoxEdgePx = 2.0;
 
 /// A robot pose with how far it may be off — the CALLER's statement (the localizer's quality, or a bound
@@ -265,24 +273,43 @@ public:
     [[nodiscard]] Interval groundRange(double u, double vBottom, double minDepressionDeg = 2.0) const noexcept {
         Interval out{};
         bool ok = true;
-        double cols[3] = {};
-        const int colCount = jitteredColumns(u, cols);
         forEachCorner(/*useHeight=*/true, [&](const CameraCorner& c) {
-            for (int k = 0; k < colCount; ++k) {
-                for (const double dv : {-kBoxEdgePx, kBoxEdgePx}) {
-                    double b = 0.0;
-                    double e = 0.0;
-                    ray(c, cols[k], vBottom + dv, b, e);
-                    if (!(-e > minDepressionDeg * kDegToRad)) {
-                        ok = false;
-                        return;
-                    }
-                    widen(out, c.h / std::tan(-e));
-                }
+            const Interval at = groundRangeAt(c, u, vBottom, minDepressionDeg);
+            if (!at.valid) {
+                ok = false;
+                return;
             }
+            widen(out, at.lo);
+            widen(out, at.hi);
         });
         if (!ok) {
             out.valid = false;
+        }
+        return out;
+    }
+
+    /// The GROUND RANGE for ONE camera `c` of the tolerance box (one of eachCorner()'s): what groundRange()
+    /// computes for that camera alone — over +-kBoxEdgePx of jitter on the row AND the column, with the
+    /// principal point's column when the jittered column reaches it. For a consumer that tests a
+    /// CONSISTENCY corner by corner (the header: one camera explains it — VIS1-A2's piece finder asks
+    /// whether ONE camera puts a box's bottom row and its height at the same range). Invalid when any
+    /// evaluated ray descends less than `minDepressionDeg`. groundRange() is the hull of these over the
+    /// corners (and invalid when any is).
+    [[nodiscard]] Interval groundRangeAt(const CameraCorner& c, double u, double vBottom,
+                                         double minDepressionDeg = 2.0) const noexcept {
+        Interval out{};
+        double cols[3] = {};
+        const int colCount = jitteredColumns(u, cols);
+        for (int k = 0; k < colCount; ++k) {
+            for (const double dv : {-kBoxEdgePx, kBoxEdgePx}) {
+                double b = 0.0;
+                double e = 0.0;
+                ray(c, cols[k], vBottom + dv, b, e);
+                if (!(-e > minDepressionDeg * kDegToRad)) {
+                    return Interval{};
+                }
+                widen(out, c.h / std::tan(-e));
+            }
         }
         return out;
     }
@@ -322,18 +349,12 @@ public:
         const double vBottom = vCentre + pxHeight / 2.0;
         const double axisCol = o_.widthPx / 2.0;  // the principal point's column (header)
         double cols[3] = {};
-        const int colCount = jitteredColumns(u, cols);
+        (void)jitteredColumns(u, cols);
         forEachCorner(/*useHeight=*/false, [&](const CameraCorner& c) {
-            for (int k = 0; k < colCount; ++k) {
-                for (const double dt : {-kBoxEdgePx, kBoxEdgePx}) {
-                    for (const double db : {-kBoxEdgePx, kBoxEdgePx}) {
-                        const double perInch =
-                            sizeTerms(c, c.pitch, cols[k], vCentre, vTop + dt, vBottom + db).product;
-                        if (perInch > 0.0) {
-                            widen(out, realHeightIn / perInch);
-                        }
-                    }
-                }
+            const Interval at = sizeRangeAt(c, realHeightIn, u, vCentre, pxHeight);
+            if (at.valid) {
+                widen(out, at.lo);
+                widen(out, at.hi);
             }
         });
         double pLo = 0.0;
@@ -367,6 +388,36 @@ public:
                 const double perInch = at.product * std::exp(at.slope * (b - a));
                 if (perInch > 0.0) {
                     widen(out, realHeightIn / perInch);
+                }
+            }
+        }
+        return out;
+    }
+
+    /// The SIZE RANGE for ONE camera `c` of the tolerance box (one of eachCorner()'s): what sizeRange()
+    /// computes for that camera alone — exact for a vertical line at that camera's own pitch, over
+    /// +-kBoxEdgePx on each of the box's two edges and on its column (with the principal point's column
+    /// when the jittered column reaches it). sizeRange() is the hull of these over the corners PLUS its
+    /// interior pitch (a box straddling the lens's level): a consumer comparing two quantities corner by
+    /// corner (the header: one camera explains it) visits the corners only, which can only make it refuse
+    /// more often near the level, never accept a box no camera explains. Invalid on sizeRange()'s terms.
+    [[nodiscard]] Interval sizeRangeAt(const CameraCorner& c, double realHeightIn, double u, double vCentre,
+                                       double pxHeight) const noexcept {
+        Interval out{};
+        if (!(pxHeight > 2.0 * kBoxEdgePx + 1.0) || !(realHeightIn > 0.0) || !std::isfinite(realHeightIn)) {
+            return out;
+        }
+        const double vTop = vCentre - pxHeight / 2.0;
+        const double vBottom = vCentre + pxHeight / 2.0;
+        double cols[3] = {};
+        const int colCount = jitteredColumns(u, cols);
+        for (int k = 0; k < colCount; ++k) {
+            for (const double dt : {-kBoxEdgePx, kBoxEdgePx}) {
+                for (const double db : {-kBoxEdgePx, kBoxEdgePx}) {
+                    const double perInch = sizeTerms(c, c.pitch, cols[k], vCentre, vTop + dt, vBottom + db).product;
+                    if (perInch > 0.0) {
+                        widen(out, realHeightIn / perInch);
+                    }
                 }
             }
         }

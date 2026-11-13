@@ -1178,3 +1178,1022 @@ most 28 + 25 = 53 — no document sums them, and none claims a total.)
   provider's own words) RED. Restored tree green.
 - **Next for VIS1:** VIS1-A2 (the Toggle tracker, the piece finder, the feed) — moved ahead by the team lead's ruling of
   2026-11-03 (the camera features, drive-to-piece and the auto-flipper before 2026-11-21, the panel after); then VIS1-B.
+
+---
+
+## VIS1-A2 — what the camera means (the Toggle tracker, the piece finder, the camera feed)
+
+- **Started:** Tue Nov  3 01:53:07 PM EST 2026 (`date`).
+- **Tree at start:** `9d77c9d` (VIS1-A1 merged, main), clean, in the git worktree `.claude/worktrees/vis1-a2` (branch
+  `vis1-a2`) — NOT the main working tree. Executor: opus, under the coordinator's workflow run.
+- **Go:** the team lead's answers of 2026-10-18 ("Accept all (Recommended)" — D1–D11 as recommended, D6 and D9 as the
+  re-check changed them) and his ruling of 2026-11-03 that the camera features, drive-to-piece and the Toggle
+  auto-flipper come BEFORE 2026-11-21, ahead of the panel ("Everything incl. flipper"). VIS1-A2 is on the
+  auto-flipper's critical path (AF1 needs the Toggle tracker; L4 needs the piece finder). Do not commit; no `pros`
+  command; no `/dev/ttyACM*`. Probes and mutation backups under `.claude/coordinator/scratch/vis1-a2/` only. Every
+  test binary runs as `(ulimit -v 4194304; timeout 600 …)`.
+- **Scope:** §2.1's VIS1-A2 row — §1.12 `vision/toggle_tracker.hpp`, §1.13 `vision/piece_finder.hpp`, §1.14
+  `vision/camera_feed.hpp`; §2.2's VIS1-A2 tests and mutations; §3.1's VIS1-A2 documents (changelog, a NEW guide
+  chapter "The camera" + its two hand-kept index entries, guide 14, HA-197/199/200/203's Source lines, `docs/api/`).
+  NOTHING of VIS1-B (`src/`). The alliance colour is ALLY1's: the tracker reports colours, never "ours".
+- **Reading (the team lead's 2026-10-22 ruling for executors):** RESUMING whole; the brief's header and answers
+  block, every Re-check section (T1–T10, S1–S10, R7), D1–D11, the plain words, §1 preamble, §1.12–§1.14, §2.1's
+  A2 row, §2.2's A2 tests and mutations, §2.3, §3 (A2), §4, §5, §6, §7, §8 in full; the rest by heading. This log's
+  VIS1-A1 entries and the coordinator's merge record — the hand-ons to A2 collected below as they are met.
+
+
+### RESUMED — Tue Nov  3 03:50:28 PM EST 2026 (`date`)
+- **The stop.** The team lead dropped to ONE job at 93 % of the session limit at ~14:50 and the old session ended; the
+  coordinator audited this worktree (no live mutant) and resumed the run after the reset. The stopped run logged only its
+  start and reading line (above); its work is on disk, unlogged, and is accounted here from the files themselves.
+- **Found on disk** (`git status`, file times 13:52–14:07): NEW `include/shulib/vision/{toggle_tracker,piece_finder,
+  camera_feed}.hpp`, NEW `test/camera_scene_rig.hpp`; CHANGED `include/shulib/vision/camera_geometry.hpp` (two
+  per-camera functions, `groundRangeAt()` / `sizeRangeAt()`, and a header paragraph). No test file, no
+  `test/CMakeLists.txt` edit, no document. `git diff -- src/ Makefile`: EMPTY (no gate self-test plant). Scratch
+  `.claude/coordinator/scratch/vis1-a2/` holds `configure0.txt`, `build0.txt` (a full build at 13:58, before the three
+  headers were last written) and `hdr.cpp` (a compile probe of the three headers): no mutation backup, so no mutation
+  was ever run by the stopped run. The suite binary on disk is removed and rebuilt from source before any result.
+- **Reading re-done by this resumption** (the 2026-10-22 ruling's list): RESUMING whole; the brief's header and answers
+  block, the Re-check (T1–T10, S1–S10, R7), D1–D11, the plain words, §1 preamble, §1.12–§1.14, §2.1–§2.3, §3, §4, §5,
+  §6, §7, §8, §9; this log's VIS1-A1 entries and the coordinator's merge record. **The hand-ons to A2** found there:
+  (H1) finding (1)'s note — a Pin seen from above has its size range up to ~1½ radii NEARER than its near rim (the box
+  takes in the top face), so §1.13 rule 1's ON-THE-FLOOR agreement must allow it; (H2) `eachCorner()` visits the
+  corners only — A2 decides whether a "one camera explains it" test needs the interior cameras (refusal is the safe
+  side); (H3) A1-D3 — the Toggle's flat bottom face is 12.36 in, ~¼ in below the field face's lower boundary
+  (`ToggleFace::flatBottomIn`), the host camera model's bottom face is at the boundary (a stated approximation); (H4)
+  A1's review (10) — public docs must not name `vision::CameraFeed` before it exists (it exists now: A2 may name it);
+  (H5) A1-D14 — guide 14's tag-corrector sentence already clarified by A1; (H6) the coordinator's merge record — the
+  changelog's VIS1 entry sits under `## API 2.5`, the register at 194 rows.
+- **Fresh build at the resumption** (`date` 15:52): `rm -f build/test/shulib_tests`, the briefing regenerated, configure,
+  build — the doc gate failed on a STALE `docs/api/` (the stopped run never regenerated it: three new pages and
+  `camera_geometry.md`'s two new members); `api_doc_tool.py generate` (coverage already 5,424 entities, all documented),
+  rebuilt: only `camera_geometry_test.cpp.o` recompiled (the one object whose depfile names the changed header — checked
+  in `build/test/CMakeFiles/shulib_tests.dir/*.d`); suite **green, 2,815 cases** (`suite_run.py green` under the cap) —
+  the stopped run's geometry refactor breaks none of A1's tests.
+
+### The stopped run's code, reviewed against the v6 prototypes (its deltas, logged here because it logged none)
+- **A2-D1 (`toggle_tracker.hpp`):** the prototype's gates 2–4 split out as `detail::measureToggleFace()` so §1.12's bench
+  helper `explainAsToggleFace()` (absent from the prototype) shares the tracker's own arithmetic (one path, never two);
+  `ToggleFaceMeasure {gate, aspect, sideClipped, range, impliedLength}`; `toggleColourWord()` / `toggleWhyWords()` (ASCII,
+  for a log line); `toggleTrackerConfigProblem()` also refuses an id past 7 and a non-finite number; gate 6 also refuses
+  an INVALID bearing interval (the prototype read an invalid interval's zeros as "inside the window"); the read's count
+  clamped to the array; `view()`'s alive test NaN-safe (`!(now - last <= alive)`); a frozen view keeps the bearing and
+  range but clears `positionChecked`/`toggleIndex`; the same-colour-twice selection written without the prototype's
+  `front = c` before the nearer test (the same answer: two colours are UNKNOWN anyway).
+- **A2-D2 (`toggle_tracker.hpp`, hand-on H3):** the bottom-face gate also tries the FLAT bottom's plane
+  (`flatBottomIn`, 12.36) beside the lower edge's interval — more explanations can only refuse more.
+- **A2-D3 (`camera_geometry.hpp`, hand-ons H1/H2):** `groundRangeAt()` / `sizeRangeAt()` — the per-camera parts of
+  `groundRange()` / `sizeRange()`, which now call them (the whole-box results unchanged: A1's tests green); a header
+  paragraph: "some corner explains it" is an honest yes, "no camera explains it" is shown only from the whole-box
+  intervals.
+- **A2-D4 (`piece_finder.hpp`, hand-ons H1/H2):** the posture rule rewritten from the prototype's mixed per-corner
+  arithmetic onto A1's exact geometry: ON THE FLOOR when SOME corner's `groundRangeAt` and `sizeRangeAt` meet, the size
+  range allowed to read NEARER by the top face's depth (`topFaceAllowanceIn()`, 2r(a − H)/H, the supremum over every
+  distance — derived by me, below); RAISED only when the WHOLE box's farthest size range plus that allowance is still
+  nearer than its nearest ground range (corners + the principal point's column, any descending ray) — never concluded
+  from the corners alone; a `kPostureSlackIn` of 0.25 in. Also: `pieceTargetProblem()` refuses a class bit past the
+  model's five and a non-finite position or tolerance; the bottom-cut bound `nearerThanIn` taken at row 239 − kBoxEdgePx
+  and both jittered columns (the prototype: row 242, one column — a bound that could be short); `nearestOfDisc()` and
+  `bearingCouldBeInside()` also take off the mount's position tolerance and the lens's swing over the heading tolerance;
+  the NOT-IN-VIEW slack gains the heading tolerance at the target's distance; the finder's words
+  (`postureWord`, `pieceVerdictWords`, `pieceWhyWords`).
+  *The allowance, derived (checked before relying on it):* a box spanning the floor's near rim (range R, height 0) and
+  the top's FAR rim (R + 2r, height H) under a lens a > H high has a rise difference a/R − (a − H)/(R + 2r), so its
+  line-equivalent range is R_eq = H R (R + 2r) / (H R + 2 r a) and R − R_eq = R · 2r(a − H) / (H R + 2 r a): increasing
+  in R, with limit 2r(a − H)/H — so the allowance is a supremum, exact in the pitch (the rise is per inch along the
+  camera's own vertical plane). With a ≤ H the box's top is the near rim and R_eq = R.
+- **Found by this resumption's review, to be confirmed by tests before any fix:** (a) after an UNUSABLE read the
+  finder's `answer()` runs `decide()` over an emptied sighting list — NONE from a fault (the prototype's defect, copied);
+  (b) NOT IN VIEW tests the disc's centre and four axis points only — a disc near a corner of the view can be partly
+  out of view with all five in.
+- **A2-D2 REVERTED by this resumption (measured, `date` ~16:30).** The ported R5 sweep printed a D9 table that no longer
+  matched the brief's: a 12-in level lens NEVER reported (brief: 42..22 in), the 12-in lens pitched up 10 degrees only
+  74..40 in (brief: 72..12 — D9's "pitch it up ~10 degrees" rescue), 11.75 in 60..24 (brief 60..12). A scratch probe
+  (`scratch/vis1-a2/probe_r5/r5why.cpp`, the live header against a copy without the flat plane) showed the reason
+  letter by letter: "maybe the bottom face" at every near distance, from the 12.36 plane. Then the question that
+  decides it — does the plane prevent a wrong colour? `probe_r5/realbottom.cpp` draws the Toggle's REAL lower shape (the
+  colour boundary at 12.61, apex 1.02 behind; the bottom colour from that boundary round the corner to the flat bottom's
+  far end at 12.36, 2.05 in back), seen square 80..4 in and turned -30..+30 at 14..48 in, lenses 6..12.25 in, both
+  bottom colours: **0 wrong colours WITH the plane and 0 WITHOUT**; RED coverage without it equal or higher at every
+  mount (12 in level 10/39 vs 0/39; 12 in up 10: 31/39 vs 17/39; turned 28/65 vs 12/65). So the plane cost range and
+  bought nothing: removed, the reason in the gate's comment. The real-shape Toggle becomes a scene test (below).
+
+### The tests so far, and what they found (`date` ~17:40)
+- **`test/toggle_tracker_scenes_test.cpp`** (40 cases): P4 S1–S16 + S5b + S15b, P6 T1–T6, P7 T7–T10, P8/P8b as a
+  second truth on the scenes that depend on the face (the believed 12.55/1.2 and the equilateral 12.61/1.02), the
+  re-check's R2.S3/S3b/S4/S7/S7b/S8, R4, R5 (D9's table printed; pinned: a 10-in level lens far >= 60 and near <= 12,
+  13.25-in far <= 44, the 12.25-in lens never, AND — new — the 12-in lens pitched up 10 near <= 12, the rescue D9
+  advises, which A2-D2 had broken), R7, P4b, R6.4, and NEW "the real shape" (above). Numbers on this code, against the
+  brief's v6 prototypes: R4 78 of 216 (brief 78); R7 0 wrong of 390, RED 106; P4b 70 of 540 (96-in window; brief 65)
+  and 40 (36-in; brief 39), 0 with the position gate (brief 0) — A1's exact intervals are wider than the prototypes',
+  so a few more lookalikes pass (HA-199's row and the tracker's header updated to 70); R2.S8 0 of 732; R2.S7b 90 of
+  90 vetoed; T10 the plate RED at 2 distances (16–24 in), 0 at <= 14; S15b 3 outside refused, 18 inside RED.
+- **Two of my ported expectations were WRONG, corrected (not the code):** S5b — the probe's "RESIDUAL RISK, stated"
+  case only printed; the wall-top strip alone reads RED at 20 and 14 in on the prototypes too (v6 `p4_toggle_scenes.txt`)
+  — now pinned as the stated limit; T7 — I first wrote "RED again at exactly index 4", but 4 x 0.033 = 0.132 < 0.15:
+  index 5 is exact (the v6 output said "after 5 reads").
+- **`test/toggle_tracker_test.cpp`** (13 cases, hand-made frames): every config refusal by its words with the first
+  accepted value beside it; the words; `explainAsToggleFace` (the 4-px floor, the cut rows 1/2 and 239/238, the side
+  clip spanning or not the centre column); every non-Ok status and a POSSIBLY FULL read; the hold and alive edges LANDED
+  ON (equal passes, the next double does not); kind/id; the aspect floor landed on; the range window's OVERLAP and the
+  bearing window's CONTAINMENT landed on (the window found by `nextafter`); two colours / same colour nearer; the
+  colour-above reach landed on (2 x kBoxEdgePx vetoes, one pixel more does not, touching columns do not); the
+  partial-band veto in and out of the window; the frozen move and turn thresholds landed on (the lens at the centre,
+  so the pose's next double IS the lens's — with 7 in forward the last bit rounds away, which my first draft missed),
+  the +-pi seam, recovery; the position gate. My own errors here, fixed in the test: the bottom cut row is 239 (the box's
+  0..240 extent, `Detection::clipped`'s convention), not 238; the 30-in face's fix is ~9.2 in wide, so the gate's
+  `maxFixRadiusIn` there is 12, not 8.
+- **`test/piece_finder_scenes_test.cpp`** (20 cases): P5 F1–F9, P6 P1a/P1b/P2/P3/P3b, P7 for every non-Matches check,
+  R6.1/R6.2 at the finder's level, and NEW properties swept through 22 true cameras at the EDGES of the tolerance box
+  (0.95 of each), five mounts (6 level, 10 level, 10 down 10, 14 down 15, 18 down 20), 14 ranges x 9 bearings.
+  **They found three defects in the finder, each fixed at its root:**
+  - **A2-D5 — a fault read answered NONE.** (The review's (a), confirmed.) `answer()` ran `decide()` over the sighting
+    list the fault had emptied. FIX: `lastUsable_`; a non-usable latest read answers UNKNOWN with the NEW
+    `PieceWhy::ReadNotUsable` (the tracker's own reason, the brief's rule 5 "no usable read"). F8 pins it on a torn
+    AND an unplugged read.
+  - **A2-D6 — NOT IN VIEW looked at five points of the disc.** (The review's (b).) FIX: the eight corners of the octagon
+    drawn AROUND the disc (circumradius slack / cos 22.5 degrees) — the picture's certain region on a plane is convex
+    (four image-edge half-planes and "in front", per camera, intersected over the box), so those eight in view put the
+    whole disc in view; the slack also gains the mount's position tolerance (the in-view test uses the nominal mount).
+  - **A2-D7 — a Pin on a GOAL read ON THE FLOOR.** The property sweep: 73 of 2,720 Goal Pins (base 5.8 in) from a 10-in
+    lens pitched down 10, 293 of 2,754 from 14 in, 639 of 2,772 from 18 in, each with a floor fix that MISSED its true
+    centre (by up to twice its radius; from 18 in at 34 in out the radius was 6.0 and the miss 12.5 — a route with a
+    13-in tolerance would have taken a Goal's Pin as a floor Pin at the wrong place). Cause (scratch `probe_pos/goal.cpp`):
+    §1.13 rule 1 calls a Pin ON THE FLOOR when SOME corner agrees with the floor — and the corner opposite a true camera
+    at the edge of its tolerance is TWICE the tolerance away (1.95 degrees, ~10 % in fy), through which a raised Pin far
+    out does agree. Agreement says "the floor fits", not "nothing else does". The brief's own §2.2 test ("a Pin on a
+    Goal is RAISED and never taken by an OnFloor route") fails on the brief's rule. FIX (measured first, scratch
+    `probe_pos/posture2.cpp`, thresholds 2/3/4/5 in): ON THE FLOOR also needs NO camera of the box to be consistent with
+    a raise of `raisedMinIn` or more — shown from the WHOLE box's exact intervals (a raise z0 puts the box bottom's floor
+    point a/(a - z0) times the near rim, for a lens a high: no camera can when ground.hi + slack < size.lo x
+    aMax / (aMax - raisedMinIn)); the raise that matters is a fact of the FIELD, so it is the TEAM's number,
+    `PieceFinderConfig::raisedMinIn` (UNSET refused — the MECH core's no-library-default rule). With 5.0 (the scenes'
+    Goal is 5.8): Goal Pins ON THE FLOOR 0 at every mount; floor Pins kept ON THE FLOOR 98 % (10 in down 10), 97 %
+    (10 level), 100 % (6 level), 80 % (14 down 15), 11 % (18 down 20 — a high lens far out cannot rule a Goal out:
+    UNSURE, the honest cost); every fix holds its true centre (0 misses of ~26,000). **FOR THE COORDINATOR: a new
+    team number on the finder's config (L4 types it); the field fact it carries — "no piece rests between the floor
+    and the lowest raise" — is the team's statement, not a library belief, so no HA number was taken; the coordinator
+    may decide otherwise.**
+  - **A2-D8 — the fixes' intervals made bounds (found with A2-D7, tightened where the evidence allows):** ON THE FLOOR,
+    the centre is one radius beyond the near rim, bounded by the ground range AND (the floor now certain) the size
+    range: [max(G.lo, Z.lo) + r, min(G.hi + r sec b, Z.hi + (A + r) sec b)] — off the camera's axis a depth along it
+    is shorter than the horizontal range by cos b (b the bearing's farthest end plus the mount's yaw and tolerance, capped
+    at 80 degrees), so the radius and the top face's allowance are divided by it; the stopped run's [G.lo, G.hi + r]
+    could be short off the axis by r(sec b - 1); RAISED, the fix only when EVERY camera's box bottom looks down (the lens
+    above the base, so the size range bounds the near rim), [Z.lo + r, Z.hi + (A + r) sec b]; LYING, [G.lo, G.hi +
+    (L/2 + r) sec b] (the stopped run added the whole length L: the centre is at most half a length and a radius beyond
+    the nearest end); the bottom-cut bound + r sec b.
+- **The brief's F1 claim measured on the exact geometry:** the prototype's FOUND at 21 in (r 4.1) came from A1's
+  pre-verification intervals; on A1's EXACT intervals the middle Pin's fix at 21 in has r 4.6, so with a 5-in tolerance
+  and a +-1-in pose the scene goes AMBIGUOUS straight to NOT IN VIEW (the disc's near edge leaves the frame at ~20 in).
+  With 6 in (half the Pins' spacing) it is FOUND at 22–23 in, never a neighbour (`probe_pos/f1b.cpp`; F1 pins it).
+  F8/F9 moved to 23 in with 6 in. The lying Pin's fix is wide (half a length either way), so a lying route with 8 in
+  never FOUND it in F4's sweep — characterised, its fix checked to hold the centre at every distance. The guide says
+  all three.
+
+### The remaining tests (`date` ~16:15)
+- **`test/piece_finder_test.cpp`** (14 cases, hand-made frames from an EXACT host camera): every config and target
+  refusal by its words (the new `raisedMinIn` among them; a class bit past five, 1<<31 too); the words; the top
+  face's allowance at its edges (lens AT the top 0, the next double above it > 0); `sightPiece` interprets only an
+  Object of a named class; a side-clipped box UNSURE with no bound; the aspect thresholds LANDED ON; EVERY non-Ok status
+  UNKNOWN "read not usable" (A2-D5) and an empty usable read after it NONE again; every non-Matches model check; a
+  POSSIBLY FULL read; the alive and hold edges landed on; the score floor landed on; INSIDE / BORDER / OUTSIDE landed on
+  from the sighting's own fix (`dist + r == tol` FOUND, the next double smaller the border; `dist - r == tol` the
+  border, the next double smaller NONE); the error larger than the tolerance; two inside; the class mask; an
+  unmeasurable box in and out of the disc's cone of bearings; the wrong posture (and the lying route taking it); the
+  hold restarted by a jump past the two radii; NOT IN VIEW for a disc whose five points are in view but which pokes
+  out diagonally (A2-D6; the place found by search with `inViewForCertain`). My errors fixed in the test: the first Pin
+  at 40 in was AMBIGUOUS at a 5-in tolerance (its fix ~6 in) — the cases moved to 30 in with 6 in; the lying helper
+  first left the host model's lying heading at 0 (END-ON, so UNSURE) — set across the view.
+- **`test/camera_feed_test.cpp`** (6 cases): the config's refusals by words; the period LANDED ON (1/32 s; the double
+  before does not read); two consumers in one instant cost one read; the period from a read's START (a camera that
+  takes 1/64 s on the feed's own clock); latest() a fault frame with no detections, never the last good one; the stats
+  by status (`truncated` only on usable reads, the withheld counts summed); each read timed (1/256 s exactly), the
+  slowest never lowered.
+- **`test/vision_guide_example_test.cpp`** (5 cases, guide-19a..e): the chapter's listings verbatim; one loop ticked
+  every 10 ms for a second reads 25..34 times; the tracker's RED after its hold (and NotHeldYet on the first read);
+  the finder's FOUND, its fix holding the Pin; `boundAtImage`. Scene tuning logged: a level 10-in lens put the
+  disc's near edge out of the frame at 23 in (NOT IN VIEW), so the example's camera is tipped down 10 degrees and
+  its Pin 26 in out (`probe_pos/g19.cpp`).
+- **Suite after all tests:** `suite_run.py show` -> 2,912 cases, 0 failed, 3 skipped (2,815 at the base: +97).
+  The new tests' own time: ~4 s (`-d`: R5 0.8 s, the real shape 1.0 s, the Goal property 0.8 s).
+
+### The documents (pace rule 3), `date` ~16:20–16:40
+- NEW `docs/guide/19-the-camera.md` — the chapter §3.1 asks for: one loop and the feed; the team's numbers; freshness
+  as time (frozen only while moving; the picture's age and `boundAtImage`); the tracker's gates and its UNKNOWNs; what
+  a colour MEANS (the face SEEN, never set; a stuck Toggle's destination colour — R4's 78 of 216; colour confirmed AT
+  THE PUSH POINT); what turning costs (R7); the lookalikes (70 of 540; the wall-top strip; the long strip from 22 in;
+  0 with the position gate); D9's mount table from THIS run's R5; the finder's five verdicts; posture with
+  `raisedMinIn` (A2-D7's evidence); how close is close enough (F1 measured: 22–23 in at 6 in, never at 5 in; the
+  lying Pin's wide fix). Every ```cpp listing is lines of `vision_guide_example_test.cpp` (the build's example scan:
+  654 quoted lines, all verbatim, 11 sources). Its two hand-kept index entries (re-check T8): a row in
+  `docs/guide/README.md`'s table (19 — the next free number at this tip, after MECH-A3's 18) and a line in
+  `mkdocs.yml`'s "User guide" nav.
+- `docs/changelog.md` — the entry at the top of `## API 2.5` (additive, no bump; `raisedMinIn` named as beyond the
+  brief; the suite count to be filled at the end).
+- `docs/guide/14-what-it-cannot-do-yet.md` — a NEW section before "No easier tiers yet": the camera's honest limits
+  (no sensor; a colour seen not set; lookalikes; frozen only while moving; near-square close in; the blind band; the
+  picture's age; FOUND only close in and a Goal far out UNSURE; no tags — "no camera has been pointed at a tag" kept).
+- `docs/hardware-assumptions.md` — the Source lines of HA-197 (the finder's model check), HA-199 (the tracker; the
+  claim's lookalike count 65 -> 70 on this code, 65 named as the prototypes', plus the wall-top strip), HA-200 (the
+  finder's posture and fixes), HA-203 (the feed's timing), and HA-202 (the tracker's band rows — the stopped run's A1
+  text pointed at "VIS1-A2" there too); the VIS1 paragraph's "add their sites then" made present tense. No new number.
+- `docs/api/` regenerated (three new pages; `camera_geometry.md`'s two members; README / all-entities / mkdocs nav).
+- `test/README.md` — the scene rig documented for test authors (beside the host camera model's paragraph).
+- Prose-review fixes outside the list (rule 4 — each a sentence this change made false): `docs/guide/10-the-api.md`'s
+  camera section ("Nothing in the library READS it yet: the camera's consumers ... are the camera's next part" ->
+  points to chapter 19); `docs/roadmap.md`'s Freeze Register row F15 (the three headers named as present; "the first
+  two" -> the tracker, finder and feed are its first consumers, read by no program yet). Only those two cells/lines.
+- Deliberately NOT touched: the glossary (chapter 19 defines its words; a glossary pass would be a sixth public
+  document — rule 7 — and the docs redo after the panel is where it belongs; FOR THE COORDINATOR); the shared plan
+  documents' status lines (`build-order.md`'s VIS1 entry and `**Next:**`, `REMAINING-WORK.md` row 18d, the roadmap's
+  "Now" paragraph ~:438 "Nothing reads the camera yet ... next for the camera is VIS1-A2", HANDOFF) — the coordinator's
+  at the merge, as A1-D13 left them; `src/`, `tools/` (VIS1-B's / nobody's).
+
+### The prose review (pace rule 4) — each grep RUN and its hits READ before this was written
+- `grep -rn -i "next part\|camera's next\|part A2\|VIS1-A2\|tracker\|piece finder\|CameraFeed\|camera feed\|no consumer\|reads it yet\|READS it yet" docs/*.md docs/guide docs/cookbook README.md`:
+  hits read — guide 10 :603 (STALE, fixed), roadmap F15 :149 (STALE, fixed), roadmap :438 (the coordinator's "Now",
+  stale at the merge — left, named above), changelog :76 (A1's entry: history, true when written), HA register :1194
+  (fixed) and the Source lines (fixed); every other hit another chunk's "next part" (H1, CAL1, MECH — not VIS1's).
+- §3.4's own grep, `grep -rn -i "vision\|camera\|AbsentVision\|DeviceKind::Vision\|VISION" docs/ README.md` (public,
+  outside `docs/api`): 427 hits in 23 files, counted per file; read in full where VIS1-A2 could make a statement
+  stale — guide 15 (glossary: frame, bearing, ground range, fix radius — still true; no A2 term claimed absent),
+  guide 03 :84–255 (the GPS and tag correctors; "no camera has been pointed at a tag" stays true), guide 06 :78 (the
+  camera answers a bad read with a frame that says so — true; the feed keeps it so), guides 01/11/12/13/16/18, faq,
+  master plan (architecture; `IVision` stays as D11 says), README :136 (tags) — none stale. guide 10, 14, 19, the
+  changelog and the register: edited above.
+- The internal statements §3.4 names ("no adapter yet", "TAGS AND VISION ARE DELIBERATELY ABSENT", "vision ABSENT",
+  "COLORS left as found", "interprets nothing", HA-70's "no library adapter") are A1's and VIS1-B's (`src/`); HA-70's
+  sentence was already amended by A1 (:4263–4265, read). Nothing in them is made stale by A2.
+
+### RESUMED (third stop) — Tue Nov 10 10:19:20 PM EST 2026 (`date`)
+- **The stops.** This run was stopped at ~14:50 on 2026-11-03 (the one-job rule; the resumption above), then again at
+  ~17:30 the same day (the 5-hour usage limit); the laptop was off until 2026-11-10. The resumption above logged
+  everything to its prose review; the mutation run and the `src_build_gate.py` self-test it started at 16:38–16:40
+  were running when it was stopped, unlogged — accounted here from the scratch files.
+- **NEW SINCE THE STOP (the team lead, 2026-11-10, through the coordinator):** the first competition (Nov 21) is SKILLS
+  ONLY; the auto-flipper is re-scoped to AF1-S (a skills route drives to a KNOWN Toggle, the camera checks its colour,
+  the robot flips it only if it is not ours) — so the TRACKER's colour answer (RED / BLUE / YELLOW or UNKNOWN with its
+  reason, from a fresh frame) is on the critical path and is finished first; the rest of the scope stays as briefed.
+  ALLY1 and L4 are after the 21st. Main has moved past this base (L6-A2, MECH-S-A, STEP1-A, CAL1-B): the rebase is at
+  the merge, not now.
+- **FOUND: a gate self-test PLANT left in `src/programs/bench_r3a.cpp`** — 25 appended lines (`ser1ReviewPrintf` …
+  `ser1ReviewSf`, `extern "C" std::FILE __sf[3]`), the file's mtime 17:08:27 on 11-03: `src_build_gate.py self-test`
+  (its `SRC_PLANT`, :1875) killed mid-plant, so its `finally` never ran (a SIGTERM to a Python process without a
+  handler skips `finally`). The coordinator's 11-10 audit did not see it. The diff was the plant ONLY (read whole);
+  RESTORED by `git checkout -- src/programs/bench_r3a.cpp` + `touch` (this worktree's base copy: the file is
+  MECH-A6's in flight, NOT edited by VIS1-A2); the planted copy kept as evidence at
+  `scratch/vis1-a2/bak/LEFTOVER_srcgate_plant.bench_r3a.cpp`. `git diff -- src/ Makefile` now EMPTY.
+  **FOR THE COORDINATOR:** `src_build_gate.py self-test` has no SIGTERM/SIGHUP handler, so a stopped run leaves its
+  plant; worth adding one (a `tools/` change — not VIS1's) and worth checking every worktree whose run was stopped
+  during a self-test.
+- **The mutation run's state** (`scratch/vis1-a2/mutations.log`, `mutations_run2.txt`): MT1–MT25 and MA1–MA2 (27 of
+  the table's 67) RED, each on a fresh link, every dependent object recompiled; MA3 was being built when the stop came —
+  the driver's SIGTERM handler killed the build, restored `toggle_tracker.hpp` (17:08:45) and removed the binary (its
+  last line: "signal 15: child killed, file restored, binary removed, exiting"). All 28 backups and the live file are
+  byte-identical (md5 `cd5fa09f…`). No other header was ever mutated.
+- **Fresh build** (`date` 22:19): `rm -f build/test/shulib_tests`, the briefing regenerated, configure, build — the
+  five objects depending on `toggle_tracker.hpp` (the two tracker tests, the two finder tests, the guide example;
+  checked in their `.o.d`) recompiled at 22:19:50, linked; the briefing regenerated with the binary present; the suite
+  through `suite_run.py green` under the cap: **green — 2912 cases, 2959822 assertions** (the stopped run's count).
+- **Continuing:** the mutation table from MA3 (40 left: MA3–MA8, MF1–MF9, MF1b, MA9–MA23, MD1–MD6, MG-A1–MG-A3) by the
+  same driver; `src_build_gate.py` self-test and check beside it (no `src/` file includes the four mutated headers —
+  grepped — so its builds cannot see a mutant); then the remaining gates on the restored tree.
+
+### Tue Nov 10 22:21 – Wed Nov 11 00:05 EST 2026 — the mutation run finished, three survivors answered, one finding OPEN (`date`)
+- **A MISTAKE OF MINE, caught by a build, logged:** I ran `src_build_gate.py self-test` BESIDE the mutation driver,
+  reasoning that no `src/` file includes the four mutated headers. Wrong question: the self-test PLANTS into `src/`
+  files the HOST suite compiles (`test/../src/robots/mechanism_table.hpp`, `src/programs/bench_r3a.cpp`), so a host
+  build during a plant compiles the plant. Seen at MA9: "BUILD-BROKEN" on `'SHULIB_ROBOT_TANK_2026' was not declared`
+  in `mechanism_table.hpp` — the self-test's plant, not the mutant. I stopped the driver (SIGTERM: its handler killed
+  the build, restored `piece_finder.hpp` — byte-identical to all 15 backups — and removed the binary), let the
+  self-test finish (OK, 269 detector cases; check PASS, all 7 builds; `src/` clean after), and RE-RAN every verdict
+  that overlapped a plant. That includes the 11-03 run's MT1–MA2: its driver started at 16:40:03, the same minute as
+  that day's self-test (`srcgate_selftest.txt`, 16:40) — the self-test whose plant the stop left behind. **Every
+  mutation verdict below is from a run with no self-test alive** (`ps` checked; other worktrees' self-tests compile
+  THEIR trees, not this one). FOR THE COORDINATOR: the self-test and a host build in the same tree must never
+  overlap — worth a line in RESUMING's gate list.
+- **The 40 from MA3** (`mutations_run4.txt`, quiet tree): RED — MA3–MA8; MF1–MF9, MF1b; MA9–MA11, MA13, MA16, MA18–MA23;
+  MD1–MD6; MG-A1, MG-A3. **MG-A2 broke its own build** (`-Werror=unused-parameter`: the mutant left
+  `minDepressionDeg` unused) — RE-CUT as `minDepressionDeg * 0.0 * kDegToRad` (still "never refuses"), never counted
+  broken. **SURVIVED: MA12, MA14, MA15, MA17** (MA12 also survived the overlapped run).
+- **Why they survived — one pattern:** each is a FAR-END term of a fix (a radius, the top face's allowance, half a
+  length, r(sec b − 1)) that only decides when the fix's intervals are TIGHT; every scene so far used the stated
+  tolerances (0.25 in, 1 degree, the optics' 5 %), whose width hides the term. A bound nobody can see go short is not
+  tested. Answered with a camera MEASURED ON THE BENCH (`tightModel`: mount 0.01 in / 0.01 degree, optics 0.1 % — HA-194
+  measured), each case first PINNING that its scene is on the edge (the true centre beyond the mutant's far end), then
+  posture and "the fix holds the true centre" (`test/piece_finder_test.cpp`, three new cases + helpers
+  `tightModel` / `tightTruth` / `tightBox`):
+  - **MA12** (the floor fix's far end without the radius) — a 12-in lens pitched down 25, floor Pins 10..20 in at
+    -10/0/+10 degrees: the ground range only 0.35–0.9 in wide, the centre 0.3–0.6 in past its far end. My first cut
+    (a 10-in lens at 16–48 in) FAILED its own edge pin on the correct code — the optics' 5 % made the ground range
+    1.2 in wide even at 10 in; the second (tight mount only) the same; measured, then the optics tightened.
+  - **MA14** (the allowance dropped from RAISED) — an 18-in lens pitched down 30 over a Pin on the scenes' 5.8-in
+    Goal, 10..14 in: the centre 0.4–0.6 in past the size range plus a radius (farther out the margin closes — measured
+    to 24 in, pinned only where it holds).
+  - **MA15** (a lying Pin's centre only a radius past its near end) — a 6-in lens, a Pin lying at ±45 degrees to the
+    view, its near end 12..27 in out: LYING, its centre 1.0–1.3 in past the ground range plus a radius. Every lying
+    scene before lay ACROSS the view, where a radius IS all the centre is past its nearest point.
+  - **MA17** (the off-axis factor dropped) — NOT answered; see A2-F1: the scene that would show it (a Pin far off the
+    axis) shows a LARGER, unrelated defect first.
+  The re-run of MT1–MA2, MA12–MA15, MA17 and the re-cut MG-A2 on the final test file: (`mutations_run5.txt`, 2,915 cases, no self-test alive):
+  **MT1–MT25, MA1, MA2 RED** (the same failing vision cases as 11-03; MT23 and MA1 each count ONE FEWER failing case
+  than on 11-03 — the extra was not a vision case, so a plant did fail an unrelated test that day: the re-run was
+  needed); **MA12, MA13, MA14, MA15 RED** (each on its tight case; MA13 also by the MA12 case); **MG-A2 (re-cut) RED**
+  (1 case); **MA17 SURVIVED** — the one survivor, tied to A2-F1 below.
+  **THE TABLE'S 67, FINAL: 66 RED, 1 SURVIVED (MA17), 0 broken.** Every run: the file backed up, the mutant written with
+  its line count kept, the binary removed, the briefing regenerated, every object whose depfile names the file
+  recompiled (checked), the WHOLE suite under the 4 GiB / 600 s cap, restored byte-exact in a `finally` and on
+  SIGTERM/SIGHUP/SIGINT, and a clean rebuild at the end.
+- **A2-F1 — OPEN FINDING (the finder; NOT fixed in this run — FOR THE COORDINATOR).** Hunting MA17 with a Pin far off the
+  axis (a tight camera 12 in up pitched down 25; Pins 10..16 in at ±28 and ±31 degrees; the box's bottom edge ONE pixel
+  low — inside HA-202's 2-px jitter, as a real box edge may be), the UNMUTATED finder's floor fix MISSED the true centre:
+  11 in at ±31 degrees, error 0.438 in against a radius of 0.416 (reproducer: `scratch/vis1-a2/offaxis_reproducer.cpp.txt`).
+  Diagnosed with the intervals printed: (1) the sighting's BEARING interval excludes the true bearing even on the
+  plant's exact box (-32.46..-31.08 degrees for a Pin at -31: biased OUTWARD ~0.77 degree, the jitter's half-width
+  0.69); (2) the floor fix's near end `max(G.lo, Z.lo) + r` = 11.09 in, beyond the true 11.00. ROOT CAUSE (one, in
+  `sightPiece`): under a pitched camera a standing Pin's TOP circle is nearer the lens, so it is the widest
+  cross-section in pixels and sets the box's centre column — the Pin's axis at the TOP row — but the finder evaluates
+  the bearing at the box's MIDDLE row (`m.bearing(u, d.top + d.height / 2.0)`, `piece_finder.hpp` :289) and the
+  ground range at its BOTTOM row (`m.groundRange(u, vBottom)`); off the axis a fixed column's azimuth changes with the
+  row, so both are biased outward (the ground range by X (sec b_col − sec b) = 0.17 in here, against the r (sec b − 1)
+  = 0.13 the bound allows). Shown: for a vertical cylinder whose cross-sections' widths are ordered along it, the box's
+  centre column lies between the axis's columns at its top and bottom rows. PROPOSED FIX (not built): (a) the bearing
+  as the hull of `bearing(u, top)` and `bearing(u, bottom)` (a fixed column's azimuth is monotone in the row; `bearing()`
+  already handles the level-row interior point); (b) the floor fix's ground terms from the row's DEPTH, which is
+  column-independent for a camera with no roll (a row's floor points share one forward distance X; at the principal
+  column the ground range IS X): the centre's X in [X.lo + r, X.hi + r] per corner camera, its range X / cos α over the
+  bearing interval relative to that camera's yaw — which also replaces the `sec` factor MA17 mutates. WHY NOT NOW: it
+  changes §1.13's arithmetic in two places beyond the brief and moves documented numbers (F1's 22–23 in at 6 in — its
+  side Pins sit ~27 degrees off the axis — and guide 19's), it wants a reviewer's eye on A1's geometry, and the finder
+  is L4's, AFTER Nov 21 (the team lead, 11-10), while this run's critical path is the tracker. The finder's existing
+  claims stay true where they were measured: the property sweeps (realistic tolerances, true cameras at the tolerance
+  box's edges, 1-px jitter, ~26,000 sightings) never missed; the miss needs a near-exact camera AND a box edge pushed
+  toward the jitter's limit at the picture's side, and is 0.02 in past a 0.42-in radius. **The tracker does not take
+  this path for its colour** (a band's colour never depends on a bearing; its bearing feeds only gate 6's window and the
+  optional position gate, and AF1-S faces the Toggle square), so the critical path is unaffected. Guide 14 and the
+  guide's finder section gain one sentence each (below) so no reader takes the off-axis fix as proven.
+- **Documents for A2-F1 and this round** (pace rule 3): `docs/changelog.md` (the count 2,815 → 2,915; "every
+  mutation but one"; the open case named); `docs/guide/19-the-camera.md` (one paragraph after "every field position
+  held the Pin"); `docs/guide/14-what-it-cannot-do-yet.md` (one bullet in the camera section). No `///` comment
+  changed (no `docs/api` regeneration); no HA number (a library arithmetic gap, not a hardware belief — HA-202's 2-px
+  jitter is what the reproducer stays inside).
+- **The source says it too** (rule 3; found by this round's prose grep — the header's "What the fix is a bound on"
+  claimed a bound A2-F1 breaks at the picture's side): `include/shulib/vision/piece_finder.hpp` gains an 8-line
+  `//` paragraph "KNOWN GAP (VIS1-A2's open finding A2-F1)" in its header comment (no `///` changed; `docs/api`
+  regenerated only for the moved line numbers; `mkdocs.yml`'s diff re-read: still only the chapter-19 row and the
+  three API rows). Comment-only: every mutation anchor is unchanged, so the verdicts above stand on this code.
+- **The prose review of this round** (pace rule 4 — each grep RUN and its hits READ before this was written):
+  `grep -rn -i "every field position held\|every fix hold\|fix holding\|holds the true centre\|holding the true
+  centre\|holds its true centre\|each turned the suite red\|2,9xx" docs/*.md docs/guide docs/cookbook README.md` —
+  2 hits: guide 19 :261 and the changelog :69, each now followed by the open case (edited above); `grep -n -i
+  "holds\|contains the\|bound on\|certainly" include/shulib/vision/piece_finder.hpp` — :58 "What the fix is a bound
+  on" (QUALIFIED, above), the rest about FOUND/NOT IN VIEW's "certainly" (true: they rest on the fix's disc and
+  inherit A2-F1, which the new paragraph names); the HA register's VIS1 Source lines (:1290–:1415) read — none claims a
+  fix holds; the earlier round's stale-statement grep re-run (`next part\|camera's next\|part A2\|VIS1-A2\|reads it
+  yet\|no consumer`) — the same hits as 11-03 (roadmap :438 the coordinator's "Now", left for the merge; the rest other
+  chunks' or VIS1's own Source lines).
+
+### The gates on the final tree (`date` Wed Nov 11 00:05–00:40 EST 2026, after every edit; nothing else running in this tree)
+- Host build (binary removed, briefing regenerated, doc gates in the build): rc 0, no warning; the briefing
+  regenerated with the binary present; `suite_run.py green` under the cap: **green — 2915 cases, 2960116 assertions**
+  (2,815 at the base: +100).
+- `ctest -R compile_refusal`: **100% tests passed, 0 tests failed out of 255**.
+- `src_build_gate.py self-test`: **OK (269 detector cases, each against a real build)**; `check`: **PASS (all 7
+  builds link …)**; `git diff --stat -- src/ Makefile tools/` EMPTY after (`scratch/vis1-a2/srcgate_final.txt`).
+- ARM header gate over **238** headers (`-Werror`, cortex-a9): rc 0. CI greps (pros/ outside hal/pros; sim/ outside
+  sim): empty. The brief's own: F4 `vision.hpp` untouched; `PROBE|prototype|proposed` in the vision headers: empty;
+  `internal/|chunks/|RESUMING|build-order` in public docs: empty.
+- `api_doc_tool.py` self-test OK; check-coverage 5,426 entities all documented; check-fresh rc 0; check-examples 654
+  quoted lines all verbatim (11 sources); check-removability clean. `doc_staleness_audit.py` clean;
+  `briefing_status.py check` current.
+- A slip of mine: one gate loop above captured each tool's last line through a temporary file under `/tmp`
+  (`/tmp/null_<pid>`, deleted in the same command) — against the scratch-only rule; nothing else touched `/tmp`.
+
+### The tree at the end of this run — `date` Wed Nov 11 00:40 EST 2026
+- NOT committed. CHANGED: `include/shulib/vision/camera_geometry.hpp` (A2-D3), `docs/{changelog,hardware-assumptions,
+  roadmap}.md`, `docs/guide/{10-the-api,14-what-it-cannot-do-yet,README}.md`, `docs/api/{README,all-entities,
+  camera_geometry}.md`, `mkdocs.yml`, `test/README.md`, the briefing (generated), this log. NEW: `include/shulib/
+  vision/{toggle_tracker,piece_finder,camera_feed}.hpp`, `docs/guide/19-the-camera.md`, `docs/api/{toggle_tracker,
+  piece_finder,camera_feed}.md`, `test/{toggle_tracker,toggle_tracker_scenes,piece_finder,piece_finder_scenes,
+  camera_feed,vision_guide_example}_test.cpp`, `test/camera_scene_rig.hpp`. `src/`, `tools/`, `Makefile`,
+  `test/CMakeLists.txt` untouched (the suite globs its sources). No mutant, no plant, no stray root file; every backup
+  under `scratch/vis1-a2/bak/`.
+- **Open, for the coordinator and the reviewers:** A2-F1 (the finder's off-axis bearing and floor range; MA17 survives
+  until its fix); the self-test's missing SIGTERM handler; the self-test never beside a host build; `raisedMinIn`
+  (A2-D7, a team number beyond the brief, no HA number taken); the glossary pass deferred (rule 7); the shared plan
+  docs' status lines (build-order, REMAINING-WORK 18d, roadmap :438 "Now", HANDOFF) left for the merge.
+
+### RESUMED (fourth stop) — Wed Nov 11 02:00 EST 2026 (`date`)
+- **The stop.** The team lead stopped all work at ~00:30 on 11-11 (usage credits low) and resumed at ~01:30. This
+  build run had ALREADY FINISHED at 00:40 (the section above: every test, the mutation table, the documents, the prose
+  review and the gates); the stop caught the three REVIEWERS (scratch `review-correctness/`, `review-docs/`,
+  `review-tests/`, `review-tests-gates/`, `review-tests-drv/`, 00:42–01:01 — each in its OWN copy of the tree, never
+  this worktree: the reviewer's mutation driver's root is `scratch/vis1-a2/review-tests`; its last line "signal 15:
+  child killed, file restored, binary removed, exiting"). Their findings are the coordinator's, not this log's.
+- **Audit at the resumption:** `git diff -- src/ Makefile` EMPTY (no gate plant); no file of the tree newer than 00:36
+  but the briefing and this log; the live headers' md5 equal to every backup's base (toggle_tracker `cd5fa09f`, 33;
+  camera_feed `372c28ce`, 6; camera_geometry `4eee2bb1`, 4; piece_finder `1d41b8e6`, the reviewer's 21 — this run's
+  25 are of the copy before the comment-only KNOWN GAP paragraph, `58d387d9`, as logged); no shulib_tests or
+  src_build_gate process alive. Nothing to continue but a FRESH build, the suite and the gates on this tree (below):
+  no finished work redone, none reverted.
+- **The gates on this tree, re-run from source** (`date` 02:01–02:39; nothing else of this tree running; outputs in
+  `scratch/vis1-a2/resume4_*.txt`): `rm -f build/test/shulib_tests`, the briefing regenerated, a CLEAN host build (`--target
+  clean`, all 257 objects compiled from source; no warning), the briefing regenerated with the binary present;
+  `suite_run.py green` under the 4 GiB / 600 s cap: **green — 2915 cases, 2960116 assertions** (the 00:35 count).
+  `src_build_gate.py self-test` **OK (269 detector cases)**, then `check` **PASS (all 7 builds link)** — run ALONE, no
+  host build beside it (the 11-10 lesson); `git diff --stat -- src/ Makefile tools/` EMPTY after. Because the
+  self-test's restores re-stamp `src/` headers the suite compiles, the host build was run AGAIN after it (257 objects,
+  rc 0), the briefing regenerated, and the suite re-run: **green — 2915 cases, 2960116 assertions**. `ctest -R
+  compile_refusal`: **255 of 255**. ARM header gate over **238** headers (`-Werror`, cortex-a9; the TU under scratch):
+  rc 0. CI greps (pros/ outside hal/pros; sim/ outside sim): empty. `api_doc_tool.py` self-test OK, check-coverage
+  5,426 entities all documented, check-fresh rc 0, check-examples 654 quoted lines all verbatim (11 sources),
+  check-removability clean; `doc_staleness_audit.py` clean (counts derived from the fresh binary); `briefing_status.py
+  check` current. The prose review's stale-statement grep re-run: the same hits as at 00:05 (roadmap :438, the
+  coordinator's "Now", left for the merge). No edit to any file but this log and the generated briefing.
+- **State:** VIS1-A2's BUILD is complete; NOT committed. Open for the coordinator, unchanged: A2-F1 (MA17); the
+  self-test's missing SIGTERM handler; the self-test never beside a host build; `raisedMinIn` (A2-D7); the glossary;
+  the shared plan docs' status lines. The interrupted reviewers' scratch copies are theirs to resume or restart.
+
+## VIS1-A2 review findings and their disposition
+
+- **Started:** Wed Nov 11 04:00:37 AM EST 2026 (`date`), the builder again, in the worktree `.claude/worktrees/vis1-a2` (branch `vis1-a2`, base
+  `9d77c9d`). Three reviewers' findings (correctness, tests, docs — 24 after dedupe), each re-checked against this tree
+  before any edit; fixed at the root or answered with evidence. Probes and backups under `scratch/vis1-a2/fix1/`. Not
+  committed; no `pros`; no `/dev/ttyACM*`; every test binary under the 4 GiB / 600 s cap.
+
+
+### RESUMED (this fix run was stopped by the 5-hour usage limit at ~04:40; resumed by the builder) — `date` Wed Nov 11 07:44:59 AM EST 2026
+- **What the stopped run left (it logged nothing past "Started"; reconstructed from the tree, never from memory):**
+  `git diff -- src/ Makefile` EMPTY (no src-gate plant). Its mutation driver (`scratch/vis1-a2/fix1/mt/mutate.py`,
+  restore in `finally` and on SIGTERM/SIGHUP/SIGINT) worked in a COPY of the tree (`fix1/mt/tree`), never in this
+  worktree; its log ends "signal 15: child killed, file restored, binary removed, exiting" after RT2, RT3 and RT4 —
+  each RED (1 of 2,937 cases, "a VETO read in the middle of a SURE hold breaks it"), on fresh binaries (04:38–04:41).
+  This worktree's three edited headers against that copy: the CODE identical with comments stripped (`diff` of
+  `sed 's://.*$::'`: empty for `toggle_tracker.hpp`, `piece_finder.hpp`, `camera_geometry.hpp`, `robot.hpp`); the
+  differences are comment edits made at 04:38–04:39, after the copy was taken. The tests are byte-identical to the
+  copy's. So no mutant is applied anywhere in the worktree, and RT2–RT4's verdicts stand for this code. The stopped
+  run's backups `fix1/bak/*.orig` are the PRE-FIX headers (md5 `cd5fa09f` toggle_tracker, `1d41b8e6` piece_finder,
+  `4eee2bb1` camera_geometry — equal to the 02:01 audit's bases and to the reviewers' copy `review-strength/tree`),
+  not mutants.
+- **What it had done** (the diff against `fix1/bak/*.orig` and `review-strength/tree`): every code fix below
+  (the range bound, the same-band hold, the width check and the lying exclusion, the NoTarget answer, the −1
+  UNSETs), the new tests in `toggle_tracker_test.cpp`, `toggle_tracker_scenes_test.cpp`, `piece_finder_test.cpp`,
+  `piece_finder_scenes_test.cpp` and `vision_guide_example_test.cpp`, and the edits to guides 14 and 19, the changelog
+  (still holding a `SUITE_COUNT` placeholder), `camera_geometry.hpp`'s `kBoxEdgePx` comment and `robot.hpp`. NOT done:
+  the register (HA-192/198/199/202), the R7 header line's 40–48-in figures, `maxFixRadiusIn`'s edge, the mutation
+  run past RT4, every disposition below, the gates.
+- **Relinked from source before trusting any result** (`date` 07:46–07:49; `scratch/vis1-a2/fix2/rebuild.sh`):
+  `rm -f build/test/shulib_tests`, `api_doc_tool.py generate`, the briefing regenerated (binary absent), configure, a
+  CLEAN host build (`--target clean`; **257 objects compiled, no warning**), the briefing regenerated with the binary;
+  `suite_run.py green` under the 4 GiB / 600 s cap: **green — 2,937 cases, 2,960,622 assertions**.
+
+### The findings, each re-checked against this tree, then dispositioned (C = correctness, T = tests, D = docs)
+Probes re-run on THIS code are under `scratch/vis1-a2/fix2/` (`pb.sh` compiles a probe against the worktree's
+headers and runs it under the 4 GiB / 600 s cap; outputs in `probes1.txt`).
+
+- **C1 (major) — a MISSED field-face detection lets its bottom face's colour through. REAL; answered by the finding's
+  option (b), the dependency STATED and PINNED; option (a) measured and rejected.** Re-checked: the reviewer's
+  `p1_noface` on this code still prints "cases 6240, a colour (wrong …) 658" — the same as reported; it is the
+  rule, not a slip. **Option (a)** (every band some corner explains as a bottom face, with no band above it,
+  answers "maybe the bottom face") rebuilt here as a scratch header (`fix2/optA/`, the one line in
+  `bottomFace()`), the scene tests compiled against it and against the shipped header, both run capped: with (a),
+  a 6-in level lens reads the face at **0 of 39** parkings (edges 12.55/12.61/12.65; shipped: 25–27), an 8-in lens
+  at 2–7 (shipped: 27–29), the real shape **204** RED of 2,288 (shipped: 820), R7 70 of 390 (shipped: 106) — AND
+  it does not close the hole: the missed-field-face scene still reads the bottom face's YELLOW sure in **16 of
+  600** parkings with (a) (70 shipped), because a bottom face some corner does NOT explain as one is judged as a
+  face. (The stopped run had measured the same coverage at 04:02, `fix1/trialA_msgs.txt`; reproduced here.) So (a)
+  costs most of the coverage D9's mounts rest on and still is not safe; the real remedy is a fact about the camera.
+  **Option (b), done:** `toggle_tracker.hpp` gate 5 "WHAT THIS RESTS ON"; HA-199's claim now INCLUDES "the field
+  face's descriptor fires on every read on which its bottom face's does", its blast radius names the wrong colour,
+  its Settle a bench step (a real Toggle from a lens below its face under event light, RECORD lines — the bottom
+  face's band never present without the field face's), the index row amended; guide 19 (gate 5's paragraph) and
+  guide 14 (a new bullet); the changelog. **Pinned:** `toggle scenes … the missed field face` (600 parkings, the
+  field face's detection removed: `CHECK(removedWrong > 0)` — the dependency is real, so a change that removes it
+  is SEEN; the face cut short by 0..6 px: `CHECK(shortWrong == 0)`).
+- **C2 (major) — a Pin LYING near end-on read STANDING ON THE FLOOR. REAL; FIXED at the root.** ON THE FLOOR now
+  also needs (1) the box's WIDTH to be an upright Pin's at the range the corner agreed on (`detail::uprightWidthFits`
+  — bounds, not estimates: the true width is at least D·fx/zMax and at most the farthest-out and nearest-in points'
+  spread; it never refuses on what it cannot bound) and (2) no camera of the box able to see it LYING on the floor
+  (its ground range's far end plus the lying Pin's diagonal against the nearest range at which its top row meets a
+  Pin's diameter). Re-run on this code: `p8b 0 1` (pose exact, 1-px jitter, 99 % of the tolerance box) — **0**
+  ON-FLOOR lying Pins at all five mounts (reported 17 / 0 / 0 / 323 / 5,876) and **0** fixes missing; `p8b 0 0 0`
+  (the camera exactly true, no jitter) — **0** (reported 54 at 14/−15, 1,200 at 18/−20); `p9b` — "159744 unclipped
+  sightings of a lying Pin; **0** read STANDING ON THE FLOOR; **0** phantom FOUNDs" (reported 3,659 and 19);
+  `p5_endon` (end-on on a Goal) — "128 sightings …; 0 … ON THE FLOOR; 0 phantom FOUNDs". **The cost, measured:**
+  the floor-Pin posture counts of the property test on this code equal the PRE-FIX binary's at all five mounts
+  (6/0: 2,750 ON-FLOOR of 2,753; 10/−10: 2,682; 10/0: 2,379; 14/−15: 2,073; 18/−20: 276 of 2,549 — the pre-fix
+  binary `review-docsbrief/shulib_tests`, a clean 02:41 link, run capped with the same filter): no standing Pin
+  was lost. Header (`Posture::Unsure`/`OnFloor` comments, the posture paragraph), guide 19, guide 14, changelog.
+  Tests: `piece finder: a Pin LYING near END-ON is never 'standing on the floor'` (floor, 18-in lens pitched −20; Goal
+  top, 10-in), `piece scenes PROPERTY: a Pin LYING on the floor at every heading …` (five mounts, true cameras at the
+  box's edges, `onFloor == 0`, `missed == 0`). Mutations W1–W3, L1–L4 below.
+- **C3 (minor) — the view's RANGE was a hull over the explaining corners only, not a bound. REAL; FIXED.**
+  `measureToggleFace()` now takes the range over EVERY camera of the tolerance box: the near end from all corners'
+  edge rays, the far end INFINITE when a ray at some corner cannot reach its plane and the length does not bound it
+  (the convention `groundRange()` follows: refuse rather than report a false finite), then the length's window over
+  the focal lengths' extremes; `impliedLength` from the same extremes. `ToggleView::range` and
+  `ToggleFaceMeasure::range` documented as that bound. Re-run: `p11_range` — "11538 sure views; the true range
+  outside the view's interval: **0**" (reported 11). Test: `toggle scenes the view's RANGE is a BOUND …` (lenses
+  6/8/11, pitch 0/10, three lower edges, 6–90 in; `missed == 0`, `views > 500`; the review's 11-in, 64-in case
+  exactly). Mutations NR1–NR4 below.
+- **C4 (minor) — the hold was by COLOUR, the header said by BAND. REAL; FIXED in the code (the header was right).**
+  `update()` restarts the hold when the front band is not the same band: its direction from the lens (the heading
+  plus its bearing) and its range must overlap the last read's, widened only by what the lens's travel since then
+  explains, and its Toggle place (with the position gate on) must match. Tests: a nearer band of the colour, in
+  another direction, taking over mid-hold → "not held yet", then held again; the same with a camera measured to
+  0.01 in/0.01° where the RANGE alone decides (bearings overlapping, `REQUIRE`d). Header, guide 19, changelog.
+  Mutations SB1–SB5 below.
+- **C5 (minor) — the finder with no target answered NONE "nothing there". REAL; FIXED.** `PieceWhy::NoTarget`
+  ("no target"): `answer()` is UNKNOWN until `setTarget()` is given a target `pieceTargetProblem()` accepts (a refused
+  one is no target). Re-run: `p14_notarget` — "UNKNOWN / no target" (reported "NONE / nothing there"). Test: fresh
+  finder, a refused target, then a valid one (FOUND), the words. Mutations NT1–NT2 below.
+- **C6 (minor) — `kBoxEdgePx` has no margin; HA-202 did not say whether the 2 px includes rounding. REAL as a
+  documentation gap; not a library defect** (the reviewer's own words: the input exceeds the stated 2 px). HA-202's
+  claim now bounds the REPORTED integer edge against the true silhouette — jitter, rounding and steady bias all
+  inside 2 px — states the zero margin (1-px plant jitter: no standing Pin's fix missed; 2 px + rounding, ~3 px:
+  missed by up to 1.8 in), and its Settle measures the BIAS (the box's edges against the edges the measured mount
+  and the tape predict), not only the spread; the index row amended. `kBoxEdgePx`'s comment says the same; the
+  finder header's "no miss in ~26,000 sightings" now names the 1-px plant jitter it was measured at; guides 19 and 14.
+- **T1 (major) — a veto read DURING a hold was never tested. REAL; FIXED.** Test `toggle tracker: a VETO read in the
+  middle of a SURE hold breaks it at that read …` — two colours, a cut band of another colour in the window,
+  another colour directly above: UNKNOWN with the matching reason at that read, "not held yet" with
+  `heldSeconds == 0` on the next clean read. RT2, RT3, RT4: RED on fresh binaries (the stopped run's record above).
+- **T2 (major) — the "certainly outside" cut band never reached the window check. REAL; FIXED.** The test's cut boxes
+  are now 30 × 8 (aspect 3.75 ≥ minAspect 3, so they reach the CUT gate), one certainly right of a 10° window
+  (`REQUIRE`d from the model's bearing) and one inside; the reason ORDER is checked (maybe the bottom face beside a
+  cut band → "maybe the bottom face"; the cut band alone → "cut"; nothing → "no band"). X14, X15 below.
+- **T3 (major) — gate 5's boundaries and the invalid-bearing veto untested.** Test `gate 5's edges LANDED ON`: the
+  box above's bottom row AT the band's middle row (bottom face) and one lower (not); its reach exactly 3 ×
+  kBoxEdgePx above (bottom face) and one row higher (not); half the narrower box's columns overlapping and one fewer;
+  the apex row just inside 2 × kBoxEdgePx of the top (an oracle written from the header, `REQUIRE`d); the depth's
+  1-in floor decided by a 10°-up camera whose band no corner explains with the floor but one would without it. RT8,
+  RT9, RT18, X7, X24 below. **RT16 is EQUIVALENT** (argued from the code, not run away from): `touchesWindow(b)`'s
+  `!b.valid` is reached only with an invalid bearing; at :521 the bearing is `CameraModel::bearing()`, which widens
+  a finite ray from every corner (`widen()` drops only a non-finite one), and a model `cameraModelProblem()` accepts
+  (the tracker's PRECONDITION) gives finite rays for the integer box; at :531 `b` is a PASSED band's, and `gate()`
+  passes only a valid bearing. No input the contract allows makes it invalid; the clause stays as the safe default.
+- **T4 (major) — the finder's safety bounds largely untested. REAL; tests added; every mutation re-run here.**
+  New tests land on each bound: the bottom-cut box dropped only when CERTAINLY nearer — each term of the disc's
+  nearest point (the tolerance, the pose's position tolerance, the lens's swing, the mount's position tolerance)
+  with the place moved out by less than that term → AMBIGUOUS, and the bound itself written again from the header
+  (`==`), a box cut at the left as well bounding nothing; the unmeasurable box's bearing cone LANDED between the
+  bound with and without the heading tolerance and the pose's position tolerance, and a lens INSIDE the disc
+  counting anything; NOT IN VIEW checking the floor as well as a Pin's height, and its heading slack landed; the
+  raise exclusion's slack and the lens's height tolerance landed; RAISED with the lens below the support (no fix)
+  and its fix's near end through a near-exact camera; a truncated or unconfirmed-model read mid-FOUND breaking the
+  hold. The verdicts, each survivor judged, are in the table below.
+- **T5 (minor) — the position gate tested only at place 0. REAL; FIXED.** Test `the POSITION gate at EACH of the four
+  Toggle places`: a Toggle on each wall, the robot facing it, `toggleIndex == i`; the pose bound exactly
+  `maxPoseToleranceIn` checks and the next double skips; tolerance 0 is the gate OFF; a fix off the line by more
+  than the tolerance but within it plus the fix's radius passes (and past it does not), across and along. **Added
+  at this resumption:** `maxFixRadiusIn` LANDED ON — exactly the band's fix radius is placed (`toggleIndex == 0`),
+  the next double down is too vague (UNKNOWN); mutation FR1 below. X9, X11b, X12, X13, RT11, RT22 below.
+- **T6 (minor) — additions with no failing test. REAL; FIXED.** Tests: a frame whose count says 25 with a passing
+  band of another colour placed in memory right after the array (`REQUIRE`d adjacent) — read only to 24, RED; a
+  frozen view with the gate on (`positionChecked == false`, `toggleIndex == -1`, `heldSeconds == 0`); the length
+  gate's minimum and maximum fractions LANDED ON at the jittered widths (the largest/smallest that pass found by
+  bisection on an oracle of the per-corner edge agreement, one double past each refuses) and `impliedLength`
+  exactly `wLo·lo/fxMax` and `wHi·hi/fxMin`; a new colour after a frozen view starts a fresh hold, a box that keeps
+  its corner but changes size has moved. X3–X6, X18, X19, RT14, RT15, RT17, RT20, RT24 below.
+- **T7 (minor) — "doc_staleness_audit clean (counts derived from the fresh binary)" (the fourth resumption, above)
+  is not what the saved outputs show. REAL — my error.** `resume4_clean.txt` and `resume4_build2.txt` show the audit
+  ran inside the build's doc gates with the binary deleted ("[cases/assertions NOT derived — the test binary is not
+  built]"). The audit checked 0 numeric claims either way, so nothing it judged changes; the sentence above stays as
+  written (this log is history) and is CORRECTED here. This round runs the audit AFTER the link, alone, and saves
+  its output (`fix2/gates_*.txt`, below).
+- **D1 (major) — the position gate documented as turning away a lookalike it cannot. REAL; FIXED.** The gate removes
+  OFF-LINE bands (P4b: 70 → 0) and the wall-top LED strip (with the gate on: UNKNOWN at 48/30/20/14 in); it CANNOT
+  remove a Toggle-length red strip ON a Toggle's face line, which reads RED from 22 to 30 in named as that Toggle.
+  The reviewer's `gateprobe` re-run on this code: "T10 gate=1 d=22 … d=30 colour=1 why=0 checked=1 idx=0"; d ≤ 20
+  "why=5" (no band); d = 32 "why=9" (not held yet: some reads' fixes are wider than 8 in); d ≥ 34 "why=5". Fixed in
+  the header, HA-199 (claim — "from 20 in or CLOSER" and "about 22 in or FARTHER" now say which way — and index
+  row), guide 19 and guide 14; S5b's title corrected and S5b now runs with the gate OFF and ON; NEW T10b pins the
+  limit with the gate ON (RED, `positionChecked`, `toggleIndex == 0` at 22–30 in; UNKNOWN at 8–20 and 32–40).
+- **D2 (major) — guide 19's R7 coverage was the brief's prototype table. REAL; FIXED.** The R7 test prints the
+  coverage per lens, bottom face and distance (the brief's §2.2 "the coverage printed") and pins its two stated
+  facts (`squareMissed == 0`, `past15 == 0`). Run here (`-tc="*R7*" -s`): 8-in lens — 14/20/30 in square only, 40 in
+  ±5°, 48 in ±10°; 10-in — 14/20 square only, 30 ±5°, 40/48 ±15°; 11-in — 14 square only, 20 in −5..0, 30 in
+  −15..+10, 40/48 ±15°; the same for both bottom colours. Guide 19's table matches it line for line; the header's
+  sentence, which said "at 40–48 in up to 10–15", was loose for the 8-in lens (±5° at 40 in) and is CORRECTED at
+  this resumption ("at 40 in 5 (8 in) to 15; at 48 in 10 (8 in) to 15"); guide 14's bullet agrees.
+- **D3 (minor) — "about 30" reads a second; the code reads 25. REAL; FIXED.** Guide 19 says 25 and why (the period
+  rounded up to the loop's tick: every fourth 10-ms tick, 40 ms); `guide-19b` checks `reads == 25` exactly, its
+  title corrected.
+- **D4 (minor) — the changelog overclaimed. REAL; FIXED.** "each term … but the off-axis factor"; the landed edges
+  are listed by name (the hold, alive, aspect, window, colour-above, bottom-face, frozen, length, position-gate and
+  the finder's in/border/out); the position gate's `maxFixRadiusIn` was the one listed edge NOT landed — landed at
+  this resumption (T5). The suite count filled in (2,815 → 2,943, this round's tests included). The mutations sentence points at this log, where
+  each survivor is judged.
+- **D5 (minor) — `robot.hpp` called the feed "the camera's next part". REAL; FIXED** (`vision::CameraFeed`,
+  `vision/camera_feed.hpp`) — `robot.hpp` is shared with L6: a one-phrase comment edit, logged here for the merge.
+  The stale-statement grep re-run over `include/shulib` and `src` (prose review below).
+- **D6 (minor) — `minScore` / `viewMarginPx` accepted UNSET. REAL; FIXED** (the delta is now logged, D9).
+  Both default to −1 (UNSET) and are refused by name ("minScore UNSET (negative) -- the lowest model score
+  believed, 0 for every score"; "viewMarginPx UNSET (negative) -- … 0 for none"); 0 keeps its meaning. Tests: the
+  defaults are −1, refused at −1 and at −denorm_min (the edge). The header and guide 19 say which two numbers have
+  a meaningful 0. CF1, CF2 below.
+- **D7 (minor) — `raisedMinIn`, a field belief beyond HA-192..203. FOR THE COORDINATOR (unchanged: rule HA number
+  or not before the merge).** The docs now agree on its SOURCE: the header and guide 19 say it is read from the
+  game manual's field drawings (a fact of the field, not of the bench); guide 19 says the library's tests use 5.0
+  against their own 5.8-in Goal, a stand-in, not the manual's figure; the changelog the same. No manual figure is
+  cited because none was read for it — that read is the coordinator's ruling's to ask for.
+- **D8 (minor) — public docs promised A2-F1's fix "is planned". REAL; FIXED in the public docs** — guide 14, guide 19,
+  the changelog and the finder header now say the arithmetic "is not fixed yet" (no program uses the finder before
+  drive-to-piece) and promise nothing. FOR THE COORDINATOR at the merge: an A2-F1 item (the finder's off-axis
+  bearing and floor range, MA17) in REMAINING-WORK and build-order, ahead of L4 — the shared plan docs are not this
+  run's to edit.
+- **D9 (minor) — no re-check of the brief's citations at the base; unlogged deltas. REAL; done below.**
+- **D10 (minor) — HA-192's and HA-198's Source lines; HA-198's claim. REAL; FIXED.** HA-192's Source gains the
+  tracker (freshness is the read's time; the frozen check; the bearing paired with the pose at the image), the
+  finder (the pose at the image's time) and the feed (the period's floor). HA-198 reworded: nothing depends on the
+  ORDER; the score's raw scale is used only by the team's `minScore`, chosen at Step 0.2 from the scores the camera
+  reports (0 takes every score); its Source gains the finder.
+
+### D9 — the brief's citations for A2, re-checked at the base `9d77c9d` (`git show 9d77c9d:<file>`), and the deltas
+- §1.14 `hal/pros/clock.hpp` :5-16 binds `pros::micros()` — TRUE at the base (the BINDS / CONVERTS block).
+- §3.1 `tools/api_doc_tool.py` :1479-1491 — TRUE (`render_nav`: a page missing from the nav passes the strict build
+  with an INFO line). ~:95-104 (A1's `hal/fake/` and `sim/` exclusion) — TRUE.
+- §3.2 `build-order.md` "the VIS1/AF1 entry :1641-1659" — MOVED: at the base :1641-1659 is the MECH entry; the VIS1
+  and AF1 entry is at :1745 (its status block :1746-1751, "Next: VIS1-A2"). Not edited (shared; the merge's).
+- §3.4 `hal/device_registry.hpp` :57's "no adapter yet" — already rewritten by A1 ("the OLDER V5 Vision sensor …
+  since VIS1-A1 the AI Vision sensor is AiVision"); HA-70's "no library adapter reads it yet" — MOVED to
+  :4249-4255 at the base (the tag camera's mount; A1's amendment stands; not A2's).
+- **Shipped differences from the brief's text, not logged before:** the feed's stats type is `CameraFeedStats`
+  (brief: `Stats`) and carries `coloursWithheld` (A1's additive `VisionFrame::coloursWithheld`, summed); the finder's
+  `minScore` and `viewMarginPx` are UNSET at −1, not 0 (D6 above — the brief's "UNSET refuses" now holds); a sixth
+  reason the brief does not list, `PieceWhy::NoTarget` (C5); `ToggleView::range` is a bound over EVERY camera of the
+  box with an infinite far end allowed (C3); the hold is the same BAND's (C4); ON THE FLOOR has two more conditions,
+  the width and the lying exclusion (C2), beside A2-D7's raise exclusion; the R7 test now prints its coverage, as
+  §2.2 asked (D2).
+
+### The mutation record of this round (every verdict on a FRESH binary in a COPY of the tree; `scratch/vis1-a2/fix2/`)
+Driver `fix1/mt/mutate.py` (and its copy `fix2/mt2/mutate.py`): each anchor found exactly once, the line count kept,
+the file backed up, the mutant written and its mtime bumped, the suite binary removed and the briefing regenerated,
+the host build (doc gates first), EVERY object depending on the file checked as recompiled, the WHOLE suite through
+`suite_run.py` under the 4 GiB / 600 s cap, the failing cases named, the file restored byte-for-byte (finally, and
+on SIGTERM/SIGHUP/SIGINT) and re-stamped; a final clean rebuild. Two copies ran side by side (`fix1/mt/tree` the
+tracker's, `fix2/mt2/tree` the finder's), each synced to this worktree and checked green before every run; a
+stale-object trap found and fixed on the way (below). Records: `fix2/run_tracker.txt`, `run_finder.txt`,
+`rerun_*.txt`, `rerun2_*.txt`; the copies' own `mutations.log`.
+- **The stopped run (04:38–04:41, its copy):** RT2, RT3, RT4 — RED (1 of 2,937).
+- **Main run (07:52–08:42; 2,937 cases):** tracker, 36 — RED 29: RT8 RT9 RT11 RT14 RT15 RT17 RT18 RT20 RT22 RT24 X3
+  X4 X5 X7 X9 X11b X12 X13 X14 X15 X18 X19 X24 RECHK-MG-A3 NR4 SB1 SB2 SB3 FR1; SURVIVED 6: RT16 X6 NR2 NR3 SB4 SB5;
+  BUILD-BROKEN 1: NR1 (`-Werror` unused `inf` — re-cut, never counted). Finder, 41 — RED 25: RF1 RF2 RF3 RF4 RF6 RF9
+  RF10 RF11 RF17 RF20 RF22 RF25 RF30 RF36 RF37 RF38 X33 W1 W2 L1 L3 NT1 NT2 CF1 CF2; SURVIVED 16: RF5 RF12 RF13 RF14
+  RF15 RF16 RF18 RF19 RF34 X35 X36 X37 X38 W3 L2 L4.
+- **After the new tests: every survivor below re-run on a fresh binary (`rerun*_*.txt`).** Each survivor judged; the ones that could make an answer WRONG or cost real coverage got a test that lands on
+  them, found by a SEARCH, not by guessing:** `fix2/sweep/` — `sweep.cpp` (standing Pins on the floor and on 2 /
+  3.5 / 5.8 / 8-in supports, seven mounts, the tight camera and eight true cameras at the box's edges, 8–60 in,
+  ±30°, jitter 0 and 1: 339,146 sightings), `sweepL.cpp` (lying Pins at twelve headings: 355,015), `boxes.cpp` /
+  `boxesR.cpp` (every narrow hand-made box on a grid through six camera models), `rangeprobe*.cpp` (the view's
+  range for lenses below, inside and just under the face), each compiled against the clean header and against a
+  mutant COPY (`inc_<name>/`, built from the same table entry) and DIFFED. The clean code on the way: 0 fixes
+  missing the Pin among the ~203,000 standing sightings within the field belief (floor, 5.8, 8 in) — every miss
+  of the clean code is a Pin on a 2- or 3.5-in support, below `raisedMinIn` (5), the documented cost of a lowest
+  raise set above the field's own; 0 ON-FLOOR and 0 misses among the 355,015 lying sightings.
+  - **NR1 (re-cut NR1r: the far end a hull of the corners that reach the plane)** — survived the 2,941-case run:
+    no swept lens needed the infinity. `rangeprobe2` (lenses 10–12.4 in, pitch −5..10, 30–130 in): clean 0 of
+    1,559 views missed, NR1r 107. The range test now also sweeps 11.5- and 12-in lenses pitched 2 and 10 out to
+    120 in. **RED** (1 of 2,942).
+  - **NR2 (the edges always taken together)** — `rangeprobe` with lenses INSIDE the face's band: clean 0 of
+    1,698, NR2 42 (14 in, ±10°…). The range test now sweeps 13- and 14-in lenses and pitch −10. **RED** (1 of 2,941).
+  - **NR3 (the near end from the explaining corners only) — SURVIVES, judged unreachable on every swept scene:**
+    it drops from the near end's minimum the corners whose own edge agreement is empty; 0 misses on all 3,257
+    views of both range probes. The hull over every corner is kept as the safer bound; no test claims it.
+  - **SB4 (place not compared)** — new test: with the gate on, a read after the lens moved far (its travel widens
+    direction and range to anything) whose band names ANOTHER Toggle → "not held yet", `toggleIndex == 1`. **RED.**
+  - **SB5 (the lens's travel allowance dropped)** — new test: a camera measured to 0.01 in strafing past a Toggle
+    2 in a read, the reads' bearing intervals `REQUIRE`d apart: it holds and becomes sure. (A first version
+    driving straight at it did not separate the reads — the range intervals are 2–9 in wide — and was rewritten;
+    its `REQUIRE(apart)` caught that.) **RED.**
+  - **RF5 (the "error larger than the tolerance" edge inclusive)** — the REASON's edge: new check, the tolerance
+    exactly the fix's radius (0.01 in off its centre) → "error larger than the tolerance", one double more → "on
+    the border". **RED.**
+  - **RF13 (ON THE FLOOR without `lo <= hi`)** — sweep: a Pin on a 2-in support, 44 in from a tight 10-in level
+    lens, its size range (37.6–49.3) ending before its ground range (50.3–56.5): clean UNSURE, mutant ON-FLOOR with
+    no fix. New check, the disjointness `REQUIRE`d. **RED.**
+  - **RF16 (the RAISED fix's near end 1.5 radii)** — sweep: 824 sightings where the mutant's fix misses and the
+    clean one holds; in-contract: a Pin on a 5.8-in Goal 8 in from a tight 8-in level lens (0.2 in inside a
+    0.39-in fix). **RED.**
+  - **RF34 (the top-face allowance from the highest lens)** — sweep: 540 UNSURE→ON-FLOOR, every one a Pin on a 2-
+    or 3.5-in support; pinned: a 3.5-in support 45 in out through a true camera at the box's edge → UNSURE (the
+    mutant: ON-FLOOR, its fix 12 in past the Pin). **RED.**
+  - **X38 (the lying fix's near end + a radius)** — unsafe: the lowest ray of a lying Pin meets the floor NEARER
+    than the line it rests on (the tangent argument: the floor contact is under the axis, the silhouette's lowest
+    ray grazes the near side and lands short of it). Sweep: 1,313 misses; pinned: a Pin lying across the view 10 in
+    from a 6-in lens at −24° keeps its centre in its fix. **RED.**
+  - **W3 (the width check without its jitter)** — conservative (refuses more), but it COSTS coverage: 33 in-contract
+    standing Pins ON-FLOOR→UNSURE. Pinned as coverage: a 6-px-wide Pin 52 in from a tight 6-in lens still stands. **RED.**
+  - **L2 (the lying reach without the diameter, 0.19 in) and L4 (the bottom row not jittered)** — no plant scene
+    of the 694,161 changed; the hand-made box search found the boxes each margin alone decides (146,92 3–4×6
+    through the tight 10/−10 camera; 2,98 3–7×9 through the stated tolerances). New test: never ON THE FLOOR.
+    **RED** (both, 1 of 2,942).
+  - **RT16 (an invalid bearing counts as elsewhere) — EQUIVALENT** (argued with T3 above: no input the contract
+    allows makes the bearing invalid).
+  - **X6 (a frozen view keeps `heldSeconds`) — EQUIVALENT:** `update()` resets `last_` to `ToggleView{}` on every
+    read and never writes `heldSeconds` into it; `view()` copies `last_`, so the field is already 0 there — the
+    explicit `v.heldSeconds = 0.0` restates it. (The frozen test's `heldSeconds == 0` holds either way.)
+  - **Conservative, judged and kept (each refuses more or widens a bound; none can make an answer wrong):** RF12,
+    X36, X37 (the ON-FLOOR fix's near end without the size range / without the radius, its far end without the size
+    range — each a WIDER interval, still a bound); RF18, X35 (the agreement's two slacks dropped — fewer agree:
+    more UNSURE); RF19 (the FOUND hold's sameness without the held radius — stricter: the hold restarts more);
+    RF15 (the RAISED test's slack dropped — the sweep: 2,250 sightings change, EVERY one a raised Pin going
+    UNSURE→RAISED, correctly, and no floor Pin read RAISED: the slack costs coverage, it buys margin against box
+    edges beyond the model).
+  - **RF14 (the RAISED test's nearest ground without the principal column)** — no plant scene changed (the column
+    matters only for a box spanning it, by a factor up to 1/cos(4/212 rad) ≈ 1.0002); the RAISED box search found
+    the two boxes it alone decides (146,98 27×87 and 29×87 through the stated tolerances, centred on the column,
+    `REQUIRE`d). New test: never RAISED. **RED** (1 of 2,943).
+- **The stale-object trap, logged:** the finder's copy was made from the tracker's at 07:50 and built at ~07:52;
+  a test edited in this worktree at 07:51 and then `rsync -a`'d over carried its 07:51 mtime — OLDER than the
+  object — so the copy's first link was stale (2,960,622 assertions where 2,960,626 were due). Caught by the
+  assertion count before any mutation ran; every vision header and test in the copy touched and relinked (10
+  objects), green at 2,960,626, and from then on every sync TOUCHED the vision files before the build.
+
+### The prose review of this round (pace rule 4 — each grep RUN and its hits READ before this was written)
+- **What this round's writing touched:** HA-192 (Source), HA-198 (title, claim, Source), HA-199 (claim, Source,
+  Settle, blast radius, index row), HA-202 (title, claim, Source, Settle, index row); `toggle_tracker.hpp`'s R7
+  sentence and gate 5's "what this rests on" (option (a)'s leak added); guide 19's gate-5 paragraph (the same);
+  the changelog (the count, `raisedMinIn`'s source, the overlong line wrapped); and the stopped run's edits, read
+  here in full before being kept: guide 19 (the feed's 25 reads, the UNSET −1s, the same-band hold, gate 5, the R7
+  table, the lookalikes, the finder's posture and its limits), guide 14 (four bullets), the changelog's A2 entry,
+  `piece_finder.hpp`'s and `toggle_tracker.hpp`'s headers, `camera_geometry.hpp`'s `kBoxEdgePx`, `robot.hpp`:140.
+  Each was read as a student would: every number against the run that produced it (R7's table against the test's
+  printout line by line; "one parking in ten" against 70 of 600; "5,876 of 169,542" against the review's `p8b`,
+  re-run here at 0; "1.8 in" against `p7_standmiss` at 2 px, re-run here: 177 misses, worst 1.775 in; "22 to 30 in"
+  against `gateprobe`, re-run here), every "never" against a test that would see it fail.
+- `grep -rn -i "vision\|camera\|AbsentVision\|DeviceKind::Vision\|VISION" docs/ README.md` (public, outside
+  `docs/api` and `docs/internal`): 532 hits; read where A2's review changes could make one stale (guide 19, 14,
+  10, the changelog, the register) — none stale beyond those edited above.
+- The §3.4 internal statements and this round's own (`no adapter yet`, `TAGS AND VISION ARE DELIBERATELY ABSENT`,
+  `vision ABSENT`, `COLORS left as found`, `interprets nothing`, `no library adapter reads it yet`, `camera's next
+  part`, `is planned`) over `docs`, `README.md`, `include`, `src`: hits — HA-70 :4291 (the TAG camera's mount; A1's
+  amendment stands), the changelog :192 (A1's history), `robot.hpp` :786 ("Until VIS1-A1 the line ended 'vision
+  ABSENT'" — history, true), `bench_r3a.cpp` :2634 and `drive_program.cpp` :225 (VIS1-B's `src/`, not this run's),
+  `fake_file_store.hpp` ("planned fault" — another meaning). **Nothing stale from A2; "the camera's next part" and
+  "is planned" have no hit left.**
+- **Finding D5's point — the grep over `include/shulib` too:** `grep -rn -i "camera's next\|part A2\|no
+  consumer\|reads it yet\|is planned" docs/*.md docs/guide docs/cookbook README.md include/shulib`: every
+  "no consumer" hit (`hal/vision.hpp` :61, `absent_vision.hpp` :12/:35, `robot_config.hpp` :334, `robot.hpp` :68)
+  is about the FROZEN `IVision`, which D11 keeps unconsumed — true; every "part A2" hit is CAL1's or H1's.
+- Roadmap :438 (the coordinator's "Now": "next for the camera is VIS1-A2") — stale at the merge, left for it
+  (unchanged since the build's log).
+
+### FOR THE COORDINATOR — from this round
+1. **`raisedMinIn` (A2-D7, review D7):** an HA number or not, before the merge; the docs now say it is the
+   manual's field fact, but no manual figure for the lowest raise is cited — the ruling may ask for that read.
+2. **A2-F1 (MA17, the finder's off-axis bearing and floor range):** add its item to REMAINING-WORK and
+   build-order, ahead of L4 (review D8); the public docs promise nothing.
+3. **C1's choice is (b), measured:** AF1-S acts on the colour, so the dependency (the field face's descriptor
+   fires on every read its bottom face's does) is a bench step BEFORE AF1 trusts the colour: HA-199's new Settle.
+   Option (a) was measured and does not remove the risk (16 of 600 still wrong) while costing most of the
+   coverage.
+4. **NR3 survives,** judged unreachable on every swept scene (3,257 range views); no test claims it.
+5. Unchanged from the build: the src gate self-test's SIGTERM handler; the self-test never beside a host build;
+   the glossary; the shared plan docs' status lines; `robot.hpp` (shared with L6) carries one comment phrase.
+
+### The gates the stopped run ran on its final tree (`date` 09:12–09:50; `scratch/vis1-a2/fix2/gates.sh`, outputs `fix2/gates_*.txt`) — written by the resumption below FROM those saved outputs, because the stop came before this section was appended
+- Relink: `rm -f build/test/shulib_tests`, `api_doc_tool.py generate`, the briefing regenerated (binary absent), the
+  build (5 objects, rc 0, no warning), the briefing regenerated (binary present). `suite_run.py green` capped:
+  **green — 2,943 cases, 2,960,683 assertions**.
+- Doc gates AFTER the link (T7's lesson): `api_doc_tool.py` self-test OK; check-coverage 5,427 public entities across
+  196 headers, all documented; check-fresh rc 0; check-examples 654 quoted lines all verbatim (11 sources);
+  check-removability clean; `doc_staleness_audit.py` clean (32 live docs, 0 numeric claims checked) — run with the
+  fresh binary present, its output saved (`fix2/gates_staleness.txt`); `briefing_status.py check` current.
+- `ctest -R compile_refusal`: **255 of 255**. ARM header gate over **238** headers (`-Werror`, cortex-a9): rc 0, no
+  output. CI greps: empty.
+- `src_build_gate.py self-test` **OK (269 detector cases)**, `check` **PASS (all 7 builds link)**, run ALONE;
+  `git diff --stat -- src/ Makefile tools/` 0 lines after.
+- After the self-test's re-stamps: rebuilt (257 objects, rc 0, no warning), the briefing regenerated, the suite
+  **green — 2,943 cases, 2,960,683 assertions**; briefing check current; staleness audit clean (saved,
+  `fix2/gates_staleness2.txt`).
+
+
+
+### RESUMED (this fix round's SECOND stop: the 5-hour usage limit; work resumed ~13:00, this run started) — `date` Wed Nov 11 10:37:37 PM EST 2026
+- **What the stopped run left, audited first (not from memory):** `git diff -- src/ Makefile` EMPTY and `git diff
+  --stat -- src/ Makefile tools/` EMPTY (no src-gate plant). Its mutation drivers worked only in COPIES of the tree
+  (`fix1/mt/tree`, `fix2/mt2/tree`); this worktree's vision headers are byte-identical to the latest pre-mutation
+  backups each driver took (`toggle_tracker.hpp` md5 `2e5fc07f` = the NR1r and SB5 backups; `piece_finder.hpp`
+  `e59cb708` = the RF14, L2 and L4 backups; `camera_geometry.hpp` `c4a980c2` = the RECHK-MG-A3 backup) and to both
+  copies' restored files (`diff -rq` over `include/` and `test/`: equal, but `fix1/mt/tree`'s older
+  `piece_finder_test.cpp`, synced later to `fix2/mt2/tree`, which is equal). Each copy's log ends "final clean
+  rebuild rc 0". **No mutant and no plant anywhere in the worktree.** No process of this worktree alive (the only
+  build running on the machine is the coordinator's, in the main tree — not touched).
+- **Where it stopped:** after its gates (09:12–09:50, all green — the section just above, written now from the saved
+  `fix2/gates_*.txt`) and BEFORE it appended anything to this log: the dispositions, the D9 block, the mutation
+  record, the prose review and the coordinator's list were drafts in `scratch/vis1-a2/fix2/log_part{1,2,3}.md`.
+  Every hand-written file of the tree was last written by 09:12 (the briefing, `docs/api` and `mkdocs.yml` are
+  regenerated by every gate run). This run appended those drafts
+  verbatim (above), each claim first checked against the tree, and wrote no new fix.
+- **Checked against the tree before appending:** every disposition's code (`PieceWhy::NoTarget`, `minScore` and
+  `viewMarginPx` at −1, the same-band hold, the range bound, the width and lying exclusions), every named test
+  (the missed field face; the RANGE bound; the VETO mid-hold; gate 5's edges; the position gate at EACH place; the
+  same band by PLACE and WHILE MOVING; LYING near END-ON; the LYING margins; the PRINCIPAL COLUMN), the documents
+  (`robot.hpp` :140 names `vision::CameraFeed`; guide 19 says 25 reads; no `SUITE_COUNT` placeholder and no
+  "is planned" / "camera's next part" left; the changelog's count 2,815 → 2,943); the mutation logs (every
+  verdict the draft gives is the logs' line, the final reruns RED on fresh binaries; the survivors left are
+  exactly RT16, X6, NR3 and the finder's seven conservative ones the draft judges); and guide 19's R7 table
+  against `r7probe` re-run here, line for line.
+- **The reviewers' probes, re-run on the FINAL tree with fresh probe binaries** (`fix2/pb.sh`, capped; output
+  `scratch/vis1-a2/fix3/probes.txt`, 22:38–22:40): `p14_notarget` "UNKNOWN / no target"; `p11_range` "11538 sure
+  views; the true range outside the view's interval: 0"; `p1_noface` "cases 6240, a colour (wrong …) 658" (the
+  stated dependency, C1 (b), unchanged by design); `p5_endon` "128 … 0 … ON THE FLOOR; 0 phantom FOUNDs";
+  `p9b_lying_phantom` "159744 …; 0 read STANDING ON THE FLOOR; 0 phantom FOUNDs"; `p8b 0 1` and `p8b 0 0 0`
+  MISSED 0 and onfloor 0 at all five mounts; `gateprobe` T10 RED, `checked=1 idx=0` at 22–30 in, why=5 at ≤ 20
+  and ≥ 34, why=9 at 32; `r7probe` as guide 19's table; `p7_standmiss` at 2-px jitter "6/0 … MISSED 177 (worst
+  +1.775 in)", "10/−10 … MISSED 94 (worst +0.808 in)" (C6's documented zero margin).
+- **Two corrections to this section's own record:** the "Started" line says "24 after dedupe"; the findings
+  dispositioned are **23** (C1–C6, T1–T7, D1–D10), every one of the coordinator's list. And the coordinator puts
+  the second stop at ~09:40; the saved gate outputs run to 09:50:03, so the stop came after the gates, before the
+  log was written.
+- **(Appended by the fourth resumption below:** the note above was written by that run at 22:41 to
+  `scratch/vis1-a2/fix3/log_resume.md` and never appended — the stop came first. Copied here verbatim. Its gate run
+  (`fix3/gates.sh`, outputs `fix3/gates_*.txt`, 22:41–23:18) got through steps 1–6 green — clean relink 257 objects,
+  no warning; **suite green, 2,943 cases, 2,960,683 assertions**; every doc gate clean with the binary present;
+  255 of 255 compile refusals; the ARM header gate over 238 headers rc 0; the CI greps empty — and the src gate
+  self-test **OK (269 detector cases)**; it was stopped DURING `src_build_gate.py check` (`gates_srccheck.txt`
+  empty), so steps 7b–8 never ran. Not counted as this round's final gates.)
+
+### RESUMED (fourth stop: the team lead's pause at ~14:00; resumed by the builder) — `date` Thu Nov 12 10:20:00 PM EST 2026
+- **Audited first, not from memory:** `git diff -- src/ Makefile tools/` EMPTY and `git status --ignored` shows
+  nothing planted under `src/`, `include/`, `tools/` or `Makefile` (the src files newer than 22:41 yesterday are
+  the stopped `check`'s and the self-test's re-stamps — mtimes only, contents equal to HEAD). The one
+  `src_build_gate.py check` alive on the machine is ROB1-A's, in `.claude/worktrees/rob1-a` (its `/proc/…/cwd`),
+  not this tree's. Every mutation backup the two drivers took (`fix1/mt/bak/`, `fix2/mt2/bak/`, 81 files) has one
+  of five md5s; the LATEST of each header's equals this worktree's file (`toggle_tracker.hpp` `2e5fc07f`,
+  `piece_finder.hpp` `e59cb708`, `camera_geometry.hpp` `c4a980c2`); the older two are earlier copies of the tracker
+  that differ from it in COMMENTS only (`25913259`, the main run's: gate 5's "what this rests on" note, extended
+  after; `d1ee62c3`, RT2–RT4's at 04:38: with comments stripped the `diff` is blank lines only). Both mutation copies' `include/` equal this
+  worktree's (`diff -rq`: empty), so no mutant is left in a copy either; both drivers' logs end on a RED re-run
+  (NR1r 09:00, RF14 09:11). **No mutant and no plant anywhere.**
+- **The tree is the one every logged verdict was taken on:** no hand-written file changed since 09:13 yesterday
+  (`find -newer fix2/log_part1.md` over every changed and new path: only the regenerated `docs/api/*`,
+  `mkdocs.yml`, the briefing, and this log). So the third resumption's probe re-runs on fresh probe binaries
+  (`fix3/probes.txt`) and the drivers' fresh-binary verdicts stand for THIS code; nothing is re-run for them.
+- **Every finding is dispositioned** (the 23 above, C1–C6, T1–T7, D1–D10); this run writes no new fix. It relinks
+  from source and re-runs EVERY gate on the final tree (below).
+
+### The gates on the final tree (this resumption; `date` Thu Nov 12 10:20:33 – 10:56:52 PM EST 2026; `scratch/vis1-a2/fix4/gates.sh`, outputs `fix4/gates_*.txt`)
+- **Relinked from source:** `rm -f build/test/shulib_tests`, `api_doc_tool.py generate`, the briefing regenerated
+  (binary absent), configure, a CLEAN host build (`--target clean`): **257 objects, rc 0, no warning**; the
+  briefing regenerated with the binary present. `suite_run.py green` under the 4 GiB / 600 s cap: **green —
+  2,943 cases, 2,960,683 assertions** (the count the round's last added test, RF14's, brought it to; the stopped runs ended on the same).
+- **Doc gates, AFTER the link:** `api_doc_tool.py` self-test OK; check-coverage 5,427 public entities across 196
+  headers, all documented; check-fresh rc 0; check-examples 654 quoted lines all verbatim (11 sources);
+  check-removability clean; `doc_staleness_audit.py` clean (32 live docs, 0 numeric claims checked — no "NOT
+  derived" note: the binary was present; `fix4/gates_staleness.txt`); `briefing_status.py check` current.
+- `ctest -R compile_refusal`: **255 of 255**. ARM header gate over **238** headers (`-Werror`, cortex-a9): rc 0, no
+  output. CI greps: empty.
+- `src_build_gate.py self-test` **OK (269 detector cases)**, `check` **PASS (all 7 builds link)**, run alone in this
+  tree (the other `src_build_gate` processes on the machine were the main tree's, ROB1-A's and STEP1-B's, each in
+  its own directory); `git diff --stat -- src/ Makefile tools/` **0 lines** after.
+- After the self-test's re-stamps: the binary removed, the briefing regenerated, rebuilt (**257 objects, rc 0, no
+  warning**), the briefing regenerated, the suite **green — 2,943 cases, 2,960,683 assertions**; briefing check
+  current; staleness audit clean (`fix4/gates_staleness2.txt`).
+- After appending this section: `briefing_status.py check`, `api_doc_tool.py check-fresh` and
+  `doc_staleness_audit.py` re-run: current, rc 0, clean; `src/ Makefile tools/` diff still 0 lines (`fix4/gates_after_log.txt`).
+
+### The tree at the end of this resumption — `date` Thu Nov 12 10:57:10 PM EST 2026
+- Every one of the 23 findings dispositioned above (C1–C6, T1–T7, D1–D10); no new fix this resumption. Not
+  committed; no `pros`; no `/dev/ttyACM*`; no mutant, no plant, no stale binary (the suite binary on disk is the
+  step-8 link of the final tree). Guide 19's file name left as `19-the-camera.md` (the coordinator renumbers it at
+  the merge: chapter 19 is CAL1's on main). The coordinator's open items are the list "FOR THE COORDINATOR — from
+  this round" above, unchanged.
+
+### Verification-round findings and their disposition — `date` Thu Nov 12 11:30 PM – Fri Nov 13 12:25 AM EST 2026
+The fresh verifier returned two findings, both minor. Each re-checked here against the tree before any edit;
+records under `scratch/vis1-a2/fix5/`.
+- **V-1 — HA-198's index row still said "nothing in VIS1 depends on either" (the order AND the score's scale).**
+  REAL: the round's earlier fix reworded the entry's title, claim and Source (nothing depends on the ORDER; the
+  raw scale is used only through the team's `PieceFinderConfig::minScore`, set at Step 0.2) and left the index
+  row at `docs/hardware-assumptions.md`:414 contradicting it; that round's prose review listed HA-198's edits as
+  "title, claim, Source" and missed the row. A grep for the same stale claim found ONE more, which the verifier
+  did not name: the register's VIS1-A1 summary at :189–190 ("the detections' order and score (HA-198, reasoned —
+  nothing depends on them)"), a present-tense claim in the live register. **Fixed:** the row now says nothing
+  depends on the order or on a count above 24, and that the scale is used in one place only, the finder's
+  `minScore`, a TEAM number on the raw scale chosen at Step 0.2 — the entry's own words; the summary now says
+  "nothing depends on the order; the score's scale only through VIS1-A2's team-set floor, `minScore`" (re-wrapped
+  to the paragraph's width). The entry itself (:1325–1343) was already right and is unchanged.
+- **V-2 — RF15 recorded as a SURVIVING "conservative" mutant; on the final tree it is RED, and "conservative"
+  has its direction backwards.** REAL on both counts, and the re-check found the same error in two more verdicts
+  and the same wrong reasoning behind a third.
+  - **RF15 re-run on a fresh binary** (`fix5/rf15.sh`; restores on EXIT/TERM/HUP/INT; 23:32): 5 objects recompiled
+    — every object that includes `piece_finder.hpp` (the four camera test files through `camera_scene_rig.hpp`
+    and `vision_guide_example_test.cpp`); the suite **RED — 1 case, 2 assertions**: the PRINCIPAL COLUMN test
+    (`piece_finder_test.cpp`:1083, `CHECK( 2 != 2 )` for w = 27 and 29). The main run's SURVIVED (`fix2/
+    run_finder.txt`:12) was taken at 2,937 cases, before RF14's PRINCIPAL COLUMN test was added; RF15 was never
+    re-run after it. And the slack is the RAISED verdict's MARGIN: dropping it lets more boxes read RAISED —
+    the less cautious side. The "conservative" judgement above read the sweep's 2,250 UNSURE→RAISED changes as
+    harmless because every one was a raised Pin; the hand-made boxes RF14's search found (consistent with a
+    floor Pin through the stated tolerances) are read RAISED by it — a wrong answer the sweep never reached.
+  - **Every logged survivor then re-run on the FINAL tree, fresh binary each** (`fix5/surv.py`, the fix2 tables'
+    exact edits, restore in `finally` and on SIGTERM/SIGHUP/SIGINT, every vision header's md5 compared before and
+    after: equal; 23:34–23:43, 5 objects each, `fix5/surv_run.txt`): RT16, X6, NR3, RF12, RF18, X35, RF19
+    SURVIVED (2,943 cases); **X36 and X37 RED** (1 case, 2 assertions each) and RF15 RED. X36/X37's SURVIVED
+    verdicts were also taken at 2,937 cases; what catches them now (`fix5/which.py`, `which_X36.txt`,
+    `which_X37.txt`) is RF13's test, "the fix's near ends LANDED", its ON THE FLOOR block
+    (`piece_finder_test.cpp`:1016–1017: a Pin on a 2-in support, 44 in from a 10-in lens — the two rim bounds
+    disjoint, so UNSURE; X36/X37 widen the ON-FLOOR interval until it is not empty and read that Pin ON THE
+    FLOOR, its fix missing it). So "each a WIDER interval, still a bound" was wrong reasoning: the interval
+    also DECIDES the posture (`lo <= hi`), and widening it turns a refusal into a floor answer.
+  - **RF12, by the same reasoning, was not conservative either — and no test landed on it.** RF12 drops the size
+    range from the ON-FLOOR interval's near end. Searched, not guessed: `fix5/rf12/boxes12.cpp` (every box on a
+    grid, w ≤ h, through eight camera models, capped at 1,500 s — models 0–2 compared in full, 3 in part, 4–7 not
+    reached) against the clean header, RF12 and X36: through the stated tolerances (model 0) no box changes;
+    through cameras measured to 0.01 in, RF12 reads **10,377** boxes (10-in lens, −10°) and **554** (18-in, −20°)
+    ON THE FLOOR that the clean code reads UNSURE, none the other way. Every one probed (`fix5/rf12/probe.cpp`)
+    is the MIRROR of RF13's case: the size range BEGINS after the ground range ends (e.g. 110,108 10×24 through
+    the tight 10/−10 camera: ground [40.613, 44.781], size [44.954, 63.328]) — a box too short for a Pin standing
+    where its bottom row is, which the clean code refuses and RF12 places by the ground range alone. The plant
+    sweeps re-run for RF12 and X36 against a fresh clean build (`fix5/sweep/`, the fix2 sources unchanged): lying
+    Pins — no line differs for either; standing Pins — RF12 changes 15,553 of 339,146 sightings, EVERY one an
+    ON-FLOOR fix that still holds made wider (e.g. radius 1.562 → 1.864: coverage lost to the tolerance check,
+    never a wrong posture); X36 changes 75,626, among them 54 UNSURE → ON-FLOOR-with-a-missing-fix (Pins on a
+    2-in support — what RF13's test pins). **New test** (`piece_finder_test.cpp`, after the PRINCIPAL COLUMN
+    one): "ON THE FLOOR only when the rim's two bounds INTERSECT -- the MIRRORED side" — three of the found boxes
+    (110,108 10×24 and 11×24 through `tightModel(10, −10)`; 110,100 12×18 through `tightModel(18, −20)`), each
+    `REQUIRE`d unclipped with `sizeRange.lo > groundRange.hi`, then UNSURE with no fix. Clean: green (18
+    assertions). **RF12 on a fresh binary (00:20): RED — 1 case, 6 assertions**, the new test's :1109–1110.
+  - **The PRINCIPAL COLUMN test's own title corrected:** it said its two boxes are ones "that only that column
+    keeps from RAISED"; RF15 shows the RAISED slack keeps them from it too. Now: "that the column keeps from
+    RAISED (and the RAISED test's slack too: drop either and they read RAISED)". The test's body is unchanged.
+  - **The re-check of the three left — reasoned, then searched:** RF18 and X35 drop one of the per-camera
+    agreement's slacks (`piece_finder.hpp`:444), so fewer cameras agree; a box that no longer agrees cannot pass
+    the RAISED test instead (for RF18 its size range lies beyond every agreeing camera's ground range, so the
+    rim's far end is past the nearest ground; for X35 the camera that agreed did so within the slack, which the
+    RAISED test's own slack then rules out), so it reads UNSURE. Searched (`fix5/rf12/boxesP.cpp`: every box on
+    the same grid through models 0–2, COMPLETE, every non-UNSURE posture printed; `cmpP.py` merges clean against
+    each mutant): RF18 changes **25,487** boxes and X35 **50,884**, EVERY one ON THE FLOOR → UNSURE, none to
+    RAISED, none from UNSURE. RF19 (the FOUND hold's sameness without the held radius): the hold restarts more
+    often; it never reports a different piece as held. These three stay judged conservative.
+  - **The corrected record (this replaces the main run's and the third resumption's survivor lists for the
+    final tree):** tracker — RT16 and X6 EQUIVALENT (argued above), NR3 judged unreachable (3,257 range views),
+    all three re-run SURVIVED on the final tree; finder — **three** conservative survivors, RF18, X35, RF19
+    (re-run SURVIVED at 2,944 cases, 00:20–00:22); RF12, RF15, X36, X37 are **RED** on the final tree, and
+    none of the four was ever conservative (each turns a refusal into an answer). The earlier sentences at
+    "Conservative, judged and kept" and "the survivors left are exactly RT16, X6, NR3 and the finder's seven
+    conservative ones" stand as what was written then; this entry corrects them.
+- **Suite count:** 2,943 → **2,944** cases (2,960,683 → 2,960,701 assertions); the changelog's A2 entry
+  (`docs/changelog.md`:70) now says 2,815 → 2,944. The briefing's line is regenerated by the gates.
+
+### The prose review of the verification round (pace rule 4 — each grep RUN and its hits READ before this was written)
+- **What this round's writing touched:** `docs/hardware-assumptions.md` HA-198's index row (:415) and the VIS1-A1
+  summary (:189–191); `test/piece_finder_test.cpp` the PRINCIPAL COLUMN test's title and the new MIRRORED-side
+  test (its title and its one comment); `docs/changelog.md`:70 (the count); this log. Each read as a student
+  would, every number against the run that produced it (10,377 / 554 against `comm` over `fix5/rf12/out_*.txt`
+  per model; 15,553 / 75,626 / 54 against `fix5/sweep/runS.txt` and the classified diff; the boxes' ranges
+  against `probe.cpp`'s output; 6 assertions against `which_RF12.txt`).
+- `grep -rn -i "nothing in VIS1 depends\|nothing depends on them\|depends on either"` over `docs/ include/ test/
+  README.md` (outside `docs/api` and the VIS1 brief and log): only HA-198's row and entry, both now saying "the
+  order" — none stale. `grep "minScore"` over guide 19, the register and the changelog: guide 19's example
+  value (50.0) sits under its "yours come from the camera's bench station" note; none claims a scale.
+- `grep -rn -i "conservative"` over guide 19, guide 14, the changelog, the vision headers and the finder tests:
+  no public text calls any mutant or bound conservative except `camera_geometry.hpp`:152 (the fix's radius — a
+  bound, true) and `toggle_tracker.hpp`:790 (the partial-band veto — refuses more, true); the changelog says only
+  "the survivors are named there, each judged" — still true. `grep "2,943\|2943"`: only the briefing (regenerated)
+  and this log. Guide 19's posture paragraph (:273–288) re-read: it states the per-camera agreement and the
+  RAISED/lying exclusions; the whole-box intersection the new test pins is behaviour unchanged by this round, so
+  no guide text changes.
+- `grep -rn "only that column"` (the corrected title's old words): no other copy.
+
+### The gates on the final tree (the verification round; `date` Fri Nov 13 12:25:54 – 01:04:29 AM EST 2026; `scratch/vis1-a2/fix5/gates.sh`, outputs `fix5/gates_*.txt`)
+- **Relinked from source:** the binary removed, `api_doc_tool.py generate`, the briefing regenerated (binary
+  absent), configure, a CLEAN host build: **257 objects, rc 0, no warning**; the briefing regenerated with the
+  binary present. `suite_run.py green` under the 4 GiB / 600 s cap: **green — 2,944 cases, 2,960,701 assertions**.
+- **Doc gates, AFTER the link:** `api_doc_tool.py` self-test OK; check-coverage 5,427 public entities across 196
+  headers, all documented; check-fresh rc 0; check-examples 654 quoted lines all verbatim (11 sources);
+  check-removability clean; `doc_staleness_audit.py` clean (32 live docs); `briefing_status.py check` current.
+- `ctest -R compile_refusal`: **255 of 255**. ARM header gate over **238** headers (`-Werror`, cortex-a9): rc 0, no
+  output. CI greps: empty.
+- `src_build_gate.py self-test` **OK (269 detector cases)**, `check` **PASS (all 7 builds link)**, alone in this
+  tree; `git diff --stat -- src/ Makefile tools/` **0 lines** after.
+- After the self-test's re-stamps: the binary removed, the briefing regenerated, rebuilt (**257 objects, rc 0, no
+  warning**), the briefing regenerated, the suite **green — 2,944 cases, 2,960,701 assertions**; briefing check
+  current; staleness audit clean. The RF18/X35 box search ran beside the gates (scratch binaries only, compiled
+  against the same headers; no worktree file touched).
+- After appending this section: `briefing_status.py check`, `api_doc_tool.py check-fresh` and
+  `doc_staleness_audit.py` re-run (`fix5/gates_after_log.txt`).
+- **The tree at the end of this round:** both findings dispositioned (V-1 fixed, with the second stale copy it
+  missed; V-2 corrected, with X36/X37's stale verdicts, RF12's missing test and the PRINCIPAL COLUMN title found
+  on the way). Not committed; no `pros`; no `/dev/ttyACM*`; no mutant (every vision header's md5 equal to its
+  pre-run copy after each driver), no plant, no stale binary (the suite binary on disk is step 8's link).
+
+## VIS1-A2 — the coordinator's merge verification *(2026-11-13)*
+
+- **Applied as its OWN diff** (`9d77c9d..` its transport) onto `8df58f3` (STEP1-B, API 2.8): every code file applied cleanly
+  (`camera_geometry.hpp`, `robot/robot.hpp`, the new `vision/{toggle_tracker,piece_finder,camera_feed}.hpp` and their tests).
+  Documents resolved by hand: guide 14 (L6's wall-reset section, then the camera's), the guide index and `mkdocs.yml`'s guide
+  nav, the changelog (VIS1-A2's entry at the top of `## API 2.8`; no bump — vision is in no frozen row), and the generated
+  pages (regenerated). **The guide chapter is renumbered 19 → 20** (`docs/guide/20-the-camera.md`): CAL1 Part B had taken 19.
+  Every live link moved (guides 10 and 14, the changelog, the index, the nav) and the example test's case names
+  `guide-19a..e` → `guide-20a..e`. G3a Part 1's unmerged `20-your-robot-file.md` renumbers at its own merge (after the 21st).
+  Status words: build-order's VIS1 line, REMAINING-WORK row 18d, a roadmap "Now" paragraph.
+- **Gates on the merged tree** (`.claude/coordinator/scratch/vis1_a2_merge_verify.sh`): the suite green (3,543 cases);
+  `src_build_gate.py` self-test OK and check PASS (all 8 builds); the ARM header gate CLEAN; the doc gates and the briefing
+  check clean; the compile-refusal harness 272 of 272; no plant, no stray root file.
+- **The coordinator's own mutations** (`muts_vis1_a2_main.json`): **4 of 4 RED** — MV1 two colours in view held as the first,
+  MV2 a camera that moved over an unmoved band never called frozen, MV3 a colour reported before it held for `holdSeconds`,
+  MV4 a stale camera still answering. The restored tree relinked and ran green.
+- **VIS1-A2 LANDED.** No AI Vision sensor has run this code. AF1S-A1 (built on this code) merges next.

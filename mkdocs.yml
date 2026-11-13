@@ -137,6 +137,7 @@ nav:
       - 17 — The competition program: guide/17-the-competition-program.md
       - 18 — Mechanisms: guide/18-mechanisms.md
       - 19 — Calibrating your robot: guide/19-calibrating-your-robot.md
+      - 20 — The camera: guide/20-the-camera.md
 
   - Cookbook:
       - cookbook/README.md
@@ -381,8 +382,11 @@ nav:
       - Ui:
           - Touch panel: api/touch_panel.md
       - Vision:
+          - Camera feed: api/camera_feed.md
           - Camera geometry: api/camera_geometry.md
           - Override elements: api/override_elements.md
+          - Piece finder: api/piece_finder.md
+          - Toggle tracker: api/toggle_tracker.md
 # END GENERATED API NAV
 
   - FAQ: faq.md

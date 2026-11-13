@@ -137,8 +137,8 @@
 // declared" for port 0. The builder never reads a frame (no tick, no poll): the boot line's camera
 // words come from `IVisionFrames::status()`, which touches nothing — "camera port 3 set up, model OK"
 // — never from a downcast to the PROS adapter. Who reads frames, and how often, is the consumer's: one
-// read per period, from its own loop (VIS1's D10; the shared camera feed is the camera's next part). The
-// frozen `IVision` slot in the context stays hal::AbsentVision (D11).
+// read per period, from its own loop (VIS1's D10; the shared camera feed is vision::CameraFeed,
+// vision/camera_feed.hpp). The frozen `IVision` slot in the context stays hal::AbsentVision (D11).
 //
 // ── THE SIDE DISTANCE SENSORS: built from the config, ABSENT rather than refused (L6-A2) ──
 // For each side of `sensors.walls` whose port is not 0, the constructor's body asks the provider for

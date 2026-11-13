@@ -25,6 +25,7 @@ order — each chapter assumes the ones before it and says so in its header.
 | 17 | [The competition program](17-the-competition-program.md) | "shulib Competition": the auton chosen on the brain's menu in `autonomous()`, what ends it, driver control, the refusals |
 | 18 | [Mechanisms: arms, lifts, flywheels — in autons, on buttons, on routes](18-mechanisms.md) | How a position and a speed mechanism move, hold, find their zero, stay inside their limits and stop on a jam; the starting values and `.tuning`; a mechanism step on one line of an auton, the driver file's controls, every mechanism's route ids run, the direction check's judgement, and the bench page that runs it (Bench Tests' station 13) |
 | 19 | [Calibrating your robot](19-calibrating-your-robot.md) | The standard "shulib Calibrate": the three facts you state, your 21-line file, one run, what each ending means, FRONT FLIPPED and MECHANISM PORT TURNED, listing every mechanism motor, the optional typed drive ports |
+| 20 | [The camera: which colour the Toggle shows, and which piece is which](20-the-camera.md) | One loop reads the camera for everyone; the Toggle tracker (RED, BLUE, YELLOW — or UNKNOWN with the reason); the piece finder (take ONE named piece, or none); freshness as time; where the camera sits; what a colour means and what it cannot tell |
 
 ## The other two documents
 
