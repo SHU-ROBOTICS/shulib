@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 5,928 of them, across 204 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 6,062 of them, across 206 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -131,6 +131,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Answer` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-answer) |
 | `Answer::Abort` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-abort) |
 | `Answer::Done` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-done) |
+| `appendCurveCheckWords` | free function | [curve_path.md](curve_path.md#appendcurvecheckwords) |
 | `appendNum` | free function | [line_format.md](line_format.md#appendnum) |
 | `appendOdomTickAudit` | free function | [odom_tick_audit.md](odom_tick_audit.md#appendodomtickaudit) |
 | `AppendOpen` | enum class | [pros-block_sink.md](pros-block_sink.md#enum-class-appendopen) |
@@ -751,6 +752,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Chassis::Chassis` | function | [chassis.md](chassis.md#chassis-chassis) |
 | `Chassis::Chassis (overload 2)` | function | [chassis.md](chassis.md#chassis-chassis-2) |
 | `Chassis::Chassis (overload 3)` | function | [chassis.md](chassis.md#chassis-chassis-3) |
+| `Chassis::curveTo` | function | [chassis.md](chassis.md#chassis-curveto) |
+| `Chassis::curveTo (overload 2)` | function | [chassis.md](chassis.md#chassis-curveto-2) |
 | `Chassis::deps` | function | [chassis.md](chassis.md#chassis-deps) |
 | `Chassis::drive` | function | [chassis.md](chassis.md#chassis-drive) |
 | `Chassis::followTrajectory` | function | [chassis.md](chassis.md#chassis-followtrajectory) |
@@ -763,6 +766,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Chassis::operator=` | function | [chassis.md](chassis.md#chassis-operator-eq) |
 | `Chassis::operator= (overload 2)` | function | [chassis.md](chassis.md#chassis-operator-eq-2) |
 | `Chassis::pose` | function | [chassis.md](chassis.md#chassis-pose) |
+| `Chassis::reverseCurveTo` | function | [chassis.md](chassis.md#chassis-reversecurveto) |
+| `Chassis::reverseCurveTo (overload 2)` | function | [chassis.md](chassis.md#chassis-reversecurveto-2) |
 | `Chassis::scheduler` | function | [chassis.md](chassis.md#chassis-scheduler) |
 | `Chassis::scheduler (overload 2)` | function | [chassis.md](chassis.md#chassis-scheduler-2) |
 | `Chassis::setPose` | function | [chassis.md](chassis.md#chassis-setpose) |
@@ -783,6 +788,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ChassisSpeeds::vx` | function | [twist2d.md](twist2d.md#chassisspeeds-vx) |
 | `ChassisSpeeds::vy` | function | [twist2d.md](twist2d.md#chassisspeeds-vy) |
 | `checkAutonEntry` | free function | [auton_registry.md](auton_registry.md#checkautonentry) |
+| `checkCurve` | free function | [curve_path.md](curve_path.md#checkcurve) |
 | `Checked` | struct | [calibrate_panel.md](calibrate_panel.md#struct-checked) |
 | `Checked` | struct | [calibrate_screen.md](calibrate_screen.md#struct-checked) |
 | `Checked::cols` | field | [calibrate_panel.md](calibrate_panel.md#checked-cols) |
@@ -950,6 +956,127 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Current` | type alias | [quantity.md](quantity.md#current) |
 | `CurrentCap` | struct | [kinds.md](kinds.md#struct-currentcap) |
 | `CurrentCap::amps` | field | [kinds.md](kinds.md#currentcap-amps) |
+| `CurveCheck` | struct | [curve_path.md](curve_path.md#struct-curvecheck) |
+| `CurveCheck::angle` | field | [curve_path.md](curve_path.md#curvecheck-angle) |
+| `CurveCheck::distance` | field | [curve_path.md](curve_path.md#curvecheck-distance) |
+| `CurveCheck::point` | field | [curve_path.md](curve_path.md#curvecheck-point) |
+| `CurveCheck::reverse` | field | [curve_path.md](curve_path.md#curvecheck-reverse) |
+| `CurveCheck::tightestRadius` | field | [curve_path.md](curve_path.md#curvecheck-tightestradius) |
+| `CurveCheck::verdict` | field | [curve_path.md](curve_path.md#curvecheck-verdict) |
+| `CurveCheck::why` | field | [curve_path.md](curve_path.md#curvecheck-why) |
+| `CurveConfig` | struct | [motion_config.md](motion_config.md#struct-curveconfig) |
+| `CurveConfig::accel` | field | [motion_config.md](motion_config.md#curveconfig-accel) |
+| `CurveConfig::bendAccel` | field | [motion_config.md](motion_config.md#curveconfig-bendaccel) |
+| `CurveConfig::decel` | field | [motion_config.md](motion_config.md#curveconfig-decel) |
+| `CurveConfig::endSpeedGain` | field | [motion_config.md](motion_config.md#curveconfig-endspeedgain) |
+| `CurveConfig::handoffCross` | field | [motion_config.md](motion_config.md#curveconfig-handoffcross) |
+| `CurveConfig::handoffDistance` | field | [motion_config.md](motion_config.md#curveconfig-handoffdistance) |
+| `CurveConfig::handoffHeading` | field | [motion_config.md](motion_config.md#curveconfig-handoffheading) |
+| `CurveConfig::handoffLast` | field | [motion_config.md](motion_config.md#curveconfig-handofflast) |
+| `CurveConfig::lookAhead` | field | [motion_config.md](motion_config.md#curveconfig-lookahead) |
+| `CurveConfig::lostHeading` | field | [motion_config.md](motion_config.md#curveconfig-lostheading) |
+| `CurveConfig::lostTime` | field | [motion_config.md](motion_config.md#curveconfig-losttime) |
+| `CurveConfig::maxStartOff` | field | [motion_config.md](motion_config.md#curveconfig-maxstartoff) |
+| `CurveConfig::searchWindow` | field | [motion_config.md](motion_config.md#curveconfig-searchwindow) |
+| `CurveConfig::stuckTime` | field | [motion_config.md](motion_config.md#curveconfig-stucktime) |
+| `CurveConfig::valid` | function | [motion_config.md](motion_config.md#curveconfig-valid) |
+| `CurveFollow` | class | [curve_follow.md](curve_follow.md#class-curvefollow) |
+| `CurveFollow::cancel` | function | [curve_follow.md](curve_follow.md#curvefollow-cancel) |
+| `CurveFollow::CurveFollow` | function | [curve_follow.md](curve_follow.md#curvefollow-curvefollow) |
+| `CurveFollow::curveStatus` | function | [curve_follow.md](curve_follow.md#curvefollow-curvestatus) |
+| `CurveFollow::endMotion` | function | [curve_follow.md](curve_follow.md#curvefollow-endmotion) |
+| `CurveFollow::endPose` | function | [curve_follow.md](curve_follow.md#curvefollow-endpose) |
+| `CurveFollow::exitReason` | function | [curve_follow.md](curve_follow.md#curvefollow-exitreason) |
+| `CurveFollow::name` | function | [curve_follow.md](curve_follow.md#curvefollow-name) |
+| `CurveFollow::path` | function | [curve_follow.md](curve_follow.md#curvefollow-path) |
+| `CurveFollow::start` | function | [curve_follow.md](curve_follow.md#curvefollow-start) |
+| `CurveFollow::state` | function | [curve_follow.md](curve_follow.md#curvefollow-state) |
+| `CurveFollow::tick` | function | [curve_follow.md](curve_follow.md#curvefollow-tick) |
+| `CurveGuard` | enum class | [curve_follow.md](curve_follow.md#enum-class-curveguard) |
+| `CurveGuard::Heading` | enumerator | [curve_follow.md](curve_follow.md#curveguard-heading) |
+| `CurveGuard::None` | enumerator | [curve_follow.md](curve_follow.md#curveguard-none) |
+| `CurveGuard::Progress` | enumerator | [curve_follow.md](curve_follow.md#curveguard-progress) |
+| `CurveHandoff` | enum class | [curve_follow.md](curve_follow.md#enum-class-curvehandoff) |
+| `CurveHandoff::Clean` | enumerator | [curve_follow.md](curve_follow.md#curvehandoff-clean) |
+| `CurveHandoff::EndOfPath` | enumerator | [curve_follow.md](curve_follow.md#curvehandoff-endofpath) |
+| `CurveHandoff::LastResort` | enumerator | [curve_follow.md](curve_follow.md#curvehandoff-lastresort) |
+| `CurveHandoff::None` | enumerator | [curve_follow.md](curve_follow.md#curvehandoff-none) |
+| `CurveInvalid` | enum class | [curve_path.md](curve_path.md#enum-class-curveinvalid) |
+| `CurveInvalid::AtRobot` | enumerator | [curve_path.md](curve_path.md#curveinvalid-atrobot) |
+| `CurveInvalid::DoublesBack` | enumerator | [curve_path.md](curve_path.md#curveinvalid-doublesback) |
+| `CurveInvalid::NoDirection` | enumerator | [curve_path.md](curve_path.md#curveinvalid-nodirection) |
+| `CurveInvalid::None` | enumerator | [curve_path.md](curve_path.md#curveinvalid-none) |
+| `CurveInvalid::NoPoints` | enumerator | [curve_path.md](curve_path.md#curveinvalid-nopoints) |
+| `CurveInvalid::TooClose` | enumerator | [curve_path.md](curve_path.md#curveinvalid-tooclose) |
+| `CurvePath` | class | [curve_path.md](curve_path.md#class-curvepath) |
+| `CurvePath::at` | function | [curve_path.md](curve_path.md#curvepath-at) |
+| `CurvePath::authorPoints` | function | [curve_path.md](curve_path.md#curvepath-authorpoints) |
+| `CurvePath::build` | function | [curve_path.md](curve_path.md#curvepath-build) |
+| `CurvePath::built` | function | [curve_path.md](curve_path.md#curvepath-built) |
+| `CurvePath::CurvePath` | function | [curve_path.md](curve_path.md#curvepath-curvepath) |
+| `CurvePath::droppedFirstDistance` | function | [curve_path.md](curve_path.md#curvepath-droppedfirstdistance) |
+| `CurvePath::endPose` | function | [curve_path.md](curve_path.md#curvepath-endpose) |
+| `CurvePath::firstDrivenPoint` | function | [curve_path.md](curve_path.md#curvepath-firstdrivenpoint) |
+| `CurvePath::invalidFacts` | function | [curve_path.md](curve_path.md#curvepath-invalidfacts) |
+| `CurvePath::kBendAhead` | field | [curve_path.md](curve_path.md#curvepath-kbendahead) |
+| `CurvePath::knotS` | function | [curve_path.md](curve_path.md#curvepath-knots) |
+| `CurvePath::kPlanStartSpeed` | field | [curve_path.md](curve_path.md#curvepath-kplanstartspeed) |
+| `CurvePath::kSamples` | field | [curve_path.md](curve_path.md#curvepath-ksamples) |
+| `CurvePath::kScanStep` | field | [curve_path.md](curve_path.md#curvepath-kscanstep) |
+| `CurvePath::lastPoint` | function | [curve_path.md](curve_path.md#curvepath-lastpoint) |
+| `CurvePath::length` | function | [curve_path.md](curve_path.md#curvepath-length) |
+| `CurvePath::lookAheadPoint` | function | [curve_path.md](curve_path.md#curvepath-lookaheadpoint) |
+| `CurvePath::project` | function | [curve_path.md](curve_path.md#curvepath-project) |
+| `CurvePath::reverse` | function | [curve_path.md](curve_path.md#curvepath-reverse) |
+| `CurvePath::sampleCount` | function | [curve_path.md](curve_path.md#curvepath-samplecount) |
+| `CurvePath::sampleS` | function | [curve_path.md](curve_path.md#curvepath-samples) |
+| `CurvePath::sampleSpeed` | function | [curve_path.md](curve_path.md#curvepath-samplespeed) |
+| `CurvePath::segments` | function | [curve_path.md](curve_path.md#curvepath-segments) |
+| `CurvePath::speedLimitAt` | function | [curve_path.md](curve_path.md#curvepath-speedlimitat) |
+| `CurvePath::startAngleOff` | function | [curve_path.md](curve_path.md#curvepath-startangleoff) |
+| `CurvePath::tightestAt` | function | [curve_path.md](curve_path.md#curvepath-tightestat) |
+| `CurvePath::tightestRadius` | function | [curve_path.md](curve_path.md#curvepath-tightestradius) |
+| `CurvePhase` | enum class | [curve_follow.md](curve_follow.md#enum-class-curvephase) |
+| `CurvePhase::Done` | enumerator | [curve_follow.md](curve_follow.md#curvephase-done) |
+| `CurvePhase::Ending` | enumerator | [curve_follow.md](curve_follow.md#curvephase-ending) |
+| `CurvePhase::Idle` | enumerator | [curve_follow.md](curve_follow.md#curvephase-idle) |
+| `CurvePhase::Pursuing` | enumerator | [curve_follow.md](curve_follow.md#curvephase-pursuing) |
+| `CurvePhase::Waiting` | enumerator | [curve_follow.md](curve_follow.md#curvephase-waiting) |
+| `CurvePoint` | struct | [curve_path.md](curve_path.md#struct-curvepoint) |
+| `CurvePoint` | type alias | [chassis.md](chassis.md#curvepoint) |
+| `CurvePoint::CurvePoint` | function | [curve_path.md](curve_path.md#curvepoint-curvepoint) |
+| `CurvePoint::CurvePoint (overload 2)` | function | [curve_path.md](curve_path.md#curvepoint-curvepoint-2) |
+| `CurvePoint::hasHeading` | field | [curve_path.md](curve_path.md#curvepoint-hasheading) |
+| `CurvePoint::heading` | field | [curve_path.md](curve_path.md#curvepoint-heading) |
+| `CurvePoint::x` | field | [curve_path.md](curve_path.md#curvepoint-x) |
+| `CurvePoint::y` | field | [curve_path.md](curve_path.md#curvepoint-y) |
+| `CurveSample` | struct | [curve_path.md](curve_path.md#struct-curvesample) |
+| `CurveSample::curvature` | field | [curve_path.md](curve_path.md#curvesample-curvature) |
+| `CurveSample::direction` | field | [curve_path.md](curve_path.md#curvesample-direction) |
+| `CurveSample::heading` | field | [curve_path.md](curve_path.md#curvesample-heading) |
+| `CurveSample::x` | field | [curve_path.md](curve_path.md#curvesample-x) |
+| `CurveSample::y` | field | [curve_path.md](curve_path.md#curvesample-y) |
+| `CurveStatus` | struct | [curve_follow.md](curve_follow.md#struct-curvestatus) |
+| `CurveStatus::commandedSpeed` | field | [curve_follow.md](curve_follow.md#curvestatus-commandedspeed) |
+| `CurveStatus::curvature` | field | [curve_follow.md](curve_follow.md#curvestatus-curvature) |
+| `CurveStatus::guard` | field | [curve_follow.md](curve_follow.md#curvestatus-guard) |
+| `CurveStatus::handoff` | field | [curve_follow.md](curve_follow.md#curvestatus-handoff) |
+| `CurveStatus::handoffHeadingError` | field | [curve_follow.md](curve_follow.md#curvestatus-handoffheadingerror) |
+| `CurveStatus::headingOffPath` | field | [curve_follow.md](curve_follow.md#curvestatus-headingoffpath) |
+| `CurveStatus::length` | field | [curve_follow.md](curve_follow.md#curvestatus-length) |
+| `CurveStatus::lookX` | field | [curve_follow.md](curve_follow.md#curvestatus-lookx) |
+| `CurveStatus::lookY` | field | [curve_follow.md](curve_follow.md#curvestatus-looky) |
+| `CurveStatus::phase` | field | [curve_follow.md](curve_follow.md#curvestatus-phase) |
+| `CurveStatus::s` | field | [curve_follow.md](curve_follow.md#curvestatus-s) |
+| `CurveStatus::speedLimit` | field | [curve_follow.md](curve_follow.md#curvestatus-speedlimit) |
+| `CurveStatus::startCheck` | field | [curve_follow.md](curve_follow.md#curvestatus-startcheck) |
+| `CurveStatus::yawCorrection` | field | [curve_follow.md](curve_follow.md#curvestatus-yawcorrection) |
+| `CurveVerdict` | enum class | [curve_path.md](curve_path.md#enum-class-curveverdict) |
+| `CurveVerdict::Invalid` | enumerator | [curve_path.md](curve_path.md#curveverdict-invalid) |
+| `CurveVerdict::Ok` | enumerator | [curve_path.md](curve_path.md#curveverdict-ok) |
+| `CurveVerdict::StartBehind` | enumerator | [curve_path.md](curve_path.md#curveverdict-startbehind) |
+| `CurveVerdict::TightBend` | enumerator | [curve_path.md](curve_path.md#curveverdict-tightbend) |
+| `curveYawObserverStep` | free function | [curve_follow.md](curve_follow.md#curveyawobserverstep) |
 
 ## D
 
@@ -2375,6 +2502,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kCornerKeepOut` | constant | [override_walls.md](override_walls.md#kcornerkeepout) |
 | `kCrcBytes` | constant | [shul2_format.md](shul2_format.md#kcrcbytes) |
 | `kCupSize` | constant | [override_elements.md](override_elements.md#kcupsize) |
+| `kCurveMinSpacing` | constant | [curve_path.md](curve_path.md#kcurveminspacing) |
 | `kDefaultDeadband` | constant | [input_shaping.md](input_shaping.md#kdefaultdeadband) |
 | `kDefaultExpo` | constant | [input_shaping.md](input_shaping.md#kdefaultexpo) |
 | `kDefaultFlightRingTicks` | constant | [sd_sink.md](sd_sink.md#kdefaultflightringticks) |
@@ -2494,6 +2622,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxAutons` | constant | [auton_registry.md](auton_registry.md#kmaxautons) |
 | `kMaxColourDescriptors` | constant | [vision_frames.md](vision_frames.md#kmaxcolourdescriptors) |
 | `kMaxCommands` | constant | [command_registry.md](command_registry.md#kmaxcommands) |
+| `kMaxCurvePoints` | constant | [curve_path.md](curve_path.md#kmaxcurvepoints) |
 | `kMaxDeadTotal` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kmaxdeadtotal) |
 | `kMaxFieldBytes` | constant | [session_info.md](session_info.md#kmaxfieldbytes) |
 | `kMaxFrameBytes` | constant | [shul2_format.md](shul2_format.md#kmaxframebytes) |
@@ -3205,6 +3334,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `more_route_ids_than_a_route_registry_holds_32` | free function | [route_ids.md](route_ids.md#more_route_ids_than_a_route_registry_holds_32) |
 | `MotionConfig` | struct | [motion_config.md](motion_config.md#struct-motionconfig) |
 | `MotionConfig::brakeSettle` | field | [motion_config.md](motion_config.md#motionconfig-brakesettle) |
+| `MotionConfig::curve` | field | [motion_config.md](motion_config.md#motionconfig-curve) |
 | `MotionConfig::defaultTimeout` | field | [motion_config.md](motion_config.md#motionconfig-defaulttimeout) |
 | `MotionConfig::heading` | field | [motion_config.md](motion_config.md#motionconfig-heading) |
 | `MotionConfig::headingSettle` | field | [motion_config.md](motion_config.md#motionconfig-headingsettle) |
@@ -4549,6 +4679,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Routine` | type alias | [routine.md](routine.md#routine) |
 | `Routine::brake` | function | [routine.md](routine.md#routine-brake) |
 | `Routine::chassis` | function | [routine.md](routine.md#routine-chassis) |
+| `Routine::curveTo` | function | [routine.md](routine.md#routine-curveto) |
+| `Routine::curveTo (overload 2)` | function | [routine.md](routine.md#routine-curveto-2) |
 | `Routine::driveTo` | function | [routine.md](routine.md#routine-driveto) |
 | `Routine::face` | function | [routine.md](routine.md#routine-face) |
 | `Routine::faceAway` | function | [routine.md](routine.md#routine-faceaway) |
@@ -4571,6 +4703,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Routine::requires (overload 2)` | function | [routine.md](routine.md#routine-requires-2) |
 | `Routine::requires (overload 3)` | function | [routine.md](routine.md#routine-requires-3) |
 | `Routine::result` | function | [routine.md](routine.md#routine-result) |
+| `Routine::reverseCurveTo` | function | [routine.md](routine.md#routine-reversecurveto) |
+| `Routine::reverseCurveTo (overload 2)` | function | [routine.md](routine.md#routine-reversecurveto-2) |
 | `Routine::reverseTo` | function | [routine.md](routine.md#routine-reverseto) |
 | `Routine::Routine` | function | [routine.md](routine.md#routine-routine) |
 | `Routine::Routine (overload 2)` | function | [routine.md](routine.md#routine-routine-2) |

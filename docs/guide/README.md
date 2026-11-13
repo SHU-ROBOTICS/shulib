@@ -10,7 +10,7 @@ order — each chapter assumes the ones before it and says so in its header.
 | 2 | [The field and coordinates](02-the-field-and-coordinates.md) | Coordinates, pose, field-relative vs robot-relative |
 | 3 | [Knowing where you are](03-knowing-where-you-are.md) | Odometry, drift, what each sensor knows, fusion |
 | 4 | [Drivetrains](04-drivetrains.md) | Holonomic vs tank vs H-drive; kinematics; strafe authority |
-| 5 | [Getting there: control](05-getting-there.md) | PID without anxiety, feedforward, settling, the watchdog |
+| 5 | [Getting there: control](05-getting-there.md) | PID without anxiety, feedforward, settling, the watchdog, curves |
 | 6 | [How things fail](06-how-things-fail.md) | Drift, slip, dead sensors, brownout — and the fault philosophy |
 | 7 | [Getting set up](07-getting-set-up.md) | Build, run the tests, read the output, the repo layout |
 | 8 | [Your first routine](08-your-first-routine.md) | The full tutorial, every line explained |

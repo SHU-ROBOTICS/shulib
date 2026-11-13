@@ -240,7 +240,7 @@ constexpr std::size_t memberCount() {
 }
 static_assert(memberCount<shulib::chassis::ChassisConfig>() == 2,
               "ChassisConfig gained a member: compare it in requireDefaultTuning()");
-static_assert(memberCount<shulib::motion::MotionConfig>() == 13,
+static_assert(memberCount<shulib::motion::MotionConfig>() == 14,
               "MotionConfig gained a member: compare it in requireDefaultTuning()");
 static_assert(memberCount<shulib::control::FeedforwardGains>() == 3,
               "FeedforwardGains gained a member: compare it in requireDefaultTuning()");
@@ -248,6 +248,8 @@ static_assert(memberCount<shulib::motion::AxisGains>() == 4,
               "AxisGains gained a member: compare it in requireDefaultTuning()");
 static_assert(memberCount<shulib::motion::TankSteerConfig>() == 6,
               "TankSteerConfig gained a member: compare it in requireDefaultTuning()");
+static_assert(memberCount<shulib::motion::CurveConfig>() == 14,
+              "CurveConfig gained a member: compare it in requireDefaultTuning()");
 static_assert(memberCount<shulib::control::SettleConfig>() == 3,
               "SettleConfig gained a member: compare it in requireDefaultTuning()");
 static_assert(memberCount<shulib::motion::OdoStallCheckConfig>() == 6,
@@ -261,11 +263,11 @@ static_assert(memberCount<shulib::diag::LoopMonitorConfig>() == 1,
 static_assert(memberCount<shulib::diag::PlausibilityConfig>() == 3,
               "PlausibilityConfig gained a member: compare it in requireDefaultTuning()");
 // And the sizes, measured on the host (x86-64/LP64): a member whose TYPE changed.
-static_assert(sizeof(shulib::motion::MotionConfig) == 416,
+static_assert(sizeof(shulib::motion::MotionConfig) == 528,
               "MotionConfig changed size: check requireDefaultTuning() still compares it all");
 static_assert(sizeof(shulib::motion::MotionSchedulerConfig) == 48,
               "MotionSchedulerConfig changed size: check requireDefaultTuning() still compares it all");
-static_assert(sizeof(shulib::chassis::ChassisConfig) == 464,
+static_assert(sizeof(shulib::chassis::ChassisConfig) == 576,
               "ChassisConfig changed size: check requireDefaultTuning() still compares it all");
 
 /// `t` equals chassis::ChassisConfig{} in EVERY leaf, written out longhand (file header).
@@ -306,6 +308,23 @@ void requireDefaultTuning(const shulib::chassis::ChassisConfig& t) {
     REQUIRE(m.tankSteer.leadTime == r.tankSteer.leadTime);
     REQUIRE(m.tankSteer.yawObserverTime == r.tankSteer.yawObserverTime);
     REQUIRE(m.tankSteer.yawCorrectionLimit == r.tankSteer.yawCorrectionLimit);
+    // CURVE1's curve follower (MotionConfig::curve, appended after tankSteer): a default-tuned
+    // robot follows curves with the library's PROVISIONAL defaults (HA-246, HA-248) — Station C's
+    // two numbers (lookAhead, bendAccel) are the ones a robot file will set.
+    REQUIRE(m.curve.lookAhead == r.curve.lookAhead);
+    REQUIRE(m.curve.bendAccel == r.curve.bendAccel);
+    REQUIRE(m.curve.accel == r.curve.accel);
+    REQUIRE(m.curve.decel == r.curve.decel);
+    REQUIRE(m.curve.searchWindow == r.curve.searchWindow);
+    REQUIRE(m.curve.handoffDistance == r.curve.handoffDistance);
+    REQUIRE(m.curve.handoffHeading == r.curve.handoffHeading);
+    REQUIRE(m.curve.handoffCross == r.curve.handoffCross);
+    REQUIRE(m.curve.handoffLast == r.curve.handoffLast);
+    REQUIRE(m.curve.endSpeedGain == r.curve.endSpeedGain);
+    REQUIRE(m.curve.lostHeading == r.curve.lostHeading);
+    REQUIRE(m.curve.lostTime == r.curve.lostTime);
+    REQUIRE(m.curve.stuckTime == r.curve.stuckTime);
+    REQUIRE(m.curve.maxStartOff == r.curve.maxStartOff);
     // The stall check: the field a port of main.cpp's tankChassisConfig() into the core would set
     // (setAllWheels + independentMotionSource) — robot::Robot::effectiveTuning() overwrites both
     // for a tank, so ONLY this check can see it.

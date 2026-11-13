@@ -30,6 +30,9 @@
   [Ch. 16]
 - **bearing (a camera's)** — which way something is from the camera, as an angle from the robot's
   forward, left positive — always an interval, never one number. [Ch. 10]
+- **bend grip** — how hard a curve may push the robot sideways in a bend (`MotionConfig::curve.bendAccel`,
+  in/s²); the speed limit in a bend is the square root of the grip over the bend's curvature. One of
+  the two numbers a team tunes for curves on the robot. [Ch. 5]
 - **blackbox** — the binary run record written to the SD card, so a run can be read back with no
   laptop attached. Its decoder ships with it. [Ch. 11]
 - **blocking (call)** — a function that doesn't return until its job is done, which is what
@@ -146,6 +149,9 @@
 - **kinematics** — the geometry converting a desired chassis velocity into per-wheel speeds
   and back. [Ch. 4]
 - **localization** — the whole problem (and code layer) of knowing where the robot is. [Ch. 3]
+- **look-ahead** — how far along a curve's path, past its closest point, the robot aims each tick
+  (`MotionConfig::curve.lookAhead`, 8 in by default): shorter tracks tighter bends and wobbles more,
+  longer is steadier and cuts tight bends. The other number a team tunes for curves. [Ch. 5]
 - **Mahalanobis distance** — how far a measurement disagrees with the estimate, measured in units
   of *how wrong the estimate could plausibly be* rather than in inches. Two inches is a lot when
   the estimator is sure of itself and nothing at all when it has been driving blind. The Kalman
@@ -209,6 +215,9 @@
   guess. The tag map refuses an entry that does not say, because a guessed tag position and a
   specified one are indistinguishable in the arithmetic and completely different in their
   consequences. [Ch. 3]
+- **pure pursuit** — the way the curve verbs steer: every tick, aim along the arc that carries the
+  robot through the point a look-ahead ahead of it on the path. LemLib's `follow` works the same way;
+  in this library only `curveTo` / `reverseCurveTo` steer toward a point at all. [Ch. 5]
 - **rate limiting** — capping diagnostic output volume, with every dropped line counted and
   announced. [Ch. 11]
 - **read fault** — a sensor read the adapter screened because the device failed: a scalar sensor

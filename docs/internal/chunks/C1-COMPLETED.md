@@ -280,6 +280,20 @@ kinematically-feasible targets, and this scope line is stated rather than hidden
 > turn-then-drive planning anywhere: nothing aims at the target point, and a leg that starts > 15° off its
 > heading is not steered.
 
+> **Amended 2026-11-11 by CURVE1-A** (the team lead's ruling of 2026-10-30, G3a's D16 (c): "A TRUE CURVE
+> FOLLOWER"; [CURVE1 brief](CURVE1-curve-follower.md) D7 (a), [live log](CURVE1-PROGRESS.md)) — a dated note,
+> the decision above left as written. The reason D12 was decided is keeping LemLib's behaviour out of the
+> library's core, and pure pursuit IS LemLib's `follow`: by the team lead's ruling that behaviour is admitted
+> into the library — **inside the two curve verbs only**. **COVERS** — inside `curveTo` / `reverseCurveTo`
+> only, the robot steers toward a point a look-ahead ahead of itself ON THE PATH THE AUTHOR DREW — or, in the
+> last look-ahead, on the end's own line extended past the end; so it turns where the drawn path turns,
+> including into the path's first bend. **DOES NOT COVER** — `moveTo`, `driveTo`, `reverseTo`, `strafeTo`,
+> `turnTo`, `face`, `faceAway`, `followTrajectory`, `hold`, `brake` and the route runner are unchanged, bit for
+> bit (`test/motion_curve_test.cpp` CV16 pins it against the merge base); the follower never aims at the END
+> point itself, nor at anything but the drawn path and the end's line extended; no turn the path does not
+> contain (a start more than 90° off is refused, and a path that doubles back is refused); no turning round
+> to drive backwards (reverse is the author's verb); the last inches are TANK1's `moveTo` with its rules.
+
 ### D13 — No motion profiles at C1
 The P-velocity-cap loop already produces trapezoid-ish motion (cruise at cap, exponential
 approach), and every DoD item is provable without profiles. `TrapezoidProfile` stays ready;

@@ -129,9 +129,16 @@ inline constexpr int kApiMajor = 2;
 /// `RoutineStopCause` that lists every value needs a `MechanismNotStarted` case. (The coordinator
 /// numbered it at the merge, in a follow-up commit: the squash first landed without the bump.)
 /// docs/changelog.md, API 2.6, lists it.
-inline constexpr int kApiMinor = 6;
+/// 7 = chunk CURVE1-A (2026-11-12; built 2026-11-11), curves, by the additive paths of register rows F6
+/// and F10: `Chassis::curveTo` / `reverseCurveTo` (a span and a brace-list overload each) and the alias
+/// `chassis::CurvePoint`; the Routine steps `curveTo` / `reverseCurveTo` in one pinned block; the new
+/// headers motion/curve_path.hpp (pure) and motion/curve_follow.hpp; and `MotionConfig::curve`
+/// (`CurveConfig`), appended last. No frozen member changed shape, no enumerator was added or moved;
+/// every 2.6 program compiles and runs exactly as before (a six-leg route of today's verbs hashes
+/// byte-identical, tank and X-drive). Nothing to do. docs/changelog.md, API 2.7, lists it.
+inline constexpr int kApiMinor = 7;
 
 /// "major.minor", for session headers / logs that want one printable token.
-inline constexpr const char* kApiVersionString = "2.6";
+inline constexpr const char* kApiVersionString = "2.7";
 
 }  // namespace shulib

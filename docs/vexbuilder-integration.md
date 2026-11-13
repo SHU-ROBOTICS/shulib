@@ -278,16 +278,17 @@ waypoint and the field.
 | `headingMode: "locked"` | **`"fixed"`** | the in-memory enumerator is `HeadingMode::Fixed`; one spelling everywhere beats a translation table nobody maintains |
 | `headingMode: "tangent"` | **`motion: "drive"`** | "tangent" was a heading MODE describing a MOTION. `"drive"` already means *"arrive facing the point"*, and the runner computes that heading, so the concept survives with a better home |
 | `motion: "move"` | `"move"` (unchanged), **plus `"start"`, `"drive"`, `"hold"`** | the proposal had no way to say "begin here", "arrive facing it" or "stay put", all of which every real auton needs |
-| `motion: "arc"` | **DROPPED — a named gap, see below** | no facade verb performs an arc, and F8 must not freeze something the library cannot do |
+| `motion: "arc"` | **DROPPED — a named gap, see below** | no facade verb performed an arc when F8 locked, and F8 must not freeze something the library cannot do; `curveTo` exists since CURVE1 (code only), the file value comes later |
 | `markers[].args: { level: 3 }` | **`args: [3]`** — a positional array of **at most 2 integers** | the in-memory type is `int32_t args[2]`. A picker labels the positions from the **manifest**, which is a better place for a label than inside every path file |
 | *(unstated)* | `markers[].id` is **1–23 bytes of `[a-z0-9_]`** | 4.2 |
 | *(unstated)* | ≤ **32** waypoints, ≤ **4** markers per waypoint | design bounds, frozen so a generator can size its output |
 
-**The `"arc"` gap, stated out loud so it is not mistaken for an oversight.** shulib has no arc verb.
-Blended/spline trajectories are a real item on shulib's roadmap, and when one lands, `"arc"` is
-**added as a new value** — which is an ADDITIVE change under the versioning contract in §6 and costs
-your parser nothing. Do not emit `"arc"` before then; a reader that meets an unknown `motion` refuses
-the route by name rather than guessing.
+**The `"arc"` gap, stated out loud so it is not mistaken for an oversight.** The route FILE has no
+arc value yet. Since API 2.7 (chunk CURVE1, 2026-11-11) the library has a curve verb — `curveTo` /
+`reverseCurveTo`, a smooth path through a run of points — but only in code; `"arc"` is **added as a
+new value** in a later step (the curve follower's second part), which is an ADDITIVE change under the
+versioning contract in §6 and costs your parser nothing. Do not emit `"arc"` before then; a reader that
+meets an unknown `motion` refuses the route by name rather than guessing.
 
 ### 4.2 The command-id rule — the keystone of the whole no-code story
 

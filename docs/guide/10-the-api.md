@@ -163,12 +163,24 @@ CHECK(ok.completedLegs == 3);
 ```
 
 Gotchas: options (including the timeout) apply **per leg**, not to the whole chain. The robot
-*stops at every waypoint* — this is the documented v1 motion model (smooth, non-stop blending
-through waypoints is future work; see [Chapter 14](14-what-it-cannot-do-yet.md)) — so a
-five-waypoint trajectory pays five settle times. For now, fewer+farther waypoints beat
-many+close ones. Waypoints are validated up front: one bad (non-finite) pose anywhere rejects
+*stops at every waypoint* — that is what this verb does (rolling from one step into the next is
+not offered; see [Chapter 14](14-what-it-cannot-do-yet.md)) — so a five-waypoint trajectory pays
+five settle times: fewer+farther waypoints beat many+close ones, or flow through them with
+`curveTo` (next). Waypoints are validated up front: one bad (non-finite) pose anywhere rejects
 the whole call *before the robot moves an inch*, rather than driving three legs and then
 throwing.
+
+### `curveTo(points, options)` / `reverseCurveTo(points, options)` — flow through points
+
+One smooth path from where the robot is, along its nose, through up to 16 points (`{x, y}` or
+`{x, y, heading}` — a heading is the robot's NOSE, also backwards), without stopping at them, and
+an ordinary `moveTo` at the end (since chunk CURVE1, appended to the frozen facade by its additive
+path). Refused before the robot moves — `TimedOut`, one Warn naming why — when its first point is
+more than 90° off the nose or the path doubles back; stopped when the robot loses the path. The
+`.timeout` covers the WHOLE curve. The full story, the run-up a sideways miss needs, and how it is
+tuned are in [Chapter 5](05-getting-there.md#flowing-through-points-curves); a recipe with its
+fallback is in the [cookbook](../cookbook/01-getting-there.md#flow-through-points-a-curve-and-its-fallback).
+The same two words are Routine steps ([Chapter 9](09-the-recipe-api.md)).
 
 ### `drive(speeds, frame)` — the manual verb
 
@@ -357,7 +369,10 @@ breaking every call site — an intentional piece of freeze-proofing.)
 The chassis-wide defaults live in `ChassisConfig` / `MotionConfig`
 ([`include/shulib/motion/motion_config.hpp`](../../include/shulib/motion/motion_config.hpp)) —
 gains, speed budgets, settle tolerances, the default timeout, and (since API 2.3) the tank
-steering's `tankSteer` knobs, whose `maxSteer = 0` turns it off. Read that header before touching
+steering's `tankSteer` knobs, whose `maxSteer = 0` turns it off (on curves too: no end window to
+wait for, no yaw correction), and (since chunk CURVE1) the curve verbs' `curve` knobs — the
+look-ahead and the bend grip among them ([Chapter 5](05-getting-there.md#flowing-through-points-curves)).
+Read that header before touching
 any of it, and remember: **every number in it is a provisional stand-in** until a real robot is
 measured ([Chapter 14](14-what-it-cannot-do-yet.md)).
 

@@ -54,6 +54,7 @@ so it cannot disagree with the code.
 | [A two-goal side run](01-getting-there.md#a-two-goal-side-run) | Your auton visits several places and does something at each |
 | [A reusable scoring step](01-getting-there.md#a-reusable-scoring-step) | The same three-or-four-step sequence appears more than once |
 | [A waypoint sweep](01-getting-there.md#a-waypoint-sweep) | You want one call to drive a whole path |
+| [Flow through points: a curve, and its fallback](01-getting-there.md#flow-through-points-a-curve-and-its-fallback) | A tank route should pass through a point without stopping and turning there |
 
 ### [2 — When a step fails](02-when-a-step-fails.md)
 

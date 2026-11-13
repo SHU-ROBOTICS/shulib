@@ -30,6 +30,7 @@
 //
 //   verbs      moveTo · strafeTo · turnTo · followTrajectory · drive(speeds, Frame)
 //              brake · hold · wait  (C4 candidates + the D2 addition, all in F6)
+//              curveTo · reverseCurveTo  (chunk CURVE1, appended F6-additively)
 //   control    cancel (panic stop) · waitUntil(pred, timeout)
 //   state      pose · setPose · strafeAuthority · lastExitReason · lastCompleted
 //   Tier 3     scheduler() · deps() — the no-ceiling seam
@@ -63,7 +64,7 @@
 // These are facade-level API behaviour — user code WILL depend on them:
 //
 //  * BLOCKING VERBS: each of moveTo/strafeTo/turnTo/followTrajectory/brake/
-//    hold is async() + waitUntilSettled() on the owned scheduler — it returns
+//    hold (and curveTo/reverseCurveTo, CURVE1) is async() + waitUntilSettled() on the owned scheduler — it returns
 //    only when the motion exits, and CANNOT hang: the motion's own watchdog
 //    bounds it (C1, mutation-proven), including any boot wait; a pacer that
 //    stops advancing the clock trips a loud precondition (C2). The returned
@@ -123,7 +124,8 @@
 //    with HeadingMode::Free targets the heading the robot has at leg start,
 //    so it steers toward an off-line point by at most 15°.
 //    `tankSteer.maxSteer = 0` restores the pre-TANK1 tank's motion exactly.
-//    Nothing of it has run on a robot.
+//    Nothing of it has run on a robot. The curve verbs (below) steer toward a
+//    point ON their own path — the only verbs that do (C1 D12's dated note).
 //
 // ═══ drive(ChassisSpeeds, Frame) — the frame-explicit manual verb ═════════════════
 // The verb a driver-control loop calls every iteration (field-centric or
@@ -159,6 +161,32 @@
 // verb exists now because F6 freezes the VERB SET; a richer Trajectory type
 // arrives as an ADDITIVE overload, never a reshape of this one.
 //
+// ═══ curveTo / reverseCurveTo — the curve follower (chunk CURVE1, F6-additive) ═════
+// Flow THROUGH points instead of stopping at each: r.curveTo({{24_in, 12_in},
+// {48_in, 24_in, 0_deg}}) drives one smooth path from where the robot is, along
+// its nose, through (24, 12), ending at (48, 24) facing 0 deg. Pure pursuit on a
+// smoothed path (motion/curve_follow.hpp, motion/curve_path.hpp), slowing BEFORE
+// each bend; up to 16 points; a heading is ALWAYS the robot's NOSE (also on
+// reverseCurveTo, whose back leads); do not list the robot's own spot.
+//  * STARTS along the nose. Refused before the robot moves (TimedOut, one Warn
+//    naming the point, MotionTimeout): a first point more than 90 deg off the
+//    nose ("turn first: face()" — the library still plans no turn), and a path
+//    that doubles back (points on top of each other, a heading pointing back).
+//  * ENDS as an ordinary moveTo: the last inches are a MoveToPose with TANK1's
+//    steering, judged by the same arrival check and the same per-call
+//    tolerances. A curve stops at its end; rolling into the next step is not
+//    offered.
+//  * STOPS a curve it has lost: 60 deg off the path for 0.25 s (checked until
+//    the end's hand-off, the last 12 in included), or under 1 in of progress
+//    in 0.75 s (not in the last 12 in, where the end is slow on purpose). From
+//    the hand-off on, only the timeout bounds it. The timeout covers the WHOLE
+//    curve and always names CurveTo.
+//  * C1's D12 (the library never aims at a point): by the team lead's ruling
+//    (2026-10-30) these two verbs, and only they, aim at a point a look-ahead
+//    ahead ON THE PATH THE AUTHOR DREW (or its end's line extended) — pure
+//    pursuit. Every other verb is unchanged, bit for bit. Proven on the host
+//    test plant only; the knobs are MotionConfig::curve (PROVISIONAL, HA-246).
+//
 // ═══ Options (per-call, additive-extensible) ══════════════════════════════════════
 // MotionOptions carries the per-call knobs every real auton needs (a slow
 // precise approach leg is table stakes). 0 means "use the config default".
@@ -187,6 +215,8 @@
 #include "shulib/math/pose2d.hpp"
 #include "shulib/math/twist2d.hpp"
 #include "shulib/motion/command_pipeline.hpp"
+#include "shulib/motion/curve_follow.hpp"
+#include "shulib/motion/curve_path.hpp"
 #include "shulib/motion/drive_brake.hpp"
 #include "shulib/motion/hold_pose.hpp"
 #include "shulib/motion/motion.hpp"
@@ -198,6 +228,11 @@
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::chassis {
+
+/// One point of a curve verb (curveTo / reverseCurveTo): `{x, y}` or `{x, y, heading}` — the
+/// motion layer's motion::CurvePoint, named here so an auton never needs the motion namespace
+/// (and, in braces, never names the type at all). CURVE1, F6-additive.
+using CurvePoint = motion::CurvePoint;
 
 /// Everything configurable about a Chassis, in one place. Both members are
 /// the lower layers' own config types passed through WHOLE — so an additive
@@ -241,8 +276,9 @@ struct MotionOptions {
     /// that speed: it stops dead on the host test plant, and how far a real robot
     /// coasts after it is unmeasured (A4: HA-216). Read by every verb whose motion
     /// reads the translation settle — moveTo, driveTo / reverseTo (through moveTo),
-    /// each followTrajectory leg, strafeTo, and hold() (Settled iff within it when
-    /// the hold window ends); turnTo / face / faceAway and brake() ignore it.
+    /// each followTrajectory leg, strafeTo, hold() (Settled iff within it when
+    /// the hold window ends), and curveTo / reverseCurveTo (through the curve's end
+    /// moveTo — CURVE1); turnTo / face / faceAway and brake() ignore it.
     /// Validated finite and >= 0. (APPENDED at STEP1-A, after the frozen three, so
     /// every designated initializer keeps compiling.)
     units::Length positionTolerance{0.0};
@@ -253,8 +289,9 @@ struct MotionOptions {
     /// defaults): looser loosens the distance AND the turn-rate bound in
     /// proportion (5° → 1.31 rad/s, about 75°/s), tighter tightens only the
     /// distance (a smaller rate bound could sit inside the IMU's noise and never
-    /// settle — motion_config.hpp's header). Read by turnTo / face / faceAway and
-    /// by every MoveToPose-engine verb above (each also settles its heading);
+    /// settle — motion_config.hpp's header). Read by turnTo / face / faceAway, by
+    /// every MoveToPose-engine verb above (each also settles its heading), and by
+    /// curveTo / reverseCurveTo (through the curve's end moveTo — CURVE1);
     /// brake() ignores it. A math::Angle, so it is written 2_deg like every
     /// heading — and so it is wrapped: a negative value, or one that WRAPS to a
     /// negative one (359_deg stores −1°), is refused at the call, never read as a
@@ -407,6 +444,41 @@ public:
         return followTrajectory(std::span<const math::Pose2d>{waypoints.begin(),
                                                               waypoints.size()},
                                 options);
+    }
+
+    // ── the curve verbs (chunk CURVE1; appended, F6-additive — header: curveTo) ─────────
+
+    /// Drive a SMOOTH path from where the robot is, along its nose, through `points` (FIELD
+    /// inches; 1 to 16; `{x, y}` or `{x, y, heading}` — a heading is the robot's NOSE), without
+    /// stopping at them, and END like moveTo at the last point (header: curveTo). Refuses before
+    /// moving — TimedOut, one Warn naming the point — a first point more than 90 deg off the nose
+    /// ("turn first: face()") or a path that doubles back; stops a curve it has lost. Options as
+    /// on moveTo (the timeout covers the WHOLE curve; the arrival tolerances reach its end).
+    /// Preconditions, checked before anything moves: 1 to 16 points, every x and y finite.
+    control::ExitReason curveTo(std::span<const CurvePoint> points,
+                                const MotionOptions& options = {}) {
+        return runCurve(points, options, false);
+    }
+
+    /// Brace-list convenience: curveTo({{24_in, 12_in}, {48_in, 24_in, 0_deg}}).
+    control::ExitReason curveTo(std::initializer_list<CurvePoint> points,
+                                const MotionOptions& options = {}) {
+        return curveTo(std::span<const CurvePoint>{points.begin(), points.size()}, options);
+    }
+
+    /// curveTo with the robot's BACK leading the whole way. Every heading is still the robot's
+    /// NOSE (a robot backing into a spot facing 0 deg ends with `0_deg`, not 180): writing the
+    /// direction of travel makes the path double back, and it is refused.
+    control::ExitReason reverseCurveTo(std::span<const CurvePoint> points,
+                                       const MotionOptions& options = {}) {
+        return runCurve(points, options, true);
+    }
+
+    /// Brace-list convenience: reverseCurveTo({{-12_in, 30_in}, {-36_in, 36_in, 0_deg}}).
+    control::ExitReason reverseCurveTo(std::initializer_list<CurvePoint> points,
+                                       const MotionOptions& options = {}) {
+        return reverseCurveTo(std::span<const CurvePoint>{points.begin(), points.size()},
+                              options);
     }
 
     // ── the parking + pacing verbs (C4 candidates; adopted into F6 at D2) ──────────
@@ -610,6 +682,24 @@ private:
         const control::ExitReason reason = sched_.waitUntilSettled();
         guard.disarm();
         return reason;
+    }
+
+    /// The curve verbs' one body (CURVE1): the options and EVERY point checked before any motion
+    /// (atomic, like followTrajectory), then one CurveFollow on this stack — the blocking verb's
+    /// shape. No MotionOptions field of its own: the curve's knobs are MotionConfig::curve.
+    control::ExitReason runCurve(std::span<const CurvePoint> points, const MotionOptions& options,
+                                 bool reverse) {
+        options.validate();
+        SHULIB_PRECONDITION(!points.empty() && points.size() <= motion::kMaxCurvePoints,
+                            "Chassis::curveTo: a curve takes 1 to 16 points (a longer route is "
+                            "two curves)");
+        for (const CurvePoint& p : points) {
+            SHULIB_PRECONDITION(std::isfinite(p.x.value()) && std::isfinite(p.y.value()),
+                                "Chassis::curveTo: every point's x and y must be finite");
+        }
+        motion::CurveFollow m{sched_.deps(), points, effectiveConfig(options),
+                              options.timeout.value(), reverse};
+        return runBlocking(m);
     }
 
     /// The per-call config: the chassis config with any nonzero option

@@ -16,7 +16,7 @@
 > by a compile-time signature pin
 > ([`test/routine_signature_pin_test.cpp`](../../test/routine_signature_pin_test.cpp)) that
 > fails the build if a spelling drifts. New steps arrive *additively* — and that path has since
-> been used for real, four times. First `RoutineStopCause` gained an **appended** `MechanismFailed`,
+> been used for real, five times. First `RoutineStopCause` gained an **appended** `MechanismFailed`,
 > which is a minor version bump (2.0 → 2.1), not a breaking change: existing enumerator *values*
 > are pinned and only the end of the list grows, so if you `switch` exhaustively, add the new
 > case. Then, at 2.4, two new **steps** were appended, `reverseTo` and `faceAway` (below), with
@@ -28,6 +28,8 @@
 > way — `onFail(...)` and `label(...)`, an appended `MechanismNotStarted` (one more `switch` case) and
 > six appended `RoutineResult` fields ([below](#choosing-what-a-failure-does-onfail-and-label)) —
 > and it was **pinned the day it landed**, because the route maker generates code against it.
+> And with chunk CURVE1 (after 2.6), two more **steps** were appended in one block, `curveTo` and
+> `reverseCurveTo` ([below](#the-steps)), pinned the day they landed, nothing else changing shape.
 > **Not frozen:** `then()`, deliberately — and, until a decision still open, the mechanism steps,
 > the second constructor and `lastMechanism()` (the Freeze Register's F10 row gives both readings;
 > they are not pinned meanwhile). `then()` is the seam mechanisms plug
@@ -93,7 +95,7 @@ RoutineResult firstRecipe(Chassis& chassis) {
 Read it out loud: start here, drive there, approach slowly, slide sideways, face the corner,
 hold, park. The test that compiles this listing also asserts what the prose claims: all seven
 steps succeed, six of them are motions (`startAt` only seeds the pose estimate), and the
-robot genuinely ends within an inch of the last target — measured on the simulator's ground
+robot genuinely ends within an inch of the last target — measured on the host test plant's ground
 truth, which the robot's own estimate never sees.
 
 Everything you learned in chapter 8 still applies underneath: the per-call options struct
@@ -118,6 +120,8 @@ verb's full behavior and gotchas, and they all apply verbatim.
 | `face(x, y, opts)` | Rotates in place to *face* a field point (the bearing, computed when the step runs) | `turnTo` |
 | `faceAway(x, y, opts)` | Rotates in place to turn its *back* to a field point (the bearing + 180°) — the turn before a `reverseTo` | `turnTo` |
 | `followTrajectory({…}, opts)` | Drives waypoints as chained moves; a leg that fails stops it | `followTrajectory` |
+| `curveTo({…}, opts)` | Drives ONE smooth path through up to 16 points without stopping at them, and ends like a `moveTo` — refused before it moves if its first point is more than 90° off the nose ([Chapter 5](05-getting-there.md#flowing-through-points-curves)) | `curveTo` |
+| `reverseCurveTo({…}, opts)` | The same, backing: the robot's BACK leads; every heading is still the NOSE's | `reverseCurveTo` |
 | `brake(opts)` | Controlled stop: 0 V under brake until the estimate certifies rest | `brake` |
 | `hold(duration, opts)` | Actively holds the current pose against disturbance | `hold` |
 | `pause(duration)` | Waits, motors idle — the "wait for your partner" beat | `wait` |

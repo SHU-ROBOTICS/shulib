@@ -53,6 +53,7 @@
 namespace {
 
 using shulib::chassis::Chassis;
+using shulib::chassis::CurvePoint;
 using shulib::chassis::MotionOptions;
 using shulib::chassis::Routine;
 using shulib::chassis::RoutineResult;
@@ -176,6 +177,42 @@ SHULIB_F10_PIN(F10FaceAway<Routine>,
                "Routine::faceAway(Length, Length, const MotionOptions&) -> Routine& "
                "(appended at L9, API 2.4)");
 
+// CURVE1 (API 2.7): the four curve steps, APPENDED in routine.hpp's one block "CURVE1: curves" and
+// pinned the day they land, in the shape of their facade verbs (span + brace form, forward and
+// reverse). ADDED pins only.
+template <typename R>
+concept F10CurveSpan = requires {
+    static_cast<R& (R::*)(std::span<const CurvePoint>, const MotionOptions&)>(&R::curveTo);
+};
+SHULIB_F10_PIN(F10CurveSpan<Routine>,
+               "Routine::curveTo(span<const CurvePoint>, const MotionOptions&) -> Routine& "
+               "(appended at CURVE1)");
+
+template <typename R>
+concept F10CurveBraces = requires {
+    static_cast<R& (R::*)(std::initializer_list<CurvePoint>, const MotionOptions&)>(&R::curveTo);
+};
+SHULIB_F10_PIN(F10CurveBraces<Routine>,
+               "Routine::curveTo({...}, const MotionOptions&) -> Routine& (appended at CURVE1)");
+
+template <typename R>
+concept F10ReverseCurveSpan = requires {
+    static_cast<R& (R::*)(std::span<const CurvePoint>, const MotionOptions&)>(
+        &R::reverseCurveTo);
+};
+SHULIB_F10_PIN(F10ReverseCurveSpan<Routine>,
+               "Routine::reverseCurveTo(span<const CurvePoint>, const MotionOptions&) -> "
+               "Routine& (appended at CURVE1)");
+
+template <typename R>
+concept F10ReverseCurveBraces = requires {
+    static_cast<R& (R::*)(std::initializer_list<CurvePoint>, const MotionOptions&)>(
+        &R::reverseCurveTo);
+};
+SHULIB_F10_PIN(F10ReverseCurveBraces<Routine>,
+               "Routine::reverseCurveTo({...}, const MotionOptions&) -> Routine& (appended at "
+               "CURVE1)");
+
 // The template step, pinned through an exact instantiation — the deduced
 // signature including the typed timeout and the defaulted step name.
 using PredPtr = bool (*)();
@@ -265,6 +302,23 @@ SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().faceAway(std::declval<Length>()
                                                           std::declval<Length>(),
                                                           std::declval<const MotionOptions&>()),
                         "Routine::faceAway");
+
+// CURVE1's four steps: each reaches the facade's preconditions (1..16 finite points, the options),
+// so a noexcept would turn a NaN point into std::terminate.
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().curveTo(std::declval<std::span<const CurvePoint>>(),
+                                                         std::declval<const MotionOptions&>()),
+                        "Routine::curveTo(span)");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().curveTo(std::declval<std::initializer_list<CurvePoint>>(),
+                                                         std::declval<const MotionOptions&>()),
+                        "Routine::curveTo({...})");
+SHULIB_F10_NOT_NOEXCEPT(
+    std::declval<Routine&>().reverseCurveTo(std::declval<std::span<const CurvePoint>>(),
+                                            std::declval<const MotionOptions&>()),
+    "Routine::reverseCurveTo(span)");
+SHULIB_F10_NOT_NOEXCEPT(
+    std::declval<Routine&>().reverseCurveTo(std::declval<std::initializer_list<CurvePoint>>(),
+                                            std::declval<const MotionOptions&>()),
+    "Routine::reverseCurveTo({...})");
 
 // ── the whole-chain verdict (every one noexcept — see the header note) ────────────
 template <typename R>
@@ -456,6 +510,16 @@ concept F10TerseSpellingsReversed = requires(R& r, Length l) {
 };
 SHULIB_F10_PIN(F10TerseSpellingsReversed<Routine>,
                "the defaulted spellings reverseTo(x, y) and faceAway(x, y)");
+
+// CURVE1's steps' defaulted spellings (brace form, no options) — their own concept, so the pins
+// above stay byte-for-byte what they were.
+template <typename R>
+concept F10TerseSpellingsCurves = requires(R& r, Length l, Angle a) {
+    { r.curveTo({CurvePoint{l, l}, CurvePoint{l, l, a}}) } -> std::same_as<R&>;
+    { r.reverseCurveTo({CurvePoint{l, l, a}}) } -> std::same_as<R&>;
+};
+SHULIB_F10_PIN(F10TerseSpellingsCurves<Routine>,
+               "the defaulted spellings curveTo({...}) and reverseCurveTo({...})");
 
 // ── NEGATIVE pins: typed time is a FROZEN SEMANTIC, not just a signature ──────────
 // A bare double where a duration belongs must stay uncompilable. Adding an

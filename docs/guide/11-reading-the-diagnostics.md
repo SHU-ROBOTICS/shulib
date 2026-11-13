@@ -127,6 +127,13 @@ duration, whatever the outcome:
   there whether or not the steering is switched on (`maxSteer = 0`), and like `over` and `drift`
   it comes from the high-rate record stream — with that stream off, the column is left out rather
   than filled with a made-up number.
+- **A curve's line** (`CurveTo#…` or `ReverseCurveTo#…`, since chunk CURVE1) reads the same way
+  against the curve's END: `final(…)` against the end pose, ` xt` off the END's line (through the
+  last point along its heading). Read ` xt` and the end error for a curve — `over` is measured
+  along the straight START-to-END chord, which means little for a curve that bends (on a hairpin,
+  nothing at all). A `CurveTo` that **timed out with ` xt` above 0.5 in** reached its end off the
+  end's line — usually too little run-up for the sideways miss it started with
+  ([Chapter 5's run-up rule](05-getting-there.md#a-sideways-miss-what-a-curve-fixes-and-from-how-far)).
 
 ## The run summary
 
@@ -254,6 +261,32 @@ worth recognizing on sight:
   `moveTo` did before API 2.3 and will most likely time out. Fix: `face()` the point (or
   `turnTo` the heading) before this leg — for a `reverseTo` that backs in, `faceAway()` it,
   since the turn it needs is the one that puts the robot's back to the point ([Ch. 9](09-the-recipe-api.md)).
+- **A curve's own lines** (tag `MOT`, chunk CURVE1 — [Ch. 5](05-getting-there.md#flowing-through-points-curves)):
+  - Info, once per curve, when it starts: `curve: 4 points, 143.4 in, tightest bend 7.4 in radius,
+    bends at <= 21 in/s` — the points driven through, the path's length, its tightest bend and the
+    planned speed there (`no bend` for a straight one). Before it, if you listed the robot's own
+    spot: `curve: point 1 is 0.4 in from the robot -- dropped; do not list the start`.
+  - Warn, a curve REFUSED before it moves (the step fails `✗TIMEOUT`, the robot never moved):
+    `curve not driven: its first point is 150 deg off the robot's heading (at most 90) -- turn
+    first: face()` (on a `reverseCurveTo` it is the robot's BACK: `curve not driven: its first
+    point is 180 deg off the robot's back (at most 90) -- turn first: faceAway()`); or, naming the
+    point, `curve not driven: point 2 doubles back: its direction is
+    180 deg from the path into or out of it (at most 90) -- a heading is the robot's NOSE, also
+    backwards`, `... point 2 is 0.99 in from the point before it (at least 1.0)`, `... point 1 is
+    where the robot already is (0.6 in away) -- do not list the start`, `... point 1 has no
+    direction: the points either side of it are 0.00 in apart -- give it a heading`, `... no point
+    left to drive to -- do not list the start`.
+  - Warn, driven but warned: `curve: tightest bend 4.0 in -- tighter than the look-ahead can follow;
+    expect it to cut the corner`.
+  - Warn, the curve STOPPED because the robot lost the path (`✗TIMEOUT`, `MOTION_TIMEOUT` raised):
+    `curve lost: heading 71 deg off the path for 0.25 s` or `curve lost: 0.4 in of progress in 0.75
+    s` — a dead or blocked side, or a push. The heading one is checked until the curve hands its
+    last inches to the end `moveTo` (the last 12 in included); the progress one never fires in the
+    last 12 in, where the end is slow on purpose. After the hand-off only the `.timeout` stops it.
+  - Warn, the end handed over unsteered: `curve end: 21.1 deg off the end heading at the end of the
+    path (steers within 15.0) -- unsteered; more run-up, a gentler last bend or a lower speed into
+    it` — the robot reached the end of the path still turned too far for the end's steering; the
+    end runs, unsteered, and usually times out a little off the line.
 - **Boot-window guard** (Warn, tag `CHS`): `field-frame drive() before the estimate is live:
   commanding zero until it is` — a field-relative manual command arrived before the sensors
   were up ([Ch. 10](10-the-api.md)).

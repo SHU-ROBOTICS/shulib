@@ -54,6 +54,13 @@
 // skipPendingTo) — test/routine_signature_pin_test.cpp. The context constructor also learns the
 // auton's run guard (when the context has a `guard`); it stays unpinned, as at MECH-A4.
 //
+// THE CURVE STEPS (chunk CURVE1, 2026-11; the same additive path, in ONE delimited block below,
+// "CURVE1: curves") are PINNED the day they land, like L9's: curveTo / reverseCurveTo, each a span
+// and a brace-list overload (four steps), each exactly one Chassis call through motionStep — a
+// non-Settled curve is a MotionFailed stop (or carries on / skips under onFail), its verdict in
+// RoutineResult::exit. No new stop cause: a refused start and a lost curve are motion failures
+// whose Warn names them. Partway triggers (chunk STEP1-B, later) will not cover curves at first.
+//
 // NOT frozen, deliberately: **then()** — its accepted return types and its
 // `name` default were left out of F10 because they were chosen before
 // mechanisms existed; chunk F1 then filled the seam (a fourth accepted return
@@ -115,6 +122,9 @@
 // reverseTo leg, which starts as far off its heading as the robot's BACK is
 // turned from the point: 180° from a robot facing the point (not steered),
 // about 0 after driving straight out from it (steered, no faceAway() needed).
+// To flow THROUGH points instead of stopping at each, a tank route writes
+// curveTo / reverseCurveTo (CURVE1, the block below) — the one place the library
+// steers toward a point, and only toward one on the path the author drew.
 // Dropping from Tier 2 to Tier 3 is deleting the Routine object and keeping
 // every verb.
 //
@@ -432,7 +442,8 @@ public:
     /// (C1's honesty: tank verbs never plan turns — face() is YOUR turn); it is
     /// also what makes the leg steerable — a tank moveTo steers back onto its
     /// line only when the leg starts within 15° of its target heading, and logs
-    /// "turn first: face()" when it does not (chassis.hpp: TANK STEERING).
+    /// "turn first: face()" when it does not (chassis.hpp: TANK STEERING). To flow
+    /// through points instead of stopping at each, curveTo (CURVE1).
     Routine& driveTo(units::Length x, units::Length y, const MotionOptions& options = {}) {
         if (skipIfStopped("driveTo")) {
             return *this;
@@ -531,6 +542,35 @@ public:
                                                               waypoints.size()},
                                 options);
     }
+
+    // ═══ CURVE1: curves — BEGIN (API 2.7, F10-additive; pinned) ══════════════════════════════
+    /// Drive one SMOOTH path from where the robot is, along its nose, through `points` without
+    /// stopping at them, ending like moveTo at the last (Chassis::curveTo): `{x, y}` or
+    /// `{x, y, heading}`, 1 to 16 points, a heading is the robot's NOSE, never list the robot's own
+    /// spot. A refused curve (first point behind the robot, a path that doubles back) or a lost one
+    /// fails the step like any drive — its Warn names why. (CURVE1.)
+    Routine& curveTo(std::span<const CurvePoint> points, const MotionOptions& options = {}) {
+        return motionStep("curveTo", [&] { return chassis_->curveTo(points, options); });
+    }
+
+    /// Brace-list convenience: r.curveTo({{24_in, 12_in}, {48_in, 24_in, 0_deg}}).
+    Routine& curveTo(std::initializer_list<CurvePoint> points, const MotionOptions& options = {}) {
+        return curveTo(std::span<const CurvePoint>{points.begin(), points.size()}, options);
+    }
+
+    /// curveTo with the robot's BACK leading (Chassis::reverseCurveTo). Every heading is still
+    /// the NOSE's: backing into a spot facing 0 deg ends with `0_deg`. (CURVE1.)
+    Routine& reverseCurveTo(std::span<const CurvePoint> points, const MotionOptions& options = {}) {
+        return motionStep("reverseCurveTo",
+                          [&] { return chassis_->reverseCurveTo(points, options); });
+    }
+
+    /// Brace-list convenience: r.reverseCurveTo({{-12_in, 30_in}, {-36_in, 36_in, 0_deg}}).
+    Routine& reverseCurveTo(std::initializer_list<CurvePoint> points,
+                            const MotionOptions& options = {}) {
+        return reverseCurveTo(std::span<const CurvePoint>{points.begin(), points.size()}, options);
+    }
+    // ═══ CURVE1: curves — END ═════════════════════════════════════════════════════════════
 
     /// Controlled stop: 0 V under Brake until the estimate certifies rest
     /// (Chassis::brake — a C4 candidate adopted into F6 at D2).

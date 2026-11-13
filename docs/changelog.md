@@ -14,6 +14,66 @@
 > after the fact from those comments and the project records; everything above it was
 > written when the change landed.
 
+## API 2.7
+
+### 2026-11-12 (built 2026-11-11) — curves: `curveTo` / `reverseCurveTo`, the robot flows through points instead of stopping at each
+
+> Written when it was built (chunk CURVE1, part A). **API 2.7** — numbered by the coordinator at the merge
+> (STEP1-B, built beside it, takes the next). Every change is
+> ADDITIVE, on the additive paths of the frozen rows F6 and F10: **every 2.6 program compiles and runs
+> exactly as before** — a six-leg route of today's verbs on a tank (TANK1 live) and on an X-drive hashes
+> byte-identical (records, log lines, true pose) to the tree before this change. **Host test plant only —
+> nothing here has run on a robot;** the curve's tuning (look-ahead, bend grip), its guards and its
+> run-up rule are register entries HA-246..HA-250. [Chapter 5](guide/05-getting-there.md#flowing-through-points-curves)
+> teaches it; [cookbook 1](cookbook/01-getting-there.md#flow-through-points-a-curve-and-its-fallback) has
+> the recipe and its fallback.
+
+**ADDED (Freeze Register row F6, the facade's additive path; pinned the day they land):**
+
+- **`Chassis::curveTo(points, options)`** and **`Chassis::reverseCurveTo(points, options)`**, each with a
+  `std::span<const CurvePoint>` and a brace-list overload: one smooth path from where the robot is,
+  along its nose (its back, reversing), through 1 to 16 points, without stopping at them — **pure
+  pursuit** (aim along the arc to the point 8 in ahead on the path) with TANK1's yaw observer, a speed
+  plan that slows BEFORE each bend (`sqrt(bendAccel / curvature)`, capped by the turn-rate budget,
+  braking back from every bend and from the end), and an END that is an ordinary `MoveToPose` (TANK1's
+  steering, the same arrival check, STEP1-A's per-step tolerances, the same log). Refused before the
+  robot moves (`TimedOut`, `MOTION_TIMEOUT`, one Warn naming why): a first point more than 90° off the
+  nose ("turn first: face()"), and a path that doubles back (points within 1 in, a headingless point
+  between two that coincide, any direction more than 90° from the chord into or out of it). Stopped
+  when the robot loses the path: 60° off it for 0.25 s (checked until the end's hand-off, the last 12 in
+  included), or under 1 in of progress in 0.75 s (not in the last 12 in). The timeout covers the WHOLE
+  curve and always names `CurveTo` / `ReverseCurveTo`.
+- **`chassis::CurvePoint`** (= `motion::CurvePoint`) — `{x, y}` or `{x, y, heading}`; **a heading is the
+  robot's NOSE, also backwards.** Its two constructors and four members are pinned; there is
+  deliberately no default constructor.
+
+**ADDED (Freeze Register row F10, the Routine's additive path; pinned):** the four steps
+**`Routine::curveTo`** / **`Routine::reverseCurveTo`** (span + brace list), in one block, each exactly
+one Chassis call: a refused or lost curve is a `MotionFailed` stop — or carries on / skips under
+`onFail`; the deadline always stops it.
+
+**ADDED (not frozen):** `motion/curve_path.hpp` — the PURE path (`CurvePath`, `checkCurve`,
+`appendCurveCheckWords`, `kMaxCurvePoints`, `kCurveMinSpacing`), callable from a host tool with no robot
+(the route preview draws the planned curve with it); `motion/curve_follow.hpp` — the motion
+(`CurveFollow`, `curveStatus()`, `curveYawObserverStep`); **`MotionConfig::curve`** (`CurveConfig`,
+14 PROVISIONAL knobs, appended last — designated initializers keep compiling; `validate()` checks it).
+
+**On the host test plant** (2026-11-12, measured on the built code after its review): the brief's 17
+drivable routes × a side 0 / 9 / 15 % weaker × motor lag 0 / 0.12 / 0.18 s settle 16 16 12 / 16 16 16 /
+13 17 16 per cell, every miss within 0.9 in, with **no guard trip** in 153 runs and no "turn first" Warn;
+the speed plan holds the bend grip everywhere on the path, into every point included; a dead side stops
+within 2.7 s (dying at 0.1–0.8 s, either side);
+**a sideways miss up to 6 in is removed from 2½ ft of run-up, up to 1 ft from 3 ft** (nose within 20°,
+a side up to 9 % weaker, lag to 0.18 s — every one of 180 runs within 0.5 in and 1.15° of the end pose;
+closer than that, the curve runs out its timeout, at most 1.5 in off in this test: write `face` +
+`driveTo` + `turnTo` there). The library never backs up and retries on its own.
+
+**What you must do:** nothing. To use curves, write them behind a flag that stays `false` until the curve
+has passed on your robot (`constexpr bool kUseCurves = false;` — the cookbook recipe), and give each a
+`.timeout` near its real time. TANK1's off switch (`tankSteer.maxSteer = 0`) also switches off the curve's
+yaw correction and its wait for the end's steering window. A robot file that lists `MotionConfig` members
+positionally (none in this repository does) would see one more member at the end.
+
 ## API 2.6
 
 ### 2026-11-11 (built 2026-11-11) — "shulib Tune": live tuning of a robot's mechanisms on the brain screen

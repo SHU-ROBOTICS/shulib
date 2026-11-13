@@ -287,7 +287,7 @@ Unpacked, that is three separate limits:
 
 - **Proven on the host plant, four ways:** a motion that never settles, a mechanism that
   never confirms, a wait whose condition never comes true, and a fault-abort cascade each
-  end with the caller's end action performed, judged against the simulator's ground truth
+  end with the caller's end action performed, judged against the host test plant's ground truth
   with the match limit driven by a clock the guard never touches. That is a real property
   of the *scheduling* — it is not a claim that a real robot's 6-second park fits a
   6-second runway. Until phase R4 measures real loop rates and call latencies, your lead
@@ -305,7 +305,7 @@ Unpacked, that is three separate limits:
   second part: a wait on a mechanism operation that registered its claim ends one pace after
   the deadline, because the guard cuts the OPERATION it waits on (Chapter 9, the same
   section).
-- **"Zero travel after the deadline" is a simulator result, not a robot one.** The host
+- **"Zero travel after the deadline" is a host-test-plant result, not a robot one.** The host
   measurement is exactly 0.0 inches, and it is real — but it holds because the guard
   refuses the next command *before* the world advances **and** because the simulated
   drivetrain is memoryless: it stops the instant the voltage does. A real robot has mass.
@@ -314,7 +314,7 @@ Unpacked, that is three separate limits:
   produce it. Budget your lead time for a robot that is still moving when the command
   stops.
   There is a second difference that matters more on a field than it does here: **on a real
-  brain, time passes whether or not your code calls into shulib.** In the simulator the
+  brain, time passes whether or not your code calls into shulib.** On the host test plant the
   clock only advances when the pacer steps it, so the deadline is never "missed" while
   something else runs. On hardware, both the cut and the hard floor can only fire when your
   code next re-enters the library — which is the same limit as the bullet above, seen from
@@ -434,9 +434,18 @@ promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
 Deliberate v1 boundaries, documented where they bind (each is on the roadmap or the
 [master plan's frontier list](../shulib-v2-master-plan.md#15-the-one-stop-shop-capability-catalog-past--present--future)):
 
-- **Stop-and-settle only**: trajectories settle at every waypoint
-  ([Chapter 10](10-the-api.md)); no blended, non-stop waypoint traversal, no curved profiled
-  segments. Measured cost: about 1.2 s per motion.
+- **Curves exist; rolling through steps does not.** Since chunk CURVE1, `curveTo` /
+  `reverseCurveTo` drive one smooth path through up to 16 points without stopping at them
+  ([Chapter 5](05-getting-there.md#flowing-through-points-curves)) — pure pursuit, proven on the
+  host test plant only. A curve still STOPS at its end, and two steps in a row (two curves, a curve
+  then a `driveTo`) stop between them: rolling from one step into the next at speed ("motion
+  chaining") is not offered. `followTrajectory` still settles at every waypoint
+  ([Chapter 10](10-the-api.md)); measured cost of a stop: about 1.2 s per motion. No timed,
+  profiled trajectory (RAMSETE and the like) either — it needs the drive's measured speed constants.
+- **A tank cannot remove a sideways miss in a short distance** — not with `moveTo`, and not with a
+  curve started too close: a curve needs about 2½ ft of run-up along the end's line for a miss up
+  to 6 in, 3 ft up to 1 ft ([Chapter 5's run-up rule](05-getting-there.md#a-sideways-miss-what-a-curve-fixes-and-from-how-far)).
+  The library does not back up and retry by itself: it cannot see behind the robot.
 - **No motion profiles on the main verbs yet** (trapezoidal velocity planning exists in
   `control/` but isn't wired into the drive's `moveTo`; a mechanism's moves use it since the
   mechanism core's third part — [chapter 18](18-mechanisms.md)).
@@ -545,7 +554,7 @@ demonstrated.
 Still genuinely not built, per the [diagnostics plan](../diagnostics-plan.md): the live telemetry
 wire to VexBuilder, record/replay-as-regression-test, and the on-brain status screen (the
 *brain's* screen — distinct from the controller screen, which exists). Live watching still needs
-a USB tether or the simulator.
+a USB tether or the host test plant.
 
 ## And the meta-limitation
 

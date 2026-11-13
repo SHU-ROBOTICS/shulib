@@ -95,7 +95,8 @@ struct TankSteerConfig {
     /// out from about 40, a cliff the author cannot see, so keep it well under 30 (HA-179).
     /// 0 turns the steering off entirely: a tank's moveTo then moves, records and ends exactly as
     /// it did before TANK1, bit for bit (its result line keeps TANK1 Part B's ` xt` column, a
-    /// report kept whatever maxSteer is). Must be < pi/2 (a bend of 90 degrees or more would reverse which
+    /// report kept whatever maxSteer is); a curve (CURVE1) then hands off without waiting for a
+    /// window and holds its own yaw correction at 0. Must be < pi/2 (a bend of 90 degrees or more would reverse which
     /// way the robot drives along the line). PROVISIONAL (A4: HA-179).
     double maxSteer = 0.2617993877991494;
     /// Along-track distance over which the bend fades to zero at arrival (in, > 0): the bend is
@@ -135,6 +136,88 @@ struct TankSteerConfig {
                && fin(yawObserverTime) && fin(yawCorrectionLimit) && crossGain >= 0.0
                && maxSteer >= 0.0 && maxSteer < 1.5707963267948966 && fadeDistance > 0.0
                && leadTime >= 0.0 && yawObserverTime > 0.0 && yawCorrectionLimit >= 0.0;
+    }
+};
+
+/// How the curve verbs (Chassis::curveTo / reverseCurveTo — chunk CURVE1, motion/curve_follow.hpp)
+/// follow their path: pure pursuit on a smoothed path, a speed plan that slows BEFORE each bend,
+/// guards that stop a curve the robot has lost, and the hand-off to an ordinary MoveToPose for the
+/// last inches. Read by CurveFollow (and the pure path builder, motion/curve_path.hpp) only — no
+/// other motion reads a field of it, so every other verb is unchanged bit for bit. Every value is
+/// PROVISIONAL (A4: HA-246; the three guard values HA-248) — chosen for ROBUSTNESS on the host test
+/// plant (a weaker side to 15 %, motor lag to 0.18 s), never measured on a robot. Station C tunes
+/// lookAhead and bendAccel on the robot (the team's worksheet).
+///
+/// The hand-off's heading window is deliberately NOT a field here: it is
+/// MotionConfig::tankSteer.maxSteer, read through tankLegEngages() — the function the end's
+/// MoveToPose decides its own steering with — so the two can never disagree. With maxSteer = 0
+/// (TANK1 off) there is no window: the end never steers and never warns.
+struct CurveConfig {
+    /// How far ahead along the path (in) the robot aims: each tick it steers along the arc through
+    /// the path point this far past its closest point. Shorter tracks tighter bends and wobbles more
+    /// under motor lag; longer is steadier and cuts tight bends. A bend tighter than lookAhead / 2 is
+    /// driven but warned about. PROVISIONAL (A4: HA-246).
+    double lookAhead = 8.0;
+    /// The sideways "grip" (in/s^2) a bend may use: the speed limit in a bend of curvature k is
+    /// sqrt(bendAccel / k) (60 in/s^2 is about 0.16 g, gentle). PROVISIONAL (A4: HA-246; the
+    /// tyres' grip itself: HA-247).
+    double bendAccel = 60.0;
+    /// How fast the commanded forward speed may RISE (in/s^2), per tick. PROVISIONAL (A4: HA-246).
+    double accel = 200.0;
+    /// How fast the speed plan slows (in/s^2) — into each bend and to the end of the path (the
+    /// plan's backward pass). PROVISIONAL (A4: HA-246).
+    double decel = 120.0;
+    /// How far ahead along the path (in) the closest-point search looks each tick, from where it
+    /// was the tick before. FORWARD ONLY, and bounded: a path that comes back near itself must never
+    /// make the robot jump to another leg of it. PROVISIONAL (A4: HA-246).
+    double searchWindow = 12.0;
+    /// The end zone (in of path left): inside it the curve may hand the last inches to an ordinary
+    /// MoveToPose, and the no-progress guard is off (the end is slow on purpose). PROVISIONAL
+    /// (A4: HA-246).
+    double handoffDistance = 12.0;
+    /// The clean hand-off's heading window (rad, 5 degrees): within this of the end heading.
+    /// PROVISIONAL (A4: HA-246).
+    double handoffHeading = 0.08726646259971647;
+    /// The clean hand-off's line window (in): within this of the end's line. PROVISIONAL
+    /// (A4: HA-246).
+    double handoffCross = 0.3;
+    /// The last-resort hand-off, as a fraction of handoffDistance (1/3: 4 in of path left), taken
+    /// only once the heading is inside the end MoveToPose's own steering window. In (0, 1].
+    /// PROVISIONAL (A4: HA-246).
+    double handoffLast = 1.0 / 3.0;
+    /// The approach speed toward the end, as a fraction of translation.kP x the path left (a
+    /// gentler P than the end MoveToPose's own, so the hand-off is not a speed step). PROVISIONAL
+    /// (A4: HA-246).
+    double endSpeedGain = 0.6;
+    /// Guard: the robot's direction of travel more than this (rad, 60 degrees) off the path's
+    /// direction for lostTime stops the curve ("curve lost"). PROVISIONAL (A4: HA-248).
+    double lostHeading = 1.0471975511965976;
+    /// Guard: how long (s) the heading must stay past lostHeading. PROVISIONAL (A4: HA-248).
+    double lostTime = 0.25;
+    /// Guard: less than 1 in of progress along the path in this long (s), outside the end zone,
+    /// stops the curve. PROVISIONAL (A4: HA-248).
+    double stuckTime = 0.75;
+    /// The start rule, and the "doubles back" rule at every point (rad, 90 degrees): a curve
+    /// whose first point is more than this off the robot's nose (its back, reversing) is refused,
+    /// and so is any point whose direction is more than this from the chord arriving at it or
+    /// leaving it. PROVISIONAL (A4: HA-246).
+    double maxStartOff = 1.5707963267948966;
+
+    /// Every field finite; the lengths (lookAhead, searchWindow, handoffDistance, handoffCross),
+    /// the accelerations and the times > 0; endSpeedGain > 0; handoffHeading, lostHeading and
+    /// maxStartOff in (0, pi); handoffLast in (0, 1]. MotionConfig::validate() refuses a config
+    /// whose curve fails this. lookAhead < handoffDistance is deliberately NOT required: the
+    /// look-ahead runs on past the path's end along the end's line (curve_path.hpp), so a long
+    /// look-ahead with a short end zone is a legal (if loose) tuning, not a contradiction.
+    [[nodiscard]] bool valid() const noexcept {
+        auto pos = [](double v) { return std::isfinite(v) && v > 0.0; };
+        auto angle = [](double v) {
+            return std::isfinite(v) && v > 0.0 && v < 3.141592653589793;
+        };
+        return pos(lookAhead) && pos(bendAccel) && pos(accel) && pos(decel) && pos(searchWindow)
+               && pos(handoffDistance) && angle(handoffHeading) && pos(handoffCross)
+               && pos(handoffLast) && handoffLast <= 1.0 && pos(endSpeedGain)
+               && angle(lostHeading) && pos(lostTime) && pos(stuckTime) && angle(maxStartOff);
     }
 };
 
@@ -198,17 +281,25 @@ struct MotionConfig {
     /// encoders: the check then never reports a verdict — odo_stall_check.hpp's §2 ruling).
     OdoStallCheckConfig stall{};
 
-    /// Tank steering (chunk TANK1): read by MoveToPose only, and only when the drivetrain's
-    /// strafeAuthority() is exactly 0. `tankSteer.maxSteer = 0` switches it off for every leg
-    /// built from this config. Appended last so every designated initializer of this struct keeps
+    /// Tank steering (chunk TANK1): read by MoveToPose, only when the drivetrain's
+    /// strafeAuthority() is exactly 0, and — since CURVE1 — by CurveFollow (the curve verbs) on
+    /// every drivetrain: maxSteer as the end's steering window, yawObserverTime and
+    /// yawCorrectionLimit for the curve's own yaw observer. `tankSteer.maxSteer = 0` switches it
+    /// off for every leg built from this config, curves included (no window to wait for, the
+    /// curve's yaw correction held at 0). Appended last so every designated initializer of this struct keeps
     /// compiling. PROVISIONAL (A4: HA-179).
     TankSteerConfig tankSteer{};
+
+    /// The curve verbs' knobs (chunk CURVE1): read by CurveFollow only (curveTo /
+    /// reverseCurveTo), on any drivetrain. Appended last, after tankSteer, so every designated
+    /// initializer of this struct keeps compiling. PROVISIONAL (A4: HA-246, HA-248).
+    CurveConfig curve{};
 
     /// Re-check the invariants the motions rely on and RAISE on the first violation:
     /// feedforward and PID gains finite, integral limits non-negative, all FIVE speed /
     /// timeout / geometry scalars strictly positive (maxLinearSpeed, maxAngularSpeed,
     /// maxWheelSpeed, defaultTimeout, rotationRadius — 0 is rejected, never read as
-    /// "unset"), and tankSteer.valid(). Every C1 motion calls this from its own constructor,
+    /// "unset"), tankSteer.valid() and curve.valid(). Every C1 motion calls this from its own constructor,
     /// so it is a backstop rather than a step you can forget — call it yourself only when
     /// validating a config you have not yet handed to a motion.
     /// It deliberately does NOT descend into the SettleConfig or OdoStallCheckConfig
@@ -216,6 +307,7 @@ struct MotionConfig {
     /// them, which is the only place their own invariants are known. It DOES descend into
     /// tankSteer (since TANK1): no other object owns that struct, and MoveToPose reads it on
     /// every tank tick, so this is the one place a bad value can be refused before it steers.
+    /// It descends into curve (since CURVE1) for the same reason: nothing else owns that struct.
     void validate() const {
         auto finiteGains = [](const AxisGains& g) {
             return std::isfinite(g.kP) && std::isfinite(g.kI) && std::isfinite(g.kD)
@@ -243,6 +335,7 @@ struct MotionConfig {
         SHULIB_PRECONDITION(std::isfinite(rotationRadius.value()) && rotationRadius.value() > 0.0,
                             "MotionConfig: rotationRadius must be finite and > 0");
         SHULIB_PRECONDITION(tankSteer.valid(), "MotionConfig: tankSteer invalid");
+        SHULIB_PRECONDITION(curve.valid(), "MotionConfig: curve invalid");
         // SettleConfig / OdoStallCheckConfig fields are validated by their owners
         // (SettledUtil / OdoStallCheck) at construction.
     }

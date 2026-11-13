@@ -65,6 +65,7 @@ namespace {
 
 using shulib::chassis::Chassis;
 using shulib::chassis::ChassisConfig;
+using shulib::chassis::CurvePoint;
 using shulib::chassis::MotionOptions;
 using shulib::chassis::TrajectoryResult;
 using shulib::control::ExitReason;
@@ -141,6 +142,61 @@ concept F6FollowBraces = requires {
 };
 SHULIB_F6_PIN(F6FollowBraces<Chassis>,
               "Chassis::followTrajectory({...}, options) -> TrajectoryResult (brace form)");
+
+// ── CURVE1 (API 2.7, F6-additive): the curve verbs, APPENDED and pinned the day they land ──
+// Four verbs (span + brace form, forward + reverse) and their parameter type, CurvePoint, frozen
+// as the verbs' parameter type: its two constructors and its four members. ADDED pins only.
+template <typename C>
+concept F6CurveSpan = requires {
+    static_cast<ExitReason (C::*)(std::span<const CurvePoint>, const MotionOptions&)>(
+        &C::curveTo);
+};
+SHULIB_F6_PIN(F6CurveSpan<Chassis>,
+              "Chassis::curveTo(span<const CurvePoint>, const MotionOptions&) -> ExitReason");
+
+template <typename C>
+concept F6CurveBraces = requires {
+    static_cast<ExitReason (C::*)(std::initializer_list<CurvePoint>, const MotionOptions&)>(
+        &C::curveTo);
+};
+SHULIB_F6_PIN(F6CurveBraces<Chassis>,
+              "Chassis::curveTo({...}, const MotionOptions&) -> ExitReason (brace form)");
+
+template <typename C>
+concept F6ReverseCurveSpan = requires {
+    static_cast<ExitReason (C::*)(std::span<const CurvePoint>, const MotionOptions&)>(
+        &C::reverseCurveTo);
+};
+SHULIB_F6_PIN(F6ReverseCurveSpan<Chassis>,
+              "Chassis::reverseCurveTo(span<const CurvePoint>, const MotionOptions&) -> "
+              "ExitReason");
+
+template <typename C>
+concept F6ReverseCurveBraces = requires {
+    static_cast<ExitReason (C::*)(std::initializer_list<CurvePoint>, const MotionOptions&)>(
+        &C::reverseCurveTo);
+};
+SHULIB_F6_PIN(F6ReverseCurveBraces<Chassis>,
+              "Chassis::reverseCurveTo({...}, const MotionOptions&) -> ExitReason (brace form)");
+
+SHULIB_F6_PIN((std::is_same_v<CurvePoint, shulib::motion::CurvePoint>),
+              "chassis::CurvePoint == motion::CurvePoint (the alias)");
+SHULIB_F6_PIN((std::is_nothrow_constructible_v<CurvePoint, Length, Length>),
+              "CurvePoint(Length x, Length y) noexcept — a point without a heading");
+SHULIB_F6_PIN((std::is_nothrow_constructible_v<CurvePoint, Length, Length, Angle>),
+              "CurvePoint(Length x, Length y, Angle heading) noexcept — a headed point");
+SHULIB_F6_PIN(!std::is_default_constructible_v<CurvePoint>,
+              "CurvePoint has NO default constructor (it would mean a point at the origin)");
+
+template <typename T>
+concept F6CurvePointMembers = requires {
+    requires std::is_same_v<decltype(T::x), Length>;
+    requires std::is_same_v<decltype(T::y), Length>;
+    requires std::is_same_v<decltype(T::heading), Angle>;
+    requires std::is_same_v<decltype(T::hasHeading), bool>;
+};
+SHULIB_F6_PIN(F6CurvePointMembers<CurvePoint>,
+              "CurvePoint { Length x; Length y; Angle heading; bool hasHeading; }");
 
 template <typename C>
 concept F6Brake = requires {
@@ -274,6 +330,14 @@ SHULIB_F6_NOT_NOEXCEPT(
     std::declval<Chassis&>().followTrajectory(std::declval<std::span<const Pose2d>>(),
                                               std::declval<const MotionOptions&>()),
     "Chassis::followTrajectory(span)");
+SHULIB_F6_NOT_NOEXCEPT(
+    std::declval<Chassis&>().curveTo(std::declval<std::span<const CurvePoint>>(),
+                                     std::declval<const MotionOptions&>()),
+    "Chassis::curveTo(span)");
+SHULIB_F6_NOT_NOEXCEPT(
+    std::declval<Chassis&>().reverseCurveTo(std::declval<std::span<const CurvePoint>>(),
+                                            std::declval<const MotionOptions&>()),
+    "Chassis::reverseCurveTo(span)");
 SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().brake(std::declval<const MotionOptions&>()),
                        "Chassis::brake");
 SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().hold(std::declval<Time>(),
@@ -404,6 +468,8 @@ concept TerseSpellingsStillCompile = requires(C& c, const Pose2d& p, Length l, A
     { c.followTrajectory({p, p}) } -> std::same_as<TrajectoryResult>;
     { c.brake() } -> std::same_as<ExitReason>;
     { c.hold(t) } -> std::same_as<ExitReason>;
+    { c.curveTo({CurvePoint{l, l}, CurvePoint{l, l, a}}) } -> std::same_as<ExitReason>;
+    { c.reverseCurveTo({CurvePoint{l, l, a}}) } -> std::same_as<ExitReason>;
 };
 SHULIB_F6_PIN(TerseSpellingsStillCompile<Chassis>,
               "the defaulted MotionOptions spellings (moveTo(pose) etc.)");

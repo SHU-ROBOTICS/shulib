@@ -257,11 +257,37 @@ Time lateralBudget(Chassis& chassis, Length distance, double safety) {
     return Time{safety * std::abs(distance.value()) / reach};
 }
 
+
+// cookbook-01d (CURVE1): flowing through points, and the fallback the team writes with every curve.
+constexpr bool kUseCurves = false;  // OFF until the curve has passed its robot session (Station C)
+
+Routine& toTheGoal(Routine& r, bool useCurves) {
+    if (useCurves) {
+        r.curveTo({{24_in, 12_in}, {48_in, 24_in, 0_deg}}, {.timeout = 4_s});
+    } else {
+        r.face(48_in, 24_in).driveTo(48_in, 24_in, {.timeout = 4_s}).turnTo(0_deg);
+    }
+    return r;
+}
+
+RoutineResult curveThereAndBack(Chassis& chassis, bool useCurves) {
+    Routine r{chassis, "curves"};
+    toTheGoal(r, useCurves);
+    if (useCurves) {
+        r.reverseCurveTo({{24_in, 12_in}, {0_in, 0_in, 0_deg}}, {.timeout = 4_s});
+    } else {
+        r.faceAway(0_in, 0_in).reverseTo(0_in, 0_in, {.timeout = 4_s}).turnTo(0_deg);
+    }
+    return r.result();
+}
+
+// The call in the skills file: the one switch decides every curve in it.
+RoutineResult skillsOpening(Chassis& chassis) { return curveThereAndBack(chassis, kUseCurves); }
 }  // namespace
 
 // ═══════════════════════════════════════════════════════════════════════════════════
 // The cases. Every one runs its recipe against the plant and grades it on the
-// simulator's GROUND TRUTH, which the robot's own estimate never sees.
+// host test plant's GROUND TRUTH, which the robot's own estimate never sees.
 // ═══════════════════════════════════════════════════════════════════════════════════
 
 // Bug caught: the cookbook's opening claim — "this is the shape of every
@@ -355,6 +381,70 @@ TEST_CASE("cookbook-01c: a waypoint sweep, and what a broken sweep leaves you") 
 // energized after the stop, or the fallback chain silently doing nothing. Also
 // pins the confusing-but-documented detail the chapter warns about: a
 // non-motion stop leaves `exit` at Running.
+// Bug caught: a recipe that shows the curve verbs wrong — the S not settling at the goal facing 0,
+// the backwards curve not coming back with the NOSE still at 0 (its heading is the nose), the
+// fallback (today's face + driveTo + turnTo) not reaching the same pose, or a curve left OUTSIDE the
+// switch (with kUseCurves false it would still run, untested on the robot). On a TANK, as both
+// robots are.
+TEST_CASE("cookbook-01d: flowing through points — a curve, a backwards curve, and the fallback") {
+    for (const bool useCurves : {kUseCurves, true}) {
+        CAPTURE(useCurves);
+        shulib::kinematics::TankKinematics tank{12_in};
+        motion_rig::ChassisRig c{tank};
+        Routine r{c.chassis, "goal"};
+        toTheGoal(r, useCurves);
+        CHECK(r.ok());
+        CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{48_in, 24_in, 0_deg}) < 0.5);
+        CHECK(std::abs(c.rig.h.truePose().heading().errorTo(0_deg)) < 0.02);
+    }
+    // Every curve that runs logs its plan line ("curve: 2 points, ...") when it starts — count them.
+    auto curveLines = [](const shulib::hal::fake::FakeTelemetrySink& s) {
+        int n = 0;
+        for (int i = 0; i < s.size(); ++i) {
+            n += s.at(i).message.rfind("curve", 0) == 0 ? 1 : 0;
+        }
+        return n;
+    };
+    {
+        shulib::kinematics::TankKinematics tank{12_in};
+        shulib::hal::fake::FakeTelemetrySink sink;
+        motion_rig::ChassisRig c{tank, motion_rig::plantConfig(), &sink};
+        const RoutineResult res = curveThereAndBack(c.chassis, true);
+        CHECK(res.ok);
+        CHECK(res.completed == 2);
+        CHECK(curveLines(sink) >= 2);  // the counter below SEES a curve's lines (not vacuous)
+        CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{}) < 0.5);
+        CHECK(std::abs(c.rig.h.truePose().heading().errorTo(0_deg)) < 0.02);  // backed in, nose at 0
+    }
+    // The switch as shipped (false): the WHOLE routine is today's steps — not one curve runs, there
+    // or back (a curve left outside the `if` would run untested on the robot) — and it still gets
+    // there and back.
+    static_assert(!kUseCurves, "the recipe ships with curves OFF");
+    shulib::kinematics::TankKinematics tank{12_in};
+    shulib::hal::fake::FakeTelemetrySink sink;
+    motion_rig::ChassisRig c{tank, motion_rig::plantConfig(), &sink};
+    const RoutineResult res = skillsOpening(c.chassis);
+    CHECK(res.ok);
+    CHECK(res.completed == 6);  // face, driveTo, turnTo; faceAway, reverseTo, turnTo
+    CHECK(curveLines(sink) == 0);
+    CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{}) < 0.5);
+    CHECK(std::abs(c.rig.h.truePose().heading().errorTo(0_deg)) < 0.02);
+}
+
+// Bug caught: guide 05's two curve lines (quoted verbatim from here) going stale — the S not ending
+// at (48, 24) facing 0, or the backwards curve, whose last heading is the NOSE, not ending facing 0.
+TEST_CASE("guide-05: the two curve lines of Chapter 5, on a tank") {
+    shulib::kinematics::TankKinematics tank{12_in};
+    motion_rig::ChassisRig c{tank};
+    Routine r{c.chassis, "guide-05"};
+    r.curveTo({{24_in, 12_in}, {48_in, 24_in, 0_deg}});         // through (24, 12), end at (48, 24) facing 0°
+    CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{48_in, 24_in, 0_deg}) < 0.5);
+    r.reverseCurveTo({{-12_in, 30_in}, {-36_in, 36_in, 0_deg}});  // backing, still FACING 0° at the end
+    CHECK(r.ok());
+    CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{-36_in, 36_in, 0_deg}) < 0.5);
+    CHECK(std::abs(c.rig.h.truePose().heading().errorTo(0_deg)) < 0.02);
+}
+
 TEST_CASE("cookbook-02a: bail out when a grab fails — and park somewhere useful") {
     const auto kin = shulib::kinematics::xDrive(7_in);
     auto simCfg = motion_rig::plantConfig();

@@ -159,6 +159,8 @@ nav:
           - Wall reset call: api/wall_reset_call.md
       - Motion:
           - Command pipeline: api/command_pipeline.md
+          - Curve follow: api/curve_follow.md
+          - Curve path: api/curve_path.md
           - Drive brake: api/drive_brake.md
           - Hold pose: api/hold_pose.md
           - Motion: api/motion.md
