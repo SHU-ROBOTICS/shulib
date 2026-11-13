@@ -204,7 +204,8 @@ validation measures them.
 
 The V5 package (compiles and links the real ARM binary; uploading needs a V5 brain and
 [pros-cli](https://pros.cs.purdue.edu/v5/getting-started/)). The default build is the bench
-tester for the measured bench robot; `make ROBOT=tank PROGRAM=…` builds robot two's programs.
+tester for the measured bench robot; `make ROBOT=tank PROGRAM=…` builds robot two's programs, and
+`make ROBOT=… PROGRAM=tune` "shulib Tune" (slot 7) for any robot with mechanisms.
 Remember that no program here has steered a robot yet:
 
 ```sh
@@ -329,11 +330,13 @@ src/                the robot programs, one folder per job (every include writte
                     robot::Robot, with its MAIN / DETAILS / MORE pages), shulib Calibrate, the
                     X-drive's program, shulib Auton Tester (runs one of the team's autons on the
                     bench from the brain's screen, through the competition program's own call —
-                    guide chapter 16) and shulib Competition (THE program for a match: the auton
+                    guide chapter 16), shulib Competition (THE program for a match: the auton
                     chosen on the brain's menu runs in autonomous() on the program's own task,
-                    then driver control runs the team's driver file — guide chapter 17); this
-                    shulib Drive, the Auton Tester and Competition have not run on a robot yet,
-                    and no X-drive robot exists
+                    then driver control runs the team's driver file — guide chapter 17) and
+                    shulib Tune (slot 7: live tuning of the mechanisms on the brain screen, for
+                    any robot with mechanisms — guide chapter 18); this shulib Drive, the Auton
+                    Tester, Competition and Tune have not run on a robot yet, and no X-drive
+                    robot exists
   common/           what the programs share: the boot source, the state screens, the screen
                     text path and the painters (the selector, the refusal screen), the
                     fault-latch hook, every driver file's plumbing (driver_file.hpp) and the

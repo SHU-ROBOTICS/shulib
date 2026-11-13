@@ -103,8 +103,18 @@ else
 $(error unknown ROBOT '$(ROBOT)' — valid values: bench (default), xdrive, tank)
 endif
 
+# ── THE ROBOTS WITH MECHANISMS (TUNE1-B1, 2026-11-10) ──
+# The ROBOT values whose mechanism table (src/robots/mechanism_table.hpp, mechanismTableFor()) is NOT
+# empty — the robots "shulib Tune" (PROGRAM=tune, below) can be built for. A robot that registers a
+# mechanism table adds its ROBOT value HERE (and its chain branch in src/build_selection.hpp); the tune
+# row itself names no robot. tools/src_build_gate.py's step 0 derives the same set from the table file
+# and FAILS when this list says otherwise (a robot listed with no mechanisms, or one with mechanisms
+# missing), and src/programs/tune_program.cpp's static_assert stops a Tune build of an empty table.
+MECHANISM_ROBOTS:=tank
+
 # ── WHICH PROGRAM? (R3b Part 0b, 2026-09-10 — the second build axis; third value at Parts 1–3) ──
-# PROGRAM selects which program a robot-two build is (what its PROS entry points run):
+# PROGRAM selects which program a build is (what its PROS entry points run) — robot two's, and `tune`
+# for any robot in MECHANISM_ROBOTS (above):
 #     make ROBOT=tank                   → PROGRAM=tester — "Bench Tests": the read-only tester with its
 #                                         gated DRIVE station (slot 3, `pros upload --slot 3`)
 #     make ROBOT=tank PROGRAM=drive     → "shulib Drive" (T4 Part 3, 2026-10-01; it REPLACED the
@@ -153,7 +163,12 @@ endif
 #                                         /usd/comp_log.txt (src/programs/competition_program.cpp;
 #                                         slot 6 — slot 5 is held for the team's old-code fallback,
 #                                         T4 Part 0). It has not run on a robot.
-# Five programs in five slots rather than one program with a chooser (team lead's ruling): the
+#     make ROBOT=<a robot in MECHANISM_ROBOTS> PROGRAM=tune → "shulib Tune" (TUNE1-B1, 2026-11-11):
+#                                         LIVE TUNING of the robot's MECHANISMS on the brain screen
+#                                         — never the drive (include/shulib/mechanism/tune_program.hpp
+#                                         through src/programs/tune_program.cpp; slot 7; its row
+#                                         below). It has not run on a robot.
+# Six programs in six slots rather than one program with a chooser (team lead's ruling): the
 # operator picks a program by NAME from the brain's slot list, and a program called Drive that
 # hides the tester behind a timeout is one more thing to explain at a field.
 # `drive`, `calibrate`, `autontest` and `competition` are only meaningful on robot two — `drive`
@@ -163,8 +178,8 @@ endif
 # driver file) are robot two's and only robot two boots from a calibration record; so any of the
 # four with any other ROBOT is an $(error), not a program that refuses at boot. Any other PROGRAM
 # value is an $(error) too — the same silent-no-op class GATE1 closed for ROBOT — and so is the
-# RETIRED `library`, by name. tools/src_build_gate.py builds this axis as its fourth to seventh
-# entries (tank-drive, tank-calibrate, tank-autontest, tank-competition), asserts each define
+# RETIRED `library`, by name. tools/src_build_gate.py builds this axis as its fourth to eighth
+# entries (tank-drive, tank-calibrate, tank-autontest, tank-competition, tank-tune), asserts each define
 # lands token-exact and the beacons are in the ELF, and fails the retired define or beacon
 # anywhere.
 PROGRAM?=tester
@@ -192,8 +207,19 @@ ifneq ($(ROBOT),tank)
 $(error PROGRAM=competition needs ROBOT=tank — the team's autons and driver file are robot two's; '$(ROBOT)' has neither)
 endif
 override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_COMPETITION
+else ifeq ($(PROGRAM),tune)
+# "shulib Tune" (TUNE1-B1, 2026-11-10): LIVE TUNING of the robot's MECHANISMS on the brain screen
+# (include/shulib/mechanism/tune_program.hpp, through src/programs/tune_program.cpp; slot 7,
+# `pros upload --slot 7 --name "shulib Tune"`). It makes ONLY the mechanisms, never the drive. ROBOT-
+# GENERIC (the MECH-S/TUNE1 brief's re-check #10): accepted for ANY robot in MECHANISM_ROBOTS (above),
+# never a robot-two-only row — a robot gets Tune by registering its mechanism table. It has not run on
+# a robot.
+ifeq ($(filter $(ROBOT),$(MECHANISM_ROBOTS)),)
+$(error PROGRAM=tune needs a ROBOT whose mechanism table is not empty — '$(ROBOT)' declares no mechanism (src/robots/mechanism_table.hpp), and the Tune program builds ONLY mechanisms; robots with mechanisms: $(MECHANISM_ROBOTS))
+endif
+override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_TUNE
 else
-$(error unknown PROGRAM '$(PROGRAM)' — valid values: tester (default), drive, calibrate, autontest, competition)
+$(error unknown PROGRAM '$(PROGRAM)' — valid values: tester (default), drive, calibrate, autontest, competition, tune)
 endif
 
 # Pin the language standards to ones arm-none-eabi-gcc 13.2 accepts. The PROS template's common.mk

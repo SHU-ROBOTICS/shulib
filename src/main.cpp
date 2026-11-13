@@ -35,16 +35,19 @@
 //                                                           src/robots/calibrate_facts.hpp
 //   make ROBOT=tank PROGRAM=competition "shulib Competition" src/programs/competition_program.cpp
 //                                                           + src/team/ (slot 6; slot 5 is held)
+//   make ROBOT=<a robot with mechanisms> PROGRAM=tune
+//                                      "shulib Tune"        src/programs/tune_program.cpp       (slot 7)
+//                                                           + include/shulib/mechanism/tune_program.hpp
 //   (PROGRAM=library — "shulib Teleop", slot 2 until T4 Part 3 — is RETIRED: an $(error) naming
 //    the retirement; its diagnostics are "shulib Drive"'s DETAILS page.)
 //   make ROBOT=xdrive                  the INVENTED X-drive src/programs/xdrive_program.cpp
 //                                                           + src/robots/xdrive_config.hpp (HA-111)
-// Five programs in five slots (1 Drive, 2 Auton Tester, 3 Bench Tests, 4 Calibrate, 6 Competition)
+// Six programs in six slots (1 Drive, 2 Auton Tester, 3 Bench Tests, 4 Calibrate, 6 Competition, 7 Tune)
 // rather than one program with a chooser (the team lead's ruling,
 // R3b Part 0b): the operator picks a program by NAME from the brain's slot list. Every .cpp under
 // src/ compiles into every build; the linker's --gc-sections drops what the selected program never
 // calls. The ROBOT is set by the same branch (kRobotId): the bench build carries the bench bot's
-// tables, the five tank builds robot two's, the xdrive build the invented X-drive's -- an UNSET
+// tables, the six tank builds robot two's, the xdrive build the invented X-drive's -- an UNSET
 // chassis table and no mechanisms (src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp
 // select them from kRobotId).
 //
@@ -78,6 +81,7 @@
 #include "programs/calibrate_program.hpp"
 #include "programs/competition_program.hpp"
 #include "programs/drive_program.hpp"
+#include "programs/tune_program.hpp"
 #include "common/fault_latch_hook.hpp"
 #include "common/state_screens.hpp"
 #include "programs/xdrive_program.hpp"
@@ -168,6 +172,9 @@ void initialize() {
         case Program::Competition:
             shulib::bench::competitionInitialize(kVariantBeacon, bootStatusBits(bits, sizeof bits));
             return;
+        case Program::Tune:
+            shulib::bench::tuneInitialize(kVariantBeacon, bootStatusBits(bits, sizeof bits));
+            return;
     }
 }
 
@@ -182,6 +189,7 @@ void disabled() {
     switch (kProgram) {
         case Program::BenchTests:
         case Program::Drive:
+        case Program::Tune:
             shulib::bench::benchStateScreen(
                 "DISABLED", "VEXos reports the robot DISABLED, so the driver task is not running.");
             return;
@@ -207,6 +215,7 @@ void competition_initialize() {
     switch (kProgram) {
         case Program::BenchTests:
         case Program::Drive:
+        case Program::Tune:
             shulib::bench::benchStateScreen(
                 "FIELD CONTROL CONNECTED",
                 "A competition switch or field is connected through the controller.");
@@ -260,6 +269,11 @@ void autonomous() {
         case Program::Competition:
             shulib::bench::competitionAutonomous();
             return;
+        case Program::Tune:
+            shulib::bench::benchStateScreen(
+                "AUTONOMOUS",
+                "No motion here, ever: Tune moves mechanisms only under driver control, with no field.");
+            return;
     }
 }
 
@@ -293,6 +307,9 @@ void opcontrol() {
             return;
         case Program::Competition:
             shulib::bench::runCompetition();
+            return;
+        case Program::Tune:
+            shulib::bench::runTune();  // returns on a disable (every mechanism released); PROS calls it again
             return;
     }
 }

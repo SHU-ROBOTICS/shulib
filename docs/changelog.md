@@ -16,6 +16,42 @@
 
 ## API 2.6
 
+### 2026-11-11 (built 2026-11-11) — "shulib Tune": live tuning of a robot's mechanisms on the brain screen
+
+> Written when it was built (chunk TUNE1-B1). **No version bump — every change is ADDITIVE and nothing in
+> it is a frozen surface:** three new headers and a new program. **No other program changes:** the match
+> programs (Competition, Drive, the Auton Tester) and every other build link no live-tuning code — the src
+> build gate now checks it from each package's symbols. **Host only — nothing here has run on a robot.**
+> [Chapter 18](guide/18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen) teaches it;
+> [Chapter 11](guide/11-reading-the-diagnostics.md) reads its lines.
+
+- **`mechanism/tune_program.hpp` (new)** — `mechanism::TuneProgram`, the PROS-free program: it makes ONLY
+  the robot's mechanisms (never the drive), and only after READY; binds one service over a `LiveTuning` copy
+  of the table; a TEST A / TEST B move per mechanism (presets, or a quarter and three quarters of the
+  range; a flywheel's speeds; a power run), bounded by its plan's time ×2 + settle + 0.5 s (at most 10 s),
+  and its report from the samples (`tuneReportFrom()`: overshoot, settle, peak, final error, the hold
+  current over the second after it settled, the stall-above-hold and cap-above-peak warnings); HOME; the
+  left stick as a jog (a fresh push only); UNDO, RESET, COPY (a block for every mechanism changed — and EXIT
+  copies whatever no COPY carried yet); every mechanism released on ANY controller button, the controller
+  disconnecting, a field or switch, a disable or STOP; READY refused without a controller, with a field or a
+  button held; a mechanism's first motion behind a second confirm; every current cap it changed written back
+  on RESET, on leaving that mechanism's page (its numbers COPIED first) and on EXIT (a RESET, copied first,
+  when the cap cannot go back alone); an UNDO whose next undo would change ANOTHER mechanism's cap waits
+  (nothing changes; UNDO it on that mechanism's page). `copyChanged()`, `uncopied()`, `copiedAtExit()`,
+  `resetAtExit()`, `undoTrackedDepth()`.
+  `tunePositionBound()`, `tuneTargets()`, `tuneTestLabel()`, `TuneIo`, `TuneDevices`, the `kTune*` constants.
+- **`mechanism/tune_panel.hpp` (new)** — the screen as a pure model: `tuneView()` builds every page (CLEAR,
+  TUNE, CONFIRM, REPORT, STRING CHECK — empty until the snapped-string watch —, EXITED, STOPPED) from
+  `TuneFacts`; `tuneHit()`; `TuneView`, `TuneReport` (with why a hold is n/a: `holdEnded`, `holdStopped`),
+  `TuneButton`, `TunePage`.
+- **`hal/pros/tune.hpp` (new)** — the PROS shell: `ProsTuneShell` (the provider with its SD copy
+  `/usd/tune_log.txt` APPENDED across boots, the screen, the master controller, the status),
+  `tuneInitialize()`, `runTune()`.
+- **The program (`src/programs/tune_program.{hpp,cpp}`)**: `make ROBOT=<a robot with mechanisms>
+  PROGRAM=tune`, slot 7 — the first ROBOT-generic program row (the Makefile's `MECHANISM_ROBOTS`; a robot
+  with none is refused by `make`). The src build gate gains the `tank-tune` build (eight in all), a `[tune-row]`
+  check and step 8's live-tuning half, with self-test cases 42-49.
+
 ### 2026-11-11 (built 2026-11-10) — live tuning's library: a mechanism's numbers changed while the robot runs, inside the build's own rules, undone, and copied back out as the lines its robot file needs
 
 > Written when it was built (chunk TUNE1-A — the library half of live tuning; "shulib Tune", the program

@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 5,678 of them across 201 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 5,928 of them across 204 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -231,6 +231,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Optical (PROS)](pros-optical.md) | [`hal/pros/optical.hpp`](../../include/shulib/hal/pros/optical.hpp) | ProsOptical — IOptical over pros::Optical (chunk R1b): the game-object color/proximity confirmation sensor behind the HAL. |
 | [Rotation (PROS)](pros-rotation.md) | [`hal/pros/rotation.hpp`](../../include/shulib/hal/pros/rotation.hpp) | ProsRotation — IRotation over pros::Rotation (chunk R1a): the tracking-wheel pods behind the HAL. |
 | [Tick pacer (PROS)](pros-tick_pacer.md) | [`hal/pros/tick_pacer.hpp`](../../include/shulib/hal/pros/tick_pacer.hpp) | ProsTickPacer — motion::ITickPacer over pros::Task::delay_until (chunk R1a): the ONLY seam that regains control mid-motion on the robot, replacing main.cpp's V5DelayPacer (which had to hand-advance a FakeClock). |
+| [Tune (PROS)](pros-tune.md) | [`hal/pros/tune.hpp`](../../include/shulib/hal/pros/tune.hpp) | hal/pros/tune — "shulib Tune" on a V5 brain (chunk TUNE1-B1, 2026-11-10; the MECH-S/TUNE1 brief's D7 (a), §1.3): the THIN shell that hands mechanism::TuneProgram the robot's real devices. |
 
 ### Core
 
@@ -298,6 +299,8 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Route ids](route_ids.md) | [`mechanism/route_ids.hpp`](../../include/shulib/mechanism/route_ids.hpp) | mechanism/route_ids.hpp — EVERY MECHANISM'S ACTIONS AS ROUTE IDS, automatically (the mechanism core, chunk MECH-A1, 2026-10-08; the team lead's ruling of 2026-10-08, MECH-PANEL-requirements §4 item 7b: "an arm's presets as arm_stow, arm_score; an intake's i… |
 | [Service](service.md) | [`mechanism/service.hpp`](../../include/shulib/mechanism/service.hpp) | mechanism/service.hpp — THE MECHANISM SERVICE: one object, ticked once per control tick, that runs every mechanism's behaviour. |
 | [Spec](spec.md) | [`mechanism/spec.hpp`](../../include/shulib/mechanism/spec.hpp) | mechanism/spec.hpp — ONE MECHANISM AS DATA, and THE BUILD CHECK. |
+| [Tune panel](tune_panel.md) | [`mechanism/tune_panel.hpp`](../../include/shulib/mechanism/tune_panel.hpp) | mechanism/tune_panel.hpp — "shulib Tune"'s brain screen as a PURE MODEL: what each page says, where each button is, which touches mean something (chunk TUNE1-B1, 2026-11-10; the MECH-S/TUNE1 brief's D7 (a) and D8 (a), with its re-check amendments #3, #7, #8… |
+| [Tune program](tune_program.md) | [`mechanism/tune_program.hpp`](../../include/shulib/mechanism/tune_program.hpp) | mechanism/tune_program.hpp — "shulib Tune", the program that tunes a robot's MECHANISMS on the brain (chunk TUNE1-B1, 2026-11-10; the MECH-S/TUNE1 brief's D7 (a) and D8 (a), with its re-check amendments #3, #7, #8, #10 and #14). |
 | [Until](until.md) | [`mechanism/until.hpp`](../../include/shulib/mechanism/until.hpp) | mechanism/until.hpp — WHEN A STEP IS DONE: a power step's done-conditions. |
 | [Wiring](wiring.md) | [`mechanism/wiring.hpp`](../../include/shulib/mechanism/wiring.hpp) | mechanism/wiring.hpp — THE BINDING (the mechanism core, chunk MECH-A1, 2026-10-08): which port each ROLE is plugged into, a block of the robot file SEPARATE from the declarations, compiled in (P2; the team lead's Q1 (a): the binding lives only in the robot… |
 
@@ -348,7 +351,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 5,678 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 5,928 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

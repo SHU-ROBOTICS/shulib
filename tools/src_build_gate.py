@@ -2,7 +2,8 @@
 """src build gate — src/ compiles AND links for the V5, every robot variant (GATE1; third
 variant at R3b Session 2; a second axis, the PROGRAM, at R3b Part 0b; its third value, the
 LIBRARY program, at R3b Parts 1–3 — RETIRED at T4 Part 3; its fourth, the CALIBRATE program, at
-R3d Part 2; its fifth, the AUTON TESTER, at COMP-t; its sixth, the COMPETITION program, at COMP-b).
+R3d Part 2; its fifth, the AUTON TESTER, at COMP-t; its sixth, the COMPETITION program, at COMP-b; its
+seventh, "shulib TUNE", at TUNE1-B1 — the first ROBOT-GENERIC row).
 
 WHY THIS EXISTS
 ---------------
@@ -56,9 +57,20 @@ $(error))
                                          (src/programs/competition_program.cpp); slot 6
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_COMPETITION
+  tank-tune   ROBOT=tank PROGRAM=tune    "shulib Tune" (TUNE1-B1): LIVE TUNING of the robot's
+                                         MECHANISMS on the brain screen — the library's program
+                                         (include/shulib/mechanism/tune_program.hpp) over the build's
+                                         mechanism table (src/programs/tune_program.cpp); slot 7. It
+                                         makes ONLY mechanisms, never the drive
+                                                              -DSHULIB_ROBOT_TANK_2026
+                                                              -DSHULIB_PROGRAM_TUNE
   (PROGRAM=drive, =calibrate, =autontest or =competition with any other ROBOT is a Makefile
    $(error): only robot two has a driver file and a calibration record, only a tank can be
-   calibrated by this procedure, and the team's autons and driver file are robot two's.)
+   calibrated by this procedure, and the team's autons and driver file are robot two's.
+   PROGRAM=tune is the first ROBOT-GENERIC row (the MECH-S/TUNE1 brief's re-check #10): accepted for
+   ANY robot in the Makefile's MECHANISM_ROBOTS — the robots whose mechanism table is not empty — and
+   an $(error) naming why for any other. Its row names no robot; step 0's [tune-row] check holds
+   MECHANISM_ROBOTS to the table file and requires a tune build here per robot in it.)
   RETIRED (T4 Part 3, 2026-10-01): tank-library, ROBOT=tank PROGRAM=library, "shulib Teleop" —
    replaced by "shulib Drive" (the team lead's ruling R5). `make ROBOT=tank PROGRAM=library` is a
    Makefile $(error) naming the retirement, never a different program under the old name; and
@@ -69,7 +81,7 @@ $(error))
    build's own cases did; those retired onto 10-11, which test the same things for tank-drive).
 
 WHAT `check` DOES, per build (bench, xdrive, tank, tank-drive, tank-calibrate, tank-autontest,
-tank-competition)
+tank-competition, tank-tune)
 --------------------------------------------------------------
  1. Removes bin/ and .d/ (exactly what `make clean` removes; both gitignored, so the
     tree stays clean). make is INCREMENTAL: a gate that compiles nothing reports green,
@@ -98,14 +110,14 @@ tank-competition)
  6. Asserts the IDENTITY BEACONS — two per build.
     THE VARIANT BEACON (R3b Session 2): src/build_selection.hpp defines one string per build —
     `shulib-robot-variant=bench|xdrive|tank|tank-drive|tank-calibrate|tank-autontest|`
-    `tank-competition` —
+    `tank-competition|tank-tune` —
     in THE SAME BRANCH of THE ONE #if chain that sets the program (`kProgram`) and the robot
     (`kRobotId`) — one chain since G1 Part 2c, in that header since 2c's final run, and step 0
     below enforces it — and the program prints it at boot so it is linked in. The expected
-    beacon must be in the bytes of bin/hot.package.elf and the other six — the RETIRED
+    beacon must be in the bytes of bin/hot.package.elf and the other seven — the RETIRED
     `…=tank-library` too — must NOT be. MATCHED
     WITH THE NUL TERMINATOR (Part 0b): `…=tank` is a prefix of `…=tank-drive`,
-    `…=tank-calibrate`, `…=tank-autontest` and `…=tank-competition`, so a plain substring search
+    `…=tank-calibrate`, `…=tank-autontest`, `…=tank-competition` and `…=tank-tune`, so a plain substring search
     would false-fail every one of those; a
     C string literal sits in the ELF with its terminating zero byte, and that is what is
     searched for. This is the end-to-end proof that the `#if` in the SOURCE took the branch the
@@ -136,7 +148,17 @@ tank-competition)
     six builds at 2c, for the seventh at COMP-t, the eighth at COMP-b, and for the new tank-drive
     at T4 Part 3. If any of that stops being true, this step
     FAILS (a program's own name missing, or another's present); it cannot pass silently. What
-    it does NOT see: the
+    LIVE TUNING STAYS OUT OF EVERY OTHER PROGRAM (TUNE1-B1; the MECH-S/TUNE1 brief's D7 (a): "a match
+    runs exactly the numbers in the robot file"): every build whose program is not Tune must link NO
+    live-tuning symbol (LIVE_TUNING_SYMBOL: shulib::mechanism::LiveTuning's and TuneProgram's
+    members, and the bytes of its precondition messages, "LiveTuning::…", which survive the -Os inlining
+    that can leave no member symbol at all — LIVE_TUNING_BYTES) — the brief names the three match programs, Competition, Drive and the Auton Tester;
+    this checks every program but Tune — and a Tune build must link at least one (else the absence
+    above would prove nothing) and NO chassis or Robot symbol (NO_CHASSIS_SYMBOL: the Tune program
+    never builds the drive). Each match program (Drive, Competition, the Auton Tester) must link a
+    chassis symbol, so the no-chassis pattern is seen to match something. Self-test cases 42-49
+    (49: every detector of this half on synthetic ELF contents, no build).
+    What it does NOT see: the
     sentences src/main.cpp paints itself (the DISABLED / FIELD CONTROL reasons and the tester's
     AUTONOMOUS reason are main.cpp's own literals, no program's symbol) — a swap there shows the
     wrong sentence and passes. (Calibrate's three state screens are its own symbols since CAL1
@@ -334,7 +356,8 @@ assigns (step 6's robot beacon) — is read from the package. The self-test plan
 (cases 16-27; SRC1's folders and include root, cases 28-29; the paths a program prints, case 30;
 the seventh build's define and beacon, cases 31-32; a build dropped from VARIANTS alone, case 33;
 the eighth build's define and beacon, cases 34-35; the retired library build, cases 12-13 since
-T4 Part 3; step 9's stdio printers, cases 36-39 since SER1 and 40-41 since its review);
+T4 Part 3; step 9's stdio printers, cases 36-39 since SER1 and 40-41 since its review; the Tune build,
+its robot-generic row and step 8's live-tuning half, cases 42-48 since TUNE1-B1);
 the G1 Part 2c and SRC1 logs
 carry the hand mutations.
 
@@ -414,7 +437,7 @@ ARM_GXX = "arm-none-eabi-g++"
 # chain against them); a build added to one place and not the others fails here, which is the
 # point of having the tables.
 VARIANTS = ("bench", "xdrive", "tank", "tank-drive", "tank-calibrate", "tank-autontest",
-            "tank-competition")
+            "tank-competition", "tank-tune")
 BUILD_ARGS = {
     "bench": ("ROBOT=bench",),
     "xdrive": ("ROBOT=xdrive",),
@@ -423,6 +446,7 @@ BUILD_ARGS = {
     "tank-calibrate": ("ROBOT=tank", "PROGRAM=calibrate"),
     "tank-autontest": ("ROBOT=tank", "PROGRAM=autontest"),
     "tank-competition": ("ROBOT=tank", "PROGRAM=competition"),
+    "tank-tune": ("ROBOT=tank", "PROGRAM=tune"),
 }
 VARIANT_DEFINES = {
     "bench": (),
@@ -432,6 +456,7 @@ VARIANT_DEFINES = {
     "tank-calibrate": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_CALIBRATE"),
     "tank-autontest": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_AUTONTEST"),
     "tank-competition": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_COMPETITION"),
+    "tank-tune": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_TUNE"),
 }
 ALL_DEFINES = sorted({d for ds in VARIANT_DEFINES.values() for d in ds})
 VARIANT_BEACONS = {
@@ -442,6 +467,7 @@ VARIANT_BEACONS = {
     "tank-calibrate": b"shulib-robot-variant=tank-calibrate",
     "tank-autontest": b"shulib-robot-variant=tank-autontest",
     "tank-competition": b"shulib-robot-variant=tank-competition",
+    "tank-tune": b"shulib-robot-variant=tank-tune",
 }
 # (XDRIVE_WIRING_DEAD_IN — the retired variant differential's table — was removed at G1
 #  Part 2c; the header's "the variant differential, retired" says what replaced it and why.)
@@ -468,6 +494,7 @@ BUILD_ROBOT = {
     "tank-calibrate": "RobotTwo",
     "tank-autontest": "RobotTwo",
     "tank-competition": "RobotTwo",
+    "tank-tune": "RobotTwo",
 }
 ROBOT_BEACONS = {
     "BenchBot": b"shulib-robot=bench-bot",
@@ -543,6 +570,7 @@ BUILD_PROGRAM = {
     "tank-calibrate": "Calibrate",
     "tank-autontest": "AutonTester",
     "tank-competition": "Competition",
+    "tank-tune": "Tune",
 }
 PROGRAM_ENTRY_SYMBOLS = {
     "BenchTests": ("shulib::bench::testerInitialize", "shulib::bench::runR3a"),
@@ -557,7 +585,25 @@ PROGRAM_ENTRY_SYMBOLS = {
     "Competition": ("shulib::bench::competitionInitialize", "shulib::bench::competitionDisabled",
                     "shulib::bench::competitionConnected", "shulib::bench::competitionAutonomous",
                     "shulib::bench::runCompetition"),
+    "Tune": ("shulib::bench::tuneInitialize", "shulib::bench::runTune"),
 }
+# Step 8's live-tuning half (header; TUNE1-B1): a symbol of live tuning's — the library's LiveTuning
+# and its Tune program — matched anywhere in a demangled name (a template member reads
+# "void shulib::mechanism::LiveTuning::positionTuningLines<…>"). No program but Tune may link one, and
+# a Tune build must link at least one. The members found in the tank-tune ELF when this was written
+# (2026-11-10): LiveTuning::apply / undo / reset / commit / whatChanged / the copy block's lines, and
+# TuneProgram's step, make, press, render ...
+LIVE_TUNING_SYMBOL = re.compile(r"\bshulib::mechanism::(LiveTuning|TuneProgram)::")
+# ...and, because -Os can INLINE every LiveTuning member a program calls (then no member symbol is left —
+# the self-test's case 44 measured exactly that, 2026-11-11), the BYTES of live tuning's precondition texts
+# ("LiveTuning::reset: attach() the service first"): a precondition's message is a string literal that
+# survives inlining, and no header but mechanism/live_tuning.hpp writes "LiveTuning::" inside a string.
+LIVE_TUNING_BYTES = b"LiveTuning::"
+# ...and a Tune build links no chassis and no Robot (it never builds the drive); every match program
+# links a chassis symbol (the pattern's positive control).
+NO_CHASSIS_SYMBOL = re.compile(r"\bshulib::(chassis::|robot::Robot::)")
+TUNE_PROGRAMS = frozenset({"Tune"})
+CHASSIS_PROGRAMS = frozenset({"Drive", "Competition", "AutonTester"})
 # The shulib::bench:: names src/main.cpp uses that belong to NO single program: the shared
 # state screens, and the fault-latch hook main.cpp defines. Anything else main.cpp names must be
 # in PROGRAM_ENTRY_SYMBOLS, or step 0 reports it.
@@ -1080,6 +1126,99 @@ def build_table_problems():
     return problems
 
 
+# Step 0's [tune-row] check (TUNE1-B1; header, THE BUILDS): the Makefile's MECHANISM_ROBOTS list — the
+# ROBOT values PROGRAM=tune accepts — held to the mechanism table file, the tune row naming no robot
+# (no reading of $(ROBOT) or ${ROBOT} in it but the one list filter and its $(error)'s words — a
+# comparison, a $(filter) of a name, a quoted ifneq all fail; self-test case 47), and a tune build in
+# VARIANTS for every robot the list names.
+MECHANISM_TABLE_FILE = os.path.join("src", "robots", "mechanism_table.hpp")
+_MECHANISM_ROBOTS_LINE = re.compile(r"^MECHANISM_ROBOTS\s*:=(.*)$", flags=re.M)
+_EMPTY_TABLE = re.compile(r"\bconstexpr\s+MechanismTable\s+(\w+)\s*=\s*(?:[\w:]*::)?mechanisms\(\s*\)\s*;")
+_TUNE_ROW = re.compile(r"^else ifeq \(\$\(PROGRAM\),tune\)\n(.*?)^override EXTRA_CXXFLAGS\+=-DSHULIB_PROGRAM_TUNE$",
+                       flags=re.M | re.S)
+_ROBOT_COMPARED = re.compile(r"\(\s*\$\(ROBOT\)\s*,\s*[\w-]+\s*\)|\(\s*[\w-]+\s*,\s*\$\(ROBOT\)\s*\)")
+
+
+def robots_with_mechanisms(repo=None):
+    """The ROBOT values (the Makefile's) whose mechanism table is NOT empty, derived from the table
+    file's selection function (`case RobotId::X: return <table>;`) and its empty tables
+    (`constexpr MechanismTable <name> = mechanisms();`), and from this gate's own BUILD_ARGS and
+    BUILD_ROBOT (which ROBOT value each RobotId is). Returns (set of ROBOT values, problems)."""
+    repo = repo or REPO
+    problems = []
+    code = _strip_comments(_read(repo, MECHANISM_TABLE_FILE))
+    body = re.search(r"mechanismTableFor\s*\(\s*RobotId\b[^)]*\)\s*\{(.*?)\n\}", code, flags=re.S)
+    if not body:
+        return set(), [f"{MECHANISM_TABLE_FILE} has no mechanismTableFor(RobotId) — the [tune-row] check "
+                       f"cannot tell which robots have mechanisms"]
+    cases = re.findall(r"case\s+RobotId::(\w+)\s*:\s*return\s+([\w:]+)\s*;", body.group(1))
+    empty = set(_EMPTY_TABLE.findall(code))
+    robot_value = {}
+    for build, args in BUILD_ARGS.items():
+        robot_args = [a for a in args if a.startswith("ROBOT=")]
+        if len(robot_args) == 1 and build in BUILD_ROBOT:
+            robot_value.setdefault(BUILD_ROBOT[build], robot_args[0].split("=", 1)[1])
+    with_mechanisms = set()
+    for robot_id, table in cases:
+        name = table.rsplit("::", 1)[-1]
+        if name in empty:
+            continue
+        if robot_id not in robot_value:
+            problems.append(f"RobotId::{robot_id} has a mechanism table ({table}) but no build of this "
+                            f"gate names its ROBOT value — add its builds (header, [tune-row])")
+            continue
+        with_mechanisms.add(robot_value[robot_id])
+    if not cases:
+        problems.append(f"{MECHANISM_TABLE_FILE}'s mechanismTableFor() has no case this check can read")
+    return with_mechanisms, problems
+
+
+def tune_row_problems(repo=None):
+    """Step 0's [tune-row] check (header): returns a list of problem strings."""
+    repo = repo or REPO
+    makefile = _read(repo, "Makefile")
+    lines = _MECHANISM_ROBOTS_LINE.findall(makefile)
+    problems = []
+    if len(lines) != 1:
+        return [f"the Makefile sets MECHANISM_ROBOTS {len(lines)} times — exactly once (header, [tune-row])"]
+    listed = set(lines[0].split())
+    derived, problems = robots_with_mechanisms(repo)
+    for r in sorted(listed - derived):
+        problems.append(f"the Makefile's MECHANISM_ROBOTS names '{r}', whose mechanism table is EMPTY (or "
+                        f"which is no ROBOT value) — PROGRAM=tune would build a Tune with nothing to tune "
+                        f"(header, [tune-row])")
+    for r in sorted(derived - listed):
+        problems.append(f"robot '{r}' has a mechanism table but the Makefile's MECHANISM_ROBOTS does not "
+                        f"name it — `make ROBOT={r} PROGRAM=tune` would refuse a robot Tune can tune "
+                        f"(header, [tune-row])")
+    row = _TUNE_ROW.search(makefile)
+    if not row:
+        problems.append("the Makefile has no `else ifeq ($(PROGRAM),tune)` row ending in its "
+                        "-DSHULIB_PROGRAM_TUNE append (header, [tune-row])")
+    else:
+        text = "\n".join(l for l in row.group(1).splitlines() if not l.lstrip().startswith("#"))
+        # ANY reading of $(ROBOT) in the row but the one list filter (and the $(error)'s own words) is a
+        # robot named: `ifneq ($(ROBOT),tank)`, `ifeq ($(filter tank,$(ROBOT)),)`, `ifneq "$(ROBOT)" "tank"`,
+        # `${ROBOT}` — the review round's finding: the pattern alone missed the last three forms
+        allowed = "$(filter $(ROBOT),$(MECHANISM_ROBOTS))"
+        reads = [l for l in text.replace("${ROBOT}", "$(ROBOT)").splitlines()
+                 if "$(ROBOT)" in l.replace(allowed, "") and not l.lstrip().startswith("$(error ")]
+        if _ROBOT_COMPARED.search(text) or reads:
+            problems.append("the Makefile's PROGRAM=tune row compares $(ROBOT) with a robot's name — the "
+                            "tune row names NO robot (the brief's re-check #10: a robot gets Tune by "
+                            "registering its mechanism table) (header, [tune-row])")
+        if "$(filter $(ROBOT),$(MECHANISM_ROBOTS))" not in text:
+            problems.append("the Makefile's PROGRAM=tune row does not refuse a ROBOT outside "
+                            "MECHANISM_ROBOTS (`$(filter $(ROBOT),$(MECHANISM_ROBOTS))`) (header, [tune-row])")
+    for r in sorted(listed):
+        builds = [v for v in VARIANTS if BUILD_ARGS.get(v) == (f"ROBOT={r}", "PROGRAM=tune")]
+        if len(builds) != 1 or BUILD_PROGRAM.get(builds[0]) not in TUNE_PROGRAMS:
+            problems.append(f"robot '{r}' is in MECHANISM_ROBOTS but this gate runs {len(builds)} Tune "
+                            f"build(s) for it — exactly one (`ROBOT={r} PROGRAM=tune`, program Tune) "
+                            f"(header, [tune-row])")
+    return problems
+
+
 def chain_table_problems(repo=None):
     """Step 0's second check (header, "THE CHAIN'S TABLE"): the gate's own tables agree
     (build_table_problems), each branch of the chain is one build's row of them, and
@@ -1383,6 +1522,50 @@ def elf_bench_names(elf, nm):
         elif _NM_OBJECT.fullmatch(name):
             names.add(name)
     return names
+
+
+def elf_defined_names(elf, nm):
+    """Every name DEFINED in a linked ELF, demangled (step 8's live-tuning half)."""
+    p = subprocess.run([nm, "-C", "--defined-only", elf], capture_output=True, text=True,
+                       timeout=120)
+    if p.returncode != 0:
+        raise RuntimeError(f"{ARM_NM} exited {p.returncode}: {p.stderr.strip()}")
+    names = []
+    for line in p.stdout.splitlines():
+        parts = line.split(" ", 2)
+        if len(parts) == 3:
+            names.append(parts[2].strip())
+    return names
+
+
+def tuning_problems(robot, names, elf_bytes=b""):
+    """Step 8's live-tuning half (header) for one build, given every name its ELF defines and its bytes."""
+    prog = BUILD_PROGRAM.get(robot)
+    tuning = sorted({n for n in names if LIVE_TUNING_SYMBOL.search(n)})
+    if LIVE_TUNING_BYTES in elf_bytes:
+        at = elf_bytes.index(LIVE_TUNING_BYTES)
+        text = elf_bytes[at:at + 80].split(b"\0", 1)[0].decode("ascii", "replace")
+        tuning.append(f"the text {text!r} (a LiveTuning precondition's message — its code is linked, inlined)")
+    chassis = sorted({n for n in names if NO_CHASSIS_SYMBOL.search(n)})
+    problems = []
+    if prog in TUNE_PROGRAMS:
+        if not tuning:
+            problems.append(f"build {robot} is the Tune program but bin/hot.package.elf links NO "
+                            f"live-tuning symbol — the check that every other program links none "
+                            f"would prove nothing (step 8)")
+        for n in chassis[:3]:
+            problems.append(f"build {robot} is the Tune program but bin/hot.package.elf links {n} — "
+                            f"the Tune program never builds the drive (step 8)")
+    else:
+        for n in tuning[:3]:
+            problems.append(f"build {robot} is the {prog} program but bin/hot.package.elf links the "
+                            f"live-tuning symbol {n} — only \"shulib Tune\" may carry live tuning; a "
+                            f"match runs exactly the robot file's numbers (step 8)")
+        if prog in CHASSIS_PROGRAMS and not chassis:
+            problems.append(f"build {robot} is the {prog} program but bin/hot.package.elf links no "
+                            f"chassis symbol — the no-chassis pattern the Tune build is held to matches "
+                            f"nothing it should (step 8)")
+    return problems
 
 
 def program_problems(robot, linked):
@@ -1752,6 +1935,7 @@ def verdict(robot, b):
         else:
             try:
                 problems += program_problems(robot, elf_bench_names(elf, nm))
+                problems += tuning_problems(robot, elf_defined_names(elf, nm), elf_bytes)
             except (RuntimeError, OSError, subprocess.SubprocessError) as e:
                 problems.append(f"the program check (step 8) could not read the symbol table: "
                                 f"{e}")
@@ -1811,6 +1995,10 @@ def cmd_check(path_env=None, quiet=False):
     all_problems += chain_problems
     say(f"  [chain-table] {len(VARIANTS)} builds, {len(ROBOT_BEACONS)} robots, "
         f"{'matching' if not chain_problems else 'NOT matching'} {SELECTION_HEADER}'s chain")
+    tune_problems = [f"[tune-row] {p}" for p in tune_row_problems()]
+    all_problems += tune_problems
+    say(f"  [tune-row] the Makefile's MECHANISM_ROBOTS "
+        f"{'is the robots whose mechanism table is not empty, its tune row names no robot, and each has its tune build' if not tune_problems else 'does NOT hold — see below'}")
     table_problems = [f"[program-table] {p}" for p in program_table_problems()]
     all_problems += table_problems
     say(f"  [program-table] {len(PROGRAM_ENTRY_SYMBOLS)} programs, "
@@ -1856,7 +2044,7 @@ def cmd_check(path_env=None, quiet=False):
     say(f"src build gate: PASS (all {len(VARIANTS)} builds link; policy: errors fail, "
         f"vendor warnings path-ignored, {allowed}every other warning fails; defines "
         f"token-exact; one chain picks program and robot; variant and robot beacons asserted; "
-        f"programs asserted; src/'s include root unambiguous; every printed src/ path exists; "
+        f"programs asserted; live tuning only in Tune, Tune with no chassis; src/'s include root unambiguous; every printed src/ path exists; "
         f"no src/ object names stdio's FILEs or calls a stdout/stderr printer)")
     return 0
 
@@ -3204,6 +3392,146 @@ def do_self_test():
             expect(any("bench_r3a.cpp.o" in p and sym in p and "(step 9)" in p
                        for p in problems),
                    f"41: the failure did not name bench_r3a.cpp.o and {sym}: {problems}")
+
+    # ── TUNE1-B1 (2026-11-10): the ninth build, "shulib Tune" — the first ROBOT-GENERIC row ──────────
+    # 42: the Makefile's PROGRAM=tune append DROPPED (`make ROBOT=tank PROGRAM=tune` silently builds the
+    #     tester) -> FAIL on the token-exact structural check AND on the beacon, and step 0's [tune-row]
+    #     check reports the row without its append.
+    tune_line = "override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_TUNE\n"
+    with _replace(MAKEFILE, tune_line, "# (self-test plant: tune append dropped)\n"):
+        expect(any("no `else ifeq ($(PROGRAM),tune)` row" in p for p in tune_row_problems()),
+               "42: step 0 did not report the tune row without its -DSHULIB_PROGRAM_TUNE append")
+        b = run_build("tank-tune")
+        ok, problems = verdict("tank-tune", b)
+        expect(not ok, "42: PROGRAM=tune with its Makefile append dropped PASSED — the silent-no-op "
+                       "class is back for the Tune program")
+        expect(any("whole token -DSHULIB_PROGRAM_TUNE" in p for p in problems),
+               "42: the failure did not name the missing PROGRAM=tune define")
+        expect(any("tank build wearing a tank-tune label" in p for p in problems),
+               "42: the tank-tune beacon's absence was not caught")
+
+    # 43: the real tank-tune build, alone -> PASS (the `…=tank` prefix inside `…=tank-tune` must not
+    #     false-fail; the Tune ELF links live tuning and no chassis; step 0's [tune-row] is clean).
+    b = run_build("tank-tune")
+    ok, problems = verdict("tank-tune", b)
+    expect(ok, f"43: the real tank-tune build FAILED the gate: {problems}")
+    expect(not tune_row_problems(), f"43: step 0's [tune-row] check is not clean on the real tree: "
+                                    f"{tune_row_problems()}")
+
+    # 44: LIVE TUNING PLANTED IN A MATCH PROGRAM (the MECH-S/TUNE1 brief's TB6 / MB5: "a match runs exactly
+    #     the robot file's numbers") — the competition program links a LiveTuning member, reached from its
+    #     initialize() behind a condition no compiler can fold -> step 8 FAILS naming the live-tuning symbol.
+    comp_plant = os.path.join(REPO, "src", "programs", "competition_program.cpp")
+
+    def plant_tuning(text):
+        text = text.replace('#include "robots/mechanism_table.hpp"\n',
+                            '#include "robots/mechanism_table.hpp"\n'
+                            '#include "shulib/mechanism/live_tuning.hpp"  // (self-test plant)\n', 1)
+        return text.replace(
+            "void competitionInitialize(const char* variantBeacon, const char* competitionStatusBits) {\n",
+            "void competitionInitialize(const char* variantBeacon, const char* competitionStatusBits) {\n"
+            "    static volatile bool tunePlantNever = false;  // (self-test plant)\n"
+            "    static shulib::mechanism::LiveTuning tunePlant{kMechanisms};  // (self-test plant)\n"
+            "    if (tunePlantNever) { (void)tunePlant.reset(0); }  // (self-test plant)\n", 1)
+
+    with _transform(comp_plant, plant_tuning):
+        b = run_build("tank-competition")
+        ok, problems = verdict("tank-competition", b)
+        expect(not ok, "44: live tuning linked into the COMPETITION program PASSED step 8")
+        expect(not b.disallowed, f"44: the plant raised a warning, so the case proves the warning "
+                                 f"policy, not step 8: {b.disallowed[:3]}")
+        expect(any("live-tuning symbol" in p and "LiveTuning::" in p and "(step 8)" in p
+                   for p in problems),
+               f"44: the failure did not name a LiveTuning symbol or text (step 8): {problems}")
+
+    # 45: TB12 — `make ROBOT=bench PROGRAM=tune` and `make ROBOT=xdrive PROGRAM=tune` (robots that declare
+    #     no mechanism) -> make FAILS before it compiles anything, the Makefile's $(error) naming why.
+    for robot_value in ("bench", "xdrive"):
+        for d in ("bin", ".d"):
+            shutil.rmtree(os.path.join(REPO, d), ignore_errors=True)
+        p = subprocess.run(["make", f"ROBOT={robot_value}", "PROGRAM=tune", "V=1"], cwd=REPO,
+                           capture_output=True, text=True, timeout=600)
+        said = ANSI.sub("", p.stdout + p.stderr)
+        expect(p.returncode != 0, f"45: `make ROBOT={robot_value} PROGRAM=tune` SUCCEEDED — a Tune with "
+                                  f"nothing to tune")
+        expect("PROGRAM=tune needs a ROBOT whose mechanism table is not empty" in said
+               and f"'{robot_value}' declares no mechanism" in said,
+               f"45: the failure did not name why for {robot_value}: {said[-400:]}")
+        expect(not re.search(r"^Compiled ", said, flags=re.M)
+               and not os.path.exists(os.path.join(REPO, "bin")),
+               f"45: make compiled something before refusing ROBOT={robot_value} PROGRAM=tune")
+
+    # 46: MECHANISM_ROBOTS out of step with the table file -> step 0's [tune-row] FAILS: a robot with
+    #     an EMPTY table listed (bench), and the robot with mechanisms left out (tank).
+    with _replace(MAKEFILE, "MECHANISM_ROBOTS:=tank\n", "MECHANISM_ROBOTS:=tank bench\n"):
+        expect(any("names 'bench'" in p for p in tune_row_problems()),
+               "46: MECHANISM_ROBOTS naming the bench bot (no mechanisms) PASSED step 0")
+    with _replace(MAKEFILE, "MECHANISM_ROBOTS:=tank\n", "MECHANISM_ROBOTS:=\n"):
+        problems = tune_row_problems()
+        expect(any("robot 'tank' has a mechanism table" in p for p in problems),
+               f"46: MECHANISM_ROBOTS without robot two PASSED step 0: {problems}")
+
+    # 47: the tune row NAMES A ROBOT (a robot-two-only row — the brief's re-check #10 forbids it) ->
+    #     step 0's [tune-row] FAILS.
+    with _replace(MAKEFILE, "else ifeq ($(PROGRAM),tune)\n",
+                  "else ifeq ($(PROGRAM),tune)\nifneq ($(ROBOT),tank)\n"
+                  "$(error self-test plant: a robot-two-only tune row)\nendif\n"):
+        expect(any("names NO robot" in p for p in tune_row_problems()),
+               "47: a tune row comparing $(ROBOT) with a robot's name PASSED step 0")
+    #     ... and the same robot-two-only row in the forms the first pattern missed (the review round,
+    #     2026-11-11): a $(filter) of the robot, a quoted ifneq, a ${ROBOT} — each FAILS step 0.
+    for form in ("ifeq ($(filter tank,$(ROBOT)),)\n", 'ifneq "$(ROBOT)" "tank"\n', "ifneq (${ROBOT},tank)\n"):
+        with _replace(MAKEFILE, "else ifeq ($(PROGRAM),tune)\n",
+                      "else ifeq ($(PROGRAM),tune)\n" + form +
+                      "$(error self-test plant: a robot-two-only tune row)\nendif\n"):
+            expect(any("names NO robot" in p for p in tune_row_problems()),
+                   f"47: a tune row naming a robot as {form.strip()!r} PASSED step 0")
+
+    # 48: THE BACKSTOP behind the Makefile's list: the list wrongly accepting a robot with no Tune branch
+    #     (xdrive) -> the build FAILS at src/build_selection.hpp's guard, naming why — never a Tune upload
+    #     that is another program.
+    with _replace(MAKEFILE, "MECHANISM_ROBOTS:=tank\n", "MECHANISM_ROBOTS:=tank xdrive\n"):
+        for d in ("bin", ".d"):
+            shutil.rmtree(os.path.join(REPO, d), ignore_errors=True)
+        p = subprocess.run(["make", "ROBOT=xdrive", "PROGRAM=tune", "V=1"], cwd=REPO,
+                           capture_output=True, text=True, timeout=600)
+        said = ANSI.sub("", p.stdout + p.stderr)
+        expect(p.returncode != 0, "48: ROBOT=xdrive PROGRAM=tune BUILT with no Tune branch in the chain")
+        expect("PROGRAM=tune needs a ROBOT whose mechanism table is not empty -- this ROBOT has no Tune "
+               "branch" in said, f"48: the failure was not the selection header's guard: {said[-400:]}")
+
+    # 49: step 8's live-tuning half — EVERY detector of tuning_problems(), on SYNTHETIC ELF contents (the
+    #     review round, 2026-11-11: cases 43 and 44 reach two of its five; a detector deleted left every
+    #     expectation unchanged). Pure: no build. A Tune ELF linking a chassis or a Robot; a Tune ELF with
+    #     no live tuning (and the precondition BYTES counting as live tuning); a match ELF linking a
+    #     LiveTuning symbol or its bytes; a match ELF linking no chassis; and the clean ones PASS.
+    chassis_name = "shulib::chassis::Chassis::tick()"
+    robot_name = "shulib::robot::Robot::Robot()"
+    tuning_name = "shulib::mechanism::LiveTuning::apply(unsigned int, shulib::mechanism::Tunable, double)"
+    tuning_bytes = b"\0LiveTuning::reset: attach() the service first\0"
+    for name, what in ((chassis_name, "shulib::chassis::"), (robot_name, "shulib::robot::Robot::")):
+        p49 = tuning_problems("tank-tune", [tuning_name, name])
+        expect(any("never builds the drive" in x and what in x and "(step 8)" in x for x in p49),
+               f"49: a Tune ELF linking {what} PASSED step 8: {p49}")
+    p49 = tuning_problems("tank-tune", ["shulib::bench::runTune()"])
+    expect(any("links NO live-tuning symbol" in x for x in p49),
+           f"49: a Tune ELF with no live tuning PASSED step 8: {p49}")
+    expect(not tuning_problems("tank-tune", ["shulib::bench::runTune()"], tuning_bytes),
+           "49: a Tune ELF whose live tuning is inlined (its precondition bytes only) FAILED step 8")
+    expect(not tuning_problems("tank-tune", [tuning_name]), "49: a clean Tune ELF FAILED step 8")
+    p49 = tuning_problems("tank-competition", [chassis_name, tuning_name])
+    expect(any("live-tuning symbol" in x and "LiveTuning::apply" in x for x in p49),
+           f"49: a Competition ELF linking a LiveTuning member PASSED step 8: {p49}")
+    p49 = tuning_problems("tank-drive", [chassis_name], tuning_bytes)
+    expect(any("live-tuning symbol" in x and "a LiveTuning precondition's message" in x for x in p49),
+           f"49: a Drive ELF carrying LiveTuning's precondition bytes PASSED step 8: {p49}")
+    for match in ("tank-competition", "tank-drive", "tank-autontest"):
+        p49 = tuning_problems(match, ["shulib::bench::runCompetition()"])
+        expect(any("links no chassis symbol" in x for x in p49),
+               f"49: a {match} ELF linking no chassis PASSED step 8: {p49}")
+        expect(not tuning_problems(match, [chassis_name]), f"49: a clean {match} ELF FAILED step 8")
+    expect(not tuning_problems("tank-calibrate", ["shulib::bench::runCalibrate()"]),
+           "49: Calibrate (no chassis program) FAILED step 8's chassis control")
 
     for f in failures:
         print(f"  SELF-TEST FAILURE — {f}", file=sys.stderr)

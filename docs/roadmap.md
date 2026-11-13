@@ -509,6 +509,17 @@ not silently break them. This table is the spine of the no-staleness promise.
 > declaration, the smallest set that builds to exactly what ran. No program uses it yet: **next is TUNE1-B1**,
 > "shulib Tune" on the brain. [Chapter 18](guide/18-mechanisms.md#or-on-the-robot-live-tuning) teaches it.
 >
+> **Now (2026-11-11): TUNE1-B1, "shulib Tune", is BUILT — host-only, in review.** `make ROBOT=tank
+> PROGRAM=tune` (slot 7; the Makefile's row is ROBOT-generic — any robot whose mechanism table is not empty;
+> robot one gets it by registering its table plus the four build lines every robot adds — its ROBOT value in
+> `MECHANISM_ROBOTS`, its chain branch and guard term, its `<robot>-tune` gate build) builds ONLY the
+> mechanisms, after READY; TEST A / TEST B with a
+> report (overshoot, settle, peak, final error, the hold current and its warnings), HOME, the stick, UNDO,
+> RESET, COPY (terminal and `/usd/tune_log.txt`, appended; EXIT copies what no COPY carried); every mechanism released on any controller
+> button, a dropped controller, a field or a disable; every cap it changed written back on RESET, on leaving
+> a page and on EXIT. The match builds carry no live-tuning code (the gate's step 8). It has not run on a
+> robot. [Chapter 18](guide/18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen) teaches it.
+>
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
 > robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver

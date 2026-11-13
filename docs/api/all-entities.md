@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 5,678 of them, across 201 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 5,928 of them, across 204 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -2330,6 +2330,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kAiVisionOptics` | constant | [camera_geometry.md](camera_geometry.md#kaivisionoptics) |
 | `kAll` | constant | [calibrate_panel.md](calibrate_panel.md#kall) |
 | `kAll` | constant | [calibrate_screen.md](calibrate_screen.md#kall) |
+| `kAmber` | constant | [tune_program.md](tune_program.md#kamber) |
 | `kApiMajor` | constant | [version.md](version.md#kapimajor) |
 | `kApiMajorByte` | constant | [shul2_format.md](shul2_format.md#kapimajorbyte) |
 | `kApiMinor` | constant | [version.md](version.md#kapiminor) |
@@ -2338,7 +2339,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kArcStraightEps` | constant | [arc_step.md](arc_step.md#karcstraighteps) |
 | `kArmingDelaySeconds` | constant | [calibrate_panel.md](calibrate_panel.md#karmingdelayseconds) |
 | `kArmingDelaySeconds` | constant | [touch_panel.md](touch_panel.md#karmingdelayseconds) |
+| `kBlue` | constant | [tune_program.md](tune_program.md#kblue) |
 | `kBlueWall` | constant | [override_walls.md](override_walls.md#kbluewall) |
+| `kBodyY` | constant | [tune_panel.md](tune_panel.md#kbodyy) |
 | `kBoxEdgePx` | constant | [camera_geometry.md](camera_geometry.md#kboxedgepx) |
 | `kBrainAdiLines` | constant | [device_provider.md](device_provider.md#kbrainadilines) |
 | `kBuildTimeCols` | constant | [calibrate_screen.md](calibrate_screen.md#kbuildtimecols) |
@@ -2415,6 +2418,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kFrontRule` | constant | [calibrate_panel.md](calibrate_panel.md#kfrontrule) |
 | `kFullReasonOnSerial` | constant | [calibrate_panel.md](calibrate_panel.md#kfullreasononserial) |
 | `kGpsDefaultNorthHeadingDeg` | constant | [gps_conversion.md](gps_conversion.md#kgpsdefaultnorthheadingdeg) |
+| `kGreen` | constant | [tune_program.md](tune_program.md#kgreen) |
+| `kGrey` | constant | [tune_program.md](tune_program.md#kgrey) |
+| `kGreyFill` | constant | [tune_program.md](tune_program.md#kgreyfill) |
+| `kGround` | constant | [tune_program.md](tune_program.md#kground) |
 | `kHandsOff` | constant | [calibrate_panel.md](calibrate_panel.md#khandsoff) |
 | `kHandsOff` | constant | [calibrate_screen.md](calibrate_screen.md#khandsoff) |
 | `kHeaderBar` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderbar) |
@@ -2465,9 +2472,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kLargeCols` | constant | [touch_panel.md](touch_panel.md#klargecols) |
 | `kLargeHeight` | constant | [calibrate_panel.md](calibrate_panel.md#klargeheight) |
 | `kLargeHeight` | constant | [touch_panel.md](touch_panel.md#klargeheight) |
+| `kLargeTitleY` | constant | [tune_panel.md](tune_panel.md#klargetitley) |
 | `kLastPeerDataType` | constant | [shul2_format.md](shul2_format.md#klastpeerdatatype) |
 | `kLastRuntimeDataType` | constant | [shul2_format.md](shul2_format.md#klastruntimedatatype) |
 | `kLeftWall` | constant | [override_walls.md](override_walls.md#kleftwall) |
+| `kLightBlue` | constant | [tune_program.md](tune_program.md#klightblue) |
 | `kLiveFirstKaSeconds` | constant | [live_tuning.md](live_tuning.md#klivefirstkaseconds) |
 | `kLiveKvMostTimesStarting` | constant | [live_tuning.md](live_tuning.md#klivekvmosttimesstarting) |
 | `kLiveRepaintSeconds` | constant | [calibrate_screen.md](calibrate_screen.md#kliverepaintseconds) |
@@ -2589,9 +2598,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kPanelMaxLines` | constant | [calibrate_panel.md](calibrate_panel.md#kpanelmaxlines) |
 | `kPanelWidth` | constant | [calibrate_panel.md](calibrate_panel.md#kpanelwidth) |
 | `kPanelWidth` | constant | [touch_panel.md](touch_panel.md#kpanelwidth) |
+| `kParamY` | constant | [tune_panel.md](tune_panel.md#kparamy) |
 | `kPayloadBytesOffset` | constant | [shul2_format.md](shul2_format.md#kpayloadbytesoffset) |
 | `kPayloadOffset` | constant | [shul2_format.md](shul2_format.md#kpayloadoffset) |
 | `kPinSize` | constant | [override_elements.md](override_elements.md#kpinsize) |
+| `kPitch` | constant | [tune_panel.md](tune_panel.md#kpitch) |
 | `kPositionErrorEndOfRun` | constant | [accuracy.md](accuracy.md#kpositionerrorendofrun) |
 | `kPrimarySlot` | constant | [calibrate_panel.md](calibrate_panel.md#kprimaryslot) |
 | `kProgramFault` | constant | [calibrate_screen.md](calibrate_screen.md#kprogramfault) |
@@ -2608,6 +2619,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kRecordPayloadBytes` | constant | [calibration_record.md](calibration_record.md#krecordpayloadbytes) |
 | `kRecordPrefixBytes` | constant | [calibration_record.md](calibration_record.md#krecordprefixbytes) |
 | `kRecordVersion` | constant | [calibration_record.md](calibration_record.md#krecordversion) |
+| `kRed` | constant | [tune_program.md](tune_program.md#kred) |
 | `kRedWall` | constant | [override_walls.md](override_walls.md#kredwall) |
 | `kRepeatability` | constant | [accuracy.md](accuracy.md#krepeatability) |
 | `kReproScaleTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreproscaletolerance) |
@@ -2615,7 +2627,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kRightWall` | constant | [override_walls.md](override_walls.md#krightwall) |
 | `kRolePeer` | constant | [shul2_format.md](shul2_format.md#krolepeer) |
 | `kRoleRuntime` | constant | [shul2_format.md](shul2_format.md#kroleruntime) |
+| `kRow1` | constant | [tune_panel.md](tune_panel.md#krow1) |
+| `kRow2` | constant | [tune_panel.md](tune_panel.md#krow2) |
+| `kRow3` | constant | [tune_panel.md](tune_panel.md#krow3) |
 | `kRunAgainBox` | constant | [calibrate_panel.md](calibrate_panel.md#krunagainbox) |
+| `kSafetyY` | constant | [tune_panel.md](tune_panel.md#ksafetyy) |
 | `kSaveReportLineBytes` | constant | [record_store.md](record_store.md#ksavereportlinebytes) |
 | `kScreenLineBytes` | constant | [brain_screen.md](brain_screen.md#kscreenlinebytes) |
 | `kSegmentCount` | constant | [drive_characterizer.md](drive_characterizer.md#ksegmentcount) |
@@ -2650,6 +2666,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kStateWhyAutonomous` | constant | [calibrate_screen.md](calibrate_screen.md#kstatewhyautonomous) |
 | `kStateWhyConnected` | constant | [calibrate_screen.md](calibrate_screen.md#kstatewhyconnected) |
 | `kStateWhyDisabled` | constant | [calibrate_screen.md](calibrate_screen.md#kstatewhydisabled) |
+| `kStateY` | constant | [tune_panel.md](tune_panel.md#kstatey) |
+| `kStatusY` | constant | [tune_panel.md](tune_panel.md#kstatusy) |
 | `kStickDeadband` | constant | [stick_mapping.md](stick_mapping.md#kstickdeadband) |
 | `kStorePathBytes` | constant | [file_store.md](file_store.md#kstorepathbytes) |
 | `kStoreReadSlackBytes` | constant | [record_store.md](record_store.md#kstorereadslackbytes) |
@@ -2658,9 +2676,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kSync0` | constant | [shul2_format.md](shul2_format.md#ksync0) |
 | `kSync1` | constant | [shul2_format.md](shul2_format.md#ksync1) |
 | `kTankSteerNoiseFraction` | constant | [tank_steer.md](tank_steer.md#ktanksteernoisefraction) |
+| `kText` | constant | [tune_program.md](tune_program.md#ktext) |
 | `kThisReader` | constant | [shul2_format.md](shul2_format.md#kthisreader) |
 | `kTickPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktickpayloadbytes) |
 | `kTickPhaseSlots` | constant | [debug_record.md](debug_record.md#ktickphaseslots) |
+| `kTitleY` | constant | [tune_panel.md](tune_panel.md#ktitley) |
 | `kToggleAtSpeedWindowSeconds` | constant | [driver_inputs.md](driver_inputs.md#ktoggleatspeedwindowseconds) |
 | `kToggleBodyHalf` | constant | [override_walls.md](override_walls.md#ktogglebodyhalf) |
 | `kToggleFace` | constant | [override_elements.md](override_elements.md#ktoggleface) |
@@ -2669,6 +2689,24 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kTooFewMotors` | constant | [calibrate_screen.md](calibrate_screen.md#ktoofewmotors) |
 | `kTriagePayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktriagepayloadbytes) |
 | `kTunableCount` | constant | [live_tuning.md](live_tuning.md#ktunablecount) |
+| `kTuneCompetitionAutonomous` | constant | [tune_program.md](tune_program.md#ktunecompetitionautonomous) |
+| `kTuneCompetitionConnected` | constant | [tune_program.md](tune_program.md#ktunecompetitionconnected) |
+| `kTuneCompetitionDisabled` | constant | [tune_program.md](tune_program.md#ktunecompetitiondisabled) |
+| `kTuneHoldSeconds` | constant | [tune_program.md](tune_program.md#ktuneholdseconds) |
+| `kTuneHomeSeconds` | constant | [tune_program.md](tune_program.md#ktunehomeseconds) |
+| `kTuneJogDeadband` | constant | [tune_program.md](tune_program.md#ktunejogdeadband) |
+| `kTuneJogMostVolts` | constant | [tune_program.md](tune_program.md#ktunejogmostvolts) |
+| `kTuneLogFile` | constant | [pros-tune.md](pros-tune.md#ktunelogfile) |
+| `kTuneMaxButtons` | constant | [tune_panel.md](tune_panel.md#ktunemaxbuttons) |
+| `kTuneMaxLines` | constant | [tune_panel.md](tune_panel.md#ktunemaxlines) |
+| `kTuneMaxSamples` | constant | [tune_program.md](tune_program.md#ktunemaxsamples) |
+| `kTunePowerTestSeconds` | constant | [tune_program.md](tune_program.md#ktunepowertestseconds) |
+| `kTuneSpeedTestSeconds` | constant | [tune_program.md](tune_program.md#ktunespeedtestseconds) |
+| `kTuneTag` | constant | [tune_program.md](tune_program.md#ktunetag) |
+| `kTuneTargetNameBytes` | constant | [tune_program.md](tune_program.md#ktunetargetnamebytes) |
+| `kTuneTestExtraSeconds` | constant | [tune_program.md](tune_program.md#ktunetestextraseconds) |
+| `kTuneTestMostSeconds` | constant | [tune_program.md](tune_program.md#ktunetestmostseconds) |
+| `kTuneTestPlanFactor` | constant | [tune_program.md](tune_program.md#ktunetestplanfactor) |
 | `kTwitching` | constant | [calibrate_panel.md](calibrate_panel.md#ktwitching) |
 | `kTypeOffset` | constant | [shul2_format.md](shul2_format.md#ktypeoffset) |
 | `kVersionMajor` | constant | [shul2_format.md](shul2_format.md#kversionmajor) |
@@ -4051,6 +4089,17 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsTickPacer` | class | [pros-tick_pacer.md](pros-tick_pacer.md#class-prostickpacer) |
 | `ProsTickPacer::kTickMs` | field | [pros-tick_pacer.md](pros-tick_pacer.md#prostickpacer-ktickms) |
 | `ProsTickPacer::pace` | function | [pros-tick_pacer.md](pros-tick_pacer.md#prostickpacer-pace) |
+| `ProsTuneIo` | class | [pros-tune.md](pros-tune.md#class-prostuneio) |
+| `ProsTuneIo::competitionStatus` | function | [pros-tune.md](pros-tune.md#prostuneio-competitionstatus) |
+| `ProsTuneShell` | class | [pros-tune.md](pros-tune.md#class-prostuneshell) |
+| `ProsTuneShell::devices` | function | [pros-tune.md](pros-tune.md#prostuneshell-devices) |
+| `ProsTuneShell::operator=` | function | [pros-tune.md](pros-tune.md#prostuneshell-operator-eq) |
+| `ProsTuneShell::operator= (overload 2)` | function | [pros-tune.md](pros-tune.md#prostuneshell-operator-eq-2) |
+| `ProsTuneShell::program` | function | [pros-tune.md](pros-tune.md#prostuneshell-program) |
+| `ProsTuneShell::ProsTuneShell` | function | [pros-tune.md](pros-tune.md#prostuneshell-prostuneshell) |
+| `ProsTuneShell::ProsTuneShell (overload 2)` | function | [pros-tune.md](pros-tune.md#prostuneshell-prostuneshell-2) |
+| `ProsTuneShell::ProsTuneShell (overload 3)` | function | [pros-tune.md](pros-tune.md#prostuneshell-prostuneshell-3) |
+| `ProsTuneShell::~ProsTuneShell` | function | [pros-tune.md](pros-tune.md#prostuneshell-destructor-prostuneshell) |
 | `ProtectionMode` | enum class | [drive_protection.md](drive_protection.md#enum-class-protectionmode) |
 | `ProtectionMode::Cut` | enumerator | [drive_protection.md](drive_protection.md#protectionmode-cut) |
 | `ProtectionMode::Degraded` | enumerator | [drive_protection.md](drive_protection.md#protectionmode-degraded) |
@@ -4663,6 +4712,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RunSummary::setBuildHash` | function | [run_summary.md](run_summary.md#runsummary-setbuildhash) |
 | `RunSummary::setRoutineId` | function | [run_summary.md](run_summary.md#runsummary-setroutineid) |
 | `RunSummary::worstLoopDt` | field | [run_summary.md](run_summary.md#runsummary-worstloopdt) |
+| `runTune` | free function | [pros-tune.md](pros-tune.md#runtune) |
 | `RunUntilConfirmed` | class | [mechanism_op.md](mechanism_op.md#class-rununtilconfirmed) |
 | `RunUntilConfirmed::cancel` | function | [mechanism_op.md](mechanism_op.md#rununtilconfirmed-cancel) |
 | `RunUntilConfirmed::name` | function | [mechanism_op.md](mechanism_op.md#rununtilconfirmed-name) |
@@ -5455,6 +5505,206 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Tunable::Within` | enumerator | [live_tuning.md](live_tuning.md#tunable-within) |
 | `tunableUnit` | free function | [live_tuning.md](live_tuning.md#tunableunit) |
 | `tunableValue` | free function | [live_tuning.md](live_tuning.md#tunablevalue) |
+| `TuneButton` | enum class | [tune_panel.md](tune_panel.md#enum-class-tunebutton) |
+| `TuneButton::Again` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-again) |
+| `TuneButton::Back` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-back) |
+| `TuneButton::Copy` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-copy) |
+| `TuneButton::Exit` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-exit) |
+| `TuneButton::Fine` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-fine) |
+| `TuneButton::Go` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-go) |
+| `TuneButton::Home` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-home) |
+| `TuneButton::Minus` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-minus) |
+| `TuneButton::NextMech` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-nextmech) |
+| `TuneButton::NextParam` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-nextparam) |
+| `TuneButton::Plus` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-plus) |
+| `TuneButton::PrevMech` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-prevmech) |
+| `TuneButton::PrevParam` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-prevparam) |
+| `TuneButton::Ready` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-ready) |
+| `TuneButton::Reset` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-reset) |
+| `TuneButton::Stop` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-stop) |
+| `TuneButton::StringCheck` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-stringcheck) |
+| `TuneButton::TestA` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-testa) |
+| `TuneButton::TestB` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-testb) |
+| `TuneButton::TuneAgain` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-tuneagain) |
+| `TuneButton::Undo` | enumerator | [tune_panel.md](tune_panel.md#tunebutton-undo) |
+| `TuneButtonView` | struct | [tune_panel.md](tune_panel.md#struct-tunebuttonview) |
+| `TuneButtonView::armed` | field | [tune_panel.md](tune_panel.md#tunebuttonview-armed) |
+| `TuneButtonView::id` | field | [tune_panel.md](tune_panel.md#tunebuttonview-id) |
+| `TuneButtonView::label` | field | [tune_panel.md](tune_panel.md#tunebuttonview-label) |
+| `TuneButtonView::rect` | field | [tune_panel.md](tune_panel.md#tunebuttonview-rect) |
+| `TuneButtonView::tone` | field | [tune_panel.md](tune_panel.md#tunebuttonview-tone) |
+| `TuneDevices` | struct | [tune_program.md](tune_program.md#struct-tunedevices) |
+| `TuneDevices::controller` | field | [tune_program.md](tune_program.md#tunedevices-controller) |
+| `TuneDevices::devices` | field | [tune_program.md](tune_program.md#tunedevices-devices) |
+| `TuneDevices::io` | field | [tune_program.md](tune_program.md#tunedevices-io) |
+| `TuneDevices::screen` | field | [tune_program.md](tune_program.md#tunedevices-screen) |
+| `TuneFacts` | struct | [tune_panel.md](tune_panel.md#struct-tunefacts) |
+| `TuneFacts::anyCapChanged` | field | [tune_panel.md](tune_panel.md#tunefacts-anycapchanged) |
+| `TuneFacts::armed` | field | [tune_panel.md](tune_panel.md#tunefacts-armed) |
+| `TuneFacts::busy` | field | [tune_panel.md](tune_panel.md#tunefacts-busy) |
+| `TuneFacts::buttonHeld` | field | [tune_panel.md](tune_panel.md#tunefacts-buttonheld) |
+| `TuneFacts::confirmWhat` | field | [tune_panel.md](tune_panel.md#tunefacts-confirmwhat) |
+| `TuneFacts::controller` | field | [tune_panel.md](tune_panel.md#tunefacts-controller) |
+| `TuneFacts::copiedAtExit` | field | [tune_panel.md](tune_panel.md#tunefacts-copiedatexit) |
+| `TuneFacts::field` | field | [tune_panel.md](tune_panel.md#tunefacts-field) |
+| `TuneFacts::fine` | field | [tune_panel.md](tune_panel.md#tunefacts-fine) |
+| `TuneFacts::limitsWritten` | field | [tune_panel.md](tune_panel.md#tunefacts-limitswritten) |
+| `TuneFacts::m` | field | [tune_panel.md](tune_panel.md#tunefacts-m) |
+| `TuneFacts::mech` | field | [tune_panel.md](tune_panel.md#tunefacts-mech) |
+| `TuneFacts::mechCount` | field | [tune_panel.md](tune_panel.md#tunefacts-mechcount) |
+| `TuneFacts::next` | field | [tune_panel.md](tune_panel.md#tunefacts-next) |
+| `TuneFacts::page` | field | [tune_panel.md](tune_panel.md#tunefacts-page) |
+| `TuneFacts::param` | field | [tune_panel.md](tune_panel.md#tunefacts-param) |
+| `TuneFacts::paramCount` | field | [tune_panel.md](tune_panel.md#tunefacts-paramcount) |
+| `TuneFacts::report` | field | [tune_panel.md](tune_panel.md#tunefacts-report) |
+| `TuneFacts::resetAtExit` | field | [tune_panel.md](tune_panel.md#tunefacts-resetatexit) |
+| `TuneFacts::sel` | field | [tune_panel.md](tune_panel.md#tunefacts-sel) |
+| `TuneFacts::status` | field | [tune_panel.md](tune_panel.md#tunefacts-status) |
+| `TuneFacts::stoppedWhy` | field | [tune_panel.md](tune_panel.md#tunefacts-stoppedwhy) |
+| `TuneFacts::testA` | field | [tune_panel.md](tune_panel.md#tunefacts-testa) |
+| `TuneFacts::testAName` | field | [tune_panel.md](tune_panel.md#tunefacts-testaname) |
+| `TuneFacts::testB` | field | [tune_panel.md](tune_panel.md#tunefacts-testb) |
+| `TuneFacts::testBName` | field | [tune_panel.md](tune_panel.md#tunefacts-testbname) |
+| `TuneFacts::undoDepth` | field | [tune_panel.md](tune_panel.md#tunefacts-undodepth) |
+| `tuneHit` | free function | [tune_panel.md](tune_panel.md#tunehit) |
+| `tuneInitialize` | free function | [pros-tune.md](pros-tune.md#tuneinitialize) |
+| `TuneIo` | class | [tune_program.md](tune_program.md#class-tuneio) |
+| `TuneIo::competitionStatus` | function | [tune_program.md](tune_program.md#tuneio-competitionstatus) |
+| `TuneIo::operator=` | function | [tune_program.md](tune_program.md#tuneio-operator-eq) |
+| `TuneIo::operator= (overload 2)` | function | [tune_program.md](tune_program.md#tuneio-operator-eq-2) |
+| `TuneIo::TuneIo` | function | [tune_program.md](tune_program.md#tuneio-tuneio) |
+| `TuneIo::TuneIo (overload 2)` | function | [tune_program.md](tune_program.md#tuneio-tuneio-2) |
+| `TuneIo::TuneIo (overload 3)` | function | [tune_program.md](tune_program.md#tuneio-tuneio-3) |
+| `TuneIo::~TuneIo` | function | [tune_program.md](tune_program.md#tuneio-destructor-tuneio) |
+| `tuneLabelCols` | free function | [tune_panel.md](tune_panel.md#tunelabelcols) |
+| `TuneLine` | struct | [tune_panel.md](tune_panel.md#struct-tuneline) |
+| `TuneLine::size` | field | [tune_panel.md](tune_panel.md#tuneline-size) |
+| `TuneLine::text` | field | [tune_panel.md](tune_panel.md#tuneline-text) |
+| `TuneLine::tone` | field | [tune_panel.md](tune_panel.md#tuneline-tone) |
+| `TuneLine::x` | field | [tune_panel.md](tune_panel.md#tuneline-x) |
+| `TuneLine::y` | field | [tune_panel.md](tune_panel.md#tuneline-y) |
+| `TuneMechFacts` | struct | [tune_panel.md](tune_panel.md#struct-tunemechfacts) |
+| `TuneMechFacts::active` | field | [tune_panel.md](tune_panel.md#tunemechfacts-active) |
+| `TuneMechFacts::built` | field | [tune_panel.md](tune_panel.md#tunemechfacts-built) |
+| `TuneMechFacts::capChanged` | field | [tune_panel.md](tune_panel.md#tunemechfacts-capchanged) |
+| `TuneMechFacts::changed` | field | [tune_panel.md](tune_panel.md#tunemechfacts-changed) |
+| `TuneMechFacts::homed` | field | [tune_panel.md](tune_panel.md#tunemechfacts-homed) |
+| `TuneMechFacts::homes` | field | [tune_panel.md](tune_panel.md#tunemechfacts-homes) |
+| `TuneMechFacts::kind` | field | [tune_panel.md](tune_panel.md#tunemechfacts-kind) |
+| `TuneMechFacts::lastVerdict` | field | [tune_panel.md](tune_panel.md#tunemechfacts-lastverdict) |
+| `TuneMechFacts::name` | field | [tune_panel.md](tune_panel.md#tunemechfacts-name) |
+| `TuneMechFacts::now` | field | [tune_panel.md](tune_panel.md#tunemechfacts-now) |
+| `TuneMechFacts::target` | field | [tune_panel.md](tune_panel.md#tunemechfacts-target) |
+| `TuneMechFacts::units` | field | [tune_panel.md](tune_panel.md#tunemechfacts-units) |
+| `TuneMoveFacts` | struct | [tune_program.md](tune_program.md#struct-tunemovefacts) |
+| `TuneMoveFacts::bound` | field | [tune_program.md](tune_program.md#tunemovefacts-bound) |
+| `TuneMoveFacts::capAmps` | field | [tune_program.md](tune_program.md#tunemovefacts-capamps) |
+| `TuneMoveFacts::kind` | field | [tune_program.md](tune_program.md#tunemovefacts-kind) |
+| `TuneMoveFacts::outcome` | field | [tune_program.md](tune_program.md#tunemovefacts-outcome) |
+| `TuneMoveFacts::seconds` | field | [tune_program.md](tune_program.md#tunemovefacts-seconds) |
+| `TuneMoveFacts::stallAmps` | field | [tune_program.md](tune_program.md#tunemovefacts-stallamps) |
+| `TuneMoveFacts::start` | field | [tune_program.md](tune_program.md#tunemovefacts-start) |
+| `TuneMoveFacts::stoppedBy` | field | [tune_program.md](tune_program.md#tunemovefacts-stoppedby) |
+| `TuneMoveFacts::target` | field | [tune_program.md](tune_program.md#tunemovefacts-target) |
+| `TuneMoveFacts::test` | field | [tune_program.md](tune_program.md#tunemovefacts-test) |
+| `TuneMoveFacts::unit` | field | [tune_program.md](tune_program.md#tunemovefacts-unit) |
+| `TuneMoveFacts::within` | field | [tune_program.md](tune_program.md#tunemovefacts-within) |
+| `TunePage` | enum class | [tune_panel.md](tune_panel.md#enum-class-tunepage) |
+| `TunePage::Clear` | enumerator | [tune_panel.md](tune_panel.md#tunepage-clear) |
+| `TunePage::Confirm` | enumerator | [tune_panel.md](tune_panel.md#tunepage-confirm) |
+| `TunePage::Exited` | enumerator | [tune_panel.md](tune_panel.md#tunepage-exited) |
+| `TunePage::Report` | enumerator | [tune_panel.md](tune_panel.md#tunepage-report) |
+| `TunePage::Stopped` | enumerator | [tune_panel.md](tune_panel.md#tunepage-stopped) |
+| `TunePage::StringCheck` | enumerator | [tune_panel.md](tune_panel.md#tunepage-stringcheck) |
+| `TunePage::Tune` | enumerator | [tune_panel.md](tune_panel.md#tunepage-tune) |
+| `TuneParamFacts` | struct | [tune_panel.md](tune_panel.md#struct-tuneparamfacts) |
+| `TuneParamFacts::capNone` | field | [tune_panel.md](tune_panel.md#tuneparamfacts-capnone) |
+| `TuneParamFacts::file` | field | [tune_panel.md](tune_panel.md#tuneparamfacts-file) |
+| `TuneParamFacts::name` | field | [tune_panel.md](tune_panel.md#tuneparamfacts-name) |
+| `TuneParamFacts::rule` | field | [tune_panel.md](tune_panel.md#tuneparamfacts-rule) |
+| `TuneParamFacts::unit` | field | [tune_panel.md](tune_panel.md#tuneparamfacts-unit) |
+| `TuneParamFacts::value` | field | [tune_panel.md](tune_panel.md#tuneparamfacts-value) |
+| `tunePositionBound` | free function | [tune_program.md](tune_program.md#tunepositionbound) |
+| `TuneProgram` | class | [tune_program.md](tune_program.md#class-tuneprogram) |
+| `TuneProgram::bootBanner` | function | [tune_program.md](tune_program.md#tuneprogram-bootbanner) |
+| `TuneProgram::busy` | function | [tune_program.md](tune_program.md#tuneprogram-busy) |
+| `TuneProgram::capsWrittenBack` | function | [tune_program.md](tune_program.md#tuneprogram-capswrittenback) |
+| `TuneProgram::confirmed` | function | [tune_program.md](tune_program.md#tuneprogram-confirmed) |
+| `TuneProgram::copiedAtExit` | function | [tune_program.md](tune_program.md#tuneprogram-copiedatexit) |
+| `TuneProgram::copy` | function | [tune_program.md](tune_program.md#tuneprogram-copy) |
+| `TuneProgram::copyChanged` | function | [tune_program.md](tune_program.md#tuneprogram-copychanged) |
+| `TuneProgram::drawn` | function | [tune_program.md](tune_program.md#tuneprogram-drawn) |
+| `TuneProgram::enter` | function | [tune_program.md](tune_program.md#tuneprogram-enter) |
+| `TuneProgram::holdSamples` | function | [tune_program.md](tune_program.md#tuneprogram-holdsamples) |
+| `TuneProgram::lastBound` | function | [tune_program.md](tune_program.md#tuneprogram-lastbound) |
+| `TuneProgram::made` | function | [tune_program.md](tune_program.md#tuneprogram-made) |
+| `TuneProgram::moveSamples` | function | [tune_program.md](tune_program.md#tuneprogram-movesamples) |
+| `TuneProgram::operator=` | function | [tune_program.md](tune_program.md#tuneprogram-operator-eq) |
+| `TuneProgram::operator= (overload 2)` | function | [tune_program.md](tune_program.md#tuneprogram-operator-eq-2) |
+| `TuneProgram::page` | function | [tune_program.md](tune_program.md#tuneprogram-page) |
+| `TuneProgram::parts` | function | [tune_program.md](tune_program.md#tuneprogram-parts) |
+| `TuneProgram::report` | function | [tune_program.md](tune_program.md#tuneprogram-report) |
+| `TuneProgram::resetAtExit` | function | [tune_program.md](tune_program.md#tuneprogram-resetatexit) |
+| `TuneProgram::run` | function | [tune_program.md](tune_program.md#tuneprogram-run) |
+| `TuneProgram::selected` | function | [tune_program.md](tune_program.md#tuneprogram-selected) |
+| `TuneProgram::service` | function | [tune_program.md](tune_program.md#tuneprogram-service) |
+| `TuneProgram::shown` | function | [tune_program.md](tune_program.md#tuneprogram-shown) |
+| `TuneProgram::status` | function | [tune_program.md](tune_program.md#tuneprogram-status) |
+| `TuneProgram::step` | function | [tune_program.md](tune_program.md#tuneprogram-step) |
+| `TuneProgram::TuneProgram` | function | [tune_program.md](tune_program.md#tuneprogram-tuneprogram) |
+| `TuneProgram::TuneProgram (overload 2)` | function | [tune_program.md](tune_program.md#tuneprogram-tuneprogram-2) |
+| `TuneProgram::TuneProgram (overload 3)` | function | [tune_program.md](tune_program.md#tuneprogram-tuneprogram-3) |
+| `TuneProgram::tuning` | function | [tune_program.md](tune_program.md#tuneprogram-tuning) |
+| `TuneProgram::uncopied` | function | [tune_program.md](tune_program.md#tuneprogram-uncopied) |
+| `TuneProgram::undoTrackedDepth` | function | [tune_program.md](tune_program.md#tuneprogram-undotrackeddepth) |
+| `TuneProgram::~TuneProgram` | function | [tune_program.md](tune_program.md#tuneprogram-destructor-tuneprogram) |
+| `TuneReport` | struct | [tune_panel.md](tune_panel.md#struct-tunereport) |
+| `TuneReport::bound` | field | [tune_panel.md](tune_panel.md#tunereport-bound) |
+| `TuneReport::capAmps` | field | [tune_panel.md](tune_panel.md#tunereport-capamps) |
+| `TuneReport::finalError` | field | [tune_panel.md](tune_panel.md#tunereport-finalerror) |
+| `TuneReport::hasFinalError` | field | [tune_panel.md](tune_panel.md#tunereport-hasfinalerror) |
+| `TuneReport::holdAmps` | field | [tune_panel.md](tune_panel.md#tunereport-holdamps) |
+| `TuneReport::holdEnded` | field | [tune_panel.md](tune_panel.md#tunereport-holdended) |
+| `TuneReport::holdStopped` | field | [tune_panel.md](tune_panel.md#tunereport-holdstopped) |
+| `TuneReport::kind` | field | [tune_panel.md](tune_panel.md#tunereport-kind) |
+| `TuneReport::overshoot` | field | [tune_panel.md](tune_panel.md#tunereport-overshoot) |
+| `TuneReport::peakAmps` | field | [tune_panel.md](tune_panel.md#tunereport-peakamps) |
+| `TuneReport::seconds` | field | [tune_panel.md](tune_panel.md#tunereport-seconds) |
+| `TuneReport::settle` | field | [tune_panel.md](tune_panel.md#tunereport-settle) |
+| `TuneReport::stallAmps` | field | [tune_panel.md](tune_panel.md#tunereport-stallamps) |
+| `TuneReport::stoppedBy` | field | [tune_panel.md](tune_panel.md#tunereport-stoppedby) |
+| `TuneReport::target` | field | [tune_panel.md](tune_panel.md#tunereport-target) |
+| `TuneReport::test` | field | [tune_panel.md](tune_panel.md#tunereport-test) |
+| `TuneReport::unit` | field | [tune_panel.md](tune_panel.md#tunereport-unit) |
+| `TuneReport::verdict` | field | [tune_panel.md](tune_panel.md#tunereport-verdict) |
+| `TuneReport::warnCapNotAbovePeak` | field | [tune_panel.md](tune_panel.md#tunereport-warncapnotabovepeak) |
+| `TuneReport::warnStallNotAboveHold` | field | [tune_panel.md](tune_panel.md#tunereport-warnstallnotabovehold) |
+| `tuneReportFrom` | free function | [tune_program.md](tune_program.md#tunereportfrom) |
+| `TuneSample` | struct | [tune_program.md](tune_program.md#struct-tunesample) |
+| `TuneSample::amps` | field | [tune_program.md](tune_program.md#tunesample-amps) |
+| `TuneSample::t` | field | [tune_program.md](tune_program.md#tunesample-t) |
+| `TuneSample::x` | field | [tune_program.md](tune_program.md#tunesample-x) |
+| `tuneShell` | free function | [pros-tune.md](pros-tune.md#tuneshell) |
+| `tuneTargets` | free function | [tune_program.md](tune_program.md#tunetargets) |
+| `TuneTargets` | struct | [tune_program.md](tune_program.md#struct-tunetargets) |
+| `TuneTargets::a` | field | [tune_program.md](tune_program.md#tunetargets-a) |
+| `TuneTargets::aName` | field | [tune_program.md](tune_program.md#tunetargets-aname) |
+| `TuneTargets::b` | field | [tune_program.md](tune_program.md#tunetargets-b) |
+| `TuneTargets::bName` | field | [tune_program.md](tune_program.md#tunetargets-bname) |
+| `TuneTest` | enum class | [tune_panel.md](tune_panel.md#enum-class-tunetest) |
+| `TuneTest::A` | enumerator | [tune_panel.md](tune_panel.md#tunetest-a) |
+| `TuneTest::B` | enumerator | [tune_panel.md](tune_panel.md#tunetest-b) |
+| `TuneTest::None` | enumerator | [tune_panel.md](tune_panel.md#tunetest-none) |
+| `tuneTestLabel` | free function | [tune_program.md](tune_program.md#tunetestlabel) |
+| `tuneView` | free function | [tune_panel.md](tune_panel.md#tuneview) |
+| `TuneView` | struct | [tune_panel.md](tune_panel.md#struct-tuneview) |
+| `TuneView::button` | function | [tune_panel.md](tune_panel.md#tuneview-button) |
+| `TuneView::buttonCount` | field | [tune_panel.md](tune_panel.md#tuneview-buttoncount) |
+| `TuneView::buttons` | field | [tune_panel.md](tune_panel.md#tuneview-buttons) |
+| `TuneView::layoutKey` | function | [tune_panel.md](tune_panel.md#tuneview-layoutkey) |
+| `TuneView::lineCount` | field | [tune_panel.md](tune_panel.md#tuneview-linecount) |
+| `TuneView::lines` | field | [tune_panel.md](tune_panel.md#tuneview-lines) |
+| `TuneView::page` | field | [tune_panel.md](tune_panel.md#tuneview-page) |
 | `TuningConfig` | type alias | [robot_config.md](robot_config.md#tuningconfig) |
 | `tuningProblem` | free function | [live_tuning.md](live_tuning.md#tuningproblem) |
 | `tuningRefusal` | free function | [live_tuning.md](live_tuning.md#tuningrefusal) |

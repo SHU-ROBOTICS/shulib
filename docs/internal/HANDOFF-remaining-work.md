@@ -302,7 +302,7 @@ worksheet Station P), `robot/robot.hpp` (`robot::validate` +
 `robot::Robot`; since G1 Part 2a also `BuildOptions` for the boot check's absent drive ports,
 `portMap()` and `driveOdometry()`), `runner/command_registry.hpp`, `runner/path_runner.hpp`, `runner/manifest.hpp`.
 
-Programs in `src/` (seven builds since T4 Part 3, `make ROBOT=… PROGRAM=…`): **Bench Tests** (`make ROBOT=tank`,
+Programs in `src/` (eight builds since TUNE1-B1, `make ROBOT=… PROGRAM=…`): **Bench Tests** (`make ROBOT=tank`,
 slot 3, the measuring tool; `src/programs/bench_r3a.cpp`), **shulib Drive** (`PROGRAM=drive`, slot 1,
 `src/programs/drive_program.cpp` — since T4 Part 3 the team's driver file on `robot::Robot`, built from the SD
 record (the typed table cannot describe the drivetrain, see §2), with the library's drive protections, the
@@ -319,7 +319,10 @@ Competition** (`PROGRAM=competition`, slot 6 — slot 5 stays the team's old-cod
 `src/programs/competition_program.cpp`; COMP-b, 2026-09-30 — THE program for a match: the auton chosen on the
 brain's menu runs in `autonomous()` on the program's own task through the same `competition::runAuton`, a
 disable or the end of the period ends it, then driver control runs the team's driver file; **never run**,
-worksheet Station K), plus `bench` (the measured bench bot's tester) and `xdrive` (the only build with
+worksheet Station K), **shulib Tune** (`PROGRAM=tune`, slot 7, for ANY robot in the Makefile's
+`MECHANISM_ROBOTS` — today robot two; `include/shulib/mechanism/tune_program.hpp` through
+`src/programs/tune_program.cpp`; TUNE1-B1, 2026-11-11 — live tuning of the robot's MECHANISMS on the brain
+screen, never the drive; **never run**), plus `bench` (the measured bench bot's tester) and `xdrive` (the only build with
 invented ports, HA-111 — since G1 Part 2c `src/robots/xdrive_config.hpp` on `robot::Robot`, refusing at boot
 on any robot that exists). `src/build_selection.hpp` chooses, in one chain, which program AND which robot's tables a build is,
 and `src/main.cpp` only hands each PROS entry point to that program (G1 Part 2c and its final run).
@@ -690,7 +693,8 @@ fixed.)*
   full route maker (+ STEP1), the wall and camera pages, release-ready; D16 a true curve follower, CURVE1, after
   the route maker; publisher `shulib`; MECH-S and TUNE1 ruled, briefs next.)* *(2026-11-10: MECH-S/TUNE1 briefed
   and answered 2026-11-03 (D1–D13 accepted); MECH-S-A, the current cap, built 2026-11-05 and TUNE1-A, live
-  tuning's library, built 2026-11-10 — host-only, in review; next TUNE1-B1, "shulib Tune".)*
+  tuning's library, built 2026-11-10, and TUNE1-B1, "shulib Tune" (slot 7, any robot with mechanisms), built
+  2026-11-11 — host-only, in review; TUNE1-B2, the copy-back, after the panel.)*
 - **[G3] `.vexbot` ingestion into G3a's generator → freeze F7.** Serves VexBuilder's files. ~1 day
   after G3a.
 - **[G4] the ten-minute guide** (closes M5). The legacy `.shupaths` importer was DROPPED 2026-09-26

@@ -59,7 +59,8 @@ links **that** program again — and the upload would put it in slot 2 under the
 same holds whenever you switch between any two of the `make` lines in the README.
 
 (Slot 2, since the new "shulib Drive" retired "shulib Teleop" from it; until then the tester was
-in slot 7, so a brain uploaded before that may still hold it there.) Start it from the **brain's**
+in slot 7, so a brain uploaded before that may still hold it there — slot 7 is "shulib Tune"'s now,
+and uploading Tune replaces it.) Start it from the **brain's**
 screen, with the controller paired and on its home screen — started from the controller's menu it
 would be a pretend match, and the tester refuses to run an auton in any competition mode.
 

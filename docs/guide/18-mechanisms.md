@@ -22,8 +22,9 @@
 > its declared units and runs the direction check on the robot. Since then, **current caps** (`.currentCap` —
 > [below](#current-caps--how-hard-a-string-is-pulled)): the most each motor of a mechanism may draw, set in the
 > motor itself. And **live tuning's library** ([below](#or-on-the-robot-live-tuning)): a mechanism's numbers changed
-> while it runs, inside the build's own rules, undone, and copied back out as the lines its robot file needs. Still to
-> come: a watch for a snapped string, and "shulib Tune", the program that puts live tuning on the brain screen. Everything below is
+> while it runs, inside the build's own rules, undone, and copied back out as the lines its robot file needs —
+> on the brain screen through **"shulib Tune"** ([below](#the-tune-program--tuning-on-the-brain-screen)). Still to come: a
+> watch for a snapped string. Everything below is
 > measured on the **host test plant** — invented models of an
 > arm, a lift and a flywheel ([HA-183](../hardware-assumptions.md)) — and the library's own numbers in
 > it are invented starting values ([HA-182](../hardware-assumptions.md)). **Nothing here has run on a
@@ -343,11 +344,12 @@ the heaviest **hold** (with a game piece) < the stall signature < the cap − 0.
   10 lbf per amp per motor for a red cartridge on a 1.5 in spool, by the published motor numbers
   (HA-222, not checked on this robot) — divided by your safety margin.
 
-**Where the hold and the peak come from.** No page of the library shows a mechanism motor's current
-yet: the Tune program (live tuning's next part) will report each move's peak and the settled hold, with
-and without a piece. Until then shulib gives you no reading — a PROS program of your own can print a motor's
-`get_current_draw()` (milliamps) while it holds and moves the lift; without one, start from the order
-above and the boot's warnings, and treat your numbers as unmeasured.
+**Where the hold and the peak come from.** The Tune program's TEST report
+([below](#the-tune-program--tuning-on-the-brain-screen)): each move's **peak** and its **hold** — the mean
+current over the second after it settled — with a WARNING when the stall signature is not above that
+hold or the cap not above the peak. Run each TEST with and without the heaviest piece the lift carries,
+and choose the numbers from the four currents in the order above. Until you have run it, treat your
+numbers as unmeasured.
 
 **What it cannot limit:** the carriage's and the motor's momentum when the lift hits a stop pulls on the
 string with no current at all (HA-222). Push into stops gently. And it does not see a string that has
@@ -416,9 +418,9 @@ the host test plant: tune on the robot.
 
 The numbers above are found on the ROBOT, not at a desk — so a mechanism's numbers can also be changed
 **while the robot runs**, its response watched, and the result copied back into the robot file. The
-library half of that is in (`mechanism/live_tuning.hpp`, since 2026-11-10); **the program that puts it on
-the brain screen — "shulib Tune" — is the next part**, so today only a program you write can call it.
-Nothing here has run on a robot.
+library half is `mechanism/live_tuning.hpp`; the program that puts it on the brain screen is **"shulib
+Tune"** ([the next section](#the-tune-program--tuning-on-the-brain-screen)) — what follows is what it
+does underneath, and how a program of your own would call it. Nothing here has run on a robot.
 
 **How it is wired.** A program keeps a `mechanism::LiveTuning` — a COPY of the robot file's table, in
 static storage beside its service — and runs the mechanism service over the copy:
@@ -514,6 +516,105 @@ cartridge or gearing change that number would follow the library's working-out. 
 hand**, replacing your `.tuning = {...}` with the block's lines. **If the cartridge, the gearing or the
 spool changes later, RESET and tune again:** a number a COPY states stays exactly as it was tuned. Each number is printed in the
 shortest form that reads back as the same number, and every line fits the terminal's 200 characters.
+
+### The Tune program — tuning on the brain screen
+
+**"shulib Tune"** is a program of its own — never a page of the driver's or the match program, which
+always run exactly your robot file's numbers. It builds **only your robot's mechanisms** (never the
+drive), for **any robot whose mechanism table is not empty**:
+
+```sh
+rm -rf bin .d && make ROBOT=tank PROGRAM=tune
+pros upload --slot 7 --name "shulib Tune"
+```
+
+(`ROBOT=` is your robot's; a robot with no mechanisms is refused by `make`, naming why. The
+`rm -rf bin .d` matters for the same reason as the Auton Tester's: `make` does not see that `PROGRAM=`
+changed.) Start it from the **brain's** screen with the controller paired; nothing in it moves with a
+field or a competition switch plugged in.
+
+**The safety rules, before anything else:**
+- **Nothing is made until READY.** The first screen says what READY does — making a pneumatic's line
+  drives it to its start, so a claw can move — and waits for you to say the robot is clear (on blocks,
+  hands away). READY is greyed, and says why in red, until the controller is connected, no field or
+  switch is plugged in and no controller button is held.
+- **Each mechanism's FIRST motion asks again** (GO or BACK): its first TEST, HOME or stick push.
+- **ANY controller button stops every mechanism** — each one to its declared safe state — and so do the
+  controller disconnecting, a field or switch being plugged in, VEXos disabling the robot, and the
+  screen's STOP (never greyed). While a button is held, nothing starts.
+- **TEST, HOME, STRING CHECK and the stick are refused**, with a sentence on the screen, with no
+  controller connected, with a field or switch plugged in, while a button is held, on a mechanism that
+  is ABSENT — and a position TEST before the mechanism has found its zero ("press HOME first").
+- **The stick moves something only on a fresh push.** A stick still held when you change the mechanism,
+  after a stop, after GO or on another page moves nothing until you let it centre and push it again.
+
+**The page.** The top line is the mechanism (‹ › picks another), what it is and whether it is homed; the
+next, where it is, what it aims at and its last verdict; the third, why nothing may move, when
+something forbids it. Below them, the **selected number** — ^ v pick it, − + change it, FINE makes a
+gain's step ×1.05 — with the robot file's value and what one press does. A `*` marks a number you
+changed. The two status lines say what the last press did, or why it was refused, without the shown
+mechanism's name (the title has it; the terminal has the whole sentence). The buttons: **TEST A** / **TEST B** (labelled with their targets), **HOME**, **UNDO**,
+**RESET**, **COPY**, **STRING**, **STOP** and **EXIT**.
+
+**TEST A and TEST B** move the mechanism and report the move. A lift or an arm goes to its first and its
+last preset (with fewer than two presets, to a quarter and three quarters of its range); a flywheel
+spins up to its first and last preset (or half and nine tenths of its top speed) and is stopped after
+its report; a power mechanism runs at + and − its most volts for half a second. Each move's time limit is
+its plan's own time at the live speed and acceleration, twice over, plus its settle time and half a
+second — at most 10 s; past it the move is TIMED_OUT. A move that SUCCEEDS is watched for one more
+second (its hold), then the **REPORT** page shows: the verdict and the time; the **overshoot** — the
+farthest past the target; how long it took to **settle** after first reaching it; the **final error**;
+the **peak** current; the **hold** current (the mean over that second); and two warnings —
+`WARNING: stall … not above the hold` (an ordinary hold can trip the stall signature: raise it) and
+`WARNING: cap … not above the peak` (the cap limited the move). When the signature trips on the hold
+itself, the hold ENDS inside its second: the page says `hold ENDED (the stall tripped on it)` and
+`WARNING: stall … trips on the hold: raise it` — even when you press STOP after it ended; a stop
+before the hold ends says the hold is n/a. A power
+mechanism's report has no settle and no hold. AGAIN repeats the test; BACK returns; the report's **STOP**
+is where the tuning page's STOP is, and works from its first moment.
+
+**The stick.** The left stick's up/down moves the shown lift, arm or power mechanism by hand (at most
+6 V — a library choice), and holds it where it is when let go: jog the lift to the height a preset
+should be, and read the number off the state line. (Presets are not live — an auton finds a preset by
+its value.) A lift that has not found its zero moves only by its `.unhomedVolts`.
+
+**HOME** runs the mechanism's own homing step (a homing push until its switch or its stall signature;
+at most 10 s) and says the verdict, the time and the push's peak current — the number a homing
+signature is sized by.
+
+**COPY** writes a block of `[TUNE]` lines (the block above) for **every mechanism you changed** to the
+terminal **and** to the SD card, `/usd/tune_log.txt`, kept across boots — a reboot back into Tune does
+not erase the last session's COPY. **EXIT copies for you** every mechanism changed since its last COPY,
+so the numbers are in the log before you stop the program. **Copy the lines into your robot's mechanism table by hand** (robot two's is
+`src/robots/mechanism_table.hpp`), with a comment saying they were tuned live and when; the panel's
+import is for after the first competition. Nothing persists: leaving the program, or a reboot, runs the
+robot file's numbers again. **After a cartridge, gearing or spool change, RESET and tune again** — a
+number a COPY states stays exactly as it was tuned.
+
+**The current cap stays in the motor.** A cap you change is written into the motors, and a motor keeps
+a limit after the program that set it ends (believed — HA-220). So Tune writes the robot file's cap
+back — or the motor's own 2.5 A when the file states none — on **RESET**, when you **leave that
+mechanism's page** (‹ ›), and on **EXIT**. Stopping the program from the brain's screen runs no code:
+**press EXIT before you stop it.** **COPY before you leave a page whose cap you tuned:** the tuned cap
+leaves the live numbers as the page closes, so Tune COPIES that mechanism's numbers to the log first
+when you have not (the status line says so) — write the cap from that block, not from a later COPY. Only
+the page you are on can hold a changed cap, so UNDO — which takes back the last change on ANY mechanism —
+**waits** when its next undo would change another mechanism's cap (the cap put back as you left its
+page, or a RESET of a raised cap): nothing changes, and the page says
+`UNDO waits: next is '…''s cap -- UNDO it on its page`. Go to that mechanism's page (‹ ›) and UNDO
+there; then come back to UNDO the changes before it. A cap that cannot go back by itself — a live
+stall or homing signature at or above the file's cap — keeps you on the page and says so: lower
+that signature, or RESET (its numbers are COPIED). EXIT RESETS such a mechanism instead, after
+copying it, and the EXITED page says how many. **To start a cap where the file states none, press
+−**: the first press sets 2.45 A (the motor's
+own 2.5 A less one step); + from none would ask 2.55 A, above the motor's most, and is refused (the page
+says `file: none; - starts a cap at 2.45 A`). EXIT also releases every mechanism; TUNE AGAIN returns to
+the page.
+
+**STRING CHECK** is empty in this version: the snapped-string watch and its bench page come after the
+first competition. Today a snapped string is **not** detected.
+
+Everything here is tested on the **host test plant**; nothing has run on a robot.
 
 ## In an auton — one line per step
 

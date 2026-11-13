@@ -1839,7 +1839,7 @@ beliefs come with it; **none is measured**, and no motor on either robot has had
   invented constant — HA-183).
   *Confidence:* **reasoned** from one vendored sentence ("The motor will reduce its output at 1000 mA instead of
   the default 2500 mA" — `include/pros/motors.h`); how FAST, and whether with nothing ticking, **invented**.
-  *Settle:* the Tune program (a later part of MECH-S/TUNE1): a capped lift pushed into its top stop, its
+  *Settle:* the Tune program ("shulib Tune", TUNE1-B1, landed 2026-11-11): a capped lift pushed into its top stop, its
   current trace; and once with the program held in a blocking loop.
   *Blast radius if wrong:* a cap that is slow or soft lets a string see more than the cap for a while — the
   cap is then a softer guard than the guide says; a cap that is not enforced while the program is starved

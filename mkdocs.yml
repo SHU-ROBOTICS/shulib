@@ -311,6 +311,7 @@ nav:
           - Optical (PROS): api/pros-optical.md
           - Rotation (PROS): api/pros-rotation.md
           - Tick pacer (PROS): api/pros-tick_pacer.md
+          - Tune (PROS): api/pros-tune.md
       - Core:
           - Check: api/check.md
       - Spec:
@@ -350,6 +351,8 @@ nav:
           - Route ids: api/route_ids.md
           - Service: api/service.md
           - Spec: api/spec.md
+          - Tune panel: api/tune_panel.md
+          - Tune program: api/tune_program.md
           - Until: api/until.md
           - Wiring: api/wiring.md
       - Robot:

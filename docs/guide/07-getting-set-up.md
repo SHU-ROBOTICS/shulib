@@ -143,8 +143,11 @@ mental model, which matters more:
   the bench tester ("Bench Tests"), "shulib Calibrate" (the library's standard Calibrate, with robot
   two's facts derived from its tables in `src/robots/calibrate_facts.hpp` — a team's own is one file,
   [chapter 19](19-calibrating-your-robot.md)), "shulib Auton Tester"
-  (`src/programs/auton_tester_program.cpp`, `make ROBOT=tank PROGRAM=autontest`) and "shulib
-  Competition" (`src/programs/competition_program.cpp`, `make ROBOT=tank PROGRAM=competition`);
+  (`src/programs/auton_tester_program.cpp`, `make ROBOT=tank PROGRAM=autontest`), "shulib
+  Competition" (`src/programs/competition_program.cpp`, `make ROBOT=tank PROGRAM=competition`) and
+  "shulib Tune" (`src/programs/tune_program.cpp`, `make ROBOT=tank PROGRAM=tune` — any robot with
+  mechanisms; slot 7 — live tuning of the mechanisms on the brain screen,
+  [Chapter 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen));
   `src/common/` holds what those programs share — the boot source, the competition-state screens, the
   painters, every driver file's plumbing (`src/common/driver_file.hpp`), and the driver-control
   screen's words (`src/common/driver_panel.hpp`: the drive protections' row, the controller's lines,

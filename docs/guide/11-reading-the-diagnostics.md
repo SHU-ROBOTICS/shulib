@@ -388,6 +388,31 @@ worth recognizing on sight:
   one line per member to write in (`.tuning.kP = 0.3125`, `.stall = {.amps = 1.95, .belowMotorRpm = 5, .lasting = 0.5_s}`),
   and an end line with their count, `'lift': copy ends -- 2 lines`. A block whose end line is missing was
   cut: copy it again. What to do with it: [Ch. 18](18-mechanisms.md#or-on-the-robot-live-tuning).
+- **The Tune program's own lines** (tag `TUNEPG` — "shulib Tune" only, [Ch. 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen);
+  on the terminal and in `/usd/tune_log.txt`, kept across boots): the boot, `booted: shulib TUNE build [<beacon>] -- live tuning of this robot's 3 mechanisms; NOTHING is made until READY on the screen`;
+  READY's role lines (the mechanisms' own, as every program prints them) and `READY: 3 of 3 mechanisms made (no drive motor is ever made here); each one's first motion waits for GO`;
+  each change, undo or reset as live tuning says it (`'lift': kP 0.25 -> 0.3125`, a Warn when refused, with
+  why); a TEST, `'lift': TEST B -- to stack 3 18.000 in, time limit 7.09 s`, then its report,
+  `'lift': TEST B to 18.000 in: SUCCEEDED in 3.21 s (limit 7.09 s)` and
+  `'lift': report -- overshoot 0.0214 in, settle 0.25 s, peak 1.62 A, final error +0.0039 in, hold 0.41 A (mean over the second after it settled; -1 = n/a)`,
+  with a Warn for each warning (`'lift': WARNING -- its stall signature 0.60 A is not above its hold 0.85 A: an ordinary hold can trip it (STALLED)`,
+  `'lift': WARNING -- its current cap 0.60 A is not above the move's peak 0.60 A: the cap limited the move`,
+  or `'lift': WARNING -- its hold ENDED inside the second after it settled …` when the signature tripped
+  on the hold itself); a HOME, `'lift': HOME SUCCEEDED in 2.31 s, its push's peak 0.82 A -- its zero is found`;
+  every stop, `STOP -- a controller button: every mechanism released (its declared safe state)` (or
+  `the controller disconnected`, `a field or switch was plugged in`, `STOP on the screen`, `EXIT`,
+  `VEXos reports the robot DISABLED`, `autonomous started`); every refusal, `'lift': TEST A refused -- no controller is connected (it carries the STOP)`;
+  a cap written back, `'lift': its current cap back to the robot file's (…) -- …`, after
+  `'lift': its cap goes back to the robot file's, so its changed numbers are COPIED first (below)` and a COPY
+  block when no COPY carried them yet; an UNDO that waits because its next undo would change another
+  mechanism's cap (nothing changed: UNDO it on that mechanism's page),
+  `'lift': UNDO waits on another page -- the next undo would change its current cap (only its own page may change a cap): show it (< >) and UNDO there`;
+  a READY refused, `READY refused -- no controller is connected (it carries the STOP); nothing was made`; and
+  `EXIT: 1 current cap written back; every mechanism released -- you may stop the program now`, with
+  `EXIT: 1 mechanism's changed numbers COPIED above -- put them into the robot file by hand` when EXIT
+  copied numbers no COPY carried, and `EXIT: 'lift': RESET to the robot file's numbers -- a live signature is at or above the file's cap (its numbers were COPIED above)`
+  when a cap could not go back by itself (copy those numbers from the block above it). Numbers here are
+  examples: nothing has run on a robot.
 - **A computed target clamped** (Warn, tag `MECH`, once per step): `'arm': target 175.00 clamped to the
   travel limit 160.00 (soft stop)`, or a flywheel's `'flywheel': speed 4000 rpm clamped to its free
   speed 3600 rpm` — a target computed while the auton ran was past what the robot file allows; the step

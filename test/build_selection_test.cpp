@@ -3,7 +3,7 @@
 //
 // WHAT THIS TU SEES. The host test build sets no build switch, so the header's one chain takes its
 // #else: this TU is the bench build's selection — exactly what `make` with no ROBOT builds. So the
-// first case pins that branch whole (program, robot, variant beacon, robot beacon). The other six
+// first case pins that branch whole (program, robot, variant beacon, robot beacon). The other seven
 // branches are compiled only in the robot builds; what checks them there is the src build gate
 // (tools/src_build_gate.py): step 0 reads every branch against the gate's own per-build table, and
 // step 6 finds each build's two beacons — and no other build's — in its linked package.
@@ -18,9 +18,14 @@
 
 #include <array>
 #include <cstring>
+#include <set>
+#include <sstream>
+#include <string>
 #include <string_view>
 
 #include "build_selection.hpp"
+#include "robots/mechanism_table.hpp"
+#include "source_pins.hpp"
 
 using shulib::bench::kProgram;
 using shulib::bench::kRobotId;
@@ -89,4 +94,99 @@ TEST_CASE("build selection: no robot beacon can be mistaken for another robot's,
             CHECK_FALSE((sb.size() >= sa.size() && sb.substr(sb.size() - sa.size()) == sa));
         }
     }
+}
+
+// ═══ "shulib Tune" (TUNE1-B1): the ROBOT-GENERIC row — the host half of the brief's TB12 ═══════════
+// The Makefile's MECHANISM_ROBOTS (the ROBOT values PROGRAM=tune accepts) must be exactly the robots
+// whose mechanism table is NOT empty — read here from the tables themselves, for every RobotId — and the
+// tune row must name no robot. The src build gate's step 0 checks the same from the source text; its
+// self-test runs `make ROBOT=bench PROGRAM=tune` and sees the $(error).
+
+namespace {
+/// Robot `id`'s ROBOT= value in the Makefile — a case per robot and no default (-Wswitch); null for an
+/// integer that is no robot.
+constexpr const char* makeValueOf(RobotId id) {
+    switch (id) {
+        case RobotId::BenchBot:
+            return "bench";
+        case RobotId::RobotTwo:
+            return "tank";
+        case RobotId::InventedXDrive:
+            return "xdrive";
+    }
+    return nullptr;
+}
+}  // namespace
+
+TEST_CASE("build selection: the Makefile's MECHANISM_ROBOTS is exactly the robots whose mechanism table is "
+          "not empty, and its PROGRAM=tune row names no robot") {
+    // BUG CAUGHT: a robot-two-only Tune row (robot one's plumbing would need a Tune row of its own — the
+    // brief's re-check #10), or a robot listed whose table is empty (a Tune with nothing to tune).
+    // EVERY RobotId (its enumerators are 0, 1, 2, ... — none states a value), each by its ROBOT= value:
+    // a robot added to RobotId without a case below is -Wswitch, a host build ERROR (-Werror) — so a robot
+    // that registers a table (G1's robot one) is read here with no list to keep in step by hand
+    std::set<std::string> withMechanisms;
+    int robotsSeen = 0;
+    for (int k = 0; k < 64; ++k) {
+        const char* makeValue = makeValueOf(static_cast<RobotId>(k));
+        if (makeValue == nullptr) {
+            continue;
+        }
+        ++robotsSeen;
+        if (shulib::bench::mechanismTableFor(static_cast<RobotId>(k)).count > 0) {
+            withMechanisms.insert(makeValue);
+        }
+    }
+    CHECK(robotsSeen >= 3);
+    const std::string makefile = source_pins::readFile("Makefile");
+    const std::size_t at = makefile.find("\nMECHANISM_ROBOTS:=");
+    REQUIRE(at != std::string::npos);
+    CHECK(makefile.find("\nMECHANISM_ROBOTS:=", at + 1) == std::string::npos);  // set once
+    const std::size_t end = makefile.find('\n', at + 1);
+    std::istringstream listed{makefile.substr(at + 19, end - at - 19)};
+    std::set<std::string> listedRobots;
+    for (std::string w; listed >> w;) {
+        listedRobots.insert(w);
+    }
+    CHECK(listedRobots == withMechanisms);
+    CHECK(withMechanisms.count("tank") == 1);  // robot two's claws: the one robot with mechanisms today
+    // the tune row: from its ifeq to its append, comments aside, no comparison of $(ROBOT) with a name
+    const std::size_t row = makefile.find("else ifeq ($(PROGRAM),tune)");
+    REQUIRE(row != std::string::npos);
+    const std::size_t rowEnd = makefile.find("override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_TUNE", row);
+    REQUIRE(rowEnd != std::string::npos);
+    std::istringstream lines{makefile.substr(row, rowEnd - row)};
+    for (std::string line; std::getline(lines, line);) {
+        if (line.rfind("#", 0) == 0) {
+            continue;
+        }
+        CAPTURE(line);
+        CHECK(line.find("${ROBOT}") == std::string::npos);
+        if (line.find("$(error ") != std::string::npos) {
+            continue;  // the refusal's own words name the ROBOT it refuses
+        }
+        // ANY other reading of $(ROBOT) but the one list filter names a robot: `ifneq ($(ROBOT),tank)`,
+        // `ifeq ($(filter tank,$(ROBOT)),)`, `ifneq "$(ROBOT)" "tank"`
+        std::string rest = line;
+        const std::string allowed = "$(filter $(ROBOT),$(MECHANISM_ROBOTS))";
+        if (const std::size_t f = rest.find(allowed); f != std::string::npos) {
+            rest.erase(f, allowed.size());
+        }
+        CHECK(rest.find("$(ROBOT)") == std::string::npos);
+    }
+    CHECK(makefile.substr(row, rowEnd - row).find("$(filter $(ROBOT),$(MECHANISM_ROBOTS))") != std::string::npos);
+}
+
+TEST_CASE("build selection: Program::Tune is its own program, and the host's build is not it") {
+    // BUG CAUGHT: the Tune enumerator aliased onto another program (a Tune upload running another
+    // program's entry points), or the host's #else silently taking a Tune branch.
+    CHECK(Program::Tune != Program::BenchTests);
+    CHECK(Program::Tune != Program::Competition);
+    CHECK(Program::Tune != Program::Drive);
+    CHECK(Program::Tune != Program::AutonTester);
+    CHECK(Program::Tune != Program::Calibrate);
+    CHECK(Program::Tune != Program::InventedXDrive);
+    CHECK(kProgram != Program::Tune);
+    // the tune program file's backstop holds on the host (bench: not Tune, so nothing is asserted)
+    CHECK((kProgram != Program::Tune || shulib::bench::kMechanisms.count > 0));
 }
