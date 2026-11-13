@@ -1,5 +1,7 @@
 # STEP1 — live progress log
 
+<!-- release: between parts — STEP1-A and STEP1-B landed (196cdfc, 8df58f3) — everything briefed for before the 21st; nothing is building (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 The brief of record: [`STEP1-route-steps-library.md`](STEP1-route-steps-library.md) (its answers block of
 2026-11-03: "Accept all, go" on D1–D8; the "## Re-check — amendments" override the body). Appended in real time.
 

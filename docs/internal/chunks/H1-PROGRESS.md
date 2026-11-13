@@ -1,5 +1,7 @@
 # H1 — progress log (live)
 
+<!-- release: between parts — Part A1 landed 2026-10-01; no part is building now; its open parts are in build-order's H1 section (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 - **Chunk:** H1 — the SHUL/2 telemetry wire (brief: [`H1-shul2-wire.md`](H1-shul2-wire.md))
 - **Executor model:** opus
 - Appended as the work goes, with a heading per part. Every time in a section header is a `date`

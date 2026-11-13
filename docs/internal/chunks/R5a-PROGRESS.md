@@ -1,5 +1,7 @@
 # R5a — progress log (live)
 
+<!-- release: between parts — Part A landed; no part is building now; its open parts are in build-order's R5a section (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 - **Chunk:** R5a (handoff L7) — gains and noise, measured by the robot inside shulib Calibrate and kept on
   the SD card (brief: [`R5a-gains-and-noise-on-the-sd-card.md`](R5a-gains-and-noise-on-the-sd-card.md))
 - **Executor model:** opus

@@ -1,5 +1,7 @@
 # CURVE1 — live progress log
 
+<!-- release: between parts — CURVE1-A landed 2026-11-12 (d33d25d); CURVE1-B (routes as data, the 'arc' value) is after the 21st (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 The brief of record: [`CURVE1-curve-follower.md`](CURVE1-curve-follower.md) (its answers block of 2026-11-11:
 "Go (Recommended)" on D1–D13; "## Amendment 2026-11-10 (late) — the sideways miss" with its re-check B1–B5, and
 "## Re-check — amendments" A1–A14, override the body). Appended in real time.

@@ -2,6 +2,7 @@
 """shulib release driver — shulib-v2 → release/v2 → main, with the invariants enforced.
 
     python3 tools/release.py check     # preflight only, changes nothing
+    python3 tools/release.py self-test # the between-parts rule's own cases
     python3 tools/release.py stage     # preflight + build the release commits LOCALLY
     python3 tools/release.py push      # push what stage built (refuses if not staged)
 
@@ -41,6 +42,50 @@ RELEASE = "release/v2"
 PUBLISH = "main"
 STAGED = os.path.join(REPO, ".git", "shulib-release-staged")
 
+
+
+# A multi-part chunk whose landed parts are all merged, with later parts deliberately scheduled
+# (after the competition, after the panel), has a PROGRESS file and no COMPLETED file by design —
+# and that is NOT an interrupted chunk. It says so with ONE line near the top of its PROGRESS file:
+#     <!-- release: between parts — STEP1-A and STEP1-B landed; R1-T after G3a -->
+# The marker must sit in the first BETWEEN_PARTS_HEAD lines (a note buried in a log is not a
+# declaration), and it must give a reason (an empty one is no declaration). The coordinator writes
+# it at a part's merge and removes it when a part starts building again, so a chunk mid-build is
+# still caught. (2026-11-13: 16 multi-part chunks blocked the first release since August.)
+BETWEEN_PARTS_MARK = "<!-- release: between parts"
+BETWEEN_PARTS_HEAD = 40
+
+
+def between_parts_reason(text):
+    """The declared reason, or None when the file does not declare itself between parts."""
+    for line in text.splitlines()[:BETWEEN_PARTS_HEAD]:
+        s = line.strip()
+        if s.startswith(BETWEEN_PARTS_MARK) and s.endswith("-->"):
+            reason = s[len(BETWEEN_PARTS_MARK):-len("-->")].strip().lstrip("—-:").strip()
+            return reason or None
+    return None
+
+
+def self_test():
+    """The between-parts rule, each case trying to break it."""
+    cases = [
+        ("# X\n<!-- release: between parts — A landed; B after the 21st -->\n", "A landed; B after the 21st"),
+        ("# X\n<!-- release: between parts -->\n", None),                       # no reason → no declaration
+        ("# X\n<!-- release: between parts —    -->\n", None),                  # only blanks → none
+        ("# X\n" + "line\n" * BETWEEN_PARTS_HEAD + "<!-- release: between parts — late -->\n", None),  # too deep
+        ("# X\nrelease: between parts — not a comment\n", None),               # not the marker
+        ("# X\n<!-- release: between parts — unterminated\n", None),           # not closed
+        ("# X\n  <!-- release: between parts: B later -->  \n", "B later"),   # indented, colon form
+        ("", None),
+    ]
+    bad = 0
+    for text, want in cases:
+        got = between_parts_reason(text)
+        if got != want:
+            bad += 1
+            print(f"  FAIL  {text!r}: got {got!r}, want {want!r}")
+    print(f"release self-test: {'OK' if not bad else 'FAILED'} ({len(cases)} cases)")
+    return bad == 0
 
 def git(*args, check=True, quiet=False):
     r = subprocess.run(["git", "-C", REPO, *args], capture_output=True, text=True)
@@ -95,17 +140,26 @@ def preflight():
     chunks = os.path.join(REPO, "docs/internal/chunks")
     if os.path.isdir(chunks):
         names = os.listdir(chunks)
-        interrupted = sorted(
+        open_chunks = sorted(
             n[: -len("-PROGRESS.md")]
             for n in names
             if n.endswith("-PROGRESS.md")
             and f"{n[: -len('-PROGRESS.md')]}-COMPLETED.md" not in names
         )
+        interrupted, between = [], []
+        for c in open_chunks:
+            with open(os.path.join(chunks, f"{c}-PROGRESS.md"), encoding="utf-8") as f:
+                reason = between_parts_reason(f.read())
+            (between if reason else interrupted).append((c, reason))
+        for c, reason in between:
+            print(f"  WARN  {c} is BETWEEN PARTS (declared): {reason}")
         if interrupted:
-            print(f"  FAIL  interrupted chunk(s): {', '.join(interrupted)} — finish before releasing")
+            print(f"  FAIL  interrupted chunk(s): {', '.join(c for c, _ in interrupted)} — finish before releasing, or, "
+                  f"if every part built so far has LANDED and the rest is deliberately later, declare it with a "
+                  f"'{BETWEEN_PARTS_MARK} <reason> -->' line in the first {BETWEEN_PARTS_HEAD} lines of its PROGRESS file")
             ok = False
         else:
-            print("  PASS  no interrupted chunks")
+            print(f"  PASS  no interrupted chunks ({len(between)} declared between parts)")
 
     return ok
 
@@ -248,6 +302,8 @@ def push():
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "check"
+    if cmd == "self-test":
+        raise SystemExit(0 if self_test() else 1)
     if cmd == "check":
         raise SystemExit(0 if (preflight() and _gates()) else 1)
     if cmd == "stage":

@@ -1,5 +1,7 @@
 # SAFE-SAVE — live progress log
 
+<!-- release: between parts — Part A landed 2026-10-04; Part B1 was absorbed into CAL1 (complete); nothing is building (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 > Appended in real time by the executor. Brief:
 > [`SAFE-SAVE-calibrate-save-and-teleop-label.md`](SAFE-SAVE-calibrate-save-and-teleop-label.md).
 > **This run builds Part A ONLY** (the library: `hal::IFileStore`, `ProsFileStore`, `FakeFileStore`,

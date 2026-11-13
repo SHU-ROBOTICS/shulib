@@ -139,6 +139,27 @@ Bash(git push origin *:refs/heads/main)   # or narrow it to the release target
 Until such a rule exists, `release.py stage` still does all the work and prints the exact shas,
 so a human can run the three pushes.
 
+## Chunks between parts (added 2026-11-13)
+
+The preflight fails on an **interrupted chunk**: a `docs/internal/chunks/<CHUNK>-PROGRESS.md` with no
+`<CHUNK>-COMPLETED.md`. Most chunks since September are built in parts, and many have later parts scheduled
+deliberately (after the competition, after the panel) — their landed parts are merged and gated, nothing is
+half-built, and still they have no COMPLETED file. On 2026-11-13 sixteen of them blocked the first release
+since August.
+
+Such a chunk **declares itself between parts** with ONE line in the first 40 lines of its PROGRESS file:
+
+```
+<!-- release: between parts — STEP1-A and STEP1-B landed; nothing is building -->
+```
+
+The preflight then prints it as a `WARN` with its reason and does not fail. The rule (`between_parts_reason()`
+in `tools/release.py`, covered by `python3 tools/release.py self-test`): the marker must be a whole HTML
+comment, near the top (a note buried in a log is not a declaration), with a non-empty reason. **The coordinator
+writes it at a part's merge, and REMOVES it when another part of that chunk starts building** — so a chunk
+that is genuinely mid-build still fails the release. When a chunk's last part lands, its COMPLETED record
+replaces the marker.
+
 ## What still is not automated, on purpose
 
 - **Deciding to release.** The script checks that a release would be *correct*; it has no view

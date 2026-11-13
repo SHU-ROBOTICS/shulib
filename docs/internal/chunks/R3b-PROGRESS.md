@@ -1,5 +1,7 @@
 # R3b — live progress log
 
+<!-- release: between parts — no part is building now; its open items are robot runs and build-order's R3b section (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 > Appended as the work happens (RESUMING.md's rule). If this file ends mid-thought, the pass
 > was interrupted exactly there.
 

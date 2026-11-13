@@ -1,5 +1,7 @@
 # T3 — live progress log (both halves, joined at the merge)
 
+<!-- release: between parts — Part 1 landed 2026-09-26; no part is building now; its open parts are in build-order's T3 section (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 > **Coordinator's note (the merge, 2026-09-26).** T3 was built in two isolated git worktrees in
 > parallel, each with its own live log: the **library half** (`.claude/worktrees/t3-lib` — run B,
 > then B2, the pneumatic claw's library side) and the **program-side prep**

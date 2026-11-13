@@ -1,5 +1,7 @@
 # L6, the wall reset — progress log (live)
 
+<!-- release: between parts — L6-A1 and L6-A2 landed (59d93bb, 16c01e0); L6-B (robot two's side sensors and the WALL bench page) is later; nothing is building (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 - **Chunk:** L6, the wall reset with the side distance sensors (brief:
   [`L6-wall-reset.md`](L6-wall-reset.md)) — three runs and an optional fourth (A1, A2, B; C optional), each its
   own go (the brief's D1, §2.1).

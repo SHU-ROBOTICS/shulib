@@ -1,5 +1,7 @@
 # R3d — drivetrain self-calibration — PROGRESS (live log)
 
+<!-- release: between parts — no code part is building now; its open item is the bench session (Part 3) at the robot, build-order's R3d section (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 | | |
 |---|---|
 | **Chunk** | R3d — drivetrain self-calibration |

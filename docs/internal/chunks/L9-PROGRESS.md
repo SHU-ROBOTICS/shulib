@@ -1,5 +1,7 @@
 # L9 — live progress log
 
+<!-- release: between parts — Part A1 landed 2026-09-30; no part is building now; Parts A2 and B are in build-order's L9 section (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 > Appended in real time. The brief: [`L9-rest-reverse-driving-and-one-line-boot.md`](L9-rest-reverse-driving-and-one-line-boot.md)
 > (the team lead's answers at its top: every recommendation accepted; its Re-check amendments override
 > its body).

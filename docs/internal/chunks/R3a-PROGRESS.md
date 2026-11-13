@@ -1,5 +1,7 @@
 # R3 — live progress log
 
+<!-- release: between parts — no part is building now; its open items are robot sessions on the bench worksheet and build-order's R3a section (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 > Appended continuously, in real time, by the session running the chunk. **Raw device readings are
 > logged here BEFORE they are interpreted** — a bench session's value is in the numbers that cannot
 > be reconstructed later. If this chunk is interrupted, this file is the recovery point.

@@ -1,5 +1,7 @@
 # AF1-S — PROGRESS (live log)
 
+<!-- release: between parts — AF1S-A1 landed 2026-11-13 (5f6633b); AF1S-A2 (the camera reachable from an auton) is queued, not started (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 Brief: [`AF1S-skills-toggle-check-flip.md`](AF1S-skills-toggle-check-flip.md). Executor model: `opus`. Nothing
 committed by the executor. Host only: nothing here has run on a robot.
 

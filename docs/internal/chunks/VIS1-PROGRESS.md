@@ -1,5 +1,7 @@
 # VIS1, the AI Vision camera as library code — progress log (live)
 
+<!-- release: between parts — VIS1-A1 and VIS1-A2 landed (9d77c9d, 2c3aa34); VIS1-B is after the 21st; nothing is building (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 - **Chunk:** VIS1 — the V5 AI Vision camera's colours and objects as shulib library code (brief:
   `VIS1-ai-vision-colours.md`, being copied into `docs/internal/chunks/` by the coordinator with the answers
   block; the executor reads the coordinator's copy, `.claude/coordinator/briefs/VIS1-ai-vision-colours.md`, the

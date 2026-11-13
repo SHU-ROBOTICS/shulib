@@ -1,5 +1,7 @@
 # MECH-S, a string lift's safety — progress log (live)
 
+<!-- release: between parts — MECH-S-A (the current cap) landed 2026-11-10 (49d1a22); MECH-S-B (the slack watch) is after the 21st (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 - **Chunk:** MECH-S, a string lift's SAFETY (brief:
   [`MECH-S-TUNE1-string-lift-safety-live-tuning.md`](MECH-S-TUNE1-string-lift-safety-live-tuning.md)) — the
   current cap (MECH-S-A) and the slack watch (MECH-S-B1/B2), each its own go (the brief's D10, §2.1). TUNE1's runs

@@ -1,5 +1,7 @@
 # T2 — Input shaping, drive modes, and the feel properties — PROGRESS
 
+<!-- release: between parts — no part is building now; its landed parts live in 'shulib Drive'; its open parts are in build-order's T2 section (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 > **Live log.** Appended as the work happens, not written afterwards.
 >
 > | | |

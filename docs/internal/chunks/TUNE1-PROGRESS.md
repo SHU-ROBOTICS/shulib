@@ -1,5 +1,7 @@
 # TUNE1 — live tuning — PROGRESS (live log, appended as the work goes)
 
+<!-- release: between parts — TUNE1-A and TUNE1-B1 landed (6baef55, c0a7c7e); TUNE1-B2 (the copy-back) is after the panel; nothing is building (declared by the coordinator 2026-11-13 for the first release since August) -->
+
 Brief: [`MECH-S-TUNE1-string-lift-safety-live-tuning.md`](MECH-S-TUNE1-string-lift-safety-live-tuning.md)
 (its answers block, D8, D9, §1.2, §2.2's TUNE1-A list, §3.1, the re-check amendments — #7 and #14 override the body).
 
