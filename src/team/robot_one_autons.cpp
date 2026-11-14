@@ -13,7 +13,9 @@
 //
 // THE MECHANISMS. `using namespace robot_one;` makes robot one's mechanisms nameable here by their
 // declarations in src/robots/mechanism_table.hpp (robot one's region) --
-//     r.startHome(cascade, 2_s);                  // home the cascade while the first leg drives
+//     r.startHome(cascade, 2_s);                  // home the cascade while the first leg drives...
+//     r.waitUntilDone(cascade, 2_s);              // ...and wait for the home to FINISH: a move sent while
+//                                                 // it is still homing replaces it, and stops NOT_HOMED
 //     r.move(cascade[facts::lv(2).name], 2_s);    // the cascade to its third level, bounded
 // -- no auton here steps the cascade yet: which level when is the team's route.
 //

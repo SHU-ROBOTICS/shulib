@@ -1174,3 +1174,10 @@ tree before anything was changed. Scratch: `.claude/coordinator/scratch/rob1-int
   typed. Next: ROB1-BT (the record names its robot + robot two as the twin, with the route maker's shared route file).
   Known follow-up (the RMP1 brief's re-check R1): guide 21 and `robot_one_autons.cpp`'s banner must say to wait for the
   cascade's home to FINISH before its first move — a coordinator commit right after this one.
+- **The homing follow-up (the coordinator, 2026-11-13 late):** guide 21 and `robot_one_autons.cpp`'s banner now say to
+  WAIT for the cascade's home to finish (`r.waitUntilDone(cascade, 2_s)`, or `r.home(cascade, 3_s)`, which waits) before
+  its first move — a move or a trigger's move sent while it is still homing REPLACES the home and stops NOT_HOMED (the
+  RMP1 brief's re-check R1; its probes `p6_one-starthome-trigger` (stopped at step 2, NOT_HOMED) and
+  `p6_one-starthome-wait` (homed, then reached its level)). Gates (`scratch/rob1a_homing_verify.sh`): suite green (3,661
+  cases), src gate check PASS (14 builds), check-examples / check-fresh / check-coverage, staleness audit and briefing
+  check all exit 0; no plant.

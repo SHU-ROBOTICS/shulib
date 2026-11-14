@@ -222,7 +222,10 @@ inline constexpr DriverControls kControls = controls(kRobotOneMechanisms,
 ```
 
 Homing for a skills run is the route's to say: a route's first line `r.startHome(cascade, 2_s)` homes it
-while the first leg drives.
+while the first leg drives. **Wait for the home to finish before the cascade's first move** —
+`r.waitUntilDone(cascade, 2_s)`, or home with `r.home(cascade, 3_s)`, which waits by itself. A move (or a
+trigger's move) sent while the cascade is still homing replaces the home, and that move then stops with
+NOT_HOMED.
 
 ## The flipper: three forms, ready
 
