@@ -135,6 +135,12 @@
   position: at program start with no motion (it rests on its stop; an absolute angle sensor; a home
   switch already pressed) or by a homing step that pushes until its switch is pressed or it stalls
   against its stop. Every home logs where its zero went. [Ch. 18]
+- **host test plant** — the suite's model of a robot and its field, run on the laptop. It is ideal —
+  motors that answer at once, wheels that never slip — unless a test adds motor lag, a weak side, wheel
+  slip or sensor noise, and it has walls, pieces or a camera's view only where a test puts them. Every
+  auton is run on it by the host tests. The route preview runs it IDEAL, with nothing on the field to stop
+  or push the robot, and draws the run; its times there are the library acting on a perfect robot — not a
+  floor or a ceiling for the real one. [Ch. 5, Ch. 7, Ch. 16]
 - **host-side** — running on an ordinary computer rather than the robot. [Ch. 7]
 - **IMU (inertial measurement unit)** — the sensor that measures rotation directly; the owner
   of the heading estimate. [Ch. 3]
@@ -239,6 +245,10 @@
   (`arm_score`, `intake_until_piece`, `claw_closed`); one that would not fit, would repeat or is the
   library's own is refused at build. A program registers a robot's ids in one call, and a marker then
   runs exactly the step an auton's line runs, blocking at its waypoint until its verdict. [Ch. 10, 18]
+- **route preview** — `tools/route_preview.py "<auton name>"`: one auton run on the host test plant and
+  drawn as one offline page — the field, the path, every step numbered with its time, failures in red with
+  the library's own sentence, and THROUGH (a wall or a Loader hit, a failure) told apart from TOUCH (a note).
+  A plan, not a robot test. [Ch. 16]
 - **routine** — the function encoding one autonomous plan as a sequence of commands. [Ch. 8]
 - **run guard** — a wrapper around the tick pacer that gives a whole routine a hard deadline: it
   cuts the active motion — and every mechanism operation still running that registered its claim,

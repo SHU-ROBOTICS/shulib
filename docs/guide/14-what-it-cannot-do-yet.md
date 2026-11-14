@@ -62,6 +62,14 @@ The headline limitation, stated as many times as it takes:
   2026-09-30), runs the same autons in `autonomous()`; it has not run on a brain either, and the
   beliefs a match rests on — that PROS deletes its phase tasks on a mode change (HA-161), and what
   the controller's Timed Run does (HA-162) — are unchecked.
+- **The route preview draws a perfect robot, on a stand-in drive, in an empty field.**
+  `tools/route_preview.py` ([Chapter 16](16-testing-an-auton-on-the-bench.md#before-the-bench-previewing-a-route))
+  runs an auton on the host test plant and draws it, but its drive is the test suite's stand-in (a 12 in tank
+  with made-up gains, not robot two's — whose track width is not in the code yet), its plant has no walls (the
+  preview checks a 15 in square against the field itself and says THROUGH or TOUCH, but nothing stops the
+  plant's robot), it has no side sensors (every wall reset is refused), no pieces and no camera (a step that
+  needs to see something cannot). Its times are not the robot's either way. Robot one cannot be previewed
+  yet: its robot file and autons file exist, but the preview is not switched to them.
 - **Every physical constant is a labeled guess.** Control gains, settle tolerances, sensor
   noise levels, drivetrain geometry, fault thresholds — all provisional, and cataloged as
   falsifiable claims in the [Hardware Assumptions Register](../hardware-assumptions.md)

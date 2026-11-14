@@ -320,6 +320,15 @@ add_dependencies(shulib_tests shulib_doc_gates)
 
 add_test(NAME shulib_tests COMMAND shulib_tests)
 
+# ── THE ROUTE PREVIEW (chunk RPV1-A, 2026-11-12) ────────────────────────────────────────────────────
+# One named auton from the team's REAL autons file through the REAL library on the host test plant,
+# drawn as one offline page (test/route_preview_run.hpp; run it with tools/route_preview.py, which
+# builds this target and runs it under the suite's own bounds). Built by the default target, so CI
+# compiles it; it does NOT wait for the doc gates. route_preview_main.cpp is not a *_test.cpp, so the
+# suite's glob above never compiles it — the suite calls runPreview() itself (route_preview_test.cpp).
+add_executable(shulib_route_preview route_preview_main.cpp "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp")
+target_link_libraries(shulib_route_preview PRIVATE shulib_test_flags)
+
 # ── THE COMPILE-REFUSAL HARNESS (chunk MECH-A1, 2026-10-08; the MECH brief's §3.0) ──────────
 # The mechanism core refuses a robot file's mistakes AT BUILD, each by name (a consteval check calls
 # a function whose NAME is the reason). A refusal no test can see is one a mutation can delete, so

@@ -100,8 +100,9 @@ mutation campaign that is once per mutation, which is worth knowing before you s
 enforce RLIMIT_AS, so there the run has the other bounds only), 256 MiB of output (to a file, never
 held by the tool), 600 s of CPU, 300 s of wall time; the run stays in the caller's process group, so
 an outer `timeout` or Ctrl-C reaches it, and on Linux it dies with the tool that started it (the
-timeout kill and that tie reach the suite process itself — it does not fork). The bounds are per
-process. (On 2026-10-15 a mutation run's mutant reached 58 GB in the mutation runner;
+timeout kill and that tie reach the suite process itself; the suite forks only in the route preview's
+two cases, each child under its own 2 GiB bound and an alarm, waited for by its case — `tools/suite_run.py`'s
+header, since RPV1-A). The bounds are per process. (On 2026-10-15 a mutation run's mutant reached 58 GB in the mutation runner;
 left linked, it reached 54 GB through `briefing_status.py generate`, unbounded, and took the desktop
 down; this gate ran the same unbounded code.) A run is BROKEN when it is killed by a signal or a
 bound, does not finish, prints no doctest summary, exits non-zero with a summary that says nothing

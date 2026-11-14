@@ -154,6 +154,39 @@ documented here and in their own headers:
   `sim::CameraPlant` and includes nothing from `vision/`. The Toggle step's tests use it as their oracle
   (`test/toggle_visit_rig.hpp`; its own tests are `test/sim_toggle_plant_test.cpp`).
 
+## The route preview (since RPV1-A)
+
+`python3 tools/route_preview.py "<auton name>"` (guide chapter 16, "Before the bench: previewing a route") runs
+one of the team's autons through the Auton Tester's own sequence on the host test plant and draws it as one
+offline page. Its program is a host target here, `shulib_route_preview` (built by the default target, outside
+the suite's `*_test.cpp` glob); ALL its logic is in headers the suite calls directly:
+
+- **`route_preview_run.hpp`** — `runPreview(args, out, err)` (arguments, the exact-name lookup including
+  the names inside the registry's refusal sentences, the run, the page, the exit code) and `runProgram` (the
+  same, with a failure of the preview itself said in words and exit 3); the RECORDER, a pacer layer put at
+  `TesterStack::probe.inner` that stores the plant's TRUE pose after every pace and dates every log line to
+  its pace (and tells the end action's steps from the routine's by the guard's own line, not by time); the
+  scheduler's boundary observer; the NO-PACE STOP. `route_preview_main.cpp` only forwards `argv`.
+- **`route_preview_model.hpp`** — what the page is drawn from, and THE FIELD CHECK (a 15 in square against
+  `sim::FieldModel::override2026()`: THROUGH a wall or a Loader past a 1 in allowance fails, a TOUCH is a note).
+- **`route_preview_render.hpp`** — the stdout table and the page, both from one `tableRows()`.
+- **`fakes_by_kind.hpp`** — ANY robot's mechanism list on fakes, by kind (booted through the real
+  `robot::MechanismParts` over the fake provider; an arm or lift on a `sim::ArmPlant` built from its OWN
+  declaration, a flywheel likewise — each given an ASSUMED time constant where its declaration states no
+  `kA`, because a plant with no inertia makes a speed loop overshoot every tick), bound into `TesterStack`
+  through its last parameter, a `RigMechanisms` (`auton_tester_rig.hpp`). Left at its default, the rig is
+  robot two's list over `RobotTwoFakes`, exactly as before (`route_preview_test.cpp`'s default-rig case pins
+  four runs' truth and sink — one of them stepping every one of robot two's mechanisms — to fingerprints
+  taken before the parameter existed, `route_preview_hash.hpp`).
+- **`route_preview_test.cpp`, `route_preview_fixtures.hpp`** — the cases and their fixture autons.
+
+**`hal::fake::FakeTelemetrySink::setOnLine(fn, ctx)`** — an opt-in hook called after each stored line with the
+count of lines kept (default: none, so every other test is unchanged). The route preview's no-pace stop uses
+it: an auton that keeps logging without ever pacing (a loop after a stop) would otherwise grow the sink until
+it ran out of memory. The same hook notes the run guard's end-of-run line and every mechanism verdict logged
+while an exception unwinds (which steps are the park's, and the step a run threw inside). A hook that throws
+must only be set where every caller can carry the exception.
+
 ## Vendored dependency
 
 [`vendor/doctest.h`](vendor/doctest.h) — **doctest v2.4.11**, a single-header test framework.

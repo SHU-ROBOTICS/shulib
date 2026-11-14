@@ -16,6 +16,38 @@
 
 ## API 2.8
 
+### 2026-11-14 (built 2026-11-12, reviewed and fixed to 2026-11-14) — the route preview: one command draws a whole auton from the team's own file, on the host test plant
+
+> Written when it was built (chunk RPV1, part A — its first two parts together). **No API change**: nothing a
+> robot program compiles changed, no library header a robot build includes moved, and `src/` is untouched.
+> **Host test plant only — nothing here has run on a robot.** [Chapter 16](guide/16-testing-an-auton-on-the-bench.md#before-the-bench-previewing-a-route)
+> teaches it.
+
+**ADDED (a host tool):**
+- **`python3 tools/route_preview.py "<auton name>"`** — runs that auton from `src/team/autons.cpp` through the
+  same library call the competition program makes, on the host test plant, under the test suite's own bounds,
+  and writes ONE offline page (`build/route_preview/<name>.html`) plus the same step table on the terminal: the
+  field to scale, the path the plant's robot really drove, every motion (drive, curve, strafe, turn, brake, hold) and
+  mechanism step numbered where it began, with its times, mechanism steps that ran while the robot drove as
+  their own stretch of path, a refused wall reset in amber, failures in red with the library's own sentence,
+  numbers nobody has measured dashed as PLACEHOLDER, and the robot's outline checked against the field —
+  THROUGH a wall or a Loader fails the command, a TOUCH is a note. `--place=X,Y,DEG` places a RELATIVE
+  auton; `--list` names them all; an auton the program refuses is drawn REFUSED with its sentence; an auton
+  that loops forever after a stop is stopped and drawn; one that throws is drawn to the throw, which is
+  placed inside a step, during a wait, or after a step. Exit codes 0 / 1 / 2 / 3 (guide chapter 16; 3 is
+  the tool's own failure). `--robot two` (the default); `--robot one` says robot one has no build yet (robot one's build landed the same week; switching the preview to it is queued). The
+  page's step numbers count from below (every motion and mechanism step — not pauses, waits, `then(...)`
+  steps or `startAt`); the library's own quoted lines carry the code's real numbers.
+
+**ADDED (host test infrastructure, outside the API reference):** `hal::fake::FakeTelemetrySink::setOnLine` — an
+opt-in hook after each stored line (default none: every existing test unchanged). The Auton Tester's host rig
+(`test/auton_tester_rig.hpp`) takes any robot's mechanism list through a new last parameter whose default is
+the rig exactly as it was (`test/fakes_by_kind.hpp` builds any list's fakes, an arm, lift or flywheel moving
+on its declaration's own numbers, with an assumed time constant where a declaration states no `kA` — every
+flywheel, whose declaration has none). `test/README.md` documents both.
+
+**What you must do:** nothing. To preview a route, see chapter 16.
+
 ### 2026-11-13 (built 2026-11-11) — robot one in the code: `make ROBOT=one`, its facts file, six builds that refuse by name until its facts are typed
 
 > Written when it was built (chunk ROB1, its first run), and brought up to date when it was integrated onto curves

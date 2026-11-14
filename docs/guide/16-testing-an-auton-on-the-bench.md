@@ -3,7 +3,8 @@
 > **Covers:** "shulib Auton Tester" — the program that runs one of the team's autons on the bench,
 > from the brain's screen, with no competition switch; the team's auton file,
 > `src/team/autons.cpp`, which it and the competition program both read; what to expect from the
-> first run on a tank, and how to read the result against a tape measure.
+> first run on a tank, and how to read the result against a tape measure; and previewing a whole
+> route on the laptop before it goes on the robot (`tools/route_preview.py`).
 > **Read this if:** you are about to run an auton on robot two, or you are writing the next one.
 > **Assumes:** [Chapter 9](09-the-recipe-api.md) (a routine as a chain of steps) and
 > [Chapter 4](04-drivetrains.md)'s section on what a tank can and cannot do.
@@ -356,3 +357,132 @@ of `ctx`. A second test pins the first two autons by name and schedule, and
 counts the entries: it fails on your new one with a message asking you to pin its name, kind and
 schedule there too. Neither checks that your auton goes where you meant — that is the bench's job,
 and the tape's.
+
+## Before the bench: previewing a route
+
+Robot time is the scarcest thing in the week before a competition. Before a route goes on the
+robot, **see the whole of it on the laptop**: one command runs one of your autons, from your own
+`src/team/autons.cpp`, through the same library code the robot runs, on the host test plant, and
+draws it.
+
+```bash
+python3 tools/route_preview.py --list                              # every auton's name
+python3 tools/route_preview.py "40in forward" --place=-48,-48,90   # a RELATIVE auton, placed on the field
+python3 tools/route_preview.py "TEST 24in turn back"
+```
+
+The name is the auton's name exactly as the brain's menu shows it — spaces and capitals included,
+in quotes. The command builds a small program on the laptop (a few seconds the first time), runs
+your auton the way "shulib Auton Tester" runs it — the same `competition::runAuton` call, the same
+deadline guard, the same park at your park time — prints a table of the steps in the terminal, and
+says where it wrote the page: `build/route_preview/<name>.html`. Open that file in any browser; it
+needs no internet. It never writes or changes your code: it only runs it and draws it.
+
+**What the page shows.** The field to scale, red station at the bottom: the walls, the Toggles,
+the Loaders, the Load Zones and the start pieces — the only field parts shulib knows; anything else
+on the field is not drawn. On it, the path the host test plant's robot really drove, step by step,
+each step numbered where it started (hover a number for each step's times and result, or a step's
+end outline for where it ended), its outline (a square, front edge in blue) at the start and end of
+every drive and turn, an × where each drive was aimed, and a diamond where each mechanism step ran.
+A timeline under the field runs from 0 to the period (60 s for skills, 30 s for a match) with your
+park and stop times marked. Then the table (the same as the terminal's, with every step's start and
+end time), every line the library said about the run, and the caption: *IDEAL host test plant, not
+the robot.*
+
+**Reading the colours.**
+
+- **Green** — the step did what it was asked.
+- **Red** — it failed or was refused, and the library's own sentence is beside it, word for word
+  (for example `routine '40in-forward' STOPPED at step 1 (moveTo): motion TIMEOUT — skipping the
+  rest; drive safed`). Steps after a stop never ran: they are listed in grey under it, and never
+  drawn on the field.
+- **Amber** — cut short: by the deadline (your park time arrived first), or by a throw (the
+  PROGRAM ERROR line says where it happened); or a wall reset that was REFUSED while the route
+  went on. On the laptop every wall reset is refused `no sensor` — the preview's robot has no side
+  sensors, as robot two's program has none today — so a wall reset is never green here.
+- **Teal** — a grab that nothing could confirm (UNCONFIRMED, counted done).
+- **Dashed** (a dashed diamond, `[PLACEHOLDER]` in the table) — a step whose time comes from a
+  number nobody has measured yet: robot two's claw is the declaration's 0.5 s (HA-185) until
+  Station J times it; a lift or arm still on the library's starting numbers (HA-182) moves in the
+  time its declaration predicts, not its real one; a flywheel spins up on an ASSUMED 0.2 s time
+  constant (the host test plant has to give the wheel some weight, and a flywheel's declaration has
+  no number for it).
+
+A mechanism started in the background (`startRun`, `startMove`, `startSpinUp`, `startHome`) is drawn
+as its own thick stretch along the path — its diamond where it started, a dot where its answer
+arrived — red on *its* stretch if it failed, while the drive it ran during keeps the drive's own
+colour. (The `waitUntilDone` that collects it is not drawn: from outside, the preview cannot see it.)
+
+**THROUGH and TOUCH.** The host test plant has no walls: a drive aimed past a wall drives straight
+through it. So the preview checks the robot's outline — a 15 in square centred on the point the
+robot tracks — against the field on every 10 ms step:
+
+- **THROUGH** (red) — a corner more than 1 in past a wall's face, or more than 1 in into a Loader.
+  On the robot it hits the wall there. Everything after that point is drawn faded (the robot would
+  not get there), and the command fails (exit 1).
+- **TOUCH** (amber) — the outline reaches a wall or a Loader but not 1 in past it, or overlaps a
+  Toggle by any amount (a Toggle sits on top of the wall, its brackets hanging from 10.6 in up, so
+  the preview never calls it THROUGH). Squaring on a wall and driving up to a Loader are normal, so
+  a TOUCH is a note, never a failure.
+- Driving over a start piece is a grey note: the plant does not push pieces.
+
+The square is a drawing assumption, said on every page: the real frame may be smaller, the tracked
+point may not be its middle, and a claw or lift reaching past the square is not checked.
+
+**Why the numbers on the page are not your code's.** Today the library says nothing when a step
+*succeeds*; from outside, the preview can see every motion (drives, curves, strafes, turns, brakes and holds)
+and every mechanism step, but not a `pause`, a wait (`waitFor`, `waitUntilDone`), a `then(...)` step
+(a wall reset is one) or a `startAt`. So the page counts the motions and mechanism steps in order.
+Two started at the same instant (`startRun` twice in a row) are numbered in the order of the
+robot's mechanism list, which may not be your code's. The library's own lines —
+`STOPPED at step 12`, `step 13 skipped` — carry your code's real step numbers, and the page quotes
+them word for word.
+
+**A RELATIVE auton** starts wherever you put the robot, so give that place with `--place=X,Y,DEG`
+(inches, inches, degrees, in the field frame; `--place X,Y,DEG` works too). Without it the robot is
+drawn starting at the field's centre facing 0°, and the page says so in red. A FIELD auton is drawn
+at its declared start.
+
+**Which robot.** The preview runs robot two's real mechanisms (`--robot two`, the default) on the
+test suite's **stand-in drive** — a 12 in tank with made-up gains, not robot two's drive (its track
+width is not in the code yet). Another robot's mechanisms run on fakes built from their
+declarations' own numbers, on the same stand-in drive — where a declaration does not say how quickly
+its mechanism gets up to speed (an arm's or a lift's `kA` in its `.tuning`; a flywheel's declaration
+has no such number), the fake assumes it (0.05 s for an arm or lift, 0.2 s for a flywheel). A
+flywheel's spin-up time is mostly that number, so its steps are dashed and the page names it; an arm
+or a lift moves mostly in the time its declared speeds predict, so its assumed number is not marked.
+Robot one (`--robot one`) is not in the preview yet: its robot file and autons file are in the code,
+but the preview has not been switched to them, so the command says so and draws nothing. A step on a mechanism the robot does not have stops the
+route there, as it would on that robot, and the page's top line says why.
+
+**What it does NOT tell you.** The robot's real times: wheel slip, a weak side, the battery, a lift
+slower than its numbers, a claw that sticks — the plant has none of them, and its times are neither
+a floor nor a ceiling (a sluggish motor can settle a drive *sooner* on it). Anything on the field
+shulib does not draw. Pieces the robot pushes. Whether a wall reset will seat. Whether the start is
+legal, or how many points the route scores. **The preview is a plan; the robot is the test.**
+
+**If it never finishes.** A route that loops forever after a stop (`for (;;) { ... }`) is stopped by
+the preview itself: the page is still written, saying after which step the auton keeps looping
+without letting time pass — on the robot it would sit there until the field disables it, and its
+park would never run — and the command fails. A loop that never logs anything is stopped at 300 s
+of laptop time, and the command says so: no page is written for that run (the command removes the
+auton's last page before it starts, so an old page is never mistaken for this one).
+
+**If your code throws.** The page says PROGRAM ERROR with the exception's own words, draws the path
+up to the throw, and says where it happened: *inside* a step (the drive, turn or mechanism step
+that was running when it threw, cut short there — but not a mechanism the robot drove during: that
+one was started in the background, and your code had moved past it), *during a wait*, or *after*
+the last step that began.
+
+**Exit codes:** 0 drawn and nothing wrong (TOUCH notes allowed); 1 drawn, and the auton was
+refused, threw, went THROUGH a wall or a Loader, or looped — or the command's limits stopped it
+(300 s, or the program was killed; nothing drawn then); 2 a name, robot or flag the command does not
+know — an unknown name lists the real names, an unknown robot lists the robots, and nothing is
+drawn; 3 the command itself failed — its program did not build, the page could not be written, or
+the preview broke (its words are printed). It never guesses a name: `"40IN FORWARD"` is not
+`"40in forward"`, and an auton the program itself refuses (a stop time past 60 s, a missing start)
+is found by its name and drawn as REFUSED, with the program's own sentence.
+
+```bash
+python3 tools/route_preview.py self-test    # proves the command's own limits and these lines
+```
