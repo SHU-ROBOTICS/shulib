@@ -121,9 +121,10 @@
   mechanism motor (robot two's claw pivots on 6 and 7, since T3: never a candidate, never touched) —
   and decides which drive, their signs and their sides by the
   push; it finds the IMU port from the registry too. Only three facts are human-stated: the
-  cartridge, the kind (tank) and the front. **But today Calibrate builds only for `ROBOT=tank` and
-  takes the cartridge from robot two's table** — robot one needs either its own variant or a stated
-  cartridge before it can be calibrated (Q3).
+  cartridge, the kind (tank) and the front. **Since ROB1-A robot one has its own builds**
+  (`make ROBOT=one PROGRAM=calibrate`, and the other five — docs/guide/21-adding-your-robot-by-hand.md):
+  its drive cartridge and IMU port are typed into `kRobotOneChassis` from the builder's facts form (A2, A4)
+  before Calibrate runs — Calibrate refuses an unset cartridge by name. The cartridge itself is still owed (Q3).
 - **Brain:** VEXos 1.1.5, PROS kernel 4.2.2. **Never start a program from the controller's own menu**
   (it arms a pretend field-control match, HA-128) — use the brain's screen (Run) or
   `pros v5 run <slot>` (check `pros v5 run --help` for the port argument at the session; the tree
@@ -302,7 +303,7 @@ worksheet Station P), `robot/robot.hpp` (`robot::validate` +
 `robot::Robot`; since G1 Part 2a also `BuildOptions` for the boot check's absent drive ports,
 `portMap()` and `driveOdometry()`), `runner/command_registry.hpp`, `runner/path_runner.hpp`, `runner/manifest.hpp`.
 
-Programs in `src/` (eight builds since TUNE1-B1, `make ROBOT=… PROGRAM=…`): **Bench Tests** (`make ROBOT=tank`,
+Programs in `src/` (eight builds since TUNE1-B1, fourteen with robot one's six since ROB1-A's integration — `make ROBOT=one …`, each refusing by name while a fact it needs is owed; `make ROBOT=… PROGRAM=…`): **Bench Tests** (`make ROBOT=tank`,
 slot 3, the measuring tool; `src/programs/bench_r3a.cpp`), **shulib Drive** (`PROGRAM=drive`, slot 1,
 `src/programs/drive_program.cpp` — since T4 Part 3 the team's driver file on `robot::Robot`, built from the SD
 record (the typed table cannot describe the drivetrain, see §2), with the library's drive protections, the
@@ -320,7 +321,8 @@ Competition** (`PROGRAM=competition`, slot 6 — slot 5 stays the team's old-cod
 brain's menu runs in `autonomous()` on the program's own task through the same `competition::runAuton`, a
 disable or the end of the period ends it, then driver control runs the team's driver file; **never run**,
 worksheet Station K), **shulib Tune** (`PROGRAM=tune`, slot 7, for ANY robot in the Makefile's
-`MECHANISM_ROBOTS` — today robot two; `include/shulib/mechanism/tune_program.hpp` through
+`MECHANISM_ROBOTS` — today robots two and one (robot one since ROB1-A's integration, refusing while a fact
+it needs is owed); `include/shulib/mechanism/tune_program.hpp` through
 `src/programs/tune_program.cpp`; TUNE1-B1, 2026-11-11 — live tuning of the robot's MECHANISMS on the brain
 screen, never the drive; **never run**), plus `bench` (the measured bench bot's tester) and `xdrive` (the only build with
 invented ports, HA-111 — since G1 Part 2c `src/robots/xdrive_config.hpp` on `robot::Robot`, refusing at boot
@@ -725,8 +727,9 @@ fixed.)*
   have two distance sensors one on each side and the ai vision sensor in the front"): the AI Vision camera faces FORWARD;
   two distance sensors, one on EACH SIDE (facing left and right). Still open: which robot(s), the measured mount offsets
   and heights (lever arms), and whether a GPS is bought and where it sits.
-- **Q3. Robot one's cartridge**, and whether it gets its own build variant (Calibrate builds only for
-  robot two's `ROBOT=tank` today). Its ports are discovered by the calibrator.
+- **Q3. Robot one's cartridge** — still owed (the facts form's A2, typed into `kRobotOneChassis`). Whether it
+  gets its own build variant: **ANSWERED by ROB1-A** — `ROBOT=one`, six builds, Calibrate among them. Its ports are
+  discovered by the calibrator.
 - **Q4. ANSWERED 2026-09-24:** yes — AprilTags on the nine goals, ids 0–4 with 1–4 duplicated (§2).
   The tag FAMILY is still unknown (R2a's station finds it on a printed tag or the field).
 - **Q5. The auton routines themselves** are the STUDENTS' to author (the guardrail: students must be

@@ -64,13 +64,26 @@ $(error))
                                          makes ONLY mechanisms, never the drive
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_TUNE
+  one, one-drive, one-calibrate, one-autontest, one-competition, one-tune — ROBOT=one [PROGRAM=…]
+                                         (chunk ROB1-A, 2026-11-11; one-tune since its integration
+                                         onto TUNE1-B1, 2026-11-13): ROBOT ONE, the 2026 cascade
+                                         robot — the same six programs in the same slots, over its
+                                         own tables (src/robots/chassis_table.hpp, mechanism_table.hpp
+                                         from src/robots/robot_one_facts.hpp), driver file and
+                                         autons (src/team/robot_one_*), chosen by
+                                         src/common/this_robot.hpp
+                                                              -DSHULIB_ROBOT_ONE_2026
+                                                              [-DSHULIB_PROGRAM_…]
+                                         While a fact its program needs is OWED, each of these
+                                         FAILS by design — ROBOT ONE'S FACTS PROOF (below) is its
+                                         verdict, not the rest of `check`'s.
   (PROGRAM=drive, =calibrate, =autontest or =competition with any other ROBOT is a Makefile
-   $(error): only robot two has a driver file and a calibration record, only a tank can be
-   calibrated by this procedure, and the team's autons and driver file are robot two's.
+   $(error): only robots two and one have a driver file and a calibration record, only a tank can
+   be calibrated by this procedure, and each robot's autons and driver file are its own.
    PROGRAM=tune is the first ROBOT-GENERIC row (the MECH-S/TUNE1 brief's re-check #10): accepted for
-   ANY robot in the Makefile's MECHANISM_ROBOTS — the robots whose mechanism table is not empty — and
-   an $(error) naming why for any other. Its row names no robot; step 0's [tune-row] check holds
-   MECHANISM_ROBOTS to the table file and requires a tune build here per robot in it.)
+   ANY robot in the Makefile's MECHANISM_ROBOTS — the robots whose mechanism table is not empty, robots
+   two and one — and an $(error) naming why for any other. Its row names no robot; step 0's [tune-row]
+   check holds MECHANISM_ROBOTS to the table file and requires a tune build here per robot in it.)
   RETIRED (T4 Part 3, 2026-10-01): tank-library, ROBOT=tank PROGRAM=library, "shulib Teleop" —
    replaced by "shulib Drive" (the team lead's ruling R5). `make ROBOT=tank PROGRAM=library` is a
    Makefile $(error) naming the retirement, never a different program under the old name; and
@@ -81,7 +94,7 @@ $(error))
    build's own cases did; those retired onto 10-11, which test the same things for tank-drive).
 
 WHAT `check` DOES, per build (bench, xdrive, tank, tank-drive, tank-calibrate, tank-autontest,
-tank-competition, tank-tune)
+tank-competition, tank-tune; robot one's six as ROBOT ONE'S FACTS PROOF says)
 --------------------------------------------------------------
  1. Removes bin/ and .d/ (exactly what `make clean` removes; both gitignored, so the
     tree stays clean). make is INCREMENTAL: a gate that compiles nothing reports green,
@@ -110,14 +123,16 @@ tank-competition, tank-tune)
  6. Asserts the IDENTITY BEACONS — two per build.
     THE VARIANT BEACON (R3b Session 2): src/build_selection.hpp defines one string per build —
     `shulib-robot-variant=bench|xdrive|tank|tank-drive|tank-calibrate|tank-autontest|`
-    `tank-competition|tank-tune` —
+    `tank-competition|tank-tune|one|one-drive|one-calibrate|one-autontest|one-competition|one-tune`
+    (robot one's six since ROB1-A and its integration onto TUNE1-B1) —
     in THE SAME BRANCH of THE ONE #if chain that sets the program (`kProgram`) and the robot
     (`kRobotId`) — one chain since G1 Part 2c, in that header since 2c's final run, and step 0
     below enforces it — and the program prints it at boot so it is linked in. The expected
-    beacon must be in the bytes of bin/hot.package.elf and the other seven — the RETIRED
+    beacon must be in the bytes of bin/hot.package.elf and the other thirteen — the RETIRED
     `…=tank-library` too — must NOT be. MATCHED
     WITH THE NUL TERMINATOR (Part 0b): `…=tank` is a prefix of `…=tank-drive`,
-    `…=tank-calibrate`, `…=tank-autontest`, `…=tank-competition` and `…=tank-tune`, so a plain substring search
+    `…=tank-calibrate`, `…=tank-autontest`, `…=tank-competition` and `…=tank-tune`, and `…=one` of
+    robot one's five `…=one-<program>`, so a plain substring search
     would false-fail every one of those; a
     C string literal sits in the ELF with its terminating zero byte, and that is what is
     searched for. This is the end-to-end proof that the `#if` in the SOURCE took the branch the
@@ -125,7 +140,7 @@ tank-competition, tank-tune)
     broken in the chain, and a "shulib Drive" upload that was silently the tester is HA-111's
     defect class again.
     THE ROBOT BEACON (G1 Part 2c's final run, the team lead's ruling "one chain picks both"):
-    one string per ROBOT — `shulib-robot=bench-bot|robot-two|invented-xdrive` — DERIVED from
+    one string per ROBOT — `shulib-robot=bench-bot|robot-two|invented-xdrive|robot-one` — DERIVED from
     the branch's `kRobotId` by robotBeacon() in src/build_selection.hpp (never typed in a branch)
     and printed by src/main.cpp's initialize(). The build's robot's beacon (BUILD_ROBOT,
     ROBOT_BEACONS) must be in the ELF and the other robots' must NOT be. The variant beacon is
@@ -329,6 +344,63 @@ Once per `check`, before any build — step 0, five source checks:
   read whole, and a raw string's text is its own (MECH-A5's verification); comments are not read (the staleness audit's class, and a comment reaches no
   robot); test/ is not read (its own tests pin what they print). Self-test case 30.
 
+ROBOT ONE'S FACTS PROOF (chunk ROB1-A, 2026-11-11; the ROB1 brief's D3 (a), [R1], [R4], [R11])
+------------------------------------------------------------------------------------------
+src/robots/robot_one_facts.hpp writes every robot-one number nobody has measured ONCE, as OWED, with a
+placeholder the host suite runs on; a static_assert under each fact fails robot one's build of every
+program that needs it (Stage A: all six; Stage B: Drive, the Auton Tester, Competition and — since the
+integration onto TUNE1-B1 — Tune), naming it
+("robot one: OWED -- <name> (src/robots/robot_one_facts.hpp)"). `check` proves both halves:
+  (i)  THE REAL TREE — robot one's six rows: a row whose program needs no owed fact gets the ordinary
+       verdict; every other must FAIL with EXACTLY the OWED lines of the owed facts its program needs,
+       compared as a SET (one translation unit prints them all; the expected set is read from the
+       ledger's own text — ledger_facts()), with no other error and NO bin/hot.package.bin or .elf left
+       behind (the Makefile's variant stamp deletes bin/ and .d/ when ROBOT=, PROGRAM= or the defines
+       change, so a refused build cannot leave the last variant's package to upload). Every other
+       build printing an OWED line fails.
+  (ii) A COPY, NEVER THE REPO — the working tree's files (`git ls-files -co --exclude-standard`, so the
+       uncommitted change is what is proven) copied to build/src-gate-facts/ (gitignored); THERE ONLY,
+       every `owed(p, stage, "name")` becomes `typed(p, p, stage, "name", "gate copy -- same as the
+       placeholder, checked")`, and the gate writes the MARKER FILE build/ROBOT-ONE-GATE-COPY-ONLY at
+       the copy's root, which turns the ledger's kRefuseGateCopySource off THERE (the ledger reads it by
+       `__has_include`, relative to its own directory); robot one's six builds then run there and must
+       pass every check the eight builds pass. The copy is deleted in a `finally` and a leftover one
+       swept at the start; the repository's ledger hash before = after and its bin/hot.package.bin
+       untouched. A ledger copied back cannot link: the switch is NOT in the ledger's text (the review
+       of ROB1-A: a text switch the copy flipped came back with the file, and that ledger linked), so
+       the real tree — no marker — refuses the "gate copy" source at make, in every build; step 0
+       refuses it too, and refuses the marker in the repository's own build/ (self-test case 57).
+STEP 0's ROB1-A RULES: a src/ file outside src/team/ and src/common/this_robot.hpp naming a robot's
+driver file or autons (RobotTwoDriver, RobotOneDriver, registerAutons, registerRobotOneAutons —
+TEAM_SELECTION_NAMES) chooses a robot outside the one chain and fails; a TYPED fact in the repository's
+ledger with an empty source or the gate copy's marker fails, and so does the copy's marker FILE in the
+repository's build/ (ledger_source_problems()); and THE STAGES ARE CLASSIFIED (stage_table_problems(),
+the review of ROB1-A): every value of src/build_selection.hpp's `Program` has exactly one case in the
+ledger's needsStageB() (no `default`), that switch agrees with STAGE_PROGRAMS here program by program,
+and every robot-one row's BUILD_PROGRAM is classified — so a program added later cannot build robot
+one on Stage A alone while this gate expects exactly that (TUNE1-B1's Tune was the first: at the
+integration it was classified as needing Stage B — it homes the cascade with the homing push, jogs it
+at the unhomed volts and moves it to its first and last level — so one-tune refuses with all its owed
+Stage A and B facts). STEP 8's ROBOT
+HALF: no robot's package links another robot's autons registration or carries another robot's
+driver-file path or beacon (ROBOT_FOREIGN_SYMBOLS / ROBOT_FOREIGN_STRINGS; the brief's T7).
+Self-test cases 50 (robot_one named by a program, robot two's team file and the ledger), 51 (each
+TEAM_SELECTION_NAMES in a program), 52 (a typed fact sourced "gate copy" or ""), 53 (the real-tree half
+seeing a wrong set — the OWED check's needs() dropped), 54 (the copy's proof interrupted after its
+ledger is typed; a leftover copy swept), 55 (THE VARIANT STAMP, make run directly: a PROGRAM switch
+recompiles every file, the same variant 0, and a refused robot-one build leaves no package); and, from
+the review of ROB1-A, 56 (THE STAGES: a program with no case in needsStageB(), a `default`, the switch
+disagreeing with STAGE_PROGRAMS, an unclassified robot-one row) and 57 (a LEDGER COPIED BACK from the copy:
+`make ROBOT=one PROGRAM=drive` run directly refuses it by name, no package left; the copy's marker file in
+the repository's build/ fails step 0). (ROB1-A numbered them 42-49; TUNE1-B1 landed first with its own
+42-49, so the integration onto it renumbered ROB1-A's to 50-57, 2026-11-13.) And, from the review of that
+integration (2026-11-13: deleting step 8's robot-half call survived `check` AND the whole self-test), 58
+(STEP 8's ROBOT HALF, _self_test_robot_half(): every detector of robot_separation_problems() on synthetic ELF
+contents, every robot's ROBOT_FOREIGN_* rows non-empty, and ONE real build through verdict() — robot two's
+Auton Tester linking robot one's autons registration — failing step 8 by name on BOTH of the call's inputs:
+the linked symbol and the ELF's words, robot one's autons file path — so the call site is proven; the
+words half since the verification of that review, when passing the call b"" for the ELF survived the case).
+
 THE VARIANT DIFFERENTIAL, RETIRED AT G1 PART 2c — what it was, why it went, what replaced it
 ------------------------------------------------------------------------------------------
 It was the brief's warning-count detector: the bench, tank, tank-drive, tank-library (a build
@@ -357,7 +429,9 @@ assigns (step 6's robot beacon) — is read from the package. The self-test plan
 the seventh build's define and beacon, cases 31-32; a build dropped from VARIANTS alone, case 33;
 the eighth build's define and beacon, cases 34-35; the retired library build, cases 12-13 since
 T4 Part 3; step 9's stdio printers, cases 36-39 since SER1 and 40-41 since its review; the Tune build,
-its robot-generic row and step 8's live-tuning half, cases 42-48 since TUNE1-B1);
+its robot-generic row and step 8's live-tuning half, cases 42-49 since TUNE1-B1; robot one's builds,
+its facts proof, its step-0 rules and the variant stamp, cases 50-57 since ROB1-A; step 8's robot half,
+case 58 since the review of ROB1-A's integration);
 the G1 Part 2c and SRC1 logs
 carry the hand mutations.
 
@@ -418,6 +492,7 @@ USAGE — one command locally, the identical command in CI (arm-compile-gate job
 """
 
 import contextlib
+import hashlib
 import io
 import os
 import re
@@ -437,7 +512,8 @@ ARM_GXX = "arm-none-eabi-g++"
 # chain against them); a build added to one place and not the others fails here, which is the
 # point of having the tables.
 VARIANTS = ("bench", "xdrive", "tank", "tank-drive", "tank-calibrate", "tank-autontest",
-            "tank-competition", "tank-tune")
+            "tank-competition", "tank-tune", "one", "one-drive", "one-calibrate", "one-autontest",
+            "one-competition", "one-tune")
 BUILD_ARGS = {
     "bench": ("ROBOT=bench",),
     "xdrive": ("ROBOT=xdrive",),
@@ -447,6 +523,12 @@ BUILD_ARGS = {
     "tank-autontest": ("ROBOT=tank", "PROGRAM=autontest"),
     "tank-competition": ("ROBOT=tank", "PROGRAM=competition"),
     "tank-tune": ("ROBOT=tank", "PROGRAM=tune"),
+    "one": ("ROBOT=one",),
+    "one-drive": ("ROBOT=one", "PROGRAM=drive"),
+    "one-calibrate": ("ROBOT=one", "PROGRAM=calibrate"),
+    "one-autontest": ("ROBOT=one", "PROGRAM=autontest"),
+    "one-competition": ("ROBOT=one", "PROGRAM=competition"),
+    "one-tune": ("ROBOT=one", "PROGRAM=tune"),
 }
 VARIANT_DEFINES = {
     "bench": (),
@@ -457,6 +539,12 @@ VARIANT_DEFINES = {
     "tank-autontest": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_AUTONTEST"),
     "tank-competition": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_COMPETITION"),
     "tank-tune": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_TUNE"),
+    "one": ("-DSHULIB_ROBOT_ONE_2026",),
+    "one-drive": ("-DSHULIB_ROBOT_ONE_2026", "-DSHULIB_PROGRAM_DRIVE"),
+    "one-calibrate": ("-DSHULIB_ROBOT_ONE_2026", "-DSHULIB_PROGRAM_CALIBRATE"),
+    "one-autontest": ("-DSHULIB_ROBOT_ONE_2026", "-DSHULIB_PROGRAM_AUTONTEST"),
+    "one-competition": ("-DSHULIB_ROBOT_ONE_2026", "-DSHULIB_PROGRAM_COMPETITION"),
+    "one-tune": ("-DSHULIB_ROBOT_ONE_2026", "-DSHULIB_PROGRAM_TUNE"),
 }
 ALL_DEFINES = sorted({d for ds in VARIANT_DEFINES.values() for d in ds})
 VARIANT_BEACONS = {
@@ -468,6 +556,12 @@ VARIANT_BEACONS = {
     "tank-autontest": b"shulib-robot-variant=tank-autontest",
     "tank-competition": b"shulib-robot-variant=tank-competition",
     "tank-tune": b"shulib-robot-variant=tank-tune",
+    "one": b"shulib-robot-variant=one",
+    "one-drive": b"shulib-robot-variant=one-drive",
+    "one-calibrate": b"shulib-robot-variant=one-calibrate",
+    "one-autontest": b"shulib-robot-variant=one-autontest",
+    "one-competition": b"shulib-robot-variant=one-competition",
+    "one-tune": b"shulib-robot-variant=one-tune",
 }
 # (XDRIVE_WIRING_DEAD_IN — the retired variant differential's table — was removed at G1
 #  Part 2c; the header's "the variant differential, retired" says what replaced it and why.)
@@ -495,11 +589,18 @@ BUILD_ROBOT = {
     "tank-autontest": "RobotTwo",
     "tank-competition": "RobotTwo",
     "tank-tune": "RobotTwo",
+    "one": "RobotOne",
+    "one-drive": "RobotOne",
+    "one-calibrate": "RobotOne",
+    "one-autontest": "RobotOne",
+    "one-competition": "RobotOne",
+    "one-tune": "RobotOne",
 }
 ROBOT_BEACONS = {
     "BenchBot": b"shulib-robot=bench-bot",
     "RobotTwo": b"shulib-robot=robot-two",
     "InventedXDrive": b"shulib-robot=invented-xdrive",
+    "RobotOne": b"shulib-robot=robot-one",
 }
 
 # Step 0, THE ONE-CHAIN RULE (header). The dispatcher; the ONE file that may read a build switch;
@@ -571,6 +672,12 @@ BUILD_PROGRAM = {
     "tank-autontest": "AutonTester",
     "tank-competition": "Competition",
     "tank-tune": "Tune",
+    "one": "BenchTests",
+    "one-drive": "Drive",
+    "one-calibrate": "Calibrate",
+    "one-autontest": "AutonTester",
+    "one-competition": "Competition",
+    "one-tune": "Tune",
 }
 PROGRAM_ENTRY_SYMBOLS = {
     "BenchTests": ("shulib::bench::testerInitialize", "shulib::bench::runR3a"),
@@ -811,6 +918,34 @@ def _robot_namespace_problems(repo, rel, namespaces=None):
     return problems
 
 
+# ── ROB1-A: a robot's DRIVER FILE and AUTONS by name (the per-robot table rule's sibling) ─────────────────
+#: The names a robot's team files define for the programs: each robot's driver and autons registration. A
+#: program names none of them — it runs src/common/this_robot.hpp's ThisRobotDriver and
+#: registerThisRobotsAutons(), chosen by kRobotId — so a build can never run one robot's buttons or autons
+#: over another robot's mechanisms. Allowed in: THIS_ROBOT_FILE, src/team/ (the files that define them), test/.
+TEAM_SELECTION_NAMES = ("RobotTwoDriver", "RobotOneDriver", "registerAutons", "registerRobotOneAutons")
+THIS_ROBOT_FILE = os.path.join("src", "common", "this_robot.hpp")
+
+
+def _team_selection_problems(repo, rel):
+    """Step 0 (header, step 0's ROB1-A rules): a src/ file outside src/team/ and THIS_ROBOT_FILE naming a
+    robot's driver or autons registration (comments and literals stripped) — choosing a robot outside the
+    one chain. Returns a list of problem strings."""
+    if (not rel.startswith("src" + os.sep) or rel == THIS_ROBOT_FILE
+            or rel.startswith(TEAM_DIR_REL + os.sep)):
+        return []
+    problems = []
+    named = re.compile(r"\b(" + "|".join(TEAM_SELECTION_NAMES) + r")\b")
+    for n, line in _logical_lines(_strip_comments(_read(repo, rel), literals=True)):
+        for name in sorted(set(named.findall(line))):
+            problems.append(
+                f"{rel}:{n} names {name}, a robot's own driver or autons — a program runs THIS build's "
+                f"(ThisRobotDriver, registerThisRobotsAutons(), {THIS_ROBOT_FILE}), chosen by kRobotId; "
+                f"naming a robot's is choosing a robot outside the one chain (header, step 0, ROB1-A): "
+                f"`{line.strip()}`")
+    return problems
+
+
 def _blank_static_asserts(code):
     """`code` (comments and literals already stripped) with the parenthesised argument of every
     `static_assert(…)` blanked to spaces, line breaks kept: what may name a per-robot table
@@ -980,7 +1115,9 @@ def one_chain_problems(repo=None):
                 if rel != SELECTION_HEADER:
                     problems += _stray_selection_problems(repo, rel, per_robot, namespaces)
                     problems += _robot_namespace_problems(repo, rel, namespaces)
+                    problems += _team_selection_problems(repo, rel)
     problems += _selection_header_problems(repo)
+    problems += ledger_source_problems(repo)
     return problems
 
 
@@ -1568,6 +1705,38 @@ def tuning_problems(robot, names, elf_bytes=b""):
     return problems
 
 
+#: Step 8's robot half (ROB1-A; the ROB1 brief's T7): the team code each robot's packages must NEVER link —
+#: another robot's autons registration — and the driver-file path no package of the robot may carry.
+ROBOT_FOREIGN_SYMBOLS = {
+    "RobotOne": ("shulib::bench::registerAutons",),
+    "RobotTwo": ("shulib::bench::registerRobotOneAutons",),
+    "BenchBot": ("shulib::bench::registerRobotOneAutons",),
+    "InventedXDrive": ("shulib::bench::registerRobotOneAutons",),
+}
+ROBOT_FOREIGN_STRINGS = {
+    "RobotOne": (b"src/team/robot_two_driver.hpp\0", b"shulib-robot=robot-two\0"),
+    "RobotTwo": (b"src/team/robot_one_driver.hpp\0", b"src/team/robot_one_autons.cpp\0", b"robot one: OWED"),
+    "BenchBot": (b"src/team/robot_one_driver.hpp\0", b"src/team/robot_one_autons.cpp\0"),
+    "InventedXDrive": (b"src/team/robot_one_driver.hpp\0", b"src/team/robot_one_autons.cpp\0"),
+}
+
+
+def robot_separation_problems(robot, linked, elf_bytes):
+    """Step 8's robot half (ROB1-A, T7): build `robot` links none of another robot's team code and carries
+    none of its driver-file words. `linked` is elf_bench_names()' set."""
+    who = BUILD_ROBOT.get(robot)
+    problems = []
+    for sym in ROBOT_FOREIGN_SYMBOLS.get(who, ()):
+        if sym in linked:
+            problems.append(f"build {robot} (robot {who}) links {sym} — another robot's autons are in this "
+                            f"robot's package (step 8, ROB1-A)")
+    for text in ROBOT_FOREIGN_STRINGS.get(who, ()):
+        if text in elf_bytes:
+            problems.append(f"build {robot} (robot {who}) carries {text.rstrip(bytes(1)).decode()!r} — another "
+                            f"robot's words are in this robot's package (step 8, ROB1-A)")
+    return problems
+
+
 def program_problems(robot, linked):
     """Step 8 for one build, given the shulib::bench:: names its ELF links."""
     prog = BUILD_PROGRAM.get(robot)
@@ -1818,6 +1987,9 @@ def run_build(robot, path_env=None):
 def verdict(robot, b):
     """Apply the policy to one build. Returns (ok, [problem strings])."""
     problems = []
+    if BUILD_ROBOT.get(robot) != "RobotOne" and "robot one: OWED" in b.text:
+        problems.append(f"build {robot} printed a `robot one: OWED` line — robot one's facts refusal fires in a "
+                        f"build that is not robot one's (header, ROBOT ONE'S FACTS PROOF)")
 
     if b.errors:
         for path, lno, msg in b.errors:
@@ -1934,8 +2106,10 @@ def verdict(robot, b):
                             f"a skip is not a pass")
         else:
             try:
-                problems += program_problems(robot, elf_bench_names(elf, nm))
+                linked = elf_bench_names(elf, nm)
+                problems += program_problems(robot, linked)
                 problems += tuning_problems(robot, elf_defined_names(elf, nm), elf_bytes)
+                problems += robot_separation_problems(robot, linked, elf_bytes)
             except (RuntimeError, OSError, subprocess.SubprocessError) as e:
                 problems.append(f"the program check (step 8) could not read the symbol table: "
                                 f"{e}")
@@ -1956,6 +2130,403 @@ def verdict(robot, b):
             problems.append(f"the stdio check (step 9) could not read the objects: {e}")
 
     return not problems, problems
+
+
+# ── ROBOT ONE'S FACTS PROOF (chunk ROB1-A, 2026-11-11; the ROB1 brief's D3 (a), [R1], [R4], [R11]) ─────────
+# src/robots/robot_one_facts.hpp writes every robot-one number nobody has measured as OWED, and a check under
+# each fact FAILS robot one's build of every program that needs it, naming it. This gate proves BOTH halves:
+#   (i)  THE REAL TREE — robot one's six builds are rows of VARIANTS like every build; each one either links
+#        with nothing it needs owed (then every check the eight builds pass), or FAILS with EXACTLY the
+#        `robot one: OWED -- <name>` lines of the owed facts its program needs — compared as a SET (one TU
+#        repeats them all), the expected set computed here from the ledger's own text — with no other error
+#        and NO bin/hot.package.bin left behind (the Makefile's variant stamp, [R1]). Every other build's
+#        output must carry no `robot one: OWED` line at all.
+#   (ii) A COPY, NEVER THE REPO ([R4]) — the working tree's files (`git ls-files -co --exclude-standard`, so
+#        the UNCOMMITTED change is what is proven) copied to build/src-gate-facts/ (gitignored); in the copy
+#        ONLY every `= owed(p, stage, "name")` becomes `= typed(p, p, stage, "name", "gate copy -- same as the
+#        placeholder, checked")` and the copy's marker file turns the ledger's kRefuseGateCopySource off; robot one's six builds
+#        are then built THERE and must pass every check the eight builds pass. The copy is deleted in a
+#        `finally` and a leftover one swept at the start; the repository's ledger hash before = after, and the
+#        repository's bin/ is never touched by it. A ledger copied back from the copy cannot link: the real
+#        ledger refuses the "gate copy" source at make, and step 0 refuses it too.
+FACTS_LEDGER = os.path.join("src", "robots", "robot_one_facts.hpp")
+FACTS_COPY_DIR = os.path.join("build", "src-gate-facts")
+FACTS_COPY_SOURCE = "gate copy -- same as the placeholder, checked"
+#: The marker FILE that turns the ledger's gate-copy refusal off — written at the COPY's root only, never
+#: in the repository (step 0 refuses it there); the ledger reads it relative to its own directory.
+FACTS_COPY_MARKER = os.path.join("build", "ROBOT-ONE-GATE-COPY-ONLY")
+#: The ledger's ONE reading of the marker (type_every_fact() requires it exactly once).
+FACTS_MARKER_READ = '#if __has_include("../../build/ROBOT-ONE-GATE-COPY-ONLY")'
+#: EVERY program, classified — the ledger's needsStageB() restated (step 0's stage_table_problems() reads
+#: the C++ switch back and requires the two to agree, and every `Program` value to be in exactly one set).
+STAGE_B_PROGRAMS = frozenset({"Drive", "AutonTester", "Competition", "InventedXDrive", "Tune"})
+STAGE_A_ONLY_PROGRAMS = frozenset({"BenchTests", "Calibrate"})
+#: Which programs need a stage's facts — the ledger's needs() (test/robot_one_facts_test.cpp pins the C++).
+STAGE_PROGRAMS = {
+    "A": STAGE_B_PROGRAMS | STAGE_A_ONLY_PROGRAMS,
+    "B": STAGE_B_PROGRAMS,
+    "Recorded": frozenset(),
+}
+#: A fact's declaration — never matched inside the ledger's banner, whose examples write no declaration.
+_FACT_DECL = re.compile(r"\binline\s+constexpr\s+auto\s+k\w+\s*=\s*(owed|typed)\s*\(")
+_OWED_MESSAGE = re.compile(r"^static assertion failed: robot one: OWED -- (.*) \(src/robots/robot_one_facts\.hpp\)$")
+
+
+def _call_args(code, open_at):
+    """The top-level arguments of the call whose `(` is at `open_at` in `code` (string-aware), and the
+    index just past its `)`."""
+    args, cur, depth, quoted, i = [], "", 0, False, open_at
+    while i < len(code):
+        c = code[i]
+        if quoted:
+            cur += c
+            if c == "\\" and i + 1 < len(code):
+                cur += code[i + 1]
+                i += 1
+            elif c == '"':
+                quoted = False
+        elif c == '"':
+            quoted = True
+            cur += c
+        elif c in "([{":
+            depth += 1
+            if depth > 1:
+                cur += c
+        elif c in ")]}":
+            depth -= 1
+            if depth == 0:
+                args.append(cur)
+                return args, i + 1
+            cur += c
+        elif c == "," and depth == 1:
+            args.append(cur)
+            cur = ""
+        else:
+            cur += c
+        i += 1
+    return args, len(code)
+
+
+def _literal_text(arg):
+    """The text of one string-literal argument (adjacent literals joined), or None."""
+    parts = re.findall(r'"((?:\\.|[^"\\])*)"', arg)
+    return "".join(parts) if parts else None
+
+
+def ledger_facts(repo=None):
+    """Every fact the ledger declares, from its TEXT (comments stripped, literals kept): a list of dicts
+    {kind: owed|typed, stage: A|B|Recorded, name, source, start, end} — `start`/`end` the call's span in
+    the comment-stripped text. Raises ValueError on a fact it cannot read (a gate that cannot read the
+    ledger proves nothing)."""
+    repo = repo or REPO
+    code = _strip_comments(_read(repo, FACTS_LEDGER))
+    out = []
+    for m in _FACT_DECL.finditer(code):
+        open_at = m.end() - 1
+        args, end = _call_args(code, open_at)
+        kind = m.group(1)
+        want = 3 if kind == "owed" else 5
+        if len(args) != want:
+            raise ValueError(f"{FACTS_LEDGER}: a {kind}( with {len(args)} arguments, not {want}: "
+                             f"`{code[m.start():end][:120]}`")
+        stage = re.search(r"Stage::(\w+)", args[1 if kind == "owed" else 2])
+        name = _literal_text(args[2 if kind == "owed" else 3])
+        if stage is None or stage.group(1) not in STAGE_PROGRAMS or name is None:
+            raise ValueError(f"{FACTS_LEDGER}: a {kind}( whose stage or name this gate cannot read: "
+                             f"`{code[m.start():end][:120]}`")
+        out.append({"kind": kind, "stage": stage.group(1), "name": name,
+                    "source": _literal_text(args[4]) if kind == "typed" else None,
+                    "start": m.start(), "end": end, "args": args})
+    return out
+
+
+def expected_owed(build, repo=None):
+    """The `robot one: OWED -- <name>` names robot-one build `build` must refuse with: every OWED fact
+    whose stage its program needs (STAGE_PROGRAMS). A program STAGE_PROGRAMS does not classify is a
+    ValueError — never quietly "Stage A only" (the review of ROB1-A: that is how a new program would
+    build robot one on Stage A alone with this gate agreeing)."""
+    program = BUILD_PROGRAM[build]
+    if program not in STAGE_PROGRAMS["A"]:
+        raise ValueError(f"build {build}'s program {program} is not classified in STAGE_PROGRAMS (header, "
+                         f"STEP 0's ROB1-A RULES) — say whether it needs Stage B, here AND in the ledger's "
+                         f"needsStageB()")
+    return {f["name"] for f in ledger_facts(repo) if f["kind"] == "owed" and program in STAGE_PROGRAMS[f["stage"]]}
+
+
+def _braced_body(code, open_at):
+    """The text between the `{` at `open_at` and its matching `}` (comment-stripped code), or None."""
+    depth = 0
+    for i in range(open_at, len(code)):
+        if code[i] == "{":
+            depth += 1
+        elif code[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return code[open_at + 1:i]
+    return None
+
+
+def stage_table_problems(repo=None):
+    """Step 0 (header, STEP 0's ROB1-A RULES — the review of ROB1-A): every value of `Program` has exactly one
+    case in the ledger's needsStageB() switch, which has no `default`; the switch agrees with STAGE_PROGRAMS
+    program by program; and every robot-one row's BUILD_PROGRAM is classified."""
+    repo = repo or REPO
+    problems = []
+    sel = _strip_comments(_read(repo, SELECTION_HEADER))
+    m = re.search(r"enum\s+class\s+Program\s*\{", sel)
+    body = _braced_body(sel, m.end() - 1) if m else None
+    if body is None:
+        return [f"{SELECTION_HEADER}: `enum class Program {{ … }}` not found — the stages cannot be checked"]
+    programs = [re.match(r"\s*(\w+)", e).group(1) for e in body.split(",") if e.strip()]
+    ledger = _strip_comments(_read(repo, FACTS_LEDGER))
+    f = re.search(r"constexpr\s+bool\s+needsStageB\s*\(\s*Program\s+p\s*\)\s*\{", ledger)
+    fbody = _braced_body(ledger, f.end() - 1) if f else None
+    sw = re.search(r"switch\s*\(\s*p\s*\)\s*\{", fbody) if fbody is not None else None
+    swbody = _braced_body(fbody, sw.end() - 1) if sw else None
+    if swbody is None:
+        return [f"{FACTS_LEDGER}: needsStageB(Program p)'s `switch (p) {{ … }}` not found — the stages cannot "
+                f"be checked"]
+    if re.search(r"\bdefault\s*:", swbody):
+        problems.append(f"{FACTS_LEDGER}: needsStageB()'s switch has a `default` — a program added later would "
+                        f"take it silently instead of failing -Wswitch")
+    classified, pending = {}, []
+    for t in re.finditer(r"case\s+Program::(\w+)\s*:|return\s+(true|false)\s*;", swbody):
+        if t.group(1):
+            pending.append(t.group(1))
+            continue
+        for name in pending:
+            if name in classified:
+                problems.append(f"{FACTS_LEDGER}: needsStageB() has two cases for Program::{name}")
+            classified[name] = t.group(2) == "true"
+        pending = []
+    if pending:
+        problems.append(f"{FACTS_LEDGER}: needsStageB()'s cases {pending} reach no `return true;`/`return false;`")
+    missing = [n for n in programs if n not in classified]
+    extra = sorted(set(classified) - set(programs))
+    if missing:
+        problems.append(f"{FACTS_LEDGER}: needsStageB() has no case for Program::{', Program::'.join(missing)} "
+                        f"— say whether it needs Stage B (it moves the cascade? then true)")
+    if extra:
+        problems.append(f"{FACTS_LEDGER}: needsStageB() names {extra}, which {SELECTION_HEADER}'s Program lacks")
+    if STAGE_B_PROGRAMS & STAGE_A_ONLY_PROGRAMS:
+        problems.append(f"STAGE_B_PROGRAMS and STAGE_A_ONLY_PROGRAMS share {sorted(STAGE_B_PROGRAMS & STAGE_A_ONLY_PROGRAMS)}")
+    for n in programs:
+        if n not in STAGE_PROGRAMS["A"]:
+            problems.append(f"this gate's STAGE_PROGRAMS does not classify Program::{n} (header, STEP 0's ROB1-A "
+                            f"RULES)")
+        elif n in classified and classified[n] != (n in STAGE_B_PROGRAMS):
+            problems.append(f"Program::{n}: the ledger's needsStageB() says {str(classified[n]).lower()}, this "
+                            f"gate's STAGE_PROGRAMS says {str(n in STAGE_B_PROGRAMS).lower()} — the two must "
+                            f"agree")
+    for v in VARIANTS:
+        if BUILD_ROBOT.get(v) == "RobotOne" and BUILD_PROGRAM.get(v) not in STAGE_PROGRAMS["A"]:
+            problems.append(f"robot-one build {v}'s program {BUILD_PROGRAM.get(v)} is not classified in "
+                            f"STAGE_PROGRAMS")
+    return problems
+
+
+def ledger_source_problems(repo=None):
+    """Step 0 ([R4]): a TYPED fact in the repository's ledger whose source is empty or carries the gate
+    copy's marker — the ledger's own check refuses both at make; this names them without a build."""
+    repo = repo or REPO
+    if not os.path.exists(os.path.join(repo, FACTS_LEDGER)):
+        return []
+    problems = []
+    if os.path.exists(os.path.join(repo, FACTS_COPY_MARKER)):
+        problems.append(f"{FACTS_COPY_MARKER} exists in the repository — it is the src build gate's COPY's "
+                        f"marker, and here it turns the ledger's gate-copy refusal off for every build; "
+                        f"delete it (header, ROBOT ONE'S FACTS PROOF)")
+    problems += stage_table_problems(repo)
+    try:
+        facts = ledger_facts(repo)
+    except ValueError as e:
+        return problems + [str(e)]
+    for f in facts:
+        if f["kind"] != "typed":
+            continue
+        if not f["source"]:
+            problems.append(f"{FACTS_LEDGER}: the fact '{f['name']}' is typed with no source — a typed fact "
+                            f"says who measured it, how and when (header, ROBOT ONE'S FACTS PROOF)")
+        elif "gate copy" in f["source"]:
+            problems.append(f"{FACTS_LEDGER}: the fact '{f['name']}' carries the gate copy's source "
+                            f"'{f['source']}' — a ledger copied back from build/src-gate-facts/ (header, "
+                            f"ROBOT ONE'S FACTS PROOF)")
+    return problems
+
+
+def type_every_fact(text):
+    """The ledger `text` with EVERY `= owed(p, stage, "name")` typed as `= typed(p, p, stage, "name",
+    FACTS_COPY_SOURCE)` — the copy's edit, never the repo's. The gate-copy refusal is NOT touched here: it
+    is turned off by the marker FILE facts_copy_proof() writes at the copy's root. Works on
+    the RAW text (comments kept): a declaration is `inline constexpr auto k… = owed(`, which no comment in
+    the ledger writes. Raises ValueError when the edit cannot be made exactly."""
+    stripped = text
+    pieces, last, typed = [], 0, 0
+    for m in _FACT_DECL.finditer(stripped):
+        if m.group(1) != "owed":
+            continue
+        args, end = _call_args(stripped, m.end() - 1)
+        if len(args) != 3:
+            raise ValueError(f"an owed( with {len(args)} arguments")
+        raw = [text[a:b] for a, b in _arg_spans(stripped, m.end() - 1)]
+        eq = text.index("=", m.start())
+        pieces.append(text[last:eq])
+        pieces.append(f'= typed({raw[0]}, {raw[0]}, {raw[1]}, {raw[2]}, "{FACTS_COPY_SOURCE}")')
+        last = end
+        typed += 1
+    pieces.append(text[last:])
+    out = "".join(pieces)
+    if out.count(FACTS_MARKER_READ) != 1:
+        raise ValueError(f"the ledger does not read the copy's marker exactly once (`{FACTS_MARKER_READ}`)")
+    return out, typed
+
+
+def _arg_spans(code, open_at):
+    """(start, end) of each top-level argument of the call whose `(` is at `open_at` — _call_args' twin."""
+    spans, depth, quoted, i, start = [], 0, False, open_at, open_at + 1
+    while i < len(code):
+        c = code[i]
+        if quoted:
+            if c == "\\":
+                i += 1
+            elif c == '"':
+                quoted = False
+        elif c == '"':
+            quoted = True
+        elif c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+            if depth == 0:
+                spans.append((start, i))
+                return spans
+        elif c == "," and depth == 1:
+            spans.append((start, i))
+            start = i + 1
+        i += 1
+    return spans
+
+
+def facts_verdict(robot, b, repo=None):
+    """The real tree's verdict for robot-one build `robot` (header, ROBOT ONE'S FACTS PROOF (i)): nothing
+    owed -> the ordinary verdict; else it must FAIL with exactly the expected OWED set, no other error, and
+    no package left in bin/. Returns (ok, problems, refused) — `refused` True when it refused as it must."""
+    repo = repo or REPO
+    try:
+        want = expected_owed(robot, repo)
+    except ValueError as e:
+        return False, [f"the ledger cannot be read: {e}"], False
+    if not want:
+        ok, problems = verdict(robot, b)
+        return ok, problems, False
+    problems = []
+    seen, other = set(), []
+    for path, lno, msg in b.errors:
+        m = _OWED_MESSAGE.match(msg)
+        if m:
+            seen.add(m.group(1))
+        else:
+            other.append(f"{path}:{lno} — {msg}")
+    if b.exit == 0:
+        problems.append(f"build {robot} LINKED although its program needs {len(want)} owed fact(s) — a "
+                        f"placeholder can reach the robot (header, ROBOT ONE'S FACTS PROOF)")
+    for o in other:
+        problems.append(f"build {robot} refused with an error that is not an OWED fact: {o}")
+    if seen != want:
+        missing = sorted(want - seen)
+        extra = sorted(seen - want)
+        problems.append(f"build {robot} refused naming the wrong facts — owed and not named: {missing}; named "
+                        f"and not owed by this program: {extra} (header, ROBOT ONE'S FACTS PROOF)")
+    for leftover in ("hot.package.bin", "hot.package.elf"):
+        if os.path.exists(os.path.join(repo, "bin", leftover)):
+            problems.append(f"build {robot} refused but bin/{leftover} exists — a package is there to upload "
+                            f"(the Makefile's variant stamp, [R1])")
+    return not problems, problems, not problems
+
+
+def _working_tree_files(repo):
+    """Every file of the working tree git knows or would add (tracked + untracked, ignored excluded)."""
+    r = subprocess.run(["git", "ls-files", "-co", "--exclude-standard", "-z"], cwd=repo,
+                       capture_output=True, timeout=60)
+    if r.returncode != 0:
+        raise RuntimeError(f"git ls-files failed: {r.stderr.decode(errors='replace').strip()}")
+    return [f for f in r.stdout.decode().split("\0") if f]
+
+
+def _sha256(path):
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def facts_copy_proof(path_env=None, say=print, _fail_after_typing=False):
+    """THE COPY (header, ROBOT ONE'S FACTS PROOF (ii)). Returns a list of problem strings. `_fail_after_typing`
+    (the self-test only) raises once the copy's ledger is typed — an interrupted proof."""
+    global REPO
+    repo = REPO
+    copy = os.path.join(repo, FACTS_COPY_DIR)
+    problems = []
+    if os.path.exists(copy):
+        shutil.rmtree(copy)
+        say(f"  [facts-copy] swept a leftover {FACTS_COPY_DIR}/ (an earlier proof was interrupted)")
+    ledger = os.path.join(repo, FACTS_LEDGER)
+    before = _sha256(ledger)
+    package_before = None
+    hot = os.path.join(repo, "bin", "hot.package.bin")
+    if os.path.exists(hot):
+        package_before = _sha256(hot)
+    builds = [v for v in VARIANTS if BUILD_ROBOT.get(v) == "RobotOne"]
+    try:
+        for rel in _working_tree_files(repo):
+            src = os.path.join(repo, rel)
+            if rel.startswith(FACTS_COPY_DIR + os.sep) or not os.path.isfile(src):
+                continue  # a deleted-but-tracked file, or the copy itself
+            dst = os.path.join(copy, rel)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copy2(src, dst)
+        copied = os.path.join(copy, FACTS_LEDGER)
+        with open(copied, encoding="utf-8") as f:
+            text = f.read()
+        typed_text, n = type_every_fact(text)
+        with open(copied, "w", encoding="utf-8") as f:
+            f.write(typed_text)
+        marker = os.path.join(copy, FACTS_COPY_MARKER)
+        os.makedirs(os.path.dirname(marker), exist_ok=True)
+        with open(marker, "w", encoding="utf-8") as f:
+            f.write("the src build gate's facts-proof COPY (tools/src_build_gate.py) -- never in the repository\n")
+        if _fail_after_typing:
+            raise RuntimeError("self-test: the proof interrupted after the copy's ledger was typed")
+        REPO = copy
+        try:
+            for v in builds:
+                b = run_build(v, path_env)
+                ok, p = verdict(v, b)
+                say(_summary(v, b).replace(f"[{v:10}]", f"[{v} (copy)]"))
+                if not ok:
+                    problems += [f"[{v} (copy, every fact typed)] {x}" for x in p]
+        finally:
+            REPO = repo
+        say(f"  [facts-copy] {n} owed facts typed in {FACTS_COPY_DIR}/ only; robot one's {len(builds)} builds "
+            f"{'link and pass every check' if not problems else 'do NOT all pass — see below'}")
+    finally:
+        REPO = repo
+        shutil.rmtree(copy, ignore_errors=True)
+    if os.path.exists(copy):
+        problems.append(f"{FACTS_COPY_DIR}/ is still there after the proof — the `finally` did not delete it")
+    if _sha256(ledger) != before:
+        problems.append(f"the repository's {FACTS_LEDGER} CHANGED during the copy's proof — the proof must "
+                        f"never touch the repo")
+    if os.path.exists(os.path.join(repo, FACTS_COPY_MARKER)):
+        problems.append(f"the copy's marker {FACTS_COPY_MARKER} is in the REPOSITORY after the proof")
+    if os.path.exists(hot):
+        if _sha256(hot) != package_before:
+            problems.append("the repository's bin/hot.package.bin CHANGED during the copy's proof — the proof "
+                            "must never touch the repo's bin/")
+        with open(os.path.join(repo, "bin", "hot.package.bin"), "rb") as f:
+            if FACTS_COPY_SOURCE.encode() in f.read():
+                problems.append("the repository's bin/hot.package.bin carries the gate copy's source")
+    elif package_before is not None:
+        problems.append("the repository's bin/hot.package.bin VANISHED during the copy's proof")
+    return problems
 
 
 def _summary(robot, b):
@@ -2026,12 +2597,28 @@ def cmd_check(path_env=None, quiet=False):
         f"among them" if not list_problems else
         f"  [stdio-list] NOT CLEAN, see below")
 
+    refused_as_owed = 0
     for robot in VARIANTS:
         b = run_build(robot, path_env)
-        ok, problems = verdict(robot, b)
-        say(_summary(robot, b))
+        if BUILD_ROBOT.get(robot) == "RobotOne":
+            ok, problems, refused = facts_verdict(robot, b)
+        else:
+            (ok, problems), refused = verdict(robot, b), False
+        if refused:
+            refused_as_owed += 1
+            say(f"  [{robot:10}] REFUSED as it must: exactly its {len(expected_owed(robot))} owed fact(s), "
+                f"each by name, no other error, no package left in bin/ (the facts proof's real-tree half)")
+        else:
+            say(_summary(robot, b))
         if not ok:
             all_problems += [f"[{robot}] {p}" for p in problems]
+
+    # The facts proof's COPY half (header, ROBOT ONE'S FACTS PROOF (ii)) — never in the repo.
+    if any(BUILD_ROBOT.get(v) == "RobotOne" for v in VARIANTS):
+        try:
+            all_problems += [f"[facts-copy] {p}" for p in facts_copy_proof(path_env, say)]
+        except (RuntimeError, OSError, ValueError, subprocess.SubprocessError) as e:
+            all_problems.append(f"[facts-copy] the copy's proof could not run: {e}")
 
     if all_problems:
         print("\nsrc build gate: FAIL", file=sys.stderr)
@@ -2041,7 +2628,8 @@ def cmd_check(path_env=None, quiet=False):
 
     allowed = (f"{'/'.join(sorted(ALLOWED_CATEGORIES))} allowed by category, "
                if ALLOWED_CATEGORIES else "no category allowed, ")
-    say(f"src build gate: PASS (all {len(VARIANTS)} builds link; policy: errors fail, "
+    say(f"src build gate: PASS (all {len(VARIANTS)} builds link or, robot one's, refuse naming exactly "
+        f"their owed facts ({refused_as_owed} refused; every one links in the gate's typed copy); policy: errors fail, "
         f"vendor warnings path-ignored, {allowed}every other warning fails; defines "
         f"token-exact; one chain picks program and robot; variant and robot beacons asserted; "
         f"programs asserted; live tuning only in Tune, Tune with no chassis; src/'s include root unambiguous; every printed src/ path exists; "
@@ -2196,6 +2784,69 @@ def _chain_table_problems_without(build):
         return chain_table_problems()
     finally:
         VARIANTS = saved
+
+
+def _self_test_robot_half(expect):
+    """Self-test case 58 (the review of ROB1-A's integration, 2026-11-13): step 8's ROBOT HALF. Its own
+    function so a mutation probe can run exactly this case against a mutated gate."""
+    # (a) every detector of robot_separation_problems(), on SYNTHETIC ELF contents (pure: no build)
+    for robot, linked, elf_bytes, want in (
+            ("one-tune", {"shulib::bench::registerAutons"}, b"", "another robot's autons"),
+            ("one", set(), b"x\0shulib-robot=robot-two\0", "another robot's words"),
+            ("one-drive", set(), b"src/team/robot_two_driver.hpp\0", "another robot's words"),
+            ("tank-tune", {"shulib::bench::registerRobotOneAutons"}, b"", "another robot's autons"),
+            ("tank-competition", set(), b"robot one: OWED -- x", "another robot's words"),
+            ("tank-drive", set(), b"src/team/robot_one_driver.hpp\0", "another robot's words"),
+            ("bench", {"shulib::bench::registerRobotOneAutons"}, b"", "another robot's autons"),
+            ("xdrive", set(), b"src/team/robot_one_autons.cpp\0", "another robot's words")):
+        found = robot_separation_problems(robot, linked, elf_bytes)
+        expect(any(want in x and "(step 8, ROB1-A)" in x for x in found),
+               f"58: build {robot} with {sorted(linked)} / {elf_bytes!r} PASSED step 8's robot half: {found}")
+    # ...and the clean ones pass (each robot's OWN registration, beacon and driver path)
+    for robot, linked, elf_bytes in (
+            ("one-tune", {"shulib::bench::registerRobotOneAutons"},
+             b"shulib-robot=robot-one\0src/team/robot_one_driver.hpp\0"),
+            ("tank-competition", {"shulib::bench::registerAutons"},
+             b"shulib-robot=robot-two\0src/team/robot_two_driver.hpp\0")):
+        expect(not robot_separation_problems(robot, linked, elf_bytes),
+               f"58: build {robot}'s own team code FAILED step 8's robot half: "
+               f"{robot_separation_problems(robot, linked, elf_bytes)}")
+    # (b) every robot a build names has a forbidden symbol AND a forbidden word (an emptied row is no check)
+    for robot in VARIANTS:
+        who = BUILD_ROBOT.get(robot)
+        expect(ROBOT_FOREIGN_SYMBOLS.get(who) and ROBOT_FOREIGN_STRINGS.get(who),
+               f"58: robot {who} (build {robot}) has no ROBOT_FOREIGN_SYMBOLS or ROBOT_FOREIGN_STRINGS row")
+    # (c) THE CALL SITE, on one real build: robot two's autons file reaching robot one's registration behind a
+    #     condition no compiler can fold -> robot two's Auton Tester links registerRobotOneAutons -> verdict()
+    #     FAILS step 8 by name, ON BOTH OF THE CALL'S INPUTS: the linked symbol (`linked`) AND the ELF's words
+    #     (`elf_bytes` — the package's DWARF names its compile unit `src/team/robot_one_autons.cpp`, -g in
+    #     common.mk's MFLAGS). Deleting the call turns this red; so does passing it b"" for the ELF's bytes,
+    #     which checked only the symbol half survived (the verification of the integration's review, 2026-11-13).
+    autons_path = os.path.join(TEAM_DIR, "autons.cpp")
+
+    def plant_robot_one(text):
+        text = text.replace('#include "team/autons.hpp"\n',
+                            '#include "team/autons.hpp"\n'
+                            '#include "team/robot_one_autons.hpp"  // (self-test plant)\n', 1)
+        return text.replace(
+            "void registerAutons(competition::AutonRegistry& registry) {\n",
+            "void registerAutons(competition::AutonRegistry& registry) {\n"
+            "    static volatile bool robotPlantNever = false;  // (self-test plant)\n"
+            "    if (robotPlantNever) { registerRobotOneAutons(registry); }  // (self-test plant)\n", 1)
+
+    with _transform(autons_path, plant_robot_one):
+        b = run_build("tank-autontest")
+        ok, problems = verdict("tank-autontest", b)
+        expect(not ok, "58: robot one's autons registration linked into ROBOT TWO's Auton Tester PASSED")
+        expect(not b.disallowed, f"58: the plant raised a warning, so the case proves the warning policy, not "
+                                 f"step 8: {b.disallowed[:3]}")
+        expect(any("links shulib::bench::registerRobotOneAutons" in p and "(step 8, ROB1-A)" in p
+                   for p in problems),
+               f"58: the failure did not name robot one's autons registration (step 8's robot half): {problems}")
+        expect(any("carries 'src/team/robot_one_autons.cpp'" in p and "another robot's words" in p
+                   and "(step 8, ROB1-A)" in p for p in problems),
+               f"58: the failure did not name robot one's autons FILE PATH (step 8's robot half, the ELF's words — "
+               f"the call site's elf_bytes): {problems}")
 
 
 def do_self_test():
@@ -2425,9 +3076,11 @@ def do_self_test():
     #     two's) — each detector is proven on its own. (On the tank-library branch until T4 Part
     #     3 retired it; re-pointed to tank-drive, its intent unchanged — case 10 drops the
     #     Makefile's append instead, so the define does NOT land there: not a copy.)
-    drive_branch = "defined(SHULIB_PROGRAM_DRIVE)\ninline constexpr Program kProgram"
+    # (ROB1-A: robot one's drive branch also reads SHULIB_PROGRAM_DRIVE, so the target names robot two's.)
+    drive_branch = "defined(SHULIB_ROBOT_TANK_2026) && defined(SHULIB_PROGRAM_DRIVE)\ninline constexpr Program kProgram"
     with _replace(SELECTION_PATH, drive_branch,
-                  "defined(SHULIB_PROGRAM_DRIVE_BROKEN)\ninline constexpr Program kProgram"):
+                  "defined(SHULIB_ROBOT_TANK_2026) && defined(SHULIB_PROGRAM_DRIVE_BROKEN)\n"
+                  "inline constexpr Program kProgram"):
         b = run_build("tank-drive")
         ok, problems = verdict("tank-drive", b)
         expect(not ok, "16: a broken #elif in the one chain PASSED the tank-drive build — "
@@ -2628,8 +3281,11 @@ def do_self_test():
     #     on its own, from the build — must fail it on both halves, with no beacon firing. (On the
     #     tank-library branch until T4 Part 3 retired it; re-pointed, its intent unchanged — case
     #     20 swaps main.cpp's CALLS in the bench build, not a branch's program: not a copy.)
-    with _replace(SELECTION_PATH, "inline constexpr Program kProgram = Program::Drive;",
-                  "inline constexpr Program kProgram = Program::BenchTests;"):
+    # (ROB1-A: robot one's drive branch sets Program::Drive too, so the target carries robot two's next line.)
+    with _replace(SELECTION_PATH, "inline constexpr Program kProgram = Program::Drive;\n"
+                                  "inline constexpr RobotId kRobotId = RobotId::RobotTwo;",
+                  "inline constexpr Program kProgram = Program::BenchTests;\n"
+                  "inline constexpr RobotId kRobotId = RobotId::RobotTwo;"):
         expect(one_chain_problems() == [] and program_table_problems() == [],
                "21: the plant tripped the one-chain rule or the program table")
         expect(any("sets kProgram = Program::BenchTests, but this gate's BUILD_PROGRAM says "
@@ -3033,7 +3689,8 @@ def do_self_test():
     #     line, a number keeps its digits. (Each REFUSED form compiled and passed the gate before.)
     #     Not planted, the rule's stated limit: a name the preprocessor assembles (`##`).
     namespaces = _robot_namespaces(REPO)
-    expect(namespaces == {"robot_two": {"kRobotTwoMechanisms"}},
+    # (ROB1-A, 2026-11-11: robot one's region is the table file's second robot namespace.)
+    expect(namespaces == {"robot_two": {"kRobotTwoMechanisms"}, "robot_one": {"kRobotOneMechanisms"}},
            f"28b: the robot namespaces were not derived from the mechanism table file: {namespaces}")
     by_ns = "a robot's mechanism namespace"
     programs_dir = os.path.join(REPO, "src", "programs")
@@ -3463,10 +4120,10 @@ def do_self_test():
 
     # 46: MECHANISM_ROBOTS out of step with the table file -> step 0's [tune-row] FAILS: a robot with
     #     an EMPTY table listed (bench), and the robot with mechanisms left out (tank).
-    with _replace(MAKEFILE, "MECHANISM_ROBOTS:=tank\n", "MECHANISM_ROBOTS:=tank bench\n"):
+    with _replace(MAKEFILE, "MECHANISM_ROBOTS:=tank one\n", "MECHANISM_ROBOTS:=tank one bench\n"):
         expect(any("names 'bench'" in p for p in tune_row_problems()),
                "46: MECHANISM_ROBOTS naming the bench bot (no mechanisms) PASSED step 0")
-    with _replace(MAKEFILE, "MECHANISM_ROBOTS:=tank\n", "MECHANISM_ROBOTS:=\n"):
+    with _replace(MAKEFILE, "MECHANISM_ROBOTS:=tank one\n", "MECHANISM_ROBOTS:=\n"):
         problems = tune_row_problems()
         expect(any("robot 'tank' has a mechanism table" in p for p in problems),
                f"46: MECHANISM_ROBOTS without robot two PASSED step 0: {problems}")
@@ -3490,7 +4147,7 @@ def do_self_test():
     # 48: THE BACKSTOP behind the Makefile's list: the list wrongly accepting a robot with no Tune branch
     #     (xdrive) -> the build FAILS at src/build_selection.hpp's guard, naming why — never a Tune upload
     #     that is another program.
-    with _replace(MAKEFILE, "MECHANISM_ROBOTS:=tank\n", "MECHANISM_ROBOTS:=tank xdrive\n"):
+    with _replace(MAKEFILE, "MECHANISM_ROBOTS:=tank one\n", "MECHANISM_ROBOTS:=tank one xdrive\n"):
         for d in ("bin", ".d"):
             shutil.rmtree(os.path.join(REPO, d), ignore_errors=True)
         p = subprocess.run(["make", "ROBOT=xdrive", "PROGRAM=tune", "V=1"], cwd=REPO,
@@ -3532,6 +4189,178 @@ def do_self_test():
         expect(not tuning_problems(match, [chassis_name]), f"49: a clean {match} ELF FAILED step 8")
     expect(not tuning_problems("tank-calibrate", ["shulib::bench::runCalibrate()"]),
            "49: Calibrate (no chassis program) FAILED step 8's chassis control")
+    # ── ROB1-A (2026-11-11): robot one's builds, the facts proof, the step-0 rules and the stamp ──────────
+    ledger_path = os.path.join(REPO, FACTS_LEDGER)
+    competition_plant = os.path.join(REPO, "src", "programs", "competition_program.cpp")
+    autons_plant = os.path.join(TEAM_DIR, "autons.cpp")
+
+    # 50 ([R11]): robot one's NAMESPACE named where only its own files may — a program, robot two's team file,
+    #     and the facts LEDGER (which lives in robot_one_facts, a different identifier, on purpose) -> step 0
+    #     FAILS each by name; the real tree (the ledger's robot_one_facts; the driver panel's static_assert,
+    #     which reaches robot one's table through mechanismTableFor(RobotId::RobotOne)) passes.
+    for plant_path, rel in ((DRIVE_PLANT, os.path.join("src", "programs", "drive_program.cpp")),
+                            (autons_plant, os.path.join("src", "team", "autons.cpp")),
+                            (ledger_path, FACTS_LEDGER)):
+        with _plant(plant_path, "\nnamespace gate_rob1_alias = shulib::bench::robot_one;\n"):
+            problems = one_chain_problems()
+            expect(any(p.startswith(rel + ":") and "names robot_one" in p for p in problems),
+                   f"50: {rel} naming robot_one PASSED step 0 (the per-robot namespace rule, [R11]): "
+                   f"{problems[:3]}")
+    expect(not one_chain_problems(), f"50: the real tree fails step 0: {one_chain_problems()[:3]}")
+
+    # 51 (ROB1-A's step-0 rule): a program naming a robot's OWN driver or autons — RobotTwoDriver,
+    #     RobotOneDriver, registerAutons, registerRobotOneAutons — outside src/common/this_robot.hpp ->
+    #     FAIL by name; this_robot.hpp itself (it names all four) passes.
+    for name in TEAM_SELECTION_NAMES:
+        with _plant(competition_plant, f"\nnamespace {{ [[maybe_unused]] constexpr auto gateRob1 = &shulib::bench::{name}; }}\n"
+                    if name.startswith("register") else
+                    f"\nusing GateRob1Driver = shulib::bench::{name};\n"):
+            problems = one_chain_problems()
+            expect(any("competition_program.cpp" in p and f"names {name}" in p for p in problems),
+                   f"51: a program naming {name} PASSED step 0 (choosing a robot outside the chain): "
+                   f"{problems[:3]}")
+    expect(not _team_selection_problems(REPO, THIS_ROBOT_FILE),
+           "51: src/common/this_robot.hpp — the one file that may — FAILS the rule")
+
+    # 52 ([R4]): a TYPED fact in the repository's ledger with the gate copy's source, or with none -> step 0
+    #     FAILS naming the fact (the ledger's own check refuses both at make, too — compile refusals s74/s75).
+    camera = 'owed(3, Stage::Recorded, "the AI Vision camera\'s port")'
+    for source, word in (('"gate copy -- same as the placeholder, checked"', "gate copy"), ('""', "no source")):
+        with _replace(ledger_path, camera,
+                      f'typed(3, 4, Stage::Recorded, "the AI Vision camera\'s port", {source})'):
+            problems = ledger_source_problems()
+            expect(any("the AI Vision camera's port" in p and word in p for p in problems),
+                   f"52: a typed fact with {source} as its source PASSED step 0: {problems}")
+    expect(not ledger_source_problems(), f"52: the real ledger fails step 0: {ledger_source_problems()}")
+
+    # 53 (T4 — the facts proof's real-tree half sees a WRONG set): the ledger's OWED check with its
+    #     `needs(kProgram, …)` dropped (the brief's GM10) — Bench Tests then refuses naming its Stage B facts
+    #     too -> FAIL naming them; and the real `one` build refuses exactly its Stage A set -> PASS.
+    needs_term = "::shulib::bench::robot_one_facts::needs(::shulib::bench::kProgram, (fact).needed)"
+    with _replace(ledger_path, needs_term, "true /* (self-test plant: needs dropped) */"):
+        b = run_build("one")
+        ok, problems, refused = facts_verdict("one", b)
+        expect(not ok and not refused, "53: robot one's Bench Tests refusing its Stage B facts too PASSED")
+        expect(any("named and not owed by this program" in p and "the cascade's hold volts" in p
+                   for p in problems), f"53: the failure did not name the extra Stage B fact: {problems}")
+    b = run_build("one")
+    ok, problems, refused = facts_verdict("one", b)
+    expect(ok and refused, f"53: the real robot-one Bench Tests build does not refuse exactly its owed "
+                           f"Stage A facts: {problems}")
+    expect(not os.path.exists(os.path.join(REPO, "bin", "hot.package.bin")),
+           "53: the refused robot-one build left bin/hot.package.bin")
+
+    # 54 ([R4]): THE COPY'S PROOF INTERRUPTED once the copy's ledger is typed (a crash, a kill) — the
+    #     repository's ledger hash and bin/ unchanged, the copy deleted by the `finally`; and a LEFTOVER copy
+    #     is SWEPT by the next proof's start.
+    before = _sha256(ledger_path)
+    copy_dir = os.path.join(REPO, FACTS_COPY_DIR)
+    os.makedirs(os.path.join(copy_dir, "leftover"), exist_ok=True)
+    said = []
+    try:
+        facts_copy_proof(say=said.append, _fail_after_typing=True)
+        expect(False, "54: the interrupted proof did not raise (the case proved nothing)")
+    except RuntimeError as e:
+        expect("interrupted" in str(e), f"54: the proof raised something else: {e}")
+    expect(any("swept a leftover" in x for x in said), f"54: a leftover copy was not swept: {said}")
+    expect(not os.path.exists(copy_dir), "54: the interrupted proof left build/src-gate-facts/ behind")
+    expect(_sha256(ledger_path) == before, "54: the interrupted proof CHANGED the repository's ledger")
+    expect(REPO == os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+           "54: the interrupted proof left REPO pointing at the copy")
+
+    # 55 ([R1], T16 — THE VARIANT STAMP, `make` run DIRECTLY, never through run_build's delete): ROBOT=tank,
+    #     then ROBOT=tank PROGRAM=drive with NO rm -> the second recompiles EVERY file and its package is
+    #     tank-drive's; the same variant again -> 0 files; then a robot-one variant with owed facts -> refused,
+    #     and NO bin/hot.package.bin left (robot two's package gone with it).
+    def make_direct(*args):
+        p = subprocess.run(["make", *args], cwd=REPO, capture_output=True, text=True, timeout=600)
+        text = ANSI.sub("", p.stdout + p.stderr)
+        return p.returncode, sum(1 for line in text.splitlines() if COMPILED.match(line)), text
+    for d in ("bin", ".d"):
+        shutil.rmtree(os.path.join(REPO, d), ignore_errors=True)
+    n_tus = len(expected_tus())
+    rc1, c1, _t1 = make_direct("ROBOT=tank")
+    rc2, c2, t2 = make_direct("ROBOT=tank", "PROGRAM=drive")
+    elf_path = os.path.join(REPO, "bin", "hot.package.elf")
+    beacon_ok = False
+    if os.path.exists(elf_path):
+        with open(elf_path, "rb") as f:
+            beacon_ok = _beacon_bytes(VARIANT_BEACONS["tank-drive"]) in f.read()
+    rc3, c3, _t3 = make_direct("ROBOT=tank", "PROGRAM=drive")
+    rc4, _c4, t4 = make_direct("ROBOT=one")
+    expect(rc1 == 0 and rc2 == 0 and rc3 == 0, f"55: a robot-two build failed ({rc1}, {rc2}, {rc3})")
+    expect(c1 == n_tus, f"55: the first build compiled {c1} of {n_tus} files")
+    expect(c2 == n_tus, f"55: a PROGRAM switch with no rm compiled {c2} of {n_tus} files — the stamp does "
+                        f"not start fresh (the old package's objects re-linked)")
+    expect("shulib: the build changed" in t2, "55: the stamp's line was not printed on the switch")
+    expect(beacon_ok, "55: after the switch the package is not tank-drive's")
+    expect(c3 == 0, f"55: the same variant twice compiled {c3} files (the stamp starts fresh every time)")
+    expect(rc4 != 0 and "robot one: OWED" in t4, "55: robot one's Bench Tests with owed facts did not refuse")
+    expect(not os.path.exists(os.path.join(REPO, "bin", "hot.package.bin")),
+           "55: the refused robot-one build left the previous variant's bin/hot.package.bin to upload")
+
+    # 56 (the review of ROB1-A — THE STAGES ARE CLASSIFIED): a program added to `Program` with no case in the
+    #     ledger's needsStageB() (TUNE1-B1's Tune, the reviewers' scenario), a `default` in that switch, and
+    #     the switch disagreeing with STAGE_PROGRAMS (Calibrate made to need Stage B) -> step 0 FAILS each,
+    #     by name; and a robot-one row whose program STAGE_PROGRAMS does not classify -> expected_owed()
+    #     refuses to guess. The real tree passes. Text plants only — no build.
+    with _replace(os.path.join(REPO, SELECTION_HEADER), "    Competition,     ///<",
+                  "    GateRob1NewProgram,  ///< (self-test plant: a program added)\n    Competition,     ///<"):
+        problems = stage_table_problems()
+        expect(any("no case for Program::GateRob1NewProgram" in p for p in problems),
+               f"56: a program with no case in needsStageB() PASSED step 0: {problems}")
+        expect(any("does not classify Program::GateRob1NewProgram" in p for p in problems),
+               f"56: a program STAGE_PROGRAMS does not classify PASSED step 0: {problems}")
+    with _replace(ledger_path, "        case Program::InventedXDrive:  //",
+                  "        default:  // (self-test plant)\n        case Program::InventedXDrive:  //"):
+        problems = stage_table_problems()
+        expect(any("has a `default`" in p for p in problems), f"56: a `default` PASSED step 0: {problems}")
+    with _replace(ledger_path, "        case Program::Calibrate:       // measures the drive; powers no declared mechanism\n",
+                  ""), \
+         _replace(ledger_path, "        case Program::Drive:\n",
+                  "        case Program::Drive:\n        case Program::Calibrate:  // (self-test plant)\n"):
+        problems = stage_table_problems()
+        expect(any("Program::Calibrate: the ledger's needsStageB() says true, this gate's STAGE_PROGRAMS says "
+                   "false" in p for p in problems), f"56: the switch disagreeing with the gate PASSED: {problems}")
+    saved_program = BUILD_PROGRAM["one-drive"]
+    BUILD_PROGRAM["one-drive"] = "GateRob1NewProgram"
+    try:
+        expect(any("one-drive's program GateRob1NewProgram is not classified" in p
+                   for p in stage_table_problems()), "56: an unclassified robot-one row PASSED step 0")
+        try:
+            expected_owed("one-drive")
+            expect(False, "56: expected_owed() guessed a set for an unclassified program")
+        except ValueError as e:
+            expect("not classified" in str(e), f"56: expected_owed() raised something else: {e}")
+    finally:
+        BUILD_PROGRAM["one-drive"] = saved_program
+    expect(not stage_table_problems(), f"56: the real tree fails the stage check: {stage_table_problems()}")
+
+    # 57 (the review of ROB1-A — A LEDGER COPIED BACK): the copy's own typed ledger (type_every_fact()'s
+    #     output: every fact typed, sourced "gate copy") written over the repository's — the natural "restore"
+    #     after an interrupted proof — and `make ROBOT=one PROGRAM=drive` run DIRECTLY (how the team builds,
+    #     no gate) -> REFUSED by the ledger's own check, by name, and no package left; step 0 names it too.
+    #     And the copy's MARKER FILE in the repository's build/ -> step 0 FAILS naming it.
+    with open(ledger_path, encoding="utf-8") as f:
+        typed_back, _n = type_every_fact(f.read())
+    with _transform(ledger_path, lambda _text: typed_back):
+        for d in ("bin", ".d"):
+            shutil.rmtree(os.path.join(REPO, d), ignore_errors=True)
+        rc, _c, text = make_direct("ROBOT=one", "PROGRAM=drive")
+        expect(rc != 0 and "robot one: a typed fact needs a real source" in text,
+               f"57: a ledger copied back from the gate's copy LINKED robot one's Drive (rc {rc}) — a "
+               f"placeholder package to upload: {text[-400:]}")
+        expect(not os.path.exists(os.path.join(REPO, "bin", "hot.package.bin")),
+               "57: the copied-back ledger's refused build left bin/hot.package.bin")
+        expect(any("gate copy" in p for p in ledger_source_problems()),
+               "57: step 0 did not name the copied-back ledger's gate-copy sources")
+    with _newfile(os.path.join(REPO, FACTS_COPY_MARKER), "(self-test plant: the copy's marker in the repo)\n"):
+        expect(any(FACTS_COPY_MARKER in p and "exists in the repository" in p for p in ledger_source_problems()),
+               "57: the copy's marker file in the repository's build/ PASSED step 0")
+    expect(not os.path.exists(os.path.join(REPO, FACTS_COPY_MARKER)), "57: the marker plant outlived its case")
+
+    # 58 (the review of ROB1-A's integration): STEP 8's ROBOT HALF — _self_test_robot_half() says how.
+    _self_test_robot_half(expect)
 
     for f in failures:
         print(f"  SELF-TEST FAILURE — {f}", file=sys.stderr)

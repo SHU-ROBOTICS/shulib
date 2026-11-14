@@ -53,10 +53,11 @@ rm -rf bin .d && make ROBOT=tank PROGRAM=autontest
 pros upload --slot 2 --name "shulib Auton Tester"
 ```
 
-The `rm -rf bin .d` is not optional. `make` rebuilds only the files that changed, and it does not
-notice that the `PROGRAM=` word changed: after building another program it recompiles nothing and
-links **that** program again — and the upload would put it in slot 2 under the tester's name. The
-same holds whenever you switch between any two of the `make` lines in the README.
+`make` notices a changed `ROBOT=` or `PROGRAM=` word and starts fresh by itself: it deletes `bin/` and
+`.d/` and recompiles everything (it prints `shulib: the build changed …` when it does). Until it did,
+after building another program it recompiled nothing and linked **that** program again — and the
+upload put it in slot 2 under the tester's name. The `rm -rf bin .d` is now harmless, and it stays in
+the line above for anyone on an older copy of this repository.
 
 (Slot 2, since the new "shulib Drive" retired "shulib Teleop" from it; until then the tester was
 in slot 7, so a brain uploaded before that may still hold it there — slot 7 is "shulib Tune"'s now,

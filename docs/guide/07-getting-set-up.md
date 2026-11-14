@@ -147,7 +147,11 @@ mental model, which matters more:
   Competition" (`src/programs/competition_program.cpp`, `make ROBOT=tank PROGRAM=competition`) and
   "shulib Tune" (`src/programs/tune_program.cpp`, `make ROBOT=tank PROGRAM=tune` — any robot with
   mechanisms; slot 7 — live tuning of the mechanisms on the brain screen,
-  [Chapter 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen));
+  [Chapter 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen)) —
+  robot two's builds; robot one, the cascade robot, takes the same six with `make ROBOT=one` and
+  `make ROBOT=one PROGRAM=…`, each REFUSING, by name, every still-owed fact of its facts file that its
+  program needs ([chapter 21](21-adding-your-robot-by-hand.md), and the
+  [robot facts form](../robot-facts-form.md));
   `src/common/` holds what those programs share — the boot source, the competition-state screens, the
   painters, every driver file's plumbing (`src/common/driver_file.hpp`), and the driver-control
   screen's words (`src/common/driver_panel.hpp`: the drive protections' row, the controller's lines,

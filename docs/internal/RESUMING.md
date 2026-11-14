@@ -116,7 +116,9 @@ build (three robot variants since R3b Session 2: `bench`, `xdrive`, `tank`; plus
 axis: `ROBOT=tank PROGRAM=drive` since R3b Part 0b (the NEW "shulib Drive" since T4 Part 3),
 `ROBOT=tank PROGRAM=calibrate` since R3d Part 2, `ROBOT=tank PROGRAM=autontest` since COMP-t and
 `ROBOT=tank PROGRAM=competition` since COMP-b and `ROBOT=tank PROGRAM=tune` ("shulib Tune", any robot with
-mechanisms) since TUNE1-B1 — eight builds; `ROBOT=tank PROGRAM=library`, R3b
+mechanisms) since TUNE1-B1 — eight builds; plus robot one's six since ROB1-A (`ROBOT=one` and `ROBOT=one
+PROGRAM=drive|calibrate|autontest|competition|tune`, each refusing by name while a fact it needs is owed, and
+proven linking in a typed copy) — fourteen; `ROBOT=tank PROGRAM=library`, R3b
 Parts 1–3's "shulib Teleop", was RETIRED at T4 Part 3: `make` stops with an error naming it, and the
 gate fails its switch anywhere), warning policy in the tool's header. It deletes and rebuilds `bin/`/`.d/` (both gitignored), so it does not dirty
 the tree:
@@ -138,7 +140,10 @@ python3 tools/src_build_gate.py check
 > `PROGRAM=autontest` / `PROGRAM=competition` on tank for the driver program ("shulib Drive", robot
 > two's driver file since T4 Part 3), (since R3d Part 2) the self-calibration program, (since COMP-t)
 > the bench auton tester and (since COMP-b) the competition program (`PROGRAM=library`, the library
-> program "shulib Teleop", retired at T4 Part 3) — the
+> program "shulib Teleop", retired at T4 Part 3), and `PROGRAM=tune` ("shulib Tune", since TUNE1-B1)
+> on any robot in the Makefile's `MECHANISM_ROBOTS`; and (since ROB1-A) `make ROBOT=one`, robot one's
+> Bench Tests, with the same five `PROGRAM=` values, each refusing by name while a fact it needs is
+> owed in `src/robots/robot_one_facts.hpp` — the
 > old documented `CXXFLAGS_EXTRA` flag was a
 > measured silent no-op (transposed name; GATE1-PROGRESS §3–4) and survives only in comments that
 > say it used to be documented (`Makefile`, `src/build_selection.hpp` — the one file that reads the

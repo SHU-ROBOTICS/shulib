@@ -2690,6 +2690,55 @@ measurement.
 
 ---
 
+## Station R1 — ROBOT ONE: THE FACTS FORM  *(robot one, the cascade robot — added ROB1-A, 2026-11-11; NOTHING HAS RUN ON ROBOT ONE)*
+
+Robot one is in the code with every number about its cascade **OWED** (`src/robots/robot_one_facts.hpp`), and
+`make ROBOT=one PROGRAM=…` REFUSES, naming each owed fact the program needs. This station is where the builder's
+answers are taken. The form is `docs/robot-facts-form.md` (one page); the coordinator types each answer as
+`typed(<placeholder kept>, <value>, …, "<who, how, when>")` (guide chapter 21).
+
+- [ ] **R1.0 — Section A and B BEFORE any program** (no program needed — the brain's own Devices screen): the
+      tank question (HA-252), the drive motors' cartridge, **the IMU and its port** (HA-253 — no IMU, nothing
+      drives: stop and tell the coordinator), every port 1–21 with **every motor that is not a drive motor
+      marked**, every 3-wire port.
+- [ ] **R1.1 — Stage A typed** (B6, C1, C2, C6 (i) "chosen, not measured", D16 the flipper's kind — "not on
+      the robot yet" is an answer), AND **A2 (the drive cartridge) and A4 (the IMU's port) typed into
+      `kRobotOneChassis`** (`src/robots/chassis_table.hpp`), its `provenance` naming who read them and when
+      — Calibrate cannot discover either (it refuses an unset cartridge; the boot refuses a tank with no
+      IMU). **A4 goes in the SAME edit as B6 and C1** — the facts file's placeholder motor ports are 8 and 9, and
+      a real IMU on either, typed before them, fails every build (robot two's and the host suite's too) as
+      `a_mechanism_is_wired_to_a_drive_port_or_the_imu_port_of_its_robots_chassis_table`. Then `make ROBOT=one` and `make ROBOT=one PROGRAM=calibrate` link — and robot two's builds still
+      do (robot one's region compiles in every build: run the src build gate's fourteen).
+- [ ] **R1.2 — Bench Tests (slot 3) on robot one:** the census matches R1.0; station 13's direction check on each
+      cascade motor (HA-255). **Station 13 does not apply the cap yet (ROB1-C)** — keep the ceiling at 3 V
+      (never R1) and never power the cascade into its top stop (R1.4).
+- [ ] **R1.3 — Calibrate (slot 4) on robot one** (Station G's steps; its own SD card, labelled — the record names
+      no robot yet, ROB1-B).
+- [ ] **R1.4 — the cascade measured at station 13** (C7): RECORD at the bottom stop and at each level, a taped
+      height each — read `output … deg`, never the inches (placeholders until Stage B is typed). **The top
+      stop, until ROB1-C caps station 13:** jog up at 3 V to just short of it and stop; close the last bit by
+      hand only if the gearing turns freely by hand, then tape and RECORD; if not, the top row waits for
+      ROB1-C. C8: the hold volts, the homing push and the volts before homing (each measured or "chosen, not
+      measured"). Stage B typed; then Drive, the Auton Tester, Competition and shulib Tune (slot 7 — the
+      hold volts and the homing push tuned live there, then re-typed from its COPY) link.
+
+| Item | Answer | Who / how / date |
+|---|---|---|
+| A1 tank? | | |
+| A2 drive motors per side, cartridge | | |
+| A4 IMU, port | | |
+| B6 non-drive motor ports | | |
+| C1 cascade ports, cartridge, mirrored? | | |
+| C2 teeth (motor, spool) | | |
+| C5 levels (name, height) | | |
+| C6 (i) starting cap / signature | | |
+| C7 rows (height, output deg) | | |
+| C8 (i) hold volts | | |
+| C8 (ii) homing push volts (negative = down) | | |
+| C8 (iii) volts before homing | | |
+| D16 flipper kind | | |
+| E18 camera port, mount | | |
+
 ## DO NOT
 
 - ❌ **Do not upload an old build.** The default build is the **bench tester**

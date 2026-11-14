@@ -47,9 +47,9 @@
 // R3b Part 0b): the operator picks a program by NAME from the brain's slot list. Every .cpp under
 // src/ compiles into every build; the linker's --gc-sections drops what the selected program never
 // calls. The ROBOT is set by the same branch (kRobotId): the bench build carries the bench bot's
-// tables, the six tank builds robot two's, the xdrive build the invented X-drive's -- an UNSET
-// chassis table and no mechanisms (src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp
-// select them from kRobotId).
+// tables, the six tank builds robot two's, the six ROBOT=one builds robot one's (since ROB1-A), the
+// xdrive build the invented X-drive's -- an UNSET chassis table and no mechanisms
+// (src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp select them from kRobotId).
 //
 // ═══ WHAT RUNS, AND WHAT HAS RUN (no claim beyond the logs) ════════════════════════════
 //   * NO LIBRARY-COMMANDED MOTION HAS RUN ON A ROBOT (R3b open). The OLD "shulib Drive" drove

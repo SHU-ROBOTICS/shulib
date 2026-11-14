@@ -157,7 +157,7 @@ Subtotal: ~10–12½ days.
 | 36 | **R5's remainder + S9 (retune)** | re-tune the C-phase controllers against the measured dynamics; motion re-verified on hardware; retune again after field runs | R5a's measurements; field runs | robot-session-bound |
 | 37 | **R6 / P1**: back-fit the host test plant | the measured numbers (R4, R5a) go into the plant and the whole suite is re-run; every new failure is fixed where it lives | R4's and R5a's sessions | not sized (it depends on what fails) |
 | 38 | **P2**: settle the register | every HA entry a session touched gets its settle line, citing the log | each session | robot-session-bound (written with each session) |
-| 39 | **I1**: robot one, also a tank (the 2026-09-14 ruling) | a second chassis table plus R3d's calibration; no new core | robot one; Q3 (its cartridge); S5 — *for 2026-11-23 (the sprint): made in the panel if the tool lane lands ~Nov 16 and tests well, the students' hand-written table as the backup* | robot-session-bound |
+| 39 | **I1**: robot one, also a tank (the 2026-09-14 ruling) | a second chassis table plus R3d's calibration; no new core — **ROB1-A LANDED 2026-11-13 (built 2026-11-11; integrated onto `d33d25d`): robot one in the code by hand — `make ROBOT=one …` (six builds, its shulib Tune among them), its facts file with every number OWED (each build refuses by name until typed), a default driver file, a starter skills autons file; host- and build-gated only** | robot one; Q3 (its cartridge); S5; **the builder's facts form (`docs/robot-facts-form.md`)** — *for 2026-11-21: the hand-written path (ROB1); the panel after the 21st* | robot-session-bound |
 
 ## 8. Other open pieces
 

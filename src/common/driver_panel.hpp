@@ -74,6 +74,7 @@
 #include <string_view>
 
 #include "common/boot_source.hpp"
+#include "common/robot_words.hpp"
 #include "robots/mechanism_table.hpp"
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/diag/fault.hpp"
@@ -420,7 +421,7 @@ inline void clawTemperatureText(double celsius, char (&out)[8]) {
     std::snprintf(out, sizeof out, "%d", static_cast<int>(std::lround(clamped)));
 }
 
-/// The row when the list declares nothing (every build but ROBOT=tank).
+/// The row when the list declares nothing (every build but ROBOT=tank and ROBOT=one).
 inline constexpr std::string_view kNoClawsRow = "claws: none declared for this robot";
 
 /// The row's widest possible text for `list`, computed from the words it can print — the budget the
@@ -461,6 +462,8 @@ static_assert(clawRowWorstLength(robot_two::kRobotTwoMechanisms) <= calibration:
               "robot two's claw row could run past the SMALL budget");
 static_assert(clawRowWorstLength(kMechanisms) <= calibration::kSmallCols,
               "this build's claw row could run past the SMALL budget");
+static_assert(clawRowWorstLength(mechanismTableFor(RobotId::RobotOne)) <= calibration::kSmallCols,
+              "robot one's mechanism row could run past the SMALL budget");
 
 /// One panel row: at most calibration::kSmallCols characters.
 struct ClawRow {
@@ -469,7 +472,8 @@ struct ClawRow {
 
 /// The claw row for `list` over `robot` and its bound `service` (section banner), with ` FREED` when
 /// `freed` — the driver file's releasedLeftoverAtEntry(service) — so every program that runs a driver
-/// file prints the same row, byte for byte.
+/// file prints the same row, byte for byte. (Robot two's row, begun `CLAW`; robot one's begins `MECH` —
+/// the overload below, chunk ROB1-A.)
 inline ClawRow clawRowText(const MechanismTable& list, const robot::Robot& robot,
                            const mechanism::MechanismService& service, bool freed) {
     ClawRow out;
@@ -532,6 +536,25 @@ inline ClawRow clawRowText(const MechanismTable& list, const robot::Robot& robot
         std::snprintf(row + n, sizeof row - n, " FREED");
     }
     std::snprintf(out.text, sizeof out.text, "%.50s", row);
+    return out;
+}
+
+/// The same row in robot `Words`' words (chunk ROB1-A, re-check R7; src/common/robot_words.hpp): its
+/// first word is the robot's — robot two's `CLAW`, robot one's `MECH`, four letters each, so
+/// clawRowWorstLength()'s budget holds for both. Robot two's builds never call it: a program picks it
+/// only for a robot whose words are not the claw words (`ThisRobotWords::value.claw ? … : …`), so robot
+/// two's packages keep the function above, byte for byte (the ROB1 brief's T6 — an earlier cut that
+/// made the function above a template changed GCC's inlining of it into robot two's Drive and
+/// Competition). A host test passes `WordsOf<RobotId::RobotOne>{}`.
+template <class Words>
+inline ClawRow clawRowText(const MechanismTable& list, const robot::Robot& robot,
+                           const mechanism::MechanismService& service, bool freed, Words) {
+    ClawRow out = clawRowText(list, robot, service, freed);
+    if constexpr (!Words::value.claw) {
+        if (list.count != 0) {
+            std::memcpy(out.text, Words::value.rowWord, 4);  // `CLAW` -> the robot's four letters
+        }
+    }
     return out;
 }
 
@@ -639,6 +662,30 @@ struct ControllerScreen {
         std::snprintf(s.line[1], sizeof s.line[1], "hdg %+6.1f deg", f.headingDegrees);
     }
     std::snprintf(s.line[2], sizeof s.line[2], "%.19s", controllerWord(f));
+    return s;
+}
+
+/// Line 2's word in robot `Words`' words (chunk ROB1-A, re-check R7): the chooser above, with the
+/// absent word the robot's — robot two's `CLAW ABSENT` (kLcdClawAbsent), robot one's `MECH ABSENT`
+/// (src/common/robot_words.hpp). Like clawRowText()'s overload, robot two's builds never call it (T6).
+template <class Words>
+[[nodiscard]] inline const char* controllerWord(const ControllerFacts& f, Words) noexcept {
+    const char* word = controllerWord(f);
+    if constexpr (!Words::value.claw) {
+        if (word == kLcdClawAbsent.data()) {
+            return Words::value.lcdAbsent;
+        }
+    }
+    return word;
+}
+
+/// The controller's three lines in robot `Words`' words: line 2 from controllerWord(f, Words{}).
+template <class Words>
+[[nodiscard]] inline ControllerScreen controllerScreenLines(const ControllerFacts& f, Words) noexcept {
+    ControllerScreen s = controllerScreenLines(f);
+    if constexpr (!Words::value.claw) {
+        std::snprintf(s.line[2], sizeof s.line[2], "%.19s", controllerWord(f, Words{}));
+    }
     return s;
 }
 

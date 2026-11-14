@@ -59,7 +59,7 @@ constexpr std::optional<hal::MotorCartridge> cartridgeFact(Cartridge c) {
 /// table's robot name and typed IMU port — and NO typed drive ports (withTypedDriveFrom() adds them).
 constexpr calibration::CalibrateFacts calibrateFactsFor(const ChassisTable& c, const MechanismTable& m) {
     calibration::CalibrateFacts f{};
-    f.drive = config::DrivetrainKind::Tank;  // a ChassisTable is a tank's; the chain builds Calibrate only for ROBOT=tank
+    f.drive = config::DrivetrainKind::Tank;  // a ChassisTable is a tank's: Calibrate is built only for ROBOT=tank|one
     f.cartridge = cartridgeFact(c.cartridge);
     int ports[calibration::kMaxMechanismPorts]{};
     const std::size_t n = mechanism::declaredMotorPorts(m, std::span<int>{ports});

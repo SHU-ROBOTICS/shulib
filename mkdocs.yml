@@ -138,6 +138,7 @@ nav:
       - 18 — Mechanisms: guide/18-mechanisms.md
       - 19 — Calibrating your robot: guide/19-calibrating-your-robot.md
       - 20 — The camera: guide/20-the-camera.md
+      - 21 — Adding your robot by hand: guide/21-adding-your-robot-by-hand.md
 
   - Cookbook:
       - cookbook/README.md
@@ -397,6 +398,7 @@ nav:
       - Roadmap: roadmap.md
       - Architecture and decisions: shulib-v2-master-plan.md
       - Hardware assumptions: hardware-assumptions.md
+      - Robot facts form: robot-facts-form.md
       - Diagnostics plan: diagnostics-plan.md
       - VexBuilder integration: vexbuilder-integration.md
       - Legacy command vocabulary: legacy-command-vocabulary.md

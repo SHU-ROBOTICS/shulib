@@ -528,9 +528,11 @@ rm -rf bin .d && make ROBOT=tank PROGRAM=tune
 pros upload --slot 7 --name "shulib Tune"
 ```
 
-(`ROBOT=` is your robot's; a robot with no mechanisms is refused by `make`, naming why. The
-`rm -rf bin .d` matters for the same reason as the Auton Tester's: `make` does not see that `PROGRAM=`
-changed.) Start it from the **brain's** screen with the controller paired; nothing in it moves with a
+(`ROBOT=` is your robot's — `tank` for robot two, `one` for robot one; a robot with no mechanisms is
+refused by `make`, naming why, and robot one's Tune, like its other programs, refuses by name while a
+fact it needs is still owed — [chapter 21](21-adding-your-robot-by-hand.md). The `rm -rf bin .d` is
+harmless, for the reason [Chapter 16](16-testing-an-auton-on-the-bench.md) gives: `make` notices a
+changed `ROBOT=` or `PROGRAM=` word and starts fresh by itself.) Start it from the **brain's** screen with the controller paired; nothing in it moves with a
 field or a competition switch plugged in.
 
 **The safety rules, before anything else:**
@@ -586,7 +588,8 @@ signature is sized by.
 terminal **and** to the SD card, `/usd/tune_log.txt`, kept across boots — a reboot back into Tune does
 not erase the last session's COPY. **EXIT copies for you** every mechanism changed since its last COPY,
 so the numbers are in the log before you stop the program. **Copy the lines into your robot's mechanism table by hand** (robot two's is
-`src/robots/mechanism_table.hpp`), with a comment saying they were tuned live and when; the panel's
+`src/robots/mechanism_table.hpp`; robot one's numbers go into its facts file instead —
+[Chapter 21](21-adding-your-robot-by-hand.md)), with a comment saying they were tuned live and when; the panel's
 import is for after the first competition. Nothing persists: leaving the program, or a reboot, runs the
 robot file's numbers again. **After a cartridge, gearing or spool change, RESET and tune again** — a
 number a COPY states stays exactly as it was tuned.

@@ -154,14 +154,21 @@ TEST_CASE("P3-T3: shulib Drive prints each mechanism's boot lines from the build
     // fine).
     const std::string c = code(kDrive);
     CHECK(count(c,
-                "mechanismBootLines(kMechanisms, r, mechanisms, &RobotTwoDriver::kControls, [&log](const "
+                "mechanismBootLines(kMechanisms, r, mechanisms, &ThisRobotDriver::kControls, [&log](const "
                 "MechanismLine& m) { log.log(m.level, \"MECH\", m.text); });")
           == 1U);
     CHECK(count(c, "mechanismBootLines(") == 1U);
     CHECK(count(c, "ClawBootLine(") == 0U);
+    // Robot two's sentence VERBATIM, chosen on its claw words; robot one's (no claws) beside it (the review of
+    // ROB1-A — test/this_robot_test.cpp walks every such choice's order); the pin starts at the call, so
+    // a `!` before the condition breaks it (the verifier of ROB1-A, F10b).
     CHECK(count(c,
+                "std::snprintf(line, sizeof line, ThisRobotWords::value.claw ? "
                 "\"opcontrol(): field DISABLED -- the driver file's loop exited cleanly after \" "
                 "\"cancel() (0 V + Brake); each claw pivot made safe, the pneumatic claw left as it \" "
+                "\"was; %lu screen prints so far\" : "
+                "\"opcontrol(): field DISABLED -- the driver file's loop exited cleanly after \" "
+                "\"cancel() (0 V + Brake); each motor mechanism made safe, each pneumatic left as it \" "
                 "\"was; %lu screen prints so far\", static_cast<unsigned long>(g_screenPrints));")
           == 1U);
     // The boot source hands the build's mechanism table to the decision (test 1l's last pin).
@@ -357,8 +364,8 @@ TEST_CASE("P3-T3: shulib Drive's MAIN rows and controller lines are the shared p
     // shared panel's words — pinned there and in the refreshRows() pin above; here, the cut length
     // handed to it is the config's.)
     CHECK(count(c, "f.cutSeconds = kCutSeconds;") == 1U);
-    CHECK(count(c, "constexpr double kCutSeconds = RobotTwoDriver::kLoop.protection.cutTicks * "
-                   "RobotTwoDriver::kLoop.tickPeriod.value();")
+    CHECK(count(c, "constexpr double kCutSeconds = ThisRobotDriver::kLoop.protection.cutTicks * "
+                   "ThisRobotDriver::kLoop.tickPeriod.value();")
           == 1U);
     const std::string lcd = bodyOf(c, "void refreshLcd(bool connected,");
     CHECK(source_pins::squash(lcd)
@@ -368,17 +375,20 @@ TEST_CASE("P3-T3: shulib Drive's MAIN rows and controller lines are the shared p
              "r_.faults().lastFault(); f.connected = connected; f.degraded = "
              "boot_.verdict.decision == calibration::BootDecision::Degraded; f.clawAbsent = "
              "anyClawAbsent(r_); addProtectionFacts(f, protection); const ControllerScreen want = "
-             "controllerScreenLines(f); const int row = lcdWriter_.next(want, now); if (row >= 0) { "
+             "ThisRobotWords::value.claw ? controllerScreenLines(f) : controllerScreenLines(f, ThisRobotWords{}); "
+             "const int row = lcdWriter_.next(want, now); if (row >= 0) { "
              "lcd_.setLine(row, want.line[row]); }");
     CHECK(count(c, "setLine(") == 1U);
-    CHECK(count(c, "controllerScreenLines(") == 1U);
+    // ROB1-A: robot two's claw-word form and the robot's-words form, chosen on the build's robot (T6).
+    CHECK(count(c, "controllerScreenLines(") == 2U);
+    CHECK(count(c, "controllerScreenLines(f, ThisRobotWords{})") == 1U);
     CHECK(count(c, "ControllerLineWriter lcdWriter_{};") == 1U);
     CHECK(count(c, "st.lcd.emplace();") == 1U);
     // Every word on these rows is the shared header's: no literal here says what they say.
     for (const std::string& lit : stringLiterals(c)) {
         CAPTURE(lit);
         for (const char* shared : {"drive OK", "REFUSED see brain", "CUT see brain", "CONNECTED",
-                                   "NO CONTROLLER", "DEGRADED see brain", "CLAW ABSENT"}) {
+                                   "NO CONTROLLER", "DEGRADED see brain", "CLAW ABSENT", "MECH ABSENT"}) {
             CHECK(lit.find(shared) == std::string::npos);
         }
     }
@@ -446,11 +456,13 @@ TEST_CASE("P3-T3 (T4-3): the rows, the repaint and the boot's generated words co
              "localization::DriveEncoderOdometry* odom = r_.driveOdometry(); const "
              "diag::FaultLatch& faults = r_.faults(); const bool freed = "
              "driver_.releasedLeftoverAtEntry(mechanisms_); const ClawRow claw = "
-             "clawRowText(kMechanisms, r_, mechanisms_, freed); DriveLiveFacts f{}; f.cutSeconds = kCutSeconds; "
+             "ThisRobotWords::value.claw ? clawRowText(kMechanisms, r_, mechanisms_, freed) : "
+             "clawRowText(kMechanisms, r_, mechanisms_, freed, ThisRobotWords{}); DriveLiveFacts f{}; "
+             "f.cutSeconds = kCutSeconds; "
              "f.connected = connected; f.cmdVx = command.vx().value(); f.cmdOmega = "
              "command.omega().value(); f.estX = pose.x().value(); f.estY = pose.y().value(); "
              "f.estHeadingDeg = pose.heading().radians() * 180.0 / math::Angle::kPi; f.quality = "
-             "r_.localizer().qualityClass(); f.mode = RobotTwoDriver::kFeel.mode; f.fieldCentric = "
+             "r_.localizer().qualityClass(); f.mode = ThisRobotDriver::kFeel.mode; f.fieldCentric = "
              "shaper.fieldCentric; f.hasOdometry = odom != nullptr; f.headingDisagreement = odom "
              "!= nullptr ? odom->lastHeadingDisagreement() : 0.0; f.batteryVolts = "
              "r_.context().battery().voltage().value(); f.travelLeft = odom != nullptr ? "
@@ -483,7 +495,7 @@ TEST_CASE("P3-T3 (T4-3): the rows, the repaint and the boot's generated words co
           == 1U);
     CHECK(count(boot,
                 "(void)driveProtectionsLine(protections, sizeof protections, "
-                "RobotTwoDriver::kLoop.protection, RobotTwoDriver::kLoop.tickPeriod.value(), "
+                "ThisRobotDriver::kLoop.protection, ThisRobotDriver::kLoop.tickPeriod.value(), "
                 "teleop::SideMonitorConfig{}.persistTicks); logWrapped(log, hal::LogLevel::Info, "
                 "protections);")
           == 1U);

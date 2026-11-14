@@ -28,9 +28,9 @@ rm -rf bin .d && make ROBOT=tank PROGRAM=competition
 pros upload --slot 6 --name "shulib Competition"
 ```
 
-The `rm -rf bin .d` matters for the reason [Chapter 16](16-testing-an-auton-on-the-bench.md) gives:
-`make` does not notice that the `PROGRAM=` word changed, and would link the last program you built
-under this name. **Slot 6.** Slot 5 is held for the team's own old code, as a fallback: never upload
+The `rm -rf bin .d` is harmless, for the reason [Chapter 16](16-testing-an-auton-on-the-bench.md)
+gives: `make` notices a changed `ROBOT=` or `PROGRAM=` word and starts fresh by itself (until it did,
+it would link the last program you built under this name). **Slot 6.** Slot 5 is held for the team's own old code, as a fallback: never upload
 a shulib program over it.
 
 What happens in a match, in one paragraph: the robot boots from its calibration record; before the

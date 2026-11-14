@@ -36,12 +36,12 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-188 (CAL1's second number, released unused — never reissued), HA-192..HA-203, HA-204..HA-215, HA-216..HA-218 (STEP1's: HA-216 registered by STEP1-A, HA-217..HA-218 by STEP1-B — all three landed), HA-224..HA-227 (MECH-S/TUNE1's — its HA-219..HA-223 registered by MECH-S-A), HA-228..HA-230, HA-233 and HA-236 (AF1's — the driver-control auto-flipper's; its HA-231, HA-232, HA-234 and HA-235 registered by AF1S-A1, which reuses them), HA-237..HA-242 (ALLY1's and L4's).
+> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-188 (CAL1's second number, released unused — never reissued), HA-192..HA-203, HA-204..HA-215, HA-216..HA-218 (STEP1's: HA-216 registered by STEP1-A, HA-217..HA-218 by STEP1-B — all three landed), HA-224..HA-227 (MECH-S/TUNE1's — its HA-219..HA-223 registered by MECH-S-A), HA-228..HA-230, HA-233 and HA-236 (AF1's — the driver-control auto-flipper's; its HA-231, HA-232, HA-234 and HA-235 registered by AF1S-A1, which reuses them), HA-237..HA-242 (ALLY1's and L4's), HA-256 (ROB1's — the twin's, for its run G1-T; ROB1-A registered HA-252..HA-255), HA-257 (ROB1's — HELD for its run G1-B: "each robot keeps its own SD card" is the procedure chapter 21 gives until the record names its robot (D10 (a)); registered if G1-B misses the freeze, released unused when it lands).
 > The briefing names the next free number above every row AND every held one (`tools/briefing_status.py`
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 223 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 227 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -261,6 +261,14 @@
 > invented); and a real field's camera names the colour from the look spot as the host camera model predicts
 > (HA-245, invented). AF1's HA-228..HA-230 (the Optical), HA-233 (the field timer) and HA-236 (the flipper's
 > ports — robot one's, with G1) stay held. **None is measured.** With them, 223.
+>
+> **ROB1-A (robot one in the code; built 2026-11-11) added FOUR — HA-252..HA-255** of the six the ROB1 brief
+> held (HA-256, the twin's, stays HELD for its run G1-T; HA-257 stays HELD for G1-B): that robot one is a TANK
+> like robot two (HA-252, reported — "identical"), that it carries an IMU (HA-253, unknown — the builder named
+> only AI Vision and rotation sensors), that its cascade's height is close to straight in its output angle
+> between two measured rows (HA-254, reasoned), and that its two cascade motors face each other (HA-255, a
+> guess until station 13's direction check). **None is measured — robot one does not exist in this project's
+> records.** With them, 227.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither is **HA-181** (G3a, the robot panel: its amended brief), held the same way (the
 > mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
@@ -519,6 +527,10 @@
 | HA-248 | A healthy robot two never points more than 60° off its curve for 0.25 s nor makes under 1 in of progress in 0.75 s outside the last 12 in, and a dead side does one or the other within ~3 s | **invented** (host: 0 trips in 153 healthy runs, worst 25.9° off; a dead side stopped within 2.7 s, early deaths included) | every Station C log (no false "curve lost"); the dead-side half host-only |
 | HA-249 | Robot two's odometry (drive encoders + IMU heading) is as true on a curve as on a straight — the scrub of a skid-steer turn does not move the end by more than ~1 in on a 60 in curve | **reasoned** (never measured) | Station C.4 |
 | HA-250 | A `curveTo` fits the auton task: its motion (≤ 6 KB by `static_assert`, 5,904 B measured on the host) on the default 32 KiB stack, its per-tick work well inside the 10 ms tick, and its one-off path build (at its first live tick) inside that tick for a field-sized path | **reasoned** (the ARM `-fstack-usage` frames of a 16-point `curveTo`, CURVE1-A: the verb's 6,528 B + the follower's tick 792 B; the deepest chain about 9.2 KB, about 28 % of the stack; the build ~0.1 ms on the host for the 143 in snake, ~0.76 ms for a 2,092 in 16-point path — the brain's speed and headroom unmeasured) | Station C's loop-monitor overrun count |
+| HA-252 | Robot one is a TANK — wheels on two sides, no strafe — like robot two (the builder: "both robots identical") | **reported** (never seen) | the facts form's A1, at the robot |
+| HA-253 | Robot one carries an inertial sensor (IMU) on a smart port — the library drives a tank only with one | **unknown** (the builder named only AI Vision and rotation sensors) | the facts form's A4; Bench Tests' census on robot one |
+| HA-254 | Between two measured rows, robot one's cascade height is close to straight in its output angle (a string winds onto its spool in layers, and stretches) | reasoned · **unmeasured** | the facts form's C7: a row at every level; a mid-row tape check at station 13 |
+| HA-255 | Robot one's two cascade motors face each other (`{Forward, Reversed}`) | **guess** (the builder's look, not yet given) | Bench Tests' station 13 direction check on robot one |
 
 ---
 
@@ -2069,6 +2081,59 @@ first look at each.
   (bounded, once per curve; review of 2026-11-12). *Settle:* Station C's loop-monitor overrun count —
   read the period of each curve's FIRST tick as well as the steady ones. *Blast radius if wrong:* a stack overflow on the brain (no message), or late ticks.
   **Contained:** the size is pinned at compile time.
+
+
+### ROB1-A's addition — robot one in the code (2026-11-11)
+
+ROB1-A added robot one — the cascade robot — to the code before anyone in this project has seen it: its id,
+its tables, a facts file whose every unmeasured number is OWED and refuses the builds that need it, and its
+builds (six since its integration onto TUNE1-B1, its Tune among them). The four beliefs below are what that
+code rests on about the robot itself.
+
+- [ ] **HA-252 — robot one is a tank.**
+  *Claim:* robot one drives on two sides and cannot strafe, like robot two — the builder, 2026-11-05: "both robots
+  identical, 15 in".
+  *Source:* `src/robots/chassis_table.hpp` (`kRobotOneChassis` — a `ChassisTable` is a tank's);
+  `src/robots/calibrate_facts.hpp` (`calibrateFactsFor()` states a tank for every table); the boot
+  (`src/common/boot_source.hpp` builds a tank description).
+  *Confidence:* **reported** — nobody in this project has seen robot one.
+  *Settle:* the facts form's item A1 (`docs/robot-facts-form.md`), at the robot.
+  *Blast radius if wrong:* every robot-one program that drives is wrong for it — Calibrate would refuse or
+  measure nonsense. **Contained:** the form says to stop and tell the coordinator before anything is built.
+
+- [ ] **HA-253 — robot one has an IMU.**
+  *Claim:* robot one carries a V5 inertial sensor on a smart port.
+  *Source:* `include/shulib/hal/drivetrain_description.hpp` (a tank description with no IMU port is refused —
+  "0 = UNSET"); `src/robots/chassis_table.hpp` (`kRobotOneChassis.imuPort = 0`, UNSET).
+  *Confidence:* **unknown** — the builder named only AI Vision and rotation sensors.
+  *Settle:* the facts form's item A4; Bench Tests' census on robot one.
+  *Blast radius if wrong:* no robot-one program can drive the robot (the boot refuses, by name). **Contained:**
+  nothing moves on a guess; the team is told at Step 0.
+
+- [ ] **HA-254 — between two measured rows, the cascade is close to straight in its output angle.**
+  *Claim:* robot one's cascade height, between two of its measured rows, follows its output angle closely
+  enough that straight-line interpolation is good to within the position tolerance (0.25 in).
+  *Source:* `src/robots/mechanism_table.hpp` (robot one's `cascade`, `.shape = measured(...)`);
+  `src/robots/robot_one_facts.hpp` (`kCascadeRows` — a row at the bottom stop, EVERY level and the top stop, so
+  each level is exact whatever the curve between).
+  *Confidence:* reasoned · **unmeasured** (a string winds onto a spool in layers and stretches).
+  *Settle:* the facts form's C7 (a row at every level) and a mid-row tape check at station 13.
+  *Blast radius if wrong:* a constant target BETWEEN rows (`cascade.to(h)`) lands off by the curve's bend; the
+  named levels do not. **Contained:** the levels are rows.
+
+- [ ] **HA-255 — robot one's cascade motors face each other.**
+  *Claim:* the cascade's two motors are mirrored, so one is `Forward` and the other `Reversed`.
+  *Source:* `src/robots/robot_one_facts.hpp` (`kCascadeDirections`, OWED: `{Forward, Reversed}` its placeholder,
+  typed as the builder sees them).
+  *Confidence:* **guess** until the builder's look, then station 13's direction check.
+  *Settle:* Bench Tests' station 13 direction check on robot one (a correction is a typed fact).
+  *Blast radius if wrong:* the two motors fight — the cascade does not move, and both stall. **Contained:**
+  station 13 checks the direction before any program drives it, and at station 13 — which does NOT apply the
+  cascade's current cap until ROB1-C — the containment is the station's own: the 3 V ceiling and its cut-outs
+  (two motors fighting for 250 ms, 2.4 A for 250 ms, the stall signature, a 3 s jog). In the programs that bind
+  the mechanism service (Drive, the Auton Tester, Competition, and shulib Tune — which may change the cap live
+  and puts the robot file's back on RESET and EXIT, HA-220), the cascade's current cap bounds the pull.
+
 ---
 
 ### STEP1-B's additions — a partway trigger on a real robot (2026-11-11)

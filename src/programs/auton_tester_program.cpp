@@ -94,6 +94,7 @@
 #include "programs/auton_abort_watch.hpp"
 #include "programs/auton_tester_panel.hpp"
 #include "programs/auton_tester_run.hpp"
+#include "common/this_robot.hpp"
 #include "team/autons.hpp"
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/competition/auton_registry.hpp"
@@ -453,8 +454,12 @@ void autonTesterInitialize(const char* variantBeacon, const char* competitionSta
     // ONE write() per line (SER1, HA-189); the first carries the blank line before it.
     hal::pros::serialLine("\n[%s] booted: shulib AUTON TESTER build [%s] -- runs ONE of the "
                           "team's autons", kTag, variantBeacon);
-    hal::pros::serialLine("[%s] (src/team/autons.cpp) through competition::runAuton, the "
-                          "competition", kTag);
+    hal::pros::serialLine(ThisRobotWords::value.claw
+                              ? "[%s] (src/team/autons.cpp) through competition::runAuton, the "
+                                "competition"
+                              : "[%s] (src/team/robot_one_autons.cpp) through competition::runAuton, the "
+                                "competition",
+                          kTag);
     hal::pros::serialLine("[%s] program's call, when RUN is touched: a 3 s countdown, then the "
                           "run. ANY", kTag);
     hal::pros::serialLine("[%s] controller button or a touch of the screen aborts. NOT RUN ON A "
@@ -517,10 +522,10 @@ void autonTesterInitialize(const char* variantBeacon, const char* competitionSta
         // and in the log -- and the boot goes on: the team lead's ruling of 2026-10-02 for the
         // competition program ("drop just that auton"), applied here too by the coordinator
         // (T4 Part 3's late step; the team lead is asked to confirm it), because this program
-        // registers through the same function (src/team/autons.cpp) and a student fixing one
+        // registers through the same function (the robot's autons file) and a student fixing one
         // auton must still be able to test the others.
         st.registry.emplace(kAutonPeriods, competition::OnRefusal::DropEntry);
-        registerAutons(*st.registry);
+        registerThisRobotsAutons(*st.registry);
         // (The guard safes the Robot's PRESENT mechanisms -- the COMP brief's B9 -- through the
         // service: runAuton's service overload hands the guard the service's built ones.)
         st.screen.emplace(*st.registry);

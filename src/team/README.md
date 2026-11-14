@@ -32,3 +32,18 @@ program's plumbing (booting, screens, the PROS entry points — `src/programs/`,
 `src/main.cpp`), and anything the library already provides (`include/shulib/`, never copied in).
 Include a file from here the way every file under `src/` includes another, written from `src/`:
 `#include "team/<file>.hpp"`.
+
+**Robot one's files (chunk ROB1-A, 2026-11-11).** `robot_one_driver.hpp` is robot one's driver file
+(`RobotOneDriver`) — a DEFAULT map the coordinator's builder wrote only because nothing builds without one
+(left stick drive, right stick turn; L1 / L2 the cascade up / down; the d-pad its bottom and first three
+levels; B homes it; Y free): **the team's to change**, from the day it landed (guide chapter 21, "Adding
+your robot by hand"). `robot_one_autons.hpp` / `.cpp` hold `registerRobotOneAutons()` — a STARTER: the
+40 in registered as a SKILLS auton and the acceptance run; the skills route is the team's to write
+there. Robot one's files say `using namespace robot_one;` the way robot two's say `robot_two`, and the
+same gate rule holds for both names. **Which file is which robot's:** `robot_two_driver.hpp` and
+`autons.{hpp,cpp}` are robot two's; `robot_one_*` are robot one's. A program never names either robot's:
+it runs `src/common/this_robot.hpp`'s `ThisRobotDriver` and `registerThisRobotsAutons()`, which pick the
+build's robot (`make ROBOT=tank …` or `make ROBOT=one …`), and the src build gate fails a program that
+names `RobotTwoDriver`, `RobotOneDriver`, `registerAutons` or `registerRobotOneAutons` itself. Robot
+one's numbers are not here: they live in `src/robots/robot_one_facts.hpp`, OWED until the builder's facts
+are typed.

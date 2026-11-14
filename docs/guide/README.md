@@ -26,6 +26,7 @@ order — each chapter assumes the ones before it and says so in its header.
 | 18 | [Mechanisms: arms, lifts, flywheels — in autons, on buttons, on routes](18-mechanisms.md) | How a position and a speed mechanism move, hold, find their zero, stay inside their limits and stop on a jam; the starting values and `.tuning`; a mechanism step on one line of an auton, the driver file's controls, every mechanism's route ids run, the direction check's judgement, and the bench page that runs it (Bench Tests' station 13) |
 | 19 | [Calibrating your robot](19-calibrating-your-robot.md) | The standard "shulib Calibrate": the three facts you state, your 21-line file, one run, what each ending means, FRONT FLIPPED and MECHANISM PORT TURNED, listing every mechanism motor, the optional typed drive ports |
 | 20 | [The camera: which colour the Toggle shows, and which piece is which](20-the-camera.md) | One loop reads the camera for everyone; the Toggle tracker (RED, BLUE, YELLOW — or UNKNOWN with the reason); the piece finder (take ONE named piece, or none); freshness as time; where the camera sits; what a colour means and what it cannot tell |
+| 21 | [Adding your robot by hand](21-adding-your-robot-by-hand.md) | Robot one, added by hand: every file a robot lives in, its facts file (OWED numbers that refuse the build by name until typed), its six programs and slots, the order on the robot, its default controls, the flipper's three forms, and why the two robots differ only in their facts |
 
 ## The other two documents
 
@@ -50,11 +51,12 @@ hand is a fact that will go stale.
 ### How it's organised
 
 Numbered files, one topic each, so updating a topic means editing one file. Chapters 1–6 are
-concepts (no code) and should rot slowly; 7–12 and 16–19 touch the code and rot fast — check
+concepts (no code) and should rot slowly; 7–12, 16–19 and 21 touch the code and rot fast — check
 them first when the API moves. (Chapter 16, the bench auton tester, was added after the glossary
 at chunk COMP-t, chapter 17, the competition program, after it at COMP-b, chapter 18, the
-mechanisms, at MECH-A3, and chapter 19, calibrating your robot, at CAL1 — so the glossary kept its
-number.) (Chapter 9 was a deliberately reserved slot from the start; the Tier-2
+mechanisms, at MECH-A3, chapter 19, calibrating your robot, at CAL1, and chapter 21, adding your
+robot by hand, at ROB1 — so the glossary kept its number; chapter 20 is held for the robot panel's
+"Your robot file".) (Chapter 9 was a deliberately reserved slot from the start; the Tier-2
 recipe chapter filled it at chunk D1 as an *added file*, with nothing renumbered — the
 pattern to reuse.) Add future chapters either into a reserved slot or at the end (before the
 glossary stays the glossary — renumber only as a last resort, in one commit, updating every
@@ -78,9 +80,10 @@ drift: a chapter's `300_ms` retyped to `300_s` built clean and passed the whole 
 build and CI now run a scan that requires every non-blank line inside a ```` ```cpp ```` block in
 any public document to appear verbatim in a compiled source: a compiled example test, or one of
 the team's files under `src/team/` that a chapter quotes (today: robot two's driver file,
-`src/team/robot_two_driver.hpp`, which the cookbook's chapter 6 quotes, and the team's auton
+`src/team/robot_two_driver.hpp`, which the cookbook's chapter 6 quotes, the team's auton
 file, `src/team/autons.cpp`, which chapters 16 and 17 quote — the host suite compiles it and runs
-every auton in it) — never the rest of `src/`. A listing of either file must also be one unbroken run
+every auton in it — and robot one's driver file, `src/team/robot_one_driver.hpp`, which chapter 21
+quotes) — never the rest of `src/`. A listing of either file must also be one unbroken run
 of the file's lines, so a line added to the file inside a part a chapter shows fails the scan
 too. The sources are matched by
 globs, one per kind of file, so a new examples file is covered the moment it exists, and a kind

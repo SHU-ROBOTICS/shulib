@@ -51,7 +51,11 @@ TEST_CASE("pins (P1): the program runs autons ONLY through runAutonRequest") {
     CHECK(count(code, "serveAutonRequest(") == 0);
     CHECK(count(code, "reportAutonRun(") == 0);
     CHECK(count(code, "runAuton(") == 0);
-    CHECK(count(code, "registerAutons(") == 1);
+    // ROB1-A: the build's robot's autons, through src/common/this_robot.hpp — once — and never a
+    // robot's own registration directly.
+    CHECK(count(code, "registerThisRobotsAutons(") == 1);
+    CHECK(count(code, "registerAutons(") == 0);
+    CHECK(count(code, "registerRobotOneAutons(") == 0);
 }
 
 // Bug caught (B7, B8, B11, B30; the mechanism service and the route registry since MECH-A5): the
@@ -109,7 +113,7 @@ TEST_CASE("pins (P2): the boot — B8's order, the chain, the service, the route
     // built so right before the team's registration, inside the try.
     const std::size_t registerAt = init.find(
         "st.registry.emplace(kAutonPeriods, competition::OnRefusal::DropEntry); "
-        "registerAutons(*st.registry);");
+        "registerThisRobotsAutons(*st.registry);");
     const std::size_t proofAt = init.find("if (const ChainGap gap = pacerChainMissing(st.robot->chassis(), "
                                           "*st.guard, *st.mechanisms, *st.watch); gap != ChainGap::None) {");
     const std::size_t catchAt = init.find("} catch (const std::exception& e) { refuseBuilt(");
@@ -314,8 +318,10 @@ TEST_CASE("pins (P7): opcontrol() waits, claims, runs the driver file, leaves, h
              "st}; st.driver.run(r, *st.mechanisms, st.devices->pacer(), [&st] { st.presence.beat(); return "
              "driverControlMustEnd(readStatus(), st.handshake.busy()); }, panel); st.presence.leave(); "
              "st.owner.handOver(ScreenOwner::Driver, ScreenOwner::Menu); std::snprintf(line, sizeof "
-             "line, \"opcontrol(): driver control ended -- 0 V + Brake, each claw pivot safe, the \" "
-             "\"pneumatic claw kept; %lu screen prints so far\", static_cast<unsigned "
+             "line, ThisRobotWords::value.claw ? \"opcontrol(): driver control ended -- 0 V + Brake, each "
+             "claw pivot safe, the \" \"pneumatic claw kept; %lu screen prints so far\" : \"opcontrol(): "
+             "driver control ended -- 0 V + Brake, each motor mechanism safe, \" \"each pneumatic kept; %lu "
+             "screen prints so far\", static_cast<unsigned "
              "long>(g_screenPrints)); logLine(hal::LogLevel::Info, line); logPhase(\"opcontrol()\", "
              "\"normal return\", \"the screen back to the menu\");");
     CHECK(count(code, "st.driver.run(") == 1);
@@ -393,7 +399,7 @@ TEST_CASE("pins (P10): the program names no motion verb") {
 TEST_CASE("pins (P11): the mechanism boot lines are the shared panel's, from the build's list and the "
           "driver file's controls, and the ROUTES line follows them") {
     const std::string code = program();
-    CHECK(count(squash(code), "mechanismBootLines(kMechanisms, *st.robot, *st.mechanisms, &RobotTwoDriver::kControls, "
+    CHECK(count(squash(code), "mechanismBootLines(kMechanisms, *st.robot, *st.mechanisms, &ThisRobotDriver::kControls, "
                               "[&st](const MechanismLine& m) { st.devices->telemetry().log(m.level, \"MECH\", "
                               "m.text); });") == 1);
     CHECK(count(code, "mechanismBootLines(") == 1);
@@ -556,8 +562,9 @@ TEST_CASE("pins (P14): the program's log, screen and controller functions, each 
         {"CompetitionView view(bool connected,",
          "const diag::FaultLatch& f = robot_.faults(); faultRow_ = faultRowText(f.hasFault() ? "
          "f.faultCount() : 0, f.firstFault(), f.lastFault()); const bool freed = "
-         "st_.driver.releasedLeftoverAtEntry(*st_.mechanisms); clawRow_ = clawRowText(kMechanisms, "
-         "robot_, *st_.mechanisms, freed); CompetitionDriverFacts "
+         "st_.driver.releasedLeftoverAtEntry(*st_.mechanisms); if constexpr (ThisRobotWords::value.claw) { "
+         "clawRow_ = clawRowText(kMechanisms, robot_, *st_.mechanisms, freed); } else { clawRow_ = "
+         "clawRowText(kMechanisms, robot_, *st_.mechanisms, freed, ThisRobotWords{}); } CompetitionDriverFacts "
          "facts{}; facts.protection = protectionRowText(protection, kCutSeconds); facts.auton = "
          "competitionAutonRow(st_.last, *st_.registry, "
          "st_.flags.programError.load(), st_.flags.bootFromRecord); facts.controller = "
@@ -572,14 +579,16 @@ TEST_CASE("pins (P14): the program's log, screen and controller functions, each 
          "robot_.faults().lastFault(); f.connected = connected; f.degraded = "
          "st_.boot.verdict.decision == calibration::BootDecision::Degraded; f.clawAbsent = "
          "anyClawAbsent(robot_); addProtectionFacts(f, protection); const ControllerScreen want = "
-         "controllerScreenLines(f); const int row = state().lcdWriter.next(want, now); if (row >= "
+         "ThisRobotWords::value.claw ? controllerScreenLines(f) : controllerScreenLines(f, ThisRobotWords{}); "
+         "const int row = state().lcdWriter.next(want, now); if (row >= "
          "0) { state().lcd->setLine(row, want.line[row]); }"},
         {"void sayAutonEnding(double waitedSeconds)",
          "CompetitionState& st = state(); st.owner.handTo(ScreenOwner::Driver); const "
          "competition::AutonEntry* running = st.menu->chosenEntry(); const char* name = running != "
          "nullptr ? running->name : \"NONE\"; paintViewWhole(competitionEndingView(name, "
          "waitedSeconds, kBuildTimeText)); ControllerFacts f{}; f.autonEnding = true; const "
-         "ControllerScreen ending = controllerScreenLines(f); st.lcd->setLine(2, ending.line[2]); "
+         "ControllerScreen ending = ThisRobotWords::value.claw ? controllerScreenLines(f) : "
+         "controllerScreenLines(f, ThisRobotWords{}); st.lcd->setLine(2, ending.line[2]); "
          "st.lcdWriter.wrote(2, ending.line[2], st.devices->clock().now().value()); char "
          "line[kCompetitionLineBytes]; std::snprintf(line, sizeof line, \"opcontrol(): AUTON "
          "ENDING -- '%.29s' has not handed the robot back %.2f s after \" \"driver control started "
@@ -762,8 +771,8 @@ TEST_CASE("pins (P19): the driver page's hook takes the protections' state; the 
                               "protection) {")
           == 1);
     CHECK(count(squash(code), "constexpr double kCutSeconds = "
-                              "RobotTwoDriver::kLoop.protection.cutTicks * "
-                              "RobotTwoDriver::kLoop.tickPeriod.value();")
+                              "ThisRobotDriver::kLoop.protection.cutTicks * "
+                              "ThisRobotDriver::kLoop.tickPeriod.value();")
           == 1);
     CHECK(count(code, "protectionRowText(") == 1);
     CHECK(count(code, "addProtectionFacts(") == 1);

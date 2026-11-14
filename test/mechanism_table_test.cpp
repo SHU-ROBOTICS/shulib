@@ -375,9 +375,13 @@ TEST_CASE("mechanism table: the selection -- mechanismTableFor() gives robot two
     CHECK(&mechanismTableFor(RobotId::RobotTwo) == &two::kRobotTwoMechanisms);
     CHECK(&mechanismTableFor(RobotId::BenchBot) == &kNoMechanisms);
     CHECK(&mechanismTableFor(RobotId::InventedXDrive) == &kNoMechanisms);
+    // ROB1-A: robot one gets ITS OWN list — never robot two's claws, never the empty list.
+    CHECK(&mechanismTableFor(RobotId::RobotOne) == &shulib::bench::robot_one::kRobotOneMechanisms);
+    CHECK(&mechanismTableFor(RobotId::RobotOne) != &two::kRobotTwoMechanisms);
+    CHECK(&mechanismTableFor(RobotId::RobotOne) != &kNoMechanisms);
     // The host is the bench build.
     CHECK(&kMechanisms == &mechanismTableFor(shulib::bench::kRobotId));
-    for (const RobotId r : {RobotId::BenchBot, RobotId::RobotTwo, RobotId::InventedXDrive}) {
+    for (const RobotId r : {RobotId::BenchBot, RobotId::RobotTwo, RobotId::InventedXDrive, RobotId::RobotOne}) {
         CAPTURE(static_cast<int>(r));
         CHECK(mechanismsClearOf(mechanismTableFor(r), chassisTableFor(r)));
     }

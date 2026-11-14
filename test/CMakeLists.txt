@@ -80,7 +80,7 @@ file(GLOB TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
 
 add_executable(shulib_tests test_main.cpp ${TEST_SOURCES})
 
-# THE ONE src/ .cpp THE HOST BUILDS (chunk COMP-t, 2026-09-28): the team's autons,
+# THE src/ .cpp FILES THE HOST BUILDS (chunk COMP-t, 2026-09-28; two since ROB1-A): the team's autons,
 # src/team/autons.cpp. It is PROS-free by design, and it is exactly what the robot
 # runs — so the host suite runs every auton in it on the host test plant through
 # the Auton Tester's own run sequence (test/autons_test.cpp), and a change to an
@@ -88,6 +88,9 @@ add_executable(shulib_tests test_main.cpp ${TEST_SOURCES})
 # (the programs include PROS); a PROS-free src/ header the host needs is included
 # from src/ through the root below, never compiled here.
 target_sources(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp")
+# ...and, since chunk ROB1-A (2026-11-11), robot one's: src/team/robot_one_autons.cpp, PROS-free the
+# same way (test/robot_one_autons_test.cpp runs it on the host test plant).
+target_sources(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/robot_one_autons.cpp")
 
 # ── THE SUITE'S OWN FLAGS, as ONE INTERFACE target (chunk MECH-A1, 2026-10-08) ──────────────
 # Every include root, option and define below used to be PRIVATE to shulib_tests. The mechanism

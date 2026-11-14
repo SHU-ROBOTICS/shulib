@@ -16,6 +16,53 @@
 
 ## API 2.8
 
+### 2026-11-13 (built 2026-11-11) — robot one in the code: `make ROBOT=one`, its facts file, six builds that refuse by name until its facts are typed
+
+> Written when it was built (chunk ROB1, its first run), and brought up to date when it was integrated onto curves
+> (2026-11-13: robot one gets "shulib Tune" too). **No library change — no API change:** nothing under
+> `include/shulib/` moved; this is the team's repository growing a second robot. **Host- and build-checked only:
+> robot one does not exist in this project's records, and nothing has run on it.**
+
+**Why:** the team's second competition robot — robot one, reported to be a tank like robot two (HA-252, not yet
+seen) with a 4-stage string cascade, built ~Nov 14 —
+had no build at all, and every robot-one task waited on one. Its builder's facts (ports, gearing, heights) arrive
+later; nothing waits on them.
+
+**What you can now do (additive):**
+
+- `make ROBOT=one` (Bench Tests, slot 3) and `make ROBOT=one PROGRAM=calibrate|drive|autontest|competition|tune`
+  (slots 4, 1, 2, 6, 7) — robot two's six programs, for robot one ("shulib Tune" because robot one's cascade
+  makes it a robot with mechanisms: `one` is in the Makefile's `MECHANISM_ROBOTS`). Robot two's builds
+  (`ROBOT=tank`) are unchanged. On robot one a Tune COPY is not pasted into the declaration: its hold volts,
+  homing push, stall signature and cap are typed into the facts file
+  ([chapter 21](guide/21-adding-your-robot-by-hand.md)); its gains, profile and a narrowed range have no fact yet.
+- **Robot one's facts file**, `src/robots/robot_one_facts.hpp`: every number about its mechanisms that nobody has
+  measured is written once there, **OWED**, with a placeholder the host suite runs on. Robot one's build of every
+  program that needs an owed fact **fails**, one line per fact, naming it
+  (`static assertion failed: robot one: OWED -- the cascade's motor ports …`); Bench Tests and Calibrate need
+  only "what is plugged where", so they build first and measure the rest — every other program (Tune
+  included: it homes the cascade and moves it to its levels), one added later included, needs "how it moves"
+  too. A typed fact must carry its own value and its source. [Chapter 21](guide/21-adding-your-robot-by-hand.md) explains it; the
+  [robot facts form](robot-facts-form.md) is what the builder fills in.
+- Robot one's cascade (`src/robots/mechanism_table.hpp`, its own region below robot two's): a two-motor Lift on a
+  measured shape with a row at every level, homed by stalling DOWN under its current cap — every number from the
+  facts file. Its flipper is declared once the builder names its kind; all three forms are ready (chapter 21).
+- `src/team/robot_one_driver.hpp` — a DEFAULT controller map, the team's to change — and
+  `src/team/robot_one_autons.cpp` — the 40 in as a SKILLS auton and the acceptance run; **the skills route is the
+  team's to write**.
+- **`make` starts fresh by itself when `ROBOT=` or `PROGRAM=` changes** (a stamp in `.d/`): it used to recompile
+  nothing and re-link the previous program, which is why the guide said `rm -rf bin .d`. The `rm` is now
+  harmless; a refused build leaves no other robot's or program's package to upload (a refused rebuild of the
+  same robot and program keeps that build's last good package).
+- The programs run THIS build's driver file and autons (`src/common/this_robot.hpp`) and say THIS robot's words
+  (`src/common/robot_words.hpp`): robot one's screens and boot lines say "mechanism" / `MECH`, never "claw";
+  robot two's words are byte for byte what they were.
+- The src build gate runs **fourteen** builds: robot one's six on the real tree must each link or refuse naming
+  exactly its owed facts, and in a throwaway copy of the tree with every fact typed all six must link and pass
+  every check robot two's builds pass.
+
+**What you must do:** nothing, on robot two. On robot one: fill in the facts form; the coordinator types it.
+
 ### 2026-11-13 (built 2026-11-11) — the Toggle flip for a SKILLS run, as one route step: look, flip only when it is not its Quadrant's colour, look again (the explicit form)
 
 > Written when it was built (chunk AF1S, run A1). **Added (no version bump):** every name below is new and lives

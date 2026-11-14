@@ -7,9 +7,12 @@ name: ci
 # compile, naming its reason —,
 # (since chunk A4) a cross-COMPILE of every v2 header for
 # the V5's Cortex-A9, and (since chunk GATE1) the REAL on-robot BUILD — compile
-# AND link, every build (eight since TUNE1-B1 added "shulib Tune": three robot
-# variants and the tank drive/calibrate/autontest/competition/tune programs;
-# T4 Part 3 retired the tank library program) — of src/ under a warning policy.
+# AND link, every build (fourteen since ROB1-A's integration: three robot
+# variants and the tank drive/calibrate/autontest/competition/tune programs —
+# eight since TUNE1-B1 added "shulib Tune" — plus robot one's six, ROBOT=one and
+# its drive/calibrate/autontest/competition/tune, each refusing by name while a
+# fact it needs is owed and proven linking in a typed copy; T4 Part 3 retired
+# the tank library program) — of src/ under a warning policy.
 # (This file said the ARM link was impossible in CI until 2026-08-19 — "needs
 #  PROS's bundled toolchain". MEASURED FALSE at GATE1: the firmware archives are
 #  vendored in-tree and `make` links end to end at apt's arm-none-eabi-g++ 13.2.1
@@ -150,7 +153,10 @@ jobs:
   #    since COMP-t ROBOT=tank PROGRAM=autontest, and since COMP-b ROBOT=tank
   #    PROGRAM=competition, and since TUNE1-B1 ROBOT=tank PROGRAM=tune (the first
   #    ROBOT-generic row: any robot with mechanisms) — eight builds; T4 Part 3
-  #    RETIRED ROBOT=tank PROGRAM=library (the tool keeps it retired; it owns the list),
+  #    RETIRED ROBOT=tank PROGRAM=library (the tool keeps it retired; it owns the list);
+  #    since ROB1-A FOURTEEN — robot one's six ROBOT=one builds (its Tune among them,
+  #    since ROB1-A's integration onto TUNE1-B1), each linking or refusing by name
+  #    while a fact it needs is owed, and proven typed in a throwaway copy —
   #    because until GATE1 src/ was in NO gate at all and the
   #    Makefile records that this blind spot shipped a data abort to the robot.
   #    Until 2026-08-19 this comment's ancestor claimed the link needed PROS's

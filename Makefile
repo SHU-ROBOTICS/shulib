@@ -76,6 +76,14 @@ endif
 #                            its MEASURED, SIGNED chassis table (src/robots/chassis_table.hpp). Add
 #                            PROGRAM=drive (below) for robot two's driver program, "shulib Drive"
 #                            (its driver file on the library, from the calibration record).
+#     make ROBOT=one      → the 2026 CASCADE robot, robot one (ROB1-A, 2026-11-11): boots the bench
+#                            tester over its tables (src/robots/chassis_table.hpp's kRobotOneChassis,
+#                            mostly UNSET until Calibrate measures it; src/robots/mechanism_table.hpp's
+#                            robot_one region, every number from src/robots/robot_one_facts.hpp). Add
+#                            PROGRAM=drive|calibrate|autontest|competition|tune as for robot two. EVERY
+#                            robot-one build REFUSES, naming each OWED fact its program needs, until
+#                            the builder's facts are typed (docs/robot-facts-form.md). Nothing has
+#                            run on robot one.
 #     make ROBOT=xdrive   → the invented X-drive (HA-111): src/robots/xdrive_config.hpp, built on
 #                            robot::Robot by src/programs/xdrive_program.cpp since G1 Part 2c. Its
 #                            ports are invented, so on every robot that exists it refuses at
@@ -99,8 +107,10 @@ else ifeq ($(ROBOT),xdrive)
 override EXTRA_CXXFLAGS+=-DSHULIB_ROBOT_XDRIVE_INVENTED
 else ifeq ($(ROBOT),tank)
 override EXTRA_CXXFLAGS+=-DSHULIB_ROBOT_TANK_2026
+else ifeq ($(ROBOT),one)
+override EXTRA_CXXFLAGS+=-DSHULIB_ROBOT_ONE_2026
 else
-$(error unknown ROBOT '$(ROBOT)' — valid values: bench (default), xdrive, tank)
+$(error unknown ROBOT '$(ROBOT)' — valid values: bench (default), xdrive, tank, one)
 endif
 
 # ── THE ROBOTS WITH MECHANISMS (TUNE1-B1, 2026-11-10) ──
@@ -110,7 +120,9 @@ endif
 # row itself names no robot. tools/src_build_gate.py's step 0 derives the same set from the table file
 # and FAILS when this list says otherwise (a robot listed with no mechanisms, or one with mechanisms
 # missing), and src/programs/tune_program.cpp's static_assert stops a Tune build of an empty table.
-MECHANISM_ROBOTS:=tank
+# `tank` is robot two (its claws); `one` is robot one (its cascade — ROB1-A, added at its integration onto
+# TUNE1-B1, 2026-11-13; its Tune build, like its other programs, REFUSES while a fact it needs is owed).
+MECHANISM_ROBOTS:=tank one
 
 # ── WHICH PROGRAM? (R3b Part 0b, 2026-09-10 — the second build axis; third value at Parts 1–3) ──
 # PROGRAM selects which program a build is (what its PROS entry points run) — robot two's, and `tune`
@@ -171,6 +183,10 @@ MECHANISM_ROBOTS:=tank
 # Six programs in six slots rather than one program with a chooser (team lead's ruling): the
 # operator picks a program by NAME from the brain's slot list, and a program called Drive that
 # hides the tester behind a timeout is one more thing to explain at a field.
+# (ROB1-A, 2026-11-11: robot one — `make ROBOT=one PROGRAM=...` — takes the same four, in the same
+# slots, over its own driver file src/team/robot_one_driver.hpp and autons src/team/robot_one_autons.cpp;
+# every sentence below that says "robot two" holds for robot one as well. Since its integration onto
+# TUNE1-B1 robot one is in MECHANISM_ROBOTS too, so `make ROBOT=one PROGRAM=tune` is its Tune, slot 7.)
 # `drive`, `calibrate`, `autontest` and `competition` are only meaningful on robot two — `drive`
 # because only robot two has a driver file and a calibration record, `calibrate` because the
 # calibrator only supports a tank drivetrain and takes the cartridge from this robot's chassis
@@ -179,32 +195,33 @@ MECHANISM_ROBOTS:=tank
 # four with any other ROBOT is an $(error), not a program that refuses at boot. Any other PROGRAM
 # value is an $(error) too — the same silent-no-op class GATE1 closed for ROBOT — and so is the
 # RETIRED `library`, by name. tools/src_build_gate.py builds this axis as its fourth to eighth
-# entries (tank-drive, tank-calibrate, tank-autontest, tank-competition, tank-tune), asserts each define
+# entries (tank-drive, tank-calibrate, tank-autontest, tank-competition, tank-tune) — and robot one's as
+# its tenth to fourteenth (one-drive … one-tune, after `one`) — asserts each define
 # lands token-exact and the beacons are in the ELF, and fails the retired define or beacon
 # anywhere.
 PROGRAM?=tester
 ifeq ($(PROGRAM),tester)
 # the default: no define; src/build_selection.hpp's chain picks the bench tester on bench and tank
 else ifeq ($(PROGRAM),drive)
-ifneq ($(ROBOT),tank)
-$(error PROGRAM=drive needs ROBOT=tank — only robot two has a driver file and a calibration record; '$(ROBOT)' cannot drive)
+ifeq ($(filter tank one,$(ROBOT)),)
+$(error PROGRAM=drive needs ROBOT=tank or ROBOT=one — only robot two and robot one have a driver file and a calibration record; '$(ROBOT)' cannot drive)
 endif
 override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_DRIVE
 else ifeq ($(PROGRAM),library)
 $(error PROGRAM=library was retired at T4: "shulib Teleop"'s diagnostics are "shulib Drive"'s DETAILS page -- use make ROBOT=tank PROGRAM=drive)
 else ifeq ($(PROGRAM),calibrate)
-ifneq ($(ROBOT),tank)
-$(error PROGRAM=calibrate needs ROBOT=tank — the calibrator supports only a tank drivetrain and takes the cartridge from this robot's chassis table; '$(ROBOT)' cannot be calibrated by it)
+ifeq ($(filter tank one,$(ROBOT)),)
+$(error PROGRAM=calibrate needs ROBOT=tank or ROBOT=one — the calibrator supports only a tank drivetrain and takes the cartridge from this robot's chassis table; '$(ROBOT)' cannot be calibrated by it)
 endif
 override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_CALIBRATE
 else ifeq ($(PROGRAM),autontest)
-ifneq ($(ROBOT),tank)
-$(error PROGRAM=autontest needs ROBOT=tank — the team's autons are robot two's; '$(ROBOT)' has none)
+ifeq ($(filter tank one,$(ROBOT)),)
+$(error PROGRAM=autontest needs ROBOT=tank or ROBOT=one — the team's autons are robot two's and robot one's; '$(ROBOT)' has none)
 endif
 override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_AUTONTEST
 else ifeq ($(PROGRAM),competition)
-ifneq ($(ROBOT),tank)
-$(error PROGRAM=competition needs ROBOT=tank — the team's autons and driver file are robot two's; '$(ROBOT)' has neither)
+ifeq ($(filter tank one,$(ROBOT)),)
+$(error PROGRAM=competition needs ROBOT=tank or ROBOT=one — the team's autons and driver files are robot two's and robot one's; '$(ROBOT)' has neither)
 endif
 override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_COMPETITION
 else ifeq ($(PROGRAM),tune)
@@ -256,4 +273,23 @@ TEMPLATE_FILES=$(INCDIR)/$(LIBNAME)/*.h $(INCDIR)/$(LIBNAME)/*.hpp
 ################################################################################
 ################################################################################
 ########## Nothing below this line should be edited by typical users ###########
+# ── THE VARIANT STAMP (ROB1-A, 2026-11-11; the ROB1 brief's re-check R1) ──
+# common.mk's objects depend on their sources and headers, NOT on ROBOT, PROGRAM or the flags, so
+# until this stamp a `make ROBOT=tank PROGRAM=drive` after a `make ROBOT=tank` compiled NOTHING and
+# re-linked the previous program's objects (guide chapter 16 used to say "rm -rf bin .d" for exactly
+# that). Robot one's facts refusal (src/robots/robot_one_facts.hpp) fires only when a file compiles,
+# so without the stamp a refused robot-one build could leave the LAST variant's package in bin/ to
+# upload. So: the build's ROBOT, PROGRAM and EXTRA_CXXFLAGS (the variant defines AND the build hash)
+# are written to .d/shulib-variant; when they differ from the last build's, bin/ and .d/ are deleted
+# BEFORE anything compiles. Every change of robot, program or commit recompiles everything (~8 s),
+# and a refused build leaves NO package. `make clean` is untouched. The stamp is not compiled in, so
+# no package changes. Never remove it to "speed up" a build (the ROB1 brief's landmine 20).
+SHULIB_VARIANT_STAMP := ROBOT=$(ROBOT) PROGRAM=$(PROGRAM) $(EXTRA_CXXFLAGS)
+ifeq ($(filter clean,$(MAKECMDGOALS)),)
+ifneq ($(file <.d/shulib-variant),$(SHULIB_VARIANT_STAMP))
+$(info shulib: the build changed (ROBOT=$(ROBOT) PROGRAM=$(PROGRAM)) -- removing bin/ and .d/ so every file recompiles)
+$(shell rm -rf bin .d && mkdir -p .d)
+$(file >.d/shulib-variant,$(SHULIB_VARIANT_STAMP))
+endif
+endif
 -include ./common.mk
