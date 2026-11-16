@@ -147,15 +147,16 @@ inline constexpr MechanismTable kRobotTwoMechanisms = mechanisms(
 //     on, which REFUSES every robot-one build of a program that needs it, by name;
 //   * its driver file is src/team/robot_one_driver.hpp and its autons src/team/robot_one_autons.cpp
 //     (`using namespace robot_one;`), the src build gate allowing `robot_one` in src/team/robot_one_*;
-//   * the flipper is NOT declared until the builder names its kind (the brief's D6): the three forms
-//     are written and tested in test/robot_one_flipper_forms_example_test.cpp, and the block for the named kind
-//     is pasted below `cascade` then (guide chapter 21);
+//   * its flipper is the FRONT TOGGLE, a pneumatic (the builder's pistons on B, made the autons' flipper by
+//     the coordinator, 2026-11-15; ROB1-C2 declared it as the
+//     test-proven pneumatic form of test/robot_one_flipper_forms_example_test.cpp — guide chapter 21);
 //   * two checks below its list hold ITS facts to ITS list: every non-drive motor the Devices screen
 //     lists is declared (or shulib Calibrate would power it as a drive candidate — [R9]), and the
 //     flipper's typed kind matches what is declared.
 // G3a's generator may take this region over later as it will robot two's: the region between the two
 // `[robot one mechanisms]` marker comments below is one contiguous block with no hand-written line inside.
-// NOTHING ABOUT ROBOT ONE HAS RUN ON A ROBOT; robot one does not exist in this project's records.
+// NOTHING ABOUT ROBOT ONE HAS RUN ON A ROBOT: its facts are typed from its builder's answers (2026-11-15), not
+// measured, and no census, reading or photo of it is in this project's records.
 #include "robots/robot_one_facts.hpp"
 
 namespace shulib::bench {
@@ -164,13 +165,17 @@ namespace robot_one {
 using namespace mechanism::words;
 namespace facts = robot_one_facts;
 // [robot one mechanisms]
-// THE CASCADE (the builder, 2026-11-05): a 4-stage STRING cascade, strings both ways, NO limit switch,
-// homed by stalling gently DOWN into its bottom stop under its current cap; preset levels by stack
-// height. Its motors face each other as the builder sees them (HA-255 -- station 13's direction check
-// confirms); a third or fourth motor is a DECLARATION edit here (`.motors` and `motors(...)`). Its shape
-// is MEASURED -- a row at the bottom stop, every level and the top stop (HA-254: a string winds onto a
-// spool in layers, so the height per turn changes as it climbs; a row AT each level makes each level
-// exact). EVERY NUMBER IS A FACT, typed or OWED (src/robots/robot_one_facts.hpp).
+// THE CASCADE (the builder, 2026-11-05 and 2026-11-15): a 4-stage STRING cascade (a stationary first stage,
+// two intermediate stages, a final stage carrying the claw), strings both ways, NO limit switch, homed by
+// stalling gently DOWN into its bottom stop under its current cap -- on its OWN, small homing signature (the
+// facts' cascadeHomingStall(): a gentle push never draws the jam signature's amps). Two BLUE motors, DIRECT
+// to the spool, facing each other (HA-255; which is Forward is the coordinator's reading, station 13's
+// direction check confirms); a third or fourth motor is a DECLARATION edit here (`.motors` and
+// `motors(...)`). MANUAL for now: no levels yet (the facts' kCascadeLevels), so every preset slot below is
+// empty until levels are typed. Its shape is
+// MEASURED -- a row at the bottom stop and the top stop, and at every level once there are levels (HA-254:
+// a string winds onto a spool in layers, so the height per turn changes as it climbs; a row AT each level
+// makes each level exact). EVERY NUMBER IS A FACT, typed or OWED (src/robots/robot_one_facts.hpp).
 inline constexpr Lift cascade{
     .name = "cascade",
     .motors = {facts::kCascadeDirections.value().first, facts::kCascadeDirections.value().second},
@@ -183,16 +188,67 @@ inline constexpr Lift cascade{
     .range = {facts::cascadeBottom(), facts::cascadeTop()},
     .gravity = constantGravity(units::Voltage{facts::kCascadeHoldVolts.value()}),
     .home = homeByStall(facts::cascadeBottom(), units::Voltage{facts::kCascadeHomingPushVolts.value()},
-                        facts::cascadeStall()),
+                        facts::cascadeHomingStall()),
     .presets = {{facts::lv(0).name, facts::lv(0).at}, {facts::lv(1).name, facts::lv(1).at},
                 {facts::lv(2).name, facts::lv(2).at}, {facts::lv(3).name, facts::lv(3).at},
                 {facts::lv(4).name, facts::lv(4).at}, {facts::lv(5).name, facts::lv(5).at}},
     .unhomedVolts = units::Voltage{facts::kCascadeUnhomedVolts.value()},
 };
 
-// Where each one is plugged in (the facts form's C1). Re-cabling is a typed edit of the ledger's ports.
+// THE SIDE TOGGLES (the builder, 2026-11-15): two GREEN motors, DIRECT (a power mechanism states no
+// gearing), each its own arm on its own motor and driven SEPARATELY -- held, it RUNS one way; let go, it
+// STOPS (Brake: "when I let go it will stop"). POWER mechanisms (run at a voltage), not Arms: no angles,
+// no homing. Which way each runs is its `.motors` direction -- OWED until station 13 (the two run mirror-
+// image ways). No stall signature: held against its stop, a toggle is cut only by the driver letting go
+// (the boot says so, HA-154's words); its current cap (chosen, not measured) bounds how hard it pushes
+// there once a program's service binds -- Bench Tests' station 13 binds none, so there it is uncapped.
+inline constexpr Power rightToggle{.name = "right toggle", .motors = {facts::kRightToggleDirection.value()},
+                                   .cartridge = facts::kSideToggleCartridge.value(), .safe = Brake,
+                                   .currentCap = {.amps = facts::kSideToggleCapAmps.value()}};
+inline constexpr Power leftToggle{.name = "left toggle", .motors = {facts::kLeftToggleDirection.value()},
+                                  .cartridge = facts::kSideToggleCartridge.value(), .safe = Brake,
+                                  .currentCap = {.amps = facts::kSideToggleCapAmps.value()}};
+
+// THE PISTONS (the builder, 2026-11-15), each ONE line, two positions. Each STARTS and is made safe in the
+// position its solenoid holds UNPOWERED (facts::unpoweredPosition), so nothing moves at power-up; which
+// line level is which position is OWED until station 13 fires each (the facts' k...Level).
+// The CLAW: one piston on the cascade's top stage -- it picks up Pins and Cups.
+inline constexpr Pneumatic claw{
+    .name = "claw",
+    .positions = {{"closed", {!facts::kClawOpenLevel.value()}, grabs}, {"open", {facts::kClawOpenLevel.value()}}},
+    .start = facts::unpoweredPosition(facts::kClawOpenLevel.value(), "closed", "open"),
+    .safe = facts::unpoweredPosition(facts::kClawOpenLevel.value(), "closed", "open"),
+    .moveTime = facts::kClawStrokeTime.value(),
+};
+// THE FRONT TOGGLE -- robot one's FLIPPER (the facts' kFlipperKind: a pneumatic): two forward-facing
+// pistons on ONE solenoid (one line), pushing forward where the camera looks -- the autons' Toggle step
+// pushes with it. Named "flipper" because robot one's flipper check finds it by that name; the team calls
+// it the front toggle.
+inline constexpr Pneumatic flipper{
+    .name = "flipper",
+    .positions = {{"closed", {!facts::kFlipperOpenLevel.value()}}, {"open", {facts::kFlipperOpenLevel.value()}}},
+    .start = facts::unpoweredPosition(facts::kFlipperOpenLevel.value(), "closed", "open"),
+    .safe = facts::unpoweredPosition(facts::kFlipperOpenLevel.value(), "closed", "open"),
+    .moveTime = facts::kFlipperStrokeTime.value(),
+};
+// THE RAMP: one piston on the BACK; it comes DOWN to push other robots (the builder's "open" = down).
+inline constexpr Pneumatic ramp{
+    .name = "ramp",
+    .positions = {{"up", {!facts::kRampDownLevel.value()}}, {"down", {facts::kRampDownLevel.value()}}},
+    .start = facts::unpoweredPosition(facts::kRampDownLevel.value(), "up", "down"),
+    .safe = facts::unpoweredPosition(facts::kRampDownLevel.value(), "up", "down"),
+    .moveTime = facts::kRampStrokeTime.value(),
+};
+
+// Where each one is plugged in (the facts form's B6, C1, G21-G24). Re-cabling is a typed edit of the
+// ledger's ports and letters.
 inline constexpr MechanismTable kRobotOneMechanisms = mechanisms(
-    wire(cascade, motors(facts::kCascadePorts.value().first, facts::kCascadePorts.value().second)));
+    wire(cascade, motors(facts::kCascadePorts.value().first, facts::kCascadePorts.value().second)),
+    wire(rightToggle, motors(facts::kRightTogglePort.value())),
+    wire(leftToggle, motors(facts::leftTogglePort())),
+    wire(claw, lines(facts::kClawLine.value())),
+    wire(flipper, lines(facts::kFlipperLine.value())),
+    wire(ramp, lines(facts::kRampLine.value())));
 // [/robot one mechanisms]
 }  // namespace robot_one
 

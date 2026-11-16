@@ -16,6 +16,51 @@
 
 ## API 2.9
 
+### 2026-11-15 (built 2026-11-15) — robot one's real mechanisms and its first typed facts; a ONE-button hold for a power mechanism
+
+> Written when it was built (chunk ROB1, run C2 — the team lead: "we need to have the bot coded tonight").
+> **Added (no version bump):** one new word in the mechanism core's driver controls — a layer no row of the
+> [Freeze Register](roadmap.md#freeze-register) freezes; every existing driver file compiles and runs exactly as
+> before (a two-button hold is unchanged). **Host- and build-gated only: nothing has run on robot one.**
+
+**Why:** robot one was built by 2026-11-15, and its builder read its ports, cartridges, gearing and 3-wire letters
+off it and gave its button map. Its build had refused every program until those facts were typed and every
+non-drive motor declared.
+
+**ADDED (library, `mechanism/driver_inputs.hpp`):**
+- **`whileHeld(powerMechanism, button, volts)`** — a ONE-button hold-to-run for a POWER mechanism: held, it runs
+  ONE way (+volts; which way the motor turns is its declaration's `.motors` direction); let go, it stops. It takes
+  no second button, so the button beside it stays free for another control. `Control::oneWay` marks it; the
+  boot line reads `<name>: hold-to-run L1 (one way), 12 V`. On an arm, a lift, a pneumatic or a flywheel it is
+  refused by name (`whileHeld_with_one_button_is_for_a_power_mechanism_an_arm_or_a_lift_needs_two`).
+
+**ROBOT ONE (the team's files, not the library):**
+- **Typed** in `src/robots/robot_one_facts.hpp` from the builder's answers ("the team's builder, 2026-11-15, read
+  off the robot"): the cascade's motors on ports 10 and 1, facing each other (port 10 taken as Forward —
+  station 13 confirms), BLUE, direct to the spool (typed 1:1); the side toggles' ports 9 and 2 and their GREEN
+  cartridge; the claw on 3-wire A, the front toggle on B, the ramp on C; the cascade's levels as NONE (manual
+  for now); and the non-drive motors {10, 1, 9, 2}. **Chosen, not measured:** the cascade's starting cap 2.0 A
+  and stall signature 1.5 A below 5 rpm for 0.3 s, and the flipper's kind (pneumatic: the front toggle) — the
+  coordinator; the side toggles' starting cap 1.5 A, each piston's starting stroke time 0.5 s, and the cascade's
+  own **homing** signature, 0.45 A (chapter 18's starting value for a gentle push — the 1.5 A jam signature
+  could never end a gentle home, so the two are separate facts). The drive table's cartridge: BLUE.
+- **Declared** in `src/robots/mechanism_table.hpp`: two side toggles (`Power`), the claw, the front toggle (the
+  `Pneumatic` named `"flipper"`) and the ramp, each piston starting in the position its solenoid holds unpowered.
+- **The driver file is the builder's map**: R1 / R2 the cascade while held, A the claw, B the front toggle, X the
+  ramp, L1 / L2 the right / left side toggle while held, Y the re-zero, the d-pad free; the cascade homes at the
+  first driver start (the one line marked `[delete-able]`). Its three numbers nobody gave (the cascade's
+  12 V, the side toggles' 12 V, the home's 3 s) are marked "chosen, not measured".
+- **Still owed** (each refuses by name): which port is the right side toggle (Stage A — Bench Tests and
+  Calibrate wait for this one only); the cascade's two rows, hold volts, homing push and unhomed volts, each side
+  toggle's direction, and which line level opens each piston (Stage B).
+- The Drive screen's mechanism row prints a COMPACT form when a list's full row cannot fit the screen's 50
+  characters (robot one's six mechanisms): `MECH 10H34 9B31 2B30 CLAW:C FLIP:O RAMP:U` — chapter 21 has the legend.
+
+**What you must do:** nothing — robot two's files and its driver file are unchanged, and it behaves as before
+(its packages carry the library's new one-button branch, never taken by its two-button holds). A driver file
+that wants a one-way control on one button writes `whileHeld(roller, Button::L1, 12_volt)`. Robot one: type
+the right side toggle's port, then build Bench Tests and Calibrate ([Chapter 21](guide/21-adding-your-robot-by-hand.md)).
+
 ### 2026-11-15 — shulib Tune: the READY button shows its whole label
 
 **Fixed:** Tune's first page drew its READY button as "READY - I AM CL" — the label box held 15 characters and the label has 18. The box now holds 23, and a test checks every one of the page's 24 button labels fits. **What you must do:** nothing; rebuild shulib Tune.

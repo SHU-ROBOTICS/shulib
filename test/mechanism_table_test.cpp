@@ -265,7 +265,18 @@ TEST_CASE("mechanism table: the claw's open level is written ONCE, on its .posit
     // safe state), or a projection that reads a position's NAME instead of its levels. Station J.9's
     // fix for a claw that opens on the wrong press is ONE edit: swap Low and High on that line.
     const std::string code = codeOnly(readRepoFile("src/robots/mechanism_table.hpp"));
-    CHECK(occurrences(code, ".positions = ") == 1);
+    // Robot two's region holds ONE positions line — its claw's. (Robot one's pistons, below robot two's region
+    // since ROB1-C2, read their levels from robot one's facts file and never write Low or High:
+    // test/robot_one_tables_test.cpp holds them to that.)
+    const std::string file = readRepoFile("src/robots/mechanism_table.hpp");
+    const std::size_t twoAt = file.find("\n// [robot two mechanisms]\n");  // the marker LINES, not the banner's mention
+    const std::size_t twoEnd = file.find("\n// [/robot two mechanisms]\n");
+    REQUIRE(twoAt != std::string::npos);
+    REQUIRE(twoEnd != std::string::npos);
+    REQUIRE(twoAt < twoEnd);
+    const std::string two = codeOnly(file.substr(twoAt, twoEnd - twoAt));
+    CHECK(occurrences(two, "kRobotTwoMechanisms") == 1);  // the scan reads the real region
+    CHECK(occurrences(two, ".positions = ") == 1);
     CHECK(occurrences(code, ".positions = {{\"closed\", {Low}, grabs}, {\"open\", {High}}},") == 1);
     CHECK(occurrences(code, ".start = \"closed\",") == 1);  // a position's NAME, never a level
     CHECK(occurrences(code, ".safe = \"closed\",") == 1);

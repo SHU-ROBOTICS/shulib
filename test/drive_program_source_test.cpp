@@ -481,6 +481,16 @@ TEST_CASE("P3-T3 (T4-3): the rows, the repaint and the boot's generated words co
     CHECK(count(paint, "paintLine(driveLineToPaint(painted_, next, i), kPanelBg);") == 1U);
     CHECK(count(paint, "text[0]") == 0U);
     const std::string boot = bodyOf(c, "void logBootLines(");
+    // ROB1-C2: robot one's driver line says its map is the BUILDER's, the team's (ROB1-A's said "a DEFAULT -- the
+    // team's to change" until the builder gave the map on 2026-11-15). The pin starts at the choice, so a negated
+    // condition or the old words break it (the review of ROB1-C2: RV7, the string reverted, survived the suite).
+    CHECK(count(boot,
+                "std::snprintf(line, sizeof line, kRobotOneBuild ? "
+                "\"driver control: robot one's driver file (src/team/robot_one_driver.hpp, the builder's \" "
+                "\"map -- the team's) -> runDriverControl, default profile (deadband 0.05, no expo, \" "
+                "\"no slew; HA-112); re-zero button %.5s; mode %.12s\" : ")
+          == 1U);
+    CHECK(count(c, "a DEFAULT") == 0U);
     CHECK(count(boot,
                 "log.log(driveBootLevel(boot.source == calibration::BootSource::UseRecord), kTag, "
                 "line);")

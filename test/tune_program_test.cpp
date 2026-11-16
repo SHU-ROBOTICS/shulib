@@ -2139,19 +2139,43 @@ sim::ArmPlantConfig robotOneCascadePlant(double startDeg) {
 }
 }  // namespace
 
-TEST_CASE("Tune (ROB1-A's integration): over ROBOT ONE's own table the provider is asked ONLY for the cascade's "
-          "two ports; HOME pushes DOWN onto the bottom row with the facts file's cap in both motors; TEST A brings it "
-          "DOWN to its first level from above; TEST B drives it UP to its last and it settles there") {
+namespace {
+/// Robot one's cascade: the OUTPUT angle (the rows' frame, the plant's) at height `in`, straight between the
+/// facts file's rows, and the local degrees per inch there.
+struct RowPoint {
+    double deg;
+    double degPerIn;
+};
+RowPoint robotOneRowPoint(double in) {
+    namespace facts = shulib::bench::robot_one_facts;
+    const auto& row = facts::kCascadeRows.value().row;
+    std::size_t i = 1;
+    while (i + 1 < facts::kCascadeRowCount && in > row[i].height.value()) {
+        ++i;
+    }
+    const double h0 = row[i - 1].height.value();
+    const double h1 = row[i].height.value();
+    const double slope = (row[i].degrees - row[i - 1].degrees) / (h1 - h0);
+    return RowPoint{row[i - 1].degrees + slope * (in - h0), slope};
+}
+}  // namespace
+
+TEST_CASE("Tune (ROB1-A's integration; ROB1-C2's six mechanisms): over ROBOT ONE's own table the provider is asked "
+          "ONLY for its DECLARED ports; HOME pushes the cascade DOWN onto the bottom row with the facts file's cap in "
+          "both motors; TEST A brings it DOWN to its first target from above; TEST B drives it UP to its second and it "
+          "settles there") {
     // BUG CAUGHT: robot one put in MECHANISM_ROBOTS with a table Tune cannot run — a cascade whose homing push,
-    // signature or levels the program refuses or never reaches would build `make ROBOT=one PROGRAM=tune` the
+    // signature or targets the program refuses or never reaches would build `make ROBOT=one PROGRAM=tune` the
     // day the facts are typed and tune nothing; Tune writing a cap that is not the facts file's (the review of
-    // the integration: the plant reads at most a motor's limit and the homing push draws 1.25 A, under 1.5 A,
-    // so the peak current alone could not tell — the limit IN THE MOTORS is checked); or Tune asking for a port
-    // that is not the cascade's (robot one's drive is unknown until Calibrate, so ANY other port asked is a
-    // motor nobody declared).
+    // the integration: the peak current alone could not tell — the limit IN THE MOTORS is checked); or Tune
+    // asking for a port robot one's list does not declare (robot one's drive is unknown until Calibrate, so ANY
+    // other port asked is a motor nobody declared). Since ROB1-C2 the cascade has NO levels (manual for now), so
+    // Tune's targets are a quarter and three quarters of its range (TuneTargets) — read from the program's own
+    // rule, never assumed.
     namespace facts = shulib::bench::robot_one_facts;
     const mech::MechanismTable& t = shulib::bench::robot_one::kRobotOneMechanisms;
-    REQUIRE(t.count == 1);
+    REQUIRE(t.count == 6);
+    REQUIRE(std::string_view{t.specs[0].name} == "cascade");
     const std::uint8_t portA = static_cast<std::uint8_t>(facts::kCascadePorts.value().first);
     const std::uint8_t portB = static_cast<std::uint8_t>(facts::kCascadePorts.value().second);
     const double capAmps = facts::kCascadeCapAmps.value();
@@ -2184,55 +2208,51 @@ TEST_CASE("Tune (ROB1-A's integration): over ROBOT ONE's own table the provider 
     CHECK(b.provider.fakeMotor(portA).currentLimit().value() == doctest::Approx(capAmps));  // still the cap
     CHECK(b.provider.fakeMotor(portB).currentLimit().value() == doctest::Approx(capAmps));
     CHECK(b.linesContaining("TUNEPG", "'cascade': HOME SUCCEEDED") >= 1);
-    // The targets: TEST A the first level, TEST B the last named one (Tune's TESTs reach no level between)
-    std::size_t last = 0;
-    while (last + 1 < shulib::mechanism::kMaxPresets && facts::lv(last + 1).name != nullptr) {
-        ++last;
+    // The targets, by the program's own rule: the first and last NAMED level, or with fewer than two named a
+    // quarter and three quarters of the range (ROB1-C2: none named).
+    std::size_t named = 0;
+    while (named < shulib::mechanism::kMaxPresets && facts::lv(named).name != nullptr) {
+        ++named;
     }
     const mech::TuneTargets targets = mech::tuneTargets(t.specs[0]);
-    CHECK(std::string_view{targets.aName} == facts::lv(0).name);
-    CHECK(std::string_view{targets.bName} == facts::lv(last).name);
-    // ...and the ROW at that last level (a row is AT each level, the form's C7 and HA-254 — so its output angle
-    // is where the plant must be), found by height, not assumed
-    std::size_t lastRow = facts::kCascadeRowCount;
-    for (std::size_t i = 1; i < facts::kCascadeRowCount; ++i) {
-        if (row[i].height.value() == doctest::Approx(facts::lv(last).at.value())) {
-            lastRow = i;
-        }
+    const double bottom = facts::cascadeBottom().value();
+    const double top = facts::cascadeTop().value();
+    if (named >= 2) {
+        CHECK(std::string_view{targets.aName} == facts::lv(0).name);
+        CHECK(std::string_view{targets.bName} == facts::lv(named - 1).name);
+    } else {
+        CHECK(std::string_view{targets.aName} == "1/4 range");
+        CHECK(std::string_view{targets.bName} == "3/4 range");
+        CHECK(targets.a == doctest::Approx(bottom + 0.25 * (top - bottom)));
+        CHECK(targets.b == doctest::Approx(bottom + 0.75 * (top - bottom)));
     }
-    REQUIRE(lastRow < facts::kCascadeRowCount);
-    const double levelDeg = row[lastRow].degrees;
-    // Where a level is, by the PLANT (never the program): within half an inch of its row, in output degrees
-    // from the row below it.
-    const double degPerIn =
-        (row[lastRow].degrees - row[lastRow - 1].degrees) / (row[lastRow].height.value() - row[lastRow - 1].height.value());
-    const double tolDeg = 0.5 * degPerIn;
-    // TEST A from ABOVE its level (the floor is where HOME left it, so first the stick jogs it up — a TEST A
-    // from there would be a move of nothing)
+    // Where each target is, by the PLANT (never the program): its output angle by the rows, within half an inch.
+    const RowPoint aAt = robotOneRowPoint(targets.a);
+    const RowPoint bAt = robotOneRowPoint(targets.b);
+    // TEST A from ABOVE its target (HOME left it on the floor, so first the stick jogs it up — a TEST A from
+    // below would be a move UP, not the move down this case exists for)
     b.controller.setAxis(shulib::hal::ControllerAxis::LeftY, 1.0);
     b.steps(300);
     b.controller.setAxis(shulib::hal::ControllerAxis::LeftY, 0.0);
     b.steps(20);
     const double aFrom = b.arm->trueDeg();
-    MESSAGE("robot one's TEST A from " << aFrom << " deg");
-    REQUIRE(aFrom - row[0].degrees > 4.0 * tolDeg);  // a real move down, not a settle in place
+    MESSAGE("robot one's TEST A from " << aFrom << " deg to " << aAt.deg << " deg");
+    REQUIRE(aFrom - aAt.deg > 2.0 * aAt.degPerIn);  // a real move down, not a settle in place
     b.startTest(TuneButton::TestA);
     b.finish();
     MESSAGE("robot one's TEST A: " << std::string{b.program.report().verdict} << ", plant at " << b.arm->trueDeg());
     CHECK(std::string_view{b.program.report().verdict} == "SUCCEEDED");
-    CHECK(std::abs(b.arm->trueDeg() - row[0].degrees) <= tolDeg);
+    CHECK(std::abs(b.arm->trueDeg() - aAt.deg) <= 0.5 * aAt.degPerIn);
     b.tap(TuneButton::Back);
-    // TEST B, floor -> the last level (L3: 24 in, 1080 deg at the output on the placeholders). Its time limit is
-    // the plan x 2 + settle + 0.5 s, AT MOST 10 s (kTuneTestMostSeconds). Independently of the program: the
-    // live top speed is at most the output's free speed (live_tuning's bound), so the plan takes at least
-    // distance / free speed; on the placeholders (a red cartridge through 12:60, 120 deg/s) that is 9 s, so
-    // the limit IS the 10 s cap, and the move ends TIMED_OUT short of the level — HOLDING where it stopped —
-    // and a second TEST B from there finishes it. (A finding for the team's real gearing: a cascade this slow
-    // cannot reach its top level in ONE TEST B; the cap is TUNE1-B1's.)
+    // TEST B, up to its target. Its time limit is the plan x 2 + settle + 0.5 s, AT MOST 10 s
+    // (kTuneTestMostSeconds). Independently of the program: the live top speed is at most the output's free
+    // speed, so the plan takes at least distance / free speed. (ROB1-A's red 12:60 placeholder gearing needed
+    // ~9 s and ended TIMED_OUT once; the builder's blue direct drive moves the output at 3600 deg/s free —
+    // either way a TIMED_OUT must HOLD where it stopped, and a second TEST B finishes it.)
     const double freeDegPerS = pos_rig::cartridgeRpm(facts::kCascadeCartridge.value()) * 6.0 *
                                static_cast<double>(facts::kCascadeTeeth.value().motor) /
                                static_cast<double>(facts::kCascadeTeeth.value().spool);
-    const double leastPlanS = (levelDeg - b.arm->trueDeg()) / freeDegPerS;
+    const double leastPlanS = (bAt.deg - b.arm->trueDeg()) / freeDegPerS;
     const double bound = mech::tunePositionBound(t.specs[0], b.arm->trueDeg(), targets.b);  // the plant's frame IS the rows'
     if (mech::kTuneTestPlanFactor * leastPlanS + mech::kTuneTestExtraSeconds >= mech::kTuneTestMostSeconds) {
         CHECK(bound == mech::kTuneTestMostSeconds);  // the cap, by arithmetic the program does not do
@@ -2242,7 +2262,7 @@ TEST_CASE("Tune (ROB1-A's integration): over ROBOT ONE's own table the provider 
     for (int attempt = 1; attempt <= 3 && !reached; ++attempt) {
         CAPTURE(attempt);
         const double fromDeg = b.arm->trueDeg();
-        CHECK(std::abs(fromDeg - endDeg) <= tolDeg);  // a TIMED_OUT HOLDS where it stopped (never drops)
+        CHECK(std::abs(fromDeg - endDeg) <= 0.5 * bAt.degPerIn);  // a TIMED_OUT HOLDS where it stopped (never drops)
         b.startTest(TuneButton::TestB);
         const double t0 = b.clock.now().value();
         b.finish();
@@ -2251,34 +2271,42 @@ TEST_CASE("Tune (ROB1-A's integration): over ROBOT ONE's own table the provider 
         endDeg = b.arm->trueDeg();
         MESSAGE("robot one's TEST B (" << attempt << "): " << verdict << " after " << tookS << " s (limit " << bound
                                        << " s for the first), plant from " << fromDeg << " to " << endDeg << " deg of "
-                                       << levelDeg);
+                                       << bAt.deg);
         CHECK(endDeg - fromDeg > 0.0);  // DRIVEN UP toward it, not left where it was
         if (verdict == "SUCCEEDED") {
             reached = true;
-            CHECK(std::abs(endDeg - levelDeg) <= tolDeg);
+            CHECK(std::abs(endDeg - bAt.deg) <= 0.5 * bAt.degPerIn);
         } else {
             REQUIRE(verdict == "TIMED_OUT");  // nothing else: no stall, no refusal, no cancel
             CHECK(tookS >= mech::kTuneTestMostSeconds - 0.05);  // it had the whole cap, never less
-            CHECK(levelDeg - endDeg > tolDeg);                   // and was really short of the level
+            CHECK(bAt.deg - endDeg > 0.5 * bAt.degPerIn);        // and was really short of the target
         }
         b.tap(TuneButton::Back);
     }
     CHECK(reached);
     // ...and it STAYS there (the hold after the TEST), a second later
     b.steps(100);
-    CHECK(std::abs(b.arm->trueDeg() - levelDeg) <= tolDeg);
+    CHECK(std::abs(b.arm->trueDeg() - bAt.deg) <= 0.5 * bAt.degPerIn);
     b.tap(TuneButton::Exit);
-    // ONLY the cascade's two ports were ever asked for — no other smart port, no 3-wire line
+    // ONLY robot one's DECLARED ports were ever asked for — the cascade's two, the side toggles' two and the
+    // three pistons' lines — no other smart port, no other 3-wire line.
     for (std::uint8_t port = 1; port <= 21; ++port) {
         CAPTURE(static_cast<int>(port));
-        const bool cascade = port == portA || port == portB;
-        if (cascade) {
+        const bool declared = shulib::bench::isDeclaredMechanismPort(t, port);
+        if (port == portA || port == portB) {
             CHECK(b.provider.motorRequestCount(port) >= 1);
-        } else {
+        }
+        if (!declared) {
             CHECK(b.provider.motorRequestCount(port) == 0);
         }
     }
     for (std::uint8_t line = 1; line <= 8; ++line) {
-        CHECK(b.provider.digitalOutRequestCount(line) == 0);
+        CAPTURE(static_cast<int>(line));
+        const char letter = static_cast<char>('A' + line - 1);
+        const bool declared = letter == facts::kClawLine.value() || letter == facts::kFlipperLine.value() ||
+                              letter == facts::kRampLine.value();
+        if (!declared) {
+            CHECK(b.provider.digitalOutRequestCount(line) == 0);
+        }
     }
 }

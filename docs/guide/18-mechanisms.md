@@ -717,6 +717,10 @@ inline constexpr DriverControls kControls = controls(kRobotXMechanisms,
 - **`whileHeld(m, forward, back, volts)`** — a power mechanism runs while a button is held and goes to its
   `.safe` state when let go; an arm or a lift JOGS while held (inside its limits once homed; at most
   its `.unhomedVolts` before) and HOLDS WHERE IT IS when let go. Both buttons at once = neither.
+- **`whileHeld(m, button, volts)`** — ONE button, a POWER mechanism only: held, it runs one way (+volts —
+  which way the motor turns is its declaration's `.motors` direction); let go, its `.safe` state. It takes
+  no second button, so the one beside it stays free (robot one's side toggles on L1 and L2 — chapter 21).
+  On an arm, a lift, a pneumatic or a flywheel it is refused by name.
 - **`toggle(claw, Button::A)`** — each press flips a two-position pneumatic; **`toggle(flywheel["shoot"],
   Button::X)`** spins a flywheel up to that NAMED speed or stops it (`toggle(flywheel, …)` is refused:
   name the speed). A toggle's press, a preset's and a homing press are each a STEP, as an auton's is, so

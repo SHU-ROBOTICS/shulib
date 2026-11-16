@@ -200,14 +200,16 @@ inline constexpr ChassisTable kNoChassis = {
 };
 
 // ROBOT ONE -- the 2026 CASCADE robot (ROB1-A, 2026-11-11; the builder, 2026-11-05: "both robots
-// identical, 15 in"; built ~Nov 14). NOTHING ABOUT ITS DRIVE IS KNOWN: no census, no reading, no photo.
-// So every field is UNSET by this table's own rule -- NOT the facts ledger (src/robots/robot_one_facts.hpp
-// holds its mechanisms' numbers): no ports (shulib Calibrate DISCOVERS which ports drive, their
-// directions, the sides, the scale and the track width), no cartridge (the builder reads the insert --
-// the facts form's A2; then it is typed here), no IMU (the form's A4: the library cannot drive a tank
-// without one -- HA-253; the builder named only AI Vision and rotation sensors), no geometry. Every station
-// and program that needs one of these refuses BY NAME (describeMissing below) -- nothing is guessed.
-// Robot one is believed a TANK like robot two ("identical") -- HA-252, the form's A1.
+// identical, 15 in"; built by 2026-11-15). ONE drive fact is TYPED: the drive motors' CARTRIDGE, BLUE
+// (the team's builder, 2026-11-15, read off the robot -- the facts form's A2; ROB1-C2) -- the one fact
+// Calibrate cannot discover and refuses without. Every other field is UNSET by this table's own rule --
+// NOT the facts ledger (src/robots/robot_one_facts.hpp holds its mechanisms' numbers): no ports (shulib
+// Calibrate DISCOVERS which ports drive, their directions, the sides, the front, the scale and the track
+// width), no IMU port (Calibrate DISCOVERS the IMU from the brain's registry and records it -- a port typed
+// here would only be its cross-check, calibrate_program.hpp's `imuPortStated`; the library still cannot
+// drive a tank WITHOUT an IMU on the robot -- HA-253), no geometry. Every station and program that needs
+// one of these refuses BY NAME (describeMissing below) -- nothing is guessed. Robot one is believed a
+// TANK like robot two ("identical") -- HA-252, the form's A1.
 // kChassis in the six ROBOT=one builds (chassisTableFor(RobotId::RobotOne)).
 inline constexpr ChassisTable kRobotOneChassis = {
     .robot = "2026 CASCADE ROBOT (robot one)",
@@ -215,11 +217,11 @@ inline constexpr ChassisTable kRobotOneChassis = {
     .leftCount = 0,
     .right = {},
     .rightCount = 0,
-    .cartridge = Cartridge::Unset,
+    .cartridge = Cartridge::Blue,
     .imuPort = 0,
     .measured = false,
     .signsMeasured = false,
-    .provenance = "nothing typed -- Step 0 (docs/robot-facts-form.md); Calibrate discovers the drive",
+    .provenance = "cartridge BLUE: the team's builder, 2026-11-15, read off the robot; Calibrate discovers the rest",
     .wheelDiameterIn = 0.0,
     .trackWidthIn = 0.0,
     .externalRatio = 0.0,

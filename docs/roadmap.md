@@ -550,17 +550,22 @@ not silently break them. This table is the spine of the no-staleness promise.
 > explicit handles; **next: AF1S-A2**, the robot's camera reachable from an auton. Until it has flipped a real
 > Toggle, the team's own blind two-push flip is the plan for the 21st.
 >
-> **Now (2026-11-13): ROB1-A, robot one in the code, has LANDED — host- and build-gated, NOT run on a robot; robot
-> one's facts are owed by the builder.** `make ROBOT=one` and
+> **Now (2026-11-13): ROB1-A, robot one in the code, has LANDED — host- and build-gated, NOT run on a robot; since
+> ROB1-C2 (2026-11-15) its facts are typed from the builder's answers, the rest owed to station 13.** `make ROBOT=one` and
 > `make ROBOT=one PROGRAM=calibrate|drive|autontest|competition|tune` are robot two's six programs for robot one, the
 > cascade robot ("shulib Tune" since the integration: robot one's cascade is a mechanism table, so it is in
 > `MECHANISM_ROBOTS`). Every number about its cascade nobody has measured
 > is OWED in its facts file, and robot one's build of every program that needs one REFUSES, naming each — so no
-> placeholder can reach the robot; `make` now starts fresh whenever the robot or the program changes. Its controls
-> are a default (the team's to change) and its autons a starter (the 40 in as SKILLS; the skills route is the
-> team's). Robot two is unchanged. [Chapter 21](guide/21-adding-your-robot-by-hand.md) and the
-> [robot facts form](robot-facts-form.md); register entries [HA-252..HA-255](hardware-assumptions.md). **Next with
-> it:** the builder's facts form; station 13 applying the cascade's cap (ROB1-C); the record naming its robot (ROB1-B).
+> placeholder can reach the robot; `make` now starts fresh whenever the robot or the program changes. Its autons
+> are a starter (the 40 in as SKILLS; the skills route is the team's). Robot two behaves as before. **ROB1-C2
+> (2026-11-15):** the builder's answers typed — robot one's six mechanisms (the cascade, two
+> side toggles, the claw, the front toggle as its flipper, the ramp) declared, its driver file the builder's map,
+> and the library's one-button hold added; Bench Tests and Calibrate owe only "which port is the right side
+> toggle". [Chapter 21](guide/21-adding-your-robot-by-hand.md) and the
+> [robot facts form](robot-facts-form.md); register entries [HA-252..HA-255](hardware-assumptions.md) and
+> [HA-261](hardware-assumptions.md). **Next with it:** station 13's answers (the cascade's rows, the side
+> toggles' directions, each piston's opening level) and the cascade's three voltages; station 13 applying the
+> cascade's cap (ROB1-C); the record naming its robot (ROB1-B).
 >
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a

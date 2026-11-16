@@ -1,6 +1,6 @@
 # ROB1 — robot one (and its twin) in the code — live progress log
 
-<!-- release: between parts — ROB1-A landed 2026-11-13 (with robot one's Tune); ROB1-B (the record names its robot), ROB1-C (station 13 applies the cap) and G1-T (the twin) are queued, not started (declared by the coordinator 2026-11-13) -->
+<!-- release: between parts — ROB1-A and ROB1-C2 landed (robot one's mechanisms, 2026-11-16); Stage B from station 13, ROB1-BT (robot two as the twin) and ROB1-C follow (declared by the coordinator 2026-11-16) -->
 
 > The brief: [`ROB1-robot-one-and-twin.md`](ROB1-robot-one-and-twin.md) (it calls the runs G1-A / G1-B / G1-T / G1-C /
 > G1-F; filed as `ROB1-*` because "G1" is a finished chunk — `G1-PROGRESS.md` is NOT this log). Appended in real time.
@@ -1181,3 +1181,311 @@ tree before anything was changed. Scratch: `.claude/coordinator/scratch/rob1-int
   `p6_one-starthome-wait` (homed, then reached its level)). Gates (`scratch/rob1a_homing_verify.sh`): suite green (3,661
   cases), src gate check PASS (14 builds), check-examples / check-fresh / check-coverage, staleness audit and briefing
   check all exit 0; no plant.
+
+## ROB1-C2 — robot one's real mechanisms and its first typed facts *(2026-11-15, the coordinator's builder)*
+
+> Started 2026-11-15 ~19:40 in the worktree `rob1-c2` (branch `rob1-c2`, from `9befdb3`), on the team lead's go
+> ("we need to have the bot coded tonight"). The builder's answers (2026-11-15 ~18:40-19:25) are the coordinator's
+> relay in the run's task. The between-parts marker above is removed while this run builds (the coordinator
+> restores it). Host- and build-gated only: **nothing has run on robot one.**
+
+- Read: RESUMING's standing rules; the brief's header, D1-D13, §6, §8, the re-check table; this log's tail; guide 21;
+  the facts form; the ledger, the table's robot one region, the driver file and their five tests.
+- **A library gap found first (the builder's map needs it):** `whileHeld` took TWO buttons only; "L1 will be the
+  right side and when I hold it will run" is ONE button, one way, with the d-pad left free. Added the one-button
+  hold to `include/shulib/mechanism/driver_inputs.hpp` (`whileHeld(const Power&, button, volts)`, `Control::oneWay`;
+  `controls()` takes its one button only; `tickHold` never reads a back button for it; `bind()` accepts it on a
+  power mechanism only; a 3-argument call on an Arm / Lift / Pneumatic / Flywheel is refused by name). The panel's
+  boot line says `hold-to-run L1 (one way), 12 V`. API reference regenerated. **Robot two's packages change by
+  this** (the library's hold tick and the panel's line are compiled into them; its two-button holds never take
+  the new branch) — the coordinator's T6-style compare would see it.
+- **A second gap: the Drive screen's mechanism row.** Six mechanisms need 98 characters in the full row; the build
+  asserts robot one's fits 50 (`driver_panel.hpp`). Added a COMPACT row used only by robot words that are not the
+  claw words AND only when the full row cannot fit (`compactRowText`, `compactRowWorstLength`,
+  `mechanismRowWorstLength`): `MECH 10H34 9B31 2B30 CLAW:C FLIP:O RAMP:U` (47 worst). Robot two's row code is
+  untouched; the build's own static_assert reads the row its words print.
+- **The ledger (32 facts; was 17):** typed from the builder (source "the team's builder, 2026-11-15, read off the
+  robot"): B6 {10, 1, 9, 2}; the cascade's ports {10, 1}, directions {Forward, Reversed} ("same as the placeholder,
+  checked"), BLUE, teeth 1:1 (direct); the flipper's kind Pneumatic; the side toggles' ports {9, 2} and GREEN; the
+  claw 'A', the front toggle 'B', the ramp 'C'; the cascade's levels NONE ("for now it will be manual"). Chosen,
+  not measured: the coordinator's cascade cap 2.0 A and signature 1.5 A / 5 rpm / 0.3 s; this run's side-toggle
+  cap 1.5 A and each piston's stroke time 0.5 s. Still OWED: the right side toggle's port (A); the cascade's rows
+  (now TWO: bottom and top), hold volts, homing push (placeholder moved -6 V -> -8 V: the host plant's stall
+  current at -6 V is 1.25 A, under the typed 1.5 A signature), unhomed volts; each side toggle's direction; each
+  piston's opening level (B); the camera (Recorded). New helpers: `leftTogglePort()` (the other side-toggle port,
+  0 = refused by the wiring), `unpoweredPosition()` (each piston's start/safe = its Low position).
+- **The drive table:** `kRobotOneChassis.cartridge = Blue`, provenance the builder's. The IMU is NOT typed:
+  Calibrate DISCOVERS it from the registry (`calibrate_program.hpp` :538-550; a typed port is only the
+  `imuPortStated` cross-check) — ROB1-A's guide 21, the facts form and two tests said it had to be typed; fixed
+  there (a flaw in an earlier chunk, fixed in place).
+- **The driver file:** the builder's map exactly (R1/R2 cascade, A claw, B front toggle, X ramp, L1 right toggle,
+  L2 left toggle, Y re-zero, d-pad free), the side toggles at 12 V (chosen; the cap bounds a held stop), the
+  driver-start home kept as the ONE `[delete-able]` line. Drive's boot line no longer says "a DEFAULT".
+- **Levels rule (the brief's "four to six"):** it existed only because the default driver file bound four
+  presets. Now the levels may be EMPTY; the rule kept wherever a preset is bound: `cascade[facts::lv(i).name]` on
+  an unnamed slot is refused by name (`test/compile_refusals/s83`).
+- **Tests changed/added:** `robot_one_facts_test` (counts 32/17/13/2, the structural words, same() for char/bool/
+  Motor, the ROB1-C2 typing: every builder fact typed, every typed source "the team's builder, 2026-11-15" or
+  "chosen, not measured", Stage A owes only the right toggle port; the typed values); `robot_one_tables_test`
+  (six mechanisms, 1:1, the chassis' typed cartridge and discovered IMU, T8 moves to 1/4 and 3/4 of the range,
+  T9 four declared motors, a new case for the side toggles and pistons); `robot_one_driver_test` (the builder's
+  map re-pinned, the banner's `[the map]`, the host run with L1/L2 one way and the motors' signed ports, a pistons
+  case: every line MADE at Low and A/B/X each flip only theirs, the compact row, the one-way boot line);
+  `robot_one_flipper_forms_example_test` (forms keep, robot one's real flipper = the pneumatic form, AF1S's pair
+  check takes `flipper["open"]` / `flipper["closed"]`); `tune_program_test` (robot one's six-mechanism table;
+  targets by TuneTargets' rule; only declared ports and lines asked); `mechanism_driver_loop_test` (the one-button
+  hold); `boot_source_test` T10 and `mechanism_table_test`'s claw-level case (re-scoped: robot one's real ports
+  1 and 2, the second scan read the banner's marker mention); refusal TUs `d_one_button_hold_on_an_arm`,
+  `d_one_button_hold_button_twice`, `s83_robot_one_preset_on_an_unnamed_level`; `s79` moved from port 10 (now the
+  cascade's) to 11.
+- **Mutations** (in a copy of this tree, `.claude/coordinator/scratch/rob1-c2/mtree`, driver `mutate.py`, log
+  `mutations.log`; each a fresh `shulib_tests` link, restored in `finally`/on signals, timestamp bumped): MC1 tickHold
+  reads the back button for a one-way hold -> RED (held/heldAgain/reconnected); MC2 the one-way boot line removed
+  -> RED; MC3 compact row never chosen -> RED (9 assertions); MC4 compact letter always H -> RED; MC5 right/left
+  toggle wiring swapped -> RED; MC6 the claw starts in its powered position -> RED (line made High); MC7 B6 drops
+  port 2 -> RED; MC8 a typed source not the builder's or "chosen" -> RED; MC9/MC10 (first cut broke the build at
+  the doc gate's verbatim scan — re-cut with guide 21's listing changed with it) claw/flipper buttons swapped ->
+  RED, R1/R2 swapped -> RED; MC11 the chassis cartridge Green -> RED; MC12 (first cut `return rest;` broke the build
+  on unused parameters — re-cut) unpoweredPosition inverted -> caught AT COMPILE TIME by the test's own
+  static_asserts (`robot_one_tables_test.cpp` :415-416; the build stops at the first failing translation unit — no
+  `-k` — so whether any OTHER test would also have caught it is not shown: corrected by the review round); MC13 the right toggle's cap removed
+  -> RED; MC14 a level typed -> the s83 refusal harness RED. Equivalent, not run: `takes()`'s `!c.oneWay` guard
+  (a one-way control's `back` repeats its button, so the guard cannot change an answer).
+- **Gates on the final tree** (logs in `.claude/coordinator/scratch/rob1-c2/`): host build exit 0 (doc gates inside);
+  `suite_run.py green` — **green, 3,708 cases, 3,862,183 assertions** (`suite-final.log`); the compile-refusal harness
+  **292 of 292** (`ctest-final2.log`; 289 + the three new TUs; `s79` re-pointed first — it was the one red);
+  `src_build_gate.py check` **PASS — all 14 builds** (`srcgate2.log`): robot two's, bench's and xdrive's 8 link;
+  robot one's Bench Tests and Calibrate refuse naming exactly ONE fact ("the right side toggle's port"); its Drive,
+  Auton Tester, Competition and Tune refuse naming exactly TEN (that one; the cascade's rows, hold volts, homing
+  push, volts before it is homed; the right and left side toggles' run directions; the claw's, the front toggle's
+  and the ramp's opening level); all six link in the gate's typed copy (12 owed facts typed there only);
+  `self-test` OK (377 detector cases; `gate-self2.log` — a first run under a 20-minute `timeout` was killed and left
+  no plant); the ARM header gate over all 255 headers exit 0; the CI greps and the removability grep empty;
+  api_doc_tool check-fresh / check-examples (860 lines verbatim) / self-test / check-coverage (6,390 entities) /
+  check-removability exit 0; the staleness audit clean; `briefing_status.py check` current; `git diff -- Makefile
+  src/` holds no self-test plant. Not committed.
+- **Prose review (grepped, hits read):** `whileHeld` across docs/ (guide 10, 14, 18, 21, cookbook 06/07 — guide 18
+  gained the one-button bullet; the rest list the two-button form correctly); "robot one" / `robot_one` / `ROBOT=one`
+  across docs/ and `src/team/README.md` (the README's DEFAULT-map paragraph and "OWED until typed" rewritten; the
+  roadmap's ROB1 "Now" paragraph — its own lines — no longer says "a default"; guide 07, 16, 18 and guide README
+  still true); "four to six" / "IMU's port" / "12:60" / "8 and 9" / "fewer than four" / "flipper's kind" (guide 21
+  and the facts form fixed; guide 18 :848's 12:60 is its own example; guide 19's IMU row already says discovered);
+  "claw row" / `MECH` / `kRobotOneChassis` / `imuPort` / "facts file" (no stale hit). Not touched, with why:
+  `build-order.md` / the roadmap's "You are here" (the coordinator's status pointers at the merge); guide 20's
+  flipper words (generic — "the flipper's kind" is a Step 0 number there, still true).
+
+
+## ROB1-C2 review findings and their disposition *(2026-11-15 ~21:00-22:30, the coordinator's builder)*
+
+> Three reviewers (correctness, tests, docs) returned 26 findings; deduplicated to 22 below. Each was re-checked
+> against the tree before it was fixed or answered. Mutation driver `scratch/rob1-c2/mutate_r.py` (the run's
+> `mutate.py`, its own log `mutations-r.log`), in `mtree/` re-synced from the worktree first (`diff -rq` of
+> `src/ include/ test/` empty before and after); each a fresh `shulib_tests` link, restored in `finally` / on
+> signals, timestamp bumped. Host- and build-gated only: **nothing has run on robot one.** Not committed.
+
+**1. The homing push can never reach the 1.5 A signature (correctness major + tests major + docs major — one
+finding).** REAL, re-derived: `homeByStall(…, facts::cascadeStall())` shared the jam signature; on the host test
+plant (HA-183 / HA-93's invented shape, 2.5 A × |V| / 12 at stall) a push must exceed 7.2 V to draw 1.5 A, so the
+form's gentle −3 V could never end a home (the review's probe B: TIMED_OUT, 9 assertions). The same class was
+ruled on in MECH (MECH-PROGRESS :2194, chapter 18 :204-212: "a homing signature is not the jam recipe"). **Fixed at
+the root:** a separate fact, `kCascadeHomingStallAmps` (Stage B; typed 0.45 A, "chosen, not measured -- the
+coordinator's ROB1-C2 run, 2026-11-15", chapter 18's starting value for a gentle push), read through a new
+`cascadeHomingStall()` (its own amps, the jam signature's rpm and time) by the cascade's `homeByStall`. The homing
+push's placeholder goes back to ROB1-A's −6 V (the −8 V move existed only to reach 1.5 A on the plant). The
+coupling itself is ROB1-A's — its −6 V placeholder already worked around a shared 1.0 A placeholder signature that
+the form's −3 V could not reach either — so it is fixed where it was made. The push's comment now states the rule (the push must draw more than the homing signature: past 2.2 V on the plant). The plant is NOT
+changed (the tests lens's alternative): it models a real motor's current, and the declaration — not the plant — was
+wrong. Docs: the facts form's C8 (ii) (the constraint beside the −3 V example), guide 21 (the Tune COPY table gains
+the homing amps' row; the "three stall facts are HOME's signature too" paragraph rewritten; "No fact holds these
+yet" narrowed to a homing rpm / time that differs; the Stage B row; the cascade's row), the ledger's Stage B banner,
+the cascade's banner, the worksheet. Tests: D5 and T8 check the declaration's homing amps are the new fact's and T8
+that the HOMING signature was reached; the facts test pins 0.45 A, homing < jam, rpm / time shared. **For the
+coordinator: 0.45 A is a value this run chose** (the task gave the jam pair only) — confirm or replace it.
+
+**2. The facts test pinned tonight's two source wordings on EVERY typed fact (correctness major + tests major).**
+REAL: the review's probe C (rows typed "station 13 RECORD and a tape, the team's builder, 2026-11-16") and PR2
+(`shulib Tune COPY, 2026-11-17` — guide 21's own example) both went red. **Fixed:** the two-prefix rule applies to
+the test's own `given` set (the facts typed on 2026-11-15) only; every other typed fact needs a date
+(`20\d\d-\d\d-\d\d`) and never "guess". Guide 21 says so. The ledger's own rules (`realSource`, "gate copy") are
+unchanged.
+
+**3. Robot two's packages change; T6 not run (correctness minor + docs major).** REAL. **T6 RUN** (below). The
+roadmap's "Robot two is unchanged." → "Robot two behaves as before."
+
+**4. Two interpretations recorded as the builder's words; "ROB1-C2's builder" reads as the team's (correctness
+minor).** REAL. `kFlipperKind`'s source → "chosen, not measured -- the coordinator, 2026-11-15, from the builder's
+answer 'B will be the Forward Toggle pistons': the front toggle … is the autons' flipper"; `kCascadeDirections`'
+source → "… the two motors FACE EACH OTHER; port 10 taken as Forward and port 1 as Reversed by the coordinator,
+station 13 confirms …"; every "ROB1-C2's builder" → "the coordinator's ROB1-C2 run" (the side-toggle cap, the three
+stroke times, the driver file). Also the `FlipperKind` doc comment, the table's banner, the flipper-forms test's
+header, guide 21, the facts form's intro, the changelog, the worksheet.
+
+**5. The cascade's 12 V not marked chosen (correctness minor).** REAL (ROB1-A's default, kept). Marked in the
+driver file's comment block under the controls (the banner now says THREE numbers nobody gave); the quoted code
+block in guide 21 is unchanged (its verbatim gate holds) and a paragraph below it names the three.
+
+**6. `ControlKind::Hold` / `words::whileHeld` comments said "two buttons" (correctness minor).** REAL. Both
+reworded ("two buttons ± volts, or one button + volts on a power mechanism (oneWay)"); `docs/api` regenerated.
+
+**7. The screen says FLIP for the front toggle (correctness minor).** Real, LEFT for tonight as the review advises:
+the flipper check finds the mechanism by the literal name "flipper"; renaming needs that check changed (a flag, not
+a name) — a decision for later. Guide 21's row legend now says "`FLIP` is the front toggle". **The team should be
+told.**
+
+**8. Stale "robot one does not exist in this project's records" (correctness minor + docs minor).** REAL. Reworded
+to "its facts are typed from its builder's answers (2026-11-15), not measured" in `src/team/robot_one_autons.cpp`,
+`src/robots/mechanism_table.hpp` (the banner's last line), `src/programs/drive_program.cpp` (`kRunStatusOne` — the
+line robot one's Drive PRINTS) and `test/robot_one_autons_test.cpp`. Also: guide README's row 21 ("its default
+controls" → "the builder's button map" — the first run's log wrongly said the README was still true); the roadmap's
+ROB1 paragraph (its lead, HA-261 added, "Next with it" rewritten); REMAINING-WORK row 39 and Q3 (answered: BLUE).
+Not changed, on purpose: the changelog's 2026-11-13 entry and the HA register's ROB1-A paragraph (dated history,
+true when written), the ledger's "Every one OWED on 2026-11-11: robot one did not exist in our records" (dated).
+
+**9. The compact row's moving / hot / unreadable states untested; robot one's full row unpinned (tests minor ×2).**
+REAL. A new case in `robot_one_driver_test`: R1 held → ` 10F99` (120 °C), R2 held → ` 10R99` (99.6 °C), the side
+toggles ` 9B00` (−5 °C, 0.4 °C) and ` 2B--` (NaN) — temperatures set only for the drawing and put back; and the
+cascade-only list drawn in robot one's words begins `MECH ` and equals the claw-words row from character 4 (ROB1-A's
+GM14 pin, restored). Seen on the host: `MECH 10F99 9B00 2B-- CLAW:C FLIP:C RAMP:U`.
+
+**10. The one-button refusal pinned for the arm only (tests minor).** REAL. Three TUs added:
+`d_one_button_hold_on_a_lift`, `…_on_a_pneumatic`, `…_on_a_flywheel`.
+
+**11. `bind()`'s one-way refusal untested (tests minor; the first run had said only a hand-built Control reaches
+it — true, and a test CAN hand-build one).** REAL. A case in `mechanism_driver_loop_test`: robot x's own controls
+copied, the arm's hold flagged `oneWay` → bind throws `PreconditionError`, not bound (the unflagged copy binds).
+
+**12. Drive's robot-one driver line unpinned (tests minor).** REAL. Pinned in `drive_program_source_test` (the
+P3-T3 (T4-3) case, from the `kRobotOneBuild ?` choice through the string) and "a DEFAULT" absent from the code.
+
+**13. MC12b's "nothing else failed" over-claims (tests minor).** REAL: the driver's build has no `-k`. The first
+run's line is corrected in place to "the build stops at the first failing translation unit … not shown".
+
+**14. The worksheet's Station R1 stale (docs major).** REAL. Rewritten: R1.0 answered (no IMU question — Calibrate
+discovers it), R1.1 typed except the right toggle's port (the "8 and 9" warning gone), R1.2 runs each side toggle
+(briefly, uncapped) and fires each piston, R1.4 the bottom and top stops only and the homing push's rule; the answer
+table filled with every 2026-11-15 answer and its source, and rows G21-G24 added.
+
+**15. Tonight's goal for Drive missed (docs major).** TRUE, and the first run's log did not say so. On the real
+tree Drive, the Auton Tester, Competition and Tune wait on TEN owed facts: the right toggle's port; the cascade's
+rows, hold volts, homing push and unhomed volts; each side toggle's direction; the claw's, the front toggle's and the
+ramp's opening level. The goal named only the rows and the directions. **Cause:** the three voltages are Stage B,
+"measured, or chosen with the coordinator" (form C8), and the task chose only the cap and the signature — this run
+does not invent the rest (landmine 17); the opening levels are station 13's by the task's own item (4), which Step 4's
+goal contradicts. **Decisions left to the coordinator:** (a) type chosen starting values for the hold volts, the
+homing push (it must draw more than 0.45 A stalled) and the unhomed volts; (b) rule whether the opening levels gate
+Drive (for driver control they change nothing physical — each piston starts unpowered, Low, and each press flips it —
+only the names an auton reads) or only the programs that run autons.
+
+**16. Facts form internally inconsistent (docs minor).** REAL. Section C's intro now lists what Bench Tests
+waits for (21's ports and cartridge, the side toggles' cap, 22-24's letters); the footer says the side toggles' cap
+is chosen with the coordinator (item 21 does not ask it); item 14 worded for a direct-drive spool (guide 21's and
+the worksheet's matching "gearing turns freely" too).
+
+**17. "Safe" at 12 V, and station 13 runs the side toggles uncapped (docs minor).** REAL: a cap reaches the motors
+only when a program's mechanism service binds; station 13 binds none (D13). Guide 21: the side-toggle row says
+"chosen, not measured, to bound the push … not by station 13"; the station-13 warning covers the side toggles
+(briefly, never held against a stop); the order on the robot's step 3 says it. The ledger's cap comment, the
+driver file's comment and the table's side-toggle comment say the same.
+
+**18. "Press = open" depends on an owed fact (docs minor).** REAL. Guide 21, under the controls table: the first
+press moves each piston from where it rests unpowered; if station 13 finds one rests open (or down), tell the
+coordinator — the builder's map then conflicts with "nothing moves at power-up".
+
+**19. Deltas only in the first run's report (docs minor).** Recorded here: (a) Drive's goal — item 15; (b) the
+three stroke times were TYPED as chosen 0.5 s although Step 2's owed list named them: the task's item (4) allowed "a
+chosen starting stroke time … with its source", so they gate no build now and the bench times them later; (c) the
+side toggles' "when I let go it will stop" is read as `.safe = Brake` (a stop that resists back-driving; Coast would
+let a toggle drift) — the builder's word was "stop", Brake is this run's reading; (d) the front toggle named
+"flipper" — item 7; (e) the `bind()` refusal — now tested (item 11); (f) robot one's Tune TEST B on the host test
+plant: SUCCEEDED after 1.7 s against the first attempt's 1.766 s limit (`tune_program_test.cpp` :2272) — a thin
+margin on the placeholder rows; the review round's probe PRC (rows typed 0 in / 0 deg, 38 in / 1700 deg) kept it
+green, but watch it when station 13's rows are typed.
+
+**20. Merging onto main (docs minor) — for the coordinator, not done here (this tree's base is `9befdb3`):**
+move the changelog entry to the top of `## API 2.9`; the HA register's "7 of 228" and the ROB1-C2 paragraph's
+"With it, 228" become 231 (MIRROR1-A's HA-258..260); regenerate the briefing after rebuilding (next free HA-262);
+RMP1's brief "next free is HA-261" goes stale; re-run `robot_one_flipper_forms_example_test` on the merged tree
+(MIRROR1-A changed `toggle_visit.hpp`).
+
+**Mutations and probes (`mutations-r.log`; each RED on a fresh link unless a probe):** RV1 the compact row always
+chosen → RED (`mechRow.substr(4) == clawRow.substr(4)`); RV2 the row word's `memcpy` removed → RED (`starts_with("MECH
+")`); RV3 F / R swapped → RED (2); RV4 the clamp removed → RED (3); RV5 `!c.oneWay &&` removed from `bind()`'s check
+→ RED (did NOT throw); RV6 the one-button refusal's requires-clause cut to `Arm` → the harness RED, 3 of 4 (lift,
+pneumatic, flywheel — refused unnamed; the arm's still named); RV7 Drive's robot-one line reverted to "a DEFAULT --"
+→ RED (2); MH1 the home on `cascadeStall()` again → RED (11: D5's homing amps, T8 Succeeded / homed, Tune's HOME);
+MH2 `cascadeHomingStall()` reading the jam amps → RED (11); MC8r a given fact's source re-worded → RED (`builder ||
+chosen`); MC8b a later fact typed with no date → RED (the date check); MC8c a source "guessed …" → RED. Probes that
+must stay GREEN (the review's false alarms, now accepted): PR2 the hold volts typed `shulib Tune COPY, 2026-11-17`;
+PRC the rows typed `station 13 RECORD and a tape, the team's builder, 2026-11-16`; PR3 the homing push typed −5 V;
+PRB the placeholder push −3 V — all four GREEN over every robot-one and Tune case (38 cases each).
+
+**T6 — robot two's (and bench's, xdrive's) EIGHT packages, `9befdb3` vs this tree** (`scratch/rob1-c2/t6r/`: both
+trees built in turn at ONE path, `work/`, P0's method, `GIT_CEILING_DIRECTORIES`, every make capped; `t6r_report.txt`,
+`t6r_strings.txt`, `t6r_symbolic.txt`; the change copy's `src/ include/ firmware/ Makefile common.mk` = the
+worktree's, `diff -rq` empty):
+- **bench, xdrive, tank (Bench Tests), calibrate, autontest:** `.bin` sizes identical (71756 / 130004 / 153940 /
+  108136 / 248396); text / data identical; per-function disassembly modulo addresses **0 differing**; `.data` masked
+  0 bytes; `.rodata` masked 5-8 bytes (the build timestamps); `strings -a` of each `.bin` the same but for timestamps
+  (xdrive: one code-byte "string" gaining a tab).
+- **tune:** `.bin` 119944 both; one "differing function", `__screen_erase_veneer` (a linker veneer, 7 instructions
+  both — its target's order); `.rodata` masked 7 bytes and the symbolic compare only the timestamps.
+- **tank Drive and Competition: CHANGED, as the first run said they would.** `.bin` 177940 → 178080 and 229864 →
+  230000; text +138 bytes each (`arm-none-eabi-size`: 177929 → 178067, 229840 → 229978); `.rodata` +38 bytes —
+  NOT provable by the masked compare (size differs), so explained by hand with the symbolic compare: the ONLY
+  rodata additions are the string `%.23s: hold-to-run %s (one way), %d V` (37 characters + NUL) and the timestamps
+  (one `CSWTCH.235` "difference" is the tool's word grouping at a moved odd address: its 30 raw bytes are identical).
+  The functions: `DriverInputs::matchesThisRobot` now OUT of line (97 instructions — the `!c.oneWay` term; the base
+  inlined it into `bind`, 157 → 71); `mechanismControlLine` 153 → 169 (the one-way boot line); `tickHold` 192 → 194
+  (the `!h.oneWay` guard on the back button); `runDrive` 1110 → 1113 and `runCompetition` 990 → 993 (`ldrb [r3,#57];
+  cmp; bne` — the inlined `takes()` reading `oneWay` before a control's back button, plus literal-pool offsets moved
+  by 8); `__competition_get_status_veneer` (order). Robot two never sets `oneWay` — its driver file
+  (`src/team/robot_two_driver.hpp`, `git diff 9befdb3` empty, as are `autons.hpp` / `autons.cpp`) holds two
+  four-argument `whileHeld`s, which leave the field at its `false` default — so no new branch is taken: **robot two behaves as before; its two driver packages
+  are 138 bytes larger.** T6 (a): `src/robots/mechanism_table.hpp` lines 1-138 identical to the base (robot two's
+  region ends at :135).
+
+**Prose review (grepped, hits read):** the brief's three — `only robot two\|robot two's autons are\|ROBOT=tank`
+over docs/guide, docs/*.md, README.md, src/: 46 hits (robot two's build commands in guides 07/16/17/18/21, the
+roadmap, the changelog, `src/build_selection.hpp`'s refusals — "only robot two and robot one have a driver file",
+still true — `src/main.cpp`, the programs' banners): none stale; `simulator` in guide 21 and the facts form: 0;
+`G1-PROGRESS` in `ROB1-*`: only this log's header note and old entries quoting the check, and the brief. This round's
+own: "homing signature" / "ONE signature" / "same three facts" / "HOME's signature" across docs (guide 21 :164-180
+rewritten; chapter 18 :204-218, guide 11 :336-339, the HA register :5402 already say a homing signature is its own,
+0.45 A to start — consistent); "does not exist in this project's records" (fixed in the four files above; dated
+history kept); "ROB1-C2's builder" (0 left); "safe to hold" (0 left); "gearing turns freely" (guide 21, the form,
+the worksheet — all reworded); "default controls" (guide README fixed); "two buttons" in the header and docs/api
+(fixed). Not touched, with why: guide 18 (its flipper words are generic; the one-button bullet already there),
+`build-order.md` and the roadmap's "You are here" (the coordinator's pointers at the merge).
+
+**Gates on the final tree** (logs in `scratch/rob1-c2/`): host build exit 0 (`build-final-r.log`, the doc gates
+inside); `suite_run.py green` — **green, 3,710 cases, 3,862,242 assertions** (`suite-final-r.log`; 3,708 + the two
+new cases); the compile-refusal harness **295 of 295** (`ctest-r.log`; 292 + the three new TUs; TUs 295 = CTests
+295); `src_build_gate.py check` **PASS — all 14 builds** (`srcgate-r.log`): robot two's, bench's and xdrive's 8 link;
+robot one's Bench Tests and Calibrate refuse naming exactly ONE fact; Drive, the Auton Tester, Competition and Tune
+exactly TEN (item 15's list); all six link in the gate's typed copy (12 owed facts typed there only); `self-test` OK
+(377 detector cases, `gate-self-r.log`, one run under a 58-minute timeout); `git diff -- Makefile src/ common.mk`
+holds no `(self-test plant` (the self-test's restores bumped `src/main.cpp`'s and others' times only: `src/
+include/ test/` are byte-identical to `mtree/`'s, so the suite was rebuilt and re-run after it); no
+`build/src-gate-facts/` left; the ARM header gate over all 255 headers exit 0; the CI PROS-free and sim-layering
+greps and the removability grep empty; api_doc_tool self-test / check-coverage (6,390 entities) / check-fresh /
+check-examples (860 lines verbatim) / check-removability exit 0; briefing_status self-test and `check` current
+(regenerated after a fresh link); the staleness audit clean (`cheap-gates-final.log`). Not committed.
+
+## ROB1-C2 — the coordinator's merge verification *(2026-11-16, ~01:40)*
+
+- **Squash-merged from `rob1-c2`** (transport `116bf65`, base `9befdb3`) onto `28a7497` (MIRROR1-A and the Tune label fix
+  landed since). Conflicts: the register (both additions — MIRROR1-A's HA-258..260 and this run's HA-261; HA-255 now
+  **reported**; **7 of 231** settled), the generated API pages and the briefing (regenerated). The changelog entry moved to
+  the top of `## API 2.9` (the one-button `whileHeld` is additive in an unfrozen layer — no bump).
+- **Typed at the merge by the coordinator:** `kRightTogglePort = 9` — the builder, 2026-11-15: "9 is right side and left is
+  2" (equal to its placeholder, so its source says "same as the placeholder, checked"). **Bench Tests (`one`) and
+  Calibrate (`one-calibrate`) now LINK on the real tree**; Drive, the Auton Tester, Competition and Tune refuse naming
+  exactly their 9 Stage B facts (station 13's rows, the toggles' run directions, the pistons' open levels, the three cascade
+  volts).
+- **Gates — the FAST set for tonight's upload** (`scratch/rob1c2_merge_fast.sh`, log `logs/rob1c2_merge_fast.out`, plus a
+  rebuild after the briefing was regenerated first): suite green (**3,762 cases**); `src_build_gate.py check` **PASS — all
+  14 builds** (4 robot-one builds refused as they must, Bench Tests and Calibrate linking); the ARM header gate exit 0;
+  `ctest` compile refusals **295 of 295**; api check-examples / fresh / coverage / removability; staleness; briefing current;
+  no plant, no untracked file. **NOT yet run on the merged tree (run right after this commit, logged below when done):**
+  the src gate's self-test and the coordinator's own hand mutations. The builder's 12+ mutations (MC1–MC9b…) were red on
+  its tree.

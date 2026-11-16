@@ -16,12 +16,16 @@
 //     r.startHome(cascade, 2_s);                  // home the cascade while the first leg drives...
 //     r.waitUntilDone(cascade, 2_s);              // ...and wait for the home to FINISH: a move sent while
 //                                                 // it is still homing replaces it, and stops NOT_HOMED
-//     r.move(cascade[facts::lv(2).name], 2_s);    // the cascade to its third level, bounded
-// -- no auton here steps the cascade yet: which level when is the team's route.
+//     r.move(cascade.to(18_in), 2_s);             // the cascade to a height, bounded (it has no levels yet --
+//                                                 // the builder: manual for now; once levels are typed,
+//                                                 // r.move(cascade[facts::lv(0).name], 2_s))
+//     r.set(claw["open"]);  r.set(ramp["down"]);  // the pistons, by their positions' names
+// -- no auton here steps a mechanism yet: which one when is the team's route. (Until station 13 says which
+// line level opens each piston, the Auton Tester and Competition refuse to build, by name.)
 //
-// NOTHING HERE HAS RUN ON A ROBOT; robot one does not exist in this project's records. On a robot-one
-// build the cascade's numbers are its facts ledger's (src/robots/robot_one_facts.hpp) — the Auton Tester
-// and Competition REFUSE to build while any it needs is OWED.
+// NOTHING HERE HAS RUN ON A ROBOT; robot one's facts are typed from its builder's answers (2026-11-15), not
+// measured. On a robot-one build the cascade's numbers are its facts ledger's (src/robots/robot_one_facts.hpp)
+// — the Auton Tester and Competition REFUSE to build while any it needs is OWED.
 
 #include "team/robot_one_autons.hpp"
 

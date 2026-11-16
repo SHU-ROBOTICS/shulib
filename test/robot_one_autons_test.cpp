@@ -1,5 +1,6 @@
 // ROBOT ONE'S STARTER AUTONS (chunk ROB1-A, 2026-11-11; the ROB1 brief's D8 and test T12). Say "host test
-// plant", never "simulator". Robot one does not exist in this project's records: nothing here has run on it.
+// plant", never "simulator". Robot one's facts are typed from its builder's answers (2026-11-15), not
+// measured: nothing here has run on it.
 //
 // WHAT THIS FILE TRIES TO BREAK
 //   * THE SKILLS KIND (T12, GM23): the only competition on Nov 21 is skills, so robot one's 40 in is a SKILLS

@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 230 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 231 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -277,6 +277,13 @@
 > differences are not mirrored, and each robot's real position near the diagonal stays within half the pair
 > check's 6 in gap of its plan, the robot inside the check's 15 in square about its tracking centre (HA-260,
 > invented). **None is measured.** With them, 230.
+>
+> **ROB1-C2 (robot one's real mechanisms; built 2026-11-15) added ONE — HA-261** (the next free above every held
+> number: HA-257 stays HELD for G1-B, and HA-258..HA-260 are MIRROR1-A's): that each of robot one's three pistons
+> is driven by ONE 3-wire line through a valve that holds it in one fixed position while unpowered, so starting
+> every piston in its Low position moves nothing at power-up (reported — one letter each; which position is the
+> unpowered one is station 13's). It also moved **HA-255** from a guess to **reported**: the builder, 2026-11-15,
+> "the two motors face each other". **None is measured.** With it, 231.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither is **HA-181** (G3a, the robot panel: its amended brief), held the same way (the
 > mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
@@ -538,10 +545,11 @@
 | HA-252 | Robot one is a TANK — wheels on two sides, no strafe — like robot two (the builder: "both robots identical") | **reported** (never seen) | the facts form's A1, at the robot |
 | HA-253 | Robot one carries an inertial sensor (IMU) on a smart port — the library drives a tank only with one | **unknown** (the builder named only AI Vision and rotation sensors) | the facts form's A4; Bench Tests' census on robot one |
 | HA-254 | Between two measured rows, robot one's cascade height is close to straight in its output angle (a string winds onto its spool in layers, and stretches) | reasoned · **unmeasured** | the facts form's C7: a row at every level; a mid-row tape check at station 13 |
-| HA-255 | Robot one's two cascade motors face each other (`{Forward, Reversed}`) | **guess** (the builder's look, not yet given) | Bench Tests' station 13 direction check on robot one |
+| HA-255 | Robot one's two cascade motors face each other (`{Forward, Reversed}`) | **reported** (the builder, 2026-11-15: they face each other — port 10 `Forward`, port 1 `Reversed` as he sees them) | Bench Tests' station 13 direction check on robot one |
 | HA-258 | The event's field is set up to Appendix A and Figure VURS1, so the red wall's and the right wall's Quadrants are mirror images across F1's y = -x (goals, Toggles, Pins, tape) — each element within `<T5>`a's +-1.0 in, so a mirrored target can land up to ~2 in from robot two's element where robot one's was tuned to its own — and the centre goal, two yellow Pins and the red/right corner's Load Zone sit ON the diagonal | **reasoned** (the manual's drawings A10, A11, VURS1 — the Pins by pixel, about +-1 in; v2.1's drawings not re-measured) | On the event's field: tape the two red goals and two Toggles from their walls |
 | HA-259 | Robot one's build is left-right symmetric for every part a route uses at the field: a part off the centre line (an intake, a flipper, a claw, the camera's `left`, the two side sensors' `forward`) lands twice its offset from the reflection of robot one's | **unknown** | MIRROR1 Step 0.2 (every part's sideways offset), Step 0.3 (both side sensors' mounts) |
 | HA-260 | The drivetrain's own left/right differences are NOT mirrored: robot two's arrivals differ from the reflection of robot one's by its own asymmetry (host test plant, a 9 % weak side: 0.56 in, 0.44 s) — and each robot's real position near the diagonal stays within half the pair check's gap (3 in) of its plan, and its whole robot inside the check's 15 in square centred on its tracking centre, so a route that passes the 6 in check keeps the two robots apart on the field | **invented** (the host plant's magnitudes; the 3 in is a chosen margin, unmeasured; the footprint's place about the tracking centre unmeasured) | MIRROR1 Step 0.4 on both robots; Step 0.5 (both together, slowly first); the tracking centre's place inside each robot's footprint, taped with Step 0.2 |
+| HA-261 | Each of robot one's three pistons (the claw, the front toggle, the ramp) is driven by ONE 3-wire line through a valve that holds it in ONE fixed position while unpowered — so a piston started in its Low position does not move at power-up | **reported** (the builder named one letter each, and "one solenoid" for the front toggle's two pistons; which position is the unpowered one is unknown until station 13) | Bench Tests' station 13 fire on robot one: one cable per valve, and which way each goes |
 
 ---
 
@@ -2144,6 +2152,8 @@ code rests on about the robot itself.
   (two motors fighting for 250 ms, 2.4 A for 250 ms, the stall signature, a 3 s jog). In the programs that bind
   the mechanism service (Drive, the Auton Tester, Competition, and shulib Tune — which may change the cap live
   and puts the robot file's back on RESET and EXIT, HA-220), the cascade's current cap bounds the pull.
+  *Update (ROB1-C2, 2026-11-15):* **reported** — the builder: the two motors face each other (port 10 `Forward`,
+  port 1 `Reversed` as he sees them); typed with "same as the placeholder, checked". Station 13 still settles it.
 
 ---
 
@@ -2336,6 +2346,30 @@ not exist yet, and nothing here has run on a robot.**
   square).
   *Blast radius if wrong:* the two robots touch near the diagonal. **Contained:** the suite refuses a route
   whose plan comes within 6 in; `isMirrored(ctx)` sends one robot to what lies on the diagonal.
+---
+
+### ROB1-C2's addition — robot one's pistons (2026-11-15)
+
+ROB1-C2 declared robot one's six mechanisms from its builder's answers of 2026-11-15. One belief about the robot
+itself is new: what its pistons do with no power.
+
+- [ ] **HA-261 — each of robot one's pistons rests in one fixed position, unpowered, on ONE line.**
+  *Claim:* the claw (3-wire A), the front toggle (B — two pistons on one solenoid) and the ramp (C) are each
+  driven by ONE 3-wire line through a valve that holds the piston in one fixed position while the line is Low
+  (the solenoid unpowered). So declaring each piston's start and safe position as its Low one — whichever name
+  that is — moves nothing at power-up or when a run ends.
+  *Source:* `src/robots/mechanism_table.hpp` (robot one's `claw`, `flipper`, `ramp`: `.start` / `.safe` =
+  `facts::unpoweredPosition(...)`); `src/robots/robot_one_facts.hpp` (`kClawLine`, `kFlipperLine`, `kRampLine`,
+  typed; `kClawOpenLevel`, `kFlipperOpenLevel`, `kRampDownLevel`, OWED); `test/robot_one_driver_test.cpp` (every
+  line is MADE at Low).
+  *Confidence:* **reported** — one letter each from the builder; whether each valve is single or double (one cable
+  or two), and which position is the unpowered one, are unknown until station 13.
+  *Settle:* Bench Tests' station 13 on robot one: count the cables from each valve, fire each piston, and say
+  which way it went (the facts form's G22-G24).
+  *Blast radius if wrong:* a valve on TWO lines has a second line nobody declared — the piston may not move, or
+  sit between; a wrong guess of which level opens a piston swaps its two NAMES (`claw["open"]` would close it in
+  an auton). **Contained:** the opening levels are OWED, so the Auton Tester, Competition and Drive refuse to
+  build until station 13's answer is typed; a piston started at Low cannot fire at power-up whatever its valve.
 ---
 
 ## Robot 2 — the 2026 tank chassis (added 2026-09-14, R3b Parts 1–3)

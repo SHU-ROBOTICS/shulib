@@ -39,6 +39,7 @@
 
 #include "doctest.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -1343,20 +1344,35 @@ TEST_CASE("ROB1-A T10: robot one's cascade port that the RECORD (or the typed ta
 TEST_CASE("ROB1-A T10: robot one's declared cascade motors are LABELLED as robot one's -- 'mechanism motors', never 'claw pivots' -- and robot two's default call is unchanged") {
     // BUG CAUGHT (GM21): robot one's port check calling the cascade's motors "claw pivots"; robot two's
     // label moved by the per-robot words (its tests and its packages carry it byte for byte).
+    // (ROB1-C2: robot one declares SIX mechanisms — the cascade's two motors, the side toggles' two, three
+    // pistons on 3-wire lines — so its declared MOTOR ports are four.)
     const int p1 = shulib::bench::robot_one_facts::kCascadePorts.value().first;
     const int p2 = shulib::bench::robot_one_facts::kCascadePorts.value().second;
-    FakeBlockSource card{encoded(robotTwoRecord())};
+    const int p3 = shulib::bench::robot_one_facts::kRightTogglePort.value();
+    const int p4 = shulib::bench::robot_one_facts::leftTogglePort();
+    // Robot two's record and census stand in for robot one's drive (no robot-one record exists), moved off robot
+    // one's mechanism ports: robot two's radio on 1 and IMU on 2 are robot one's cascade and a side toggle, so
+    // this record's IMU is on 19 instead (a port robot two's census leaves empty).
+    DrivetrainDescription record = robotTwoRecord();
+    record.imuPort = 19;
+    FakeBlockSource card{encoded(record)};
     FakeDeviceRegistry census = robotTwoCensus();
-    census.setKind(p1, DeviceKind::Motor);
-    census.setKind(p2, DeviceKind::Motor);
+    census.setKind(19, DeviceKind::Imu);
+    for (const int p : {p1, p2, p3, p4}) {
+        census.setKind(p, DeviceKind::Motor);
+    }
     const Boot b = runBootOne(card, census, robotTwoTableSigns());
     REQUIRE_FALSE(b.lines.empty());
     CAPTURE(b.lines[0]);
-    CHECK(b.lines[0].find("mechanism motors (declared, not drive motors): " + std::to_string(p1) + " " +
-                          std::to_string(p2)) != std::string::npos);
+    int sorted[4] = {p1, p2, p3, p4};  // the line lists them in PORT order
+    std::sort(sorted, sorted + 4);
+    CHECK(b.lines[0].find("mechanism motors (declared, not drive motors): " + std::to_string(sorted[0]) + " " +
+                          std::to_string(sorted[1]) + " " + std::to_string(sorted[2]) + " " +
+                          std::to_string(sorted[3]) + ".") != std::string::npos);
     CHECK(b.lines[0].find("claw") == std::string::npos);
     CHECK(b.out.ok);
-    CHECK(static_cast<int>(b.out.built.config.mechanismCount) == 1);
+    CHECK(static_cast<int>(b.out.built.config.mechanismCount) ==
+          static_cast<int>(shulib::bench::robot_one::kRobotOneMechanisms.count));
     // Robot two's label is the constant, verbatim, and the default words are robot two's in the host
     // (bench) build.
     CHECK(std::string_view{shulib::bench::kDeclaredMotorLabel} == "claw pivots (declared, not drive motors)");

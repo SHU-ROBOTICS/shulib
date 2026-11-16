@@ -2690,54 +2690,62 @@ measurement.
 
 ---
 
-## Station R1 — ROBOT ONE: THE FACTS FORM  *(robot one, the cascade robot — added ROB1-A, 2026-11-11; NOTHING HAS RUN ON ROBOT ONE)*
+## Station R1 — ROBOT ONE: THE FACTS FORM  *(robot one, the cascade robot — added ROB1-A, 2026-11-11; brought up to date by ROB1-C2's review round, 2026-11-15; NOTHING HAS RUN ON ROBOT ONE)*
 
-Robot one is in the code with every number about its cascade **OWED** (`src/robots/robot_one_facts.hpp`), and
-`make ROBOT=one PROGRAM=…` REFUSES, naming each owed fact the program needs. This station is where the builder's
-answers are taken. The form is `docs/robot-facts-form.md` (one page); the coordinator types each answer as
+Robot one is in the code; since ROB1-C2 (2026-11-15) the builder's first answers are TYPED in
+`src/robots/robot_one_facts.hpp` and what nobody has said is still **OWED** — `make ROBOT=one PROGRAM=…` REFUSES,
+naming each owed fact the program needs. This station is where the remaining answers are taken. The form is
+`docs/robot-facts-form.md` (one page); the coordinator types each answer as
 `typed(<placeholder kept>, <value>, …, "<who, how, when>")` (guide chapter 21).
 
-- [ ] **R1.0 — Section A and B BEFORE any program** (no program needed — the brain's own Devices screen): the
-      tank question (HA-252), the drive motors' cartridge, **the IMU and its port** (HA-253 — no IMU, nothing
-      drives: stop and tell the coordinator), every port 1–21 with **every motor that is not a drive motor
-      marked**, every 3-wire port.
-- [ ] **R1.1 — Stage A typed** (B6, C1, C2, C6 (i) "chosen, not measured", D16 the flipper's kind — "not on
-      the robot yet" is an answer), AND **A2 (the drive cartridge) and A4 (the IMU's port) typed into
-      `kRobotOneChassis`** (`src/robots/chassis_table.hpp`), its `provenance` naming who read them and when
-      — Calibrate cannot discover either (it refuses an unset cartridge; the boot refuses a tank with no
-      IMU). **A4 goes in the SAME edit as B6 and C1** — the facts file's placeholder motor ports are 8 and 9, and
-      a real IMU on either, typed before them, fails every build (robot two's and the host suite's too) as
-      `a_mechanism_is_wired_to_a_drive_port_or_the_imu_port_of_its_robots_chassis_table`. Then `make ROBOT=one` and `make ROBOT=one PROGRAM=calibrate` link — and robot two's builds still
-      do (robot one's region compiles in every build: run the src build gate's fourteen).
+- [x] **R1.0 — Section A and B BEFORE any program** (the brain's own Devices screen): answered by the builder,
+      2026-11-15 — the drive cartridge BLUE; the non-drive motors 10 and 1 (the cascade), 9 and 2 (the side
+      toggles); 3-wire A (the claw), B (the front toggle), C (the ramp). The IMU (HA-253) is NOT asked here:
+      Calibrate finds it on the brain's device list (an IMU must be on the robot — none, nothing drives).
+- [~] **R1.1 — Stage A typed** (2026-11-15, ROB1-C2): B6, C1, C2, C6 (i) "chosen, not measured", D16 (the
+      front toggle — the coordinator's assignment), G21's ports and cartridge, G22–G24's letters; **A2 (the
+      drive cartridge, BLUE) typed into `kRobotOneChassis`** with its `provenance`. The IMU's port is NOT typed
+      (Calibrate discovers it). **Still owed: which side-toggle port (9 or 2) is the RIGHT one** — then
+      `make ROBOT=one` and `make ROBOT=one PROGRAM=calibrate` link; run the src build gate's fourteen (robot
+      one's region compiles in every build, robot two's too).
 - [ ] **R1.2 — Bench Tests (slot 3) on robot one:** the census matches R1.0; station 13's direction check on each
-      cascade motor (HA-255). **Station 13 does not apply the cap yet (ROB1-C)** — keep the ceiling at 3 V
-      (never R1) and never power the cascade into its top stop (R1.4).
+      cascade motor (HA-255 — port 10 taken as Forward); **each side toggle run once** — which way is "run"
+      (G21; briefly, never held against its stop: station 13 runs it UNCAPPED); **each piston fired once** —
+      did the claw open or close, the front toggle go out or back, the ramp go down or up (G22–G24, HA-261:
+      and which position each rests in, unpowered). **Station 13 does not apply the cap yet (ROB1-C)** — keep
+      the ceiling at 3 V (never R1) and never power the cascade into its top stop (R1.4).
 - [ ] **R1.3 — Calibrate (slot 4) on robot one** (Station G's steps; its own SD card, labelled — the record names
       no robot yet, ROB1-B).
-- [ ] **R1.4 — the cascade measured at station 13** (C7): RECORD at the bottom stop and at each level, a taped
-      height each — read `output … deg`, never the inches (placeholders until Stage B is typed). **The top
-      stop, until ROB1-C caps station 13:** jog up at 3 V to just short of it and stop; close the last bit by
-      hand only if the gearing turns freely by hand, then tape and RECORD; if not, the top row waits for
-      ROB1-C. C8: the hold volts, the homing push and the volts before homing (each measured or "chosen, not
-      measured"). Stage B typed; then Drive, the Auton Tester, Competition and shulib Tune (slot 7 — the
-      hold volts and the homing push tuned live there, then re-typed from its COPY) link.
+- [ ] **R1.4 — the cascade measured at station 13** (C7): no levels yet (manual for now), so RECORD at the
+      **bottom stop** and the **top stop** — two rows, the library's least — a taped height each; read
+      `output … deg`, never the inches (placeholders until Stage B is typed). **The top stop, until ROB1-C caps
+      station 13:** jog up at 3 V to just short of it and stop; close the last bit by hand only if the cascade
+      moves freely by hand (direct drive: the motors turn with it), then tape and RECORD; if not, the top row
+      waits for ROB1-C. C8: the hold volts, the homing push (it must draw more than the homing signature, 0.45 A
+      chosen, when it stalls) and the volts before homing (each measured or "chosen, not measured"). Stage B
+      typed; then Drive, the Auton Tester, Competition and shulib Tune (slot 7 — the hold volts, the homing push
+      and its signature tuned live there; HOME must end SUCCEEDED; then re-typed from its COPY) link.
 
 | Item | Answer | Who / how / date |
 |---|---|---|
-| A1 tank? | | |
-| A2 drive motors per side, cartridge | | |
-| A4 IMU, port | | |
-| B6 non-drive motor ports | | |
-| C1 cascade ports, cartridge, mirrored? | | |
-| C2 teeth (motor, spool) | | |
-| C5 levels (name, height) | | |
-| C6 (i) starting cap / signature | | |
-| C7 rows (height, output deg) | | |
-| C8 (i) hold volts | | |
-| C8 (ii) homing push volts (negative = down) | | |
-| C8 (iii) volts before homing | | |
-| D16 flipper kind | | |
-| E18 camera port, mount | | |
+| A1 tank? | yes (HA-252, reported) | the builder, earlier (HA-252) |
+| A2 drive motors per side, cartridge | cartridge **BLUE** (per side: Calibrate discovers) | the team's builder, 2026-11-15, read off the robot |
+| A4 IMU, port | not asked — Calibrate discovers it | — |
+| B6 non-drive motor ports | **10, 1, 9, 2** | the team's builder, 2026-11-15, read off the robot |
+| C1 cascade ports, cartridge, mirrored? | **10 and 1, BLUE, facing each other** (port 10 taken as Forward — the coordinator) | the team's builder, 2026-11-15 |
+| C2 teeth (motor, spool) | **direct** (typed 1:1) | the team's builder, 2026-11-15 |
+| C5 levels (name, height) | **none yet** ("for now it will be manual") | the team's builder, 2026-11-15 |
+| C6 (i) starting cap / signature | **2.0 A / 1.5 A below 5 rpm for 0.3 s**; the homing's own signature **0.45 A** | chosen, not measured — the coordinator, 2026-11-15 (the homing's: the coordinator's ROB1-C2 run) |
+| C7 rows (height, output deg) | owed — station 13 (bottom stop, top stop) | |
+| C8 (i) hold volts | owed | |
+| C8 (ii) homing push volts (negative = down) | owed | |
+| C8 (iii) volts before homing | owed | |
+| D16 flipper kind | **pneumatic — the front toggle (B)** | the coordinator, 2026-11-15, from the builder's "B will be the Forward Toggle pistons" |
+| E18 camera port, mount | owed (gates no build) | |
+| G21 side toggles: ports, right one, cartridge, directions | **9 and 2, GREEN, direct**; which is the right: **owed**; directions: **owed** (station 13); starting cap **1.5 A** (chosen) | the team's builder, 2026-11-15 (the cap: the coordinator's ROB1-C2 run) |
+| G22 claw: letter, opens on, stroke | **A**; which level opens it: owed (station 13); stroke 0.5 s (chosen) | the team's builder, 2026-11-15 |
+| G23 front toggle: letter, out on, stroke | **B** (two pistons, one solenoid); which level pushes it out: owed; stroke 0.5 s (chosen) | the team's builder, 2026-11-15 |
+| G24 ramp: letter, down on, stroke | **C**; which level puts it down: owed; stroke 0.5 s (chosen) | the team's builder, 2026-11-15 |
 
 ## DO NOT
 

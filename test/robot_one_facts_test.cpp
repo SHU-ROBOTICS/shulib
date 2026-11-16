@@ -1,5 +1,6 @@
-// ROBOT ONE'S FACTS LEDGER (chunk ROB1-A, 2026-11-11; the ROB1 brief's D3 (a), tests T2 and T3). Say "host test
-// plant", never "simulator". Robot one does not exist in this project's records: every fact is OWED.
+// ROBOT ONE'S FACTS LEDGER (chunk ROB1-A, 2026-11-11; the ROB1 brief's D3 (a), tests T2 and T3; ROB1-C2,
+// 2026-11-15: the builder's first answers typed). Say "host test plant", never "simulator". Nothing has run on
+// robot one: a typed fact is the builder's word or a starting value chosen for the bench, never a reading.
 //
 // WHAT THIS FILE TRIES TO BREAK
 //   * THE LEDGER IS COMPLETE AND HONEST (T2): every fact in src/robots/robot_one_facts.hpp has EXACTLY ONE
@@ -18,6 +19,12 @@
 //     ROB1-A, RV-T): needsStageB() has one case per enumerator src/build_selection.hpp declares — walked
 //     from that file's text, so a program added later (TUNE1-B1's Tune was the first) is seen here — and no `default`;
 //     every one but Bench Tests and Calibrate needs Stage B (fail closed).
+//   * ROB1-C2's TYPING (2026-11-15): every fact the builder gave that night, and every starting value chosen for
+//     the bench, is TYPED — none slipped back to owed — and every typed fact's source is one of the two the
+//     ledger allows ("the team's builder, 2026-11-15 …" or "chosen, not measured -- …"), so a guess typed with
+//     another source turns this red; what is still owed is only what nobody has said (Bench Tests and Calibrate
+//     owe exactly ONE fact: which port is the right side toggle). The cascade's levels may be EMPTY (manual for
+//     now) — a preset bound to an unnamed level is refused at build (test/compile_refusals/s83).
 
 #include "doctest.h"
 
@@ -180,6 +187,9 @@ std::set<std::string> bareWords(const std::string& regionText) {
 const std::set<std::string> kStructuralWords = {
     "inline", "constexpr", "Lift", "cascade", "MechanismTable", "kRobotOneMechanisms", "mechanisms", "wire",
     "motors", "gears", "measured", "Hold", "constantGravity", "units", "homeByStall", "facts",
+    // ROB1-C2's five: two power mechanisms (braked when let go — the builder's "it will stop") and three pistons
+    // (the claw grabs a piece), wired by smart port and by 3-wire line.
+    "Power", "rightToggle", "leftToggle", "Brake", "Pneumatic", "claw", "flipper", "ramp", "grabs", "lines",
 };
 
 }  // namespace
@@ -281,22 +291,28 @@ TEST_CASE("robot one facts (T3): Stage A for all six programs, Stage B for Drive
         CAPTURE(static_cast<int>(p));
         CHECK(facts::owedFor(p) == expect);
     }
-    // Today: every fact is owed, so Bench Tests and Calibrate owe exactly the Stage A facts, the three
-    // driving programs and Tune Stage A and B — and none owes a Recorded fact.
+    // Bench Tests and Calibrate owe exactly the OWED Stage A facts, the three driving programs and Tune the owed
+    // Stage A and B — and none owes a Recorded fact.
     int a = 0;
     int b = 0;
     int recorded = 0;
+    int owedA = 0;
+    int owedB = 0;
     for (const FactSummary& f : facts::kRobotOneFacts) {
         a += f.needed == Stage::A ? 1 : 0;
         b += f.needed == Stage::B ? 1 : 0;
         recorded += f.needed == Stage::Recorded ? 1 : 0;
+        owedA += (f.needed == Stage::A && !f.typed) ? 1 : 0;
+        owedB += (f.needed == Stage::B && !f.typed) ? 1 : 0;
     }
-    CHECK(a == 10);
-    CHECK(b == 5);
+    CHECK(a == 17);  // ROB1-A's ten, and ROB1-C2's side toggles (four) and pistons' letters (three)
+    CHECK(b == 14);  // ROB1-A's five, and ROB1-C2's side toggle directions (two), pistons' levels and strokes (six),
+                     // and the homing's own stall signature (the review of ROB1-C2)
     CHECK(recorded == 2);
-    CHECK(facts::owedFor(Program::BenchTests) == a);
-    CHECK(facts::owedFor(Program::Drive) == a + b);
-    CHECK(facts::owedFor(Program::Tune) == a + b);  // the gate's one-tune row refuses with all fifteen
+    CHECK(facts::owedFor(Program::BenchTests) == owedA);
+    CHECK(facts::owedFor(Program::Calibrate) == owedA);
+    CHECK(facts::owedFor(Program::Drive) == owedA + owedB);
+    CHECK(facts::owedFor(Program::Tune) == owedA + owedB);
 }
 
 // ═══ T2 — the ledger is complete and honest ══════════════════════════════════════════════
@@ -307,7 +323,7 @@ TEST_CASE("robot one facts (T2): every fact has EXACTLY ONE check right below it
     // the pairing in the source); a second check for one fact.
     const std::string code = ledgerCode();
     const std::vector<SourceFact> all = sourceFacts(code);
-    REQUIRE(all.size() == 17);
+    REQUIRE(all.size() == 33);
     const std::regex check{R"re(ROBOT_ONE_CHECK\s*\(\s*(k\w+)\s*,\s*"((\\.|[^"\\])*)"\s*\))re"};
     std::vector<std::pair<std::string, std::string>> checks;
     for (auto it = std::sregex_iterator(code.begin(), code.end(), check); it != std::sregex_iterator(); ++it) {
@@ -402,6 +418,10 @@ TEST_CASE("robot one facts (T2): a typed fact carries a real source of its own, 
     // a value is the same as itself, and differs when any ONE field differs.
     static_assert(facts::same(1.0, 1.0) && !facts::same(1.0, 1.5));
     static_assert(facts::same(3, 3) && !facts::same(3, 4));
+    static_assert(facts::same('A', 'A') && !facts::same('A', 'B'));  // a 3-wire letter (ROB1-C2)
+    static_assert(facts::same(true, true) && !facts::same(true, false) && !facts::same(false, true));  // a line level
+    static_assert(facts::same(shulib::mechanism::words::Forward, shulib::mechanism::words::Forward) &&
+                  !facts::same(shulib::mechanism::words::Forward, shulib::mechanism::words::Reversed));  // one motor
     static_assert(facts::same(facts::FlipperKind::PassiveBar, facts::FlipperKind::PassiveBar) &&
                   !facts::same(facts::FlipperKind::PassiveBar, facts::FlipperKind::MotorArm));
     static_assert(facts::same(Length{2.0}, Length{2.0}) && !facts::same(Length{2.0}, Length{2.5}));
@@ -503,4 +523,112 @@ TEST_CASE("robot one facts (T2): every number in robot one's mechanism region co
         CHECK_MESSAGE(!nothingTyped, "robot one's chassis table has the IMU port or the cartridge typed, and "
                                      "its provenance still says 'nothing typed' -- say who read it and when");
     }
+}
+
+// ═══ ROB1-C2 — the builder's first answers, typed ═══════════════════════════════════════════
+
+TEST_CASE("robot one facts (ROB1-C2): every fact the builder gave on 2026-11-15, and every starting value chosen for the bench, is TYPED -- each with the builder's words or 'chosen, not measured'; every other typed fact says who, how and WHEN") {
+    // BUG CAUGHT: a fact the builder gave left (or put back) OWED — robot one's builds would refuse for nothing;
+    // one of that night's facts whose source is neither the builder's words nor "chosen, not measured" — a
+    // guess typed as a fact (landmine 17); Bench Tests or Calibrate waiting on more than the one fact nobody
+    // has said. NOT a bug (the review of ROB1-C2): a fact typed LATER — station 13's rows, a Tune COPY — in its
+    // own words and on its own date ("shulib Tune COPY, 2026-11-17"): the ledger's banner asks only <who, how,
+    // when>, so for those this test asks for a date and no "guess", never tonight's two wordings.
+    const std::set<std::string> given = {
+        "every motor port the Devices screen lists that is not a drive motor",
+        "the cascade's motor ports",
+        "the cascade motors' directions",
+        "the cascade motors' cartridge",
+        "the cascade's gear teeth, motor then spool",
+        "the cascade's starting stall signature, amps",
+        "the cascade's starting stall signature, below this motor rpm",
+        "the cascade's starting stall signature, lasting this long",
+        "the cascade's starting current cap per motor, amps",
+        "the flipper's kind",
+        "the side toggles' motor ports, either order",
+        "the side toggles' cartridge",
+        "the side toggles' starting current cap per motor, amps",
+        "the claw's 3-wire port",
+        "the front toggle's 3-wire port (the flipper)",
+        "the ramp's 3-wire port",
+        "the cascade's levels, by name and stack height",
+        "the claw's stroke time",
+        "the front toggle's stroke time",
+        "the ramp's stroke time",
+        "the cascade's homing stall signature, amps",
+    };
+    std::set<std::string> typedNames;
+    for (const SourceFact& f : sourceFacts(ledgerCode())) {
+        CAPTURE(f.var);
+        if (!f.typed) {
+            continue;
+        }
+        typedNames.insert(f.name);
+        if (given.count(f.name) == 1) {
+            const bool builder = f.source.rfind("the team's builder, 2026-11-15", 0) == 0;
+            const bool chosen = f.source.rfind("chosen, not measured -- ", 0) == 0;
+            CHECK_MESSAGE((builder || chosen),
+                          "a fact typed on 2026-11-15 has the builder's words or 'chosen, not measured' as its source: ",
+                          f.source);
+        } else {
+            CHECK_MESSAGE(std::regex_search(f.source, std::regex{R"(20\d\d-\d\d-\d\d)"}),
+                          "a typed fact's source says WHEN (a date): ", f.source);
+            CHECK_MESSAGE(f.source.find("guess") == std::string::npos, "a typed fact is never a guess: ", f.source);
+        }
+    }
+    for (const std::string& name : given) {
+        CAPTURE(name);
+        CHECK(typedNames.count(name) == 1);
+    }
+    // The facts nobody has said are the ONLY Stage A owed: which port is the right side toggle.
+    std::set<std::string> owedA;
+    for (const FactSummary& f : facts::kRobotOneFacts) {
+        if (!f.typed && f.needed == Stage::A) {
+            owedA.insert(f.name);
+        }
+    }
+    CHECK(owedA.size() <= 1);
+    if (owedA.size() == 1) {
+        CHECK(*owedA.begin() == "the right side toggle's port");
+    }
+    CHECK(facts::owedFor(Program::BenchTests) == static_cast<int>(owedA.size()));
+    CHECK(facts::owedFor(Program::Calibrate) == static_cast<int>(owedA.size()));
+}
+
+TEST_CASE("robot one facts (ROB1-C2): the typed values are the builder's -- ports 10 and 1 facing each other, blue, direct; the side toggles 9 and 2, green; the pistons on A, B and C; the front toggle the flipper") {
+    // BUG CAUGHT: a typo in a typed fact (port 11 for 1, the toggles' cartridge typed red, the ramp on B), which
+    // the build alone would accept; a starting pair that breaks chapter 18's order (the signature not more than
+    // 0.2 A under the cap).
+    static_assert(facts::kCascadePorts.value().first == 10 && facts::kCascadePorts.value().second == 1);
+    static_assert(!facts::kCascadeDirections.value().first.reversed && facts::kCascadeDirections.value().second.reversed);
+    static_assert(facts::kCascadeCartridge.value() == shulib::hal::MotorCartridge::Blue);
+    static_assert(facts::kCascadeTeeth.value().motor == 1 && facts::kCascadeTeeth.value().spool == 1);
+    static_assert(facts::kCascadeCapAmps.value() == 2.0 && facts::kCascadeStallAmps.value() == 1.5);
+    static_assert(facts::kCascadeStallRpm.value() == 5.0 && facts::kCascadeStallTime.value().value() == 0.3);
+    static_assert(facts::kCascadeStallAmps.value() < facts::kCascadeCapAmps.value() - 0.2);
+    // The homing's own signature: chapter 18's 0.45 A for a gentle push — below the jam signature (a gentle
+    // push draws less than a jam) and the cap. Not the jam's: a 1.5 A homing signature never ends a 3 V home.
+    static_assert(facts::kCascadeHomingStallAmps.value() == 0.45);
+    static_assert(facts::kCascadeHomingStallAmps.value() < facts::kCascadeStallAmps.value());
+    static_assert(facts::cascadeHomingStall().belowMotorRpm == facts::cascadeStall().belowMotorRpm);
+    static_assert(facts::cascadeHomingStall().lasting.value() == facts::cascadeStall().lasting.value());
+    static_assert(facts::kSideTogglePorts.value().first == 9 && facts::kSideTogglePorts.value().second == 2);
+    static_assert(facts::kSideToggleCartridge.value() == shulib::hal::MotorCartridge::Green);
+    static_assert(facts::kSideToggleCapAmps.value() > 0.0 && facts::kSideToggleCapAmps.value() <= 2.5);
+    static_assert(facts::kClawLine.value() == 'A' && facts::kFlipperLine.value() == 'B' && facts::kRampLine.value() == 'C');
+    static_assert(facts::kFlipperKind.value() == facts::FlipperKind::Pneumatic);
+    const facts::PortList& listed = facts::kNonDriveMotorPorts.value();
+    CHECK(listed.count == 4);
+    const std::set<int> ports(listed.port, listed.port + listed.count);
+    CHECK(ports == std::set<int>{10, 1, 9, 2});
+    // The levels: typed as NONE (manual for now) — every slot empty.
+    for (std::size_t i = 0; i < shulib::mechanism::kMaxPresets; ++i) {
+        CAPTURE(i);
+        CHECK(facts::lv(i).name == nullptr);
+    }
+    // ...and the rows: the library's least, two — the bottom stop and the top stop station 13 RECORDs.
+    static_assert(facts::kCascadeRowCount == 2);
+    // The left side toggle is the OTHER of the two ports, whichever the right one is typed as.
+    CHECK(facts::leftTogglePort() != facts::kRightTogglePort.value());
+    CHECK(((facts::leftTogglePort() == 9 || facts::leftTogglePort() == 2)));
 }

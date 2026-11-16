@@ -1,10 +1,12 @@
-// ROBOT ONE'S FLIPPER — ALL THREE FORMS, READY (chunk ROB1-A, 2026-11-11; the ROB1 brief's D6, test T13). Say
-// "host test plant", never "simulator". The builder still owes the flipper's KIND (AF1-S's D7): robot one's
-// file declares NO flipper until he names it; then the matching block below is pasted under `cascade` in
-// src/robots/mechanism_table.hpp (and its line into src/team/robot_one_driver.hpp), its numbers typed into
-// the facts ledger first (a G1-F edit) — guide chapter 21 has the paste-ready text. The flipper's own numbers
-// here (a gearing, angles, a stroke time) are THIS TEST'S, invented: none is robot one's. Nothing here has
-// run on a robot.
+// ROBOT ONE'S FLIPPER — ALL THREE FORMS (chunk ROB1-A, 2026-11-11; the ROB1 brief's D6, test T13). Say "host
+// test plant", never "simulator". ROB1-A wrote the three forms ready while the flipper's KIND was owed (AF1-S's
+// D7). On 2026-11-15 the builder named the FRONT TOGGLE's pistons (B: two forward pistons on one solenoid) and
+// the coordinator made them the autons' flipper, a PNEUMATIC — so ROB1-C2 declared robot one's real flipper in
+// the pneumatic form below (its numbers from the facts ledger: src/robots/mechanism_table.hpp), and this file
+// keeps all three forms as the tested examples
+// guide chapter 21 shows (a robot built later may have another kind). The forms' own numbers here (a port, a
+// gearing, angles, a stroke time) are THIS TEST'S, invented: none is robot one's. Nothing here has run on a
+// robot.
 //
 // WHAT THIS FILE TRIES TO BREAK
 //   * EACH FORM WITH ROBOT ONE'S REAL CASCADE (T13): the list compiles (every rule the library checks), the
@@ -15,6 +17,9 @@
 //   * THE ROW (D6): the Drive screen's mechanism row fits the SMALL budget with each form.
 //   * GM24: the pneumatic's `.moveTime` removed — the build refuses it by name (the library's spec refusal;
 //     test/compile_refusals/s82 pins it outside this file so the suite still builds).
+//   * ROBOT ONE'S REAL FLIPPER (ROB1-C2): the front toggle IS the pneumatic form — a Pneumatic named "flipper",
+//     two positions on ONE line — its typed kind agrees with robot one's list, and AF1S-A1's Toggle step takes
+//     its two positions as the push and the retract (competition/toggle_visit.hpp's flipper pair check).
 
 #include "doctest.h"
 
@@ -25,6 +30,7 @@
 #include "mechanism_position_rig.hpp"
 #include "mechanism_service_rig.hpp"
 #include "robots/mechanism_table.hpp"
+#include "shulib/competition/toggle_visit.hpp"
 #include "shulib/mechanism/driver_inputs.hpp"
 #include "shulib/mechanism/kinds.hpp"
 #include "shulib/mechanism/service.hpp"
@@ -43,36 +49,35 @@ using namespace shulib::mechanism::words;
 using shulib::bench::robot_one::cascade;
 using Button = shulib::hal::ControllerButton;
 
-// (1) A MOTOR ARM on port 10: stowed at 0 degrees, flipped at 95, resting on its stop when stowed.
+// The cascade's map in every form (robot one's real one since ROB1-C2: R1 / R2 while held, homed at the
+// first driver start); the flipper's control is the only line that differs.
+// (1) A MOTOR ARM on port 11 (a port robot one's list leaves free): stowed at 0 degrees, flipped at 95,
+// resting on its stop when stowed.
 inline constexpr Arm flipperArm{.name = "flipper", .motors = {Forward}, .cartridge = Green, .gearing = gears(12, 36),
                                 .safe = Hold, .stall = {.amps = 1.0, .belowMotorRpm = 5, .lasting = 0.3_s},
                                 .currentCap = {.amps = 1.5}, .range = {0, 120}, .gravity = noGravity,
                                 .home = restsAtStop(0), .presets = {{"stow", 0}, {"flip", 95}}};
 inline constexpr MechanismTable kWithArm = mechanisms(
     wire(cascade, motors(facts::kCascadePorts.value().first, facts::kCascadePorts.value().second)),
-    wire(flipperArm, motors(10)));
+    wire(flipperArm, motors(11)));
 inline constexpr DriverControls kArmMap = controls(kWithArm,
-    whileHeld(cascade, Button::L1, Button::L2, 12_volt),
-    preset(cascade[facts::lv(0).name], Button::Down, 2_s), preset(cascade[facts::lv(1).name], Button::Left, 2_s),
-    preset(cascade[facts::lv(2).name], Button::Up, 2_s), preset(cascade[facts::lv(3).name], Button::Right, 2_s),
-    homeOnPress(cascade, Button::B, 3_s), homeAtDriverStart(cascade, 3_s),
-    whileHeld(flipperArm, Button::R1, Button::R2, 8_volt));  // the flipper: R1 out / R2 back while held
+    whileHeld(cascade, Button::R1, Button::R2, 12_volt), homeAtDriverStart(cascade, 3_s),
+    whileHeld(flipperArm, Button::Up, Button::Down, 8_volt));  // the flipper: Up out / Down back while held
 
-// (2) A PNEUMATIC on 3-wire A: stowed at the start and when made safe; its measured stroke time.
+// (2) A PNEUMATIC on 3-wire D: stowed at the start and when made safe; its measured stroke time. (Robot one's
+// real flipper — the front toggle — is this form: src/robots/mechanism_table.hpp.)
 inline constexpr Pneumatic flipperAir{.name = "flipper", .positions = {{"stow", {Low}}, {"flip", {High}}},
                                       .start = "stow", .safe = "stow", .moveTime = 0.4_s};
 inline constexpr MechanismTable kWithAir = mechanisms(
     wire(cascade, motors(facts::kCascadePorts.value().first, facts::kCascadePorts.value().second)),
-    wire(flipperAir, lines('A')));
+    wire(flipperAir, lines('D')));
 inline constexpr DriverControls kAirMap = controls(kWithAir,
-    whileHeld(cascade, Button::L1, Button::L2, 12_volt),
-    preset(cascade[facts::lv(0).name], Button::Down, 2_s), preset(cascade[facts::lv(1).name], Button::Left, 2_s),
-    preset(cascade[facts::lv(2).name], Button::Up, 2_s), preset(cascade[facts::lv(3).name], Button::Right, 2_s),
-    homeOnPress(cascade, Button::B, 3_s), homeAtDriverStart(cascade, 3_s),
-    toggle(flipperAir, Button::R1));  // the flipper: each R1 press flips or stows it
+    whileHeld(cascade, Button::R1, Button::R2, 12_volt), homeAtDriverStart(cascade, 3_s),
+    toggle(flipperAir, Button::B));  // the flipper: each B press flips or stows it
 
-// (3) A PASSIVE BAR: nothing to declare — robot one's own list and map are the form.
-inline constexpr const MechanismTable& kPassive = sb::robot_one::kRobotOneMechanisms;
+// (3) A PASSIVE BAR: nothing to declare — a list with no flipper is the form.
+inline constexpr MechanismTable kPassive =
+    mechanisms(wire(cascade, motors(facts::kCascadePorts.value().first, facts::kCascadePorts.value().second)));
 }  // namespace flipper_forms
 
 namespace ff = flipper_forms;
@@ -84,13 +89,30 @@ static_assert(sb::flipperKindMatches(facts::FlipperKind::PassiveBar, ff::kPassiv
 static_assert(!sb::flipperKindMatches(facts::FlipperKind::Pneumatic, ff::kWithArm));
 static_assert(!sb::flipperKindMatches(facts::FlipperKind::MotorArm, ff::kWithAir));
 static_assert(sb::everyListedMotorDeclared(facts::PortList{{facts::kCascadePorts.value().first,
-                                                            facts::kCascadePorts.value().second, 10}, 3},
+                                                            facts::kCascadePorts.value().second, 11}, 3},
                                            ff::kWithArm));
-// The arm's motor on port 10 is NOT declared by robot one's list as it stands: listing it on the Devices
-// screen before its block is pasted stops every robot-one build (landmine 4).
+// The arm's motor on port 11 is NOT declared by robot one's list as it stands: listing it on the Devices
+// screen before its block is written stops every robot-one build (landmine 4).
 static_assert(!sb::everyListedMotorDeclared(facts::PortList{{facts::kCascadePorts.value().first,
-                                                             facts::kCascadePorts.value().second, 10}, 3},
+                                                             facts::kCascadePorts.value().second, 11}, 3},
                                             sb::robot_one::kRobotOneMechanisms));
+
+// ROBOT ONE'S REAL FLIPPER (ROB1-C2): the front toggle, the PNEUMATIC form — its typed kind agrees with the
+// list, the other kinds do not, and it is a two-position Pneumatic on ONE line, exactly the form above.
+static_assert(sb::flipperKindMatches(facts::FlipperKind::Pneumatic, sb::robot_one::kRobotOneMechanisms));
+static_assert(facts::kFlipperKind.value() == facts::FlipperKind::Pneumatic);
+static_assert(!sb::flipperKindMatches(facts::FlipperKind::MotorArm, sb::robot_one::kRobotOneMechanisms));
+static_assert(!sb::flipperKindMatches(facts::FlipperKind::PassiveBar, sb::robot_one::kRobotOneMechanisms));
+static_assert(!sb::flipperKindMatches(facts::FlipperKind::NotOnTheRobotYet, sb::robot_one::kRobotOneMechanisms));
+// AF1S-A1's Toggle step takes the front toggle: its push ("open") and its retract ("closed") are two positions
+// of ONE pneumatic (competition/toggle_visit.hpp's pair check, the step's own refusal) — the tested pneumatic
+// form there is test/toggle_visit_rig.hpp's flipPiston.
+static_assert(shulib::competition::detail::flipperPairProblem(sb::robot_one::flipper["open"],
+                                                              sb::robot_one::flipper["closed"]) ==
+              shulib::competition::ToggleVisitProblem::None);
+static_assert(shulib::competition::detail::flipperPairProblem(sb::robot_one::flipper["open"],
+                                                              sb::robot_one::flipper["open"]) !=
+              shulib::competition::ToggleVisitProblem::None);  // the check is not blind: the same goal twice
 static_assert(ff::kArmMap.avoids(ControllerButton::Y) && ff::kAirMap.avoids(ControllerButton::Y));
 
 // THE OTHER DIRECTION (the review of ROB1-A, RV8/RV9): a kind that declares NOTHING ("not on the robot yet", a
@@ -112,6 +134,30 @@ inline constexpr sb::MechanismTable kWithLift =
 static_assert(!sb::flipperKindMatches(facts::FlipperKind::MotorArm, not_an_arm::kWithLift));
 static_assert(!sb::flipperKindMatches(facts::FlipperKind::Pneumatic, not_an_arm::kWithLift));
 static_assert(!sb::flipperKindMatches(facts::FlipperKind::PassiveBar, not_an_arm::kWithLift));
+
+TEST_CASE("robot one flipper (ROB1-C2): robot one's REAL flipper is the front toggle -- a Pneumatic named 'flipper' on ONE line (the builder's B), two positions, starting and made safe in its UNPOWERED one") {
+    // BUG CAUGHT: the front toggle declared on the wrong letter, with a second line it does not have (two
+    // pistons on ONE solenoid), or starting in its powered position (it would move at power-up).
+    const sb::MechanismTable& one = sb::robot_one::kRobotOneMechanisms;
+    int found = -1;
+    for (std::size_t i = 0; i < one.count; ++i) {
+        if (std::string_view{one.specs[i].name} == "flipper") {
+            found = static_cast<int>(i);
+        }
+    }
+    REQUIRE(found >= 0);
+    const auto i = static_cast<std::size_t>(found);
+    const shulib::mechanism::MechanismSpec& s = one.specs[i];
+    CHECK(s.kind == shulib::mechanism::Kind::Pneumatic);
+    CHECK(s.lineCount == 1);
+    CHECK(s.pneumatic.positionCount == 2);
+    CHECK(static_cast<int>(one.wiring[i].lines[0]) == facts::kFlipperLine.value() - 'A' + 1);
+    CHECK(facts::kFlipperLine.value() == 'B');
+    // its start and safe: the position whose level is LOW (the solenoid unpowered)
+    CHECK(s.pneumatic.positions[s.pneumatic.start].levels[0] == shulib::mechanism::words::Low);
+    CHECK(s.pneumatic.positions[s.pneumatic.safe].levels[0] == shulib::mechanism::words::Low);
+    CHECK(s.pneumatic.actuationTime == facts::kFlipperStrokeTime.value().value());
+}
 
 TEST_CASE("robot one flipper (T13): each form fits the Drive screen's row beside the cascade") {
     // BUG CAUGHT: a flipper form whose row runs past the SMALL budget — the build would refuse it the day it

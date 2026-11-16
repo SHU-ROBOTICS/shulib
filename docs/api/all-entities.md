@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 6,435 of them, across 214 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 6,439 of them, across 214 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -922,6 +922,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Control::mechanism` | field | [driver_inputs.md](driver_inputs.md#control-mechanism) |
 | `Control::mechanismKind` | field | [driver_inputs.md](driver_inputs.md#control-mechanismkind) |
 | `Control::mechanismName` | field | [driver_inputs.md](driver_inputs.md#control-mechanismname) |
+| `Control::oneWay` | field | [driver_inputs.md](driver_inputs.md#control-oneway) |
 | `Control::position` | field | [driver_inputs.md](driver_inputs.md#control-position) |
 | `Control::presetName` | field | [driver_inputs.md](driver_inputs.md#control-presetname) |
 | `Control::units` | field | [driver_inputs.md](driver_inputs.md#control-units) |
@@ -6508,8 +6509,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `whileHeld (overload 2)` | free function | [driver_inputs.md](driver_inputs.md#whileheld-2) |
 | `whileHeld (overload 3)` | free function | [driver_inputs.md](driver_inputs.md#whileheld-3) |
 | `whileHeld (overload 4)` | free function | [driver_inputs.md](driver_inputs.md#whileheld-4) |
-| `whileHeld (overload 5)` | type alias | [driver_inputs.md](driver_inputs.md#whileheld-5) |
+| `whileHeld (overload 5)` | free function | [driver_inputs.md](driver_inputs.md#whileheld-5) |
+| `whileHeld (overload 6)` | free function | [driver_inputs.md](driver_inputs.md#whileheld-6) |
+| `whileHeld (overload 7)` | type alias | [driver_inputs.md](driver_inputs.md#whileheld-7) |
 | `whileHeld_is_for_a_power_mechanism_an_arm_or_a_lift_use_toggle_or_preset` | free function | [driver_inputs.md](driver_inputs.md#whileheld_is_for_a_power_mechanism_an_arm_or_a_lift_use_toggle_or_preset) |
+| `whileHeld_with_one_button_is_for_a_power_mechanism_an_arm_or_a_lift_needs_two` | free function | [driver_inputs.md](driver_inputs.md#whileheld_with_one_button_is_for_a_power_mechanism_an_arm_or_a_lift_needs_two) |
 | `WidthRow` | struct | [shul2_format.md](shul2_format.md#struct-widthrow) |
 | `WidthRow::end` | field | [shul2_format.md](shul2_format.md#widthrow-end) |
 | `WidthRow::hello` | field | [shul2_format.md](shul2_format.md#widthrow-hello) |

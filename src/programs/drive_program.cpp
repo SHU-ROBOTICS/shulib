@@ -198,9 +198,9 @@ constexpr const char* kRunStatusTwo =
     "claw on 3-wire A) have never been driven.";
 constexpr const char* kRunStatusOne =
     "\"shulib Drive\" on ROBOT ONE (ROB1-A: robot one's driver file on robot::Robot) has not run on "
-    "hardware: robot one does not exist in this project's records. Its cascade has never been "
-    "driven, and its numbers are the facts ledger's (src/robots/robot_one_facts.hpp) -- this build "
-    "links only once every fact it needs is typed.";
+    "hardware: robot one's facts are typed from its builder's answers (2026-11-15), not measured. "
+    "Its cascade has never been driven, and its numbers are the facts ledger's "
+    "(src/robots/robot_one_facts.hpp) -- this build links only once every fact it needs is typed.";
 constexpr const char* kRunStatus = kRobotOneBuild ? kRunStatusOne : kRunStatusTwo;
 
 // ═══ TermSink CUTS A MESSAGE AT 200 BYTES (diag/term_sink.hpp, kMaxMessageBytes) ════════════
@@ -602,11 +602,12 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
                   cfg.maxWheelSpeed.value(), cfg.wheelFf.kS, cfg.wheelFf.kV, cfg.wheelFf.kA);
     log.log(hal::LogLevel::Info, kTag, line);
     // THE DRIVER LINE: generated from the driver file (ThisRobotDriver), so it cannot drift from what
-    // the loop is given. Robot one's says its map is a DEFAULT, the team's to change (the ROB1 brief's D7).
+    // the loop is given. Robot one's says its map is the builder's, the team's to change (ROB1-C2; ROB1-A's
+    // said "a DEFAULT" — the brief's D7 — until the builder gave the map on 2026-11-15).
     std::snprintf(line, sizeof line,
                   kRobotOneBuild
-                      ? "driver control: robot one's driver file (src/team/robot_one_driver.hpp, a DEFAULT -- "
-                        "the team's to change) -> runDriverControl, default profile (deadband 0.05, no expo, "
+                      ? "driver control: robot one's driver file (src/team/robot_one_driver.hpp, the builder's "
+                        "map -- the team's) -> runDriverControl, default profile (deadband 0.05, no expo, "
                         "no slew; HA-112); re-zero button %.5s; mode %.12s"
                       : "driver control: robot two's driver file (src/team/robot_two_driver.hpp) -> "
                         "teleop::runDriverControl + DriveShaper, the default profile (continuous deadband "

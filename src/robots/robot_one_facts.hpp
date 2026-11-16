@@ -1,10 +1,12 @@
 #pragma once
 //
 // robot_one_facts.hpp — ROBOT ONE'S FACTS LEDGER (chunk ROB1-A, 2026-11-11; the ROB1 brief's D3 (a),
-// re-check R2, R4, R9, R10, R11). Every number about robot one — the 2026 CASCADE robot, built ~Nov 14 —
-// that nobody has measured yet is written ONCE, HERE, and robot one's declarations
-// (src/robots/mechanism_table.hpp's robot_one region) read ONLY these. Nothing about robot one exists in
-// this project's records: no census, no reading, no photo. NOTHING HERE HAS RUN ON A ROBOT.
+// re-check R2, R4, R9, R10, R11). Every number about robot one — the 2026 CASCADE robot, built by
+// 2026-11-15 — is written ONCE, HERE, and robot one's declarations (src/robots/mechanism_table.hpp's
+// robot_one region) read ONLY these. Since ROB1-C2 (2026-11-15) the builder's first answers are TYPED —
+// read off the robot (ports, cartridges, the gearing, the three pistons' letters, the flipper's kind) —
+// with the bench's starting values chosen, not measured; what nobody has said is still OWED. No census,
+// reading or photo of robot one is in this project's records. NOTHING HERE HAS RUN ON A ROBOT.
 //
 // ═══ WHAT "OWED" MEANS ════════════════════════════════════════════════════════════════
 // A fact is written as
@@ -28,10 +30,15 @@
 //                   Bench Tests' station 13 then confirms each), cartridge, gear teeth, the STARTING
 //                   stall signature and current cap (CHOSEN, not measured — [R2]: station 13 cuts out on
 //                   the signature, so they cannot wait for its record), every non-drive motor port the
-//                   brain's Devices screen lists, and the flipper's KIND. Needed by ALL SIX programs —
-//                   Bench Tests included, because it powers declared mechanisms.
+//                   brain's Devices screen lists, the flipper's KIND, the side toggles' ports (and which
+//                   is the right one), cartridge and starting cap, and the three pistons' 3-wire letters.
+//                   Needed by ALL SIX programs — Bench Tests included, because it powers declared
+//                   mechanisms.
 //   Stage::B        "how it moves": the cascade's measured rows (bottom, every level, top), its levels,
-//                   its hold volts, its homing push, its volts before it is homed. Needed by EVERY
+//                   its hold volts, its homing push and the homing's own (gentle) stall signature, its
+//                   volts before it is homed; which way each side
+//                   toggle runs; which line level is each piston's active position, and each stroke
+//                   time (ROB1-C2: Bench Tests' station 13 is where each of those is found). Needed by EVERY
 //                   program but two (needsStageB(), a case per program): Bench Tests and Calibrate must
 //                   build on Stage A alone, because Bench Tests is the tool that MEASURES Stage B
 //                   (landmine 5). Today that leaves Drive, the Auton Tester, Competition and shulib Tune
@@ -53,12 +60,12 @@
 // non-empty source, and never one containing "gate copy" ([R4]: that marker belongs only to the src build
 // gate's throwaway copy, below). A value chosen at the bench is typed with the source "chosen, not
 // measured -- <who>, <when>". A fact is NEVER "corrected" to match a belief, and NEVER invented to unblock
-// a build (landmine 17). What is NOT a ledger edit: a third or fourth cascade motor, a flipper block —
+// a build (landmine 17). What is NOT a ledger edit: a third or fourth cascade motor, a new mechanism —
 // those are DECLARATION edits in src/robots/mechanism_table.hpp (the motor count is structural). A
-// flipper block's NUMBERS are not: THIS LEDGER HOLDS NO FLIPPER NUMBER YET (only its kind), so before a
-// block is pasted each of its numbers (port, cartridge, teeth, stall, cap, range, angles — or a
-// pneumatic's line and stroke time) becomes an owed fact here with its check and its stage, and the
-// block reads them as `facts::…`; test/robot_one_facts_test.cpp's region scan fails the host suite on
+// new mechanism's NUMBERS are not: before its block is written, each of its numbers (port, cartridge,
+// teeth, stall, cap, range, angles — or a pneumatic's line, levels and stroke time) becomes a fact here
+// with its check and its stage, and the block reads them as `facts::…` (ROB1-C2 did exactly that for the
+// side toggles and the three pistons); test/robot_one_facts_test.cpp's region scan fails the host suite on
 // any literal number or bare word left in robot one's region (`make` itself does not run that scan).
 //
 // ═══ THE SRC BUILD GATE'S PROOF ([R4]) ════════════════════════════════════════════════
@@ -208,6 +215,8 @@ constexpr bool realSource(const char* source) {
 // The ledger's own field-wise equality ([R10]; the library's HeightAt has no ==), one per value type.
 constexpr bool same(double a, double b) { return a == b; }
 constexpr bool same(int a, int b) { return a == b; }
+constexpr bool same(char a, char b) { return a == b; }  // a 3-wire letter
+constexpr bool same(bool a, bool b) { return a == b; }  // a line level (High / Low)
 template <class E>
     requires std::is_enum_v<E>
 constexpr bool same(E a, E b) {
@@ -293,9 +302,11 @@ struct Teeth {
 constexpr bool same(const Teeth& a, const Teeth& b) { return a.motor == b.motor && a.spool == b.spool; }
 
 /// The cascade's MEASURED rows: {height, the station 13 RECORD's output angle} at the bottom stop, at
-/// every level and at the top stop, strictly increasing. FIVE is this ledger's count (the bottom, three
-/// levels between, the top): a different count is typed by changing the 5 here (three to eight).
-inline constexpr std::size_t kCascadeRowCount = 5;
+/// every named level and at the top stop, strictly increasing. TWO is this ledger's count since ROB1-C2
+/// (the bottom stop and the top stop: the cascade has no levels yet — kCascadeLevels); a level typed later
+/// brings its own row, typed by changing the 2 here (the library takes two to eight —
+/// mechanism::measured(), spec.hpp's position_a_lookup_table_needs_two_to_eight_points).
+inline constexpr std::size_t kCascadeRowCount = 2;
 struct Rows {
     mechanism::HeightAt row[kCascadeRowCount];  ///< bottom first, top last
 };
@@ -327,7 +338,8 @@ constexpr bool same(const Levels& a, const Levels& b) {
     return true;
 }
 
-/// The flipper's kind (AF1-S's D7 — still owed by the builder). Whatever is typed, the build checks
+/// The flipper's kind (AF1-S's D7 — the coordinator's assignment, 2026-11-15, from the builder's answer "B will be
+/// the Forward Toggle pistons": a pneumatic, the front toggle). Whatever is typed, the build checks
 /// that robot one's list agrees (src/robots/mechanism_table.hpp): an Arm or a Pneumatic named
 /// "flipper" declared, or none at all.
 enum class FlipperKind {
@@ -350,81 +362,151 @@ constexpr bool same(const CameraMount& a, const CameraMount& b) {
 }
 
 // ═══ THE FACTS ═════════════════════════════════════════════════════════════════════════
-// Every one OWED on 2026-11-11: robot one does not exist in our records. The form's item is named in
-// each comment (docs/robot-facts-form.md). The placeholders are the brief's probe P3's.
+// Every one OWED on 2026-11-11: robot one did not exist in our records. The form's item is named in each
+// comment (docs/robot-facts-form.md). The placeholders are the brief's probe P3's. ROB1-C2 (2026-11-15) typed
+// the builder's first answers — "the team's builder, 2026-11-15, read off the robot" — and the starting values
+// chosen for the bench ("chosen, not measured"), and added the facts of the mechanisms he named that night
+// (the side toggles, the claw, the front toggle — the flipper — and the ramp). A fact ROB1-C2 added already
+// typed keeps a placeholder of its own (never read: value() is the typed one) so the form stays the ledger's.
 
 // ── STAGE A — what is plugged where (every program) ──────────────────────────────────────
 
 // Form B6: every motor port the Devices screen lists that is NOT a drive motor. Each must be DECLARED in
 // robot one's list — the check is in src/robots/mechanism_table.hpp — or shulib Calibrate would take it
-// for a drive candidate and power it (landmine 4, [R9]). A flipper motor included.
+// for a drive candidate and power it (landmine 4, [R9]): the cascade's 10 and 1, the side toggles' 9 and 2.
 inline constexpr auto kNonDriveMotorPorts =
-    owed(PortList{{8, 9}, 2}, Stage::A, "every motor port the Devices screen lists that is not a drive motor");
+    typed(PortList{{8, 9}, 2}, PortList{{10, 1, 9, 2}, 4}, Stage::A,
+          "every motor port the Devices screen lists that is not a drive motor",
+          "the team's builder, 2026-11-15, read off the robot: the cascade on 10 and 1, the side toggles on 9 and 2");
 ROBOT_ONE_CHECK(kNonDriveMotorPorts, "every motor port the Devices screen lists that is not a drive motor");
 
-// Form C1: the cascade's motor ports, motor 1 then motor 2. The placeholders 8 and 9 (and B6's above) are
-// checked against kRobotOneChassis's IMU port in EVERY build: type the form's A4 in the same edit as B6 and
-// C1, or a real IMU on 8 or 9 fails every build by name (guide 21's order, step 1).
-inline constexpr auto kCascadePorts = owed(Pair<int>{8, 9}, Stage::A, "the cascade's motor ports");
+// Form C1: the cascade's motor ports, motor 1 then motor 2.
+inline constexpr auto kCascadePorts = typed(Pair<int>{8, 9}, Pair<int>{10, 1}, Stage::A, "the cascade's motor ports",
+                                            "the team's builder, 2026-11-15, read off the robot");
 ROBOT_ONE_CHECK(kCascadePorts, "the cascade's motor ports");
 
-// Form C1: which way each cascade motor is mounted, AS THE BUILDER SEES THEM (two motors facing each
-// other = {Forward, Reversed}, HA-255); station 13's direction check confirms each, and a correction is
-// a typed edit here.
-inline constexpr auto kCascadeDirections = owed(Pair<mechanism::Motor>{mechanism::words::Forward,
-                                                                      mechanism::words::Reversed},
-                                                Stage::A, "the cascade motors' directions");
+// Form C1: which way each cascade motor is mounted. The builder said the two FACE EACH OTHER (= {Forward,
+// Reversed}, HA-255); which of the two is Forward (port 10) is the coordinator's reading, not his words.
+// Station 13's direction check confirms each, and a correction is a typed edit here.
+inline constexpr auto kCascadeDirections =
+    typed(Pair<mechanism::Motor>{mechanism::words::Forward, mechanism::words::Reversed},
+          Pair<mechanism::Motor>{mechanism::words::Forward, mechanism::words::Reversed}, Stage::A,
+          "the cascade motors' directions",
+          "the team's builder, 2026-11-15, read off the robot: the two motors FACE EACH OTHER; port 10 taken as "
+          "Forward and port 1 as Reversed by the coordinator, station 13 confirms -- same as the placeholder, checked");
 ROBOT_ONE_CHECK(kCascadeDirections, "the cascade motors' directions");
 
 // Form C1: the cascade motors' cartridge (the colour of the insert).
-inline constexpr auto kCascadeCartridge =
-    owed(mechanism::words::Red, Stage::A, "the cascade motors' cartridge");
+inline constexpr auto kCascadeCartridge = typed(mechanism::words::Red, mechanism::words::Blue, Stage::A,
+                                                "the cascade motors' cartridge",
+                                                "the team's builder, 2026-11-15, read off the robot (blue)");
 ROBOT_ONE_CHECK(kCascadeCartridge, "the cascade motors' cartridge");
 
-// Form C2: the gear teeth from motor to spool (counted).
-inline constexpr auto kCascadeTeeth = owed(Teeth{12, 60}, Stage::A, "the cascade's gear teeth, motor then spool");
+// Form C2: the gear teeth from motor to spool (counted). DIRECT: no gears — the motor turns the spool —
+// typed as the 1:1 a tooth count can say (gears(1, 1) = one motor turn per spool turn, the same as `direct`).
+inline constexpr auto kCascadeTeeth =
+    typed(Teeth{12, 60}, Teeth{1, 1}, Stage::A, "the cascade's gear teeth, motor then spool",
+          "the team's builder, 2026-11-15, read off the robot: DIRECT, no gears -- the motor turns the spool (1:1)");
 ROBOT_ONE_CHECK(kCascadeTeeth, "the cascade's gear teeth, motor then spool");
 
 // Form C6 (i): the STARTING stall signature — CHOSEN, not measured ([R2]), from chapter 18's order
 // rule: the heaviest hold < the signature < the cap - 0.2 A. Station 13 cuts out on it. The MEASURED
 // signature (C6 (ii), station 13's RECORD) is typed over it later.
-inline constexpr auto kCascadeStallAmps = owed(1.0, Stage::A, "the cascade's starting stall signature, amps");
+inline constexpr auto kCascadeStallAmps =
+    typed(1.0, 1.5, Stage::A, "the cascade's starting stall signature, amps",
+          "chosen, not measured -- the coordinator, 2026-11-15 (blue direct-drive spool, strings both ways; "
+          "the bench tunes it)");
 ROBOT_ONE_CHECK(kCascadeStallAmps, "the cascade's starting stall signature, amps");
 inline constexpr auto kCascadeStallRpm =
-    owed(5.0, Stage::A, "the cascade's starting stall signature, below this motor rpm");
+    typed(5.0, 5.0, Stage::A, "the cascade's starting stall signature, below this motor rpm",
+          "chosen, not measured -- the coordinator, 2026-11-15 -- same as the placeholder, checked");
 ROBOT_ONE_CHECK(kCascadeStallRpm, "the cascade's starting stall signature, below this motor rpm");
 inline constexpr auto kCascadeStallTime =
-    owed(0.3_s, Stage::A, "the cascade's starting stall signature, lasting this long");
+    typed(0.3_s, 0.3_s, Stage::A, "the cascade's starting stall signature, lasting this long",
+          "chosen, not measured -- the coordinator, 2026-11-15 -- same as the placeholder, checked");
 ROBOT_ONE_CHECK(kCascadeStallTime, "the cascade's starting stall signature, lasting this long");
 
 // Form C6 (i): the STARTING current cap per motor — CHOSEN, not measured ([R2]): at most what the string
 // can take (HA-222), and more than the signature + 0.2 A.
-inline constexpr auto kCascadeCapAmps = owed(1.5, Stage::A, "the cascade's starting current cap per motor, amps");
+inline constexpr auto kCascadeCapAmps = typed(1.5, 2.0, Stage::A, "the cascade's starting current cap per motor, amps",
+                                              "chosen, not measured -- the coordinator, 2026-11-15");
 ROBOT_ONE_CHECK(kCascadeCapAmps, "the cascade's starting current cap per motor, amps");
 
-// Form D16: the flipper's KIND ("not on the robot yet" is an answer, typed like any other).
-inline constexpr auto kFlipperKind = owed(FlipperKind::NotOnTheRobotYet, Stage::A, "the flipper's kind");
+// Form D16: the flipper's KIND ("not on the robot yet" is an answer, typed like any other). The FRONT
+// TOGGLE is robot one's flipper for the autons' Toggle step (AF1S): two forward-facing pistons on one
+// solenoid, pushing forward where the camera looks — declared as the Pneumatic named "flipper". The builder
+// named the front toggle's pistons (B); making them the autons' flipper is the COORDINATOR's assignment, so
+// the source says so. (The SIDE toggles are not the flipper: they are two power mechanisms, below.)
+inline constexpr auto kFlipperKind =
+    typed(FlipperKind::NotOnTheRobotYet, FlipperKind::Pneumatic, Stage::A, "the flipper's kind",
+          "chosen, not measured -- the coordinator, 2026-11-15, from the builder's answer 'B will be the Forward "
+          "Toggle pistons': the front toggle (two forward pistons on one solenoid, 3-wire B) is the autons' flipper");
 ROBOT_ONE_CHECK(kFlipperKind, "the flipper's kind");
+
+// Form G21: the SIDE TOGGLES' two motor ports, either order (each its own arm on its own motor, driven
+// separately). WHICH ONE IS THE RIGHT is the fact below; the left is the other.
+inline constexpr auto kSideTogglePorts = typed(Pair<int>{11, 12}, Pair<int>{9, 2}, Stage::A,
+                                               "the side toggles' motor ports, either order",
+                                               "the team's builder, 2026-11-15, read off the robot");
+ROBOT_ONE_CHECK(kSideTogglePorts, "the side toggles' motor ports, either order");
+
+// Form G21: which of the two is the RIGHT side toggle's port (9 or 2 — the left side toggle is on the
+// other; leftTogglePort() below).
+inline constexpr auto kRightTogglePort =
+    typed(9, 9, Stage::A, "the right side toggle's port",
+          "same as the placeholder, checked -- the team's builder, 2026-11-15: '9 is right side and left is 2'");
+ROBOT_ONE_CHECK(kRightTogglePort, "the right side toggle's port");
+
+// Form G21: the side toggles' cartridge — both motors the same. DIRECT drive (no gears): a power
+// mechanism states no gearing, so there is no tooth count to type.
+inline constexpr auto kSideToggleCartridge = typed(mechanism::words::Red, mechanism::words::Green, Stage::A,
+                                                   "the side toggles' cartridge",
+                                                   "the team's builder, 2026-11-15, read off the robot (green, direct)");
+ROBOT_ONE_CHECK(kSideToggleCartridge, "the side toggles' cartridge");
+
+// Form G21: the side toggles' STARTING current cap per motor — CHOSEN, not measured, to bound the push: a
+// toggle held against its stop while its button is held pushes with at most this (the motor's own limit is
+// 2.5 A) — whether that is gentle enough on the real arm nobody has measured. The cap is written into the
+// motors when a program's mechanism service binds; Bench Tests' station 13 binds none, so there the toggles
+// run UNCAPPED (guide 21). The bench raises it if a flip is too weak.
+inline constexpr auto kSideToggleCapAmps =
+    typed(1.0, 1.5, Stage::A, "the side toggles' starting current cap per motor, amps",
+          "chosen, not measured -- the coordinator's ROB1-C2 run, 2026-11-15 (a toggle held against its stop at "
+          "12 V; the bench tunes it)");
+ROBOT_ONE_CHECK(kSideToggleCapAmps, "the side toggles' starting current cap per motor, amps");
+
+// Forms G22-G24: the three pistons' 3-wire ports (the letter on the brain).
+inline constexpr auto kClawLine = typed('F', 'A', Stage::A, "the claw's 3-wire port",
+                                        "the team's builder, 2026-11-15, read off the robot");
+ROBOT_ONE_CHECK(kClawLine, "the claw's 3-wire port");
+inline constexpr auto kFlipperLine = typed('G', 'B', Stage::A, "the front toggle's 3-wire port (the flipper)",
+                                           "the team's builder, 2026-11-15, read off the robot: both pistons on one "
+                                           "solenoid");
+ROBOT_ONE_CHECK(kFlipperLine, "the front toggle's 3-wire port (the flipper)");
+inline constexpr auto kRampLine = typed('H', 'C', Stage::A, "the ramp's 3-wire port",
+                                        "the team's builder, 2026-11-15, read off the robot");
+ROBOT_ONE_CHECK(kRampLine, "the ramp's 3-wire port");
 
 // ── STAGE B — how it moves (Drive, the Auton Tester, Competition, Tune) ──────────────────────
 
-// Form C7: station 13's RECORD at the bottom stop, each level and the top stop — the TAPED height (the
-// form's C4 point) and the RECORD's `output ... deg` (NOT its inches: until this is typed, station 13's
-// inches come from these placeholders — landmine 6). The bottom row is where homing puts the cascade;
-// the top row is its top stop. A row AT each level makes each level exact whatever the spool's layering
-// does between rows (HA-254).
-inline constexpr auto kCascadeRows = owed(Rows{{{0_in, 0.0}, {8_in, 360.0}, {16_in, 720.0}, {24_in, 1080.0},
-                                                {40_in, 1800.0}}},
-                                          Stage::B, "the cascade's measured rows, bottom stop to top stop");
+// Form C7: station 13's RECORD at the bottom stop and the top stop (and, once levels are named, at each
+// level) — the TAPED height (the form's C4 point) and the RECORD's `output ... deg` (NOT its inches: until
+// this is typed, station 13's inches come from these placeholders — landmine 6). The bottom row is where
+// homing puts the cascade; the top row is its top stop.
+inline constexpr auto kCascadeRows = owed(Rows{{{0_in, 0.0}, {40_in, 1800.0}}}, Stage::B,
+                                          "the cascade's measured rows, bottom stop to top stop");
 ROBOT_ONE_CHECK(kCascadeRows, "the cascade's measured rows, bottom stop to top stop");
 
-// Form C5: the cascade's levels by stack height — a name (15 letters at most) and a height, FOUR TO SIX.
-// The default driver file names the first four on the d-pad (src/team/robot_one_driver.hpp), so fewer than
-// four named levels fails every build, robot two's too (an unnamed slot is no preset) — a robot with
-// fewer is a driver-file edit first.
+// Form C5: the cascade's levels by stack height — a name (15 letters at most) and a height, NONE TO SIX.
+// The builder, 2026-11-15: the cascade is MANUAL for now (no presets; preset heights later), so robot
+// one's levels are typed as NONE. The rule that remains is wherever a preset is BOUND: a driver file (or an
+// auton) that names `facts::lv(i).name` for a slot with no name fails the build by name — so the day
+// presets come back, their levels are typed here first (with a row AT each — HA-254, kCascadeRowCount).
 inline constexpr auto kCascadeLevels =
-    owed(Levels{{{"floor", 0_in}, {"L1", 8_in}, {"L2", 16_in}, {"L3", 24_in}, {nullptr, 0_in}, {nullptr, 0_in}}},
-         Stage::B, "the cascade's levels, by name and stack height");
+    typed(Levels{{{"floor", 0_in}, {"L1", 8_in}, {"L2", 16_in}, {"L3", 24_in}, {nullptr, 0_in}, {nullptr, 0_in}}},
+          Levels{}, Stage::B, "the cascade's levels, by name and stack height",
+          "the team's builder, 2026-11-15: none yet -- 'Later we will have preset heights for the cascade but for "
+          "now it will be manual'");
 ROBOT_ONE_CHECK(kCascadeLevels, "the cascade's levels, by name and stack height");
 
 // Form C8 (i): the smallest volts that hold the empty cascade halfway without sagging.
@@ -432,17 +514,71 @@ inline constexpr auto kCascadeHoldVolts = owed(1.0, Stage::B, "the cascade's hol
 ROBOT_ONE_CHECK(kCascadeHoldVolts, "the cascade's hold volts");
 
 // Form C8 (ii): the homing push, volts — NEGATIVE = DOWN into the bottom stop (the builder's ruling: stall
-// gently down, no switch). Chosen at the bench with the coordinator. (The placeholder is -6 V, not the brief's probe's
-// -3 V: on the host test plant a stalled motor draws 2.5 A at 12 V, so -3 V can never reach the 1.0 A
-// placeholder signature and the host's homing test would never end on a stall — MECH-S-A's CA9 pushes its
-// cascade down at -6 V for the same reason. Whether -6 V is gentle on the real strings is the bench's call.)
+// gently down, no switch). Chosen at the bench with the coordinator. The push must draw MORE than the
+// homing signature below when it stalls on the bottom stop, or the home never ends on a stall (TIMED_OUT,
+// never homed): on the host test plant a stalled motor draws 2.5 A at 12 V and proportionally less below
+// it (HA-183, HA-93: invented), so past 12 x 0.45 / 2.5 = 2.2 V. (The placeholder is ROB1-A's -6 V.)
 inline constexpr auto kCascadeHomingPushVolts =
     owed(-6.0, Stage::B, "the cascade's homing push, volts (negative = down)");
 ROBOT_ONE_CHECK(kCascadeHomingPushVolts, "the cascade's homing push, volts (negative = down)");
 
+// Form C8 (ii): the HOMING's own stall signature, amps — what ends the gentle push on the bottom stop. NOT
+// the jam signature above (kCascadeStallAmps): a gentle push draws far less than a jam at full power, so
+// the 1.5 A jam signature could never end a 3 V home (chapter 18: "a homing push is gentle, so its stall is
+// SMALL"; the review of ROB1-C2). CHOSEN, not measured: chapter 18's starting value for a gentle push. Its
+// speed and time are the jam signature's (kCascadeStallRpm, kCascadeStallTime). Tune's HOME checks it on the
+// robot; Tune's COPY of a `.home` line types its amps here.
+inline constexpr auto kCascadeHomingStallAmps =
+    typed(0.4, 0.45, Stage::B, "the cascade's homing stall signature, amps",
+          "chosen, not measured -- the coordinator's ROB1-C2 run, 2026-11-15 (chapter 18's starting homing signature "
+          "for a gentle push; the push must draw more when it stalls)");
+ROBOT_ONE_CHECK(kCascadeHomingStallAmps, "the cascade's homing stall signature, amps");
+
 // Form C8 (iii): the most a held button may give the cascade before it is homed, volts.
 inline constexpr auto kCascadeUnhomedVolts = owed(4.0, Stage::B, "the cascade's volts before it is homed");
 ROBOT_ONE_CHECK(kCascadeUnhomedVolts, "the cascade's volts before it is homed");
+
+// Form G21: which way each side toggle's motor turns when it RUNS (held: it runs ONE way only). Two
+// separate motors running mirror-image ways — so the placeholders differ; station 13's direction check
+// (or the builder) says which is right. A side toggle that runs the wrong way is fixed HERE, never by its
+// button.
+inline constexpr auto kRightToggleDirection =
+    owed(mechanism::words::Forward, Stage::B, "the right side toggle's run direction");
+ROBOT_ONE_CHECK(kRightToggleDirection, "the right side toggle's run direction");
+inline constexpr auto kLeftToggleDirection =
+    owed(mechanism::words::Reversed, Stage::B, "the left side toggle's run direction");
+ROBOT_ONE_CHECK(kLeftToggleDirection, "the left side toggle's run direction");
+
+// Forms G22-G24: which line LEVEL puts each piston in its ACTIVE position — the claw OPEN, the front
+// toggle OUT (open), the ramp DOWN (High = the solenoid powered). Station 13 fires each and the builder
+// says which way it went. Whatever it is, each piston STARTS (and is made safe) in the position its
+// solenoid holds UNPOWERED (unpoweredPosition() below), so nothing moves at power-up — a wrong guess
+// here only swaps the two NAMES, which an auton reads (`claw["open"]`).
+inline constexpr auto kClawOpenLevel = owed(mechanism::words::High, Stage::B, "the claw's line level that OPENS it");
+ROBOT_ONE_CHECK(kClawOpenLevel, "the claw's line level that OPENS it");
+inline constexpr auto kFlipperOpenLevel =
+    owed(mechanism::words::High, Stage::B, "the front toggle's line level that pushes it OUT (open)");
+ROBOT_ONE_CHECK(kFlipperOpenLevel, "the front toggle's line level that pushes it OUT (open)");
+inline constexpr auto kRampDownLevel = owed(mechanism::words::High, Stage::B, "the ramp's line level that puts it DOWN");
+ROBOT_ONE_CHECK(kRampDownLevel, "the ramp's line level that puts it DOWN");
+
+// Forms G22-G24: how long a full stroke takes — the wait before a piston's move counts as done. A STARTING
+// value CHOSEN, not measured (robot two's claw's provisional 0.5 s, HA-185); timed at the bench later.
+inline constexpr auto kClawStrokeTime =
+    typed(0.4_s, 0.5_s, Stage::B, "the claw's stroke time",
+          "chosen, not measured -- the coordinator's ROB1-C2 run, 2026-11-15 (robot two's claw's provisional "
+          "time, HA-185)");
+ROBOT_ONE_CHECK(kClawStrokeTime, "the claw's stroke time");
+inline constexpr auto kFlipperStrokeTime =
+    typed(0.4_s, 0.5_s, Stage::B, "the front toggle's stroke time",
+          "chosen, not measured -- the coordinator's ROB1-C2 run, 2026-11-15 (robot two's claw's provisional "
+          "time, HA-185)");
+ROBOT_ONE_CHECK(kFlipperStrokeTime, "the front toggle's stroke time");
+inline constexpr auto kRampStrokeTime =
+    typed(0.4_s, 0.5_s, Stage::B, "the ramp's stroke time",
+          "chosen, not measured -- the coordinator's ROB1-C2 run, 2026-11-15 (robot two's claw's provisional "
+          "time, HA-185)");
+ROBOT_ONE_CHECK(kRampStrokeTime, "the ramp's stroke time");
 
 // ── RECORDED — gating no build (D12, [R9]) ──────────────────────────────────────────────────
 
@@ -469,12 +605,17 @@ constexpr FactSummary summary(const Fact<T>& f) {
 
 /// EVERY fact above, in order (test/robot_one_facts_test.cpp proves none is missing).
 inline constexpr FactSummary kRobotOneFacts[] = {
-    summary(kNonDriveMotorPorts), summary(kCascadePorts),      summary(kCascadeDirections),
-    summary(kCascadeCartridge),   summary(kCascadeTeeth),      summary(kCascadeStallAmps),
-    summary(kCascadeStallRpm),    summary(kCascadeStallTime),  summary(kCascadeCapAmps),
-    summary(kFlipperKind),        summary(kCascadeRows),       summary(kCascadeLevels),
-    summary(kCascadeHoldVolts),   summary(kCascadeHomingPushVolts), summary(kCascadeUnhomedVolts),
-    summary(kCameraPort),         summary(kCameraMount),
+    summary(kNonDriveMotorPorts),   summary(kCascadePorts),          summary(kCascadeDirections),
+    summary(kCascadeCartridge),     summary(kCascadeTeeth),          summary(kCascadeStallAmps),
+    summary(kCascadeStallRpm),      summary(kCascadeStallTime),      summary(kCascadeCapAmps),
+    summary(kFlipperKind),          summary(kSideTogglePorts),       summary(kRightTogglePort),
+    summary(kSideToggleCartridge),  summary(kSideToggleCapAmps),     summary(kClawLine),
+    summary(kFlipperLine),          summary(kRampLine),              summary(kCascadeRows),
+    summary(kCascadeLevels),        summary(kCascadeHoldVolts),      summary(kCascadeHomingPushVolts),
+    summary(kCascadeHomingStallAmps), summary(kCascadeUnhomedVolts),  summary(kRightToggleDirection),  summary(kLeftToggleDirection),
+    summary(kClawOpenLevel),        summary(kFlipperOpenLevel),      summary(kRampDownLevel),
+    summary(kClawStrokeTime),       summary(kFlipperStrokeTime),     summary(kRampStrokeTime),
+    summary(kCameraPort),           summary(kCameraMount),
 };
 
 /// How many facts the ledger holds.
@@ -506,14 +647,38 @@ constexpr units::Length cascadeBottom() { return kCascadeRows.value().row[0].hei
 /// The cascade's top stop: its LAST measured row's height — the range's top (no separate fact).
 constexpr units::Length cascadeTop() { return kCascadeRows.value().row[kCascadeRowCount - 1].height; }
 
-/// The cascade's stall signature, from its three facts — the declaration's `.stall` AND its homing's.
+/// The cascade's JAM stall signature, from its three facts — the declaration's `.stall`.
 constexpr mechanism::Stall cascadeStall() {
     return mechanism::Stall{.amps = kCascadeStallAmps.value(),
                             .belowMotorRpm = kCascadeStallRpm.value(),
                             .lasting = kCascadeStallTime.value()};
 }
 
+/// The cascade's HOMING stall signature — its own amps (kCascadeHomingStallAmps: a gentle push's stall), the
+/// jam signature's speed and time — the declaration's `homeByStall(...)`.
+constexpr mechanism::Stall cascadeHomingStall() {
+    return mechanism::Stall{.amps = kCascadeHomingStallAmps.value(),
+                            .belowMotorRpm = kCascadeStallRpm.value(),
+                            .lasting = kCascadeStallTime.value()};
+}
+
 /// The level in slot `i` (0..5) — the declaration and the driver file spell each slot ([R8]).
 constexpr const Level& lv(std::size_t i) { return kCascadeLevels.value().level[i]; }
+
+/// The LEFT side toggle's port: the side toggle port that is not the right one's (kSideTogglePorts holds
+/// both, kRightTogglePort says which is the right). 0 — no smart port, which the wiring refuses by name in
+/// every build — when the right one's is neither of the two (a typing slip).
+constexpr int leftTogglePort() {
+    const Pair<int>& both = kSideTogglePorts.value();
+    const int right = kRightTogglePort.value();
+    return right == both.first ? both.second : (right == both.second ? both.first : 0);
+}
+
+/// Of a two-position piston whose ACTIVE position (`active` — open, out, down) is at line level
+/// `activeLevel`, the position its solenoid holds UNPOWERED (Low): its start and safe position, so nothing
+/// moves at power-up or when the run ends (the ROB1-C2 rule; forms G22-G24).
+constexpr const char* unpoweredPosition(bool activeLevel, const char* rest, const char* active) {
+    return activeLevel == mechanism::words::Low ? active : rest;
+}
 
 }  // namespace shulib::bench::robot_one_facts
