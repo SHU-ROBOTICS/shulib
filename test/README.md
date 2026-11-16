@@ -53,6 +53,33 @@ unbroken run of the file); and no public document may link into the development-
 The library itself is header-only C++ and depends on none of
 this — only the test build does, and deliberately: a gate you can forget to run is not a gate.
 
+## The route builder's tests (since RMP1-A1)
+
+The route builder (`tools/route_maker/`, a web page) has two halves of tests, and this suite holds the C++ one:
+
+- **`route_maker_golden_test.cpp`** — every golden in [`goldens/route_maker/`](goldens/route_maker/) is a route
+  (`<name>.route.json`, a project file) and the C++ the page's OWN exporter wrote for it (`<name>.cpp`, kept fresh
+  by the page's node test) — except `gl0_empty.cpp`, the shared file's empty region as the contract with robot two's
+  update writes it, kept by hand so the exporter is held to it rather than re-making it. Each export is `#include`d here inside a namespace that resolves its names the way the
+  shared skills-route file does, compiled with the suite's flags, and RUN through `competition::runAuton` at its
+  FIELD start on the host test plant (`route_maker_rig.hpp`). Behaviour is asserted only on robot x
+  (`mechanism_fixtures.hpp`, numbers the test owns: a drive turned first and one not, reverse and turns, curves of 2
+  and 16 points, every mechanism step, stop / carry on / skip, a wait across the 57 s cut, the home rule's twins,
+  the caps' spellings and both tolerances); robots one and two are smoke runs. A tripwire holds that a robot
+  building the shared route and declaring a cascade has its levels marked as its facts ledger's (robot two, once its
+  update gives it robot one's cascade). It also pins the committed fixture descriptions
+  (`goldens/route_maker/robots/{x,y,z}.json`) and CV1's curve table (`goldens/route_maker/curves.txt`) to what the
+  C++ makes now — the page's node tests read them.
+- **`shulib_route_maker`** (`route_maker_main.cpp`, its own CMake target, not part of `shulib_tests`) —
+  `describe --robot one|two|x|y|z` writes a robot's description from its REAL table (`route_maker_describe.hpp`;
+  the declaration's C++ name read from the line its `.name` recorded) and `curves` re-makes CV1's table. After a
+  change that moves either, re-make the committed file and READ the diff:
+  `build/test/shulib_route_maker describe --robot x > test/goldens/route_maker/robots/x.json` (and y, z), and
+  `build/test/shulib_route_maker curves > test/goldens/route_maker/curves.txt`.
+
+The page's own tests are node's: `node --test tools/route_maker/test/*.test.mjs` (the model — no browser), and, with a
+browser, `ROUTE_MAKER_BROWSER=firefox node --test tools/route_maker/test/page/*.test.mjs` (see `tools/route_maker/README.md`).
+
 ## Conventions
 
 - **One test file per unit:** every `*_test.cpp` in this directory is auto-discovered and compiled in.

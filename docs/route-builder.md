@@ -1,0 +1,37 @@
+# Route builder
+
+Build the skills route by clicking on the real field, see at once anything the robot would refuse, and export the
+C++ for the robot — in the browser, with nothing to install. Every change to it is tested in Edge, Chrome and
+Firefox on Windows, and in Chromium and Firefox on Linux.
+
+[Open the route builder](route-builder/app.html){ .md-button .md-button--primary }
+[Download for offline use](route-builder/shulib-route-builder.html){ .md-button download="shulib-route-builder.html" }
+
+![The route builder: the steps on the left, the real field in the middle with the planned path dashed, the selected step on the right](assets/route-builder/route.png)
+
+**How to use it, step by step:** [guide chapter 22 — making your first route](guide/22-making-your-first-route.md).
+
+## Which browser
+
+| Browser | What it does |
+|---|---|
+| **Edge or Chrome** (version 97 or newer) | Everything. Connect your shulib folder once: **Save** writes `src/team/route_maker.json` and **Export** writes the route into `src/team/skills_route.cpp`, keeping the file's own line endings. |
+| **Firefox** (115 or newer) | Everything except writing into the folder: **Save** downloads `route_maker.json`, **Export** copies the code (or hands back an updated `skills_route.cpp` to put in place). |
+| **Safari** (16 or newer) — not tested | Should work as Firefox does; no test runs it. |
+
+Edge is on every Windows laptop. A browser older than these says so in a yellow box when the page opens.
+
+## Offline, at the event
+
+**Download for offline use** saves one file, `shulib-route-builder.html` (if your browser opens it instead,
+right-click the button and choose **Save link as**). Double-click it — no internet needed. It is the same route
+builder, built from the same version of the library as this site.
+
+## What it knows
+
+The route builder knows the robots **as of the last time this site was published**: their mechanisms, their
+levels, how each one homes. The bottom bar says which build of the library that was. A fact typed into a robot's
+file reaches the route builder at the next publish.
+
+The dashed path on the field is the **plan** — where the library is told to go. The route builder never draws
+its own guess of where the robot will end up.

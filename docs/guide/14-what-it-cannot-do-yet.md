@@ -515,6 +515,13 @@ promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
   2026-09-18, with the route schema frozen — but nothing loads a route or a robot from a
   `.vexbot` file yet, so today a route is still typed in C++. The file reader is the rest of
   roadmap milestone M5, coordinated with the separate VexBuilder project.
+  The [route builder](22-making-your-first-route.md) (2026-11) is the first piece a non-coder can use: it builds the
+  skills route by clicking on the field and WRITES the commented C++ into the skills-route file — the team still
+  builds and uploads it. What it does not do yet: **PREVIEW** (playing the route from the real library on the
+  host test plant), triggers partway through a drive, wall resets, the mirrored robot drawn on the field, a time
+  bar, the Toggle steps, strafing, moving to a pose, driving through points, sensor waits, flywheel steps, a step of
+  your own C++, relative starts, 30 s match routes, and exporting a route to VexBuilder. Until they come, they are
+  typed by hand inside the route's region; the route builder never overwrites a hand edit there without asking.
 - **No ready-made scoring verbs for recipes to command** — the mechanism layer exists (see
   above) and `then()` runs its operations, but the mechanisms themselves are structs your
   team writes ([Chapter 13](13-extending-the-library.md)), and the season's concrete

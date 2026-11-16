@@ -1,0 +1,17 @@
+{
+  "id": "z",
+  "name": "robot z (test)",
+  "api": "2.8",
+  "autonNameMaxChars": 29,
+  "drive": {"tank": true, "footprintIn": 15, "maxSteerDeg": 14.999999999999998, "curve": {"maxStartOffDeg": 90, "lookAheadIn": 8, "minSpacingIn": 1, "maxPoints": 16}},
+  "mechanisms": [
+    {"name": "arm", "ident": "arm", "kind": "arm", "units": "deg", "homing": "restsAtStop", "range": [0, 160], "presets": [{"name": "stow", "value": 0}, {"name": "score", "value": 95}, {"name": "high", "value": 140}]},
+    {"name": "lift", "ident": "lift", "kind": "lift", "units": "in", "homing": "switch", "range": [0, 24], "presets": [{"name": "floor", "value": 0}, {"name": "low", "value": 8}, {"name": "high", "value": 22}]},
+    {"name": "flywheel", "ident": "flywheel", "kind": "flywheel", "presets": [{"name": "shoot", "value": 3000}]},
+    {"name": "intake", "ident": "intake", "kind": "power", "pieceSensor": true},
+    {"name": "hood", "ident": "hood", "kind": "pneumatic", "positions": ["down", "middle", "up"]},
+    {"name": "wrist", "ident": "wrist", "kind": "arm", "units": "deg", "homing": "absolute", "range": [-90, 90], "presets": []},
+    {"name": "claw pivot 6", "ident": "clawPivot6", "kind": "power", "pieceSensor": false}
+  ],
+  "field": {"wallInnerFaceIn": 70.20472440944883, "centreGoal": {"x": 0, "y": 0}, "toggles": [{"name": "right wall", "x": 70.2, "y": 0}, {"name": "left wall", "x": -70.2, "y": 0}, {"name": "blue wall", "x": 0, "y": 70.2}, {"name": "red wall", "x": 0, "y": -70.2}]}
+}

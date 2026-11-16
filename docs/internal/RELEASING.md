@@ -139,6 +139,25 @@ Bash(git push origin *:refs/heads/main)   # or narrow it to the release target
 Until such a rule exists, `release.py stage` still does all the work and prints the exact shas,
 so a human can run the three pushes.
 
+## A publish builds the route builder (added 2026-11-14, RMP1-A1)
+
+`pages.yml` builds the route builder from the published commit (`tools/route_maker/build.py`, its robots from
+`shulib_route_maker describe` on that commit) into `route-builder/` beside its docs page, and its PG1 step fails the
+publish if `route-builder/app.html` is missing or is not the app. After the deploy, **open
+docs.shurobotics.com/route-builder/app.html, place a start, add a drive and press Export once** — the robots it
+offers are that commit's, and a robot fact typed since reaches the published builder only at the next publish
+(the RMP1 brief's D17: a docs release at each route-builder merge before the 21st, on the team lead's OK for the
+push).
+
+**OPEN — for the coordinator to decide before RMP1-A1's merge (found by A1's review, 2026-11-15):** D17 publishes at
+EACH route-builder merge, but the rule just below ("Chunks between parts") fails the preflight on RMP1's PROGRESS file
+while another RMP1 part is building, and A.7 / W4 plans A2e to build from ~Tue 11-17 and A2u from A1's merge — so as
+written, A1's own publish is refused if A2e or A2u has started. The two ways out: (a) publish A1 BEFORE A2e / A2u
+launch (the between-parts marker in RMP1-PROGRESS.md, with A2e and A2u named as the next parts, until they start);
+or (b) a between-parts reason that names A2e and A2u as separate runs in their own worktrees, whose half-built state
+is not on the branch being released — a change to the rule below, so it is the coordinator's and the team lead's.
+Whichever is chosen is written here, replacing this paragraph.
+
 ## Chunks between parts (added 2026-11-13)
 
 The preflight fails on an **interrupted chunk**: a `docs/internal/chunks/<CHUNK>-PROGRESS.md` with no

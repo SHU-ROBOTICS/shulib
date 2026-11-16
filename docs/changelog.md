@@ -16,6 +16,31 @@
 
 ## API 2.8
 
+### 2026-11-14 — the route builder: build the skills route by clicking, export the C++ (in the browser, on Windows and Linux)
+
+> Written when it was built (chunk RMP1, its first run, RMP1-A1). **No library change — no API change:** nothing
+> under `include/shulib/` or `src/` moved; this is a tool beside the library. **Host and browser only: no route it
+> writes has run on a robot here.**
+
+**Why:** the team's non-coders write the skills route — and until now that meant typing C++.
+
+**What you can now do (additive):**
+
+- **The route builder** — a web page on the docs site ([its page](route-builder.md), the "Route builder" tab), and a
+  one-file download for offline use. Place robot one's start on the real field; add drives (turning to face the
+  point first on a tank), turns, curves (the library's own curve, drawn and checked), cascade levels, homes,
+  pneumatic positions, timed motor runs, waits; give any step "if it fails: stop / carry on / skip ahead". The page
+  marks in plain words — with the library's own sentence beside them where it has one — every step the robot would
+  refuse (a move before the cascade is homed, a wall in the way, a curve the library will not drive), with one-click
+  fixes.
+- **Export** writes the route as commented C++ into the ONE marked region of `src/team/skills_route.cpp` (Edge or
+  Chrome, the shulib folder connected; keeping the file's own line endings, never overwriting a hand edit without
+  asking), or copies it (any browser). **Save** writes the route into `src/team/route_maker.json`.
+- How to use it: [guide chapter 22](guide/22-making-your-first-route.md).
+
+**What you must do:** nothing. Robot two's update adds `src/team/skills_route.cpp`; until it is in your copy of the
+repository, the route builder offers Copy only.
+
 ### 2026-11-13 (built 2026-11-11) — robot one in the code: `make ROBOT=one`, its facts file, six builds that refuse by name until its facts are typed
 
 > Written when it was built (chunk ROB1, its first run), and brought up to date when it was integrated onto curves
