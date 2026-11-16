@@ -1,0 +1,38 @@
+# skills_mirror_vectors.txt -- THE SHARED TABLE of mirror test vectors (chunk MIRROR1-A, 2026-11-13; the
+# MIRROR1 brief's D10 and its re-check R10). One vector per line, numbers in inches and DEGREES:
+#
+#     FIELD    x y h -> x' y' h'      Override's skills mirror, F1's y = -x:   (x, y, h) -> (-y, -x, -90 - h)
+#     RELATIVE x y h -> x' y' h'      the robot-frame mirror ("every left a right"): (x, y, h) -> (x, -y, -h)
+#
+# Headings are in (-180, 180] (F3: an exact antipode is +180). Lines starting with '#' and blank lines are
+# skipped. Read by test/reflection_test.cpp (T1: every line, through the library's math::Reflection) and by
+# the route maker (RMP1) by splitting each line on whitespace -- the one table both check against, so the
+# library and the page can never mirror a route differently. Every number here was worked BY HAND from the
+# two rules above (never printed by the code it checks). A field start worked through in full, robot one in
+# the red wall's Quadrant, robot two in the right wall's (guide 02, "The field's mirror"):
+#     robot one (-36, -55.7) facing 0  ->  robot two (55.7, 36) facing -90.
+FIELD    -36     -55.7     0    ->   55.7     36      -90
+FIELD    -36     -58       0    ->   58       36      -90
+FIELD      0       0       0    ->    0        0      -90
+FIELD      0     -24      90    ->   24        0      180
+FIELD     12     -18     -30    ->   18      -12      -60
+FIELD     30     -10      45    ->   10      -30     -135
+FIELD    -12     -40     -90    ->   40       12        0
+FIELD      5     -60     179    ->   60       -5       91
+FIELD      5     -60    -179    ->   60       -5       89
+FIELD     -6     -44     180    ->   44        6       90
+# On the mirror line itself (x = -y): a point is its own image; a heading along the line (-45 or 135) too.
+FIELD     10     -10     180    ->   10      -10       90
+FIELD    -23.5    23.5   -45    ->  -23.5     23.5     -45
+FIELD     47     -47     135    ->   47      -47      135
+# The four walls' Toggle places (vision/override_elements.hpp), robot one facing each wall from its own side.
+FIELD     70.2     0       0    ->    0      -70.2     -90
+FIELD      0     -70.2   -90    ->   70.2      0        0
+FIELD    -70.2     0     180    ->    0       70.2      90
+FIELD      0      70.2    90    ->  -70.2      0      180
+# RELATIVE: 40 in forward mirrors to itself; every left becomes a right.
+RELATIVE   0       0       0    ->    0        0        0
+RELATIVE  40       0       0    ->   40        0        0
+RELATIVE  24      12      90    ->   24      -12      -90
+RELATIVE  -6     -18    -135    ->   -6       18      135
+RELATIVE  10       5     180    ->   10       -5      180

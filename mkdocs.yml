@@ -149,6 +149,7 @@ nav:
       - Mixing tiers: cookbook/05-mixing-tiers.md
       - Driver control: cookbook/06-driver-control.md
       - Mechanisms: cookbook/07-mechanisms.md
+      - One route, two robots: cookbook/09-one-route-two-robots.md
 
 # BEGIN GENERATED API NAV — regenerate with: python3 tools/api_doc_tool.py generate
   - API reference:
@@ -247,6 +248,7 @@ nav:
           - Angle: api/angle.md
           - Frame: api/frame.md
           - Pose2d: api/pose2d.md
+          - Reflection: api/reflection.md
           - Twist2d: api/twist2d.md
       - Units:
           - Literals: api/literals.md
@@ -341,7 +343,9 @@ nav:
           - Auton menu: api/auton_menu.md
           - Auton registry: api/auton_registry.md
           - Auton wall reset: api/auton_wall_reset.md
+          - Field mirror: api/field_mirror.md
           - Match runner: api/match_runner.md
+          - Override mirror: api/override_mirror.md
           - Toggle visit: api/toggle_visit.md
       - Config:
           - Camera config: api/camera_config.md

@@ -2387,12 +2387,12 @@ The window's worst twist so far: vx carries the largest speed judged (rule 5's: 
 ## `appendWallResetLine`
 
 ```cpp
-inline void appendWallResetLine(diag::lineformat::Line& line, const WallResetReport& rep, const WallResetRequest& request, const SideMount& mount, const WallResetLimits& limits)
+inline void appendWallResetLine(diag::lineformat::Line& line, const WallResetReport& rep, const WallResetRequest& request, const SideMount& mount, const WallResetLimits& limits, const char* sideNote = nullptr)
 ```
 
-PURE: append the reset's ONE log line (subsystem "WALL"; ASCII; within a Line's 384 bytes) — `[<name>: ]<wall> <axis> <WORD> (<SIDE> sensor): <the verdict's numbers>`, e.g. `left wall x SEATED (LEFT sensor): -52.21 -> -54.66 (moved -2.45, limit 3.00) | median 8.05 in spread 0.26 n 10 | bound 0.62 | faults ok`. Caller-supplied text (the names, an absence sentence) goes through the Line's sanitizer.
+PURE: append the reset's ONE log line (subsystem "WALL"; ASCII; within a Line's 384 bytes) — `[<name>: ]<wall> <axis> <WORD> (<SIDE> sensor): <the verdict's numbers>`, e.g. `left wall x SEATED (LEFT sensor): -52.21 -> -54.66 (moved -2.45, limit 3.00) | median 8.05 in spread 0.26 n 10 | bound 0.62 | faults ok`. Caller-supplied text (the names, an absence sentence) goes through the Line's sanitizer. MIRROR1-A: `sideNote` (default none — every line byte-identical to before) is written INSIDE the sensor's parenthesis, `(LEFT sensor, <sideNote>)`, near the line's start, so the terminal's 200-byte message cut never drops it: the everyday call passes "mirrored from red wall RIGHT" for a mirrored auton's reset (competition/auton_wall_reset.hpp).
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:1237`](../../include/shulib/localization/wall_reset.hpp#L1237).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:1240`](../../include/shulib/localization/wall_reset.hpp#L1240).*
 
 ## Design commentary, from the header
 

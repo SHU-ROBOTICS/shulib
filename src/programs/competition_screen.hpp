@@ -488,9 +488,10 @@ inline void competitionAutonHeader(char (&out)[2 * ui::kSmallCols + 1], const ch
                                          : "FAILED",
                   g.scoringEnded.value());
     detail::addCompetitionLine(v, kCompetitionLineY0, ui::Tone::White, text);
-    // (3)-(4) where it was seated, and where the estimate says it ended
-    std::snprintf(text, sizeof text, "START (%.1f, %.1f) %.1f deg", rec.run.seated.x().value(),
-                  rec.run.seated.y().value(), rec.run.seated.heading().degrees());
+    // (3)-(4) where it was seated, and where the estimate says it ended. A MIRRORED auton (MIRROR1-A)
+    // was seated at robot two's REAL start — where the drivers must place it — and says MIR.
+    std::snprintf(text, sizeof text, "START%s (%.1f, %.1f) %.1f deg", rec.run.mirrored ? " MIR" : "",
+                  rec.run.seated.x().value(), rec.run.seated.y().value(), rec.run.seated.heading().degrees());
     detail::addCompetitionLine(v, kCompetitionLineY0, ui::Tone::White, text);
     std::snprintf(text, sizeof text, "END   (%.1f, %.1f) %.1f deg%s", rec.endEstimate.x().value(),
                   rec.endEstimate.y().value(), rec.endEstimate.heading().degrees(),

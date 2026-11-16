@@ -29,6 +29,8 @@
 #include "shulib/competition/auton_registry.hpp"
 #include "shulib/competition/match_runner.hpp"
 #include "shulib/kinematics/tank.hpp"
+#include "shulib/math/pose2d.hpp"
+#include "shulib/math/reflection.hpp"
 #include "shulib/ui/touch_panel.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -648,4 +650,39 @@ TEST_CASE("screen (S15) STEP1-A: the RESULT page paints DONE, n FAILED whole, in
     CHECK(shulib::bench::competitionResultTone("DONE") == Tone::Red);
     CHECK(shulib::bench::competitionResultTone("ROUTINE STOPPED") == Tone::Red);
     CHECK(shulib::bench::competitionResultTone("FINISHED") == Tone::Green);
+}
+
+// MIRROR1-A T8 (the MIRROR1 brief's D8, R9): a MIRRORED run's START line on the competition screen, at
+// the screen's OWN worst case (S10's -9999.9), with a zero coordinate and a RELATIVE start. Bug caught:
+// "START MIR (-9999.9, -9999.9) -179.9 deg" (39 characters) cut; "-0.0" on the screen (MM17); MIR on an
+// unmirrored run.
+TEST_CASE("screen MIRROR1 T8: START MIR at -9999.9, a zero coordinate, a RELATIVE start") {
+    AutonRegistry reg{shulib::bench::kAutonPeriods};
+    shulib::bench::registerAutons(reg);
+    CompetitionRunRecord r{};
+    r.request = 1;
+    r.entry = 0;
+    r.run.outcome = AutonRunOutcome::RoutineRan;
+    r.run.guard.endActionRan = true;
+    r.run.guard.endActionSucceeded = true;
+    r.run.mirrored = true;
+    r.run.seated = shulib::math::Pose2d{shulib::units::Length{-9999.9}, shulib::units::Length{-9999.9},
+                                        shulib::math::Angle::degrees(-179.9)};
+    r.endEstimate = r.run.seated;
+    CompetitionView res = shulib::bench::competitionResultView(r, reg, "BUILD 23:59:59");
+    checkView(res);
+    CHECK(lineText(res, 2) == "START MIR (-9999.9, -9999.9) -179.9 deg");
+    CHECK(lineText(res, 2).size() == 39U);
+    r.run.mirrored = false;
+    res = shulib::bench::competitionResultView(r, reg, "BUILD 23:59:59");
+    CHECK(lineText(res, 2) == "START (-9999.9, -9999.9) -179.9 deg");
+    r.run.mirrored = true;
+    r.run.seated = shulib::math::Reflection::across(shulib::math::Reflection::Line::AntiDiagonal)
+                       .apply(shulib::math::Pose2d{shulib::units::Length{0.0}, shulib::units::Length{-24.0},
+                                                   shulib::math::Angle::degrees(90.0)});
+    res = shulib::bench::competitionResultView(r, reg, "BUILD 23:59:59");
+    CHECK(lineText(res, 2) == "START MIR (24.0, 0.0) 180.0 deg");
+    r.run.seated = shulib::math::Reflection::across(shulib::math::Reflection::Line::XAxis).apply(shulib::math::Pose2d{});
+    res = shulib::bench::competitionResultView(r, reg, "BUILD 23:59:59");
+    CHECK(lineText(res, 2) == "START MIR (0.0, 0.0) 0.0 deg");
 }

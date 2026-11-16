@@ -243,7 +243,10 @@ user.pins.setTarget({.classMask = 1U << static_cast<unsigned>(override2026::Mode
                      .x = 66.2, .y = -6.0, .toleranceIn = 6.0, .want = vision::Posture::OnFloor});
 ```
 
-and the finder answers one of five verdicts — never the nearest of several, never a guess:
+(the REAL field's numbers: in a mirrored auton the route's own numbers are robot one's, so a piece target and
+the pose handed to the finder are real-field numbers — the localizer's pose, never `ctx.chassis.pose()` —
+[Chapter 17](17-the-competition-program.md#below-the-mirror-what-reads-the-real-field)) and the finder answers
+one of five verdicts — never the nearest of several, never a guess:
 
 ```cpp
 const vision::PieceFinder::Result answer = user.pins.answer(clock.now().value());
@@ -400,6 +403,12 @@ see NOT AT THE SPOT; and how far the Toggle's face sits out from the wall's inne
 start's distance check), the push spot (`pushFrom`: does anything of the robot touch the Toggle there?), and the
 drive in and out's worst time (`driveBound`, HA-244). A request built as a constant through
 `competition::toggleVisit({...})` is checked at build.
+
+**In a mirrored auton** (robot two running robot one's route —
+[Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton)) the step is handed the auton's
+entry and visits the IMAGE Toggle: robot one's red wall Toggle is robot two's right wall Toggle, its left wall Toggle
+robot two's blue wall Toggle — the same Quadrant colour, so "ours" does not change — and its line names the Toggle
+robot two really visited.
 
 **What it cannot catch** is [Chapter 14](14-what-it-cannot-do-yet.md#the-toggle-flip-in-a-skills-route-what-it-cannot-catch)'s;
 its one log line, word by word, is [Chapter 11](11-reading-the-diagnostics.md#the-toggle-visit-tgl)'s. **Nothing

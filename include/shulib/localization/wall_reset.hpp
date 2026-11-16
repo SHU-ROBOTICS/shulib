@@ -1233,10 +1233,13 @@ private:
 /// `[<name>: ]<wall> <axis> <WORD> (<SIDE> sensor): <the verdict's numbers>`, e.g.
 /// `left wall x SEATED (LEFT sensor): -52.21 -> -54.66 (moved -2.45, limit 3.00) | median 8.05 in
 /// spread 0.26 n 10 | bound 0.62 | faults ok`. Caller-supplied text (the names, an absence sentence)
-/// goes through the Line's sanitizer.
+/// goes through the Line's sanitizer. MIRROR1-A: `sideNote` (default none — every line byte-identical
+/// to before) is written INSIDE the sensor's parenthesis, `(LEFT sensor, <sideNote>)`, near the line's
+/// start, so the terminal's 200-byte message cut never drops it: the everyday call passes "mirrored
+/// from red wall RIGHT" for a mirrored auton's reset (competition/auton_wall_reset.hpp).
 inline void appendWallResetLine(diag::lineformat::Line& line, const WallResetReport& rep,
                                 const WallResetRequest& request, const SideMount& mount,
-                                const WallResetLimits& limits) {
+                                const WallResetLimits& limits, const char* sideNote = nullptr) {
     namespace lf = diag::lineformat;
     const auto num = [&line](double v, int prec) { lf::appendNum(line, v, 0, prec); };
     const auto deg = [](units::AngleDim a) { return a.value() / kWallDegToRad; };
@@ -1265,7 +1268,12 @@ inline void appendWallResetLine(diag::lineformat::Line& line, const WallResetRep
     line.appendLiteral(wallResetVerdictWord(rep.verdict));
     line.appendLiteral(" (");
     line.appendLiteral(wallSideWord(rep.side));
-    line.appendLiteral(" sensor): ");
+    line.appendLiteral(" sensor");
+    if (sideNote != nullptr && sideNote[0] != '\0') {
+        line.appendLiteral(", ");
+        line.appendSanitized(sideNote, 64);
+    }
+    line.appendLiteral("): ");
     switch (rep.verdict) {
         case WallResetVerdict::Seated:
             num(rep.before.value(), 2);

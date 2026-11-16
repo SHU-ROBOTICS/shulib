@@ -1786,6 +1786,16 @@ written with them (D12 honesty reaching the data layer intact).
 > *(Done at the merge verification, 2026-10-15: the whole file under ASan + UBSan, 31/31 —
 > [record](chunks/SER1-COMPLETED.md).)*
 
+### MIRROR1 — one route, two robots: robot two runs robot one's skills route MIRRORED ⟵ NEW 2026-11-13
+> **Status 2026-11-13: MIRROR1-A BUILT** (the team lead's GO of 2026-11-13 on D1–D11; [brief](chunks/MIRROR1-mirrored-routine.md),
+> [live log](chunks/MIRROR1-PROGRESS.md)) — host- and build-gated, NOT run on a robot, NOT committed, awaiting its review and the
+> coordinator's checks: `math::Reflection`; the Chassis's mirrored run (`reflection()`, `chassis::MirroredRun`, F6-additive);
+> `competition::mirrored` / `isMirrored` / `FieldMirror` and Override's `kSkillsMirror` (the reflection across y = -x);
+> the runner seating the reflected start and running the routine and its park mirrored; the wall reset's and the Toggle
+> step's swaps; `START MIR` / `SKILLS MIR`; the pair check (both robots at once, 6 in) over every mirrored entry robot two
+> registers; HA-258..HA-260. Robot two's ONE registration line lands with ROB1-BT (the coordinator's D2 call: robot two as
+> robot one's twin is not on this base). `[~]` until robot two has run robot one's route mirrored, beside robot one.
+
 ### VIS1 and AF1 — the Toggle auto-flipper ⟵ NEW 2026-10-08; after the panel since the sprint of 2026-10-29
 > **Status 2026-11-13: AF1S-A1 LANDED** (built 2026-11-11; the skills Toggle step's explicit form — `competition/toggle_visit.hpp`,
 > the Quadrant table in `vision/override_elements.hpp`, the host Toggle `sim/toggle_plant.hpp`; [live log](chunks/AF1S-PROGRESS.md),

@@ -144,9 +144,19 @@ inline constexpr int kApiMajor = 2;
 /// No frozen member changed shape, no enumerator was added or moved; a routine with no trigger runs
 /// exactly as before (STEP1-A's golden chains byte-identical). Nothing to do. docs/changelog.md, API
 /// 2.8, lists it.
-inline constexpr int kApiMinor = 8;
+/// 9 = chunk MIRROR1-A (2026-11-15; built 2026-11-13), one route, two robots, by the additive path of
+/// register row F6: `Chassis::reflection()` and the RAII scope `chassis::MirroredRun` (pinned) — while a
+/// mirrored run is open every FIELD number entering the Chassis is reflected and `pose()` reflected back;
+/// the new headers math/reflection.hpp (`math::Reflection`, pure), competition/field_mirror.hpp
+/// (`mirrored` — a temporary FieldMirror refused at compile time —, `isMirrored`, `FieldMirror`) and
+/// competition/override_mirror.hpp (`kSkillsMirror`);
+/// `AutonEntry::mirror` and `AutonRunResult::mirrored`, appended. No frozen member changed shape, no
+/// enumerator was added or moved, F10 untouched; every 2.8 program compiles and runs exactly as before (an
+/// unmirrored run through runAuton hashes byte-identical, tank and X-drive). Nothing to do.
+/// docs/changelog.md, API 2.9, lists it.
+inline constexpr int kApiMinor = 9;
 
 /// "major.minor", for session headers / logs that want one printable token.
-inline constexpr const char* kApiVersionString = "2.8";
+inline constexpr const char* kApiVersionString = "2.9";
 
 }  // namespace shulib

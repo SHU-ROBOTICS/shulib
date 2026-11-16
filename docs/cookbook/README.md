@@ -108,6 +108,12 @@ so it cannot disagree with the code.
 | [An arm with presets, held while the robot drives](07-mechanisms.md#an-arm-with-presets-held-while-the-robot-drives) | An arm or a lift must get to a height and stay there while the robot drives |
 | [Start the lift partway through a drive](07-mechanisms.md#start-the-lift-partway-through-a-drive) | A mechanism should start partway along a drive — not before it, not after it |
 
+### [9 — One route, two robots](09-one-route-two-robots.md)
+
+| Recipe | Use this when |
+|---|---|
+| [Write once, run mirrored](09-one-route-two-robots.md#write-once-run-mirrored) | Robot two is robot one's build and runs robot one's skills route mirrored, at the same time |
+
 ---
 
 ## The three things every recipe assumes

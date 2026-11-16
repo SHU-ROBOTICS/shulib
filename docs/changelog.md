@@ -14,6 +14,77 @@
 > after the fact from those comments and the project records; everything above it was
 > written when the change landed.
 
+## API 2.9
+
+### 2026-11-15 (built 2026-11-13, reviewed and fixed to 2026-11-15) — one route, two robots: robot two runs robot one's skills route MIRRORED across the field's skills diagonal
+
+> Written when it was built (chunk MIRROR1, run A). **API 2.9** — numbered by the coordinator at the merge. **Added (nothing to do):** every name below is new; the
+> Chassis (Freeze Register row F6) gains a read-only `reflection()` and the `chassis::MirroredRun` scope —
+> F6-additive, every existing verb unchanged unless a mirrored run is open (an unmirrored run is bit-identical,
+> pinned) — and the Routine (F10) does not change at all. The version number is the release's to set.
+> **Host- and build-gated, NOT run on a robot:** robot two as robot one's twin does not exist yet.
+
+**Why:** the first competition (2026-11-21) is SKILLS ONLY, and both robots — the same build — run the skills
+route at the same time, one in each red Quadrant (the game manual's `<VURS2>`, `<VURS3>`, `<SG1>`). Those two
+Quadrants are mirror images across the field's diagonal from the red/right corner to the blue/left corner, so
+the students write the route ONCE and robot two runs it mirrored — one registration line instead of a second,
+hand-reflected copy to keep equal through every edit. The team lead's go (2026-11-13): "do what is best they
+should play onto one side when they need to when mirrored".
+
+**Added:**
+
+- `math::Reflection` (`math/reflection.hpp`) — the field reflected across a line through the origin at a
+  multiple of 45° (exact in position, a reflected reflection gives the position back, never `-0.0`), or the
+  identity: a point, a `Pose2d`, an `Angle` (`2a - h`, re-wrapped), a `ChassisSpeeds` in either frame.
+- `competition::mirrored(entry, mirror)`, `competition::isMirrored(ctx)`, `competition::FieldMirror`,
+  `mirroredWall`, `mirroredSide`, `runReflection`, `seatedStart` (`competition/field_mirror.hpp`), and
+  `competition::override2026::kSkillsMirror` — Override's skills mirror, `(x, y, h) -> (-y, -x, -90° - h)`, with
+  `toggleImage` / `mirroredToggle` (`competition/override_mirror.hpp`; the season's walls and Toggles checked to
+  close under it at compile time). Robot two's autons file:
+  `registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));`.
+  `mirrored()` handed a TEMPORARY `FieldMirror` does not compile (a deleted overload): the entry keeps the
+  mirror's address, so it must be the season constant.
+- `AutonEntry::mirror` (appended, default none) and `kMaxMirroredAutonNameChars` (25 — the button reads
+  `<name> SKILLS MIR`); `AutonRunResult::mirrored`.
+- `Chassis::reflection()` and `chassis::MirroredRun` (`chassis/chassis.hpp`): while a mirrored run is open every
+  FIELD number entering the Chassis is reflected (`moveTo`, `strafeTo`, `turnTo`, both observer overloads,
+  `followTrajectory`, `curveTo` / `reverseCurveTo`, `setPose`, `drive`) and `pose()` hands the estimate back
+  reflected; `deps()`, `scheduler()`, `lastCompleted()`, the records and the log stay the REAL field.
+- `competition::runAuton` seats a mirrored entry at the REFLECTED start (a RELATIVE one by the robot-frame
+  mirror, every left a right) and runs its routine AND its end action inside one mirrored run, closed on every
+  way out. Its `COMP` lines say `FIELD MIRRORED` and name robot one's start; the result screens say
+  `START MIR (...)`; the menu says `<name> SKILLS MIR`.
+- The wall reset's everyday call swaps the wall (its image) and the sensor side (LEFT <-> RIGHT) for a mirrored
+  auton, its `WALL` line noting `(LEFT sensor, mirrored from red wall RIGHT)`; the Toggle step visits the image
+  Toggle (the same Quadrant colour).
+- A `[MIR]` Warn when a mirrored `turnTo`, `moveTo` or trajectory leg (a `driveTo` / `reverseTo` is a `moveTo`)
+  starts within 1° of a half turn, on any drivetrain — F3's exact-180° tie turns both robots counterclockwise;
+  its advice names the verb's fix (a turn: two 90° turns; a leg: turn first, in two 90° turns). And one when
+  the driver-control loop finds a mirror still on: it CLEARS it (a library defect — never a refusal).
+- Refused by name: the explicit wall reset inside a mirrored run (a precondition naming the everyday call); an
+  entry mirrored by two DIFFERENT mirrors (a precondition at `mirrored()`); a mirrored name over 25 characters
+  (at registration).
+- **Both robots at once:** the host suite runs every mirrored entry robot two registers TOGETHER with its
+  unmirrored self on the host test plant and fails — naming the moment, both positions and the drive motion each
+  robot was in, robot one's with its target in the route's own numbers — when their 15 in squares come within
+  6 in (`test/mirrored_pair_check.hpp`). The guide's rule: keep
+  robot one's whole robot 3 in off the diagonal; what lies ON it (the centre goal, two yellow Pins, the red/right
+  Load Zone) is for ONE robot, through `isMirrored(ctx)`.
+
+**Proved on the host test plant:** robot two's path is robot one's reflection to 1.1e-12 in pace by pace (a tank,
+20 steps of every verb, a trigger of each kind on the same pace; a 16-point curve) and 6.2e-13 in (an X-drive);
+the exact-180° tie the one divergence, each pinned with its number — a turn 0.155 in; an X-drive `moveTo` 0.307 in
+along the way; a TANK `moveTo` at its END by more the longer the leg — 5.7 in on a 16 in leg, 14.2 in on a 36 in
+leg (a `driveTo` straight behind, 5.0 in on 14 in) — while the same drive after turning first in two 90° turns
+mirrors exactly; an unmirrored run through `runAuton` bit-identical to the merge base (tank and X-drive, every
+verb, hashed).
+**Unverified on a robot:** A4 registers HA-258 (the event's field is the manual's mirror), HA-259 (robot one's
+build is left-right symmetric where a route uses it) and HA-260 (the robots' own asymmetry, and 3 in a side).
+
+**Pages:** [guide chapter 2](guide/02-the-field-and-coordinates.md#the-fields-mirror-two-robots-one-route),
+[chapter 17](guide/17-the-competition-program.md#two-robots-one-route-a-mirrored-auton), chapter 11's `MIR`, `COMP`,
+`WALL` and `TGL` lines, chapter 14, the glossary, and [cookbook chapter 9](cookbook/09-one-route-two-robots.md).
+
 ## API 2.8
 
 ### 2026-11-14 (built 2026-11-12, reviewed and fixed to 2026-11-14) — the route preview: one command draws a whole auton from the team's own file, on the host test plant

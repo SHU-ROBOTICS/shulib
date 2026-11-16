@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 227 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 230 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -269,6 +269,14 @@
 > between two measured rows (HA-254, reasoned), and that its two cascade motors face each other (HA-255, a
 > guess until station 13's direction check). **None is measured — robot one does not exist in this project's
 > records.** With them, 227.
+> **MIRROR1-A (one route, two robots: robot two runs robot one's skills route MIRRORED; built 2026-11-13) added
+> THREE — HA-258..HA-260** (its brief held them past ROB1's numbers): the event's field is set up to Appendix A
+> and Figure VURS1, so the two red Quadrants are mirror images across the skills diagonal — with the centre goal,
+> two yellow Pins and the red/right Load Zone ON it (HA-258, reasoned); robot one's build is left-right
+> symmetric for every part a route uses at the field (HA-259, unknown); the drivetrain's own left/right
+> differences are not mirrored, and each robot's real position near the diagonal stays within half the pair
+> check's 6 in gap of its plan, the robot inside the check's 15 in square about its tracking centre (HA-260,
+> invented). **None is measured.** With them, 230.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither is **HA-181** (G3a, the robot panel: its amended brief), held the same way (the
 > mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
@@ -531,6 +539,9 @@
 | HA-253 | Robot one carries an inertial sensor (IMU) on a smart port — the library drives a tank only with one | **unknown** (the builder named only AI Vision and rotation sensors) | the facts form's A4; Bench Tests' census on robot one |
 | HA-254 | Between two measured rows, robot one's cascade height is close to straight in its output angle (a string winds onto its spool in layers, and stretches) | reasoned · **unmeasured** | the facts form's C7: a row at every level; a mid-row tape check at station 13 |
 | HA-255 | Robot one's two cascade motors face each other (`{Forward, Reversed}`) | **guess** (the builder's look, not yet given) | Bench Tests' station 13 direction check on robot one |
+| HA-258 | The event's field is set up to Appendix A and Figure VURS1, so the red wall's and the right wall's Quadrants are mirror images across F1's y = -x (goals, Toggles, Pins, tape) — each element within `<T5>`a's +-1.0 in, so a mirrored target can land up to ~2 in from robot two's element where robot one's was tuned to its own — and the centre goal, two yellow Pins and the red/right corner's Load Zone sit ON the diagonal | **reasoned** (the manual's drawings A10, A11, VURS1 — the Pins by pixel, about +-1 in; v2.1's drawings not re-measured) | On the event's field: tape the two red goals and two Toggles from their walls |
+| HA-259 | Robot one's build is left-right symmetric for every part a route uses at the field: a part off the centre line (an intake, a flipper, a claw, the camera's `left`, the two side sensors' `forward`) lands twice its offset from the reflection of robot one's | **unknown** | MIRROR1 Step 0.2 (every part's sideways offset), Step 0.3 (both side sensors' mounts) |
+| HA-260 | The drivetrain's own left/right differences are NOT mirrored: robot two's arrivals differ from the reflection of robot one's by its own asymmetry (host test plant, a 9 % weak side: 0.56 in, 0.44 s) — and each robot's real position near the diagonal stays within half the pair check's gap (3 in) of its plan, and its whole robot inside the check's 15 in square centred on its tracking centre, so a route that passes the 6 in check keeps the two robots apart on the field | **invented** (the host plant's magnitudes; the 3 in is a chosen margin, unmeasured; the footprint's place about the tracking centre unmeasured) | MIRROR1 Step 0.4 on both robots; Step 0.5 (both together, slowly first); the tracking centre's place inside each robot's footprint, taped with Step 0.2 |
 
 ---
 
@@ -2275,6 +2286,56 @@ new. **None is measured: no Toggle, no flipper and no camera reading of a real T
   *Settle:* AF1S Step 0.3 (the colours on the real faces) and 0.4 (the look spot, square and turned).
   *Blast radius if wrong:* every visit ends UNKNOWN BEFORE (nothing pushed) or NOT AT THE SPOT. **Contained:** a
   doubt does nothing.
+
+### MIRROR1-A's additions — one route, two robots (2026-11-13)
+
+Robot two runs robot one's skills route MIRRORED across the field's skills diagonal
+(`include/shulib/competition/field_mirror.hpp`, `competition/override_mirror.hpp`; the Chassis's mirrored run
+in `chassis/chassis.hpp`). Three beliefs come with it. **None is measured: robot two as robot one's twin does
+not exist yet, and nothing here has run on a robot.**
+
+- [ ] **HA-258 — the two red Quadrants are mirror images on the event's field.**
+  *Claim:* the field is set up to Appendix A and Figure VURS1, so the red wall's and the right wall's Quadrants
+  are mirror images across F1's y = -x — the goals, the Toggles, the Pins and the tape — each element within
+  `<T5>`a's +-1.0 in of nominal (so a mirrored target can land up to ~2 in from robot two's element where robot
+  one's was tuned to its own); and the centre goal, two yellow Pins (about (23.5, -23.5) and (47, -47) in) and the
+  red/right corner's Load Zone sit ON the diagonal.
+  *Source:* `competition::override2026::kSkillsMirror` (`include/shulib/competition/override_mirror.hpp`).
+  *Confidence:* **reasoned** — the manual's drawings A10, A11 and Figure VURS1 (the Pins by pixel, about +-1 in);
+  v2.1's text re-read, its drawings not re-measured.
+  *Settle:* on the event's field — tape the two red goals and the two red Quadrants' Toggles from their walls.
+  *Blast radius if wrong:* robot two's mirrored targets miss its elements by the field's own error.
+  **Contained:** the wall reset re-seats each robot against its own wall; a target is tuned on the bench.
+- [ ] **HA-259 — robot one's build is left-right symmetric where the route uses it.**
+  *Claim:* every part a route uses at the field — an intake, a flipper, a claw, the camera's `left`, the two side
+  sensors' `forward` — sits on the robot's centre line (or symmetric about it); a part off it lands TWICE its
+  offset from the reflection of robot one's, because the robot is not mirrored, only its route.
+  *Source:* `competition::mirrored`'s documentation (`field_mirror.hpp`); guide chapter 17.
+  *Confidence:* **unknown** — no one has measured robot one's parts.
+  *Settle:* MIRROR1 Step 0.2 (every part's sideways offset from the centre line), Step 0.3 (both side sensors'
+  mounts — robot two reads the side robot one's route never uses).
+  *Blast radius if wrong:* robot two's mechanism meets its piece or Toggle off to one side; its wall sensor's
+  beam lands elsewhere along the wall (the keep-outs may refuse). **Contained:** the bench shows which steps
+  need robot two's own numbers.
+- [ ] **HA-260 — the robots' own asymmetry is small, and 3 in a side keeps the pair apart.**
+  *Claim:* the drivetrain's own left/right differences are NOT mirrored — robot two's arrivals differ from the
+  reflection of robot one's by its own asymmetry (host test plant, a 9 % weak side: 0.56 in of path, 0.44 s of
+  time) — and each robot's REAL position near the diagonal stays within half the pair check's gap (3 in) of its
+  plan, and its whole robot inside the check's 15 in square CENTRED on its tracking centre (a footprint sitting
+  d in ahead of or behind the tracking centre still mirrors, but the check then misjudges each robot's clearance
+  by up to d, out of the 3 in), so a route that passes the suite's 6 in check keeps the two robots apart on the
+  field. *(The footprint half was added at MIRROR1-A's review, 2026-11-13 — a belief the check rested on and no
+  number named; widened here rather than a fourth number, as R1 widened this one for the pair check.)*
+  *Source:* `kMirrorGapIn` in `test/mirrored_pair_check.hpp`; the Chassis's mirrored-run documentation
+  (`chassis.hpp`).
+  *Confidence:* **invented** — the host plant's magnitudes; the 3 in is a chosen margin, unmeasured; where the
+  tracking centre sits inside each robot's footprint, unmeasured.
+  *Settle:* MIRROR1 Step 0.4 (each robot's mirrored route against the tape), Step 0.5 (both robots run the pair
+  TOGETHER on a field, the drive speed turned down first, someone at each robot's stop); and, with Step 0.2's
+  tape, how far each robot's front and back reach from its tracking centre (7.5 in each way is the check's
+  square).
+  *Blast radius if wrong:* the two robots touch near the diagonal. **Contained:** the suite refuses a route
+  whose plan comes within 6 in; `isMirrored(ctx)` sends one robot to what lies on the diagonal.
 ---
 
 ## Robot 2 — the 2026 tank chassis (added 2026-09-14, R3b Parts 1–3)

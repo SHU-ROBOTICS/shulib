@@ -139,7 +139,7 @@ template <typename IsDisabled, typename HeadingSource, typename PerTick> void ru
 
 Run driver control until `disabled()` says stop: sticks → `shaper` → budgets → the chassis, once per tick, in the order the file header lists (disabled check, sticks while connected, one heading sample, the re-zero edge, shape, the drive protections' check before `drive`, `drive(Body)`, their check after it, the release mode, the hold bindings, the toggles, `perTick`, `pace`).  * `chassis` — the facade to drive; its `motionConfig()` supplies the speed budgets (`maxLinearSpeed`, `maxAngularSpeed` — HA-50, provisional). * `controller` — the driver's controller (VEX U's partner is a second call with a second shaper). * `pacer` — the tick boundary: on a brain the provider's `ProsTickPacer`; in a host test the plant-stepping pacer. * `shaper` — the driver's feel (`DriveShaper`, one per driver, held across calls so its field-centric zero and latch survive a disable). * `cfg` — the tick period, the re-zero button, the release brake mode (applied at entry and after every `drive()`) and the drive protections' numbers. PRECONDITIONS, checked before the first tick and before anything is commanded: `cfg.tickPeriod` finite and > 0, and `validProtectionConfig(cfg.protection, chassis.deps().motorGroups)` — together, every precondition of the DriveProtection the loop builds, so nothing is refused after the entry has commanded something. * `bindings` — the driver's mechanism buttons (chunk T3), each ticked after `drive()` with its two buttons read only while connected. PRECONDITION, checked before the first tick: `validBindings(bindings, cfg.rezeroButton)` — no null, no button used twice, none equal to the re-zero button, no mechanism bound twice. A claim still on a bound mechanism at entry is RELEASED (`releaseLeftoverClaim()`) and logged — one Warn line each, tag `TEL`, on the chassis's sink (the team lead's ruling, 2026-09-26). Every binding is `reset()` and `makeSafe()`'d before the first tick, and `makeSafe()`'d again on the disable. BORROWED for the call; for a PROS program the bindings (and their mechanisms and motors) live in static storage, because a field disable deletes the task. The overload without this argument passes an empty span. * `toggles` — the driver's TOGGLE buttons (addendum B2: one button flipping one pneumatic mechanism per press), ticked after the hold bindings with their buttons read only while connected. A claim still on a toggle's mechanism at entry is released and logged, as for `bindings`, BEFORE its `enter()`. Every toggle is `enter()`'d before the first tick (its initial level, once in its life) and is NOT touched on the disable: the claw keeps its level. Checked with `bindings` as ONE set by the same precondition, `validBindings(bindings, toggles, cfg.rezeroButton)`. BORROWED, static storage on a brain, exactly as `bindings`. The overloads without this argument pass an empty span. * `disabled` — `bool()`: polled FIRST every tick; true ⇒ `chassis.cancel()` (0 V + Brake), every hold binding's `makeSafe()` — no toggle is touched — and return. The only way out. * `heading` — `HeadingSample()`: called once per tick, after the sticks, before shaping. * `perTick` — `void(const math::ChassisSpeeds& command, bool connected, const DriveShaperState& state)`: called after `drive()`, before `pace()` — the panel's hook. One that ALSO takes `const DriveProtectionState&` as a fourth argument is handed the drive protections' state (detected at compile time; the three-argument form is unchanged). `command` is always the driver's request, also while a cut sends the drive zero.  Nothing is read from the controller while it is disconnected; the command is then exactly zero whatever the axes claim (HA-103).  The DRIVE PROTECTIONS run inside it for every caller (the file header; drive_protection.hpp): a drive member whose readings freeze is kept out of the fight monitor and marked ABSENT after 250 ms; more than two dead in total REFUSES the drive for the rest of the run; a fight or a member over 2.4 A for 250 ms while driven cuts the drive to 0 V for 1 s, then re-arms.  SUPERSEDED by the mechanism service (the file header, N4): this T3 overload is for a program with NO mechanism service; a program with one drives its mechanisms through the service overload below.
 
-*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:454`](../../include/shulib/teleop/teleop_loop.hpp#L454).*
+*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:465`](../../include/shulib/teleop/teleop_loop.hpp#L465).*
 
 <a id="rundrivercontrol-2"></a>
 
@@ -151,7 +151,7 @@ template <typename IsDisabled, typename HeadingSource, typename PerTick> void ru
 
 `runDriverControl` with the robot's MECHANISM SERVICE (chunk MECH-A4, API 2.5; the file header's THE MECHANISM SERVICE): the driver file's controls (`inputs`, bound to `mechanisms`) run the robot's declared mechanisms through the service, which ticks EXACTLY ONCE per tick at step 6½ — `pacer` may be the raw tick pacer or a chain that contains the service. Everything the overload above says of the drive — the order of a tick, the protections, the release mode, the disable — holds unchanged; there are no T3 bindings. PRECONDITIONS, checked before anything is commanded: `inputs` bound to `mechanisms` (at boot); no control on `cfg.rezeroButton`; and every precondition of the overload above. BORROWED for the call; a PROS program keeps the service and the inputs in static storage.
 
-*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:474`](../../include/shulib/teleop/teleop_loop.hpp#L474).*
+*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:485`](../../include/shulib/teleop/teleop_loop.hpp#L485).*
 
 <a id="rundrivercontrol-3"></a>
 
@@ -163,7 +163,7 @@ template <typename IsDisabled, typename HeadingSource, typename PerTick> void ru
 
 `runDriverControl` with hold bindings and NO toggles — the chunk-T3 signature, forwarding to the two-span overload with an empty toggle span, so there is one loop body and every rule above holds unchanged. SUPERSEDED by the mechanism service, like the two-span overload (N4).
 
-*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:487`](../../include/shulib/teleop/teleop_loop.hpp#L487).*
+*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:498`](../../include/shulib/teleop/teleop_loop.hpp#L498).*
 
 <a id="rundrivercontrol-4"></a>
 
@@ -175,7 +175,7 @@ template <typename IsDisabled, typename HeadingSource, typename PerTick> void ru
 
 `runDriverControl` with NO mechanism bindings — the 2a signature, forwarding to the hold-binding overload with an empty span, so there is one loop body and every rule above holds unchanged.
 
-*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:499`](../../include/shulib/teleop/teleop_loop.hpp#L499).*
+*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:510`](../../include/shulib/teleop/teleop_loop.hpp#L510).*
 
 <a id="button"></a>
 
@@ -187,7 +187,7 @@ using Button = hal::ControllerButton
 
 The controller's buttons: `Button::R1`.
 
-*type alias, declared at [`include/shulib/teleop/teleop_loop.hpp:516`](../../include/shulib/teleop/teleop_loop.hpp#L516).*
+*type alias, declared at [`include/shulib/teleop/teleop_loop.hpp:527`](../../include/shulib/teleop/teleop_loop.hpp#L527).*
 
 <a id="driverprofile"></a>
 
@@ -199,7 +199,7 @@ using teleop::DriverProfile
 
 The driver's feel (teleop/driver_control.hpp).
 
-*type alias, declared at [`include/shulib/teleop/teleop_loop.hpp:518`](../../include/shulib/teleop/teleop_loop.hpp#L518).*
+*type alias, declared at [`include/shulib/teleop/teleop_loop.hpp:529`](../../include/shulib/teleop/teleop_loop.hpp#L529).*
 
 <a id="driverloopconfig"></a>
 
@@ -211,7 +211,7 @@ using teleop::DriverLoopConfig
 
 The loop's numbers: the re-zero button, the release brake mode, the drive protections.
 
-*type alias, declared at [`include/shulib/teleop/teleop_loop.hpp:520`](../../include/shulib/teleop/teleop_loop.hpp#L520).*
+*type alias, declared at [`include/shulib/teleop/teleop_loop.hpp:531`](../../include/shulib/teleop/teleop_loop.hpp#L531).*
 
 <a id="arcadebody"></a>
 
@@ -223,7 +223,7 @@ inline constexpr teleop::DriveMode ArcadeBody = teleop::DriveMode::ArcadeBody
 
 Arcade, robot-centric: the left stick drives forward and back, the right turns.
 
-*constant, declared at [`include/shulib/teleop/teleop_loop.hpp:522`](../../include/shulib/teleop/teleop_loop.hpp#L522).*
+*constant, declared at [`include/shulib/teleop/teleop_loop.hpp:533`](../../include/shulib/teleop/teleop_loop.hpp#L533).*
 
 <a id="arcadefield"></a>
 
@@ -235,7 +235,7 @@ inline constexpr teleop::DriveMode ArcadeField = teleop::DriveMode::ArcadeField
 
 Arcade, field-centric ("away from me" is away, whichever way the robot faces).
 
-*constant, declared at [`include/shulib/teleop/teleop_loop.hpp:524`](../../include/shulib/teleop/teleop_loop.hpp#L524).*
+*constant, declared at [`include/shulib/teleop/teleop_loop.hpp:535`](../../include/shulib/teleop/teleop_loop.hpp#L535).*
 
 <a id="tanksticks"></a>
 
@@ -247,7 +247,7 @@ inline constexpr teleop::DriveMode TankSticks = teleop::DriveMode::TankSticks
 
 Tank sticks: the left stick drives the left side, the right stick the right.
 
-*constant, declared at [`include/shulib/teleop/teleop_loop.hpp:526`](../../include/shulib/teleop/teleop_loop.hpp#L526).*
+*constant, declared at [`include/shulib/teleop/teleop_loop.hpp:537`](../../include/shulib/teleop/teleop_loop.hpp#L537).*
 
 ## Design commentary, from the header
 

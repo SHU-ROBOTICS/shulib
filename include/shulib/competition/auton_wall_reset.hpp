@@ -40,6 +40,20 @@
 // says `required` (then a `then()` returning it stops the chain). It commands nothing to the drive:
 // stop first. No sensor ever seats the heading.
 //
+// ── A MIRRORED auton (chunk MIRROR1-A, 2026-11-13; competition/field_mirror.hpp) ──────────────────
+// The route is written in robot one's numbers; the reset works BELOW the Chassis's mirror (it reads the
+// localizer), so it swaps for itself — after rule 1 (a FIELD start), before everything else: the
+// request's wall becomes its IMAGE under the entry's FieldMirror (a season wall: the season wall at the
+// reflected line, with its real name and keep-outs — robot one's red wall is robot two's right wall; an
+// own line: reflected geometrically) and its sensor the OTHER side's (LEFT <-> RIGHT); maxCorrection,
+// required and name are sizes and labels and stay. The ONE [WALL] line then names the REAL wall and
+// sensor, with the mirrored note INSIDE the sensor's parenthesis, near the line's start where the
+// terminal's 200-byte cut cannot reach it:
+//     right wall x SEATED (LEFT sensor, mirrored from red wall RIGHT): 54.70 -> 55.69 (moved 0.98, ...
+// Robot two then reads the side sensor robot one's route NEVER uses: its mount must be measured too (an
+// unmeasured one refuses MOUNT UNSET), and if the two sit at different distances ahead of the centre,
+// robot two's beam lands elsewhere along the wall (A4 register HA-259).
+//
 // ── A programming error is loud ──────────────────────────────────────────────────────────────
 // An AutonContext lives for exactly one guarded run (competition::runAuton builds it inside the
 // guard's run), so a call with the guard NOT running is a program error — a PRECONDITION, not a
@@ -47,8 +61,11 @@
 //
 // PROS-free, sim-free, allocation-free. NOTHING HERE HAS RUN ON A ROBOT.
 
+#include <cstdio>
+
 #include "shulib/chassis/wall_reset_call.hpp"
 #include "shulib/competition/auton_registry.hpp"
+#include "shulib/competition/field_mirror.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/diag/line_format.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
@@ -62,11 +79,12 @@ namespace shulib::competition {
 namespace detail {
 
 /// A refusal decided before the sampler runs (the start, the slot): the report, its ONE line through
-/// `sink`, and — when the robot has a slot — the outcome filed in its log.
+/// `sink` (with `sideNote` in its sensor parenthesis when set — a mirrored auton's), and — when the
+/// robot has a slot — the outcome filed in its log.
 [[nodiscard]] inline localization::WallResetReport refuseWallReset(
     chassis::Chassis& chassis, const localization::WallResetRequest& request,
     localization::WallResetVerdict verdict, const char* detail, localization::WallSensors* walls,
-    hal::ITelemetrySink& sink) {
+    hal::ITelemetrySink& sink, const char* sideNote = nullptr) {
     localization::WallResetReport rep{};
     rep.verdict = verdict;
     rep.axis = request.wall.axis;
@@ -83,7 +101,7 @@ namespace detail {
     diag::lineformat::Line line;
     localization::appendWallResetLine(line, rep, request,
                                       walls != nullptr ? walls->side(request.sensor).mount : noMount,
-                                      walls != nullptr ? walls->limits : defaults);
+                                      walls != nullptr ? walls->limits : defaults, sideNote);
     sink.log(hal::LogLevel::Warn, "WALL", line.view());
     if (walls != nullptr) {
         walls->log.record(rep);
@@ -100,8 +118,10 @@ namespace detail {
 /// window sampled through `ctx.guard.waitFor` so a deadline or a disable mid-window CUTS it (`cut`,
 /// nothing seated, no lateness). Every outcome is filed in the robot's wall-sensor log; ONE `[WALL]`
 /// line goes to `ctx.telemetry`. Blocking, at most `windowMax` plus a tick. Returns the report — a
-/// VALUE; `continues()` is what a `then()` returns: SEATED, or REFUSED and not `required`.
-/// PRECONDITION: `ctx.guard` is running (an AutonContext lives for one guarded run).
+/// VALUE; `continues()` is what a `then()` returns: SEATED, or REFUSED and not `required`. In a
+/// MIRRORED auton (MIRROR1-A, the file banner) the wall is its image and the sensor the other side's,
+/// and the line says so. PRECONDITION: `ctx.guard` is running (an AutonContext lives for one guarded
+/// run).
 [[nodiscard]] inline localization::WallResetReport resetFromWall(AutonContext& ctx,
                                                                  const localization::WallResetRequest& request) {
     SHULIB_PRECONDITION(ctx.guard.running(),
@@ -114,20 +134,30 @@ namespace detail {
         return detail::refuseWallReset(ctx.chassis, request, localization::WallResetVerdict::NotFieldStart,
                                        startModeWord(mode), walls, ctx.telemetry);
     }
+    // 1b. MIRROR1-A: a mirrored auton's wall is the image and its sensor the other side's (banner).
+    localization::WallResetRequest real = request;
+    char note[64] = "";
+    if (ctx.entry.mirror != nullptr) {
+        real.wall = mirroredWall(*ctx.entry.mirror, request.wall);
+        real.sensor = mirroredSide(request.sensor);
+        std::snprintf(note, sizeof note, "mirrored from %.32s %s",
+                      request.wall.name != nullptr ? request.wall.name : "",
+                      localization::wallSideWord(request.sensor));
+    }
     // 2. The sensor slot.
     if (walls == nullptr) {
-        return detail::refuseWallReset(ctx.chassis, request, localization::WallResetVerdict::NoSensor, "",
-                                       nullptr, ctx.telemetry);
+        return detail::refuseWallReset(ctx.chassis, real, localization::WallResetVerdict::NoSensor, "",
+                                       nullptr, ctx.telemetry, note);
     }
     // 3-4. Everything else, through the ONE sampler — the window inside the guard's deadline-aware
     // wait (a RunExpired is a CUT; a TimedOut is unreachable — the predicate ends the window at
     // windowMax by the clock — and, like the explicit form, evaluates what the window holds).
     return chassis::detail::runWallReset(
-        ctx.chassis, walls->side(request.sensor), request, walls->limits,
+        ctx.chassis, walls->side(real.sensor), real, walls->limits,
         [&ctx](const auto& pred, units::Time timeout) {
             return ctx.guard.waitFor(pred, timeout) != sequence::GuardedWaitResult::RunExpired;
         },
-        &walls->log, &ctx.telemetry);
+        &walls->log, &ctx.telemetry, note);
 }
 
 }  // namespace shulib::competition

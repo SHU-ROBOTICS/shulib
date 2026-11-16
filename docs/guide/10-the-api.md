@@ -410,7 +410,10 @@ this chapter is selective — is listed with its exact signature in
 `strafeAuthority()` — the drivetrain's sideways-speed fraction ([Chapter 4](04-drivetrains.md)),
 for budgeting lateral legs; `lastExitReason()` and `lastCompleted()` — how the previous motion
 ended, the latter with full detail (name, id, timing, and the `abortFault` that names a
-fault-policy cancel).
+fault-policy cancel); `reflection()` — the identity, except while a MIRRORED auton runs (robot two
+running robot one's route, [Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton)):
+then every field number a verb is given is reflected first and `pose()` hands the estimate back in robot
+one's numbers, while `lastCompleted()`, `deps()` and the log stay the real field.
 
 ## The advanced seam — when the verbs aren't enough
 
@@ -470,7 +473,9 @@ context — [below](#the-everyday-call-from-an-auton); [Chapter 3](03-knowing-wh
 teaches it and [cookbook 5](../cookbook/05-mixing-tiers.md#re-seat-x-against-a-wall) is the recipe. The
 **explicit** call, `chassis::resetFromWall(chassis, sensor, request, limits)`
 (`shulib/chassis/wall_reset_call.hpp`), takes the sensor handles you build — the form for a
-hand-wired Tier-3 robot and for the host tests. Both run the same checks. The explicit call (`guide-10w`):
+hand-wired Tier-3 robot and for the host tests. Both run the same checks. (Inside a mirrored auton the
+explicit call refuses — a precondition: it is handed ONE sensor, and robot two needs the other side's;
+the everyday call swaps it.) The explicit call (`guide-10w`):
 
 ```cpp
 // A hand-wired robot's left side sensor, as the wall reset reads it: the
@@ -684,7 +689,11 @@ sensor:** the robot's own side sensor, mount and limits, through the context's s
 robot file declares none — and on the host test plant's tester rig, which builds no Robot). **The wait:**
 the window is sampled through the run guard's deadline-aware wait, so a deadline or a disable that lands
 mid-window cuts it at once (`cut`, nothing seated) — no lateness. **The record:** every outcome is filed in
-the robot's reset log, and the ONE `WALL` line goes to the auton's own telemetry. Calling it outside a
+the robot's reset log, and the ONE `WALL` line goes to the auton's own telemetry. **A mirrored auton**
+(robot two running robot one's route — [Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton)):
+the request is robot one's, and the call reads the IMAGE wall with the OTHER side's sensor — robot one's
+red wall with its RIGHT sensor is robot two's right wall with its LEFT sensor — and its line says so,
+`(LEFT sensor, mirrored from red wall RIGHT)`. Calling it outside a
 live run is a program error (a precondition). Everything else — the checks, the seat, the report — is the
 explicit call's.
 

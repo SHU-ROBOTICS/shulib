@@ -7,7 +7,7 @@ order — each chapter assumes the ones before it and says so in its header.
 | # | Chapter | What it is |
 |---|---|---|
 | 1 | [What is this?](01-what-is-this.md) | VEX U, the autonomous problem, what shulib does — and its honest status |
-| 2 | [The field and coordinates](02-the-field-and-coordinates.md) | Coordinates, pose, field-relative vs robot-relative |
+| 2 | [The field and coordinates](02-the-field-and-coordinates.md) | Coordinates, pose, field-relative vs robot-relative, the field's mirror (two robots, one route) |
 | 3 | [Knowing where you are](03-knowing-where-you-are.md) | Odometry, drift, what each sensor knows, fusion |
 | 4 | [Drivetrains](04-drivetrains.md) | Holonomic vs tank vs H-drive; kinematics; strafe authority |
 | 5 | [Getting there: control](05-getting-there.md) | PID without anxiety, feedforward, settling, the watchdog, curves |
@@ -22,7 +22,7 @@ order — each chapter assumes the ones before it and says so in its header.
 | 14 | [What it can't do yet](14-what-it-cannot-do-yet.md) | The honest limits, each linked to its tracking doc |
 | 15 | [Glossary](15-glossary.md) | Every term, one sentence |
 | 16 | [Testing an auton on the bench](16-testing-an-auton-on-the-bench.md) | "shulib Auton Tester", the team's auton file, reading a run against the tape, and previewing a whole route on the laptop first |
-| 17 | [The competition program](17-the-competition-program.md) | "shulib Competition": the auton chosen on the brain's menu in `autonomous()`, what ends it, driver control, the refusals |
+| 17 | [The competition program](17-the-competition-program.md) | "shulib Competition": the auton chosen on the brain's menu in `autonomous()`, what ends it, driver control, the refusals; two robots, one route — a mirrored auton |
 | 18 | [Mechanisms: arms, lifts, flywheels — in autons, on buttons, on routes](18-mechanisms.md) | How a position and a speed mechanism move, hold, find their zero, stay inside their limits and stop on a jam; the starting values and `.tuning`; a mechanism step on one line of an auton, the driver file's controls, every mechanism's route ids run, the direction check's judgement, and the bench page that runs it (Bench Tests' station 13) |
 | 19 | [Calibrating your robot](19-calibrating-your-robot.md) | The standard "shulib Calibrate": the three facts you state, your 21-line file, one run, what each ending means, FRONT FLIPPED and MECHANISM PORT TURNED, listing every mechanism motor, the optional typed drive ports |
 | 20 | [The camera: which colour the Toggle shows, and which piece is which](20-the-camera.md) | One loop reads the camera for everyone; the Toggle tracker (RED, BLUE, YELLOW — or UNKNOWN with the reason); the piece finder (take ONE named piece, or none); freshness as time; where the camera sits; what a colour means and what it cannot tell |

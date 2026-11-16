@@ -125,7 +125,8 @@ void registerAutons(competition::AutonRegistry& registry) {
 }
 ```
 
-Each entry is **data**: a name (at most 29 characters, shown as `AUTON: <name>`), a kind (a 30 s
+Each entry is **data**: a name (at most 29 characters, shown as `AUTON: <name>`; 25 for a mirrored
+entry — [Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton)), a kind (a 30 s
 match period or a 60 s skills run — the periods are the game manual's, declared once in
 `src/team/autons.hpp`), the routine, where it starts, and its schedule. The schedule is the part a
 new author gets wrong most often, so read it slowly: at `endActionAt` the routine is stopped

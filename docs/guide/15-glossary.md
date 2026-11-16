@@ -176,6 +176,11 @@
   per mechanism rather than assumed. A lift holds; an intake coasts; a clamp that has
   successfully grabbed *keeps holding*, because a clamp whose safe state were "open" would fling
   its game piece the instant the grab succeeded. [Ch. 13]
+- **mirror (a mirrored auton)** — robot two running robot one's route reflected across the field's
+  skills diagonal (`(x, y)` facing `h` becomes `(-y, -x)` facing `-90° - h`), registered in one line with
+  `competition::mirrored(entry, override2026::kSkillsMirror)`: every field number the route writes is
+  reflected for that run, and the robot is seated at the reflected start. The robot itself is not
+  mirrored. [Ch. 2, Ch. 17]
 - **mutation check** — deliberately breaking code to confirm a test actually notices; the
   antidote to tests that pass no matter what. [Ch. 13]
 - **NaN ("not a number")** — the poison value floating-point math produces from impossible

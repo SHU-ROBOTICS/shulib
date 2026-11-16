@@ -153,6 +153,26 @@ documented here and in their own headers:
   colour (`scoredColour()`: yellow while touched or unseated). It draws its TRUE faces into a
   `sim::CameraPlant` and includes nothing from `vision/`. The Toggle step's tests use it as their oracle
   (`test/toggle_visit_rig.hpp`; its own tests are `test/sim_toggle_plant_test.cpp`).
+- **`test/mirrored_pair_check.hpp`** (MIRROR1-A) — THE PAIR CHECK, one function every user of it shares: a
+  MIRRORED auton entry run twice through `competition::runAuton`, robot one as written and robot two mirrored
+  from the reflected start, each on its own host test plant over the program's chain, compared pace by pace;
+  it returns a VERDICT (never an assertion) that FAILS when the two robots' 15 in squares come within
+  `kMirrorGapIn` (6 in — PROVISIONAL, A4 HA-260), naming the moment, both places and the drive motion each
+  robot was in (robot one's with its target, in the route's numbers). The suite asserts it over robot two's
+  registry (T9) and on planted routes (`test/mirrored_pair_test.cpp`, where a planted crash is a PASSING
+  test of the check); a route preview or route maker calls the same function so the picture and the suite
+  never disagree. A RELATIVE mirrored entry is skipped, by name.
+- **`test/goldens/mirror/skills_mirror_vectors.txt`** (MIRROR1-A) — the skills mirror's worked vectors, one
+  per line (`FIELD` and `RELATIVE`), worked by hand: `test/reflection_test.cpp` reads every line (and refuses
+  a malformed one by its line number); a route maker that draws the mirror is to read the same file, so the
+  two cannot disagree on the reflection.
+- **`test/mirror_unchanged_runs.hpp`** (MIRROR1-A's T10) — the runner-level "nothing else changes" hash: three
+  autons and a mechanism list ALL OWNED BY THE FILE (none of the team's, so a student's edit never moves it)
+  run through `runAuton` on a weak-side tank and an X-drive, every record, log line and true pose folded into
+  one FNV-1a hash per drivetrain, MEASURED against the merge base and pinned in
+  `test/mirrored_auton_test.cpp`. Self-contained: it includes no `src/` file, not even through a rig (its
+  weak side is a COPY of `auton_tester_rig.hpp`'s, because that rig includes robot two's mechanism list), so
+  it compiles against the base: change it and re-measure on a clean archive of the base.
 
 ## The route preview (since RPV1-A)
 

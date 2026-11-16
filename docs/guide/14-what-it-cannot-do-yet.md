@@ -511,6 +511,28 @@ an auton's context in the next part of the work (AF1S-A2), and until then a skil
   (HA-243). Under a RELATIVE start a route that names the wrong Toggle flips it to the wrong colour, said only by
   `wall not checked (relative start)` in its line; a FIELD start checks the robot faces the named wall.
 
+## A mirrored auton: what the mirror cannot carry
+
+Robot two can run robot one's skills route mirrored across the field's diagonal
+([Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton)). Proven on the host test
+plant only — robot two as robot one's twin has never run it — and three things it cannot do:
+
+- **The field's Loaders and the robot's own sides do not mirror.** The Loaders sit only on the red and blue
+  walls, so a step at a Loader has no mirror (and the red/left Load Zone's image is the blue one); and the
+  ROBOT is one physical build — a part off its centre line lands on the other side of the reflected path
+  (A4 register HA-259). The library cannot see either; the bench shows which steps need robot two's own
+  numbers.
+- **An exact half turn is not mirrored.** The library always takes an exact 180° turn counterclockwise, on
+  both robots and any drivetrain — robot two sweeps the same way as robot one there, in a `turnTo` and in a
+  `moveTo` / `driveTo` / trajectory leg whose heading changes by 180° (the log says so once, `[MIR]`). On the
+  host test plant a turn's path differs by 0.15 in — write it as two 90° turns where the sweep matters; a TANK
+  leg ENDS off the mirror by more the longer the leg — 5.7 in on a 16 in leg, 14.2 in on a 36 in leg (a tank
+  moves only along its heading) — turn first, in two 90° turns, then drive.
+- **A pure mirror cannot take what lies ON the diagonal.** The centre goal, two yellow Pins and the red/right
+  Load Zone are their own mirror images: both robots would reach them at the same moment. One robot takes
+  them (`isMirrored(ctx)`), and the suite's pair check holds the robots 6 in apart only at the PLANNED timing —
+  a real robot's timing drifts (A4 register HA-260).
+
 ## No easier tiers yet
 
 The project's [accessibility model](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet)
