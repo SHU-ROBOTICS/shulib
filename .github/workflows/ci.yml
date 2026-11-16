@@ -19,6 +19,9 @@ name: ci
 #  with the Makefile's CXX_STANDARD:=gnu++20 pin. Do not re-derive the old
 #  blocker. What remains intentionally NOT in CI is only the on-robot RUN —
 #  uploading and executing needs the robot itself, chunks R3a/R3b/R3c.)
+# And (since chunk RMP1-A1) the ROUTE BUILDER, a web page: its model's node tests, the
+# page built from the robots' real tables, and that page in real browsers on Linux
+# (x64 and ARM) and Windows (Edge, Chrome, Firefox) — the two jobs at the end.
 
 on:
   push:
@@ -216,3 +219,99 @@ jobs:
 
       - name: Build src/ for the V5 (real link, every variant, warning policy)
         run: python3 tools/src_build_gate.py check
+
+  # THE ROUTE BUILDER (chunk RMP1-A1, 2026-11-14; the RMP1 brief A.4). The route builder is a web page for the
+  # team's non-coders, and the team lead's bar is that it works on WINDOWS and LINUX -- proven here, not assumed:
+  #   route-builder           its model's tests (node), the robots' descriptions from their REAL tables (the native
+  #                           `shulib_route_maker describe`, the suite's own flags), and the page itself built
+  #                           (tools/route_maker/build.py: the SITE form and the ONE FILE), handed on as an artifact
+  #                           -- the same file any team member can download from this run's page for offline use;
+  #   route-builder-browsers  that artifact in real browsers on EVERY row: Linux x64 and ARM (Playwright's Chromium
+  #                           and Firefox), and Windows (the runner's OWN Edge and Chrome, Playwright's Firefox, and
+  #                           Playwright's pinned Chromium beside them -- a red Edge or Chrome row next to a green
+  #                           pinned Chromium reads as the runner's browser moving, not the app; W15). Every page
+  #                           test fails on a Content-Security-Policy violation, a page error or a console error.
+  # The ONE dev dependency (Playwright, pinned in tools/route_maker/package.json + its lockfile) is the TESTS'; the
+  # app has none. The Windows rows first prove the builder's own files checked out LF (the scoped .gitattributes,
+  # W11) -- every golden compare is byte for byte. RMP1-A2e adds the WebAssembly preview's build and its tests here.
+  route-builder:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install host toolchain
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ python3
+      # The test FILES, expanded by bash (every row runs bash): Node 20 takes a directory but not a glob, Node 22's
+      # positional arguments are globs -- a list of files means the same to both.
+      - name: The route builder's model (node --test)
+        run: node --test tools/route_maker/test/*.test.mjs
+      - name: The robots' descriptions, from their real tables (shulib_route_maker)
+        run: |
+          cmake -S test -B build/test
+          cmake --build build/test --target shulib_route_maker -j4
+      - name: Build the route builder (the site folder and the one file)
+        run: python3 tools/route_maker/build.py --out build/route_maker_site --describe build/test/shulib_route_maker
+      - uses: actions/upload-artifact@v4
+        with:
+          name: route-builder
+          path: build/route_maker_site
+          if-no-files-found: error
+
+  route-builder-browsers:
+    needs: route-builder
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, browser: chromium }
+          - { os: ubuntu-24.04, browser: firefox }
+          - { os: ubuntu-24.04-arm, browser: chromium }
+          - { os: ubuntu-24.04-arm, browser: firefox }
+          - { os: windows-latest, browser: msedge }
+          - { os: windows-latest, browser: chrome }
+          - { os: windows-latest, browser: firefox }
+          - { os: windows-latest, browser: chromium }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: CR1 -- the route builder's own files checked out LF (the scoped .gitattributes)
+        run: |
+          for f in test/goldens/route_maker/gl0_empty.cpp tools/route_maker/src/model/export.mjs; do
+            if grep -q $'\r' "$f"; then
+              echo "::error::$f was checked out with CRLF: a scoped .gitattributes is missing or broken (W11)"
+              exit 1
+            fi
+          done
+          echo "the route builder's files are LF on ${{ matrix.os }}"
+      - name: The route builder's model on this OS (paths, line endings)
+        run: node --test tools/route_maker/test/*.test.mjs
+      - uses: actions/download-artifact@v4
+        with:
+          name: route-builder
+          path: build/route_maker_site
+      - name: The tests' one dev dependency (Playwright, pinned)
+        working-directory: tools/route_maker
+        run: npm ci --no-audit --no-fund
+      - name: Playwright's own browser (the msedge and chrome rows use the runner's)
+        if: matrix.browser == 'chromium' || matrix.browser == 'firefox'
+        working-directory: tools/route_maker
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: The page in ${{ matrix.browser }} on ${{ matrix.os }}
+        env:
+          ROUTE_MAKER_BROWSER: ${{ matrix.browser }}
+          ROUTE_MAKER_SHOTS: build/route_maker_shots
+        run: node --test tools/route_maker/test/page/*.test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: route-builder-shots-${{ matrix.os }}-${{ matrix.browser }}
+          path: build/route_maker_shots
+          if-no-files-found: ignore

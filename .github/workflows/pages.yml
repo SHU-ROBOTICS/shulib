@@ -19,6 +19,11 @@ on:
       - 'tools/prepare_site.py'
       - 'tools/api_doc_tool.py'
       - '.github/workflows/pages.yml'
+      # the route builder (RMP1-A1): its own files, and everything its baked robots and its checks come from
+      - 'tools/route_maker/**'
+      - 'include/**'
+      - 'src/robots/**'
+      - 'test/**'
   workflow_dispatch:
 
 # Allow one publish at a time; let a newer commit supersede an in-flight run
@@ -34,7 +39,10 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # PINNED to ubuntu-24.04 (chunk RMP1-A1, the RMP1 brief W14), as ci.yml's jobs are: this job now builds the
+    # route builder's native describe program with GCC and -Werror, and 'ubuntu-latest' is GCC 15.2 -- the
+    # trap that kept CI red from mid-October to 2026-11-13. The site is built with the compiler the gates use.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -61,6 +69,21 @@ jobs:
       - name: Prepare the site source
         run: python3 tools/prepare_site.py site_src
 
+      # THE ROUTE BUILDER (chunk RMP1-A1; the RMP1 brief A.3.5): built from THIS commit -- the robots it knows are
+      # this commit's tables (`shulib_route_maker describe`, the suite's flags) -- into site_src/route-builder/, so
+      # `mkdocs build` copies it as static files beside the docs page docs/route-builder.md renders to
+      # route-builder/index.html. The app is route-builder/app.html, NEVER index.html (mkdocs would overwrite it,
+      # silently: W3). tools/route_maker/build.py refuses a URL other than the XML namespaces and any laptop or
+      # runner path (RG1) in what it writes.
+      - name: Install host toolchain (the route builder's describe program)
+        run: sudo apt-get update && sudo apt-get install -y cmake g++
+
+      - name: Build the route builder into the site
+        run: |
+          cmake -S test -B build/test
+          cmake --build build/test --target shulib_route_maker -j4
+          python3 tools/route_maker/build.py --out site_src/route-builder --describe build/test/shulib_route_maker
+
       - name: Install the renderer
         run: pip install mkdocs==1.6.1 mkdocs-material==9.5.44
 
@@ -80,6 +103,24 @@ jobs:
       - name: Custom domain
         run: echo 'docs.shurobotics.com' > site/CNAME
 
+      # PG1 (the RMP1 brief W3): AFTER mkdocs -- the only step that can see a collision, because the browser tests in
+      # ci.yml test build.py's output, never the mkdocs-built site.
+      - name: The route builder survived the docs build (PG1)
+        run: |
+          test -f site/route-builder/app.html || { echo "::error::site/route-builder/app.html is missing"; exit 1; }
+          test -f site/route-builder/shulib-route-builder.html || { echo "::error::the one-file download is missing"; exit 1; }
+          grep -q '<meta name="shulib-app" content="route-builder">' site/route-builder/app.html \
+            || { echo "::error::site/route-builder/app.html is not the route builder (overwritten by a rendered page?)"; exit 1; }
+          grep -q 'route-builder/app.html\|href="app.html"' site/route-builder/index.html \
+            || { echo "::error::the Route builder docs page does not link the app"; exit 1; }
+          # "Download for offline use" must SAVE the one file (a plain link only opens it online)
+          grep -q 'href="shulib-route-builder.html"[^>]*download="shulib-route-builder.html"\|download="shulib-route-builder.html"[^>]*href="shulib-route-builder.html"' site/route-builder/index.html \
+            || { echo "::error::the docs page's 'Download for offline use' link has no download attribute"; exit 1; }
+          if grep -rl -a -E '/home/|/Users/|C:\\|/runner/|\.claude' site/route-builder ; then
+            echo "::error::the route builder carries a laptop's or a runner's path (RG1)"; exit 1
+          fi
+          echo "the route builder is in the site: app.html, the one file, the docs page links it"
+
       # Belt-and-braces after rendering: prove no internal path survived into
       # the built HTML. prepare_site.py checks the markdown; this checks the
       # artifact that actually ships.
@@ -97,7 +138,7 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

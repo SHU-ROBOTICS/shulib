@@ -113,6 +113,10 @@ exclude_docs: |
 nav:
   - Home: index.md
 
+  # The route builder (chunk RMP1-A1): its page, beside which pages.yml builds the app itself
+  # (route-builder/app.html and the one-file download -- never route-builder/index.html, which this page renders to).
+  - Route builder: route-builder.md
+
   # `navigation.indexes`: the first entry of a section, given as a bare path,
   # becomes the section's own landing page. Clicking the tab lands on the
   # overview instead of doing nothing.
@@ -139,6 +143,7 @@ nav:
       - 19 — Calibrating your robot: guide/19-calibrating-your-robot.md
       - 20 — The camera: guide/20-the-camera.md
       - 21 — Adding your robot by hand: guide/21-adding-your-robot-by-hand.md
+      - 22 — Making your first route: guide/22-making-your-first-route.md
 
   - Cookbook:
       - cookbook/README.md

@@ -339,3 +339,12 @@ target_link_libraries(shulib_route_preview PRIVATE shulib_test_flags)
 # part of shulib_tests (they are EXCLUDE_FROM_ALL object targets): compile_refusals/CMakeLists.txt
 # and run_refusal.py say how a TU is judged.
 add_subdirectory(compile_refusals)
+
+# ── THE ROUTE BUILDER'S NATIVE PROGRAM (chunk RMP1-A1, 2026-11-14; the RMP1 brief A.3.3 [W9]) ─────────────
+# `shulib_route_maker describe --robot one|two|x|y|z` writes a robot's description (its REAL tables, as the
+# route builder's page reads them) and `curves` the CV1 curve golden; CI's route-builder job builds this ONE
+# target and bakes robots one and two into the page (tools/route_maker/build.py --describe). Host only, the
+# suite's own flags (shulib_test_flags), NOT part of shulib_tests and not needed by it (the suite includes
+# the same headers). RMP1-A2e adds `preview` to the same main (one main for this program and the module).
+add_executable(shulib_route_maker route_maker_main.cpp)
+target_link_libraries(shulib_route_maker PRIVATE shulib_test_flags)

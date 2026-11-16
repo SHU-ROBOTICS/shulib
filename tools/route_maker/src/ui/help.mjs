@@ -1,0 +1,59 @@
+// help.mjs — the help a student needs without leaving the page (RMP1 brief §1.4): the shortcuts list (`?`), and
+// the three-line "your first route" coach on an empty field (dismissible, back from Help).
+
+import { h, icon } from './dom.mjs';
+
+export const SHORTCUTS = [
+    ['V or Esc', 'Select (and cancel what is being added)'],
+    ['D', 'Drive: click where the robot drives to'],
+    ['B', 'Back up: click where the robot backs up to'],
+    ['T', 'Turn: click the point the robot turns to face'],
+    ['C', 'Curve: click points; Enter or double-click finishes'],
+    ['M', 'Mechanism: one of the robot\'s mechanisms'],
+    ['P', 'Wait (pause)'],
+    ['Delete', 'Delete the selected step'],
+    ['Ctrl+D', 'Duplicate the selected step'],
+    ['Ctrl+Z  /  Ctrl+Shift+Z', 'Undo / redo'],
+    ['Ctrl+S', 'Save the project'],
+    ['Ctrl+E', 'Export'],
+    ['Alt+Up / Alt+Down', 'Move the selected step up or down the list'],
+    ['+  /  -  /  0', 'Zoom in, out, fit the field'],
+    ['Space + drag', 'Pan the field (any tool)'],
+    ['Alt while dragging', 'No snapping'],
+    ['Shift on the heading knob', 'Turn by 1 degree instead of 15'],
+    ['?', 'This list'],
+];
+
+/** The shortcuts and help dialog. */
+export function openHelp(app) {
+    const close = () => {
+        scrim.remove();
+        dlg.remove();
+        document.removeEventListener('keydown', onKey);
+        app.focusField();
+    };
+    const onKey = (e) => e.key === 'Escape' && close();
+    document.addEventListener('keydown', onKey);
+    const scrim = h('div', { class: 'scrim', onclick: close });
+    const dlg = h('div', { class: 'dialog', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'help-title' },
+        h('div', { class: 'row' }, h('h2', { id: 'help-title' }, 'Help'), h('span', { class: 'spacer' }),
+          h('button', { class: 'btn icon ghost', 'aria-label': 'Close', onclick: close }, icon('close'))),
+        h('p', {}, 'Build the skills route on the real field: place robot one\'s start, add steps, and export the C++. Everything is in inches, degrees and seconds; 0 degrees faces the right wall and 90 faces blue. The dashed path is the PLAN — where the library is told to go.'),
+        h('p', {}, 'A red mark is something the robot would refuse; its fix is one click away. Nothing is invented for you: a time limit stays empty until you type it.'),
+        h('table', { class: 'keys' }, h('tbody', {}, SHORTCUTS.map(([k, w]) => h('tr', {}, h('td', {}, h('kbd', { class: 'k' }, k)), h('td', {}, w))))),
+        h('div', { class: 'row', style: 'margin-top:16px' },
+          h('button', { class: 'btn', onclick: () => { close(); app.showCoach(); } }, 'Show "your first route" again')));
+    document.body.append(scrim, dlg);
+    dlg.querySelector('button').focus();
+}
+
+/** The coach card for an empty field. */
+export function coachCard(app) {
+    return h('div', { class: 'coach', role: 'note', 'aria-label': 'Your first route' },
+        h('h3', {}, 'Your first route'),
+        h('ol', {},
+          h('li', {}, 'Click the field where robot one starts; drag its red knob to turn it.'),
+          h('li', {}, 'Pick ', h('strong', {}, 'Drive'), ' (D) and click where it drives to.'),
+          h('li', {}, 'Press ', h('strong', {}, 'Export'), ' to get the code for the robot.')),
+        h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => app.hideCoach() }, 'Got it')));
+}

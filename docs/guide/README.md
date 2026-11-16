@@ -27,6 +27,7 @@ order — each chapter assumes the ones before it and says so in its header.
 | 19 | [Calibrating your robot](19-calibrating-your-robot.md) | The standard "shulib Calibrate": the three facts you state, your 21-line file, one run, what each ending means, FRONT FLIPPED and MECHANISM PORT TURNED, listing every mechanism motor, the optional typed drive ports |
 | 20 | [The camera: which colour the Toggle shows, and which piece is which](20-the-camera.md) | One loop reads the camera for everyone; the Toggle tracker (RED, BLUE, YELLOW — or UNKNOWN with the reason); the piece finder (take ONE named piece, or none); freshness as time; where the camera sits; what a colour means and what it cannot tell |
 | 21 | [Adding your robot by hand](21-adding-your-robot-by-hand.md) | Robot one, added by hand: every file a robot lives in, its facts file (OWED numbers that refuse the build by name until typed), its six programs and slots, the order on the robot, the builder's button map, the flipper's three forms, and why the two robots differ only in their facts |
+| 22 | [Making your first route with the route builder](22-making-your-first-route.md) | The route builder, a web page: place robot one's start on the real field, add drives, curves, turns and cascade levels, see in plain words what the robot would refuse (and the one-click fix), export the commented C++ into the skills-route file, save the project; every step kind, check and shortcut |
 
 ## The other two documents
 

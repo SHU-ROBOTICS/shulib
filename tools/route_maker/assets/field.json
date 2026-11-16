@@ -1,0 +1,54 @@
+{
+  "source": "tools/docs_figures/source/override-field-top.png, turned 90 degrees counterclockwise (red at the bottom)",
+  "width": 1138,
+  "height": 1138,
+  "pxPerIn": 7.6241,
+  "originPx": [
+    570.0,
+    573.5
+  ],
+  "landmarks": {
+    "centre goal": [
+      570.49,
+      572.02
+    ],
+    "right wall": [
+      1105.0,
+      573.5
+    ],
+    "left wall": [
+      35.0,
+      573.5
+    ],
+    "blue wall": [
+      570.0,
+      38.0
+    ],
+    "red wall": [
+      570.0,
+      1109.0
+    ]
+  },
+  "redTapePx": [
+    51,
+    1023
+  ],
+  "blueTapePx": [
+    118,
+    0
+  ],
+  "tileSeamsPx": {
+    "x": {
+      "-2": 212.54,
+      "-1": 391.05,
+      "1": 747.24,
+      "2": 928.16
+    },
+    "y": {
+      "2": 217.4,
+      "1": 395.85,
+      "-1": 752.75,
+      "-2": 933.59
+    }
+  }
+}
