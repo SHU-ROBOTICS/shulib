@@ -16,6 +16,10 @@
 
 ## API 2.9
 
+### 2026-11-15 — shulib Tune: the READY button shows its whole label
+
+**Fixed:** Tune's first page drew its READY button as "READY - I AM CL" — the label box held 15 characters and the label has 18. The box now holds 23, and a test checks every one of the page's 24 button labels fits. **What you must do:** nothing; rebuild shulib Tune.
+
 ### 2026-11-15 (built 2026-11-13, reviewed and fixed to 2026-11-15) — one route, two robots: robot two runs robot one's skills route MIRRORED across the field's skills diagonal
 
 > Written when it was built (chunk MIRROR1, run A). **API 2.9** — numbered by the coordinator at the merge. **Added (nothing to do):** every name below is new; the

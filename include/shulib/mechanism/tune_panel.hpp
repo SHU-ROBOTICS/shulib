@@ -105,8 +105,9 @@ struct TuneButtonView {
     TuneButton id = TuneButton::Stop;
     /// Where it is drawn (its hit box is ui::hitBox() of this).
     ui::Rect rect{};
-    /// Its label (SMALL text, centred).
-    char label[16]{};
+    /// Its label (SMALL text, centred). Room for the longest label written in tuneView() ("READY - I AM CLEAR",
+    /// 18 characters) — a 16-byte box once cut it to "READY - I AM CL"; tune_panel_test pins every label whole.
+    char label[24]{};
     /// It takes touches (false: greyed — not available, or the layout is still arming).
     bool armed = false;
     /// Its colour by meaning (STOP red, GO and READY green, the rest blue).

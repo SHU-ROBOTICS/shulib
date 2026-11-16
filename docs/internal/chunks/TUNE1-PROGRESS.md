@@ -1172,3 +1172,7 @@ Guide 18's cap paragraph was re-wrapped around the new sentences (no other words
   MV4 a TEST move allowed 20 s. The restored tree relinked and ran green.
 - **TUNE1-B1 LANDED — "shulib Tune" is on main.** Nothing has run on a robot. Robot one gets Tune from ROB1-A by adding its
   ROBOT to `MECHANISM_ROBOTS`, a Tune branch in the chain and the gate's rows (the gate's `[tune-row]` check enforces it).
+
+## The READY label fix — the coordinator *(2026-11-15)*
+
+- Found by the DOCS3 amendment's screen-picture probe: `TuneButtonView::label` was `char[16]`, so "READY - I AM CLEAR" (18) drew as "READY - I AM CL". Now `char[24]`; `tune_panel_test` pins READY's label whole and every one of the 24 `b.button(...)` label literals under the box (a source pin, so a later label is held too). Gates: suite green (3,753), src gate check PASS (14 builds), ARM header gate, check-examples / fresh / coverage, staleness, briefing. Mutation MT-L1 (the box back to 16) RED.
