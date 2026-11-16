@@ -1,6 +1,6 @@
 # RPV1 — the route preview: live progress log
 
-<!-- release: between parts — RPV1-A (A0+B1) landed 2026-11-14; the switch to robot one (queued), A1/A2 and B2 follow (declared by the coordinator 2026-11-14) -->
+<!-- release: between parts — RPV1-A (A0+B1) landed 2026-11-14 and RPV1-S1 (the switch to robot one) 2026-11-15; A1/A2 and B2 follow (declared by the coordinator 2026-11-14; S1's words written for its merge) -->
 
 > Appended in real time (RESUMING's chunk loop). The brief is
 > [`RPV1-route-preview.md`](RPV1-route-preview.md); its answers block, R1–R13 and D1–D13 (as recommended) govern.
@@ -650,3 +650,326 @@ fresh objects, 40/40, 858 assertions.
   cases). The restored tree relinked and ran green.
 - **RPV1-A LANDED.** Host test plant only; nothing has run on a robot. Next: the switch to robot one (its list on
   fakes by kind, its OWED numbers marked PLACEHOLDER); the in-page PREVIEW is RMP1-A2e/A2u's (WebAssembly).
+
+## RPV1-S1 — switch the preview to robot one
+
+**Executor:** `opus` (Claude Opus 5.5), a workflow subagent. **Worktree:** `.claude/worktrees/rpv1-s1`, branch
+`rpv1-s1`, base `9befdb3` (RPV1-A on main). **Go:** the team lead's go for this run, relayed by the coordinator
+2026-11-15. Scratch: `.claude/coordinator/scratch/rpv1-s1/` (never `/tmp`). Do not commit. Every binary runs as
+`(ulimit -v 4194304; timeout 600 …)`. Host test plant only.
+
+### Launch state (2026-11-15)
+
+- `git log -1` = `9befdb3`; tree clean. ROB1-A is in the base (`src/robots/robot_one_facts.hpp`,
+  `robot_one::kRobotOneMechanisms`, `src/team/robot_one_autons.cpp`); the preview still refuses `--robot one`
+  (RP25, "robot one has no build yet").
+- ROB1-C2 (robot one's real mechanisms and typed facts) builds beside this run: nothing here may assume today's list
+  (the cascade only) or today's owed facts.
+- **Baseline** (briefing regenerated with the suite unbuilt, a full build, the suite through `suite_run.py`):
+  **green — 3701 cases, 3863418 assertions.**
+- Read before writing: the brief's header, answers, R1–R13, D1–D13, §1.2, §2.2–2.4 (B1's rows), §3.2–3.3, §6, §7, §8;
+  this log's RPV1-A record and the merge verification; `src/robots/robot_one_facts.hpp` (its `kRobotOneFacts` —
+  "THE COUNT (… RPV1-B's hatch …)"), robot one's region of `src/robots/mechanism_table.hpp`,
+  `src/team/robot_one_autons.cpp`. ROB1-C2's worktree was READ (never edited) to see what changes tonight: new
+  mechanisms "right toggle", "left toggle", "claw", "flipper", "ramp"; facts typed and added, named e.g. "the right
+  side toggle's port" — so a fact's name does NOT reliably name its mechanism (Δ1 below).
+
+### Build log (2026-11-15)
+
+1. `test/route_preview_run.hpp`: `kRobotOne` gets `table = &robot_one::kRobotOneMechanisms`, `registerAutons =
+   &registerRobotOneAutons`, and two new `PreviewRobot` fields, `ledger` (a span of the ledger's own
+   `FactSummary` list) and `ledgerFile`; `owedFacts(robot)` reads the ledger at run time and keeps every fact not
+   typed, in the ledger's order; `askedModel` and `refusedModel` put that list on the Model. `noBuild` and its
+   check are gone (Δ2). The banner's robot-one paragraph says what it does now, in three lines.
+2. `test/route_preview_model.hpp`: `Model::owed`, `Model::ledgerFile` (kPreviewFootprintIn untouched — MIRROR1-A).
+3. `test/route_preview_render.hpp`: `owedLine(m)`; the table prints it and one `  [PLACEHOLDER] <fact>` line per
+   owed fact under the stamp; the page an amber dashed block (`class="owed"`) with one `<li>` per fact.
+4. `test/CMakeLists.txt`: `src/team/robot_one_autons.cpp` joins `shulib_route_preview`.
+5. `tools/route_preview.py`: the self-test's robot-one branch now REQUIRES robot one's file's hash (present, not
+   robot two's); the docstring gains the `--robot one` line.
+6. Tests (`test/route_preview_test.cpp`): RP25 rewritten as robot one's RUN test; RP25b, RP25c new; RP38 gains a
+   robot with no autons file; the six fixture robots lose `.noBuild = ""`.
+7. Probe: `shulib_route_preview "40in forward" --robot one --place=-48,-48,90` → exit 0, FINISHED, scoring ended
+   T+1.80 s, the table lists all 17 owed facts (`scratch/rpv1-s1/one40.html`, 20,163 bytes). RP25b's cascade page
+   (final form, mid-travel = 20 in): home 0.00–0.32 s SUCCEEDED, move 0.33–10.70 s SUCCEEDED (declared profile
+   20 in at 2 in/s: 10.25 s + the 0.1 s window), both hatched by B1's HA-182 rule.
+8. **ROB1-C2 probe** (`scratch/rpv1-s1/c2probe/`, `build.sh`): two scratch trees — `mine` (`git archive 9befdb3`
+   include/src + this run's test/docs/tools) and `tree` (the same with ROB1-C2's uncommitted include/ and src/ files
+   overlaid as of ~20:25: driver_inputs.hpp, driver_panel.hpp, drive_program.cpp, chassis_table.hpp,
+   mechanism_table.hpp, robot_one_facts.hpp, robot_one_autons.cpp, robot_one_driver.hpp) — each built (test_main +
+   route_preview_test + both autons files, the suite's flags) and run `-tc='route preview*'`: **42/42 green in
+   both.** On ROB1-C2's tree the robot line names six mechanisms (cascade, right toggle, left toggle, claw, flipper,
+   ramp), the list shows **12** owed (its typed facts dropped off by themselves), the cascade's mid-travel move took
+   0.70 s (its typed blue 1:1). A hint only: ROB1-C2 was still in flight.
+
+### Deltas from the brief and the task (each with its reason)
+
+| # | Asked | Done | Why |
+|---|---|---|---|
+| Δ1 | "its PROVISIONAL list … the page and the table mark them" | the OWED facts are marked ROBOT-WIDE: a block at the top of the page and of the table, one line per fact; per-step hatching keeps B1's rules (the cascade, on the library's starting values, carries the HA-182 note on every step) | a fact's name does not name its mechanism reliably (ROB1-C2's "the right side toggle's port" vs the declaration "right toggle"), so a per-step attribution would be a guess that under-marks; the whole list is honest and needs no mapping |
+| Δ2 | — | `PreviewRobot::noBuild` and its check removed; a robot with no register function is a precondition (runProgram: exit 3, its words) | no robot lacks a build now; dead text otherwise. RP38 proves the precondition (MS9) |
+| Δ3 | "its PROVISIONAL list" | new fields `ledger` + `ledgerFile`; `provisional` (per mechanism, each with an HA row) stays robot two's | a ledger fact has no HA row and no mechanism; the ledger's own `kRobotOneFacts` ("THE COUNT … RPV1-B's hatch") is the source, read at run time, so a fact typed tonight drops off by itself |
+| Δ4 | RP25 → a robot-one run test | RP25 (robot one's own file, every auton drawn, the marks), RP25b (the cascade through a test-local auton: the starter autons step no mechanism), RP25c (the rule on a hand-made ledger) | today all 17 facts are owed, so only a fixture ledger can show a typed fact dropping off; RP26 stays on robot x |
+| Δ5 | "exit codes as B1" | RP25 requires each of the team's robot-one autons DRAWN (exit 0 or 1, page written, never 2 or 3); exit 0 is required of RP25b's cascade run; 2 for an unknown name, 0 for `--list` | the team's skills route lands in that file this week; failing the suite on a route's content is A1's suite check (D8), not this run's |
+| Δ6 | — | the RPV1-A changelog entry's "switching the preview to it is queued" gains "— done 2026-11-15, the entry above" | history kept; a reader of the older entry is pointed at the newer one |
+| Δ7 | — | guide 21 not touched | not stale (it never mentions the preview); the preview's home is chapter 16 |
+| Δ8 | — | a page with no `--out` goes to `build/route_preview/<key>/<name>.html` for every robot but the first (`defaultPagePath`); robot two's path unchanged | FOUND running the launcher end to end: robot one's starter autons share robot two's names, so `"40in forward" --robot one` overwrote robot two's `build/route_preview/40in forward.html`. Guide 16, the launcher's docstring and `--out` help, the changelog say where robot one's pages go. RP25 checks both paths (end to end since the review round, F4); MS12 |
+| Δ9 | (task) "a test that names a mechanism names the cascade only" | RP25b moves the cascade to MID-TRAVEL (`cascade.to((bottom + top) / 2)`), never a named level | ROB1-C2 (read, 2026-11-15 ~20:20) types the levels as NONE ("manual for now"): `cascade[facts::lv(1).name]` — this run's first form — would not compile after it lands. Mid-travel is inside the range whatever the ledger says |
+
+### Tests added or changed (`test/route_preview_test.cpp`; suite 3701 → 3703: −1 old RP25, +3)
+
+- **RP25** robot one runs its own autons on its own list — the registry is built from `registerRobotOneAutons`
+  ITSELF (not through the preview); every auton in it run through `runPreview --robot one`: drawn, the summary
+  carries ITS kind and schedule (robot two's same-named copies are MATCH 27/29, robot one's SKILLS 57/59), the robot
+  line names robot one's list (iterated from `kRobotOneMechanisms`) on fakes by kind, and `checkMarks`: every ledger
+  fact's `<li>` on the page and `[PLACEHOLDER]` line in the table present iff it is OWED, the count equal to the
+  ledger's own `kRobotOneOwedCount` (a self-comparison that could not fail — replaced in the review round, F8), the
+  header line on both; `--list` (0) names each; an unknown name → 2, no page,
+  names `src/team/robot_one_autons.cpp`; `--robot three` → 2; the default page paths (robot one's under `one/`,
+  robot two's unchanged — Δ8; the helper only — end to end since the review round, F4).
+- **RP25b** robot one's cascade (the real declaration, found BY NAME in the list; a test-local auton naming only
+  the cascade): homed and moved to MID-TRAVEL (Δ9), both SUCCEEDED, exit 0, the move within [declared trapezoid,
+  +0.5 s] computed from the declaration's own `maxVelocity`/`maxAcceleration` and the ledger's two stops; a REFUSED robot-one auton (stop past 60 s)
+  → exit 1 with the marks; the same auton on robot two's list stops "'cascade' is not on this robot".
+- **RP25c** the list is the ledger's OWED facts in order (a 4-fact ledger, two typed → exactly the two owed); none
+  owed → no block on either output; robot two has none (that check read a test fixture and could not fail —
+  replaced in the review round by robot two's real page, F1).
+- **RP38** (+3 checks) a robot with no register function → exit 3, "a robot with no autons file".
+
+### Mutations (`scratch/rpv1-s1/mutate.py`, log `scratch/rpv1-s1/mutations.log`) — each on a FRESH binary (the old one removed, the suite TU's object and the binary checked newer than the mutant), the named cases run under `ulimit -v 4194304; timeout 600`, restored in a `finally` and on SIGTERM/SIGHUP/SIGINT, timestamp bumped
+
+| # | Mutation | Result |
+|---|---|---|
+| MS1 | `owedFacts` lists every fact, typed too | RED — RP25c |
+| MS2 | robot one with no ledger | RED — RP25, RP25b |
+| MS3 | `refusedModel` without the owed list | RED — RP25b |
+| MS4 | the table without the `[PLACEHOLDER]` lines | RED — RP25, RP25b, RP25c |
+| MS5 | the page without the `<li>` facts | RED — RP25, RP25b, RP25c |
+| MS6 | robot one's table = robot two's list | RED — RP25, RP25b |
+| MS7 | robot one's register = robot two's `registerAutons` | RED — RP25 (its kind/schedule check, added before this run: robot two's autons have the same names, so a names-only check — RP25's first form — was REASONED to miss it; not run against that form) |
+| MS8 | robot one on the rig's default fakes (`defaultRig = true`) | RED — RP25, RP25b |
+| MS9 | the no-autons-file precondition removed | RED — RP38, CRASHED (SIGSEGV, exit −11): caught |
+| MS10 | the owed count off by one | RED — RP25, RP25b, RP25c |
+| MS11 | the launcher hashes robot two's file for `--robot one` | RED — the self-test's "--autons-hash is robot ONE's file's" |
+| MS12 | every robot's default page on the first robot's path (Δ8) | RED — RP25. (First cut `std::string{}` for the subdirectory left `first` unused: -Werror, BUILD FAILED → re-cut as `first = !robots.empty()`) |
+
+Three full runs (19:17, 20:16, and the FINAL 21:22 on the final tree — RP25b's mid-travel form, Δ8, the owed
+line's final wording): **all 12 RED** with the same failing cases each time; after each run the mutated files'
+SHA-256 equal the pre-mutation ones (`pre-mutation*.sha256`), the restored tree relinked (the binary removed
+first) and ran green; `git diff -- Makefile src/` carries no '(self-test plant'; no untracked file under
+src/ include/ test/.
+
+### Prose review (rule 4) — greps run on the final text, hits read BEFORE this was written
+
+- **§3.3's greps over every changed file's ADDED lines and the robot-one pages** (`one40.html`, RP25b's
+  `one-cascade.html`, `one-refused.html`): `simulator` 0 (pages 0 each); `lower bound` 0; `exact|guarantee` one hit,
+  a test comment ("Robot one exactly as the program knows it") — not about time; `internal/|chunks/|RESUMING|R[CPM][0-9]`
+  in the public docs' added lines: 0 hits (corrected in the review round, F11: this line first said "one hit, the
+  changelog's '(chunk RPV1, the switch to robot one)'" — that was a hit of a `chunk` grep, not of this pattern; the
+  changelog's own convention, as the entries below say "chunk RPV1, part A", "chunk ROB1"), no test tag; no `R[CPM][0-9]` tag in an
+  added header line.
+- **"no build yet"** across docs/, README.md, test/, tools/ (outside docs/internal/): `docs/robot-facts-form.md:84`
+  ("17 stops no build yet" — the facts form, about builds, not the preview: untouched); `docs/changelog.md` the RPV1-A
+  entry's sentence — kept as history with "— done 2026-11-15, the entry above" (Δ6).
+- **By file name** (`route_preview_run|render|model|test`, `shulib_route_preview`): test/README.md only — its section
+  now says the target carries both robots' autons files and what `--robot one` lists. **`route_preview.py`**: guides
+  14, 15, 16, the changelog, test/README — 14 and 16 updated; guide 15's entry is generic (no robot named), untouched.
+- **By concept** (`robot_one_autons`, `robot_one_facts`, `--robot one`, `PLACEHOLDER`): guide 21 :16, :36, :235
+  (robot one's files, the host suite on placeholder numbers — true, never mentions the preview: untouched, Δ7);
+  `docs/robot-facts-form.md`, `docs/hardware-assumptions.md` (the facts and HA rows — nothing about the preview);
+  guide 16 :365, :372, :410-412, :457-460 and the changelog — this run's own lines, re-read.
+- **Wording corrected after the mutation run:** the owed line said "the preview runs on their placeholders" — not
+  true of a fact the preview never reads (the camera's port and mount); now "wherever the preview needs one, it uses
+  the placeholder until it is typed", and guide 16 and the changelog say the same.
+
+### Gates — the final tree (2026-11-15 21:2x EST)
+
+- **The suite** (`briefing_status.py generate` with the binary removed, a full build, then the suite):
+  `suite run: green — 3703 cases, 3863609 assertions` (baseline 3701: −1 old RP25, +3).
+- **The src gate:** `check` → `src build gate: PASS (all 14 builds …)`, exit 0 (20:11–20:26; `src/` identical to
+  the base). `self-test`: the FIRST run hit this run's own 50-min bound (`timeout -s INT 3000`; four gates were
+  running on the laptop at once, load ~10) at its last stage — SIGINT, its `with`-block restores ran: `git diff --
+  src/ Makefile` empty, no plant, no untracked file; RE-RUN with a 7000 s bound → `src build gate self-test: OK (377
+  detector cases, each against a real build)`, exit 0 (~20:27–21:18). Plant checks after each: 0 '(self-test plant',
+  no untracked file under src/ include/ test/.
+- **The ARM header gate:** every include/shulib header (255) in one TU with the robot's flags → CLEAN.
+  `git diff 9befdb3 -- include/ src/ Makefile` → EMPTY (this run touches neither).
+- **The CI greps:** library PROS-free; core sim-free.
+- **api_doc_tool:** self-test OK; check-coverage "6386 public entities across 211 headers, all documented";
+  check-fresh exit 0; check-examples "860 quoted lines, all verbatim (18 source files)"; check-removability "no public
+  doc references docs/internal/". No `///` in include/ changed: docs/api not regenerated (check-fresh agrees).
+- **briefing_status.py** self-test OK (38 cases), check "generated block current"; **doc_staleness_audit.py**
+  self-test OK, the audit "clean (34 live docs …)".
+- **The launcher, end to end** (fresh `build/route_preview/`): `"40in forward"` 0 → `build/route_preview/40in
+  forward.html`; `"TEST 24in turn back"` 0; `"40in forward" --robot one --place=-48,-48,90` 0 →
+  `build/route_preview/one/40in forward.html` (20,219 bytes); `"TEST 24in turn back" --robot one` 0 →
+  `one/TEST 24in turn back.html` (33,004 bytes); `"no such auton"` 2 (robot two's names); `"no such auton" --robot one`
+  2 (names `src/team/robot_one_autons.cpp`); `--list --robot one` 0. Every page: 0 "http", 0 "simulator", "IDEAL
+  host test plant" once. `route_preview.py self-test` ok (0 failures).
+- **Reviewers:** this executor has no agent tool — the three reviewers, the fix round and the coordinator's checks
+  are the workflow's next steps; nothing here was reviewed by anyone but me. **Nothing committed.**
+
+### For the coordinator
+
+- **Files another in-flight run also edits:** `docs/changelog.md` (the new entry is at the top of `## API 2.8`;
+  MIRROR1-A opens `## API 2.9` — move this entry to the top of the newest section at the merge, still "No API
+  change"); `docs/guide/14-what-it-cannot-do-yet.md` and `16-…` (MIRROR1-A's staged hunks are at guide 16 :128 and
+  in guide 14 elsewhere; this run's are guide 14 :71-72 and guide 16 :365-380, :410-412, :457-460);
+  `test/README.md` (:161-164; MIRROR1-A adds 20 lines elsewhere); `test/CMakeLists.txt` (:329-330 only).
+  `test/route_preview_model.hpp`: two Model fields added; `kPreviewFootprintIn` untouched (MIRROR1-A reads it).
+  No `src/` file and no ROB1-C2 file touched.
+- **ROB1-C2:** its in-flight src (read at ~20:25) passes all 42 preview cases (Build log item 8). Its levels are typed
+  NONE, which is why RP25b moves the cascade to mid-travel (Δ9). After it lands, robot one's page lists 12 owed
+  facts, not 17 — by itself.
+- **`src/robots/robot_one_facts.hpp`'s count banner** ("THE COUNT (the Drive boot line, RPV1-B's hatch, the tests)")
+  names the use this run makes of `kRobotOneFacts`; left as it is (a src file, ROB1-C2's).
+- **Robot one's pages now go to `build/route_preview/one/`** (Δ8) — a behaviour the brief did not ask for, found end
+  to end; your call if you would rather a filename suffix.
+- **Status pointers** (roadmap "You are here", build-order `Next:`, the brief's B1 line "it switches to robot one the
+  day G1 lands") are not edited here; this log's between-parts marker is kept.
+
+## RPV1-S1 review findings and their disposition
+
+**Who:** three reviewers (correctness, tests, docs; their probes under `scratch/rpv1-s1/review-*`), 17 findings,
+deduplicated to 14 below; the fix round by the builder (`opus`), 2026-11-15 ~21:45–23:00. Each finding was
+re-checked before it was fixed. No test case added or removed (3703); nothing committed.
+
+| # | Finding (lens, severity) | Disposition |
+|---|---|---|
+| F1 | No test looks at robot two's REAL page for the owed block: RM1/SB (robot two given robot one's ledger) and RM2 (the table's guard removed) survived; RP25c's last check read a test fixture, so it could not fail (correctness major, tests major — the same gap) | **FIXED.** RP25 now runs robot two's own "40in forward" through `rp::kRobots` (in the default-path block, F4): `owedFacts(rp::kRobotTwo)` empty, no `PLACEHOLDER numbers:` in the table, no `class="owed"` on the page, no empty line after the stamp. RP25c's fixture check removed. RM1/SB, RM2 and RM2b (the page's guard removed) **RED** |
+| F2 | Robot two's page gained an unused `.owed{…}` CSS rule, so it was not byte-identical (correctness minor) | **FIXED.** The block's style is inline on the block; the shared style sheet is the base's again. Robot two's "40in forward" and "TEST 24in turn back", each with and without `--place` (stamp and hash fixed), against the base program (`review-correctness/base`): **all four pages and all four tables byte-identical** (the table's `--out` path normalised) — `scratch/rpv1-s1/fix-cmp2/` |
+| F3 | The changelog entry sits at the top of `## API 2.8`; main now opens `## API 2.9`, and the RPV1-A entry's "the entry above" would then point at the wrong entry (correctness minor, docs minor) | **The move is the coordinator's, at the merge** (this worktree's base has no 2.9 section): the entry goes to the top of `## API 2.9`, still "No API change". **The pointer is fixed here:** it names the entry by its title ("done 2026-11-15: \"the route preview previews robot one\""), so it stays true wherever the entry sits |
+| F4 | Δ8's default page path was never run end to end: SA (runPreview back to the old path) survived; RP25 only called the helper (tests major) | **FIXED.** RP25 runs robot two's and robot one's "40in forward" with NO `--out`, with `build/route_preview_test/default-paths/` as the working directory (a guard puts the old one back, also when a REQUIRE throws): robot two's page is at `build/route_preview/40in forward.html` and says ROBOT TWO, robot one's at `build/route_preview/one/40in forward.html` and says ROBOT ONE. The two direct calls of the helper are gone (the run covers both). SA **RED**; MS12 still RED |
+| F5 | No ledger with exactly ONE owed fact: SC (both guards `size() > 1`) survived (tests minor) | **FIXED.** RP25c adds `{typed, one owed}`: "PLACEHOLDER numbers: 1 of this robot", its `[PLACEHOLDER]` line, its `<li>`. SC **RED** |
+| F6 | "In its order" was checked on `owedFacts()` only: SD (both renderers reversed) survived (tests minor) | **FIXED.** RP25c checks the order in the table and on the page. SD **RED** |
+| F7 | A hand-copied ledger survived (SE), against "never copied" (tests minor) | **FIXED.** RP25 checks that robot one's ledger IS the ledger: `kRobotOne.ledger.data() == std::data(kRobotOneFacts)`, and the same size. SE (today's 17 facts copied by hand) **RED** |
+| F8 | checkMarks' count compared the ledger's count with itself (tests minor) | **FIXED.** checkMarks counts what the program WROTE: the `[PLACEHOLDER]` fact lines in the table and the `<li>`s inside the owed block, each equal to the ledger's owed count; with nothing owed, no block. SF (the table lists a fact twice) and SG (the page does) **RED**; MS10 still RED (the header line) |
+| F9 | A fact typed "chosen, not measured" leaves the list and gets no per-step mark: after ROB1-C2, robot one's claw, front-toggle and ramp steps draw on an unmeasured 0.5 s, unmarked, while robot two's claw says HA-185 (docs major) | **CONFIRMED — the root fix is not in this run's files.** Re-checked on ROB1-C2's live tree (read only, ~22:00): the claw's, front toggle's and ramp's stroke times are `typed(0.4_s, 0.5_s, …, "chosen, not measured -- … (robot two's claw's provisional time, HA-185)")`, and the cascade's stall signature and cap, the side toggles' cap and the homing stall are typed the same way. `Fact` carries its `source`, but `FactSummary` — the only list, `kRobotOneFacts` — keeps name, stage and typed, so the preview cannot tell a chosen value from a measured one without a hand-made list (forbidden). The fix needs `src/robots/robot_one_facts.hpp`, ROB1-C2's file, in flight: `FactSummary` gains the source (or a `measured` flag) in `summary()`; then the preview lists OWED and CHOSEN facts, each labelled, and RP25c holds a chosen fact ON the list. The per-step mark is the brief's R11 path: robot one's declarations mark a chosen number `// PROVISIONAL (HA-…)`, and a robot-one `provisional` table is held to those comments as RP33 holds robot two's — it names mechanisms that exist only after ROB1-C2. **Done here:** guide 16 (:414-415), guide 14 (:72-73) and the changelog say plainly that a value typed "chosen, not measured" counts as typed and the page does not mark it. **For the coordinator:** the follow-up below |
+| F10 | §1.2's per-step HA-182 mark on robot one's cascade was not tested: RD1 (no per-step mark on a robot with a ledger) survived (docs minor) | **FIXED.** RP25b computes the rule from the cascade's OWN declaration (`positionStartingValues`: any of kP, kV, maxVelocity, tolerance still the library's) — not a literal, so a tuning ROB1-C2 or TUNE1 types moves the expectation with it — and checks every cascade step's note for HA-182 and the table's `SUCCEEDED [PLACEHOLDER]` count. RD1 **RED** |
+| F11 | The prose review as logged was incomplete: no `robot two` / stand-in grep; a logged hit could not come from the pattern named; robot two's page sizes missing (docs minor) | **FIXED.** The greps re-run on the final text (below); the wrong line in the S1 record is corrected in place, marked "(corrected in the review round, F11)"; the S1 record's other claims this review disproved are marked in place too (F1, F4, F8) |
+| F12 | The new comments broke the team's one-line rule (docs minor) | **FIXED.** The S1 test cases have no comment block (their titles say it); each helper's comment one line; `defaultPagePath`'s one line; the banner's robot-one part one line |
+| F13 | RPV1-A's "stall homing not exercised" note not closed; RP25b only homed from the bottom stop (docs minor) | **FIXED, beyond logging.** RP25b's cascade auton homes AGAIN from mid-travel: SUCCEEDED, 10.71–23.94 s on today's placeholders (1.04–1.83 s on ROB1-C2's live tree; the 0.32 s home at the stop is 0.30 s of stall signature plus a tick), and the test holds the second home longer than the first — it travelled down before it stalled. RH1 (fakes by kind with no bottom stop: the push never stalls) **RED**. Not isolated by a mutation: the "longer than the first" check alone (a plant that stalls in mid-air needs a change to the library's sim plant). Still unverified: anything about a REAL cascade's stall currents (host test plant only) |
+| F14 | The between-parts marker still said "the switch to robot one (queued)" (correctness minor, docs minor) | **FIXED.** Its reason now reads "RPV1-A (A0+B1) landed 2026-11-14 and RPV1-S1 (the switch to robot one) 2026-11-15; A1/A2 and B2 follow …"; `release.py`'s `between_parts_reason` reads it back whole. The coordinator confirms the date at the merge |
+
+### Mutations — the review round (`scratch/rpv1-s1/mutate_fix.py`, log `mutations-fix.log`, 22:01–22:04)
+
+Every mutation on the FINAL tree: all its anchors matched before anything was written; the binary removed; rebuilt;
+EVERY suite object whose depfile names a mutated file (one: `route_preview_test.cpp.o`) checked newer than the
+mutation, and the binary; the named cases under `ulimit -v 4194304; timeout 600`; restored in a `finally` and on
+SIGTERM/SIGHUP/SIGINT, timestamps bumped. The reviewers' survivors and this run's MS1–MS12 together — **23 of 23
+RED**, none survived, none failed to build:
+
+| # | Mutation | Result |
+|---|---|---|
+| RM1/SB | robot two carries robot one's ledger | RED — RP25 |
+| RM2 | the table's guard removed | RED — RP25 |
+| RM2b | the page's guard removed | RED — RP25, RP25c |
+| SA | the default page path unwired in runPreview | RED — RP25 |
+| SC | one owed fact shows no block (both guards) | RED — RP25c |
+| SD | both renderers list the facts in reverse | RED — RP25c |
+| SE | a hand-copied ledger (today's 17 facts) | RED — RP25 |
+| SF | the table lists the first owed fact twice | RED — RP25, RP25b |
+| SG | the page lists the first owed fact twice | RED — RP25, RP25b |
+| RD1 | no per-step HA-182 mark on a robot with a ledger | RED — RP25b |
+| RH1 | no bottom stop on fakes by kind: a stall home never stalls | RED — RP25b |
+| MS1 | every fact listed, typed ones too | RED — RP25c |
+| MS2 | robot one with no ledger | RED — RP25, RP25b |
+| MS3 | a refused page without the owed list | RED — RP25b |
+| MS4 | the table without the owed facts | RED — RP25, RP25b, RP25c |
+| MS5 | the page without the owed facts | RED — RP25, RP25b, RP25c |
+| MS6 | robot one previewed on robot two's list | RED — RP25, RP25b |
+| MS7 | robot one previewed with robot two's autons file | RED — RP25 |
+| MS8 | robot one on the rig's default (robot two's) fakes | RED — RP25, RP25b |
+| MS9 | no check for a robot with no autons file | RED, CRASHED (SIGSEGV, exit −11) — RP38 |
+| MS10 | the owed count off by one | RED — RP25, RP25b, RP25c |
+| MS11 | the launcher hashes robot two's file for `--robot one` | RED — the launcher's self-test |
+| MS12 | robot one's default page on robot two's path | RED — RP25 |
+
+After the run: the five mutated files' SHA-256 equal the pre-run ones (`pre-mutation-fix.sha256`); the binary
+removed and the tree rebuilt and run green (Gates, below); `git diff -- Makefile src/` carries no '(self-test plant';
+no untracked file under src/ include/ test/.
+
+### Prose review — the review round (greps run on the final text, hits read before this was written)
+
+- **§3.3's greps over the ADDED lines** of every changed public doc, test and tool file (333 lines,
+  `scratch/rpv1-s1/fix-added.txt`) and the four launcher pages: `simulator` 0 (pages 0 each); `lower bound` 0;
+  `exact|guarantee` 2, both test comments ("exactly as the program knows it", "exactly the ledger's OWED facts") — not
+  about time; `internal/|chunks/|RESUMING` 0; `R[CPM][0-9]` 0 in the public docs and 0 in added header lines — only
+  the test file's case names (RP3, RP10, RP25, RP25b, RP25c, RP26, RP35); `chunk` 1, the changelog's "(chunk RPV1,
+  the switch to robot one)", the changelog's own convention.
+- **`robot two|robot one|stand-in|drive`** over the public docs' added lines: each sentence that says where robot one
+  runs says "the same stand-in drive" (guide 16 :460-461, the changelog :24-26); guide 14's robot-one sentence sits
+  inside the entry that opens "on a stand-in drive"; no claim about robot two's drive was added.
+- **`chosen, not measured`** across the public docs: guide 16 :414 and guide 14 :73 (this round's); guide 21 :82,
+  :110, :136 and `docs/robot-facts-form.md` :43, :83 — the ledger's own rule ("a number chosen at the bench … is
+  typed with the source `chosen, not measured`"), consistent with the new sentences; none says the preview marks
+  such a value — untouched.
+- **This round's names:** `defaultPagePath`, `class="owed"`, `.owed{` in public docs and tools: 0.
+  `route_preview/one` / `under one/`: guide 16 :380, the changelog :29, the launcher :13 and :82 — true.
+  "the entry above" in the changelog: only :2998, an unrelated 2026-09 entry.
+- **Page sizes** (the launcher, a fresh `build/route_preview/`, stamped with the commit and the autons hash): robot
+  two's "40in forward" **18,959 bytes**, "TEST 24in turn back" **31,563**; robot one's 20,221 and 33,006. Robot two's
+  are 62 bytes under the reviewer's 19,021 / 31,625: the `.owed` rule (F2). Every page: 0 "http", 0 "simulator",
+  "IDEAL host test plant" once; the owed block once on robot one's, never on robot two's.
+
+### Gates — the review round's final tree (2026-11-15 ~22:05–23:00 EST)
+
+- **The suite** (`briefing_status.py generate` with the binary removed, a configure, a full build — the doc gates
+  ran — then `suite_run.py green`): **green — 3703 cases, 3863638 assertions** (S1's build: 3703 / 3863609). The
+  briefing regenerated after it: its Suite line reads 3,703 / 3,863,638. Route preview cases: 42/42.
+- **ROB1-C2's live src** (read only, copied ~22:05 into `scratch/rpv1-s1/c2probe/tree2`: the base's include/ src/
+  test/, this run's test files and guides, ROB1-C2's uncommitted include/ and src/; `c2probe/build.sh`): **42/42
+  green.** The robot line names six mechanisms (cascade, right toggle, left toggle, claw, flipper, ramp); **12** owed
+  facts; the cascade's three steps all hatched HA-182 (its tuning still the library's), the re-home 0.79 s against
+  0.32 s at the stop. (The first run failed one case only because the probe tree had no `docs/guide/16-…` for a
+  source pin; with the guides copied, green.)
+- **Robot two unchanged:** four pages and four tables byte-identical to the base program's (F2).
+- **The ARM header gate:** 255 headers in one TU, CI's flags, `-Werror` → CLEAN. **The CI greps:** PROS-free,
+  sim-free. `git diff 9befdb3 -- include/ src/ Makefile` → EMPTY.
+- **api_doc_tool:** self-test OK; check-coverage "6386 public entities across 211 headers, all documented";
+  check-fresh exit 0; check-examples "860 quoted lines, all verbatim (18 source files)"; check-removability "no
+  public doc references docs/internal/". No `///` comment in include/ changed: docs/api not regenerated.
+- **briefing_status.py** self-test OK (38 cases), check "generated block current"; **doc_staleness_audit.py**
+  self-test OK, the audit "clean (34 live docs …)".
+- **The launcher end to end:** `"40in forward"` 0, `"TEST 24in turn back"` 0 (robot two's pages where they were);
+  `"40in forward" --robot one --place=-48,-48,90` 0 and `"TEST 24in turn back" --robot one` 0 (under `one/`);
+  `"no such auton"` 2 (names `src/team/autons.cpp`), with `--robot one` 2 (names `src/team/robot_one_autons.cpp`);
+  `--list --robot one` 0; `route_preview.py self-test` ok (0 failures).
+- **The src gate:** `check` → `src build gate: PASS (all 14 builds …)`, exit 0 (22:09–22:22); `self-test` →
+  `src build gate self-test: OK (377 detector cases, each against a real build)`, exit 0 (22:22–23:08). After both:
+  0 '(self-test plant' in `git diff -- Makefile src/`, no untracked file under src/ include/ test/, `git diff 9befdb3
+  -- include/ src/ Makefile` empty.
+- **Nothing committed.**
+
+### For the coordinator (adds to the list above)
+
+- **F9's follow-up** (a proposal, not built — it needs ROB1-C2's file): after ROB1-C2 lands, (1) `FactSummary`
+  gains the fact's `source` (or `bool measured`) in `summary()`; (2) the preview's list becomes the facts nobody
+  measured — OWED and "chosen, not measured", each labelled — with RP25c holding a chosen fact on it; (3) robot one's
+  chosen stroke times get `// PROVISIONAL (HA-…)` on their declarations and a robot-one `provisional` table held to
+  them as RP33 holds robot two's, so a robot-one claw step says what robot two's says. Until then the docs say the
+  gap plainly (guide 16, guide 14, the changelog).
+- **The changelog** (F3): move the entry to the top of `## API 2.9` at the merge; its back-pointer already names it.
+- **ROB1-C2 also edits** `docs/changelog.md` and `docs/guide/21-…` (its `git status`, read ~22:00): the changelog
+  will need a hand merge.
+- **The between-parts marker** (F14): its reason now names S1 with today's date — confirm or correct it at the merge.
+
+## RPV1-S1 — the coordinator's merge verification *(2026-11-16)*
+
+- **Squash-merged from `rpv1-s1`** (transport `af4fb8a`, base `9befdb3`) onto `3c29b73` (MIRROR1-A, the Tune label fix and
+  ROB1-C2 landed since) — in the coordinator's INTEGRATE worktree, because the team builds and uploads from the main tree
+  now. Only the generated briefing conflicted (regenerated); the changelog entry moved to the top of `## API 2.9`.
+- **The src gate's self-test, cases 53 and 55 — stale fixtures, fixed in this merge (`tools/src_build_gate.py`):** both
+  assumed robot one's Bench Tests still REFUSES on owed Stage A facts; since 2026-11-16 (ROB1-C2 + the right toggle's port)
+  Bench Tests and Calibrate LINK. Case 53 now drops `needs()` on Drive and expects it to refuse the RECORDED camera facts
+  too; case 55 builds `ROBOT=one PROGRAM=drive` for its refusal half. Verified by hand first (worktree post-3c29b73): a
+  linked Calibrate's package is REMOVED by a refused Drive build. Follow-up: both cases should plant their own owed fact,
+  so they hold once every fact is typed.
+- **Gates** (`scratch/integrate_verify.sh rpv1s1`, then the self-test re-run): suite green (**3,764 cases**); src gate
+  self-test **OK (377 cases)** and check **PASS — all 14 builds**; ARM header gate exit 0; ctest compile refusals green;
+  doc gates and briefing current; no plant, no untracked file.
+- **The coordinator's mutations** (`muts_rpv1_s1_main.json`): **3 of 3 RED** — MS-C1 every fact listed as PLACEHOLDER,
+  typed ones too (3 cases); MS-C2 robot one previewed on robot two's list (2); MS-C3 robot one's previews run robot two's
+  autons (1). Restored tree green.
+- **RPV1-S1 LANDED:** `python3 tools/route_preview.py "<auton>" --robot one` previews robot one's own autons on its own
+  mechanisms, every still-owed fact marked PLACEHOLDER from the ledger itself. Host test plant only.

@@ -326,7 +326,8 @@ add_test(NAME shulib_tests COMMAND shulib_tests)
 # builds this target and runs it under the suite's own bounds). Built by the default target, so CI
 # compiles it; it does NOT wait for the doc gates. route_preview_main.cpp is not a *_test.cpp, so the
 # suite's glob above never compiles it — the suite calls runPreview() itself (route_preview_test.cpp).
-add_executable(shulib_route_preview route_preview_main.cpp "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp")
+add_executable(shulib_route_preview route_preview_main.cpp "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp"
+                                    "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/robot_one_autons.cpp")
 target_link_libraries(shulib_route_preview PRIVATE shulib_test_flags)
 
 # ── THE COMPILE-REFUSAL HARNESS (chunk MECH-A1, 2026-10-08; the MECH brief's §3.0) ──────────

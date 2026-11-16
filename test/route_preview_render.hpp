@@ -15,7 +15,7 @@
 //   * THE TABLE IS ONE TABLE: tableRows() makes the cells; renderText pads them for the terminal and
 //     renderHtml puts them in <td>s, so the two cannot disagree.
 //   * THE CAPTION AND THE ROBOT LINE are on every page, the PLACEHOLDER notes on every step whose
-//     time comes from a number nobody has measured.
+//     time comes from a number nobody has measured, and every fact the robot's ledger still OWES.
 
 #include <algorithm>
 #include <cmath>
@@ -176,6 +176,15 @@ struct Px {
     return s;
 }
 
+/// The line over the robot's OWED facts, or "" when it owes none.
+[[nodiscard]] inline std::string owedLine(const Model& m) {
+    if (m.owed.empty()) {
+        return "";
+    }
+    return "PLACEHOLDER numbers: " + std::to_string(m.owed.size()) + " of this robot's facts are still OWED in " +
+           m.ledgerFile + " \xe2\x80\x94 wherever the preview needs one, it uses the placeholder until it is typed:";
+}
+
 /// A field note in words.
 [[nodiscard]] inline std::string fieldNoteText(const FieldNote& f) {
     const std::string at = " at T+" + fixed(f.t, 2) + " s" +
@@ -201,6 +210,12 @@ struct Px {
     out += "ROUTE PREVIEW \xe2\x80\x94 " + summaryLine(m) + "\n";
     out += m.robotLine + "\n";
     out += stampLine(m) + "\n";
+    if (!m.owed.empty()) {
+        out += owedLine(m) + "\n";
+        for (const std::string& f : m.owed) {
+            out += "  [PLACEHOLDER] " + f + "\n";
+        }
+    }
     for (const std::string& n : m.notices) {
         out += "!! " + n + "\n";
     }
@@ -519,6 +534,14 @@ struct Px {
     h += "<p class=\"robot\">" + esc(m.robotLine) + "</p>";
     h += "<p class=\"caption\">" + esc(kCaption) + "</p>";
     h += "<p>" + esc(stampLine(m)) + " \xc2\xb7 started " + esc(m.startLine) + "</p>";
+    if (!m.owed.empty()) {
+        h += "<div class=\"owed\" style=\"color:#9a5b00;border:1px dashed #ef8f00;padding:2px 8px\"><p>" +
+             esc(owedLine(m)) + "</p><ul>";
+        for (const std::string& f : m.owed) {
+            h += "<li>" + esc(f) + "</li>";
+        }
+        h += "</ul></div>";
+    }
     for (const std::string& n : m.notices) {
         h += "<p class=\"notice\">" + esc(n) + "</p>";
     }

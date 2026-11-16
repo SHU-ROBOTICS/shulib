@@ -157,6 +157,8 @@ struct Model {
     std::string auton;          ///< the auton's name, as registered
     std::string robotKey;       ///< "two", "one", "x"
     std::string robotLine;      ///< which robot, which drive, what is pretend (the page's first line)
+    std::vector<std::string> owed;  ///< the robot's facts still OWED in its ledger: PLACEHOLDERS
+    std::string ledgerFile;         ///< that ledger's file
     std::string kindWord;       ///< "SKILLS" / "MATCH"
     double period = 0.0;        ///< the period it runs in, s
     double park = 0.0;          ///< endActionAt, s

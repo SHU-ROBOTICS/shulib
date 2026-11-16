@@ -75,10 +75,7 @@
 // ── ANY ROBOT'S MECHANISMS (RPV1-B1, the brief's §1.2) ───────────────────────────────────────────
 // `--robot two` (the default) previews robot two's real list on the rig's default fakes, exactly the
 // suite's run. Another robot runs its own list on test/fakes_by_kind.hpp (fakes by kind, a lift or arm
-// on a plant built from its declaration), still on the stand-in drive. Robot one's list and autons file
-// landed with ROB1-A (src/robots/mechanism_table.hpp's kRobotOneMechanisms, src/team/robot_one_autons.cpp),
-// but the preview is not switched to them yet (queued): `--robot one` says so and draws nothing. The suite tests the
-// whole path on robot x, the fixture robot with a lift (test/mechanism_fixtures.hpp).
+// on a plant built from its declaration), still on the stand-in drive. Robot one's OWED facts are PLACEHOLDERS.
 
 #include <algorithm>
 #include <cctype>
@@ -103,6 +100,7 @@
 #include "motion_test_rig.hpp"
 #include "programs/auton_tester_run.hpp"
 #include "robots/mechanism_table.hpp"
+#include "robots/robot_one_facts.hpp"
 #include "route_preview_model.hpp"
 #include "route_preview_render.hpp"
 #include "shulib/competition/auton_registry.hpp"
@@ -114,6 +112,7 @@
 #include "shulib/motion/motion_scheduler.hpp"
 #include "shulib/sim/scenario.hpp"
 #include "team/autons.hpp"
+#include "team/robot_one_autons.hpp"
 
 namespace route_preview {
 
@@ -133,17 +132,20 @@ inline constexpr Provisional kRobotTwoProvisional[] = {
 
 /// The function a robot's autons file registers its autons with.
 using RegisterFn = void (*)(shulib::competition::AutonRegistry&);
+/// A robot's facts ledger, every fact typed or OWED (robot one's src/robots/robot_one_facts.hpp).
+using Ledger = std::span<const shulib::bench::robot_one_facts::FactSummary>;
 
 /// A robot the preview can preview (header: ANY ROBOT'S MECHANISMS).
 struct PreviewRobot {
     const char* key = "";                                       ///< `--robot` word ("two")
     const char* title = "";                                     ///< "robot two"
     const shulib::mechanism::MechanismTable* table = nullptr;   ///< its mechanism list
-    RegisterFn registerAutons = nullptr;                        ///< nullptr: no build yet
+    RegisterFn registerAutons = nullptr;                        ///< its autons file's register function
     const char* autonsFile = "";                                ///< where its autons are written
     bool defaultRig = false;                                    ///< the rig's own default fakes (robot two)
-    const char* noBuild = "";                                   ///< why it has no build (registerAutons null)
     std::span<const Provisional> provisional{};                 ///< its PROVISIONAL numbers
+    Ledger ledger{};                                            ///< its facts ledger: each OWED fact is a PLACEHOLDER
+    const char* ledgerFile = "";                                ///< where that ledger is
 };
 
 /// Robot two — the team's autons today (src/team/autons.cpp, `using namespace robot_two;`).
@@ -154,21 +156,18 @@ inline constexpr PreviewRobot kRobotTwo{
     .registerAutons = &shulib::bench::registerAutons,
     .autonsFile = "src/team/autons.cpp",
     .defaultRig = true,
-    .noBuild = "",
     .provisional = std::span<const Provisional>{kRobotTwoProvisional},
 };
-/// Robot one — not switched in yet: ROB1-A landed 2026-11-13; the switch is queued (header).
+/// Robot one — its own list on fakes by kind; its ledger's OWED facts are the PLACEHOLDERS (header).
 inline constexpr PreviewRobot kRobotOne{
     .key = "one",
     .title = "robot one",
-    .table = nullptr,
-    .registerAutons = nullptr,
+    .table = &shulib::bench::robot_one::kRobotOneMechanisms,
+    .registerAutons = &shulib::bench::registerRobotOneAutons,
     .autonsFile = "src/team/robot_one_autons.cpp",
     .defaultRig = false,
-    .noBuild = "robot one has no build yet in the preview: its mechanism list and its autons file are in the "
-               "code (src/robots/mechanism_table.hpp's kRobotOneMechanisms, src/team/robot_one_autons.cpp), but the "
-               "preview is not switched to them yet; robot two's routes can be previewed (--robot two).",
-    .provisional = {},
+    .ledger = Ledger{shulib::bench::robot_one_facts::kRobotOneFacts},
+    .ledgerFile = "src/robots/robot_one_facts.hpp",
 };
 /// The robots `--robot` knows, in order (the first is the default).
 inline constexpr PreviewRobot kRobots[] = {kRobotTwo, kRobotOne};
@@ -469,6 +468,17 @@ inline bool parseMechLine(std::string_view line, std::string& name, std::string&
     return "";
 }
 
+/// Every fact `robot`'s ledger still OWES, in the ledger's order: each a PLACEHOLDER on the host test plant.
+[[nodiscard]] inline std::vector<std::string> owedFacts(const PreviewRobot& robot) {
+    std::vector<std::string> owed;
+    for (const shulib::bench::robot_one_facts::FactSummary& f : robot.ledger) {
+        if (!f.typed) {
+            owed.emplace_back(f.name);
+        }
+    }
+    return owed;
+}
+
 /// The robot line (the page's first line: which robot, which drive, what is pretend).
 [[nodiscard]] inline std::string robotLineFor(const PreviewRobot& robot) {
     std::string names;
@@ -499,6 +509,8 @@ inline bool parseMechLine(std::string_view line, std::string& name, std::string&
     m.auton = e.name != nullptr ? e.name : "";
     m.robotKey = robot.key;
     m.robotLine = robotLineFor(robot);
+    m.owed = owedFacts(robot);
+    m.ledgerFile = robot.ledgerFile;
     m.kindWord = shulib::competition::autonKindWord(e.kind);
     m.period = period;
     m.park = e.endActionAt.value();
@@ -876,6 +888,8 @@ inline void foldLoop(Model& m, const Recorder& rec) {
     m.auton = name;
     m.robotKey = robot.key;
     m.robotLine = robotLineFor(robot);
+    m.owed = owedFacts(robot);
+    m.ledgerFile = robot.ledgerFile;
     m.kindWord = "refused";
     m.stamp = opt.stamp;
     m.autonsHash = opt.autonsHash;
@@ -898,6 +912,13 @@ inline void foldLoop(Model& m, const Recorder& rec) {
         f = "_" + f;
     }
     return f + ".html";
+}
+
+/// The page's path with no --out; a robot but the first goes under its key (the robots share auton names).
+[[nodiscard]] inline std::string defaultPagePath(std::span<const PreviewRobot> robots, const PreviewRobot& robot,
+                                                 const std::string& auton) {
+    const bool first = !robots.empty() && std::string_view{robot.key} == robots[0].key;
+    return std::string{"build/route_preview/"} + (first ? "" : std::string{robot.key} + "/") + pageFileName(auton);
 }
 
 /// Write `m`'s page to `path` and its table to `out`; false (said on `err`) if the page cannot be written.
@@ -1038,10 +1059,7 @@ inline constexpr const char* kUsage =
         err << "\n";
         return 2;
     }
-    if (robot->registerAutons == nullptr) {
-        err << "route preview: " << robot->noBuild << "\n";
-        return 2;
-    }
+    SHULIB_PRECONDITION(robot->registerAutons != nullptr, "route preview: a robot with no autons file");
     shulib::competition::AutonRegistry reg{shulib::bench::kAutonPeriods, shulib::competition::OnRefusal::DropEntry};
     robot->registerAutons(reg);
     const auto listAll = [&](std::ostream& to) {
@@ -1065,7 +1083,7 @@ inline constexpr const char* kUsage =
         return list ? 0 : 2;
     }
     if (outPath.empty()) {
-        outPath = "build/route_preview/" + pageFileName(name);
+        outPath = defaultPagePath(robots, *robot, name);
     }
     // The last run's page of this name goes first: a run killed from outside (the launcher's 300 s
     // bound, a signal) must not leave it looking like this one's.

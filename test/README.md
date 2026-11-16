@@ -179,7 +179,9 @@ documented here and in their own headers:
 `python3 tools/route_preview.py "<auton name>"` (guide chapter 16, "Before the bench: previewing a route") runs
 one of the team's autons through the Auton Tester's own sequence on the host test plant and draws it as one
 offline page. Its program is a host target here, `shulib_route_preview` (built by the default target, outside
-the suite's `*_test.cpp` glob); ALL its logic is in headers the suite calls directly:
+the suite's `*_test.cpp` glob, with both robots' autons files). `--robot one` runs robot one's list on fakes by
+kind and lists every fact its ledger (`src/robots/robot_one_facts.hpp`) still OWES as a PLACEHOLDER — read from
+the ledger, never copied. ALL its logic is in headers the suite calls directly:
 
 - **`route_preview_run.hpp`** — `runPreview(args, out, err)` (arguments, the exact-name lookup including
   the names inside the registry's refusal sentences, the run, the page, the exit code) and `runProgram` (the

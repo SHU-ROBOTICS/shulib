@@ -4234,19 +4234,21 @@ def do_self_test():
     expect(not ledger_source_problems(), f"52: the real ledger fails step 0: {ledger_source_problems()}")
 
     # 53 (T4 — the facts proof's real-tree half sees a WRONG set): the ledger's OWED check with its
-    #     `needs(kProgram, …)` dropped (the brief's GM10) — Bench Tests then refuses naming its Stage B facts
-    #     too -> FAIL naming them; and the real `one` build refuses exactly its Stage A set -> PASS.
+    #     `needs(kProgram, …)` dropped (the brief's GM10) — a program then refuses facts that are not its own
+    #     -> FAIL naming them; and the real build refuses exactly its own owed set -> PASS. Since 2026-11-16 robot
+    #     one's Bench Tests owes nothing (its Stage A all typed), so the case uses Drive: with needs() dropped it
+    #     also refuses the RECORDED facts (the camera's), which no program needs. FOLLOW-UP: plant an owed fact so
+    #     this case holds once every fact is typed.
     needs_term = "::shulib::bench::robot_one_facts::needs(::shulib::bench::kProgram, (fact).needed)"
     with _replace(ledger_path, needs_term, "true /* (self-test plant: needs dropped) */"):
-        b = run_build("one")
-        ok, problems, refused = facts_verdict("one", b)
-        expect(not ok and not refused, "53: robot one's Bench Tests refusing its Stage B facts too PASSED")
-        expect(any("named and not owed by this program" in p and "the cascade's hold volts" in p
-                   for p in problems), f"53: the failure did not name the extra Stage B fact: {problems}")
-    b = run_build("one")
-    ok, problems, refused = facts_verdict("one", b)
-    expect(ok and refused, f"53: the real robot-one Bench Tests build does not refuse exactly its owed "
-                           f"Stage A facts: {problems}")
+        b = run_build("one-drive")
+        ok, problems, refused = facts_verdict("one-drive", b)
+        expect(not ok and not refused, "53: robot one's Drive refusing a RECORDED fact too PASSED")
+        expect(any("named and not owed by this program" in p and "the AI Vision camera's port" in p
+                   for p in problems), f"53: the failure did not name the extra RECORDED fact: {problems}")
+    b = run_build("one-drive")
+    ok, problems, refused = facts_verdict("one-drive", b)
+    expect(ok and refused, f"53: the real robot-one Drive build does not refuse exactly its owed facts: {problems}")
     expect(not os.path.exists(os.path.join(REPO, "bin", "hot.package.bin")),
            "53: the refused robot-one build left bin/hot.package.bin")
 
@@ -4287,7 +4289,9 @@ def do_self_test():
         with open(elf_path, "rb") as f:
             beacon_ok = _beacon_bytes(VARIANT_BEACONS["tank-drive"]) in f.read()
     rc3, c3, _t3 = make_direct("ROBOT=tank", "PROGRAM=drive")
-    rc4, _c4, t4 = make_direct("ROBOT=one")
+    # A robot-one variant that still OWES facts: Bench Tests links since 2026-11-16 (its Stage A all typed), so
+    # the refusal half uses Drive (Stage B owed). FOLLOW-UP: plant an owed fact so this holds once all are typed.
+    rc4, _c4, t4 = make_direct("ROBOT=one", "PROGRAM=drive")
     expect(rc1 == 0 and rc2 == 0 and rc3 == 0, f"55: a robot-two build failed ({rc1}, {rc2}, {rc3})")
     expect(c1 == n_tus, f"55: the first build compiled {c1} of {n_tus} files")
     expect(c2 == n_tus, f"55: a PROGRAM switch with no rm compiled {c2} of {n_tus} files — the stamp does "
@@ -4295,7 +4299,7 @@ def do_self_test():
     expect("shulib: the build changed" in t2, "55: the stamp's line was not printed on the switch")
     expect(beacon_ok, "55: after the switch the package is not tank-drive's")
     expect(c3 == 0, f"55: the same variant twice compiled {c3} files (the stamp starts fresh every time)")
-    expect(rc4 != 0 and "robot one: OWED" in t4, "55: robot one's Bench Tests with owed facts did not refuse")
+    expect(rc4 != 0 and "robot one: OWED" in t4, "55: robot one's Drive with owed facts did not refuse")
     expect(not os.path.exists(os.path.join(REPO, "bin", "hot.package.bin")),
            "55: the refused robot-one build left the previous variant's bin/hot.package.bin to upload")
 

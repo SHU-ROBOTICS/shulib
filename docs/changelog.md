@@ -16,6 +16,22 @@
 
 ## API 2.9
 
+### 2026-11-15 — the route preview previews robot one
+
+> Written when it was built (chunk RPV1, the switch to robot one). **No API change**: nothing a robot program
+> compiles changed, and `src/` is untouched. **Host test plant only — nothing here has run on a robot.**
+
+**CHANGED (a host tool):** `python3 tools/route_preview.py "<auton name>" --robot one` now runs that auton from
+`src/team/robot_one_autons.cpp` on robot one's own mechanisms (each on a fake built from its own declaration, the
+cascade included), on the same stand-in drive. Every fact robot one's facts file (`src/robots/robot_one_facts.hpp`)
+still OWES is a placeholder (the preview uses it wherever it needs that number), so the page and the terminal list
+each one under PLACEHOLDER at the top; a fact leaves the list once it is typed, a value typed as "chosen, not
+measured" included (the page does not mark it). Robot one's pages go to `build/route_preview/one/` (the two
+robots share auton names). Until now `--robot one` said robot one had no build and drew nothing.
+
+**What you must do:** nothing. [Chapter 16](guide/16-testing-an-auton-on-the-bench.md#before-the-bench-previewing-a-route)
+shows the command.
+
 ### 2026-11-15 (built 2026-11-15) — robot one's real mechanisms and its first typed facts; a ONE-button hold for a power mechanism
 
 > Written when it was built (chunk ROB1, run C2 — the team lead: "we need to have the bot coded tonight").
@@ -155,7 +171,7 @@ build is left-right symmetric where a route uses it) and HA-260 (the robots' own
   auton; `--list` names them all; an auton the program refuses is drawn REFUSED with its sentence; an auton
   that loops forever after a stop is stopped and drawn; one that throws is drawn to the throw, which is
   placed inside a step, during a wait, or after a step. Exit codes 0 / 1 / 2 / 3 (guide chapter 16; 3 is
-  the tool's own failure). `--robot two` (the default); `--robot one` says robot one has no build yet (robot one's build landed the same week; switching the preview to it is queued). The
+  the tool's own failure). `--robot two` (the default); `--robot one` says robot one has no build yet (robot one's build landed the same week; switching the preview to it is queued — done 2026-11-15: "the route preview previews robot one"). The
   page's step numbers count from below (every motion and mechanism step — not pauses, waits, `then(...)`
   steps or `startAt`); the library's own quoted lines carry the code's real numbers.
 

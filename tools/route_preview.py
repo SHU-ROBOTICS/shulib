@@ -3,15 +3,16 @@
 
     python3 tools/route_preview.py "40in forward"                 # robot two's auton, by its exact name
     python3 tools/route_preview.py "40in forward" --place=-48,-48,90
+    python3 tools/route_preview.py "40in forward" --robot one     # robot one's auton, on its own mechanisms
     python3 tools/route_preview.py --list                         # every auton's name
 
 WHAT IT DOES (chunk RPV1-A, 2026-11-12; the RPV1 brief's §1.1). It builds the preview program
 (`shulib_route_preview`, test/route_preview_main.cpp — the host test build, configured if it is not yet),
 runs the named auton from the team's REAL autons file through the REAL library on the HOST TEST PLANT,
 exactly as "shulib Auton Tester" runs it, prints the step table, and writes ONE offline page
-(build/route_preview/<name>.html: the field to scale, the path, every step numbered with its time,
-failures in their colours with the library's own sentences). Open the page in any browser; it fetches
-nothing. Nothing here runs on a robot; it never writes or changes your code.
+(build/route_preview/<name>.html, robot one's under one/: the field to scale, the path, every step
+numbered with its time, failures in their colours with the library's own sentences). Open the page in
+any browser; it fetches nothing. Nothing here runs on a robot; it never writes or changes your code.
 
 THE BOUNDS. The program runs under the test suite's own bounds — IMPORTED from tools/suite_run.py by
 path, so the two can never drift: 4 GiB of address space, 256 MiB of output, 600 s of CPU, no core dump,
@@ -77,7 +78,8 @@ def parser():
     p.add_argument("--place", metavar="X,Y,DEG",
                    help="where a RELATIVE auton starts: inches, inches, degrees (e.g. --place=-48,-48,90)")
     p.add_argument("--robot", default="two", choices=sorted(AUTONS_FILES), help="whose autons (default: two)")
-    p.add_argument("--out", metavar="FILE", help="where to write the page (default build/route_preview/<name>.html)")
+    p.add_argument("--out", metavar="FILE",
+                   help="where to write the page (default build/route_preview/<name>.html; robot one's under one/)")
     return p
 
 
@@ -296,12 +298,9 @@ def stub_test(check, stamp_now, head):
             argv = seen["argv"] if seen else []
             check(argv[1:3] == ["--robot", "one"], f"--robot one reaches the program ({argv[1:3]})")
             one = autons_hash(os.path.join(REPO, AUTONS_FILES["one"]))
-            if one:
-                check("--autons-hash" in argv and argv[argv.index("--autons-hash") + 1] == one,
-                      f"--autons-hash is robot ONE's file's ({one})")
-            else:
-                check("--autons-hash" not in argv, "robot one's autons file is not in the tree: no hash is passed "
-                                                   "(never robot two's)")
+            check(bool(one) and one != two and "--autons-hash" in argv
+                  and argv[argv.index("--autons-hash") + 1] == one,
+                  f"--autons-hash is robot ONE's file's ({one}), never robot two's")
             for code in (1, 2, 3):
                 rc, _, _ = call(["seven"], exit_code=code)
                 check(rc == code, f"the program's exit {code} comes back from run() (got {rc})")

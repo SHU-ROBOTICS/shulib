@@ -363,21 +363,23 @@ and the tape's.
 
 Robot time is the scarcest thing in the week before a competition. Before a route goes on the
 robot, **see the whole of it on the laptop**: one command runs one of your autons, from your own
-`src/team/autons.cpp`, through the same library code the robot runs, on the host test plant, and
-draws it.
+`src/team/autons.cpp` (robot one's `src/team/robot_one_autons.cpp` with `--robot one`), through the
+same library code the robot runs, on the host test plant, and draws it.
 
 ```bash
 python3 tools/route_preview.py --list                              # every auton's name
 python3 tools/route_preview.py "40in forward" --place=-48,-48,90   # a RELATIVE auton, placed on the field
 python3 tools/route_preview.py "TEST 24in turn back"
+python3 tools/route_preview.py "40in forward" --robot one --place=-48,-48,90   # robot one's, on its own mechanisms
 ```
 
 The name is the auton's name exactly as the brain's menu shows it — spaces and capitals included,
 in quotes. The command builds a small program on the laptop (a few seconds the first time), runs
 your auton the way "shulib Auton Tester" runs it — the same `competition::runAuton` call, the same
 deadline guard, the same park at your park time — prints a table of the steps in the terminal, and
-says where it wrote the page: `build/route_preview/<name>.html`. Open that file in any browser; it
-needs no internet. It never writes or changes your code: it only runs it and draws it.
+says where it wrote the page: `build/route_preview/<name>.html` (robot one's in
+`build/route_preview/one/`). Open that file in any browser; it needs no internet. It never writes
+or changes your code: it only runs it and draws it.
 
 **What the page shows.** The field to scale, red station at the bottom: the walls, the Toggles,
 the Loaders, the Load Zones and the start pieces — the only field parts shulib knows; anything else
@@ -407,7 +409,11 @@ the robot.*
   Station J times it; a lift or arm still on the library's starting numbers (HA-182) moves in the
   time its declaration predicts, not its real one; a flywheel spins up on an ASSUMED 0.2 s time
   constant (the host test plant has to give the wheel some weight, and a flywheel's declaration has
-  no number for it).
+  no number for it). On robot one, every fact its facts file (`src/robots/robot_one_facts.hpp`)
+  still OWES is a placeholder (the preview uses it wherever it needs that number): the page and the
+  terminal list each one under PLACEHOLDER at the top, and a fact leaves the list once it is typed.
+  A value typed as "chosen, not measured" (a starting value picked at the bench) counts as typed:
+  the page does not mark it, though nobody has measured it yet.
 
 A mechanism started in the background (`startRun`, `startMove`, `startSpinUp`, `startHome`) is drawn
 as its own thick stretch along the path — its diamond where it started, a dot where its answer
@@ -452,9 +458,10 @@ its mechanism gets up to speed (an arm's or a lift's `kA` in its `.tuning`; a fl
 has no such number), the fake assumes it (0.05 s for an arm or lift, 0.2 s for a flywheel). A
 flywheel's spin-up time is mostly that number, so its steps are dashed and the page names it; an arm
 or a lift moves mostly in the time its declared speeds predict, so its assumed number is not marked.
-Robot one (`--robot one`) is not in the preview yet: its robot file and autons file are in the code,
-but the preview has not been switched to them, so the command says so and draws nothing. A step on a mechanism the robot does not have stops the
-route there, as it would on that robot, and the page's top line says why.
+Robot one (`--robot one`) runs its own autons file on its own mechanisms — each on a fake built
+from its own declaration, the cascade included — on the same stand-in drive. A step on a mechanism
+the robot does not have stops the route there, as it would on that robot, and the page's top line
+says why.
 
 **What it does NOT tell you.** The robot's real times: wheel slip, a weak side, the battery, a lift
 slower than its numbers, a claw that sticks — the plant has none of them, and its times are neither

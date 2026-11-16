@@ -68,8 +68,9 @@ The headline limitation, stated as many times as it takes:
   with made-up gains, not robot two's — whose track width is not in the code yet), its plant has no walls (the
   preview checks a 15 in square against the field itself and says THROUGH or TOUCH, but nothing stops the
   plant's robot), it has no side sensors (every wall reset is refused), no pieces and no camera (a step that
-  needs to see something cannot). Its times are not the robot's either way. Robot one cannot be previewed
-  yet: its robot file and autons file exist, but the preview is not switched to them.
+  needs to see something cannot). Its times are not the robot's either way. Robot one previews on its own
+  mechanisms, but every number its facts file still owes is a placeholder (the page lists them), and a value
+  typed there as "chosen, not measured" is not marked at all.
 - **Every physical constant is a labeled guess.** Control gains, settle tolerances, sensor
   noise levels, drivetrain geometry, fault thresholds — all provisional, and cataloged as
   falsifiable claims in the [Hardware Assumptions Register](../hardware-assumptions.md)

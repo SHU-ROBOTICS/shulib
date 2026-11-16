@@ -6,7 +6,7 @@
 // Most cases run FIXTURE autons (test/route_preview_fixtures.hpp) through fixture "robots": robot two
 // (the rig's default fakes, robot two's real list) with fixture autons registered instead of the team's,
 // and robot x (test/mechanism_fixtures.hpp, the fixture robot with a lift — RPV1-B1) on FakesByKind. The
-// team's own autons are run by name too (RP3, RP10, RP35).
+// team's own autons are run by name too (RP3, RP10, RP35), robot one's on its own list (RP25).
 
 #include "doctest.h"
 
@@ -131,7 +131,6 @@ const rp::PreviewRobot kTwoFixtures{
     .registerAutons = &registerTwoFixtures,
     .autonsFile = "test/route_preview_fixtures.hpp",
     .defaultRig = true,
-    .noBuild = "",
     .provisional = std::span<const rp::Provisional>{rp::kRobotTwoProvisional},
 };
 const rp::PreviewRobot kTwoReview{
@@ -141,7 +140,6 @@ const rp::PreviewRobot kTwoReview{
     .registerAutons = &registerTwoReview,
     .autonsFile = "test/route_preview_fixtures.hpp (the review's)",
     .defaultRig = true,
-    .noBuild = "",
     .provisional = std::span<const rp::Provisional>{rp::kRobotTwoProvisional},
 };
 const rp::PreviewRobot kNineRefused{
@@ -151,7 +149,6 @@ const rp::PreviewRobot kNineRefused{
     .registerAutons = &registerNineRefused,
     .autonsFile = "a fixture with nine refusals",
     .defaultRig = true,
-    .noBuild = "",
     .provisional = std::span<const rp::Provisional>{rp::kRobotTwoProvisional},
 };
 const rp::PreviewRobot kRobotX{
@@ -161,7 +158,6 @@ const rp::PreviewRobot kRobotX{
     .registerAutons = &registerXFixtures,
     .autonsFile = "test/route_preview_fixtures.hpp",
     .defaultRig = false,
-    .noBuild = "",
     .provisional = {},
 };
 /// Robot y (test/mechanism_fixtures.hpp): a STALL-homed arm, a linkage lift, a MEASURED-shape lift — the
@@ -173,10 +169,9 @@ const rp::PreviewRobot kRobotY{
     .registerAutons = &registerYFixtures,
     .autonsFile = "test/route_preview_fixtures.hpp",
     .defaultRig = false,
-    .noBuild = "",
     .provisional = {},
 };
-/// robot one exactly as the program knows it today (no build until ROB1-A).
+/// Robot one is the program's own (rp::kRobotOne): its real list, autons file and ledger.
 const rp::PreviewRobot kFixtureRobots[] = {kTwoFixtures, kRobotX, rp::kRobotOne, kNineRefused, kRobotY, kTwoReview};
 
 /// A scratch directory for pages (under the build tree, never the repository).
@@ -1096,18 +1091,7 @@ TEST_CASE("route preview RP24: a placeholder lift on fakes by kind moves in its 
     CHECK(rp::renderHtml(m).find("hatch") != std::string::npos);
 }
 
-// RP25 — robot one has no build until ROB1-A lands: --robot one says so, draws nothing, exit 2.
-TEST_CASE("route preview RP25: robot one, before its build lands, is refused by name and nothing is drawn") {
-    const Ran r = run({"skills", "--robot", "one"}, std::span<const rp::PreviewRobot>{rp::kRobots});
-    CHECK(r.code == 2);
-    CHECK_FALSE(r.pageWritten);
-    CHECK(r.err.find("robot one has no build yet") != std::string::npos);
-    const Ran bad = run({"40in forward", "--robot", "three"}, std::span<const rp::PreviewRobot>{rp::kRobots});
-    CHECK(bad.code == 2);
-    CHECK(bad.err.find("no robot 'three'") != std::string::npos);
-}
-
-// RP26 — --robot picks the robot's OWN list (until ROB1-A, the fixture robot x stands in for robot one):
+// RP26 — --robot picks the robot's OWN list (robot x here; robot one's own is RP25, at the end):
 // robot x's page names its five mechanisms, and its lift auton runs; robot two's rig, given a step on
 // 'lift', stops there ("is not on this robot") — the list really changed with the flag.
 TEST_CASE("route preview RP26: --robot binds that robot's own mechanism list") {
@@ -1678,7 +1662,6 @@ TEST_CASE("route preview RP38: the tool's own failure is exit 3; a killed run le
         .registerAutons = &registerXFixtures,
         .autonsFile = "a robot with no list",
         .defaultRig = false,
-        .noBuild = "",
         .provisional = {},
     };
     const rp::PreviewRobot brokenOnly[] = {broken};
@@ -1694,6 +1677,13 @@ TEST_CASE("route preview RP38: the tool's own failure is exit 3; a killed run le
         CHECK(e2.str().find("route preview: the preview itself failed: route preview: a robot with no mechanism list") !=
               std::string::npos);
         CHECK(rp::kExitToolFailed != rp::kExitUsage);
+        rp::PreviewRobot noAutons = kRobotX;
+        noAutons.registerAutons = nullptr;
+        const rp::PreviewRobot noAutonsOnly[] = {noAutons};
+        std::ostringstream o3;
+        std::ostringstream e3;
+        CHECK(rp::runProgram(args, o3, e3, noAutonsOnly) == rp::kExitToolFailed);
+        CHECK(e3.str().find("a robot with no autons file") != std::string::npos);
     }
     // The killed run.
     const std::string path = scratchDir() + "/silent.html";
@@ -2272,4 +2262,215 @@ TEST_CASE("route preview B1: a stall-homed arm, a linkage lift and a measured ca
     const double took = cs[1].t1 - cs[1].t0;
     CHECK(took >= profile);
     CHECK(took <= profile + 0.5);
+}
+
+// ── RPV1-S1: robot one ─────────────────────────────────────────────────────────────────────────────
+
+namespace rp1 {
+using namespace shulib::units::literals;
+namespace facts = shulib::bench::robot_one_facts;
+namespace mech = shulib::mechanism;
+/// Halfway up its travel: inside the range whatever the ledger says (no level assumed — there may be none).
+inline constexpr shulib::units::Length kMid = (facts::cascadeBottom() + facts::cascadeTop()) / 2.0;
+inline shulib::chassis::RoutineResult homeMoveHome(comp::AutonContext& ctx) {
+    shulib::chassis::Routine r{ctx, "cascade"};
+    r.home(shulib::bench::robot_one::cascade, 4_s);
+    r.move(shulib::bench::robot_one::cascade.to(kMid), 30_s);
+    r.home(shulib::bench::robot_one::cascade, 40_s);
+    return r.result();
+}
+inline void reg(comp::AutonRegistry& g) {
+    g.add(entry("cascade", comp::AutonKind::Skills, &homeMoveHome, comp::StartPose::relative(), 57, 59));
+    g.add(entry("too long", comp::AutonKind::Skills, &homeMoveHome, field(-48, -48, 0), 58, 61));
+}
+/// Robot one exactly as the program knows it, with this file's autons in place of the team's.
+rp::PreviewRobot withAutons(rp::RegisterFn fn) {
+    rp::PreviewRobot r = rp::kRobotOne;
+    r.registerAutons = fn;
+    r.autonsFile = "test/route_preview_test.cpp";
+    return r;
+}
+std::size_t occurrences(const std::string& s, const std::string& what) {
+    std::size_t n = 0;
+    for (std::size_t p = s.find(what); p != std::string::npos; p = s.find(what, p + what.size())) {
+        ++n;
+    }
+    return n;
+}
+std::string slurp(const std::filesystem::path& p) {
+    std::ifstream f{p, std::ios::binary};
+    return {std::istreambuf_iterator<char>{f}, std::istreambuf_iterator<char>{}};
+}
+/// Runs in `dir` until it goes out of scope (a page with no --out lands under it, never in the repository).
+struct InDir {
+    std::filesystem::path was = std::filesystem::current_path();
+    explicit InDir(const std::filesystem::path& dir) { std::filesystem::current_path(dir); }
+    ~InDir() { std::filesystem::current_path(was); }
+    InDir(const InDir&) = delete;
+    InDir& operator=(const InDir&) = delete;
+};
+/// Robot one's page and table list exactly the ledger's OWED facts, each once, under the header line.
+void checkMarks(const Ran& r) {
+    REQUIRE(r.pageWritten);
+    std::size_t owed = 0;
+    for (const facts::FactSummary& f : facts::kRobotOneFacts) {
+        CAPTURE(f.name);
+        CHECK((r.page.find("<li>" + std::string{rp::esc(f.name)} + "</li>") != std::string::npos) == !f.typed);
+        CHECK((r.out.find("  [PLACEHOLDER] " + std::string{f.name} + "\n") != std::string::npos) == !f.typed);
+        owed += f.typed ? 0 : 1;
+    }
+    CHECK(occurrences(r.out, "\n  [PLACEHOLDER] ") == owed);
+    const std::size_t block = r.page.find("<div class=\"owed\"");
+    CHECK((block != std::string::npos) == (owed > 0));
+    if (block != std::string::npos) {
+        CHECK(occurrences(r.page.substr(block, r.page.find("</div>", block) - block), "<li>") == owed);
+        const std::string head = "PLACEHOLDER numbers: " + std::to_string(owed) +
+                                 " of this robot's facts are still OWED in src/robots/robot_one_facts.hpp";
+        CHECK(r.out.find(head) != std::string::npos);
+        CHECK(unescape(r.page).find(head) != std::string::npos);
+    }
+}
+}  // namespace rp1
+
+TEST_CASE("route preview RP25: robot one runs its own autons on its own list, every OWED fact marked") {
+    const auto robots = std::span<const rp::PreviewRobot>{rp::kRobots};
+    CHECK(rp::kRobotOne.ledger.data() == std::data(rp1::facts::kRobotOneFacts));  // the ledger itself, never a copy
+    CHECK(rp::kRobotOne.ledger.size() == std::size(rp1::facts::kRobotOneFacts));
+    comp::AutonRegistry reg{shulib::bench::kAutonPeriods, comp::OnRefusal::DropEntry};
+    shulib::bench::registerRobotOneAutons(reg);  // robot one's file itself, not through the preview
+    REQUIRE(reg.size() >= 1);
+    std::string names;
+    for (std::size_t i = 0; i < shulib::bench::robot_one::kRobotOneMechanisms.count; ++i) {
+        names += (i == 0 ? "" : ", ") +
+                 std::string{rp1::mech::nameOf(shulib::bench::robot_one::kRobotOneMechanisms.specs[i])};
+    }
+    const std::string line = "Previewing ROBOT ONE's mechanisms (" + names + ") on fakes built from their declarations";
+    for (std::size_t i = 0; i < reg.size(); ++i) {
+        const std::string name = reg.at(i).name;
+        CAPTURE(name);
+        const Ran r = run({name, "--robot", "one", "--place=-48,-48,90"}, robots, "one.html");
+        CHECK((r.code == rp::kExitDrawn || r.code == rp::kExitProblem));  // drawn; never usage or the tool's failure
+        CHECK(r.out.find(line) != std::string::npos);
+        const comp::AutonEntry& e = reg.at(i);  // its kind and schedule: robot two's same-named copies differ
+        CHECK(r.out.find("auton '" + name + "' (" + comp::autonKindWord(e.kind) + ", park T+" +
+                         rp::fixed(e.endActionAt.value(), 2) + " s, stop T+" + rp::fixed(e.hardStopAt.value(), 2)) !=
+              std::string::npos);
+        rp1::checkMarks(r);
+    }
+    const Ran list = run({"--list", "--robot", "one"}, robots, "one.html", true);
+    CHECK(list.code == 0);
+    CHECK(list.out.find("robot one's autons (src/team/robot_one_autons.cpp):") != std::string::npos);
+    for (std::size_t i = 0; i < reg.size(); ++i) {
+        CHECK(list.out.find("  '" + std::string{reg.at(i).name} + "'\n") != std::string::npos);
+    }
+    const Ran unknown = run({"no auton has this name", "--robot", "one"}, robots, "one.html");
+    CHECK(unknown.code == 2);
+    CHECK_FALSE(unknown.pageWritten);
+    CHECK(unknown.err.find("in src/team/robot_one_autons.cpp") != std::string::npos);
+    const Ran bad = run({"40in forward", "--robot", "three"}, robots);
+    CHECK(bad.code == 2);
+    CHECK(bad.err.find("no robot 'three'") != std::string::npos);
+    // No --out: the robots share auton names, so robot one's page goes under one/; robot two's is unchanged.
+    const std::filesystem::path dir = std::filesystem::path{scratchDir()} / "default-paths";
+    std::filesystem::remove_all(dir);
+    std::filesystem::create_directories(dir);
+    const rp1::InDir in{dir};
+    const Ran two = run({"40in forward"}, robots, "unused.html", true);
+    const Ran one = run({"40in forward", "--robot", "one"}, robots, "unused.html", true);
+    CHECK(two.code == rp::kExitDrawn);
+    CHECK(one.code == rp::kExitDrawn);
+    const std::string twoPage = rp1::slurp(dir / "build/route_preview/40in forward.html");
+    CHECK(unescape(twoPage).find("ROBOT TWO's mechanisms") != std::string::npos);
+    CHECK(unescape(rp1::slurp(dir / "build/route_preview/one/40in forward.html")).find("ROBOT ONE's mechanisms") !=
+          std::string::npos);
+    CHECK(rp::owedFacts(rp::kRobotTwo).empty());
+    CHECK(two.out.find("PLACEHOLDER numbers:") == std::string::npos);
+    CHECK(twoPage.find("class=\"owed\"") == std::string::npos);
+    const std::size_t stamp = two.out.find("\ncommit ");
+    REQUIRE(stamp != std::string::npos);
+    CHECK(two.out.compare(two.out.find('\n', stamp + 1), 2, "\n\n") != 0);  // no empty line where the block goes
+}
+
+TEST_CASE("route preview RP25b: robot one's cascade homes and moves on fakes by kind, marks on every page") {
+    const rp::PreviewRobot one = rp1::withAutons(&rp1::reg);
+    const rp::PreviewRobot robots[] = {one};
+    const Ran r = run({"cascade", "--robot", "one", "--place=-48,-48,90"}, robots, "one-cascade.html");
+    CHECK(r.code == rp::kExitDrawn);
+    rp1::checkMarks(r);
+    rp::PreviewOptions opt;
+    opt.place = true;
+    const rp::Model m = preview(one, "cascade", opt);
+    CHECK(m.word == "FINISHED");
+    const auto cs = routineSteps(m);
+    REQUIRE(cs.size() == 3);
+    for (const rp::Step& s : cs) {
+        CHECK(s.what == "cascade");
+        CHECK(s.verdict == "SUCCEEDED");
+    }
+    const rp1::mech::MechanismTable& t = shulib::bench::robot_one::kRobotOneMechanisms;
+    const auto* found = std::find_if(t.specs, t.specs + t.count, [](const rp1::mech::MechanismSpec& s) {
+        return std::string_view{rp1::mech::nameOf(s)} == "cascade";
+    });
+    REQUIRE(found != t.specs + t.count);
+    const rp1::mech::MechanismSpec& c = *found;
+    // The move: the declared trapezoid from the bottom stop to halfway, plus the "reached" window.
+    const double d = rp1::kMid.value() - rp1::facts::cascadeBottom().value();
+    const double v = c.position.maxVelocity;
+    const double a = c.position.maxAcceleration;
+    const double profile = d >= v * v / a ? d / v + v / a : 2.0 * std::sqrt(d / a);
+    const double took = cs[1].t1 - cs[1].t0;
+    CHECK(took >= profile);
+    CHECK(took <= profile + 0.5);
+    CHECK(cs[2].t1 - cs[2].t0 > cs[0].t1 - cs[0].t0);  // homed from above: it travels down before it stalls
+    // HA-182: every step is a PLACEHOLDER while any of the cascade's numbers is still the library's starting value.
+    const rp1::mech::PositionSpec lib = rp1::mech::positionStartingValues(c);
+    const bool starting = c.position.kP == lib.kP || c.position.kV == lib.kV ||
+                          c.position.maxVelocity == lib.maxVelocity || c.position.tolerance == lib.tolerance;
+    for (const rp::Step& s : cs) {
+        CHECK((s.placeholder.find("HA-182") != std::string::npos) == starting);
+    }
+    CHECK(rp1::occurrences(r.out, "SUCCEEDED [PLACEHOLDER]") == (starting ? cs.size() : 0));
+    const Ran refused = run({"too long", "--robot", "one"}, robots, "one-refused.html");
+    CHECK(refused.code == rp::kExitProblem);
+    CHECK(refused.out.find("REFUSED") != std::string::npos);
+    rp1::checkMarks(refused);
+    const comp::AutonRegistry reg = registryOf(one);
+    const rp::Model onTwo = rp::previewEntry(kTwoFixtures, reg, indexOf(reg, "cascade"), opt);
+    CHECK(onTwo.word == "ROUTINE STOPPED");
+    CHECK(stepNamed(onTwo, "cascade") != nullptr);
+    CHECK(stepNamed(onTwo, "cascade")->sentence.find("'cascade' is not on this robot") != std::string::npos);
+}
+
+TEST_CASE("route preview RP25c: only the ledger's OWED facts are listed, in its order; none, no block") {
+    using shulib::bench::robot_one_facts::FactSummary;
+    using shulib::bench::robot_one_facts::Stage;
+    const FactSummary mixed[] = {{"typed A", Stage::A, true}, {"owed B", Stage::B, false},
+                                 {"typed rec", Stage::Recorded, true}, {"owed rec", Stage::Recorded, false}};
+    const FactSummary oneOwed[] = {{"typed A", Stage::A, true}, {"owed only", Stage::B, false}};
+    const FactSummary allTyped[] = {{"typed A", Stage::A, true}};
+    rp::PreviewRobot r = rp1::withAutons(&rp1::reg);
+    r.ledger = rp::Ledger{mixed};
+    CHECK(rp::owedFacts(r) == std::vector<std::string>{"owed B", "owed rec"});
+    rp::PreviewOptions opt;
+    opt.place = true;
+    const rp::Model m = preview(r, "cascade", opt);
+    const std::string text = rp::renderText(m);
+    const std::string page = rp::renderHtml(m);
+    CHECK(text.find("typed A") == std::string::npos);
+    CHECK(page.find("typed rec") == std::string::npos);
+    CHECK(text.find("  [PLACEHOLDER] owed B\n") < text.find("  [PLACEHOLDER] owed rec\n"));
+    CHECK(text.find("  [PLACEHOLDER] owed rec\n") != std::string::npos);
+    CHECK(page.find("<li>owed B</li>") < page.find("<li>owed rec</li>"));
+    CHECK(page.find("<li>owed rec</li>") != std::string::npos);
+    CHECK(page.find("2 of this robot&#39;s facts are still OWED") != std::string::npos);
+    r.ledger = rp::Ledger{oneOwed};
+    const rp::Model single = preview(r, "cascade", opt);
+    CHECK(rp::renderText(single).find("PLACEHOLDER numbers: 1 of this robot") != std::string::npos);
+    CHECK(rp::renderText(single).find("  [PLACEHOLDER] owed only\n") != std::string::npos);
+    CHECK(rp::renderHtml(single).find("<li>owed only</li>") != std::string::npos);
+    r.ledger = rp::Ledger{allTyped};
+    CHECK(rp::owedFacts(r).empty());
+    const rp::Model none = preview(r, "cascade", opt);
+    CHECK(rp::renderText(none).find("PLACEHOLDER numbers:") == std::string::npos);
+    CHECK(rp::renderHtml(none).find("class=\"owed\"") == std::string::npos);
 }
