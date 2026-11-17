@@ -162,16 +162,14 @@ exact 180° turn counterclockwise ([Chapter 10](10-the-api.md)) — on both robo
   facing back (180° from robot one's start), ended **5.7 in** from the mirror; the same leg 36 in long,
   **14.2 in** — roughly a third of the leg. A `driveTo` to a point straight behind is the same leg
   (**5.0 in** on 14 in). (A tank leg that starts that far off its heading is already the one the library
-  warns about: `turn first: face()`.) **Turn first, in two 90° turns, then drive** — that route mirrors
-  exactly;
+  warns about: `turn first: face()`.) **On a tank the pair check refuses that leg**
+  ([below](#both-robots-at-once)): turn first, then drive;
 - a leg on an X-drive: 0.31 in along the way, the ends within 0.02 in.
 
 On a real robot an exact tie never happens — but the IMU's noise makes a leg that close to 180° a coin toss
 for EACH robot, and on a tank the toss is as large as the tie: robot one's own end moves **5.8 in** between
-a target 0.5° either side of 180° on the 16 in leg, **14.5 in** on the 36 in leg. The pair check
-([below](#both-robots-at-once)) runs the plan exactly, so it cannot tell which way a real robot will sweep:
-either robot can end that far from where the check placed it — on the 36 in leg, more than twice the 6 in
-the check keeps between them. Turn first.
+a target 0.5° either side of 180° on the 16 in leg, **14.5 in** on the 36 in leg. So on a tank the pair
+check ([below](#both-robots-at-once)) refuses any leg within 1° of 180°, not only the exact one. Turn first.
 
 ### What the screens and the log say
 
@@ -243,8 +241,24 @@ the two robots is exactly twice robot one's distance from the line, however thei
    lines:** each `driveTo`, `reverseTo`, `face`, `faceAway`, `turnTo`, `moveTo`, `strafeTo`, curve, `hold`
    and brake is one, and so is each leg of a `followTrajectory`; a `then()` or a Toggle step counts the
    drives it runs; a wall reset, a `pause`, a `waitFor` or a mechanism step is none. So it is not the
-   `step N` the routine's own lines print — find the step by its target. A RELATIVE mirrored entry is
-   skipped, by name — its field positions are wherever the drivers place the robots.
+   `step N` the routine's own lines print — find the step by its target. A RELATIVE mirrored entry's gap
+   is skipped, by name — its field positions are wherever the drivers place the robots.
+4. **On a tank, the check also refuses one step that drives AND turns around** (within 1° of 180°),
+   RELATIVE entries too. Each robot ends beside its target, on opposite sides of the mirror. The check
+   names the step and the steps to write instead:
+
+   ```text
+   auton 'one step': motion 2 (MoveToPose to (-36.0, -55.7)) at 1.54 s turns 180.0 deg while it drives, which a tank cannot mirror -- turn first, then drive: face(-36.0, -55.7), then driveTo(-36.0, -55.7).
+   ```
+
+   ```cpp
+       r.face(-36_in, -55.7_in);     // turn first,
+       r.driveTo(-36_in, -55.7_in);  // then drive
+   ```
+
+   A step that ends facing the way it came gets `faceAway`, then `reverseTo`. The `face` is a half turn too, so
+   robot two logs a `[MIR]` line for it — that one is fine. Not refused: a `turnTo`, a `moveTo` that
+   only turns, a drive that can strafe.
 
 **After an `isMirrored` branch the two runs differ in time**, and the check compares them at the
 PLANNED timing only. A real robot's timing drifts (on the host test plant a 9 % weaker side moved one

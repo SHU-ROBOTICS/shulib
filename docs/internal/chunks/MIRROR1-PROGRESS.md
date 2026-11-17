@@ -971,3 +971,503 @@ Outputs: `vround2/srcgate_times.txt`, `srcgate_selftest.log`, `srcgate_check.log
   green.
 - **MIRROR1-A LANDED (API 2.9).** Host test plant only; nothing has run on a robot. Next: MIRROR1-B (D6: refuse an
   exact-180° tank leg in the pair check), robot two's mirrored line at ROB1-BT's merge.
+
+## MIRROR1-B
+
+- **Executor:** an `opus` builder subagent, launched by the coordinator's workflow, in the git worktree
+  `.claude/worktrees/mirror1-b` (branch `mirror1-b`, from `3c29b73` = main at API 2.9 with ROB1-C2). Do not commit.
+  Scratch: `.claude/coordinator/scratch/mirror1-b/`.
+- **Go:** the team lead's D6 ruling, 2026-11-15. Asked: "Should the code block a route step that tells a tank to
+  drive somewhere AND turn all the way around in the same step ... so students must write it as turn, then drive?"
+  Answer: **"Block it"**.
+- **The job:** the host PAIR CHECK (`test/mirrored_pair_check.hpp`) FAILS a mirrored route on a TANK in which any leg
+  logs the `[MIR]` half-turn line. It names the step (motion and target, as delta 17's failures do) and gives the
+  fix in one plain sentence: turn first, then drive (two steps). An X-drive is not blocked (T3 pins its 180° moveTo).
+  A `turnTo` that logs the line is not a leg and is not blocked.
+
+### Log
+
+#### 2026-11-16 02:15 EST (read from `date`) — started
+
+- Read: RESUMING's standing rules; the brief's header, answers block, Re-check R1–R13, D6, D11, §2.2 T3/T11, §2.3,
+  §6, §8; this log's V1 ("decision 1, CORRECTED") and the coordinator's merge record.
+- Read the code: `test/mirrored_pair_check.hpp` (whole), `test/mirrored_pair_test.cpp` (whole),
+  `chassis.hpp`'s MIRRORED RUN banner and `warnHalfTurn` (:942-981), T3 in `test/chassis_mirror_test.cpp`, the
+  pair check's other users (`test/autons_test.cpp` (1d), `test/cookbook_examples_test.cpp` cookbook-09a).
+
+#### ~02:16–02:27 (read from `date`) — the baseline, then the check
+
+- **Baseline (before any edit):** host build from `3c29b73` (71 s). The pair cases `MIRROR1 T11*`, `cookbook-09a*`
+  and `autons (1d)*`: 10 cases, 81 assertions, green; their output kept (`scratch/mirror1-b/base_pair_tests.out`).
+- **The check** (`test/mirrored_pair_check.hpp`): each `Pace` records how many log lines the run has so far, so a
+  log line can be placed in the run. `findHalfTurnLeg(track, reflection)` reads robot two's lines for the FIRST
+  `[MIR] mirrored <verb> turns N deg: within 1 deg of a half turn` line whose verb is not `turnTo`. Its leg is the
+  first live motion after that line. The step is named like the gap failures name robot one's (delta 17), its
+  target from robot two's own record reflected BACK through the entry's mirror — the route's own numbers.
+  `checkMirroredPair` runs it only when `kin->strafeAuthority() == 0.0` (the library's own test for a tank,
+  `motion_scheduler.hpp`), sets `ok = false` and puts the leg's sentence first; a gap failure too is kept after it.
+- **Measured FIRST** (a print-only probe case, then removed), each through `checkMirroredPair`:
+
+  | route (robot one's numbers) | drivetrain | `[MIR]` lines on robot two | verdict | robot two's end off the mirror (in) | least gap (in) |
+  |---|---|---|---|---|---|
+  | `moveTo((0, -58), 180°)` from (-36, -58, 0) — T3's 36 in leg | tank | 1 (moveTo) | REFUSED, motion 1 | **14.1992** (T3: 14.199) | 61.63 |
+  | `driveTo(-36, -58)` from (0, -58, 0) — straight behind | tank | 1 (moveTo) | REFUSED, motion 1 | 14.1992 | 61.36 |
+  | the same as `face` then `driveTo` | tank | 1 (turnTo) | PASSES | **0.0453** | 60.81 |
+  | `turnTo(180°)`, `driveTo(-50, -58)`, trajectory leg to (-36, -58, 0) | tank | 2 (turnTo, then followTrajectory leg) | REFUSED, **motion 3** at 2.80 s | 4.874 | 111.7 |
+  | `moveTo((-20, -58), 180°)` — T3's X-drive leg | X-drive | 1 (moveTo) | PASSES | 0.0179 | 89.38 |
+  | `moveTo((-20, -58), 179.0°)` | tank | 1 (moveTo, "179.0 deg") | REFUSED | 2.8e-13 | 93.38 |
+  | `moveTo((-20, -58), 178.9°)` | tank | 0 | PASSES | 4.4e-13 | 93.41 |
+  | `moveTo((-20, -58), 179.5°)` | tank | 1 (moveTo) | REFUSED | 1.2e-12 | 93.26 |
+  | `moveTo((-20, -58), 180°)` — T3's 16 in leg | tank | 1 | REFUSED | **5.70519** (T3: 5.705) | 89.19 |
+  | into (-4, -4) beside robot two, then straight back to (-30, -50) | tank | 1 | REFUSED (motion 3, 3.11 s) AND the gap (5.67 in at 1.99 s) | — | 0 |
+
+  Notes: a half-turn LEG times out on both robots (robot one's Routine fails too — it ends beside its target). A
+  first try of the last route put the leg FIRST: its Routine stopped at the timed-out leg, so the crash never
+  came — re-cut with the crash first. **179.0° sits on the `[MIR]` window's edge** (T3 does not claim the edge: it
+  is at floating precision); on this plant the line fires, so the check refuses it — pinned as measured.
+- **The pair cases unchanged:** after the change the same 10 cases / 81 assertions, every printed line IDENTICAL
+  to the baseline (`after_pair_tests.out`; `diff` differs only in the skipped count).
+
+#### ~02:27–02:35 (read from `date`) — the tests, the pages, the mutations
+
+- **Tests** (all measured above first, then pinned): `test/mirrored_pair_test.cpp` T12 (i)–(vi), 6 cases;
+  `test/cookbook_examples_test.cpp` `cookbook-09b`, 1 case (the page's two listings, run through the check;
+  its failure sentence pinned whole — guide 17 and the changelog quote it).
+- **Pages:** guide 17 (the tank bullet, the coin paragraph — it said the check "cannot tell" such a leg; on a tank it
+  now refuses it — and item 4 of "Both robots at once"); cookbook 09 (the 180° bullet split; the refused and the
+  two-step listings; its "cases" line); the changelog (top of `## API 2.9`); `test/README.md` (the pair check's
+  entry). No library header changed: `test/` only.
+- **Mutations** (`scratch/mirror1-b/mut/mutate.py`, `spec.json`, `spec_recut.json`; logs `MB*.build.log` /
+  `MB*.test.log`; results `results-*.json`). Each: the binary DELETED, the suite target rebuilt (the build log
+  checked for every dependent object — `mirrored_pair_test`, `cookbook_examples_test`, `autons_test`,
+  `mirrored_auton_test`; for MB10 `chassis_mirror_test` too), the cases `MIRROR1-B*, cookbook-09*, MIRROR1 T11*,
+  autons (1d)*` (MB10: and `MIRROR1 T3*`) run under `(ulimit -v 4194304; timeout 600)`, the file restored in a
+  `finally` (SIGTERM / SIGHUP / SIGINT restore too) with its timestamp bumped. Every restored file compared with its
+  backup: identical. **Every one RED** (the RED cases read from each log's `ERROR:` blocks):
+
+  | # | mutation (in `test/mirrored_pair_check.hpp` unless said) | RED |
+  |---|---|---|
+  | MB1 | the tank test inverted (`!= 0.0`): the X-drive refused, the tank passed | T12 (i)–(vi), cookbook-09b |
+  | MB2 | the tank test dropped: every drivetrain refused | T12 (iv) |
+  | MB3 | the refusal not counted (`ok` left true) | T12 (i), (ii), (iii), (v), cookbook-09b |
+  | MB4 | a turn's `[MIR]` line refused as if it were a leg | T12 (ii), (iii), cookbook-09b |
+  | MB5 | the leg named one pace early | T12 (iii), (vi), cookbook-09b |
+  | MB6 | the target not reflected back — **BROKE ITS OWN BUILD** (`back` unused, `-Werror`): re-cut as MB6b | — |
+  | MB6b | the same, `back` kept in use: robot two's own numbers printed ("(58.0, 36.0)") | T12 (i), (ii), (iii), (v), (vi), cookbook-09b |
+  | MB7 | the half-turn sentence HIDES a gap failure | T12 (vi) |
+  | MB8 | only the run's first `[MIR]` line looked at (a turn's line stops the search) | T12 (iii) |
+  | MB9 | the log lines not placed in the run (`Pace::lines` never set) | T12 (i), (ii), (iii), (v), (vi), cookbook-09b |
+  | MB10 | LIBRARY, `chassis.hpp`: the `[MIR]` line reworded ("of half a turn") — the check must not go blind silently (140 objects rebuilt) | T12 (i), (ii), (iii), (v), (vi), cookbook-09b, and T3's three pinned-line cases |
+
+  The existing T11 cases and `autons (1d)` stay green under every mutation, as they should: none of their routes
+  has a half-turn leg.
+
+#### Prose review (pace rule 4) — the greps were RUN and their hits READ before this entry was written (~02:40)
+
+Changed sources: `test/mirrored_pair_check.hpp`, `test/mirrored_pair_test.cpp`, `test/cookbook_examples_test.cpp`.
+Each grep over `docs/` (not `docs/internal/`), `README.md` and `test/README.md`:
+
+- `grep -rn -i 'pair check'`: guide 17 :171, :177 (updated here); guide 14 :533 (the gap at the planned timing —
+  current); hardware-assumptions :551, :2333, :2338 (HA-260, the gap — current); `test/README.md` :156 (updated);
+  the changelog (this run's entry).
+- `grep -rn -i 'half turn\|half-turn\|exact 180\|exact-180\|turn first\|turns around\|5\.7 in\|14\.2 in\|14 in on'`:
+  - updated here: guide 17 :157-180 (the tank bullet; the coin paragraph said the check "cannot tell which way a real
+    robot will sweep" — on a tank it now refuses the leg), :254-268 (item 4); cookbook 09 :120-138.
+  - current, NOT touched: guide 14 :525-530 and guide 11 :261-269. Both are true: the library still sweeps both
+    robots the same way at the tie, and their advice (turn first) is the refusal's fix. Neither says the pair check
+    now refuses the leg. Left so this run stays on guide 17 and cookbook 09 while DOCS3-N1 sweeps every public
+    page — **for the coordinator:** one clause each would complete them ("on a tank the pair check refuses such a
+    leg — chapter 17").
+  - unrelated: guide 02 :198 (the head-to-head half turn, another mirror); TANK1's `turn first: face()` in guides
+    04, 05, 09, 10, 11, 12, 14, 16 and cookbooks 01, 04; guide 10 :143 and roadmap :137 (F3's tie — current);
+    the changelog's MIRROR1-A entry :130-146 (the record, unchanged).
+- `grep -rn 'mirrored_pair_check\|checkMirroredPair\|PairVerdict\|comparePair'` (and `include/`, `test/`):
+  - `test/autons_test.cpp` (1d): its name and comment speak of the 6 in only — still true. It asserts
+    `v.ok || !v.checked`, and the refusal sets `ok` false, so (1d) enforces the ruling over robot two's registry
+    with no edit. Not touched (robot two's autons test; ROB1-BT's area).
+  - `test/mirrored_auton_test.cpp` :5, :26: uses `Robot` — unchanged.
+  - `include/shulib/competition/field_mirror.hpp` :43-45 (and its API page :238): "fails ... when their 15 in squares
+    come within 6 in" — true, silent on the tank leg. NOT touched: a library header edit would take this run out of
+    `test/` (API page regeneration). For the coordinator.
+  - hardware-assumptions :2339 (`kMirrorGapIn`) and the changelog :119 (MIRROR1-A's entry): current.
+- The word grep (the host test plant's forbidden other name) over the changed files: one hit, changelog :3344, an old
+  entry — not this run's.
+- No log string added (the check's sentence is a test verdict, not a log line); its text is ASCII (checked).
+
+#### Deltas from the task as given (each with its reason)
+
+1. *[The fix round, items 3 and 4: 179.0 is no longer pinned; a "leg" that drives nowhere is not refused.]* **Refused = whatever logs the `[MIR]` LEG line: within 1° of 180°, not only the exact tie.** The ruling's own
+   test ("any leg logs the `[MIR]` half-turn line"). On a robot the IMU makes a leg that close a coin toss as large
+   as the tie (V1: 14.5 in on a 36 in leg), so the plan's exactness does not make it safe. **179.0° sits on the
+   line's edge** (T3 does not claim it); on this plant the line fires and it is refused — pinned as measured, with
+   178.9° (passes) and 179.5° (refused) either side of it.
+2. **Both failures named, the leg's first.** A route with a crash AND a half-turn leg gets the leg's sentence, then
+   the gap's — never one hiding the other (T12 (vi), MB7).
+3. **The step is named from robot two's own record, reflected back** — not robot one's motion at the same pace —
+   so the name stays right after an `isMirrored` branch or with a weak side. The form is delta 17's ("motion N
+   (MoveToPose to (x, y))"); a `driveTo`, `reverseTo` and a trajectory leg are all `MoveToPose`.
+4. *[CLOSED in the fix round, item 2: on a tank a RELATIVE entry's leg is now refused.]* **A RELATIVE mirrored entry is still skipped whole**, so a tank half-turn leg in one is NOT refused. The skip is
+   MIRROR1-A's design (T11 (v)); D6's ruling did not touch it. **Open for the coordinator / the team lead.**
+5. **`cookbook-09b` added to `test/cookbook_examples_test.cpp`** (a shared file): the page's two listings must
+   compile and run (`api_doc_tool check-examples`). My lines only: its mapping line and the case after 09a's.
+6. **Guide 17's coin paragraph rewritten** (MIRROR1-A's words): it said the check "cannot tell which way a real
+   robot will sweep" — on a tank it now refuses that leg.
+7. **No library header changed** — `test/` and pages only; the API stays 2.9 with no number to move.
+
+#### Resumption — 2026-11-16 08:53 EST (read from `date`)
+
+The run above was STOPPED by the 5-hour usage limit at ~03:03, inside the src gate's self-test.
+
+- **A self-test plant was LEFT in `src/`.** `git diff -- src/ Makefile` showed one line in `src/build_selection.hpp`:
+  `#if defined(SHULIB_ROBOT_XDRIVE_INVENTED_BROKEN)`. That is the src gate's self-test case 17
+  (`tools/src_build_gate.py` :3097-3104), planted at 03:03:45 (the file's time) and never restored: the run was
+  killed inside it. It carries no `(self-test plant` marker, so the marker grep alone would have missed it.
+  **Restored** with `git checkout -- src/build_selection.hpp` and its time bumped. After that: `git diff -- src/
+  Makefile include/` EMPTY; the marker grep over the whole diff 0; `git ls-files -o --exclude-standard src include
+  test` EMPTY.
+- **What was finished, checked:** the code, the tests, the pages, the mutations and the prose review above. The
+  three test files' times are before the mutations (02:21, 02:25) and `test/mirrored_pair_check.hpp` and
+  `chassis.hpp` are byte-identical to their mutation backups, so the mutation verdicts stand for this tree. Only
+  cookbook 09 and this log changed after them (02:54).
+- **What was not finished:** every gate. The suite binary (02:36) predates the plant's restore, so it is rebuilt
+  from source before any result is read. The gates follow, the src gate alone first.
+
+#### The src gate, alone (08:55–10:58, read from `date`; driver `scratch/mirror1-b/resume/srcgate.sh`, `srcgate2.sh`)
+
+- **First try (08:55–10:10):** the self-test hit its own 3600 s timeout at 09:55:17 (rc 124, no verdict). The
+  machine ran two other worktrees' self-tests beside it (`integrate`, `docs3-n1`; load ~14). The kill landed
+  between plants: right after it, `git diff -- src Makefile include` EMPTY, no untracked file under src, include,
+  test or the Makefile, and `test/` held only this run's four files. **No verdict is claimed from that try.**
+- `check` (09:55–10:10, on that clean tree): `src build gate: PASS (all 14 builds link or, robot one's, refuse naming
+  exactly their owed facts (4 refused; every one links in the gate's typed copy); ...)`.
+- **Second try (10:10–10:58):** the self-test alone again, its timeout 10800 s. **rc 1: every case passes but two,
+  53 and 55** (`resume/srcgate2_selftest.log`, five failure lines, all of them those two cases). Both expect robot
+  one's Bench Tests build (`one`) to REFUSE its owed Stage A facts. It no longer does: the coordinator typed the
+  last one (`kRightTogglePort = 9`) at ROB1-C2's merge, and that record says Bench Tests and Calibrate "now LINK"
+  and that the self-test was "NOT yet run on the merged tree". This run's `check` shows the same: `[one] exit 0`.
+  **Not this run's:** MIRROR1-B changes nothing under `src/`, `include/`, `tools/` or the Makefile. The ARM builds
+  in those two cases do not compile `test/`. So 53 and 55 fail the same way on `3c29b73`. **For the coordinator
+  (ROB1's area, `tools/src_build_gate.py` :4236-4251, :4271-4297):** the two cases need a robot-one program that
+  still owes facts (`one-drive` refuses its 9 Stage B facts). Not edited here.
+- After it: no plant (the marker grep outside this log 0), `git diff -- src Makefile include` EMPTY, no untracked file
+  under src, include, test or the Makefile.
+
+#### Every other gate on the final tree (10:59–11:08, read from `date`; `resume/gates.sh` → `resume/gates.out`; NOT committed)
+
+- **The suite binary rebuilt from source after the src gate.** The binary was removed and the briefing regenerated
+  reading it as unbuilt. Then `cmake -S test -B build/test` and a full build: 313 TUs, 0 warnings, binary at
+  11:00:51. Then the briefing was regenerated.
+  - `suite run: green — 3769 cases, 3882542 assertions` (the base: 3,762 cases — +7, T12 (i)–(vi) and
+    `cookbook-09b`).
+  - The pair cases alone, with `-s` (`resume/pair_cases.log`): 17 cases, 142 assertions, green. Every printed
+    number as measured above: 14.1992 in (i), (ii); 0.0453205 in (two steps); motion 3 at 2.80 s (iii); 89.38 in
+    (iv); 179.0 and 179.5 refused, 178.9 passes (v); motion 3 at 3.11 s with the gap's sentence after it (vi);
+    `cookbook-09b`'s sentence whole.
+- `ctest -R compile_refusal` → `100% tests passed, 0 tests failed out of 295`.
+- ARM header gate (all **258** headers in one TU, `-Werror`, cortex-a9 softfp) → exit 0.
+- CI greps: PROS-free PASS; core never includes the sim plant PASS.
+- `api_doc_tool.py`: self-test OK; check-coverage `6439 public entities across 214 headers, all documented`;
+  check-fresh exit 0; check-examples `926 quoted lines, all verbatim (18 source files); 7 listings of whole-run
+  files, each one unbroken run`; check-removability `no public doc references docs/internal/`. No `///` comment
+  changed under `include/`, so `docs/api` was not regenerated (check-fresh agrees).
+- `briefing_status.py` self-test OK; check → `generated block current` (only its suite line moved: 3,769 cases).
+- `doc_staleness_audit.py` self-test OK; the audit `clean (35 live docs, 0 numeric claims checked)`.
+- Words: the forbidden word in this change's added lines: 1, this log's own prose-review line (reworded after);
+  non-ASCII in the check's added code lines (comments excluded): 0.
+- The tree: `git diff -- include src Makefile` EMPTY; the marker grep's one hit is this log's own sentence above;
+  no untracked file under src, include, test or the Makefile; `version.hpp` untouched. Changed: the 4 test files
+  and 5 docs (changelog, cookbook 09, guide 17, the briefing's suite line, this log).
+
+## MIRROR1-B review findings and their disposition
+
+*(The fix round, 2026-11-16 ~12:20–, read from `date`. Three reviewers — correctness, tests, docs — returned 21
+findings; deduplicated below to 15 items. Each was re-checked against the tree before acting. Scratch:
+`.claude/coordinator/scratch/mirror1-b/fix1/`. Host test plant only.)*
+
+**1 (major; correctness #1, docs #1) — the fix "turn first, then drive" is refused again for T12 (i)'s own leg.
+REAL. Fixed at the root.** T12 (i)'s leg is a `moveTo` to a point AHEAD that ends facing back. In the library that
+is a reverse leg: `reverseTo(x, y)` IS `moveTo(point, bearing + pi)` (`routine.hpp` :516-522). Taken literally
+(`turnTo(180)`, then `driveTo`), the advice gives a `driveTo` to a point now BEHIND: refused again (measured, as
+the reviewers did: motion 2 at 1.45 s, 179.3 deg). The check now writes the steps for the leg's own shape, in the
+route's numbers, from robot two's leg start (the pace before it; `Track::start` for a first leg) and its target:
+- end heading within 90 deg of the drive's direction (it drives forwards): `face(x, y), then driveTo(x, y)`;
+- otherwise (it backs up): `faceAway(x, y), then reverseTo(x, y)`;
+- either way, `then turnTo(h)` when the end heading is more than 1 deg off the drive's own (a reflection keeps
+  that angle, so robot two's shape is robot one's).
+The phrase stays the ruling's: "turn first, then drive" / "turn first, then back up". WHAT is blocked does not
+change. "Drive there, then turn" also passes (the reviewers' probe A); the check gives `faceAway` / `reverseTo`
+because that is what the library calls such a leg, and it keeps "turn first". **For the coordinator / the team
+lead:** the sentence no longer reads "write it as two steps: turn first, then drive." — it names the steps.
+- Pinned: T12 (i) runs the given fix (PASSES; robot two 0.0453 in off the mirror, the `faceAway`'s own exact
+  half turn, as in (ii)) and the literal reading (REFUSED again, given `face` / `driveTo` for THAT shape). T12 (xi):
+  a leg to a point ahead and to the left, ending facing back, gets three steps; they PASS (3.0e-13 in).
+- Mutations MC9 (the shape inverted) and MC10 (the closing `turnTo` never added): both RED.
+- Docs: guide 17 item 4, cookbook 09 and the changelog show the `face` form and say a step that ends facing back
+  gets `faceAway`, then `reverseTo`.
+
+**2 (major; correctness #2, docs minor) — a RELATIVE mirrored entry skipped the refusal (delta 4). REAL. Fixed.**
+The skip's reason (no field positions) holds for the GAP, not for the leg. On a tank, a RELATIVE mirrored entry
+now runs robot two ALONE from its seated start (the origin), with `runReflection(entry)` (the robot-frame mirror)
+to name the step. A leg found: `ok` false and `checked` TRUE, so `autons (1d)`'s `v.ok || !v.checked` fails it
+with no edit. No leg: skipped by name exactly as before (T11 (v) unchanged). On a drive that can strafe it is
+skipped whole, as before. Pinned: T12 (vii) (refused, its sentence whole, robot two only in `tracks`; its fix
+skipped; an X-drive skipped). Mutations MC6 (skipped whole again), MC7 (refused but unchecked), MC8 (named
+through the FIELD mirror): all RED. Docs: guide 17 items 3 and 4, the changelog, `test/README.md`, the check's
+banner, `autons (1d)`'s comment. Delta 4 is CLOSED.
+
+**3 (major/minor x3; correctness #3, tests #1, docs) — T12 (v) pinned 179.0 deg on a floating-point edge. REAL.
+Fixed.** T3 deliberately does not claim the edge. T12 (v) now pins samples off it on both sides, as T3 does:
+179.05 and 180.95 REFUSED (the line prints "179.1"), 178.95 and 181.05 PASS, and 179.5 refused, 178.9 passes. Each
+one mirrors to <= 1.2e-12 in. The comment records 179.0 as measured (refused) and NOT claimed, and 181.0 (the same
+distance the other way, margin -4.4e-16) as passing. **For the coordinator / the team lead:** the brief's "a tank
+leg at 179 deg" sits exactly on the `[MIR]` window's edge, where 179.0 and 181.0 disagree. The reviewers' G9 (the
+window's `>=` made `>` in `chassis.hpp`) went red only on 179.0; with the edge unclaimed it would pass T12, as it
+passes T3 — T3's policy, kept.
+
+**4 (minor; correctness #4) — a leg that turns 180 deg without driving was refused "while it drives". REAL.
+Fixed.** The ruling is about a step that tells a tank to "drive somewhere AND turn all the way around". A `moveTo`
+whose target is within the library's own arrival tolerance of where it starts drives nowhere: it only turns, like
+a `turnTo`. It is no longer refused: `kInPlaceIn` = `MotionConfig{}.translationSettle.maxError` = 0.5 in (the
+robots' own config here). Pinned, T12 (ix): in place passes (robot two exactly on the mirror), 0.4 in passes (0.14 in
+off), 0.6 in and 1 in are refused (0.21, 0.36 in). Every one logs its `[MIR]` moveTo line. Mutations MC11 (the rule
+dropped) and MC12 (widened to 1 in): both RED. **For the coordinator:** the run's task said "any leg logs the `[MIR]`
+line"; this keeps the ruling's own words instead (a leg that drives). The changelog says "drives at least 0.5 in".
+
+**5 (minor; correctness #5, docs "three different fixes") — `face` + `driveTo` was the docs' only fix, wrong for a
+refused `reverseTo`; guide 17 gave two turn forms. REAL. Fixed.** The changelog now says "turn first (`face`, or
+`faceAway` before a `reverseTo`), then drive". Guide 17's tank bullet no longer adds "in two 90° turns, that route
+mirrors exactly"; item 4 says the `face`'s own `[MIR]` line is expected. One form everywhere. NOT changed: the
+library's `[MIR]` Warn text ("turn first, in two 90 deg turns, where it matters", `chassis.hpp` :977-980). It is a
+log string that T3 pins and guide 11 quotes. **For the coordinator:** "where it matters" no longer fits a tank leg.
+
+**6 (major; docs) — the changelog, cookbook 09 and the check's banner said robot one's miss was 14.2 in. REAL.
+Fixed.** T3 pins robot two's end at twice robot one's miss (`chassis_mirror_test.cpp` :542), 14.15–14.25 in on the
+36 in leg, so robot one misses by about 7.1 in. All three now say: each robot about 7 in off, on opposite sides of
+the mirror; robot two 14.2 in from robot one's image. The run's task text carried the same mix-up ("about a third of
+the leg BESIDE its target"); MIRROR1-A's V1 had corrected it once.
+
+**7 (minor; correctness #6, docs prose review) — descriptions left stale outside the change. REAL. Fixed, but two
+pages are left for the coordinator.**
+- `test/autons_test.cpp` (1d): its comment and its title now name the half-turn leg. Its title now ends
+  "— 6 in apart, no tank half-turn leg". No other file names that title (grep).
+- `include/shulib/competition/field_mirror.hpp` :43-46: one clause, "On a TANK it also fails one step that
+  drives AND turns about 180 deg ... turn first, then drive". Comment only.
+- `include/shulib/chassis/chassis.hpp` :256-257 (the MIRRORED RUN banner; the first round's grep hit its API
+  page, `docs/api/chassis.md` :1057, and the round's hit list left it out): one clause, "on a TANK, always: the
+  host suite's pair check refuses such a leg". Comment only. `docs/api` regenerated (`chassis.md`,
+  `field_mirror.md`: the clauses and the moved line numbers).
+- **NOT touched, for the coordinator (DOCS3-N1 is sweeping these pages; this run may edit only its own lines in
+  guide 17 and cookbook 09):**
+  - guide 11 :266-268 ("and on a tank, turn first before such a leg") wants "— the suite's pair check refuses
+    it ([Chapter 17](17-the-competition-program.md#both-robots-at-once))";
+  - guide 14 :530 ("— turn first, in two 90° turns, then drive") wants "(on a tank the suite's pair check
+    refuses such a leg, Chapter 17)".
+  Both pages stay true as they are. Pace rule 3: the commit body lists them as deliberately not touched, or the
+  merge carries the two clauses.
+
+**8 (minor; tests G1) — naming the LAST leg survived. REAL. Fixed:** T12 (viii), two half-turn legs (the first
+carries on after its timeout; the turn between logs a TURN's line too — measured), the first named. MC1 (the
+search run from the end): RED.
+
+**9 (minor; tests G2, G4, G5) — three defensive branches never run. REAL. Fixed:** T12 (xii), planted tracks:
+- (a) a leg line after the run's last pace is refused, never quietly. The sentence claims no time: the old
+  branch would have printed "at 0.00 s". It now reads "a leg logged after its run's last pace ... -- turn first,
+  then drive.".
+- (b) a pace between motions after the line is not the leg.
+- (c) a leg whose first pace has no target takes the target from its next pace.
+- (d) a `turnTo`'s line is never a leg, by its verb.
+MC2, MC3, MC4 and MC14 (the time branch swapped): all RED.
+
+The first pass of this round's mutations found one SURVIVOR, MB4 (a turn's `[MIR]` line taken for a leg). It is
+equivalent in a real run: a TurnTo's record target is the robot's own spot (`turn_to.hpp` :225, "turn in place"),
+so the new in-place rule skips the turn too. Case (d) plants that target 20 in away; MB4 re-run: RED.
+
+**10 (minor; tests G8) — the tank boundary was pinned only at strafe authority 0 and 1. REAL. Fixed:** T12 (x),
+an H-drive (`motion_rig::hBotKinematics()`, authority 0.35). Its half-turn `moveTo` logs its `[MIR]` line and is
+NOT refused; robot two ends 0.027 in off the mirror. The banner says any drive that can strafe is not refused (the
+library's own test for a tank, an authority of EXACTLY 0). MC5 (`< 1.0`): RED.
+
+**11 (minor; tests, docs) — the quoted sentence had no gate, and a test comment said cookbook 09 quotes it. REAL.
+Fixed.** `cookbook-09b` now reads guide 17 (`source_pins::readFile`) and requires the sentence whole, on its own
+line. The comment is corrected: guide 17 quotes the sentence; the changelog's copy is the record and is
+deliberately NOT gated (a later change to the sentence must not rewrite history). MD1 (one number changed in guide
+17's quote): RED.
+
+**12 (minor; tests) — `autons (1d)` checks zero mirrored entries. TRUE; the claim is now qualified.** Robot two's
+registry registers 0 mirrored entries today. Its mirrored line waits for ROB1-BT. So (1d) enforces the ruling over
+**0 entries** until ROB1-BT lands it. Its staying green under every mutation proves nothing yet. The planted cases
+(T12, `cookbook-09b`) are what carry the ruling now.
+
+**13 (minor; tests) — the report said MB5 turned T12 (i) red; it did not. TRUE.** MB5 turned (iii), (vi) and
+`cookbook-09b` red in the first round, as this log already said. The report's table was wrong. The first round's
+`results-*.json` `failing_cases` listed every case that printed a MESSAGE; its verdicts were read from the ERROR
+blocks, but those JSON files are not evidence. This round's driver (`fix1/mut/mutate.py`) takes failing cases from
+the ERROR blocks only and lists the failing lines.
+
+**14 (minor; docs) — the changelog entry did not say breaking or additive. REAL. Fixed:** "**A stricter host check
+(no API change):** a mirrored tank route that passed before can now fail the suite". It also now says one comment
+each changed in `chassis.hpp` and `field_mirror.hpp`.
+
+**15 (minor; docs) — the status docs and the brief of record do not carry D6's ruling. TRUE; the coordinator's, at
+the merge (pace rules 2 and 5), NOT edited here:**
+- `build-order.md` :1790-1791 and `REMAINING-WORK.md` :107 still read "MIRROR1-A BUILT ... awaiting its review".
+- The brief's D6 (a) ("nothing changes for the 21st"), §2.1 and §9 still define MIRROR1-B as the Toggle swap.
+- This log's :16 says "(no MIRROR1-B)".
+- The between-parts marker at :3 says "exact-180°". The build refuses a 2° window (that rule is item 3 here).
+
+#### The check after the round (`test/mirrored_pair_check.hpp`)
+
+`findHalfTurnLeg` finds robot two's FIRST leg line and skips a `turnTo`'s line and a leg that drives nowhere
+(item 4). It names the step in robot one's numbers and builds the fix (`halfTurnFix`, item 1). `halfTurnSentence`
+writes the one sentence. `checkMirroredPair` runs it on a tank for a FIELD entry (after the gap, the leg's sentence
+first) and for a RELATIVE one (robot two alone). `Track::start` records the plant's true start. No library code
+changed; two library comments did (item 7).
+
+#### Mutations (`fix1/mut/mutate.py`, `spec.json`; logs `fix1/mut/<id>.build.log` / `.test.log`; `results-124932.json`, `run2.log`)
+
+Each mutation ran the same way:
+- the suite binary DELETED and the suite target rebuilt;
+- the build log checked for every dependent object (`mirrored_pair_test`, `cookbook_examples_test`,
+  `autons_test`, `mirrored_auton_test`; MB10 also `chassis_mirror_test`, 140 objects);
+- the cases `MIRROR1-B*, cookbook-09*, MIRROR1 T11*, autons (1d)*` run (MB10 also `MIRROR1 T3*`; MD1
+  `cookbook-09*`), under `(ulimit -v 4194304; timeout 600)`;
+- the file restored in a `finally`, SIGTERM/SIGHUP/SIGINT restoring too, its time bumped.
+After the run, each restored file was compared with its pre-run copy (`fix1/orig/`): identical. **25 of 25 RED**
+(MB4 after case (d), above). The RED cases are read from the ERROR blocks:
+
+| # | mutation | RED |
+|---|---|---|
+| MB1 | the tank test inverted | T12 (i)–(xi), `cookbook-09b` |
+| MB2 | the tank test dropped (every drive refused) | T12 (iv), (vii), (x) |
+| MB3 | a FIELD refusal not counted (`ok` left true) | T12 (i), (ii), (iii), (v), (viii), (ix), (xi), `cookbook-09b` |
+| MB4 | a turn's line taken for a leg | T12 (xii) — after (d); SURVIVED before it (equivalent in a real run, above) |
+| MB5 | the leg named one pace early | T12 (i), (iii), (vi), (xii), `cookbook-09b` |
+| MB6 | the target not reflected back | T12 (i), (ii), (iii), (v), (vi), (viii), `cookbook-09b` |
+| MB7 | the leg's sentence hides a gap failure | T12 (vi) |
+| MB8 | a turn's line stops the search | T12 (i), (iii) |
+| MB9 | the log lines not placed in the run | T12 (i), (ii), (iii), (v), (vi), (vii), (viii), (ix), (xi), `cookbook-09b` |
+| MB10 | LIBRARY: the `[MIR]` line reworded | T3 (tank, X-drive, the turn), T12 (i), (ii), (iii), (v), (vi), (vii), (viii), (ix), (xi), `cookbook-09b` |
+| MC1 | the LAST leg named (G1) | T12 (viii) |
+| MC2 | a line after the last pace goes quiet (G4) | T12 (xii) |
+| MC3 | a pace between motions taken for the leg (G2) | T12 (xii) |
+| MC4 | the leg's first pace used as it is (G5) | T12 (xii) |
+| MC5 | the tank test widened to `< 1.0` (G8) | T12 (x) |
+| MC6 | a RELATIVE entry skipped whole again | T12 (vii) |
+| MC7 | a RELATIVE refusal left unchecked | T12 (vii) |
+| MC8 | a RELATIVE leg named through the FIELD mirror | T12 (vii) |
+| MC9 | the leg's shape inverted | T12 (i), (ii), (iii), (vi), (vii), (xi), (xii), `cookbook-09b` |
+| MC10 | the closing `turnTo` never added | T12 (xi) |
+| MC11 | the in-place rule dropped | T12 (ix) |
+| MC12 | the in-place rule widened to 1 in | T12 (ix) |
+| MC13 | the run's start not recorded | T12 (i), (ii), (ix), (xi) |
+| MC14 | the sentence's time branch swapped | T12 (i), (iii), (vi), (vii), (xii), `cookbook-09b` |
+| MD1 | DOC: guide 17's quote off by one number | `cookbook-09b` |
+
+T11 and `autons (1d)` stay green under every mutation: none of their routes has a half-turn leg, and (1d) has 0
+entries (item 12).
+
+#### Prose review (pace rule 4) — RUN and READ before this entry (~12:50)
+
+Over `docs/` (not `docs/internal/`), `README.md`, `test/README.md` and `include/`:
+- `grep -rn -i 'pair check'` hits:
+  - guide 17 :171 — updated;
+  - guide 14 :533 — the gap at the planned timing: current;
+  - hardware-assumptions :551, :2333, :2338 — HA-260: current;
+  - the changelog — this entry;
+  - `docs/api/chassis.md` :1061 — this round's clause, regenerated;
+  - `test/README.md` :156 — updated.
+- `grep -rn -i 'RELATIVE mirrored\|relative.*skipped'` hits:
+  - guide 17 :250 — updated ("its gap is skipped");
+  - guide 11 :254 and `match_runner.hpp` :59 / `docs/api/match_runner.md` :343 — the re-seat line's mode word:
+    unrelated;
+  - `test/README.md` :164 — updated.
+- `grep -rn -i 'half turn\|half-turn\|turn first, then\|14\.2 in\|5\.7 in\|14 in on\|about 7 in\|turns around'`
+  hits:
+  - updated here: guide 17 :157-172 and :252-267, cookbook 09 :123-140, the changelog :19-39;
+  - current, NOT touched (item 7, for the coordinator): guide 14 :525-530, guide 11 :261-269;
+  - unrelated: guide 02 :198; cookbook 05 :154, :190 ("about 7 in from the wall"); guide 09 :421 (TANK1's
+    unsteered leg — current); the changelog's MIRROR1-A entry :132, :148 (the record).
+- Hits in `docs/api/*.md` for 'half turn\|pair check': `chassis.md` :1061 (this round) and `override_mirror.md`
+  :84 (the head-to-head half turn: unrelated).
+- New names (`HalfTurnLeg`, `halfTurnFix`, `halfTurnSentence`, `kInPlaceIn`, `Track::start`) live in `test/`
+  only.
+
+#### Resumption — 2026-11-16 22:50 to 2026-11-17 00:20 EST (read from `date`)
+
+The round above was STOPPED by the coordinator's pause inside the src gate's self-test (its driver
+`fix1/gates/gates.sh` started it at 13:13; nothing ran after it). Its entry was written before that, so its
+gates section was never filled. Scratch for this part: `fix1/gates2/`, `fix1/mut2/`.
+
+- **A self-test plant was LEFT in `src/` again.** `git diff -- src/` showed `src/programs/bench_r3a.cpp` with two
+  appended lines, `void ser1SelfTestCard(std::FILE* f) ...`: the src gate's self-test case 38
+  (`tools/src_build_gate.py` :3972-3974), written at 13:53:18 (the file's time) and never removed — the run was
+  killed inside it. It has no `(self-test plant` marker, like case 17's at the first resumption. **Restored** with
+  `git checkout -- src/programs/bench_r3a.cpp`, its time bumped. After: `git diff -- src Makefile` EMPTY, the marker
+  grep outside this log 0, no untracked file under src, include, test or the Makefile.
+- **Re-checked against the tree:** the 15 items' code, tests and pages are there as written above, and the
+  round's pre-mutation copies (`fix1/orig/`) are byte-identical to the tree's `mirrored_pair_check.hpp`,
+  `chassis.hpp` and guide 17.
+- **A gap in the round's own record, closed.** The first mutation pass (`fix1/mut/results-124932.json`) ran
+  before T12 (xii)'s case (d) was added (`mirrored_pair_test.cpp`'s time, 12:49:53, is after it; 229 assertions
+  then, 230 now). Only MB4 was re-run after (d). A RED verdict cannot turn green when a CHECK is added, but the
+  verdicts were not measured on the final tree. **So every mutation was run again on the final tree**
+  (`fix1/mut2/`, the same driver and spec; MD1's dependent objects set to none, since a page is read at run time).
+  **25 of 25 RED**, each failing case read from the ERROR blocks, every set the same as the table above, MB4
+  through (xii). Every restored file is byte-identical to its pre-run copy (`fix1/mut2/pre/`).
+- **One wording fix (docs only).** Guide 17 item 4 and cookbook 09 said "A step that ends facing back gets
+  `faceAway`, then `reverseTo`". Both refused shapes end facing back from where they started. The one that backs up
+  ends facing **the way it came**, so both now say that. Prose review: `grep -rn -i 'facing back\|ends facing'` over
+  `docs/` (not `docs/internal/`), `README.md` and `test/README.md` → these two lines (changed), and guide 17 :168
+  ("facing back (180° from robot one's start)", MIRROR1-A's leg — exact, unchanged).
+
+#### Every gate on the final tree (the resumption; NOT committed)
+
+- **src gate** (`fix1/gates2/srcgate.sh` → `srcgate.out`; three other worktrees' self-tests ran beside it):
+  - `check` (22:52–23:09): `src build gate: PASS (all 14 builds link or, robot one's, refuse naming exactly their
+    owed facts (4 refused; ...))`.
+  - `self-test` (23:09–00:03): **rc 1. Every case passes but 53 and 55**, the same five failure lines as the first
+    resumption's (`diff` of the two logs' failure lines: none). Not this run's: both expect robot one's Bench Tests
+    to refuse owed Stage A facts, and it links since ROB1-C2. **On main, `531c3fd` (RPV1-S1) has already changed
+    the two cases** ("src gate self-test cases 53/55 updated now that Bench Tests links"); this branch's base,
+    `3c29b73`, is before it. After the merge onto main they are main's cases.
+  - After it: `git diff -- src Makefile` EMPTY, the marker grep outside this log 0, nothing untracked.
+- **The rest** (`fix1/gates2/gates.sh` → `gates.out`, 00:12–00:20): the binary removed, the briefing regenerated
+  as unbuilt, a full build (0 warnings), the briefing regenerated.
+  - `suite run: green — 3775 cases, 3882630 assertions`;
+  - the pair cases (`MIRROR1-B*, cookbook-09*, MIRROR1 T11*, autons (1d)*`) with `-s`: 23 cases, 230 assertions,
+    green;
+  - `ctest -R compile_refusal`: 295 of 295;
+  - the ARM header gate (258 headers in one TU): rc 0; the CI greps: PROS-free PASS, core sim-free PASS;
+  - `api_doc_tool`: self-test OK; check-coverage (6439 entities, all documented); check-fresh rc 0;
+    check-examples (926 quoted lines, all verbatim); check-removability;
+  - `briefing_status.py` self-test OK, check `generated block current`; `doc_staleness_audit.py` self-test OK,
+    audit clean;
+  - the words: the forbidden name in added lines 0; non-ASCII in the check's added code lines 0.
+- **The tree:** `version.hpp` untouched; `include/` changed in two comments only (item 7). Changed: the 4 test
+  files, `test/README.md`, the 2 library comments and their 2 API pages, the changelog, cookbook 09, guide 17, the
+  briefing's generated block and this log.
+
+#### Open for the coordinator / the team lead (from this round, in one place)
+
+1. The refusal sentence now names the steps for the leg's shape ("turn first, then drive: face(x, y), then
+   driveTo(x, y)" or "turn first, then back up: faceAway(x, y), then reverseTo(x, y)", and a `turnTo` after when
+   the end heading is neither). It is no longer the fixed "write it as two steps: turn first, then drive." (item 1).
+2. The brief's "a tank leg at 179°" sits exactly on the `[MIR]` window's edge: 179.0 is refused, 181.0 passes.
+   Neither is claimed (item 3, T3's policy).
+3. A `moveTo` that drives under 0.5 in is not refused: it only turns (item 4). This follows the ruling's words, "a
+   step that drives".
+4. The library's `[MIR]` leg text, "turn first, in two 90 deg turns, where it matters", no longer fits a tank leg
+   (item 5; a library string that T3 pins).
+5. Guide 11 :266-268 and guide 14 :530 each want one clause (item 7; DOCS3-N1's pages).
+6. The status docs, the brief of record and this log's marker (item 15).
+7. `autons (1d)` checks 0 mirrored entries until ROB1-BT (item 12).
+
+## MIRROR1-B — the coordinator's merge *(2026-11-17)*
+
+- **Squash-merged from `mirror1-b`** (transport `a71f16d`) onto the integrate worktree after the Calibrate fix and AF1S-A2.
+  Conflicts: the changelog (MIRROR1-B's entry at the top of `## API 2.9`; test-only, no API change), the briefing
+  (regenerated), `cookbook_examples_test.cpp`'s mapping comment and includes (both runs' lines kept).
+- **The team lead's D6 ruling, implemented:** the pair check refuses a tank leg that turns within 1 deg of a half turn in
+  one step, naming it, "turn first, then drive". **Open for the team lead (delta 4):** a RELATIVE mirrored entry is still
+  skipped whole by the pair check (MIRROR1-A's design), so a half-turn leg inside one is not refused.
+- Gated together with the Calibrate fix and AF1S-A2 (one gate run on the final tree), then the coordinator's mutations.

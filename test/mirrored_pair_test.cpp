@@ -10,6 +10,7 @@
 
 #include "doctest.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <string>
@@ -17,12 +18,14 @@
 #include <vector>
 
 #include "mirrored_pair_check.hpp"
+#include "motion_test_rig.hpp"
 #include "route_preview_model.hpp"
 #include "shulib/chassis/routine.hpp"
 #include "shulib/competition/auton_registry.hpp"
 #include "shulib/competition/field_mirror.hpp"
 #include "shulib/competition/override_mirror.hpp"
 #include "shulib/kinematics/tank.hpp"
+#include "shulib/kinematics/x_drive.hpp"
 #include "shulib/math/pose2d.hpp"
 #include "shulib/units/literals.hpp"
 
@@ -393,4 +396,524 @@ TEST_CASE("MIRROR1 T11 checkEveryMirroredEntry: one verdict per MIRRORED entry, 
     CHECK(vs[0].sentence.rfind("auton 'route G mirrored':", 0) == 0);
     CHECK_FALSE(vs[1].ok);
     CHECK(vs[1].sentence.rfind("auton 'P1 mirrored':", 0) == 0);
+}
+
+// ═══ MIRROR1-B: a TANK's half-turn leg is REFUSED (the team lead's D6 ruling, 2026-11-15: "Block it") ═══
+// One step that drives AND turns about 180 deg: on a tank robot one ends it beside its target and robot
+// two, sweeping the same way, beside its own on the other side (MIRROR1-A's T3). The check fails it,
+// naming the step, with the fix: turn first, then drive. Every route here is far from the diagonal, so
+// the gap alone would pass them.
+
+namespace {
+
+const shulib::kinematics::MatrixKinematics& xdrive() {
+    static const shulib::kinematics::MatrixKinematics k = shulib::kinematics::xDrive(Length{7.0});
+    return k;
+}
+const shulib::kinematics::MatrixKinematics& hdrive() {  // strafe authority 0.35: between a tank and an X-drive
+    static const shulib::kinematics::MatrixKinematics k = motion_rig::hBotKinematics();
+    return k;
+}
+
+/// A mirrored SKILLS entry of `routine` from a RELATIVE start (T11 (v)'s form).
+AutonEntry relativeEntry(const char* name, shulib::competition::AutonRoutine routine) {
+    AutonEntry e{};
+    e.name = name;
+    e.kind = AutonKind::Skills;
+    e.routine = routine;
+    e.start = StartPose::relative();
+    e.endActionAt = 55_s;
+    e.hardStopAt = 58_s;
+    return mirrored(e, kSkillsMirror);
+}
+
+/// A track's [MIR] lines; a line that starts so; robot two's end from robot one's mirror (inches).
+int mirLines(const mirror_pair::Track& t) {
+    int n = 0;
+    for (const std::string& l : t.lines) {
+        n += l.rfind("[MIR] ", 0) == 0 ? 1 : 0;
+    }
+    return n;
+}
+bool hasLine(const mirror_pair::Track& t, const char* start) {
+    return std::any_of(t.lines.begin(), t.lines.end(), [start](const std::string& l) { return l.rfind(start, 0) == 0; });
+}
+long linesStarting(const mirror_pair::Track& t, const char* start) {
+    return std::count_if(t.lines.begin(), t.lines.end(), [start](const std::string& l) { return l.rfind(start, 0) == 0; });
+}
+double endOffMirror(const std::pair<mirror_pair::Track, mirror_pair::Track>& t) {
+    const Pose2d w = kSkillsMirror.reflection.apply(t.first.paces.back().truth);
+    const Pose2d e = t.second.paces.back().truth;
+    return std::hypot((w.x() - e.x()).value(), (w.y() - e.y()).value());
+}
+
+/// MIRROR1-A T3's 36 in leg: 36 in ahead, ending facing back (180 deg from the start).
+RoutineResult halfTurnLeg36(AutonContext& ctx) {
+    Routine r{ctx, "leg 36"};
+    r.moveTo(Pose2d{0_in, -58_in, 180_deg}, {.timeout = 6_s});
+    return r.result();
+}
+
+/// The fix the check gives for it: turn first, then back up.
+RoutineResult halfTurnLeg36Fixed(AutonContext& ctx) {
+    Routine r{ctx, "leg 36, fixed"};
+    r.faceAway(0_in, -58_in);
+    r.reverseTo(0_in, -58_in, {.timeout = 6_s});
+    return r.result();
+}
+
+/// The same leg, the ruling's words taken literally: turnTo(180), then driveTo the point — now BEHIND.
+RoutineResult halfTurnLeg36TurnThenDrive(AutonContext& ctx) {
+    Routine r{ctx, "turn, drive"};
+    r.turnTo(180_deg);
+    r.driveTo(0_in, -58_in, {.timeout = 6_s});
+    return r.result();
+}
+
+/// A driveTo 36 in straight BEHIND (its heading is the bearing: 180 deg off).
+RoutineResult backUp36(AutonContext& ctx) {
+    Routine r{ctx, "back 36"};
+    r.driveTo(-36_in, -58_in, {.timeout = 6_s});
+    return r.result();
+}
+
+/// The same, in two steps: turn first, then drive.
+RoutineResult backUp36TwoSteps(AutonContext& ctx) {
+    Routine r{ctx, "back 36, two steps"};
+    r.face(-36_in, -58_in);
+    r.driveTo(-36_in, -58_in, {.timeout = 6_s});
+    return r.result();
+}
+
+/// A turn of exactly 180 deg (its [MIR] line is a TURN's: allowed), a drive, then a trajectory leg
+/// back that ends facing 0 (a LEG's line): the third drive motion is the one refused.
+RoutineResult turnDriveThenLegBack(AutonContext& ctx) {
+    Routine r{ctx, "later leg"};
+    r.turnTo(180_deg);
+    r.driveTo(-50_in, -58_in);
+    r.followTrajectory({Pose2d{-36_in, -58_in, 0_deg}});
+    return r.result();
+}
+
+/// A 16 in moveTo ahead ending facing `deg` (MIRROR1-A T3's 16 in leg, its heading varied).
+template <int kHundredthsDeg>
+RoutineResult legFacing(AutonContext& ctx) {
+    Routine r{ctx, "leg facing"};
+    r.moveTo(Pose2d{-20_in, -58_in, Angle::degrees(kHundredthsDeg / 100.0)}, {.timeout = 4_s});
+    return r.result();
+}
+
+/// A moveTo `kTenthsIn` / 10 in ahead of the start (-36, -58), ending facing back.
+template <int kTenthsIn>
+RoutineResult shortLeg(AutonContext& ctx) {
+    Routine r{ctx, "short leg"};
+    r.moveTo(Pose2d{Length{-36.0 + kTenthsIn / 10.0}, -58_in, 180_deg}, {.timeout = 4_s});
+    return r.result();
+}
+
+/// Two half-turn legs, a turn between them: the FIRST is named.
+RoutineResult twoLegs(AutonContext& ctx) {
+    Routine r{ctx, "two legs"};
+    using shulib::chassis::carryOn;
+    r.onFail(carryOn).moveTo(Pose2d{-20_in, -58_in, 180_deg}, {.timeout = 4_s});
+    r.onFail(carryOn).turnTo(0_deg);
+    r.moveTo(Pose2d{-4_in, -58_in, 180_deg}, {.timeout = 4_s});
+    return r.result();
+}
+
+/// A leg to a point ahead and to the LEFT, ending facing back: neither forwards nor backwards.
+RoutineResult sideLeg(AutonContext& ctx) {
+    Routine r{ctx, "side leg"};
+    r.moveTo(Pose2d{-26_in, -40_in, 180_deg}, {.timeout = 6_s});
+    return r.result();
+}
+
+/// The three steps the check gives for it.
+RoutineResult sideLegFixed(AutonContext& ctx) {
+    Routine r{ctx, "side leg, fixed"};
+    r.faceAway(-26_in, -40_in);
+    r.reverseTo(-26_in, -40_in, {.timeout = 6_s});
+    r.turnTo(180_deg);
+    return r.result();
+}
+
+/// RELATIVE: 36 in ahead, ending facing back — and its fix.
+RoutineResult relativeLeg(AutonContext& ctx) {
+    Routine r{ctx, "rel leg"};
+    r.moveTo(Pose2d{36_in, 0_in, 180_deg}, {.timeout = 6_s});
+    return r.result();
+}
+RoutineResult relativeLegFixed(AutonContext& ctx) {
+    Routine r{ctx, "rel leg, fixed"};
+    r.faceAway(36_in, 0_in);
+    r.reverseTo(36_in, 0_in, {.timeout = 6_s});
+    return r.result();
+}
+
+/// Into the centre beside robot two (a crash), then straight back the way it came (a half-turn leg).
+RoutineResult centreThenBack(AutonContext& ctx) {
+    Routine r{ctx, "both"};
+    r.face(-4_in, -4_in);
+    r.driveTo(-4_in, -4_in);
+    r.driveTo(-30_in, -50_in);
+    return r.result();
+}
+
+}  // namespace
+
+// Bug caught: the ruling not enforced (the check passes a tank's half-turn leg), enforced but unnamed, or
+// a fix the student cannot act on. MIRROR1-A T3's own 36 in leg (a point AHEAD, ending facing back —
+// a backwards leg): the check FAILS it in one sentence naming the step in robot one's numbers, with
+// the fix for THIS shape — turn first, then back up. The gap alone would pass it (the robots stay
+// 61 in apart). Robot two ends 14.2 in off the mirror (T3's number: this is T3's leg), and robot one's
+// own run fails too: the leg times out beside its target. The fix as given PASSES, robot two ending
+// on the mirror; the ruling's words taken literally (turnTo(180), then driveTo the point, now BEHIND)
+// are refused again — that is why the sentence names the steps.
+TEST_CASE("MIRROR1-B T12 (i) a 36 in TANK leg that turns 180 deg while it drives: REFUSED, naming it; its fix passes") {
+    const Pose2d start{-36_in, -58_in, 0_deg};
+    std::pair<mirror_pair::Track, mirror_pair::Track> t;
+    const mirror_pair::PairVerdict v =
+        mirror_pair::checkMirroredPair(mirroredEntry("leg 36", &halfTurnLeg36, start), options(), &t);
+    MESSAGE(v.sentence);
+    CHECK(v.checked);
+    CHECK_FALSE(v.ok);
+    CHECK(v.halfTurn.found);
+    CHECK(v.halfTurn.ran);
+    CHECK(v.halfTurn.step == "motion 1 (MoveToPose to (0.0, -58.0))");
+    CHECK(v.halfTurn.turnDeg == doctest::Approx(180.0).epsilon(1e-9));
+    CHECK(v.leastGapIn > 60.0);  // MEASURED 61.63: the gap passes; the leg alone fails it
+    CHECK(v.sentence
+          == "auton 'leg 36': motion 1 (MoveToPose to (0.0, -58.0)) at 0.01 s turns 180.0 deg while it drives, which "
+             "a tank cannot mirror -- turn first, then back up: faceAway(0.0, -58.0), then reverseTo(0.0, -58.0).");
+    CHECK(mirLines(t.first) == 0);
+    CHECK(mirLines(t.second) == 1);
+    const double off = endOffMirror(t);
+    MESSAGE("robot two's end off the mirror: " << off << " in");
+    CHECK(off > 14.15);  // MEASURED 14.1992 — T3's 36 in leg, 14.199
+    CHECK(off < 14.25);
+    CHECK_FALSE(t.first.result.routine.ok);  // robot one's leg times out beside its target too
+
+    const mirror_pair::PairVerdict fixed =
+        mirror_pair::checkMirroredPair(mirroredEntry("leg 36, fixed", &halfTurnLeg36Fixed, start), options(), &t);
+    MESSAGE(fixed.sentence);
+    CHECK(fixed.ok);
+    CHECK_FALSE(fixed.halfTurn.found);
+    CHECK(hasLine(t.second, "[MIR] mirrored turnTo turns 180.0 deg"));  // the faceAway's: a TURN's line
+    CHECK(t.first.result.routine.ok);
+    CHECK(t.second.result.routine.ok);
+    MESSAGE("fixed: robot two's end off the mirror " << endOffMirror(t) << " in");
+    CHECK(endOffMirror(t) < 0.1);  // MEASURED 0.0453 (the faceAway's own exact half turn, as in (ii))
+
+    const mirror_pair::PairVerdict literal =
+        mirror_pair::checkMirroredPair(mirroredEntry("turn, drive", &halfTurnLeg36TurnThenDrive, start), options());
+    MESSAGE(literal.sentence);
+    CHECK_FALSE(literal.ok);
+    CHECK(literal.halfTurn.step == "motion 2 (MoveToPose to (0.0, -58.0))");
+    CHECK(literal.halfTurn.fix == "turn first, then drive: face(0.0, -58.0), then driveTo(0.0, -58.0)");
+}
+
+// Bug caught: a turn's [MIR] line refused as if it were a leg, so the fix the sentence gives would fail
+// too, or the wrong shape's fix. A driveTo 36 in straight BEHIND is the same leg, driving forwards:
+// REFUSED, the fix face, then driveTo. Written so, it PASSES: the face is an exact half turn (robot two
+// logs ITS [MIR] line, a TURN's), and robot two ends within 0.1 in of the mirror.
+TEST_CASE("MIRROR1-B T12 (ii) a driveTo straight behind is REFUSED; turn first, then drive, PASSES") {
+    const Pose2d start{0_in, -58_in, 0_deg};
+    std::pair<mirror_pair::Track, mirror_pair::Track> t;
+    const mirror_pair::PairVerdict one =
+        mirror_pair::checkMirroredPair(mirroredEntry("back 36", &backUp36, start), options(), &t);
+    MESSAGE(one.sentence);
+    CHECK_FALSE(one.ok);
+    CHECK(one.halfTurn.step == "motion 1 (MoveToPose to (-36.0, -58.0))");
+    CHECK(one.halfTurn.fix == "turn first, then drive: face(-36.0, -58.0), then driveTo(-36.0, -58.0)");
+    CHECK(endOffMirror(t) > 14.15);  // MEASURED 14.1992: the same leg as (i), number for number
+    CHECK(endOffMirror(t) < 14.25);
+    const mirror_pair::PairVerdict two =
+        mirror_pair::checkMirroredPair(mirroredEntry("back 36, two steps", &backUp36TwoSteps, start), options(), &t);
+    MESSAGE(two.sentence);
+    CHECK(two.checked);
+    CHECK(two.ok);
+    CHECK_FALSE(two.halfTurn.found);
+    CHECK(mirLines(t.second) == 1);
+    CHECK(hasLine(t.second, "[MIR] mirrored turnTo turns 180.0 deg"));  // the face's: a TURN's line
+    CHECK(t.first.result.routine.ok);
+    CHECK(t.second.result.routine.ok);
+    MESSAGE("two steps: robot two's end off the mirror " << endOffMirror(t) << " in");
+    CHECK(endOffMirror(t) < 0.1);  // MEASURED 0.0453 (the turn sweeps the same way; the drive does not)
+}
+
+// Bug caught: the wrong step named — the turn's line taken for a leg (motion 1), the pace BEFORE the
+// leg's line (motion 2), only the run's first [MIR] line looked at, or robot two's own numbers
+// ((58.0, 36.0)) printed instead of the route's. A turn of exactly 180 deg (allowed), a drive, then a
+// trajectory leg back facing 0: the third drive motion is the one named.
+TEST_CASE("MIRROR1-B T12 (iii) a LATER leg is named, in robot one's numbers, after an allowed turn") {
+    std::pair<mirror_pair::Track, mirror_pair::Track> t;
+    const mirror_pair::PairVerdict v = mirror_pair::checkMirroredPair(
+        mirroredEntry("later leg", &turnDriveThenLegBack, Pose2d{-36_in, -58_in, 0_deg}), options(), &t);
+    MESSAGE(v.sentence);
+    CHECK_FALSE(v.ok);
+    REQUIRE(mirLines(t.second) == 2);  // the turn's line first, then the leg's
+    CHECK(v.halfTurn.step == "motion 3 (MoveToPose to (-36.0, -58.0))");
+    CHECK(v.halfTurn.at == doctest::Approx(2.80).epsilon(1e-3));  // MEASURED 2.80 s
+    CHECK(v.sentence
+          == "auton 'later leg': motion 3 (MoveToPose to (-36.0, -58.0)) at 2.80 s turns 180.0 deg while it drives, "
+             "which a tank cannot mirror -- turn first, then drive: face(-36.0, -58.0), then driveTo(-36.0, -58.0).");
+}
+
+// Bug caught: the refusal applied to every drivetrain. An X-drive's half-turn moveTo is measured and
+// pinned in T3 (0.31 in along the way): it logs its [MIR] line and PASSES.
+TEST_CASE("MIRROR1-B T12 (iv) an X-drive's half-turn moveTo: its [MIR] line, and PASSES") {
+    std::pair<mirror_pair::Track, mirror_pair::Track> t;
+    mirror_pair::PairOptions o = options();
+    o.kin = &xdrive();
+    const mirror_pair::PairVerdict v =
+        mirror_pair::checkMirroredPair(mirroredEntry("x leg", &legFacing<18000>, Pose2d{-36_in, -58_in, 0_deg}), o, &t);
+    MESSAGE(v.sentence);
+    CHECK(v.checked);
+    CHECK(v.ok);
+    CHECK_FALSE(v.halfTurn.found);
+    CHECK(mirLines(t.second) == 1);
+    CHECK(hasLine(t.second, "[MIR] mirrored moveTo turns 180.0 deg"));
+    CHECK(endOffMirror(t) < 0.05);  // MEASURED 0.0179
+}
+
+// Bug caught: the check judging the heading itself (its own window) instead of the [MIR] line, or
+// refusing only the exact tie. It refuses what the line names: within 1 deg of a half turn. Each leg
+// here is NOT the tie and mirrors exactly on the plant (MEASURED <= 1.2e-12 in); inside the window it is
+// a coin toss on a robot (MIRROR1-A: robot one's end moves 14.5 in on a 36 in leg), so it is refused.
+// The samples sit off the window's edge on both sides of 180, as T3's do: 179.05 and 180.95 (inside),
+// 178.95 and 181.05 (outside). The edge itself is NOT claimed: its comparison sits at floating
+// precision (MEASURED on this plant: 179.0 refused, 181.0 — the same distance the other way — passes).
+TEST_CASE("MIRROR1-B T12 (v) near the half turn: 179.05, 179.5, 180.95 REFUSED; 178.9, 178.95, 181.05 PASS") {
+    const Pose2d start{-36_in, -58_in, 0_deg};
+    struct Leg {
+        const char* name;
+        shulib::competition::AutonRoutine routine;
+        bool refused;
+        double deg;  ///< the heading change the [MIR] line gives (to 0.1: MEASURED "179.1" for 179.05)
+    };
+    for (const Leg& leg :
+         {Leg{"leg 179.5", &legFacing<17950>, true, 179.5}, Leg{"leg 179.05", &legFacing<17905>, true, 179.1},
+          Leg{"leg 180.95", &legFacing<18095>, true, 179.1}, Leg{"leg 178.95", &legFacing<17895>, false, 0.0},
+          Leg{"leg 181.05", &legFacing<18105>, false, 0.0}, Leg{"leg 178.9", &legFacing<17890>, false, 0.0}}) {
+        CAPTURE(leg.name);
+        std::pair<mirror_pair::Track, mirror_pair::Track> t;
+        const mirror_pair::PairVerdict v =
+            mirror_pair::checkMirroredPair(mirroredEntry(leg.name, leg.routine, start), options(), &t);
+        MESSAGE(v.sentence);
+        CHECK(v.ok == !leg.refused);
+        CHECK(v.halfTurn.found == leg.refused);
+        CHECK(mirLines(t.second) == (leg.refused ? 1 : 0));
+        MESSAGE(leg.name << ": robot two's end off the mirror " << endOffMirror(t) << " in");
+        CHECK(endOffMirror(t) <= 1e-9);  // no tie: mirrored exactly (MEASURED <= 1.2e-12 in)
+        if (leg.refused) {
+            CHECK(v.halfTurn.step == "motion 1 (MoveToPose to (-20.0, -58.0))");
+            CHECK(v.halfTurn.turnDeg == doctest::Approx(leg.deg).epsilon(1e-9));
+        }
+    }
+}
+
+// Bug caught: the half-turn failure HIDING a crash. A route that drives into the centre beside robot
+// two (the gap fails at 1.99 s) and then straight back (a half-turn leg at 3.11 s): both are named,
+// the leg's sentence first.
+TEST_CASE("MIRROR1-B T12 (vi) a crash AND a half-turn leg: both named") {
+    const mirror_pair::PairVerdict v = mirror_pair::checkMirroredPair(
+        mirroredEntry("both", &centreThenBack, Pose2d{-30_in, -50_in, 0_deg}), options());
+    MESSAGE(v.sentence);
+    CHECK_FALSE(v.ok);
+    CHECK(v.halfTurn.found);
+    CHECK(v.failGapIn < mirror_pair::kMirrorGapIn);
+    const std::string leg =
+        "auton 'both': motion 3 (MoveToPose to (-30.0, -50.0)) at 3.11 s turns 180.0 deg while it drives, which a "
+        "tank cannot mirror -- turn first, then drive: face(-30.0, -50.0), then driveTo(-30.0, -50.0).";
+    CHECK(v.sentence.rfind(leg + " auton 'both': the two robots come within 6.0 in", 0) == 0);
+    CHECK(v.sentence.find("in motion 2 (MoveToPose to (-4.0, -4.0))") != std::string::npos);
+}
+
+// Bug caught: a RELATIVE mirrored entry carrying a tank's half-turn leg past the ruling. Its GAP is
+// skipped (no field positions), but the leg needs none: robot two runs alone and the leg is refused,
+// in robot one's relative numbers, `checked` so the registry case (autons (1d)) fails it. Its fix
+// passes (skipped as before); on an X-drive the entry is skipped whole.
+TEST_CASE("MIRROR1-B T12 (vii) a RELATIVE mirrored entry: a tank's half-turn leg is REFUSED; its fix is skipped") {
+    std::pair<mirror_pair::Track, mirror_pair::Track> t;
+    const mirror_pair::PairVerdict v = mirror_pair::checkMirroredPair(relativeEntry("rel leg", &relativeLeg), options(), &t);
+    MESSAGE(v.sentence);
+    CHECK(v.checked);
+    CHECK_FALSE(v.ok);
+    CHECK((v.ok || !v.checked) == false);  // autons (1d)'s own assertion fails it
+    CHECK(v.sentence
+          == "auton 'rel leg': motion 1 (MoveToPose to (36.0, 0.0)) at 0.01 s turns 180.0 deg while it drives, which "
+             "a tank cannot mirror -- turn first, then back up: faceAway(36.0, 0.0), then reverseTo(36.0, 0.0).");
+    CHECK(t.first.paces.empty());  // robot two only
+    CHECK(mirLines(t.second) == 1);
+    const std::string skipped = "a RELATIVE mirrored entry -- its field positions are wherever the drivers place the "
+                                "robots, so the pair check is SKIPPED";
+    const mirror_pair::PairVerdict fixed =
+        mirror_pair::checkMirroredPair(relativeEntry("rel leg, fixed", &relativeLegFixed), options(), &t);
+    MESSAGE(fixed.sentence);
+    CHECK_FALSE(fixed.checked);
+    CHECK(fixed.ok);
+    CHECK(fixed.sentence == "auton 'rel leg, fixed': " + skipped);
+    CHECK(t.second.result.routine.ok);
+    mirror_pair::PairOptions x = options();
+    x.kin = &xdrive();
+    const mirror_pair::PairVerdict xv = mirror_pair::checkMirroredPair(relativeEntry("rel leg", &relativeLeg), x);
+    CHECK_FALSE(xv.checked);
+    CHECK(xv.ok);
+    CHECK(xv.sentence == "auton 'rel leg': " + skipped);
+}
+
+// Bug caught (the review's G1): the LAST leg named instead of the first, so the student fixes a later step
+// first. Two half-turn legs (the first carries on after its timeout), a turn between them (it logs a
+// TURN's line too: the first leg ended facing back): the first leg is named.
+TEST_CASE("MIRROR1-B T12 (viii) two half-turn legs: the FIRST is named") {
+    std::pair<mirror_pair::Track, mirror_pair::Track> t;
+    const mirror_pair::PairVerdict v = mirror_pair::checkMirroredPair(
+        mirroredEntry("two legs", &twoLegs, Pose2d{-36_in, -58_in, 0_deg}), options(), &t);
+    MESSAGE(v.sentence);
+    CHECK_FALSE(v.ok);
+    REQUIRE(linesStarting(t.second, "[MIR] mirrored moveTo turns ") == 2);  // both legs logged their line
+    CHECK(linesStarting(t.second, "[MIR] mirrored turnTo turns ") == 1);    // MEASURED: the turn between
+    CHECK(v.halfTurn.step == "motion 1 (MoveToPose to (-20.0, -58.0))");
+    CHECK(v.halfTurn.at == doctest::Approx(0.01).epsilon(1e-6));
+}
+
+// Bug caught: a turn written as a moveTo refused as if it drove ("while it drives" would be false and the
+// fix meaningless), or the in-place rule swallowing a real leg. A moveTo to the robot's own spot,
+// facing back, logs its [MIR] line but drives nowhere: like a turnTo, NOT refused (MEASURED: robot two
+// ends exactly on the mirror). The line between is the library's arrival tolerance, 0.5 in: a 0.4 in
+// leg passes, 0.6 in and 1 in are refused (MEASURED: robot two 0.14, 0.21, 0.36 in off the mirror).
+TEST_CASE("MIRROR1-B T12 (ix) a 'leg' that only turns is not refused; 0.4 in passes, 0.6 in is refused") {
+    const Pose2d start{-36_in, -58_in, 0_deg};
+    CHECK(mirror_pair::kInPlaceIn == 0.5);
+    struct Leg {
+        const char* name;
+        shulib::competition::AutonRoutine routine;
+        bool refused;
+    };
+    for (const Leg& leg : {Leg{"in place", &shortLeg<0>, false}, Leg{"0.4 in", &shortLeg<4>, false},
+                           Leg{"0.6 in", &shortLeg<6>, true}, Leg{"1 in", &shortLeg<10>, true}}) {
+        CAPTURE(leg.name);
+        std::pair<mirror_pair::Track, mirror_pair::Track> t;
+        const mirror_pair::PairVerdict v =
+            mirror_pair::checkMirroredPair(mirroredEntry(leg.name, leg.routine, start), options(), &t);
+        MESSAGE(v.sentence);
+        MESSAGE(leg.name << ": robot two's end off the mirror " << endOffMirror(t) << " in");
+        CHECK(mirLines(t.second) == 1);  // every one logs its [MIR] moveTo line
+        CHECK(hasLine(t.second, "[MIR] mirrored moveTo turns 180.0 deg"));
+        CHECK(v.ok == !leg.refused);
+        CHECK(v.halfTurn.found == leg.refused);
+    }
+}
+
+// Bug caught: the tank test widened past a tank (G8: `< 1.0`), refusing a drivetrain that can strafe.
+// The library's own test for a tank is a strafe authority of EXACTLY 0; an H-drive (0.35) is not a
+// tank: its half-turn moveTo logs its [MIR] line and is NOT refused (MEASURED: robot two 0.027 in off the
+// mirror).
+TEST_CASE("MIRROR1-B T12 (x) an H-drive (strafe authority 0.35): its half-turn moveTo is not refused") {
+    CHECK(hdrive().strafeAuthority() == doctest::Approx(0.35));
+    std::pair<mirror_pair::Track, mirror_pair::Track> t;
+    mirror_pair::PairOptions o = options();
+    o.kin = &hdrive();
+    const mirror_pair::PairVerdict v =
+        mirror_pair::checkMirroredPair(mirroredEntry("h leg", &legFacing<18000>, Pose2d{-36_in, -58_in, 0_deg}), o, &t);
+    MESSAGE(v.sentence);
+    MESSAGE("H-drive: robot two's end off the mirror " << endOffMirror(t) << " in");
+    CHECK(v.checked);
+    CHECK(v.ok);
+    CHECK_FALSE(v.halfTurn.found);
+    CHECK(hasLine(t.second, "[MIR] mirrored moveTo turns 180.0 deg"));
+    CHECK(endOffMirror(t) < 0.05);  // MEASURED 0.0271
+}
+
+// Bug caught: a fix that changes where the robot ends up facing. A leg to a point ahead and to the
+// left that ends facing back drives neither forwards nor backwards along its end heading: the fix is
+// turn first, back up, then turnTo the leg's own end heading — and those three steps PASS.
+TEST_CASE("MIRROR1-B T12 (xi) a leg whose end heading is not its drive's: the fix ends with a turnTo, and passes") {
+    const Pose2d start{-36_in, -58_in, 0_deg};
+    std::pair<mirror_pair::Track, mirror_pair::Track> t;
+    const mirror_pair::PairVerdict v =
+        mirror_pair::checkMirroredPair(mirroredEntry("side leg", &sideLeg, start), options(), &t);
+    MESSAGE(v.sentence);
+    CHECK_FALSE(v.ok);
+    CHECK(v.halfTurn.fix
+          == "turn first, then back up: faceAway(-26.0, -40.0), then reverseTo(-26.0, -40.0), then turnTo(180.0 deg)");
+    const mirror_pair::PairVerdict fixed =
+        mirror_pair::checkMirroredPair(mirroredEntry("side leg, fixed", &sideLegFixed, start), options(), &t);
+    MESSAGE(fixed.sentence);
+    MESSAGE("fixed: robot two's end off the mirror " << endOffMirror(t) << " in");
+    CHECK(fixed.ok);
+    CHECK(mirLines(t.second) == 0);
+    CHECK(t.first.result.routine.ok);
+    CHECK(t.second.result.routine.ok);
+    CHECK(endOffMirror(t) <= 1e-9);  // MEASURED 3.0e-13: no half turn left anywhere
+}
+
+// Bug caught (the review's G2, G4, G5): a defensive branch of the search going wrong unseen — they do not
+// happen in a real run today, so the track is PLANTED. (a) A leg line after the run's last pace is
+// still refused, never quietly, and claims no time. (b) A pace between motions after the line is not
+// the leg. (c) The leg's first pace without a target: the target from its next pace. (d) A turnTo's
+// line is never a leg.
+TEST_CASE("MIRROR1-B T12 (xii) planted tracks: a line after the last pace, a pace between, no target, a turn") {
+    const std::string mir =
+        "[MIR] mirrored moveTo turns 180.0 deg: within 1 deg of a half turn, robot two may sweep the same way as robot "
+        "one, not the mirror way -- turn first, in two 90 deg turns, where it matters";
+    const shulib::math::Reflection identity{};
+    mirror_pair::Pace before;
+    before.t = 0.01;
+    before.lines = 0;  // the line is logged after this pace
+    mirror_pair::Track a;
+    a.lines = {mir};
+    a.paces = {before};
+    const mirror_pair::HalfTurnLeg la = mirror_pair::findHalfTurnLeg(a, identity);
+    CHECK(la.found);
+    CHECK_FALSE(la.ran);
+    CHECK(mirror_pair::halfTurnSentence("late", la)
+          == "auton 'late': a leg logged after its run's last pace turns 180.0 deg while it drives, which a tank "
+             "cannot mirror -- turn first, then drive.");
+
+    mirror_pair::Pace between;  // after the line, no motion yet
+    between.t = 0.02;
+    between.lines = 1;
+    between.truth = Pose2d{0_in, 0_in, 0_deg};
+    mirror_pair::Pace leg = between;  // the leg: 20 in behind, facing it
+    leg.t = 0.03;
+    leg.motion = 5;
+    leg.hasTarget = true;
+    leg.target = Pose2d{-20_in, 0_in, 180_deg};
+    mirror_pair::Track b;
+    b.lines = {mir};
+    b.names = {{5, "MoveToPose"}};
+    b.paces = {before, between, leg};
+    const mirror_pair::HalfTurnLeg lb = mirror_pair::findHalfTurnLeg(b, identity);
+    CHECK(lb.found);
+    CHECK(lb.ran);
+    CHECK(lb.step == "motion 5 (MoveToPose to (-20.0, 0.0))");
+    CHECK(lb.at == doctest::Approx(0.03));
+    CHECK(lb.fix == "turn first, then drive: face(-20.0, 0.0), then driveTo(-20.0, 0.0)");
+
+    mirror_pair::Pace noTarget = leg;  // the leg's first pace carries no target yet
+    noTarget.hasTarget = false;
+    noTarget.target = Pose2d{};
+    mirror_pair::Track c;
+    c.lines = {mir};
+    c.names = {{5, "MoveToPose"}};
+    c.start = Pose2d{0_in, 0_in, 0_deg};
+    noTarget.t = 0.01;
+    noTarget.lines = 1;
+    leg.t = 0.02;
+    c.paces = {noTarget, leg};
+    const mirror_pair::HalfTurnLeg lc = mirror_pair::findHalfTurnLeg(c, identity);
+    CHECK(lc.found);
+    CHECK(lc.step == "motion 5 (MoveToPose to (-20.0, 0.0))");
+    CHECK(lc.at == doctest::Approx(0.01));
+    CHECK(lc.fix == "turn first, then drive: face(-20.0, 0.0), then driveTo(-20.0, 0.0)");
+
+    // (d) A turnTo's line is a turn by its VERB, whatever its record says. In a real run a TurnTo's
+    // target is the robot's own spot (turn_to.hpp: "turn in place"), so the in-place rule would skip it
+    // too — the review round's MB4 survived on that; here the target is planted 20 in away.
+    mirror_pair::Track d = c;
+    d.lines = {"[MIR] mirrored turnTo turns 180.0 deg: within 1 deg of a half turn, robot two may sweep the same "
+               "way as robot one, not the mirror way -- write two 90 deg turns where it matters"};
+    d.names = {{5, "TurnTo"}};
+    CHECK_FALSE(mirror_pair::findHalfTurnLeg(d, identity).found);
 }

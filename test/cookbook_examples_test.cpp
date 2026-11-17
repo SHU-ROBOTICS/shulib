@@ -12,7 +12,8 @@
 //   cookbook-06a/b    -> docs/cookbook/06-driver-control.md
 //   cookbook-08a      -> docs/cookbook/08-skills-toggles.md (AF1S-A2: the skills route that visits the Toggles,
 //                        the everyday form over ctx, on a real robot::Robot; AF1S-A1 wrote it over the explicit form)
-//   cookbook-09a      -> docs/cookbook/09-one-route-two-robots.md (MIRROR1-A: one route, robot two mirrored)
+//   cookbook-09a/b    -> docs/cookbook/09-one-route-two-robots.md (MIRROR1-A: one route, robot two mirrored;
+//                        MIRROR1-B: a tank step that drives AND turns around, refused)
 //
 // The cookbook quotes these bodies VERBATIM — the same anti-rot rule the guide
 // uses (docs/internal/guide-maintenance.md rule 1), extended to docs/cookbook/.
@@ -56,6 +57,7 @@
 #include "shulib/teleop/teleop_loop.hpp"
 #include "shulib/units/literals.hpp"
 #include "toggle_robot_rig.hpp"
+#include "source_pins.hpp"
 #include "toggle_visit_rig.hpp"
 #include "wall_robot_rig.hpp"
 
@@ -1366,4 +1368,60 @@ TEST_CASE("cookbook-09a: one route, two robots — registered twice, run togethe
     CHECK(wallOne.rfind("red wall y SEATED (RIGHT sensor): ", 0) == 0);
     CHECK(wallTwo.rfind("right wall x SEATED (LEFT sensor, mirrored from red wall RIGHT): ", 0) == 0);
     MESSAGE(wallTwo);
+}
+
+// ═══ cookbook-09b — a tank's half-turn step, refused (docs/cookbook/09-one-route-two-robots.md; MIRROR1-B) ═══
+// The team lead's D6 ruling (2026-11-15): "Block it". The pair check refuses a TANK step that drives AND
+// turns around; the fix is two steps. From the recipe's start, both forms, as robot two registers them.
+namespace shulib::bench {
+namespace {
+
+chassis::RoutineResult backUpInOneStep(competition::AutonContext& ctx) {
+    chassis::Routine r{ctx, "back up"};
+    r.driveTo(-12_in, -55.7_in);
+    r.driveTo(-36_in, -55.7_in);  // REFUSED on a tank: drives AND turns around
+    return r.result();
+}
+
+chassis::RoutineResult backUpInTwoSteps(competition::AutonContext& ctx) {
+    chassis::Routine r{ctx, "back up"};
+    r.driveTo(-12_in, -55.7_in);
+    r.face(-36_in, -55.7_in);     // turn first,
+    r.driveTo(-36_in, -55.7_in);  // then drive
+    return r.result();
+}
+
+competition::AutonEntry backUpEntry(const char* name, competition::AutonRoutine routine) {
+    competition::AutonEntry e = skillsRoute();
+    e.name = name;
+    e.routine = routine;
+    return competition::mirrored(e, competition::override2026::kSkillsMirror);
+}
+
+}  // namespace
+}  // namespace shulib::bench
+
+// Bug caught: a recipe whose "fix" the check refuses too, a refusal a student cannot act on, or the guide's
+// quote of the sentence drifting from it. The one-step form FAILS, naming the step in robot one's numbers
+// and the two steps to write; the two-step form PASSES.
+TEST_CASE("cookbook-09b: on a tank, one step that drives AND turns around is refused; two steps pass") {
+    namespace sc = shulib::competition;
+    sc::AutonRegistry two{sc::AutonPeriods{.match = 30_s, .skills = 60_s}};
+    two.add(shulib::bench::backUpEntry("one step", &shulib::bench::backUpInOneStep));
+    two.add(shulib::bench::backUpEntry("two steps", &shulib::bench::backUpInTwoSteps));
+    const shulib::kinematics::TankKinematics tank{Length{12.0}};
+    const std::vector<mirror_pair::PairVerdict> pair = mirror_pair::checkEveryMirroredEntry(two, tank);
+    REQUIRE(pair.size() == 2U);
+    MESSAGE(pair[0].sentence);
+    MESSAGE(pair[1].sentence);
+    CHECK_FALSE(pair[0].ok);
+    CHECK(pair[0].halfTurn.found);
+    // guide chapter 17 quotes this sentence (checked below); the changelog's copy is the record
+    CHECK(pair[0].sentence
+          == "auton 'one step': motion 2 (MoveToPose to (-36.0, -55.7)) at 1.54 s turns 180.0 deg while it drives, "
+             "which a tank cannot mirror -- turn first, then drive: face(-36.0, -55.7), then driveTo(-36.0, -55.7).");
+    CHECK(pair[1].ok);
+    // the guide's quote of it, whole, on its own line (a ```text block)
+    const std::string guide = source_pins::readFile("docs/guide/17-the-competition-program.md");
+    CHECK(guide.find("\n   " + pair[0].sentence + "\n") != std::string::npos);
 }

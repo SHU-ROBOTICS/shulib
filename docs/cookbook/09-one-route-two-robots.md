@@ -9,8 +9,8 @@ mirrored. This chapter is that recipe.
 Listings are compiled and run in
 [`test/cookbook_examples_test.cpp`](../../test/cookbook_examples_test.cpp), case `cookbook-09a` — both
 robots' registrations, the two robots run TOGETHER on the host test plant, and the wall reset on a robot with
-side sensors. The ROUTE in it is a placeholder: every number is the test's. Your skills route is yours to
-write and defend; the recipe is the shape around it.
+side sensors — and case `cookbook-09b`, the refused step. The ROUTE in it is a placeholder: every number is
+the test's. Your skills route is yours to write and defend; the recipe is the shape around it.
 
 ---
 
@@ -119,8 +119,25 @@ the SAME line — seats the right wall with its LEFT sensor, its log saying
 - **A mirrored name is at most 25 characters** — its menu button reads `skills SKILLS MIR`.
 - **An exact 180° turn** sweeps counterclockwise on both robots, not the mirror way (the log says so once) —
   in a `turnTo`, and in a `moveTo` / `driveTo` whose heading changes by 180°. Where it matters, write a turn
-  as two 90° turns; on a tank, turn first (two 90° turns) before such a drive — the sweep moves where a tank
-  ENDS, by more the longer the drive: 14 in on a 36 in drive on the host test plant
-  ([guide chapter 17](../guide/17-the-competition-program.md#two-robots-one-route-a-mirrored-auton)).
+  as two 90° turns.
+- **On a tank, one step that drives AND turns around is refused.** Each robot ends beside its target (about
+  7 in on a 36 in drive, host test plant), on opposite sides of the mirror, so the suite fails it, naming
+  the step ([guide chapter 17](../guide/17-the-competition-program.md#both-robots-at-once)):
+
+  ```cpp
+      r.driveTo(-12_in, -55.7_in);
+      r.driveTo(-36_in, -55.7_in);  // REFUSED on a tank: drives AND turns around
+  ```
+
+  Write the two steps the check's sentence gives:
+
+  ```cpp
+      r.driveTo(-12_in, -55.7_in);
+      r.face(-36_in, -55.7_in);     // turn first,
+      r.driveTo(-36_in, -55.7_in);  // then drive
+  ```
+
+  A step that ends facing the way it came gets `faceAway`, then `reverseTo`.
+
 - **Run the two robots together before the event** — slowly first, someone at each robot's stop. Nothing
   here has run on a robot.

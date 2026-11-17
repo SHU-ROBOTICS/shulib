@@ -16,6 +16,28 @@
 
 ## API 2.9
 
+### 2026-11-16 — the pair check refuses a tank step that drives AND turns around
+
+> Written when it was built (chunk MIRROR1, run B). **A stricter host check (no API change):** a mirrored tank
+> route that passed before can now fail the suite — see What you must do. The host test suite (`test/`), and one
+> comment each in `chassis/chassis.hpp` and `competition/field_mirror.hpp`. Host test plant only.
+
+**Why:** on a tank, one step that drives AND turns about 180° ends beside its target, and robot two misses on
+the other side: on a 36 in drive each robot is about 7 in off, and robot two ends 14.2 in from robot one's mirror
+image. The team lead, asked whether to block it so students write turn, then drive (2026-11-15): "Block it".
+
+**Changed:** on a TANK the pair check (`test/mirrored_pair_check.hpp`) now fails a mirrored route — a RELATIVE one
+too — whose robot two logs the `[MIR]` half-turn line for a leg: a `driveTo`, `reverseTo`, `moveTo` or trajectory
+leg within 1° of 180° that drives at least 0.5 in. It names the step and the steps to write:
+
+```text
+auton 'one step': motion 2 (MoveToPose to (-36.0, -55.7)) at 1.54 s turns 180.0 deg while it drives, which a tank cannot mirror -- turn first, then drive: face(-36.0, -55.7), then driveTo(-36.0, -55.7).
+```
+
+Not refused: a `turnTo`, and a drive that can strafe (an X-drive, an H-drive). **What you must do:** if robot
+two's route fails this way, write the steps the sentence gives — turn first (`face`, or `faceAway` before a
+`reverseTo`), then drive ([cookbook chapter 9](cookbook/09-one-route-two-robots.md)).
+
 ### 2026-11-16 (built 2026-11-15, reviewed and fixed to 2026-11-16) — the Toggle flip from an auton: the robot file's Toggle block, the robot's camera for the step, and the everyday call
 
 > Written when it was built (chunk AF1S, run A2). **No version bump** (the coordinator, at the merge: every change is additive and no frozen row is touched).

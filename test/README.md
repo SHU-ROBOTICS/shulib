@@ -188,7 +188,9 @@ documented here and in their own headers:
   robot was in (robot one's with its target, in the route's numbers). The suite asserts it over robot two's
   registry (T9) and on planted routes (`test/mirrored_pair_test.cpp`, where a planted crash is a PASSING
   test of the check); a route preview or route maker calls the same function so the picture and the suite
-  never disagree. A RELATIVE mirrored entry is skipped, by name.
+  never disagree. A RELATIVE mirrored entry's gap is skipped, by name. On a TANK it also FAILS a route (a
+  RELATIVE one too) whose robot two logs the `[MIR]` half-turn line for a leg (MIRROR1-B, the team lead's D6
+  ruling), naming the step and the steps to write: turn first, then drive.
 - **`test/goldens/mirror/skills_mirror_vectors.txt`** (MIRROR1-A) — the skills mirror's worked vectors, one
   per line (`FIELD` and `RELATIVE`), worked by hand: `test/reflection_test.cpp` reads every line (and refuses
   a malformed one by its line number); a route maker that draws the mirror is to read the same file, so the

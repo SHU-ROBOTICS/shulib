@@ -183,11 +183,13 @@ TEST_CASE("autons (1b): EVERY registered auton runs through runTesterOnce and en
 // on the host test plant (test/mirrored_pair_check.hpp: robot one from its start, robot two from the
 // reflection, pace by pace), and their 15 in squares must never come within 6 in. Bug caught: a shared
 // route that crosses the field's diagonal (or sends both robots to the centre goal at once) uploaded to
-// both robots — a crash at the event, found here first, naming the moment and the motions. A RELATIVE
-// mirrored entry is skipped by name (its field positions are wherever the drivers place it). Today's
-// file registers no mirrored entry, so this case checks none and says so; (1b) above runs every entry,
-// mirrored ones included, through the tester's own sequence.
-TEST_CASE("autons (1d): every MIRRORED entry passes the pair check — the two robots stay 6 in apart") {
+// both robots — a crash at the event, found here first, naming the moment and the motions. Also (MIRROR1-B,
+// the team lead's D6 ruling: "Block it") a tank step that drives AND turns around, which each robot ends
+// beside its target. A RELATIVE mirrored entry's gap is skipped by name (its field positions are wherever
+// the drivers place it); its half-turn legs are still refused. Today's file registers no mirrored entry,
+// so this case checks none and says so; (1b) above runs every entry, mirrored ones included, through the
+// tester's own sequence.
+TEST_CASE("autons (1d): every MIRRORED entry passes the pair check — 6 in apart, no tank half-turn leg") {
     const AutonRegistry reg = teamRegistry();
     std::size_t mirroredEntries = 0;
     for (std::size_t i = 0; i < reg.size(); ++i) {
