@@ -223,7 +223,8 @@ for station 13's answers above and the cascade's three voltages.
 
 The library's builder wrote a starting map when robot one first got a build (no robot-one program builds
 without a driver file); on 2026-11-15 the builder gave the real one, and it is typed exactly. **It is
-yours**: change any line in `src/team/robot_one_driver.hpp` and be able to say why.
+yours**: change any line in `src/team/robot_one_driver.hpp` and be able to say why — by hand, or by clicking on
+the route builder's picture of the controller ([chapter 22](22-making-your-first-route.md#the-drivers-buttons-and-the-driving-feel)).
 
 | Input | Does |
 |---|---|
@@ -251,7 +252,7 @@ until it stalls gently on its bottom stop (at most 3 s), and R1 / R2 wait until 
 through it does nothing until let go. That is the one line marked `[delete-able]`: delete it and the cascade
 is never homed in driver control. A side toggle held on L1 or L2 runs ONE way — the library's one-button
 hold, `whileHeld(mechanism, button, volts)` (a power mechanism only): its direction is the facts file's,
-never a second button.
+never a second button. As the builder gave it, the statement reads:
 
 ```cpp
 inline constexpr DriverControls kControls = controls(kRobotOneMechanisms,

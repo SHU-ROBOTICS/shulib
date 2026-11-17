@@ -33,7 +33,10 @@ Since D3 (2026-08-12) the verbatim half is **machine-checked**, in the build and
 block in any public document to appear verbatim in one of those test files — or in a team file
 under `src/team/` that a chapter quotes: a robot's driver file, `src/team/*_driver.hpp` (since T4
 Part 1a, 2026-09-27; the cookbook's chapter 6), and the team's auton file, `src/team/autons.cpp`
-(since COMP-t, 2026-09-28; guide chapter 16). Each listing of a team file must ALSO be one unbroken
+(since COMP-t, 2026-09-28; guide chapter 16) — or in a route builder CT21 golden,
+`test/goldens/route_maker/controls_*.hpp` (since RMP1-B, 2026-11-16: guide chapter 21 quotes robot one's map as the
+builder gave it from `controls_one_builders_map.hpp`, so a team export after the freeze never fails the build there;
+a listing that must follow the team's live file quotes the driver file instead). Each listing of a team file must ALSO be one unbroken
 run of the file's lines, so a line added to the file inside a quoted part fails too (the tool's
 `EXAMPLE_SOURCE_GLOBS` and `WHOLE_RUN_SOURCE_GLOBS`, with the reasoning). Never the rest of `src/`. Before D3 the rule was real but the enforcement was a person running an internal
 script, and a mutation proved the consequence: a chapter's `.hold(300_ms)` retyped to

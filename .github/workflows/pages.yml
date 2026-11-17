@@ -23,6 +23,8 @@ on:
       - 'tools/route_maker/**'
       - 'include/**'
       - 'src/robots/**'
+      - 'src/team/*_driver.hpp'   # RMP1-B: the Controls tab bakes each robot's driver file,
+      - 'src/programs/drive_program.cpp'   # and whether its programs take a feel other than the default
       - 'test/**'
   workflow_dispatch:
 

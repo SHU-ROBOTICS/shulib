@@ -13,7 +13,7 @@
 // What test/driver_controls_test.cpp held besides — HoldControl / ToggleControl / DriverBindings and
 // their five predicates — was DELETED with those types: their rules are mechanism::controls(...)'s
 // build checks now (test/mechanism_driver_loop_test.cpp and test/compile_refusals/d_*, MECH-A4) and
-// DriverFile's two static_asserts (test/compile_refusals/n56_*, n57_*).
+// DriverFile's static_asserts (test/compile_refusals/n56_*, n57_*; and since RMP1-B its feel check, rm01_*).
 //
 // NO HARDWARE CLAIM: fakes only.
 

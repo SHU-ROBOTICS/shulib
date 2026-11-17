@@ -6,11 +6,12 @@ cascade — and the page checks every step against the library's own rules as yo
 export it into the robot's code. Every line it writes is commented in plain words; it is your route, and you
 should be able to explain every line of it.
 
-This chapter is in two halves: [your first route](#your-first-route), step by step, and then
+This chapter is in three parts: [your first route](#your-first-route), step by step;
+[the driver's buttons and the driving feel](#the-drivers-buttons-and-the-driving-feel) — the **Controls** tab; and
 [the reference](#the-reference) — every kind of step, every check, the shortcuts, and the project file.
 
-The route in the pictures is an example of **how to click**, not a route for the robot: where robot one starts and
-where it goes are your team's to decide.
+The route and the buttons in the pictures are examples of **how to click**, not choices for the robot: where robot
+one starts, where it goes and what each button does are your team's to decide.
 
 ## Your first route
 
@@ -100,9 +101,9 @@ on the Export button counts what is left, and Export shows only that list — ea
   updated file back as a download, to save in its place. **Then Save** (step 7): the project file remembers what
   was exported, so the next export knows that code is the builder's.
 
-Robot two's update adds `src/team/skills_route.cpp`; until it is in your copy of the repository, the page
-offers Copy only (the picture above). Once robot two's update is in, one line in robot two's own autons file runs
-this same route **mirrored** across the field's diagonal; the export page checks that line is there and says so.
+One line in robot two's own autons file runs this same route **mirrored** across the field's diagonal; the export
+page checks that line is there and says so. (A copy of the repository from before robot two's update, 2026-11-17,
+has no `src/team/skills_route.cpp`: the page then offers Copy only — the picture above.)
 
 #### Reading the code
 
@@ -138,6 +139,102 @@ Until you save, the page keeps a draft in this browser, and says so when you com
 draft, it opens a new route and says so; your `route_maker.json` is not touched). With the folder connected,
 it compares itself with the folder's `route_maker.json` — after a `git pull` brought a teammate's route, it asks
 which to keep — and **Save** never replaces a `route_maker.json` that changed in the folder without asking.
+
+## The driver's buttons and the driving feel
+
+The **Controls** tab (top bar, beside **Route**) sets what each button does in driver control and how the sticks
+feel. It edits robot one's driver file, `src/team/robot_one_driver.hpp` (or robot two's — pick **one** or **two**
+above the list on the left). It opens with the driver file as it was when this page was published (the date is on
+the right); with your shulib folder connected (Edge or Chrome) it reads today's file. Once you change a robot's
+controls, your project file keeps them, and the tab opens with those. It changes only what you change. Connecting
+the folder or opening a project keeps a change made here: when this page had no route yet and the folder's project
+has no controls for that robot, your change stays; otherwise **Ctrl+Z** on this tab brings it back. The one
+exception is a project whose controls for that robot this page cannot read (a newer route builder's): the tab then
+shows the driver file, read only, and your change there is gone. The page says which.
+
+![The Controls tab: robot one's controller with each button's job beside it (a free button dashed), its mechanisms on the left, the driving feel below](../assets/route-builder/controls.png)
+
+### What each button does
+
+The picture is the V5 controller. Each button's job is written beside it; a **dashed** button is free, and Y is the
+drive's re-zero button. On the left, each mechanism lists its controls.
+
+- **Give a free button a job:** click it. A short menu lists what each mechanism can do with it, each item saying
+  exactly what it picks (**Move while held: Up up, Down down**; **Go to "open" on one press**); pick one, then finish it
+  on the right — the volts of a hold (12 is full power), the level and its time limit, or the second button of a pair
+  when its partner is taken.
+- **Change a job:** click the button (or the control on the left). On the right: the mechanism, what it does, its
+  button, its volts or time limit, and **Remove this control**.
+- **A job with no button:** **Add** under a mechanism — "home it when driver control starts", or "autons only".
+- **The words:** the comment on its line and its row in the button map at the top of the file are yours to
+  reword (right, under "Its words in the file"). Change what a control does and both become the page's words again
+  (**Ctrl+Z** brings yours back); move it to another button and yours are kept.
+
+![A free button clicked: the menu of what each mechanism can do with it](../assets/route-builder/controls-menu.png)
+
+| Mechanism | What a button can do |
+|---|---|
+| a motor (robot one's side toggles) | run while held — one button forward and one back, or one button, one way |
+| an arm or a lift (the cascade) | move while held (one button up, one down); go to a level on one press; home it on one press; home it when driver control starts (no button) |
+| a piston (the claw, the flipper, the ramp) | each press flips it; go to one position on one press |
+| a flywheel | each press spins it up to a named speed or stops it; spin up to a speed on one press |
+| any | autons only: no button in driver control |
+
+**What the page refuses** — what the build refuses, in plain words, with the build's own name beside them:
+a button doing two jobs (`button_B_does_two_jobs`), a hold's volts not above 0 or above 12, a level or a home with
+no time limit, a level the mechanism does not have, a mechanism with no button (choose "autons only" if that is
+meant), a control on the re-zero button, more than 24 controls, and an arm or lift that must be homed with no way to
+home it in driver control. It also asks for what is not finished yet — a button, a level, or the second button
+of a pair it does not choose for you. Export lists them, each with **Go there**. The button map at the top of the
+file is written from the same choices: each control's rows sit where its buttons are, in the code's order. Its
+words are yours, so the page also stops on words it can tell are wrong now — a map line calling the d-pad FREE once
+you give Up a job (**Remove that line**), or words naming a button whose job changed after they were written — the
+file's or yours (**Use the page's words** replaces only that comment or row) — and asks you to check a note in the
+file that speaks of a mechanism or button you changed. Words it
+cannot judge are yours to keep true.
+
+![B given to the claw while the flipper has it: B turns red, the reason in plain words, and the build's name beside it](../assets/route-builder/controls-refused.png)
+
+### The driving feel
+
+"Move the stick a little and the robot goes slowly, but still moves; push it all the way and it goes fast" — that
+is the **curve**. Under the controller:
+
+- **The drive mode** — **Arcade** (the left stick drives, the right stick turns), **Tank** (each stick drives its
+  own side) or **Field arcade** (push the stick the way to go on the field, whichever way the robot faces).
+- For each stick direction — **Forward and back**, **Turning** (and **Sideways** on a robot that can strafe):
+  - **Dead zone** — a stick moved less than this does nothing (the library's default is 0.05).
+  - **Curve** — 0 is straight: half a push asks for half speed. Higher gives finer control near the middle and still
+    full speed at the end.
+- **Ramp** — how quickly the request may change: at 4 per second, "full speed from rest in 0.25 s" — and a stop from
+  full speed takes as long, so with a ramp the robot does not stop the instant the sticks are let go. 0 is no ramp.
+- **When the sticks are let go** — the drive coasts, brakes or holds; and **the re-zero button**.
+
+![The driving feel at a curve of 0.6: a 30 % push asks for 12 %, a full push still 100 %](../assets/route-builder/feel.png)
+
+The graph is the library's own formula — the same numbers as the library's C++, checked on the host at 9 630 points:
+how far the stick is pushed along the bottom, what the library asks the drive for up the side. Drag the dot to try
+a push: "30 % stick → 12 % speed". It is the REQUEST, not a measured speed. In **Tank** both sticks are first
+averaged into a forward request, (left + right) / 2, and a turn request, (right − left) / 2; the curve shapes those.
+A dead zone of 1 or more, or a curve outside 0 to 1, is refused by the page and by the build (`the feel is out of
+range`). When "shulib Drive" starts, it prints the feel it runs (its `driver feel:` line, made from the driver file).
+
+### Export the controls
+
+**Export** (**Ctrl+E**) on the Controls tab shows the three parts of the driver file it writes, each with **Copy**:
+which button does what (`kControls`), the button map at the top of the file, and the feel (`kFeel`, and the re-zero
+button and what the drive does when let go). With the shulib folder connected (Edge or Chrome), **Write into
+src/team/robot_one_driver.hpp** changes only the lines between the file's three pairs of marker lines —
+`// [driver file one]`, `// [control words one]` and `// [feel one]`, each with its `[/…]` partner — and keeps the
+file's own line endings. A part someone changed by hand since the last export is not replaced unless you choose
+**Overwrite**. In Firefox or Safari, **Pick robot_one_driver.hpp** gives the updated file back as a download, with
+the same check. A driver file without the `control words` and `feel` markers (a copy from before robot two's
+update) can only be copied. **Undo** and **Redo** (**Ctrl+Z**, **Ctrl+Shift+Z**) work on this tab too, on the
+robot shown.
+
+![The Controls tab's export: the three parts, each with Copy](../assets/route-builder/controls-export.png)
+
+Then build as usual: the build is the final judge of every line.
 
 ## The reference
 
@@ -186,7 +283,7 @@ one-click fix it offers it.
 | Time limits | a time limit is empty or not above 0; volts outside -12 to 12 |
 | Labels and skips | two steps with one label, or a skip to a label that is not on a LATER step |
 | The name | the route is not named `skills` — the name both robots' code registers it by (the page does not rename it; a project file with any other name, even one the brain could not show, offers **Name it "skills"**) |
-| A newer project file | opening a `route_maker.json` made by a newer route builder (a step or a field this one cannot write): refused by name, nothing opened |
+| A newer project file | opening a `route_maker.json` made by a newer route builder (a step, or a field of the route, this one cannot write): refused by name, nothing opened. A robot's Controls this one cannot read open read only instead (the Controls tab) |
 
 ### The keyboard
 
@@ -212,5 +309,9 @@ per entry, in a fixed order so a change shows as a small `git diff`. It also rem
 last exported, so that if someone edits the code between the `ROUTE MAKER` lines by hand, the next export asks
 before replacing their change (**Keep their change**, or **Overwrite**). **Deleting the two `ROUTE MAKER` lines**
 makes the route hand-written code that the route builder leaves alone from then on.
+
+Once you change a robot's buttons or feel on the **Controls** tab, the project file also holds that robot's controls
+and feel (under `robots`, with a fingerprint of each part of its driver file it read or wrote), and from then on
+the tab shows the project's, exported or not.
 
 ![The same route in the dark theme](../assets/route-builder/route-dark.png)

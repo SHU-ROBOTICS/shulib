@@ -16,6 +16,38 @@
 
 ## API 2.9
 
+### 2026-11-16 — the route builder's Controls tab: the driver's buttons and the driving feel, by clicking
+
+> Written when it was built (chunk RMP1, run RMP1-B). **No library change — no API change:** nothing under
+> `include/shulib/` moved. One line of `src/common/driver_file.hpp` is new (below). **Host and browser only: no map
+> or feel it writes has run on a robot here.**
+
+**Why:** the team's non-coders set the driver's buttons, and "a small push of the stick slow, a full push fast" —
+until now by typing C++.
+
+**What you can now do (additive):**
+
+- **The Controls tab** of the [route builder](route-builder.md): a picture of the V5 controller — click a free button,
+  pick a mechanism and what it does (run while held with one button or two, a toggle, a level or a position on one
+  press, a home); what the build refuses is refused in plain words with the build's own name beside them, and what is
+  unfinished or would leave the button map wrong is asked for.
+- **Driving feel:** the drive mode, and for each stick direction the dead zone and the curve, with a live graph of the
+  library's own formula (the same numbers as the library's C++, checked on the host at 9 630 points); the ramp, what
+  the drive does when the sticks are let go, the re-zero button.
+- **Export** writes the driver file's three marked parts — which button does what (`kControls`), the button map at
+  the top of the file, the feel (`kFeel`) — in Edge or Chrome with the shulib folder connected; in Firefox it hands
+  back the updated driver file you pick; or it copies them.
+  How: [guide chapter 22](guide/22-making-your-first-route.md#the-drivers-buttons-and-the-driving-feel).
+
+**CHANGED (a driver file that compiled can now stop the build — none in this repository does):** `DriverFile`
+refuses an out-of-range feel by name (`the feel is out of range`): a `.deadband` below 0 or at 1 and above, or an
+`.expo` outside 0 to 1. Outside those the curve overshoots full speed or turns the stick around.
+
+**What you must do:** nothing, unless your driver file's feel is out of range (fix the number the message names).
+The driver files carry the `control words` and `feel` markers from robot two's update; until then the tab offers
+Copy only. "shulib Drive" (and the competition program) now print the feel the driver file runs on their own boot
+line, `driver feel: …`, made from its `kFeel` — so a feel other than the library's default builds.
+
 ### 2026-11-16 (built 2026-11-16) — robot two is robot one's twin; the calibration record names its robot; one skills route for both robots
 
 > Written when it was built (chunk ROB1, run BT — the brief's G1-B and G1-T together). **Added (no version

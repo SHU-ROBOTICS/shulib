@@ -6,20 +6,23 @@
 // robot.
 //
 // WHAT THIS FILE TRIES TO BREAK
-//   * THE BUILDER'S MAP, AS WRITTEN (T11, re-pinned at ROB1-C2 — it pins the RULE, the builder's words of
-//     2026-11-15): R1 / R2 the cascade while held (R1 up); A the claw, B the front toggle (the flipper), X the
-//     ramp — each a toggle; L1 the RIGHT side toggle and L2 the LEFT, each a ONE-button hold (no back button);
-//     one driver-start home; Y (the loop's re-zero) and the whole d-pad FREE; no preset, no other control.
-//   * THE BANNER IS THE FILE (GM22): every button the driver file's [the map] block names does what kControls
-//     says — a button swapped in the file but not the banner turns this red.
-//   * ON THE HOST, through the real driver file: the cascade homes DOWN at the first driver start; R1 drives it
-//     up and R2 down (never past its unhomed volts before it is homed); R1 + R2 together = neither; Y moves
-//     nothing; L1 runs the RIGHT toggle only, L2 the LEFT only, each ONE way and stopped on release; A, B and X
-//     each flip ITS piston and no other; every piston's line is MADE at Low (nothing moves at power-up).
+//   * THE MAP IS THE TEAM'S (T11, GM22 — re-pointed by RMP1-B, the RMP1 brief's §6.4): the students may change
+//     it, by hand or with the route builder's Controls tab, after the freeze too (its D15), so nothing here
+//     pins WHICH button does what. Pinned: the RULES — the loop's re-zero button free; every cascade level
+//     through the ledger (`facts::lv(i).name`); each side toggle on its own port; every button kControls
+//     takes has ONE row in the header's map, every other button row says FREE (the rows' order against the code:
+//     the route builder's CT23, node). The rows' WORDS are the team's and no test judges them: the route builder
+//     writes its own words for a control whose job it changes, and refuses kept words naming a button whose job
+//     changed.
+//   * ON THE HOST, each button READ FROM kControls: the cascade homes DOWN at the first driver start (if the
+//     map homes it); its hold's up button drives it up and its down button down (never past its unhomed volts
+//     before it is homed), both = neither; the re-zero moves nothing; a side toggle's button runs ITS toggle
+//     only, stopped on release; a piston's toggle flips ITS piston only; every piston line MADE at Low.
 //   * THE ROW (D6, ROB1-C2): robot one's six mechanisms print the COMPACT row (MECH ...), within the SMALL budget.
 
 #include "doctest.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -27,6 +30,8 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 #include "common/boot_source.hpp"
 #include "common/driver_panel.hpp"
@@ -43,6 +48,7 @@
 #include "shulib/mechanism/driver_inputs.hpp"
 #include "shulib/mechanism/service.hpp"
 #include "shulib/robot/robot.hpp"
+#include "shulib/teleop/mechanism_binding.hpp"
 #include "shulib/units/quantity.hpp"
 #include "source_pins.hpp"
 #include "team/robot_one_driver.hpp"
@@ -88,6 +94,12 @@ shulib::hal::DrivetrainDescription inventedRecord() {
     d.source = shulib::hal::DescriptionSource::RobotMeasured;
     std::snprintf(d.provenance, sizeof d.provenance, "%s", "robot=robot-one robot one driver test (INVENTED)");
     return d;
+}
+
+/// A button's name as the driver file spells it (hal::ControllerButton's order).
+const char* nameOf(ControllerButton b) {
+    static constexpr const char* kNames[12] = {"L1", "L2", "R1", "R2", "Up", "Down", "Left", "Right", "X", "B", "Y", "A"};
+    return kNames[static_cast<std::size_t>(b)];
 }
 
 std::size_t shimButton(ControllerButton b) { return 6U + static_cast<std::size_t>(b); }
@@ -178,47 +190,16 @@ const shulib::mechanism::Control* controlFor(ControlKind kind, std::string_view 
 }
 }  // namespace
 
-TEST_CASE("robot one driver (T11): the BUILDER'S map -- R1/R2 the cascade, A the claw, B the front toggle, X the ramp, L1 the RIGHT side toggle and L2 the LEFT (one button each), a driver-start home; Y and the d-pad free") {
-    // BUG CAUGHT: a button the builder named doing something else (the claw on B, the ramp on A); the cascade's
-    // up on R2; a side toggle given a second button (its "back" would steal one the builder left free) or swapped
-    // side; a preset left on the d-pad (the builder: "for now it will be manual"); Y taken (the loop's re-zero
-    // would fight a control); a second home control the builder never asked for.
-    const auto* cascade = controlOn(ControllerButton::R1);
-    REQUIRE(cascade != nullptr);
-    CHECK(cascade->kind == ControlKind::Hold);
-    CHECK(std::string_view{cascade->mechanismName} == "cascade");
-    CHECK(cascade->button == ControllerButton::R1);  // R1 = UP (+volts)
-    CHECK(cascade->back == ControllerButton::R2);    // R2 = DOWN
-    CHECK_FALSE(cascade->oneWay);
-    CHECK(cascade->volts == 12.0);
-    CHECK(controlOn(ControllerButton::R2) == cascade);
-    const struct {
-        ControllerButton button;
-        const char* mechanism;
-    } toggles[3] = {{ControllerButton::A, "claw"}, {ControllerButton::B, "flipper"}, {ControllerButton::X, "ramp"}};
-    for (const auto& t : toggles) {
-        CAPTURE(t.mechanism);
-        const auto* c = controlOn(t.button);
-        REQUIRE(c != nullptr);
-        CHECK(c->kind == ControlKind::Toggle);
-        CHECK(std::string_view{c->mechanismName} == t.mechanism);
-    }
-    const struct {
-        ControllerButton button;
-        const char* mechanism;
-    } sides[2] = {{ControllerButton::L1, "right toggle"}, {ControllerButton::L2, "left toggle"}};
-    for (const auto& t : sides) {
-        CAPTURE(t.mechanism);
-        const auto* c = controlOn(t.button);
-        REQUIRE(c != nullptr);
-        CHECK(c->kind == ControlKind::Hold);
-        CHECK(c->oneWay);  // ONE button: it runs one way, and takes no back button
-        CHECK(c->button == t.button);
-        CHECK(std::string_view{c->mechanismName} == t.mechanism);
-        CHECK(c->volts == 12.0);
-        CHECK(c->mechanismKind == shulib::mechanism::Kind::Power);
-    }
-    // ...the right toggle's mechanism is wired to the RIGHT toggle's port fact, the left to the other.
+TEST_CASE("robot one driver (T11, re-pointed by RMP1-B): the RULES any team map keeps -- the re-zero button free, every cascade level through the ledger, each side toggle on its own port") {
+    // BUG CAUGHT: a control on the loop's re-zero button; a cascade level by a quoted name or a constant (a
+    // level renamed in the facts file then names nothing, or another level); a side toggle wired to the other
+    // side's port. WHICH button does what is the team's (§6.4) and is not pinned.
+    CHECK(sb::robot_one::kControls.avoids(RobotOneDriver::kLoop.rezeroButton));
+    CHECK(controlOn(RobotOneDriver::kLoop.rezeroButton) == nullptr);
+    const std::string code =
+        source_pins::squash(source_pins::stripComments(source_pins::readFile("src/team/robot_one_driver.hpp")));
+    CHECK(source_pins::count(code, "preset(cascade") == source_pins::count(code, "preset(cascade[facts::lv("));
+    CHECK(source_pins::count(code, "cascade[\"") == 0);
     const auto& list = sb::robot_one::kRobotOneMechanisms;
     for (std::size_t i = 0; i < list.count; ++i) {
         if (std::string_view{list.specs[i].name} == "right toggle") {
@@ -228,121 +209,175 @@ TEST_CASE("robot one driver (T11): the BUILDER'S map -- R1/R2 the cascade, A the
             CHECK(list.wiring[i].motors[0] == facts::leftTogglePort());
         }
     }
-    const auto* home = controlFor(ControlKind::HomeAtDriverStart, "cascade");
-    REQUIRE(home != nullptr);
-    CHECK(home->bound == 3.0);
-    int presets = 0;
-    int homes = 0;
-    for (const auto& c : sb::robot_one::kControls.all()) {
-        presets += c.kind == ControlKind::Preset ? 1 : 0;
-        homes += (c.kind == ControlKind::HomeAtDriverStart || c.kind == ControlKind::HomeOnPress) ? 1 : 0;
-    }
-    CHECK(presets == 0);  // manual for now: no preset anywhere
-    CHECK(homes == 1);    // the one driver-start home, nothing on a button
-    CHECK(sb::robot_one::kControls.count == 7);
-    for (const ControllerButton b : {ControllerButton::Y, ControllerButton::Up, ControllerButton::Down,
-                                     ControllerButton::Left, ControllerButton::Right}) {
-        CAPTURE(static_cast<int>(b));
-        CHECK(sb::robot_one::kControls.avoids(b));
-        CHECK(controlOn(b) == nullptr);
-    }
-    CHECK(RobotOneDriver::kLoop.rezeroButton == ControllerButton::Y);
 }
 
-TEST_CASE("robot one driver (T11, GM22): the BANNER's [the map] says what the FILE does -- every button as the builder named it") {
-    // BUG CAUGHT (GM22): a button swapped in the file but not the banner — the students read the banner; the
-    // robot runs the file. Each banner line and each code line is pinned, once.
-    const std::string text = source_pins::readFile("src/team/robot_one_driver.hpp");
-    CHECK(source_pins::count(text, "// [the map]") == 1);
-    for (const char* banner : {"//   R1           HOLD: the cascade goes UP; let go: it stops and HOLDS where it is",
-                               "//   R2           HOLD: the cascade goes DOWN; let go: it stops and holds",
-                               "//   A            the claw: press = open, press again = close",
-                               "//   B            the front toggle (the flipper): press = open (out), press again = close",
-                               "//   X            the ramp: press = down (the builder's \"open\"), press again = up",
-                               "//   L1           HOLD: the RIGHT side toggle runs (one way only); let go: it stops",
-                               "//   L2           HOLD: the LEFT side toggle runs (one way only); let go: it stops",
-                               "//   Y            field-centric re-zero",
-                               "//   d-pad        FREE",
-                               "//   (start)      the FIRST time driver control starts in a run, the cascade HOMES"}) {
-        CAPTURE(banner);
-        CHECK(source_pins::count(text, banner) == 1);
+namespace {
+/// The header map's rows (`//   <key>  <words>`, continuation lines joined): key -> words. Read from the line after
+/// the route builder's `// [control words …]` marker, as the page reads it (the `[the map]` heading above it is the
+/// team's prose, one line or more).
+std::vector<std::pair<std::string, std::string>> mapRows(const std::string& text) {
+    std::vector<std::pair<std::string, std::string>> rows;
+    std::size_t at = text.find("// [control words ");
+    if (at == std::string::npos) at = text.find("// [the map]");
+    REQUIRE(at != std::string::npos);
+    at = text.find('\n', at) + 1;
+    while (at < text.size()) {
+        const std::size_t end = text.find('\n', at);
+        const std::string line = text.substr(at, end - at);
+        at = end + 1;
+        if (line.starts_with("// [")) continue;  // the route builder's marker lines
+        if (!line.starts_with("//   ")) break;
+        if (line.size() > 5 && line[5] == ' ') {
+            if (!rows.empty()) rows.back().second += " " + line.substr(5);
+            continue;
+        }
+        const std::size_t gap = line.find("  ", 5);
+        rows.emplace_back(line.substr(5, gap - 5), gap == std::string::npos ? "" : line.substr(gap));
     }
-    const std::string code = source_pins::squash(source_pins::stripComments(text));
-    for (const char* line : {"whileHeld(cascade, Button::R1, Button::R2, 12_volt)", "toggle(claw, Button::A)",
-                             "toggle(flipper, Button::B)", "toggle(ramp, Button::X)",
-                             "whileHeld(rightToggle, Button::L1, 12_volt)", "whileHeld(leftToggle, Button::L2, 12_volt)",
-                             "homeAtDriverStart(cascade, 3_s)"}) {
-        CAPTURE(line);
-        CHECK(source_pins::count(code, line) == 1);
+    return rows;
+}
+
+/// The buttons a map key names, read as the route builder reads them ("R1 / R2", "Left/Right", "d-pad", "B, X").
+std::vector<ControllerButton> keyButtons(const std::string& key) {
+    std::vector<ControllerButton> out;
+    std::size_t from = 0;
+    while (from <= key.size()) {
+        std::size_t to = key.find_first_of("/,", from);
+        if (to == std::string::npos) to = key.size();
+        std::string word = key.substr(from, to - from);
+        word.erase(0, word.find_first_not_of(' '));
+        word.erase(word.find_last_not_of(' ') + 1);
+        if (word == "d-pad") {
+            for (const auto b : {ControllerButton::Up, ControllerButton::Down, ControllerButton::Left, ControllerButton::Right}) out.push_back(b);
+        }
+        for (int i = 0; i < 12; ++i) {
+            if (word == nameOf(static_cast<ControllerButton>(i))) out.push_back(static_cast<ControllerButton>(i));
+        }
+        from = to + 1;
     }
-    CHECK(source_pins::count(code, "preset(") == 0);
-    CHECK(source_pins::count(code, "homeOnPress(") == 0);
-    // the ONE line the team may delete is marked as such
-    CHECK(source_pins::count(text, "homeAtDriverStart(cascade, 3_s));                      // [delete-able]") == 1);
+    return out;
+}
+}  // namespace
+
+TEST_CASE("robot one driver (GM22, re-pointed by RMP1-B): every button with a job (and the re-zero) has ONE row in the header's map; a FREE row names only free buttons") {
+    // BUG CAUGHT (GM22): a control added without its row, or a row left for a button nothing uses (the students
+    // read the map; the robot runs the file); the d-pad called FREE while one of its buttons has a job (or is the
+    // re-zero). Keys as the route builder writes them ("R1 / R2", "d-pad"). The rows' WORDS are the team's: not
+    // judged here or anywhere (the file's header says so).
+    const auto rows = mapRows(source_pins::readFile("src/team/robot_one_driver.hpp"));
+    REQUIRE(rows.size() >= 3);
+    const ControllerButton rezero = RobotOneDriver::kLoop.rezeroButton;
+    const auto jobRows = [&](ControllerButton b) {
+        int n = 0;
+        for (const auto& [key, words] : rows) {
+            const auto bs = keyButtons(key);
+            n += words.find("FREE") == std::string::npos && std::find(bs.begin(), bs.end(), b) != bs.end() ? 1 : 0;
+        }
+        return n;
+    };
+    bool startHome = false;
+    for (const shulib::mechanism::Control& c : sb::robot_one::kControls.all()) {
+        startHome = startHome || c.kind == ControlKind::HomeAtDriverStart;
+        if (c.kind == ControlKind::AutonOnly || c.kind == ControlKind::HomeAtDriverStart) continue;
+        CAPTURE(nameOf(c.button));
+        CHECK(jobRows(c.button) == 1);
+        if (c.kind == ControlKind::Hold && !c.oneWay) {
+            CAPTURE(nameOf(c.back));
+            CHECK(jobRows(c.back) == 1);
+        }
+    }
+    CHECK(jobRows(rezero) == 1);
+    CHECK(std::count_if(rows.begin(), rows.end(), [](const auto& r) { return r.first == "(start)"; }) == (startHome ? 1 : 0));
+    for (const auto& [key, words] : rows) {
+        CAPTURE(key);
+        for (const ControllerButton b : keyButtons(key)) {
+            CAPTURE(nameOf(b));
+            const bool free = controlOn(b) == nullptr && b != rezero;
+            CHECK(free == (words.find("FREE") != std::string::npos));  // FREE exactly when it has no job
+        }
+    }
 }
 
 // ═══ on the host, through the real driver file ═════════════════════════════════════════════
 
-TEST_CASE("robot one driver (T11): on the host -- homes DOWN at the first start; R1 up, R2 down (within its unhomed volts), both = neither; Y moves nothing; L1 runs ONLY the right toggle, L2 ONLY the left, each stopped on release") {
-    // BUG CAUGHT: a cascade that does not home at the first driver start; R1 driving it DOWN; both triggers
-    // fighting; Y moving a mechanism; L1 running the LEFT toggle (or both); a side toggle that keeps running
-    // after its button is let go; a side toggle driven backward by a button the builder never gave it.
+TEST_CASE("robot one driver (T11): on the host -- homes DOWN at the first start; the cascade's up button up, its down button down (within its unhomed volts), both = neither; the re-zero moves nothing; each side toggle's button runs ONLY its toggle, stopped on release") {
+    // BUG CAUGHT: a cascade that does not home at the first driver start; its up button driving it DOWN; both
+    // buttons fighting; the re-zero moving a mechanism; the right toggle's button running the LEFT toggle (or
+    // both); a side toggle that keeps running after its button is let go. Each button is the TEAM'S (§6.4).
+    const auto* jog = controlFor(ControlKind::Hold, "cascade");
+    const auto* home = controlFor(ControlKind::HomeAtDriverStart, "cascade");
+    const auto* rightHold = controlFor(ControlKind::Hold, "right toggle");
+    const auto* leftHold = controlFor(ControlKind::Hold, "left toggle");
+    const ControllerButton rezero = RobotOneDriver::kLoop.rezeroButton;
+    const bool twoWay = jog != nullptr && !jog->oneWay;
+    if (!twoWay) MESSAGE("the team's map has no two-button hold on the cascade: its jog is not driven here");
     OneRig r;
     double firstHome = 0.0;
     double up = 0.0;
     double down = 0.0;
     double both = 99.0;
     double withY = 99.0;
-    double l1Right = 0.0, l1Left = 99.0, l1Released = 99.0;
-    double l2Right = 99.0, l2Left = 0.0, l2Released = 99.0;
+    double rightOn = 0.0, rightOther = 99.0, rightReleased = 99.0;
+    double leftOn = 0.0, leftOther = 99.0, leftReleased = 99.0;
     const double unhomed = facts::kCascadeUnhomedVolts.value();
-    // The schedule (10 ms ticks): 0-4 the driver-start home; past its 3 s bound (tick 320) R1, then R2, then
-    // both, then nothing with Y, then L1, then L2.
+    // The schedule (10 ms ticks), past the driver-start home's bound (t0): the cascade's up button, its down
+    // button, both, nothing with the re-zero, the right toggle's button, the left toggle's.
+    const int t0 = home != nullptr ? static_cast<int>(home->bound * 100.0) + 20 : 20;
     r.run(
-        600,
-        [](int k) {
-            const auto in = [k](int a, int b) { return k >= a && k < b; };
-            press(ControllerButton::R1, in(330, 360) || in(400, 430));
-            press(ControllerButton::R2, in(365, 395) || in(400, 430));
-            press(ControllerButton::Y, in(440, 470));
-            press(ControllerButton::L1, in(480, 510));
-            press(ControllerButton::L2, in(530, 560));
+        t0 + 280,
+        [&](int k) {
+            const auto in = [k, t0](int a, int b) { return k >= t0 + a && k < t0 + b; };
+            if (twoWay) {
+                press(jog->button, in(10, 40) || in(80, 110));
+                press(jog->back, in(45, 75) || in(80, 110));
+            }
+            press(rezero, in(120, 150));
+            if (rightHold != nullptr) press(rightHold->button, in(160, 190));
+            if (leftHold != nullptr) press(leftHold->button, in(210, 240));
         },
         [&](int k) {
             if (k == 3) firstHome = r.cascade1();
-            if (k == 350) up = r.cascade1();
-            if (k == 385) down = r.cascade1();
-            if (k == 425) both = r.cascade1();
-            if (k == 465) withY = r.cascade1();
-            if (k == 500) { l1Right = r.right(); l1Left = r.left(); }
-            if (k == 520) l1Released = r.right();
-            if (k == 550) { l2Right = r.right(); l2Left = r.left(); }
-            if (k == 580) l2Released = r.left();
+            if (k == t0 + 30) up = r.cascade1();
+            if (k == t0 + 65) down = r.cascade1();
+            if (k == t0 + 105) both = r.cascade1();
+            if (k == t0 + 145) withY = r.cascade1();
+            if (k == t0 + 180) { rightOn = r.right(); rightOther = r.left(); }
+            if (k == t0 + 200) rightReleased = r.right();
+            if (k == t0 + 230) { leftOn = r.left(); leftOther = r.right(); }
+            if (k == t0 + 260) leftReleased = r.left();
         });
-    MESSAGE("robot one on the host: home " << firstHome << " V, R1 " << up << " V, R2 " << down << " V, both " << both
-                                           << " V, Y " << withY << " V; L1 right " << l1Right << " left " << l1Left
-                                           << "; L2 right " << l2Right << " left " << l2Left);
-    CHECK(firstHome < 0.0);  // DOWN, at the first driver start
-    CHECK(firstHome >= facts::kCascadeHomingPushVolts.value() - 1e-9);
-    CHECK(up > 0.0);  // R1 = UP
-    CHECK(up <= unhomed + 1e-9);  // never past its unhomed volts before it is homed
-    CHECK(down < 0.0);  // R2 = DOWN
-    CHECK(down >= -unhomed - 1e-9);
-    CHECK(both == doctest::Approx(0.0));
+    MESSAGE("robot one on the host: home " << firstHome << " V, up " << up << " V, down " << down << " V, both "
+                                           << both << " V, re-zero " << withY << " V; right toggle " << rightOn
+                                           << " (left " << rightOther << "); left toggle " << leftOn << " (right "
+                                           << leftOther << ")");
+    if (home != nullptr) {
+        CHECK(firstHome < 0.0);  // DOWN, at the first driver start
+        CHECK(firstHome >= facts::kCascadeHomingPushVolts.value() - 1e-9);
+    }
+    if (twoWay) {
+        CHECK(up > 0.0);  // the up button = UP
+        CHECK(up <= unhomed + 1e-9);  // never past its unhomed volts before it is homed
+        CHECK(down < 0.0);
+        CHECK(down >= -unhomed - 1e-9);
+        CHECK(both == doctest::Approx(0.0));
+        // The second motor gets the same command (its mirroring is its adapter's, once — never the file's).
+        CHECK(std::abs(r.cascade2()) == doctest::Approx(std::abs(r.cascade1())));
+    }
     CHECK(withY == doctest::Approx(0.0));
-    // The second motor gets the same command (its mirroring is its adapter's, once — never the file's).
-    CHECK(std::abs(r.cascade2()) == doctest::Approx(std::abs(r.cascade1())));
-    // L1: the RIGHT toggle at the full 12 V, the left untouched; let go: stopped. L2: the mirror.
-    CHECK(l1Left == doctest::Approx(0.0));
-    CHECK(l1Released == doctest::Approx(0.0));
-    CHECK(l2Right == doctest::Approx(0.0));
-    CHECK(l2Released == doctest::Approx(0.0));
-    // ...ONE way each: the button commands +12 V ("run"), never -12 V; WHICH way that turns the motor is its
-    // declaration's direction fact, applied ONCE, by the motor's SIGNED port (PROS reverses inside the adapter —
-    // a host fake indexed by |port| reads the same command either way, so the sign is checked structurally, as
-    // the provider's motorSignedPort() exists to). The two run mirror-image ways on the placeholders.
-    CHECK(l1Right == doctest::Approx(12.0));
-    CHECK(l2Left == doctest::Approx(12.0));
+    // The right toggle's button: the RIGHT toggle at its volts, the left untouched; let go: stopped. And the
+    // mirror. ONE way each: +volts ("run"); WHICH way that turns the motor is its declaration's direction fact,
+    // applied ONCE by the motor's SIGNED port (PROS reverses inside the adapter — a host fake indexed by |port|
+    // reads the same command either way, so the sign is checked structurally).
+    if (rightHold != nullptr) {
+        CHECK(rightOn == doctest::Approx(rightHold->volts));
+        CHECK(rightOther == doctest::Approx(0.0));
+        CHECK(rightReleased == doctest::Approx(0.0));
+    }
+    if (leftHold != nullptr) {
+        CHECK(leftOn == doctest::Approx(leftHold->volts));
+        CHECK(leftOther == doctest::Approx(0.0));
+        CHECK(leftReleased == doctest::Approx(0.0));
+    }
     const auto signOf = [&](int port) { return r.devices.motorSignedPort(static_cast<std::uint8_t>(port)); };
     CHECK((signOf(facts::kRightTogglePort.value()) < 0) == facts::kRightToggleDirection.value().reversed);
     CHECK((signOf(facts::leftTogglePort()) < 0) == facts::kLeftToggleDirection.value().reversed);
@@ -350,52 +385,53 @@ TEST_CASE("robot one driver (T11): on the host -- homes DOWN at the first start;
     CHECK(std::abs(signOf(facts::leftTogglePort())) == facts::leftTogglePort());
 }
 
-TEST_CASE("robot one driver (T11): on the host -- every piston's line is MADE at Low (nothing moves at power-up); A flips ONLY the claw, B ONLY the front toggle, X ONLY the ramp, each back on its second press") {
-    // BUG CAUGHT: a piston that starts in its POWERED position (it would fire at power-up); A firing the ramp; a
-    // toggle that does not come back on its second press; one press flipping two pistons.
+TEST_CASE("robot one driver (T11): on the host -- every piston's line is MADE at Low (nothing moves at power-up); each piston's toggle button flips ONLY that piston, and back on its second press") {
+    // BUG CAUGHT: a piston that starts in its POWERED position (it would fire at power-up); the claw's button
+    // firing the ramp; a toggle that does not come back on its second press; one press flipping two pistons.
     OneRig r;
-    const char claw = facts::kClawLine.value();
-    const char flip = facts::kFlipperLine.value();
-    const char ramp = facts::kRampLine.value();
-    for (const char l : {claw, flip, ramp}) {
+    const char lines[3] = {facts::kClawLine.value(), facts::kFlipperLine.value(), facts::kRampLine.value()};
+    const char* const names[3] = {"claw", "flipper", "ramp"};
+    for (const char l : lines) {
         CAPTURE(l);
         const auto line = static_cast<std::uint8_t>(l - 'A' + 1);
         REQUIRE(r.devices.digitalOutMade(line));
         CHECK(r.devices.digitalOutInitialState(line) == shulib::mechanism::words::Low);
     }
-    struct Seen {
-        bool claw, flip, ramp;
-    };
-    Seen start{}, afterA{}, afterA2{}, afterB{}, afterX{};
-    const auto seen = [&] { return Seen{r.line(claw), r.line(flip), r.line(ramp)}; };
+    const shulib::mechanism::Control* toggles[3] = {};
+    for (int i = 0; i < 3; ++i) {
+        toggles[i] = controlFor(ControlKind::Toggle, names[i]);
+        if (toggles[i] == nullptr) MESSAGE("the team's map has no toggle on the " << names[i]);
+    }
+    // piston i: pressed at 20 + 80 i, seen at 40 + 80 i; pressed again at 60 + 80 i, seen at 80 + 80 i
+    bool seen[3][2][3] = {};
+    bool start[3] = {true, true, true};
     r.run(
-        200,
-        [](int k) {
-            const auto in = [k](int a, int b) { return k >= a && k < b; };
-            press(ControllerButton::A, in(20, 25) || in(60, 65));
-            press(ControllerButton::B, in(100, 105));
-            press(ControllerButton::X, in(140, 145));
+        260,
+        [&](int k) {
+            for (int i = 0; i < 3; ++i) {
+                if (toggles[i] == nullptr) continue;
+                const int a = 20 + 80 * i;
+                press(toggles[i]->button, (k >= a && k < a + 5) || (k >= a + 40 && k < a + 45));
+            }
         },
         [&](int k) {
-            if (k == 10) start = seen();
-            if (k == 40) afterA = seen();
-            if (k == 80) afterA2 = seen();
-            if (k == 120) afterB = seen();
-            if (k == 160) afterX = seen();
+            if (k == 10) for (int j = 0; j < 3; ++j) start[j] = r.line(lines[j]);
+            for (int i = 0; i < 3; ++i) {
+                for (int p = 0; p < 2; ++p) {
+                    if (k == 40 + 80 * i + 40 * p) for (int j = 0; j < 3; ++j) seen[i][p][j] = r.line(lines[j]);
+                }
+            }
         });
-    CHECK_FALSE(start.claw);  // Low: the unpowered position, at the first driver start too
-    CHECK_FALSE(start.flip);
-    CHECK_FALSE(start.ramp);
-    CHECK(afterA.claw);  // A: the claw, and only the claw
-    CHECK_FALSE(afterA.flip);
-    CHECK_FALSE(afterA.ramp);
-    CHECK_FALSE(afterA2.claw);  // A again: back
-    CHECK(afterB.flip);  // B: the front toggle only
-    CHECK_FALSE(afterB.claw);
-    CHECK_FALSE(afterB.ramp);
-    CHECK(afterX.ramp);  // X: the ramp only
-    CHECK(afterX.flip);  // (the front toggle stays where B put it)
-    CHECK_FALSE(afterX.claw);
+    for (int j = 0; j < 3; ++j) CHECK_FALSE(start[j]);  // Low: the unpowered position, at the first start too
+    for (int i = 0; i < 3; ++i) {
+        if (toggles[i] == nullptr) continue;
+        CAPTURE(names[i]);
+        for (int j = 0; j < 3; ++j) {
+            CAPTURE(names[j]);
+            CHECK(seen[i][0][j] == (i == j));  // the first press: that piston, and only it
+            CHECK_FALSE(seen[i][1][j]);        // the second: back
+        }
+    }
 }
 
 TEST_CASE("robot one driver (D6, ROB1-C2): robot one's six mechanisms print the COMPACT row -- MECH, each motor by port, each piston by name -- and it fits the SMALL budget") {
@@ -455,20 +491,26 @@ TEST_CASE("robot one driver (D6, ROB1-C2 review): the compact row says F while R
     };
     std::string up;
     std::string down;
-    // Past the driver-start home's 3 s bound (tick 320), R1 is held, then R2 (T11's schedule).
+    // Past the driver-start home's bound (tick 320), the cascade's up button is held, then its down button
+    // (the team's, from kControls -- §6.4).
+    const auto* jog = controlFor(ControlKind::Hold, "cascade");
+    const bool twoWay = jog != nullptr && !jog->oneWay;
     r.run(
         400,
-        [](int k) {
-            press(ControllerButton::R1, k >= 330 && k < 360);
-            press(ControllerButton::R2, k >= 365 && k < 395);
+        [&](int k) {
+            if (!twoWay) return;
+            press(jog->button, k >= 330 && k < 360);
+            press(jog->back, k >= 365 && k < 395);
         },
         [&](int k) {
             if (k == 350) up = rowWith(120.0, -5.0, std::nan(""));
             if (k == 385) down = rowWith(99.6, 0.4, 41.0);
         });
     MESSAGE("robot one's compact row: R1 held '" << up << "', R2 held '" << down << "'");
-    CHECK(up.find(" " + std::to_string(cas) + "F99") != std::string::npos);    // UP: F; 120 C: 99
-    CHECK(down.find(" " + std::to_string(cas) + "R99") != std::string::npos);  // DOWN: R; 99.6 C (past 99): 99
+    if (twoWay) {
+        CHECK(up.find(" " + std::to_string(cas) + "F99") != std::string::npos);    // UP: F; 120 C: 99
+        CHECK(down.find(" " + std::to_string(cas) + "R99") != std::string::npos);  // DOWN: R; 99.6 C (past 99): 99
+    }
     CHECK(up.find(" " + std::to_string(right) + "B00") != std::string::npos);  // -5 C: 00
     CHECK(up.find(" " + std::to_string(left) + "B--") != std::string::npos);   // unreadable: --
     CHECK(down.find(" " + std::to_string(right) + "B00") != std::string::npos);  // 0.4 C rounds to 00
@@ -502,12 +544,32 @@ TEST_CASE("robot one driver (ROB1-C2): the boot line names a side toggle's ONE b
         const std::string text = sb::mechanismControlLine(list, i, c, true).text;
         CAPTURE(text);
         const std::string want = std::string{c.mechanismName} + ": hold-to-run " +
-                                 (c.button == ControllerButton::L1 ? "L1" : "L2") + " (one way), 12 V";
+                                 shulib::teleop::controllerButtonWord(c.button) + " (one way), " +
+                                 std::to_string(std::lround(c.volts)) + " V";
         CHECK(text == want);
         ++seen;
     }
-    CHECK(seen == 2);
-    // ...and the cascade's two-button hold keeps its two buttons on its line.
-    CHECK(std::string{sb::mechanismControlLine(list, 0, sb::robot_one::kControls.c[0], true).text} ==
-          "cascade: hold-to-run R1 / R2, 12 V");
+    MESSAGE("the team's map has " << seen << " one-button hold(s)");
+    // The map is the team's (§6.4), so the one-button line is also checked on one made here: L1 on the right
+    // toggle at 12 V.
+    shulib::mechanism::Control one{};
+    one.kind = ControlKind::Hold;
+    one.oneWay = true;
+    one.button = ControllerButton::L1;
+    one.back = ControllerButton::L1;
+    one.volts = 12.0;
+    one.mechanismName = "right toggle";
+    std::size_t rightAt = 0;
+    while (rightAt < list.count && std::string_view{list.specs[rightAt].name} != "right toggle") ++rightAt;
+    REQUIRE(rightAt < list.count);
+    CHECK(std::string{sb::mechanismControlLine(list, rightAt, one, true).text} ==
+          "right toggle: hold-to-run L1 (one way), 12 V");
+    // ...and a two-button hold keeps its two buttons on its line (the team's, from kControls).
+    const auto* jog = controlFor(ControlKind::Hold, "cascade");
+    if (jog != nullptr && !jog->oneWay) {
+        CHECK(std::string{sb::mechanismControlLine(list, 0, *jog, true).text} ==
+              std::string{"cascade: hold-to-run "} + shulib::teleop::controllerButtonWord(jog->button) + " / " +
+                  shulib::teleop::controllerButtonWord(jog->back) + ", " + std::to_string(std::lround(jog->volts)) +
+                  " V");
+    }
 }

@@ -164,6 +164,22 @@ export function makeFiles(host) {
                      words: 'Downloaded the updated skills_route.cpp: put it back in src/team/ in place of the old one' };
         },
 
+        /** A team file's text from the connected folder (null: none, or no folder) — the driver files (RMP1-B). */
+        async readTeam(path) {
+            guard(path);
+            return host.canWriteFolder && host.connected() ? host.readText(path) : null;
+        },
+        /** Replace a team file's text (the caller's model module made it under the marker rules). */
+        async writeTeam(path, text) {
+            guard(path);
+            if (!(host.canWriteFolder && host.connected())) {
+                throw new Error('connect your shulib folder first');
+            }
+            await host.writeText(path, text);
+        },
+        pickText: () => host.pickText(),
+        offerDownload: (name, text) => host.offerDownload(name, text),
+
         /** The region's text currently in the file (for "what changed" in the export drawer), or null. */
         async currentRegion() {
             if (!(host.canWriteFolder && host.connected())) {

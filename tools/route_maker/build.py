@@ -152,6 +152,19 @@ def shared_route_present() -> bool:
     return bool(re.search(r'^// ═══ ROUTE MAKER — route "[^"]*" — BEGIN ═+\r?$', text, re.M))
 
 
+def driver_files() -> dict:
+    """RMP1-B: each robot's driver file as it is in this commit -- the Controls tab reads its map from it. Base64:
+    it is the TEAM's text, so a URL or a path in one of their comments never trips HS8 or RG1 (they judge the
+    builder's own output) and never stops the site's build."""
+    out = {}
+    for rid in ('one', 'two'):
+        f = REPO / 'src' / 'team' / f'robot_{rid}_driver.hpp'
+        if f.exists():
+            text = f.read_text(encoding='utf-8').replace('\r\n', '\n')
+            out[rid] = {'path': f'src/team/robot_{rid}_driver.hpp', 'base64': base64.b64encode(text.encode('utf-8')).decode('ascii')}
+    return out
+
+
 def baked_data(robots: dict) -> dict:
     api = robots['one'].get('api', '?')
     present = shared_route_present()
@@ -160,6 +173,9 @@ def baked_data(robots: dict) -> dict:
                   'api': api},
         'robots': robots,
         'sharedRoute': {'file': 'src/team/skills_route.cpp', 'present': present, 'robots': ['one', 'two'] if present else ['one']},
+        'driverFiles': driver_files(),
+        # the drive program's boot line still names the DEFAULT feel (a static_assert): the page refuses any other
+        'feelDefaultOnly': 'driverLineMatchesFeel' in (REPO / 'src' / 'programs' / 'drive_program.cpp').read_text(encoding='utf-8'),
     }
 
 

@@ -48,8 +48,9 @@ each field of a pair) are pinned at run time, one property per case, by `mechani
 documentation comment fails the build *naming that entity, its file and its line*; the generated reference in
 `docs/api/` must match a fresh generation; every ```` ```cpp ```` line in the public
 documentation must appear verbatim in a compiled example test (or in a team file a chapter quotes
-— robot two's driver file, `src/team/robot_two_driver.hpp`, each listing of which must also be an
-unbroken run of the file); and no public document may link into the development-process notes.
+— a driver file or the auton file, each listing of which must also be an unbroken run of the file — or in a route
+builder CT21 golden, `goldens/route_maker/controls_*.hpp`); and no public document may link into the
+development-process notes.
 The library itself is header-only C++ and depends on none of
 this — only the test build does, and deliberately: a gate you can forget to run is not a gate.
 
@@ -76,6 +77,20 @@ The route builder (`tools/route_maker/`, a web page) has two halves of tests, an
   change that moves either, re-make the committed file and READ the diff:
   `build/test/shulib_route_maker describe --robot x > test/goldens/route_maker/robots/x.json` (and y, z), and
   `build/test/shulib_route_maker curves > test/goldens/route_maker/curves.txt`.
+
+- **The Controls tab's C++ half (RMP1-B)** — `route_maker_controls_test.cpp` compiles the page's controls exports on
+  the fixture robots and on robot one's real declarations (`goldens/route_maker/controls_*.hpp`, every control form,
+  a block-form `kFeel`; `controls_one_builders_map.hpp` is the builder's map as typed, which guide 21 quotes) through
+  `DriverFile`, and `goldens/route_maker/feel_valid_rows.hpp` (a `static_assert` per row of the page's feel check
+  at its boundaries). `shulib_route_maker feel` re-makes `goldens/route_maker/feel_curve.txt` (the library's stick
+  curve at 9 630 points, hex doubles) and `shulib_route_maker feel-edges` re-makes `goldens/route_maker/feel_edges.txt`
+  (each dead zone's edge and the doubles either side of it, ±0, the limits); the suite and the page's node test
+  compare both bit for bit. The CT
+  agreement's twins are `compile_refusals/rm_ct_*.cpp` — one per build refusal of a driver file, each written by
+  `tools/route_maker/goldens.mjs --write` from the page's own export and expecting the PAGE's refusal name — and
+  `rm01_a_feel_out_of_range.cpp` (DriverFile's feel check). `goldens/route_maker/driver_{one,two}_marked.hpp` are the
+  two driver files with the `control words` and `feel` markers (robot one's map read back and written byte for
+  byte: the page's CT22). `robot_one_driver_test.cpp` reads every button from `kControls` (the map is the team's).
 
 The page's own tests are node's: `node --test tools/route_maker/test/*.test.mjs` (the model — no browser), and, with a
 browser, `ROUTE_MAKER_BROWSER=firefox node --test tools/route_maker/test/page/*.test.mjs` (see `tools/route_maker/README.md`).

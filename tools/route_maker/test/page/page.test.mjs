@@ -35,6 +35,9 @@ const SKILLS_HEAD = '#include "team/skills_route.hpp"\r\n\r\nnamespace shulib::b
 const BEGIN = '// ═══ ROUTE MAKER — route "skills" — BEGIN ═══════════════════════════════════════════════';
 const END = '// ═══ ROUTE MAKER — route "skills" — END ═════════════════════════════════════════════════';
 const MIRRORED = 'registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));';
+// robot one's cascade levels, as this site was built: NONE since ROB1-C2 typed its facts (a level is typed later)
+const ONE_LEVELS = fs.existsSync(path.join(SITE, 'robots.json'))
+    && JSON.parse(fs.readFileSync(path.join(SITE, 'robots.json'), 'utf8')).robots.one.mechanisms.some((m) => (m.presets || []).length > 0);
 
 let pw;
 let browser;
@@ -182,8 +185,8 @@ async function selectStep(page, viewport, i) {
 
 // A READY route, built the way a student builds it (every number typed is the test's, never the page's): the
 // start on the red tiles facing blue (NOT flush against the wall: turning there would put a corner 2.4 in into
-// it -- the page says so, RC1), a home with its time limit, a drive (turned first), a curve, a
-// cascade level, a wait. The screens of §2.5.2 and the docs' pictures are taken of it.
+// it -- the page says so, RC1), a home with its time limit, a drive (turned first), a curve, the
+// claw set open, a wait. The screens of §2.5.2 and the docs' pictures are taken of it.
 async function readyRoute(page) {
     await page.getByRole('button', { name: 'Got it' }).click();
     await clickField(page, -36, -60.3);  // snaps to the half-tile grid
@@ -197,16 +200,20 @@ async function readyRoute(page) {
     await clickField(page, -12, -12);
     await clickField(page, 12, -12);
     await page.keyboard.press('Enter');
-    await page.keyboard.press('m');
-    await page.getByRole('button', { name: 'Move to a level' }).click();
-    await page.locator('.pane.right select[name="preset"]').selectOption({ index: 3 });
-    await typeIn(page, 'boundS', 1.5);
+    await setClaw(page, 'open');
     await page.keyboard.press('p');
     await typeIn(page, 'seconds', 0.5);
     const r = await route(page);
-    assert.deepEqual(r.steps.map((x) => x.do), ['home', 'driveTo', 'curveTo', 'move', 'wait']);
+    assert.deepEqual(r.steps.map((x) => x.do), ['home', 'driveTo', 'curveTo', 'set', 'wait']);
     assert.deepEqual([r.start.x, r.start.y], [-36, -60], 'snapped to the 12 in grid');
     assert.deepEqual(await errorsOf(page), [], 'a ready route');
+}
+
+/** A step setting robot one's claw (its first piston) to `position`. */
+async function setClaw(page, position) {
+    await page.keyboard.press('m');
+    await page.locator('.popover h3', { hasText: /^claw · / }).locator('xpath=following-sibling::button[1]').click();
+    await page.locator('.pane.right select[name="position"]').selectOption(position);
 }
 
 test.describe('the route builder in a browser', { skip }, () => {
@@ -332,32 +339,45 @@ test.describe('the route builder in a browser', { skip }, () => {
         await page.getByRole('button', { name: 'Move to a level' }).click();
         const rc25 = (await issues(page)).filter((x) => x.code === 'RC25');
         assert.equal(rc25.length, 1);
-        await page.locator('.pane.right select[name="preset"]').selectOption({ index: 3 });
-        // robot one's levels are still OWED in its facts: no height is shown as a fact
-        assert.match(await page.locator('.pane.right select[name="preset"] option:checked').textContent(), /\(not measured yet\)$/);
+        if (ONE_LEVELS) {
+            await page.locator('.pane.right select[name="preset"]').selectOption({ index: 3 });
+            // robot one's levels are still OWED in its facts: no height is shown as a fact
+            assert.match(await page.locator('.pane.right select[name="preset"] option:checked').textContent(), /\(not measured yet\)$/);
+        }
         // a typed "2s" is not a number: refused in place, nothing stored
         await typeIn(page, 'boundS', '2s');
         assert.ok(await page.getByText('Not a number: type digits').isVisible());
         assert.equal((await route(page)).steps[2].boundS, undefined);
         await typeIn(page, 'boundS', 2);
-        await page.getByRole('button', { name: 'Home it first' }).click();
+        // its time limit takes the keyboard AT ONCE (asked in the click's own task): a deferred focus once landed after
+        // the next keys, so a redo pressed then was typed into the box instead (RMP1-B's verifier)
+        assert.equal(await page.evaluate(() => {
+            [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Home it first').click();
+            return document.activeElement.getAttribute('name');
+        }), 'boundS');
         r = await route(page);
         assert.equal(r.steps[0].do, 'home');
         assert.equal(r.steps[0].boundS, undefined, 'the home\'s time limit is left EMPTY for the student');
         await typeIn(page, 'boundS', 3);
-        assert.deepEqual(await errorsOf(page), []);
         // undo / redo by the keyboard
         await page.locator('.field-svg').focus();
         await page.keyboard.press('Control+z');
         assert.equal((await route(page)).steps[0].boundS, undefined);
         await page.keyboard.press('Control+Shift+z');
         assert.equal((await route(page)).steps[0].boundS, 3);
-        // reorder by the keyboard: the move up one, then back (every later pose re-planned)
+        if (!ONE_LEVELS) {  // no level to choose: the claw set open in the move's place
+            await page.locator('.step[data-step="3"]').click();
+            await page.keyboard.press('Delete');
+            await setClaw(page, 'open');
+        }
+        assert.deepEqual(await errorsOf(page), []);
+        const mid = ONE_LEVELS ? 'move' : 'set';
+        // reorder by the keyboard: the step up one, then back (every later pose re-planned)
         await page.locator('.step[data-step="3"]').click();
         await page.keyboard.press('Alt+ArrowUp');
-        assert.deepEqual((await route(page)).steps.map((x) => x.do), ['home', 'driveTo', 'move', 'curveTo']);
+        assert.deepEqual((await route(page)).steps.map((x) => x.do), ['home', 'driveTo', mid, 'curveTo']);
         await page.keyboard.press('Alt+ArrowDown');
-        assert.deepEqual((await route(page)).steps.map((x) => x.do), ['home', 'driveTo', 'curveTo', 'move']);
+        assert.deepEqual((await route(page)).steps.map((x) => x.do), ['home', 'driveTo', 'curveTo', mid]);
         // the steps that end at one spot share ONE number pill (none hidden under another): the home at the start,
         // the drive's end, and the curve's end where the level is raised
         const pills = await page.evaluate(() => [...document.querySelectorAll('.g-badge-text')].map((t) => t.textContent).sort());
@@ -386,7 +406,7 @@ test.describe('the route builder in a browser', { skip }, () => {
         await openExport(page);
         const code = await page.locator('.drawer pre.code').textContent();
         assert.ok(code.includes('r.home(cascade, 3_s);'));
-        assert.ok(code.includes('r.move(cascade[facts::lv('), 'a level through the facts ledger');
+        assert.ok(code.includes(ONE_LEVELS ? 'r.move(cascade[facts::lv(' : 'r.set(claw["open"]);'), 'a level through the facts ledger, or the claw');
         assert.ok(code.includes('r.face(-12_in, -36_in);'), 'turn-first written');
         // the starter region above is "old" -- not the builder's: a hand edit, refused until "Overwrite"
         await page.getByRole('button', { name: 'Write into src/team/skills_route.cpp' }).click();
@@ -776,7 +796,9 @@ test.describe('the route builder in a browser', { skip }, () => {
             await clickField(page, -24, -36);
             await page.keyboard.press('m');
             await page.getByRole('button', { name: 'Move to a level' }).click();
-            await page.locator('.pane.right select[name="preset"]').selectOption({ index: 3 });
+            if (ONE_LEVELS) {
+                await page.locator('.pane.right select[name="preset"]').selectOption({ index: 3 });
+            }
             await typeIn(page, 'boundS', 1.5);
             await selectStep(page, v.viewport, 1);  // (at 1024 the step's details are a drawer: open it)
             const rc25 = (await issues(page)).filter((x) => x.code === 'RC25');

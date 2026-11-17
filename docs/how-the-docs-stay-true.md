@@ -47,13 +47,15 @@ drift: a chapter's `300_ms` retyped to `300_s` built clean and passed the whole 
 build and CI now run a scan that requires every non-blank line inside a ```` ```cpp ```` block in
 any public document to appear verbatim in a compiled source: a compiled example test, or one of
 the team's files under `src/team/` that a chapter quotes (today: robot one's driver file,
-`src/team/robot_one_driver.hpp`, which the [driver-control recipes](cookbook/06-driver-control.md) and
-[chapter 21](guide/21-adding-your-robot-by-hand.md) quote, and robot two's autons file,
+`src/team/robot_one_driver.hpp`, which the [driver-control recipes](cookbook/06-driver-control.md) quote,
+and robot two's autons file,
 `src/team/autons.cpp`, which [chapter 16](guide/16-testing-an-auton-on-the-bench.md) and
 [chapter 17](guide/17-the-competition-program.md) quote — the host suite compiles it and runs
-every auton in it) — never the rest of `src/`. A listing
-of either file must also be one unbroken run of the file's lines, so a line added to the file
-inside a part a chapter shows fails the scan too. The sources are matched by globs, one per kind
+every auton in it), or one of the route builder's compiled goldens
+([chapter 21](guide/21-adding-your-robot-by-hand.md) quotes robot one's map as the builder gave it from
+`test/goldens/route_maker/controls_one_builders_map.hpp`, so the team's own changes to its driver file never fail
+the scan) — never the rest of `src/`. A listing of a team file must also be one unbroken run of the file's lines, so
+a line added to the file inside a part a chapter shows fails the scan too. The sources are matched by globs, one per kind
 of file, so a new examples file is covered the moment it exists, and a kind that matches no file
 fails the scan. The same run also checks that no public document links into the
 development-process notes.

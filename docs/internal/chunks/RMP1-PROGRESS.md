@@ -1,6 +1,6 @@
 # RMP1 — PROGRESS (live log)
 
-<!-- release: between parts — RMP1-A1 (the web route builder) landed 2026-11-16 (e8fa3de); RMP1-B (Controls + feel), RMP1-A2e/A2u (PREVIEW) are building and merge one at a time (declared by the coordinator 2026-11-17) -->
+<!-- release: between parts — RMP1-A1 (the web route builder) and RMP1-B (Controls + feel, 2026-11-17) landed; RMP1-A2e/A2u (PREVIEW) merge one at a time (declared by the coordinator 2026-11-17) -->
 
 Brief: [`RMP1-route-maker-page.md`](RMP1-route-maker-page.md) (the coordinator's copy of record, placed uncommitted in
 this worktree; it lands with RMP1-A1). Executor model: `opus`. Nothing committed and nothing pushed by the executor.
@@ -733,3 +733,826 @@ re-touch `src/`), the briefing regenerated with the built suite and the build re
   file. **The coordinator's JS mutations** (`muts_rmp1_a1_js.json`, runner `scratch/rmp1a1/jsmut.py`): **3 of 3 RED** —
   MJ1 RC25 dropped, MJ2 turn-first exported without its `face()`, MJ3 several marker pairs accepted.
 - **RMP1-A1 LANDED.** Publish with the next docs release (D17).
+
+## RMP1-B
+
+**Base:** worktree `.claude/worktrees/rmp1-b`, branch `rmp1-b`, at `07d17b7` (RMP1-A1's finished branch, pushed; main has
+moved to `3c29b73` — ROB1-C2's robot one map and the one-button `whileHeld` read from there with `git show`). Started
+2026-11-16. Executor model: `opus`. Nothing committed and nothing pushed by the executor.
+
+**Order of authority read:** `## ANSWERS` (Go, accept all; D15 (a) the driver files' controls/feel regions stay open;
+D17, D19, D20); the amendment A.1–A.12 (A.7's RMP1-B row); R1–R19; the Decisions D1–D20 in full; §1.2 (RMP1-B), §1.4's
+Controls-tab parts, §2.2's RMP1-B list (CT1–CT31, CT-HS, CT21–CT23, FE1–FE4), §2.3 (RM3, RM5, RM17), §2.4, §2.5, §3's
+RMP1-B row, §5, §6 (with §6.3 item 5 and §6.4), §7 and §8 (landmines 1–30) in full; the rest by heading.
+
+### Log
+- Created this heading first. Read `docs/internal/RESUMING.md`'s standing rules.
+- **The base this diff is made against (the coordinator applies it onto A1 merged with main):** the controls golden
+  must compile robot one's REAL map (ROB1-C2's one-button `whileHeld`, main `3c29b73`), and §6.4's re-points edit
+  main's `test/robot_one_driver_test.cpp`, so the work cannot be built on `07d17b7` alone. So the INDEX holds A1
+  merged with main — `git merge-tree --write-tree 07d17b7 3c29b73`, read in with `git read-tree -u -m HEAD`, nothing
+  committed, no MERGE_HEAD — with its three conflicts resolved and STAGED: `docs/guide/README.md` (main's row 21, A1's
+  row 22), `docs/changelog.md` (A1's route-builder entry, then main's RPV1 entry), `docs/internal/PROJECT-BRIEFING.md`
+  (main's lines + RMP1 in the open list; regenerated later). That staged tree is `b02ff5bb33d0c5bff21aa722f41b54673c659494`
+  (saved in scratch `BASELINE_TREE`). **Everything UNSTAGED (and every untracked file) is RMP1-B's own diff**; the final
+  patch is written to scratch `rmp1-b.diff` against that tree.
+- **A1 onto main does not build as merged — three integration faults, fixed in the BASELINE (staged), not in this
+  diff** (saved as scratch `a1-onto-main-merge-fixes.diff`; the coordinator's merge needs them or its own): (1)
+  `smoke_robot_one` moved the cascade to `facts::lv(2)` — ROB1-C2 typed robot one's levels as NONE, so the export
+  no longer compiled (`no_such_preset_on_this_mechanism`); the smoke route now homes, drives, `set`s the claw open,
+  curves and waits (re-made by `goldens.mjs --write`); (2) A1's rig gave robot one's service ONE device (the cascade)
+  for SIX mechanisms (`MechanismService::bind: one Devices per spec`) — `OneFakes` now has all six in table order; (3)
+  the fixture descriptions said API 2.8 (main is 2.9: MIRROR1-A) — re-made; and robot one's description test /
+  the ledger tripwire assumed a level exists — each now holds only once one does. After them: `shulib_tests
+  -tc="RMP1*"` 14/14 green, node 81 pass 1 skip. The baseline tree is now `97d48bacf87eb62917d380140826454837370139`.
+- **The model (pure, node-tested):** `src/model/feel.mjs` (the library's `continuousDeadband` / `expoCurve` /
+  `shapeAxis` in the C++'s order; `checkFeel` = `AxisShaping::valid()` plus the page's stricter ramp rule; the
+  `feel` region written and read back), `src/model/controls.mjs` (the controls as data; `checkControls` — one rule
+  per build refusal of `controls()` in its order, the two kinds' missing-target refusals, DriverFile's re-zero; the
+  `controls` and `control words` regions written and read back; G3a's per-kind save shape with `at`; the edits),
+  `src/model/driver_file.mjs` (the three regions found — by markers, or by their SHAPE for reading only —, read,
+  written all-or-none with the hand-edit hashes and the file's own line endings). **The round trip, probed first on
+  main's own files:** robot one's and robot two's driver files at `3c29b73` read and re-made BYTE-IDENTICAL, all
+  three regions (one bug found by it: the last control written `)));`).
+- **The markers (§6.3 item 5) are NOT on main:** the page READS today's files by shape and refuses to write
+  (`noMarkers`, Copy offered). The fixture is "the marked file": `test/goldens/route_maker/driver_{one,two}_marked.hpp`
+  = main's file + four marker lines — `// [control words <id>]` / `// [/control words <id>]` around the header's
+  stick-and-button map (from `//   left stick` to the `let go of the sticks` line) and `// [feel <id>]` /
+  `// [/feel <id>]` around THE FEEL heading through kLoop's `};`. **The coordinator must give ROB1-BT exactly these
+  four lines** (they are one table, `markers()` in `driver_file.mjs`).
+- **FE1:** `shulib_route_maker feel` (new `test/route_maker_feel.hpp`) writes the 9 630-point table — **byte-identical
+  to the brief's probe P2's `p2_golden.txt`** (`cmp`); committed as `test/goldens/route_maker/feel_curve.txt`.
+- **D10:** `src/common/driver_file.hpp` gains `static_assert(Feel.valid(), "the feel is out of range: ...")` and its
+  fixture `test/compile_refusals/rm01_a_feel_out_of_range.cpp`. (Lands only if B merges before the ~Nov 18 freeze —
+  the brief's D10; it is one separable hunk.)
+- **The CT agreement:** `tools/route_maker/controls_cases.mjs` — 39 configurations on robots x and y and one forced
+  robot w (a never-homed arm with no unhomed volts, which no fixture has), one per build refusal: every
+  `refused::` name of `driver_inputs.hpp` (30 since ROB1-C2's one-button hold), all twelve "does two jobs", both
+  missing-target names by kind, the re-zero and the feel static_asserts. `goldens.mjs --write` makes each a
+  compile-refusal TU `test/compile_refusals/rm_ct_*.cpp` whose `// expect:` is the PAGE's refusal: **ctest -R
+  compile_refusal_rm: 40/40 refused with the page's name** (+ n57, d_button_not_one_of_the_twelve). The 13th button
+  cannot come from the picture: its twin is MECH-A4's `d_button_not_one_of_the_twelve.cpp` (node checks it). Node:
+  the page refuses each case with exactly that one name (the 25-control case may add "two of a kind", as the build
+  does); a coverage test fails when the library grows a refusal with no case.
+- **CT21 / FE2 / FE3 in the suite:** `test/route_maker_controls_test.cpp` (new) includes three page exports on the
+  fixture robots (`controls_*.hpp`, every form, a block-form kFeel, Brake and Hold) through DriverFile, and
+  `feel_valid_rows.hpp` (25 static_asserts, each the page's answer). Built clean with `-Werror`.
+- **RESUMED 2026-11-16 08:55 EST** (`date`) after the usage stop at ~03:00. Checked first: `git diff -- src/ Makefile`
+  holds only D10's `driver_file.hpp` hunk (no `(self-test plant` line); `git ls-files -o --exclude-standard src
+  include test` lists only this run's own new fixtures and goldens; the index is still the baseline tree
+  `97d48bac…` (`git write-tree` = scratch `BASELINE_TREE`). Rebuilt from source before trusting anything: `rm -f
+  build/test/shulib_tests`, the briefing regenerated, `cmake --build build/test --clean-first` (a killed mutation could
+  have left a mutant OBJECT behind a restored source). Found already written by the stopped run but not yet logged:
+  the Controls tab (`ui/controls_tab.mjs`, `ui/feel_tab.mjs`, `ui/controls_export.mjs`), the tab in `app.mjs`,
+  `build.py`'s baked driver files, `files.mjs`'s `readTeam` / `writeTeam`, the page tests
+  (`test/page/controls.page.test.mjs` + `harness.mjs`) and a first set of screenshots (02:57). Not yet done: §6.4's
+  re-points (T11, GM22), CT-HS, the docs, the mutations, the reviews.
+- **Fresh state after the resume (09:00):** the clean rebuild 0 warnings; `suite_run.py green` — 3778 cases,
+  3 882 904 assertions; node (model) 100 pass 1 skip; `build.py --out build/route_maker_site --describe` made the site
+  and the one file; the Controls page tests in Playwright's Firefox: **5/5** (`controls.page.test.mjs`).
+- **A1's OWN page tests are RED on the merged base (6 of 16), not by this run:** `page.test.mjs` tests 3, 5 and 11
+  (and the three that share `readyRoute`) select "a cascade level" (`select[name="preset"]` index 3) — robot one's
+  levels became NONE in ROB1-C2 (main `3c29b73`), so the select has no level and times out. It is the fourth
+  A1-onto-main integration fault (with the three above); it is A1's test design (a level on robot one), so it is
+  left to the coordinator's A1 merge — not fixed in this diff. **For the coordinator.**
+- **§6.4 — the pin tests re-pointed (`test/robot_one_driver_test.cpp`, main's ROB1-C2 file):** a student's map
+  change (D15 keeps it open; the page writes it) turned SIX of its seven cases red, not two: T11's map, GM22, BOTH
+  host tests (they pressed R1/R2/L1/L2/A/B/X by name), the compact-row review case (R1/R2) and the boot-line case
+  (L1/L2, `seen == 2`); the seventh, the compact row's SMALL-budget case, names no button and stayed green. *(Count
+  corrected in the review round: this line first said "FIVE" and listed six.)* The brief's §6.4 names only T11 and GM22 (written before ROB1-C2 added the others) — **a delta,
+  logged:** every one now reads its buttons from `kControls` (the team's) and keeps its behaviour checks; T11 pins the
+  RULES (re-zero free; `preset(cascade` only through `facts::lv(`; each side toggle on its own port); GM22 is
+  structural in C++ (every button `kControls` takes has ONE row in the header's map; every other button row says
+  FREE; the d-pad not FREE while one of its buttons has a job; `(start)` iff a driver-start home), the rows' ORDER
+  against `kControls` CT23's (node). *(Corrected in the review round: this said "the WORDS against `kControls`
+  staying CT23's" — wrong: CT23 reads the map's words back from the same file, so no test judges them; see the
+  review round's finding 17.)* The boot line is also pinned on a one-button hold made in the test (L1 on the
+  right toggle, 12 V) so it never depends on the map. Before: `edits/robot_one_driver_test.cpp.before-6.4`; the
+  edit script `edits/repoint_6_4.py`. `-tc="robot one driver*"`: 7/7, 102 assertions.
+- **UX fixes found on the 02:57 screenshots (re-taken, opened):** (1) a free button's menu opened at the page's
+  top-left corner, over the controller — the click re-draws the controller, so the anchor the menu measured was
+  detached (`getBoundingClientRect` = 0); now measured on the NEW button and placed beside it, and the page test
+  asserts it opens beside and level with the button; (2) the menu repeated each mechanism's name on every action —
+  now grouped under each mechanism (each item's accessible name still "claw: Go to one position…"); (3) the
+  controller's labels were cut at 28 characters ("L2 · left toggle: hold to r…") and ~8 px tall — 14 px, up to 32
+  characters, the drawing widened; (4) the d-pad's names overflowed their circles — arrows; (5) the "In the button
+  map" box clipped its second line.
+- **The ramp's words were WRONG, and are fixed:** the page said "how quickly the robot may speed up"; the library's
+  slew limits the request "in either direction" (`slew_limiter.hpp`), so with a ramp the robot does NOT stop the
+  instant the sticks are let go. `rampWords(4)` = "full speed from rest in 0.25 s, and a stop from full speed takes
+  as long" (FE4 re-pointed; the feel comment it writes says the same); guide 22 says it.
+- **CT-HS run** (scratch copy `scratch/rmp1-b/cths/tree`, rsync of the worktree; `cths/make_cths.mjs` writes the
+  page's exports through `driver_file.mjs` into both driver files — robot one: the claw's toggle A → Up (the "d-pad
+  FREE" line removed as the page offers), the cascade's hold swapped (R2 up / R1 down), the feel at dead zone 0.1,
+  curve 0.6, ramp 4/s; robot two: the same feel). It found THREE things that stop a student's export reaching the
+  robot — **for the coordinator, each outside this run's files:**
+  1. **`src/programs/drive_program.cpp:265-281` — EVERY robot build stops on ANY feel but the library's default**
+     (`static_assert(driverLineMatchesFeel(), "the driver line says deadband 0.05, no expo, no slew: reword it…")`,
+     the boot's driver line being fixed text). The src gate: all 10 driver-file builds `ERROR … static assertion
+     failed` (`cths/srcgate-first.log`). The Driving feel cannot be used until the line is MADE from `kFeel`. A
+     tested patch (NOT in this diff — `src/programs` is a robot program, the brief allows B only D10's line):
+     `scratch/rmp1-b/drive-line-feel.patch` (a `feelLine()` from the profile, logged as its own boot line right
+     after the driver line; the static_assert gone; `drive_program_source_test.cpp`'s pin re-pointed and a pin that
+     the line is made from `kFeel`). It is library-freeze material: it must land BEFORE the ~Nov 18 freeze, with the
+     team lead's OK, or the D15 (a) feel region is open in name only.
+  2. **The doc gate (`api_doc_tool` check-examples, the whole-run rule) stops the suite's BUILD** after any change to
+     a quoted driver-file run: guide 21 :261-269 quotes robot one's `kControls` whole; cookbook 06 :247-261 robot
+     two's `kControls`, `kFeel` and `kLoop`. So after the freeze every student export needs those listings
+     re-quoted (the coordinator's step; done in the scratch tree by `cths/requote.py` to get past it), or the two
+     chapters move to quoting an example test. ROB1-BT rewrites robot two's driver file (cookbook 06) anyway.
+  3. **`test/robot_two_driver_test.cpp` T5 and T6 pin robot two's feel as the library's default** (T5: the ports
+     equal a direct run with `DriverProfile{}`; T6: let go → 0 V the same tick — false under a ramp, which slows the
+     stop): a feel export on robot two turns both red (480 + 55 assertions). ROB1-BT's file (it rewrites robot two's
+     driver test with robot two's map) — re-point: the ports equal a direct run with the FILE's `kFeel`; let go → 0 V
+     within `1/ramp` s.
+  With robot one's export (controls and feel), robot two's feel left as it is, guide 21 re-quoted and the drive line
+  patch applied, the scratch suite and src gate are re-run below.
+- **CT-HS, re-run** (robot one's export — controls and feel —, robot two's feel left as it is, guide 21 re-quoted,
+  the drive line patch applied; the scratch briefing regenerated with the binary removed, then built): build 0
+  warnings, **suite green — 3778 cases, 3 882 885 assertions** (robot one's re-pointed tests pass the team's
+  changed map). The src gate on it: below.
+- **Mutations — the model (node), each applied, run fresh, RED observed, restored by
+  `scratch/rmp1-b/mut/mutate.py` (restore in a `finally` and on SIGTERM/SIGHUP/SIGINT; `all restored: True`):**
+  RM3 `expoCurve` without `(1 − expo)` → FE1 red; RM5 the check misses a button used twice → the CT agreement red;
+  RM17 the ramp readout per tick (÷100) → FE4 red; the ramp words without "a stop takes as long" → FE4 red; the dead
+  zone applied AFTER the curve → FE1 red; `axisValid` refusing an expo of exactly 1 → FE2 red; the re-zero rule off
+  → the CT agreement red; the splice eating the END marker → CT22, "writes only between the markers" and the
+  mixed-endings test red; CRLF dropped → both line-ending tests red. (`mut/node-run.log`.)
+- **Mutations — the page and the C++ (same driver):** the menu measured on the drawing a click replaced (the old
+  bug) → the "free button" page test RED in Firefox (first run SURVIVED: its "beside it" check let a menu at the far
+  left pass — tightened to a gap of at most 24 px, then RED); GM22's map row for X deleted → GM22 RED; the ramp's
+  toggle moved X → Up with the map still saying "d-pad FREE" → GM22 RED (each on a fresh `shulib_tests/fast` link —
+  the doc gate would refuse the mutant driver file first, finding 2 above —, restored, re-linked, 7/7 green).
+- **CT-HS, the src gate on the scratch tree** (the drive line patch applied): **all 14 builds pass** — bench, xdrive,
+  tank and its five programs, `one` and `one-calibrate` exit 0 with 0 disallowed warnings; `one-drive`,
+  `one-autontest`, `one-competition`, `one-tune` REFUSED as they must (exactly their 9 owed facts). Its one FAIL is
+  the facts-copy proof, which copies `git ls-files` — the scratch copy is not a git checkout (it sits under the
+  ignored `.claude/`), so the copy was empty; the worktree's own src gate runs that proof. Without the patch the
+  same gate failed all 10 driver-file builds (finding 1).
+- **The re-point is what makes a team map pass (observed):** the PRE-§6.4 `robot_one_driver_test.cpp`
+  (`edits/…before-6.4`) on the scratch tree's exported map: **6 of 7 robot-one cases RED** (T11's map, GM22, both
+  host tests, the compact row, the boot line); the re-pointed file on the same map: 7/7, 102 assertions.
+- **Reviewer 1 (the `code-review` skill, "high", forked; read-only; it ran the model in node under the cap) — 10
+  findings + 1 note, each re-checked here and fixed, each fix with a test that FAILS without it (mutated, RED,
+  restored — `mut/review-run.log`):**
+  1. *(reproduced)* a one-line `kFeel` with an axis carrying BOTH a dead zone and a curve could not be read back
+     (the split at `, .` also split inside the axis's braces) → `topFields()` splits only outside braces; test:
+     every feel the page writes over a 64-feel grid reads back to the same lines (both forms) — mutation R-topFields
+     RED.
+  2. *(reproduced, the worst)* a feel or map the page could not read still got a base hash, so the next export
+     replaced the team's numbers with the defaults WITHOUT asking → a region not read gets no base (Keep /
+     Overwrite is asked); test + mutation R-read-flag RED.
+  3. GM22 (C++) skipped A, L1 and L2 (the loop's `b == c.back` test caught the FIRST button when `back` repeats it
+     or defaults to A) → the buttons checked one by one; mutations: the A row deleted RED, the L1 row deleted RED
+     (below, after the src gate).
+  4. the page writes a combined map key ("R1 / R2" — robot two's file has them) that the C++ GM22 did not read →
+     GM22 now reads keys as the page does (`/`, `,`, "d-pad"), and states the rule both ways: a row is FREE exactly
+     when its buttons have no job and are not the re-zero.
+  5. `keep()` rewrote a LOCKED robot's project block (one from a newer builder) → skipped; page test (a project
+     whose robot two has a field this builder does not write; robot one edited and saved; robot two's block
+     byte-equal) + mutation R-locked-keep RED.
+  6. connecting the folder after an edit replaced the edit with today's file and dropped undo → only an unchanged
+     robot is re-read, under every history snapshot; page test (edit, connect, the edit and its undo still there)
+     + mutation R-folder-reread RED.
+  7. *(reproduced)* a flywheel toggle moved to a piston kept its speed (`toggle(claw["shoot"], …)`, which the build
+     refuses) → a mechanism change drops the old target, and a form the new mechanism cannot take becomes one it can;
+     `controlCode` writes a speed only on a flywheel; test + mutation R-mech-change RED.
+  8. the map's FREE line could name the RE-ZERO button → `checkMap(state, rezero)`; test + mutation R-map-rezero RED.
+  9. reuse: the tab re-typed `REGIONS` / `regionKey` → imported.
+  10. efficiency: every drag of the "try it" dot rebuilt the whole graph, and each pane re-ran every check → the drag
+      moves only the dot, its line and the readout; the checks run once per state; page test (the graph is the SAME
+      element after a dot move) + mutation R-probe-remount RED.
+  Note: the reader took `facts::lv(<one digit>)` only → any index; test (level 12).
+- **Reviewer 2 (`code-review`, "high", forked; the C++ half of the agreement): it re-ran all 39 `rm_ct_*` + `rm01`
+  (40/40 refused with the page's name, no second reason) and FE1 byte for byte, then found 10 — each re-checked
+  and fixed:**
+  1. the `rm_ct_*.cpp` freshness test compared bytes, but `test/compile_refusals/` has no LF `.gitattributes`, so
+     every Windows row would read CRLF → the test normalises `\r\n` (no repository-wide attribute: landmine 19).
+  2. *(reproduced)* a project file's numbers were judged unrounded (0.9996 passed, the export printed 1, the build
+     refuses) → `drivingFromSaved()` and `fromSaved()` round as the export prints (W7); two tests.
+  3. *(reproduced)* a preset on a POWER mechanism: the page said `no_such_preset_on_this_mechanism`, the build
+     `a_power_mechanism_has_no_presets_run_it_with_r_run` → the page names the build's; a new CT case
+     `rm_ct_preset_on_a_power_mechanism.cpp` (refused by the build with that name — ctest) and the coverage test now
+     also demands a case for kinds.hpp's three target refusals.
+  4. *(verified)* FE1's grid never lands on a dead zone's edge or a -0: `<=` → `<` survived → new FE1b golden
+     `feel_edges.txt` (490 lines: each dead zone's edge and the doubles either side, ±0, the rails, dead zones and
+     curves past their limits) made by `shulib_route_maker feel-edges`, compared by the suite and by node
+     (`Object.is`); the `<` mutation now RED (FE1b); FE1's own 9 630-point file is unchanged (`cmp`).
+  5. `pages.yml`'s path filter missed the driver files the page now bakes → `src/team/*_driver.hpp` added (A1's
+     file, one line — logged as a delta).
+  6. the team's driver text was baked raw, so a URL or a path in a student's comment would fail HS8/RG1 and stop the
+     site's build → baked base64 (the team's text, not the builder's output), decoded in the tab.
+  7. `hexDouble` wrote a subnormal with a hidden 1 and an infinity as an out-of-range literal → fixed (throws for
+     an infinity); test round-trips subnormals through `fromHex`.
+  8. the Controls status bar claimed "every refusal is the build's own", but the page also refuses unfinished
+     controls, a negative ramp and a stale map line → the claim removed.
+  9. two comments still counted DriverFile's checks as two → fixed (`driver_file.hpp` header, `driver_heading_test.cpp`).
+  10. `ROBOTS()` re-read the fixture JSON per call → read once.
+- **Reviewer 3 (`code-review`, "high", forked; it read the WHOLE brief and the live log, then probed the page in
+  Playwright's Firefox): 10 findings — each re-checked and fixed, each with a page or node test that is RED without
+  the fix (`mut/review3-run.log`, all 8 mutations RED, restored):**
+  1. *(probed)* picking a job left the menu open (a second pick made a button do two jobs) → it closes (T-popover-close).
+  2. *(probed)* a project with an unknown drive mode threw and drew no controller → the drawing falls back, the mode
+     is the feel's error (new page test; T-mode-fallback).
+  3. the page said "Ready to export" for a feel the build refuses (CT-HS finding 1) → **while `drive_program.cpp`
+     still holds `driverLineMatchesFeel` (build.py bakes `feelDefaultOnly`), the page refuses any feel but the
+     default with the static_assert's own words** — a build refusal like every other; it lifts itself the day the
+     drive line patch lands (the page tests branch on the same fact). Guide 22 and the changelog say it as a plain
+     fact. Tests: node (the rule, with the static_assert's sentence quoted from the source) and page
+     (T-feel-default-only, T-default-only-rule).
+  4. *(probed)* every re-draw dropped the keyboard focus to `<body>` → focus kept on the same button or field;
+     Escape on the menu returns to its button; closing Export returns to the Export button (T-focus).
+  5. *(probed)* the controller's targets were 17–21 px → an invisible 32 px+ target per button (the d-pad and face
+     buttons spread so none overlaps), and the tab, segment, chip and small buttons raised to `--hit` (T-hit).
+  6. G4: a two-button hold took "the first free button" when its partner was taken → the natural partner only when
+     free, else the second button is the student's to choose ("unfinished" until then — never exported as a one-way
+     hold); a changed "what it does" keeps the button the student chose (T-back-null).
+  7. no hover help on the controller; `?` did nothing on this tab → each button carries its whole job as an SVG
+     `<title>`; `?` opens help, which now speaks of the Controls tab.
+  8. "Go there" missing for a mechanism with no button and for a feel error; the guide said "exactly what the build
+     refuses" → both offered; the guide says the page also asks for what is unfinished.
+  9. the graph's `role="img"` hid the "try it" slider; its readout announced on every pointer move; a smooth scroll
+     ignored reduced motion → `role="group"`, the slider's `aria-valuetext`, no live region, reduced motion honoured.
+  10. *(probed)* a word typed in the feel's number boxes gave no words (the ramp's was silently dropped), and the
+      boxes stayed enabled on a locked robot → "Not a number: type digits, like 0.25." and disabled (T-nan-words).
+- **Documents (pace rule 3; ≤ ~5 public):** guide 22 — the intro (three parts) and a new part "The driver's buttons
+  and the driving feel" (what each button does, the kinds table, what the page refuses, the driving feel with the
+  team lead's own example, the ramp slowing a stop too, the default-only fact, Export of the three regions) with five
+  screenshots (`docs/assets/route-builder/controls*.png`, `feel.png`, Playwright's Firefox, light 1440); guide 18 —
+  its driver-controls section links to it, and states D10's refusal; the changelog (API 2.9, 2026-11-16 entry);
+  `docs/route-builder.md` and the guide README's row 22 (one sentence each). Small consequential edits: guide 21
+  :230 links its "the map is yours" to the Controls tab; cookbook 06 :295 said DriverFile adds "the last two checks"
+  — now three (prose only; its listings untouched). Internal: `test/README.md` (the Controls tab's C++ half, FE1b),
+  `tools/route_maker/README.md` (the new modules and rules). NOT touched, deliberately: `mkdocs.yml` (no new page —
+  guide 22 is in the nav; DOCS3-N1 owns the menu), guide 16/14 (nothing of B's applies), `docs/api/` (no `///`
+  changed — `check-fresh` clean).
+- **Prose review (rule 4), greps RUN and read before writing this:** "simulat", "honest", "obviously", "just ",
+  "simply", "easy", "precondition", "radian" over B's six page modules and every added docs line — no hit but the
+  rule's own "never simulator" line in `route_maker_controls_test.cpp`; `http` in the built page's six new modules: 0
+  (the page test harness's `http://127.0.0.1` server is test code). Docs grepped for `driver_file.hpp`, `DriverFile`,
+  `robot_one_driver_test`, "two checks": cookbook 06 :295 was stale (fixed); guide 7 :156, the roadmap and
+  hardware-assumptions :2363 ("every line is MADE at Low" — still pinned by the re-pointed piston test) are true.
+- **The C++ mutations re-run with every dependent object REBUILT (a lesson learned here):** `make shulib_tests/fast`
+  (used to skip the doc gate a mutant driver file trips) does NOT recompile on a changed header — the first
+  re-zero-on-the-d-pad run "SURVIVED" with 0 objects rebuilt. The driver now deletes every object whose depfile
+  names `robot_one_driver.hpp` (2: `robot_one_driver_test`, `this_robot_test`) before linking, and prints the count:
+  B-GM22-row, B-GM22-dpad, R-GM22-A-row, R-GM22-L1-row, R-GM22-rezero-on-dpad — **all RED, "recompiled: 2" each**
+  (`mut/gm22-rebuilt-run.log`; the 09:26 GM22 verdicts are superseded by these). Afterwards both objects deleted
+  again, the binary removed, the briefing regenerated, a full normal build.
+- **Final gates (started ~10:45; this bullet written 10:58, as they finished — the "11:15" first written here was not
+  a record; corrected in the review round):** build 0 warnings; `suite_run.py green` — **green, 3779 cases, 3 882 879 assertions**;
+  node (model) **109 pass, 1 skip**; page tests in Playwright's Firefox — **B's 7/7**, A1's 10/16 (its 6 are the
+  robot-one level select above, nothing else); `ctest -R compile_refusal` **336/336** (+`rm_ct_preset_on_a_power_mechanism`);
+  `src_build_gate.py check` **PASS** (14 builds; robot one's 4 refuse exactly their 9 owed facts; the facts copy
+  links all 6); `src_build_gate.py self-test` **5 FAILURES, cases 53 and 55, robot one's owed Stage A facts** —
+  the SAME five as the coordinator's `logs/srcgate_selftest.rob1c2.log` (ROB1-C2 on main), not from this diff (B's
+  only `src/` change is D10's `driver_file.hpp` hunk); the coordinator's `integrate1` log is OK, so its fix is in the
+  integration; no plant left (`git diff -- Makefile src/` 0 "(self-test plant", no untracked file under `src/`
+  `include/`); ARM header gate exit 0 over 258 headers (no `include/` change); the two CI greps clean; api_doc_tool
+  check-fresh / check-examples (919 lines verbatim) / check-coverage / check-removability / self-test clean;
+  `doc_staleness_audit` clean; `briefing_status.py check` current.
+- **B's diff:** `scratch/rmp1-b/rmp1-b.diff` against the baseline tree `97d48bac…` (A1 + main + the four
+  integration fixes in `a1-onto-main-merge-fixes.diff`); file list `rmp1-b.files`. Nothing committed, nothing pushed.
+
+### RMP1-B review findings and their disposition (2026-11-16 ~12:15 – 13:30 EST, `date`)
+
+Three reviewers (correctness, tests, docs) returned 31 findings (two pairs overlap: 8 = 26, and 4 = 19). **Found
+first:** a stopped earlier pass at these fixes (files dated 11:28–11:29, after the reviews and after this log's
+10:58 entry) had edited seven files (`controls.mjs`, `feel.mjs`, `driver_file.mjs`, `controls_tab.mjs`, `app.mjs`,
+`controls_export.mjs`, `controls_cases.mjs`) with no test, no golden re-made and no log line. Each of those edits was
+re-read against its finding before it was kept; two were changed (the stale-words check, below), and every one now
+has a test that is RED without it. Every mutation verdict below is on a fresh run (node), a freshly built site
+(page) or a rebuilt tree (the doc gate); the drivers restore on exit and on SIGTERM/SIGHUP/SIGINT and printed
+`all restored: True` (`scratch/rmp1-b/fix/mut/`: `mutate2.py`, `node-run.log`, `page-run.log`, `doc-glob-mut.log`).
+
+1. **The feel cannot be exported (blocker) — REAL, not fixable inside RMP1-B's files.** `drive_program.cpp`'s
+   `static_assert(driverLineMatchesFeel(), …)` stops every robot build on any feel but the default; the page refuses
+   the same with the build's own words. The fix is in `src/programs`, which the brief does not give B. **For the
+   coordinator, before the ~Nov 18 freeze, with the team lead's OK:** `scratch/rmp1-b/drive-line-feel.patch`,
+   RE-CUT (finding 30): repository-relative paths (`git apply --check` clean from the worktree root) and its doc
+   edits bundled — guide 22's feel paragraph and the feel picture's caption, the changelog's last sentence, guide 14's
+   limit. **Verified on the CT-HS tree** (`git apply` from a subdirectory of the main repository excludes every path,
+   so it was applied with `patch -p1` there; the main tree checked untouched): with robot one's export carrying a
+   dead zone of 0.1, a curve of 0.6 and a ramp of 4 /s, the build (doc gates included) and **the suite green, 3780
+   cases, 3 882 953 assertions**; the site built from it says `feelDefaultOnly = False`, so the page lifts its rule by
+   itself. After landing it: re-take `feel.png` (the picture still shows the refusal) and re-run the src gate (its
+   14 builds passed with the C++ half on 2026-11-16 morning, `cths/srcgate.log`). *(Re-cut again at the resumption,
+   below: the changelog hunk's context moved when A1 merged.)*
+2. **False hand-edit alarm after Save and re-open — REAL (reproduced by the reviewer's probe), FIXED.** `keep()`,
+   when it first takes a robot into the project, now saves the hashes the driver file was READ at into
+   `project.exports` (never over an export's). Page test "saved, closed and opened again" (session 1: edit, Save;
+   session 2: the same folder, Export → written, no Keep/Overwrite). Mutation F2-no-read-base RED.
+3. **Words contradicting the code — REAL, FIXED (the earlier pass's rule kept, its check changed).** (a) A control's
+   new JOB (form, mechanism, target, volts, time limit, one or two buttons) now gets the page's comment AND map rows;
+   a button move keeps the team's words, re-keyed. (b) `checkWords` (new): the team's own words that name a button
+   now belonging to ANOTHER mechanism (or none), or one of the control's own buttons whose role changed, are an error
+   (`wordsStale`, fix **Use the page's words**); a note naming such a button, or a mechanism whose controls changed,
+   is a warning listed in Export. Compared against the controls the FILE's words were written for (the driver file
+   as read — baked, or today's from the folder; kept per robot, so a project re-opened still knows them) — the
+   earlier pass compared against the state loaded, which a re-opened project had already changed. Two false
+   positives found by CT-HS and fixed: R1/R2 swapped within the cascade (still the cascade's: "R1 / R2 wait" stays
+   true) and the page's own default comment naming its own buttons. Node tests: the flipper's toggle moved to the
+   claw, the driver-start home made a button home, robot two's 12 V hold made 6 V (no "full power" left — finding
+   20), the cascade on L1/L2 with the toggles on R1/R2 (the `(start)` row flagged, fixed by one click), the 12 V
+   note flagged, the swap not flagged, a team comment "R1 lifts" flagged after a swap, "A held" not read as A.
+   Mutations F3-job-words, -words-off, -notes-off, -role-not-mech, -judge-default-words: all RED.
+4. **Guide 21's listing stops the suite's build on any export — REAL (reproduced), FIXED for guide 21.** Guide 21
+   now quotes robot one's map AS THE BUILDER GAVE IT from a new compiled CT21 golden,
+   `test/goldens/route_maker/controls_one_builders_map.hpp` (made by `goldens.mjs` from the marked fixture, so CT22
+   holds it to the builder's file); `api_doc_tool.py`'s `EXAMPLE_SOURCE_GLOBS` gains
+   `test/goldens/route_maker/controls_*.hpp`, with its reasoning, and its self-test a pass case and a drift case. The
+   whole-run rule still holds the listing to the live file while the two agree. **CT-HS on the DELIVERED
+   configuration** (robot one: the claw A → Up with the FREE row removed, the cascade's hold swapped, Brake; the
+   default feel; no docs re-quoted, no patch — `fix/make_cths2.mjs`): build green (6 whole-run listings — guide 21's
+   now matched by the golden), **suite green, 3780 cases, 3 882 929 assertions**; the src gate on it: all 14 builds as
+   required (robot one's four refuse exactly their 9 owed facts), only the facts-copy proof unable to run in a
+   non-git copy (as before). Mutation: the glob removed on that tree → `NOT VERBATIM … guide/21` (RED); restored →
+   clean. **For the coordinator:** cookbook 06 quotes robot two's `kControls`, `kFeel` and `kLoop` the same way —
+   ROB1-BT (in flight, it rewrites that file) should quote a robot-two golden made the same way, or every robot-two
+   export will need a re-quote. Documents: guide README's scope sentence, `guide-maintenance.md`, `test/README.md`.
+5. **A1's six page tests time out on robot one's empty Level list — REAL (not caused by B), FIXED as the FIFTH
+   A1-onto-main integration fix, in the BASELINE (staged), not in B's diff:** `readyRoute` sets the claw open where it
+   chose a level (as the smoke route already does); the "route built by clicking" test keeps its level part while
+   robot one has a level (`ONE_LEVELS`, read from the built site) and otherwise puts the claw in the move's place;
+   the "[R1] cascade move with no home" test chooses a level only when there is one. Firefox 16/16, Chromium 14 + 2
+   skipped (A1's own Firefox-only skips). Appended to `scratch/rmp1-b/a1-onto-main-merge-fixes.diff` (the hunk alone:
+   `fix/a1-fix5-page-test.diff`); **the baseline tree is now `9ea9b10e9ae9a79260f4d8b584b3fccc7db12df9`**
+   (`BASELINE_TREE`). *(Superseded at the resumption, below: A1 merged as `e8fa3de` WITHOUT this fix, so it is now
+   part of B's diff.)*
+6. **Overlapping or nested markers accepted — REAL, FIXED** (the earlier pass's check kept): `findRegions` refuses
+   parts that overlap or nest (Copy only). Node test: a nested `control words` END, and an END marker twice.
+   Mutations F6-overlap and F6-end-twice (`e.length >= 1`, the reviewer's survivor) RED.
+7. **Undo acts on a robot not shown — REAL, FIXED** (the earlier pass's per-robot history kept): one history per
+   robot; Undo/Redo and their buttons follow the robot shown. Page test (edit one, show two: Undo disabled, Ctrl+Z
+   changes nothing; back on one, Ctrl+Z undoes). Mutation F7-undo-every-robot RED.
+8. = 26. **The saved shape is a superset of G3a's — REAL, LOGGED as a D14 delta (no code change):** the `controls`
+   block keeps G3a's per-kind lists and, beyond them, `at` (the place in the statement: per-kind lists lose the
+   order the build reads) and `banner` (the control's map rows) per entry, and `table`, `head`, `notes`, `layout`,
+   `banner` at its top; the `driving` block adds `words` {comment, rezero, release}. Why: CT22's byte-identical round
+   trip of the team's own words and layout through Save/Open. **For G3a's re-plan (its inheritance list):** accept
+   these keys or map them onto its per-entry `words` and its `notes`; `fromSaved` refuses any key it does not know,
+   so nothing is dropped silently either way.
+9. = 23. **"Use the library's defaults" / a release change rewrote the feel's comment and dropped HA-112 — REAL,
+   FIXED** (the earlier pass's rule kept): the comment is re-made only when a number or the mode it describes changed,
+   and the page's own comment says "numbers no driver has felt yet (HA-112)" while any axis sits at the library's
+   default. Node test (defaults on a default feel: nothing changes; Brake: comment and HA-112 kept; a forward curve:
+   the page's comment, still HA-112 for turn; every axis set: no HA-112). Mutations F9-HA112-gone,
+   F9-comment-always-dropped RED.
+10. **`pages.yml` missed `drive_program.cpp` — REAL, FIXED** (one path line; A1's file).
+11. **CT21 only on fixture robots — REAL, FIXED:** three goldens on robot one's REAL declarations, compiled through
+    DriverFile in `route_maker_controls_test.cpp` (new case): `one_every_form` (a two-button hold at exactly 12 V, a
+    home on a button AND at driver start, each piston's position by press, a toggle, a two-button hold on a side
+    toggle, autons only), `one_holds_only` (the stall-homed cascade with unhomed volts, held, no home) and
+    `one_builders_map` (finding 4). Their counts checked.
+12. **The menu picked the second button and the piston's position — REAL, FIXED** (the earlier pass's menu kept, the
+    form select's partner guess removed too): each menu item says in full what it picks ("Move while held: Up up,
+    Down down"; "Go to "open" on one press", one per position; a flywheel's speeds by name); a pair whose partner is
+    taken reads "…, a second button you pick" and leaves it unset ("unfinished"). Page test G4. Mutation
+    F12-menu-guesses-position RED. The two page tests that clicked the old item re-pointed.
+13. **Splice order untested — REAL, FIXED:** node test writing a map that SHRINKS (the FREE row out, two rows in) in
+    LF and CRLF — each region equal to its export, every line outside unchanged, markers included; the page's export
+    test now changes the map's length too and compares each written part with the drawer's. Mutation
+    F13-splice-top-down RED in node and in the page.
+14. **The download way untested — REAL, FIXED:** Firefox page test — pick the marked file, the download has the
+    change only between the markers; a hand-edited file asks, and Keep downloads nothing; the tab's words never say
+    "connect a folder" there. Mutations F14-D1 (the picked text downloaded), F14-D2 (overwrite forced) and
+    F23-connect-everywhere RED. (Firefox is a CI row on Linux and Windows; Chromium skips it, as A1's own.)
+15. **The CT agreement covered names, not conditions — REAL, FIXED:** nine cases added (`rm_ct_*` twins made by
+    `goldens.mjs --write`, **all refused by the build with the page's name: `ctest -R compile_refusal_rm` 50/50**): a
+    two-button hold on the flywheel, homeAtDriverStart on a motor, a toggle on an arm, two presets to one piston
+    position, the re-zero on a hold's BACK button, 12.001 V, exactly 24 controls (refused only for two-of-a-kind), a
+    turn curve and a strafe dead zone out of range. Pass side: `one_every_form` (12 V) and `one_holds_only` (N10). The
+    agreement now compares the SET of names (24 hood entries repeat one name). Mutations N4, N5, N6, N7, N8, N10, N12,
+    N15 all RED. The (name × condition) enumeration the reviewer offered as "better" is not built: each condition of
+    controls() now has a case, by reading driver_inputs.hpp's branches.
+16. **Feel checks on forward only — REAL, FIXED:** FE2's rows run on all three axes; rows below the default dead zone
+    (0, 0.04, 0.049) are not the default; a ramp of Infinity is refused. Mutations N1, N2, N3 RED.
+17. **The log's "the WORDS are CT23's" — REAL, CORRECTED:** CT23 reads the map's words back from the same file, so no
+    test judges the team's words; the log line, CT23's title and GM22's comments now say so. Not added: a check that
+    a row names its mechanism (robot one's own rows would fail it — "the RIGHT side toggle" is not "right toggle").
+    What guards words now: finding 3's rules on every change the page makes.
+18. **route_preview self-test not logged; no fresh verifier; a time window written early — REAL.**
+    `python3 tools/route_preview.py self-test`: **ok (0 failure(s))** (12:44, `fix/route_preview_selftest.log`). The
+    fresh verifier is the step after this fix round — not run by the builder. The "Final gates (10:45–11:15)" line
+    corrected (written at 10:58).
+19. = 4. Guide 22's "the robot's tests run the new map" removed ("Then build as usual: the build is the final judge
+    of every line" — true for a robot-one export now, CT-HS above).
+20. **"The map always says what the code does" — REAL, FIXED in code (3) and reworded:** guide 22 now says the rows
+    follow the code, what the page stops on, and that words it cannot judge are the team's to keep true.
+21. **The export picture showed the error drawer — REAL, FIXED:** the page test now takes it after Ctrl+Z (the
+    file's own map): the three parts, each with Copy. All 20 Controls screenshots re-taken (Firefox; light and dark,
+    1440 and 1024; `scratch/rmp1-b/shots/`, opened: export light-1440 and dark-1024, refused, menu); the five docs
+    images replaced. The refused picture's caption now says "B turns red" (it is one red label).
+22. **Docs said the tab opens with today's map; Firefox was told to connect — REAL, FIXED:** guide 22 says it opens
+    with the driver file as published (today's with the folder connected) and the project's once changed; its
+    project-file section says the project holds the controls and feel; `route-builder.md`'s "What it knows" names the
+    driver files and its browser table the driver-file export; in a browser without folder writing the tab says
+    "Export checks the file you pick". The tab also re-reads today's files when a remembered folder reconnects and
+    after a project opens (two call sites, `app.mjs` and `reload()`).
+24. **"The same numbers as the robot's code" — REAL, FIXED:** "the library's C++, checked on the host" (guide 22,
+    changelog).
+25. **"Refuses exactly what the build refuses" — REAL, FIXED:** the changelog and `tools/route_maker/README.md` say
+    what the build refuses, plus what is unfinished or would leave the map wrong (no twin for those).
+27. **A1 files touched, not all logged — REAL, LOGGED (delta):** `app.mjs` (the Controls tab, its undo/redo routing,
+    PREVIEW hidden on it, the status bar, `window.routeBuilder.controls`, the driver files re-read after a folder or
+    project), `build.py` (the driver files baked, base64; `feelDefaultOnly`), `files.mjs` (`readTeam`, `writeTeam`,
+    `pickText`, `offerDownload`), `style.css` (the controller, the graph, the menu), `help.mjs` (the Controls help),
+    `goldens.mjs` (the CT twins, the CT21 goldens, FE2's rows), `test/route_maker_describe.hpp` (an
+    `unhomedVolts` field on every arm and lift — the baked `robots.json` gains it, so the three fixture descriptions
+    `robots/{x,y,z}.json` were re-made), `test/route_maker_main.cpp` (`feel`, `feel-edges`), `pages.yml` (two paths),
+    guide 22 and `route-builder.md` (A1's pages); outside A1: `tools/api_doc_tool.py` (finding 4). The brief's
+    golden layout (`controls_*.json` → `*.hpp` compiled by `route_maker_golden_test.cpp`) became
+    `tools/route_maker/controls_cases.mjs` → `rm_ct_*.cpp` and `controls_*.hpp`, compiled by a new
+    `test/route_maker_controls_test.cpp`: one data file for the page's node test and the C++ twins.
+28. **§6.4's third T11 rule (the map equal to the project file's) — DEFERRED, with the reason:** a teammate's hand
+    edit of the driver file is legal (G4, D9), so a suite test demanding equality would turn red on every legal
+    hand edit — and on every project saved before its export; the disagreement it guards is caught where it matters,
+    at the next export (the hashes: Keep / Overwrite). The coordinator may rule otherwise. Found while weighing it:
+    once a project holds a robot's controls, the tab has no "read the driver file again" — a teammate's hand edit
+    can be kept or overwritten, not taken in (remove the robot's block from `route_maker.json` to re-read). For the
+    coordinator.
+29. **The log's "FIVE of its cases" — REAL, CORRECTED:** six of seven red; the compact row's SMALL-budget case stayed
+    green.
+30. **The patch failed `git apply` — REAL, FIXED:** see 1.
+31. **Guide 14; cookbook 06 — REAL, FIXED / FLAGGED:** guide 14's route-builder paragraph states the Controls tab's
+    limits (the default feel only in this version, marker lines needed, no slow mode while a button is held — the
+    patch drops the first). The cookbook 06 hunk (:295, "the last two checks" → three) stays; **for the coordinator:
+    fold it into ROB1-BT's re-quote of that chapter.**
+
+**Prose review (rule 4), greps RUN and read before writing this:** `EXAMPLE_SOURCE_GLOBS` / `check-examples` /
+"compiled example test" over `docs/`, `README.md`, `test/README.md`, `tools/*.md` → guide README :83, 
+`guide-maintenance.md` :31-37, `test/README.md` :51 stated the old source set (all three updated);
+`docs-publishing.md` :135 and `build-order.md` :632 only name the check (true). `pages.yml` → `RELEASING.md` :145
+(true). The removed or changed claims ("Go to one position", "the map the driver file has now", "always says what
+the code does", "the robot's code computes", "exactly where the build refuses", "refuses exactly") → no hit left
+outside `docs/internal/chunks/`. `driver_one_marked`, `controls_one_`, `wordsStale`, `checkWords` → only the new
+lines. The same words-to-avoid grep as before over every line added this round: no hit.
+
+#### Resumed 2026-11-16 22:50 EST (`date`): the fix round continued after the team lead's pause
+
+**Found.** All 31 findings already had a disposition above. The stopped run had reached its final gates. Suite, ctest
+(345/345), node, page and the doc gates were green at 12:47–12:54. Its src gate self-test ended **exit 1** at 13:45, on
+cases 53 and 55: robot one's Bench Tests links since ROB1-C2, and the old baseline lacked `531c3fd`, which updated those
+two cases. Its check never ran. Nothing was left applied: no `(self-test plant` in `git diff -- Makefile src/`,
+nothing untracked under `src/` or `include/`, both mutation backup folders (`mut/backups`, `fix/mut/backups`) empty.
+The only `src/` change is B's own (`src/common/driver_file.hpp`, the feel `static_assert`). The test binary (12:47)
+was relinked from source: removed, briefing regenerated, full build, briefing regenerated again.
+
+**The tree moved onto A1 as merged.** `shulib-v2` now carries A1 (`e8fa3de`, 12:14, on `531c3fd`), so the old
+baseline (`9ea9b10`, this run's own A1-onto-main) was replaced. The index is now `e8fa3de`'s tree (`2b3d949`,
+`BASELINE_TREE`); the working tree is `e8fa3de` + B's diff, built three-way from a snapshot of B (`fix/rebase/`:
+`B_TREE`, `b-on-9ea9b10.patch`, `b-files.tgz`, the old `BASELINE_TREE`). Five files changed on both sides: the
+changelog (B's entry kept at the top of API 2.9, above A1's), this log (the coordinator's merge section kept before
+`## RMP1-B`), guide 14 and `test/README.md` (clean, read: no sentence contradicts), the briefing (regenerated). The
+tree was checked equal to the planned one (`c981818`) before any gate ran.
+
+- **Finding 5 is now in B's diff.** `e8fa3de`'s `page.test.mjs` is A1's as pushed. On this tree, in Firefox, it fails
+  the same six tests (`pass 10, fail 6`, `fix/resume/page-a1-as-merged-ff.log`), so shulib-v2's route-builder
+  browser rows stay red until this lands. The fix is unchanged; it is now an A1-file edit in B's diff, and item 27's
+  list gains `tools/route_maker/test/page/page.test.mjs`. `a1-onto-main-merge-fixes.diff` is retired: fixes 1–4 are
+  the coordinator's own in `e8fa3de`.
+- **Findings 1 and 30: the patch re-cut again.** Its changelog hunk's context moved (A1's entry now follows B's).
+  Same edits; `git apply --check` is clean on this tree. The previous cut is kept as
+  `fix/resume/patch-recut/drive-line-feel.patch.on-9ea9b10`.
+
+**Re-verified on the final tree** (logs in `fix/resume/`):
+- Full build 22:54–22:56, doc gates in it. Suite **green, 3782 cases, 3 883 278 assertions** (`e8fa3de` alone:
+  3778). ctest **346/346**, 23:02–23:07: all 345 compile refusals, the 50 `rm*` twins among them.
+- ARM header gate (258 headers): exit 0. CI greps: PROS-free, sim-free, LF.
+- api_doc_tool self-test, check-fresh, check-examples (919 lines, 7 whole-run listings), check-coverage (6439
+  entities) and check-removability; doc staleness clean; briefing check current.
+- `route_preview.py self-test`: ok (0 failures).
+- Node: **114 pass, 1 skip** (GL0's real file, which ROB1-BT adds). Page: Firefox **27/27**; Chromium **24 + 3
+  skipped** (the Firefox-only branches).
+- **CT-HS on the delivered configuration, on this tree.** The scratch tree was re-synced from the worktree, then
+  `make_cths2.mjs` wrote robot one's export: the claw A → Up with the FREE row removed, the cascade's hold swapped,
+  Brake, the default feel; no docs re-quoted, no patch. Build green (6 whole-run listings); suite **green, 3782
+  cases, 3 883 276 assertions**. The doc-glob mutation on that tree is RED (`NOT VERBATIM … guide/21`); restored, it
+  is clean.
+- **Every fix-round mutation re-run on this tree** (`mutate2.py`, 23:11–23:13): **28 of 28 RED**, `all restored:
+  True`. F2 and F14-D2 took 33 s each, the rest under 4 s. The site was rebuilt from the restored sources afterwards.
+- **The src gate** (`fix/resume/run_srcgate3.sh`, 23:12 to 00:22 on 2026-11-17): self-test **OK, 377 detector
+  cases** (cases 53 and 55 pass on this tree), run under `timeout -s INT`; check **PASS, all 14 builds**. Robot one's
+  four refuse naming exactly their owed facts, and its 6 builds link in the gate's typed copy. Before and after the
+  check: no `(self-test plant` in `Makefile`/`src/`, nothing untracked under `src/` or `include/`.
+
+**Prose review for this step** (greps run and read): the removed-claims grep was re-run. "Go to one position" hits
+only `controls.mjs:40`, the form's name in the right pane's "What it does" list, where the position is then picked
+from "Choose one" (the menu itself names each position). No other hit outside `docs/internal/chunks/`.
+
+### Verification-round findings and their disposition (2026-11-17 from 00:45 EST, `date`)
+
+A fresh verifier returned six findings (two major, four minor). All six are REAL. Each was reproduced first, with
+the verifier's own probes (`verify/probes/`) or an instrumented one, then fixed at the root. Every fix has a test
+that is RED without it. Every gate was re-run on the final tree. Scratch for this round: `scratch/rmp1-b/vr/`.
+
+**First, the base moved (finding 6).** `shulib-v2` gained DOCS3-N1 (`26ee38e`), `1bcde4e` and `b3146d4` after A1
+merged, so B's diff no longer applied. B was rebased onto `b3146d4`, the same way as at the last resumption:
+- B snapshotted as a tree (`vr/B_TREE_before_vr`; files in `vr/b-files-before-vr.tgz`; patch in
+  `vr/b-on-e8fa3de.patch`).
+- Eleven files changed on both sides. Each was merged three-way with `git merge-file` (`vr/m3/`).
+- The index moved with `git read-tree -m -u 2b3d949 4076a77`. The index is now `b3146d4`'s tree, `4076a77`
+  (`BASELINE_TREE`; the old one is in `vr/OLD_BASELINE_TREE`).
+- Checked: no path differs from B's snapshot except paths `shulib-v2` changed.
+
+Three files conflicted:
+- **`docs/changelog.md`:** B's entry first, then DOCS3-N1's, then A1's (newest first).
+- **`docs/guide/README.md`:** taken as `shulib-v2` has it. DOCS3-N1 made row 22 a short "Make your first route |
+  Route builder" row, so B's longer row-22 sentence no longer has a place. B's scope sentence (finding 4 of the
+  review) moved with DOCS3-N1 to `docs/how-the-docs-stay-true.md`, and is re-applied there. That page now says chapter
+  21 quotes robot one's map from `controls_one_builders_map.hpp`, not from the driver file.
+- **`docs/internal/PROJECT-BRIEFING.md`:** regenerated.
+
+`tools/api_doc_tool.py` merged cleanly: B's glob and self-test cases sit on DOCS3-N1's version, and its comment
+points at `how-the-docs-stay-true.md`. Guide 14 and 18, guide 21, cookbook 06, `guide-maintenance.md`,
+`test/README.md` and this log merged cleanly; their merged hunks were read.
+
+- **New with DOCS3-N1, one link:** the docs front page (`docs/README.md`) "Drive the robot" row links "Set the
+  buttons and the stick feel by clicking" to guide 22's Controls part. That part's anchor is the one guides 18 and 21
+  already link to. `mkdocs` is not installed here; `pages.yml`'s strict build checks the anchor.
+- **The drive-line patch, re-cut again** (findings 1/30 of the review). Its changelog hunk's trailing context is now
+  DOCS3-N1's heading. `patch --fuzz=2` was applied to copies (`vr/patch/`), and the timestamps were stripped. The
+  edits are identical (the `+`/`-` lines compared), and `git apply --check` is clean on this tree. The previous cut
+  is `vr/patch/drive-line-feel.patch.on-e8fa3de`. Its C++ half is unchanged: `src/programs/drive_program.cpp` is
+  byte-equal at `e8fa3de` and `b3146d4`, so the CT-HS verification of 2026-11-16 holds.
+
+1. **Words the team types after a remap were refused; the one fix dropped `[delete-able]` (major).** REAL, FIXED.
+   **Reproduced:** `start_row.mjs` and `words.mjs` gave `wordsStale` on "L1 / L2 wait" and on "L1 raises it, L2 lowers
+   it". **Root cause:** every word that was not the page's was judged against the driver file as read. So a line the
+   team wrote AFTER the remap was judged against jobs it was never written for.
+   **The fix (`controls.mjs`):** each LINE is judged against the jobs it was written for:
+   - a line the team types here: the jobs when it was typed (`editControl` records them in `wordsFor`, for new lines
+     only; a line left untouched in an edited row keeps its baseline);
+   - the file's own line: the driver file as read;
+   - any other (a project's, opened again): the project as opened (`checkWords`' new `opened`; the tab passes
+     `loaded`).
+   The page's own lines are never judged. The error now says which part is stale ("its map row "(start)" names
+   R1, R2"). **Use the page's words** replaces only the stale comment or rows: a stale row is replaced by the page's
+   row for the same key, or the whole map part when no key matches. So the (start) row is fixed and
+   "[delete-able] home it at the first driver start" is kept.
+   **Tests (node):**
+   - the truthful (start) row and true comment and rows on the moved hold: no error;
+   - only one of the row's two "R1 / R2" lines fixed: the other still flagged;
+   - the team's TRUE words going stale when the jobs change AFTER they were typed: flagged;
+   - the one-click fix keeping the comment;
+   - `wordsFor` never saved;
+   - a project opened again judged against itself, not the file;
+   - the old "R1 lifts" case now judged against the FILE as `before`.
+   **Tests (page, Firefox):** the six-select remap in the browser, its (start) error, the one-click fix (comment
+   kept), Ctrl+Z, then the row typed true: no error. A project holding a remapped map and a typed row opens with no
+   error. **Mutations RED:** V1, V2, V3, V4, V7, V7b (node), V11, V12 (page).
+   **Known limit, for G3a's re-plan:** `wordsFor` is not saved (the D14 shape keeps no per-line jobs). So a line
+   typed in one session and made stale before Save is judged, after reopening, against the project as opened, where
+   it is already stale. It is no longer flagged then. Lines from the driver file are always judged against the file.
+2. **Connecting the folder on a page with no route discarded every unsaved Controls change (major).** REAL, FIXED.
+   **Reproduced by its two halves:** `syncWithFolder` treats an empty route as an empty page, and `reload()` rebuilt
+   every robot's history.
+   **The fix:**
+   - `reload(keepChanged)` (`controls_tab.mjs`) keeps a robot changed here one Ctrl+Z away (a commit, as A1 does for
+     the route). With `keepChanged` and no controls of its own in the opened project, it keeps the robot as it is and
+     writes it into the project.
+   - `syncWithFolder`'s empty-route path passes `keepChanged`.
+   - Its question says "route and Controls" (titled "a different project") when the page holds Controls, and that
+     Ctrl+Z brings this page's back.
+   - `readFolder` swaps an unchanged robot's present for today's file and keeps its past (`historyOf` dropped it).
+   - Found on the way: A1's `toast()` shows one at a time, so the Controls note is folded into the open's own toast
+     ("Opened … from the folder. Your Controls changes for robot one are kept …"). Open does the same.
+   - A robot the opened project holds read only cannot get its changes back. The toast says so.
+   - Found on the screenshots of this state (`~/shulib-render-tmp/rmp1-b/shots-vr/`, light and dark): with the
+     folder connected and the robot changed here, the right pane still said "Connect your shulib folder to read
+     today's". It now says the robot was changed here, so today's file is not read in, and that Export asks before
+     replacing anything that differs. This was true before this round too (the review's finding 6 skipped a changed
+     robot), and it is now asserted in the page test (mutation V17).
+   **Page test (Firefox, 3 scenarios):**
+   - the verifier's flow: a fresh page, Brake, connect a folder whose project has a start and no Controls. Brake
+     kept, the route open, Save writes both.
+   - a folder project with robot one's own Controls: they open, and Ctrl+Z brings Hold back;
+   - a page WITH a route: asked with the new words; "Open the folder's route" gives today's file; Ctrl+Z gives Hold.
+   **Mutations RED:** V8, V9, V10, V13, V14, V15.
+3. **Guide 22's "move it to another button and yours are kept" was false for Left / Right (minor).** REAL, FIXED in
+   code, so the sentence is now true. One combined row is keyed "Left/Right" when "Left / Right" is too long for the
+   key column. That is `pairKey`, used by the writer (`rekey`) AND the reader (`parseControlWords`), which accepted
+   only "A / B" before. A page change that still has to replace the team's rows toasts that it did (the comment-only
+   toast missed it).
+   - **Found while fixing:** the page's `keyButtons` split keys at "and" too, and GM22's C++ does not. So a
+     hand-written "Up and Down" row was two buttons to the page and none to the suite. It now splits at "/" and ","
+     only, as the C++ does. A node test pins the C++ source's `find_first_of("/,"`. GM22's comment names
+     "Left/Right".
+   - **Node tests:** robot two's combined row moved to Left/Right, Right/Down, Up / Down and Down / Left keeps the
+     team's lines and reads back onto its control through a real splice; plus the key-split agreement.
+   - **Mutations RED:** V5, V6.
+4. **The README still claimed a twin for every build refusal; finding 27's A1 list missed the README (minor).**
+   REAL, FIXED. `tools/route_maker/README.md` names the one build refusal with no compile-refusal twin: any feel but
+   the default, while "shulib Drive" names the default feel at start (`drive_program.cpp`'s `static_assert`). It is
+   pinned by its sentence read from that source in `feel.test.mjs`. **Finding 27's list of A1 files touched gains:**
+   - `tools/route_maker/README.md`;
+   - this round's `app.mjs` (`fix()`'s focus, and `adoptProject` / `adoptFolderText` / `syncWithFolder` /
+     `openProj`);
+   - `tools/route_maker/test/page/page.test.mjs` (the focus assertion).
+   Outside A1 and B, DOCS3-N1's `docs/how-the-docs-stay-true.md` (the scope sentence) and `docs/README.md` (one link).
+5. **A1's re-pointed page test failed now and then in Chromium at the redo (minor).** REAL. **ROOT CAUSE FOUND, in
+   A1's `app.mjs`:** `fix()` ("Home it first") focused the new home's time-limit box in a `setTimeout(…, 0)`.
+   - **What went wrong:** in Chromium that timer sometimes ran only after the test's later keys (Playwright's input
+     events went first). It moved the focus into the box between the Ctrl+Z and the Ctrl+Shift+Z. The page ignores
+     shortcuts while a box is being typed in, so the redo was lost.
+   - **Probe:** `vr/flake/probe.mjs`, the test's steps looped with a capture of every keydown, focus and `focus()`
+     call with its stack. With A1's code it failed 2 of 40 and 3 of 60. Every failure shows the box taking the focus
+     right before the redo's `z`; in the 60-run, which captured the stack, that is `focus()` from `app.mjs:259`.
+   - **The fix:** the box is focused at once, since `edit()` has already drawn it. Then 0 of 80, and 0 of 100 on the
+     final site. The verifier's "one more page round trip" hid it by giving the timer time.
+   - **Test:** the test now clicks "Home it first" and reads the focused element in the same task. Mutation V16
+     (the deferred focus restored) is RED every time.
+   - **Chromium:** the whole page suite ran 5 times, 27 pass and 3 skipped (the Firefox-only tests) each.
+6. **B's diff did not apply onto `shulib-v2` after DOCS3-N1 (minor).** REAL, DONE HERE rather than left to the merge:
+   see "the base moved" above. The coordinator now applies B onto `b3146d4`. The verifier's merge steps are all done:
+   - the scope edit is carried into `how-the-docs-stay-true.md`;
+   - `api_doc_tool.py` is merged;
+   - B's changelog entry is on top;
+   - the briefing is regenerated;
+   - the patch is re-cut.
+
+**Mutations this round** (`vr/mut/mutate3.py`, the review round's driver with new cases: each mutant is one edit,
+run fresh, and restored in a `finally` and on SIGTERM/SIGHUP/SIGINT; the page mutants each on a freshly built site,
+Firefox): **17 of 17 RED, `all restored: True`** (`vr/mut/mut-run.log`). No C++ logic changed this round: only
+GM22's comment in `test/robot_one_driver_test.cpp`. So no C++ mutation applies; that object was rebuilt by the clean
+build.
+
+**Gates on the final tree** (logs in `vr/gates/`):
+- **Briefing and build:** the binary was removed, the briefing regenerated, then `cmake --build --clean-first`
+  (317 objects, 0 warnings, the doc gates in it: 919 lines verbatim, 7 whole-run listings). The briefing was
+  regenerated again after.
+- **Suite and ctest:** suite **green, 3782 cases, 3 883 278 assertions** under the 4 GiB cap. **ctest 346/346**
+  (01:09–01:13).
+- **Node:** **117 pass, 1 skip** (GL0's real file). The site was rebuilt from the restored sources.
+- **Page:** Firefox **30/30**. Chromium (cgroup cap) **27 + 3 skipped, five runs**.
+- **Doc tools:** `api_doc_tool` self-test, check-fresh, check-examples, check-coverage (6439 entities) and
+  check-removability clean. `doc_staleness_audit` clean. `briefing_status.py check` current. `doc_readability`
+  check-nav (260 pages), check-tone (46) and self-test (159 cases) OK. `route_preview.py self-test` ok.
+- **ARM and CI greps:** ARM header gate exit 0 (258 headers). CI greps: PROS-free, sim-free, LF.
+- **The src gate:** below.
+
+**Prose review (rule 4), greps run and read before writing this:**
+- "page's words", "Use the page", "different route", "another button", "Ctrl+Z brings", "one Ctrl+Z", "Home it
+  first", "re-keyed", "keyed" over `docs/`, `README.md`, `tools/route_maker/README.md` and `test/README.md` (not
+  `docs/internal/chunks/`, not `docs/api/`). Hits: guide 22 :83 ("Home it first", still true; the box takes the
+  keyboard as before, now reliably), :169-170 (true now, finding 3) and :191 (rewritten). The rest were unrelated
+  (cookbook 06 :163, build-order, hardware-assumptions).
+- `docs/route-builder.md` :36-40 ("with your shulib folder connected … reads today's driver file"): still true for
+  a robot not changed here.
+- `tools/route_maker/README.md`: no sentence on undo, connect or words besides :58-63 (rewritten).
+- The words-to-avoid grep ("simulat", "honest", "obviously", "just ", "simply", "easy", "precondition", "radian",
+  "http"). Its first pass found one of mine: guide 22's "replaces just that comment or row", now "only". The other
+  hits were DOCS3-N1's own front-page line and this rule's line. That pass diffed a tree against the working tree,
+  which does not see B's untracked files (`controls.mjs`, `controls_tab.mjs`, the tests). So it was re-run against
+  a tree of everything (`vr/added-lines.txt`, 517 added lines): only this rule's own lines hit.
+  `doc_readability check-tone` is clean.
+
+#### Resumed 2026-11-17 03:06 EST (`date`) — the run above was stopped during the src gate's `check`
+
+**Found on resuming:**
+- The index is still `b3146d4`'s tree (`4076a77`), and `shulib-v2` is still `b3146d4`. B is the working tree.
+- No src-gate plant: `git diff` (staged and not) over `Makefile src/` has no "(self-test plant"; nothing untracked
+  under `src/` or `include/`.
+- No mutant left: every backup folder under `scratch/rmp1-b/` is empty, and each of `mutate3.py`'s 18 edits finds
+  its original text once and its mutant text nowhere. No Playwright browser was left running.
+- Where it stopped: the self-test passed at 02:01 (377 cases). The `check` started then and its log is empty.
+- **One correction to the round above:** "17 of 17 RED" was V1–V16 plus V7b. V17, named under finding 2, had been
+  added to the driver after that run and never run. It is run below, then re-cut as V17b after the fix below.
+
+**Re-verified:** the verifier's probes re-run on this tree (`verify/probes/`, `vr/resume/start_row_stale.mjs`):
+- the true "L1 / L2 wait" (start) row and the true words on the moved hold: no error;
+- **Use the page's words**, called as the tab calls it, fixes only the (start) row and keeps
+  "[delete-able] home it at the first driver start";
+- robot two's combined row moved to Left / Right: kept, keyed "Left/Right".
+The Chromium redo probe (`vr/flake/probe.mjs`): 0 of 100.
+
+**New, found re-verifying finding 2, FIXED:**
+1. **Guide 22 said "Connecting the folder or opening a project never loses a change made here." That was false.** A
+   project whose controls for that robot this page cannot read (a newer builder's) opens that robot read only, and
+   `reload` drops the change. The toast said so ("… are read only here, so your changes there are gone"), but no
+   test covered it.
+   - **The guide:** it now names that one exception.
+   - **Its refusal table:** the "A newer project file" row now says a robot's Controls this page cannot read open
+     read only (only a step, or a field of the route, refuses the file).
+   - **Page test:** "Controls changed here, then a folder project whose controls for that robot this page cannot
+     read …". Mutation **V18** (the change said to be one Ctrl+Z away) is RED.
+2. **The right pane said "You changed it here" when the robot was not changed.** Found on that state's screenshots.
+   It happened for a robot whose change was gone, and for any unchanged robot whose folder has no driver file, or one
+   it cannot read. Finding 2's note had assumed that a robot still read from the page, with the folder connected, was
+   always a changed robot.
+   - **The fix (`controls_tab.mjs`):** `readFolder` records why today's file was not read in, and the pane says that:
+     - the folder has no such file;
+     - the file was not read in, with the reason;
+     - it was changed here.
+   - **Test:** the same page test asserts both robots' notes.
+   - **Mutations:** V17b (the "changed here" note dropped), V19 (the old always-"changed here" note) and V20 (an
+     unreadable file called missing) are RED.
+   - **Screenshots:** `~/shulib-render-tmp/rmp1-b/shots-resume/` (light and dark), looked at.
+
+**Mutations this resumption** (`vr/resume/mut/mutate4.py`, `mutate5.py`: `mutate3.py`'s driver, each page mutant on
+a freshly built site, Firefox, restored in a `finally` and on SIGTERM/SIGHUP/SIGINT; each mutant was checked to
+parse with `node --check`, so each RED is the test's):
+- V17 (on the code before the fix) RED;
+- then V18, V17b, V19 and V20, all RED;
+- `all restored: True` both times.
+So this round now has 22 mutations: V1–V17, V7b, V17b and V18–V20, all RED (V17b replaces V17 on the fixed code).
+
+**The base moved again (finding 6, re-verified: its "done here" no longer held).** `shulib-v2` is now `b4392d0`.
+Five commits landed after `b3146d4`: the Calibrate thresholds fix (`7867517`), AF1S-A2 (`d882e11`), MIRROR1-B
+(`dc17349`) and their two docs commits. B's diff failed `git apply` there on `docs/changelog.md` and
+`docs/internal/PROJECT-BRIEFING.md`. So B was rebased onto `b4392d0` the same way as before (scratch:
+`vr/resume/rebase/`):
+- **Snapshot:** B's tree `8058ee1` (`B_TREE_before_rebase`), its files (`b-files-before-rebase.tgz`), its diff
+  (`b-on-b3146d4.diff`).
+- **Four files changed on both sides,** each merged three-way with `git merge-file` (`m3/`):
+  - `docs/changelog.md` conflicted. B's entry is first, then `shulib-v2`'s in its own order. Checked: the merged file
+    is `shulib-v2`'s plus exactly B's 32 lines.
+  - `docs/guide/14-what-it-cannot-do-yet.md` and `test/README.md` merged cleanly. B's hunks were carried
+    line-identical and read.
+  - `docs/internal/PROJECT-BRIEFING.md` was taken as `shulib-v2` has it, then regenerated after the build.
+- **The move:** the index went with `git read-tree -m -u 4076a77 85b44e3`, after those four files were reset to the
+  index. The index is now `b4392d0`'s tree (`85b44e3`).
+- **Checked:** the 57 paths where B's tree differs from its snapshot are all paths `shulib-v2` changed.
+- **The new docs** in those commits make no claim about the route builder, the driver file or its feel (grepped).
+- **The drive-line patch was re-cut again.** Its changelog hunk's trailing context is now MIRROR1-B's heading. It was
+  applied with `patch --fuzz=2` to copies (`vr/resume/patch/`). Every `+`/`-` line is identical, and
+  `git apply --check` is clean. The previous cut is `vr/resume/patch/drive-line-feel.patch.on-b3146d4`. Its C++ half
+  is unchanged: `drive_program.cpp` and `drive_program_source_test.cpp` are untouched by the five commits.
+- **The coordinator now applies B onto `b4392d0`.**
+
+**A1's files touched this resumption:** guide 22 only (already on finding 27's list). `controls_tab.mjs` and
+`controls.page.test.mjs` are B's.
+
+**Gates on the final tree** (rebased onto `b4392d0`; logs in `vr/resume/gates2/`, and before the rebase in
+`vr/resume/gates/`). Every gate below also passed on the tree before the rebase. Its counts were: suite 3782 cases,
+919 verbatim lines, 6439 entities, 260 menu pages, 46 tone pages and 258 headers; the other counts were equal.
+- **Briefing and build:** the binary was removed, the briefing regenerated, then `cmake --build --clean-first`
+  (319 objects, 0 warnings). The doc gates ran in it: 995 lines verbatim, 7 whole-run listings. The briefing was
+  regenerated again after.
+- **Suite:** green, **3823 cases, 3 884 522 assertions** (`shulib-v2`'s 3 819, plus B's 4), under the 4 GiB cap.
+- **ctest:** 346/346.
+- **Node:** 117 pass, 1 skip (GL0's real file).
+- **Page:** Firefox **31/31**. Chromium (cgroup cap), five runs: **28 pass, 3 skipped** (the Firefox-only tests)
+  each. The Chromium redo probe: 0 of 100.
+- **Doc tools:**
+  - `api_doc_tool`: self-test, check-fresh, check-examples, check-coverage (6478 entities) and check-removability,
+    all clean;
+  - `doc_staleness_audit`: clean;
+  - `briefing_status.py check`: current;
+  - `doc_readability`: check-nav (262 pages), check-tone (47) and self-test (159 cases) OK;
+  - `route_preview.py self-test` and `first_week.py check`: OK.
+- **ARM and CI greps:** ARM header gate exit 0 (259 headers). CI greps: PROS-free, sim-free, LF, and no CR in B's
+  files.
+- **The src gate:**
+  - self-test OK (377 cases) under `timeout -s INT`;
+  - then `check` PASS (14 builds);
+  - no "(self-test plant" in `git diff -- Makefile src/`, before or after `check`; nothing untracked under `src/` or
+    `include/`.
+  Both passed on each tree. After it, the binary was removed and relinked (319 objects), and the suite was green
+  again (3823).
+- **B's diff:** `vr/resume/make_diff.sh` writes `scratch/rmp1-b/rmp1-b.diff` and `rmp1-b.files`. It is checked with
+  `git apply --cached --check` onto `b4392d0`, and applies.
+
+**Prose review (rule 4), greps run and read before writing this:**
+- **"never loses", "are kept", "is kept", "stays one", "one Ctrl+Z"** over guide 22, `docs/route-builder.md`, the
+  route-builder README, the docs front page, guides 18 and 21, and cookbook 06. One false hit: guide 22 :150. It is
+  rewritten (new finding 1).
+- **"You changed it here", "not read in", "today's file", "today's driver file", "Your folder has no"** over `docs/`,
+  `README.md` and the two READMEs (not `docs/internal/chunks/`, not `docs/api/`):
+  - guide 22 :148 and `docs/route-builder.md` :39 ("reads today's file"): true when the folder holds it, and the page
+    now says why when it does not;
+  - nothing quotes the pane's sentence.
+- **"read only", "newer route builder"** over guide 22, `docs/route-builder.md` and the route-builder README: guide
+  22's refusal table, row "A newer project file", is reworded.
+- **The words-to-avoid grep** over this resumption's added guide lines: no hit. `doc_readability check-tone` is clean.
+
+## RMP1-B — the coordinator's merge *(2026-11-17)*
+
+- **Source:** the `rmp1-b` worktree as built, reviewed (three code-review passes), fixed, verified and fixed again
+  (workflow `wf_85869230-05f`, 7/7), rebased by its run onto `b4392d0`; carried as `rmp1-b-on-main` (`99f2230`, its
+  tree on parent `b4392d0`) and squash-merged in `integrate` onto main `279c297` (ROB1-BT had landed since).
+- **The drive-line feel patch** (`scratch/rmp1-b/drive-line-feel.patch` — the team lead, 2026-11-16: "Yes, put it in"):
+  `driverLineMatchesFeel()` and its `static_assert` gone; "shulib Drive" prints its feel on its own boot line,
+  `feelLine()` — made from the driver file's `kFeel`. Its second hunk was re-cut by hand: ROB1-BT had reworded robot
+  two's driver line (now "robot one's map -- the team's"); both robots' lines end "its feel (the next line)".
+- **Conflicts (4):** the changelog (B's entry on top); cookbook 06 (ROB1-BT's robot-one text + B's "three checks");
+  `how-the-docs-stay-true.md` (chapter 21 quotes B's golden, the driver-control recipes the live robot-one file); the
+  briefing (regenerated). Guide 22's "until robot two's update" lines made present tense (it has landed).
+- **Fixed at the merge:** GM22 (`test/robot_one_driver_test.cpp`) read 0 rows from robot one's real driver file —
+  ROB1-BT's `[the map]` heading is two lines; B's golden has one. Its reader now starts after the route builder's
+  `// [control words …]` marker (as the page reads it), else `[the map]`.
+- **Gates on the merged tree:** the suite green through `suite_run.py` (**3,850 cases, 3,885,928 assertions**); node
+  **120/120**; page tests (Playwright 1.64.1, its own browsers) **Firefox 31/31**, **Chromium 28 + 3 skipped** (Chromium
+  must run under a cgroup cap — `systemd-run --user --scope -p MemoryMax=6G` — an address-space `ulimit -v` kills it at
+  launch); src gate **self-test OK (398)** and **check PASS**; `ctest` **353/353**; ARM header gate 0 (259); CI greps
+  clean; api fresh; the briefing current; staleness clean; the strict site build (prepare_site → the route builder →
+  `mkdocs build --strict`) exit 0, no warning.
+- **Mutations: 3 of 3 RED** — MR-1 robot one's map loses its L2 row (GM22); MR-2 Drive's boot prints no feel line
+  (the drive program's source test); MR-3 (by hand) `DriverFile`'s feel range check removed → 4 compile refusals
+  (rm01, rm_ct_a_feel / strafe / turn) fail; restored, byte-identical.
+- **Open (for the coordinator / the team lead):** (1) cookbook 06 still quotes robot one's LIVE driver file: a student's
+  export of the controls changes it, and the host build's doc gate then fails until the listing is re-quoted (robot
+  builds are not affected) — re-point it at B's golden as chapter 21 is. (2) `test/robot_twin_test.cpp` holds the two
+  driver files' marked regions equal: an export on ONE robot turns the host suite red until the other robot's file
+  gets the same change — the Controls tab should write both, or say so. (3) The side-toggle mirror (ROB1-BT's
+  finding 1) for the route export.

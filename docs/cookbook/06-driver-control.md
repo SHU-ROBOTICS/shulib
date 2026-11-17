@@ -300,8 +300,9 @@ each robot's real declarations.
   compile error at the control's line, and `controls(...)` checks the whole list against the
   robot's list at build — each refusal BY NAME: a button doing two jobs, a hold's volts outside
   (0, 12], a control on a mechanism this robot does not have, a mechanism with no control (mark one
-  the driver never works `autonOnly(...)`). `DriverFile` adds the last two checks: no control on
-  the loop's re-zero button, and no tick but the brain's.
+  the driver never works `autonOnly(...)`). `DriverFile` adds the last three checks: no control on
+  the loop's re-zero button, no tick but the brain's, and a feel in range — each dead zone at least 0
+  and below 1, each curve from 0 to 1.
 - **The cascade homes at the first driver start.** `homeAtDriverStart` moves it DOWN on its own until it
   stalls gently on its bottom stop (at most 3 s); R1 / R2 wait until it has. Before it is homed a held
   button gives it at most its unhomed volts (the robot file's), with no soft stops.

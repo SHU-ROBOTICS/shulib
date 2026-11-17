@@ -268,3 +268,108 @@ kbd.k { font: 600 var(--t-xs) var(--font-mono); padding: 2px 6px; border-radius:
   .pane-toggle { display: inline-flex; }
   .brand small, .hide-narrow { display: none; }
 }
+
+/* ── RMP1-B: the tabs, the Controls tab, the controller and the driving feel ── */
+.tabs { display: flex; gap: 2px; padding: 3px; border-radius: var(--radius-md); background: var(--surface-2); border: 1px solid var(--border); }
+.tab { display: inline-flex; align-items: center; gap: 6px; min-height: var(--hit); padding: 0 12px; border: 0; border-radius: var(--radius-sm); background: transparent;
+  cursor: pointer; font-weight: 600; font-size: var(--t-sm); color: var(--text-muted); transition: background var(--motion-fast), color var(--motion-fast); }
+.tab svg { width: 16px; height: 16px; }
+.tab:hover { color: var(--text); }
+.tab.on { background: var(--surface); color: var(--accent-strong); box-shadow: 0 1px 2px rgba(20, 16, 34, .12); }
+.app[data-tab="controls"] .workspace { display: none; }
+.controls { display: grid; grid-template-columns: 300px minmax(0, 1fr) 344px; min-height: 0; }
+.controls-mid { overflow: auto; padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-4); background: var(--surface-3); min-width: 0; }
+.card-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-3); margin-bottom: var(--s-2); }
+.card-head h2 { margin: 0; font-size: var(--t-lg); }
+.card-head .hint { margin: 0; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--radius-md); background: var(--surface-2); border: 1px solid var(--border); flex-wrap: wrap; }
+.seg button { border: 0; background: transparent; border-radius: var(--radius-sm); min-height: var(--hit); padding: 2px 10px; cursor: pointer; font-weight: 600;
+  font-size: var(--t-sm); color: var(--text-muted); display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
+.seg button.on { background: var(--surface); color: var(--accent-strong); box-shadow: 0 1px 2px rgba(20, 16, 34, .12); }
+.seg button small { font-weight: 450; font-size: var(--t-xs); color: var(--text-muted); }
+.seg.wide { display: flex; margin: var(--s-2) 0; }
+.seg.wide button { flex: 1; padding: 6px 12px; }
+
+/* the controller (SVG) */
+.pad { width: 100%; max-height: 52vh; display: block; user-select: none; }
+.pad-body { fill: var(--surface-2); stroke: var(--border); stroke-width: 2; }
+.pad-screen { fill: var(--text); opacity: .85; }
+.stick { cursor: pointer; }
+.stick-base { fill: var(--surface-3); stroke: var(--border); stroke-width: 2; }
+.stick-knob { fill: var(--text-muted); }
+.stick:hover .stick-knob, .stick:focus-visible .stick-knob { fill: var(--accent); }
+.cbtn { cursor: pointer; outline: none; }
+.cbtn > rect, .cbtn > circle { stroke-width: 2.5; transition: fill var(--motion-fast); }
+.cbtn.used > rect, .cbtn.used > circle { fill: var(--accent); stroke: var(--accent-strong); }
+.cbtn.free > rect, .cbtn.free > circle { fill: var(--surface); stroke: var(--grey); stroke-dasharray: 4 3; }
+.cbtn.rezero > rect, .cbtn.rezero > circle { fill: var(--surface-3); stroke: var(--grey); }
+.cbtn.bad > rect, .cbtn.bad > circle { stroke: var(--failed); stroke-width: 4; stroke-dasharray: none; }
+.cbtn.sel > rect, .cbtn.sel > circle, .cbtn:focus-visible > rect, .cbtn:focus-visible > circle { stroke: var(--text); stroke-width: 4; }
+.cbtn:hover > rect, .cbtn:hover > circle { filter: brightness(1.08); }
+.cbtn-name { font: 700 12px var(--font-ui); text-anchor: middle; dominant-baseline: central; fill: var(--text); pointer-events: none; }
+.cbtn.used .cbtn-name { fill: var(--on-accent); }
+.cbtn-arrow { fill: var(--text-muted); pointer-events: none; }
+.cbtn-hit { fill: transparent !important; stroke: none !important; filter: none !important; pointer-events: all; }  /* the 32 px target, unseen */
+.cbtn.used .cbtn-arrow { fill: var(--on-accent); }
+.callout { pointer-events: none; }
+.callout rect { fill: var(--surface); stroke: var(--border); }
+.callout text { font: 600 14px var(--font-ui); text-anchor: middle; dominant-baseline: central; fill: var(--text); }
+.callout .leader { stroke: var(--border); stroke-width: 1.5; fill: none; }
+.callout.used rect { fill: var(--accent-soft); stroke: transparent; }
+.callout.used text { fill: var(--accent-strong); }
+.callout.free text, .callout.rezero text { fill: var(--text-muted); }
+.callout.free rect { stroke-dasharray: 4 3; }
+.callout.bad rect { fill: var(--error-soft); stroke: var(--failed); }
+.callout.bad text { fill: var(--failed); }
+.callout.stick rect { fill: var(--surface-2); }
+
+/* the mechanisms (left) */
+.mechs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.mech-card { border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--s-2) var(--s-3); background: var(--surface); }
+.mech-card.has-error { border-left: 4px solid var(--failed); }
+.mech-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); margin-bottom: 6px; }
+.chip-btn { border: 1px solid var(--border); background: var(--surface-2); border-radius: 999px; padding: 3px 10px; min-height: var(--hit); font-size: var(--t-xs);
+  font-weight: 600; cursor: pointer; color: var(--text); margin: 2px 4px 2px 0; }
+.chip-btn:hover, .chip-btn.sel { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
+.btn.small { min-height: var(--hit); padding: 0 8px; font-size: var(--t-xs); }
+.menu-group + .menu-group { border-top: 1px solid var(--border); margin-top: var(--s-1); padding-top: var(--s-1); }
+.menu-group-head { display: flex; align-items: baseline; gap: var(--s-2); padding: var(--s-1) var(--s-2) 0; }
+.menu-group-head small { color: var(--text-muted); font-size: var(--t-xs); }
+.menu-group .menu-item { padding-left: var(--s-4); }
+.mech-chip { display: inline-block; min-width: 92px; color: var(--accent-strong); font-weight: 650; font-size: var(--t-xs); }
+textarea.txt { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); padding: 6px 8px; width: 100%; resize: vertical; font: inherit; }
+
+/* the driving feel */
+.feel-grid { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.1fr); gap: var(--s-5); align-items: start; margin-top: var(--s-3); }
+.fld.slider > span { display: flex; flex-direction: column; }
+.fld.slider small { font-weight: 450; color: var(--text-muted); }
+.row.nowrap { flex-wrap: nowrap; }
+input[type="range"] { flex: 1; accent-color: var(--accent); min-height: var(--hit); }
+input.num { width: 68px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); min-height: var(--hit); padding: 4px 8px;
+  font-variant-numeric: tabular-nums; }
+input.num.bad { border-color: var(--failed); }
+.graph-wrap { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); padding: var(--s-2); touch-action: none; }
+.graph { width: 100%; display: block; cursor: crosshair; }
+.g-zone { fill: var(--accent-fill); }
+.g-gridline { stroke: var(--border); stroke-width: 1; }
+.g-tick { font: 11px var(--font-ui); fill: var(--text-muted); text-anchor: middle; }
+.g-tick.end { text-anchor: end; }
+.g-axis { font: 600 11px var(--font-ui); fill: var(--text-muted); text-anchor: middle; }
+.g-straight { stroke: var(--grey); stroke-width: 1.5; stroke-dasharray: 5 5; opacity: .7; }
+.g-curve { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linejoin: round; }
+.g-probe-line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.g-probe { fill: var(--surface); stroke: var(--accent-strong); stroke-width: 3; cursor: grab; }
+.readout { margin: var(--s-2) 0 0; font-size: var(--t-sm); color: var(--text-muted); }
+.readout strong { color: var(--text); font-size: var(--t-md); font-variant-numeric: tabular-nums; }
+.region h3 { margin: 0; font-size: var(--t-sm); }
+.region .code { max-height: 30vh; margin-top: 6px; }
+
+@media (max-width: 1100px) {
+  .controls { grid-template-columns: minmax(0, 1fr); }
+  .controls .pane.left { position: static; transform: none; width: auto; box-shadow: none; border-right: 0; border-bottom: 1px solid var(--border); max-height: 30vh; }
+  .controls .pane.right { position: fixed; top: 56px; bottom: 34px; right: 0; width: min(340px, 90vw); z-index: 10; box-shadow: var(--shadow);
+    transform: translateX(105%); transition: transform var(--motion); }
+  .controls[data-right="open"] .pane.right { transform: none; }
+  .controls { grid-template-rows: auto minmax(0, 1fr); }
+  .feel-grid { grid-template-columns: minmax(0, 1fr); }
+}

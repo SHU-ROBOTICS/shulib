@@ -30,11 +30,13 @@ import { historyOf, commit, undo as undoH, redo as redoH, canUndo, canRedo } fro
 import { bearingDeg, wrapDeg } from '../model/geometry.mjs';
 
 import { kMaxCurvePoints } from '../model/curve.mjs';
+import { createControlsTab } from './controls_tab.mjs';
 
 const DRAFT_KEY = 'shulib-route-builder:draft';
 const SAVED_KEY = 'shulib-route-builder:saved';  // the project text last saved or opened (the draft is "unsaved" only when it differs)
 const THEME_KEY = 'shulib-route-builder:theme';
 const COACH_KEY = 'shulib-route-builder:coach-dismissed';
+const TAB_KEY = 'shulib-route-builder:tab';  // RMP1-B: the Route or the Controls tab, as last left
 
 function store(key, value) {
     try {
@@ -82,6 +84,7 @@ async function main() {
     const ui = {
         selected: null, tool: 'select', curveDraft: [], snap: true,
         saveState: startState, coach: !store(COACH_KEY) && project.routes[0].steps.length === 0,
+        tab: store(TAB_KEY) === 'controls' ? 'controls' : 'route',
     };
     let dragBase = null;  // the route before a drag (a drag is ONE undo entry, committed when it ends)
     let derived = null;
@@ -250,12 +253,11 @@ async function main() {
             edit(r, sel);
             if (f.kind === 'homeFirst' || f.kind === 'homeWhileDriving' || f.kind === 'waitForHome') {
                 toast('Added. Type its time limit: the most the home (or the wait) may take.');
-                setTimeout(() => {
-                    const inp = document.querySelector('.pane.right input[name="boundS"]');
-                    if (inp) {
-                        inp.focus();
-                    }
-                }, 0);
+                // now (edit() drew it): a deferred focus could land after the student has moved on (RMP1-B's verifier)
+                const inp = document.querySelector('.pane.right input[name="boundS"]');
+                if (inp) {
+                    inp.focus();
+                }
             }
         },
         setProject(p, state) {
@@ -282,6 +284,16 @@ async function main() {
         },
         save: () => save(),
         connect: () => connect(),
+        // RMP1-B: the Controls tab's calls
+        baked,
+        toast: (t, c) => toast(t, c),
+        changed: () => renderTop(),
+        setRobots(robots, exports = project.exports) {
+            project = { ...project, robots, exports, routes: [route()] };
+            changed();
+            renderTop();
+            renderStatus();
+        },
         focusField: () => els.fieldView.element.focus({ preventScroll: true }),
         showCoach() {
             ui.coach = true;
@@ -442,8 +454,10 @@ async function main() {
      * first and kept (the draft, "last saved") only once it is on screen: a route this page cannot draw puts
      * everything back as it was and throws, so a failed open never becomes the draft the next visit starts from.
      * `folderText`: the folder's own text of it (Save's base), or undefined when it did not come from the folder.
+     * `keepControls` (RMP1-B): a robot whose controls were changed here and are not in `p` keeps them. Returns what
+     * happened to the Controls changes, in words ('' when there were none).
      */
-    function adoptProject(p, folderText) {
+    function adoptProject(p, folderText, keepControls = false) {
         const before = { project, hist, folderBase, selected: ui.selected, saveState: ui.saveState, coach: ui.coach };
         project = p;
         hist = commit(hist, normalizeRoute(p.routes[0]));
@@ -465,16 +479,20 @@ async function main() {
         }
         persistDraft();
         store(SAVED_KEY, saveProject(app.project()));
+        return controlsTab.reload(keepControls);  // RMP1-B: the opened project's controls; the page's one Ctrl+Z away
     }
-    /** Make the folder's project text the page's route. true: it is the page's now. */
-    function adoptFolderText(text) {
+    /** Make the folder's project text the page's route (`said`: the toast, with what happened to the Controls). true: it is the page's now. */
+    function adoptFolderText(text, { keepControls = false, said = '' } = {}) {
         const l = loadProject(text);
         if (!l.ok) {
             toast(`${PROJECT_FILE} in the folder was not opened: ${l.words}`, 'error');
             return false;
         }
         try {
-            adoptProject(l.project, text);
+            const note = [said, adoptProject(l.project, text, keepControls)].filter(Boolean).join(' ');
+            if (note) {
+                toast(note);
+            }
         } catch (e) {
             folderBase = null;  // the folder's file was NOT taken: Save asks before replacing it
             toast(`${PROJECT_FILE} in the folder was not opened: this page cannot show its route (${e.message}). `
@@ -485,8 +503,8 @@ async function main() {
     }
     /**
      * The folder was connected (or remembered): read its route_maker.json and compare. The same route: "Saved".
-     * An empty page: the folder's route opens. Two different routes: the student chooses — the page never shows
-     * a stale draft as the team's route without asking.
+     * An empty route: the folder's project opens (Controls changed here and not in it are kept). Two different routes:
+     * the student chooses — the page never shows a stale draft as the team's route without asking.
      */
     async function syncWithFolder() {
         if (!(files.canWriteFolder && files.connected())) {
@@ -516,15 +534,14 @@ async function main() {
             return;
         }
         if (!route().start && route().steps.length === 0) {
-            if (adoptFolderText(disk)) {
-                toast(`Opened ${PROJECT_FILE} from the folder.`);
-            }
+            adoptFolderText(disk, { keepControls: true, said: `Opened ${PROJECT_FILE} from the folder.` });  // Controls changes kept
             return;
         }
+        const controls = Object.values(app.project().robots || {}).some((x) => x && x.controls);
         const choice = await ask({
-            title: 'The folder has a different route',
-            words: `${PROJECT_FILE} in ${files.folderName()} is not the route on this page. Open the folder's (what the team `
-                + 'last saved there, a git pull included), or keep this page\'s (Save then replaces the file).',
+            title: `The folder has a different ${controls ? 'project' : 'route'}`,
+            words: `${PROJECT_FILE} in ${files.folderName()} is not the route${controls ? ' and Controls' : ''} on this page. Open the folder's (what the team `
+                + `last saved there, a git pull included${controls ? '; Ctrl+Z on the Controls tab brings this page\'s back' : ''}), or keep this page's (Save then replaces the file).`,
             choices: [{ label: 'Open the folder\'s route', value: 'open', kind: 'primary' },
                       { label: 'Keep this page\'s route', value: 'keep' }],
             cancel: 'keep' });
@@ -544,13 +561,14 @@ async function main() {
                 }
                 return;
             }
+            let note;
             try {
-                adoptProject(out.project, out.where === 'folder' ? out.text : undefined);
+                note = adoptProject(out.project, out.where === 'folder' ? out.text : undefined);
             } catch (e) {
                 toast(`Not opened: this page cannot show the route in that file (${e.message}). The page is as it was.`, 'error');
                 return;
             }
-            toast('Opened the project.');
+            toast(`Opened the project.${note ? ` ${note}` : ''}`);
         } catch (e) {
             toast(`Not opened: ${e.message}`, 'error');
         }
@@ -562,15 +580,28 @@ async function main() {
         } else if (files.connected()) {
             toast(`Connected: ${files.folderName()}. Save and Export now write into it.`);
             await syncWithFolder();
+            await controlsTab.folderConnected();
         }
         renderTop();
     }
     function undo() {
+        if (ui.tab === 'controls') {
+            controlsTab.undo();
+            renderTop();
+            renderStatus();
+            return;
+        }
         hist = undoH(hist);
         changed();
         render();
     }
     function redo() {
+        if (ui.tab === 'controls') {
+            controlsTab.redo();
+            renderTop();
+            renderStatus();
+            return;
+        }
         hist = redoH(hist);
         changed();
         render();
@@ -625,6 +656,8 @@ async function main() {
             els.inspector)),
         els.status);
     document.body.append(els.app, els.toasts);
+    const controlsTab = createControlsTab(app);
+    els.app.insertBefore(controlsTab.element, els.status);
     els.fieldView = createFieldView(els.fieldPane, app);
     els.fieldPane.append(els.toolbar, els.hud, els.zoom, els.modeHint, els.coach);
 
@@ -639,12 +672,16 @@ async function main() {
             h('div', { class: 'brand' }, h('span', { class: 'brand-mark', 'aria-hidden': 'true' }, icon('curve')),
               h('span', { class: 'hide-narrow' }, 'Route builder'), h('small', {}, 'shulib')),
             h('span', { class: 'sep hide-narrow' }),
-            h('span', { class: 'chip robot hide-narrow', title: 'The route is written in robot one\'s numbers' }, 'Robot one'),
-            h('span', { class: 'route-name', title: 'The route\'s name on the brain\'s menu (both robots\' code registers it by this name)' }, r.name),
+            h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'What to build' },
+              [['route', 'Route', 'curve'], ['controls', 'Controls', 'mechanism']].map(([id, t, ic]) => h('button', {
+                  role: 'tab', class: `tab${ui.tab === id ? ' on' : ''}`, 'aria-selected': String(ui.tab === id), id: `tab-${id}`,
+                  onclick: () => showTab(id) }, icon(ic), t))),
+            ui.tab === 'route' ? h('span', { class: 'chip robot hide-narrow', title: 'The route is written in robot one\'s numbers' }, 'Robot one') : null,
+            ui.tab === 'route' ? h('span', { class: 'route-name', title: 'The route\'s name on the brain\'s menu (both robots\' code registers it by this name)' }, r.name) : null,
             h('span', { class: `chip ${saveWords[1]}`, id: 'save-state', role: 'status' }, saveWords[0]),
             h('span', { class: 'spacer' }),
-            h('button', { class: 'btn icon ghost', 'aria-label': 'Undo (Ctrl+Z)', title: 'Undo (Ctrl+Z)', disabled: !canUndo(hist), onclick: undo }, icon('undo')),
-            h('button', { class: 'btn icon ghost', 'aria-label': 'Redo (Ctrl+Shift+Z)', title: 'Redo (Ctrl+Shift+Z)', disabled: !canRedo(hist), onclick: redo }, icon('redo')),
+            h('button', { class: 'btn icon ghost', 'aria-label': 'Undo (Ctrl+Z)', title: 'Undo (Ctrl+Z)', disabled: ui.tab === 'controls' ? !controlsTab.canUndo() : !canUndo(hist), onclick: undo }, icon('undo')),
+            h('button', { class: 'btn icon ghost', 'aria-label': 'Redo (Ctrl+Shift+Z)', title: 'Redo (Ctrl+Shift+Z)', disabled: ui.tab === 'controls' ? !controlsTab.canRedo() : !canRedo(hist), onclick: redo }, icon('redo')),
             h('span', { class: 'sep' }),
             files.canWriteFolder
                 ? h('button', { class: 'btn hide-narrow', onclick: connect, title: capabilityWords(caps) }, icon('folder'),
@@ -655,13 +692,19 @@ async function main() {
             h('button', { class: 'btn icon ghost', 'aria-label': dark ? 'Light theme' : 'Dark theme', title: dark ? 'Light theme' : 'Dark theme', onclick: theme }, icon(dark ? 'sun' : 'moon')),
             h('button', { class: 'btn icon ghost', 'aria-label': 'Help and shortcuts (?)', title: 'Help and shortcuts (?)', onclick: () => openHelp(app) }, icon('help')),
             h('span', { class: 'sep' }),
-            h('button', { class: 'btn big', id: 'preview', disabled: !engine.available, title: PREVIEW_COMING, 'aria-describedby': 'preview-why' }, icon('play'), 'PREVIEW'),
-            h('span', { class: 'sr-only', id: 'preview-why' }, PREVIEW_COMING),
+            ui.tab === 'route' ? h('button', { class: 'btn big', id: 'preview', disabled: !engine.available, title: PREVIEW_COMING, 'aria-describedby': 'preview-why' }, icon('play'), 'PREVIEW') : null,
+            ui.tab === 'route' ? h('span', { class: 'sr-only', id: 'preview-why' }, PREVIEW_COMING) : null,
             exportButton(),
             h('button', { class: 'btn icon ghost pane-toggle', 'aria-label': 'Step details', onclick: () => { els.app.dataset.right = els.app.dataset.right ? '' : 'open'; } }, icon('panel')));
     }
     /** Export: always clickable (it lists what to fix, each one click away); with errors it carries their count. */
     function exportButton() {
+        if (ui.tab === 'controls') {
+            const n = controlsTab.errors().length;
+            return h('button', { class: `btn big primary${n ? ' has-errors' : ''}`, id: 'export', onclick: () => controlsTab.openExport(),
+                                 title: n ? `Fix ${n === 1 ? 'this' : `these ${n}`} first (Ctrl+E lists them)` : 'Export the driver file\'s controls and feel (Ctrl+E)' },
+                     icon('code'), 'Export', n ? h('span', { class: 'count', 'aria-label': `${n} error${n === 1 ? '' : 's'} to fix first` }, String(n)) : null);
+        }
         const errs = derive().issues.filter((x) => x.level === 'error');
         const first = errs.slice(0, 3).map((x) => `${x.stepIndex >= 0 ? `step ${x.stepIndex + 1}: ` : ''}${x.words}`);
         return h('button', { class: `btn big primary${errs.length ? ' has-errors' : ''}`, id: 'export', onclick: () => openExportDrawer(app),
@@ -671,6 +714,13 @@ async function main() {
                  errs.length ? h('span', { class: 'count', 'aria-label': `${errs.length} error${errs.length === 1 ? '' : 's'} to fix first` }, String(errs.length)) : null);
     }
     function renderStatus() {
+        if (ui.tab === 'controls') {
+            const n = controlsTab.errors().length;
+            mount(els.status, n ? h('span', { class: 'chip error' }, icon('error'), `${n} error${n === 1 ? '' : 's'}`) : h('span', { class: 'chip ok' }, icon('check'), 'Ready to export'),
+                h('span', { class: 'build', title: 'The robots and the library this page was built with' },
+                  `Library API ${baked.build.api} · built from ${baked.build.commit} on ${baked.build.date}`));
+            return;
+        }
         const issues = derive().issues;
         const errors = issues.filter((x) => x.level === 'error');
         const warns = issues.filter((x) => x.level === 'warn');
@@ -690,7 +740,20 @@ async function main() {
         derived = null;
         els.fieldView.render();
     }
+    /** Show the Route or the Controls tab (RMP1-B). */
+    function showTab(id) {
+        ui.tab = id;
+        store(TAB_KEY, id);
+        render();
+    }
     function render() {
+        els.app.dataset.tab = ui.tab;
+        controlsTab.show(ui.tab === 'controls');
+        if (ui.tab === 'controls') {
+            renderTop();
+            renderStatus();
+            return;
+        }
         derived = null;
         for (const [id, b] of Object.entries(toolBtns)) {
             b.setAttribute('aria-pressed', String(ui.tool === id));
@@ -736,8 +799,18 @@ async function main() {
         }
         if (ctrl && e.key.toLowerCase() === 'e') {
             e.preventDefault();
-            openExportDrawer(app);
+            if (ui.tab === 'controls') {
+                controlsTab.openExport();
+            } else {
+                openExportDrawer(app);
+            }
             return;
+        }
+        if (ui.tab === 'controls') {
+            if (e.key === '?' && !typing) {
+                openHelp(app);
+            }
+            return;  // the route's shortcuts are the Route tab's
         }
         if (ctrl && e.key.toLowerCase() === 'd' && typeof ui.selected === 'number' && !typing) {
             e.preventDefault();
@@ -813,11 +886,13 @@ async function main() {
     if (restoredDraft) {
         toast('Your unsaved route from last time is back (kept in this browser). Save it into the project file to keep it.');
     }
-    syncWithFolder();  // a folder remembered from last time (Chrome/Edge): compare its project file with the page
+    // a folder remembered from last time (Chrome/Edge): compare its project file with the page; read today's driver files
+    syncWithFolder().then(() => controlsTab.folderConnected());
     // for the page tests: the app is up, and a read-only look at its state
     // (and, for the file layer's page tests, an in-memory folder in place of the real one: the folder dialog itself
     // is the manual Windows check's, A.4)
     window.routeBuilder = { route: () => JSON.parse(JSON.stringify(route())), issues: () => derive().issues, ready: true,
+                            controls: () => controlsTab.snapshot(), tab: (id) => showTab(id),
                             useMemoryFolder: async (files0, opts) => {
                                 const host = memoryHost(files0, opts || {});
                                 files = makeFiles(host);
@@ -825,6 +900,7 @@ async function main() {
                                 window.routeBuilder.memory = host;
                                 render();
                                 await syncWithFolder();
+                                await controlsTab.folderConnected();
                                 return true;
                             } };
     document.documentElement.dataset.ready = '1';

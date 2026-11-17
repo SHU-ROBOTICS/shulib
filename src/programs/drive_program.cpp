@@ -262,22 +262,19 @@ static_assert(kProvisionalLine.size() <= kLogMessageBytes
                   && kOpcontrolLiveOne.size() <= kLogMessageBytes,
               "a fixed boot line would be cut by TermSink at 200 bytes -- split it");
 
-/// What the boot's driver line says about the feel — "continuous deadband 0.05, no expo, no slew"
-/// on all three axes — checked against the profile the driver file actually runs, so a change to
-/// the profile, or to the library's defaults under it, cannot leave the line saying the old numbers.
-constexpr bool driverLineMatchesFeel() {
-    const teleop::DriverProfile p = ThisRobotDriver::kFeel;
-    const teleop::AxisShaping* axes[3] = {&p.forward, &p.left, &p.yaw};
-    for (const teleop::AxisShaping* a : axes) {
-        if (a->deadband != 0.05 || a->expo != 0.0) {
-            return false;
-        }
+/// The driver feel's boot line, MADE from the profile the driver file runs, so it never says a feel the
+/// robot does not run: the feel is the team's to change (by hand, or the route builder's Driving feel).
+void feelLine(char* out, std::size_t size, const teleop::DriverProfile& p) {
+    char ramp[32] = "no ramp";
+    if (p.slew.ratePerSecond > 0.0) {
+        std::snprintf(ramp, sizeof ramp, "a ramp of %.3g per s", p.slew.ratePerSecond);
     }
-    return !(p.slew.ratePerSecond > 0.0);
+    std::snprintf(out, size,
+                  "driver feel: continuous deadband %.3g / %.3g / %.3g, curve (expo) %.3g / %.3g / %.3g "
+                  "(forward / strafe / turn), %s -- HA-112, unfelt",
+                  p.forward.deadband, p.left.deadband, p.yaw.deadband, p.forward.expo, p.left.expo, p.yaw.expo,
+                  ramp);
 }
-static_assert(driverLineMatchesFeel(),
-              "the driver line says deadband 0.05, no expo, no slew: reword it with the driver file's "
-              "feel");
 
 // ═══ PROGRAM STATE (header: one function-local static) ═════════════════════════════════
 struct DriveState {
@@ -606,13 +603,15 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
     std::snprintf(line, sizeof line,
                   kRobotOneBuild
                       ? "driver control: robot one's driver file (src/team/robot_one_driver.hpp, the builder's "
-                        "map -- the team's) -> runDriverControl, default profile (deadband 0.05, no expo, "
-                        "no slew; HA-112); re-zero button %.5s; mode %.12s"
+                        "map -- the team's) -> runDriverControl, its feel (the next line); re-zero button "
+                        "%.5s; mode %.12s"
                       : "driver control: robot two's driver file (src/team/robot_two_driver.hpp, robot one's "
-                        "map -- the team's) -> runDriverControl, default profile (deadband 0.05, no expo, "
-                        "no slew; HA-112); re-zero button %.5s; mode %.12s",
+                        "map -- the team's) -> runDriverControl, its feel (the next line); re-zero button "
+                        "%.5s; mode %.12s",
                   teleop::controllerButtonWord(ThisRobotDriver::kLoop.rezeroButton),
                   modeWord(ThisRobotDriver::kFeel.mode));
+    logWrapped(log, hal::LogLevel::Info, line);
+    feelLine(line, sizeof line, ThisRobotDriver::kFeel);
     logWrapped(log, hal::LogLevel::Info, line);
     // THE PROTECTIONS LINE: generated from the config the driver file's loop runs with
     // (DriverLoopConfig::protection, the library's defaults — the driver file names none) and the

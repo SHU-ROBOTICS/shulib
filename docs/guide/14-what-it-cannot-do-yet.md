@@ -565,6 +565,8 @@ promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
   bar, the Toggle steps, strafing, moving to a pose, driving through points, sensor waits, flywheel steps, a step of
   your own C++, relative starts, 30 s match routes, and exporting a route to VexBuilder. Until they come, they are
   typed by hand inside the route's region; the route builder never overwrites a hand edit there without asking.
+  Its **Controls** tab writes the driver's buttons and feel into the driver file; it writes only into a driver file
+  that carries its marker lines (Copy until then), and has no slow mode while a button is held.
 - **No ready-made scoring verbs for recipes to command** — the mechanism layer exists (see
   above) and `then()` runs its operations, but the mechanisms themselves are structs your
   team writes ([Chapter 13](13-extending-the-library.md)), and the season's concrete

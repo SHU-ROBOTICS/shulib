@@ -700,7 +700,9 @@ chain saying `the mechanism service never ticked -- it is not in the chassis pac
 ## On the driver's buttons — the driver file's controls
 
 A driver file states its mechanism controls as ONE list, checked at build against the robot's list
-(`guide-18d`):
+(`guide-18d`). To make it by clicking on a picture of the controller instead of typing it — with the same
+refusals, in plain words — use the route builder's **Controls** tab
+([chapter 22](22-making-your-first-route.md#the-drivers-buttons-and-the-driving-feel)):
 
 ```cpp
 inline constexpr DriverControls kControls = controls(kRobotXMechanisms,
@@ -781,7 +783,9 @@ service and the service ticks ONCE — before your panel's `perTick`, so a panel
 command; on a field disable every motor mechanism goes to its `.safe` state and a pneumatic keeps its
 level ([HA-157](../hardware-assumptions.md): whether the brain keeps a 3-wire output's level while
 disabled is unmeasured). The drive protections are unchanged. One driver path per mechanism: the loop refuses T3's older
-bindings beside the service, and a control on its re-zero button.
+bindings beside the service, and a control on its re-zero button. The driver file's feel is checked at build
+too: a dead zone below 0 or at 1 and above, or a curve (`.expo`) outside 0 to 1, stops it by name (`the feel is
+out of range`) — outside those the curve would overshoot full speed or turn the stick around.
 
 ## As route markers — every mechanism's ids, run
 
