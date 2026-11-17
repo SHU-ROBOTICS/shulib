@@ -283,6 +283,8 @@ jobs:
           ROUTE_MAKER_NATIVE: build/test/shulib_route_maker
           ROUTE_MAKER_WASM_WRITE_RECORDS: build/wasm/records.json
         run: node --test tools/route_maker/test/wasm/*.test.mjs
+      - name: The native twin's records of PREVIEW's fixture routes (the browser rows have no native program)
+        run: node tools/route_maker/test/fixtures/record.mjs build/test/shulib_route_maker build/route_maker_site/robots.json --out build/wasm/native_records
       - uses: actions/upload-artifact@v4
         with:
           name: route-builder-engine
@@ -290,6 +292,7 @@ jobs:
             build/wasm/*.mjs
             build/wasm/*.wasm
             build/wasm/records.json
+            build/wasm/native_records/
           if-no-files-found: error
       # The site AFTER the engine: PREVIEW's engine goes into both forms of the page (build.py --engine) -- the page tests
       # run the REAL engine. If the engine did not build, the site is built without it and the page test that needs
@@ -391,6 +394,7 @@ jobs:
         env:
           ROUTE_MAKER_BROWSER: ${{ matrix.browser }}
           ROUTE_MAKER_SHOTS: build/route_maker_shots
+          ROUTE_MAKER_NATIVE_RECORDS: build/wasm/native_records
         run: node --test tools/route_maker/test/page/*.test.mjs
       - uses: actions/upload-artifact@v4
         if: always()
