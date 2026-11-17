@@ -113,6 +113,7 @@ nav:
   - Robot:
       - Set up:
           - Build and upload the programs: guide/07-getting-set-up.md
+          - Where your code goes: where-your-code-goes.md
           - Add your robot: guide/21-adding-your-robot-by-hand.md
           - The robot facts form: robot-facts-form.md
           - Calibrate the drive: guide/19-calibrating-your-robot.md

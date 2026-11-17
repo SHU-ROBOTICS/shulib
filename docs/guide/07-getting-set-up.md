@@ -137,7 +137,8 @@ mental model, which matters more:
   where a build becomes one program on one robot: the `make ROBOT=… PROGRAM=…` switches are read
   there and nowhere else, by one chain that picks the program and the robot's tables together.
   `src/main.cpp` is the PROS entry point, and all it does is hand each PROS entry point to that
-  program. "shulib Drive" (`src/programs/drive_program.cpp`) is the worked example of building a
+  program ([Where your code goes](../where-your-code-goes.md) has the folders and the programs in two
+  tables). "shulib Drive" (`src/programs/drive_program.cpp`) is the worked example of building a
   whole robot — `robot::Robot` from a config over the real adapters, then the robot's driver file
   bound to it — and
   `src/robots/xdrive_config.hpp` shows a robot typed by hand as a `constexpr RobotConfig` (the

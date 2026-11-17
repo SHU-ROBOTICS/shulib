@@ -512,3 +512,22 @@ comment (`test/pros_digital_adapter_test.cpp` :32, unrelated, not N1's); HA-56's
 - **The coordinator's mutations:** MD1 guide 22 dropped from the menu → check-nav RED; MD2 "honest" planted in a page →
   check-tone RED. Restored, both green.
 - **DOCS3-N1 LANDED.** Next: a docs release (the route builder + the menu).
+
+## main.cpp's explanations move to the docs — the coordinator *(2026-11-17, at the team lead's word)*
+
+- **The team lead, 2026-11-17:** "the comments are helpful so i dont want to get rid of them" but "the main.cpp file's
+  comments should just like go in the docs so that people can know what to put in there but that their personal ones
+  arent obscured". The first piece of READ1 (team-facing files: a short header, the code, the why in the docs).
+- **`docs/where-your-code-goes.md` (new, menu: Robot → Set up):** the folders (what is in each, when to change it), the
+  six programs (build, name on the brain, slot, program file, the team's and robot's files each uses), what to change
+  where, what `src/main.cpp` does, and adding a program (the enum and chain, the five switches, the gate's table). Linked
+  from the front page's "Drive the robot" row and guide 07's `src/main.cpp` sentence.
+- **Its picture, `docs/assets/build-to-program.svg`,** drawn by `tools/docs_figures/build_to_program.py` FROM the page's
+  two tables (the Auton Tester row; build_selection's and main.cpp's "What is in it" words) — `check` and a 12-case
+  `self-test` (a planted failing case must exit 1) run in the suite's doc gates beside first_week's, listed in "How these
+  pages stay true".
+- **`src/main.cpp`: 316 → 183 lines, the code byte-for-byte the same with comments stripped** (checked with the gate's own
+  `_strip_comments`, whitespace folded). Kept: a 3-line header pointing at the page, and one-liners where a line is not
+  obvious (the precondition handler first; never a routine in `autonomous()`). Dropped, not moved: the "what has run" status
+  block (stale: robot one has run library motion since 2026-11-17) and the build-history notes (the chunk records hold
+  them). The gate's main.cpp plants (cases 18–22) match code lines, untouched.
