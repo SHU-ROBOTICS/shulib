@@ -1471,3 +1471,4 @@ gates section was never filled. Scratch for this part: `fix1/gates2/`, `fix1/mut
   one step, naming it, "turn first, then drive". **Open for the team lead (delta 4):** a RELATIVE mirrored entry is still
   skipped whole by the pair check (MIRROR1-A's design), so a half-turn leg inside one is not refused.
 - Gated together with the Calibrate fix and AF1S-A2 (one gate run on the final tree), then the coordinator's mutations.
+- **Gates on the final tree** (with the Calibrate fix and AF1S-A2): suite green (**3,819 cases**); src gate self-test OK and check PASS (14 builds); ARM; doc gates. **The coordinator's mutation MF-2** (every robot treated as a non-tank — D6 undone): **RED, 10 cases**. MIRROR1-B LANDED.

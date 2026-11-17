@@ -991,3 +991,4 @@ flight)" bullets, the rest stand:**
   precedent) that takes no number, so its entry sits at the top of `## API 2.9`.
 - **Gated together with the Calibrate fix and MIRROR1-B** (one gate run on the final tree, `integrate_verify.sh`), then
   the coordinator's mutations; main fast-forwards only after.
+- **Gates on the final tree** (Calibrate fix + AF1S-A2 + MIRROR1-B, `integrate_verify.sh freeze3`): suite green (**3,819 cases**); src gate self-test OK and check PASS (14 builds); ARM header gate; doc gates (check-nav, check-tone); briefing. **The coordinator's mutation MF-1** (the shadow context drops the Toggle camera): **RED, 16 cases**. AF1S-A2 LANDED.
