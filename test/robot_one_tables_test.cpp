@@ -97,41 +97,35 @@ TEST_CASE("robot one tables (T1): chassisTableFor and mechanismTableFor give rob
     CHECK(&sb::mechanismTableFor(RobotId::RobotOne) != &sb::kNoMechanisms);
     CHECK(&sb::mechanismTableFor(RobotId::RobotOne) != &sb::robot_two::kRobotTwoMechanisms);
     CHECK(&sb::chassisTableFor(RobotId::RobotOne) != &sb::kRobotTwoChassis);
-    // Robot one's table: every drivetrain fact UNSET (Calibrate discovers them) — except the drive cartridge
-    // and the IMU's port (the facts form's A2 and A4), which Calibrate cannot discover: the coordinator TYPES
-    // those two here at guide 21's order, step 1, with the provenance saying who read them. So: while the
-    // provenance still says "nothing typed", both are UNSET and the refusal names the cartridge; once it does
-    // not, a typed cartridge and an IMU on a real port (the verifier of ROB1-A, F6: these pins went red the
-    // day the procedure was followed). The ports, the geometry and `measured` stay Calibrate's either way.
+    // Robot one's table: the cartridge typed from the builder's answer (the one fact Calibrate cannot discover);
+    // everything else MEASURED by shulib Calibrate and transcribed (below).
     const sb::ChassisTable& t = sb::kRobotOneChassis;
-    // ROB1-C2: the IMU's port is NOT one of them after all — shulib Calibrate DISCOVERS the IMU from the
-    // brain's registry (calibrate_program.hpp's census; a typed port is only its cross-check, `imuPortStated`),
-    // so robot one's stays UNSET (0) or, if ever typed, a real port; the cartridge is typed (BLUE, the builder).
     const bool nothingTyped = std::string_view{t.provenance}.rfind("nothing typed", 0) == 0;
-    CHECK(t.leftCount == 0);
-    CHECK(t.rightCount == 0);
-    if (nothingTyped) {
-        CHECK(t.cartridge == sb::Cartridge::Unset);
-        CHECK(t.imuPort == 0);
-    } else {
-        CHECK(t.cartridge != sb::Cartridge::Unset);
-        CHECK(t.imuPort <= 21);
-    }
-    CHECK_FALSE(nothingTyped);  // ROB1-C2 typed the cartridge
+    // 2026-11-17: shulib Calibrate MEASURED robot one's drive (RUN 3); the brain had no SD card, so the run's
+    // result is TRANSCRIBED into the table (its provenance says so) and the programs boot from it with the
+    // boot's "no record" warning. Pinned to the run's numbers: a typo here drives the robot wrong in silence.
+    CHECK_FALSE(nothingTyped);
     CHECK(t.cartridge == sb::Cartridge::Blue);  // the team's builder, 2026-11-15, read off the robot
-    CHECK(std::string_view{t.provenance}.find("the team's builder, 2026-11-15") != std::string_view::npos);
-    CHECK(t.imuPort == 0);  // Calibrate discovers it
-    CHECK_FALSE(t.measured);
-    CHECK_FALSE(t.signsMeasured);
-    CHECK(t.trackWidthIn == 0.0);
-    CHECK(t.externalRatio == 0.0);
-    CHECK(t.wheelDiameterIn == 0.0);
+    CHECK(std::string_view{t.provenance}.rfind("MEASURED by shulib Calibrate on robot one, 2026-11-17", 0) == 0);
+    CHECK(std::string_view{t.provenance}.find("no SD card") != std::string_view::npos);
+    CHECK(t.measured);
+    CHECK(t.signsMeasured);
+    REQUIRE(t.leftCount == 5);
+    REQUIRE(t.rightCount == 5);
+    const int left[5] = {+11, -12, +13, -14, +15};
+    const int right[5] = {-16, +17, -18, +19, -20};
+    for (std::size_t i = 0; i < 5; ++i) {
+        CHECK(t.left[i] == left[i]);
+        CHECK(t.right[i] == right[i]);
+    }
+    CHECK(t.imuPort == 5);
+    CHECK(t.wheelDiameterIn == doctest::Approx(2.0 * (1.320179 + 1.332460) / 2.0).epsilon(1e-6));  // ipr L/R mean x 2
+    CHECK(t.trackWidthIn == doctest::Approx(13.2305));
+    CHECK(t.externalRatio == 1.0);
     CHECK(std::string_view{t.robot} == "2026 CASCADE ROBOT (robot one)");
-    // Every unknown is NAMED by the table's own refusal, never guessed.
-    // (No ports until Calibrate: the drive refusal stands either way; it names the cartridge only while unset.)
+    // Nothing is missing any more: no program refuses for the drive.
     char missing[160] = "";
-    CHECK(sb::describeMissing(t, missing, sizeof missing, true));
-    CHECK((std::string_view{missing}.find("cartridge") != std::string_view::npos) == nothingTyped);
+    CHECK_FALSE(sb::describeMissing(t, missing, sizeof missing, true));
 }
 
 // ═══ D5 — the cascade as declared ════════════════════════════════════════════════════

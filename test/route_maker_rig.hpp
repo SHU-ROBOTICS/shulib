@@ -174,9 +174,13 @@ struct Stack {
 
     template <class... A>
     Stack(const shulib::math::Pose2d& start, const mech::MechanismTable& table, A&&... fakeArgs)
-        : rig{kin, plantAt(start), &sink},
-          fakes{std::forward<A>(fakeArgs)...},
-          chassis{rig.deps, guard, shulib::chassis::ChassisConfig{.motion = motion_rig::motionConfig()}} {
+        : Stack(shulib::chassis::ChassisConfig{.motion = motion_rig::motionConfig()}, start, table,
+                std::forward<A>(fakeArgs)...) {}
+    /// The same, on a chassis config of the caller's (a robot's own drive settings).
+    template <class... A>
+    Stack(const shulib::chassis::ChassisConfig& cfg, const shulib::math::Pose2d& start, const mech::MechanismTable& table,
+          A&&... fakeArgs)
+        : rig{kin, plantAt(start), &sink}, fakes{std::forward<A>(fakeArgs)...}, chassis{rig.deps, guard, cfg} {
         world.rig = &rig;
         world.stepMechanisms = [this] { fakes.step(); };
         svc.bind(table, fakes.devs, rig.h.clock(), rig.latch, sink);

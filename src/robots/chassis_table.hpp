@@ -91,6 +91,12 @@ struct ChassisTable {
     const char* geometryProvenance;  // who measured the three numbers above, how, and when
     double pulseYawFloorDeg = 0.0;         // Calibrate: the yaw one pulsed drive motor must turn the robot (0 = default)
     double restYawRateFloorDegPerS = 0.0;  // Calibrate: "still" means a yaw rate under this (0 = default)
+    // The autons' drive settings (0 = the library's default, motion_config.hpp): top speed, top turn rate,
+    // how hard the heading is corrected, and how close "facing the target" must be to count as arrived.
+    double driveMaxSpeedInPerS = 0.0;
+    double driveMaxTurnRadPerS = 0.0;
+    double headingKp = 0.0;
+    double headingSettleDeg = 0.0;
 };
 
 // ROBOT TWO -- robot one's TWIN (chunk ROB1-BT, 2026-11-16; the team lead, 2026-11-13: "IT IS LITERALLY
@@ -120,6 +126,10 @@ inline constexpr ChassisTable kRobotTwoChassis = {
     .geometryProvenance = "nothing typed -- Step 0 (docs/robot-facts-form.md)",
     .pulseYawFloorDeg = robot_two_facts::kCalibratePulseYawFloorDeg.value(),
     .restYawRateFloorDegPerS = robot_two_facts::kCalibrateRestYawRateDegPerS.value(),
+    .driveMaxSpeedInPerS = robot_two_facts::kDriveMaxSpeedInPerS.value(),
+    .driveMaxTurnRadPerS = robot_two_facts::kDriveMaxTurnRadPerS.value(),
+    .headingKp = robot_two_facts::kDriveHeadingKp.value(),
+    .headingSettleDeg = robot_two_facts::kDriveHeadingSettleDeg.value(),
 };
 
 // THE BENCH BOT -- measured. 2026-08-13 census, amended by R3a-PROGRESS §9.1 (port 13
@@ -179,36 +189,40 @@ inline constexpr ChassisTable kNoChassis = {
     .geometryProvenance = "none: no typed chassis table for this robot",
 };
 
-// ROBOT ONE -- the 2026 CASCADE robot (ROB1-A, 2026-11-11; the builder, 2026-11-05: "both robots
-// identical, 15 in"; built by 2026-11-15). ONE drive fact is TYPED: the drive motors' CARTRIDGE, BLUE
-// (the team's builder, 2026-11-15, read off the robot -- the facts form's A2; ROB1-C2) -- the one fact
-// Calibrate cannot discover and refuses without. Every other field is UNSET by this table's own rule --
-// NOT the facts ledger (src/robots/robot_one_facts.hpp holds its mechanisms' numbers): no ports (shulib
-// Calibrate DISCOVERS which ports drive, their directions, the sides, the front, the scale and the track
-// width), no IMU port (Calibrate DISCOVERS the IMU from the brain's registry and records it -- a port typed
-// here would only be its cross-check, calibrate_program.hpp's `imuPortStated`; the library still cannot
-// drive a tank WITHOUT an IMU on the robot -- HA-253), no geometry. Every station and program that needs
-// one of these refuses BY NAME (describeMissing below) -- nothing is guessed. Robot one is believed a
-// TANK like robot two ("identical") -- HA-252, the form's A1.
+// ROBOT ONE -- the 2026 CASCADE robot (ROB1-A, 2026-11-11; built by 2026-11-15). Its DRIVE was MEASURED by shulib
+// Calibrate on the robot (2026-11-17 09:03, RUN 3, robot=robot-one): which ports drive, their signs, the sides, the
+// IMU's port, the scale and the effective track width. The brain had NO SD CARD, so the run's result is TRANSCRIBED
+// here from its USB log (.claude/coordinator/robot_logs/robot_one_2026-11-17.log) and the programs boot from this
+// table, with the boot's "no record" warning, until a card holds a record. The cartridge: the team's builder,
+// 2026-11-15, read off the robot (the one fact Calibrate cannot discover).
 // kChassis in the six ROBOT=one builds (chassisTableFor(RobotId::RobotOne)).
 inline constexpr ChassisTable kRobotOneChassis = {
     .robot = "2026 CASCADE ROBOT (robot one)",
-    .left = {},
-    .leftCount = 0,
-    .right = {},
-    .rightCount = 0,
+    .left = {+11, -12, +13, -14, +15},
+    .leftCount = 5,
+    .right = {-16, +17, -18, +19, -20},
+    .rightCount = 5,
     .cartridge = Cartridge::Blue,
-    .imuPort = 0,
-    .measured = false,
-    .signsMeasured = false,
-    .provenance = "cartridge BLUE: the team's builder, 2026-11-15, read off the robot; Calibrate discovers the rest",
-    .wheelDiameterIn = 0.0,
-    .trackWidthIn = 0.0,
-    .externalRatio = 0.0,
-    .geometryProvenance = "nothing typed -- Step 0 (docs/robot-facts-form.md)",
+    .imuPort = 5,
+    .measured = true,
+    .signsMeasured = true,
+    .provenance = "MEASURED by shulib Calibrate on robot one, 2026-11-17 09:03 (RUN 3), transcribed from its USB "
+                  "log (no SD card); cartridge BLUE: the team's builder, 2026-11-15",
+    // The scale at the MOTOR SHAFT (ratio 1.0): Calibrate's inches per radian, L 1.320179 and R 1.332460 (0.9 pct
+    // apart), typed as their mean (a table holds one) -- the diameter is 2 x 1.3263195 in, EFFECTIVE, not a ruler's.
+    .wheelDiameterIn = 2.652639,
+    .trackWidthIn = 13.2305,  // EFFECTIVE (a turning tank scrubs -- HA-135): the spins, CCW 13.2268 / CW 13.2341 in
+    .externalRatio = 1.0,
+    .geometryProvenance = "MEASURED by shulib Calibrate on robot one, 2026-11-17 09:03 (RUN 3): the 48 in push and "
+                          "the two 720 deg spins, transcribed from its USB log",
     // Calibrate's thresholds for its 10-motor drive: the facts ledger's (chosen, 2026-11-16).
     .pulseYawFloorDeg = robot_one_facts::kCalibratePulseYawFloorDeg.value(),
     .restYawRateFloorDegPerS = robot_one_facts::kCalibrateRestYawRateDegPerS.value(),
+    // The autons' drive settings: the facts ledger's (chosen, 2026-11-17).
+    .driveMaxSpeedInPerS = robot_one_facts::kDriveMaxSpeedInPerS.value(),
+    .driveMaxTurnRadPerS = robot_one_facts::kDriveMaxTurnRadPerS.value(),
+    .headingKp = robot_one_facts::kDriveHeadingKp.value(),
+    .headingSettleDeg = robot_one_facts::kDriveHeadingSettleDeg.value(),
 };
 
 /// Robot `id`'s chassis table: THE ONE PLACE a robot becomes a table. A case per robot and no

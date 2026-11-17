@@ -565,6 +565,25 @@ template <class PrintLine, class Words = ThisRobotWords>
     return out;
 }
 
+/// A robot's own drive settings for its autons (its chassis table; 0 = the library's default), applied to
+/// the tuning the boot built. Pure: host-tested on every robot's table.
+inline void applyDriveTuning(config::TuningConfig& t, const ChassisTable& c) {
+    constexpr double kDeg = 3.14159265358979323846 / 180.0;
+    if (c.driveMaxSpeedInPerS > 0.0) {
+        t.motion.maxLinearSpeed = units::Velocity{c.driveMaxSpeedInPerS};
+        t.motion.maxWheelSpeed = units::Velocity{c.driveMaxSpeedInPerS};
+    }
+    if (c.driveMaxTurnRadPerS > 0.0) {
+        t.motion.maxAngularSpeed = units::AngularVelocity{c.driveMaxTurnRadPerS};
+    }
+    if (c.headingKp > 0.0) {
+        t.motion.heading.kP = c.headingKp;
+    }
+    if (c.headingSettleDeg > 0.0) {
+        t.motion.headingSettle = motion::loosenedSettle(t.motion.headingSettle, c.headingSettleDeg * kDeg);
+    }
+}
+
 /// THE BOOT (src/common/boot_source.cpp; the PROS shim): open the card's record and read it, make the
 /// brain's registry, turn this build's typed table into a description, and run
 /// decideBootSourceFrom() with this build's mechanism list (kMechanisms) — printing each decision

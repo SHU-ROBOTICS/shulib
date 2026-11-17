@@ -2200,3 +2200,33 @@ pointers (finding 25), and the self-test on RPV1-S1's cases 53 / 55.
   today the route says so in one line (`competition::isMirrored(ctx) ? leftToggle : rightToggle`) — keep it, or brief
   an automatic swap? The route builder's export still writes the plain `r.run(rightToggle, …)`. (2) A card holding
   the twin's record: Calibrate still checks the front against it — keep, or treat it as no record?
+
+## Robot one measured and driving — the coordinator, with the team lead at the robot *(2026-11-17)*
+
+- **Calibrate:** the standard Calibrate could not finish on robot one (one motor of ten cannot turn it: PULSE_STILL /
+  PULSE_ROLLED at every voltage). A measurement build (`.claude/worktrees/calfix2`, never merged — the coupling idea
+  CAL2 is building properly) found the sides by which motors move together and finished (RUN 3, 09:03): LEFT
+  +11 −12 +13 −14 +15, RIGHT −16 +17 −18 +19 −20, ipr 1.320179 / 1.332460, W 13.2305 in (spins agreed 0.05 %), IMU 5.
+  Transcribed into `kRobotOneChassis` (measured, signs measured; the scale typed as the two sides' mean). (That build
+  then died at its save — an opcontrol stack overflow; CAL2's brief §6 carries it.)
+- **Station 13** (Bench Tests, two people: L1 held on the controller, the screen tapped — the station was hard to use;
+  noted for its UX): the cascade's direction confirmed (+ = up), RECORDs on the bottom stop (−130.8 deg) and 20 in up
+  (+3628.2 deg, taped) → `kCascadeRows` {0 in 0 deg, 20 in 3759 deg}. Chosen: hold 1 V, homing push −3 V, unhomed 4 V.
+  The toggles' directions and the pistons' levels typed from the builder's words (the team lead: "go for it" — checked
+  in Drive, not watched at station 13). Robot one owes no Stage A/B fact now; its six programs build.
+- **Auton drive settings (new, per robot):** `ChassisTable::driveMaxSpeedInPerS / driveMaxTurnRadPerS / headingKp /
+  headingSettleDeg` from the facts ledger, applied at boot by `applyDriveTuning` (boot_source.cpp). Robot one (and its
+  twin): 40 in/s, 4 rad/s, kP 2.4, a 4 deg arrival. Evidence: at the defaults the 69 in auton ran at 60 in/s ("scary")
+  and rocked ±2–3 deg at every target until MOTION_TIMEOUT; at 2 deg the hard route's 4th drive still rocked ±1.5 deg
+  with a jumpy per-tick rate; at 4 deg the team lead's hard route (drive, back up, 4-point curve, 2× face+drive)
+  **FINISHED 8/8 in 11.84 s, ending (−29.79, 23.77) vs (−29.876, 24)**.
+- **Tests:** robot one's table pinned to the run's numbers; the T2 chassis rule allows the measured drive lines only
+  while the table says MEASURED by Calibrate; the twin's table UNSET (its own Calibrate); `drive_tuning_test.cpp`
+  (defaults untouched for a zero table; robot one's applied; a 69 in drive on the plant at ≤ 40 in/s arriving within
+  1 in, no timeout); fact counts re-pinned (39; Stage B 18, none owed); the src gate's self-test cases 53/55 plant their
+  OWN owed fact (`_owed_again_plant`: the hold volts) now that robot one owes none.
+- **Gates:** the suite green (3,855); src gate check PASS (6 refused = robot two's) and self-test OK (398); ctest
+  353/353; ARM 0 (259); api fresh; the briefing current; staleness clean. **Mutations 4/4 RED** (MR1-1 the speed cap
+  ignored, MR1-2 the arrival not loosened, MR1-3 port 14's sign, MR1-4 the twin without the settings).
+- **Not in this commit:** the team lead's routes (scratch/skills_route.jal-hard.cpp — on the robot; the shared region
+  waits for RMP1-C's "both robots together?" answer: his start puts robot two's mirror 4.35 in away).

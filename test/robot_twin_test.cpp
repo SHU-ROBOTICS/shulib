@@ -146,18 +146,21 @@ TEST_CASE("twin: robot two's facts are robot one's facts -- the same names, stag
     CHECK(ids2.size() == n2);
 }
 
-TEST_CASE("twin: every robot-two fact is OWED until the builder reads it off robot two (but Calibrate's two chosen thresholds)") {
+TEST_CASE("twin: every robot-two fact is OWED until the builder reads it off robot two (but its six chosen settings: Calibrate's two thresholds and the autons' four drive settings)") {
     // BUG CAUGHT: a robot-two fact typed by copying robot one's — a robot two that links on robot one's ports
     // without anyone having looked at robot two. The ONLY typed ones are Calibrate's two thresholds: chosen, not
     // measured, for the same 10-motor drive (the ROB1-BT merge, 2026-11-17). (The day the builder's robot-two
     // answers are TYPED — the coordinator's G1-F edit — this case is re-pinned in the same change.)
     CHECK(two::kRobotTwoFactCount == one::kRobotOneFactCount);
-    CHECK_MESSAGE(two::kRobotTwoOwedCount == two::kRobotTwoFactCount - 2,
+    CHECK_MESSAGE(two::kRobotTwoOwedCount == two::kRobotTwoFactCount - 6,
                   "a robot-two fact is TYPED: re-pin this case with it (its value and its source, read off robot two)");
     for (const auto& f : two::kRobotTwoFacts) {
         CAPTURE(f.name);
-        const bool threshold = std::string_view{f.name} == "Calibrate's pulse yaw floor, degrees" ||
-                               std::string_view{f.name} == "Calibrate's rest yaw rate, degrees per second";
+        const std::string_view n{f.name};
+        const bool threshold = n == "Calibrate's pulse yaw floor, degrees" ||
+                               n == "Calibrate's rest yaw rate, degrees per second" ||
+                               n == "the autons' top drive speed, in/s" || n == "the autons' top turn rate, rad/s" ||
+                               n == "the autons' heading correction gain" || n == "the autons' heading arrival, degrees";
         CHECK(f.typed == threshold);
     }
     CHECK(two::kCalibratePulseYawFloorDeg.value() == one::kCalibratePulseYawFloorDeg.value());
@@ -197,20 +200,22 @@ TEST_CASE("twin: the driver files -- the controls, the feel and the header's map
     CHECK(sb::RobotTwoDriver::kLoop.releaseBrakeMode == sb::RobotOneDriver::kLoop.releaseBrakeMode);
 }
 
-TEST_CASE("twin: the chassis tables are robot one's design -- equal but for the name, the cartridge (owed) and the provenance") {
+TEST_CASE("twin: the chassis tables are robot one's design -- robot two's drive UNSET until its own Calibrate, never robot one's measured numbers") {
     // BUG CAUGHT: robot two's old measured drive (ports 11-20, signed, IMU 2) left in its table — a twin that
     // boots from ANOTHER robot's drive facts; or a drive port typed on one robot that Calibrate discovers.
+    // Robot one's drive was MEASURED by its own Calibrate (2026-11-17, transcribed — no SD card); robot two's
+    // waits for ITS run: every drive fact UNSET, never robot one's numbers (each robot is measured on its own).
     const sb::ChassisTable& a = sb::kRobotOneChassis;
     const sb::ChassisTable& b = sb::kRobotTwoChassis;
-    CHECK(b.leftCount == a.leftCount);
-    CHECK(b.rightCount == a.rightCount);
     CHECK(b.leftCount == 0);
-    CHECK(b.imuPort == a.imuPort);
-    CHECK(b.measured == a.measured);
-    CHECK(b.signsMeasured == a.signsMeasured);
-    CHECK(b.wheelDiameterIn == a.wheelDiameterIn);
-    CHECK(b.trackWidthIn == a.trackWidthIn);
-    CHECK(b.externalRatio == a.externalRatio);
+    CHECK(b.rightCount == 0);
+    CHECK(b.imuPort == 0);
+    CHECK_FALSE(b.measured);
+    CHECK_FALSE(b.signsMeasured);
+    CHECK(b.wheelDiameterIn == 0.0);
+    CHECK(b.trackWidthIn == 0.0);
+    CHECK(b.externalRatio == 0.0);
+    CHECK((a.leftCount == 0 || a.measured));  // robot one's: unset, or a measurement
     CHECK((b.cartridge == sb::Cartridge::Unset || b.cartridge == a.cartridge));
     CHECK(std::string_view{b.robot} == "2026 CASCADE ROBOT (robot two)");
     // Calibrate's thresholds: the twin's same 10-motor drive needs robot one's (a default 2.0 deg floor refuses it).

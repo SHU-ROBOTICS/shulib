@@ -136,6 +136,19 @@ inline constexpr auto kCalibrateRestYawRateDegPerS =
     typed(one::kCalibrateRestYawRateDegPerS.placeholder, 1.0, Stage::A, "Calibrate's rest yaw rate, degrees per second",
           "chosen, not measured -- the coordinator, 2026-11-17 (robot one's, for the twin's same drive)");
 ROBOT_TWO_CHECK(kCalibrateRestYawRateDegPerS, "Calibrate's rest yaw rate, degrees per second");
+// The autons' drive settings: robot one's, for the same build (robot one's ledger says why).
+inline constexpr auto kDriveMaxSpeedInPerS = typed(one::kDriveMaxSpeedInPerS.placeholder, 40.0, Stage::B,
+    "the autons' top drive speed, in/s", "chosen, not measured -- the coordinator, 2026-11-17 (robot one's)");
+ROBOT_TWO_CHECK(kDriveMaxSpeedInPerS, "the autons' top drive speed, in/s");
+inline constexpr auto kDriveMaxTurnRadPerS = typed(one::kDriveMaxTurnRadPerS.placeholder, 4.0, Stage::B,
+    "the autons' top turn rate, rad/s", "chosen, not measured -- the coordinator, 2026-11-17 (robot one's)");
+ROBOT_TWO_CHECK(kDriveMaxTurnRadPerS, "the autons' top turn rate, rad/s");
+inline constexpr auto kDriveHeadingKp = typed(one::kDriveHeadingKp.placeholder, 2.4, Stage::B,
+    "the autons' heading correction gain", "chosen, not measured -- the coordinator, 2026-11-17 (robot one's)");
+ROBOT_TWO_CHECK(kDriveHeadingKp, "the autons' heading correction gain");
+inline constexpr auto kDriveHeadingSettleDeg = typed(one::kDriveHeadingSettleDeg.placeholder, 4.0, Stage::B,
+    "the autons' heading arrival, degrees", "chosen, not measured -- the coordinator, 2026-11-17 (robot one's)");
+ROBOT_TWO_CHECK(kDriveHeadingSettleDeg, "the autons' heading arrival, degrees");
 inline constexpr auto kClawLine = owed(one::kClawLine.value(), Stage::A, "the claw's 3-wire port");
 ROBOT_TWO_CHECK(kClawLine, "the claw's 3-wire port");
 inline constexpr auto kFlipperLine =
@@ -201,7 +214,8 @@ inline constexpr FactSummary kRobotTwoFacts[] = {
     summary(kCascadeStallRpm),        summary(kCascadeStallTime),     summary(kCascadeCapAmps),
     summary(kFlipperKind),            summary(kSideTogglePorts),      summary(kRightTogglePort),
     summary(kSideToggleCartridge),    summary(kSideToggleCapAmps),    summary(kCalibratePulseYawFloorDeg),
-    summary(kCalibrateRestYawRateDegPerS), summary(kClawLine),
+    summary(kCalibrateRestYawRateDegPerS), summary(kDriveMaxSpeedInPerS), summary(kDriveMaxTurnRadPerS),
+    summary(kDriveHeadingKp),       summary(kDriveHeadingSettleDeg),  summary(kClawLine),
     summary(kFlipperLine),            summary(kRampLine),             summary(kCascadeRows),
     summary(kCascadeLevels),          summary(kCascadeHoldVolts),     summary(kCascadeHomingPushVolts),
     summary(kCascadeHomingStallAmps), summary(kCascadeUnhomedVolts),  summary(kRightToggleDirection),

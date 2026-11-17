@@ -52,6 +52,9 @@ BootOutcome decideBootSource(const char* tag) {
     BootOutcome out = decideBootSourceFrom(
         record, registry, fromTable, missing, kMechanisms, kChassis.robot,
         [tag](const char* line) { hal::pros::serialWrapped(tag, line); });
+    if (out.ok) {
+        applyDriveTuning(out.built.config.tuning, kChassis);  // the robot's own auton drive settings
+    }
     return out;
 }
 

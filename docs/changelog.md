@@ -16,6 +16,23 @@
 
 ## API 2.9
 
+### 2026-11-17 — robot one is measured and drives its routes: its drive, its cascade, and gentler autons
+
+> Robot one's own files and the programs' boot (`src/`, `test/`): **no library change.** Measured on the robot.
+
+- **Robot one's drive** (`kRobotOneChassis`): MEASURED by Calibrate on the robot — left +11 −12 +13 −14 +15, right
+  −16 +17 −18 +19 −20, inches per radian 1.320 / 1.332 (typed as their mean), an effective track width of
+  13.23 in, the IMU on port 5.
+- **Robot one's cascade** (its facts file): station 13's two rows (the bottom stop, and 20 in at 3,759 deg), its
+  three volts chosen (hold 1 V, a 3 V homing push, 4 V before it is homed), the toggles' directions and the pistons'
+  levels from the builder's words (checked in Drive).
+- **A robot's own auton drive settings:** `ChassisTable` gains `driveMaxSpeedInPerS`, `driveMaxTurnRadPerS`,
+  `headingKp` and `headingSettleDeg` (0 = the library's default); the boot applies them (`applyDriveTuning`).
+  Robot one's, and its twin's: 40 in/s, 4 rad/s, heading kP 2.4, a heading arrival of 4 degrees — at the
+  defaults its autons ran at 60 in/s and rocked +-2-3 degrees at every target until their time limit.
+
+**What you must do:** nothing. Robot one's Drive, Auton Tester, Competition and Tune now build.
+
 ### 2026-11-17 — PREVIEW in the route builder: the robot drives your route on the field, from the real library
 
 > Written when it was built (chunk RMP1, run RMP1-A2u). **No library change — no API change:** nothing under

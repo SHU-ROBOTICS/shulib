@@ -306,8 +306,10 @@ TEST_CASE("robot one facts (T3): Stage A for all six programs, Stage B for Drive
         owedB += (f.needed == Stage::B && !f.typed) ? 1 : 0;
     }
     CHECK(a == 19);  // ROB1-A's ten, ROB1-C2's side toggles (four) and pistons' letters (three), and Calibrate's two thresholds (2026-11-16)
-    CHECK(b == 14);  // ROB1-A's five, and ROB1-C2's side toggle directions (two), pistons' levels and strokes (six),
-                     // and the homing's own stall signature (the review of ROB1-C2)
+    CHECK(b == 18);  // ROB1-A's five, and ROB1-C2's side toggle directions (two), pistons' levels and strokes (six),
+                     // the homing's own stall signature (the review of ROB1-C2), and the autons' four drive settings
+                     // (2026-11-17)
+    CHECK(owedB == 0);  // 2026-11-17: station 13's rows, the chosen volts, the directions and levels -- all typed
     CHECK(recorded == 2);
     CHECK(facts::owedFor(Program::BenchTests) == owedA);
     CHECK(facts::owedFor(Program::Calibrate) == owedA);
@@ -323,7 +325,7 @@ TEST_CASE("robot one facts (T2): every fact has EXACTLY ONE check right below it
     // the pairing in the source); a second check for one fact.
     const std::string code = ledgerCode();
     const std::vector<SourceFact> all = sourceFacts(code);
-    REQUIRE(all.size() == 35);  // 33, and Calibrate's two thresholds for the 10-motor drive (2026-11-16)
+    REQUIRE(all.size() == 39);  // 33, Calibrate's two thresholds (2026-11-16), the autons' four drive settings (2026-11-17)
     const std::regex check{R"re(ROBOT_ONE_CHECK\s*\(\s*(k\w+)\s*,\s*"((\\.|[^"\\])*)"\s*\))re"};
     std::vector<std::pair<std::string, std::string>> checks;
     for (auto it = std::sregex_iterator(code.begin(), code.end(), check); it != std::sregex_iterator(); ++it) {
@@ -511,8 +513,19 @@ TEST_CASE("robot one facts (T2): every number in robot one's mechanism region co
     // both UNSET, and Calibrate refuses an unset cartridge).
     const std::string table = region("src/robots/chassis_table.hpp", "inline constexpr ChassisTable kRobotOneChassis = {",
                                      "};\n\n/// Robot `id`'s chassis table");
+    // Since 2026-11-17 its DRIVE is shulib Calibrate's measurement, transcribed (no SD card): the ports, the IMU's
+    // port and the three geometry numbers are the run's, allowed ONLY while the table says MEASURED by Calibrate
+    // (robot_one_tables_test pins each to the run's log). Every OTHER number stays an UNSET zero.
+    const bool calibrated = shulib::bench::kRobotOneChassis.measured &&
+                            std::string_view{shulib::bench::kRobotOneChassis.provenance}
+                                    .rfind("MEASURED by shulib Calibrate", 0) == 0;
     std::string rest = std::regex_replace(table, std::regex{R"(\.imuPort\s*=\s*[0-9]+\s*,)"}, " ");
     CHECK(rest.size() < table.size());  // the IMU line was there to take out
+    if (calibrated) {
+        rest = std::regex_replace(rest, std::regex{R"(\.(left|right)\s*=\s*\{[^}]*\},)"}, " ");
+        rest = std::regex_replace(rest, std::regex{R"(\.(leftCount|rightCount)\s*=\s*[0-9]+,)"}, " ");
+        rest = std::regex_replace(rest, std::regex{R"(\.(wheelDiameterIn|trackWidthIn|externalRatio)\s*=\s*[0-9.]+,)"}, " ");
+    }
     for (const std::string& n : strayNumbers(rest)) {
         CAPTURE(n);
         CHECK((n == "0" || n == "0.0"));

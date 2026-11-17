@@ -3021,6 +3021,16 @@ def _self_test_cross_robot_words(expect, owe_one_fact=contextlib.nullcontext):
                f"63c: a needsStageB() of robot two's ledger's own passed step 0: {found}")
 
 
+def _owed_again_plant(ledger_path):
+    """(old, new): robot one's typed hold volts made OWED again -- a self-test's own owed fact (text plant, in the copy)."""
+    with open(ledger_path, encoding="utf-8") as f:
+        text = f.read()
+    i = text.index("inline constexpr auto kCascadeHoldVolts =")
+    j = text.index(");\n", i) + 3
+    return text[i:j], ('inline constexpr auto kCascadeHoldVolts = owed(1.0, Stage::B, "the cascade\'s hold volts");'
+                       '  // (self-test plant: owed again)\n')
+
+
 def do_self_test():
     if find_compiler() is None or find_nm() is None:
         print(f"src build gate self-test: FAIL — {ARM_GXX} or {ARM_NM} not found; the "
@@ -4411,18 +4421,21 @@ def do_self_test():
     #     one's Bench Tests owes nothing (its Stage A all typed), so the case uses Drive: with needs() dropped it
     #     also refuses the RECORDED facts (the camera's), which no program needs. FOLLOW-UP: plant an owed fact so
     #     this case holds once every fact is typed.
+    # Since 2026-11-17 robot one owes NO Stage B fact: the case plants ONE owed again (its hold volts) in the copy.
     needs_term = "::shulib::bench::robot_one_facts::needs(::shulib::bench::kProgram, (fact).needed)"
-    with _replace(ledger_path, needs_term, "true /* (self-test plant: needs dropped) */"):
+    owed_old, owed_new = _owed_again_plant(ledger_path)
+    with _replace(ledger_path, owed_old, owed_new):
+        with _replace(ledger_path, needs_term, "true /* (self-test plant: needs dropped) */"):
+            b = run_build("one-drive")
+            ok, problems, refused = facts_verdict("one-drive", b)
+            expect(not ok and not refused, "53: robot one's Drive refusing a RECORDED fact too PASSED")
+            expect(any("named and not owed by this program" in p and "the AI Vision camera's port" in p
+                       for p in problems), f"53: the failure did not name the extra RECORDED fact: {problems}")
         b = run_build("one-drive")
         ok, problems, refused = facts_verdict("one-drive", b)
-        expect(not ok and not refused, "53: robot one's Drive refusing a RECORDED fact too PASSED")
-        expect(any("named and not owed by this program" in p and "the AI Vision camera's port" in p
-                   for p in problems), f"53: the failure did not name the extra RECORDED fact: {problems}")
-    b = run_build("one-drive")
-    ok, problems, refused = facts_verdict("one-drive", b)
-    expect(ok and refused, f"53: the real robot-one Drive build does not refuse exactly its owed facts: {problems}")
-    expect(not os.path.exists(os.path.join(REPO, "bin", "hot.package.bin")),
-           "53: the refused robot-one build left bin/hot.package.bin")
+        expect(ok and refused, f"53: the real robot-one Drive build does not refuse exactly its owed facts: {problems}")
+        expect(not os.path.exists(os.path.join(REPO, "bin", "hot.package.bin")),
+               "53: the refused robot-one build left bin/hot.package.bin")
 
     # 54 ([R4]): THE COPY'S PROOF INTERRUPTED once the copy's ledger is typed (a crash, a kill) — the
     #     repository's ledger hash and bin/ unchanged, the copy deleted by the `finally`; and a LEFTOVER copy
@@ -4461,9 +4474,10 @@ def do_self_test():
         with open(elf_path, "rb") as f:
             beacon_ok = _beacon_bytes(VARIANT_BEACONS["tank-drive"]) in f.read()
     rc3, c3, _t3 = make_direct("ROBOT=tank", "PROGRAM=drive")
-    # A robot-one variant that still OWES facts: Bench Tests links since 2026-11-16 (its Stage A all typed), so
-    # the refusal half uses Drive (Stage B owed). FOLLOW-UP: plant an owed fact so this holds once all are typed.
-    rc4, _c4, t4 = make_direct("ROBOT=one", "PROGRAM=drive")
+    # A robot-one variant that still OWES a fact: since 2026-11-17 robot one owes none, so ONE is planted owed again.
+    owed_old, owed_new = _owed_again_plant(ledger_path)
+    with _replace(ledger_path, owed_old, owed_new):
+        rc4, _c4, t4 = make_direct("ROBOT=one", "PROGRAM=drive")
     expect(rc1 == 0 and rc2 == 0 and rc3 == 0, f"55: a robot-two build failed ({rc1}, {rc2}, {rc3})")
     expect(c1 == n_tus, f"55: the first build compiled {c1} of {n_tus} files")
     expect(c2 == n_tus, f"55: a PROGRAM switch with no rm compiled {c2} of {n_tus} files — the stamp does "

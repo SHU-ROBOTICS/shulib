@@ -487,6 +487,28 @@ inline constexpr auto kCalibrateRestYawRateDegPerS =
           "chosen, not measured -- the coordinator, 2026-11-16 (so a drift adds at most 0.4 deg to a 0.4 s pulse)");
 ROBOT_ONE_CHECK(kCalibrateRestYawRateDegPerS, "Calibrate's rest yaw rate, degrees per second");
 
+// The autons' drive settings (the library's defaults are the placeholders). Chosen 2026-11-17 after robot one's
+// first auton runs: 60 in/s felt too fast (the team lead: "its scary how fast the robot goes"), and at each target
+// the heading rocked +-2-3 deg until the 5 s limit (its 10 geared motors have slack) -- a softer heading and a 2 deg
+// arrival. Tune them on the field.
+inline constexpr auto kDriveMaxSpeedInPerS =
+    typed(60.0, 40.0, Stage::B, "the autons' top drive speed, in/s",
+          "chosen, not measured -- the coordinator, 2026-11-17 (the team lead: slower)");
+ROBOT_ONE_CHECK(kDriveMaxSpeedInPerS, "the autons' top drive speed, in/s");
+inline constexpr auto kDriveMaxTurnRadPerS =
+    typed(6.0, 4.0, Stage::B, "the autons' top turn rate, rad/s",
+          "chosen, not measured -- the coordinator, 2026-11-17 (slower turns, as the drive)");
+ROBOT_ONE_CHECK(kDriveMaxTurnRadPerS, "the autons' top turn rate, rad/s");
+inline constexpr auto kDriveHeadingKp =
+    typed(4.0, 2.4, Stage::B, "the autons' heading correction gain",
+          "chosen, not measured -- the coordinator, 2026-11-17 (the heading rocked +-2-3 deg at each target at 4.0)");
+ROBOT_ONE_CHECK(kDriveHeadingKp, "the autons' heading correction gain");
+inline constexpr auto kDriveHeadingSettleDeg =
+    typed(1.15, 4.0, Stage::B, "the autons' heading arrival, degrees",
+          "chosen, not measured -- the coordinator, 2026-11-17 (2 deg did not settle: the heading rocked +-1.5 deg "
+          "with a jumpy rate on the hard route's 4th drive; a drive still steers to its point)");
+ROBOT_ONE_CHECK(kDriveHeadingSettleDeg, "the autons' heading arrival, degrees");
+
 // Forms G22-G24: the three pistons' 3-wire ports (the letter on the brain).
 inline constexpr auto kClawLine = typed('F', 'A', Stage::A, "the claw's 3-wire port",
                                         "the team's builder, 2026-11-15, read off the robot");
@@ -505,8 +527,11 @@ ROBOT_ONE_CHECK(kRampLine, "the ramp's 3-wire port");
 // level) — the TAPED height (the form's C4 point) and the RECORD's `output ... deg` (NOT its inches: until
 // this is typed, station 13's inches come from these placeholders — landmine 6). The bottom row is where
 // homing puts the cascade; the top row is its top stop.
-inline constexpr auto kCascadeRows = owed(Rows{{{0_in, 0.0}, {40_in, 1800.0}}}, Stage::B,
-                                          "the cascade's measured rows, bottom stop to top stop");
+inline constexpr auto kCascadeRows =
+    typed(Rows{{{0_in, 0.0}, {40_in, 1800.0}}}, Rows{{{0_in, 0.0}, {20_in, 3759.0}}}, Stage::B,
+          "the cascade's measured rows, bottom stop to top stop",
+          "station 13 RECORD, the team lead, 2026-11-17: on the bottom stop -130.8 deg, raised 20 in (taped, about "
+          "1 in under the top) +3628.2 deg -- 3759.0 deg above the bottom stop, where homing puts 0");
 ROBOT_ONE_CHECK(kCascadeRows, "the cascade's measured rows, bottom stop to top stop");
 
 // Form C5: the cascade's levels by stack height — a name (15 letters at most) and a height, NONE TO SIX.
@@ -522,7 +547,10 @@ inline constexpr auto kCascadeLevels =
 ROBOT_ONE_CHECK(kCascadeLevels, "the cascade's levels, by name and stack height");
 
 // Form C8 (i): the smallest volts that hold the empty cascade halfway without sagging.
-inline constexpr auto kCascadeHoldVolts = owed(1.0, Stage::B, "the cascade's hold volts");
+inline constexpr auto kCascadeHoldVolts =
+    typed(1.0, 1.0, Stage::B, "the cascade's hold volts",
+          "same as the placeholder, checked -- the coordinator, 2026-11-17: a starting value, not measured (its motors "
+          "also HOLD on release); raise it if the cascade sags");
 ROBOT_ONE_CHECK(kCascadeHoldVolts, "the cascade's hold volts");
 
 // Form C8 (ii): the homing push, volts — NEGATIVE = DOWN into the bottom stop (the builder's ruling: stall
@@ -531,7 +559,9 @@ ROBOT_ONE_CHECK(kCascadeHoldVolts, "the cascade's hold volts");
 // never homed): on the host test plant a stalled motor draws 2.5 A at 12 V and proportionally less below
 // it (HA-183, HA-93: invented), so past 12 x 0.45 / 2.5 = 2.2 V. (The placeholder is ROB1-A's -6 V.)
 inline constexpr auto kCascadeHomingPushVolts =
-    owed(-6.0, Stage::B, "the cascade's homing push, volts (negative = down)");
+    typed(-6.0, -3.0, Stage::B, "the cascade's homing push, volts (negative = down)",
+          "chosen, not measured -- the coordinator, 2026-11-17 (gentle: station 13 jogged it cleanly at 3 V; a 3 V "
+          "stall draws more than the 0.45 A homing signature on the host model)");
 ROBOT_ONE_CHECK(kCascadeHomingPushVolts, "the cascade's homing push, volts (negative = down)");
 
 // Form C8 (ii): the HOMING's own stall signature, amps — what ends the gentle push on the bottom stop. NOT
@@ -547,7 +577,10 @@ inline constexpr auto kCascadeHomingStallAmps =
 ROBOT_ONE_CHECK(kCascadeHomingStallAmps, "the cascade's homing stall signature, amps");
 
 // Form C8 (iii): the most a held button may give the cascade before it is homed, volts.
-inline constexpr auto kCascadeUnhomedVolts = owed(4.0, Stage::B, "the cascade's volts before it is homed");
+inline constexpr auto kCascadeUnhomedVolts =
+    typed(4.0, 4.0, Stage::B, "the cascade's volts before it is homed",
+          "same as the placeholder, checked -- the coordinator, 2026-11-17: chosen (station 13 jogged it cleanly at 3 "
+          "and 6 V)");
 ROBOT_ONE_CHECK(kCascadeUnhomedVolts, "the cascade's volts before it is homed");
 
 // Form G21: which way each side toggle's motor turns when it RUNS (held: it runs ONE way only). Two
@@ -555,10 +588,16 @@ ROBOT_ONE_CHECK(kCascadeUnhomedVolts, "the cascade's volts before it is homed");
 // (or the builder) says which is right. A side toggle that runs the wrong way is fixed HERE, never by its
 // button.
 inline constexpr auto kRightToggleDirection =
-    owed(mechanism::words::Forward, Stage::B, "the right side toggle's run direction");
+    typed(mechanism::words::Forward, mechanism::words::Forward, Stage::B, "the right side toggle's run direction",
+          "same as the placeholder, checked against the builder's words (2026-11-15: right toggle clockwise, left "
+          "counter-clockwise; each piston open / out / down on its button), NOT watched at station 13 -- the team lead, "
+          "2026-11-17: 'go for it' -- confirm in Drive");
 ROBOT_ONE_CHECK(kRightToggleDirection, "the right side toggle's run direction");
 inline constexpr auto kLeftToggleDirection =
-    owed(mechanism::words::Reversed, Stage::B, "the left side toggle's run direction");
+    typed(mechanism::words::Reversed, mechanism::words::Reversed, Stage::B, "the left side toggle's run direction",
+          "same as the placeholder, checked against the builder's words (2026-11-15: right toggle clockwise, left "
+          "counter-clockwise; each piston open / out / down on its button), NOT watched at station 13 -- the team lead, "
+          "2026-11-17: 'go for it' -- confirm in Drive");
 ROBOT_ONE_CHECK(kLeftToggleDirection, "the left side toggle's run direction");
 
 // Forms G22-G24: which line LEVEL puts each piston in its ACTIVE position — the claw OPEN, the front
@@ -566,12 +605,23 @@ ROBOT_ONE_CHECK(kLeftToggleDirection, "the left side toggle's run direction");
 // says which way it went. Whatever it is, each piston STARTS (and is made safe) in the position its
 // solenoid holds UNPOWERED (unpoweredPosition() below), so nothing moves at power-up — a wrong guess
 // here only swaps the two NAMES, which an auton reads (`claw["open"]`).
-inline constexpr auto kClawOpenLevel = owed(mechanism::words::High, Stage::B, "the claw's line level that OPENS it");
+inline constexpr auto kClawOpenLevel =
+    typed(mechanism::words::High, mechanism::words::High, Stage::B, "the claw's line level that OPENS it",
+          "same as the placeholder, checked against the builder's words (2026-11-15: right toggle clockwise, left "
+          "counter-clockwise; each piston open / out / down on its button), NOT watched at station 13 -- the team lead, "
+          "2026-11-17: 'go for it' -- confirm in Drive");
 ROBOT_ONE_CHECK(kClawOpenLevel, "the claw's line level that OPENS it");
 inline constexpr auto kFlipperOpenLevel =
-    owed(mechanism::words::High, Stage::B, "the front toggle's line level that pushes it OUT (open)");
+    typed(mechanism::words::High, mechanism::words::High, Stage::B, "the front toggle's line level that pushes it OUT (open)",
+          "same as the placeholder, checked against the builder's words (2026-11-15: right toggle clockwise, left "
+          "counter-clockwise; each piston open / out / down on its button), NOT watched at station 13 -- the team lead, "
+          "2026-11-17: 'go for it' -- confirm in Drive");
 ROBOT_ONE_CHECK(kFlipperOpenLevel, "the front toggle's line level that pushes it OUT (open)");
-inline constexpr auto kRampDownLevel = owed(mechanism::words::High, Stage::B, "the ramp's line level that puts it DOWN");
+inline constexpr auto kRampDownLevel =
+    typed(mechanism::words::High, mechanism::words::High, Stage::B, "the ramp's line level that puts it DOWN",
+          "same as the placeholder, checked against the builder's words (2026-11-15: right toggle clockwise, left "
+          "counter-clockwise; each piston open / out / down on its button), NOT watched at station 13 -- the team lead, "
+          "2026-11-17: 'go for it' -- confirm in Drive");
 ROBOT_ONE_CHECK(kRampDownLevel, "the ramp's line level that puts it DOWN");
 
 // Forms G22-G24: how long a full stroke takes — the wait before a piston's move counts as done. A STARTING
@@ -622,7 +672,8 @@ inline constexpr FactSummary kRobotOneFacts[] = {
     summary(kCascadeStallRpm),      summary(kCascadeStallTime),      summary(kCascadeCapAmps),
     summary(kFlipperKind),          summary(kSideTogglePorts),       summary(kRightTogglePort),
     summary(kSideToggleCartridge),  summary(kSideToggleCapAmps),     summary(kCalibratePulseYawFloorDeg),
-    summary(kCalibrateRestYawRateDegPerS), summary(kClawLine),
+    summary(kCalibrateRestYawRateDegPerS), summary(kDriveMaxSpeedInPerS), summary(kDriveMaxTurnRadPerS),
+    summary(kDriveHeadingKp),       summary(kDriveHeadingSettleDeg),  summary(kClawLine),
     summary(kFlipperLine),          summary(kRampLine),              summary(kCascadeRows),
     summary(kCascadeLevels),        summary(kCascadeHoldVolts),      summary(kCascadeHomingPushVolts),
     summary(kCascadeHomingStallAmps), summary(kCascadeUnhomedVolts),  summary(kRightToggleDirection),  summary(kLeftToggleDirection),

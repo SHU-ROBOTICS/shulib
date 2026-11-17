@@ -26,7 +26,7 @@ once. Each line is what a robot needs — copy the pattern when you add yours.
 |---|---|
 | `src/build_selection.hpp` | its `RobotId` (`RobotOne`), one branch of THE ONE CHAIN per program (each sets the program, the robot and the build's beacon together), its robot beacon (`shulib-robot=robot-one`), and its define (`SHULIB_ROBOT_ONE_2026`) in each `PROGRAM=` guard above the chain — and, because it has mechanisms, in the Tune guard — without it that build stops at an `#error` naming why |
 | `Makefile` | its `ROBOT=` word (`ROBOT=one`) and its define; the four `PROGRAM=` lines accept it; and — because it has mechanisms — its word in `MECHANISM_ROBOTS`, the list "shulib Tune" (`PROGRAM=tune`) accepts |
-| `src/robots/chassis_table.hpp` | its drive table (`kRobotOneChassis`) — every unknown field left UNSET, and every station that needs one refuses by name. Calibrate discovers the drive's ports, directions, sides, front, scale and track width, and finds the **IMU** on the brain's own device list; the one drive fact it cannot discover is the drive **cartridge** (the form's A2) — typed here before Calibrate runs (robot one's: BLUE, 2026-11-15) |
+| `src/robots/chassis_table.hpp` | its drive table (`kRobotOneChassis`) — what Calibrate measured, and the autons' drive settings (speed, turn rate, heading), read from its facts file. Calibrate discovers the drive's ports, directions, sides, front, scale and track width, and finds the **IMU** on the brain's own device list; the one drive fact it cannot discover is the drive **cartridge** (the form's A2) — typed here before Calibrate runs (robot one's: BLUE, 2026-11-15) |
 | `src/robots/robot_one_facts.hpp` | **its facts file** — every number about its mechanisms, OWED or typed (below) |
 | `src/robots/mechanism_table.hpp` | its mechanisms, in its own `namespace robot_one`, between its `[robot one mechanisms]` markers, every number read from the facts file; its line in `mechanismTableFor()` |
 | `src/team/robot_one_driver.hpp` | its driver file — which button does what (the builder's map, below) |
@@ -389,8 +389,11 @@ drive table — is retired. The host suite keeps it as its example robot with cl
 
 ## What robot one does not do yet
 
-- **Robot one has not finished a Calibrate or a Bench Tests run yet.** Its first Calibrate runs (2026-11-16)
-  stopped safely before measuring; everything above runs on the host test plant on placeholder numbers.
+- **Robot one's drive was measured by a Calibrate build that is not the standard one yet** (2026-11-17): one
+  motor of its ten could not turn the robot, so the sides were found by which motors move together (the standard
+  Calibrate's version of that is still being built). Its result is typed into `kRobotOneChassis` (the drive's
+  ports, signs, scale and an effective track width of 13.23 in), and the autons drive slower and softer than the
+  library's defaults (40 in/s, a heading arrival of 4 degrees — its ten geared motors rock about 2 degrees).
 - **Station 13 does not apply the cascade's current cap yet.** Until it does, keep its ceiling at 3 V on
   the cascade (never press R1 to raise it) and **never power the cascade into its top stop**: jog up at
   3 V to just short of it and stop; close the last bit by hand only if the cascade moves freely by hand
