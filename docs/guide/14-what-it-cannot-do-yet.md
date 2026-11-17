@@ -1,15 +1,15 @@
 # 14 — What it can't do yet
 
-> **Covers:** the honest list — everything this library cannot do today, with where each gap is
+> **Covers:** everything this library cannot do today, with where each gap is
 > tracked and what closes it.
 > **Read this if:** you're about to rely on the library for something, or you're evaluating
 > the project from outside.
 > **Assumes:** nothing beyond [Chapter 1](01-what-is-this.md). This chapter is deliberately
 > readable standalone.
 
-This project's culture takes honest status seriously — "we under-claim before we over-claim"
-is written into the [roadmap's rules](../roadmap.md#how-to-read-this-roadmap), and this chapter
-is that rule applied to itself. The links matter more than the prose: statuses change, and the
+"We under-claim before we over-claim" is written into the
+[roadmap's rules](../roadmap.md#how-to-read-this-roadmap), and this chapter is that rule applied to
+itself. The links matter more than the prose: statuses change, and the
 linked documents are maintained as the truth. Where this page and the roadmap disagree, the
 roadmap is right.
 
@@ -62,6 +62,23 @@ The headline limitation, stated as many times as it takes:
   2026-09-30), runs the same autons in `autonomous()`; it has not run on a brain either, and the
   beliefs a match rests on — that PROS deletes its phase tasks on a mode change (HA-161), and what
   the controller's Timed Run does (HA-162) — are unchecked.
+- **The route preview draws a perfect robot, on a stand-in drive, in an empty field.**
+  `tools/route_preview.py` ([Chapter 16](16-testing-an-auton-on-the-bench.md#before-the-bench-previewing-a-route))
+  runs an auton on the host test plant and draws it, but its drive is the test suite's stand-in (a 12 in tank
+  with made-up gains, not robot two's — whose track width is not in the code yet), its plant has no walls (the
+  preview checks a 15 in square against the field itself and says THROUGH or TOUCH, but nothing stops the
+  plant's robot), it has no side sensors (every wall reset is refused), no pieces and no camera (a step that
+  needs to see something cannot). Its times are not the robot's either way. Robot one previews on its own
+  mechanisms, but every number its facts file still owes is a placeholder (the page lists them), and a value
+  typed there as "chosen, not measured" is not marked at all.
+- **The standard Calibrate has not run on a robot in its current form.** It runs whole on the host test
+  plant, and 34 of its runs are compared line for line with recorded ones; the calibrator inside it ran on
+  robot two in an earlier form on 2026-09-24 ([Chapter 19](19-calibrating-your-robot.md)). Its thresholds
+  are invented for a first run (HA-136).
+- **Nothing has run on robot one.** No census has seen it, no reading has been taken from it and no photo
+  is on file. Its programs and autons run on the host test plant on placeholder numbers, and every build
+  that needs a fact nobody has typed refuses
+  ([Chapter 21](21-adding-your-robot-by-hand.md#what-robot-one-does-not-do-yet)).
 - **Every physical constant is a labeled guess.** Control gains, settle tolerances, sensor
   noise levels, drivetrain geometry, fault thresholds — all provisional, and cataloged as
   falsifiable claims in the [Hardware Assumptions Register](../hardware-assumptions.md)
@@ -73,7 +90,7 @@ The headline limitation, stated as many times as it takes:
   (HA-54); and the entire heading-accuracy story leans on an assumed IMU drift bound (HA-20)
   that is community folklore until measured.
 - **Consequently, the accuracy numbers are simulation numbers.** The measured sub-degree
-  heading performance ([README](../../README.md#how-verified-is-it-honestly)) is real
+  heading performance ([README](../../README.md#how-verified-is-it)) is real
   measurement — of a simulated robot under modeled hostility. It is evidence of sound logic,
   not a promise about the field.
 
@@ -90,7 +107,7 @@ actually pointing, which no other source in this library can do.
 
 This section used to say, in plain words, that the team's `< 1°` end-of-run heading requirement
 was **not reliably achievable on a real robot** because nothing in the library could correct
-heading at all. That sentence has to change, and **the honest change is narrow**. Here is what
+heading at all. That sentence has to change, and **the change is narrow**. Here is what
 was measured, what it was measured on, and what is still unknown — in that order, because the
 order is the point.
 
@@ -130,7 +147,7 @@ catalogued as guesses in the [Hardware Assumptions Register](../hardware-assumpt
 it is likely to be met. It claims exactly one thing — *the specific reason this requirement was
 previously listed as unachievable, namely that nothing in the library could correct heading at
 all, no longer applies.* Everything else about the claim is unchanged and unmeasured. If that
-reads as a smaller change than the feature sounds like, that is the honest size of it.
+reads as a smaller change than the feature sounds like, that is the true size of it.
 
 **Still missing, and unrelated to any of the above:**
 
@@ -152,7 +169,7 @@ reads as a smaller change than the feature sounds like, that is the honest size 
 
 This page used to carry two limitations together: *no Kalman filter*, and *two disagreeing
 correctors are bounded rather than resolved*. Both have changed, and as with the heading section
-above the honest change is narrower than it sounds. Same order: what was measured, what it was
+above the change is narrower than it sounds. Same order: what was measured, what it was
 measured on, what is still unknown.
 
 **What was measured.** A 5-state extended Kalman filter now exists behind the same fusion seam
@@ -188,7 +205,7 @@ proven here; its *numbers* are fitted on hardware that does not exist yet.
   *also* has its own gate, which E4 did not touch — so a real recovery from a 20-inch error
   depends on the corrector's own widening rule as well, and that rule's constant (HA-67) is
   another guess.
-- **The uncertainty the filter reports is only as honest as its noise model.** `covarianceTrace`
+- **The uncertainty the filter reports is only as good as its noise model.** `covarianceTrace`
   is a real number computed from a real filter, and it is computed from invented inputs. Treat it
   as a *relative* signal — it grew, it shrank — rather than as a calibrated distance, until R4.
 - **Nothing here has seen a robot.** Same as everything else on this page.
@@ -232,7 +249,7 @@ The mechanism seam that used to be a placeholder here is now real code
   itself never run on a robot).
 - **Deliberately absent:** any concrete mechanism. There is no `shulib::Intake` and never
   will be — mechanism sets change every season, so the library ships the grammar and your
-  team writes the nouns (Chapter 13 says how, and why the safe state is declared per
+  team writes the nouns ([Chapter 13](13-extending-the-library.md) says how, and why the safe state is declared per
   mechanism).
 - **Now real at the device edge, still host-proven only:** the sensors that *confirm* a
   mechanism action — distance, color/proximity, limit switches — and the solenoid lines that
@@ -252,7 +269,7 @@ The mechanism seam that used to be a placeholder here is now real code
   3-wire port at all (HA-158, reasoned), so an unplugged solenoid is invisible to every check.
   The stall thresholds
   an operation needs are required parameters
-  precisely because no honest default exists before hardware characterization (phase R4).
+  precisely because no sound default exists before hardware characterization (phase R4).
   And the scoring verbs themselves — `intakeUntilCapture`, `liftToLevel`,
   `setQuadrantToggle` — remain future work (roadmap item F3) that needs both hardware and
   the build team's final mechanism decisions.
@@ -306,13 +323,13 @@ Unpacked, that is three separate limits:
   surfaces cannot see the deadline ([Chapter 9](09-the-recipe-api.md) has the exact
   formula and the deadline-aware alternative). One exception, since the mechanism core's
   second part: a wait on a mechanism operation that registered its claim ends one pace after
-  the deadline, because the guard cuts the OPERATION it waits on (Chapter 9, the same
+  the deadline, because the guard cuts the OPERATION it waits on ([Chapter 9](09-the-recipe-api.md), the same
   section).
 - **"Zero travel after the deadline" is a host-test-plant result, not a robot one.** The host
   measurement is exactly 0.0 inches, and it is real — but it holds because the guard
   refuses the next command *before* the world advances **and** because the simulated
   drivetrain is memoryless: it stops the instant the voltage does. A real robot has mass.
-  The honest on-robot claim is **"no new commanded motion after the deadline"** — the
+  The on-robot claim is **"no new commanded motion after the deadline"** — the
   coasting and braking distance already in the wheels is physics, and this plant cannot
   produce it. Budget your lead time for a robot that is still moving when the command
   stops.
@@ -410,7 +427,7 @@ until it does (and a RELATIVE-start one refuses `not a field start` first, as it
 Since the camera's second part the library turns the AI Vision camera's frames into a Toggle's colour and
 one named piece ([chapter 20](20-the-camera.md)). What that is worth, and what it cannot do:
 
-- **No AI Vision sensor has run this code.** Every number in chapter 20 is the host test plant's camera
+- **No AI Vision sensor has run this code.** Every number in [chapter 20](20-the-camera.md) is the host test plant's camera
   model looking through a true camera set inside the stated tolerances; the optics, the frame rate, the
   picture's age, the read's cost, the model's class names, the colours under event light and the
   Toggle's real shape are all unmeasured beliefs (HA-192 to HA-203).
@@ -503,6 +520,28 @@ an auton's context in the next part of the work (AF1S-A2), and until then a skil
   (HA-243). Under a RELATIVE start a route that names the wrong Toggle flips it to the wrong colour, said only by
   `wall not checked (relative start)` in its line; a FIELD start checks the robot faces the named wall.
 
+## A mirrored auton: what the mirror cannot carry
+
+Robot two can run robot one's skills route mirrored across the field's diagonal
+([Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton)). Proven on the host test
+plant only — robot two as robot one's twin has never run it — and three things it cannot do:
+
+- **The field's Loaders and the robot's own sides do not mirror.** The Loaders sit only on the red and blue
+  walls, so a step at a Loader has no mirror (and the red/left Load Zone's image is the blue one); and the
+  ROBOT is one physical build — a part off its centre line lands on the other side of the reflected path
+  (A4 register HA-259). The library cannot see either; the bench shows which steps need robot two's own
+  numbers.
+- **An exact half turn is not mirrored.** The library always takes an exact 180° turn counterclockwise, on
+  both robots and any drivetrain — robot two sweeps the same way as robot one there, in a `turnTo` and in a
+  `moveTo` / `driveTo` / trajectory leg whose heading changes by 180° (the log says so once, `[MIR]`). On the
+  host test plant a turn's path differs by 0.15 in — write it as two 90° turns where the sweep matters; a TANK
+  leg ENDS off the mirror by more the longer the leg — 5.7 in on a 16 in leg, 14.2 in on a 36 in leg (a tank
+  moves only along its heading) — turn first, in two 90° turns, then drive.
+- **A pure mirror cannot take what lies ON the diagonal.** The centre goal, two yellow Pins and the red/right
+  Load Zone are their own mirror images: both robots would reach them at the same moment. One robot takes
+  them (`isMirrored(ctx)`), and the suite's pair check holds the robots 6 in apart only at the PLANNED timing —
+  a real robot's timing drifts (A4 register HA-260).
+
 ## No easier tiers yet
 
 The project's [accessibility model](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet)
@@ -515,6 +554,13 @@ promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
   2026-09-18, with the route schema frozen — but nothing loads a route or a robot from a
   `.vexbot` file yet, so today a route is still typed in C++. The file reader is the rest of
   roadmap milestone M5, coordinated with the separate VexBuilder project.
+  The [route builder](22-making-your-first-route.md) (2026-11) is the first piece a non-coder can use: it builds the
+  skills route by clicking on the field and WRITES the commented C++ into the skills-route file — the team still
+  builds and uploads it. What it does not do yet: **PREVIEW** (playing the route from the real library on the
+  host test plant), triggers partway through a drive, wall resets, the mirrored robot drawn on the field, a time
+  bar, the Toggle steps, strafing, moving to a pose, driving through points, sensor waits, flywheel steps, a step of
+  your own C++, relative starts, 30 s match routes, and exporting a route to VexBuilder. Until they come, they are
+  typed by hand inside the route's region; the route builder never overwrites a hand edit there without asking.
 - **No ready-made scoring verbs for recipes to command** — the mechanism layer exists (see
   above) and `then()` runs its operations, but the mechanisms themselves are structs your
   team writes ([Chapter 13](13-extending-the-library.md)), and the season's concrete

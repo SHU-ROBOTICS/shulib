@@ -72,7 +72,7 @@ Seven distinct ids exist across all sources (6 declared + 1 that appears only in
 | `CLASP` | **no** — enum only | Intended: clamp/grab (their robot had pneumatic `arm`/`lever` — `main.cpp:57-58`) | Phase F′ **`clampActuate`+`clampConfirm`** (§14) | Covered by plan, not yet built |
 
 **Reading for G2:** the five mechanism ids were *declared intent that data authoring never
-reached* — the planner could only emit `MOVE_WITH_HEADING` (+ `NONE`). So the honest legacy-derived
+reached* — the planner could only emit `MOVE_WITH_HEADING` (+ `NONE`). So the legacy-derived
 requirement is not "support these five ids"; it is: **(a)** the motion verb + boundary marker are
 the proven minimum a planner emits, and **(b)** mechanism ids must be *registerable by the team*
 (`registry.on(...)`) precisely because the mechanism set churns season to season — legacy hard-coding

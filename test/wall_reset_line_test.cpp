@@ -6,7 +6,8 @@
 // only a call can reach (the sensor, the mount, liveness, motion, the everyday form's three).
 //
 // GUIDE 11 QUOTES the six lines of "L6 T9 guide 11's six WALL lines" word for word (without the
-// terminal's `[t=...]` prefix, which test/term_sink_test.cpp pins): change a line's format and this
+// terminal's `[t=...]` prefix, which test/term_sink_test.cpp pins) — and, since MIRROR1-A, a seventh: a
+// mirrored auton's line (kGuideMirroredLine, pinned by "MIRROR1 T8 ..."): change a line's format and this
 // file AND guide 11 change together. Nothing here has run on a robot.
 
 #include "doctest.h"
@@ -92,13 +93,21 @@ loc::WallResetReport refuseBefore(const Pose2d& pose, const loc::WallResetReques
     return rep;
 }
 
-/// The line, as the call writes it (the message: no `[t=...]` prefix).
+/// The line, as the call writes it (the message: no `[t=...]` prefix). `note`: a mirrored auton's note
+/// (MIRROR1-A), written inside the sensor's parenthesis.
 std::string line(const loc::WallResetReport& rep, const loc::WallResetRequest& rq = leftRequest(),
-                 const loc::WallResetLimits& l = {}) {
+                 const loc::WallResetLimits& l = {}, const char* note = nullptr) {
     shulib::diag::lineformat::Line out;
-    loc::appendWallResetLine(out, rep, rq, leftMount(), l);
+    loc::appendWallResetLine(out, rep, rq, leftMount(), l, note);
     return std::string{out.view()};
 }
+
+/// MIRROR1-A: guide 11's seventh WALL line — robot two's reset in a MIRRORED auton: robot one's route asked
+/// for the blue wall with its RIGHT sensor, so robot two reads the left wall (the blue wall's image across
+/// the skills diagonal) with its LEFT sensor, and the line says so inside the sensor's parenthesis.
+const char* const kGuideMirroredLine =
+    "left wall x SEATED (LEFT sensor, mirrored from blue wall RIGHT): -53.30 -> -55.71 (moved -2.41, limit 3.00) | "
+    "median 6.99 in spread 0.25 n 16 | bound 0.87 | faults ok";
 
 /// Guide 11's six example lines (the messages, after the terminal's `[t=...]` prefix), in its order.
 const char* const kGuideLines[6] = {
@@ -277,7 +286,7 @@ TEST_CASE("L6 T9 every verdict's line, byte for byte; the faults tail per verdic
 // red (they were copied once from a scratch probe). The chapter's `WALL` section must quote EXACTLY
 // the six lines above, in order, each after a terminal `[t=...]` prefix — so a change to a line's
 // format changes this file, and this case then fails until the guide is re-quoted from it.
-TEST_CASE("L6 T9 guide 11 quotes exactly the six pinned WALL lines") {
+TEST_CASE("L6 T9 guide 11 quotes exactly the six pinned WALL lines (and MIRROR1-A's mirrored seventh)") {
     std::ifstream in{std::string{SHULIB_SOURCE_DIR} + "/docs/guide/11-reading-the-diagnostics.md"};
     REQUIRE(in.good());
     std::stringstream buf;
@@ -295,9 +304,46 @@ TEST_CASE("L6 T9 guide 11 quotes exactly the six pinned WALL lines") {
             quoted.push_back(l.substr(tag + 7));
         }
     }
-    REQUIRE(quoted.size() == 6U);
+    REQUIRE(quoted.size() == 7U);
     for (std::size_t i = 0; i < 6U; ++i) {
         INFO("guide line " << i);
         CHECK(quoted[i] == std::string{kGuideLines[i]});
     }
+    CHECK(quoted[6] == std::string{kGuideMirroredLine});
+}
+
+// MIRROR1-A T8 (the MIRROR1 brief's D8, R8): a MIRRORED auton's WALL line. Bug caught: the note dropped,
+// put where the terminal's 200-byte message cut can reach it (after the numbers), or written into an
+// UNMIRRORED line (every line above stays byte for byte as L6 pinned it); a note that breaks the
+// parenthesis. The line, byte for byte; and at its WORST case — a 48-character request name, a
+// 32-character wall name (both the sanitizer's caps), the longest verdict word, robot one's 32-character
+// wall named in the note — the note and its closing parenthesis still sit inside the first 200 bytes.
+TEST_CASE("MIRROR1 T8 the mirrored WALL line: the note inside the sensor's parenthesis, inside the 200-byte cut") {
+    const loc::WallResetReport seated = judge(sixteen(6.99), parked(9.4), leftRequest());
+    REQUIRE(seated.verdict == WallResetVerdict::Seated);
+    CHECK(line(seated, leftRequest(), {}, "mirrored from blue wall RIGHT") == std::string{kGuideMirroredLine});
+    CHECK(line(seated, leftRequest(), {}, "") == std::string{kGuideLines[0]});       // an empty note: no note
+    CHECK(line(seated, leftRequest(), {}, nullptr) == std::string{kGuideLines[0]});  // the default: no note
+    // the worst case: every name at its cap, every verdict word
+    loc::WallResetRequest rq = leftRequest();
+    rq.name = "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn";       // 48
+    rq.wall.name = "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww";                    // 32
+    const std::string note = "mirrored from wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww RIGHT";  // the everyday form's
+    std::size_t worst = 0;
+    for (int v = 0; v <= static_cast<int>(WallResetVerdict::Cut); ++v) {
+        loc::WallResetReport rep = seated;
+        rep.verdict = static_cast<WallResetVerdict>(v);
+        rep.detail = "";
+        const std::string l = line(rep, rq, {}, note.c_str());
+        const std::size_t at = l.find("(LEFT sensor, " + note + "): ");
+        CAPTURE(l);
+        REQUIRE(at != std::string::npos);
+        const std::size_t end = at + std::string{"(LEFT sensor, "}.size() + note.size() + 1;  // through ')'
+        worst = std::max(worst, end);
+        CHECK(end <= 200U);
+        for (const char c : l) {
+            CHECK(static_cast<unsigned char>(c) < 0x80);
+        }
+    }
+    MESSAGE("the mirrored note's closing parenthesis at its worst: byte " << worst << " of the 200 the terminal keeps");
 }

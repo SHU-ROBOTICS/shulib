@@ -10,7 +10,7 @@ ProsBrainScreen — hal::IBrainScreen over PROS's screen API.
 
 This header declares **1** type (7 members).
 
-Extracted from [`include/shulib/hal/pros/brain_screen.hpp`](../../include/shulib/hal/pros/brain_screen.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/hal/pros/brain_screen.hpp`](../../include/shulib/hal/pros/brain_screen.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

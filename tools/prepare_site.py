@@ -30,7 +30,15 @@ mistake becomes public:
   2. No surviving link escapes the site root. If the rewrite misses a shape,
      the build fails here rather than shipping a dead link.
 
+It also gives every row of the Hardware Assumptions Register its own anchor
+(`#ha-136`), so a page can link the one row an estimate rests on. The anchors are
+added to the COPY only: every robot-code change edits register rows, and an
+anchor edit on every row of the source would conflict with each of them. On GitHub
+(the raw docs/) such a link lands on the page top; the site is where readers read.
+
 Usage:  python3 tools/prepare_site.py <output-dir>
+        python3 tools/prepare_site.py check-register   (the real register's anchors, without a copy)
+        python3 tools/prepare_site.py self-test
 """
 
 from __future__ import annotations
@@ -51,6 +59,10 @@ BLOB = "https://github.com/SHU-ROBOTICS/shulib/blob/main"
 
 # Directories under docs/ that must never be published.
 EXCLUDED = {"internal"}
+
+# The register, and a row of it: "| HA-136 | ..." (the first cell is the id).
+REGISTER = "hardware-assumptions.md"
+HA_ROW = re.compile(r"^\|\s*(HA-(\d+))\s*\|", re.M)
 
 # ](target) where target is relative — captures the path and any #anchor.
 LINK = re.compile(r"\]\((?!https?://|#|mailto:)([^)#\s]+)(#[^)\s]*)?\)")
@@ -139,7 +151,125 @@ def rewrite(text: str, md_path: Path) -> tuple[str, int]:
     return LINK.sub(sub, text), rewrites
 
 
+def anchor_rows(text: str) -> tuple[str, int]:
+    """Give each register row's first cell an <a id="ha-NNN"></a>."""
+    return HA_ROW.subn(lambda m: f'| <a id="ha-{m.group(2)}"></a>{m.group(1)} |', text)
+
+
+def unanchored_rows(text: str) -> list[str]:
+    """Register rows whose id has no anchor, and ids anchored twice."""
+    ids = re.findall(r'^\|\s*(?:<a id="ha-\d+"></a>)?\s*(HA-\d+)\s*\|', text, re.M)
+    anchors = re.findall(r'<a id="ha-(\d+)"></a>', text)
+    bad = [i for i in ids if i[3:] not in anchors]
+    bad += [f"ha-{a} twice" for a in sorted(set(anchors)) if anchors.count(a) > 1]
+    return bad
+
+
+def prepare_page(rel: str, text: str, src: Path) -> tuple[str, int, int]:
+    """One page as the site gets it: (text, source links rewritten, register rows anchored).
+    The register fails here if it has no rows, or a row without exactly one anchor."""
+    text, n = rewrite(text, src)
+    rows = 0
+    if rel == REGISTER:
+        text, rows = anchor_rows(text)
+        missing = unanchored_rows(text)
+        if not rows or missing:
+            raise SystemExit(f"ERROR: register row anchors: {rows} added, missing {missing[:5]}")
+    return text, n, rows
+
+
+def register_rows(text: str) -> int:
+    """The register's rows counted another way, WIDER than HA_ROW on purpose: any table line (spaces
+    before its bar allowed) whose first cell holds an HA id anywhere ("**HA-7**" too). A row HA_ROW
+    cannot read is counted here and not anchored there, so check-register fails on it."""
+    count = 0
+    for line in text.split("\n"):
+        if line.lstrip().startswith("|") and re.search(r"HA-\d+", line.split("|")[1]):
+            count += 1
+    return count
+
+
+def check_register(src: Path = DOCS / REGISTER) -> int:
+    """The real register through the copy step's own code: every row anchored, none missed."""
+    if not src.is_file():
+        print(f"check-register: FAIL — {src} is missing", file=sys.stderr)
+        return 1
+    text = src.read_text(encoding="utf-8")
+    try:
+        _out, _n, rows = prepare_page(REGISTER, text, src)
+    except SystemExit as e:
+        print(f"check-register: FAIL — {e}", file=sys.stderr)
+        return 1
+    if rows != register_rows(text):
+        print(f"check-register: FAIL — {rows} rows anchored, {register_rows(text)} in the register: write "
+              "each row's first cell as '| HA-NNN |' (no bold, no space before the bar)", file=sys.stderr)
+        return 1
+    print(f"check-register: OK — {rows} register rows, each anchored once")
+    return 0
+
+
+def self_test(plant: bool = False) -> int:
+    import contextlib
+    import io
+    import tempfile
+
+    rows = "| HA-01 | a | b |\n| HA-136 | c | d |\n| Old | HA-12 | e |\n"
+    out, n = anchor_rows(rows)
+
+    def refused(text):
+        try:
+            prepare_page(REGISTER, text, DOCS / REGISTER)
+        except SystemExit:
+            return True
+        return False
+
+    def checked(text):
+        with tempfile.TemporaryDirectory(prefix="shulib-site-") as d:
+            path = Path(d) / REGISTER
+            if text is not None:
+                path.write_text(text, encoding="utf-8")
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                return check_register(path)
+
+    cases = [
+        ("every row gets its anchor", n == 2 and unanchored_rows(out) == []),
+        ("the anchor is the row's id", '<a id="ha-136"></a>HA-136' in out and '<a id="ha-01"></a>HA-01' in out),
+        ("a row that names an id in a later cell is not a row of it", "<a id=\"ha-12\">" not in out),
+        ("a row without its anchor fails", unanchored_rows(rows) == ["HA-01", "HA-136"]),
+        ("an id anchored twice fails", unanchored_rows(out + out) != []),
+        ("the copy step anchors the register", prepare_page(REGISTER, rows, DOCS / REGISTER)[2] == 2),
+        ("the copy step leaves every other page's rows alone", prepare_page("faq.md", rows, DOCS / "faq.md")[0] == rows),
+        ("the copy step refuses a register with no rows", refused("# Register\n")),
+        ("the copy step refuses an id twice", refused(rows + rows)),
+        ("rows are counted another way", register_rows(rows) == 2),
+        ("check-register passes a good register", checked(rows) == 0),
+        ("check-register fails a register with no rows", checked("# Register\n") == 1),
+        ("check-register fails a missing register", checked(None) == 1),
+        ("check-register fails a row the anchor pattern misses", checked(rows + "| HA-7\n") == 1),
+        ("check-register fails a bold id", checked(rows + "| **HA-7** | x |\n") == 1),
+        ("check-register fails a row with a space before its bar", checked(rows + " | HA-7 | x |\n") == 1),
+        ("a row anchored with another row's id fails",
+         unanchored_rows('| <a id="ha-02"></a>HA-01 | x |\n') == ["HA-01"]),
+    ]
+    if plant:
+        cases.append(("a planted failing case", False))
+    for name, ok in cases:
+        print(f"  {'PASS' if ok else 'FAIL'}  {name}")
+    return 0 if all(ok for _n, ok in cases) else 1
+
+
 def main() -> int:
+    if sys.argv[1:] == ["self-test"]:
+        import contextlib
+        import io
+        with contextlib.redirect_stdout(io.StringIO()):
+            planted = self_test(plant=True)
+        if planted != 1:  # the exit itself is checked: a run with a failing case must exit 1
+            print("self-test: FAIL — a run with a planted failing case exits 0", file=sys.stderr)
+            return 1
+        return self_test()
+    if sys.argv[1:] == ["check-register"]:
+        return check_register()
     if len(sys.argv) != 2:
         print(__doc__, file=sys.stderr)
         return 2
@@ -153,7 +283,7 @@ def main() -> int:
     # disagree about when it was published is worse than one with no stamp.
     stamp = build_stamp()
 
-    copied = rewritten = stamped = 0
+    copied = rewritten = stamped = rows = 0
     for src in sorted(DOCS.rglob("*")):
         rel = src.relative_to(DOCS)
         if rel.parts and rel.parts[0] in EXCLUDED:
@@ -164,7 +294,8 @@ def main() -> int:
             continue
         dst.parent.mkdir(parents=True, exist_ok=True)
         if src.suffix == ".md":
-            text, n = rewrite(src.read_text(encoding="utf-8"), src)
+            text, n, page_rows = prepare_page(rel.as_posix(), src.read_text(encoding="utf-8"), src)
+            rows += page_rows
             # Appended AFTER the rewrite, deliberately: the stamp's links are
             # already absolute, and running them through the escape-check would
             # be checking this function's own output rather than the documents.
@@ -187,6 +318,9 @@ def main() -> int:
     # and api/README.md are section landing pages that the nav and 4 in-tree
     # links point at by name; they have no sibling index.md, so they neither
     # conflict nor move.
+    if not rows:
+        raise SystemExit(f"ERROR: docs/{REGISTER} was not copied — no register row has an anchor")
+
     readme = out / "README.md"
     if not readme.exists():
         raise SystemExit("ERROR: docs/README.md is missing — the site has no homepage")
@@ -229,6 +363,7 @@ def main() -> int:
     print(f"  publish stamp: added to {stamped} pages")
     print("  internal docs: absent (verified)")
     print("  escaping links: none (verified)")
+    print(f"  register rows: {rows} anchored (#ha-NNN)")
     return 0
 
 

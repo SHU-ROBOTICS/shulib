@@ -67,7 +67,7 @@ Where does per-tick error come from?
   a half inch per hundred inches driven, silently.
 - **IMU gyro drift.** The IMU's rotation sensing has a small bias that changes every time it
   powers on; the heading estimate slowly rotates even with the robot bolted to a table. A
-  typical V5 IMU drifts on the order of a degree per minute — and recall from Chapter 2 that
+  typical V5 IMU drifts on the order of a degree per minute — and recall from [Chapter 2](02-the-field-and-coordinates.md) that
   heading error converts into position error with every inch driven. Over a 60-second run, IMU
   drift alone can eat the entire heading accuracy budget. This single fact drives a lot of the
   library's design.
@@ -121,7 +121,7 @@ rejected too. Gates trade rare catastrophic acceptance for rare catastrophic stu
 because motion control is running off this estimate in real time — teleporting the estimate
 mid-move would make the robot visibly twitch.
 
-The estimate also carries an honest quality label at all times — the library distinguishes
+The estimate also carries a quality label at all times — the library distinguishes
 *"booting, no estimate yet"* / *"dead-reckoning"* (odometry only, drifting) / *"corrected"*
 (absolute reference active) / *"degraded"* (something is wrong with a sensor). Motion code and
 diagnostics both read this label; among other things, the robot refuses to act on
@@ -172,7 +172,7 @@ Every one of those decisions is written into the diagnostics, per tick, with the
 made from — see [Chapter 11](11-reading-the-diagnostics.md). If your GPS is doing nothing, the
 log will tell you which of the six reasons is why.
 
-**And the honest limits, because they matter more than the feature:**
+**The limits, because they matter more than the feature:**
 
 - **It has never seen a GPS.** Everything above was proven against a simulated sensor whose
   noise, timing and failure behaviour are *guesses* — reasoned guesses, written down and
@@ -250,7 +250,7 @@ The checks it runs before it will move anything, each one a way tag data can be 
   wiring mistake shows up as a specific diagnostic rather than as a feature that quietly does
   nothing.
 
-**And the honest limits, which are larger here than for the GPS:**
+**The limits, which are larger here than for the GPS:**
 
 - **No camera has ever been pointed at a tag by this project.** The corner-to-pose maths is
   proven against synthetic images computed from geometry, and the corrector against a simulated
@@ -270,7 +270,7 @@ The checks it runs before it will move anything, each one a way tag data can be 
 
 ## Re-seating one axis against a wall
 
-*Host- and build-gated, NOT run on a robot.* Everything above is about sensors that **nudge** the
+Everything above is about sensors that **nudge** the
 estimate a little every tick. The wall reset is different: a step your auton calls, at a moment you
 chose, that **re-seats one coordinate** of the estimate from a side distance sensor — and nothing else.
 
@@ -456,7 +456,7 @@ understanding before you see it in a log.
 A confident filter that is *wrong* is a trap, and it has a very real cause in VEX: an opponent
 shoves your robot. The wheels do not turn, so the odometry reports no travel and the estimate
 stays exactly where it was — and stays **certain**, because as far as the wheels are concerned
-nothing happened. The robot is now thirty inches from where it believes it is, and every honest
+nothing happened. The robot is now thirty inches from where it believes it is, and every correct
 GPS fix looks like an outrageous lie. The gate does what it is built to do and rejects all of
 them. Forever.
 
@@ -484,7 +484,7 @@ you build the estimator.
   fixed distance and pulls a fixed fraction of the way toward whatever it accepts.
 - The **extended Kalman filter** is the one this section has been describing.
 
-Keeping the simpler one as the default is a deliberate choice, and the honest reasons are worth
+Keeping the simpler one as the default is a deliberate choice, and the reasons are worth
 stating. Measured over eight seeded sixty-second runs against the simulated robot, the two finish
 within about an eighth of an inch of each other — and the *complementary* filter is very slightly
 ahead. That is not a defect in the Kalman filter; it is what happens when the simulated GPS is

@@ -10,7 +10,7 @@ PilonsOdometry — tracking-wheel dead-reckoning.
 
 This header declares **2** types (8 members).
 
-Extracted from [`include/shulib/localization/pilons_odometry.hpp`](../../include/shulib/localization/pilons_odometry.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/localization/pilons_odometry.hpp`](../../include/shulib/localization/pilons_odometry.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

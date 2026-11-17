@@ -10,7 +10,7 @@ EkfFusion — the M3 fusion policy: a 5-state SE(2) extended Kalman filter behin
 
 This header declares **2** types (40 members).
 
-Extracted from [`include/shulib/localization/ekf_fusion.hpp`](../../include/shulib/localization/ekf_fusion.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/localization/ekf_fusion.hpp`](../../include/shulib/localization/ekf_fusion.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

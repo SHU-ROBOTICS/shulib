@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "madeWith": "shulib route builder",
+  "routes": [
+    {
+      "name": "skills",
+      "kind": "skills",
+      "robot": "two",
+      "mirroredFor": "two",
+      "start": {
+        "x": -36,
+        "y": -55.7,
+        "headingDeg": 0
+      },
+      "endActionAtS": 57,
+      "hardStopAtS": 59,
+      "steps": [
+        {
+          "do": "driveTo",
+          "x": -12,
+          "y": -55.7,
+          "faceFirst": false
+        },
+        {
+          "do": "set",
+          "mechanism": "claw",
+          "position": "open"
+        },
+        {
+          "do": "run",
+          "mechanism": "clawPivot6",
+          "volts": 6,
+          "forS": 0.3
+        },
+        {
+          "do": "curveTo",
+          "points": [
+            {
+              "x": 0,
+              "y": -50
+            },
+            {
+              "x": 12,
+              "y": -36,
+              "headingDeg": 90
+            }
+          ]
+        },
+        {
+          "do": "wait",
+          "seconds": 0.5
+        }
+      ]
+    }
+  ],
+  "robots": {},
+  "exports": {}
+}

@@ -14,7 +14,265 @@
 > after the fact from those comments and the project records; everything above it was
 > written when the change landed.
 
+## API 2.9
+
+### 2026-11-16 (built 2026-11-15) — the docs by task: a new menu, a front page that asks "What do you want to do?", and limits as plain facts — no API change
+
+> Written when it was built (chunk DOCS3, run N1). **Documentation only** — nothing under `src/` or `include/`
+> changed. **What you must do:** nothing; every page keeps its file name and its address.
+
+- **The site's menu is by task** — Robot, Routes, Mechanisms, Troubleshoot, Learn, API reference, Project —
+  and shows titles, not chapter numbers.
+- **The front page asks "What do you want to do?"** and links each answer, with a picture of a new robot's
+  first week drawn from guide 21's "The order on the robot".
+- **New landings:** "How it works" (the guide's ideas in order, and every page by its old chapter number),
+  "Recipes: which to read" (the cookbook), and "How these pages stay true" (the maintenance rules).
+- **Limits are plain facts where they apply;** the status disclaimers that opened ten pages are gone (what
+  has run on a robot is listed in guide 14).
+- **Links:** every "Chapter N" on a reader page is a link; every glossary term has its own link
+  (`guide/15-glossary.md#pose`); on the site, every register row does too (`hardware-assumptions.md#ha-136`).
+- **New build checks:** every public page is in the menu exactly once (`tools/doc_readability.py check-nav`);
+  the tone rule (`check-tone`); a link to a missing anchor fails the site build.
+
+### 2026-11-16 (built 2026-11-14, reviewed and fixed to 2026-11-16) — the route builder: build the skills route by clicking, export the C++ (in the browser, on Windows and Linux)
+
+> Written when it was built (chunk RMP1, its first run, RMP1-A1). **No library change — no API change:** nothing
+> under `include/shulib/` or `src/` moved; this is a tool beside the library. **Host and browser only: no route it
+> writes has run on a robot here.**
+
+**Why:** the team's non-coders write the skills route — and until now that meant typing C++.
+
+**What you can now do (additive):**
+
+- **The route builder** — a web page on the docs site ([its page](route-builder.md), the "Route builder" tab), and a
+  one-file download for offline use. Place robot one's start on the real field; add drives (turning to face the
+  point first on a tank), turns, curves (the library's own curve, drawn and checked), cascade levels, homes,
+  pneumatic positions, timed motor runs, waits; give any step "if it fails: stop / carry on / skip ahead". The page
+  marks in plain words — with the library's own sentence beside them where it has one — every step the robot would
+  refuse (a move before the cascade is homed, a wall in the way, a curve the library will not drive), with one-click
+  fixes.
+- **Export** writes the route as commented C++ into the ONE marked region of `src/team/skills_route.cpp` (Edge or
+  Chrome, the shulib folder connected; keeping the file's own line endings, never overwriting a hand edit without
+  asking), or copies it (any browser). **Save** writes the route into `src/team/route_maker.json`.
+- How to use it: [guide chapter 22](guide/22-making-your-first-route.md).
+
+**What you must do:** nothing. Robot two's update adds `src/team/skills_route.cpp`; until it is in your copy of the
+repository, the route builder offers Copy only.
+
+### 2026-11-15 — the route preview previews robot one
+
+> Written when it was built (chunk RPV1, the switch to robot one). **No API change**: nothing a robot program
+> compiles changed, and `src/` is untouched. **Host test plant only — nothing here has run on a robot.**
+
+**CHANGED (a host tool):** `python3 tools/route_preview.py "<auton name>" --robot one` now runs that auton from
+`src/team/robot_one_autons.cpp` on robot one's own mechanisms (each on a fake built from its own declaration, the
+cascade included), on the same stand-in drive. Every fact robot one's facts file (`src/robots/robot_one_facts.hpp`)
+still OWES is a placeholder (the preview uses it wherever it needs that number), so the page and the terminal list
+each one under PLACEHOLDER at the top; a fact leaves the list once it is typed, a value typed as "chosen, not
+measured" included (the page does not mark it). Robot one's pages go to `build/route_preview/one/` (the two
+robots share auton names). Until now `--robot one` said robot one had no build and drew nothing.
+
+**What you must do:** nothing. [Chapter 16](guide/16-testing-an-auton-on-the-bench.md#before-the-bench-previewing-a-route)
+shows the command.
+
+### 2026-11-15 (built 2026-11-15) — robot one's real mechanisms and its first typed facts; a ONE-button hold for a power mechanism
+
+> Written when it was built (chunk ROB1, run C2 — the team lead: "we need to have the bot coded tonight").
+> **Added (no version bump):** one new word in the mechanism core's driver controls — a layer no row of the
+> [Freeze Register](roadmap.md#freeze-register) freezes; every existing driver file compiles and runs exactly as
+> before (a two-button hold is unchanged). **Host- and build-gated only: nothing has run on robot one.**
+
+**Why:** robot one was built by 2026-11-15, and its builder read its ports, cartridges, gearing and 3-wire letters
+off it and gave its button map. Its build had refused every program until those facts were typed and every
+non-drive motor declared.
+
+**ADDED (library, `mechanism/driver_inputs.hpp`):**
+- **`whileHeld(powerMechanism, button, volts)`** — a ONE-button hold-to-run for a POWER mechanism: held, it runs
+  ONE way (+volts; which way the motor turns is its declaration's `.motors` direction); let go, it stops. It takes
+  no second button, so the button beside it stays free for another control. `Control::oneWay` marks it; the
+  boot line reads `<name>: hold-to-run L1 (one way), 12 V`. On an arm, a lift, a pneumatic or a flywheel it is
+  refused by name (`whileHeld_with_one_button_is_for_a_power_mechanism_an_arm_or_a_lift_needs_two`).
+
+**ROBOT ONE (the team's files, not the library):**
+- **Typed** in `src/robots/robot_one_facts.hpp` from the builder's answers ("the team's builder, 2026-11-15, read
+  off the robot"): the cascade's motors on ports 10 and 1, facing each other (port 10 taken as Forward —
+  station 13 confirms), BLUE, direct to the spool (typed 1:1); the side toggles' ports 9 and 2 and their GREEN
+  cartridge; the claw on 3-wire A, the front toggle on B, the ramp on C; the cascade's levels as NONE (manual
+  for now); and the non-drive motors {10, 1, 9, 2}. **Chosen, not measured:** the cascade's starting cap 2.0 A
+  and stall signature 1.5 A below 5 rpm for 0.3 s, and the flipper's kind (pneumatic: the front toggle) — the
+  coordinator; the side toggles' starting cap 1.5 A, each piston's starting stroke time 0.5 s, and the cascade's
+  own **homing** signature, 0.45 A (chapter 18's starting value for a gentle push — the 1.5 A jam signature
+  could never end a gentle home, so the two are separate facts). The drive table's cartridge: BLUE.
+- **Declared** in `src/robots/mechanism_table.hpp`: two side toggles (`Power`), the claw, the front toggle (the
+  `Pneumatic` named `"flipper"`) and the ramp, each piston starting in the position its solenoid holds unpowered.
+- **The driver file is the builder's map**: R1 / R2 the cascade while held, A the claw, B the front toggle, X the
+  ramp, L1 / L2 the right / left side toggle while held, Y the re-zero, the d-pad free; the cascade homes at the
+  first driver start (the one line marked `[delete-able]`). Its three numbers nobody gave (the cascade's
+  12 V, the side toggles' 12 V, the home's 3 s) are marked "chosen, not measured".
+- **Still owed** (each refuses by name): which port is the right side toggle (Stage A — Bench Tests and
+  Calibrate wait for this one only); the cascade's two rows, hold volts, homing push and unhomed volts, each side
+  toggle's direction, and which line level opens each piston (Stage B).
+- The Drive screen's mechanism row prints a COMPACT form when a list's full row cannot fit the screen's 50
+  characters (robot one's six mechanisms): `MECH 10H34 9B31 2B30 CLAW:C FLIP:O RAMP:U` — chapter 21 has the legend.
+
+**What you must do:** nothing — robot two's files and its driver file are unchanged, and it behaves as before
+(its packages carry the library's new one-button branch, never taken by its two-button holds). A driver file
+that wants a one-way control on one button writes `whileHeld(roller, Button::L1, 12_volt)`. Robot one: type
+the right side toggle's port, then build Bench Tests and Calibrate ([Chapter 21](guide/21-adding-your-robot-by-hand.md)).
+
+### 2026-11-15 — shulib Tune: the READY button shows its whole label
+
+**Fixed:** Tune's first page drew its READY button as "READY - I AM CL" — the label box held 15 characters and the label has 18. The box now holds 23, and a test checks every one of the page's 24 button labels fits. **What you must do:** nothing; rebuild shulib Tune.
+
+### 2026-11-15 (built 2026-11-13, reviewed and fixed to 2026-11-15) — one route, two robots: robot two runs robot one's skills route MIRRORED across the field's skills diagonal
+
+> Written when it was built (chunk MIRROR1, run A). **API 2.9** — numbered by the coordinator at the merge. **Added (nothing to do):** every name below is new; the
+> Chassis (Freeze Register row F6) gains a read-only `reflection()` and the `chassis::MirroredRun` scope —
+> F6-additive, every existing verb unchanged unless a mirrored run is open (an unmirrored run is bit-identical,
+> pinned) — and the Routine (F10) does not change at all. The version number is the release's to set.
+> **Host- and build-gated, NOT run on a robot:** robot two as robot one's twin does not exist yet.
+
+**Why:** the first competition (2026-11-21) is SKILLS ONLY, and both robots — the same build — run the skills
+route at the same time, one in each red Quadrant (the game manual's `<VURS2>`, `<VURS3>`, `<SG1>`). Those two
+Quadrants are mirror images across the field's diagonal from the red/right corner to the blue/left corner, so
+the students write the route ONCE and robot two runs it mirrored — one registration line instead of a second,
+hand-reflected copy to keep equal through every edit. The team lead's go (2026-11-13): "do what is best they
+should play onto one side when they need to when mirrored".
+
+**Added:**
+
+- `math::Reflection` (`math/reflection.hpp`) — the field reflected across a line through the origin at a
+  multiple of 45° (exact in position, a reflected reflection gives the position back, never `-0.0`), or the
+  identity: a point, a `Pose2d`, an `Angle` (`2a - h`, re-wrapped), a `ChassisSpeeds` in either frame.
+- `competition::mirrored(entry, mirror)`, `competition::isMirrored(ctx)`, `competition::FieldMirror`,
+  `mirroredWall`, `mirroredSide`, `runReflection`, `seatedStart` (`competition/field_mirror.hpp`), and
+  `competition::override2026::kSkillsMirror` — Override's skills mirror, `(x, y, h) -> (-y, -x, -90° - h)`, with
+  `toggleImage` / `mirroredToggle` (`competition/override_mirror.hpp`; the season's walls and Toggles checked to
+  close under it at compile time). Robot two's autons file:
+  `registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));`.
+  `mirrored()` handed a TEMPORARY `FieldMirror` does not compile (a deleted overload): the entry keeps the
+  mirror's address, so it must be the season constant.
+- `AutonEntry::mirror` (appended, default none) and `kMaxMirroredAutonNameChars` (25 — the button reads
+  `<name> SKILLS MIR`); `AutonRunResult::mirrored`.
+- `Chassis::reflection()` and `chassis::MirroredRun` (`chassis/chassis.hpp`): while a mirrored run is open every
+  FIELD number entering the Chassis is reflected (`moveTo`, `strafeTo`, `turnTo`, both observer overloads,
+  `followTrajectory`, `curveTo` / `reverseCurveTo`, `setPose`, `drive`) and `pose()` hands the estimate back
+  reflected; `deps()`, `scheduler()`, `lastCompleted()`, the records and the log stay the REAL field.
+- `competition::runAuton` seats a mirrored entry at the REFLECTED start (a RELATIVE one by the robot-frame
+  mirror, every left a right) and runs its routine AND its end action inside one mirrored run, closed on every
+  way out. Its `COMP` lines say `FIELD MIRRORED` and name robot one's start; the result screens say
+  `START MIR (...)`; the menu says `<name> SKILLS MIR`.
+- The wall reset's everyday call swaps the wall (its image) and the sensor side (LEFT <-> RIGHT) for a mirrored
+  auton, its `WALL` line noting `(LEFT sensor, mirrored from red wall RIGHT)`; the Toggle step visits the image
+  Toggle (the same Quadrant colour).
+- A `[MIR]` Warn when a mirrored `turnTo`, `moveTo` or trajectory leg (a `driveTo` / `reverseTo` is a `moveTo`)
+  starts within 1° of a half turn, on any drivetrain — F3's exact-180° tie turns both robots counterclockwise;
+  its advice names the verb's fix (a turn: two 90° turns; a leg: turn first, in two 90° turns). And one when
+  the driver-control loop finds a mirror still on: it CLEARS it (a library defect — never a refusal).
+- Refused by name: the explicit wall reset inside a mirrored run (a precondition naming the everyday call); an
+  entry mirrored by two DIFFERENT mirrors (a precondition at `mirrored()`); a mirrored name over 25 characters
+  (at registration).
+- **Both robots at once:** the host suite runs every mirrored entry robot two registers TOGETHER with its
+  unmirrored self on the host test plant and fails — naming the moment, both positions and the drive motion each
+  robot was in, robot one's with its target in the route's own numbers — when their 15 in squares come within
+  6 in (`test/mirrored_pair_check.hpp`). The guide's rule: keep
+  robot one's whole robot 3 in off the diagonal; what lies ON it (the centre goal, two yellow Pins, the red/right
+  Load Zone) is for ONE robot, through `isMirrored(ctx)`.
+
+**Proved on the host test plant:** robot two's path is robot one's reflection to 1.1e-12 in pace by pace (a tank,
+20 steps of every verb, a trigger of each kind on the same pace; a 16-point curve) and 6.2e-13 in (an X-drive);
+the exact-180° tie the one divergence, each pinned with its number — a turn 0.155 in; an X-drive `moveTo` 0.307 in
+along the way; a TANK `moveTo` at its END by more the longer the leg — 5.7 in on a 16 in leg, 14.2 in on a 36 in
+leg (a `driveTo` straight behind, 5.0 in on 14 in) — while the same drive after turning first in two 90° turns
+mirrors exactly; an unmirrored run through `runAuton` bit-identical to the merge base (tank and X-drive, every
+verb, hashed).
+**Unverified on a robot:** A4 registers HA-258 (the event's field is the manual's mirror), HA-259 (robot one's
+build is left-right symmetric where a route uses it) and HA-260 (the robots' own asymmetry, and 3 in a side).
+
+**Pages:** [guide chapter 2](guide/02-the-field-and-coordinates.md#the-fields-mirror-two-robots-one-route),
+[chapter 17](guide/17-the-competition-program.md#two-robots-one-route-a-mirrored-auton), chapter 11's `MIR`, `COMP`,
+`WALL` and `TGL` lines, chapter 14, the glossary, and [cookbook chapter 9](cookbook/09-one-route-two-robots.md).
+
 ## API 2.8
+
+### 2026-11-14 (built 2026-11-12, reviewed and fixed to 2026-11-14) — the route preview: one command draws a whole auton from the team's own file, on the host test plant
+
+> Written when it was built (chunk RPV1, part A — its first two parts together). **No API change**: nothing a
+> robot program compiles changed, no library header a robot build includes moved, and `src/` is untouched.
+> **Host test plant only — nothing here has run on a robot.** [Chapter 16](guide/16-testing-an-auton-on-the-bench.md#before-the-bench-previewing-a-route)
+> teaches it.
+
+**ADDED (a host tool):**
+- **`python3 tools/route_preview.py "<auton name>"`** — runs that auton from `src/team/autons.cpp` through the
+  same library call the competition program makes, on the host test plant, under the test suite's own bounds,
+  and writes ONE offline page (`build/route_preview/<name>.html`) plus the same step table on the terminal: the
+  field to scale, the path the plant's robot really drove, every motion (drive, curve, strafe, turn, brake, hold) and
+  mechanism step numbered where it began, with its times, mechanism steps that ran while the robot drove as
+  their own stretch of path, a refused wall reset in amber, failures in red with the library's own sentence,
+  numbers nobody has measured dashed as PLACEHOLDER, and the robot's outline checked against the field —
+  THROUGH a wall or a Loader fails the command, a TOUCH is a note. `--place=X,Y,DEG` places a RELATIVE
+  auton; `--list` names them all; an auton the program refuses is drawn REFUSED with its sentence; an auton
+  that loops forever after a stop is stopped and drawn; one that throws is drawn to the throw, which is
+  placed inside a step, during a wait, or after a step. Exit codes 0 / 1 / 2 / 3 (guide chapter 16; 3 is
+  the tool's own failure). `--robot two` (the default); `--robot one` says robot one has no build yet (robot one's build landed the same week; switching the preview to it is queued — done 2026-11-15: "the route preview previews robot one"). The
+  page's step numbers count from below (every motion and mechanism step — not pauses, waits, `then(...)`
+  steps or `startAt`); the library's own quoted lines carry the code's real numbers.
+
+**ADDED (host test infrastructure, outside the API reference):** `hal::fake::FakeTelemetrySink::setOnLine` — an
+opt-in hook after each stored line (default none: every existing test unchanged). The Auton Tester's host rig
+(`test/auton_tester_rig.hpp`) takes any robot's mechanism list through a new last parameter whose default is
+the rig exactly as it was (`test/fakes_by_kind.hpp` builds any list's fakes, an arm, lift or flywheel moving
+on its declaration's own numbers, with an assumed time constant where a declaration states no `kA` — every
+flywheel, whose declaration has none). `test/README.md` documents both.
+
+**What you must do:** nothing. To preview a route, see chapter 16.
+
+### 2026-11-13 (built 2026-11-11) — robot one in the code: `make ROBOT=one`, its facts file, six builds that refuse by name until its facts are typed
+
+> Written when it was built (chunk ROB1, its first run), and brought up to date when it was integrated onto curves
+> (2026-11-13: robot one gets "shulib Tune" too). **No library change — no API change:** nothing under
+> `include/shulib/` moved; this is the team's repository growing a second robot. **Host- and build-checked only:
+> robot one does not exist in this project's records, and nothing has run on it.**
+
+**Why:** the team's second competition robot — robot one, reported to be a tank like robot two (HA-252, not yet
+seen) with a 4-stage string cascade, built ~Nov 14 —
+had no build at all, and every robot-one task waited on one. Its builder's facts (ports, gearing, heights) arrive
+later; nothing waits on them.
+
+**What you can now do (additive):**
+
+- `make ROBOT=one` (Bench Tests, slot 3) and `make ROBOT=one PROGRAM=calibrate|drive|autontest|competition|tune`
+  (slots 4, 1, 2, 6, 7) — robot two's six programs, for robot one ("shulib Tune" because robot one's cascade
+  makes it a robot with mechanisms: `one` is in the Makefile's `MECHANISM_ROBOTS`). Robot two's builds
+  (`ROBOT=tank`) are unchanged. On robot one a Tune COPY is not pasted into the declaration: its hold volts,
+  homing push, stall signature and cap are typed into the facts file
+  ([chapter 21](guide/21-adding-your-robot-by-hand.md)); its gains, profile and a narrowed range have no fact yet.
+- **Robot one's facts file**, `src/robots/robot_one_facts.hpp`: every number about its mechanisms that nobody has
+  measured is written once there, **OWED**, with a placeholder the host suite runs on. Robot one's build of every
+  program that needs an owed fact **fails**, one line per fact, naming it
+  (`static assertion failed: robot one: OWED -- the cascade's motor ports …`); Bench Tests and Calibrate need
+  only "what is plugged where", so they build first and measure the rest — every other program (Tune
+  included: it homes the cascade and moves it to its levels), one added later included, needs "how it moves"
+  too. A typed fact must carry its own value and its source. [Chapter 21](guide/21-adding-your-robot-by-hand.md) explains it; the
+  [robot facts form](robot-facts-form.md) is what the builder fills in.
+- Robot one's cascade (`src/robots/mechanism_table.hpp`, its own region below robot two's): a two-motor Lift on a
+  measured shape with a row at every level, homed by stalling DOWN under its current cap — every number from the
+  facts file. Its flipper is declared once the builder names its kind; all three forms are ready (chapter 21).
+- `src/team/robot_one_driver.hpp` — a DEFAULT controller map, the team's to change — and
+  `src/team/robot_one_autons.cpp` — the 40 in as a SKILLS auton and the acceptance run; **the skills route is the
+  team's to write**.
+- **`make` starts fresh by itself when `ROBOT=` or `PROGRAM=` changes** (a stamp in `.d/`): it used to recompile
+  nothing and re-link the previous program, which is why the guide said `rm -rf bin .d`. The `rm` is now
+  harmless; a refused build leaves no other robot's or program's package to upload (a refused rebuild of the
+  same robot and program keeps that build's last good package).
+- The programs run THIS build's driver file and autons (`src/common/this_robot.hpp`) and say THIS robot's words
+  (`src/common/robot_words.hpp`): robot one's screens and boot lines say "mechanism" / `MECH`, never "claw";
+  robot two's words are byte for byte what they were.
+- The src build gate runs **fourteen** builds: robot one's six on the real tree must each link or refuse naming
+  exactly its owed facts, and in a throwaway copy of the tree with every fact typed all six must link and pass
+  every check robot two's builds pass.
+
+**What you must do:** nothing, on robot two. On robot one: fill in the facts form; the coordinator types it.
 
 ### 2026-11-13 (built 2026-11-11) — the Toggle flip for a SKILLS run, as one route step: look, flip only when it is not its Quadrant's colour, look again (the explicit form)
 
@@ -2295,8 +2553,8 @@ keep across reboots with `ProsFileMode::Append`, and never with a raw `fopen` (t
 > Written when it landed (chunk TANK1, Part A; its Part B — the result line's ` xt` column —
 > landed with change 3 below, 2026-09-28). **Minor bump, 2.2 → 2.3** — the team lead's ruling
 > (2026-09-27): one sentence the FROZEN `Chassis` header carries ([Freeze Register](roadmap.md#freeze-register)
-> row F6, its strafe-fallback semantics) said *"On tank, laterally-offset targets honestly exit
-> TimedOut"*, and after this change some of them arrive. That relaxes a stated LIMIT — the same
+> row F6, its strafe-fallback semantics) said that on a tank,
+> laterally-offset targets exit `TimedOut`, and after this change some of them arrive. That relaxes a stated LIMIT — the same
 > direction as 2.2's relaxed `Route::valid()` rule — and no signature moved, so the bump is minor;
 > but tank programs move differently, so it is listed as a behaviour change with a one-line way
 > back. **Tank only: the X-drive and H-drive are unchanged, byte for byte** (every record, log
@@ -3046,7 +3304,7 @@ files implementing existing interfaces, and `IDigitalIn` is additive.
 **What you must do:** nothing, unless a mechanism uses these sensors — then construct the
 `Pros*` adapters and read the seam headers' design notes (each names which PROS call it
 binds, which conversion it applies, and which Hardware-Assumptions entries its beliefs rest
-on — HA-113 onward, none yet measured on hardware). Honest scope, unchanged from R1a: these
+on — HA-113 onward, none yet measured on hardware). Scope, unchanged from R1a: these
 are host-tested against the programmable PROS stand-in, and **the library has still never
 driven a robot.**
 
@@ -3095,7 +3353,7 @@ new files implementing existing interfaces.
 
 **What you must do:** nothing, unless you want your robot code on real hardware — then
 construct the `Pros*` adapters instead of fakes (the shipped `src/main.cpp` is the worked
-example, and guide chapter 7 walks it). Honest scope, stated plainly: these adapters are
+example, and guide chapter 7 walks it). Scope: these adapters are
 host-tested against a programmable stand-in for PROS, and **the library has still never
 driven a robot** — the beliefs behind every conversion are catalogued in the
 [Hardware Assumptions Register](hardware-assumptions.md) (HA-94 onward) and get their
@@ -3122,7 +3380,7 @@ margin on a real brain (loop rate and PROS call latency are still invented regis
 a `while (true)` loop that never lets a call return keeps the CPU and your end action waits;
 the frozen `pause`/`waitFor`/`waitUntil` surfaces cannot see the deadline and pay their full
 remainder (a tested limit, not a hidden one); and **"zero travel after the deadline" is a
-simulator result** — the host plant is memoryless, so on a robot with mass the honest claim is
+simulator result** — the host plant is memoryless, so on a robot with mass the claim is
 *"no new commanded motion"*. Budget lead time for a robot that is still moving when the command
 stops.
 

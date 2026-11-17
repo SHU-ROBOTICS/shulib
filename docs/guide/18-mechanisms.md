@@ -27,8 +27,7 @@
 > watch for a snapped string. Everything below is
 > measured on the **host test plant** — invented models of an
 > arm, a lift and a flywheel ([HA-183](../hardware-assumptions.md)) — and the library's own numbers in
-> it are invented starting values ([HA-182](../hardware-assumptions.md)). **Nothing here has run on a
-> robot.**
+> it are invented starting values ([HA-182](../hardware-assumptions.md)).
 
 ## The five kinds, and what each one does
 
@@ -172,7 +171,7 @@ default: nothing moves it — no limits are known yet, and the library invents n
 | `neverHomed` | never | — | it is only ever pushed by a button (`.unhomedVolts`) |
 
 The `at` is where zero puts it, and a homing push must point at that end (a home at the bottom limit
-pushes down — the build refuses the other way). Each one's honest weakness:
+pushes down — the build refuses the other way). Each one's weakness:
 
 - **`restsAtStop` trusts the boot pose.** If the arm was up when the program started — a restart in
   the middle of a match, a hand that lifted it — everything is that far off, and the soft stop holds
@@ -528,9 +527,11 @@ rm -rf bin .d && make ROBOT=tank PROGRAM=tune
 pros upload --slot 7 --name "shulib Tune"
 ```
 
-(`ROBOT=` is your robot's; a robot with no mechanisms is refused by `make`, naming why. The
-`rm -rf bin .d` matters for the same reason as the Auton Tester's: `make` does not see that `PROGRAM=`
-changed.) Start it from the **brain's** screen with the controller paired; nothing in it moves with a
+(`ROBOT=` is your robot's — `tank` for robot two, `one` for robot one; a robot with no mechanisms is
+refused by `make`, naming why, and robot one's Tune, like its other programs, refuses by name while a
+fact it needs is still owed — [chapter 21](21-adding-your-robot-by-hand.md). The `rm -rf bin .d` is
+harmless, for the reason [Chapter 16](16-testing-an-auton-on-the-bench.md) gives: `make` notices a
+changed `ROBOT=` or `PROGRAM=` word and starts fresh by itself.) Start it from the **brain's** screen with the controller paired; nothing in it moves with a
 field or a competition switch plugged in.
 
 **The safety rules, before anything else:**
@@ -586,7 +587,8 @@ signature is sized by.
 terminal **and** to the SD card, `/usd/tune_log.txt`, kept across boots — a reboot back into Tune does
 not erase the last session's COPY. **EXIT copies for you** every mechanism changed since its last COPY,
 so the numbers are in the log before you stop the program. **Copy the lines into your robot's mechanism table by hand** (robot two's is
-`src/robots/mechanism_table.hpp`), with a comment saying they were tuned live and when; the panel's
+`src/robots/mechanism_table.hpp`; robot one's numbers go into its facts file instead —
+[Chapter 21](21-adding-your-robot-by-hand.md)), with a comment saying they were tuned live and when; the panel's
 import is for after the first competition. Nothing persists: leaving the program, or a reboot, runs the
 robot file's numbers again. **After a cartridge, gearing or spool change, RESET and tune again** — a
 number a COPY states stays exactly as it was tuned.
@@ -714,6 +716,10 @@ inline constexpr DriverControls kControls = controls(kRobotXMechanisms,
 - **`whileHeld(m, forward, back, volts)`** — a power mechanism runs while a button is held and goes to its
   `.safe` state when let go; an arm or a lift JOGS while held (inside its limits once homed; at most
   its `.unhomedVolts` before) and HOLDS WHERE IT IS when let go. Both buttons at once = neither.
+- **`whileHeld(m, button, volts)`** — ONE button, a POWER mechanism only: held, it runs one way (+volts —
+  which way the motor turns is its declaration's `.motors` direction); let go, its `.safe` state. It takes
+  no second button, so the one beside it stays free (robot one's side toggles on L1 and L2 — [chapter 21](21-adding-your-robot-by-hand.md)).
+  On an arm, a lift, a pneumatic or a flywheel it is refused by name.
 - **`toggle(claw, Button::A)`** — each press flips a two-position pneumatic; **`toggle(flywheel["shoot"],
   Button::X)`** spins a flywheel up to that NAMED speed or stops it (`toggle(flywheel, …)` is refused:
   name the speed). A toggle's press, a preset's and a homing press are each a STEP, as an auton's is, so
@@ -885,7 +891,7 @@ order of the steps only the bench program runs (the CLEAR before anything is mad
 inside each confirm) is pinned by reading its source; the page itself has **never run on a robot** — the
 bench worksheet's station for it is its first run.
 
-## The honest limit — the service runs only when something ticks it
+## The limit — the service runs only when something ticks it
 
 The service runs ONLY inside shulib's own waits, motions and pauses — and every tick of the driver loop.
 **A busy loop of your own starves it** — a `pros::delay` in an auton, a `then()` action that blocks — and
@@ -898,7 +904,7 @@ action block.
 
 ## Reading a refusal
 
-Chapter 10's [section](10-the-api.md#what-the-build-refuses-and-how-to-read-a-refusal) is the
+[Chapter 10's section](10-the-api.md#what-the-build-refuses-and-how-to-read-a-refusal) is the
 lesson: the reason is the name of a function GCC refuses to call, and your line is the first "in
 'constexpr' expansion of" note above it. A wrist homed by an absolute sensor over a whole turn
 (`.range = {-180, 180}`) reads like this (GCC 13, trimmed):

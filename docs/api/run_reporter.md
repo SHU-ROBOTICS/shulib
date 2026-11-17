@@ -10,7 +10,7 @@ RunReporter — the glue that makes a run LEGIBLE end to end (WS13, chunk C5): s
 
 This header declares **1** type (9 members).
 
-Extracted from [`include/shulib/motion/run_reporter.hpp`](../../include/shulib/motion/run_reporter.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/motion/run_reporter.hpp`](../../include/shulib/motion/run_reporter.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

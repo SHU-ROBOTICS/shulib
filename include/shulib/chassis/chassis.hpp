@@ -33,6 +33,7 @@
 //              curveTo · reverseCurveTo  (chunk CURVE1, appended F6-additively)
 //   control    cancel (panic stop) · waitUntil(pred, timeout)
 //   state      pose · setPose · strafeAuthority · lastExitReason · lastCompleted
+//              reflection  (chunk MIRROR1, F6-additive — with the chassis::MirroredRun scope)
 //   Tier 3     scheduler() · deps() — the no-ceiling seam
 //
 // ═══ ONE deps source (C2's structural handoff, closed here) ══════════════════════
@@ -222,11 +223,55 @@
 // ends Cancelled with FaultCode::Precondition), so an observer that can fail
 // catches its own (the Routine's trigger does: chassis/routine.hpp, B7).
 //
+// ═══ The MIRRORED RUN (chunk MIRROR1-A, 2026-11-13; F6-additive) ════════════════════════
+// One route, two robots: robot two runs robot one's auton reflected across the field's mirror line
+// (Override's skills diagonal, y = -x — competition/override_mirror.hpp). A chassis::MirroredRun
+// (below; the auton runner opens one for a mirrored entry, around the routine AND its end action)
+// gives this Chassis a math::Reflection for exactly its lifetime, and while it is not the identity:
+//  * every FIELD number that ENTERS is reflected FIRST — moveTo, strafeTo, turnTo, both STEP1-B
+//    observer overloads, followTrajectory (each leg as it starts), curveTo / reverseCurveTo (every
+//    point and every stated heading, into a 16-point copy on this stack), setPose, and drive() (a
+//    FIELD command's vector reflected and its turn rate negated; a BODY command's sideways speed and
+//    turn rate negated) — so the motions, TANK1's steering, the curve's checks and the observers'
+//    progress all see the REAL field;
+//  * pose() hands the estimate back reflected — a reflection is its own inverse — so the route
+//    always reads robot one's numbers: a waitFor on the pose, a bearing a face() computes, a raw
+//    `ctx.chassis.moveTo` in a then();
+//  * everything else is the REAL field and is NOT reflected: lastCompleted()'s poses, deps() (the
+//    localizer: the wall reset and the Toggle step read it — they swap their wall, sensor side and
+//    Toggle themselves), scheduler(), the records and every log line. "Below the mirror".
+//  * Sizes are not field numbers and pass untouched: MotionOptions (timeouts, speeds, tolerances),
+//    hold/brake/wait, and a trigger's percent, inches and degrees (the observer's progress is a
+//    distance or an angle turned — a reflection keeps both).
+//  * Every turn sweeps the OTHER way: that is the mirror working. The one exception is F3's exact
+//    +-180 deg tie (math/angle.hpp: an exact antipode resolves counterclockwise) — a mirrored turnTo,
+//    moveTo or trajectory leg (a Routine's driveTo / reverseTo is a moveTo) whose heading change at
+//    its start is within 1 deg of 180 may sweep the SAME way on both robots, on ANY drivetrain. F3 is
+//    LOCKED and unchanged (the MIRROR1 brief's D6); such a leg logs ONE [MIR] Warn when it starts.
+//    Measured on the host test plant: a turn's path differs from the mirror by 0.155 in (its end by
+//    0.09 in); an X-drive moveTo's path by 0.307 in; a TANK moveTo's END by an amount that GROWS
+//    WITH THE LEG — 5.7 in on a 16 in leg, 14.2 in on a 36 in one: a tank translates only along its
+//    heading, so it ends beside its target, and robot two beside its own on the side opposite robot
+//    one's image — the two misses add (and that leg is already TANK1's unsteered one). The advice: a
+//    turn, two 90 deg turns; a leg, turn first (in two 90 deg turns) where it matters.
+//  * The robot is NOT mirrored: a part off its centre line meets the field on the other side of the
+//    reflected path, and its left/right drive differences are its own (A4: HA-259, HA-260 — host test
+//    plant, a 9 % weak side: 0.56 in, 0.44 s).
+// With the identity (always, outside a MirroredRun) every verb takes its pre-MIRROR1 path — a branch,
+// never "apply the identity" (re-wrapping a heading can move a bit): an unmirrored run is
+// bit-identical to the merge base (test/mirror_unchanged_runs.hpp, pinned). Opening a run while one
+// is open, or while a motion is active (its target would be reflected mid-flight), is a precondition.
+// The driver-control loop CLEARS a mirror it finds still on, with a loud [MIR] Warn (a library
+// defect: the scope is RAII) — never a refusal, which would leave the driver with no drive.
+//
 // Single-task by contract, like everything it composes. Not copyable/movable
 // (it owns the scheduler, which is pinned by its self-referential stamp).
 
+#include <array>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <initializer_list>
 #include <span>
 #include <utility>
@@ -239,6 +284,7 @@
 #include "shulib/math/angle.hpp"
 #include "shulib/math/frame.hpp"
 #include "shulib/math/pose2d.hpp"
+#include "shulib/math/reflection.hpp"
 #include "shulib/math/twist2d.hpp"
 #include "shulib/motion/command_pipeline.hpp"
 #include "shulib/motion/curve_follow.hpp"
@@ -381,6 +427,15 @@ struct LegObserver {
     void* context = nullptr;
 };
 
+class Chassis;
+
+namespace detail {
+/// MIRROR1: clear a mirror left on `chassis` and say whether one was on — the driver-control loop's
+/// belt and braces (teleop/teleop_loop.hpp). Not for a team's code: a chassis::MirroredRun closes
+/// its own run.
+inline bool clearLeakedMirror(Chassis& chassis) noexcept;
+}  // namespace detail
+
 /// The public facade every autonomous routine is written against: the blocking
 /// motion verbs, the frame-explicit manual verb, control, state, and the Tier-3
 /// seam — over one owned MotionScheduler. FROZEN (register row F6, locked
@@ -418,7 +473,8 @@ public:
     /// unsteered and logs one Warn (header: TANK STEERING). It never plans a turn.
     control::ExitReason moveTo(const math::Pose2d& target, const MotionOptions& options = {}) {
         options.validate();
-        motion::MoveToPose m{sched_.deps(), target, effectiveConfig(options),
+        const math::Pose2d real = mirror_.isIdentity() ? target : mirroredLeg(target, "moveTo");
+        motion::MoveToPose m{sched_.deps(), real, effectiveConfig(options),
                              options.timeout.value()};
         return runBlocking(m);
     }
@@ -432,7 +488,9 @@ public:
     control::ExitReason strafeTo(units::Length x, units::Length y,
                                  const MotionOptions& options = {}) {
         options.validate();
-        motion::StrafeTo m{sched_.deps(), x, y, effectiveConfig(options),
+        const math::Reflection::Point real =
+            mirror_.isIdentity() ? math::Reflection::Point{x, y} : mirror_.apply(x, y);
+        motion::StrafeTo m{sched_.deps(), real.x, real.y, effectiveConfig(options),
                            options.timeout.value()};
         return runBlocking(m);
     }
@@ -441,7 +499,8 @@ public:
     /// shortest signed error; exact ±180° resolves CCW, deterministically).
     control::ExitReason turnTo(math::Angle heading, const MotionOptions& options = {}) {
         options.validate();
-        motion::TurnTo m{sched_.deps(), heading, effectiveConfig(options),
+        const math::Angle real = mirror_.isIdentity() ? heading : mirroredTurn(heading);
+        motion::TurnTo m{sched_.deps(), real, effectiveConfig(options),
                          options.timeout.value()};
         return runBlocking(m);
     }
@@ -452,9 +511,10 @@ public:
     /// exactly moveTo(target, options). (F6-additive, pinned; a Routine's partway triggers ride it.)
     control::ExitReason moveTo(const math::Pose2d& target, const MotionOptions& options, LegObserver observer) {
         options.validate();
+        const math::Pose2d real = mirror_.isIdentity() ? target : mirroredLeg(target, "moveTo");
         const motion::MotionConfig cfg = effectiveConfig(options);
-        motion::MoveToPose m{sched_.deps(), target, cfg, options.timeout.value()};
-        ObservedLeg leg{m, sched_, observer, cfg, ObservedLeg::Kind::Drive, target};
+        motion::MoveToPose m{sched_.deps(), real, cfg, options.timeout.value()};
+        ObservedLeg leg{m, sched_, observer, cfg, ObservedLeg::Kind::Drive, real};
         return runBlocking(leg);
     }
 
@@ -463,10 +523,11 @@ public:
     /// `observer.fn`: exactly turnTo(heading, options). (F6-additive, pinned.)
     control::ExitReason turnTo(math::Angle heading, const MotionOptions& options, LegObserver observer) {
         options.validate();
+        const math::Angle real = mirror_.isIdentity() ? heading : mirroredTurn(heading);
         const motion::MotionConfig cfg = effectiveConfig(options);
-        motion::TurnTo m{sched_.deps(), heading, cfg, options.timeout.value()};
+        motion::TurnTo m{sched_.deps(), real, cfg, options.timeout.value()};
         ObservedLeg leg{m, sched_, observer, cfg, ObservedLeg::Kind::Turn,
-                        math::Pose2d{units::Length{0.0}, units::Length{0.0}, heading}};
+                        math::Pose2d{units::Length{0.0}, units::Length{0.0}, real}};
         return runBlocking(leg);
     }
 
@@ -492,7 +553,9 @@ public:
                                 .completedLegs = 0,
                                 .totalLegs = static_cast<int>(waypoints.size())};
         for (const math::Pose2d& wp : waypoints) {
-            motion::MoveToPose leg{sched_.deps(), wp, legCfg, options.timeout.value()};
+            // MIRROR1: each leg reflected as IT starts (its 180-deg check reads the pose it starts from).
+            const math::Pose2d real = mirror_.isIdentity() ? wp : mirroredLeg(wp, "followTrajectory leg");
+            motion::MoveToPose leg{sched_.deps(), real, legCfg, options.timeout.value()};
             result.exit = runBlocking(leg);
             if (result.exit != control::ExitReason::Settled) {
                 return result;  // lost mid-chain: do not chase later waypoints blind
@@ -604,6 +667,7 @@ public:
                                 && std::isfinite(speeds.vy().value())
                                 && std::isfinite(speeds.omega().value()),
                             "Chassis::drive: speeds must be finite");
+        const math::ChassisSpeeds command = mirror_.isIdentity() ? speeds : mirror_.apply(speeds, frame);
         if (sched_.hasActiveMotion()) {
             sched_.cancel();  // pre-empt: a manual command supersedes, safely (C2)
         }
@@ -633,7 +697,7 @@ public:
         warnedFieldDriveUninit_ = false;  // live again: re-arm the once-per-window warn
 
         const motion::CommandOutcome out =
-            motion::applyCommandPipeline(d, cfg_, ff_, speeds, frame, pose.heading());
+            motion::applyCommandPipeline(d, cfg_, ff_, command, frame, pose.heading());
         motion::tickHealthObservables(d, false);
         emitDriveRecord(now, dt, pose, math::robotToField(out.body, pose.heading()),
                         out.strafeFallback);
@@ -659,13 +723,33 @@ public:
 
     // ── state / observability ──────────────────────────────────────────────────────
 
-    /// The current fused FIELD pose estimate.
-    [[nodiscard]] math::Pose2d pose() const { return sched_.deps().localizer->pose(); }
+    /// The current fused FIELD pose estimate. In a mirrored run (the file banner's MIRRORED RUN): the
+    /// estimate reflected — robot one's numbers, the frame the route is written in.
+    [[nodiscard]] math::Pose2d pose() const {
+        if (mirror_.isIdentity()) {
+            return sched_.deps().localizer->pose();
+        }
+        return mirror_.apply(sched_.deps().localizer->pose());
+    }
 
     /// Seed / teleport the estimated POSITION (x, y) — heading stays
     /// IMU-owned (the Localizer's structural choice). Call at auton start
-    /// with the measured starting pose.
-    void setPose(const math::Pose2d& pose) { sched_.deps().localizer->setPose(pose); }
+    /// with the measured starting pose. In a mirrored run the position is reflected first.
+    void setPose(const math::Pose2d& pose) {
+        if (mirror_.isIdentity()) {
+            sched_.deps().localizer->setPose(pose);
+            return;
+        }
+        sched_.deps().localizer->setPose(mirror_.apply(pose));
+    }
+
+    /// MIRROR1: the reflection every FIELD number entering this Chassis passes through, and every
+    /// pose() leaving it (the file banner's MIRRORED RUN) — the identity always, except inside a
+    /// chassis::MirroredRun. Read-only: a MirroredRun is the one way to set it. A real-field number
+    /// (a camera's fix, a localizer pose) bound for a verb inside a mirrored run goes through
+    /// `reflection().apply(...)` first — a reflection is its own inverse — or the verb reflects it a
+    /// second time.
+    [[nodiscard]] const math::Reflection& reflection() const noexcept { return mirror_; }
 
     /// Read-only passthrough of the drivetrain's sustainable lateral
     /// authority (fraction of the linear budget; F5). Routine authors
@@ -816,6 +900,26 @@ private:
     /// shape. No MotionOptions field of its own: the curve's knobs are MotionConfig::curve.
     control::ExitReason runCurve(std::span<const CurvePoint> points, const MotionOptions& options,
                                  bool reverse) {
+        // MIRROR1: a mirrored curve's points (1..16 — any other count passes through untouched, so the
+        // precondition below fires on it as it always has) reflected into storage on THIS stack, which
+        // outlives the blocking motion. CurvePoint has no default constructor (curve_path.hpp, F6), so
+        // the slots are built as placeholders and only the first n handed on.
+        if (!mirror_.isIdentity() && !points.empty() && points.size() <= motion::kMaxCurvePoints) {
+            std::array<CurvePoint, motion::kMaxCurvePoints> real =
+                placeholderCurve(std::make_index_sequence<motion::kMaxCurvePoints>{});
+            for (std::size_t i = 0; i < points.size(); ++i) {
+                const math::Reflection::Point q = mirror_.apply(points[i].x, points[i].y);
+                real[i] = points[i].hasHeading ? CurvePoint{q.x, q.y, mirror_.apply(points[i].heading)}
+                                               : CurvePoint{q.x, q.y};
+            }
+            return runCurveAsGiven(std::span<const CurvePoint>{real.data(), points.size()}, options, reverse);
+        }
+        return runCurveAsGiven(points, options, reverse);
+    }
+
+    /// runCurve's body with the points as given (the field's own numbers).
+    control::ExitReason runCurveAsGiven(std::span<const CurvePoint> points, const MotionOptions& options,
+                                        bool reverse) {
         options.validate();
         SHULIB_PRECONDITION(!points.empty() && points.size() <= motion::kMaxCurvePoints,
                             "Chassis::curveTo: a curve takes 1 to 16 points (a longer route is "
@@ -827,6 +931,53 @@ private:
         motion::CurveFollow m{sched_.deps(), points, effectiveConfig(options),
                               options.timeout.value(), reverse};
         return runBlocking(m);
+    }
+
+    /// MIRROR1: kMaxCurvePoints placeholder slots (CurvePoint has no default constructor).
+    template <std::size_t... I>
+    [[nodiscard]] static std::array<CurvePoint, sizeof...(I)> placeholderCurve(std::index_sequence<I...>) noexcept {
+        return {{((void)I, CurvePoint{units::Length{0.0}, units::Length{0.0}})...}};
+    }
+
+    /// MIRROR1: how near a half turn a mirrored leg's heading change at its start must be for the
+    /// [MIR] Warn (the file banner): 1 degree, radians.
+    static constexpr double kHalfTurnWarnRad = math::Angle::kPi / 180.0;
+
+    /// MIRROR1: a mirrored leg's target reflected, after the half-turn check against the pose it starts
+    /// from (a moveTo / trajectory leg rotates by errorTo, F3's tie included — on any drivetrain; on a
+    /// tank the sweep's direction also moves where the leg ends: the file banner's MIRRORED RUN).
+    [[nodiscard]] math::Pose2d mirroredLeg(const math::Pose2d& target, const char* verb) const {
+        const math::Pose2d real = mirror_.apply(target);
+        warnHalfTurn(real.heading(), verb, false);
+        return real;
+    }
+
+    /// MIRROR1: a mirrored turn's heading reflected, after the half-turn check.
+    [[nodiscard]] math::Angle mirroredTurn(math::Angle heading) const {
+        const math::Angle real = mirror_.apply(heading);
+        warnHalfTurn(real, "turnTo", true);
+        return real;
+    }
+
+    /// MIRROR1: ONE [MIR] Warn when a mirrored leg's heading change from where the robot is NOW to
+    /// `realTarget` is within kHalfTurnWarnRad of 180 degrees (the file banner; the MIRROR1 brief's
+    /// D6): F3 resolves an exact antipode counterclockwise, so robot two may sweep the same way as
+    /// robot one there, not the mirror way. The advice names the verb's own fix: a turnTo (`turn`
+    /// true) is written as two 90 deg turns; a leg (a moveTo or a trajectory leg) turns first. ASCII,
+    /// under the terminal's 200-byte message cut (the longest verb, "followTrajectory leg": 194 bytes).
+    void warnHalfTurn(math::Angle realTarget, const char* verb, bool turn) const {
+        const motion::MotionDeps& d = sched_.deps();
+        const double change = d.localizer->pose().heading().errorTo(realTarget);
+        if (!(std::abs(change) >= math::Angle::kPi - kHalfTurnWarnRad)) {
+            return;
+        }
+        char line[200];
+        std::snprintf(line, sizeof line,
+                      "mirrored %.24s turns %.1f deg: within 1 deg of a half turn, robot two may sweep the "
+                      "same way as robot one, not the mirror way -- %s where it matters",
+                      verb, std::abs(change) * 180.0 / math::Angle::kPi,
+                      turn ? "write two 90 deg turns" : "turn first, in two 90 deg turns,");
+        d.ctx->telemetry().log(hal::LogLevel::Warn, "MIR", line);
     }
 
     /// The per-call config: the chassis config with any nonzero option
@@ -905,6 +1056,55 @@ private:
     bool warnedFieldDriveUninit_ = false;
     bool hasDriveTick_ = false;
     double lastDriveTime_ = 0.0;
+    /// MIRROR1: the mirrored run's reflection — the identity outside a chassis::MirroredRun.
+    math::Reflection mirror_{};
+
+    friend class MirroredRun;
+    friend bool detail::clearLeakedMirror(Chassis& chassis) noexcept;
 };
+
+/// MIRROR1-A: ONE MIRRORED RUN on a Chassis (the file banner's MIRRORED RUN) — RAII: from its
+/// construction until its destruction the Chassis reflects every FIELD number entering it and every
+/// pose() leaving it through `reflection`; its destructor restores the identity on EVERY way out (a
+/// normal end, a cut, an abandon, a throw unwinding through it). The auton runner
+/// (competition/match_runner.hpp) opens one around a mirrored entry's routine (or route) AND its end
+/// action; a team's code never needs to. PRECONDITIONS (a programming error, thrown before anything
+/// changes): `reflection` is not the identity; no mirrored run is already open on the Chassis (runs
+/// do not nest); no motion is active (its target was given in the other frame).
+class MirroredRun {
+public:
+    /// Open the run (the class comment's preconditions).
+    MirroredRun(Chassis& chassis, const math::Reflection& reflection) : chassis_{&chassis} {
+        SHULIB_PRECONDITION(!reflection.isIdentity(),
+                            "chassis::MirroredRun: the identity is not a mirror -- open a mirrored run only "
+                            "for a mirrored auton");
+        SHULIB_PRECONDITION(chassis.mirror_.isIdentity(),
+                            "chassis::MirroredRun: a mirrored run is already open on this Chassis -- runs do "
+                            "not nest");
+        SHULIB_PRECONDITION(!chassis.sched_.hasActiveMotion(),
+                            "chassis::MirroredRun: a motion is active -- its target is in the other frame; "
+                            "open the run before the auton moves");
+        chassis.mirror_ = reflection;
+    }
+    /// Close it: the Chassis's reflection is the identity again.
+    ~MirroredRun() { chassis_->mirror_ = math::Reflection{}; }
+    /// Neither copyable nor movable: a copy would close the run twice, a moved-from scope would close
+    /// a run it no longer owns. Construct it where it lives (the runner: a std::optional, emplaced).
+    MirroredRun(const MirroredRun&) = delete;
+    MirroredRun(MirroredRun&&) = delete;
+    MirroredRun& operator=(const MirroredRun&) = delete;
+    MirroredRun& operator=(MirroredRun&&) = delete;
+
+private:
+    Chassis* chassis_;
+};
+
+namespace detail {
+inline bool clearLeakedMirror(Chassis& chassis) noexcept {
+    const bool wasOn = !chassis.mirror_.isIdentity();
+    chassis.mirror_ = math::Reflection{};
+    return wasOn;
+}
+}  // namespace detail
 
 }  // namespace shulib::chassis

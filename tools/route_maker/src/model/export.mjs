@@ -1,0 +1,370 @@
+// export.mjs — the route → THE C++ the students read (RMP1 brief D4 (a); §6.3 THE CONTRACT; run RMP1-A1).
+//
+// One function, `exportRegion(route)`, writes the whole marked region of src/team/skills_route.cpp — the
+// BEGIN line to the END line, inclusive — as commented `Routine` code: every step numbered as the page
+// numbers it and explained in plain words, every number through numbers.mjs's ONE formatter with its unit
+// literal (`_in`, `_deg`, `_s`, `_volt`), a level named through the facts ledger (`facts::lv(i).name`) so
+// renaming a level never breaks a route. It is DETERMINISTIC and depends on the route ALONE (no time, no
+// hash, no robot description, no machine): the same route always writes the same bytes, which is what the
+// hand-edit check (region.mjs) and the goldens (test/goldens/route_maker/) rely on. An EMPTY route writes
+// §6.3's empty region byte for byte (GL0).
+//
+// THE RULES IT KEEPS (each pinned by a test or a golden the C++ suite compiles and runs):
+//   * on one step it writes `label`, then `onFail`, then the call — the only order the library accepts
+//     (routine.hpp: each binds to the ONE step after it; [R12]);
+//   * a drive with "turn to face it first" (R6) is TWO calls, `r.face(x, y)` (`r.faceAway` reversing) then
+//     `r.driveTo` — the label before the face (a skip lands on the turn), the step's `onFail` before EACH; the
+//     turn takes the robot's own options (the step's speed, time limit and tolerances are the DRIVE's, and the
+//     comment says so); and since the brain's log counts the two calls as two steps, every comment from there
+//     on says which step number the brain's log gives it (`STOPPED at step N` names the brain's N);
+//   * a wait is the run guard's pause inside `r.then(...)` — never `r.pause`, which the 57 s cut cannot end;
+//   * a speed cap is `N_in / 1_s` and a turn cap `units::AngularVelocity{N * math::Angle::kPi / 180.0}` with
+//     its `// at most N deg/s` comment — NEVER through `_deg`, which wraps (270_deg is -90) [R10];
+//   * MotionOptions' fields in declaration order (C++20 designated initializers must be);
+//   * no `#include`, no `using` line, nothing outside the markers (the file around the region is the
+//     team's, §6.3 item 2 and landmine 10).
+// It never writes a route FOR the team (G4): it turns the steps the students placed into code.
+//
+// Pure: no DOM, no file API.
+
+import { fmt } from './numbers.mjs';
+import { plannedPoses, CARE_MOTION_FIELDS } from './route.mjs';
+import { dist } from './geometry.mjs';
+
+/** Every marker line is this many characters (§6.3's BEGIN and END lines are 91). */
+const MARKER_WIDTH = 91;
+/** The column the entry's trailing comments start at (§6.3's empty region). */
+const ENTRY_COMMENT_COLUMN = 54;
+/** Where a comment wraps. */
+const WRAP = 108;
+
+/** The BEGIN or END marker line for route `name` (§6.3: `// ═══ ROUTE MAKER — route "skills" — BEGIN ═══…`). */
+export function markerLine(name, which) {
+    const head = `// ═══ ROUTE MAKER — route "${name}" — ${which} `;
+    const fill = Math.max(3, MARKER_WIDTH - [...head].length);
+    return head + '═'.repeat(fill);
+}
+
+/** A C++ string literal's body for a name the checks already limited to printable ASCII without " or \. */
+function lit(s) {
+    return `"${s}"`;
+}
+
+const len = (v) => `${fmt(v)}_in`;
+const sec = (v) => `${fmt(v)}_s`;
+const deg = (v) => `${fmt(v)}_deg`;
+const volt = (v) => `${fmt(v)}_volt`;
+
+/** The motion options a step's care states, in MotionOptions' order — '' when it states none. */
+function options(step) {
+    const c = step.care || {};
+    const parts = [];
+    let turnCapNote = '';
+    for (const f of CARE_MOTION_FIELDS) {
+        const v = c[f];
+        if (v === undefined || v === 0) {
+            continue;  // 0 or absent: the robot's own (MotionOptions' 0 = the default)
+        }
+        switch (f) {
+            case 'timeoutS':
+                parts.push(`.timeout = ${sec(v)}`);
+                break;
+            case 'maxSpeedInPerS':
+                parts.push(`.maxLinearSpeed = ${fmt(v)}_in / 1_s`);
+                break;
+            case 'maxTurnDegPerS':
+                parts.push(`.maxAngularSpeed = units::AngularVelocity{${fmt(v)} * math::Angle::kPi / 180.0}`);
+                turnCapNote = `  // at most ${fmt(v)} deg/s`;
+                break;
+            case 'toleranceIn':
+                parts.push(`.positionTolerance = ${len(v)}`);
+                break;
+            case 'toleranceDeg':
+                parts.push(`.headingTolerance = ${deg(v)}`);
+                break;
+            default:
+                break;
+        }
+    }
+    return { text: parts.length ? `{${parts.join(', ')}}` : '', note: turnCapNote };
+}
+
+/** `r.<verb>(<args>[, <options>]);` with the turn cap's comment after it. */
+function call(verb, args, opt) {
+    const all = opt && opt.text ? [...args, opt.text] : args;
+    return `r.${verb}(${all.join(', ')});${opt && opt.note ? opt.note : ''}`;
+}
+
+/** The goal of a move: `m[facts::lv(i).name]` for a ledger level, `m["name"]` for a named preset. */
+function presetGoal(step) {
+    return typeof step.preset === 'number' ? `${step.mechanism}[facts::lv(${step.preset}).name]`
+                                           : `${step.mechanism}[${lit(step.preset)}]`;
+}
+function presetWords(step) {
+    return typeof step.preset === 'number' ? `level ${step.preset} (facts::lv(${step.preset}) in the robot's facts)`
+                                           : `"${step.preset}"`;
+}
+
+/** Where a heading points, in field words (0 = toward the right wall, 90 = toward blue). */
+export function headingWords(h) {
+    const named = { 0: 'toward the right wall', 90: 'toward blue', 180: 'toward the left wall', '-90': 'toward red' };
+    return named[String(h)] ? `${fmt(h)} deg (${named[String(h)]})` : `${fmt(h)} deg`;
+}
+
+function careWords(step, lead = ', ') {
+    const c = step.care || {};
+    const w = [];
+    if (c.timeoutS) {
+        w.push(`at most ${fmt(c.timeoutS)} s`);
+    }
+    if (c.maxSpeedInPerS) {
+        w.push(`at most ${fmt(c.maxSpeedInPerS)} in/s`);
+    }
+    if (c.maxTurnDegPerS) {
+        w.push(`turning at most ${fmt(c.maxTurnDegPerS)} deg/s`);
+    }
+    if (c.toleranceIn) {
+        w.push(`arriving within ${fmt(c.toleranceIn)} in`);
+    }
+    if (c.toleranceDeg) {
+        w.push(`within ${fmt(c.toleranceDeg)} deg`);
+    }
+    return w.length ? `${lead}${w.join(', ')}` : '';
+}
+
+function failWords(step) {
+    const f = step.care && step.care.onFail;
+    if (f === 'carryOn') {
+        return ' If it fails, carry on with the next step.';
+    }
+    if (f && typeof f === 'object') {
+        return ` If it fails, skip to "${f.skipTo}".`;
+    }
+    return '';
+}
+
+function onFailLine(step) {
+    const f = step.care && step.care.onFail;
+    if (f === 'carryOn') {
+        return 'r.onFail(chassis::carryOn);';
+    }
+    if (f && typeof f === 'object') {
+        return `r.onFail(chassis::skipTo(${lit(f.skipTo)}));`;
+    }
+    return null;
+}
+
+/** Word-wrap one comment into `//` lines (continuations indented "//   ", as D4's listing). */
+function comment(text, indent) {
+    const words = text.split(' ');
+    const lines = [];
+    let cur = `${indent}//`;
+    let first = true;
+    for (const w of words) {
+        const add = ` ${w}`;
+        if ([...cur].length + [...add].length > WRAP && !(first && cur === `${indent}//`)) {
+            lines.push(cur);
+            cur = `${indent}//  ${add}`;
+        } else {
+            cur += add;
+        }
+        first = false;
+    }
+    lines.push(cur);
+    return lines;
+}
+
+function pt(x, y) {
+    return `(${fmt(x)}, ${fmt(y)}) in`;
+}
+
+/** How many steps the brain's log counts for one page step: a turned-first drive is two calls (the turn, the drive). */
+export function libraryCalls(step) {
+    return (step.do === 'driveTo' || step.do === 'reverseTo') && step.faceFirst ? 2 : 1;
+}
+
+/** The plain-words description and the C++ lines of one step (numbered `n` on the page, `lib` in the brain's log). */
+function stepLines(step, n, plan, lib = n) {
+    const labelPart = step.label ? `"${step.label}": ` : '';
+    let words;
+    const code = [];
+    const opt = options(step);
+    const of = onFailLine(step);
+    switch (step.do) {
+        case 'driveTo':
+        case 'reverseTo': {
+            const back = step.do === 'reverseTo';
+            const far = plan && plan.from ? ` about ${fmt(Math.round(dist(plan.from.x, plan.from.y, step.x, step.y) * 10) / 10)} in` : '';
+            words = back ? `BACK UP to ${pt(step.x, step.y)}:${far}, its back toward the point`
+                         : `DRIVE to ${pt(step.x, step.y)}:${far}`;
+            if (step.faceFirst) {
+                words += back ? '. First it turns its back to the point (at the robot\'s own turn settings)'
+                              : '. First it turns to face the point (at the robot\'s own turn settings)';
+                code.push(call(back ? 'faceAway' : 'face', [len(step.x), len(step.y)], null));
+                if (of) {
+                    code.push(of);
+                }
+            }
+            code.push(call(step.do, [len(step.x), len(step.y)], opt));
+            break;
+        }
+        case 'turnTo':
+            words = `TURN to face ${headingWords(step.headingDeg)}`;
+            code.push(call('turnTo', [deg(step.headingDeg)], opt));
+            break;
+        case 'face':
+            words = `TURN to face ${pt(step.x, step.y)}`;
+            code.push(call('face', [len(step.x), len(step.y)], opt));
+            break;
+        case 'faceAway':
+            words = `TURN its back to ${pt(step.x, step.y)}`;
+            code.push(call('faceAway', [len(step.x), len(step.y)], opt));
+            break;
+        case 'curveTo':
+        case 'reverseCurveTo': {
+            const pts = step.points;
+            const last = pts[pts.length - 1];
+            const through = pts.slice(0, -1).map((p) => `(${fmt(p.x)}, ${fmt(p.y)})`);
+            const ending = `ending at ${pt(last.x, last.y)}`
+                + (last.headingDeg !== undefined ? ` facing ${headingWords(last.headingDeg)}` : '');
+            words = (step.do === 'reverseCurveTo' ? 'CURVE BACKWARDS (its back leading)' : 'CURVE')
+                + (through.length ? ` through ${through.join(', ')} in,` : '') + ` ${ending}`;
+            const list = pts.map((p) => (p.headingDeg !== undefined ? `{${len(p.x)}, ${len(p.y)}, ${deg(p.headingDeg)}}`
+                                                                     : `{${len(p.x)}, ${len(p.y)}}`));
+            code.push(call(step.do, [`{${list.join(', ')}}`], opt));
+            break;
+        }
+        case 'move':
+            words = `MOVE the ${step.mechanism} to ${presetWords(step)} and wait until it is there: at most ${fmt(step.boundS)} s`;
+            code.push(call('move', [presetGoal(step), sec(step.boundS)], null));
+            break;
+        case 'startMove':
+            words = `START the ${step.mechanism} toward ${presetWords(step)} and keep going (at most ${fmt(step.boundS)} s;`
+                + ' a WAIT UNTIL DONE collects it)';
+            code.push(call('startMove', [presetGoal(step), sec(step.boundS)], null));
+            break;
+        case 'set':
+            words = `SET the ${step.mechanism} to "${step.position}" (it takes the ${step.mechanism}'s move time)`;
+            code.push(call('set', [`${step.mechanism}[${lit(step.position)}]`], null));
+            break;
+        case 'run':
+            words = `RUN the ${step.mechanism} at ${fmt(step.volts)} V for ${fmt(step.forS)} s, then stop it`;
+            code.push(call('run', [step.mechanism, volt(step.volts), sec(step.forS)], null));
+            break;
+        case 'startRun':
+            words = `START the ${step.mechanism} at ${fmt(step.volts)} V for ${fmt(step.forS)} s and keep going`;
+            code.push(call('startRun', [step.mechanism, volt(step.volts), sec(step.forS)], null));
+            break;
+        case 'home':
+            words = `HOME the ${step.mechanism}: it finds its zero the way its declaration says, at most `
+                + `${fmt(step.boundS)} s. Nothing can move it to a level before this`;
+            code.push(call('home', [step.mechanism, sec(step.boundS)], null));
+            break;
+        case 'startHome':
+            words = `START homing the ${step.mechanism} and keep going (at most ${fmt(step.boundS)} s); a WAIT UNTIL DONE`
+                + ' must finish the home before its first move';
+            code.push(call('startHome', [step.mechanism, sec(step.boundS)], null));
+            break;
+        case 'waitUntilDone':
+            words = `WAIT until the ${step.mechanism}'s last step is done: at most ${fmt(step.boundS)} s more`;
+            code.push(call('waitUntilDone', [step.mechanism, sec(step.boundS)], null));
+            break;
+        case 'wait':
+            words = `WAIT ${fmt(step.seconds)} s. (The run's own wait: at 57 s the run cuts it at once.)`;
+            code.push(`r.then([&] { return ctx.guard.pause(${sec(step.seconds)}) == sequence::GuardedWaitResult::Satisfied; },`);
+            code.push(`       ${lit(`wait ${fmt(step.seconds)} s`)});`);
+            break;
+        default:
+            throw new Error(`export: step ${n} is "${step.do}", which this route builder cannot write`);
+    }
+    const isMotion = ['driveTo', 'reverseTo', 'turnTo', 'face', 'faceAway', 'curveTo', 'reverseCurveTo'].includes(step.do);
+    const twoCalls = libraryCalls(step) === 2;
+    let sentence = `Step ${n} — ${labelPart}${words}${isMotion ? careWords(step, twoCalls ? '; the drive: ' : ', ') : ''}`;
+    if (!sentence.endsWith('.') && !sentence.endsWith('.)')) {
+        sentence += '.';
+    }
+    sentence += failWords(step);
+    if (twoCalls) {
+        sentence += ` (The brain's log calls the turn step ${lib} and the drive step ${lib + 1}.)`;
+    } else if (lib !== n) {
+        sentence += ` (The brain's log calls this step ${lib}.)`;
+    }
+    const out = [...comment(sentence, '    ')];
+    if (step.label) {
+        out.push(`    r.label(${lit(step.label)});`);
+    }
+    // The step's onFail goes right before its call; a turn-first drive's two calls each get it (the one
+    // for the drive is already between them, in `code`).
+    if (of) {
+        out.push(`    ${of}`);
+    }
+    for (const c of code) {
+        out.push(`    ${c}`);
+    }
+    return out;
+}
+
+/** `    e.name = "skills";` with the trailing comment at §6.3's column. */
+function entryLine(code, note) {
+    const pad = Math.max(2, ENTRY_COMMENT_COLUMN - [...code].length);
+    return `${code}${' '.repeat(pad)}// ${note}`;
+}
+
+/**
+ * The whole marked region for `route` (BEGIN to END, inclusive), WITHOUT a final newline — region.mjs
+ * keeps the file's own line ending and final newline when it splices this in.
+ */
+export function exportRegion(route) {
+    const name = route.name;
+    const L = [];
+    L.push(markerLine(name, 'BEGIN'));
+    L.push('// Made in the route maker from src/team/route_maker.json. Change the route there and export again:');
+    L.push('// the route maker will not overwrite a hand edit between BEGIN and END.');
+    L.push('// To make this hand-written code instead, delete the BEGIN and END lines.');
+    L.push('namespace {');
+    L.push("// The skills route, in ROBOT ONE's numbers. Robot two runs this same function MIRRORED across");
+    L.push("// the field's diagonal (robot two's autons file says so in one line).");
+    L.push('chassis::RoutineResult skillsSteps(competition::AutonContext& ctx) {');
+    L.push(`    chassis::Routine r{ctx, ${lit(name)}};`);
+    if (route.steps.length === 0) {
+        L.push("    // NO STEPS YET: the team's route is made in the route maker and written here.");
+    } else {
+        const plan = plannedPoses(route);
+        let lib = 1;  // the brain's log's number for the next call
+        route.steps.forEach((s, i) => {
+            L.push('');
+            L.push(...stepLines(s, i + 1, plan[i], lib));
+            lib += libraryCalls(s);
+        });
+        L.push('');
+    }
+    L.push('    return r.result();');
+    L.push('}');
+    L.push('}  // namespace');
+    L.push('');
+    if (route.start) {
+        L.push("// The entry both robots register: robot one's start, the 60 s skills schedule.");
+    } else {
+        L.push('// The entry both robots register.');
+    }
+    L.push('competition::AutonEntry skillsRoute() {');
+    L.push('    competition::AutonEntry e{};');
+    L.push(entryLine(`    e.name = ${lit(name)};`, "what the brain's menu shows"));
+    L.push(entryLine('    e.kind = competition::AutonKind::Skills;', 'the 60 s skills run'));
+    L.push(entryLine('    e.routine = &skillsSteps;', 'the steps above'));
+    if (route.start) {
+        const s = route.start;
+        L.push(`    e.start = competition::StartPose::field(${len(s.x)}, ${len(s.y)}, ${deg(s.headingDeg)});  `
+               + `// robot one's start, facing ${headingWords(s.headingDeg)}`);
+    } else {
+        L.push(entryLine('    e.start = competition::StartPose::relative();',
+                         "NO START YET: the route maker writes robot one's start"));
+    }
+    L.push(`    e.endActionAt = ${sec(route.endActionAtS)};  // still running at ${fmt(route.endActionAtS)} s? it is stopped, `
+           + 'and the end action (a brake) starts');
+    L.push(`    e.hardStopAt = ${sec(route.hardStopAtS)};   // everything stops, ${fmt(60 - route.hardStopAtS)} s before the run's 60 s`);
+    L.push('    return e;');
+    L.push('}');
+    L.push(markerLine(name, 'END'));
+    return L.join('\n');
+}

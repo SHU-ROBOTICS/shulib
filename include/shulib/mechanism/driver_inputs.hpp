@@ -15,10 +15,14 @@
 //         homeAtDriverStart(lift, 1.5_s),                  // after a restart it may not be on its switch
 //         toggle(flywheel["shoot"], Button::X),            // on at "shoot" / off
 //         whileHeld(intake, Button::A, Button::B, 12_volt),
+//         whileHeld(sideRoller, Button::Up, 8_volt),      // ONE button: runs one way while held, stops on release
 //         autonOnly(hood));                                // the hood is the autons' alone
 //
 // ── What each control does (DriverInputs::tick, once per driver-control tick) ──────────
 //   * whileHeld on a POWER mechanism: held → drive(±V) every tick; released → stop (its safe state).
+//     With ONE button (`whileHeld(sideRoller, Button::Up, 8_volt)`, chunk ROB1-C2): held → drive(+V),
+//     released → stop — it runs ONE way only (which way is its declaration's `.motors` direction), and
+//     takes no second button. A POWER mechanism only (an arm's or a lift's jog needs both ways).
 //     On an ARM or a LIFT: held → jog(±V) (soft-stopped at the limits once homed; at most
 //     `.unhomedVolts` before); released → HOLD HERE (gravity included, clamped to the range). Both
 //     buttons held = neither (T3's ruling R2): the release rule.
@@ -101,7 +105,7 @@ inline constexpr double kToggleAtSpeedWindowSeconds = 5.0;
 
 /// What one driver control does (file header).
 enum class ControlKind : std::uint8_t {
-    Hold,               ///< whileHeld: two buttons, + / − volts while held
+    Hold,               ///< whileHeld: two buttons ± volts, or one button + volts on a power one (oneWay)
     Toggle,             ///< one button: flips a two-position pneumatic, or a flywheel's named speed on / off
     Preset,             ///< one button: a position, a speed or a pneumatic position
     HomeOnPress,        ///< one button: home it by its declaration's method
@@ -122,7 +126,7 @@ struct Control {
     const char* mechanismName = nullptr;
     /// A hold's FORWARD (up) button; every other control's one button.
     hal::ControllerButton button = hal::ControllerButton::A;
-    /// A hold's BACK (down) button.
+    /// A hold's BACK (down) button (a ONE-button hold: its one button again — `oneWay` says so).
     hal::ControllerButton back = hal::ControllerButton::A;
     /// A hold's volts, (0, 12].
     double volts = 0.0;
@@ -136,11 +140,16 @@ struct Control {
     const char* presetName = nullptr;
     /// An arm's (degrees) or a lift's (inches) control: its units; UNSET for the other kinds.
     Units units = static_cast<Units>(0);
+    /// A ONE-button hold on a POWER mechanism (`whileHeld(m, button, volts)`, chunk ROB1-C2): `button`
+    /// held = +volts, released = stop; it has no back button (`back` repeats `button` and is never read).
+    bool oneWay = false;
 };
 
 namespace refused {
 /// whileHeld(...) on a pneumatic or a flywheel (n24).
 inline void whileHeld_is_for_a_power_mechanism_an_arm_or_a_lift_use_toggle_or_preset() {}
+/// whileHeld(m, button, volts) — ONE button — on an arm, a lift, a pneumatic or a flywheel (ROB1-C2).
+inline void whileHeld_with_one_button_is_for_a_power_mechanism_an_arm_or_a_lift_needs_two() {}
 /// toggle(flywheel, ...) without its speed (n51).
 inline void a_toggle_on_a_flywheel_names_its_speed_like_toggle_flywheel_shoot() {}
 /// toggle(...) on a power mechanism, an arm or a lift.
@@ -213,6 +222,21 @@ inline void a_preset_on_a_mechanism_that_is_never_homed() {}
                                           units::Voltage volts) noexcept {
     return Control{.kind = ControlKind::Hold, .mechanismKind = Kind::Power, .mechanism = &m,
                    .mechanismName = m.name.text, .button = forward, .back = back, .volts = volts.value()};
+}
+/// WHILE HELD, ONE BUTTON, on a POWER mechanism (chunk ROB1-C2): `run` held = +volts — ONE way, the
+/// declaration's `.motors` direction — let go = stop (its declared safe state). No back button: the
+/// button beside it stays free for another control.
+[[nodiscard]] constexpr Control whileHeld(const Power& m, hal::ControllerButton run, units::Voltage volts) noexcept {
+    return Control{.kind = ControlKind::Hold, .mechanismKind = Kind::Power, .mechanism = &m,
+                   .mechanismName = m.name.text, .button = run, .back = run, .volts = volts.value(), .oneWay = true};
+}
+/// `whileHeld(arm, Button::R1, 6_volt)` — one button on anything but a power mechanism: refused BY NAME
+/// (an arm's or a lift's jog needs a button each way; a pneumatic or a flywheel is toggled or preset).
+template <class D>
+    requires(std::same_as<D, Arm> || std::same_as<D, Lift> || std::same_as<D, Pneumatic> || std::same_as<D, Flywheel>)
+consteval Control whileHeld(const D&, hal::ControllerButton, units::Voltage) {
+    refused::whileHeld_with_one_button_is_for_a_power_mechanism_an_arm_or_a_lift_needs_two();
+    return Control{};
 }
 /// WHILE HELD on an ARM: `up` held = +volts (a jog), `down` held = −volts, let go = HOLD HERE.
 [[nodiscard]] constexpr Control whileHeld(const Arm& m, hal::ControllerButton up, hal::ControllerButton down,
@@ -346,7 +370,7 @@ constexpr void refuseButtonTwice(std::size_t i) {
 /// True when `c` takes `b` (a hold's two buttons; a toggle's, a preset's, a homeOnPress's one).
 [[nodiscard]] constexpr bool takes(const Control& c, hal::ControllerButton b) noexcept {
     switch (c.kind) {
-        case ControlKind::Hold: return c.button == b || c.back == b;
+        case ControlKind::Hold: return c.button == b || (!c.oneWay && c.back == b);
         case ControlKind::Toggle:
         case ControlKind::Preset:
         case ControlKind::HomeOnPress: return c.button == b;
@@ -382,7 +406,7 @@ struct DriverControls {
 
 /// THE DRIVER FILE'S ONE LIST (file header), checked AT BUILD against the robot's list `robot`, each
 /// rule refused BY NAME (refused::): every control names a mechanism this robot has; no button does
-/// two jobs (the button named); a hold's volts in (0, 12]; a preset's and a homing's time limit above
+/// two jobs (the button named; a one-button hold takes its one); a hold's volts in (0, 12]; a preset's and a homing's time limit above
 /// 0 (a pneumatic preset states none); no two controls of one kind on one mechanism (a hold beside
 /// presets is fine — Q8; two presets are two kinds of one only when they aim at the same target); a
 /// toggle only on a two-position pneumatic or a flywheel's NAMED speed; a homing control only on a
@@ -421,7 +445,9 @@ template <class... C>
         switch (x.kind) {
             case ControlKind::Hold:
                 take(x.button);
-                take(x.back);
+                if (!x.oneWay) {
+                    take(x.back);  // a one-button hold has none (`back` repeats `button`)
+                }
                 if (!(x.volts > 0.0 && x.volts <= 12.0)) {
                     refused::a_hold_needs_volts_above_0_and_at_most_12();
                 }
@@ -672,7 +698,7 @@ private:
     [[nodiscard]] static bool matchesThisRobot(const Control& c, const MechanismSpec& s) noexcept {
         switch (c.kind) {
             case ControlKind::Hold:
-                return c.mechanismKind == Kind::Power || c.mechanismKind == Kind::Position;
+                return c.mechanismKind == Kind::Power || (!c.oneWay && c.mechanismKind == Kind::Position);
             case ControlKind::Toggle:
                 if (c.mechanismKind == Kind::Pneumatic) {
                     return s.pneumatic.positionCount == 2;
@@ -740,7 +766,7 @@ private:
     /// One hold-to-run's tick (file header).
     void tickHold(std::size_t i, const Control& h, const hal::IController& c, bool connected) {
         const bool f = connected && c.pressed(h.button);
-        const bool b = connected && c.pressed(h.back);
+        const bool b = connected && !h.oneWay && c.pressed(h.back);  // a one-button hold has no back
         Slot& s = svc_->slot(slot_[i]);
         if (startHomeRuns(slot_[i])) {
             // The driver-start home runs: this hold WAITS. Held now = SUPERSEDED — nothing until its
@@ -799,7 +825,7 @@ namespace words {
 using mechanism::DriverControls;
 /// The list itself: `controls(kRobotXMechanisms, ...)`.
 using mechanism::controls;
-/// Hold-to-run: two buttons, + / − volts while held.
+/// Hold-to-run: two buttons ± volts while held, or one button + volts on a power mechanism (oneWay).
 using mechanism::whileHeld;
 /// One button flips a two-position pneumatic, or a flywheel's named speed on / off.
 using mechanism::toggle;

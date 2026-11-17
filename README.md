@@ -35,7 +35,7 @@ core never touches PROS directly (that separation is load-bearing; see the layou
 
 - **Motion**: `moveTo` / `strafeTo` / `turnTo` / `followTrajectory` / `drive`, plus `brake` and
   `hold` — blocking verbs on a `Chassis` facade. Every motion is watchdog-bounded (it can
-  *never* hang), reports an honest exit reason (`Settled` / `TimedOut` / `Cancelled`), and can
+  *never* hang), reports why it stopped — its exit reason (`Settled` / `TimedOut` / `Cancelled`), and can
   be cancelled into a defined safe state at any instant.
 - **Three drivetrains** behind one kinematics contract: X-drive, tank, and H-drive — the same
   autonomous routine drives all three, and drivetrains with limited sideways authority degrade
@@ -47,7 +47,7 @@ core never touches PROS directly (that separation is load-bearing; see the layou
   extended Kalman filter that can weigh two disagreeing correctors against each other by their
   stated accuracy, recover from a displacement the simpler filter refuses, and state how
   uncertain it is. All of it proven against simulated sensors only, and the EKF's noise
-  parameters are guesses until a robot exists; see the honesty section below. When the two
+  parameters are guesses until a robot exists; see "How verified is it?" below. When the two
   tiers were raced head to head the Kalman filter came out **less** accurate (0.351″ vs 0.225″
   mean final error, losing 7 of 8 seeds), which is why the simpler one is still the default —
   the EKF is there for recovery, arbitration and stated uncertainty, not for accuracy.
@@ -65,7 +65,8 @@ core never touches PROS directly (that separation is load-bearing; see the layou
   jam; an auton runs a mechanism on one line (`r.move(arm["score"], 1.5_s)`), a driver file puts
   them on buttons (hold-to-run, toggles, presets), and a route's markers fire each mechanism's
   published ids. Robot two's programs run its two claw pivots and its pneumatic claw this way
-  (guide chapters 16–18; host-tested only — none of it has run on a robot yet).
+  ([chapter 16](docs/guide/16-testing-an-auton-on-the-bench.md) to [chapter 18](docs/guide/18-mechanisms.md)
+  of the guide; host-tested only — none of it has run on a robot yet).
 - **A guaranteed end of run**: wrap the tick pacer and a routine gets a hard deadline — the
   active motion — and every mechanism operation still running that registered its claim, as the
   library's own do — is cut at the instant you name, every later motion is *refused* (a latch,
@@ -139,7 +140,7 @@ current state, so here it is, third heading from the top:
   ([chapter 14](docs/guide/14-what-it-cannot-do-yet.md) states exactly what was measured and on
   what). No no-code routine authoring either — routines are written in C++ today.
 
-## How verified is it, honestly?
+## How verified is it?
 
 **Over a thousand test cases and more than a million assertions, all green, all off-robot.** For the
 exact figures, run them — `./build/test/shulib_tests` prints the count as the last thing it does.
@@ -169,7 +170,7 @@ V5's Cortex-A9 at strict warning levels, so no host-only assumption can enter th
 unnoticed. Since 2026-08-12 that is no longer only a compile-time claim: the package has been
 observed booting on a real V5 brain and constructing its full object graph there. Since the
 adapters landed, the suite also compiles and RUNS the hardware glue itself, against a
-programmable stand-in for PROS — with the honest limit that a stand-in can only check the glue
+programmable stand-in for PROS — with the limit that a stand-in can only check the glue
 against our beliefs about PROS, never the beliefs. A few bench sessions (2026-08-13 onward)
 have since checked a handful of those beliefs against real devices and found them right.
 *Steering* a robot remains unverified, and will be until the hardware-validation phase walks the rest of its
@@ -216,7 +217,7 @@ pros upload     # only with a V5 connected
 ## What using it looks like
 
 An autonomous routine is plain, sequential code against the `Chassis` facade. Each verb blocks
-until the robot settles — or honestly reports why it stopped — and cannot hang:
+until the robot settles — or reports why it stopped — and cannot hang:
 
 ```cpp
 #include "shulib/chassis/chassis.hpp"
@@ -351,7 +352,7 @@ docs/               documentation (roadmap, architecture, hardware assumptions)
 firmware/, include/pros|liblvgl, Makefile, common.mk    vendored PROS kernel + V5 build
 ```
 
-Two structural rules, both enforced by CI grep-guards, keep the design honest:
+Two structural rules, both enforced by CI grep-guards, keep the layers apart:
 
 1. **The library never includes PROS** — except `include/shulib/hal/pros/`, the adapter
    directory built to, which the guard exempts by exact path and nothing else. Everything else
@@ -380,7 +381,7 @@ Two structural rules, both enforced by CI grep-guards, keep the design honest:
   line. If you are writing a routine you need two of those pages —
   [`Chassis`](docs/api/chassis.md) and [`Routine`](docs/api/routine.md); the rest is the machinery
   underneath.
-- [`docs/roadmap.md`](docs/roadmap.md) — everything remaining, by milestone, with an honest
+- [`docs/roadmap.md`](docs/roadmap.md) — everything remaining, by milestone, with a
   "you are here" (including what is deliberately *not* claimed yet).
 - [`docs/shulib-v2-master-plan.md`](docs/shulib-v2-master-plan.md) — the architecture and the
   reasoning behind every locked decision.
@@ -411,7 +412,7 @@ If you're sending code, two rules — the same ones we hold ourselves to:
 
 1. **Write tests that try to break the code**, not ones that confirm it works. If you can't say
    what bug a test would catch, it isn't earning its place.
-2. **Be honest about status.** Something is done when there's evidence it's done — a passing test,
+2. **Claim only what you can show.** Something is done when there's evidence it's done — a passing test,
    a real measurement. Half-finished stays half-finished. Most of this repo is only useful because
    that rule held.
 

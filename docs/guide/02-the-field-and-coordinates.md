@@ -123,7 +123,7 @@ What you should carry forward:
 2. **When a command is a velocity, always ask "in whose frame?"** The code will force you to
    answer; make sure your answer is a decision, not a guess.
 3. **If the robot ever translates in a consistently wrong direction that depends on which way
-   it's facing** — that's the signature of a frame or heading error. Chapter 12's
+   it's facing** — that's the signature of a frame or heading error. [Chapter 12](12-when-things-go-wrong.md)'s
    troubleshooting section starts there.
 
 ## Where does the robot's "position" actually point?
@@ -135,10 +135,102 @@ robot to (24, 36), that point goes to (24, 36); the arm, the intake, and the bum
 the robot's geometry puts them. When a target "isn't quite where the game piece is," check
 whether you're thinking about the tracking center or the front of the intake.
 
+## The field's mirror: two robots, one route
+
+In a VEX U skills run **both robots run at the same time**, and both start on red's side of the field
+(the game manual's `<VURS2>` and `<VURS3>`). The rules also keep them out of each other's Quadrant
+(`<SG1>`d) and on their own side of the Autonomous Line, the double diagonal tape (`<SG1>`f). In this
+chapter's frame that line runs along y = x, and red's side holds exactly two Quadrants: the **red
+wall's** and the **right wall's** (as seen from the red station). So robot one starts in one and
+robot two in the other.
+
+The manual's field drawing makes those two Quadrants **mirror images** of each other across the
+OTHER diagonal — the one from the corner where the red wall meets the right wall to the corner where
+the blue wall meets the left wall, the line **y = -x**. The goals, their colours, the Toggles (and
+their Quadrants' colours), the skills setup's Pins and the tape all land on their own kind. So the
+students write the skills route ONCE, for robot one, and robot two runs it mirrored
+([Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton) says how):
+
+```text
+                       BLUE wall (y = +70.2)
+       (-70,70) +---------------------------------+ (70,70)
+                |  \            blue's          / |
+                |    \         Quadrant       /   |
+                |      \                    /     |
+       LEFT     |        \                /       |    RIGHT
+       wall     |  blue's  \            /  robot  |    wall
+                | Quadrant   \   (0,0) /    TWO's |
+                |              \  O  /   Quadrant |
+                |              /  \   (right wall)|
+                |            /      \             |
+                |          /  robot   \           |
+                |        /    ONE's     \         |
+                |      /     Quadrant     \       |
+                |    /     (red wall)       \     |
+                |  /                          \   |
+      (-70,-70) +---------------------------------+ (70,-70)
+                        RED wall (y = -70.2)
+                        the red station is here
+
+   /  the Autonomous Line, y = x: red's side is below and right of it
+   \  THE MIRROR LINE, y = -x: robot one's Quadrant on one side, robot two's on the other
+```
+
+**The rule:** a point (x, y) facing h becomes **(-y, -x) facing -90° - h**. Worked through for a
+start: robot one placed in the red wall's Quadrant at **(-36, -55.7) facing 0°** (along the red wall,
+nose toward the right wall) is robot two at **(55.7, 36) facing -90°** (along the right wall, nose
+toward the red wall). Headings, one by one:
+
+| Robot one faces | Robot two faces | |
+|---|---|---|
+| 0° | -90° | |
+| 90° | 180° | |
+| 180° | 90° | |
+| -90° | 0° | |
+| 45° | -135° | |
+| -45° | -45° | along the line itself: it is its own mirror |
+| 135° | 135° | along the line the other way |
+
+Every turn sweeps the OTHER way (that is a mirror). A point ON the line (x = -y) is its own image.
+
+**It is not the usual left/right mirror.** "Mirrored" usually means x becomes -x. On this field that
+sends robot two to the wrong goals (only 1 of the 9 keeps its colour) and does not keep red's side red;
+the half turn swaps red and blue — it is the HEAD-TO-HEAD mirror, not this one.
+
+**What the mirror cannot carry** — the library cannot see these, so it never guesses:
+
+- **The Loaders** sit only on the red and blue walls; their images land on the right and left walls,
+  where there are none. A step at a Loader has no mirror.
+- **The Load Zones' colours:** the red/left corner's red zone lands on the blue/right corner's blue zone.
+- **The robot itself is not mirrored.** A claw on robot one's left side is on robot two's LEFT side too —
+  in the mirrored world, the wrong side. If the robot is built symmetric left to right, the mirror works;
+  if not, the bench shows which steps need robot two's own numbers (A4 register HA-259).
+
+**What lies ON the mirror line — the two robots' shared seam.** The mirror leaves its line where it is,
+so whenever robot one reaches the line, robot two reaches **the same spot at the same moment**. On it sit
+the **centre goal** (0, 0), **two yellow Pins** of the skills setup (about (23.5, -23.5) and (47, -47)),
+and the **red/right corner's Load Zone**. A mirrored route keeps robot one's WHOLE robot at least
+**3 in** off the line — then the two robots stay at least **6 in** apart, whatever their timing — and
+sends only ONE robot to what lies on it
+([Chapter 17](17-the-competition-program.md#both-robots-at-once) — the library's tests run the two robots
+together and fail, naming the moment, when they come within 6 in):
+
+```text
+        robot one's side   |<- 3 in ->|<- 3 in ->|   robot two's side
+                           |   the 6 in band     |
+                           |   (the mirror line  |
+                           |    in its middle)   |
+```
+
+The library's piece: `competition::override2026::kSkillsMirror`
+([`override_mirror.hpp`](../../include/shulib/competition/override_mirror.hpp)), the reflection
+`math::Reflection` ([`reflection.hpp`](../../include/shulib/math/reflection.hpp)). Every number here is the
+manual's drawing, read on paper: an element may sit up to 1 in off nominal on the event's field
+(A4 register HA-258), and nothing here has run on a robot.
 
 ## The exact signatures
 
-Everything in this chapter has an exact spelling in the reference: [`Frame`](../api/frame.md) (and the two conversions between field and body), [`Pose2d`](../api/pose2d.md), [`Angle`](../api/angle.md), [`Twist2d` and `ChassisSpeeds`](../api/twist2d.md), and the typed quantities themselves — [`Quantity`](../api/quantity.md) with its aliases (`Length`, `Time`, `Voltage`, …) and the [unit literals](../api/literals.md) that let you write `24_in` and `300_ms`.
+Everything in this chapter has an exact spelling in the reference: [`Frame`](../api/frame.md) (and the two conversions between field and body), [`Pose2d`](../api/pose2d.md), [`Angle`](../api/angle.md), [`Twist2d` and `ChassisSpeeds`](../api/twist2d.md), [`Reflection`](../api/reflection.md) (the field's mirror), and the typed quantities themselves — [`Quantity`](../api/quantity.md) with its aliases (`Length`, `Time`, `Voltage`, …) and the [unit literals](../api/literals.md) that let you write `24_in` and `300_ms`.
 
 ---
 

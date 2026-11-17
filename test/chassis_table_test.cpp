@@ -554,6 +554,12 @@ TEST_CASE("chassis table: the selection -- chassisTableFor() gives every robot i
     CHECK(&chassisTableFor(RobotId::BenchBot) == &kBenchBotChassis);
     CHECK(&chassisTableFor(RobotId::RobotTwo) == &kRobotTwoChassis);
     CHECK(&chassisTableFor(RobotId::InventedXDrive) == &kNoChassis);
+    // ROB1-A: robot one gets ITS OWN table (UNSET where nothing is known) — never robot two's.
+    CHECK(&chassisTableFor(RobotId::RobotOne) == &shulib::bench::kRobotOneChassis);
+    CHECK(&shulib::bench::kRobotOneChassis != &kRobotTwoChassis);
+    CHECK(&shulib::bench::kRobotOneChassis != &kNoChassis);
+    CHECK(std::string_view{chassisTableFor(RobotId::RobotOne).robot}.find("robot one")
+          != std::string_view::npos);
     CHECK(&kBenchBotChassis != &kRobotTwoChassis);
     CHECK(&kRobotTwoChassis != &kNoChassis);
     CHECK(&kNoChassis != &kBenchBotChassis);

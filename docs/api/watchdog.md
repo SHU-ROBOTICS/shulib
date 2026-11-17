@@ -10,7 +10,7 @@ Watchdog — a hard timeout primitive.
 
 This header declares **1** type (6 members).
 
-Extracted from [`include/shulib/control/watchdog.hpp`](../../include/shulib/control/watchdog.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/control/watchdog.hpp`](../../include/shulib/control/watchdog.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

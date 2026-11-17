@@ -12,12 +12,6 @@
 > tester, which runs the same call), [Chapter 9](09-the-recipe-api.md) (a routine as a chain of
 > steps) and [Chapter 6](06-how-things-fail.md)'s "Running out of match".
 
-**Nothing in this chapter has run on a robot yet.** The program is host-tested — its decisions run
-in the host test suite on the host test plant, the suite's model of a robot (motors that respond
-instantly, wheels that never skid) — and every robot build compiles and links it, but no brain has
-started it. Its first run is the bench worksheet's practice-match station. Treat every behaviour
-below as what the code is written and tested to do, not as something a robot has shown.
-
 ## What it is
 
 The competition program is the one you upload for a match. Build and upload it like the other
@@ -28,9 +22,9 @@ rm -rf bin .d && make ROBOT=tank PROGRAM=competition
 pros upload --slot 6 --name "shulib Competition"
 ```
 
-The `rm -rf bin .d` matters for the reason [Chapter 16](16-testing-an-auton-on-the-bench.md) gives:
-`make` does not notice that the `PROGRAM=` word changed, and would link the last program you built
-under this name. **Slot 6.** Slot 5 is held for the team's own old code, as a fallback: never upload
+The `rm -rf bin .d` is harmless, for the reason [Chapter 16](16-testing-an-auton-on-the-bench.md)
+gives: `make` notices a changed `ROBOT=` or `PROGRAM=` word and starts fresh by itself (until it did,
+it would link the last program you built under this name). **Slot 6.** Slot 5 is held for the team's own old code, as a fallback: never upload
 a shulib program over it.
 
 What happens in a match, in one paragraph: the robot boots from its calibration record; before the
@@ -102,6 +96,170 @@ period (the team lead's ruling, 2026-10-02). Fix the entry in `src/team/autons.c
 A registry built without asking for that (`competition::AutonRegistry registry{periods};`) still
 throws the sentence at the `add()`. Leave a margin inside the period: a hard stop exactly on the
 field's 30 s never gets a tick to act.
+
+## Two robots, one route: a mirrored auton
+
+In a VEX U skills run both robots run at once, both from red's side: one robot in each of red's two
+Quadrants — here robot one in the **red wall's** and robot two in the **right wall's**, though the other way
+round works the same, the mirror is its own inverse. Those two Quadrants are mirror images of each other across
+the field's diagonal ([Chapter 2](02-the-field-and-coordinates.md#the-fields-mirror-two-robots-one-route)
+draws it): `(x, y)` facing `h` is `(-y, -x)` facing `-90° - h`. So the students write the skills route
+**once**, in robot one's numbers, as a function returning its entry, and each robot's autons file
+registers it — robot one as written, robot two **mirrored**, in one line:
+
+```cpp
+// Robot one's autons file:
+void registerRobotOneSkills(competition::AutonRegistry& registry) {
+    registry.add(skillsRoute());
+}
+
+// Robot two's autons file -- the one line:
+void registerRobotTwoSkills(competition::AutonRegistry& registry) {
+    registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));
+}
+```
+
+`skillsRoute()` is the students' function (its name, kind, routine, start and schedule) —
+[cookbook chapter 9](../cookbook/09-one-route-two-robots.md) shows a whole one. The route is theirs;
+the one line only says "run it mirrored". `mirrored()` copies the entry and marks it; mirroring it
+twice gives it back as written.
+
+**What the program does with a mirrored entry.** It seats robot two at the **reflected** start — its
+REAL start, where the drivers must place it — and runs the routine AND its end action in a *mirrored
+run*: every field number the route writes is reflected before the robot drives to it, and every
+position the route reads back (`ctx.chassis.pose()`, a `face()`'s bearing, a `waitFor` on the pose)
+comes back in robot one's numbers. So the route always sees robot one's field — and **everything the
+robot REPORTS is robot two's real field**: the log, the screens, the localizer
+(`ctx.chassis.deps().localizer->pose()`) and `lastCompleted()`. Only what the route reads through the
+Chassis is robot one's ([below](#below-the-mirror-what-reads-the-real-field)).
+
+### What the mirror changes, and what it does not
+
+| The route writes | On robot two |
+|---|---|
+| the entry's FIELD start | seated at the reflection; the screen's `START MIR` line shows it |
+| `startAt(pose)` / `setPose(pose)` | the position reflected (the heading stays the IMU's, as always) |
+| `driveTo` / `reverseTo` / `face` / `faceAway` / `strafeTo` points, `moveTo` / `followTrajectory` poses, `turnTo` headings, `curveTo` / `reverseCurveTo` points and headings | reflected; every turn sweeps the OTHER way |
+| `drive(speeds, Field)` / `drive(speeds, Body)` in a `then()` | the field vector reflected / the sideways speed negated; the turn reversed |
+| the end action (the park) | reflected too — it runs inside the mirrored run |
+| an entry that runs a `config::Route` (its `route`, not a `routine` — run by the path runner) | mirrored the same way — the path runner drives only through the Chassis |
+| a wall reset (`competition::resetFromWall(ctx, ...)`) | the IMAGE wall and the OTHER side's sensor: robot one's red wall with its RIGHT sensor is robot two's right wall with its LEFT sensor |
+| a Toggle step (it is handed `ctx.entry`) | the IMAGE Toggle — robot one's red wall Toggle is robot two's right wall Toggle, the same Quadrant colour, so "ours" does not change |
+| timeouts, speeds, arrival tolerances, `hold`, `pause`, `waitFor` timeouts, a trigger's percent / inches / degrees, every mechanism step | unchanged — sizes, not field numbers |
+| a RELATIVE start | mirrored in the robot's own frame instead, `(x, y)` facing `h` to `(x, -y)` facing `-h` — every left a right; right only if the drivers place robot two at the mirror image of robot one's spot |
+
+**The one exception to "every turn the other way":** an EXACT half turn. The library always takes an
+exact 180° turn counterclockwise ([Chapter 10](10-the-api.md)) — on both robots — so a mirrored `turnTo`,
+`moveTo` or trajectory leg (a `driveTo` or `reverseTo` is a `moveTo`) whose heading changes by 180° (within
+1°) may sweep the same way as robot one, on ANY drivetrain. It says so once, a `[MIR]` Warn
+([Chapter 11](11-reading-the-diagnostics.md)). How much it matters, on the host test plant:
+
+- a **turn** in place: the paths differ by 0.15 in, the ends by under 0.1 in — where the sweep matters,
+  write it as **two 90° turns**;
+- a **leg on a tank**: a tank only moves along its heading, so it slides sideways while it sweeps and ends
+  BESIDE its target — and robot two, sweeping the same way, ends beside its own target on the side
+  opposite robot one's image. The two misses add, and they grow with the leg: a `moveTo` 16 in ahead,
+  facing back (180° from robot one's start), ended **5.7 in** from the mirror; the same leg 36 in long,
+  **14.2 in** — roughly a third of the leg. A `driveTo` to a point straight behind is the same leg
+  (**5.0 in** on 14 in). (A tank leg that starts that far off its heading is already the one the library
+  warns about: `turn first: face()`.) **Turn first, in two 90° turns, then drive** — that route mirrors
+  exactly;
+- a leg on an X-drive: 0.31 in along the way, the ends within 0.02 in.
+
+On a real robot an exact tie never happens — but the IMU's noise makes a leg that close to 180° a coin toss
+for EACH robot, and on a tank the toss is as large as the tie: robot one's own end moves **5.8 in** between
+a target 0.5° either side of 180° on the 16 in leg, **14.5 in** on the 36 in leg. The pair check
+([below](#both-robots-at-once)) runs the plan exactly, so it cannot tell which way a real robot will sweep:
+either robot can end that far from where the check placed it — on the 36 in leg, more than twice the 6 in
+the check keeps between them. Turn first.
+
+### What the screens and the log say
+
+- The menu's button reads **`skills SKILLS MIR`** — so a mirrored auton's name is at most **25**
+  characters (a longer one is refused when it is registered, by name).
+- The result screen's START line reads **`START MIR (55.7, 36.0) -90.0 deg`** — robot two's REAL start;
+  END, and every other number, is robot two's real field too.
+- The log's `COMP` lines say `re-seated FIELD MIRRORED (55.70, 36.00)` and, on a second line,
+  `MIRRORED across the skills diagonal -- robot one's start (-36.00, -55.70) facing 0.0 deg`; a `WALL`
+  line says `(LEFT sensor, mirrored from red wall RIGHT)`; a `TGL` line names the real Toggle
+  ([Chapter 11](11-reading-the-diagnostics.md) reads each).
+
+### Below the mirror: what reads the REAL field
+
+Inside a mirrored run, `ctx.chassis.pose()` is robot one's numbers — and these are robot two's real
+field, NOT reflected: `ctx.chassis.deps()` (the localizer: `deps().localizer->pose()`),
+`ctx.chassis.scheduler()`, `ctx.chassis.lastCompleted()`'s poses, the records and every log line. The
+**camera's** field inputs are real-field numbers too: hand the piece finder or the Toggle tracker the
+LOCALIZER's pose, never `ctx.chassis.pose()`; a real-field fix sent to a Chassis verb goes through
+`ctx.chassis.reflection().apply(...)` first (a reflection is its own inverse), or the verb reflects it a
+second time.
+
+### Refused, by name
+
+- the **explicit** wall reset (`chassis::resetFromWall(chassis, sensor, ...)`) inside a mirrored run — it
+  is handed ONE sensor, and robot two needs the other side's: use the everyday call over `ctx`;
+- an entry mirrored by two DIFFERENT mirrors (mirrored twice by the same one is the route as written);
+- a mirrored name over 25 characters.
+
+Because ONE function serves both robots, a refusal can only happen when its line runs — so the host
+suite runs every auton robot two registers on the host test plant, mirrored ones included.
+
+### Both robots at once
+
+**The mirror's line is the seam between the two robots.** Whenever robot one's robot reaches the
+diagonal, robot two's reaches the **same spot at the same moment** — and in a pure mirror the gap between
+the two robots is exactly twice robot one's distance from the line, however their timing drifts. So:
+
+1. **Keep robot one's WHOLE robot at least 3 in off the diagonal.** The robots then stay at least 6 in
+   apart. For a 15 in robot that is its centre at least 10.5 in from the line when it is square to it,
+   13.6 in when a corner points at it.
+2. **What lies ON the diagonal is for ONE robot** — the centre goal, the two yellow Pins on it, the
+   red/right corner's Load Zone. The shared route says which, with `isMirrored(ctx)` (true in robot two's
+   mirrored run):
+
+   ```cpp
+       // The centre goal sits ON the mirror line: ONE robot goes there.
+       if (!competition::isMirrored(ctx)) {
+           r.face(-6_in, -6_in);
+           r.driveTo(-6_in, -6_in);
+           r.reverseTo(-12_in, -30_in);
+       } else {
+           r.pause(4_s);  // robot two waits on its own side meanwhile
+       }
+   ```
+
+3. **The suite checks the pair.** For every mirrored entry robot two registers, the host suite runs robot
+   one's run and robot two's TOGETHER on the host test plant and fails — naming the moment, both
+   positions and the motion each robot was in — when their 15 in squares come within 6 in:
+
+   ```text
+   auton 'P1 route': the two robots come within 6.0 in (5.76 in apart) at 10.02 s -- robot one at (-5.9, -12.7) in motion 8 (CurveTo ending at (12.0, -18.0)), robot two at (12.7, 5.9) in motion 8 (CurveTo). Keep robot one's whole robot 3.0 in off the mirror line, or send ONE robot there with isMirrored(ctx).
+   ```
+
+   Read it as: 10 s into the run, in its 8th drive motion — the `curveTo` whose last point is
+   (12, -18), in robot one's numbers, the ones your route writes — robot one's robot reached within 3 in of
+   the diagonal. Move that step's points onto robot one's side, or wrap it in
+   `if (!competition::isMirrored(ctx))`. **The motion number counts DRIVE motions only, not your route's
+   lines:** each `driveTo`, `reverseTo`, `face`, `faceAway`, `turnTo`, `moveTo`, `strafeTo`, curve, `hold`
+   and brake is one, and so is each leg of a `followTrajectory`; a `then()` or a Toggle step counts the
+   drives it runs; a wall reset, a `pause`, a `waitFor` or a mechanism step is none. So it is not the
+   `step N` the routine's own lines print — find the step by its target. A RELATIVE mirrored entry is
+   skipped, by name — its field positions are wherever the drivers place the robots.
+
+**After an `isMirrored` branch the two runs differ in time**, and the check compares them at the
+PLANNED timing only. A real robot's timing drifts (on the host test plant a 9 % weaker side moved one
+robot 0.44 s over 21 s), so keep the other robot well away from the spot while one robot takes it — a
+`pause` that ends with time to spare, not one that ends as the other robot leaves. **Before the event, run
+the two robots TOGETHER on a field at least once**, the drive speed turned down first and someone at each
+robot's stop, watching the diagonal (A4 register HA-260: the 3 in a side is a chosen margin, never
+measured).
+
+### What it cannot carry
+
+The Loaders (they are only on the red and blue walls — robot two's mirrored spot has none), the red/left
+corner's Load Zone (its image is the blue one), and **the robot itself**: a part mounted off the robot's
+centre line meets the field on the other side of the reflected path (A4: HA-259), and each robot's own
+left/right drive differences are its own (HA-260). Nothing here has run on a robot.
 
 ## The selector
 

@@ -4,13 +4,8 @@
 > reference, not a forward plan. Most of what follows is now shipped code — where a section still
 > describes something unbuilt, it says so in place. Living document.
 >
-> **The one status line that governs everything:** shulib **has never driven a robot under its
-> own control.** No
-> control loop has ever closed on hardware, no wheel has ever turned under the library's own
-> steering. What *has* happened: the code boots on a V5 brain, and the hardware adapters have
-> commanded real motors and read real sensors at a bench, proving their unit conversions correct
-> on one robot, once, and a driver has since driven a second robot with the sticks through them
-> (open-loop, 2026-09-17). Everything above that seam is verified against a simulator only.
+> **What has run on a robot, and what has not:** [What it cannot do yet](guide/14-what-it-cannot-do-yet.md#it-has-never-driven-a-robot-under-its-own-control)
+> keeps that list.
 >
 > **What this is:** a design & architecture reference for shulib — the reasoning behind the
 > shape, including the alternatives that were rejected.
@@ -301,7 +296,7 @@ small laptop re-fit that checks the brain's arithmetic replaces the offline tool
 - **With vision docking (Phase 3):** final goal alignment within **~0.25″** and **`< 1.0°`** _closed-loop_
   (drift-independent; typically < 0.5° on a tag) — enough to nest a 1.6″ Pin with a funnel for the residual.
 - Each becomes a telemetry-based pass/fail acceptance test per phase.
-- _Engineering consequence (honest):_ a raw V5 IMU yaw drifts ≈ **1°/min**, so dead-reckoned heading
+- _Engineering consequence:_ a raw V5 IMU yaw drifts ≈ **1°/min**, so dead-reckoned heading
   alone will **not** reliably hold `< 1°` across a 60s run. The spec therefore makes **IMU-owned heading +
   absolute yaw correction (AprilTag/GPS) load-bearing, not optional** — Phase 3 yaw correction is
   promoted from "nice-to-have" to **required to meet spec**. [[vexu-override-facts]]
@@ -590,7 +585,7 @@ compiled-path artifact + full schema-hash handshake (versioned JSON `.vexbot` fi
 |---|---|---|---|
 | A | **Lift homing: limit switch or motor stall?** | Asked 2026-08-13, undecided. The seam exists either way (decision 18); if the answer is "stall", `IDigitalIn` is a small unused sibling and the stall detector already shipped at F1. | The scoring-primitives chunk (Phase F′), which writes the homing routine |
 | B | **Which sensors actually go on the competition robots?** | The ranked recommendation is in the project briefing; the build team has not committed. Ports are finite and the ranking is accuracy-per-port. | Hardware validation, and every register entry that depends on a sensor existing |
-| C | **When to characterize the drivetrain.** | Doing it on the only robot that exists produces a validated *tool* and throwaway *numbers* — gains never transfer across chassis, so a measured-looking wrong number is worse than an honest placeholder. Deferring it until a competition robot exists trades schedule for reusable results. | The gain-measurement chunk, and the order of the remaining phases |
+| C | **When to characterize the drivetrain.** | Doing it on the only robot that exists produces a validated *tool* and throwaway *numbers* — gains never transfer across chassis, so a measured-looking wrong number is worse than a labelled placeholder. Deferring it until a competition robot exists trades schedule for reusable results. | The gain-measurement chunk, and the order of the remaining phases |
 | D | **Does the available robot have an ADI expander?** | Reported at the first bench session from an out-of-range registry index, so the reading may be garbage; never re-checked. The brain's 8 built-in ADI ports exist regardless, so nothing is blocked — but the number of available 3-wire ports is unknown. | Anything that budgets 3-wire ports (limit switches, pneumatics) |
 
 ---
@@ -749,7 +744,7 @@ Two ingestion paths, **same** in-memory types behind `IRobotConfig` / `IRouteSou
 `RobotBuilder.from(profile)` returns a fully wired `Chassis` (drivetrain + kinematics + localizer +
 sensors); `runner.run(route)` executes a routine. **"VexBuilder file → working robot + auton" is two
 lines.** _Standalone preserved:_ a code-fluent team can build `RobotConfig` and `Route` directly in
-C++ with **no file at all** — `.vexbot` is the on-ramp, not a dependency. _Honest caveat:_ the shipped
+C++ with **no file at all** — `.vexbot` is the on-ramp, not a dependency. _Caveat:_ the shipped
 `.vexbot` doesn't yet carry drivetrain type / track width / wheel diameter as first-class fields —
 today they'd be *inferred* from part geometry (brittle). **Action: VexBuilder must emit them
 explicitly** (Open-Decision #14); shulib ships an `inferDrivetrain()` fallback but treats explicit

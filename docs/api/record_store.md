@@ -10,7 +10,7 @@ The calibration record's SAFE SAVE and its LOAD (chunk SAFE-SAVE Part A, 2026-09
 
 This header declares **12** types (67 members), **7** free functions, and **4** constants.
 
-Extracted from [`include/shulib/calibration/record_store.hpp`](../../include/shulib/calibration/record_store.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/calibration/record_store.hpp`](../../include/shulib/calibration/record_store.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

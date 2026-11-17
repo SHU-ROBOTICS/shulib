@@ -10,7 +10,7 @@ through `cookbook-01d`.
 
 ## The skeleton
 
-**Use this when:** you are starting a new routine and want the smallest thing that is honest.
+**Use this when:** you are starting a new routine and want the smallest thing that works.
 
 ```cpp
 RoutineResult skeleton(Chassis& chassis) {
@@ -71,7 +71,7 @@ Routine& scoreAt(Routine& r, Length x, Length y, Intake& intake) {
   mechanisms, because those change every season. `then()` accepts any callable, so a real
   device-backed version drops into exactly this position, spelled exactly this way —
   `then([&intake] { intake.release(); }, "release")` — or returns its operation's verdict so
-  a failed grab stops the chain (the guide's Chapter 9 listing):
+  a failed grab stops the chain (the guide's [Chapter 9](../guide/09-the-recipe-api.md) listing):
 
 ```cpp
 struct Intake {

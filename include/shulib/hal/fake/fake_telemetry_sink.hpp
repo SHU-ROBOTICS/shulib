@@ -9,6 +9,18 @@
 // loop emitted — the same role for §18.2 records that entries play for §18.3 messages.
 // Access to both histories is bounds-checked for the same reason: a test asserting
 // "record N said X" must not be able to read past the end and pass by accident.
+//
+// THE LINE HOOK (chunk RPV1-A, 2026-11-12): an OPT-IN observer called after each stored line
+// (setOnLine), with the count of lines kept so far. Nothing sets it by default, so every existing
+// test behaves exactly as before. The route preview (test/route_preview_run.hpp) sets it to stop an
+// auton that keeps logging without letting time pass: a routine that loops after a stop logs one
+// "skipped" line per step and never paces, and this sink keeps every line, so without the hook such a
+// run grows until it exhausts memory. The same hook also notes, as each line is stored, the run
+// guard's end-of-run line and every mechanism verdict logged while an exception unwinds (which steps
+// are the park's, and the step a run threw inside). The hook may end the process (std::_Exit) or
+// throw; it runs inside log(), which the library calls from code that may be noexcept — a hook that
+// throws must only be set where every caller can carry the exception. No file under src/ includes this header,
+// so no robot program sees the hook.
 
 #include <cstddef>
 #include <string>
@@ -32,6 +44,16 @@ public:
 
     void log(LogLevel level, std::string_view subsystem, std::string_view message) override {
         entries_.push_back(Entry{level, std::string{subsystem}, std::string{message}});
+        if (onLine_ != nullptr) {
+            onLine_(onLineCtx_, entries_.size());
+        }
+    }
+
+    /// The line hook (header: THE LINE HOOK): `fn(ctx, lines)` is called after each line is stored,
+    /// `lines` being how many this sink now keeps. nullptr removes it (the default: no hook).
+    void setOnLine(void (*fn)(void* ctx, std::size_t lines), void* ctx) noexcept {
+        onLine_ = fn;
+        onLineCtx_ = ctx;
     }
 
     [[nodiscard]] bool wantsRecord() const noexcept override { return true; }
@@ -95,6 +117,8 @@ private:
     std::vector<Entry> entries_;
     std::vector<diag::DebugRecord> records_;
     std::vector<diag::RunSummary> summaries_;
+    void (*onLine_)(void*, std::size_t) = nullptr;
+    void* onLineCtx_ = nullptr;
 };
 
 }  // namespace shulib::hal::fake

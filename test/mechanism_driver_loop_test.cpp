@@ -1249,3 +1249,103 @@ TEST_CASE("MECH-A4 (review): a SUPERSEDED hold stays superseded through a contro
         CHECK(volts[1] > 0.0);  // the second entry: R1 still held, it drives at once
     }
 }
+
+// ═══ ROB1-C2: the ONE-button hold — `whileHeld(power, button, volts)` ════════════════════════════
+
+namespace {
+// Robot x's intake on ONE button (A runs it, one way); B — the button a two-button hold would have taken
+// for "back" — is FREE, and here the hood's "down" preset takes it.
+inline constexpr mech::DriverControls kOneButton = mech::controls(rx::kRobotXMechanisms,
+    mech::whileHeld(rx::arm, Button::R1, Button::R2, 6_volt),
+    mech::whileHeld(rx::lift, Button::L1, Button::L2, 12_volt),
+    mech::homeOnPress(rx::lift, Button::Left, 1.5_s),
+    mech::toggle(rx::flywheel["shoot"], Button::X),
+    mech::whileHeld(rx::intake, Button::A, 12_volt),  // ONE button: held = +12 V, let go = stop
+    mech::preset(rx::hood["down"], Button::B),        // B: free beside it
+    mech::preset(rx::hood["middle"], Button::Right),
+    mech::preset(rx::hood["up"], Button::Up));
+// The one-button control takes its one button and NOT a second: B is the hood's here, so the list compiles at
+// all only because the intake left B free (a two-button hold on A/B beside this preset is refused by name —
+// test/compile_refusals/d_one_button_hold_button_twice is the other half: its one button IS taken).
+static_assert(!kOneButton.avoids(Button::A));
+static_assert(kOneButton.avoids(Button::Down) && kOneButton.avoids(Button::Y) && !kOneButton.avoids(Button::R1));
+static_assert(kOneButton.c[4].kind == mech::ControlKind::Hold && kOneButton.c[4].oneWay &&
+              kOneButton.c[4].button == Button::A && kOneButton.c[4].volts == 12.0 &&
+              kOneButton.c[4].mechanismKind == mech::Kind::Power);
+static_assert(!mech::detail::takes(kOneButton.c[4], Button::B));  // no back button
+static_assert(mech::detail::takes(kOneButton.c[4], Button::A));
+// ...and a two-button hold is NOT one-way (the field defaults false; robot two's file is two-button holds).
+static_assert(!rx::kControls.c[0].oneWay && !mech_fixture::robot_two::kControls.c[0].oneWay);
+}  // namespace
+
+TEST_CASE("ROB1-C2: a ONE-button hold runs its power mechanism ONE way while held and stops on release; the button beside it does nothing to it; a drop releases it") {
+    // Bug caught: a one-button hold that reads a "back" button anyway (it would run backward on the button
+    // another control owns — here B, the hood's preset); one that keeps running after its button is let go;
+    // one whose button held through a controller drop keeps running; one that never runs (the hold's tick
+    // treating `back == button` as BOTH held = neither).
+    RobotX x;
+    mech::DriverInputs inputs;
+    inputs.bind(x.svc, kOneButton);
+    FakeController ctl;
+    double held = -99, released = -99, onB = -99, heldAgain = -99, dropped = -99, reconnected = -99;
+    double mostNegative = 0.0;
+    bool hoodMoved = false;
+    DriveShaper shaper{shulib::teleop::DriverProfile{}};
+    int k = 0;
+    shulib::teleop::runDriverControl(
+        x.chassis, ctl, x.world, shaper, rx::kLoop, x.svc, inputs,
+        [&] {
+            if (k == 10) ctl.setPressed(Button::A, true);
+            if (k == 20) ctl.setPressed(Button::A, false);
+            if (k == 30) ctl.setPressed(Button::B, true);  // the hood's preset — never the intake's back
+            if (k == 35) ctl.setPressed(Button::B, false);
+            if (k == 40) ctl.setPressed(Button::A, true);
+            if (k == 50) ctl.setConnected(false);  // A still "held" on the controller that dropped
+            if (k == 60) ctl.setConnected(true);
+            if (k == 70) ctl.setPressed(Button::A, false);
+            return k++ >= 80;
+        },
+        [] { return HeadingSample{}; },
+        [&](const shulib::math::ChassisSpeeds&, bool, const shulib::teleop::DriveShaperState&) {
+            const double v = x.intakeM.commandedVoltage().value();
+            mostNegative = std::min(mostNegative, v);
+            if (k - 1 == 15) held = v;
+            if (k - 1 == 25) released = v;
+            if (k - 1 == 33) {
+                onB = v;
+                hoodMoved = x.lineC.commanded() || x.lineD.commanded();
+            }
+            if (k - 1 == 45) heldAgain = v;
+            if (k - 1 == 55) dropped = v;
+            if (k - 1 == 65) reconnected = v;
+        });
+    CHECK(held == 12.0);       // A held: the full +12 V, one way
+    CHECK(released == 0.0);    // let go: stopped (its declared safe state)
+    CHECK(onB == 0.0);         // B is not its back button: the intake does not move...
+    CHECK_FALSE(hoodMoved);    // ...and the hood's "down" is Low on both lines (it went where it was)
+    CHECK(heldAgain == 12.0);
+    CHECK(dropped == 0.0);     // a disconnect is a release
+    CHECK(reconnected == 12.0);  // still held after the reconnect: a hold is a level — it drives again
+    CHECK(mostNegative == 0.0);  // NEVER backward: a one-button hold has no back
+}
+
+TEST_CASE("ROB1-C2 (review): DriverInputs::bind refuses a ONE-way hold on a POSITION mechanism -- a hand-built control the build never checked") {
+    // Bug caught: bind() accepting `oneWay` on an arm (a Control is an aggregate, so a hand-built one gets past
+    // controls()' named refusal): the arm would jog ONE way only, its "down" button silently its "up" one. The
+    // review of ROB1-C2 found this precondition unpinned (RV5, `!c.oneWay &&` removed, survived the suite).
+    mech::DriverControls oneWayArm = rx::kControls;  // robot x's own file: c[0] is the arm's two-button hold
+    REQUIRE(oneWayArm.c[0].kind == mech::ControlKind::Hold);
+    REQUIRE(oneWayArm.c[0].mechanismKind == mech::Kind::Position);
+    {
+        RobotX x;  // as written it binds (the refusal below is the one-way flag's, nothing else)
+        mech::DriverInputs inputs;
+        inputs.bind(x.svc, oneWayArm);
+        CHECK(inputs.bound());
+    }
+    oneWayArm.c[0].oneWay = true;
+    oneWayArm.c[0].back = oneWayArm.c[0].button;
+    RobotX x;
+    mech::DriverInputs inputs;
+    CHECK_THROWS_AS(inputs.bind(x.svc, oneWayArm), shulib::PreconditionError);
+    CHECK_FALSE(inputs.bound());
+}

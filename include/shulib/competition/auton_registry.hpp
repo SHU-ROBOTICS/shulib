@@ -59,7 +59,16 @@
 // ── Names (B25) ─────────────────────────────────────────────────────────────────────
 // A name is shown as "AUTON: <name>" on ONE medium line of the brain screen, so it is at most
 // kMaxAutonNameChars = ui::kMediumCols - 7 = 29 printable ASCII characters, no '%', unique, and
-// never "NONE" (the selector's own choice). The name pointer is BORROWED — a string literal.
+// never "NONE" (the selector's own choice). The name pointer is BORROWED — a string literal. A
+// MIRRORED entry's (below) is at most kMaxMirroredAutonNameChars = 25: its menu button reads
+// "<name> SKILLS MIR" on one medium line.
+//
+// ── A mirrored entry (chunk MIRROR1-A, 2026-11-13) ──────────────────────────────────────────────
+// `mirror` (APPENDED, default none) marks an entry robot two runs MIRRORED — robot one's route,
+// reflected across the field's mirror line. A team never sets it by hand: `competition::mirrored(entry,
+// override2026::kSkillsMirror)` (competition/field_mirror.hpp) copies an entry and sets it, and the
+// auton runner seats the reflected start and runs the routine inside a chassis::MirroredRun. This file
+// only names the type and checks the name budget; field_mirror.hpp says everything else.
 //
 // PROS-free, allocation-free (fixed capacity), no std::function. NOTHING HERE HAS RUN ON A ROBOT.
 
@@ -92,6 +101,14 @@ inline constexpr std::size_t kMaxAutons = 16;
 /// The longest auton name: "AUTON: " (7 characters) plus the name must fit ONE medium line (B25).
 inline constexpr std::size_t kMaxAutonNameChars = ui::kMediumCols - 7;
 static_assert(kMaxAutonNameChars == 29, "B25 fixes the name budget at kMediumCols - 7 = 29");
+
+/// The longest MIRRORED auton name (MIRROR1-A, the brief's D8): its menu button "<name> SKILLS MIR" —
+/// the name, " SKILLS" (7) and " MIR" (4) — must fit ONE medium line.
+inline constexpr std::size_t kMaxMirroredAutonNameChars = ui::kMediumCols - 11;
+static_assert(kMaxMirroredAutonNameChars == 25, "a mirrored name: kMediumCols - 11 = 25");
+
+/// A field's mirror (MIRROR1-A) — defined in competition/field_mirror.hpp; an entry only points at one.
+struct FieldMirror;
 
 /// The most refused entries one registry keeps the sentences of (refusal()); refusedCount() counts
 /// past it.
@@ -266,6 +283,11 @@ struct AutonEntry {
     units::Time hardStopAt{0.0};
     /// The park. nullptr = `chassis.brake()`.
     AutonEndAction endAction = nullptr;
+    /// MIRROR1-A: the field mirror this entry runs under — robot two's run of robot one's route — or
+    /// nullptr, the entry as written (the default). Set by `competition::mirrored(entry, mirror)`
+    /// (competition/field_mirror.hpp), never by hand; BORROWED (a season constant). A mirrored name is
+    /// at most kMaxMirroredAutonNameChars. (APPENDED last, so every existing initializer compiles.)
+    const FieldMirror* mirror = nullptr;
 
     /// The start pose the runner seats: `start`, or — for a route entry that left it unset — the
     /// route's Start waypoint as a FIELD pose (B16), when that waypoint STATES its heading
@@ -292,7 +314,7 @@ struct AutonVerdict {
 
 /// Can `e` run in a period of `period`? PURE and TOTAL (never throws, never allocates). The
 /// checks, in order: the name (present, printable ASCII, no '%', within kMaxAutonNameChars, not
-/// "NONE"); the kind; exactly one of routine/route; a route that is itself valid; the start pose
+/// "NONE"; a mirrored entry's within kMaxMirroredAutonNameChars); the kind; exactly one of routine/route; a route that is itself valid; the start pose
 /// (B16's rules for a route; set, for a routine) and its finiteness; the schedule (stated, finite,
 /// endActionAt > 0, hardStopAt >= endActionAt); and hardStopAt within `period`. It does NOT check
 /// uniqueness (the registry does) or a route's command registry (the runner does, at run time).
@@ -316,6 +338,11 @@ struct AutonVerdict {
     }
     if (name == kNoAutonName) {
         return refuse(shown, "NONE is the selector's own choice -- pick another name");
+    }
+    if (e.mirror != nullptr && name.size() > kMaxMirroredAutonNameChars) {
+        return refuse(shown,
+                      "a MIRRORED auton's name must be at most 25 characters (its menu button reads "
+                      "'<name> SKILLS MIR' on one screen line)");
     }
     if (e.kind != AutonKind::Match && e.kind != AutonKind::Skills) {
         return refuse(shown, "its kind is not set -- say MATCH or SKILLS");

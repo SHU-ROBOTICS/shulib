@@ -74,6 +74,7 @@
 #include <string_view>
 
 #include "common/boot_source.hpp"
+#include "common/robot_words.hpp"
 #include "robots/mechanism_table.hpp"
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/diag/fault.hpp"
@@ -242,6 +243,11 @@ inline MechanismLine mechanismControlLine(const MechanismTable& list, std::size_
     const char* name = s.name;
     switch (c.kind) {
         case mechanism::ControlKind::Hold:
+            if (c.oneWay) {  // ONE button, one way (driver_inputs.hpp's one-button whileHeld, ROB1-C2)
+                std::snprintf(out.text, sizeof out.text, "%.23s: hold-to-run %s (one way), %d V", name,
+                              teleop::controllerButtonWord(c.button), static_cast<int>(std::lround(c.volts)));
+                break;
+            }
             std::snprintf(out.text, sizeof out.text, "%.23s: hold-to-run %s / %s, %d V", name,
                           teleop::controllerButtonWord(c.button), teleop::controllerButtonWord(c.back),
                           static_cast<int>(std::lround(c.volts)));
@@ -420,7 +426,7 @@ inline void clawTemperatureText(double celsius, char (&out)[8]) {
     std::snprintf(out, sizeof out, "%d", static_cast<int>(std::lround(clamped)));
 }
 
-/// The row when the list declares nothing (every build but ROBOT=tank).
+/// The row when the list declares nothing (every build but ROBOT=tank and ROBOT=one).
 inline constexpr std::string_view kNoClawsRow = "claws: none declared for this robot";
 
 /// The row's widest possible text for `list`, computed from the words it can print — the budget the
@@ -457,19 +463,128 @@ constexpr std::size_t clawRowWorstLength(const MechanismTable& list) noexcept {
     }
     return total + 6;  // " FREED"
 }
+
+// ═══ THE COMPACT ROW (chunk ROB1-C2) — a list whose full row could run past the SMALL budget ═══════
+// Robot one's six mechanisms (the cascade, two side toggles, three pistons) need 98 characters in the
+// full form above. So when a list's full row could run past calibration::kSmallCols, a robot whose
+// words are not the claw words prints the COMPACT row instead (clawRowText's `Words` overload, below):
+//     MECH 10H34 9B31 2B30 CLAW:C FLIP:O RAMP:U
+// — each MOTOR mechanism by its first motor's port, then ONE letter for what its motors were last
+// COMMANDED (F above 0 V, R below, else its declared stop's first letter: H(old) B(rake) C(oast)) and its
+// temperature in whole degrees C, clamped to 0..99 (`--` when the read is not a number); `<port>X` when it
+// was not built. Then each PNEUMATIC by the first four letters of its name in capitals, `:`, and the first
+// letter of the position its lines are at (`?` when they match none, `X` when it was not built); ` FREED`
+// as in the full row. Robot two's builds never print it (their words are the claw words), and a list whose
+// full row fits prints the full row on every robot. Guide chapter 21 has the legend.
+
+/// The compact row's widest possible text for `list` (constexpr; the budget the asserts below hold).
+constexpr std::size_t compactRowWorstLength(const MechanismTable& list) noexcept {
+    if (list.count == 0) {
+        return kNoClawsRow.size();
+    }
+    std::size_t total = 4;  // the robot's row word
+    for (std::size_t i = 0; i < list.count && i < mechanism::kMaxMechanisms; ++i) {
+        const mechanism::MechanismSpec& s = list.specs[i];
+        if (s.kind == mechanism::Kind::Pneumatic) {
+            std::size_t name = 0;
+            while (name < 4 && s.name[name] != '\0') ++name;
+            total += 1 + name + 2;  // " NAME:P"
+            continue;
+        }
+        const std::size_t digits = list.wiring[i].motors[0] >= 10 ? 2 : 1;
+        total += 1 + digits + 3;  // " <port>H34" (an ABSENT one, " <port>X", is shorter)
+    }
+    return total + 6;  // " FREED"
+}
+
+/// The row a robot whose words are NOT the claw words prints for `list`: the full row when it fits the
+/// SMALL budget, else the compact row (above).
+constexpr std::size_t mechanismRowWorstLength(const MechanismTable& list) noexcept {
+    return clawRowWorstLength(list) <= calibration::kSmallCols ? clawRowWorstLength(list)
+                                                               : compactRowWorstLength(list);
+}
+
 static_assert(clawRowWorstLength(robot_two::kRobotTwoMechanisms) <= calibration::kSmallCols,
               "robot two's claw row could run past the SMALL budget");
-static_assert(clawRowWorstLength(kMechanisms) <= calibration::kSmallCols,
+static_assert((ThisRobotWords::value.claw ? clawRowWorstLength(kMechanisms) : mechanismRowWorstLength(kMechanisms)) <=
+                  calibration::kSmallCols,
               "this build's claw row could run past the SMALL budget");
+static_assert(mechanismRowWorstLength(mechanismTableFor(RobotId::RobotOne)) <= calibration::kSmallCols,
+              "robot one's mechanism row could run past the SMALL budget");
 
 /// One panel row: at most calibration::kSmallCols characters.
 struct ClawRow {
     char text[calibration::kSmallCols + 1]{};
 };
 
+/// The COMPACT row for `list` over `robot` and its bound `service` (section banner above), beginning with
+/// `word` (four letters, the robot's row word).
+inline ClawRow compactRowText(const MechanismTable& list, const robot::Robot& robot,
+                              const mechanism::MechanismService& service, bool freed, const char* word) {
+    ClawRow out;
+    if (list.count == 0) {
+        std::snprintf(out.text, sizeof out.text, "%.50s", kNoClawsRow.data());
+        return out;
+    }
+    char row[128] = "";
+    std::size_t n = static_cast<std::size_t>(std::snprintf(row, sizeof row, "%.4s", word));
+    for (std::size_t i = 0; i < list.count && i < robot.mechanismCount() && n < sizeof row; ++i) {
+        const mechanism::MechanismSpec& s = list.specs[i];
+        if (s.kind == mechanism::Kind::Pneumatic) {
+            continue;  // the pneumatics after every motor mechanism (below), as in the full row
+        }
+        const int port = list.wiring[i].motors[0];
+        const hal::MotorMechanism* m = robot.mechanismAt(i);
+        if (m == nullptr) {
+            n += static_cast<std::size_t>(std::snprintf(row + n, sizeof row - n, " %dX", port));
+            continue;
+        }
+        const double v = m->commandedVoltage().value();
+        const char letter = v > 0.0 ? 'F' : (v < 0.0 ? 'R' : mechanismStopWord(s.safeMode)[0]);
+        const double celsius = m->motors().front()->temperature();
+        if (std::isfinite(celsius)) {
+            const double clamped = celsius < 0.0 ? 0.0 : (celsius > 99.0 ? 99.0 : celsius);
+            n += static_cast<std::size_t>(std::snprintf(row + n, sizeof row - n, " %d%c%02d", port, letter,
+                                                        static_cast<int>(std::lround(clamped))));
+        } else {
+            n += static_cast<std::size_t>(std::snprintf(row + n, sizeof row - n, " %d%c--", port, letter));
+        }
+    }
+    for (std::size_t i = 0; i < list.count && i < robot.mechanismCount() && n < sizeof row; ++i) {
+        const mechanism::MechanismSpec& s = list.specs[i];
+        if (s.kind != mechanism::Kind::Pneumatic) {
+            continue;
+        }
+        char name[5] = "";
+        std::size_t k = 0;
+        for (; k < 4 && s.name[k] != '\0'; ++k) {
+            const char c = s.name[k];
+            name[k] = (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
+        }
+        name[k] = '\0';
+        char at = 'X';
+        const mechanism::Slot* slot = service.slotPtr(i);
+        if (slot != nullptr && slot->built()) {
+            const std::uint8_t p = static_cast<const mechanism::PneumaticSlot*>(slot)->commandedPosition();
+            at = '?';
+            if (p < s.pneumatic.positionCount && s.pneumatic.positions[p].name[0] != '\0') {
+                const char c = s.pneumatic.positions[p].name[0];
+                at = (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
+            }
+        }
+        n += static_cast<std::size_t>(std::snprintf(row + n, sizeof row - n, " %s:%c", name, at));
+    }
+    if (freed && n < sizeof row) {
+        std::snprintf(row + n, sizeof row - n, " FREED");
+    }
+    std::snprintf(out.text, sizeof out.text, "%.50s", row);
+    return out;
+}
+
 /// The claw row for `list` over `robot` and its bound `service` (section banner), with ` FREED` when
 /// `freed` — the driver file's releasedLeftoverAtEntry(service) — so every program that runs a driver
-/// file prints the same row, byte for byte.
+/// file prints the same row, byte for byte. (Robot two's row, begun `CLAW`; robot one's begins `MECH` —
+/// the overload below, chunk ROB1-A.)
 inline ClawRow clawRowText(const MechanismTable& list, const robot::Robot& robot,
                            const mechanism::MechanismService& service, bool freed) {
     ClawRow out;
@@ -532,6 +647,32 @@ inline ClawRow clawRowText(const MechanismTable& list, const robot::Robot& robot
         std::snprintf(row + n, sizeof row - n, " FREED");
     }
     std::snprintf(out.text, sizeof out.text, "%.50s", row);
+    return out;
+}
+
+/// The same row in robot `Words`' words (chunk ROB1-A, re-check R7; src/common/robot_words.hpp): its
+/// first word is the robot's — robot two's `CLAW`, robot one's `MECH`, four letters each, so
+/// clawRowWorstLength()'s budget holds for both. Robot two's builds never call it: a program picks it
+/// only for a robot whose words are not the claw words (`ThisRobotWords::value.claw ? … : …`), so robot
+/// two's packages keep the function above, byte for byte (the ROB1 brief's T6 — an earlier cut that
+/// made the function above a template changed GCC's inlining of it into robot two's Drive and
+/// Competition). A host test passes `WordsOf<RobotId::RobotOne>{}`. Since ROB1-C2: a list whose full row
+/// could run past the SMALL budget (robot one's six mechanisms) gets the COMPACT row instead
+/// (compactRowText, above) — mechanismRowWorstLength() is that budget.
+template <class Words>
+inline ClawRow clawRowText(const MechanismTable& list, const robot::Robot& robot,
+                           const mechanism::MechanismService& service, bool freed, Words) {
+    if constexpr (!Words::value.claw) {
+        if (clawRowWorstLength(list) > calibration::kSmallCols) {  // the full row could not fit: compact
+            return compactRowText(list, robot, service, freed, Words::value.rowWord);
+        }
+    }
+    ClawRow out = clawRowText(list, robot, service, freed);
+    if constexpr (!Words::value.claw) {
+        if (list.count != 0) {
+            std::memcpy(out.text, Words::value.rowWord, 4);  // `CLAW` -> the robot's four letters
+        }
+    }
     return out;
 }
 
@@ -639,6 +780,30 @@ struct ControllerScreen {
         std::snprintf(s.line[1], sizeof s.line[1], "hdg %+6.1f deg", f.headingDegrees);
     }
     std::snprintf(s.line[2], sizeof s.line[2], "%.19s", controllerWord(f));
+    return s;
+}
+
+/// Line 2's word in robot `Words`' words (chunk ROB1-A, re-check R7): the chooser above, with the
+/// absent word the robot's — robot two's `CLAW ABSENT` (kLcdClawAbsent), robot one's `MECH ABSENT`
+/// (src/common/robot_words.hpp). Like clawRowText()'s overload, robot two's builds never call it (T6).
+template <class Words>
+[[nodiscard]] inline const char* controllerWord(const ControllerFacts& f, Words) noexcept {
+    const char* word = controllerWord(f);
+    if constexpr (!Words::value.claw) {
+        if (word == kLcdClawAbsent.data()) {
+            return Words::value.lcdAbsent;
+        }
+    }
+    return word;
+}
+
+/// The controller's three lines in robot `Words`' words: line 2 from controllerWord(f, Words{}).
+template <class Words>
+[[nodiscard]] inline ControllerScreen controllerScreenLines(const ControllerFacts& f, Words) noexcept {
+    ControllerScreen s = controllerScreenLines(f);
+    if constexpr (!Words::value.claw) {
+        std::snprintf(s.line[2], sizeof s.line[2], "%.19s", controllerWord(f, Words{}));
+    }
     return s;
 }
 

@@ -5,7 +5,8 @@
 // picks both").
 //
 // ═══ THE RULE ═════════════════════════════════════════════════════════════════════════
-// The build switches — SHULIB_ROBOT_XDRIVE_INVENTED, SHULIB_ROBOT_TANK_2026, SHULIB_PROGRAM_DRIVE,
+// The build switches — SHULIB_ROBOT_XDRIVE_INVENTED, SHULIB_ROBOT_TANK_2026, SHULIB_ROBOT_ONE_2026
+// (robot one, ROB1-A 2026-11-11), SHULIB_PROGRAM_DRIVE,
 // SHULIB_PROGRAM_CALIBRATE, SHULIB_PROGRAM_AUTONTEST, SHULIB_PROGRAM_COMPETITION and SHULIB_PROGRAM_TUNE, set by the
 // Makefile's validated ROBOT and PROGRAM variables — are READ IN THIS FILE AND NOWHERE ELSE: not in
 // another src/ file, not in a
@@ -76,7 +77,8 @@
 //  the BENCH variant. GATE1 replaced it with the validated ROBOT switch in the Makefile, and
 //  tools/src_build_gate.py asserts per build that the defines really land — as whole command-line
 //  TOKENS, and end-to-end via the beacons below.)
-#if defined(SHULIB_ROBOT_XDRIVE_INVENTED) && defined(SHULIB_ROBOT_TANK_2026)
+#if (defined(SHULIB_ROBOT_XDRIVE_INVENTED) + defined(SHULIB_ROBOT_TANK_2026) \
+     + defined(SHULIB_ROBOT_ONE_2026)) > 1
 #error "two robot variant defines are set at once -- select exactly one with make ROBOT=..."
 #endif
 #if (defined(SHULIB_PROGRAM_DRIVE) + defined(SHULIB_PROGRAM_CALIBRATE) \
@@ -84,22 +86,25 @@
      + defined(SHULIB_PROGRAM_TUNE)) > 1
 #error "two PROGRAM defines are set at once -- select exactly one with make PROGRAM=..."
 #endif
-#if defined(SHULIB_PROGRAM_DRIVE) && !defined(SHULIB_ROBOT_TANK_2026)
-#error "PROGRAM=drive needs ROBOT=tank -- only robot two has a driver file and a calibration record"
+// The four programs past the bench tester need a robot with a driver file, autons and a record: robot
+// two (ROBOT=tank) or, since ROB1-A (2026-11-11), robot one (ROBOT=one). Robot two's words are kept;
+// "or ROBOT=one" is appended.
+#if defined(SHULIB_PROGRAM_DRIVE) && !defined(SHULIB_ROBOT_TANK_2026) && !defined(SHULIB_ROBOT_ONE_2026)
+#error "PROGRAM=drive needs ROBOT=tank or ROBOT=one -- only robot two and robot one have a driver file and a calibration record"
 #endif
-#if defined(SHULIB_PROGRAM_CALIBRATE) && !defined(SHULIB_ROBOT_TANK_2026)
-#error "PROGRAM=calibrate needs ROBOT=tank -- the calibrator supports only a tank drivetrain and takes the cartridge from this robot's chassis table"
+#if defined(SHULIB_PROGRAM_CALIBRATE) && !defined(SHULIB_ROBOT_TANK_2026) && !defined(SHULIB_ROBOT_ONE_2026)
+#error "PROGRAM=calibrate needs ROBOT=tank or ROBOT=one -- the calibrator supports only a tank drivetrain and takes the cartridge from this robot's chassis table"
 #endif
-#if defined(SHULIB_PROGRAM_AUTONTEST) && !defined(SHULIB_ROBOT_TANK_2026)
-#error "PROGRAM=autontest needs ROBOT=tank -- the team's autons (src/team/autons.cpp) are robot two's, and only robot two boots from a calibration record"
+#if defined(SHULIB_PROGRAM_AUTONTEST) && !defined(SHULIB_ROBOT_TANK_2026) && !defined(SHULIB_ROBOT_ONE_2026)
+#error "PROGRAM=autontest needs ROBOT=tank or ROBOT=one -- the team's autons (src/team/autons.cpp, src/team/robot_one_autons.cpp) are robot two's and robot one's, and only they boot from a calibration record"
 #endif
-#if defined(SHULIB_PROGRAM_COMPETITION) && !defined(SHULIB_ROBOT_TANK_2026)
-#error "PROGRAM=competition needs ROBOT=tank -- the team's autons and driver file (src/team/) are robot two's, and only robot two boots from a calibration record"
+#if defined(SHULIB_PROGRAM_COMPETITION) && !defined(SHULIB_ROBOT_TANK_2026) && !defined(SHULIB_ROBOT_ONE_2026)
+#error "PROGRAM=competition needs ROBOT=tank or ROBOT=one -- the team's autons and driver files (src/team/) are robot two's and robot one's, and only they boot from a calibration record"
 #endif
 // PROGRAM=tune (TUNE1-B1): a robot with a Tune branch in the chain below — one per robot in the
 // Makefile's MECHANISM_ROBOTS (a robot whose mechanism table is not empty). A robot that registers a
 // table adds its branch there and its define here; without them the build falls to no Tune branch.
-#if defined(SHULIB_PROGRAM_TUNE) && !defined(SHULIB_ROBOT_TANK_2026)
+#if defined(SHULIB_PROGRAM_TUNE) && !defined(SHULIB_ROBOT_TANK_2026) && !defined(SHULIB_ROBOT_ONE_2026)
 #error "PROGRAM=tune needs a ROBOT whose mechanism table is not empty -- this ROBOT has no Tune branch in src/build_selection.hpp's chain (see the Makefile's MECHANISM_ROBOTS)"
 #endif
 
@@ -107,9 +112,9 @@ namespace shulib::bench {
 
 /// The programs a build can be. src/main.cpp's five entry points switch on it.
 enum class Program {
-    BenchTests,      ///< "Bench Tests" — the bench bot's, or robot two's (ROBOT=tank)
-    Drive,           ///< "shulib Drive" — robot two's driver file on the library (T4 Part 3)
-    Calibrate,       ///< "shulib Calibrate" — robot two measures itself
+    BenchTests,      ///< "Bench Tests" — the bench bot's, robot two's (ROBOT=tank) or robot one's (ROBOT=one)
+    Drive,           ///< "shulib Drive" — a robot's driver file on the library (T4 Part 3; robot one since ROB1-A)
+    Calibrate,       ///< "shulib Calibrate" — the robot measures itself
     InventedXDrive,  ///< the invented X-drive (HA-111)
     AutonTester,     ///< "shulib Auton Tester" — runs one of the team's autons from RUN (COMP-t)
     Competition,     ///< "shulib Competition" — the competition program (COMP-b)
@@ -122,14 +127,16 @@ enum class RobotId {
     BenchBot,        ///< the measured tank bench bot (the team's old competition robot)
     RobotTwo,        ///< the 2026 tank chassis, robot two
     InventedXDrive,  ///< the invented X-drive (A4 register HA-111; no such robot exists)
+    RobotOne,        ///< the 2026 cascade robot, robot one (ROB1-A; built ~2026-11-14 — nothing has run on it)
 };
 
 // ═══ THE ONE CHAIN: the program, the robot AND the beacon, chosen in the same branch ════════
 // The VARIANT IDENTITY BEACON (R3b Session 2) is one string per BUILD, printed in the program's
 // boot banner so it is referenced and survives into the linked package; the gate asserts the
-// expected one IS in bin/hot.package.elf and the other seven — and the RETIRED `...=tank-library` —
+// expected one IS in bin/hot.package.elf and the other thirteen — and the RETIRED `...=tank-library` —
 // are NOT (matched WITH the NUL terminator, because `...=tank` is a prefix of `...=tank-drive`,
-// `...=tank-calibrate`, `...=tank-autontest`, `...=tank-competition` and `...=tank-tune`). Every branch sets all
+// `...=tank-calibrate`, `...=tank-autontest`, `...=tank-competition` and `...=tank-tune`, and `...=one`
+// of robot one's five `...=one-<program>`). Every branch sets all
 // three constants and nothing else, so a broken or
 // renamed #if here changes the program, the robot and the beacon at once, and the gate FAILS. NEVER
 // select a program or a robot anywhere else, and never with a second chain. Each beacon is
@@ -163,6 +170,30 @@ inline constexpr char kVariantBeacon[] = "shulib-robot-variant=tank-tune";
 inline constexpr Program kProgram = Program::BenchTests;
 inline constexpr RobotId kRobotId = RobotId::RobotTwo;
 inline constexpr char kVariantBeacon[] = "shulib-robot-variant=tank";
+#elif defined(SHULIB_ROBOT_ONE_2026) && defined(SHULIB_PROGRAM_DRIVE)
+inline constexpr Program kProgram = Program::Drive;
+inline constexpr RobotId kRobotId = RobotId::RobotOne;
+inline constexpr char kVariantBeacon[] = "shulib-robot-variant=one-drive";
+#elif defined(SHULIB_ROBOT_ONE_2026) && defined(SHULIB_PROGRAM_CALIBRATE)
+inline constexpr Program kProgram = Program::Calibrate;
+inline constexpr RobotId kRobotId = RobotId::RobotOne;
+inline constexpr char kVariantBeacon[] = "shulib-robot-variant=one-calibrate";
+#elif defined(SHULIB_ROBOT_ONE_2026) && defined(SHULIB_PROGRAM_AUTONTEST)
+inline constexpr Program kProgram = Program::AutonTester;
+inline constexpr RobotId kRobotId = RobotId::RobotOne;
+inline constexpr char kVariantBeacon[] = "shulib-robot-variant=one-autontest";
+#elif defined(SHULIB_ROBOT_ONE_2026) && defined(SHULIB_PROGRAM_COMPETITION)
+inline constexpr Program kProgram = Program::Competition;
+inline constexpr RobotId kRobotId = RobotId::RobotOne;
+inline constexpr char kVariantBeacon[] = "shulib-robot-variant=one-competition";
+#elif defined(SHULIB_ROBOT_ONE_2026) && defined(SHULIB_PROGRAM_TUNE)
+inline constexpr Program kProgram = Program::Tune;
+inline constexpr RobotId kRobotId = RobotId::RobotOne;
+inline constexpr char kVariantBeacon[] = "shulib-robot-variant=one-tune";
+#elif defined(SHULIB_ROBOT_ONE_2026)
+inline constexpr Program kProgram = Program::BenchTests;
+inline constexpr RobotId kRobotId = RobotId::RobotOne;
+inline constexpr char kVariantBeacon[] = "shulib-robot-variant=one";
 #else
 inline constexpr Program kProgram = Program::BenchTests;
 inline constexpr RobotId kRobotId = RobotId::BenchBot;
@@ -184,6 +215,8 @@ constexpr const char* robotBeacon(RobotId id) {
             return "shulib-robot=robot-two";
         case RobotId::InventedXDrive:
             return "shulib-robot=invented-xdrive";
+        case RobotId::RobotOne:
+            return "shulib-robot=robot-one";
     }
     __builtin_unreachable();
 }

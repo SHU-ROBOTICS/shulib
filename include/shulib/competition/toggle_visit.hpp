@@ -137,6 +137,15 @@
 // excursion lookFrom - pushFrom of twice the tracker's `frozenMoveIn` or less (the look after could
 // not see a frozen camera).
 //
+// ── A MIRRORED auton (chunk MIRROR1-A, 2026-11-13; competition/field_mirror.hpp) ─────────────────
+// The route names robot one's Toggle; `entry` says the run is robot two's, mirrored. The step reads the
+// localizer and drives the scheduler — below the Chassis's mirror, the REAL field — so it swaps for
+// itself: the request's Toggle becomes its IMAGE under the entry's mirror (override2026::mirroredToggle,
+// found from the season's places: robot one's red wall Toggle is robot two's right wall Toggle, left
+// <-> blue wall), whose Quadrant colour is the same (checked at compile time in override_mirror.hpp), so
+// "ours" does not change. Rule 1's WRONG WALL check, the look spot, the [TGL] line — every rule — then
+// reads the real Toggle; every other field of the request is a size or a mechanism and stays.
+//
 // PROS-free, sim-free, allocation-free; single-task. It never runs in the background and never reads
 // the camera outside its own waits. NOTHING HERE HAS RUN ON A ROBOT: every rule has run against the
 // host test plant (the drive, the arm and the host Toggle and camera models) and nothing else.
@@ -149,6 +158,7 @@
 
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/competition/auton_registry.hpp"
+#include "shulib/competition/override_mirror.hpp"
 #include "shulib/config/camera_config.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
@@ -682,7 +692,8 @@ public:
     ToggleVisit(ExplicitToggleCamera& cam, chassis::Chassis& chassis, sequence::RunGuard& guard,
                 mechanism::MechanismService* service, const AutonEntry& entry, const ToggleVisitRequest& request,
                 hal::ITelemetrySink& sink)
-        : cam_{cam}, chassis_{chassis}, guard_{guard}, svc_{service}, entry_{entry}, req_{request}, sink_{sink} {}
+        : cam_{cam}, chassis_{chassis}, guard_{guard}, svc_{service}, entry_{entry}, req_{realRequest(entry, request)},
+          sink_{sink} {}
 
     /// The whole visit (`lookOnly`: rules 1–3 only, SEEN NOT OURS when not ours).
     ToggleVisitReport run(bool lookOnly) {
@@ -1446,12 +1457,22 @@ private:
         return "running";
     }
 
+    /// MIRROR1-A: the request as the REAL field reads it — for a mirrored entry, the Toggle swapped for
+    /// its image under the entry's mirror (override2026::mirroredToggle; the same Quadrant colour, so
+    /// "ours" is unchanged); every other field is a size or a mechanism and stays. Everything below
+    /// reads the localizer and drives the scheduler — the real field — so this is the one swap.
+    [[nodiscard]] static ToggleVisitRequest realRequest(const AutonEntry& entry, const ToggleVisitRequest& request) {
+        ToggleVisitRequest r = request;
+        r.toggle = override2026::mirroredToggle(entry, request.toggle);
+        return r;
+    }
+
     ExplicitToggleCamera& cam_;
     chassis::Chassis& chassis_;
     sequence::RunGuard& guard_;
     mechanism::MechanismService* svc_;
     const AutonEntry& entry_;
-    const ToggleVisitRequest& req_;
+    const ToggleVisitRequest req_;  ///< the request with its REAL Toggle (realRequest; MIRROR1-A)
     hal::ITelemetrySink& sink_;
     ToggleVisitReport rep_{};
     std::optional<vision::ToggleTracker> tracker_{};

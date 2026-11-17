@@ -9,8 +9,8 @@
 
 ## The shape of the problem
 
-You've asked the robot to go to (24, 36) facing 90°. The localizer (Chapter 3) says it's
-currently at (0, 0) facing 0°. The kinematics (Chapter 4) can turn any desired velocity into
+You've asked the robot to go to (24, 36) facing 90°. The localizer ([Chapter 3](03-knowing-where-you-are.md)) says it's
+currently at (0, 0) facing 0°. The kinematics ([Chapter 4](04-drivetrains.md)) can turn any desired velocity into
 wheel speeds. The missing piece is the decision: *at this instant, how fast should the robot be
 trying to move, and in which direction?*
 
@@ -50,14 +50,14 @@ buzz nervously.
 
 That's the whole idea. PID is not magic and not deep — it's "push proportionally, notice being
 stuck, brake early," summed. What makes it feel like dark arts is **tuning**: choosing the three
-gains for a specific robot, which is honest trial-and-error guided by the symptoms above
+gains for a specific robot, which is plain trial-and-error guided by the symptoms above
 (sluggish → more P; stops short → a touch of I; overshoots → more D or less P).
 
 Two shulib specifics worth knowing:
 
 - There are separate controllers for position and for heading, running simultaneously — that's
   what makes "drive there while rotating to face this way" one motion instead of two
-  (Chapter 4's holonomic point, realized in control).
+  ([Chapter 4](04-drivetrains.md)'s holonomic point, realized in control).
 - **Every gain in the library today is a placeholder.** They're tuned to the *simulated* robot,
   and they will all be re-tuned when a real robot exists. Each is registered as an assumption
   (HA-50 and neighbors in the [Hardware Assumptions Register](../hardware-assumptions.md)). Do
@@ -80,7 +80,7 @@ doesn't oscillate.
 The model's constants (you'll see `kS`, `kV`, `kA` in configs — friction, speed, acceleration
 terms) are measured from the actual robot by driving it through a calibration script… on a robot
 we don't have yet. Today's values match the host test plant's physics by construction. This is the
-honest circularity of pre-hardware work: the control *logic* is proven, the *constants* are
+circularity of pre-hardware work: the control *logic* is proven, the *constants* are
 stand-ins.
 
 ## Settling: how the robot knows it has arrived
@@ -103,7 +103,7 @@ configuration):
 3. **For long enough** — both of the above sustained for a short hold time (e.g. a tenth of a
    second), so one lucky flicker of sensor noise can't declare victory.
 
-When all three hold, the motion reports **`Settled`** — the honest "I have arrived." Heading has
+When all three hold, the motion reports **`Settled`** — "I have arrived." Heading has
 its own tolerance trio (currently about a degree — and note the settle tolerance can't be tighter
 than sensor noise, or the robot would never be "still enough"; the config file documents this
 trade).
@@ -120,7 +120,7 @@ gets 3 seconds"). If the budget expires before settling, the motion stops the mo
 motion can hang*, and this is one of the most heavily tested properties in the library. Your
 routine always gets control back, always knows whether the leg succeeded, and can decide what to
 do next — retry, skip, or head for the next scoring opportunity. The third possible answer,
-**`Cancelled`**, means something outside the motion stopped it (your code, or a fault — Chapter 6).
+**`Cancelled`**, means something outside the motion stopped it (your code, or a fault — [Chapter 6](06-how-things-fail.md)).
 
 These three words — `Settled`, `TimedOut`, `Cancelled` — are the vocabulary every motion ends
 with. You'll see them as return values in code and as `SETTLED` / `TIMEOUT` / `CANCELLED` in the

@@ -1,168 +1,57 @@
-# The shulib guide
+# How it works
 
-The user guide for shulib, written for a new team member who wants to write autonomous routines
-and is not (yet) a robotics expert. **Start at [Chapter 1](01-what-is-this.md)** and read in
-order — each chapter assumes the ones before it and says so in its header.
+<a id="the-shulib-guide"></a>These pages explain the ideas behind shulib in order, with little or no code. Read them once, front
+to back, when you are new — or hand them to a new member.
 
-| # | Chapter | What it is |
+## The ideas, in order
+
+1. [What is this?](01-what-is-this.md) — VEX U, the autonomous problem, and what shulib does.
+2. [The field and coordinates](02-the-field-and-coordinates.md) — positions, headings, and the field's mirror.
+3. [Where the robot is](03-knowing-where-you-are.md) — wheel tracking, drift, and how sensors are combined.
+4. [Drivetrains](04-drivetrains.md) — tank, X-drive and H-drive, and what each can and cannot do.
+5. [Driving, turning and curves](05-getting-there.md) — how a move reaches its target, and when it gives up.
+6. [How things fail](06-how-things-fail.md) — drift, slip, dead sensors, a low battery, running out of time.
+7. [A routine built by hand](08-your-first-routine.md) — a first routine, every line explained.
+8. [The API in words](10-the-api.md) — every verb: what it does, when to use it, how it fails.
+
+A word you do not know is in the [Glossary](15-glossary.md).
+
+## Which kind of page to read
+
+| <a id="the-other-two-documents"></a>You want… | Read |
+|---|---|
+| to understand an idea | these pages, in order |
+| code to copy for the job in front of you | the [recipes](../cookbook/README.md) |
+| the exact spelling of a function or a type | the [API reference](../api/README.md) — generated from the code, so it cannot disagree with it |
+
+## Every page by its old chapter number
+
+For mentors, and for older notes that say "chapter N". The menu shows titles only.
+
+| # | Page | In the menu under |
 |---|---|---|
-| 1 | [What is this?](01-what-is-this.md) | VEX U, the autonomous problem, what shulib does — and its honest status |
-| 2 | [The field and coordinates](02-the-field-and-coordinates.md) | Coordinates, pose, field-relative vs robot-relative |
-| 3 | [Knowing where you are](03-knowing-where-you-are.md) | Odometry, drift, what each sensor knows, fusion |
-| 4 | [Drivetrains](04-drivetrains.md) | Holonomic vs tank vs H-drive; kinematics; strafe authority |
-| 5 | [Getting there: control](05-getting-there.md) | PID without anxiety, feedforward, settling, the watchdog, curves |
-| 6 | [How things fail](06-how-things-fail.md) | Drift, slip, dead sensors, brownout — and the fault philosophy |
-| 7 | [Getting set up](07-getting-set-up.md) | Build, run the tests, read the output, the repo layout |
-| 8 | [Your first routine](08-your-first-routine.md) | The full tutorial, every line explained |
-| 9 | [The recipe API](09-the-recipe-api.md) | Tier 2: a routine as a chain of steps, and what happens when one fails |
-| 10 | [The API, as prose](10-the-api.md) | Every verb: what, when, failure behavior, gotchas |
-| 11 | [Reading the diagnostics](11-reading-the-diagnostics.md) | The transcript line by line; every fault code; printing your own lines |
-| 12 | [When things go wrong](12-when-things-go-wrong.md) | Symptom-first troubleshooting |
-| 13 | [Extending the library](13-extending-the-library.md) | The layers, the testing bar, adding drivetrains/motions |
-| 14 | [What it can't do yet](14-what-it-cannot-do-yet.md) | The honest limits, each linked to its tracking doc |
-| 15 | [Glossary](15-glossary.md) | Every term, one sentence |
-| 16 | [Testing an auton on the bench](16-testing-an-auton-on-the-bench.md) | "shulib Auton Tester", the team's auton file, and reading a run against the tape |
-| 17 | [The competition program](17-the-competition-program.md) | "shulib Competition": the auton chosen on the brain's menu in `autonomous()`, what ends it, driver control, the refusals |
-| 18 | [Mechanisms: arms, lifts, flywheels — in autons, on buttons, on routes](18-mechanisms.md) | How a position and a speed mechanism move, hold, find their zero, stay inside their limits and stop on a jam; the starting values and `.tuning`; a mechanism step on one line of an auton, the driver file's controls, every mechanism's route ids run, the direction check's judgement, and the bench page that runs it (Bench Tests' station 13) |
-| 19 | [Calibrating your robot](19-calibrating-your-robot.md) | The standard "shulib Calibrate": the three facts you state, your 21-line file, one run, what each ending means, FRONT FLIPPED and MECHANISM PORT TURNED, listing every mechanism motor, the optional typed drive ports |
-| 20 | [The camera: which colour the Toggle shows, and which piece is which](20-the-camera.md) | One loop reads the camera for everyone; the Toggle tracker (RED, BLUE, YELLOW — or UNKNOWN with the reason); the piece finder (take ONE named piece, or none); freshness as time; where the camera sits; what a colour means and what it cannot tell |
+| 1 | [What is this?](01-what-is-this.md) | Learn |
+| 2 | [The field and coordinates](02-the-field-and-coordinates.md) | Routes |
+| 3 | [Where the robot is, and wall resets](03-knowing-where-you-are.md) | Routes |
+| 4 | [Drivetrains](04-drivetrains.md) | Learn |
+| 5 | [Driving, turning and curves](05-getting-there.md) | Routes |
+| 6 | [How things fail](06-how-things-fail.md) | Learn |
+| 7 | [Build and upload the programs](07-getting-set-up.md) | Robot |
+| 8 | [A routine built by hand](08-your-first-routine.md) | Learn |
+| 9 | [The steps of a route](09-the-recipe-api.md) | Routes |
+| 10 | [The API in words](10-the-api.md) | Learn |
+| 11 | [Reading the log](11-reading-the-diagnostics.md) | Troubleshoot |
+| 12 | [When things go wrong](12-when-things-go-wrong.md) | Troubleshoot |
+| 13 | [Extend the library](13-extending-the-library.md) | Project |
+| 14 | [What it cannot do yet](14-what-it-cannot-do-yet.md) | Troubleshoot |
+| 15 | [Glossary](15-glossary.md) | Learn |
+| 16 | [Try a route before the field](16-testing-an-auton-on-the-bench.md) | Routes |
+| 17 | [Match day — the competition program](17-the-competition-program.md) | Robot |
+| 18 | [Declare, drive and tune a mechanism](18-mechanisms.md) | Mechanisms |
+| 19 | [Calibrate the drive](19-calibrating-your-robot.md) | Robot |
+| 20 | [The camera and the Toggle](20-the-camera.md) | Routes |
+| 21 | [Add your robot](21-adding-your-robot-by-hand.md) | Robot |
+| 22 | [Make your first route](22-making-your-first-route.md) | Route builder |
 
-## The other two documents
-
-The guide is one of three, and they answer different questions. Reaching for the wrong one is
-the most common way to waste an afternoon.
-
-| Document | Answers | Read it |
-|---|---|---|
-| **This guide** | *How does any of this work?* | Once, in order, while learning |
-| **[The cookbook](../cookbook/README.md)** | *How do I write the routine I am writing right now?* | Out of order, mid-task |
-| **[The API reference](../api/README.md)** | *What exactly exists, and what is its exact spelling?* | When you need a signature |
-
-The reference is **generated from the headers** by a tool, so it cannot disagree with the code,
-and a public member that ships with no documentation fails the build by name. That means the
-guide and the cookbook never need to restate a signature — and must not: a signature copied by
-hand is a fact that will go stale.
-
----
-
-## Maintenance (read before editing the guide)
-
-### How it's organised
-
-Numbered files, one topic each, so updating a topic means editing one file. Chapters 1–6 are
-concepts (no code) and should rot slowly; 7–12 and 16–19 touch the code and rot fast — check
-them first when the API moves. (Chapter 16, the bench auton tester, was added after the glossary
-at chunk COMP-t, chapter 17, the competition program, after it at COMP-b, chapter 18, the
-mechanisms, at MECH-A3, and chapter 19, calibrating your robot, at CAL1 — so the glossary kept its
-number.) (Chapter 9 was a deliberately reserved slot from the start; the Tier-2
-recipe chapter filled it at chunk D1 as an *added file*, with nothing renumbered — the
-pattern to reuse.) Add future chapters either into a reserved slot or at the end (before the
-glossary stays the glossary — renumber only as a last resort, in one commit, updating every
-cross-link).
-
-### Where the code examples live — the anti-rot rule
-
-**Every code listing in the guide compiles and runs in
-[`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp).** The test cases are named
-for their chapters (`guide-08a` → chapter 8, and so on), and the guide quotes their listings
-*verbatim*. The rule, in both directions: change code there → update the chapter's listing;
-change a listing → update the test. A mismatch is a bug even if both sides work. CI compiles
-and runs the file on every commit, so an example that stops building turns the suite red — the
-guide cannot silently rot below the compiler's line of sight. Prose *claims* about behavior are
-held as assertions in the same cases wherever practical.
-
-**The verbatim half of that rule is now checked by a machine.** Until 2026-08-12 it was checked
-only by a person running an internal script — so a listing could drift from the test that
-compiles it and pass both the build and CI. (It was found by deliberately introducing the
-drift: a chapter's `300_ms` retyped to `300_s` built clean and passed the whole suite.) The
-build and CI now run a scan that requires every non-blank line inside a ```` ```cpp ```` block in
-any public document to appear verbatim in a compiled source: a compiled example test, or one of
-the team's files under `src/team/` that a chapter quotes (today: robot two's driver file,
-`src/team/robot_two_driver.hpp`, which the cookbook's chapter 6 quotes, and the team's auton
-file, `src/team/autons.cpp`, which chapters 16 and 17 quote — the host suite compiles it and runs
-every auton in it) — never the rest of `src/`. A listing of either file must also be one unbroken run
-of the file's lines, so a line added to the file inside a part a chapter shows fails the scan
-too. The sources are matched by
-globs, one per kind of file, so a new examples file is covered the moment it exists, and a kind
-that matches no file fails the scan. The same run also checks that no public document links into
-the development-process notes.
-
-**Where this applies:** `docs/guide/`, `docs/cookbook/`, `docs/*.md`, and the repo `README.md`.
-It deliberately does *not* apply to `docs/api/`, which is generated in full and checked by a
-stronger rule instead — its whole directory must be byte-identical to a fresh generation, so a
-hand-written file dropped there fails too. Every public document is covered by exactly one of
-the two mechanisms.
-
-Transcript excerpts (chapters 8 and 11) come from real runs:
-
-```sh
-SHULIB_GUIDE_PRINT=1 ./build/test/shulib_tests -tc='guide-*'
-```
-
-regenerates them. Chapter 11's line formats are additionally byte-pinned by the diagnostics
-tests named in that chapter — if formats change, those tests change, and chapter 11 must
-follow.
-
-### Facts policy: link, don't restate
-
-Test counts, register sizes, milestone statuses, freeze states — the guide links to the
-[README](../../README.md), [roadmap](../roadmap.md),
-[Hardware Assumptions Register](../hardware-assumptions.md), and
-[diagnostics plan](../diagnostics-plan.md) rather than copying numbers. Where a number genuinely
-serves the prose (a transcript, a "57 as of 2026-08-10"), it's dated. If you find an undated
-copied fact, that's a bug: link it or date it.
-
-Two structural rules inherited from the repo: the guide is **public documentation** — it may
-link only to other public documents (this `docs/` level, the repo README, headers, tests),
-never to development-process notes that exist only on a working branch (bare chunk ids like
-"D1" or "R1" are fine as vocabulary; the roadmap gives them context). And examples must
-respect the CI guards (no PROS includes, no sim includes from core) since they compile inside
-the test suite.
-
-### When the API changes, check in this order
-
-1. `test/guide_examples_test.cpp` — does it still compile and pass? (CI answers this for you.)
-2. Chapter 10 (the API chapter), then chapter 8's
-   listings and transcripts, then chapter 11 if any output format moved. **The `Chassis` API
-   is frozen (F6, 2026-08-12):** a deliberate change to a frozen signature is a *breaking*
-   change — it rides a major version bump with a migration note
-   ([`include/shulib/version.hpp`](../../include/shulib/version.hpp)) and an update to the
-   signature pin ([`test/f6_signature_pin_test.cpp`](../../test/f6_signature_pin_test.cpp));
-   the chapters follow the change, never lead it.
-3. Chapter 14 when a limitation falls (that's the *good* kind of doc rot — celebrate, then
-   delete the paragraph and its glossary entries if any).
-4. ✅ Executed 2026-08-12 (D3): the recipe spellings froze as register row **F10**, so chapter
-   9's stability notice and chapter 14's "recipe spellings" bullet were rewritten the way D2's
-   freeze retired the API notices. Both now say *frozen*, and both name the one deliberate
-   exception — `then()`, the mechanism seam, which stays unfrozen until F1/F3 build the
-   mechanisms it exists for. A change to a frozen `Routine` spelling is a *breaking* change and
-   rides the same procedure as F6's, updating
-   [`test/routine_signature_pin_test.cpp`](../../test/routine_signature_pin_test.cpp).
-5. ✅ Executed 2026-08-13 (F1): the mechanism layer landed, so chapter 9's `then()` section
-   was rewritten around the compiled operation idiom (`guide-09d` — the example set is now
-   09a/b/c/d), chapter 13 gained "Extension 3: building a mechanism", and chapter 14's
-   placeholder section fell (celebrated, then replaced with the honest host-only status).
-   The old `chassis.moveTo(p).then(intake.in)` spelling was corrected everywhere it was
-   quoted — it was never valid C++ (verbs return `ExitReason`; a member function is passed
-   as a lambda) — and chapter 14's "no cookbook yet" line, stale since D3 shipped one, was
-   fixed. `then()` and the mechanism seam remain unfrozen (register row F11) until F3.
-6. ✅ Executed 2026-08-13 (F2): the run-scoped deadline + guaranteed end-of-run action landed
-   (`sequence/run_guard.hpp`), so chapter 6 gained "Running out of match" (the failure class no
-   per-step bound can see), chapter 9 gained the match-clock section (the frozen waits' exact
-   lateness bound and the `guard.waitFor` idiom, compiled as `sequence-02`), chapter 12 gained
-   the `SEQ`-transcript triage section, and chapter 14 gained the guarantee's boundary —
-   quoted VERBATIM from the project record, because that claim is the one most likely to be
-   over-quoted and the honest version is narrower than the word "guaranteed". The compiled
-   examples live in `test/sequence_example_test.cpp` (sequence-01/02/03). The sequence layer
-   is NOT frozen (register row F12) — chapter 14's freeze paragraph still lists only F6/F10.
-7. The [generated reference](../api/README.md) needs no step at all — it regenerates from the
-   headers and the build fails if the committed copy is stale. If you changed a `///` comment,
-   run `python3 tools/api_doc_tool.py generate` and commit what it writes.
-
-### Voice
-
-Written the way a patient senior member explains things sitting next to someone. Plain
-sentences; no marketing. Define every term at first use (and mirror it in the glossary). Prefer
-a concrete number to an abstraction, and a reason to a rule. Admit what's hard and what's
-unverified — this library has never driven a robot under its own control, and the guide says so wherever it matters.
-If a sentence sounds like a tagline, delete it.
+<a id="maintenance-read-before-editing-the-guide"></a><a id="how-its-organised"></a><a id="where-the-code-examples-live--the-anti-rot-rule"></a><a id="facts-policy-link-dont-restate"></a><a id="when-the-api-changes-check-in-this-order"></a><a id="voice"></a>**Maintenance** (how these pages are kept true: every listing compiled, every page in the menu) moved to
+[How these pages stay true](../how-the-docs-stay-true.md).

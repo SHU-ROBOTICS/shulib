@@ -10,7 +10,7 @@ mechanism/tune_panel.hpp — "shulib Tune"'s brain screen as a PURE MODEL: what 
 
 This header declares **10** types (113 members), **3** free functions, and **13** constants.
 
-Extracted from [`include/shulib/mechanism/tune_panel.hpp`](../../include/shulib/mechanism/tune_panel.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/mechanism/tune_panel.hpp`](../../include/shulib/mechanism/tune_panel.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 
@@ -555,12 +555,12 @@ Where it is drawn (its hit box is ui::hitBox() of this).
 ### `TuneButtonView::label`
 
 ```cpp
-char label[16]{}
+char label[24]{}
 ```
 
-Its label (SMALL text, centred).
+Its label (SMALL text, centred). Room for the longest label written in tuneView() ("READY - I AM CLEAR", 18 characters) — a 16-byte box once cut it to "READY - I AM CL"; tune_panel_test pins every label whole.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:109`](../../include/shulib/mechanism/tune_panel.hpp#L109).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:110`](../../include/shulib/mechanism/tune_panel.hpp#L110).*
 
 <a id="tunebuttonview-armed"></a>
 
@@ -572,7 +572,7 @@ bool armed = false
 
 It takes touches (false: greyed — not available, or the layout is still arming).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:111`](../../include/shulib/mechanism/tune_panel.hpp#L111).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:112`](../../include/shulib/mechanism/tune_panel.hpp#L112).*
 
 <a id="tunebuttonview-tone"></a>
 
@@ -584,7 +584,7 @@ ui::Tone tone = ui::Tone::Blue
 
 Its colour by meaning (STOP red, GO and READY green, the rest blue).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:113`](../../include/shulib/mechanism/tune_panel.hpp#L113).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:114`](../../include/shulib/mechanism/tune_panel.hpp#L114).*
 
 <a id="struct-tuneline"></a>
 
@@ -596,7 +596,7 @@ struct TuneLine
 
 One text line as a page draws it.
 
-*struct, declared at [`include/shulib/mechanism/tune_panel.hpp:117`](../../include/shulib/mechanism/tune_panel.hpp#L117).*
+*struct, declared at [`include/shulib/mechanism/tune_panel.hpp:118`](../../include/shulib/mechanism/tune_panel.hpp#L118).*
 
 <a id="tuneline-text"></a>
 
@@ -608,7 +608,7 @@ char text[ui::kSmallCols + 1]{}
 
 The text, at most kSmallCols characters (a LARGE line at most kLargeCols).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:119`](../../include/shulib/mechanism/tune_panel.hpp#L119).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:120`](../../include/shulib/mechanism/tune_panel.hpp#L120).*
 
 <a id="tuneline-size"></a>
 
@@ -620,7 +620,7 @@ ui::TextSize size = ui::TextSize::Small
 
 Its size.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:121`](../../include/shulib/mechanism/tune_panel.hpp#L121).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:122`](../../include/shulib/mechanism/tune_panel.hpp#L122).*
 
 <a id="tuneline-x"></a>
 
@@ -632,7 +632,7 @@ std::int16_t x = 0
 
 Its left column.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:123`](../../include/shulib/mechanism/tune_panel.hpp#L123).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:124`](../../include/shulib/mechanism/tune_panel.hpp#L124).*
 
 <a id="tuneline-y"></a>
 
@@ -644,7 +644,7 @@ std::int16_t y = 0
 
 Its top row.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:125`](../../include/shulib/mechanism/tune_panel.hpp#L125).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:126`](../../include/shulib/mechanism/tune_panel.hpp#L126).*
 
 <a id="tuneline-tone"></a>
 
@@ -656,7 +656,7 @@ ui::Tone tone = ui::Tone::White
 
 Its colour by meaning.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:127`](../../include/shulib/mechanism/tune_panel.hpp#L127).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:128`](../../include/shulib/mechanism/tune_panel.hpp#L128).*
 
 <a id="ktunemaxlines"></a>
 
@@ -668,7 +668,7 @@ inline constexpr std::size_t kTuneMaxLines = 10
 
 The most text lines a page has.
 
-*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:131`](../../include/shulib/mechanism/tune_panel.hpp#L131).*
+*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:132`](../../include/shulib/mechanism/tune_panel.hpp#L132).*
 
 <a id="ktunemaxbuttons"></a>
 
@@ -680,7 +680,7 @@ inline constexpr std::size_t kTuneMaxButtons = 16
 
 The most buttons a page has.
 
-*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:133`](../../include/shulib/mechanism/tune_panel.hpp#L133).*
+*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:134`](../../include/shulib/mechanism/tune_panel.hpp#L134).*
 
 <a id="struct-tuneview"></a>
 
@@ -692,7 +692,7 @@ struct TuneView
 
 One page as it is to be drawn: its lines and its buttons.
 
-*struct, declared at [`include/shulib/mechanism/tune_panel.hpp:136`](../../include/shulib/mechanism/tune_panel.hpp#L136).*
+*struct, declared at [`include/shulib/mechanism/tune_panel.hpp:137`](../../include/shulib/mechanism/tune_panel.hpp#L137).*
 
 <a id="tuneview-page"></a>
 
@@ -704,7 +704,7 @@ TunePage page = TunePage::Clear
 
 Which page.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:138`](../../include/shulib/mechanism/tune_panel.hpp#L138).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:139`](../../include/shulib/mechanism/tune_panel.hpp#L139).*
 
 <a id="tuneview-lines"></a>
 
@@ -716,7 +716,7 @@ std::array<TuneLine, kTuneMaxLines> lines{}
 
 Its text lines.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:140`](../../include/shulib/mechanism/tune_panel.hpp#L140).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:141`](../../include/shulib/mechanism/tune_panel.hpp#L141).*
 
 <a id="tuneview-linecount"></a>
 
@@ -728,7 +728,7 @@ std::size_t lineCount = 0
 
 How many lines are real.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:142`](../../include/shulib/mechanism/tune_panel.hpp#L142).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:143`](../../include/shulib/mechanism/tune_panel.hpp#L143).*
 
 <a id="tuneview-buttons"></a>
 
@@ -740,7 +740,7 @@ std::array<TuneButtonView, kTuneMaxButtons> buttons{}
 
 Its buttons.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:144`](../../include/shulib/mechanism/tune_panel.hpp#L144).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:145`](../../include/shulib/mechanism/tune_panel.hpp#L145).*
 
 <a id="tuneview-buttoncount"></a>
 
@@ -752,7 +752,7 @@ std::size_t buttonCount = 0
 
 How many buttons are real.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:146`](../../include/shulib/mechanism/tune_panel.hpp#L146).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:147`](../../include/shulib/mechanism/tune_panel.hpp#L147).*
 
 <a id="tuneview-layoutkey"></a>
 
@@ -764,7 +764,7 @@ How many buttons are real.
 
 The LAYOUT's key: the page and every button's identity and rectangle — never whether a button is armed, never text (ui::LayoutKey). An ArmingClock restarts when it changes.
 
-*function, declared at [`include/shulib/mechanism/tune_panel.hpp:150`](../../include/shulib/mechanism/tune_panel.hpp#L150).*
+*function, declared at [`include/shulib/mechanism/tune_panel.hpp:151`](../../include/shulib/mechanism/tune_panel.hpp#L151).*
 
 <a id="tuneview-button"></a>
 
@@ -776,7 +776,7 @@ The LAYOUT's key: the page and every button's identity and rectangle — never w
 
 The button with `id`, or nullptr when the page has none.
 
-*function, declared at [`include/shulib/mechanism/tune_panel.hpp:160`](../../include/shulib/mechanism/tune_panel.hpp#L160).*
+*function, declared at [`include/shulib/mechanism/tune_panel.hpp:161`](../../include/shulib/mechanism/tune_panel.hpp#L161).*
 
 <a id="enum-class-tunetest"></a>
 
@@ -788,7 +788,7 @@ enum class TuneTest : std::uint8_t
 
 Which test a report is of.
 
-*enum class, declared at [`include/shulib/mechanism/tune_panel.hpp:171`](../../include/shulib/mechanism/tune_panel.hpp#L171).*
+*enum class, declared at [`include/shulib/mechanism/tune_panel.hpp:172`](../../include/shulib/mechanism/tune_panel.hpp#L172).*
 
 <a id="tunetest-none"></a>
 
@@ -800,7 +800,7 @@ None
 
 none
 
-*enumerator, declared at [`include/shulib/mechanism/tune_panel.hpp:172`](../../include/shulib/mechanism/tune_panel.hpp#L172).*
+*enumerator, declared at [`include/shulib/mechanism/tune_panel.hpp:173`](../../include/shulib/mechanism/tune_panel.hpp#L173).*
 
 <a id="tunetest-a"></a>
 
@@ -812,7 +812,7 @@ A
 
 TEST A
 
-*enumerator, declared at [`include/shulib/mechanism/tune_panel.hpp:173`](../../include/shulib/mechanism/tune_panel.hpp#L173).*
+*enumerator, declared at [`include/shulib/mechanism/tune_panel.hpp:174`](../../include/shulib/mechanism/tune_panel.hpp#L174).*
 
 <a id="tunetest-b"></a>
 
@@ -824,7 +824,7 @@ B
 
 TEST B
 
-*enumerator, declared at [`include/shulib/mechanism/tune_panel.hpp:174`](../../include/shulib/mechanism/tune_panel.hpp#L174).*
+*enumerator, declared at [`include/shulib/mechanism/tune_panel.hpp:175`](../../include/shulib/mechanism/tune_panel.hpp#L175).*
 
 <a id="struct-tunereport"></a>
 
@@ -836,7 +836,7 @@ struct TuneReport
 
 A TEST move's report (re-check #3, #7): what the program measured from its samples (tune_program.hpp's tuneReportFrom()). A field the move cannot have is negative ("n/a").
 
-*struct, declared at [`include/shulib/mechanism/tune_panel.hpp:179`](../../include/shulib/mechanism/tune_panel.hpp#L179).*
+*struct, declared at [`include/shulib/mechanism/tune_panel.hpp:180`](../../include/shulib/mechanism/tune_panel.hpp#L180).*
 
 <a id="tunereport-test"></a>
 
@@ -848,7 +848,7 @@ TuneTest test = TuneTest::None
 
 Which test.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:181`](../../include/shulib/mechanism/tune_panel.hpp#L181).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:182`](../../include/shulib/mechanism/tune_panel.hpp#L182).*
 
 <a id="tunereport-kind"></a>
 
@@ -860,7 +860,7 @@ Kind kind = Kind::Position
 
 The mechanism's kind.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:183`](../../include/shulib/mechanism/tune_panel.hpp#L183).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:184`](../../include/shulib/mechanism/tune_panel.hpp#L184).*
 
 <a id="tunereport-unit"></a>
 
@@ -872,7 +872,7 @@ const char* unit = ""
 
 The mechanism's unit word ("in", "deg", "rpm", "V").
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:185`](../../include/shulib/mechanism/tune_panel.hpp#L185).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:186`](../../include/shulib/mechanism/tune_panel.hpp#L186).*
 
 <a id="tunereport-target"></a>
 
@@ -884,7 +884,7 @@ double target = 0.0
 
 The target (a position, an output rpm, or the volts of a power run).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:187`](../../include/shulib/mechanism/tune_panel.hpp#L187).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:188`](../../include/shulib/mechanism/tune_panel.hpp#L188).*
 
 <a id="tunereport-verdict"></a>
 
@@ -896,7 +896,7 @@ const char* verdict = ""
 
 The verdict (manipulation::mechanismOutcomeName's word).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:189`](../../include/shulib/mechanism/tune_panel.hpp#L189).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:190`](../../include/shulib/mechanism/tune_panel.hpp#L190).*
 
 <a id="tunereport-seconds"></a>
 
@@ -908,7 +908,7 @@ double seconds = 0.0
 
 Seconds from the command to the verdict (the service's StepReport::elapsed).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:191`](../../include/shulib/mechanism/tune_panel.hpp#L191).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:192`](../../include/shulib/mechanism/tune_panel.hpp#L192).*
 
 <a id="tunereport-bound"></a>
 
@@ -920,7 +920,7 @@ double bound = 0.0
 
 The move's time limit, seconds (re-check #7: the plan's time × 2 + the settle time + 0.5 s, at most 10 s).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:194`](../../include/shulib/mechanism/tune_panel.hpp#L194).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:195`](../../include/shulib/mechanism/tune_panel.hpp#L195).*
 
 <a id="tunereport-overshoot"></a>
 
@@ -932,7 +932,7 @@ double overshoot = -1.0
 
 The farthest past the target in the direction of travel, ≥ 0 (negative: n/a).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:196`](../../include/shulib/mechanism/tune_panel.hpp#L196).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:197`](../../include/shulib/mechanism/tune_panel.hpp#L197).*
 
 <a id="tunereport-settle"></a>
 
@@ -944,7 +944,7 @@ double settle = -1.0
 
 Seconds from the first sample inside "reached" (or the at-speed band) to the verdict (negative: never inside, or n/a).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:199`](../../include/shulib/mechanism/tune_panel.hpp#L199).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:200`](../../include/shulib/mechanism/tune_panel.hpp#L200).*
 
 <a id="tunereport-peakamps"></a>
 
@@ -956,7 +956,7 @@ double peakAmps = 0.0
 
 The most current any of its motors drew during the move, A.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:201`](../../include/shulib/mechanism/tune_panel.hpp#L201).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:202`](../../include/shulib/mechanism/tune_panel.hpp#L202).*
 
 <a id="tunereport-finalerror"></a>
 
@@ -968,7 +968,7 @@ double finalError = 0.0
 
 Where it ended minus the target (negative values are short of it upward; n/a for a power run — see `hasFinalError`).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:204`](../../include/shulib/mechanism/tune_panel.hpp#L204).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:205`](../../include/shulib/mechanism/tune_panel.hpp#L205).*
 
 <a id="tunereport-hasfinalerror"></a>
 
@@ -980,7 +980,7 @@ bool hasFinalError = false
 
 `finalError` means something (not a power run).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:206`](../../include/shulib/mechanism/tune_panel.hpp#L206).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:207`](../../include/shulib/mechanism/tune_panel.hpp#L207).*
 
 <a id="tunereport-holdamps"></a>
 
@@ -992,7 +992,7 @@ double holdAmps = -1.0
 
 The mean current over the second after it settled, A (negative: n/a — the move did not succeed, a power run, or `holdEnded` / `holdStopped` says why).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:209`](../../include/shulib/mechanism/tune_panel.hpp#L209).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:210`](../../include/shulib/mechanism/tune_panel.hpp#L210).*
 
 <a id="tunereport-holdended"></a>
 
@@ -1004,7 +1004,7 @@ bool holdEnded = false
 
 The hold ENDED inside its second: the stall signature tripped on the hold itself (V1) — the hold is n/a and the stall warning is set.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:212`](../../include/shulib/mechanism/tune_panel.hpp#L212).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:213`](../../include/shulib/mechanism/tune_panel.hpp#L213).*
 
 <a id="tunereport-holdstopped"></a>
 
@@ -1016,7 +1016,7 @@ bool holdStopped = false
 
 A STOP ended the hold second (`stoppedBy` names it): the hold is n/a, with no warning of its own.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:214`](../../include/shulib/mechanism/tune_panel.hpp#L214).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:215`](../../include/shulib/mechanism/tune_panel.hpp#L215).*
 
 <a id="tunereport-stallamps"></a>
 
@@ -1028,7 +1028,7 @@ double stallAmps = 0.0
 
 Its stall signature's amps (0: it states none).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:216`](../../include/shulib/mechanism/tune_panel.hpp#L216).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:217`](../../include/shulib/mechanism/tune_panel.hpp#L217).*
 
 <a id="tunereport-capamps"></a>
 
@@ -1040,7 +1040,7 @@ double capAmps = 0.0
 
 Its current cap, A per motor (0: none).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:218`](../../include/shulib/mechanism/tune_panel.hpp#L218).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:219`](../../include/shulib/mechanism/tune_panel.hpp#L219).*
 
 <a id="tunereport-warnstallnotabovehold"></a>
 
@@ -1052,7 +1052,7 @@ bool warnStallNotAboveHold = false
 
 WARNING: the stall signature is not above the hold current — an ordinary hold can trip it.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:220`](../../include/shulib/mechanism/tune_panel.hpp#L220).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:221`](../../include/shulib/mechanism/tune_panel.hpp#L221).*
 
 <a id="tunereport-warncapnotabovepeak"></a>
 
@@ -1064,7 +1064,7 @@ bool warnCapNotAbovePeak = false
 
 WARNING: the cap is not above the peak — the cap limited the move.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:222`](../../include/shulib/mechanism/tune_panel.hpp#L222).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:223`](../../include/shulib/mechanism/tune_panel.hpp#L223).*
 
 <a id="tunereport-stoppedby"></a>
 
@@ -1076,7 +1076,7 @@ const char* stoppedBy = ""
 
 For a CANCELLED move: what stopped it ("a controller button"), else "".
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:224`](../../include/shulib/mechanism/tune_panel.hpp#L224).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:225`](../../include/shulib/mechanism/tune_panel.hpp#L225).*
 
 <a id="struct-tunemechfacts"></a>
 
@@ -1088,7 +1088,7 @@ struct TuneMechFacts
 
 The facts the TUNE page shows about the selected mechanism.
 
-*struct, declared at [`include/shulib/mechanism/tune_panel.hpp:228`](../../include/shulib/mechanism/tune_panel.hpp#L228).*
+*struct, declared at [`include/shulib/mechanism/tune_panel.hpp:229`](../../include/shulib/mechanism/tune_panel.hpp#L229).*
 
 <a id="tunemechfacts-name"></a>
 
@@ -1100,7 +1100,7 @@ const char* name = ""
 
 Its name (at most 23 characters; the program passes the spec's).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:230`](../../include/shulib/mechanism/tune_panel.hpp#L230).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:231`](../../include/shulib/mechanism/tune_panel.hpp#L231).*
 
 <a id="tunemechfacts-kind"></a>
 
@@ -1112,7 +1112,7 @@ Kind kind = Kind::Power
 
 Its kind.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:232`](../../include/shulib/mechanism/tune_panel.hpp#L232).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:233`](../../include/shulib/mechanism/tune_panel.hpp#L233).*
 
 <a id="tunemechfacts-units"></a>
 
@@ -1124,7 +1124,7 @@ Units units = Units::Degrees
 
 A position mechanism's units.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:234`](../../include/shulib/mechanism/tune_panel.hpp#L234).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:235`](../../include/shulib/mechanism/tune_panel.hpp#L235).*
 
 <a id="tunemechfacts-built"></a>
 
@@ -1136,7 +1136,7 @@ bool built = true
 
 Built at boot (false: ABSENT).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:236`](../../include/shulib/mechanism/tune_panel.hpp#L236).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:237`](../../include/shulib/mechanism/tune_panel.hpp#L237).*
 
 <a id="tunemechfacts-homed"></a>
 
@@ -1148,7 +1148,7 @@ bool homed = false
 
 A position mechanism has found its zero.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:238`](../../include/shulib/mechanism/tune_panel.hpp#L238).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:239`](../../include/shulib/mechanism/tune_panel.hpp#L239).*
 
 <a id="tunemechfacts-homes"></a>
 
@@ -1160,7 +1160,7 @@ bool homes = false
 
 A position mechanism has a homing step (`.home` other than neverHomed).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:240`](../../include/shulib/mechanism/tune_panel.hpp#L240).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:241`](../../include/shulib/mechanism/tune_panel.hpp#L241).*
 
 <a id="tunemechfacts-now"></a>
 
@@ -1172,7 +1172,7 @@ double now = 0.0
 
 Where it is (a position mechanism, its units) or how fast (a flywheel, output rpm), or the volts commanded (a power mechanism).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:243`](../../include/shulib/mechanism/tune_panel.hpp#L243).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:244`](../../include/shulib/mechanism/tune_panel.hpp#L244).*
 
 <a id="tunemechfacts-target"></a>
 
@@ -1184,7 +1184,7 @@ double target = 0.0
 
 What it aims at (a position's hold or move target, a flywheel's target rpm; 0 when none).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:245`](../../include/shulib/mechanism/tune_panel.hpp#L245).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:246`](../../include/shulib/mechanism/tune_panel.hpp#L246).*
 
 <a id="tunemechfacts-active"></a>
 
@@ -1196,7 +1196,7 @@ bool active = false
 
 A flywheel is spinning / a position mechanism holds or moves.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:247`](../../include/shulib/mechanism/tune_panel.hpp#L247).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:248`](../../include/shulib/mechanism/tune_panel.hpp#L248).*
 
 <a id="tunemechfacts-lastverdict"></a>
 
@@ -1208,7 +1208,7 @@ const char* lastVerdict = ""
 
 Its last verdict's word ("" before any).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:249`](../../include/shulib/mechanism/tune_panel.hpp#L249).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:250`](../../include/shulib/mechanism/tune_panel.hpp#L250).*
 
 <a id="tunemechfacts-changed"></a>
 
@@ -1220,7 +1220,7 @@ bool changed = false
 
 Any of its numbers differ from the robot file's.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:251`](../../include/shulib/mechanism/tune_panel.hpp#L251).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:252`](../../include/shulib/mechanism/tune_panel.hpp#L252).*
 
 <a id="tunemechfacts-capchanged"></a>
 
@@ -1232,7 +1232,7 @@ bool capChanged = false
 
 Its current cap differs from the robot file's (re-check #8: a cap set here stays in the motor).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:253`](../../include/shulib/mechanism/tune_panel.hpp#L253).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:254`](../../include/shulib/mechanism/tune_panel.hpp#L254).*
 
 <a id="struct-tuneparamfacts"></a>
 
@@ -1244,7 +1244,7 @@ struct TuneParamFacts
 
 One live number as the TUNE page shows it.
 
-*struct, declared at [`include/shulib/mechanism/tune_panel.hpp:257`](../../include/shulib/mechanism/tune_panel.hpp#L257).*
+*struct, declared at [`include/shulib/mechanism/tune_panel.hpp:258`](../../include/shulib/mechanism/tune_panel.hpp#L258).*
 
 <a id="tuneparamfacts-name"></a>
 
@@ -1256,7 +1256,7 @@ const char* name = nullptr
 
 Its page name ("kP"; live_tuning.hpp's Parameter::name). Null: no number (a pneumatic).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:259`](../../include/shulib/mechanism/tune_panel.hpp#L259).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:260`](../../include/shulib/mechanism/tune_panel.hpp#L260).*
 
 <a id="tuneparamfacts-value"></a>
 
@@ -1268,7 +1268,7 @@ double value = 0.0
 
 Its live value.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:261`](../../include/shulib/mechanism/tune_panel.hpp#L261).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:262`](../../include/shulib/mechanism/tune_panel.hpp#L262).*
 
 <a id="tuneparamfacts-file"></a>
 
@@ -1280,7 +1280,7 @@ double file = 0.0
 
 The robot file's value.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:263`](../../include/shulib/mechanism/tune_panel.hpp#L263).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:264`](../../include/shulib/mechanism/tune_panel.hpp#L264).*
 
 <a id="tuneparamfacts-unit"></a>
 
@@ -1292,7 +1292,7 @@ const char* unit = ""
 
 Its unit word (tunableUnit()).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:265`](../../include/shulib/mechanism/tune_panel.hpp#L265).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:266`](../../include/shulib/mechanism/tune_panel.hpp#L266).*
 
 <a id="tuneparamfacts-rule"></a>
 
@@ -1304,7 +1304,7 @@ StepRule rule = StepRule::Gain
 
 How a press moves it.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:267`](../../include/shulib/mechanism/tune_panel.hpp#L267).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:268`](../../include/shulib/mechanism/tune_panel.hpp#L268).*
 
 <a id="tuneparamfacts-capnone"></a>
 
@@ -1316,7 +1316,7 @@ bool capNone = false
 
 It is a current cap the mechanism does not state (live and in the file): the page says how one starts ([−] from none sets the motor's 2.5 A less one step; [+] from none is above the motor's most and refused — live_tuning.hpp's step rule).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:271`](../../include/shulib/mechanism/tune_panel.hpp#L271).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:272`](../../include/shulib/mechanism/tune_panel.hpp#L272).*
 
 <a id="struct-tunefacts"></a>
 
@@ -1328,7 +1328,7 @@ struct TuneFacts
 
 Everything a page shows, as plain facts (the program fills it every frame).
 
-*struct, declared at [`include/shulib/mechanism/tune_panel.hpp:275`](../../include/shulib/mechanism/tune_panel.hpp#L275).*
+*struct, declared at [`include/shulib/mechanism/tune_panel.hpp:276`](../../include/shulib/mechanism/tune_panel.hpp#L276).*
 
 <a id="tunefacts-page"></a>
 
@@ -1340,7 +1340,7 @@ TunePage page = TunePage::Clear
 
 Which page.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:277`](../../include/shulib/mechanism/tune_panel.hpp#L277).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:278`](../../include/shulib/mechanism/tune_panel.hpp#L278).*
 
 <a id="tunefacts-armed"></a>
 
@@ -1352,7 +1352,7 @@ bool armed = false
 
 The layout has been up long enough to take touches (ui::ArmingClock::armedAfter).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:279`](../../include/shulib/mechanism/tune_panel.hpp#L279).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:280`](../../include/shulib/mechanism/tune_panel.hpp#L280).*
 
 <a id="tunefacts-mechcount"></a>
 
@@ -1364,7 +1364,7 @@ std::size_t mechCount = 0
 
 How many mechanisms the robot declares.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:281`](../../include/shulib/mechanism/tune_panel.hpp#L281).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:282`](../../include/shulib/mechanism/tune_panel.hpp#L282).*
 
 <a id="tunefacts-mech"></a>
 
@@ -1376,7 +1376,7 @@ std::size_t mech = 0
 
 Which one is shown (0-based).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:283`](../../include/shulib/mechanism/tune_panel.hpp#L283).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:284`](../../include/shulib/mechanism/tune_panel.hpp#L284).*
 
 <a id="tunefacts-m"></a>
 
@@ -1388,7 +1388,7 @@ TuneMechFacts m{}
 
 The shown mechanism.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:285`](../../include/shulib/mechanism/tune_panel.hpp#L285).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:286`](../../include/shulib/mechanism/tune_panel.hpp#L286).*
 
 <a id="tunefacts-sel"></a>
 
@@ -1400,7 +1400,7 @@ TuneParamFacts sel{}
 
 The selected number.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:287`](../../include/shulib/mechanism/tune_panel.hpp#L287).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:288`](../../include/shulib/mechanism/tune_panel.hpp#L288).*
 
 <a id="tunefacts-next"></a>
 
@@ -1412,7 +1412,7 @@ TuneParamFacts next{}
 
 The number after it (for the "next:" line), name null at the end of the list.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:289`](../../include/shulib/mechanism/tune_panel.hpp#L289).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:290`](../../include/shulib/mechanism/tune_panel.hpp#L290).*
 
 <a id="tunefacts-param"></a>
 
@@ -1424,7 +1424,7 @@ std::size_t param = 0
 
 Which number is selected (0-based) and how many the mechanism has.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:291`](../../include/shulib/mechanism/tune_panel.hpp#L291).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:292`](../../include/shulib/mechanism/tune_panel.hpp#L292).*
 
 <a id="tunefacts-paramcount"></a>
 
@@ -1436,7 +1436,7 @@ std::size_t paramCount = 0
 
 How many numbers the mechanism has live.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:293`](../../include/shulib/mechanism/tune_panel.hpp#L293).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:294`](../../include/shulib/mechanism/tune_panel.hpp#L294).*
 
 <a id="tunefacts-fine"></a>
 
@@ -1448,7 +1448,7 @@ bool fine = false
 
 FINE is on.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:295`](../../include/shulib/mechanism/tune_panel.hpp#L295).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:296`](../../include/shulib/mechanism/tune_panel.hpp#L296).*
 
 <a id="tunefacts-busy"></a>
 
@@ -1460,7 +1460,7 @@ bool busy = false
 
 A test move, a homing or a test's hold second is running: every button but STOP is greyed.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:297`](../../include/shulib/mechanism/tune_panel.hpp#L297).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:298`](../../include/shulib/mechanism/tune_panel.hpp#L298).*
 
 <a id="tunefacts-undodepth"></a>
 
@@ -1472,7 +1472,7 @@ std::size_t undoDepth = 0
 
 How many changes UNDO can reach.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:299`](../../include/shulib/mechanism/tune_panel.hpp#L299).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:300`](../../include/shulib/mechanism/tune_panel.hpp#L300).*
 
 <a id="tunefacts-controller"></a>
 
@@ -1484,7 +1484,7 @@ bool controller = false
 
 The controller is connected.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:301`](../../include/shulib/mechanism/tune_panel.hpp#L301).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:302`](../../include/shulib/mechanism/tune_panel.hpp#L302).*
 
 <a id="tunefacts-field"></a>
 
@@ -1496,7 +1496,7 @@ bool field = false
 
 VEXos reports a field or a competition switch plugged in.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:303`](../../include/shulib/mechanism/tune_panel.hpp#L303).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:304`](../../include/shulib/mechanism/tune_panel.hpp#L304).*
 
 <a id="tunefacts-buttonheld"></a>
 
@@ -1508,7 +1508,7 @@ bool buttonHeld = false
 
 A controller button is held (every button is a STOP): READY waits.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:305`](../../include/shulib/mechanism/tune_panel.hpp#L305).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:306`](../../include/shulib/mechanism/tune_panel.hpp#L306).*
 
 <a id="tunefacts-anycapchanged"></a>
 
@@ -1520,7 +1520,7 @@ bool anyCapChanged = false
 
 ANY mechanism's live current cap differs from the robot file's (the TUNE page's safety line: a cap set here stays in the motor — EXIT before you stop).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:308`](../../include/shulib/mechanism/tune_panel.hpp#L308).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:309`](../../include/shulib/mechanism/tune_panel.hpp#L309).*
 
 <a id="tunefacts-status"></a>
 
@@ -1532,7 +1532,7 @@ const char* status = ""
 
 The last sentence (an applied change, a refusal, a verdict): wrapped onto two lines, cut there.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:310`](../../include/shulib/mechanism/tune_panel.hpp#L310).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:311`](../../include/shulib/mechanism/tune_panel.hpp#L311).*
 
 <a id="tunefacts-testa"></a>
 
@@ -1544,7 +1544,7 @@ double testA = 0.0
 
 TEST A's target in the mechanism's unit, and its name ("floor", or "1/4" of the range).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:312`](../../include/shulib/mechanism/tune_panel.hpp#L312).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:313`](../../include/shulib/mechanism/tune_panel.hpp#L313).*
 
 <a id="tunefacts-testb"></a>
 
@@ -1556,7 +1556,7 @@ double testB = 0.0
 
 TEST B's target.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:314`](../../include/shulib/mechanism/tune_panel.hpp#L314).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:315`](../../include/shulib/mechanism/tune_panel.hpp#L315).*
 
 <a id="tunefacts-testaname"></a>
 
@@ -1568,7 +1568,7 @@ const char* testAName = ""
 
 TEST A's name.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:316`](../../include/shulib/mechanism/tune_panel.hpp#L316).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:317`](../../include/shulib/mechanism/tune_panel.hpp#L317).*
 
 <a id="tunefacts-testbname"></a>
 
@@ -1580,7 +1580,7 @@ const char* testBName = ""
 
 TEST B's name.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:318`](../../include/shulib/mechanism/tune_panel.hpp#L318).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:319`](../../include/shulib/mechanism/tune_panel.hpp#L319).*
 
 <a id="tunefacts-confirmwhat"></a>
 
@@ -1592,7 +1592,7 @@ const char* confirmWhat = ""
 
 CONFIRM: what will move it ("TEST A", "HOME", "the stick").
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:320`](../../include/shulib/mechanism/tune_panel.hpp#L320).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:321`](../../include/shulib/mechanism/tune_panel.hpp#L321).*
 
 <a id="tunefacts-report"></a>
 
@@ -1604,7 +1604,7 @@ TuneReport report{}
 
 REPORT: the report.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:322`](../../include/shulib/mechanism/tune_panel.hpp#L322).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:323`](../../include/shulib/mechanism/tune_panel.hpp#L323).*
 
 <a id="tunefacts-limitswritten"></a>
 
@@ -1616,7 +1616,7 @@ int limitsWritten = 0
 
 EXITED: how many limits were written back.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:324`](../../include/shulib/mechanism/tune_panel.hpp#L324).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:325`](../../include/shulib/mechanism/tune_panel.hpp#L325).*
 
 <a id="tunefacts-copiedatexit"></a>
 
@@ -1628,7 +1628,7 @@ int copiedAtExit = 0
 
 EXITED: how many mechanisms' changed numbers EXIT COPIED to the log first (never copied since their last change).
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:327`](../../include/shulib/mechanism/tune_panel.hpp#L327).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:328`](../../include/shulib/mechanism/tune_panel.hpp#L328).*
 
 <a id="tunefacts-resetatexit"></a>
 
@@ -1640,7 +1640,7 @@ int resetAtExit = 0
 
 EXITED: how many mechanisms EXIT had to RESET (a live signature at or above the file's cap, so the cap alone could not go back) — each COPIED first.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:330`](../../include/shulib/mechanism/tune_panel.hpp#L330).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:331`](../../include/shulib/mechanism/tune_panel.hpp#L331).*
 
 <a id="tunefacts-stoppedwhy"></a>
 
@@ -1652,7 +1652,7 @@ const char* stoppedWhy = ""
 
 STOPPED: why.
 
-*field, declared at [`include/shulib/mechanism/tune_panel.hpp:332`](../../include/shulib/mechanism/tune_panel.hpp#L332).*
+*field, declared at [`include/shulib/mechanism/tune_panel.hpp:333`](../../include/shulib/mechanism/tune_panel.hpp#L333).*
 
 <a id="kpitch"></a>
 
@@ -1664,7 +1664,7 @@ inline constexpr std::int16_t kPitch = ui::kSmallHeight
 
 The SMALL line pitch on every page, pixels (ui::kSmallHeight).
 
-*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:337`](../../include/shulib/mechanism/tune_panel.hpp#L337).*
+*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:338`](../../include/shulib/mechanism/tune_panel.hpp#L338).*
 
 <a id="ktitley"></a>
 
@@ -1676,7 +1676,7 @@ inline constexpr std::int16_t kTitleY = 0
 
 The tuning page's three top lines.
 
-*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:339`](../../include/shulib/mechanism/tune_panel.hpp#L339).*
+*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:340`](../../include/shulib/mechanism/tune_panel.hpp#L340).*
 
 <a id="kstatey"></a>
 
@@ -1688,7 +1688,7 @@ inline constexpr std::int16_t kStateY = 16
 
 The state line.
 
-*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:341`](../../include/shulib/mechanism/tune_panel.hpp#L341).*
+*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:342`](../../include/shulib/mechanism/tune_panel.hpp#L342).*
 
 <a id="ksafetyy"></a>
 
@@ -1700,7 +1700,7 @@ inline constexpr std::int16_t kSafetyY = 32
 
 The safety line (the controller, the field, a cap left changed).
 
-*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:343`](../../include/shulib/mechanism/tune_panel.hpp#L343).*
+*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:344`](../../include/shulib/mechanism/tune_panel.hpp#L344).*
 
 <a id="krow1"></a>
 
@@ -1712,7 +1712,7 @@ inline constexpr ui::Rect kRow1{0, 52, 479, 81}
 
 Row 1 (‹ › ^ v − + FINE).
 
-*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:345`](../../include/shulib/mechanism/tune_panel.hpp#L345).*
+*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:346`](../../include/shulib/mechanism/tune_panel.hpp#L346).*
 
 <a id="kparamy"></a>
 
@@ -1724,7 +1724,7 @@ inline constexpr std::int16_t kParamY = 86
 
 The selected number's three lines.
 
-*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:347`](../../include/shulib/mechanism/tune_panel.hpp#L347).*
+*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:348`](../../include/shulib/mechanism/tune_panel.hpp#L348).*
 
 <a id="krow2"></a>
 
@@ -1736,7 +1736,7 @@ inline constexpr ui::Rect kRow2{0, 136, 479, 165}
 
 Row 2 (TEST A, TEST B, HOME, UNDO, RESET, COPY).
 
-*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:349`](../../include/shulib/mechanism/tune_panel.hpp#L349).*
+*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:350`](../../include/shulib/mechanism/tune_panel.hpp#L350).*
 
 <a id="kstatusy"></a>
 
@@ -1748,7 +1748,7 @@ inline constexpr std::int16_t kStatusY = 169
 
 The two status lines.
 
-*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:351`](../../include/shulib/mechanism/tune_panel.hpp#L351).*
+*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:352`](../../include/shulib/mechanism/tune_panel.hpp#L352).*
 
 <a id="krow3"></a>
 
@@ -1760,7 +1760,7 @@ inline constexpr ui::Rect kRow3{0, 204, 479, 235}
 
 Row 3 (STRING, STOP, EXIT) — and the other pages' one row of buttons.
 
-*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:353`](../../include/shulib/mechanism/tune_panel.hpp#L353).*
+*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:354`](../../include/shulib/mechanism/tune_panel.hpp#L354).*
 
 <a id="klargetitley"></a>
 
@@ -1772,7 +1772,7 @@ inline constexpr std::int16_t kLargeTitleY = 2
 
 A LARGE title's top row on the other pages.
 
-*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:355`](../../include/shulib/mechanism/tune_panel.hpp#L355).*
+*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:356`](../../include/shulib/mechanism/tune_panel.hpp#L356).*
 
 <a id="kbodyy"></a>
 
@@ -1784,7 +1784,7 @@ inline constexpr std::int16_t kBodyY = 42
 
 The other pages' first SMALL line.
 
-*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:357`](../../include/shulib/mechanism/tune_panel.hpp#L357).*
+*constant, declared at [`include/shulib/mechanism/tune_panel.hpp:358`](../../include/shulib/mechanism/tune_panel.hpp#L358).*
 
 <a id="tunelabelcols"></a>
 
@@ -1796,7 +1796,7 @@ The other pages' first SMALL line.
 
 The SMALL characters a button `r` fits (at the width the SMALL budget implies over 472 px).
 
-*free function, declared at [`include/shulib/mechanism/tune_panel.hpp:471`](../../include/shulib/mechanism/tune_panel.hpp#L471).*
+*free function, declared at [`include/shulib/mechanism/tune_panel.hpp:472`](../../include/shulib/mechanism/tune_panel.hpp#L472).*
 
 <a id="tuneview"></a>
 
@@ -1808,7 +1808,7 @@ The SMALL characters a button `r` fits (at the width the SMALL budget implies ov
 
 THE PAGE for `f` (header): every word, every button and whether it is armed. Pure.
 
-*free function, declared at [`include/shulib/mechanism/tune_panel.hpp:477`](../../include/shulib/mechanism/tune_panel.hpp#L477).*
+*free function, declared at [`include/shulib/mechanism/tune_panel.hpp:478`](../../include/shulib/mechanism/tune_panel.hpp#L478).*
 
 <a id="tunehit"></a>
 
@@ -1820,7 +1820,7 @@ THE PAGE for `f` (header): every word, every button and whether it is armed. Pur
 
 The button an accepted touch at (x, y) hits on `v` — only an ARMED one (ui::hitTest) — or false.
 
-*free function, declared at [`include/shulib/mechanism/tune_panel.hpp:759`](../../include/shulib/mechanism/tune_panel.hpp#L759).*
+*free function, declared at [`include/shulib/mechanism/tune_panel.hpp:760`](../../include/shulib/mechanism/tune_panel.hpp#L760).*
 
 ## Design commentary, from the header
 

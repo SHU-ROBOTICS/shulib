@@ -33,7 +33,7 @@ Three consequences worth internalising:
 3. **One of the three seams is now FROZEN — F8** (`paths[]` + the command vocabulary), locked
    2026-09-18 with shulib's path runner; §4 is a contract, not a proposal. F7 is still a draft and
    F9 is not frozen (its format and reader exist since 2026-09-29, host-only — §5.2). §7 is the
-   honest list of what can still move, and what we will do to stop it moving under you.
+   list of what can still move, and what we will do to stop it moving under you.
 
 ---
 
@@ -73,7 +73,7 @@ Legend: ✅ exists and works · ⚠️ exists but incomplete · ❌ not built
 | **Blackbox binary format** — a shipped, versioned, round-trip-tested wire format | ✅ | **the precedent SHUL/2 followed**: its Tick and Summary payloads ARE the blackbox's bytes (§5.2.5) |
 | The HAL, motion, localization, sequencing, both auton-authoring tiers | ✅ | done and frozen (but for the pieces the Freeze Register leaves outside: the recipe layer's `then()` and — not yet ruled — its mechanism steps, row F10; the mechanism ids of 4.2.3 are a robot's, never frozen) — this is what a loaded `.vexbot` will drive |
 
-**The honest read:** your side is further along on the file format; our side is further along on the
+**Where we are:** your side is further along on the file format; our side is further along on the
 runtime. The integration is the middle, and neither side has built it.
 
 ---
@@ -441,7 +441,7 @@ boundaries and emits no marker for them. Your picker never renders one, and neve
 a student what "NONE" would do. If a `.vexbot` ever arrives carrying `id: "none"`, it is an importer
 bug, and it will surface as one warning per occurrence rather than as a mystery.
 
-#### 4.3.2 What shulib has actually executed, stated honestly
+#### 4.3.2 What shulib has actually executed
 
 A `Route` has been executed **on the host physics plant only** — every verb, both drivetrains, with
 the runner's output required to be bit-identical to the same legs written by hand in C++. The library
@@ -773,7 +773,7 @@ you build gets thrown away.
 
 ---
 
-## 7. What can still move under you — the honest risk list
+## 7. What can still move under you — the risk list
 
 You asked not to be blindsided. This is the list.
 

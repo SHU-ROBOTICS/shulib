@@ -589,9 +589,11 @@ private:
                                              : "FAILED",
                       g.scoringEnded.value(), g.pacesSeen);
         addLine(v, ui::Tone::White, text);
-        // (3)-(4) where it was seated, and where the estimate says it ended
-        std::snprintf(text, cap, "START (%.1f, %.1f) %.1f deg", r.run.seated.x().value(),
-                      r.run.seated.y().value(), r.run.seated.heading().degrees());
+        // (3)-(4) where it was seated, and where the estimate says it ended. A MIRRORED auton
+        //     (MIRROR1-A) was seated at robot two's REAL start — where the drivers must place it —
+        //     and says MIR.
+        std::snprintf(text, cap, "START%s (%.1f, %.1f) %.1f deg", r.run.mirrored ? " MIR" : "",
+                      r.run.seated.x().value(), r.run.seated.y().value(), r.run.seated.heading().degrees());
         addLine(v, ui::Tone::White, text);
         std::snprintf(text, cap, "END   (%.1f, %.1f) %.1f deg%s", r.endEstimate.x().value(),
                       r.endEstimate.y().value(), r.endEstimate.heading().degrees(),

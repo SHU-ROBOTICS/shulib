@@ -10,7 +10,7 @@ chassis::resetFromWall — the wall reset's EXPLICIT call (chunk L6-A1, 2026-10-
 
 This header declares **1** free function and **1** constant.
 
-Extracted from [`include/shulib/chassis/wall_reset_call.hpp`](../../include/shulib/chassis/wall_reset_call.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/chassis/wall_reset_call.hpp`](../../include/shulib/chassis/wall_reset_call.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 
@@ -27,7 +27,7 @@ inline constexpr double kWallResetWaitBackstopSeconds = 1.0
 
 Slack past `windowMax` given to the sampling wait's own timeout (seconds). Unreachable by construction — the predicate ends the window at `windowMax` by the clock — so it is code-level belt-and-braces, not an HA entry (Chassis's wait() backstop is the same idea).
 
-*constant, declared at [`include/shulib/chassis/wall_reset_call.hpp:61`](../../include/shulib/chassis/wall_reset_call.hpp#L61).*
+*constant, declared at [`include/shulib/chassis/wall_reset_call.hpp:62`](../../include/shulib/chassis/wall_reset_call.hpp#L62).*
 
 <a id="resetfromwall"></a>
 
@@ -37,9 +37,9 @@ Slack past `windowMax` given to the sampling wait's own timeout (seconds). Unrea
 [[nodiscard]] inline localization::WallResetReport resetFromWall(Chassis& chassis, const localization::WallSensor& sensor, const localization::WallResetRequest& request, const localization::WallResetLimits& limits)
 ```
 
-THE EXPLICIT CALL (L6-A1 — a hand-wired Tier-3 robot's form, and the host tests'): re-seat ONE axis of `chassis`'s estimate against `request.wall` from `sensor`, inside `limits` — blocking, at most `limits.windowMax` plus a tick; the setup and pre-checks first (no time, nothing read), then a window of samples inside `chassis.waitUntil` (its predicate ENDS the wait — no "timed out" line), the verdict, and, when SEATED, `Localizer::seatAxis` on that axis only. ONE log line either way (subsystem "WALL"). Commands nothing to the drive. The heading tolerance and the along-wall drift allowance come from the Localizer's counters (`turnedSinceHeadingSeed`, `travelSinceSeat`). The window is a FROZEN wait: a deadline landing in it is acted on up to `windowMax` late (the everyday form, `competition::resetFromWall(ctx, ...)`, is cut instead). Returns the report — a VALUE; `continues()` is what a `then()` returns (D3).
+THE EXPLICIT CALL (L6-A1 — a hand-wired Tier-3 robot's form, and the host tests'): re-seat ONE axis of `chassis`'s estimate against `request.wall` from `sensor`, inside `limits` — blocking, at most `limits.windowMax` plus a tick; the setup and pre-checks first (no time, nothing read), then a window of samples inside `chassis.waitUntil` (its predicate ENDS the wait — no "timed out" line), the verdict, and, when SEATED, `Localizer::seatAxis` on that axis only. ONE log line either way (subsystem "WALL"). Commands nothing to the drive. The heading tolerance and the along-wall drift allowance come from the Localizer's counters (`turnedSinceHeadingSeed`, `travelSinceSeat`). The window is a FROZEN wait: a deadline landing in it is acted on up to `windowMax` late (the everyday form, `competition::resetFromWall(ctx, ...)`, is cut instead). Returns the report — a VALUE; `continues()` is what a `then()` returns (D3). PRECONDITION (MIRROR1-A, the MIRROR1 brief's D5): no mirrored run is open on `chassis` — this form is handed one SENSOR, and a mirrored auton needs the OTHER side's; the everyday form swaps the wall and the side itself.
 
-*free function, declared at [`include/shulib/chassis/wall_reset_call.hpp:170`](../../include/shulib/chassis/wall_reset_call.hpp#L170).*
+*free function, declared at [`include/shulib/chassis/wall_reset_call.hpp:176`](../../include/shulib/chassis/wall_reset_call.hpp#L176).*
 
 ## Design commentary, from the header
 

@@ -27,6 +27,7 @@
 #include "shulib/competition/match_runner.hpp"
 #include "shulib/diag/fault.hpp"
 #include "shulib/math/pose2d.hpp"
+#include "shulib/math/reflection.hpp"
 #include "shulib/ui/touch_panel.hpp"
 
 using shulib::bench::AbortCause;
@@ -766,4 +767,38 @@ TEST_CASE("panel (30): sameButtons, and RESULT takes the record's entry") {
     TesterRunRecord bad = finished(0);
     bad.entry = -1;
     CHECK_THROWS_AS(screen.showResult(bad, 0, false), shulib::PreconditionError);
+}
+
+// MIRROR1-A T8 (the MIRROR1 brief's D8, R9): a MIRRORED run's START line. Bug caught: robot two's real
+// start shown without MIR (the drivers would not know it is the mirrored seat), or "-0.0" on the screen —
+// robot one at x = 0 is robot two's y = 0, and the reflection negates it (MM17: the + 0.0 dropped); the
+// START MIR line cut at the screen's OWN worst case; an unmirrored START line changed.
+TEST_CASE("panel MIRROR1 T8: START MIR at the screen's worst case, a zero coordinate, a RELATIVE start") {
+    const shulib::math::Reflection diag = shulib::math::Reflection::across(shulib::math::Reflection::Line::AntiDiagonal);
+    const shulib::math::Reflection flip = shulib::math::Reflection::across(shulib::math::Reflection::Line::XAxis);
+    AutonRegistry reg = teamRegistry();
+    TesterScreen screen{reg};
+    const TesterFacts f = okFacts(100.0);
+    TesterRunRecord r = finished(0);
+    r.run.seated = Pose2d{Length{-999.9}, Length{-999.9}, Angle::degrees(-179.9)};
+    r.run.mirrored = true;
+    screen.showResult(r, 0, false);
+    TesterView v = screen.view(f);
+    checkClean(v);
+    CHECK(std::string_view{v.lines[2].text} == "START MIR (-999.9, -999.9) -179.9 deg");
+    r.run.mirrored = false;
+    screen.showResult(r, 0, false);
+    v = screen.view(f);
+    CHECK(std::string_view{v.lines[2].text} == "START (-999.9, -999.9) -179.9 deg");  // unmirrored: unchanged
+    // robot one at (0, -24) facing 90 -> robot two at (24, 0) facing 180: "0.0", never "-0.0"
+    r.run.mirrored = true;
+    r.run.seated = diag.apply(Pose2d{Length{0.0}, Length{-24.0}, Angle::degrees(90.0)});
+    screen.showResult(r, 0, false);
+    v = screen.view(f);
+    CHECK(std::string_view{v.lines[2].text} == "START MIR (24.0, 0.0) 180.0 deg");
+    // a mirrored RELATIVE start: (0, 0, 0) through the robot-frame mirror
+    r.run.seated = flip.apply(Pose2d{});
+    screen.showResult(r, 0, false);
+    v = screen.view(f);
+    CHECK(std::string_view{v.lines[2].text} == "START MIR (0.0, 0.0) 0.0 deg");
 }

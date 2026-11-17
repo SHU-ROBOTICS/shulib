@@ -24,6 +24,15 @@
 // exercises the PROS mapping. A test scripts the world by time through `onRead`, which the inputs
 // call on every read with the robot clock.
 //
+// ANY ROBOT'S MECHANISMS (chunk RPV1-B1, 2026-11-12; the RPV1 brief's §1.2): TesterStack's last
+// parameter, a RigMechanisms, names the mechanism list and the devices the service is bound over,
+// and optionally a world layer that steps the mechanisms' host test plants each pace (between the
+// probe and the plant pacer — test/fakes_by_kind.hpp builds both for any list). Left at its default
+// it is robot two's real list over RobotTwoFakes — the rig exactly as it was before, byte for byte
+// (the route preview's RP35 pins the truth stream and the sink of four runs — one of them stepping
+// every one of robot two's mechanisms — to fingerprints taken before this parameter existed). Robot
+// two's fakes are still built either way (`two`), unused when another list is bound.
+//
 // The probe layer sits where the painter sits (below the watch, above the tick pacer): it sees
 // every pace AFTER the guard's check and the watch's read and BEFORE the world advances, so it can
 // record (a) whether any drive motor was commanded while no run was live, (b) the plant's travel at
@@ -35,6 +44,7 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <span>
 #include <stdexcept>
 
 #include "motion_test_rig.hpp"
@@ -51,6 +61,7 @@
 #include "shulib/hal/motor.hpp"
 #include "shulib/mechanism/devices.hpp"
 #include "shulib/mechanism/service.hpp"
+#include "shulib/mechanism/wiring.hpp"
 #include "shulib/runner/command_registry.hpp"
 #include "shulib/runner/mechanism_routes.hpp"
 #include "shulib/kinematics/tank.hpp"
@@ -166,6 +177,19 @@ struct RobotTwoFakes {
                absentPivot7 ? shulib::mechanism::Devices{.absence = "port 7: nothing plugged in (expected a motor)"}
                             : shulib::mechanism::Devices{.motors = &pivot7},
                {.pneumatic = &claw}} {}
+};
+
+/// RPV1-B1: a pacer layer that steps a robot's mechanism plants, then paces `inner` (the plant pacer).
+struct MechanismWorldLayer : shulib::motion::ITickPacer {
+    shulib::motion::ITickPacer* inner = nullptr;  ///< set by TesterStack: the plant pacer
+};
+
+/// RPV1-B1: which mechanisms a TesterStack binds (file banner). Every field left empty = robot two's
+/// real list over RobotTwoFakes, as the rig always was. `table` and `devices` must outlive the stack.
+struct RigMechanisms {
+    const shulib::mechanism::MechanismTable* table = nullptr;  ///< nullptr: robot two's real list
+    std::span<const shulib::mechanism::Devices> devices{};      ///< its devices, in its order
+    MechanismWorldLayer* world = nullptr;                       ///< nullptr: no mechanism plant to step
 };
 
 /// What the probe layer throws (each of runTesterOnce's three handlers has its own case).
@@ -288,7 +312,7 @@ struct TesterStack {
                          double weakScale = 1.0,
                          const shulib::sim::SimHarnessConfig& cfg = motion_rig::plantConfig(),
                          shulib::sim::DegradationModel* degradation = nullptr, int idleTicks = 50,
-                         bool absentPivot7 = false)
+                         bool absentPivot7 = false, const RigMechanisms& binding = {})
         : weak{},
           rig{kin, cfg, &sink, degradation != nullptr ? degradation : &weak},
           plant{rig.h},
@@ -297,14 +321,22 @@ struct TesterStack {
           mechanisms{watch},
           guard{mechanisms},
           chassis{rig.deps, guard, motion_rig::chassisConfig()},
-          routes{chassis, mechanisms, shulib::bench::robot_two::kRobotTwoMechanisms, sink} {
+          routes{chassis, mechanisms, listOf(binding), sink} {
         // THE PROGRAM'S BOOT ORDER: the service bound over the built mechanisms after the chassis
         // exists (the program: after the Robot), then the route ids registered.
-        mechanisms.bind(shulib::bench::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
+        if (binding.table != nullptr) {
+            mechanisms.bind(*binding.table, binding.devices, rig.h.clock(), rig.latch, sink);
+        } else {
+            mechanisms.bind(shulib::bench::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
+        }
         routes.registerInto(commands);
         weak.wheel = weakWheel;
         weak.scale = weakScale;
         probe.inner = &plant;
+        if (binding.world != nullptr) {  // RPV1-B1: the mechanism plants step between the probe and the plant
+            binding.world->inner = &plant;
+            probe.inner = binding.world;
+        }
         probe.h = &rig.h;
         probe.plant = &plant;
         probe.guard = &guard;
@@ -320,6 +352,11 @@ struct TesterStack {
     }
 
     [[nodiscard]] double now() { return rig.h.clock().now().value(); }
+
+    /// RPV1-B1: the list the stack binds — the binding's, or robot two's real one by default.
+    [[nodiscard]] static const shulib::mechanism::MechanismTable& listOf(const RigMechanisms& b) noexcept {
+        return b.table != nullptr ? *b.table : shulib::bench::robot_two::kRobotTwoMechanisms;
+    }
 
     /// One run of registry entry `index`, as the program runs it: RUN's release read is NOW
     /// (its press count is the abort's touch baseline).

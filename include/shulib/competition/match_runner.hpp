@@ -50,6 +50,25 @@
 // MechanismService -> the program's watch -> the tick pacer): a routine whose mechanism step
 // waits on a service that never ticks stops, saying so (chassis/routine.hpp).
 //
+// ── A MIRRORED entry (chunk MIRROR1-A, 2026-11-13; competition/field_mirror.hpp) ─────
+// An entry `competition::mirrored(...)` marked runs robot one's route on robot two, reflected. Three
+// things differ, nothing above moves:
+//   4. The re-seat writes the REFLECTED start (field_mirror.hpp's seatedStart: a FIELD start through
+//      the entry's FieldMirror, a RELATIVE one through the robot-frame flip) — position AND heading
+//      on one tick, as ever — so `seated` is robot two's REAL start, where the drivers must place it.
+//      Its line's mode word reads "FIELD MIRRORED" / "RELATIVE MIRRORED", and a second line names the
+//      mirror and robot one's start as written (both ASCII, both under the 160-byte buffer and the
+//      terminal's 200-byte cut at their worst case — test/mirrored_auton_test.cpp measures them).
+//   5-6. ONE chassis::MirroredRun is opened after the re-seat and closed after the end action, around
+//      the routine (or route) AND the park, so the park runs mirrored too; it closes on every way out
+//      (a normal end, the deadline's cut, an abandon, a throw unwinding through runAuton) — before
+//      runAuton returns, so everything read afterwards (the program's END estimate) is the real
+//      field. The arming line's start word says MIRRORED as well, so a mirrored run that never
+//      starts is still named one.
+// An UNMIRRORED entry runs byte for byte as before (test/mirror_unchanged_runs.hpp's hash, measured
+// at the merge base, pinned). runAuton refuses (a precondition) a Chassis whose mirror is still on —
+// a leaked run would reflect an unmirrored auton.
+//
 // ── What it does not do ─────────────────────────────────────────────────────────────
 // It owns no task and reads no competition state: the program's auton task calls it, and the
 // program's watch (a pacer under the guard) abandons it. It does not catch: a routine that THROWS
@@ -63,11 +82,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <optional>
 #include <span>
 
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/routine.hpp"
 #include "shulib/competition/auton_registry.hpp"
+#include "shulib/competition/field_mirror.hpp"
 #include "shulib/control/exit_group.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/hal/mechanism.hpp"
@@ -137,6 +158,9 @@ struct AutonRunResult {
     math::Pose2d seated{};
     /// The IMU's raw heading at the re-seat — what the start heading REPLACED (valid as `seated`).
     math::Angle imuAtSeat{};
+    /// MIRROR1-A: true when the entry was a MIRRORED one — `seated` is then robot two's REAL start (the
+    /// reflection of the entry's own), and the screens' START line says MIR.
+    bool mirrored = false;
 
     /// True when the auton's routine or route actually started.
     [[nodiscard]] bool started() const noexcept {
@@ -158,6 +182,9 @@ namespace detail {
     SHULIB_PRECONDITION(!chassis.scheduler().hasActiveMotion(),
                         "runAuton: a motion is still active -- the start pose cannot be re-seated "
                         "under it");
+    SHULIB_PRECONDITION(chassis.reflection().isIdentity(),
+                        "runAuton: the chassis is still in a mirrored run -- a chassis::MirroredRun outlived "
+                        "its auton");
     AutonRunResult result{};
 
     // ── 0. auton entry: whatever driver control left running stops HERE (MECH-A4; banner) ──
@@ -194,13 +221,19 @@ namespace detail {
     localization::Localizer& localizer = *chassis.deps().localizer;
     hal::IClock& clock = chassis.deps().ctx->clock();
     AutonContext ctx{chassis, guard, telemetry, mechanisms, entry, service};
+    // MIRROR1-A: the run's reflection (the identity for an entry as written) and the scope that applies
+    // it — opened after the re-seat, closed after the end action or by the unwind (file banner).
+    const math::Reflection mirror = runReflection(entry);
+    const bool isMirroredRun = !mirror.isIdentity();
+    result.mirrored = isMirroredRun;
+    std::optional<chassis::MirroredRun> mirroredRun;
     {
         char line[160];
         std::snprintf(line, sizeof line,
-                      "auton '%s' (%s, period %.1fs, park T+%.2fs, stop T+%.2fs, start %s): arming",
+                      "auton '%s' (%s, period %.1fs, park T+%.2fs, stop T+%.2fs, start %s%s): arming",
                       entry.name, autonKindWord(entry.kind), period.value(),
                       entry.endActionAt.value(), entry.hardStopAt.value(),
-                      startModeWord(start.mode()));
+                      startModeWord(start.mode()), isMirroredRun ? " MIRRORED" : "");
         telemetry.log(hal::LogLevel::Info, "COMP", line);
     }
 
@@ -230,21 +263,35 @@ namespace detail {
                 telemetry.log(hal::LogLevel::Warn, "COMP", result.why);
                 return;
             }
-            // 4. the re-seat: position AND heading, on ONE tick (C2, B14).
-            result.seated = start.pose();
+            // 4. the re-seat: position AND heading, on ONE tick (C2, B14) — for a mirrored entry, the
+            //    REFLECTED start (robot two's real one), written before the mirrored run opens.
+            result.seated = isMirroredRun ? mirror.apply(start.pose()) : start.pose();
             result.imuAtSeat = chassis.deps().ctx->imu().heading();
             chassis.setPose(result.seated);
             localizer.reseatHeading(result.seated.heading());
             {
                 char line[160];
                 std::snprintf(line, sizeof line,
-                              "auton '%s': re-seated %s (%.2f, %.2f) in facing %.1f deg; the IMU "
+                              "auton '%s': re-seated %s%s (%.2f, %.2f) in facing %.1f deg; the IMU "
                               "read %.1f deg, live after %.2fs",
-                              entry.name, startModeWord(start.mode()),
+                              entry.name, startModeWord(start.mode()), isMirroredRun ? " MIRRORED" : "",
                               result.seated.x().value(), result.seated.y().value(),
                               result.seated.heading().degrees(), result.imuAtSeat.degrees(),
                               result.liveAfter.value());
                 telemetry.log(hal::LogLevel::Info, "COMP", line);
+            }
+            if (isMirroredRun) {
+                // The second line: which mirror, and robot one's start AS WRITTEN (ASCII; file banner).
+                const math::Pose2d asWritten = start.pose();
+                char line[160];
+                const bool field = start.mode() == StartPose::Mode::Field;
+                std::snprintf(line, sizeof line,
+                              "auton '%s': MIRRORED %s%.32s -- robot one's start (%.2f, %.2f) facing %.1f deg",
+                              entry.name, field ? "across " : "in the robot's own frame",
+                              field ? entry.mirror->name : "", asWritten.x().value(), asWritten.y().value(),
+                              asWritten.heading().degrees());
+                telemetry.log(hal::LogLevel::Info, "COMP", line);
+                mirroredRun.emplace(chassis, mirror);
             }
             // 5. the auton.
             if (entry.routine != nullptr) {
@@ -276,6 +323,7 @@ namespace detail {
             }
             return chassis.brake() == control::ExitReason::Settled;
         });
+    mirroredRun.reset();  // MIRROR1-A: the real field from here on (file banner)
 
     {
         char line[160];

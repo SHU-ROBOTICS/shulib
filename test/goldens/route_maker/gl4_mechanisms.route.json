@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "madeWith": "shulib route builder",
+  "routes": [
+    {
+      "name": "skills",
+      "kind": "skills",
+      "robot": "x",
+      "mirroredFor": "two",
+      "start": {
+        "x": -36,
+        "y": -55.7,
+        "headingDeg": 0
+      },
+      "endActionAtS": 57,
+      "hardStopAtS": 59,
+      "steps": [
+        {
+          "do": "home",
+          "mechanism": "lift",
+          "boundS": 3
+        },
+        {
+          "do": "move",
+          "mechanism": "lift",
+          "preset": "low",
+          "boundS": 2
+        },
+        {
+          "do": "startMove",
+          "mechanism": "arm",
+          "preset": "score",
+          "boundS": 2
+        },
+        {
+          "do": "waitUntilDone",
+          "mechanism": "arm",
+          "boundS": 2
+        },
+        {
+          "do": "set",
+          "mechanism": "hood",
+          "position": "up"
+        },
+        {
+          "do": "run",
+          "mechanism": "intake",
+          "volts": 12,
+          "forS": 0.5
+        },
+        {
+          "do": "startRun",
+          "mechanism": "intake",
+          "volts": -6,
+          "forS": 0.3
+        },
+        {
+          "do": "waitUntilDone",
+          "mechanism": "intake",
+          "boundS": 1
+        }
+      ]
+    }
+  ],
+  "robots": {},
+  "exports": {}
+}

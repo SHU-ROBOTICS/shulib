@@ -149,8 +149,8 @@
 #include "programs/competition_screen.hpp"
 #include "programs/competition_watch.hpp"
 #include "robots/mechanism_table.hpp"
+#include "common/this_robot.hpp"
 #include "team/autons.hpp"
-#include "team/robot_two_driver.hpp"
 #include "shulib/calibration/boot_check.hpp"
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/competition/auton_menu.hpp"
@@ -250,7 +250,7 @@ struct CompetitionState {
     std::optional<mechanism::MechanismService> mechanisms{};  // between the guard and the watch (B7)
     std::optional<sequence::RunGuard> guard{};
     std::optional<robot::Robot> robot{};
-    RobotTwoDriver driver{};
+    ThisRobotDriver driver{};
     std::optional<runner::CommandRegistry> commands{};     // the route registry ...
     std::optional<runner::MechanismRoutes> routes{};       // ... and the robot's mechanism route ids
     std::optional<competition::AutonRegistry> registry{};
@@ -549,7 +549,7 @@ void autonTask(void* /*unused*/) {
 /// The cut's length, from the config the driver file's loop runs with (its cutTicks times its
 /// tick) -- what the PROTECTION row says a cut lasts; never retyped.
 constexpr double kCutSeconds =
-    RobotTwoDriver::kLoop.protection.cutTicks * RobotTwoDriver::kLoop.tickPeriod.value();
+    ThisRobotDriver::kLoop.protection.cutTicks * ThisRobotDriver::kLoop.tickPeriod.value();
 
 class DriverPanel {
 public:
@@ -586,7 +586,11 @@ private:
         const diag::FaultLatch& f = robot_.faults();
         faultRow_ = faultRowText(f.hasFault() ? f.faultCount() : 0, f.firstFault(), f.lastFault());
         const bool freed = st_.driver.releasedLeftoverAtEntry(*st_.mechanisms);
-        clawRow_ = clawRowText(kMechanisms, robot_, *st_.mechanisms, freed);
+        if constexpr (ThisRobotWords::value.claw) {
+            clawRow_ = clawRowText(kMechanisms, robot_, *st_.mechanisms, freed);
+        } else {
+            clawRow_ = clawRowText(kMechanisms, robot_, *st_.mechanisms, freed, ThisRobotWords{});
+        }
         CompetitionDriverFacts facts{};
         facts.protection = protectionRowText(protection, kCutSeconds);
         facts.auton = competitionAutonRow(st_.last, *st_.registry, st_.flags.programError.load(),
@@ -610,7 +614,8 @@ private:
         f.degraded = st_.boot.verdict.decision == calibration::BootDecision::Degraded;
         f.clawAbsent = anyClawAbsent(robot_);
         addProtectionFacts(f, protection);  // REFUSED, CUT, DEGRADED mid-run, the dead ports
-        const ControllerScreen want = controllerScreenLines(f);
+        const ControllerScreen want =
+            ThisRobotWords::value.claw ? controllerScreenLines(f) : controllerScreenLines(f, ThisRobotWords{});
         const int row = state().lcdWriter.next(want, now);  // ONE line, line 2 first, >= 0.1 s apart
         if (row >= 0) {
             state().lcd->setLine(row, want.line[row]);
@@ -637,7 +642,8 @@ void sayAutonEnding(double waitedSeconds) {
     paintViewWhole(competitionEndingView(name, waitedSeconds, kBuildTimeText));
     ControllerFacts f{};
     f.autonEnding = true;  // line 2 only: the robot is still the auton task's -- nothing is read
-    const ControllerScreen ending = controllerScreenLines(f);
+    const ControllerScreen ending =
+        ThisRobotWords::value.claw ? controllerScreenLines(f) : controllerScreenLines(f, ThisRobotWords{});
     st.lcd->setLine(2, ending.line[2]);
     st.lcdWriter.wrote(2, ending.line[2], st.devices->clock().now().value());  // the gap from it
     char line[kCompetitionLineBytes];
@@ -742,7 +748,7 @@ void competitionInitialize(const char* variantBeacon, const char* competitionSta
         // there and in the log -- and the boot goes on: the team lead's ruling of 2026-10-02 ("drop
         // just that auton"; an auton bug must not cost the match's driver control).
         st.registry.emplace(kAutonPeriods, competition::OnRefusal::DropEntry);
-        registerAutons(*st.registry);
+        registerThisRobotsAutons(*st.registry);
         // (The guard safes the Robot's PRESENT mechanisms -- B9 -- through the service: runAuton's
         // service overload hands the guard the service's built ones, the same objects.)
         st.menu.emplace(*st.registry, readTouch().sample.releaseCount);
@@ -825,7 +831,7 @@ void competitionInitialize(const char* variantBeacon, const char* competitionSta
     // control, its state -- in src/common/driver_panel.hpp's words (the same lines "shulib Drive" and
     // the Auton Tester print; worksheet J.3.1, J.9.1 and K quote them), tag MECH, through the provider's
     // sink (serial and the log copy), each within one line.
-    mechanismBootLines(kMechanisms, *st.robot, *st.mechanisms, &RobotTwoDriver::kControls,
+    mechanismBootLines(kMechanisms, *st.robot, *st.mechanisms, &ThisRobotDriver::kControls,
                        [&st](const MechanismLine& m) { st.devices->telemetry().log(m.level, "MECH", m.text); });
     // ...and the route ids they publish (header, THE ROUTE REGISTRY).
     {
@@ -907,8 +913,11 @@ void runCompetition() {
     st.presence.leave();  // the robot is no longer driver control's: the auton task may take it
     st.owner.handOver(ScreenOwner::Driver, ScreenOwner::Menu);  // unless a phase took it first
     std::snprintf(line, sizeof line,
-                  "opcontrol(): driver control ended -- 0 V + Brake, each claw pivot safe, the "
-                  "pneumatic claw kept; %lu screen prints so far",
+                  ThisRobotWords::value.claw
+                      ? "opcontrol(): driver control ended -- 0 V + Brake, each claw pivot safe, the "
+                        "pneumatic claw kept; %lu screen prints so far"
+                      : "opcontrol(): driver control ended -- 0 V + Brake, each motor mechanism safe, "
+                        "each pneumatic kept; %lu screen prints so far",
                   static_cast<unsigned long>(g_screenPrints));
     logLine(hal::LogLevel::Info, line);
     logPhase("opcontrol()", "normal return", "the screen back to the menu");
