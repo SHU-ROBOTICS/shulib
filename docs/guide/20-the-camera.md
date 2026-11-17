@@ -13,7 +13,7 @@
 > and its second (this chapter) are in, and so is the skills Toggle step (in its form over explicit handles —
 > an auton reaches the camera in a later part). Robot two's camera and its bench page are the camera's third
 > part; the automatic flip in driver control, driving to a piece and choosing our alliance colour are later
-> chunks that USE what is here — none of them exists yet. **No AI Vision sensor has run this code.** Every number below is
+> chunks that USE what is here — none of them exists yet. Every number below is
 > from the host test plant's camera model (written with its own projection, so a sign error in the
 > library cannot cancel out) looking through a TRUE camera set somewhere inside the stated tolerances —
 > and the beliefs it rests on are HA-192 to HA-203 in the
@@ -243,7 +243,10 @@ user.pins.setTarget({.classMask = 1U << static_cast<unsigned>(override2026::Mode
                      .x = 66.2, .y = -6.0, .toleranceIn = 6.0, .want = vision::Posture::OnFloor});
 ```
 
-and the finder answers one of five verdicts — never the nearest of several, never a guess:
+(the REAL field's numbers: in a mirrored auton the route's own numbers are robot one's, so a piece target and
+the pose handed to the finder are real-field numbers — the localizer's pose, never `ctx.chassis.pose()` —
+[Chapter 17](17-the-competition-program.md#below-the-mirror-what-reads-the-real-field)) and the finder answers
+one of five verdicts — never the nearest of several, never a guess:
 
 ```cpp
 const vision::PieceFinder::Result answer = user.pins.answer(clock.now().value());
@@ -388,7 +391,7 @@ both left out is the passive bar. The step never moves the flipper to `back` to 
 does: a flipper away from `back` is FLIPPER NOT READY. A retract that does not reach `back` is FLIPPER STUCK,
 and the robot does **not** drive out (it would drag the Toggle). A **pneumatic** flipper's stroke is not
 sensed — its step succeeds once the valve has held for the move time — so a blocked cylinder counts as a full
-stroke and a caught one as back (Chapter 14); its `flipBound` and `backBound` must each be at least its move
+stroke and a caught one as back ([Chapter 14](14-what-it-cannot-do-yet.md)); its `flipBound` and `backBound` must each be at least its move
 time plus its confirm window, or it is FLIPPER NOT READY.
 
 **The numbers Step 0 measures** (every one the team's — an unset one is refused by name): the flipper's kind,
@@ -400,6 +403,12 @@ see NOT AT THE SPOT; and how far the Toggle's face sits out from the wall's inne
 start's distance check), the push spot (`pushFrom`: does anything of the robot touch the Toggle there?), and the
 drive in and out's worst time (`driveBound`, HA-244). A request built as a constant through
 `competition::toggleVisit({...})` is checked at build.
+
+**In a mirrored auton** (robot two running robot one's route —
+[Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton)) the step is handed the auton's
+entry and visits the IMAGE Toggle: robot one's red wall Toggle is robot two's right wall Toggle, its left wall Toggle
+robot two's blue wall Toggle — the same Quadrant colour, so "ours" does not change — and its line names the Toggle
+robot two really visited.
 
 **What it cannot catch** is [Chapter 14](14-what-it-cannot-do-yet.md#the-toggle-flip-in-a-skills-route-what-it-cannot-catch)'s;
 its one log line, word by word, is [Chapter 11](11-reading-the-diagnostics.md#the-toggle-visit-tgl)'s. **Nothing

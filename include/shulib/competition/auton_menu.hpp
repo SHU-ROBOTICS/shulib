@@ -14,7 +14,9 @@
 //   * NONE is ALWAYS on the screen, in the SAME place, and it is the DEFAULT: a program that boots
 //     and is never touched runs no auton. (A robot that drives off the line because nobody chose
 //     is the failure; a robot that sits still is the safe one.)
-//   * One button per registered auton, labelled "<name> <KIND>", PAGED when more than
+//   * One button per registered auton, labelled "<name> <KIND>" — "<name> <KIND> MIR" for a MIRRORED
+//     one (MIRROR1-A: robot two's run of robot one's route; its name is at most 25 characters so the
+//     label still fits one line) — PAGED when more than
 //     kMenuEntriesPerPage are registered; paging hides none (every entry is on exactly one page).
 //   * No new button appears under the one just pressed: entries live in the middle of the screen,
 //     NONE / PREV / NEXT in the bottom row, and a page flip either keeps a button where it was (the
@@ -100,6 +102,8 @@ static_assert(kMenuHeaderPrefix.size() + kMaxAutonNameChars <= ui::kMediumCols,
               "AUTON: <name> must fit one medium line");
 static_assert(kMaxAutonNameChars + 1 + std::string_view{"SKILLS"}.size() <= ui::kMediumCols,
               "an auton button's label '<name> SKILLS' must fit one medium line");
+static_assert(kMaxMirroredAutonNameChars + std::string_view{" SKILLS MIR"}.size() <= ui::kMediumCols,
+              "a MIRRORED auton button's label '<name> SKILLS MIR' must fit one medium line (MIRROR1-A)");
 static_assert(ui::screenText(kMenuHeaderPrefix, ui::kMediumCols));
 static_assert(ui::screenText(kMenuNoneLabel, ui::kMediumCols));
 static_assert(ui::screenText(kMenuPrevLabel, ui::kMediumCols));
@@ -416,7 +420,8 @@ private:
                 break;
             }
             const AutonEntry& entry = registry_->at(index);
-            std::snprintf(text, sizeof text, "%s %s", entry.name, autonKindWord(entry.kind));
+            std::snprintf(text, sizeof text, "%s %s%s", entry.name, autonKindWord(entry.kind),
+                          entry.mirror != nullptr ? " MIR" : "");
             addButton(v, MenuButtonId::Entry, static_cast<int>(index), kMenuEntryRows[row], text,
                       armedNow, static_cast<int>(index) == chosen);
         }

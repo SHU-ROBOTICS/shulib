@@ -10,7 +10,7 @@ ProsDigitalIn — IDigitalIn over pros::adi::DigitalIn (chunk R1b): a limit swit
 
 This header declares **1** type (4 members).
 
-Extracted from [`include/shulib/hal/pros/digital_in.hpp`](../../include/shulib/hal/pros/digital_in.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/hal/pros/digital_in.hpp`](../../include/shulib/hal/pros/digital_in.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

@@ -27,6 +27,7 @@
 #include <cstddef>
 #include <cstdio>
 
+#include "common/robot_words.hpp"
 #include "shulib/competition/auton_registry.hpp"
 
 namespace shulib::bench {
@@ -42,10 +43,12 @@ inline constexpr std::size_t kDroppedAutonLineBytes = 200;
 /// sentences for (competition::kMaxAutonRefusals), one line counting the rest. The first line says
 /// which: `(each named below)`, or past the cap `(the first <cap> named below)`, the last line
 /// counting the rest (the T4-3 verification: "each" was false past the cap). Each line is a buffer
-/// valid only during its `emit` call.
-template <class Emit>
+/// valid only during its `emit` call. The first line names the robot's OWN autons file — robot two's
+/// `src/team/autons.cpp` verbatim, robot one's `src/team/robot_one_autons.cpp` (chunk ROB1-A; `Words`,
+/// src/common/robot_words.hpp — a choice between two literals, decided at compile time).
+template <class Emit, class Words = ThisRobotWords>
 void sayDroppedAutons(const competition::AutonRegistry& registry, bool driverControlRuns,
-                      Emit&& emit) {
+                      Emit&& emit, Words = {}) {
     const std::size_t dropped = registry.refusedCount();
     if (dropped == 0) {
         return;
@@ -67,8 +70,11 @@ void sayDroppedAutons(const competition::AutonRegistry& registry, bool driverCon
     }
     char line[kDroppedAutonLineBytes];
     std::snprintf(line, sizeof line,
-                  "%u auton(s) REFUSED at registration and DROPPED -- the dropped ones are NOT on "
-                  "the menu (%.23s); every other auton%s -- fix src/team/autons.cpp",
+                  Words::value.claw
+                      ? "%u auton(s) REFUSED at registration and DROPPED -- the dropped ones are NOT on "
+                        "the menu (%.23s); every other auton%s -- fix src/team/autons.cpp"
+                      : "%u auton(s) REFUSED at registration and DROPPED -- NOT on the menu (%.23s); "
+                        "every other auton%s -- fix src/team/robot_one_autons.cpp",
                   static_cast<unsigned>(dropped), static_cast<const char*>(named),
                   driverControlRuns ? " and driver control still run" : " still runs");
     emit(static_cast<const char*>(line));

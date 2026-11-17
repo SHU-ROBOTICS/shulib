@@ -53,6 +53,33 @@ unbroken run of the file); and no public document may link into the development-
 The library itself is header-only C++ and depends on none of
 this — only the test build does, and deliberately: a gate you can forget to run is not a gate.
 
+## The route builder's tests (since RMP1-A1)
+
+The route builder (`tools/route_maker/`, a web page) has two halves of tests, and this suite holds the C++ one:
+
+- **`route_maker_golden_test.cpp`** — every golden in [`goldens/route_maker/`](goldens/route_maker/) is a route
+  (`<name>.route.json`, a project file) and the C++ the page's OWN exporter wrote for it (`<name>.cpp`, kept fresh
+  by the page's node test) — except `gl0_empty.cpp`, the shared file's empty region as the contract with robot two's
+  update writes it, kept by hand so the exporter is held to it rather than re-making it. Each export is `#include`d here inside a namespace that resolves its names the way the
+  shared skills-route file does, compiled with the suite's flags, and RUN through `competition::runAuton` at its
+  FIELD start on the host test plant (`route_maker_rig.hpp`). Behaviour is asserted only on robot x
+  (`mechanism_fixtures.hpp`, numbers the test owns: a drive turned first and one not, reverse and turns, curves of 2
+  and 16 points, every mechanism step, stop / carry on / skip, a wait across the 57 s cut, the home rule's twins,
+  the caps' spellings and both tolerances); robots one and two are smoke runs. A tripwire holds that a robot
+  building the shared route and declaring a cascade has its levels marked as its facts ledger's (robot two, once its
+  update gives it robot one's cascade). It also pins the committed fixture descriptions
+  (`goldens/route_maker/robots/{x,y,z}.json`) and CV1's curve table (`goldens/route_maker/curves.txt`) to what the
+  C++ makes now — the page's node tests read them.
+- **`shulib_route_maker`** (`route_maker_main.cpp`, its own CMake target, not part of `shulib_tests`) —
+  `describe --robot one|two|x|y|z` writes a robot's description from its REAL table (`route_maker_describe.hpp`;
+  the declaration's C++ name read from the line its `.name` recorded) and `curves` re-makes CV1's table. After a
+  change that moves either, re-make the committed file and READ the diff:
+  `build/test/shulib_route_maker describe --robot x > test/goldens/route_maker/robots/x.json` (and y, z), and
+  `build/test/shulib_route_maker curves > test/goldens/route_maker/curves.txt`.
+
+The page's own tests are node's: `node --test tools/route_maker/test/*.test.mjs` (the model — no browser), and, with a
+browser, `ROUTE_MAKER_BROWSER=firefox node --test tools/route_maker/test/page/*.test.mjs` (see `tools/route_maker/README.md`).
+
 ## Conventions
 
 - **One test file per unit:** every `*_test.cpp` in this directory is auto-discovered and compiled in.
@@ -153,6 +180,63 @@ documented here and in their own headers:
   colour (`scoredColour()`: yellow while touched or unseated). It draws its TRUE faces into a
   `sim::CameraPlant` and includes nothing from `vision/`. The Toggle step's tests use it as their oracle
   (`test/toggle_visit_rig.hpp`; its own tests are `test/sim_toggle_plant_test.cpp`).
+- **`test/mirrored_pair_check.hpp`** (MIRROR1-A) — THE PAIR CHECK, one function every user of it shares: a
+  MIRRORED auton entry run twice through `competition::runAuton`, robot one as written and robot two mirrored
+  from the reflected start, each on its own host test plant over the program's chain, compared pace by pace;
+  it returns a VERDICT (never an assertion) that FAILS when the two robots' 15 in squares come within
+  `kMirrorGapIn` (6 in — PROVISIONAL, A4 HA-260), naming the moment, both places and the drive motion each
+  robot was in (robot one's with its target, in the route's numbers). The suite asserts it over robot two's
+  registry (T9) and on planted routes (`test/mirrored_pair_test.cpp`, where a planted crash is a PASSING
+  test of the check); a route preview or route maker calls the same function so the picture and the suite
+  never disagree. A RELATIVE mirrored entry is skipped, by name.
+- **`test/goldens/mirror/skills_mirror_vectors.txt`** (MIRROR1-A) — the skills mirror's worked vectors, one
+  per line (`FIELD` and `RELATIVE`), worked by hand: `test/reflection_test.cpp` reads every line (and refuses
+  a malformed one by its line number); a route maker that draws the mirror is to read the same file, so the
+  two cannot disagree on the reflection.
+- **`test/mirror_unchanged_runs.hpp`** (MIRROR1-A's T10) — the runner-level "nothing else changes" hash: three
+  autons and a mechanism list ALL OWNED BY THE FILE (none of the team's, so a student's edit never moves it)
+  run through `runAuton` on a weak-side tank and an X-drive, every record, log line and true pose folded into
+  one FNV-1a hash per drivetrain, MEASURED against the merge base and pinned in
+  `test/mirrored_auton_test.cpp`. Self-contained: it includes no `src/` file, not even through a rig (its
+  weak side is a COPY of `auton_tester_rig.hpp`'s, because that rig includes robot two's mechanism list), so
+  it compiles against the base: change it and re-measure on a clean archive of the base.
+
+## The route preview (since RPV1-A)
+
+`python3 tools/route_preview.py "<auton name>"`
+([guide chapter 16](../docs/guide/16-testing-an-auton-on-the-bench.md#before-the-bench-previewing-a-route),
+"Before the bench: previewing a route") runs
+one of the team's autons through the Auton Tester's own sequence on the host test plant and draws it as one
+offline page. Its program is a host target here, `shulib_route_preview` (built by the default target, outside
+the suite's `*_test.cpp` glob, with both robots' autons files). `--robot one` runs robot one's list on fakes by
+kind and lists every fact its ledger (`src/robots/robot_one_facts.hpp`) still OWES as a PLACEHOLDER — read from
+the ledger, never copied. ALL its logic is in headers the suite calls directly:
+
+- **`route_preview_run.hpp`** — `runPreview(args, out, err)` (arguments, the exact-name lookup including
+  the names inside the registry's refusal sentences, the run, the page, the exit code) and `runProgram` (the
+  same, with a failure of the preview itself said in words and exit 3); the RECORDER, a pacer layer put at
+  `TesterStack::probe.inner` that stores the plant's TRUE pose after every pace and dates every log line to
+  its pace (and tells the end action's steps from the routine's by the guard's own line, not by time); the
+  scheduler's boundary observer; the NO-PACE STOP. `route_preview_main.cpp` only forwards `argv`.
+- **`route_preview_model.hpp`** — what the page is drawn from, and THE FIELD CHECK (a 15 in square against
+  `sim::FieldModel::override2026()`: THROUGH a wall or a Loader past a 1 in allowance fails, a TOUCH is a note).
+- **`route_preview_render.hpp`** — the stdout table and the page, both from one `tableRows()`.
+- **`fakes_by_kind.hpp`** — ANY robot's mechanism list on fakes, by kind (booted through the real
+  `robot::MechanismParts` over the fake provider; an arm or lift on a `sim::ArmPlant` built from its OWN
+  declaration, a flywheel likewise — each given an ASSUMED time constant where its declaration states no
+  `kA`, because a plant with no inertia makes a speed loop overshoot every tick), bound into `TesterStack`
+  through its last parameter, a `RigMechanisms` (`auton_tester_rig.hpp`). Left at its default, the rig is
+  robot two's list over `RobotTwoFakes`, exactly as before (`route_preview_test.cpp`'s default-rig case pins
+  four runs' truth and sink — one of them stepping every one of robot two's mechanisms — to fingerprints
+  taken before the parameter existed, `route_preview_hash.hpp`).
+- **`route_preview_test.cpp`, `route_preview_fixtures.hpp`** — the cases and their fixture autons.
+
+**`hal::fake::FakeTelemetrySink::setOnLine(fn, ctx)`** — an opt-in hook called after each stored line with the
+count of lines kept (default: none, so every other test is unchanged). The route preview's no-pace stop uses
+it: an auton that keeps logging without ever pacing (a loop after a stop) would otherwise grow the sink until
+it ran out of memory. The same hook notes the run guard's end-of-run line and every mechanism verdict logged
+while an exception unwinds (which steps are the park's, and the step a run threw inside). A hook that throws
+must only be set where every caller can carry the exception.
 
 ## Vendored dependency
 

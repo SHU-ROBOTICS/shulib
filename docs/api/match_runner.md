@@ -8,9 +8,9 @@
 
 competition::runAuton — run ONE registered auton under a RunGuard, from its start pose to its guaranteed end.
 
-This header declares **2** types (14 members) and **3** free functions.
+This header declares **2** types (15 members) and **3** free functions.
 
-Extracted from [`include/shulib/competition/match_runner.hpp`](../../include/shulib/competition/match_runner.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/competition/match_runner.hpp`](../../include/shulib/competition/match_runner.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 
@@ -30,6 +30,7 @@ Extracted from [`include/shulib/competition/match_runner.hpp`](../../include/shu
   - [`liveAfter`](#autonrunresult-liveafter)
   - [`seated`](#autonrunresult-seated)
   - [`imuAtSeat`](#autonrunresult-imuatseat)
+  - [`mirrored`](#autonrunresult-mirrored)
   - [`started`](#autonrunresult-started)
 - [`runAuton`](#runauton) — *free function*
 - [`runAuton (overload 2)`](#runauton-2) — *free function*
@@ -44,7 +45,7 @@ enum class AutonRunOutcome : std::uint8_t
 
 How a runAuton call ended — the TAG on AutonRunResult (B16). Read it before any other field.
 
-*enum class, declared at [`include/shulib/competition/match_runner.hpp:87`](../../include/shulib/competition/match_runner.hpp#L87).*
+*enum class, declared at [`include/shulib/competition/match_runner.hpp:108`](../../include/shulib/competition/match_runner.hpp#L108).*
 
 <a id="autonrunoutcome-refused"></a>
 
@@ -56,7 +57,7 @@ Refused
 
 Refused before the guard armed; `why` says what. Nothing moved; `guard` is empty.
 
-*enumerator, declared at [`include/shulib/competition/match_runner.hpp:89`](../../include/shulib/competition/match_runner.hpp#L89).*
+*enumerator, declared at [`include/shulib/competition/match_runner.hpp:110`](../../include/shulib/competition/match_runner.hpp#L110).*
 
 <a id="autonrunoutcome-notstarted"></a>
 
@@ -68,7 +69,7 @@ NotStarted
 
 The guard armed but the auton never started: the estimate did not go live before the run ended — the deadline, or an abandon (`guard.abandoned` says which). Nothing was re-seated; the guard's cancel-all still ran, and — unless abandoned — so did the end-of-run slot, filled by `chassis.brake()` and NEVER by the entry's own end action (that park is written for a start pose this run never seated; file banner, step 6). `why` says what.
 
-*enumerator, declared at [`include/shulib/competition/match_runner.hpp:95`](../../include/shulib/competition/match_runner.hpp#L95).*
+*enumerator, declared at [`include/shulib/competition/match_runner.hpp:116`](../../include/shulib/competition/match_runner.hpp#L116).*
 
 <a id="autonrunoutcome-routineran"></a>
 
@@ -80,7 +81,7 @@ RoutineRan
 
 The routine ran; `routine` holds its verdict.
 
-*enumerator, declared at [`include/shulib/competition/match_runner.hpp:97`](../../include/shulib/competition/match_runner.hpp#L97).*
+*enumerator, declared at [`include/shulib/competition/match_runner.hpp:118`](../../include/shulib/competition/match_runner.hpp#L118).*
 
 <a id="autonrunoutcome-routeran"></a>
 
@@ -92,7 +93,7 @@ RouteRan
 
 The route ran; `route` holds its report.
 
-*enumerator, declared at [`include/shulib/competition/match_runner.hpp:99`](../../include/shulib/competition/match_runner.hpp#L99).*
+*enumerator, declared at [`include/shulib/competition/match_runner.hpp:120`](../../include/shulib/competition/match_runner.hpp#L120).*
 
 <a id="autonrunoutcomeword"></a>
 
@@ -104,7 +105,7 @@ The route ran; `route` holds its report.
 
 The outcome as a word ("REFUSED", "NOT_STARTED", "ROUTINE_RAN", "ROUTE_RAN").
 
-*free function, declared at [`include/shulib/competition/match_runner.hpp:103`](../../include/shulib/competition/match_runner.hpp#L103).*
+*free function, declared at [`include/shulib/competition/match_runner.hpp:124`](../../include/shulib/competition/match_runner.hpp#L124).*
 
 <a id="struct-autonrunresult"></a>
 
@@ -116,7 +117,7 @@ struct AutonRunResult
 
 What one runAuton call did (B16's tagged result).
 
-*struct, declared at [`include/shulib/competition/match_runner.hpp:114`](../../include/shulib/competition/match_runner.hpp#L114).*
+*struct, declared at [`include/shulib/competition/match_runner.hpp:135`](../../include/shulib/competition/match_runner.hpp#L135).*
 
 <a id="autonrunresult-outcome"></a>
 
@@ -128,7 +129,7 @@ AutonRunOutcome outcome = AutonRunOutcome::Refused
 
 The tag.
 
-*field, declared at [`include/shulib/competition/match_runner.hpp:116`](../../include/shulib/competition/match_runner.hpp#L116).*
+*field, declared at [`include/shulib/competition/match_runner.hpp:137`](../../include/shulib/competition/match_runner.hpp#L137).*
 
 <a id="autonrunresult-why"></a>
 
@@ -140,7 +141,7 @@ char why[192]{}
 
 For Refused and NotStarted: the sentence, naming the auton. Empty otherwise.
 
-*field, declared at [`include/shulib/competition/match_runner.hpp:118`](../../include/shulib/competition/match_runner.hpp#L118).*
+*field, declared at [`include/shulib/competition/match_runner.hpp:139`](../../include/shulib/competition/match_runner.hpp#L139).*
 
 <a id="autonrunresult-guard"></a>
 
@@ -152,7 +153,7 @@ sequence::RunGuardReport guard{}
 
 The guard's own account — valid unless Refused. `guard.pacesSeen == 0` after a run that did work means the Chassis was not built with this guard as its pacer.
 
-*field, declared at [`include/shulib/competition/match_runner.hpp:121`](../../include/shulib/competition/match_runner.hpp#L121).*
+*field, declared at [`include/shulib/competition/match_runner.hpp:142`](../../include/shulib/competition/match_runner.hpp#L142).*
 
 <a id="autonrunresult-routine"></a>
 
@@ -164,7 +165,7 @@ chassis::RoutineResult routine{}
 
 The routine's verdict — valid only when `outcome == RoutineRan`.
 
-*field, declared at [`include/shulib/competition/match_runner.hpp:123`](../../include/shulib/competition/match_runner.hpp#L123).*
+*field, declared at [`include/shulib/competition/match_runner.hpp:144`](../../include/shulib/competition/match_runner.hpp#L144).*
 
 <a id="autonrunresult-route"></a>
 
@@ -176,7 +177,7 @@ runner::RunReport route{}
 
 The route's report — valid only when `outcome == RouteRan`.
 
-*field, declared at [`include/shulib/competition/match_runner.hpp:125`](../../include/shulib/competition/match_runner.hpp#L125).*
+*field, declared at [`include/shulib/competition/match_runner.hpp:146`](../../include/shulib/competition/match_runner.hpp#L146).*
 
 <a id="autonrunresult-armedat"></a>
 
@@ -188,7 +189,7 @@ units::Time armedAt{0.0}
 
 The clock reading at which the guard ARMED (valid unless Refused) — the instant the auton's schedule is measured from. The program subtracts its own autonomous()-entry reading from this and logs the hand-off latency (B12: arm as close to autonomous() as the hand-off allows, and say how close that was).
 
-*field, declared at [`include/shulib/competition/match_runner.hpp:130`](../../include/shulib/competition/match_runner.hpp#L130).*
+*field, declared at [`include/shulib/competition/match_runner.hpp:151`](../../include/shulib/competition/match_runner.hpp#L151).*
 
 <a id="autonrunresult-liveafter"></a>
 
@@ -200,7 +201,7 @@ units::Time liveAfter{0.0}
 
 Seconds from the guard arming to the estimate being live — 0 only when it was live already. "Live" is `qualityClass() != Uninitialized`, which a Localizer never reports on its first update() (localizer.hpp, Quality), so one nothing has ticked yet takes two ticks here even with an IMU that was ready all along.
 
-*field, declared at [`include/shulib/competition/match_runner.hpp:135`](../../include/shulib/competition/match_runner.hpp#L135).*
+*field, declared at [`include/shulib/competition/match_runner.hpp:156`](../../include/shulib/competition/match_runner.hpp#L156).*
 
 <a id="autonrunresult-seated"></a>
 
@@ -212,7 +213,7 @@ math::Pose2d seated{}
 
 The pose the re-seat set (the entry's effective start) — valid for RoutineRan / RouteRan.
 
-*field, declared at [`include/shulib/competition/match_runner.hpp:137`](../../include/shulib/competition/match_runner.hpp#L137).*
+*field, declared at [`include/shulib/competition/match_runner.hpp:158`](../../include/shulib/competition/match_runner.hpp#L158).*
 
 <a id="autonrunresult-imuatseat"></a>
 
@@ -224,7 +225,19 @@ math::Angle imuAtSeat{}
 
 The IMU's raw heading at the re-seat — what the start heading REPLACED (valid as `seated`).
 
-*field, declared at [`include/shulib/competition/match_runner.hpp:139`](../../include/shulib/competition/match_runner.hpp#L139).*
+*field, declared at [`include/shulib/competition/match_runner.hpp:160`](../../include/shulib/competition/match_runner.hpp#L160).*
+
+<a id="autonrunresult-mirrored"></a>
+
+### `AutonRunResult::mirrored`
+
+```cpp
+bool mirrored = false
+```
+
+MIRROR1-A: true when the entry was a MIRRORED one — `seated` is then robot two's REAL start (the reflection of the entry's own), and the screens' START line says MIR.
+
+*field, declared at [`include/shulib/competition/match_runner.hpp:163`](../../include/shulib/competition/match_runner.hpp#L163).*
 
 <a id="autonrunresult-started"></a>
 
@@ -236,7 +249,7 @@ The IMU's raw heading at the re-seat — what the start heading REPLACED (valid 
 
 True when the auton's routine or route actually started.
 
-*function, declared at [`include/shulib/competition/match_runner.hpp:142`](../../include/shulib/competition/match_runner.hpp#L142).*
+*function, declared at [`include/shulib/competition/match_runner.hpp:166`](../../include/shulib/competition/match_runner.hpp#L166).*
 
 <a id="runauton"></a>
 
@@ -248,7 +261,7 @@ True when the auton's routine or route actually started.
 
 Run `entry` under `guard` (file banner: the order of events).  * `chassis` MUST be the Chassis built with `guard` as its pacer (robot::BuildOptions::pacer) — the guard counts paces and the result says so if it never saw one. * `commands` is the command registry a ROUTE entry's markers fire through; required for a route entry (refused without one), ignored for a routine entry, and may be nullptr then. * `mechanisms` is what the guard safes at the cut and at the end — the Robot's PRESENT mechanisms (B9). No nullptr (refused, before arming). * `period` is the period this run is in — the PROGRAM's constant for the entry's kind (C6).  PRECONDITIONS (a programming error, thrown): the guard is not already running, and no motion is active on the chassis (the re-seat must not move a heading under a live motion — B14). Every other problem is a REFUSAL with a sentence, returned without arming.
 
-*free function, declared at [`include/shulib/competition/match_runner.hpp:316`](../../include/shulib/competition/match_runner.hpp#L316).*
+*free function, declared at [`include/shulib/competition/match_runner.hpp:364`](../../include/shulib/competition/match_runner.hpp#L364).*
 
 <a id="runauton-2"></a>
 
@@ -260,14 +273,14 @@ Run `entry` under `guard` (file banner: the order of events).  * `chassis` MUST 
 
 Run `entry` under `guard` WITH the robot's MECHANISM SERVICE (chunk MECH-A4, API 2.5; the file banner's three differences): the service's enterAutonomous() first, the guard's span is `mechanisms.mechanisms()`, and the routine's AutonContext carries the service, so `Routine r{ctx, "name"}` reaches every mechanism by its declaration. Every rule of the overload above holds unchanged. `mechanisms` belongs in the chassis's pacer chain under the guard, bound at boot before any auton can run; an UNBOUND one has no mechanisms (an empty span for the guard), and every mechanism step then ends ABSENT, saying the service is not bound — the drive steps still run.
 
-*free function, declared at [`include/shulib/competition/match_runner.hpp:333`](../../include/shulib/competition/match_runner.hpp#L333).*
+*free function, declared at [`include/shulib/competition/match_runner.hpp:381`](../../include/shulib/competition/match_runner.hpp#L381).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 59 lines, click to expand</summary>
+<summary>The header’s own reasoning — 78 lines, click to expand</summary>
 
 ```text
 
@@ -320,6 +333,25 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  The service must be IN the chassis's pacer chain, under the guard (Chassis -> RunGuard ->
  MechanismService -> the program's watch -> the tick pacer): a routine whose mechanism step
  waits on a service that never ticks stops, saying so (chassis/routine.hpp).
+
+ ── A MIRRORED entry (chunk MIRROR1-A, 2026-11-13; competition/field_mirror.hpp) ─────
+ An entry `competition::mirrored(...)` marked runs robot one's route on robot two, reflected. Three
+ things differ, nothing above moves:
+   4. The re-seat writes the REFLECTED start (field_mirror.hpp's seatedStart: a FIELD start through
+      the entry's FieldMirror, a RELATIVE one through the robot-frame flip) — position AND heading
+      on one tick, as ever — so `seated` is robot two's REAL start, where the drivers must place it.
+      Its line's mode word reads "FIELD MIRRORED" / "RELATIVE MIRRORED", and a second line names the
+      mirror and robot one's start as written (both ASCII, both under the 160-byte buffer and the
+      terminal's 200-byte cut at their worst case — test/mirrored_auton_test.cpp measures them).
+   5-6. ONE chassis::MirroredRun is opened after the re-seat and closed after the end action, around
+      the routine (or route) AND the park, so the park runs mirrored too; it closes on every way out
+      (a normal end, the deadline's cut, an abandon, a throw unwinding through runAuton) — before
+      runAuton returns, so everything read afterwards (the program's END estimate) is the real
+      field. The arming line's start word says MIRRORED as well, so a mirrored run that never
+      starts is still named one.
+ An UNMIRRORED entry runs byte for byte as before (test/mirror_unchanged_runs.hpp's hash, measured
+ at the merge base, pinned). runAuton refuses (a precondition) a Chassis whose mirror is still on —
+ a leaked run would reflect an unmirrored auton.
 
  ── What it does not do ─────────────────────────────────────────────────────────────
  It owns no task and reads no competition state: the program's auton task calls it, and the

@@ -69,6 +69,7 @@
 #include <span>
 #include <string_view>
 
+#include "common/robot_words.hpp"
 #include "robots/mechanism_table.hpp"
 #include "shulib/calibration/boot_check.hpp"
 #include "shulib/calibration/calibration_record.hpp"
@@ -107,7 +108,12 @@ namespace shulib::bench {
 /// since CAL1 Part B; "claw pivot (declared)" before it), because
 /// every MOTOR role robot two declares is a claw pivot; a list that declares another kind of motor
 /// mechanism changes this with it (L9 Part B's boot wording makes it the program's).
+/// (ROB1-A, 2026-11-11: robot TWO's label. decideBootSourceFrom() reads its `Words`' label —
+/// src/common/robot_words.hpp, robot one's "mechanism motors (...)" — and this constant stays robot two's,
+/// byte for byte; the static_assert below holds the two the same.)
 inline constexpr const char* kDeclaredMotorLabel = "claw pivots (declared, not drive motors)";
+static_assert(std::string_view{kDeclaredMotorLabel} == std::string_view{kRobotTwoWords.declaredMotorLabel},
+              "robot two's boot label is kDeclaredMotorLabel, verbatim");
 
 /// The most mechanism MOTOR ports a list can declare: kMaxMechanisms mechanisms of four motors each.
 inline constexpr std::size_t kMaxDeclaredMotorPorts = mechanism::kMaxMechanisms * mechanism::kMaxMotorRoles;
@@ -354,13 +360,19 @@ inline constexpr std::size_t kBootLineBytes = 512;
 /// port (`port N is both a claw (<name>) and a drive motor in the record -- recalibrate ...`, or
 /// `port N is both <name>'s piece sensor and ...`), printed as it is decided. `robotName` becomes the
 /// config's identity (bootConfigFrom).
-template <class PrintLine>
+///
+/// `Words` (LAST, defaulted to this build's robot — chunk ROB1-A, re-check R7): the robot's words for the
+/// port check's label and step 5's MOTOR refusal — robot two's "claw" words verbatim, robot one's
+/// "mechanism" words (src/common/robot_words.hpp). A host test passes `WordsOf<RobotId::RobotOne>{}`;
+/// every other call is unchanged.
+template <class PrintLine, class Words = ThisRobotWords>
 [[nodiscard]] BootOutcome decideBootSourceFrom(const RecordRead& record,
                                                const hal::IDeviceRegistry& registry,
                                                const hal::DrivetrainDescription& fromTable,
                                                const char* tableMissing,
                                                const MechanismTable& mechanisms,
-                                               std::string_view robotName, PrintLine&& printLine) {
+                                               std::string_view robotName, PrintLine&& printLine,
+                                               Words = {}) {
     BootOutcome out{};
     char line[kBootLineBytes];
 
@@ -370,7 +382,7 @@ template <class PrintLine>
     int declaredPorts[kMaxDeclaredMotorPorts]{};
     const std::size_t declaredCount = mechanism::declaredMotorPorts(mechanisms, declaredPorts);
     const calibration::DeclaredMotorPorts declared{
-        .ports = std::span<const int>{declaredPorts, declaredCount}, .label = kDeclaredMotorLabel};
+        .ports = std::span<const int>{declaredPorts, declaredCount}, .label = Words::value.declaredMotorLabel};
 
     // 1. the record, verified against the ports on THIS boot, before anything is constructed.
     if (record.decoded) {
@@ -479,11 +491,16 @@ template <class PrintLine>
             }
             char why[192];
             if (roles[r].motor) {
+                // Robot two's words verbatim ("a claw"); robot one's "a mechanism" (ROB1-A, R7) — two
+                // literals, chosen at compile time (src/common/robot_words.hpp).
                 std::snprintf(why, sizeof why,
-                              "port %d is both a claw (%.23s) and a drive motor in the %s -- %s", port,
-                              spec.name, fromRecord ? "record" : "typed table",
-                              fromRecord ? "recalibrate: shulib Calibrate (slot 4) never takes a declared "
-                                           "claw port"
+                              Words::value.claw ? "port %d is both a claw (%.23s) and a drive motor in the %s -- %s"
+                                                : "port %d is both a mechanism (%.23s) and a drive motor in the %s -- %s",
+                              port, spec.name, fromRecord ? "record" : "typed table",
+                              fromRecord ? (Words::value.claw ? "recalibrate: shulib Calibrate (slot 4) never takes a "
+                                                                "declared claw port"
+                                                              : "recalibrate: shulib Calibrate (slot 4) never takes a "
+                                                                "declared mechanism port")
                                          : "src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp "
                                            "disagree");
             } else {
@@ -497,8 +514,11 @@ template <class PrintLine>
             std::snprintf(line, sizeof line, "mechanisms: REFUSED -- %s", why);
             printLine(static_cast<const char*>(line));
             const char* headline = roles[r].motor
-                                       ? (fromRecord ? "a CLAW port is a DRIVE port in the record"
-                                                     : "a CLAW port is a DRIVE port in the typed table")
+                                       ? (Words::value.claw
+                                              ? (fromRecord ? "a CLAW port is a DRIVE port in the record"
+                                                            : "a CLAW port is a DRIVE port in the typed table")
+                                              : (fromRecord ? "a MECHANISM MOTOR port is a DRIVE port in the record"
+                                                            : "a MECHANISM MOTOR port is a DRIVE port in the typed table"))
                                        : (fromRecord ? "a MECHANISM SENSOR port is a DRIVE port in the record"
                                                      : "a MECHANISM SENSOR port is a DRIVE port in the typed table");
             detail::refuseWith(out, headline, why);

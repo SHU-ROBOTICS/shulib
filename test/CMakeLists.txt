@@ -80,7 +80,7 @@ file(GLOB TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
 
 add_executable(shulib_tests test_main.cpp ${TEST_SOURCES})
 
-# THE ONE src/ .cpp THE HOST BUILDS (chunk COMP-t, 2026-09-28): the team's autons,
+# THE src/ .cpp FILES THE HOST BUILDS (chunk COMP-t, 2026-09-28; two since ROB1-A): the team's autons,
 # src/team/autons.cpp. It is PROS-free by design, and it is exactly what the robot
 # runs — so the host suite runs every auton in it on the host test plant through
 # the Auton Tester's own run sequence (test/autons_test.cpp), and a change to an
@@ -88,6 +88,9 @@ add_executable(shulib_tests test_main.cpp ${TEST_SOURCES})
 # (the programs include PROS); a PROS-free src/ header the host needs is included
 # from src/ through the root below, never compiled here.
 target_sources(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp")
+# ...and, since chunk ROB1-A (2026-11-11), robot one's: src/team/robot_one_autons.cpp, PROS-free the
+# same way (test/robot_one_autons_test.cpp runs it on the host test plant).
+target_sources(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/robot_one_autons.cpp")
 
 # ── THE SUITE'S OWN FLAGS, as ONE INTERFACE target (chunk MECH-A1, 2026-10-08) ──────────────
 # Every include root, option and define below used to be PRIVATE to shulib_tests. The mechanism
@@ -201,6 +204,7 @@ endif()
 
 set(SHULIB_DOC_TOOL "${CMAKE_CURRENT_SOURCE_DIR}/../tools/api_doc_tool.py")
 set(SHULIB_DOC_STAMP "${CMAKE_CURRENT_BINARY_DIR}/doc_gates.stamp")
+set(SHULIB_READ_TOOL "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_readability.py")
 
 # Every public document and every example source is an INPUT: editing a chapter
 # must re-run the gates, or a drift introduced after the last build sits green
@@ -213,12 +217,14 @@ set(SHULIB_DOC_STAMP "${CMAKE_CURRENT_BINARY_DIR}/doc_gates.stamp")
 file(GLOB SHULIB_DOC_INPUTS CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/../README.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../docs/*.md"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../docs/guide/*.md"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../docs/cookbook/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/*example*_test.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/*_driver.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp")
+# Every public page, in ANY folder under docs/, as check-nav and check-tone read them (DOCS3-N1's
+# review: a page in a new folder, missing from a hand-kept list, did not re-run the gate when edited).
+file(GLOB_RECURSE SHULIB_DOC_PUBLIC_PAGES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../docs/*.md")
+list(FILTER SHULIB_DOC_PUBLIC_PAGES EXCLUDE REGEX "/docs/internal/")
+list(APPEND SHULIB_DOC_INPUTS ${SHULIB_DOC_PUBLIC_PAGES})
 
 # ── EVERY header and EVERY generated page is an input (chunk DOCS2) ──────────
 # Until DOCS2 the gate depended on two headers and three pages, because those
@@ -291,6 +297,20 @@ add_custom_command(
           "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py" self-test
   COMMAND "${Python3_EXECUTABLE}"
           "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py"
+  # reading (DOCS3-N1): every public page in the site's menu exactly once; no page says
+  # "honest" or opens with a status disclaimer; the front page's first-week picture still
+  # matches guide 21's order; the site copy anchors every register row.
+  COMMAND "${Python3_EXECUTABLE}" "${SHULIB_READ_TOOL}" self-test
+  COMMAND "${Python3_EXECUTABLE}" "${SHULIB_READ_TOOL}" check-nav
+  COMMAND "${Python3_EXECUTABLE}" "${SHULIB_READ_TOOL}" check-tone
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/first_week.py" self-test
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/first_week.py" check
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/prepare_site.py" self-test
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/prepare_site.py" check-register
   COMMAND "${CMAKE_COMMAND}" -E touch "${SHULIB_DOC_STAMP}"
   DEPENDS
     "${SHULIB_DOC_TOOL}"
@@ -309,13 +329,28 @@ add_custom_command(
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py"
     # The bounded suite run both of them use (2026-10-22): a change to its bounds re-runs the gate.
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/suite_run.py"
+    # The reading checks and the files they read beyond the pages (DOCS3-N1).
+    "${SHULIB_READ_TOOL}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/first_week.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../docs/assets/first-week.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../tools/prepare_site.py"
     ${SHULIB_DOC_INPUTS}
-  COMMENT "shulib doc gates: coverage, freshness, verbatim examples, removability"
+  COMMENT "shulib doc gates: coverage, freshness, verbatim examples, removability, staleness, reading"
   VERBATIM)
 add_custom_target(shulib_doc_gates DEPENDS "${SHULIB_DOC_STAMP}")
 add_dependencies(shulib_tests shulib_doc_gates)
 
 add_test(NAME shulib_tests COMMAND shulib_tests)
+
+# ── THE ROUTE PREVIEW (chunk RPV1-A, 2026-11-12) ────────────────────────────────────────────────────
+# One named auton from the team's REAL autons file through the REAL library on the host test plant,
+# drawn as one offline page (test/route_preview_run.hpp; run it with tools/route_preview.py, which
+# builds this target and runs it under the suite's own bounds). Built by the default target, so CI
+# compiles it; it does NOT wait for the doc gates. route_preview_main.cpp is not a *_test.cpp, so the
+# suite's glob above never compiles it — the suite calls runPreview() itself (route_preview_test.cpp).
+add_executable(shulib_route_preview route_preview_main.cpp "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp"
+                                    "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/robot_one_autons.cpp")
+target_link_libraries(shulib_route_preview PRIVATE shulib_test_flags)
 
 # ── THE COMPILE-REFUSAL HARNESS (chunk MECH-A1, 2026-10-08; the MECH brief's §3.0) ──────────
 # The mechanism core refuses a robot file's mistakes AT BUILD, each by name (a consteval check calls
@@ -326,3 +361,12 @@ add_test(NAME shulib_tests COMMAND shulib_tests)
 # part of shulib_tests (they are EXCLUDE_FROM_ALL object targets): compile_refusals/CMakeLists.txt
 # and run_refusal.py say how a TU is judged.
 add_subdirectory(compile_refusals)
+
+# ── THE ROUTE BUILDER'S NATIVE PROGRAM (chunk RMP1-A1, 2026-11-14; the RMP1 brief A.3.3 [W9]) ─────────────
+# `shulib_route_maker describe --robot one|two|x|y|z` writes a robot's description (its REAL tables, as the
+# route builder's page reads them) and `curves` the CV1 curve golden; CI's route-builder job builds this ONE
+# target and bakes robots one and two into the page (tools/route_maker/build.py --describe). Host only, the
+# suite's own flags (shulib_test_flags), NOT part of shulib_tests and not needed by it (the suite includes
+# the same headers). RMP1-A2e adds `preview` to the same main (one main for this program and the module).
+add_executable(shulib_route_maker route_maker_main.cpp)
+target_link_libraries(shulib_route_maker PRIVATE shulib_test_flags)

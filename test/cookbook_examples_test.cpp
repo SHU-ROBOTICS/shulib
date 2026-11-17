@@ -12,6 +12,7 @@
 //   cookbook-06a/b    -> docs/cookbook/06-driver-control.md
 //   cookbook-08a      -> the skills Toggle visit (AF1S-A1's route, over the EXPLICIT form; its page, "A skills
 //                        route that visits the Toggles", is AF1S-A2's — with the everyday form over ctx)
+//   cookbook-09a      -> docs/cookbook/09-one-route-two-robots.md (MIRROR1-A: one route, robot two mirrored)
 //
 // The cookbook quotes these bodies VERBATIM — the same anti-rot rule the guide
 // uses (docs/internal/guide-maintenance.md rule 1), extended to docs/cookbook/.
@@ -31,11 +32,15 @@
 #include <string>
 #include <vector>
 
+#include "mirrored_pair_check.hpp"
 #include "motion_test_rig.hpp"
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/routine.hpp"
 #include "shulib/competition/auton_registry.hpp"
+#include "shulib/competition/auton_menu.hpp"
 #include "shulib/competition/auton_wall_reset.hpp"
+#include "shulib/competition/field_mirror.hpp"
+#include "shulib/competition/override_mirror.hpp"
 #include "shulib/hal/controller.hpp"
 #include "shulib/hal/fake/fake_controller.hpp"
 #include "shulib/hal/fake/fake_digital_out.hpp"
@@ -1024,4 +1029,120 @@ TEST_CASE("cookbook-08a: a skills route that visits three Toggles — one alread
     for (const std::string& l : lines) {
         CHECK(l.find("wall not checked") == std::string::npos);  // a FIELD start: every wall checked
     }
+}
+
+// ═══ cookbook-09a — one route, two robots (docs/cookbook/09-one-route-two-robots.md; chunk MIRROR1-A) ═══
+// The recipe is written as a team's auton files need it — inside `namespace shulib::bench`, so
+// `chassis::`, `competition::` and `localization::` resolve from there. The ROUTE is a placeholder for the
+// students' own (G4): every number in it is the test's, kept on robot one's side of the diagonal.
+namespace shulib::bench {
+namespace {
+
+// THE SHARED SKILLS ROUTE, written ONCE, in robot one's numbers: robot one starts
+// in the red wall's Quadrant. Robot two runs this same function MIRRORED.
+chassis::RoutineResult skills(competition::AutonContext& ctx) {
+    chassis::Routine r{ctx, "skills"};
+    // Robot one: the red wall, RIGHT sensor. Robot two: the right wall, LEFT sensor.
+    r.then([&] { return competition::resetFromWall(ctx,
+                     {.wall = localization::override2026::kRedWall,
+                      .sensor = localization::WallSide::Right,
+                      .maxCorrection = 3_in}).continues(); }, "red wall y");
+    r.driveTo(-12_in, -55.7_in);
+    r.face(-12_in, -30_in);
+    r.driveTo(-12_in, -30_in);
+    // The centre goal sits ON the mirror line: ONE robot goes there.
+    if (!competition::isMirrored(ctx)) {
+        r.face(-6_in, -6_in);
+        r.driveTo(-6_in, -6_in);
+        r.reverseTo(-12_in, -30_in);
+    } else {
+        r.pause(4_s);  // robot two waits on its own side meanwhile
+    }
+    r.face(-30_in, -40_in);
+    r.driveTo(-30_in, -40_in);
+    return r.result();
+}
+
+// The entry both robots register: robot one's start, its schedule.
+competition::AutonEntry skillsRoute() {
+    competition::AutonEntry e{};
+    e.name = "skills";
+    e.kind = competition::AutonKind::Skills;
+    e.routine = &skills;
+    e.start = competition::StartPose::field(-36_in, -55.7_in, 0_deg);
+    e.endActionAt = 55_s;
+    e.hardStopAt = 58_s;
+    return e;
+}
+
+// Robot one's autons file:
+void registerRobotOneSkills(competition::AutonRegistry& registry) {
+    registry.add(skillsRoute());
+}
+
+// Robot two's autons file -- the one line:
+void registerRobotTwoSkills(competition::AutonRegistry& registry) {
+    registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));
+}
+
+}  // namespace
+}  // namespace shulib::bench
+
+// Bug caught: a recipe that does not compile in a team's auton files, or that teaches a route the two
+// robots cannot run together. Both registrations, as the two files write them: robot two's entry is
+// MIRRORED and its menu button says so; run TOGETHER on the host test plant, the pair check keeps them
+// at least 6 in apart (the isMirrored branch sends only robot one to the centre); and on the robot with
+// side sensors, robot one's wall reset seats the red wall with its RIGHT sensor while robot two's — the
+// same line — seats the right wall with its LEFT sensor.
+TEST_CASE("cookbook-09a: one route, two robots — registered twice, run together, the wall reset swapped") {
+    namespace sc = shulib::competition;
+    const sc::AutonPeriods periods{.match = 30_s, .skills = 60_s};
+    sc::AutonRegistry one{periods};
+    sc::AutonRegistry two{periods};
+    shulib::bench::registerRobotOneSkills(one);
+    shulib::bench::registerRobotTwoSkills(two);
+    REQUIRE(one.size() == 1U);
+    REQUIRE(two.size() == 1U);
+    CHECK(one.at(0).mirror == nullptr);
+    CHECK(two.at(0).mirror == &sc::override2026::kSkillsMirror);
+    sc::AutonMenu menu{two, 0};
+    CHECK(std::string{menu.view(10.0).buttons[0].label} == "skills SKILLS MIR");
+
+    // Together: the pair check (the suite runs it over robot two's whole registry the same way).
+    const shulib::kinematics::TankKinematics tank{Length{12.0}};
+    const std::vector<mirror_pair::PairVerdict> pair = mirror_pair::checkEveryMirroredEntry(two, tank);
+    REQUIRE(pair.size() == 1U);
+    MESSAGE(pair[0].sentence);
+    CHECK(pair[0].checked);
+    CHECK(pair[0].ok);
+    CHECK(pair[0].leastGapIn >= 20.0);  // the page's "at least 20 in apart" (MEASURED 20.47 in)
+
+    // The wall reset, on the robot whose robot file declares its side sensors: robot one placed at its
+    // start, robot two at the reflection (-y, -x, -90 deg - h) of it.
+    const auto seat = [](const sc::AutonEntry& e, const Pose2d& truth, std::string& wall) {
+        wall_robot::WallWorld world{truth};
+        shulib::robot::Robot& robot =
+            world.build(wall_robot::robotWith(wall_robot::wallsFor(wall_rig::trueLeft(), wall_rig::trueRight())));
+        // a SKILLS run: its 60 s period (the rig's own run() judges a 30 s MATCH)
+        const sc::AutonRunResult res =
+            sc::runAuton(robot.chassis(), world.guard, e, nullptr, world.sink, {}, shulib::units::Time{60.0});
+        for (int i = 0; i < world.sink.size(); ++i) {
+            if (world.sink.at(i).subsystem == "WALL") {
+                wall = world.sink.at(i).message;
+            }
+        }
+        return res;
+    };
+    std::string wallOne;
+    std::string wallTwo;
+    const sc::AutonRunResult a = seat(one.at(0), Pose2d{-36_in, -55.705_in, 0_deg}, wallOne);
+    const sc::AutonRunResult b = seat(two.at(0), Pose2d{55.705_in, 36_in, -90_deg}, wallTwo);
+    REQUIRE(a.started());
+    REQUIRE(b.started());
+    CHECK(a.routine.ok);
+    CHECK(b.routine.ok);
+    CHECK(b.mirrored);
+    CHECK(wallOne.rfind("red wall y SEATED (RIGHT sensor): ", 0) == 0);
+    CHECK(wallTwo.rfind("right wall x SEATED (LEFT sensor, mirrored from red wall RIGHT): ", 0) == 0);
+    MESSAGE(wallTwo);
 }

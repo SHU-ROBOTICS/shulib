@@ -265,6 +265,17 @@ void driverLoop(chassis::Chassis& chassis, const hal::IController& controller, m
     SHULIB_PRECONDITION(validProtectionConfig(cfg.protection, chassis.deps().motorGroups,
                                               protectionWhy, sizeof protectionWhy),
                         protectionWhy);
+    // MIRROR1-A: an auton's mirror still on at driver control would steer reversed (a body command's
+    // turn negated). It cannot happen in the competition program — opcontrol starts only after the
+    // auton task's FINISHED, after the auton runner's chassis::MirroredRun has closed — so this is for
+    // a defect: CLEARED, said loudly, never refused (a refusal would leave the driver with no drive for
+    // the whole period). Before tick 1; it commands nothing.
+    if (shulib::chassis::detail::clearLeakedMirror(chassis)) {
+        chassis.deps().ctx->telemetry().log(
+            hal::LogLevel::Warn, "MIR",
+            "an auton's mirror was still on at driver control -- cleared; the driver drives the real "
+            "field (a library defect: please report it)");
+    }
     // A claim still on a bound mechanism at entry is RELEASED, and said (the team lead's ruling,
     // 2026-09-26): a claim left by a deleted autonomous task must never lock the driver out. After
     // the set check (a refused set touches nothing), before the entry safe state below.

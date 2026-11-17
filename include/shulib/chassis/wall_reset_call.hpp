@@ -46,6 +46,7 @@
 #include <utility>
 
 #include "shulib/chassis/chassis.hpp"
+#include "shulib/core/check.hpp"
 #include "shulib/diag/line_format.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
 #include "shulib/localization/axis.hpp"
@@ -69,7 +70,9 @@ namespace detail {
 /// predicate held), false when it was CUT (the everyday form's run guard: a deadline or a disable) — a
 /// cut window refuses CUT and seats nothing. `log` (may be null) is filed with the outcome. `sink`
 /// (may be null) is where the ONE line goes — the everyday form passes the auton's own
-/// (`AutonContext::telemetry`); null means the chassis context's telemetry.
+/// (`AutonContext::telemetry`); null means the chassis context's telemetry. `sideNote` (may be null:
+/// none) goes inside the line's sensor parenthesis — the everyday form's MIRRORED note (MIRROR1-A;
+/// localization::appendWallResetLine).
 template <typename Wait>
 [[nodiscard]] localization::WallResetReport runWallReset(Chassis& chassis,
                                                          const localization::WallSensor& sensor,
@@ -77,7 +80,8 @@ template <typename Wait>
                                                          const localization::WallResetLimits& limits,
                                                          Wait&& wait,
                                                          localization::WallResetLog* log = nullptr,
-                                                         hal::ITelemetrySink* sink = nullptr) {
+                                                         hal::ITelemetrySink* sink = nullptr,
+                                                         const char* sideNote = nullptr) {
     using localization::WallResetReport;
     using localization::WallResetVerdict;
     const motion::MotionDeps& deps = chassis.deps();
@@ -146,7 +150,7 @@ template <typename Wait>
     }
 
     diag::lineformat::Line line;
-    localization::appendWallResetLine(line, rep, request, sensor.mount, limits);
+    localization::appendWallResetLine(line, rep, request, sensor.mount, limits, sideNote);
     hal::ITelemetrySink& out = sink != nullptr ? *sink : deps.ctx->telemetry();
     out.log(rep.seated() ? hal::LogLevel::Info : hal::LogLevel::Warn, "WALL", line.view());
     if (log != nullptr) {
@@ -166,11 +170,17 @@ template <typename Wait>
 /// allowance come from the Localizer's counters (`turnedSinceHeadingSeed`, `travelSinceSeat`). The
 /// window is a FROZEN wait: a deadline landing in it is acted on up to `windowMax` late (the
 /// everyday form, `competition::resetFromWall(ctx, ...)`, is cut instead). Returns the report — a VALUE; `continues()` is what a
-/// `then()` returns (D3).
+/// `then()` returns (D3). PRECONDITION (MIRROR1-A, the MIRROR1 brief's D5): no mirrored run is open on
+/// `chassis` — this form is handed one SENSOR, and a mirrored auton needs the OTHER side's; the
+/// everyday form swaps the wall and the side itself.
 [[nodiscard]] inline localization::WallResetReport resetFromWall(Chassis& chassis,
                                                                  const localization::WallSensor& sensor,
                                                                  const localization::WallResetRequest& request,
                                                                  const localization::WallResetLimits& limits) {
+    SHULIB_PRECONDITION(chassis.reflection().isIdentity(),
+                        "chassis::resetFromWall: a mirrored run is open -- this form is handed one sensor and a "
+                        "mirrored auton needs the other side's: call competition::resetFromWall(ctx, ...), which "
+                        "swaps the wall and the sensor side");
     return detail::runWallReset(chassis, sensor, request, limits,
                                 [&chassis](const auto& pred, units::Time timeout) {
                                     (void)chassis.waitUntil(pred, timeout);

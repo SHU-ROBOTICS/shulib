@@ -40,7 +40,11 @@ TEST_CASE("pins: the program runs autons ONLY through runTesterOnce") {
     const std::string code = stripComments(readFile(kProgramFile));
     CHECK(count(code, "runTesterOnce(") == 1);
     CHECK(count(code, "runAuton(") == 0);
-    CHECK(count(code, "registerAutons(") == 1);
+    // ROB1-A: the build's robot's autons, through src/common/this_robot.hpp — once — and never robot
+    // two's registerAutons() directly (a second, direct call cannot slip in beside it).
+    CHECK(count(code, "registerThisRobotsAutons(") == 1);
+    CHECK(count(code, "registerAutons(") == 0);
+    CHECK(count(code, "registerRobotOneAutons(") == 0);
 }
 
 // Bug caught (T4 Part 3; the team lead's ruling of 2026-10-02 on COMP-b's C5, applied here because
@@ -53,7 +57,7 @@ TEST_CASE("pins: the tester's registry DROPS a refused entry and names it in the
     CHECK(count(code, "st.registry.emplace(") == 1);
     CHECK(count(code, "st.registry.emplace(kAutonPeriods, competition::OnRefusal::DropEntry);") == 1);
     CHECK(count(squash(code), "st.registry.emplace(kAutonPeriods, "
-                              "competition::OnRefusal::DropEntry); registerAutons(*st.registry);")
+                              "competition::OnRefusal::DropEntry); registerThisRobotsAutons(*st.registry);")
           == 1);
     CHECK(count(code, "#include \"common/dropped_autons.hpp\"") == 1);
     // `false`: the tester's opcontrol() drives nothing, so its line must not say driver control
@@ -117,7 +121,7 @@ TEST_CASE("pins: the Robot is built WITH opts, the guard its pacer, the chain gu
     const std::size_t bindAt = code.find("st.mechanisms->bind(");
     const std::size_t routesAt = code.find("st.routes->registerInto(");
     const std::size_t proofAt = code.find("pacerChainMissing(");
-    const std::size_t registerAt = code.find("registerAutons(");
+    const std::size_t registerAt = code.find("registerThisRobotsAutons(");
     const std::size_t taskAt = code.find("st.task.emplace(");
     REQUIRE(tryAt != std::string::npos);
     REQUIRE(catchAt != std::string::npos);

@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 6,386 of them across 211 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 6,439 of them across 214 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -21,7 +21,7 @@
 
 **What the gate does not check.** It proves every entity *has* a documentation comment. It has no opinion about whether that comment says anything — `/// Sets the voltage.` on `setVoltage` passes. Only a reader catches that, which is why the headers are written to be read and why each page below ends with the header's own design commentary rather than a bare list of signatures.
 
-Prose about *how to think about* the API lives in the [user guide](../guide/README.md) — chapter 10 is the API as prose, and deliberately does not restate signatures. Worked recipes live in the [cookbook](../cookbook/README.md). This page answers "what exactly exists, and what is its exact spelling".
+Prose about *how to think about* the API lives in [How it works](../guide/README.md) — [The API in words](../guide/10-the-api.md) is the API as prose, and deliberately does not restate signatures. Worked recipes live in [Recipes](../cookbook/README.md). This page answers "what exactly exists, and what is its exact spelling".
 
 ## Pages
 
@@ -153,6 +153,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Angle](angle.md) | [`math/angle.hpp`](../../include/shulib/math/angle.hpp) | Angle — a heading on SE(2). The one type that owns angle wrapping, so the "degrees into cos/sin" and "359° vs -1°" bug classes are impossible by construction. |
 | [Frame](frame.md) | [`math/frame.hpp`](../../include/shulib/math/frame.hpp) | frame.hpp — THE ONE PLACE a frame rotation is allowed. |
 | [Pose2d](pose2d.md) | [`math/pose2d.hpp`](../../include/shulib/math/pose2d.hpp) | Pose2d — a rigid-body pose on SE(2): position (x, y) + heading. |
+| [Reflection](reflection.md) | [`math/reflection.hpp`](../../include/shulib/math/reflection.hpp) | math::Reflection — the field plane reflected across a line through the origin, or left as it is. |
 | [Twist2d](twist2d.md) | [`math/twist2d.hpp`](../../include/shulib/math/twist2d.hpp) | Twist2d and ChassisSpeeds — the velocity currencies of the motion stack. |
 
 ### Units
@@ -279,7 +280,9 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Auton menu](auton_menu.md) | [`competition/auton_menu.hpp`](../../include/shulib/competition/auton_menu.hpp) | competition::AutonMenu — the brain-screen auton selector as a PURE MODEL. |
 | [Auton registry](auton_registry.md) | [`competition/auton_registry.hpp`](../../include/shulib/competition/auton_registry.hpp) | competition::AutonRegistry — the autons a competition program can run, as DATA. |
 | [Auton wall reset](auton_wall_reset.md) | [`competition/auton_wall_reset.hpp`](../../include/shulib/competition/auton_wall_reset.hpp) | competition::resetFromWall — the wall reset's EVERYDAY call, over the auton's context (chunk L6-A2, 2026-11-03; the L6 brief's D4 (a) and its §1.12 — the team lead's answers of 2026-10-22, and his ruling of 2026-11-03 that the wall reset be callable from a… |
+| [Field mirror](field_mirror.md) | [`competition/field_mirror.hpp`](../../include/shulib/competition/field_mirror.hpp) | competition::FieldMirror — ONE ROUTE, TWO ROBOTS. |
 | [Match runner](match_runner.md) | [`competition/match_runner.hpp`](../../include/shulib/competition/match_runner.hpp) | competition::runAuton — run ONE registered auton under a RunGuard, from its start pose to its guaranteed end. |
+| [Override mirror](override_mirror.md) | [`competition/override_mirror.hpp`](../../include/shulib/competition/override_mirror.hpp) | The 2026-27 season's SKILLS MIRROR — VEX V5RC / VEX U "Override". |
 | [Toggle visit](toggle_visit.md) | [`competition/toggle_visit.hpp`](../../include/shulib/competition/toggle_visit.hpp) | competition::checkAndFlipToggle — the Toggle flip for a SKILLS run, as ONE route step. |
 
 ### Config
@@ -358,10 +361,10 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 6,386 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 6,439 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 
-- The [user guide](../guide/README.md) teaches the ideas in order, and chapter 10 is the API *as prose* — when to reach for a verb, what it does when things go wrong, which gotchas bite. It deliberately does not restate signatures; this reference owns those.
-- The [cookbook](../cookbook/README.md) answers "how do I write the routine I am writing right now", with compiled recipes.
+- [How it works](../guide/README.md) teaches the ideas in order, and [The API in words](../guide/10-the-api.md) is the API *as prose* — when to reach for a verb, what it does when things go wrong, which gotchas bite. It deliberately does not restate signatures; this reference owns those.
+- [Recipes](../cookbook/README.md) answers "how do I write the routine I am writing right now", with compiled recipes.
 - This reference answers "what exactly exists, and what is its exact spelling".

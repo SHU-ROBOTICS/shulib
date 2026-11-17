@@ -15,8 +15,9 @@ format the code produces today — every example is copied from output that the 
 byte-for-byte (`test/term_sink_test.cpp`, `test/run_summary_test.cpp`,
 `test/motion_result_test.cpp`, `test/session_header_test.cpp`, for the `ODO_STUCK` line
 `test/odom_tick_audit_test.cpp`, for the wall reset's `WALL` lines
-`test/wall_reset_line_test.cpp` and, for the Toggle visit's `TGL` lines,
-`test/toggle_visit_line_test.cpp` hold the golden strings). If the
+`test/wall_reset_line_test.cpp`, for the Toggle visit's `TGL` lines,
+`test/toggle_visit_line_test.cpp` and, for a mirrored auton's `COMP` and `MIR` lines,
+`test/mirrored_auton_test.cpp` and `test/chassis_mirror_test.cpp` hold the golden strings). If the
 format ever changes, those tests change with it — trust them over this page and tell the guide
 maintainer.
 
@@ -118,7 +119,7 @@ duration, whatever the outcome:
   ([Chapter 12](12-when-things-go-wrong.md) has the differential). With a small `xt`, being
   beside the line is not the story: compare `final(…)` with the target — short of it *along* the
   line, or at it but never settled (the heading still off — `drift` — or hovering just outside
-  the tolerance: Chapter 12's *almost settled, never quite*). A `✓SETTLED` leg's `xt` is always
+  the tolerance: [Chapter 12](12-when-things-go-wrong.md)'s *almost settled, never quite*). A `✓SETTLED` leg's `xt` is always
   inside the arrival tolerance (half an inch by default), because arriving means being that
   close to the point.
 - **Where it never appears:** turns (`turnTo`, `face`), `brake`, and the `hold` verb (it holds
@@ -248,6 +249,27 @@ worth recognizing on sight:
   [its own section below](#the-wall-reset-wall) reads it word by word.
 - **A Toggle visit** (tag `TGL`, Info for the two successes, Warn otherwise) — one line per visit,
   beside the flipper's own `MECH` lines; [its own section below](#the-toggle-visit-tgl) reads it.
+- **A mirrored auton** (robot two running robot one's route mirrored —
+  [Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton)): the auton runner's
+  `COMP` lines say so. The re-seat line's start word reads `FIELD MIRRORED` (or `RELATIVE MIRRORED`)
+  and gives robot two's REAL start — where the drivers must place it — and a second line names the
+  mirror and robot one's start as the route wrote it:
+  `auton 'skills': re-seated FIELD MIRRORED (55.70, 36.00) in facing -90.0 deg; the IMU read -90.0 deg, live after 0.00s`
+  then `auton 'skills': MIRRORED across the skills diagonal -- robot one's start (-36.00, -55.70) facing 0.0 deg`.
+  Every other line of the run — the estimate, the records, `END`, `WALL`, `TGL` — is robot two's REAL
+  field.
+- **A mirrored half turn** (Warn, tag `MIR`, once per leg): `mirrored turnTo turns 180.0 deg: within 1
+  deg of a half turn, robot two may sweep the same way as robot one, not the mirror way -- write two 90
+  deg turns where it matters` for a turn; for a leg (the verb `moveTo` — a `driveTo` or `reverseTo` is
+  one — or `followTrajectory leg`) the advice reads `-- turn first, in two 90 deg turns, where it
+  matters`. A mirrored robot turns the OTHER way on every turn — except an exact half turn, which the
+  library always takes counterclockwise (on both robots, any drivetrain). Where the direction of that
+  sweep matters (something beside the robot), write a turn as two 90° turns; and on a tank, turn first
+  before such a leg — a tank moves only along its heading, so the sweep moves where the leg ENDS
+  ([Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton) gives the numbers).
+- **A mirror still on at driver control** (Warn, tag `MIR`): `an auton's mirror was still on at driver
+  control -- cleared; the driver drives the real field (a library defect: please report it)` — it
+  cannot happen in the competition program; if you ever see it, report it. The driver drives normally.
 - **Fault-policy aborts** (Warn, from the scheduler):
   `[SCH] fault abort: ODO_STUCK — cancelling MoveToPose` — pairs with a `✗FAULT_ABORT` result
   line moments later.
@@ -391,7 +413,7 @@ worth recognizing on sight:
   capped as stated` (or `the write was accepted, reads back 2.00 A` — the motor kept another number),
   or `'lift': motor 2 (port 12): current cap 1.20 A stated, but this provider cannot cap a motor -- the
   motor's own 2.50 A applies`; the mechanism runs either way. And a Warn for each stall or homing
-  signature not MORE than 0.2 A below the cap (exactly 0.2 A below included; judged as the motor reads, at the first whole milliamp that trips the signature — chapter 18): `'lift': its stall signature (1.05 A) is within 0.2 A of its
+  signature not MORE than 0.2 A below the cap (exactly 0.2 A below included; judged as the motor reads, at the first whole milliamp that trips the signature — [chapter 18](18-mechanisms.md)): `'lift': its stall signature (1.05 A) is within 0.2 A of its
   current cap (1.20 A): a capped motor may read a little under its cap, so it may never trip (HA-223)` —
   lower the signature, or raise the cap. **Once a second** afterwards (inside the mechanism service's
   tick — a program stuck in its own loop checks nothing, and the motor is believed to keep its cap
@@ -528,7 +550,15 @@ left wall — and fails if this page quotes anything else; nothing here has run 
 [t=  14.20] [WARN][WALL] left wall x REFUSED not square (LEFT sensor): beam 7.0 deg off square (limit 5.0)
 [t=  14.20] [WARN][WALL] left wall x REFUSED beam low (LEFT sensor): expected 11.00 in past the ceiling 10.77 in (lens 10.50 in up, cone 18.0 deg)
 [t=  14.20] [WARN][WALL] left wall x REFUSED bad request (LEFT sensor): maxCorrection UNSET: say how far this wall may move x
+[t=  14.20] [WALL] left wall x SEATED (LEFT sensor, mirrored from blue wall RIGHT): -53.30 -> -55.71 (moved -2.41, limit 3.00) | median 6.99 in spread 0.25 n 16 | bound 0.87 | faults ok
 ```
+
+The last line is robot two's, in a **mirrored auton** ([Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton)):
+robot one's route asked for the blue wall with its RIGHT sensor, and robot two — the mirror image —
+read the **real** wall and side, the left wall with its LEFT sensor. The line always names what robot
+two really read; the note inside the parenthesis, `mirrored from blue wall RIGHT`, names what the
+route wrote. It sits there, near the line's start, so the terminal's 200-character cut can never drop
+it. An unmirrored auton's line has no note.
 
 Word by word: the request's `name`, when it set one, then a colon; the wall's name (`left wall`); the
 axis it measures (`x` or `y`); the verdict's word (`SEATED`, or `REFUSED` and the first check that
@@ -607,11 +637,14 @@ page quotes anything else. The numbers are that plant's placeholders; nothing he
 ```
 
 Word by word: the Toggle's name (`right wall Toggle`, `left wall Toggle`, `blue wall Toggle`, `red wall
-Toggle`), then what happened. What to do for each:
+Toggle`), then what happened. In a mirrored auton (robot two —
+[Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton)) the name is the Toggle
+robot two REALLY visited: robot one's `red wall Toggle` is robot two's `right wall Toggle` (the same
+Quadrant colour). What to do for each:
 
 - **`A -> B after n pushes ... (ours B)`** — FLIPPED: it shows our colour after a full stroke. **`already X
   (ours)`** — nothing was pushed. Both end `seating not checked`: the camera cannot see whether the Toggle sits
-  flat — watch it at the bench (Chapter 14).
+  flat — watch it at the bench ([Chapter 14](14-what-it-cannot-do-yet.md)).
 - **`wall not checked (relative start)`** — the route started RELATIVE, so the step could not check the robot
   faces the named Toggle's wall. Use a FIELD start for a skills route.
 - **`not a SKILLS auton (MATCH)`** — the step runs only in a skills auton.
@@ -862,7 +895,7 @@ version number, on purpose: since API 2.3 each tick's flags byte also carries th
 flag (`TSTR` above), in a bit every earlier writer wrote as 0 — so a file from before simply reads
 it as "not steering", which is true of it.
 
-**Honest status:** the format, the sink and the decoder exist and are tested — **and so does the
+**Status:** the format, the sink and the decoder exist and are tested — **and so does the
 piece that writes to `/usd/` on a real brain** (`ProsBlockSink`, which arrived with the hardware
 bridge; it is deliberately kept out of the core). What is still true is the limit that matters:
 none of it has ever written to a physical SD card. A missing card is handled rather than fatal —

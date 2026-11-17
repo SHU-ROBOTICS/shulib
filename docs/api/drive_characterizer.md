@@ -10,7 +10,7 @@ DriveCharacterizer — shulib Calibrate's GAINS step: the robot drives itself th
 
 This header declares **10** types (106 members), **3** free functions, and **1** constant.
 
-Extracted from [`include/shulib/calibration/drive_characterizer.hpp`](../../include/shulib/calibration/drive_characterizer.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/calibration/drive_characterizer.hpp`](../../include/shulib/calibration/drive_characterizer.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

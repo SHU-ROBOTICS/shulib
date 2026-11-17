@@ -10,7 +10,7 @@ DrivetrainDescription — the ONE representation of a drivetrain's discovered fa
 
 This header declares **5** types (24 members), **1** free function, and **1** constant.
 
-Extracted from [`include/shulib/hal/drivetrain_description.hpp`](../../include/shulib/hal/drivetrain_description.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/hal/drivetrain_description.hpp`](../../include/shulib/hal/drivetrain_description.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

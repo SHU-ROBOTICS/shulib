@@ -147,7 +147,11 @@ mental model, which matters more:
   Competition" (`src/programs/competition_program.cpp`, `make ROBOT=tank PROGRAM=competition`) and
   "shulib Tune" (`src/programs/tune_program.cpp`, `make ROBOT=tank PROGRAM=tune` — any robot with
   mechanisms; slot 7 — live tuning of the mechanisms on the brain screen,
-  [Chapter 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen));
+  [Chapter 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen)) —
+  robot two's builds; robot one, the cascade robot, takes the same six with `make ROBOT=one` and
+  `make ROBOT=one PROGRAM=…`, each REFUSING, by name, every still-owed fact of its facts file that its
+  program needs ([chapter 21](21-adding-your-robot-by-hand.md), and the
+  [robot facts form](../robot-facts-form.md));
   `src/common/` holds what those programs share — the boot source, the competition-state screens, the
   painters, every driver file's plumbing (`src/common/driver_file.hpp`), and the driver-control
   screen's words (`src/common/driver_panel.hpp`: the drive protections' row, the controller's lines,
@@ -178,15 +182,11 @@ package wires **real device adapters** — motors, IMU, battery, the controller,
 X-drive build GPS and rotation sensors — rather than in-memory fakes, including a first
 driver-control loop.
 
-What that does *not* yet mean, stated as plainly as the robot itself states it over serial:
-**the library has still never driven a robot under its own control** — no control loop has ever closed, and no wheel
-has ever turned under the library's own steering. The adapters are host-tested against a
-programmable stand-in for PROS, which proves the glue is faithful to our *beliefs* about PROS
-— units, signs, error values — and cannot prove the beliefs themselves
-(the [FAQ](../faq.md) unpacks that sentence). A few bench sessions (2026-08-13 onward) have since
-checked a handful of those beliefs against real devices and found them right, and a driver has
-driven robot two with the sticks through the adapters once — a real result and a narrow one: it
-validated the *platform layer*, open-loop, not the library's steering.
+The adapters are host-tested against a programmable stand-in for PROS, which proves the glue is
+faithful to our *beliefs* about PROS — units, signs, error values — and cannot prove the beliefs
+themselves (the [FAQ](../faq.md) unpacks that sentence). A few bench sessions have checked some of
+those beliefs against real devices. What has run on a robot, and what has not, is listed in
+[What it cannot do yet](14-what-it-cannot-do-yet.md#it-has-never-driven-a-robot-under-its-own-control).
 
 Only the X-drive build's port map is a labelled guess; the tank builds use measured port tables
 (robot two's is owed a re-measure since its drivetrain was rebuilt). A wrong **motor** port does refuse loudly at boot — `ProsMotor` configures the device and reads

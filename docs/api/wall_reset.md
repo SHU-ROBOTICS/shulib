@@ -10,7 +10,7 @@ The WALL RESET's pure core (chunk L6-A1, 2026-10-29; the L6 brief, the team lead
 
 This header declares **16** types (144 members), **17** free functions, and **6** constants.
 
-Extracted from [`include/shulib/localization/wall_reset.hpp`](../../include/shulib/localization/wall_reset.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/localization/wall_reset.hpp`](../../include/shulib/localization/wall_reset.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 
@@ -2387,12 +2387,12 @@ The window's worst twist so far: vx carries the largest speed judged (rule 5's: 
 ## `appendWallResetLine`
 
 ```cpp
-inline void appendWallResetLine(diag::lineformat::Line& line, const WallResetReport& rep, const WallResetRequest& request, const SideMount& mount, const WallResetLimits& limits)
+inline void appendWallResetLine(diag::lineformat::Line& line, const WallResetReport& rep, const WallResetRequest& request, const SideMount& mount, const WallResetLimits& limits, const char* sideNote = nullptr)
 ```
 
-PURE: append the reset's ONE log line (subsystem "WALL"; ASCII; within a Line's 384 bytes) — `[<name>: ]<wall> <axis> <WORD> (<SIDE> sensor): <the verdict's numbers>`, e.g. `left wall x SEATED (LEFT sensor): -52.21 -> -54.66 (moved -2.45, limit 3.00) | median 8.05 in spread 0.26 n 10 | bound 0.62 | faults ok`. Caller-supplied text (the names, an absence sentence) goes through the Line's sanitizer.
+PURE: append the reset's ONE log line (subsystem "WALL"; ASCII; within a Line's 384 bytes) — `[<name>: ]<wall> <axis> <WORD> (<SIDE> sensor): <the verdict's numbers>`, e.g. `left wall x SEATED (LEFT sensor): -52.21 -> -54.66 (moved -2.45, limit 3.00) | median 8.05 in spread 0.26 n 10 | bound 0.62 | faults ok`. Caller-supplied text (the names, an absence sentence) goes through the Line's sanitizer. MIRROR1-A: `sideNote` (default none — every line byte-identical to before) is written INSIDE the sensor's parenthesis, `(LEFT sensor, <sideNote>)`, near the line's start, so the terminal's 200-byte message cut never drops it: the everyday call passes "mirrored from red wall RIGHT" for a mirrored auton's reset (competition/auton_wall_reset.hpp).
 
-*free function, declared at [`include/shulib/localization/wall_reset.hpp:1237`](../../include/shulib/localization/wall_reset.hpp#L1237).*
+*free function, declared at [`include/shulib/localization/wall_reset.hpp:1240`](../../include/shulib/localization/wall_reset.hpp#L1240).*
 
 ## Design commentary, from the header
 

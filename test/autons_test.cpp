@@ -23,8 +23,10 @@
 #include <cstring>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "auton_tester_rig.hpp"
+#include "mirrored_pair_check.hpp"
 #include "source_pins.hpp"
 #include "motion_test_rig.hpp"
 #include "programs/auton_tester_panel.hpp"
@@ -174,6 +176,30 @@ TEST_CASE("autons (1b): EVERY registered auton runs through runTesterOnce and en
         CHECK_FALSE(s.guard.running());
         CHECK_FALSE(s.watch.armed());
     }
+}
+
+// (1d) MIRROR1-A T9 (the MIRROR1 brief's §2.2, D11): every MIRRORED entry robot two registers — robot
+// one's route, `registry.add(competition::mirrored(...))` — also runs TOGETHER with its unmirrored self
+// on the host test plant (test/mirrored_pair_check.hpp: robot one from its start, robot two from the
+// reflection, pace by pace), and their 15 in squares must never come within 6 in. Bug caught: a shared
+// route that crosses the field's diagonal (or sends both robots to the centre goal at once) uploaded to
+// both robots — a crash at the event, found here first, naming the moment and the motions. A RELATIVE
+// mirrored entry is skipped by name (its field positions are wherever the drivers place it). Today's
+// file registers no mirrored entry, so this case checks none and says so; (1b) above runs every entry,
+// mirrored ones included, through the tester's own sequence.
+TEST_CASE("autons (1d): every MIRRORED entry passes the pair check — the two robots stay 6 in apart") {
+    const AutonRegistry reg = teamRegistry();
+    std::size_t mirroredEntries = 0;
+    for (std::size_t i = 0; i < reg.size(); ++i) {
+        mirroredEntries += reg.at(i).mirror != nullptr ? 1U : 0U;
+    }
+    const std::vector<mirror_pair::PairVerdict> verdicts = mirror_pair::checkEveryMirroredEntry(reg, tank());
+    CHECK(verdicts.size() == mirroredEntries);
+    for (const mirror_pair::PairVerdict& v : verdicts) {
+        MESSAGE(v.sentence);
+        CHECK((v.ok || !v.checked));
+    }
+    MESSAGE("src/team/autons.cpp registers ", mirroredEntries, " mirrored auton(s); each checked as a pair");
 }
 
 // (1c) Bug caught (the MECH brief's U3, 2026-10-29): an auton built as `Routine r{ctx.chassis, ...}`

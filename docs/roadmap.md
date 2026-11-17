@@ -137,7 +137,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 | F3 | **Units & `Angle` semantics** — internal inches + radians + **seconds**; degrees only at the API edge; one wrap type normalized to `(-π,π]`; `shortestError(a,b)==wrap(b-a)` with the exact-180° case → **+π** (not −π), pinned by a red-on-failure test | Every numeric API signature | M0 | ✅ **LOCKED 2026-06-19** |
 | F4 | **HAL interface signatures** — the 10 runtime HAL interfaces `IClock`/`IMotor`/`IRotation`/`IImu`/`IGps`/`IDistance`/`IOptical`/`IBattery`/`ITelemetrySink`/`IVision`+`ITagSource`. *(The config-ingestion seam `IRobotConfig`/`IRouteSource` — decision #10 — is authored at M5 with its `RobotConfig`/`Route` schema, F7/F8; not part of this runtime-HAL freeze.)* | All three runtime targets (robot/sim/test) | M1 | ✅ **LOCKED 2026-06-19** *(freeze-reviewed by a 30-agent full-set pass + exercised by `RobotContext`; the `hal/pros` adapters were built at R1a/R1b and were never toolchain-blocked — what is still open is on-V5 validation under a closed loop, which is R3's)* |
 | F5 | **`IKinematics` contract** — twist `(vx,vy,ω)` ⇄ wheels + desaturate + `strafeAuthority()` (a **pure read-only query** = max sustainable \|vy\|/\|vx\|; the motion layer clamps, kinematics never clamps inside `toWheels()` — §13 #5) | All motion code; new drivetrains | M1 | ✅ **LOCKED 2026-06-19** *(host-validated by X-drive + tank; on-V5 number-match pending)* |
-| F6 | **Public `Chassis` API** — the whole facade surface, by group: **construction** `Chassis(deps, pacer, config = {})` + non-copyable/non-movable; **blocking verbs** `moveTo` / `strafeTo` / `turnTo` / `followTrajectory` (span + brace overloads) / `brake` / `hold(Time)` / `wait(Time)` — the last three adopted at D2 — and `curveTo` / `reverseCurveTo` (span + brace overloads, four verbs), appended at CURVE1-A (below); **manual verb** `drive(ChassisSpeeds, Frame)`, `Frame` required; **control** `cancel()` / `waitUntil(pred, Time)`; **state** `pose` / `setPose` / `strafeAuthority` / `lastExitReason` / `lastCompleted` / `motionConfig`; **Tier-3 seam** `deps()` / `scheduler()` (both overloads); **three public types** `ChassisConfig` / `MotionOptions` (existing fields frozen; the field *set* additive-open by design — STEP1-A (2026-11-05) took that path: `positionTolerance` / `headingTolerance`, the per-call arrival tolerance, appended after the three and their types pinned) / `TrajectoryResult` (incl. `succeeded()`) — and, appended at CURVE1-A, a fourth, `CurvePoint` (= `motion::CurvePoint`, the curve verbs' parameter type: two constructors, four members, no default constructor). CURVE1-A (2026-11-11, API 2.7 — numbered at the merge) took the additive path for the verb set and that type, pinned the day they landed, no existing pin edited; **appended at STEP1-B (built 2026-11-11, API 2.8 — numbered at the merge), pinned the day they landed:** the leg OBSERVER — `moveTo(pose, options, LegObserver)` / `turnTo(heading, options, LegObserver)` and `LegObserver`'s two members (`fn`, `context`) — the members pinned, the member SET additive-open, as `MotionOptions`' is; `motion::LegProgress`, what the observer receives, stays open to new fields (no pin covers its list); **plus the documented semantics** the header carries (blocking + watchdog, pre-empt, cancel safe state, fault policy, wait-for-live, strafe-fallback visibility — TANK1, 2026-09-27: the tank sentence of the strafe-fallback semantics rewritten, API 2.3). Time is typed `units::Time` across the surface (the D2 retype; `hold(500)` does not compile). **Deliberately OUTSIDE F6:** `Routine` / `RoutineResult` / `RoutineStopCause` — they froze at D3 as their own row **F10** (a different tier, versioning independently); the `MotionScheduler` / `MotionDeps` member surfaces reached through `scheduler()`/`deps()` (C1/C2's layers — only the accessors freeze here); the lower-layer config fields reached through `ChassisConfig` (they belong to their layers). Enforced structurally: compile-time signature pin `test/f6_signature_pin_test.cpp` (67 pins as of STEP1-B — 51 `SHULIB_F6_PIN` + 16 `SHULIB_F6_NOT_NOEXCEPT`, as `tools/briefing_status.py` counts them; 61 at CURVE1-A; 50 at STEP1-A; 48 before it; this row said 36 until STEP1-A, the `SHULIB_F6_PIN` count alone; mutation-proven) + the version mechanism `include/shulib/version.hpp` (API 2.0, breaking-vs-additive policy written) | Every auton ever written on shulib | M2 | ✅ **LOCKED 2026-08-12** *(at D2, after D1's second consumer; the nine-item critique rulings + rejected alternatives are the D2 completion record's centrepiece)* |
+| F6 | **Public `Chassis` API** — the whole facade surface, by group: **construction** `Chassis(deps, pacer, config = {})` + non-copyable/non-movable; **blocking verbs** `moveTo` / `strafeTo` / `turnTo` / `followTrajectory` (span + brace overloads) / `brake` / `hold(Time)` / `wait(Time)` — the last three adopted at D2 — and `curveTo` / `reverseCurveTo` (span + brace overloads, four verbs), appended at CURVE1-A (below); **manual verb** `drive(ChassisSpeeds, Frame)`, `Frame` required; **control** `cancel()` / `waitUntil(pred, Time)`; **state** `pose` / `setPose` / `strafeAuthority` / `lastExitReason` / `lastCompleted` / `motionConfig`; **Tier-3 seam** `deps()` / `scheduler()` (both overloads); **three public types** `ChassisConfig` / `MotionOptions` (existing fields frozen; the field *set* additive-open by design — STEP1-A (2026-11-05) took that path: `positionTolerance` / `headingTolerance`, the per-call arrival tolerance, appended after the three and their types pinned) / `TrajectoryResult` (incl. `succeeded()`) — and, appended at CURVE1-A, a fourth, `CurvePoint` (= `motion::CurvePoint`, the curve verbs' parameter type: two constructors, four members, no default constructor). CURVE1-A (2026-11-11, API 2.7 — numbered at the merge) took the additive path for the verb set and that type, pinned the day they landed, no existing pin edited; **appended at STEP1-B (built 2026-11-11, API 2.8 — numbered at the merge), pinned the day they landed:** the leg OBSERVER — `moveTo(pose, options, LegObserver)` / `turnTo(heading, options, LegObserver)` and `LegObserver`'s two members (`fn`, `context`) — the members pinned, the member SET additive-open, as `MotionOptions`' is; `motion::LegProgress`, what the observer receives, stays open to new fields (no pin covers its list); **appended at MIRROR1-A (built 2026-11-13; the API minor numbered at the merge), pinned the day it landed:** the read-only `reflection()` (`noexcept`) and the `chassis::MirroredRun` scope (constructed from a `Chassis&` and a `math::Reflection`; neither copyable, movable nor default-constructible) — every verb's signature unchanged, and its behaviour unchanged unless a mirrored run is open (an unmirrored run through `runAuton` pinned bit-identical to the merge base by a hash); **plus the documented semantics** the header carries (blocking + watchdog, pre-empt, cancel safe state, fault policy, wait-for-live, strafe-fallback visibility — TANK1, 2026-09-27: the tank sentence of the strafe-fallback semantics rewritten, API 2.3). Time is typed `units::Time` across the surface (the D2 retype; `hold(500)` does not compile). **Deliberately OUTSIDE F6:** `Routine` / `RoutineResult` / `RoutineStopCause` — they froze at D3 as their own row **F10** (a different tier, versioning independently); the `MotionScheduler` / `MotionDeps` member surfaces reached through `scheduler()`/`deps()` (C1/C2's layers — only the accessors freeze here); the lower-layer config fields reached through `ChassisConfig` (they belong to their layers). Enforced structurally: compile-time signature pin `test/f6_signature_pin_test.cpp` (69 pins as of MIRROR1-A — 53 `SHULIB_F6_PIN` + 16 `SHULIB_F6_NOT_NOEXCEPT`, as `tools/briefing_status.py` counts them; 67 at STEP1-B; 61 at CURVE1-A; 50 at STEP1-A; 48 before it; this row said 36 until STEP1-A, the `SHULIB_F6_PIN` count alone; mutation-proven) + the version mechanism `include/shulib/version.hpp` (API 2.0, breaking-vs-additive policy written) | Every auton ever written on shulib | M2 | ✅ **LOCKED 2026-08-12** *(at D2, after D1's second consumer; the nine-item critique rulings + rejected alternatives are the D2 completion record's centrepiece)* |
 | F7 | **`robotProfile` sub-schema** inside `.vexbot` — drivetrain/odometry/sensors/mechanisms/corrections | Config codegen; every robot file | M5 | 🎯 *(coordinate with VexBuilder)* |
 | F8 | **`paths[]` sub-schema + command-id vocabulary** — BOTH halves of the routine contract, the in-memory one and the on-disk one. **FROZEN:** the data types `config::Route` (`name[32]`, `waypoints[32]`, `count`) / `Waypoint` (`x`, `y`, `heading`, `headingMode`, `motion`, `reverse`, `constraints`, `markers[4]`, `markerCount`) / `Marker` (`id[24]`, `args[2]`, `argCount`) / `Constraints` (`maxLinear`, `maxAngular`, `timeout`); the **enumerator VALUES** of `WaypointMotion` (`Start`=1 … `Hold`=6) and `HeadingMode` (`Fixed`=1, `Free`=2) — a generator persists them as integer literals, so a renumbering is invisible at every call site and catastrophic in a file exported last season; the capacities `kMaxWaypoints`=32 / `kMaxMarkersPerWaypoint`=4 / `kMaxMarkerArgs`=2 / `kMaxMarkerIdBytes`=24; the **id vocabulary rule** (1–23 bytes of `[a-z0-9_]`, so no id ever needs escaping on any of the four paths it travels — a C++ literal, a manifest line, a `.vexbot` field, a picker button); the **four library-owned built-in ids and their arities** `wait_ms(1)` / `brake(0)` / `hold_ms(1)` / `log(0..2)` **in that order** (the manifest's order is part of its bytes); `runner::CommandRegistry`'s public members (`on` ×2, `find`, `count`, `ids` — and a third `on(id, handler, argCount, doc)` APPENDED at MECH-A4, 2026-10-29, API 2.5, pinned), `runner::Handler`/`CommandEntry` (`CommandEntry::doc` APPENDED at MECH-A4, pinned; the manifest prints a registered id's doc, and a registry without docs writes the same bytes — the golden unchanged), `PathRunner::run(const Route&) -> RunReport` and `RunReport`'s seven fields; `writeManifest`'s signature, field names and record order; and the **file** schema's field names and value vocabularies in [`vexbuilder-integration.md`](vexbuilder-integration.md) §4.1–4.3. **ADDITIVE under `kApiMinor`:** new enumerators AT THE END, new built-in ids AT THE END, new `RunReport` fields, new registry members, new optional file fields, new manifest fields — and **relaxing** a `Route::valid()` rule (tightening one is breaking; G2 relaxed exactly one, R6 below). **Deliberately NOT frozen, said out loud because silence in this register reads as frozen:** the WORDING of the runner's log lines and of `valid()`'s refusal messages (the BEHAVIOUR is frozen — one Warn per unknown id naming the id and the waypoint index, one Warn on a stop, one Info per `log` marker — the sentences are not); and `motion: "arc"`, which is a **named gap** rather than an omission (no facade verb performed an arc when F8 locked, and F8 must not freeze something the library cannot do — it arrives additively; since CURVE1-A, 2026-11-11, `curveTo` performs one, and `"arc"` itself is CURVE1-B's, after the 21st). **The one behavioural change G2 made to G1's data rules (R6):** a `MoveToPose` with `HeadingMode::Free` is now LEGAL and means *keep the heading the estimate has when the leg starts*; `TurnTo` keeps refusing `Free`. Enforced structurally: compile-time signature pin `test/f8_signature_pin_test.cpp` (mutation-proven — `run()` gaining `noexcept`, `count()` changing return type, a widened id charset and a reordered built-in each fail the build NAMING F8) + the byte-exact manifest golden in `test/manifest_test.cpp` + `include/shulib/version.hpp` (API **2.2** at the lock, carrying the G2 additive note) | Every data-driven routine | M5 | ✅ **LOCKED 2026-09-18** *(at G2, whose acceptance test is differential rather than tolerance-based: the same five legs written once as DATA and once as a `Routine` chain drive two identically-seeded host plants **bit-identically** — per-tick ground truth by `memcmp`, every commanded volt an exact double. **Host plant only: no route has ever executed on a robot.**)* |
 | F9 | **`SHUL/2` telemetry wire protocol** (v1) — the wire serialization of `DebugRecord` (§18) | Sim, record/replay, tuner, VexBuilder overlay; **every sink (`TermSink`/`SdSink`/`Shul2Sink`) shares the `DebugRecord` schema** | M6 | 🎯 |
@@ -550,6 +550,23 @@ not silently break them. This table is the spine of the no-staleness promise.
 > explicit handles; **next: AF1S-A2**, the robot's camera reachable from an auton. Until it has flipped a real
 > Toggle, the team's own blind two-push flip is the plan for the 21st.
 >
+> **Now (2026-11-13): ROB1-A, robot one in the code, has LANDED — host- and build-gated, NOT run on a robot; since
+> ROB1-C2 (2026-11-15) its facts are typed from the builder's answers, the rest owed to station 13.** `make ROBOT=one` and
+> `make ROBOT=one PROGRAM=calibrate|drive|autontest|competition|tune` are robot two's six programs for robot one, the
+> cascade robot ("shulib Tune" since the integration: robot one's cascade is a mechanism table, so it is in
+> `MECHANISM_ROBOTS`). Every number about its cascade nobody has measured
+> is OWED in its facts file, and robot one's build of every program that needs one REFUSES, naming each — so no
+> placeholder can reach the robot; `make` now starts fresh whenever the robot or the program changes. Its autons
+> are a starter (the 40 in as SKILLS; the skills route is the team's). Robot two behaves as before. **ROB1-C2
+> (2026-11-15):** the builder's answers typed — robot one's six mechanisms (the cascade, two
+> side toggles, the claw, the front toggle as its flipper, the ramp) declared, its driver file the builder's map,
+> and the library's one-button hold added; Bench Tests and Calibrate owe only "which port is the right side
+> toggle". [Chapter 21](guide/21-adding-your-robot-by-hand.md) and the
+> [robot facts form](robot-facts-form.md); register entries [HA-252..HA-255](hardware-assumptions.md) and
+> [HA-261](hardware-assumptions.md). **Next with it:** station 13's answers (the cascade's rows, the side
+> toggles' directions, each piston's opening level) and the cascade's three voltages; station 13 applying the
+> cascade's cap (ROB1-C); the record naming its robot (ROB1-B).
+>
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
 > robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver
@@ -671,7 +688,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > `include/legacy/` DELETED — 34 files, exactly C6's classified set; recover any of them via
 > `git show 691c656:<path>` — `make` green for the first time since June (uploadable V5
 > hot/cold package), the CI PROS-free guard broadened to ALL of include/shulib/
-> (mutation-proven red on a planted violation), the README rewritten as an honest front door,
+> (mutation-proven red on a planted violation), the README rewritten as a plain front door,
 > and the docs reorganized (public documentation stands alone; the process record is
 > self-contained on the development branch). Suite unchanged: 659 / 915,570 / 3 deliberate
 > skips; ARM gate 102 headers CLEAN. **What C7 did NOT do: run on a robot.** The wired HAL
@@ -679,7 +696,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > **Chunk C8 (the manual) is DONE, 2026-08-11 — committed**:
 > `docs/guide/` — a 15-file user guide (orientation → concepts → setup → a full first-routine
 > tutorial → the API as prose → diagnostics line-by-line with every fault code → symptom-first
-> troubleshooting → extending → an honest can't-do-yet → glossary), written for a new member
+> troubleshooting → extending → a can't-do-yet → glossary), written for a new member
 > with no robotics background. Every code example compiles and runs in
 > `test/guide_examples_test.cpp` (8 cases / 41 assertions **as C8 shipped it** — later chunks
 > added more; the suite is the count), quoted verbatim by the chapters —
@@ -805,7 +822,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > file — residual, the sigma it was normalized by, and the verdict.
 > **What E2 did NOT do, stated plainly.** It did not build a Mahalanobis gate (T1: the
 > complementary tier has no filter-estimated covariance, so `gateMahalanobis` stays 0 and the
-> honest `RejectedNormalizedInnovation` was appended instead); it did not touch heading (T3 — the
+> `RejectedNormalizedInnovation` was appended instead); it did not touch heading (T3 — the
 > GPS's heading never leaves the corrector, so the `< 1°` claim is exactly where A3 left it); and
 > it did not take ownership of frame or lever-arm reduction (T4 — `hal/gps.hpp` and
 > `gps_conversion.hpp` own those by written contract, so E2 pinned them with independent oracles
@@ -847,7 +864,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > moved the heading by more than the documented 0.1° per-tick bound across 2000 ticks, re-read
 > from a decoded blackbox as well as from live state. It was measured against **simulated truth,
 > a simulated camera, an invented tag map and invented noise magnitudes** (HA-68…HA-82, fifteen
-> new register entries). The single honest change to guide chapter 14 is that *the specific reason
+> new register entries). The single change to guide chapter 14 is that *the specific reason
 > the requirement was listed as unachievable — nothing could correct heading at all — no longer
 > applies*; everything else about that claim is unchanged and unmeasured.
 > **shulib ships NO tag map, deliberately**, because nobody on this project can cite a table of
@@ -984,7 +1001,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > UNAMENDED and green at 139 headers. Suite **1083 cases / 1,523,069 assertions** green.
 > **The campaign: all 14 brief mutations executed and observed** (13 red via the
 > build-gated runner, M13 demonstrated live in the guard proof) **plus one self-added: the
-> `heading()`-site `get_heading()` swap stayed GREEN honestly** — observationally equivalent
+> `heading()`-site `get_heading()` swap stayed GREEN for a real reason** — observationally equivalent
 > through the wrapping `Angle`; recorded with its measurement, then closed with a textual
 > pin (HA-03 bans the binding in writing), re-run, observed red. Two build-system findings
 > fixed in the layer that owns them: PROS's `common.mk` resolves includes with `-iquote`
@@ -1103,7 +1120,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > Phase A:** every claim about physical hardware that three no-robot chunks (plus the M1/M2
 > conversion layers) rest on is now **inventoried instead of scattered** —
 > **[`docs/hardware-assumptions.md`](hardware-assumptions.md)**, 49 falsifiable entries **as A4
-> shipped it** (33 invented / 13 reasoned / 2 measured-elsewhere / 1 mixed — the honest cost of
+> shipped it** (33 invented / 13 reasoned / 2 measured-elsewhere / 1 mixed — the real cost of
 > building without hardware; ten later chunks have added to it, and the register states its own
 > current count, which is the only place that number should live), each with source, confidence,
 > the specific settling measurement, its owning
@@ -1268,7 +1285,7 @@ adapters at R1b (2026-08-14), all host-tested against the shim; on-V5 validation
   the two-flag diagnostic fence, with new pure conversions (`motor_`/`rotation_`/
   `controller_conversion.hpp`) and adapter tests through the `test/pros_shim/` host shim
   (suite 1083 cases / 1,523,069 assertions; the R1a campaign: 14 brief mutations + 1
-  self-added, every one executed and observed red — the one honest green closed with a
+  self-added, every one executed and observed red — the one true green closed with a
   structural pin). NOT done, named: `IDistance`/`IOptical`/`IDigitalOut`/`IDigitalIn`/
   `IBlockSink` adapters (R1b's), the vision adapter (R2's, next row), and EVERYTHING on-robot —
   at the time of the chunk no adapter had touched a physical device; the shim tests them
@@ -1765,7 +1782,7 @@ all three and does not exist.*
   sensor-quality ceiling, and the **off-strip dead-reckon-only path proven bit-identical to
   having no corrector at all**, with `RejectedNoFix` and the source's name reaching the
   blackbox. 20/20 mutations red.
-  **Scoped honestly, three ways.** (1) The gate is a **normalized innovation**, NOT a
+  **Scoped three ways.** (1) The gate is a **normalized innovation**, NOT a
   Mahalanobis distance — the complementary tier has no filter-estimated covariance, so
   `gateMahalanobis` stays 0 and `GateReason` gained `RejectedNormalizedInnovation` (+
   `RejectedStaleFix`, `RejectedSensorQuality`, all append-only). E4's EKF earns the real one.
@@ -1798,7 +1815,7 @@ all three and does not exist.*
   bias in the `Localizer`. Three appended `GateReason` values (`RejectedNoTagMapEntry`,
   `RejectedTagRange`, `RejectedObservationAge`); `correctionDTheta` and `gateResidualHeading`,
   reserved since A1, are populated for the first time.
-  **Scoped honestly, four ways.** (1) **The `< 1°` requirement is NOT claimed met.** What was
+  **Scoped four ways.** (1) **The `< 1°` requirement is NOT claimed met.** What was
   measured is convergence and boundedness against **simulated truth, a simulated camera and
   invented noise** (HA-68…HA-82). (2) **shulib ships no tag map** — nobody here can cite one, and
   a map 2″ off yields a corrector that is *confidently* 2″ wrong, which no gate or filter can
@@ -1918,7 +1935,7 @@ is required, not optional, to hold < 1°.)*
   scheduler's `waitUntil` concurrently with a motion; 18/18 mutations red
   (`test/mechanism_*.cpp`; full working record in the development log, `shulib-v2`
   branch). Kept `[~]`, not
-  `[x]`, for two honest reasons: the seam is **deliberately unfrozen** until F3 — its second
+  `[x]`, for two reasons: the seam is **deliberately unfrozen** until F3 — its second
   consumer — stresses it (register row F11), and **no mechanism hardware has ever moved** —
   the per-mechanism safe-state physics is HA-92, a registered guess.
 - [~] **The mechanism core (MECH, six runs A1–A6; the team lead's go 2026-10-08)** — **A1 LANDED 2026-10-08,
@@ -1976,7 +1993,7 @@ is required, not optional, to hold < 1°.)*
   passes four ways: a motion that never settles, a mechanism that never confirms, a wait whose
   condition never holds, and a fault-abort cascade each end with the caller-supplied end action
   performed, verified against the plant with the clock driven to the limit by an independent script
-  (`test/sequence_end_of_run_test.cpp`). **The honest boundary:** this is a *scheduling* property on
+  (`test/sequence_end_of_run_test.cpp`). **The boundary:** this is a *scheduling* property on
   the host plant — real-brain timing is R4's, nothing preempts pure user code (no background tasks
   exist), and the frozen F6/F10 waits pay their documented lateness (guide ch. 9). The name is
   deliberately not "park guard": the library never learns what parking is — both instants and the
@@ -1998,7 +2015,7 @@ is required, not optional, to hold < 1°.)*
   disable aborts through the guard's abandon, within one more tick). The students' auton file
   `src/team/autons.{hpp,cpp}` (the 40 in auton, the acceptance run) is compiled by every build and by
   the host suite, which runs each auton through the tester's own run sequence: on the host test
-  plant the 40 in FINISHES with a side up to ×0.723 weak and stops honestly (MOTION_TIMEOUT, the brake
+  plant the 40 in FINISHES with a side up to ×0.723 weak and stops with its reason (MOTION_TIMEOUT, the brake
   run) at ×0.65. The boot PROVES its pacer chain (`RunGuard::pacesTotal()`, additive) or refuses; the
   SD run log appends across reboots (`ProsBlockSink`'s Append mode — HA-177). Kept `[~]`: nothing has
   run on a robot (worksheet Station M), and a field disable, the Timed Run and the hand-over to
@@ -2059,7 +2076,7 @@ only the INPUT half is missing.*
   monotonic response curves through `(0,0)` and `(±1,±1)`, configurable slew that is **off by default**
   (it protects the drivetrain and adds lag; lag is the enemy of feel), one-tick input→motor latency
   pinned, and field-centric / robot-centric / arcade / tank modes.
-- [~] **Field-centric's honest failure mode** *(T2, 2026-09-18: the fallback is a LATCH cleared only by the driver's re-zero, the indication is a state struct for a panel. From G1 Part 2b (2026-09-26) "shulib Teleop"'s panel showed the state in words (OFF / ON / FELL BACK / LATCHED) — since T4 Part 3 the new "shulib Drive"'s DETAILS page does — and the loop binds the re-zero to a button — A at 2b, **Y since T3 Part 2 (2026-09-26)**, because A became the pneumatic claw's toggle (the team lead's ruling), stated in robot two's driver file since T4 — with field-centric itself selectable but OFF; none of it has run on a robot)* — field-centric rotates the driver's stick frame by the
+- [~] **Field-centric's visible failure mode** *(T2, 2026-09-18: the fallback is a LATCH cleared only by the driver's re-zero, the indication is a state struct for a panel. From G1 Part 2b (2026-09-26) "shulib Teleop"'s panel showed the state in words (OFF / ON / FELL BACK / LATCHED) — since T4 Part 3 the new "shulib Drive"'s DETAILS page does — and the loop binds the re-zero to a button — A at 2b, **Y since T3 Part 2 (2026-09-26)**, because A became the pneumatic claw's toggle (the team lead's ruling), stated in robot two's driver file since T4 — with field-centric itself selectable but OFF; none of it has run on a robot)* — field-centric rotates the driver's stick frame by the
   *estimated* heading, so degraded heading silently rotates the controls away from reality while
   everything still appears to work. Requires a documented fallback to robot-centric, a driver-accessible
   re-zero, and a visible indication. Not shippable without it.
@@ -2190,7 +2207,7 @@ tuned on the brain mid-session. **Freezes:** F9.
   for a reader with no robotics background; every code example compiled and executed by
   `test/guide_examples_test.cpp` (the count grows with the guide — run the suite rather than
   trusting a figure here); tutorial verified by following it as written; guide↔README
-  cross-linked. Honest scope: covers the Tier-2 recipe layer and the Tier-3 C++ API
+  cross-linked. Scope: covers the Tier-2 recipe layer and the Tier-3 C++ API
   (**Tiers 0–1 do not exist yet** — they are Phase G/M5), and no genuinely-new reader has used it
   yet — M7's own DoD ("a brand-new member follows the guide without help") stays open.
 - [x] **Recipe cookbook** *(chunk D3, 2026-08-12)*: `docs/cookbook/` — an index plus five
@@ -2243,7 +2260,7 @@ tuned on the brain mid-session. **Freezes:** F9.
 help; the API reference is live on the website.
 
 *Status of that DoD, stated plainly: the website clause is met; the guide clause is OPEN.* The 10-minute guide starts in
-VexBuilder and cannot honestly be written until G4 builds it. The API reference exists, is
+VexBuilder and cannot truthfully be written until G4 builds it. The API reference exists, is
 generated and gated, and **is live** at docs.shurobotics.com since 2026-08-14 (published from
 `main`, so it shows the last release, not the working branch) — that clause is met. *(This sentence
 said "not live anywhere — there is no site" until 2026-09-24, contradicting the checkbox above it.)*
@@ -2294,7 +2311,7 @@ Each maps to an ○ cell in the [Capability Catalog](shulib-v2-master-plan.md#15
   and it composes with the **Motion** row's dynamic-replanning cell above rather than duplicating it.
   **Non-negotiable if built:** a controller **dead-man** (hold-to-follow, release-to-stop) and a check
   of event rules on autonomous operation outside the field — a robot driving itself through a crowded
-  venue is a real hazard. **Honest framing:** driver control already solves "don't carry the robot";
+  venue is a real hazard. **Framing:** driver control already solves "don't carry the robot";
   this earns its place as an *Innovate/Design demo* that exercises the same vision + estimator stack
   the competition code depends on, not as a labor saver. **Earliest sensible slot: after M3**, once the
   tag pipeline exists.
@@ -2330,7 +2347,7 @@ shulib *defines* the contracts; VexBuilder *produces* them. These are the things
 must add for the integration to close. They are tracked here so the dependency is never invisible.
 
 > **The full operational detail — every field, every schema, both sides' ordered work lists, and an
-> honest list of what can still move — is in [`vexbuilder-integration.md`](vexbuilder-integration.md).**
+> list of what can still move — is in [`vexbuilder-integration.md`](vexbuilder-integration.md).**
 > That document is written FOR the person finishing VexBuilder and is the one to hand over. This
 > section is the index.
 >

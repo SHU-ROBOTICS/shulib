@@ -10,7 +10,7 @@ ProsBlockSink — IBlockSink over a PROS FILE* on the V5's SD card (chunk R1b): 
 
 This header declares **3** types (17 members) and **1** free function.
 
-Extracted from [`include/shulib/hal/pros/block_sink.hpp`](../../include/shulib/hal/pros/block_sink.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/hal/pros/block_sink.hpp`](../../include/shulib/hal/pros/block_sink.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

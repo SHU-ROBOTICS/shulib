@@ -25,7 +25,10 @@ doc_staleness_audit.py, release.py), under bounds far above a real run (the suit
     tool dies first (PR_SET_PDEATHSIG), so it can never outlive the tool; a wall-time timeout
     kills it directly. The timeout kill and the death tie cover the DIRECT child only — a
     descendant is reached only by a signal to the caller's group, and survives a normal exit.
-    The suite does not fork.
+    The suite forks in ONE file: test/route_preview_test.cpp's RP27 and RP38 each run the route
+    preview in a child (the preview ends its own process there), each child under its own 2 GiB
+    address-space bound and an alarm (60 s, 1 s), each waited for by its case — so a child outlives
+    a killed suite by at most its alarm, and its peak memory (tens of MB) is far under the bound.
   * the bounds are per process (RLIMIT_AS is not a cgroup), and a platform that refuses one
     (macOS does not enforce RLIMIT_AS) runs without that one rather than failing every run:
     there the run has the output, CPU and time bounds only, and `self-test` says so.

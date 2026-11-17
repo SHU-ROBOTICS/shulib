@@ -8,8 +8,8 @@ driver file — one robot's buttons, feel and loop in one place.
 
 The first two recipes' listings are compiled and run in
 [`test/cookbook_examples_test.cpp`](../../test/cookbook_examples_test.cpp), cases `cookbook-06a`
-and `cookbook-06b`, on the host test plant. **No driver has used either on a robot yet.** Beyond
-the names every recipe assumes, they have the teleop and hardware names in scope —
+and `cookbook-06b`, on the host test plant. Beyond the names every recipe assumes, they have the
+teleop and hardware names in scope —
 `MechanismBinding`, `ToggleBinding`, `MotorMechanism`, `PneumaticMechanism`, `ControllerButton`,
 `BrakeMode`, `DriverLoopConfig`, `validBindings`, `runDriverControl` — plus the shaper, the
 controller, the loop's three callbacks and a `showOnScreen` stand-in for the program's own screen

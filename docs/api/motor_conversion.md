@@ -10,7 +10,7 @@ Motor canonical conversions — the ONE place the V5 smart motor's units become 
 
 This header declares **6** free functions.
 
-Extracted from [`include/shulib/hal/motor_conversion.hpp`](../../include/shulib/hal/motor_conversion.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/hal/motor_conversion.hpp`](../../include/shulib/hal/motor_conversion.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

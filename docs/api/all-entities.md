@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 6,386 of them, across 211 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 6,439 of them, across 214 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -238,6 +238,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `AutonEntry::endActionAt` | field | [auton_registry.md](auton_registry.md#autonentry-endactionat) |
 | `AutonEntry::hardStopAt` | field | [auton_registry.md](auton_registry.md#autonentry-hardstopat) |
 | `AutonEntry::kind` | field | [auton_registry.md](auton_registry.md#autonentry-kind) |
+| `AutonEntry::mirror` | field | [auton_registry.md](auton_registry.md#autonentry-mirror) |
 | `AutonEntry::name` | field | [auton_registry.md](auton_registry.md#autonentry-name) |
 | `AutonEntry::route` | field | [auton_registry.md](auton_registry.md#autonentry-route) |
 | `AutonEntry::routine` | field | [auton_registry.md](auton_registry.md#autonentry-routine) |
@@ -295,6 +296,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `AutonRunResult::guard` | field | [match_runner.md](match_runner.md#autonrunresult-guard) |
 | `AutonRunResult::imuAtSeat` | field | [match_runner.md](match_runner.md#autonrunresult-imuatseat) |
 | `AutonRunResult::liveAfter` | field | [match_runner.md](match_runner.md#autonrunresult-liveafter) |
+| `AutonRunResult::mirrored` | field | [match_runner.md](match_runner.md#autonrunresult-mirrored) |
 | `AutonRunResult::outcome` | field | [match_runner.md](match_runner.md#autonrunresult-outcome) |
 | `AutonRunResult::route` | field | [match_runner.md](match_runner.md#autonrunresult-route) |
 | `AutonRunResult::routine` | field | [match_runner.md](match_runner.md#autonrunresult-routine) |
@@ -789,6 +791,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Chassis::operator=` | function | [chassis.md](chassis.md#chassis-operator-eq) |
 | `Chassis::operator= (overload 2)` | function | [chassis.md](chassis.md#chassis-operator-eq-2) |
 | `Chassis::pose` | function | [chassis.md](chassis.md#chassis-pose) |
+| `Chassis::reflection` | function | [chassis.md](chassis.md#chassis-reflection) |
 | `Chassis::reverseCurveTo` | function | [chassis.md](chassis.md#chassis-reversecurveto) |
 | `Chassis::reverseCurveTo (overload 2)` | function | [chassis.md](chassis.md#chassis-reversecurveto-2) |
 | `Chassis::scheduler` | function | [chassis.md](chassis.md#chassis-scheduler) |
@@ -919,6 +922,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Control::mechanism` | field | [driver_inputs.md](driver_inputs.md#control-mechanism) |
 | `Control::mechanismKind` | field | [driver_inputs.md](driver_inputs.md#control-mechanismkind) |
 | `Control::mechanismName` | field | [driver_inputs.md](driver_inputs.md#control-mechanismname) |
+| `Control::oneWay` | field | [driver_inputs.md](driver_inputs.md#control-oneway) |
 | `Control::position` | field | [driver_inputs.md](driver_inputs.md#control-position) |
 | `Control::presetName` | field | [driver_inputs.md](driver_inputs.md#control-presetname) |
 | `Control::units` | field | [driver_inputs.md](driver_inputs.md#control-units) |
@@ -1674,6 +1678,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FieldFix::valid` | field | [camera_geometry.md](camera_geometry.md#fieldfix-valid) |
 | `FieldFix::x` | field | [camera_geometry.md](camera_geometry.md#fieldfix-x) |
 | `FieldFix::y` | field | [camera_geometry.md](camera_geometry.md#fieldfix-y) |
+| `FieldMirror` | struct | [field_mirror.md](field_mirror.md#struct-fieldmirror) |
+| `FieldMirror::name` | field | [field_mirror.md](field_mirror.md#fieldmirror-name) |
+| `FieldMirror::reflection` | field | [field_mirror.md](field_mirror.md#fieldmirror-reflection) |
+| `FieldMirror::walls` | field | [field_mirror.md](field_mirror.md#fieldmirror-walls) |
 | `fieldToRobot` | free function | [frame.md](frame.md#fieldtorobot) |
 | `FieldWall` | struct | [wall_reset.md](wall_reset.md#struct-fieldwall) |
 | `FieldWall::axis` | field | [wall_reset.md](wall_reset.md#fieldwall-axis) |
@@ -2436,6 +2444,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IRouteSource::~IRouteSource` | function | [route.md](route.md#iroutesource-destructor-iroutesource) |
 | `isControllerButton` | free function | [mechanism_binding.md](mechanism_binding.md#iscontrollerbutton) |
 | `isFinitePose` | free function | [finite_guard.md](finite_guard.md#isfinitepose) |
+| `isMirrored` | free function | [field_mirror.md](field_mirror.md#ismirrored) |
 | `isPneumaticLevel` | free function | [robot_config.md](robot_config.md#ispneumaticlevel) |
 | `isSafeBrakeMode` | free function | [robot_config.md](robot_config.md#issafebrakemode) |
 | `isSmartPort` | free function | [device_registry.md](device_registry.md#issmartport) |
@@ -2683,6 +2692,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxMechanismPorts` | constant | [calibrate_program.md](calibrate_program.md#kmaxmechanismports) |
 | `kMaxMechanisms` | constant | [robot_config.md](robot_config.md#kmaxmechanisms) |
 | `kMaxMechanisms` | constant | [spec.md](spec.md#kmaxmechanisms) |
+| `kMaxMirroredAutonNameChars` | constant | [auton_registry.md](auton_registry.md#kmaxmirroredautonnamechars) |
 | `kMaxMotorRoles` | constant | [spec.md](spec.md#kmaxmotorroles) |
 | `kMaxMotorsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxmotorspermechanism) |
 | `kMaxMotorVoltage` | constant | [motor.md](motor.md#kmaxmotorvoltage) |
@@ -2826,6 +2836,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kSettling` | constant | [calibrate_panel.md](calibrate_panel.md#ksettling) |
 | `kSettlingHandsOff` | constant | [calibrate_panel.md](calibrate_panel.md#ksettlinghandsoff) |
 | `kSignature` | constant | [shul2_format.md](shul2_format.md#ksignature) |
+| `kSkillsMirror` | constant | [override_mirror.md](override_mirror.md#kskillsmirror) |
 | `kSmallCols` | constant | [calibrate_panel.md](calibrate_panel.md#ksmallcols) |
 | `kSmallCols` | constant | [touch_panel.md](touch_panel.md#ksmallcols) |
 | `kSmallHeight` | constant | [calibrate_panel.md](calibrate_panel.md#ksmallheight) |
@@ -3387,6 +3398,18 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MenuView::page` | field | [auton_menu.md](auton_menu.md#menuview-page) |
 | `MenuView::pageCount` | field | [auton_menu.md](auton_menu.md#menuview-pagecount) |
 | `MenuView::status` | field | [auton_menu.md](auton_menu.md#menuview-status) |
+| `mirrored` | free function | [field_mirror.md](field_mirror.md#mirrored) |
+| `mirrored (overload 2)` | free function | [field_mirror.md](field_mirror.md#mirrored-2) |
+| `MirroredRun` | class | [chassis.md](chassis.md#class-mirroredrun) |
+| `MirroredRun::MirroredRun` | function | [chassis.md](chassis.md#mirroredrun-mirroredrun) |
+| `MirroredRun::MirroredRun (overload 2)` | function | [chassis.md](chassis.md#mirroredrun-mirroredrun-2) |
+| `MirroredRun::MirroredRun (overload 3)` | function | [chassis.md](chassis.md#mirroredrun-mirroredrun-3) |
+| `MirroredRun::operator=` | function | [chassis.md](chassis.md#mirroredrun-operator-eq) |
+| `MirroredRun::operator= (overload 2)` | function | [chassis.md](chassis.md#mirroredrun-operator-eq-2) |
+| `MirroredRun::~MirroredRun` | function | [chassis.md](chassis.md#mirroredrun-destructor-mirroredrun) |
+| `mirroredSide` | free function | [field_mirror.md](field_mirror.md#mirroredside) |
+| `mirroredToggle` | free function | [override_mirror.md](override_mirror.md#mirroredtoggle) |
+| `mirroredWall` | free function | [field_mirror.md](field_mirror.md#mirroredwall) |
 | `ModelCheck` | enum class | [vision_frames.md](vision_frames.md#enum-class-modelcheck) |
 | `ModelCheck::Different` | enumerator | [vision_frames.md](vision_frames.md#modelcheck-different) |
 | `ModelCheck::Matches` | enumerator | [vision_frames.md](vision_frames.md#modelcheck-matches) |
@@ -4496,6 +4519,29 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Rect::y0` | field | [touch_panel.md](touch_panel.md#rect-y0) |
 | `Rect::y1` | field | [touch_panel.md](touch_panel.md#rect-y1) |
 | `Red` | constant | [kinds.md](kinds.md#red) |
+| `reflectedWall` | free function | [field_mirror.md](field_mirror.md#reflectedwall) |
+| `Reflection` | class | [reflection.md](reflection.md#class-reflection) |
+| `Reflection::across` | function | [reflection.md](reflection.md#reflection-across) |
+| `Reflection::acrossLineAt` | function | [reflection.md](reflection.md#reflection-acrosslineat) |
+| `Reflection::apply` | function | [reflection.md](reflection.md#reflection-apply) |
+| `Reflection::apply (overload 2)` | function | [reflection.md](reflection.md#reflection-apply-2) |
+| `Reflection::apply (overload 3)` | function | [reflection.md](reflection.md#reflection-apply-3) |
+| `Reflection::apply (overload 4)` | function | [reflection.md](reflection.md#reflection-apply-4) |
+| `Reflection::apply (overload 5)` | function | [reflection.md](reflection.md#reflection-apply-5) |
+| `Reflection::identity` | function | [reflection.md](reflection.md#reflection-identity) |
+| `Reflection::isIdentity` | function | [reflection.md](reflection.md#reflection-isidentity) |
+| `Reflection::Line` | enum class | [reflection.md](reflection.md#enum-class-reflection-line) |
+| `Reflection::line` | function | [reflection.md](reflection.md#reflection-line) |
+| `Reflection::Line::AntiDiagonal` | enumerator | [reflection.md](reflection.md#reflection-line-antidiagonal) |
+| `Reflection::Line::Diagonal` | enumerator | [reflection.md](reflection.md#reflection-line-diagonal) |
+| `Reflection::Line::None` | enumerator | [reflection.md](reflection.md#reflection-line-none) |
+| `Reflection::Line::XAxis` | enumerator | [reflection.md](reflection.md#reflection-line-xaxis) |
+| `Reflection::Line::YAxis` | enumerator | [reflection.md](reflection.md#reflection-line-yaxis) |
+| `Reflection::operator==` | function | [reflection.md](reflection.md#reflection-operator-eq-eq) |
+| `Reflection::Point` | struct | [reflection.md](reflection.md#struct-reflection-point) |
+| `Reflection::Point::x` | field | [reflection.md](reflection.md#reflection-point-x) |
+| `Reflection::Point::y` | field | [reflection.md](reflection.md#reflection-point-y) |
+| `Reflection::Reflection` | function | [reflection.md](reflection.md#reflection-reflection) |
 | `Refusal` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-refusal) |
 | `Refusal` | enum class | [spec.md](spec.md#enum-class-refusal) |
 | `Refusal::Aborted` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-aborted) |
@@ -4953,6 +4999,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RunGuardReport::postExpiryCancels` | field | [run_guard.md](run_guard.md#runguardreport-postexpirycancels) |
 | `RunGuardReport::scoringCut` | field | [run_guard.md](run_guard.md#runguardreport-scoringcut) |
 | `RunGuardReport::scoringEnded` | field | [run_guard.md](run_guard.md#runguardreport-scoringended) |
+| `runReflection` | free function | [field_mirror.md](field_mirror.md#runreflection) |
 | `RunReport` | struct | [path_runner.md](path_runner.md#struct-runreport) |
 | `RunReport::lastExit` | field | [path_runner.md](path_runner.md#runreport-lastexit) |
 | `RunReport::legsRun` | field | [path_runner.md](path_runner.md#runreport-legsrun) |
@@ -5130,6 +5177,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SdSinkStorage` | struct | [sd_sink.md](sd_sink.md#struct-sdsinkstorage) |
 | `SdSinkStorage::buffer` | field | [sd_sink.md](sd_sink.md#sdsinkstorage-buffer) |
 | `SdSinkStorage::ring` | field | [sd_sink.md](sd_sink.md#sdsinkstorage-ring) |
+| `seasonImageIndex` | free function | [field_mirror.md](field_mirror.md#seasonimageindex) |
+| `seatedStart` | free function | [field_mirror.md](field_mirror.md#seatedstart) |
 | `seesPiece` | constant | [until.md](until.md#seespiece) |
 | `SeesPiece` | struct | [until.md](until.md#struct-seespiece) |
 | `seesPiece (overload 2)` | type alias | [until.md](until.md#seespiece-2) |
@@ -5725,6 +5774,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleId::RedWall` | enumerator | [override_elements.md](override_elements.md#toggleid-redwall) |
 | `ToggleId::RightWall` | enumerator | [override_elements.md](override_elements.md#toggleid-rightwall) |
 | `ToggleId::Unset` | enumerator | [override_elements.md](override_elements.md#toggleid-unset) |
+| `toggleImage` | free function | [override_mirror.md](override_mirror.md#toggleimage) |
 | `toggleIndex` | free function | [override_elements.md](override_elements.md#toggleindex) |
 | `toggleName` | free function | [override_elements.md](override_elements.md#togglename) |
 | `TogglePlace` | struct | [override_elements.md](override_elements.md#struct-toggleplace) |
@@ -6459,8 +6509,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `whileHeld (overload 2)` | free function | [driver_inputs.md](driver_inputs.md#whileheld-2) |
 | `whileHeld (overload 3)` | free function | [driver_inputs.md](driver_inputs.md#whileheld-3) |
 | `whileHeld (overload 4)` | free function | [driver_inputs.md](driver_inputs.md#whileheld-4) |
-| `whileHeld (overload 5)` | type alias | [driver_inputs.md](driver_inputs.md#whileheld-5) |
+| `whileHeld (overload 5)` | free function | [driver_inputs.md](driver_inputs.md#whileheld-5) |
+| `whileHeld (overload 6)` | free function | [driver_inputs.md](driver_inputs.md#whileheld-6) |
+| `whileHeld (overload 7)` | type alias | [driver_inputs.md](driver_inputs.md#whileheld-7) |
 | `whileHeld_is_for_a_power_mechanism_an_arm_or_a_lift_use_toggle_or_preset` | free function | [driver_inputs.md](driver_inputs.md#whileheld_is_for_a_power_mechanism_an_arm_or_a_lift_use_toggle_or_preset) |
+| `whileHeld_with_one_button_is_for_a_power_mechanism_an_arm_or_a_lift_needs_two` | free function | [driver_inputs.md](driver_inputs.md#whileheld_with_one_button_is_for_a_power_mechanism_an_arm_or_a_lift_needs_two) |
 | `WidthRow` | struct | [shul2_format.md](shul2_format.md#struct-widthrow) |
 | `WidthRow::end` | field | [shul2_format.md](shul2_format.md#widthrow-end) |
 | `WidthRow::hello` | field | [shul2_format.md](shul2_format.md#widthrow-hello) |

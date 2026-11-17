@@ -10,12 +10,14 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <regex>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include "shulib/mechanism/tune_panel.hpp"
 #include "shulib/mechanism/tune_program.hpp"
+#include "source_pins.hpp"
 
 namespace {
 
@@ -508,4 +510,27 @@ TEST_CASE("Tune panel: EXITED says what EXIT COPIED and RESET on the way -- word
     f.copiedAtExit = 0;
     v = mech::tuneView(f);
     CHECK(hasLine(v, "Every change was COPIED already (or none made)."));
+}
+
+TEST_CASE("Tune panel: every button label is kept WHOLE -- READY's 'READY - I AM CLEAR' was once cut to "
+          "'READY - I AM CL' by a 16-byte box") {
+    mech::TuneFacts f{};
+    f.page = TunePage::Clear;
+    f.armed = true;
+    f.controller = true;
+    const mech::TuneView v = mech::tuneView(f);
+    REQUIRE(v.button(TuneButton::Ready) != nullptr);
+    CHECK(std::string(v.button(TuneButton::Ready)->label) == "READY - I AM CLEAR");
+
+    // Every label literal tuneView() writes fits the box with its terminator (a label added later is held too).
+    const std::string src = source_pins::readFile("include/shulib/mechanism/tune_panel.hpp");
+    const std::regex call(R"re(b\.button\([^;]*?"([^"]*)")re");
+    int labels = 0;
+    for (auto it = std::sregex_iterator(src.begin(), src.end(), call); it != std::sregex_iterator(); ++it) {
+        const std::string label = (*it)[1].str();
+        ++labels;
+        CAPTURE(label);
+        CHECK(label.size() < sizeof(mech::TuneButtonView::label));
+    }
+    CHECK(labels >= 20);  // tuneView() writes about two dozen button labels; a broken pattern finds none
 }

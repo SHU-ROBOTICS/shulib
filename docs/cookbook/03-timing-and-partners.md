@@ -193,14 +193,14 @@ Time clockNow(Chassis& chassis) { return chassis.deps().ctx->clock().now(); }
 - The comparison uses `.value()` on both sides. Both are typed times; comparing the underlying
   seconds is explicit about the fact that this is arithmetic on durations.
 
-**The honest note, updated.** `clockNow` reaches through `deps()`, the advanced seam
+**A note, updated.** `clockNow` reaches through `deps()`, the advanced seam
 ([Chapter 10](../guide/10-the-api.md)) — one tier below where a recipe should have to go for
 something this ordinary. The gap it papered over is now half-closed, and here is exactly which
 half: **the unconditional ending no longer needs any of this** — the run guard owns it, and
 `guard.remaining()`/`guard.expired()` replace the clock helper inside a guarded run. The
 CONDITIONAL budgeting above (measuring a phase, deciding what to drop) is still yours and still
 legitimately reads the clock; inside `guard.run()` prefer `guard.remaining()` for it. The
-standalone helper remains the honest answer only for code running outside a guard.
+standalone helper remains the answer only for code running outside a guard.
 
 **Watch out for:** trusting per-step timeouts as a budget. They are worst-case bounds on
 individual motions, not a plan. Six steps with 5-second timeouts is a thirty-second routine in

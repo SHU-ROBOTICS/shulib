@@ -10,7 +10,7 @@ TickAttribution — WHO consumed the loop budget.
 
 This header declares **3** types (18 members) and **1** free function.
 
-Extracted from [`include/shulib/diag/tick_attribution.hpp`](../../include/shulib/diag/tick_attribution.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/diag/tick_attribution.hpp`](../../include/shulib/diag/tick_attribution.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

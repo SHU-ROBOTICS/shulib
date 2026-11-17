@@ -10,7 +10,7 @@ mechanism/service.hpp — THE MECHANISM SERVICE: one object, ticked once per con
 
 This header declares **8** types (106 members), **5** constants, and **1** type alias.
 
-Extracted from [`include/shulib/mechanism/service.hpp`](../../include/shulib/mechanism/service.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/mechanism/service.hpp`](../../include/shulib/mechanism/service.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

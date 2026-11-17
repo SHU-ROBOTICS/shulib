@@ -10,7 +10,7 @@ Axis — the FIELD axis a wall measures.
 
 This header declares **1** type (2 members) and **2** free functions.
 
-Extracted from [`include/shulib/localization/axis.hpp`](../../include/shulib/localization/axis.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/localization/axis.hpp`](../../include/shulib/localization/axis.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

@@ -10,7 +10,7 @@ mechanism/wiring.hpp — THE BINDING (the mechanism core, chunk MECH-A1, 2026-10
 
 This header declares **9** types (62 members), **81** free functions, and **8** type aliass.
 
-Extracted from [`include/shulib/mechanism/wiring.hpp`](../../include/shulib/mechanism/wiring.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/mechanism/wiring.hpp`](../../include/shulib/mechanism/wiring.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

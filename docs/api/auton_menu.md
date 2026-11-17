@@ -10,7 +10,7 @@ competition::AutonMenu — the brain-screen auton selector as a PURE MODEL.
 
 This header declares **7** types (46 members) and **18** constants.
 
-Extracted from [`include/shulib/competition/auton_menu.hpp`](../../include/shulib/competition/auton_menu.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/competition/auton_menu.hpp`](../../include/shulib/competition/auton_menu.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 
@@ -96,7 +96,7 @@ inline constexpr std::size_t kMenuEntriesPerPage = 2
 
 How many auton buttons one page shows. Two full-width rows fit between the two status lines and the bottom row with every vertical gap above 2 * ui::kHitPadY (the layout rule that keeps two padded hit boxes from overlapping). The layout is an ESTIMATE like every screen number (HA-136).
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:59`](../../include/shulib/competition/auton_menu.hpp#L59).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:61`](../../include/shulib/competition/auton_menu.hpp#L61).*
 
 <a id="kmenumaxbuttons"></a>
 
@@ -108,7 +108,7 @@ inline constexpr std::size_t kMenuMaxButtons = kMenuEntriesPerPage + 3
 
 The most buttons one view carries: the page's autons plus PREV, NONE and NEXT.
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:61`](../../include/shulib/competition/auton_menu.hpp#L61).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:63`](../../include/shulib/competition/auton_menu.hpp#L63).*
 
 <a id="kmenuheaderbar"></a>
 
@@ -120,7 +120,7 @@ inline constexpr ui::Rect kMenuHeaderBar{0, 0, 479, 26}
 
 The header bar (the current choice).
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:64`](../../include/shulib/competition/auton_menu.hpp#L64).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:66`](../../include/shulib/competition/auton_menu.hpp#L66).*
 
 <a id="kmenuentryrow0"></a>
 
@@ -132,7 +132,7 @@ inline constexpr ui::Rect kMenuEntryRow0{6, 66, 474, 100}
 
 The first auton row: full width, so a 29-character name and its kind fit one medium line.
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:66`](../../include/shulib/competition/auton_menu.hpp#L66).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:68`](../../include/shulib/competition/auton_menu.hpp#L68).*
 
 <a id="kmenuentryrow1"></a>
 
@@ -144,7 +144,7 @@ inline constexpr ui::Rect kMenuEntryRow1{6, 122, 474, 156}
 
 The second auton row.
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:68`](../../include/shulib/competition/auton_menu.hpp#L68).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:70`](../../include/shulib/competition/auton_menu.hpp#L70).*
 
 <a id="kmenuprevslot"></a>
 
@@ -156,7 +156,7 @@ inline constexpr ui::Rect kMenuPrevSlot{6, 180, 154, 234}
 
 PREV, bottom left — drawn only when there is a previous page.
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:70`](../../include/shulib/competition/auton_menu.hpp#L70).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:72`](../../include/shulib/competition/auton_menu.hpp#L72).*
 
 <a id="kmenunoneslot"></a>
 
@@ -168,7 +168,7 @@ inline constexpr ui::Rect kMenuNoneSlot{166, 180, 314, 234}
 
 NONE, bottom centre — drawn on EVERY view, always in this place.
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:72`](../../include/shulib/competition/auton_menu.hpp#L72).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:74`](../../include/shulib/competition/auton_menu.hpp#L74).*
 
 <a id="kmenunextslot"></a>
 
@@ -180,7 +180,7 @@ inline constexpr ui::Rect kMenuNextSlot{326, 180, 474, 234}
 
 NEXT, bottom right — drawn only when there is a next page.
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:74`](../../include/shulib/competition/auton_menu.hpp#L74).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:76`](../../include/shulib/competition/auton_menu.hpp#L76).*
 
 <a id="kmenuentryrows"></a>
 
@@ -192,7 +192,7 @@ inline constexpr ui::Rect kMenuEntryRows[kMenuEntriesPerPage] = {kMenuEntryRow0,
 
 The auton rows, top to bottom.
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:77`](../../include/shulib/competition/auton_menu.hpp#L77).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:79`](../../include/shulib/competition/auton_menu.hpp#L79).*
 
 <a id="kmenuheaderprefix"></a>
 
@@ -204,7 +204,7 @@ inline constexpr std::string_view kMenuHeaderPrefix = "AUTON: "
 
 The header's prefix; "AUTON: " + a kMaxAutonNameChars name is one medium line (B25).
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:80`](../../include/shulib/competition/auton_menu.hpp#L80).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:82`](../../include/shulib/competition/auton_menu.hpp#L82).*
 
 <a id="kmenunonelabel"></a>
 
@@ -216,7 +216,7 @@ inline constexpr std::string_view kMenuNoneLabel = "NONE"
 
 NONE's label.
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:82`](../../include/shulib/competition/auton_menu.hpp#L82).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:84`](../../include/shulib/competition/auton_menu.hpp#L84).*
 
 <a id="kmenuprevlabel"></a>
 
@@ -228,7 +228,7 @@ inline constexpr std::string_view kMenuPrevLabel = "< PREV"
 
 PREV's label.
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:84`](../../include/shulib/competition/auton_menu.hpp#L84).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:86`](../../include/shulib/competition/auton_menu.hpp#L86).*
 
 <a id="kmenunextlabel"></a>
 
@@ -240,7 +240,7 @@ inline constexpr std::string_view kMenuNextLabel = "NEXT >"
 
 NEXT's label.
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:86`](../../include/shulib/competition/auton_menu.hpp#L86).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:88`](../../include/shulib/competition/auton_menu.hpp#L88).*
 
 <a id="kmenuhinttext"></a>
 
@@ -252,7 +252,7 @@ inline constexpr std::string_view kMenuHintText = "touch a name to choose it; NO
 
 The status line while nothing is locked.
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:88`](../../include/shulib/competition/auton_menu.hpp#L88).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:90`](../../include/shulib/competition/auton_menu.hpp#L90).*
 
 <a id="kmenulockedtext"></a>
 
@@ -264,7 +264,7 @@ inline constexpr std::string_view kMenuLockedText = "LOCKED -- the auton has sta
 
 The status line once the auton has started.
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:90`](../../include/shulib/competition/auton_menu.hpp#L90).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:92`](../../include/shulib/competition/auton_menu.hpp#L92).*
 
 <a id="kmenunoneinfo"></a>
 
@@ -276,7 +276,7 @@ inline constexpr std::string_view kMenuNoneInfo = "NONE: no auton runs (the defa
 
 The info line for NONE.
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:92`](../../include/shulib/competition/auton_menu.hpp#L92).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:94`](../../include/shulib/competition/auton_menu.hpp#L94).*
 
 <a id="kmenurefusedprefix"></a>
 
@@ -288,7 +288,7 @@ inline constexpr std::string_view kMenuRefusedPrefix = "REFUSED "
 
 The status line's prefix before a dropped entry's sentence (file banner).
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:94`](../../include/shulib/competition/auton_menu.hpp#L94).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:96`](../../include/shulib/competition/auton_menu.hpp#L96).*
 
 <a id="kmenurefusalturnseconds"></a>
 
@@ -300,7 +300,7 @@ inline constexpr double kMenuRefusalTurnSeconds = 2.0
 
 How long the status line names each dropped entry before the next (file banner).
 
-*constant, declared at [`include/shulib/competition/auton_menu.hpp:96`](../../include/shulib/competition/auton_menu.hpp#L96).*
+*constant, declared at [`include/shulib/competition/auton_menu.hpp:98`](../../include/shulib/competition/auton_menu.hpp#L98).*
 
 <a id="enum-class-menubuttonid"></a>
 
@@ -312,7 +312,7 @@ enum class MenuButtonId : std::uint8_t
 
 Which button.
 
-*enum class, declared at [`include/shulib/competition/auton_menu.hpp:123`](../../include/shulib/competition/auton_menu.hpp#L123).*
+*enum class, declared at [`include/shulib/competition/auton_menu.hpp:127`](../../include/shulib/competition/auton_menu.hpp#L127).*
 
 <a id="menubuttonid-entry"></a>
 
@@ -324,7 +324,7 @@ Entry
 
 a registered auton (MenuButton::entry says which)
 
-*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:124`](../../include/shulib/competition/auton_menu.hpp#L124).*
+*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:128`](../../include/shulib/competition/auton_menu.hpp#L128).*
 
 <a id="menubuttonid-none"></a>
 
@@ -336,7 +336,7 @@ None
 
 NONE — always present, never delayed
 
-*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:125`](../../include/shulib/competition/auton_menu.hpp#L125).*
+*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:129`](../../include/shulib/competition/auton_menu.hpp#L129).*
 
 <a id="menubuttonid-prev"></a>
 
@@ -348,7 +348,7 @@ Prev
 
 the previous page
 
-*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:126`](../../include/shulib/competition/auton_menu.hpp#L126).*
+*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:130`](../../include/shulib/competition/auton_menu.hpp#L130).*
 
 <a id="menubuttonid-next"></a>
 
@@ -360,7 +360,7 @@ Next
 
 the next page
 
-*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:127`](../../include/shulib/competition/auton_menu.hpp#L127).*
+*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:131`](../../include/shulib/competition/auton_menu.hpp#L131).*
 
 <a id="struct-menubutton"></a>
 
@@ -372,7 +372,7 @@ struct MenuButton
 
 One button of a view.
 
-*struct, declared at [`include/shulib/competition/auton_menu.hpp:131`](../../include/shulib/competition/auton_menu.hpp#L131).*
+*struct, declared at [`include/shulib/competition/auton_menu.hpp:135`](../../include/shulib/competition/auton_menu.hpp#L135).*
 
 <a id="menubutton-id"></a>
 
@@ -384,7 +384,7 @@ MenuButtonId id = MenuButtonId::None
 
 Which button.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:133`](../../include/shulib/competition/auton_menu.hpp#L133).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:137`](../../include/shulib/competition/auton_menu.hpp#L137).*
 
 <a id="menubutton-entry"></a>
 
@@ -396,7 +396,7 @@ int entry = -1
 
 For an Entry: the registry index it chooses. -1 otherwise.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:135`](../../include/shulib/competition/auton_menu.hpp#L135).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:139`](../../include/shulib/competition/auton_menu.hpp#L139).*
 
 <a id="menubutton-rect"></a>
 
@@ -408,7 +408,7 @@ ui::Rect rect{}
 
 Where it is drawn (its hit box is ui::hitBox(rect)).
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:137`](../../include/shulib/competition/auton_menu.hpp#L137).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:141`](../../include/shulib/competition/auton_menu.hpp#L141).*
 
 <a id="menubutton-label"></a>
 
@@ -420,7 +420,7 @@ char label[ui::kMediumCols + 1]{}
 
 Its label, MEDIUM, screen-safe.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:139`](../../include/shulib/competition/auton_menu.hpp#L139).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:143`](../../include/shulib/competition/auton_menu.hpp#L143).*
 
 <a id="menubutton-armed"></a>
 
@@ -432,7 +432,7 @@ bool armed = true
 
 False while the arming delay runs or once the choice is locked: drawn GREYED, never hit.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:141`](../../include/shulib/competition/auton_menu.hpp#L141).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:145`](../../include/shulib/competition/auton_menu.hpp#L145).*
 
 <a id="menubutton-chosen"></a>
 
@@ -444,7 +444,7 @@ bool chosen = false
 
 True for the button whose choice is the current one (drawn highlighted).
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:143`](../../include/shulib/competition/auton_menu.hpp#L143).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:147`](../../include/shulib/competition/auton_menu.hpp#L147).*
 
 <a id="struct-menuline"></a>
 
@@ -456,7 +456,7 @@ struct MenuLine
 
 One line of text at a fixed place and size.
 
-*struct, declared at [`include/shulib/competition/auton_menu.hpp:147`](../../include/shulib/competition/auton_menu.hpp#L147).*
+*struct, declared at [`include/shulib/competition/auton_menu.hpp:151`](../../include/shulib/competition/auton_menu.hpp#L151).*
 
 <a id="menuline-x"></a>
 
@@ -468,7 +468,7 @@ std::int16_t x = 0
 
 Left edge, pixels.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:149`](../../include/shulib/competition/auton_menu.hpp#L149).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:153`](../../include/shulib/competition/auton_menu.hpp#L153).*
 
 <a id="menuline-y"></a>
 
@@ -480,7 +480,7 @@ std::int16_t y = 0
 
 Top edge, pixels.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:151`](../../include/shulib/competition/auton_menu.hpp#L151).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:155`](../../include/shulib/competition/auton_menu.hpp#L155).*
 
 <a id="menuline-size"></a>
 
@@ -492,7 +492,7 @@ ui::TextSize size = ui::TextSize::Medium
 
 Its size; the text fits ui::budgetFor(size).
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:153`](../../include/shulib/competition/auton_menu.hpp#L153).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:157`](../../include/shulib/competition/auton_menu.hpp#L157).*
 
 <a id="menuline-tone"></a>
 
@@ -504,7 +504,7 @@ ui::Tone tone = ui::Tone::White
 
 Its colour, by meaning.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:155`](../../include/shulib/competition/auton_menu.hpp#L155).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:159`](../../include/shulib/competition/auton_menu.hpp#L159).*
 
 <a id="menuline-text"></a>
 
@@ -516,7 +516,7 @@ char text[ui::kSmallCols + 1]{}
 
 The text, NUL-terminated, screen-safe.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:157`](../../include/shulib/competition/auton_menu.hpp#L157).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:161`](../../include/shulib/competition/auton_menu.hpp#L161).*
 
 <a id="struct-menuview"></a>
 
@@ -528,7 +528,7 @@ struct MenuView
 
 Everything one frame of the selector says, and which touches mean something.
 
-*struct, declared at [`include/shulib/competition/auton_menu.hpp:161`](../../include/shulib/competition/auton_menu.hpp#L161).*
+*struct, declared at [`include/shulib/competition/auton_menu.hpp:165`](../../include/shulib/competition/auton_menu.hpp#L165).*
 
 <a id="menuview-header"></a>
 
@@ -540,7 +540,7 @@ MenuLine header{}
 
 "AUTON: <name>" — the current choice — MEDIUM, in the header bar.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:163`](../../include/shulib/competition/auton_menu.hpp#L163).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:167`](../../include/shulib/competition/auton_menu.hpp#L167).*
 
 <a id="menuview-info"></a>
 
@@ -552,7 +552,7 @@ MenuLine info{}
 
 The choice's kind, schedule and start mode (or what NONE means), SMALL.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:165`](../../include/shulib/competition/auton_menu.hpp#L165).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:169`](../../include/shulib/competition/auton_menu.hpp#L169).*
 
 <a id="menuview-status"></a>
 
@@ -564,7 +564,7 @@ MenuLine status{}
 
 The hint, or LOCKED, and the page — SMALL.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:167`](../../include/shulib/competition/auton_menu.hpp#L167).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:171`](../../include/shulib/competition/auton_menu.hpp#L171).*
 
 <a id="menuview-buttons"></a>
 
@@ -576,7 +576,7 @@ MenuButton buttons[kMenuMaxButtons]{}
 
 The buttons, in drawing order: the page's autons, then PREV (if any), NONE, NEXT (if any).
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:169`](../../include/shulib/competition/auton_menu.hpp#L169).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:173`](../../include/shulib/competition/auton_menu.hpp#L173).*
 
 <a id="menuview-buttoncount"></a>
 
@@ -588,7 +588,7 @@ std::uint8_t buttonCount = 0
 
 How many entries of `buttons` are real.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:171`](../../include/shulib/competition/auton_menu.hpp#L171).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:175`](../../include/shulib/competition/auton_menu.hpp#L175).*
 
 <a id="menuview-page"></a>
 
@@ -600,7 +600,7 @@ int page = 0
 
 The page shown, 0-based.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:173`](../../include/shulib/competition/auton_menu.hpp#L173).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:177`](../../include/shulib/competition/auton_menu.hpp#L177).*
 
 <a id="menuview-pagecount"></a>
 
@@ -612,7 +612,7 @@ int pageCount = 1
 
 How many pages there are (at least 1 — the page with only NONE when nothing is registered).
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:175`](../../include/shulib/competition/auton_menu.hpp#L175).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:179`](../../include/shulib/competition/auton_menu.hpp#L179).*
 
 <a id="menuview-locked"></a>
 
@@ -624,7 +624,7 @@ bool locked = false
 
 The choice is locked: every button is dead.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:177`](../../include/shulib/competition/auton_menu.hpp#L177).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:181`](../../include/shulib/competition/auton_menu.hpp#L181).*
 
 <a id="enum-class-menutouchaction"></a>
 
@@ -636,7 +636,7 @@ enum class MenuTouchAction : std::uint8_t
 
 What a touch did.
 
-*enum class, declared at [`include/shulib/competition/auton_menu.hpp:181`](../../include/shulib/competition/auton_menu.hpp#L181).*
+*enum class, declared at [`include/shulib/competition/auton_menu.hpp:185`](../../include/shulib/competition/auton_menu.hpp#L185).*
 
 <a id="menutouchaction-none"></a>
 
@@ -648,7 +648,7 @@ None
 
 nothing — no new release, a miss, or a greyed button
 
-*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:182`](../../include/shulib/competition/auton_menu.hpp#L182).*
+*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:186`](../../include/shulib/competition/auton_menu.hpp#L186).*
 
 <a id="menutouchaction-chose"></a>
 
@@ -660,7 +660,7 @@ Chose
 
 the choice changed (or was re-chosen) — MenuTouch::choice holds it
 
-*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:183`](../../include/shulib/competition/auton_menu.hpp#L183).*
+*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:187`](../../include/shulib/competition/auton_menu.hpp#L187).*
 
 <a id="menutouchaction-paged"></a>
 
@@ -672,7 +672,7 @@ Paged
 
 the page changed
 
-*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:184`](../../include/shulib/competition/auton_menu.hpp#L184).*
+*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:188`](../../include/shulib/competition/auton_menu.hpp#L188).*
 
 <a id="menutouchaction-refusedlocked"></a>
 
@@ -684,7 +684,7 @@ RefusedLocked
 
 a live-looking button was hit after the choice locked — nothing changed
 
-*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:185`](../../include/shulib/competition/auton_menu.hpp#L185).*
+*enumerator, declared at [`include/shulib/competition/auton_menu.hpp:189`](../../include/shulib/competition/auton_menu.hpp#L189).*
 
 <a id="struct-menutouch"></a>
 
@@ -696,7 +696,7 @@ struct MenuTouch
 
 The outcome of one touch read.
 
-*struct, declared at [`include/shulib/competition/auton_menu.hpp:189`](../../include/shulib/competition/auton_menu.hpp#L189).*
+*struct, declared at [`include/shulib/competition/auton_menu.hpp:193`](../../include/shulib/competition/auton_menu.hpp#L193).*
 
 <a id="menutouch-action"></a>
 
@@ -708,7 +708,7 @@ MenuTouchAction action = MenuTouchAction::None
 
 What happened.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:191`](../../include/shulib/competition/auton_menu.hpp#L191).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:195`](../../include/shulib/competition/auton_menu.hpp#L195).*
 
 <a id="menutouch-hit"></a>
 
@@ -720,7 +720,7 @@ int hit = -1
 
 The button index hit in the DRAWN view (-1 for none) — for the log.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:193`](../../include/shulib/competition/auton_menu.hpp#L193).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:197`](../../include/shulib/competition/auton_menu.hpp#L197).*
 
 <a id="menutouch-newrelease"></a>
 
@@ -732,7 +732,7 @@ bool newRelease = false
 
 True when this read carried a NEW release (logged even when it hits nothing).
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:195`](../../include/shulib/competition/auton_menu.hpp#L195).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:199`](../../include/shulib/competition/auton_menu.hpp#L199).*
 
 <a id="menutouch-choice"></a>
 
@@ -744,7 +744,7 @@ int choice = -1
 
 The choice after this touch: a registry index, or -1 for NONE.
 
-*field, declared at [`include/shulib/competition/auton_menu.hpp:197`](../../include/shulib/competition/auton_menu.hpp#L197).*
+*field, declared at [`include/shulib/competition/auton_menu.hpp:201`](../../include/shulib/competition/auton_menu.hpp#L201).*
 
 <a id="class-autonmenu"></a>
 
@@ -756,7 +756,7 @@ class AutonMenu
 
 The selector (file banner). Borrows the registry, which must be COMPLETE before the first view() and outlive the menu. view() and touch() belong to ONE task (the one that paints); choice(), chosenEntry(), lockChoice(), unlock() and locked() may be called from any task.
 
-*class, declared at [`include/shulib/competition/auton_menu.hpp:203`](../../include/shulib/competition/auton_menu.hpp#L203).*
+*class, declared at [`include/shulib/competition/auton_menu.hpp:207`](../../include/shulib/competition/auton_menu.hpp#L207).*
 
 <a id="autonmenu-autonmenu"></a>
 
@@ -768,7 +768,7 @@ AutonMenu(const AutonRegistry& registry, std::int32_t releaseCountAtStart) noexc
 
 `releaseCountAtStart`: PROS's release_count when the menu first appears, so a tap made before it existed is never replayed as a choice. The choice starts at NONE.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:207`](../../include/shulib/competition/auton_menu.hpp#L207).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:211`](../../include/shulib/competition/auton_menu.hpp#L211).*
 
 <a id="autonmenu-autonmenu-2"></a>
 
@@ -780,7 +780,7 @@ AutonMenu(const AutonMenu&) = delete
 
 Not copyable or movable: the choice is an atomic other tasks read by address.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:211`](../../include/shulib/competition/auton_menu.hpp#L211).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:215`](../../include/shulib/competition/auton_menu.hpp#L215).*
 
 <a id="autonmenu-operator-eq"></a>
 
@@ -792,7 +792,7 @@ AutonMenu& operator=(const AutonMenu&) = delete
 
 Not copyable or movable: the choice is an atomic other tasks read by address. See the copy constructor.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:213`](../../include/shulib/competition/auton_menu.hpp#L213).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:217`](../../include/shulib/competition/auton_menu.hpp#L217).*
 
 <a id="autonmenu-autonmenu-3"></a>
 
@@ -804,7 +804,7 @@ AutonMenu(AutonMenu&&) = delete
 
 Not copyable or movable: the choice is an atomic other tasks read by address. See the copy constructor. See the copy constructor.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:215`](../../include/shulib/competition/auton_menu.hpp#L215).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:219`](../../include/shulib/competition/auton_menu.hpp#L219).*
 
 <a id="autonmenu-operator-eq-2"></a>
 
@@ -816,7 +816,7 @@ AutonMenu& operator=(AutonMenu&&) = delete
 
 Not copyable or movable: the choice is an atomic other tasks read by address. See the copy constructor. See the copy constructor. See the copy constructor.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:217`](../../include/shulib/competition/auton_menu.hpp#L217).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:221`](../../include/shulib/competition/auton_menu.hpp#L221).*
 
 <a id="autonmenu-destructor-autonmenu"></a>
 
@@ -828,7 +828,7 @@ Not copyable or movable: the choice is an atomic other tasks read by address. Se
 
 Not copyable or movable: the choice is an atomic other tasks read by address. See the copy constructor. See the copy constructor. See the copy constructor. Owns nothing that needs releasing.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:219`](../../include/shulib/competition/auton_menu.hpp#L219).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:223`](../../include/shulib/competition/auton_menu.hpp#L223).*
 
 <a id="autonmenu-view"></a>
 
@@ -840,7 +840,7 @@ Not copyable or movable: the choice is an atomic other tasks read by address. Se
 
 The view to paint at `nowSeconds`. Restarts the arming clock whenever the layout (page and buttons) differs from the last view this returned, so a new layout's buttons come up greyed on the very first frame they appear.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:224`](../../include/shulib/competition/auton_menu.hpp#L224).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:228`](../../include/shulib/competition/auton_menu.hpp#L228).*
 
 <a id="autonmenu-touch"></a>
 
@@ -852,7 +852,7 @@ The view to paint at `nowSeconds`. Restarts the arming clock whenever the layout
 
 One touch read against the view that is ON THE SCREEN (`drawn`). A new release on an armed button chooses its auton (or NONE) or flips the page; once locked, nothing changes.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:232`](../../include/shulib/competition/auton_menu.hpp#L232).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:236`](../../include/shulib/competition/auton_menu.hpp#L236).*
 
 <a id="autonmenu-choice"></a>
 
@@ -864,7 +864,7 @@ One touch read against the view that is ON THE SCREEN (`drawn`). A new release o
 
 The current choice: a registry index, or -1 for NONE (the default). Any task.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:273`](../../include/shulib/competition/auton_menu.hpp#L273).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:277`](../../include/shulib/competition/auton_menu.hpp#L277).*
 
 <a id="autonmenu-chosenentry"></a>
 
@@ -876,7 +876,7 @@ The current choice: a registry index, or -1 for NONE (the default). Any task.
 
 The chosen entry, or nullptr for NONE. Any task.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:276`](../../include/shulib/competition/auton_menu.hpp#L276).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:280`](../../include/shulib/competition/auton_menu.hpp#L280).*
 
 <a id="autonmenu-lockchoice"></a>
 
@@ -888,7 +888,7 @@ int lockChoice() noexcept
 
 LOCK the choice and return it, in ONE atomic operation — the auton that runs is the choice at this instant, and no touch after it changes the choice (file banner). Any task.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:283`](../../include/shulib/competition/auton_menu.hpp#L283).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:287`](../../include/shulib/competition/auton_menu.hpp#L287).*
 
 <a id="autonmenu-unlock"></a>
 
@@ -900,7 +900,7 @@ void unlock() noexcept
 
 Unlock: touches may change the choice again. For the program to call only after the auton it locked for has FINISHED (a second autonomous() on the same boot then takes the choice current at ITS start). Any task.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:288`](../../include/shulib/competition/auton_menu.hpp#L288).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:292`](../../include/shulib/competition/auton_menu.hpp#L292).*
 
 <a id="autonmenu-locked"></a>
 
@@ -912,7 +912,7 @@ Unlock: touches may change the choice again. For the program to call only after 
 
 True while locked. Any task.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:291`](../../include/shulib/competition/auton_menu.hpp#L291).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:295`](../../include/shulib/competition/auton_menu.hpp#L295).*
 
 <a id="autonmenu-page"></a>
 
@@ -924,7 +924,7 @@ True while locked. Any task.
 
 The page shown, 0-based.
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:294`](../../include/shulib/competition/auton_menu.hpp#L294).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:298`](../../include/shulib/competition/auton_menu.hpp#L298).*
 
 <a id="autonmenu-pagecount"></a>
 
@@ -936,14 +936,14 @@ The page shown, 0-based.
 
 How many pages the registry needs (at least 1).
 
-*function, declared at [`include/shulib/competition/auton_menu.hpp:297`](../../include/shulib/competition/auton_menu.hpp#L297).*
+*function, declared at [`include/shulib/competition/auton_menu.hpp:301`](../../include/shulib/competition/auton_menu.hpp#L301).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 41 lines</summary>
+<summary>The header’s own reasoning — 43 lines</summary>
 
 ```text
 
@@ -961,7 +961,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
    * NONE is ALWAYS on the screen, in the SAME place, and it is the DEFAULT: a program that boots
      and is never touched runs no auton. (A robot that drives off the line because nobody chose
      is the failure; a robot that sits still is the safe one.)
-   * One button per registered auton, labelled "<name> <KIND>", PAGED when more than
+   * One button per registered auton, labelled "<name> <KIND>" — "<name> <KIND> MIR" for a MIRRORED
+     one (MIRROR1-A: robot two's run of robot one's route; its name is at most 25 characters so the
+     label still fits one line) — PAGED when more than
      kMenuEntriesPerPage are registered; paging hides none (every entry is on exactly one page).
    * No new button appears under the one just pressed: entries live in the middle of the screen,
      NONE / PREV / NEXT in the bottom row, and a page flip either keeps a button where it was (the

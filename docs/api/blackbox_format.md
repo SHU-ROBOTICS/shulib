@@ -10,7 +10,7 @@ The SHULIB BLACKBOX on-disk format, v1 — the binary record SdSink writes and B
 
 This header declares **6** types (55 members), **12** free functions, and **8** constants.
 
-Extracted from [`include/shulib/diag/blackbox_format.hpp`](../../include/shulib/diag/blackbox_format.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/diag/blackbox_format.hpp`](../../include/shulib/diag/blackbox_format.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

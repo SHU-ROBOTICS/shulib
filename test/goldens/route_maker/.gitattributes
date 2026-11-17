@@ -1,0 +1,7 @@
+# The route builder's OWN files stay LF on every checkout, Windows included (chunk RMP1-A1; the RMP1 brief W11):
+# its tests compare goldens byte for byte, and Git for Windows checks out CRLF by default. SCOPED to this
+# folder on purpose: the students' files in src/team/ keep Git's default, and the route builder keeps
+# whatever line ending each of those has (its tests build the CRLF case themselves).
+* text=auto eol=lf
+*.webp binary
+*.png binary

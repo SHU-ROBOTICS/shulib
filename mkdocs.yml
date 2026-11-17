@@ -35,24 +35,13 @@ theme:
       primary: indigo
       accent: indigo
       toggle: { icon: material/weather-sunny, name: Switch to light mode }
-  # NAVIGATION, and why it is shaped this way (chunk DOCS2).
-  #
-  # The API reference grew from 2 pages to 117 in one chunk. With the previous
-  # settings that whole tree rendered into one always-expanded sidebar, which is
-  # the failure mode a big reference has: a reader who wants `moveTo` meets a
-  # wall of 117 links and concludes the library is complicated. The three
-  # settings below are the fix, in order of how much they do:
-  #
-  #   navigation.tabs    — top-level areas (Guide / Cookbook / API / Project)
-  #                        become tabs, so the sidebar only ever shows ONE of
-  #                        them. The API tree is invisible until you want it.
-  #   navigation.indexes — a section's own overview page IS the section, so
-  #                        clicking "API reference" lands on the page that
-  #                        explains the reference instead of doing nothing.
-  #   (no navigation.sections) — subsystem groups collapse, and only the group
-  #                        you are reading is open. Removed deliberately: with
-  #                        it, every one of the fifteen subsystem groups is
-  #                        expanded at all times.
+  # NAVIGATION (chunks DOCS2, DOCS3). The tabs are a reader's TASKS (Robot, Routes,
+  # Mechanisms, Troubleshoot, Learn, API reference, Project), so the sidebar only ever shows
+  # one task's pages. Page FILES keep their chapter numbers (tests, links and bookmarks use
+  # them); the menu shows titles only. tools/doc_readability.py check-nav fails the build if
+  # a public page is missing from the menu, listed twice, or a menu line names no file.
+  #   navigation.indexes — a section's first, bare entry is its landing page.
+  #   (no navigation.sections) — only the group you are reading is open.
   features:
     - navigation.tabs
     - navigation.tabs.sticky
@@ -106,6 +95,7 @@ validation:
   links:
     absolute_links: ignore      # rewritten source links are absolute by design
     unrecognized_links: warn
+    anchors: warn               # a link to a missing #anchor fails the strict build
 
 exclude_docs: |
   internal/
@@ -113,41 +103,53 @@ exclude_docs: |
 nav:
   - Home: index.md
 
-  # `navigation.indexes`: the first entry of a section, given as a bare path,
-  # becomes the section's own landing page. Clicking the tab lands on the
-  # overview instead of doing nothing.
-  - User guide:
+  # The menu by task (DOCS3). "Start here" (the beginner track) and "Route builder" join
+  # as their pages land; check-nav keeps every public page in the menu exactly once.
+  # The route builder (chunk RMP1-A1): its page, beside which pages.yml builds the app itself
+  # (route-builder/app.html and the one-file download -- never route-builder/index.html, which this page renders to).
+  - Route builder:
+      - route-builder.md
+      - Make your first route: guide/22-making-your-first-route.md
+  - Robot:
+      - Set up:
+          - Build and upload the programs: guide/07-getting-set-up.md
+          - Add your robot: guide/21-adding-your-robot-by-hand.md
+          - The robot facts form: robot-facts-form.md
+          - Calibrate the drive: guide/19-calibrating-your-robot.md
+      - Drive and compete:
+          - Buttons for your mechanisms: cookbook/06-driver-control.md
+          - Match day — the competition program: guide/17-the-competition-program.md
+  - Routes:
+      - The field and coordinates: guide/02-the-field-and-coordinates.md
+      - The steps of a route: guide/09-the-recipe-api.md
+      - Driving, turning and curves: guide/05-getting-there.md
+      - Where the robot is, and wall resets: guide/03-knowing-where-you-are.md
+      - The camera and the Toggle: guide/20-the-camera.md
+      - Try a route before the field: guide/16-testing-an-auton-on-the-bench.md
+      - Recipes:
+          - cookbook/README.md
+          - Getting there: cookbook/01-getting-there.md
+          - When a step fails: cookbook/02-when-a-step-fails.md
+          - Timing and partners: cookbook/03-timing-and-partners.md
+          - Routes for a tank: cookbook/04-drivetrains.md
+          - Mixing the two styles: cookbook/05-mixing-tiers.md
+          - One route, two robots: cookbook/09-one-route-two-robots.md
+  - Mechanisms:
+      - Declare, drive and tune a mechanism: guide/18-mechanisms.md
+      - Recipes: cookbook/07-mechanisms.md
+  - Troubleshoot:
+      - Reading the log: guide/11-reading-the-diagnostics.md
+      - When things go wrong: guide/12-when-things-go-wrong.md
+      - What it cannot do yet: guide/14-what-it-cannot-do-yet.md
+      - FAQ: faq.md
+  - Learn:
       - guide/README.md
-      - 1 — What is this?: guide/01-what-is-this.md
-      - 2 — The field and coordinates: guide/02-the-field-and-coordinates.md
-      - 3 — Knowing where you are: guide/03-knowing-where-you-are.md
-      - 4 — Drivetrains: guide/04-drivetrains.md
-      - 5 — Getting there: guide/05-getting-there.md
-      - 6 — How things fail: guide/06-how-things-fail.md
-      - 7 — Getting set up: guide/07-getting-set-up.md
-      - 8 — Your first routine: guide/08-your-first-routine.md
-      - 9 — The recipe API: guide/09-the-recipe-api.md
-      - 10 — The API, as prose: guide/10-the-api.md
-      - 11 — Reading the diagnostics: guide/11-reading-the-diagnostics.md
-      - 12 — When things go wrong: guide/12-when-things-go-wrong.md
-      - 13 — Extending the library: guide/13-extending-the-library.md
-      - 14 — What it cannot do yet: guide/14-what-it-cannot-do-yet.md
-      - 15 — Glossary: guide/15-glossary.md
-      - 16 — Testing an auton on the bench: guide/16-testing-an-auton-on-the-bench.md
-      - 17 — The competition program: guide/17-the-competition-program.md
-      - 18 — Mechanisms: guide/18-mechanisms.md
-      - 19 — Calibrating your robot: guide/19-calibrating-your-robot.md
-      - 20 — The camera: guide/20-the-camera.md
-
-  - Cookbook:
-      - cookbook/README.md
-      - Getting there: cookbook/01-getting-there.md
-      - When a step fails: cookbook/02-when-a-step-fails.md
-      - Timing and partners: cookbook/03-timing-and-partners.md
-      - Drivetrains: cookbook/04-drivetrains.md
-      - Mixing tiers: cookbook/05-mixing-tiers.md
-      - Driver control: cookbook/06-driver-control.md
-      - Mechanisms: cookbook/07-mechanisms.md
+      - What is this?: guide/01-what-is-this.md
+      - Drivetrains: guide/04-drivetrains.md
+      - How things fail: guide/06-how-things-fail.md
+      - A routine built by hand: guide/08-your-first-routine.md
+      - The API in words: guide/10-the-api.md
+      - Glossary: guide/15-glossary.md
 
 # BEGIN GENERATED API NAV — regenerate with: python3 tools/api_doc_tool.py generate
   - API reference:
@@ -246,6 +248,7 @@ nav:
           - Angle: api/angle.md
           - Frame: api/frame.md
           - Pose2d: api/pose2d.md
+          - Reflection: api/reflection.md
           - Twist2d: api/twist2d.md
       - Units:
           - Literals: api/literals.md
@@ -340,7 +343,9 @@ nav:
           - Auton menu: api/auton_menu.md
           - Auton registry: api/auton_registry.md
           - Auton wall reset: api/auton_wall_reset.md
+          - Field mirror: api/field_mirror.md
           - Match runner: api/match_runner.md
+          - Override mirror: api/override_mirror.md
           - Toggle visit: api/toggle_visit.md
       - Config:
           - Camera config: api/camera_config.md
@@ -390,10 +395,10 @@ nav:
           - Toggle tracker: api/toggle_tracker.md
 # END GENERATED API NAV
 
-  - FAQ: faq.md
-  - Changelog: changelog.md
-
   - Project:
+      - Extend the library: guide/13-extending-the-library.md
+      - How these pages stay true: how-the-docs-stay-true.md
+      - Changelog: changelog.md
       - Roadmap: roadmap.md
       - Architecture and decisions: shulib-v2-master-plan.md
       - Hardware assumptions: hardware-assumptions.md

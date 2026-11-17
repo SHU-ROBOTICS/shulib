@@ -10,7 +10,7 @@ hal/pros/tune — "shulib Tune" on a V5 brain (chunk TUNE1-B1, 2026-11-10; the M
 
 This header declares **2** types (9 members), **3** free functions, and **1** constant.
 
-Extracted from [`include/shulib/hal/pros/tune.hpp`](../../include/shulib/hal/pros/tune.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/hal/pros/tune.hpp`](../../include/shulib/hal/pros/tune.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

@@ -39,6 +39,7 @@
 
 #include "doctest.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -1280,4 +1281,100 @@ TEST_CASE("T3 P2 test 6x: a mechanism SENSOR port the record lists as a DRIVE po
     FakeBlockSource card3{encoded(fiveDrives)};
     const Boot five = runBoot(card3, census5, robotTwoTableSigns(), lineFive);
     CHECK_MESSAGE(five.out.ok, five.out.why);
+}
+
+// ═══ ROBOT ONE'S WORDS (chunk ROB1-A, 2026-11-11; the ROB1 brief's T10, re-check R7) ═══════════════════
+// decideBootSourceFrom() takes the robot's words as a LAST, DEFAULTED argument (src/common/robot_words.hpp):
+// every case above passes none and gets robot two's "claw" words byte for byte; robot one's are passed
+// here. Robot one's list is its REAL declaration on its ledger's PLACEHOLDER ports (8 and 9).
+
+namespace {
+Boot runBootOne(FakeBlockSource& card, const FakeDeviceRegistry& registry, const DrivetrainDescription& table) {
+    Boot b;
+    const RecordRead record = readRecord(card, kCardPath);
+    b.out = decideBootSourceFrom(record, registry, table, kTankTableMissing,
+                                 shulib::bench::robot_one::kRobotOneMechanisms, "2026 CASCADE ROBOT (robot one)",
+                                 [&b](const char* line) { b.lines.emplace_back(line); },
+                                 shulib::bench::WordsOf<shulib::bench::RobotId::RobotOne>{});
+    return b;
+}
+}  // namespace
+
+TEST_CASE("ROB1-A T10: robot one's cascade port that the RECORD (or the typed table) lists as a DRIVE port refuses the boot in robot one's words -- 'mechanism', never 'claw'") {
+    // BUG CAUGHT (GM21b, R7): robot one's refusal saying "a CLAW port" — robot one has no claw, and a
+    // student reading it looks for one; robot one's label saying "claw pivots" (GM21).
+    const int cascadePort = shulib::bench::robot_one_facts::kCascadePorts.value().first;
+    DrivetrainDescription tookTheCascade = robotTwoRecord();
+    tookTheCascade.right.signedPorts[3] = static_cast<std::int8_t>(cascadePort);
+    FakeBlockSource card{encoded(tookTheCascade)};
+    FakeDeviceRegistry census = robotTwoCensus();
+    census.setKind(cascadePort, DeviceKind::Motor);
+    census.setKind(shulib::bench::robot_one_facts::kCascadePorts.value().second, DeviceKind::Motor);
+    census.setKind(15, DeviceKind::None);
+    const Boot b = runBootOne(card, census, robotTwoTableSigns());
+    REQUIRE_FALSE(b.lines.empty());
+    const std::string why = "port " + std::to_string(cascadePort) +
+                            " is both a mechanism (cascade) and a drive motor in the record -- recalibrate: "
+                            "shulib Calibrate (slot 4) never takes a declared mechanism port";
+    CHECK(b.lines.back() == "mechanisms: REFUSED -- " + why);
+    CHECK_FALSE(b.out.ok);
+    CHECK(std::string_view{b.out.headline} == "a MECHANISM MOTOR port is a DRIVE port in the record");
+    CHECK(std::string_view{b.out.why} == why);
+    for (const std::string& l : b.lines) {
+        CAPTURE(l);
+        CHECK(l.find("claw") == std::string::npos);
+        CHECK(l.find("CLAW") == std::string::npos);
+    }
+    // The typed table's own disagreement, in robot one's words.
+    FakeBlockSource none;
+    none.setOpen(false);
+    DrivetrainDescription table = usableTable();
+    table.left.signedPorts[1] = static_cast<std::int8_t>(cascadePort);
+    FakeDeviceRegistry tableCensusWithCascade = tableCensus();
+    tableCensusWithCascade.setKind(cascadePort, DeviceKind::Motor);
+    tableCensusWithCascade.setKind(shulib::bench::robot_one_facts::kCascadePorts.value().second, DeviceKind::Motor);
+    const Boot t = runBootOne(none, tableCensusWithCascade, table);
+    CHECK_FALSE(t.out.ok);
+    CHECK(std::string_view{t.out.headline} == "a MECHANISM MOTOR port is a DRIVE port in the typed table");
+    CHECK(std::string_view{t.out.why} == "port " + std::to_string(cascadePort) +
+                                             " is both a mechanism (cascade) and a drive motor in the typed table -- "
+                                             "src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp disagree");
+}
+
+TEST_CASE("ROB1-A T10: robot one's declared cascade motors are LABELLED as robot one's -- 'mechanism motors', never 'claw pivots' -- and robot two's default call is unchanged") {
+    // BUG CAUGHT (GM21): robot one's port check calling the cascade's motors "claw pivots"; robot two's
+    // label moved by the per-robot words (its tests and its packages carry it byte for byte).
+    // (ROB1-C2: robot one declares SIX mechanisms — the cascade's two motors, the side toggles' two, three
+    // pistons on 3-wire lines — so its declared MOTOR ports are four.)
+    const int p1 = shulib::bench::robot_one_facts::kCascadePorts.value().first;
+    const int p2 = shulib::bench::robot_one_facts::kCascadePorts.value().second;
+    const int p3 = shulib::bench::robot_one_facts::kRightTogglePort.value();
+    const int p4 = shulib::bench::robot_one_facts::leftTogglePort();
+    // Robot two's record and census stand in for robot one's drive (no robot-one record exists), moved off robot
+    // one's mechanism ports: robot two's radio on 1 and IMU on 2 are robot one's cascade and a side toggle, so
+    // this record's IMU is on 19 instead (a port robot two's census leaves empty).
+    DrivetrainDescription record = robotTwoRecord();
+    record.imuPort = 19;
+    FakeBlockSource card{encoded(record)};
+    FakeDeviceRegistry census = robotTwoCensus();
+    census.setKind(19, DeviceKind::Imu);
+    for (const int p : {p1, p2, p3, p4}) {
+        census.setKind(p, DeviceKind::Motor);
+    }
+    const Boot b = runBootOne(card, census, robotTwoTableSigns());
+    REQUIRE_FALSE(b.lines.empty());
+    CAPTURE(b.lines[0]);
+    int sorted[4] = {p1, p2, p3, p4};  // the line lists them in PORT order
+    std::sort(sorted, sorted + 4);
+    CHECK(b.lines[0].find("mechanism motors (declared, not drive motors): " + std::to_string(sorted[0]) + " " +
+                          std::to_string(sorted[1]) + " " + std::to_string(sorted[2]) + " " +
+                          std::to_string(sorted[3]) + ".") != std::string::npos);
+    CHECK(b.lines[0].find("claw") == std::string::npos);
+    CHECK(b.out.ok);
+    CHECK(static_cast<int>(b.out.built.config.mechanismCount) ==
+          static_cast<int>(shulib::bench::robot_one::kRobotOneMechanisms.count));
+    // Robot two's label is the constant, verbatim, and the default words are robot two's in the host
+    // (bench) build.
+    CHECK(std::string_view{shulib::bench::kDeclaredMotorLabel} == "claw pivots (declared, not drive motors)");
+    CHECK(std::string_view{shulib::bench::ThisRobotWords::value.declaredMotorLabel} == shulib::bench::kDeclaredMotorLabel);
 }

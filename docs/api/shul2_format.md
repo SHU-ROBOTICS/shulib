@@ -10,7 +10,7 @@ SHUL/2 — the telemetry WIRE, format v1.0: DebugRecord streamed, sequenced, che
 
 This header declares **11** types (66 members), **16** free functions, and **30** constants.
 
-Extracted from [`include/shulib/diag/shul2_format.hpp`](../../include/shulib/diag/shul2_format.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/diag/shul2_format.hpp`](../../include/shulib/diag/shul2_format.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

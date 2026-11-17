@@ -3,7 +3,7 @@
 //
 // WHAT THIS TU SEES. The host test build sets no build switch, so the header's one chain takes its
 // #else: this TU is the bench build's selection — exactly what `make` with no ROBOT builds. So the
-// first case pins that branch whole (program, robot, variant beacon, robot beacon). The other seven
+// first case pins that branch whole (program, robot, variant beacon, robot beacon). The other thirteen
 // branches are compiled only in the robot builds; what checks them there is the src build gate
 // (tools/src_build_gate.py): step 0 reads every branch against the gate's own per-build table, and
 // step 6 finds each build's two beacons — and no other build's — in its linked package.
@@ -37,8 +37,8 @@ using shulib::bench::RobotId;
 
 namespace {
 
-constexpr std::array<RobotId, 3> kEveryRobot = {RobotId::BenchBot, RobotId::RobotTwo,
-                                                RobotId::InventedXDrive};
+constexpr std::array<RobotId, 4> kEveryRobot = {RobotId::BenchBot, RobotId::RobotTwo,
+                                                RobotId::InventedXDrive, RobotId::RobotOne};
 
 }  // namespace
 
@@ -70,6 +70,8 @@ TEST_CASE("build selection: robotBeacon() names every robot, exactly as the gate
     CHECK(std::string_view{robotBeacon(RobotId::BenchBot)} == "shulib-robot=bench-bot");
     CHECK(std::string_view{robotBeacon(RobotId::RobotTwo)} == "shulib-robot=robot-two");
     CHECK(std::string_view{robotBeacon(RobotId::InventedXDrive)} == "shulib-robot=invented-xdrive");
+    // ROB1-A: robot one's, exactly as the gate's ROBOT_BEACONS["RobotOne"].
+    CHECK(std::string_view{robotBeacon(RobotId::RobotOne)} == "shulib-robot=robot-one");
 }
 
 TEST_CASE("build selection: no robot beacon can be mistaken for another robot's, or for a variant "
@@ -113,6 +115,8 @@ constexpr const char* makeValueOf(RobotId id) {
             return "tank";
         case RobotId::InventedXDrive:
             return "xdrive";
+        case RobotId::RobotOne:
+            return "one";
     }
     return nullptr;
 }
@@ -137,7 +141,7 @@ TEST_CASE("build selection: the Makefile's MECHANISM_ROBOTS is exactly the robot
             withMechanisms.insert(makeValue);
         }
     }
-    CHECK(robotsSeen >= 3);
+    CHECK(robotsSeen >= 4);
     const std::string makefile = source_pins::readFile("Makefile");
     const std::size_t at = makefile.find("\nMECHANISM_ROBOTS:=");
     REQUIRE(at != std::string::npos);
@@ -149,7 +153,9 @@ TEST_CASE("build selection: the Makefile's MECHANISM_ROBOTS is exactly the robot
         listedRobots.insert(w);
     }
     CHECK(listedRobots == withMechanisms);
-    CHECK(withMechanisms.count("tank") == 1);  // robot two's claws: the one robot with mechanisms today
+    CHECK(withMechanisms.count("tank") == 1);  // robot two's claws
+    CHECK(withMechanisms.count("one") == 1);   // robot one's cascade (ROB1-A; in the list since its integration)
+    CHECK(withMechanisms.size() == 2);         // and no other robot today: the bench bot and the X-drive have none
     // the tune row: from its ifeq to its append, comments aside, no comparison of $(ROBOT) with a name
     const std::size_t row = makefile.find("else ifeq ($(PROGRAM),tune)");
     REQUIRE(row != std::string::npos);

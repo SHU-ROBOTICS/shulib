@@ -10,7 +10,7 @@ Angle — a heading on SE(2). The one type that owns angle wrapping, so the "deg
 
 This header declares **1** type (11 members).
 
-Extracted from [`include/shulib/math/angle.hpp`](../../include/shulib/math/angle.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/math/angle.hpp`](../../include/shulib/math/angle.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

@@ -10,7 +10,7 @@ mechanism/until.hpp — WHEN A STEP IS DONE: a power step's done-conditions.
 
 This header declares **4** types (29 members), **1** free function, **3** constants, and **3** type aliass.
 
-Extracted from [`include/shulib/mechanism/until.hpp`](../../include/shulib/mechanism/until.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/mechanism/until.hpp`](../../include/shulib/mechanism/until.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

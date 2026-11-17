@@ -4,7 +4,7 @@
 > the likely causes, how to confirm from the diagnostics, and what to change.
 > **Read this if:** something just went wrong. That's what it's for.
 > **Assumes:** [Chapter 11](11-reading-the-diagnostics.md) — you'll be asked to read
-> transcripts. Concepts from Chapters 2–6 are referenced by name.
+> transcripts. Concepts from the [How it works](README.md) pages are referenced by name.
 
 Before the symptoms, the one master question. Almost every motion mystery reduces to:
 
@@ -15,16 +15,13 @@ The single most reliable discriminator: **does the transcript's story match what
 saw?** If the log says `✓SETTLED final( 24.1, 36.0, …)` and the robot is visibly a foot from
 there — the estimate is wrong (the robot faithfully drove to a place that wasn't where it
 thought). If the log itself shows trouble — timeouts, oscillating error — the motion layer is
-struggling honestly. Estimate problems: Chapters [2](02-the-field-and-coordinates.md)/[3](03-knowing-where-you-are.md)
+struggling, and saying so. Estimate problems: Chapters [2](02-the-field-and-coordinates.md)/[3](03-knowing-where-you-are.md)
 territory. Motion problems: [Chapter 5](05-getting-there.md) territory. Route yourself first;
 half of all debugging time is wasted on the wrong half of this fork.
 
-A scoping note, honestly: nobody has field-debugged this library yet. A robot has been on the
-bench since 2026-08-13, but no control loop has ever closed on it, so nothing below has been
-tested against a robot that was actually driving. The
-simulation symptoms below are exercised constantly by the test suite; the hardware symptoms are
-*designed for* and reasoned, but the specific advice will get sharper once reality has had its
-say. Where a diagnosis depends on an unverified assumption, the
+The symptoms below that come from the host test plant are exercised by the test suite on every
+build; the hardware symptoms are reasoned from how the code is built, not yet seen on a field. Where a
+diagnosis depends on an unverified assumption, the
 [Hardware Assumptions Register](../hardware-assumptions.md) is cited.
 
 ---
@@ -64,7 +61,7 @@ say. Where a diagnosis depends on an unverified assumption, the
 
 **Read the result line first — it names the ending:**
 
-- **`✗TIMEOUT`** — the watchdog fired. Now, the differential (this is Chapter 11's "a symptom
+- **`✗TIMEOUT`** — the watchdog fired. Now, the differential (this is [Chapter 11](11-reading-the-diagnostics.md)'s "a symptom
   with many diseases"):
   - *Budget simply too small:* the `final(…)` pose is well on the way and error was still
     shrinking. Fix: raise the `timeout` option — and remember every leg pays ~a second of settle
@@ -225,7 +222,7 @@ The run-scoped guard ([Chapter 6](06-how-things-fail.md)) leaves a clear trail u
   black = running fine). This cost most of a bench session once, and every theory formed before
   checking the cable was wrong — including a confident "linking the library breaks the binary"
   that a control test disproved. The [FAQ](../faq.md) has the full version.
-- **`build MISSING`:** the binary lost its identity stamp — Chapter 11's session-header note.
+- **`build MISSING`:** the binary lost its identity stamp — [Chapter 11](11-reading-the-diagnostics.md)'s session-header note.
 
 ## "The drive stops for a second, or a motor is reported dead" (driver control)
 

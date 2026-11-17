@@ -257,6 +257,24 @@ template <typename C>
 concept F6SetPose = requires { static_cast<void (C::*)(const Pose2d&)>(&C::setPose); };
 SHULIB_F6_PIN(F6SetPose<Chassis>, "Chassis::setPose(const Pose2d&)");
 
+// MIRROR1-A (F6-additive): the mirrored run's read-only reflection, and the RAII scope that is the
+// one way to set it — constructed from a Chassis and a Reflection, neither copyable nor movable (a
+// copy would close the run twice; a move would leave the moved-from scope closing a run it no longer
+// owns).
+template <typename C>
+concept F6Reflection = requires(const C& c) {
+    static_cast<const shulib::math::Reflection& (C::*)() const noexcept>(&C::reflection);
+    { c.reflection() } noexcept -> std::same_as<const shulib::math::Reflection&>;
+};
+SHULIB_F6_PIN(F6Reflection<Chassis>,
+              "Chassis::reflection() const noexcept -> const math::Reflection& (MIRROR1)");
+SHULIB_F6_PIN((std::is_constructible_v<shulib::chassis::MirroredRun, Chassis&, const shulib::math::Reflection&>
+               && !std::is_copy_constructible_v<shulib::chassis::MirroredRun>
+               && !std::is_move_constructible_v<shulib::chassis::MirroredRun>
+               && !std::is_copy_assignable_v<shulib::chassis::MirroredRun>
+               && !std::is_default_constructible_v<shulib::chassis::MirroredRun>),
+              "chassis::MirroredRun(Chassis&, const math::Reflection&), not copyable/movable/default (MIRROR1)");
+
 template <typename C>
 concept F6StrafeAuthority = requires {
     static_cast<double (C::*)() const>(&C::strafeAuthority);

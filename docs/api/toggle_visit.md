@@ -10,7 +10,7 @@ competition::checkAndFlipToggle — the Toggle flip for a SKILLS run, as ONE rou
 
 This header declares **7** types (96 members), **14** free functions, and **2** constants.
 
-Extracted from [`include/shulib/competition/toggle_visit.hpp`](../../include/shulib/competition/toggle_visit.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/competition/toggle_visit.hpp`](../../include/shulib/competition/toggle_visit.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 
@@ -144,7 +144,7 @@ inline constexpr double kToggleVisitTickSeconds = 0.010
 
 The control tick the time check rounds every bound UP to, seconds: the brain's 10-ms tick (hal::pros::ProsTickPacer::kTickMs, A4 register HA-32) — the grid every wait ends on.
 
-*constant, declared at [`include/shulib/competition/toggle_visit.hpp:173`](../../include/shulib/competition/toggle_visit.hpp#L173).*
+*constant, declared at [`include/shulib/competition/toggle_visit.hpp:183`](../../include/shulib/competition/toggle_visit.hpp#L183).*
 
 <a id="ktogglevisitwaitslackseconds"></a>
 
@@ -156,7 +156,7 @@ inline constexpr double kToggleVisitWaitSlackSeconds = 0.25
 
 Slack past a wait's own bound given to its backstop timeout, seconds. Unreachable by construction (each wait's predicate, the mechanism service's deadline or the motion's watchdog ends it first); code-level belt and braces, not an HA entry (Routine's kMechanismWaitSlackSeconds is the same idea).
 
-*constant, declared at [`include/shulib/competition/toggle_visit.hpp:178`](../../include/shulib/competition/toggle_visit.hpp#L178).*
+*constant, declared at [`include/shulib/competition/toggle_visit.hpp:188`](../../include/shulib/competition/toggle_visit.hpp#L188).*
 
 <a id="struct-flippergoal"></a>
 
@@ -168,7 +168,7 @@ struct FlipperGoal
 
 WHICH flipper and which of its goals — a preset of ONE Arm or Lift, a position of ONE Pneumatic, or (default-constructed) a PASSIVE flipper: a fixed bar the robot's own drive in and out strokes. It converts IMPLICITLY from a mechanism goal, so `.flipper = flipper["flip"]`.
 
-*struct, declared at [`include/shulib/competition/toggle_visit.hpp:183`](../../include/shulib/competition/toggle_visit.hpp#L183).*
+*struct, declared at [`include/shulib/competition/toggle_visit.hpp:193`](../../include/shulib/competition/toggle_visit.hpp#L193).*
 
 <a id="flippergoal-kind"></a>
 
@@ -180,7 +180,7 @@ Kind kind = Kind::Passive
 
 The kind (Passive when default-constructed).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:191`](../../include/shulib/competition/toggle_visit.hpp#L191).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:201`](../../include/shulib/competition/toggle_visit.hpp#L201).*
 
 <a id="flippergoal-position"></a>
 
@@ -192,7 +192,7 @@ mechanism::PositionGoal position{}
 
 The goal when Position.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:193`](../../include/shulib/competition/toggle_visit.hpp#L193).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:203`](../../include/shulib/competition/toggle_visit.hpp#L203).*
 
 <a id="flippergoal-pneumatic"></a>
 
@@ -204,7 +204,7 @@ mechanism::PneumaticGoal pneumatic{}
 
 The goal when Pneumatic.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:195`](../../include/shulib/competition/toggle_visit.hpp#L195).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:205`](../../include/shulib/competition/toggle_visit.hpp#L205).*
 
 <a id="flippergoal-flippergoal"></a>
 
@@ -216,7 +216,7 @@ constexpr FlipperGoal() noexcept = default
 
 A PASSIVE flipper.
 
-*function, declared at [`include/shulib/competition/toggle_visit.hpp:198`](../../include/shulib/competition/toggle_visit.hpp#L198).*
+*function, declared at [`include/shulib/competition/toggle_visit.hpp:208`](../../include/shulib/competition/toggle_visit.hpp#L208).*
 
 <a id="flippergoal-flippergoal-2"></a>
 
@@ -228,7 +228,7 @@ constexpr FlipperGoal(const mechanism::PositionGoal& g) noexcept
 
 A PASSIVE flipper. An Arm's or a Lift's goal (`arm["flip"]`, `lift.to(6_in)`).
 
-*function, declared at [`include/shulib/competition/toggle_visit.hpp:200`](../../include/shulib/competition/toggle_visit.hpp#L200).*
+*function, declared at [`include/shulib/competition/toggle_visit.hpp:210`](../../include/shulib/competition/toggle_visit.hpp#L210).*
 
 <a id="flippergoal-flippergoal-3"></a>
 
@@ -240,7 +240,7 @@ constexpr FlipperGoal(const mechanism::PneumaticGoal& g) noexcept
 
 A Pneumatic's position (`flipper["out"]`).
 
-*function, declared at [`include/shulib/competition/toggle_visit.hpp:203`](../../include/shulib/competition/toggle_visit.hpp#L203).*
+*function, declared at [`include/shulib/competition/toggle_visit.hpp:213`](../../include/shulib/competition/toggle_visit.hpp#L213).*
 
 <a id="flippergoal-passive"></a>
 
@@ -252,7 +252,7 @@ A Pneumatic's position (`flipper["out"]`).
 
 True for a passive flipper.
 
-*function, declared at [`include/shulib/competition/toggle_visit.hpp:207`](../../include/shulib/competition/toggle_visit.hpp#L207).*
+*function, declared at [`include/shulib/competition/toggle_visit.hpp:217`](../../include/shulib/competition/toggle_visit.hpp#L217).*
 
 <a id="flippergoal-mechanismname"></a>
 
@@ -264,7 +264,7 @@ True for a passive flipper.
 
 The mechanism's name ("" for a passive one).
 
-*function, declared at [`include/shulib/competition/toggle_visit.hpp:209`](../../include/shulib/competition/toggle_visit.hpp#L209).*
+*function, declared at [`include/shulib/competition/toggle_visit.hpp:219`](../../include/shulib/competition/toggle_visit.hpp#L219).*
 
 <a id="enum-class-flippergoal-kind"></a>
 
@@ -276,7 +276,7 @@ enum class Kind : std::uint8_t
 
 Which kind of flipper the goal is for.
 
-*enum class, declared at [`include/shulib/competition/toggle_visit.hpp:185`](../../include/shulib/competition/toggle_visit.hpp#L185).*
+*enum class, declared at [`include/shulib/competition/toggle_visit.hpp:195`](../../include/shulib/competition/toggle_visit.hpp#L195).*
 
 <a id="flippergoal-kind-passive"></a>
 
@@ -288,7 +288,7 @@ Passive = 0
 
 no mechanism: the drive in and out is the stroke (default)
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:186`](../../include/shulib/competition/toggle_visit.hpp#L186).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:196`](../../include/shulib/competition/toggle_visit.hpp#L196).*
 
 <a id="flippergoal-kind-position"></a>
 
@@ -300,7 +300,7 @@ Position
 
 an Arm's or a Lift's preset or constant
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:187`](../../include/shulib/competition/toggle_visit.hpp#L187).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:197`](../../include/shulib/competition/toggle_visit.hpp#L197).*
 
 <a id="flippergoal-kind-pneumatic"></a>
 
@@ -312,7 +312,7 @@ Pneumatic
 
 a Pneumatic's named position
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:188`](../../include/shulib/competition/toggle_visit.hpp#L188).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:198`](../../include/shulib/competition/toggle_visit.hpp#L198).*
 
 <a id="struct-togglevisitrequest"></a>
 
@@ -324,7 +324,7 @@ struct ToggleVisitRequest
 
 One visit's numbers — every one the TEAM's, from Step 0 at the robot; 0 = UNSET and refused by name (the core's rule: no library default). `flipBound` and `backBound` may stay 0 for a PASSIVE flipper (nothing is commanded); any value given is still counted in the time check.
 
-*struct, declared at [`include/shulib/competition/toggle_visit.hpp:220`](../../include/shulib/competition/toggle_visit.hpp#L220).*
+*struct, declared at [`include/shulib/competition/toggle_visit.hpp:230`](../../include/shulib/competition/toggle_visit.hpp#L230).*
 
 <a id="togglevisitrequest-toggle"></a>
 
@@ -336,7 +336,7 @@ vision::override2026::ToggleId toggle{}
 
 WHICH Toggle (`toggles::kRedWall`). "Ours" is its Quadrant's colour (HA-243).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:222`](../../include/shulib/competition/toggle_visit.hpp#L222).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:232`](../../include/shulib/competition/toggle_visit.hpp#L232).*
 
 <a id="togglevisitrequest-flipper"></a>
 
@@ -348,7 +348,7 @@ FlipperGoal flipper{}
 
 The push: a preset of ONE Arm or Lift, a position of ONE Pneumatic, or default = PASSIVE.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:224`](../../include/shulib/competition/toggle_visit.hpp#L224).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:234`](../../include/shulib/competition/toggle_visit.hpp#L234).*
 
 <a id="togglevisitrequest-back"></a>
 
@@ -360,7 +360,7 @@ FlipperGoal back{}
 
 The retract: another goal of the SAME mechanism (default = PASSIVE, with a passive `flipper`).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:226`](../../include/shulib/competition/toggle_visit.hpp#L226).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:236`](../../include/shulib/competition/toggle_visit.hpp#L236).*
 
 <a id="togglevisitrequest-lookfrom"></a>
 
@@ -372,7 +372,7 @@ units::Length lookFrom{}
 
 The LOOK SPOT: lens to the Toggle's face, horizontal, inches (Step 0.4). That the camera names the colour from there on a real field is A4 register HA-245 (the host camera model's prediction, unmeasured). With a FIELD start it is ALSO compared with the estimate's lens distance from the wall's INNER face — the face taken to sit at that inner face (A4 register HA-201: UNVERIFIED).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:231`](../../include/shulib/competition/toggle_visit.hpp#L231).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:241`](../../include/shulib/competition/toggle_visit.hpp#L241).*
 
 <a id="togglevisitrequest-offby"></a>
 
@@ -384,7 +384,7 @@ units::Length offBy{}
 
 How far off the look spot is accepted: the larger half-width of the range interval the bench page prints AT the look spot, plus the route's arrival allowance, inches (Step 0.4 — no default). A COARSE check: where the flipper lands is the route's driving (A4 register HA-244).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:235`](../../include/shulib/competition/toggle_visit.hpp#L235).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:245`](../../include/shulib/competition/toggle_visit.hpp#L245).*
 
 <a id="togglevisitrequest-pushfrom"></a>
 
@@ -396,7 +396,7 @@ units::Length pushFrom{}
 
 The PUSH SPOT: lens to the face where the flipper (or the bar) rolls the Toggle, inches (Step 0.5; HA-244).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:237`](../../include/shulib/competition/toggle_visit.hpp#L237).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:247`](../../include/shulib/competition/toggle_visit.hpp#L247).*
 
 <a id="togglevisitrequest-lookwithin"></a>
 
@@ -408,7 +408,7 @@ units::Time lookWithin{}
 
 The longest a look waits for a sure colour, seconds (Step 0.3).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:239`](../../include/shulib/competition/toggle_visit.hpp#L239).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:249`](../../include/shulib/competition/toggle_visit.hpp#L249).*
 
 <a id="togglevisitrequest-flipbound"></a>
 
@@ -420,7 +420,7 @@ units::Time flipBound{}
 
 The push's own time limit, seconds (Step 0.1: the worst of five). It, or the flipper's stall signature, ends a push a sticky Toggle stops before it damages the Toggle — A4 register HA-235. For a pneumatic it must be at least the cylinder's move time plus its confirm window (else FLIPPER NOT READY).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:243`](../../include/shulib/competition/toggle_visit.hpp#L243).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:253`](../../include/shulib/competition/toggle_visit.hpp#L253).*
 
 <a id="togglevisitrequest-backbound"></a>
 
@@ -432,7 +432,7 @@ units::Time backBound{}
 
 The retract's own time limit, seconds (Step 0.1). For a pneumatic, at least its move time plus its confirm window, as `flipBound`.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:246`](../../include/shulib/competition/toggle_visit.hpp#L246).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:256`](../../include/shulib/competition/toggle_visit.hpp#L256).*
 
 <a id="togglevisitrequest-settle"></a>
 
@@ -444,7 +444,7 @@ units::Time settle{}
 
 How long the Toggle takes to sit flat after the retract, seconds (Step 0.1; HA-232).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:248`](../../include/shulib/competition/toggle_visit.hpp#L248).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:258`](../../include/shulib/competition/toggle_visit.hpp#L258).*
 
 <a id="togglevisitrequest-drivebound"></a>
 
@@ -456,7 +456,7 @@ units::Time driveBound{}
 
 The drive in's — and the drive out's — own time limit, seconds (Step 0.6; HA-244).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:250`](../../include/shulib/competition/toggle_visit.hpp#L250).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:260`](../../include/shulib/competition/toggle_visit.hpp#L260).*
 
 <a id="togglevisitrequest-margin"></a>
 
@@ -468,7 +468,7 @@ units::Time margin{}
 
 Spare time kept at the end of the visit, seconds.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:252`](../../include/shulib/competition/toggle_visit.hpp#L252).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:262`](../../include/shulib/competition/toggle_visit.hpp#L262).*
 
 <a id="togglevisitrequest-maximageage"></a>
 
@@ -480,7 +480,7 @@ units::Time maxImageAge{}
 
 The camera's image age at its read, seconds (Step 0.2; HA-192) — rule 2's pose bound, rule 5's frozen check (how long the drive in may HOLD to tell a frozen camera from a lagging one — counted in rule 4) and rule 6's "a picture from after the retract".
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:256`](../../include/shulib/competition/toggle_visit.hpp#L256).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:266`](../../include/shulib/competition/toggle_visit.hpp#L266).*
 
 <a id="togglevisitrequest-maxpushes"></a>
 
@@ -492,7 +492,7 @@ std::uint8_t maxPushes = 2
 
 At most this many pushes: 1 or 2 (a 3 is refused). On the research's reading every skills Toggle needs TWO from yellow, through the other colour (A4 register HA-231) — the rule holds either way.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:259`](../../include/shulib/competition/toggle_visit.hpp#L259).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:269`](../../include/shulib/competition/toggle_visit.hpp#L269).*
 
 <a id="enum-class-togglevisitproblem"></a>
 
@@ -504,7 +504,7 @@ enum class ToggleVisitProblem : std::uint8_t
 
 What is wrong with a request, if anything (each a refusal, at build through toggleVisit(...) or at run time as a precondition).
 
-*enum class, declared at [`include/shulib/competition/toggle_visit.hpp:264`](../../include/shulib/competition/toggle_visit.hpp#L264).*
+*enum class, declared at [`include/shulib/competition/toggle_visit.hpp:274`](../../include/shulib/competition/toggle_visit.hpp#L274).*
 
 <a id="togglevisitproblem-none"></a>
 
@@ -516,7 +516,7 @@ None = 0
 
 nothing
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:265`](../../include/shulib/competition/toggle_visit.hpp#L265).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:275`](../../include/shulib/competition/toggle_visit.hpp#L275).*
 
 <a id="togglevisitproblem-toggleunset"></a>
 
@@ -528,7 +528,7 @@ ToggleUnset
 
 no Toggle named
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:266`](../../include/shulib/competition/toggle_visit.hpp#L266).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:276`](../../include/shulib/competition/toggle_visit.hpp#L276).*
 
 <a id="togglevisitproblem-notfinite"></a>
 
@@ -540,7 +540,7 @@ NotFinite
 
 a number is NaN or infinite
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:267`](../../include/shulib/competition/toggle_visit.hpp#L267).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:277`](../../include/shulib/competition/toggle_visit.hpp#L277).*
 
 <a id="togglevisitproblem-lookfromunset"></a>
 
@@ -552,7 +552,7 @@ LookFromUnset
 
 lookFrom UNSET
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:268`](../../include/shulib/competition/toggle_visit.hpp#L268).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:278`](../../include/shulib/competition/toggle_visit.hpp#L278).*
 
 <a id="togglevisitproblem-offbyunset"></a>
 
@@ -564,7 +564,7 @@ OffByUnset
 
 offBy UNSET
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:269`](../../include/shulib/competition/toggle_visit.hpp#L269).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:279`](../../include/shulib/competition/toggle_visit.hpp#L279).*
 
 <a id="togglevisitproblem-pushfromunset"></a>
 
@@ -576,7 +576,7 @@ PushFromUnset
 
 pushFrom UNSET
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:270`](../../include/shulib/competition/toggle_visit.hpp#L270).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:280`](../../include/shulib/competition/toggle_visit.hpp#L280).*
 
 <a id="togglevisitproblem-pushnotnearer"></a>
 
@@ -588,7 +588,7 @@ PushNotNearer
 
 pushFrom >= lookFrom: the push spot must be nearer than the look spot
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:271`](../../include/shulib/competition/toggle_visit.hpp#L271).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:281`](../../include/shulib/competition/toggle_visit.hpp#L281).*
 
 <a id="togglevisitproblem-offbytoolarge"></a>
 
@@ -600,7 +600,7 @@ OffByTooLarge
 
 offBy >= lookFrom: the window would reach the face
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:272`](../../include/shulib/competition/toggle_visit.hpp#L272).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:282`](../../include/shulib/competition/toggle_visit.hpp#L282).*
 
 <a id="togglevisitproblem-lookwithinunset"></a>
 
@@ -612,7 +612,7 @@ LookWithinUnset
 
 lookWithin UNSET
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:273`](../../include/shulib/competition/toggle_visit.hpp#L273).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:283`](../../include/shulib/competition/toggle_visit.hpp#L283).*
 
 <a id="togglevisitproblem-flipboundunset"></a>
 
@@ -624,7 +624,7 @@ FlipBoundUnset
 
 flipBound UNSET for a mechanism flipper (or negative)
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:274`](../../include/shulib/competition/toggle_visit.hpp#L274).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:284`](../../include/shulib/competition/toggle_visit.hpp#L284).*
 
 <a id="togglevisitproblem-backboundunset"></a>
 
@@ -636,7 +636,7 @@ BackBoundUnset
 
 backBound UNSET for a mechanism flipper (or negative)
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:275`](../../include/shulib/competition/toggle_visit.hpp#L275).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:285`](../../include/shulib/competition/toggle_visit.hpp#L285).*
 
 <a id="togglevisitproblem-settleunset"></a>
 
@@ -648,7 +648,7 @@ SettleUnset
 
 settle UNSET
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:276`](../../include/shulib/competition/toggle_visit.hpp#L276).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:286`](../../include/shulib/competition/toggle_visit.hpp#L286).*
 
 <a id="togglevisitproblem-driveboundunset"></a>
 
@@ -660,7 +660,7 @@ DriveBoundUnset
 
 driveBound UNSET
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:277`](../../include/shulib/competition/toggle_visit.hpp#L277).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:287`](../../include/shulib/competition/toggle_visit.hpp#L287).*
 
 <a id="togglevisitproblem-marginunset"></a>
 
@@ -672,7 +672,7 @@ MarginUnset
 
 margin UNSET
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:278`](../../include/shulib/competition/toggle_visit.hpp#L278).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:288`](../../include/shulib/competition/toggle_visit.hpp#L288).*
 
 <a id="togglevisitproblem-maximageageunset"></a>
 
@@ -684,7 +684,7 @@ MaxImageAgeUnset
 
 maxImageAge UNSET
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:279`](../../include/shulib/competition/toggle_visit.hpp#L279).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:289`](../../include/shulib/competition/toggle_visit.hpp#L289).*
 
 <a id="togglevisitproblem-maxpushes"></a>
 
@@ -696,7 +696,7 @@ MaxPushes
 
 maxPushes not 1 or 2
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:280`](../../include/shulib/competition/toggle_visit.hpp#L280).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:290`](../../include/shulib/competition/toggle_visit.hpp#L290).*
 
 <a id="togglevisitproblem-flipperkindsdiffer"></a>
 
@@ -708,7 +708,7 @@ FlipperKindsDiffer
 
 the flipper and the back are of different kinds (one passive, or arm vs pneumatic)
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:281`](../../include/shulib/competition/toggle_visit.hpp#L281).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:291`](../../include/shulib/competition/toggle_visit.hpp#L291).*
 
 <a id="togglevisitproblem-twomechanisms"></a>
 
@@ -720,7 +720,7 @@ TwoMechanisms
 
 the flipper and the back name two mechanisms
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:282`](../../include/shulib/competition/toggle_visit.hpp#L282).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:292`](../../include/shulib/competition/toggle_visit.hpp#L292).*
 
 <a id="togglevisitproblem-samegoaltwice"></a>
 
@@ -732,7 +732,7 @@ SameGoalTwice
 
 the flipper and the back are the same goal: no stroke
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:283`](../../include/shulib/competition/toggle_visit.hpp#L283).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:293`](../../include/shulib/competition/toggle_visit.hpp#L293).*
 
 <a id="togglevisitproblemof"></a>
 
@@ -744,7 +744,7 @@ the flipper and the back are the same goal: no stroke
 
 The first problem with `r`, or None. Pure, total, constexpr.
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:336`](../../include/shulib/competition/toggle_visit.hpp#L336).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:346`](../../include/shulib/competition/toggle_visit.hpp#L346).*
 
 <a id="togglevisitproblemsentence"></a>
 
@@ -756,7 +756,7 @@ The first problem with `r`, or None. Pure, total, constexpr.
 
 The problem as a sentence for a person, or nullptr for None.
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:392`](../../include/shulib/competition/toggle_visit.hpp#L392).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:402`](../../include/shulib/competition/toggle_visit.hpp#L402).*
 
 <a id="togglevisitrequestproblem"></a>
 
@@ -768,7 +768,7 @@ The problem as a sentence for a person, or nullptr for None.
 
 The first problem with `r` as a sentence, or nullptr.
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:418`](../../include/shulib/competition/toggle_visit.hpp#L418).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:428`](../../include/shulib/competition/toggle_visit.hpp#L428).*
 
 <a id="togglevisit"></a>
 
@@ -780,7 +780,7 @@ The first problem with `r` as a sentence, or nullptr.
 
 A request checked AT BUILD: `inline constexpr auto kRedWallVisit = competition::toggleVisit({...});` — a problem stops the build, naming it (the core's build-check idiom). A request built while the auton runs is checked by the step itself, as a precondition.
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:425`](../../include/shulib/competition/toggle_visit.hpp#L425).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:435`](../../include/shulib/competition/toggle_visit.hpp#L435).*
 
 <a id="togglevisitceiltick"></a>
 
@@ -792,7 +792,7 @@ A request checked AT BUILD: `inline constexpr auto kRedWallVisit = competition::
 
 `x` seconds rounded UP to the 10-ms tick (a value already on the grid stays).
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:453`](../../include/shulib/competition/toggle_visit.hpp#L453).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:463`](../../include/shulib/competition/toggle_visit.hpp#L463).*
 
 <a id="togglevisitneedseconds"></a>
 
@@ -804,7 +804,7 @@ A request checked AT BUILD: `inline constexpr auto kRedWallVisit = competition::
 
 Rule 4's need(n), seconds: n x (ceil(driveBound) + ceil(maxImageAge) + ceil(flipBound) + ceil(backBound) + ceil(settle) + ceil(driveBound) + ceil(lookWithin) + 2 ticks) + margin — every bound rounded UP to the tick; ceil(maxImageAge) is the most the drive in may HOLD on "camera frozen?" (rule 5).
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:460`](../../include/shulib/competition/toggle_visit.hpp#L460).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:470`](../../include/shulib/competition/toggle_visit.hpp#L470).*
 
 <a id="worstcaseseconds"></a>
 
@@ -816,7 +816,7 @@ Rule 4's need(n), seconds: n x (ceil(driveBound) + ceil(maxImageAge) + ceil(flip
 
 The time check's own sum for the whole visit: need(maxPushes), seconds — what a route's budget (and the route preview, RPV1) should allow for this step after the look before it (itself at most `lookWithin`). The ideal host plant flips in less; the robot will not.
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:472`](../../include/shulib/competition/toggle_visit.hpp#L472).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:482`](../../include/shulib/competition/toggle_visit.hpp#L482).*
 
 <a id="enum-class-togglevisitverdict"></a>
 
@@ -828,7 +828,7 @@ enum class ToggleVisitVerdict : std::uint8_t
 
 How a visit ended (appended-only, like every enum a route shares).
 
-*enum class, declared at [`include/shulib/competition/toggle_visit.hpp:477`](../../include/shulib/competition/toggle_visit.hpp#L477).*
+*enum class, declared at [`include/shulib/competition/toggle_visit.hpp:487`](../../include/shulib/competition/toggle_visit.hpp#L487).*
 
 <a id="togglevisitverdict-unset"></a>
 
@@ -840,7 +840,7 @@ Unset = 0
 
 a default report — no visit ran (never returned by the step)
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:478`](../../include/shulib/competition/toggle_visit.hpp#L478).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:488`](../../include/shulib/competition/toggle_visit.hpp#L488).*
 
 <a id="togglevisitverdict-alreadyours"></a>
 
@@ -852,7 +852,7 @@ AlreadyOurs
 
 SUCCEEDS: it showed ours before; nothing pushed (seating not checked)
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:479`](../../include/shulib/competition/toggle_visit.hpp#L479).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:489`](../../include/shulib/competition/toggle_visit.hpp#L489).*
 
 <a id="togglevisitverdict-flipped"></a>
 
@@ -864,7 +864,7 @@ Flipped
 
 SUCCEEDS: it showed ours after a FULL stroke (seating not checked)
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:480`](../../include/shulib/competition/toggle_visit.hpp#L480).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:490`](../../include/shulib/competition/toggle_visit.hpp#L490).*
 
 <a id="togglevisitverdict-notskills"></a>
 
@@ -876,7 +876,7 @@ NotSkills
 
 not a SKILLS auton: no "ours" (the alliance's comes with ALLY1)
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:481`](../../include/shulib/competition/toggle_visit.hpp#L481).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:491`](../../include/shulib/competition/toggle_visit.hpp#L491).*
 
 <a id="togglevisitverdict-nocamera"></a>
 
@@ -888,7 +888,7 @@ NoCamera
 
 no usable camera for this step
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:482`](../../include/shulib/competition/toggle_visit.hpp#L482).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:492`](../../include/shulib/competition/toggle_visit.hpp#L492).*
 
 <a id="togglevisitverdict-flippernotready"></a>
 
@@ -900,7 +900,7 @@ FlipperNotReady
 
 the flipper absent, not homed, busy, or not at `back` (never moved there)
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:483`](../../include/shulib/competition/toggle_visit.hpp#L483).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:493`](../../include/shulib/competition/toggle_visit.hpp#L493).*
 
 <a id="togglevisitverdict-wrongwall"></a>
 
@@ -912,7 +912,7 @@ WrongWall
 
 a FIELD start, and the robot does not face the named Toggle's wall
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:484`](../../include/shulib/competition/toggle_visit.hpp#L484).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:494`](../../include/shulib/competition/toggle_visit.hpp#L494).*
 
 <a id="togglevisitverdict-unknownbefore"></a>
 
@@ -924,7 +924,7 @@ UnknownBefore
 
 no sure colour at the look (the tracker's reason): nothing pushed
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:485`](../../include/shulib/competition/toggle_visit.hpp#L485).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:495`](../../include/shulib/competition/toggle_visit.hpp#L495).*
 
 <a id="togglevisitverdict-notatspot"></a>
 
@@ -936,7 +936,7 @@ NotAtSpot
 
 the band is not wholly inside the look spot's window: nothing pushed or driven
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:486`](../../include/shulib/competition/toggle_visit.hpp#L486).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:496`](../../include/shulib/competition/toggle_visit.hpp#L496).*
 
 <a id="togglevisitverdict-notenoughtime"></a>
 
@@ -948,7 +948,7 @@ NotEnoughTime
 
 the time left does not cover need(maxPushes): nothing pushed or driven
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:487`](../../include/shulib/competition/toggle_visit.hpp#L487).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:497`](../../include/shulib/competition/toggle_visit.hpp#L497).*
 
 <a id="togglevisitverdict-nochange"></a>
 
@@ -960,7 +960,7 @@ NoChange
 
 after push 1 it shows the colour it had before (sticky, or a frozen camera)
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:488`](../../include/shulib/competition/toggle_visit.hpp#L488).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:498`](../../include/shulib/competition/toggle_visit.hpp#L498).*
 
 <a id="togglevisitverdict-stillnotours"></a>
 
@@ -972,7 +972,7 @@ StillNotOurs
 
 after the last allowed push it is still not ours
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:489`](../../include/shulib/competition/toggle_visit.hpp#L489).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:499`](../../include/shulib/competition/toggle_visit.hpp#L499).*
 
 <a id="togglevisitverdict-unknownafter"></a>
 
@@ -984,7 +984,7 @@ UnknownAfter
 
 no sure colour after the push (the reason): it stops
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:490`](../../include/shulib/competition/toggle_visit.hpp#L490).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:500`](../../include/shulib/competition/toggle_visit.hpp#L500).*
 
 <a id="togglevisitverdict-notimeforsecondpush"></a>
 
@@ -996,7 +996,7 @@ NoTimeForSecondPush
 
 push 1 turned it to the third colour; need(1) does not fit
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:491`](../../include/shulib/competition/toggle_visit.hpp#L491).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:501`](../../include/shulib/competition/toggle_visit.hpp#L501).*
 
 <a id="togglevisitverdict-flipperstuck"></a>
 
@@ -1008,7 +1008,7 @@ FlipperStuck
 
 the retract did not reach `back`: the robot stays (it does not drag the Toggle)
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:492`](../../include/shulib/competition/toggle_visit.hpp#L492).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:502`](../../include/shulib/competition/toggle_visit.hpp#L502).*
 
 <a id="togglevisitverdict-cut"></a>
 
@@ -1020,7 +1020,7 @@ Cut
 
 the run's deadline or a disable cut the step
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:493`](../../include/shulib/competition/toggle_visit.hpp#L493).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:503`](../../include/shulib/competition/toggle_visit.hpp#L503).*
 
 <a id="togglevisitverdict-oursaftershortstroke"></a>
 
@@ -1032,7 +1032,7 @@ OursAfterShortStroke
 
 ours after a stroke that stopped short — maybe stuck part-way: NOT counted
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:494`](../../include/shulib/competition/toggle_visit.hpp#L494).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:504`](../../include/shulib/competition/toggle_visit.hpp#L504).*
 
 <a id="togglevisitverdict-retractedfortime"></a>
 
@@ -1044,7 +1044,7 @@ RetractedForTime
 
 the retract-now rule fired: back at once, out, and done
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:495`](../../include/shulib/competition/toggle_visit.hpp#L495).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:505`](../../include/shulib/competition/toggle_visit.hpp#L505).*
 
 <a id="togglevisitverdict-drivefailed"></a>
 
@@ -1056,7 +1056,7 @@ DriveFailed
 
 the drive in or out did not arrive within driveBound
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:497`](../../include/shulib/competition/toggle_visit.hpp#L497).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:507`](../../include/shulib/competition/toggle_visit.hpp#L507).*
 
 <a id="togglevisitverdict-seennotours"></a>
 
@@ -1068,7 +1068,7 @@ SeenNotOurs
 
 lookAtToggle only: a sure colour at the spot, not ours (the look call never pushes)
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:498`](../../include/shulib/competition/toggle_visit.hpp#L498).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:508`](../../include/shulib/competition/toggle_visit.hpp#L508).*
 
 <a id="togglevisitverdict-frozenbeforepush"></a>
 
@@ -1080,7 +1080,7 @@ FrozenBeforePush
 
 the camera seen frozen on the drive in: nothing pushed, the robot drove out
 
-*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:499`](../../include/shulib/competition/toggle_visit.hpp#L499).*
+*enumerator, declared at [`include/shulib/competition/toggle_visit.hpp:509`](../../include/shulib/competition/toggle_visit.hpp#L509).*
 
 <a id="togglevisitword"></a>
 
@@ -1092,7 +1092,7 @@ the camera seen frozen on the drive in: nothing pushed, the robot drove out
 
 The verdict as words for a log line, a bench page or the route preview.
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:503`](../../include/shulib/competition/toggle_visit.hpp#L503).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:513`](../../include/shulib/competition/toggle_visit.hpp#L513).*
 
 <a id="togglecolourof"></a>
 
@@ -1104,7 +1104,7 @@ The verdict as words for a log line, a bench page or the route preview.
 
 A Quadrant's colour as the camera's colour (RED, BLUE; Unknown for Unset).
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:531`](../../include/shulib/competition/toggle_visit.hpp#L531).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:541`](../../include/shulib/competition/toggle_visit.hpp#L541).*
 
 <a id="oursfor"></a>
 
@@ -1116,7 +1116,7 @@ A Quadrant's colour as the camera's colour (RED, BLUE; Unknown for Unset).
 
 "Ours" for `id` in a skills run: its Quadrant's colour as the camera names it (Unknown for Unset).
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:541`](../../include/shulib/competition/toggle_visit.hpp#L541).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:551`](../../include/shulib/competition/toggle_visit.hpp#L551).*
 
 <a id="struct-togglevisitreport"></a>
 
@@ -1128,7 +1128,7 @@ struct ToggleVisitReport
 
 One visit, as a VALUE (rule 7's line says the same in words).
 
-*struct, declared at [`include/shulib/competition/toggle_visit.hpp:546`](../../include/shulib/competition/toggle_visit.hpp#L546).*
+*struct, declared at [`include/shulib/competition/toggle_visit.hpp:556`](../../include/shulib/competition/toggle_visit.hpp#L556).*
 
 <a id="togglevisitreport-verdict"></a>
 
@@ -1140,7 +1140,7 @@ ToggleVisitVerdict verdict = ToggleVisitVerdict::Unset
 
 How it ended.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:548`](../../include/shulib/competition/toggle_visit.hpp#L548).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:558`](../../include/shulib/competition/toggle_visit.hpp#L558).*
 
 <a id="togglevisitreport-toggle"></a>
 
@@ -1152,7 +1152,7 @@ vision::override2026::ToggleId toggle{}
 
 Which Toggle.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:550`](../../include/shulib/competition/toggle_visit.hpp#L550).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:560`](../../include/shulib/competition/toggle_visit.hpp#L560).*
 
 <a id="togglevisitreport-ours"></a>
 
@@ -1164,7 +1164,7 @@ vision::ToggleColour ours = vision::ToggleColour::Unknown
 
 The target: its Quadrant's colour.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:552`](../../include/shulib/competition/toggle_visit.hpp#L552).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:562`](../../include/shulib/competition/toggle_visit.hpp#L562).*
 
 <a id="togglevisitreport-before"></a>
 
@@ -1176,7 +1176,7 @@ vision::ToggleColour before = vision::ToggleColour::Unknown
 
 The colour at the look before (Unknown when not sure).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:554`](../../include/shulib/competition/toggle_visit.hpp#L554).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:564`](../../include/shulib/competition/toggle_visit.hpp#L564).*
 
 <a id="togglevisitreport-after"></a>
 
@@ -1188,7 +1188,7 @@ vision::ToggleColour after = vision::ToggleColour::Unknown
 
 The colour at the last look after (Unknown when not sure or none was made).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:556`](../../include/shulib/competition/toggle_visit.hpp#L556).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:566`](../../include/shulib/competition/toggle_visit.hpp#L566).*
 
 <a id="togglevisitreport-whybefore"></a>
 
@@ -1200,7 +1200,7 @@ vision::ToggleWhy whyBefore = vision::ToggleWhy::NoRead
 
 The tracker's reason at the end of the look before.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:558`](../../include/shulib/competition/toggle_visit.hpp#L558).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:568`](../../include/shulib/competition/toggle_visit.hpp#L568).*
 
 <a id="togglevisitreport-whyafter"></a>
 
@@ -1212,7 +1212,7 @@ vision::ToggleWhy whyAfter = vision::ToggleWhy::NoRead
 
 The tracker's reason at the end of the last look after.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:560`](../../include/shulib/competition/toggle_visit.hpp#L560).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:570`](../../include/shulib/competition/toggle_visit.hpp#L570).*
 
 <a id="togglevisitreport-aftertooearly"></a>
 
@@ -1224,7 +1224,7 @@ bool afterTooEarly = false
 
 True when the last look after saw a sure colour it could not count: no picture from after the retract, or the lens not yet moved past `frozenMoveIn` since it.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:563`](../../include/shulib/competition/toggle_visit.hpp#L563).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:573`](../../include/shulib/competition/toggle_visit.hpp#L573).*
 
 <a id="togglevisitreport-pushes"></a>
 
@@ -1236,7 +1236,7 @@ std::uint8_t pushes = 0
 
 Pushes made (a passive stroke counts as one).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:565`](../../include/shulib/competition/toggle_visit.hpp#L565).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:575`](../../include/shulib/competition/toggle_visit.hpp#L575).*
 
 <a id="togglevisitreport-fullstroke"></a>
 
@@ -1248,7 +1248,7 @@ bool fullStroke[2]{false, false}
 
 Whether each push's stroke was FULL (the push SUCCEEDED after a drive in that arrived; a passive drive that reached the push spot).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:568`](../../include/shulib/competition/toggle_visit.hpp#L568).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:578`](../../include/shulib/competition/toggle_visit.hpp#L578).*
 
 <a id="togglevisitreport-range"></a>
 
@@ -1260,7 +1260,7 @@ vision::Interval range{}
 
 The band's range interval at the look before, inches (valid when a band passed).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:570`](../../include/shulib/competition/toggle_visit.hpp#L570).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:580`](../../include/shulib/competition/toggle_visit.hpp#L580).*
 
 <a id="togglevisitreport-bearing"></a>
 
@@ -1272,7 +1272,7 @@ vision::Interval bearing{}
 
 The band's bearing interval at the look before, radians (valid when a band passed).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:572`](../../include/shulib/competition/toggle_visit.hpp#L572).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:582`](../../include/shulib/competition/toggle_visit.hpp#L582).*
 
 <a id="togglevisitreport-positionchecked"></a>
 
@@ -1284,7 +1284,7 @@ bool positionChecked = false
 
 True when the tracker's POSITION gate ran on the look before's sure view (the tracker's config turns it on, and the camera handles stated a pose bound it accepts).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:575`](../../include/shulib/competition/toggle_visit.hpp#L575).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:585`](../../include/shulib/competition/toggle_visit.hpp#L585).*
 
 <a id="togglevisitreport-lensfromwallin"></a>
 
@@ -1296,7 +1296,7 @@ double lensFromWallIn = 0.0
 
 With a FIELD start: the estimate's lens distance from the Toggle's wall at the look, inches.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:577`](../../include/shulib/competition/toggle_visit.hpp#L577).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:587`](../../include/shulib/competition/toggle_visit.hpp#L587).*
 
 <a id="togglevisitreport-wallchecked"></a>
 
@@ -1308,7 +1308,7 @@ bool wallChecked = false
 
 True when the wall and the field distance were checked (a FIELD start).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:579`](../../include/shulib/competition/toggle_visit.hpp#L579).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:589`](../../include/shulib/competition/toggle_visit.hpp#L589).*
 
 <a id="togglevisitreport-secondsleftatstart"></a>
 
@@ -1320,7 +1320,7 @@ double secondsLeftAtStart = 0.0
 
 The guard's remaining() when the step began, seconds.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:581`](../../include/shulib/competition/toggle_visit.hpp#L581).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:591`](../../include/shulib/competition/toggle_visit.hpp#L591).*
 
 <a id="togglevisitreport-secondsleftatcheck"></a>
 
@@ -1332,7 +1332,7 @@ double secondsLeftAtCheck = 0.0
 
 The guard's remaining() at the last time check, seconds (0 when none was made).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:583`](../../include/shulib/competition/toggle_visit.hpp#L583).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:593`](../../include/shulib/competition/toggle_visit.hpp#L593).*
 
 <a id="togglevisitreport-secondsneeded"></a>
 
@@ -1344,7 +1344,7 @@ double secondsNeeded = 0.0
 
 What that check needed, seconds (0 when none was made).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:585`](../../include/shulib/competition/toggle_visit.hpp#L585).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:595`](../../include/shulib/competition/toggle_visit.hpp#L595).*
 
 <a id="togglevisitreport-seconds"></a>
 
@@ -1356,7 +1356,7 @@ double seconds = 0.0
 
 The step's own time, seconds.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:587`](../../include/shulib/competition/toggle_visit.hpp#L587).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:597`](../../include/shulib/competition/toggle_visit.hpp#L597).*
 
 <a id="togglevisitreport-push"></a>
 
@@ -1368,7 +1368,7 @@ mechanism::StepReport push[2]{}
 
 Each push's StepReport (a default one for a passive stroke or a push never made).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:589`](../../include/shulib/competition/toggle_visit.hpp#L589).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:599`](../../include/shulib/competition/toggle_visit.hpp#L599).*
 
 <a id="togglevisitreport-back"></a>
 
@@ -1380,7 +1380,7 @@ mechanism::StepReport back[2]{}
 
 Each retract's StepReport (likewise).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:591`](../../include/shulib/competition/toggle_visit.hpp#L591).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:601`](../../include/shulib/competition/toggle_visit.hpp#L601).*
 
 <a id="togglevisitreport-drivein"></a>
 
@@ -1392,7 +1392,7 @@ control::ExitReason driveIn = control::ExitReason::Running
 
 The drive in's and out's exit for the last stroke (Running when none was made).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:593`](../../include/shulib/competition/toggle_visit.hpp#L593).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:603`](../../include/shulib/competition/toggle_visit.hpp#L603).*
 
 <a id="togglevisitreport-driveout"></a>
 
@@ -1404,7 +1404,7 @@ control::ExitReason driveOut = control::ExitReason::Running
 
 Likewise, the drive out.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:595`](../../include/shulib/competition/toggle_visit.hpp#L595).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:605`](../../include/shulib/competition/toggle_visit.hpp#L605).*
 
 <a id="togglevisitreport-detail"></a>
 
@@ -1416,7 +1416,7 @@ const char* detail = ""
 
 A short reason beside some verdicts (FLIPPER NOT READY's, NO CAMERA's, NOT AT THE SPOT's) — a library literal or the flipper's absence sentence; "" when none.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:598`](../../include/shulib/competition/toggle_visit.hpp#L598).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:608`](../../include/shulib/competition/toggle_visit.hpp#L608).*
 
 <a id="togglevisitreport-ok"></a>
 
@@ -1428,7 +1428,7 @@ A short reason beside some verdicts (FLIPPER NOT READY's, NO CAMERA's, NOT AT TH
 
 True for the two successes: ALREADY OURS and FLIPPED.
 
-*function, declared at [`include/shulib/competition/toggle_visit.hpp:601`](../../include/shulib/competition/toggle_visit.hpp#L601).*
+*function, declared at [`include/shulib/competition/toggle_visit.hpp:611`](../../include/shulib/competition/toggle_visit.hpp#L611).*
 
 <a id="togglevisitreport-outcome"></a>
 
@@ -1440,7 +1440,7 @@ True for the two successes: ALREADY OURS and FLIPPED.
 
 What a route's then() takes: SUCCEEDED for ok(); CANCELLED for CUT (the route stops whatever its on-failure choice); STALLED for FLIPPER STUCK, or a visit that ended short of ours (NO CHANGE, STILL NOT OURS, UNKNOWN AFTER) after a push that STALLED; TIMED_OUT for NOT ENOUGH TIME, NO TIME FOR PUSH 2 and RETRACTED FOR TIME; UNCONFIRMED for every other doubt, OURS AFTER A SHORT STROKE included.
 
-*function, declared at [`include/shulib/competition/toggle_visit.hpp:609`](../../include/shulib/competition/toggle_visit.hpp#L609).*
+*function, declared at [`include/shulib/competition/toggle_visit.hpp:619`](../../include/shulib/competition/toggle_visit.hpp#L619).*
 
 <a id="struct-explicittogglecamera"></a>
 
@@ -1452,7 +1452,7 @@ struct ExplicitToggleCamera
 
 The camera handles the explicit form reads — the robot's ONE camera feed and the mount the library believes, the TEAM's tracker numbers, and the pose bound the caller states. The step builds its OWN tracker from `tracker` and `model` for each visit, so the hold that counts always began inside it.
 
-*struct, declared at [`include/shulib/competition/toggle_visit.hpp:632`](../../include/shulib/competition/toggle_visit.hpp#L632).*
+*struct, declared at [`include/shulib/competition/toggle_visit.hpp:642`](../../include/shulib/competition/toggle_visit.hpp#L642).*
 
 <a id="explicittogglecamera-feed"></a>
 
@@ -1464,7 +1464,7 @@ vision::CameraFeed* feed = nullptr
 
 The camera's feed — ticked inside the step's waits (nullptr: no camera).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:634`](../../include/shulib/competition/toggle_visit.hpp#L634).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:644`](../../include/shulib/competition/toggle_visit.hpp#L644).*
 
 <a id="explicittogglecamera-model"></a>
 
@@ -1476,7 +1476,7 @@ const vision::CameraModel* model = nullptr
 
 The mount the library believes, built from a placement cameraModelProblem() accepted (nullptr: no camera).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:637`](../../include/shulib/competition/toggle_visit.hpp#L637).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:647`](../../include/shulib/competition/toggle_visit.hpp#L647).*
 
 <a id="explicittogglecamera-tracker"></a>
 
@@ -1488,7 +1488,7 @@ vision::ToggleTrackerConfig tracker{}
 
 The team's tracker numbers (toggleTrackerConfigProblem() must accept them).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:639`](../../include/shulib/competition/toggle_visit.hpp#L639).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:649`](../../include/shulib/competition/toggle_visit.hpp#L649).*
 
 <a id="explicittogglecamera-posetolerance"></a>
 
@@ -1500,7 +1500,7 @@ units::Length poseTolerance{}
 
 The pose bound the caller states, inches: how far the estimate may be off. 0 = NONE stated — the tracker's position gate is then skipped (its view says unchecked), never run on a pose taken as exact.
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:643`](../../include/shulib/competition/toggle_visit.hpp#L643).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:653`](../../include/shulib/competition/toggle_visit.hpp#L653).*
 
 <a id="explicittogglecamera-headingtolerancedeg"></a>
 
@@ -1512,7 +1512,7 @@ double headingToleranceDeg = 0.0
 
 The heading bound the caller states, degrees (used only with `poseTolerance`).
 
-*field, declared at [`include/shulib/competition/toggle_visit.hpp:645`](../../include/shulib/competition/toggle_visit.hpp#L645).*
+*field, declared at [`include/shulib/competition/toggle_visit.hpp:655`](../../include/shulib/competition/toggle_visit.hpp#L655).*
 
 <a id="bandatlookspotproblem"></a>
 
@@ -1524,7 +1524,7 @@ The heading bound the caller states, degrees (used only with `poseTolerance`).
 
 The band at the look spot? nullptr when its WHOLE range interval lies inside [lookFrom - offBy, lookFrom + offBy] (both ends included) and its WHOLE bearing interval inside +-bearingWindowDeg; otherwise what is wrong. Containment, never overlap (file banner, rule 2). Pure.
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:651`](../../include/shulib/competition/toggle_visit.hpp#L651).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:661`](../../include/shulib/competition/toggle_visit.hpp#L661).*
 
 <a id="towardwallradians"></a>
 
@@ -1536,7 +1536,7 @@ The band at the look spot? nullptr when its WHOLE range interval lies inside [lo
 
 The direction TOWARD `id`'s wall, F1 radians (minus kTogglePlaces' inward normal): right 0, blue +pi/2, left pi, red -pi/2. PRECONDITION-free: an Unset id answers 0.
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:668`](../../include/shulib/competition/toggle_visit.hpp#L668).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:678`](../../include/shulib/competition/toggle_visit.hpp#L678).*
 
 <a id="checkandfliptoggle"></a>
 
@@ -1548,7 +1548,7 @@ The direction TOWARD `id`'s wall, F1 radians (minus kTogglePlaces' inward normal
 
 THE STEP, explicit form (file banner): look at `request.toggle` from the look spot the route parked the robot on; nothing more if it already shows its Quadrant's colour; otherwise drive in, push, retract, drive out, look again — at most `maxPushes` pushes, the second only on the third colour. Blocking, through `guard`'s deadline-aware waits only; at most the look before plus worstCaseSeconds(request). Returns the report, a VALUE; `outcome()` is what a then() returns. ONE [TGL] line to `sink`. `service` may be nullptr for a PASSIVE flipper. PRECONDITIONS (a programming error, thrown): `guard` is running; toggleVisitRequestProblem(request) is nullptr; and, with a usable camera, lookFrom - pushFrom is more than twice the tracker's frozenMoveIn.
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:1490`](../../include/shulib/competition/toggle_visit.hpp#L1490).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:1511`](../../include/shulib/competition/toggle_visit.hpp#L1511).*
 
 <a id="lookattoggle"></a>
 
@@ -1560,14 +1560,14 @@ THE STEP, explicit form (file banner): look at `request.toggle` from the look sp
 
 Rules 1–3 ONLY — it never moves anything: is it allowed, what colour is the Toggle, is the robot at the look spot. ALREADY OURS, SEEN NOT OURS (a sure colour at the spot, not ours), or the refusal that stopped it — the building block for a team that writes the flip itself (the brief's D1 (c); the checked step is the recommended path). ONE [TGL] line. The preconditions of checkAndFlipToggle.
 
-*free function, declared at [`include/shulib/competition/toggle_visit.hpp:1503`](../../include/shulib/competition/toggle_visit.hpp#L1503).*
+*free function, declared at [`include/shulib/competition/toggle_visit.hpp:1524`](../../include/shulib/competition/toggle_visit.hpp#L1524).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 141 lines, click to expand</summary>
+<summary>The header’s own reasoning — 150 lines, click to expand</summary>
 
 ```text
 
@@ -1707,6 +1707,15 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  2 — refused AT BUILD when the request is built through toggleVisit(...) as a constant; and an
  excursion lookFrom - pushFrom of twice the tracker's `frozenMoveIn` or less (the look after could
  not see a frozen camera).
+
+ ── A MIRRORED auton (chunk MIRROR1-A, 2026-11-13; competition/field_mirror.hpp) ─────────────────
+ The route names robot one's Toggle; `entry` says the run is robot two's, mirrored. The step reads the
+ localizer and drives the scheduler — below the Chassis's mirror, the REAL field — so it swaps for
+ itself: the request's Toggle becomes its IMAGE under the entry's mirror (override2026::mirroredToggle,
+ found from the season's places: robot one's red wall Toggle is robot two's right wall Toggle, left
+ <-> blue wall), whose Quadrant colour is the same (checked at compile time in override_mirror.hpp), so
+ "ours" does not change. Rule 1's WRONG WALL check, the look spot, the [TGL] line — every rule — then
+ reads the real Toggle; every other field of the request is a size or a mechanism and stays.
 
  PROS-free, sim-free, allocation-free; single-task. It never runs in the background and never reads
  the camera outside its own waits. NOTHING HERE HAS RUN ON A ROBOT: every rule has run against the

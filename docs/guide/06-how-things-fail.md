@@ -24,7 +24,7 @@ Here are the actual failure modes, worst-first.
 
 ## Drift — the failure that's always happening
 
-Chapter 3 covered the mechanism; here's the operational reality. Drift isn't an *event* — it's a
+[Chapter 3](03-knowing-where-you-are.md) covered the mechanism; here's the operational reality. Drift isn't an *event* — it's a
 constant background process. There is no moment when it "goes wrong"; the estimate is simply a
 little worse every second, and the run is a race between your routine and your error budget.
 
@@ -32,14 +32,14 @@ What it looks like: everything *reports* success — motions settle, the log is 
 robot is physically a bit off target, and more so late in the run. Nothing inside the robot can
 directly see drift (that's what makes it drift), which is why the library's diagnostics record
 whether the estimate is running on dead reckoning alone (the `DR` flag) versus being corrected
-by an absolute sensor — the honest label for "my error is currently growing."
+by an absolute sensor — the label for "my error is currently growing."
 
 ## Wheel slip and collisions — sudden position lies
 
 A collision, or a wheel-spinning shove against a wall, feeds the odometry motion that didn't
 happen (or hides motion that did). Unlike drift's slow creep, this is a step: the estimate can go
 from an inch off to eight inches off in half a second, and it *stays* wrong — odometry never
-forgets (Chapter 3).
+forgets ([Chapter 3](03-knowing-where-you-are.md)).
 
 The extreme case is a **stuck or dead encoder** — a tracking wheel that stops reporting entirely.
 Undetected, this is catastrophic in a specific, nasty way: the robot drives, the estimate doesn't
@@ -107,7 +107,7 @@ the field).
 
 shulib's defense is structural: the estimate reports itself as *uninitialized* until sensors are
 genuinely live, and motions **wait, motionless**, until it is (with their watchdog still running,
-so a sensor that never comes up gives you an honest `TimedOut` rather than a hang). You'll notice
+so a sensor that never comes up gives you a `TimedOut` rather than a hang). You'll notice
 this as: the first motion of a run doesn't move for a beat. That pause is the library refusing to
 act on garbage — budget your first motion's timeout to allow for it (about 2 seconds of IMU
 calibration).
@@ -137,11 +137,11 @@ Related: a motor worked hard gets hot, and V5 motors *throttle themselves* at te
 suddenly your carefully tuned control is commanding a weaker motor. That surfaces as
 **`MOTOR_OVER_TEMP`**.
 
-## Jams and unreachable targets — honest timeouts
+## Jams and unreachable targets — timeouts that say so
 
 A robot pinned by a defender, a mechanism jammed on a game piece, a target that physics won't
 allow (tank asked to strafe): the motion does its best until its watchdog expires, stops the
-motors, and returns `TimedOut` (Chapter 5). The failure is contained to one leg, and your routine
+motors, and returns `TimedOut` ([Chapter 5](05-getting-there.md)). The failure is contained to one leg, and your routine
 decides what's next. When you read a log, remember that **`TIMEOUT` is a symptom with many
 diseases** — jammed, blocked, unreachable, undertuned, or just an over-tight time budget.
 [Chapter 12](12-when-things-go-wrong.md) walks the differential diagnosis.
@@ -197,7 +197,7 @@ Notice the design running through all of these:
 5. **Continue** — the run goes on, degraded but alive.
 
 Every fault code, its exact meaning, and what to do when you see it is cataloged in
-[Chapter 11](11-reading-the-diagnostics.md). The honest caveat, as always: every threshold in
+[Chapter 11](11-reading-the-diagnostics.md). One caveat: every threshold in
 this chapter (what voltage counts as brownout, how long a stuck encoder takes to detect) is a
 provisional number verified against simulated hardware, and the whole detect-name-contain
 machinery has yet to meet a real robot. The machinery is real and tested; the calibration awaits

@@ -168,7 +168,7 @@ RoutineResult twoPieces(AutonContext& ctx) {
   ran to its end, and one step failed on the way.
 - **`{.positionTolerance = 1_in}`** says how close is close enough for this drive. It also lets
   the robot count as arrived while still moving a little, so a looser tolerance really does end
-  the drive sooner (Chapter 9 has the numbers).
+  the drive sooner ([Chapter 9](../guide/09-the-recipe-api.md) has the numbers).
 
 **Watch out for** the deadline: it overrides the choice. A step the run guard cut at the
 deadline, or any failure after it, stops the auton whatever the step chose.

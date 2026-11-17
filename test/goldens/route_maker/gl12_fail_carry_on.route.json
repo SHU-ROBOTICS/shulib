@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "madeWith": "shulib route builder",
+  "routes": [
+    {
+      "name": "skills",
+      "kind": "skills",
+      "robot": "x",
+      "mirroredFor": "two",
+      "start": {
+        "x": -36,
+        "y": -55.7,
+        "headingDeg": 0
+      },
+      "endActionAtS": 57,
+      "hardStopAtS": 59,
+      "steps": [
+        {
+          "do": "driveTo",
+          "x": 0,
+          "y": -55.7,
+          "faceFirst": false,
+          "care": {
+            "timeoutS": 0.3,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "turnTo",
+          "headingDeg": 90
+        },
+        {
+          "label": "after",
+          "do": "wait",
+          "seconds": 0.2
+        }
+      ]
+    }
+  ],
+  "robots": {},
+  "exports": {}
+}

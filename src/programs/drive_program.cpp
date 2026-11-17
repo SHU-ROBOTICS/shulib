@@ -1,6 +1,10 @@
-// drive_program.cpp — "shulib Drive": robot two's DRIVER PROGRAM — the team's driver file
-// (src/team/robot_two_driver.hpp) on robot::Robot, built from the calibration record (chunk T4
-// Part 3, 2026-10-01; the team lead's rulings R3 and R5, 2026-09-27).
+// drive_program.cpp — "shulib Drive": a robot's DRIVER PROGRAM — the team's driver file
+// (src/team/robot_two_driver.hpp for robot two; src/team/robot_one_driver.hpp for robot one since chunk
+// ROB1-A, 2026-11-11 — src/common/this_robot.hpp's ThisRobotDriver picks it by the build's robot) on
+// robot::Robot, built from the calibration record (chunk T4 Part 3, 2026-10-01; the team lead's rulings
+// R3 and R5, 2026-09-27). Every robot-two sentence this program prints is chosen between TWO literals
+// on the build's robot (robot two's verbatim — its package must not change; robot one's names robot
+// one) — never a format from a variable (-Wformat=2; src/common/robot_words.hpp).
 //
 // ═══ WHAT CHANGED AT T4 PART 3 ═════════════════════════════════════════════════════════
 // This file's content was REPLACED, its name kept (R3: "shulib Drive" is the same name, slot 1,
@@ -56,7 +60,7 @@
 // is undefined, so neither is built at namespace scope; a function-local static whose constructor
 // THROWS would be re-attempted on the next call, so the static below holds empty optionals and
 // members whose constructors cannot throw and touch no hardware — the driver file's
-// RobotTwoDriver: its ProsController touches no device until it is read (hal/pros/controller.hpp),
+// ThisRobotDriver: its ProsController touches no device until it is read (hal/pros/controller.hpp),
 // its DriveShaper's constructor is noexcept, and its inputs start unbound. driveInitialize()
 // emplaces into the optionals, once.
 //
@@ -115,9 +119,9 @@
 #include "common/screen_paint.hpp"
 #include "common/screen_text.hpp"
 #include "common/screen_touch.hpp"
+#include "common/this_robot.hpp"
 #include "programs/drive_panel.hpp"
 #include "robots/mechanism_table.hpp"
-#include "team/robot_two_driver.hpp"
 #include "shulib/calibration/boot_check.hpp"
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/core/check.hpp"
@@ -174,7 +178,7 @@ static_assert(refusalBarFits(kDriveRefusedWord) && refusalFooterFits(kDriveRefus
 /// How long a protection cut holds — the config the driver file's loop runs with (its cutTicks
 /// times its tick), what the PROTECTION row says; never retyped.
 constexpr double kCutSeconds =
-    RobotTwoDriver::kLoop.protection.cutTicks * RobotTwoDriver::kLoop.tickPeriod.value();
+    ThisRobotDriver::kLoop.protection.cutTicks * ThisRobotDriver::kLoop.tickPeriod.value();
 
 // ═══ PROS's READS: one line each, the meaning in host-tested code ═════════════════════════════
 /// One read of the touch screen, reduced by src/common/screen_touch.hpp's screenTouchFrom().
@@ -183,12 +187,21 @@ ScreenTouch readTouch() {
 }
 
 // ═══ THE RUN STATUS — one sentence, said at boot on serial ═════════════════════════════
-constexpr const char* kRunStatus =
+/// Robot one's builds print robot one's sentences (file banner); robot two's — and the bench and
+/// X-drive builds, which never run this program — print robot two's, verbatim.
+constexpr bool kRobotOneBuild = ThisRobotWords::robot == RobotId::RobotOne;
+constexpr const char* kRunStatusTwo =
     "THIS VERSION of \"shulib Drive\" (T4 Part 3: robot two's driver file on robot::Robot) has not "
     "run on hardware. The program it replaced in slot 1 drove robot two open-loop on 2026-09-17, "
     "and the library program it retired drove it from the calibration record on 2026-09-25. No "
     "library-commanded motion has run (R3b open). Its claws (the pivots on 6 and 7, the pneumatic "
     "claw on 3-wire A) have never been driven.";
+constexpr const char* kRunStatusOne =
+    "\"shulib Drive\" on ROBOT ONE (ROB1-A: robot one's driver file on robot::Robot) has not run on "
+    "hardware: robot one's facts are typed from its builder's answers (2026-11-15), not measured. "
+    "Its cascade has never been driven, and its numbers are the facts ledger's "
+    "(src/robots/robot_one_facts.hpp) -- this build links only once every fact it needs is typed.";
+constexpr const char* kRunStatus = kRobotOneBuild ? kRunStatusOne : kRunStatusTwo;
 
 // ═══ TermSink CUTS A MESSAGE AT 200 BYTES (diag/term_sink.hpp, kMaxMessageBytes) ════════════
 // Four boot lines were cut on the brain on 2026-09-25 (the port check, the run-status line, the
@@ -220,9 +233,13 @@ void logWrapped(hal::ITelemetrySink& sink, hal::LogLevel level, const char* text
 constexpr std::string_view kProvisionalLine =
     "gains and budgets are PROVISIONAL (HA-45/50/51/52): speeds go through the feedforward and are "
     "capped by the budgets -- R5's measurement owes them, so the feel is not final";
-constexpr std::string_view kAbsentDevicesLine =
+constexpr std::string_view kAbsentDevicesLineTwo =
     "absent devices (deliberate): gps=ABSENT tags=ABSENT vision=ABSENT -- robot two has no GPS, "
     "and its AI Vision camera (port 3) has no adapter yet; nothing is polled over an absent source";
+constexpr std::string_view kAbsentDevicesLineOne =
+    "absent devices (deliberate): gps=ABSENT tags=ABSENT vision=ABSENT -- robot one has no GPS, "
+    "and its AI Vision camera has no adapter yet (VIS1-B); nothing is polled over an absent source";
+constexpr std::string_view kAbsentDevicesLine = kRobotOneBuild ? kAbsentDevicesLineOne : kAbsentDevicesLineTwo;
 constexpr std::string_view kDeadPortLine1 =
     "dead-port tolerance at BOOT (R3d Part 2): a recorded port the registry reports EMPTY becomes "
     "an absent group member under the boot check's policy.";
@@ -230,21 +247,27 @@ constexpr std::string_view kDeadPortLine2 =
     "dead-port tolerance MID-RUN (T4 Part 2, the library's driver loop): a drive port reading "
     "frozen while its side turns is dropped after 250 ms; 3+ dead in total stops the drive for "
     "the run";
-constexpr std::string_view kOpcontrolLive =
+constexpr std::string_view kOpcontrolLiveTwo =
     "opcontrol(): robot two's driver file is live -- teleop::runDriverControl over "
     "Chassis::drive(Body) and two MotorGroups, with the library's drive protections";
+constexpr std::string_view kOpcontrolLiveOne =
+    "opcontrol(): robot one's driver file is live -- teleop::runDriverControl over "
+    "Chassis::drive(Body) and two MotorGroups, with the library's drive protections";
+constexpr std::string_view kOpcontrolLive = kRobotOneBuild ? kOpcontrolLiveOne : kOpcontrolLiveTwo;
 static_assert(kProvisionalLine.size() <= kLogMessageBytes
-                  && kAbsentDevicesLine.size() <= kLogMessageBytes
+                  && kAbsentDevicesLineTwo.size() <= kLogMessageBytes
+                  && kAbsentDevicesLineOne.size() <= kLogMessageBytes
                   && kDeadPortLine1.size() <= kLogMessageBytes
                   && kDeadPortLine2.size() <= kLogMessageBytes
-                  && kOpcontrolLive.size() <= kLogMessageBytes,
+                  && kOpcontrolLiveTwo.size() <= kLogMessageBytes
+                  && kOpcontrolLiveOne.size() <= kLogMessageBytes,
               "a fixed boot line would be cut by TermSink at 200 bytes -- split it");
 
 /// What the boot's driver line says about the feel — "continuous deadband 0.05, no expo, no slew"
 /// on all three axes — checked against the profile the driver file actually runs, so a change to
 /// the profile, or to the library's defaults under it, cannot leave the line saying the old numbers.
 constexpr bool driverLineMatchesFeel() {
-    const teleop::DriverProfile p = RobotTwoDriver::kFeel;
+    const teleop::DriverProfile p = ThisRobotDriver::kFeel;
     const teleop::AxisShaping* axes[3] = {&p.forward, &p.left, &p.yaw};
     for (const teleop::AxisShaping* a : axes) {
         if (a->deadband != 0.05 || a->expo != 0.0) {
@@ -271,7 +294,7 @@ struct DriveState {
     // driveInitialize()'s try; held here, never on runDrive()'s stack, because the loop holds the
     // inputs by address and PROS deletes the opcontrol task on a field disable. Its constructor
     // cannot throw and touches no hardware (header, STORAGE).
-    RobotTwoDriver driver{};
+    ThisRobotDriver driver{};
     // The controller's three lines (emplaced after the graph is built; touches no hardware).
     std::optional<hal::pros::ProsLineDisplay> lcd{};
     char portMap[diag::kMaxPortMapBytes]{};
@@ -347,7 +370,7 @@ public:
 
     /// `lcd` is the controller's three lines; `atStart` the touch read when the screen first
     /// appears (a tap made before it is never replayed).
-    DriveScreen(const robot::Robot& r, const BootOutcome& boot, const RobotTwoDriver& driver,
+    DriveScreen(const robot::Robot& r, const BootOutcome& boot, const ThisRobotDriver& driver,
                 const mechanism::MechanismService& mechanisms, hal::ILineDisplay& lcd, const ScreenTouch& atStart)
         : r_{r},
           boot_{boot},
@@ -397,7 +420,9 @@ private:
         const localization::DriveEncoderOdometry* odom = r_.driveOdometry();
         const diag::FaultLatch& faults = r_.faults();
         const bool freed = driver_.releasedLeftoverAtEntry(mechanisms_);
-        const ClawRow claw = clawRowText(kMechanisms, r_, mechanisms_, freed);
+        const ClawRow claw = ThisRobotWords::value.claw
+                                 ? clawRowText(kMechanisms, r_, mechanisms_, freed)
+                                 : clawRowText(kMechanisms, r_, mechanisms_, freed, ThisRobotWords{});
         DriveLiveFacts f{};
         f.cutSeconds = kCutSeconds;
         f.connected = connected;
@@ -407,7 +432,7 @@ private:
         f.estY = pose.y().value();
         f.estHeadingDeg = pose.heading().radians() * 180.0 / math::Angle::kPi;
         f.quality = r_.localizer().qualityClass();
-        f.mode = RobotTwoDriver::kFeel.mode;
+        f.mode = ThisRobotDriver::kFeel.mode;
         f.fieldCentric = shaper.fieldCentric;
         f.hasOdometry = odom != nullptr;
         f.headingDisagreement = odom != nullptr ? odom->lastHeadingDisagreement() : 0.0;
@@ -475,7 +500,8 @@ private:
         f.degraded = boot_.verdict.decision == calibration::BootDecision::Degraded;
         f.clawAbsent = anyClawAbsent(r_);
         addProtectionFacts(f, protection);  // REFUSED, CUT, DEGRADED mid-run, the dead ports
-        const ControllerScreen want = controllerScreenLines(f);
+        const ControllerScreen want =
+            ThisRobotWords::value.claw ? controllerScreenLines(f) : controllerScreenLines(f, ThisRobotWords{});
         const int row = lcdWriter_.next(want, now);  // ONE line, line 2 first, >= 0.1 s apart
         if (row >= 0) {
             lcd_.setLine(row, want.line[row]);
@@ -484,7 +510,7 @@ private:
 
     const robot::Robot& r_;
     const BootOutcome& boot_;
-    const RobotTwoDriver& driver_;
+    const ThisRobotDriver& driver_;
     const mechanism::MechanismService& mechanisms_;
     hal::ILineDisplay& lcd_;
     const hal::MotorGroup* left_ = nullptr;
@@ -575,14 +601,19 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
                   cfg.maxLinearSpeed.value(), cfg.maxAngularSpeed.value(),
                   cfg.maxWheelSpeed.value(), cfg.wheelFf.kS, cfg.wheelFf.kV, cfg.wheelFf.kA);
     log.log(hal::LogLevel::Info, kTag, line);
-    // THE DRIVER LINE: generated from the driver file (src/team/robot_two_driver.hpp), so it cannot
-    // drift from what the loop is given.
+    // THE DRIVER LINE: generated from the driver file (ThisRobotDriver), so it cannot drift from what
+    // the loop is given. Robot one's says its map is the builder's, the team's to change (ROB1-C2; ROB1-A's
+    // said "a DEFAULT" — the brief's D7 — until the builder gave the map on 2026-11-15).
     std::snprintf(line, sizeof line,
-                  "driver control: robot two's driver file (src/team/robot_two_driver.hpp) -> "
-                  "teleop::runDriverControl + DriveShaper, the default profile (continuous deadband "
-                  "0.05, no expo, no slew -- HA-112, unfelt); re-zero button %.5s; mode %.12s",
-                  teleop::controllerButtonWord(RobotTwoDriver::kLoop.rezeroButton),
-                  modeWord(RobotTwoDriver::kFeel.mode));
+                  kRobotOneBuild
+                      ? "driver control: robot one's driver file (src/team/robot_one_driver.hpp, the builder's "
+                        "map -- the team's) -> runDriverControl, default profile (deadband 0.05, no expo, "
+                        "no slew; HA-112); re-zero button %.5s; mode %.12s"
+                      : "driver control: robot two's driver file (src/team/robot_two_driver.hpp) -> "
+                        "teleop::runDriverControl + DriveShaper, the default profile (continuous deadband "
+                        "0.05, no expo, no slew -- HA-112, unfelt); re-zero button %.5s; mode %.12s",
+                  teleop::controllerButtonWord(ThisRobotDriver::kLoop.rezeroButton),
+                  modeWord(ThisRobotDriver::kFeel.mode));
     logWrapped(log, hal::LogLevel::Info, line);
     // THE PROTECTIONS LINE: generated from the config the driver file's loop runs with
     // (DriverLoopConfig::protection, the library's defaults — the driver file names none) and the
@@ -591,8 +622,8 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
     {
         char protections[360];
         (void)driveProtectionsLine(protections, sizeof protections,
-                                   RobotTwoDriver::kLoop.protection,
-                                   RobotTwoDriver::kLoop.tickPeriod.value(),
+                                   ThisRobotDriver::kLoop.protection,
+                                   ThisRobotDriver::kLoop.tickPeriod.value(),
                                    teleop::SideMonitorConfig{}.persistTicks);
         logWrapped(log, hal::LogLevel::Info, protections);
     }
@@ -602,8 +633,15 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
     // roles, the bound service AND the driver file's controls (the competition program and the Auton
     // Tester print the same lines; Stations J.3.1 / J.9.1 quote them), tag MECH, each within one
     // TermSink line. An ABSENT one is a warning: its buttons do nothing, and the drive runs anyway.
-    mechanismBootLines(kMechanisms, r, mechanisms, &RobotTwoDriver::kControls,
+    mechanismBootLines(kMechanisms, r, mechanisms, &ThisRobotDriver::kControls,
                        [&log](const MechanismLine& m) { log.log(m.level, "MECH", m.text); });
+    // ROBOT ONE'S FACTS (ROB1-A): the ledger's counts — provenance, not a refusal (a program that needs
+    // an owed fact never links). Robot one's builds only, so robot two's package is unchanged; worded
+    // by src/common/this_robot.hpp (host-tested there), so no program names robot one's ledger.
+    if constexpr (kRobotOneBuild) {
+        robotOneFactsLine(line, sizeof line);
+        log.log(hal::LogLevel::Info, kTag, line);
+    }
 }
 
 }  // namespace
@@ -613,10 +651,16 @@ void driveInitialize(const char* variantBeacon, const char* competitionStatusBit
     // ONE write() per line (SER1, HA-189); the first carries the blank line before it. The run
     // status is one 408-character sentence: serialWrapped() sends it as `[DRV] ` pieces of at most
     // kSerialLineBytes, one write() each, never cut.
-    hal::pros::serialLine("\n[%s] booted: shulib DRIVE build [%s] -- robot two's DRIVER FILE "
-                          "drives it", kTag, variantBeacon);
-    hal::pros::serialLine("[%s] (src/team/robot_two_driver.hpp) through robot::Robot: two "
-                          "hal::MotorGroups,", kTag);
+    hal::pros::serialLine(kRobotOneBuild ? "\n[%s] booted: shulib DRIVE build [%s] -- robot one's DRIVER FILE "
+                                           "drives it"
+                                         : "\n[%s] booted: shulib DRIVE build [%s] -- robot two's DRIVER FILE "
+                                           "drives it",
+                          kTag, variantBeacon);
+    hal::pros::serialLine(kRobotOneBuild ? "[%s] (src/team/robot_one_driver.hpp) through robot::Robot: two "
+                                           "hal::MotorGroups,"
+                                         : "[%s] (src/team/robot_two_driver.hpp) through robot::Robot: two "
+                                           "hal::MotorGroups,",
+                          kTag);
     hal::pros::serialLine("[%s] drive-encoder odometry and Chassis::drive(), built from the "
                           "CALIBRATION RECORD", kTag);
     hal::pros::serialLine("[%s] on the SD card, with the library's drive protections. Forward is "
@@ -649,7 +693,7 @@ void driveInitialize(const char* variantBeacon, const char* competitionStatusBit
         }
         st.robot.emplace(st.boot.built.config, *st.devices, st.boot.built.buildOptions());
         // THE MECHANISM SERVICE (header): bound over the Robot's own built mechanisms (one source of
-        // devices — the MECH brief's landmine 20), then robot two's driver file binds its controls to
+        // devices — the MECH brief's landmine 20), then the robot's driver file binds its controls to
         // it BY NAME, inside the try (nothing that can throw runs after driver control starts). A
         // robot these controls are not for — a control naming a mechanism it lacks, or one of another
         // kind, or a mechanism no control names — is the driver file's OWN refusal, its reason naming
@@ -719,11 +763,17 @@ void runDrive() {
     // This line races PROS's deletion of this task (HA-161 (a)): one that lands while the line is
     // being copied to the card ends the card's copy for the rest of the boot (serial keeps every
     // line; diag/log_copy_sink.hpp, "A writer that never comes back").
+    // Robot two's sentence names its claws; robot one's (no claws) says what the disable did to ANY list
+    // (the review of ROB1-A — the competition program's matching line is chosen the same way).
     char line[200];
     std::snprintf(line, sizeof line,
-                  "opcontrol(): field DISABLED -- the driver file's loop exited cleanly after "
-                  "cancel() (0 V + Brake); each claw pivot made safe, the pneumatic claw left as it "
-                  "was; %lu screen prints so far",
+                  ThisRobotWords::value.claw
+                      ? "opcontrol(): field DISABLED -- the driver file's loop exited cleanly after "
+                        "cancel() (0 V + Brake); each claw pivot made safe, the pneumatic claw left as it "
+                        "was; %lu screen prints so far"
+                      : "opcontrol(): field DISABLED -- the driver file's loop exited cleanly after "
+                        "cancel() (0 V + Brake); each motor mechanism made safe, each pneumatic left as it "
+                        "was; %lu screen prints so far",
                   static_cast<unsigned long>(g_screenPrints));
     log.log(hal::LogLevel::Info, kTag, line);
 }

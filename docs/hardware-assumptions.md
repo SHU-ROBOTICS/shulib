@@ -31,17 +31,17 @@
 > 2. **Entries are settled only with cited evidence** (the R-phase measurement, logged), then
 >    marked `[x]` with the measured value recorded next to the guess it replaces. A corrected
 >    value is the system *working* — the register predicted and localized the defect.
-> 3. **The list is supposed to be long.** Its length is the honest cost of building without
+> 3. **The list is supposed to be long.** Its length is the real cost of building without
 >    hardware. Do not shrink it by quiet resolution.
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-188 (CAL1's second number, released unused — never reissued), HA-192..HA-203, HA-204..HA-215, HA-216..HA-218 (STEP1's: HA-216 registered by STEP1-A, HA-217..HA-218 by STEP1-B — all three landed), HA-224..HA-227 (MECH-S/TUNE1's — its HA-219..HA-223 registered by MECH-S-A), HA-228..HA-230, HA-233 and HA-236 (AF1's — the driver-control auto-flipper's; its HA-231, HA-232, HA-234 and HA-235 registered by AF1S-A1, which reuses them), HA-237..HA-242 (ALLY1's and L4's).
+> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-188 (CAL1's second number, released unused — never reissued), HA-192..HA-203, HA-204..HA-215, HA-216..HA-218 (STEP1's: HA-216 registered by STEP1-A, HA-217..HA-218 by STEP1-B — all three landed), HA-224..HA-227 (MECH-S/TUNE1's — its HA-219..HA-223 registered by MECH-S-A), HA-228..HA-230, HA-233 and HA-236 (AF1's — the driver-control auto-flipper's; its HA-231, HA-232, HA-234 and HA-235 registered by AF1S-A1, which reuses them), HA-237..HA-242 (ALLY1's and L4's), HA-256 (ROB1's — the twin's, for its run G1-T; ROB1-A registered HA-252..HA-255), HA-257 (ROB1's — HELD for its run G1-B: "each robot keeps its own SD card" is the procedure chapter 21 gives until the record names its robot (D10 (a)); registered if G1-B misses the freeze, released unused when it lands).
 > The briefing names the next free number above every row AND every held one (`tools/briefing_status.py`
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 223 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 231 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -261,15 +261,38 @@
 > invented); and a real field's camera names the colour from the look spot as the host camera model predicts
 > (HA-245, invented). AF1's HA-228..HA-230 (the Optical), HA-233 (the field timer) and HA-236 (the flipper's
 > ports — robot one's, with G1) stay held. **None is measured.** With them, 223.
+>
+> **ROB1-A (robot one in the code; built 2026-11-11) added FOUR — HA-252..HA-255** of the six the ROB1 brief
+> held (HA-256, the twin's, stays HELD for its run G1-T; HA-257 stays HELD for G1-B): that robot one is a TANK
+> like robot two (HA-252, reported — "identical"), that it carries an IMU (HA-253, unknown — the builder named
+> only AI Vision and rotation sensors), that its cascade's height is close to straight in its output angle
+> between two measured rows (HA-254, reasoned), and that its two cascade motors face each other (HA-255, a
+> guess until station 13's direction check). **None is measured — robot one does not exist in this project's
+> records.** With them, 227.
+> **MIRROR1-A (one route, two robots: robot two runs robot one's skills route MIRRORED; built 2026-11-13) added
+> THREE — HA-258..HA-260** (its brief held them past ROB1's numbers): the event's field is set up to Appendix A
+> and Figure VURS1, so the two red Quadrants are mirror images across the skills diagonal — with the centre goal,
+> two yellow Pins and the red/right Load Zone ON it (HA-258, reasoned); robot one's build is left-right
+> symmetric for every part a route uses at the field (HA-259, unknown); the drivetrain's own left/right
+> differences are not mirrored, and each robot's real position near the diagonal stays within half the pair
+> check's 6 in gap of its plan, the robot inside the check's 15 in square about its tracking centre (HA-260,
+> invented). **None is measured.** With them, 230.
+>
+> **ROB1-C2 (robot one's real mechanisms; built 2026-11-15) added ONE — HA-261** (the next free above every held
+> number: HA-257 stays HELD for G1-B, and HA-258..HA-260 are MIRROR1-A's): that each of robot one's three pistons
+> is driven by ONE 3-wire line through a valve that holds it in one fixed position while unpowered, so starting
+> every piston in its Low position moves nothing at power-up (reported — one letter each; which position is the
+> unpowered one is station 13's). It also moved **HA-255** from a guess to **reported**: the builder, 2026-11-15,
+> "the two motors face each other". **None is measured.** With it, 231.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither is **HA-181** (G3a, the robot panel: its amended brief), held the same way (the
 > mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
 > its second, HA-182 with its third, HA-185 with its fifth, above). The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
-> 122, have no bucket for UNKNOWN (HA-143, HA-145, HA-157 and HA-162's confidence), and a recount is due.)* **No *v2* robot exists**, and
-> the platform layer has now been validated on the team's old competition bot — real adapters
-> commanded real motors and read real sensors on 2026-08-13 — but **no control loop has ever
-> closed and nothing has driven.** Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
+> 122, have no bucket for UNKNOWN (HA-143, HA-145, HA-157 and HA-162's confidence), and a recount is due.)* What has run
+> on a robot, and what has not, is listed in
+> [What it cannot do yet](guide/14-what-it-cannot-do-yet.md#it-has-never-driven-a-robot-under-its-own-control).
+> Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
 > documented shape, unmeasured onset). HA-50–52 added by chunk C1,
 > HA-53 by chunk C2 (the cancel safe state), HA-54–55 by chunk C3 (the H-drive's strafe derate
 > and stand-in geometry), HA-56–57 by chunk C5 (the D-5 plausibility envelope and the D-4
@@ -519,6 +542,14 @@
 | HA-248 | A healthy robot two never points more than 60° off its curve for 0.25 s nor makes under 1 in of progress in 0.75 s outside the last 12 in, and a dead side does one or the other within ~3 s | **invented** (host: 0 trips in 153 healthy runs, worst 25.9° off; a dead side stopped within 2.7 s, early deaths included) | every Station C log (no false "curve lost"); the dead-side half host-only |
 | HA-249 | Robot two's odometry (drive encoders + IMU heading) is as true on a curve as on a straight — the scrub of a skid-steer turn does not move the end by more than ~1 in on a 60 in curve | **reasoned** (never measured) | Station C.4 |
 | HA-250 | A `curveTo` fits the auton task: its motion (≤ 6 KB by `static_assert`, 5,904 B measured on the host) on the default 32 KiB stack, its per-tick work well inside the 10 ms tick, and its one-off path build (at its first live tick) inside that tick for a field-sized path | **reasoned** (the ARM `-fstack-usage` frames of a 16-point `curveTo`, CURVE1-A: the verb's 6,528 B + the follower's tick 792 B; the deepest chain about 9.2 KB, about 28 % of the stack; the build ~0.1 ms on the host for the 143 in snake, ~0.76 ms for a 2,092 in 16-point path — the brain's speed and headroom unmeasured) | Station C's loop-monitor overrun count |
+| HA-252 | Robot one is a TANK — wheels on two sides, no strafe — like robot two (the builder: "both robots identical") | **reported** (never seen) | the facts form's A1, at the robot |
+| HA-253 | Robot one carries an inertial sensor (IMU) on a smart port — the library drives a tank only with one | **unknown** (the builder named only AI Vision and rotation sensors) | the facts form's A4; Bench Tests' census on robot one |
+| HA-254 | Between two measured rows, robot one's cascade height is close to straight in its output angle (a string winds onto its spool in layers, and stretches) | reasoned · **unmeasured** | the facts form's C7: a row at every level; a mid-row tape check at station 13 |
+| HA-255 | Robot one's two cascade motors face each other (`{Forward, Reversed}`) | **reported** (the builder, 2026-11-15: they face each other — port 10 `Forward`, port 1 `Reversed` as he sees them) | Bench Tests' station 13 direction check on robot one |
+| HA-258 | The event's field is set up to Appendix A and Figure VURS1, so the red wall's and the right wall's Quadrants are mirror images across F1's y = -x (goals, Toggles, Pins, tape) — each element within `<T5>`a's +-1.0 in, so a mirrored target can land up to ~2 in from robot two's element where robot one's was tuned to its own — and the centre goal, two yellow Pins and the red/right corner's Load Zone sit ON the diagonal | **reasoned** (the manual's drawings A10, A11, VURS1 — the Pins by pixel, about +-1 in; v2.1's drawings not re-measured) | On the event's field: tape the two red goals and two Toggles from their walls |
+| HA-259 | Robot one's build is left-right symmetric for every part a route uses at the field: a part off the centre line (an intake, a flipper, a claw, the camera's `left`, the two side sensors' `forward`) lands twice its offset from the reflection of robot one's | **unknown** | MIRROR1 Step 0.2 (every part's sideways offset), Step 0.3 (both side sensors' mounts) |
+| HA-260 | The drivetrain's own left/right differences are NOT mirrored: robot two's arrivals differ from the reflection of robot one's by its own asymmetry (host test plant, a 9 % weak side: 0.56 in, 0.44 s) — and each robot's real position near the diagonal stays within half the pair check's gap (3 in) of its plan, and its whole robot inside the check's 15 in square centred on its tracking centre, so a route that passes the 6 in check keeps the two robots apart on the field | **invented** (the host plant's magnitudes; the 3 in is a chosen margin, unmeasured; the footprint's place about the tracking centre unmeasured) | MIRROR1 Step 0.4 on both robots; Step 0.5 (both together, slowly first); the tracking centre's place inside each robot's footprint, taped with Step 0.2 |
+| HA-261 | Each of robot one's three pistons (the claw, the front toggle, the ramp) is driven by ONE 3-wire line through a valve that holds it in ONE fixed position while unpowered — so a piston started in its Low position does not move at power-up | **reported** (the builder named one letter each, and "one solenoid" for the front toggle's two pistons; which position is the unpowered one is unknown until station 13) | Bench Tests' station 13 fire on robot one: one cable per valve, and which way each goes |
 
 ---
 
@@ -656,7 +687,7 @@ a config constant **by design** — a correction here never touches the core.
   *Settle (R3):* read `get_error()` on-strip; a healthy fix should report ~0.01–0.05 (meters), not
   ~1–2 (inches already).
   *Blast radius if wrong (scale skipped or double-applied):* E2's measurement covariance R is ~39×
-  off. Too small → good fixes gated out, GPS silently dead (quality decay — honest but wasteful);
+  off. Too small → good fixes gated out, GPS silently dead (quality decay — correct but wasteful);
   too large → lies accepted too readily. **Contained:** one multiply in the R1 adapter.
 
 - [ ] **HA-08 — failed/disconnected reads return the documented PROS sentinels, and screening
@@ -1044,7 +1075,7 @@ dependency order (battery scale before anything drives, signs before any closed 
   **Contained by the default.**
 
 - [ ] **HA-110 — the IMU's as-mounted pitch/roll sign conventions.**
-  *Claim:* none yet, honestly: the adapter passes `get_pitch()`/`get_roll()` through unnegated
+  *Claim:* none yet: the adapter passes `get_pitch()`/`get_roll()` through unnegated
   BECAUSE the convention is unmeasured; whatever the bench records becomes the convention the
   tip detector is written against.
   *Source:* `hal/pros/imu.hpp` (pitch()/roll(), the unnegated pass-through note).
@@ -1737,7 +1768,7 @@ Those are a belief about real mechanisms.
   (`kToggleAtSpeedWindowSeconds`, MECH-A4).
   *Confidence:* **invented** — the only evidence is the host test plant (HA-183): 143 of 144
   deliberately mismatched moves reached their target with these numbers (the miss: a plant slower than its
-  own cartridge, TIMED_OUT honestly), 20 of 27 flywheels reached speed (the rest could not, or were the
+  own cartridge, TIMED_OUT with its reason), 20 of 27 flywheels reached speed (the rest could not, or were the
   slowest), and a hold carried a 25 % gravity mismatch within 0.001°.
   *Settle (MECH on hardware):* tune each mechanism on the robot — log a move's and a hold's volts,
   position and current beside the starting values', and record the `.tuning` each mechanism ends with.
@@ -2069,6 +2100,61 @@ first look at each.
   (bounded, once per curve; review of 2026-11-12). *Settle:* Station C's loop-monitor overrun count —
   read the period of each curve's FIRST tick as well as the steady ones. *Blast radius if wrong:* a stack overflow on the brain (no message), or late ticks.
   **Contained:** the size is pinned at compile time.
+
+
+### ROB1-A's addition — robot one in the code (2026-11-11)
+
+ROB1-A added robot one — the cascade robot — to the code before anyone in this project has seen it: its id,
+its tables, a facts file whose every unmeasured number is OWED and refuses the builds that need it, and its
+builds (six since its integration onto TUNE1-B1, its Tune among them). The four beliefs below are what that
+code rests on about the robot itself.
+
+- [ ] **HA-252 — robot one is a tank.**
+  *Claim:* robot one drives on two sides and cannot strafe, like robot two — the builder, 2026-11-05: "both robots
+  identical, 15 in".
+  *Source:* `src/robots/chassis_table.hpp` (`kRobotOneChassis` — a `ChassisTable` is a tank's);
+  `src/robots/calibrate_facts.hpp` (`calibrateFactsFor()` states a tank for every table); the boot
+  (`src/common/boot_source.hpp` builds a tank description).
+  *Confidence:* **reported** — nobody in this project has seen robot one.
+  *Settle:* the facts form's item A1 (`docs/robot-facts-form.md`), at the robot.
+  *Blast radius if wrong:* every robot-one program that drives is wrong for it — Calibrate would refuse or
+  measure nonsense. **Contained:** the form says to stop and tell the coordinator before anything is built.
+
+- [ ] **HA-253 — robot one has an IMU.**
+  *Claim:* robot one carries a V5 inertial sensor on a smart port.
+  *Source:* `include/shulib/hal/drivetrain_description.hpp` (a tank description with no IMU port is refused —
+  "0 = UNSET"); `src/robots/chassis_table.hpp` (`kRobotOneChassis.imuPort = 0`, UNSET).
+  *Confidence:* **unknown** — the builder named only AI Vision and rotation sensors.
+  *Settle:* the facts form's item A4; Bench Tests' census on robot one.
+  *Blast radius if wrong:* no robot-one program can drive the robot (the boot refuses, by name). **Contained:**
+  nothing moves on a guess; the team is told at Step 0.
+
+- [ ] **HA-254 — between two measured rows, the cascade is close to straight in its output angle.**
+  *Claim:* robot one's cascade height, between two of its measured rows, follows its output angle closely
+  enough that straight-line interpolation is good to within the position tolerance (0.25 in).
+  *Source:* `src/robots/mechanism_table.hpp` (robot one's `cascade`, `.shape = measured(...)`);
+  `src/robots/robot_one_facts.hpp` (`kCascadeRows` — a row at the bottom stop, EVERY level and the top stop, so
+  each level is exact whatever the curve between).
+  *Confidence:* reasoned · **unmeasured** (a string winds onto a spool in layers and stretches).
+  *Settle:* the facts form's C7 (a row at every level) and a mid-row tape check at station 13.
+  *Blast radius if wrong:* a constant target BETWEEN rows (`cascade.to(h)`) lands off by the curve's bend; the
+  named levels do not. **Contained:** the levels are rows.
+
+- [ ] **HA-255 — robot one's cascade motors face each other.**
+  *Claim:* the cascade's two motors are mirrored, so one is `Forward` and the other `Reversed`.
+  *Source:* `src/robots/robot_one_facts.hpp` (`kCascadeDirections`, OWED: `{Forward, Reversed}` its placeholder,
+  typed as the builder sees them).
+  *Confidence:* **guess** until the builder's look, then station 13's direction check.
+  *Settle:* Bench Tests' station 13 direction check on robot one (a correction is a typed fact).
+  *Blast radius if wrong:* the two motors fight — the cascade does not move, and both stall. **Contained:**
+  station 13 checks the direction before any program drives it, and at station 13 — which does NOT apply the
+  cascade's current cap until ROB1-C — the containment is the station's own: the 3 V ceiling and its cut-outs
+  (two motors fighting for 250 ms, 2.4 A for 250 ms, the stall signature, a 3 s jog). In the programs that bind
+  the mechanism service (Drive, the Auton Tester, Competition, and shulib Tune — which may change the cap live
+  and puts the robot file's back on RESET and EXIT, HA-220), the cascade's current cap bounds the pull.
+  *Update (ROB1-C2, 2026-11-15):* **reported** — the builder: the two motors face each other (port 10 `Forward`,
+  port 1 `Reversed` as he sees them); typed with "same as the placeholder, checked". Station 13 still settles it.
+
 ---
 
 ### STEP1-B's additions — a partway trigger on a real robot (2026-11-11)
@@ -2210,6 +2296,80 @@ new. **None is measured: no Toggle, no flipper and no camera reading of a real T
   *Settle:* AF1S Step 0.3 (the colours on the real faces) and 0.4 (the look spot, square and turned).
   *Blast radius if wrong:* every visit ends UNKNOWN BEFORE (nothing pushed) or NOT AT THE SPOT. **Contained:** a
   doubt does nothing.
+
+### MIRROR1-A's additions — one route, two robots (2026-11-13)
+
+Robot two runs robot one's skills route MIRRORED across the field's skills diagonal
+(`include/shulib/competition/field_mirror.hpp`, `competition/override_mirror.hpp`; the Chassis's mirrored run
+in `chassis/chassis.hpp`). Three beliefs come with it. **None is measured: robot two as robot one's twin does
+not exist yet, and nothing here has run on a robot.**
+
+- [ ] **HA-258 — the two red Quadrants are mirror images on the event's field.**
+  *Claim:* the field is set up to Appendix A and Figure VURS1, so the red wall's and the right wall's Quadrants
+  are mirror images across F1's y = -x — the goals, the Toggles, the Pins and the tape — each element within
+  `<T5>`a's +-1.0 in of nominal (so a mirrored target can land up to ~2 in from robot two's element where robot
+  one's was tuned to its own); and the centre goal, two yellow Pins (about (23.5, -23.5) and (47, -47) in) and the
+  red/right corner's Load Zone sit ON the diagonal.
+  *Source:* `competition::override2026::kSkillsMirror` (`include/shulib/competition/override_mirror.hpp`).
+  *Confidence:* **reasoned** — the manual's drawings A10, A11 and Figure VURS1 (the Pins by pixel, about +-1 in);
+  v2.1's text re-read, its drawings not re-measured.
+  *Settle:* on the event's field — tape the two red goals and the two red Quadrants' Toggles from their walls.
+  *Blast radius if wrong:* robot two's mirrored targets miss its elements by the field's own error.
+  **Contained:** the wall reset re-seats each robot against its own wall; a target is tuned on the bench.
+- [ ] **HA-259 — robot one's build is left-right symmetric where the route uses it.**
+  *Claim:* every part a route uses at the field — an intake, a flipper, a claw, the camera's `left`, the two side
+  sensors' `forward` — sits on the robot's centre line (or symmetric about it); a part off it lands TWICE its
+  offset from the reflection of robot one's, because the robot is not mirrored, only its route.
+  *Source:* `competition::mirrored`'s documentation (`field_mirror.hpp`); guide chapter 17.
+  *Confidence:* **unknown** — no one has measured robot one's parts.
+  *Settle:* MIRROR1 Step 0.2 (every part's sideways offset from the centre line), Step 0.3 (both side sensors'
+  mounts — robot two reads the side robot one's route never uses).
+  *Blast radius if wrong:* robot two's mechanism meets its piece or Toggle off to one side; its wall sensor's
+  beam lands elsewhere along the wall (the keep-outs may refuse). **Contained:** the bench shows which steps
+  need robot two's own numbers.
+- [ ] **HA-260 — the robots' own asymmetry is small, and 3 in a side keeps the pair apart.**
+  *Claim:* the drivetrain's own left/right differences are NOT mirrored — robot two's arrivals differ from the
+  reflection of robot one's by its own asymmetry (host test plant, a 9 % weak side: 0.56 in of path, 0.44 s of
+  time) — and each robot's REAL position near the diagonal stays within half the pair check's gap (3 in) of its
+  plan, and its whole robot inside the check's 15 in square CENTRED on its tracking centre (a footprint sitting
+  d in ahead of or behind the tracking centre still mirrors, but the check then misjudges each robot's clearance
+  by up to d, out of the 3 in), so a route that passes the suite's 6 in check keeps the two robots apart on the
+  field. *(The footprint half was added at MIRROR1-A's review, 2026-11-13 — a belief the check rested on and no
+  number named; widened here rather than a fourth number, as R1 widened this one for the pair check.)*
+  *Source:* `kMirrorGapIn` in `test/mirrored_pair_check.hpp`; the Chassis's mirrored-run documentation
+  (`chassis.hpp`).
+  *Confidence:* **invented** — the host plant's magnitudes; the 3 in is a chosen margin, unmeasured; where the
+  tracking centre sits inside each robot's footprint, unmeasured.
+  *Settle:* MIRROR1 Step 0.4 (each robot's mirrored route against the tape), Step 0.5 (both robots run the pair
+  TOGETHER on a field, the drive speed turned down first, someone at each robot's stop); and, with Step 0.2's
+  tape, how far each robot's front and back reach from its tracking centre (7.5 in each way is the check's
+  square).
+  *Blast radius if wrong:* the two robots touch near the diagonal. **Contained:** the suite refuses a route
+  whose plan comes within 6 in; `isMirrored(ctx)` sends one robot to what lies on the diagonal.
+---
+
+### ROB1-C2's addition — robot one's pistons (2026-11-15)
+
+ROB1-C2 declared robot one's six mechanisms from its builder's answers of 2026-11-15. One belief about the robot
+itself is new: what its pistons do with no power.
+
+- [ ] **HA-261 — each of robot one's pistons rests in one fixed position, unpowered, on ONE line.**
+  *Claim:* the claw (3-wire A), the front toggle (B — two pistons on one solenoid) and the ramp (C) are each
+  driven by ONE 3-wire line through a valve that holds the piston in one fixed position while the line is Low
+  (the solenoid unpowered). So declaring each piston's start and safe position as its Low one — whichever name
+  that is — moves nothing at power-up or when a run ends.
+  *Source:* `src/robots/mechanism_table.hpp` (robot one's `claw`, `flipper`, `ramp`: `.start` / `.safe` =
+  `facts::unpoweredPosition(...)`); `src/robots/robot_one_facts.hpp` (`kClawLine`, `kFlipperLine`, `kRampLine`,
+  typed; `kClawOpenLevel`, `kFlipperOpenLevel`, `kRampDownLevel`, OWED); `test/robot_one_driver_test.cpp` (every
+  line is MADE at Low).
+  *Confidence:* **reported** — one letter each from the builder; whether each valve is single or double (one cable
+  or two), and which position is the unpowered one, are unknown until station 13.
+  *Settle:* Bench Tests' station 13 on robot one: count the cables from each valve, fire each piston, and say
+  which way it went (the facts form's G22-G24).
+  *Blast radius if wrong:* a valve on TWO lines has a second line nobody declared — the piston may not move, or
+  sit between; a wrong guess of which level opens a piston swaps its two NAMES (`claw["open"]` would close it in
+  an auton). **Contained:** the opening levels are OWED, so the Auton Tester, Competition and Drive refuse to
+  build until station 13's answer is typed; a piston started at Low cannot fire at power-up whatever its valve.
 ---
 
 ## Robot 2 — the 2026 tank chassis (added 2026-09-14, R3b Parts 1–3)
@@ -2377,7 +2537,7 @@ of them are the direct inputs to "shulib Calibrate" and to the programs that boo
   floor (the host plant's slip is a declared scenario fact, not an emergent one), which is R4's
   whole subject. R3d Part 1 does hand that detector its input, ready and host-proven: the effective
   track width the cross-check has to read zero against.
-  *Blast radius if wrong:* n/a in the honest direction — the alternative was a monitor that
+  *Blast radius if wrong:* n/a in the safe direction — the alternative was a monitor that
   lies. The cost is the missing detection itself: the driver is the supervisor (the panel says
   so), and an auton that pushes a wall will not fault; its watchdog bounds the damage.
 
@@ -2452,7 +2612,7 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   membership exactly, with the rule-swapping mutation observed red (since 2F-1 it is caught ON THE
   ROBOT too: a flipped rule makes the spin turn the wrong way and the new wrong-way guard stops it at
   15°); cases 22–26 for the ramp and the classification, on a plant that can now roll (HA-137).
-  *Confidence:* reasoned — rigid-body kinematics. Note honestly what the host suite does and does
+  *Confidence:* reasoned — rigid-body kinematics. Note plainly what the host suite does and does
   not prove: it AGREES with the frozen F5 contract (`kinematics/tank.hpp`'s `forward()` computes
   ω = (right − left)/track, so left alone gives ω < 0), and the plant turns the robot USING that
   same contract — so the plant cannot be an independent check of the claim. What it does check is
@@ -2581,7 +2741,7 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   extensions at their defaults (assertion counts and every printed value, compared case by case
   before and after at R3d Part 2F-1).
   *Confidence:* **invented**, and deliberately SIM shapes rather than robot facts. Everything is
-  torque-free like the rest of the plant (`motor_model.hpp`'s honesty boundary). The mean is
+  torque-free like the rest of the plant (the boundary note that opens `motor_model.hpp`, :7–17). The mean is
   OPTIMISTIC — a real motor back-driving four gearboxes reaches less than 1/N of its free speed. κ is
   a KINEMATIC stand-in, not derived from a wheel type, and the direction a real robot takes is not
   obvious: lateral scrub (traction wheels) pushes a one-sided push toward ROLLING (κ → 1), while a
@@ -3518,8 +3678,8 @@ that leaves unproven. The numbers below are host-test-plant measurements of 2026
   (0.05–0.10 s measured regression-free at 0–0.18 s) was chosen for an unknown lag, and the right
   `leadTime` grows with the robot's real heading lag; that choice is R5's. The same grids re-derive how
   often TSTR lights if R5a moves `maxAngularSpeed` (the flag's floor is 2 % of it).
-  *Blast radius if wrong:* too weak — the drift is not removed, and the leg ends as it did before TANK1: an
-  honest MOTION_TIMEOUT (bounded, visible, and the tick lines show TSTR to the end). Too strong, or a
+  *Blast radius if wrong:* too weak — the drift is not removed, and the leg ends as it did before TANK1: a
+  MOTION_TIMEOUT (bounded, visible, and the tick lines show TSTR to the end). Too strong, or a
   drivetrain too slow for it — heading wobble on steered tank legs, bounded by the 15° cap and the
   1.5 rad/s limit and visible as TSTR; at a stop a weak side's static friction can leave a small commanded
   yaw it does not follow. **While the robot cannot follow a yaw command** (pinned by a defender, wedged on a
@@ -4621,7 +4781,7 @@ settleable before hardware, and none block any host chunk.
   *Settle (R4):* same logs, heading channel.
   *Blast radius if wrong:* almost none structurally — heading is IMU-owned by decision #4 and no
   corrector can rotate the robot; the number only informs whether GPS heading is ever worth a
-  cross-check. Recorded for honesty, not fear.
+  cross-check. Recorded for the record, not out of fear.
 
 - [ ] **HA-28 — GPS fresh-fix cadence ≈ 50 ms.**
   *Source:* `gps_hostility.hpp:75` (`updatePeriod`). *Confidence:* **invented**.
@@ -4942,7 +5102,7 @@ answer changes how these seven should be set.
   *Claim:* the floor of the dead-reckoning sigma, which sets how hard a fresh fix pulls.
   *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::postFixStdDev` (PROVISIONAL (A4: HA-66)).
   *Confidence:* **invented**. It is the closest thing the complementary tier has to a prior,
-  and the honest description is "a gain knob wearing the clothes of a covariance".
+  and the accurate description is "a gain knob wearing the clothes of a covariance".
   *Settle (R4):* properly, this is E4's job — an EKF estimates it instead of asserting it. Until
   then, set from measured post-correction error.
   *Blast radius if wrong:* it and HA-61 together set the confidence
@@ -5222,7 +5382,7 @@ E2's tuning constants make the corrector work better or worse; these three make 
   survive being wrong; this one normalises by an estimated covariance and can afford to be tighter.
   *Settle (R4):* plot the measured innovation distribution once HA-83…HA-86 are real, and choose
   the width from it rather than from a table.
-  *Blast radius if wrong (too tight):* honest fixes are refused and the filter re-inits more often
+  *Blast radius if wrong (too tight):* correct fixes are refused and the filter re-inits more often
   than it should. (Too slack): the outlier protection stops working, which is the whole reason the
   gate exists.
 
@@ -5426,7 +5586,7 @@ E2's tuning constants make the corrector work better or worse; these three make 
 - [ ] **HA-52 — the spin-vs-motion cross-check thresholds: 0.3 s window, 1.0 in minimum spin
   travel, 25% motion ratio, wheel radius 1.625 in, rotation radius 7.0 in.**
   *Claim:* on real hardware the window/thresholds separate the three regimes they must —
-  honest driving (ratio ≈ 1), A3-class slip (ratio ≈ 0.7, no fault), and a dead encoder or
+  clean driving (ratio ≈ 1), A3-class slip (ratio ≈ 0.7, no fault), and a dead encoder or
   blocked drivetrain (ratio ≈ 0, ODO_STUCK) — with the stand-in radii close enough that the
   ratio comparison is not distorted.
   *Source:* `include/shulib/motion/odo_stall_check.hpp` (PROVISIONAL (A4: HA-52)); radii
@@ -5551,7 +5711,7 @@ E2's tuning constants make the corrector work better or worse; these three make 
   *Blast radius if wrong (too low):* false IMPLAUSIBLE faults — advisory only (never aborts,
   never rewrites the pose), and episode-gated, so the damage is log noise; the C5 suites prove
   zero false positives across every clean AND hostile run at the defaults. *(Too high):* subtle
-  estimate lies pass — exactly today's honest state, which R3/R5 tightening fixes.
+  estimate lies pass — exactly today's state, which R3/R5 tightening fixes.
 
 - [ ] **HA-57 — the V5 controller text grid is 3 rows × 19 columns.**
   *Claim:* `pros::Controller::set_text` addresses 3 text lines and ~19 visible columns; a row
@@ -5576,7 +5736,7 @@ E2's tuning constants make the corrector work better or worse; these three make 
   *Claim:* with R5's measured constants installed, the A2 plant reproduces a recorded real run
   within R6's documented tolerance — no torque curve, stiction model, or inertia tensor needed
   for control-relevant fidelity.
-  *Source:* `include/shulib/sim/motor_model.hpp:6–17` (the honesty boundary + register note).
+  *Source:* `include/shulib/sim/motor_model.hpp:6–17` (its opening boundary note + register note).
   *Confidence:* **invented** (a structural bet, deliberately conservative: the plant refuses to
   model what it cannot measure).
   *Settle (R6):* the back-fit — feed measured parameters in, replay a recorded run, compare
@@ -5593,9 +5753,9 @@ E2's tuning constants make the corrector work better or worse; these three make 
   conclusion.**
   *Claim:* no result certified by the host suite (M2 acceptance, survival matrix, closed-loop
   convergence) would change if stall-current limiting were modeled.
-  *Source:* `power_hostility.hpp:28–31` (the honest gap note).
-  *Confidence:* **invented** — the gap is deliberate (a current model needs the load model the
-  honesty boundary forbids), the no-consequence claim is the assumption.
+  *Source:* `power_hostility.hpp:28–31` (the gap note).
+  *Confidence:* **invented** — the gap is deliberate (a current model needs the load model that
+  `motor_model.hpp`'s opening note (:7–17) forbids), the no-consequence claim is the assumption.
   *Settle (R6):* record stall-adjacent events (wall pushes, jams) on hardware; back-fit; check
   which host results move.
   *Amended R5a Part A (2026-09-29):* the GAINS step's two step segments record each side's largest

@@ -2,7 +2,7 @@
 // runs HERE, so the guide can never quietly rot: an example that stops
 // compiling or stops behaving as the prose claims turns this file red.
 //
-// Mapping (keep in sync with the guide — see docs/guide/README.md):
+// Mapping (keep in sync with the guide — see docs/how-the-docs-stay-true.md):
 //   guide-08a/b/c/d-> docs/guide/08-your-first-routine.md   (the tutorial)
 //   guide-09a/b/c/d-> docs/guide/09-the-recipe-api.md       (the Tier-2 chain)
 //   guide-10a..e   -> docs/guide/10-the-api.md              (API idioms)
@@ -109,7 +109,7 @@ struct SimPacer final : shulib::motion::ITickPacer {
 
 // The first routine: leave the start tile, make a slow precise approach, slide
 // sideways along the goal wall, and turn to face the corner. Every call blocks
-// until the motion settles or honestly gives up — the return value says which.
+// until the motion settles or gives up — the return value says which.
 ExitReason firstRoutine(Chassis& chassis) {
     // Tell the localizer where the robot starts. Position comes from you;
     // heading is owned by the IMU (chapter 3).
@@ -478,7 +478,7 @@ TEST_CASE("guide-09b: when a step fails, the chain stops — and says so") {
     CHECK_FALSE(r.ok());
     const RoutineResult res = r.result();
     CHECK(res.stoppedAt == 2);                // which step failed…
-    CHECK(res.exit == ExitReason::TimedOut);  // …and the motion's honest verdict
+    CHECK(res.exit == ExitReason::TimedOut);  // …and the motion's verdict
     CHECK(res.completed == 1);
     CHECK(res.skipped == 1);                  // the turn never ran
 

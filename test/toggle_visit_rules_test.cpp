@@ -11,6 +11,8 @@
 #include <set>
 #include <string>
 
+#include "shulib/competition/field_mirror.hpp"
+#include "shulib/competition/override_mirror.hpp"
 #include "shulib/competition/toggle_visit.hpp"
 #include "toggle_visit_rig.hpp"
 
@@ -271,4 +273,76 @@ TEST_CASE("AF1S-A1 the verdict words: every verdict has its own, ASCII, none emp
         seen.insert(w);
     }
     CHECK(seen.size() == static_cast<std::size_t>(ToggleVisitVerdict::FrozenBeforePush) + 1);
+}
+
+// ═══ MIRROR1-A T7: the Toggle step in a MIRRORED auton (the MIRROR1 brief's §2.2, D4) ═══════════════════
+
+// Bug caught: MM6 (the Toggle images crossed, right <-> left — robot two would look for robot one's Toggle
+// on the wrong wall and be refused WRONG WALL, or flip the wrong one); a mirrored step that keeps robot
+// one's Toggle (WRONG WALL from robot two's spot); a swap that changes "ours". The SAME request — robot
+// one's red wall Toggle — on robot one parked at the red wall (entry as written) and on robot two parked
+// at the right wall (entry MIRRORED): both pass rule 1's wall check with a FIELD start, both flip, "ours"
+// is RED both times, and robot two's report and [TGL] line name the RIGHT wall's Toggle. The same request
+// on robot two's spot WITHOUT the mirror is WRONG WALL. Through mirroredToggle, the four images keep
+// their Quadrant colours (the static_asserts in override_mirror.hpp check toggleImage at build; this
+// checks the function the step calls). AND (a review finding, 2026-11-13) robot two's visit once more
+// with the Chassis's mirrored run OPEN around it — the configuration runAuton gives a mirrored auton's
+// step: the step drives and reads BELOW the front door (the scheduler, the localizer), so its verdict,
+// its strokes and its [TGL] line are byte-identical; a step that drove or read through a Chassis verb
+// (chassis.pose(), chassis.moveTo) would be reflected a SECOND time and turn this red.
+TEST_CASE("MIRROR1 T7 robot one's red wall Toggle, mirrored, is robot two's right wall Toggle: same colour, flipped") {
+    using namespace tv_rig;
+    namespace om = sc::override2026;
+    const sc::ToggleVisitRequest rq = armRequest(ov::toggles::kRedWall);
+    const sc::AutonEntry asWritten = Rig::entry(sc::AutonKind::Skills, sc::StartPose::field(parkedAt(ov::toggles::kRedWall, 16.0)));
+    const sc::AutonEntry mirroredEntry = sc::mirrored(asWritten, om::kSkillsMirror);
+    {
+        Rig one{scene(Form::Arm, ov::toggles::kRedWall)};
+        const sc::ToggleVisitReport rep = one.visit(rq, asWritten);
+        CHECK(rep.toggle == ov::toggles::kRedWall);
+        CHECK(rep.ours == ToggleColour::Red);
+        CHECK(rep.wallChecked);
+        CHECK(rep.verdict == ToggleVisitVerdict::Flipped);
+    }
+    {
+        Rig two{scene(Form::Arm, ov::toggles::kRightWall)};
+        const sc::ToggleVisitReport rep = two.visit(rq, mirroredEntry);
+        CHECK(rep.toggle == ov::toggles::kRightWall);
+        CHECK(rep.ours == ToggleColour::Red);
+        CHECK(rep.wallChecked);
+        CHECK(rep.verdict == ToggleVisitVerdict::Flipped);
+        REQUIRE(two.lines("TGL").size() == 1U);
+        CHECK(two.lines("TGL")[0].rfind("right wall Toggle: ", 0) == 0);
+        // the same visit with the mirrored run open (runAuton's configuration)
+        Rig scoped{scene(Form::Arm, ov::toggles::kRightWall)};
+        sc::ToggleVisitReport inRun{};
+        {
+            const shulib::chassis::MirroredRun run{scoped.chassis, om::kSkillsMirror.reflection};
+            inRun = scoped.visit(rq, mirroredEntry);
+        }
+        CHECK(inRun.toggle == ov::toggles::kRightWall);
+        CHECK(inRun.ours == ToggleColour::Red);
+        CHECK(inRun.wallChecked);
+        CHECK(inRun.verdict == ToggleVisitVerdict::Flipped);
+        CHECK(scoped.toggle.strokes() == two.toggle.strokes());
+        REQUIRE(scoped.lines("TGL").size() == 1U);
+        CHECK(scoped.lines("TGL")[0] == two.lines("TGL")[0]);
+    }
+    {
+        Rig two{scene(Form::Arm, ov::toggles::kRightWall)};
+        const sc::ToggleVisitReport rep = two.visit(rq, asWritten);  // robot one's Toggle, unmirrored
+        CHECK(rep.verdict == ToggleVisitVerdict::WrongWall);
+        CHECK(two.toggle.strokes() == 0);
+    }
+    for (const ov::ToggleId id : {ov::toggles::kRightWall, ov::toggles::kLeftWall, ov::toggles::kBlueWall,
+                                  ov::toggles::kRedWall}) {
+        CAPTURE(static_cast<int>(id));
+        const ov::ToggleId img = om::mirroredToggle(mirroredEntry, id);
+        CHECK(img != id);
+        CHECK(ov::quadrantColour(img) == ov::quadrantColour(id));
+        CHECK(om::mirroredToggle(mirroredEntry, img) == id);  // the image's image
+        CHECK(om::mirroredToggle(asWritten, id) == id);       // as written: unchanged
+    }
+    CHECK(om::mirroredToggle(mirroredEntry, ov::toggles::kRedWall) == ov::toggles::kRightWall);
+    CHECK(om::mirroredToggle(mirroredEntry, ov::toggles::kLeftWall) == ov::toggles::kBlueWall);
 }
