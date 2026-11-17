@@ -1550,9 +1550,10 @@ Five commits landed after `b3146d4`: the Calibrate thresholds fix (`7867517`), A
 - **Mutations: 3 of 3 RED** — MR-1 robot one's map loses its L2 row (GM22); MR-2 Drive's boot prints no feel line
   (the drive program's source test); MR-3 (by hand) `DriverFile`'s feel range check removed → 4 compile refusals
   (rm01, rm_ct_a_feel / strafe / turn) fail; restored, byte-identical.
-- **Open (for the coordinator / the team lead):** (1) cookbook 06 still quotes robot one's LIVE driver file: a student's
-  export of the controls changes it, and the host build's doc gate then fails until the listing is re-quoted (robot
-  builds are not affected) — re-point it at B's golden as chapter 21 is. (2) `test/robot_twin_test.cpp` holds the two
+- **Open (for the coordinator / the team lead):** (1) ~~cookbook 06 quotes robot one's LIVE driver file~~ — PROBED
+  after the merge (a student's change to `kControls` in the live file): `check-examples` still passes — every listing
+  is also an unbroken run of B's `controls_one_builders_map.hpp` golden. Only cookbook 06's prose ("the build fails
+  when a quoted line changes in the file") was stale: reworded in the next commit. (2) `test/robot_twin_test.cpp` holds the two
   driver files' marked regions equal: an export on ONE robot turns the host suite red until the other robot's file
   gets the same change — the Controls tab should write both, or say so. (3) The side-toggle mirror (ROB1-BT's
   finding 1) for the route export.

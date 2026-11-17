@@ -276,9 +276,11 @@ inline constexpr DriverLoopConfig kLoop{
 using RobotOneDriver = DriverFile<robot_one::kControls, robot_one::kFeel, robot_one::kLoop>;
 ```
 
-Every line of these listings is the file's own, and each listing is an unbroken run of the file:
-the documentation build fails when a quoted line changes in the file, and when a line is added to
-the file inside a part listed here, until the listing is quoted again.
+These listings are the file as the builder gave it on 2026-11-15, quoted from the route builder's compiled
+copy of that map
+([`test/goldens/route_maker/controls_one_builders_map.hpp`](../../test/goldens/route_maker/controls_one_builders_map.hpp)):
+the team's own changes to the file — by hand or from the route builder's Controls tab — never fail the
+documentation build. The file itself is always the robot's real map.
 
 **Two programs run this file**: "shulib Drive" on its own, and the competition program's driver
 control ("shulib Competition" — [guide chapter 17](../guide/17-the-competition-program.md)). Under
