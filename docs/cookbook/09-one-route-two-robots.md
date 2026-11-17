@@ -98,8 +98,8 @@ the SAME line — seats the right wall with its LEFT sensor, its log saying
 - **The wall reset and the Toggle step swap for themselves.** Robot one's `red wall, RIGHT sensor` is robot
   two's `right wall, LEFT sensor` — the library makes the swap; write robot one's. A Toggle step (handed the
   auton's entry) visits the image Toggle — robot one's red wall Toggle is robot two's right wall Toggle, the
-  same Quadrant colour, so "ours" does not change. (A Toggle visit from a team's auton file arrives with the
-  Toggle step's everyday form; the swap is already in the step.)
+  same Quadrant colour, so "ours" does not change — `competition::checkAndFlipToggle(ctx, ...)` from a team's
+  auton file included ([chapter 8](08-skills-toggles.md)).
 - **`isMirrored(ctx)` for what lies ON the diagonal.** The centre goal, two yellow Pins of the skills setup
   and the red/right corner's Load Zone are their own mirror images: a pure mirror sends both robots there at
   the same moment. One branch sends one robot.

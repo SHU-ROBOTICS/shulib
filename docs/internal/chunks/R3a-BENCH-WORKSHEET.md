@@ -2747,6 +2747,70 @@ naming each owed fact the program needs. This station is where the remaining ans
 | G23 front toggle: letter, out on, stroke | **B** (two pistons, one solenoid); which level pushes it out: owed; stroke 0.5 s (chosen) | the team's builder, 2026-11-15 |
 | G24 ramp: letter, down on, stroke | **C**; which level puts it down: owed; stroke 0.5 s (chosen) | the team's builder, 2026-11-15 |
 
+## Station T — THE TOGGLE STEP'S NUMBERS: Step 0.1–0.7  *(EACH robot that runs the skills route — both, by the team lead's answers of 2026-11-10/11-13: do the station once per robot, its own column below — added AF1S-A2, 2026-11-15; NOTHING HAS RUN: no Toggle, no flipper and no camera reading of a real Toggle exist in this project)*
+
+The skills Toggle step (`competition::checkAndFlipToggle(ctx, ...)`, guide chapter 20, cookbook chapter 8)
+refuses every number left UNSET, and has no default for any. This station is where they come from — the AF1S
+brief's §2.0. Every number goes in ONE of two places: the robot file's **camera block** and **Toggle block**
+(`sensors.camera`, `sensors.toggleCamera`), or the route's **visit request** (`competition::toggleVisit({...})`).
+Neither robot's file has a camera block yet (robot two's boot line says `camera ABSENT`; robot one's camera port
+and mount are recorded but read by no program until VIS1-B / ROB1-C) — T.2 and T.3 are what that block is made of.
+**The plan for Nov 21 is the team's blind two-push flip** (written with today's mechanism steps); this station's
+numbers switch the route to the checked step only once it has flipped a real Toggle. A real or mock Toggle at
+field height is needed for T.1, T.4 and T.5 (axle 13.20 in, on brackets above an 11½-in wall — AF1's Step 0.2).
+
+- [ ] **T.1 — the flipper** (0.1; HA-231, HA-232, HA-235, HA-236). Which kind — a motor arm, a pneumatic, or a
+      passive bar (D7 — the facts form's D16)? Motor: port, cartridge, teeth, which way + turns it, its stow angle on
+      its stop, its flip angle, its far stop, a stall signature (amps, rpm, time — held against a Toggle by hand);
+      pneumatic: its line, which level pushes, its move time. On the Toggle: does ONE stroke roll exactly ONE face,
+      and which face follows which, mounted as a RED-side and as a BLUE-side Toggle (so: one or two pushes from
+      yellow)? How long until it sits flat → `settle`. **Twenty FULL strokes, each checked BY EYE for a Toggle stuck
+      part-way** (the camera cannot see it — HA-232). The worst push and retract of five → `flipBound`, `backBound`.
+      With the flipper all the way out, does the robot still fit 24 × 24 in (`<SG2>`a)?
+- [ ] **T.2 — the camera's mount and its picture's age** (0.2; VIS1's Step 0; HA-192). Lens forward, left, height
+      to the lens centre, yaw, pitch, each with how well it was measured → the camera block's `placement`
+      (`measured = true`, a provenance). **Without a measured mount every visit is NO CAMERA, its `[TGL]` line
+      saying `no camera -- the camera's mount is UNSET ...`** (`robot.toggleCameraAbsence()` has the whole
+      reason; the boot line's `toggles OFF (...)` too, but the brain's programs print that line cut to 220
+      characters and the competition program prints none). The picture's age: Bench Tests station 12's change
+      timer — wave a card, read the lag, the worst of ten → `maxImageAge` (every push's time grows by it: no padding).
+- [ ] **T.3 — the colours and the tracker's numbers** (0.3; HA-199, HA-245). The RED, BLUE and YELLOW
+      descriptors taught on the REAL Toggle's faces (the AI Vision Utility) under light like the event's → the
+      camera block's `settings.colours`, and their three ids → the Toggle block's `tracker.ids` (an id the camera
+      is not taught makes every visit `no camera -- the Toggle block: its RED id is not one of the colours ...`).
+      The tracker's numbers (hold, alive, aspect, length fractions, range window, bearing window, frozen
+      thresholds) → `tracker`; the read period
+      (about 0.033 s) → `feed.minReadPeriodSeconds`. Reading what the tracker says needs station 12's tracker page
+      (VIS1-B — not built yet).
+- [ ] **T.4 — the look spot** (0.4; HA-244, HA-245, HA-201). Square to a Toggle, centred, step the robot back 4 → 36
+      in: where does the camera name each face, and how far turned does it still? `lookFrom` = the middle of that
+      band. `offBy` = the larger half-width of the range interval the page prints AT the look spot + the route's
+      arrival allowance; then park 3 in too far and 3 in too near and see NOT AT THE SPOT (a lens near the
+      Toggle's height may not tell them apart — then the route's odometry is the check; say so in the route).
+      For a FIELD start: how far the Toggle's face sits out from the wall's inner face (HA-201).
+- [ ] **T.5 — the push spot** (0.5; HA-244). With the flipper at stow, square: the lens-to-face distance where the
+      flipper (or the bar) rolls the Toggle → `pushFrom`. At the push spot with the flipper at stow, does ANY part
+      of the robot touch the Toggle (`<SC4>`b)? Does the flipper at stow block the camera's view from the look spot?
+- [ ] **T.6 — the drive in and out** (0.6; HA-244). Ten in-and-out moves of `lookFrom − pushFrom` (more than twice
+      the Toggle block's `frozenMoveIn`, or every visit refuses `spots too close` and the route's
+      `static_assert(competition::toggleVisitBlockProblem(...) == nullptr)` stops the build): the worst time →
+      `driveBound`; how far from where it started the robot ends, and where the flipper lands on the face.
+- [ ] **T.7 — the field** (0.7; HA-243). On the event's field, standing at the RED station: does the Toggle on the
+      wall to your RIGHT start with RED facing out? (The library takes the right and red walls' Toggles as RED
+      Quadrants', the blue and left walls' as BLUE — a reading of the manual's drawings.)
+
+| Item | Robot one | Robot two | Who / how / date |
+|---|---|---|---|
+| T.1 flipper kind; stow / flip; stall signature | | | |
+| T.1 faces per stroke; pushes from yellow (red side / blue side) | | | |
+| T.1 settle; flipBound; backBound; 20 strokes seated? | | | |
+| T.2 mount (fwd, left, height, yaw, pitch ± each); maxImageAge | | | |
+| T.3 descriptor ids R / B / Y; tracker numbers; read period | | | |
+| T.4 lookFrom; offBy; face set-back | | | |
+| T.5 pushFrom; touches at stow?; blocks the view? | | | |
+| T.6 driveBound; end error | | | |
+| T.7 right wall's Toggle red-out? (the field — once) | | | |
+
 ## DO NOT
 
 - ❌ **Do not upload an old build.** The default build is the **bench tester**

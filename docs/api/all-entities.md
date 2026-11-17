@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 6,440 of them, across 214 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 6,478 of them, across 215 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -816,6 +816,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ChassisSpeeds::vx` | function | [twist2d.md](twist2d.md#chassisspeeds-vx) |
 | `ChassisSpeeds::vy` | function | [twist2d.md](twist2d.md#chassisspeeds-vy) |
 | `checkAndFlipToggle` | free function | [toggle_visit.md](toggle_visit.md#checkandfliptoggle) |
+| `checkAndFlipToggle (overload 2)` | free function | [toggle_visit.md](toggle_visit.md#checkandfliptoggle-2) |
 | `checkAutonEntry` | free function | [auton_registry.md](auton_registry.md#checkautonentry) |
 | `checkCurve` | free function | [curve_path.md](curve_path.md#checkcurve) |
 | `Checked` | struct | [calibrate_panel.md](calibrate_panel.md#struct-checked) |
@@ -1589,6 +1590,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ExitReason::TimedOut` | enumerator | [exit_group.md](exit_group.md#exitreason-timedout) |
 | `explainAsToggleFace` | free function | [toggle_tracker.md](toggle_tracker.md#explainastoggleface) |
 | `ExplicitToggleCamera` | struct | [toggle_visit.md](toggle_visit.md#struct-explicittogglecamera) |
+| `ExplicitToggleCamera::absence` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-absence) |
 | `ExplicitToggleCamera::feed` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-feed) |
 | `ExplicitToggleCamera::headingToleranceDeg` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-headingtolerancedeg) |
 | `ExplicitToggleCamera::model` | field | [toggle_visit.md](toggle_visit.md#explicittogglecamera-model) |
@@ -2878,6 +2880,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kTitleY` | constant | [tune_panel.md](tune_panel.md#ktitley) |
 | `kToggleAtSpeedWindowSeconds` | constant | [driver_inputs.md](driver_inputs.md#ktoggleatspeedwindowseconds) |
 | `kToggleBodyHalf` | constant | [override_walls.md](override_walls.md#ktogglebodyhalf) |
+| `kToggleCameraReasonBytes` | constant | [toggle_camera.md](toggle_camera.md#ktogglecamerareasonbytes) |
 | `kToggleFace` | constant | [override_elements.md](override_elements.md#ktoggleface) |
 | `kToggleHalfLength` | constant | [override_walls.md](override_walls.md#ktogglehalflength) |
 | `kTogglePlaces` | constant | [override_elements.md](override_elements.md#ktoggleplaces) |
@@ -3140,6 +3143,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `LogLine::t` | field | [shul2_format.md](shul2_format.md#logline-t) |
 | `LogLine::tag` | field | [shul2_format.md](shul2_format.md#logline-tag) |
 | `lookAtToggle` | free function | [toggle_visit.md](toggle_visit.md#lookattoggle) |
+| `lookAtToggle (overload 2)` | free function | [toggle_visit.md](toggle_visit.md#lookattoggle-2) |
 | `LoopMonitor` | class | [loop_monitor.md](loop_monitor.md#class-loopmonitor) |
 | `LoopMonitor::LoopMonitor` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-loopmonitor) |
 | `LoopMonitor::overrunCount` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-overruncount) |
@@ -4763,6 +4767,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Robot::Robot` | function | [robot.md](robot.md#robot-robot) |
 | `Robot::Robot (overload 2)` | function | [robot.md](robot.md#robot-robot-2) |
 | `Robot::Robot (overload 3)` | function | [robot.md](robot.md#robot-robot-3) |
+| `Robot::toggleCamera` | function | [robot.md](robot.md#robot-togglecamera) |
+| `Robot::toggleCamera (overload 2)` | function | [robot.md](robot.md#robot-togglecamera-2) |
+| `Robot::toggleCameraAbsence` | function | [robot.md](robot.md#robot-togglecameraabsence) |
 | `Robot::wallSensor` | function | [robot.md](robot.md#robot-wallsensor) |
 | `Robot::wallSensor (overload 2)` | function | [robot.md](robot.md#robot-wallsensor-2) |
 | `Robot::wallSensorAbsence` | function | [robot.md](robot.md#robot-wallsensorabsence) |
@@ -4794,6 +4801,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RobotContext::RobotContext` | function | [robot_context.md](robot_context.md#robotcontext-robotcontext) |
 | `RobotContext::tags` | function | [robot_context.md](robot_context.md#robotcontext-tags) |
 | `RobotContext::telemetry` | function | [robot_context.md](robot_context.md#robotcontext-telemetry) |
+| `RobotContext::toggleCamera` | function | [robot_context.md](robot_context.md#robotcontext-togglecamera) |
 | `RobotContext::vision` | function | [robot_context.md](robot_context.md#robotcontext-vision) |
 | `RobotContext::wallSensors` | function | [robot_context.md](robot_context.md#robotcontext-wallsensors) |
 | `RobotContextConfig` | struct | [robot_context.md](robot_context.md#struct-robotcontextconfig) |
@@ -4804,6 +4812,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RobotContextConfig::imu` | field | [robot_context.md](robot_context.md#robotcontextconfig-imu) |
 | `RobotContextConfig::tags` | field | [robot_context.md](robot_context.md#robotcontextconfig-tags) |
 | `RobotContextConfig::telemetry` | field | [robot_context.md](robot_context.md#robotcontextconfig-telemetry) |
+| `RobotContextConfig::toggleCamera` | field | [robot_context.md](robot_context.md#robotcontextconfig-togglecamera) |
 | `RobotContextConfig::vision` | field | [robot_context.md](robot_context.md#robotcontextconfig-vision) |
 | `RobotContextConfig::walls` | field | [robot_context.md](robot_context.md#robotcontextconfig-walls) |
 | `RobotIdentity` | struct | [robot_config.md](robot_config.md#struct-robotidentity) |
@@ -5242,6 +5251,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SensorsConfig` | struct | [robot_config.md](robot_config.md#struct-sensorsconfig) |
 | `SensorsConfig::camera` | field | [robot_config.md](robot_config.md#sensorsconfig-camera) |
 | `SensorsConfig::gps` | field | [robot_config.md](robot_config.md#sensorsconfig-gps) |
+| `SensorsConfig::toggleCamera` | field | [robot_config.md](robot_config.md#sensorsconfig-togglecamera) |
 | `SensorsConfig::walls` | field | [robot_config.md](robot_config.md#sensorsconfig-walls) |
 | `serialLine` | free function | [pros-char_sink.md](pros-char_sink.md#serialline) |
 | `serialWrapped` | free function | [pros-char_sink.md](pros-char_sink.md#serialwrapped) |
@@ -5738,6 +5748,28 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleBinding::ToggleBinding (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding-2) |
 | `ToggleBinding::ToggleBinding (overload 3)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding-3) |
 | `ToggleBinding::~ToggleBinding` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-destructor-togglebinding) |
+| `ToggleCamera` | class | [toggle_camera.md](toggle_camera.md#class-togglecamera) |
+| `ToggleCamera::absence` | function | [toggle_camera.md](toggle_camera.md#togglecamera-absence) |
+| `ToggleCamera::build` | function | [toggle_camera.md](toggle_camera.md#togglecamera-build) |
+| `ToggleCamera::feed` | function | [toggle_camera.md](toggle_camera.md#togglecamera-feed) |
+| `ToggleCamera::model` | function | [toggle_camera.md](toggle_camera.md#togglecamera-model) |
+| `ToggleCamera::operator=` | function | [toggle_camera.md](toggle_camera.md#togglecamera-operator-eq) |
+| `ToggleCamera::operator= (overload 2)` | function | [toggle_camera.md](toggle_camera.md#togglecamera-operator-eq-2) |
+| `ToggleCamera::ready` | function | [toggle_camera.md](toggle_camera.md#togglecamera-ready) |
+| `ToggleCamera::ToggleCamera` | function | [toggle_camera.md](toggle_camera.md#togglecamera-togglecamera) |
+| `ToggleCamera::ToggleCamera (overload 2)` | function | [toggle_camera.md](toggle_camera.md#togglecamera-togglecamera-2) |
+| `ToggleCamera::ToggleCamera (overload 3)` | function | [toggle_camera.md](toggle_camera.md#togglecamera-togglecamera-3) |
+| `ToggleCamera::tracker` | function | [toggle_camera.md](toggle_camera.md#togglecamera-tracker) |
+| `ToggleCamera::~ToggleCamera` | function | [toggle_camera.md](toggle_camera.md#togglecamera-destructor-togglecamera) |
+| `toggleCameraCheck` | free function | [toggle_camera.md](toggle_camera.md#togglecameracheck) |
+| `ToggleCameraCheck` | struct | [toggle_camera.md](toggle_camera.md#struct-togglecameracheck) |
+| `ToggleCameraCheck::part` | field | [toggle_camera.md](toggle_camera.md#togglecameracheck-part) |
+| `ToggleCameraCheck::why` | field | [toggle_camera.md](toggle_camera.md#togglecameracheck-why) |
+| `ToggleCameraConfig` | struct | [toggle_camera.md](toggle_camera.md#struct-togglecameraconfig) |
+| `ToggleCameraConfig::declared` | function | [toggle_camera.md](toggle_camera.md#togglecameraconfig-declared) |
+| `ToggleCameraConfig::feed` | field | [toggle_camera.md](toggle_camera.md#togglecameraconfig-feed) |
+| `ToggleCameraConfig::tracker` | field | [toggle_camera.md](toggle_camera.md#togglecameraconfig-tracker) |
+| `toggleCameraProblem` | free function | [toggle_camera.md](toggle_camera.md#togglecameraproblem) |
 | `ToggleColour` | enum class | [toggle_tracker.md](toggle_tracker.md#enum-class-togglecolour) |
 | `ToggleColour::Blue` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglecolour-blue) |
 | `ToggleColour::Red` | enumerator | [toggle_tracker.md](toggle_tracker.md#togglecolour-red) |
@@ -5775,6 +5807,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleId::RedWall` | enumerator | [override_elements.md](override_elements.md#toggleid-redwall) |
 | `ToggleId::RightWall` | enumerator | [override_elements.md](override_elements.md#toggleid-rightwall) |
 | `ToggleId::Unset` | enumerator | [override_elements.md](override_elements.md#toggleid-unset) |
+| `toggleIdsProblem` | free function | [toggle_camera.md](toggle_camera.md#toggleidsproblem) |
 | `toggleImage` | free function | [override_mirror.md](override_mirror.md#toggleimage) |
 | `toggleIndex` | free function | [override_elements.md](override_elements.md#toggleindex) |
 | `toggleName` | free function | [override_elements.md](override_elements.md#togglename) |
@@ -5783,6 +5816,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TogglePlace::inY` | field | [override_elements.md](override_elements.md#toggleplace-iny) |
 | `TogglePlace::x` | field | [override_elements.md](override_elements.md#toggleplace-x) |
 | `TogglePlace::y` | field | [override_elements.md](override_elements.md#toggleplace-y) |
+| `TogglePoseBound` | struct | [toggle_visit.md](toggle_visit.md#struct-toggleposebound) |
+| `TogglePoseBound::headingToleranceDeg` | field | [toggle_visit.md](toggle_visit.md#toggleposebound-headingtolerancedeg) |
+| `TogglePoseBound::poseTolerance` | field | [toggle_visit.md](toggle_visit.md#toggleposebound-posetolerance) |
 | `ToggleTracker` | class | [toggle_tracker.md](toggle_tracker.md#class-toggletracker) |
 | `ToggleTracker::ToggleTracker` | function | [toggle_tracker.md](toggle_tracker.md#toggletracker-toggletracker) |
 | `ToggleTracker::update` | function | [toggle_tracker.md](toggle_tracker.md#toggletracker-update) |
@@ -5812,6 +5848,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleView::toggleIndex` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-toggleindex) |
 | `ToggleView::why` | field | [toggle_tracker.md](toggle_tracker.md#toggleview-why) |
 | `toggleVisit` | free function | [toggle_visit.md](toggle_visit.md#togglevisit) |
+| `toggleVisitBlockProblem` | free function | [toggle_visit.md](toggle_visit.md#togglevisitblockproblem) |
 | `toggleVisitCeilTick` | free function | [toggle_visit.md](toggle_visit.md#togglevisitceiltick) |
 | `toggleVisitNeedSeconds` | free function | [toggle_visit.md](toggle_visit.md#togglevisitneedseconds) |
 | `ToggleVisitProblem` | enum class | [toggle_visit.md](toggle_visit.md#enum-class-togglevisitproblem) |
@@ -5896,6 +5933,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleVisitVerdict::OursAfterShortStroke` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-oursaftershortstroke) |
 | `ToggleVisitVerdict::RetractedForTime` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-retractedfortime) |
 | `ToggleVisitVerdict::SeenNotOurs` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-seennotours) |
+| `ToggleVisitVerdict::SpotsTooClose` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-spotstooclose) |
 | `ToggleVisitVerdict::StillNotOurs` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-stillnotours) |
 | `ToggleVisitVerdict::UnknownAfter` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-unknownafter) |
 | `ToggleVisitVerdict::UnknownBefore` | enumerator | [toggle_visit.md](toggle_visit.md#togglevisitverdict-unknownbefore) |

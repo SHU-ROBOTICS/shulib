@@ -133,6 +133,7 @@ nav:
           - Timing and partners: cookbook/03-timing-and-partners.md
           - Routes for a tank: cookbook/04-drivetrains.md
           - Mixing the two styles: cookbook/05-mixing-tiers.md
+          - Skills routes and the Toggles: cookbook/08-skills-toggles.md
           - One route, two robots: cookbook/09-one-route-two-robots.md
   - Mechanisms:
       - Declare, drive and tune a mechanism: guide/18-mechanisms.md
@@ -392,6 +393,7 @@ nav:
           - Camera geometry: api/camera_geometry.md
           - Override elements: api/override_elements.md
           - Piece finder: api/piece_finder.md
+          - Toggle camera: api/toggle_camera.md
           - Toggle tracker: api/toggle_tracker.md
 # END GENERATED API NAV
 

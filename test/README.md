@@ -200,6 +200,14 @@ documented here and in their own headers:
   `test/mirrored_auton_test.cpp`. Self-contained: it includes no `src/` file, not even through a rig (its
   weak side is a COPY of `auton_tester_rig.hpp`'s, because that rig includes robot two's mechanism list), so
   it compiles against the base: change it and re-measure on a clean archive of the base.
+- **`test/toggle_robot_rig.hpp`** (AF1S-A2) — "the robot plugged in" for the Toggle step's EVERYDAY form: a
+  REAL `robot::Robot` built from a robot file that declares the camera and its Toggle block (and a flipper arm
+  and a stall-homed cascade, namespace `toggle_robot` — the cookbook recipe's robot), over the fake provider,
+  run through `competition::runAuton` on the competition program's own chain (Chassis -> RunGuard ->
+  MechanismService -> the world). The world steps the drive plant, the flipper's and the cascade's arm plants
+  and one `sim::TogglePlant` per wall a test asks for, then renders the host camera model from the TRUE pose and
+  hands that frame to the provider's own fake camera, so the Robot's feed reads exactly what the plant published.
+  Its users: `test/toggle_visit_ctx_test.cpp`, `test/robot_toggle_camera_test.cpp`, cookbook-08a.
 
 ## The route preview (since RPV1-A)
 

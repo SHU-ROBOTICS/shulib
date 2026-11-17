@@ -71,6 +71,12 @@ not here.
 | [An arm with presets, held while the robot drives](07-mechanisms.md#an-arm-with-presets-held-while-the-robot-drives) | An arm or a lift must get to a height and stay there while the robot drives |
 | [Start the lift partway through a drive](07-mechanisms.md#start-the-lift-partway-through-a-drive) | A mechanism should start partway along a drive — not before it, not after it |
 
+## [Skills routes](08-skills-toggles.md)
+
+| Recipe | Use this when |
+|---|---|
+| [A skills route that visits the Toggles](08-skills-toggles.md#a-skills-route-that-visits-the-toggles) | Your skills route should flip each Toggle to its Quadrant's colour, checking with the camera first |
+
 ## [One route, two robots](09-one-route-two-robots.md)
 
 | <a id="9--one-route-two-robots"></a>Recipe | Use this when |

@@ -646,10 +646,19 @@ Quadrant colour). What to do for each:
   (ours)`** — nothing was pushed. Both end `seating not checked`: the camera cannot see whether the Toggle sits
   flat — watch it at the bench ([Chapter 14](14-what-it-cannot-do-yet.md)).
 - **`wall not checked (relative start)`** — the route started RELATIVE, so the step could not check the robot
-  faces the named Toggle's wall. Use a FIELD start for a skills route.
+  faces the named Toggle's wall. Use a FIELD start for a skills route. **`wall and position not checked
+  (relative start)`** — the same, and the route stated a pose bound, which the step dropped: under a RELATIVE
+  start the estimate is not in the field's frame, so the camera's position check cannot run.
 - **`not a SKILLS auton (MATCH)`** — the step runs only in a skills auton.
-- **`no camera -- <why>`** — no camera feed, an unmeasured mount, or a tracker number refused (the sentence
-  names it).
+- **`no camera -- <why>`** — the robot file declares no Toggle block, no camera, a camera mount that is not
+  measured, a tracker or read-period number refused, a colour id the camera is not taught, or a camera that was
+  not built at boot (the sentence names it, cut to 100 characters; `robot.toggleCameraAbsence()` has it whole,
+  and the boot line's camera words end `toggles OFF (<the same reason>)` where a program prints that line —
+  [Chapter 20](20-the-camera.md#the-robot-files-toggle-block)).
+- **`spots too close -- lookFrom - pushFrom L in, needs more than 2 x frozenMoveIn F in`** — the route's look
+  and push spots are too close for the robot file's Toggle block: the look after a push could not see a frozen
+  camera. Nothing was read or moved. Move the look spot out or the push spot in, or re-check `frozenMoveIn`
+  ([Chapter 20](20-the-camera.md#step-0-the-numbers-the-team-measures)).
 - **`flipper not ready -- '<name>' <why>`** — not on this robot, absent at boot, not homed, still running a
   step, or not at its back position. The step never moves it there: put it there in the route first.
 - **`wrong wall -- heading H deg, its wall is at W deg`** — a FIELD start, and the robot faces more than 45
@@ -668,8 +677,9 @@ Quadrant colour). What to do for each:
   means the camera had colours, but none from after the flipper came back and the camera moved.
 - **`<colour> after a SHORT stroke (push STALLED)`** — it reads ours, but the push stopped short: it may be
   stuck part-way. Not counted.
-- **`FLIPPER STUCK`** — the retract did not reach `back`; the robot stays where it is (driving out would drag
-  the Toggle). The route's next step decides — retract again with a longer bound, then back off.
+- **`FLIPPER STUCK`** — the retract did not reach `back`; the robot stays where it is, at the push spot (driving
+  out would drag the Toggle). The route's next step decides — retract again with a longer bound, then back off
+  STRAIGHT before any turn ([the recipe](../cookbook/08-skills-toggles.md)).
 - **`retracted for time`** — time ran short while the flipper was out: it came back at once and the robot
   drove off the Toggle.
 - **`the drive in|out did not arrive`** — the step's own straight drive timed out (`driveBound`) or was

@@ -158,6 +158,9 @@
 - <a id="look-ahead"></a>**look-ahead** — how far along a curve's path, past its closest point, the robot aims each tick
   (`MotionConfig::curve.lookAhead`, 8 in by default): shorter tracks tighter bends and wobbles more,
   longer is steadier and cuts tight bends. The other number a team tunes for curves. → [Driving, turning and curves](05-getting-there.md)
+- <a id="look-spot"></a>**look spot (the Toggle step's)** — where a skills route parks the robot to look at a Toggle: square to
+  its wall, centred on it, the camera's lens `lookFrom` from the Toggle's face (about 14–24 in — the team's
+  number from Step 0). Not the push spot: close in, the camera cannot name the colour. → [The camera and the Toggle](20-the-camera.md)
 - <a id="mahalanobis-distance"></a>**Mahalanobis distance** — how far a measurement disagrees with the estimate, measured in units
   of *how wrong the estimate could plausibly be* rather than in inches. Two inches is a lot when
   the estimator is sure of itself and nothing at all when it has been driving blind. The Kalman
@@ -229,6 +232,12 @@
 - <a id="pure-pursuit"></a>**pure pursuit** — the way the curve verbs steer: every tick, aim along the arc that carries the
   robot through the point a look-ahead ahead of it on the path. LemLib's `follow` works the same way;
   in this library only `curveTo` / `reverseCurveTo` steer toward a point at all. → [Driving, turning and curves](05-getting-there.md)
+- <a id="push-spot"></a>**push spot (the Toggle step's)** — where the flipper (or a fixed bar) reaches the Toggle: the lens
+  `pushFrom` from its face, a few inches. The step itself drives straight in to it from the look spot and
+  straight back out. → [The camera and the Toggle](20-the-camera.md)
+- <a id="quadrant-colour"></a>**Quadrant colour (a Toggle's)** — the colour a Toggle must show to help in a SKILLS run: its own
+  Quadrant's (the red and right walls' Toggles RED, the blue and left walls' BLUE — a reading of the
+  manual's drawings, HA-243). The step looks it up from the Toggle's name; it is never typed. → [The camera and the Toggle](20-the-camera.md)
 - <a id="rate-limiting"></a>**rate limiting** — capping diagnostic output volume, with every dropped line counted and
   announced. → [Reading the log](11-reading-the-diagnostics.md)
 - <a id="read-fault"></a>**read fault** — a sensor read the adapter screened because the device failed: a scalar sensor
@@ -333,6 +342,10 @@
 - <a id="timed-run"></a>**Timed Run** — the controller's own way to start a pretend match from its program menu: the
   competition program's start on the bench. A program started that way comes up disabled; what the
   Timed Run does next is not yet measured (the Hardware Assumptions Register, HA-162). → [Match day](17-the-competition-program.md)
+- <a id="toggle-block"></a>**Toggle block (the robot file's)** — `sensors.toggleCamera`, beside the camera's block: the Toggle
+  tracker's numbers and the camera's read period, from which the Robot builds the skills Toggle step's
+  camera. UNSET until typed; one the step cannot use never stops the robot — every visit is NO CAMERA,
+  naming why (`robot.toggleCameraAbsence()`). → [The API in words](10-the-api.md), [The camera and the Toggle](20-the-camera.md)
 - <a id="tolerance"></a>**tolerance** — the "close enough" threshold in settling. → [Driving, turning and curves](05-getting-there.md)
 - <a id="tolerance-box"></a>**tolerance box** — every combination of the camera's stated errors (its height, pitch and yaw, each
   of the optics' two focal lengths on its own, a box edge's jitter) up to their limits; every camera

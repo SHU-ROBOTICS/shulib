@@ -4,7 +4,8 @@
 > to use it, what it does when things go wrong, and the gotchas — and, since the mechanism core's
 > first part, how a robot's mechanisms are declared and wired, since the camera's first part, how the AI Vision
 > camera is declared and read, and since the wall reset (L6), how one coordinate is re-seated against a field
-> wall from a side distance sensor, how the robot file declares its side sensors, and the call an auton makes. It is deliberately selective
+> wall from a side distance sensor, how the robot file declares its side sensors, and the call an auton makes,
+> and since the skills Toggle step's second part, the camera's Toggle block and the step's call from an auton. It is deliberately selective
 > rather than exhaustive: construction and the advanced accessors are covered where they matter
 > and skipped where they do not. The [generated API reference](../api/README.md) is the
 > exhaustive one, and it cannot disagree with the code. Plus typed units, per-call options, and the escape
@@ -647,7 +648,8 @@ placement checks included), stops the WHOLE robot from building: the program log
 measured mount shows at the first boot — boot the robot once after every edit to the block, never first
 at a match.
 
-**The Robot builds them** — last, after the camera — through the provider's `distance(port)` and
+**The Robot builds them** — after the camera, the last devices it asks the provider for (the Toggle
+camera's slot, filled after them, asks for nothing) — through the provider's `distance(port)` and
 `readFaults(port)`:
 
 ```cpp
@@ -663,7 +665,7 @@ const char* why = robot.wallSensorAbsence(localization::WallSide::Right);
 sensor (the host's fake provider says "port 5 has no distance sensor"). **A refused side sensor never refuses the robot** — a cable
 out must not cost a match — and neither does a provider that throws making one. `robot.wallSensors()`
 is both sides, the limits and the robot's **reset log** (how many resets SEATED and REFUSED, and the
-last report — what the Auton Tester will show). The context carries it as its one OPTIONAL slot,
+last report — what the Auton Tester will show). The context carries it as its first OPTIONAL slot,
 `RobotContext::wallSensors()` — nullptr when the robot file declares no side, and then every reset
 from a FIELD-start auton refuses `no sensor` (the start is judged first: a RELATIVE one refuses `not a
 field start`). The boot line says which sides exist, between `tags ABSENT` and the camera's words:
@@ -963,6 +965,39 @@ the robot stopped.
 all new with the camera — among them the frame's freshness and the image's age (HA-192), the optics
 (HA-194), the AI model kept on the sensor and named as VEX spells it (HA-197), and the Toggle's shape
 (HA-201). The camera's bench page settles them.
+
+### The Toggle block, and the skills Toggle step from an auton
+
+**The robot file's Toggle block** (`vision::ToggleCameraConfig`, in `sensors.toggleCamera`, beside
+`sensors.camera`): the Toggle tracker's numbers (`tracker`) and the camera's read period (`feed`) — every one
+UNSET until typed, and a file without one builds exactly the robot it did. `RobotConfig::valid()` does not
+check it: a block the step cannot use costs the step its camera, never the robot its boot.
+`vision::toggleCameraProblem(sensors.camera, sensors.toggleCamera)` checks it at build in a `static_assert`.
+
+**The Robot builds the step's camera** (`vision::ToggleCamera`: one feed, the model of the measured mount, the
+tracker's numbers) after everything else, asking the provider for nothing more. `robot.toggleCamera()` is it,
+or nullptr; `robot.toggleCameraAbsence()` is "" exactly when it is built, otherwise the first reason in order —
+no block declared, no camera, the mount UNSET (or past the geometry's limit), a tracker or read-period number
+refused, a colour id the camera's block does not teach, the camera not built. The auton's context carries it as
+its second optional slot (`chassis.deps().ctx->toggleCamera()`, beside the wall sensors'). With a block
+declared, the boot line's camera words (`Robot::describe()` — which the brain's programs print cut to 220
+characters, and the competition program not at all; the visit's `[TGL]` line carries the reason too) end:
+
+```text
+... walls ABSENT camera port 3 set up, objects off, toggles ready
+... walls ABSENT camera port 3 set up, objects off, toggles OFF (the camera's mount is UNSET -- measure it from the robot's tracking centre and type it)
+... walls ABSENT camera port 3 ABSENT (port 3: nothing plugged in (expected an AI Vision sensor)), toggles OFF (the camera was not built (the boot line's camera words say why))
+```
+
+**The step from an auton:** `competition::checkAndFlipToggle(ctx, request)` — a `then()` returns its
+`.outcome()` — and `competition::lookAtToggle(ctx, request)`, the look alone. A MATCH auton is refused first;
+no camera slot, or one not built, is `no camera` naming why. An optional third argument,
+`competition::TogglePoseBound`, states how far the estimate may be off — with it, under a FIELD start, the
+Toggle block's position check (when turned on) runs; without it, or under any other start, it is skipped. The
+request's look and push spots against the block's `frozenMoveIn` are a refusal, `spots too close`, at run time,
+and `competition::toggleVisitBlockProblem(request, block)` checks the pair at build. What the step does is
+[chapter 20](20-the-camera.md#checking-and-flipping-a-toggle-in-a-skills-route)'s; a whole route is
+[cookbook chapter 8](../cookbook/08-skills-toggles.md).
 
 ## Gotchas, collected
 

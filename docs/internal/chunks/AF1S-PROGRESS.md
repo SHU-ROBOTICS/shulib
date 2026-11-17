@@ -1,6 +1,6 @@
 # AF1-S — PROGRESS (live log)
 
-<!-- release: between parts — AF1S-A1 landed 2026-11-13 (5f6633b); AF1S-A2 (the camera reachable from an auton) is queued, not started (declared by the coordinator 2026-11-13 for the first release since August) -->
+<!-- release: between parts — AF1S-A1 and AF1S-A2 landed (the checked Toggle step, from an auton); robot one's Toggle block (its camera numbers, Step 0) and the driver-control auto-flipper come after (declared by the coordinator 2026-11-17) -->
 
 Brief: [`AF1S-skills-toggle-check-flip.md`](AF1S-skills-toggle-check-flip.md). Executor model: `opus`. Nothing
 committed by the executor. Host only: nothing here has run on a robot.
@@ -408,3 +408,586 @@ self-test OK and check current. (Logs: `scratch/af1s-a1/verify/g_*.log`; the scr
   after-look, MT4 the after-look accepted without backing off past the frozen move. The restored tree relinked and ran green.
 - **AF1S-A1 LANDED.** Nothing has run on a robot; no Toggle, flipper or camera reading of a real Toggle exists. Next:
   AF1S-A2 (the camera reachable from an auton), then a team's skills route can call `checkAndFlipToggle`.
+
+## AF1S-A2
+
+**Base:** worktree `.claude/worktrees/af1s-a2`, branch `af1s-a2`, at `9befdb3` (main: API 2.8 — L6-A2, VIS1-A2, AF1S-A1,
+STEP1-A/B, ROB1-A, the homing fix 49822e5, RPV1-A all landed). Started 2026-11-15 18:53 EST (`date` read). Executor
+model: `opus`. Nothing committed by the executor. Host only: nothing here has run on a robot.
+
+The between-parts release marker at the top of this file was REMOVED as this run started (the coordinator restores or
+completes it at the merge).
+
+### Log
+- Created this section first.
+
+- Read RESUMING.md's standing rules; the brief's header and answers block, "Re-check — amendments" R1–R12, D1–D11,
+  §1.1/§1.3/§1.5/§1.6, §2.0–§2.3, §3, §4, §5, §6, §7, §8, §9 in full (§0 by headings — the ruling of 2026-10-22);
+  AF1S-A1's record above in full. Read the code A2 touches: L6-A2's slot pattern in `chassis/robot_context.hpp`,
+  `robot/robot.hpp`, `config/robot_config.hpp`, `motion/motion_scheduler.hpp`, `competition/auton_wall_reset.hpp`;
+  A1's `competition/toggle_visit.hpp`, `test/toggle_visit_rig.hpp`, cookbook-08a; VIS1-A2's `vision/camera_feed.hpp`,
+  `toggle_tracker.hpp`, `camera_geometry.hpp`. In-flight MIRROR1-A's diff to `toggle_visit.hpp` read (read only).
+- Base build (`cmake -S test -B build/test`, full build, 0 warnings) and the suite through `tools/suite_run.py green`
+  with the first code edits in place: `green — 3701 cases` (the base's own count — nothing broke).
+- DELTA (found writing the code): **the context's slot cannot be "null on any refusal"** (the brief §1.3). The motion
+  scheduler's shadow context copies every slot pointer when the CHASSIS is built — in robot::Robot's member
+  initializers — and the camera is built in the Robot's BODY, last (VIS1-A1's order). So, exactly L6-A2's wall slot
+  (present when DECLARED; a side ABSENT inside it): the context's pointer is set from the CONFIG (the Toggle block
+  declared), the object (`vision::ToggleCamera`) is filled in the body, and `ready()` says whether it was built. The
+  brief's "built, or null, with its sentence" is `robot::Robot::toggleCamera()` / `toggleCameraAbsence()`. The
+  everyday step reads a present-but-not-ready slot as NO CAMERA with the slot's own sentence (better than "no camera":
+  the [TGL] line says WHY).
+- DELTA: **the Toggle block sits BESIDE the camera's block** (`config::SensorsConfig::toggleCamera`, type
+  `vision::ToggleCameraConfig`), not inside `config::CameraConfig` (§1.3): `config/camera_config.hpp` is included by
+  `vision/toggle_tracker.hpp` and `vision/camera_feed.hpp`, so CameraConfig cannot hold their types — a circular
+  include (R9's lesson for the Quadrant colours). One NEW header, `vision/toggle_camera.hpp`: the block, its ONE check
+  order (`toggleCameraCheck` / `toggleCameraProblem`, constexpr — a robot file may static_assert it), and the slot.
+- DELTA: the slot holds the tracker's CONFIG, not a `ToggleTracker` (§1.3 named the tracker): A1 builds a FRESH
+  tracker per visit (its delta 1), so a stored tracker would be unused.
+- DELTA (added check): the tracker's three colour ids must be colours the camera's settings WRITE — an id the camera
+  is never taught reads UNKNOWN for ever (a typo nothing else catches).
+- DELTA (added): an optional third argument to the everyday form, `competition::TogglePoseBound` — without it the
+  robot file's position gate (D6 (c), recommended after a wall reset) could never run from an auton (the explicit
+  form's `poseTolerance` 0 = none stated). Default = none (the gate skipped), so the brief's two-argument form is
+  exactly the brief's. Also `lookAtToggle(ctx, ...)` (the everyday look-only form). `ExplicitToggleCamera` gains an
+  APPENDED `absence` (the NO CAMERA line's words).
+- The slot asks the provider for NOTHING (it uses the context's clock and the camera built above): the boot's
+  requests are unchanged request for request (a test pins it).
+- LESSON (re-learned from A1's log): `make shulib_tests/fast` skips CMake's dependency consolidation, so a HEADER
+  edit did not recompile the objects including it — an ODR mix of old and new `Robot::cameraWords` made a test fail
+  for a reason that was not in the code. Every dev build since runs the `depend` step first
+  (`scratch/af1s-a2/devbuild.sh`); every mutation verdict will check every dependent object was rebuilt.
+- Code (2026-11-15): NEW `vision/toggle_camera.hpp` (`ToggleCameraConfig` + `declared()`, `ToggleCameraCheck`,
+  `toggleIdsProblem`, `toggleCameraCheck` / `toggleCameraProblem` — ONE check order, constexpr —, `ToggleCamera` the
+  slot, `kToggleCameraReasonBytes`); `chassis/robot_context.hpp` (the forward declaration, the appended
+  `RobotContextConfig::toggleCamera`, `RobotContext::toggleCamera()`); `motion/motion_scheduler.hpp` (ONE line: the
+  shadow context carries the slot — the comment beside it says "Toggle camera" so §7's `grep -n 'toggleCamera'` finds
+  exactly that line); `config/robot_config.hpp` (`SensorsConfig::toggleCamera`, appended; `valid()`'s note: the block
+  is NOT checked there); `robot/robot.hpp` (the banner's TOGGLE CAMERA section; `toggleCam_` declared before the
+  context; the context's slot from the config; `toggleCam_.build(...)` LAST in the body with the CONTEXT's clock — no
+  provider call; `toggleCamera()` / `toggleCameraAbsence()`; the boot line's `, toggles ready` / `, toggles OFF (why)`
+  only with a block declared, appended BY HAND after the camera's own words, which stay bounded at their old 224
+  bytes — `kCameraOwnWordsBytes`); `competition/toggle_visit.hpp` (the banner's "Two forms, ONE body";
+  `ExplicitToggleCamera::absence` appended; rule 1's NO CAMERA takes it; `TogglePoseBound`; `detail::toggleCameraOf`;
+  `checkAndFlipToggle(ctx, request, bound = {})` and `lookAtToggle(ctx, request, bound = {})` — both run the SAME
+  `detail::ToggleVisit` as the explicit form).
+- Tests: NEW `test/toggle_robot_rig.hpp` (a real Robot over the fake provider, the competition program's chain,
+  the provider's fake camera fed the host camera model's frame from the TRUE pose every pace; the recipe robot's
+  `toggle_robot::flipper` / `cascade`), `test/robot_toggle_camera_test.cpp` (10 cases), `test/toggle_visit_ctx_test.cpp`
+  (9 cases); `test/cookbook_examples_test.cpp`'s cookbook-08a REWRITTEN in the everyday form (A1's version over the
+  explicit form replaced, as A1's log said it would be). Suite: `green — 3720 cases, 3864009 assertions` (3701 + 19).
+- DELTA (tests): `test/boot_source_test.cpp` and `test/robot_camera_test.cpp` (§1.5) are NOT changed: their pins are
+  robots with no Toggle block, whose boot line is unchanged byte for byte; the Toggle words are pinned in
+  `robot_toggle_camera_test.cpp`, which also pins that a block-less line equals the block's line less its words.
+- DELTA (the recipe's robot): the cookbook's robot is the TEST's (`toggle_robot`, a motor-arm flipper and a stall-homed
+  two-motor cascade with a measured shape — RPV1-B1's cascade-like declaration), not robot one's (robot one's camera
+  block, tracker numbers and flipper are G1/ROB1-C's — the task's ruling). The recipe's cascade starts 3 in up at boot
+  so its home (~2.3 s) outlasts the first leg (~1.6 s): without `waitUntilDone` the move would replace the home
+  (M-RCP below proves the order).
+- DELTA (docs): a NEW figure, `docs/assets/skills-toggle-look-spots.png`, generated by a NEW
+  `tools/docs_figures/skills_toggle_route.py` over the manual's field (the team lead's 11-13 "docs need visuals" rule,
+  newer than the brief) — so §7's `git diff --stat -- tools/` is NOT empty: exactly this one new docs-figure script.
+- Docs (same change): changelog (top of `## API 2.8`); NEW `docs/cookbook/08-skills-toggles.md` (+ its README row, +
+  mkdocs nav "Skills routes"); guide 10 (a section "The Toggle block, and the skills Toggle step from an auton";
+  "its one OPTIONAL slot" → "first"; the Covers line); guide 15 (look spot, push spot, Quadrant colour, Toggle block);
+  guide 20 (the banner's "What exists", the section's "No team auton can call it yet" replaced, a NEW subsection "The
+  robot file's Toggle block", a pointer under "The team's numbers"); guide 11 (NO CAMERA's reasons); guide 14 (its
+  "No team auton can call it yet" replaced); test/README.md (the new rig); the internal worksheet (NEW Station T —
+  Step 0.1–0.7); roadmap ("Now" note, the `[~]` AF1S-A2 line, F15's file list); build-order Next block; REMAINING-WORK
+  18e-S; `docs/api/` regenerated (NEW `toggle_camera.md`); PROJECT-BRIEFING regenerated.
+- Public docs touched: SEVEN (changelog, cookbook 08 + its README row, guides 10, 11, 14, 15, 20) plus test/README and
+  the roadmap — over rule 7's ~5: guides 11, 14 and 20 each said "no team auton can call it yet" / NO CAMERA's old
+  reasons, which this run made false (rule 4: fix what is stale, in the same change). NOT touched, deliberately:
+  guide 21 ("No camera ... nothing reads it" on robot one — still true: robot one's camera block is G1/ROB1-C's);
+  `docs/hardware-assumptions.md` (no new belief: A2 adds no HA; the §4 rows are A1's).
+- MUTATIONS (`scratch/af1s-a2/mut.py`; results `mut/mutations.log`, `mut/run1.out`, `mut/run2.out`, per-mutant
+  outputs `mut/out_<id>.txt`, judged by `scratch/af1s-a2/analyze.py` — a case counts RED only by an ERROR/FATAL
+  assertion under its own header). Each mutant: the file backed up in scratch, ONE exact replacement (matched once),
+  mtime bumped, CMake's `depend` step THEN the build (never `/fast` alone — the ODR lesson above), every object whose
+  depfile names the mutated file (nested src/ objects included: 145 for motion_scheduler.hpp, 111 for
+  toggle_camera.hpp, 29 for robot.hpp, 7 for toggle_visit.hpp, 1 for the cookbook test) AND the binary checked newer
+  than the mutation (none was stale; no verdict was discarded), the WHOLE suite binary run under 4 GiB / 600 s,
+  restored in a finally and on SIGTERM/SIGHUP/SIGINT, mtime bumped, and compared byte for byte with its backup
+  (identical, every time). No mutant broke its own build. **20 mutants, 20 CAUGHT by assertion:**
+  - **M-A2-1** (the shadow context's line dropped): 10 cases red — cookbook-08a, the Robot's "slot READY" and "each
+    refusal" (the chassis's slot is not the Robot's), every ctx case (the slot from inside the auton is nullptr; the
+    RELATIVE-start skills auton does not flip — NO CAMERA). The FIRST run also ended in a SIGSEGV: the "TWO forms" case's
+    explicit helper dereferenced the null slot — MY TEST's fragility, not a verdict. Fixed (the helper records the slot
+    and never dereferences a null one; the case REQUIREs it non-null) and re-run on a fresh build: CAUGHT by assertion,
+    no crash.
+  - **M-A2-2a** (a refused block REFUSES THE ROBOT: the constructor throws) — 9 cases red (each refusal, the order,
+    declared(), the build-time check's agreement, valid(), the boot line, the ctx MATCH / NO CAMERA / refused-camera).
+  - **M-A2-2b** (valid() refuses a declared block with a problem) — 8 cases red (the same, by the config's door).
+  - **M-A2-3** (the slot built on an UNMEASURED or past-the-limit mount) — 3 cases red (each refusal, the order, the
+    boot line). The ctx tests do NOT catch it, and should not: the step's own rule 1 refuses an unmeasured mount with
+    the same sentence (defence in depth) — the slot's readiness is the Robot's, pinned in robot_toggle_camera_test.
+  - **M-RCP** (the recipe's `r.waitUntilDone(cascade, 4_s)` dropped) — cookbook-08a red: the route STOPS at step 4
+    (`cascade`), the move sent while the cascade was still homing (the home ~2.3 s, the first leg ~1.6 s).
+  - X1 (the colour-id cross-check dropped) — each refusal, the order. X2 (declared() misses the feed's period) — the
+    declared() sweep. X3 (the everyday form ignores the pose bound) — the pose-bound case. X4 (the everyday NO CAMERA
+    loses its reason) and X5 (rule 1 ignores the caller's words) — the NO CAMERA case and the refused-camera case.
+    X6 (the Toggle words with no block) — 15 cases, robot_camera_test's / builder / L6 boot lines among them. X7 (the
+    camera's own words unbounded) — the boot-line case. X8 (Robot::toggleCamera() hands out a slot not ready) — 3.
+    X9 ("the camera was not built" before the file's checks) — each refusal, the order. X11 (the context's slot handed
+    in with no block) — the no-block case. X12 (the everyday form decides NO CAMERA before rule 1) — the MATCH case and
+    the NO CAMERA case. X13 (the slot without the block's tracker numbers) — 7. X14 (the slot fillable twice) — the
+    object case. X15 (the everyday form drops the block's position gate) — the pose-bound case.
+  - **X10** (the slot asks the provider for its clock — `devices.clock()` for `ctx_.clock()`) SURVIVED its first run:
+    the provider-request test compared the requests WITH a block against those WITHOUT one, and the fill runs in
+    both, so any request it makes appears in both lists alike. The test now also requires NOTHING after the camera's
+    request in either list; re-run on a fresh build: CAUGHT (`with.back()` read `clock 0`, not `aiVision 3`).
+- PROSE REVIEW (rule 4 — the greps run and their hits READ before this line was written):
+  - `grep -rn -i 'robot_context|RobotContextConfig|optional slot|one optional|only optional|first optional'` over
+    docs/*.md, docs/guide, docs/cookbook, README.md, test/README.md: guide 10 :662 said the wall slot was the
+    context's "one OPTIONAL slot" — FIXED ("first"); roadmap :1339/:1340/:1749/:1760 (history of R3b and A-phase),
+    :1877 (L6-A2's line) — true, left; the changelog's L6-A2 and VIS1 entries — history, left.
+  - `grep -rn -i 'no team auton|explicit form|AF1S-A2|reaches an auton'` over the same and the register: guide 14
+    :464-466 and guide 20 :320-322 said "No team auton can call it yet ... (AF1S-A2)" — REWRITTEN; guide 20's banner
+    ("in its form over explicit handles — an auton reaches the camera in a later part") — REWRITTEN; roadmap :530,
+    :546-550, :1978 — the A1 notes, true of their date, left beside this run's new "Now" note and `[~]` line; the
+    changelog's A1 entry ("No team auton can call it yet") — history, left (this run's entry above it says what changed).
+  - `grep -n -i 'no camera'` over guides 11, 14, 20: guide 11 :618 listed NO CAMERA's old reasons — REWRITTEN with the
+    slot's (no block, no camera, mount, tracker or read period, an untaught id, not built).
+  - `grep -rn -i 'toggles ready|toggles OFF|toggleCamera|Toggle block|TogglePoseBound|ExplicitToggleCamera|lookAtToggle'`
+    over the docs: every hit this run's text or A1's still-true text.
+  - `grep -rn 'camera port 3'` over docs: guide 10's boot-line examples — a block-less robot's line is unchanged, so
+    they stand; this run's examples added beside them.
+  - Guide 21 (`grep -n -i 'flipper|camera'`): ":294 No camera ... the camera's port is written down but nothing reads
+    it" — still true of robot one (its camera block is G1/ROB1-C's); left.
+  - `simulator` in the new and changed lines: only the standard disclaimer in the two new test files.
+  - Removability (`grep -rln 'internal/|chunks/|RESUMING|build-order'` over docs/*.md, docs/guide, docs/cookbook,
+    README.md): empty.
+  - Hardware claims in the new doc lines (`tested|measured|works on the robot|on a robot`): every hit is "NOT run on a
+    robot", or "measured" as a REQUIREMENT on the mount ("its mount MEASURED"), never a claim.
+
+**The version history paragraph (for `include/shulib/version.hpp` — the coordinator numbers it at the merge; NOT
+written into version.hpp here, as the task said; MIRROR1-A is also additive and in flight):**
+
+> N = chunk AF1S-A2 (built 2026-11-15), the skills Toggle step from an auton, all additive and no frozen row touched
+> (RobotContext is outside F4, the scheduler's shadow context outside F6's accessors, competition/ and vision/ open by
+> design — F15): the new header vision/toggle_camera.hpp (`ToggleCameraConfig`, `toggleCameraCheck` /
+> `toggleCameraProblem`, `ToggleCamera`); `config::SensorsConfig::toggleCamera` (appended, with a default);
+> `chassis::RobotContextConfig::toggleCamera` / `RobotContext::toggleCamera()` (appended; the motion scheduler's shadow
+> context carries it); `robot::Robot::toggleCamera()` / `toggleCameraAbsence()`; `competition::checkAndFlipToggle(ctx,
+> request, bound)` / `lookAtToggle(ctx, request, bound)`, `competition::TogglePoseBound`, and the appended
+> `ExplicitToggleCamera::absence`. A robot file with no Toggle block builds the same robot, its boot line byte for byte;
+> every 2.8 program compiles and runs exactly as before. Nothing to do. docs/changelog.md, API 2.N, lists it.
+
+**For the coordinator (the merge):**
+- **API:** additive; the changelog entry sits at the top of `## API 2.8` — renumber with MIRROR1-A's at the merge. The
+  task called it "F6/F10-additive": A2 touches NEITHER F6 nor F10 (no `Chassis` or `Routine` member changed; the
+  signature pins are untouched).
+- **MIRROR1-A (in flight) — ASSUMED, not tested here:** the everyday form passes `ctx.entry` to the SAME
+  `detail::ToggleVisit` as the explicit form, and MIRROR1-A's `realRequest` (in that class's constructor) swaps the Toggle
+  for a mirrored entry — so a mirrored route's everyday visit reads the real Toggle with no code of A2's. The camera slot
+  is the robot's own (nothing to mirror). Owed by whichever lands second: one everyday-form visit under a mirrored entry
+  (robot two at the right wall for robot one's red wall). Shared files to merge by hand: `toggle_visit.hpp` (its ctor /
+  `req_` vs this run's banner, `ExplicitToggleCamera`, rule 1's NO CAMERA line, the new forms at the end);
+  `test/cookbook_examples_test.cpp` (MIRROR1-A appends cookbook-09a after 08a and adds includes; this run REPLACED 08a's
+  body and added `#include "toggle_robot_rig.hpp"`); `mkdocs.yml` and `docs/cookbook/README.md` (each adds its chapter —
+  keep both, 8 before 9); guides 10, 14, 15, 20, the changelog, the roadmap, REMAINING-WORK, build-order (each touched
+  minimally, logged above).
+- **RMP1-A1 (the route builder):** its Toggle steps can generate `competition::checkAndFlipToggle(ctx, request)`
+  (optionally `, {.poseTolerance = .., .headingToleranceDeg = ..}`) returning `.outcome()` from a `then()`; the request
+  through `competition::toggleVisit({...})`; `worstCaseSeconds(request)` for the budget.
+- **ROB1-BT / ROB1-C / G1:** robot one's (and robot two's) camera block and Toggle block are theirs; `src/` is untouched
+  here. A follow-up worth having there: the programs print the banner at `%.220s`, so a long `toggles OFF (...)` reason
+  is cut on the brain's log — print `robot.toggleCameraAbsence()` on its own line when a block is declared.
+- **tools/:** ONE new file, `tools/docs_figures/skills_toggle_route.py` (the docs figure's generator) — §7's
+  `git diff --stat -- tools/` is not empty for that reason only.
+- **HA:** no new belief (A2 adds no HA number); the register untouched; the next free number unchanged.
+- **The between-parts marker** at the top of this file was removed when this run started — restore or complete it.
+- **Reviewers / verifier:** this executor has no way to launch agents; the three reviewers and the fresh verifier are
+  the coordinator's to run on this tree.
+- SRC GATE INCIDENT (2026-11-15 ~21:00, said plainly): the first `src_build_gate.py self-test` ran under `timeout 3000`
+  (SIGTERM) while three other worktrees' gates shared the CPUs; it was killed at 50 min (exit 124) MID-CASE, and its
+  `finally` did not run — it left `src/robots/robot_one_facts.hpp` with every `owed(...)` turned into a "gate copy"
+  `typed(...)` (the self-test's own in-repo case). The `check` that followed was stopped (SIGINT) before it finished,
+  so its result is DISCARDED. The ledger was restored with `git checkout -- src/robots/robot_one_facts.hpp` (this branch
+  changes nothing in `src/`); `git diff -- Makefile src/` empty, no `build/src-gate-facts/`, no
+  `build/ROBOT-ONE-GATE-COPY-ONLY`. Both re-run with `timeout -s INT` (so the gate's `finally` runs on a timeout).
+- FINAL GATES (the tree as left, 2026-11-15 ~22:30): test binary REMOVED, `docs/api/` regenerated, the briefing
+  regenerated with the binary absent, full build (`cmake --build build/test`, the doc gates inside it: api_doc_tool
+  self-test OK, coverage 6422 entities / 212 headers, examples 926 lines verbatim, removability clean, suite_run and
+  briefing self-tests OK; 0 warnings), the briefing regenerated after the binary existed; suite `green — 3720 cases,
+  3864014 assertions` (through `tools/suite_run.py`, 4 GiB / 900 s); `ctest -R compile_refusal` 289/289; ARM header gate
+  rc 0 (256 headers in one TU); CI guards (pros/, sim/) empty; `src_build_gate.py self-test` OK (377 detector cases)
+  and `check` PASS (all 14 builds; robot one's 6 refuse naming exactly their owed facts and link in the typed copy) —
+  `git diff -- Makefile src/` empty afterwards, no `(self-test plant`, no `build/src-gate-facts/`; api_doc_tool
+  self-test / check-coverage / check-fresh (rc 0) / check-examples / check-removability OK; doc_staleness_audit clean;
+  briefing_status check current. The brief's §7 greps: the §1.6 files unchanged; `src/` and `Makefile` unchanged,
+  `tools/` = the one new figure script (delta above); no AF1-A include; no competition/ include from vision/ or
+  mechanism/; nothing of vision/ in the plant; no waitUntil and no blocking verb in the step; `seating not checked`
+  present (6); `grep -n 'toggleCamera' motion_scheduler.hpp` = exactly the shadow context's line (:669);
+  HA-231/232/234/235/243/244/245 each cited and each with its row (unchanged); no unlabelled PROVISIONAL; removability
+  empty.
+- STOPPED HERE (2026-11-15): AF1S-A2 built, NOT committed. For the coordinator: the merge notes above (MIRROR1-A's
+  shared files and the mirrored-visit test owed, the version paragraph, the one tools/ file, the restored marker), and
+  the three reviewers and a fresh verifier.
+
+### AF1S-A2 review findings and their disposition
+
+- **RESUMED 2026-11-16 02:10 EST** (`date` read) — the builder again, after the first fix run was stopped by the
+  usage limit. What the stopped run left, checked before anything else: (1) the worktree had been MOVED onto main's
+  tip `28a7497` (MIRROR1-A, API 2.9, and the Tune label fix) at 2026-11-15 22:51 (`git reflog`: "reset: moving to
+  28a7497"); the pre-move tree is saved in `scratch/af1s-a2/rebase/` (`a2-tracked.patch`, `a2-fulltree-changed.tgz`,
+  `a2-untracked.tgz`). Checked by a three-way merge of every changed file (the saved A2 copy, base `9befdb3`,
+  `28a7497`): 18 files equal a clean merge exactly; 6 had conflicts and were resolved by hand, each read — the
+  cookbook README, `mkdocs.yml` and the cookbook test's index (both chapters kept, 8 before 9), `test/README.md`
+  (both rigs' paragraphs), guide 20 (MIRROR1-A's "In a mirrored auton" paragraph kept, before A2's Toggle-block
+  subsection), REMAINING-WORK's 18e-S row (A2's wording, a superset of MIRROR1-A's untouched row); the 8 new files
+  are byte-identical to the saved copies. The generated files (`docs/api/`, the briefing) were NOT carried — they are
+  regenerated below. (2) No mutation left applied: every file `mut.py` backed up equals the pre-move copy (one,
+  `toggle_camera.hpp`, differs from its backup only by a later, logged comment — X2's fix), and the current files
+  equal the clean merge; the reviewers mutated their own copies (`review-*/tree`), never this worktree.
+  (3) `git diff -- Makefile src/` empty, no `(self-test plant`, no `build/src-gate-facts/`, no
+  `build/ROBOT-ONE-GATE-COPY-ONLY`. (4) The test binary REMOVED and relinked from source by a full build before any
+  suite result below is trusted. No disposition had been logged by the stopped run; every finding is taken below.
+- **Baseline on the moved tree** (before any fix, binary relinked from source): `suite run: green — 3772 cases,
+  3884248 assertions` (main's 28a7497 brings MIRROR1-A's cases; A2's 19 included).
+
+| # | Finding (lens, severity) | Disposition |
+|---|---|---|
+| 1 | correctness, MAJOR — the excursion vs the robot file's `frozenMoveIn` is a precondition in the everyday form: a two-file mismatch THROWS out of `then()`/the Routine/`runAuton` (no onFail, no line, the run lost) while the slot says READY | **REAL — fixed at the root, a DELTA from the brief's §1.1 ("a run-time PRECONDITION otherwise"), FLAGGED for the coordinator / team lead.** The reviewer's probe's scene became a test (with the old code its `REQUIRE_NOTHROW(w.run(...))` fails — mutant F1-THROW below). The everyday form now answers a NEW appended verdict `ToggleVisitVerdict::SpotsTooClose` ("SPOTS TOO CLOSE") at rule 1's same place (after the camera's own checks, before FLIPPER NOT READY): nothing read or moved, `outcome()` UNCONFIRMED so the route's `onFail` applies, ONE Warn line naming both numbers (`spots too close -- lookFrom - pushFrom 12.0 in, needs more than 2 x frozenMoveIn 6.0 in -- nothing pushed`). The EXPLICIT form keeps A1's precondition (one caller holds both numbers — a programming error; A1's pinned case unchanged): ONE body, a `detail::VisitForm` the everyday calls pass. NEW `competition::toggleVisitBlockProblem(request, block)` (constexpr) checks the pair at build — shown in cookbook chapter 8 as a `static_assert`. Tests: the EQUALITY edge (frozenMoveIn 6.0, excursion 16 − 4 = 12) through a real Robot and `runAuton` with `onFail(skipTo("next"))` — refused, the skip applied, reads 0, strokes 0, one Warn line, for the flip AND the look; one ulp under (`nextafter(6, 0)`) it flips; the constexpr pair at the edge (static_assert and run time), an undeclared / unset / NaN block passing to the block's own check, a request's own problem first. A1's verdict-word test now runs to the last verdict. Docs: worksheet T.6, guide 20, guide 11 (the new line), guide 10, the changelog, cookbook 8 (a watch-out + the static_assert). Why not a refusal in the explicit form too: it would silently change A1's pinned programming-error rule for hand-wired callers; the everyday form is where the two numbers come from two files. |
+| 2 | correctness, minor — a pose bound under a RELATIVE start runs the field-frame position gate on a robot-frame estimate: every visit "UNKNOWN before (no band)" | **REAL — fixed in the everyday form.** `detail::poseBoundDropped(ctx, bound)`: a stated bound under a start that is not FIELD is not handed to the tracker; the line says `wall and position not checked (relative start)`. Only the everyday form: there the library KNOWS runAuton seated the estimate in the robot's own frame; the explicit form's caller knows its own frame (A1's rig runs a field-frame estimate under a RELATIVE entry, and its gate tests rely on it — changing the body would have broken A1's pinned gate cases for no real caller's benefit). Tests: the reviewer's scene (the block's gate 3/4/8, the docs' literal `{2_in, 3}`) under RELATIVE — FLIPPED / SEEN NOT OURS, `positionChecked` false, the line's words, ≤ 160 bytes; with no bound — the old words only; `toggleCameraOf` FIELD vs RELATIVE. "FIELD start" said beside `TogglePoseBound` (header), and in guides 20, 14, 11, 10 and cookbook 8. |
+| 3, 10, 20 | correctness / tests / docs, minor — the cookbook test's "12 in up" comment; "the wait mattered" never asserted (R8, home-first, caught only by the 2 % timing check) | **REAL — fixed.** The comment says 3 in. The overlap is now MEASURED: the clock at the first leg's last drive-motion boundary (`scheduler().completedCount()` changing before the first `[TGL]` line — the right wall's visit drives nowhere) and when the cascade slot first reports `homed()`; `CHECK(homeEnd > legEnd)` (observed 2.31 s against 1.64 s). R8 re-run below. |
+| 4, 12 | correctness minor / docs MAJOR — MIRROR1-A LANDED first (e9bcee7, API 2.9): the changelog's section, the history number, the owed mirrored everyday visit, cookbook 09's stale line, the hand merges | **REAL — done.** The worktree was moved onto `28a7497` (the resumption note above: the moved tree checked file by file). The changelog entry now opens a NEW `## API 2.10` section above 2.9 (the coordinator confirms the number at the merge); the history paragraph's N is 2.10 (below). The owed test: an everyday visit under `mirrored(entry, kSkillsMirror)` through a real Robot and `runAuton` — robot two truly at the right wall's look spot, the route naming robot one's red wall: FLIPPED the right wall's Toggle, the wall checked, its line naming the right wall; the unmirrored control seats the estimate at robot one's start and names the red wall. (The reviewer's probe expected WRONG WALL for that control — not so: runAuton seats the entry's start, so the estimate faces the red wall; my first cut asserted WRONG WALL, went red, and was corrected to what the run truly does.) Re-read `toggle_visit.hpp` at MIRROR1-A's version: the everyday form passes `ctx.entry` to the same constructor, whose `realRequest` swaps; the new SPOTS check reads `req_`'s sizes (unchanged by the swap) and the bound drop reads `effectiveStart()` (a mirrored FIELD start stays FIELD). Cookbook 09's ":101-102" line reworded (the everyday form is here; chapter 8 linked). NOT done, said plainly: MIRROR1-A's log expected "AF1S-A2 adds the visit line to page 09's route" — cookbook-09a's robots have no camera or Toggle block, so a visit there would be a NO CAMERA step teaching nothing; the mirrored everyday visit is pinned by the new ctx case instead. For the coordinator. |
+| 5 | tests, MAJOR — the bound's heading half never shown to reach the tracker (R1 survives); R10 (a tracker number changed after the copy) survives | **REAL — fixed.** A unit case on `detail::toggleCameraOf` with a READY slot, an ASYMMETRIC bound `{2 in, 7 deg}` and a block with every tracker number set (the gate's three too): the feed, the model, `poseTolerance` 2, heading 7, and all 17 tracker fields *(WRONG: 16 — 3 ids and 13 doubles, and their values repeated; corrected in the verification round below, finding V3)* equal the slot's, field by field — and under RELATIVE, 0 and 0 (finding 2). R1 and R10 re-run below. |
+| 6 | tests, MAJOR — the block's read period never shown to reach the feed (R5/R6 survive) | **REAL — fixed.** The READY case drives the FakeClock: from the first read's start `t0`, a tick at the last double before a full period reads nothing; a tick ON the edge (the first instant `now - t0 >= 0.033` in the feed's own arithmetic — found with `nextafter`, not assumed) reads (reads 1 → 2). R5 / R6 re-run below. |
+| 7 | tests, minor — `lookAtToggle(ctx, request, bound)` never given a bound (R3b) | **REAL — fixed.** The pose-bound case is a table over both forms (with a bound `positionChecked`, without not, a loose one not). R3b re-run below. |
+| 8 | tests, minor — "no block declared" before "no camera" unpinned (R4) | **REAL — fixed.** `toggleCameraCheck(CameraConfig{}, ToggleCameraConfig{})` names the block (and no part), and a `const Robot` with neither a camera nor a block says the block's sentence. R4 re-run below. |
+| 9 | tests, minor — the const `Robot::toggleCamera() const` never called (R11) | **REAL — fixed.** `std::as_const(robot).toggleCamera()` is nullptr in every refusal (`checkRefusedButDrives`) and the slot when READY; the `const Robot` above too. R11 re-run below. |
+| 10 | tests, minor — `mut.py`'s verdict column labels survivors CAUGHT | **REAL — fixed in the tool** (`scratch/af1s-a2/mut.py`'s new `judge()`, reused by `mut2.py`): CAUGHT only with the doctest summary's `failed > 0` AND a case red BY AN ASSERTION (an ERROR/FATAL line under its own header — analyze.py's rule), or a killed run (it says which); otherwise INSPECT or SURVIVED. Checked on the reviewer's outputs: `out_R1/R4/R5.txt` now read SURVIVED, `mut/out_M-RCP.txt` CAUGHT. The first run's verdicts were never taken from that column (this log judged by analyze.py; X10's first run was logged as SURVIVED) — no claim changes. **For the coordinator's lessons:** never judge a mutant by a bare `TEST CASE:` header — passing cases print it with MESSAGE output. |
+| 11 | tests, minor — the colour-id order unpinned (R7) | **REAL — fixed.** A subcase with RED and BLUE both untaught: the RED sentence. R7 re-run below. |
+| 13 | docs, MAJOR — the recipe's FLIPPER STUCK recovery turns in place at the push spot (landmine 6) | **REAL — fixed, and the recipe's claim now tested.** Each leg after a visit stows, then `reverseTo(<a point BEHIND the robot on its line, a few inches past the look spot>)` — (40, 0) and (0, 40); the end's `reverseTo(0, -30)` already was one — THEN turns. Not the reviewer's `reverseTo(<this look spot>)`: after a good visit the robot is AT the look spot, and `reverseTo` aims at the bearing + π, so a target a fraction of an inch AHEAD would turn the robot round at the wall; a point clearly behind is a straight back-off from the look spot and from the push spot alike. NEW case `cookbook-08a (FLIPPER STUCK)`: the same route, the right wall's Toggle yellow, the flipper wedged on its first retract (freed once the step gives up): FLIPPER STUCK at the push spot (x > 56), the skip, the flipper stowed (< 5°) before the robot moved, the robot more than 10 in back before it turned more than 3°, the blue wall's Toggle still flipped. The run is now about 31.1 s (two back-offs; it was 29.1) — page and test. The figure shows the back-offs; a "Why" bullet says why. F13-NOBACK below. |
+| 14 | docs, minor — build-order's AF1 entry not updated | **REAL — fixed:** a "Status 2026-11-16: AF1S-A2 BUILT" line; the old A1 status and VIS1's "Next: AF1S-A1 … then AF1S-A2" marked as history (the first bold `Next:` — the briefing's pointer — is the Next block, which this does not move). |
+| 15 | docs, minor — the docs promise a boot line with `toggles OFF (why)` that no brain program shows whole | **REAL — fixed in the docs:** worksheet T.2/T.3, cookbook 8, guide 20, guide 11, the glossary, the changelog and the roadmap now send the team to the `[TGL]` NO CAMERA line and `robot.toggleCameraAbsence()`, and say the programs print the boot line cut to 220 characters and the competition program prints none. `src/` stays untouched (the brief's §7). **Proposed, not queued by me (rule 2: plan changes are proposed):** ROB1-C / VIS1-B print `robot.toggleCameraAbsence()` on its own line when a block is declared. |
+| 16 | docs, minor — "the camera block you already have" (neither robot has one); Station T written for one robot | **REAL — fixed:** cookbook 8 ("the robot file's camera block … neither of the team's robot files has one yet … each robot … its own pair of blocks"), the changelog's "What you must do", guide 14 ("the camera block and the Toggle block"); Station T's heading says once per robot (both run skills — the answers block) and its table has a column per robot. |
+| 17 | docs, minor — not every recipe number marked with its Step 0; "Step 0.x" resolves only in internal docs | **REAL — fixed:** every line of the Toggle block (Step 0.3), `lookWithin` (Step 0.3 — the request's own doc says so), `margin` ("your spare time … a choice, not measured") marked in the test and quoted verbatim; guide 20's paragraph is now a section, "Step 0: the numbers the team measures", items 0.1–0.7 numbered as the brief's §2.0; cookbook 8 links it. |
+| 18 | docs, minor — the position gate presented as turning lookalikes away | **REAL — fixed** in the three places (cookbook 8, guide 20, `TogglePoseBound`'s doc): "MOST lookalikes — not one within its tolerance of where a Toggle's face is (Chapter 14)". |
+| 19 | docs, minor — two places still say the wall sensors are filled "last" | **REAL — fixed:** robot.hpp's `walls_` doc and its banner, and guide 10 — "after the camera, the last provider requests; the Toggle camera, filled after them, asks for nothing". |
+| 21 | docs, minor — the changelog's "the entry below"; the Added list incomplete | **REAL — fixed:** the A1 entry named ("API 2.8's entry of 2026-11-13, 'the Toggle flip for a SKILLS run, as one route step'" — no anchor: its heading's slug is fragile); `vision::toggleIdsProblem`, `vision::ToggleCameraCheck`, `vision::kToggleCameraReasonBytes`, and this round's `SpotsTooClose` and `toggleVisitBlockProblem`, listed. |
+| 22 | docs, minor — front-door links | **REAL — fixed:** `toggle_camera` in guide 20's footer; docs/README's Toggle row links the recipe. |
+| 23 | docs, minor — HA citations | **REAL — fixed:** `ToggleCameraConfig::feed`'s doc cites HA-192; T.3 cites HA-245, T.5 HA-244; the register's AF1S rows (HA-231/232/235/243/244/245 — this chunk's own) name "worksheet Station T, T.n" in their Settle cells and *Settle:* lines (the coordinator may reword at the merge); HA-245's *Source:* said "guide chapter 19" — the camera chapter is 20 — fixed. No new HA number. |
+| 24 | docs, minor — the figure and caption state the Quadrant colours as fact | **REAL — fixed:** the figure's footer (regenerated by its script) and the page's alt text now say "a reading of the manual's drawings (HA-243), checked on the event's field at Step 0.7"; so does the "'Ours' is never typed" bullet. |
+
+- **RESUMED AGAIN 2026-11-16 08:53 EST** (`date` read) — the builder, a third run of this fix round: the run that
+  resumed at 02:10 stopped at about 02:57, after its fixes, the table above and its mutation run (`scratch/af1s-a2/
+  mut2/`), before logging that run, its prose review and the final gates. Checked before anything else: (1) every
+  file the second driver (`mut2.py`) backed up is byte-identical to the worktree's copy (`cmp`: cookbook test,
+  `motion_scheduler.hpp`, `robot_config.hpp`, `robot.hpp`, `toggle_camera.hpp`, `toggle_visit.hpp`) — no mutation
+  left applied; (2) `git diff -- Makefile src/` has no `(self-test plant`, no `build/src-gate-facts/`, no
+  `build/ROBOT-ONE-GATE-COPY-ONLY`; (3) the test binary on disk is the LAST MUTANT's link (`M-A2-3`, 02:56) — removed
+  and relinked from source before any suite result below; (4) `docs/api/` was generated at 2026-11-15 22:51, before
+  this round's `///` changes — regenerated below. The table's dispositions were re-read against the tree (each fix
+  present in the code, the tests and the docs it names). The second driver's verdicts are NOT taken as they stand:
+  `test/robot_toggle_camera_test.cpp` was edited at 02:43, after R5 and R6 ran, and two mutants (F1-PAIR, F12-MIR)
+  stopped their own builds — so every mutant is re-run below, on the final tree, on fresh builds.
+
+- **The baseline of this run** (the binary relinked FROM SOURCE — the mutant link removed; `docs/api/` regenerated,
+  the briefing regenerated with the binary absent, configure, the full build with its doc gates — api_doc_tool
+  self-test OK, coverage 6473 entities / 215 headers, 988 quoted lines verbatim, removability clean, staleness audit
+  clean, 0 warnings — then the briefing regenerated with the binary present): `suite run: green — 3778 cases,
+  3884470 assertions` (the moved tree's 3772 + this round's 6 new cases).
+- **Main moved again** while this round ran: `shulib-v2` is now `3c29b73` (ROB1-C2, 2026-11-16 01:19 — robot one's
+  real mechanisms; NO version bump: its entry sits under `## API 2.9`). This tree stays on `28a7497` (the round's
+  evidence is on one tree; the coordinator squashes onto the tip). Checked for the merge: `git diff 28a7497` (less the
+  generated `docs/api/` and briefing) applied to an archive of `3c29b73` (`scratch/af1s-a2/rebase2/`) — EVERY hunk
+  applies (`patch` rc 0; fuzz 1 on the changelog, fuzz 2 on the worksheet, offsets elsewhere), and each fuzzed hunk
+  landed where it belongs: `## API 2.10` above ROB1-C2's 2.9 entry; Station T after Station R1's table. The files both
+  change: the changelog, `docs/hardware-assumptions.md`, the R3a worksheet, REMAINING-WORK, the roadmap (and the
+  generated `docs/api/README.md`, `all-entities.md`, the briefing — regenerate). ROB1-C2's `src/` sets
+  `RobotConfig::sensors` only by designated initializers (`grep` of the tip's `src/`), so the appended
+  `SensorsConfig::toggleCamera` breaks none — but `src/` changed a great deal there: the src build gate must run again
+  on the merged tree. ROB1-C2 keeps robot one's camera (E18) owed, `Stage::Recorded`, read by no program, and records
+  its flipper as a PNEUMATIC (D16: the front toggle, B) — so this run's "neither of the team's robot files has a
+  camera block yet" still holds at the tip.
+- **PROSE REVIEW of this round** (rule 4 — each grep RE-RUN by this run and its hits READ before this line was
+  written; the 02:10 run had run them too, its notes in `scratch/af1s-a2/coordinator_block.md`, never logged):
+  - `grep -rn -i "twice the tracker's\|or the step refuses"` over docs/guide, docs/cookbook, docs/README.md,
+    test/README.md and the R3a worksheet: no hit (guide 20 and T.6 now say the step REFUSES, SPOTS TOO CLOSE).
+  - `grep -rn -i "toggles OFF"` over the same plus the changelog and the roadmap: cookbook 8 :54, the worksheet :2766,
+    the changelog :64, guide 20 :443 (its paragraph says at :447-448 where the line is printed), guide 11 :656 — each
+    says where the boot line is printed and cut (220 characters; none in the competition program); guide 10 :988-989
+    are `describe()`'s literal output, the paragraph above them (:983-985) saying the same. True; left.
+  - `grep -rn -i "turns away\|turned away\|turns lookalikes\|lookalike"` over guide 20, cookbook 8, guides 10/11 and
+    the two headers: this round's three places say MOST lookalikes (cookbook 8 :202, guide 20 :460,
+    `toggle_visit.hpp` :706); guide 20 :143/:150/:205-206 are VIS1-A2's own (each gate's job, and its limits),
+    `toggle_visit.hpp` :158 A1's cannot-catch list — true, left *(WRONG: it said the position gate "is what turns those away" — A1's own delta 12 pins the opposite; reworded in the verification round below, finding V2)*. No hit in this run's changelog entry.
+  - `grep -rn -i "already have\|camera block you"` over docs/guide, docs/cookbook, docs/README.md, the changelog: only
+    unrelated hits (guide 3 :30, guide 10 :136, the cookbook README :8/:139) and "the mechanism steps they already
+    have" (cookbook 8 :207, guide 20 :469) — true.
+  - `grep -rn "last, after the camera\|, last (build\|LAST, after the camera"` over docs/guide and robot.hpp: none.
+  - `grep -n "29 s\|29\.1"` over cookbook 8 and its test: none (31 s / 31.1).
+  - MIRROR1-A's own lines about the Toggle step (`git diff 9befdb3 28a7497 -U0 -- docs include test`, added lines
+    matching "toggle step|toggle visit|AF1S|checkAndFlip|everyday form"): cookbook 09's "(A Toggle visit … arrives
+    with the everyday form …)" — REWORDED by the 02:10 run; MIRROR1-PROGRESS's item 19 ("AF1S-A2 adds the visit line to
+    page 09's route") — answered in the table (findings 4/12: not done, why); the rest (field_mirror.hpp's and
+    toggle_visit.hpp's comments, the MIRROR1 brief, guide 11/17's mirrored-name lines) true, left.
+  - `simulat` over this tree's added lines and the new files: only the two test files' "never 'simulator'" notes.
+  - Removability (`grep -rln 'internal/\|chunks/\|RESUMING\|build-order'` over docs/*.md less the roadmap and the
+    register, docs/guide, docs/cookbook, README.md): empty.
+  - Hardware claims in the added public lines (`tested|measured|works on the robot|on a robot|on the robot`): every
+    hit is "NOT run on a robot" or "measured" as a REQUIREMENT on a mount or a number, never a claim.
+  - The figure (`docs/assets/skills-toggle-look-spots.png`, regenerated 02:30 with its script) re-read: the two
+    hollow back-off dots, the footer's HA-243 caveat.
+- **Public docs touched this round:** cookbook 8, cookbook 9 (one line), guides 10, 11, 14, 15, 20, docs/README (one
+  link), the changelog; internal: the worksheet's Station T, the register's AF1S rows, the roadmap, build-order,
+  REMAINING-WORK. Over rule 7's ~5 for the build round's reason: each fixes a sentence a finding showed false or
+  missing.
+- **MUTATIONS of this round — ALL re-run on the FINAL tree by this run** (`scratch/af1s-a2/mut3.py`, mut2.py's
+  mutants and rules plus the build round's X1–X15 — X3 and X12 ported to the moved code, the same mutation — and one
+  new, F1-OK; results `mut3/mutations.log`, `mut3/run.out`, per-mutant `mut3/out_<id>.txt`; 09:00–09:53). Each: the
+  file backed up in scratch, ONE exact replacement (matched once — checked for all 37 before the run), mtime bumped,
+  CMake's `depend` step THEN the build, every object whose depfile names the file AND the binary checked newer than
+  the mutation (none stale), the WHOLE suite under 4 GiB / 600 s, judged by the FIXED `judge()` (finding 10: the
+  summary's failed > 0 AND a case red by an ERROR/FATAL line under its own header), restored in a finally and on
+  SIGTERM/SIGHUP/SIGINT, mtime bumped, compared byte for byte (37 of 37 identical; afterwards each of the six files
+  `cmp`-equal to its last backup). **37 mutants, 37 CAUGHT — 36 by a run-time assertion, 1 AT BUILD by the test's
+  own `static_assert`; none killed, none broke its own build:**
+  - Finding 1: **F1-THROW** (the everyday form throws again) — the SPOTS case's `REQUIRE_NOTHROW` (FATAL, :427).
+    **F1-EDGE** (`>=` for `>` in rule 1: the equality edge accepted) — the SPOTS case (:429, the flip and the look).
+    **F1-PAIR** (`>=` for `>` in `toggleVisitBlockProblem`) — CAUGHT AT BUILD: the ONLY error in its build output
+    (`mut3/build_F1-PAIR.txt`) is `toggle_visit_ctx_test.cpp:499:77: error: static assertion failed` — the test's
+    own equality-edge `static_assert` (the cookbook's, at frozenMoveIn 2.0, rightly still passes). (The 02:10 run's
+    driver had labelled the same result "BUILD-FAIL, not counted"; its cut was right, its verdict rule too blunt.)
+    **F1-OK** (NEW: SPOTS TOO CLOSE answered SUCCEEDED) — the SPOTS case (the outcome, `failedOn`).
+  - Finding 2: **F2-KEPT** (the bound kept under RELATIVE — the review's probe) — the RELATIVE case (:279) and the
+    `toggleCameraOf` case (:546); **F2-LINE** (the drop unsaid) — the RELATIVE case's line (:285).
+  - Findings 5/7: **R1** (the heading half dropped) and **R10** (a tracker number changed after the copy) — the
+    `toggleCameraOf` case (:548, :556); **R3b** (`lookAtToggle(ctx)` drops the bound) — the pose-bound table (:249).
+  - Finding 6: **R5** (period 0.001 s) — the READY case's tick just UNDER the period (:291); **R6** (0.05 s) — the
+    tick ON the edge (:294). Re-run here because `robot_toggle_camera_test.cpp` was edited (02:43) after the 02:10
+    run's R5/R6.
+  - Finding 8: **R4** (the camera's check first) — the no-block case (:318). Finding 9: **R11** (the const door hands
+    out a slot not ready) — the no-block case's `const Robot` (:326) and the refusals. Finding 11: **R7** (BLUE before
+    RED) — the both-untaught subcase.
+  - Findings 3/10/13: **M-RCP** (the wait dropped) — cookbook-08a and its FLIPPER STUCK twin (each route stops at its
+    `cascade` step); **R8** (home FIRST, no overlap) — cookbook-08a's `CHECK(homeEnd > legEnd)` (:1149),
+    no longer only the 2 % run-time check; **F13-NOBACK** (the first back-off dropped) — both cookbook-08a cases.
+  - Findings 4/12: **F12-MIR**, RE-CUT (the 02:10 run's cut deleted the swap's line and left `entry` unused —
+    `-Werror` stopped its own build, not counted; this cut puts `(void)entry;` in its place) — the A2 ctx "MIRRORED
+    entry" case (verdict WRONG WALL, toggle `kRedWall`, 0 strokes — exactly what its comment says) and MIRROR1-A's T7.
+  - The brief's own: **M-A2-1** (15 cases red), **M-A2-2a** (9), **M-A2-2b** (8), **M-A2-3** (3).
+  - The build round's X1–X15 on the final tree — each CAUGHT by the case the build round named (X3 and X15 by the
+    pose-bound table, now over both forms, and by the `toggleCameraOf` case; X6 by 15 cases; X13 by 12,
+    cookbook-08a among them).
+
+**The version history paragraph — REVISED 2026-11-16 (supersedes the one above: N is now 2.10, MIRROR1-A having
+landed as 2.9 and ROB1-C2 having taken no number; the coordinator confirms it at the merge; NOT written into
+version.hpp here):**
+
+> 10 = chunk AF1S-A2 (built 2026-11-15, reviewed and fixed 2026-11-16), the skills Toggle step from an auton, all
+> additive and no frozen row touched (RobotContext is outside F4, the scheduler's shadow context outside F6's
+> accessors, competition/ and vision/ open by design — F15): the new header vision/toggle_camera.hpp
+> (`ToggleCameraConfig`, `ToggleCameraCheck`, `toggleIdsProblem`, `toggleCameraCheck` / `toggleCameraProblem`,
+> `ToggleCamera`, `kToggleCameraReasonBytes`); `config::SensorsConfig::toggleCamera` (appended, with a default);
+> `chassis::RobotContextConfig::toggleCamera` / `RobotContext::toggleCamera()` (appended; the motion scheduler's
+> shadow context carries it); `robot::Robot::toggleCamera()` / `toggleCameraAbsence()`;
+> `competition::checkAndFlipToggle(ctx, request, bound)` / `lookAtToggle(ctx, request, bound)`,
+> `competition::TogglePoseBound`, `competition::toggleVisitBlockProblem`, the appended
+> `ExplicitToggleCamera::absence` and the appended verdict `ToggleVisitVerdict::SpotsTooClose` (the everyday form's
+> only). A robot file with no Toggle block builds the same robot, its boot line byte for byte; every 2.9 program
+> compiles and runs exactly as before. Nothing to do. docs/changelog.md, API 2.10, lists it.
+
+**For the coordinator (the merge) — REVISED 2026-11-16; supersedes the build round's "API" and "MIRROR1-A (in
+flight)" bullets, the rest stand:**
+- **The base:** this tree is on `28a7497` (MIRROR1-A, API 2.9, and the Tune label fix); main's tip is now `3c29b73`
+  (ROB1-C2) — the patch applies cleanly onto it (above). If main moves again (ROB1-BT, RMP1-A1 …), re-check the same
+  shared files; run the src build gate on the merged tree (ROB1-C2 changed `src/` widely).
+- **API:** additive — `## API 2.10` opens the changelog (its own section, above 2.9); the history paragraph above.
+- **A delta for the team lead to see (finding 1):** the brief's §1.1 made the excursion check a run-time
+  PRECONDITION; in the EVERYDAY form it is now a refusal verdict, SPOTS TOO CLOSE (two numbers from two files must
+  not throw a skills run away); the explicit form keeps the precondition. If the ruling is "keep the precondition",
+  revert `detail::VisitForm::everyday`'s use in rule 1 and the verdict, and the ctx case and docs with them.
+- **MIRROR1-A — DONE here, no longer assumed:** the everyday-form visit under a mirrored entry is a test
+  (`toggle_visit_ctx_test.cpp`, "a MIRRORED entry"), and the step's mirror swap dropped (F12-MIR, re-cut below) turns it
+  red. Cookbook 09's line reworded. Not done: a Toggle visit in cookbook-09a's listing (its robots have no camera
+  block — MIRROR1-A's log expected it of A2; the table, findings 4/12).
+- **RMP1-A1 (the route builder):** the everyday call may also take `, {.poseTolerance = .., .headingToleranceDeg
+  = ..}` — meaningful only under a FIELD start (the step drops it otherwise); a generated route can also emit
+  `static_assert(competition::toggleVisitBlockProblem(request, block) == nullptr)` when it can see the robot file's
+  block; the new verdict word is "SPOTS TOO CLOSE".
+- **ROB1-C / VIS1-B (proposed, not queued — finding 15):** print `robot.toggleCameraAbsence()` on its own line when
+  a Toggle block is declared (the programs print the boot line at `%.220s`; the competition program prints none).
+- **The HA register:** AF1S's own rows (HA-231/232/235/243/244/245) now point their Settle at "worksheet Station T,
+  T.n", and HA-245's source names guide chapter 20 (it said 19). No new number.
+- **tools/:** still ONE new file, `tools/docs_figures/skills_toggle_route.py` (regenerated: the back-offs and the
+  HA-243 caveat). The mutation drivers stay in the scratch directory (`mut.py` with its fixed `judge()`, `mut2.py`,
+  `mut3.py`).
+- **The coordinator's lessons (finding 10, for the list):** never judge a mutant by a bare `TEST CASE:` header —
+  passing cases print it with MESSAGE output; judge by the summary's failed count AND an ERROR/FATAL line under a
+  case's own header.
+
+- **FINAL GATES of this round** (the tree as left; `scratch/af1s-a2/final_gates3.sh`, logs `gates3/`; 09:53–11:01,
+  `date` read): no `(self-test plant` in `git diff -- Makefile src/`, no `build/src-gate-facts/`, no
+  `build/ROBOT-ONE-GATE-COPY-ONLY`; the test binary REMOVED (the last mutant's link), `docs/api/` regenerated, the
+  briefing regenerated with the binary absent, configure, the full build (the doc gates inside: api_doc_tool
+  self-test OK, coverage 6473 entities / 215 headers, 988 quoted lines verbatim, removability clean, suite_run and
+  briefing self-tests OK, staleness audit clean; 0 warnings, 0 errors), the briefing regenerated with the binary
+  present; suite `green — 3778 cases, 3884470 assertions` (through `tools/suite_run.py`, 4 GiB / 900 s — the same
+  count as this run's from-source baseline); `ctest -R compile_refusal` 289/289; ARM header gate rc 0 (259 headers in
+  one TU, the CI's flags); CI guards (pros/ outside hal/pros, sim/ outside sim) empty; api_doc_tool self-test /
+  check-coverage / check-fresh / check-examples / check-removability rc 0; doc_staleness_audit clean;
+  briefing_status check current; `src_build_gate.py self-test` OK (377 detector cases, each against a real build;
+  `timeout -s INT`) and `check` PASS (all 14 builds; robot one's 6 refuse naming exactly their owed facts and link in
+  the typed copy); afterwards `git diff -- Makefile src/` EMPTY, no plant, no gate copy. The brief's §7 greps on the
+  final tree: `src/` and `Makefile` unchanged; `tools/` = the one new figure script; `grep -n 'toggleCamera'
+  motion_scheduler.hpp` = exactly the shadow context's line (:669); no competition/ include from vision/ or
+  mechanism/; nothing of vision/ in sim/; no `waitUntil` or blocking mechanism verb in the step; `seating not
+  checked` present (6).
+- After the gates: the src gate's self-test and check bump `src/` files' mtimes (contents unchanged — `git diff --
+  src/` empty), so the staleness audit then called the binary older than `src/team/autons.cpp` and 11 more and did
+  not trust it. Rebuilt (`cmake --build build/test`, 315 objects, 0 warnings — `gates3/16_rebuild_after_srcgate.log`):
+  suite `green — 3778 cases, 3884470 assertions` again, briefing_status check current, doc_staleness_audit clean with
+  the binary trusted. The binary left on disk is this tree's own, built from source.
+- **STOPPED HERE (2026-11-16 ~11:05): this fix round is COMPLETE** — every finding dispositioned (the table), every
+  fix's mutation observed red on a fresh build of the final tree, every gate green on it. NOT committed. For the
+  coordinator: the merge notes above (main's tip is now `3c29b73` — the patch applies; the src gate again on the merged
+  tree), finding 1's delta for the team lead, a fresh verifier, and the between-parts marker to restore or complete.
+
+### Verification-round findings and their disposition (2026-11-16, the builder again)
+
+- **STARTED 2026-11-16 12:47 EST** (`date` read) — the builder, on a fresh verifier's four findings (all minor).
+  Checked before anything else: `git diff -- Makefile src/` has no `(self-test plant`, no `build/src-gate-facts/`, no
+  `build/ROBOT-ONE-GATE-COPY-ONLY`; the verifier mutated its OWN copy (`scratch/af1s-a2/verify/v2/tree/`) — this
+  worktree's `toggle_visit.hpp`, `toggle_camera.hpp`, `robot.hpp` and the cookbook test are `cmp`-equal to that copy's
+  restored files; the binary on disk is the 11:05 rebuild from source; the tree is still on `28a7497`.
+
+| # | Finding (severity) | Disposition |
+|---|---|---|
+| V1 | minor — SPOTS TOO CLOSE's place in rule 1 tested on neither side (V-ORDER, V-ORDER2 survive); the banner's ordered rule list leaves it out | **REAL — fixed (tests and banner; the code's order is unchanged — it is A1's place for the precondition, kept by A2).** Re-checked first: the verifier's two survivors, and two more of mine cut for the EXPLICIT form, run on the tree BEFORE the fix — **V-ORDER2X** (the whole excursion check, precondition included, moved above NOT SKILLS: an explicit MATCH call would throw) and **V-ORDER3** (the check moved above the tracker's own check: an explicit call with a refused tracker would throw instead of NO CAMERA) — both SURVIVED the whole suite (`mut4/before.log`: 3778 passed, 0 failed, 7 dependents recompiled each). Banner: rule 1 now lists the excursion check in its place — after the camera's checks, before the flipper's — "else, in the EVERYDAY form, SPOTS TOO CLOSE; in the explicit form a precondition at this same place". NEW case `AF1S-A2 ctx: the excursion check's PLACE in rule 1` (`toggle_visit_ctx_test.cpp`), through a real Robot and `runAuton`, a new auton `flipOutThenVisit` (the flipper sent OUT to "flip" by the route first when the scene asks; then ONE visit, everyday or explicit over the slot's own handles, the explicit precondition caught and kept): each refusal ALONE first on the same scene (the flipper out with the spots fine: FLIPPER NOT READY "is not at its back position" in both forms, the flipper > 80°, reads 0 — so the flipper truly is away; the spots alone: SPOTS TOO CLOSE / the precondition; a MATCH alone: NOT SKILLS); then a MATCH auton at the EQUALITY edge (frozenMoveIn 6.0, excursion 12) — NOT SKILLS in both forms, no throw, reads 0, the one line `not a SKILLS auton (MATCH)`; the spots too close AND the flipper out — everyday SPOTS TOO CLOSE (the flipper still out, reads 0, strokes 0, the one line the exact spots line), explicit the precondition naming the excursion, never FLIPPER NOT READY, no line; the explicit form with a tracker the camera's check refuses (aliveSeconds 0) AND the spots too close — NO CAMERA naming the tracker, no throw. The everyday form's "after the camera's checks" side cannot be cut there: a slot that is not ready hands the body no tracker numbers (frozenMoveIn 0), so NO CAMERA answers first by construction — said in the case's comment. Changelog's SpotsTooClose bullet: "checked after NOT SKILLS and NO CAMERA and before FLIPPER NOT READY". Guide 11's line list was already in this order; guide 20 states no order — left. After the fix: V-ORDER (red on BOTH sides — the everyday :595/:601 and the explicit :605–609), V-ORDER2 (:585, :589), V-ORDER2X (the everyday :585 and the explicit :584), V-ORDER3 (:616–618) all CAUGHT by assertion. |
+| V2 | minor — a fourth place in `toggle_visit.hpp` says the position gate "is what turns those [lookalikes] away"; the fix round's prose review called it true | **REAL — fixed.** The "What it cannot catch" banner now reads "(A4 register HA-199 — the position gate, with a pose the team trusts, turns MOST of those away; not one within its tolerance of where a Toggle's face is)" (the sentence reflowed onto three lines). The fix round's prose-review line in this log is marked WRONG in place, pointing here. Re-grepped the whole tree's public docs and headers (`is what turns those\|turns those away\|what turns those`): the only other hits are `toggle_tracker.hpp` :94 and guide 14 :431 — both name WHICH lookalikes ("those" = the 540 bands and the wall-top strip, 0 of 540) and state the limit in the next sentence (the strip ON a face line) — true, left. |
+| V3 | minor — the `toggleCameraOf` case claims "EVERY tracker number set, each distinct" and "17 numbers": 16, and the values repeat (2.0 three times, 3.0 twice) | **REAL — fixed.** Re-checked first: two cross-wire mutants on EQUAL-valued fields, run BEFORE the fix — **XW1** (frozenTurnDeg taken from frozenMoveIn after the copy) and **XW2** (minRangeIn from frozenMoveIn) — both SURVIVED the whole suite (`mut4/before.log`). The case now sets all 13 doubles to pairwise-distinct values the tracker accepts (minAspect 3.25, minRangeIn 1.5, frozenMoveIn 2.25, frozenTurnDeg 2.5, positionToleranceIn 3.5; the rest as before; the ids stay 1, 2, 3 — the camera's taught colours, which the slot checks) and CHECKS its own premise: a `static_assert` that `ToggleTrackerConfig` is exactly 3 ids + 13 doubles (a field added later stops the build, naming this case) *(not a member small enough to hide in the ids' padding — `sizeof` cannot see one; the check now COUNTS members, the resumption below)*, and the 16 numbers pairwise distinct (120 checks). It compares all 16 field by field, the handles against the slot AND (new) the slot against the robot file (it compared two). Comments say 16. The log's row 5 "all 17 tracker fields" is marked WRONG in place. (`robot_toggle_camera_test.cpp`'s "the block's 17 numbers" is right: the BLOCK is the 16 tracker numbers plus the feed's period.) After the fix: XW1 (`a.frozenTurnDeg == b.frozenTurnDeg`) and XW2 (`a.minRangeIn == b.minRangeIn`) CAUGHT; R1, R10, X15 and F2-KEPT — the earlier mutants this rewritten case catches — re-run and still CAUGHT (R1 :758, R10 :730, X15 by the pose-bound case :256 and this one, F2-KEPT by the RELATIVE case :286). |
+| V4 | minor — the figure uses a hollow dot for the push spot AND for each back-off point (and the end point) | **REAL — fixed** in `tools/docs_figures/skills_toggle_route.py`, the figure regenerated with it and re-read: every point the robot backs straight off to — (40, 0), (0, 40) and the end's (0, -30) — is now a grey **x** on a white halo, never a dot; the purple ring is the ONLY hollow marker (the push spot). Label 1 says "purple ring: push spot, 4 in;" and "grey x: back off to (40, 0)"; label 2 "grey x: back off to (0, 40)"; the end's label "grey x: back off to (0, -30)"; the footer, now five short lines (the longest 656 px of 760), says "Purple ring: the push spot. Grey x: where the robot backs straight off to before it turns." The script's docstring says why. The page's alt text names no marker shapes — left. |
+
+- **MUTATIONS of this round** (`scratch/af1s-a2/mut4.py` — mut3.py's machinery and its fixed `judge()` unchanged: the
+  file backed up in scratch, ONE exact replacement matched once (checked for all 10 before each run), mtime bumped,
+  CMake's `depend` step THEN the build, every object whose depfile names the file (7) AND the binary checked newer than
+  the mutation, the WHOLE suite under 4 GiB / 600 s, restored in a finally and on SIGTERM/SIGHUP/SIGINT, mtime bumped,
+  compared byte for byte — identical every time; afterwards `toggle_visit.hpp` `cmp`-equal to its backup, no
+  `MUTANT` left). **Before the fix** (`mut4/before.log`, `before_out_*.txt`; 12:51–12:55): V-ORDER2X, V-ORDER3, XW1,
+  XW2 — all SURVIVED (3778 passed, 0 failed). (V-ORDER and V-ORDER2 survived the verifier's own run.) **After the
+  fix** (`mut4/mutations.log`, `out_*.txt`; 12:57–13:08, on the binary that holds the new cases): **10 mutants, 10
+  CAUGHT by run-time assertion, none killed, none broke its own build** — V-ORDER, V-ORDER2 (the verifier's exact
+  cut), V-ORDER2X, V-ORDER3, XW1, XW2, R1, R10, X15, F2-KEPT (lines in the table). One edit came AFTER the run:
+  `toggle_visit.hpp`'s V2 sentence reflowed (a comment, the same words); the final gates below rebuild everything
+  from source.
+- **PROSE REVIEW of this round** (rule 4 — each grep RUN by this run and its hits READ before this line was written):
+  - `grep -rn -i "is what turns those\|turns those away\|what turns those"` over include/, docs/guide, docs/cookbook,
+    the changelog, docs/README.md and the worksheet (docs/api excluded — generated): `toggle_tracker.hpp` :94 and
+    guide 14 :431 only — qualified (which lookalikes, and the limit in the next sentence); true, left.
+  - `grep -rn "17 numbers\|17 tracker\|each distinct"` over test/ and this log: `robot_toggle_camera_test.cpp` :17
+    and :486 (the BLOCK's 17 — true); `toggle_visit_ctx_test.cpp` :685 (this round's own history note); the log's
+    row 5 (marked WRONG); `calibrate_program_rig.hpp` :290 (unrelated).
+  - `grep -n -i "hollow"` over the figure script, cookbook 8 and guide 20: only the script — the push spot's ring
+    and the comments saying the x is never a dot.
+  - The new banner bullet and rule 1's new words re-read against the code (`allowed()`): NOT SKILLS, the three NO
+    CAMERA checks, the excursion check, FLIPPER NOT READY, WRONG WALL — in that order; "this same place" is the
+    explicit form's precondition, in the same `if`.
+  - The changelog's new sentence re-read against the new case: a MATCH auton with the spots too close says NOT
+    SKILLS (pinned).
+  - `simulat` over this round's added lines and its two changed files: only the ctx test's standing "never
+    'simulator'" note.
+  - No removability hit can come from this round: the only public-doc change is one changelog sentence (no internal
+    path).
+- **Public docs touched this round:** the changelog (one sentence) and the figure (`docs/assets/skills-toggle-look-
+  spots.png`, regenerated by its script). Internal: this log. Headers: `toggle_visit.hpp` (banner comments only — no
+  code); tests: `toggle_visit_ctx_test.cpp` (one new case, one rewritten); tools: the figure script.
+- **RESUMED 2026-11-16 22:50 EST** (`date` read) — the builder again, on the same four findings. The 12:47 round had
+  stopped inside its final gates (`scratch/af1s-a2/gates4/`, 13:08): steps 00–12 green on the final tree (suite
+  `green — 3779 cases`, ctest compile refusals 289 of 289, the ARM gate over 259 headers, the CI greps empty, the five
+  api_doc_tool checks, staleness clean, the briefing current) — then cut off INSIDE `src_build_gate.py self-test`
+  (~13:53, the session's pause); `src_build_gate.py check` never ran, and none of this was logged.
+  - **FOUND: a src-gate self-test PLANT left behind** — the gate's case 36, `void ser1SelfTestPrintf();` and
+    `void ser1SelfTestPrintf() { std::printf("x\n"); }` appended to `src/programs/bench_r3a.cpp` (13:53:31): the
+    process was KILLED, not interrupted, so its `with _plant` never restored. It carries no `(self-test plant`
+    marker, so the check this run's task names — `git diff -- Makefile src/` grepped for `(self-test plant` — reads
+    0 WITH it present; only `git diff --stat` shows it. Removed at 22:51: the exact two-line suffix, asserted to be
+    the file's end and its only `ser1SelfTestPrintf`, then `git diff --quiet` on the file (= HEAD; A2 never edits
+    it), mtime bumped; the planted copy and its diff kept in `scratch/af1s-a2/vround2/`. Every other file the
+    self-test plants into — `Makefile`, `src/`, `test/CMakeLists.txt`, `test/build_selection_test.cpp`,
+    `test/chassis_table_test.cpp`, `test/vendor/`, `include/liblvgl/` — = HEAD, nothing untracked; `robot_config.hpp`
+    (A2 edits it; the gate's case 19 plants in it) holds A2's own hunks only, nothing appended; no
+    `build/src-gate-facts/`, no `build/ROBOT-ONE-GATE-COPY-ONLY`. **For the coordinator:** a leftover-plant check
+    must be `git diff --stat` (and untracked files) over EVERY path the self-test plants into, not the marker grep —
+    case 36's plant and the other SER1 plants (`ser1Review…`) have no marker. The final gates below check that way
+    (before, between the self-test and the check, after), and run the self-test and the check so a TERM, HUP or INT
+    reaching their driver is passed on as INT (the `with _plant` restores on KeyboardInterrupt) and waited for.
+  - **Re-checked before trusting the 12:47 record:** the banner's rule 1 (:69–73) against `allowed()`'s order (NOT
+    SKILLS, the three NO CAMERA checks, the excursion check, FLIPPER NOT READY, WRONG WALL — the code unchanged by this
+    round); the V2 sentence (:158–160); the new order case and the rewritten `toggleCameraOf` case, read whole; the
+    figure, re-read (one purple ring; three grey x's, each labelled with its point); `mut4/before.log` and
+    `mut4/mutations.log`, read (each verdict as the table says, 7 dependents recompiled each). Nothing in the mutated
+    files changed after that run but the logged comment reflow (`toggle_visit.hpp`, 13:08:18).
+  - **ONE more fix, V3's own premise check.** The 12:47 cut's `static_assert` —
+    `sizeof(ToggleColourIds) == 3 && sizeof(ToggleTrackerConfig) == alignof(double) + 13 x sizeof(double)` — and its
+    comment ("a field added to the tracker's config changes its size") overstated, as did row V3's "(a field added
+    later stops the build, naming this case)": a member of 5 bytes or fewer placed straight after the 3-byte `ids`
+    sits in their padding and leaves the size at 112. It now COUNTS MEMBERS: `membersExactly<T>(make_index_sequence<N>)`
+    — T brace-initialises from N `AnyMember{}` (a type that converts to any member's type, never defined, used only
+    unevaluated) but not from N + 1 — the ids block exactly 3, the config exactly 14 (the ids block and 13 more); the
+    comment says so. Probe (`vround2/probe/count_probe.cpp`, `-Werror` with the build's warnings): on the real header
+    3 and 14 hold, 2, 4, 13 and 15 are refused; with `bool paddingProbe` after `ids` in a COPY of the header, the new
+    check fires and the old `sizeof` check compiles. **Mutation PAD** (`vround2/mut_pad.sh`, 22:56–22:57; the file
+    backed up in scratch, restored in a trap on EXIT/TERM/HUP/INT, `cmp`-identical, mtime bumped):
+    `bool paddingProbe = false;` straight after `ids` in `include/shulib/vision/toggle_tracker.hpp`. Its first cut
+    broke its OWN build at the doc-coverage gate (an undocumented member) — re-cut, never counted: the member given a
+    `///<`, and the suite target's own `build.make` driven (its `depend` step, then `make -k`) as `mut4.py` drives it,
+    past the doc gates. The re-cut: 122 objects name the header in their depfiles; 121 recompiled CLEAN with the
+    mutant (newer than it); the ONE failure is `toggle_visit_ctx_test.cpp.o`, by THIS case's `static_assert` (:728,
+    "ToggleTrackerConfig gained or lost a member: add it to this case's numbers and to sameNumbers") — **CAUGHT by
+    compile-time assertion, the test's own.** The two touched cases re-run alone first (2 of 2, 255 assertions).
+    Row V3's sentence is marked in place.
+  - **Seen, not done (for the coordinator, not a finding of this round):** `robot_toggle_camera_test.cpp`'s
+    `declared()` case lists the block's 17 numbers by hand — a member added later reaches `declared()` and that case
+    only by a person reading; the new `static_assert` above now stops the build on such a member, and its message
+    names this case's lists, not that one.
+  - **PROSE REVIEW of the resumption** (rule 4 — each grep RUN and its hits READ before this line was written):
+    `grep -n "17 numbers\|17 tracker\|each distinct\|changes its size\|sizeof\|padding\|membersExactly\|AnyMember"`
+    over `toggle_visit_ctx_test.cpp` and `robot_toggle_camera_test.cpp`: the ctx test's new helper (:683–693, its
+    comment "compiles exactly when the aggregate T has n members or more" — true: fewer initialisers than members
+    value-initialise the rest), the case's premise comment (:723–725) and its history note (:703); the camera test's
+    "17 numbers" (:17, :486 — the block's 16 tracker numbers and the feed's period, `ToggleCameraConfig` = tracker +
+    `CameraFeedConfig{minReadPeriodSeconds}` — true) and its `sizeof buf` lines (unrelated). `simulat` over the ctx
+    test: only its standing "never 'simulator'" note. This entry re-read against `final_gates5.sh`, `mut_pad.out`
+    and `mut_pad_build.log`. No public doc changed in the resumption (a test comment, a test `static_assert`, this
+    log).
+- **FINAL GATES of the resumption** (`scratch/af1s-a2/final_gates5.sh`, `gates5/`, 22:57–00:14, on the final tree;
+  the test binary REMOVED first): the plant check (every plant path = HEAD, nothing untracked, no marker in the
+  diff, no `build/src-gate-facts/`, no `build/ROBOT-ONE-GATE-COPY-ONLY`); `api_doc_tool generate`; the briefing
+  regenerated with the binary absent; configure; the FULL build, doc gates inside (124 objects compiled — every
+  dependent of the restored `toggle_tracker.hpp` among them; no warning); the briefing regenerated with the binary
+  present; the suite `green — 3779 cases, 3884675 assertions`; ctest compile refusals 289 of 289; the ARM header gate
+  over all 259 `include/shulib` headers (`-Werror`, rc 0); the CI greps (no `pros/` outside hal/pros, no `shulib/sim/`
+  outside sim/); api_doc_tool self-test, check-coverage (6473 entities, all documented), check-fresh,
+  check-examples (988 lines verbatim), check-removability — all rc 0; `doc_staleness_audit.py` clean;
+  `briefing_status.py check` current; `src_build_gate.py self-test` OK (377 detector cases, each against a real
+  build; 23:07–23:57); the plant check between — clean, `robot_config.hpp` = its start copy; `src_build_gate.py
+  check` PASS (14 builds; robot one's 6 refuse naming exactly their owed facts and link in the gate's typed copy;
+  23:57–00:14); the plant check after — clean. Then, as gates3 did, the host build re-run (the self-test's plants
+  and restores bump `test/` files' mtimes: 315 objects, rc 0) and the suite again on it: `green — 3779 cases,
+  3884675 assertions`. After this entry was written: `doc_staleness_audit.py` and `briefing_status.py check` re-run
+  (below). The binary left on disk (00:16) is this tree's own, built from source.
+- **After this entry was written** (00:18, `gates5/18_…`, `19_…`): `doc_staleness_audit.py` clean, `briefing_status.py check` current; all 122 objects that name `toggle_tracker.hpp` in their depfiles are newer
+  than PAD's restore (none older). Final plant check: `git diff --stat` over every plant path empty.
+- **STOPPED HERE (2026-11-17 ~00:20): the verification round is COMPLETE** — four findings, all REAL, all fixed
+  (the table); one more fix to V3's own premise check (the resumption); a src-gate self-test plant left by the
+  13:53 kill found and removed; every gate green on the final tree. NOT committed. For the coordinator: the merge
+  notes in the fix round above (main's tip has moved again since `3c29b73`, to `c778c11` at 00:20 — re-apply, and the src gate again on the
+  merged tree), the plant-check lesson above, finding 1's delta for the team lead, and the between-parts marker to
+  restore or complete.
+
+## AF1S-A2 — the coordinator's merge *(2026-11-17)*
+
+- **Squash-merged from `af1s-a2`** (transport `feda811`) onto the integrate worktree after the Calibrate fix (main
+  b3146d4 + 7867517). Conflicts with DOCS3-N1's new docs resolved in N1's shape: the front page and the cookbook index
+  keep N1's layout, cookbook 08 joins the menu under Routes → Recipes and the cookbook index; the glossary keeps N1's
+  anchored entries and adds A2's four terms (look spot, push spot, Quadrant colour, Toggle block — anchored and linked
+  by `chapter_links.py`); the API pages regenerated (`toggle_camera.md` joins the generated menu block). Cookbook 08's
+  opening lost its "Nothing here has run on a robot" phrase (the tone rule; the placeholder sentence stays).
+- **API: no version bump** — the run's own history paragraph says no frozen row is touched (RobotContext outside F4,
+  the shadow context outside F6's accessors, competition/ and vision/ open — F15); by the project's rule (AF1S-A1's
+  precedent) that takes no number, so its entry sits at the top of `## API 2.9`.
+- **Gated together with the Calibrate fix and MIRROR1-B** (one gate run on the final tree, `integrate_verify.sh`), then
+  the coordinator's mutations; main fast-forwards only after.

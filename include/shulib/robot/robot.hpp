@@ -143,8 +143,8 @@
 // ── THE SIDE DISTANCE SENSORS: built from the config, ABSENT rather than refused (L6-A2) ──
 // For each side of `sensors.walls` whose port is not 0, the constructor's body asks the provider for
 // the distance sensor (`devices.distance(port)`) and its read-fault count (`devices.readFaults(port)`)
-// — LAST, after the camera, so every provider request before them, and so every graph built before
-// L6-A2, is exactly what it was. validate() does NOT ask for them. A sensor the provider will not make
+// — after the camera, the LAST provider requests (the Toggle camera filled after them asks for nothing), so
+// every provider request before them, and so every graph built before L6-A2, is exactly what it was. validate() does NOT ask for them. A sensor the provider will not make
 // leaves that side ABSENT — `wallSensor(side)` nullptr, `wallSensorAbsence(side)` the provider's own
 // sentence, COPIED (the provider's pointer is valid only until its next refusal) — and the robot
 // builds and drives: a cable out must never cost a match (the L6 brief's D5; the camera's rule), and a
@@ -160,6 +160,25 @@
 // refused side (its reason is in wallSensorAbsence() and in the reset's refusal line, never on the
 // boot line), ` MOUNT UNSET` after them when a declared mount is unmeasured, `walls ABSENT` when no
 // side is declared.
+//
+// ── THE TOGGLE CAMERA: built from the two blocks, NOT READY rather than refused (AF1S-A2) ──
+// The skills Toggle step's camera (vision/toggle_camera.hpp): ONE feed over the camera, the model of its
+// measured mount and the team's tracker numbers, from `sensors.camera` and the Toggle block
+// `sensors.toggleCamera`. It is the context's SECOND optional slot, handed in only when the config
+// DECLARES the block (with none the slot is nullptr — the step's word is NO CAMERA, "no Toggle block is
+// declared"); FILLED in the constructor's body, LAST, after the wall sensors — it asks the provider for
+// nothing (the camera was built above; the feed reads it only inside the step's waits), so every graph
+// built before AF1S-A2 is exactly what it was. READY only when the block passes
+// vision::toggleCameraCheck() (a camera declared, its mount MEASURED and inside the geometry's limits,
+// the tracker's and the feed's numbers accepted, the three colour ids among the camera's colours) AND the
+// camera was BUILT; otherwise the slot stays present but NOT READY with the first reason, and the robot
+// builds and drives — an unusable Toggle block must never stop a robot from driving a match (the camera's
+// own D5 rule; the AF1S brief's M-A2-2). Why "present but not ready" and not nullptr: the motion
+// scheduler's shadow context copies the slot pointer when the Chassis is built, in the member
+// initializers, before the camera exists (vision/toggle_camera.hpp's banner). `toggleCamera()` is
+// non-null EXACTLY when the slot is ready, and `toggleCameraAbsence()` is "" exactly then. With the
+// block declared, the boot line's camera words end `, toggles ready` or `, toggles OFF (<why>)`; with
+// none, the camera words are exactly what they were.
 //
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // A Robot built from a config has driven the A2 host plant, through fakes, and nothing else.
@@ -213,6 +232,7 @@
 #include "shulib/motion/motion.hpp"
 #include "shulib/motion/motion_scheduler.hpp"
 #include "shulib/robot/mechanism_parts.hpp"
+#include "shulib/vision/toggle_camera.hpp"
 
 namespace shulib::robot {
 
@@ -558,7 +578,9 @@ public:
     /// whole drive graph, each configured mechanism with motors, or with 3-wire lines, is built —
     /// or recorded ABSENT with the provider's sentence (chunk T3 and its addendum B2; the file
     /// header's MECHANISMS section); then the camera (VIS1-A1), then each declared side distance
-    /// sensor (L6-A2) — each ABSENT, never refused, when the provider will not make it.
+    /// sensor (L6-A2) — each ABSENT, never refused, when the provider will not make it; then the Toggle
+    /// camera slot (AF1S-A2) from the camera and the Toggle block — NOT READY, never refused, when it
+    /// cannot be built (and no provider request).
     Robot(const config::RobotConfig& cfg, hal::IDeviceProvider& devices,
           const BuildOptions& options = {})
         : cfg_{prechecked(cfg, devices, options)},
@@ -610,7 +632,8 @@ public:
               .telemetry = &devices.telemetry(),
               .tags = &tags_,
               .vision = &vision_,
-              .walls = cfg_.sensors.walls.declared() ? &walls_ : nullptr}},
+              .walls = cfg_.sensors.walls.declared() ? &walls_ : nullptr,
+              .toggleCamera = cfg_.sensors.toggleCamera.declared() ? &toggleCam_ : nullptr}},
           deps_{.ctx = &ctx_,
                 .localizer = &localizer_,
                 .kinematics = kin_,
@@ -623,7 +646,9 @@ public:
         parts_.build(std::span<const config::MechanismConfig>{cfg_.mechanisms, cfg_.mechanismCount},
                      devices);
         buildCamera(devices);  // VIS1-A1: after everything above (header: THE AI VISION CAMERA)
-        buildWallSensors(devices);  // L6-A2: LAST, after the camera (header: THE SIDE DISTANCE SENSORS)
+        buildWallSensors(devices);  // L6-A2: after the camera (header: THE SIDE DISTANCE SENSORS)
+        toggleCam_.build(camera_, ctx_.clock(), cfg_.sensors.camera,
+                         cfg_.sensors.toggleCamera);  // AF1S-A2: LAST, no provider call (header: THE TOGGLE CAMERA)
     }
 
     /// Non-copyable: the graph is a web of references into this object's own storage.
@@ -822,6 +847,27 @@ public:
         return why != nullptr ? why : "";
     }
 
+    // ── the Toggle camera (AF1S-A2; the file header's TOGGLE CAMERA section) ─────────────────────
+
+    /// The skills Toggle step's camera slot if it is READY — the feed over the built camera, the model of
+    /// the measured mount, the Toggle block's tracker numbers — or nullptr when the config declares no
+    /// Toggle block or the slot could not be built (`toggleCameraAbsence()` says why). The object the
+    /// context's OPTIONAL `toggleCamera` slot points at (whenever the block is declared, ready or not).
+    /// Valid for the Robot's lifetime. The Robot never reads the camera through it.
+    [[nodiscard]] vision::ToggleCamera* toggleCamera() noexcept {
+        return toggleCam_.ready() ? &toggleCam_ : nullptr;
+    }
+    /// The slot if it is ready, read-only (same rules).
+    [[nodiscard]] const vision::ToggleCamera* toggleCamera() const noexcept {
+        return toggleCam_.ready() ? &toggleCam_ : nullptr;
+    }
+
+    /// Why `toggleCamera()` is nullptr: "no Toggle block is declared (...)" when the config has none,
+    /// otherwise the slot's own first reason — a camera not declared, its mount UNSET, a tracker or feed
+    /// number refused (named), a colour id the camera is not taught, or the camera not built. The empty
+    /// string EXACTLY when `toggleCamera()` is non-null. Stable for the Robot's lifetime.
+    [[nodiscard]] const char* toggleCameraAbsence() const noexcept { return toggleCam_.absence(); }
+
     /// The §18.5 session header's port map for this robot, generated from the config it was
     /// built with — `writePortMap(config(), out, cap)`, whose documentation gives the formats.
     /// Truncates rather than overflowing (the header field is `diag::kMaxPortMapBytes`, 96
@@ -841,7 +887,9 @@ public:
     /// "camera port 3 " + `hal::cameraStatusWords(camera()->status())`, the adapter's reason after it
     /// in parentheses when it has one ("camera port 3 set up, model DIFFERENT (class 0 is 'blueBall',
     /// the robot file expects 'redBluePin')") — ASCII only, and LAST so a short buffer cuts the
-    /// camera's reason, never the drive. Until VIS1-A1 the line ended "vision ABSENT". Truncates
+    /// camera's reason, never the drive; and, ONLY when the config declares a Toggle block (AF1S-A2),
+    /// after the camera's words: ", toggles ready" or ", toggles OFF (<toggleCameraAbsence()>)" — with
+    /// no block the line is exactly what it was. Until VIS1-A1 the line ended "vision ABSENT". Truncates
     /// rather than overflowing; writes at least a NUL whenever cap > 0.
     ///
     /// It is built from the CONFIG this robot was constructed with, not from a second copy of the
@@ -1161,8 +1209,12 @@ private:
         return tuning;
     }
 
-    /// The longest camera part of the banner, NUL included (header: the words, a reason in parentheses).
-    static constexpr std::size_t kCameraWordsBytes = 224;
+    /// The longest part of the banner the CAMERA's own words may take, NUL included (header: the words, a
+    /// reason in parentheses) — unchanged by AF1S-A2, so a line with no Toggle block is what it was.
+    static constexpr std::size_t kCameraOwnWordsBytes = 224;
+    /// The longest camera part of the banner, NUL included: the camera's own words, then (AF1S-A2, a
+    /// Toggle block declared) ", toggles OFF (" + the slot's reason + ")".
+    static constexpr std::size_t kCameraWordsBytes = kCameraOwnWordsBytes + 16 + vision::kToggleCameraReasonBytes;
     /// The longest camera absence sentence kept, NUL included (the providers' refusals are 160 at most).
     static constexpr std::size_t kCameraReasonBytes = 160;
 
@@ -1215,10 +1267,11 @@ private:
             return;
         }
         const unsigned port = cfg_.sensors.camera.port;
+        const std::size_t own = cap < kCameraOwnWordsBytes ? cap : kCameraOwnWordsBytes;  // the camera's own
         if (port == 0) {
-            std::snprintf(out, cap, "camera ABSENT");
+            std::snprintf(out, own, "camera ABSENT");
         } else if (camera_ == nullptr) {
-            std::snprintf(out, cap, "camera port %u ABSENT (%s)", port, cameraAbsence_);
+            std::snprintf(out, own, "camera port %u ABSENT (%s)", port, cameraAbsence_);
         } else {
             const hal::CameraStatus st = camera_->status();
             const char* reason = !st.configured ? st.setupProblem
@@ -1227,10 +1280,18 @@ private:
                                      ? st.modelProblem
                                      : "";
             if (reason != nullptr && reason[0] != '\0') {
-                std::snprintf(out, cap, "camera port %u %s (%s)", port, hal::cameraStatusWords(st),
+                std::snprintf(out, own, "camera port %u %s (%s)", port, hal::cameraStatusWords(st),
                               reason);
             } else {
-                std::snprintf(out, cap, "camera port %u %s", port, hal::cameraStatusWords(st));
+                std::snprintf(out, own, "camera port %u %s", port, hal::cameraStatusWords(st));
+            }
+        }
+        if (cfg_.sensors.toggleCamera.declared()) {  // AF1S-A2: only with a Toggle block declared
+            const bool ready = toggleCam_.ready();
+            appendWords(out, cap, ready ? ", toggles ready" : ", toggles OFF (");
+            if (!ready) {
+                appendWords(out, cap, toggleCam_.absence());
+                appendWords(out, cap, ")");
             }
         }
         for (std::size_t k = 0; out[k] != '\0'; ++k) {
@@ -1239,6 +1300,20 @@ private:
                 out[k] = '?';
             }
         }
+    }
+
+    /// Append `words` to the NUL-terminated `out`, bounded by `cap` and always terminated — BY HAND, for
+    /// appendPorts()'s reason: the compiler cannot bound a `cap - strlen(out)` argument, so a moving
+    /// snprintf trips -Wformat-truncation on a call that is in fact safe.
+    static void appendWords(char* out, std::size_t cap, const char* words) noexcept {
+        std::size_t n = 0;
+        while (n + 1 < cap && out[n] != '\0') {
+            ++n;
+        }
+        for (std::size_t k = 0; words[k] != '\0' && n + 1 < cap; ++k) {
+            out[n++] = words[k];
+        }
+        out[n] = '\0';
     }
 
     /// The longest wall part of the banner, NUL included: "walls L21(ABSENT) R21(ABSENT) MOUNT UNSET"
@@ -1440,8 +1515,13 @@ private:
 
     localization::Localizer localizer_;
     /// The side distance sensors, their limits and the reset log (L6-A2) — declared BEFORE the context
-    /// so `&walls_` can be handed to it; FILLED in the constructor's body, last (buildWallSensors()).
+    /// so `&walls_` can be handed to it; FILLED in the constructor's body, after the camera
+    /// (buildWallSensors() — the last provider requests; the Toggle camera, which asks for nothing, is
+    /// filled after them).
     localization::WallSensors walls_{};
+    /// The Toggle camera slot (AF1S-A2) — declared BEFORE the context, as `walls_` is, so `&toggleCam_`
+    /// can be handed to it; FILLED in the constructor's body, last (vision::ToggleCamera::build()).
+    vision::ToggleCamera toggleCam_{};
     chassis::RobotContext ctx_;
     motion::MotionDeps deps_;
     chassis::Chassis chassis_;

@@ -53,6 +53,7 @@
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/hal/motor.hpp"
 #include "shulib/units/quantity.hpp"
+#include "shulib/vision/toggle_camera.hpp"
 
 namespace shulib::config {
 
@@ -335,6 +336,14 @@ struct GpsConfig {
 /// reset's limits. `robot::Robot` builds each declared side through the device provider; a refused
 /// sensor never refuses the robot (`Robot::wallSensor()` / `wallSensorAbsence()`).
 ///
+/// THE CAMERA'S TOGGLE BLOCK IS DECLARED HERE since AF1S-A2 (2026-11-15): `toggleCamera` (its type is
+/// vision/toggle_camera.hpp's) — the team's Toggle-tracker numbers and the camera feed's read period,
+/// every one UNSET by default, so every config written before it stays valid and builds the same robot.
+/// It sits BESIDE `camera`, not inside it, because the camera block's own header is included by the
+/// tracker's (a circular include). `robot::Robot` builds the skills Toggle step's camera slot from the two
+/// blocks; a refused block never refuses the robot (`Robot::toggleCamera()` / `toggleCameraAbsence()`),
+/// and `valid()` does not check it.
+///
 /// TAGS ARE STILL DELIBERATELY ABSENT, and that is a statement about the tree rather than about the
 /// schema: no AprilTag adapter exists (R2b's tag part, after G3), so a field here would describe a
 /// reading the library cannot make. `robot::Robot` installs `hal::AbsentTagSource` and — because the
@@ -350,6 +359,11 @@ struct SensorsConfig {
     /// The side distance sensors and the wall reset's limits (L6-A2, APPENDED): no side declared by
     /// default. A default member initializer, for the same designated-initializer reason as `camera`.
     WallSensorsConfig walls{};
+    /// The camera's TOGGLE BLOCK (AF1S-A2, APPENDED): the tracker's numbers and the feed's read period
+    /// for the skills Toggle step — UNSET (not declared) by default. A default member initializer, for
+    /// the same designated-initializer reason as `camera`. Never checked by `valid()`: a refused block
+    /// costs the step its camera, never the robot (vision/toggle_camera.hpp).
+    vision::ToggleCameraConfig toggleCamera{};
 };
 
 /// A motor mechanism's DECLARED safe brake mode, as config data — what `robot::Robot` hands to
@@ -645,6 +659,11 @@ struct RobotConfig {
     /// own side — named with its side and port). Then the limits, always (`wallLimitsProblem`).
     /// An UNMEASURED mount is NOT an error: the robot boots, and every wall reset with it refuses MOUNT
     /// UNSET.
+    /// THE CAMERA'S TOGGLE BLOCK (AF1S-A2, `sensors.toggleCamera`) is deliberately NOT checked here, in
+    /// either pass: a block the Toggle step cannot use costs that step its camera — `robot::Robot`
+    /// leaves the slot not ready, naming the reason (`toggleCameraAbsence()`, the boot line's camera
+    /// words) — never the robot its boot. A team that wants it checked AT BUILD writes
+    /// `static_assert(vision::toggleCameraProblem(cfg.sensors.camera, cfg.sensors.toggleCamera) == nullptr)`.
     ///
     /// WHAT IT DELIBERATELY DOES NOT CHECK, and why the omission is a design decision rather than
     /// a hole: that every kinematic wheel actually HAS a motor. A holonomic port left at 0 is

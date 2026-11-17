@@ -10,8 +10,8 @@
 > anything.
 >
 > **What exists, and what does not yet.** The camera's first part (the device, the frame, the geometry)
-> and its second (this chapter) are in, and so is the skills Toggle step (in its form over explicit handles —
-> an auton reaches the camera in a later part). Robot two's camera and its bench page are the camera's third
+> and its second (this chapter) are in, and so is the skills Toggle step — callable from an auton, its camera
+> built from the robot file's [Toggle block](#the-robot-files-toggle-block). Robot two's camera and its bench page are the camera's third
 > part; the automatic flip in driver control, driving to a piece and choosing our alliance colour are later
 > chunks that USE what is here — none of them exists yet. Every number below is
 > from the host test plant's camera model (written with its own projection, so a sign error in the
@@ -94,6 +94,9 @@ inline constexpr vision::PieceFinderConfig kPieceNumbers{
     .raisedMinIn = 5.0,      // the lowest a raised piece sits on this field (a Goal's top), inches
 };
 ```
+
+For the skills Toggle step the tracker's numbers are not built in a program like this: they go in the robot
+file's [Toggle block](#the-robot-files-toggle-block), and the Robot builds the step's camera from them.
 
 ## Freshness is a clock, not a counter
 
@@ -320,9 +323,9 @@ the pieces are far apart.
 
 In a SKILLS run a Toggle helps only when it shows **its own Quadrant's colour** — the Game Manual's
 `<RSC3>`: a red Quadrant's Toggle wants RED, a blue Quadrant's wants BLUE. One library call does the whole
-visit as a route step: `competition::checkAndFlipToggle` (chunk AF1S-A1; its form over handles). **No team
-auton can call it yet**: the robot's camera reaches an auton's context in the next part (AF1S-A2) — until
-then the step runs only in a hand-wired program and the host tests. The route parks the robot at a **look spot**, square in
+visit as a route step: `competition::checkAndFlipToggle(ctx, request)` — the everyday form, over the auton's
+context, reading the robot's own camera (below: [the robot file's Toggle block](#the-robot-files-toggle-block)).
+[Cookbook chapter 8](../cookbook/08-skills-toggles.md) is a whole skills route written with it. The route parks the robot at a **look spot**, square in
 front of a named Toggle; the step looks, does **nothing** if the Toggle already shows ours, and otherwise
 drives straight in, pushes with the flipper, retracts, drives straight back out and looks again — a second
 push only when the first turned the Toggle to the third colour, never a third. Every doubt does nothing more
@@ -342,8 +345,11 @@ above"); these 10-in figures are re-run and pinned by this release's tests. On a
 tracker, 6 in up read from 18 in, 8 in up from 14 in and 12 in up from 24 in — not re-run since, and not
 pinned. A flipper reaches the face from a few inches. So the robot looks from `lookFrom` (about 14–24 in back,
 your number) and the step itself drives straight in to `pushFrom` and back. End the approach square —
-`face(...)` or `turnTo(...)`, especially after a curve. The look and the push can never be one spot: the step refuses a distance between them of twice the
-tracker's `frozenMoveIn` or less (the look after must move the camera to see a frozen one).
+`face(...)` or `turnTo(...)`, especially after a curve. The look and the push can never be one spot: a distance
+between them of twice the Toggle block's `frozenMoveIn` or less (the look after must move the camera to see a
+frozen one) is refused — the visit ends `spots too close` before anything is read or moved, and the route's
+`onFail` applies. The two numbers live in two files (the route's request, the robot file's block), so
+`static_assert(competition::toggleVisitBlockProblem(request, block) == nullptr)` checks the pair at build.
 
 **"At the spot" is checked by the camera — coarsely.** The band's WHOLE range interval must lie inside
 `lookFrom ± offBy`, never merely overlap it (the interval is 5–18 in wide; overlap accepted a robot 8–11 in
@@ -394,21 +400,68 @@ sensed — its step succeeds once the valve has held for the move time — so a 
 stroke and a caught one as back ([Chapter 14](14-what-it-cannot-do-yet.md)); its `flipBound` and `backBound` must each be at least its move
 time plus its confirm window, or it is FLIPPER NOT READY.
 
-**The numbers Step 0 measures** (every one the team's — an unset one is refused by name): the flipper's kind,
-its stroke and its times (`flipBound`, `backBound`), the Toggle's settle time (`settle`), whether one stroke
-rolls exactly one face and which way round (HA-231), the camera's picture age (`maxImageAge`, HA-192 — the
-longest a lagging picture trails the robot, not a guess "to be safe": every push's time grows by it), the
-colours taught on the real faces, the look spot (`lookFrom` and `offBy`: park 3 in too far and too near and
-see NOT AT THE SPOT; and how far the Toggle's face sits out from the wall's inner face, HA-201, for a FIELD
-start's distance check), the push spot (`pushFrom`: does anything of the robot touch the Toggle there?), and the
-drive in and out's worst time (`driveBound`, HA-244). A request built as a constant through
-`competition::toggleVisit({...})` is checked at build.
-
 **In a mirrored auton** (robot two running robot one's route —
 [Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton)) the step is handed the auton's
 entry and visits the IMAGE Toggle: robot one's red wall Toggle is robot two's right wall Toggle, its left wall Toggle
 robot two's blue wall Toggle — the same Quadrant colour, so "ours" does not change — and its line names the Toggle
 robot two really visited.
+
+### Step 0: the numbers the team measures
+
+Every number the step uses is the team's, measured at the robot before the route uses it — an unset one is
+refused by name, and none has a default. Step 0 is that measuring, in seven parts (each robot that runs the
+route does all seven on itself):
+
+- **0.1 The flipper:** its kind, its stroke and its times (`flipBound`, `backBound`), the Toggle's settle time
+  (`settle`), and whether one stroke rolls exactly one face, and which way round (HA-231) — twenty full
+  strokes, each checked by eye for a Toggle stuck part-way (HA-232).
+- **0.2 The camera's mount and its picture's age:** the mount, MEASURED, in the camera block; `maxImageAge`
+  (HA-192 — the longest a lagging picture trails the robot, not a guess "to be safe": every push's time grows
+  by it).
+- **0.3 The colours and the tracker:** the colours taught on the Toggle's real faces, the Toggle block's
+  tracker numbers and read period, and `lookWithin` (the longest a look waits for a colour).
+- **0.4 The look spot:** `lookFrom` and `offBy` — park 3 in too far and too near and see NOT AT THE SPOT; and,
+  for a FIELD start's distance check, how far the Toggle's face sits out from the wall's inner face (HA-201).
+- **0.5 The push spot:** `pushFrom` — and does anything of the robot touch the Toggle there?
+- **0.6 The drive in and out:** its worst time (`driveBound`, HA-244). `lookFrom - pushFrom` must be more than
+  twice the Toggle block's `frozenMoveIn` (the look after a push must move the camera to see a frozen one).
+- **0.7 The field:** which walls' Toggles start with RED facing out, on the event's field (HA-243).
+
+`margin` — spare time kept at each visit's end — is a choice, not a measurement. A request built as a constant
+through `competition::toggleVisit({...})` is checked at build.
+
+### The robot file's Toggle block
+
+The step reads the camera through the auton's context, so the robot file says how: beside the camera's own
+block (its port, the colours taught on the Toggle's real faces, its MEASURED mount) it carries a **Toggle
+block** — `.sensors = {..., .toggleCamera = {...}}`, type `vision::ToggleCameraConfig`: the tracker's numbers
+([above](#the-toggle-tracker-red-blue-yellow--or-unknown-with-the-reason)) and the camera's read period
+(`feed.minReadPeriodSeconds`, about 0.033 s). Every number in it is UNSET until the team types it, and a robot
+file without one builds exactly the robot it always did. With one, the Robot builds the step's camera at boot
+— one feed over the camera, the model of the measured mount, the tracker's numbers — and the boot line's
+camera words end `, toggles ready`. It is built only when every one of these holds, and otherwise the words
+end `, toggles OFF (<the first that does not>)`, in this order: a camera is declared; its mount is MEASURED
+(and inside the geometry's limits); the tracker's numbers are accepted; the read period is set; the three
+colour ids are colours the camera's block teaches (an id the camera is never taught would read UNKNOWN for
+ever); and the camera was built at boot. **A Toggle block the step cannot use never stops the robot**: it
+boots and drives, and each visit fails NO CAMERA with the same reason in its `[TGL]` line. (The brain's
+programs print the boot line cut to 220 characters, which a long reason can pass, and the competition program
+prints none — the `[TGL]` line carries the reason, cut to 100 characters, and `robot.toggleCameraAbsence()`
+has it whole.)
+`robot.toggleCamera()` is the step's camera (or nullptr) and `robot.toggleCameraAbsence()` says why; `vision::toggleCameraProblem(camera, block)`
+checks the block at build, in a `static_assert`. [Cookbook chapter 8](../cookbook/08-skills-toggles.md) shows
+a block.
+
+**From an auton.** `competition::checkAndFlipToggle(ctx, request)` — returning `.outcome()` from a
+`then()` — is the step; `competition::lookAtToggle(ctx, request)` is the look alone (it moves nothing). A
+MATCH auton is still refused first (`not a SKILLS auton`). An optional third argument states how far the
+estimate may be off — `{.poseTolerance = 2_in, .headingToleranceDeg = 3}`, under a FIELD start, right after a
+wall reset: with the Toggle block's position check turned on (`positionToleranceIn`), the tracker then turns
+away MOST bands that are not where a Toggle is — not a lookalike within its tolerance of a Toggle's face
+(HA-199; [Chapter 14](14-what-it-cannot-do-yet.md)). Without one the position check is skipped, never run on a pose taken as exact; under a
+RELATIVE start the estimate is not in the field's frame, so the step drops the bound and its line says `wall
+and position not checked (relative start)`. The explicit form over handles (`competition::ExplicitToggleCamera`) is the same visit, for a
+hand-wired program and the host tests.
 
 **What it cannot catch** is [Chapter 14](14-what-it-cannot-do-yet.md#the-toggle-flip-in-a-skills-route-what-it-cannot-catch)'s;
 its one log line, word by word, is [Chapter 11](11-reading-the-diagnostics.md#the-toggle-visit-tgl)'s. **Nothing
@@ -427,4 +480,5 @@ page is the host plant's.
 ---
 
 *Next: back to [the guide's index](README.md). For exact signatures: [the generated API
-reference](../api/README.md) — `camera_feed`, `toggle_tracker`, `piece_finder` and `toggle_visit`.*
+reference](../api/README.md) — `camera_feed`, `toggle_tracker`, `piece_finder`, `toggle_camera` and
+`toggle_visit`.*

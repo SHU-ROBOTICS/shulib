@@ -10,8 +10,8 @@
 //   cookbook-04a/b    -> docs/cookbook/04-drivetrains.md
 //   cookbook-05a/b/c  -> docs/cookbook/05-mixing-tiers.md
 //   cookbook-06a/b    -> docs/cookbook/06-driver-control.md
-//   cookbook-08a      -> the skills Toggle visit (AF1S-A1's route, over the EXPLICIT form; its page, "A skills
-//                        route that visits the Toggles", is AF1S-A2's — with the everyday form over ctx)
+//   cookbook-08a      -> docs/cookbook/08-skills-toggles.md (AF1S-A2: the skills route that visits the Toggles,
+//                        the everyday form over ctx, on a real robot::Robot; AF1S-A1 wrote it over the explicit form)
 //   cookbook-09a      -> docs/cookbook/09-one-route-two-robots.md (MIRROR1-A: one route, robot two mirrored)
 //
 // The cookbook quotes these bodies VERBATIM — the same anti-rot rule the guide
@@ -55,6 +55,7 @@
 #include "shulib/teleop/mechanism_binding.hpp"
 #include "shulib/teleop/teleop_loop.hpp"
 #include "shulib/units/literals.hpp"
+#include "toggle_robot_rig.hpp"
 #include "toggle_visit_rig.hpp"
 #include "wall_robot_rig.hpp"
 
@@ -964,71 +965,291 @@ TEST_CASE("cookbook-06b: one button toggles a pneumatic claw, holding it does no
     CHECK_FALSE(validBindings(bindings, toggles, ControllerButton::A));
 }
 
-// cookbook-08a (AF1S-A1): a FIELD-start SKILLS route that visits three Toggles, each from a look spot it reaches
-// SQUARE (face, drive, turn), through competition::checkAndFlipToggle's explicit form. Every number is a
-// PLACEHOLDER for Step 0's. The host plants: the right wall's Toggle already RED (ours — a red Quadrant), the blue
-// wall's YELLOW (a blue Quadrant's: two pushes, Y -> R -> B), the red wall's YELLOW and STICKY. Without STEP1-A's
-// onFail (not in this base), the sticky visit's NO CHANGE stops the route — the default stop — and the guard's end
-// action parks. AF1S-A2 rewrites the visit line in the everyday form and adds onFail(skipTo(...)).
-TEST_CASE("cookbook-08a: a skills route that visits three Toggles — one already ours, one flipped, one sticky "
-          "(the route stops there)") {
+// ═══ cookbook-08a — a skills route that visits the Toggles (docs/cookbook/08-skills-toggles.md) ═══════════════
+// AF1S-A2 (2026-11-15), rewriting AF1S-A1's route (over the explicit form) in the EVERYDAY form, on a REAL
+// robot::Robot run through competition::runAuton. The recipe is written as a team's skills file needs it: the
+// robot file (test/toggle_robot_rig.hpp's namespace toggle_robot — the flipper and the cascade, the camera and
+// its Toggle block) and THIS route, in its own namespace. Every number is a PLACEHOLDER for Step 0's; the ROUTE
+// is a teaching example, not the team's (G4: which Toggles, in what order, from where, and what a failed visit
+// does are the students').
+namespace cookbook_skills {
+using namespace shulib;
+using namespace shulib::units::literals;
+using namespace toggle_robot;  // the robot file's mechanisms by name: flipper, cascade
+namespace toggles = vision::override2026::toggles;
+
+// The robot file's TOGGLE BLOCK, beside its camera block (`.sensors = {..., .toggleCamera = kToggleBlock}`):
+// the tracker's numbers and the camera's read period — every one the team's, from Step 0 at the robot.
+inline constexpr vision::ToggleCameraConfig kToggleBlock{
+    .tracker = {.ids = {1, 2, 3},             // Step 0.3: the ids the camera block teaches: RED, BLUE, YELLOW
+                .holdSeconds = 0.15,          // Step 0.3: how long a colour must hold
+                .aliveSeconds = 0.10,         // Step 0.3: how old the newest read may be
+                .minAspect = 3.0,             // Step 0.3: a band's width over its height, at least
+                .minLengthFraction = 0.6,     // Step 0.3: a band's length, at least this x 25.8 in
+                .maxLengthFraction = 1.3,     // Step 0.3: ... and at most
+                .minRangeIn = 2.0,            // Step 0.3: the range window, inches
+                .maxRangeIn = 96.0,           // Step 0.3
+                .bearingWindowDeg = 25.0,     // Step 0.3: the bearing window, degrees
+                .frozenMoveIn = 2.0,          // Step 0.3: "camera frozen?" after the lens moves this far
+                .frozenTurnDeg = 2.0},        // Step 0.3: ... or the robot turns this far
+    .feed = {.minReadPeriodSeconds = 0.033}};  // Step 0.3: read the camera at most this often, seconds
+
+// The team's numbers for EVERY visit (Step 0), checked AT BUILD: an UNSET one stops the build, naming it.
+consteval competition::ToggleVisitRequest visitAt(vision::override2026::ToggleId which) {
+    return competition::toggleVisit({.toggle = which,
+                                     .flipper = flipper["flip"],
+                                     .back = flipper["stow"],
+                                     .lookFrom = 16_in,      // Step 0.4: lens to the face, at the look spot
+                                     .offBy = 6_in,          // Step 0.4: how far off the look spot is accepted
+                                     .pushFrom = 4_in,       // Step 0.5: lens to the face, at the push spot
+                                     .lookWithin = 0.6_s,    // Step 0.3: the longest a look waits for a colour
+                                     .flipBound = 1.2_s,     // Step 0.1: the worst push of five
+                                     .backBound = 1.2_s,     // Step 0.1: the worst retract of five
+                                     .settle = 0.3_s,        // Step 0.1: until the Toggle sits flat
+                                     .driveBound = 1.5_s,    // Step 0.6: the worst drive in (or out) of ten
+                                     .margin = 0.3_s,        // your spare time per visit (a choice, not measured)
+                                     .maxImageAge = 0.1_s});  // Step 0.2: the camera's picture's age
+}
+
+// The look spot and the push spot against the robot file's frozenMoveIn, checked AT BUILD too: closer than
+// twice it, every visit would refuse (SPOTS TOO CLOSE).
+static_assert(competition::toggleVisitBlockProblem(visitAt(toggles::kRightWall), kToggleBlock) == nullptr);
+
+// The route visits the Toggles FIRST, holding no Pin and no Cup (<SG6>: a robot holding more than one Pin or
+// one Cup may not touch a Toggle). Each look spot is reached SQUARE to its wall.
+chassis::RoutineResult skillsToggles(competition::AutonContext& ctx) {
+    chassis::Routine r{ctx, "skills toggles"};
+    r.startHome(cascade, 4_s);                  // home the cascade while the first leg drives...
+    r.driveTo(47.2_in, 0_in, {.timeout = 3_s});  // the right wall's look spot: lens 16 in from the face
+    r.turnTo(0_deg, {.timeout = 2_s});           // square to the wall
+    r.waitUntilDone(cascade, 4_s);              // ...and wait for the home to FINISH: a move sent while it
+    r.move(cascade["travel"], 3_s);             // is still homing replaces it, and stops NOT_HOMED
+
+    r.onFail(skipTo("blue wall")).then([&] {
+        return competition::checkAndFlipToggle(ctx, visitAt(toggles::kRightWall)).outcome();
+    }, "right wall Toggle");
+
+    r.label("blue wall").move(flipper["stow"], 2_s);  // stowed again, then STRAIGHT back off the wall
+    r.reverseTo(40_in, 0_in, {.timeout = 3_s});        // before any turn: after a FLIPPER STUCK the robot
+    r.face(0_in, 47.2_in, {.timeout = 3_s});           // is still at the push spot, too near to turn there
+    r.driveTo(0_in, 47.2_in, {.timeout = 6_s});
+    r.turnTo(90_deg, {.timeout = 3_s});
+    r.onFail(skipTo("red wall")).then([&] {
+        return competition::checkAndFlipToggle(ctx, visitAt(toggles::kBlueWall)).outcome();
+    }, "blue wall Toggle");
+
+    r.label("red wall").move(flipper["stow"], 2_s);
+    r.reverseTo(0_in, 40_in, {.timeout = 3_s});
+    r.face(0_in, -47.2_in, {.timeout = 3_s});
+    r.driveTo(0_in, -47.2_in, {.timeout = 8_s});
+    r.turnTo(-90_deg, {.timeout = 3_s});
+    r.onFail(skipTo("back off")).then([&] {
+        return competition::checkAndFlipToggle(ctx, visitAt(toggles::kRedWall)).outcome();
+    }, "red wall Toggle");
+
+    r.label("back off").move(flipper["stow"], 2_s);
+    r.reverseTo(0_in, -30_in, {.timeout = 3_s});  // off the wall: no robot touches a Toggle at the end
+    return r.result();
+}
+
+// The entry: a FIELD start (the wall check on every visit), a skills schedule.
+competition::AutonEntry skillsTogglesEntry() {
+    competition::AutonEntry e{};
+    e.name = "skills toggles";
+    e.kind = competition::AutonKind::Skills;
+    e.routine = &skillsToggles;
+    e.start = competition::StartPose::field(24_in, 0_in, 0_deg);
+    e.endActionAt = 55_s;
+    e.hardStopAt = 58_s;
+    return e;
+}
+}  // namespace cookbook_skills
+
+namespace {
+/// The cookbook-08a field: the right wall's Toggle already RED (ours — a red Quadrant), the blue wall's YELLOW
+/// (a blue Quadrant's: two pushes, Y -> R -> B), the red wall's YELLOW and STICKY; the cascade left 3 in up
+/// at boot (so its home takes longer than the first leg — the order the recipe exists to teach).
+toggle_robot_rig::Options cookbook08Field() {
     namespace ov = shulib::vision::override2026;
-    namespace sc = shulib::competition;
-    tv_rig::Options o = tv_rig::scene(tv_rig::Form::Arm);
-    o.toggle.fieldId = tv_rig::kRed;  // the right wall's: already ours
-    o.toggle.bottomId = tv_rig::kYellow;
-    o.toggle.outerId = tv_rig::kBlue;
+    toggle_robot_rig::Options o;
+    o.start = shulib::math::Pose2d{shulib::units::Length{24.0}, shulib::units::Length{0.0}, shulib::math::Angle::degrees(0.0)};
+    o.cascadeStartIn = 3.0;
+    shulib::sim::TogglePlantConfig right = tv_rig::redSideToggle();
+    right.fieldId = tv_rig::kRed;  // already ours
+    right.bottomId = tv_rig::kYellow;
+    right.outerId = tv_rig::kBlue;
     shulib::sim::TogglePlantConfig blue = tv_rig::redSideToggle();
     blue.bottomId = tv_rig::kRed;  // the blue side's mirror: Y -> R -> B
     blue.outerId = tv_rig::kBlue;
     shulib::sim::TogglePlantConfig red = tv_rig::redSideToggle();
     red.mode = shulib::sim::ToggleMode::Sticky;
-    o.others.push_back(tv_rig::onWall(blue, ov::toggles::kBlueWall));
-    o.others.push_back(tv_rig::onWall(red, ov::toggles::kRedWall));
-    tv_rig::Rig rig{o};
-    const sc::AutonEntry entry = tv_rig::Rig::entry(sc::AutonKind::Skills, sc::StartPose::field(rig.truth()));
+    o.toggles = {{ov::toggles::kRightWall, right}, {ov::toggles::kBlueWall, blue}, {ov::toggles::kRedWall, red}};
+    return o;
+}
 
-    shulib::chassis::RoutineResult result{};
-    rig.runGuarded([&] {
-        // The team's numbers (Step 0), once; each visit names its Toggle.
-        auto visit = [&](ov::ToggleId which) {
-            sc::ToggleVisitRequest request = tv_rig::armRequest(which);
-            return sc::checkAndFlipToggle(rig.cam, rig.chassis, rig.guard, &rig.svc, entry, request, rig.sink)
-                .outcome();
-        };
-        Routine r{rig.chassis, "skills toggles"};
-        r.then([&] { return visit(ov::toggles::kRightWall); }, "right wall Toggle")
-            .face(0_in, 47.2_in, {.timeout = 3_s})
-            .driveTo(0_in, 47.2_in, {.timeout = 6_s})
-            .turnTo(90_deg, {.timeout = 3_s})
-            .then([&] { return visit(ov::toggles::kBlueWall); }, "blue wall Toggle")
-            .face(0_in, -47.2_in, {.timeout = 3_s})
-            .driveTo(0_in, -47.2_in, {.timeout = 8_s})
-            .turnTo(-90_deg, {.timeout = 3_s})
-            .then([&] { return visit(ov::toggles::kRedWall); }, "red wall Toggle")
-            .brake({.timeout = 1.5_s});
-        result = r.result();
-    });
+/// The recipe robot's file with the recipe's Toggle block, as its page shows it.
+shulib::config::RobotConfig cookbook08Robot() {
+    shulib::config::RobotConfig robotFile = toggle_robot_rig::robotFile();
+    robotFile.sensors.toggleCamera = cookbook_skills::kToggleBlock;
+    return robotFile;
+}
+}  // namespace
 
-    CHECK_FALSE(result.ok);
-    CHECK(result.stoppedAt == 9);
-    CHECK(std::string{result.stoppedName} == "red wall Toggle");
-    CHECK(result.skipped == 1);  // the brake: the guard's end action parks instead
-    // The plants are the judges: ours untouched, the blue Quadrant's flipped to BLUE, the sticky one still yellow.
-    CHECK(rig.toggle.strokes() == 0);
-    CHECK(rig.toggle.scoredColour() == tv_rig::kRed);
-    CHECK(rig.others[0]->strokes() == 2);
-    CHECK(rig.others[0]->scoredColour() == tv_rig::kBlue);
-    CHECK(rig.others[1]->strokes() == 1);
-    CHECK(rig.others[1]->scoredColour() == tv_rig::kYellow);
-    const std::vector<std::string> lines = rig.lines("TGL");
-    REQUIRE(lines.size() == 3U);
-    CHECK(lines[0].find("already RED (ours)") != std::string::npos);
-    CHECK(lines[1].find("YELLOW -> BLUE after 2 pushes") != std::string::npos);
-    CHECK(lines[2].find("NO CHANGE") != std::string::npos);
-    for (const std::string& l : lines) {
-        CHECK(l.find("wall not checked") == std::string::npos);  // a FIELD start: every wall checked
+// Bug caught: a recipe that teaches a route which does not do what its page says — a cascade moved while still
+// homing (NOT_HOMED: the move replaces the home), a home that never overlapped the first leg (then the wait the
+// page teaches would prove nothing), a visit whose failure does not skip to the next leg, a sticky Toggle that
+// stops the whole route, a Toggle pushed while already ours, or a robot left touching a Toggle.
+TEST_CASE("cookbook-08a: a skills route that visits three Toggles -- the cascade homed FIRST, one Toggle already "
+          "ours, one flipped, one sticky (skipped past), and the robot backs off") {
+    toggle_robot_rig::World w{cookbook08Field()};
+    shulib::robot::Robot& robot = w.build(cookbook08Robot());
+    REQUIRE(robot.toggleCamera() != nullptr);  // the slot READY: camera, measured mount, the block
+    // THE OVERLAP the recipe teaches, measured (review, 2026-11-16): the clock when the first leg's last drive
+    // motion reached its boundary (every drive motion before the first visit's line is the first leg's — the
+    // right wall's Toggle is already ours, so that visit drives nowhere) and when the cascade's home finished.
+    shulib::mechanism::PositionSlot* cascadeSlot = w.svc.find(toggle_robot::cascade);
+    REQUIRE(cascadeSlot != nullptr);
+    double legEnd = -1.0;
+    double homeEnd = -1.0;
+    int motionsSeen = 0;
+    w.pacer.onPace = [&] {
+        if (homeEnd < 0.0 && cascadeSlot->homed()) {
+            homeEnd = w.now();
+        }
+        if (w.lines("TGL").empty()) {
+            const int n = robot.chassis().scheduler().completedCount();
+            if (n != motionsSeen) {
+                motionsSeen = n;
+                legEnd = w.now();
+            }
+        }
+    };
+    const shulib::competition::AutonEntry e = cookbook_skills::skillsTogglesEntry();
+    const shulib::competition::AutonRunResult res = w.run(e);
+    REQUIRE(res.started());
+    const shulib::chassis::RoutineResult& r = res.routine;
+    CAPTURE(std::string{r.stoppedName});
+    CAPTURE(std::string{r.firstFailedName});
+    // The chain: the sticky visit FAILED and the route went on (counted, never a stop); nothing else failed.
+    CHECK(r.steps == 20);
+    CHECK(r.stoppedAt == 0);
+    CHECK(r.failedOn == 1);
+    CHECK(r.firstFailedAt == 18);
+    CHECK(std::string{r.firstFailedName} == "red wall Toggle");
+    CHECK(std::string{r.skipPendingTo}.empty());  // the skip landed on "back off"
+    CHECK(r.jumped == 0);
+    CHECK(r.completed == 19);
+    CHECK_FALSE(res.guard.scoringCut);  // the whole route inside its schedule
+    // THE ORDER THE RECIPE TEACHES: the home was still running when the first leg ended (so the wait mattered),
+    // and it FINISHED (homed, then its step's SUCCEEDED) before the cascade's first move began.
+    CAPTURE(legEnd);
+    CAPTURE(homeEnd);
+    REQUIRE(motionsSeen >= 2);  // the first leg's driveTo and turnTo, at least
+    REQUIRE(legEnd > 0.0);
+    CHECK(homeEnd > legEnd);
+    const std::vector<std::string> mech = w.lines("MECH");
+    std::vector<std::string> cascadeLines;
+    for (const std::string& l : mech) {
+        if (l.rfind("'cascade': ", 0) == 0 && l.find("current cap") == std::string::npos) {
+            cascadeLines.push_back(l);
+        }
     }
+    REQUIRE(cascadeLines.size() == 3U);
+    CHECK(cascadeLines[0].rfind("'cascade': homed -- -135.0 deg", 0) == 0);  // it started 3 in up
+    CHECK(cascadeLines[1].rfind("'cascade': SUCCEEDED", 0) == 0);           // the home's verdict ...
+    CHECK(cascadeLines[2].rfind("'cascade': SUCCEEDED", 0) == 0);           // ... then the move's
+    for (const std::string& l : mech) {
+        CHECK(l.find("NOT_HOMED") == std::string::npos);
+    }
+    const double travelDeg = shulib::mechanism::positionToAngleDeg(toggle_robot::kToggleRobotMechanisms.specs[1].position,
+                                                                   4.0);  // "travel" = 4 in
+    CHECK(w.cascadePlant.trueDeg() == doctest::Approx(travelDeg).epsilon(0.03));
+    // The plants are the judges: ours untouched, the blue Quadrant's flipped to BLUE, the sticky one still yellow.
+    CHECK(w.toggles[0]->strokes() == 0);
+    CHECK(w.toggles[0]->scoredColour() == tv_rig::kRed);
+    CHECK(w.toggles[0]->flipperContactsWhileOurs() == 0);
+    CHECK(w.toggles[1]->strokes() == 2);
+    CHECK(w.toggles[1]->scoredColour() == tv_rig::kBlue);
+    CHECK(w.toggles[2]->scoredColour() == tv_rig::kYellow);
+    for (const auto& t : w.toggles) {
+        CHECK_FALSE(t->touched());  // the robot backed off: nothing touches a Toggle at the end
+    }
+    CHECK(w.truth().y().value() > -36.0);  // backed off the red wall (its look spot is at y = -47.2)
+    // The three lines the recipe's page quotes, byte for byte (a FIELD start: no "wall not checked").
+    const std::vector<std::string> lines = w.lines("TGL");
+    REQUIRE(lines.size() == 3U);
+    CHECK(lines[0] == "right wall Toggle: already RED (ours), nothing pushed, 0.2s, seating not checked");
+    CHECK(lines[1] == "blue wall Toggle: YELLOW -> BLUE after 2 pushes, 9.5s (ours BLUE), seating not checked");
+    CHECK(lines[2] == "red wall Toggle: NO CHANGE -- still YELLOW after 1 push (sticky, or a camera frozen since before)");
+    // The page's other numbers: the whole run's time, and each visit's worst case 13.1 s.
+    CHECK(res.guard.scoringEnded.value() == doctest::Approx(31.1).epsilon(0.02));
+    CHECK(shulib::competition::worstCaseSeconds(cookbook_skills::visitAt(shulib::vision::override2026::toggles::kRedWall))
+          == doctest::Approx(13.14));
+}
+
+// Bug caught (review, 2026-11-16 — the brief's landmine 6): a recipe whose FLIPPER STUCK recovery turns in place AT
+// THE PUSH SPOT — the step leaves the robot there (it never drags the Toggle), and a turn there sweeps the frame
+// into the wall and the Toggle (<SC4>b, <GG9>). The SAME route, the right wall's Toggle yellow this time and the
+// flipper wedged on its first retract (the jam freed once the step has given up, so the route's longer stow
+// succeeds): FLIPPER STUCK, the skip to "blue wall", and then — in this order — the flipper STOWED before the
+// robot moves, the robot backed STRAIGHT off before it turns, and the rest of the route run.
+TEST_CASE("cookbook-08a (FLIPPER STUCK): the recovery stows, then backs straight off, THEN turns -- never a turn at "
+          "the push spot") {
+    toggle_robot_rig::Options o = cookbook08Field();
+    o.toggles[0].plant = tv_rig::redSideToggle();  // the right wall's Toggle YELLOW: the visit pushes
+    toggle_robot_rig::World w{o};
+    w.build(cookbook08Robot());
+    bool wedged = false;
+    bool stuck = false;
+    shulib::math::Pose2d stuckAt{};
+    double flipperWhenMoved = -1.0;
+    double backedOffWhenTurned = -1.0;
+    w.pacer.onPace = [&] {
+        if (!wedged && w.flipperPlant.trueDeg() > 85.0) {
+            wedged = true;
+            w.flipperPlant.setWedgeDeg(50.0);  // something wedged under the flipper on its way back
+        }
+        const shulib::math::Pose2d p = w.truth();
+        if (!stuck) {
+            const std::vector<std::string> tgl = w.lines("TGL");
+            if (!tgl.empty() && tgl[0].find("FLIPPER STUCK") != std::string::npos) {
+                stuck = true;
+                stuckAt = p;
+                w.flipperPlant.clearWedge();  // the jam frees; the route's own longer stow is the second try
+            }
+            return;
+        }
+        const double moved = std::hypot(p.x().value() - stuckAt.x().value(), p.y().value() - stuckAt.y().value());
+        if (flipperWhenMoved < 0.0 && moved > 0.5) {
+            flipperWhenMoved = w.flipperPlant.trueDeg();
+        }
+        const double turned = std::fabs(std::remainder(p.heading().radians() - stuckAt.heading().radians(),
+                                                       2.0 * shulib::math::Angle::kPi)) / (shulib::math::Angle::kPi / 180.0);
+        if (backedOffWhenTurned < 0.0 && turned > 3.0) {
+            backedOffWhenTurned = moved;
+        }
+    };
+    const shulib::competition::AutonRunResult res = w.run(cookbook_skills::skillsTogglesEntry());
+    REQUIRE(res.started());
+    const shulib::chassis::RoutineResult& r = res.routine;
+    CAPTURE(std::string{r.stoppedName});
+    const std::vector<std::string> lines = w.lines("TGL");
+    REQUIRE(lines.size() == 3U);
+    CHECK(lines[0].rfind("right wall Toggle: FLIPPER STUCK", 0) == 0);
+    REQUIRE(stuck);
+    CHECK(std::string{r.firstFailedName} == "right wall Toggle");
+    CHECK(r.stoppedAt == 0);  // the stow's second try SUCCEEDED: the route went on
+    // The robot was left AT the push spot (lens about 4 in from the face): the step did not drive out.
+    CHECK(stuckAt.x().value() > 56.0);
+    // THE ORDER: stowed before it moved, then straight back at least 10 in before it turned.
+    CAPTURE(flipperWhenMoved);
+    CAPTURE(backedOffWhenTurned);
+    REQUIRE(flipperWhenMoved >= 0.0);
+    CHECK(flipperWhenMoved < 5.0);
+    REQUIRE(backedOffWhenTurned >= 0.0);
+    CHECK(backedOffWhenTurned > 10.0);
+    // ...and the rest of the route ran: the blue wall's Toggle flipped to BLUE.
+    CHECK(w.toggles[1]->scoredColour() == tv_rig::kBlue);
 }
 
 // ═══ cookbook-09a — one route, two robots (docs/cookbook/09-one-route-two-robots.md; chunk MIRROR1-A) ═══

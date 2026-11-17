@@ -16,6 +16,63 @@
 
 ## API 2.9
 
+### 2026-11-16 (built 2026-11-15, reviewed and fixed to 2026-11-16) — the Toggle flip from an auton: the robot file's Toggle block, the robot's camera for the step, and the everyday call
+
+> Written when it was built (chunk AF1S, run A2). **No version bump** (the coordinator, at the merge: every change is additive and no frozen row is touched).
+> **Additive:** every name below is new, or a member appended with a default to a type no row of the
+> [Freeze Register](roadmap.md#freeze-register) freezes, or a verdict appended to the step's own list; a robot
+> file with no Toggle block builds exactly the robot it did, and its boot line is byte for byte what it was.
+> **Host- and build-gated, NOT run on a robot:** no Toggle, no flipper and no camera reading of a real Toggle
+> exist in this project.
+
+**Why:** the skills Toggle step (API 2.8's entry of 2026-11-13, "the Toggle flip for a SKILLS run, as one route
+step") could be called only over handles a hand-wired program passes. A team's skills route now calls it from
+its auton, with the robot's own camera.
+
+**Added:**
+
+- **The robot file's Toggle block** — `config::SensorsConfig::toggleCamera` (type `vision::ToggleCameraConfig`,
+  `vision/toggle_camera.hpp`): the Toggle tracker's numbers and the camera's read period, beside the camera's
+  own block, every number UNSET by default. `vision::toggleCameraCheck` (its answer a
+  `vision::ToggleCameraCheck`) / `toggleCameraProblem` check it, in one order, at build (`static_assert`) as well
+  as at boot; `vision::toggleIdsProblem` is its colour-id check alone. `RobotConfig::valid()` does not check it.
+- **The robot's camera for the step** — `robot::Robot` builds a `vision::ToggleCamera` (one `CameraFeed` over the
+  camera, the `CameraModel` of its measured mount, the tracker's numbers) when the block is declared, a camera is
+  declared and built, its mount is MEASURED (and inside the geometry's limits), the tracker's and the read
+  period's numbers are accepted and the three colour ids are colours the camera is taught; otherwise it is not
+  built, with the first reason (at most `vision::kToggleCameraReasonBytes`). **A Toggle block the step cannot
+  use never refuses the robot** — it boots and drives. `Robot::toggleCamera()` / `toggleCameraAbsence()`. It
+  asks the provider for nothing more.
+- **The context's second optional slot** — `chassis::RobotContextConfig::toggleCamera` /
+  `RobotContext::toggleCamera()` (appended, nullptr by default: a robot file with no Toggle block), carried by the
+  motion scheduler's shadow context like the wall sensors' slot, so `ctx.chassis.deps().ctx` reaches it.
+- **The everyday call** — `competition::checkAndFlipToggle(ctx, request)` and `competition::lookAtToggle(ctx,
+  request)`: the explicit form's visit, every rule the same but the two below, over the auton's context — the
+  camera slot, the mechanism service, the run guard, the entry and the telemetry. No slot, or one not built, is
+  NO CAMERA naming why (after NOT SKILLS). An optional third argument, `competition::TogglePoseBound`, states how far the estimate
+  may be off, so the block's position check can run under a FIELD start (without it it is skipped; under any
+  other start the step drops it and says `wall and position not checked (relative start)`). In a mirrored auton
+  it visits the image Toggle, as the explicit form does.
+- **`ToggleVisitVerdict::SpotsTooClose`** (appended) — the everyday call's answer when the request's
+  `lookFrom - pushFrom` is twice the Toggle block's `frozenMoveIn` or less (two numbers from two files): nothing
+  read or moved, the route's `onFail` applies. It is checked after NOT SKILLS and NO CAMERA and before FLIPPER
+  NOT READY, so a match auton still says NOT SKILLS. **`competition::toggleVisitBlockProblem(request, block)`** checks
+  that pair at build, in a `static_assert`. (The explicit form, where one caller holds both numbers, still
+  treats it as a programming error.)
+- `competition::ExplicitToggleCamera::absence` (appended): NO CAMERA's words for a camera the caller knows is
+  absent.
+- **The boot line**, with a Toggle block declared: the camera's words end `, toggles ready` or
+  `, toggles OFF (<why>)`; the camera's own words keep their length. (The brain's programs print the line cut
+  to 220 characters; the visit's `[TGL]` line carries the reason, cut to 100 characters, and
+  `toggleCameraAbsence()` whole.)
+
+**What you must do:** nothing, unless you want the checked flip from an auton: give the robot file a camera
+block (its port, the colours taught on the Toggle's real faces, a MEASURED mount — neither of the team's robot
+files has one yet) and a Toggle block ([guide chapter 20](guide/20-the-camera.md#the-robot-files-toggle-block)),
+measured on each robot that runs the route, and write the visit as
+[cookbook chapter 8](cookbook/08-skills-toggles.md) shows. The plan for the first competition stays the team's
+own blind two-push flip until this step has flipped a real Toggle.
+
 ### 2026-11-17 — Calibrate on a drive with many motors per side: a robot's own pulse thresholds
 
 > Found on robot one's first Calibrate runs (2026-11-16): on its 10-motor drive one pulsed motor drags its four

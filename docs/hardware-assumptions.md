@@ -530,13 +530,13 @@
 | HA-221 | With more than 8 motors plugged in, VEXos may lower each motor's limit below what was set (robot two runs 10); a cap below VEXos's own share behaves as stated — and writing 2500 mA over a share at every boot would fight it, so a mechanism with no cap is only READ | **unverified** (HA-172's open question) | MECH-S Step 0.4: robot two's boot read-back with all 10 motors plugged in |
 | HA-222 | The string's pull is the motor's current times its torque per amp through the gearing over the spool's radius — about 10 lbf per amp per motor for a red cartridge on a 1.5 in spool; the rotor's and the carriage's MOMENTUM at a hard stop add a pull no current cap limits | reasoned (physics) · the number **unverified** (the published stall torque, from memory) | a spring scale on the string at a held current |
 | HA-223 | A stalled motor held at its cap reads within ~0.1 A of the cap, so a stall signature MORE than ~0.2 A below the cap trips (the boot's Warn for one not more than 0.2 A below — exactly 0.2 A included — rests on it) | **invented** (the host test plant reads exactly the cap — it is not a motor) | the Tune program: a capped lift held against its top stop, the reading |
-| HA-231 | One flipper stroke rolls a Toggle exactly ONE face, always the same way round, and the retract does not roll it back; the research's per-side order (a red-side Toggle Y -> B -> R, a blue-side the mirror) — so from yellow every skills Toggle needs TWO pushes | **reasoned** (pA15 + geometry; AF1's research) | AF1S Step 0.1, on a red-side and a blue-side mounting |
-| HA-232 | The Toggle seats (`<SC4>`a) within `settle` after the retract — after EVERY FULL stroke, never left stuck part-way — because the camera cannot check it: a Toggle stuck part-way reads its destination colour "sure" | **invented** | AF1S Step 0.1: twenty full strokes, each checked by eye |
+| HA-231 | One flipper stroke rolls a Toggle exactly ONE face, always the same way round, and the retract does not roll it back; the research's per-side order (a red-side Toggle Y -> B -> R, a blue-side the mirror) — so from yellow every skills Toggle needs TWO pushes | **reasoned** (pA15 + geometry; AF1's research) | AF1S Step 0.1 (worksheet Station T, T.1), on a red-side and a blue-side mounting |
+| HA-232 | The Toggle seats (`<SC4>`a) within `settle` after the retract — after EVERY FULL stroke, never left stuck part-way — because the camera cannot check it: a Toggle stuck part-way reads its destination colour "sure" | **invented** | AF1S Step 0.1 (worksheet Station T, T.1): twenty full strokes, each checked by eye |
 | HA-234 | At the run's end a V5 motor in its declared safe brake mode does not move the flipper toward `back` — a flipper out at 0:00 stays out (why the step's time check and its retract-now rule exist) | **reasoned** (the guard safes, it does not retract) | a timed run with the flipper out at its end |
-| HA-235 | A push stopped by a sticky Toggle is cut by the flipper's stall signature (or `flipBound`) before it damages the Toggle (`<R18>`a); a PNEUMATIC flipper has neither — nothing senses its rod, so its "full stroke" and "back" are only "the move time passed" | **invented** | AF1S Step 0.1 with the Toggle held |
-| HA-243 | Each Toggle's Quadrant colour in F1: the RED wall's and the RIGHT wall's (x = +70.2) RED, the BLUE wall's and the LEFT wall's BLUE; every Toggle starts a skills run yellow into the field, its Quadrant's colour out | **reasoned** (Figure Q-1 with pA15, read 2026-11-10) | AF1S Step 0.7, on the event's field |
-| HA-244 | The step's straight drive in and out of `lookFrom - pushFrom` puts the flipper within its reach of the face and the robot back within `offBy` of the look spot, on a square robot — because the ROUTE arrived within its allowance: the camera's spot check refuses only GROSS arrival errors | **invented** | AF1S Step 0.4, 0.5, 0.6 |
-| HA-245 | On a real field the camera names the Toggle's colour from the look spot as the host camera model predicts (about 12–24 in out, within ~3 degrees of square, for a lens 6–12 in up — only the 10-in lens's figures are re-run and pinned by this release's tests; the 6-, 8- and 12-in ones come from an earlier build of the tracker, not re-run since): the wall below hides the bottom face from a low lens, the taught colours hold under event light, the flipper at stow is not in the picture | **invented** | AF1S Step 0.3, 0.4 |
+| HA-235 | A push stopped by a sticky Toggle is cut by the flipper's stall signature (or `flipBound`) before it damages the Toggle (`<R18>`a); a PNEUMATIC flipper has neither — nothing senses its rod, so its "full stroke" and "back" are only "the move time passed" | **invented** | AF1S Step 0.1 (worksheet Station T, T.1) with the Toggle held |
+| HA-243 | Each Toggle's Quadrant colour in F1: the RED wall's and the RIGHT wall's (x = +70.2) RED, the BLUE wall's and the LEFT wall's BLUE; every Toggle starts a skills run yellow into the field, its Quadrant's colour out | **reasoned** (Figure Q-1 with pA15, read 2026-11-10) | AF1S Step 0.7 (worksheet Station T, T.7), on the event's field |
+| HA-244 | The step's straight drive in and out of `lookFrom - pushFrom` puts the flipper within its reach of the face and the robot back within `offBy` of the look spot, on a square robot — because the ROUTE arrived within its allowance: the camera's spot check refuses only GROSS arrival errors | **invented** | AF1S Step 0.4, 0.5, 0.6 (worksheet Station T, T.4–T.6) |
+| HA-245 | On a real field the camera names the Toggle's colour from the look spot as the host camera model predicts (about 12–24 in out, within ~3 degrees of square, for a lens 6–12 in up — only the 10-in lens's figures are re-run and pinned by this release's tests; the 6-, 8- and 12-in ones come from an earlier build of the tracker, not re-run since): the wall below hides the bottom face from a low lens, the taught colours hold under event light, the flipper at stow is not in the picture | **invented** | AF1S Step 0.3, 0.4 (worksheet Station T, T.3–T.4) |
 | HA-246 | `CurveConfig`'s look-ahead (8 in), bend grip (60 in/s²), accelerations (200 / 120 in/s², the plan rising from 12 in/s), hand-off (12 in, 5°, 0.3 in; last at ⅓ inside TANK1's window) and end speed (×0.6) let robot two follow a curve and settle at its end within the default rule — and robot one on robot two's numbers until its own check — and guide 05's run-up rule (a miss up to 6 / 12 in from 2½ / 3 ft back, nose within 20°) holds on the robot within ~6 in | **invented** (host test plant: 12–17 of the 17 drivable routes under every weak side and lag tried; the run-up rule pinned by CV23; no slip in the plant, neither robot's lag measured) | Station C.1–C.3, C.5 (C.5b the run-up) on robot two; C.1 on robot one |
 | HA-247 | Robot two does not slide sideways in a bend taken at sqrt(bendAccel / curvature) — its tyres hold 60 in/s² (≈ 0.16 g) of sideways push | **reasoned** (VEX tyres commonly grip well above it; never measured; the plant has no slip) | Station C.3 |
 | HA-248 | A healthy robot two never points more than 60° off its curve for 0.25 s nor makes under 1 in of progress in 0.75 s outside the last 12 in, and a dead side does one or the other within ~3 s | **invented** (host: 0 trips in 153 healthy runs, worst 25.9° off; a dead side stopped within 2.7 s, early deaths included) | every Station C log (no false "curve lost"); the dead-side half host-only |
@@ -2212,7 +2212,7 @@ new. **None is measured: no Toggle, no flipper and no camera reading of a real T
   *Source:* `include/shulib/competition/toggle_visit.hpp` (rule 6: push 2 only on the THIRD colour; the time check
   budgets two pushes); `include/shulib/sim/toggle_plant.hpp` (the host Toggle's roll order is the test's choice).
   *Confidence:* **reasoned** (pA15 and the geometry, AF1's research — no Toggle has been pushed).
-  *Settle:* AF1S Step 0.1 — on a real or mock Toggle at field height, mounted as a red-side and as a blue-side one.
+  *Settle:* AF1S Step 0.1 (worksheet Station T, T.1) — on a real or mock Toggle at field height, mounted as a red-side and as a blue-side one.
   *Blast radius if wrong:* the RULE holds either way (it looks after every push — the brief's P3); the TIME does
   not — a Toggle needing one push costs less than budgeted, one that over-rolls is caught by the look after.
 
@@ -2224,7 +2224,7 @@ new. **None is measured: no Toggle, no flipper and no camera reading of a real T
   *Source:* `include/shulib/competition/toggle_visit.hpp` (`ToggleVisitRequest::settle`; FLIPPED only after a full
   stroke — OURS AFTER A SHORT STROKE otherwise; every success line ends `seating not checked`).
   *Confidence:* **invented**.
-  *Settle:* AF1S Step 0.1 — twenty full strokes, each checked by eye for a Toggle stuck part-way.
+  *Settle:* AF1S Step 0.1 (worksheet Station T, T.1) — twenty full strokes, each checked by eye for a Toggle stuck part-way.
   *Blast radius if wrong:* a route counts a Toggle flipped that the game counts yellow. **Contained only by the
   words:** the line says `seating not checked`; nothing in the library can see it.
 
@@ -2243,7 +2243,7 @@ new. **None is measured: no Toggle, no flipper and no camera reading of a real T
   *Source:* `include/shulib/competition/toggle_visit.hpp` (rule 5: `back` on ANY verdict); the flipper's own
   `.stall` signature in the robot file.
   *Confidence:* **invented**.
-  *Settle:* AF1S Step 0.1 — the push run against a Toggle held by hand; the `[MECH]` line's verdict and time.
+  *Settle:* AF1S Step 0.1 (worksheet Station T, T.1) — the push run against a Toggle held by hand; the `[MECH]` line's verdict and time.
   *Blast radius if wrong:* a stalled push pushes harder or longer than the Toggle takes. **Contained:** the bound.
   *A pneumatic flipper:* no stall signature and no sensed position — its step SUCCEEDS once the valve has held the
   commanded position for its move time. So a cylinder blocked part-way by a jammed Toggle counts as a FULL stroke,
@@ -2260,7 +2260,7 @@ new. **None is measured: no Toggle, no flipper and no camera reading of a real T
   `include/shulib/competition/toggle_visit.hpp` ("ours" is the named Toggle's Quadrant colour).
   *Confidence:* **reasoned** — two drawings of the Game Manual v2.0, read 2026-11-10 (v2.1's change log changes
   neither).
-  *Settle:* AF1S Step 0.7 — standing at the red station on the event's field: is the Toggle on the wall to the
+  *Settle:* AF1S Step 0.7 (worksheet Station T, T.7) — standing at the red station on the event's field: is the Toggle on the wall to the
   RIGHT the one with RED facing out?
   *Blast radius if wrong:* every visit to a side wall's Toggle flips it to the colour that scores nothing.
   **Contained:** one table of four entries.
@@ -2279,7 +2279,7 @@ new. **None is measured: no Toggle, no flipper and no camera reading of a real T
   *Confidence:* **invented**.
   *Settle:* AF1S Step 0.4 (park 3 in too far and 3 in too near: NOT AT THE SPOT?; and how far the Toggle's face
   sits out from the wall's inner face), 0.5 (the push spot), 0.6 (ten drives in and out: the worst time, where
-  the robot ends, where the flipper lands).
+  the robot ends, where the flipper lands) — worksheet Station T, T.4–T.6.
   *Blast radius if wrong:* the flipper pushes air (NO CHANGE) or lands off the face. **Contained:** the look after.
 
 - [ ] **HA-245 — the camera names the colour from the look spot on a real field.**
@@ -2289,11 +2289,12 @@ new. **None is measured: no Toggle, no flipper and no camera reading of a real T
   the tracker and have not been re-run) — with the wall below the
   Toggle hiding its bottom face from a low lens (the model draws no wall), the taught colours holding under event
   light, and the flipper at stow out of the picture.
-  *Source:* `include/shulib/competition/toggle_visit.hpp` (`ToggleVisitRequest::lookFrom`); guide chapter 19's
+  *Source:* `include/shulib/competition/toggle_visit.hpp` (`ToggleVisitRequest::lookFrom`); guide chapter 20's
   "Checking and flipping a Toggle in a skills route".
   *Confidence:* **invented** — the camera's own beliefs (HA-192..HA-203) cover the device; this is the look
   spot's geometry on our robot.
-  *Settle:* AF1S Step 0.3 (the colours on the real faces) and 0.4 (the look spot, square and turned).
+  *Settle:* AF1S Step 0.3 (the colours on the real faces) and 0.4 (the look spot, square and turned) — worksheet
+  Station T, T.3–T.4.
   *Blast radius if wrong:* every visit ends UNKNOWN BEFORE (nothing pushed) or NOT AT THE SPOT. **Contained:** a
   doubt does nothing.
 

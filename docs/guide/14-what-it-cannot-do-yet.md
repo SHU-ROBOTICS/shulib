@@ -470,9 +470,10 @@ one named piece ([chapter 20](20-the-camera.md)). What that is worth, and what i
 The Toggle step ([Chapter 20](20-the-camera.md#checking-and-flipping-a-toggle-in-a-skills-route)) looks at a
 Toggle with the front camera, flips it only when it is not its Quadrant's colour, and looks again. It is
 **host- and build-gated, NOT run on a robot**: no Toggle, no flipper and no camera reading of a real Toggle
-exist in this project yet, and every number below is the host test plant's. **No team auton can call it yet:**
-this release has only its explicit form, over handles a hand-wired program passes; the robot's camera reaches
-an auton's context in the next part of the work (AF1S-A2), and until then a skills route flips Toggles blind.
+exist in this project yet, and every number below is the host test plant's. A team auton calls it through the
+auton's context, with the camera the robot file's camera block and Toggle block describe — neither of the team's
+robot files has a camera block yet; the plan for the first competition is still the team's own blind two-push
+flip, until this step has flipped a real Toggle.
 
 - **"FLIPPED" is not "set".** The camera cannot see whether a Toggle has SETTLED flat. One stuck part-way
   through its roll shows the face it is rolling TO, and reads that colour sure — on the host test plant a
@@ -500,8 +501,9 @@ an auton's context in the next part of the work (AF1S-A2), and until then a skil
   register HA-199). On the host test plant, with the Toggle's own faces unseen, a blue plate at the face's
   height 4 in in front of the wall made the step push a Toggle that already showed ours — with the camera's
   position check on as well as off (its tolerance admitted 4 in); the same plate 1.4 in lower was refused as
-  not at the spot. The position check, with a pose the team trusts (right after a wall reset), turns most
-  lookalikes away; none that sits where a Toggle's face is.
+  not at the spot. The position check, with a pose the team trusts (a FIELD start, right after a wall reset),
+  turns most lookalikes away; none that sits where a Toggle's face is. Under a RELATIVE start it cannot run at
+  all: the step drops the bound (the estimate is not in the field's frame) and says so in its line.
 - **Our other robot, mid-visit.** Between the look and the push the camera, at most mounts, cannot name a
   colour (it is too close; a high, tilted lens can). If our other robot flips the Toggle in that moment, the step
   pushes it anyway — the route keeps the other robot away from a Toggle being visited.
