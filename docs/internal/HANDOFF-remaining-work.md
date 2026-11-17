@@ -772,8 +772,8 @@ you mean so its in-progress edits cannot reach a package.
   `R3d-COMPLETED.md` from the log, move the roadmap pointer and the Next block, flip only evidenced
   checkboxes. **The "never driven a robot under its own control" sweep** (`docs/internal/guide-maintenance.md`'s "R3 — first
   real robot run" row) happens when the log shows the library's MOTION STACK drove — every instance
-  in ONE commit: `README.md`, `docs/README.md`, guide ch. 01, 07, 14 and the guide README, the master
-  plan's status line, `docs/vexbuilder-integration.md`. "shulib Drive" driving from the record (Teleop
+  in ONE commit, in the places that row lists (since DOCS3-N1, 2026-11-15, the other pages link guide 14
+  instead of saying it). "shulib Drive" driving from the record (Teleop
   until T4 Part 3) is the library driving open-loop through its own graph — say exactly that, not more.
 - **S1b. The 40 in auton on the bench — worksheet Station M** (COMP-t, "shulib Auton Tester"; after
   S1's Calibrate rerun if the team wants a truer 40 in — before the FIRST run of the standard Calibrate,

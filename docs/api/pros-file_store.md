@@ -10,7 +10,7 @@ ProsFileStore — hal::IFileStore on the V5's SD card (chunk SAFE-SAVE Part A, 2
 
 This header declares **1** type (5 members).
 
-Extracted from [`include/shulib/hal/pros/file_store.hpp`](../../include/shulib/hal/pros/file_store.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/hal/pros/file_store.hpp`](../../include/shulib/hal/pros/file_store.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

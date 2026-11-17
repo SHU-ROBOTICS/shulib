@@ -10,7 +10,7 @@ Quantity<L, A, T, E, I> — compile-time dimensional analysis.
 
 This header declares **1** type (13 members), **2** free functions, and **10** type aliass.
 
-Extracted from [`include/shulib/units/quantity.hpp`](../../include/shulib/units/quantity.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/units/quantity.hpp`](../../include/shulib/units/quantity.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

@@ -10,17 +10,10 @@
 > **Assumes:** [Chapter 7](07-getting-set-up.md) (building and uploading), [Chapter 18](18-mechanisms.md)
 > (declaring mechanisms) and [Chapter 19](19-calibrating-your-robot.md) (Calibrate).
 
-**Nothing in this chapter has run on robot one yet.** The robot was built by 2026-11-15, and that night
-its builder read its ports, cartridges, gearing and 3-wire letters off it and gave its button map — those
-answers are typed into its facts file. No census, reading or photo of it is on file. Everything below is
-what the code is written and tested to do: robot one's mechanisms, its controls and its autons run in the
-host test suite on the host test plant (the suite's model of a robot) on the typed values and, where a
-fact is still owed, its **placeholder**, and its six builds are checked by the src build gate. A
-placeholder can never reach the robot: until a fact is typed, every build of a program that needs it
-stops with an error naming it.
-
-(Chapter 20 is held for "Your robot file", the robot panel's chapter, when it lands — this one is the
-hand-written path the panel will later write for you.)
+Robot one's mechanisms, its controls and its autons run in the host test suite on the host test plant (the
+suite's model of a robot) on the typed values and, where a fact is still owed, its **placeholder**, and its six
+builds are checked by the src build gate. A placeholder can never reach the robot: until a fact is typed, every
+build of a program that needs it stops with an error naming it.
 
 ## Where a robot lives in the code
 
@@ -358,6 +351,8 @@ then robot two stays exactly as it is.
 
 ## What robot one does not do yet
 
+- **Nothing in this chapter has run on robot one yet.** No census has seen it, no reading has been taken
+  from it and no photo is on file; everything above runs on the host test plant on placeholder numbers.
 - **A calibration record names no robot** — both robots read `shulib_drivetrain.bin` from their own SD
   card, and the boot recognises a card moved between them only by its ports. Keep one card per robot,
   labelled, until the record carries the robot's name.

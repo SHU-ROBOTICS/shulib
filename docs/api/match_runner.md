@@ -10,7 +10,7 @@ competition::runAuton — run ONE registered auton under a RunGuard, from its st
 
 This header declares **2** types (15 members) and **3** free functions.
 
-Extracted from [`include/shulib/competition/match_runner.hpp`](../../include/shulib/competition/match_runner.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/competition/match_runner.hpp`](../../include/shulib/competition/match_runner.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

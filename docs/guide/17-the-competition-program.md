@@ -12,12 +12,6 @@
 > tester, which runs the same call), [Chapter 9](09-the-recipe-api.md) (a routine as a chain of
 > steps) and [Chapter 6](06-how-things-fail.md)'s "Running out of match".
 
-**Nothing in this chapter has run on a robot yet.** The program is host-tested — its decisions run
-in the host test suite on the host test plant, the suite's model of a robot (motors that respond
-instantly, wheels that never skid) — and every robot build compiles and links it, but no brain has
-started it. Its first run is the bench worksheet's practice-match station. Treat every behaviour
-below as what the code is written and tested to do, not as something a robot has shown.
-
 ## What it is
 
 The competition program is the one you upload for a match. Build and upload it like the other

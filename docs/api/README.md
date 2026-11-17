@@ -21,7 +21,7 @@
 
 **What the gate does not check.** It proves every entity *has* a documentation comment. It has no opinion about whether that comment says anything — `/// Sets the voltage.` on `setVoltage` passes. Only a reader catches that, which is why the headers are written to be read and why each page below ends with the header's own design commentary rather than a bare list of signatures.
 
-Prose about *how to think about* the API lives in the [user guide](../guide/README.md) — chapter 10 is the API as prose, and deliberately does not restate signatures. Worked recipes live in the [cookbook](../cookbook/README.md). This page answers "what exactly exists, and what is its exact spelling".
+Prose about *how to think about* the API lives in [How it works](../guide/README.md) — [The API in words](../guide/10-the-api.md) is the API as prose, and deliberately does not restate signatures. Worked recipes live in [Recipes](../cookbook/README.md). This page answers "what exactly exists, and what is its exact spelling".
 
 ## Pages
 
@@ -365,6 +365,6 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Where the other documents fit
 
-- The [user guide](../guide/README.md) teaches the ideas in order, and chapter 10 is the API *as prose* — when to reach for a verb, what it does when things go wrong, which gotchas bite. It deliberately does not restate signatures; this reference owns those.
-- The [cookbook](../cookbook/README.md) answers "how do I write the routine I am writing right now", with compiled recipes.
+- [How it works](../guide/README.md) teaches the ideas in order, and [The API in words](../guide/10-the-api.md) is the API *as prose* — when to reach for a verb, what it does when things go wrong, which gotchas bite. It deliberately does not restate signatures; this reference owns those.
+- [Recipes](../cookbook/README.md) answers "how do I write the routine I am writing right now", with compiled recipes.
 - This reference answers "what exactly exists, and what is its exact spelling".

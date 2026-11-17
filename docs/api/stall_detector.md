@@ -10,7 +10,7 @@ StallDetector — the jam/stall decision for motor mechanisms.
 
 This header declares **2** types (7 members).
 
-Extracted from [`include/shulib/manipulation/stall_detector.hpp`](../../include/shulib/manipulation/stall_detector.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/manipulation/stall_detector.hpp`](../../include/shulib/manipulation/stall_detector.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

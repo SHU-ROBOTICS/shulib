@@ -1401,9 +1401,9 @@ def render(target, banner, entries):
     out.append(
         f"Extracted from [`{header}`](../../{header}) — this page **is** that header's "
         "documentation, reformatted, so it cannot disagree with the code. Prose about "
-        "*how to think about* the API lives in the "
-        "[user guide](../guide/README.md); worked recipes live in the "
-        "[cookbook](../cookbook/README.md); this page is the complete, mechanical "
+        "*how to think about* the API lives in "
+        "[How it works](../guide/README.md); worked recipes live in "
+        "[Recipes](../cookbook/README.md); this page is the complete, mechanical "
         "list of what exists.\n")
 
     sections = sections_of(entries)
@@ -1610,11 +1610,11 @@ def render_index(pages):
         "reader catches that, which is why the headers are written to be read and "
         "why each page below ends with the header's own design commentary rather "
         "than a bare list of signatures.\n",
-        "Prose about *how to think about* the API lives in the "
-        "[user guide](../guide/README.md) — chapter 10 is the API as prose, and "
-        "deliberately does not restate signatures. Worked recipes live in the "
-        "[cookbook](../cookbook/README.md). This page answers \"what exactly "
-        "exists, and what is its exact spelling\".\n",
+        "Prose about *how to think about* the API lives in "
+        "[How it works](../guide/README.md) — [The API in words](../guide/10-the-api.md) "
+        "is the API as prose, and deliberately does not restate signatures. Worked "
+        "recipes live in [Recipes](../cookbook/README.md). This page answers "
+        "\"what exactly exists, and what is its exact spelling\".\n",
         "## Pages\n",
     ]
     for label, group in grouped_pages(pages):
@@ -1638,11 +1638,11 @@ def render_index(pages):
         "write.\n")
     out.append("## Where the other documents fit\n")
     out.append(
-        "- The [user guide](../guide/README.md) teaches the ideas in order, and "
-        "chapter 10 is the API *as prose* — when to reach for a verb, what it does "
-        "when things go wrong, which gotchas bite. It deliberately does not restate "
-        "signatures; this reference owns those.\n"
-        "- The [cookbook](../cookbook/README.md) answers \"how do I write the routine "
+        "- [How it works](../guide/README.md) teaches the ideas in order, and "
+        "[The API in words](../guide/10-the-api.md) is the API *as prose* — when to "
+        "reach for a verb, what it does when things go wrong, which gotchas bite. It "
+        "deliberately does not restate signatures; this reference owns those.\n"
+        "- [Recipes](../cookbook/README.md) answers \"how do I write the routine "
         "I am writing right now\", with compiled recipes.\n"
         "- This reference answers \"what exactly exists, and what is its exact "
         "spelling\".")
@@ -1942,8 +1942,8 @@ PUBLIC_DOC_FILES = ["README.md", "test/README.md"]
 #     misstates the auton).
 # It is NEVER widened to all of src/: a program's plumbing is not something a
 # public document teaches from, and a quote of it would pass this scan while
-# describing code no reader should copy. The guide's README states the same
-# scope in prose ("the team's files under src/team/ that a chapter quotes").
+# describing code no reader should copy. docs/how-the-docs-stay-true.md states
+# the same scope in prose ("the team's files under src/team/ that a chapter quotes").
 EXAMPLE_SOURCE_GLOBS = ["test/*example*_test.cpp", "src/team/*_driver.hpp",
                         "src/team/autons.cpp"]
 

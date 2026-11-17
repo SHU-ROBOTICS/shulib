@@ -31,7 +31,7 @@
 > 2. **Entries are settled only with cited evidence** (the R-phase measurement, logged), then
 >    marked `[x]` with the measured value recorded next to the guess it replaces. A corrected
 >    value is the system *working* — the register predicted and localized the defect.
-> 3. **The list is supposed to be long.** Its length is the honest cost of building without
+> 3. **The list is supposed to be long.** Its length is the real cost of building without
 >    hardware. Do not shrink it by quiet resolution.
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
@@ -289,10 +289,10 @@
 > mechanism core's five, HA-182..HA-186, have all landed: HA-184 and HA-186 with its first part, HA-183 with
 > its second, HA-182 with its third, HA-185 with its fifth, above). The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
-> 122, have no bucket for UNKNOWN (HA-143, HA-145, HA-157 and HA-162's confidence), and a recount is due.)* **No *v2* robot exists**, and
-> the platform layer has now been validated on the team's old competition bot — real adapters
-> commanded real motors and read real sensors on 2026-08-13 — but **no control loop has ever
-> closed and nothing has driven.** Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
+> 122, have no bucket for UNKNOWN (HA-143, HA-145, HA-157 and HA-162's confidence), and a recount is due.)* What has run
+> on a robot, and what has not, is listed in
+> [What it cannot do yet](guide/14-what-it-cannot-do-yet.md#it-has-never-driven-a-robot-under-its-own-control).
+> Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
 > documented shape, unmeasured onset). HA-50–52 added by chunk C1,
 > HA-53 by chunk C2 (the cancel safe state), HA-54–55 by chunk C3 (the H-drive's strafe derate
 > and stand-in geometry), HA-56–57 by chunk C5 (the D-5 plausibility envelope and the D-4
@@ -687,7 +687,7 @@ a config constant **by design** — a correction here never touches the core.
   *Settle (R3):* read `get_error()` on-strip; a healthy fix should report ~0.01–0.05 (meters), not
   ~1–2 (inches already).
   *Blast radius if wrong (scale skipped or double-applied):* E2's measurement covariance R is ~39×
-  off. Too small → good fixes gated out, GPS silently dead (quality decay — honest but wasteful);
+  off. Too small → good fixes gated out, GPS silently dead (quality decay — correct but wasteful);
   too large → lies accepted too readily. **Contained:** one multiply in the R1 adapter.
 
 - [ ] **HA-08 — failed/disconnected reads return the documented PROS sentinels, and screening
@@ -1075,7 +1075,7 @@ dependency order (battery scale before anything drives, signs before any closed 
   **Contained by the default.**
 
 - [ ] **HA-110 — the IMU's as-mounted pitch/roll sign conventions.**
-  *Claim:* none yet, honestly: the adapter passes `get_pitch()`/`get_roll()` through unnegated
+  *Claim:* none yet: the adapter passes `get_pitch()`/`get_roll()` through unnegated
   BECAUSE the convention is unmeasured; whatever the bench records becomes the convention the
   tip detector is written against.
   *Source:* `hal/pros/imu.hpp` (pitch()/roll(), the unnegated pass-through note).
@@ -1768,7 +1768,7 @@ Those are a belief about real mechanisms.
   (`kToggleAtSpeedWindowSeconds`, MECH-A4).
   *Confidence:* **invented** — the only evidence is the host test plant (HA-183): 143 of 144
   deliberately mismatched moves reached their target with these numbers (the miss: a plant slower than its
-  own cartridge, TIMED_OUT honestly), 20 of 27 flywheels reached speed (the rest could not, or were the
+  own cartridge, TIMED_OUT with its reason), 20 of 27 flywheels reached speed (the rest could not, or were the
   slowest), and a hold carried a 25 % gravity mismatch within 0.001°.
   *Settle (MECH on hardware):* tune each mechanism on the robot — log a move's and a hold's volts,
   position and current beside the starting values', and record the `.tuning` each mechanism ends with.
@@ -2537,7 +2537,7 @@ of them are the direct inputs to "shulib Calibrate" and to the programs that boo
   floor (the host plant's slip is a declared scenario fact, not an emergent one), which is R4's
   whole subject. R3d Part 1 does hand that detector its input, ready and host-proven: the effective
   track width the cross-check has to read zero against.
-  *Blast radius if wrong:* n/a in the honest direction — the alternative was a monitor that
+  *Blast radius if wrong:* n/a in the safe direction — the alternative was a monitor that
   lies. The cost is the missing detection itself: the driver is the supervisor (the panel says
   so), and an auton that pushes a wall will not fault; its watchdog bounds the damage.
 
@@ -2612,7 +2612,7 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   membership exactly, with the rule-swapping mutation observed red (since 2F-1 it is caught ON THE
   ROBOT too: a flipped rule makes the spin turn the wrong way and the new wrong-way guard stops it at
   15°); cases 22–26 for the ramp and the classification, on a plant that can now roll (HA-137).
-  *Confidence:* reasoned — rigid-body kinematics. Note honestly what the host suite does and does
+  *Confidence:* reasoned — rigid-body kinematics. Note plainly what the host suite does and does
   not prove: it AGREES with the frozen F5 contract (`kinematics/tank.hpp`'s `forward()` computes
   ω = (right − left)/track, so left alone gives ω < 0), and the plant turns the robot USING that
   same contract — so the plant cannot be an independent check of the claim. What it does check is
@@ -2741,7 +2741,7 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   extensions at their defaults (assertion counts and every printed value, compared case by case
   before and after at R3d Part 2F-1).
   *Confidence:* **invented**, and deliberately SIM shapes rather than robot facts. Everything is
-  torque-free like the rest of the plant (`motor_model.hpp`'s honesty boundary). The mean is
+  torque-free like the rest of the plant (the boundary note that opens `motor_model.hpp`, :7–17). The mean is
   OPTIMISTIC — a real motor back-driving four gearboxes reaches less than 1/N of its free speed. κ is
   a KINEMATIC stand-in, not derived from a wheel type, and the direction a real robot takes is not
   obvious: lateral scrub (traction wheels) pushes a one-sided push toward ROLLING (κ → 1), while a
@@ -3678,8 +3678,8 @@ that leaves unproven. The numbers below are host-test-plant measurements of 2026
   (0.05–0.10 s measured regression-free at 0–0.18 s) was chosen for an unknown lag, and the right
   `leadTime` grows with the robot's real heading lag; that choice is R5's. The same grids re-derive how
   often TSTR lights if R5a moves `maxAngularSpeed` (the flag's floor is 2 % of it).
-  *Blast radius if wrong:* too weak — the drift is not removed, and the leg ends as it did before TANK1: an
-  honest MOTION_TIMEOUT (bounded, visible, and the tick lines show TSTR to the end). Too strong, or a
+  *Blast radius if wrong:* too weak — the drift is not removed, and the leg ends as it did before TANK1: a
+  MOTION_TIMEOUT (bounded, visible, and the tick lines show TSTR to the end). Too strong, or a
   drivetrain too slow for it — heading wobble on steered tank legs, bounded by the 15° cap and the
   1.5 rad/s limit and visible as TSTR; at a stop a weak side's static friction can leave a small commanded
   yaw it does not follow. **While the robot cannot follow a yaw command** (pinned by a defender, wedged on a
@@ -4781,7 +4781,7 @@ settleable before hardware, and none block any host chunk.
   *Settle (R4):* same logs, heading channel.
   *Blast radius if wrong:* almost none structurally — heading is IMU-owned by decision #4 and no
   corrector can rotate the robot; the number only informs whether GPS heading is ever worth a
-  cross-check. Recorded for honesty, not fear.
+  cross-check. Recorded for the record, not out of fear.
 
 - [ ] **HA-28 — GPS fresh-fix cadence ≈ 50 ms.**
   *Source:* `gps_hostility.hpp:75` (`updatePeriod`). *Confidence:* **invented**.
@@ -5102,7 +5102,7 @@ answer changes how these seven should be set.
   *Claim:* the floor of the dead-reckoning sigma, which sets how hard a fresh fix pulls.
   *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::postFixStdDev` (PROVISIONAL (A4: HA-66)).
   *Confidence:* **invented**. It is the closest thing the complementary tier has to a prior,
-  and the honest description is "a gain knob wearing the clothes of a covariance".
+  and the accurate description is "a gain knob wearing the clothes of a covariance".
   *Settle (R4):* properly, this is E4's job — an EKF estimates it instead of asserting it. Until
   then, set from measured post-correction error.
   *Blast radius if wrong:* it and HA-61 together set the confidence
@@ -5382,7 +5382,7 @@ E2's tuning constants make the corrector work better or worse; these three make 
   survive being wrong; this one normalises by an estimated covariance and can afford to be tighter.
   *Settle (R4):* plot the measured innovation distribution once HA-83…HA-86 are real, and choose
   the width from it rather than from a table.
-  *Blast radius if wrong (too tight):* honest fixes are refused and the filter re-inits more often
+  *Blast radius if wrong (too tight):* correct fixes are refused and the filter re-inits more often
   than it should. (Too slack): the outlier protection stops working, which is the whole reason the
   gate exists.
 
@@ -5586,7 +5586,7 @@ E2's tuning constants make the corrector work better or worse; these three make 
 - [ ] **HA-52 — the spin-vs-motion cross-check thresholds: 0.3 s window, 1.0 in minimum spin
   travel, 25% motion ratio, wheel radius 1.625 in, rotation radius 7.0 in.**
   *Claim:* on real hardware the window/thresholds separate the three regimes they must —
-  honest driving (ratio ≈ 1), A3-class slip (ratio ≈ 0.7, no fault), and a dead encoder or
+  clean driving (ratio ≈ 1), A3-class slip (ratio ≈ 0.7, no fault), and a dead encoder or
   blocked drivetrain (ratio ≈ 0, ODO_STUCK) — with the stand-in radii close enough that the
   ratio comparison is not distorted.
   *Source:* `include/shulib/motion/odo_stall_check.hpp` (PROVISIONAL (A4: HA-52)); radii
@@ -5711,7 +5711,7 @@ E2's tuning constants make the corrector work better or worse; these three make 
   *Blast radius if wrong (too low):* false IMPLAUSIBLE faults — advisory only (never aborts,
   never rewrites the pose), and episode-gated, so the damage is log noise; the C5 suites prove
   zero false positives across every clean AND hostile run at the defaults. *(Too high):* subtle
-  estimate lies pass — exactly today's honest state, which R3/R5 tightening fixes.
+  estimate lies pass — exactly today's state, which R3/R5 tightening fixes.
 
 - [ ] **HA-57 — the V5 controller text grid is 3 rows × 19 columns.**
   *Claim:* `pros::Controller::set_text` addresses 3 text lines and ~19 visible columns; a row
@@ -5736,7 +5736,7 @@ E2's tuning constants make the corrector work better or worse; these three make 
   *Claim:* with R5's measured constants installed, the A2 plant reproduces a recorded real run
   within R6's documented tolerance — no torque curve, stiction model, or inertia tensor needed
   for control-relevant fidelity.
-  *Source:* `include/shulib/sim/motor_model.hpp:6–17` (the honesty boundary + register note).
+  *Source:* `include/shulib/sim/motor_model.hpp:6–17` (its opening boundary note + register note).
   *Confidence:* **invented** (a structural bet, deliberately conservative: the plant refuses to
   model what it cannot measure).
   *Settle (R6):* the back-fit — feed measured parameters in, replay a recorded run, compare
@@ -5753,9 +5753,9 @@ E2's tuning constants make the corrector work better or worse; these three make 
   conclusion.**
   *Claim:* no result certified by the host suite (M2 acceptance, survival matrix, closed-loop
   convergence) would change if stall-current limiting were modeled.
-  *Source:* `power_hostility.hpp:28–31` (the honest gap note).
-  *Confidence:* **invented** — the gap is deliberate (a current model needs the load model the
-  honesty boundary forbids), the no-consequence claim is the assumption.
+  *Source:* `power_hostility.hpp:28–31` (the gap note).
+  *Confidence:* **invented** — the gap is deliberate (a current model needs the load model that
+  `motor_model.hpp`'s opening note (:7–17) forbids), the no-consequence claim is the assumption.
   *Settle (R6):* record stall-adjacent events (wall pushes, jams) on hardware; back-fit; check
   which host results move.
   *Amended R5a Part A (2026-09-29):* the GAINS step's two step segments record each side's largest

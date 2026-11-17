@@ -4,7 +4,7 @@
 > steps, ~10 readable lines for a complete auton, with a built-in answer to "what happens when
 > a step fails".
 > **Read this if:** you've done the tutorial ([Chapter 8](08-your-first-routine.md)) and want
-> the shortest honest path to a working routine — or you'll be helping newer members write one.
+> the shortest path to a working routine — or you'll be helping newer members write one.
 > **Assumes:** [Chapters 2](02-the-field-and-coordinates.md)–[8](08-your-first-routine.md).
 
 > **Stability.** Both tiers are now **frozen**: the `Chassis` API underneath
@@ -58,7 +58,7 @@ opening commentary — like `chassis.hpp`'s — is meant to be read.
 
 ## What a recipe is
 
-Chapter 8's routine was a sequence of `chassis.` calls with an `ExitReason` to check after
+[Chapter 8](08-your-first-routine.md)'s routine was a sequence of `chassis.` calls with an `ExitReason` to check after
 each one. That is the full API, and it never goes away. A **recipe** is the same routine
 written as a chain of steps on a `Routine` object:
 
@@ -76,7 +76,7 @@ written as a chain of steps on a `Routine` object:
 
 ## The first recipe
 
-This is chapter 8's `firstRoutine`, one tier up (from `guide-09a`):
+This is [chapter 8](08-your-first-routine.md)'s `firstRoutine`, one tier up (from `guide-09a`):
 
 ```cpp
 // The same routine as chapter 8's firstRoutine, written as a recipe: each
@@ -103,7 +103,7 @@ steps succeed, six of them are motions (`startAt` only seeds the pose estimate),
 robot genuinely ends within an inch of the last target — measured on the host test plant's ground
 truth, which the robot's own estimate never sees.
 
-Everything you learned in chapter 8 still applies underneath: the per-call options struct
+Everything you learned in [chapter 8](08-your-first-routine.md) still applies underneath: the per-call options struct
 (`{.timeout = …}`) is [Chapter 10's](10-the-api.md) `MotionOptions`, unchanged; typed
 units still refuse bare numbers at compile time (`.strafeTo(-12, 24, …)` does not build, and
 neither does `.hold(0.3)` — durations are typed, `300_ms`); and
@@ -134,13 +134,13 @@ verb's full behavior and gotchas, and they all apply verbatim.
 | `then(action, name)` | Runs your code between motions (see the mechanism seam, below) | — |
 
 `face` and `driveTo` — and their turned-around twins `faceAway` and `reverseTo` — deserve one
-sentence of honesty: they are *argument sugar*, not new motion. Each computes a single number —
+plain sentence: they are *argument sugar*, not new motion. Each computes a single number —
 the bearing from the current pose estimate to the point you named, plus 180° for the two
 turned-around twins — and hands it to `turnTo` / `moveTo`. That matters most on a tank drive,
 where [Chapter 4](04-drivetrains.md) explained the drivetrain cannot slide sideways and
 [Chapter 10](10-the-api.md) showed you the turn-then-drive idiom with `atan2`. `face(x, y)`
 **is** that idiom's turn, written in field words — you are still the one deciding to turn,
-which is exactly the honesty rule tank verbs follow everywhere in shulib. On a tank it is also
+which is exactly the rule tank verbs follow everywhere in shulib. On a tank it is also
 what makes the next leg *steerable*: since API 2.3 a tank `moveTo` (and so `driveTo`) steers
 back onto its line when a weaker side pulls it off, but only for a leg that starts within 15° of
 its target heading — which a leg right after `face()` does. A `driveTo` with no `face()` before
@@ -158,7 +158,7 @@ and tested:
 2. **Park.** The drive goes to the defined safe state (0 V, brake mode) immediately.
 3. **Skip.** Every later step is counted and logged as skipped, and does not run.
 4. **Report.** One `Warn` line names the routine, the step, and the reason; `r.ok()` goes
-   false; `r.result()` carries the step index, its name, the cause, and the motion's honest
+   false; `r.result()` carries the step index, its name, the cause, and the motion's
    exit reason.
 
 A step "fails" when its motion exits non-`Settled`, a trajectory doesn't complete every leg,
@@ -194,7 +194,7 @@ r.moveTo(Pose2d{12_in, 0_in, 0_deg}, {.timeout = 5_s})
 CHECK_FALSE(r.ok());
 const RoutineResult res = r.result();
 CHECK(res.stoppedAt == 2);                // which step failed…
-CHECK(res.exit == ExitReason::TimedOut);  // …and the motion's honest verdict
+CHECK(res.exit == ExitReason::TimedOut);  // …and the motion's verdict
 CHECK(res.completed == 1);
 CHECK(res.skipped == 1);                  // the turn never ran
 ```
@@ -210,7 +210,7 @@ routine 'starved': step 3 (turnTo) skipped — stopped at step 2
 — one `Warn` for the stop, one `Info` per skipped step, so a run that stopped early is
 legible at a glance in the same terminal you learned to read in
 [Chapter 11](11-reading-the-diagnostics.md). The
-layers below behave exactly as chapter 8 showed — the result line still reads `✗TIMEOUT`, the
+layers below behave exactly as [chapter 8](08-your-first-routine.md) showed — the result line still reads `✗TIMEOUT`, the
 `MOTION_TIMEOUT` fault still latches. Nothing is masked; the chain only adds the stopping.
 
 Two deliberate edges of the policy:
@@ -428,7 +428,7 @@ HA-167, in the [Hardware Assumptions Register](../hardware-assumptions.md).
 
 Because steps run eagerly, recipe steps and direct `chassis.` calls interleave in plain
 program order — the chain object keeps counting only its own steps, and the scheduler
-underneath sees one honest sequence of motions. Outgrowing recipes never means rewriting a
+underneath sees one plain sequence of motions. Outgrowing recipes never means rewriting a
 routine; it means replacing the steps you want more control over, one at a time.
 
 **One sharp edge worth knowing before you use this.** A direct `chassis.` call is *not a step*,
@@ -486,21 +486,21 @@ RoutineResult scoreOne(Chassis& chassis, shulib::manipulation::IMechanismOp& gra
 `ExitReason` above, owned the same way. And if an action returns `Running`, the chain stops
 loudly too: an operation nobody drove to completion is not a success either.
 
-One honest spelling note, because older drafts of the plan wrote it differently: the
+One spelling note, because older drafts of the plan wrote it differently: the
 flagship used to be quoted as `chassis.moveTo(p).then(intake.in)`, and that line was never
 real C++ twice over — `Chassis::moveTo` returns an `ExitReason` (which has no `.then()`;
 chains belong to `Routine`), and `intake.in` only names a function, it does not call one.
-The honest spelling is the one above: a `Routine` chain, and a lambda (or the operation
+The right spelling is the one above: a `Routine` chain, and a lambda (or the operation
 idiom) inside `then()`.
 
-## The match clock, and what a chain honestly cannot see
+## The match clock, and what a chain cannot see
 
 A `Routine` has per-step timeouts and **no whole-run deadline** — that is a frozen fact of this
 API, not an oversight, and pretending otherwise would be worse than saying it plainly. When a
 run-scoped deadline (the sequence layer's guard, [Chapter 6](06-how-things-fail.md)) fires
 while a chain is executing:
 
-- **A motion step is cut immediately.** The verb returns `Cancelled` — its honest verdict —
+- **A motion step is cut immediately.** The verb returns `Cancelled` — its verdict —
   the chain stops on it like any failed motion, and every later step is skipped. Skips are
   instant, so a chain in a motion pays essentially nothing past the deadline.
 - **`pause()` and `waitFor()` cannot be cut.** A wait checks its condition and its *own*
@@ -551,7 +551,7 @@ read as the thing you were waiting for.
 
 ## Where you are now
 
-You can write a complete, honest autonomous routine in about ten lines, know exactly what it
+You can write a complete autonomous routine in about ten lines, know exactly what it
 does when a step fails, and drop to the full API mid-routine whenever your strategy outgrows
 a step. The full verb fine print is [Chapter 10](10-the-api.md); the exact signature of any
 step is in the [generated API reference](../api/routine.md); reading a stopped run's transcript

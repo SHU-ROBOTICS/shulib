@@ -9,11 +9,6 @@
 > **Assumes:** [Chapter 9](09-the-recipe-api.md) (a routine as a chain of steps) and
 > [Chapter 4](04-drivetrains.md)'s section on what a tank can and cannot do.
 
-**Nothing in this chapter has run on a robot yet.** Every number below is from the host test
-plant — the suite's model of a robot, with motors that respond instantly and wheels that never
-skid — and it is marked where it appears. The robot's own first results will be written into the
-team's bench worksheet; until then, treat each number here as a prediction to check, not a promise.
-
 ## What the tester is, and what it is not
 
 An autonomous routine ("auton") runs in a match when the field starts the autonomous period. The
@@ -44,8 +39,7 @@ any other id is counted as unknown and runs nothing: the team's own commands hav
 registered yet.
 
 **The competition program ("shulib Competition") calls the same `registerAutons()` and the same
-`competition::runAuton`** — [Chapter 17](17-the-competition-program.md) describes it. Like the
-tester, it has not run on a robot yet.
+`competition::runAuton`** — [Chapter 17](17-the-competition-program.md) describes it.
 
 Build and upload it like the other robot-two programs:
 
@@ -230,7 +224,7 @@ fudge.
 **What to expect on a tank.** A tank cannot drive sideways, and robot two's two sides are not
 equally strong (on 2026-09-25 it veered right over 48 in with the motors driven open-loop). Since
 API 2.3, `moveTo` on a tank steers back onto its line while it drives — the file's own comment
-above says how, and [Chapter 4](04-drivetrains.md#honesty-about-limits--what-limited-strafe-does-to-your-commands)
+above says how, and [Chapter 4](04-drivetrains.md#limits--what-limited-strafe-does-to-your-commands)
 explains it in full. So the result to expect is **`FINISHED`**, with `END` x near 40 and `END` y
 within half an inch, and `TSTR` on many of the tick lines in the serial log (the library was
 steering). On the host test plant the 40 in finishes with one side up to about a quarter weaker —

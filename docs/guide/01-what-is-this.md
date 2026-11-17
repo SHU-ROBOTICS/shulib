@@ -33,7 +33,7 @@ wheels that count their own rotation, a gyroscope that senses turning, a camera-
 that reads a patterned strip on the field wall — and every one of them is imperfect. Wheels slip.
 Gyroscopes drift. The GPS sensor drops out or reports a position a few inches off. The robot's
 belief about where it is, is a *guess* assembled from imperfect witnesses, and the guess gets
-worse over time unless something corrects it. (Chapter 3 explains how the guessing works and why
+worse over time unless something corrects it. ([Chapter 3](03-knowing-where-you-are.md) explains how the guessing works and why
 it degrades.)
 
 **2. Small errors compound.** Suppose the robot thinks it is at position (24, 36) on the field
@@ -60,7 +60,7 @@ handles everything underneath:
   that misbehave rather than believe them blindly.
 - **Getting where it's going** (motion control): you name a target position and direction, and
   the library computes motor commands, every hundredth of a second, until the robot is there —
-  or until it can honestly say it isn't going to get there, and tells you so instead of hanging.
+  or until it can tell it isn't going to get there, and tells you so instead of hanging.
 - **Telling you what happened** (diagnostics): every motion logs what it did, how close it got,
   how long it took, and why it stopped. When a run goes wrong, the terminal output is designed to
   tell you where and why. This sounds mundane; it is one of the best things about the library,
@@ -69,36 +69,28 @@ handles everything underneath:
 The [README](../../README.md) at the top of the repository is the summary version of all this,
 with current test counts and build instructions.
 
-## The honest part
+## How it is tested
 
-**This library has never driven a robot under its own control.** Everything it does has been verified on a
-simulated robot — a software model of motors, sensors, and physics that was deliberately built to
-misbehave the way real hardware misbehaves (sensors that lie during startup, wheels that slip,
-batteries that sag). That is real verification and we trust it, but simulation is not a robot,
-and we do not pretend otherwise. The pieces of software that would connect the library to real
-motors and sensors are the next phase of work.
+Every motion in shulib is tested on the **host test plant**: a software model of the robot's motors,
+sensors and physics, built to misbehave the way real hardware does — sensors that lie during
+startup, wheels that slip, batteries that sag. The tests run on a laptop in every build.
 
-It has been *started* on a real V5 brain once (2026-08-12) — it ran, built everything it needed,
-and printed its status over the cable. That is genuinely useful to know, because it means the
-code gets onto a brain and runs there. It is also much less than it sounds like: every motor and
-sensor in that run was imaginary, so nothing about *driving* was tested. [Chapter 14](14-what-it-cannot-do-yet.md) lists
-everything the library cannot do yet, with links to the plans for each.
-
-Why build it this way? Because the robot doesn't exist yet either — the team builds robots during
-the season, and the software had to be ready before the hardware. Building against a hostile
-simulation was the only way to make real progress without a robot, and it means that on the day
-the robot exists, we will be debugging *hardware surprises*, not logic bugs.
+[What it cannot do yet](14-what-it-cannot-do-yet.md) lists what has run on a real robot and what
+has not, with the plan for each.
 
 ## Where to go next
 
-Read the chapters in order — each assumes the ones before it. Chapters 2 through 6 are concepts,
-with no code: they give you the vocabulary everything else uses. Chapter 7 gets the code building
-on your laptop. Chapter 8 walks you through writing your first routine, line by line.
+[How it works](README.md) lists the ideas in order. The next five pages —
+[The field and coordinates](02-the-field-and-coordinates.md), [Where the robot is](03-knowing-where-you-are.md),
+[Drivetrains](04-drivetrains.md), [Driving, turning and curves](05-getting-there.md) and
+[How things fail](06-how-things-fail.md) — are concepts, with no code: the vocabulary everything else
+uses. [Build and upload the programs](07-getting-set-up.md) gets the code building on your laptop, and
+[A routine built by hand](08-your-first-routine.md) walks through a first routine, line by line.
 
 If you hit a word you don't know, it should be defined where it first appears; the
 [glossary](15-glossary.md) has every term in one place. If you find a term that *isn't* explained,
-that's a bug in this guide — tell whoever maintains it (see the
-[guide README](README.md)).
+that's a bug in this guide — tell whoever maintains it (see
+[How these pages stay true](../how-the-docs-stay-true.md)).
 
 ---
 

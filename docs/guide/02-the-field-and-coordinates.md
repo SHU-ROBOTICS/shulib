@@ -123,7 +123,7 @@ What you should carry forward:
 2. **When a command is a velocity, always ask "in whose frame?"** The code will force you to
    answer; make sure your answer is a decision, not a guess.
 3. **If the robot ever translates in a consistently wrong direction that depends on which way
-   it's facing** — that's the signature of a frame or heading error. Chapter 12's
+   it's facing** — that's the signature of a frame or heading error. [Chapter 12](12-when-things-go-wrong.md)'s
    troubleshooting section starts there.
 
 ## Where does the robot's "position" actually point?

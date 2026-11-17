@@ -203,7 +203,9 @@ documented here and in their own headers:
 
 ## The route preview (since RPV1-A)
 
-`python3 tools/route_preview.py "<auton name>"` (guide chapter 16, "Before the bench: previewing a route") runs
+`python3 tools/route_preview.py "<auton name>"`
+([guide chapter 16](../docs/guide/16-testing-an-auton-on-the-bench.md#before-the-bench-previewing-a-route),
+"Before the bench: previewing a route") runs
 one of the team's autons through the Auton Tester's own sequence on the host test plant and draws it as one
 offline page. Its program is a host target here, `shulib_route_preview` (built by the default target, outside
 the suite's `*_test.cpp` glob, with both robots' autons files). `--robot one` runs robot one's list on fakes by

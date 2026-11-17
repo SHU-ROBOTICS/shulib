@@ -5,7 +5,7 @@
 > footer says which answer stops which build), and until a fact is typed, every robot-one program that needs it
 > refuses to build, naming it ([Chapter 21](guide/21-adding-your-robot-by-hand.md)). Robot one's builder
 > answered the first items on 2026-11-15 (the drive cartridge, the cascade and section G; the coordinator made
-> the front toggle the flipper) — chapter 21's "Robot one's mechanisms" table says what is typed and what is
+> the front toggle the flipper) — [chapter 21](guide/21-adding-your-robot-by-hand.md)'s "Robot one's mechanisms" table says what is typed and what is
 > still owed.
 > **Write "don't know" rather than guess.** For each answer write **who**, **how** (read off / counted /
 > tape / station 13 RECORD) and **the date**. "The robot's centre" = midway between the left and right
@@ -45,7 +45,7 @@ and 22–24's letters are typed (the footer).*
     six**. *"None" is an answer: the cascade is then driven by hand only (robot one's, 2026-11-15: "for now it
     will be manual"). A preset button needs its level typed first — each level also gets its own row in 14.*
 13. **(C6)** Two steps. (i) A **starting** current cap and stall signature, typed BEFORE Bench Tests is
-    built — **chosen, not measured**, with the coordinator, from chapter 18's order rule (the heaviest hold
+    built — **chosen, not measured**, with the coordinator, from [chapter 18](guide/18-mechanisms.md)'s order rule (the heaviest hold
     < the signature < the cap − 0.2 A; the cap no more than the string can take); written "chosen, not
     measured". (ii) Later, the **measured** pair from station 13's RECORD while the cascade presses gently
     down on its bottom stop at 3 V.
@@ -62,7 +62,7 @@ and 22–24's letters are typed (the footer).*
     measured"): (i) the smallest volts that hold the empty cascade halfway without sagging; (ii) the
     **homing push** — how hard it pushes DOWN into its bottom stop to find zero (gentle; written negative,
     e.g. −3 V). The home ends when the stalled motors draw more than the **homing signature** — its own,
-    smaller than the jam signature in 13 (robot one's: 0.45 A, chosen, not measured — chapter 18's
+    smaller than the jam signature in 13 (robot one's: 0.45 A, chosen, not measured — [chapter 18](guide/18-mechanisms.md)'s
     starting value). So the push must draw more than that on the stop: on the host test plant, any push
     past 2.2 V. Check it on the robot with shulib Tune's HOME (it must end SUCCEEDED on the bottom stop);
     (iii) the most a held button may give it **before** it has been homed.

@@ -161,7 +161,7 @@ fault, not a crash. A3 proved this class of guard catches real defects.
 *As built:* `diag::PoseDeltaGuard` (scheduler-run, episode-gated, dt-scaled, NOT judged during the
 boot window — the estimate isn't a physical trajectory until it exists; envelope HA-56) +
 `commandWithinCapability`/`recoverWheelVoltage` wired into the ONE command pipeline as a
-self-audit (a NaN/over-ceiling volt never reaches a motor). Honest scope: the pose-delta fault is
+self-audit (a NaN/over-ceiling volt never reaches a motor). Scope: the pose-delta fault is
 ADVISORY (never rewrites the pose — principle 4); "wheel commands consistent with the commanded
 twist" is implemented as finite-and-within-battery-ceiling per wheel, not a full inverse-kinematics
 consistency proof (that needs E-phase estimator introspection). `test/plausibility_test.cpp` incl.

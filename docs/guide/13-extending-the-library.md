@@ -73,10 +73,10 @@ Why so strict? Because off-robot verification is still the *only* verification t
 for anything above the hardware seam — a robot has been on a bench, but no control loop has ever
 closed on it — so the standard has to be brutal or it's nothing. This is also why the
 simulated sensors are hostile (they lie during boot, freeze, drop out, sag) — the suite's job
-is to be a worse day than the field will be, within the limits of what simulation can honestly
+is to be a worse day than the field will be, within the limits of what simulation can
 claim.
 
-**The workflow for any change:** build and run the suite before you start (Chapter 7 — it must
+**The workflow for any change:** build and run the suite before you start ([Chapter 7](07-getting-set-up.md) — it must
 be green); make the change with its new attacking tests; run everything again; run the two CI
 guard checks and the ARM cross-compile if you touched library headers (the commands are in
 `.github/workflows/ci.yml`). If your change alters behavior this guide documents, update the
@@ -192,7 +192,7 @@ of them with real sensors:
   something different every season.
 
 The rules an operation lives by are the motion layer's, mirrored: it never owns a loop (the
-chassis's `waitUntil` ticks it — the Chapter 9 listing is the idiom, and it runs happily
+chassis's `waitUntil` ticks it — the [Chapter 9](09-the-recipe-api.md) listing is the idiom, and it runs happily
 *while a motion drives*); it can never hang (watchdog armed at `start()`, nothing disarms
 it); `cancel()` is idempotent, lands the device in its declared safe state synchronously,
 and never rewrites a finished verdict. One operation per mechanism at a time is enforced

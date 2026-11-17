@@ -204,6 +204,7 @@ endif()
 
 set(SHULIB_DOC_TOOL "${CMAKE_CURRENT_SOURCE_DIR}/../tools/api_doc_tool.py")
 set(SHULIB_DOC_STAMP "${CMAKE_CURRENT_BINARY_DIR}/doc_gates.stamp")
+set(SHULIB_READ_TOOL "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_readability.py")
 
 # Every public document and every example source is an INPUT: editing a chapter
 # must re-run the gates, or a drift introduced after the last build sits green
@@ -216,12 +217,14 @@ set(SHULIB_DOC_STAMP "${CMAKE_CURRENT_BINARY_DIR}/doc_gates.stamp")
 file(GLOB SHULIB_DOC_INPUTS CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/../README.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../docs/*.md"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../docs/guide/*.md"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../docs/cookbook/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/*example*_test.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/*_driver.hpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp")
+# Every public page, in ANY folder under docs/, as check-nav and check-tone read them (DOCS3-N1's
+# review: a page in a new folder, missing from a hand-kept list, did not re-run the gate when edited).
+file(GLOB_RECURSE SHULIB_DOC_PUBLIC_PAGES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../docs/*.md")
+list(FILTER SHULIB_DOC_PUBLIC_PAGES EXCLUDE REGEX "/docs/internal/")
+list(APPEND SHULIB_DOC_INPUTS ${SHULIB_DOC_PUBLIC_PAGES})
 
 # ── EVERY header and EVERY generated page is an input (chunk DOCS2) ──────────
 # Until DOCS2 the gate depended on two headers and three pages, because those
@@ -294,6 +297,20 @@ add_custom_command(
           "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py" self-test
   COMMAND "${Python3_EXECUTABLE}"
           "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py"
+  # reading (DOCS3-N1): every public page in the site's menu exactly once; no page says
+  # "honest" or opens with a status disclaimer; the front page's first-week picture still
+  # matches guide 21's order; the site copy anchors every register row.
+  COMMAND "${Python3_EXECUTABLE}" "${SHULIB_READ_TOOL}" self-test
+  COMMAND "${Python3_EXECUTABLE}" "${SHULIB_READ_TOOL}" check-nav
+  COMMAND "${Python3_EXECUTABLE}" "${SHULIB_READ_TOOL}" check-tone
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/first_week.py" self-test
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/first_week.py" check
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/prepare_site.py" self-test
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/prepare_site.py" check-register
   COMMAND "${CMAKE_COMMAND}" -E touch "${SHULIB_DOC_STAMP}"
   DEPENDS
     "${SHULIB_DOC_TOOL}"
@@ -312,8 +329,13 @@ add_custom_command(
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py"
     # The bounded suite run both of them use (2026-10-22): a change to its bounds re-runs the gate.
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/suite_run.py"
+    # The reading checks and the files they read beyond the pages (DOCS3-N1).
+    "${SHULIB_READ_TOOL}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/first_week.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../docs/assets/first-week.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../tools/prepare_site.py"
     ${SHULIB_DOC_INPUTS}
-  COMMENT "shulib doc gates: coverage, freshness, verbatim examples, removability"
+  COMMENT "shulib doc gates: coverage, freshness, verbatim examples, removability, staleness, reading"
   VERBATIM)
 add_custom_target(shulib_doc_gates DEPENDS "${SHULIB_DOC_STAMP}")
 add_dependencies(shulib_tests shulib_doc_gates)

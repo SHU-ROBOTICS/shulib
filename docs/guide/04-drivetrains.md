@@ -75,7 +75,7 @@ sideways, as a fraction of its forward speed. X-drive: 1.0 (sideways = forward).
 that can only be measured on a robot that doesn't exist yet (it's a registered assumption —
 HA-54 in the [Hardware Assumptions Register](../hardware-assumptions.md)).
 
-## Honesty about limits — what limited strafe does to your commands
+## Limits — what limited strafe does to your commands
 
 What should happen when a routine written for an X-drive asks an H-drive for a fast sideways
 move? shulib's answer is a principle worth knowing because you'll see it in the logs:
@@ -91,7 +91,7 @@ move? shulib's answer is a principle worth knowing because you'll see it in the 
 - On **tank** (authority 0.0), the drivetrain cannot move sideways at all, and the library does
   not pretend otherwise: a target it cannot reach by driving along its heading — a point beside
   the robot, or one farther off the robot's line than the steering below can remove over the
-  leg — runs until its time limit and honestly reports `TimedOut`, rather than faking success or
+  leg — runs until its time limit and reports `TimedOut`, rather than faking success or
   crashing. Routines for a tank robot simply don't ask for sideways moves — they turn first, like
   a driver would (the API chapter shows the idiom).
 - What a tank's `moveTo` *does* do, since API 2.3, is **steer back onto its line**. The line is

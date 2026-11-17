@@ -10,7 +10,7 @@ Drive modes — the pure mappings from a driver's four stick axes to ONE body-fr
 
 This header declares **1** type (3 members) and **4** free functions.
 
-Extracted from [`include/shulib/teleop/drive_modes.hpp`](../../include/shulib/teleop/drive_modes.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/teleop/drive_modes.hpp`](../../include/shulib/teleop/drive_modes.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

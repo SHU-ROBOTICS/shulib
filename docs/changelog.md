@@ -16,6 +16,24 @@
 
 ## API 2.9
 
+### 2026-11-16 (built 2026-11-15) — the docs by task: a new menu, a front page that asks "What do you want to do?", and limits as plain facts — no API change
+
+> Written when it was built (chunk DOCS3, run N1). **Documentation only** — nothing under `src/` or `include/`
+> changed. **What you must do:** nothing; every page keeps its file name and its address.
+
+- **The site's menu is by task** — Robot, Routes, Mechanisms, Troubleshoot, Learn, API reference, Project —
+  and shows titles, not chapter numbers.
+- **The front page asks "What do you want to do?"** and links each answer, with a picture of a new robot's
+  first week drawn from guide 21's "The order on the robot".
+- **New landings:** "How it works" (the guide's ideas in order, and every page by its old chapter number),
+  "Recipes: which to read" (the cookbook), and "How these pages stay true" (the maintenance rules).
+- **Limits are plain facts where they apply;** the status disclaimers that opened ten pages are gone (what
+  has run on a robot is listed in guide 14).
+- **Links:** every "Chapter N" on a reader page is a link; every glossary term has its own link
+  (`guide/15-glossary.md#pose`); on the site, every register row does too (`hardware-assumptions.md#ha-136`).
+- **New build checks:** every public page is in the menu exactly once (`tools/doc_readability.py check-nav`);
+  the tone rule (`check-tone`); a link to a missing anchor fails the site build.
+
 ### 2026-11-16 (built 2026-11-14, reviewed and fixed to 2026-11-16) — the route builder: build the skills route by clicking, export the C++ (in the browser, on Windows and Linux)
 
 > Written when it was built (chunk RMP1, its first run, RMP1-A1). **No library change — no API change:** nothing
@@ -2535,8 +2553,8 @@ keep across reboots with `ProsFileMode::Append`, and never with a raw `fopen` (t
 > Written when it landed (chunk TANK1, Part A; its Part B — the result line's ` xt` column —
 > landed with change 3 below, 2026-09-28). **Minor bump, 2.2 → 2.3** — the team lead's ruling
 > (2026-09-27): one sentence the FROZEN `Chassis` header carries ([Freeze Register](roadmap.md#freeze-register)
-> row F6, its strafe-fallback semantics) said *"On tank, laterally-offset targets honestly exit
-> TimedOut"*, and after this change some of them arrive. That relaxes a stated LIMIT — the same
+> row F6, its strafe-fallback semantics) said that on a tank,
+> laterally-offset targets exit `TimedOut`, and after this change some of them arrive. That relaxes a stated LIMIT — the same
 > direction as 2.2's relaxed `Route::valid()` rule — and no signature moved, so the bump is minor;
 > but tank programs move differently, so it is listed as a behaviour change with a one-line way
 > back. **Tank only: the X-drive and H-drive are unchanged, byte for byte** (every record, log
@@ -3286,7 +3304,7 @@ files implementing existing interfaces, and `IDigitalIn` is additive.
 **What you must do:** nothing, unless a mechanism uses these sensors — then construct the
 `Pros*` adapters and read the seam headers' design notes (each names which PROS call it
 binds, which conversion it applies, and which Hardware-Assumptions entries its beliefs rest
-on — HA-113 onward, none yet measured on hardware). Honest scope, unchanged from R1a: these
+on — HA-113 onward, none yet measured on hardware). Scope, unchanged from R1a: these
 are host-tested against the programmable PROS stand-in, and **the library has still never
 driven a robot.**
 
@@ -3335,7 +3353,7 @@ new files implementing existing interfaces.
 
 **What you must do:** nothing, unless you want your robot code on real hardware — then
 construct the `Pros*` adapters instead of fakes (the shipped `src/main.cpp` is the worked
-example, and guide chapter 7 walks it). Honest scope, stated plainly: these adapters are
+example, and guide chapter 7 walks it). Scope: these adapters are
 host-tested against a programmable stand-in for PROS, and **the library has still never
 driven a robot** — the beliefs behind every conversion are catalogued in the
 [Hardware Assumptions Register](hardware-assumptions.md) (HA-94 onward) and get their
@@ -3362,7 +3380,7 @@ margin on a real brain (loop rate and PROS call latency are still invented regis
 a `while (true)` loop that never lets a call return keeps the CPU and your end action waits;
 the frozen `pause`/`waitFor`/`waitUntil` surfaces cannot see the deadline and pay their full
 remainder (a tested limit, not a hidden one); and **"zero travel after the deadline" is a
-simulator result** — the host plant is memoryless, so on a robot with mass the honest claim is
+simulator result** — the host plant is memoryless, so on a robot with mass the claim is
 *"no new commanded motion"*. Budget lead time for a robot that is still moving when the command
 stops.
 

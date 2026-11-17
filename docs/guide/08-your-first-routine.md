@@ -29,15 +29,12 @@ You have two ways to follow along:
 2. **Type it yourself**: create `test/my_first_auton_test.cpp`, build it up as the chapter goes,
    and re-run `cmake --build build/test -j && ./build/test/shulib_tests -tc='my*'` at each step.
    (Any `*_test.cpp` file in `test/` is discovered automatically on the next build; if yours
-   somehow isn't, re-run the configure step from Chapter 7. Wrap your code in
+   somehow isn't, re-run the configure step from [Chapter 7](07-getting-set-up.md). Wrap your code in
    `TEST_CASE("my first auton") { … }` with the includes from the top of
    `guide_examples_test.cpp`.)
 
-One honest note before we start: this routine runs against the **simulated** robot, because
-that is where all *motion* code still runs ([Chapter 7](07-getting-set-up.md) explains why).
-The hardware adapters underneath do now exist and have read and commanded real devices at a
-bench — but no control loop has ever closed on a robot, so a routine like this one has never
-driven anything physical. The
+This routine runs on the **host test plant** ([Chapter 7](07-getting-set-up.md) explains the
+host suite). The
 punchline of the design is that the routine itself — the `firstRoutine` function below — doesn't
 know that. It talks to a `Chassis`, and whether the chassis is simulated or real is decided
 entirely by the wiring around it. This exact function is the kind that will run on the real
@@ -64,7 +61,7 @@ We'll write the routine first, because it's the point of everything else.
 ```cpp
 // The first routine: leave the start tile, make a slow precise approach, slide
 // sideways along the goal wall, and turn to face the corner. Every call blocks
-// until the motion settles or honestly gives up — the return value says which.
+// until the motion settles or gives up — the return value says which.
 ExitReason firstRoutine(Chassis& chassis) {
     // Tell the localizer where the robot starts. Position comes from you;
     // heading is owned by the IMU (chapter 3).
@@ -144,11 +141,11 @@ the goals. Note it takes an (x, y), not a full pose: the heading is "whatever yo
 it."
 
 **`chassis.turnTo(135_deg, …)`** — rotate in place to face 135°. Field heading, not "turn by
-90°" — and always the short way around, per Chapter 2's angle-wrapping discussion.
+90°" — and always the short way around, per [Chapter 2](02-the-field-and-coordinates.md)'s angle-wrapping discussion.
 
 **The `if` ladder** — each leg's `ExitReason` is checked. This routine just gives up and reports
 the first failure; a competition routine might retry, or skip to the next scoring opportunity.
-The library's job is to make sure you always *get* that honest answer; what to do with it is
+The library's job is to make sure you always *get* that answer; what to do with it is
 strategy, and it's yours.
 
 ## Step 2 — the wiring
@@ -310,7 +307,7 @@ agree to the last bit. `built.chassis()` is the same `Chassis` your routine alre
 The longhand stays, and it stays worth reading: it is exactly what `Robot` does for you, and it is
 the path you take (Tier 3 in the project's
 [accessibility model](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet))
-when you need something the builder does not build. One honest note: every program in `src/` that
+when you need something the builder does not build. One note: every program in `src/` that
 builds a robot builds it this way, and no program wires a graph by hand any more. "shulib Drive", in
 `src/programs/drive_program.cpp`, builds its `robot::Robot` from robot two's calibration record (the
 auton tester builds robot two the same way) — and it has not run on a robot yet (a program before
@@ -373,7 +370,7 @@ field of every line, including the ones that only appear when things go wrong.)
 One thing should bother you: `over n/a drift n/a`. Overshoot and heading drift are computed
 from the high-rate diagnostic record stream, and we haven't connected it — so the library says
 **"no data"** rather than printing a plausible `0.00`. Remember that move: shulib never invents
-a number. Where you see `n/a`, you're seeing honesty, not breakage.
+a number. Where you see `n/a`, you're seeing a missing number reported as missing, not breakage.
 
 ## Step 4 — turn on the full stream
 
@@ -404,7 +401,7 @@ carry real measurements — `over 0.00" drift 0.0°` — instead of `n/a`. (You'
 interleaved unstamped `[LOC] idle` lines: the *simulator's* own ground-truth records riding the
 same channel. Only the sim produces those.)
 
-Scrolling hundreds of tick lines is normal at first. Chapter 11 teaches the disciplined version:
+Scrolling hundreds of tick lines is normal at first. [Chapter 11](11-reading-the-diagnostics.md) teaches the disciplined version:
 landmarks first, then drill into ticks only around the moment that interests you.
 
 ## Step 5 — change something, and watch the library tell the truth
@@ -431,7 +428,7 @@ one line.
 Now experiment on your own copy. Good ones to try: give leg 1 an unreachable target (behind a
 "wall" doesn't exist in the empty sim — but 500 inches away does); drop `.maxLinearSpeed` to
 `5.0` and watch durations stretch; ask `turnTo` for `-135_deg` instead of `135_deg` and check
-which way it turns (shortest path — from 45°, both are a 180° turn; Chapter 2's tie-break says
+which way it turns (shortest path — from 45°, both are a 180° turn; [Chapter 2](02-the-field-and-coordinates.md)'s tie-break says
 counterclockwise). Every experiment ends with a transcript that tells you what happened; getting
 fluent at reading it is the actual skill this chapter is building.
 

@@ -688,7 +688,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > `include/legacy/` DELETED — 34 files, exactly C6's classified set; recover any of them via
 > `git show 691c656:<path>` — `make` green for the first time since June (uploadable V5
 > hot/cold package), the CI PROS-free guard broadened to ALL of include/shulib/
-> (mutation-proven red on a planted violation), the README rewritten as an honest front door,
+> (mutation-proven red on a planted violation), the README rewritten as a plain front door,
 > and the docs reorganized (public documentation stands alone; the process record is
 > self-contained on the development branch). Suite unchanged: 659 / 915,570 / 3 deliberate
 > skips; ARM gate 102 headers CLEAN. **What C7 did NOT do: run on a robot.** The wired HAL
@@ -696,7 +696,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > **Chunk C8 (the manual) is DONE, 2026-08-11 — committed**:
 > `docs/guide/` — a 15-file user guide (orientation → concepts → setup → a full first-routine
 > tutorial → the API as prose → diagnostics line-by-line with every fault code → symptom-first
-> troubleshooting → extending → an honest can't-do-yet → glossary), written for a new member
+> troubleshooting → extending → a can't-do-yet → glossary), written for a new member
 > with no robotics background. Every code example compiles and runs in
 > `test/guide_examples_test.cpp` (8 cases / 41 assertions **as C8 shipped it** — later chunks
 > added more; the suite is the count), quoted verbatim by the chapters —
@@ -822,7 +822,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > file — residual, the sigma it was normalized by, and the verdict.
 > **What E2 did NOT do, stated plainly.** It did not build a Mahalanobis gate (T1: the
 > complementary tier has no filter-estimated covariance, so `gateMahalanobis` stays 0 and the
-> honest `RejectedNormalizedInnovation` was appended instead); it did not touch heading (T3 — the
+> `RejectedNormalizedInnovation` was appended instead); it did not touch heading (T3 — the
 > GPS's heading never leaves the corrector, so the `< 1°` claim is exactly where A3 left it); and
 > it did not take ownership of frame or lever-arm reduction (T4 — `hal/gps.hpp` and
 > `gps_conversion.hpp` own those by written contract, so E2 pinned them with independent oracles
@@ -864,7 +864,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > moved the heading by more than the documented 0.1° per-tick bound across 2000 ticks, re-read
 > from a decoded blackbox as well as from live state. It was measured against **simulated truth,
 > a simulated camera, an invented tag map and invented noise magnitudes** (HA-68…HA-82, fifteen
-> new register entries). The single honest change to guide chapter 14 is that *the specific reason
+> new register entries). The single change to guide chapter 14 is that *the specific reason
 > the requirement was listed as unachievable — nothing could correct heading at all — no longer
 > applies*; everything else about that claim is unchanged and unmeasured.
 > **shulib ships NO tag map, deliberately**, because nobody on this project can cite a table of
@@ -1001,7 +1001,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > UNAMENDED and green at 139 headers. Suite **1083 cases / 1,523,069 assertions** green.
 > **The campaign: all 14 brief mutations executed and observed** (13 red via the
 > build-gated runner, M13 demonstrated live in the guard proof) **plus one self-added: the
-> `heading()`-site `get_heading()` swap stayed GREEN honestly** — observationally equivalent
+> `heading()`-site `get_heading()` swap stayed GREEN for a real reason** — observationally equivalent
 > through the wrapping `Angle`; recorded with its measurement, then closed with a textual
 > pin (HA-03 bans the binding in writing), re-run, observed red. Two build-system findings
 > fixed in the layer that owns them: PROS's `common.mk` resolves includes with `-iquote`
@@ -1120,7 +1120,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > Phase A:** every claim about physical hardware that three no-robot chunks (plus the M1/M2
 > conversion layers) rest on is now **inventoried instead of scattered** —
 > **[`docs/hardware-assumptions.md`](hardware-assumptions.md)**, 49 falsifiable entries **as A4
-> shipped it** (33 invented / 13 reasoned / 2 measured-elsewhere / 1 mixed — the honest cost of
+> shipped it** (33 invented / 13 reasoned / 2 measured-elsewhere / 1 mixed — the real cost of
 > building without hardware; ten later chunks have added to it, and the register states its own
 > current count, which is the only place that number should live), each with source, confidence,
 > the specific settling measurement, its owning
@@ -1285,7 +1285,7 @@ adapters at R1b (2026-08-14), all host-tested against the shim; on-V5 validation
   the two-flag diagnostic fence, with new pure conversions (`motor_`/`rotation_`/
   `controller_conversion.hpp`) and adapter tests through the `test/pros_shim/` host shim
   (suite 1083 cases / 1,523,069 assertions; the R1a campaign: 14 brief mutations + 1
-  self-added, every one executed and observed red — the one honest green closed with a
+  self-added, every one executed and observed red — the one true green closed with a
   structural pin). NOT done, named: `IDistance`/`IOptical`/`IDigitalOut`/`IDigitalIn`/
   `IBlockSink` adapters (R1b's), the vision adapter (R2's, next row), and EVERYTHING on-robot —
   at the time of the chunk no adapter had touched a physical device; the shim tests them
@@ -1782,7 +1782,7 @@ all three and does not exist.*
   sensor-quality ceiling, and the **off-strip dead-reckon-only path proven bit-identical to
   having no corrector at all**, with `RejectedNoFix` and the source's name reaching the
   blackbox. 20/20 mutations red.
-  **Scoped honestly, three ways.** (1) The gate is a **normalized innovation**, NOT a
+  **Scoped three ways.** (1) The gate is a **normalized innovation**, NOT a
   Mahalanobis distance — the complementary tier has no filter-estimated covariance, so
   `gateMahalanobis` stays 0 and `GateReason` gained `RejectedNormalizedInnovation` (+
   `RejectedStaleFix`, `RejectedSensorQuality`, all append-only). E4's EKF earns the real one.
@@ -1815,7 +1815,7 @@ all three and does not exist.*
   bias in the `Localizer`. Three appended `GateReason` values (`RejectedNoTagMapEntry`,
   `RejectedTagRange`, `RejectedObservationAge`); `correctionDTheta` and `gateResidualHeading`,
   reserved since A1, are populated for the first time.
-  **Scoped honestly, four ways.** (1) **The `< 1°` requirement is NOT claimed met.** What was
+  **Scoped four ways.** (1) **The `< 1°` requirement is NOT claimed met.** What was
   measured is convergence and boundedness against **simulated truth, a simulated camera and
   invented noise** (HA-68…HA-82). (2) **shulib ships no tag map** — nobody here can cite one, and
   a map 2″ off yields a corrector that is *confidently* 2″ wrong, which no gate or filter can
@@ -1935,7 +1935,7 @@ is required, not optional, to hold < 1°.)*
   scheduler's `waitUntil` concurrently with a motion; 18/18 mutations red
   (`test/mechanism_*.cpp`; full working record in the development log, `shulib-v2`
   branch). Kept `[~]`, not
-  `[x]`, for two honest reasons: the seam is **deliberately unfrozen** until F3 — its second
+  `[x]`, for two reasons: the seam is **deliberately unfrozen** until F3 — its second
   consumer — stresses it (register row F11), and **no mechanism hardware has ever moved** —
   the per-mechanism safe-state physics is HA-92, a registered guess.
 - [~] **The mechanism core (MECH, six runs A1–A6; the team lead's go 2026-10-08)** — **A1 LANDED 2026-10-08,
@@ -1993,7 +1993,7 @@ is required, not optional, to hold < 1°.)*
   passes four ways: a motion that never settles, a mechanism that never confirms, a wait whose
   condition never holds, and a fault-abort cascade each end with the caller-supplied end action
   performed, verified against the plant with the clock driven to the limit by an independent script
-  (`test/sequence_end_of_run_test.cpp`). **The honest boundary:** this is a *scheduling* property on
+  (`test/sequence_end_of_run_test.cpp`). **The boundary:** this is a *scheduling* property on
   the host plant — real-brain timing is R4's, nothing preempts pure user code (no background tasks
   exist), and the frozen F6/F10 waits pay their documented lateness (guide ch. 9). The name is
   deliberately not "park guard": the library never learns what parking is — both instants and the
@@ -2015,7 +2015,7 @@ is required, not optional, to hold < 1°.)*
   disable aborts through the guard's abandon, within one more tick). The students' auton file
   `src/team/autons.{hpp,cpp}` (the 40 in auton, the acceptance run) is compiled by every build and by
   the host suite, which runs each auton through the tester's own run sequence: on the host test
-  plant the 40 in FINISHES with a side up to ×0.723 weak and stops honestly (MOTION_TIMEOUT, the brake
+  plant the 40 in FINISHES with a side up to ×0.723 weak and stops with its reason (MOTION_TIMEOUT, the brake
   run) at ×0.65. The boot PROVES its pacer chain (`RunGuard::pacesTotal()`, additive) or refuses; the
   SD run log appends across reboots (`ProsBlockSink`'s Append mode — HA-177). Kept `[~]`: nothing has
   run on a robot (worksheet Station M), and a field disable, the Timed Run and the hand-over to
@@ -2076,7 +2076,7 @@ only the INPUT half is missing.*
   monotonic response curves through `(0,0)` and `(±1,±1)`, configurable slew that is **off by default**
   (it protects the drivetrain and adds lag; lag is the enemy of feel), one-tick input→motor latency
   pinned, and field-centric / robot-centric / arcade / tank modes.
-- [~] **Field-centric's honest failure mode** *(T2, 2026-09-18: the fallback is a LATCH cleared only by the driver's re-zero, the indication is a state struct for a panel. From G1 Part 2b (2026-09-26) "shulib Teleop"'s panel showed the state in words (OFF / ON / FELL BACK / LATCHED) — since T4 Part 3 the new "shulib Drive"'s DETAILS page does — and the loop binds the re-zero to a button — A at 2b, **Y since T3 Part 2 (2026-09-26)**, because A became the pneumatic claw's toggle (the team lead's ruling), stated in robot two's driver file since T4 — with field-centric itself selectable but OFF; none of it has run on a robot)* — field-centric rotates the driver's stick frame by the
+- [~] **Field-centric's visible failure mode** *(T2, 2026-09-18: the fallback is a LATCH cleared only by the driver's re-zero, the indication is a state struct for a panel. From G1 Part 2b (2026-09-26) "shulib Teleop"'s panel showed the state in words (OFF / ON / FELL BACK / LATCHED) — since T4 Part 3 the new "shulib Drive"'s DETAILS page does — and the loop binds the re-zero to a button — A at 2b, **Y since T3 Part 2 (2026-09-26)**, because A became the pneumatic claw's toggle (the team lead's ruling), stated in robot two's driver file since T4 — with field-centric itself selectable but OFF; none of it has run on a robot)* — field-centric rotates the driver's stick frame by the
   *estimated* heading, so degraded heading silently rotates the controls away from reality while
   everything still appears to work. Requires a documented fallback to robot-centric, a driver-accessible
   re-zero, and a visible indication. Not shippable without it.
@@ -2207,7 +2207,7 @@ tuned on the brain mid-session. **Freezes:** F9.
   for a reader with no robotics background; every code example compiled and executed by
   `test/guide_examples_test.cpp` (the count grows with the guide — run the suite rather than
   trusting a figure here); tutorial verified by following it as written; guide↔README
-  cross-linked. Honest scope: covers the Tier-2 recipe layer and the Tier-3 C++ API
+  cross-linked. Scope: covers the Tier-2 recipe layer and the Tier-3 C++ API
   (**Tiers 0–1 do not exist yet** — they are Phase G/M5), and no genuinely-new reader has used it
   yet — M7's own DoD ("a brand-new member follows the guide without help") stays open.
 - [x] **Recipe cookbook** *(chunk D3, 2026-08-12)*: `docs/cookbook/` — an index plus five
@@ -2260,7 +2260,7 @@ tuned on the brain mid-session. **Freezes:** F9.
 help; the API reference is live on the website.
 
 *Status of that DoD, stated plainly: the website clause is met; the guide clause is OPEN.* The 10-minute guide starts in
-VexBuilder and cannot honestly be written until G4 builds it. The API reference exists, is
+VexBuilder and cannot truthfully be written until G4 builds it. The API reference exists, is
 generated and gated, and **is live** at docs.shurobotics.com since 2026-08-14 (published from
 `main`, so it shows the last release, not the working branch) — that clause is met. *(This sentence
 said "not live anywhere — there is no site" until 2026-09-24, contradicting the checkbox above it.)*
@@ -2311,7 +2311,7 @@ Each maps to an ○ cell in the [Capability Catalog](shulib-v2-master-plan.md#15
   and it composes with the **Motion** row's dynamic-replanning cell above rather than duplicating it.
   **Non-negotiable if built:** a controller **dead-man** (hold-to-follow, release-to-stop) and a check
   of event rules on autonomous operation outside the field — a robot driving itself through a crowded
-  venue is a real hazard. **Honest framing:** driver control already solves "don't carry the robot";
+  venue is a real hazard. **Framing:** driver control already solves "don't carry the robot";
   this earns its place as an *Innovate/Design demo* that exercises the same vision + estimator stack
   the competition code depends on, not as a labor saver. **Earliest sensible slot: after M3**, once the
   tag pipeline exists.
@@ -2347,7 +2347,7 @@ shulib *defines* the contracts; VexBuilder *produces* them. These are the things
 must add for the integration to close. They are tracked here so the dependency is never invisible.
 
 > **The full operational detail — every field, every schema, both sides' ordered work lists, and an
-> honest list of what can still move — is in [`vexbuilder-integration.md`](vexbuilder-integration.md).**
+> list of what can still move — is in [`vexbuilder-integration.md`](vexbuilder-integration.md).**
 > That document is written FOR the person finishing VexBuilder and is the one to hand over. This
 > section is the index.
 >

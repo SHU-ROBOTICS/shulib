@@ -49,7 +49,7 @@ infinity). The `hal/pros` adapters screen every read **before** any conversion:
 Because Driving Skills **has no GPS strip on the field walls**, and the VEX GPS is a camera
 that watches the strip. No strip, no fix — all match long. This is a normal operating state,
 not a fault (the health layer deliberately raises nothing for it): the estimator dead-reckons
-on odometry + IMU, exactly as designed, and the localizer's quality state says so honestly.
+on odometry + IMU, exactly as designed, and the localizer's quality state says so.
 `hasFix()` also goes false while the sensor boots, when it is unplugged, and when its view is
 blocked — the rule is simply *false = ignore the GPS this tick*, and every consumer already
 obeys it. What `hasFix()` does **not** judge is fix *quality* — "is this fix worth folding"
@@ -140,7 +140,7 @@ file was there (HA-177).
 false from the very first call, and `isOpen()` says why. The composition root reports that
 once at boot. If your log "succeeded" with no file to show for it, check whether anything read
 those return values — the seam makes them `[[nodiscard]]` for exactly this reason. And note
-one honest limit even with a card: small writes sit in a buffer and can report accepted while
+one limit even with a card: small writes sit in a buffer and can report accepted while
 the card is already refusing — the failure then lands on `flush()`, which is why its result is
 a `bool` too.
 
@@ -262,7 +262,7 @@ that is where the trap is waiting, and adding one rather than zero is the whole 
 
 ## I'm porting shulib to non-PROS hardware. What does "the shim tests the adapter, not the belief" mean for me?
 
-It is the honest limit of host-testing a hardware binding, and it transfers to your port
+It is the limit of host-testing a hardware binding, and it transfers to your port
 directly. shulib's adapters are tested against a hand-written, programmable stand-in for the
 PROS SDK. That proves the adapter faithfully implements *our beliefs* about the SDK — units,
 sign conventions, error sentinels — but if a belief is wrong, the stand-in and the adapter are

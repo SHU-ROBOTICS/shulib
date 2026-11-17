@@ -10,7 +10,7 @@ build_info — the git build hash plumbing for the §18.5 session header.
 
 This header declares **1** free function.
 
-Extracted from [`include/shulib/diag/build_info.hpp`](../../include/shulib/diag/build_info.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
+Extracted from [`include/shulib/diag/build_info.hpp`](../../include/shulib/diag/build_info.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
 ## Contents
 

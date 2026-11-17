@@ -10,13 +10,11 @@
 > **Assumes:** [Chapter 4](04-drivetrains.md) (tank drivetrains) and
 > [Chapter 7](07-getting-set-up.md) (building and uploading).
 
-**Nothing in this program has run on a robot in this form.** The standard Calibrate is host-tested:
-it runs whole in the host test suite on the host test plant (the suite's model of a robot), both
-through the library's own test devices and through its real PROS adapters over the suite's
-stand-in for PROS, and 34 runs of it are compared line for line with recorded ones. The measurement
-inside it — the calibrator — ran on a real robot (robot two) in an earlier form on 2026-09-24. Every
-threshold in it is invented for a first run (register entry HA-136). Treat everything below as what
-the code is written and tested to do, not as something a robot has shown. Since 2026-11-05 this
+The standard Calibrate runs whole in the host test suite on the host test plant (the suite's model
+of a robot), both through the library's own test devices and through its real PROS adapters over the
+suite's stand-in for PROS, and 34 runs of it are compared line for line with recorded ones. The
+measurement inside it — the calibrator — ran on robot two in an earlier form on 2026-09-24. Every
+threshold in it is invented for a first run (register entry HA-136). Since 2026-11-05 this
 repository's own "shulib Calibrate" (robot two, slot 4) IS the standard Calibrate: its facts are
 derived from robot two's tables (`src/robots/calibrate_facts.hpp`) instead of typed in a file like
 the one below — and deriving them changed none of the 34 recorded runs the library's tests hold.
@@ -138,6 +136,9 @@ so a touch anywhere there stops the robot. Until then a second tap where DONE wa
 run goes on to the pulses. A field disable, or
 the start of autonomous, ends the program the same way (Calibrate runs only in driver control,
 enabled).
+
+**This program, in this form, has not yet run on a robot.** Its calibrator ran on robot two in an earlier
+form on 2026-09-24 ([What it cannot do yet](14-what-it-cannot-do-yet.md#it-has-never-driven-a-robot-under-its-own-control)).
 
 ## What the ending means
 

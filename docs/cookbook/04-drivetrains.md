@@ -1,7 +1,7 @@
 # 4 — Drivetrains
 
 shulib never pretends a drivetrain can do something it cannot. These recipes are how you write
-routines for the two cases where that honesty changes your code:  a drivetrain that cannot slide
+routines for the two cases where that changes your code: a drivetrain that cannot slide
 sideways at all, and one that can but slowly.
 
 Listings are compiled and run in
@@ -49,10 +49,10 @@ r.startAt(Pose2d{-24_in, -24_in, 0_deg})
 **Watch out for:**
 
 - **`strafeTo` on a tank.** It will not error at the call — it runs, fails to move sideways, and
-  honestly returns `TimedOut` at whatever budget you gave it. That is the library refusing to
+  returns `TimedOut` at whatever budget you gave it. That is the library refusing to
   pretend, but it costs you the whole timeout, and in a chain it stops the routine.
 - **`moveTo` to a pose that is sideways of you.** A point beside you, or far off the heading you
-  hold, is the same outcome for the same reason: an honest `TimedOut`. On the host test plant a
+  hold, is the same outcome for the same reason: a `TimedOut`. On the host test plant a
   target a few inches off your heading is steered out over a 40 in leg (less over a short one);
   how much on a real robot depends on motor lag nobody has measured yet, and a point beside you
   is never steered out — face the point. On tank, treat `moveTo` as "drive to a point I am
@@ -97,7 +97,7 @@ r.turnTo(0_deg, {.timeout = 3_s}).strafeTo(0_in, 18_in, {.timeout = budget});
 
 - **`strafeAuthority()` is the fraction of the linear speed budget the drivetrain can sustain
   sideways** — 1.0 on an X-drive, about 0.35 on the H-bot in these examples, 0 on a tank. It is a
-  read-only query, available at authoring time. **But read what it is honest about:** on an
+  read-only query, available at authoring time. **But read what it can and cannot know:** on an
   H-drive it returns `strafeSpeedRatio × strafeTractionDerate`, and both are values *you*
   configured. The library is not measuring your robot's real sideways grip — the shipped derate
   (0.35) is an invented placeholder, registered as such, and nobody has measured one on a

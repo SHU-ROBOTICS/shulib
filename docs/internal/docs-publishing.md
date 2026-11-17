@@ -131,6 +131,7 @@ the one moment where it is most authoritative-looking.
 | Added a public member to any shipped header | Write its `///`. The build fails naming it, its file and its line; an empty `///` does not count |
 | Wrote a declaration the tool cannot NAME (`check-coverage` says `UNREADABLE NAME`, since SER1's review, 2026-10-15) | Teach the name reader the shape (`_member_name()` / `_bare_identifier()` in `tools/api_doc_tool.py`) and add it to the self-test's FIXTURE — never rename the code around the tool. A misread name used to be published as `?`, `1]` or a type and counted as documented — four shipped that way, and a conversion operator (`operator T()`) was named after its type `T`; a lone keyword (`bool`) now fails too |
 | Deleted or renamed a header | `generate`, then delete the orphaned page — `check-fresh` fails on a page the generator no longer produces |
+| Added a hand-written page (anywhere under `docs/` but `api/` and `internal/`) | Add its line to `mkdocs.yml`'s menu, under the task tab it serves, in the same change — `python3 tools/doc_readability.py check-nav` (in the doc gate since DOCS3-N1) fails on a public page missing from the menu, listed twice, or a menu line naming no file |
 
 The build runs `check-coverage`, `check-fresh`, `check-examples` and `check-removability` before
 it compiles anything, so forgetting any of the above fails locally, not in review.

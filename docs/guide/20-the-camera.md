@@ -13,7 +13,7 @@
 > and its second (this chapter) are in, and so is the skills Toggle step (in its form over explicit handles —
 > an auton reaches the camera in a later part). Robot two's camera and its bench page are the camera's third
 > part; the automatic flip in driver control, driving to a piece and choosing our alliance colour are later
-> chunks that USE what is here — none of them exists yet. **No AI Vision sensor has run this code.** Every number below is
+> chunks that USE what is here — none of them exists yet. Every number below is
 > from the host test plant's camera model (written with its own projection, so a sign error in the
 > library cannot cancel out) looking through a TRUE camera set somewhere inside the stated tolerances —
 > and the beliefs it rests on are HA-192 to HA-203 in the
@@ -391,7 +391,7 @@ both left out is the passive bar. The step never moves the flipper to `back` to 
 does: a flipper away from `back` is FLIPPER NOT READY. A retract that does not reach `back` is FLIPPER STUCK,
 and the robot does **not** drive out (it would drag the Toggle). A **pneumatic** flipper's stroke is not
 sensed — its step succeeds once the valve has held for the move time — so a blocked cylinder counts as a full
-stroke and a caught one as back (Chapter 14); its `flipBound` and `backBound` must each be at least its move
+stroke and a caught one as back ([Chapter 14](14-what-it-cannot-do-yet.md)); its `flipBound` and `backBound` must each be at least its move
 time plus its confirm window, or it is FLIPPER NOT READY.
 
 **The numbers Step 0 measures** (every one the team's — an unset one is refused by name): the flipper's kind,

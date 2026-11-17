@@ -3,8 +3,9 @@
 > **Read this before changing anything in `docs/guide/`, and before landing a code change that the
 > guide describes.**
 >
-> `docs/guide/README.md` tells a *reader* how the guide is organised. **This file tells a
-> *maintainer* what to do when the library changes.** It is internal; it never ships to `main`.
+> `docs/how-the-docs-stay-true.md` (public, since DOCS3-N1 — it was the guide README's Maintenance part)
+> tells anyone editing the pages how they are kept true. **This file tells a *maintainer* what to do when
+> the library changes.** It is internal; it never ships to `main`.
 
 ---
 
@@ -94,7 +95,7 @@ Some changes touch the guide's *framing*, not one chapter:
 | **D1 — recipe API lands** | **Add a chapter; don't rewrite the API chapter.** The full API stays valid — the recipe layer sits on top of it. Point new readers at the easier tier first. |
 | **D3 — the cookbook + generated reference land; `Routine` freezes** | ✅ Executed 2026-08-12. Three documents now, with one job each: the guide teaches (in order), the [cookbook](../cookbook/README.md) answers a task (out of order), the [reference](../api/README.md) states what exists (generated). **Do not let two of them own the same fact.** `Routine`'s spellings froze as register row F10, so ch. 9's stability notice and ch. 14's "recipe spellings" limitation were rewritten; `then()` is the one deliberate exception and both places say so. |
 | **D2 — F6 freezes** | ✅ Executed 2026-08-12: stability notices removed/rewritten in ch. 09, 10, 14, `chassis.hpp`'s banner, and the guide README's check-order list — atomically. Ch. 9 keeps ONE deliberate notice: `Routine`'s spellings stay unfrozen until D3 (they freeze with the cookbook). |
-| **R3 — first real robot run** | **The big one.** "Never run on a robot" appears in the README, the orientation chapter, the setup chapter, and the can't-do-yet chapter. Grep for it and update every instance in the same commit — a half-updated claim is worse than a stale one. *(Since 2026-09-24 every current instance reads "has never driven a robot **under its own control**" — a driver drove robot two through the adapters on 2026-09-17, so the unqualified form had become false. Grep for `never driven a robot under its own control`; the dated history paragraphs in the roadmap, build-order and changelog keep their original wording on purpose.)* |
+| **R3 — first real robot run** | **The big one.** "Never driven a robot under its own control" lives in [guide 14](../guide/14-what-it-cannot-do-yet.md) (its first section), `README.md`'s "What it is NOT yet" and "How verified is it?" sections, and the "What it cannot do" lines of each page that has them. Since DOCS3-N1's tone sweep (2026-11-15) no page OPENS with it (`doc_readability.py check-tone` refuses a status line before a page's first H2), and the orientation and setup chapters (01, 07) only link guide 14. Grep for `never driven|has not run|not run on a robot` in those places and update every instance in the same commit — a half-updated claim is worse than a stale one. *(Since 2026-09-24 every current instance reads "has never driven a robot **under its own control**" — a driver drove robot two through the adapters on 2026-09-17. The dated history paragraphs in the roadmap, build-order and changelog keep their original wording on purpose.)* |
 | **Phase E — correctors land** | The odometry/drift explanation changes meaningfully: drift becomes bounded rather than unbounded. Concept chapter and can't-do-yet chapter. |
 | **Phase F — mechanisms land** | New concepts, new API surface, new fault codes. Likely a new chapter. |
 | **R4/R5 — assumptions measured** | Anywhere the guide says a number is a guess. Prefer linking `hardware-assumptions.md` so this is a no-op. |
@@ -144,7 +145,8 @@ Numbers exist to give a reading order, not an identity. If you must renumber:
 
 - Renumber with `git mv` so history follows the file
 - Grep for the old numbers everywhere — chapters cross-reference each other, and so do
-  `docs/guide/README.md`, the root `README.md`, and code comments
+  `docs/guide/README.md` (its every-page-by-number table), `mkdocs.yml`'s menu, the root `README.md`,
+  and code comments
 - Prefer **inserting** at a decimal-free gap or appending, over renumbering a whole run — every
   renumber risks a dangling reference
 - Re-run the link check afterwards. Always.
@@ -182,6 +184,6 @@ from the one further up.
 
 ---
 
-*Companion to `docs/guide/README.md` (reader-facing), `docs/internal/docs-publishing.md` (where
+*Companion to `docs/how-the-docs-stay-true.md` (public), `docs/internal/docs-publishing.md` (where
 the generated reference goes), and `docs/internal/RESUMING.md` (the working protocol). Created
 2026-08-11 at chunk C8; extended at D3.*

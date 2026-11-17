@@ -182,15 +182,11 @@ package wires **real device adapters** — motors, IMU, battery, the controller,
 X-drive build GPS and rotation sensors — rather than in-memory fakes, including a first
 driver-control loop.
 
-What that does *not* yet mean, stated as plainly as the robot itself states it over serial:
-**the library has still never driven a robot under its own control** — no control loop has ever closed, and no wheel
-has ever turned under the library's own steering. The adapters are host-tested against a
-programmable stand-in for PROS, which proves the glue is faithful to our *beliefs* about PROS
-— units, signs, error values — and cannot prove the beliefs themselves
-(the [FAQ](../faq.md) unpacks that sentence). A few bench sessions (2026-08-13 onward) have since
-checked a handful of those beliefs against real devices and found them right, and a driver has
-driven robot two with the sticks through the adapters once — a real result and a narrow one: it
-validated the *platform layer*, open-loop, not the library's steering.
+The adapters are host-tested against a programmable stand-in for PROS, which proves the glue is
+faithful to our *beliefs* about PROS — units, signs, error values — and cannot prove the beliefs
+themselves (the [FAQ](../faq.md) unpacks that sentence). A few bench sessions have checked some of
+those beliefs against real devices. What has run on a robot, and what has not, is listed in
+[What it cannot do yet](14-what-it-cannot-do-yet.md#it-has-never-driven-a-robot-under-its-own-control).
 
 Only the X-drive build's port map is a labelled guess; the tank builds use measured port tables
 (robot two's is owed a re-measure since its drivetrain was rebuilt). A wrong **motor** port does refuse loudly at boot — `ProsMotor` configures the device and reads

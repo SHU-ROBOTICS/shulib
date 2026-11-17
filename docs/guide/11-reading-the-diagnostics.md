@@ -119,7 +119,7 @@ duration, whatever the outcome:
   ([Chapter 12](12-when-things-go-wrong.md) has the differential). With a small `xt`, being
   beside the line is not the story: compare `final(…)` with the target — short of it *along* the
   line, or at it but never settled (the heading still off — `drift` — or hovering just outside
-  the tolerance: Chapter 12's *almost settled, never quite*). A `✓SETTLED` leg's `xt` is always
+  the tolerance: [Chapter 12](12-when-things-go-wrong.md)'s *almost settled, never quite*). A `✓SETTLED` leg's `xt` is always
   inside the arrival tolerance (half an inch by default), because arriving means being that
   close to the point.
 - **Where it never appears:** turns (`turnTo`, `face`), `brake`, and the `hold` verb (it holds
@@ -413,7 +413,7 @@ worth recognizing on sight:
   capped as stated` (or `the write was accepted, reads back 2.00 A` — the motor kept another number),
   or `'lift': motor 2 (port 12): current cap 1.20 A stated, but this provider cannot cap a motor -- the
   motor's own 2.50 A applies`; the mechanism runs either way. And a Warn for each stall or homing
-  signature not MORE than 0.2 A below the cap (exactly 0.2 A below included; judged as the motor reads, at the first whole milliamp that trips the signature — chapter 18): `'lift': its stall signature (1.05 A) is within 0.2 A of its
+  signature not MORE than 0.2 A below the cap (exactly 0.2 A below included; judged as the motor reads, at the first whole milliamp that trips the signature — [chapter 18](18-mechanisms.md)): `'lift': its stall signature (1.05 A) is within 0.2 A of its
   current cap (1.20 A): a capped motor may read a little under its cap, so it may never trip (HA-223)` —
   lower the signature, or raise the cap. **Once a second** afterwards (inside the mechanism service's
   tick — a program stuck in its own loop checks nothing, and the motor is believed to keep its cap
@@ -644,7 +644,7 @@ Quadrant colour). What to do for each:
 
 - **`A -> B after n pushes ... (ours B)`** — FLIPPED: it shows our colour after a full stroke. **`already X
   (ours)`** — nothing was pushed. Both end `seating not checked`: the camera cannot see whether the Toggle sits
-  flat — watch it at the bench (Chapter 14).
+  flat — watch it at the bench ([Chapter 14](14-what-it-cannot-do-yet.md)).
 - **`wall not checked (relative start)`** — the route started RELATIVE, so the step could not check the robot
   faces the named Toggle's wall. Use a FIELD start for a skills route.
 - **`not a SKILLS auton (MATCH)`** — the step runs only in a skills auton.
@@ -895,7 +895,7 @@ version number, on purpose: since API 2.3 each tick's flags byte also carries th
 flag (`TSTR` above), in a bit every earlier writer wrote as 0 — so a file from before simply reads
 it as "not steering", which is true of it.
 
-**Honest status:** the format, the sink and the decoder exist and are tested — **and so does the
+**Status:** the format, the sink and the decoder exist and are tested — **and so does the
 piece that writes to `/usd/` on a real brain** (`ProsBlockSink`, which arrived with the hardware
 bridge; it is deliberately kept out of the core). What is still true is the limit that matters:
 none of it has ever written to a physical SD card. A missing card is handled rather than fatal —

@@ -11,7 +11,7 @@
 > hatch for advanced use.
 > **Read this if:** you've done the tutorial ([Chapter 8](08-your-first-routine.md)) and are
 > writing real routines.
-> **Assumes:** Chapters 2–8.
+> **Assumes:** the pages before it in [How it works](README.md).
 
 > **Stability.** This API is **frozen** — the
 > [roadmap's Freeze Register](../roadmap.md#freeze-register), row F6, locked 2026-08-12.
@@ -79,7 +79,7 @@ the scheduler beneath enforces it):
 
 - **They block** until the motion ends, and **cannot hang** — the watchdog bounds every path,
   including the wait-for-sensors boot window.
-- **They return an honest `ExitReason`**: `Settled`, `TimedOut`, or `Cancelled`. You may ignore
+- **They return an `ExitReason`**: `Settled`, `TimedOut`, or `Cancelled`. You may ignore
   the return (that's deliberate — a fire-and-forget auton style is legitimate, and the
   diagnostics record everything anyway), but you may never be lied to.
 - **Targets are field-frame** ([Chapter 2](02-the-field-and-coordinates.md)), in inches and
@@ -101,7 +101,7 @@ Fine print: on drivetrains with limited sideways ability, `moveTo` degrades exac
 [Chapter 4](04-drivetrains.md) described — the H-drive runs sideways-heavy legs slower (with the
 `SFB` flag in the diagnostics), and a tank drive cannot move sideways at all, so a target it
 cannot reach by driving along its heading — a point beside it, or one farther off its line than
-the steering below removes over the leg — honestly times out. What a tank `moveTo` does do
+the steering below removes over the leg — times out. What a tank `moveTo` does do
 (since API 2.3) is stay on its *line* — the line through the target point along the target
 heading: a leg that starts within 15° of its target heading bends its heading back toward that
 line when a weaker side pulls it off (by at most 15°, visible as `TSTR` in the diagnostics),
@@ -130,7 +130,7 @@ Go to a field (x, y) while *actively holding* whatever heading the robot has whe
 starts — disturbances get driven back, not just ignored. Use it when the aim matters more than
 the path: sliding along a wall of goals while pointed at them. Gotcha: it holds the heading it
 *finds*, so settle your heading (with `moveTo`/`turnTo`) before strafing, not after. On tank:
-honest `TimedOut`, as above — `strafeTo` never steers the way a tank `moveTo` does, because
+`TimedOut`, as above — `strafeTo` never steers the way a tank `moveTo` does, because
 holding the heading it found *is* its promise, and steering means leaving it. On a tank, the
 translate that steers is a `moveTo` with the heading you already have: it bends toward the line
 through its target by at most 15°. On the host test plant that removes a target a few inches off
@@ -213,11 +213,11 @@ That loop is the shape of driver control, and you do not have to write the real 
 Each tick it checks whether the field has disabled the robot (and if so stops the drive into the
 safe state and returns), reads the controller's sticks — all four axes, and only while the
 controller is actually connected — passes them through the driver's feel settings (the deadband,
-the curve, the mode: arcade, tank sticks, or field-centric with its honest fallback), scales them
+the curve, the mode: arcade, tank sticks, or field-centric with its fallback), scales them
 to the chassis's speed budgets, calls `drive(…, Frame::Body)`, lets your code paint a panel, and
 waits for the next tick. The things it cannot know — how long a tick is, whether the robot is
 disabled, what the heading is and whether to trust it — are arguments you hand it, which is also
-what lets the test suite run the whole loop on the host test plant. Honest status: robot two's
+what lets the test suite run the whole loop on the host test plant. Robot two's
 driver file (`src/team/robot_two_driver.hpp` — the [cookbook](../cookbook/06-driver-control.md)
 quotes it whole) drives through it — the sticks, the feel, and robot two's claws on the buttons
 below, all stated in that one file — and two programs run that file: "shulib Drive"
@@ -283,7 +283,7 @@ every tick; the tick neither is held — or both are — it goes to its declared
 then nothing is commanded until a button is pressed again. Letting go *is* the stop; the sticks
 never interrupt a mechanism, because the driver's thumbs are on them the whole time. The loop makes
 every binding safe before its first tick and again on a field disable (after the drive's own
-stop), and reads the buttons only while the controller is connected. Two rules keep it honest:
+stop), and reads the buttons only while the controller is connected. Two rules keep it safe:
 a stop made through the binding while a finger is still on the button (`makeSafe()`) is not undone
 by that finger — the binding waits until it has seen both buttons up — and a mechanism an operation
 has claimed *during* driver control is never touched. A claim still there when driver control
@@ -299,7 +299,7 @@ motors states its own cartridge and safe brake mode (neither has a default),
 rather than stopping the robot. (Since the mechanism core's first part the Robot also builds each
 mechanism's SENSOR roles — [the section below](#mechanisms--declared-once-wired-separately).) The
 [cookbook](../cookbook/06-driver-control.md) has the recipe.
-Honest status: host-tested only; no driver has used a binding, and whether Hold keeps a loaded
+Host-tested only: no driver has used a binding, and whether Hold keeps a loaded
 mechanism up is unmeasured. **Superseded, not removed (since the mechanism core's fourth part):** a
 robot whose mechanisms are DECLARED ([below](#mechanisms--declared-once-wired-separately)) runs them
 from its driver file's controls — `whileHeld`, `toggle`, `preset`, the homing controls — through
@@ -322,8 +322,8 @@ lists as one set. From a config, a mechanism with 3-wire lines (the brain's port
 1–8) states a `pneumaticStart` and a `pneumaticSafe` level, and `Robot::pneumaticMechanism("…")`
 finds it — making the line sets it to the start level on the spot. The name and index lookups are
 typed, so `mechanismAt(i)` is null for a built claw; to ask "is the `i`-th mechanism built?" of
-either kind, use `Robot::builtMechanismAt(i)` (and `mechanismAbsence(i)` for why not). Honest
-status: host-tested only; no solenoid has fired, and whether the brain holds a 3-wire output's
+either kind, use `Robot::builtMechanismAt(i)` (and `mechanismAbsence(i)` for why not).
+Host-tested only: no solenoid has fired, and whether the brain holds a 3-wire output's
 level while it is disabled — or acts on a level set while it is disabled, which is when a robot
 built in `initialize()` on a field sets the claw's start level — is unknown (the register's
 HA-157).
@@ -460,7 +460,7 @@ fault policy ends (`scheduler().pendingAbortFault()` names that fault while the 
 > Localizer's `seatAxis` and two counters are not frozen and not signature-pinned, and they grow
 > additively.
 
-*Host- and build-gated, NOT run on a robot.* When the robot has **parked beside a field wall, nose
+When the robot has **parked beside a field wall, nose
 along it and square to it**, the side distance sensor facing that wall measures how far the wall is;
 from where that sensor sits on the robot, that is **the robot's distance from the wall — ONE
 coordinate**: x against the left and right walls, y against the red and blue walls. The wall reset
@@ -711,7 +711,7 @@ explicit call's.
 > the direction check's judgement ([below](#in-an-auton-on-the-buttons-on-a-route)). Since its fifth
 > (MECH-A5, 2026-10-29) robot two's programs run on it: each binds one service over robot two's
 > declared claws, prints the per-role boot lines below, and publishes the claws' route ids; robot two's
-> driver file states its buttons as the core's controls. **Nothing here has run on a robot.**
+> driver file states its buttons as the core's controls.
 >
 > **The banner at the top of this chapter does not cover this section**, as it does not cover the
 > driver loop: the mechanism words, the service, the driver controls, the route binder and the
@@ -969,7 +969,7 @@ all new with the camera — among them the frame's freshness and the image's age
 - **The first motion waits for sensors.** Budget its timeout for ~2 s of IMU calibration.
 - **`strafeTo` holds the heading it finds** — aim first, then strafe.
 - **Trajectory options are per leg**, and every waypoint costs a settle.
-- **Tank + sideways target = honest timeout.** Use the turn-then-drive idiom. A tank `moveTo`
+- **Tank + sideways target = a timeout.** Use the turn-then-drive idiom. A tank `moveTo`
   steers back onto its line only when the leg starts within 15° of its target heading; the log
   says `turn first: face()` when it does not.
 - **`pose()` is an estimate.** Grading your routine by `pose()` alone proves the robot agrees
