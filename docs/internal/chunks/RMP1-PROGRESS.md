@@ -1,5 +1,7 @@
 # RMP1 — PROGRESS (live log)
 
+<!-- release: between parts — RMP1-A1 (the web route builder) landed 2026-11-16 (e8fa3de); RMP1-B (Controls + feel), RMP1-A2e/A2u (PREVIEW) are building and merge one at a time (declared by the coordinator 2026-11-17) -->
+
 Brief: [`RMP1-route-maker-page.md`](RMP1-route-maker-page.md) (the coordinator's copy of record, placed uncommitted in
 this worktree; it lands with RMP1-A1). Executor model: `opus`. Nothing committed and nothing pushed by the executor.
 Host and browser only: nothing here has run on a robot; every run of the library is the host test plant.
