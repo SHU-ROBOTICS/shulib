@@ -2665,3 +2665,16 @@ only — nothing here runs on a robot.
 - **Open:** the stand-in engine's "About this run" says "no recorded run of robot two" for one-robot fixtures (real
   use says "robot two's mirrored run is not in this preview engine yet") — cosmetic; the two-robot PREVIEW (SM4) still has
   no owner.
+
+## After the merge — CI on Windows Firefox, and a symlink the merge committed *(2026-11-17, the coordinator)*
+
+- **Windows Firefox failed two PREVIEW page tests on fd290c3.** (1) `preview.test.mjs` started Firefox WITHOUT the
+  bounce-tracker pref the other three launchers pass (`privacy.bounceTrackingProtection.mode: 0`), so Windows Firefox's
+  "127.0.0.1 has been classified as a bounce tracker" warning failed the no-warning check — fixed (9eac085), the two tests
+  pass locally in Firefox. (2) `page.goto` timed out at 30 s once on the Windows runner ([light-1440] other states; the
+  [dark-1440] run of the same test passed) — a slow runner; watched on the next run, not changed.
+- **The A2u merge (88c8513) committed `tools/route_maker/node_modules` — a symlink to the coordinator's worktree.** The
+  ignore rule `node_modules/` matches a folder only, not a symlink. Git treats ignored files as expendable, so checking the
+  commit out replaced the integrate worktree's real install with the symlink (pointing at itself); on any other machine
+  it is a dangling link (on Windows without symlinks, a FILE where npm wants a folder). Untracked; the rule is now
+  `node_modules` (folder, file or link). No other symlink is tracked (`git ls-files -s`, mode 120000: none).
