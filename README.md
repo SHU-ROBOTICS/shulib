@@ -64,9 +64,9 @@ core never touches PROS directly (that separation is load-bearing; see the layou
   speed, a run until a piece sensor sees a piece, a valve's position), every behaviour watched for a
   jam; an auton runs a mechanism on one line (`r.move(arm["score"], 1.5_s)`), a driver file puts
   them on buttons (hold-to-run, toggles, presets), and a route's markers fire each mechanism's
-  published ids. Robot two's programs run its two claw pivots and its pneumatic claw this way
-  ([chapter 16](docs/guide/16-testing-an-auton-on-the-bench.md) to [chapter 18](docs/guide/18-mechanisms.md)
-  of the guide; host-tested only — none of it has run on a robot yet).
+  published ids. Both robots' programs run their mechanisms this way — the cascade, two side
+  toggles and three pistons; robot two is robot one's twin (guide chapters 16–18 and 21; host-tested
+  only — none of it has run on a robot yet).
 - **A guaranteed end of run**: wrap the tick pacer and a routine gets a hard deadline — the
   active motion — and every mechanism operation still running that registered its claim, as the
   library's own do — is cut at the instant you name, every later motion is *refused* (a latch,
@@ -97,9 +97,9 @@ current state, so here it is, third heading from the top:
   brain's device list, the loop pacer, and real time).
   The motor, IMU, battery, controller and clock adapters and the SD-card writer have met real
   devices on the bench. **Distance** is constructed by Bench Tests (its distance station) and **ADI
-  digital out** by the programs that boot robot two's mechanisms (its pneumatic claw, 3-wire line A);
+  digital out** by the programs that boot the robots' mechanisms (their pistons, 3-wire lines A to C);
   this README claims neither confirmed on a device. **Optical and ADI digital in are constructed by no
-  program yet** — no V5 build compiles them into a package — and **the brain's touch screen adapter is built only into robot two's "shulib Calibrate"** (the
+  program yet** — no V5 build compiles them into a package — and **the brain's touch screen adapter is built only into the robots' "shulib Calibrate"** (the
   library's standard Calibrate since 2026-11-05), which has not run on a robot in that form — and GPS
   and rotation appear only in the X-drive build, which has never run. All
   eighteen are host-tested against a hand-written stand-in for PROS, which proves the glue is
@@ -108,9 +108,9 @@ current state, so here it is, third heading from the top:
   onward) — except two the touch-screen adapter shares with the robot programs' own screen path
   (`src/common/screen_text.hpp`), read from the SDK and not yet entered: that PROS re-reads printed text as a format string, and that each
   print leaks its buffer (the adapter sanitizes and counts its prints either way). Only the
-  X-drive build (`make ROBOT=xdrive`) carries an invented, labelled port map; the default build
-  and robot two's builds use port tables measured on those robots (robot two's is owed a
-  re-measure after its drivetrain was rebuilt).
+  X-drive build (`make ROBOT=xdrive`) carries an invented, labelled port map; the default build's
+  table was measured on the old bench robot, and the two cascade robots' tables type only the drive
+  cartridge — shulib Calibrate discovers each one's drive and writes it to that robot's SD card.
 - **What has been confirmed on hardware — and only this.** On 2026-08-12 the package was built,
   uploaded, and booted on a V5 brain, where it constructed its whole object graph and printed
   its diagnostics banner over USB serial. Every motor and sensor it spoke to was still a fake.
@@ -121,8 +121,8 @@ current state, so here it is, third heading from the top:
   path works, the library makes no host-only assumption that breaks on ARM, and the adapters'
   conversions are measured rather than believed. Later bench sessions added a little more: the
   SD card written and read back and the IMU's heading direction confirmed (2026-08-18/19, the
-  old robot); robot two's ports and every drive motor's direction measured (2026-09-10); and a
-  driver drove robot two with the sticks through the library's hardware adapters — open-loop, no
+  old robot); the old robot two's ports and every drive motor's direction measured (2026-09-10); and
+  a driver drove it with the sticks through the library's hardware adapters — open-loop, no
   library steering — once (2026-09-17, the team lead's report; no log was captured). **Nothing
   was ever steered.** None of it establishes anything about motion, accuracy, or control.
 - Every physical constant in the tree (gains, geometry, sensor noise) is a labeled stand-in.
@@ -318,16 +318,18 @@ src/                the robot programs, one folder per job (every include writte
   main.cpp          the PROS entry point — it hands each entry point to the build's program
   build_selection.hpp  the one place a build's switches are read — it picks the program and
                     the robot together
-  robots/           what each robot IS: the per-robot tables (every robot's ports; robot two's
-                    claws, declared in the mechanism core's words), the invented X-drive (a
+  robots/           what each robot IS: the per-robot tables (every robot's ports; each robot's
+                    mechanisms, declared in the mechanism core's words, their numbers from its
+                    facts file), the invented X-drive (a
                     RobotConfig constant), and the standard Calibrate's facts, derived from the
                     tables (calibrate_facts.hpp)
-  team/             the team's own code — where students edit: robot two's driver file (which
+  team/             the team's own code — where students edit: each robot's driver file (which
                     button does what, the feel; shulib Drive runs it on its own, and the
-                    competition program's driver control runs it) and the team's autons
-                    (autons.cpp — every auton the robot can run, one list both auton programs
-                    read; the host suite compiles it and runs every auton in it)
-  programs/         one program each: the bench tester, shulib Drive (robot two's driver file on
+                    competition program's driver control runs it), each robot's autons
+                    (autons.cpp, robot_one_autons.cpp — one list each, both auton programs
+                    read it; the host suite compiles them and runs every auton in them) and
+                    the skills route both robots share (skills_route.cpp)
+  programs/         one program each: the bench tester, shulib Drive (the robot's driver file on
                     robot::Robot, with its MAIN / DETAILS / MORE pages), shulib Calibrate, the
                     X-drive's program, shulib Auton Tester (runs one of the team's autons on the
                     bench from the brain's screen, through the competition program's own call —
@@ -343,7 +345,7 @@ src/                the robot programs, one folder per job (every include writte
                     fault-latch hook, every driver file's plumbing (driver_file.hpp) and the
                     driver-control heading, the driver-control screen's words (the drive
                     protections' row, the controller's lines, the mechanisms' boot lines and
-                    the claw row), the log copy's and the dropped autons' boot lines, and an
+                    the mechanism row), the log copy's and the dropped autons' boot lines, and an
                     auton run's boot chain proof and program-error stop
 test/               the host suite (doctest) against plant + hostile sims + a PROS shim
                     (test/pros_shim/ — the programmable SDK stand-in the adapter tests run on;

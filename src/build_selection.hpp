@@ -108,6 +108,8 @@
 #error "PROGRAM=tune needs a ROBOT whose mechanism table is not empty -- this ROBOT has no Tune branch in src/build_selection.hpp's chain (see the Makefile's MECHANISM_ROBOTS)"
 #endif
 
+#include <string_view>  // beaconHasPrefix() (ROB1-BT)
+
 namespace shulib::bench {
 
 /// The programs a build can be. src/main.cpp's five entry points switch on it.
@@ -125,7 +127,7 @@ enum class Program {
 /// mechanismTableFor()), and robotBeacon() names it in the linked package.
 enum class RobotId {
     BenchBot,        ///< the measured tank bench bot (the team's old competition robot)
-    RobotTwo,        ///< the 2026 tank chassis, robot two
+    RobotTwo,        ///< robot two — robot one's twin, the same cascade build (ROB1-BT; the claw tank chassis before)
     InventedXDrive,  ///< the invented X-drive (A4 register HA-111; no such robot exists)
     RobotOne,        ///< the 2026 cascade robot, robot one (ROB1-A; built ~2026-11-14 — nothing has run on it)
 };
@@ -224,5 +226,20 @@ constexpr const char* robotBeacon(RobotId id) {
 /// THIS build's robot beacon. src/main.cpp prints it at boot, which is what links it (and only it)
 /// into the package.
 inline constexpr const char* kRobotBeacon = robotBeacon(kRobotId);
+
+/// The word every robot beacon starts with — the robot's name follows it.
+inline constexpr char kRobotBeaconPrefix[] = "shulib-robot=";
+
+/// True when `beacon` starts with kRobotBeaconPrefix (a constant expression).
+constexpr bool beaconHasPrefix(const char* beacon) { return std::string_view{beacon}.starts_with(kRobotBeaconPrefix); }
+
+/// Robot `id`'s name in its CALIBRATION RECORD (chunk ROB1-BT): its beacon after "shulib-robot=" —
+/// `robot-one`, `robot-two` — so the beacon stays the one place a robot's name is typed. Calibrate writes
+/// it into the record (`robot=robot-two ...`); the boot refuses a record naming another robot, or none.
+constexpr const char* robotRecordName(RobotId id) { return robotBeacon(id) + (sizeof kRobotBeaconPrefix - 1); }
+static_assert(beaconHasPrefix(robotBeacon(RobotId::BenchBot)) && beaconHasPrefix(robotBeacon(RobotId::RobotTwo)) &&
+                  beaconHasPrefix(robotBeacon(RobotId::InventedXDrive)) &&
+                  beaconHasPrefix(robotBeacon(RobotId::RobotOne)),
+              "every robot beacon starts with \"shulib-robot=\" -- the record's robot name is the rest of it");
 
 }  // namespace shulib::bench

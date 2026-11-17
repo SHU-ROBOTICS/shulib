@@ -91,6 +91,8 @@ target_sources(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/aut
 # ...and, since chunk ROB1-A (2026-11-11), robot one's: src/team/robot_one_autons.cpp, PROS-free the
 # same way (test/robot_one_autons_test.cpp runs it on the host test plant).
 target_sources(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/robot_one_autons.cpp")
+# ...and, since chunk ROB1-BT (2026-11-16), the skills route BOTH robots register: src/team/skills_route.cpp.
+target_sources(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/skills_route.cpp")
 
 # ── THE SUITE'S OWN FLAGS, as ONE INTERFACE target (chunk MECH-A1, 2026-10-08) ──────────────
 # Every include root, option and define below used to be PRIVATE to shulib_tests. The mechanism
@@ -349,7 +351,8 @@ add_test(NAME shulib_tests COMMAND shulib_tests)
 # compiles it; it does NOT wait for the doc gates. route_preview_main.cpp is not a *_test.cpp, so the
 # suite's glob above never compiles it — the suite calls runPreview() itself (route_preview_test.cpp).
 add_executable(shulib_route_preview route_preview_main.cpp "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp"
-                                    "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/robot_one_autons.cpp")
+                                    "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/robot_one_autons.cpp"
+                                    "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/skills_route.cpp")  # ROB1-BT: robot two registers the shared skills route
 target_link_libraries(shulib_route_preview PRIVATE shulib_test_flags)
 
 # ── THE COMPILE-REFUSAL HARNESS (chunk MECH-A1, 2026-10-08; the MECH brief's §3.0) ──────────

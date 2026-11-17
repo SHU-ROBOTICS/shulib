@@ -2,9 +2,9 @@
 // (src/team/robot_two_driver.hpp for robot two; src/team/robot_one_driver.hpp for robot one since chunk
 // ROB1-A, 2026-11-11 — src/common/this_robot.hpp's ThisRobotDriver picks it by the build's robot) on
 // robot::Robot, built from the calibration record (chunk T4 Part 3, 2026-10-01; the team lead's rulings
-// R3 and R5, 2026-09-27). Every robot-two sentence this program prints is chosen between TWO literals
-// on the build's robot (robot two's verbatim — its package must not change; robot one's names robot
-// one) — never a format from a variable (-Wformat=2; src/common/robot_words.hpp).
+// R3 and R5, 2026-09-27). Every sentence that names a robot is chosen between TWO literals on the build's
+// robot (robot one's or robot two's — its twin since ROB1-BT) — never a format from a variable
+// (-Wformat=2; src/common/robot_words.hpp).
 //
 // ═══ WHAT CHANGED AT T4 PART 3 ═════════════════════════════════════════════════════════
 // This file's content was REPLACED, its name kept (R3: "shulib Drive" is the same name, slot 1,
@@ -27,8 +27,8 @@
 // this one gained.
 //
 // ═══ WHICH END IS FORWARD ═══════════════════════════════════════════════════════════
-// Stick up drives toward the end that LED the Calibrate push saved in the record: on robot two
-// since 2026-09-25, the AI Vision (camera, port 3) end — the 11/20 end. The OLD "shulib Drive"
+// Stick up drives toward the end that LED the Calibrate push saved in the record: on the old robot two
+// (before ROB1-BT rebuilt it) from 2026-09-25, the AI Vision (camera, port 3) end — the 11/20 end. The OLD "shulib Drive"
 // drove toward the typed table's front, the 15/16 end: a brain still holding the old package drives
 // the OTHER way on the same stick (worksheet Station F.0: tell them apart before a wheel moves —
 // the old one's serial tag was `[R3B]`, this one's is `[DRV]`).
@@ -188,14 +188,13 @@ ScreenTouch readTouch() {
 
 // ═══ THE RUN STATUS — one sentence, said at boot on serial ═════════════════════════════
 /// Robot one's builds print robot one's sentences (file banner); robot two's — and the bench and
-/// X-drive builds, which never run this program — print robot two's, verbatim.
+/// X-drive builds, which never run this program — print robot two's (robot one's twin since ROB1-BT).
 constexpr bool kRobotOneBuild = ThisRobotWords::robot == RobotId::RobotOne;
 constexpr const char* kRunStatusTwo =
-    "THIS VERSION of \"shulib Drive\" (T4 Part 3: robot two's driver file on robot::Robot) has not "
-    "run on hardware. The program it replaced in slot 1 drove robot two open-loop on 2026-09-17, "
-    "and the library program it retired drove it from the calibration record on 2026-09-25. No "
-    "library-commanded motion has run (R3b open). Its claws (the pivots on 6 and 7, the pneumatic "
-    "claw on 3-wire A) have never been driven.";
+    "\"shulib Drive\" on ROBOT TWO (ROB1-BT: robot one's twin, robot two's driver file on robot::Robot) "
+    "has not run on hardware: robot two was rebuilt as robot one's twin, and its facts are owed until its "
+    "builder reads them off it. Its cascade has never been driven, and its numbers are the facts ledger's "
+    "(src/robots/robot_two_facts.hpp) -- this build links only once every fact it needs is typed.";
 constexpr const char* kRunStatusOne =
     "\"shulib Drive\" on ROBOT ONE (ROB1-A: robot one's driver file on robot::Robot) has not run on "
     "hardware: robot one's facts are typed from its builder's answers (2026-11-15), not measured. "
@@ -235,7 +234,7 @@ constexpr std::string_view kProvisionalLine =
     "capped by the budgets -- R5's measurement owes them, so the feel is not final";
 constexpr std::string_view kAbsentDevicesLineTwo =
     "absent devices (deliberate): gps=ABSENT tags=ABSENT vision=ABSENT -- robot two has no GPS, "
-    "and its AI Vision camera (port 3) has no adapter yet; nothing is polled over an absent source";
+    "and its AI Vision camera has no adapter yet (VIS1-B); nothing is polled over an absent source";
 constexpr std::string_view kAbsentDevicesLineOne =
     "absent devices (deliberate): gps=ABSENT tags=ABSENT vision=ABSENT -- robot one has no GPS, "
     "and its AI Vision camera has no adapter yet (VIS1-B); nothing is polled over an absent source";
@@ -609,9 +608,9 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
                       ? "driver control: robot one's driver file (src/team/robot_one_driver.hpp, the builder's "
                         "map -- the team's) -> runDriverControl, default profile (deadband 0.05, no expo, "
                         "no slew; HA-112); re-zero button %.5s; mode %.12s"
-                      : "driver control: robot two's driver file (src/team/robot_two_driver.hpp) -> "
-                        "teleop::runDriverControl + DriveShaper, the default profile (continuous deadband "
-                        "0.05, no expo, no slew -- HA-112, unfelt); re-zero button %.5s; mode %.12s",
+                      : "driver control: robot two's driver file (src/team/robot_two_driver.hpp, robot one's "
+                        "map -- the team's) -> runDriverControl, default profile (deadband 0.05, no expo, "
+                        "no slew; HA-112); re-zero button %.5s; mode %.12s",
                   teleop::controllerButtonWord(ThisRobotDriver::kLoop.rezeroButton),
                   modeWord(ThisRobotDriver::kFeel.mode));
     logWrapped(log, hal::LogLevel::Info, line);
@@ -635,11 +634,11 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
     // TermSink line. An ABSENT one is a warning: its buttons do nothing, and the drive runs anyway.
     mechanismBootLines(kMechanisms, r, mechanisms, &ThisRobotDriver::kControls,
                        [&log](const MechanismLine& m) { log.log(m.level, "MECH", m.text); });
-    // ROBOT ONE'S FACTS (ROB1-A): the ledger's counts — provenance, not a refusal (a program that needs
-    // an owed fact never links). Robot one's builds only, so robot two's package is unchanged; worded
-    // by src/common/this_robot.hpp (host-tested there), so no program names robot one's ledger.
-    if constexpr (kRobotOneBuild) {
-        robotOneFactsLine(line, sizeof line);
+    // THE ROBOT'S FACTS (ROB1-A; robot two's too since ROB1-BT): the ledger's counts — provenance, not a
+    // refusal (a program that needs an owed fact never links); worded by src/common/this_robot.hpp
+    // (host-tested there), so no program names a robot's ledger.
+    if constexpr (kThisRobotHasLedger) {
+        thisRobotFactsLine(line, sizeof line);
         log.log(hal::LogLevel::Info, kTag, line);
     }
 }

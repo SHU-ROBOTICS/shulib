@@ -1793,8 +1793,8 @@ written with them (D12 honesty reaching the data layer intact).
 > `competition::mirrored` / `isMirrored` / `FieldMirror` and Override's `kSkillsMirror` (the reflection across y = -x);
 > the runner seating the reflected start and running the routine and its park mirrored; the wall reset's and the Toggle
 > step's swaps; `START MIR` / `SKILLS MIR`; the pair check (both robots at once, 6 in) over every mirrored entry robot two
-> registers; HA-258..HA-260. Robot two's ONE registration line lands with ROB1-BT (the coordinator's D2 call: robot two as
-> robot one's twin is not on this base). `[~]` until robot two has run robot one's route mirrored, beside robot one.
+> registers; HA-258..HA-260. Robot two's ONE registration line LANDED with ROB1-BT (merged 2026-11-17: `src/team/autons.cpp` registers the
+> shared skills route mirrored). `[~]` until robot two has run robot one's route mirrored, beside robot one.
 
 ### VIS1 and AF1 — the Toggle auto-flipper ⟵ NEW 2026-10-08; after the panel since the sprint of 2026-10-29
 > **Status 2026-11-16: AF1S-A2 BUILT** (built 2026-11-15 on main's 9befdb3, moved onto 28a7497 — MIRROR1-A landed

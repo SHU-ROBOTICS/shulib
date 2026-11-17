@@ -127,6 +127,57 @@ static_assert(!hal::sameFileOnCard(kRecordFileName, kRecordBackupFileName),
 /// retyped, so a widening there is a compile error here instead of a silently short record.
 inline constexpr std::size_t kProvenanceBytes = sizeof(hal::DrivetrainDescription::provenance);
 
+// ── THE RECORD NAMES ITS ROBOT (chunk ROB1-BT, 2026-11-16) ─────────────────────────────────────
+// Two robots of one build, wired the same, pass each other's port check — so a card moved between
+// them used to boot the other robot's calibration in silence. Now Calibrate STARTS the provenance with
+// `robot=<name> ` and the team's boot refuses a record that names another robot, or none. First, not
+// last: the calibrator keeps only the provenance's first 40 characters (drivetrain_calibrator.hpp). The
+// record's format is unchanged (the provenance was always free text), so an older record still decodes.
+
+/// The key before a robot's name in a record's provenance: `robot=<name>`, at the start of a word.
+inline constexpr std::string_view kRecordNameKey = "robot=";
+
+/// The longest robot name a record carries (the key, the name and a space fit the 40-character cut).
+inline constexpr std::size_t kRecordNameMax = 24;
+
+/// True when `name` can be a record's robot name: 1..kRecordNameMax lower-case letters, digits or '-'.
+[[nodiscard]] constexpr bool isRecordName(std::string_view name) noexcept {
+    if (name.empty() || name.size() > kRecordNameMax) {
+        return false;
+    }
+    for (const char c : name) {
+        const bool ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-';
+        if (!ok) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/// The robot a record's provenance names: the word after the first `robot=` that starts a word, when it
+/// is a record name (isRecordName) — else EMPTY (an older record, or a name that was cut). `provenance`
+/// is the stored field (it need not end in a NUL when full); the view points into it.
+[[nodiscard]] constexpr std::string_view recordRobotName(const char (&provenance)[kProvenanceBytes]) noexcept {
+    std::size_t len = 0;
+    while (len < kProvenanceBytes && provenance[len] != '\0') {
+        ++len;
+    }
+    const std::string_view text{provenance, len};
+    for (std::size_t at = text.find(kRecordNameKey); at != std::string_view::npos;
+         at = text.find(kRecordNameKey, at + 1)) {
+        if (at != 0 && text[at - 1] != ' ') {
+            continue;  // "xrobot=…" is not the key: it must start a word
+        }
+        std::string_view name = text.substr(at + kRecordNameKey.size());
+        const std::size_t space = name.find(' ');
+        if (space != std::string_view::npos) {
+            name = name.substr(0, space);
+        }
+        return isRecordName(name) ? name : std::string_view{};
+    }
+    return {};
+}
+
 /// Bytes of the payload (everything between the length field and the CRC), v1:
 /// kind 1 + cartridge 1 + imuPort 1 + left (21 + 1 + 8) + right (21 + 1 + 8) + trackWidth 8
 /// + source 1 + provenance 96 = 168. The encoder asserts it wrote exactly this many.

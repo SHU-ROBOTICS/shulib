@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 6,478 of them, across 215 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 6,485 of them, across 215 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -499,6 +499,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CalibrateFacts::drive` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-drive) |
 | `CalibrateFacts::imuPortStated` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-imuportstated) |
 | `CalibrateFacts::mechanisms` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-mechanisms) |
+| `CalibrateFacts::recordName` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-recordname) |
 | `CalibrateFacts::robot` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-robot) |
 | `CalibrateFacts::typedDrive` | field | [calibrate_program.md](calibrate_program.md#calibratefacts-typeddrive) |
 | `calibrateInitialize` | free function | [pros-calibrate.md](pros-calibrate.md#calibrateinitialize) |
@@ -1604,6 +1605,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 |---|---|---|
 | `FactsList` | enum class | [calibrate_program.md](calibrate_program.md#enum-class-factslist) |
 | `FactsList::Mechanisms` | enumerator | [calibrate_program.md](calibrate_program.md#factslist-mechanisms) |
+| `FactsList::RecordName` | enumerator | [calibrate_program.md](calibrate_program.md#factslist-recordname) |
 | `FactsList::TypedLeft` | enumerator | [calibrate_program.md](calibrate_program.md#factslist-typedleft) |
 | `FactsList::TypedRight` | enumerator | [calibrate_program.md](calibrate_program.md#factslist-typedright) |
 | `factsProblem` | free function | [calibrate_program.md](calibrate_program.md#factsproblem) |
@@ -2449,6 +2451,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `isFinitePose` | free function | [finite_guard.md](finite_guard.md#isfinitepose) |
 | `isMirrored` | free function | [field_mirror.md](field_mirror.md#ismirrored) |
 | `isPneumaticLevel` | free function | [robot_config.md](robot_config.md#ispneumaticlevel) |
+| `isRecordName` | free function | [calibration_record.md](calibration_record.md#isrecordname) |
 | `isSafeBrakeMode` | free function | [robot_config.md](robot_config.md#issafebrakemode) |
 | `isSmartPort` | free function | [device_registry.md](device_registry.md#issmartport) |
 | `isUsableReading` | free function | [motor_group.md](motor_group.md#isusablereading) |
@@ -2802,6 +2805,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kProgramFault` | constant | [calibrate_screen.md](calibrate_screen.md#kprogramfault) |
 | `kProtectionTextBytes` | constant | [drive_protection.md](drive_protection.md#kprotectiontextbytes) |
 | `kProvenanceBytes` | constant | [calibration_record.md](calibration_record.md#kprovenancebytes) |
+| `kProvenanceKept` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kprovenancekept) |
 | `kPublishedCloseAccuracyInches` | constant | [wall_reset.md](wall_reset.md#kpublishedcloseaccuracyinches) |
 | `kPublishedFarAccuracyFraction` | constant | [wall_reset.md](wall_reset.md#kpublishedfaraccuracyfraction) |
 | `kPushFrontFirst` | constant | [calibrate_panel.md](calibrate_panel.md#kpushfrontfirst) |
@@ -2810,6 +2814,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kRecordBytes` | constant | [calibration_record.md](calibration_record.md#krecordbytes) |
 | `kRecordFileName` | constant | [calibration_record.md](calibration_record.md#krecordfilename) |
 | `kRecordMagic` | constant | [calibration_record.md](calibration_record.md#krecordmagic) |
+| `kRecordNameKey` | constant | [calibration_record.md](calibration_record.md#krecordnamekey) |
+| `kRecordNameMax` | constant | [calibration_record.md](calibration_record.md#krecordnamemax) |
 | `kRecordPayloadBytes` | constant | [calibration_record.md](calibration_record.md#krecordpayloadbytes) |
 | `kRecordPrefixBytes` | constant | [calibration_record.md](calibration_record.md#krecordprefixbytes) |
 | `kRecordVersion` | constant | [calibration_record.md](calibration_record.md#krecordversion) |
@@ -4514,6 +4520,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RecordFileRead::path` | field | [record_store.md](record_store.md#recordfileread-path) |
 | `RecordFileRead::tried` | field | [record_store.md](record_store.md#recordfileread-tried) |
 | `RecordFileRead::why` | field | [record_store.md](record_store.md#recordfileread-why) |
+| `recordRobotName` | free function | [calibration_record.md](calibration_record.md#recordrobotname) |
 | `recoverFinite` | free function | [finite_guard.md](finite_guard.md#recoverfinite) |
 | `recoverFinitePose` | free function | [finite_guard.md](finite_guard.md#recoverfinitepose) |
 | `recoverWheelVoltage` | free function | [plausibility_guard.md](plausibility_guard.md#recoverwheelvoltage) |

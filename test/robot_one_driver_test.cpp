@@ -86,7 +86,7 @@ shulib::hal::DrivetrainDescription inventedRecord() {
     d.right.inchesPerRadian = shulib::units::Length{1.3};
     d.trackWidth = shulib::units::Length{12.0};
     d.source = shulib::hal::DescriptionSource::RobotMeasured;
-    std::snprintf(d.provenance, sizeof d.provenance, "%s", "robot one driver test (INVENTED)");
+    std::snprintf(d.provenance, sizeof d.provenance, "%s", "robot=robot-one robot one driver test (INVENTED)");
     return d;
 }
 

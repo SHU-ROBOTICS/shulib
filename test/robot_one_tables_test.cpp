@@ -344,10 +344,13 @@ TEST_CASE("robot one tables (T9): calibrateFactsFor() over robot one's tables de
     // ...and the other direction (the review of ROB1-A, RV8/RV9) is test/robot_one_flipper_forms_example_test.cpp's:
     // "not on the robot yet" or a passive bar against a list that DOES declare a flipper, and an inches Lift
     // named "flipper" against a motor arm.
-    // ...and both checks are APPLIED to the real ledger in the table file (deleting one would compile).
+    // ...and both checks are APPLIED to each robot's real facts in the table file (deleting one would compile;
+    // ROB1-BT made the two checks every robot's — robot two's facts against robot two's list too).
     const std::string code = source_pins::squash(source_pins::stripComments(source_pins::readFile("src/robots/mechanism_table.hpp")));
-    CHECK(source_pins::count(code, "static_assert(robotOneNonDriveMotorsDeclared(robot_one_facts::kNonDriveMotorPorts.value(), robot_one::kRobotOneMechanisms),") == 1);
-    CHECK(source_pins::count(code, "static_assert(robotOneFlipperKindMatches(robot_one_facts::kFlipperKind.value(), robot_one::kRobotOneMechanisms),") == 1);
+    CHECK(source_pins::count(code, "static_assert(nonDriveMotorsDeclared(robot_one_facts::kNonDriveMotorPorts.value(), robot_one::kRobotOneMechanisms),") == 1);
+    CHECK(source_pins::count(code, "static_assert(flipperKindAgrees(robot_one_facts::kFlipperKind.value(), robot_one::kRobotOneMechanisms),") == 1);
+    CHECK(source_pins::count(code, "static_assert(nonDriveMotorsDeclared(robot_two_facts::kNonDriveMotorPorts.value(), robot_two::kRobotTwoMechanisms),") == 1);
+    CHECK(source_pins::count(code, "static_assert(flipperKindAgrees(robot_two_facts::kFlipperKind.value(), robot_two::kRobotTwoMechanisms),") == 1);
 }
 
 TEST_CASE("robot one tables (ROB1-C2): the side toggles are two POWER mechanisms on the side toggle ports, and the three pistons ONE line each on the builder's letters, starting in their UNPOWERED position") {
@@ -422,23 +425,16 @@ TEST_CASE("robot one tables (ROB1-C2): the side toggles are two POWER mechanisms
     static_assert(std::string_view{facts::unpoweredPosition(shulib::mechanism::words::Low, "closed", "open")} == "open");
 }
 
-TEST_CASE("robot one tables ([R5]): every robot-one line of the mechanism table is BELOW the end of robot two's region") {
-    // BUG CAUGHT (GM15b's cause): a robot-one line added above `// [/robot two mechanisms]` — robot two's
-    // declarations record their LINE numbers into the list its packages carry (std::source_location), so
-    // every robot-two package would change while its machine code and strings stayed the same (P6).
+TEST_CASE("robot one tables (T7): robot one's region names nothing of robot two's") {
+    // (ROB1-A's [R5] half — every robot-one line BELOW robot two's region, so robot two's packages kept their
+    // recorded line numbers — is RETIRED at ROB1-BT: robot two became robot one's twin and its packages change
+    // by design; robot one's region now comes first. test/robot_twin_test.cpp holds the two regions equal.)
     const std::string text = source_pins::readFile("src/robots/mechanism_table.hpp");
-    const std::size_t endTwo = text.find("// [/robot two mechanisms]");
-    REQUIRE(endTwo != std::string::npos);
-    const std::string above = text.substr(0, endTwo);
-    CHECK(above.find("robot_one") == std::string::npos);
-    CHECK(above.find("robot one") == std::string::npos);
-    CHECK(above.find("ROB1") == std::string::npos);
     // ...and robot one's region names nothing of robot two's (T7's before-twin half).
     const std::size_t a = text.find("// [robot one mechanisms]");
     const std::size_t b = text.find("// [/robot one mechanisms]");
     REQUIRE(a != std::string::npos);
     REQUIRE(b != std::string::npos);
-    REQUIRE(endTwo < a);
     const std::string one = source_pins::stripComments(text.substr(a, b - a));
     CHECK(one.find("robot_two") == std::string::npos);
     CHECK(one.find("kRobotTwo") == std::string::npos);

@@ -14,8 +14,8 @@ chassis::RoutineResult skillsSteps(competition::AutonContext& ctx) {
     // Step 2 — SET the claw to "open" (it takes the claw's move time).
     r.set(claw["open"]);
 
-    // Step 3 — RUN the clawPivot6 at 6 V for 0.3 s, then stop it.
-    r.run(clawPivot6, 6_volt, 0.3_s);
+    // Step 3 — RUN the leftToggle at 6 V for 0.3 s, then stop it.
+    r.run(leftToggle, 6_volt, 0.3_s);
 
     // Step 4 — CURVE through (0, -50) in, ending at (12, -36) in facing 90 deg (toward blue).
     r.curveTo({{0_in, -50_in}, {12_in, -36_in, 90_deg}});

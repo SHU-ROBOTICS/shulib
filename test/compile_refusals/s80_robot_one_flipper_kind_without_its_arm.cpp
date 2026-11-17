@@ -2,5 +2,5 @@
 // declares no Arm named "flipper" (the ROB1 brief's D6). run_refusal.py judges it.
 #include "robots/mechanism_table.hpp"
 namespace sb = shulib::bench;
-static_assert(sb::robotOneFlipperKindMatches(sb::robot_one_facts::FlipperKind::MotorArm, sb::robot_one::kRobotOneMechanisms));
-// expect: the_flippers_typed_kind_does_not_match_robot_ones_list
+static_assert(sb::flipperKindAgrees(sb::robot_one_facts::FlipperKind::MotorArm, sb::robot_one::kRobotOneMechanisms));
+// expect: the_flippers_typed_kind_does_not_match_its_robots_list

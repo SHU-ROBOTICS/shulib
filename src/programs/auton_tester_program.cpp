@@ -24,7 +24,7 @@
 // ═══ THE PACER CHAIN (the COMP brief's B7, plus the painter; the mechanism service since MECH-A5) ═══
 //     Chassis -> RunGuard -> MechanismService -> AbortWatch -> ScreenPacer -> the provider's ProsTickPacer
 // The guard checks its deadlines and its abandon latch first; the MECHANISM SERVICE ticks every
-// mechanism (an auton's claw step runs while the robot drives); the watch reads the abort inputs; the
+// mechanism (an auton's cascade step runs while the robot drives); the watch reads the abort inputs; the
 // painter paints; the tick pacer waits for the next 10 ms boundary. The service is constructed in the
 // chain BEFORE the Robot and BOUND after it, over the Robot's own built mechanisms (the MECH brief's
 // landmines 1 and 20). The BOOT PROVES the chain (pacerChainMissing, the brief's R13 --
@@ -454,12 +454,9 @@ void autonTesterInitialize(const char* variantBeacon, const char* competitionSta
     // ONE write() per line (SER1, HA-189); the first carries the blank line before it.
     hal::pros::serialLine("\n[%s] booted: shulib AUTON TESTER build [%s] -- runs ONE of the "
                           "team's autons", kTag, variantBeacon);
-    hal::pros::serialLine(ThisRobotWords::value.claw
-                              ? "[%s] (src/team/autons.cpp) through competition::runAuton, the "
-                                "competition"
-                              : "[%s] (src/team/robot_one_autons.cpp) through competition::runAuton, the "
-                                "competition",
-                          kTag);
+    // The robot's OWN autons file, from its words (ROB1-BT: the path is an argument, the format one literal).
+    hal::pros::serialLine("[%s] (%s) through competition::runAuton, the competition", kTag,
+                          ThisRobotWords::value.autonsFilePath);
     hal::pros::serialLine("[%s] program's call, when RUN is touched: a 3 s countdown, then the "
                           "run. ANY", kTag);
     hal::pros::serialLine("[%s] controller button or a touch of the screen aborts. NOT RUN ON A "

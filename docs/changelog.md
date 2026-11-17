@@ -16,6 +16,65 @@
 
 ## API 2.9
 
+### 2026-11-16 (built 2026-11-16) — robot two is robot one's twin; the calibration record names its robot; one skills route for both robots
+
+> Written when it was built (chunk ROB1, run BT — the brief's G1-B and G1-T together). **Added (no version
+> bump):** one optional fact and two functions in the calibration library — a layer no row of the
+> [Freeze Register](roadmap.md#freeze-register) freezes; a Calibrate that states no robot name writes exactly
+> what it always did, and the record's format is unchanged. **Host- and build-gated only: nothing has run on
+> either robot.**
+
+**Why:** the team lead, 2026-11-13: "robot 1 and robot 2 are the same build and just the auton routes are
+different". And two robots of one build, wired the same, pass each other's port check — so a card moved
+between them would boot the other robot's calibration.
+
+**ADDED (library, `calibration/`):**
+- **`CalibrateFacts::recordName`** (optional, last) — stated, Calibrate starts the record's provenance with
+  `robot=<name> `; when the card's record names another robot or none, the card line and the front check each
+  add one line saying so. A name that is not 1-24 lower-case letters, digits or `-` is a facts problem
+  (`FactsList::RecordName`).
+- **`calibration::isRecordName(name)`** and **`calibration::recordRobotName(provenance)`** (with
+  `kRecordNameKey`, `kRecordNameMax`) — the rule, and the name a record carries (empty for an older record).
+- **`calibration::kProvenanceKept`** (40) — the calibrator's cut of the provenance, named (it was a literal);
+  the record name sits within it.
+
+**BOTH ROBOTS (the team's files and the programs, not the library):**
+- **The boot refuses a record that names another robot, or none**, before the port check and with no fall-back
+  to the typed table: `the card's record is ANOTHER ROBOT'S` / `the card's record names NO ROBOT`, each with
+  "run shulib Calibrate (slot 4) on THIS robot". Each robot's Calibrate writes its own name (`robot-one`,
+  `robot-two`). [Guide chapter 19](guide/19-calibrating-your-robot.md#two-robots-one-card-each-the-record-names-its-robot).
+- **`src/team/skills_route.{hpp,cpp}`** — the team's skills route, written ONCE in robot one's numbers and
+  compiled into both robots: robot one registers it as written, robot two MIRRORED (one line). It is empty — the
+  route is the students'; the route maker writes only between its `BEGIN` and `END` lines.
+- Each driver file carries `[control words …]` and `[feel …]` markers around its header map and its feel.
+- The dropped-autons line and the Auton Tester's banner name the BUILD's robot's autons file (they chose it on
+  the claw words, so robot two's would have named robot one's file); on both robots a second line says the
+  shared skills route is fixed in `src/team/skills_route.cpp`.
+- **A mirror swaps the robot's SIDES, not its mechanisms:** robot one's right side toggle's job is robot two's
+  LEFT toggle in the mirrored route, so a side-toggle step picks the side with
+  `competition::isMirrored(ctx) ? leftToggle : rightToggle` ([cookbook chapter 9](cookbook/09-one-route-two-robots.md)).
+- The route preview hatches robot two's piston steps (their stroke times are owed in its facts file) and lists
+  every fact robot two still owes under PLACEHOLDER, as it does robot one's.
+- The route preview's stamp hashes the robot's autons file together with `src/team/skills_route.cpp`, so an edit to
+  the shared route shows in it; the route builder describes robot two's cascade levels from robot two's own facts.
+
+**ROBOT TWO — robot one's twin** ([guide chapter 21](guide/21-adding-your-robot-by-hand.md#robot-two-robot-ones-twin)):
+- `src/robots/robot_two_facts.hpp` (new): robot one's 35 facts, each placeholder robot one's value; every one
+  OWED but Calibrate's two thresholds (robot one's, typed for the same drive). Every robot-two build refuses, one line per owed fact its program needs
+  (`robot two: OWED -- … (src/robots/robot_two_facts.hpp)`), until they are typed.
+- Its mechanisms, driver file and autons list are robot one's (its region word for word; the builder's map);
+  its chassis table is robot one's design (the cartridge UNSET until read off robot two). `test/robot_twin_test.cpp`
+  fails the suite when the two robots differ anywhere else. Its claws (two pivots on ports 6 and 7, a pneumatic
+  claw on A) and its measured drive table are retired — the host suite keeps them as its example claw robot.
+
+**What you must do:** fill the [facts form](robot-facts-form.md) again for robot two; run shulib Calibrate once
+on each robot (a card written before today names no robot and is refused at boot). A button or an auton changed
+on one robot is changed on both.
+
+**The src build gate:** robot two's six builds join the facts proof (each refuses naming exactly its own owed
+facts; all twelve robot builds link in the gate's typed copy), and `self-test` runs in a copy of the tree with
+robot two's facts typed there — the repository is never planted.
+
 ### 2026-11-16 — the pair check refuses a tank step that drives AND turns around
 
 > Written when it was built (chunk MIRROR1, run B). **A stricter host check (no API change):** a mirrored tank
@@ -105,7 +164,7 @@ own blind two-push flip until this step has flipped a real Toggle.
   builds its calibrator with them; `factsProblem()` refuses, before anything is powered, a pulse floor that the drift
   of a still-looking robot could cross during a pulse.
 - Robot one's ledger types two chosen values (0.6 deg pulse floor, 1.0 deg/s rest rate) and its chassis table passes
-  them on. Every other robot keeps the defaults.
+  them on; robot two, its twin, types the same two. Every other robot keeps the defaults.
 
 **What you must do:** nothing, unless your drive has many motors per side and Calibrate stops with IT ROLLED —
 then lower `pulseYawFloor` (and `restYawRateFloor` with it) in your robot's facts.

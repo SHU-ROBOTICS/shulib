@@ -30,12 +30,12 @@
 // AFTER the service is bound (mechanism::DriverInputs' rule). Its default constructor touches no
 // hardware: the controller adapter reads nothing until it is read (hal/pros/controller.hpp).
 //
-// ── What the claws do (robot two), and what decides it ──────────────────────────────
+// ── What the mechanisms do, and what decides it ──────────────────────────────────────
 // The driver loop's service overload (teleop/teleop_loop.hpp) runs the controls through the ONE
 // mechanism service that also runs them in autons (mechanism/driver_inputs.hpp states every rule:
 // hold-to-run, a toggle's SEEN press, the most recent input wins). A disable stops every MOTOR
 // mechanism (its safe state) and leaves a pneumatic at its level; the program's FIRST driver entry
-// sends a pneumatic its START position — robot two's claw closes whatever an auton left it at — and a
+// sends a pneumatic its START position — a piston goes back to its start whatever an auton left — and a
 // later entry sends nothing (T4's ruling, kept). A leftover claim released at THIS entry is what a
 // program's claw row shows as ` FREED` (releasedLeftoverAtEntry()).
 //

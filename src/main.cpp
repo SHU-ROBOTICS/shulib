@@ -22,8 +22,8 @@
 //   build                              program              where it lives
 //   make                               "Bench Tests"        src/programs/bench_r3a.cpp (the bench bot)
 //   make ROBOT=tank                    "Bench Tests"        src/programs/bench_r3a.cpp over robot
-//                                                           two's signed table
-//                                                           (src/robots/chassis_table.hpp)
+//                                                           two's tables (robot one's twin since
+//                                                           ROB1-BT; src/robots/)
 //   make ROBOT=tank PROGRAM=drive      "shulib Drive"       src/programs/drive_program.cpp      (slot 1)
 //                                                           + src/team/robot_two_driver.hpp
 //                                                           + src/common/boot_source.{hpp,cpp}
@@ -53,7 +53,8 @@
 //
 // ═══ WHAT RUNS, AND WHAT HAS RUN (no claim beyond the logs) ════════════════════════════
 //   * NO LIBRARY-COMMANDED MOTION HAS RUN ON A ROBOT (R3b open). The OLD "shulib Drive" drove
-//     robot two open-loop on 2026-09-17 (the team lead's report; no log was captured), and a
+//     the OLD robot two (before ROB1-BT rebuilt it) open-loop on 2026-09-17 (the team lead's
+//     report; no log was captured), and a
 //     "shulib Teleop" (build v0.1.1-319-g2780462) drove it from the calibration record on
 //     2026-09-25 — eight starts, open-loop under driver control through the library's own graph.
 //     Both are gone since T4 Part 3: THIS "shulib Drive" (robot two's driver file on

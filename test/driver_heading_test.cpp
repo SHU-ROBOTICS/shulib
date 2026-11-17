@@ -17,6 +17,7 @@
 //
 // NO HARDWARE CLAIM: fakes only.
 
+#include "mechanism_fixtures.hpp"
 #include "doctest.h"
 
 #include <cmath>
@@ -84,7 +85,7 @@ struct NoPace final : shulib::motion::ITickPacer {
 /// Robot two built from `table` over the fake provider: every drive port, both pivots and the IMU
 /// in the census; the IMU ready (a fresh FakeImu is), nothing ticked yet.
 struct FakeRobotTwo {
-    explicit FakeRobotTwo(const shulib::bench::MechanismTable& table = shulib::bench::robot_two::kRobotTwoMechanisms) {
+    explicit FakeRobotTwo(const shulib::bench::MechanismTable& table = mech_fixture::robot_two::kRobotTwoMechanisms) {
         battery.setVoltage(shulib::units::Voltage{12.8});  // a fresh FakeBattery reads 0 V: a brownout
         shulib::bench::RecordRead record{};
         record.description = robotTwoRecord();

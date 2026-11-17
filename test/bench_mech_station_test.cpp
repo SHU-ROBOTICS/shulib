@@ -1773,7 +1773,7 @@ TEST_CASE("station 13's log (R-3): EVERY line is ONE serial write — 255 charac
     // 255 characters — went out as TWO serial writes, the second '... ' with no [R3A] tag, so the worksheet's
     // `grep '\[R3A\] mech'` dropped the very part that names the line to edit. The host's path to the real table
     // is LONGER than the brain's ./src/robots/mechanism_table.hpp, so the host is the harder case.
-    const mech::MechanismTable& real = shulib::bench::robot_two::kRobotTwoMechanisms;
+    const mech::MechanismTable& real = mech_fixture::robot_two::kRobotTwoMechanisms;  // the claw robot (ROB1-BT)
     std::size_t pieces = 0;
     std::size_t audited = 0;
     const auto audit = [&](Bench& b) {

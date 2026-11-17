@@ -121,14 +121,16 @@ mental model, which matters more:
   [Hardware Assumptions Register](../hardware-assumptions.md) (HA-94 onward).
 - **`src/`** — the programs that run on a real V5 brain, one folder per job: **`src/robots/`** is
   what each robot IS (its ports, motor directions and mechanisms), **`src/team/`** is the team's
-  own code — where students edit: robot two's driver file, `src/team/robot_two_driver.hpp` (which
-  button does what and the driving feel, in one file; "shulib Drive" runs it on its own, and the
-  competition program's driver control runs it, [Chapter 17](17-the-competition-program.md)), and
-  the team's autons,
-  `src/team/autons.cpp` (every autonomous routine the robot can run, listed by `registerAutons()` —
-  the one file the host suite also compiles, and runs every auton in; the auton tester runs them on
+  own code — where students edit: each robot's driver file, `src/team/robot_one_driver.hpp` and
+  `src/team/robot_two_driver.hpp` (which button does what and the driving feel, in one file; "shulib
+  Drive" runs it on its own, and the competition program's driver control runs it,
+  [Chapter 17](17-the-competition-program.md)), each robot's autons file,
+  `src/team/robot_one_autons.cpp` and `src/team/autons.cpp` (every autonomous routine that robot can run,
+  listed by its register function), and the skills route both robots share, `src/team/skills_route.cpp`
+  (written once in robot one's numbers — the route maker writes it — and run MIRRORED by robot two).
+  The host suite compiles those three files and runs every auton in them; the auton tester runs them on
   the bench, [Chapter 16](16-testing-an-auton-on-the-bench.md), and the competition program in a
-  match, [Chapter 17](17-the-competition-program.md)) —
+  match, [Chapter 17](17-the-competition-program.md) —
   **`src/programs/`** holds one program each, and **`src/common/`** what the programs share.
   Every include of one of these files is written from `src/` —
   `#include "robots/chassis_table.hpp"` — the same in every folder. `src/build_selection.hpp` is
@@ -136,34 +138,36 @@ mental model, which matters more:
   there and nowhere else, by one chain that picks the program and the robot's tables together.
   `src/main.cpp` is the PROS entry point, and all it does is hand each PROS entry point to that
   program. "shulib Drive" (`src/programs/drive_program.cpp`) is the worked example of building a
-  whole robot — `robot::Robot` from a config over the real adapters, then robot two's driver file
+  whole robot — `robot::Robot` from a config over the real adapters, then the robot's driver file
   bound to it — and
   `src/robots/xdrive_config.hpp` shows a robot typed by hand as a `constexpr RobotConfig` (the
   invented X-drive, built the same way by `src/programs/xdrive_program.cpp`). The other programs are
-  the bench tester ("Bench Tests"), "shulib Calibrate" (the library's standard Calibrate, with robot
-  two's facts derived from its tables in `src/robots/calibrate_facts.hpp` — a team's own is one file,
+  the bench tester ("Bench Tests"), "shulib Calibrate" (the library's standard Calibrate, with the
+  robot's facts derived from its tables in `src/robots/calibrate_facts.hpp` — a team's own is one file,
   [chapter 19](19-calibrating-your-robot.md)), "shulib Auton Tester"
   (`src/programs/auton_tester_program.cpp`, `make ROBOT=tank PROGRAM=autontest`), "shulib
   Competition" (`src/programs/competition_program.cpp`, `make ROBOT=tank PROGRAM=competition`) and
   "shulib Tune" (`src/programs/tune_program.cpp`, `make ROBOT=tank PROGRAM=tune` — any robot with
   mechanisms; slot 7 — live tuning of the mechanisms on the brain screen,
   [Chapter 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen)) —
-  robot two's builds; robot one, the cascade robot, takes the same six with `make ROBOT=one` and
-  `make ROBOT=one PROGRAM=…`, each REFUSING, by name, every still-owed fact of its facts file that its
-  program needs ([chapter 21](21-adding-your-robot-by-hand.md), and the
+  robot two's builds (robot two is robot one's twin, the same cascade robot); robot one takes the same
+  six with `make ROBOT=one` and `make ROBOT=one PROGRAM=…` — each robot's builds REFUSING, by name, every
+  still-owed fact of its own facts file that its program needs ([chapter 21](21-adding-your-robot-by-hand.md), and the
   [robot facts form](../robot-facts-form.md));
   `src/common/` holds what those programs share — the boot source, the competition-state screens, the
   painters, every driver file's plumbing (`src/common/driver_file.hpp`), and the driver-control
   screen's words (`src/common/driver_panel.hpp`: the drive protections' row, the controller's lines,
-  and the mechanisms' boot lines and the claw row, whose buttons are the driver file's); and the
-  per-robot tables in `src/robots/` carry every robot's ports, and robot two's claws, declared in the
-  mechanism core's words (`src/robots/mechanism_table.hpp`). (Wiring a robot by hand, object by
+  and the mechanisms' boot lines and the mechanism row, whose buttons are the driver file's); and the
+  per-robot tables in `src/robots/` carry every robot's ports, and each robot's mechanisms — the
+  cascade, the side toggles and the pistons, the same on both robots — declared in the mechanism core's
+  words (`src/robots/mechanism_table.hpp`). (Wiring a robot by hand, object by
   object, is still possible — the test suite's standalone case does it — but no program here does
   any more.) Which robot a build targets is
   chosen at `make` time: the X-drive build's port map is an
-  explicitly labelled guess (no such robot exists yet), while the tank builds use port tables
-  measured on the old bench robot and on robot two — and robot two's graph is built from the calibration record the
-  robot writes to its own SD card.
+  explicitly labelled guess (no such robot exists yet), the bench build's table was measured on the old
+  bench robot, and the two cascade robots' tables type nothing but the drive cartridge — each robot's
+  graph is built from the calibration record shulib Calibrate writes to its own SD card, a record that
+  names its robot ([chapter 19](19-calibrating-your-robot.md)).
 - **`test/pros_shim/`** — a hand-written, programmable stand-in for the PROS SDK, used only by
   the host test build so the adapters can be compiled and *run* on your laptop. It is
   structurally unable to reach a robot build (its headers refuse to compile outside the test
@@ -188,8 +192,9 @@ themselves (the [FAQ](../faq.md) unpacks that sentence). A few bench sessions ha
 those beliefs against real devices. What has run on a robot, and what has not, is listed in
 [What it cannot do yet](14-what-it-cannot-do-yet.md#it-has-never-driven-a-robot-under-its-own-control).
 
-Only the X-drive build's port map is a labelled guess; the tank builds use measured port tables
-(robot two's is owed a re-measure since its drivetrain was rebuilt). A wrong **motor** port does refuse loudly at boot — `ProsMotor` configures the device and reads
+Only the X-drive build's port map is a labelled guess; the bench build's table was measured, and the two
+cascade robots' drives are discovered by shulib Calibrate (their tables type only the cartridge). A wrong
+**motor** port does refuse loudly at boot — `ProsMotor` configures the device and reads
 the configuration back — but do not generalise that to every device: the sensor adapters screen
 bad reads and hold their last good value rather than refusing, so a mis-mapped sensor degrades
 quietly instead of stopping you.

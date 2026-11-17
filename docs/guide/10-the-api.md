@@ -218,10 +218,10 @@ the curve, the mode: arcade, tank sticks, or field-centric with its fallback), s
 to the chassis's speed budgets, calls `drive(…, Frame::Body)`, lets your code paint a panel, and
 waits for the next tick. The things it cannot know — how long a tick is, whether the robot is
 disabled, what the heading is and whether to trust it — are arguments you hand it, which is also
-what lets the test suite run the whole loop on the host test plant. Robot two's
-driver file (`src/team/robot_two_driver.hpp` — the [cookbook](../cookbook/06-driver-control.md)
-quotes it whole) drives through it — the sticks, the feel, and robot two's claws on the buttons
-below, all stated in that one file — and two programs run that file: "shulib Drive"
+what lets the test suite run the whole loop on the host test plant. Each robot's driver file
+(`src/team/robot_one_driver.hpp`, and its twin `src/team/robot_two_driver.hpp` — the
+[cookbook](../cookbook/06-driver-control.md) quotes it whole) drives through it — the sticks, the feel,
+and the robot's mechanisms on the buttons below, all stated in that one file — and two programs run that file: "shulib Drive"
 (`src/programs/drive_program.cpp`) on its own, and the competition program's driver control
 ([Chapter 17](17-the-competition-program.md)). Neither has run on a robot yet, so the loop is
 host-tested only, and no driver has felt it.
@@ -711,9 +711,10 @@ explicit call's.
 > (MECH-A4, 2026-10-29) everything that calls the service exists: the auton STEPS
 > (`r.move(arm["score"], 1.5_s)`), the driver CONTROLS, the ROUTE BINDER that runs a marker's id, and
 > the direction check's judgement ([below](#in-an-auton-on-the-buttons-on-a-route)). Since its fifth
-> (MECH-A5, 2026-10-29) robot two's programs run on it: each binds one service over robot two's
-> declared claws, prints the per-role boot lines below, and publishes the claws' route ids; robot two's
-> driver file states its buttons as the core's controls.
+> (MECH-A5, 2026-10-29) the robots' programs run on it: each binds one service over the robot's declared
+> mechanisms (robot two's claws then; since 2026-11-16 both robots' cascade, side toggles and pistons),
+> prints the per-role boot lines below, and publishes their route ids; each driver file states its
+> buttons as the core's controls.
 >
 > **The banner at the top of this chapter does not cover this section**, as it does not cover the
 > driver loop: the mechanism words, the service, the driver controls, the route binder and the
@@ -837,8 +838,8 @@ exactly the step an auton's line runs.
 
 The robot builds every ROLE a mechanism declares through its device provider (the provider is the
 kind check: a port holding the wrong device is refused, naming what it found), and
-`mechanism::roleLine()` words one boot line per role (`guide-10h`). Robot two's programs build their
-claws this way (the Robot does it for them) and print these lines at boot, tag `MECH`, since the
+`mechanism::roleLine()` words one boot line per role (`guide-10h`). The robots' programs build their
+mechanisms this way (the Robot does it for them) and print these lines at boot, tag `MECH`, since the
 core's fifth part:
 
 ```text
@@ -858,7 +859,7 @@ whose read fails is answered with its last good value, and a distance sensor hel
 is, byte for byte, the "no object" reading — only the count tells them apart. The count is there so
 the core's service never takes a held value for evidence: since its second part the service reads a
 PIECE sensor's count, and since its third a HOME switch's (a read that failed is never a home) — and
-since its fifth, robot two's programs build the service (robot two declares no sensor yet).
+since its fifth, the robots' programs build the service (neither robot declares a sensor yet).
 
 At run time `config::RobotConfig::valid()` owns every port collision — now including each
 mechanism's sensor ports and switch lines — against the drivetrain the boot actually chose, so a

@@ -62,7 +62,7 @@ not here.
 |---|---|
 | [Drive a mechanism from two buttons](06-driver-control.md#drive-a-mechanism-from-two-buttons) | A claw, arm or intake moves while a button is held and stops when the driver lets go |
 | [Open and close a pneumatic claw with one button](06-driver-control.md#open-and-close-a-pneumatic-claw-with-one-button) | A claw on air opens on one press and closes on the next |
-| [A whole driver file: robot two's](06-driver-control.md#a-whole-driver-file-robot-twos) | You want one robot's buttons, feel and loop in one file a student can defend |
+| [A whole driver file: robot one's (and its twin's)](06-driver-control.md#a-whole-driver-file-robot-ones-and-its-twins) | You want one robot's buttons, feel and loop in one file a student can defend |
 
 ## [Mechanisms in a route](07-mechanisms.md)
 

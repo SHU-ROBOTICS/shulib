@@ -180,6 +180,11 @@ inline constexpr double kReproScaleTolerance = 0.02;
 /// thing the host plant does not model. PROVISIONAL (A4: HA-136).
 inline constexpr double kReproWidthTolerance = 0.03;
 
+/// How many characters of the provenance it is HANDED the calibrator keeps before its own
+/// ` | ROBOT-MEASURED: …` summary (the record's 96-byte field holds both). A program that names its robot
+/// there (calibrate_program.hpp's record name, chunk ROB1-BT) must fit the name inside it.
+inline constexpr int kProvenanceKept = 40;
+
 /// The most pulse levels a ramp may have. Four: the default ramp uses three, and a fourth leaves
 /// room to try one more without an array growing.
 inline constexpr std::size_t kMaxPulseLevels = 4;
@@ -1390,7 +1395,7 @@ private:
         fillSide(result_.right, rightIdx_, rightN_, rightIpr_);
         result_.trackWidth = units::Length{width_};
         std::snprintf(result_.provenance, sizeof result_.provenance,
-                      "%.40s | ROBOT-MEASURED: %u ports, push %.0f in, W %.3f in",
+                      "%.*s | ROBOT-MEASURED: %u ports, push %.0f in, W %.3f in", kProvenanceKept,
                       facts_.provenance != nullptr ? facts_.provenance : "",
                       static_cast<unsigned>(leftN_ + rightN_), report_.pushDistanceIn, width_);
         char why[128];

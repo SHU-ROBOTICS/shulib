@@ -45,7 +45,8 @@ The headline limitation, stated as many times as it takes:
   unit-scale beliefs on the drivetrain set (2026-08-13, one robot, once), the IMU's heading
   direction (HA-02, confirmed 2026-08-19) and part of the SD card's behaviour (HA-122,
   2026-08-18). The other heading and sign conventions remain open; only the X-drive build's
-  port map is a labelled guess (the tank builds use port tables measured on those robots) —
+  port map is a labelled guess (the bench build's table was measured; the two cascade robots' drives
+  are discovered by shulib Calibrate) —
   and **of the mechanism-sensor adapters only the SD-card writer has touched a physical
   device**: distance, optical and the digital lines have not, and their beliefs (HA-113
   onward, including two the vendored SDK sources do not state) wait on the extended bench
@@ -243,8 +244,9 @@ The mechanism seam that used to be a placeholder here is now real code
   jam ([Chapter 18](18-mechanisms.md)); an auton runs a mechanism on ONE line (`r.move(arm["score"],
   1.5_s)`), a driver file's controls put presets on buttons, a route's markers run every mechanism's
   ids, and the direction check judges a jog. Proven only on the host test plant's invented models, with
-  invented starting gains; robot two's programs run on the service since its fifth part (2026-10-29),
-  its claws as declarations — never on a robot — and the bench page that runs the direction check,
+  invented starting gains; the robots' programs run on the service since its fifth part (2026-10-29) —
+  robot two's claws then, both robots' cascade, side toggles and pistons since 2026-11-16 — never on a
+  robot — and the bench page that runs the direction check,
   Bench Tests' station 13, since its sixth and last (built 2026-10-30; its logic host-tested, the page
   itself never run on a robot).
 - **Deliberately absent:** any concrete mechanism. There is no `shulib::Intake` and never
@@ -639,9 +641,9 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   modes, and a `DriveShaper` that composes them in one call per tick — all host-tested,
   including a test that pins a stick step reaching the commanded motor volts in the same tick.
   Two things are still missing, and the second is the one that matters. **First**, nothing that
-  uses it has run on a robot: robot two's driver file (`src/team/robot_two_driver.hpp`) drives
-  through `teleop::runDriverControl` with the default profile, and "shulib Drive"
-  (`src/programs/drive_program.cpp`) runs that file — a program that has not run on a robot yet. The
+  uses it has run on a robot: each robot's driver file (`src/team/robot_one_driver.hpp`,
+  `src/team/robot_two_driver.hpp`) drives through `teleop::runDriverControl` with the default profile,
+  and "shulib Drive" (`src/programs/drive_program.cpp`) runs it — a program that has not run on a robot yet. The
   bench tester's drive station keeps the older raw mapping (`teleop/stick_mapping.hpp`) — raw volts,
   the baseline a driver can compare the library's feel against, wheels up; nobody has yet. The old
   "shulib Drive"'s protections are no longer that program's alone: since T4 Part 2 the loop drops a
@@ -649,7 +651,7 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   for 1 s on a fight or an over-current ([Chapter 10](10-the-api.md)) — host-tested only, every
   number invented (HA-132, HA-175, HA-176), and no push, full-stick reversal or launch has ever been
   measured against the 2.4 A limit. One case it gets wrong is known: at a wall beside a drive motor
-  whose gear slips (robot two's port 18), live motors can be marked dead, and a second push can then
+  whose gear slips (the old robot two's port 18, retired in the code 2026-11-16), live motors can be marked dead, and a second push can then
   stop the drive; at any other wall, a motor whose reported speed settles well before its mates'
   costs one 1 s cut instead (HA-175's known gaps; [Chapter 12](12-when-things-go-wrong.md)).
   **Second, no driver has felt any of it.** Every default in the feel layer is invented and registered as a guess
@@ -660,17 +662,17 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   state; `teleop::ToggleBinding`: press a button to open a pneumatic claw, press again to close it
   — [Chapter 10](10-the-api.md)), and robot two's driver file gave robot two's claws to the
   driver with them (the claws since T3's second part, in the driver file since T4, until the
-  mechanism core's fifth part moved them onto the core's controls — below; "shulib Drive" runs
-  that file): R1/R2 move the claw pivot on port 6, L1/L2 the one on port 7
-  (full power while held, holding on release), A opens and closes the pneumatic claw, and the
-  field-centric re-zero moved to Y. **None of it has run on a robot**: no claw has moved, whether a
-  released pivot really holds its load, which way each one turns and which line level opens the
-  claw are all unmeasured, and no driver has used a claw button. Since the mechanism core's fourth
+  mechanism core's fifth part moved them onto the core's controls — below): R1/R2 moved the claw
+  pivot on port 6, L1/L2 the one on port 7, A the pneumatic claw, and the field-centric re-zero moved
+  to Y. Robot two was rebuilt as robot one's twin in November 2026: its claws are retired, and both
+  robots' driver files hold the builder's cascade map
+  ([Chapter 21](21-adding-your-robot-by-hand.md#robot-two-robot-ones-twin)). **None of it has run on a
+  robot**: no mechanism has moved under these files, which way each motor turns and which line level
+  opens each piston are unmeasured, and no driver has used a mechanism button. Since the mechanism core's fourth
   part (2026-10-29) a robot's DECLARED mechanisms have their own driver controls — `whileHeld`,
   `toggle`, `preset` (an arm to its "score" on one button), the homing controls, "the most recent input
   wins" ([Chapter 18](18-mechanisms.md#on-the-drivers-buttons--the-driver-files-controls)) — host-tested
-  only; robot two's driver file runs its claws on them since the core's fifth part (2026-10-29),
-  behaving exactly as before. Driver MACROS (a
+  only; both robots' driver files run on them. Driver MACROS (a
   button that runs a chassis motion the sticks can interrupt) are still future work (phase T on the
   roadmap).
   *(This bullet used to say joystick shaping and slew limits did not exist at all; that went

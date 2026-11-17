@@ -46,8 +46,9 @@ BootOutcome decideBootSource(const char* tag) {
     char missing[160] = "";
     (void)describeMissingForDescription(kChassis, missing, sizeof missing);
 
-    // kMechanisms (src/robots/mechanism_table.hpp, through boot_source.hpp): robot two's claws in the
-    // ROBOT=tank builds, robot one's cascade in ROBOT=one's, none elsewhere — into the config here (T3 Part 2).
+    // kMechanisms (src/robots/mechanism_table.hpp, through boot_source.hpp): each robot's cascade in its
+    // builds (robot two's in ROBOT=tank's — its claws until ROB1-BT — robot one's in ROBOT=one's), none
+    // elsewhere — into the config here (T3 Part 2).
     BootOutcome out = decideBootSourceFrom(
         record, registry, fromTable, missing, kMechanisms, kChassis.robot,
         [tag](const char* line) { hal::pros::serialWrapped(tag, line); });

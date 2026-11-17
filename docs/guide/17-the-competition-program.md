@@ -15,7 +15,9 @@
 ## What it is
 
 The competition program is the one you upload for a match. Build and upload it like the other
-robot-two programs:
+programs — robot two's build below; robot one's is `make ROBOT=one PROGRAM=competition`, the same slot
+(each refuses, naming every owed fact, until its robot's facts are typed —
+[Chapter 21](21-adding-your-robot-by-hand.md)):
 
 ```sh
 rm -rf bin .d && make ROBOT=tank PROGRAM=competition
@@ -32,20 +34,22 @@ match you choose an auton on the brain's screen (**NONE**, the default, runs not
 starts the autonomous period, the chosen auton runs on the program's **own task** through
 `competition::runAuton` — the same call the Auton Tester makes from its RUN — under a run guard
 with a guaranteed end action; a **disable**, or the end of the autonomous period, ends it at once;
-then driver control runs the team's driver file, `src/team/robot_two_driver.hpp`
-([cookbook chapter 6](../cookbook/06-driver-control.md)).
+then driver control runs the robot's driver file — `src/team/robot_one_driver.hpp` or
+`src/team/robot_two_driver.hpp`, one map on both robots ([cookbook chapter 6](../cookbook/06-driver-control.md)).
 
 ## Registering an auton
 
-The competition program has no autons of its own. It calls the same `registerAutons()` the tester
-calls, from the team's file `src/team/autons.cpp` — [Chapter 16](16-testing-an-auton-on-the-bench.md)
-walks through that file, and everything it says about an entry holds here unchanged. The three
-lines that decide when and where an auton starts and stops, quoted from the file:
+The competition program has no autons of its own. It registers the same autons the tester does — the
+build's robot's list: robot two's `src/team/autons.cpp` (`registerAutons()`), robot one's
+`src/team/robot_one_autons.cpp` — [Chapter 16](16-testing-an-auton-on-the-bench.md) walks through
+them, and everything it says about an entry holds here unchanged. The three lines that decide when and
+where an auton starts and stops, quoted from robot two's file (a SKILLS auton — the only competition on
+November 21 is skills, a 60 s run):
 
 ```cpp
     forty.start = competition::StartPose::relative(); // where we place it is (0, 0), facing 0
-    forty.endActionAt = 27_s;  // still running at 27 s? it is stopped, and the end action starts
-    forty.hardStopAt = 29_s;   // everything stops: 2 s after 27 s, 1 s before the field's 30 s
+    forty.endActionAt = 57_s;  // still running at 57 s? it is stopped, and the end action starts
+    forty.hardStopAt = 59_s;   // everything stops: 2 s after 57 s, 1 s before the run's 60 s
 ```
 
 ### The two start modes
@@ -92,7 +96,8 @@ the tester) build their registry so that `registry.add()` of such an entry **dro
 nothing else**: it is never on the menu, the menu names it in red while you choose (`REFUSED auton
 'left side late': ...`), the boot logs its whole sentence (`DROPPED: auton 'left side late': ...`),
 and every other auton and driver control still run — an auton bug must not cost the match's driver
-period (the team lead's ruling, 2026-10-02). Fix the entry in `src/team/autons.cpp` and upload again.
+period (the team lead's ruling, 2026-10-02). Fix the entry in the robot's autons file and upload again
+— or, for the skills route both robots share, in `src/team/skills_route.cpp`.
 A registry built without asking for that (`competition::AutonRegistry registry{periods};`) still
 throws the sentence at the `add()`. Leave a margin inside the period: a hard stop exactly on the
 field's 30 s never gets a tick to act.
@@ -273,7 +278,14 @@ measured).
 The Loaders (they are only on the red and blue walls — robot two's mirrored spot has none), the red/left
 corner's Load Zone (its image is the blue one), and **the robot itself**: a part mounted off the robot's
 centre line meets the field on the other side of the reflected path (A4: HA-259), and each robot's own
-left/right drive differences are its own (HA-260). Nothing here has run on a robot.
+left/right drive differences are its own (HA-260). The mirror swaps the robot's SIDES, not its mechanisms:
+a step on robot one's right side toggle runs robot two's RIGHT toggle, which faces the other way on the
+reflected path. So the shared route picks the side for the cascade robots' toggle pair —
+`competition::isMirrored(ctx) ? leftToggle : rightToggle` — and the host suite proves that line reaches
+robot one's right toggle and robot two's left one. Nothing here has run on a robot.
+
+![The real Override field from above, red station at the bottom, the skills diagonal y = -x drawn. Robot one drives an example leg up the left side and reaches a target with its RIGHT side toggle; robot two runs the same function mirrored across the diagonal and meets the mirrored target on its LEFT side](../assets/twin-mirror.png)
+
 
 ## The selector
 
@@ -321,14 +333,14 @@ PROS's task:
   autonomous; when the auton task had to wait for the loop, the run's lines say so.
 
 **What ends an auton early.** Between the run guard and the brain's 10 ms tick sit the robot's
-**mechanism service** — one object that ticks every claw's step once per tick, since the mechanism
+**mechanism service** — one object that ticks every mechanism's step once per tick, since the mechanism
 core's fifth part ([Chapter 18](18-mechanisms.md)) — and, below it, the program's **watch**. Every tick it reads the competition status; the moment VEXos reports the robot
 **disabled**, or the status leaves **autonomous** (the period ended, or the match moved straight to
 driver control), it asks the run guard to **abandon** the run. The guard cuts the motion before the
 world advances again — at most **one more commanded 10 ms tick** after the watch saw the change —
 and in the same tick cancels every mechanism operation still running that registered its claim (as
 the library's own do, since the mechanism core's second part), skips the end action (a disabled robot's motors are off; the brake cannot run), puts the drive at
-0 V under Brake and every present claw and pivot in its safe state, and lets the routine unwind on
+0 V under Brake and every present mechanism in its safe state, and lets the routine unwind on
 the auton task's own stack. Nothing is left dangling. A driver's bumped button does **not** end an
 auton here (that is the tester's abort, never the match's).
 
@@ -366,15 +378,16 @@ lines — the build, how it booted, and the SD run log:
 
 ```text
 boot: shulib COMPETITION [shulib-robot-variant=tank-competition] hash ...
-boot source RECORD, 2 autons, 3 of 3 mechanisms present; autons ALLOWED
+boot source RECORD, 3 autons, 6 of 6 mechanisms present; autons ALLOWED
 SD run log ON, APPENDED to /usd/shulib_auton_runs.txt
 ```
 
 then one line per mechanism the robot could not build (`mechanism '...' is ABSENT -- the run guard
 cannot safe it: ...`), the autons the registry dropped (`N auton(s) REFUSED at registration and
-DROPPED -- the dropped ones are NOT on the menu (each named below); every other auton and driver
-control still run -- ...`, then `DROPPED: auton '...': ...` for each — past eight, the line says `(the
-first 8 named below)` and a last line counts the rest), where the log copy is (`log
+DROPPED -- NOT on the menu (each named below); every other auton and driver control still run -- fix
+src/team/autons.cpp` — robot one's names `src/team/robot_one_autons.cpp` — then `(the skills route
+both robots share is fixed in src/team/skills_route.cpp)`, then `DROPPED: auton '...': ...` for each —
+past eight, the line says `(the first 8 named below)` and a last line counts the rest), where the log copy is (`log
 copy: /usd/comp_log.txt (APPENDED, kept across boots) -- ...`, or that it did not open and why: `NO
 SD CARD`, or a card that is in and would not take the file), the mechanisms' lines — tag `MECH`, in
 the words "shulib Drive" and the tester print too: for each mechanism what the robot file declares it
@@ -382,16 +395,23 @@ to be, where each part is plugged in and whether the brain found it, what the dr
 does with it, and anything it lacks — and one line for the route ids the autons' markers can fire:
 
 ```text
-claw pivot 6: POWER -- RED, motor 1 forward; let go: HOLD
-claw pivot 6: motor 1 -> port 6 ok
-claw pivot 6: hold-to-run R1 / R2, 12 V
-'claw pivot 6': no stall signature -- held against its stop it is cut only by the driver letting go (HA-154)
+cascade: LIFT -- BLUE, motor 1 forward, motor 2 reversed; made safe: HOLD
+cascade: motor 1 -> port 10 ok
+cascade: motor 2 -> port 1 ok
+cascade: hold-to-run R1 / R2, 12 V
+cascade: homed when driver control starts, if nothing has homed it (3.00 s)
+cascade: NOT HOMED -- a hold moves it at most 4.0 V with no soft stops; a preset or a move ends NOT_HOMED until it is homed (homeAtDriverStart, homeOnPress, or an auton's r.home)
+right toggle: hold-to-run L1 (one way), 12 V
 claw: toggle on A ('closed' / 'open')
-ROUTES: 6 mechanism route ids published (claw_pivot_6_run .. claw_open); 26 of the registry's 32 left for the team's own
+flipper: toggle on B ('closed' / 'open')
+ramp: toggle on X ('up' / 'down')
+ROUTES: 11 mechanism route ids published (cascade_home .. ramp_down); 21 of the registry's 32 left for the team's own
 ```
 
-(pivot 7's four lines and the claw's first two between them; [Chapter 16](16-testing-an-auton-on-the-bench.md#the-claws-in-an-auton)
-shows the claw's. The buttons are the driver file's, whichever program binds them.)
+(Robot two's, printed by the same functions on the host over its real declarations and driver file — on
+its facts file's placeholders, robot one's numbers; robot one's read the same. Each mechanism's other
+lines are the tester's, [Chapter 16](16-testing-an-auton-on-the-bench.md#what-the-boot-says-about-them).
+The buttons are the driver file's, whichever program binds them.)
 
 **Every phase function** logs one line when it starts and one when it returns normally, with the
 brain's clock in milliseconds and the competition status in words:
@@ -445,7 +465,7 @@ page's auton row when driver control follows.
 **The driver page** (driver control): the program's name and build time, then five rows — the
 **drive protections** first (what explains a drive that stopped), the last auton's word (or why autons
 are refused), the controller (`controller: CONNECTED`, or red `NO CONTROLLER -- the drive gets 0 V`),
-the faults, and the claws. The protections row (the library's protections run under the driver file in
+the faults, and the mechanisms (the row begins `MECH`). The protections row (the library's protections run under the driver file in
 every program — [Chapter 12](12-when-things-go-wrong.md) says what each does):
 
 | Row | Means |
@@ -458,7 +478,7 @@ every program — [Chapter 12](12-when-things-go-wrong.md) says what each does):
 
 The controller shows the same three lines "shulib Drive" shows: `LIB 12V B12.9V`, then the dead drive
 ports (`dead 18 13`) or else the heading, then the most urgent word — `AUTON ENDING`, `REFUSED see
-brain`, `CUT see brain`, the last fault, `no controller 0V`, `DEGRADED see brain`, `CLAW ABSENT`, or
+brain`, `CUT see brain`, the last fault, `no controller 0V`, `DEGRADED see brain`, `MECH ABSENT` (a mechanism not built), or
 `ok`, the first that holds. Both programs write those lines **one at a time**, at most one every
 0.1 s, the word line first — PROS's own documentation says faster controller text updates are not
 applied — so a full refresh takes up to 0.3 s. When driver control ends on a disable, the screen goes
@@ -521,10 +541,11 @@ register's HA-190 has the reasoning; the fix would be PROS's.)
 There are three refusals, and each says why on the screen and on serial.
 
 - **A refused boot.** When the robot cannot be described — no calibration record and no usable typed
-  table, the graph refused to build, the driver's controls do not fit the robot, or the boot's
+  table, the card's record names another robot or none ([chapter 19](19-calibrating-your-robot.md)),
+  the graph refused to build, the driver's controls do not fit the robot, or the boot's
   **tick-chain proof** failed (one idle tick must reach the run guard, the mechanism service and the
   watch, and the watch must be attached to the guard; otherwise no disable could end an auton, or no
-  claw step would ever end — the refusal names which link is missing) — the program paints the red refusal screen, powers nothing and starts **no auton task**.
+  mechanism step would ever end — the refusal names which link is missing) — the program paints the red refusal screen, powers nothing and starts **no auton task**.
   Nothing paints over the refusal afterwards; each phase still logs its two lines, and
   `autonomous()` logs `the boot was REFUSED: no auton runs`. With no auton task there is no
   `competition status … at <ms>` line at all: serial carries only the four phase functions' entry and
@@ -535,7 +556,7 @@ There are three refusals, and each says why on the screen and on serial.
   why instead of the menu, and an `autonomous()` runs nothing — but **driver control still runs**.
 - **After a program error.** If anything throws while an auton is being served — a broken auton, a
   failed precondition, a log that throws — the auton task catches it, puts the drive at 0 V under
-  Brake and every present claw and pivot in its safe state (each step on its own), logs one
+  Brake and every present mechanism in its safe state (each step on its own), logs one
   `PROGRAM ERROR` line in the throw's own words, and publishes the terminal word anyway. **Driver
   control still runs.** Every later auton on this boot is **refused** — the program's state is
   unproven after an unknown throw — until the program is restarted. The same refusal follows a throw
@@ -572,9 +593,10 @@ controller off, wait ten seconds, and see the brain's menu return before startin
   worksheet's practice-match station's **push check** measures, and it is **required before this
   program drives a match**.
 - **Route autons fire only the mechanisms' ids.** An auton written as a route (the path editor's
-  kind) runs, and its markers can fire robot two's six mechanism route ids, as in the tester
-  ([chapter 16](16-testing-an-auton-on-the-bench.md#the-claws-in-an-auton) shows one, the claws
-  auton as a route; the host suite runs it through this program's own request path too); a marker
+  kind) runs, and its markers can fire the robot's eleven mechanism route ids, as in the tester
+  ([chapter 16](16-testing-an-auton-on-the-bench.md#the-claws-in-an-auton) shows one on the host
+  suite's example robot with claws; the host suite runs it through this program's own request path
+  too); a marker
   naming any other id is counted unknown and runs nothing — the team's own commands have no place to
   be registered yet. The team's file holds no route auton today.
 - **The auton pick under a Timed Run** waits on the measurement above: if the Timed Run gives no

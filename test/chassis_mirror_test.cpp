@@ -118,7 +118,7 @@ struct Bot {
     Bot(const shulib::kinematics::IKinematics& kin, const Pose2d& start)
         : rig{kin, config(start), &sink, &weak}, chassis{rig.deps, guard, motion_rig::chassisConfig()} {
         world.b = this;
-        svc.bind(shulib::bench::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
+        svc.bind(mech_fixture::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
         for (int i = 0; i < 20; ++i) {
             chassis.wait(Time{0.01});  // the estimate live, nothing commanded
         }
@@ -165,7 +165,7 @@ bool driveBothFrames(Chassis& c) {
 /// brief's landmine 13), with a STEP1-B trigger of each kind on both observer overloads, a pose read
 /// back, a setPose, and drive() in both frames. Robot one's numbers.
 RoutineResult tankRoute(Ctx& ctx, std::vector<Pose2d>& seen) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;  // the claw robot (the old robot two, a fixture since ROB1-BT)
     using shulib::chassis::carryOn;
     Routine r{ctx, "mirror T2 tank"};
     r.atPercent(50).startRun(clawPivot6, shulib::units::Voltage{6.0}, 0.3_s).driveTo(-12_in, -58_in);
@@ -203,7 +203,7 @@ RoutineResult tankRoute(Ctx& ctx, std::vector<Pose2d>& seen) {
 /// -45 is its own reflection and a mutant that skips reflecting a curve's headings (MM7) is invisible
 /// there (the review pass's re-run found MM7 red on the tank route only).
 RoutineResult xdriveRoute(Ctx& ctx, std::vector<Pose2d>& seen) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;  // the claw robot (the old robot two, a fixture since ROB1-BT)
     Routine r{ctx, "mirror T2 xdrive"};
     r.atPercent(40).startRun(clawPivot6, shulib::units::Voltage{6.0}, 0.3_s).moveTo(Pose2d{-20_in, -50_in, 30_deg});
     r.strafeTo(-20_in, -38_in);

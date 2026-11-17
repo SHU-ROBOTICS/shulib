@@ -9,9 +9,9 @@
 //     Chassis -> RunGuard -> MechanismService (REAL) -> AbortWatch (REAL) -> ProbeLayer -> PlantPacer
 //
 // THE MECHANISM SERVICE (the mechanism core's MECH-A5, 2026-10-29; the MECH brief's U3): bound, as the
-// program binds it, over ROBOT TWO'S REAL list (src/robots/mechanism_table.hpp's kRobotTwoMechanisms —
-// the team's autons are robot two's, `using namespace robot_two;`) and robot two's mechanisms on
-// fakes: the two claw pivots (a FakeMotor each, behind a hal::MotorMechanism that counts its safe-state
+// program binds it, by default over THE CLAW ROBOT — the old robot two, retired at ROB1-BT (2026-11-16)
+// when robot two became robot one's twin, kept as test/mechanism_fixtures.hpp's mech_fixture::robot_two
+// (its region byte for byte) — and its mechanisms on fakes: the two claw pivots (a FakeMotor each, behind a hal::MotorMechanism that counts its safe-state
 // applications) and the claw (one FakeDigitalOut, behind a counting hal::PneumaticMechanism, made at its
 // START level, low = closed). The host build's OWN selection (kMechanisms) is the bench bot's — none —
 // so the rig names robot two's list. Robot two's pivots are Power mechanisms: they need no §1.12 model
@@ -47,6 +47,7 @@
 #include <span>
 #include <stdexcept>
 
+#include "mechanism_fixtures.hpp"
 #include "motion_test_rig.hpp"
 #include "programs/auton_abort_watch.hpp"
 #include "programs/auton_tester_run.hpp"
@@ -327,7 +328,7 @@ struct TesterStack {
         if (binding.table != nullptr) {
             mechanisms.bind(*binding.table, binding.devices, rig.h.clock(), rig.latch, sink);
         } else {
-            mechanisms.bind(shulib::bench::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
+            mechanisms.bind(mech_fixture::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
         }
         routes.registerInto(commands);
         weak.wheel = weakWheel;
@@ -353,9 +354,9 @@ struct TesterStack {
 
     [[nodiscard]] double now() { return rig.h.clock().now().value(); }
 
-    /// RPV1-B1: the list the stack binds — the binding's, or robot two's real one by default.
+    /// RPV1-B1: the list the stack binds — the binding's, or the claw robot's by default (file banner).
     [[nodiscard]] static const shulib::mechanism::MechanismTable& listOf(const RigMechanisms& b) noexcept {
-        return b.table != nullptr ? *b.table : shulib::bench::robot_two::kRobotTwoMechanisms;
+        return b.table != nullptr ? *b.table : mech_fixture::robot_two::kRobotTwoMechanisms;
     }
 
     /// One run of registry entry `index`, as the program runs it: RUN's release read is NOW

@@ -46,13 +46,12 @@ compiles it and pass both the build and CI. (It was found by deliberately introd
 drift: a chapter's `300_ms` retyped to `300_s` built clean and passed the whole suite.) The
 build and CI now run a scan that requires every non-blank line inside a ```` ```cpp ```` block in
 any public document to appear verbatim in a compiled source: a compiled example test, or one of
-the team's files under `src/team/` that a chapter quotes (today: robot two's driver file,
-`src/team/robot_two_driver.hpp`, which the [driver-control recipes](cookbook/06-driver-control.md)
-quote, the team's auton file, `src/team/autons.cpp`, which
-[chapter 16](guide/16-testing-an-auton-on-the-bench.md) and
+the team's files under `src/team/` that a chapter quotes (today: robot one's driver file,
+`src/team/robot_one_driver.hpp`, which the [driver-control recipes](cookbook/06-driver-control.md) and
+[chapter 21](guide/21-adding-your-robot-by-hand.md) quote, and robot two's autons file,
+`src/team/autons.cpp`, which [chapter 16](guide/16-testing-an-auton-on-the-bench.md) and
 [chapter 17](guide/17-the-competition-program.md) quote — the host suite compiles it and runs
-every auton in it — and robot one's driver file, `src/team/robot_one_driver.hpp`, which
-[chapter 21](guide/21-adding-your-robot-by-hand.md) quotes) — never the rest of `src/`. A listing
+every auton in it) — never the rest of `src/`. A listing
 of either file must also be one unbroken run of the file's lines, so a line added to the file
 inside a part a chapter shows fails the scan too. The sources are matched by globs, one per kind
 of file, so a new examples file is covered the moment it exists, and a kind that matches no file

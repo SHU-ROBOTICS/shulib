@@ -7,16 +7,16 @@
 // (the MECH brief's §1.1, compiled verbatim):
 //   * robot x  — an INVENTED robot with one of each kind: an arm, a two-motor lift in inches, a
 //                flywheel, an intake with a distance sensor, a three-position hood on two lines.
-//   * robot two — the 2026 tank's claws in the new words: its region is BYTE FOR BYTE the real one
-//                in src/robots/mechanism_table.hpp since MECH-A5 (caveats and `.moveTime`, HA-185,
-//                included — test/mechanism_table_test.cpp pins the two regions equal).
+//   * robot two — the OLD robot two's claws in the new words: its region was BYTE FOR BYTE the real one
+//                (MECH-A5 to ROB1-BT, 2026-11-16, when robot two was rebuilt as robot one's twin and its
+//                claws retired); kept as the host suite's CLAW ROBOT (test/retired_robot_two.hpp).
 //   * robot y  — EVERY optional word (the brief's P5b): an absolute-sensor wrist with a reversed
 //                rotation sensor, unhomedVolts and .tuning; a stall-homed arm; a DR4B linkage; a
 //                measured, never-homed tilt; an optical roller; a limit-switch catapult; a grip with
 //                grabs / releases and a distance sensor.
 //   * robot z  — the brief's P4 census robot: robot x's own declarations, plus a wrist with an angle
 //                sensor and robot two's first claw pivot (the boot binding check, valid()'s P4b).
-// Nothing here is a real robot's table (robot two's real one is src/robots/mechanism_table.hpp's),
+// Nothing here is a real robot's table (the real robots' are src/robots/mechanism_table.hpp's),
 // and the `src` build gate's per-robot rule exempts test/. Every `.name` line below is a line the
 // tests pin (by the SUFFIX of this file's path — the path is the one the compiler opened): EDIT
 // THIS FILE BELOW ITS LAST NAMESPACE, or move the pins with it.

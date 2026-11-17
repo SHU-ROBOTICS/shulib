@@ -42,6 +42,7 @@
 #include "route_preview_run.hpp"
 #include "source_pins.hpp"
 #include "team/autons.hpp"
+#include "shulib/competition/acceptance_run.hpp"
 #include "shulib/competition/auton_registry.hpp"
 #include "shulib/competition/match_runner.hpp"
 #include "shulib/kinematics/tank.hpp"
@@ -127,7 +128,7 @@ void registerYFixtures(comp::AutonRegistry& reg) {
 const rp::PreviewRobot kTwoFixtures{
     .key = "two",
     .title = "robot two",
-    .table = &shulib::bench::robot_two::kRobotTwoMechanisms,
+    .table = &mech_fixture::robot_two::kRobotTwoMechanisms,  // the claw robot (ROB1-BT)
     .registerAutons = &registerTwoFixtures,
     .autonsFile = "test/route_preview_fixtures.hpp",
     .defaultRig = true,
@@ -136,7 +137,7 @@ const rp::PreviewRobot kTwoFixtures{
 const rp::PreviewRobot kTwoReview{
     .key = "review",
     .title = "robot two",
-    .table = &shulib::bench::robot_two::kRobotTwoMechanisms,
+    .table = &mech_fixture::robot_two::kRobotTwoMechanisms,  // the claw robot (ROB1-BT)
     .registerAutons = &registerTwoReview,
     .autonsFile = "test/route_preview_fixtures.hpp (the review's)",
     .defaultRig = true,
@@ -145,7 +146,7 @@ const rp::PreviewRobot kTwoReview{
 const rp::PreviewRobot kNineRefused{
     .key = "nine",
     .title = "robot two",
-    .table = &shulib::bench::robot_two::kRobotTwoMechanisms,
+    .table = &mech_fixture::robot_two::kRobotTwoMechanisms,  // the claw robot (ROB1-BT)
     .registerAutons = &registerNineRefused,
     .autonsFile = "a fixture with nine refusals",
     .defaultRig = true,
@@ -1018,8 +1019,9 @@ TEST_CASE("route preview RP33: placeholder numbers are hatched, and the table eq
         }
     }
     CHECK(claws == 2);
-    // The robot file's PROVISIONAL comments, by declaration name, inside robot two's region.
-    const std::string file = source_pins::readFile("src/robots/mechanism_table.hpp");
+    // The robot file's PROVISIONAL comments, by declaration name, inside the claw robot's region (the old robot
+    // two's, kept as a fixture since ROB1-BT).
+    const std::string file = source_pins::readFile("test/mechanism_fixtures.hpp");
     const std::size_t from = file.find("\n// [robot two mechanisms]\n");
     const std::size_t to = file.find("\n// [/robot two mechanisms]\n");
     REQUIRE(from != std::string::npos);
@@ -1041,6 +1043,34 @@ TEST_CASE("route preview RP33: placeholder numbers are hatched, and the table eq
     }
     CHECK(inFile == inTool);
     CHECK(inFile.size() == 1);
+}
+
+// RP33b (ROB1-BT) — robot two's preview hatches each piston whose stroke time is OWED in its facts file, with
+// that number. Bug caught: robot two (every fact owed) drawn as if measured — the brief's landmine 15; a
+// number in the table that is not the ledger's; a piston left out.
+TEST_CASE("route preview RP33b: robot two's owed piston times are hatched, each the ledger's own number") {
+    namespace two = shulib::bench::robot_two_facts;
+    struct Owed {
+        const char* mechanism;
+        const decltype(two::kClawStrokeTime)& fact;
+    };
+    const Owed owed[] = {{"claw", two::kClawStrokeTime},
+                         {"flipper", two::kFlipperStrokeTime},
+                         {"ramp", two::kRampStrokeTime}};
+    std::map<std::string, std::string> want;
+    for (const Owed& o : owed) {
+        if (!o.fact.typed) {
+            char number[16];
+            std::snprintf(number, sizeof number, "%.1f s", o.fact.value().value());
+            want[o.mechanism] = number;
+        }
+    }
+    std::map<std::string, std::string> got;
+    for (const rp::Provisional& p : rp::kRobotTwo.provisional) {
+        got[p.mechanism] = p.number;
+    }
+    CHECK(got == want);
+    CHECK(rp::kRobotTwo.provisional.size() == 3);  // every robot-two fact is owed today
 }
 
 // RP34 — the RUN-TIME stamp: --stamp and --autons-hash are printed on the page and on stdout; without
@@ -1110,7 +1140,9 @@ TEST_CASE("route preview RP26: --robot binds that robot's own mechanism list") {
 }
 
 // RP35 — the rig's default is unchanged (RPV1-B1 changed TesterStack IN PLACE): built with the new
-// parameter left at its default, the team's two autons and the long skills fixture run with the truth
+// parameter left at its default, the team's two autons (as they were registered then — MATCH, 27 / 29 s:
+// since ROB1-BT the team's file registers them as SKILLS, so RP35 registers that day's two itself, below)
+// and the long skills fixture run with the truth
 // stream and the sink IDENTICAL to fingerprints taken over the BASE tree before the parameter existed
 // (scratch probe base_hash_probe.cpp at d33d25d, RPV1-PROGRESS.md) — the fourth run steps EVERY one of robot
 // two's mechanisms, so a default device that changed but is never used cannot hide (the first form of this
@@ -1127,8 +1159,18 @@ TEST_CASE("route preview RP35: the tester rig's default runs exactly as before R
                           {"TEST 24in turn back", 0x9834ef8786009c0aULL, 0x05467b932ab6683eULL, 858},
                           {"skills long", 0x4182eaa13ccb3663ULL, 0xfdcb43740365e43dULL, 6050},
                           {"every mechanism", 0xad9b850f2b3bc459ULL, 0x633cf69544aee734ULL, 629}};
+    // The team's two autons AS THEY WERE (src/team/autons.cpp before ROB1-BT): the 40 in and the acceptance
+    // run, each a MATCH entry on 27 / 29 s — the same routine and step names, so the same bytes.
     comp::AutonRegistry team{shulib::bench::kAutonPeriods, comp::OnRefusal::DropEntry};
-    shulib::bench::registerAutons(team);
+    team.add(entry("40in forward", comp::AutonKind::Match,
+                   [](comp::AutonContext& ctx) {
+                       shulib::chassis::Routine r{ctx, "40in-forward"};
+                       r.moveTo(shulib::math::Pose2d{shulib::units::Length{40.0}, shulib::units::Length{0.0},
+                                                     shulib::math::Angle::degrees(0.0)});
+                       return r.result();
+                   },
+                   comp::StartPose::relative(), 27.0, 29.0));
+    team.add(comp::acceptanceRunEntry(comp::AutonKind::Match, shulib::units::Time{27.0}, shulib::units::Time{29.0}));
     comp::AutonRegistry sk{shulib::bench::kAutonPeriods, comp::OnRefusal::DropEntry};
     sk.add(entry("skills long", comp::AutonKind::Skills, &rp_fixture::skillsLong, field(-48, -48, 0), 57.0, 59.0));
     sk.add(entry("every mechanism", comp::AutonKind::Match, &rp_fixture::everyMechanism, comp::StartPose::relative(),
@@ -2383,9 +2425,13 @@ TEST_CASE("route preview RP25: robot one runs its own autons on its own list, ev
     CHECK(unescape(twoPage).find("ROBOT TWO's mechanisms") != std::string::npos);
     CHECK(unescape(rp1::slurp(dir / "build/route_preview/one/40in forward.html")).find("ROBOT ONE's mechanisms") !=
           std::string::npos);
-    CHECK(rp::owedFacts(rp::kRobotTwo).empty());
-    CHECK(two.out.find("PLACEHOLDER numbers:") == std::string::npos);
-    CHECK(twoPage.find("class=\"owed\"") == std::string::npos);
+    // robot two (ROB1-BT): its ledger's OWED facts are its placeholders too, named from its own file
+    const auto twoOwed = static_cast<std::size_t>(shulib::bench::robot_two_facts::kRobotTwoOwedCount);
+    CHECK(twoOwed > 0);
+    CHECK(rp::owedFacts(rp::kRobotTwo).size() == twoOwed);
+    CHECK(two.out.find("PLACEHOLDER numbers: " + std::to_string(twoOwed) +
+                       " of this robot's facts are still OWED in src/robots/robot_two_facts.hpp") != std::string::npos);
+    CHECK(twoPage.find("class=\"owed\"") != std::string::npos);
     const std::size_t stamp = two.out.find("\ncommit ");
     REQUIRE(stamp != std::string::npos);
     CHECK(two.out.compare(two.out.find('\n', stamp + 1), 2, "\n\n") != 0);  // no empty line where the block goes

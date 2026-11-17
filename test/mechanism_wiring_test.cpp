@@ -167,7 +167,7 @@ TEST_CASE("MECH-A1 wiring: ROBOT TWO's projection is IDENTICAL to today's bootCo
     const shulib::calibration::BootVerdict v = shulib::calibration::verifyAgainstRegistry(record, census);
     REQUIRE(v.usable());
     const shulib::bench::BootConfig today =
-        shulib::bench::bootConfigFrom(record, v, "robot two", shulib::bench::robot_two::kRobotTwoMechanisms);
+        shulib::bench::bootConfigFrom(record, v, "robot two", mech_fixture::robot_two::kRobotTwoMechanisms);
     const cfgns::RobotConfig& c = today.config;
     // The core's side: robot two in the new words, in its list's order (pivot 6, pivot 7, claw —
     // today's order: motors, then pneumatics).

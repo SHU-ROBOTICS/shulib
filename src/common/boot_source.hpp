@@ -89,7 +89,8 @@ namespace shulib::bench {
 // robot::Robot builds them from. The projection is the LIBRARY's ONE (mechanism::toMechanismConfig,
 // mechanism/wiring.hpp), called here in the pure core so the host suite runs it against the REAL list
 // (test/boot_source_test.cpp, test/driver_panel_claws_test.cpp). CONFIG ORDER IS THE LIST'S ORDER —
-// robot two's is today's: pivot 6, pivot 7, then the claw — so config index i IS the list's entry i,
+// robot one's (and its twin's): the cascade, the two side toggles, then the three pistons — so config
+// index i IS the list's entry i,
 // for the Robot's accessors, the mechanism service and every boot line. Nothing is converted by hand
 // and nothing defaulted: the signed motor ports (a Reversed motor is a NEGATIVE port, reversed once by
 // its adapter), the cartridge, the safe state, each 3-wire line, the sensor roles' ports, and a
@@ -97,23 +98,20 @@ namespace shulib::bench {
 // POSITIONS. The START level is what the builder drives each line to when it makes it (A4 register
 // HA-119: a 3-wire output is driven the moment it is constructed); the program's FIRST driver-control
 // entry SENDS it again (the mechanism service's enterDriverControl()), so an autonomous that left the
-// claw OPEN closes it there — the team lead's ruling (2026-09-26): "starts closed — whatever
-// autonomous left it at". The buttons and the volts are not config fields: they are the driver
-// file's. (Until MECH-A5 this section converted the old entry structs itself, refused a table that
+// claw OPEN closes it there (robot two's claw, until ROB1-BT retired it) — the team lead's ruling
+// (2026-09-26): "starts closed — whatever autonomous left it at". The buttons and the volts are not
+// config fields: they are the driver file's. (Until MECH-A5 this section converted the old entry
+// structs itself, refused a table that
 // would not convert — mechanismTableProblem() — and kept the motors before the pneumatics; the list's
 // own build checks now refuse what that refused, and its order is the config's.)
 
 /// The words the boot check uses for a declared mechanism MOTOR port that carries a motor the
-/// description does not list — Calibrate's words for them (its census line, "claw pivot 6 (declared)"
-/// since CAL1 Part B; "claw pivot (declared)" before it), because
-/// every MOTOR role robot two declares is a claw pivot; a list that declares another kind of motor
-/// mechanism changes this with it (L9 Part B's boot wording makes it the program's).
-/// (ROB1-A, 2026-11-11: robot TWO's label. decideBootSourceFrom() reads its `Words`' label —
-/// src/common/robot_words.hpp, robot one's "mechanism motors (...)" — and this constant stays robot two's,
-/// byte for byte; the static_assert below holds the two the same.)
+/// description does not list — the CLAW words' label (src/common/robot_words.hpp's kClawWords: robot
+/// two's until ROB1-BT retired its claws). decideBootSourceFrom() reads its `Words`' label; the robots'
+/// own builds say "mechanism motors (declared, not drive motors)".
 inline constexpr const char* kDeclaredMotorLabel = "claw pivots (declared, not drive motors)";
-static_assert(std::string_view{kDeclaredMotorLabel} == std::string_view{kRobotTwoWords.declaredMotorLabel},
-              "robot two's boot label is kDeclaredMotorLabel, verbatim");
+static_assert(std::string_view{kDeclaredMotorLabel} == std::string_view{kClawWords.declaredMotorLabel},
+              "the claw words' boot label is kDeclaredMotorLabel, verbatim");
 
 /// The most mechanism MOTOR ports a list can declare: kMaxMechanisms mechanisms of four motors each.
 inline constexpr std::size_t kMaxDeclaredMotorPorts = mechanism::kMaxMechanisms * mechanism::kMaxMotorRoles;
@@ -341,7 +339,8 @@ inline void refuseWith(BootOutcome& out, const char* headline, const char* why) 
 /// reason of up to 319 — 444.
 inline constexpr std::size_t kBootLineBytes = 512;
 
-/// THE BOOT DECISION, PROS-free (header): verify the card's record against the registry, fall back
+/// THE BOOT DECISION, PROS-free (header): refuse a record that names another robot or none (step 0,
+/// since ROB1-BT), verify the card's record against the registry, fall back
 /// to the typed table only when there is no usable record, and refuse when neither will do — the
 /// decisions of R3d Part 2 (rulings P2/P3), moved from src/main.cpp at G1 Part 2b with every
 /// decision unchanged. Each decision line is handed to `printLine(const char*)` as it is decided,
@@ -362,9 +361,9 @@ inline constexpr std::size_t kBootLineBytes = 512;
 /// config's identity (bootConfigFrom).
 ///
 /// `Words` (LAST, defaulted to this build's robot — chunk ROB1-A, re-check R7): the robot's words for the
-/// port check's label and step 5's MOTOR refusal — robot two's "claw" words verbatim, robot one's
-/// "mechanism" words (src/common/robot_words.hpp). A host test passes `WordsOf<RobotId::RobotOne>{}`;
-/// every other call is unchanged.
+/// port check's label and step 5's MOTOR refusal, and (ROB1-BT) the record name step 0 requires
+/// (src/common/robot_words.hpp). A host test passes `WordsOf<RobotId::RobotOne>{}`; every other call is
+/// unchanged.
 template <class PrintLine, class Words = ThisRobotWords>
 [[nodiscard]] BootOutcome decideBootSourceFrom(const RecordRead& record,
                                                const hal::IDeviceRegistry& registry,
@@ -377,12 +376,47 @@ template <class PrintLine, class Words = ThisRobotWords>
     char line[kBootLineBytes];
 
     // The declared mechanism MOTOR ports, as the port check takes them: a motor there that the
-    // description does not list is a claw pivot, not a NEW motor (T3 Part 2). Physical ports: the
-    // wiring holds them unsigned (a Reversed motor's direction is its declaration's).
+    // description does not list is a declared mechanism's, not a NEW motor (T3 Part 2). Physical ports:
+    // the wiring holds them unsigned (a Reversed motor's direction is its declaration's).
     int declaredPorts[kMaxDeclaredMotorPorts]{};
     const std::size_t declaredCount = mechanism::declaredMotorPorts(mechanisms, declaredPorts);
     const calibration::DeclaredMotorPorts declared{
         .ports = std::span<const int>{declaredPorts, declaredCount}, .label = Words::value.declaredMotorLabel};
+
+    // 0. THE RECORD NAMES ITS ROBOT (chunk ROB1-BT): two robots of one build pass each other's port
+    //    check, so a decoded record must name THIS robot (`robot=<name>`, calibration::recordRobotName).
+    //    A record naming another robot, or none (an older record), is refused — never accepted in silence,
+    //    never a fall-back to the typed table. The fix: run shulib Calibrate on THIS robot. (Words with no
+    //    record name — the bench bot's and the X-drive's, which never boot from a record — skip it.)
+    if constexpr (Words::value.recordName != nullptr) {
+        const std::string_view named =
+            record.decoded ? calibration::recordRobotName(record.description.provenance) : std::string_view{};
+        if (record.decoded && named != std::string_view{Words::value.recordName}) {
+            char why[192];
+            if (named.empty()) {
+                std::snprintf(why, sizeof why,
+                              "this card's record names NO robot (an older record); this is robot=%.24s -- run "
+                              "shulib Calibrate (slot 4) on THIS robot",
+                              Words::value.recordName);
+            } else {
+                std::snprintf(why, sizeof why,
+                              "this card's record is robot=%.*s's; this is robot=%.24s -- run shulib Calibrate "
+                              "(slot 4) on THIS robot",
+                              static_cast<int>(named.size()), named.data(), Words::value.recordName);
+            }
+            std::snprintf(line, sizeof line, "calibration record: DECODED, REFUSED -- %s", why);
+            printLine(static_cast<const char*>(line));
+            out.source = calibration::BootSource::Refuse;
+            out.sourceWhy = named.empty() ? "the card's record names no robot" : "the card's record is another robot's";
+            std::snprintf(line, sizeof line, "boot source: %s -- %s", bootSourceWord(out.source), out.sourceWhy);
+            printLine(static_cast<const char*>(line));
+            detail::refuseWith(out,
+                               named.empty() ? "the card's record names NO ROBOT"
+                                             : "the card's record is ANOTHER ROBOT'S",
+                               why);
+            return out;
+        }
+    }
 
     // 1. the record, verified against the ports on THIS boot, before anything is constructed.
     if (record.decoded) {
@@ -453,12 +487,12 @@ template <class PrintLine, class Words = ThisRobotWords>
 
     // 5. the MECHANISMS (T3 Part 2; every smart ROLE since MECH-A5): no declared mechanism port — a
     //    motor's, an angle sensor's, a distance or optical piece sensor's — may be a drive port of the
-    //    description just chosen. A record taken before Calibrate skipped the claws could list one,
-    //    and robot two would then drive a claw as a wheel. (RobotConfig::valid() would refuse that
-    //    too, but its words name a collision, not the fix.) A MOTOR role keeps T3 Part 2's words
-    //    byte for byte ("a claw" — every motor robot two declares is a claw pivot; L9 Part B makes
-    //    the noun the program's); a SENSOR role is named by its mechanism and role, and its fix is the
-    //    robot file's wire(...) line first (the record measured a MOTOR on that port).
+    //    description just chosen. A record taken before Calibrate skipped the mechanisms could list
+    //    one, and the robot would then drive a cascade motor as a wheel. (RobotConfig::valid() would
+    //    refuse that too, but its words name a collision, not the fix.) A MOTOR role says "a
+    //    mechanism" (the words' — both robots' since ROB1-BT; robot two's said "a claw" while every motor
+    //    it declared was a claw pivot); a SENSOR role is named by its mechanism and role, and its fix is
+    //    the robot file's wire(...) line first (the record measured a MOTOR on that port).
     const bool fromRecord = choice.source == calibration::BootSource::UseRecord;
     constexpr const char* kMotorRoleWords[mechanism::kMaxMotorRoles] = {"motor 1", "motor 2", "motor 3",
                                                                          "motor 4"};
@@ -491,8 +525,8 @@ template <class PrintLine, class Words = ThisRobotWords>
             }
             char why[192];
             if (roles[r].motor) {
-                // Robot two's words verbatim ("a claw"); robot one's "a mechanism" (ROB1-A, R7) — two
-                // literals, chosen at compile time (src/common/robot_words.hpp).
+                // The claw words ("a claw" — no robot's since ROB1-BT) or the mechanism words (both robots')
+                // (ROB1-A, R7) — two literals, chosen at compile time (src/common/robot_words.hpp).
                 std::snprintf(why, sizeof why,
                               Words::value.claw ? "port %d is both a claw (%.23s) and a drive motor in the %s -- %s"
                                                 : "port %d is both a mechanism (%.23s) and a drive motor in the %s -- %s",

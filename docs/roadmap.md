@@ -565,7 +565,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > `MECHANISM_ROBOTS`). Every number about its cascade nobody has measured
 > is OWED in its facts file, and robot one's build of every program that needs one REFUSES, naming each — so no
 > placeholder can reach the robot; `make` now starts fresh whenever the robot or the program changes. Its autons
-> are a starter (the 40 in as SKILLS; the skills route is the team's). Robot two behaves as before. **ROB1-C2
+> are a starter (the 40 in as SKILLS; the skills route is the team's). **ROB1-C2
 > (2026-11-15):** the builder's answers typed — robot one's six mechanisms (the cascade, two
 > side toggles, the claw, the front toggle as its flipper, the ramp) declared, its driver file the builder's map,
 > and the library's one-button hold added; Bench Tests and Calibrate owe only "which port is the right side
@@ -573,7 +573,9 @@ not silently break them. This table is the spine of the no-staleness promise.
 > [robot facts form](robot-facts-form.md); register entries [HA-252..HA-255](hardware-assumptions.md) and
 > [HA-261](hardware-assumptions.md). **Next with it:** station 13's answers (the cascade's rows, the side
 > toggles' directions, each piston's opening level) and the cascade's three voltages; station 13 applying the
-> cascade's cap (ROB1-C); the record naming its robot (ROB1-B).
+> cascade's cap (ROB1-C). **ROB1-BT (2026-11-17):** robot two is robot one's twin — its facts file has robot one's
+> facts, owed until read off robot two; one skills route (`src/team/skills_route.cpp`) for both, robot two's mirrored;
+> the calibration record names its robot, and each robot's boot refuses the other's card.
 >
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a

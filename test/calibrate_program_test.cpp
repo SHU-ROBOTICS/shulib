@@ -2516,6 +2516,141 @@ TEST_CASE("CalibrateProgram T6d: the declared-port drop keeps the census order a
     }
 }
 
+TEST_CASE("CalibrateProgram G1-B (ROB1-BT): a stated record name is the record's FIRST word -- it survives the "
+          "calibrator's 40-character cut whole, the boot's reader finds it, and an unstated one changes nothing") {
+    // BUG CAUGHT: the name written AFTER the build stamp (the calibrator keeps 40 characters before its own
+    // summary: "shulib Calibrate Oct 18 2026 12:34:56 robot=robot-two" would be cut to "... ro" — the brief's
+    // own spelling, which this test refuses); the name dropped when the facts state it; the provenance
+    // changed for a program that states no name (every golden of test/calibrate_golden_test.cpp would move).
+    {
+        Scenario sc;
+        Rig rig{sc};
+        CalibrateFacts f = robotTwoFacts();
+        f.recordName = "robot-two";
+        rig.run(f);
+        REQUIRE_FALSE(rig.timedOut);
+        CHECK(has(rig, "calibrator started: 10 candidate(s), kind Tank, cartridge BLUE 600 rpm, IMU port 2, "
+                       "provenance \"robot=robot-two Oct 18 2026 12:34:56\""));
+        const auto bin = rig.fileBytes(kRecordFileName);
+        REQUIRE(bin.size() == shulib::calibration::kRecordBytes);
+        const DrivetrainDescription d = decoded(bin);
+        CHECK(std::string{d.provenance}.rfind("robot=robot-two Oct 18 2026 12:34:56 | ROBOT-MEASURED: ", 0) == 0);
+        CHECK(shulib::calibration::recordRobotName(d.provenance) == "robot-two");
+    }
+    {
+        // the LONGEST name (24): whole in the record; the stamp after it may be cut, never the name
+        Scenario sc;
+        Rig rig{sc};
+        CalibrateFacts f = robotTwoFacts();
+        f.recordName = "abcdefghijklmnopqrstuvwx";
+        rig.run(f);
+        REQUIRE_FALSE(rig.timedOut);
+        const DrivetrainDescription d = decoded(rig.fileBytes(kRecordFileName));
+        CHECK(shulib::calibration::recordRobotName(d.provenance) == "abcdefghijklmnopqrstuvwx");
+    }
+    {
+        // no name stated: the provenance is what it always was, and names no robot
+        Scenario sc;
+        Rig rig{sc};
+        rig.run(robotTwoFacts());
+        REQUIRE_FALSE(rig.timedOut);
+        const DrivetrainDescription d = decoded(rig.fileBytes(kRecordFileName));
+        CHECK(std::string{d.provenance}.rfind("shulib Calibrate Oct 18 2026 12:34:56 | ROBOT-MEASURED: ", 0) == 0);
+        CHECK(shulib::calibration::recordRobotName(d.provenance).empty());
+    }
+    // a stated name that is not one is refused before anything is made (factsProblem)
+    using shulib::calibration::factsProblem;
+    constexpr CalibrateFacts named{.recordName = "robot-one"};
+    static_assert(factsProblem(named).why == nullptr);
+    constexpr CalibrateFacts spaced{.recordName = "robot one"};
+    static_assert(factsProblem(spaced).why != nullptr);
+    constexpr CalibrateFacts empty{.recordName = ""};
+    static_assert(factsProblem(empty).why != nullptr);
+    constexpr CalibrateFacts tooLong{.recordName = "abcdefghijklmnopqrstuvwxy"};  // 25
+    static_assert(factsProblem(tooLong).why != nullptr);
+    CHECK(std::string{factsProblem(spaced).why} == "the robot's record name must be 1..24 lower-case letters, digits or '-'");
+}
+
+TEST_CASE("CalibrateProgram G1-B (ROB1-BT): a card record that does NOT name this robot -- another robot's, or "
+          "none -- is NAMED on the card line and at the front check; the check runs on it; the save names this robot") {
+    // BUG CAUGHT: a twin's record (or one written before records named their robot) checked in silence — the
+    // log saying "checked against it" of a record THIS robot's boot refuses; a name compared by prefix
+    // ("robot-two-b" taken for "robot-two"); the line printed for this robot's OWN record, or for a program that
+    // states no name (every nameless program's lines must stay as they were); the check SKIPPED on such a record
+    // (it is the only front on the card); the save keeping the old name.
+    const auto withName = [](const char* provenance) {
+        DrivetrainDescription d = decoded(frontLedRecord());
+        std::snprintf(d.provenance, sizeof d.provenance, "%s", provenance);
+        return encoded(d);
+    };
+    struct Case {
+        const char* what;
+        std::vector<std::byte> record;
+        const char* stated;  // the facts' recordName
+        const char* line;    // after the prefix; nullptr = no such line
+    };
+    const std::string noRobot =
+        " that record names NO robot (written before records named their robot), not robot=robot-two -- the FRONT "
+        "is checked against it all the same; a save replaces it with this robot's";
+    const std::string robotOne =
+        " that record is robot=robot-one's, not this robot's (robot=robot-two) -- the FRONT is checked against it "
+        "all the same; a save replaces it with this robot's";
+    const std::string prefixOnly =
+        " that record is robot=robot-two-b's, not this robot's (robot=robot-two) -- the FRONT is checked against it "
+        "all the same; a save replaces it with this robot's";
+    const Case cases[] = {
+        {"a record written before records named their robot", frontLedRecord(), "robot-two", noRobot.c_str()},
+        {"robot one's record on robot two's card", withName("robot=robot-one Oct 18 2026 12:34:56 | ROBOT-MEASURED: x"),
+         "robot-two", robotOne.c_str()},
+        {"a name that only BEGINS with this robot's",
+         withName("robot=robot-two-b Oct 18 2026 12:34:56 | ROBOT-MEASURED: x"), "robot-two", prefixOnly.c_str()},
+        {"this robot's own record", withName("robot=robot-two Oct 18 2026 12:34:56 | ROBOT-MEASURED: x"), "robot-two",
+         nullptr},
+        {"a program that states no name", frontLedRecord(), nullptr, nullptr},
+    };
+    for (const Case& c : cases) {
+        CAPTURE(std::string{c.what});
+        Scenario sc;
+        Rig rig{sc};
+        seedBoth(rig, c.record);
+        CalibrateFacts f = robotTwoFacts();
+        f.recordName = c.stated;
+        rig.run(f);
+        REQUIRE_FALSE(rig.timedOut);
+        const std::size_t check = findLine(rig.io.lines,
+                                           "front check against shulib_drivetrain.bin: 10 drive port(s) in both -- "
+                                           "10 agree, 0 flipped, 0 sign only, 0 side only; 0 in the card's only, 0 "
+                                           "in this run's only: SAME FRONT");
+        REQUIRE(check != npos);  // the check ran on the card's record, whoever's it is
+        if (c.line == nullptr) {
+            CHECK(countContaining(rig.io.lines, " that record ") == 0);
+        } else {
+            const std::size_t card = findLine(rig.io.lines, std::string{"card       :"} + c.line);
+            REQUIRE(card != npos);
+            CHECK(rig.io.lines[card - 1].rfind("card       : shulib_drivetrain.bin holds MEASURED tank ", 0) == 0);
+            CHECK(rig.io.lines[check - 1] == std::string{"front check:"} + c.line);
+            CHECK(countContaining(rig.io.lines, " that record ") == 2);
+        }
+        const DrivetrainDescription saved = decoded(rig.fileBytes(kRecordFileName));
+        CHECK(shulib::calibration::recordRobotName(saved.provenance) == (c.stated != nullptr ? c.stated : ""));
+        CHECK(sidesOf(saved) == kFrontLedSides);
+    }
+    // a stated name that is not one: the refusal quotes the NAME, never a mechanism entry (the facts' list)
+    {
+        Scenario sc;
+        Rig rig{sc};
+        CalibrateFacts f = robotTwoFacts();
+        f.recordName = "robot two";
+        rig.run(f);
+        checkRefusedBeforeAnything(rig, "FACTS REFUSED",
+                                   "the robot's record name must be 1..24 lower-case letters, digits or '-': "
+                                   "recordName = \"robot two\"",
+                                   "correct the robot's stated facts and rebuild");
+        static_assert(shulib::calibration::factsProblem(CalibrateFacts{.recordName = "Robot"}).list
+                      == shulib::calibration::FactsList::RecordName);
+    }
+}
+
 TEST_CASE("CalibrateProgram T6e: factsProblem() at COMPILE time -- the checks a build can static_assert, both "
           "ways") {
     using shulib::calibration::CalibrateFacts;

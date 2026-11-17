@@ -402,3 +402,59 @@ TEST_CASE("CalibrationRecord 3: the record travels the block seams, and a SHORT 
         CHECK(std::string{why}.find("truncated") != std::string::npos);
     }
 }
+
+// ═══ THE RECORD NAMES ITS ROBOT (chunk ROB1-BT, 2026-11-16; the ROB1 brief's D10) ════════════════════════
+TEST_CASE("record: recordRobotName() reads the word after `robot=` at a WORD's start, and only a record name") {
+    // BUG CAUGHT: a reader that takes "xrobot=..." for the key (a provenance word that merely ends in it);
+    // that reads past the field's end when it is full (no NUL); that keeps the calibrator's summary glued to
+    // the name; that accepts a mangled name (a space, upper case, '_', 25 characters) as one — the boot would
+    // then compare THAT with its own and could never match, or could match a cut name.
+    using shulib::calibration::isRecordName;
+    using shulib::calibration::kProvenanceBytes;
+    using shulib::calibration::recordRobotName;
+    const auto field = [](const char* text) {
+        std::array<char, kProvenanceBytes> f{};
+        for (std::size_t i = 0; i < kProvenanceBytes && text[i] != '\0'; ++i) f[i] = text[i];
+        return f;
+    };
+    const auto name = [&](const char* text) {
+        const auto f = field(text);
+        char raw[kProvenanceBytes];
+        for (std::size_t i = 0; i < kProvenanceBytes; ++i) raw[i] = f[i];
+        return std::string{recordRobotName(raw)};
+    };
+    CHECK(name("robot=robot-one Nov 14 2026 09:00:00 | ROBOT-MEASURED: 8 ports") == "robot-one");
+    CHECK(name("robot=robot-two") == "robot-two");
+    CHECK(name("hand-made robot=robot-two") == "robot-two");
+    CHECK(name("shulib Calibrate Sep 24 2026 17:42:16 | ROBOT-MEASURED: 8 ports").empty());
+    CHECK(name("").empty());
+    CHECK(name("robot=").empty());
+    CHECK(name("robot= robot-two").empty());
+    CHECK(name("xrobot=robot-two").empty());
+    // a mid-word key is SKIPPED, not the end of the search: the real key after it still names the robot
+    CHECK(name("xrobot=a robot=robot-two") == "robot-two");
+    // digits are part of a name
+    CHECK(name("robot=bot9 Nov 16 2026") == "bot9");
+    CHECK(name("robot=r2-d2") == "r2-d2");
+    CHECK(name("robot=Robot-Two").empty());
+    CHECK(name("robot=robot_two").empty());
+    CHECK(name("robot=abcdefghijklmnopqrstuvwxy").empty());  // 25: cut or mangled, never a name
+    CHECK(name("robot=abcdefghijklmnopqrstuvwx") == "abcdefghijklmnopqrstuvwx");  // 24
+    // the FIRST key at a word's start decides (a later one is the provenance's text, not its name)
+    CHECK(name("robot=robot-one notes: robot=robot-two") == "robot-one");
+    // a FULL field (96 bytes, no NUL): read within it
+    char full[kProvenanceBytes];
+    for (char& c : full) c = 'x';
+    const char head[] = "robot=robot-two ";
+    for (std::size_t i = 0; i + 1 < sizeof head; ++i) full[i] = head[i];
+    CHECK(recordRobotName(full) == "robot-two");
+    char fullName[kProvenanceBytes];
+    for (char& c : fullName) c = 'y';
+    const char key[] = "robot=";
+    for (std::size_t i = 0; i + 1 < sizeof key; ++i) fullName[kProvenanceBytes - 10 + i] = key[i];
+    fullName[kProvenanceBytes - 11] = ' ';  // "... robot=yyyy" running to the field's end: 4 letters, a name
+    CHECK(recordRobotName(fullName) == "yyyy");
+    CHECK(isRecordName("robot-2"));
+    static_assert(isRecordName("robot-one") && isRecordName("a") && !isRecordName("") && !isRecordName("a b") &&
+                  !isRecordName("A") && !isRecordName("abcdefghijklmnopqrstuvwxy"));
+}

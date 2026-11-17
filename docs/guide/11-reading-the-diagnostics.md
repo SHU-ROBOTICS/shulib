@@ -323,12 +323,12 @@ worth recognizing on sight:
   running when the field ended it still held that mechanism; driver control freed it so its
   buttons work ([Ch. 10](10-the-api.md), "Buttons for mechanisms"). Expected after an autonomous
   cut off mid-operation; anywhere else, find out who took the claim. (A program whose mechanisms run
-  on the mechanism service — robot two's, since the mechanism core's fifth part — says it with the
+  on the mechanism service — each robot's, since the mechanism core's fifth part — says it with the
   service's `MECH` line below instead.)
 - **A mechanism step's verdict** (tag `MECH`; `Info` when it SUCCEEDED, `Warn` for every other
   verdict) — ONE line per step the mechanism service ran, written the moment the step ended. In
   driver control a toggle's press, a preset and a homing press are steps too, so each driver press of
-  robot two's claw logs one — a close as the `Warn` `UNCONFIRMED ... counted done` below (nothing
+  a robot's claw logs one — a close as the `Warn` `UNCONFIRMED ... counted done` below (nothing
   senses the grab), a press within the claw's move time of the last as `CANCELLED ... (replaced by a
   newer command)`; expected, not a fault ([Ch. 18](18-mechanisms.md#on-the-drivers-buttons--the-driver-files-controls)):
 

@@ -14,9 +14,11 @@
 > all four kinds of mechanism — power, pneumatic, POSITION (an arm, a lift) and SPEED (a flywheel) —
 > and everything that calls them: the auton STEPS (`r.move(arm["score"], 1.5_s)`), the driver
 > CONTROLS (presets on buttons), the ROUTE BINDER that runs a marker's id, and the direction check's
-> JUDGEMENT — and, since the fifth part, robot two on all of it: its claws are declarations, every
-> program that boots it binds one service, prints each mechanism's boot lines and publishes its route
-> ids, and its driver file is three lines of controls ([the cookbook](../cookbook/06-driver-control.md)).
+> JUDGEMENT — and, since the fifth part, the robots on all of it: their mechanisms are declarations (robot
+> two's claws then; since 2026-11-16 both robots' cascade, side toggles and pistons — robot two is robot
+> one's twin), every program that boots one binds one service, prints each mechanism's boot lines and
+> publishes its route ids, and its driver file is a few lines of controls
+> ([the cookbook](../cookbook/06-driver-control.md)).
 > And since the sixth and last part (MECH-A6, built 2026-10-30), Bench Tests' **station 13 MECHANISMS**
 > — the bench page ([below](#the-bench-page--bench-tests-station-13)) — shows every declared mechanism in
 > its declared units and runs the direction check on the robot. Since then, **current caps** (`.currentCap` —
@@ -372,7 +374,7 @@ Three kinds of number are not yours to know before the robot runs: the loops' ga
 move's speed and acceleration, and "reached". The library starts them from your cartridge and gearing
 — **invented and provisional** (HA-182). `startingValuesLine()` words them for a boot line, so nobody
 takes them for measurements; every program that boots a robot's list prints it, one line per position
-or speed mechanism (since the core's fifth part — robot two declares neither, so its boot prints none):
+or speed mechanism (since the core's fifth part — on both robots, one line: the cascade's):
 
 | Number | Starting value | What it is |
 |---|---|---|
@@ -528,8 +530,8 @@ pros upload --slot 7 --name "shulib Tune"
 ```
 
 (`ROBOT=` is your robot's — `tank` for robot two, `one` for robot one; a robot with no mechanisms is
-refused by `make`, naming why, and robot one's Tune, like its other programs, refuses by name while a
-fact it needs is still owed — [chapter 21](21-adding-your-robot-by-hand.md). The `rm -rf bin .d` is
+refused by `make`, naming why, and each robot's Tune, like its other programs, refuses by name while a
+fact of its facts file it needs is still owed — [chapter 21](21-adding-your-robot-by-hand.md). The `rm -rf bin .d` is
 harmless, for the reason [Chapter 16](16-testing-an-auton-on-the-bench.md) gives: `make` notices a
 changed `ROBOT=` or `PROGRAM=` word and starts fresh by itself.) Start it from the **brain's** screen with the controller paired; nothing in it moves with a
 field or a competition switch plugged in.
@@ -586,8 +588,8 @@ signature is sized by.
 **COPY** writes a block of `[TUNE]` lines (the block above) for **every mechanism you changed** to the
 terminal **and** to the SD card, `/usd/tune_log.txt`, kept across boots — a reboot back into Tune does
 not erase the last session's COPY. **EXIT copies for you** every mechanism changed since its last COPY,
-so the numbers are in the log before you stop the program. **Copy the lines into your robot's mechanism table by hand** (robot two's is
-`src/robots/mechanism_table.hpp`; robot one's numbers go into its facts file instead —
+so the numbers are in the log before you stop the program. **Copy the lines into your robot's mechanism table by hand** (a robot with a facts file —
+robot one and robot two — takes them into its facts file instead,
 [Chapter 21](21-adding-your-robot-by-hand.md)), with a comment saying they were tuned live and when; the panel's
 import is for after the first competition. Nothing persists: leaving the program, or a reboot, runs the
 robot file's numbers again. **After a cartridge, gearing or spool change, RESET and tune again** — a
@@ -624,8 +626,8 @@ An auton builds its routine from its context — `Routine r{ctx, "name"}` — an
 then ONE line, naming the mechanism by its declaration and stating its time limit. The auton below is
 robot x's (`guide-18c`, in
 [`test/mechanism_auton_example_test.cpp`](../../test/mechanism_auton_example_test.cpp); the robot's own
-namespace gives every word — robot two's claws in an auton are
-[Chapter 16](16-testing-an-auton-on-the-bench.md#the-claws-in-an-auton)'s):
+namespace gives every word — the robots' cascade and pistons in an auton, and the host suite's example
+robot with claws, are [Chapter 16](16-testing-an-auton-on-the-bench.md#mechanisms-in-an-auton)'s):
 
 ```cpp
 RoutineResult scoreThree(AutonContext& ctx) {
@@ -663,7 +665,7 @@ partway through the drive — `r.atPercent(60).startMove(lift["high"], 5_s).driv
 24 in into a 40 in drive ([Chapter 9's partway triggers](09-the-recipe-api.md#partway-through-a-drive-triggers)).
 
 **The verdicts, and what each does to the chain:** SUCCEEDED goes on; **UNCONFIRMED counted done** — no
-sensor exists to confirm it, like robot two's sensorless claw — goes on (the team lead's ruling);
+sensor exists to confirm it, like the robots' sensorless claw — goes on (the team lead's ruling);
 **every other verdict STOPS the chain** — TIMED_OUT, STALLED, NOT_HOMED, ABSENT, REFUSED, CANCELLED, or
 an UNCONFIRMED NOT counted (a piece sensor that stopped answering may have missed the very piece the
 step waited for). Stopping is the routine's usual policy (a step written after `r.onFail(carryOn)` or
@@ -723,7 +725,7 @@ inline constexpr DriverControls kControls = controls(kRobotXMechanisms,
 - **`toggle(claw, Button::A)`** — each press flips a two-position pneumatic; **`toggle(flywheel["shoot"],
   Button::X)`** spins a flywheel up to that NAMED speed or stops it (`toggle(flywheel, …)` is refused:
   name the speed). A toggle's press, a preset's and a homing press are each a STEP, as an auton's is, so
-  each logs its verdict once it ends — robot two's claw, 0.5 s after each press of A: `'claw': SUCCEEDED
+  each logs its verdict once it ends — the example claw (the host suite's), 0.5 s after each press of A: `'claw': SUCCEEDED
   -- time in 0.50s` for an open, `[WARN]` `'claw': UNCONFIRMED -- time in 0.50s (no piece sensor to
   confirm it; counted done)` for a close (nothing senses the grab), and `CANCELLED` when a newer press or
   the end of driver control came first. Those lines are expected; a hold-to-run (`whileHeld`) logs
@@ -741,7 +743,7 @@ a stall: a held button whose mechanism tripped its jam signature is ignored unti
 gentler than full power may never trip it — [the jam section](#jam-signatures--what-a-stall-looks-like-and-the-recipe)).
 **A press must be SEEN** — for a toggle, a preset and `homeOnPress`: its button already down when driver
 control starts, or still down when a dropped controller comes back, is not a press, and **a drop itself
-never presses anything** (robot two's claw stays as it is) — provided the controller's "connected"
+never presses anything** (a toggled claw stays as it is) — provided the controller's "connected"
 signal and its buttons come back together, which nobody has measured
 ([HA-147](../hardware-assumptions.md)); until it is, a driver whose controller drops lets go before
 pressing again. A hold-to-run is a level, not a press: its
@@ -811,7 +813,8 @@ Each id is published with a one-line doc for a marker picker — `"claw pivot 6:
 (-12..12), args[1] = how long, ms"` (the manifest:
 [the VexBuilder contract §4.2.3](../vexbuilder-integration.md#423-the-manifest--ask-4-and-it-now-exists)).
 On the host test plant robot x's route of seven generated markers ran every one to SUCCEEDED inside a
-real auton, and robot two's sensorless grab went UNCONFIRMED, counted done, with its route going on.
+real auton, and the example robot's sensorless grab (the host suite's claw robot) went UNCONFIRMED,
+counted done, with its route going on.
 
 ## The direction check — what it judges
 

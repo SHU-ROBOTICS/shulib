@@ -14,8 +14,8 @@ teleop and hardware names in scope —
 `BrakeMode`, `DriverLoopConfig`, `validBindings`, `runDriverControl` — plus the shaper, the
 controller, the loop's three callbacks and a `showOnScreen` stand-in for the program's own screen
 line, which each test declares just above. The last section quotes a real file from the project,
-[`src/team/robot_two_driver.hpp`](../../src/team/robot_two_driver.hpp), which every robot build
-compiles and [`test/robot_two_driver_test.cpp`](../../test/robot_two_driver_test.cpp) runs through
+[`src/team/robot_one_driver.hpp`](../../src/team/robot_one_driver.hpp), which every robot build
+compiles and [`test/robot_one_driver_test.cpp`](../../test/robot_one_driver_test.cpp) runs through
 the host's stand-in for PROS.
 
 > **Since the mechanism core's fourth part (2026-10-29) these two bindings are SUPERSEDED, not removed.** A
@@ -23,8 +23,7 @@ the host's stand-in for PROS.
 > controls — `whileHeld`, `toggle`, `preset` (presets on buttons), the homing controls — run through the same
 > mechanism service as its autons ([chapter 18](../guide/18-mechanisms.md#on-the-drivers-buttons--the-driver-files-controls);
 > [chapter 7](07-mechanisms.md) has the recipe). The two below stay, unchanged, for a program with no mechanism
-> service. Robot two's driver file — the last section — moved onto the controls in the core's fifth part
-> (2026-10-29), its claws behaving exactly as they did.
+> service. The robots' driver files — the last section — use the controls.
 
 ---
 
@@ -209,7 +208,7 @@ disable ends driver control and the claw is **still open**.
   [`config::MechanismConfig`](../api/robot_config.md#struct-mechanismconfig) carries per-line
   levels — and since its fourth part the core's driver controls drive such positions, `toggle` and
   `preset` ([chapter 7](07-mechanisms.md), [chapter 18](../guide/18-mechanisms.md#on-the-drivers-buttons--the-driver-files-controls));
-  robot two's driver file uses `toggle` since the core's fifth part, for its one-line claw.) A single valve on ONE
+  both robots' driver files use `toggle` for their claw, front toggle and ramp — one line each.) A single valve on ONE
   3-wire port is one line, whatever cylinder it drives.
 - **From a config, the robot builds the claw.** State the mechanism's 3-wire port (A..H, stored as
   1..8), its `pneumaticStart` and its `pneumaticSafe` level, and bind to
@@ -230,24 +229,34 @@ disable ends driver control and the claw is **still open**.
 
 ---
 
-## A whole driver file: robot two's
+## A whole driver file: robot one's (and its twin's)
 
 **Use this when:** you want to see everything a driver does to one robot — every stick and button,
 and the feel — in one file a student can read top to bottom and defend (the call into the loop is
-`src/common/driver_file.hpp`'s, shared by every driver file, since the mechanism core's fifth part).
+`src/common/driver_file.hpp`'s, shared by every driver file).
 
 A team's own robot puts its driver's decisions in ONE file:
-[`src/team/robot_two_driver.hpp`](../../src/team/robot_two_driver.hpp) is robot two's. Its header
-comment lists what every stick and button does in plain words; below it, the code is the team's
-decisions and nothing else. **Which button does what** — one checked list, each control naming its
-mechanism by the declaration in the robot file
+[`src/team/robot_one_driver.hpp`](../../src/team/robot_one_driver.hpp) is robot one's — the builder's
+button map of 2026-11-15. Robot two is robot one's twin, so
+[`src/team/robot_two_driver.hpp`](../../src/team/robot_two_driver.hpp) is the same file with robot two's
+name: one build, one map, so a driver who learns one robot drives the other.
+
+![The builder's controller map, on both robots: R1 / R2 hold the cascade up / down; A the claw, B the front toggle, X the ramp (each press flips it); L1 runs the right side toggle and L2 the left while held; the left stick drives and the right stick turns; Y is the re-zero (field-centric is off); the d-pad is free](../assets/cascade-controls.svg)
+
+The file's header comment lists what every stick and button does in plain words; below it, the code is
+the team's decisions and nothing else. **Which button does what** — one checked list, each control
+naming its mechanism by the declaration in the robot file
 ([`src/robots/mechanism_table.hpp`](../../src/robots/mechanism_table.hpp)):
 
 ```cpp
-inline constexpr DriverControls kControls = controls(kRobotTwoMechanisms,
-    whileHeld(clawPivot6, Button::R1, Button::R2, 12_volt),  // forward / back, full power
-    whileHeld(clawPivot7, Button::L1, Button::L2, 12_volt),  // forward / back, full power
-    toggle(claw, Button::A));                                // each press opens or closes it
+inline constexpr DriverControls kControls = controls(kRobotOneMechanisms,
+    whileHeld(cascade, Button::R1, Button::R2, 12_volt),   // R1 up / R2 down while held; let go: it holds
+    toggle(claw, Button::A),                               // each press: open / close
+    toggle(flipper, Button::B),                            // the front toggle -- each press: open / close
+    toggle(ramp, Button::X),                               // each press: down / up
+    whileHeld(rightToggle, Button::L1, 12_volt),           // held: runs (one way); let go: stops
+    whileHeld(leftToggle, Button::L2, 12_volt),            // held: runs (one way); let go: stops
+    homeAtDriverStart(cascade, 3_s));                      // [delete-able] home it at the first driver start
 ```
 
 **The feel** — the library's default arcade feel with field-centric off, the re-zero button, and
@@ -264,7 +273,7 @@ inline constexpr DriverLoopConfig kLoop{
 **Its name** — the one line that makes the three constants a driver the programs can hold:
 
 ```cpp
-using RobotTwoDriver = DriverFile<robot_two::kControls, robot_two::kFeel, robot_two::kLoop>;
+using RobotOneDriver = DriverFile<robot_one::kControls, robot_one::kFeel, robot_one::kLoop>;
 ```
 
 Every line of these listings is the file's own, and each listing is an unbroken run of the file:
@@ -273,11 +282,11 @@ the file inside a part listed here, until the listing is quoted again.
 
 **Two programs run this file**: "shulib Drive" on its own, and the competition program's driver
 control ("shulib Competition" — [guide chapter 17](../guide/17-the-competition-program.md)). Under
-it, in both, the library protects the drive, as the file's header says in plain words: a drive motor
-that stops answering is dropped and the robot drives on; more than two dead stop the drive for the
-rest of the run; a fight, or more than 2.4 A while driven, for 250 ms stops both sides for 1 s — the
-loop's numbers, every one unmeasured. **Nothing of it has run on a robot**: it is tested on the host,
-through a stand-in for PROS, against robot two's real mechanisms.
+it, in both, the library protects the drive: a drive motor that stops answering is dropped and the
+robot drives on; more than two dead stop the drive for the rest of the run; a fight, or more than
+2.4 A while driven, for 250 ms stops both sides for 1 s — the loop's numbers, every one unmeasured.
+**Nothing of it has run on a robot**: it is tested on the host, through a stand-in for PROS, against
+each robot's real declarations.
 
 **Why it is written this way.**
 
@@ -286,35 +295,36 @@ through a stand-in for PROS, against robot two's real mechanisms.
   rule for trusting the heading — is written once, in
   [`src/common/driver_file.hpp`](../../src/common/driver_file.hpp)'s `DriverFile`, for every robot.
   A second robot's driver file copies none of it: its controls, its feel, its loop and one `using`
-  line. (Until the mechanism core's fifth part this file also carried a class, its `bind()` and
-  `run()`, its bindings and six checks.)
+  line.
 - **A control names its mechanism by its declaration**, so a misspelt or removed mechanism is a
   compile error at the control's line, and `controls(...)` checks the whole list against the
   robot's list at build — each refusal BY NAME: a button doing two jobs, a hold's volts outside
   (0, 12], a control on a mechanism this robot does not have, a mechanism with no control (mark one
   the driver never works `autonOnly(...)`). `DriverFile` adds the last two checks: no control on
-  the loop's re-zero button, and no tick but the brain's (the file states none — the library
-  supplies it).
-- **The claw starts where the robot started.** The program's FIRST driver-control entry sends the
-  claw its start position ("closed", in the robot file), whatever an autonomous routine left: the
-  team lead's ruling, "starts closed — whatever autonomous left it at". After that, a disable and
-  the next start send nothing, and a controller that drops out never flips it: a press must be SEEN
-  — up, then down, on two connected ticks. Which line level closes it is the robot file's (on the
-  claw's `.positions` line), never this file's.
-- **The claws run through the robot's mechanism service** — the same one that runs them in an
-  auton — and behave exactly as robot two's claws did before the mechanism core: R1 / R2 and L1 / L2
-  drive each pivot at full power while held, let go and it holds; both buttons at once is let go;
-  and a held button stops the moment the field disables the robot.
+  the loop's re-zero button, and no tick but the brain's.
+- **The cascade homes at the first driver start.** `homeAtDriverStart` moves it DOWN on its own until it
+  stalls gently on its bottom stop (at most 3 s); R1 / R2 wait until it has. Before it is homed a held
+  button gives it at most its unhomed volts (the robot file's), with no soft stops.
+- **A side toggle runs ONE way** (`whileHeld(rightToggle, Button::L1, 12_volt)`, one button): held, it runs
+  its declaration's direction; let go, it stops. Which way that is lives in the robot's facts file — a
+  toggle that runs the wrong way is fixed there, never by its button.
+- **The pistons start where they rest.** Each piston starts (and is made safe) in the position its
+  solenoid holds UNPOWERED, so nothing moves at power-up; the first press moves it to the other. A press
+  must be SEEN — up, then down, on two connected ticks — so a controller that drops out never flips one.
+- **The twin's file is the same file.** A change to a button is made in BOTH driver files, in the same
+  change: [`test/robot_twin_test.cpp`](../../test/robot_twin_test.cpp) fails while the two files' marked
+  regions — `[driver file one]` (the controls), `[control words one]` (the header's map) and `[feel one]`
+  (and robot two's `two` ones) — differ in anything but the robot's name.
 
 **Watch out for:**
 
-- **Keep the driver in static storage.** The program holds ONE `RobotTwoDriver` for the whole run,
-  never on `opcontrol()`'s stack: a field disable deletes the driver-control task, and the loop
-  holds the driver's inputs by address.
+- **Keep the driver in static storage.** The program holds ONE driver for the whole run, never on
+  `opcontrol()`'s stack: a field disable deletes the driver-control task, and the loop holds the
+  driver's inputs by address.
 - **Bind it once, at boot, inside the boot's `try`, AFTER the mechanism service is bound** — a
   control naming a mechanism the robot does not have, or of another kind, throws there, where the
   program can still refuse the boot and say why.
-- **Change a button in the driver file and nowhere else.** The buttons — the re-zero button
+- **Change a button in the driver files and nowhere else.** The buttons — the re-zero button
   included — are stated only there; the robot file says what each mechanism IS (its ports, its
   stop), never which button works it, and the programs' boot lines read the buttons from the driver
   file's controls.

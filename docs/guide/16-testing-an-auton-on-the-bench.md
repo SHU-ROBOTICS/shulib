@@ -1,11 +1,12 @@
 # 16 — Testing an auton on the bench
 
 > **Covers:** "shulib Auton Tester" — the program that runs one of the team's autons on the bench,
-> from the brain's screen, with no competition switch; the team's auton file,
-> `src/team/autons.cpp`, which it and the competition program both read; what to expect from the
+> from the brain's screen, with no competition switch; each robot's autons file
+> (`src/team/robot_one_autons.cpp`, `src/team/autons.cpp`) and the skills route both share
+> (`src/team/skills_route.cpp`), which it and the competition program both read; what to expect from the
 > first run on a tank, and how to read the result against a tape measure; and previewing a whole
 > route on the laptop before it goes on the robot (`tools/route_preview.py`).
-> **Read this if:** you are about to run an auton on robot two, or you are writing the next one.
+> **Read this if:** you are about to run an auton on either robot, or you are writing the next one.
 > **Assumes:** [Chapter 9](09-the-recipe-api.md) (a routine as a chain of steps) and
 > [Chapter 4](04-drivetrains.md)'s section on what a tank can and cannot do.
 
@@ -32,16 +33,18 @@ field disabling the robot mid-auton, the hand-over from autonomous to driver con
 the controller's Timed Run really enters `autonomous()`, and the first moments after a mode
 change. Both programs also hand the call the same two things an auton needs for the robot's
 **mechanisms** (since the mechanism core's fifth part, 2026-10-29): the robot's **mechanism
-service**, so a claw step in an auton runs and is judged exactly as it will be in the match, and a
-**command registry** holding the robot's mechanism **route ids** — so an auton written as a *route*
-(the path editor's kind, with markers) can fire robot two's claws from its markers. A marker naming
+service**, so a mechanism step in an auton (the cascade, a piston) runs and is judged exactly as it will be
+in the match, and a **command registry** holding the robot's mechanism **route ids** — so an auton written
+as a *route* (the path editor's kind, with markers) can fire the robot's mechanisms from its markers. A marker naming
 any other id is counted as unknown and runs nothing: the team's own commands have no place to be
 registered yet.
 
 **The competition program ("shulib Competition") calls the same `registerAutons()` and the same
 `competition::runAuton`** — [Chapter 17](17-the-competition-program.md) describes it.
 
-Build and upload it like the other robot-two programs:
+Build and upload it like the other programs — robot two's build below; robot one's is
+`make ROBOT=one PROGRAM=autontest`. Each robot's build refuses, naming every fact of its facts file it
+still owes, until those facts are typed ([Chapter 21](21-adding-your-robot-by-hand.md)):
 
 ```sh
 rm -rf bin .d && make ROBOT=tank PROGRAM=autontest
@@ -60,35 +63,25 @@ and uploading Tune replaces it.) Start it from the **brain's**
 screen, with the controller paired and on its home screen — started from the controller's menu it
 would be a pretend match, and the tester refuses to run an auton in any competition mode.
 
-## The team's file: `src/team/autons.cpp`
+## The team's files: the autons
 
-Every auton the robot can run lives in one file the team owns, `src/team/autons.cpp`, and one
-function at its bottom, `registerAutons()`, lists them in the order the brain's menu shows them.
-Both programs — the tester and the competition program — call that function;
-neither has an auton of its own. The host test suite compiles the same file and runs every auton
-in it on the host test plant through the tester's own run sequence, so a change to an auton is
+Every auton a robot can run lives in a file the team owns, and one function at its bottom lists them in
+the order the brain's menu shows them: **robot two's** is `src/team/autons.cpp` (`registerAutons()`),
+**robot one's** `src/team/robot_one_autons.cpp` (`registerRobotOneAutons()`). Both programs — the tester
+and the competition program — call the build's robot's list; neither has an auton of its own. The two
+robots are one build (robot two is robot one's twin), so the two files hold the same autons — with ONE
+difference, the team lead's: robot two runs the team's **skills route** mirrored across the field's
+diagonal ([cookbook chapter 9](../cookbook/09-one-route-two-robots.md)). The route itself lives once, in
+`src/team/skills_route.cpp`, shared by both. The host test suite compiles all three files and runs every
+auton in them on the host test plant through the tester's own run sequence, so a change to an auton is
 tested before it is uploaded.
 
-The first auton drives 40 inches straight ahead. Here it is, quoted from the file (the build
-fails if this listing and the file ever disagree):
+The first hand-written auton drives 40 inches straight ahead. Here it is, quoted from robot two's file (the
+build fails if this listing and the file ever disagree):
 
 ```cpp
-// ── THE 40 IN AUTON ─────────────────────────────────────────────────────────────────────
+// ── THE 40 IN AUTON (robot one's, copied) ──────────────────────────────────────────────────
 // Drive straight forward 40 inches and stop, facing the way the robot started.
-// ONE moveTo: the library drives to the POSE -- 40 in ahead, 0 in to the side, facing 0 degrees --
-// and the step ends when the robot is there and still, or when the motion's own time limit ends
-// it. Nothing is tuned here: the motion uses the robot's configured defaults.
-// A TANK CANNOT DRIVE SIDEWAYS. If one side of the drive is weaker than the other, it turns the
-// robot toward that side and the robot drifts off its straight line. While it drives, the library
-// steers it back: it measures the turn it did not ask for and cancels it, and it aims a little
-// back toward the line, never more than 15 degrees off the heading written here. (It steers only
-// a step that starts within 15 degrees of that heading, as this one does; otherwise turn first
-// with face().) On the serial log, TSTR marks each tick's line where it is steering noticeably.
-// If the robot still cannot finish within half an inch of the spot and about a degree of the
-// heading, the step ends on its time limit: the result reads ROUTINE STOPPED with the fault
-// MOTION_TIMEOUT, and the brake at the end still runs. That is the library telling the truth
-// about this robot, not a broken auton: read END x and y (how far short, how far beside) and the
-// TSTR lines before changing anything.
 chassis::RoutineResult fortyInchesForward(competition::AutonContext& ctx) {
     chassis::Routine r{ctx, "40in-forward"};
     r.moveTo(math::Pose2d{40_in, 0_in, 0_deg});
@@ -96,28 +89,36 @@ chassis::RoutineResult fortyInchesForward(competition::AutonContext& ctx) {
 }
 ```
 
-It is one [Routine](09-the-recipe-api.md) with one step. The robot's coordinates are the ones
-from [Chapter 2](02-the-field-and-coordinates.md): x straight ahead, y to the left, angles
-counterclockwise. And the list at the bottom of the file:
+It is one [Routine](09-the-recipe-api.md) with one step: ONE `moveTo` — the library drives to the POSE
+40 in ahead, 0 in to the side, facing 0 degrees, and the step ends when the robot is there and still, or
+on the motion's own time limit. The robot's coordinates are the ones from
+[Chapter 2](02-the-field-and-coordinates.md): x straight ahead, y to the left, angles counterclockwise.
+And the list at the bottom of the file:
 
 ```cpp
 void registerAutons(competition::AutonRegistry& registry) {
-    // 1. THE 40 IN AUTON.
+    // 1. THE 40 IN AUTON, as a SKILLS auton (the 60 s autonomous coding skills run).
     competition::AutonEntry forty{};
     forty.name = "40in forward";                      // what the brain's menu shows
-    forty.kind = competition::AutonKind::Match;       // runs in the 30 s autonomous period
+    forty.kind = competition::AutonKind::Skills;      // runs in the 60 s skills period
     forty.routine = &fortyInchesForward;              // the function above
     forty.start = competition::StartPose::relative(); // where we place it is (0, 0), facing 0
-    forty.endActionAt = 27_s;  // still running at 27 s? it is stopped, and the end action starts
-    forty.hardStopAt = 29_s;   // everything stops: 2 s after 27 s, 1 s before the field's 30 s
+    forty.endActionAt = 57_s;  // still running at 57 s? it is stopped, and the end action starts
+    forty.hardStopAt = 59_s;   // everything stops: 2 s after 57 s, 1 s before the run's 60 s
     // endAction is left out: the end action is chassis.brake() -- 0 V under Brake until still.
     registry.add(forty);
 
-    // 2. THE LIBRARY'S ACCEPTANCE RUN (drive 24 in, turn to 90 degrees, face the start, drive
-    //    back): the test that the whole library works on this robot, on the same schedule.
-    registry.add(competition::acceptanceRunEntry(competition::AutonKind::Match, 27_s, 29_s));
+    // 2. THE LIBRARY'S ACCEPTANCE RUN (drive 24 in, turn to 90 degrees, face the start, drive back): the
+    //    test that the whole library works on this robot, on the skills schedule.
+    registry.add(competition::acceptanceRunEntry(competition::AutonKind::Skills, 57_s, 59_s));
+
+    // 3. THE TEAM'S SKILLS ROUTE (src/team/skills_route.cpp), MIRRORED for robot two:
+    registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));
 }
 ```
+
+Robot one's list is the same with `registry.add(skillsRoute());` — the route as written — on its last line.
+Every entry is a SKILLS entry: the only competition before the 21st is skills (the team lead's ruling).
 
 Each entry is **data**: a name (at most 29 characters, shown as `AUTON: <name>`; 25 for a mirrored
 entry — [Chapter 17](17-the-competition-program.md#two-robots-one-route-a-mirrored-auton)), a kind (a 30 s
@@ -125,11 +126,13 @@ match period or a 60 s skills run — the periods are the game manual's, declare
 `src/team/autons.hpp`), the routine, where it starts, and its schedule. The schedule is the part a
 new author gets wrong most often, so read it slowly: at `endActionAt` the routine is stopped
 wherever it is and the **end action** runs (here the brake); at `hardStopAt` everything stops,
-end action included. A hard stop that landed exactly on the field's 30 s would never get a tick
-to act, which is why 29 s. An entry whose hard stop does not fit its period is **refused by name
+end action included. A hard stop that landed exactly on the run's 60 s would never get a tick
+to act, which is why 59 s. An entry whose hard stop does not fit its period is **refused by name
 when it is registered** — and **dropped, that entry alone**: it is not on the menu (the menu names it
 in red, `REFUSED auton '<name>': ...`), the boot logs its whole sentence (`DROPPED: auton '<name>':
-...`), and every other auton still runs. That is the team lead's ruling for the competition program
+...`), and every other auton still runs. The skills route's entry is not in the autons file: both
+robots take it from `src/team/skills_route.cpp`, and the boot's line after the count says so (`(the
+skills route both robots share is fixed in src/team/skills_route.cpp)`). That is the team lead's ruling for the competition program
 (2026-10-02: one bad auton must never cost the rest, or a match's driver period); the tester does the
 same, so a student fixing one auton can still test the others.
 
@@ -205,7 +208,7 @@ without one the abort has no hands.
 An abort during the run stops the motion **within one more 10 ms tick** of the abort being seen,
 skips the end action — or cuts it short, if the brake had already started (RESULT then says
 `end action CUT`; nothing is wrong with the brake) — and leaves the drive at 0 V under Brake, with
-every claw and pivot in its safe state. The abort is read when a finger **lands** on the screen,
+every mechanism in its safe state. The abort is read when a finger **lands** on the screen,
 not when it lifts, and any finger that lands after your RUN touch lifted counts, however soon.
 Touch the **top half** of the screen to abort: no button on the countdown, running or RESULT page
 is there, so the finger that aborted cannot also press something on the RESULT page. (If you keep
@@ -214,22 +217,22 @@ holding, RESULT keeps its buttons grey until you lift, then arms them half a sec
 ## Reading the result against the tape
 
 The 40 in auton drives 40 inches **by the robot's own estimate** — its drive encoders and its IMU.
-The tape measure is how you find out whether the estimate is right. With robot two's calibration
-record as it stood on 2026-09-25 (it read 44 in for a taped 48 in — about 8 % short), a
-40 in auton should measure about **40 × 48 / 44 ≈ 43.6 in** on the tape. That is the calibration
-record being wrong, not the auton: the fix is a careful Calibrate rerun, **never** changing the
-40 in the file to make the tape agree. Every auton the team writes afterwards would inherit the
-fudge.
+The tape measure is how you find out whether the estimate is right. If the tape says more or less
+than 40 in, the calibration record's wheel scale is off by that ratio (a record that reads 44 in for
+a taped 48 in is about 8 % short, and its 40 in auton measures about **40 × 48 / 44 ≈ 43.6 in**).
+That is the calibration record being wrong, not the auton: the fix is a careful Calibrate rerun on
+that robot, **never** changing the 40 in the file to make the tape agree. Every auton the team
+writes afterwards would inherit the fudge.
 
-**What to expect on a tank.** A tank cannot drive sideways, and robot two's two sides are not
-equally strong (on 2026-09-25 it veered right over 48 in with the motors driven open-loop). Since
+**What to expect on a tank.** A tank cannot drive sideways, and no robot's two sides are exactly
+equally strong (the old robot two veered right over 48 in with its motors driven open-loop). Since
 API 2.3, `moveTo` on a tank steers back onto its line while it drives — the file's own comment
 above says how, and [Chapter 4](04-drivetrains.md#limits--what-limited-strafe-does-to-your-commands)
 explains it in full. So the result to expect is **`FINISHED`**, with `END` x near 40 and `END` y
 within half an inch, and `TSTR` on many of the tick lines in the serial log (the library was
 steering). On the host test plant the 40 in finishes with one side up to about a quarter weaker —
-robot two's is nearer a tenth — but that is the host test plant's number, not a promise for the
-robot, whose motors respond with a lag the plant does not have.
+the old robot two's was nearer a tenth — but that is the host test plant's number, not a promise for
+the robot, whose motors respond with a lag the plant does not have.
 
 If it **cannot** arrive within half an inch and about a degree, the step ends after its time limit
 — 5 s, the robot's configured default, itself still a provisional number — and the result reads
@@ -257,14 +260,30 @@ that one file. Nothing is written to the card during a run. Whether the brain ap
 expects is itself one of the beliefs the bench worksheet checks (the
 [Hardware Assumptions Register](../hardware-assumptions.md), HA-177).
 
-## The claws in an auton
+## Mechanisms in an auton
 
-Robot two's mechanisms — the two claw pivots and the pneumatic claw — are declared in its robot
-file, `src/robots/mechanism_table.hpp`, each by name inside the namespace `robot_two`. The team's
-auton file says `using namespace robot_two;` at its top, so an auton names them directly:
-`clawPivot6`, `clawPivot7` and `claw`. No auton in the team's file steps a claw yet — which claw
-does what in an auton is the team's to write — so here is one, quoted from a host test that runs it
-on robot two's real declarations (the build fails if this listing and that test ever disagree):
+Both robots have the same mechanisms — the cascade, the right and left side toggles, and three pistons:
+the claw, the front toggle (declared as `flipper`) and the ramp — declared in
+`src/robots/mechanism_table.hpp` inside each robot's namespace (`robot_one`, `robot_two`). An autons
+file says `using namespace robot_one;` (or `robot_two`), and the shared skills route
+`using namespace this_robot;` — the BUILDING robot's names — so an auton names them directly:
+`r.set(claw["open"])`, `r.run(rightToggle, 12_volt, 0.5_s)`, `r.move(cascade.to(18_in), 2_s)`. (In the
+shared route, which robot two runs MIRRORED, a side toggle is picked by side —
+`competition::isMirrored(ctx) ? leftToggle : rightToggle` — because a mirror swaps the robot's sides;
+[chapter 17](17-the-competition-program.md#what-it-cannot-carry).)
+The cascade has no limit switch: it learns where its bottom is by stalling gently down into its stop,
+so a route homes it first — `r.startHome(cascade, 2_s)` while the first leg drives — and **waits for the
+home to finish** (`r.waitUntilDone(cascade, 2_s)`) before its first move; a move sent while it is still
+homing replaces the home and stops `NOT_HOMED`. Which mechanism does what in an auton is the team's to
+write ([Chapter 21](21-adding-your-robot-by-hand.md) has robot one's facts;
+[Chapter 18](18-mechanisms.md) every step form).
+
+### The claws in an auton
+
+How a mechanism step runs and is judged, shown on the host suite's example robot with claws — the OLD
+robot two's two claw pivots and pneumatic claw, retired in the code (2026-11-16) after the team lead's
+ruling of 2026-11-13 that robot two is robot one's build, and kept as the suite's example of two motor mechanisms and a piston. Quoted from the host
+test that runs it (the build fails if this listing and that test ever disagree):
 
 ```cpp
 RoutineResult grabAndPivot(AutonContext& ctx) {
@@ -280,25 +299,25 @@ RoutineResult grabAndPivot(AutonContext& ctx) {
 
 Two things in it are easy to get wrong. The routine is built on the **context**,
 `Routine r{ctx, "grab-and-pivot"}` — the form the 40 in auton uses too. Built on the chassis
-alone (`Routine r{ctx.chassis, ...}`) it has no mechanisms: its drive steps run, and its first claw
-step throws, naming the fix. And every step on a claw is **judged**, one serial line each (tag
+alone (`Routine r{ctx.chassis, ...}`) it has no mechanisms: its drive steps run, and its first
+mechanism step throws, naming the fix. And every mechanism step is **judged**, one serial line each (tag
 `MECH`), as it ends: on the host test plant, the run above logs `'claw': SUCCEEDED -- time in 0.5…`
 for the open, `'claw': UNCONFIRMED -- time in 0.5…` for the grab, then `'claw pivot 6': SUCCEEDED`
 and `'claw pivot 7': SUCCEEDED`, each `-- time in 0.4…`, and the result reads `FINISHED`. Nothing
-senses the claw, so a claw step ends when its declared move time has passed — 0.5 s, a guess
-until the bench worksheet times it ([HA-185](../hardware-assumptions.md)) — and the grab is
-UNCONFIRMED, **counted done**: the auton goes on (the team lead's ruling). Which level opens the
-claw is a guess too ([HA-159](../hardware-assumptions.md)). At the end of every run, and on an
-abort, the run guard puts every claw in its safe state: the pivots at 0 V in Hold, the claw closed.
+senses a piston, so a piston step ends when its declared move time has passed — on the robots, its
+stroke time from the facts file — and a grab is UNCONFIRMED, **counted done**: the auton goes on (the
+team lead's ruling). At the end of every run, and on an abort, the run guard puts every mechanism in
+its safe state.
 
-**On a route, the same claws are markers.** Each mechanism's actions are published as route ids,
-derived from its name: `claw_open` and `claw_closed`; `claw_pivot_6_run` and `claw_pivot_6_stop`;
-the same two for pivot 7. A run marker takes its volts and a time limit in milliseconds
-(`claw_pivot_6_run` with 12 and 400 is the auton's pivot step above); one without its time limit is
-refused by name, nothing moves, and the route stops there. Here is the auton above as a route — a
-start that opens the claw, then a drive 20 inches out whose end grabs and pivots — quoted from the
-same host test, which runs it through the tester and checks each marker's verdict (a route is
-normally drawn in a route editor, not typed; this is what one holds):
+**On a route, the same steps are markers.** Each mechanism's actions are published as route ids,
+derived from its name: here `claw_open` and `claw_closed`; `claw_pivot_6_run` and `claw_pivot_6_stop`;
+the same two for pivot 7 (on the robots: `cascade_home`, `claw_open`, `ramp_down` and the rest). A run
+marker takes its volts and a time limit in milliseconds (`claw_pivot_6_run` with 12 and 400 is the
+auton's pivot step above); one without its time limit is refused by name, nothing moves, and the route
+stops there. Here is the auton above as a route — a start that opens the claw, then a drive 20 inches
+out whose end grabs and pivots — quoted from the same host test, which runs it through the tester and
+checks each marker's verdict (a route is normally drawn in a route editor, not typed; this is what one
+holds):
 
 ```cpp
 route.waypoints[0].markers[0] = marker("claw_open");
@@ -316,37 +335,48 @@ Its four markers fire in that order and are judged as the auton's steps are — 
 grab UNCONFIRMED and counted done, each pivot SUCCEEDED — and the result reads `FINISHED`.
 [Chapter 18](18-mechanisms.md#as-route-markers--every-mechanisms-ids-run) covers the ids in full.
 
-**What the boot says about them.** The tester's serial log names each mechanism as it boots: what
-the robot file declares it to be, where each part is plugged in, and whether the brain found it
-there; then the route ids it published (the competition program prints the same, plus a line saying
-what each driver button does) —
+### What the boot says about them
+
+The tester's serial log names each mechanism as it boots: what the robot file declares it to be, where
+each part is plugged in, and whether the brain found it there; then the route ids it published (the
+competition program prints the same, plus a line saying what each driver button does). Robot two's,
+printed by the same functions on the host over its real declarations — on its facts file's placeholders,
+robot one's numbers, which a robot-two build refuses until they are typed:
 
 ```text
-claw pivot 6: POWER -- RED, motor 1 forward; let go: HOLD
-claw pivot 6: motor 1 -> port 6 ok
-'claw pivot 6': no stall signature -- held against its stop it is cut only by the driver letting go (HA-154)
+cascade: LIFT -- BLUE, motor 1 forward, motor 2 reversed; made safe: HOLD
+cascade: motor 1 -> port 10 ok
+cascade: motor 2 -> port 1 ok
+cascade: NOT HOMED -- a hold moves it at most 4.0 V with no soft stops; a preset or a move ends NOT_HOMED until it is homed (homeAtDriverStart, homeOnPress, or an auton's r.home)
+cascade: starting values kP 0.250 kI 0.300 kD 0.0040 kV 0.0033, cruise 60.0 in/s in 0.25 s, reached within 0.25 in for 0.10 s -- PROVISIONAL (HA-182); .tuning overrides
+right toggle: POWER -- GREEN, motor 1 forward; let go: BRAKE
+right toggle: motor 1 -> port 9 ok
+'right toggle': no stall signature -- held against its stop it is cut only by the driver letting go (HA-154)
 claw: PNEUMATIC -- starts 'closed', safe 'closed'; closed = A low, open = A high (levels UNVERIFIED until a bench station sees them); a disable leaves it where it is
 claw: line 1 -> 3-wire A not checkable (the brain cannot see a 3-wire device)
-ROUTES: 6 mechanism route ids published (claw_pivot_6_run .. claw_open); 26 of the registry's 32 left for the team's own
+ROUTES: 11 mechanism route ids published (cascade_home .. ramp_down); 21 of the registry's 32 left for the team's own
 ```
 
-— pivot 7's lines between them, like pivot 6's. A pivot that is not plugged in says so on its
-second line, as a warning naming what the brain found on that port, and the tester still runs:
-the run guard cannot make an absent claw safe, and the drive does not need it.
+— the left toggle's lines between the right toggle's and the claw's, the flipper's and the ramp's after
+the claw's, each like its twin's. A motor that is not plugged in says so on its second line, as a
+warning naming what the brain found on that port, and the tester still runs: the run guard cannot make
+an absent mechanism safe, and the drive does not need it.
 
 ## Writing the next auton
 
-Add a function beside `fortyInchesForward`, and an entry for it in `registerAutons()`. Keep the
+Add a function beside `fortyInchesForward`, and an entry for it in BOTH robots' lists — robot one's
+`src/team/robot_one_autons.cpp` and robot two's `src/team/autons.cpp`: the host suite fails while the twins'
+lists differ (the skills route itself goes in `src/team/skills_route.cpp`, once, for both robots). Keep the
 schedule a real match schedule — the students will copy it — and remember a tank turns first
 (`face()`) and then drives. Build, run the host tests, upload the tester, and try it on the bench,
 wheels up first. When you change a line this chapter quotes, the build tells you which listing to
 update.
 
 What the host tests do with your new entry: one test runs **every** registered auton, whatever the
-file holds, through the tester's own run sequence on the host test plant — robot two's claws
+file holds, through the tester's own run sequence on the host test plant — each robot's mechanisms
 included, through the same mechanism service the programs use — and fails if any of them is
-refused, throws (a claw step that can never be met throws at the step), never starts, hits its hard
-stop, or does not end with its end action run, the drive stopped under Brake and every claw in its
+refused, throws (a mechanism step that can never be met throws at the step), never starts, hits its hard
+stop, or does not end with its end action run, the drive stopped under Brake and every mechanism in its
 safe state. Another reads the file itself and fails if a routine is built on `ctx.chassis` instead
 of `ctx`. A second test pins the first two autons by name and schedule, and
 counts the entries: it fails on your new one with a message asking you to pin its name, kind and
@@ -399,9 +429,11 @@ the robot.*
   sensors, as robot two's program has none today — so a wall reset is never green here.
 - **Teal** — a grab that nothing could confirm (UNCONFIRMED, counted done).
 - **Dashed** (a dashed diamond, `[PLACEHOLDER]` in the table) — a step whose time comes from a
-  number nobody has measured yet: robot two's claw is the declaration's 0.5 s (HA-185) until
-  Station J times it; a lift or arm still on the library's starting numbers (HA-182) moves in the
-  time its declaration predicts, not its real one; a flywheel spins up on an ASSUMED 0.2 s time
+  number nobody has measured yet: a lift or arm still on the library's starting numbers (HA-182) —
+  the cascade, until "shulib Tune" sets its own — moves in the time its declaration predicts, not its
+  real one; a piston whose stroke time is still OWED in its robot's facts file (all three of robot
+  two's: robot one's chosen 0.5 s until the builder times robot two's) moves in that time; a
+  flywheel spins up on an ASSUMED 0.2 s time
   constant (the host test plant has to give the wheel some weight, and a flywheel's declaration has
   no number for it). On robot one, every fact its facts file (`src/robots/robot_one_facts.hpp`)
   still OWES is a placeholder (the preview uses it wherever it needs that number): the page and the
@@ -444,10 +476,11 @@ them word for word.
 drawn starting at the field's centre facing 0°, and the page says so in red. A FIELD auton is drawn
 at its declared start.
 
-**Which robot.** The preview runs robot two's real mechanisms (`--robot two`, the default) on the
-test suite's **stand-in drive** — a 12 in tank with made-up gains, not robot two's drive (its track
-width is not in the code yet). Another robot's mechanisms run on fakes built from their
-declarations' own numbers, on the same stand-in drive — where a declaration does not say how quickly
+**Which robot.** The preview runs robot two (`--robot two`, the default) on the test suite's
+**stand-in drive** — a 12 in tank with made-up gains, not robot two's drive (Calibrate discovers that
+on the robot). Robot two's mechanisms — robot one's twin's cascade, side toggles and pistons — run on
+fakes built from their declarations' own numbers, every one of them still a placeholder in robot
+two's facts file, so its cascade and piston steps are dashed. Where a declaration does not say how quickly
 its mechanism gets up to speed (an arm's or a lift's `kA` in its `.tuning`; a flywheel's declaration
 has no such number), the fake assumes it (0.05 s for an arm or lift, 0.2 s for a flywheel). A
 flywheel's spin-up time is mostly that number, so its steps are dashed and the page names it; an arm

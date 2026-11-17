@@ -1,6 +1,6 @@
 # ROB1 — robot one (and its twin) in the code — live progress log
 
-<!-- release: between parts — ROB1-A and ROB1-C2 landed (robot one's mechanisms, 2026-11-16); Stage B from station 13, ROB1-BT (robot two as the twin) and ROB1-C follow (declared by the coordinator 2026-11-16) -->
+<!-- release: between parts — ROB1-A, ROB1-C2 and ROB1-BT landed (BT merged 2026-11-17); G1-F types each robot's remaining facts as its builder reads them (station 13's Stage B, robot two's form) -->
 
 > The brief: [`ROB1-robot-one-and-twin.md`](ROB1-robot-one-and-twin.md) (it calls the runs G1-A / G1-B / G1-T / G1-C /
 > G1-F; filed as `ROB1-*` because "G1" is a finished chunk — `G1-PROGRESS.md` is NOT this log). Appended in real time.
@@ -1507,3 +1507,696 @@ check-examples (860 lines verbatim) / check-removability exit 0; briefing_status
   first hand-run mutation was INVALID — the build failed at the doc gates and the old binary ran; redone). Suite green
   (3,780). **Uploaded** to robot one's slot 4 from the calfix worktree on 2026-11-17 (the team's next run).
 - **For robot two (the twin, ROB1-BT2):** the same two facts must be typed into `robot_two_facts.hpp` at its merge.
+
+## ROB1-BT
+
+> Started 2026-11-16 in the worktree `rob1-bt2` (branch `rob1-bt2`, from `3c29b73` — ROB1-C2, MIRROR1-A and the Tune
+> label fix landed). Executor: `opus` (a workflow subagent). Not committed (the coordinator commits). Never `pros`, never
+> `/dev/ttyACM*`. Scratch: `.claude/coordinator/scratch/rob1-bt2/` only. The between-parts marker at the top of this log
+> is REMOVED while this run builds (the coordinator restores it at the merge). Host- and build-gated only: **nothing has
+> run on either robot.**
+
+- **Scope:** the brief's G1-B (§1.2, D10 — the calibration record names its robot) TOGETHER WITH G1-T (§1.3, D9 — robot
+  two becomes robot one's twin), re-scoped by the team lead's rulings of 2026-11-13 ("robot 1 and robot 2 are the same
+  build and just the auton routes are different"; "IT IS LITERALLY THE SAME ROBOT BUILD JUST A MIRRORED ROUTINE"; "do
+  what is best"), plus the route maker's contract (the RMP1 brief's §6.3, binding): the shared
+  `src/team/skills_route.{hpp,cpp}` with ONE marked region compiled into both robots, robot two's ONE mirrored line
+  (MIRROR1-A is on this base), and the `control words` / `feel` markers in both driver files.
+- **A previous run** (branch `rob1-bt`, base `49822e5`, before ROB1-C2) was stopped twice; its log is on that branch
+  only. This run reuses what still fits (read in `git diff 49822e5 rob1-bt`) and twins robot one AS IT IS on `3c29b73`.
+
+### Log
+- **RESUMED (2026-11-16 08:53 EST, `date`).** The first build run in this worktree was cut by the 5-hour usage
+  limit at ~03:00 on 11-16, BEFORE it had logged anything under this heading (its notes were its scratch scripts
+  `scratch/rob1-bt2/ed_*.py`, `mk_refusals.py` and build logs). Resumed by a fresh executor (`opus`). Checked
+  first: `git diff -- Makefile src/ | grep -c '(self-test plant'` = 0 (no gate plant); `git ls-files -o
+  --exclude-standard src include test` = only this run's new files (no stray plant); the scratch's last logs
+  (02:54-02:58) said the suite GREEN (3,780 cases) and the compile-refusal harness 301 of 303 (n31's two red).
+  Everything below was re-read from the tree (not from those logs), and the build tree rebuilt FROM SOURCE
+  (`--clean-first`, the test binary deleted first) before any result was trusted. The first run's design is
+  logged here from the tree as found (each item read in the diff).
+- **The design found in the tree (the first run's, re-read 2026-11-16 after the resumption; each a reading of the brief or a delta,
+  with its reason):**
+  1. **Robot two's ledger, `src/robots/robot_two_facts.hpp` (NEW, 33 facts, every one OWED):** robot one's facts,
+     names, stages and ORDER, each placeholder robot one's OWN value for that fact (`one::kCascadePorts.value()`), so
+     the host test plant runs robot two exactly as robot one. **Delta from the old branch (`rob1-bt`, which moved the
+     machinery into a shared `facts_ledger.hpp`):** the machinery stays in robot one's ledger and robot two's names
+     it one `using` at a time — fewer moved lines, robot one's ledger untouched, and a fact robot two lacks can never
+     be read from robot one's by an unqualified name. Its own check macro `ROBOT_TWO_CHECK` (robot one's four checks:
+     the name quoted verbatim, OWED refuses by name, a real source, typed-equal-to-placeholder needs "same as the
+     placeholder, checked") and its OWN gate-copy marker (`build/ROBOT-TWO-GATE-COPY-ONLY`).
+  2. **The twin regions (D2 (a), D9):** robot two's region in `mechanism_table.hpp` is robot one's region token for
+     token with `robot_one` -> `robot_two` (each region opens `namespace facts = robot_<n>_facts;`). Robot two's old
+     claws are RETIRED (the team lead's word, D9) — kept only as the host fixture `mech_fixture::robot_two`
+     (`test/mechanism_fixtures.hpp`, already there) and `test/retired_robot_two.hpp` (NEW: the old signed chassis
+     table, byte for byte, for the tests that need "a real measured, signed table"). The fact checks are robot-
+     neutral now (`nonDriveMotorsDeclared`, `flipperKindAgrees`; refusals `…_in_its_robots_list`), applied to both.
+     **No line above robot two's region is the brief's [R5] concern any more:** robot two's packages change BY DESIGN
+     (it is a different robot), so T6 (robot two unchanged) is retired for this run — the bench and xdrive packages
+     are the ones that must not move in behaviour (they compile robot two's autons and driver type, landmine 10).
+  3. **`this_robot` selection** (in `mechanism_table.hpp`, the one file allowed to name both robots): `cascade`,
+     `rightToggle`, `leftToggle`, `claw`, `flipper`, `ramp`, `facts::lv(i)` resolve to the BUILDING robot's
+     (`kRobotId`) — so the shared skills route (`using namespace this_robot;`) runs robot two's cascade in robot two's
+     package (the route maker's landmine 10).
+  4. **Robot two's chassis table = robot one's design:** every drive field UNSET (Calibrate discovers them); the
+     drive CARTRIDGE `Unset` until the builder reads it off robot two (robot one's is BLUE, typed 2026-11-15) — the
+     one per-robot typed drive fact, never copied from robot one (landmine 17). The old measured table is history in
+     the comment and the fixture above.
+  5. **Robot two's driver file = robot one's map** (D9: "the students' choice which" — the team lead's ruling "the
+     same build" chose robot one's, the builder's map of 2026-11-15); the `control words` / `feel` markers placed in
+     BOTH files around the header map and THE FEEL (the RMP1 contract item 5): `// [control words one]` …
+     `// [/control words one]`, `// [feel one]` … `// [/feel one]` (and `two`), each alone on its line, content
+     unchanged.
+  6. **Robot two's autons file = the twin's starter** (the 40 in and the acceptance run as SKILLS, as robot one's) +
+     `registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));` — MIRROR1-A is on
+     this base, so the ONE line is written (the contract item 4). Robot one's file adds `registry.add(skillsRoute());`.
+  7. **`src/team/skills_route.{hpp,cpp}` (NEW):** the contract's region byte for byte; outside it the includes it
+     lists (with `field_mirror.hpp`; AF1S-A2's header is not on this base), `namespace shulib::bench`, `using
+     namespace units::literals;`, `using namespace this_robot;`. Compiled into both robots' packages (PROS builds all
+     of `src/`), the host suite and `shulib_route_preview`.
+  8. **G1-B, the record names its robot:** the library's `CalibrateFacts::recordName` (optional, LAST, so older facts
+     compile) and `calibration::isRecordName()` / `recordRobotName()` (`calibration_record.hpp`); the provenance
+     STARTS `robot=<name> <stamp>` (delta from the brief's `… <stamp> robot=<name>`: the calibrator keeps only the
+     provenance's first 40 characters, so a name last would be cut — found by the old branch, static_assert'd);
+     the name is the robot BEACON's own suffix (`robotRecordName(id)`, `build_selection.hpp`: `robot-one`,
+     `robot-two`) carried in each robot's words (`RobotWords::recordName`); the boot's NEW step 0
+     (`decideBootSourceFrom`) refuses, before the port check and with no table fall-back, a record naming another
+     robot (`the card's record is ANOTHER ROBOT'S`) and a record naming NONE (`the card's record names NO ROBOT`) —
+     on BOTH robots (the run's args: an older record is refused with a sentence telling the team to re-run
+     Calibrate, never silently accepted; **delta from the brief's T15**, which had robot two accept a nameless
+     record with a warning: robot two is rebuilt, its old record measured the old drive). Calibrate itself adds one
+     line at the card line and the front check when the card's record names another robot or none.
+  9. **Robot two's words = the mechanism words** (`MECH`, `MECH ABSENT`, "mechanism motors"); the old claw words live
+     on as `kClawWords` for the bench bot and the X-drive (which print none of them) and so the host suite's default.
+     A real defect the twin exposes, fixed (as on the old branch): `dropped_autons.hpp` and the Auton Tester's banner
+     chose the autons FILE on `Words::value.claw` — robot two would have said "fix src/team/robot_one_autons.cpp";
+     both print `Words::value.autonsFilePath` now (one literal format).
+  10. **The src gate:** the facts proof covers every robot with a ledger (`FACTS_LEDGERS`), each robot's builds refuse
+     with exactly ITS owed facts, no build prints another robot's OWED line, the copy types both ledgers; and
+     `self-test` RUNS IN A COPY (`build/src-gate-selftest/`, robot two's ledger typed there, robot one's left owed),
+     because no robot-two build links on the real tree and two dozen detector cases need a linked one — the
+     repository is never planted (a delta forced by the twin; the old branch's design, ported). New cases 59-62.
+- **Rebuilt from source and re-run (2026-11-16, after 08:53):** the test binary deleted, the briefing regenerated,
+  `cmake --build build/test -j8 --clean-first` — exit 0, no warning. **Suite (`suite_run.py green`): GREEN, 3,780
+  cases / 3,883,475 assertions** (ROB1-C2's base: 3,762). **Compile-refusal harness: 303/303 after one fix** (the
+  first run's two reds, n31's): both n31 cases judged a mechanism against `kRobotTwoChassis`, which since the twin
+  types no drive port and no IMU — so nothing collided and they compiled. Re-pointed at the OLD robot two's signed
+  table, `retired_robot_two::kChassis` (the same ports 2 and 13 they always meant), `expect-at` moved one line.
+- **A first-run slip fixed:** guide 16's quoted `registerAutons()` listing ended `}```` on one line (the fence
+  glued to the brace; the verbatim scan's regex still matched, so no gate saw it — a markdown renderer would
+  have swallowed the rest of the page into the code block).
+- **The src gate `check` (2026-11-16, the first of this session): every build as designed, one problem — mine.** bench, xdrive,
+  one, one-calibrate link; robot two's six REFUSE with exactly their owed facts (Bench Tests and Calibrate 17,
+  the other four 31), robot one's four Stage-B builds with exactly 9; the copy typed 44 owed facts (robot one's
+  11 + robot two's 33) and all twelve robot builds link and pass every check. FAIL on one line: `the
+  repository's src/robots/robot_two_facts.hpp CHANGED during the copy's proof` — TRUE: I added the `HA-256` tag
+  to its banner comment while the proof ran. The gate caught exactly what it exists to catch; re-run at the end
+  on a still tree.
+- **New tests this session (robot_twin_test.cpp, two cases):** (1) robot two's `ROBOT_TWO_CHECK` is robot one's
+  `ROBOT_ONE_CHECK` for robot two, token for token (the shared machinery `same` / `needs` / `contains` named from
+  robot one's ledger) — a robot-two check keyed on robot ONE's id, or one of its four checks weakened, was seen
+  by no host test (only the gate's real-tree half); (2) every robot-two fact has EXACTLY ONE `ROBOT_TWO_CHECK`
+  as its very next statement, quoting its name — robot one's T2 has this, robot two's ledger had no host test of
+  it (a deleted check would have let a robot-two build link while the fact is owed). Also: `skills_route_test`'s
+  MESSAGE printed the result word's ADDRESS (`const char*` through doctest) — wrapped in `std::string`.
+- **Docs (2026-11-16, the prose review run FIRST — greps and hits below):**
+  - the brief's three greps: `only robot two|robot two's autons are` — one hit, `src/build_selection.hpp:93`'s
+    `#error` ("only robot two and robot one have a driver file…"), TRUE, left. `ROBOT=tank` across docs/guide,
+    docs/*.md, README.md, src/ — 45 hits, every one outside the changelog/roadmap/register read: each names
+    robot two's build (robot two kept its name — TRUE); the FALSE ones were around it: `src/main.cpp`'s "robot
+    two's signed table" (fixed), Bench Tests' runtime string `(robot two's claws: the ROBOT=tank build).`
+    (fixed: `(the cascade robots: ROBOT=one, ROBOT=tank).`). `simulator` in every page touched: 0 (the
+    changelog's one hit is a 2026-08 entry's "simulator result" — history). `G1-PROGRESS` in `ROB1-*`: only this
+    log's header and older entries quoting the check, and the brief.
+  - mine: `claw|pivot|robot two's claws` across the public docs (21 files) and `robot two` + claw/signed/pivot
+    across `src/` — every hit naming robot two's claws (or its signed table) as PRESENT read and fixed:
+    guides 07 (:138, :144, :150, :159), 10 (:222, :713, :839, :860), 11 (:326, :331), 14 (:238, :643-654), 16
+    (:40, :50, :211, the claws section, :349, :403), 17 (:24, :41, :46, :101, :316, :323, the boot-line block,
+    :440, :453, :519, :530, :567), 18 (:17, :378, :529, :592, :628, :669, :727, :745, :817), 19 (:20 and a new
+    section), 21 (the covers, the intro, the file table, the "robot two was not changed" paragraph, the facts
+    note, the row note, the twin section, the record-name bullet); cookbook 06 (the first run's) and 07 (:8);
+    README.md (:67, :99, :101, :321, :325, :329, :345); `docs/vexbuilder-integration.md` (:371-378);
+    `src/team/README.md`; the facts form (the title and F20); `test/mechanism_fixtures.hpp`'s banner (it claimed
+    a byte-for-byte pin the twin removed — reworded IN THE SAME LINE COUNT: its `.name` lines are pinned by line
+    number); `test/mechanism_table_test.cpp`'s banner and one stale title ("only robot two declares
+    mechanisms" — stale since ROB1-A); src comments in `driver_panel.hpp`, `driver_file.hpp`, `bench_r3a.cpp`,
+    `competition_program.cpp`, `xdrive_program.cpp`, `main.cpp`; Bench Tests' four runtime strings that named the
+    old robot two as present ("robot two's [table] does [carry signs]", the distance and camera hints "(robot two:
+    ports 4 and 5 / port 3, 2026-09-24)" — now "(the old robot two: …)", and the claws line). **Left as
+    written** (true, or history): the changelog's and the roadmap's entries; guide 11's example log lines
+    (`'claw pivot 6': …` — the library's words for any claw); the cookbook's generic claw recipes; guide 02 /
+    03 / 15 / cookbook 09's generic "a claw"; `robot_one_facts.hpp`'s typed SOURCE strings that cite "robot two's
+    claw's provisional 0.5 s" (a fact's provenance is never rewritten); HA-176's "on robot two" (a drive-protection
+    threshold belief about the OLD robot two's coupled drive — flagged for the coordinator, not edited).
+  - **Pages touched (public):** guides 07, 10, 11, 14, 16, 17, 18, 19, 21; cookbook 06, 07; README.md; the
+    changelog; the facts form; `docs/vexbuilder-integration.md`; the HA register; `docs/api/` (generated).
+    **That is far past pace rule 7's ~5** — flagged: the run combines two of the brief's runs and the RMP1
+    contract, and the claws' retirement reaches every page that named them as present.
+  - **Visuals:** `docs/assets/twin-mirror.png` (NEW — the REAL Override field from the game manual through
+    `tools/docs_figures/twin_mirror.py`, ported from the old branch: the skills diagonal y = -x and one example
+    leg as written and mirrored; guide 21's twin section); `docs/assets/record-names-its-robot.svg` (NEW —
+    `tools/docs_figures/record_name.py`: robot one's brain with its own card, robot two's, and an older card;
+    guide 19); `docs/assets/cascade-controls.svg` (the first run's, `tools/docs_figures/controller_map.py`;
+    cookbook 06). Robot two's boot lines in guides 16 and 17 are PRINTED by the real functions over robot two's
+    declarations and driver file on the host (probe `scratch/rob1-bt2/probe/bootlines*.cpp`, outputs beside it) —
+    never typed by hand.
+  - **The changelog entry** is at the top of `## API 2.9` — **delta from the run's args** ("the top of '## API
+    2.8'"): on this base API 2.9 (MIRROR1-A) is the top section and ROB1-C2's entry sits at its top; an entry
+    dated 2026-11-16 under 2.8 would break the newest-first order. No version bump (calibration is no Freeze
+    Register row; ROB1-C2's precedent).
+  - **HA register:** HA-256 REGISTERED (reported — the twin is the same build; its row, its entry, its tag in
+    `robot_two_facts.hpp`); HA-257 RELEASED unused (Held line); HA-153, HA-155, HA-156, HA-159, HA-185
+    SUPERSEDED (rows and entries kept, marked). HA-154 stands (the side toggles' boot line cites it); HA-157/158
+    stand (3-wire outputs — both robots' pistons). 232 registered.
+  - **Internal:** the worksheet — Stations J and P marked SUPERSEDED (kept), R1.3 updated (the record names its
+    robot), a NEW Station R2 (robot two's facts form, its card check). `roadmap.md` / `build-order.md` pointers
+    are the coordinator's at the merge (not touched).
+- **Mutations (2026-11-16, the first batch), 28 run, each OBSERVED:** the driver `scratch/rob1-bt2/mutate.py` (the old
+  branch's, re-pointed) backs the file up under `scratch/rob1-bt2/mut-backup/`, applies ONE exact replacement
+  (each target checked to occur exactly once), rebuilds with `make -C build/test shulib_tests/fast` (make's own
+  dependency files recompile every object that includes the file — the count is logged), runs the suite capped
+  (4 GiB, 600 s) on the mutant's filter, and restores the file byte for byte with a fresh timestamp in a
+  `finally` AND on SIGTERM/SIGHUP/SIGINT; the tree is rebuilt after the last. After the run every backup was
+  compared with its file: 27 of 27 identical. Results (`scratch/rob1-bt2/mut_results.txt`, `mut_results2.txt`):
+
+  | # | Mutation | Verdict | Red in |
+  |---|---|---|---|
+  | M01 (GM26) | boot step 0 skipped for a NAMELESS record | CAUGHT | boot_source_test (T15 nameless) |
+  | M02 | step 0 compiled out (`if constexpr (false)`) | CAUGHT | boot_source_test (T15 ×2) |
+  | M03 | the refusal falls through (no `return`) | CAUGHT | boot_source_test |
+  | M04 | the name written AFTER the stamp (the brief's form) | CAUGHT | calibrate_program_test (G1-B ×2) |
+  | M05 | `robot=` accepted mid-word (`xrobot=`) | CAUGHT | calibration_record_test |
+  | M06 | robot two's words carry robot ONE's record name | BUILD REFUSED by the SOURCE's static_assert (`robot_words.hpp`, "must carry their own record names") — **not counted as a test catch**; M06b is its runtime twin | — |
+  | M06b | `robotRecordName()` keeps part of the beacon prefix | CAUGHT (50 objects) | boot_source, robot_one_driver, robot_two_driver, calibrate_facts … (12 cases) |
+  | M07 (GM17) | robot two's cascade `Hold` -> `Brake` (its region only) | CAUGHT | robot_twin_test |
+  | M08 | robot two's region reads ROBOT ONE's facts | CAUGHT | robot_twin_test |
+  | M09 | `this_robot::cascade` robot one's on both sides | CAUGHT | skills_route_test |
+  | M10 | robot two's ramp button moved (X -> Up) | CAUGHT | robot_twin_test, robot_two_driver_test |
+  | M11 | a robot-two fact moved to another stage | CAUGHT | robot_twin_test (×2) |
+  | M11b | a robot-two placeholder pointing at ANOTHER robot-one fact | CAUGHT | robot_twin_test |
+  | M11c | a robot-two fact TYPED (copied) | CAUGHT | robot_twin_test |
+  | M11d | a robot-two fact's check line deleted | CAUGHT | robot_twin_test (this session's new case) |
+  | M12 | the dropped-autons path fixed to robot two's | CAUGHT | this_robot_test |
+  | M13 | robot one's `registry.add(skillsRoute())` deleted | CAUGHT | robot_one_autons, robot_twin, skills_route, this_robot |
+  | M14 | robot two registers the route UNmirrored | CAUGHT | autons, robot_twin, skills_route, this_robot |
+  | M15 | robot two's chassis IMU = 2 | BUILD REFUSED by the SOURCE's drive check (port 2 is a side toggle's placeholder port) — **re-cut** as M15b | — |
+  | M15b | robot two's chassis IMU = 17 | CAUGHT | robot_twin_test |
+  | M16 | robot two's row word `CLAW` | CAUGHT | robot_twin_test, this_robot_test |
+  | M17 | one comment line of the route maker's region changed | CAUGHT | skills_route_test |
+  | M18 | the provenance never named | CAUGHT | calibrate_program_test (G1-B ×2) |
+  | M19 | `ROBOT_TWO_CHECK` keyed on RobotOne's id | CAUGHT | robot_twin_test (this session's new case — before it, only the gate saw this) |
+  | M20 | Calibrate's record-name line silenced | CAUGHT | calibrate_program_test |
+  | M21 | upper case accepted in a record name | CAUGHT AT COMPILE by the TEST's static_assert (`calibration_record_test.cpp:453`, `calibrate_program_test.cpp:2650`) — a test assertion | — |
+  | M22 | a cut name accepted | CAUGHT | calibration_record_test |
+  | M24 | a bad record name no facts problem | CAUGHT AT COMPILE by the TEST's static_asserts (`calibrate_program_test.cpp:2566, :2568`) | — |
+- **Re-verified after the mutations:** the test binary deleted, the briefing regenerated, rebuilt —
+  exit 0; **suite GREEN 3,781 cases / 3,883,574 assertions** (+1: the new twin case); **refusal harness 303/303**;
+  the briefing regenerated over the fresh binary and `briefing_status.py check` exit 0; the ARM header gate over
+  all 258 headers clean; both CI greps empty; `api_doc_tool` self-test / check-coverage (6,445 entities) /
+  check-fresh / check-examples (911 lines verbatim) / check-removability all exit 0; `doc_staleness_audit.py`
+  clean.
+- **REVIEWS (2026-11-16) — three, each a forked `code-review` pass at `high` (this executor cannot
+  spawn agents; the `code-review` skill runs its review in a fork of its own — said plainly for the
+  coordinator, who may want its own three reviewers and a fresh verifier on top).** Every finding was checked
+  against the code before acting; each disposition below.
+  - **Reviewer 1 (the whole branch):** eight findings, seven in code this run did not write — passed to the
+    coordinator (the report's list): ROB1-C2's `kCascadeDirections` typed "same as the placeholder, checked" from
+    a guess (port 10 Forward — HA-255); robot one's map has no re-home button after a failed driver-start home
+    (the builder's map, G4); MIRROR1-A's `mirroredToggle` reflecting a RELATIVE start's Toggle through the field
+    mirror; the Makefile's variant stamp deleting `bin/` on a `make -n`; `match_runner`'s seat computed beside
+    `seatedStart()`; `compactRowText` re-implementing the claw row's formatting; hand-rolled string helpers in
+    robot one's ledger. **One acted on — a real defect, base code, that guides 16 and 17 now quote for the
+    twin:** the boot line `cascade: NOT HOMED -- its buttons do nothing until it is homed` is FALSE for a
+    mechanism with `.unhomedVolts` (a hold moves it at those volts — `driver_inputs.hpp`), which is exactly what
+    both cascades' maps rely on. `mechanismStateLines()` now says `NOT HOMED -- a hold moves it at most 4.0 V with
+    no soft stops; a preset or a move ends NOT_HOMED until it is homed (…)` when `.unhomedVolts > 0`, the old line
+    otherwise; pinned (`driver_panel_claws_test`, robot two's real cascade) and **M25** (the branch dropped) RED.
+  - **Reviewer 2 (G1-B and the gate):** twelve findings. **Fixed:** (1) **self-test case 59 would have CRASHED
+    every run** — reproduced: `type_every_fact()` keeps each argument's leading space (`,  Stage::A,  "…"`), the
+    case's regex wanted one; now `\s*` (re-verified on the real ledger before the run). (5) the step-0 refusal
+    printed no `boot source:` line and left `out.source` / `sourceWhy` unset — the only refusal that did; now
+    `boot source: REFUSE -- the card's record is another robot's` / `… names no robot`, pinned in T15, **M26**
+    RED. (6) the 40-character cut was a literal copied from the calibrator: now
+    `calibration::kProvenanceKept` (drivetrain_calibrator.hpp, `%.*s`), and Calibrate's static_assert reads it —
+    **M27** (the cut narrowed to 20) refused at build by that static_assert, the guard doing its job (a source
+    check, not a test; every Calibrate golden unchanged with the `%.*s` form, so the output is byte-identical).
+    (7) two `facts_verdict()` messages still named "ROBOT ONE'S FACTS PROOF". (8) two function-local
+    `FACTS_LEDGER`s shadowing the module's name — renamed. (4) `stage_table_problems()` read the machinery with
+    no existence check (a traceback, not a problem, on a tree without it) — guarded. (12) a gate copy's file list
+    was frozen at the copy: a file planted later was invisible to a nested facts copy — the list now adds any
+    file found under src/, include/, test/, tools/, firmware/. (9, 10) `sameWord()` and `beaconHasPrefix()` are
+    `std::string_view` one-liners now. **Not done, with reasons:** (3) adding each robot's ledger PATH to the
+    other's `ROBOT_FOREIGN_STRINGS` — written, then reverted: a package's DWARF (`-g`) names every header a TU
+    includes, and robot two's ledger includes robot one's (its machinery), so the path is in robot two's ELF by
+    design — a false failure on every robot-two build; the `if constexpr` choice in `thisRobotFactsLine()` is
+    the guard. (2) **Calibrate still checks the FRONT against a card record that names ANOTHER robot** — kept on
+    purpose: for twins (HA-256) that record is the one check that both robots share a front, which the mirrored
+    route needs; a record wired differently gives CANNOT TELL (disjoint ports, T2h) or a FRONT FLIPPED prompt
+    whose USE NEW saves as pushed, with the name line right above it in the log. The alternative (treat it as no
+    record: FIRST RECORD) is named for the team lead (the report). (11) `kClawWords` copying robot two's old
+    paths — by design: they are the OLD words, frozen with the claw robot; robot two's own are `kRobotTwoWords`.
+  - **Reviewer 3 (the twin, the route file, the docs):** confirmed the route maker's region byte for byte
+    (against RMP1-A1's `gl0_empty.cpp`) and the docs' numbers (17/31 owed, 11 route ids, the mirror example,
+    the refusal strings, the 40 in listing, the 14 builds). **Fixed:** (1) **a real trap — robot two's typed
+    facts would break the build the day robot one's same fact is typed to the same value** (robot two's
+    placeholder was robot one's LIVE `.value()`, so ROBOT_TWO_CHECK's "TYPED but still the placeholder" could
+    fire on a robot-two fact because ROBOT ONE was typed): a typed robot-two fact now keeps robot one's own,
+    unchanging `.placeholder` (owed ones keep `.value()`, so the host still runs robot two as robot one); the
+    banner, guide 21's example and the twin test (owed -> `.value(),`, typed -> `.placeholder,`; **M31** RED)
+    say so. (3) the shared route got the mechanisms but NOT the words (`stalls`, `seesPiece`, `High`): a
+    hand-written or exported step using them would not compile — `namespace this_robot` now says `using
+    namespace mechanism::words;`; a new skills_route case compiles them through it (**M29**: refused at compile
+    in the TEST's own lines, `skills_route_test.cpp:186`). (4) the selection test listed its six names by hand:
+    it now READS every declaration of robot one's region and requires a selection for each. (5) the twin test
+    pinned exactly three autons and mirrored index 2 only: it now requires the two lists equal (message: add a
+    new auton to BOTH) and mirrors exactly the entry named `skills`; guide 16's "Writing the next auton" says
+    both files. (6) robot two's facts HELPERS (the stall signatures, the stops, `lv`, `leftTogglePort`, the
+    counts) were copied with no test: a new twin case compares each body with robot one's (**M28**: robot two's
+    homing stall given the jam amps — RED). (8) the two autons banners pointed at each other: robot one's now
+    carries the text itself. (9) robot one's driver file said "THE ONE PLACE THE MAP IS LISTED" (now: here and,
+    word for word, in robot two's); robot two's header claimed the twin test reads comments in the controls (it
+    reads the code; the header map word for word) — reworded; robot two's block now says its 12 V and 3 s are
+    chosen, not measured. Also: the host suite runs the shared route on robot two's names (a bench build) — the
+    `this_robot` comment now says robot one's host runs match each step BY NAME, the twins' names being one.
+    **Not done:** (7) the NOT HOMED line is printed whether or not the driver file holds a hold — it states what
+    a hold does, true of the mechanism; (10) the preview marks none of robot two's OWED numbers as placeholders
+    (the cascade IS hatched — library starting values; the pistons' stroke times are not): RPV1's file and
+    RPV1-B's job (the brief's landmine 15), RPV1-S1 in flight — for the coordinator; (11) robot two's empty
+    chassis table makes the build-time drive check vacuous — as robot one's since ROB1-A, by design (Calibrate
+    discovers the drive; the boot's declared-port rule refuses a collision).
+  - After the fixes: the test binary deleted, the briefing regenerated, `docs/api/` regenerated (the new
+    `kProvenanceKept`), rebuilt — exit 0; **suite GREEN 3,783 cases / 3,883,644 assertions** (+2 cases: the
+    words, the helpers); refusal harness 303/303 (re-run after the last header change: below).
+- **More mutations after the reviews, each OBSERVED, every file restored byte for byte:** M25 the
+  NOT HOMED hold branch dropped — CAUGHT (driver_panel_claws_test); M26 the step-0 refusal's `boot source:` line
+  dropped — CAUGHT (boot_source_test T15); M27 the calibrator's cut narrowed to 20 — refused at BUILD by
+  Calibrate's own static_assert (the guard the review asked for, now reading the real constant — a source check,
+  not counted as a test catch); M28 robot two's homing stall given the jam amps — CAUGHT (robot_twin_test, the
+  new helpers case); M29 `this_robot` without the words — refused at COMPILE in the TEST's own lines
+  (`skills_route_test.cpp:186`, `'stalls' was not declared`); M31 an owed robot-two fact keeping robot one's
+  `.placeholder` instead of its value — CAUGHT (robot_twin_test). **In all: 33 host mutations run; 29 caught by a
+  test's runtime assertion, 3 by a test's own compile-time line (M21, M24, M29), 2 refused by a SOURCE
+  static_assert and not counted as test catches (M06, M27); M15 re-cut as M15b (its IMU port collided with a toggle
+  port, so the source's drive check fired first) and M15b CAUGHT.** No gate mutation was run (each costs a full
+  `self-test`, ~1 h); the gate's own self-test cases 59-62 are its tests, run below.
+- **Final checks on the still tree (finished by 10:31 EST, `date`; every clock time this session's entries
+  give is from `date` or a file's timestamp — the earlier drafts of these lines guessed times and were corrected):** refusal harness **303/303**; the doc gates — `api_doc_tool`
+  self-test OK, check-coverage 6,446 entities (+1: `kProvenanceKept`) all documented, check-fresh exit 0,
+  check-examples 911 lines verbatim, check-removability exit 0; `doc_staleness_audit.py` clean; **the src build
+  gate `check`: PASS** — bench, xdrive, one, one-calibrate link; robot two's six refuse with exactly their owed
+  facts (17 / 31), robot one's four Stage-B builds with exactly 9; the copy typed 44 facts (both ledgers) and all
+  twelve robot builds link and pass every check; "10 refused" in all. `git diff -- Makefile src/ | grep -c '(self-test
+  plant'` = 0; `git ls-files -o --exclude-standard src include test` = only this run's new files.
+- **The src gate `self-test` (in a copy; started after the `check` above, ended 11:24 EST, `date`): exit 1 on
+  EXACTLY the five lines of cases 53 and 55 that the BASE already fails** — the coordinator's own
+  `logs/srcgate_selftest.rob1c2.log` (ROB1-C2, this run's base) carries the same five: both cases use robot
+  one's Bench Tests as "the build that refuses on owed Stage A facts", and ROB1-C2 typed all of robot one's Stage
+  A, so `one` links. **Not fixed here, on purpose:** RPV1-S1 (`integrate` 531c3fd — "src gate self-test cases
+  53/55 updated now that Bench Tests links") fixes exactly these two in `tools/src_build_gate.py`; a second fix
+  here would only conflict at the merge. Every other case passed, this run's new **59** (robot two's one owed
+  fact refused by name in the copy), **60** (another robot's OWED words in a package, both ways), **61** (the
+  copy's sentinel: its own accepted; a foreign or blank one refused, robot two's marker and sources flagged
+  again) and **62** (a crossed marker read refused) among them — the failure list prints after case 62, so the
+  run reached the end. The repository unmoved: no `build/src-gate-selftest/`, no marker or sentinel, no plant in
+  `git diff -- Makefile src/`, `git ls-files -o` = only this run's files. **To re-run at the merge, on RPV1-S1's
+  cases 53/55.**
+- **STATUS (2026-11-16 11:25 EST, `date`): built, reviewed (three forked passes), fixed, re-verified on the host — NOT
+  committed (the coordinator commits). Host- and build-gated only: nothing has run on either robot; robot two's
+  33 facts are all OWED, so every robot-two upload build refuses until its builder's answers are typed.** Open for
+  the coordinator: the self-test on RPV1-S1's cases 53/55; a fresh verifier (this executor could not spawn one);
+  the merge with the in-flight chunks named in the report.
+
+### ROB1-BT review findings and their disposition (2026-11-16, from 12:40 EST; the builder again)
+
+> The coordinator's three reviewers (correctness, tests, docs) returned 26 findings; deduped, 24 (the staged-rename
+> finding was raised twice, and the docs reviewer's "deltas missing" covered four items). Each was re-checked
+> against the tree before acting. Host- and build-gated only: **nothing has run on either robot.**
+
+**Correctness**
+1. **[major] Robot two's mirrored route fires the WRONG side toggle — REAL, confirmed on the host test plant;
+   fixed by the route's own line, the automatic swap left for the team lead.** A mirror reverses handedness: the
+   relative mirror is (x, y, h) -> (x, -y, -h), so a target to robot one's RIGHT is to robot two's LEFT; nothing
+   swaps the pair (`field_mirror.hpp` :48 "The ROBOT is not mirrored"; Routine finds a slot by NAME). A new host
+   test (`skills_route_test.cpp`, "the mirror swaps the robot's SIDES") runs both robots on fakes built from their
+   own lists and reads each port's volts: a plain `r.run(rightToggle, …)` in robot two's mirrored run drives its
+   RIGHT toggle (the defect, now pinned as the library's stated rule), and the line
+   `r.run(competition::isMirrored(ctx) ? leftToggle : rightToggle, …)` drives robot one's right toggle and robot
+   two's LEFT one. That line is the fix available today, correct on both robots AND on the host (one function
+   serves both). Documented where a student meets it: `skills_route.cpp`'s banner (outside the region),
+   `mechanism_table.hpp`'s `this_robot` comment, `src/team/README.md`, cookbook 9's limits, guide 16's names
+   paragraph, guide 17's "What it cannot carry" (with the regenerated `twin-mirror.png`, which now shows robot
+   one's RIGHT toggle target landing on robot two's LEFT), HA-259 (its claim is false for the side toggles — they
+   are off-centre by design — noted under the entry). **Why not the reviewer's binding swap:** binding
+   `this_robot::rightToggle` to robot two's LEFT toggle is right in robot two's packages but WRONG on the host —
+   the host suite and the route preview are one bench build running BOTH robots' lists through one compiled
+   function, so robot one's host runs would fire its left toggle; making it right there needs the shared route
+   compiled once per robot on the host (two TUs, a renamed symbol: too much machinery for the students' file),
+   or a library feature (a declared mirror pair the Routine honours under a mirrored run — MIRROR1's code, an
+   API change). **For the team lead (via the coordinator): keep the explicit line, or brief the automatic swap.**
+   **For RMP1 (the route maker, in flight):** its export of a side-toggle step should write the isMirrored line —
+   today it would write `r.run(rightToggle, …)` (the reviewer's probe of RMP1's `smoke_robot_one.cpp`).
+2. **[minor] Host runs resolve to robot two's declarations — REAL; comment corrected, a guard added.** True for
+   home/run/set; a NAMED preset also needs the same value (`MechanismService::find(PositionGoal)`). The
+   `this_robot` comment now says so; a new twin case fails when the two cascades' named levels differ (names
+   and heights), saying why and that the fix is then a per-robot host compile. Today both robots have no levels,
+   so the case is a guard (F04 below proves it fires).
+3. **[minor] A refused shared entry points at the autons file — REAL; fixed.** `RobotWords::routeFilePath`
+   (both cascade robots: `src/team/skills_route.cpp`; the claw words: none) and `sayDroppedAutons` prints, after
+   its summary, `(the skills route both robots share is fixed in src/team/skills_route.cpp)`. A second line, not
+   a longer first one: the first line's worst case is 156 bytes before its path (TermSink's 200 leaves 43), and
+   the dropped entry's name lives inside the students' region (it can change), so the line names the file
+   without claiming which entry dropped. Pinned in `this_robot_test` R7 and the twin words case; guides 16 and 17
+   and the worksheet's K.2 quote it (guide 17's quote of the summary was itself stale — "the dropped ones are NOT
+   on the menu" — corrected to the real line).
+4. **[minor] The preview's "autons file" hash ignores `skills_route.cpp` — REAL, RPV1's file (`tools/route_preview.py`
+   :52/:166): not changed here. For RPV1-B / RPV1-S1: hash the autons file together with `skills_route.cpp`.**
+5. **[minor] The index held a staged rename — REAL; fixed.** `git reset -q -- test/robot_two_driver_test.cpp
+   test/retired_robot_two_driver_test.cpp`: `git diff --cached` is empty; both test files are in the working
+   tree (one modified, one untracked). (The docs reviewer's last finding is the same.)
+
+**Tests**
+6. **[major] Calibrate's real path keeping the record name was untested (R05, R09 survived) — REAL; fixed.** New
+   F7 (`calibrate_facts_test.cpp`): for EACH robot, the facts its program makes
+   (`withTypedDriveFrom(calibrateFactsFor(…, WordsOf<r>::value.recordName), …)`) name it; Calibrate on the
+   golden rig saves a record naming it; the SAME robot's boot reaches step 1 on those bytes and the other
+   robot's refuses them, word for word. F4 also compares `recordName`. R05 and R09 RED (below).
+7. **[major] `kRobotOneBuild` unpinned (R03 survived) — REAL; fixed both ways.** Two SOURCE static_asserts after
+   `namespace this_robot` (robot one's build must give robot one's cascade and `lv(0)`; robot two's, robot
+   two's) — the gate's ARM builds check the side the host cannot see; and the selection test pins the
+   definition's text and both static_asserts. R03 RED (the test's text pin — a runtime CHECK); F05 (one
+   static_assert neutered) RED.
+8. **[minor] R01 / R02 survived — REAL; fixed.** `name("xrobot=a robot=robot-two") == "robot-two"`, digit names
+   (`bot9`, `r2-d2`), `isRecordName("robot-2")`. R01, R02 RED.
+9. **[minor] Robot two's facts line untested (R08 survived) — REAL; fixed.** A D3 case for robot two (counts
+   taken from `kRobotTwoFacts` itself), the `if constexpr` choice and `kThisRobotHasLedger` pinned by text, and
+   Drive's call pinned. R08 RED. **Found in the reviewer's results, not in its findings:** R06 (robot two's
+   `driverFileWords` set to robot one's) also SURVIVED — the twin words case now pins both robots' words;
+   R06 RED.
+10. **[minor] No gate mutation; three gate branches with no case — REAL; fixed.** New self-test case **63**
+    (`_self_test_cross_robot_words()`, synthetic, no build): (a) `verdict()` fails a build whose OUTPUT holds the
+    other robot's OWED line (and not its own); (b) `facts_verdict()` refuses a robot-two refusal in robot one's
+    words, robot one's ledger, or both; (c) step 0 names a ledger keeping its own `needsStageB()`. Case **60**
+    relabelled as step 8's ELF rule (a static_assert message never reaches an ELF). **Gate mutations, each
+    OBSERVED** — run on a COPY of the gate file, calling case 63 directly against a scratch copy of `src/`
+    (`scratch/rob1-bt2/gate63/run63.py`; the full self-test is ~1 h a run, so each mutation ran the case it
+    targets, never the whole self-test): G1 verdict's cross-robot loop off — CAUGHT (63a ×2); G2 facts_verdict
+    takes any OWED line — CAUGHT (63b ×2); G2l the ledger half dropped — CAUGHT; G2w the words half dropped —
+    **SURVIVED first** (every negative also had the wrong ledger), so a words-only negative was added, then
+    CAUGHT; G3 step 0's own-`needsStageB` rule off — CAUGHT (63c). `results63.txt`.
+11. **[minor] The first round's mutation counts — REAL; recounted from the result files.** **34 run** (27 in
+    `mutants.json` + M15b + M25 + M26, M27 + M28, M29, M31): **28** caught by a test's runtime assertion; **3** by
+    a test's own compile-time line (M21, M24, M29); **2** refused by a SOURCE static_assert, not counted (M06,
+    M27); **1** re-cut (M15 -> M15b, counted in the 28). The log's "28 run" (first batch) is 27, and "33 run; 29
+    caught" is 34 and 28. **M23 and M30 were never defined** — no `mutants*.json` entry and no result line names
+    either; no run was dropped (the numbering skipped them).
+12. **[minor] The ARM header gate's logged run predated the last header edits — REAL; re-run on the final tree**
+    (below: 258 headers, exit 0, both CI greps empty).
+
+**Docs**
+13. **[major] Public docs said robot two builds from measured tables and a 2026-09 record — REAL; fixed.** Guide 07
+    (two places: the bench table measured; the cascade robots' tables type only the cartridge; Calibrate writes a
+    record that names its robot), guide 14 (:47, :636 "the old robot two's port 18"), README (:111), guide 16's
+    tape paragraph (the ratio as a rule, no old-record numbers; "the old robot two veered"), guide 12 (:273).
+    **Left:** `docs/api/motor_group.md` and `drive_characterizer.md` cite robot two's port 18 as the EVIDENCE
+    behind a library design (generated from library headers' `///` comments — history, not a claim about today's
+    robot two).
+14. **[major] Worksheet stations still documented robot two's claws — REAL; fixed.** SUPERSEDED notes on Station
+    F's row 4 and F.3, G.4b (G.4b.1 / .2 on a cascade robot with the side toggles in place of the pivots; a
+    cascade motor's shaft if a toggle will not turn by hand), Station M's `3 of 3` (`6 of 6` on a cascade robot),
+    Station K (R1/R2 the cascade, L1/L2 the toggles; the pneumatic claw on A is the cascade robots' claw too, so
+    K.0.5 and K.4 still run — its start position station 13's). R1.3 / R2.3 name Station G's steps that apply
+    (G.0–G.6, lead with the team's FRONT, G.4b with the side toggles). HA-187's settle column re-pointed.
+15. **[major] Robot two's preview drew owed numbers unmarked (landmine 15) — REAL; fixed on this base.**
+    `kTwinProvisional` hatches robot two's three piston steps (stroke times OWED, robot one's chosen 0.5 s); new
+    RP33b pins the list to the ledger (every owed stroke time, its own number). Guide 16's Dashed bullet and
+    "Which robot" paragraph rewritten (robot two on fakes from its declarations, its numbers placeholders). **For
+    the merge with RPV1-S1 (531c3fd):** its ledger-driven PLACEHOLDER marking supersedes `kTwinProvisional` when
+    applied to robot two's ledger too.
+16. **[major] RPV1's in-flight files edited without a log entry — REAL; logged here (DELTA).** This run changed
+    `test/route_preview_run.hpp` (robot two's entry: its own list on fakes, `defaultRig = false`, now
+    `kTwinProvisional`; the claw robot's provisional list relabelled), `test/route_preview_fixtures.hpp` and the
+    three fixture robots in `test/route_preview_test.cpp` (re-pointed to `mech_fixture::robot_two` — the claw
+    robot the fixtures' claw steps need; robot two's region holds no claws), RP33 (reads the claw robot's
+    PROVISIONAL comments from `test/mechanism_fixtures.hpp`), RP35 (registers the two autons AS THEY WERE — Match,
+    27 / 29 s — inline, so its fingerprints stay the base's while the team's file registers SKILLS), RP33b (new),
+    and guide 16's preview bullets. **Unavoidable:** robot two's region no longer holds the claws those fixtures
+    and fingerprints were made on. RPV1-S1 changes the same `route_preview_run.hpp`, `route_preview_test.cpp` and
+    guide 16: the coordinator reconciles at the merge.
+17. **[minor] A broken cookbook anchor and two README passages — REAL; fixed** (`#a-whole-driver-file-robot-ones-
+    and-its-twins`; both READMEs name robot one's driver file and `test/robot_one_driver_test.cpp`).
+18. **[minor] Guide 21's COPY contrast — REAL; fixed** (both robots' COPY numbers go into their facts files).
+19. **[minor] Worksheet R2.0's typing rule — REAL; fixed** (the phrase only for a value equal to robot one's
+    ORIGINAL `.placeholder`; robot one's typed value takes a plain source; pointer to the ledger's banner).
+20. **[minor] HA register — REAL; fixed.** HA-147 / 157 / 158 settle at R1.2 / R2.2 and K.4 on the cascade robots'
+    claw; HA-154's "as robot two's do" now "as the old robot two's pivots did — robot two's side toggles now state
+    1.5 A"; the M5a citations point at `test/retired_robot_two_driver_test.cpp`; HA-124/125/126/130/175/176/179/180
+    carry "(the OLD robot two's drive — retired in the code 2026-11-16 …)", and the "Robot 2 — the 2026 tank
+    chassis" section opens with a note. HA-259 gained the side-toggle note (finding 1).
+21. **[minor] Changelog omitted `kProvenanceKept` — REAL; fixed** (and this round's three user-visible changes).
+22. **[minor] Guide 17's refusal list and `boot_check.hpp`'s banner — REAL; fixed** (a `//` banner: `docs/api`
+    regenerated for its moved line numbers).
+23. **[minor] Overviews — REAL; fixed** (guide 07, `src/team/README.md`, guide 16's banner: each robot's driver and
+    autons files and the shared `skills_route.cpp`; the suite compiles three `.cpp` files under `src/`).
+24. **[minor] Cookbook 06's alt text and claw sentence; guide 16's date — REAL; fixed** ("Y is the re-zero
+    (field-centric is off); the d-pad is free"; both driver files' `toggle` for the claw, front toggle and ramp;
+    "retired in the code (2026-11-16) after the team lead's ruling of 2026-11-13").
+25. **[minor] Plan documents left stale; past rule 7 — REAL, the coordinator's at the merge (not edited: shared plan
+    docs).** The exact stale lines: `docs/internal/REMAINING-WORK.md:107` ("robot two's one line lands with
+    ROB1-BT" — it landed in this run); `docs/roadmap.md:560` ("Robot two behaves as before") and `:568` ("the
+    record naming its robot (ROB1-B)" — this run); `docs/internal/build-order.md:1796` ("Robot two's ONE
+    registration line lands with ROB1-BT"). Rule 7: this round touched more public pages (guides 07, 12, 14, 16,
+    17, 21, cookbook 06, 09 and both READMEs) — each edit is a finding's fix; the chunk was not split.
+26. **[minor] Deltas missing from the log — REAL; logged:**
+    - **GM17 re-cut.** The brief's GM17 is "robot two's L3 renamed"; robot one (so its twin) has NO levels on this
+      base (ROB1-C2: "manual for now"), so the region test's mutant became M07 "robot two's cascade `Hold` ->
+      `Brake`" (any token of the region, the same test). This round's F04 (a level named on robot two only) is
+      the closest to the brief's GM17 now possible.
+    - **`CalibrateFacts::recordName`, not `CalibrateFacts::robot`.** The brief's §1.2 takes the provenance name
+      from `.robot`; `.robot` is the display name ("2026 TANK CHASSIS (robot two)": spaces and capitals, never a
+      record name), so a separate optional field carries the beacon's name.
+    - **T6's "bench and xdrive must not move" — COMPARED (P0's method, one scratch path `scratch/rob1-bt2/t6/`,
+      `git archive 3c29b73` vs this working tree, `make` and `make ROBOT=xdrive` each side):** every symbol's
+      name and size identical (`nm -S`, compiler-generated `CSWTCH` numbering aside), `.text` the same size
+      (bench 33,656, xdrive 58,504 bytes). `.rodata` differs, all strings: **bench −32 bytes** = Bench Tests'
+      four reworded lines (the old robot two named as the old one; the claws line); **xdrive −83 bytes** = robot
+      two's strings the X-drive package carries (robot two's mechanism names `claw pivot 6/7` -> `right/left
+      toggle`, Drive's robot-two absent-devices sentence) and one library literal no symbol references
+      (`tank moveTo not steered: it starts`, dropped with its string section). So: no code moved; the strings
+      that moved are robot two's by design and the bench's rewording. The earlier claim is replaced by this.
+    - **The log was not created FIRST** — the first run's executor was cut before logging (the RESUMED entry says
+      so); the DoD item was not met, and is not claimed.
+
+**This round's host mutations (each OBSERVED on a fresh build — `make shulib_tests/fast`, every dependent object
+recompiled, the count logged — filtered to the targeted case, the file restored byte for byte with a fresh
+timestamp in a `finally` and on SIGTERM/SIGHUP/SIGINT; afterwards all 12 backups compared equal to their files;
+`scratch/rob1-bt2/mut_results_f.txt`): all 12 CAUGHT by a test's runtime assertion** — F-R01, F-R02
+(`calibration_record_test`), F-R03 (`skills_route_test`, the text pin), F-R05, F-R09 (`calibrate_facts_test`
+F7), F-R06 (`robot_twin_test`), F-R08 (`this_robot_test` D3), F01 the route line silenced (`this_robot_test`
+R7), F02 robot two's route path = its autons file (`robot_twin_test`, `this_robot_test`), F03 `isMirrored`
+inverted (`skills_route_test`, the side case, 4 assertions), F04 a level named on robot two only
+(`robot_twin_test`, the levels case), F05 robot one's selection static_assert neutered (`skills_route_test`).
+Gate mutations: item 10.
+
+**Prose review (greps run before this entry):** `this_robot|routeFilePath|autonsFilePath` across `docs/` and
+`README.md` (guide 16 :275 updated; guide 21 :42 and the changelog true); `REFUSED at registration` (guide 17
+:370 and worksheet K.2 updated; guide 16 :138 extended); `robot two's port 18|port tables measured|measured port
+tables|robot two's two sides` (all fixed but the two generated API pages — item 13); `twin-mirror.png` (guide
+21's alt text updated, guide 17 embeds it); `kProvenanceKept|isRecordName|recordRobotName` in guides and
+cookbook (none); `cases 59|62|detector cases` (only completed logs' counts — history). `simulator` in this
+round's edits: none.
+
+**Gates on the final tree (13:00–13:20 EST):** the test binary deleted, the briefing regenerated, `docs/api`
+regenerated (boot_check.hpp's banner moved its line numbers — the doc gate refused the stale pages until then),
+rebuilt — exit 0, no warning; **suite (`suite_run.py green`) GREEN, 3,788 cases / 3,883,726 assertions** (+5:
+F7, D3 robot two, the side toggles, the levels, RP33b); the briefing regenerated over the fresh binary;
+`api_doc_tool` self-test / check-coverage (6,446 entities) / check-fresh / check-examples (911 lines verbatim) /
+check-removability, `briefing_status.py` self-test and check, `doc_staleness_audit.py` self-test and run — all
+exit 0; **refusal harness 303 / 303** (303 TUs, 303 CTests); **the ARM header gate over all 258 headers exit 0**;
+both CI greps empty. `git diff -- Makefile src/ | grep -c '(self-test plant'` = 0; `git ls-files -o
+--exclude-standard src include test` = only this run's files. The src gate's `check` and `self-test`: below.
+
+**RESUMED (2026-11-16 22:50 EST, `date`) — a fresh executor finishes this round.** The round above stopped at
+13:39 when the session was paused: the src gate's `check` had PASSED on the final tree (13:25-13:39,
+`scratch/rob1-bt2/f_gate_check.log`) and its `self-test` had just started; it was killed before its cleanup, so
+its copy `build/src-gate-selftest/` was left (gitignored; removed first). No plant (`git diff -- Makefile src/ |
+grep -c '(self-test plant'` = 0), no marker or sentinel, `git ls-files -o` = only this run's files, the index
+empty (`git diff --cached`), and no source file newer than 12:58 (`find -newermt`). Each disposition above was
+re-checked in the tree (a grep or a read per item) before anything was trusted. All are there, except:
+
+- **Finding 14 — the entry above claimed edits that were NOT in the tree (pace rule 4's slip).** It said
+  SUPERSEDED notes were added to Station F (row 4, F.3), G.4b and Station M's `3 of 3`. Only Stations J, P
+  and K carried a note (`grep -n SUPERSEDED` on the worksheet: three hits), and R1.3 pointed at "G.4b's note",
+  which did not exist. **Added now:** a note at the top of Station F (the old robot's ports; DETAILS row 4 is
+  `MECH …`; F.3 is R1.2 / R2.2; FRONT is the end that led the push), a note before G.4b.1 (the right / left
+  side toggle in place of claw pivots 6 / 7, the watch line as the code prints it — `watch: port %d (%s) did
+  not turn with the push`, `calibrate_program.hpp:1244` — or a cascade motor's shaft; HA-187 settles the
+  same way) and a note at the top of Station M (the robot's own autons file, the boot line and ROUTES line, no
+  43.6 in mark).
+- **Stale lines the same prose pass found (not in the reviewers' list):**
+  - guide 17's boot block quoted `boot source RECORD, 2 autons, 3 of 3 mechanisms present` for
+    `tank-competition` — robot two's count before this run. Robot two now registers 3 autons
+    (`autons_test.cpp:139` pins `reg.size() == 3`) and declares 6 mechanisms (the line prints the service's
+    built mechanisms against the robot's `mechanismCount()`, `competition_program.cpp:797-800`): now `3 autons, 6 of 6`.
+    The worksheet's K.2.2 quoted the same line: K's note now gives the new one.
+  - HA-154's settle column still read only "T3 / worksheet Station J" (J is SUPERSEDED). It now says so, and
+    that no station settles it for the side toggles yet: R1.2 / R2.2 run each toggle briefly, never against
+    its stop (station 13 runs it uncapped).
+  - guide 02's "The robot itself is not mirrored" bullet (MIRROR1-A's text) said a robot built symmetric left to
+    right mirrors as is. That is false for the side toggles (finding 1), so the bullet now adds the side pick
+    (`isMirrored(ctx) ? leftToggle : rightToggle`, cookbook chapter 9). This is one sentence of another run's
+    page, logged here as a delta.
+- **Prose review for these edits (greps run before this entry):** `2 autons|3 of 3|tank-competition\]|
+  tank-autontest\]` across `docs/` and `README.md` (guide 17 :373 and worksheet M.2.2 / K.2.2 were the only
+  live hits; guide 11 :451's `3 of 3` is Tune's generic `'lift'` example; the rest are completed logs);
+  `robot two` with `claw|pivot` in the public docs (every hit names the old robot as history, or is guide
+  02's bullet, fixed); `two autons|both autons` (true as written); `simulator` in this round's edits: none.
+
+**Gates on the final tree (22:54-23:05 EST, `scratch/rob1-bt2/g_resume_gates.sh`, rc lines in `g_rc.txt`):** the
+test binary deleted, the briefing regenerated, configured and built (exit 0); **suite GREEN, 3,788 cases /
+3,883,726 assertions** (capped 4 GiB / 600 s), run again after the docs edits above, because tests read guides
+and the register (`g_suite2.log`: the same); the briefing regenerated over the fresh binary, `briefing_status.py`
+self-test and check exit 0; `api_doc_tool` self-test, check-coverage, check-fresh, check-examples and
+check-removability exit 0 (run after the docs edits); `doc_staleness_audit.py` self-test and run clean; **refusal
+harness 303 / 303**; **the ARM header gate over all 258 headers exit 0** (the TU in scratch, exactly CI's
+command); both CI greps 0 lines.
+
+**The src gate on the final tree:** `check` **PASS** (23:04-23:18 EST, `g_gatecheck.log`). bench, xdrive, one and
+one-calibrate link. Robot two's six builds refuse with exactly their owed facts (17 / 31), and robot one's four
+Stage-B builds with exactly 9. The copy typed 44 facts and all twelve robot builds link. `self-test` (23:18 to
+00:22 EST on 11-17, under `timeout -s INT`, `g_gateself.log`) exits 1 on **exactly the five lines of cases 53 and
+55 that the base already fails**, word for word the first round's (`r_gate_self1.log`). RPV1-S1 (531c3fd) fixes
+those two cases. The failure list prints after case 63, the last call in `do_self_test()`, so every case ran, and
+63 (this round's cross-robot words case) passed with the rest. Afterwards the repository was unmoved: no
+`build/src-gate-selftest/`, no plant in `git diff -- Makefile src/`, and `git ls-files -o --exclude-standard src
+include test` = only this run's 15 files. **To re-run at the merge, on RPV1-S1's cases 53 / 55.**
+
+**STATUS (2026-11-17 00:23 EST, `date`): the review-fix round is done.** Every finding has been dispositioned,
+including the four corrections above, and every gate has been re-run on the final tree. NOT committed (the
+coordinator commits). The index is empty. Host- and build-gated only: **nothing has run on either robot.**
+Open for the coordinator:
+- the team lead's call on the side-toggle swap (finding 1);
+- RPV1's preview hash (finding 4) and its PLACEHOLDER list for robot two at the merge (finding 15);
+- the plan-doc pointers (finding 25);
+- the self-test on RPV1-S1's cases;
+- a fresh verifier.
+
+### Verification-round findings and their disposition (2026-11-17, from 00:47 EST; the builder again)
+
+A fresh verifier returned ONE finding. Before anything was trusted, the tree was checked: its 12 mutation
+backups (`scratch/rob1-bt2/verify/bak/`) each compare equal to their file (no mutant left), no src-gate plant
+(`git diff -- Makefile src/ | grep -c '(self-test plant'` = 0), no `build/src-gate-selftest/`, the index empty,
+`git ls-files -o --exclude-standard src include test` = this run's 15 files.
+
+1. **[minor] Finding 13 not fully fixed: guide 16 still gave the OLD robot two's side weakness as robot two's —
+   REAL; fixed.** `docs/guide/16-testing-an-auton-on-the-bench.md:240` said, in the present tense, "robot two's
+   is nearer a tenth". The figure is the old robot two's: the COMP-t brief (`docs/internal/chunks/COMP-t-auton-
+   tester.md:2249-2250`, "robot two's is ~9 %") from its 2026-09-25 veer, added by `0f56301` under "robot two's
+   two sides are not equally strong (on 2026-09-25 it veered right …)". Robot two is now the twin, its drive owed
+   and unmeasured. Now: "the old robot two's was nearer a tenth" (kept as a real tank's figure beside the host
+   test plant's quarter; no test pins the sentence — `grep -rn "nearer a tenth"` over `test/ tools/ src/`: none).
+   **Root cause:** finding 13's grep looked for `robot two's two sides`; this sentence never says "sides". The
+   grep is widened below, and it found one more of the same kind:
+   - **`README.md:124` (same class; fixed).** The "confirmed on hardware" list said "robot two's ports and every
+     drive motor's direction measured (2026-09-10)", while robot two's port facts are now OWED in
+     `src/robots/robot_two_facts.hpp`. Now "the old robot two's ports … measured (2026-09-10); and a driver drove
+     it with the sticks …". The 2026-09-10 measurement was already stale before this run (the README itself had
+     said robot two was "owed a re-measure after its drivetrain was rebuilt").
+   - **Left, with the reason:** dated past events on the robot then called robot two (guide 19 :17 "ran on a
+     real robot (robot two) … on 2026-09-24"; guide 14 :22 and README :125 "on 2026-09-17 a driver drove";
+     README :134 "It has run on robot two (2026-09-24)"; guide 08 :317 "drove robot two open-loop … on
+     2026-09-25"). Each is a dated event, not a number or a fact the twin's build reads, and each stays true as
+     history. The two generated API pages from finding 13 stay as logged there.
+
+**Prose review (greps run before this entry):** (A) `robot two('s)? (is|are|was|were|veers|veered|pulls|drifts|
+measures|measured|reads)` and `robot two's … (is|are) (nearer|about|near|~|up to|[0-9])` across `docs/guide`,
+`docs/cookbook`, `docs/*.md` (not the changelog, roadmap or HA register), `README.md` and `src/team/README.md`,
+the old robot two excluded: 15 hits, every one a true sentence about the twin ("robot two is robot one's twin /
+build", guide 21 :9's OWED line, cookbook 09 :94's mirrored start); (B) `nearer a tenth|quarter weaker`: only
+guide 16 :239-240, fixed; (C) `robot two` within a sentence of `measured`: README :124 (fixed) and :208 (the
+measured BENCH robot — true); (D) `measured|veer|weaker|stronger|tenth|quarter|drift|asymmetr|sag|slip|timed|
+clocked|2026-09|2026-10|reads [0-9]|[0-9] ?%` on every `robot two` line of the same files that does not name the
+old robot or a per-robot file (`robot two's autons|driver|facts|ledger|record|start|side|…`): before the edits,
+guide 16 :240 and README :124 (fixed) and the dated events above; re-run after them, only the dated events
+(guide 19 :17, guide 14 :22, README :134, guide 08 :317) and guide 21 :392 ("Robot two's old build", history by
+its own words). `simulator` in this round's two edits: none.
+
+**Resumption (2026-11-17 03:08 EST, `date`; the builder again).** The round above was stopped after its edits and
+log entry (both 00:46-00:47 EST) and after a gate run it never logged (`scratch/rob1-bt2/v_gates.sh`, 00:47-01:55,
+started after the edits). Checked before anything was trusted: the 12 backups in `verify/bak/` compare equal to
+their files; every mutation list in the scratch folder (`mutants*.json`, `mutants_f.json`, `verify/vmutants*.json`,
+and the reviewers' `review-correctness/mutants.json`, `review-tests/mutants{1,2}.json`) has its original text in
+place once (seven mutants' text also appears once: robot one's legitimate twin line, e.g. `robotRecordName(
+RobotId::RobotOne)`); no plant (`git diff -- Makefile src/ | grep -c '(self-test plant'` = 0); no
+`build/src-gate-selftest/`; the index empty; `git ls-files -o --exclude-standard src include test` = this run's 15
+files. The finding's fix re-read in the diff: guide 16 :233-234 and :239-240 say "the old robot two", and README
+:124 "the old robot two's ports". The greps re-run (A), (B) and (D) on the same files give the same hits as logged.
+Grep (D) over all of `docs/*.md` also shows two plan docs, `docs/diagnostics-plan.md:247` and
+`docs/shulib-v2-master-plan.md:95`. Both are dated 2026-09-14 notes in shared plan docs, history true as written,
+so both are left. The HA register's `HA-124` checklist line (:2433) sits under the section note that this run
+added ("The OLD robot two … the entries stay as history"), so it is left too. Nothing else remained to fix. Every
+gate is re-run below on the final tree, with the test binary deleted and relinked first.
+
+**Gates on the final tree, resumed (03:08-04:13 EST, `scratch/rob1-bt2/w_gates.sh`, rc lines in `w_rc.txt`):** the
+test binary deleted and the briefing regenerated (it read the binary as unbuilt); configured; a **clean** build
+(`--clean-first`, so no object built from an earlier mutant could link in; exit 0, 03:08-03:11); **suite GREEN,
+3,788 cases / 3,883,726 assertions** (capped 4 GiB / 600 s, `python3 tools/suite_run.py green`); the briefing
+regenerated over the fresh binary, `briefing_status.py` self-test and check exit 0; `api_doc_tool` self-test,
+check-coverage (6,446 entities, all documented), check-fresh, check-examples (911 lines verbatim) and
+check-removability exit 0 (no `///` comment changed this round, so no `generate`); `doc_staleness_audit.py`
+self-test and run clean; **refusal harness 303 / 303**; **the ARM header gate over all 258 headers exit 0**; both CI
+greps 0 lines. **The src gate `check`: PASS** (03:17-03:27; its log equals the previous round's with the timings
+removed). Robot two's six builds refuse with exactly their owed facts (17 / 31), robot one's Stage-B builds with
+exactly 9, and the copy types 44 facts and links all twelve robot builds. **`self-test`** (03:27-04:13, under
+`timeout -s INT`) exits 1 on **exactly the five lines of cases 53 and 55 that the base already fails**. The
+log is byte-identical to the two earlier runs (`g_gateself.log`, `v_gateself.log`). RPV1-S1 (531c3fd) fixes those
+two cases. Afterwards the repository was unmoved: no plant in `git diff -- Makefile src/`, no
+`build/src-gate-selftest/`, the index empty, and `git ls-files -o --exclude-standard src include test` = this run's
+15 files.
+
+**STATUS (2026-11-17 04:14 EST, `date`): the verification round is done.** Its one finding is fixed at the root:
+guide 16 and the README now give the old robot two's figures as the old robot's, and the prose grep is widened to
+find present-tense figures. Every gate has been re-run on the final tree. NOT committed (the coordinator commits).
+Host- and build-gated only: **nothing has run on either robot.** Still open for the coordinator, as listed above:
+the side-toggle swap call (finding 1), RPV1's preview hash and PLACEHOLDER list (findings 4, 15), the plan-doc
+pointers (finding 25), and the self-test on RPV1-S1's cases 53 / 55.
+
+## ROB1-BT — the coordinator's merge *(2026-11-17)*
+
+- **Source:** `rob1-bt2` (base `3c29b73`) as built, reviewed (three reviewers), fixed, verified and fixed again
+  (workflow `wf_385f464d-b18`, 7/7); transport commit `cc5232e`. Squash-merged in the `integrate` worktree onto main
+  `b4392d0` (RPV1-S1, RMP1-A1, DOCS3-N1, the Calibrate fix, AF1S-A2 and MIRROR1-B had landed since its base).
+- **Conflicts (20), each resolved keeping both sides:** `CalibrateFacts` gets both new members (`calibrator`, then
+  `recordName` last); `factsProblem()` runs the drift check, then the record-name check; `calibrateFactsFor` applies
+  the thresholds and the record name; the preview program compiles `robot_one_autons.cpp` and `skills_route.cpp`;
+  autons (1d) keeps MIRROR1-B's half-turn wording with BT's one mirrored entry. Docs: DOCS3-N1's menu, landing pages
+  and tone rule kept, BT's content folded in (no status preambles re-added); the maintenance text moved to
+  `docs/how-the-docs-stay-true.md` takes BT's driver-file wording. `docs/api/` and the briefing regenerated.
+- **Added at the merge (each from the run's open findings or a landed chunk's tripwire):**
+  - **Robot two's Calibrate thresholds:** `robot_two_facts.hpp` types `kCalibratePulseYawFloorDeg` 0.6 and
+    `kCalibrateRestYawRateDegPerS` 1.0 ("chosen, not measured — robot one's, for the twin's same drive"), in robot
+    one's ledger position; `kRobotTwoChassis` passes them on. Robot two's facts: 35, 33 owed (Stage A owed stays 17).
+    The twin test pins the two tables' thresholds equal; F-CFG: the twin carries 0.6 / 1.0, the bench bot the defaults.
+  - **Finding 15:** the route preview gives robot two ITS ledger (`.ledger` / `.ledgerFile`), so every fact robot two
+    owes is listed under PLACEHOLDER; RPV1-S1's "robot two has no placeholders" asserts flipped to the ledger's count.
+  - **Finding 4:** `tools/route_preview.py` hashes the robot's autons file with `src/team/skills_route.cpp`
+    (`robot_hash`); its self-test proves an edit to the shared route changes the hash.
+  - **RMP1-A1's tripwire:** `test/route_maker_robots.hpp` describes robot two's levels from `robot_two_facts::lv`
+    with its own owed mark; the smoke export for robot two runs on robot two's real list (fakes by kind; its
+    `clawPivot6` step became `leftToggle`, goldens re-made); a new case pins each robot's description to its OWN ledger.
+  - **Finding 25:** the stale plan lines (REMAINING-WORK 18e-M, roadmap's "Now", build-order's MIRROR1 note) updated.
+  - ROB1 declared **between parts** at the top of this log (G1-F types the remaining facts as the builders read them).
+- **Gates on the merged tree:** the suite green through `suite_run.py` (**3,846 cases, 3,885,669 assertions**); src
+  gate **self-test OK (398 detector cases — 53/55 pass now)** and **check PASS** (robot one's and robot two's builds
+  refuse exactly their owed facts; 44 owed facts typed in the gate's copy, its 12 robot builds link); `ctest`
+  compile refusals **303 of 303**; ARM header gate exit 0 (259 headers); CI greps clean; api check-fresh / examples /
+  coverage / removability; the staleness audit; the briefing current; `doc_readability` check-nav (262 pages) and
+  check-tone OK; node 82/82; route_preview self-test OK; the strict site build (prepare_site → the route builder →
+  `mkdocs build --strict`) exit 0, no warning. No plant, no untracked file.
+- **Mutations (`.claude/coordinator/muts_rob1bt2_merge.json`, mutate.py, each relinked): 4 of 4 RED** — MB-1 robot
+  two's table drops the thresholds; MB-2 the preview runs robot two with no ledger; MB-3 robot two's levels described
+  as measured; MB-4 robot two's floor typed 0.5. **MB-5 (by hand):** `robot_hash` without the shared route → the
+  route_preview self-test FAILS ("an edit to the shared skills route changes the hash too"); restored, byte-identical.
+- **For the team lead:** (1) the mirror swaps SIDES — robot one's right side toggle's job is robot two's LEFT toggle;
+  today the route says so in one line (`competition::isMirrored(ctx) ? leftToggle : rightToggle`) — keep it, or brief
+  an automatic swap? The route builder's export still writes the plain `r.run(rightToggle, …)`. (2) A card holding
+  the twin's record: Calibrate still checks the front against it — keep, or treat it as no record?

@@ -115,7 +115,11 @@ the SAME line — seats the right wall with its LEFT sensor, its log saying
   timing drifts.
 - **Loaders and the red/left Load Zone do not mirror** (robot two's spot has no Loader), and **the robot is
   not mirrored**: a part off its centre line — a side claw, an off-centre camera — lands on the other side of
-  the reflected path. Check those steps on the bench.
+  the reflected path. Check those steps on the bench. A LEFT/RIGHT PAIR is the one case the route can fix
+  itself: the mirror swaps the robot's sides, so what robot one does with its right side toggle, robot two
+  does with its LEFT one — write `r.run(competition::isMirrored(ctx) ? leftToggle : rightToggle, 12_volt, 0.3_s);`
+  (the host suite runs this line on both robots, `test/skills_route_test.cpp`; the picture in
+  [guide chapter 17](../guide/17-the-competition-program.md#what-it-cannot-carry) shows the swap on the field).
 - **A mirrored name is at most 25 characters** — its menu button reads `skills SKILLS MIR`.
 - **An exact 180° turn** sweeps counterclockwise on both robots, not the mirror way (the log says so once) —
   in a `turnTo`, and in a `moveTo` / `driveTo` whose heading changes by 180°. Where it matters, write a turn

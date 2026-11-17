@@ -229,11 +229,11 @@ struct Robot {
           svc{world},
           guard{svc},
           chassis{rig.deps, guard, motion_rig::chassisConfig()},
-          routes{chassis, svc, shulib::bench::robot_two::kRobotTwoMechanisms, sink} {
+          routes{chassis, svc, mech_fixture::robot_two::kRobotTwoMechanisms, sink} {
         weak.wheel = 1;  // the right side (tester_rig::WeakSide)
         weak.scale = weakScale;
         world.r = this;
-        svc.bind(shulib::bench::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
+        svc.bind(mech_fixture::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
         routes.registerInto(commands);
         for (int i = 0; i < 30; ++i) {
             chassis.wait(shulib::units::Time{0.01});  // the estimate live, nothing commanded

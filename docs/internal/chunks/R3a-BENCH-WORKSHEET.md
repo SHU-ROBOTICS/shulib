@@ -450,6 +450,13 @@ this station's, reworded for the library's protections.
 
 ## Station F — "shulib Drive", THE DRIVER PROGRAM  *(slot 1, robot two — REWRITTEN from the code at T4 Part 3, 2026-10-04; it was "LIBRARY TELEOP", slot 2, from R3b Parts 1–3 to T4 Part 3)*
 
+> **SUPERSEDED for the OLD robot two (ROB1-BT, 2026-11-16) — kept, not deleted.** This station was written
+> for robot two's old claw robot; every port number below is that robot's. On a cascade robot (robot one;
+> robot two since ROB1-BT) the program is the same, with that robot's driver file
+> (`src/team/robot_one_driver.hpp` / `src/team/robot_two_driver.hpp`): DETAILS row 4 is the mechanisms'
+> row (`MECH …`) — copy it as printed; **F.3** is Station R1.2 / R2.2 (Station J is SUPERSEDED); and
+> FRONT is the end the team led Calibrate's push with (R1.3 / R2.3), not "the camera end".
+
 > ⚠ **"shulib Drive" is robot two's DRIVER FILE (`src/team/robot_two_driver.hpp`) on the library.**
 > It builds the library's own robot — `robot::Robot`: two motor groups, the drive motors' own
 > encoders as odometry, the IMU for heading, the claws — from the **calibration record** on the SD
@@ -970,6 +977,13 @@ serial log says which, in one line:
   The watch only READS the pivots: `watch: port 6 (claw pivot 6) did not turn with the push (+0.0 deg)`
   is the normal line, one per pivot.
 
+> **On a cascade robot (ROB1-BT, 2026-11-16) — the claw pivots are the OLD robot two's.** Its declared
+> mechanism motors are the cascade's two and the two side toggles (robot one: cascade 10 and 1, right toggle
+> 9, left toggle 2; robot two: the ports typed in its facts file). Run G.4b.1 / G.4b.2 with the RIGHT side
+> toggle in place of "claw pivot 6" and the LEFT one in place of "pivot 7" — the watch names each by its
+> declaration (`watch: port 9 (right toggle) did not turn with the push (+0.0 deg)`). If a toggle will not
+> turn by hand, turn a cascade motor's shaft instead. HA-187 settles the same way.
+
 - [ ] **G.4b.1 HA-187 — the watch's read writes nothing (settle it here, once).** With both claw pivots
       plugged in, run one calibration and, **during the push, turn claw pivot 6 by hand** (not 7) through
       a good part of its travel. At DONE: the serial log has a `WARNING: port 6 ...` line and
@@ -1391,6 +1405,11 @@ this test cannot tell — write that. (Nothing in the library assumes either ans
 
 ## Station P — THE MECHANISMS: each claw shown, powered one at a time, and its DIRECTION checked  *(Bench Tests button 13, robot two — added MECH-A6, 2026-10-30)*
 
+> **SUPERSEDED (ROB1-BT, 2026-11-16) — kept, not deleted.** Robot two was rebuilt as robot one's twin and its
+> claws retired: there are no claw pivots on ports 6 and 7 to power. Station 13 on either cascade robot is
+> Station R1.2 (robot one) and R2.2 (robot two). The page itself is unchanged, so the words below still
+> describe how station 13 runs a mechanism.
+
 > **THIS STATION POWERS THE CLAWS** — one at a time, and only while you hold **L1**. It is the second
 > station on the menu with a **red** stripe (10 DRIVE is the other). **It has NEVER RUN ON A ROBOT**:
 > every word below is copied from the code, and its numbers (the 3 V start, the 1 s announcement and the
@@ -1739,6 +1758,10 @@ screen that stayed frozen, a turn you had to stop.
 ---
 
 ## Station J — THE CLAWS: the two pivots and the pneumatic claw  *("shulib Drive", slot 1, robot two — added T3, 2026-09-26, for "shulib Teleop" in slot 2; the pneumatic claw, J.9, by T3's addendum the same day; moved to "shulib Drive" at T4 Part 3, 2026-10-04)*
+
+> **SUPERSEDED (ROB1-BT, 2026-11-16) — kept, not deleted.** Robot two was rebuilt as robot one's twin: its
+> claws are retired and its driver file holds the builder's cascade map (guide chapter 21). Nothing below
+> applies to either robot now; HA-153, HA-155, HA-156, HA-159 and HA-185 are marked superseded.
 
 > ⚠ **The claws' first run from the CONTROLLER** (their first POWERED check is Station P — Bench
 > Tests' station 13, a claw at a time at 3 V: **run P first**). **It POWERS TWO MORE MOTORS, at full
@@ -2126,6 +2149,16 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
 
 ## Station M — THE AUTON TESTER: run the 40 in auton on the bench, then on the tape  *("shulib Auton Tester", slot 2 — slot 7 from COMP-t until T4 Part 3 retired "shulib Teleop" from slot 2, T4 N4; robot two — added COMP-t, 2026-09-28)*
 
+> **SUPERSEDED for the OLD robot two (ROB1-BT, 2026-11-16) — kept, not deleted.** This station was written
+> for robot two's old claw robot and its 2026-09-25 record. On a cascade robot (robot one; robot two since
+> ROB1-BT): its autons file is that robot's (`src/team/robot_one_autons.cpp` / `src/team/autons.cpp`);
+> M.2.2's boot line reads `boot source RECORD, 3 autons, 6 of 6 mechanisms present` (the 40 in, the
+> acceptance run and the skills route; the cascade, both side toggles, the claw, the flipper, the ramp),
+> and its mechanism lines and `ROUTES: 11 mechanism route ids published (cascade_home .. ramp_down)` are
+> that robot's — copy them as printed; the tape has only the START and 40 in marks — the 43.6 in mark was
+> the old record's error, and guide chapter 16 ("Reading the result against the tape") says how to read a
+> miss. "J" below reads "R1.2 / R2.2".
+
 > ⚠ **This program RUNS AN AUTON: the library drives the robot on its own, under its own control, for
 > the first time.** You touch **RUN** on the brain's screen, a **3 s countdown** runs (nothing moves),
 > and then the chosen auton runs through `competition::runAuton` — the same call the competition
@@ -2388,6 +2421,12 @@ table).
 > (A4 register **HA-162**); K.3 measures it before anything else depends on it. A field or a switch
 > stays UNRUN at the bench.
 >
+> **SUPERSEDED for the claw PIVOTS (ROB1-BT, 2026-11-16):** on a cascade robot R1 / R2 hold the cascade and
+> L1 / L2 the side toggles (its driver file), and the mechanism lines are theirs — copy them as printed (K.2.2's
+> boot line reads `boot source RECORD, 3 autons, 6 of 6 mechanisms present; autons ALLOWED`). The
+> pneumatic claw is the cascade robots' claw too (A, line A), so K.0.5 and K.4 (HA-157) run on it — its start
+> position is the one station 13 finds (HA-261), not necessarily CLOSED. "J" below reads "R1.2 / R2.2".
+>
 > **Run K only after F, J and M have passed on the same build line** (the same commit's builds):
 > **M.3's forward check passed** (the only station that proves "forward" before an auton drives) and
 > **M.6's floor result recorded**, whatever it was. **Driver control here runs the library's drive
@@ -2439,9 +2478,10 @@ control after the boot)
       copy: /usd/comp_log.txt did NOT open: NO SD CARD -- serial only; ...` (with a card in: `... did
       NOT open, though an SD card is in (full? write-protected? a folder of that name?) -- ...`) —
       never a refusal. **An auton the registry refused is DROPPED, not the boot** (the team lead's
-      ruling, 2026-10-02): `1 auton(s) REFUSED at registration and DROPPED -- the dropped ones are NOT
-      on the menu (each named below); every other auton and driver control still run -- fix
-      src/team/autons.cpp`, then `DROPPED: auton '<name>': <why>` (past eight drops: `(the first 8
+      ruling, 2026-10-02): `1 auton(s) REFUSED at registration and DROPPED -- NOT on the menu (each named
+      below); every other auton and driver control still run -- fix src/team/autons.cpp` (robot one:
+      `src/team/robot_one_autons.cpp`), then on a cascade robot `(the skills route both robots share is fixed
+      in src/team/skills_route.cpp)`, then `DROPPED: auton '<name>': <why>` (past eight drops: `(the first 8
       named below)`, and a last line counting the rest), and the menu names it in red; none is
       expected with the team's file as it is — copy any word for word.
 - [ ] **K.2.3** The mechanism lines, word for word: J.3.1's eight for the pivots and J.9.1's three for
@@ -2714,8 +2754,11 @@ naming each owed fact the program needs. This station is where the remaining ans
       did the claw open or close, the front toggle go out or back, the ramp go down or up (G22–G24, HA-261:
       and which position each rests in, unpowered). **Station 13 does not apply the cap yet (ROB1-C)** — keep
       the ceiling at 3 V (never R1) and never power the cascade into its top stop (R1.4).
-- [ ] **R1.3 — Calibrate (slot 4) on robot one** (Station G's steps; its own SD card, labelled — the record names
-      no robot yet, ROB1-B).
+- [ ] **R1.3 — Calibrate (slot 4) on robot one** (Station G's steps G.0–G.6 — the push with the CAMERA end leading
+      is robot two's old rule: lead with the end the team calls FRONT; G.4b.1 / G.4b.2 with a side toggle, as
+      G.4b's note says). Since ROB1-BT the record names its robot
+      (`robot=robot-one`): a card written before 2026-11-16, or robot two's, is refused at boot by name — run
+      Calibrate once on THIS robot (guide chapter 19).
 - [ ] **R1.4 — the cascade measured at station 13** (C7): no levels yet (manual for now), so RECORD at the
       **bottom stop** and the **top stop** — two rows, the library's least — a taped height each; read
       `output … deg`, never the inches (placeholders until Stage B is typed). **The top stop, until ROB1-C caps
@@ -2810,6 +2853,37 @@ field height is needed for T.1, T.4 and T.5 (axle 13.20 in, on brackets above an
 | T.5 pushFrom; touches at stow?; blocks the view? | | | |
 | T.6 driveBound; end error | | | |
 | T.7 right wall's Toggle red-out? (the field — once) | | | |
+
+## Station R2 — ROBOT TWO, ROBOT ONE'S TWIN: ITS FACTS FORM AND ITS CARD  *(robot two, rebuilt — added ROB1-BT, 2026-11-16; NOTHING HAS RUN ON IT)*
+
+Robot two is robot one's twin since ROB1-BT (the team lead, 2026-11-13: "the same build and just the auton
+routes are different"): its region of `src/robots/mechanism_table.hpp` is robot one's, and
+`src/robots/robot_two_facts.hpp` holds robot one's 35 facts — **every one OWED** but Calibrate's two thresholds
+(typed: robot one's, for the same drive) — each placeholder robot one's value. So EVERY robot-two build (`make ROBOT=tank …`) refuses, naming each owed fact its program needs:
+Bench Tests and Calibrate wait on the 17 Stage A facts, the other four programs on all 31 of Stage A and B.
+Its drive cartridge (`kRobotTwoChassis`) is UNSET until read off it.
+
+- [ ] **R2.0 — the facts form AGAIN, for robot two** (`docs/robot-facts-form.md`, a second copy, "robot two" at
+      the top): sections A and B off the brain's Devices screen. Answers the two robots share by construction
+      (the cascade's cartridge and gear teeth, the flipper's kind) must match robot one's. A typed robot-two
+      fact keeps robot one's ORIGINAL placeholder (`one::<fact>.placeholder` — the banner of
+      `src/robots/robot_two_facts.hpp`), so only a value equal to THAT placeholder is typed with "same as the
+      placeholder, checked -- <who>, <date>, read off robot two"; a value equal to robot one's TYPED value
+      (robot one's ports 10 and 1, say) is typed with its plain source.
+      **HA-256** (the twin is the same build) is settled here: a structural difference — a third cascade
+      motor, a missing piston — is a declaration edit, never a facts edit; tell the coordinator.
+- [ ] **R2.1 — Stage A typed for robot two** — then `make ROBOT=tank` and `make ROBOT=tank PROGRAM=calibrate` link.
+- [ ] **R2.2 — Bench Tests (slot 3) on robot two:** R1.2's steps (the census; station 13's direction check on
+      each cascade motor; each side toggle run once, briefly; each piston fired once).
+- [ ] **R2.3 — Calibrate (slot 4) on robot two**, R1.3's steps (Station G's G.0–G.6, with G.4b's side-toggle
+      note). **The card check:** robot two's record names
+      `robot=robot-two`. Before it, robot two's OLD card (its record from 2026-09-24 names no robot) — or robot
+      one's card — must be REFUSED at boot by any program that drives from it: `the card's record names NO ROBOT`
+      / `the card's record is ANOTHER ROBOT'S`. Note the line; it is the check that a card moved between the
+      twins is caught.
+- [ ] **R2.4 — the cascade measured at station 13** (R1.4's steps) — Stage B typed; then Drive, the Auton
+      Tester, Competition and shulib Tune link. Robot two's driver map and autons are robot one's (the skills
+      route MIRRORED): a button or an auton is changed in BOTH robots' files.
 
 ## DO NOT
 
