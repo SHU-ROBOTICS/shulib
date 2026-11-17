@@ -144,8 +144,11 @@ so a human can run the three pushes.
 
 `pages.yml` builds the route builder from the published commit (`tools/route_maker/build.py`, its robots from
 `shulib_route_maker describe` on that commit) into `route-builder/` beside its docs page, and its PG1 step fails the
-publish if `route-builder/app.html` is missing or is not the app. After the deploy, **open
-docs.shurobotics.com/route-builder/app.html, place a start, add a drive and press Export once** — the robots it
+publish if `route-builder/app.html` is missing or is not the app. Since RMP1-A2u it also builds PREVIEW's engine
+(`--engine`): a commit without `tools/route_maker/wasm/` (RMP1-A2e) is refused before the build, by name, and PG1
+fails a form of the page that carries no engine — the docs say PREVIEW works. After the deploy, **open
+docs.shurobotics.com/route-builder/app.html, place a start, add a drive, press PREVIEW (the robot plays it: the engine
+loaded) and press Export once** — the robots it
 offers are that commit's, and a robot fact typed since reaches the published builder only at the next publish
 (the RMP1 brief's D17: a docs release at each route-builder merge before the 21st, on the team lead's OK for the
 push).

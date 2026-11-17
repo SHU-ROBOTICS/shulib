@@ -3,8 +3,8 @@
 // Two questions, answered in plain words before the app loads:
 //   1. Can this browser run the route builder at all (ES modules)? If not, the page says so and stops — never a
 //      blank or half-drawn page.
-//   2. Can it run the route PREVIEW (WebAssembly with its exception instructions, and module Workers — what the
-//      preview engine needs)? If not, a yellow box says which browsers can, and the builder itself still opens,
+//   2. Can it run the route PREVIEW (WebAssembly with its exception instructions, and a Worker — a classic one, from
+//      a blob: URL: what the preview engine runs in)? If not, a yellow box says which browsers can, and the builder itself still opens,
 //      saves and exports. The floor the page states: Chrome or Edge 97, Firefox 115, Safari 16.
 // It never requests anything (the module is 28 bytes, made here; the Worker is a blob: URL the page's own
 // Content-Security-Policy allows). window.shulibBrowser holds the answers for the app.
@@ -20,16 +20,16 @@
   } catch (e) {
     canWasmEh = false;
   }
-  var canModuleWorker = false;
+  var canWorker = false;
   try {
-    var probe = { get type() { canModuleWorker = true; return 'module'; } };
     var url = URL.createObjectURL(new Blob([''], { type: 'text/javascript' }));
-    new Worker(url, probe).terminate();
+    new Worker(url).terminate();
     URL.revokeObjectURL(url);
+    canWorker = true;
   } catch (e) {
     // a browser without Workers (or one that refuses this one) cannot run the preview's engine
   }
-  window.shulibBrowser = { modules: canModules, wasm: canWasmEh, moduleWorker: canModuleWorker, preview: canWasmEh && canModuleWorker };
+  window.shulibBrowser = { modules: canModules, wasm: canWasmEh, worker: canWorker, preview: canWasmEh && canWorker };
   function box(title, text) {
     var d = document.createElement('div');
     d.className = 'too-old';

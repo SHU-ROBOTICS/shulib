@@ -16,6 +16,29 @@
 
 ## API 2.9
 
+### 2026-11-17 — PREVIEW in the route builder: the robot drives your route on the field, from the real library
+
+> Written when it was built (chunk RMP1, run RMP1-A2u). **No library change — no API change:** nothing under
+> `include/shulib/` or `src/` moved; this is the route builder's page. **Host and browser only: PREVIEW is the host
+> test plant's run, not the robot's.**
+
+**What you can now do (additive):**
+
+- **PREVIEW** in the [route builder](route-builder.md) (**Ctrl+Enter**): the real library runs the route on the
+  page — in the background, with **Cancel** — and the robot plays it on the field, its path solid beside the dashed
+  plan, under a timeline you can scrub (play, pause, step to the step before or after, the speed). Each step in the
+  list says how it went — done, failed (with the library's own line), through a wall, cut, skipped — and the steps
+  that used a number robot one's facts file has not measured yet are marked PLACEHOLDER. PREVIEW plays robot one;
+  robot two's mirrored run is not in it yet.
+- How: [guide chapter 22, step 6](guide/22-making-your-first-route.md#6-preview-watch-the-library-drive-it).
+
+**What changed:** robot one's cascade has no levels yet (its facts, typed 2026-11-15), so the route builder's
+Mechanism menu now says **"No levels yet: record them at Bench Tests station 13"** and offers what the cascade can
+do — home it, wait until it is done — instead of an empty list of levels. A move to a level in an older project file
+is red, with the same words.
+
+**What you must do:** nothing.
+
 ### 2026-11-16 — the route builder's Controls tab: the driver's buttons and the driving feel, by clicking
 
 > Written when it was built (chunk RMP1, run RMP1-B). **No library change — no API change:** nothing under

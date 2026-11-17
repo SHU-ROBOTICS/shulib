@@ -4,6 +4,10 @@ Build the skills route by clicking on the real field, see at once anything the r
 C++ for the robot — in the browser, with nothing to install. Every change to it is tested in Edge, Chrome and
 Firefox on Windows, and in Chromium and Firefox on Linux.
 
+Press **PREVIEW** and the robot drives the route right there: the real library runs it on the host test plant
+inside the page, and plays it back on a timeline you can scrub — each step marked done, failed or skipped in the
+library's own words.
+
 [Open the route builder](route-builder/app.html){ .md-button .md-button--primary }
 [Download for offline use](route-builder/shulib-route-builder.html){ .md-button download="shulib-route-builder.html" }
 

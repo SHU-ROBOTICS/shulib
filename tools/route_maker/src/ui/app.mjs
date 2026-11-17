@@ -1,6 +1,6 @@
 // app.mjs — THE ROUTE BUILDER'S SHELL (RMP1 brief §1.4, A.6; run RMP1-A1): the store (one state object, every
 // route edit through the undo history), the top bar (the route's name, the save state, undo/redo, the folder,
-// the theme, help, PREVIEW — shown, not yet working — and Export), the three panes (steps, field, inspector),
+// the theme, help, PREVIEW — preview.mjs — and Export), the three panes (steps, field, inspector),
 // the status bar (the route's checks; the library build this page was made from), the keyboard, the toasts, and
 // a draft kept in this browser between visits (a convenience, never instead of the project file: it says "your
 // unsaved route is back" only when it differs from what was last saved or opened, and a connected folder's own
@@ -22,10 +22,11 @@ import { folderHost } from '../host/files_fsaccess.mjs';
 import { downloadHost } from '../host/files_download.mjs';
 import { bakedRobots, routeRobots } from '../host/robots.mjs';
 import { capabilities, capabilityWords } from '../host/capabilities.mjs';
-import { makeEngine, PREVIEW_COMING } from '../host/engine.mjs';
+import { makeEngine } from '../host/engine.mjs';
+import { createPreview } from './preview.mjs';
 import { newProject, loadProject, saveProject, PROJECT_FILE } from '../model/project.mjs';
 import { addStep, updateStep, removeStep, moveStep, duplicateStep, setStart, plannedPoses, normalizeRoute, startPose } from '../model/route.mjs';
-import { checkRoute, applyFix, TURN_FIRST_EDGE_DEG } from '../model/checks.mjs';
+import { checkRoute, applyFix, TURN_FIRST_EDGE_DEG, LEVELS_FROM, noLevels } from '../model/checks.mjs';
 import { historyOf, commit, undo as undoH, redo as redoH, canUndo, canRedo } from '../model/undo.mjs';
 import { bearingDeg, wrapDeg } from '../model/geometry.mjs';
 
@@ -377,7 +378,10 @@ async function main() {
         const items = [];
         for (const m of mechs) {
             items.push(h('h3', {}, `${m.name} · ${KIND_LABEL[m.kind] || m.kind}`));
-            const acts = mechanismActions(m.kind);
+            const acts = mechanismActions(m.kind, !noLevels(m));
+            if (noLevels(m)) {  // RMP1-A2u
+                items.push(h('p', { class: 'hint menu-note' }, `No levels yet: ${LEVELS_FROM}.`));
+            }
             if (!acts.length) {
                 items.push(h('button', { class: 'menu-item', disabled: true }, 'Flywheel steps come later', h('small', {}, '')));
             }
@@ -660,6 +664,8 @@ async function main() {
     els.app.insertBefore(controlsTab.element, els.status);
     els.fieldView = createFieldView(els.fieldPane, app);
     els.fieldPane.append(els.toolbar, els.hud, els.zoom, els.modeHint, els.coach);
+    app.refresh = () => render();  // RMP1-A2u: PREVIEW redraws the shell (the step list lit, a run put away)
+    app.preview = createPreview(app, els, engine, baked, toast);
 
     function renderTop() {
         const r = route();
@@ -693,8 +699,7 @@ async function main() {
             h('button', { class: 'btn icon ghost', 'aria-label': dark ? 'Light theme' : 'Dark theme', title: dark ? 'Light theme' : 'Dark theme', onclick: theme }, icon(dark ? 'sun' : 'moon')),
             h('button', { class: 'btn icon ghost', 'aria-label': 'Help and shortcuts (?)', title: 'Help and shortcuts (?)', onclick: () => openHelp(app) }, icon('help')),
             h('span', { class: 'sep' }),
-            ui.tab === 'route' ? h('button', { class: 'btn big', id: 'preview', disabled: !engine.available, title: PREVIEW_COMING, 'aria-describedby': 'preview-why' }, icon('play'), 'PREVIEW') : null,
-            ui.tab === 'route' ? h('span', { class: 'sr-only', id: 'preview-why' }, PREVIEW_COMING) : null,
+            ui.tab === 'route' ? app.preview.topbar() : null,  // PREVIEW plays the route: not on the Controls tab
             exportButton(),
             h('button', { class: 'btn icon ghost pane-toggle', 'aria-label': 'Step details', onclick: () => { els.app.dataset.right = els.app.dataset.right ? '' : 'open'; } }, icon('panel')));
     }
@@ -775,6 +780,7 @@ async function main() {
         els.fieldView.render();
         renderStatus();
         document.documentElement.dataset.steps = String(route().steps.length);
+        app.preview.sync();
     }
 
     // ── the keyboard (§1.4's shortcuts) ──
@@ -904,6 +910,9 @@ async function main() {
                                 await controlsTab.folderConnected();
                                 return true;
                             } };
+    // RMP1-A2u: the page tests' robots and PREVIEW engine (a fixture robot with levels, a stand-in engine)
+    const rebake = (patch) => { Object.assign(baked, patch); derived = null; render(); };
+    Object.assign(window.routeBuilder, { useRobots: (r) => rebake({ robots: { ...baked.robots, ...r } }) }, app.preview.testHooks(rebake));
     document.documentElement.dataset.ready = '1';
 }
 

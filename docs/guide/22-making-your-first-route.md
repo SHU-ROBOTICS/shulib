@@ -1,8 +1,8 @@
 # 22 — Making your first route with the route builder
 
 The **route builder** is a web page where you build the skills route by clicking on the real field, and get the
-C++ for the robot out of it. You place robot one's start, add steps — drive here, curve through there, raise the
-cascade — and the page checks every step against the library's own rules as you go. When the route is right, you
+C++ for the robot out of it. You place robot one's start, add steps — drive here, curve through there, open the
+claw — and the page checks every step against the library's own rules as you go. When the route is right, you
 export it into the robot's code. Every line it writes is commented in plain words; it is your route, and you
 should be able to explain every line of it.
 
@@ -55,7 +55,7 @@ A drive's speed, time limit and "how close" (on the right, under **Speed, time l
 **drive's**: the turn to face the point first uses the robot's own settings.
 
 The numbers on the field are the step numbers, at the spot where each step ends. Steps that end at the same spot
-share one: **3–5** is the curve's end, where the cascade is raised and the robot waits.
+share one: **3–5** is the curve's end, where the claw opens and the robot waits.
 
 ### 4. Add a curve
 
@@ -69,25 +69,66 @@ sentence — here the path into point 1 doubles back on itself:
 
 ![A curve the library refuses: red, "the library will not drive this curve (point 1)", and the library's own sentence, "point 1 doubles back"](../assets/route-builder/curve-refused.png)
 
-### 5. Raise the cascade
+### 5. Work a mechanism
 
-Pick **Mechanism** (**M**), then **cascade → Move to a level**. Choose the level on the right, and type the most
-time it may take. (Robot one's level heights say **not measured yet** until its builder measures them; the code
-names a level by its number in robot one's facts, so the route does not change when they are measured.)
+Pick **Mechanism** (**M**): the menu lists robot one's mechanisms and what each one can do. Pick **claw → Set a
+position** and choose **open** on the right. (The route in the pictures also homes the cascade first: **cascade →
+Home it**, with its time limit typed, before the first drive.)
 
-The step turns red:
+![The Mechanism menu: the cascade says "No levels yet: record them at Bench Tests station 13" and offers Home it and Wait until it is done; the claw, the flipper and the ramp offer Set a position](../assets/route-builder/mechanism-menu.png)
 
-![A cascade move with no home before it: the page says why in plain words, and offers two fixes](../assets/route-builder/home-first.png)
+**The cascade has no levels yet.** Its builder records them at **Bench Tests station 13**; until they are in robot
+one's facts, the menu says so and offers only what the cascade can do. Once it has levels, **Move to a level**
+appears: choose the level on the right and type the most time it may take. The code names a level by its number in
+robot one's facts, so the route does not change when a level is renamed or measured.
 
 The cascade only knows where its bottom is once it has been **homed** — pushed gently down until it stalls on its
-stop. A move before that stops the whole route (`NOT_HOMED`). Click **Home it first**: a home step appears at the
-start of the route. **Type its time limit yourself** — the page never invents one. (Or click **Home it while the
-first leg drives**: the home starts at the beginning, and a "wait until done" finishes it before the cascade's first
-move.)
+stop. A move before that stops the whole route (`NOT_HOMED`), so the page marks such a move red and offers **Home it
+first** (a home step at the start of the route — **type its time limit yourself**: the page never invents one) or
+**Home it while the first leg drives** (the home starts at the beginning, and a "wait until done" finishes it before
+the cascade's first move).
 
 ![A five-step route, ready to export: the steps on the left, the plan on the field, the selected drive on the right](../assets/route-builder/route.png)
 
-### 6. Export
+### 6. PREVIEW: watch the library drive it
+
+Press **PREVIEW** (top right, or **Ctrl+Enter**). In about a second the robot drives your route on the field. It is
+not a drawing: the page runs the **real library** — the same code the robot runs — on the **host test plant**, the
+library's own model of a drive, and plays back what it did. The path the robot drove is solid; your plan stays
+dashed beside it, so you see where the robot went differently from the plan.
+
+![PREVIEW playing: robot one partway through the curve, its path solid beside the dashed plan; the timeline across the bottom with each step's span, and the steps on the left marked done with their times](../assets/route-builder/preview.png)
+
+**The timeline** across the bottom shows each step's span in the colour of how it went: green done, red failed,
+amber cut by the 57 s mark, grey skipped; a step too short to see at this scale is a thin mark at its moment. Play and pause with **Space**, go to the step before or after with
+**Left** and **Right** (with **Shift**, 0.1 s at a time), to the start or the end with **Home** and **End**, and
+choose the speed (½×, 1×, 2×, 4×). Drag along the timeline, or click a step in the list to go to where it began.
+The small bar on the right is the run against the 60 s, the 57 s cut marked.
+
+**The steps** on the left say how each one went, and the one playing is highlighted. A step that failed is red,
+with the library's own line under it — the line the brain's log would show. A step in which the robot would go
+**through a wall** is red too, saying where (the host test plant has no walls, so the page checks the robot's square
+against the real field); the steps after it are grey, and the robot is drawn faded from that moment: on the field it
+would not get there.
+
+![A drive that ran out of time: step 2 red with the library's line "STOPPED at step 2 (driveTo): motion TIMEOUT", the two steps after it greyed as skipped](../assets/route-builder/preview-failed.png)
+
+**Robot two.** PREVIEW plays robot one; robot two's mirrored run is not in it yet, and the first line of **About
+this run** says so. To keep the two robots apart, keep robot one's whole robot 3 in off the diagonal
+([chapter 17](17-the-competition-program.md#both-robots-at-once)).
+
+**What the host test plant is not.** It is a stand-in drive — a 12 in tank with made-up gains, not your robot's —
+with no walls, and every number robot one's facts file has not measured yet is a **PLACEHOLDER**: the steps that
+used one say so, and **About this run** (the **?** button beside the speeds) lists them, with every line the library
+printed. The steps, their order and what the library refuses are the library's; the times and the exact path are
+the host test plant's. Time the route on the robot with **shulib Auton Tester**
+([chapter 16](16-testing-an-auton-on-the-bench.md)).
+
+PREVIEW runs the route on the page, saved or not. Change the route and the run is put away (an undo brings it
+back); press PREVIEW again. A route with a red step is not run — fix it first. **Cancel** stops a PREVIEW that is
+running; one that takes longer than 20 s is stopped, and the page says so.
+
+### 7. Export
 
 When the bottom bar says **Ready to export**, press **Export** (**Ctrl+E**). While a step is still red, a red number
 on the Export button counts what is left, and Export shows only that list — each with **Go there** — and no code.
@@ -98,7 +139,7 @@ on the Export button counts what is left, and Export shows only that list — ea
   pick the repository's top folder (the one with `src/team/` in it). Then **Write into src/team/skills_route.cpp** puts the route between the two
   `ROUTE MAKER` lines of that file — and changes nothing else in it, keeping its own line endings.
 - **In another browser**, **Copy the code** — or pick your `src/team/skills_route.cpp`: the page writes the
-  updated file back as a download, to save in its place. **Then Save** (step 7): the project file remembers what
+  updated file back as a download, to save in its place. **Then Save** (step 8): the project file remembers what
   was exported, so the next export knows that code is the builder's.
 
 One line in robot two's own autons file runs this same route **mirrored** across the field's diagonal; the export
@@ -114,7 +155,8 @@ in the picture above, for one:
   *Step 2 — DRIVE to (-24, -36) in: about 26.8 in. First it turns to face the point …*
 - **The code** is the library's own calls (`r.` is the route being built), every number with its unit: `_in`
   inches, `_deg` degrees, `_s` seconds, `_volt` volts. A drive that turns first is two calls — `r.face(…)`, then
-  `r.driveTo(…)`. A level is `cascade[facts::lv(2).name]` — level 2 of robot one's facts.
+  `r.driveTo(…)`. A position is `claw["open"]`; a level, once the cascade has levels, `cascade[facts::lv(2).name]` —
+  level 2 of robot one's facts.
 - **The brain's numbers.** If the route stops on the robot, the brain's log says `STOPPED at step N` with the call's
   name. A drive that turns first is TWO calls, so the brain counts one step more than the page for each such drive
   — and wherever the two numbers differ, the comment says the brain's too (*"The brain's log calls the turn step 2
@@ -127,7 +169,7 @@ You should be able to explain every line; if one surprises you, ask before you r
 Then build and upload as always ([chapter 16](16-testing-an-auton-on-the-bench.md)), and run the route in
 **shulib Auton Tester** on the robot.
 
-### 7. Save
+### 8. Save
 
 **Save** (**Ctrl+S**) writes the project — your route, step by step — to `src/team/route_maker.json` (Edge or
 Chrome, with the folder connected) or downloads it (put it in `src/team/`). **Open** reads it back. Commit it with
@@ -257,11 +299,13 @@ means the robot's own; on a drive that turns first, they are the drive's). A num
 not `2.5s`: anything else is marked and not kept.
 
 A level of the cascade is written through the robot's facts — `cascade[facts::lv(2).name]` — so renaming a level in
-the facts file never breaks a route.
+the facts file never breaks a route. The cascade has no levels yet (they are recorded at Bench Tests station 13):
+until then its menu offers **Home it** and **Wait until it is done** only, and a move to a level in a project file
+from before is red, with the same words.
 
 Not yet in the route builder (they come in its next updates; until then they are typed by hand inside the region,
-and the page never overwrites a hand edit): **PREVIEW**, triggers partway through a drive, wall resets, the
-mirrored robot drawn on the field, the time bar, and the Toggle steps.
+and the page never overwrites a hand edit): triggers partway through a drive, wall resets, the mirrored robot drawn
+on the field while you edit, the time bar, and the Toggle steps.
 
 ### The checks
 
@@ -279,7 +323,7 @@ one-click fix it offers it.
 | The curve | the library refuses it: its first point is behind the robot, two points are closer than 1 in, a point doubles back (amber: a bend tighter than the robot can follow) |
 | Home first | a cascade (or any arm or lift homed by a stall or a switch) is moved before a FINISHED home on every way the route can go |
 | Wait until done | nothing before it starts that mechanism, or a skip can pass over the step that does |
-| Levels and positions | the mechanism, the level or the position is not on the robot |
+| Levels and positions | the mechanism, the level or the position is not on the robot (or the mechanism has no levels yet) |
 | Time limits | a time limit is empty or not above 0; volts outside -12 to 12 |
 | Labels and skips | two steps with one label, or a skip to a label that is not on a LATER step |
 | The name | the route is not named `skills` — the name both robots' code registers it by (the page does not rename it; a project file with any other name, even one the brain could not show, offers **Name it "skills"**) |
@@ -294,6 +338,9 @@ one-click fix it offers it.
 | **Delete**, **Ctrl+D** | delete, duplicate the selected step |
 | **Ctrl+Z**, **Ctrl+Shift+Z** | undo, redo |
 | **Ctrl+S**, **Ctrl+E** | save, export |
+| **Ctrl+Enter** | PREVIEW |
+| **Space** (a tap), **Left**, **Right** | in the preview: play or pause, the step before or after (**Shift**: 0.1 s) |
+| **Home**, **End**, **Esc** | in the preview: its start, its end; close it |
 | **Alt+Up**, **Alt+Down** | move the selected step in the list |
 | **+**, **-**, **0** | zoom in, out, fit the field |
 | **Space** + drag | pan |

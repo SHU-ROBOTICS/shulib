@@ -30,6 +30,11 @@ export const WALL_SLACK_IN = 1.0;
 /** "turn to face it first" is off by default only within this (deg) of the leg's line (R6 — a display
  *  rounding, not a robot claim). */
 export const TURN_FIRST_EDGE_DEG = 0.5;
+/** Where an arm's or a lift's levels come from: said where one would be chosen and it has none (robot one's
+ *  cascade since ROB1-C2). */
+export const LEVELS_FROM = 'record them at Bench Tests station 13';
+/** An arm or a lift with no levels to move to: its menu offers no move, and a move on it is refused (RC18). */
+export const noLevels = (m) => (m.kind === 'arm' || m.kind === 'lift') && !(m.presets || []).length;
 /** Labels: what the C++ literal and the page both carry safely (a page rule). */
 const LABEL_MAX = 29;
 
@@ -443,7 +448,10 @@ export function checkRoute(route, robots, field) {
                         + 'this step does not fit it.', '', { robot: robot.id }));
                     continue;
                 }
-                if ((s.do === 'move' || s.do === 'startMove') && s.preset === undefined) {
+                if ((s.do === 'move' || s.do === 'startMove') && noLevels(mech)) {
+                    out.push(issue('RC18', 'error', i, 'preset', `${cap(rname)}'s ${mech.name} has no levels yet: ${LEVELS_FROM}.`,
+                                   s.preset === undefined ? '' : libraryWords('noPreset'), { robot: robot.id }));
+                } else if ((s.do === 'move' || s.do === 'startMove') && s.preset === undefined) {
                     out.push(issue('RC18', 'error', i, 'preset', 'Choose which level it moves to.', '', { robot: robot.id }));
                 } else if (s.do === 'move' || s.do === 'startMove') {
                     const ok = typeof s.preset === 'number'

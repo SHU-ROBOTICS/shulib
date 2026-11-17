@@ -16,6 +16,10 @@ export const SHORTCUTS = [
     ['Ctrl+Z  /  Ctrl+Shift+Z', 'Undo / redo'],
     ['Ctrl+S', 'Save the project'],
     ['Ctrl+E', 'Export'],
+    ['Ctrl+Enter', 'PREVIEW: run the route and watch the robot drive it'],
+    ['Space', 'Play or pause the preview (a tap; held, it pans)'],
+    ['Left / Right', 'The preview\'s step before or after (Shift: 0.1 s)'],
+    ['Home / End', 'The preview\'s start or end; Esc closes it'],
     ['Alt+Up / Alt+Down', 'Move the selected step up or down the list'],
     ['+  /  -  /  0', 'Zoom in, out, fit the field'],
     ['Space + drag', 'Pan the field (any tool)'],
@@ -55,6 +59,8 @@ export function coachCard(app) {
         h('ol', {},
           h('li', {}, 'Click the field where robot one starts; drag its red knob to turn it.'),
           h('li', {}, 'Pick ', h('strong', {}, 'Drive'), ' (D) and click where it drives to.'),
-          h('li', {}, 'Press ', h('strong', {}, 'Export'), ' to get the code for the robot.')),
+          app.preview && app.preview.available()
+              ? h('li', {}, 'Press ', h('strong', {}, 'PREVIEW'), ' to watch the robot drive it, then ', h('strong', {}, 'Export'), ' for the code.')
+              : h('li', {}, 'Press ', h('strong', {}, 'Export'), ' to get the code for the robot.')),
         h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => app.hideCoach() }, 'Got it')));
 }

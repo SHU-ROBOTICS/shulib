@@ -1,6 +1,6 @@
 # RMP1 — PROGRESS (live log)
 
-<!-- release: between parts — RMP1-A1, RMP1-B (Controls + feel) and RMP1-A2e (the PREVIEW engine) landed 2026-11-16/17; RMP1-A2u (the PREVIEW screen) is building (declared by the coordinator 2026-11-17) -->
+<!-- release: between parts — RMP1-A1, RMP1-B, RMP1-A2e and RMP1-A2u (PREVIEW) landed 2026-11-16/17; RMP1-C (named routes, robot two on the field, 'both robots together?') is briefed (declared by the coordinator 2026-11-17) -->
 
 Brief: [`RMP1-route-maker-page.md`](RMP1-route-maker-page.md) (the coordinator's copy of record, placed uncommitted in
 this worktree; it lands with RMP1-A1). Executor model: `opus`. Nothing committed and nothing pushed by the executor.
@@ -2071,3 +2071,597 @@ Executor: Claude Opus 5.5 (the coordinator's `opus` subagent), worktree `.claude
   bounce-tracking protection reacting to the tests' own server, not the page: the three page-test launchers start
   Firefox with `privacy.bounceTrackingProtection.mode = 0`. Locally Firefox 33/33 (the engine's WG3 included),
   Chromium 30 + 3 skipped.
+
+## RMP1-A2u — PREVIEW in the page (the screen)
+
+Executor: Claude Opus 5.5 (the coordinator's `opus` subagent), worktree `.claude/worktrees/rmp1-a2u` (branch
+`rmp1-a2u`, from `1bcde4e`). Scope: A.7's A2u row — the Worker (progress, cancel), playback with the timeline
+scrubber, the robot on the real field with its path beside the dashed plan, the step list lit from the record's
+spans, the two-robot PREVIEW (robot two runs the mirror) with the 6 in band and the pair check's verdict, PLACEHOLDER
+facts marked; guide 22's PREVIEW section. Built against a STAND-IN engine (recorded schema-1 records) behind
+`engine.mjs`; RMP1-A2e (the real module) is building beside this run. Not committed, not pushed; host and browser
+only — nothing here runs on a robot.
+
+### Log
+- 00:25 EST 11-17 — Created this section first. Read RESUMING's standing rules; the brief by the 10-22 ruling: the
+  header, ANSWERS, A.1–A.12 in full, R1–R19, D1–D20, §1.1 and §1.4 (every A2/A2u row), §2.2–§2.5's A2 rows, §3, §6.1–§6.2,
+  §8 (landmines 1–30) in full; the rest by heading. Read A2e's worktree (never edited): the runner's record writer
+  (`test/route_maker_runner.hpp`), `engine_module.mjs`, `route_lines.mjs`, its README's schema-1 table and its log.
+- **§2.5.1 the screenshot path, FIRST (A.5):** Playwright 1.64.1 (`npm ci` in `tools/route_maker`, cache and TMPDIR
+  under `~/shulib-render-tmp/rmp1-a2u/`), its own Firefox 157 from the shared `PLAYWRIGHT_BROWSERS_PATH`, under
+  `(ulimit -v 4194304; timeout …)` with `NODE_OPTIONS=--disable-wasm-trap-handler`: the built ONE FILE captured over
+  `file://` (`shots/proof.png`) in seconds; `browser.close()` in a `finally`; no Playwright process left (`ps`).
+- **A scratch tree for REAL fixtures** (`scratch/rmp1-a2u/tree` = `git archive 1bcde4e` + A2e's 22 changed and new
+  files copied read-only at 00:26; none of them differs between A2e's base `e8fa3de` and `1bcde4e`): A2e's native
+  `shulib_route_maker` built there (GCC, the suite's flags) — its `preview` writes the records the stand-in plays.
+- **Fixtures recorded (00:37–00:40):** six routes on robot one (`ready`, `failed`, `carry`, `cut`, `pair_ok`,
+  `pair_fail`) through A2e's native program; the two pairs' robot-two runs and verdicts through a SCRATCH prototype of
+  the runner's pair mode (`scratch/rmp1-a2u/pair_probe.cpp`: the entry `competition::mirrored(…, kSkillsMirror)`
+  through RPV1's `previewEntry` on robot two, and MIRROR1-A's `checkMirroredPair`). **A REAL FINDING for the
+  coordinator (RPV1's file, not this run's): `route_preview_run.hpp`'s `plantStartFor` seats a MIRRORED entry's plant
+  at robot ONE's start (`effectiveStart().pose()`), while the library re-seats the estimate at the reflected start —
+  so robot two's true path is wrong (it drove from (-36, -60) toward mirrored targets). With `competition::seatedStart(e)`
+  there (patched in a scratch copy only), robot two starts at (60, 36) facing 180° and every pace is robot one's
+  reflected to 1e-6 (test `playback.test.mjs`). The pair check also segfaulted on the runner's routine outside
+  `previewEntry` (its `state().stack` is null there) — the probe's scratch copy guards it.**
+- **Built:** `src/model/playback.mjs` (the record → what the screen draws), `src/worker.mjs` (the Worker's loop),
+  `src/host/engine.mjs` (the page's side: progress, Cancel, the 20 s stop, a new Worker after a failure),
+  `src/host/engine_backend.mjs` (the real backend: A2e's `engine_module.mjs` + `route_lines.mjs`; inert until A2e
+  lands), `src/ui/preview.mjs` (the controller, keys), `src/ui/timeline.mjs` (the dock and its scrubber); field
+  layer, lit step cards; `build.py --engine DIR`. The stand-in: `test/standin_engine.mjs` (recorded runs through the
+  page's own `worker.mjs`, injected by a test hook like A1's `useMemoryFolder`).
+- **The seam PROVEN end to end (00:59–01:05):** a scratch overlay (my `tools/route_maker` + A2e's `engine_module.mjs`
+  and `route_lines.mjs`, A2e's built module copied read-only, md5 `3c8e8ccf…` = its `build/wasm/preview.wasm`) built
+  with `build.py --engine`: the site form (module Worker) and the ONE FILE (1.19 MB, blob Worker over `file://`)
+  both run the REAL module through the page's own Worker in Firefox 157, and the record equals the native fixture —
+  every field exact, poses within 1e-5 in / 1e-6 rad (WG2's bounds); 13/13 PREVIEW page tests green there.
+- Gates so far: host build 0 warnings; suite green **3,778** (no C++ touched); briefing regenerated before and after
+  (no change) and `check` current.
+- **Gates (01:00–01:45):** src gate self-test **OK (377 cases)**, no plant left (`git status -- Makefile src/ include/`
+  clean, no untracked file under `src include test`); ARM header gate exit 0 (259 lines); the PROS-free and sim-layering
+  greps clean; api_doc_tool self-test / coverage / fresh / examples / removability, briefing self-test + check,
+  staleness audit + self-test, doc_readability check-nav / check-tone — all clean.
+- **A1's page tests on this base: 6 RED before this run touched anything** (the same 6 on a base-built site, logged in
+  `scratch/rmp1-a2u/baseline_page.log`): `readyRoute` and three more pick robot one's cascade level `selectOption({index:
+  3})`, and robot one's cascade has NO levels since ROB1-C2 (`robots.json`: `presets: []`). Not fixed here — RMP1-B's
+  worktree carries the fix in `page.test.mjs` (`ONE_LEVELS`, `setClaw`), a file this run does not touch. With screenshots
+  on, 2–3 more die of a Firefox `page.screenshot` protocol error after those timeouts — on the base too (19 red there).
+- **Mutations (each applied alone, the site rebuilt for page tests, RED observed, restored in a `finally` and on
+  SIGTERM/SIGHUP/SIGINT, mtime bumped; driver `scratch/rmp1-a2u/mutate.py`, backups beside it):** RM31 (one byte of
+  the browser check's module) → the PREVIEW page tests RED; M1 the worker keeps its instance after rc ≠ 0; M2 the stop
+  keeps the Worker; M3 Cancel keeps it; M4 poses not interpolated; M5 the library's lines one step off; M6 a jumped step
+  called done; M7 a zero-length step "plays"; M8 a run never put away; M9 a refused route run; M10 robot two drawn from
+  robot one's poses; M11 the band twice as wide; M14 an answer for another run taken; M15 cards not lit; M16 the run's key
+  unsorted; M17 the pair mark at the wrong moment; M18 robot two never asked — all RED. M12 / M13 (build.py's
+  `</script` and glue-export refusals) RED in the A2e overlay (their test needs A2e's modules). **Two SURVIVED the first
+  round and were equivalent: M7 (`s.t1 > s.t0` was redundant beside `t < s.t1`) and M19 (the cache told one-robot and
+  two-robot runs apart, but a page's baked robots never change) — both conditions deleted, M7 re-cut at `t < s.t1` → RED.**
+- **Review (the code-review skill, high, its reviewers; then a FRESH verifier pass, medium) — findings and disposition:**
+  1. A step seen from below on the pace two page steps share counted for both (PLACEHOLDER and failed sentences on the
+     wrong card) — REAL → `ownersOf`: [first, last), a zero-length step owns ONE step of its family; tests + M20, M25,
+     M26 RED. 2. A synchronous Worker throw left PREVIEW "running" forever — REAL → caught in `engine.mjs` and
+     `preview.mjs`; test + M21 RED. 3. The 20 s stop counted the engine's download — REAL → the load gets 60 s
+     (`LOAD_MS`), each robot's run 20 s; test + M24 RED. 4. ci.yml builds the site without `--engine`, so the REAL-engine
+     page test is skipped in CI — REAL, A2e's ci.yml hunk → for the coordinator (below). 5. A new instance after rc 1 —
+     NOT CHANGED: the brief (A.3.10) says after ANY non-zero return, and a failed step is rc 0 (the fixtures). 6.
+     pages.yml needs A2e's files — by A.7's order (A2e merges first); for the coordinator. 7. Esc did not close the error
+     dock — REAL → fixed; M22 RED. 8. Enter on a step card did not seek — REAL → fixed; M23 RED. 9. Robot two sized by
+     robot one — REAL (cosmetic) → each robot by its own description (the record's `robot`). 10. Per-frame element
+     building — REAL → nose points computed, the play icon swapped only on a change, the driven path appended forward
+     (binary search; reset on a seek back: M29 RED). Verifier's new ones: the zero-length ownership (done above), the
+     pair run's two 20 s stops (words now "a run did not finish in 20 s"), `capabilities().preview` disagreeing with the
+     engine (one `previewAvailability`), build.py tracing back on an incomplete engine folder (refused by name; M30
+     RED), the one file's engine kept twice (the element removed once its blob exists), `busy` unused (removed), the run
+     layer keyed by the route (M27 SURVIVED: equivalent — every new run clears the layer; the run id dropped, the test
+     kept).
+- **03:10 EST 11-17 — RESUMED** (the 5-hour usage limit stopped the first run ~02:00). Checked first: `git diff --
+  src/ Makefile` empty and no untracked file under `src include test` (no gate plant left); every mutation in
+  `scratch/rmp1-a2u/mutate.py` absent from the tree (each `old` text present once, or the code rewritten since — M8,
+  M19, M20, M27 — and none of their `new` texts present). Rebuilt from source (the briefing generated with the suite
+  binary unlinked first): host build 0 warnings; suite green **3,778**; briefing regenerated after — no change;
+  `check` current. Site rebuilt; the model 105 pass / 2 skipped; Firefox: PREVIEW 12 pass / 1 skipped (the
+  real-engine test: no `--engine` here), A1's page tests the SAME 6 red (robot one's cascade has no levels).
+  A2e's worktree re-read (read only): `engine_module.mjs` now documents rc 3 (the program failed, no record) and a
+  THROW when the module aborts (that instance dead) — `worker.mjs` already handles both (no record → the words; a
+  throw → a new instance); the record's schema 1 unchanged (`route_maker_runner.hpp` identical to the 00:26 copy).
+- **The new order for this run (the coordinator, 11-17): FIX A1's 6 red page tests HERE, both halves** — (1) the
+  page, honest for a cascade with NO levels: its menu offers home (and nothing it cannot do) and says "No levels yet:
+  record them at Bench Tests station 13" instead of an empty list; (2) the page tests that move to a level run on a
+  FIXTURE robot with levels (robot x, `test/goldens/route_maker/robots/x.json`), and a new test pins the no-levels
+  wording on robot one. This supersedes the 01:00 entry's "not fixed here".
+- **03:20–03:29 — the cascade with NO levels, both halves.** (1) THE PAGE: `checks.mjs` — RC18 on an arm or lift with
+  no levels says "Robot one's cascade has no levels yet: record them at Bench Tests station 13." (`LEVELS_FROM`; the
+  library's "no preset" sentence beside it when a level is named anyway — an older project file), never "Choose which
+  level"; `words.mjs` — `mechanismActions(kind, levels)` drops "Move to a level" when there are none; `app.mjs` (RMP1-B's
+  shell — 1 import name, 3 lines in the mechanism menu, 2 in the test hooks; logged below) — the menu says "No levels
+  yet: record them at Bench Tests station 13." where the move was; `inspector.mjs` — no empty level list (the step's
+  RC18 says why). (2) THE TESTS: `page.test.mjs` — the four tests that move to a level (an error stands; built by
+  clicking; §2.5.2 R1 ×4 variants) put a FIXTURE robot in robot one's place first (`window.routeBuilder.useRobots`, new
+  in `app.mjs`): `ledgerRobot()` from `test/helpers.mjs` — robot x's committed description with a cascade of
+  facts-ledger levels, marked owed. **Delta from the order ("robot x"):** robot x's own lift has NAMED presets, so A1's
+  "not measured yet" and `facts::lv(` assertions could not run on it; `ledgerRobot()` is robot x's description with
+  robot one's cascade as it was (the node tests' own fixture, R8), so every A1 assertion still runs. `readyRoute` (the
+  docs' pictures) stays on the REAL robot one: the claw set open in place of the level (RMP1-B's `setClaw`, the same
+  helper, so the merge is small). NEW test `§2.5.2 robot one's cascade has NO levels` (×4 variants): the cascade's menu
+  is exactly [the no-levels sentence, Home it, Wait until it is done], the claw's has no such sentence; a project from
+  before (a move to level 2) opens with NO level list, ONE error — RC18 with the plain words — and Export lists it.
+  NEW node test RC18 "no levels" (a move and a startMove with a level named; a home and a wait not refused; one level →
+  "Choose which level"). Also: A1's one-file test now expects PREVIEW enabled on a site built with `--engine` (it said
+  "comes next" unconditionally — it would have gone red at A2e's merge); `app.mjs`'s re-bake clears its cached checks
+  (`derived = null` — the hook changed the robots under a cached route).
+  **Result: A1's page tests 17/17 green in Firefox (were 6 red), with screenshots on 32/32 + PREVIEW's 15/16 (1
+  skipped: the real engine), 0 page errors.** The model 106 pass / 2 skipped.
+- **Docs for it (rule 3):** guide 22 step 5 "Work a mechanism" (the claw; the cascade's no-levels note; the home rule
+  kept for when it has levels); the intro, step 3's pill sentence, the code reading, the reference's level note and
+  the checks table; the changelog entry's "What changed"; `RMP1-A1-manual-checks.md` (steps 3, 4, 7 and the card: the
+  claw, PREVIEW, offline PREVIEW); `tools/route_maker/README.md` (the levels robot). **Pictures re-taken** (their step
+  4 was "cascade: to level 2"): `route.png`, `route-dark.png`, `saved.png`, `export.png`, `turn-first.png`,
+  `curve-refused.png`; NEW `mechanism-menu.png`; `home-first.png` DELETED (robot one cannot reach that screen; the
+  rule is described in words). 1200 × 750, 256 colours (`scratch/rmp1-a2u/to_docs.py`: byte-identical method to the
+  first round's — `preview.png` re-made from its source is the same 176,875 bytes).
+- **03:30–03:50 — mutations on the FINAL code (every dependent rebuilt: the site re-made for each page mutation; driver
+  `scratch/rmp1-a2u/mutate.py`, logs `mutlogs_final/`, results `mutations_final*.json`):** RM31, M1–M11, M14–M18,
+  M20–M26, M29, M30, RM13 (NEW: PREVIEW runs a remembered route, not the one on screen — the brief's amended RM13 →
+  the page tests red), N1–N5 (NEW, the no-levels half: the menu offers a move with no levels; its sentence dropped; its
+  sentence on every mechanism; the empty level list back; RC18's no-levels branch dropped), M32–M34 (NEW, below) —
+  **every one RED**. M12, M13, M33, M34 also in the overlay with A2e's modules (RED). M8 and M20 re-cut to the
+  rewritten code; M19 and M27 dropped (their code is gone, as logged above). **A DRIVER FAULT, found and fixed:** a
+  mutation whose command runs two test files (`a; r=$?; b || r=1; exit $r`) went through a second `bash -c` inside
+  double quotes, so `$?` and `$r` were expanded by the OUTER shell and the exit was 0 — M5, M6 and N5 printed "GREEN"
+  beside their own "not ok" lines. Now ONE shell (`timeout 900 bash -c <cmd>`); the three re-run: RED.
+- **Playwright's CHROMIUM here (under `systemd-run … MemoryMax=4G`), the first Chromium run of PREVIEW — TWO REAL
+  FINDINGS, both would have been red on the Windows Edge / Chrome rows:** (1) **Chromium refuses a MODULE Worker made
+  from a `blob:` URL on a page opened from disk** (`file://`, the one file; a probe — `probe/workers.html` — shows a
+  classic blob Worker answering in both browsers, a module one only in Firefox): the ONE FILE's PREVIEW said "the
+  preview engine did not load". **Fixed:** the engine's Worker is CLASSIC in both forms (`engine.mjs`), and `build.py`
+  makes the module's glue a classic script — `import.meta.url` → `self.location.href` (in a Worker, its own script's
+  URL: what `import.meta.url` is in a module Worker), any other `import.meta` refused by name. This is the brief's
+  A.10 open item ("a Worker from a blob: URL in the one file on file:// … Edge and Chrome still open") — answered for
+  Chromium, and needing no fallback to the page's own thread. Tests: `engine.test.mjs` pins the classic Worker (M32),
+  `build_engine.test.mjs` the rewrite and the refusal (M33, M34). (2) **A test race:** `openFixture` waited for the
+  route's STEP COUNT, and `pair_fail` and `pair_ok` both have 3 steps — in Chromium PREVIEW was pressed before the
+  file was read, so it played the previous route. Now it waits for the route itself.
+  **Chromium after the fixes: 27 pass / 3 skipped** (the real engine; two Firefox-only tests). Firefox: 29 / 1.
+- **The seam, re-proven with A2e's CURRENT module (copied read-only at 03:29: `preview.wasm` md5 `483d0232…`, its
+  `engine_module.mjs`, `route_lines.mjs`; overlay `scratch/rmp1-a2u/integ2/`, site `integ2_site/`, the one file 1.20 MB):
+  Firefox 30/30 and Chromium 28/28 (+2 Firefox-only skipped) — THE REAL ENGINE in the SITE form and the ONE FILE over
+  file://, the record equal to the native fixture (every field exact; poses within 1e-5 in / 1e-6 rad), A1's tests
+  with PREVIEW enabled.** (The overlay's three `library_words` node tests fail there only because the overlay has no
+  `include/`; in the worktree they pass.)
+- **04:15–04:30 — REVIEW ROUND 2 (the code-review skill, high, its reviewers, on this worktree's whole diff).** (A first
+  invocation reviewed the MAIN tree's branch, not this worktree — its ten findings are about `shulib-v2`'s calibrate,
+  Toggle and pair-check code, NOT this run's; not verified or acted on here; for the coordinator.) Findings and
+  disposition, each checked against the code:
+  1. `pages.yml` always builds `--engine`: a publish before A2e merges fails — REAL (the order "A2e first" was only in
+     the log; the coordinator may merge A2u first) → the engine is built and PG1's engine check run only when
+     `tools/route_maker/wasm/CMakeLists.txt` exists; both branches of the snippet run here.
+  2. CI never runs the real module through the page — REAL, but A2e's `ci.yml` hunk: its `route-builder` job builds
+     the site BEFORE the module → for the coordinator (the seam below).
+  3. The browser check still demands MODULE Workers — REAL since the classic Worker → `browser_check.js` probes a
+     classic blob Worker (`worker`), its comment says so; NEW page test WG4 [W16] (a browser whose `Worker` throws is
+     told, the builder opens) + M35 RED. (W16's "module Workers" premise changed with the classic Worker.)
+  4. `LEVELS_FROM` names Bench Tests station 13 for every robot — NOT CHANGED: station 13 MECHANISMS is Bench Tests'
+     own station for every robot's mechanisms (MECH-A6), and the wording is the coordinator's order.
+  5. `poseAt` blends headings without wrapping — NOT A DEFECT: schema 1's samples are UNWRAPPED (README), measured on
+     every fixture: largest pace-to-pace change 0.06 rad, robot two's from 3.142 to 3.926 without a jump.
+  6. A pair verdict `checked: false` and `ok: false` shown as "too close" — CANNOT HAPPEN: `PairVerdict::ok` is true
+     unless a checked comparison found the gap (`test/mirrored_pair_check.hpp` :305, :323).
+  7. `worker.onerror` stops the Worker with no run pending — KEPT: an error the Worker did not catch leaves it in an
+     unknown state; the next PREVIEW makes a new one (A.3.10's "a new Worker after any failure").
+  8. Guide 22 called "About this run" the ⓘ button; it is drawn as ? — REAL → fixed.
+  9. `field_view.mjs` repeats the corner-to-points code — REAL (simplification) → `square()` uses `cornersOf`.
+  10. The no-levels rule in four places — REAL → ONE predicate `noLevels(m)` (`checks.mjs`) used by RC18 and the menu.
+  Mutations re-cut and re-run on the reviewed code: N1–N6 (N6 NEW: `noLevels` ignores the kind → the claw gets the
+  sentence), M35, RM31 (its file changed), M10, M11, M29 (`field_view.mjs` changed) — all RED. Model 106 pass / 2
+  skipped; Firefox 30 pass / 1 skipped.
+- **04:30–04:45 — A FRESH VERIFIER (the code-review skill, medium, a new run on the whole diff).** Findings and
+  disposition: (1) `poseAt`'s heading wrap — NOT A DEFECT (the samples are unwrapped: above). (2) **A record with NO
+  paces crashed the frame** (`poseAt` on an empty list) — REAL: RPV1's `refusedModel` writes exactly that when the
+  registry refuses the entry (`samples: []`, `word: REFUSED`, `why`) → `preview.mjs` says "The library refused this
+  route before the robot moved (REFUSED): <the library's sentence>" and plays nothing; a robot-two record with no
+  paces drops robot two with its sentence. NEW stand-in option `refuse` (a record shaped as `refusedModel` writes it)
+  and page test; M36 RED. (3) The cache key covers labels and ignores re-baked robots — NOT CHANGED: a label changes
+  where a skip lands (a different run), and the robots change only through the tests' hooks (a page's baked robots
+  never do). (4) **After robot one's run returned non-zero, a pair request re-made the whole module just to find the
+  engine has no pair mode** — REAL (a ~1 MB reload and a "Starting…" for nothing; today's backend has no pair) → the
+  pair mode is asked of the instance that ran robot one; worker test + M38 RED. (5) `pages.yml` builds the module
+  without a build type → assertion paths and URLs — NOT A DEFECT: A2e's `CMakeLists.txt` defaults to Release with
+  `-ffile-prefix-map`, and the overlay site built that way passed build.py's RG1 and URL checks. (6) "as ci.yml builds
+  it" — the comment now names A2e's job. (7) Module-only code outside the glue's function (top-level await) would
+  pass build.py — REAL as a guard (A2e's glue has none: its one `await import("node:module")` is inside
+  `createPreview`) → refused by name unless the glue begins with `async function createPreview(`; M39 RED. (8) **The
+  dock's height was measured only when it redrew: a narrower window wraps its rows and the field went under it** —
+  REAL (measured: 157 px at 1440, 138 at 1100, 215 at 700) → a `ResizeObserver` keeps `--dock-h`; asserted in the
+  failed-step test at 700 px; M37 RED. (9) Robot one taken by position (`routeRobots(...)[0]`): for a hand-edited
+  project naming a robot this build lacks, robot two was sent as robot one — REAL → robot one is the page's own
+  `app.robot()` (the one its checks ran on), robot two the other one; M18 re-cut, RED. *No test reaches the
+  unknown-robot case (the stand-in keys runs by route, robot included) — the fix is by reading.* (10) The one file's
+  engine element removed after the first run left `engineSource()` empty for any later caller — REAL (latent: only
+  startup calls it today) → the element stays (~1 MB of text twice in memory, which is nothing beside a robot's
+  correctness).
+  **After the fixes:** model 106 pass / 2 skipped; Firefox 31 pass / 1 skipped; Chromium 29 pass / 3 skipped; the
+  overlay on A2e's module Firefox 32/32, Chromium 30 + 2 Firefox-only skipped (THE REAL ENGINE in both forms in both
+  browsers); mutations M1, M18, M30, M33, M34, M36–M39 RED on the final code.
+- **04:45–05:00 — the WHOLE-brief pass (no reviewer subagent can be started from this run: the coordinator's
+  "one reviewer reads the WHOLE brief" was done here, by reading D5, §1.4's states and A.3.10 in full against the
+  page).** ONE GAP FOUND: §1.4's "a preview that … went THROUGH a wall … (RPV1's sentences, the step marked)" — the
+  page listed a field note only in "About this run", in RPV1's below-numbering. **A REAL THROUGH, recorded:** a route
+  the page ACCEPTS (no check refuses it) whose real run goes through the right wall — start (-36, -36) facing 0, a
+  curve through (30, -36), (60.5, -10), (60.5, 30): the follower swings 1.01 in past the wall's face at 2.28 s (found
+  by `scratch/rmp1-a2u/probe/find_through.mjs` over 20 routes — every other THROUGH it found, the page refused
+  first; recorded by A2e's native program, `make_fixture_through.mjs` → `test/fixtures/preview/through.preview.json`,
+  rc 1). Now `playback.mjs` marks the page step whose span holds the THROUGH pace red — "Went THROUGH the right wall",
+  and the line "On the robot it hits the right wall at 2.28 s (1.01 in past its face, more than the 1 in allowed): the
+  host test plant has no walls." (a TOUCH or a piece marks nothing, as RPV1). Node test (the real fixture; a TOUCH;
+  the shared pace's owner) + page test; M40 (not marked), M41 (a TOUCH taken for one), M42 (the shared pace to the
+  earlier step) RED. Guide 22 and the changelog say it. New screens: `preview-through`, `preview-refused`.
+  **Final runs: model 107 pass / 2 skipped; Firefox 32 pass / 1 skipped (PREVIEW in all four variants with
+  screenshots: 18 pass / 1 skipped); Chromium 30 pass / 3 skipped.**
+- **PROSE REVIEW (rule 4), run BEFORE this entry was written — the exact patterns:** (1) `grep -rn -i -E
+  'engine\.mjs|engine_backend|worker\.mjs|playback\.mjs|preview\.mjs|timeline\.mjs|field_view|step_list|inspector\.mjs|words\.mjs|checks\.mjs|capabilities\.mjs|build\.py|app\.html|help\.mjs|standin|stand-in engine|PREVIEW|Move to a level|no levels|station 13|module Worker|classic Worker|import\.meta|pages\.yml'
+  docs/ README.md --include=*.md`, the chunk files and `docs/api/` aside → 31 files; the route-builder ones read in
+  full (guide 22, guide 14 :67 and :558–564, guide 16 :358–363, `docs/route-builder.md`, RELEASING :143–160, the
+  changelog's entry); the rest are RPV1's route preview (`tools/route_preview.py`), station 13's facts form and the
+  library's own uses of the words — none says anything about the route builder. (2) `grep -rn -E 'PREVIEW|route
+  builder|route-builder|Route builder' docs/ README.md --include=*.md` (same exclusions) → guide 16 :362, guide 14
+  :67 / :558–564, `docs/route-builder.md`, RELEASING :143–155, the guide index — all current. (3) `grep -rn -i "comes
+  next|not yet in the route builder|no PREVIEW|PREVIEW (playing"` → only guide 22's "Not yet in the route builder"
+  list, which no longer names PREVIEW. (4) `grep -rn "home-first"` → none left (the picture is deleted). `docs/route-builder.md`
+  :36–38 ("their mechanisms, their levels, how each one homes") stays true. **Fixed by this review:** guide 22's step 5
+  and the ⓘ/? button (above), `RMP1-A1-manual-checks.md` (steps 3, 4, 7 and the card). **Deliberately NOT touched:**
+  `roadmap.md` / `build-order.md` (status pointers are the coordinator's at the merge), A1's changelog entry (history),
+  `docs/api/` (no `///` comment changed: generated docs unchanged, `check-fresh` exit 0).
+- **FINAL GATES (05:00–05:20, on the final tree):** host build 0 warnings (no C++ changed); suite green **3,778**
+  (`suite_run.py green`); briefing `check` current (regenerated before and after the build at 03:10 — no change);
+  src gate self-test **OK (377 detector cases)** (a first try under `timeout -s INT 1500` was cut at 25 min while
+  rob1-bt2's self-test shared the CPU — interrupted inside a real build, nothing planted: `git diff -- src/ Makefile
+  include/` empty, no untracked file under `src include test`; re-run under 7000 s, OK) and `check` **PASS (14
+  builds)**; ARM header gate exit 0 (259 lines); PROS-free and sim-free greps clean; api_doc_tool self-test /
+  coverage (6,439 entities, 214 headers) / fresh / examples / removability; briefing self-test; staleness self-test
+  and audit clean; doc_readability check-nav (260 pages) / check-tone / self-test; the site: no URL but the XML
+  namespaces, `app.html` and no `index.html`, RG1 clean; the new fixture `eol: lf`.
+- **Lines in files other in-flight runs own (for the coordinator's merge):** `app.mjs` (RMP1-B's shell): the header
+  comment; 2 imports (`createPreview`; `LEVELS_FROM`, `noLevels`); 3 lines in the Mechanism menu (`mechanismActions(m.kind,
+  !noLevels(m))` and the no-levels sentence); `app.refresh` + `app.preview` (2 lines); the PREVIEW button →
+  `app.preview.topbar()`; `app.preview.sync()` at the end of `render()`; the test hooks (3 lines: `rebake`, `useRobots`).
+  `style.css`: 78 added lines (the dock, the run layer, the lit cards), nothing changed. `page.test.mjs` (A1's file;
+  RMP1-B carries ITS OWN fix for the same red tests — `ONE_LEVELS` conditionals and the same `setClaw`): this run's fix
+  is the coordinator's order (the level tests on the fixture robot, robot one's no-levels test) — take this one and
+  drop B's `ONE_LEVELS` branches; B's other hunk there (the time limit taking focus at once) is independent.
+  `files.mjs`: not touched.
+- **THE SEAM for the coordinator at A2e's merge:** (1) `ci.yml`'s `route-builder` job builds and uploads the site
+  BEFORE A2e's module steps: move the site's `build.py` call after "The preview engine" step and add `--engine
+  build/wasm`, so every browser row runs the REAL engine through the page (`preview.test.mjs`'s "THE REAL ENGINE",
+  site + one file; A1's one-file test then expects PREVIEW on). (2) Nothing else: `engine_backend.mjs` imports A2e's
+  `engine_module.mjs` and `route_lines.mjs` by their paths; `pages.yml` builds the engine whenever
+  `tools/route_maker/wasm/` exists. (3) When the runner gains its pair mode, the backend's `pair(route, robots)` is the
+  one place to add (README "PREVIEW").
+- **For the coordinator, not this run's files:** RPV1's `plantStartFor` seats a MIRRORED entry's plant at robot ONE's
+  start (00:37 entry); the pair check segfaults outside `previewEntry` (same entry); the misdirected first review's ten
+  findings on `shulib-v2` (04:15 entry). Not committed, not pushed; host and browser only.
+
+### RMP1-A2u review findings and their disposition (2026-11-17 from 05:40 EST, `date`)
+- 05:40 — Started. Three reviewers' 24 findings (correctness 7, tests 8, docs 9; overlaps deduped below). Each is
+  re-checked against the code before any change; dispositions follow as they are made.
+- 05:45–06:05 — **The model and the screen (C2–C6, T2–T6):** each finding re-checked in the code first; all REAL.
+  - **C3 `ownersOf` guessed same-pace mechanism steps** — REAL, and reproduced on a REAL run: NEW fixture `two_starts`
+    (`startRun rightToggle` then `startHome cascade` on one pace; RPV1 lists cascade first, by slot): the old code put
+    the cascade home's PLACEHOLDER on the toggle's card. Now a mechanism step goes BY NAME (`playbackOf(result, {one,
+    two})`: each page step's mechanism `.name` from the robot's description, `preview.mjs`), only to a page step naming
+    it; two starting one mechanism on one pace take nothing (and never fall through to a drive's span — a case the
+    first cut got wrong, caught by its own test). `MOTION_KINDS` / `MECHANISM_KINDS` now imported from `route.mjs`.
+  - **C2 robot two's own result never shown** — REAL → `playbackOf` keeps robot two's verdict on a page step where it
+    went otherwise and not done (`step.two`); the headline is the worse of the two with both words when they differ;
+    the card says "Robot two: …" with its line; the dock's line says it; About this run has a robot-two part (owed
+    facts, field notes, its full log). Page test where only robot two fails (stand-in option `two`).
+  - **C6 after a THROUGH** — REAL → the steps after it are grey "After the THROUGH: the robot would not get here"
+    (RPV1's own idea, `route_preview_render.hpp` :383), the run is drawn faded after `throughAt` (`g-run-after`, the
+    robot at 40 %), the headline reads as RPV1's ("FINISHED, but THROUGH the right wall"), a THROUGH in the park is
+    said in the dock; the "1 in allowed" number dropped (the record does not carry it).
+  - **C5 RPV1's from-below step number in About this run** — REAL → `noteWords(f)` names the PAGE's step (`f.at`,
+    the span holding the pace), or "after the last step"; never `f.step`.
+  - **C4 Left passed over a step under 50 ms** — REAL → the 50 ms "previous" grace only while PLAYING; paused, every
+    start is a stop; a span is at least 3 px wide (`max(3px, …)`).
+  - **T3 threw / looping** — a REAL `threw` run recorded (NEW fixture `threw`: a wait on a mechanism never started —
+    the page refuses it first, RC15, so it is a node test); looping in the runner's shape from a real record.
+  - **T2 the cache test** — REAL → the stand-in counts RUNS (`standinRun`), asserted 1 after the undo and PREVIEW.
+  - **T5** → two worker tests (robot two's rc 1 → a new instance; robot two after robot one's rc 1 runs on a NEW one).
+  - **T1, T4, T6** → page tests for the drag (pauses, follows, Space plays on), the speeds (a frame through the new
+    `frameAfter` hook: 50 ms = 0.05 × speed s), every span's state and place, the playhead and time, the budget bar,
+    the pair mark's place, the driven / whole path against the record's thinned paces, the front's tip, the
+    too-close squares at the verdict's poses, "Done in t1 − t0", Space from the end, Space held for a pan, a stale run
+    pausing, the dock's PLACEHOLDER line, Esc cancelling, arrows in a box, a never-reached step's card, reduced
+    motion, a schema-2 record, robot two refused, no steps, the error's step selected from another.
+  - **TWO NEW UX DEFECTS the new tests found:** (1) the dock's foot row did not wrap, so robot two's long headline
+    squeezed the step's sentence to one letter a line — the dock grew to 2,569 px (probe
+    `scratch/rmp1-a2u/probe2/unstable.mjs`) → the row wraps, the sentence keeps 260 px; (2) **the scrubber moved
+    while the run played**: the sentence under it changed height with each step's words → it is two lines, always
+    (the whole sentence on hover) — pinned by the track's box at a long and a short sentence.
+  - **D9's file name** — `test/engine.test.mjs` renamed `test/preview_worker.test.mjs` (A2e adds
+    `test/page/engine.test.mjs`).
+  - **T8 the recorder** — committed: `tools/route_maker/test/fixtures/record.mjs` (the routes, the command; it reads
+    A2e's `route_lines.mjs`, so it runs where A2e has landed — run here in the scratch tree with A2e's native program:
+    `ready` re-recorded BYTE-EQUAL to the committed one). Every fixture carries `madeBy`; the two pair fixtures say
+    the PROTOTYPE and RPV1's patched `plantStartFor`. A node test pins each fixture's route to the recorder's.
+  - Firefox: PREVIEW 19 pass / 1 skipped (the real engine), A1's 17/17; node 114 pass / 2 skipped.
+- 06:10–06:25 — **C1 + D1 (one finding, two lenses): the two-robot PREVIEW cannot happen with the real engine** —
+  REAL. Re-checked: `engine_backend.mjs` returns only `preview`; A2e's runner has no pair mode (grep `pair` in its
+  `route_maker_runner.hpp` and `engine_module.mjs`: none); no run in A.7 owns one. So the page's line, guide 22, the
+  changelog and guide 14 promised what robot two's update alone cannot deliver. **Fixed:** the page says "PREVIEW
+  plays robot one: robot two's mirrored run is not in this build of the route builder yet." (the worker: "…not in
+  this preview engine yet."); guide 22's Robot two paragraph is the plain fact plus the rule that keeps the robots
+  apart (guide 17's "Both robots at once" — the route preview command was NOT pointed to: it seats a mirrored entry
+  at robot one's start, the 00:37 finding); the changelog's "Both robots" bullet is gone (one sentence in the
+  PREVIEW bullet); guide 14's route-builder limits name it first. **`docs/assets/route-builder/preview-pair.png`
+  DELETED** (it showed a prototype's run: landmine 1, §3's "every step a real screenshot"); the pair screen's
+  pictures stay as the run's evidence only (`~/shulib-render-tmp/rmp1-a2u/shots-review/`). The README now fixes
+  the pair mode's CONTRACT — `pair(route, robots) -> {rc, record, verdict}`, robot two's record from its seated
+  start, and the verdict's JSON members the page reads (`checked`, `ok`, `gapIn`, `leastGapIn`, `leastGapAt`,
+  `failAt`, `failGapIn`, `one`, `two`, `sentence` — `PairVerdict`'s own names, `test/mirrored_pair_check.hpp`
+  :303-317). **For the coordinator: A2u's two-robot row is met against the STAND-IN only. The runner's pair mode
+  needs an owner and a go, with RPV1's `plantStartFor` → `seatedStart` fix and the pair check's guard outside
+  `previewEntry` (00:37 entry).**
+- **C7 the seam unproven on Windows** — REAL (the seam is the coordinator's at A2e's merge). Made SELF-ENFORCING
+  here: in CI (`CI` set), a tree that has `tools/route_maker/wasm/CMakeLists.txt` must have built its site with
+  `--engine` — THE REAL ENGINE test FAILS instead of skipping (proven: a planted `wasm/CMakeLists.txt` in the scratch
+  overlay with an engine-less site → "this tree has the engine … but the site was built without it"; without `CI`,
+  skipped). So the merge that brings A2e and A2u together cannot leave every browser row silently skipping it.
+  Still for the coordinator: the `ci.yml` move (the site's `build.py` after "The preview engine" step, `--engine
+  build/wasm`), `preview.test.mjs` importing A2e's `test/page/allowed_warnings.mjs` (A2e's README says it at A2u's
+  merge; it is not in this tree), and confirming THE REAL ENGINE ran on the windows-latest msedge / chrome / firefox
+  rows.
+- **T7 the REAL test red on an API bump** — REAL → it compares with the native twin's record MADE AT TEST TIME when
+  the program is there (`ROUTE_MAKER_NATIVE`, or `build/test/shulib_route_maker`; A2e's `route_lines.mjs` writes its
+  lines), else with the fixture less `api`, `owed`, `robotLine`, `ledgerFile`, `notices`. Proven in a fresh overlay
+  (`scratch/rmp1-a2u/integ3/`: this tree + A2e's CURRENT `engine_module.mjs` / `route_lines.mjs`, its built module
+  md5 `483d0232…`, copied 06:15): native → pass; fixture → pass; a native twin with ONE member changed
+  (`probe2/native_wrong.sh`, park 57 → 58) → RED "site: park".
+- **D8 the docs true only if A2e merges first** — REAL. Round 2 had made `pages.yml` publish WITHOUT the engine when
+  `tools/route_maker/wasm/` is absent; that branch is reachable only in the order A.7 forbids, and it would publish
+  docs that say PREVIEW works on a page that says "comes next". **Reversed, at the root:** a first step "PREVIEW's
+  engine is in this commit" refuses by name ("merge RMP1-A2e first"), the engine is always built, PG1 always checks
+  both forms. Both outcomes run here by shell (this worktree: the error, rc 1; A2e's: present; PG1 on the overlay's
+  site: ok; on this worktree's engine-less site: "engine missing", rc 1). `pages.yml` runs only on `main`, so no
+  branch CI is affected.
+- **D2 Chromium on this laptop** — REAL as a process point: the accepted answer is D18 (a) (Chromium in CI only), §5
+  lists "Chromium on this laptop" as OUT, and D18 (b) (a `systemd-run … MemoryMax=4G` cap) needs the team lead's OK.
+  `grep -n "MemoryMax\|systemd-run\|D18 (b)" .claude/coordinator/NOTES.md` (run 06:40, read only) finds ONE line —
+  :1110, the coordinator's own RMP1-B merge (11-17 ~05:52: "Chromium needs systemd-run -p MemoryMax, not ulimit
+  -v") — and no record of the team lead's OK for D18 (b). This run's earlier Chromium numbers
+  (03:30–04:45 entries) are therefore OUTSIDE the accepted D18 — the evidence for Chromium, Edge and Chrome stays the
+  CI rows; the one real defect those runs found (a module Worker from a `blob:` URL on `file://`) is fixed and pinned
+  by node tests (M32–M34) that need no Chromium. **No Chromium ran in this round.** For the coordinator: A1's
+  README (`tools/route_maker/README.md` :36-38, kept by this run) documents the `systemd-run` practice — record
+  D18 (b) with the team lead's OK, or that line goes.
+- **D3 two §1.4 / D5 items not logged** — REAL. (1) "open the full report" (D5): there is no RPV1 page in the browser
+  (the record carries RPV1's content); **built here as far as the record goes**: About this run now lists, for each
+  robot, its owed facts, its notices, its field notes in the page's step numbers, and EVERY line the library printed
+  (a closed `<details>`, "Every line the library printed for robot one (N)"). RPV1's table and its drawn report are
+  not in the page — a DELTA for the coordinator. (2) "the engine failed to load — PREVIEW greyed with the reason"
+  (§1.4): KEPT ENABLED, with the reason in the dock and "press PREVIEW to try again" — a DELTA, logged with its
+  reason: on the site form a load can fail for a dropped connection, which a second press fixes; greyed, only a
+  reload would. A one file whose engine is damaged says so every press. For the coordinator to acknowledge.
+- **D4 §2.5.3 in the dock** — REAL → the speed buttons are `var(--hit)` tall with hover help ("Play at half speed",
+  … — asserted); the pair mark is a 32 px target with its 14 px dot drawn inside; the 10 px and 11 px sizes are
+  `var(--t-xs)`; the menu note's inline `padding:0 10px` is `.menu-note` in `style.css` (`app.mjs`, RMP1-B's shell:
+  that one line changed — logged for the merge). Found while capturing the new states: **the toasts sat on the dock's
+  words** (the "Opened the project." toast over "Running the route…") → the toasts rise above the dock
+  (`--dock-room`), asserted in the progress test.
+- **D5 the word list** — REAL (not logged) → run now, BEFORE this line: `git diff 1bcde4e -U0` of guide 22, guide 14,
+  guide 16, the changelog, `route-builder.md`, the README and `src/`, plus every new `src/` file, `+` lines only,
+  through `grep -i -E 'simulat|honest|obviously|just |simply|easy|precondition|radian|https?://'` → ONE hit,
+  "just behind it" in a `playback.mjs` comment → reworded ("less than 50 ms behind it"); re-run: none.
+- **D6 screenshots of most states missing** — REAL → a second §2.5.2 test per variant captures running (progress,
+  Cancel), stopped at 20 s, the engine that did not load, refused, a THROUGH (its step, then the end, faded), the
+  one-robot line, the stale dock and the too-old browser — light and dark, 1440 and 1024. At 1024 the step list is a
+  drawer: the test opens it (and closes it again before using the dock).
+- **D7 the usability card and A.4 step 3 changed** — REAL as an acceptance delta: robot one's cascade has no levels
+  (ROB1-C2), so `RMP1-A1-manual-checks.md`'s card and step 3 use the claw; the card therefore no longer meets RC25's
+  "home it first" unaided. **A DELTA to §2.5.4 and A.4 for the coordinator to acknowledge**; the cascade card comes
+  back when station 13 records levels (the manual-checks file says so). Robot one has no other arm or lift to carry
+  a home-first check today.
+- **D9 overlaps with A2e** — REAL → this run's `test/engine.test.mjs` is renamed `test/preview_worker.test.mjs`
+  (A2e adds `test/page/engine.test.mjs`); the README conflict and the warning list are added to the merge list below.
+- **For the coordinator's merge, added by this round** (beside the 05:00 list): `app.mjs` (RMP1-B's shell) — the
+  menu note's inline style became `class: 'hint menu-note'` (one line); `style.css` — this round's lines are in the
+  PREVIEW block only, plus `.toasts`' `bottom` (`calc(52px + var(--dock-room, 0px))`) and `.step-run`'s wrap;
+  `tools/route_maker/README.md` — A2e ALSO changes it (+72/-2): A2u's "PREVIEW in the page" section sits after A1's
+  laptop paragraph, A2e's after the module's build — keep both, and A2e's schema-1 table is the record's (A2u's names
+  the pair verdict only); `test/page/preview.test.mjs` keeps a private `ALLOWED_WARNINGS` until A2e's
+  `test/page/allowed_warnings.mjs` is in the tree — import it at the merge (A2e's README says so); `docs/guide/22`
+  — the coordinator's NOTES (:1110, read only) say RMP1-B's merge into `integrate` made guide 22's "until robot two's
+  update" lines present-tense: this round REWROTE the PREVIEW section's Robot two paragraph (robot two is not in
+  PREVIEW, whatever the build) — take this round's paragraph. Robot two's update being in `integrate` means the page
+  there ASKS for the pair, and the worker's line ("…not in this preview engine yet") is what it shows.
+- 06:45–07:35 — **MUTATIONS on this round's code** (driver `scratch/rmp1-a2u/mutate_round3.py`: ONE exact replacement,
+  the site rebuilt for every page mutation, its test under the 4 GiB cap and `timeout 900`, restored in a `finally`
+  and on SIGTERM/SIGHUP/SIGINT, mtime bumped, restoration asserted; backups `scratch/rmp1-a2u/backups_r3/`, logs
+  `mutlogs_r3/`, results `mutations_round3*.json`; every RED's failing test read — each the one aimed at). **86 cut:**
+  the reviewers' R1–R32 survivors re-cut to the fixed code; this round's own (C2a–d, C3a–d, C4a–c, C5, C6a–d, T2,
+  UX1–UX3); and EVERY earlier mutation on a file this round changed, re-run on the final code (M1, M4–M11, M15–M18,
+  M22, M23, RM13, M36, M38, M42, N2, N3), the seven whose code was rewritten re-cut to it (M20, M25, M26, M29, M37,
+  M40, M41). **First pass: 73 RED, 6 SURVIVED, 7 not applicable (their re-cuts ran).** The survivors, each re-checked:
+  - **R15 (the nose never drawn) and R16 (the faint whole path empty) — a TEST FAULT:** `near()` walked the DRAWN
+    points, so an empty polyline compared nothing. Now it asserts the counts first → both RED.
+  - **C3b — a DRIVER FAULT, caught by reading its log:** the cut left an unbalanced `)` — "RED" was a file that would
+    not load ("not ok 1 - …/playback.test.mjs"), not a test catching it. Re-cut (`            );`) → RED on the
+    by-name test.
+  - **C4c (a short step's span) — EQUIVALENT:** the span's 3 px left edge (`border-left`) already draws a 20 ms step
+    (measured: 3 px); the reviewer's "clamps to 0, cannot be seen" missed the edge. The `max(3px, …)` added for it is
+    REMOVED (less code); the TIMELINE test now pins a 20 ms span ≥ 3 px (`cut` with its first span made 20 ms through
+    the stand-in's `patch`), and C4c re-cut as "the edge removed" → RED.
+  - **UX1 (the two-line sentence) — a MUTATION FAULT, then a TEST GAP:** removing only `height` leaves
+    `-webkit-line-clamp: 2` clamping; and the long headline chip set the row's height. Fixed at the root: the
+    headline chip is at most 240 px wide (it wraps, the words keep ~500 px at 1440), the robot-two test pins the
+    words' height and the track's box between a two- and a three-line sentence, and UX1 re-cut as the whole clamp
+    removed → RED.
+  - **UX2 (the foot row never wraps) — EQUIVALENT at the widths the brief tests (1440, 1024, the 700 px check):** the
+    squeeze was the chip's `nowrap`; with the chip wrapping and the words' 260 px basis nothing squeezes. The row's
+    wrap stays (narrower windows put the chip and the bar under the sentence).
+  - **C4b (`step()` forgets it was playing) — NOT TESTED at page level, said plainly:** the 50 ms "previous" while
+    playing is a timing of a running animation (a press within 3 frames); the arithmetic is pinned by the node test
+    (C4a RED). The wiring is one argument.
+  **After the fixes, every survivor re-run: R15, R16, C3b, C4c (edge), UX1 RED; UX2 equivalent; C4b untested (above).**
+- **The tests lens, finding by finding:** T1 (9 survivors) → R2–R5, R28–R32 RED; T2 (the cache) → R1 + T2 RED; T3
+  (threw / looping) → R8, R9 RED (a REAL threw run); T4 (the drawing) → R14–R17 RED; T5 (robot two's P-W1f) → R7,
+  R20 RED; T6 (12 survivors) → R6, R10–R13, R18, R19, R21–R26 RED; T7 → the native compare (above); T8 → the
+  committed recorder and `madeBy` (above).
+- **Pictures:** guide 22's `preview.png` and `preview-failed.png` re-made from this round's shots (the dock and the
+  cards changed: the speeds' height, the two-line sentence, the PLACEHOLDER chip under the words); `mechanism-menu.png`
+  re-made (the note's padding); `preview-pair.png` deleted (above). A1's other pictures show nothing this round
+  changed. Every PREVIEW state in four variants: `~/shulib-render-tmp/rmp1-a2u/shots-review/` (52 files).
+- **PROSE REVIEW for this round (rule 4), run BEFORE this line:** `grep -rn -i -E "preview-pair|both robots, once|
+  engine\.test\.mjs|publishes the builder without|PREVIEW (says it )?comes next|plays both robots|About this
+  run|After the THROUGH|every line the library" docs/ README.md tools/route_maker/README.md --include=*.md` (the chunk
+  files and `docs/api/` aside) → guide 16 :388 (RPV1's own page — true), guide 22 :115 and :121 (this round's), the
+  README's "comes next" (true for a build without `--engine`). `grep -n -i "PREVIEW\|route builder"
+  docs/internal/RELEASING.md` → :143-151: its PG1 sentence was STALE for the engine-required publish → **fixed**
+  (the refusal by name, PG1 checking both forms). `docs/route-builder.md` :7-9 (done, failed or skipped) and guide 16
+  :358-363 read in full: true. The word list (D5 above): clean. **Deliberately NOT touched:** `roadmap.md`,
+  `build-order.md` (the coordinator's pointers at the merge), `docs/api/` (no `///` changed; `check-fresh` 0),
+  `test/README.md` (no suite-side change: the fixtures, the recorder and the stand-in are the route builder's, in its
+  README).
+- **FINAL GATES (06:55–07:30, on the final tree):** host build 0 warnings (no C++ changed); suite green **3,778**
+  (`suite_run.py green`); briefing regenerated with the suite binary unlinked first, then after the build — no change
+  — and `check` current; src gate self-test **OK (377 detector cases)** (under `timeout -s INT 7000`, `nice`) and
+  `check` **PASS (14 builds)**, `git diff -- Makefile src/ include/` EMPTY and no untracked file under `src include
+  test` after both; ARM header gate exit 0 (259 lines); the PROS-free and sim-free greps clean; api_doc_tool
+  self-test / coverage / fresh / examples / removability; staleness audit + self-test; doc_readability check-nav (260
+  pages) / check-tone / self-test; `pages.yml` parses; the built site names no URL but SVG's namespace; the fixtures
+  and the recorder `eol: lf`. **Node: 114 pass / 2 skipped. Firefox: PREVIEW 26 pass / 1 skipped with every variant's
+  screenshots (the skip: the real engine, not in this tree), A1's 32/32 with screenshots. THE SEAM, with the final
+  code and A2e's current module (overlay `integ3`, `preview.wasm` md5 `483d0232…`): PREVIEW 21/21 — THE REAL
+  ENGINE in both forms against the native twin's record made at test time — and A1's 17/17.** No Chromium this
+  round (D2). No browser or driver process left (`ps`).
+- **Not done here, for the coordinator:** an owner and a go for the runner's PAIR MODE (with RPV1's `plantStartFor`
+  fix and the pair check's guard) — until then the two-robot PREVIEW is met against the stand-in only; the `ci.yml`
+  seam and `allowed_warnings.mjs` at A2e's merge (now enforced: the REAL test fails in CI without it); the deltas to
+  acknowledge — D3 (the full report as far as the record goes; PREVIEW kept enabled after a load failure), D7 (the
+  usability card on the claw), D2 (D18 (b) on this laptop). Not committed, not pushed; host and browser only.
+
+### Verification-round findings and their disposition (2026-11-17 from 07:48 EST, `date`)
+- 07:48 — Started. A fresh verifier's four findings (all minor): V1 a short step still hidden on the timeline (C4c's
+  "equivalent" measured the span's own box, not what lies over it); V2 THE REAL ENGINE test in CI always falls back to
+  the fixture, which still compares what robot one's facts write; V3 the time below zero on the first frame ("-0.00 s",
+  "Between steps"); V4 the one-robot line last in About this run, out of view in its screenshots. Each re-checked in
+  the code before any change; dispositions follow as they are made.
+- 07:48–07:56 — **Each finding re-checked, then fixed at the root** (a browser probe first, on the code as the verifier
+  found it — `scratch/rmp1-a2u/probe3/vis.mjs`: which step's span is ON TOP at every quarter pixel of the track, the
+  spans made hit-testable for the probe only):
+  - **V1 — REAL, and wider than reported.** The 20 ms step showed 0.25 px (its 3 px edge under the next span, a later
+    sibling). Every step that took NO time was worse: carry's step 3 (skipped over) and two_starts' two starts showed
+    **0 px** — each a 2 px tick at the same moment as the next step's span, which covered it whole. C4c's "equivalent"
+    was wrong: it measured the short span's own box, not what lies over it. **Fixed** (`timeline.mjs`): the spans are
+    drawn longest first, so a span shorter than its edge lies OVER the next one's start, never under it; on a tie the
+    worse verdict on top (a failed start beside an ok one on one pace shows red). No CSS, no z-index: the playhead and
+    the pair mark stay above. Probe after: the 20 ms step 3 px, carry's step 3 2 px, a two_starts tick 2 px; crop
+    `probe3/cut_track.png` shows step 1's green edge before step 2's amber. **Test** (TIMELINE): what SHOWS, not the
+    box — `shown(page)` samples `elementFromPoint` every 0.25 px with the spans hit-testable for the test; carry's step
+    3 ≥ 1.75 px, cut's 20 ms step 1 ≥ 2.75 px, two_starts' step 1 (patched to "failed, and went on") ≥ 1.75 px, and the
+    step after each still > 100 px. Guide 22's timeline paragraph: "a step too short to see at this scale is a thin
+    mark at its moment". One of two zero-length steps on one pace stays hidden under the other (the worse shows): at
+    this scale they are one moment; the step list names both.
+  - **V2 — REAL.** shulib-v2's `ci.yml` (`git show shulib-v2:.github/workflows/ci.yml`, read only): the browser rows
+    download only the `route-builder` and `route-builder-engine` artifacts and build no native program, so THE REAL
+    ENGINE test would always take the fixture path in CI, whose run is robot one's facts' — and the README's "less the
+    members robot one's facts … write" was not true. **Fixed:** `test/fixtures/record.mjs --out DIR` (the same recorder
+    as the committed fixtures) writes the native twin's records into DIR; the test takes, in order, the native program
+    (made now), `ROUTE_MAKER_NATIVE_RECORDS` (DIR, made by CI's Linux job from this tree), and only OFF CI the committed
+    fixture (its comment now says plainly that this path goes red on a facts change); in CI (`MUST`) with neither it
+    FAILS by name, so the merge cannot leave the rows on the fixture. Also compared now: the field notes (depth within
+    1e-5), which no branch compared before. README paragraph rewritten. **Proven in a fresh overlay**
+    (`scratch/rmp1-a2u/integ4/`: this tree + A2e's `engine_module.mjs` / `route_lines.mjs` as copied at 06:15, its
+    module `integ3_wasm/`, A2e's native twin `tree/build/…`; site `integ4_site/` built `--engine`; script
+    `integ4_v2.sh`, logs `integ4_logs/`): the recorder's `--out` record's result equals the committed fixture's; (a) the
+    native program → pass; (b) `CI=1` + the records → pass; (c) the records with `park` 57 → 58 → RED "site: park";
+    (d) one pace 0.01 in off → RED "site: pace 100"; (e) `CI=1` with neither → RED "in CI the native twin's record
+    must be here …"; (g) the folder without the file → RED "… is missing"; (f) off CI with neither → the fixture, pass.
+    The `wasm/CMakeLists.txt` that makes `MUST` true was planted in the OVERLAY only, removed by a trap.
+    **The ci.yml half is the coordinator's (A2e's job, not in this tree)** — added to the seam: a draft applied to a
+    copy of shulib-v2's `ci.yml`, parsed by PyYAML, is `scratch/rmp1-a2u/ci_seam/ci.seam.diff`: the site built AFTER
+    the engine with `--engine build/wasm` (the 05:00 seam), then `node tools/route_maker/test/fixtures/record.mjs
+    build/test/shulib_route_maker build/route_maker_site/robots.json --out build/wasm/native ready`,
+    `build/wasm/native/*.json` added to the `route-builder-engine` upload, and `ROUTE_MAKER_NATIVE_RECORDS:
+    build/wasm/native` in the browser rows' page step.
+  - **V3 — REAL** (probe: a frame stamped 20 ms before the last → t = −0.02, "−0.02 s", "Between steps"). The cause is
+    two clocks: `play()` reads `performance.now()`, and a frame's stamp is when the frame BEGAN, which can be earlier.
+    **Fixed** (`preview.mjs` `tick`): dt is at least 0 — time never runs back. Probe after: t = 0, "0.00 s", the step
+    playing named. **Test** (TIMELINE): `frameAfter(-20)` at Home → t 0, "0.00 s /", "Step 1: …". The screenshots
+    re-taken (below).
+  - **V4 — REAL.** The one-robot line was the last item of About this run, under robot one's 11 owed facts, out of the
+    panel's 32vh at 1440 and 1024. **Fixed** (`timeline.mjs`): it is the second line, under the host-test-plant line
+    (a refused robot two's line is the same member, so it moves too). **Test:** the one-robot test and the §2.5.2
+    other-states test (all four variants, before the shot) assert the line is in the panel's view as it opens
+    (`aboutLineInView`). Guide 22: "the first line of About this run says so".
+  - Runs after the fixes: the model 114 pass / 2 skipped; Firefox PREVIEW 20 pass / 1 skipped (the real engine: not
+    in this tree), A1's 17/17.
+- 07:57–08:15 — **MUTATIONS on this round's final code** (driver `scratch/rmp1-a2u/mutate_round4.py`, round 3's machinery:
+  ONE exact replacement, the site rebuilt for every page mutation, its test under the 4 GiB cap and `timeout 900`,
+  restored in a `finally` and on SIGTERM/SIGHUP/SIGINT, mtime bumped, restoration asserted; backups `backups_r4/`,
+  logs `mutlogs_r4/`, results `mutations_round4.json`; every RED's failing assertion read). **44 cut:** the new
+  V1a (no order: spans in step order) → "carry: step 3 shows undefined px"; V1b (no tie-break) and V1d (the better
+  verdict on top) → "two_starts: step 1 shows undefined px"; V1c (the longest on top) → carry's step 3; V3 (dt not
+  clamped) → "-0.02 !== 0"; V4 (the line last again) → "About this run says it first, in view" — all RED. Re-run on
+  the final code because their file changed (`timeline.mjs`, `preview.mjs`) or their catching test did (TIMELINE,
+  the one-robot test): R1–R6, R10–R13, R19, R21–R26, R28–R32, C2d, C3d, C4c, C6d, UX1, old M8, M9, M10, M17, M18,
+  M22, RM13, M36 and re-cut M37 — all RED, each on its own assertion (C4c, the span's edge removed, is now caught by
+  what SHOWS: "cut: step 1 shows undefined px"). C4b stays GREEN, untested at page level as round 3 said (the
+  50 ms "previous" while playing is a timing of a running animation; its arithmetic is pinned by C4a). Old M37 not
+  applied (its code was rewritten; the re-cut ran). No mutant left (`grep` of the three fixed lines: each present
+  once).
+  **V2's mutations, in the overlay only** (`integ4_mut.py`: the overlay's copy of `preview.test.mjs` or
+  `record.mjs`, restored in a `finally` and on signals, the overlay's committed fixture byte-compared after;
+  `mutations_round4_v2.json`): V2a (the records folder ignored) → case b RED "in CI the native twin's record must be
+  here"; V2d (the recorder ignores `--out`) → case b RED "… ready.preview.json is missing". The two controls: with
+  the CI guard removed (V2b) case e turns GREEN, and with the records read but the fixture compared (V2c) case d
+  turns GREEN — so the guard is what fails e, and the record is what is compared in d.
+- **Pictures:** every PREVIEW state in four variants re-taken, `~/shulib-render-tmp/rmp1-a2u/shots-verify/` (52, Firefox
+  26 pass / 1 skipped). Changed against `shots-review/`: the `about-*` and `one-robot-*` shots (the one-robot line
+  now second, in view: `one-robot-dark-1024` reads "0.00 s / 4.88 s", "Step 1: Drive to (-36, -36)" and the line
+  under the host-test-plant paragraph) and `running-*` (the spinner's angle). Guide 22's `preview.png` and
+  `preview-failed.png` re-made from the new shots by `to_docs.py` are BYTE-IDENTICAL to the committed ones (the method
+  checked: the review round's shot re-makes the committed `preview.png` exactly) — no picture in the docs changes.
+- **PROSE REVIEW (rule 4), run 07:58, BEFORE this line:** `grep -rn -i -E "About this run|says so in one line|too short
+  to see|thin mark|ROUTE_MAKER_NATIVE|record\.mjs|native twin|re-record|less the members|fixture less|robot two's
+  mirrored run is not" docs/ README.md tools/route_maker/README.md --include=*.md` (the chunk files and `docs/api/`
+  aside) → guide 22 :102, :115, :121 (this round's and true), the changelog :32 (true), the README :87–103 (this
+  round's paragraph; :87–90's re-record rule true). `RMP1-A1-manual-checks.md` :21 ("Drag the timeline …") true.
+  **Fixed by it:** the README's claim that the fixture path skipped what robot one's facts write (V2). **Deliberately
+  NOT touched:** `roadmap.md`, `build-order.md` (the coordinator's), `docs/api/` (no `///` changed), `ci.yml` (A2e's
+  job; the seam's draft is in scratch, above).
+- **FINAL GATES (08:16–09:00, on the final tree; `scratch/rmp1-a2u/gates_v.sh`, logs `gates_v/`):** the suite binary
+  unlinked, configure, briefing generated (reads it as unbuilt), host build **0 warnings** (no C++ changed), briefing
+  generated again — no tracked change; suite green **3,778** (`suite_run.py green`, under the 4 GiB cap); briefing
+  `check` and self-test; api_doc_tool self-test / coverage (6,439 entities, 214 headers) / fresh / examples /
+  removability; staleness self-test + audit; doc_readability check-nav / check-tone / self-test; the PROS-free and
+  sim-free greps clean; ARM header gate exit 0 (259 lines); src gate self-test **OK (377 detector cases)** (`timeout
+  -s INT 7000`, `nice`) and `check` **PASS (14 builds)**; after both, `git diff -- Makefile src/ include/` EMPTY and no
+  untracked file under `src include test`. Node 114 pass / 2 skipped; Firefox PREVIEW 26 pass / 1 skipped with every
+  variant's screenshots (the skip: the real engine, not in this tree), A1's 17/17; V2's overlay cases as above. No
+  Chromium this round (D2). No browser, driver or test process left (`pgrep`).
+- **Added to the coordinator's seam at A2e's merge** (beside the 05:00 and 06:45 lists): the `ci.yml` draft
+  `scratch/rmp1-a2u/ci_seam/ci.seam.diff` (the site after the engine, `--engine build/wasm`; the native twin's record
+  of `ready` by `record.mjs --out build/wasm/native`; that folder in the `route-builder-engine` upload;
+  `ROUTE_MAKER_NATIVE_RECORDS: build/wasm/native` in the browser rows' page step). Without it THE REAL ENGINE test
+  fails by name in CI — on purpose. Not committed, not pushed; host and browser only.
+
+## RMP1-A2u — the coordinator's merge *(2026-11-17)*
+
+- **Source:** the `rmp1-a2u` worktree (base `1bcde4e`) as built, reviewed and verified (workflow `wf_6e780623-8bf`, 7/7);
+  transport `65e71f7`; squash-merged in `integrate2` onto main `9d51074` (RMP1-B, RMP1-A2e, ROB1-BT and the top-bar fixes
+  had landed since). The team lead, 2026-11-17: "PUSH AND MERGE EVERYHTING".
+- **Conflicts (5):** app.mjs's top bar (A2u's `app.preview.topbar()`); page.test.mjs (A2u's `LEVELS` fixture robot and
+  B's `ONE_LEVELS`, the Firefox prefs kept); the route builder's README (B's rows + A2u's engine and PREVIEW sections);
+  the changelog and this log (both). A duplicated `setClaw` helper removed.
+- **Reconciled after the merge** (a helper agent, verified here by re-running every suite): two PRODUCT bugs from the
+  merge — PREVIEW was drawn on the Controls tab (`ui.tab === 'route' ? app.preview.topbar() : null`, app.mjs:702), and
+  A2u's timeline span class `.seg` collided with B's segmented controls (the robot / drive-mode / axis pickers could not
+  be clicked) → the spans are `.tl-seg` (style.css:270-277, timeline.mjs:34); seven tests pinned a world that no longer
+  exists (robot two IS in the build; robot one's cascade has no levels; every PREVIEW runs robot two too) — re-pinned
+  without dropping coverage (the one-robot path re-baked as a build without robot two; the level tests on both twins).
+- **Gates:** the suite green (3,853); engine 15/15 (module vs native); model 156/156; page tests **Firefox 55/55**,
+  **Chromium 52 + 3 skipped**; the strict site build WITH the engine (worker.mjs + preview.wasm published) exit 0, no
+  warning; api fresh / examples / coverage / removability; check-nav / check-tone; staleness; both workflows parse.
+- **Open:** the stand-in engine's "About this run" says "no recorded run of robot two" for one-robot fixtures (real
+  use says "robot two's mirrored run is not in this preview engine yet") — cosmetic; the two-robot PREVIEW (SM4) still has
+  no owner.

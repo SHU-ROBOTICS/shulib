@@ -110,7 +110,7 @@ function mechanismFields(step, i, app) {
     if (m && (m.kind === 'arm' || m.kind === 'lift')) {
         out.push(h('p', { class: 'hint' }, `The ${m.name} ${HOMING_WORDS[m.homing] || ''}.`));
     }
-    if ((step.do === 'move' || step.do === 'startMove') && m) {
+    if ((step.do === 'move' || step.do === 'startMove') && m && (m.presets || []).length) {  // none: its RC18 says so
         // a level whose height the robot's facts still OWE shows no number: the page never states a placeholder as a fact
         const height = (p) => (p.owed ? 'not measured yet' : `${fmt(p.value)} ${m.units}`);
         const opts = (m.presets || []).map((p) => (p.ledger !== undefined ? [`L${p.ledger}`, `level ${p.ledger}: "${p.name}" (${height(p)})`]

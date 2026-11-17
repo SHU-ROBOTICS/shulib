@@ -9,7 +9,7 @@ the skills route by clicking and exports the C++. Students: read
 | Where | What |
 |---|---|
 | `src/model/` | PURE ES modules (no DOM, no file API), each with its node test in `test/`: the route and its edits (`route.mjs`), the library's curve ported line for line (`curve.mjs`, pinned by CV1), every check (`checks.mjs`), the export (`export.mjs`), the ONE number formatter (`numbers.mjs`), the marker / hand-edit / line-ending rules (`region.mjs`), the project file (`project.mjs`), undo, the field and snapping, the library's quoted sentences (`library_words.mjs`, checked against the headers) |
-| `src/host/` | the four host interfaces the screens call: `files.mjs` (over `files_fsaccess.mjs` — Chrome/Edge's folder — or `files_download.mjs` — every browser), `engine.mjs` (the preview; not wired to the page yet), `robots.mjs` (the descriptions baked into the page), `capabilities.mjs`; and `engine_module.mjs`, ONE instance of the preview engine (below). A later VS Code panel or local helper swaps these, never the screens or a rule |
+| `src/host/` | the four host interfaces the screens call: `files.mjs` (over `files_fsaccess.mjs` — Chrome/Edge's folder — or `files_download.mjs` — every browser), `engine.mjs` (PREVIEW's engine, in a Worker — below), `robots.mjs` (the descriptions baked into the page), `capabilities.mjs`. A later VS Code panel or local helper swaps these, never the screens or a rule |
 | `src/ui/` | the screens: `app.mjs` (the shell and the store), `field_view.mjs`, `step_list.mjs`, `inspector.mjs`, `export_drawer.mjs`, `help.mjs`, `words.mjs` (what the page calls each step), `dom.mjs` (helpers and the icons); the Controls tab: `controls_tab.mjs` (the controller), `feel_tab.mjs` (the driving feel and its graph), `controls_export.mjs` |
 | `src/model/` (the Controls tab) | `controls.mjs` (the controls as data, one check per build refusal of `controls()`, the `controls` and `control words` regions), `feel.mjs` (the library's stick curve in the C++'s order, `checkFeel`, the `feel` region), `driver_file.mjs` (the driver file's three marked regions: found, read, written all or none) |
 | `controls_cases.mjs` | the CT agreement's data: one configuration per build refusal on the fixture robots; `goldens.mjs --write` turns each into `test/compile_refusals/rm_ct_*.cpp` |
@@ -32,6 +32,11 @@ ROUTE_MAKER_BROWSER=firefox node --test tools/route_maker/test/page/*.test.mjs  
 ```
 
 Open `build/route_maker_site/shulib-route-builder.html` by double-click to use it.
+
+The page tests drive the page as built — robot one as its facts describe it today (its cascade has NO levels since
+ROB1-C2: the menu says "No levels yet: record them at Bench Tests station 13"). The tests that move to a level put a
+FIXTURE robot in robot one's place first (`window.routeBuilder.useRobots`): robot x's committed description with a
+cascade of facts-ledger levels, still owed (`ledgerRobot()` in `test/helpers.mjs`).
 
 **On the coordinator's laptop** (the 2026-10-15 memory rule): every `node` and `npx` runs as
 `(ulimit -v 4194304; timeout ...)` with `NODE_OPTIONS=--disable-wasm-trap-handler` (Node 20 refuses WebAssembly
@@ -108,6 +113,67 @@ are indices into `samples`):
 
 A non-finite number is written `null`. Native and WebAssembly records agree exactly but for the poses (within
 1e-5 in and 1e-6 rad: the two maths libraries round sin, cos and atan2 differently in the last bit — WG2).
+
+## PREVIEW in the page (RMP1-A2u)
+
+PREVIEW runs the route on screen through the engine and plays the record back. The pieces:
+
+| Where | What |
+|---|---|
+| `src/host/engine.mjs` | the page's side: one Web Worker (made at the first PREVIEW, kept), each run's phases, **Cancel** (the Worker terminated), a robot's run that has not answered in **20 s** (the engine's load: 60 s) terminated and said so, a new Worker after any failure |
+| `src/worker.mjs` | the Worker's side, after the engine's own code in ONE script: an engine instance (`self.shulibBackend`), remade after any run that returns non-zero (P-W1f) |
+| `src/host/engine_backend.mjs` | the real engine for that script: RMP1-A2e's `engine_module.mjs` and `route_lines.mjs` around the WebAssembly module |
+| `src/model/playback.mjs` | the record (schema 1) → what the screen draws: each robot's pose at time t (only the record's own, straight between paces), each page step's span and verdict in plain words beside the library's own lines, the PLACEHOLDER marks, a run's key (the route it belongs to) |
+| `src/ui/preview.mjs`, `src/ui/timeline.mjs` | the button, the keys and the dock: progress and Cancel, then the scrubber; the run on its own field layer (`field_view.mjs`'s `drawRun`), the step cards lit (`step_list.mjs`) |
+
+`build.py --engine build/wasm` (the built module) writes `engine/worker.mjs` + `engine/preview.wasm` beside the SITE
+form's page (a `<meta name="shulib-engine">` points at it) and the same script, with the single-file module, inside
+the ONE FILE (`<script type="text/plain" id="shulib-engine">`, run as a `blob:` Worker). The Worker is a CLASSIC
+script in both forms: Chromium refuses a module Worker made from a `blob:` URL on a page opened from disk, so
+`build.py` turns the module's glue into a classic script (`import.meta.url` → `self.location.href`, the Worker's own
+URL) and refuses a glue it cannot (any other `import.meta`, code outside its one function). Without `--engine` the page
+says PREVIEW comes next. A record with no paces (the library refused the route before it moved) is said, not played.
+
+**Robot two** plays only when BOTH are true: robot two's update is in the build (`sharedRoute`, so the page asks for
+the pair), and the runner has a PAIR MODE — today it has none (no chunk owns it yet), so the page plays robot one and
+says so. That mode is the backend's `pair(route, robots) -> {rc, record, verdict}`: `record` robot two's run of
+`competition::mirrored(entry, kSkillsMirror)` from ITS seated start (`competition::seatedStart` — RPV1's
+`plantStartFor` seats a mirrored entry at robot one's start today, and MIRROR1-A's `checkMirroredPair` needs the
+routine run inside `previewEntry`), as schema 1 with `robot: "two"`; `verdict` MIRROR1-A's `PairVerdict` as JSON — the
+shape the page reads:
+
+| Member | What |
+|---|---|
+| `checked`, `ok` | the check ran (false: skipped, `sentence` says why); it never came under the gap |
+| `gapIn` | the gap kept clear: `kMirrorGapIn` (6) — the band drawn is 3 in each side of the mirror line |
+| `leastGapIn`, `leastGapAt` | the closest the two squares came, and when (s) |
+| `failAt`, `failGapIn`, `one`, `two` | the FIRST pace under the gap: when, how close, each robot's `[x, y, theta]` — `null` when `ok` |
+| `sentence` | the check's own words |
+
+**The stand-in** (`test/standin_engine.mjs`): the page's own `worker.mjs` behind RECORDED runs
+(`test/fixtures/preview/*.preview.json` — `madeBy`, a project file and the engine's result for it), injected by
+`window.routeBuilder.useEngine` as the file tests inject a folder; a route with no recording is answered "no recorded
+run", never another's. Its options: a delay, a run that never returns, a load that fails, an exit code, a REFUSED
+record as RPV1's `refusedModel` writes it, a member of the record changed (`patch`), robot two's record and verdict
+(`two`, `pairRc`); every record it sends carries the instance and the run it came from. The robot-one records are the
+engine's native twin's (`shulib_route_maker preview`), made by `test/fixtures/record.mjs` (the routes and the
+command) — re-record them when the record's schema, robot one's facts or the API change. The two PAIR fixtures' robot
+two and verdict came from a PROTOTYPE of the pair mode on a copy of RPV1's header with `plantStartFor` patched (their
+`madeBy` says so): re-record them when the runner has the mode.
+
+```sh
+ROUTE_MAKER_BROWSER=firefox node --test tools/route_maker/test/page/preview.test.mjs   # every PREVIEW state (stand-in)
+```
+
+On a site built with `--engine` the same file also runs the REAL module through the page, in both forms, and
+compares its record with the native twin's of the same route, from the same tree — made at test time when the
+program is there (`ROUTE_MAKER_NATIVE`, or `build/test/shulib_route_maker`), else read from
+`ROUTE_MAKER_NATIVE_RECORDS` (a folder `test/fixtures/record.mjs --out` wrote: CI's Linux job makes it for the
+browser rows, which have no native program) — every member exact, poses within 1e-5 in and 1e-6 rad. Off CI with
+neither, it compares with the committed fixture less the API version and the facts ledger's lists; that run is robot
+one's facts', so it goes red when they change until the fixtures are re-recorded. In CI (`CI` set) a tree with
+`tools/route_maker/wasm/` must have built its site with `--engine` and must give the native twin's record: that test
+fails, not skips, when either is missing.
 
 ## The rules that keep it true to the library
 

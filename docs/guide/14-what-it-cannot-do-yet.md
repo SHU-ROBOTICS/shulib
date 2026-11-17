@@ -65,7 +65,8 @@ The headline limitation, stated as many times as it takes:
   the controller's Timed Run does (HA-162) — are unchecked.
 - **The route preview draws a perfect robot, on a stand-in drive, in an empty field.**
   `tools/route_preview.py` ([Chapter 16](16-testing-an-auton-on-the-bench.md#before-the-bench-previewing-a-route))
-  runs an auton on the host test plant and draws it, but its drive is the test suite's stand-in (a 12 in tank
+  runs an auton on the host test plant and draws it (the route builder's PREVIEW runs the same engine, in the page), but
+  its drive is the test suite's stand-in (a 12 in tank
   with made-up gains, not robot two's — whose track width is not in the code yet), its plant has no walls (the
   preview checks a 15 in square against the field itself and says THROUGH or TOUCH, but nothing stops the
   plant's robot), it has no side sensors (every wall reset is refused), no pieces and no camera (a step that
@@ -560,10 +561,11 @@ promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
   roadmap milestone M5, coordinated with the separate VexBuilder project.
   The [route builder](22-making-your-first-route.md) (2026-11) is the first piece a non-coder can use: it builds the
   skills route by clicking on the field and WRITES the commented C++ into the skills-route file — the team still
-  builds and uploads it. What it does not do yet: **PREVIEW** (playing the route from the real library on the
-  host test plant), triggers partway through a drive, wall resets, the mirrored robot drawn on the field, a time
-  bar, the Toggle steps, strafing, moving to a pose, driving through points, sensor waits, flywheel steps, a step of
-  your own C++, relative starts, 30 s match routes, and exporting a route to VexBuilder. Until they come, they are
+  builds and uploads it, and its **PREVIEW** plays the route from the real library on the host test plant (not the
+  robot). What it does not do yet: robot two's mirrored run in PREVIEW, triggers partway through a drive, wall
+  resets, the mirrored robot drawn on the field while you edit, a time bar, the Toggle steps, strafing, moving to a
+  pose, driving through points, sensor waits, flywheel steps, a step of your own C++, relative starts, 30 s match
+  routes, and exporting a route to VexBuilder. Until they come, they are
   typed by hand inside the route's region; the route builder never overwrites a hand edit there without asking.
   Its **Controls** tab writes the driver's buttons and feel into the driver file; it writes only into a driver file
   that carries its marker lines (Copy until then), and has no slow mode while a button is held.

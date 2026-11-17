@@ -3,13 +3,13 @@
 // capabilities (`build`, `upload`, `brainLog`) and pages; the route tab is not rewritten.
 
 import { folderHostAvailable } from './files_fsaccess.mjs';
-import { PREVIEW_AVAILABLE } from './engine.mjs';
+import { previewAvailability } from './engine.mjs';
 
 /** This page's capabilities. */
 export function capabilities() {
     return {
         writeFolder: folderHostAvailable(),
-        preview: PREVIEW_AVAILABLE,
+        preview: previewAvailability().available,
         build: false,
         upload: false,
         brainLog: false,

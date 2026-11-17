@@ -13,6 +13,9 @@ writes, into --out:
   shulib-route-builder.html   THE ONE FILE: everything inside (the modules bundled into one script, the field
                               picture as a data: URI) -- what "Download for offline use" hands a team laptop;
                               double-click it, no network.
+  engine/                     (with --engine, the built module's folder) PREVIEW's Worker: the module's glue, the
+                              engine's backend and src/worker.mjs as ONE script, and preview.wasm. The ONE FILE
+                              carries the same script inline (the single-file module, its .wasm as base64).
 
 The robots' descriptions come from the C++ (`shulib_route_maker describe --robot one|two`, built from the SAME
 commit as the library: the published page knows the robots as of its build -- landmine 18) through --describe,
@@ -184,7 +187,43 @@ def json_in_html(data) -> str:
 
 
 # ── the page ─────────────────────────────────────────────────────────────────────────────────────────────
-def page(csp: str, app_script: str, baked: dict) -> str:
+# ── PREVIEW's engine (RMP1-A2u): the Worker's ONE script ────────────────────────────────────────────────────
+GLUE_EXPORT = 'export default createPreview;'
+# The Worker is a CLASSIC script (Chromium refuses a module Worker from a blob: URL over file://); in a Worker,
+# self.location.href is its own script's URL — what import.meta.url is in a module one.
+CLASSIC = ('import.meta.url', 'self.location.href')
+GLUE_START = 'async function createPreview('  # MODULARIZE's one function: nothing else at the top (no top-level await)
+
+
+def engine_script(engine: Path, single: bool) -> str:
+    """The module's glue (its export made a plain function), the backend and worker.mjs: one Worker script."""
+    for f in ('preview.mjs', 'preview.wasm', 'preview_single.mjs'):
+        if not (engine / f).is_file():
+            fail(f'build: --engine {engine} has no {f} (build the module: tools/route_maker/README.md)')
+    glue = (engine / ('preview_single.mjs' if single else 'preview.mjs')).read_text(encoding='utf-8')
+    if glue.count(GLUE_EXPORT) != 1:
+        fail(f'build: the engine\'s glue does not end with {GLUE_EXPORT!r} once (was it built by tools/route_maker/wasm/?)')
+    if not glue.startswith(GLUE_START):
+        fail(f'build: the engine\'s glue does not begin with {GLUE_START!r}: code at its top could not run in a classic Worker')
+    glue = glue.replace(GLUE_EXPORT, '').replace(*CLASSIC)
+    if 'import.meta' in glue:
+        fail('build: the engine\'s glue uses import.meta beyond import.meta.url: it cannot run as a classic Worker script')
+    for f in ('host/engine_module.mjs', 'model/route_lines.mjs'):
+        if not (SRC / f).exists():
+            fail(f'build: --engine needs src/{f} (the preview engine, RMP1-A2e)')
+    return (f"{glue}\n{bundle('host/engine_backend.mjs')}\n"
+            "self.shulibBackend = () => __shulib['host/engine_backend.mjs'].wasmBackend(createPreview);\n"
+            + (SRC / 'worker.mjs').read_text(encoding='utf-8'))
+
+
+def inline_script(text: str) -> str:
+    """`text` as a non-running script element: nothing in it may end the element early."""
+    if re.search(r'</script|<!--', text, re.I):
+        fail('build: the engine\'s script holds </script or <!--: it cannot sit inside the page')
+    return f'<script type="text/plain" id="shulib-engine">{text}</script>'
+
+
+def page(csp: str, app_script: str, baked: dict, engine: str = '') -> str:
     field = json.loads((HERE / 'assets' / 'field.json').read_text(encoding='utf-8'))
     field['url'] = 'data:image/webp;base64,' + base64.b64encode((HERE / 'assets' / 'field.webp').read_bytes()).decode('ascii')
     tpl = (SRC / 'app.html').read_text(encoding='utf-8')
@@ -196,6 +235,7 @@ def page(csp: str, app_script: str, baked: dict) -> str:
         '{{ROBOTS_JSON}}': json_in_html(baked),
         '{{FIELD_JSON}}': json_in_html(field),
         '{{APP_SCRIPT}}': app_script,
+        '{{ENGINE}}': engine,
     }
     for k, v in fills.items():
         if k not in tpl:
@@ -221,7 +261,7 @@ def check_output(out: Path) -> None:
                     fail(f'build: {f.relative_to(out)} carries {bad.decode()!r} -- a laptop\'s or a runner\'s path (RG1)')
 
 
-def build(out: Path, robots: dict) -> None:
+def build(out: Path, robots: dict, engine: Path | None = None) -> None:
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
@@ -231,10 +271,18 @@ def build(out: Path, robots: dict) -> None:
         dst = out / 'src' / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(SRC / rel, dst)
-    (out / SITE_PAGE).write_text(page(CSP_SITE, f'<script type="module" src="src/{ENTRY}"></script>', baked), encoding='utf-8', newline='\n')
+    site_engine = one_engine = ''
+    if engine:
+        (out / 'engine').mkdir()
+        (out / 'engine' / 'worker.mjs').write_text(engine_script(engine, False), encoding='utf-8', newline='\n')
+        shutil.copyfile(engine / 'preview.wasm', out / 'engine' / 'preview.wasm')
+        site_engine = '<meta name="shulib-engine" content="engine/worker.mjs">'
+        one_engine = inline_script(engine_script(engine, True))
+    (out / SITE_PAGE).write_text(page(CSP_SITE, f'<script type="module" src="src/{ENTRY}"></script>', baked, site_engine),
+                                 encoding='utf-8', newline='\n')
     (out / 'robots.json').write_text(json.dumps(baked, indent=2) + '\n', encoding='utf-8', newline='\n')
     # THE ONE FILE
-    (out / ONE_FILE).write_text(page(CSP_ONE_FILE, f'<script type="module">\n{bundle(ENTRY)}\n</script>', baked),
+    (out / ONE_FILE).write_text(page(CSP_ONE_FILE, f'<script type="module">\n{bundle(ENTRY)}\n</script>', baked, one_engine),
                                 encoding='utf-8', newline='\n')
     if (out / 'index.html').exists():
         fail('build: never index.html (W3)')
@@ -246,9 +294,10 @@ def main(argv: list[str]) -> int:
     ap.add_argument('--out', required=True, help='the folder to write (replaced)')
     ap.add_argument('--describe', help='the shulib_route_maker program (it writes robots one and two)')
     ap.add_argument('--robots', help='a JSON file {"one": ..., "two": ...} instead of --describe')
+    ap.add_argument('--engine', help='the built preview engine (build/wasm: preview.mjs, preview.wasm, preview_single.mjs)')
     a = ap.parse_args(argv)
     try:
-        build(Path(a.out), robots_from(a.describe, a.robots))
+        build(Path(a.out), robots_from(a.describe, a.robots), Path(a.engine) if a.engine else None)
     except BuildError as e:
         print(e, file=sys.stderr)
         return 1

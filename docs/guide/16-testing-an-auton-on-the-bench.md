@@ -388,7 +388,9 @@ and the tape's.
 Robot time is the scarcest thing in the week before a competition. Before a route goes on the
 robot, **see the whole of it on the laptop**: one command runs one of your autons, from your own
 `src/team/autons.cpp` (robot one's `src/team/robot_one_autons.cpp` with `--robot one`), through the
-same library code the robot runs, on the host test plant, and draws it.
+same library code the robot runs, on the host test plant, and draws it. A route still being built in the
+[route builder](22-making-your-first-route.md#6-preview-watch-the-library-drive-it) gets the same run from its
+**PREVIEW** button, in the browser on any laptop, before it is code.
 
 ```bash
 python3 tools/route_preview.py --list                              # every auton's name
