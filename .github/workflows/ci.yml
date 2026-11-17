@@ -254,6 +254,8 @@ jobs:
         run: |
           cmake -S test -B build/test
           cmake --build build/test --target shulib_route_maker -j4
+      - name: Build the route builder without the engine (the robots' descriptions the engine's tests read)
+        run: python3 tools/route_maker/build.py --out build/route_maker_site --describe build/test/shulib_route_maker
       - uses: actions/cache@v4
         if: ${{ !cancelled() }}
         with:
