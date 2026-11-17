@@ -254,13 +254,6 @@ jobs:
         run: |
           cmake -S test -B build/test
           cmake --build build/test --target shulib_route_maker -j4
-      - name: Build the route builder (the site folder and the one file)
-        run: python3 tools/route_maker/build.py --out build/route_maker_site --describe build/test/shulib_route_maker
-      - uses: actions/upload-artifact@v4
-        with:
-          name: route-builder
-          path: build/route_maker_site
-          if-no-files-found: error
       - uses: actions/cache@v4
         if: ${{ !cancelled() }}
         with:
@@ -295,6 +288,20 @@ jobs:
             build/wasm/*.mjs
             build/wasm/*.wasm
             build/wasm/records.json
+          if-no-files-found: error
+      # The site AFTER the engine: PREVIEW's engine goes into both forms of the page (build.py --engine) -- the page tests
+      # run the REAL engine. If the engine did not build, the site is built without it and the page test that needs
+      # it says so by name (it never passes silently).
+      - name: Build the route builder (the site folder and the one file, with PREVIEW's engine when it built)
+        if: ${{ !cancelled() }}
+        run: |
+          if [ -f build/wasm/preview.wasm ]; then ENGINE="--engine build/wasm"; else ENGINE=""; fi
+          python3 tools/route_maker/build.py --out build/route_maker_site --describe build/test/shulib_route_maker $ENGINE
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: route-builder
+          path: build/route_maker_site
           if-no-files-found: error
       # The test FILES, expanded by bash (every row runs bash): Node 20 takes a directory but not a glob, Node 22's
       # positional arguments are globs -- a list of files means the same to both.
