@@ -1,6 +1,6 @@
 # RMP1 — PROGRESS (live log)
 
-<!-- release: between parts — RMP1-A1 (the web route builder) and RMP1-B (Controls + feel, 2026-11-17) landed; RMP1-A2e/A2u (PREVIEW) merge one at a time (declared by the coordinator 2026-11-17) -->
+<!-- release: between parts — RMP1-A1, RMP1-B (Controls + feel) and RMP1-A2e (the PREVIEW engine) landed 2026-11-16/17; RMP1-A2u (the PREVIEW screen) is building (declared by the coordinator 2026-11-17) -->
 
 Brief: [`RMP1-route-maker-page.md`](RMP1-route-maker-page.md) (the coordinator's copy of record, placed uncommitted in
 this worktree; it lands with RMP1-A1). Executor model: `opus`. Nothing committed and nothing pushed by the executor.
@@ -1556,3 +1556,493 @@ Five commits landed after `b3146d4`: the Calibrate thresholds fix (`7867517`), A
   driver files' marked regions equal: an export on ONE robot turns the host suite red until the other robot's file
   gets the same change — the Controls tab should write both, or say so. (3) The side-toggle mirror (ROB1-BT's
   finding 1) for the route export.
+
+## RMP1-A2e — the preview ENGINE (the real library compiled to WebAssembly)
+
+Executor: Claude Opus 5.5 (the coordinator's `opus` subagent), worktree `.claude/worktrees/rmp1-a2e` (branch
+`rmp1-a2e`, from `e8fa3de`). Scope: A.7's A2e row. Not committed, not pushed; host only.
+
+### Log
+- 2026-11-16 12:15 EST — started: read RESUMING's standing rules, the brief's header, ANSWERS, amendment A.1–A.12, R1–R19, D1–D20, §6, §7, §8 and every A2e row.
+- 2026-11-16 ~12:40 EST — built: `route_lines.mjs` (the page's route → the lines), `test/route_maker_runner.hpp` (the
+  runner + the record writer), `route_maker_main.cpp` gains `preview` (and, in the test module only, `golden`/`goldens`),
+  `test/route_maker_goldens.cpp` (WG1's compiled twins), `tools/route_maker/wasm/CMakeLists.txt`, the WG8 golden. The
+  pinned emsdk is the probes' (6.0.13), used READ-ONLY (`EM_FROZEN_CACHE=1`, `TMPDIR=build/tmp`). First facts: the
+  module builds with ZERO warnings under `-Werror` in ~9 s (307 MB); GCC 13 caught one `-Wsign-conversion` Clang did
+  not (W14's two compilers, in action — fixed). Sizes: `preview.wasm` 513 KB (218 KB gzip), glue 10 KB; the one file
+  694 KB (base64 — `-sSINGLE_FILE_BINARY_ENCODE=0`: Emscripten 6's default is the UTF-8 "binary" encoding P-W2 did
+  not recommend). Dropping iostreams from the runner saved 85 KB; reading stdin only natively dropped the glue from
+  55 KB to 10 KB (no file system). **WG1 on WG8: the runner and the compiled export — byte-identical.** Native vs
+  WebAssembly on WG8: every step, line and time equal; poses differ in the last bits (e.g. a target heading
+  0.21755411913400838 vs …840), as A.2 says.
+- Emscripten's Node glue sets `process.exitCode` from main's return: the test helper restores it after each
+  `callMain` (else a refused-lines case made the whole test FILE fail with exit 2). For A2u: irrelevant in a Worker.
+- ~12:45 — **A REAL DEFECT the first sweep found, fixed at its root: `callMain` leaks its arguments on the module's
+  C stack.** WG2s's 300 routes on ONE instance died at route 56 ("memory access out of bounds"); seed 56 alone ran
+  fine. Bisected: any route repeated ~35–53 times on one instance crashed. A debug build (`-sASSERTIONS=2
+  -sSTACK_OVERFLOW_CHECK=2`) named it: "stack overflow (Attempt to set SP …)". Emscripten 6.0.13's `callMain`
+  (postamble.js :23-100) `stackAlloc`s argv and the lines on the 64 KB C stack and NEVER restores it — it is made
+  to be called once; P-W1f called it twice. The page's Worker will call it once per PREVIEW, so a student's ~20th
+  PREVIEW would have corrupted the module's memory silently. Fix: `src/host/engine_module.mjs` — ONE wrapper the
+  tests AND A2u's Worker use — saves and restores the stack pointer around every call (`stackSave`/`stackRestore`
+  exported); the module links with a 1 MB stack (a run needs 16–32 KB: probed at 8/16/32 KB over every golden and
+  300 sweep routes — 16 KB overflowed on gl1, 32 KB ran all 319) and `-sSTACK_OVERFLOW_CHECK=2`, so an overflow
+  ABORTS instead of corrupting a record (~5 % slower: 319 routes 2.85 s vs 2.71 s; +24 KB). Pinned by a test (400
+  PREVIEWs on one instance with a 4 KB argument) and mutation M1.
+- The sweep generator (`native.test.mjs`'s `sweepRoute`) tuned so it tests what W2 is about — long closed-loop runs:
+  8–24 steps, mostly carry on, a wait on a never-started mechanism (a THROW) kept but rare. Over seeds 1–300: 4,716
+  page steps, 3,699 steps from below, every verdict kind (ok 2,795, failedWentOn 700, skipped 614, jumped 456,
+  failed 88, notReached 57, threw 6), 12.2 s of auton per route on average.
+- WG8's last drive (turned first, `skipTo("end")`) now FAILS (0.35 s) so the skip is taken — without that, a runner
+  that forgot the onFail before a turn-first DRIVE survived WG1 (it only shows when that drive fails; M3).
+- Gates so far: native + module build clean; suite green **3,779** (+1: WG8 compiled with GCC `-Werror` and run on
+  robot x — `test/route_maker_golden_test.cpp`); `node --test tools/route_maker/test/` 85 pass, 12 skipped (the
+  browser and engine tests, by their env vars); the engine's 10 node tests and the browser WG3 (Playwright's Firefox
+  157, A.5's recipe) green; ARM header gate exit 0 (259 lines); PROS-free and sim-layering greps clean;
+  api_doc_tool self-test / coverage / fresh / examples / removability, staleness audit + self-test, briefing
+  self-test + check — all clean; `git diff -- src/ Makefile include/` EMPTY.
+- ~13:10–14:10 — **Mutations** (driver `.claude/coordinator/scratch/rmp1-a2e/mutate.py`: each file backed up under
+  that folder, restored in a `finally` and on SIGTERM/SIGHUP/SIGINT, its mtime bumped; every dependent build made
+  FRESH — the module, the native program or the suite — before its test; everything under the 4 GiB cap). The last
+  round, after the final edits, all as expected:
+  RM27 startMove run as `move` → WG1 RED, and SM RED (a start form must take no time); RM28 a preset goal built
+  `computed = true` → RED in the new suite case (`route_maker_runner_test.cpp`: the runner's goal equals the
+  compile-time `m["name"]`, field for field) — it is INVISIBLE to WG1 by construction (`computed` matters only for
+  a target past the travel limits, and no preset can be one), so the brief's "RM28 → WG1 red" could not hold; RM32
+  `opt.onLoop` unset → WG7 RED; RM35 two numbers read inside one call's argument list → WG2 RED natively (GCC
+  evaluates right to left), and the same mutant leaves WG1 GREEN (all WebAssembly — W8's point, observed); RM37 the
+  prefix map dropped → RG1 RED; RM22 (re-cut for the runner) a page step's span one pace late → SM and SM1–SM3 RED;
+  RM34 the lines print a 4th decimal → NF1 (the lines) RED; and M1 the wrapper leaves the C stack → "hundreds of
+  times" RED; M2 turn-first without its face → WG1; M3 the turn-first DRIVE without its onFail → WG1 (after WG8's
+  last drive was made to fail); M4 the cut called a failure → SM3; M5 the brain's numbers one low → SM1; M6 a
+  negative literal read positive → WG1; M7 a jumped step called skipped → SM1; M8 a refused line run anyway → the
+  refusals test. **Two survived the first round and were fixed by strengthening the tests, not by loosening:** RM27
+  (WG8 had no drive between a start form and its wait — three motions inserted, and SM now pins a start form's
+  zero-length span) and RM28 (the suite case above).
+- **A lesson for the coordinator (the mutation driver tripped it once):** building `shulib_tests` runs the doc
+  gates, whose briefing check RUNS the existing suite binary — after a suite mutant the next build's gate ran the
+  MUTANT (under the inherited 4 GiB cap) and failed the build, leaving the mutant linked. The driver now unlinks
+  `build/test/shulib_tests` before every suite build (the rule's own advice); the tree was rebuilt and re-verified
+  (suite green 3,781, briefing check current).
+- **WG2s, the full sweep (seeds 1–3,000):** 128 s; **0 differences** in any step, verdict, pace, time, line or exit
+  code; poses at most **2.89e-7 in and 1.07e-8 rad** (bounds 1e-5 / 1e-6: ~35× and ~93×) — the brief's checker
+  measured 3.5e-7 / 2.5e-8 on its own sweep. Those 3,000 routes: 47,772 page steps, 36,184 steps from below,
+  12.2 s of auton each on average; ok 27,426, failedWentOn 6,848, skipped 7,150, jumped 4,528, failed 1,000,
+  notReached 750, threw 70 (no route reached the 57 s cut — SM3 and gl13 cover it). CI runs seeds 1–300 (max there
+  4.3e-12 in).
+- **WG3 in a browser** (`test/page/engine.test.mjs`, Playwright's Firefox 157 here; every CI row's browsers): the
+  module in a MODULE Worker through `engine_module.mjs` gives every golden's record byte for byte as Node does.
+  Observed red on one changed byte in the stored records (Node and browser), and on a harness that altered one
+  browser record (a temporary copy, removed).
+- **Deltas from the brief, each with its reason:**
+  1. *The lines carry a mechanism's `.name`, not its C++ name* (`route_lines.mjs` maps one to the other from the
+     robot's description): the C++ name is read from the source line the declaration recorded, which the module
+     cannot read. A ledger level travels as its preset's name (the goal `m[facts::lv(i).name]` builds is that
+     preset's).
+  2. *The module's `describe` refuses* ("runs in the native program only") instead of printing descriptions with
+     null C++ names; the page's descriptions are the native program's, baked at its build (A.3.2 (b)). Embedding the
+     robot files in the module would put source comments where the site's internal-docs guard and RG1 scan.
+  3. *The record of WG1's compiled twin has `"pageSteps": null`* (nothing dates its steps): WG1 compares the two
+     records byte for byte with that ONE line set aside; the page-step spans are pinned by SM instead (motion spans
+     exact against the motions, the steps tiling the run, a start form taking no time, the verdicts and the brain's
+     numbers on SM1–SM3).
+  4. *SM3's "every later step not reached"* is the library's own word: each later step is `skipped` (it logs
+     "skipped — stopped at step N"); `notReached` is kept for a step the run never got to (a throw, the no-pace stop).
+  5. *A1b's kinds (triggers, the wall reset) are NOT in the runner*: neither is "trivially the same mapping" (the
+     trigger chain is a template over the leg kinds) and A1's model and exporter have neither, so no golden could
+     hold WG1 for them; the runner refuses them by name (`cannot run a "wallReset" step`). A1b adds them to the
+     exporter and the runner together, with their goldens.
+  6. *RM28's oracle is a suite case*, not WG1 (above). *RM22 and RM35 re-cut* for the runner (a span one pace late;
+     a stateful reader inside one call).
+  7. *`engine_module.mjs` is new* (not in A.6's list): the ONE way to run an instance, because `callMain` must have
+     its stack restored after every call (the defect above) — A2u's Worker builds on it, never on bare `callMain`.
+  8. *`-sSTACK_SIZE=1MB -sSTACK_OVERFLOW_CHECK=2` and `-sSINGLE_FILE_BINARY_ENCODE=0`* beyond A.3.3's flags
+     (measured above); the browser floor is unchanged (no new feature).
+  9. *The module's `.wasm` is 537 KB (221 KB gzip)*, above the probe's 419 KB (-Os): the runner, the record writer
+     and robot one's autons; iostreams were dropped from the runner (−85 KB) and stdin from the module (glue
+     55 → 12 KB).
+- **Prose review (rule 4), run BEFORE writing this:** `grep -rn 'shulib_route_maker\|route_maker_main\|route_maker_describe\|route_maker_golden_test\|engine\.mjs\|WebAssembly\|preview engine' docs/ README.md`
+  (outside the chunk files) → one hit, `docs/internal/RELEASING.md` :146 (a publish builds the builder from
+  `shulib_route_maker describe`) — still true (A2e does not put the module in the site; A2u does). `grep -n -i
+  PREVIEW` over `docs/route-builder.md`, guides 14, 16, 22 → guide 22 :166 lists PREVIEW among what the builder
+  does not do yet — still true until A2u; guide 16 is RPV1's command — unchanged. The brief's word greps
+  ("simulat", "honest", "obviously", "just ", "simply", "easy", "precondition", "radian", `http`) over every new and
+  changed file: no hit in this run's text (one pre-existing "stated honestly" in `ci.yml` :147, not this run's;
+  "radians" only as API names in a test and the README's unit of `theta`). The built module: no URL, no path
+  (`/home/`, `/Users/`, `C:\`, `/runner/`, `.claude`), no internal-doc name.
+- **Documents:** touched — `tools/route_maker/README.md` (the engine: build, the pin, the outputs, the wrapper, the
+  lines, the record's schema 1), `test/README.md` (the runner, WG1–WG8, SM, RG1; WG8 in the golden test),
+  `docs/internal/PROJECT-BRIEFING.md` (regenerated), this log. Deliberately NOT touched: `docs/changelog.md` and
+  every public page (no user-visible change — PREVIEW reaches the page in A2u, whose entry says so); `roadmap.md` /
+  `build-order.md` (RMP1's runs are not tracked there; the coordinator's at the merge); `pages.yml` and
+  `build.py` (putting the module in the site is A2u's); `engine.mjs` (A2u wires it).
+- Added after the last full round: an engine test that robot one previews on ITS OWN list (the robot line names
+  cascade, both toggles, claw, flipper, ramp) with its ledger's OWED facts marked (11 today, each a name in
+  `src/robots/robot_one_facts.hpp`), and a fixture robot with none — its mutation M9 (robot one without its ledger)
+  is run after the src gate (the gate plants into `src/`, which the module build compiles).
+- **2026-11-16 22:50 EST (`date`: 22:50:43) — RESUMED** after the team lead's pause (~12:30). Found: a src gate
+  self-test PLANT left in `src/programs/bench_r3a.cpp` (case 37's `ser1SelfTestFlush`, NO marker comment — the killed
+  gate never restored it) → restored with `git checkout`, its mtime bumped; `git diff -- src/ Makefile` then EMPTY and
+  no untracked file under `src/ include/ test/` but this run's own. The mutation driver's four backups equal the
+  current files (no mutant left). Rebuilt from source: `build/wasm` deleted, the suite and native binaries unlinked,
+  the briefing regenerated before and after; host build 0 warnings; suite green **3,781**; module 0 warnings (14 s;
+  `preview.wasm` 537,336 bytes, as before); `node --test tools/route_maker/test/` 85 pass / 13 skipped; the engine's
+  11 node tests green (WG2 on the goldens: max 5.33e-14 in / 6.88e-15 rad; WG2s 300 routes: 4.32e-12 in /
+  1.14e-13 rad). Continuing from where it stopped: the src gate (self-test, check), M9, the remaining gates.
+- **2026-11-16 22:59 – 11-17 00:30 EST — the rest of the gates, M9, and a pre-existing break found on main.**
+  - **The src gate self-test: OK (377 detector cases)** — 52 min: SIX self-tests ran on this laptop at once
+    (integrate, af1s-a2, mirror1-b, rmp1-b, rob1-bt2, this one). At case 37 after 44 min, my own `timeout 3600`
+    would have interrupted it near its end (an interrupt is how the morning's plant was left), so I killed ONLY that
+    `timeout` wrapper (SIGKILL; the gate ran on under its own PID) and waited on the PID. Afterwards `git diff -- src/
+    Makefile include/` EMPTY, no "(self-test plant", no untracked file under `src/` or `include/`, the `test/` diffs
+    exactly this run's (99+/15−, as at the resumption). **`check`: PASS (14 builds).**
+  - **M9 (robot one previewed without its ledger) → RED** in "any robot's own list" (the driver: the module rebuilt
+    fresh, restored, then the module, the native program and the suite rebuilt from the restored source: ok). Every
+    other mutation's verdict stands from the 13:02 round (the runner has not changed since: its file equals the
+    driver's last backup).
+  - After M9's rebuild: the engine's 11 node tests green again (same maxima); WG3 in Playwright's Firefox green; suite
+    green **3,781**; briefing regenerated, check current; the ARM header gate exit 0 (259 lines); PROS-free and
+    sim-free greps clean; api_doc_tool self-test OK, check-coverage (6,439 entities, 214 headers), check-fresh exit 0,
+    check-examples (919 lines), check-removability clean; staleness self-test OK and clean; compile refusals
+    **295/295** (TUs 295); `route_preview.py self-test` ok; `node --test tools/route_maker/test/` 85 pass / 13
+    skipped; §7's site checks (no URL, `app.html` and no `index.html`, the SITE policy once, the `data:` favicon in
+    both pages, RG1 on the site and the `.wasm`, `eol: lf`) all hold.
+  - **A PRE-EXISTING BREAK ON MAIN (not this run's), for the coordinator:** §7's Firefox page suite fails 16 of 29 —
+    13 are `locator.selectOption` timeouts on `.pane.right select[name="preset"]` (e.g. `page.test.mjs` :335,
+    `selectOption({ index: 3 })` on robot one's cascade), 3 a screenshot protocol error after them. Robot one's
+    cascade bakes with `presets: []` (its levels are NONE since ROB1-C2), so no level can be picked. **The base
+    `e8fa3de`, built in a scratch copy (`git archive`), fails the same tests the same way** (19 of 28 there; its
+    `robots.json` equals this run's but for the build stamp) — the A1 merge re-ran the suite and `node --test`, not
+    the page tests, on robot one's level-less cascade. It will turn this branch's CI browser rows red. NOT fixed here:
+    the page tests are A1's (RMP1-B is editing A1's shell beside me), and the fix needs a ruling (a fixture robot with
+    levels baked for the tests, or the page's own behaviour for a cascade with no levels). Evidence:
+    `scratch/rmp1-a2e/base/page-base.log`; this tree's `build/tmp/page.log`.
+  - README: the wrapper returns `{rc, text, record, words}` (it said `{rc, record, words}`).
+- **Stopping here for the review** (three reviewers, fixes, a fresh verifier, the coordinator's checks, then the CI on
+  the pushed branch). Nothing committed, nothing pushed.
+
+### RMP1-A2e review findings and their disposition
+- 2026-11-17 started: three reviewers' 22 findings (correctness, tests, docs), deduplicated to 17; each re-checked
+  against the tree before anything was changed. Nothing committed, nothing pushed.
+- **The findings, each re-checked, and what was done** (C = correctness, T = tests, D = docs; overlaps merged):
+  1. **CI's browser rows are red before this run (C blocker, D major, T minor).** REAL, NOT this run's: A1's page
+     tests pick a cascade level robot one no longer has (ROB1-C2: its levels are NONE). RMP1-B's worktree already
+     carries the fix in A1's file (`page.test.mjs`: `ONE_LEVELS`, the claw set open in the move's place), so it is
+     not made twice here. This run's part: the browser WG3 is now **its own CI step, before the page's**
+     (`ci.yml`, "The preview engine in <browser> on <os>"; the page step no longer sets `ROUTE_MAKER_WASM`, so
+     `engine.test.mjs` runs once), so each row's engine result reads on its own. **For the coordinator:** the page
+     step stays red on every row until RMP1-B's page fix merges — merge it first, or read this branch's engine
+     steps alone and rule on A.4's "every row green".
+  2. **Robot one's owed facts and PLACEHOLDER marks had no real guard (C major, T major).** REAL. The test now reads
+     every `owed(<placeholder>, Stage::<s>, "<name>")` from `src/robots/robot_one_facts.hpp` itself (comments
+     aside: 11 today, never typed into the test), asserts the list is not empty and the record's `owed` is exactly
+     it, and that the cascade's step carries RPV1's PLACEHOLDER note while the claw's two steps carry none.
+     (A step's PLACEHOLDER is RPV1's "starting values" rule, `placeholderFor`, not a ledger fact's name — so the
+     test checks the note RPV1 writes, not a fact name.) Mutants N1 (the ledger emptied, its file name kept), N2
+     (`owed` written empty) and R1 (placeholders blanked): see the mutation round below.
+  3. **ROB1-BT2 would break the engine's link (C major, D major).** REAL. **Fixed at its root, not by a longer
+     list:** the engine never runs the team's autons — the runner gives every RPV1 robot row its own register
+     function — so `src/team/` was linked only to satisfy those rows' two function pointers. Both targets now link
+     `test/route_maker_no_team_autons.cpp` instead (the two register functions, each throwing
+     `std::logic_error` if ever called). So: ROB1-BT2's `skills_route.cpp` needs no edit here at any merge order;
+     the students' freeze-open files never enter Emscripten's `-Werror` gate (W14's list stays `include/`,
+     `src/robots/`, the host test plant); `preview.wasm` 537,336 → 535,355 bytes. **Still ROB1-BT2's merge, named
+     for the coordinator:** `route_maker_goldens.cpp` compiles `smoke_robot_two.cpp` under robot two's namespace
+     exactly as A1's `route_maker_golden_test.cpp` :102 does — the same edit at the same merge (A1's suite test
+     needs it anyway); robot two's ledger in `robotSource("two")` (A1's warning, `route_maker_robots.hpp` :38-42);
+     and the module build plus the engine's node tests in that merge's done list (it changes `src/robots/`, W14).
+  4. **describe read a robot's files from the working directory first (C minor, D minor).** REAL. A relative name
+     (the prefix map's) is now opened from `SHULIB_SOURCE_DIR` only — the working directory only in a build that
+     defines none. Pinned by a new native test: describe run from a decoy tree (robot one's files copied, every
+     declared name changed) and from `/` gives exactly what it gives from the repository root (mutant N3, the
+     reviewed code: RED). Logged as a W10 delta (below).
+  5. **Coverage: WG2s on robot x only, 2 decimals; no ledger level end to end (C minor).** REAL for the sweep:
+     WG2s now also sweeps robots one and two (their baked descriptions; a third as many routes each, 3-decimal
+     numbers), and every module record in it is held to SM's span rule too (`spansHold`, now in `engine.mjs`) —
+     500 routes in CI. Robot x's routes are unchanged: seeds 1–3,000 give the same lines as the generator the
+     report measured (checked). The ledger level: NOT possible today — robot one's cascade has no levels, and no
+     fixture robot has a ledger; **handed on:** the run that types the cascade's levels (station 13) adds a robot-one
+     golden that moves to a ledger level, so WG1 covers `facts::lv(i).name`.
+  6. **Nothing checked what the record says (T major).** REAL. A new test checks the record against the route
+     itself: the start in `samples[0]` (x ≠ y, a 30° heading in radians), a sample every 10 ms, the drive ending at
+     its (x, y), the drive's target, the page step's brain numbers, park and stop set to 55.5 / 58.25, a throw
+     (`threw`, "PROGRAM ERROR", its sentence, `threw` then `notReached`, no samples or brain numbers), and a drive
+     through the right wall (a TOUCH then the THROUGH, `throughAt` its sample). Mutants R2–R6, R11, R12.
+  7. **`preview()` never called by a test (T minor).** REAL. A new test: a refusal (rc 2, record null, its words),
+     then a good route on the same instance (rc 0, empty words, the record parsed and equal to its text). Mutants
+     J1–J3. (The test helper's `instance()` now hands out `.preview` too, keeping Node's exit code.)
+  8. **The registry's refusal path untested (T minor).** REAL. A new test: `park=59 stop=57` and an empty name —
+     rc 1, `refused`, "REFUSED", the registry's sentence, no samples, every page step `notReached` with no brain
+     numbers. Mutant R7.
+  9. **Two refusal rules, `threw`, `lib` of an unreached step (T minor).** REAL. The refusal table gains `face=2`,
+     points on a drive, and a curve without points; the throw case is item 6's; WG7 asserts `lib` null on its step
+     never reached. Mutants R5, R6, R9, R10.
+  10. **SM4 neither done nor logged (T minor, D minor).** REAL (a log gap). Delta 10 below.
+  11. **The mirrored (two-robot) run (D major).** REAL: no run's row owns the engine half. NOT built here — delta 11.
+  12. **The browser test let every warning pass; A1's handoff not acted on (D minor).** REAL. ONE list now,
+      `test/page/allowed_warnings.mjs`, holding Firefox's sentence EXACTLY as Firefox 157 logs it (observed: a
+      Worker's warning reaches the page's console wrapped as `[JavaScript Warning: "<sentence>"]`, once per
+      instance); `engine.test.mjs` fails on any other warning or error. Firefox green with the one warning allowed;
+      Playwright's Chromium green with none; one word changed in the list's sentence turns the Firefox run RED
+      (mutant N4, by hand: so the check does see the Worker's warnings). NOT edited: A1's `page.test.mjs` (RMP1-B
+      is editing it) and A2u's `preview.test.mjs` (its own copy of the sentence, matched with `includes`) — **for
+      the coordinator:** at A2u's merge both import this list (the page first loads the module in A2u).
+  13. **Putting the module into the site is handed to nobody by name (D minor).** REAL as a log gap; the work is
+      already A2u's in fact: its worktree's `build.py` gains `--engine` (the Worker script, `preview.wasm`, the one
+      file's module inline) and its `pages.yml` +25 lines. Delta 12 below names the pieces.
+  14. **The coordination note missed RMP1-B's files (D minor).** REAL. Corrected in delta 13.
+  15. **The prose-review record was narrower than claimed (D minor).** REAL. Re-run with the full pattern; recorded
+      below exactly.
+  16. **The README's engine section (D minor).** REAL, all four: (a) the engine is "behind the page's PREVIEW
+      (which RMP1-A2u wires into the page)"; (b) rc 3 documented, and `.preview()` THROWS when the module aborts
+      (the instance is then dead); the guidance "after a non-zero rc make a fresh instance" was too broad (~~rc 1 is
+      also a plain failed drive~~ — WRONG, corrected in the verification round below: a failed drive is rc 0; rc 1 is
+      also a throw, a THROUGH or a refusal, none of which harms the instance) — now: after the no-pace stop
+      (`looped`) the instance runs on correctly (WG7) but
+      a fresh one frees that run's heap; (c) the overflow count measured for the shipped 1 MB stack, the wrapper's
+      restore removed: 2,224 PREVIEWs of a 335-byte route, 679 of the longest golden's 1.4 KB ("some hundreds"),
+      in the README and `engine_module.mjs`; (d) `test/README.md` names `route_maker_runner_test.cpp`.
+  17. **The describe change was unlogged (D minor).** REAL. Delta 14 below; `test/README.md`'s `shulib_route_maker`
+      bullet now says the kept names are relative and opened from the build's tree, and that it links
+      `route_maker_no_team_autons.cpp`.
+- **Deltas added by the review** (numbered on from the nine above):
+  10. *SM4 is not in this run*: robot two's numbering with a "robot one only" block needs a route that can SAY
+      "robot one only" (A1b's "who runs it" blocks; A1's model has none) and the two-robot run (delta 11). It lands
+      with whichever run adds the two-robot run's engine half — the coordinator names it.
+  11. *The two-robot PREVIEW's engine half is in no run's row, and is NOT built here.* D6 wants a mirrored route's
+      PREVIEW to run robot one's entry AND `competition::mirrored(...)` on robot two, with MIRROR1-A's pair check;
+      the amendment dropped RPV1's `--pair` ("the runner records the run itself"), and A.7 gives "the two-robot
+      PREVIEW (when MIRROR1-A has merged)" to A2u while the runner is this run's file. Today the lines carry no
+      mirror word, `previewRobot()` runs one robot, and the record holds one run. Not built now because both files
+      it rests on are being changed beside it: MIRROR1-B (branch `mirror1-b`, `a71f16d`) rewrites
+      `test/mirrored_pair_check.hpp` (+209/−), and ROB1-BT2 rewrites robot two (its claws retired) and first
+      registers the mirrored skills route. **What the owner adds** (for the coordinator's ruling — A2u by its row,
+      or an engine follow-up): a `mirror=two` word on the route line (from `mirroredFor`); the runner runs the entry
+      on robot one and the mirrored entry on robot two; `comparePair`'s verdict (the first moment within
+      `kMirrorGapIn`, its sentence); the record carrying both runs and the verdict (schema 2, or a `mirror` member
+      — A2u's playback reads it); WG1's twin through the export's mirrored line, GL16's pass and fail goldens, SM4,
+      and their mutations.
+  12. *The module into the site is A2u's, named:* `build.py` (the module's files in the SITE form, the one file's
+      module inline, RG1 on the decoded module), `pages.yml` (the pinned emsdk, cached; the module build), PG1's
+      `.wasm` check after `mkdocs build`, and RELEASING.md's "press PREVIEW once". A2u's worktree already has
+      `build.py --engine` and `pages.yml` +25; the coordinator checks PG1 and RELEASING.md are in its args.
+  13. *The coordination list, corrected* (the report said "no file owned by an in-flight chunk" — wrong). Shared
+      with **RMP1-B**: `test/route_maker_main.cpp` (it adds `feel` / `feel-edges`; this run restructured `main`
+      into `run()` — a certain conflict, and RMP1-B's `route_maker_feel.hpp` then compiles into the module too, so
+      whichever merges second rebuilds the module and runs the engine's tests), `test/route_maker_describe.hpp`
+      (it adds `unhomedVolts`; this run changed `identAt`), `test/README.md`, `tools/route_maker/README.md`
+      (neighbouring rows of the layout table), this log. Shared with **A2u**: `tools/route_maker/README.md`, this
+      log. Shared with the earlier list: `ci.yml`, `test/CMakeLists.txt`, `test/route_maker_golden_test.cpp`, the
+      briefing. **Main has moved** since the base: `26ee38e` (DOCS3-N1), `1bcde4e` (the between-parts marker atop
+      this log), `b3146d4` (the briefing).
+  14. *describe opens a kept file name from the build's tree* (A1's `route_maker_describe.hpp`): W10's prefix map
+      made the names relative (`test/../src/robots/…`), so `identAt` opens them under `SHULIB_SOURCE_DIR` (set on
+      `shulib_test_flags`: the repository root) — from any working directory, never another tree's files.
+  15. *The engine does not compile `src/team/`* (finding 3): `test/route_maker_no_team_autons.cpp` in both link
+      lists. Before this run `shulib_route_maker` linked `route_maker_main.cpp` alone; the first round had added
+      the two team files to satisfy RPV1's rows (unlogged then) — now neither.
+- **The mutation round** (the same driver, `scratch/rmp1-a2e/mutate.py`, 37 mutations: every first-round one again,
+  since the tests moved, plus the review's; each file backed up there, restored in a `finally` and on signals, its
+  mtime bumped; the module, the native program or the suite rebuilt FRESH before each test; all under the 4 GiB
+  cap; log `scratch/rmp1-a2e/mutations-review-round.log`). **35 as expected:** every first-round verdict holds
+  (RM27, RM27b, RM28, RM32, RM35 red and RM35b green as designed, RM37, RM22, RM34, M1–M9); and now RED — N1 the
+  ledger emptied (file name kept), N2 `owed` written empty, R1 placeholders blanked (all in "any robot's own
+  list"); R2 park/stop swapped, R3 a target's x/y swapped, R4 THROUGH written TOUCH, R5 a throw called failed,
+  R11 `threw` always false, R12 the samples' x/y swapped (the record-content test); R6 `lib` [0, 0] for a step
+  never reached (that test and WG7); R7 the registry's refusal never taken (its own test); R9 `face=2` and R10 the
+  curve-points rule dropped (the refusals); J1–J3 (the `preview()` test); N3 the reviewed `identAt` (the describe
+  test). By hand: N4 above. After the round the driver rebuilt the module, the native program and the suite from
+  the restored source; the five backed-up files equal the tree's.
+  **Two are EQUIVALENT, with the evidence:** R8 (a step begun but never ended, outside a loop, called "looping")
+  stayed green on all 15 engine tests — no run can make it: the routine runs synchronously inside `previewEntry`,
+  so every reached step returns (dated) or throws (dated in the catch), except in `onLoop`'s record, where `looped`
+  is true. R13 (`sampleAt` without its 5 ms rule) stayed green on SM and the 500-route WG2s with spans — a probe
+  (`scratch/rmp1-a2e/fix/probe_r13.cpp`, the runner compiled natively) over 5,019 routes (the full sweep and every
+  golden) found 156,306 page-step times, and `t + armedAt` equals the clock EXACTLY at every one, so the rule never
+  changes a sample. It is kept because it is `foldRun`'s own rule for a motion's start and end: the page steps and
+  the motions are dated by one rule, whatever the arithmetic.
+- **WG2s, the full sweep (5,000 routes: seeds 1–3,000 on robot x, 1–1,000 on each of robots one and two), 210 s:**
+  0 differences in any step, verdict, pace, time, line or exit code; poses at most **1.15e-6 in and 2.08e-7 rad**,
+  both from ONE route, robot two's seed 159 (robot one's worst: 2.65e-7 in / 3.64e-8 rad, seed 22; robot x's
+  unchanged, 2.89e-7 / 1.07e-8). The bounds hold, but **robot two's heading margin is ~4.8×, not the ~40× W2 set
+  from robot x's sweep** — for the coordinator (W2's remedy is a replaced seed only when a run shows a flip; none
+  does). CI runs seeds 1–300 / 1–100 / 1–100: 2.65e-7 in, 3.64e-8 rad.
+- **Gates on the final tree:** host build 0 warnings; the briefing regenerated before the build (the suite binary
+  unlinked) and after; suite green **3,781** (`suite_run.py green`); the module rebuilt from an empty `build/wasm`,
+  0 warnings, `preview.wasm` 535,355 bytes (219,931 gzip), the one file 725,884; the site rebuilt (robots one's and
+  two's descriptions unchanged); the engine's node tests **15 pass** (WG1, the robot list, WG3, WG7, the stack, SM,
+  SM1–SM3, RG1, the refusals, the record's content, the registry, `preview()`, WG2, WG2s, describe); the model's
+  `node --test tools/route_maker/test/*.test.mjs` 83 pass, 1 skipped (A1's GL0-on-the-real-file, as before);
+  WG3 in Playwright's Firefox 157 and Chromium, green; the ARM header gate exit 0 (258 headers); PROS-free and
+  sim-free greps clean; `api_doc_tool` self-test OK, check-coverage (6,439 entities, 214 headers), check-fresh exit
+  0, check-examples (919 lines), check-removability clean; briefing self-test OK and check current; staleness
+  self-test OK and clean; `ci.yml` parses (YAML).
+- **Prose review (rule 4), the EXACT pattern run, BEFORE writing this:** `grep -rn -i
+  'shulib_route_maker\|route_maker_main\|route_maker_describe\|route_maker_golden_test\|route_maker_runner\|route_maker_goldens\|route_maker_no_team\|route_lines\|engine_module\|engine\.mjs\|allowed_warnings\|wg8\|WebAssembly\|preview engine\|emsdk\|Emscripten\|wasm'
+  docs/ README.md --include=*.md`, the chunk files aside → ONE hit, `docs/internal/RELEASING.md` :146 (a publish
+  builds the builder from `shulib_route_maker describe`) — still true. Also read: `docs/guide/22` :166 and guide
+  14 :551 (PREVIEW not done yet — true until A2u), `docs/route-builder.md` :18 (Save and Export — unchanged). (The
+  first round's logged pattern left out the new files' names and emsdk/Emscripten/wasm; this one is what ran.)
+- **Documents touched by the review:** `tools/route_maker/README.md` (the engine section: who wires PREVIEW, the
+  team's autons not compiled, the allowed warnings, rc 3, the throw, the overflow count, the no-pace stop's heap),
+  `test/README.md` (the describe and link change, the runner's suite case, the new engine tests), the comments of
+  `engine_module.mjs`, `ci.yml`, both CMake files, the briefing (regenerated), this log. Deliberately not touched:
+  the public docs and the changelog (nothing a student sees changes until A2u), `page.test.mjs` and A2u's files
+  (above).
+
+### Resumed 2026-11-17 03:07 EST (`date`) — the fix round's run was stopped by the usage limit (~02:00)
+- **Found on resuming:** all 17 findings already dispositioned above, and the mutation round complete (37 mutations,
+  each observed on a fresh build: the driver rebuilds the module, the native program or the suite before every
+  test, the suite binary unlinked first). Every file the driver backed up (`scratch/rmp1-a2e/backup/`, five) and
+  `allowed_warnings.mjs` (N4's) equal the tree's. The run was cut inside `src_build_gate.py self-test` (started
+  01:27; the gate list above does not include the src gate). It left one plant, `src/programs/zz_self_test.cpp`
+  (01:59), which was already moved out to `scratch/rmp1-a2e/LEFTOVER-zz_self_test.cpp`. Every other file it touched
+  has its content back (mtimes only): `git diff -- Makefile src/ include/` is empty, no "(self-test plant" in the
+  diff, and `git ls-files -o --exclude-standard src include test` lists only this run's six new test files.
+- **Rebuilt from source before trusting anything:** the suite binary unlinked, the briefing regenerated, configured,
+  built (0 warnings), the briefing regenerated; suite green **3,781**. The module rebuilt from an empty `build/wasm`
+  (0 warnings, `preview.wasm` 535,355 bytes, the one file 725,884 — as above); the site rebuilt.
+- **A NEW DEFECT the browser gate found, fixed:** `test/page/engine.test.mjs` opened its HTTP server, launched the
+  browser, and only then entered the `try` whose `finally` closes the server. When the browser will not launch, the
+  test fails in 0.5 s but the open server keeps Node alive until it is killed. Seen here: Playwright's Firefox not on
+  the default path → `timeout 600` killed it (rc 124). In CI, a Windows row whose runner lacks its Edge or Chrome
+  channel would hang that step to the job's 6-hour limit instead of failing. Now the launch is inside the `try` and
+  the server is closed either way: the same missing browser → rc 1 in 0 s. A1's `page.test.mjs` launches before it
+  serves, so it cannot hang this way.
+- **Re-run on the final tree:** the model's tests 83 pass, 1 skipped; the engine's 15 pass (native set, records
+  written); the other rows' form (records read, no native program) 12 pass, 3 skipped (WG2, WG2s, describe need the
+  native program); WG3 in Playwright's Firefox 157 (under `ulimit -v`, `PLAYWRIGHT_BROWSERS_PATH` the shared one) and
+  Chromium (under `systemd-run` `MemoryMax=4G`), green against the Linux records, Firefox with its one allowed warning
+  and Chromium with none. N4 re-run on this tree (one word of the allowed sentence changed): Firefox RED, the list
+  restored and compared.
+- **Gates:** the ARM header gate (258 headers) exit 0; the PROS-free and sim-free greps clean; compile refusals 295
+  of 295 (295 TUs); `api_doc_tool` self-test OK, check-coverage (6,439 entities, 214 headers), check-fresh exit 0,
+  check-examples (919 lines), check-removability clean; briefing self-test OK and check current; staleness self-test
+  OK and clean; the src gate run last, under `timeout -s INT`, its self-test **OK (377 detector cases)** (03:29–04:09,
+  beside two other worktrees' self-tests) and its check **PASS** (14 builds; robot one's 4 refuse, each naming
+  exactly its owed facts) — after it, `git diff -- Makefile src/ include/` empty and no untracked file under `src/`
+  or `include/`. `ci.yml` parses. Nothing committed, nothing pushed.
+- **Prose review (rule 4) for this round's one edit**, BEFORE writing this: `grep -rn -i
+  'engine\.test\|PLAYWRIGHT_BROWSERS_PATH' docs/ README.md test/README.md tools/route_maker/README.md --include=*.md`,
+  the chunk files aside → `tools/route_maker/README.md` :36 (the laptop's browser rule) and :59 (how to run the
+  test). Both still true; nothing documents the hang.
+
+### Verification-round findings and their disposition (2026-11-17 04:39 – 05:43 EST, `date`)
+- 04:39 started: the fresh verifier's three findings (all minor), each re-checked against the tree before anything
+  is changed. Nothing committed, nothing pushed.
+- **1. The README's rc 1 "a failure" (and "the page tests' one list") — REAL.** Re-checked: the runner returns RPV1's
+  `exitCode` — 1 for a throw, a THROUGH or no tester record (`route_preview_run.hpp` :787), a refusal (:590, :900)
+  or the no-pace stop (:830) — so a failed drive is rc 0 (the verifier's probe: "ROUTINE STOPPED" and "DONE, 1
+  FAILED", both rc 0; the runner's own comment, `route_maker_runner.hpp` :759, was right). Fixed: the README's rc 0
+  is "it ran — also when a step failed, was skipped or jumped, or the 57 s cut ended it (`word`, each page step's
+  `verdict`)" and rc 1 "threw, went THROUGH a wall or a Loader, was refused and never ran, or hit the no-pace stop";
+  the same in `engine_module.mjs`'s `preview()` comment and in `route_maker_main.cpp`'s exit codes (the same vague
+  "the record says a problem"). The contract is now PINNED: SM1–SM3 assert rc 0 for the stop, the carry-on, the
+  skip and the cut (mutant V1 below). Item 16(b)'s reason corrected in place (struck through). The warnings: the
+  README and `allowed_warnings.mjs`'s header now say `engine.test.mjs` uses the list today, and `page.test.mjs` (its
+  own empty list still) and A2u's test import it at A2u's merge.
+- **2. One CI result hiding another — REAL, and wider than reported.** Any red step in a browser row skipped every
+  later one: the browser WG3 hid the page, AND the Node WG3 step (also this run's, before `npm ci`) hid both browser
+  steps. At the JOB level an engine failure in `route-builder` (the module's build, WG1/WG2/WG2s/WG7) skipped all
+  eight rows — A1's model and page on every OS — and A1's model step, first in `route-builder`, hid the engine.
+  Fixed at the root in `ci.yml`: each test step runs whatever another test did and waits only for its own inputs.
+  `route-builder-browsers` runs `if: !cancelled()`; its downloads (`site`, `engine`), `npm ci` and the Playwright
+  install run `!cancelled()`; the Node WG3 step needs the site and the engine (it reads the site's `robots.json`),
+  the browser WG3 those plus npm and the browser, the page the site, npm and the browser — a test whose input is
+  missing is SKIPPED, not failed. In `route-builder` the model's tests moved last (`!cancelled()`), Emscripten's
+  install runs `!cancelled()` and the module's build needs only it; the engine's tests keep the default (they need
+  the native program, the site and the module), and the engine artifact is uploaded only after they pass, so no row
+  compares against a failing run's records. Checked here: the YAML parses and every condition reads as intended
+  from the parsed file; GitHub's own evaluation is NOT provable on this laptop (coordinator list, 9).
+- **3. Two handoffs only in the log — REAL.** A tripwire in `module.test.mjs`'s robot-one test: every preset of
+  robots one and two, listed, must be `[]` — else "a real robot has levels now: add a golden on it that moves to a
+  ledger level, so WG1 runs the export's facts::lv(i) (RMP1-PROGRESS, RMP1-A2e review item 5)". Any preset, not
+  only a `ledger`-marked one, on purpose: a level on a real robot is what makes the golden owed. It runs in
+  `route-builder` and in every row's Node step. Mutants V2 and V3 below. Both handoffs are in the list below.
+- **Mutations** (`scratch/rmp1-a2e/fix2/mutate_v.py`; the runner backed up under `fix2/backup/`, restored in a
+  `finally` and on SIGTERM/SIGHUP/SIGINT, mtime bumped; the module rebuilt FRESH before the test and again after the
+  restore; 4 GiB cap): **V1** a failed page step made rc 1 (the old README's claim) — RED: SM1–SM3 ("a failed,
+  skipped, jumped or cut step is rc 0") and WG1 (the compiled twin's rc differs). **V2** robot one's cascade given a
+  ledger level, **V3** robot two's first mechanism given a plain preset (each in a copy of the built site's
+  `robots.json`, read at test time through `ROUTE_MAKER_SITE` — nothing to build) — both RED with the tripwire's
+  message. After: the runner equals its copy taken before the mutations; the module rebuilt (`preview.wasm` 535,355
+  bytes, the one file 725,884 — unchanged).
+- **A laptop lesson (not this run's code):** the suite's two ProsFileStore cases fail (3 checks) when `TMPDIR` is a
+  long absolute path — the store keeps a path in `hal::kStorePathBytes` (96) bytes, and
+  `<this worktree>/build/tmp/shulib_safesave_filestore/shulib_drivetrain.bin` is longer, so it is cut at 95. Seen
+  here once (the suite and the briefing run with the Emscripten `TMPDIR` still exported): re-run without it, green;
+  the briefing regenerated without it. The README's `TMPDIR=build/tmp` is for Emscripten's build only.
+- **Re-run on the final tree:** host build 0 warnings (the briefing regenerated before it with the suite binary
+  unlinked, and after); suite green **3,781** (`suite_run.py green`); compile refusals 295 of 295 (295 TUs); the
+  module rebuilt from an empty `build/wasm` (0 warnings); the site rebuilt (`robots.json` unchanged); the engine's
+  node tests **15 pass** (native set, records written); the other rows' form 12 pass, 3 skipped; WG3 in Playwright's
+  Firefox 157 and Chromium, green; the model's 83 pass, 1 skipped; the ARM header gate exit 0 (258 headers); the
+  PROS-free and sim-free greps clean; `api_doc_tool` self-test OK, check-coverage (6,439 entities, 214 headers),
+  check-fresh exit 0, check-examples (919 lines), check-removability clean; briefing self-test OK and check
+  current; staleness self-test OK and clean; `ci.yml` parses.
+- **The src gate, run last under `timeout -s INT`** (04:50–05:42, beside three other worktrees' gates): self-test
+  **OK (377 detector cases)**, check **PASS** (14 builds; robot one's 4 refuse, each naming exactly its owed facts).
+  After it: `git diff -- Makefile src/ include/` empty, no "(self-test plant" anywhere, and `git ls-files -o
+  --exclude-standard src include test` lists only this run's six new test files.
+- **Prose review (rule 4), run BEFORE writing this:** `grep -rn -i` over `docs/ README.md test/README.md
+  tools/route_maker/README.md --include=*.md`, the chunk files aside, for the alternatives: says a problem · rc 1 ·
+  \`rc\` 0 · rc 0 · exit code(s) · allowed_warnings · allowed console · ALLOWED_WARNINGS · route-builder-browsers ·
+  before the page · ledger level · !cancelled · tripwire · TMPDIR → this round's own lines (`tools/route_maker/README.md` :62, :77; `test/README.md`
+  :95, :98), read again: true. Also: `tools/route_maker/README.md` :66 (`TMPDIR=build/tmp`, relative and short —
+  true), :88 (a ledger level by its preset's name — true), :126 (CI names both jobs — true); `test/README.md` :69 (A1's
+  suite tripwire on marked levels — a different tripwire, true); `docs/changelog.md` :198 (RPV1's exit codes, no
+  meaning given — true). **One FALSE line, not this run's:** `docs/guide/16-testing-an-auton-on-the-bench.md` :485
+  calls RPV1's exit 0 "drawn and nothing wrong", but a route whose drive fails also exits 0 there (the same
+  `exitCode` rule) — a public doc of RPV1's, left for the coordinator (list, 10). The rest are other tools' exit codes
+  or other tripwires.
+- **Documents touched by this round:** `tools/route_maker/README.md` (rc 0 / rc 1, the warnings list),
+  `test/README.md` (SM's rc 0, the tripwire), the comments of `engine_module.mjs`, `route_maker_main.cpp`,
+  `allowed_warnings.mjs` and `ci.yml`, this log (item 16(b) corrected in place). Not touched: the public docs and the
+  changelog (nothing a student sees changes), `page.test.mjs` (RMP1-B's), guide 16 (above).
+- **For the coordinator — every handoff of this run, in one place:**
+  1. The browser rows' page step is red on every row until RMP1-B's `page.test.mjs` fix (`ONE_LEVELS`) merges:
+     merge it first, or rule on A.4's "every row green" reading this branch's engine steps alone (item 1).
+  2. ROB1-BT2's merge: `route_maker_goldens.cpp` compiles `smoke_robot_two.cpp` under robot two's namespace as A1's
+     golden test does; robot two's ledger in `robotSource("two")`; the module build and the engine's node tests in
+     that merge's done list (item 3).
+  3. **NEW — the ledger-level golden:** the run that types a real robot's levels (robot one's cascade, station 13 —
+     a ROB1 or MECH-S run, which does not read this log) adds a golden on that robot that moves to a ledger level,
+     so WG1 runs the export's `facts::lv(i)`. The tripwire turns `module.test.mjs` red the moment a level is typed;
+     put this in that run's brief (item 5; this round's 3).
+  4. **NEW — at A2u's merge:** `page.test.mjs` and A2u's PREVIEW test import `test/page/allowed_warnings.mjs`
+     (exact sentences, Firefox's Worker wrapping handled) and drop their own lists (item 12).
+  5. The two-robot PREVIEW's engine half and SM4: in no run's row — rule A2u or an engine follow-up (deltas 10, 11).
+  6. A2u's site pieces: `build.py --engine`, `pages.yml`, PG1's `.wasm` check, RELEASING.md's "press PREVIEW once" —
+     check they are in its args (delta 12).
+  7. Files shared with RMP1-B (`route_maker_main.cpp` — a certain conflict; `route_maker_describe.hpp`; both READMEs;
+     this log) and A2u (`tools/route_maker/README.md`, this log); whichever merges second rebuilds the module and runs
+     the engine's tests (delta 13).
+  8. WG2s: robot two's heading margin is ~4.8×, not the ~40× W2 assumed — the bounds hold; W2's remedy only on a flip.
+  9. **NEW — CI's step conditions** are proven only on GitHub: on the pushed branch, read that every row shows both
+     engine steps and the page step with a result; the first run with a red engine step must still show the page's.
+  10. **NEW, not this run's:** guide 16 :485's "0 drawn and nothing wrong" (RPV1's tool) is false for a failed drive
+      — for RPV1's owner or DOCS3.
+  11. **NEW, a laptop lesson:** run the suite and `briefing_status.py generate` with no long `TMPDIR` exported (above).
+
+## RMP1-A2e — the coordinator's merge *(2026-11-17)*
+
+- **Source:** the `rmp1-a2e` worktree (base `e8fa3de`) as built, reviewed, fixed, verified and fixed again (workflow
+  `wf_e3a4d5e3-045`, 7/7); transport `e87f24c`; squash-merged in `integrate` onto main `e568b9e` (ROB1-BT and RMP1-B
+  had landed since). No file under `src/`, `include/` or the Makefile changed.
+- **Conflicts (5):** `test/route_maker_main.cpp` (B's `feel | feel-edges` and A2e's `preview` both kept, in the header
+  and in `usage()`); `route_maker_golden_test.cpp` (A2e's WG8 case + ROB1-BT's renamed smoke case); the route
+  builder's README (B's Controls rows + A2e's engine rows); this log (both sections); the briefing (regenerated).
+  A2e's handoff notes for ROB1-BT were already met at that merge (robot two's ledger in `robotSource("two")`;
+  `smoke_robot_two` on robot two's real list — `route_maker_goldens.cpp` compiles it under `robot_two`).
+- **Gates on the merged tree:** the suite green through `suite_run.py` (**3,853 cases, 3,885,990 assertions**); the
+  module rebuilt from empty with the pinned emsdk 6.0.13 (`EM_FROZEN_CACHE=1`): 0 warnings, `preview.wasm` 539,903
+  bytes; the engine tests (module vs the native twin: WG1–WG3, WG2s, WG7, WG8) **15/15**; the model tests 125 pass
+  (16 skipped without the engine's variables); page tests **Firefox 32/32** (A2e's WG3 in the browser included),
+  **Chromium 29 + 3 skipped**; `ctest` **353/353**; api fresh / examples / coverage / removability; the briefing
+  current; staleness clean; check-nav / check-tone OK; `ci.yml` parses; route_preview self-test ok; the strict site
+  build exit 0, no warning. The src gate and the ARM header gate are B's merge's (this merge changes nothing they read).
+- **Mutation: MA-1 RED** — the merged `route_maker_main.cpp`'s `preview` dispatch renamed: the engine's native test
+  fails 2 of 3; restored byte-identical, rebuilt, 3/3.
+- **Open (A2e's own list, carried):** A2u imports `test/page/allowed_warnings.mjs` at its merge; the engine half of the
+  two-robot PREVIEW (SM4) has no owner yet; the first run that types a cascade level adds a ledger-level golden (the
+  module test's tripwire); guide 16 :485's "exit 0 = drawn and nothing wrong" is loose (a failed drive also exits 0).

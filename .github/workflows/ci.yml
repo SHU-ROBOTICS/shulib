@@ -233,7 +233,14 @@ jobs:
   #                           test fails on a Content-Security-Policy violation, a page error or a console error.
   # The ONE dev dependency (Playwright, pinned in tools/route_maker/package.json + its lockfile) is the TESTS'; the
   # app has none. The Windows rows first prove the builder's own files checked out LF (the scoped .gitattributes,
-  # W11) -- every golden compare is byte for byte. RMP1-A2e adds the WebAssembly preview's build and its tests here.
+  # W11) -- every golden compare is byte for byte.
+  # THE PREVIEW ENGINE (RMP1-A2e; A.2, A.3.3): route-builder also builds the REAL library in WebAssembly with the
+  # pinned Emscripten 6.0.13 (cached) and runs its tests -- WG1 (the runner and the exported C++: one record), WG2 and
+  # WG2s (the native program and the module agree), WG7 (the no-pace stop), SM -- and hands the module and its Linux
+  # records on; every row then runs the same module under its own Node and in its own browser (a step of its own,
+  # before the page's): the same bytes (WG3).
+  # ONE RESULT NEVER HIDES ANOTHER: each test step runs whatever another test did; it waits only for its own inputs
+  # (the site, the engine, the browser) and is skipped when one is missing. The rows run even when route-builder failed.
   route-builder:
     runs-on: ubuntu-24.04
     steps:
@@ -243,10 +250,6 @@ jobs:
           node-version: '22'
       - name: Install host toolchain
         run: sudo apt-get update && sudo apt-get install -y cmake g++ python3
-      # The test FILES, expanded by bash (every row runs bash): Node 20 takes a directory but not a glob, Node 22's
-      # positional arguments are globs -- a list of files means the same to both.
-      - name: The route builder's model (node --test)
-        run: node --test tools/route_maker/test/*.test.mjs
       - name: The robots' descriptions, from their real tables (shulib_route_maker)
         run: |
           cmake -S test -B build/test
@@ -258,9 +261,50 @@ jobs:
           name: route-builder
           path: build/route_maker_site
           if-no-files-found: error
+      - uses: actions/cache@v4
+        if: ${{ !cancelled() }}
+        with:
+          path: ~/emsdk
+          key: emsdk-6.0.13-35659964bc27
+      - id: emsdk
+        name: Emscripten 6.0.13 (pinned -- tools/route_maker/README.md)
+        if: ${{ !cancelled() }}
+        run: |
+          if [ ! -x ~/emsdk/upstream/emscripten/em++ ]; then
+            git clone https://github.com/emscripten-core/emsdk.git ~/emsdk
+            git -C ~/emsdk checkout 35659964bc2762fffec0d257997fb61475f765b7
+            ~/emsdk/emsdk install 6.0.13
+          fi
+          ~/emsdk/emsdk activate 6.0.13
+      - name: The preview engine (the library in WebAssembly, -Werror under Emscripten's Clang)
+        if: ${{ !cancelled() && steps.emsdk.outcome == 'success' }}
+        run: |
+          source ~/emsdk/emsdk_env.sh
+          emcmake cmake -S tools/route_maker/wasm -B build/wasm
+          cmake --build build/wasm -j4
+      - name: The engine's tests (WG1, WG2 + WG8, WG2s, WG3, WG7, SM, RG1)
+        env:
+          ROUTE_MAKER_WASM: build/wasm
+          ROUTE_MAKER_NATIVE: build/test/shulib_route_maker
+          ROUTE_MAKER_WASM_WRITE_RECORDS: build/wasm/records.json
+        run: node --test tools/route_maker/test/wasm/*.test.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: route-builder-engine
+          path: |
+            build/wasm/*.mjs
+            build/wasm/*.wasm
+            build/wasm/records.json
+          if-no-files-found: error
+      # The test FILES, expanded by bash (every row runs bash): Node 20 takes a directory but not a glob, Node 22's
+      # positional arguments are globs -- a list of files means the same to both.
+      - name: The route builder's model (node --test)
+        if: ${{ !cancelled() }}
+        run: node --test tools/route_maker/test/*.test.mjs
 
   route-builder-browsers:
     needs: route-builder
+    if: ${{ !cancelled() }}
     strategy:
       fail-fast: false
       matrix:
@@ -292,19 +336,49 @@ jobs:
           done
           echo "the route builder's files are LF on ${{ matrix.os }}"
       - name: The route builder's model on this OS (paths, line endings)
+        if: ${{ !cancelled() }}
         run: node --test tools/route_maker/test/*.test.mjs
-      - uses: actions/download-artifact@v4
+      - id: site
+        if: ${{ !cancelled() }}
+        uses: actions/download-artifact@v4
         with:
           name: route-builder
           path: build/route_maker_site
-      - name: The tests' one dev dependency (Playwright, pinned)
+      - id: engine
+        if: ${{ !cancelled() }}
+        uses: actions/download-artifact@v4
+        with:
+          name: route-builder-engine
+          path: build/wasm
+      - name: The preview engine under this OS's Node (WG3 -- the Linux job's records, byte for byte)
+        if: ${{ !cancelled() && steps.site.outcome == 'success' && steps.engine.outcome == 'success' }}
+        env:
+          ROUTE_MAKER_WASM: build/wasm
+          ROUTE_MAKER_WASM_RECORDS: build/wasm/records.json
+        run: node --test tools/route_maker/test/wasm/*.test.mjs
+      - id: npm
+        name: The tests' one dev dependency (Playwright, pinned)
+        if: ${{ !cancelled() }}
         working-directory: tools/route_maker
         run: npm ci --no-audit --no-fund
-      - name: Playwright's own browser (the msedge and chrome rows use the runner's)
-        if: matrix.browser == 'chromium' || matrix.browser == 'firefox'
+      - id: browser
+        name: Playwright's own browser (the msedge and chrome rows use the runner's)
+        if: ${{ !cancelled() && (matrix.browser == 'chromium' || matrix.browser == 'firefox') }}
         working-directory: tools/route_maker
         run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: The preview engine in ${{ matrix.browser }} on ${{ matrix.os }} (WG3, its own step -- read on its own)
+        if: >-
+          ${{ !cancelled() && steps.site.outcome == 'success' && steps.engine.outcome == 'success'
+          && steps.npm.outcome == 'success' && steps.browser.outcome != 'failure' }}
+        env:
+          ROUTE_MAKER_BROWSER: ${{ matrix.browser }}
+          ROUTE_MAKER_WASM: build/wasm
+          ROUTE_MAKER_WASM_RECORDS: build/wasm/records.json
+        run: node --test tools/route_maker/test/page/engine.test.mjs
       - name: The page in ${{ matrix.browser }} on ${{ matrix.os }}
+        if: >-
+          ${{ !cancelled() && steps.site.outcome == 'success' && steps.npm.outcome == 'success'
+          && steps.browser.outcome != 'failure' }}
         env:
           ROUTE_MAKER_BROWSER: ${{ matrix.browser }}
           ROUTE_MAKER_SHOTS: build/route_maker_shots

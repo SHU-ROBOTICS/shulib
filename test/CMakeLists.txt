@@ -370,6 +370,12 @@ add_subdirectory(compile_refusals)
 # route builder's page reads them) and `curves` the CV1 curve golden; CI's route-builder job builds this ONE
 # target and bakes robots one and two into the page (tools/route_maker/build.py --describe). Host only, the
 # suite's own flags (shulib_test_flags), NOT part of shulib_tests and not needed by it (the suite includes
-# the same headers). RMP1-A2e adds `preview` to the same main (one main for this program and the module).
-add_executable(shulib_route_maker route_maker_main.cpp)
+# the same headers). Since RMP1-A2e, `preview` too: the runner (route_maker_runner.hpp) — the SAME main the
+# WebAssembly module is built from (tools/route_maker/wasm/), so WG2 compares the two builds' records. Both
+# drop the repository's path from every file name the code keeps (W10: -ffile-prefix-map, the module's flag).
+# Neither compiles src/team/: the engine runs the builder's route, never the team's autons
+# (route_maker_no_team_autons.cpp).
+add_executable(shulib_route_maker route_maker_main.cpp route_maker_no_team_autons.cpp)
 target_link_libraries(shulib_route_maker PRIVATE shulib_test_flags)
+get_filename_component(SHULIB_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+target_compile_options(shulib_route_maker PRIVATE "-ffile-prefix-map=${SHULIB_ROOT}/=")

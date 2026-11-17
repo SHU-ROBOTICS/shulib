@@ -66,17 +66,38 @@ The route builder (`tools/route_maker/`, a web page) has two halves of tests, an
   FIELD start on the host test plant (`route_maker_rig.hpp`). Behaviour is asserted only on robot x
   (`mechanism_fixtures.hpp`, numbers the test owns: a drive turned first and one not, reverse and turns, curves of 2
   and 16 points, every mechanism step, stop / carry on / skip, a wait across the 57 s cut, the home rule's twins,
-  the caps' spellings and both tolerances); robots one and two are smoke runs. A tripwire holds that a robot
+  the caps' spellings and both tolerances, and WG8 — every pair of numbers in each step different, for the preview
+  engine's tests); robots one and two are smoke runs. A tripwire holds that a robot
   building the shared route and declaring a cascade has its levels marked as its facts ledger's (robot two, once its
   update gives it robot one's cascade). It also pins the committed fixture descriptions
   (`goldens/route_maker/robots/{x,y,z}.json`) and CV1's curve table (`goldens/route_maker/curves.txt`) to what the
   C++ makes now — the page's node tests read them.
 - **`shulib_route_maker`** (`route_maker_main.cpp`, its own CMake target, not part of `shulib_tests`) —
   `describe --robot one|two|x|y|z` writes a robot's description from its REAL table (`route_maker_describe.hpp`;
-  the declaration's C++ name read from the line its `.name` recorded) and `curves` re-makes CV1's table. After a
+  the declaration's C++ name read from the line its `.name` recorded — a relative file name since RMP1-A2e's prefix
+  map, so opened from this build's source tree, whatever the working directory) and `curves` re-makes CV1's table.
+  It links `route_maker_no_team_autons.cpp` in place of `src/team/` (the engine runs the builder's route, never the
+  team's autons; so does the module). After a
   change that moves either, re-make the committed file and READ the diff:
   `build/test/shulib_route_maker describe --robot x > test/goldens/route_maker/robots/x.json` (and y, z), and
   `build/test/shulib_route_maker curves > test/goldens/route_maker/curves.txt`.
+- **`route_maker_runner.hpp`** (since RMP1-A2e) — THE RUNNER behind the page's PREVIEW: `shulib_route_maker preview
+  <lines>|-` reads the route as the page's lines and makes the SAME library calls the export writes, through RPV1's
+  `previewEntry` (unchanged), dating each page step exactly; it writes the record as JSON (schema 1,
+  `tools/route_maker/README.md`). The same `route_maker_main.cpp` is the WebAssembly module (`tools/route_maker/wasm/`);
+  its test build also compiles every golden's export in (`route_maker_goldens.cpp`, WG1) and a test-only looping
+  step (WG7). One suite case, `route_maker_runner_test.cpp`: a preset found by NAME is the goal the compile-time
+  `m["name"]` builds, field for field (RM28), and a number is read as its unit literal. The rest are node's, on the
+  module and this native program: `tools/route_maker/test/wasm/` — WG1 (the
+  runner and the exported C++: one record, byte for byte), WG2 (native vs WebAssembly: every step, pace and line
+  exact, poses within 1e-5 in / 1e-6 rad, the golden `wg8_distinct_numbers` — every pair of numbers in each step
+  different — among them), WG2s (the same over a seeded sweep of random routes on robots x, one and two), WG3 (the
+  same bytes from both link forms, a reused instance, every CI row's Node and browser), WG7 (the no-pace stop inside
+  the module), SM (each page step's span and verdict; a failed, skipped or cut step is still rc 0), RG1 (no build
+  path inside the module), and what the record says checked against the route itself (start, targets, park and stop,
+  a throw, a wall, a refusal, robot one's owed facts) — WG1–WG3 compare two records from one writer, so only these
+  see a writer's mistake. A tripwire there fails once robot one or two has a level: then a golden that moves to a
+  ledger level is owed, so WG1 runs the export's `facts::lv(i)`.
 
 - **The Controls tab's C++ half (RMP1-B)** — `route_maker_controls_test.cpp` compiles the page's controls exports on
   the fixture robots and on robot one's real declarations (`goldens/route_maker/controls_*.hpp`, every control form,

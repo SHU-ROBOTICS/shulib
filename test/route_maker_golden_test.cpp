@@ -85,6 +85,9 @@ namespace rm_gl18d { RM_FIXTURE_X
 namespace rm_gl19 { RM_FIXTURE_X
 #include "goldens/route_maker/gl19_caps.cpp"
 }
+namespace rm_wg8 { RM_FIXTURE_X
+#include "goldens/route_maker/wg8_distinct_numbers.cpp"
+}
 // Robot one's and robot two's: their REAL declarations (src/robots/mechanism_table.hpp), as the shared file
 // sees them on each robot's build (robot one's names `facts` too: its ledger).
 namespace rm_smoke_one {
@@ -345,6 +348,17 @@ TEST_CASE("RMP1 GL19: the caps' spellings (R10) -- N_in / 1_s and AngularVelocit
     const auto t = s.truth();
     CHECK(std::hypot(t.x().value() - 0.0, t.y().value() - -55.7) < 2.0 + 0.5);
     CHECK(std::abs(std::remainder(t.heading().radians() - kPi / 2.0, 2.0 * kPi)) < (5.0 + 1.0) * kPi / 180.0);
+}
+
+TEST_CASE("RMP1 WG8: the golden whose every pair of numbers differs (the preview engine's WG1/WG2, RMP1-A2e) compiles and every step runs") {
+    const AutonEntry e = rm_wg8::skillsRoute();
+    XStack s{rm_rig::startOf(e), mech_fixture::robot_x::kRobotXMechanisms, false};
+    const auto r = s.run(e);
+    INFO(s.transcript());
+    REQUIRE(r.outcome == AutonRunOutcome::RoutineRan);
+    CHECK(r.routine.steps == 25);    // 22 page steps, three of them drives turned first (two calls each)
+    CHECK(r.routine.stoppedAt == 0);  // every step carries on or skips forward: none is left unrun by a stop
+    CHECK(r.routine.jumped == 0);
 }
 
 TEST_CASE("RMP1 smoke: the exports on robot ONE's and robot TWO's real lists (the twins) compile and run without a throw") {

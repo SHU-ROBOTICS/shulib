@@ -88,7 +88,12 @@ namespace route_maker {
     if (file == nullptr || line == 0) {
         return {};
     }
+#ifdef SHULIB_SOURCE_DIR
+    // A name the build made relative (W10's prefix map) is this build's tree's, never the working directory's.
+    std::ifstream in{file[0] == '/' ? std::string{file} : std::string{SHULIB_SOURCE_DIR} + "/" + file};
+#else
     std::ifstream in{file};
+#endif
     if (!in) {
         return {};
     }
