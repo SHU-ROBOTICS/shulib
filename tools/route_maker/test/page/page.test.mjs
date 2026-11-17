@@ -15,6 +15,9 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+// Firefox's bounce-tracking protection warns about the tests' own 127.0.0.1 server on Windows ("classified as a
+// bounce tracker"): a warning from the browser's privacy feature, not the page's. It is turned off in the test browser.
+const FIREFOX_PREFS = { 'privacy.bounceTrackingProtection.mode': 0 };
 
 const BROWSER = process.env.ROUTE_MAKER_BROWSER || '';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -47,7 +50,7 @@ let base;
 async function launch(extra = {}) {
     pw = pw || (await import('playwright'));
     if (BROWSER === 'firefox') {
-        return pw.firefox.launch(extra);
+        return pw.firefox.launch({ firefoxUserPrefs: FIREFOX_PREFS, ...extra });
     }
     if (BROWSER === 'msedge' || BROWSER === 'chrome') {
         return pw.chromium.launch({ channel: BROWSER, ...extra });

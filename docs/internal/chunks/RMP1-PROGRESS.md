@@ -2062,3 +2062,12 @@ Executor: Claude Opus 5.5 (the coordinator's `opus` subagent), worktree `.claude
   whole, on the screen and apart, the route's name whole, nothing running past the bar. **RED on the old page**
   (1101 px: Export at x 1261 in a 1101 px window), green with the fix. Firefox 32 + 1 skipped, Chromium 29 + 4
   skipped, model 125/125. Screenshots: `~/shulib-render-tmp/coord-probe/fix-*.png` (1101–1536, light and dark).
+- **CI's second round (run 44085346344):** the new test caught the route's name cut on the runners (Chromium at
+  1280 px: 105 > 88; Linux Firefox at 1536 px: 105 > 100 — the runners' text is ~7 % wider than this laptop's: the
+  name is 105 px there, 98 here). Breakpoints widened: 1600 px (the folder words, the "Save downloads" chip) and
+  1366 px (the "Route builder" words, the "Robot one" chip). **Probed** with the bar's text widened by letter-spacing:
+  every width from 1101 to 1920 fits up to +16 % (+0.1 em); +22 % first cuts the name at 1601 px. And Windows Firefox
+  failed two older tests on a browser warning, "127.0.0.1 has been classified as a bounce tracker" — Firefox's
+  bounce-tracking protection reacting to the tests' own server, not the page: the three page-test launchers start
+  Firefox with `privacy.bounceTrackingProtection.mode = 0`. Locally Firefox 33/33 (the engine's WG3 included),
+  Chromium 30 + 3 skipped.

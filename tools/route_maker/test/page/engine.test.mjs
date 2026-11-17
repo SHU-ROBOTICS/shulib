@@ -12,6 +12,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WASM, goldenRoutes, instance } from '../wasm/engine.mjs';
 import { allowedWarning } from './allowed_warnings.mjs';
+// Firefox's bounce-tracking protection warns about the tests' own 127.0.0.1 server on Windows ("classified as a
+// bounce tracker"): a warning from the browser's privacy feature, not the page's. It is turned off in the test browser.
+const FIREFOX_PREFS = { 'privacy.bounceTrackingProtection.mode': 0 };
 
 const BROWSER = process.env.ROUTE_MAKER_BROWSER || '';
 const HOST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'host');
@@ -46,7 +49,7 @@ function serve() {
 async function launch() {
     const pw = await import('playwright');
     if (BROWSER === 'firefox') {
-        return pw.firefox.launch();
+        return pw.firefox.launch({ firefoxUserPrefs: FIREFOX_PREFS });
     }
     return pw.chromium.launch(BROWSER === 'msedge' || BROWSER === 'chrome' ? { channel: BROWSER } : {});
 }
