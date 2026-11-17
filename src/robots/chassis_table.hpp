@@ -51,6 +51,7 @@
 #include <cstring>
 
 #include "build_selection.hpp"
+#include "robots/robot_one_facts.hpp"
 #include "shulib/hal/drive_geometry.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/units/quantity.hpp"
@@ -87,6 +88,8 @@ struct ChassisTable {
     double externalRatio;         // motor output shaft -> wheel: wheel revs per motor rev
                                   // (1.0 = direct drive; tooth counts otherwise); 0 = UNSET
     const char* geometryProvenance;  // who measured the three numbers above, how, and when
+    double pulseYawFloorDeg = 0.0;         // Calibrate: the yaw one pulsed drive motor must turn the robot (0 = default)
+    double restYawRateFloorDegPerS = 0.0;  // Calibrate: "still" means a yaw rate under this (0 = default)
 };
 
 // ROBOT TWO -- the 2026 tank chassis (build team, stated 2026-09-10): five COUPLED motors
@@ -226,6 +229,9 @@ inline constexpr ChassisTable kRobotOneChassis = {
     .trackWidthIn = 0.0,
     .externalRatio = 0.0,
     .geometryProvenance = "nothing typed -- Step 0 (docs/robot-facts-form.md)",
+    // Calibrate's thresholds for its 10-motor drive: the facts ledger's (chosen, 2026-11-16).
+    .pulseYawFloorDeg = robot_one_facts::kCalibratePulseYawFloorDeg.value(),
+    .restYawRateFloorDegPerS = robot_one_facts::kCalibrateRestYawRateDegPerS.value(),
 };
 
 /// Robot `id`'s chassis table: THE ONE PLACE a robot becomes a table. A case per robot and no

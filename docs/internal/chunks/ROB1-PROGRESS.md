@@ -1489,3 +1489,21 @@ check-examples (860 lines verbatim) / check-removability exit 0; briefing_status
   no plant, no untracked file. **NOT yet run on the merged tree (run right after this commit, logged below when done):**
   the src gate's self-test and the coordinator's own hand mutations. The builder's 12+ mutations (MC1–MC9b…) were red on
   its tree.
+
+## The Calibrate thresholds for robot one's 10-motor drive — the coordinator *(2026-11-17)*
+
+- **Found on the robot (2026-11-16, log `.claude/coordinator/robot_logs/robot_one_2026-11-16.log`):** Calibrate's first
+  run refused (no IMU — fixed by the builder, IMU on port 5); its port census showed the left side toggle on port 3 by
+  mistake (moved to 2 by the builder); then runs 2 and 4 stopped `PULSE_ROLLED port 11`: one motor of the 10-motor drive
+  turned the robot only −1.04 / −1.00 deg at 9 V, under the calibrator's invented 2.0 deg floor (HA-136). The reading was
+  clean and consistent — the floor was set for drives of 2–3 motors per side.
+- **The fix (worktree `calfix`):** `CalibrateFacts::calibrator` (the calibrator's thresholds per robot; Calibrate builds
+  its calibrator with them; `factsProblem()` refuses a floor a still robot's drift could cross during a pulse); robot
+  one's ledger types `kCalibratePulseYawFloorDeg` 0.6 and `kCalibrateRestYawRateDegPerS` 1.0 ("chosen, not measured —
+  the coordinator, 2026-11-16"), its chassis table passes them on (no literal number in the table — T2's rule). Tests:
+  T-CFG (the program prints and uses the robot's settings), F-CFG (robot one's values, every other robot's defaults, a
+  bad floor refused); robot one's fact counts 17→19 (Stage A) and 33→35. **Mutations (mutate.py):** MC-1 Calibrate
+  ignores the robot's settings, MC-2 robot one's floor not applied, MC-3 the drift check removed — **3 of 3 RED** (a
+  first hand-run mutation was INVALID — the build failed at the doc gates and the old binary ran; redone). Suite green
+  (3,780). **Uploaded** to robot one's slot 4 from the calfix worktree on 2026-11-17 (the team's next run).
+- **For robot two (the twin, ROB1-BT2):** the same two facts must be typed into `robot_two_facts.hpp` at its merge.

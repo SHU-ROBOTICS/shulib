@@ -16,6 +16,21 @@
 
 ## API 2.9
 
+### 2026-11-17 — Calibrate on a drive with many motors per side: a robot's own pulse thresholds
+
+> Found on robot one's first Calibrate runs (2026-11-16): on its 10-motor drive one pulsed motor drags its four
+> side-mates and turned the robot only ~1.0 deg at 9 V, under the 2.0 deg the calibrator needs, so every run
+> stopped with IT ROLLED. **Added (no version bump — an additive member in an unfrozen header):**
+
+- `CalibrateFacts::calibrator` — the calibrator's thresholds for THIS robot (default: `CalibratorConfig`'s). Calibrate
+  builds its calibrator with them; `factsProblem()` refuses, before anything is powered, a pulse floor that the drift
+  of a still-looking robot could cross during a pulse.
+- Robot one's ledger types two chosen values (0.6 deg pulse floor, 1.0 deg/s rest rate) and its chassis table passes
+  them on. Every other robot keeps the defaults.
+
+**What you must do:** nothing, unless your drive has many motors per side and Calibrate stops with IT ROLLED —
+then lower `pulseYawFloor` (and `restYawRateFloor` with it) in your robot's facts.
+
 ### 2026-11-16 (built 2026-11-15) — the docs by task: a new menu, a front page that asks "What do you want to do?", and limits as plain facts — no API change
 
 > Written when it was built (chunk DOCS3, run N1). **Documentation only** — nothing under `src/` or `include/`

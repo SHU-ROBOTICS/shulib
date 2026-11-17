@@ -305,7 +305,7 @@ TEST_CASE("robot one facts (T3): Stage A for all six programs, Stage B for Drive
         owedA += (f.needed == Stage::A && !f.typed) ? 1 : 0;
         owedB += (f.needed == Stage::B && !f.typed) ? 1 : 0;
     }
-    CHECK(a == 17);  // ROB1-A's ten, and ROB1-C2's side toggles (four) and pistons' letters (three)
+    CHECK(a == 19);  // ROB1-A's ten, ROB1-C2's side toggles (four) and pistons' letters (three), and Calibrate's two thresholds (2026-11-16)
     CHECK(b == 14);  // ROB1-A's five, and ROB1-C2's side toggle directions (two), pistons' levels and strokes (six),
                      // and the homing's own stall signature (the review of ROB1-C2)
     CHECK(recorded == 2);
@@ -323,7 +323,7 @@ TEST_CASE("robot one facts (T2): every fact has EXACTLY ONE check right below it
     // the pairing in the source); a second check for one fact.
     const std::string code = ledgerCode();
     const std::vector<SourceFact> all = sourceFacts(code);
-    REQUIRE(all.size() == 33);
+    REQUIRE(all.size() == 35);  // 33, and Calibrate's two thresholds for the 10-motor drive (2026-11-16)
     const std::regex check{R"re(ROBOT_ONE_CHECK\s*\(\s*(k\w+)\s*,\s*"((\\.|[^"\\])*)"\s*\))re"};
     std::vector<std::pair<std::string, std::string>> checks;
     for (auto it = std::sregex_iterator(code.begin(), code.end(), check); it != std::sregex_iterator(); ++it) {

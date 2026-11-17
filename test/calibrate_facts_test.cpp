@@ -555,3 +555,22 @@ TEST_CASE("CalibrateFacts F5b: functionBody() -- the brace matcher F5's main.cpp
     CHECK(functionBody(codeOnly("void a() { { }"), "void a() {").empty());  // never closed
     CHECK(functionBody(codeOnly("void a() {} void a() {}"), "void a() {").empty());  // twice: ambiguous
 }
+
+TEST_CASE("CalibrateFacts F-CFG: robot one's 10-motor drive carries its lowered pulse floor; every other robot the "
+          "calibrator's defaults; a floor a pulse's drift can reach is refused before anything is powered") {
+    namespace sb = shulib::bench;
+    const shulib::calibration::CalibrateFacts one = sb::calibrateFactsFor(sb::kRobotOneChassis, sb::robot_one::kRobotOneMechanisms);
+    constexpr double kDeg = 3.14159265358979323846 / 180.0;
+    CHECK(one.calibrator.pulseYawFloor.value() == doctest::Approx(0.6 * kDeg));
+    CHECK(one.calibrator.restYawRateFloor.value() == doctest::Approx(1.0 * kDeg));
+    CHECK(shulib::calibration::factsProblem(one).why == nullptr);
+    const shulib::calibration::CalibratorConfig d{};
+    const shulib::calibration::CalibrateFacts two = sb::calibrateFactsFor(sb::kRobotTwoChassis, sb::robot_two::kRobotTwoMechanisms);
+    CHECK(two.calibrator.pulseYawFloor.value() == doctest::Approx(d.pulseYawFloor.value()));
+    CHECK(two.calibrator.restYawRateFloor.value() == doctest::Approx(d.restYawRateFloor.value()));
+    // 1.0 deg/s for a 0.4 s pulse is 0.4 deg of drift: a 0.3 deg floor could be crossed by drift alone
+    shulib::calibration::CalibrateFacts bad = one;
+    bad.calibrator.pulseYawFloor = shulib::units::AngleDim{0.3 * kDeg};
+    REQUIRE(shulib::calibration::factsProblem(bad).why != nullptr);
+    CHECK(std::string{shulib::calibration::factsProblem(bad).why}.find("pulse floor") != std::string::npos);
+}

@@ -2546,3 +2546,16 @@ TEST_CASE("CalibrateProgram T6e: factsProblem() at COMPILE time -- the checks a 
     static_assert(shulib::calibration::declaredMechanism(team, 0) == nullptr);  // an unused slot is no port
     CHECK(std::string{factsProblem(twice).why} == "a mechanism port is listed twice");
 }
+
+TEST_CASE("CalibrateProgram T-CFG: the robot's own calibrator settings reach the calibrator (robot one, 2026-11-16: "
+          "one motor of a 10-motor drive turns the robot ~1.0 deg, under the default 2.0 deg floor)") {
+    Scenario sc;
+    Rig rig{sc};
+    CalibrateFacts f = robotTwoFacts();
+    f.calibrator.pulseYawFloor = shulib::units::AngleDim{0.6 * shulib::calibration::kDegreesToRadians};
+    f.calibrator.restYawRateFloor = shulib::units::AngularVelocity{1.0 * shulib::calibration::kDegreesToRadians};
+    rig.run(f);
+    CHECK(has(rig, "config: pulses ramp 3.0/6.0/9.0 V for 0.40 s each, a side needs 0.6 deg of yaw; a port whose "
+                   "own shaft turns 20 deg with nothing else moving is LEFT OUT; rest = motors under 0.05 rad/s AND "
+                   "yaw rate under 1.0 deg/s for 0.5 s"));
+}

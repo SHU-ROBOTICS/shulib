@@ -475,6 +475,18 @@ inline constexpr auto kSideToggleCapAmps =
           "12 V; the bench tunes it)");
 ROBOT_ONE_CHECK(kSideToggleCapAmps, "the side toggles' starting current cap per motor, amps");
 
+// Calibrate's two thresholds for robot one's 10-motor drive (5 per side): one pulsed motor drags its four
+// side-mates and turned the robot only ~1.0 deg at 9 V (Calibrate runs 2 and 4, 2026-11-16; the default
+// needs 2.0), so the floor is lowered and "still" tightened with it: a drift adds at most 0.4 deg to a 0.4 s pulse.
+inline constexpr auto kCalibratePulseYawFloorDeg =
+    typed(2.0, 0.6, Stage::A, "Calibrate's pulse yaw floor, degrees",
+          "chosen, not measured -- the coordinator, 2026-11-16 (one motor of ten turned robot one 1.0 deg at 9 V)");
+ROBOT_ONE_CHECK(kCalibratePulseYawFloorDeg, "Calibrate's pulse yaw floor, degrees");
+inline constexpr auto kCalibrateRestYawRateDegPerS =
+    typed(2.0, 1.0, Stage::A, "Calibrate's rest yaw rate, degrees per second",
+          "chosen, not measured -- the coordinator, 2026-11-16 (so a drift adds at most 0.4 deg to a 0.4 s pulse)");
+ROBOT_ONE_CHECK(kCalibrateRestYawRateDegPerS, "Calibrate's rest yaw rate, degrees per second");
+
 // Forms G22-G24: the three pistons' 3-wire ports (the letter on the brain).
 inline constexpr auto kClawLine = typed('F', 'A', Stage::A, "the claw's 3-wire port",
                                         "the team's builder, 2026-11-15, read off the robot");
@@ -609,7 +621,8 @@ inline constexpr FactSummary kRobotOneFacts[] = {
     summary(kCascadeCartridge),     summary(kCascadeTeeth),          summary(kCascadeStallAmps),
     summary(kCascadeStallRpm),      summary(kCascadeStallTime),      summary(kCascadeCapAmps),
     summary(kFlipperKind),          summary(kSideTogglePorts),       summary(kRightTogglePort),
-    summary(kSideToggleCartridge),  summary(kSideToggleCapAmps),     summary(kClawLine),
+    summary(kSideToggleCartridge),  summary(kSideToggleCapAmps),     summary(kCalibratePulseYawFloorDeg),
+    summary(kCalibrateRestYawRateDegPerS), summary(kClawLine),
     summary(kFlipperLine),          summary(kRampLine),              summary(kCascadeRows),
     summary(kCascadeLevels),        summary(kCascadeHoldVolts),      summary(kCascadeHomingPushVolts),
     summary(kCascadeHomingStallAmps), summary(kCascadeUnhomedVolts),  summary(kRightToggleDirection),  summary(kLeftToggleDirection),

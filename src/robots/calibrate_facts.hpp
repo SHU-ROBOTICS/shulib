@@ -76,6 +76,13 @@ constexpr calibration::CalibrateFacts calibrateFactsFor(const ChassisTable& c, c
     }
     f.robot = c.robot;
     f.imuPortStated = c.imuPort;
+    constexpr double kDeg = 3.14159265358979323846 / 180.0;
+    if (c.pulseYawFloorDeg > 0.0) {
+        f.calibrator.pulseYawFloor = units::AngleDim{c.pulseYawFloorDeg * kDeg};
+    }
+    if (c.restYawRateFloorDegPerS > 0.0) {
+        f.calibrator.restYawRateFloor = units::AngularVelocity{c.restYawRateFloorDegPerS * kDeg};
+    }
     return f;
 }
 

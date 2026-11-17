@@ -173,6 +173,11 @@ struct CalibrateFacts {
     /// optional (D6 (a)): the drive ports the team types — the front check's reference when the
     /// card holds no usable record; empty = none
     TypedDrivePorts typedDrive{};
+    /// optional: the calibrator's thresholds for THIS robot (default: CalibratorConfig's). A drive with
+    /// many motors per side turns the robot less per pulsed member (robot one, 2026-11-16: one member of
+    /// five turned it ~1.0 deg at 9 V), so its robot file may lower `pulseYawFloor` — and with it
+    /// `restYawRateFloor`, so a drift during a pulse stays under the floor (factsProblem() checks).
+    CalibratorConfig calibrator{};
 };
 
 /// Which list of CalibrateFacts a FactsProblem's `entry` indexes.
@@ -208,6 +213,13 @@ struct FactsProblem {
 /// (the description's own rule) — or only ONE side typed. constexpr, so a build can static_assert
 /// its own facts.
 [[nodiscard]] constexpr FactsProblem factsProblem(const CalibrateFacts& f) noexcept {
+    // The calibrator's own precondition, checked here so a robot file's thresholds are refused BEFORE anything is
+    // made or powered: a drift slow enough to pass the rest check must add less than the floor to a pulse.
+    if (!(f.calibrator.pulseYawFloor.value() > 0.0
+          && f.calibrator.restYawRateFloor.value() * f.calibrator.pulseTime.value() < f.calibrator.pulseYawFloor.value())) {
+        return FactsProblem{"the calibrator's pulse floor is not above the drift a pulse can pick up (restYawRateFloor x "
+                            "pulseTime must stay under pulseYawFloor)"};
+    }
     for (std::size_t i = 0; i < kMaxMechanismPorts; ++i) {
         const int p = f.mechanisms[i].port;
         if (p == 0) {
@@ -1034,7 +1046,7 @@ private:
                   const HumanFacts& facts) {
         switch (kind_) {
             case RunKind::Drivetrain:
-                cal.emplace(motors, ports, imu, clock);
+                cal.emplace(motors, ports, imu, clock, facts_.calibrator);
                 cal->start(facts);
                 return;
         }
