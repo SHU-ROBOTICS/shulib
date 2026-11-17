@@ -176,7 +176,7 @@ test.describe('PREVIEW in the page', { skip }, () => {
     test.before(async () => {
         assert.ok(fs.existsSync(path.join(SITE, 'app.html')), `build it first: python3 tools/route_maker/build.py --out ${SITE} --describe ...`);
         const pw = await import('playwright');
-        browser = BROWSER === 'firefox' ? await pw.firefox.launch()
+        browser = BROWSER === 'firefox' ? await pw.firefox.launch({ firefoxUserPrefs: { 'privacy.bounceTrackingProtection.mode': 0 } })
             : await pw.chromium.launch(BROWSER === 'msedge' || BROWSER === 'chrome' ? { channel: BROWSER } : {});
         server = serve(SITE);
         await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
