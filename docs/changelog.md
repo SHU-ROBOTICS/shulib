@@ -38,6 +38,9 @@ until now by typing C++.
   the top of the file, the feel (`kFeel`) — in Edge or Chrome with the shulib folder connected; in Firefox it hands
   back the updated driver file you pick; or it copies them.
   How: [guide chapter 22](guide/22-making-your-first-route.md#the-drivers-buttons-and-the-driving-feel).
+- **The top bar fits every laptop screen** (fixed at the merge, 2026-11-17): from 1101 px up, PREVIEW and Export
+  stay whole and apart; below 1440 px the folder button keeps only its icon (its words are on the Export page too),
+  and below 1280 px the "Route builder" words and the "Robot one" chip are not drawn.
 
 **CHANGED (a driver file that compiled can now stop the build — none in this repository does):** `DriverFile`
 refuses an out-of-range feel by name (`the feel is out of range`): a `.deadband` below 0 or at 1 and above, or an

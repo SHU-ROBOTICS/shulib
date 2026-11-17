@@ -684,9 +684,10 @@ async function main() {
             h('button', { class: 'btn icon ghost', 'aria-label': 'Redo (Ctrl+Shift+Z)', title: 'Redo (Ctrl+Shift+Z)', disabled: ui.tab === 'controls' ? !controlsTab.canRedo() : !canRedo(hist), onclick: redo }, icon('redo')),
             h('span', { class: 'sep' }),
             files.canWriteFolder
-                ? h('button', { class: 'btn hide-narrow', onclick: connect, title: capabilityWords(caps) }, icon('folder'),
-                    files.connected() ? files.folderName() : 'Connect your shulib folder')
-                : h('span', { class: 'chip hide-narrow', title: capabilityWords(caps) }, 'Save downloads · Export copies'),
+                ? h('button', { class: 'btn hide-narrow', onclick: connect, title: capabilityWords(caps),
+                    'aria-label': files.connected() ? files.folderName() : 'Connect your shulib folder' }, icon('folder'),
+                    h('span', { class: 'cap-words' }, files.connected() ? files.folderName() : 'Connect your shulib folder'))
+                : h('span', { class: 'chip cap hide-narrow', title: capabilityWords(caps) }, 'Save downloads · Export copies'),
             h('button', { class: 'btn icon ghost', 'aria-label': 'Open a project', title: 'Open a project', onclick: openProj }, icon('open')),
             h('button', { class: 'btn icon ghost', 'aria-label': 'Save (Ctrl+S)', title: 'Save (Ctrl+S)', onclick: save }, icon('save')),
             h('button', { class: 'btn icon ghost', 'aria-label': dark ? 'Light theme' : 'Dark theme', title: dark ? 'Light theme' : 'Dark theme', onclick: theme }, icon(dark ? 'sun' : 'moon')),

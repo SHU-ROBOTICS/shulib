@@ -262,6 +262,38 @@ test.describe('the route builder in a browser', { skip }, () => {
         }
     });
 
+    test('the top bar fits at every laptop width: PREVIEW and Export whole, on screen, never one over the other, on both tabs (1280 px pushed Export off the screen once the Controls tab joined the bar)', async () => {
+        for (const width of [1101, 1180, 1280, 1366, 1440, 1536, 1920]) {
+            const p = await openPage('site', { viewport: { width, height: 800 } });
+            const { page } = p;
+            await page.getByRole('button', { name: 'Got it' }).click();
+            for (const tab of ['Route', 'Controls']) {
+                await page.getByRole('tab', { name: tab }).click();
+                const boxes = {};
+                for (const sel of ['#export', '#preview']) {
+                    if (await page.locator(sel).count()) {
+                        const b = await page.locator(sel).boundingBox();
+                        const whole = await page.locator(sel).evaluate((e) => e.scrollWidth <= e.clientWidth + 1);
+                        assert.ok(b && b.x >= 0 && b.x + b.width <= width, `${width} px, ${tab}: ${sel} is on the screen (${JSON.stringify(b)})`);
+                        assert.ok(whole, `${width} px, ${tab}: ${sel}'s words fit inside it`);
+                        boxes[sel] = b;
+                    }
+                }
+                assert.ok(boxes['#export'], `${width} px, ${tab}: Export is drawn`);
+                if (boxes['#preview']) {
+                    assert.ok(boxes['#preview'].x + boxes['#preview'].width <= boxes['#export'].x, `${width} px: PREVIEW ends before Export starts`);
+                }
+                if (tab === 'Route') {
+                    const name = await page.locator('.topbar .route-name').evaluate((e) => ({ s: e.scrollWidth, c: e.clientWidth }));
+                    assert.ok(name.s <= name.c + 1, `${width} px: the route's name is whole (${name.s} > ${name.c})`);
+                }
+                const bar = await page.locator('.topbar').evaluate((e) => ({ s: e.scrollWidth, c: e.clientWidth }));
+                assert.ok(bar.s <= bar.c + 1, `${width} px, ${tab}: nothing in the top bar runs past it (${bar.s} > ${bar.c})`);
+            }
+            assert.deepEqual(await p.done(), []);
+        }
+    });
+
     test('an error stands: Export LISTS it, one click from its step -- no code, no page error (a wait with no seconds, a fresh level move, "Home it first")', async () => {
         const p = await openPage('site');
         const { page } = p;

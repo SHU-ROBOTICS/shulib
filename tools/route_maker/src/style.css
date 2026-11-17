@@ -66,6 +66,19 @@ button, input, select { font: inherit; color: inherit; }
 .brand { display: flex; align-items: center; gap: var(--s-2); font-weight: 650; font-size: var(--t-lg); white-space: nowrap; }
 .brand-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
 .brand small { font-weight: 500; color: var(--text-muted); font-size: var(--t-sm); }
+/* The top bar never squeezes its buttons: they keep their size, so PREVIEW never lies over Export. The words
+   give way first — the save state and the route's name are cut with "…", and below 1440 px the folder button
+   keeps only its icon and the "Save downloads" chip (its words are on the Export page too) is not drawn; below
+   1280 px the "Route builder" words and the "Robot one" chip go too (the mark and the route's name stay). */
+.topbar > * { flex-shrink: 0; }
+.topbar > .chip, .topbar > .route-name { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar > .spacer { flex-shrink: 1; min-width: 0; }
+@media (max-width: 1440px) {
+  .brand small, .topbar > .chip.cap, .topbar .cap-words { display: none; }
+}
+@media (max-width: 1279px) {
+  .brand .hide-narrow, .topbar > .chip.robot { display: none; }
+}
 .route-name { display: inline-flex; align-items: center; padding: var(--s-1) var(--s-2); font-weight: 600; min-height: var(--hit); }
 .route-name::before { content: "Route"; font-weight: 400; color: var(--text-muted); margin-right: var(--s-2); }
 .btn .count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 2px;

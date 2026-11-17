@@ -94,8 +94,8 @@ on the Export button counts what is left, and Export shows only that list — ea
 
 ![The export with the shulib folder connected (as Edge or Chrome shows it), before robot two's update: the route's C++ with Copy, writing into the file waiting for that update, and robot two's mirrored line not there yet](../assets/route-builder/export.png)
 
-- **In Edge or Chrome**, click **Connect your shulib folder** once and pick the repository's top folder (the one
-  with `src/team/` in it). Then **Write into src/team/skills_route.cpp** puts the route between the two
+- **In Edge or Chrome**, click **Connect your shulib folder** once (here, or the folder button in the top bar) and
+  pick the repository's top folder (the one with `src/team/` in it). Then **Write into src/team/skills_route.cpp** puts the route between the two
   `ROUTE MAKER` lines of that file — and changes nothing else in it, keeping its own line endings.
 - **In another browser**, **Copy the code** — or pick your `src/team/skills_route.cpp`: the page writes the
   updated file back as a download, to save in its place. **Then Save** (step 7): the project file remembers what

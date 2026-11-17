@@ -2047,3 +2047,18 @@ Executor: Claude Opus 5.5 (the coordinator's `opus` subagent), worktree `.claude
 - **Open (A2e's own list, carried):** A2u imports `test/page/allowed_warnings.mjs` at its merge; the engine half of the
   two-robot PREVIEW (SM4) has no owner yet; the first run that types a cascade level adds a ledger-level golden (the
   module test's tripwire); guide 16 :485's "exit 0 = drawn and nothing wrong" is loose (a failed drive also exits 0).
+
+## The top bar at laptop widths — the coordinator, after the RMP1-A2e merge *(2026-11-17)*
+
+- **Found by CI** on `rmp1-merged` (run 44080274676): the two Linux Firefox rows failed "an error stands" — the
+  disabled PREVIEW button lay over Export ("intercepts pointer events"). Windows rows and the local Firefox passed:
+  the runner's fonts are wider. **Probed locally:** at 1440 px the bar was full to the pixel; at 1280 px (and 1101)
+  Export was pushed off the screen (x 1261, width 34) — the bar needs ~1,430 px since the Controls tab joined it.
+- **Fix (`style.css`, `app.mjs`):** the top bar's items keep their size (`flex-shrink: 0`); only the save-state chip
+  and the route's name may shrink (cut with "…"); below 1440 px the folder button keeps its icon (its words become
+  its `aria-label`) and the "Save downloads · Export copies" chip is not drawn; below 1280 px the "Route builder"
+  words and the "Robot one" chip go too. Guide 22 points at both places to connect the folder.
+- **Test (page.test.mjs, new):** at 1101, 1180, 1280, 1366, 1440, 1536 and 1920 px, on both tabs, PREVIEW and Export
+  whole, on the screen and apart, the route's name whole, nothing running past the bar. **RED on the old page**
+  (1101 px: Export at x 1261 in a 1101 px window), green with the fix. Firefox 32 + 1 skipped, Chromium 29 + 4
+  skipped, model 125/125. Screenshots: `~/shulib-render-tmp/coord-probe/fix-*.png` (1101–1536, light and dark).
