@@ -2230,3 +2230,14 @@ pointers (finding 25), and the self-test on RPV1-S1's cases 53 / 55.
   ignored, MR1-2 the arrival not loosened, MR1-3 port 14's sign, MR1-4 the twin without the settings).
 - **Not in this commit:** the team lead's routes (scratch/skills_route.jal-hard.cpp — on the robot; the shared region
   waits for RMP1-C's "both robots together?" answer: his start puts robot two's mirror 4.35 in away).
+
+## Short moves on robot one's settings — the coordinator *(2026-11-19)*
+
+- **Why:** the team lead, handing the skills route to the builders: "they need micro movements some of the movements are
+  only a few inches". `test/drive_tuning_test.cpp` gains a case: from robot one's start (-36, 54.076, -90 deg), moves of
+  1, 2 and 3 in — forward, backing up, and forward after a 90 deg turn — on robot one's drive settings over the suite's
+  plant: each finishes (no `TIMEOUT`, the routine ok) within 0.5 in (the library's translation settle).
+- **Measured on the plant:** every one of the 9 ends 0.23–0.25 in from its target (seen with the check tightened to
+  0.02 in: 9 of 9 RED, then restored) — the same as robot one's real hard route (0.25 in, 2026-11-17). The plant is the
+  suite's tank, not robot one: this proves the settings finish short moves, not their feel on the carpet.
+- Suite green 3,856 cases.
