@@ -2,44 +2,44 @@
 //
 // robot_two_driver.hpp — ROBOT TWO'S DRIVER CONTROL: what every stick and button does.
 //
-// This is the team's driver code (chunk T4; in the mechanism core's words since MECH-A5,
-// 2026-10-29). Every program that hands robot two to a driver runs THIS file for it: "shulib Drive"
-// on its own, and the competition program's opcontrol(). To change what a button does, change it
-// HERE and nowhere else. What the robot IS -- its ports, its cartridges, that a claw pivot is put in
-// Hold when let go, that the claw starts CLOSED and which line level closes it -- is in
-// src/robots/mechanism_table.hpp, and is not the driver's to choose.
+// Robot two is robot one's TWIN (chunk ROB1-BT, 2026-11-16; the team lead: "IT IS LITERALLY THE SAME ROBOT
+// BUILD"), so this is robot one's driver file — the builder's map of 2026-11-15, the team's code (G4) —
+// with robot two's name: one build, one map, so a driver who learns one robot drives the other. CHANGE A
+// BUTTON IN BOTH FILES (src/team/robot_one_driver.hpp has every comment on why each line is what it is):
+// test/robot_twin_test.cpp fails the host suite while the two files' controls and feel differ in any code
+// but the robot's name, or their header maps in any word. Robot two's old claw map (the pivots on R1/R2 and L1/L2, the claw on A) was
+// retired with its claws.
 //
-// It holds ONLY the team's decisions: which button does what, the feel, and the loop's two numbers.
-// How it runs -- binding the buttons to the robot's mechanism service, the controller, the call into
-// the library's driver loop -- is written once, in src/common/driver_file.hpp, for every robot's
-// driver file. Nothing here draws on a screen or writes a log line: the program around it does both.
+// What the robot IS is in src/robots/mechanism_table.hpp (robot two's region) and
+// src/robots/robot_two_facts.hpp; how it runs is src/common/driver_file.hpp. NOTHING HERE HAS RUN ON A
+// ROBOT: it is tested on the host against robot two's declarations (test/robot_two_driver_test.cpp).
 //
-//   left stick   up / down: drive forward / back. Forward is the end the calibration record
-//                calls the front (the camera end, on robot two's record of 2026-09-25).
+// [the map] — the same as robot one's:
+// [control words two]
+//   left stick   up / down: drive forward / back (toward the calibration record's front).
 //                Left / right does nothing: a tank cannot strafe.
 //   right stick  left / right: turn
-//   R1 / R2      the claw pivot on port 6: forward / back at full power while held. Let go and
-//                it is put in Hold (whether Hold keeps a loaded claw up is unmeasured, HA-156)
-//   L1 / L2      the claw pivot on port 7: the same
-//   A            the claw: each press opens or closes it. The FIRST time driver control starts
-//                in a run, the claw is told CLOSED, whatever autonomous left it at (the team
-//                lead's ruling, 2026-09-26); a program with no autonomous has left it CLOSED,
-//                so there it does not move. After that, a disable and the next start tell it
-//                nothing. Which line level closes it is a guess (HA-159)
-//   Y            field-centric re-zero. Field-centric is OFF, so Y changes nothing yet
+//   R1           HOLD: the cascade goes UP; let go: it stops and HOLDS where it is (a string cascade must
+//                not fall). Before it is homed a held button gives it at most its unhomed volts (the
+//                robot file's); once homed it is soft-stopped at its bottom and top stops by the library.
+//   R2           HOLD: the cascade goes DOWN; let go: it stops and holds, the same.
+//   A            the claw: press = open, press again = close (each press flips it)
+//   B            the front toggle (the flipper): press = open (out), press again = close (back)
+//   X            the ramp: press = down (the builder's "open"), press again = up ("close")
+//   L1           HOLD: the RIGHT side toggle runs (one way only); let go: it stops
+//   L2           HOLD: the LEFT side toggle runs (one way only); let go: it stops
+//   Y            field-centric re-zero (the drive loop's reserved button). Field-centric is OFF, so Y
+//                changes nothing yet
+//   d-pad        FREE — the cascade's preset heights go here later (the builder: "Later we will have
+//                preset heights for the cascade but for now it will be manual"); their levels are typed
+//                in the facts file first
+//   (start)      the FIRST time driver control starts in a run, the cascade HOMES: it moves DOWN on its
+//                own until it stalls gently on its bottom stop (at most 3 s), and R1 / R2 wait until it
+//                has — a button held through it does nothing until let go. This is the ONE marked line
+//                below the team can delete: without it the cascade is never homed in driver control, so
+//                R1 / R2 stay at its unhomed volts with no soft stops for the whole run.
 //   let go of the sticks and the drive coasts (Coast is set on every drive motor)
-//   (no presets: a preset sends a mechanism to a named position on one press -- `preset(arm["score"],
-//   Button::Right, 1.5_s)` -- and robot two's pivots have no positions yet, the team lead's Q6)
-//
-// The library protects the drive under this file, in every program (teleop/drive_protection.hpp):
-// a drive motor that stops answering is dropped, the robot drives on, and the driver is told --
-// but once more than two are dead, the drive stays at 0 V for the rest of the run, every later
-// start of driver control included, until the program is started again. A drive motor fighting
-// its side, or drawing more than 2.4 A while it is driven, for 250 ms stops BOTH sides for 1 s,
-// and then driving resumes. None of those numbers has been measured (HA-132, HA-175, HA-176).
-//
-// NOTHING HERE HAS RUN ON A ROBOT. It is tested on the host, through the PROS shim, against
-// robot two's real mechanisms (test/robot_two_driver_test.cpp).
+// [/control words two]
 
 #include "common/driver_file.hpp"
 #include "robots/mechanism_table.hpp"
@@ -48,19 +48,26 @@ namespace shulib::bench::robot_two {
 // [driver file two]
 // ═══ WHICH BUTTON DOES WHAT ═══════════════════════════════════════════════════════════════
 inline constexpr DriverControls kControls = controls(kRobotTwoMechanisms,
-    whileHeld(clawPivot6, Button::R1, Button::R2, 12_volt),  // forward / back, full power
-    whileHeld(clawPivot7, Button::L1, Button::L2, 12_volt),  // forward / back, full power
-    toggle(claw, Button::A));                                // each press opens or closes it
+    whileHeld(cascade, Button::R1, Button::R2, 12_volt),   // R1 up / R2 down while held; let go: it holds
+    toggle(claw, Button::A),                               // each press: open / close
+    toggle(flipper, Button::B),                            // the front toggle -- each press: open / close
+    toggle(ramp, Button::X),                               // each press: down / up
+    whileHeld(rightToggle, Button::L1, 12_volt),           // held: runs (one way); let go: stops
+    whileHeld(leftToggle, Button::L2, 12_volt),            // held: runs (one way); let go: stops
+    homeAtDriverStart(cascade, 3_s));                      // [delete-able] home it at the first driver start
+// The 12 V and the 3 s are CHOSEN, not measured — robot one's file says why.
 // [/driver file two]
 
+// [feel two]
 // ═══ THE FEEL ═════════════════════════════════════════════════════════════════════════════
-// The library's default: arcade (left stick drives, right stick turns), a smooth deadband of 0.05,
-// no curve, no ramp -- numbers no driver has felt yet (HA-112). Field-centric is OFF.
+// The library's default, as robot one's: arcade (left stick drives, right stick turns), a smooth
+// deadband of 0.05, no curve, no ramp -- numbers no driver has felt yet (HA-112). Field-centric is OFF.
 inline constexpr DriverProfile kFeel{.mode = ArcadeBody};
 inline constexpr DriverLoopConfig kLoop{
     .rezeroButton = Button::Y,     // field-centric's "away from me"
     .releaseBrakeMode = Coast,     // let go of the sticks: the drive coasts
 };
+// [/feel two]
 }  // namespace shulib::bench::robot_two
 
 namespace shulib::bench {

@@ -334,7 +334,7 @@ TEST_CASE("run (18): B mid-run -> abandoned within one tick, end action skipped,
 // every mechanism; a countdown abort touches none (the guard never ran, the step never began).
 namespace {
 shulib::chassis::RoutineResult pivotWhileDriving(shulib::competition::AutonContext& ctx) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;  // the claw robot (the old robot two, a fixture since ROB1-BT)
     using namespace shulib::units::literals;
     shulib::chassis::Routine r{ctx, "pivot-while-driving"};
     r.startRun(clawPivot6, 6_volt, 20_s);  // a step in flight on a claw, beyond the run's own end

@@ -6,9 +6,9 @@
 // probes) or a rule a test tries to break; the comment on each says which. Say "host test plant"
 // (the project's one name for it): nothing here has run on a robot.
 //
-// Robot two's mechanisms are named through its real list (src/robots/mechanism_table.hpp,
-// `shulib::bench::robot_two`), as src/team/autons.cpp names them; robot x's (test/
-// mechanism_fixtures.hpp) through `mech_fixture::robot_x` — RPV1-B1's fixture robot with a lift.
+// The claw routes name THE CLAW ROBOT — the old robot two, retired at ROB1-BT (2026-11-16), kept as
+// test/mechanism_fixtures.hpp's `mech_fixture::robot_two`; robot x's through `mech_fixture::robot_x` —
+// RPV1-B1's fixture robot with a lift.
 // A pneumatic position is a compile-time lookup (`claw["open"]` — the brief's landmine 12), so every
 // position below is a literal.
 
@@ -58,7 +58,7 @@ using shulib::units::Time;
 /// From (-48, -48) facing 0: forward 40 in, back again, a 0.5 s pause, the claw, pivot 6 for 0.4 s —
 /// forty times (160 steps). Longer than 60 s: the guard cuts it at its park time.
 inline RoutineResult skillsLong(comp::AutonContext& ctx) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;
     Routine r{ctx, "skills-long"};
     for (int i = 0; i < 40; ++i) {
         if (i % 2 == 0) {
@@ -80,7 +80,7 @@ inline RoutineResult skillsLong(comp::AutonContext& ctx) {
 // ── RP35: every one of robot two's mechanisms, then a drive (the rig's default must bind them all) ──
 /// The claw open, pivot 6 and pivot 7 for 0.3 s each, the claw closed, a 20 in drive — RELATIVE.
 inline RoutineResult everyMechanism(comp::AutonContext& ctx) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;
     Routine r{ctx, "every"};
     r.set(claw["open"]);
     r.run(clawPivot6, 12_volt, 0.3_s);
@@ -94,7 +94,7 @@ inline RoutineResult everyMechanism(comp::AutonContext& ctx) {
 /// moveTo, pause, claw, pivot, turnTo, then(action), moveTo, claw closed — from a FIELD start at
 /// (-48, -48, 0).
 inline RoutineResult sevenSteps(comp::AutonContext& ctx) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;
     Routine r{ctx, "seven"};
     r.moveTo(Pose2d{-24_in, -48_in, 0_deg});
     r.pause(0.3_s);
@@ -132,7 +132,7 @@ inline RoutineResult loopsForever(comp::AutonContext& ctx) {
 // ── C2 / RP28: a mechanism started in the background, its verdict arriving during the drive ───────
 /// startRun(pivot 6, 12 V, 1 s), a 40 in drive, waitUntilDone(pivot 6) — RELATIVE.
 inline RoutineResult backgroundPivot(comp::AutonContext& ctx) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;
     Routine r{ctx, "background"};
     r.startRun(clawPivot6, 12_volt, 1_s);
     r.moveTo(Pose2d{40_in, 0_in, 0_deg});
@@ -219,7 +219,7 @@ inline RoutineResult liftUpAndDown(comp::AutonContext& ctx) {
 /// A drive straight into a claw step, no pause: the claw begins on the pace the drive ended — the EQUAL
 /// edge of "the robot drove while it ran" (a claw after a drive is never "in the background").
 inline RoutineResult driveThenClaw(comp::AutonContext& ctx) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;
     Routine r{ctx, "drive-claw"};
     r.moveTo(Pose2d{-28_in, -48_in, 0_deg});
     r.set(claw["open"]);
@@ -258,7 +258,7 @@ inline RoutineResult fortyInches(comp::AutonContext& ctx) {
 }
 /// A drive and the claw open; the entry's own END ACTION closes the claw and brakes (parkClosingClaw).
 inline RoutineResult driveThenOpen(comp::AutonContext& ctx) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;
     Routine r{ctx, "drive-open"};
     r.moveTo(Pose2d{-38_in, -48_in, 0_deg});
     r.set(claw["open"]);
@@ -266,7 +266,7 @@ inline RoutineResult driveThenOpen(comp::AutonContext& ctx) {
 }
 /// An end action of the entry's own that commands a mechanism: every step of it is the park's.
 inline bool parkClosingClaw(comp::AutonContext& ctx) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;
     Routine r{ctx, "park"};
     r.set(claw["closed"]);
     r.brake();
@@ -278,7 +278,7 @@ inline bool parkClosingClaw(comp::AutonContext& ctx) {
 /// A drive, then a BLOCKING 3 s run of claw pivot 6, then a drive — from (-48, -48, 0): a throw while
 /// pivot 6 runs is INSIDE step 2.
 inline RoutineResult driveThenBlockingPivot(comp::AutonContext& ctx) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;
     Routine r{ctx, "drive-pivot"};
     r.moveTo(Pose2d{-38_in, -48_in, 0_deg});
     r.run(clawPivot6, 6_volt, 3_s);
@@ -288,7 +288,7 @@ inline RoutineResult driveThenBlockingPivot(comp::AutonContext& ctx) {
 /// A drive, the claw opened (a blocking step that SUCCEEDS), a 1 s pause, a drive: a throw in the pause
 /// is DURING A WAIT, after step 2 — and the claw, which ended before it, was not where it threw.
 inline RoutineResult driveClawPause(comp::AutonContext& ctx) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;
     Routine r{ctx, "drive-claw-pause"};
     r.moveTo(Pose2d{-38_in, -48_in, 0_deg});
     r.set(claw["open"]);
@@ -300,7 +300,7 @@ inline RoutineResult driveClawPause(comp::AutonContext& ctx) {
 /// pivot 7 by the unwind, but the robot drove while it ran — the code had moved on: DURING A WAIT, after
 /// step 2, never inside pivot 7.
 inline RoutineResult backgroundPivotDrivePause(comp::AutonContext& ctx) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;
     Routine r{ctx, "bg-drive-pause"};
     r.startRun(clawPivot7, 6_volt, 3_s);
     r.moveTo(Pose2d{-38_in, -48_in, 0_deg});
@@ -312,7 +312,7 @@ inline RoutineResult backgroundPivotDrivePause(comp::AutonContext& ctx) {
 /// background step, and a throw while it runs is INSIDE step 3. (The pause puts a pace between the two
 /// begins: two mechanism steps begun on one pace are ordered by their list, not by the code.)
 inline RoutineResult backgroundPivotThenBlockingPivot(comp::AutonContext& ctx) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;
     Routine r{ctx, "bg-then-blocking"};
     r.moveTo(Pose2d{-38_in, -48_in, 0_deg});
     r.startRun(clawPivot7, 6_volt, 3_s);
@@ -324,7 +324,7 @@ inline RoutineResult backgroundPivotThenBlockingPivot(comp::AutonContext& ctx) {
 /// both, then both collected: from below the two began at the same instant — numbered in robot two's list
 /// order (pivot 6 first), not the code's.
 inline RoutineResult twoStartsOnePace(comp::AutonContext& ctx) {
-    using namespace shulib::bench::robot_two;
+    using namespace mech_fixture::robot_two;
     Routine r{ctx, "two-starts"};
     r.startRun(clawPivot7, 6_volt, 0.5_s);
     r.startRun(clawPivot6, 6_volt, 0.5_s);

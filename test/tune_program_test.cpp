@@ -10,6 +10,7 @@
 // its service, and the provider's pacer steps the plant and advances the clock. Say "host test plant",
 // never "simulator". NOTHING HERE HAS RUN ON A ROBOT.
 
+#include "retired_robot_two.hpp"
 #include "doctest.h"
 
 #include <algorithm>
@@ -738,7 +739,7 @@ TEST_CASE("Tune TB11: the report's HOLD current, and a WARNING when the stall si
 TEST_CASE("Tune TB5: over ROBOT TWO's own table the provider is asked ONLY for its mechanisms' ports -- "
           "never a drive motor, never the IMU -- through READY, a TEST, HOME's refusal, COPY and EXIT") {
     // BUG CAUGHT (MB4): the program building the Robot (or any drive motor) — a robot on blocks is not assumed.
-    Bench b{shulib::bench::robot_two::kRobotTwoMechanisms};
+    Bench b{mech_fixture::robot_two::kRobotTwoMechanisms};
     b.ready();
     b.tap(TuneButton::TestA);
     REQUIRE(b.program.page() == TunePage::Confirm);
@@ -763,7 +764,7 @@ TEST_CASE("Tune TB5: over ROBOT TWO's own table the provider is asked ONLY for i
         CHECK(b.provider.digitalOutRequestCount(line) == 0);
     }
     // robot two's drive ports, by name: none asked
-    const auto& chassis = shulib::bench::kRobotTwoChassis;
+    const auto& chassis = retired_robot_two::kChassis;
     for (std::size_t i = 0; i < chassis.leftCount; ++i) {
         CHECK(b.provider.motorRequestCount(static_cast<std::uint8_t>(shulib::bench::absPort(chassis.left[i]))) == 0);
     }
@@ -1330,7 +1331,7 @@ TEST_CASE("Tune review: tuneTargets for EVERY kind -- two presets, one preset (a
     const mech::TuneTargets f = mech::tuneTargets(fly);
     CHECK(f.a == 0.5 * fly.speed.maxRpm);
     CHECK(f.b == 0.9 * fly.speed.maxRpm);
-    const mech::TuneTargets p = mech::tuneTargets(shulib::bench::robot_two::kRobotTwoMechanisms.specs[0]);
+    const mech::TuneTargets p = mech::tuneTargets(mech_fixture::robot_two::kRobotTwoMechanisms.specs[0]);
     CHECK(p.a == 12.0);
     CHECK(p.b == -12.0);
     const mech::TuneTargets w = mech::tuneTargets(kWeakPivot.specs[0]);
@@ -1387,7 +1388,7 @@ TEST_CASE("Tune review: on a POWER mechanism (robot two's claw pivot) the stick 
           "STOPS it in the tick it is let go; on one whose most is 4 V, at 4 V") {
     // BUG CAUGHT (R06, R13, R07): the claw driven on after the stick was let go (PowerSlot::drive is
     // open-ended); the stick doing nothing on a claw; the stick past a mechanism's own most volts.
-    Bench b{shulib::bench::robot_two::kRobotTwoMechanisms};
+    Bench b{mech_fixture::robot_two::kRobotTwoMechanisms};
     b.ready();
     REQUIRE(std::string_view{b.program.tuning().spec(0).name} == "claw pivot 6");
     confirmByStick(b);
@@ -1646,7 +1647,7 @@ TEST_CASE("Tune review: TEST A and TEST B on robot two's claw pivot run it FORWA
           "volts and SUCCEED; the REPORT shows no settle and no hold for a power run") {
     // BUG CAUGHT (R12): TEST B spinning the claw the same way as TEST A; a power run's report saying
     // "never settled" and "no hold: it did not settle" under SUCCEEDED.
-    Bench b{shulib::bench::robot_two::kRobotTwoMechanisms};
+    Bench b{mech_fixture::robot_two::kRobotTwoMechanisms};
     b.ready();
     b.tap(TuneButton::TestA);
     REQUIRE(b.program.page() == TunePage::Confirm);

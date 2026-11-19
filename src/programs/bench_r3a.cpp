@@ -22,8 +22,8 @@
 //     is still read-only, constructs no motor adapter, and never will -- but ONE:
 //   * Station 13 MECHANISMS (the mechanism core's MECH-A6, 2026-10-30; the team lead's go of
 //     2026-10-08 on the MECH brief, its Q30: "the bench page and the direction check in the
-//     core") powers the robot's DECLARED mechanisms -- robot two's claw pivots and its pneumatic
-//     claw -- one at a time, through the library's robot::MechanismParts, behind its own six
+//     core") powers the robot's DECLARED mechanisms -- each cascade robot's cascade, side toggles
+//     and pistons (robot two's claws until ROB1-BT) -- one at a time, through the library's robot::MechanismParts, behind its own six
 //     gates, and runs the direction check. Its logic is PROS-free in bench_r3a.hpp
 //     (mech_station::Station) and host-tested; its header below says the rest.
 //   * It drives the robot through the library's ADAPTERS (hal/pros ProsMotor and
@@ -1943,7 +1943,7 @@ void driveStation(pros::c::v5_device_e_t* found) {
             emitf("  MOTOR WATCH says: %s", g_watch.lastSummary);
             emit("  Run 3 MOTOR WATCH: push the whole robot front-first so EVERY table port");
             emit("  moves, answer FRONT FIRST, then come back here. (This robot's table carries");
-            emit("  no signs; robot two's does, and its DRIVE needs no capture.)");
+            emit("  no signs.)");
             return;
         }
         for (int p = 1; p <= kMaxPort; ++p) {
@@ -2985,7 +2985,7 @@ void distanceStation(pros::c::v5_device_e_t*) {
         emitS(Sev::Warn, "no DISTANCE sensor in the registry -- nothing to show.");
         emit("  check both ends of the cable, then run");
         emit("  1 DEVICE CENSUS: it lists what the brain sees.");
-        emit("  (robot two: ports 4 and 5, 2026-09-24)");
+        emit("  (the old robot two: ports 4 and 5, 2026-09-24)");
         return;
     }
     emit("RAW = the PROS C API as it returns it: distance_get (mm), _get_confidence");
@@ -3147,7 +3147,7 @@ void aiVisionStation(pros::c::v5_device_e_t*) {
         }
         emit("  check both ends of the cable, then run");
         emit("  1 DEVICE CENSUS: it must say AI-VISION.");
-        emit("  (robot two: port 3, 2026-09-24)");
+        emit("  (the old robot two: port 3, 2026-09-24)");
         return;
     }
     emit("This station WRITES THE CAMERA'S SETTINGS: tag + object detection ON, the USB");
@@ -3360,8 +3360,8 @@ void aiVisionStation(pros::c::v5_device_e_t*) {
 
 // ═══ STATION 13 — MECHANISMS: THE SECOND STATION THAT POWERS (MECH-A6, 2026-10-30) ══════════════════════
 // The mechanism core's last part (the MECH brief's §1.14). Every mechanism the robot DECLARES
-// (kMechanisms — src/robots/mechanism_table.hpp; robot two's claws: two Power pivots on ports 6 and 7, a
-// pneumatic claw on 3-wire A), shown one at a time with its readings live and in its declared units, and
+// (kMechanisms — src/robots/mechanism_table.hpp; each cascade robot's cascade, side toggles and pistons —
+// robot two's claws until ROB1-BT), shown one at a time with its readings live and in its declared units, and
 // powered behind SIX GATES — through the library's own robot::MechanismParts over the
 // hal::pros::ProsDeviceProvider (no Robot, no drivetrain, no mechanism service: a direction must be
 // checkable before anything is homed), commanding each built hal::MotorMechanism / PneumaticMechanism
@@ -3524,7 +3524,7 @@ void mechanismsStation(pros::c::v5_device_e_t*) {
         emitS(Sev::Warn, "this robot declares NO mechanism -- nothing to show.");
         emit("  a robot's mechanisms are declared in");
         emit("  src/robots/mechanism_table.hpp");
-        emit("  (robot two's claws: the ROBOT=tank build).");
+        emit("  (the cascade robots: ROBOT=one, ROBOT=tank).");
         return;
     }
     // Each line within the scrolling log's 54 columns.

@@ -304,6 +304,14 @@ void mechanismStateLines(const MechanismTable& list, std::size_t i, bool built, 
     if (s.kind == mechanism::Kind::Position && built) {
         if (homed) {
             std::snprintf(out.text, sizeof out.text, "%.23s: homed at boot", s.name);
+        } else if (s.position.unhomedVolts > 0.0) {
+            // A hold still moves it, at its .unhomedVolts (ROB1-BT's review: "its buttons do nothing" was
+            // false for the cascades, whose driver maps rely on exactly that): only presets and moves wait.
+            std::snprintf(out.text, sizeof out.text,
+                          "%.23s: NOT HOMED -- a hold moves it at most %.1f V with no soft stops; a preset or a move "
+                          "ends NOT_HOMED until it is homed (homeAtDriverStart, homeOnPress, or an auton's r.home)",
+                          s.name, s.position.unhomedVolts);
+            out.level = hal::LogLevel::Warn;
         } else {
             std::snprintf(out.text, sizeof out.text,
                           "%.23s: NOT HOMED -- its buttons do nothing until it is homed (homeAtDriverStart, "
@@ -400,7 +408,7 @@ inline RoutesLine routesBootLine(const mechanism::RouteIds& ids) {
 // HOLD — so a step or the guard driving it shows too), then its temperature in whole degrees C;
 // ABSENT when it was not built. Then each PNEUMATIC mechanism by its name in capitals and the position
 // its lines are at, from the MECHANISM SERVICE (PneumaticSlot::commandedPosition() — the declaration's
-// own levels; CLOSED / OPEN for robot two's claw), `?` when they match none, or ABSENT. ` FREED` at the
+// own levels; CLOSED / OPEN for a claw), `?` when they match none, or ABSENT. ` FREED` at the
 // end while a claim another owner left was released at THIS driver-control entry (the driver file's
 // releasedLeftoverAtEntry(); the serial `[WARN][MECH]` line names which). The panel paints it amber
 // then. (Since MECH-A5; until then the row read the old table's polarity constant for the claw.)
@@ -412,7 +420,7 @@ inline RoutesLine routesBootLine(const mechanism::RouteIds& ids) {
 /// hal::IMotor, which has no validity channel, and hal::pros::ProsMotor never returns a
 /// non-finite temperature — a failed read returns the LAST GOOD value (and counts it in
 /// ProsMotor::faultedReads(), which the IMotor seam does not expose), and before any successful
-/// read it returns its 20 C seed. So on robot two "--" never appears: a pivot that stops answering
+/// read it returns its 20 C seed. So on the brain "--" never appears: a motor that stops answering
 /// after boot shows its last temperature, frozen and unmarked, and one that never answered shows
 /// 20C. Worksheet Station J (J.3.3, J.8) and A4 register HA-154 say so. Showing "--" there would
 /// need the seam to carry a read's validity — a library change outside T3, flagged for the team
@@ -504,8 +512,8 @@ constexpr std::size_t mechanismRowWorstLength(const MechanismTable& list) noexce
                                                                : compactRowWorstLength(list);
 }
 
-static_assert(clawRowWorstLength(robot_two::kRobotTwoMechanisms) <= calibration::kSmallCols,
-              "robot two's claw row could run past the SMALL budget");
+static_assert(mechanismRowWorstLength(robot_two::kRobotTwoMechanisms) <= calibration::kSmallCols,
+              "robot two's mechanism row could run past the SMALL budget");
 static_assert((ThisRobotWords::value.claw ? clawRowWorstLength(kMechanisms) : mechanismRowWorstLength(kMechanisms)) <=
                   calibration::kSmallCols,
               "this build's claw row could run past the SMALL budget");
@@ -651,11 +659,11 @@ inline ClawRow clawRowText(const MechanismTable& list, const robot::Robot& robot
 }
 
 /// The same row in robot `Words`' words (chunk ROB1-A, re-check R7; src/common/robot_words.hpp): its
-/// first word is the robot's — robot two's `CLAW`, robot one's `MECH`, four letters each, so
-/// clawRowWorstLength()'s budget holds for both. Robot two's builds never call it: a program picks it
-/// only for a robot whose words are not the claw words (`ThisRobotWords::value.claw ? … : …`), so robot
-/// two's packages keep the function above, byte for byte (the ROB1 brief's T6 — an earlier cut that
-/// made the function above a template changed GCC's inlining of it into robot two's Drive and
+/// first word is the robot's — the claw words' `CLAW`, the mechanism words' `MECH` (both robots' since
+/// ROB1-BT), four letters each, so clawRowWorstLength()'s budget holds for both. A program picks it only
+/// for a robot whose words are not the claw words (`ThisRobotWords::value.claw ? … : …`); the claw words'
+/// builds keep the function above, byte for byte (the ROB1 brief's T6 — an earlier cut that made the
+/// function above a template changed GCC's inlining of it into the old robot two's Drive and
 /// Competition). A host test passes `WordsOf<RobotId::RobotOne>{}`. Since ROB1-C2: a list whose full row
 /// could run past the SMALL budget (robot one's six mechanisms) gets the COMPACT row instead
 /// (compactRowText, above) — mechanismRowWorstLength() is that budget.
@@ -784,8 +792,8 @@ struct ControllerScreen {
 }
 
 /// Line 2's word in robot `Words`' words (chunk ROB1-A, re-check R7): the chooser above, with the
-/// absent word the robot's — robot two's `CLAW ABSENT` (kLcdClawAbsent), robot one's `MECH ABSENT`
-/// (src/common/robot_words.hpp). Like clawRowText()'s overload, robot two's builds never call it (T6).
+/// absent word the robot's — the claw words' `CLAW ABSENT` (kLcdClawAbsent), the mechanism words' `MECH
+/// ABSENT` (src/common/robot_words.hpp). Like clawRowText()'s overload, the claw words' builds never call it.
 template <class Words>
 [[nodiscard]] inline const char* controllerWord(const ControllerFacts& f, Words) noexcept {
     const char* word = controllerWord(f);

@@ -7,7 +7,7 @@ runs its lifts, claws and flippers, and tells you what happened.
 
 | I want to… | Go to |
 |---|---|
-| <a id="drive-the-robot"></a>Drive the robot | [Build and upload the programs](guide/07-getting-set-up.md) · [Buttons for your mechanisms](cookbook/06-driver-control.md) · [Match day](guide/17-the-competition-program.md) |
+| <a id="drive-the-robot"></a>Drive the robot | [Build and upload the programs](guide/07-getting-set-up.md) · [Where your code goes](where-your-code-goes.md) · [Buttons for your mechanisms](cookbook/06-driver-control.md) · [Set the buttons and the stick feel by clicking](guide/22-making-your-first-route.md#the-drivers-buttons-and-the-driving-feel) · [Match day](guide/17-the-competition-program.md) |
 | <a id="write-an-autonomous-route"></a>Write a skills route | [The field](guide/02-the-field-and-coordinates.md) · [The steps of a route](guide/09-the-recipe-api.md) · [Try it before the field](guide/16-testing-an-auton-on-the-bench.md) |
 | <a id="add-tune-or-test-a-mechanism"></a>Add or tune a mechanism | [Declare a mechanism](guide/18-mechanisms.md) · [Tune it on the robot](guide/18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen) · [Protect a string lift](guide/18-mechanisms.md#current-caps--how-hard-a-string-is-pulled) |
 | <a id="set-up-or-check-a-robot"></a>Set up a new robot | [Add your robot](guide/21-adding-your-robot-by-hand.md) · [The robot facts form](robot-facts-form.md) · [Check every motor and sensor](guide/21-adding-your-robot-by-hand.md#the-order-on-the-robot) · [Calibrate the drive](guide/19-calibrating-your-robot.md) |

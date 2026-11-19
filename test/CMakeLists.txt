@@ -91,6 +91,8 @@ target_sources(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/aut
 # ...and, since chunk ROB1-A (2026-11-11), robot one's: src/team/robot_one_autons.cpp, PROS-free the
 # same way (test/robot_one_autons_test.cpp runs it on the host test plant).
 target_sources(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/robot_one_autons.cpp")
+# ...and, since chunk ROB1-BT (2026-11-16), the skills route BOTH robots register: src/team/skills_route.cpp.
+target_sources(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/skills_route.cpp")
 
 # ── THE SUITE'S OWN FLAGS, as ONE INTERFACE target (chunk MECH-A1, 2026-10-08) ──────────────
 # Every include root, option and define below used to be PRIVATE to shulib_tests. The mechanism
@@ -308,6 +310,10 @@ add_custom_command(
   COMMAND "${Python3_EXECUTABLE}"
           "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/first_week.py" check
   COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/build_to_program.py" self-test
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/build_to_program.py" check
+  COMMAND "${Python3_EXECUTABLE}"
           "${CMAKE_CURRENT_SOURCE_DIR}/../tools/prepare_site.py" self-test
   COMMAND "${Python3_EXECUTABLE}"
           "${CMAKE_CURRENT_SOURCE_DIR}/../tools/prepare_site.py" check-register
@@ -333,6 +339,8 @@ add_custom_command(
     "${SHULIB_READ_TOOL}"
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/first_week.py"
     "${CMAKE_CURRENT_SOURCE_DIR}/../docs/assets/first-week.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/build_to_program.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../docs/assets/build-to-program.svg"
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/prepare_site.py"
     ${SHULIB_DOC_INPUTS}
   COMMENT "shulib doc gates: coverage, freshness, verbatim examples, removability, staleness, reading"
@@ -349,7 +357,8 @@ add_test(NAME shulib_tests COMMAND shulib_tests)
 # compiles it; it does NOT wait for the doc gates. route_preview_main.cpp is not a *_test.cpp, so the
 # suite's glob above never compiles it — the suite calls runPreview() itself (route_preview_test.cpp).
 add_executable(shulib_route_preview route_preview_main.cpp "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp"
-                                    "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/robot_one_autons.cpp")
+                                    "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/robot_one_autons.cpp"
+                                    "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/skills_route.cpp")  # ROB1-BT: robot two registers the shared skills route
 target_link_libraries(shulib_route_preview PRIVATE shulib_test_flags)
 
 # ── THE COMPILE-REFUSAL HARNESS (chunk MECH-A1, 2026-10-08; the MECH brief's §3.0) ──────────
@@ -367,6 +376,12 @@ add_subdirectory(compile_refusals)
 # route builder's page reads them) and `curves` the CV1 curve golden; CI's route-builder job builds this ONE
 # target and bakes robots one and two into the page (tools/route_maker/build.py --describe). Host only, the
 # suite's own flags (shulib_test_flags), NOT part of shulib_tests and not needed by it (the suite includes
-# the same headers). RMP1-A2e adds `preview` to the same main (one main for this program and the module).
-add_executable(shulib_route_maker route_maker_main.cpp)
+# the same headers). Since RMP1-A2e, `preview` too: the runner (route_maker_runner.hpp) — the SAME main the
+# WebAssembly module is built from (tools/route_maker/wasm/), so WG2 compares the two builds' records. Both
+# drop the repository's path from every file name the code keeps (W10: -ffile-prefix-map, the module's flag).
+# Neither compiles src/team/: the engine runs the builder's route, never the team's autons
+# (route_maker_no_team_autons.cpp).
+add_executable(shulib_route_maker route_maker_main.cpp route_maker_no_team_autons.cpp)
 target_link_libraries(shulib_route_maker PRIVATE shulib_test_flags)
+get_filename_component(SHULIB_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+target_compile_options(shulib_route_maker PRIVATE "-ffile-prefix-map=${SHULIB_ROOT}/=")

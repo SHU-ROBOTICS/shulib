@@ -38,7 +38,7 @@ struct FieldMirror
 
 A field's mirror (the file banner): its name for the log, its reflection, and the season's walls — the wall reset's wall is mapped to the season wall at its reflected line. A SEASON CONSTANT with static storage (an entry keeps a pointer to it): `override2026::kSkillsMirror`.
 
-*struct, declared at [`include/shulib/competition/field_mirror.hpp:88`](../../include/shulib/competition/field_mirror.hpp#L88).*
+*struct, declared at [`include/shulib/competition/field_mirror.hpp:89`](../../include/shulib/competition/field_mirror.hpp#L89).*
 
 <a id="fieldmirror-name"></a>
 
@@ -50,7 +50,7 @@ const char* name = ""
 
 Its name in the log ("the skills diagonal") — a stable literal, ASCII.
 
-*field, declared at [`include/shulib/competition/field_mirror.hpp:90`](../../include/shulib/competition/field_mirror.hpp#L90).*
+*field, declared at [`include/shulib/competition/field_mirror.hpp:91`](../../include/shulib/competition/field_mirror.hpp#L91).*
 
 <a id="fieldmirror-reflection"></a>
 
@@ -62,7 +62,7 @@ math::Reflection reflection{}
 
 The reflection of the FIELD frame (never the identity — mirrored() refuses one).
 
-*field, declared at [`include/shulib/competition/field_mirror.hpp:92`](../../include/shulib/competition/field_mirror.hpp#L92).*
+*field, declared at [`include/shulib/competition/field_mirror.hpp:93`](../../include/shulib/competition/field_mirror.hpp#L93).*
 
 <a id="fieldmirror-walls"></a>
 
@@ -74,7 +74,7 @@ std::span<const localization::FieldWall> walls{}
 
 The season's walls (localization::override2026::kWalls): the image of a season wall is the season wall at its reflected line, with ITS real name and keep-outs.
 
-*field, declared at [`include/shulib/competition/field_mirror.hpp:95`](../../include/shulib/competition/field_mirror.hpp#L95).*
+*field, declared at [`include/shulib/competition/field_mirror.hpp:96`](../../include/shulib/competition/field_mirror.hpp#L96).*
 
 <a id="mirroredside"></a>
 
@@ -86,7 +86,7 @@ The season's walls (localization::override2026::kWalls): the image of a season w
 
 The sensor on the OTHER side: LEFT <-> RIGHT. Every reflection swaps a robot's sides — robot one's right sensor along a wall is robot two's left sensor along the image wall.
 
-*free function, declared at [`include/shulib/competition/field_mirror.hpp:100`](../../include/shulib/competition/field_mirror.hpp#L100).*
+*free function, declared at [`include/shulib/competition/field_mirror.hpp:101`](../../include/shulib/competition/field_mirror.hpp#L101).*
 
 <a id="reflectedwall"></a>
 
@@ -98,7 +98,7 @@ The sensor on the OTHER side: LEFT <-> RIGHT. Every reflection swaps a robot's s
 
 `wall` reflected GEOMETRICALLY by `r`: its line `axis = coord` mapped to the image line, the field on the image side, every keep-out span mapped along the image wall (order, kind and name kept). A wall's name and frame are kept as they are. (mirroredWall, below, is what the wall reset uses.)
 
-*free function, declared at [`include/shulib/competition/field_mirror.hpp:112`](../../include/shulib/competition/field_mirror.hpp#L112).*
+*free function, declared at [`include/shulib/competition/field_mirror.hpp:113`](../../include/shulib/competition/field_mirror.hpp#L113).*
 
 <a id="seasonimageindex"></a>
 
@@ -110,7 +110,7 @@ The sensor on the OTHER side: LEFT <-> RIGHT. Every reflection swaps a robot's s
 
 The index in `mirror.walls` of the season wall at `wall`'s reflected line (the same axis, the same inner face within 1e-6 in, the field on the same side), or -1 when none is — an author's own line, or a FIELD wall the season does not have.
 
-*free function, declared at [`include/shulib/competition/field_mirror.hpp:142`](../../include/shulib/competition/field_mirror.hpp#L142).*
+*free function, declared at [`include/shulib/competition/field_mirror.hpp:143`](../../include/shulib/competition/field_mirror.hpp#L143).*
 
 <a id="mirroredwall"></a>
 
@@ -122,7 +122,7 @@ The index in `mirror.walls` of the season wall at `wall`'s reflected line (the s
 
 THE WALL RESET'S WALL under `mirror` (the file banner): a SEASON wall (frame Field) maps to the season wall at its reflected line — with that wall's REAL name and keep-outs (Override's red wall carries Loaders the right wall does not: the image is the right wall as it is, not the red wall's spans moved); an author's OWN line (frame Own), or a Field wall the season lacks, is reflected geometrically (reflectedWall), its name kept.
 
-*free function, declared at [`include/shulib/competition/field_mirror.hpp:158`](../../include/shulib/competition/field_mirror.hpp#L158).*
+*free function, declared at [`include/shulib/competition/field_mirror.hpp:159`](../../include/shulib/competition/field_mirror.hpp#L159).*
 
 <a id="mirrored"></a>
 
@@ -134,7 +134,7 @@ THE WALL RESET'S WALL under `mirror` (the file banner): a SEASON wall (frame Fie
 
 `entry` MIRRORED by `mirror` (the file banner) — a copy that robot two's autons file registers: `registry.add(competition::mirrored(skillsRoute(), override2026::kSkillsMirror));`. It TOGGLES: an entry already mirrored by the same reflection comes back as written. `mirror` is BORROWED (a season constant with static storage). PRECONDITIONS (a programming error, thrown): `mirror` reflects (not the identity) and has a name; the entry is not already mirrored by a DIFFERENT reflection (D5). Nothing else is checked here: the registry's own check refuses a mirrored name over kMaxMirroredAutonNameChars when the entry is registered. The ROBOT is not mirrored — a part off its centre line meets the field on the other side of the reflected path (A4 register HA-259).
 
-*free function, declared at [`include/shulib/competition/field_mirror.hpp:177`](../../include/shulib/competition/field_mirror.hpp#L177).*
+*free function, declared at [`include/shulib/competition/field_mirror.hpp:178`](../../include/shulib/competition/field_mirror.hpp#L178).*
 
 <a id="mirrored-2"></a>
 
@@ -146,7 +146,7 @@ AutonEntry mirrored(const AutonEntry& entry, const FieldMirror&& mirror) = delet
 
 REFUSED AT COMPILE TIME: mirrored() handed a TEMPORARY FieldMirror. The entry keeps the mirror's ADDRESS for its whole life (the registry holds it; the runner, the wall reset and the Toggle step read it at run time), and a temporary is gone by the end of the line — a dangling pointer no warning catches. Hand it the season constant, which has static storage: `mirrored(skillsRoute(), override2026::kSkillsMirror)`. (Deleting the const rvalue form catches a non-const temporary too: it binds there before it would bind to the const reference.)
 
-*free function, declared at [`include/shulib/competition/field_mirror.hpp:199`](../../include/shulib/competition/field_mirror.hpp#L199).*
+*free function, declared at [`include/shulib/competition/field_mirror.hpp:200`](../../include/shulib/competition/field_mirror.hpp#L200).*
 
 <a id="ismirrored"></a>
 
@@ -158,7 +158,7 @@ REFUSED AT COMPILE TIME: mirrored() handed a TEMPORARY FieldMirror. The entry ke
 
 True while `ctx` runs a MIRRORED entry — robot two's run of the shared route. The shared route's way to send ONE robot to what lies on the field's mirror line (the file banner; the brief's D11): `if (!competition::isMirrored(ctx)) { /* robot one only */ }`.
 
-*free function, declared at [`include/shulib/competition/field_mirror.hpp:204`](../../include/shulib/competition/field_mirror.hpp#L204).*
+*free function, declared at [`include/shulib/competition/field_mirror.hpp:205`](../../include/shulib/competition/field_mirror.hpp#L205).*
 
 <a id="runreflection"></a>
 
@@ -170,7 +170,7 @@ True while `ctx` runs a MIRRORED entry — robot two's run of the shared route. 
 
 The reflection a run of `entry` uses (the file banner's table): the identity for an entry as written; for a mirrored one, its FieldMirror's reflection under a FIELD start and the ROBOT-frame mirror (math::Reflection::Line::XAxis) under a RELATIVE one. An UNSET start (refused at registration) answers the identity.
 
-*free function, declared at [`include/shulib/competition/field_mirror.hpp:210`](../../include/shulib/competition/field_mirror.hpp#L210).*
+*free function, declared at [`include/shulib/competition/field_mirror.hpp:211`](../../include/shulib/competition/field_mirror.hpp#L211).*
 
 <a id="seatedstart"></a>
 
@@ -182,14 +182,14 @@ The reflection a run of `entry` uses (the file banner's table): the identity for
 
 Where a run of `entry` SEATS the robot — the entry's effective start, reflected by runReflection(): robot two's REAL start for a mirrored entry (where the drivers must place it), the start as written otherwise.
 
-*free function, declared at [`include/shulib/competition/field_mirror.hpp:225`](../../include/shulib/competition/field_mirror.hpp#L225).*
+*free function, declared at [`include/shulib/competition/field_mirror.hpp:226`](../../include/shulib/competition/field_mirror.hpp#L226).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 68 lines, click to expand</summary>
+<summary>The header’s own reasoning — 69 lines, click to expand</summary>
 
 ```text
 
@@ -235,7 +235,8 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
 
  The host suite runs every mirrored entry robot two registers TOGETHER with its unmirrored self and
  fails, naming the moment and the motions, when their 15 in squares come within 6 in
- (test/mirrored_pair_check.hpp; A4 register HA-260).
+ (test/mirrored_pair_check.hpp; A4 register HA-260). On a TANK it also fails one step that drives
+ AND turns about 180 deg, naming the steps to write instead: turn first, then drive (MIRROR1-B).
 
  ── What the mirror cannot carry (told, never guessed) ──────────────────────────────────────────────
  The ROBOT is not mirrored: a part mounted off its centre line (a side claw, an off-centre camera,

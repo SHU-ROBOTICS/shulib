@@ -62,14 +62,16 @@ AutonRegistry robotOneRegistry() {
 
 }  // namespace
 
-TEST_CASE("robot one autons (T12): exactly the 40 in as a SKILLS auton and the acceptance run, each fitting the 60 s period") {
-    // BUG CAUGHT (GM23): the 40 in left a Match auton (robot two's kind, copied) — it could never be
-    // picked for a skills run, the only competition on the 21st; or a schedule that does not leave the end
-    // action its runway inside 60 s; or a third entry (the skills route is the students' — G4).
+TEST_CASE("robot one autons (T12): exactly the 40 in as a SKILLS auton, the acceptance run and the shared skills route AS WRITTEN, each fitting the 60 s period") {
+    // BUG CAUGHT (GM23): the 40 in left a Match auton — it could never be picked for a skills run, the only
+    // competition on the 21st; or a schedule that does not leave the end action its runway inside 60 s; or a
+    // fourth entry; or robot one's skills route registered MIRRORED (robot two's line, on the wrong robot).
+    // (ROB1-BT: the third entry is the team's skills route, src/team/skills_route.cpp — its STEPS are the
+    // students' (G4); its registration is plumbing, the route maker's contract.)
     const AutonRegistry reg = robotOneRegistry();
-    REQUIRE_MESSAGE(reg.size() == 2, "src/team/robot_one_autons.cpp registers ", reg.size(),
-                    " autons and this test pins 2 -- the students' skills route is added by THEM, with its "
-                    "own pins");
+    REQUIRE_MESSAGE(reg.size() == 3, "src/team/robot_one_autons.cpp registers ", reg.size(),
+                    " autons and this test pins 3. Added one? Pin it here too (and in robot two's file: the twins "
+                    "register the same list -- test/robot_twin_test.cpp)");
     const auto& forty = reg.at(0);
     CHECK(std::string_view{forty.name} == "40in forward");
     CHECK(forty.kind == AutonKind::Skills);
@@ -88,6 +90,12 @@ TEST_CASE("robot one autons (T12): exactly the 40 in as a SKILLS auton and the a
     CHECK(accept.endActionAt.value() == 57.0);
     CHECK(accept.hardStopAt.value() == 59.0);
     CHECK(reg.periodFor(accept).value() == 60.0);
+    const auto& skills = reg.at(2);
+    CHECK(std::string_view{skills.name} == "skills");
+    CHECK(skills.kind == AutonKind::Skills);
+    CHECK(skills.mirror == nullptr);  // robot one runs the route AS WRITTEN, in its own numbers
+    CHECK(skills.endActionAt.value() == 57.0);
+    CHECK(skills.hardStopAt.value() == 59.0);
     // Nothing was refused: a Throw registry would have thrown, and the counts say so.
     CHECK(reg.refusedCount() == 0);
 }
@@ -123,7 +131,7 @@ TEST_CASE("robot one autons (T12): the 40 in ENDS 40 in ahead and the acceptance
     // one's 40 in retargeted to 20 in kept the whole suite green. Robot two's tests of the same two autons
     // pin where they end (test/autons_test.cpp, autons (3) and (4)); these are the same bounds.
     const AutonRegistry reg = robotOneRegistry();
-    REQUIRE(reg.size() == 2);
+    REQUIRE(reg.size() == 3);
     {
         TesterStack s{tank()};
         const TesterRunRecord& r = s.run(reg, 0);
@@ -157,12 +165,15 @@ TEST_CASE("robot one autons (T12): the 40 in ENDS 40 in ahead and the acceptance
     }
 }
 
-TEST_CASE("robot one autons (G4): the file is robot one's own -- it names robot one's list, never robot two's, and registers nothing but its two") {
+TEST_CASE("robot one autons (G4): the file is robot one's own -- it names robot one's list, never robot two's, and registers nothing but its three") {
     // BUG CAUGHT: robot one's autons file reaching into robot two's mechanisms (`robot_two::`), or the
-    // builder writing a route the students own (any registry.add beyond the two).
+    // builder writing a route the students own (any registry.add beyond the three; the route's STEPS live in
+    // src/team/skills_route.cpp, written by the students or their route maker).
     const std::string code = source_pins::stripComments(source_pins::readFile("src/team/robot_one_autons.cpp"));
     CHECK(source_pins::count(code, "using namespace robot_one;") == 1);
     CHECK(source_pins::count(code, "robot_two") == 0);
-    CHECK(source_pins::count(code, "registry.add(") == 2);
+    CHECK(source_pins::count(code, "registry.add(") == 3);
+    CHECK(source_pins::count(code, "registry.add(skillsRoute());") == 1);
+    CHECK(source_pins::count(code, "mirrored(") == 0);
     CHECK(source_pins::count(code, "AutonKind::Match") == 0);
 }

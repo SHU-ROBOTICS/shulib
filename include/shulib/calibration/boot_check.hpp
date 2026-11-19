@@ -6,8 +6,11 @@
 // A calibration record is a claim about a robot made on some earlier day. Between then and
 // now: a cable can be re-seated into the next port, a motor can die, a card can be carried
 // from robot one to robot two, a sensor can be swapped for a different kind. None of those
-// is visible from inside the record — the CRC will be perfect, `valid()` will pass, and the
-// description will describe a robot that no longer exists. So before a program that boots robot
+// is visible from the record's drive numbers — the CRC will be perfect, `valid()` will pass, and the
+// description will describe a robot that no longer exists. (Since ROB1-BT the record NAMES its robot —
+// calibration::recordRobotName — and the cascade robots' boot refuses another robot's card before this
+// check; a card moved between two robots of one build passes the port check, so the name is what catches
+// it.) So before a program that boots robot
 // two from the record ("shulib Drive", the competition program, the Auton Tester) constructs a
 // single adapter, it asks the brain what is actually plugged in and compares.
 //

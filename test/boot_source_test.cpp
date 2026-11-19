@@ -46,6 +46,7 @@
 #include <cstdio>
 #include <cstring>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -863,7 +864,7 @@ TEST_CASE("G1 2b test 6r: a usable table that FAILS its own port check is refuse
 
 // ═══ 6s-6x: THE MECHANISMS INTO THE CONFIG (T3 Part 2; the mechanism core's words since MECH-A5) ═══════
 // src/common/boot_source.hpp's pure core projects src/robots/mechanism_table.hpp's list — the REAL
-// declarations, robot two's robot_two::kRobotTwoMechanisms, defined in every build — into
+// declarations of the claw robot (the old robot two's region, test/mechanism_fixtures.hpp since ROB1-BT) — into
 // config::MechanismConfig through the library's ONE projection (mechanism::toMechanismConfig), in the
 // LIST's order; the port check names the declared motor ports as claw pivots; and a declared port —
 // a motor's, or (since MECH-A5) a smart SENSOR's — that the chosen description lists as a drive port
@@ -906,7 +907,7 @@ inline constexpr MechanismTable kTwoLines = mechanisms(wire(roller, motors(9)), 
 namespace {
 
 using shulib::bench::MechanismTable;
-namespace two = shulib::bench::robot_two;
+namespace two = mech_fixture::robot_two;  // the claw robot: the old robot two, a fixture since ROB1-BT
 
 /// Robot two's census with the claws plugged in: the 2026-09-25 census plus MOTOR on 6 and 7.
 FakeDeviceRegistry robotTwoCensusWithClaws() {
@@ -1285,10 +1286,17 @@ TEST_CASE("T3 P2 test 6x: a mechanism SENSOR port the record lists as a DRIVE po
 
 // ═══ ROBOT ONE'S WORDS (chunk ROB1-A, 2026-11-11; the ROB1 brief's T10, re-check R7) ═══════════════════
 // decideBootSourceFrom() takes the robot's words as a LAST, DEFAULTED argument (src/common/robot_words.hpp):
-// every case above passes none and gets robot two's "claw" words byte for byte; robot one's are passed
-// here. Robot one's list is its REAL declaration on its ledger's PLACEHOLDER ports (8 and 9).
+// every case above passes none and gets the host's default — the CLAW words (robot two's until ROB1-BT; the
+// bench bot's now), which carry no record name, so no case above meets the record-name check; robot one's
+// words are passed here, and its records NAME robot one (since ROB1-BT the boot refuses any other).
 
 namespace {
+/// `d` as robot one's Calibrate writes it since ROB1-BT: its provenance NAMES robot one.
+DrivetrainDescription namedOne(DrivetrainDescription d) {
+    std::snprintf(d.provenance, sizeof d.provenance, "%s", "robot=robot-one Nov 16 2026 10:00:00 | ROBOT-MEASURED");
+    return d;
+}
+
 Boot runBootOne(FakeBlockSource& card, const FakeDeviceRegistry& registry, const DrivetrainDescription& table) {
     Boot b;
     const RecordRead record = readRecord(card, kCardPath);
@@ -1304,7 +1312,7 @@ TEST_CASE("ROB1-A T10: robot one's cascade port that the RECORD (or the typed ta
     // BUG CAUGHT (GM21b, R7): robot one's refusal saying "a CLAW port" — robot one has no claw, and a
     // student reading it looks for one; robot one's label saying "claw pivots" (GM21).
     const int cascadePort = shulib::bench::robot_one_facts::kCascadePorts.value().first;
-    DrivetrainDescription tookTheCascade = robotTwoRecord();
+    DrivetrainDescription tookTheCascade = namedOne(robotTwoRecord());
     tookTheCascade.right.signedPorts[3] = static_cast<std::int8_t>(cascadePort);
     FakeBlockSource card{encoded(tookTheCascade)};
     FakeDeviceRegistry census = robotTwoCensus();
@@ -1353,7 +1361,7 @@ TEST_CASE("ROB1-A T10: robot one's declared cascade motors are LABELLED as robot
     // Robot two's record and census stand in for robot one's drive (no robot-one record exists), moved off robot
     // one's mechanism ports: robot two's radio on 1 and IMU on 2 are robot one's cascade and a side toggle, so
     // this record's IMU is on 19 instead (a port robot two's census leaves empty).
-    DrivetrainDescription record = robotTwoRecord();
+    DrivetrainDescription record = namedOne(robotTwoRecord());
     record.imuPort = 19;
     FakeBlockSource card{encoded(record)};
     FakeDeviceRegistry census = robotTwoCensus();
@@ -1373,8 +1381,99 @@ TEST_CASE("ROB1-A T10: robot one's declared cascade motors are LABELLED as robot
     CHECK(b.out.ok);
     CHECK(static_cast<int>(b.out.built.config.mechanismCount) ==
           static_cast<int>(shulib::bench::robot_one::kRobotOneMechanisms.count));
-    // Robot two's label is the constant, verbatim, and the default words are robot two's in the host
+    // The claw words' label is the constant, verbatim, and the default words are the claw words in the host
     // (bench) build.
     CHECK(std::string_view{shulib::bench::kDeclaredMotorLabel} == "claw pivots (declared, not drive motors)");
     CHECK(std::string_view{shulib::bench::ThisRobotWords::value.declaredMotorLabel} == shulib::bench::kDeclaredMotorLabel);
+}
+
+// ═══ THE RECORD NAMES ITS ROBOT (chunk ROB1-BT, 2026-11-16; the ROB1 brief's D10, G1-B, T15) ═══════════════
+// Two robots of one build are wired the same, so each passes the other's port check: before ROB1-BT robot
+// two's card in robot one's brain booted robot one on robot two's calibration in silence. Now a robot's boot
+// (its words name its record) refuses a record that names ANOTHER robot, or NONE, before any port check —
+// one line, and nothing built.
+
+namespace {
+/// Robot `R`'s boot over a record whose provenance is `provenance` (robot two's 2026-09-24 drive, moved off
+/// robot one's mechanism ports — the same stand-in as the T10 case above).
+template <shulib::bench::RobotId R>
+Boot runBootNamed(const char* provenance) {
+    DrivetrainDescription d = robotTwoRecord();
+    d.imuPort = 19;
+    std::snprintf(d.provenance, sizeof d.provenance, "%s", provenance);
+    FakeBlockSource card{encoded(d)};
+    FakeDeviceRegistry census = robotTwoCensus();
+    census.setKind(19, DeviceKind::Imu);
+    const auto& list = shulib::bench::mechanismTableFor(R);
+    int ports[16]{};
+    const std::size_t n = shulib::mechanism::declaredMotorPorts(list, std::span<int>{ports});
+    for (std::size_t i = 0; i < n; ++i) {
+        census.setKind(ports[i], DeviceKind::Motor);
+    }
+    Boot b;
+    const RecordRead record = readRecord(card, kCardPath);
+    b.out = decideBootSourceFrom(record, census, robotTwoTableSigns(), kTankTableMissing, list, "a cascade robot",
+                                 [&b](const char* line) { b.lines.emplace_back(line); },
+                                 shulib::bench::WordsOf<R>{});
+    return b;
+}
+}  // namespace
+
+TEST_CASE("ROB1-BT T15: a record naming ANOTHER robot is refused by the name the card carries, before any port check, on both robots") {
+    // BUG CAUGHT (GM26's family): robot two's card in robot one's brain (or the reverse) booting the other robot's
+    // directions, scale and track width; a refusal that names neither robot; a port check run on a record already
+    // known to be the wrong robot's.
+    using shulib::bench::RobotId;
+    const Boot oneGetsTwos = runBootNamed<RobotId::RobotOne>("robot=robot-two Nov 16 2026 10:00:00 | ROBOT-MEASURED");
+    CHECK_FALSE(oneGetsTwos.out.ok);
+    CHECK(std::string_view{oneGetsTwos.out.headline} == "the card's record is ANOTHER ROBOT'S");
+    CHECK(std::string_view{oneGetsTwos.out.why} == "this card's record is robot=robot-two's; this is robot=robot-one -- "
+                                                   "run shulib Calibrate (slot 4) on THIS robot");
+    // TWO lines, as every refusal ends: the record's, then the boot source's — no port check, no table, nothing built.
+    REQUIRE(oneGetsTwos.lines.size() == 2);
+    CHECK(oneGetsTwos.lines[0] == "calibration record: DECODED, REFUSED -- this card's record is robot=robot-two's; "
+                                  "this is robot=robot-one -- run shulib Calibrate (slot 4) on THIS robot");
+    CHECK(oneGetsTwos.lines[1] == "boot source: REFUSE -- the card's record is another robot's");
+    CHECK(oneGetsTwos.out.source == shulib::calibration::BootSource::Refuse);
+    CHECK(std::string_view{oneGetsTwos.out.sourceWhy} == "the card's record is another robot's");
+    CHECK(oneGetsTwos.out.built.config.mechanismCount == 0);
+    const Boot twoGetsOnes = runBootNamed<RobotId::RobotTwo>("robot=robot-one Nov 16 2026 10:00:00 | ROBOT-MEASURED");
+    CHECK_FALSE(twoGetsOnes.out.ok);
+    CHECK(std::string_view{twoGetsOnes.out.why}.starts_with("this card's record is robot=robot-one's; this is robot=robot-two"));
+    // ...and each robot's OWN record boots.
+    CHECK(runBootNamed<RobotId::RobotOne>("robot=robot-one Nov 16 2026 10:00:00 | ROBOT-MEASURED").out.ok);
+    CHECK(runBootNamed<RobotId::RobotTwo>("robot=robot-two Nov 16 2026 10:00:00 | ROBOT-MEASURED").out.ok);
+}
+
+TEST_CASE("ROB1-BT T15: a record naming NO robot (every record before ROB1-BT) is refused on BOTH robots, saying to re-run Calibrate -- never accepted in silence") {
+    // BUG CAUGHT (GM26): a nameless record accepted on either robot (an old card from the claw robot, or one
+    // written before the rule, would boot unchecked); a mangled name read as a name; the key found mid-word.
+    using shulib::bench::RobotId;
+    for (const char* nameless : {"shulib Calibrate Sep 24 2026 17:42:16 | ROBOT-MEASURED: 8 ports",
+                                 "xrobot=robot-one Nov 16 2026 | ROBOT-MEASURED",  // the key must start a word
+                                 "robot=Robot-One Nov 16 2026 | ROBOT-MEASURED",   // not a record name: capitals
+                                 "robot= Nov 16 2026 | ROBOT-MEASURED"}) {          // an empty name
+        CAPTURE(nameless);
+        for (const Boot& b : {runBootNamed<RobotId::RobotOne>(nameless), runBootNamed<RobotId::RobotTwo>(nameless)}) {
+            CHECK_FALSE(b.out.ok);
+            CHECK(std::string_view{b.out.headline} == "the card's record names NO ROBOT");
+            CHECK(std::string_view{b.out.why}.find("names NO robot (an older record)") != std::string_view::npos);
+            CHECK(std::string_view{b.out.why}.find("run shulib Calibrate (slot 4) on THIS robot") != std::string_view::npos);
+            CHECK(std::string_view{b.out.sourceWhy} == "the card's record names no robot");
+        }
+    }
+    // A name after another word still counts (the key starts a word there), and a later key never overrides an
+    // earlier one.
+    CHECK(runBootNamed<RobotId::RobotOne>("calibrated robot=robot-one | ROBOT-MEASURED").out.ok);
+    CHECK_FALSE(runBootNamed<RobotId::RobotOne>("robot=robot-two then robot=robot-one").out.ok);
+}
+
+TEST_CASE("ROB1-BT T15: the bench bot's (the host's default) words name no record, so its boot checks none; both robots' do") {
+    // BUG CAUGHT: a robot that boots from a record with NO name in its words — its step 0 silently off (robot
+    // one's or robot two's words losing their name would be exactly that: src/common/robot_words.hpp's
+    // static_assert stops the build; this pins the words themselves).
+    CHECK(shulib::bench::ThisRobotWords::value.recordName == nullptr);
+    CHECK(std::string_view{shulib::bench::WordsOf<shulib::bench::RobotId::RobotOne>::value.recordName} == "robot-one");
+    CHECK(std::string_view{shulib::bench::WordsOf<shulib::bench::RobotId::RobotTwo>::value.recordName} == "robot-two");
+    CHECK(std::string_view{shulib::bench::robotRecordName(shulib::bench::RobotId::RobotTwo)} == "robot-two");
 }

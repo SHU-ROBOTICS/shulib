@@ -253,7 +253,8 @@
 //    WITH THE LEG — 5.7 in on a 16 in leg, 14.2 in on a 36 in one: a tank translates only along its
 //    heading, so it ends beside its target, and robot two beside its own on the side opposite robot
 //    one's image — the two misses add (and that leg is already TANK1's unsteered one). The advice: a
-//    turn, two 90 deg turns; a leg, turn first (in two 90 deg turns) where it matters.
+//    turn, two 90 deg turns; a leg, turn first (in two 90 deg turns) where it matters — on a TANK,
+//    always: the host suite's pair check refuses such a leg (test/mirrored_pair_check.hpp, MIRROR1-B).
 //  * The robot is NOT mirrored: a part off its centre line meets the field on the other side of the
 //    reflected path, and its left/right drive differences are its own (A4: HA-259, HA-260 — host test
 //    plant, a 9 % weak side: 0.56 in, 0.44 s).

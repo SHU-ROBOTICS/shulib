@@ -22,7 +22,7 @@ page could not be written); one that loops without logging is stopped here, at 3
 so.
 
 THE STAMP is taken NOW, at run time — `git describe --always --dirty --abbrev=7` and the first 12 hex of
-the SHA-256 of the robot's autons file — never from the build's configure-time hash, which can read clean
+the SHA-256 of the robot's autons file and the shared skills route (src/team/skills_route.cpp) — never from the build's configure-time hash, which can read clean
 for an edited autons file. Both are printed on the page and in the table.
 
 EXIT CODES. 0 drawn, nothing wrong (a TOUCH note is fine); 1 drawn, and the auton was refused, threw,
@@ -51,6 +51,7 @@ BUILD = os.path.join(REPO, "build", "test")
 BINARY = os.path.join(BUILD, "shulib_route_preview")
 GUIDE = os.path.join(REPO, "docs", "guide", "16-testing-an-auton-on-the-bench.md")
 AUTONS_FILES = {"two": "src/team/autons.cpp", "one": "src/team/robot_one_autons.cpp"}
+SHARED_ROUTE = "src/team/skills_route.cpp"  # both robots register it: an edit there changes either robot's autons
 TIMEOUT_SENTENCE = ("the auton did not finish in {} s of laptop time — a loop of steps that never lets "
                     "time pass?")
 NO_PAGE_SENTENCE = ("No page was written for this run (the program removes the auton's last page before it "
@@ -106,13 +107,21 @@ def stamp(cwd=REPO):
         return ""
 
 
-def autons_hash(path):
-    """The first 12 hex of the SHA-256 of `path`; "" when it cannot be read."""
+def autons_hash(*paths):
+    """The first 12 hex of the SHA-256 of the files `paths`, in order; "" when one cannot be read."""
+    h = hashlib.sha256()
     try:
-        with open(path, "rb") as f:
-            return hashlib.sha256(f.read()).hexdigest()[:12]
+        for path in paths:
+            with open(path, "rb") as f:
+                h.update(f.read())
     except OSError:
         return ""
+    return h.hexdigest()[:12]
+
+
+def robot_hash(robot):
+    """The stamp's hash for `robot`: its autons file, then the shared skills route."""
+    return autons_hash(os.path.join(REPO, AUTONS_FILES[robot]), os.path.join(REPO, SHARED_ROUTE))
 
 
 def run_bounded(cmd, timeout=None, memory=None, output=None, cpu=None):
@@ -165,7 +174,7 @@ def command(args, binary=BINARY):
     s = stamp()
     if s:
         cmd += ["--stamp", s]
-    h = autons_hash(os.path.join(REPO, AUTONS_FILES[args.robot]))
+    h = robot_hash(args.robot)
     if h:
         cmd += ["--autons-hash", h]
     return cmd
@@ -290,14 +299,14 @@ def stub_test(check, stamp_now, head):
                   f"the name and --place=X,Y,DEG reach the program as --place X,Y,DEG ({argv[:3]})")
             check("--stamp" in argv and head in argv[argv.index("--stamp") + 1] and
                   argv[argv.index("--stamp") + 1] == stamp_now, f"--stamp is the commit read now, naming HEAD {head}")
-            two = autons_hash(os.path.join(REPO, AUTONS_FILES["two"]))
+            two = robot_hash("two")
             check("--autons-hash" in argv and argv[argv.index("--autons-hash") + 1] == two,
                   f"--autons-hash is robot two's file's ({two})")
             check("--robot" not in argv, "robot two is the program's default: no --robot passed")
             rc, seen, _ = call(["skills", "--robot", "one"])
             argv = seen["argv"] if seen else []
             check(argv[1:3] == ["--robot", "one"], f"--robot one reaches the program ({argv[1:3]})")
-            one = autons_hash(os.path.join(REPO, AUTONS_FILES["one"]))
+            one = robot_hash("one")
             check(bool(one) and one != two and "--autons-hash" in argv
                   and argv[argv.index("--autons-hash") + 1] == one,
                   f"--autons-hash is robot ONE's file's ({one}), never robot two's")
@@ -379,6 +388,16 @@ def self_test():
         after = autons_hash(copy)
         check(len(before) == 12 and before != after and before == autons_hash(os.path.join(REPO, AUTONS_FILES["two"])),
               f"the autons hash changes with the file ({before} -> {after})")
+        shared = os.path.join(tmp, "skills_route.cpp")
+        with open(os.path.join(REPO, SHARED_ROUTE), "rb") as f:
+            route = f.read()
+        with open(shared, "wb") as f:
+            f.write(route)
+        first = autons_hash(copy, shared)
+        with open(shared, "ab") as f:
+            f.write(b"\n// a step\n")
+        check(len(first) == 12 and first != autons_hash(copy, shared) and robot_hash("two") != autons_hash(
+            os.path.join(REPO, AUTONS_FILES["two"])), "an edit to the shared skills route changes the hash too")
     # 8. Every route_preview.py line in guide chapter 16 parses with THIS parser (an unknown flag fails it).
     lines = guide_lines()
     check(len(lines) >= 3, f"guide chapter 16 carries route_preview.py command lines ({len(lines)} found)")

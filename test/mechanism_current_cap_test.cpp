@@ -658,11 +658,11 @@ TEST_CASE("MECH-S-A CA14: robot two's boot is byte for byte a no-limit provider'
     // service then reads nothing, writes nothing and says nothing about limits: the boot before MECH-S-A.
     hal::fake::FakeMotor bare6;
     hal::fake::FakeMotor bare7;
-    mech_rig::Rig before{shulib::bench::mechanismTableFor(shulib::bench::RobotId::RobotTwo), [&](hal::fake::FakeDeviceProvider& d) {
+    mech_rig::Rig before{mech_fixture::robot_two::kRobotTwoMechanisms, [&](hal::fake::FakeDeviceProvider& d) {
                              d.bindMotor(6, static_cast<hal::IMotor&>(bare6));
                              d.bindMotor(7, static_cast<hal::IMotor&>(bare7));
                          }};
-    mech_rig::Rig now{shulib::bench::mechanismTableFor(shulib::bench::RobotId::RobotTwo)};
+    mech_rig::Rig now{mech_fixture::robot_two::kRobotTwoMechanisms};
     REQUIRE(now.sink.size() == before.sink.size());
     for (int i = 0; i < now.sink.size(); ++i) {
         CAPTURE(i);
@@ -679,8 +679,8 @@ TEST_CASE("MECH-S-A CA14: robot two's boot is byte for byte a no-limit provider'
 }
 
 TEST_CASE("MECH-S-A CA14: robot two with claw pivot 6's motor at 1.8 A -- exactly ONE more line, an Info, and still nothing written") {
-    mech_rig::Rig base{shulib::bench::mechanismTableFor(shulib::bench::RobotId::RobotTwo)};
-    mech_rig::Rig r{shulib::bench::mechanismTableFor(shulib::bench::RobotId::RobotTwo), [](hal::fake::FakeDeviceProvider& d) {
+    mech_rig::Rig base{mech_fixture::robot_two::kRobotTwoMechanisms};
+    mech_rig::Rig r{mech_fixture::robot_two::kRobotTwoMechanisms, [](hal::fake::FakeDeviceProvider& d) {
                         d.fakeMotor(6).setDeviceCurrentLimit(Current{1.8});
                     }};
     REQUIRE(r.sink.size() == base.sink.size() + 1);

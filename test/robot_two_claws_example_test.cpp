@@ -39,7 +39,7 @@
 #include "shulib/units/quantity.hpp"
 
 namespace claws_example {
-using namespace shulib::bench::robot_two;  // robot two's mechanisms, and the mechanism words
+using namespace mech_fixture::robot_two;  // the claw robot (the old robot two, a fixture since ROB1-BT), and the mechanism words
 
 // ── guide chapter 16: a claws auton ─────────────────────────────────────────────────────
 RoutineResult grabAndPivot(AutonContext& ctx) {

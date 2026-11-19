@@ -51,6 +51,8 @@
 #include <cstring>
 
 #include "build_selection.hpp"
+#include "robots/robot_one_facts.hpp"
+#include "robots/robot_two_facts.hpp"
 #include "shulib/hal/drive_geometry.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/units/quantity.hpp"
@@ -87,59 +89,47 @@ struct ChassisTable {
     double externalRatio;         // motor output shaft -> wheel: wheel revs per motor rev
                                   // (1.0 = direct drive; tooth counts otherwise); 0 = UNSET
     const char* geometryProvenance;  // who measured the three numbers above, how, and when
+    double pulseYawFloorDeg = 0.0;         // Calibrate: the yaw one pulsed drive motor must turn the robot (0 = default)
+    double restYawRateFloorDegPerS = 0.0;  // Calibrate: "still" means a yaw rate under this (0 = default)
+    // The autons' drive settings (0 = the library's default, motion_config.hpp): top speed, top turn rate,
+    // how hard the heading is corrected, and how close "facing the target" must be to count as arrived.
+    double driveMaxSpeedInPerS = 0.0;
+    double driveMaxTurnRadPerS = 0.0;
+    double headingKp = 0.0;
+    double headingSettleDeg = 0.0;
 };
 
-// ROBOT TWO -- the 2026 tank chassis (build team, stated 2026-09-10): five COUPLED motors
-// per side driving four wheels per side.
-// PORTS: reported by the team lead 2026-09-10, read off the robot while standing BEHIND
-// it (the back of the robot against him, looking toward the front): LEFT 11 12 13 14 15
-// and RIGHT 20 19 18 17 16, each listed BACK -> FRONT (11 and 20 are the rearmost motors,
-// 15 and 16 the frontmost). THE FRONT is therefore the end where ports 15 and 16 sit --
-// the end away from a person who reads the left side as 11..15. Order within a side is
-// informational: the table is a set.
-// SIGNS: MEASURED 2026-09-10 evening by the tester's MOTOR WATCH -- two whole-robot pushes,
-// FRONT-first, identical both times (R3b-PROGRESS Session 2 §10.3):
-//     LEFT -11 +12 -13 +14 -15  |  RIGHT +20 -19 +18 -17 +16
-// A '-' entry is a port PROS reverses (negative port number in ProsMotor); the alternation
-// within a side is the coupled-gear-train signature, not a wiring fault. Port 18 travelled
-// ~20 % short of its side-mates on both pushes -- unexplained; watch it under power (A4
-// register HA-130; the group's disagreement floor tolerates it, HA-133).
-// CARTRIDGE: BLUE, read off a motor by the build team 2026-09-10 -- a reported measurement,
-// so it may be set; it is still printed as a BELIEF wherever the adapter is about to WRITE
-// it (the read-back cannot detect a wrong belief). IMU: PORT 2, mounted 2026-09-10 and seen
-// by the census that evening; the radio is on port 1. Also reported, and deliberately NOT
-// here because nothing here uses them yet: wheels 2.75 in, and "600 rpm" (reads as direct
-// drive 1:1, UNCONFIRMED until tooth counts arrive -- odometry's business, R3b Part 2).
-// `measured` flipped TRUE 2026-09-10 evening: station 1's census showed MOTOR on all ten
-// table ports (after cables on 11, 15 and 19 were re-seated), the IMU on port 2 and the
-// radio on port 1. The cartridge is still a belief read off a motor, not a measurement.
-// GEOMETRY (R3b Parts 1-3, 2026-09-14; A4 register HA-124 wheel, HA-125 track width, HA-126
-// ratio): wheel diameter 2.75 in REPORTED by the team lead
-// ("standard wheels", the bench bot's measured size) -- a report, not yet a ruler on THIS
-// robot; track width UNSET (tape measure, contact line to contact line, owed by the team
-// lead); external ratio UNSET ("600 rpm" was reported, which reads as direct drive 1:1 but is
-// a cartridge speed, not a tooth count -- the coordinator types 1.0 only when "direct drive"
-// or the counts are stated). The library program REFUSES at boot while either is 0.
-// kChassis in the four ROBOT=tank builds (chassisTableFor(RobotId::RobotTwo)).
+// ROBOT TWO -- robot one's TWIN (chunk ROB1-BT, 2026-11-16; the team lead, 2026-11-13: "IT IS LITERALLY
+// THE SAME ROBOT BUILD JUST A MIRRORED ROUTINE"). Its table is robot one's design (kRobotOneChassis,
+// below): shulib Calibrate DISCOVERS the drive ports, their directions, the sides, the IMU, the scale and
+// the track width. The one typed fact, the drive motors' CARTRIDGE, is UNSET until the builder reads it
+// off robot two (robot one's is BLUE) -- Calibrate refuses by name until then. test/robot_twin_test.cpp
+// holds the two tables equal but for the name, the cartridge and the provenance.
+// RETIRED: the old robot two -- the tank chassis with claws -- had the project's one measured, SIGNED
+// table (ports 11-20 with their signs, BLUE, the IMU on port 2; R3b-PROGRESS Session 2). It is kept,
+// byte for byte, as the host-test fixture test/retired_robot_two.hpp; no build reads it.
+// kChassis in the six ROBOT=tank builds (chassisTableFor(RobotId::RobotTwo)).
 inline constexpr ChassisTable kRobotTwoChassis = {
-    .robot = "2026 TANK CHASSIS (robot two)",
-    .left = {-11, 12, -13, 14, -15},
-    .leftCount = 5,
-    .right = {20, -19, 18, -17, 16},
-    .rightCount = 5,
-    .cartridge = Cartridge::Blue,
-    .imuPort = 2,
-    .measured = true,
-    .signsMeasured = true,
-    .provenance = "ports + IMU 2 + radio 1: census 2026-09-10 evening, all ten motors; "
-                  "SIGNS: MOTOR WATCH, two front-first pushes 2026-09-10 evening, identical; "
-                  "front = the 15/16 end (team lead); cartridge BLUE off a motor",
-    .wheelDiameterIn = 2.75,
+    .robot = "2026 CASCADE ROBOT (robot two)",
+    .left = {},
+    .leftCount = 0,
+    .right = {},
+    .rightCount = 0,
+    .cartridge = Cartridge::Unset,
+    .imuPort = 0,
+    .measured = false,
+    .signsMeasured = false,
+    .provenance = "nothing typed -- the cartridge is read off robot two; Calibrate discovers the rest",
+    .wheelDiameterIn = 0.0,
     .trackWidthIn = 0.0,
     .externalRatio = 0.0,
-    .geometryProvenance = "wheel 2.75 in REPORTED by the team lead 2026-09-14 (standard wheels; "
-                          "not yet rulered on this robot); track width UNSET (tape owed); ratio "
-                          "UNSET (\"600 rpm\" reported = a cartridge, not a tooth count)",
+    .geometryProvenance = "nothing typed -- Step 0 (docs/robot-facts-form.md)",
+    .pulseYawFloorDeg = robot_two_facts::kCalibratePulseYawFloorDeg.value(),
+    .restYawRateFloorDegPerS = robot_two_facts::kCalibrateRestYawRateDegPerS.value(),
+    .driveMaxSpeedInPerS = robot_two_facts::kDriveMaxSpeedInPerS.value(),
+    .driveMaxTurnRadPerS = robot_two_facts::kDriveMaxTurnRadPerS.value(),
+    .headingKp = robot_two_facts::kDriveHeadingKp.value(),
+    .headingSettleDeg = robot_two_facts::kDriveHeadingSettleDeg.value(),
 };
 
 // THE BENCH BOT -- measured. 2026-08-13 census, amended by R3a-PROGRESS §9.1 (port 13
@@ -199,33 +189,40 @@ inline constexpr ChassisTable kNoChassis = {
     .geometryProvenance = "none: no typed chassis table for this robot",
 };
 
-// ROBOT ONE -- the 2026 CASCADE robot (ROB1-A, 2026-11-11; the builder, 2026-11-05: "both robots
-// identical, 15 in"; built by 2026-11-15). ONE drive fact is TYPED: the drive motors' CARTRIDGE, BLUE
-// (the team's builder, 2026-11-15, read off the robot -- the facts form's A2; ROB1-C2) -- the one fact
-// Calibrate cannot discover and refuses without. Every other field is UNSET by this table's own rule --
-// NOT the facts ledger (src/robots/robot_one_facts.hpp holds its mechanisms' numbers): no ports (shulib
-// Calibrate DISCOVERS which ports drive, their directions, the sides, the front, the scale and the track
-// width), no IMU port (Calibrate DISCOVERS the IMU from the brain's registry and records it -- a port typed
-// here would only be its cross-check, calibrate_program.hpp's `imuPortStated`; the library still cannot
-// drive a tank WITHOUT an IMU on the robot -- HA-253), no geometry. Every station and program that needs
-// one of these refuses BY NAME (describeMissing below) -- nothing is guessed. Robot one is believed a
-// TANK like robot two ("identical") -- HA-252, the form's A1.
+// ROBOT ONE -- the 2026 CASCADE robot (ROB1-A, 2026-11-11; built by 2026-11-15). Its DRIVE was MEASURED by shulib
+// Calibrate on the robot (2026-11-17 09:03, RUN 3, robot=robot-one): which ports drive, their signs, the sides, the
+// IMU's port, the scale and the effective track width. The brain had NO SD CARD, so the run's result is TRANSCRIBED
+// here from its USB log (.claude/coordinator/robot_logs/robot_one_2026-11-17.log) and the programs boot from this
+// table, with the boot's "no record" warning, until a card holds a record. The cartridge: the team's builder,
+// 2026-11-15, read off the robot (the one fact Calibrate cannot discover).
 // kChassis in the six ROBOT=one builds (chassisTableFor(RobotId::RobotOne)).
 inline constexpr ChassisTable kRobotOneChassis = {
     .robot = "2026 CASCADE ROBOT (robot one)",
-    .left = {},
-    .leftCount = 0,
-    .right = {},
-    .rightCount = 0,
+    .left = {+11, -12, +13, -14, +15},
+    .leftCount = 5,
+    .right = {-16, +17, -18, +19, -20},
+    .rightCount = 5,
     .cartridge = Cartridge::Blue,
-    .imuPort = 0,
-    .measured = false,
-    .signsMeasured = false,
-    .provenance = "cartridge BLUE: the team's builder, 2026-11-15, read off the robot; Calibrate discovers the rest",
-    .wheelDiameterIn = 0.0,
-    .trackWidthIn = 0.0,
-    .externalRatio = 0.0,
-    .geometryProvenance = "nothing typed -- Step 0 (docs/robot-facts-form.md)",
+    .imuPort = 5,
+    .measured = true,
+    .signsMeasured = true,
+    .provenance = "MEASURED by shulib Calibrate on robot one, 2026-11-17 09:03 (RUN 3), transcribed from its USB "
+                  "log (no SD card); cartridge BLUE: the team's builder, 2026-11-15",
+    // The scale at the MOTOR SHAFT (ratio 1.0): Calibrate's inches per radian, L 1.320179 and R 1.332460 (0.9 pct
+    // apart), typed as their mean (a table holds one) -- the diameter is 2 x 1.3263195 in, EFFECTIVE, not a ruler's.
+    .wheelDiameterIn = 2.652639,
+    .trackWidthIn = 13.2305,  // EFFECTIVE (a turning tank scrubs -- HA-135): the spins, CCW 13.2268 / CW 13.2341 in
+    .externalRatio = 1.0,
+    .geometryProvenance = "MEASURED by shulib Calibrate on robot one, 2026-11-17 09:03 (RUN 3): the 48 in push and "
+                          "the two 720 deg spins, transcribed from its USB log",
+    // Calibrate's thresholds for its 10-motor drive: the facts ledger's (chosen, 2026-11-16).
+    .pulseYawFloorDeg = robot_one_facts::kCalibratePulseYawFloorDeg.value(),
+    .restYawRateFloorDegPerS = robot_one_facts::kCalibrateRestYawRateDegPerS.value(),
+    // The autons' drive settings: the facts ledger's (chosen, 2026-11-17).
+    .driveMaxSpeedInPerS = robot_one_facts::kDriveMaxSpeedInPerS.value(),
+    .driveMaxTurnRadPerS = robot_one_facts::kDriveMaxTurnRadPerS.value(),
+    .headingKp = robot_one_facts::kDriveHeadingKp.value(),
+    .headingSettleDeg = robot_one_facts::kDriveHeadingSettleDeg.value(),
 };
 
 /// Robot `id`'s chassis table: THE ONE PLACE a robot becomes a table. A case per robot and no
@@ -259,12 +256,10 @@ static_assert(&kChassis == &chassisTableFor(kRobotId),
               "kChassis must be chassisTableFor(kRobotId): this build's robot, chosen by the one chain");
 // ...and the mapping itself restated per robot, by NAME, so a wrong robot inside chassisTableFor()
 // fails that robot's build too (the host suite calls it for every robot; the robot builds are the
-// ones that carry the answer). Robot two's table must also be the SIGNED one, five motors a side:
-// the bench bot's unsigned table under the tank define is the exact defect the old #if allowed.
-static_assert(kRobotId != RobotId::RobotTwo
-                  || (&kChassis == &kRobotTwoChassis && kChassis.signsMeasured
-                      && kChassis.leftCount == 5 && kChassis.rightCount == 5),
-              "ROBOT=tank must select robot two's SIGNED table (five motors a side)");
+// ones that carry the answer). (Until ROB1-BT robot two's table also had to be the SIGNED one; the twin's
+// is robot one's design, every drive field UNSET, so it is restated by ADDRESS, like robot one's.)
+static_assert(kRobotId != RobotId::RobotTwo || &kChassis == &kRobotTwoChassis,
+              "ROBOT=tank must select robot two's table");
 static_assert(kRobotId != RobotId::BenchBot || &kChassis == &kBenchBotChassis,
               "the bench build must select the bench bot's table");
 static_assert(kRobotId != RobotId::InventedXDrive || &kChassis == &kNoChassis,

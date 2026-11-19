@@ -1,92 +1,51 @@
 #pragma once
 //
 // THE MECHANISM TABLE — every robot's MECHANISMS, in the mechanism core's words (chunk MECH-A5,
-// 2026-10-29; chunk T3 wrote the first table on 2026-09-26, the pneumatic claw its addendum E2). Each
-// robot's mechanisms are DECLARATIONS — what each one IS (mechanism/kinds.hpp: an Arm, a Lift, a
-// Flywheel, a Power roller, a Pneumatic) — followed by ONE LIST that says where each is plugged in
-// (mechanism/wiring.hpp: `wire(claw, lines('A'))`), all inside that robot's own NAMESPACE
-// (`robot_two`), so two robots' `claw`s never collide in this one file every build compiles. The
-// PROS-free sibling of src/robots/chassis_table.hpp, which stays "the ONE typed input about a
-// drivetrain"; selected, like it, by kRobotId — which src/build_selection.hpp's ONE chain sets in the
-// same branch as the program and the beacon — so `make ROBOT=tank` and this file cannot disagree about
-// which robot it is. THIS FILE HAS NO #if OF ITS OWN (G1 Part 2c's final run, the team lead's ruling
-// "one chain picks both"); the src build gate's step 0 fails any build switch named here.
+// 2026-10-29; chunk T3 wrote the first table on 2026-09-26). Each robot's mechanisms are DECLARATIONS —
+// what each one IS (mechanism/kinds.hpp: an Arm, a Lift, a Flywheel, a Power roller, a Pneumatic) —
+// followed by ONE LIST that says where each is plugged in (mechanism/wiring.hpp: `wire(claw, lines('A'))`),
+// all inside that robot's own NAMESPACE (`robot_one`, `robot_two`), so two robots' `cascade`s never collide
+// in this one file every build compiles. The PROS-free sibling of src/robots/chassis_table.hpp; selected,
+// like it, by kRobotId — which src/build_selection.hpp's ONE chain sets with the program and the beacon.
+// THIS FILE HAS NO #if OF ITS OWN (the team lead's ruling "one chain picks both"); the src build gate's
+// step 0 fails any build switch named here.
 //
-// WHAT IT DECLARES — what the robot IS, never which button does what (that is the robot's DRIVER
-// FILE's: src/team/robot_two_driver.hpp, the team lead's ruling R1 of 2026-09-27). Robot two (the
-// 2026 tank chassis) has two SEPARATE claw PIVOT motors on ports 6 and 7, RED, each holding its angle
-// when let go, and a PNEUMATIC CLAW on the brain's 3-wire port A, CLOSED at the start and when made
-// safe, keeping its state through a disable (the team lead, 2026-09-26; T3 and its addendum §0).
-// Every other robot declares none. Two pivots are two DECLARATIONS — a mechanism fans one voltage to
-// all its motors, so one two-motor declaration would move both claws at once (T3 brief, landmine 1).
+// TWO ROBOTS, ONE BUILD (the team lead, 2026-11-13: "IT IS LITERALLY THE SAME ROBOT BUILD JUST A MIRRORED
+// ROUTINE"). Robot one's region is the design: a string cascade, two side toggles, and three pistons (the
+// claw, the front toggle — the flipper — and the ramp). Robot two's region is ITS TWIN, token for token,
+// with `robot_one` -> `robot_two` (test/robot_twin_test.cpp fails the host suite on any other difference).
+// Each region's NUMBERS come from its own robot's facts file — src/robots/robot_one_facts.hpp,
+// src/robots/robot_two_facts.hpp — read as `facts::...`, so the two robots differ ONLY in their facts.
+// Robot two's old claw build (two claw pivots on ports 6 and 7, a pneumatic claw on 3-wire A) was RETIRED
+// at ROB1-BT (2026-11-16); its region lives on as a host-test fixture (test/mechanism_fixtures.hpp's
+// mech_fixture::robot_two).
 //
-// A VALUE IS NEVER INVENTED. A field a declaration needs and does not state FAILS THE BUILD, by name
-// (mechanism/spec.hpp's refusals: a Pneumatic's `.moveTime`, a cartridge, a safe state, ...), and so do
+// WHAT IT DECLARES — what the robot IS, never which button does what (that is each robot's DRIVER FILE:
+// src/team/robot_one_driver.hpp, src/team/robot_two_driver.hpp). A value is NEVER INVENTED: a field a
+// declaration needs and does not state FAILS THE BUILD, by name (mechanism/spec.hpp's refusals), and so do
 // a port used twice, a 3-wire letter where a smart port goes, a level count that does not match the
-// wiring — mistakes the mechanism core refuses at build, each by name (GCC names your line on the
-// error or in its first note — guide chapter 18, "reading a refusal").
-// What the build checks no longer needs a check here: until MECH-A5 this file carried five
-// consistency checks of its own over hand-typed entry structs; the declarations and mechanisms(...)
-// make every one of them now, and a declaration's PROVENANCE is the comment above it (the decided
-// rule of the MECH brief: a build check could prove a string non-empty, never that it is true — the
-// facts that matter are in these comments AND the A4 register).
+// wiring (guide chapter 18, "reading a refusal"). A motor that turns the wrong way is fixed in its robot's
+// facts file (its direction) — never by swapping buttons in a driver file.
 //
-// SIGNS AND THE CLAW'S LEVEL LIVE HERE AND NOWHERE ELSE. A pivot's `.motors = {Forward}` is its
-// motor's own forward; `Reversed` is the flip, written on its declaration and reversed ONCE, by the
-// motor adapter (a negative port in the config the boot derives). Which PHYSICAL way either pivot
-// turns is UNMEASURED (Station J, A4 register HA-153), and a pivot that moves the wrong way is fixed
-// on ITS declaration — never by swapping its buttons in the driver file. The claw's open level is a
-// GUESS written ON its `.positions` line (closed = Low, open = High — "line ON = open", the T3
-// addendum's starting point, A4 register HA-159): Station J.9 settles it, and the fix for a claw that
-// opens on the wrong press is to swap Low and High on that line — its start and safe positions are
-// NAMES ("closed"), so the start level and the safe level move with the swap, and nothing else is
-// edited. The flip is a measurement: test/mechanism_table_test.cpp pins the levels, and HA-159 and
-// Station J.9 quote them — all three change together.
+// THE HOST SUITE TESTS THESE VERY BYTES. Every robot's list is defined in EVERY build under its own name
+// (robot_one::kRobotOneMechanisms, robot_two::kRobotTwoMechanisms), and only the selection —
+// mechanismTableFor(kRobotId), below — depends on the build. A program uses kMechanisms, never a robot's
+// own list or namespace: the src build gate's step 0 fails a program that names a robot's list, its
+// namespace or mechanismTableFor() outside a static_assert — the namespace is allowed only here, in
+// test/, and in that robot's OWN team files (src/team/robot_<n>_*, and src/team/autons.{hpp,cpp} for
+// robot two).
 //
-// ONE LINE, because one is what was reported (port A). Whether the valve is single or double is NOT
-// KNOWN (HA-159); Station J looks at how many 3-wire cables run from the valve into the brain. If it is
-// two, the claw does not quietly gain a line: the second line's letter is read off the brain first,
-// and each position then states one level PER line (`{"closed", {Low, High}}`) — the build refuses a
-// position whose level count differs from its wiring's lines.
+// WHO READS IT: every program that BOOTS a robot from its record (src/common/boot_source.hpp derives the
+// config's mechanisms from the list, in the list's order, and refuses a record that drives a declared
+// port); each robot's driver file (its controls are checked against the list at build); the team's
+// autons (`using namespace robot_one;` — a step names a declaration: `r.set(claw["open"])`); and "shulib
+// Calibrate" (src/robots/calibrate_facts.hpp: every declared motor port is dropped from its census
+// before any motor is made, so a mechanism motor is never a drive candidate).
 //
-// THE HOST SUITE TESTS THESE VERY BYTES. Every robot's list is defined in EVERY build under its own
-// name (robot_two::kRobotTwoMechanisms), and only the selection — mechanismTableFor(kRobotId), below —
-// depends on the build, so test/mechanism_table_test.cpp reads the real declarations field by field
-// and calls mechanismTableFor() for EVERY RobotId. A program uses kMechanisms, never a robot's own
-// list or namespace: the src build gate's step 0 fails a program that names kRobotTwoMechanisms,
-// kNoMechanisms or mechanismTableFor() outside a static_assert, and — PER ROBOT, since MECH-A5 — one
-// that names `robot_two` at all (`robot_two::`, `using namespace robot_two`, re-opening it, an alias, a
-// macro, split over lines or by a line splice: the name wherever the text writes it — the gate reads the
-// text as the compiler does; a name a macro pastes together with `##` is beyond it), outside
-// this file, test/, a static_assert and robot two's OWN team files (src/team/robot_two_*, and
-// src/team/autons.{hpp,cpp} by the gate's reviewed TEAM_FILE_ROBOT map).
+// G3a's GENERATOR may later take each region over: the lines between a region's two marker comments
+// (robot one's, robot two's) are one contiguous block with no hand-written line inside.
 //
-// G3a's GENERATOR WRAPS ROBOT TWO'S REGION BYTE FOR BYTE: `// [robot two mechanisms]` ..
-// `// [/robot two mechanisms]` is one contiguous block — the caveat comments, the declarations, the
-// wiring — with no hand-written line inside (the MECH brief's §6.2 item 2). mechanismTableFor() stays a
-// case per robot with no default; G3a Part 2's `[mechanism selection]` markers go inside it.
-//
-// WHO READS IT, as of MECH-A5:
-//   * every program that BOOTS robot two from its record ("shulib Drive", the Auton Tester, the
-//     competition program): src/common/boot_source.hpp derives the config::RobotConfig's mechanisms from
-//     this list (mechanism::toMechanismConfig, in the list's order), and its declared-port rule refuses
-//     a record that drives a declared mechanism port — a motor's or a smart sensor's; each program binds
-//     ONE mechanism::MechanismService over the list and the Robot's built devices, prints one boot line
-//     per role (mechanism::roleLine) and publishes the list's ROUTE IDS (runner::MechanismRoutes);
-//   * robot two's DRIVER FILE (src/team/robot_two_driver.hpp): its controls(...) are checked against
-//     kRobotTwoMechanisms at build, and bound to the service by each declaration's name at boot;
-//   * the team's autons (src/team/autons.cpp): `using namespace robot_two;`, then a step names a
-//     declaration (`r.set(claw["closed"])`);
-//   * "shulib Calibrate" (the standard Calibrate since CAL1 Part B, 2026-11-05):
-//     src/robots/calibrate_facts.hpp maps this list into its facts — one declared port per motor role,
-//     mechanism::declaredMotorPorts(), named by its mechanism (the MECH brief's N9) — and the program
-//     drops those ports from its census BEFORE any motor is made, so a declared pivot is never a drive
-//     candidate, and WATCHES them during the push without commanding them. (Until CAL1 Part B robot
-//     two's own Calibrate dropped them through dropDeclaredMechanismPorts(), deleted with it.)
-//
-// PROS-FREE ON PURPOSE: plain declarations and pure helpers, so the host test includes it from src/.
-// It lives in src/, not include/shulib/, because it is a per-robot composition fact, not library API.
-// NOTHING HERE HAS RUN ON A ROBOT.
+// PROS-FREE ON PURPOSE: the host test includes it from src/. NOTHING HERE HAS RUN ON A ROBOT.
 
 #include <array>
 #include <cstddef>
@@ -95,6 +54,8 @@
 
 #include "build_selection.hpp"
 #include "robots/chassis_table.hpp"
+#include "robots/robot_one_facts.hpp"
+#include "robots/robot_two_facts.hpp"
 #include "shulib/mechanism/kinds.hpp"
 #include "shulib/mechanism/wiring.hpp"
 
@@ -104,63 +65,11 @@ namespace shulib::bench {
 /// alias so the src build gate's step 0 reads `constexpr MechanismTable <name>` as it always has.
 using mechanism::MechanismTable;
 
-namespace robot_two {
-using namespace mechanism::words;
-// [robot two mechanisms]
-// The claw pivots (the team lead, 2026-09-26): RED; each holds its angle when let go. Ports 6/7 are
-// as REPORTED -- no census has seen them (HA-153); each + is its motor's own forward, and which way
-// that turns the claw is unmeasured (the bench page's direction check). No stall signature: held
-// against its stop, a pivot is cut only by the driver letting go (HA-154); a loaded hold is
-// unmeasured (HA-156).
-inline constexpr Power clawPivot6{.name = "claw pivot 6", .motors = {Forward}, .cartridge = Red, .safe = Hold};
-inline constexpr Power clawPivot7{.name = "claw pivot 7", .motors = {Forward}, .cartridge = Red, .safe = Hold};
-
-// The pneumatic claw (the team lead, 2026-09-26): CLOSED at the start and when made safe. Which
-// level OPENS it, and whether it is single or double, are GUESSES (HA-159; Station J.9): to flip
-// it, swap Low and High below.
-inline constexpr Pneumatic claw{
-    .name = "claw",
-    .positions = {{"closed", {Low}, grabs}, {"open", {High}}},
-    .start = "closed",
-    .safe = "closed",
-    .moveTime = 0.5_s,  // PROVISIONAL (HA-185): Station J times it
-};
-
-// Where each one is plugged in. Re-cabling changes only these lines. A claw cable swapped with a
-// drive cable is invisible to the boot (HA-155): label the cables.
-inline constexpr MechanismTable kRobotTwoMechanisms = mechanisms(
-    wire(clawPivot6, motors(6)),
-    wire(clawPivot7, motors(7)),
-    wire(claw, lines('A')));
-// [/robot two mechanisms]
-}  // namespace robot_two
-}  // namespace shulib::bench
-
-// ═══ ROBOT ONE — the 2026 CASCADE robot (chunk ROB1-A, 2026-11-11) ═══════════════════════════
-// EVERY LINE FOR ROBOT ONE IS BELOW ROBOT TWO'S REGION, on purpose (the ROB1 brief's re-check R5):
-// each declaration and wire(...) above records the LINE it is written on into the list robot two's
-// packages carry, so one line added or removed above `// [/robot two mechanisms]` would change all six
-// of robot two's tank packages while their machine code and strings stayed the same. This header's
-// banner names robot two only; for robot one, every sentence of it holds with these differences:
-//   * its numbers come from ITS FACTS LEDGER, src/robots/robot_one_facts.hpp — read as `facts::...`
-//     below — where every number nobody has measured yet is OWED: a placeholder the host suite runs
-//     on, which REFUSES every robot-one build of a program that needs it, by name;
-//   * its driver file is src/team/robot_one_driver.hpp and its autons src/team/robot_one_autons.cpp
-//     (`using namespace robot_one;`), the src build gate allowing `robot_one` in src/team/robot_one_*;
-//   * its flipper is the FRONT TOGGLE, a pneumatic (the builder's pistons on B, made the autons' flipper by
-//     the coordinator, 2026-11-15; ROB1-C2 declared it as the
-//     test-proven pneumatic form of test/robot_one_flipper_forms_example_test.cpp — guide chapter 21);
-//   * two checks below its list hold ITS facts to ITS list: every non-drive motor the Devices screen
-//     lists is declared (or shulib Calibrate would power it as a drive candidate — [R9]), and the
-//     flipper's typed kind matches what is declared.
-// G3a's generator may take this region over later as it will robot two's: the region between the two
-// `[robot one mechanisms]` marker comments below is one contiguous block with no hand-written line inside.
-// NOTHING ABOUT ROBOT ONE HAS RUN ON A ROBOT: its facts are typed from its builder's answers (2026-11-15), not
-// measured, and no census, reading or photo of it is in this project's records.
-#include "robots/robot_one_facts.hpp"
-
-namespace shulib::bench {
-
+// ═══ ROBOT ONE — the 2026 CASCADE robot (chunk ROB1-A, 2026-11-11; its real mechanisms ROB1-C2, 2026-11-15) ═══
+// Its numbers come from ITS FACTS FILE, src/robots/robot_one_facts.hpp — read as `facts::...` below — where
+// every number nobody has given yet is OWED: a placeholder the host suite runs on, which REFUSES every
+// robot-one build of a program that needs it, by name. Its flipper is the FRONT TOGGLE, a pneumatic
+// (ROB1-C2). Its facts are typed from its builder's answers (2026-11-15), not measured.
 namespace robot_one {
 using namespace mechanism::words;
 namespace facts = robot_one_facts;
@@ -252,6 +161,114 @@ inline constexpr MechanismTable kRobotOneMechanisms = mechanisms(
 // [/robot one mechanisms]
 }  // namespace robot_one
 
+// ═══ ROBOT TWO — robot one's TWIN (chunk ROB1-BT, 2026-11-16) ══════════════════════════════════
+// The same build: this region is robot one's, token for token, with `robot_one` -> `robot_two`
+// (test/robot_twin_test.cpp). Read robot one's region above for what each mechanism is. Its numbers come
+// from src/robots/robot_two_facts.hpp — every one OWED until the builder reads it off robot two, so every
+// robot-two build refuses, by name, until then.
+namespace robot_two {
+using namespace mechanism::words;
+namespace facts = robot_two_facts;
+// [robot two mechanisms]
+// THE CASCADE (robot one's).
+inline constexpr Lift cascade{
+    .name = "cascade",
+    .motors = {facts::kCascadeDirections.value().first, facts::kCascadeDirections.value().second},
+    .cartridge = facts::kCascadeCartridge.value(),
+    .gearing = gears(facts::kCascadeTeeth.value().motor, facts::kCascadeTeeth.value().spool),
+    .shape = measured(facts::kCascadeRows.value().row),
+    .safe = Hold,
+    .stall = facts::cascadeStall(),
+    .currentCap = {.amps = facts::kCascadeCapAmps.value()},
+    .range = {facts::cascadeBottom(), facts::cascadeTop()},
+    .gravity = constantGravity(units::Voltage{facts::kCascadeHoldVolts.value()}),
+    .home = homeByStall(facts::cascadeBottom(), units::Voltage{facts::kCascadeHomingPushVolts.value()},
+                        facts::cascadeHomingStall()),
+    .presets = {{facts::lv(0).name, facts::lv(0).at}, {facts::lv(1).name, facts::lv(1).at},
+                {facts::lv(2).name, facts::lv(2).at}, {facts::lv(3).name, facts::lv(3).at},
+                {facts::lv(4).name, facts::lv(4).at}, {facts::lv(5).name, facts::lv(5).at}},
+    .unhomedVolts = units::Voltage{facts::kCascadeUnhomedVolts.value()},
+};
+
+// THE SIDE TOGGLES (robot one's).
+inline constexpr Power rightToggle{.name = "right toggle", .motors = {facts::kRightToggleDirection.value()},
+                                   .cartridge = facts::kSideToggleCartridge.value(), .safe = Brake,
+                                   .currentCap = {.amps = facts::kSideToggleCapAmps.value()}};
+inline constexpr Power leftToggle{.name = "left toggle", .motors = {facts::kLeftToggleDirection.value()},
+                                  .cartridge = facts::kSideToggleCartridge.value(), .safe = Brake,
+                                  .currentCap = {.amps = facts::kSideToggleCapAmps.value()}};
+
+// THE PISTONS (robot one's): the claw, the front toggle (the flipper), the ramp.
+inline constexpr Pneumatic claw{
+    .name = "claw",
+    .positions = {{"closed", {!facts::kClawOpenLevel.value()}, grabs}, {"open", {facts::kClawOpenLevel.value()}}},
+    .start = facts::unpoweredPosition(facts::kClawOpenLevel.value(), "closed", "open"),
+    .safe = facts::unpoweredPosition(facts::kClawOpenLevel.value(), "closed", "open"),
+    .moveTime = facts::kClawStrokeTime.value(),
+};
+inline constexpr Pneumatic flipper{
+    .name = "flipper",
+    .positions = {{"closed", {!facts::kFlipperOpenLevel.value()}}, {"open", {facts::kFlipperOpenLevel.value()}}},
+    .start = facts::unpoweredPosition(facts::kFlipperOpenLevel.value(), "closed", "open"),
+    .safe = facts::unpoweredPosition(facts::kFlipperOpenLevel.value(), "closed", "open"),
+    .moveTime = facts::kFlipperStrokeTime.value(),
+};
+inline constexpr Pneumatic ramp{
+    .name = "ramp",
+    .positions = {{"up", {!facts::kRampDownLevel.value()}}, {"down", {facts::kRampDownLevel.value()}}},
+    .start = facts::unpoweredPosition(facts::kRampDownLevel.value(), "up", "down"),
+    .safe = facts::unpoweredPosition(facts::kRampDownLevel.value(), "up", "down"),
+    .moveTime = facts::kRampStrokeTime.value(),
+};
+
+// Where each one is plugged in (robot two's facts file).
+inline constexpr MechanismTable kRobotTwoMechanisms = mechanisms(
+    wire(cascade, motors(facts::kCascadePorts.value().first, facts::kCascadePorts.value().second)),
+    wire(rightToggle, motors(facts::kRightTogglePort.value())),
+    wire(leftToggle, motors(facts::leftTogglePort())),
+    wire(claw, lines(facts::kClawLine.value())),
+    wire(flipper, lines(facts::kFlipperLine.value())),
+    wire(ramp, lines(facts::kRampLine.value())));
+// [/robot two mechanisms]
+}  // namespace robot_two
+
+// ═══ THIS BUILD'S ROBOT'S MECHANISMS, BY NAME (chunk ROB1-BT) ═══════════════════════════════════
+// The shared skills route (src/team/skills_route.cpp) is compiled into BOTH robots' builds, so the names it
+// uses must be the BUILDING robot's: after `using namespace this_robot;`, `cascade` is robot one's cascade in
+// robot one's build and robot two's in robot two's, and `facts::lv(i)` reads that robot's facts. (The bench
+// bot and the X-drive, which run no auton, get robot two's — as they get its autons. So does the HOST suite,
+// a bench build: when it runs robot one's list, a step finds robot one's mechanism by its NAME, and a NAMED
+// level only at the same height — so the twin test holds both robots' levels equal.)
+// A mirror swaps the robot's SIDES, not these names: robot two runs the route mirrored, so robot one's
+// `rightToggle` job is robot two's LEFT toggle — the route picks it with `competition::isMirrored(ctx)`.
+namespace this_robot {
+using namespace mechanism::words;  // the words a route's steps use: stalls, seesPiece, High, within ...
+/// True in robot one's builds.
+inline constexpr bool kRobotOneBuild = kRobotId == RobotId::RobotOne;
+inline constexpr const mechanism::Lift& cascade = kRobotOneBuild ? robot_one::cascade : robot_two::cascade;
+inline constexpr const mechanism::Power& rightToggle = kRobotOneBuild ? robot_one::rightToggle : robot_two::rightToggle;
+inline constexpr const mechanism::Power& leftToggle = kRobotOneBuild ? robot_one::leftToggle : robot_two::leftToggle;
+inline constexpr const mechanism::Pneumatic& claw = kRobotOneBuild ? robot_one::claw : robot_two::claw;
+inline constexpr const mechanism::Pneumatic& flipper = kRobotOneBuild ? robot_one::flipper : robot_two::flipper;
+inline constexpr const mechanism::Pneumatic& ramp = kRobotOneBuild ? robot_one::ramp : robot_two::ramp;
+/// `facts::lv(i)` — the building robot's level in slot `i` (0..5).
+struct facts {
+    /// The level in slot `i`.
+    static constexpr const robot_one_facts::Level& lv(std::size_t i) {
+        return kRobotOneBuild ? robot_one_facts::lv(i) : robot_two_facts::lv(i);
+    }
+};
+}  // namespace this_robot
+// Each robot's build names its OWN (the host, a bench build, sees only robot two's side; these see both).
+static_assert(kRobotId != RobotId::RobotOne || (&this_robot::cascade == &robot_one::cascade &&
+                                                &this_robot::facts::lv(0) == &robot_one_facts::lv(0)),
+              "robot one's build must give the shared route robot one's mechanisms (this_robot)");
+static_assert(kRobotId != RobotId::RobotTwo || (&this_robot::cascade == &robot_two::cascade &&
+                                                &this_robot::facts::lv(0) == &robot_two_facts::lv(0)),
+              "robot two's build must give the shared route robot two's mechanisms (this_robot)");
+
+// ═══ EACH ROBOT'S FACTS AGAINST ITS OWN LIST ════════════════════════════════════════════════════
+
 /// [R9] True when every port in `listed` (the Devices screen's non-drive motors) is a declared MOTOR
 /// port of `m` (mechanism::declaredMotorPorts — exactly the ports shulib Calibrate's facts declare).
 constexpr bool everyListedMotorDeclared(const robot_one_facts::PortList& listed, const MechanismTable& m) {
@@ -308,43 +325,45 @@ constexpr bool flipperKindMatches(robot_one_facts::FlipperKind kind, const Mecha
     return false;
 }
 
-/// Robot one's two fact checks' refusals, by NAME (the mechanism core's idiom: GCC prints the reason as
-/// the function's name) — deliberately not constexpr.
+/// The two fact checks' refusals, by NAME (the mechanism core's idiom: GCC prints the reason as the
+/// function's name) — deliberately not constexpr. The static_assert's line says which robot.
 namespace refused {
-/// [R9] A motor the brain's Devices screen lists (the ledger's kNonDriveMotorPorts) is not a drive motor
-/// and robot one's list does not declare it: shulib Calibrate would take it for a drive candidate and
-/// POWER it (its census declares only the list's motor ports). Declare its mechanism — the flipper's block
-/// included — or correct the ledger.
-inline void a_motor_the_devices_screen_lists_is_not_a_drive_motor_and_is_not_declared_in_robot_ones_list() {}
-/// The flipper's typed kind (the ledger's kFlipperKind) disagrees with robot one's list: a motor arm needs
-/// an Arm named "flipper", a pneumatic a Pneumatic named "flipper", a passive bar or "not on the robot yet"
-/// nothing named "flipper".
-inline void the_flippers_typed_kind_does_not_match_robot_ones_list() {}
+/// [R9] A motor the brain's Devices screen lists (the facts file's kNonDriveMotorPorts) is not a drive motor
+/// and its robot's list does not declare it: shulib Calibrate would take it for a drive candidate and
+/// POWER it. Declare its mechanism, or correct the facts file.
+inline void a_motor_the_devices_screen_lists_is_not_a_drive_motor_and_is_not_declared_in_its_robots_list() {}
+/// The flipper's typed kind (the facts file's kFlipperKind) disagrees with its robot's list: a motor arm
+/// needs an Arm named "flipper", a pneumatic a Pneumatic named "flipper", a passive bar or "not on the
+/// robot yet" nothing named "flipper".
+inline void the_flippers_typed_kind_does_not_match_its_robots_list() {}
 }  // namespace refused
 
-/// ROBOT ONE'S FACTS AGAINST ROBOT ONE'S LIST (the two refusals above). In EVERY build — they are robot
-/// one's files, compiled in every build like robot two's — so a typed fact that disagrees with the list
-/// fails the host suite too, the day it is typed. test/compile_refusals/ pins both refusals by name.
-consteval bool robotOneNonDriveMotorsDeclared(const robot_one_facts::PortList& listed, const MechanismTable& m) {
+/// A ROBOT'S FACTS AGAINST ITS OWN LIST (the two refusals above), checked for both robots in EVERY build,
+/// so a typed fact that disagrees with its list fails the host suite the day it is typed.
+/// test/compile_refusals/ pins both refusals by name.
+consteval bool nonDriveMotorsDeclared(const robot_one_facts::PortList& listed, const MechanismTable& m) {
     if (!everyListedMotorDeclared(listed, m)) {
-        refused::a_motor_the_devices_screen_lists_is_not_a_drive_motor_and_is_not_declared_in_robot_ones_list();
+        refused::a_motor_the_devices_screen_lists_is_not_a_drive_motor_and_is_not_declared_in_its_robots_list();
     }
     return true;
 }
 /// The flipper half (above).
-consteval bool robotOneFlipperKindMatches(robot_one_facts::FlipperKind kind, const MechanismTable& m) {
+consteval bool flipperKindAgrees(robot_one_facts::FlipperKind kind, const MechanismTable& m) {
     if (!flipperKindMatches(kind, m)) {
-        refused::the_flippers_typed_kind_does_not_match_robot_ones_list();
+        refused::the_flippers_typed_kind_does_not_match_its_robots_list();
     }
     return true;
 }
-static_assert(robotOneNonDriveMotorsDeclared(robot_one_facts::kNonDriveMotorPorts.value(),
-                                             robot_one::kRobotOneMechanisms),
+static_assert(nonDriveMotorsDeclared(robot_one_facts::kNonDriveMotorPorts.value(), robot_one::kRobotOneMechanisms),
               "robot one: a motor the Devices screen lists is not a drive motor and is NOT DECLARED in "
               "src/robots/mechanism_table.hpp -- shulib Calibrate would take it for a drive candidate and power it");
-static_assert(robotOneFlipperKindMatches(robot_one_facts::kFlipperKind.value(), robot_one::kRobotOneMechanisms),
-              "robot one: the flipper's typed kind does not match robot one's list -- a motor arm needs an Arm "
-              "named \"flipper\", a pneumatic a Pneumatic named \"flipper\", a passive bar or 'not on the robot yet' none");
+static_assert(flipperKindAgrees(robot_one_facts::kFlipperKind.value(), robot_one::kRobotOneMechanisms),
+              "robot one: the flipper's typed kind does not match robot one's list");
+static_assert(nonDriveMotorsDeclared(robot_two_facts::kNonDriveMotorPorts.value(), robot_two::kRobotTwoMechanisms),
+              "robot two: a motor the Devices screen lists is not a drive motor and is NOT DECLARED in "
+              "src/robots/mechanism_table.hpp -- shulib Calibrate would take it for a drive candidate and power it");
+static_assert(flipperKindAgrees(robot_two_facts::kFlipperKind.value(), robot_two::kRobotTwoMechanisms),
+              "robot two: the flipper's typed kind does not match robot two's list");
 
 /// Every other robot (the bench bot, the invented X-drive): no mechanism declared.
 inline constexpr MechanismTable kNoMechanisms = mechanism::mechanisms();
@@ -435,7 +454,7 @@ constexpr bool isDeclaredMechanismPort(const MechanismTable& t, int port) {
 
 // ═══ THE COMPILE-TIME CHECKS ═══════════════════════════════════════════════════════════════
 // Every declaration and every list checked itself as it was written (mechanisms(...)). What only this
-// file can check is each list beside its robot's DRIVE — robot two's real pair in every build, and the
+// file can check is each list beside its robot's DRIVE — both robots' real pairs in every build, and the
 // build's own pair:
 static_assert(clearOfItsDrive(robot_two::kRobotTwoMechanisms, kRobotTwoChassis),
               "robot two: a mechanism role is on one of robot two's DRIVE ports (or its IMU port)");
@@ -445,9 +464,9 @@ static_assert(clearOfItsDrive(kMechanisms, kChassis),
               "a mechanism role is on a DRIVE port (or the IMU port) of this build's chassis table");
 // THE SELECTION, restated as a check — by ADDRESS, never by a count (G3a's ask, the MECH brief's §6.2
 // item 4: a generated list may hold any number). A wrong robot in mechanismTableFor() (or kMechanisms
-// bound to a fixed robot instead of kRobotId) would compile cleanly and hand robot two an EMPTY list —
-// Calibrate would then take its claws as drive candidates again, HA-111's defect class (a build carrying
-// another robot's facts). A typo would have to be made twice, in two places, to get past these.
+// bound to a fixed robot instead of kRobotId) would compile cleanly and hand a robot an EMPTY list —
+// Calibrate would then take its mechanism motors as drive candidates, HA-111's defect class (a build
+// carrying another robot's facts). A typo would have to be made twice, in two places, to get past these.
 static_assert(&kMechanisms == &mechanismTableFor(kRobotId),
               "kMechanisms must be mechanismTableFor(kRobotId): this build's robot, chosen by the one chain");
 static_assert(kRobotId != RobotId::RobotTwo || &kMechanisms == &robot_two::kRobotTwoMechanisms,

@@ -23,6 +23,8 @@ on:
       - 'tools/route_maker/**'
       - 'include/**'
       - 'src/robots/**'
+      - 'src/team/*_driver.hpp'   # RMP1-B: the Controls tab bakes each robot's driver file,
+      - 'src/programs/drive_program.cpp'   # and whether its programs take a feel other than the default
       - 'test/**'
   workflow_dispatch:
 
@@ -78,11 +80,35 @@ jobs:
       - name: Install host toolchain (the route builder's describe program)
         run: sudo apt-get update && sudo apt-get install -y cmake g++
 
+      # PREVIEW's engine (RMP1-A2u): the REAL library in WebAssembly (RMP1-A2e's tools/route_maker/wasm/), built
+      # from this commit with the pinned Emscripten (the same steps as RMP1-A2e's ci.yml job), and put into the site by
+      # build.py --engine. The docs say PREVIEW works, so a commit without the engine is NOT published (RMP1-A2e
+      # merges before RMP1-A2u): refused by name, never published with the docs untrue.
+      - name: PREVIEW's engine is in this commit
+        run: |
+          test -f tools/route_maker/wasm/CMakeLists.txt \
+            || { echo "::error::PREVIEW's engine (tools/route_maker/wasm/, RMP1-A2e) is not in this commit, but the docs say PREVIEW works: merge RMP1-A2e first"; exit 1; }
+      - uses: actions/cache@v4
+        with:
+          path: ~/emsdk
+          key: emsdk-6.0.13-35659964bc27
+      - name: Emscripten 6.0.13 (pinned -- tools/route_maker/README.md)
+        run: |
+          if [ ! -x ~/emsdk/upstream/emscripten/em++ ]; then
+            git clone https://github.com/emscripten-core/emsdk.git ~/emsdk
+            git -C ~/emsdk checkout 35659964bc2762fffec0d257997fb61475f765b7
+            ~/emsdk/emsdk install 6.0.13
+          fi
+          ~/emsdk/emsdk activate 6.0.13
+
       - name: Build the route builder into the site
         run: |
           cmake -S test -B build/test
           cmake --build build/test --target shulib_route_maker -j4
-          python3 tools/route_maker/build.py --out site_src/route-builder --describe build/test/shulib_route_maker
+          source ~/emsdk/emsdk_env.sh
+          emcmake cmake -S tools/route_maker/wasm -B build/wasm
+          cmake --build build/wasm -j4
+          python3 tools/route_maker/build.py --out site_src/route-builder --describe build/test/shulib_route_maker --engine build/wasm
 
       - name: Install the renderer
         run: pip install mkdocs==1.6.1 mkdocs-material==9.5.44
@@ -109,6 +135,11 @@ jobs:
         run: |
           test -f site/route-builder/app.html || { echo "::error::site/route-builder/app.html is missing"; exit 1; }
           test -f site/route-builder/shulib-route-builder.html || { echo "::error::the one-file download is missing"; exit 1; }
+          test -f site/route-builder/engine/worker.mjs && test -f site/route-builder/engine/preview.wasm \
+            || { echo "::error::PREVIEW's engine (engine/worker.mjs, engine/preview.wasm) is missing"; exit 1; }
+          grep -q '<meta name="shulib-engine" content="engine/worker.mjs">' site/route-builder/app.html \
+            && grep -q '<script type="text/plain" id="shulib-engine">' site/route-builder/shulib-route-builder.html \
+            || { echo "::error::a form of the route builder carries no PREVIEW engine"; exit 1; }
           grep -q '<meta name="shulib-app" content="route-builder">' site/route-builder/app.html \
             || { echo "::error::site/route-builder/app.html is not the route builder (overwritten by a rendered page?)"; exit 1; }
           grep -q 'route-builder/app.html\|href="app.html"' site/route-builder/index.html \

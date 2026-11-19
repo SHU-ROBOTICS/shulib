@@ -166,7 +166,7 @@ struct Model {
     std::string startLine;      ///< where it started, in words
     bool placedAtCentre = false;  ///< a RELATIVE start with no --place
     std::string stamp;          ///< the commit, or "" (not stamped)
-    std::string autonsHash;     ///< the autons file's short hash, or ""
+    std::string autonsHash;     ///< the autons file's and the shared skills route's short hash, or ""
     std::vector<std::string> notices;  ///< red/amber lines at the top
     // ── what happened ──
     bool refused = false;       ///< nothing ran: the registry or runAuton refused it

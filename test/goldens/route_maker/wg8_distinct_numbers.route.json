@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "madeWith": "shulib route builder",
+  "routes": [
+    {
+      "name": "skills",
+      "kind": "skills",
+      "robot": "x",
+      "mirroredFor": "two",
+      "start": {
+        "x": -36.25,
+        "y": -55.5,
+        "headingDeg": 10.5
+      },
+      "endActionAtS": 57,
+      "hardStopAtS": 59,
+      "steps": [
+        {
+          "do": "home",
+          "mechanism": "lift",
+          "boundS": 3.25
+        },
+        {
+          "label": "leg one",
+          "do": "driveTo",
+          "x": -12.5,
+          "y": -50.25,
+          "faceFirst": true,
+          "care": {
+            "timeoutS": 3.75,
+            "maxSpeedInPerS": 30.5,
+            "maxTurnDegPerS": 200.25,
+            "toleranceIn": 1.5,
+            "toleranceDeg": 2.25,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "reverseTo",
+          "x": -30.75,
+          "y": -46.5,
+          "faceFirst": true,
+          "care": {
+            "timeoutS": 2.5,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "turnTo",
+          "headingDeg": 45.5,
+          "care": {
+            "timeoutS": 1.75,
+            "maxTurnDegPerS": 150.5,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "face",
+          "x": -10.25,
+          "y": -35.75,
+          "care": {
+            "timeoutS": 1.25,
+            "toleranceDeg": 3.5,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "curveTo",
+          "points": [
+            {
+              "x": -20.5,
+              "y": -38.25
+            },
+            {
+              "x": -5.75,
+              "y": -25.5,
+              "headingDeg": 60.25
+            }
+          ],
+          "care": {
+            "timeoutS": 3.5,
+            "maxSpeedInPerS": 40.25,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "faceAway",
+          "x": -40.5,
+          "y": -20.25,
+          "care": {
+            "timeoutS": 1.5,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "reverseCurveTo",
+          "points": [
+            {
+              "x": -15.25,
+              "y": -24.5
+            },
+            {
+              "x": -30.5,
+              "y": -16.75,
+              "headingDeg": -10.25
+            }
+          ],
+          "care": {
+            "timeoutS": 4.25,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "move",
+          "mechanism": "lift",
+          "preset": "low",
+          "boundS": 2.25,
+          "care": {
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "startMove",
+          "mechanism": "arm",
+          "preset": "score",
+          "boundS": 1.75
+        },
+        {
+          "do": "turnTo",
+          "headingDeg": -30.5,
+          "care": {
+            "timeoutS": 2.25,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "waitUntilDone",
+          "mechanism": "arm",
+          "boundS": 2.5,
+          "care": {
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "set",
+          "mechanism": "hood",
+          "position": "middle",
+          "care": {
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "run",
+          "mechanism": "intake",
+          "volts": 9.5,
+          "forS": 0.75,
+          "care": {
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "startRun",
+          "mechanism": "intake",
+          "volts": -7.25,
+          "forS": 0.5
+        },
+        {
+          "do": "face",
+          "x": -35.25,
+          "y": -20.75,
+          "care": {
+            "timeoutS": 1.75,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "waitUntilDone",
+          "mechanism": "intake",
+          "boundS": 1.25,
+          "care": {
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "startHome",
+          "mechanism": "lift",
+          "boundS": 2.75
+        },
+        {
+          "do": "turnTo",
+          "headingDeg": 15.25,
+          "care": {
+            "timeoutS": 2.5,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "waitUntilDone",
+          "mechanism": "lift",
+          "boundS": 1.5,
+          "care": {
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "driveTo",
+          "x": -24.75,
+          "y": -40.5,
+          "faceFirst": true,
+          "care": {
+            "timeoutS": 0.35,
+            "onFail": {
+              "skipTo": "end"
+            }
+          }
+        },
+        {
+          "label": "end",
+          "do": "wait",
+          "seconds": 0.75
+        }
+      ]
+    }
+  ],
+  "robots": {},
+  "exports": {}
+}

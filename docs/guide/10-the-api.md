@@ -4,7 +4,8 @@
 > to use it, what it does when things go wrong, and the gotchas — and, since the mechanism core's
 > first part, how a robot's mechanisms are declared and wired, since the camera's first part, how the AI Vision
 > camera is declared and read, and since the wall reset (L6), how one coordinate is re-seated against a field
-> wall from a side distance sensor, how the robot file declares its side sensors, and the call an auton makes. It is deliberately selective
+> wall from a side distance sensor, how the robot file declares its side sensors, and the call an auton makes,
+> and since the skills Toggle step's second part, the camera's Toggle block and the step's call from an auton. It is deliberately selective
 > rather than exhaustive: construction and the advanced accessors are covered where they matter
 > and skipped where they do not. The [generated API reference](../api/README.md) is the
 > exhaustive one, and it cannot disagree with the code. Plus typed units, per-call options, and the escape
@@ -217,10 +218,10 @@ the curve, the mode: arcade, tank sticks, or field-centric with its fallback), s
 to the chassis's speed budgets, calls `drive(…, Frame::Body)`, lets your code paint a panel, and
 waits for the next tick. The things it cannot know — how long a tick is, whether the robot is
 disabled, what the heading is and whether to trust it — are arguments you hand it, which is also
-what lets the test suite run the whole loop on the host test plant. Robot two's
-driver file (`src/team/robot_two_driver.hpp` — the [cookbook](../cookbook/06-driver-control.md)
-quotes it whole) drives through it — the sticks, the feel, and robot two's claws on the buttons
-below, all stated in that one file — and two programs run that file: "shulib Drive"
+what lets the test suite run the whole loop on the host test plant. Each robot's driver file
+(`src/team/robot_one_driver.hpp`, and its twin `src/team/robot_two_driver.hpp` — the
+[cookbook](../cookbook/06-driver-control.md) quotes it whole) drives through it — the sticks, the feel,
+and the robot's mechanisms on the buttons below, all stated in that one file — and two programs run that file: "shulib Drive"
 (`src/programs/drive_program.cpp`) on its own, and the competition program's driver control
 ([Chapter 17](17-the-competition-program.md)). Neither has run on a robot yet, so the loop is
 host-tested only, and no driver has felt it.
@@ -647,7 +648,8 @@ placement checks included), stops the WHOLE robot from building: the program log
 measured mount shows at the first boot — boot the robot once after every edit to the block, never first
 at a match.
 
-**The Robot builds them** — last, after the camera — through the provider's `distance(port)` and
+**The Robot builds them** — after the camera, the last devices it asks the provider for (the Toggle
+camera's slot, filled after them, asks for nothing) — through the provider's `distance(port)` and
 `readFaults(port)`:
 
 ```cpp
@@ -663,7 +665,7 @@ const char* why = robot.wallSensorAbsence(localization::WallSide::Right);
 sensor (the host's fake provider says "port 5 has no distance sensor"). **A refused side sensor never refuses the robot** — a cable
 out must not cost a match — and neither does a provider that throws making one. `robot.wallSensors()`
 is both sides, the limits and the robot's **reset log** (how many resets SEATED and REFUSED, and the
-last report — what the Auton Tester will show). The context carries it as its one OPTIONAL slot,
+last report — what the Auton Tester will show). The context carries it as its first OPTIONAL slot,
 `RobotContext::wallSensors()` — nullptr when the robot file declares no side, and then every reset
 from a FIELD-start auton refuses `no sensor` (the start is judged first: a RELATIVE one refuses `not a
 field start`). The boot line says which sides exist, between `tags ABSENT` and the camera's words:
@@ -709,9 +711,10 @@ explicit call's.
 > (MECH-A4, 2026-10-29) everything that calls the service exists: the auton STEPS
 > (`r.move(arm["score"], 1.5_s)`), the driver CONTROLS, the ROUTE BINDER that runs a marker's id, and
 > the direction check's judgement ([below](#in-an-auton-on-the-buttons-on-a-route)). Since its fifth
-> (MECH-A5, 2026-10-29) robot two's programs run on it: each binds one service over robot two's
-> declared claws, prints the per-role boot lines below, and publishes the claws' route ids; robot two's
-> driver file states its buttons as the core's controls.
+> (MECH-A5, 2026-10-29) the robots' programs run on it: each binds one service over the robot's declared
+> mechanisms (robot two's claws then; since 2026-11-16 both robots' cascade, side toggles and pistons),
+> prints the per-role boot lines below, and publishes their route ids; each driver file states its
+> buttons as the core's controls.
 >
 > **The banner at the top of this chapter does not cover this section**, as it does not cover the
 > driver loop: the mechanism words, the service, the driver controls, the route binder and the
@@ -835,8 +838,8 @@ exactly the step an auton's line runs.
 
 The robot builds every ROLE a mechanism declares through its device provider (the provider is the
 kind check: a port holding the wrong device is refused, naming what it found), and
-`mechanism::roleLine()` words one boot line per role (`guide-10h`). Robot two's programs build their
-claws this way (the Robot does it for them) and print these lines at boot, tag `MECH`, since the
+`mechanism::roleLine()` words one boot line per role (`guide-10h`). The robots' programs build their
+mechanisms this way (the Robot does it for them) and print these lines at boot, tag `MECH`, since the
 core's fifth part:
 
 ```text
@@ -856,7 +859,7 @@ whose read fails is answered with its last good value, and a distance sensor hel
 is, byte for byte, the "no object" reading — only the count tells them apart. The count is there so
 the core's service never takes a held value for evidence: since its second part the service reads a
 PIECE sensor's count, and since its third a HOME switch's (a read that failed is never a home) — and
-since its fifth, robot two's programs build the service (robot two declares no sensor yet).
+since its fifth, the robots' programs build the service (neither robot declares a sensor yet).
 
 At run time `config::RobotConfig::valid()` owns every port collision — now including each
 mechanism's sensor ports and switch lines — against the drivetrain the boot actually chose, so a
@@ -963,6 +966,39 @@ the robot stopped.
 all new with the camera — among them the frame's freshness and the image's age (HA-192), the optics
 (HA-194), the AI model kept on the sensor and named as VEX spells it (HA-197), and the Toggle's shape
 (HA-201). The camera's bench page settles them.
+
+### The Toggle block, and the skills Toggle step from an auton
+
+**The robot file's Toggle block** (`vision::ToggleCameraConfig`, in `sensors.toggleCamera`, beside
+`sensors.camera`): the Toggle tracker's numbers (`tracker`) and the camera's read period (`feed`) — every one
+UNSET until typed, and a file without one builds exactly the robot it did. `RobotConfig::valid()` does not
+check it: a block the step cannot use costs the step its camera, never the robot its boot.
+`vision::toggleCameraProblem(sensors.camera, sensors.toggleCamera)` checks it at build in a `static_assert`.
+
+**The Robot builds the step's camera** (`vision::ToggleCamera`: one feed, the model of the measured mount, the
+tracker's numbers) after everything else, asking the provider for nothing more. `robot.toggleCamera()` is it,
+or nullptr; `robot.toggleCameraAbsence()` is "" exactly when it is built, otherwise the first reason in order —
+no block declared, no camera, the mount UNSET (or past the geometry's limit), a tracker or read-period number
+refused, a colour id the camera's block does not teach, the camera not built. The auton's context carries it as
+its second optional slot (`chassis.deps().ctx->toggleCamera()`, beside the wall sensors'). With a block
+declared, the boot line's camera words (`Robot::describe()` — which the brain's programs print cut to 220
+characters, and the competition program not at all; the visit's `[TGL]` line carries the reason too) end:
+
+```text
+... walls ABSENT camera port 3 set up, objects off, toggles ready
+... walls ABSENT camera port 3 set up, objects off, toggles OFF (the camera's mount is UNSET -- measure it from the robot's tracking centre and type it)
+... walls ABSENT camera port 3 ABSENT (port 3: nothing plugged in (expected an AI Vision sensor)), toggles OFF (the camera was not built (the boot line's camera words say why))
+```
+
+**The step from an auton:** `competition::checkAndFlipToggle(ctx, request)` — a `then()` returns its
+`.outcome()` — and `competition::lookAtToggle(ctx, request)`, the look alone. A MATCH auton is refused first;
+no camera slot, or one not built, is `no camera` naming why. An optional third argument,
+`competition::TogglePoseBound`, states how far the estimate may be off — with it, under a FIELD start, the
+Toggle block's position check (when turned on) runs; without it, or under any other start, it is skipped. The
+request's look and push spots against the block's `frozenMoveIn` are a refusal, `spots too close`, at run time,
+and `competition::toggleVisitBlockProblem(request, block)` checks the pair at build. What the step does is
+[chapter 20](20-the-camera.md#checking-and-flipping-a-toggle-in-a-skills-route)'s; a whole route is
+[cookbook chapter 8](../cookbook/08-skills-toggles.md).
 
 ## Gotchas, collected
 

@@ -15,9 +15,9 @@ of a robot), both through the library's own test devices and through its real PR
 suite's stand-in for PROS, and 34 runs of it are compared line for line with recorded ones. The
 measurement inside it — the calibrator — ran on robot two in an earlier form on 2026-09-24. Every
 threshold in it is invented for a first run (register entry HA-136). Since 2026-11-05 this
-repository's own "shulib Calibrate" (robot two, slot 4) IS the standard Calibrate: its facts are
-derived from robot two's tables (`src/robots/calibrate_facts.hpp`) instead of typed in a file like
-the one below — and deriving them changed none of the 34 recorded runs the library's tests hold.
+repository's own "shulib Calibrate" (slot 4, on robot one and robot two) IS the standard Calibrate: its
+facts are derived from the robot's tables (`src/robots/calibrate_facts.hpp`) instead of typed in a file
+like the one below — and deriving them changed none of the 34 recorded runs the library's tests hold.
 
 ## What it measures, and what you state
 
@@ -268,6 +268,44 @@ With a record on the card, the typed ports change nothing at all — the card's 
 no SD card, nothing is checked (nothing can be saved). A robot with neither a record nor typed
 ports gets only the **FIRST RECORD** note: push its first Calibrate with the end its autons call the
 front.
+
+## Two robots, one card each: the record names its robot
+
+Both robots read their calibration from the same file name, `shulib_drivetrain.bin`, on their own SD
+card — and two robots of one build, wired the same, pass each other's port check at boot. A card moved
+from one robot to the other would boot it on the other robot's measured directions, scale and track
+width. So a Calibrate that knows which robot it measures **writes the robot's name as the record's first
+word**: you state it in the facts as `.recordName = "robot-one"` (1 to 24 lower-case letters, digits or
+`-`), and the record's provenance reads `robot=robot-one Nov 16 2026 09:00:00 | ROBOT-MEASURED: …`. This
+repository's Calibrate states it for you on each robot (its robot beacon's name: `robot-one`,
+`robot-two`).
+
+At boot, before the port check, every program that drives from the record checks that name:
+
+![Robot one's brain at boot, three times: with its own card (robot=robot-one) it boots and goes on to the port check; with robot two's card (robot=robot-two) it is REFUSED, "the card's record is ANOTHER ROBOT'S"; with a card written before Nov 16, which names no robot, it is REFUSED, "the card's record names NO ROBOT". The fix both times: run shulib Calibrate (slot 4) on this robot](../assets/record-names-its-robot.svg)
+
+| The card's record | The boot |
+|---|---|
+| names THIS robot | goes on exactly as before |
+| names another robot | **refused** — `the card's record is ANOTHER ROBOT'S` · "this card's record is robot=robot-two's; this is robot=robot-one -- run shulib Calibrate (slot 4) on THIS robot" |
+| names no robot (written before 2026-11-16) | **refused** — `the card's record names NO ROBOT` · "this card's record names NO robot (an older record); this is robot=robot-one -- run shulib Calibrate (slot 4) on THIS robot" |
+
+A refused record never falls back to the typed table: a wrong card is something to fix, not to drive
+around. The fix is one run of shulib Calibrate on the robot whose brain holds the card — so run it once
+on each robot to make its card its own.
+
+Calibrate says the same before you push. When the card's record names another robot or none, the log
+adds one line under the card line, and again at the front check:
+
+```text
+card       : shulib_drivetrain.bin holds MEASURED tank BLUE 600 rpm: L5/R5 ports, ipr L1.62500 R1.62500, W 12.500 in -- this run's FRONT is checked against it
+card       : that record is robot=robot-one's, not this robot's (robot=robot-two) -- the FRONT is checked against it all the same; a save replaces it with this robot's
+```
+
+The front check still runs against that record: it is the only front the card holds, and the two robots
+are wired the same. A FRONT FLIPPED there means this push and that record disagree — answer it as
+[The front, and FRONT FLIPPED](#the-front-and-front-flipped) explains. The save then writes a record that
+names this robot, and the boot's name check accepts it.
 
 ## The serial log
 

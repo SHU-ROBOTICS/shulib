@@ -28,7 +28,7 @@
         },
         {
           "do": "run",
-          "mechanism": "clawPivot6",
+          "mechanism": "leftToggle",
           "volts": 6,
           "forS": 0.3
         },

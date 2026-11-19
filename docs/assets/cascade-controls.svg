@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 470" width="860" height="470" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="The controller map of both robots' driver files">
+<title>Both robots' controls (the builder, 2026-11-15): left stick drives, right stick turns; R1 / R2 held move the cascade up / down; A the claw, B the front toggle, X the ramp; L1 held runs the right side toggle, L2 the left; Y is the field-centric re-zero (off); the d-pad is free.</title>
+<rect width="860" height="470" fill="#ffffff"/>
+<rect x="284" y="102" width="68" height="16" rx="6" fill="#d9dde3" stroke="#1f2328"/>
+<rect x="280" y="118" width="76" height="18" rx="6" fill="#d9dde3" stroke="#1f2328"/>
+<text x="318" y="114" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2328">L2</text>
+<text x="318" y="131" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2328">L1</text>
+<rect x="508" y="102" width="68" height="16" rx="6" fill="#d9dde3" stroke="#1f2328"/>
+<rect x="504" y="118" width="76" height="18" rx="6" fill="#d9dde3" stroke="#1f2328"/>
+<text x="542" y="114" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2328">R2</text>
+<text x="542" y="131" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2328">R1</text>
+<path d="M262,138 L598,138 Q640,138 646,190 L662,340 Q668,392 620,392 Q585,392 570,352 L555,330 L305,330 L290,352 Q275,392 240,392 Q192,392 198,340 L214,190 Q220,138 262,138 z" fill="#3a3f47"/>
+<rect x="395" y="160" width="70" height="44" rx="6" fill="#20242a" stroke="#6b7280"/>
+<text x="430" y="186" text-anchor="middle" font-size="10" fill="#9aa3ad">screen</text>
+<circle cx="330" cy="215" r="30" fill="#4b515b" stroke="#20242a" stroke-width="2"/>
+<circle cx="330" cy="215" r="17" fill="#2b2f35" stroke="#9aa3ad"/>
+<circle cx="530" cy="215" r="30" fill="#4b515b" stroke="#20242a" stroke-width="2"/>
+<circle cx="530" cy="215" r="17" fill="#2b2f35" stroke="#9aa3ad"/>
+<rect x="334" y="272" width="22" height="22" rx="4" fill="#d9dde3" stroke="#6b7280" stroke-width="2.5"/>
+<rect x="334" y="316" width="22" height="22" rx="4" fill="#d9dde3" stroke="#6b7280" stroke-width="2.5"/>
+<rect x="312" y="294" width="22" height="22" rx="4" fill="#d9dde3" stroke="#6b7280" stroke-width="2.5"/>
+<rect x="356" y="294" width="22" height="22" rx="4" fill="#d9dde3" stroke="#6b7280" stroke-width="2.5"/>
+<text x="345" y="287" text-anchor="middle" font-size="9" fill="#1f2328">▲</text>
+<text x="345" y="331" text-anchor="middle" font-size="9" fill="#1f2328">▼</text>
+<text x="323" y="309" text-anchor="middle" font-size="9" fill="#1f2328">◀</text>
+<text x="367" y="309" text-anchor="middle" font-size="9" fill="#1f2328">▶</text>
+<circle cx="515" cy="283" r="11" fill="#d9dde3" stroke="#8a3fb8" stroke-width="2.5"/>
+<text x="515" y="287" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2328">X</text>
+<circle cx="537" cy="305" r="11" fill="#d9dde3" stroke="#8a3fb8" stroke-width="2.5"/>
+<text x="537" y="309" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2328">A</text>
+<circle cx="515" cy="327" r="11" fill="#d9dde3" stroke="#8a3fb8" stroke-width="2.5"/>
+<text x="515" y="331" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2328">B</text>
+<circle cx="493" cy="305" r="11" fill="#d9dde3" stroke="#6b7280" stroke-width="2.5"/>
+<text x="493" y="309" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2328">Y</text>
+<polyline points="218,58 300,124" fill="none" stroke="#b8622a" stroke-width="1.6"/>
+<circle cx="300" cy="124" r="3.5" fill="#b8622a"/>
+<text x="210" y="62" text-anchor="end" font-size="13" font-weight="bold" fill="#b8622a">L1 held: the RIGHT side toggle runs</text>
+<text x="210" y="78" text-anchor="end" font-size="13" fill="#1f2328">L2 held: the LEFT side toggle runs</text>
+<text x="210" y="94" text-anchor="end" font-size="13" fill="#1f2328">(one way; let go: it stops)</text>
+<polyline points="218,168 310,205" fill="none" stroke="#1e7d3a" stroke-width="1.6"/>
+<circle cx="310" cy="205" r="3.5" fill="#1e7d3a"/>
+<text x="210" y="172" text-anchor="end" font-size="13" font-weight="bold" fill="#1e7d3a">left stick up / down: DRIVE</text>
+<text x="210" y="188" text-anchor="end" font-size="13" fill="#1f2328">forward / back (left / right: nothing,</text>
+<text x="210" y="204" text-anchor="end" font-size="13" fill="#1f2328">a tank cannot strafe)</text>
+<polyline points="218,286 330,305" fill="none" stroke="#6b7280" stroke-width="1.6"/>
+<circle cx="330" cy="305" r="3.5" fill="#6b7280"/>
+<text x="210" y="290" text-anchor="end" font-size="13" font-weight="bold" fill="#6b7280">d-pad: FREE (the cascade's</text>
+<text x="210" y="306" text-anchor="end" font-size="13" fill="#1f2328">preset heights go here later)</text>
+<polyline points="642,58 560,124" fill="none" stroke="#2a5fb8" stroke-width="1.6"/>
+<circle cx="560" cy="124" r="3.5" fill="#2a5fb8"/>
+<text x="650" y="62" text-anchor="start" font-size="13" font-weight="bold" fill="#2a5fb8">R1 / R2 held: the cascade UP / DOWN</text>
+<text x="650" y="78" text-anchor="start" font-size="13" fill="#1f2328">let go: it holds (before it is homed,</text>
+<text x="650" y="94" text-anchor="start" font-size="13" fill="#1f2328">at most its unhomed volts)</text>
+<polyline points="642,178 550,205" fill="none" stroke="#1e7d3a" stroke-width="1.6"/>
+<circle cx="550" cy="205" r="3.5" fill="#1e7d3a"/>
+<text x="650" y="182" text-anchor="start" font-size="13" font-weight="bold" fill="#1e7d3a">right stick left / right: TURN</text>
+<polyline points="642,266 515,283" fill="none" stroke="#8a3fb8" stroke-width="1.6"/>
+<circle cx="515" cy="283" r="3.5" fill="#8a3fb8"/>
+<text x="650" y="270" text-anchor="start" font-size="13" font-weight="bold" fill="#8a3fb8">A: the claw   B: the front toggle</text>
+<text x="650" y="286" text-anchor="start" font-size="13" fill="#1f2328">X: the ramp — each press flips it</text>
+<text x="650" y="302" text-anchor="start" font-size="13" fill="#1f2328">(they start where they rest)</text>
+<polyline points="642,356 493,305" fill="none" stroke="#6b7280" stroke-width="1.6"/>
+<circle cx="493" cy="305" r="3.5" fill="#6b7280"/>
+<text x="650" y="360" text-anchor="start" font-size="13" font-weight="bold" fill="#6b7280">Y: field-centric re-zero</text>
+<text x="650" y="376" text-anchor="start" font-size="13" fill="#1f2328">(field-centric is off)</text>
+<text x="430.0" y="430" text-anchor="middle" font-size="13" fill="#1f2328">The first time driver control starts in a run, the cascade homes (down, at most 3 s).</text>
+<text x="430.0" y="450" text-anchor="middle" font-size="13" fill="#1f2328">Let go of the sticks and the drive coasts. The map is the team's to change: <tspan font-family="DejaVu Sans Mono, Menlo, Consolas, monospace">src/team/robot_one_driver.hpp</tspan>.</text>
+</svg>

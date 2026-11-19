@@ -73,7 +73,6 @@ using shulib::bench::faultRowText;
 using shulib::bench::MechanismLine;
 using shulib::bench::MechanismTable;
 using shulib::bench::RecordRead;
-using shulib::bench::RobotTwoDriver;
 using shulib::diag::FaultCode;
 using shulib::hal::ControllerButton;
 using shulib::hal::DescriptionSource;
@@ -104,7 +103,10 @@ inline constexpr MechanismTable kLong = mechanisms(wire(longPivot, motors(6)));
 }  // namespace panel_fixture
 using panel_fixture::kList;
 using panel_fixture::kLong;
-namespace two = shulib::bench::robot_two;
+namespace two = mech_fixture::robot_two;  // the claw robot: the old robot two, a fixture since ROB1-BT
+/// The claw robot's driver file (its controls, feel and loop — test/mechanism_driver_fixtures.hpp) through the
+/// SAME DriverFile the robots use.
+using RobotTwoDriver = shulib::bench::DriverFile<two::kControls, two::kFeel, two::kLoop>;
 namespace rx = mech_fixture::robot_x;
 namespace ry = mech_fixture::robot_y;
 
@@ -386,6 +388,13 @@ TEST_CASE("MECH-A5 boot lines: what each kind IS — an ARM, a two-motor LIFT wi
     CHECK(lift[0] == "lift: NOT HOMED -- its buttons do nothing until it is homed (homeAtDriverStart, homeOnPress, "
                      "or an auton's r.home)");
     CHECK(lift[1].starts_with("lift: starting values"));
+    // ...and one with `.unhomedVolts` (the cascades': robot two's real list, its placeholder 4 V) says that a
+    // HOLD still moves it unhomed — its driver map relies on it (ROB1-BT's review: "its buttons do nothing"
+    // was false there). BUG CAUGHT: the line telling a driver the cascade's R1 / R2 are dead when they move it.
+    const std::vector<std::string> cascade = state(shulib::bench::robot_two::kRobotTwoMechanisms, "cascade", false);
+    REQUIRE(cascade.size() == 2U);
+    CHECK(cascade[0] == "cascade: NOT HOMED -- a hold moves it at most 4.0 V with no soft stops; a preset or a move "
+                        "ends NOT_HOMED until it is homed (homeAtDriverStart, homeOnPress, or an auton's r.home)");
     const std::vector<std::string> flywheel = state(x, "flywheel", false);
     REQUIRE(flywheel.size() == 1U);  // a speed mechanism has no homed state
     CHECK(flywheel[0].starts_with("flywheel: starting values kV"));

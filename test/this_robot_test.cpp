@@ -62,15 +62,18 @@ TEST_CASE("this robot (T1): the autons dispatcher gives every robot ITS OWN regi
     CHECK(sb::autonsFor(RobotId::BenchBot) == &sb::registerAutons);
     CHECK(sb::autonsFor(RobotId::InventedXDrive) == &sb::registerAutons);
     CHECK(sb::kThisRobotsAutons == &sb::registerAutons);  // the host is the bench build
-    // ...and each really registers its robot's list (robot one's 40 in is SKILLS, robot two's MATCH).
+    // ...and each really registers its robot's list: since ROB1-BT both are SKILLS lists, and only robot two's
+    // runs the shared skills route MIRRORED (the twins' one difference — test/robot_twin_test.cpp).
     shulib::competition::AutonRegistry one{sb::kAutonPeriods};
     sb::autonsFor(RobotId::RobotOne)(one);
-    REQUIRE(one.size() >= 1);
+    REQUIRE(one.size() == 3);
     CHECK(one.at(0).kind == shulib::competition::AutonKind::Skills);
+    CHECK(one.at(2).mirror == nullptr);
     shulib::competition::AutonRegistry two{sb::kAutonPeriods};
     sb::registerThisRobotsAutons(two);
-    REQUIRE(two.size() >= 1);
-    CHECK(two.at(0).kind == shulib::competition::AutonKind::Match);
+    REQUIRE(two.size() == 3);
+    CHECK(two.at(0).kind == shulib::competition::AutonKind::Skills);
+    CHECK(two.at(2).mirror != nullptr);
 }
 
 TEST_CASE("this robot (T1): robot one's beacons are its own -- never a prefix of robot two's, nor robot two's of robot one's") {
@@ -121,15 +124,20 @@ TEST_CASE("this robot (T1): robot one's beacons are its own -- never a prefix of
 
 // ═══ the words ════════════════════════════════════════════════════════════════════════
 
-TEST_CASE("this robot (R7): robot two's words are its OLD BYTES; robot one's say 'mechanism' and its own files, never 'claw' or robot two's") {
-    // BUG CAUGHT (GM14, GM15): robot two's row word or boot label re-worded by the per-robot words (its
-    // packages and tests carry them byte for byte); robot one handed robot two's words (GM21) — "claw"
-    // on a robot with a cascade, or robot two's driver path printed by robot one's Drive.
+TEST_CASE("this robot (R7): the CLAW words are robot two's OLD BYTES (the bench's, the host's default); both cascade robots say 'mechanism' and their own files") {
+    // BUG CAUGHT (GM14, GM15): the claw words re-worded (the host's claw tests and the bench builds carry them
+    // byte for byte); a cascade robot handed the claw words (GM21) — "claw" on a robot with a cascade, or
+    // another robot's driver path printed by its Drive (ROB1-BT: robot two is a cascade now).
+    const sb::RobotWords& claws = sb::kClawWords;
+    CHECK(claws.claw);
+    CHECK(std::string_view{claws.rowWord} == "CLAW");
+    CHECK(std::string_view{claws.lcdAbsent} == sb::kLcdClawAbsent);
+    CHECK(std::string_view{claws.declaredMotorLabel} == sb::kDeclaredMotorLabel);
+    CHECK(claws.recordName == nullptr);
     const sb::RobotWords& two = sb::wordsFor(RobotId::RobotTwo);
-    CHECK(two.claw);
-    CHECK(std::string_view{two.rowWord} == "CLAW");
-    CHECK(std::string_view{two.lcdAbsent} == sb::kLcdClawAbsent);
-    CHECK(std::string_view{two.declaredMotorLabel} == sb::kDeclaredMotorLabel);
+    CHECK_FALSE(two.claw);
+    CHECK(std::string_view{two.rowWord} == "MECH");
+    CHECK(std::string_view{two.lcdAbsent} == "MECH ABSENT");
     CHECK(std::string_view{two.driverFilePath} == "src/team/robot_two_driver.hpp");
     CHECK(std::string_view{two.autonsFilePath} == "src/team/autons.cpp");
     const sb::RobotWords& one = sb::wordsFor(RobotId::RobotOne);
@@ -146,10 +154,10 @@ TEST_CASE("this robot (R7): robot two's words are its OLD BYTES; robot one's say
         CHECK(s.find("CLAW") == std::string::npos);
         CHECK(s.find("two") == std::string::npos);
     }
-    // The bench bot and the X-drive keep robot two's words (their packages must not change — landmine 10).
-    CHECK(&sb::wordsFor(RobotId::BenchBot) == &sb::kRobotTwoWords);
-    CHECK(&sb::wordsFor(RobotId::InventedXDrive) == &sb::kRobotTwoWords);
-    CHECK(&sb::ThisRobotWords::value == &sb::kRobotTwoWords);
+    // The bench bot and the X-drive keep the claw words, robot two's old bytes (landmine 10; they print none).
+    CHECK(&sb::wordsFor(RobotId::BenchBot) == &sb::kClawWords);
+    CHECK(&sb::wordsFor(RobotId::InventedXDrive) == &sb::kClawWords);
+    CHECK(&sb::ThisRobotWords::value == &sb::kClawWords);
     // Every robot's words fit their budgets.
     for (const RobotId r : kEveryRobot) {
         CAPTURE(static_cast<int>(r));
@@ -158,13 +166,13 @@ TEST_CASE("this robot (R7): robot two's words are its OLD BYTES; robot one's say
     }
 }
 
-TEST_CASE("this robot (R7): the controller's absent word is the robot's -- 'CLAW ABSENT' by default (robot two's), 'MECH ABSENT' on robot one") {
+TEST_CASE("this robot (R7): the controller's absent word is the robot's -- 'CLAW ABSENT' by default (the claw words), 'MECH ABSENT' on both cascade robots") {
     // BUG CAUGHT (GM21b's LCD half): robot one's controller saying CLAW ABSENT for an unplugged cascade motor.
     sb::ControllerFacts f{};
     f.connected = true;
     f.clawAbsent = true;
     CHECK(std::string_view{sb::controllerWord(f)} == "CLAW ABSENT");
-    CHECK(std::string_view{sb::controllerWord(f, WordsOf<RobotId::RobotTwo>{})} == "CLAW ABSENT");
+    CHECK(std::string_view{sb::controllerWord(f, WordsOf<RobotId::RobotTwo>{})} == "MECH ABSENT");
     CHECK(std::string_view{sb::controllerWord(f, WordsOf<RobotId::RobotOne>{})} == "MECH ABSENT");
     CHECK(std::string_view{sb::controllerScreenLines(f, WordsOf<RobotId::RobotOne>{}).line[2]} == "MECH ABSENT");
     CHECK(std::string_view{sb::controllerScreenLines(f).line[2]} == "CLAW ABSENT");
@@ -198,8 +206,24 @@ TEST_CASE("this robot (R7): the dropped-autons line names the ROBOT'S autons fil
         CHECK(one[0].find("fix src/team/robot_one_autons.cpp") != std::string::npos);
         CHECK(one[0].find("src/team/autons.cpp") == std::string::npos);
         CHECK(two[0].find("fix src/team/autons.cpp") != std::string::npos);
+        // ROB1-BT: robot two says the MECHANISM words now — and still names ITS OWN file (the path is its words',
+        // never chosen on "claw or not": that choice would send robot two's team to robot one's file).
+        std::vector<std::string> twin;
+        sb::sayDroppedAutons(reg, runs, [&twin](const char* l) { twin.emplace_back(l); }, WordsOf<RobotId::RobotTwo>{});
+        REQUIRE(!twin.empty());
+        CHECK(twin[0].find("fix src/team/autons.cpp") != std::string::npos);
+        CHECK(twin[0].find("robot_one") == std::string::npos);
         CHECK(one[0].size() < sb::kDroppedAutonLineBytes);
-        CHECK(one.size() == two.size());
+        // ROB1-BT review round: the shared skills route's entry lives in its OWN file — both robots say so on
+        // the line after the summary; the bench words (no shared route) do not.
+        const std::string route = "(the skills route both robots share is fixed in src/team/skills_route.cpp)";
+        REQUIRE(one.size() == two.size() + 1);
+        REQUIRE(twin.size() == two.size() + 1);
+        CHECK(one[1] == route);
+        CHECK(twin[1] == route);
+        for (const std::string& l : two) {
+            CHECK(l.find("skills_route") == std::string::npos);
+        }
     }
 }
 
@@ -353,10 +377,11 @@ TEST_CASE("this robot (R7): EVERY per-robot choice in the programs puts robot on
         }
     }
     CHECK(names == 3);
-    // The claw-word choices with LITERAL operands: robot two's (claws) first, robot one's (no claw, no robot
-    // two file) second — Drive's field-disabled line, Competition's end-of-driver line, the tester's banner.
-    for (const char* file : {"src/programs/drive_program.cpp", "src/programs/competition_program.cpp",
-                             "src/programs/auton_tester_program.cpp"}) {
+    // The claw-word choices with LITERAL operands: the claw words first, the mechanism words (no claw, no robot
+    // two file) second — Drive's field-disabled line and Competition's end-of-driver line. (The tester's banner
+    // chose its autons FILE that way until ROB1-BT — "robot two or not" — which would have sent robot two's team
+    // to robot one's file once robot two said the mechanism words: it prints its words' path now, below.)
+    for (const char* file : {"src/programs/drive_program.cpp", "src/programs/competition_program.cpp"}) {
         CAPTURE(file);
         int literals = 0;
         for (const WordChoice& w : choicesOn(file, "ThisRobotWords::value.claw")) {
@@ -372,6 +397,9 @@ TEST_CASE("this robot (R7): EVERY per-robot choice in the programs puts robot on
         }
         CHECK(literals == 1);
     }
+    const std::string tester = source_pins::squash(source_pins::stripComments(source_pins::readFile("src/programs/auton_tester_program.cpp")));
+    CHECK(choicesOn("src/programs/auton_tester_program.cpp", "ThisRobotWords::value.claw").empty());
+    CHECK(source_pins::count(tester, "ThisRobotWords::value.autonsFilePath") == 1);
 }
 
 TEST_CASE("this robot (T7): no program or common file names a robot's driver or autons except this_robot.hpp; each robot's team files name nothing of the other's") {
@@ -473,4 +501,40 @@ TEST_CASE("this robot (D3): Drive's facts line counts the ledger itself -- every
     CHECK(sb::robotOneFactsLineFor(line, sizeof line, 17, 0) >= 0);
     CHECK(std::string(line).find("17 facts, 17 typed") != std::string::npos);
     CHECK(std::string(line).find("; 0 still owed") != std::string::npos);
+}
+
+TEST_CASE("this robot (D3, ROB1-BT): robot two's facts line counts ROBOT TWO's ledger, and its Drive prints it") {
+    // BUG CAUGHT: robot two's boot line printing robot ONE's counts or path (the builder would read robot
+    // one's typed count on robot two's screen while every robot-two fact is owed); thisRobotFactsLine()
+    // choosing robot one's line in robot two's build; robot two's Drive printing no facts line at all.
+    int all = 0;
+    int typed = 0;
+    for (const sb::robot_one_facts::FactSummary& f : sb::robot_two_facts::kRobotTwoFacts) {
+        ++all;
+        typed += f.typed ? 1 : 0;
+    }
+    REQUIRE(all > 0);
+    const std::string want = "robot two: " + std::to_string(all) + " facts, " + std::to_string(typed)
+                             + " typed (src/robots/robot_two_facts.hpp); " + std::to_string(all - typed)
+                             + " still owed, none needed by this program";
+    char line[240];  // Drive's buffer
+    CHECK(sb::robotTwoFactsLine(line, sizeof line) == static_cast<int>(want.size()));
+    CHECK(std::string(line) == want);
+    // ...and it is not robot one's line (the two ledgers' counts differ today: if they ever agree, this
+    // check still holds through the robot's name and path).
+    char other[240];
+    sb::robotOneFactsLine(other, sizeof other);
+    CHECK(std::string(line) != std::string(other));
+    // The host is neither robot, so the build's choice is pinned by its text: robot two's build prints
+    // robot two's line, robot one's robot one's, and both robots have a ledger.
+    const std::string c =
+        source_pins::squash(source_pins::stripComments(source_pins::readFile("src/common/this_robot.hpp")));
+    CHECK(source_pins::count(c, "if constexpr (kRobotId == RobotId::RobotTwo) { return robotTwoFactsLine(out, size); } "
+                                "else { return robotOneFactsLine(out, size); }") == 1);
+    CHECK(source_pins::count(c, "inline constexpr bool kThisRobotHasLedger = kRobotId == RobotId::RobotOne || "
+                                "kRobotId == RobotId::RobotTwo;") == 1);
+    const std::string drive = source_pins::squash(
+        source_pins::stripComments(source_pins::readFile("src/programs/drive_program.cpp")));
+    CHECK(source_pins::count(drive, "if constexpr (kThisRobotHasLedger) { thisRobotFactsLine(line, sizeof line); "
+                                    "log.log(hal::LogLevel::Info, kTag, line); }") == 1);
 }

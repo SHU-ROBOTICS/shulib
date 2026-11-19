@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 6,439 of them across 214 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 6,485 of them across 215 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -357,11 +357,12 @@ Prose about *how to think about* the API lives in [How it works](../guide/README
 | [Camera geometry](camera_geometry.md) | [`vision/camera_geometry.hpp`](../../include/shulib/vision/camera_geometry.hpp) | Camera geometry — a detection's box turned into which way it is (BEARING), how high it looks (ELEVATION), how far it is (a GROUND range from where its base meets the floor, a SIZE range from its known real height) and where it is on the FIELD — every one an… |
 | [Override elements](override_elements.md) | [`vision/override_elements.hpp`](../../include/shulib/vision/override_elements.hpp) | The 2026-27 Override season's facts the camera code needs — the Toggle's coloured faces, where the Toggles are, the Pin and the Cup, and the class table of VEX's Override AI model. |
 | [Piece finder](piece_finder.md) | [`vision/piece_finder.hpp`](../../include/shulib/vision/piece_finder.hpp) | PieceFinder — "take THAT piece": a route names ONE game piece by its TYPE (the AI model's class) and its EXPECTED FIELD POSITION within a TOLERANCE, and the finder answers FOUND, NONE, AMBIGUOUS, NOT IN VIEW or UNKNOWN — NEVER A GUESS. |
+| [Toggle camera](toggle_camera.md) | [`vision/toggle_camera.hpp`](../../include/shulib/vision/toggle_camera.hpp) | ToggleCamera — the robot's camera answer for the Toggle, as an AUTON reaches it. |
 | [Toggle tracker](toggle_tracker.md) | [`vision/toggle_tracker.hpp`](../../include/shulib/vision/toggle_tracker.hpp) | ToggleTracker — WHICH COLOUR does the Toggle in front of the robot show: RED, BLUE, YELLOW, or UNKNOWN with the reason. |
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 6,439 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 6,485 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

@@ -1,9 +1,11 @@
-# Robot facts form — robot one (the cascade robot)
+# Robot facts form — robot one and robot two (the cascade robots)
 
-> **For the team's builder.** One page: fill it in at the robot and hand it to whoever types the facts.
-> Most answers here become one fact in `src/robots/robot_one_facts.hpp` (2 goes into the drive table; the
-> footer says which answer stops which build), and until a fact is typed, every robot-one program that needs it
-> refuses to build, naming it ([Chapter 21](guide/21-adding-your-robot-by-hand.md)). Robot one's builder
+> **For the team's builder.** One page PER ROBOT — write the robot's name at the top of each copy. Fill it in
+> at the robot and hand it to whoever types the facts. Most answers here become one fact in that robot's facts
+> file — `src/robots/robot_one_facts.hpp`, or `src/robots/robot_two_facts.hpp` for robot two, robot one's twin
+> (2 goes into the drive table; the footer says which answer stops which build) — and until a fact is typed,
+> every program of that robot that needs it refuses to build, naming it
+> ([Chapter 21](guide/21-adding-your-robot-by-hand.md)). Robot one's builder
 > answered the first items on 2026-11-15 (the drive cartridge, the cascade and section G; the coordinator made
 > the front toggle the flipper) — [chapter 21](guide/21-adding-your-robot-by-hand.md)'s "Robot one's mechanisms" table says what is typed and what is
 > still owed.
@@ -81,7 +83,11 @@ and 22–24's letters are typed (the footer).*
 
 ## F. The twin
 
-20. Is robot two being rebuilt like robot one? When? *(Then this form again for robot two.)*
+20. **Robot two is rebuilt like robot one** (the team lead, 2026-11-13: "the same build and just the auton
+    routes are different"). **Fill this form again for robot two**, with robot two's own answers — every
+    robot-two build refuses by name until they are typed. Answers the two robots share by construction (the
+    cascade's cartridge and gear teeth, the flipper's kind) must come out the same on both
+    copies; if one does not, say so — the robots are then not one build.
 
 ## G. The other mechanisms (added 2026-11-15, when robot one's builder named them)
 

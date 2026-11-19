@@ -150,18 +150,13 @@ struct OneFakes {
     void step() { kinds.pace(); }
 };
 
-/// Robot two's claw pivots and claw on fakes (no plant: a SMOKE run).
+/// Robot two's WHOLE list — robot one's twin since ROB1-BT — on fakes built by kind, as OneFakes.
 struct TwoFakes {
-    fake::FakeMotor p6, p7;
-    shulib::hal::IMotor* m6[1]{&p6};
-    shulib::hal::IMotor* m7[1]{&p7};
-    shulib::hal::MotorMechanism mech6{m6, shulib::hal::BrakeMode::Hold, "claw pivot 6"};
-    shulib::hal::MotorMechanism mech7{m7, shulib::hal::BrakeMode::Hold, "claw pivot 7"};
-    fake::FakeDigitalOut lineA;
-    shulib::hal::IDigitalOut* cl[1]{&lineA};
-    shulib::hal::PneumaticMechanism claw{cl, false, "claw"};
-    mech::Devices devs[3]{{.motors = &mech6}, {.motors = &mech7}, {.pneumatic = &claw}};
-    void step() {}
+    OneFakes::NoPace noPace;
+    tester_rig::FakesByKind kinds{shulib::bench::robot_two::kRobotTwoMechanisms};
+    std::span<const mech::Devices> devs = kinds.parts().devices();
+    TwoFakes() { kinds.inner = &noPace; }
+    void step() { kinds.pace(); }
 };
 
 /// The stack: the fakes before the service (bind()'s lifetime rule), the service before the guard and the
@@ -179,9 +174,13 @@ struct Stack {
 
     template <class... A>
     Stack(const shulib::math::Pose2d& start, const mech::MechanismTable& table, A&&... fakeArgs)
-        : rig{kin, plantAt(start), &sink},
-          fakes{std::forward<A>(fakeArgs)...},
-          chassis{rig.deps, guard, shulib::chassis::ChassisConfig{.motion = motion_rig::motionConfig()}} {
+        : Stack(shulib::chassis::ChassisConfig{.motion = motion_rig::motionConfig()}, start, table,
+                std::forward<A>(fakeArgs)...) {}
+    /// The same, on a chassis config of the caller's (a robot's own drive settings).
+    template <class... A>
+    Stack(const shulib::chassis::ChassisConfig& cfg, const shulib::math::Pose2d& start, const mech::MechanismTable& table,
+          A&&... fakeArgs)
+        : rig{kin, plantAt(start), &sink}, fakes{std::forward<A>(fakeArgs)...}, chassis{rig.deps, guard, cfg} {
         world.rig = &rig;
         world.stepMechanisms = [this] { fakes.step(); };
         svc.bind(table, fakes.devs, rig.h.clock(), rig.latch, sink);

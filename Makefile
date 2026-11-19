@@ -72,10 +72,13 @@ endif
 # src/build_selection.hpp (and nowhere else in the tree), which sets the program, the robot's tables
 # and the identity beacon together:
 #     make                → ROBOT=bench  — the measured tank BENCH bot: boots the bench tester
-#     make ROBOT=tank     → the 2026 tank chassis, robot two: boots the bench tester too, over
-#                            its MEASURED, SIGNED chassis table (src/robots/chassis_table.hpp). Add
-#                            PROGRAM=drive (below) for robot two's driver program, "shulib Drive"
-#                            (its driver file on the library, from the calibration record).
+#     make ROBOT=tank     → robot two: boots the bench tester too. Since ROB1-BT (2026-11-16) robot two
+#                            is robot one's TWIN, the same cascade build (its claws and its signed
+#                            chassis table retired): its tables are robot one's design, every number
+#                            from src/robots/robot_two_facts.hpp. Add PROGRAM=drive (below) for robot
+#                            two's driver program, "shulib Drive". EVERY robot-two build REFUSES,
+#                            naming each OWED fact its program needs, until its facts are typed —
+#                            exactly as robot one's below.
 #     make ROBOT=one      → the 2026 CASCADE robot, robot one (ROB1-A, 2026-11-11): boots the bench
 #                            tester over its tables (src/robots/chassis_table.hpp's kRobotOneChassis,
 #                            mostly UNSET until Calibrate measures it; src/robots/mechanism_table.hpp's
@@ -120,8 +123,9 @@ endif
 # row itself names no robot. tools/src_build_gate.py's step 0 derives the same set from the table file
 # and FAILS when this list says otherwise (a robot listed with no mechanisms, or one with mechanisms
 # missing), and src/programs/tune_program.cpp's static_assert stops a Tune build of an empty table.
-# `tank` is robot two (its claws); `one` is robot one (its cascade — ROB1-A, added at its integration onto
-# TUNE1-B1, 2026-11-13; its Tune build, like its other programs, REFUSES while a fact it needs is owed).
+# `tank` is robot two (robot one's twin since ROB1-BT; its claws until then); `one` is robot one (ROB1-A,
+# added at its integration onto TUNE1-B1, 2026-11-13). Each robot's Tune build, like its other programs,
+# REFUSES while a fact it needs is owed.
 MECHANISM_ROBOTS:=tank one
 
 # ── WHICH PROGRAM? (R3b Part 0b, 2026-09-10 — the second build axis; third value at Parts 1–3) ──
@@ -155,9 +159,11 @@ MECHANISM_ROBOTS:=tank one
 #                                         backup, shulib_drivetrain.bak, first) for "shulib
 #                                         Drive" to boot from (slot 4,
 #                                         `pros upload --slot 4 --name "shulib Calibrate"`).
-#                                         It POWERS THE MOTORS. R3d's own Calibrate ran on robot
-#                                         two from 2026-09-24 (its recorded reproduction run is
-#                                         still owed); the standard one has not run on a robot.
+#                                         It POWERS THE MOTORS. R3d's own Calibrate ran on the
+#                                         old robot two from 2026-09-24; the standard one has not
+#                                         run on a robot. Since ROB1-BT the record it writes NAMES
+#                                         ITS ROBOT, and the boot refuses a record naming another
+#                                         robot, or none.
 #     make ROBOT=tank PROGRAM=autontest → "shulib Auton Tester" (COMP-t, 2026-09-28): runs ONE of
 #                                         the team's autons (src/team/autons.cpp) on the bench from
 #                                         RUN on the brain's screen — a 3 s countdown, then

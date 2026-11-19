@@ -4,7 +4,9 @@
 // the route drawn over it: the robot's 15 in square at the start in the red alliance's colour with its FRONT
 // marked and a heading knob; every step's PLANNED path dashed (a curve drawn as the library's own CurvePath,
 // curve.mjs), a ghost square where it ends, a handle on every point to drag, a step's number at its spot, and
-// any step with an error red (a warning amber). Nothing here is the robot's real path: that is the preview's.
+// any step with an error red (a warning amber). Nothing here is the robot's real path: that is the preview's,
+// drawn on its own layer (drawRun, RMP1-A2u): each robot as the record placed it, its path so far solid, the rest
+// faint, and for a mirrored route the pair check's 6 in band along the mirror line.
 // Snapping (field.mjs): the half-tile grid, a wall flush, 15 deg headings; Alt holds it off, Shift = 1 deg.
 
 import { s } from './dom.mjs';
@@ -23,7 +25,8 @@ export function createFieldView(host, app) {
     const image = s('image', { href: pic.url, x: 0, y: 0, width: pic.width, height: pic.height, preserveAspectRatio: 'none' });
     const dim = s('rect', { class: 'g-dim', x: 0, y: 0, width: pic.width, height: pic.height });
     const layer = s('g');
-    svg.append(image, dim, layer);
+    const runLayer = s('g', { class: 'g-runs' });
+    svg.append(image, dim, layer, runLayer);
     host.append(svg);
 
     let view = { x: 0, y: 0, w: pic.width, h: pic.height };
@@ -187,17 +190,21 @@ export function createFieldView(host, app) {
     new ResizeObserver(() => fit()).observe(host);
 
     // ── drawing ─────────────────────────────────────────────────────────────────────────────────────
+    const pts = (list) => list.map((q) => P(q.x, q.y)).map((q) => `${q.px},${q.py}`).join(' ');
+    const cornersOf = (pose, size = app.size()) => pts(squareCorners(pose.x, pose.y, pose.headingDeg, size));
     function square(pose, cls) {
-        const c = squareCorners(pose.x, pose.y, pose.headingDeg, app.size()).map((q) => P(q.x, q.y));
-        return s('polygon', { class: cls, points: c.map((q) => `${q.px},${q.py}`).join(' ') });
+        return s('polygon', { class: cls, points: cornersOf(pose) });
     }
-    function front(pose) {
-        const half = app.size() / 2;
+    function frontPoints(pose, size = app.size()) {
+        const half = size / 2;
         const rad = (pose.headingDeg * Math.PI) / 180;
         const tip = P(pose.x + Math.cos(rad) * (half - 1), pose.y + Math.sin(rad) * (half - 1));
         const l = P(pose.x + Math.cos(rad) * (half - 5) - Math.sin(rad) * 3.2, pose.y + Math.sin(rad) * (half - 5) + Math.cos(rad) * 3.2);
         const r = P(pose.x + Math.cos(rad) * (half - 5) + Math.sin(rad) * 3.2, pose.y + Math.sin(rad) * (half - 5) - Math.cos(rad) * 3.2);
-        return s('polygon', { class: 'g-front', points: `${tip.px},${tip.py} ${l.px},${l.py} ${r.px},${r.py}` });
+        return `${tip.px},${tip.py} ${l.px},${l.py} ${r.px},${r.py}`;
+    }
+    function front(pose) {
+        return s('polygon', { class: 'g-front', points: frontPoints(pose) });
     }
     function arc(at, fromDeg, toDeg) {
         const sweep = ((toDeg - fromDeg + 540) % 360) - 180;
@@ -330,5 +337,73 @@ export function createFieldView(host, app) {
         layer.append(...parts.filter(Boolean));
     }
 
-    return { render, fit, zoom: (f) => zoomAt(f, view.x + view.w / 2, view.y + view.h / 2), element: svg };
+    // ── PREVIEW's run (RMP1-A2u): built once per run, then only the robots and their paths move ──
+    let run = null;
+    const kAt = (path, i) => {  // how many of the path's points are at or before pace i
+        let lo = 0;
+        let hi = path.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (path[mid].i <= i) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        return lo;
+    };
+    const grow = (acc, path, from, to) => {  // a polyline's points path[from, to), only the new ones added while it plays
+        const a = !acc || acc.from !== from || to < acc.k ? { from, k: from, text: '' } : acc;
+        return to > a.k ? { from, k: to, text: `${a.text} ${pts(path.slice(a.k, to))}` } : a;
+    };
+    function drawRun(frame) {
+        svg.classList.toggle('previewing', !!frame);
+        if (!frame) {
+            runLayer.replaceChildren();
+            run = null;
+            return;
+        }
+        if (!run || run.key !== frame.key) {
+            runLayer.replaceChildren();
+            run = { key: frame.key, robots: [] };
+            if (frame.pair) {
+                // the pair check's 6 in band: everything within 3 in of the mirror line y = -x (inside the walls)
+                const c = (frame.pair.gapIn / 2) * Math.SQRT2;
+                const w = app.field().wallInnerFaceIn;
+                const band = [[-w, w], [c - w, w], [w, c - w], [w, -w], [w - c, -w], [-w, w - c]].map(([x, y]) => ({ x, y }));
+                runLayer.append(s('polygon', { class: 'g-band', points: pts(band) }));
+                if (!frame.pair.ok && frame.pair.one) {
+                    [frame.pair.one, frame.pair.two].forEach((q, i) => runLayer.append(s('polygon', {
+                        class: 'g-too-close', points: cornersOf({ x: q[0], y: q[1], headingDeg: (q[2] * 180) / Math.PI }, frame.robots[i] && frame.robots[i].size) })));
+                }
+            }
+            for (const r of frame.robots) {
+                const g = s('g', { class: `g-run ${r.id}` },
+                    s('polyline', { class: 'g-run-all', points: pts(r.path) }),
+                    s('polyline', { class: 'g-run-done' }),
+                    s('polyline', { class: 'g-run-after' }),
+                    s('polygon', { class: 'g-run-robot' }),
+                    s('polygon', { class: 'g-run-front' }));
+                runLayer.append(g);
+                run.robots.push(g);
+            }
+        }
+        frame.robots.forEach((r, i) => {
+            const g = run.robots[i];
+            const [, done, after, body, nose] = g.children;
+            const lo = kAt(r.path, r.upTo);
+            // after a THROUGH the robot would not get further (RPV1): the rest is drawn faded
+            const past = r.throughAt !== null && r.upTo >= r.throughAt;
+            const cut = past ? kAt(r.path, r.throughAt) : lo;
+            g.done = grow(g.done, r.path, 0, cut);
+            g.after = past ? grow(g.after, r.path, cut - 1, lo) : null;
+            done.setAttribute('points', past ? g.done.text : `${g.done.text} ${pts([r.pose])}`);
+            after.setAttribute('points', past ? `${g.after.text} ${pts([r.pose])}` : '');
+            g.classList.toggle('through', past);
+            body.setAttribute('points', cornersOf(r.pose, r.size));
+            nose.setAttribute('points', frontPoints(r.pose, r.size));
+        });
+    }
+
+    return { render, fit, drawRun, zoom: (f) => zoomAt(f, view.x + view.w / 2, view.y + view.h / 2), element: svg };
 }

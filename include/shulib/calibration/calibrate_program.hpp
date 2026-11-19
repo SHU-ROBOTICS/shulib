@@ -48,6 +48,9 @@
 // (save nothing: right after a wrong push). The records cannot tell those apart, so the screen states
 // what the RECORDS say and never what the operator did, and nothing is ever turned to another front:
 // every saved record's front is the end that led its push.
+// THE RECORD'S NAME (chunk ROB1-BT): when the facts name this robot and the card's record names another
+// robot or none, the card line and the front check each add a line saying so. The front is still checked
+// against it (the only front the card holds; twins are wired the same, HA-256), and the save replaces it.
 // THE TYPED DRIVE PORTS (CAL1 Part A2b, 2026-10-30 — the team lead's D6 (a), 2026-10-08): a team
 // whose drive program already TYPES its drive ports may state them (CalibrateFacts::typedDrive,
 // optional). With a usable record on the card they change nothing — not a line, not a draw, not a
@@ -173,6 +176,15 @@ struct CalibrateFacts {
     /// optional (D6 (a)): the drive ports the team types — the front check's reference when the
     /// card holds no usable record; empty = none
     TypedDrivePorts typedDrive{};
+    /// optional: the calibrator's thresholds for THIS robot (default: CalibratorConfig's). A drive with
+    /// many motors per side turns the robot less per pulsed member (robot one, 2026-11-16: one member of
+    /// five turned it ~1.0 deg at 9 V), so its robot file may lower `pulseYawFloor` — and with it
+    /// `restYawRateFloor`, so a drift during a pulse stays under the floor (factsProblem() checks).
+    CalibratorConfig calibrator{};
+    /// optional (chunk ROB1-BT): THIS robot's name for its record (calibration::isRecordName). Stated, the
+    /// record's provenance starts `robot=<name> <stamp>`, so the boot can refuse a card from its twin;
+    /// unset (nullptr), it is "shulib Calibrate <stamp>" as before. LAST, so older facts still compile.
+    const char* recordName = nullptr;
 };
 
 /// Which list of CalibrateFacts a FactsProblem's `entry` indexes.
@@ -180,6 +192,7 @@ enum class FactsList : std::uint8_t {
     Mechanisms,  ///< CalibrateFacts::mechanisms
     TypedLeft,   ///< CalibrateFacts::typedDrive.left
     TypedRight,  ///< CalibrateFacts::typedDrive.right
+    RecordName,  ///< CalibrateFacts::recordName (no list: `entry` is 0)
 };
 
 /// Why a team's facts cannot be used: `why` is null when they can; `entry` is the index of the
@@ -201,13 +214,25 @@ struct FactsProblem {
     return false;
 }
 
-/// The first reason `f` cannot be used. The mechanism list first: an entry NAMED but with no port (a
+/// The first reason `f` cannot be used. A stated record name that is not one (isRecordName) first; then
+/// the mechanism list: an entry NAMED but with no port (a
 /// placeholder `{0, "intake"}` would silently leave that motor a drive candidate), a port outside
 /// 1..21, or a port listed twice (the SECOND entry is named). Then, when it states typed drive ports
 /// (D6 (a)): a port outside 1..21, a port listed twice — on one side, or once on each, by |port|
 /// (the description's own rule) — or only ONE side typed. constexpr, so a build can static_assert
 /// its own facts.
 [[nodiscard]] constexpr FactsProblem factsProblem(const CalibrateFacts& f) noexcept {
+    // The calibrator's own precondition, checked here so a robot file's thresholds are refused BEFORE anything is
+    // made or powered: a drift slow enough to pass the rest check must add less than the floor to a pulse.
+    if (!(f.calibrator.pulseYawFloor.value() > 0.0
+          && f.calibrator.restYawRateFloor.value() * f.calibrator.pulseTime.value() < f.calibrator.pulseYawFloor.value())) {
+        return FactsProblem{"the calibrator's pulse floor is not above the drift a pulse can pick up (restYawRateFloor x "
+                            "pulseTime must stay under pulseYawFloor)"};
+    }
+    if (f.recordName != nullptr && !isRecordName(std::string_view{f.recordName})) {
+        return {"the robot's record name must be 1..24 lower-case letters, digits or '-'", 0,
+                FactsList::RecordName};
+    }
     for (std::size_t i = 0; i < kMaxMechanismPorts; ++i) {
         const int p = f.mechanisms[i].port;
         if (p == 0) {
@@ -563,7 +588,9 @@ public:
         // census found NO MOTOR there", over a port that HAS one).
         if (const FactsProblem fp = factsProblem(facts_); fp.why != nullptr) {
             char why[192];
-            if (fp.list == FactsList::Mechanisms) {
+            if (fp.list == FactsList::RecordName) {
+                std::snprintf(why, sizeof why, "%s: recordName = \"%.40s\"", fp.why, facts_.recordName);
+            } else if (fp.list == FactsList::Mechanisms) {
                 const MechanismPort& m = facts_.mechanisms[fp.entry];
                 std::snprintf(why, sizeof why, "%s: mechanisms[%u] = {%u, \"%.60s\"}", fp.why,
                               static_cast<unsigned>(fp.entry), static_cast<unsigned>(m.port),
@@ -680,8 +707,17 @@ public:
         emit("IMU calibrating (HA-23 says ~2 s) -- keep the robot STILL until the screen says to "
              "push it");
         hal::IClock& clock = d_.devices.clock();
-        char provenance[96];
-        std::snprintf(provenance, sizeof provenance, "shulib Calibrate %s", stamp_);
+        char provenance[kProvenanceBytes];
+        // The record names its robot (CalibrateFacts::recordName — ROB1-BT): the name FIRST, because the
+        // calibrator keeps only this string's first kProvenanceKept characters; a long name may cut the stamp,
+        // never itself.
+        static_assert(kRecordNameKey.size() + kRecordNameMax + 1 <= static_cast<std::size_t>(kProvenanceKept),
+                      "the record's robot name must fit the calibrator's provenance cut whole");
+        if (facts_.recordName != nullptr) {
+            std::snprintf(provenance, sizeof provenance, "robot=%.24s %.40s", facts_.recordName, stamp_);
+        } else {
+            std::snprintf(provenance, sizeof provenance, "shulib Calibrate %s", stamp_);
+        }
         HumanFacts facts{};
         facts.kind = hal::DrivetrainKind::Tank;
         facts.cartridge = cartridge;
@@ -1034,7 +1070,7 @@ private:
                   const HumanFacts& facts) {
         switch (kind_) {
             case RunKind::Drivetrain:
-                cal.emplace(motors, ports, imu, clock);
+                cal.emplace(motors, ports, imu, clock, facts_.calibrator);
                 cal->start(facts);
                 return;
         }
@@ -1072,6 +1108,30 @@ private:
         rec.description.describe(described, sizeof described);
         emitf("card       : %s holds %s -- this run's FRONT is checked against it",
               rec.from == Which::Primary ? kRecordFileName : kRecordBackupFileName, described);
+        recordNameLine("card       :", rec.description);
+    }
+
+    /// When the facts name THIS robot (CalibrateFacts::recordName — ROB1-BT) and the card's record does not,
+    /// one line saying whose record it is: another robot's, or NO robot's (an older record). Nothing when no
+    /// name is stated or the record is this robot's, so a program that names no robot prints what it did.
+    void recordNameLine(const char* prefix, const hal::DrivetrainDescription& rec) {
+        if (facts_.recordName == nullptr) {
+            return;
+        }
+        const std::string_view named = recordRobotName(rec.provenance);
+        if (named == std::string_view{facts_.recordName}) {
+            return;
+        }
+        if (named.empty()) {
+            emitf("%s that record names NO robot (written before records named their robot), not "
+                  "robot=%.24s -- the FRONT is checked against it all the same; a save replaces it with "
+                  "this robot's",
+                  prefix, facts_.recordName);
+            return;
+        }
+        emitf("%s that record is robot=%.*s's, not this robot's (robot=%.24s) -- the FRONT is checked "
+              "against it all the same; a save replaces it with this robot's",
+              prefix, static_cast<int>(named.size()), named.data(), facts_.recordName);
     }
 
     /// One line per record file that OPENED and did not decode, naming it: never an empty reason (a
@@ -1420,6 +1480,7 @@ private:
             setNote(run, panel_text::kNoteNotChecked);
         } else {
             const FrontCheck fc = compareFronts(earlier.description, d);
+            recordNameLine("front check:", earlier.description);
             emitf("front check against %s: %u drive port(s) in both -- %u agree, %u flipped, %u "
                   "sign only, %u side only; %u in the card's only, %u in this run's only: %s",
                   earlier.from == Which::Primary ? kRecordFileName : kRecordBackupFileName,

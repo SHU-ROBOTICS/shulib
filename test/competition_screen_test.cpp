@@ -322,7 +322,7 @@ TEST_CASE("screen (S8): the status and result pages for real requests — the lo
         CHECK(std::string{st.header.text} == "AUTON: 40in forward");
         CHECK(std::string{st.big.text} == "AUTON RUNNING");
         CHECK(st.bar == shulib::ui::Tone::Amber);
-        CHECK(lineText(st, 0) == "MATCH park T+27.0s stop T+29.0s RELATIVE");
+        CHECK(lineText(st, 0) == "SKILLS park T+57.0s stop T+59.0s RELATIVE");  // ROB1-BT: the twin's SKILLS list
         CHECK(std::string{st.barRight.text} == "BUILD 12:34:56");
         const CompetitionView res = shulib::bench::competitionResultView(r, s.registry, "BUILD 12:34:56");
         checkView(res);

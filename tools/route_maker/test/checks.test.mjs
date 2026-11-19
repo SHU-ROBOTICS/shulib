@@ -214,6 +214,23 @@ test('RC18: a mechanism, a kind, a preset or a position the robot does not have 
     assert.equal(at(past, 'RC18').length, 1, 'level 3 is past this robot\'s levels');
 });
 
+test('RC18: an arm or lift with NO levels (robot one\'s cascade since ROB1-C2) -- a move says where levels come from, never "choose one"', () => {
+    const lift = ledgerRobot().mechanisms[0];
+    const none = { ...ledgerRobot(), mechanisms: [{ ...lift, presets: [] }] };
+    const words = 'Robot one\'s cascade has no levels yet: record them at Bench Tests station 13.';
+    for (const step of [{ do: 'move', mechanism: 'cascade', boundS: 2 }, { do: 'startMove', mechanism: 'cascade', preset: 1, boundS: 2 }]) {
+        const rc18 = at(checkRoute(route([{ do: 'home', mechanism: 'cascade', boundS: 3 }, step]), [none], FIELD), 'RC18');
+        assert.deepEqual(rc18.map((x) => [x.level, x.stepIndex, x.field, x.words]), [['error', 1, 'preset', words]], JSON.stringify(step));
+        assert.equal(rc18[0].library, step.preset === undefined ? '' : libraryWords('noPreset'), 'a level named anyway: the library refuses it too');
+    }
+    // its home and a wait on it are not refused; with ONE level the move is the old rule again (choose it)
+    const home = route([{ do: 'startHome', mechanism: 'cascade', boundS: 3 }, { do: 'waitUntilDone', mechanism: 'cascade', boundS: 1 }]);
+    assert.deepEqual(at(checkRoute(home, [none], FIELD), 'RC18'), []);
+    const oneLevel = { ...none, mechanisms: [{ ...lift, presets: [lift.presets[0]] }] };
+    const choose = at(checkRoute(route([{ do: 'home', mechanism: 'cascade', boundS: 3 }, { do: 'move', mechanism: 'cascade', boundS: 2 }]), [oneLevel], FIELD), 'RC18');
+    assert.deepEqual(choose.map((x) => x.words), ['Choose which level it moves to.']);
+});
+
 test('RC19: the motion options -- 0 or more (0 is the robot\'s own), a heading tolerance under 180, only on a step that drives', () => {
     const drive = (care) => at(checkRoute(route([{ do: 'driveTo', x: -12, y: -55.7, care }]), [X], FIELD), 'RC19');
     for (const f of ['timeoutS', 'maxSpeedInPerS', 'maxTurnDegPerS', 'toleranceIn', 'toleranceDeg']) {

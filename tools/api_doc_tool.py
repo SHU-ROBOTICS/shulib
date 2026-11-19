@@ -1939,13 +1939,19 @@ PUBLIC_DOC_FILES = ["README.md", "test/README.md"]
 #     (test/autons_test.cpp), and every robot build compiles it, so a quote of it
 #     is a quote of what the robot runs — and, by the whole-run rule, each
 #     listing is an unbroken run of it (a listing of an auton that skips a line
-#     misstates the auton).
+#     misstates the auton);
+#   * test/goldens/route_maker/controls_*.hpp — the route builder's CT21 goldens
+#     (RMP1-B): a map exactly as the page writes it, compiled through DriverFile
+#     by the suite. Guide 21 quotes robot one's map AS THE BUILDER GAVE IT from
+#     controls_one_builders_map.hpp, so a team export (the driver files stay
+#     open after the freeze, the RMP1 brief's D15) never makes that chapter fail
+#     this scan; the golden is held to the builder's file by the page's CT22.
 # It is NEVER widened to all of src/: a program's plumbing is not something a
 # public document teaches from, and a quote of it would pass this scan while
 # describing code no reader should copy. docs/how-the-docs-stay-true.md states
 # the same scope in prose ("the team's files under src/team/ that a chapter quotes").
 EXAMPLE_SOURCE_GLOBS = ["test/*example*_test.cpp", "src/team/*_driver.hpp",
-                        "src/team/autons.cpp"]
+                        "src/team/autons.cpp", "test/goldens/route_maker/controls_*.hpp"]
 
 # THE WHOLE-RUN RULE, for the kinds a chapter shows AS THE FILE READS (T4 Part
 # 1a's review, 2026-09-27). The scan checks MEMBERSHIP: every quoted line must
@@ -2854,6 +2860,7 @@ def do_self_test():
                         "}\n")
         _put("src/team/autons.cpp", autons_whole)
         _put("src/programs/fixture_program.cpp", "    int onlyInAProgram = 3;\n")
+        _put("test/goldens/route_maker/controls_fixture.hpp", "    int onlyInAGolden = 4;  // as typed\n")
         quote = ("```cpp\nstatic constexpr int kOnlyInTheDriverFile = 7;  // a driver line\n"
                  "int onlyInTheExample = 1;\n```\n")
         _put("docs/cookbook/fixture.md", quote)
@@ -2867,6 +2874,13 @@ def do_self_test():
               "check-examples: a line only a program file holds fails (never all of src/)")
         _put("docs/cookbook/fixture.md", "```cpp\nint onlyInTheExample = 1;\n```\n")
         check(_scan() == 0, "check-examples: the fixture's example line passes on its own")
+        # Bug caught (RMP1-B): guide 21's listing of robot one's map failing the build the moment the team
+        # exports a change, because the only source holding it was the team's live driver file.
+        _put("docs/cookbook/fixture.md", "```cpp\nint onlyInAGolden = 4;  // as typed\n```\n")
+        check(_scan() == 0, "check-examples: a line only a route builder CT21 golden holds is VERBATIM (passes)")
+        _put("docs/cookbook/fixture.md", "```cpp\nint onlyInAGolden = 5;  // as typed\n```\n")
+        check(_scan() == 1, "check-examples: a drifted CT21-golden quote fails")
+        _put("docs/cookbook/fixture.md", "```cpp\nint onlyInTheExample = 1;\n```\n")
 
         # ── the WHOLE-RUN rule (WHOLE_RUN_SOURCE_GLOBS; T4 Part 1a's review) ──
         # Bug caught: a control ADDED to a driver file inside the part a chapter

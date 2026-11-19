@@ -23,6 +23,16 @@
 // the type lives in localization/wall_reset.hpp). The pointer is NON-CONST: the everyday wall reset
 // files each outcome in the slot's log. motion::MotionScheduler's shadow context carries it field by
 // field like every other slot — a slot not carried there is nullptr in every `chassis.deps().ctx`.
+//
+// ── The second OPTIONAL slot: the Toggle camera (chunk AF1S-A2, 2026-11-15) ──────────────
+// `toggleCamera` is the robot's camera answer for the skills Toggle step: one feed over the camera, the
+// model of its measured mount and the team's tracker numbers (vision/toggle_camera.hpp). Exactly the
+// wall slot's rules: nullptr means "this robot file declares no Toggle block" — the everyday step then
+// says NO CAMERA — and every existing caller compiles and runs unchanged; a pointer handed out as a
+// pointer (`toggleCamera()`), forward-declared and never dereferenced here; NON-CONST (the step ticks
+// its feed); carried field by field by the motion scheduler's shadow context. A DECLARED block whose
+// camera could not be built is a present slot that is not READY (its own absence sentence) — the
+// pointer is decided by the config before the camera exists (vision/toggle_camera.hpp's banner says why).
 
 #include <span>
 
@@ -40,6 +50,12 @@ namespace shulib::localization {
 /// wall-sensor slot's pointer and never reads through it, so it includes no localization header.
 struct WallSensors;
 }  // namespace shulib::localization
+
+namespace shulib::vision {
+/// Forward declaration only (vision/toggle_camera.hpp defines it): this context stores the OPTIONAL
+/// Toggle-camera slot's pointer and never reads through it, so it includes no vision header.
+class ToggleCamera;
+}  // namespace shulib::vision
 
 namespace shulib::chassis {
 
@@ -66,6 +82,11 @@ struct RobotContextConfig {
     /// slot the constructor does NOT require. Non-const: the everyday wall reset files its outcome in
     /// the slot's log. Must outlive the context when set.
     localization::WallSensors* walls = nullptr;
+    /// OPTIONAL (AF1S-A2, appended): the robot's Toggle camera — one feed over the camera, the model of
+    /// its measured mount, the team's tracker numbers (vision/toggle_camera.hpp); nullptr = this robot
+    /// file declares no Toggle block, and the everyday Toggle step says NO CAMERA. Not required by the
+    /// constructor, like `walls`. Non-const: the step ticks its feed. Must outlive the context when set.
+    vision::ToggleCamera* toggleCamera = nullptr;
 };
 
 /// The composition root: the ONE object that differs between the real robot, the simulator and a
@@ -79,7 +100,7 @@ struct RobotContextConfig {
 class RobotContext {
 public:
     /// Validates the whole config up front — every REQUIRED handle non-null and driveMotors
-    /// non-empty (`walls` is optional and never checked) — through SHULIB_PRECONDITION, so a mis-wired robot fails at construction naming the handle
+    /// non-empty (`walls` and `toggleCamera` are optional and never checked) — through SHULIB_PRECONDITION, so a mis-wired robot fails at construction naming the handle
     /// it is missing, instead of dereferencing null halfway through an auton. The count of drive
     /// motors is checked here only for emptiness; motion::MotionDeps::validate() checks it for
     /// EQUALITY against the kinematics' wheel count (the context never sees the kinematics).
@@ -126,6 +147,11 @@ public:
     /// OPTIONAL slot; the wall reset then refuses NO SENSOR). A pointer, as handed in: this context
     /// never dereferences it.
     [[nodiscard]] localization::WallSensors* wallSensors() const noexcept { return cfg_.walls; }
+    /// The robot's Toggle camera (AF1S-A2) — nullptr when this robot file declares no Toggle block (the
+    /// second OPTIONAL slot; the everyday Toggle step then says NO CAMERA). A declared slot may still be
+    /// NOT READY (its camera absent, its mount unmeasured — its own absence sentence says which). A
+    /// pointer, as handed in: this context never dereferences it.
+    [[nodiscard]] vision::ToggleCamera* toggleCamera() const noexcept { return cfg_.toggleCamera; }
 
 private:
     RobotContextConfig cfg_;

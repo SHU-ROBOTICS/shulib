@@ -85,6 +85,9 @@ namespace rm_gl18d { RM_FIXTURE_X
 namespace rm_gl19 { RM_FIXTURE_X
 #include "goldens/route_maker/gl19_caps.cpp"
 }
+namespace rm_wg8 { RM_FIXTURE_X
+#include "goldens/route_maker/wg8_distinct_numbers.cpp"
+}
 // Robot one's and robot two's: their REAL declarations (src/robots/mechanism_table.hpp), as the shared file
 // sees them on each robot's build (robot one's names `facts` too: its ledger).
 namespace rm_smoke_one {
@@ -347,7 +350,18 @@ TEST_CASE("RMP1 GL19: the caps' spellings (R10) -- N_in / 1_s and AngularVelocit
     CHECK(std::abs(std::remainder(t.heading().radians() - kPi / 2.0, 2.0 * kPi)) < (5.0 + 1.0) * kPi / 180.0);
 }
 
-TEST_CASE("RMP1 smoke: the exports on robot ONE's cascade (its ledger's levels) and robot TWO's claws compile and run without a throw") {
+TEST_CASE("RMP1 WG8: the golden whose every pair of numbers differs (the preview engine's WG1/WG2, RMP1-A2e) compiles and every step runs") {
+    const AutonEntry e = rm_wg8::skillsRoute();
+    XStack s{rm_rig::startOf(e), mech_fixture::robot_x::kRobotXMechanisms, false};
+    const auto r = s.run(e);
+    INFO(s.transcript());
+    REQUIRE(r.outcome == AutonRunOutcome::RoutineRan);
+    CHECK(r.routine.steps == 25);    // 22 page steps, three of them drives turned first (two calls each)
+    CHECK(r.routine.stoppedAt == 0);  // every step carries on or skips forward: none is left unrun by a stop
+    CHECK(r.routine.jumped == 0);
+}
+
+TEST_CASE("RMP1 smoke: the exports on robot ONE's and robot TWO's real lists (the twins) compile and run without a throw") {
     {
         const AutonEntry e = rm_smoke_one::skillsRoute();
         rm_rig::Stack<rm_rig::OneFakes> s{rm_rig::startOf(e), shulib::bench::robot_one::kRobotOneMechanisms};
@@ -394,7 +408,11 @@ TEST_CASE("RMP1: robot one's description marks its cascade levels as its facts l
     const auto two = route_maker::robotSource("two");
     REQUIRE(two.has_value());
     const std::string t = route_maker::describe(*two);
-    CHECK(t.find("\"name\": \"claw pivot 6\", \"ident\": \"clawPivot6\"") != std::string::npos);
+    CHECK(t.find("\"ident\": \"cascade\"") != std::string::npos);  // robot one's twin (ROB1-BT)
+    CHECK(t.find("\"ident\": \"leftToggle\"") != std::string::npos);
+    // owed marks ride on NAMED levels only: robot two's placeholder is robot one's typed "none yet"
+    CHECK((t.find("\"owed\": true") != std::string::npos) ==
+          (!shulib::bench::robot_two_facts::kCascadeLevels.typed && shulib::bench::robot_two_facts::lv(0).name != nullptr));
     // RG1: no path in a description (the published page must not carry a laptop's directory)
     for (const std::string& d : {j, t}) {
         CHECK(d.find("/home/") == std::string::npos);
@@ -403,12 +421,28 @@ TEST_CASE("RMP1: robot one's description marks its cascade levels as its facts l
     CHECK_FALSE(route_maker::robotSource("three").has_value());
 }
 
+TEST_CASE("RMP1: each robot's description reads ITS OWN facts ledger's levels and owed mark (robot two's own since ROB1-BT)") {
+    // BUG CAUGHT: robot two described from robot one's ledger (or none) — the page would offer robot one's levels,
+    // or none, on robot two, and say they are measured while robot two's are still owed.
+    const auto one = route_maker::robotSource("one");
+    const auto two = route_maker::robotSource("two");
+    REQUIRE(one.has_value());
+    REQUIRE(two.has_value());
+    REQUIRE(one->ledgerLevel != nullptr);
+    REQUIRE(two->ledgerLevel != nullptr);
+    for (std::size_t i = 0; i < shulib::mechanism::kMaxPresets; ++i) {
+        CHECK(one->ledgerLevel(i) == shulib::bench::robot_one_facts::lv(i).name);
+        CHECK(two->ledgerLevel(i) == shulib::bench::robot_two_facts::lv(i).name);
+    }
+    CHECK(one->ledgerOwed == !shulib::bench::robot_one_facts::kCascadeLevels.typed);
+    CHECK(two->ledgerOwed == !shulib::bench::robot_two_facts::kCascadeLevels.typed);
+    CHECK(two->ledgerOwed);  // robot two's levels are owed until read off it
+}
+
 TEST_CASE("RMP1: a robot that builds the shared route and declares a cascade marks its levels as its facts ledger's (the tripwire for robot two)") {
     // The shared skills route moves the cascade to LEDGER levels (`cascade[facts::lv(i).name]`); the page lets it
-    // only on a robot whose description marks them (RC18). Robot two has no cascade on this base, so this holds
-    // for robot one alone; when robot two's update gives it robot one's cascade (ROB1-BT), this goes red until
-    // route_maker_robots.hpp gives robot two its ledger (robot_two_facts::lv) — never a silent "every level
-    // refused on robot two".
+    // only on a robot whose description marks them (RC18) — both robots since ROB1-BT (route_maker_robots.hpp),
+    // never a silent "every level refused on robot two".
     for (const char* id : {"one", "two"}) {
         const auto src = route_maker::robotSource(id);
         REQUIRE(src.has_value());
