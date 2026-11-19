@@ -8,7 +8,7 @@
 
 The CALIBRATION RECORD — a hal::DrivetrainDescription as bytes on the SD card.
 
-This header declares **3** free functions and **8** constants.
+This header declares **5** free functions and **10** constants.
 
 Extracted from [`include/shulib/calibration/calibration_record.hpp`](../../include/shulib/calibration/calibration_record.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -19,6 +19,10 @@ Extracted from [`include/shulib/calibration/calibration_record.hpp`](../../inclu
 - [`kRecordFileName`](#krecordfilename) — *constant*
 - [`kRecordBackupFileName`](#krecordbackupfilename) — *constant*
 - [`kProvenanceBytes`](#kprovenancebytes) — *constant*
+- [`kRecordNameKey`](#krecordnamekey) — *constant*
+- [`kRecordNameMax`](#krecordnamemax) — *constant*
+- [`isRecordName`](#isrecordname) — *free function*
+- [`recordRobotName`](#recordrobotname) — *free function*
 - [`kRecordPayloadBytes`](#krecordpayloadbytes) — *constant*
 - [`kRecordPrefixBytes`](#krecordprefixbytes) — *constant*
 - [`kRecordBytes`](#krecordbytes) — *constant*
@@ -86,6 +90,54 @@ Width of the description's provenance field, in bytes — taken from the struct 
 
 *constant, declared at [`include/shulib/calibration/calibration_record.hpp:128`](../../include/shulib/calibration/calibration_record.hpp#L128).*
 
+<a id="krecordnamekey"></a>
+
+## `kRecordNameKey`
+
+```cpp
+inline constexpr std::string_view kRecordNameKey = "robot="
+```
+
+The key before a robot's name in a record's provenance: `robot=<name>`, at the start of a word.
+
+*constant, declared at [`include/shulib/calibration/calibration_record.hpp:138`](../../include/shulib/calibration/calibration_record.hpp#L138).*
+
+<a id="krecordnamemax"></a>
+
+## `kRecordNameMax`
+
+```cpp
+inline constexpr std::size_t kRecordNameMax = 24
+```
+
+The longest robot name a record carries (the key, the name and a space fit the 40-character cut).
+
+*constant, declared at [`include/shulib/calibration/calibration_record.hpp:141`](../../include/shulib/calibration/calibration_record.hpp#L141).*
+
+<a id="isrecordname"></a>
+
+## `isRecordName`
+
+```cpp
+[[nodiscard]] constexpr bool isRecordName(std::string_view name) noexcept
+```
+
+True when `name` can be a record's robot name: 1..kRecordNameMax lower-case letters, digits or '-'.
+
+*free function, declared at [`include/shulib/calibration/calibration_record.hpp:144`](../../include/shulib/calibration/calibration_record.hpp#L144).*
+
+<a id="recordrobotname"></a>
+
+## `recordRobotName`
+
+```cpp
+[[nodiscard]] constexpr std::string_view recordRobotName(const char (&provenance)[kProvenanceBytes]) noexcept
+```
+
+The robot a record's provenance names: the word after the first `robot=` that starts a word, when it is a record name (isRecordName) — else EMPTY (an older record, or a name that was cut). `provenance` is the stored field (it need not end in a NUL when full); the view points into it.
+
+*free function, declared at [`include/shulib/calibration/calibration_record.hpp:160`](../../include/shulib/calibration/calibration_record.hpp#L160).*
+
 <a id="krecordpayloadbytes"></a>
 
 ## `kRecordPayloadBytes`
@@ -96,7 +148,7 @@ inline constexpr std::size_t kRecordPayloadBytes = 1 + 1 + 1 + (hal::kMaxSmartPo
 
 Bytes of the payload (everything between the length field and the CRC), v1: kind 1 + cartridge 1 + imuPort 1 + left (21 + 1 + 8) + right (21 + 1 + 8) + trackWidth 8 + source 1 + provenance 96 = 168. The encoder asserts it wrote exactly this many.
 
-*constant, declared at [`include/shulib/calibration/calibration_record.hpp:133`](../../include/shulib/calibration/calibration_record.hpp#L133).*
+*constant, declared at [`include/shulib/calibration/calibration_record.hpp:184`](../../include/shulib/calibration/calibration_record.hpp#L184).*
 
 <a id="krecordprefixbytes"></a>
 
@@ -108,7 +160,7 @@ inline constexpr std::size_t kRecordPrefixBytes = 4 + 2 + 2
 
 Bytes of the fixed prefix: magic 4 + version 2 + payloadBytes 2.
 
-*constant, declared at [`include/shulib/calibration/calibration_record.hpp:137`](../../include/shulib/calibration/calibration_record.hpp#L137).*
+*constant, declared at [`include/shulib/calibration/calibration_record.hpp:188`](../../include/shulib/calibration/calibration_record.hpp#L188).*
 
 <a id="krecordbytes"></a>
 
@@ -120,7 +172,7 @@ inline constexpr std::size_t kRecordBytes = kRecordPrefixBytes + kRecordPayloadB
 
 The WHOLE record, in bytes: prefix + payload + the trailing u32 CRC. A file of any other length is refused by name before a single field is believed.
 
-*constant, declared at [`include/shulib/calibration/calibration_record.hpp:141`](../../include/shulib/calibration/calibration_record.hpp#L141).*
+*constant, declared at [`include/shulib/calibration/calibration_record.hpp:192`](../../include/shulib/calibration/calibration_record.hpp#L192).*
 
 <a id="crc32ieee"></a>
 
@@ -132,7 +184,7 @@ The WHOLE record, in bytes: prefix + payload + the trailing u32 CRC. A file of a
 
 CRC-32/IEEE 802.3 over `bytes` — FORWARDS to diag::crc32Ieee (diag/crc32.hpp), where the algorithm has lived since chunk H1 Part A1 so the SHUL/2 wire can share it; this spelling is kept so the record's encoder and decoder and every existing caller compile unchanged. The same number `zlib.crc32` and `crc32` produce (reflected polynomial 0xEDB88320, all-ones initial value, final inversion), computed bitwise with no lookup table.
 
-*free function, declared at [`include/shulib/calibration/calibration_record.hpp:151`](../../include/shulib/calibration/calibration_record.hpp#L151).*
+*free function, declared at [`include/shulib/calibration/calibration_record.hpp:202`](../../include/shulib/calibration/calibration_record.hpp#L202).*
 
 <a id="encoderecord"></a>
 
@@ -144,7 +196,7 @@ CRC-32/IEEE 802.3 over `bytes` — FORWARDS to diag::crc32Ieee (diag/crc32.hpp),
 
 Write `desc` into `out` as a v1 record. Returns the bytes written (kRecordBytes) or 0 if `out` is too small or the layout did not come out to exactly kRecordBytes — whole or nothing, so a short buffer can never leave a half-record that decodes.  It does NOT check desc.valid(): a caller may legitimately want to persist whatever the calibrator produced, and the DECODER is where the refusal lives (one gate, at the point where the bytes become a belief). The calibrate program checks valid() itself before it ever gets here, because a record nobody can boot from is not worth writing.
 
-*free function, declared at [`include/shulib/calibration/calibration_record.hpp:189`](../../include/shulib/calibration/calibration_record.hpp#L189).*
+*free function, declared at [`include/shulib/calibration/calibration_record.hpp:240`](../../include/shulib/calibration/calibration_record.hpp#L240).*
 
 <a id="decoderecord"></a>
 
@@ -156,7 +208,7 @@ Write `desc` into `out` as a v1 record. Returns the bytes written (kRecordBytes)
 
 Read a v1 record out of `in` into `desc`. Returns false — leaving `desc` untouched — and writes the CAUSE into `why` (optional; pass nullptr and 0 to skip) for any of the five refusals in the header, in that order: magic, version, length, CRC, then the decoded description's own valid(). Never throws, never allocates, never reads past `in`.  The ORDER is deliberate. Length before CRC, because a CRC over the wrong number of bytes says "corrupt" about a file that is really "from another layout", and the operator needs the second answer. valid() LAST, because a description that fails valid() with an intact CRC is a producer bug, not a card problem, and saying "CRC ok but the description contradicts itself" is what separates the two at 8 a.m. on a bench.
 
-*free function, declared at [`include/shulib/calibration/calibration_record.hpp:238`](../../include/shulib/calibration/calibration_record.hpp#L238).*
+*free function, declared at [`include/shulib/calibration/calibration_record.hpp:289`](../../include/shulib/calibration/calibration_record.hpp#L289).*
 
 ## Design commentary, from the header
 

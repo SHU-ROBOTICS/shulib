@@ -8,7 +8,7 @@
 
 calibrate_program — THE STANDARD "shulib Calibrate" (chunk CAL1, Part A2a, 2026-10-18): the robot measures its own drivetrain, for ANY team, from the few facts only a person can state.
 
-This header declares **8** types (37 members), **8** free functions, and **4** constants.
+This header declares **8** types (40 members), **8** free functions, and **4** constants.
 
 Extracted from [`include/shulib/calibration/calibrate_program.hpp`](../../include/shulib/calibration/calibrate_program.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -28,10 +28,13 @@ Extracted from [`include/shulib/calibration/calibrate_program.hpp`](../../includ
   - [`robot`](#calibratefacts-robot)
   - [`imuPortStated`](#calibratefacts-imuportstated)
   - [`typedDrive`](#calibratefacts-typeddrive)
+  - [`calibrator`](#calibratefacts-calibrator)
+  - [`recordName`](#calibratefacts-recordname)
 - [`enum class FactsList`](#enum-class-factslist)
   - [`Mechanisms`](#factslist-mechanisms)
   - [`TypedLeft`](#factslist-typedleft)
   - [`TypedRight`](#factslist-typedright)
+  - [`RecordName`](#factslist-recordname)
 - [`struct FactsProblem`](#struct-factsproblem)
   - [`why`](#factsproblem-why)
   - [`entry`](#factsproblem-entry)
@@ -82,7 +85,7 @@ struct MechanismPort
 
 A motor Calibrate must never power: a mechanism's smart port, and what to call it in the log. LIST EVERY MOTOR THAT IS NOT A DRIVE MOTOR: a motor not listed is a drive CANDIDATE, and one that turns with the push is POWERED (3, then 6, then 9 V) like a drive motor. A 3-wire solenoid is not a motor and is never a candidate.
 
-*struct, declared at [`include/shulib/calibration/calibrate_program.hpp:139`](../../include/shulib/calibration/calibrate_program.hpp#L139).*
+*struct, declared at [`include/shulib/calibration/calibrate_program.hpp:142`](../../include/shulib/calibration/calibrate_program.hpp#L142).*
 
 <a id="mechanismport-port"></a>
 
@@ -94,7 +97,7 @@ std::uint8_t port = 0
 
 1..21; 0 = an unused entry (only if `name` is null too)
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:140`](../../include/shulib/calibration/calibrate_program.hpp#L140).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:143`](../../include/shulib/calibration/calibrate_program.hpp#L143).*
 
 <a id="mechanismport-name"></a>
 
@@ -106,7 +109,7 @@ const char* name = nullptr
 
 what the log and the screen call it; null prints "a mechanism"
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:141`](../../include/shulib/calibration/calibrate_program.hpp#L141).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:144`](../../include/shulib/calibration/calibrate_program.hpp#L144).*
 
 <a id="kmaxmechanismports"></a>
 
@@ -118,7 +121,7 @@ inline constexpr std::size_t kMaxMechanismPorts = hal::kMaxSmartPorts
 
 The most mechanism motors a team can declare: every smart port, so a robot is never refused for counting.
 
-*constant, declared at [`include/shulib/calibration/calibrate_program.hpp:146`](../../include/shulib/calibration/calibrate_program.hpp#L146).*
+*constant, declared at [`include/shulib/calibration/calibrate_program.hpp:149`](../../include/shulib/calibration/calibrate_program.hpp#L149).*
 
 <a id="struct-typeddriveports"></a>
 
@@ -130,7 +133,7 @@ struct TypedDrivePorts
 
 The drive ports a team ALREADY TYPES for its drive program (CAL1 D6 (a), the team lead 2026-10-08) — OPTIONAL: leave them out and nothing changes. When the card holds no usable record, the front check compares this run with THESE instead of with nothing (header). The spelling is the one a typed table already uses (src/robots/chassis_table.hpp's `.left = {-11, 12, -13, 14, -15}`, carried unchanged into hal::DriveSideDescription::signedPorts by the boot's tableToDescription()): a SIGNED port per motor on the side it drives, `-11` = port 11 reversed once in the adapter. So "SAME FRONT as the typed ports" means exactly "a drive built from them turns every motor the way this push measured". 0 = an unused slot (skipped, the order kept). They are compared, never calibrated from.
 
-*struct, declared at [`include/shulib/calibration/calibrate_program.hpp:157`](../../include/shulib/calibration/calibrate_program.hpp#L157).*
+*struct, declared at [`include/shulib/calibration/calibrate_program.hpp:160`](../../include/shulib/calibration/calibrate_program.hpp#L160).*
 
 <a id="typeddriveports-left"></a>
 
@@ -142,7 +145,7 @@ std::int8_t left[hal::kMaxSmartPorts]{}
 
 the LEFT side's drive ports, signed; 0 = unused
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:158`](../../include/shulib/calibration/calibrate_program.hpp#L158).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:161`](../../include/shulib/calibration/calibrate_program.hpp#L161).*
 
 <a id="typeddriveports-right"></a>
 
@@ -154,7 +157,7 @@ std::int8_t right[hal::kMaxSmartPorts]{}
 
 the RIGHT side's drive ports, signed; 0 = unused
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:159`](../../include/shulib/calibration/calibrate_program.hpp#L159).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:162`](../../include/shulib/calibration/calibrate_program.hpp#L162).*
 
 <a id="struct-calibratefacts"></a>
 
@@ -166,7 +169,7 @@ struct CalibrateFacts
 
 The facts only a person can state (header). The optional members are UNSET until stated: a value is never invented, and an unset kind or cartridge REFUSES before anything is made or powered. Every member has a default, so a team names only what it states (designated initializers, in this order — `typedDrive` is LAST, so a file that names the others still compiles).
 
-*struct, declared at [`include/shulib/calibration/calibrate_program.hpp:167`](../../include/shulib/calibration/calibrate_program.hpp#L167).*
+*struct, declared at [`include/shulib/calibration/calibrate_program.hpp:170`](../../include/shulib/calibration/calibrate_program.hpp#L170).*
 
 <a id="calibratefacts-drive"></a>
 
@@ -178,7 +181,7 @@ std::optional<config::DrivetrainKind> drive{}
 
 the kind the team HAS; only Tank is measured
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:168`](../../include/shulib/calibration/calibrate_program.hpp#L168).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:171`](../../include/shulib/calibration/calibrate_program.hpp#L171).*
 
 <a id="calibratefacts-cartridge"></a>
 
@@ -190,7 +193,7 @@ std::optional<hal::MotorCartridge> cartridge{}
 
 the DRIVE motors' cartridge (insert colour)
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:169`](../../include/shulib/calibration/calibrate_program.hpp#L169).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:172`](../../include/shulib/calibration/calibrate_program.hpp#L172).*
 
 <a id="calibratefacts-mechanisms"></a>
 
@@ -202,7 +205,7 @@ MechanismPort mechanisms[kMaxMechanismPorts]{}
 
 EVERY motor that is not a drive motor
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:170`](../../include/shulib/calibration/calibrate_program.hpp#L170).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:173`](../../include/shulib/calibration/calibrate_program.hpp#L173).*
 
 <a id="calibratefacts-robot"></a>
 
@@ -214,7 +217,7 @@ const char* robot = nullptr
 
 optional: the robot's name, for the log
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:171`](../../include/shulib/calibration/calibrate_program.hpp#L171).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:174`](../../include/shulib/calibration/calibrate_program.hpp#L174).*
 
 <a id="calibratefacts-imuportstated"></a>
 
@@ -226,7 +229,7 @@ std::uint8_t imuPortStated = 0
 
 optional cross-check (the registry decides); 0 = none
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:172`](../../include/shulib/calibration/calibrate_program.hpp#L172).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:175`](../../include/shulib/calibration/calibrate_program.hpp#L175).*
 
 <a id="calibratefacts-typeddrive"></a>
 
@@ -238,7 +241,31 @@ TypedDrivePorts typedDrive{}
 
 optional (D6 (a)): the drive ports the team types — the front check's reference when the card holds no usable record; empty = none
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:175`](../../include/shulib/calibration/calibrate_program.hpp#L175).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:178`](../../include/shulib/calibration/calibrate_program.hpp#L178).*
+
+<a id="calibratefacts-calibrator"></a>
+
+### `CalibrateFacts::calibrator`
+
+```cpp
+CalibratorConfig calibrator{}
+```
+
+optional: the calibrator's thresholds for THIS robot (default: CalibratorConfig's). A drive with many motors per side turns the robot less per pulsed member (robot one, 2026-11-16: one member of five turned it ~1.0 deg at 9 V), so its robot file may lower `pulseYawFloor` — and with it `restYawRateFloor`, so a drift during a pulse stays under the floor (factsProblem() checks).
+
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:183`](../../include/shulib/calibration/calibrate_program.hpp#L183).*
+
+<a id="calibratefacts-recordname"></a>
+
+### `CalibrateFacts::recordName`
+
+```cpp
+const char* recordName = nullptr
+```
+
+optional (chunk ROB1-BT): THIS robot's name for its record (calibration::isRecordName). Stated, the record's provenance starts `robot=<name> <stamp>`, so the boot can refuse a card from its twin; unset (nullptr), it is "shulib Calibrate <stamp>" as before. LAST, so older facts still compile.
+
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:187`](../../include/shulib/calibration/calibrate_program.hpp#L187).*
 
 <a id="enum-class-factslist"></a>
 
@@ -250,7 +277,7 @@ enum class FactsList : std::uint8_t
 
 Which list of CalibrateFacts a FactsProblem's `entry` indexes.
 
-*enum class, declared at [`include/shulib/calibration/calibrate_program.hpp:179`](../../include/shulib/calibration/calibrate_program.hpp#L179).*
+*enum class, declared at [`include/shulib/calibration/calibrate_program.hpp:191`](../../include/shulib/calibration/calibrate_program.hpp#L191).*
 
 <a id="factslist-mechanisms"></a>
 
@@ -262,7 +289,7 @@ Mechanisms
 
 CalibrateFacts::mechanisms
 
-*enumerator, declared at [`include/shulib/calibration/calibrate_program.hpp:180`](../../include/shulib/calibration/calibrate_program.hpp#L180).*
+*enumerator, declared at [`include/shulib/calibration/calibrate_program.hpp:192`](../../include/shulib/calibration/calibrate_program.hpp#L192).*
 
 <a id="factslist-typedleft"></a>
 
@@ -274,7 +301,7 @@ TypedLeft
 
 CalibrateFacts::typedDrive.left
 
-*enumerator, declared at [`include/shulib/calibration/calibrate_program.hpp:181`](../../include/shulib/calibration/calibrate_program.hpp#L181).*
+*enumerator, declared at [`include/shulib/calibration/calibrate_program.hpp:193`](../../include/shulib/calibration/calibrate_program.hpp#L193).*
 
 <a id="factslist-typedright"></a>
 
@@ -286,7 +313,19 @@ TypedRight
 
 CalibrateFacts::typedDrive.right
 
-*enumerator, declared at [`include/shulib/calibration/calibrate_program.hpp:182`](../../include/shulib/calibration/calibrate_program.hpp#L182).*
+*enumerator, declared at [`include/shulib/calibration/calibrate_program.hpp:194`](../../include/shulib/calibration/calibrate_program.hpp#L194).*
+
+<a id="factslist-recordname"></a>
+
+### `FactsList::RecordName`
+
+```cpp
+RecordName
+```
+
+CalibrateFacts::recordName (no list: `entry` is 0)
+
+*enumerator, declared at [`include/shulib/calibration/calibrate_program.hpp:195`](../../include/shulib/calibration/calibrate_program.hpp#L195).*
 
 <a id="struct-factsproblem"></a>
 
@@ -298,7 +337,7 @@ struct FactsProblem
 
 Why a team's facts cannot be used: `why` is null when they can; `entry` is the index of the entry it names, in the list `list` names.
 
-*struct, declared at [`include/shulib/calibration/calibrate_program.hpp:187`](../../include/shulib/calibration/calibrate_program.hpp#L187).*
+*struct, declared at [`include/shulib/calibration/calibrate_program.hpp:200`](../../include/shulib/calibration/calibrate_program.hpp#L200).*
 
 <a id="factsproblem-why"></a>
 
@@ -310,7 +349,7 @@ const char* why = nullptr
 
 null = usable
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:188`](../../include/shulib/calibration/calibrate_program.hpp#L188).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:201`](../../include/shulib/calibration/calibrate_program.hpp#L201).*
 
 <a id="factsproblem-entry"></a>
 
@@ -322,7 +361,7 @@ std::size_t entry = 0
 
 the entry it is about
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:189`](../../include/shulib/calibration/calibrate_program.hpp#L189).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:202`](../../include/shulib/calibration/calibrate_program.hpp#L202).*
 
 <a id="factsproblem-list"></a>
 
@@ -334,7 +373,7 @@ FactsList list = FactsList::Mechanisms
 
 the list `entry` indexes
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:190`](../../include/shulib/calibration/calibrate_program.hpp#L190).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:203`](../../include/shulib/calibration/calibrate_program.hpp#L203).*
 
 <a id="hastypeddrive"></a>
 
@@ -346,7 +385,7 @@ the list `entry` indexes
 
 True when `f` states typed drive ports: any non-zero entry on EITHER side (a list with one side only is then refused by factsProblem(), never run as untyped).
 
-*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:195`](../../include/shulib/calibration/calibrate_program.hpp#L195).*
+*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:208`](../../include/shulib/calibration/calibrate_program.hpp#L208).*
 
 <a id="factsproblem"></a>
 
@@ -356,9 +395,9 @@ True when `f` states typed drive ports: any non-zero entry on EITHER side (a lis
 [[nodiscard]] constexpr FactsProblem factsProblem(const CalibrateFacts& f) noexcept
 ```
 
-The first reason `f` cannot be used. The mechanism list first: an entry NAMED but with no port (a placeholder `{0, "intake"}` would silently leave that motor a drive candidate), a port outside 1..21, or a port listed twice (the SECOND entry is named). Then, when it states typed drive ports (D6 (a)): a port outside 1..21, a port listed twice — on one side, or once on each, by |port| (the description's own rule) — or only ONE side typed. constexpr, so a build can static_assert its own facts.
+The first reason `f` cannot be used. A stated record name that is not one (isRecordName) first; then the mechanism list: an entry NAMED but with no port (a placeholder `{0, "intake"}` would silently leave that motor a drive candidate), a port outside 1..21, or a port listed twice (the SECOND entry is named). Then, when it states typed drive ports (D6 (a)): a port outside 1..21, a port listed twice — on one side, or once on each, by |port| (the description's own rule) — or only ONE side typed. constexpr, so a build can static_assert its own facts.
 
-*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:210`](../../include/shulib/calibration/calibrate_program.hpp#L210).*
+*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:224`](../../include/shulib/calibration/calibrate_program.hpp#L224).*
 
 <a id="typeddrivedescription"></a>
 
@@ -370,7 +409,7 @@ The first reason `f` cannot be used. The mechanism list first: an entry NAMED bu
 
 The typed drive ports as a description's two sides — the reference compareFronts() reads when the card holds no usable record (header). Only the two sides are filled (the check reads nothing else); zero slots are skipped and the order kept. Assumes factsProblem(f) passed.
 
-*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:268`](../../include/shulib/calibration/calibrate_program.hpp#L268).*
+*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:293`](../../include/shulib/calibration/calibrate_program.hpp#L293).*
 
 <a id="typeddriveportsfrom"></a>
 
@@ -382,7 +421,7 @@ The typed drive ports as a description's two sides — the reference compareFron
 
 A description's two sides as typed drive ports — for a team whose drive program is a config::RobotConfig: `.typedDrive = typedDrivePortsFrom(kRobot.drivetrain.tank.description)` (the inverse of typedDriveDescription(); the `kRobot` must be a constant expression when the facts are `constexpr`).
 
-*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:288`](../../include/shulib/calibration/calibrate_program.hpp#L288).*
+*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:313`](../../include/shulib/calibration/calibrate_program.hpp#L313).*
 
 <a id="declaredmechanism"></a>
 
@@ -394,7 +433,7 @@ A description's two sides as typed drive ports — for a team whose drive progra
 
 The declared mechanism entry for physical `port`, or null.
 
-*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:301`](../../include/shulib/calibration/calibrate_program.hpp#L301).*
+*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:326`](../../include/shulib/calibration/calibrate_program.hpp#L326).*
 
 <a id="kcompetitiondisabled"></a>
 
@@ -406,7 +445,7 @@ inline constexpr std::uint8_t kCompetitionDisabled = 0x01
 
 The competition status bit "disabled" (PROS's competition_get_status(); hal/pros/calibrate.hpp checks the three against PROS's own values at compile time). Written in hex: the API reference tool reads `<<` as a bracket.
 
-*constant, declared at [`include/shulib/calibration/calibrate_program.hpp:316`](../../include/shulib/calibration/calibrate_program.hpp#L316).*
+*constant, declared at [`include/shulib/calibration/calibrate_program.hpp:341`](../../include/shulib/calibration/calibrate_program.hpp#L341).*
 
 <a id="kcompetitionautonomous"></a>
 
@@ -418,7 +457,7 @@ inline constexpr std::uint8_t kCompetitionAutonomous = 0x02
 
 The competition status bit "autonomous" — see kCompetitionDisabled.
 
-*constant, declared at [`include/shulib/calibration/calibrate_program.hpp:318`](../../include/shulib/calibration/calibrate_program.hpp#L318).*
+*constant, declared at [`include/shulib/calibration/calibrate_program.hpp:343`](../../include/shulib/calibration/calibrate_program.hpp#L343).*
 
 <a id="kcompetitionconnected"></a>
 
@@ -430,7 +469,7 @@ inline constexpr std::uint8_t kCompetitionConnected = 0x04
 
 The competition status bit "field or switch connected" — see kCompetitionDisabled.
 
-*constant, declared at [`include/shulib/calibration/calibrate_program.hpp:320`](../../include/shulib/calibration/calibrate_program.hpp#L320).*
+*constant, declared at [`include/shulib/calibration/calibrate_program.hpp:345`](../../include/shulib/calibration/calibrate_program.hpp#L345).*
 
 <a id="class-calibrateio"></a>
 
@@ -442,7 +481,7 @@ class CalibrateIo
 
 Everything the program reaches outside the library's seams — four calls. On the brain: hal::pros::ProsCalibrateIo (hal/pros/calibrate.hpp); on the host: a test's fake.
 
-*class, declared at [`include/shulib/calibration/calibrate_program.hpp:324`](../../include/shulib/calibration/calibrate_program.hpp#L324).*
+*class, declared at [`include/shulib/calibration/calibrate_program.hpp:349`](../../include/shulib/calibration/calibrate_program.hpp#L349).*
 
 <a id="calibrateio-destructor-calibrateio"></a>
 
@@ -454,7 +493,7 @@ virtual ~CalibrateIo() = default
 
 Polymorphic-base boilerplate: a virtual destructor, the copy/move set re-defaulted (the base holds no state).
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:328`](../../include/shulib/calibration/calibrate_program.hpp#L328).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:353`](../../include/shulib/calibration/calibrate_program.hpp#L353).*
 
 <a id="calibrateio-calibrateio"></a>
 
@@ -466,7 +505,7 @@ CalibrateIo() = default
 
 Polymorphic-base boilerplate: a virtual destructor, the copy/move set re-defaulted (the base holds no state). Default-constructible.
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:330`](../../include/shulib/calibration/calibrate_program.hpp#L330).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:355`](../../include/shulib/calibration/calibrate_program.hpp#L355).*
 
 <a id="calibrateio-calibrateio-2"></a>
 
@@ -478,7 +517,7 @@ CalibrateIo(const CalibrateIo&) = default
 
 Polymorphic-base boilerplate: a virtual destructor, the copy/move set re-defaulted (the base holds no state). Default-constructible. Copyable at the base.
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:332`](../../include/shulib/calibration/calibrate_program.hpp#L332).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:357`](../../include/shulib/calibration/calibrate_program.hpp#L357).*
 
 <a id="calibrateio-calibrateio-3"></a>
 
@@ -490,7 +529,7 @@ CalibrateIo(CalibrateIo&&) = default
 
 Polymorphic-base boilerplate: a virtual destructor, the copy/move set re-defaulted (the base holds no state). Default-constructible. Copyable at the base. Movable at the base.
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:334`](../../include/shulib/calibration/calibrate_program.hpp#L334).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:359`](../../include/shulib/calibration/calibrate_program.hpp#L359).*
 
 <a id="calibrateio-operator-eq"></a>
 
@@ -502,7 +541,7 @@ CalibrateIo& operator=(const CalibrateIo&) = default
 
 Polymorphic-base boilerplate: a virtual destructor, the copy/move set re-defaulted (the base holds no state). Default-constructible. Copyable at the base. Movable at the base. Copy-assignable at the base.
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:336`](../../include/shulib/calibration/calibrate_program.hpp#L336).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:361`](../../include/shulib/calibration/calibrate_program.hpp#L361).*
 
 <a id="calibrateio-operator-eq-2"></a>
 
@@ -514,7 +553,7 @@ CalibrateIo& operator=(CalibrateIo&&) = default
 
 Polymorphic-base boilerplate: a virtual destructor, the copy/move set re-defaulted (the base holds no state). Default-constructible. Copyable at the base. Movable at the base. Copy-assignable at the base. Move-assignable at the base.
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:338`](../../include/shulib/calibration/calibrate_program.hpp#L338).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:363`](../../include/shulib/calibration/calibrate_program.hpp#L363).*
 
 <a id="calibrateio-line"></a>
 
@@ -526,7 +565,7 @@ virtual void line(const char* text) = 0
 
 Polymorphic-base boilerplate: a virtual destructor, the copy/move set re-defaulted (the base holds no state). Default-constructible. Copyable at the base. Movable at the base. Copy-assignable at the base. Move-assignable at the base. One serial line, WITHOUT its "[R3D] " tag and newline (the platform adds them). On the brain it reaches the USB serial as ONE write() per line (SER1).
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:341`](../../include/shulib/calibration/calibrate_program.hpp#L341).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:366`](../../include/shulib/calibration/calibrate_program.hpp#L366).*
 
 <a id="calibrateio-competitionstatus"></a>
 
@@ -538,7 +577,7 @@ Polymorphic-base boilerplate: a virtual destructor, the copy/move set re-default
 
 The competition status byte (the kCompetition* bits).
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:343`](../../include/shulib/calibration/calibrate_program.hpp#L343).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:368`](../../include/shulib/calibration/calibrate_program.hpp#L368).*
 
 <a id="calibrateio-delayms"></a>
 
@@ -550,7 +589,7 @@ virtual void delayMs(std::uint32_t ms) = 0
 
 Wait `ms` milliseconds — a plain wait (the touch baseline's retry, the fault's idle).
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:345`](../../include/shulib/calibration/calibrate_program.hpp#L345).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:370`](../../include/shulib/calibration/calibrate_program.hpp#L370).*
 
 <a id="calibrateio-readshaftdegrees"></a>
 
@@ -562,7 +601,7 @@ Wait `ms` milliseconds — a plain wait (the touch baseline's retry, the fault's
 
 THE WATCH'S READ: the DECLARED mechanism motor on `port`'s shaft position, degrees, read WITHOUT configuring or commanding it. False when it cannot be read (then nothing is judged).
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:348`](../../include/shulib/calibration/calibrate_program.hpp#L348).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:373`](../../include/shulib/calibration/calibrate_program.hpp#L373).*
 
 <a id="competitionwords"></a>
 
@@ -574,7 +613,7 @@ inline const char* competitionWords(std::uint8_t s, char* buf, std::size_t n)
 
 The status byte in words, into `buf`: "0x04 field=yes disabled=no auton=no". Returns `buf`.
 
-*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:352`](../../include/shulib/calibration/calibrate_program.hpp#L352).*
+*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:377`](../../include/shulib/calibration/calibrate_program.hpp#L377).*
 
 <a id="struct-calibratedevices"></a>
 
@@ -586,7 +625,7 @@ struct CalibrateDevices
 
 The devices the program runs on, all BORROWED: each must outlive the program.
 
-*struct, declared at [`include/shulib/calibration/calibrate_program.hpp:361`](../../include/shulib/calibration/calibrate_program.hpp#L361).*
+*struct, declared at [`include/shulib/calibration/calibrate_program.hpp:386`](../../include/shulib/calibration/calibrate_program.hpp#L386).*
 
 <a id="calibratedevices-devices"></a>
 
@@ -598,7 +637,7 @@ hal::IDeviceProvider& devices
 
 motors and the IMU by port; the clock; the pacer
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:362`](../../include/shulib/calibration/calibrate_program.hpp#L362).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:387`](../../include/shulib/calibration/calibrate_program.hpp#L387).*
 
 <a id="calibratedevices-registry"></a>
 
@@ -610,7 +649,7 @@ hal::IDeviceRegistry& registry
 
 what is plugged in, read without opening anything
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:363`](../../include/shulib/calibration/calibrate_program.hpp#L363).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:388`](../../include/shulib/calibration/calibrate_program.hpp#L388).*
 
 <a id="calibratedevices-card"></a>
 
@@ -622,7 +661,7 @@ hal::IFileStore& card
 
 the SD card (the record and its backup)
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:364`](../../include/shulib/calibration/calibrate_program.hpp#L364).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:389`](../../include/shulib/calibration/calibrate_program.hpp#L389).*
 
 <a id="calibratedevices-screen"></a>
 
@@ -634,7 +673,7 @@ hal::IBrainScreen& screen
 
 the brain's screen and touch
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:365`](../../include/shulib/calibration/calibrate_program.hpp#L365).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:390`](../../include/shulib/calibration/calibrate_program.hpp#L390).*
 
 <a id="calibratedevices-io"></a>
 
@@ -646,7 +685,7 @@ CalibrateIo& io
 
 the serial line, the competition status, a wait, the watch
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:366`](../../include/shulib/calibration/calibrate_program.hpp#L366).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:391`](../../include/shulib/calibration/calibrate_program.hpp#L391).*
 
 <a id="class-calibrateprogram"></a>
 
@@ -658,7 +697,7 @@ class CalibrateProgram
 
 THE STANDARD CALIBRATE (header). Construct it over the robot's devices and the team's facts and call run() from opcontrol(): it owns its own 10 ms loop, and returns when the field disables the robot or starts autonomous (cleanly, every motor at 0 V + Coast) or when no run can start (a refusal painted and printed before anything is made). Not copyable; one per program.
 
-*class, declared at [`include/shulib/calibration/calibrate_program.hpp:481`](../../include/shulib/calibration/calibrate_program.hpp#L481).*
+*class, declared at [`include/shulib/calibration/calibrate_program.hpp:506`](../../include/shulib/calibration/calibrate_program.hpp#L506).*
 
 <a id="calibrateprogram-kpushlogminseconds"></a>
 
@@ -670,7 +709,7 @@ static constexpr double kPushLogMinSeconds = 0.25
 
 The least time between two `push live:` serial lines while the count changes, seconds.
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:484`](../../include/shulib/calibration/calibrate_program.hpp#L484).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:509`](../../include/shulib/calibration/calibrate_program.hpp#L509).*
 
 <a id="calibrateprogram-kpushlogkeepaliveseconds"></a>
 
@@ -682,7 +721,7 @@ static constexpr double kPushLogKeepaliveSeconds = 5.0
 
 The longest time between two `push live:` lines while nothing changes, seconds.
 
-*field, declared at [`include/shulib/calibration/calibrate_program.hpp:486`](../../include/shulib/calibration/calibrate_program.hpp#L486).*
+*field, declared at [`include/shulib/calibration/calibrate_program.hpp:511`](../../include/shulib/calibration/calibrate_program.hpp#L511).*
 
 <a id="calibrateprogram-calibrateprogram"></a>
 
@@ -694,7 +733,7 @@ CalibrateProgram(const CalibrateFacts& facts, CalibrateDevices d, const char* bu
 
 `buildStamp` is "<date> <time>" of the build (the caller's __DATE__ " " __TIME__): the banner prints it whole and the screen's header its time. `facts` is copied; `d` and the stamp are borrowed and must outlive the program.
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:491`](../../include/shulib/calibration/calibrate_program.hpp#L491).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:516`](../../include/shulib/calibration/calibrate_program.hpp#L516).*
 
 <a id="calibrateprogram-calibrateprogram-2"></a>
 
@@ -706,7 +745,7 @@ CalibrateProgram(const CalibrateProgram&) = delete
 
 Not copyable: it borrows the robot's devices, and a copy would be a second program commanding the same motors.
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:497`](../../include/shulib/calibration/calibrate_program.hpp#L497).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:522`](../../include/shulib/calibration/calibrate_program.hpp#L522).*
 
 <a id="calibrateprogram-operator-eq"></a>
 
@@ -718,7 +757,7 @@ CalibrateProgram& operator=(const CalibrateProgram&) = delete
 
 Not copyable: it borrows the robot's devices, and a copy would be a second program commanding the same motors. Not copy-assignable, for the same reason.
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:499`](../../include/shulib/calibration/calibrate_program.hpp#L499).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:524`](../../include/shulib/calibration/calibrate_program.hpp#L524).*
 
 <a id="calibrateprogram-run"></a>
 
@@ -730,7 +769,7 @@ void run()
 
 Run calibrations until driver control ends — the field's disable, or autonomous starting — or return at once when no run can start (a refusal, painted and printed) (header).
 
-*function, declared at [`include/shulib/calibration/calibrate_program.hpp:503`](../../include/shulib/calibration/calibrate_program.hpp#L503).*
+*function, declared at [`include/shulib/calibration/calibrate_program.hpp:528`](../../include/shulib/calibration/calibrate_program.hpp#L528).*
 
 <a id="calibratebootbanner"></a>
 
@@ -742,7 +781,7 @@ inline void calibrateBootBanner(CalibrateIo& io, const char* label, std::uint8_t
 
 initialize()'s banner for the standard Calibrate, through `io`: `label` (a build's beacon, or null), the competition status at boot, the build stamp. Constructs nothing and powers nothing — the motors are found when driver control starts.
 
-*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:1799`](../../include/shulib/calibration/calibrate_program.hpp#L1799).*
+*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:1860`](../../include/shulib/calibration/calibrate_program.hpp#L1860).*
 
 <a id="calibratestatescreen"></a>
 
@@ -754,14 +793,14 @@ inline void calibrateStateScreen(hal::IBrainScreen& screen, CalibrateIo& io, con
 
 disabled() / competition_initialize() / autonomous() for the standard Calibrate: its competition-state screen on `screen` (it runs ONLY in driver control) and one serial line through `io`. Pass calibrate_screen.hpp's words — screen_text::kStateName* for `state` and kStateWhy* for `why` — which are checked at compile time to fit; any other text is cut, and the screen says so. A free function: those entry points run on their own PROS tasks, before and after run()'s program exists.
 
-*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:1832`](../../include/shulib/calibration/calibrate_program.hpp#L1832).*
+*free function, declared at [`include/shulib/calibration/calibrate_program.hpp:1893`](../../include/shulib/calibration/calibrate_program.hpp#L1893).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 98 lines, click to expand</summary>
+<summary>The header’s own reasoning — 101 lines, click to expand</summary>
 
 ```text
 
@@ -813,6 +852,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  (save nothing: right after a wrong push). The records cannot tell those apart, so the screen states
  what the RECORDS say and never what the operator did, and nothing is ever turned to another front:
  every saved record's front is the end that led its push.
+ THE RECORD'S NAME (chunk ROB1-BT): when the facts name this robot and the card's record names another
+ robot or none, the card line and the front check each add a line saying so. The front is still checked
+ against it (the only front the card holds; twins are wired the same, HA-256), and the save replaces it.
  THE TYPED DRIVE PORTS (CAL1 Part A2b, 2026-10-30 — the team lead's D6 (a), 2026-10-08): a team
  whose drive program already TYPES its drive ports may state them (CalibrateFacts::typedDrive,
  optional). With a usable record on the card they change nothing — not a line, not a draw, not a

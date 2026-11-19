@@ -12,6 +12,7 @@ editing these pages. Most of them are enforced by the build, not by anyone remem
 | Limits are plain facts: no page opens with a status disclaimer (the exact words are in the tool) | `tools/doc_readability.py check-tone` |
 | On the site, every register row has its own link (`hardware-assumptions.md#ha-136`) | `tools/prepare_site.py check-register` |
 | The front page's first-week picture matches guide 21's order | `tools/docs_figures/first_week.py check` |
+| "Where your code goes"'s picture matches that page's tables | `tools/docs_figures/build_to_program.py check` |
 | A number a page states matches the repository; a file a page names exists | `tools/doc_staleness_audit.py` |
 
 All of them run in every build of the test suite and in CI.
@@ -46,15 +47,16 @@ compiles it and pass both the build and CI. (It was found by deliberately introd
 drift: a chapter's `300_ms` retyped to `300_s` built clean and passed the whole suite.) The
 build and CI now run a scan that requires every non-blank line inside a ```` ```cpp ```` block in
 any public document to appear verbatim in a compiled source: a compiled example test, or one of
-the team's files under `src/team/` that a chapter quotes (today: robot two's driver file,
-`src/team/robot_two_driver.hpp`, which the [driver-control recipes](cookbook/06-driver-control.md)
-quote, the team's auton file, `src/team/autons.cpp`, which
-[chapter 16](guide/16-testing-an-auton-on-the-bench.md) and
+the team's files under `src/team/` that a chapter quotes (today: robot one's driver file,
+`src/team/robot_one_driver.hpp`, which the [driver-control recipes](cookbook/06-driver-control.md) quote,
+and robot two's autons file,
+`src/team/autons.cpp`, which [chapter 16](guide/16-testing-an-auton-on-the-bench.md) and
 [chapter 17](guide/17-the-competition-program.md) quote — the host suite compiles it and runs
-every auton in it — and robot one's driver file, `src/team/robot_one_driver.hpp`, which
-[chapter 21](guide/21-adding-your-robot-by-hand.md) quotes) — never the rest of `src/`. A listing
-of either file must also be one unbroken run of the file's lines, so a line added to the file
-inside a part a chapter shows fails the scan too. The sources are matched by globs, one per kind
+every auton in it), or one of the route builder's compiled goldens
+([chapter 21](guide/21-adding-your-robot-by-hand.md) quotes robot one's map as the builder gave it from
+`test/goldens/route_maker/controls_one_builders_map.hpp`, so the team's own changes to its driver file never fail
+the scan) — never the rest of `src/`. A listing of a team file must also be one unbroken run of the file's lines, so
+a line added to the file inside a part a chapter shows fails the scan too. The sources are matched by globs, one per kind
 of file, so a new examples file is covered the moment it exists, and a kind that matches no file
 fails the scan. The same run also checks that no public document links into the
 development-process notes.

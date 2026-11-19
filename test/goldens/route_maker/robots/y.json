@@ -5,10 +5,10 @@
   "autonNameMaxChars": 29,
   "drive": {"tank": true, "footprintIn": 15, "maxSteerDeg": 14.999999999999998, "curve": {"maxStartOffDeg": 90, "lookAheadIn": 8, "minSpacingIn": 1, "maxPoints": 16}},
   "mechanisms": [
-    {"name": "wrist", "ident": "wrist", "kind": "arm", "units": "deg", "homing": "absolute", "range": [-90, 90], "presets": [{"name": "flat", "value": 0}]},
-    {"name": "swing", "ident": "swing", "kind": "arm", "units": "deg", "homing": "stall", "range": [0, 120], "presets": [{"name": "down", "value": 0}, {"name": "up", "value": 110}]},
-    {"name": "dr4b", "ident": "dr4b", "kind": "lift", "units": "in", "homing": "restsAtStop", "range": [0, 30], "presets": [{"name": "low", "value": 4}]},
-    {"name": "tilt", "ident": "tilt", "kind": "lift", "units": "in", "homing": "never", "range": [0, 14], "presets": [{"name": "mid", "value": 6}]},
+    {"name": "wrist", "ident": "wrist", "kind": "arm", "units": "deg", "homing": "absolute", "range": [-90, 90], "unhomedVolts": 4, "presets": [{"name": "flat", "value": 0}]},
+    {"name": "swing", "ident": "swing", "kind": "arm", "units": "deg", "homing": "stall", "range": [0, 120], "unhomedVolts": 0, "presets": [{"name": "down", "value": 0}, {"name": "up", "value": 110}]},
+    {"name": "dr4b", "ident": "dr4b", "kind": "lift", "units": "in", "homing": "restsAtStop", "range": [0, 30], "unhomedVolts": 0, "presets": [{"name": "low", "value": 4}]},
+    {"name": "tilt", "ident": "tilt", "kind": "lift", "units": "in", "homing": "never", "range": [0, 14], "unhomedVolts": 3, "presets": [{"name": "mid", "value": 6}]},
     {"name": "roller", "ident": "roller", "kind": "power", "pieceSensor": true},
     {"name": "catapult", "ident": "catapult", "kind": "power", "pieceSensor": true},
     {"name": "grip", "ident": "grip", "kind": "pneumatic", "positions": ["shut", "loose"]}

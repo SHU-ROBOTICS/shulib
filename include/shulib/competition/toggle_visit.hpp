@@ -7,14 +7,45 @@
 // colour, and otherwise drives straight in, pushes with the flipper, retracts, drives straight back
 // out and looks again — a second push only when the first turned the Toggle to the THIRD colour,
 // never a third. Every doubt does nothing more and is reported; the route's own choice after a failed
-// step (its onFail, or the default stop) decides what comes next. The form this run gives is the
-// EXPLICIT one, over handles (the host tests and a hand-wired Tier-3 program); the everyday form over
-// an auton's context is AF1S-A2's.
+// step (its onFail, or the default stop) decides what comes next.
+//
+// ── Two forms, ONE body ─────────────────────────────────────────────────────────────────────────
+// The EVERYDAY form (chunk AF1S-A2, 2026-11-15), over an auton's context — what every team route writes:
+//
+//     r.onFail(skipTo("blue wall")).then([&] {
+//         return competition::checkAndFlipToggle(ctx, kRedWallVisit).outcome();
+//     }, "red wall Toggle");
+//
+// It reads the robot's Toggle camera through `ctx.chassis.deps().ctx->toggleCamera()` — the context's
+// second OPTIONAL slot, filled by robot::Robot from the robot file's camera and Toggle blocks
+// (vision/toggle_camera.hpp), carried by the motion scheduler's shadow context — exactly as the everyday
+// wall reset reads the wall sensors; the mechanism service, the guard, the entry and the sink are the
+// context's own. No slot (no Toggle block declared) or a slot that is NOT READY (the camera absent, its
+// mount unmeasured, a tracker number refused — its own sentence) is NO CAMERA, that sentence in the line,
+// at rule 1's place (after NOT SKILLS). An optional third argument states a POSE BOUND for the visit —
+// `{.poseTolerance = 2_in, .headingToleranceDeg = 3}` under a FIELD start, right after a wall reset (the
+// brief's D6 (c)) — so the tracker's position gate, when the robot file turns it on, can run; without one it
+// is skipped. Two things the everyday form does that the explicit one does not (AF1S-A2's review, 2026-11-16), both
+// because the library KNOWS how this run's estimate was set (runAuton applied the entry's start) and the
+// two numbers it compares come from two files:
+//   * a bound stated under a start that is not FIELD is NOT handed to the tracker — the estimate is then
+//     in the robot's own frame, not the field's, so the position gate would compare it with the season's
+//     Toggle places and drop the real Toggle as "no band"; the line says `wall and position not checked
+//     (relative start)`. (The explicit form's caller knows its own estimate's frame and states the bound.)
+//   * an excursion lookFrom - pushFrom of twice the Toggle block's `frozenMoveIn` or less — the ROUTE's
+//     request against the ROBOT FILE's block, typed at different stations — is a REFUSAL, SPOTS TOO CLOSE,
+//     before anything is read or moved, so the route's onFail applies; in the explicit form, where one
+//     caller holds both numbers, it stays a programming error (a precondition). toggleVisitBlockProblem()
+//     checks the pair AT BUILD, for a route that can see its robot file's block.
+// The EXPLICIT form (AF1S-A1), over handles — the host tests and a hand-wired Tier-3 program:
 //
 //     r.then([&] {
 //         return competition::checkAndFlipToggle(cam, ctx.chassis, ctx.guard, ctx.mechanismService,
 //                                                ctx.entry, kRedWallVisit, ctx.telemetry).outcome();
 //     }, "red wall Toggle");
+//
+// Both run the one visit below (detail::ToggleVisit): every rule is the same in both, by construction — the
+// two differences above are a detail::VisitForm the everyday calls hand it.
 //
 // ── "Ours" in a skills run ──────────────────────────────────────────────────────────────────────
 // Each Toggle's QUADRANT colour (vision/override_elements.hpp's table, A4 register HA-243 — a reading
@@ -36,7 +67,9 @@
 //
 // ── The rules, in order (each one a test) ───────────────────────────────────────────────────────
 //   1. ALLOWED — reading NOTHING, commanding nothing: a SKILLS auton (else NOT SKILLS); a usable camera
-//      (the feed, a measured mount, a tracker config the tracker accepts — else NO CAMERA); the flipper
+//      (the feed, a measured mount, a tracker config the tracker accepts — else NO CAMERA); an excursion
+//      lookFrom - pushFrom of MORE than twice the tracker's `frozenMoveIn` (else, in the EVERYDAY form,
+//      SPOTS TOO CLOSE; in the explicit form a precondition at this same place — below); the flipper
 //      found on this robot, built, homed, idle and AT `back` within its "reached" tolerance — a
 //      pneumatic's `flipBound` and `backBound` each at least its move time plus its confirm window,
 //      the most its slot waits for a verdict, so rule 4 never counts less than the step will wait
@@ -126,16 +159,16 @@
 // FLIPPED's full stroke, and one caught on the Toggle on the way back is driven out with it — OURS
 // AFTER A SHORT STROKE and FLIPPER STUCK cannot come from a pneumatic (A4 register HA-235); a lookalike
 // band the tracker's gates cannot tell from a face (A4 register HA-199 — the position gate, with a pose
-// the team trusts, is what turns those away); a robot touching the Toggle after the step ends; the
-// pieces the robot holds (<SG6>: holding more than one Pin or one Cup, it may not touch a Toggle — the
-// route's to respect).
+// the team trusts, turns MOST of those away; not one within its tolerance of where a Toggle's face is); a
+// robot touching the Toggle after the step ends; the pieces the robot holds (<SG6>: holding more than one
+// Pin or one Cup, it may not touch a Toggle — the route's to respect).
 //
 // A programming error is LOUD (a precondition): the guard not running; a request that names no Toggle,
 // leaves a number UNSET, puts the push spot at or beyond the look spot, an `offBy` of `lookFrom` or
 // more, a flipper and a back of two mechanisms or the same goal twice, or `maxPushes` other than 1 or
-// 2 — refused AT BUILD when the request is built through toggleVisit(...) as a constant; and an
-// excursion lookFrom - pushFrom of twice the tracker's `frozenMoveIn` or less (the look after could
-// not see a frozen camera).
+// 2 — refused AT BUILD when the request is built through toggleVisit(...) as a constant; and, in the
+// EXPLICIT form, an excursion lookFrom - pushFrom of twice the tracker's `frozenMoveIn` or less (the
+// look after could not see a frozen camera) — the everyday form refuses that one, SPOTS TOO CLOSE.
 //
 // ── A MIRRORED auton (chunk MIRROR1-A, 2026-11-13; competition/field_mirror.hpp) ─────────────────
 // The route names robot one's Toggle; `entry` says the run is robot two's, mirrored. The step reads the
@@ -174,6 +207,7 @@
 #include "shulib/vision/camera_feed.hpp"
 #include "shulib/vision/camera_geometry.hpp"
 #include "shulib/vision/override_elements.hpp"
+#include "shulib/vision/toggle_camera.hpp"
 #include "shulib/vision/toggle_tracker.hpp"
 
 namespace shulib::competition {
@@ -507,6 +541,10 @@ enum class ToggleVisitVerdict : std::uint8_t {
     DriveFailed,           ///< the drive in or out did not arrive within driveBound
     SeenNotOurs,           ///< lookAtToggle only: a sure colour at the spot, not ours (the look call never pushes)
     FrozenBeforePush,      ///< the camera seen frozen on the drive in: nothing pushed, the robot drove out
+    // APPENDED at AF1S-A2 (its review, 2026-11-16):
+    SpotsTooClose,         ///< the EVERYDAY form only: lookFrom - pushFrom is twice the Toggle block's
+                           ///< frozenMoveIn or less (the route's request against the robot file's block) —
+                           ///< nothing read or moved (the explicit form throws a precondition instead)
 };
 
 /// The verdict as words for a log line, a bench page or the route preview.
@@ -533,6 +571,7 @@ enum class ToggleVisitVerdict : std::uint8_t {
         case ToggleVisitVerdict::DriveFailed: return "DRIVE FAILED";
         case ToggleVisitVerdict::SeenNotOurs: return "SEEN, NOT OURS";
         case ToggleVisitVerdict::FrozenBeforePush: return "FROZEN BEFORE PUSH";
+        case ToggleVisitVerdict::SpotsTooClose: return "SPOTS TOO CLOSE";
     }
     return "UNKNOWN";
 }
@@ -604,7 +643,8 @@ struct ToggleVisitReport {
     /// Likewise, the drive out.
     control::ExitReason driveOut = control::ExitReason::Running;
     /// A short reason beside some verdicts (FLIPPER NOT READY's, NO CAMERA's, NOT AT THE SPOT's) — a
-    /// library literal or the flipper's absence sentence; "" when none.
+    /// library literal, the flipper's absence sentence, or (the everyday form, AF1S-A2) the Toggle-camera
+    /// slot's own sentence, which lives as long as its Robot; "" when none.
     const char* detail = "";
 
     /// True for the two successes: ALREADY OURS and FLIPPED.
@@ -653,6 +693,25 @@ struct ExplicitToggleCamera {
     units::Length poseTolerance{};
     /// The heading bound the caller states, degrees (used only with `poseTolerance`).
     double headingToleranceDeg = 0.0;
+    /// Why `feed` / `model` are nullptr, for NO CAMERA's line — the everyday form's slot sentence
+    /// (AF1S-A2, APPENDED); nullptr = the library's own words ("no camera feed on this robot").
+    /// BORROWED: it must outlive the visit's report (a slot's sentence lives as long as its Robot).
+    const char* absence = nullptr;
+};
+
+/// The pose bound a ROUTE states for one visit through the everyday form (AF1S-A2) — how far the estimate
+/// may be off at the look, for the tracker's POSITION gate (the robot file's Toggle block turns the gate
+/// on; it runs only with a bound stated, tighter than the block's `maxPoseToleranceIn`). The default
+/// states NONE: the gate is skipped, never run on a pose taken as exact. State one only where the route
+/// trusts its pose — under a FIELD start, right after a wall reset (the AF1S brief's D6 (c)); under any
+/// other start the step drops it (the estimate is not in the field's frame) and its line says so. The
+/// gate turns MOST lookalikes away — not one within its tolerance of where a Toggle's face is (A4 register
+/// HA-199; guide chapter 14).
+struct TogglePoseBound {
+    /// How far the estimate's position may be off, inches. 0 = NONE stated (the gate is skipped).
+    units::Length poseTolerance{};
+    /// How far its heading may be off, degrees (used only with `poseTolerance`).
+    double headingToleranceDeg = 0.0;
 };
 
 /// The band at the look spot? nullptr when its WHOLE range interval lies inside [lookFrom - offBy,
@@ -686,14 +745,25 @@ struct ExplicitToggleCamera {
 
 namespace detail {
 
+/// Which form called the body (file banner, "Two forms, ONE body") — the two places the everyday form
+/// answers differently (AF1S-A2's review). Default: the explicit form's answers.
+struct VisitForm {
+    /// True for the everyday form: an excursion of twice frozenMoveIn or less is SPOTS TOO CLOSE (a
+    /// refusal), not a precondition.
+    bool everyday = false;
+    /// True when the everyday form dropped a pose bound the route stated, because the start is not FIELD:
+    /// the line then says "wall and position not checked (relative start)".
+    bool boundDropped = false;
+};
+
 /// One visit (the file banner's rules), over explicit handles. Built and run once by the calls below.
 class ToggleVisit {
 public:
     ToggleVisit(ExplicitToggleCamera& cam, chassis::Chassis& chassis, sequence::RunGuard& guard,
                 mechanism::MechanismService* service, const AutonEntry& entry, const ToggleVisitRequest& request,
-                hal::ITelemetrySink& sink)
+                hal::ITelemetrySink& sink, VisitForm form = {})
         : cam_{cam}, chassis_{chassis}, guard_{guard}, svc_{service}, entry_{entry}, req_{realRequest(entry, request)},
-          sink_{sink} {}
+          sink_{sink}, form_{form} {}
 
     /// The whole visit (`lookOnly`: rules 1–3 only, SEEN NOT OURS when not ours).
     ToggleVisitReport run(bool lookOnly) {
@@ -762,7 +832,8 @@ private:
         }
         if (cam_.feed == nullptr || cam_.model == nullptr) {
             rep_.verdict = ToggleVisitVerdict::NoCamera;
-            rep_.detail = "no camera feed on this robot";
+            rep_.detail = cam_.absence != nullptr && cam_.absence[0] != '\0' ? cam_.absence
+                                                                             : "no camera feed on this robot";
             return false;
         }
         if (const char* p = config::cameraPlacementProblem(cam_.model->placement()); p != nullptr) {
@@ -775,10 +846,17 @@ private:
             rep_.detail = p;
             return false;
         }
-        SHULIB_PRECONDITION(req_.lookFrom.value() - req_.pushFrom.value() > 2.0 * cam_.tracker.frozenMoveIn,
-                            "competition::checkAndFlipToggle: lookFrom - pushFrom must be MORE than twice the "
-                            "tracker's frozenMoveIn -- the look after a push must move the lens past the frozen "
-                            "check's distance (a camera frozen at the push spot would read stale and sure)");
+        if (!(req_.lookFrom.value() - req_.pushFrom.value() > 2.0 * cam_.tracker.frozenMoveIn)) {
+            // The explicit form: one caller holds both numbers — a programming error. The everyday form: the
+            // route's request against the robot file's block (file banner) — a refusal the route's onFail
+            // takes, before anything is read or moved.
+            SHULIB_PRECONDITION(form_.everyday,
+                                "competition::checkAndFlipToggle: lookFrom - pushFrom must be MORE than twice the "
+                                "tracker's frozenMoveIn -- the look after a push must move the lens past the frozen "
+                                "check's distance (a camera frozen at the push spot would read stale and sure)");
+            rep_.verdict = ToggleVisitVerdict::SpotsTooClose;
+            return false;
+        }
         if (!flipperReady()) {
             rep_.verdict = ToggleVisitVerdict::FlipperNotReady;
             return false;
@@ -1346,7 +1424,9 @@ private:
     void writeLine(char* out, std::size_t n) const {
         using vision::toggleColourWord;
         const char* name = vision::override2026::toggleName(rep_.toggle);
-        const char* wall = rep_.wallChecked ? "" : ", wall not checked (relative start)";
+        const char* wall = rep_.wallChecked     ? ""
+                           : form_.boundDropped ? ", wall and position not checked (relative start)"
+                                                : ", wall not checked (relative start)";
         const char* plural = rep_.pushes == 1 ? "push" : "pushes";
         const char* flipper = req_.flipper.mechanismName();
         switch (rep_.verdict) {
@@ -1442,6 +1522,11 @@ private:
                 std::snprintf(out, n, "%s: camera frozen? seen on the drive in -- push %d not made, %s before, the "
                               "robot drove back out", name, rep_.pushes + 1, toggleColourWord(rep_.before));
                 return;
+            case ToggleVisitVerdict::SpotsTooClose:
+                std::snprintf(out, n, "%s: spots too close -- lookFrom - pushFrom %.1f in, needs more than 2 x "
+                              "frozenMoveIn %.1f in -- nothing pushed", name,
+                              req_.lookFrom.value() - req_.pushFrom.value(), cam_.tracker.frozenMoveIn);
+                return;
             case ToggleVisitVerdict::Unset: break;
         }
         std::snprintf(out, n, "%s: %s", name, toggleVisitWord(rep_.verdict));
@@ -1474,6 +1559,7 @@ private:
     const AutonEntry& entry_;
     const ToggleVisitRequest req_;  ///< the request with its REAL Toggle (realRequest; MIRROR1-A)
     hal::ITelemetrySink& sink_;
+    const VisitForm form_;  ///< which form called (the everyday form's two differences)
     ToggleVisitReport rep_{};
     std::optional<vision::ToggleTracker> tracker_{};
     std::optional<vision::ToggleTracker> frozenWatch_{};  ///< ungated twin for "camera frozen?" (a bound stated)
@@ -1527,6 +1613,98 @@ private:
                                                     hal::ITelemetrySink& sink) {
     detail::ToggleVisit visit{camera, chassis, guard, service, entry, request, sink};
     return visit.run(/*lookOnly=*/true);
+}
+
+namespace detail {
+
+/// The words for a context with NO Toggle-camera slot (the robot file declares no Toggle block).
+inline constexpr const char* kNoToggleBlock =
+    "no Toggle block is declared (the robot file's sensors.toggleCamera)";
+
+/// True when the everyday form DROPS the route's pose bound (file banner): one is stated, and this run's
+/// start is not FIELD — runAuton then set the estimate in the robot's own frame, which the tracker's
+/// position gate would compare with the season's Toggle places.
+[[nodiscard]] inline bool poseBoundDropped(const AutonContext& ctx, const TogglePoseBound& bound) noexcept {
+    return bound.poseTolerance.value() > 0.0 && ctx.entry.effectiveStart().mode() != StartPose::Mode::Field;
+}
+
+/// The everyday form's camera handles (AF1S-A2): the robot's Toggle-camera slot as the context carries it
+/// (`ctx.chassis.deps().ctx->toggleCamera()` — the scheduler's shadow context), with the route's pose bound
+/// — none when poseBoundDropped(). No slot, or a slot that is not READY: feed and model nullptr, and
+/// `absence` says why — rule 1 then answers NO CAMERA at its own place in the order, with that sentence.
+[[nodiscard]] inline ExplicitToggleCamera toggleCameraOf(const AutonContext& ctx, const TogglePoseBound& bound) noexcept {
+    ExplicitToggleCamera cam{};
+    if (!poseBoundDropped(ctx, bound)) {
+        cam.poseTolerance = bound.poseTolerance;
+        cam.headingToleranceDeg = bound.headingToleranceDeg;
+    }
+    vision::ToggleCamera* slot = ctx.chassis.deps().ctx->toggleCamera();
+    if (slot == nullptr) {
+        cam.absence = kNoToggleBlock;
+        return cam;
+    }
+    if (!slot->ready()) {
+        cam.absence = slot->absence();
+        return cam;
+    }
+    cam.feed = slot->feed();
+    cam.model = slot->model();
+    cam.tracker = slot->tracker();
+    return cam;
+}
+
+}  // namespace detail
+
+/// THE STEP, EVERYDAY form (file banner, "Two forms, ONE body"; AF1S-A2): the explicit form's visit, with
+/// the camera the robot's own Toggle-camera slot (through `ctx.chassis.deps().ctx`), the flipper found in
+/// `ctx.mechanismService`, and `ctx.guard`, `ctx.entry` and `ctx.telemetry`. No slot, or one that is not
+/// ready, is NO CAMERA naming why (after NOT SKILLS — rule 1's order). `bound` states the estimate's
+/// uncertainty for the tracker's position gate (default: none — the gate is skipped); under a start that is
+/// not FIELD it is dropped, and the line says `wall and position not checked (relative start)`. An excursion
+/// lookFrom - pushFrom of twice the slot's frozenMoveIn or less is SPOTS TOO CLOSE (a refusal: nothing read
+/// or moved). Returns the report; `outcome()` is what a then() returns. PRECONDITIONS: `ctx.guard` is
+/// running (an AutonContext lives for one guarded run) and the request is sane.
+[[nodiscard]] inline ToggleVisitReport checkAndFlipToggle(AutonContext& ctx, const ToggleVisitRequest& request,
+                                                          const TogglePoseBound& bound = {}) {
+    ExplicitToggleCamera camera = detail::toggleCameraOf(ctx, bound);
+    const detail::VisitForm form{.everyday = true, .boundDropped = detail::poseBoundDropped(ctx, bound)};
+    detail::ToggleVisit visit{camera, ctx.chassis, ctx.guard, ctx.mechanismService, ctx.entry, request,
+                              ctx.telemetry, form};
+    return visit.run(/*lookOnly=*/false);
+}
+
+/// Rules 1–3 ONLY, EVERYDAY form (AF1S-A2): lookAtToggle over the robot's own Toggle-camera slot, as
+/// checkAndFlipToggle(ctx, ...) reads it — the bound dropped under a start that is not FIELD, SPOTS TOO
+/// CLOSE the same. It never moves anything. ONE [TGL] line to `ctx.telemetry`.
+[[nodiscard]] inline ToggleVisitReport lookAtToggle(AutonContext& ctx, const ToggleVisitRequest& request,
+                                                    const TogglePoseBound& bound = {}) {
+    ExplicitToggleCamera camera = detail::toggleCameraOf(ctx, bound);
+    const detail::VisitForm form{.everyday = true, .boundDropped = detail::poseBoundDropped(ctx, bound)};
+    detail::ToggleVisit visit{camera, ctx.chassis, ctx.guard, ctx.mechanismService, ctx.entry, request,
+                              ctx.telemetry, form};
+    return visit.run(/*lookOnly=*/true);
+}
+
+/// The ROUTE's request against the ROBOT FILE's Toggle block, AT BUILD (file banner; AF1S-A2's review):
+/// nullptr when the everyday step can take this pair, else the first problem — the request's own
+/// (toggleVisitRequestProblem), then an excursion lookFrom - pushFrom of twice the block's frozenMoveIn or
+/// less (the step's SPOTS TOO CLOSE). The PAIR only: a block that is not declared, or whose tracker
+/// numbers are refused, is the block's own problem (vision::toggleCameraProblem) and passes here. Pure,
+/// constexpr — a route that can see its robot file's block writes
+/// `static_assert(competition::toggleVisitBlockProblem(kRedWallVisit, kToggleBlock) == nullptr);`.
+[[nodiscard]] constexpr const char* toggleVisitBlockProblem(const ToggleVisitRequest& request,
+                                                            const vision::ToggleCameraConfig& block) noexcept {
+    if (const char* p = toggleVisitRequestProblem(request)) {
+        return p;
+    }
+    if (!block.declared() || vision::toggleTrackerConfigProblem(block.tracker) != nullptr) {
+        return nullptr;
+    }
+    if (!(request.lookFrom.value() - request.pushFrom.value() > 2.0 * block.tracker.frozenMoveIn)) {
+        return "lookFrom - pushFrom must be MORE than twice the Toggle block's frozenMoveIn -- move the look spot "
+               "out or the push spot in (Step 0.4, 0.5), or re-check frozenMoveIn (Step 0.3)";
+    }
+    return nullptr;
 }
 
 }  // namespace shulib::competition

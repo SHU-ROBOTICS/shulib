@@ -157,7 +157,7 @@ TEST_CASE("common (G1): pacerChainMissing — guard -> service -> watch, the rig
     // The service UNBOUND: the guard paces it, it forwards to the watch, and it ticks nothing.
     CHECK(pacerChainMissing(onChain, guard, svc, watch) == ChainGap::Service);
     CHECK_FALSE(pacerChainProven(onChain, guard, svc, watch));
-    svc.bind(shulib::bench::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, rig.faultSink);
+    svc.bind(mech_fixture::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, rig.faultSink);
     CHECK(pacerChainMissing(onChain, guard, svc, watch) == ChainGap::None);
     CHECK(pacerChainProven(onChain, guard, svc, watch));
     // The back link: attached to ANOTHER guard, then never attached (a second chain of the same shape).
@@ -286,7 +286,7 @@ TEST_CASE("common (G2b): stopAfterProgramError cancels each present mechanism's 
     motion_rig::PlantPacer plant{rig.h};
     tester_rig::RobotTwoFakes two;
     MechanismService svc{plant};
-    svc.bind(shulib::bench::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, rig.faultSink);
+    svc.bind(mech_fixture::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, rig.faultSink);
     shulib::chassis::Chassis chassis{rig.deps, svc, motion_rig::chassisConfig()};
     svc.power(0).drive(shulib::units::Voltage{12.0});  // a hold-to-run on pivot 6, as R1 held leaves it
     chassis.wait(Time{0.02});

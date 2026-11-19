@@ -5,7 +5,7 @@
 // "shulib Auton Tester" does when RUN is touched (chunk COMP-t, 2026-09-28; the brief's §5 tests
 // (1)–(5), (3b), (3b′), (3c) and (4b); and (1b), added by the chunk's review on 2026-09-29: EVERY
 // registered auton, not only the two named here). Since the mechanism core's MECH-A5 (2026-10-29)
-// the rig is the program's whole chain: robot two's REAL mechanism list bound to a live
+// the rig is the program's whole chain: a mechanism list bound to a live
 // MechanismService between the guard and the watch, and its six route ids registered, so a
 // mechanism step or a mechanism route in any auton here runs, and is judged, as on the bench
 // (test/auton_tester_rig.hpp; the claws auton and route: test/robot_two_claws_example_test.cpp).
@@ -16,6 +16,11 @@
 // robot (worksheet Station M). The weak-side cases are the brief's re-prediction after TANK1 Part
 // A (2026-09-28): a 5 % weak side now FINISHES (the library steers the tank back onto its line),
 // and the honest stop is shown at a 35 % weak side, where it still cannot arrive.
+//
+// SINCE ROB1-BT (2026-11-16) robot two is robot one's TWIN: its file registers robot one's list — the team's
+// 40 in, the acceptance run and the skills route MIRRORED (src/team/skills_route.cpp), every one a SKILLS
+// entry on the 57 / 59 s schedule (test/robot_twin_test.cpp holds the two lists equal). The cases below
+// find each entry BY NAME.
 
 #include "doctest.h"
 
@@ -36,6 +41,7 @@
 #include "shulib/competition/acceptance_run.hpp"
 #include "shulib/competition/auton_registry.hpp"
 #include "shulib/competition/match_runner.hpp"
+#include "shulib/competition/override_mirror.hpp"
 #include "shulib/control/exit_group.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/diag/fault.hpp"
@@ -79,6 +85,21 @@ AutonRegistry teamRegistry() {
     return reg;
 }
 
+/// The index of the entry named `name` (FAILS the case when there is none).
+int indexOf(const AutonRegistry& reg, std::string_view name) {
+    for (std::size_t i = 0; i < reg.size(); ++i) {
+        if (std::string_view{reg.at(i).name} == name) {
+            return static_cast<int>(i);
+        }
+    }
+    FAIL("no auton named ", std::string{name});
+    return -1;
+}
+
+/// The 40 in's index, and the acceptance run's.
+int forty(const AutonRegistry& reg) { return indexOf(reg, "40in forward"); }
+int acceptance(const AutonRegistry& reg) { return indexOf(reg, shulib::competition::kAcceptanceRunName); }
+
 bool says(const std::string& text, std::string_view needle) {
     return text.find(needle) != std::string::npos;
 }
@@ -108,35 +129,44 @@ struct OffsetImu final : shulib::sim::DegradationModel {
 // reordered (the menu lists them in this order), a schedule edited to something that no longer
 // leaves the end action its runway, a kind or start left unset, an end action given where the
 // file says the brake runs, or the periods changed away from the game manual's.
-TEST_CASE("autons (1): registerAutons registers exactly the 40 in auton and the acceptance run") {
+TEST_CASE("autons (1): registerAutons registers robot one's list -- the 40 in, the acceptance run, the skills route MIRRORED -- every one SKILLS") {
     CHECK(kAutonPeriods.match.value() == 30.0);
     CHECK(kAutonPeriods.skills.value() == 60.0);
     static_assert(kAutonPeriods.match.value() == 30.0 && kAutonPeriods.skills.value() == 60.0,
                   "kAutonPeriods is a constant expression with the manual's 30 s and 60 s");
 
     const AutonRegistry reg = teamRegistry();
-    REQUIRE_MESSAGE(reg.size() == 2,
-                    "src/team/autons.cpp registers ", reg.size(), " autons and this test pins 2. "
-                    "Added one? Pin its name, kind and schedule here too; test (1b) already runs it "
-                    "on the host test plant.");
-    const auto& forty = reg.at(0);
-    CHECK(std::string_view{forty.name} == "40in forward");
-    CHECK(forty.kind == AutonKind::Match);
-    CHECK(forty.routine != nullptr);
-    CHECK(forty.route == nullptr);
-    CHECK(forty.start.mode() == StartPose::Mode::Relative);
-    CHECK(forty.endActionAt.value() == 27.0);
-    CHECK(forty.hardStopAt.value() == 29.0);
-    CHECK(forty.endAction == nullptr);  // the brake: "endAction is left out"
+    REQUIRE_MESSAGE(reg.size() == 3,
+                    "src/team/autons.cpp registers ", reg.size(), " autons and this test pins 3. "
+                    "Added one? Pin its name, kind and schedule here too (and in robot one's file: the "
+                    "twins register the same list); test (1b) already runs it on the host test plant.");
+    const auto& skills = reg.at(2);
+    CHECK(std::string_view{skills.name} == "skills");
+    CHECK(skills.kind == AutonKind::Skills);
+    CHECK(skills.mirror == &shulib::competition::override2026::kSkillsMirror);  // robot two runs it MIRRORED
+    CHECK(skills.endActionAt.value() == 57.0);
+    CHECK(skills.hardStopAt.value() == 59.0);
+
+    const auto& fortyIn = reg.at(0);
+    CHECK(std::string_view{fortyIn.name} == "40in forward");
+    CHECK(fortyIn.kind == AutonKind::Skills);
+    CHECK(fortyIn.mirror == nullptr);
+    CHECK(fortyIn.routine != nullptr);
+    CHECK(fortyIn.route == nullptr);
+    CHECK(fortyIn.start.mode() == StartPose::Mode::Relative);
+    CHECK(fortyIn.endActionAt.value() == 57.0);
+    CHECK(fortyIn.hardStopAt.value() == 59.0);
+    CHECK(fortyIn.endAction == nullptr);  // the brake: "endAction is left out"
 
     const auto& accept = reg.at(1);
     CHECK(std::string_view{accept.name} == shulib::competition::kAcceptanceRunName);
-    CHECK(accept.kind == AutonKind::Match);
+    CHECK(accept.kind == AutonKind::Skills);
+    CHECK(accept.mirror == nullptr);
     CHECK(accept.routine != nullptr);
-    CHECK(accept.endActionAt.value() == 27.0);
-    CHECK(accept.hardStopAt.value() == 29.0);
+    CHECK(accept.endActionAt.value() == 57.0);
+    CHECK(accept.hardStopAt.value() == 59.0);
     CHECK(accept.effectiveStart().mode() == StartPose::Mode::Relative);
-    CHECK(reg.periodFor(forty).value() == 30.0);
+    CHECK(reg.periodFor(fortyIn).value() == 60.0);
 }
 
 // (1b) Bug caught (COMP-t's review, 2026-09-29): the claim — in the students' file, the guide and the
@@ -183,17 +213,20 @@ TEST_CASE("autons (1b): EVERY registered auton runs through runTesterOnce and en
 // on the host test plant (test/mirrored_pair_check.hpp: robot one from its start, robot two from the
 // reflection, pace by pace), and their 15 in squares must never come within 6 in. Bug caught: a shared
 // route that crosses the field's diagonal (or sends both robots to the centre goal at once) uploaded to
-// both robots — a crash at the event, found here first, naming the moment and the motions. A RELATIVE
-// mirrored entry is skipped by name (its field positions are wherever the drivers place it). Today's
-// file registers no mirrored entry, so this case checks none and says so; (1b) above runs every entry,
-// mirrored ones included, through the tester's own sequence.
-TEST_CASE("autons (1d): every MIRRORED entry passes the pair check — the two robots stay 6 in apart") {
+// both robots — a crash at the event, found here first, naming the moment and the motions. Also (MIRROR1-B,
+// the team lead's D6 ruling: "Block it") a tank step that drives AND turns around, which each robot ends
+// beside its target. A RELATIVE mirrored entry's gap is skipped by name (its field positions are wherever
+// the drivers place it); its half-turn legs are still refused. Today's file (ROB1-BT) registers ONE mirrored
+// entry, the skills route — RELATIVE until the route maker writes robot one's start, so its gap is skipped
+// by name today; (1b) above runs every entry, mirrored ones included, through the tester's own sequence.
+TEST_CASE("autons (1d): every MIRRORED entry passes the pair check — 6 in apart, no tank half-turn leg") {
     const AutonRegistry reg = teamRegistry();
     std::size_t mirroredEntries = 0;
     for (std::size_t i = 0; i < reg.size(); ++i) {
         mirroredEntries += reg.at(i).mirror != nullptr ? 1U : 0U;
     }
     const std::vector<mirror_pair::PairVerdict> verdicts = mirror_pair::checkEveryMirroredEntry(reg, tank());
+    CHECK(mirroredEntries == 1);
     CHECK(verdicts.size() == mirroredEntries);
     for (const mirror_pair::PairVerdict& v : verdicts) {
         MESSAGE(v.sentence);
@@ -221,11 +254,11 @@ TEST_CASE("autons (1c): src/team/autons.cpp builds every Routine on the context,
 }
 
 // (2) Bug caught: a schedule that is never really checked against the period it runs in. The same
-// file registered into a registry whose match period is 28 s must THROW (a registry's default), and
-// the sentence must name the auton. (Since T4 Part 3 the two programs build their registries to
-// DROP such an entry instead -- (2b) below; the team lead's ruling of 2026-10-02.)
-TEST_CASE("autons (2): a period the 29 s hard stop does not fit is refused, naming the auton") {
-    AutonRegistry reg{AutonPeriods{.match = Time{28.0}, .skills = Time{60.0}}};
+// file registered into a registry whose SKILLS period is 58 s must THROW (a registry's default), and
+// the sentence must name the auton — the first, the 40 in. (The two programs build their
+// registries to DROP such an entry instead -- (2b) below; the team lead's ruling of 2026-10-02.)
+TEST_CASE("autons (2): a period the 59 s hard stop does not fit is refused, naming the auton") {
+    AutonRegistry reg{AutonPeriods{.match = Time{30.0}, .skills = Time{58.0}}};
     bool threw = false;
     std::string what;
     try {
@@ -235,7 +268,7 @@ TEST_CASE("autons (2): a period the 29 s hard stop does not fit is refused, nami
         what = e.what();
     }
     CHECK(threw);
-    CHECK(says(what, "40in forward"));
+    CHECK(says(what, "auton '40in forward'"));
     CHECK(reg.size() == 0);  // the first entry is refused: nothing half-registered
 }
 
@@ -243,16 +276,17 @@ TEST_CASE("autons (2): a period the 29 s hard stop does not fit is refused, nami
 // auton"): the REAL students' file, registered the way both programs now register it (a registry
 // that DROPS a refused entry), throwing anyway -- the boot, and with it driver control, would be
 // lost to one bad schedule -- or stopping at the first refused entry, or losing an entry's name.
-// With a 28 s match period both of the file's entries (each with its 29 s hard stop) are refused:
-// both are DROPPED, in the file's order, each named, nothing thrown, nothing registered.
+// With a 58 s skills period all three of the file's entries (each with its 59 s hard stop) are
+// refused: all DROPPED, in the file's order, each named, nothing thrown, nothing registered.
 TEST_CASE("autons (2b): the real file into a DROPPING registry -- each refused entry dropped by name") {
-    AutonRegistry reg{AutonPeriods{.match = Time{28.0}, .skills = Time{60.0}},
+    AutonRegistry reg{AutonPeriods{.match = Time{30.0}, .skills = Time{58.0}},
                       shulib::competition::OnRefusal::DropEntry};
     CHECK_NOTHROW(registerAutons(reg));
     CHECK(reg.size() == 0);
-    REQUIRE(reg.refusedCount() == 2);
-    CHECK(says(reg.refusal(0), "auton '40in forward': hardStopAt 29.00 s is past its MATCH period"));
+    REQUIRE(reg.refusedCount() == 3);
+    CHECK(says(reg.refusal(0), "auton '40in forward': hardStopAt 59.00 s is past its SKILLS period"));
     CHECK(says(reg.refusal(1), std::string{"auton '"} + shulib::competition::kAcceptanceRunName));
+    CHECK(says(reg.refusal(2), "auton 'skills'"));
     // ...and with the game manual's periods, the same registry drops nothing.
     AutonRegistry real{kAutonPeriods, shulib::competition::OnRefusal::DropEntry};
     registerAutons(real);
@@ -268,7 +302,7 @@ TEST_CASE("autons (3): the 40 in auton through runTesterOnce FINISHES within 0.5
     const AutonRegistry reg = teamRegistry();
     TesterStack s{tank()};
     const int recordsBefore = s.sink.recordCount();
-    const TesterRunRecord& r = s.run(reg, 0);
+    const TesterRunRecord& r = s.run(reg, forty(reg));
 
     CHECK_FALSE(r.countdownAborted);
     CHECK_FALSE(r.threw);
@@ -314,7 +348,7 @@ TEST_CASE("autons (3b): the 40 in with a 5 % weak RIGHT side FINISHES, steered (
     const AutonRegistry reg = teamRegistry();
     TesterStack s{tank(), /*weakWheel=*/1, /*weakScale=*/0.95};
     const int recordsBefore = s.sink.recordCount();
-    const TesterRunRecord& r = s.run(reg, 0);
+    const TesterRunRecord& r = s.run(reg, forty(reg));
 
     REQUIRE(r.run.outcome == AutonRunOutcome::RoutineRan);
     CHECK(std::string_view{testerResultWord(r)} == "FINISHED");
@@ -323,7 +357,7 @@ TEST_CASE("autons (3b): the 40 in with a 5 % weak RIGHT side FINISHES, steered (
     CHECK(r.run.routine.steps == 1);
     CHECK(r.faultsAfter == r.faultsBefore);
     CHECK(r.lastFault == FaultCode::None);
-    CHECK(says(joined(shulib::bench::testerRunLines(r, reg.at(0))), "faults this run: none"));
+    CHECK(says(joined(shulib::bench::testerRunLines(r, reg.at(static_cast<std::size_t>(forty(reg))))), "faults this run: none"));
     CHECK(r.run.guard.endActionRan);
     CHECK(r.run.guard.endActionSucceeded);
 
@@ -356,7 +390,7 @@ TEST_CASE("autons (3b'): the 40 in with a 35 % weak side is the honest ROUTINE S
     for (const int wheel : {1, 0}) {
         CAPTURE(wheel);
         TesterStack s{tank(), wheel, 0.65};
-        const TesterRunRecord& r = s.run(reg, 0);
+        const TesterRunRecord& r = s.run(reg, forty(reg));
 
         REQUIRE(r.run.outcome == AutonRunOutcome::RoutineRan);
         CHECK(std::string_view{testerResultWord(r)} == "ROUTINE STOPPED");
@@ -378,7 +412,7 @@ TEST_CASE("autons (3b'): the 40 in with a 35 % weak side is the honest ROUTINE S
         CHECK(r.run.guard.endActionSucceeded);
         CHECK_FALSE(r.run.guard.scoringCut);
         CHECK(s.driveSafe());
-        const std::string lines = joined(shulib::bench::testerRunLines(r, reg.at(0)));
+        const std::string lines = joined(shulib::bench::testerRunLines(r, reg.at(static_cast<std::size_t>(forty(reg)))));
         CHECK(says(lines, "ROUTINE STOPPED -- ROUTINE_RAN; in time, end action succeeded"));
         CHECK(says(lines, "stopped at moveTo (motion TIMEOUT)"));
         CHECK(says(lines, "faults this run: 1, last MOTION_TIMEOUT -- see the [ERROR] line"));
@@ -393,14 +427,14 @@ TEST_CASE("autons (3c): a fault latched before RUN is not this run's") {
     TesterStack s{tank()};
     s.rig.latch.raise(FaultCode::GpsGateReject, "TST", "latched before RUN");
     REQUIRE(s.rig.latch.faultCount() == 1);
-    const TesterRunRecord& r = s.run(reg, 0);
+    const TesterRunRecord& r = s.run(reg, forty(reg));
 
     CHECK(std::string_view{testerResultWord(r)} == "FINISHED");
     CHECK(r.faultsBefore == 1);
     CHECK(r.faultsAfter == 1);
     CHECK(r.lastFault == FaultCode::None);
-    CHECK(says(joined(shulib::bench::testerRunLines(r, reg.at(0))), "faults this run: none"));
-    CHECK_FALSE(says(joined(shulib::bench::testerRunLines(r, reg.at(0))), "GPS_GATE_REJECT"));
+    CHECK(says(joined(shulib::bench::testerRunLines(r, reg.at(static_cast<std::size_t>(forty(reg))))), "faults this run: none"));
+    CHECK_FALSE(says(joined(shulib::bench::testerRunLines(r, reg.at(static_cast<std::size_t>(forty(reg))))), "GPS_GATE_REJECT"));
 
     shulib::bench::TesterScreen screen{reg};
     shulib::bench::TesterFacts f;
@@ -421,7 +455,7 @@ TEST_CASE("autons (3c): a fault latched before RUN is not this run's") {
 TEST_CASE("autons (4): the acceptance run through runTesterOnce ends back at the start, reversed") {
     const AutonRegistry reg = teamRegistry();
     TesterStack s{tank()};
-    const TesterRunRecord& r = s.run(reg, 1);
+    const TesterRunRecord& r = s.run(reg, acceptance(reg));
     REQUIRE(r.run.outcome == AutonRunOutcome::RoutineRan);
     CHECK(std::string_view{testerResultWord(r)} == "FINISHED");
     CHECK(r.run.routine.completed == 4);
@@ -442,7 +476,7 @@ TEST_CASE("autons (4b): the acceptance run finishes on a 5 % weak side, stops ho
     const AutonRegistry reg = teamRegistry();
     {
         TesterStack s{tank(), 1, 0.95};
-        const TesterRunRecord& r = s.run(reg, 1);
+        const TesterRunRecord& r = s.run(reg, acceptance(reg));
         REQUIRE(r.run.outcome == AutonRunOutcome::RoutineRan);
         CHECK(std::string_view{testerResultWord(r)} == "FINISHED");
         CHECK(r.run.routine.ok);
@@ -455,7 +489,7 @@ TEST_CASE("autons (4b): the acceptance run finishes on a 5 % weak side, stops ho
     for (const int wheel : {1, 0}) {
         CAPTURE(wheel);
         TesterStack s{tank(), wheel, 0.65};
-        const TesterRunRecord& r = s.run(reg, 1);
+        const TesterRunRecord& r = s.run(reg, acceptance(reg));
         REQUIRE(r.run.outcome == AutonRunOutcome::RoutineRan);
         CHECK(std::string_view{testerResultWord(r)} == "ROUTINE STOPPED");
         CHECK(r.run.routine.stoppedAt == 1);
@@ -482,7 +516,7 @@ TEST_CASE("autons (5): a RELATIVE start after a pre-run drift drives 40 in along
     shulib::sim::SimHarnessConfig cfg = motion_rig::plantConfig();
     cfg.plant.initialPose = Pose2d{Length{10.0}, Length{-5.0}, Angle::degrees(30.0)};
     TesterStack s{tank(), 1, 1.0, cfg, &imu};
-    const TesterRunRecord& r = s.run(reg, 0);
+    const TesterRunRecord& r = s.run(reg, forty(reg));
 
     REQUIRE(r.run.outcome == AutonRunOutcome::RoutineRan);
     CHECK(r.run.imuAtSeat.approxEqual(Angle::degrees(17.0), 1e-6));  // the drift, stated

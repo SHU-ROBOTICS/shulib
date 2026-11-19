@@ -15,6 +15,10 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { ledgerRobot } from '../helpers.mjs';
+// Firefox's bounce-tracking protection warns about the tests' own 127.0.0.1 server on Windows ("classified as a
+// bounce tracker"): a warning from the browser's privacy feature, not the page's. It is turned off in the test browser.
+const FIREFOX_PREFS = { 'privacy.bounceTrackingProtection.mode': 0 };
 
 const BROWSER = process.env.ROUTE_MAKER_BROWSER || '';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -35,6 +39,11 @@ const SKILLS_HEAD = '#include "team/skills_route.hpp"\r\n\r\nnamespace shulib::b
 const BEGIN = '// ═══ ROUTE MAKER — route "skills" — BEGIN ═══════════════════════════════════════════════';
 const END = '// ═══ ROUTE MAKER — route "skills" — END ═════════════════════════════════════════════════';
 const MIRRORED = 'registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));';
+// The level tests' robot: robot x (the suite's description) with a cascade whose levels are facts-ledger levels, still
+// owed -- robot one's cascade as it was before ROB1-C2. Robot one's own cascade has NO levels now (its own test below).
+const LEVELS = ledgerRobot();
+LEVELS.name = 'robot x (test)';
+LEVELS.mechanisms[0].presets.forEach((q) => { q.owed = true; });
 
 let pw;
 let browser;
@@ -44,7 +53,7 @@ let base;
 async function launch(extra = {}) {
     pw = pw || (await import('playwright'));
     if (BROWSER === 'firefox') {
-        return pw.firefox.launch(extra);
+        return pw.firefox.launch({ firefoxUserPrefs: FIREFOX_PREFS, ...extra });
     }
     if (BROWSER === 'msedge' || BROWSER === 'chrome') {
         return pw.chromium.launch({ channel: BROWSER, ...extra });
@@ -180,10 +189,20 @@ async function selectStep(page, viewport, i) {
     await page.waitForTimeout(250);  // the drawers' 200 ms slide
 }
 
-// A READY route, built the way a student builds it (every number typed is the test's, never the page's): the
-// start on the red tiles facing blue (NOT flush against the wall: turning there would put a corner 2.4 in into
-// it -- the page says so, RC1), a home with its time limit, a drive (turned first), a curve, a
-// cascade level, a wait. The screens of §2.5.2 and the docs' pictures are taken of it.
+/** Robot one and its twin robot two (the mirrored route is checked on both) are LEVELS on this page from now on. */
+const useLevels = (page) => page.evaluate((r) => window.routeBuilder.useRobots(r), { one: LEVELS, two: { ...LEVELS, id: 'two', name: 'robot two (test)' } });
+
+/** A step setting robot one's claw to `position` (the claw's menu entry, not the cascade's). */
+async function setClaw(page, position) {
+    await page.keyboard.press('m');
+    await page.locator('.popover h3', { hasText: /^claw · / }).locator('xpath=following-sibling::button[1]').click();
+    await page.locator('.pane.right select[name="position"]').selectOption(position);
+}
+
+// A READY route on robot one, built the way a student builds it (every number typed is the test's, never the page's):
+// the start on the red tiles facing blue (NOT flush against the wall: turning there would put a corner 2.4 in into
+// it -- the page says so, RC1), a home with its time limit, a drive (turned first), a curve, the claw opened, a wait.
+// The screens of §2.5.2 and the docs' pictures are taken of it.
 async function readyRoute(page) {
     await page.getByRole('button', { name: 'Got it' }).click();
     await clickField(page, -36, -60.3);  // snaps to the half-tile grid
@@ -197,14 +216,11 @@ async function readyRoute(page) {
     await clickField(page, -12, -12);
     await clickField(page, 12, -12);
     await page.keyboard.press('Enter');
-    await page.keyboard.press('m');
-    await page.getByRole('button', { name: 'Move to a level' }).click();
-    await page.locator('.pane.right select[name="preset"]').selectOption({ index: 3 });
-    await typeIn(page, 'boundS', 1.5);
+    await setClaw(page, 'open');
     await page.keyboard.press('p');
     await typeIn(page, 'seconds', 0.5);
     const r = await route(page);
-    assert.deepEqual(r.steps.map((x) => x.do), ['home', 'driveTo', 'curveTo', 'move', 'wait']);
+    assert.deepEqual(r.steps.map((x) => x.do), ['home', 'driveTo', 'curveTo', 'set', 'wait']);
     assert.deepEqual([r.start.x, r.start.y], [-36, -60], 'snapped to the 12 in grid');
     assert.deepEqual(await errorsOf(page), [], 'a ready route');
 }
@@ -255,9 +271,42 @@ test.describe('the route builder in a browser', { skip }, () => {
         }
     });
 
+    test('the top bar fits at every laptop width: PREVIEW and Export whole, on screen, never one over the other, on both tabs (1280 px pushed Export off the screen once the Controls tab joined the bar)', async () => {
+        for (const width of [1101, 1180, 1280, 1366, 1440, 1536, 1920]) {
+            const p = await openPage('site', { viewport: { width, height: 800 } });
+            const { page } = p;
+            await page.getByRole('button', { name: 'Got it' }).click();
+            for (const tab of ['Route', 'Controls']) {
+                await page.getByRole('tab', { name: tab }).click();
+                const boxes = {};
+                for (const sel of ['#export', '#preview']) {
+                    if (await page.locator(sel).count()) {
+                        const b = await page.locator(sel).boundingBox();
+                        const whole = await page.locator(sel).evaluate((e) => e.scrollWidth <= e.clientWidth + 1);
+                        assert.ok(b && b.x >= 0 && b.x + b.width <= width, `${width} px, ${tab}: ${sel} is on the screen (${JSON.stringify(b)})`);
+                        assert.ok(whole, `${width} px, ${tab}: ${sel}'s words fit inside it`);
+                        boxes[sel] = b;
+                    }
+                }
+                assert.ok(boxes['#export'], `${width} px, ${tab}: Export is drawn`);
+                if (boxes['#preview']) {
+                    assert.ok(boxes['#preview'].x + boxes['#preview'].width <= boxes['#export'].x, `${width} px: PREVIEW ends before Export starts`);
+                }
+                if (tab === 'Route') {
+                    const name = await page.locator('.topbar .route-name').evaluate((e) => ({ s: e.scrollWidth, c: e.clientWidth }));
+                    assert.ok(name.s <= name.c + 1, `${width} px: the route's name is whole (${name.s} > ${name.c})`);
+                }
+                const bar = await page.locator('.topbar').evaluate((e) => ({ s: e.scrollWidth, c: e.clientWidth }));
+                assert.ok(bar.s <= bar.c + 1, `${width} px, ${tab}: nothing in the top bar runs past it (${bar.s} > ${bar.c})`);
+            }
+            assert.deepEqual(await p.done(), []);
+        }
+    });
+
     test('an error stands: Export LISTS it, one click from its step -- no code, no page error (a wait with no seconds, a fresh level move, "Home it first")', async () => {
         const p = await openPage('site');
         const { page } = p;
+        await useLevels(page);
         await page.getByRole('button', { name: 'Got it' }).click();
         await clickField(page, -36, -55.7);
         await page.keyboard.press('p');  // a wait: its seconds empty (nothing invented)
@@ -297,6 +346,7 @@ test.describe('the route builder in a browser', { skip }, () => {
     test('a route built by clicking -- start, drive, curve, a cascade level with "home it first" -- and exported', async () => {
         const p = await openPage('site');
         const { page } = p;
+        await useLevels(page);
         await page.getByRole('button', { name: 'Got it' }).click();
         // the route's name is §6.3's, shown and not edited (renaming would rewrite the marker lines both robots' code pins)
         assert.equal(await page.locator('.topbar .route-name').textContent(), 'skills');
@@ -327,31 +377,38 @@ test.describe('the route builder in a browser', { skip }, () => {
         assert.equal(r.steps[2].points.length, 2, `a double-click made ${r.steps[2].points.length} points`);
         await page.keyboard.press('Delete');
         assert.equal((await route(page)).steps.length, 2);
-        // a cascade level, without a home: the page refuses it in plain words, and offers the fix
+        // a cascade level, without a home: the page refuses it in plain words, and offers the fix (a cascade WITH
+        // levels: its menu offers the move, and no "no levels yet")
         await page.keyboard.press('m');
+        assert.equal(await page.locator('.popover .menu-note').count(), 0);
         await page.getByRole('button', { name: 'Move to a level' }).click();
         const rc25 = (await issues(page)).filter((x) => x.code === 'RC25');
         assert.equal(rc25.length, 1);
         await page.locator('.pane.right select[name="preset"]').selectOption({ index: 3 });
-        // robot one's levels are still OWED in its facts: no height is shown as a fact
+        // the levels are still OWED in the facts: no height is shown as a fact
         assert.match(await page.locator('.pane.right select[name="preset"] option:checked').textContent(), /\(not measured yet\)$/);
         // a typed "2s" is not a number: refused in place, nothing stored
         await typeIn(page, 'boundS', '2s');
         assert.ok(await page.getByText('Not a number: type digits').isVisible());
         assert.equal((await route(page)).steps[2].boundS, undefined);
         await typeIn(page, 'boundS', 2);
-        await page.getByRole('button', { name: 'Home it first' }).click();
+        // its time limit takes the keyboard AT ONCE (asked in the click's own task): a deferred focus once landed after
+        // the next keys, so a redo pressed then was typed into the box instead (RMP1-B's verifier)
+        assert.equal(await page.evaluate(() => {
+            [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Home it first').click();
+            return document.activeElement.getAttribute('name');
+        }), 'boundS');
         r = await route(page);
         assert.equal(r.steps[0].do, 'home');
         assert.equal(r.steps[0].boundS, undefined, 'the home\'s time limit is left EMPTY for the student');
         await typeIn(page, 'boundS', 3);
-        assert.deepEqual(await errorsOf(page), []);
         // undo / redo by the keyboard
         await page.locator('.field-svg').focus();
         await page.keyboard.press('Control+z');
         assert.equal((await route(page)).steps[0].boundS, undefined);
         await page.keyboard.press('Control+Shift+z');
         assert.equal((await route(page)).steps[0].boundS, 3);
+        assert.deepEqual(await errorsOf(page), []);
         // reorder by the keyboard: the move up one, then back (every later pose re-planned)
         await page.locator('.step[data-step="3"]').click();
         await page.keyboard.press('Alt+ArrowUp');
@@ -403,7 +460,7 @@ test.describe('the route builder in a browser', { skip }, () => {
         assert.deepEqual(await p.done(), []);
     });
 
-    test('the ONE FILE over file:// builds, checks and copies with no network; PREVIEW says it comes next; what it offers for the folder is what this browser allows there', async (t) => {
+    test('the ONE FILE over file:// builds, checks and copies with no network; PREVIEW (or, built without its engine, says it comes next); what it offers for the folder is what this browser allows there', async (t) => {
         const p = await openPage('onefile');
         const { page } = p;
         // landmine 23 / A.10: the folder needs a SECURE page with the File System Access API -- over file:// that is
@@ -418,9 +475,11 @@ test.describe('the route builder in a browser', { skip }, () => {
         await page.keyboard.press('d');
         await clickField(page, 64.5, -55.7, { modifiers: ['Alt'] });  // Alt: no snapping (it would snap flush to the wall)
         assert.ok((await issues(page)).some((x) => x.code === 'RC1' && x.level === 'error'), 'through the right wall: refused');
-        const preview = page.locator('#preview');
-        assert.ok(await preview.isDisabled());
-        assert.match(await page.locator('#preview-why').textContent(), /PREVIEW comes next/);
+        // a site built with the engine (build.py --engine) has PREVIEW; one without says it comes next (preview.test.mjs
+        // plays it)
+        const engine = fs.existsSync(path.join(SITE, 'engine', 'worker.mjs'));
+        assert.equal(await page.locator('#preview').isDisabled(), !engine);
+        assert.match(await page.locator('#preview-why').textContent(), engine ? /^PREVIEW: run this route/ : /PREVIEW comes next/);
         await openExport(page);
         assert.ok(await page.getByText(/Fix this error first/).isVisible(), 'Export refused while a step has an error');
         assert.deepEqual(await p.done(), []);
@@ -772,6 +831,7 @@ test.describe('the route builder in a browser', { skip }, () => {
             await typeIn(page, 'startH', 90);
             await settle(page);
             await shot(page, `start-placed-${v.tag}`);
+            await useLevels(page);
             await page.keyboard.press('d');
             await clickField(page, -24, -36);
             await page.keyboard.press('m');
@@ -794,6 +854,52 @@ test.describe('the route builder in a browser', { skip }, () => {
             assert.match(await page.locator('.drawer .banner.error').textContent(), /Step 1: Type the most time this may take/);
             await settle(page);
             await shot(page, `export-errors-${v.tag}`);
+            assert.deepEqual(await p.done(), []);
+        });
+
+        test(`§2.5.2 [${v.tag}] robot one's cascade has NO levels (ROB1-C2): home and a wait offered, where levels come from said -- never an empty list`, async () => {
+            const p = await openPage('site', v);
+            const { page } = p;
+            await page.getByRole('button', { name: 'Got it' }).click();
+            await clickField(page, -36, -60.3);
+            await typeIn(page, 'startH', 90);
+            await page.locator('.field-svg').focus();
+            await page.keyboard.press('m');
+            const entries = (name) => page.evaluate((n) => {
+                const out = [];
+                let on = false;
+                for (const el of document.querySelector('.popover').children) {
+                    on = el.tagName === 'H3' ? el.textContent.startsWith(`${n} · `) : on;
+                    if (on && el.tagName !== 'H3') {
+                        out.push(el.textContent.trim());
+                    }
+                }
+                return out;
+            }, name);
+            const words = 'No levels yet: record them at Bench Tests station 13.';
+            assert.deepEqual(await entries('cascade'), [words, 'Home it (find its zero)', 'Wait until it is done']);
+            assert.deepEqual(await entries('claw'), ['Set a position'], 'said for the cascade only');
+            await page.waitForFunction(() => !document.querySelector('.toast'), null, { timeout: 15000 });
+            await shot(page, `mechanism-menu-${v.tag}`);
+            await page.keyboard.press('Escape');
+            // a project from when the cascade had levels: its move opens -- no empty list, the same words, Export lists it
+            const old = JSON.stringify({ schemaVersion: 1, madeWith: 'an earlier route builder', robots: {}, exports: {},
+                                         routes: [{ name: 'skills', kind: 'skills', robot: 'one', mirroredFor: 'two', start: { x: -36, y: -55.7, headingDeg: 90 },
+                                                    endActionAtS: 57, hardStopAtS: 59, steps: [{ do: 'home', mechanism: 'cascade', boundS: 3 },
+                                                                                               { do: 'move', mechanism: 'cascade', preset: 2, boundS: 2 }] }] });
+            await pickFile(page, () => page.getByRole('button', { name: 'Open a project' }).click(), 'route_maker.json', old);
+            await page.getByText('Opened the project.').waitFor();
+            await selectStep(page, v.viewport, 1);
+            assert.equal(await page.locator('.pane.right select[name="preset"]').count(), 0, 'no level list');
+            // robot two, robot one's twin (ROB1-BT), builds the mirrored route: its cascade has none either, said on its own line
+            const said = (who) => `Robot ${who}'s cascade has no levels yet: record them at Bench Tests station 13.`;
+            assert.deepEqual((await errorsOf(page)).map((x) => [x.code, x.stepIndex, x.words]), [['RC18', 1, said('one')], ['RC18', 1, said('two')]]);
+            for (const who of ['one', 'two']) {
+                assert.ok(await page.locator('.pane.right .issue.error').getByText(said(who)).isVisible(), who);
+            }
+            await openExport(page);
+            assert.match(await page.locator('.drawer .banner.error').textContent(), /Step 2: Robot one's cascade has no levels yet/);
+            await closeDrawer(page);
             assert.deepEqual(await p.done(), []);
         });
 

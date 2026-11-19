@@ -70,6 +70,7 @@
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 #include "pros/shim_control.hpp"
+#include "retired_robot_two.hpp"
 #include "robots/calibrate_facts.hpp"
 #include "shulib/calibration/calibrate_program.hpp"
 #include "shulib/calibration/calibration_record.hpp"
@@ -138,7 +139,8 @@ struct Scenario {
     Seed seed = Seed::None;
 };
 
-/// Robot two's facts AS ITS GLUE DERIVES THEM (CAL1 Part B, 2026-11-05;
+/// The OLD robot two's facts (the claw robot — test/retired_robot_two.hpp since ROB1-BT rebuilt robot two as
+/// robot one's twin; every golden kept byte for byte) AS ITS GLUE DERIVES THEM (CAL1 Part B, 2026-11-05;
 /// src/programs/calibrate_program.cpp's own composition, src/robots/calibrate_facts.hpp):
 /// withTypedDriveFrom(calibrateFactsFor(robot two's chassis table, its mechanism list), the
 /// table) — Tank, BLUE, the two claw pivots by their names, the robot's name, the typed IMU port as
@@ -148,9 +150,8 @@ struct Scenario {
 /// facts against those literals. Then the scenario's changes.
 [[nodiscard]] inline shulib::calibration::CalibrateFacts factsFor(const Scenario& sc) {
     shulib::calibration::CalibrateFacts f = shulib::bench::withTypedDriveFrom(
-        shulib::bench::calibrateFactsFor(shulib::bench::kRobotTwoChassis,
-                                         shulib::bench::robot_two::kRobotTwoMechanisms),
-        shulib::bench::kRobotTwoChassis);
+        shulib::bench::calibrateFactsFor(retired_robot_two::kChassis, retired_robot_two::kMechanisms),
+        retired_robot_two::kChassis);
     if (sc.typo12) {
         f.mechanisms[1].port = 12;  // claw pivot 7 typed as 12: a DRIVE port declared a mechanism
     }

@@ -1,35 +1,19 @@
-// autons.cpp -- THE TEAM'S AUTONS for robot two: every autonomous routine the robot can run,
-// and registerAutons() at the bottom, the one list the programs read.
+// autons.cpp -- THE TEAM'S AUTONS for ROBOT TWO, and registerAutons() at the bottom, the one list the
+// programs read on a robot-two build ("shulib Auton Tester" and "shulib Competition" -- both hand the
+// SAME entry to the SAME library call, so the auton you test on the bench is the auton that runs).
 //
-// WHO RUNS THESE. "shulib Auton Tester" runs the one you pick on the brain's screen when you touch
-// RUN (on the bench, no competition switch needed). "shulib Competition" runs the one picked on
-// its screen when the match's autonomous period starts. Both hand the SAME entry to the SAME
-// library call (competition::runAuton), so the auton you test on the bench is the auton that runs
-// in the match. Only what STARTS it differs.
+// Robot two is robot one's TWIN (chunk ROB1-BT, 2026-11-16): the same build, and the same autons file as
+// robot one's (src/team/robot_one_autons.cpp, whose comments explain each line) -- with ONE difference,
+// the team lead's ruling: robot two runs the team's skills route MIRRORED across the field's skills
+// diagonal (cookbook chapter 9, "One route, two robots"). Robot two's old claw autons file is retired
+// with its claws. Every line here is the team's to explain, defend and change (G4).
 //
-// THE FRAME. x is straight ahead of the robot, y is to its left, and angles grow counterclockwise
-// (0 degrees faces +x). "Ahead" is the robot's FRONT as the calibration record defines it: the end
-// that LED the push when "shulib Calibrate" ran. A RELATIVE start makes the spot where the robot
-// is placed (0, 0), facing 0 degrees, at the moment the auton starts.
+// THE FRAME, THE DISTANCES, THE MECHANISMS: as robot one's file says. `using namespace robot_two;` makes
+// robot two's mechanisms nameable by their declarations (src/robots/mechanism_table.hpp).
 //
-// THE DISTANCES are the robot's OWN estimate (its drive encoders and its IMU). When the tape
-// disagrees with an auton, the calibration record is what is wrong, not the number written here:
-// re-run "shulib Calibrate", and never change an auton's number to make the tape agree.
-//
-// THE MECHANISMS. `using namespace robot_two;` below makes robot two's mechanisms nameable here by
-// their declarations in src/robots/mechanism_table.hpp: an auton step names one and its time limit,
-// one line each --
-//     r.set(claw["open"]);                    // the claw to 'open' (its move time is the robot file's)
-//     r.run(clawPivot6, 12_volt, 0.4_s);      // pivot 6 forward at full power for 0.4 s
-// -- and `Routine r{ctx, "name"}` (below) is the form that reaches them: the context carries the
-// program's mechanism service, which runs every mechanism step even while the robot drives
-// (guide chapter 18). Opening the claw SUCCEEDS once its move time has passed; a GRAB (`closed`, the
-// position marked `grabs`) with no sensor to confirm it ends UNCONFIRMED and is counted done (the
-// team lead's ruling, 2026-09-29). No auton here steps a mechanism yet: which claw does what in an
-// auton is the team's to decide.
-//
-// PROVENANCE. The 40 in auton was written for the team on the team lead's go of 2026-09-26 ("no
-// you can write the auton"). Every line is the team's to explain, defend and change.
+// NOTHING HERE HAS RUN ON A ROBOT. Robot two's numbers are its facts file's
+// (src/robots/robot_two_facts.hpp): the Auton Tester and Competition refuse to build while one they need
+// is OWED.
 
 #include "team/autons.hpp"
 
@@ -37,32 +21,21 @@
 #include "shulib/chassis/routine.hpp"
 #include "shulib/competition/acceptance_run.hpp"
 #include "shulib/competition/auton_registry.hpp"
+#include "shulib/competition/field_mirror.hpp"
+#include "shulib/competition/override_mirror.hpp"
 #include "shulib/math/pose2d.hpp"
 #include "shulib/units/literals.hpp"
+#include "team/skills_route.hpp"
 
 namespace shulib::bench {
 
-using namespace units::literals;  // 40_in, 0_deg, 27_s
+using namespace units::literals;  // 40_in, 0_deg, 57_s
 using namespace robot_two;        // robot two's mechanisms, by their declarations (this file is robot two's)
 
 namespace {
 
-// ── THE 40 IN AUTON ─────────────────────────────────────────────────────────────────────
+// ── THE 40 IN AUTON (robot one's, copied) ──────────────────────────────────────────────────
 // Drive straight forward 40 inches and stop, facing the way the robot started.
-// ONE moveTo: the library drives to the POSE -- 40 in ahead, 0 in to the side, facing 0 degrees --
-// and the step ends when the robot is there and still, or when the motion's own time limit ends
-// it. Nothing is tuned here: the motion uses the robot's configured defaults.
-// A TANK CANNOT DRIVE SIDEWAYS. If one side of the drive is weaker than the other, it turns the
-// robot toward that side and the robot drifts off its straight line. While it drives, the library
-// steers it back: it measures the turn it did not ask for and cancels it, and it aims a little
-// back toward the line, never more than 15 degrees off the heading written here. (It steers only
-// a step that starts within 15 degrees of that heading, as this one does; otherwise turn first
-// with face().) On the serial log, TSTR marks each tick's line where it is steering noticeably.
-// If the robot still cannot finish within half an inch of the spot and about a degree of the
-// heading, the step ends on its time limit: the result reads ROUTINE STOPPED with the fault
-// MOTION_TIMEOUT, and the brake at the end still runs. That is the library telling the truth
-// about this robot, not a broken auton: read END x and y (how far short, how far beside) and the
-// TSTR lines before changing anything.
 chassis::RoutineResult fortyInchesForward(competition::AutonContext& ctx) {
     chassis::Routine r{ctx, "40in-forward"};
     r.moveTo(math::Pose2d{40_in, 0_in, 0_deg});
@@ -72,20 +45,23 @@ chassis::RoutineResult fortyInchesForward(competition::AutonContext& ctx) {
 }  // namespace
 
 void registerAutons(competition::AutonRegistry& registry) {
-    // 1. THE 40 IN AUTON.
+    // 1. THE 40 IN AUTON, as a SKILLS auton (the 60 s autonomous coding skills run).
     competition::AutonEntry forty{};
     forty.name = "40in forward";                      // what the brain's menu shows
-    forty.kind = competition::AutonKind::Match;       // runs in the 30 s autonomous period
+    forty.kind = competition::AutonKind::Skills;      // runs in the 60 s skills period
     forty.routine = &fortyInchesForward;              // the function above
     forty.start = competition::StartPose::relative(); // where we place it is (0, 0), facing 0
-    forty.endActionAt = 27_s;  // still running at 27 s? it is stopped, and the end action starts
-    forty.hardStopAt = 29_s;   // everything stops: 2 s after 27 s, 1 s before the field's 30 s
+    forty.endActionAt = 57_s;  // still running at 57 s? it is stopped, and the end action starts
+    forty.hardStopAt = 59_s;   // everything stops: 2 s after 57 s, 1 s before the run's 60 s
     // endAction is left out: the end action is chassis.brake() -- 0 V under Brake until still.
     registry.add(forty);
 
-    // 2. THE LIBRARY'S ACCEPTANCE RUN (drive 24 in, turn to 90 degrees, face the start, drive
-    //    back): the test that the whole library works on this robot, on the same schedule.
-    registry.add(competition::acceptanceRunEntry(competition::AutonKind::Match, 27_s, 29_s));
+    // 2. THE LIBRARY'S ACCEPTANCE RUN (drive 24 in, turn to 90 degrees, face the start, drive back): the
+    //    test that the whole library works on this robot, on the skills schedule.
+    registry.add(competition::acceptanceRunEntry(competition::AutonKind::Skills, 57_s, 59_s));
+
+    // 3. THE TEAM'S SKILLS ROUTE (src/team/skills_route.cpp), MIRRORED for robot two:
+    registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));
 }
 
 }  // namespace shulib::bench

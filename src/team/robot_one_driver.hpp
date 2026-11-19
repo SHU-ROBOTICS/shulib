@@ -17,7 +17,9 @@
 // and is not the driver's to choose. How it runs — the controller, the call into the library's driver
 // loop — is src/common/driver_file.hpp, shared with robot two's file.
 //
-// [the map] — THE ONE PLACE THE MAP IS LISTED (test/robot_one_driver_test.cpp pins it against the code):
+// [the map] — listed here and, word for word, in robot two's file (test/robot_one_driver_test.cpp pins it
+// against the code; test/robot_twin_test.cpp holds the two equal):
+// [control words one]
 //   left stick   up / down: drive forward / back (toward the calibration record's front).
 //                Left / right does nothing: a tank cannot strafe.
 //   right stick  left / right: turn
@@ -41,6 +43,7 @@
 //                below the team can delete: without it the cascade is never homed in driver control, so
 //                R1 / R2 stay at its unhomed volts with no soft stops for the whole run.
 //   let go of the sticks and the drive coasts (Coast is set on every drive motor)
+// [/control words one]
 // The pistons start (and are made safe) in the position each holds with its solenoid UNPOWERED, so
 // nothing moves at power-up; the first press moves it to the other one.
 //
@@ -74,6 +77,7 @@ inline constexpr DriverControls kControls = controls(kRobotOneMechanisms,
 // library's bound for it (chosen, as ROB1-A's was).
 // [/driver file one]
 
+// [feel one]
 // ═══ THE FEEL ═════════════════════════════════════════════════════════════════════════════
 // The library's default, as robot two's: arcade (left stick drives, right stick turns), a smooth
 // deadband of 0.05, no curve, no ramp -- numbers no driver has felt yet (HA-112). Field-centric is OFF.
@@ -82,6 +86,7 @@ inline constexpr DriverLoopConfig kLoop{
     .rezeroButton = Button::Y,     // field-centric's "away from me"
     .releaseBrakeMode = Coast,     // let go of the sticks: the drive coasts
 };
+// [/feel one]
 }  // namespace shulib::bench::robot_one
 
 namespace shulib::bench {

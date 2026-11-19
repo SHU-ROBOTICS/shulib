@@ -10,9 +10,9 @@
 //     Chassis -> RunGuard -> MechanismService (REAL) -> CompetitionWatch (REAL) -> ProbeLayer -> PlantPacer
 //
 // The mechanism service and the route registry are the program's (the mechanism core's MECH-A5): bound
-// over robot two's REAL list and robot two's mechanisms on fakes (tester_rig::RobotTwoFakes — the
+// over THE CLAW ROBOT (the old robot two, a fixture since ROB1-BT) on fakes (tester_rig::RobotTwoFakes — the
 // pivots and the claw, each counting its safe-state applications), the route ids registered at
-// construction — test/auton_tester_rig.hpp's banner says why robot two's list and not the host's.
+// construction — test/auton_tester_rig.hpp's banner says why.
 //
 // The watch reads a SCRIPTED status byte (what competition_get_status() returns on the robot); a
 // test changes it at a time of its choosing through `onRead`, which the status source calls on
@@ -224,9 +224,9 @@ struct CompetitionStack {
           mechanisms{watch},
           guard{mechanisms},
           chassis{rig.deps, guard, motion_rig::chassisConfig()},
-          routes{chassis, mechanisms, shulib::bench::robot_two::kRobotTwoMechanisms, sink} {
+          routes{chassis, mechanisms, mech_fixture::robot_two::kRobotTwoMechanisms, sink} {
         // THE PROGRAM'S BOOT ORDER: the service bound after the chassis exists, then the route ids.
-        mechanisms.bind(shulib::bench::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
+        mechanisms.bind(mech_fixture::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
         routes.registerInto(commands);
         weak.wheel = weakWheel;
         weak.scale = weakScale;

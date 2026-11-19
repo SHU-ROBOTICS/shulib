@@ -36,7 +36,7 @@
 //
 // ═══ THE ROUTE REGISTRY (the mechanism core's MECH-A5; the team lead's ruling of 2026-10-08) ═══════
 // ONE runner::CommandRegistry and ONE runner::MechanismRoutes live in the state: every route id the
-// robot's list derives (robot two's six: claw_pivot_6_run .. claw_open) is registered at boot, after
+// robot's list derives (each cascade robot's eleven: cascade_home .. ramp_down) is registered at boot, after
 // the service binds and inside the boot's try, and the registry goes to runAuton -- so a ROUTE auton's
 // markers fire the same steps an auton's lines do. A team's own registry.on(...) lines would come
 // after, sharing the registry's 32 (runner::kMaxCommands). The boot says how many it published.

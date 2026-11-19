@@ -244,7 +244,7 @@ TEST_CASE("AF1S-A1 T11 outcome(): SUCCEEDED for the two successes, CANCELLED for
           ToggleVisitVerdict::WrongWall, ToggleVisitVerdict::UnknownBefore, ToggleVisitVerdict::NotAtSpot,
           ToggleVisitVerdict::NoChange, ToggleVisitVerdict::StillNotOurs, ToggleVisitVerdict::UnknownAfter,
           ToggleVisitVerdict::OursAfterShortStroke, ToggleVisitVerdict::DriveFailed, ToggleVisitVerdict::SeenNotOurs,
-          ToggleVisitVerdict::FrozenBeforePush}) {
+          ToggleVisitVerdict::FrozenBeforePush, ToggleVisitVerdict::SpotsTooClose /* AF1S-A2 */}) {
         CAPTURE(static_cast<int>(v));
         CHECK(out(v) == MechanismOutcome::Unconfirmed);
         CHECK_FALSE(r.ok());
@@ -261,8 +261,10 @@ TEST_CASE("AF1S-A1 T11 outcome(): SUCCEEDED for the two successes, CANCELLED for
 }
 
 TEST_CASE("AF1S-A1 the verdict words: every verdict has its own, ASCII, none empty") {
+    // The LAST verdict (AF1S-A2 appended SpotsTooClose; a verdict appended later moves this bound with it).
+    constexpr ToggleVisitVerdict kLast = ToggleVisitVerdict::SpotsTooClose;
     std::set<std::string> seen;
-    for (int v = 0; v <= static_cast<int>(ToggleVisitVerdict::FrozenBeforePush); ++v) {
+    for (int v = 0; v <= static_cast<int>(kLast); ++v) {
         const std::string w = sc::toggleVisitWord(static_cast<ToggleVisitVerdict>(v));
         CAPTURE(v);
         CHECK_FALSE(w.empty());
@@ -272,7 +274,9 @@ TEST_CASE("AF1S-A1 the verdict words: every verdict has its own, ASCII, none emp
         }
         seen.insert(w);
     }
-    CHECK(seen.size() == static_cast<std::size_t>(ToggleVisitVerdict::FrozenBeforePush) + 1);
+    CHECK(seen.size() == static_cast<std::size_t>(kLast) + 1);
+    CHECK(std::string{sc::toggleVisitWord(kLast)} == "SPOTS TOO CLOSE");
+    CHECK(std::string{sc::toggleVisitWord(static_cast<ToggleVisitVerdict>(static_cast<int>(kLast) + 1))} == "UNKNOWN");
 }
 
 // ═══ MIRROR1-A T7: the Toggle step in a MIRRORED auton (the MIRROR1 brief's §2.2, D4) ═══════════════════

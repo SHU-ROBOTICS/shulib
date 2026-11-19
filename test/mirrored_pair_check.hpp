@@ -20,8 +20,9 @@
 // checkMirroredPair() returns a VERDICT; it never asserts. The suite asserts it for robot two's registry
 // (test/autons_test.cpp, every mirrored entry); test/mirrored_pair_test.cpp asserts it on planted routes
 // (a planted crash is a PASSING test of the check); a route preview (RPV1's follow-up) or a route maker
-// can call the same function so the picture and the suite never disagree. A RELATIVE mirrored entry is
-// SKIPPED, by name: its field positions are wherever the drivers place the robot.
+// can call the same function so the picture and the suite never disagree. A RELATIVE mirrored entry's
+// gap is SKIPPED, by name: its field positions are wherever the drivers place the robot (a tank's
+// half-turn leg is still refused, below).
 //
 // ── The robots ───────────────────────────────────────────────────────────────────────────────────
 // Each run is the program's chain — Chassis -> RunGuard -> MechanismService (robot two's REAL list, on
@@ -42,11 +43,25 @@
 // a wall reset, a pause, a waitFor or a mechanism step is none — so it is NOT the "step N" the Routine's
 // own lines print. Robot one's TARGET (from the motion's own records: the point a drive goes to, a
 // curve's end, a turn's heading) is in the route's own numbers, so a student finds the line by it.
+//
+// ── A tank's half-turn leg (MIRROR1-B; the team lead's D6 ruling, 2026-11-15: "Block it") ───────────
+// On a TANK the check also FAILS a route whose robot two logs the [MIR] half-turn line for a LEG — a
+// moveTo (a driveTo or reverseTo is one) or a followTrajectory leg: one step that drives AND turns
+// about 180 deg. Each robot ends beside its target, on opposite sides of the mirror, so robot two
+// ends twice that far from robot one's image (MIRROR1-A's T3: robot one 7.1 in off its target on a
+// 36 in leg, robot two 14.2 in from the mirror). A RELATIVE entry too: robot two runs alone.
+// The sentence gives the fix in the route's numbers, turn first, by the leg's shape: a leg that
+// drives forward (a driveTo to a point behind) is face(x, y), then driveTo(x, y); one that backs up
+// (a reverseTo, or a moveTo to a point ahead ending facing back) is faceAway(x, y), then
+// reverseTo(x, y); if the leg's end heading is neither, a turnTo(h) after. Not refused: a turnTo's
+// line (a turn), a "leg" whose target is within the library's own arrival tolerance of its start
+// (kInPlaceIn — it only turns), and any drivetrain that can strafe (an X-drive, T3; an H-drive).
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -64,8 +79,10 @@
 #include "shulib/hal/fake/fake_telemetry_sink.hpp"
 #include "shulib/kinematics/kinematics.hpp"
 #include "shulib/math/pose2d.hpp"
+#include "shulib/math/reflection.hpp"
 #include "shulib/mechanism/service.hpp"
 #include "shulib/motion/motion.hpp"
+#include "shulib/motion/motion_config.hpp"
 #include "shulib/runner/command_registry.hpp"
 #include "shulib/runner/mechanism_routes.hpp"
 #include "shulib/sequence/run_guard.hpp"
@@ -88,10 +105,12 @@ struct Pace {
     std::uint32_t lastMotion = 0;  ///< the last motion that ENDED (its id), for "between motions"
     bool hasTarget = false;            ///< `target` read from the active motion's own latest record
     shulib::math::Pose2d target{};     ///< that record's targetPose (the field the run drives in)
+    int lines = 0;                     ///< log lines so far, after this pace (places a line in the run)
 };
 
 /// One robot's run.
 struct Track {
+    shulib::math::Pose2d start{};  ///< the plant's TRUE pose as the run starts
     std::vector<Pace> paces;
     std::vector<std::pair<std::uint32_t, std::string>> names;  ///< motion id -> its name (at its end)
     shulib::competition::AutonRunResult result{};
@@ -115,26 +134,32 @@ struct Track {
         if (i >= paces.size()) {
             std::snprintf(out, sizeof out, "its run over (stopped)");
         } else if (p.motion != 0) {
-            const std::string name = nameOf(p.motion);
-            char target[64] = "";
-            if (withTarget && p.hasTarget) {
-                const double x = p.target.x().value();
-                const double y = p.target.y().value();
-                if (name == "TurnTo") {
-                    std::snprintf(target, sizeof target, " to %.1f deg", p.target.heading().degrees());
-                } else if (name == "CurveTo" || name == "ReverseCurveTo") {
-                    std::snprintf(target, sizeof target, " ending at (%.1f, %.1f)", x, y);
-                } else if (name == "MoveToPose" || name == "StrafeTo") {
-                    std::snprintf(target, sizeof target, " to (%.1f, %.1f)", x, y);
-                }
-            }
-            std::snprintf(out, sizeof out, "motion %u (%s%s)", static_cast<unsigned>(p.motion), name.c_str(), target);
+            return motionAt(p, withTarget);
         } else if (p.lastMotion != 0) {
             std::snprintf(out, sizeof out, "between motions, after motion %u (%s)", static_cast<unsigned>(p.lastMotion),
                           nameOf(p.lastMotion).c_str());
         } else {
             std::snprintf(out, sizeof out, "before its first motion");
         }
+        return out;
+    }
+    /// "motion 8 (CurveTo ending at (12.0, -18.0))": the motion `p` is in (stepAt's form).
+    [[nodiscard]] std::string motionAt(const Pace& p, bool withTarget) const {
+        const std::string name = nameOf(p.motion);
+        char target[64] = "";
+        if (withTarget && p.hasTarget) {
+            const double x = p.target.x().value();
+            const double y = p.target.y().value();
+            if (name == "TurnTo") {
+                std::snprintf(target, sizeof target, " to %.1f deg", p.target.heading().degrees());
+            } else if (name == "CurveTo" || name == "ReverseCurveTo") {
+                std::snprintf(target, sizeof target, " ending at (%.1f, %.1f)", x, y);
+            } else if (name == "MoveToPose" || name == "StrafeTo") {
+                std::snprintf(target, sizeof target, " to (%.1f, %.1f)", x, y);
+            }
+        }
+        char out[160];
+        std::snprintf(out, sizeof out, "motion %u (%s%s)", static_cast<unsigned>(p.motion), name.c_str(), target);
         return out;
     }
 };
@@ -171,6 +196,7 @@ struct Robot {
                     }
                 }
             }
+            p.lines = r->sink.size();
             const shulib::motion::CompletedMotion& c = r->chassis.lastCompleted();
             p.lastMotion = c.id;
             if (c.id != 0 && (r->track.names.empty() || r->track.names.back().first != c.id)) {
@@ -203,11 +229,11 @@ struct Robot {
           svc{world},
           guard{svc},
           chassis{rig.deps, guard, motion_rig::chassisConfig()},
-          routes{chassis, svc, shulib::bench::robot_two::kRobotTwoMechanisms, sink} {
+          routes{chassis, svc, mech_fixture::robot_two::kRobotTwoMechanisms, sink} {
         weak.wheel = 1;  // the right side (tester_rig::WeakSide)
         weak.scale = weakScale;
         world.r = this;
-        svc.bind(shulib::bench::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
+        svc.bind(mech_fixture::robot_two::kRobotTwoMechanisms, two.devs, rig.h.clock(), rig.latch, sink);
         routes.registerInto(commands);
         for (int i = 0; i < 30; ++i) {
             chassis.wait(shulib::units::Time{0.01});  // the estimate live, nothing commanded
@@ -217,6 +243,7 @@ struct Robot {
     /// Run `entry` once through competition::runAuton; the track starts the pace the guard arms.
     Track& run(const shulib::competition::AutonEntry& entry, shulib::units::Time period) {
         armedAt = rig.h.clock().now().value();  // runAuton arms its guard on its first instruction
+        track.start = rig.h.truePose();
         track.result = shulib::competition::runAuton(chassis, guard, entry, &commands, sink, svc, period);
         for (int i = 0; i < sink.size(); ++i) {
             track.lines.push_back("[" + sink.at(i).subsystem + "] " + sink.at(i).message);
@@ -297,12 +324,128 @@ inline double squareGap(const shulib::math::Pose2d& p, const shulib::math::Pose2
     return d;
 }
 
+// ── a tank's half-turn leg (file banner) ──────────────────────────────────────────────────────────
+
+/// A leg whose target is this close to where it starts (inches) drives nowhere: it only turns, like a
+/// turnTo, and is not refused (file banner). The library's own arrival tolerance (MotionConfig's
+/// translationSettle — the robots' here): a target that close is already reached.
+inline const double kInPlaceIn = shulib::motion::MotionConfig{}.translationSettle.maxError;
+
+/// Robot two's FIRST leg that logged the [MIR] half-turn line (file banner).
+struct HalfTurnLeg {
+    bool found = false;
+    bool ran = false;      ///< a pace of the leg was found (false: logged after the run's last pace)
+    double at = 0.0;       ///< seconds since the guard armed: the leg's first pace (when `ran`)
+    double turnDeg = 0.0;  ///< the heading change the [MIR] line gives
+    std::string step;      ///< "motion 3 (MoveToPose to (-36.0, -58.0))", in ROBOT ONE's numbers
+    std::string fix;       ///< "turn first, then drive: face(-36.0, -58.0), then driveTo(-36.0, -58.0)"
+};
+
+/// The fix for a leg from `from` to `to` (robot two's real field), in ROBOT ONE's numbers (`back`):
+/// turn first, then drive — forwards, or backwards when the leg ends facing away from where it drove
+/// (a reverseTo); a turnTo after when its end heading is neither (file banner). A reflection keeps
+/// the angle between the drive and the end heading, so robot two's shape is robot one's.
+inline std::string halfTurnFix(const shulib::math::Pose2d& from, const shulib::math::Pose2d& to,
+                               const shulib::math::Reflection& back) {
+    constexpr double kPi = shulib::math::Angle::kPi;
+    const double travel = std::atan2((to.y() - from.y()).value(), (to.x() - from.x()).value());
+    const double off = std::abs(std::remainder(to.heading().radians() - travel, 2.0 * kPi));  // [0, pi]
+    const bool backs = off > kPi / 2.0;
+    const shulib::math::Pose2d one = back.apply(to);
+    const double x = one.x().value();
+    const double y = one.y().value();
+    char out[192];
+    if (backs) {
+        std::snprintf(out, sizeof out, "turn first, then back up: faceAway(%.1f, %.1f), then reverseTo(%.1f, %.1f)", x,
+                      y, x, y);
+    } else {
+        std::snprintf(out, sizeof out, "turn first, then drive: face(%.1f, %.1f), then driveTo(%.1f, %.1f)", x, y, x, y);
+    }
+    std::string fix = out;
+    if ((backs ? kPi - off : off) > kPi / 180.0) {  // more than 1 deg off the drive's own heading
+        std::snprintf(out, sizeof out, ", then turnTo(%.1f deg)", one.heading().degrees());
+        fix += out;
+    }
+    return fix;
+}
+
+/// Find it in robot two's track. `back` is the run's reflection (competition::runReflection): robot
+/// two's target reflected back is the route's own numbers (a reflection is its own inverse). A line
+/// logged after the run's last pace is still found — refused with the plain fix, never quietly.
+inline HalfTurnLeg findHalfTurnLeg(const Track& two, const shulib::math::Reflection& back) {
+    static constexpr char kHead[] = "[MIR] mirrored ";
+    static constexpr std::size_t kHeadLen = sizeof kHead - 1;
+    for (std::size_t k = 0; k < two.lines.size(); ++k) {
+        const std::string& line = two.lines[k];
+        const std::size_t turns = line.find(" turns ");
+        if (line.rfind(kHead, 0) != 0 || turns == std::string::npos
+            || line.find("within 1 deg of a half turn") == std::string::npos) {
+            continue;
+        }
+        if (line.compare(kHeadLen, turns - kHeadLen, "turnTo") == 0) {
+            continue;  // a turn in place, not a leg
+        }
+        HalfTurnLeg h;
+        h.found = true;
+        h.turnDeg = std::strtod(line.c_str() + turns + 7, nullptr);
+        h.fix = "turn first, then drive";
+        // The line is logged as the leg starts: its motion is the first one live after it.
+        std::size_t i = 0;
+        while (i < two.paces.size() && (two.paces[i].lines <= static_cast<int>(k) || two.paces[i].motion == 0)) {
+            ++i;
+        }
+        if (i == two.paces.size()) {
+            h.step = "a leg logged after its run's last pace";
+            return h;
+        }
+        h.ran = true;
+        h.at = two.paces[i].t;
+        const shulib::math::Pose2d& from = i > 0 ? two.paces[i - 1].truth : two.start;
+        Pace p = two.paces[i];
+        for (std::size_t j = i; j < two.paces.size() && two.paces[j].motion == p.motion; ++j) {
+            if (two.paces[j].hasTarget) {  // a record from before the motion's first live tick has none
+                p.hasTarget = true;
+                p.target = two.paces[j].target;
+                break;
+            }
+        }
+        if (p.hasTarget) {
+            const double dx = (p.target.x() - from.x()).value();
+            const double dy = (p.target.y() - from.y()).value();
+            if (std::hypot(dx, dy) < kInPlaceIn) {
+                continue;  // it drives nowhere: a turn, not refused (file banner)
+            }
+            h.fix = halfTurnFix(from, p.target, back);
+            p.target = back.apply(p.target);
+        }
+        h.step = two.motionAt(p, /*withTarget=*/true);
+        return h;
+    }
+    return HalfTurnLeg{};
+}
+
+/// The refusal, in one sentence (file banner).
+inline std::string halfTurnSentence(const char* name, const HalfTurnLeg& h) {
+    char line[512];
+    if (h.ran) {
+        std::snprintf(line, sizeof line,
+                      "auton '%s': %s at %.2f s turns %.1f deg while it drives, which a tank cannot mirror -- %s.", name,
+                      h.step.c_str(), h.at, h.turnDeg, h.fix.c_str());
+    } else {
+        std::snprintf(line, sizeof line,
+                      "auton '%s': %s turns %.1f deg while it drives, which a tank cannot mirror -- %s.", name,
+                      h.step.c_str(), h.turnDeg, h.fix.c_str());
+    }
+    return line;
+}
+
 // ── the verdict ──────────────────────────────────────────────────────────────────────────────────
 
 /// What the pair check found. Never an assertion: the caller decides.
 struct PairVerdict {
-    bool checked = false;     ///< false: SKIPPED (a RELATIVE mirrored entry), `sentence` says why
-    bool ok = true;           ///< checked and never under the gap
+    bool checked = false;     ///< false: SKIPPED (a RELATIVE mirrored entry, unless refused), `sentence` says why
+    bool ok = true;           ///< never under the gap, and (a tank) no half-turn leg
+    HalfTurnLeg halfTurn{};   ///< a TANK's half-turn leg (found: refused; file banner)
     double leastGapIn = 1e300;  ///< the least gap over the whole run (inches)
     double leastGapAt = 0.0;    ///< when (seconds since the guard armed)
     std::size_t paces = 0;      ///< paces compared
@@ -368,8 +511,9 @@ struct PairOptions {
 
 /// Robot one's and robot two's runs of the MIRRORED `entry`, compared (file banner). Robot one runs the
 /// entry as written (mirrored() toggled back) from its own start; robot two runs `entry` from the
-/// reflected start (competition::seatedStart). A RELATIVE (or unmirrored) entry: SKIPPED, by name.
-/// `tracks` (optional) receives both runs.
+/// reflected start (competition::seatedStart). An unmirrored entry: no pair. A RELATIVE one: its gap
+/// SKIPPED, by name — on a tank robot two still runs alone, and a half-turn leg is refused (then
+/// `checked`). `tracks` (optional) receives both runs (a RELATIVE entry: robot two's only).
 inline PairVerdict checkMirroredPair(const shulib::competition::AutonEntry& entry, const PairOptions& o,
                                      std::pair<Track, Track>* tracks = nullptr) {
     PairVerdict v;
@@ -380,12 +524,28 @@ inline PairVerdict checkMirroredPair(const shulib::competition::AutonEntry& entr
         v.sentence = line;
         return v;
     }
+    // A TANK's half-turn leg is refused (file banner). A tank: the library's own test, a drivetrain that
+    // cannot strafe at all (motion_scheduler.hpp) — an X-drive or an H-drive is not refused.
+    const bool tank = o.kin->strafeAuthority() == 0.0;
     if (entry.effectiveStart().mode() != shulib::competition::StartPose::Mode::Field) {
         std::snprintf(line, sizeof line,
                       "auton '%s': a RELATIVE mirrored entry -- its field positions are wherever the drivers place "
                       "the robots, so the pair check is SKIPPED",
                       name);
         v.sentence = line;
+        if (tank) {  // the gap needs field positions; the leg does not — robot two alone, from its origin
+            auto two = std::make_unique<Robot>(*o.kin, shulib::competition::seatedStart(entry), o.weakScale);
+            const Track& b = two->run(entry, o.period);
+            v.halfTurn = findHalfTurnLeg(b, shulib::competition::runReflection(entry));
+            if (v.halfTurn.found) {
+                v.checked = true;
+                v.ok = false;
+                v.sentence = halfTurnSentence(name, v.halfTurn);
+            }
+            if (tracks != nullptr) {
+                *tracks = {Track{}, b};
+            }
+        }
         return v;
     }
     const shulib::competition::AutonEntry asWritten = shulib::competition::mirrored(entry, *entry.mirror);
@@ -394,6 +554,15 @@ inline PairVerdict checkMirroredPair(const shulib::competition::AutonEntry& entr
     const Track& a = one->run(asWritten, o.period);
     const Track& b = two->run(entry, o.period);
     v = comparePair(name, a, b, o.gapIn);
+    // the leg's sentence first, then the gap's failure if there is one too (kept, never hidden)
+    if (tank) {
+        v.halfTurn = findHalfTurnLeg(b, shulib::competition::runReflection(entry));
+        if (v.halfTurn.found) {
+            const std::string leg = halfTurnSentence(name, v.halfTurn);
+            v.sentence = v.ok ? leg : leg + " " + v.sentence;
+            v.ok = false;
+        }
+    }
     if (tracks != nullptr) {
         *tracks = {a, b};
     }

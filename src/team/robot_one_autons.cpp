@@ -1,12 +1,14 @@
 // robot_one_autons.cpp -- THE TEAM'S AUTONS for robot one, and registerRobotOneAutons() at the bottom,
 // the one list the programs read on a robot-one build.
 //
-// A STARTER FILE (chunk ROB1-A, 2026-11-11; the ROB1 brief's D8): robot two's "40in forward", copied and
+// A STARTER FILE (chunk ROB1-A, 2026-11-11; the ROB1 brief's D8): the team's SKILLS ROUTE (since ROB1-BT,
+// 2026-11-16: src/team/skills_route.cpp, shared with robot two, which runs it mirrored), the "40in forward"
 // registered as a SKILLS auton (the only competition on Nov 21 is skills — the team lead's ruling), and
-// the library's acceptance run. NOTHING ELSE: THE SKILLS ROUTE IS THE STUDENTS' (the guardrail G4) — it
-// goes where the comment below says. Every line here is the team's to explain, defend and change.
+// the library's acceptance run. THE SKILLS ROUTE IS THE STUDENTS' (the guardrail G4) — made in the route
+// maker, or by hand, in src/team/skills_route.cpp. Every line here is the team's to explain, defend and
+// change.
 //
-// Everything src/team/autons.cpp's banner says holds here: the auton you test on the bench ("shulib
+// Both robots' autons files work the same way: the auton you test on the bench ("shulib
 // Auton Tester") is the auton that runs in the competition program; the frame is x ahead, y to the left,
 // angles counterclockwise; the distances are the robot's own estimate (a disagreement with the tape is
 // the calibration record's, never this file's number).
@@ -35,6 +37,7 @@
 #include "shulib/competition/auton_registry.hpp"
 #include "shulib/math/pose2d.hpp"
 #include "shulib/units/literals.hpp"
+#include "team/skills_route.hpp"
 
 namespace shulib::bench {
 
@@ -43,18 +46,20 @@ using namespace robot_one;        // robot one's mechanisms, by their declaratio
 
 namespace {
 
-// ── THE 40 IN AUTON (robot two's, copied) ───────────────────────────────────────────────────
-// Drive straight forward 40 inches and stop, facing the way the robot started: ONE moveTo to the pose
-// 40 in ahead, 0 in to the side, facing 0 degrees. src/team/autons.cpp's comment on the same auton says
-// what the library does when a tank drifts, and how to read a MOTION_TIMEOUT -- all of it holds here.
+// ── THE 40 IN AUTON ──────────────────────────────────────────────────────────────────────────
+// Drive straight forward 40 inches and stop, facing the way the robot started: ONE moveTo -- the library
+// drives to the POSE 40 in ahead, 0 in to the side, facing 0 degrees, and the step ends when the robot is
+// there and still, or on the motion's own time limit. A TANK CANNOT DRIVE SIDEWAYS: if one side is weaker,
+// the robot turns toward it and drifts; the library measures the turn it did not ask for and steers back
+// (never more than 15 degrees off the heading written here; TSTR marks it on the serial log). If it still
+// cannot finish within half an inch and about a degree, the step ends on its time limit: ROUTINE STOPPED,
+// MOTION_TIMEOUT, and the brake at the end still runs -- read END x and y and the TSTR lines before
+// changing anything.
 chassis::RoutineResult fortyInchesForward(competition::AutonContext& ctx) {
     chassis::Routine r{ctx, "40in-forward"};
     r.moveTo(math::Pose2d{40_in, 0_in, 0_deg});
     return r.result();
 }
-
-// ── THE SKILLS ROUTE GOES HERE (the students') ──────────────────────────────────────────────
-// Write it as a function like the one above, then register it below as a SKILLS auton.
 
 }  // namespace
 
@@ -73,6 +78,9 @@ void registerRobotOneAutons(competition::AutonRegistry& registry) {
     // 2. THE LIBRARY'S ACCEPTANCE RUN (drive 24 in, turn to 90 degrees, face the start, drive back): the
     //    test that the whole library works on this robot, on the skills schedule.
     registry.add(competition::acceptanceRunEntry(competition::AutonKind::Skills, 57_s, 59_s));
+
+    // 3. THE TEAM'S SKILLS ROUTE (src/team/skills_route.cpp), as written: robot one's numbers.
+    registry.add(skillsRoute());
 }
 
 }  // namespace shulib::bench

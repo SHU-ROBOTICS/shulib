@@ -203,8 +203,11 @@ the half turn swaps red and blue — it is the HEAD-TO-HEAD mirror, not this one
   where there are none. A step at a Loader has no mirror.
 - **The Load Zones' colours:** the red/left corner's red zone lands on the blue/right corner's blue zone.
 - **The robot itself is not mirrored.** A claw on robot one's left side is on robot two's LEFT side too —
-  in the mirrored world, the wrong side. If the robot is built symmetric left to right, the mirror works;
-  if not, the bench shows which steps need robot two's own numbers (A4 register HA-259).
+  in the mirrored world, the wrong side. If the robot is built symmetric left to right, the mirror works,
+  as long as a step that uses ONE side's part picks the other side's on robot two: robot one's right
+  toggle's job is robot two's LEFT toggle (`isMirrored(ctx) ? leftToggle : rightToggle`,
+  [cookbook chapter 9](../cookbook/09-one-route-two-robots.md)). If it is not symmetric, the bench shows
+  which steps need robot two's own numbers (A4 register HA-259).
 
 **What lies ON the mirror line — the two robots' shared seam.** The mirror leaves its line where it is,
 so whenever robot one reaches the line, robot two reaches **the same spot at the same moment**. On it sit

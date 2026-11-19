@@ -18,6 +18,7 @@
 // the table the break-it cases mutate, and a case now pins it — and the real table — to the brief's
 // literals, field by field.
 
+#include "retired_robot_two.hpp"
 #include "doctest.h"
 
 #include <cstring>
@@ -576,13 +577,15 @@ TEST_CASE("chassis table: the selection -- chassisTableFor() gives every robot i
     CHECK(&kChassis == &kBenchBotChassis);
 }
 
-TEST_CASE("chassis table: robot two's REAL table (kRobotTwoChassis) is the measured one, field by "
-          "field -- and the hand-typed copy the other cases break matches it") {
+TEST_CASE("chassis table: the OLD robot two's table (test/retired_robot_two.hpp since ROB1-BT) is the measured one, "
+          "field by field -- and the hand-typed copy the other cases break matches it") {
     // BUG CAUGHT: a typo in the table robot two's four builds carry — a dropped sign, a swapped
     // side, the IMU moved — which, until G1 Part 2c's final run, no host test could see (the table
     // existed only under the tank define, and this file tested a re-typed copy). Every literal below
     // is from the brief's §0 and the table's own provenance, never read from the header under test.
-    const ChassisTable& t = kRobotTwoChassis;
+    // (ROB1-BT: robot two was rebuilt as robot one's twin, its table robot one's design — every drive field
+    // UNSET, test/robot_twin_test.cpp; the measured table it had is the host suite's fixture now.)
+    const ChassisTable& t = retired_robot_two::kChassis;
     const std::int8_t left[5] = {-11, 12, -13, 14, -15};
     const std::int8_t right[5] = {20, -19, 18, -17, 16};
     REQUIRE(t.leftCount == 5);

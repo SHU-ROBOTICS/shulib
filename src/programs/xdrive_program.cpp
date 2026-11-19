@@ -95,7 +95,7 @@ constexpr teleop::DriverProfile kProfile{};
 /// this one — keep the call passing kLoopConfig by name.) It carries:
 ///  * the tick period: the pacer's (ProsTickPacer::kTickMs, HA-32);
 ///  * the field-centric re-zero button: `Y`. Harmless in ArcadeBody. Never a shoulder button (the
-///    library's own default, L1, is a claw pivot's button on robot two — T3), and the button robot
+///    library's own default, L1, was a claw pivot's button on the old robot two — T3), and the button robot
 ///    two's driver file re-zeroes on (src/team/robot_two_driver.hpp's kLoop), so the programs agree;
 ///  * the drive's mode on stick release: Coast (the team lead's ruling for driver control) —
 ///    STATED, not left to the default, so the boot line and the loop cannot disagree.

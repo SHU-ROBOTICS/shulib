@@ -101,6 +101,7 @@
 #include "programs/auton_tester_run.hpp"
 #include "robots/mechanism_table.hpp"
 #include "robots/robot_one_facts.hpp"
+#include "robots/robot_two_facts.hpp"
 #include "route_preview_model.hpp"
 #include "route_preview_render.hpp"
 #include "shulib/competition/auton_registry.hpp"
@@ -125,9 +126,17 @@ struct Provisional {
     const char* ha;         ///< its Hardware Assumptions row ("HA-185")
     const char* who;        ///< what measures it ("Station J times the real one")
 };
-/// Robot two's (src/robots/mechanism_table.hpp): the claw's move time.
+/// The CLAW ROBOT's (the old robot two, retired at ROB1-BT — test/mechanism_fixtures.hpp): the claw's move time.
+/// The preview's fixture robots read it.
 inline constexpr Provisional kRobotTwoProvisional[] = {
     {"claw", "0.5 s", "HA-185", "Station J times the real one"},
+};
+/// Robot two's pistons' stroke times — OWED in its facts file (robot one's chosen 0.5 s until the builder
+/// times robot two's; landmine 15: a preview drawn on an owed number says so). Pinned to the ledger (RP33b).
+inline constexpr Provisional kTwinProvisional[] = {
+    {"claw", "0.5 s", "HA-256", "owed: robot two's facts file, Station R2"},
+    {"flipper", "0.5 s", "HA-256", "owed: robot two's facts file, Station R2"},
+    {"ramp", "0.5 s", "HA-256", "owed: robot two's facts file, Station R2"},
 };
 
 /// The function a robot's autons file registers its autons with.
@@ -148,15 +157,19 @@ struct PreviewRobot {
     const char* ledgerFile = "";                                ///< where that ledger is
 };
 
-/// Robot two — the team's autons today (src/team/autons.cpp, `using namespace robot_two;`).
+/// Robot two — robot one's twin since ROB1-BT (src/team/autons.cpp, `using namespace robot_two;`), its
+/// mechanisms on fakes built from their declarations (its numbers are its facts file's placeholders until
+/// typed: the cascade is hatched as every lift on starting numbers is, the pistons by kTwinProvisional).
 inline constexpr PreviewRobot kRobotTwo{
     .key = "two",
     .title = "robot two",
     .table = &shulib::bench::robot_two::kRobotTwoMechanisms,
     .registerAutons = &shulib::bench::registerAutons,
     .autonsFile = "src/team/autons.cpp",
-    .defaultRig = true,
-    .provisional = std::span<const Provisional>{kRobotTwoProvisional},
+    .defaultRig = false,
+    .provisional = std::span<const Provisional>{kTwinProvisional},
+    .ledger = Ledger{shulib::bench::robot_two_facts::kRobotTwoFacts},
+    .ledgerFile = "src/robots/robot_two_facts.hpp",
 };
 /// Robot one — its own list on fakes by kind; its ledger's OWED facts are the PLACEHOLDERS (header).
 inline constexpr PreviewRobot kRobotOne{

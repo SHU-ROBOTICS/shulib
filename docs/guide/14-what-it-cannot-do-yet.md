@@ -45,7 +45,8 @@ The headline limitation, stated as many times as it takes:
   unit-scale beliefs on the drivetrain set (2026-08-13, one robot, once), the IMU's heading
   direction (HA-02, confirmed 2026-08-19) and part of the SD card's behaviour (HA-122,
   2026-08-18). The other heading and sign conventions remain open; only the X-drive build's
-  port map is a labelled guess (the tank builds use port tables measured on those robots) —
+  port map is a labelled guess (the bench build's table was measured; the two cascade robots' drives
+  are discovered by shulib Calibrate) —
   and **of the mechanism-sensor adapters only the SD-card writer has touched a physical
   device**: distance, optical and the digital lines have not, and their beliefs (HA-113
   onward, including two the vendored SDK sources do not state) wait on the extended bench
@@ -64,7 +65,8 @@ The headline limitation, stated as many times as it takes:
   the controller's Timed Run does (HA-162) — are unchecked.
 - **The route preview draws a perfect robot, on a stand-in drive, in an empty field.**
   `tools/route_preview.py` ([Chapter 16](16-testing-an-auton-on-the-bench.md#before-the-bench-previewing-a-route))
-  runs an auton on the host test plant and draws it, but its drive is the test suite's stand-in (a 12 in tank
+  runs an auton on the host test plant and draws it (the route builder's PREVIEW runs the same engine, in the page), but
+  its drive is the test suite's stand-in (a 12 in tank
   with made-up gains, not robot two's — whose track width is not in the code yet), its plant has no walls (the
   preview checks a 15 in square against the field itself and says THROUGH or TOUCH, but nothing stops the
   plant's robot), it has no side sensors (every wall reset is refused), no pieces and no camera (a step that
@@ -243,8 +245,9 @@ The mechanism seam that used to be a placeholder here is now real code
   jam ([Chapter 18](18-mechanisms.md)); an auton runs a mechanism on ONE line (`r.move(arm["score"],
   1.5_s)`), a driver file's controls put presets on buttons, a route's markers run every mechanism's
   ids, and the direction check judges a jog. Proven only on the host test plant's invented models, with
-  invented starting gains; robot two's programs run on the service since its fifth part (2026-10-29),
-  its claws as declarations — never on a robot — and the bench page that runs the direction check,
+  invented starting gains; the robots' programs run on the service since its fifth part (2026-10-29) —
+  robot two's claws then, both robots' cascade, side toggles and pistons since 2026-11-16 — never on a
+  robot — and the bench page that runs the direction check,
   Bench Tests' station 13, since its sixth and last (built 2026-10-30; its logic host-tested, the page
   itself never run on a robot).
 - **Deliberately absent:** any concrete mechanism. There is no `shulib::Intake` and never
@@ -470,9 +473,10 @@ one named piece ([chapter 20](20-the-camera.md)). What that is worth, and what i
 The Toggle step ([Chapter 20](20-the-camera.md#checking-and-flipping-a-toggle-in-a-skills-route)) looks at a
 Toggle with the front camera, flips it only when it is not its Quadrant's colour, and looks again. It is
 **host- and build-gated, NOT run on a robot**: no Toggle, no flipper and no camera reading of a real Toggle
-exist in this project yet, and every number below is the host test plant's. **No team auton can call it yet:**
-this release has only its explicit form, over handles a hand-wired program passes; the robot's camera reaches
-an auton's context in the next part of the work (AF1S-A2), and until then a skills route flips Toggles blind.
+exist in this project yet, and every number below is the host test plant's. A team auton calls it through the
+auton's context, with the camera the robot file's camera block and Toggle block describe — neither of the team's
+robot files has a camera block yet; the plan for the first competition is still the team's own blind two-push
+flip, until this step has flipped a real Toggle.
 
 - **"FLIPPED" is not "set".** The camera cannot see whether a Toggle has SETTLED flat. One stuck part-way
   through its roll shows the face it is rolling TO, and reads that colour sure — on the host test plant a
@@ -500,8 +504,9 @@ an auton's context in the next part of the work (AF1S-A2), and until then a skil
   register HA-199). On the host test plant, with the Toggle's own faces unseen, a blue plate at the face's
   height 4 in in front of the wall made the step push a Toggle that already showed ours — with the camera's
   position check on as well as off (its tolerance admitted 4 in); the same plate 1.4 in lower was refused as
-  not at the spot. The position check, with a pose the team trusts (right after a wall reset), turns most
-  lookalikes away; none that sits where a Toggle's face is.
+  not at the spot. The position check, with a pose the team trusts (a FIELD start, right after a wall reset),
+  turns most lookalikes away; none that sits where a Toggle's face is. Under a RELATIVE start it cannot run at
+  all: the step drops the bound (the estimate is not in the field's frame) and says so in its line.
 - **Our other robot, mid-visit.** Between the look and the push the camera, at most mounts, cannot name a
   colour (it is too close; a high, tilted lens can). If our other robot flips the Toggle in that moment, the step
   pushes it anyway — the route keeps the other robot away from a Toggle being visited.
@@ -556,11 +561,14 @@ promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
   roadmap milestone M5, coordinated with the separate VexBuilder project.
   The [route builder](22-making-your-first-route.md) (2026-11) is the first piece a non-coder can use: it builds the
   skills route by clicking on the field and WRITES the commented C++ into the skills-route file — the team still
-  builds and uploads it. What it does not do yet: **PREVIEW** (playing the route from the real library on the
-  host test plant), triggers partway through a drive, wall resets, the mirrored robot drawn on the field, a time
-  bar, the Toggle steps, strafing, moving to a pose, driving through points, sensor waits, flywheel steps, a step of
-  your own C++, relative starts, 30 s match routes, and exporting a route to VexBuilder. Until they come, they are
+  builds and uploads it, and its **PREVIEW** plays the route from the real library on the host test plant (not the
+  robot). What it does not do yet: robot two's mirrored run in PREVIEW, triggers partway through a drive, wall
+  resets, the mirrored robot drawn on the field while you edit, a time bar, the Toggle steps, strafing, moving to a
+  pose, driving through points, sensor waits, flywheel steps, a step of your own C++, relative starts, 30 s match
+  routes, and exporting a route to VexBuilder. Until they come, they are
   typed by hand inside the route's region; the route builder never overwrites a hand edit there without asking.
+  Its **Controls** tab writes the driver's buttons and feel into the driver file; it writes only into a driver file
+  that carries its marker lines (Copy until then), and has no slow mode while a button is held.
 - **No ready-made scoring verbs for recipes to command** — the mechanism layer exists (see
   above) and `then()` runs its operations, but the mechanisms themselves are structs your
   team writes ([Chapter 13](13-extending-the-library.md)), and the season's concrete
@@ -637,9 +645,9 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   modes, and a `DriveShaper` that composes them in one call per tick — all host-tested,
   including a test that pins a stick step reaching the commanded motor volts in the same tick.
   Two things are still missing, and the second is the one that matters. **First**, nothing that
-  uses it has run on a robot: robot two's driver file (`src/team/robot_two_driver.hpp`) drives
-  through `teleop::runDriverControl` with the default profile, and "shulib Drive"
-  (`src/programs/drive_program.cpp`) runs that file — a program that has not run on a robot yet. The
+  uses it has run on a robot: each robot's driver file (`src/team/robot_one_driver.hpp`,
+  `src/team/robot_two_driver.hpp`) drives through `teleop::runDriverControl` with the default profile,
+  and "shulib Drive" (`src/programs/drive_program.cpp`) runs it — a program that has not run on a robot yet. The
   bench tester's drive station keeps the older raw mapping (`teleop/stick_mapping.hpp`) — raw volts,
   the baseline a driver can compare the library's feel against, wheels up; nobody has yet. The old
   "shulib Drive"'s protections are no longer that program's alone: since T4 Part 2 the loop drops a
@@ -647,7 +655,7 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   for 1 s on a fight or an over-current ([Chapter 10](10-the-api.md)) — host-tested only, every
   number invented (HA-132, HA-175, HA-176), and no push, full-stick reversal or launch has ever been
   measured against the 2.4 A limit. One case it gets wrong is known: at a wall beside a drive motor
-  whose gear slips (robot two's port 18), live motors can be marked dead, and a second push can then
+  whose gear slips (the old robot two's port 18, retired in the code 2026-11-16), live motors can be marked dead, and a second push can then
   stop the drive; at any other wall, a motor whose reported speed settles well before its mates'
   costs one 1 s cut instead (HA-175's known gaps; [Chapter 12](12-when-things-go-wrong.md)).
   **Second, no driver has felt any of it.** Every default in the feel layer is invented and registered as a guess
@@ -658,17 +666,17 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   state; `teleop::ToggleBinding`: press a button to open a pneumatic claw, press again to close it
   — [Chapter 10](10-the-api.md)), and robot two's driver file gave robot two's claws to the
   driver with them (the claws since T3's second part, in the driver file since T4, until the
-  mechanism core's fifth part moved them onto the core's controls — below; "shulib Drive" runs
-  that file): R1/R2 move the claw pivot on port 6, L1/L2 the one on port 7
-  (full power while held, holding on release), A opens and closes the pneumatic claw, and the
-  field-centric re-zero moved to Y. **None of it has run on a robot**: no claw has moved, whether a
-  released pivot really holds its load, which way each one turns and which line level opens the
-  claw are all unmeasured, and no driver has used a claw button. Since the mechanism core's fourth
+  mechanism core's fifth part moved them onto the core's controls — below): R1/R2 moved the claw
+  pivot on port 6, L1/L2 the one on port 7, A the pneumatic claw, and the field-centric re-zero moved
+  to Y. Robot two was rebuilt as robot one's twin in November 2026: its claws are retired, and both
+  robots' driver files hold the builder's cascade map
+  ([Chapter 21](21-adding-your-robot-by-hand.md#robot-two-robot-ones-twin)). **None of it has run on a
+  robot**: no mechanism has moved under these files, which way each motor turns and which line level
+  opens each piston are unmeasured, and no driver has used a mechanism button. Since the mechanism core's fourth
   part (2026-10-29) a robot's DECLARED mechanisms have their own driver controls — `whileHeld`,
   `toggle`, `preset` (an arm to its "score" on one button), the homing controls, "the most recent input
   wins" ([Chapter 18](18-mechanisms.md#on-the-drivers-buttons--the-driver-files-controls)) — host-tested
-  only; robot two's driver file runs its claws on them since the core's fifth part (2026-10-29),
-  behaving exactly as before. Driver MACROS (a
+  only; both robots' driver files run on them. Driver MACROS (a
   button that runs a chassis motion the sticks can interrupt) are still future work (phase T on the
   roadmap).
   *(This bullet used to say joystick shaping and slew limits did not exist at all; that went

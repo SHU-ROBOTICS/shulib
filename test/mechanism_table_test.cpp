@@ -2,8 +2,8 @@
 // pneumatic claw from T3's addendum, E2; REWRITTEN for the mechanism core's words by MECH-A5,
 // 2026-10-29): robot two's claw pivots and its pneumatic claw exactly as the team lead stated them,
 // now as DECLARATIONS and their wiring in `namespace robot_two`; the claw's open level on ONE line;
-// WHERE each declaration was written (the recorded path, pinned by its suffix); the region G3a's
-// generator wraps, byte for byte the test fixture's; the selection for EVERY robot; the drive check
+// WHERE each declaration was written (the recorded path, pinned by its suffix); each robot's region
+// as ONE block G3a's generator can wrap; the selection for EVERY robot; the drive check
 // over every smart ROLE and the IMU (mechanismsClearOf — a SENSOR on a drive port included, the MECH
 // brief's M29); and "is this a declared mechanism port". (Until CAL1 Part B, 2026-11-05, this file
 // also ran "shulib Calibrate"'s candidate filter, dropDeclaredMechanismPorts(), and pinned its one
@@ -27,7 +27,10 @@
 // src/build_selection.hpp's chain takes its #else (the bench build) and none is declared. The
 // selection itself, mechanismTableFor(), is called for EVERY robot below.
 //
-// What no host test can see — that no claw moves on the robot — is worksheet Station J's.
+// SINCE ROB1-BT (2026-11-16) robot two is robot one's TWIN (test/robot_twin_test.cpp holds its region equal
+// to robot one's). The claw cases below read THE CLAW ROBOT — the old robot two, kept as a fixture:
+// test/mechanism_fixtures.hpp's mech_fixture::robot_two (its old region, byte for byte) beside
+// test/retired_robot_two.hpp's table. The selection cases still read the REAL robot two.
 
 #include "doctest.h"
 
@@ -43,6 +46,7 @@
 #include <vector>
 
 #include "mechanism_fixtures.hpp"
+#include "retired_robot_two.hpp"
 #include "robots/mechanism_table.hpp"
 #include "shulib/mechanism/wiring.hpp"
 
@@ -55,18 +59,21 @@ using shulib::bench::MechanismTable;
 using shulib::bench::mechanismsClearOf;
 using shulib::bench::tableSideOf;
 namespace mech = shulib::mechanism;
-namespace two = shulib::bench::robot_two;
+namespace two = shulib::bench::robot_two;      // the REAL robot two (robot one's twin)
+namespace claws = mech_fixture::robot_two;     // the claw robot (the old robot two, a fixture)
 
 namespace {
 
-/// Robot two's REAL drive table (src/robots/chassis_table.hpp's kRobotTwoChassis: LEFT -11 +12 -13
-/// +14 -15, RIGHT +20 -19 +18 -17 +16, IMU on port 2 — test/chassis_table_test.cpp pins those
-/// literals), a copy for a case to break one field of.
-[[nodiscard]] ChassisTable robotTwoChassis() { return shulib::bench::kRobotTwoChassis; }
+/// The claw robot's drive table (the old robot two's, test/retired_robot_two.hpp: LEFT -11 +12 -13 +14 -15,
+/// RIGHT +20 -19 +18 -17 +16, IMU on port 2), a copy for a case to break one field of.
+[[nodiscard]] ChassisTable robotTwoChassis() { return retired_robot_two::kChassis; }
 
-/// A copy of robot two's REAL list, for a case to break one field of (a hand-built list: the build's
-/// checks ran on the original only).
-[[nodiscard]] MechanismTable robotTwo() { return two::kRobotTwoMechanisms; }
+/// A copy of the claw robot's list, for a case to break one field of (a hand-built list: the build's checks
+/// ran on the original only).
+[[nodiscard]] MechanismTable robotTwo() { return claws::kRobotTwoMechanisms; }
+
+/// The file the claw robot's declarations are written in (since ROB1-BT).
+constexpr const char* kClawFile = "test/mechanism_fixtures.hpp";
 
 /// A source file's CODE: every comment removed and every run of whitespace squeezed
 /// to one space, so a pinned statement matches however clang-format wraps it, and a statement
@@ -144,8 +151,8 @@ namespace {
 /// The 1-based line of the FIRST line of the table file holding `text` (0 if none): the recorded-path
 /// pins read the file, so a moved line moves its pin with it.
 [[nodiscard]] std::uint32_t tableLineOf(const std::string& text) {
-    const std::string file = readRepoFile("src/robots/mechanism_table.hpp");
-    const std::size_t at = file.find(text);
+    const std::string file = readRepoFile(kClawFile);
+    const std::size_t at = file.find(text, file.find("// [robot two mechanisms]\n"));
     if (at == std::string::npos) return 0;
     std::uint32_t line = 1;
     for (std::size_t i = 0; i < at; ++i) line += file[i] == '\n' ? 1U : 0U;
@@ -169,7 +176,7 @@ namespace {
 
 }  // namespace
 
-TEST_CASE("mechanism table: robot two's claw pivots are EXACTLY what the team lead stated "
+TEST_CASE("mechanism table: the claw robot's (the old robot two's) claw pivots are EXACTLY what the team lead stated "
           "(2026-09-26) -- the real declarations and wiring, not a copy") {
     // BUG CAUGHT: any typo in src/robots/mechanism_table.hpp's robot-two region — a wrong port (the
     // control drives some other motor), a pivot declared Reversed without a measurement, a wrong
@@ -178,7 +185,7 @@ TEST_CASE("mechanism table: robot two's claw pivots are EXACTLY what the team le
     // be 12 V), the pivots merged into one two-motor mechanism (both claws would move at once), or the
     // list's ORDER changed (the boot's config index, the claw row and every boot line follow it). The
     // BUTTONS and the VOLTS are the driver file's (test/robot_two_driver_test.cpp).
-    const MechanismTable& t = two::kRobotTwoMechanisms;
+    const MechanismTable& t = claws::kRobotTwoMechanisms;
     REQUIRE(t.count == 3);
     struct Pivot {
         std::size_t index;
@@ -214,7 +221,7 @@ TEST_CASE("mechanism table: robot two's claw pivots are EXACTLY what the team le
     CHECK(mechanismsClearOf(t, robotTwoChassis()));
 }
 
-TEST_CASE("mechanism table: robot two's PNEUMATIC claw is EXACTLY what the team lead stated "
+TEST_CASE("mechanism table: the claw robot's (the old robot two's) PNEUMATIC claw is EXACTLY what the team lead stated "
           "(2026-09-26) -- 3-wire A, 'closed' at the start and when made safe, closed = LOW, a 0.5 s "
           "move (HA-185)") {
     // BUG CAUGHT: any typo in the claw's declaration — the wrong 3-wire line (the toggle fires some
@@ -225,7 +232,7 @@ TEST_CASE("mechanism table: robot two's PNEUMATIC claw is EXACTLY what the team 
     // nobody reported, `grabs` lost from 'closed' (a sensorless grab would then SUCCEED instead of
     // reading UNCONFIRMED, counted done — the team lead's Q2 (c)), or the move time changed without
     // Station J (an auton's set() would wait a time nobody measured — HA-185, PROVISIONAL).
-    const MechanismTable& t = two::kRobotTwoMechanisms;
+    const MechanismTable& t = claws::kRobotTwoMechanisms;
     const mech::MechanismSpec& s = t.specs[2];
     CHECK(std::string_view{s.name} == "claw");
     CHECK(s.kind == mech::Kind::Pneumatic);
@@ -264,18 +271,17 @@ TEST_CASE("mechanism table: the claw's open level is written ONCE, on its .posit
     // positions — flipping one would leave the other, and the claw would open at boot or on a forced
     // safe state), or a projection that reads a position's NAME instead of its levels. Station J.9's
     // fix for a claw that opens on the wrong press is ONE edit: swap Low and High on that line.
-    const std::string code = codeOnly(readRepoFile("src/robots/mechanism_table.hpp"));
-    // Robot two's region holds ONE positions line — its claw's. (Robot one's pistons, below robot two's region
-    // since ROB1-C2, read their levels from robot one's facts file and never write Low or High:
-    // test/robot_one_tables_test.cpp holds them to that.)
-    const std::string file = readRepoFile("src/robots/mechanism_table.hpp");
+    // The claw robot's region (the fixture) holds ONE positions line — its claw's. (The cascade robots' pistons
+    // read their levels from their facts files and never write Low or High: test/robot_one_tables_test.cpp.)
+    const std::string file = readRepoFile(kClawFile);
     const std::size_t twoAt = file.find("\n// [robot two mechanisms]\n");  // the marker LINES, not the banner's mention
     const std::size_t twoEnd = file.find("\n// [/robot two mechanisms]\n");
     REQUIRE(twoAt != std::string::npos);
     REQUIRE(twoEnd != std::string::npos);
     REQUIRE(twoAt < twoEnd);
     const std::string two = codeOnly(file.substr(twoAt, twoEnd - twoAt));
-    CHECK(occurrences(two, "kRobotTwoMechanisms") == 1);  // the scan reads the real region
+    const std::string& code = two;
+    CHECK(occurrences(two, "kRobotTwoMechanisms") == 1);  // the scan reads the claw robot's region
     CHECK(occurrences(two, ".positions = ") == 1);
     CHECK(occurrences(code, ".positions = {{\"closed\", {Low}, grabs}, {\"open\", {High}}},") == 1);
     CHECK(occurrences(code, ".start = \"closed\",") == 1);  // a position's NAME, never a level
@@ -283,23 +289,23 @@ TEST_CASE("mechanism table: the claw's open level is written ONCE, on its .posit
     CHECK(occurrences(code, "Low") == 1);
     CHECK(occurrences(code, "High") == 1);
     // The swap, applied to a copy: both levels follow, the positions' names do not move.
-    mech::MechanismSpec swapped = two::kRobotTwoMechanisms.specs[2];
+    mech::MechanismSpec swapped = claws::kRobotTwoMechanisms.specs[2];
     swapped.pneumatic.positions[0].levels[0] = true;   // closed = HIGH
     swapped.pneumatic.positions[1].levels[0] = false;  // open = LOW
-    const shulib::config::MechanismConfig c = mech::toMechanismConfig(swapped, two::kRobotTwoMechanisms.wiring[2]);
+    const shulib::config::MechanismConfig c = mech::toMechanismConfig(swapped, claws::kRobotTwoMechanisms.wiring[2]);
     CHECK(c.pneumaticStart == shulib::config::PneumaticLevel::High);
     CHECK(c.pneumaticSafe == shulib::config::PneumaticLevel::High);
     CHECK(swapped.pneumatic.start == 0);
     CHECK(swapped.pneumatic.safe == 0);
 }
 
-TEST_CASE("mechanism table: WHERE each of robot two's declarations and wire(...) lines was written -- "
-          "its own line of src/robots/mechanism_table.hpp, pinned by the path's SUFFIX") {
+TEST_CASE("mechanism table: WHERE each of the claw robot's declarations and wire(...) lines was written -- "
+          "its own line of its file, pinned by the path's SUFFIX") {
     // BUG CAUGHT (the MECH brief's §3.1, moved here from the fixture by MECH-A5 — A1's D18): a
     // recorded location that is not the team's own line — the closing brace, a library header, the
     // fixture's copy — would send the bench page's direction check ("change it HERE") to the wrong
     // line. The path is the one the compiler opened, so host and brain differ: the SUFFIX is pinned.
-    const MechanismTable& t = two::kRobotTwoMechanisms;
+    const MechanismTable& t = claws::kRobotTwoMechanisms;
     struct Pin {
         std::size_t index;
         const char* nameLine;
@@ -315,56 +321,46 @@ TEST_CASE("mechanism table: WHERE each of robot two's declarations and wire(...)
         const std::uint32_t expected = tableLineOf(pin.nameLine);
         REQUIRE(expected > 0);
         CHECK(s.declaredLine == expected);
-        CHECK(endsWith(s.declaredFile, "src/robots/mechanism_table.hpp"));
+        CHECK(endsWith(s.declaredFile, kClawFile));
         for (std::size_t m = 0; m < s.motorCount; ++m) {
             CHECK(s.motors[m].line == expected);  // a motor role points at its `.name` line
-            CHECK(endsWith(s.motors[m].file, "src/robots/mechanism_table.hpp"));
+            CHECK(endsWith(s.motors[m].file, kClawFile));
         }
         CHECK(t.wiring[pin.index].line == tableLineOf(pin.wireLine));
-        CHECK(endsWith(t.wiring[pin.index].file, "src/robots/mechanism_table.hpp"));
+        CHECK(endsWith(t.wiring[pin.index].file, kClawFile));
     }
     CHECK(t.specs[2].pneumatic.levelsLine == tableLineOf("    .name = \"claw\","));
 }
 
-TEST_CASE("mechanism table: robot two's region is ONE block G3a's generator can wrap, and it is BYTE FOR "
-          "BYTE the test fixture's (test/mechanism_fixtures.hpp)") {
-    // BUG CAUGHT: a hand-written line inside the region (G3a's generator would overwrite it, or refuse
-    // the file — the MECH brief's §6.2 item 2), a marker missing or doubled, the selection or a check
-    // drifting INTO the region, or the fixture every library test of robot two runs drifting from the
-    // real file (a library test would then pass on declarations the robot does not have).
+TEST_CASE("mechanism table: each robot's region is ONE block G3a's generator can wrap -- robot one's and its "
+          "twin's: six declarations, the list, six wire lines; the claw robot's fixture keeps the old claws") {
+    // BUG CAUGHT: a hand-written line inside a region (G3a's generator would overwrite it, or refuse the file —
+    // the MECH brief's §6.2 item 2), a marker missing or doubled, the selection or a check drifting INTO a
+    // region; or the claw fixture every claw test runs on losing a claw.
     const std::string file = readRepoFile("src/robots/mechanism_table.hpp");
-    const std::string real = region(file, "// [robot two mechanisms]\n", "// [/robot two mechanisms]\n");
-    REQUIRE_FALSE(real.empty());
-    CHECK(occurrences(real, "inline constexpr ") == 4);  // the three declarations and the list
-    CHECK(occurrences(real, "wire(") == 3);
-    CHECK(real.find("mechanismTableFor") == std::string::npos);
-    CHECK(real.find("static_assert") == std::string::npos);
-    CHECK(real.find("namespace") == std::string::npos);
-    const std::string fixture =
-        region(readRepoFile("test/mechanism_fixtures.hpp"), "// [robot two mechanisms]\n", "// [/robot two mechanisms]\n");
-    CHECK(real == fixture);
-    // ...and the fixture's list equals the real one, field by field through the projection.
-    const MechanismTable& f = mech_fixture::robot_two::kRobotTwoMechanisms;
-    REQUIRE(f.count == two::kRobotTwoMechanisms.count);
-    for (std::size_t i = 0; i < f.count; ++i) {
-        CAPTURE(i);
-        const shulib::config::MechanismConfig a = mech::toMechanismConfig(f.specs[i], f.wiring[i]);
-        const shulib::config::MechanismConfig b =
-            mech::toMechanismConfig(two::kRobotTwoMechanisms.specs[i], two::kRobotTwoMechanisms.wiring[i]);
-        CHECK(std::string_view{a.name} == std::string_view{b.name});
-        CHECK(a.motorPorts[0] == b.motorPorts[0]);
-        CHECK(a.pneumaticPorts[0] == b.pneumaticPorts[0]);
-        CHECK(a.pneumaticStart == b.pneumaticStart);
-        CHECK(a.pneumaticSafe == b.pneumaticSafe);
-        CHECK(f.specs[i].pneumatic.actuationTime == two::kRobotTwoMechanisms.specs[i].pneumatic.actuationTime);
+    for (const char* who : {"one", "two"}) {
+        CAPTURE(who);
+        const std::string real = region(file, std::string{"// [robot "} + who + " mechanisms]\n",
+                                        std::string{"// [/robot "} + who + " mechanisms]\n");
+        REQUIRE_FALSE(real.empty());
+        CHECK(occurrences(codeOnly(real), "inline constexpr ") == 7);  // the six declarations and the list
+        CHECK(occurrences(codeOnly(real), "wire(") == 6);
+        CHECK(real.find("mechanismTableFor") == std::string::npos);
+        CHECK(real.find("static_assert") == std::string::npos);
+        CHECK(real.find("namespace") == std::string::npos);
     }
+    const std::string fixture =
+        region(readRepoFile(kClawFile), "// [robot two mechanisms]\n", "// [/robot two mechanisms]\n");
+    CHECK(occurrences(fixture, "inline constexpr ") == 4);  // the claw robot: two pivots, the claw, the list
+    CHECK(occurrences(fixture, "wire(") == 3);
+    CHECK(claws::kRobotTwoMechanisms.count == 3);
 }
 
-TEST_CASE("mechanism table: the HOST build's selection is 'none' -- only robot two declares mechanisms") {
-    // BUG CAUGHT: the selection handing robot two's list to a build that is not robot two (the bench
-    // bot's Calibrate would then refuse its own ports 6 and 7 for claws it does not have). The tank
-    // side is the next case's, and the file's static_asserts keyed on kRobotId, on every `make
-    // ROBOT=tank` (the src build gate's four tank builds compile them).
+TEST_CASE("mechanism table: the HOST build's selection is 'none' -- only robot one and robot two declare mechanisms") {
+    // BUG CAUGHT: the selection handing a robot's list to a build that is not that robot (the bench
+    // bot's Calibrate would then refuse its own ports for a cascade it does not have). The robots'
+    // side is the next case's, and the file's static_asserts keyed on kRobotId, on every robot build
+    // (the src build gate's twelve robot builds compile them).
     CHECK(&kMechanisms == &kNoMechanisms);
     CHECK(kMechanisms.count == 0);
     for (int p = 1; p <= kMaxPort; ++p) {
@@ -373,7 +369,7 @@ TEST_CASE("mechanism table: the HOST build's selection is 'none' -- only robot t
     }
 }
 
-TEST_CASE("mechanism table: the selection -- mechanismTableFor() gives robot two its claws and every "
+TEST_CASE("mechanism table: the selection -- mechanismTableFor() gives robot two its own list and every "
           "other robot none, BY ADDRESS, and each robot's list is clear of its own drive") {
     // BUG CAUGHT: a wrong robot in mechanismTableFor() — robot two handed kNoMechanisms (Calibrate
     // would take its claw pivots as drive candidates again, and "shulib Drive" would have no claws),
@@ -403,7 +399,7 @@ TEST_CASE("mechanism table: 'is this a declared mechanism port' -- 6 and 7 yes, 
     // BUG CAUGHT: a predicate that matches too much (Calibrate would skip a DRIVE motor and calibrate
     // a side one short), too little (it would gear, coast and pulse a claw), or matches the port-less
     // value 0. The sweep includes port 1: the pneumatic claw's 3-WIRE line A is not smart port 1.
-    const MechanismTable& t = two::kRobotTwoMechanisms;
+    const MechanismTable& t = claws::kRobotTwoMechanisms;
     CHECK(isDeclaredMechanismPort(t, 6));
     CHECK(isDeclaredMechanismPort(t, 7));
     const ChassisTable drive = robotTwoChassis();
@@ -485,10 +481,10 @@ TEST_CASE("mechanism table: THE DRIVE CHECK -- no role, a MOTOR or a SENSOR, on 
     // check reading one side only, the signed entry instead of |port|, missing the IMU, or reading a
     // 3-wire LINE number as a smart port (robot two's IMU is port 2 and line B is 2).
     const ChassisTable drive = robotTwoChassis();
-    CHECK(mechanismsClearOf(two::kRobotTwoMechanisms, drive));
+    CHECK(mechanismsClearOf(claws::kRobotTwoMechanisms, drive));
     for (std::size_t i = 0; i < 2; ++i) {
         CAPTURE(i);
-        CHECK(tableSideOf(drive, two::kRobotTwoMechanisms.wiring[i].motors[0]) == 0);
+        CHECK(tableSideOf(drive, claws::kRobotTwoMechanisms.wiring[i].motors[0]) == 0);
     }
     MechanismTable onLeft = robotTwo();
     onLeft.wiring[0].motors[0] = 11;  // the left side's -11, a signed entry: matched by |port|
@@ -508,12 +504,12 @@ TEST_CASE("mechanism table: THE DRIVE CHECK -- no role, a MOTOR or a SENSOR, on 
     // With no IMU stated (imuPort 0 = UNSET), no role collides with "the IMU".
     ChassisTable noImu = drive;
     noImu.imuPort = 0;
-    CHECK(mechanismsClearOf(two::kRobotTwoMechanisms, noImu));
+    CHECK(mechanismsClearOf(claws::kRobotTwoMechanisms, noImu));
     // A 3-WIRE LINE whose number equals the IMU's port is a different connector: robot two's claw on
     // line A (1) beside an IMU on smart port 1, and on line B beside its real IMU on port 2.
     ChassisTable imuOne = drive;
     imuOne.imuPort = 1;
-    CHECK(mechanismsClearOf(two::kRobotTwoMechanisms, imuOne));
+    CHECK(mechanismsClearOf(claws::kRobotTwoMechanisms, imuOne));
     MechanismTable lineB = robotTwo();
     lineB.wiring[2].lines[0] = mech::Line::B;
     CHECK(mechanismsClearOf(lineB, drive));

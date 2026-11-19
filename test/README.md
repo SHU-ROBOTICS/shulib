@@ -48,8 +48,9 @@ each field of a pair) are pinned at run time, one property per case, by `mechani
 documentation comment fails the build *naming that entity, its file and its line*; the generated reference in
 `docs/api/` must match a fresh generation; every ```` ```cpp ```` line in the public
 documentation must appear verbatim in a compiled example test (or in a team file a chapter quotes
-— robot two's driver file, `src/team/robot_two_driver.hpp`, each listing of which must also be an
-unbroken run of the file); and no public document may link into the development-process notes.
+— a driver file or the auton file, each listing of which must also be an unbroken run of the file — or in a route
+builder CT21 golden, `goldens/route_maker/controls_*.hpp`); and no public document may link into the
+development-process notes.
 The library itself is header-only C++ and depends on none of
 this — only the test build does, and deliberately: a gate you can forget to run is not a gate.
 
@@ -65,17 +66,52 @@ The route builder (`tools/route_maker/`, a web page) has two halves of tests, an
   FIELD start on the host test plant (`route_maker_rig.hpp`). Behaviour is asserted only on robot x
   (`mechanism_fixtures.hpp`, numbers the test owns: a drive turned first and one not, reverse and turns, curves of 2
   and 16 points, every mechanism step, stop / carry on / skip, a wait across the 57 s cut, the home rule's twins,
-  the caps' spellings and both tolerances); robots one and two are smoke runs. A tripwire holds that a robot
+  the caps' spellings and both tolerances, and WG8 — every pair of numbers in each step different, for the preview
+  engine's tests); robots one and two are smoke runs. A tripwire holds that a robot
   building the shared route and declaring a cascade has its levels marked as its facts ledger's (robot two, once its
   update gives it robot one's cascade). It also pins the committed fixture descriptions
   (`goldens/route_maker/robots/{x,y,z}.json`) and CV1's curve table (`goldens/route_maker/curves.txt`) to what the
   C++ makes now — the page's node tests read them.
 - **`shulib_route_maker`** (`route_maker_main.cpp`, its own CMake target, not part of `shulib_tests`) —
   `describe --robot one|two|x|y|z` writes a robot's description from its REAL table (`route_maker_describe.hpp`;
-  the declaration's C++ name read from the line its `.name` recorded) and `curves` re-makes CV1's table. After a
+  the declaration's C++ name read from the line its `.name` recorded — a relative file name since RMP1-A2e's prefix
+  map, so opened from this build's source tree, whatever the working directory) and `curves` re-makes CV1's table.
+  It links `route_maker_no_team_autons.cpp` in place of `src/team/` (the engine runs the builder's route, never the
+  team's autons; so does the module). After a
   change that moves either, re-make the committed file and READ the diff:
   `build/test/shulib_route_maker describe --robot x > test/goldens/route_maker/robots/x.json` (and y, z), and
   `build/test/shulib_route_maker curves > test/goldens/route_maker/curves.txt`.
+- **`route_maker_runner.hpp`** (since RMP1-A2e) — THE RUNNER behind the page's PREVIEW: `shulib_route_maker preview
+  <lines>|-` reads the route as the page's lines and makes the SAME library calls the export writes, through RPV1's
+  `previewEntry` (unchanged), dating each page step exactly; it writes the record as JSON (schema 1,
+  `tools/route_maker/README.md`). The same `route_maker_main.cpp` is the WebAssembly module (`tools/route_maker/wasm/`);
+  its test build also compiles every golden's export in (`route_maker_goldens.cpp`, WG1) and a test-only looping
+  step (WG7). One suite case, `route_maker_runner_test.cpp`: a preset found by NAME is the goal the compile-time
+  `m["name"]` builds, field for field (RM28), and a number is read as its unit literal. The rest are node's, on the
+  module and this native program: `tools/route_maker/test/wasm/` — WG1 (the
+  runner and the exported C++: one record, byte for byte), WG2 (native vs WebAssembly: every step, pace and line
+  exact, poses within 1e-5 in / 1e-6 rad, the golden `wg8_distinct_numbers` — every pair of numbers in each step
+  different — among them), WG2s (the same over a seeded sweep of random routes on robots x, one and two), WG3 (the
+  same bytes from both link forms, a reused instance, every CI row's Node and browser), WG7 (the no-pace stop inside
+  the module), SM (each page step's span and verdict; a failed, skipped or cut step is still rc 0), RG1 (no build
+  path inside the module), and what the record says checked against the route itself (start, targets, park and stop,
+  a throw, a wall, a refusal, robot one's owed facts) — WG1–WG3 compare two records from one writer, so only these
+  see a writer's mistake. A tripwire there fails once robot one or two has a level: then a golden that moves to a
+  ledger level is owed, so WG1 runs the export's `facts::lv(i)`.
+
+- **The Controls tab's C++ half (RMP1-B)** — `route_maker_controls_test.cpp` compiles the page's controls exports on
+  the fixture robots and on robot one's real declarations (`goldens/route_maker/controls_*.hpp`, every control form,
+  a block-form `kFeel`; `controls_one_builders_map.hpp` is the builder's map as typed, which guide 21 quotes) through
+  `DriverFile`, and `goldens/route_maker/feel_valid_rows.hpp` (a `static_assert` per row of the page's feel check
+  at its boundaries). `shulib_route_maker feel` re-makes `goldens/route_maker/feel_curve.txt` (the library's stick
+  curve at 9 630 points, hex doubles) and `shulib_route_maker feel-edges` re-makes `goldens/route_maker/feel_edges.txt`
+  (each dead zone's edge and the doubles either side of it, ±0, the limits); the suite and the page's node test
+  compare both bit for bit. The CT
+  agreement's twins are `compile_refusals/rm_ct_*.cpp` — one per build refusal of a driver file, each written by
+  `tools/route_maker/goldens.mjs --write` from the page's own export and expecting the PAGE's refusal name — and
+  `rm01_a_feel_out_of_range.cpp` (DriverFile's feel check). `goldens/route_maker/driver_{one,two}_marked.hpp` are the
+  two driver files with the `control words` and `feel` markers (robot one's map read back and written byte for
+  byte: the page's CT22). `robot_one_driver_test.cpp` reads every button from `kControls` (the map is the team's).
 
 The page's own tests are node's: `node --test tools/route_maker/test/*.test.mjs` (the model — no browser), and, with a
 browser, `ROUTE_MAKER_BROWSER=firefox node --test tools/route_maker/test/page/*.test.mjs` (see `tools/route_maker/README.md`).
@@ -188,7 +224,9 @@ documented here and in their own headers:
   robot was in (robot one's with its target, in the route's numbers). The suite asserts it over robot two's
   registry (T9) and on planted routes (`test/mirrored_pair_test.cpp`, where a planted crash is a PASSING
   test of the check); a route preview or route maker calls the same function so the picture and the suite
-  never disagree. A RELATIVE mirrored entry is skipped, by name.
+  never disagree. A RELATIVE mirrored entry's gap is skipped, by name. On a TANK it also FAILS a route (a
+  RELATIVE one too) whose robot two logs the `[MIR]` half-turn line for a leg (MIRROR1-B, the team lead's D6
+  ruling), naming the step and the steps to write: turn first, then drive.
 - **`test/goldens/mirror/skills_mirror_vectors.txt`** (MIRROR1-A) — the skills mirror's worked vectors, one
   per line (`FIELD` and `RELATIVE`), worked by hand: `test/reflection_test.cpp` reads every line (and refuses
   a malformed one by its line number); a route maker that draws the mirror is to read the same file, so the
@@ -200,6 +238,14 @@ documented here and in their own headers:
   `test/mirrored_auton_test.cpp`. Self-contained: it includes no `src/` file, not even through a rig (its
   weak side is a COPY of `auton_tester_rig.hpp`'s, because that rig includes robot two's mechanism list), so
   it compiles against the base: change it and re-measure on a clean archive of the base.
+- **`test/toggle_robot_rig.hpp`** (AF1S-A2) — "the robot plugged in" for the Toggle step's EVERYDAY form: a
+  REAL `robot::Robot` built from a robot file that declares the camera and its Toggle block (and a flipper arm
+  and a stall-homed cascade, namespace `toggle_robot` — the cookbook recipe's robot), over the fake provider,
+  run through `competition::runAuton` on the competition program's own chain (Chassis -> RunGuard ->
+  MechanismService -> the world). The world steps the drive plant, the flipper's and the cascade's arm plants
+  and one `sim::TogglePlant` per wall a test asks for, then renders the host camera model from the TRUE pose and
+  hands that frame to the provider's own fake camera, so the Robot's feed reads exactly what the plant published.
+  Its users: `test/toggle_visit_ctx_test.cpp`, `test/robot_toggle_camera_test.cpp`, cookbook-08a.
 
 ## The route preview (since RPV1-A)
 

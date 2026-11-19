@@ -61,7 +61,9 @@ std::vector<std::string> said(const AutonRegistry& reg, bool driverControlRuns =
 // cost something it did not (driver control, the other autons), or speaks when nothing was
 // dropped. Each dropped entry is ONE line, the registry's own sentence after `DROPPED: `. The
 // summary says the DROPPED ones are off the menu — never "none is on the menu", which a pit crew
-// read as an empty menu (the T4-3 review; re-pinned 2026-10-08).
+// read as an empty menu (the T4-3 review; re-pinned 2026-10-08). Since ROB1-BT every robot's line is ONE
+// format, its autons file's path an argument from its words (robot one's shorter wording, which fits 200
+// bytes with the longer path): "N auton(s) ... DROPPED -- NOT on the menu".
 TEST_CASE("dropped autons (DA1): one summary line, then each dropped entry by its own sentence") {
     AutonRegistry none = dropping();
     none.add(entry("left rush", 29.0));
@@ -74,9 +76,8 @@ TEST_CASE("dropped autons (DA1): one summary line, then each dropped entry by it
     const std::vector<std::string> lines = said(reg);
     REQUIRE(lines.size() == 3);
     CHECK(lines[0]
-          == "2 auton(s) REFUSED at registration and DROPPED -- the dropped ones are NOT on the "
-             "menu (each named below); every other auton and driver control still run -- fix "
-             "src/team/autons.cpp");
+          == "2 auton(s) REFUSED at registration and DROPPED -- NOT on the menu (each named below); every "
+             "other auton and driver control still run -- fix src/team/autons.cpp");
     CHECK(lines[1] == "DROPPED: " + std::string{reg.refusal(0)});
     CHECK(lines[1].rfind("DROPPED: auton 'too late': hardStopAt 31.00 s", 0) == 0);
     CHECK(lines[2] == "DROPPED: " + std::string{reg.refusal(1)});
@@ -97,9 +98,8 @@ TEST_CASE("dropped autons (DA2): every line within 200 bytes and ASCII; the rest
     // Past the cap the first line never claims EACH is named (the T4-3 verification): eight are,
     // the rest only counted.
     CHECK(lines[0]
-          == "11 auton(s) REFUSED at registration and DROPPED -- the dropped ones are NOT on the "
-             "menu (the first 8 named below); every other auton and driver control still run -- "
-             "fix src/team/autons.cpp");
+          == "11 auton(s) REFUSED at registration and DROPPED -- NOT on the menu (the first 8 named below); "
+             "every other auton and driver control still run -- fix src/team/autons.cpp");
     CHECK(lines.back() == "DROPPED: 3 more, whose sentences were not kept (the registry keeps 8)");
     for (const std::string& l : lines) {
         CAPTURE(l);
@@ -147,9 +147,8 @@ TEST_CASE("dropped autons (DA4): driver control is named only where it runs") {
     const std::vector<std::string> competition = said(reg, true);
     REQUIRE(tester.size() == 2);
     REQUIRE(competition.size() == 2);
-    CHECK(tester[0]
-          == "1 auton(s) REFUSED at registration and DROPPED -- the dropped ones are NOT on the "
-             "menu (each named below); every other auton still runs -- fix src/team/autons.cpp");
+    CHECK(tester[0] == "1 auton(s) REFUSED at registration and DROPPED -- NOT on the menu (each named below); "
+                       "every other auton still runs -- fix src/team/autons.cpp");
     CHECK(tester[0].find("driver control") == std::string::npos);
     CHECK(competition[0].find("every other auton and driver control still run") != std::string::npos);
     CHECK(tester[1] == competition[1]);  // the entry's own line is the same in both programs

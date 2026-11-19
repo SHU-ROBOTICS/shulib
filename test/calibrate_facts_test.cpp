@@ -37,6 +37,12 @@
 //       off, the order swapped, an entry added or dropped, a stray last entry, a copied or null
 //       name; the static_assert on kCalibrateFacts is this function on every ARM build
 //                                              (R1: facts built over NO mechanism list)
+//   F7  (ROB1-BT) THE RECORD NAME, END TO END, for both robots: the glue's facts
+//       (withTypedDriveFrom(calibrateFactsFor(..., the robot's words' name), ...), the program's
+//       own two calls) carry the robot's name; Calibrate saves a record that names it; the SAME
+//       robot's boot passes step 0 on those bytes and the other robot's refuses them
+//                                              (the glue dropping the name — both robots would
+//                                               save nameless records and refuse every one)
 
 #include "doctest.h"
 
@@ -49,11 +55,18 @@
 #include <string>
 #include <vector>
 
+#include "calibrate_program_rig.hpp"
+#include "common/boot_source.hpp"
+#include "common/robot_words.hpp"
 #include "mechanism_fixtures.hpp"
+#include "retired_robot_two.hpp"
 #include "robots/calibrate_facts.hpp"
 #include "robots/chassis_table.hpp"
 #include "robots/mechanism_table.hpp"
 #include "shulib/calibration/calibrate_program.hpp"
+#include "shulib/calibration/calibration_record.hpp"
+#include "shulib/hal/fake/fake_block_source.hpp"
+#include "shulib/hal/fake/fake_device_registry.hpp"
 #include "shulib/mechanism/wiring.hpp"
 
 #ifndef SHULIB_SOURCE_DIR
@@ -245,10 +258,10 @@ std::size_t occurrences(const std::string& hay, const std::string& needle) {
 
 }  // namespace
 
-TEST_CASE("CalibrateFacts F1: robot two's derived facts ARE the literal facts the goldens were made with") {
+TEST_CASE("CalibrateFacts F1: the OLD robot two's derived facts (the claw robot, test/retired_robot_two.hpp) ARE the literal facts the goldens were made with") {
     const cal::CalibrateFacts f = withTypedDriveFrom(
-        calibrateFactsFor(shulib::bench::kRobotTwoChassis, shulib::bench::robot_two::kRobotTwoMechanisms),
-        shulib::bench::kRobotTwoChassis);
+        calibrateFactsFor(retired_robot_two::kChassis, retired_robot_two::kMechanisms),
+        retired_robot_two::kChassis);
     REQUIRE(f.drive.has_value());
     CHECK(*f.drive == shulib::config::DrivetrainKind::Tank);
     REQUIRE(f.cartridge.has_value());
@@ -257,11 +270,11 @@ TEST_CASE("CalibrateFacts F1: robot two's derived facts ARE the literal facts th
     CHECK(l.pairs == std::vector<std::pair<int, std::string>>{{6, "claw pivot 6"}, {7, "claw pivot 7"}});
     CHECK(l.usedAnywhere == 2);
     // the names are the LIST's own storage, not copies (one fact, one place)
-    CHECK(f.mechanisms[0].name == shulib::bench::robot_two::kRobotTwoMechanisms.specs[0].name);
-    CHECK(f.mechanisms[1].name == shulib::bench::robot_two::kRobotTwoMechanisms.specs[1].name);
+    CHECK(f.mechanisms[0].name == retired_robot_two::kMechanisms.specs[0].name);
+    CHECK(f.mechanisms[1].name == retired_robot_two::kMechanisms.specs[1].name);
     REQUIRE(f.robot != nullptr);
     CHECK(std::string{f.robot} == "2026 TANK CHASSIS (robot two)");
-    CHECK(f.robot == shulib::bench::kRobotTwoChassis.robot);
+    CHECK(f.robot == retired_robot_two::kChassis.robot);
     CHECK(f.imuPortStated == 2);
     CHECK(noTyped(f));  // its table is not a description the boot can drive from (F4)
     CHECK(cal::factsProblem(f).why == nullptr);
@@ -275,14 +288,14 @@ TEST_CASE("CalibrateFacts F2: one fact per MOTOR ROLE, in declaredMotorPorts()' 
     // robot y: a two-motor DR4B (3, 4), an angle sensor on 10, piece sensors on 9 and 8 (and a 3-wire
     // one, E), a pneumatic grip on line A
     const MechanismTable& y = mech_fixture::robot_y::kRobotYMechanisms;
-    const cal::CalibrateFacts fy = calibrateFactsFor(shulib::bench::kRobotTwoChassis, y);
+    const cal::CalibrateFacts fy = calibrateFactsFor(retired_robot_two::kChassis, y);
     const Listed ly = listed(fy);
     CHECK(ly.pairs == std::vector<std::pair<int, std::string>>{{1, "wrist"}, {2, "swing"}, {3, "dr4b"}, {4, "dr4b"},
                                                                  {5, "tilt"}, {6, "roller"}, {7, "catapult"}});
     CHECK(ly.usedAnywhere == 7);
     // robot x: a two-motor lift (2, 3), a home switch and a pneumatic on lines — never facts
     const MechanismTable& x = mech_fixture::robot_x::kRobotXMechanisms;
-    const Listed lx = listed(calibrateFactsFor(shulib::bench::kRobotTwoChassis, x));
+    const Listed lx = listed(calibrateFactsFor(retired_robot_two::kChassis, x));
     CHECK(lx.pairs == std::vector<std::pair<int, std::string>>{{1, "arm"}, {2, "lift"}, {3, "lift"}, {4, "flywheel"},
                                                                  {5, "intake"}});
     // the ports are EXACTLY declaredMotorPorts()', and isDeclaredMechanismPort() agrees port by port,
@@ -292,7 +305,7 @@ TEST_CASE("CalibrateFacts F2: one fact per MOTOR ROLE, in declaredMotorPorts()' 
         lists.push_back(&mechanismTableFor(r));
     }
     for (const MechanismTable* m : lists) {
-        const cal::CalibrateFacts f = calibrateFactsFor(shulib::bench::kRobotTwoChassis, *m);
+        const cal::CalibrateFacts f = calibrateFactsFor(retired_robot_two::kChassis, *m);
         int ports[32]{};
         const std::size_t n = mech::declaredMotorPorts(*m, std::span<int>{ports});
         const Listed l = listed(f);
@@ -310,27 +323,27 @@ TEST_CASE("CalibrateFacts F2: one fact per MOTOR ROLE, in declaredMotorPorts()' 
     }
     // robot two's pneumatic claw is on 3-wire line A: smart port 1 is not a mechanism
     const cal::CalibrateFacts two =
-        calibrateFactsFor(shulib::bench::kRobotTwoChassis, shulib::bench::robot_two::kRobotTwoMechanisms);
+        calibrateFactsFor(retired_robot_two::kChassis, retired_robot_two::kMechanisms);
     CHECK(cal::declaredMechanism(two, 1) == nullptr);
     // a pneumatic-only list gives no fact at all
     const MechanismTable onlyClaw = [] {
-        MechanismTable t = shulib::bench::robot_two::kRobotTwoMechanisms;
+        MechanismTable t = retired_robot_two::kMechanisms;
         t.specs[0] = t.specs[2];
         t.wiring[0] = t.wiring[2];
         t.count = 1;
         return t;
     }();
-    CHECK(listed(calibrateFactsFor(shulib::bench::kRobotTwoChassis, onlyClaw)).usedAnywhere == 0);
+    CHECK(listed(calibrateFactsFor(retired_robot_two::kChassis, onlyClaw)).usedAnywhere == 0);
 }
 
 TEST_CASE("CalibrateFacts F6: mechanismFactsAre() -- the build's compile-time check that kCalibrateFacts lists "
           "EXACTLY its own list's motor ports -- holds for every right mapping and fails every wrong one") {
     using shulib::bench::mechanismFactsAre;
-    const MechanismTable& two = shulib::bench::robot_two::kRobotTwoMechanisms;
+    const MechanismTable& two = retired_robot_two::kMechanisms;
     const MechanismTable& y = mech_fixture::robot_y::kRobotYMechanisms;
     const MechanismTable& x = mech_fixture::robot_x::kRobotXMechanisms;
     const MechanismTable none{};
-    const ChassisTable& c = shulib::bench::kRobotTwoChassis;
+    const ChassisTable& c = retired_robot_two::kChassis;
     // every right mapping: each robot's list and both fixtures, the empty list too
     std::vector<const MechanismTable*> lists = {&two, &x, &y, &none};
     for (const RobotId r : kEveryRobot) {
@@ -386,8 +399,8 @@ TEST_CASE("CalibrateFacts F6: mechanismFactsAre() -- the build's compile-time ch
     }
     // and the build's own constant passed it against the build's own list (the host's: empty)
     CHECK(mechanismFactsAre(shulib::bench::kCalibrateFacts, shulib::bench::kMechanisms));
-    static_assert(mechanismFactsAre(calibrateFactsFor(shulib::bench::kRobotTwoChassis, two), two));
-    static_assert(!mechanismFactsAre(calibrateFactsFor(shulib::bench::kRobotTwoChassis, MechanismTable{}), two));
+    static_assert(mechanismFactsAre(calibrateFactsFor(retired_robot_two::kChassis, two), two));
+    static_assert(!mechanismFactsAre(calibrateFactsFor(retired_robot_two::kChassis, MechanismTable{}), two));
 }
 
 TEST_CASE("CalibrateFacts F3: the bench bot and the invented X-drive carry what their tables say") {
@@ -424,7 +437,7 @@ TEST_CASE("CalibrateFacts F4: the typed ports are the boot's own description whe
         RobotId robot;
         const char* why;
     };
-    for (const Today& t : {Today{RobotId::RobotTwo, "inches per radian"},
+    for (const Today& t : {Today{RobotId::RobotTwo, "cartridge byte 0"},  // ROB1-BT: the twin's, every field UNSET
                            Today{RobotId::BenchBot, "LEFT side has no ports"},
                            Today{RobotId::InventedXDrive, "cartridge byte 0"}}) {
         CAPTURE(static_cast<int>(t.robot));
@@ -438,7 +451,7 @@ TEST_CASE("CalibrateFacts F4: the typed ports are the boot's own description whe
         checkTypedParity(c, "today's table");
     }
     // Robot two's table MADE valid (the track width and ratio typed): its signed ports, as typed.
-    ChassisTable valid = shulib::bench::kRobotTwoChassis;
+    ChassisTable valid = retired_robot_two::kChassis;
     valid.trackWidthIn = 12.5;
     valid.externalRatio = 1.0;
     REQUIRE(tableToDescription(valid).valid());
@@ -448,15 +461,16 @@ TEST_CASE("CalibrateFacts F4: the typed ports are the boot's own description whe
     checkTypedParity(valid, "made valid");
     // The mapping keeps every other fact as it was handed in.
     const cal::CalibrateFacts base =
-        calibrateFactsFor(shulib::bench::kRobotTwoChassis, shulib::bench::robot_two::kRobotTwoMechanisms);
+        calibrateFactsFor(retired_robot_two::kChassis, retired_robot_two::kMechanisms);
     const cal::CalibrateFacts withT = withTypedDriveFrom(base, valid);
     CHECK(listed(withT).pairs == listed(base).pairs);
     CHECK(withT.robot == base.robot);
     CHECK(withT.imuPortStated == base.imuPortStated);
     CHECK(withT.cartridge == base.cartridge);
+    CHECK(withT.recordName == base.recordName);  // ROB1-BT: the record name too (F7 proves it end to end)
     CHECK(cal::factsProblem(withT).why == nullptr);
     // ... and a stale typed list handed in is REPLACED, never kept: an invalid table clears it.
-    CHECK(noTyped(withTypedDriveFrom(withT, shulib::bench::kRobotTwoChassis)));
+    CHECK(noTyped(withTypedDriveFrom(withT, retired_robot_two::kChassis)));
     // Each fact undone again, one at a time: no typed port.
     struct Undo {
         const char* what;
@@ -511,7 +525,7 @@ TEST_CASE("CalibrateFacts F5: the glue hands the standard Calibrate withTypedDri
     // the ARM builds (F6) are what see a facts constant built over any other list (review round, R1)
     const std::string facts = codeOnly(readRepo("src/robots/calibrate_facts.hpp"));
     CHECK(occurrences(facts, "inline constexpr calibration::CalibrateFacts kCalibrateFacts = "
-                             "calibrateFactsFor(kChassis, kMechanisms);") == 1);
+                             "calibrateFactsFor(kChassis, kMechanisms, ThisRobotWords::value.recordName);") == 1);
     CHECK(occurrences(facts, "kCalibrateFacts =") == 1);
     CHECK(occurrences(facts, "static_assert(mechanismFactsAre(kCalibrateFacts, kMechanisms),") == 1);
 
@@ -554,4 +568,86 @@ TEST_CASE("CalibrateFacts F5b: functionBody() -- the brace matcher F5's main.cpp
     CHECK(functionBody(src, "void c() {").empty());                 // absent
     CHECK(functionBody(codeOnly("void a() { { }"), "void a() {").empty());  // never closed
     CHECK(functionBody(codeOnly("void a() {} void a() {}"), "void a() {").empty());  // twice: ambiguous
+}
+
+TEST_CASE("CalibrateFacts F-CFG: robot one's 10-motor drive and its twin carry the lowered pulse floor; the bench "
+          "bot the calibrator's defaults; a floor a pulse's drift can reach is refused before anything is powered") {
+    namespace sb = shulib::bench;
+    const shulib::calibration::CalibrateFacts one = sb::calibrateFactsFor(sb::kRobotOneChassis, sb::robot_one::kRobotOneMechanisms);
+    constexpr double kDeg = 3.14159265358979323846 / 180.0;
+    CHECK(one.calibrator.pulseYawFloor.value() == doctest::Approx(0.6 * kDeg));
+    CHECK(one.calibrator.restYawRateFloor.value() == doctest::Approx(1.0 * kDeg));
+    CHECK(shulib::calibration::factsProblem(one).why == nullptr);
+    const shulib::calibration::CalibrateFacts two = sb::calibrateFactsFor(sb::kRobotTwoChassis, sb::robot_two::kRobotTwoMechanisms);
+    CHECK(two.calibrator.pulseYawFloor.value() == doctest::Approx(0.6 * kDeg));  // the twin: the same drive
+    CHECK(two.calibrator.restYawRateFloor.value() == doctest::Approx(1.0 * kDeg));
+    const shulib::calibration::CalibratorConfig d{};
+    const shulib::calibration::CalibrateFacts bench = sb::calibrateFactsFor(sb::kBenchBotChassis, mechanismTableFor(RobotId::BenchBot));
+    CHECK(bench.calibrator.pulseYawFloor.value() == doctest::Approx(d.pulseYawFloor.value()));
+    CHECK(bench.calibrator.restYawRateFloor.value() == doctest::Approx(d.restYawRateFloor.value()));
+    // 1.0 deg/s for a 0.4 s pulse is 0.4 deg of drift: a 0.3 deg floor could be crossed by drift alone
+    shulib::calibration::CalibrateFacts bad = one;
+    bad.calibrator.pulseYawFloor = shulib::units::AngleDim{0.3 * kDeg};
+    REQUIRE(shulib::calibration::factsProblem(bad).why != nullptr);
+    CHECK(std::string{shulib::calibration::factsProblem(bad).why}.find("pulse floor") != std::string::npos);
+}
+
+// ═══ F7 — THE RECORD NAME, END TO END (chunk ROB1-BT) ═══════════════════════════════════════════════
+namespace {
+/// Robot `R`'s Calibrate facts as its program makes them (the two calls of calibrate_program.cpp over
+/// kCalibrateFacts' own expression), its saved record's bytes, and the first boot line `B`'s boot prints
+/// over those bytes.
+template <RobotId R>
+cal::CalibrateFacts gluedFacts() {
+    return withTypedDriveFrom(
+        calibrateFactsFor(chassisTableFor(R), mechanismTableFor(R), shulib::bench::WordsOf<R>::value.recordName),
+        chassisTableFor(R));
+}
+std::vector<std::byte> savedRecordNaming(const char* recordName) {
+    cal_prog_rig::Scenario sc;
+    cal_prog_rig::Rig rig{sc};
+    cal::CalibrateFacts f = cal_prog_rig::robotTwoFacts();  // the golden rig's own robot (its ports, its claws)
+    f.recordName = recordName;                              // ...saving the name the glue handed in
+    rig.run(f);
+    REQUIRE_FALSE(rig.timedOut);
+    return rig.fileBytes(cal::kRecordFileName);
+}
+template <RobotId B>
+std::string firstBootLine(const std::vector<std::byte>& bytes) {
+    shulib::hal::fake::FakeBlockSource card{bytes};
+    const shulib::bench::RecordRead record = shulib::bench::readRecord(card, "/usd/shulib_drivetrain.bin");
+    REQUIRE(record.decoded);
+    shulib::hal::fake::FakeDeviceRegistry census;
+    std::vector<std::string> lines;
+    (void)shulib::bench::decideBootSourceFrom(record, census, tableToDescription(chassisTableFor(B)), "x",
+                                              mechanismTableFor(B), "robot",
+                                              [&lines](const char* line) { lines.emplace_back(line); },
+                                              shulib::bench::WordsOf<B>{});
+    REQUIRE_FALSE(lines.empty());
+    return lines.front();
+}
+}  // namespace
+
+TEST_CASE("CalibrateFacts F7 (ROB1-BT): each robot's Calibrate saves a record naming THAT robot, its own boot "
+          "passes step 0 on it, the other robot's refuses it") {
+    const cal::CalibrateFacts one = gluedFacts<RobotId::RobotOne>();
+    const cal::CalibrateFacts two = gluedFacts<RobotId::RobotTwo>();
+    REQUIRE(one.recordName != nullptr);
+    REQUIRE(two.recordName != nullptr);
+    CHECK(std::string{one.recordName} == shulib::bench::robotRecordName(RobotId::RobotOne));
+    CHECK(std::string{two.recordName} == shulib::bench::robotRecordName(RobotId::RobotTwo));
+    CHECK(cal::factsProblem(one).why == nullptr);
+    CHECK(cal::factsProblem(two).why == nullptr);
+    const std::vector<std::byte> oneCard = savedRecordNaming(one.recordName);
+    const std::vector<std::byte> twoCard = savedRecordNaming(two.recordName);
+    // its own robot reaches step 1 (the port check) — step 0 passed
+    CHECK(firstBootLine<RobotId::RobotOne>(oneCard).rfind("calibration record: DECODED, port check", 0) == 0);
+    CHECK(firstBootLine<RobotId::RobotTwo>(twoCard).rfind("calibration record: DECODED, port check", 0) == 0);
+    // the other robot refuses it by name
+    CHECK(firstBootLine<RobotId::RobotTwo>(oneCard)
+          == "calibration record: DECODED, REFUSED -- this card's record is robot=robot-one's; this is "
+             "robot=robot-two -- run shulib Calibrate (slot 4) on THIS robot");
+    CHECK(firstBootLine<RobotId::RobotOne>(twoCard)
+          == "calibration record: DECODED, REFUSED -- this card's record is robot=robot-two's; this is "
+             "robot=robot-one -- run shulib Calibrate (slot 4) on THIS robot");
 }

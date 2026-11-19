@@ -42,7 +42,8 @@
 //
 // The host suite runs every mirrored entry robot two registers TOGETHER with its unmirrored self and
 // fails, naming the moment and the motions, when their 15 in squares come within 6 in
-// (test/mirrored_pair_check.hpp; A4 register HA-260).
+// (test/mirrored_pair_check.hpp; A4 register HA-260). On a TANK it also fails one step that drives
+// AND turns about 180 deg, naming the steps to write instead: turn first, then drive (MIRROR1-B).
 //
 // ── What the mirror cannot carry (told, never guessed) ──────────────────────────────────────────────
 // The ROBOT is not mirrored: a part mounted off its centre line (a side claw, an off-centre camera,

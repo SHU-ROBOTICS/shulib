@@ -97,41 +97,35 @@ TEST_CASE("robot one tables (T1): chassisTableFor and mechanismTableFor give rob
     CHECK(&sb::mechanismTableFor(RobotId::RobotOne) != &sb::kNoMechanisms);
     CHECK(&sb::mechanismTableFor(RobotId::RobotOne) != &sb::robot_two::kRobotTwoMechanisms);
     CHECK(&sb::chassisTableFor(RobotId::RobotOne) != &sb::kRobotTwoChassis);
-    // Robot one's table: every drivetrain fact UNSET (Calibrate discovers them) — except the drive cartridge
-    // and the IMU's port (the facts form's A2 and A4), which Calibrate cannot discover: the coordinator TYPES
-    // those two here at guide 21's order, step 1, with the provenance saying who read them. So: while the
-    // provenance still says "nothing typed", both are UNSET and the refusal names the cartridge; once it does
-    // not, a typed cartridge and an IMU on a real port (the verifier of ROB1-A, F6: these pins went red the
-    // day the procedure was followed). The ports, the geometry and `measured` stay Calibrate's either way.
+    // Robot one's table: the cartridge typed from the builder's answer (the one fact Calibrate cannot discover);
+    // everything else MEASURED by shulib Calibrate and transcribed (below).
     const sb::ChassisTable& t = sb::kRobotOneChassis;
-    // ROB1-C2: the IMU's port is NOT one of them after all — shulib Calibrate DISCOVERS the IMU from the
-    // brain's registry (calibrate_program.hpp's census; a typed port is only its cross-check, `imuPortStated`),
-    // so robot one's stays UNSET (0) or, if ever typed, a real port; the cartridge is typed (BLUE, the builder).
     const bool nothingTyped = std::string_view{t.provenance}.rfind("nothing typed", 0) == 0;
-    CHECK(t.leftCount == 0);
-    CHECK(t.rightCount == 0);
-    if (nothingTyped) {
-        CHECK(t.cartridge == sb::Cartridge::Unset);
-        CHECK(t.imuPort == 0);
-    } else {
-        CHECK(t.cartridge != sb::Cartridge::Unset);
-        CHECK(t.imuPort <= 21);
-    }
-    CHECK_FALSE(nothingTyped);  // ROB1-C2 typed the cartridge
+    // 2026-11-17: shulib Calibrate MEASURED robot one's drive (RUN 3); the brain had no SD card, so the run's
+    // result is TRANSCRIBED into the table (its provenance says so) and the programs boot from it with the
+    // boot's "no record" warning. Pinned to the run's numbers: a typo here drives the robot wrong in silence.
+    CHECK_FALSE(nothingTyped);
     CHECK(t.cartridge == sb::Cartridge::Blue);  // the team's builder, 2026-11-15, read off the robot
-    CHECK(std::string_view{t.provenance}.find("the team's builder, 2026-11-15") != std::string_view::npos);
-    CHECK(t.imuPort == 0);  // Calibrate discovers it
-    CHECK_FALSE(t.measured);
-    CHECK_FALSE(t.signsMeasured);
-    CHECK(t.trackWidthIn == 0.0);
-    CHECK(t.externalRatio == 0.0);
-    CHECK(t.wheelDiameterIn == 0.0);
+    CHECK(std::string_view{t.provenance}.rfind("MEASURED by shulib Calibrate on robot one, 2026-11-17", 0) == 0);
+    CHECK(std::string_view{t.provenance}.find("no SD card") != std::string_view::npos);
+    CHECK(t.measured);
+    CHECK(t.signsMeasured);
+    REQUIRE(t.leftCount == 5);
+    REQUIRE(t.rightCount == 5);
+    const int left[5] = {+11, -12, +13, -14, +15};
+    const int right[5] = {-16, +17, -18, +19, -20};
+    for (std::size_t i = 0; i < 5; ++i) {
+        CHECK(t.left[i] == left[i]);
+        CHECK(t.right[i] == right[i]);
+    }
+    CHECK(t.imuPort == 5);
+    CHECK(t.wheelDiameterIn == doctest::Approx(2.0 * (1.320179 + 1.332460) / 2.0).epsilon(1e-6));  // ipr L/R mean x 2
+    CHECK(t.trackWidthIn == doctest::Approx(13.2305));
+    CHECK(t.externalRatio == 1.0);
     CHECK(std::string_view{t.robot} == "2026 CASCADE ROBOT (robot one)");
-    // Every unknown is NAMED by the table's own refusal, never guessed.
-    // (No ports until Calibrate: the drive refusal stands either way; it names the cartridge only while unset.)
+    // Nothing is missing any more: no program refuses for the drive.
     char missing[160] = "";
-    CHECK(sb::describeMissing(t, missing, sizeof missing, true));
-    CHECK((std::string_view{missing}.find("cartridge") != std::string_view::npos) == nothingTyped);
+    CHECK_FALSE(sb::describeMissing(t, missing, sizeof missing, true));
 }
 
 // ═══ D5 — the cascade as declared ════════════════════════════════════════════════════
@@ -344,10 +338,13 @@ TEST_CASE("robot one tables (T9): calibrateFactsFor() over robot one's tables de
     // ...and the other direction (the review of ROB1-A, RV8/RV9) is test/robot_one_flipper_forms_example_test.cpp's:
     // "not on the robot yet" or a passive bar against a list that DOES declare a flipper, and an inches Lift
     // named "flipper" against a motor arm.
-    // ...and both checks are APPLIED to the real ledger in the table file (deleting one would compile).
+    // ...and both checks are APPLIED to each robot's real facts in the table file (deleting one would compile;
+    // ROB1-BT made the two checks every robot's — robot two's facts against robot two's list too).
     const std::string code = source_pins::squash(source_pins::stripComments(source_pins::readFile("src/robots/mechanism_table.hpp")));
-    CHECK(source_pins::count(code, "static_assert(robotOneNonDriveMotorsDeclared(robot_one_facts::kNonDriveMotorPorts.value(), robot_one::kRobotOneMechanisms),") == 1);
-    CHECK(source_pins::count(code, "static_assert(robotOneFlipperKindMatches(robot_one_facts::kFlipperKind.value(), robot_one::kRobotOneMechanisms),") == 1);
+    CHECK(source_pins::count(code, "static_assert(nonDriveMotorsDeclared(robot_one_facts::kNonDriveMotorPorts.value(), robot_one::kRobotOneMechanisms),") == 1);
+    CHECK(source_pins::count(code, "static_assert(flipperKindAgrees(robot_one_facts::kFlipperKind.value(), robot_one::kRobotOneMechanisms),") == 1);
+    CHECK(source_pins::count(code, "static_assert(nonDriveMotorsDeclared(robot_two_facts::kNonDriveMotorPorts.value(), robot_two::kRobotTwoMechanisms),") == 1);
+    CHECK(source_pins::count(code, "static_assert(flipperKindAgrees(robot_two_facts::kFlipperKind.value(), robot_two::kRobotTwoMechanisms),") == 1);
 }
 
 TEST_CASE("robot one tables (ROB1-C2): the side toggles are two POWER mechanisms on the side toggle ports, and the three pistons ONE line each on the builder's letters, starting in their UNPOWERED position") {
@@ -422,23 +419,16 @@ TEST_CASE("robot one tables (ROB1-C2): the side toggles are two POWER mechanisms
     static_assert(std::string_view{facts::unpoweredPosition(shulib::mechanism::words::Low, "closed", "open")} == "open");
 }
 
-TEST_CASE("robot one tables ([R5]): every robot-one line of the mechanism table is BELOW the end of robot two's region") {
-    // BUG CAUGHT (GM15b's cause): a robot-one line added above `// [/robot two mechanisms]` — robot two's
-    // declarations record their LINE numbers into the list its packages carry (std::source_location), so
-    // every robot-two package would change while its machine code and strings stayed the same (P6).
+TEST_CASE("robot one tables (T7): robot one's region names nothing of robot two's") {
+    // (ROB1-A's [R5] half — every robot-one line BELOW robot two's region, so robot two's packages kept their
+    // recorded line numbers — is RETIRED at ROB1-BT: robot two became robot one's twin and its packages change
+    // by design; robot one's region now comes first. test/robot_twin_test.cpp holds the two regions equal.)
     const std::string text = source_pins::readFile("src/robots/mechanism_table.hpp");
-    const std::size_t endTwo = text.find("// [/robot two mechanisms]");
-    REQUIRE(endTwo != std::string::npos);
-    const std::string above = text.substr(0, endTwo);
-    CHECK(above.find("robot_one") == std::string::npos);
-    CHECK(above.find("robot one") == std::string::npos);
-    CHECK(above.find("ROB1") == std::string::npos);
     // ...and robot one's region names nothing of robot two's (T7's before-twin half).
     const std::size_t a = text.find("// [robot one mechanisms]");
     const std::size_t b = text.find("// [/robot one mechanisms]");
     REQUIRE(a != std::string::npos);
     REQUIRE(b != std::string::npos);
-    REQUIRE(endTwo < a);
     const std::string one = source_pins::stripComments(text.substr(a, b - a));
     CHECK(one.find("robot_two") == std::string::npos);
     CHECK(one.find("kRobotTwo") == std::string::npos);

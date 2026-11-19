@@ -3,9 +3,9 @@
 A robot's mechanisms are declared once in its robot file ([chapter 10's mechanism
 section](../guide/10-the-api.md#mechanisms--declared-once-wired-separately)) and then run from ONE line
 of an auton and from a driver file's controls ([chapter 18](../guide/18-mechanisms.md)). This chapter is
-the recipes. Every number below is the host test plant's (invented models, HA-183). Robot two's programs run on the mechanism service since the core's fifth part
-(2026-10-29): its claws are declarations, and its driver file is [chapter 6](06-driver-control.md)'s last
-section.
+the recipes. Every number below is the host test plant's (invented models, HA-183). The robots' programs run on
+the mechanism service since the core's fifth part (2026-10-29): their mechanisms are declarations, and their
+driver file is [chapter 6](06-driver-control.md)'s last section.
 
 Listings are compiled and run in
 [`test/mechanism_auton_example_test.cpp`](../../test/mechanism_auton_example_test.cpp), case

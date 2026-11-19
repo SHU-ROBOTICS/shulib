@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 330" width="780" height="330" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="The record names its robot: on robot one, its own record boots; robot two's record and a record that names no robot are refused">
+<title>Robot one's brain at boot: a record naming robot-one boots; a record naming robot-two is refused (the card's record is ANOTHER ROBOT'S); a record written before 2026-11-16 names no robot and is refused (the card's record names NO ROBOT). The fix both times: run shulib Calibrate on this robot.</title>
+<defs><marker id="ah" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="12" refX="13" refY="6" orient="auto"><path d="M0,0 L14,6 L0,12 z" fill="#1f2328"/></marker></defs>
+<rect width="780" height="330" fill="#ffffff"/>
+<text x="120.0" y="34" text-anchor="middle" font-size="15" font-weight="bold" fill="#1f2328">Its own card</text>
+<rect x="20.0" y="50" width="200" height="118" rx="10" fill="#eef1f4" stroke="#2a5fb8" stroke-width="2.5"/>
+<text x="120.0" y="72" text-anchor="middle" font-size="13" font-weight="bold" fill="#2a5fb8">ROBOT ONE'S BRAIN</text>
+<path d="M36.0,98 L48.0,86 L204.0,86 L204.0,154 L36.0,154 z" fill="#ffffff" stroke="#2a5fb8" stroke-width="2.5"/>
+<text x="120.0" y="106" text-anchor="middle" font-size="11" fill="#1f2328">shulib_drivetrain.bin</text>
+<text x="120.0" y="126" text-anchor="middle" font-size="13" font-weight="bold" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" fill="#2a5fb8">robot=robot-one</text>
+<text x="120.0" y="143" text-anchor="middle" font-size="10" fill="#6b7280">Nov 16 2026 09:00:00 | …</text>
+<line x1="120.0" y1="172" x2="120.0" y2="202" stroke="#1f2328" stroke-width="2.5" marker-end="url(#ah)"/>
+<text x="128.0" y="192" font-size="11" fill="#1f2328">boot, step 0</text>
+<rect x="20.0" y="208" width="200" height="78" rx="10" fill="#ffffff" stroke="#1e7d3a" stroke-width="3"/>
+<text x="120.0" y="233" text-anchor="middle" font-size="17" font-weight="bold" fill="#1e7d3a">BOOTS</text>
+<text x="120.0" y="254" text-anchor="middle" font-size="12" fill="#1f2328">then the port check,</text>
+<text x="120.0" y="270" text-anchor="middle" font-size="12" fill="#1f2328">as before</text>
+<text x="390.0" y="34" text-anchor="middle" font-size="15" font-weight="bold" fill="#1f2328">Robot two's card, moved</text>
+<rect x="290.0" y="50" width="200" height="118" rx="10" fill="#eef1f4" stroke="#2a5fb8" stroke-width="2.5"/>
+<text x="390.0" y="72" text-anchor="middle" font-size="13" font-weight="bold" fill="#2a5fb8">ROBOT ONE'S BRAIN</text>
+<path d="M306.0,98 L318.0,86 L474.0,86 L474.0,154 L306.0,154 z" fill="#ffffff" stroke="#c46210" stroke-width="2.5"/>
+<text x="390.0" y="106" text-anchor="middle" font-size="11" fill="#1f2328">shulib_drivetrain.bin</text>
+<text x="390.0" y="126" text-anchor="middle" font-size="13" font-weight="bold" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" fill="#c46210">robot=robot-two</text>
+<text x="390.0" y="143" text-anchor="middle" font-size="10" fill="#6b7280">Nov 16 2026 10:30:00 | …</text>
+<line x1="390.0" y1="172" x2="390.0" y2="202" stroke="#1f2328" stroke-width="2.5" marker-end="url(#ah)"/>
+<text x="398.0" y="192" font-size="11" fill="#1f2328">boot, step 0</text>
+<rect x="290.0" y="208" width="200" height="78" rx="10" fill="#ffffff" stroke="#b3261e" stroke-width="3"/>
+<text x="390.0" y="233" text-anchor="middle" font-size="17" font-weight="bold" fill="#b3261e">REFUSED</text>
+<text x="390.0" y="254" text-anchor="middle" font-size="12" fill="#1f2328">the card's record is</text>
+<text x="390.0" y="270" text-anchor="middle" font-size="12" fill="#1f2328">ANOTHER ROBOT'S</text>
+<text x="660.0" y="34" text-anchor="middle" font-size="15" font-weight="bold" fill="#1f2328">A card from before Nov 16</text>
+<rect x="560.0" y="50" width="200" height="118" rx="10" fill="#eef1f4" stroke="#2a5fb8" stroke-width="2.5"/>
+<text x="660.0" y="72" text-anchor="middle" font-size="13" font-weight="bold" fill="#2a5fb8">ROBOT ONE'S BRAIN</text>
+<path d="M576.0,98 L588.0,86 L744.0,86 L744.0,154 L576.0,154 z" fill="#ffffff" stroke="#6b7280" stroke-width="2.5"/>
+<text x="660.0" y="106" text-anchor="middle" font-size="11" fill="#1f2328">shulib_drivetrain.bin</text>
+<text x="660.0" y="126" text-anchor="middle" font-size="13" font-weight="bold" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" fill="#6b7280">shulib Calibrate</text>
+<text x="660.0" y="143" text-anchor="middle" font-size="10" fill="#6b7280">Sep 24 2026 16:05:00 | …</text>
+<line x1="660.0" y1="172" x2="660.0" y2="202" stroke="#1f2328" stroke-width="2.5" marker-end="url(#ah)"/>
+<text x="668.0" y="192" font-size="11" fill="#1f2328">boot, step 0</text>
+<rect x="560.0" y="208" width="200" height="78" rx="10" fill="#ffffff" stroke="#b3261e" stroke-width="3"/>
+<text x="660.0" y="233" text-anchor="middle" font-size="17" font-weight="bold" fill="#b3261e">REFUSED</text>
+<text x="660.0" y="254" text-anchor="middle" font-size="12" fill="#1f2328">the card's record</text>
+<text x="660.0" y="270" text-anchor="middle" font-size="12" fill="#1f2328">names NO ROBOT</text>
+<text x="390.0" y="316" text-anchor="middle" font-size="13" fill="#1f2328">The fix, both times: <tspan font-weight="bold">run shulib Calibrate (slot 4) on THIS robot</tspan> — its save writes a record that names it.</text>
+</svg>

@@ -267,8 +267,8 @@ the line first; each one names the ports.
   ENCODER is still moving — and only when at least as many of its side answer. A whole side
   stopping together (a wall) marks nobody, however unevenly its motors' reported speeds settle: a
   mate whose encoder has stopped is no evidence, whatever its lagging report still says (the team
-  lead's encoder check, 2026-10-01). The known gaps are beside a motor whose gear SLIPS (robot two's
-  port 18), whose encoder keeps turning while its mates stall: a side ALREADY down to two can have
+  lead's encoder check, 2026-10-01). The known gaps are beside a motor whose gear SLIPS (the old robot two's
+  port 18, retired in the code 2026-11-16), whose encoder keeps turning while its mates stall: a side ALREADY down to two can have
   its last live mate marked; and on a full side, ONE stalled motor whose readings flicker, or whose
   reported speed settles sooner than its mates', can get one or two live motors marked — and a
   second push then the last one, which stops the drive (register entry HA-175). Fixing the slipping

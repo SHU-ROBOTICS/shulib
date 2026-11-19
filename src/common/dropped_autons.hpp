@@ -44,8 +44,9 @@ inline constexpr std::size_t kDroppedAutonLineBytes = 200;
 /// which: `(each named below)`, or past the cap `(the first <cap> named below)`, the last line
 /// counting the rest (the T4-3 verification: "each" was false past the cap). Each line is a buffer
 /// valid only during its `emit` call. The first line names the robot's OWN autons file — robot two's
-/// `src/team/autons.cpp` verbatim, robot one's `src/team/robot_one_autons.cpp` (chunk ROB1-A; `Words`,
-/// src/common/robot_words.hpp — a choice between two literals, decided at compile time).
+/// `src/team/autons.cpp`, robot one's `src/team/robot_one_autons.cpp` (`Words::value.autonsFilePath`,
+/// src/common/robot_words.hpp; chunk ROB1-A, one format since ROB1-BT) — and, on a robot that shares the
+/// skills route (ROB1-BT), a second line naming that route's own file (`Words::value.routeFilePath`).
 template <class Emit, class Words = ThisRobotWords>
 void sayDroppedAutons(const competition::AutonRegistry& registry, bool driverControlRuns,
                       Emit&& emit, Words = {}) {
@@ -69,15 +70,21 @@ void sayDroppedAutons(const competition::AutonRegistry& registry, bool driverCon
         std::snprintf(named, sizeof named, "each named below");
     }
     char line[kDroppedAutonLineBytes];
+    // The robot's OWN autons file, from its words (ROB1-BT: until then a choice between two literals on
+    // `Words::value.claw` — "robot two or not" — which named robot ONE's file the day robot two's words
+    // stopped being the claw words; the path is an argument now, the format one literal).
     std::snprintf(line, sizeof line,
-                  Words::value.claw
-                      ? "%u auton(s) REFUSED at registration and DROPPED -- the dropped ones are NOT on "
-                        "the menu (%.23s); every other auton%s -- fix src/team/autons.cpp"
-                      : "%u auton(s) REFUSED at registration and DROPPED -- NOT on the menu (%.23s); "
-                        "every other auton%s -- fix src/team/robot_one_autons.cpp",
+                  "%u auton(s) REFUSED at registration and DROPPED -- NOT on the menu (%.23s); every other "
+                  "auton%s -- fix %.40s",
                   static_cast<unsigned>(dropped), static_cast<const char*>(named),
-                  driverControlRuns ? " and driver control still run" : " still runs");
+                  driverControlRuns ? " and driver control still run" : " still runs", Words::value.autonsFilePath);
     emit(static_cast<const char*>(line));
+    // The shared skills route's entry (its name, start, schedule) lives in its own file (ROB1-BT).
+    if constexpr (Words::value.routeFilePath != nullptr) {
+        std::snprintf(line, sizeof line, "(the skills route both robots share is fixed in %.40s)",
+                      Words::value.routeFilePath);
+        emit(static_cast<const char*>(line));
+    }
     for (std::size_t i = 0; i < kept; ++i) {
         std::snprintf(line, sizeof line, "DROPPED: %.190s", registry.refusal(i));
         emit(static_cast<const char*>(line));

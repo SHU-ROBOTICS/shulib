@@ -75,8 +75,11 @@ $(error))
                                                               -DSHULIB_ROBOT_ONE_2026
                                                               [-DSHULIB_PROGRAM_…]
                                          While a fact its program needs is OWED, each of these
-                                         FAILS by design — ROBOT ONE'S FACTS PROOF (below) is its
-                                         verdict, not the rest of `check`'s.
+                                         FAILS by design — THE ROBOTS' FACTS PROOF (below) is its
+                                         verdict, not the rest of `check`'s. (Since ROB1-BT robot
+                                         two's six — the tank rows above, robot one's TWIN with its
+                                         own facts file src/robots/robot_two_facts.hpp — are judged
+                                         the same way.)
   (PROGRAM=drive, =calibrate, =autontest or =competition with any other ROBOT is a Makefile
    $(error): only robots two and one have a driver file and a calibration record, only a tank can
    be calibrated by this procedure, and each robot's autons and driver file are its own.
@@ -93,8 +96,8 @@ $(error))
    package fails step 6. Self-test cases 12-13 prove both halves (they stand where the library
    build's own cases did; those retired onto 10-11, which test the same things for tank-drive).
 
-WHAT `check` DOES, per build (bench, xdrive, tank, tank-drive, tank-calibrate, tank-autontest,
-tank-competition, tank-tune; robot one's six as ROBOT ONE'S FACTS PROOF says)
+WHAT `check` DOES, per build (bench, xdrive; robot two's six — tank, tank-drive, tank-calibrate,
+tank-autontest, tank-competition, tank-tune — and robot one's six as THE ROBOTS' FACTS PROOF says)
 --------------------------------------------------------------
  1. Removes bin/ and .d/ (exactly what `make clean` removes; both gitignored, so the
     tree stays clean). make is INCREMENTAL: a gate that compiles nothing reports green,
@@ -344,8 +347,21 @@ Once per `check`, before any build — step 0, five source checks:
   read whole, and a raw string's text is its own (MECH-A5's verification); comments are not read (the staleness audit's class, and a comment reaches no
   robot); test/ is not read (its own tests pin what they print). Self-test case 30.
 
-ROBOT ONE'S FACTS PROOF (chunk ROB1-A, 2026-11-11; the ROB1 brief's D3 (a), [R1], [R4], [R11])
+THE ROBOTS' FACTS PROOF (chunk ROB1-A, 2026-11-11, robot one's; ROB1-BT, 2026-11-16, robot two's — the
+twin's — beside it; the ROB1 brief's D3 (a), [R1], [R4], [R11])
 ------------------------------------------------------------------------------------------
+SINCE ROB1-BT the proof below holds for EVERY robot with a facts file (FACTS_LEDGERS: robot one's
+src/robots/robot_one_facts.hpp and robot two's src/robots/robot_two_facts.hpp, which uses robot one's
+machinery — FACTS_MACHINERY, the one needsStageB()): each robot's builds refuse with exactly ITS owed facts' lines (`robot two: OWED
+-- …`), no build prints another robot's OWED line, and the copy types EVERY ledger and builds both robots'
+twelve. Each ledger reads its OWN marker file (build/ROBOT-ONE-GATE-COPY-ONLY, build/ROBOT-TWO-GATE-COPY-ONLY),
+and a copy carries a sentinel (build/SRC-GATE-COPY: its own path, the robots it typed, its files — the copy
+is under build/, which git ignores) so step 0 accepts the markers and "gate copy" sources only inside the copy
+that wrote them. AND THE SELF-TEST RUNS IN A COPY: no robot-two build links on the real tree any more, and
+two dozen detector cases need a linked one — so `self-test` copies the tree to build/src-gate-selftest/ with
+ROBOT TWO'S ledger typed (robot one's left owed, for its own cases 50-58), runs there in a child process, and
+deletes the copy; the repository is never planted (SELFTEST_ENV, at main()). The text below is robot one's,
+as ROB1-A wrote it; read "robot one" as "each robot with a facts file".
 src/robots/robot_one_facts.hpp writes every robot-one number nobody has measured ONCE, as OWED, with a
 placeholder the host suite runs on; a static_assert under each fact fails robot one's build of every
 program that needs it (Stage A: all six; Stage B: Drive, the Auton Tester, Competition and — since the
@@ -1714,7 +1730,7 @@ ROBOT_FOREIGN_SYMBOLS = {
     "InventedXDrive": ("shulib::bench::registerRobotOneAutons",),
 }
 ROBOT_FOREIGN_STRINGS = {
-    "RobotOne": (b"src/team/robot_two_driver.hpp\0", b"shulib-robot=robot-two\0"),
+    "RobotOne": (b"src/team/robot_two_driver.hpp\0", b"shulib-robot=robot-two\0", b"robot two: OWED"),
     "RobotTwo": (b"src/team/robot_one_driver.hpp\0", b"src/team/robot_one_autons.cpp\0", b"robot one: OWED"),
     "BenchBot": (b"src/team/robot_one_driver.hpp\0", b"src/team/robot_one_autons.cpp\0"),
     "InventedXDrive": (b"src/team/robot_one_driver.hpp\0", b"src/team/robot_one_autons.cpp\0"),
@@ -1987,9 +2003,10 @@ def run_build(robot, path_env=None):
 def verdict(robot, b):
     """Apply the policy to one build. Returns (ok, [problem strings])."""
     problems = []
-    if BUILD_ROBOT.get(robot) != "RobotOne" and "robot one: OWED" in b.text:
-        problems.append(f"build {robot} printed a `robot one: OWED` line — robot one's facts refusal fires in a "
-                        f"build that is not robot one's (header, ROBOT ONE'S FACTS PROOF)")
+    for who, led in FACTS_LEDGERS.items():
+        if BUILD_ROBOT.get(robot) != who and f"{led['words']}: OWED" in b.text:
+            problems.append(f"build {robot} printed a `{led['words']}: OWED` line — {led['words']}'s facts refusal "
+                            f"fires in a build that is not {led['words']}'s (header, THE ROBOTS' FACTS PROOF)")
 
     if b.errors:
         for path, lno, msg in b.errors:
@@ -2132,7 +2149,7 @@ def verdict(robot, b):
     return not problems, problems
 
 
-# ── ROBOT ONE'S FACTS PROOF (chunk ROB1-A, 2026-11-11; the ROB1 brief's D3 (a), [R1], [R4], [R11]) ─────────
+# ── THE ROBOTS' FACTS PROOF (chunk ROB1-A, 2026-11-11; every ledgered robot since ROB1-BT — header) ─────────
 # src/robots/robot_one_facts.hpp writes every robot-one number nobody has measured as OWED, and a check under
 # each fact FAILS robot one's build of every program that needs it, naming it. This gate proves BOTH halves:
 #   (i)  THE REAL TREE — robot one's six builds are rows of VARIANTS like every build; each one either links
@@ -2149,14 +2166,33 @@ def verdict(robot, b):
 #        `finally` and a leftover one swept at the start; the repository's ledger hash before = after, and the
 #        repository's bin/ is never touched by it. A ledger copied back from the copy cannot link: the real
 #        ledger refuses the "gate copy" source at make, and step 0 refuses it too.
-FACTS_LEDGER = os.path.join("src", "robots", "robot_one_facts.hpp")
+#: THE ROBOTS WITH A FACTS LEDGER (robot one since ROB1-A; robot two — its twin — since ROB1-BT), each with the
+#: words its OWED lines say, its ledger, its gate-copy MARKER file (written at a COPY's root only, never in the
+#: repository — step 0 refuses one there; the ledger reads it relative to its own directory) and the ledger's ONE
+#: reading of that marker (type_every_fact() requires it exactly once). The marker is PER LEDGER so a copy can
+#: type one robot and not the other (the self-test's copy types robot two's only — header).
+FACTS_LEDGERS = {
+    "RobotOne": {"words": "robot one", "ledger": os.path.join("src", "robots", "robot_one_facts.hpp"),
+                 "marker": os.path.join("build", "ROBOT-ONE-GATE-COPY-ONLY"),
+                 "marker_read": '#if __has_include("../../build/ROBOT-ONE-GATE-COPY-ONLY")'},
+    "RobotTwo": {"words": "robot two", "ledger": os.path.join("src", "robots", "robot_two_facts.hpp"),
+                 "marker": os.path.join("build", "ROBOT-TWO-GATE-COPY-ONLY"),
+                 "marker_read": '#if __has_include("../../build/ROBOT-TWO-GATE-COPY-ONLY")'},
+}
+#: Robot one's ledger and marker by their ROB1-A names (the self-test's cases 50-57 read them).
+FACTS_LEDGER = FACTS_LEDGERS["RobotOne"]["ledger"]
+FACTS_COPY_MARKER = FACTS_LEDGERS["RobotOne"]["marker"]
+FACTS_MARKER_READ = FACTS_LEDGERS["RobotOne"]["marker_read"]
+#: The MACHINERY both ledgers use (ROB1-BT): robot one's ledger, whose needsStageB() is the ONE stage switch
+#: (robot two's ledger names robot one's machinery, one name at a time — src/robots/robot_two_facts.hpp).
+FACTS_MACHINERY = FACTS_LEDGERS["RobotOne"]["ledger"]
 FACTS_COPY_DIR = os.path.join("build", "src-gate-facts")
 FACTS_COPY_SOURCE = "gate copy -- same as the placeholder, checked"
-#: The marker FILE that turns the ledger's gate-copy refusal off — written at the COPY's root only, never
-#: in the repository (step 0 refuses it there); the ledger reads it relative to its own directory.
-FACTS_COPY_MARKER = os.path.join("build", "ROBOT-ONE-GATE-COPY-ONLY")
-#: The ledger's ONE reading of the marker (type_every_fact() requires it exactly once).
-FACTS_MARKER_READ = '#if __has_include("../../build/ROBOT-ONE-GATE-COPY-ONLY")'
+#: A gate COPY's own record (ROB1-BT), at the copy's root: its first line the copy's absolute path, its second
+#: the robots whose ledgers the copy typed, then every file the copy holds (the copy is under build/, which git
+#: ignores, so `git ls-files` cannot list it). Step 0 accepts a robot's marker and "gate copy" sources only in a
+#: tree whose sentinel names THAT tree and THAT robot — a copied-back sentinel names another path.
+COPY_SENTINEL = os.path.join("build", "SRC-GATE-COPY")
 #: EVERY program, classified — the ledger's needsStageB() restated (step 0's stage_table_problems() reads
 #: the C++ switch back and requires the two to agree, and every `Program` value to be in exactly one set).
 STAGE_B_PROGRAMS = frozenset({"Drive", "AutonTester", "Competition", "InventedXDrive", "Tune"})
@@ -2169,7 +2205,7 @@ STAGE_PROGRAMS = {
 }
 #: A fact's declaration — never matched inside the ledger's banner, whose examples write no declaration.
 _FACT_DECL = re.compile(r"\binline\s+constexpr\s+auto\s+k\w+\s*=\s*(owed|typed)\s*\(")
-_OWED_MESSAGE = re.compile(r"^static assertion failed: robot one: OWED -- (.*) \(src/robots/robot_one_facts\.hpp\)$")
+_OWED_MESSAGE = re.compile(r"^static assertion failed: (robot one|robot two): OWED -- (.*) \((src/robots/robot_(?:one|two)_facts\.hpp)\)$")
 
 
 def _call_args(code, open_at):
@@ -2213,13 +2249,14 @@ def _literal_text(arg):
     return "".join(parts) if parts else None
 
 
-def ledger_facts(repo=None):
-    """Every fact the ledger declares, from its TEXT (comments stripped, literals kept): a list of dicts
-    {kind: owed|typed, stage: A|B|Recorded, name, source, start, end} — `start`/`end` the call's span in
+def ledger_facts(repo=None, robot="RobotOne"):
+    """Every fact robot `robot`'s ledger declares, from its TEXT (comments stripped, literals kept): a list of
+    dicts {kind: owed|typed, stage: A|B|Recorded, name, source, start, end} — `start`/`end` the call's span in
     the comment-stripped text. Raises ValueError on a fact it cannot read (a gate that cannot read the
     ledger proves nothing)."""
     repo = repo or REPO
-    code = _strip_comments(_read(repo, FACTS_LEDGER))
+    ledger_rel = FACTS_LEDGERS[robot]["ledger"]
+    code = _strip_comments(_read(repo, ledger_rel))
     out = []
     for m in _FACT_DECL.finditer(code):
         open_at = m.end() - 1
@@ -2241,16 +2278,18 @@ def ledger_facts(repo=None):
 
 
 def expected_owed(build, repo=None):
-    """The `robot one: OWED -- <name>` names robot-one build `build` must refuse with: every OWED fact
-    whose stage its program needs (STAGE_PROGRAMS). A program STAGE_PROGRAMS does not classify is a
-    ValueError — never quietly "Stage A only" (the review of ROB1-A: that is how a new program would
-    build robot one on Stage A alone with this gate agreeing)."""
+    """The `<robot>: OWED -- <name>` names build `build` (of a robot with a ledger) must refuse with: every
+    OWED fact of ITS robot's ledger whose stage its program needs (STAGE_PROGRAMS). A program STAGE_PROGRAMS
+    does not classify is a ValueError — never quietly "Stage A only" (the review of ROB1-A: that is how a
+    new program would build a robot on Stage A alone with this gate agreeing)."""
     program = BUILD_PROGRAM[build]
+    robot = BUILD_ROBOT[build]
     if program not in STAGE_PROGRAMS["A"]:
         raise ValueError(f"build {build}'s program {program} is not classified in STAGE_PROGRAMS (header, "
                          f"STEP 0's ROB1-A RULES) — say whether it needs Stage B, here AND in the ledger's "
                          f"needsStageB()")
-    return {f["name"] for f in ledger_facts(repo) if f["kind"] == "owed" and program in STAGE_PROGRAMS[f["stage"]]}
+    return {f["name"] for f in ledger_facts(repo, robot)
+            if f["kind"] == "owed" and program in STAGE_PROGRAMS[f["stage"]]}
 
 
 def _braced_body(code, open_at):
@@ -2278,7 +2317,10 @@ def stage_table_problems(repo=None):
     if body is None:
         return [f"{SELECTION_HEADER}: `enum class Program {{ … }}` not found — the stages cannot be checked"]
     programs = [re.match(r"\s*(\w+)", e).group(1) for e in body.split(",") if e.strip()]
-    ledger = _strip_comments(_read(repo, FACTS_LEDGER))
+    # ROB1-BT: the ONE switch is the machinery's (robot one's ledger); a tree without it has no stages to check.
+    if not os.path.exists(os.path.join(repo, FACTS_MACHINERY)):
+        return problems
+    ledger = _strip_comments(_read(repo, FACTS_MACHINERY))
     f = re.search(r"constexpr\s+bool\s+needsStageB\s*\(\s*Program\s+p\s*\)\s*\{", ledger)
     fbody = _braced_body(ledger, f.end() - 1) if f else None
     sw = re.search(r"switch\s*\(\s*p\s*\)\s*\{", fbody) if fbody is not None else None
@@ -2319,42 +2361,77 @@ def stage_table_problems(repo=None):
                             f"gate's STAGE_PROGRAMS says {str(n in STAGE_B_PROGRAMS).lower()} — the two must "
                             f"agree")
     for v in VARIANTS:
-        if BUILD_ROBOT.get(v) == "RobotOne" and BUILD_PROGRAM.get(v) not in STAGE_PROGRAMS["A"]:
-            problems.append(f"robot-one build {v}'s program {BUILD_PROGRAM.get(v)} is not classified in "
-                            f"STAGE_PROGRAMS")
+        if BUILD_ROBOT.get(v) in FACTS_LEDGERS and BUILD_PROGRAM.get(v) not in STAGE_PROGRAMS["A"]:
+            problems.append(f"{FACTS_LEDGERS[BUILD_ROBOT[v]]['words']} build {v}'s program {BUILD_PROGRAM.get(v)} "
+                            f"is not classified in STAGE_PROGRAMS")
+    # ...and no ledger keeps a needsStageB() of its own (a second switch would drift from the machinery's).
+    for who, led in FACTS_LEDGERS.items():
+        if led["ledger"] != FACTS_MACHINERY and os.path.exists(os.path.join(repo, led["ledger"])) and re.search(
+                r"\bneedsStageB\s*\(", _strip_comments(_read(repo, led["ledger"]))):
+            problems.append(f"{led['ledger']}: names needsStageB() — the ONE stage switch is {FACTS_MACHINERY}'s")
     return problems
+
+
+def copy_sentinel(repo=None):
+    """(robots typed, files, problem) for the tree at `repo`: (None, None, None) when it holds no gate-copy
+    sentinel (the repository); the sentinel's typed robots and file list when it names THIS tree; a problem
+    string when it names another (a sentinel copied back from a copy — header, COPY_SENTINEL)."""
+    repo = repo or REPO
+    path = os.path.join(repo, COPY_SENTINEL)
+    if not os.path.exists(path):
+        return None, None, None
+    with open(path, encoding="utf-8") as f:
+        lines = f.read().split("\n")
+    # The first line must be an ABSOLUTE path naming this tree: an empty one would be realpath()'d to the
+    # working directory, which is the tree the gate runs in — a blank sentinel must never earn the exemption.
+    if not lines or not os.path.isabs(lines[0]) or os.path.realpath(lines[0]) != os.path.realpath(repo):
+        return None, None, (f"{COPY_SENTINEL} names {lines[0] if lines and lines[0] else '(a blank line)'}, not this tree — a gate "
+                            f"copy's sentinel copied back; delete it (header, THE ROBOTS' FACTS PROOF)")
+    typed = set(lines[1].split()) if len(lines) > 1 else set()
+    return typed, [l for l in lines[2:] if l], None
 
 
 def ledger_source_problems(repo=None):
-    """Step 0 ([R4]): a TYPED fact in the repository's ledger whose source is empty or carries the gate
-    copy's marker — the ledger's own check refuses both at make; this names them without a build."""
+    """Step 0 ([R4]; every ledger since ROB1-BT): a TYPED fact in a ledger whose source is empty or carries
+    the gate copy's marker, and a robot's gate-copy MARKER FILE in the tree — the ledger's own check refuses
+    each at make; this names them without a build. In a gate COPY (its sentinel names this tree) the robots
+    the copy typed are exempt: their markers and "gate copy" sources are the copy's own."""
     repo = repo or REPO
-    if not os.path.exists(os.path.join(repo, FACTS_LEDGER)):
-        return []
     problems = []
-    if os.path.exists(os.path.join(repo, FACTS_COPY_MARKER)):
-        problems.append(f"{FACTS_COPY_MARKER} exists in the repository — it is the src build gate's COPY's "
-                        f"marker, and here it turns the ledger's gate-copy refusal off for every build; "
-                        f"delete it (header, ROBOT ONE'S FACTS PROOF)")
-    problems += stage_table_problems(repo)
-    try:
-        facts = ledger_facts(repo)
-    except ValueError as e:
-        return problems + [str(e)]
-    for f in facts:
-        if f["kind"] != "typed":
+    typed_here, _files, sentinel_problem = copy_sentinel(repo)
+    if sentinel_problem:
+        problems.append(sentinel_problem)
+    exempt = typed_here or set()
+    for who, led in FACTS_LEDGERS.items():
+        if who in exempt:
             continue
-        if not f["source"]:
-            problems.append(f"{FACTS_LEDGER}: the fact '{f['name']}' is typed with no source — a typed fact "
-                            f"says who measured it, how and when (header, ROBOT ONE'S FACTS PROOF)")
-        elif "gate copy" in f["source"]:
-            problems.append(f"{FACTS_LEDGER}: the fact '{f['name']}' carries the gate copy's source "
-                            f"'{f['source']}' — a ledger copied back from build/src-gate-facts/ (header, "
-                            f"ROBOT ONE'S FACTS PROOF)")
+        if os.path.exists(os.path.join(repo, led["marker"])):
+            problems.append(f"{led['marker']} exists in the repository — it is the src build gate's COPY's "
+                            f"marker, and here it turns {led['words']}'s ledger's gate-copy refusal off for every "
+                            f"build; delete it (header, THE ROBOTS' FACTS PROOF)")
+    problems += stage_table_problems(repo)
+    for who, led in FACTS_LEDGERS.items():
+        if not os.path.exists(os.path.join(repo, led["ledger"])):
+            continue
+        try:
+            facts = ledger_facts(repo, who)
+        except ValueError as e:
+            problems.append(str(e))
+            continue
+        for f in facts:
+            if f["kind"] != "typed":
+                continue
+            if not f["source"]:
+                problems.append(f"{led['ledger']}: the fact '{f['name']}' is typed with no source — a typed fact "
+                                f"says who measured it, how and when (header, THE ROBOTS' FACTS PROOF)")
+            elif "gate copy" in f["source"] and who not in exempt:
+                problems.append(f"{led['ledger']}: the fact '{f['name']}' carries the gate copy's source "
+                                f"'{f['source']}' — a ledger copied back from a gate copy (header, "
+                                f"THE ROBOTS' FACTS PROOF)")
     return problems
 
 
-def type_every_fact(text):
+def type_every_fact(text, marker_read=None):
     """The ledger `text` with EVERY `= owed(p, stage, "name")` typed as `= typed(p, p, stage, "name",
     FACTS_COPY_SOURCE)` — the copy's edit, never the repo's. The gate-copy refusal is NOT touched here: it
     is turned off by the marker FILE facts_copy_proof() writes at the copy's root. Works on
@@ -2376,8 +2453,9 @@ def type_every_fact(text):
         typed += 1
     pieces.append(text[last:])
     out = "".join(pieces)
-    if out.count(FACTS_MARKER_READ) != 1:
-        raise ValueError(f"the ledger does not read the copy's marker exactly once (`{FACTS_MARKER_READ}`)")
+    marker_read = marker_read or FACTS_MARKER_READ
+    if out.count(marker_read) != 1:
+        raise ValueError(f"the ledger does not read the copy's marker exactly once (`{marker_read}`)")
     return out, typed
 
 
@@ -2408,7 +2486,7 @@ def _arg_spans(code, open_at):
 
 
 def facts_verdict(robot, b, repo=None):
-    """The real tree's verdict for robot-one build `robot` (header, ROBOT ONE'S FACTS PROOF (i)): nothing
+    """The real tree's verdict for build `robot` of a robot with a ledger (header, THE ROBOTS' FACTS PROOF (i)): nothing
     owed -> the ordinary verdict; else it must FAIL with exactly the expected OWED set, no other error, and
     no package left in bin/. Returns (ok, problems, refused) — `refused` True when it refused as it must."""
     repo = repo or REPO
@@ -2421,22 +2499,23 @@ def facts_verdict(robot, b, repo=None):
         return ok, problems, False
     problems = []
     seen, other = set(), []
+    led = FACTS_LEDGERS[BUILD_ROBOT[robot]]
     for path, lno, msg in b.errors:
         m = _OWED_MESSAGE.match(msg)
-        if m:
-            seen.add(m.group(1))
+        if m and m.group(1) == led["words"] and m.group(3) == led["ledger"].replace(os.sep, "/"):
+            seen.add(m.group(2))
         else:
             other.append(f"{path}:{lno} — {msg}")
     if b.exit == 0:
         problems.append(f"build {robot} LINKED although its program needs {len(want)} owed fact(s) — a "
-                        f"placeholder can reach the robot (header, ROBOT ONE'S FACTS PROOF)")
+                        f"placeholder can reach the robot (header, THE ROBOTS' FACTS PROOF)")
     for o in other:
         problems.append(f"build {robot} refused with an error that is not an OWED fact: {o}")
     if seen != want:
         missing = sorted(want - seen)
         extra = sorted(seen - want)
         problems.append(f"build {robot} refused naming the wrong facts — owed and not named: {missing}; named "
-                        f"and not owed by this program: {extra} (header, ROBOT ONE'S FACTS PROOF)")
+                        f"and not owed by this program: {extra} (header, THE ROBOTS' FACTS PROOF)")
     for leftover in ("hot.package.bin", "hot.package.elf"):
         if os.path.exists(os.path.join(repo, "bin", leftover)):
             problems.append(f"build {robot} refused but bin/{leftover} exists — a package is there to upload "
@@ -2445,7 +2524,23 @@ def facts_verdict(robot, b, repo=None):
 
 
 def _working_tree_files(repo):
-    """Every file of the working tree git knows or would add (tracked + untracked, ignored excluded)."""
+    """Every file of the working tree git knows or would add (tracked + untracked, ignored excluded) — or, in
+    a gate COPY (under build/, which git ignores), the files its sentinel lists (COPY_SENTINEL)."""
+    _typed, files, problem = copy_sentinel(repo)
+    if problem:
+        raise RuntimeError(problem)
+    if files is not None:
+        # ...and any file added under the source folders since the copy was made (a self-test plant), so a
+        # nested copy builds the tree as it is now, not as it was.
+        listed, extra = set(files), []
+        for top in ("src", "include", "test", "tools", "firmware"):
+            for root, dnames, fnames in os.walk(os.path.join(repo, top)):
+                dnames[:] = [d for d in dnames if d != "__pycache__"]
+                for f in fnames:
+                    rel = os.path.relpath(os.path.join(root, f), repo)
+                    if rel not in listed:
+                        extra.append(rel)
+        return files + sorted(extra)
     r = subprocess.run(["git", "ls-files", "-co", "--exclude-standard", "-z"], cwd=repo,
                        capture_output=True, timeout=60)
     if r.returncode != 0:
@@ -2458,41 +2553,66 @@ def _sha256(path):
         return hashlib.sha256(f.read()).hexdigest()
 
 
+def make_typed_copy(repo, copy, robots, say=print):
+    """Copy the working tree at `repo` into `copy` (sweeping a leftover first) and, IN THE COPY ONLY, type every
+    owed fact of each robot in `robots` (FACTS_COPY_SOURCE), write each one's marker file and the copy's
+    sentinel (COPY_SENTINEL: its path, the robots typed, the files). Returns how many facts were typed. Never
+    touches `repo`."""
+    if os.path.exists(copy):
+        shutil.rmtree(copy)
+        say(f"  [facts-copy] swept a leftover {os.path.relpath(copy, repo)}/ (an earlier copy was interrupted)")
+    files = []
+    for rel in _working_tree_files(repo):
+        src = os.path.join(repo, rel)
+        if rel.startswith("build" + os.sep) or not os.path.isfile(src):
+            continue  # a deleted-but-tracked file, or a copy itself
+        dst = os.path.join(copy, rel)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copy2(src, dst)
+        files.append(rel)
+    n = 0
+    for who in robots:
+        led = FACTS_LEDGERS[who]
+        copied = os.path.join(copy, led["ledger"])
+        with open(copied, encoding="utf-8") as f:
+            text = f.read()
+        typed_text, k = type_every_fact(text, led["marker_read"])
+        with open(copied, "w", encoding="utf-8") as f:
+            f.write(typed_text)
+        n += k
+        marker = os.path.join(copy, led["marker"])
+        os.makedirs(os.path.dirname(marker), exist_ok=True)
+        with open(marker, "w", encoding="utf-8") as f:
+            f.write("the src build gate's facts-proof COPY (tools/src_build_gate.py) -- never in the repository\n")
+    sentinel = os.path.join(copy, COPY_SENTINEL)
+    os.makedirs(os.path.dirname(sentinel), exist_ok=True)
+    with open(sentinel, "w", encoding="utf-8") as f:
+        f.write(os.path.realpath(copy) + "\n" + " ".join(robots) + "\n" + "\n".join(files) + "\n")
+    return n
+
+
 def facts_copy_proof(path_env=None, say=print, _fail_after_typing=False):
-    """THE COPY (header, ROBOT ONE'S FACTS PROOF (ii)). Returns a list of problem strings. `_fail_after_typing`
-    (the self-test only) raises once the copy's ledger is typed — an interrupted proof."""
+    """THE COPY (header, THE ROBOTS' FACTS PROOF (ii)): EVERY robot's ledger typed, every ledgered robot's
+    builds run there. Returns a list of problem strings. `_fail_after_typing` (the self-test only) raises once
+    the copy's ledgers are typed — an interrupted proof."""
     global REPO
     repo = REPO
     copy = os.path.join(repo, FACTS_COPY_DIR)
     problems = []
-    if os.path.exists(copy):
-        shutil.rmtree(copy)
-        say(f"  [facts-copy] swept a leftover {FACTS_COPY_DIR}/ (an earlier proof was interrupted)")
-    ledger = os.path.join(repo, FACTS_LEDGER)
-    before = _sha256(ledger)
+    ledgers = {who: os.path.join(repo, led["ledger"]) for who, led in FACTS_LEDGERS.items()}
+    before = {who: _sha256(path) for who, path in ledgers.items()}
+    # What was ALREADY in this tree (a gate copy — the self-test's — holds its own markers and sentinel): only
+    # what the proof ADDS is a problem.
+    present_before = {m for m in [led["marker"] for led in FACTS_LEDGERS.values()] + [COPY_SENTINEL]
+                      if os.path.exists(os.path.join(repo, m))}
     package_before = None
     hot = os.path.join(repo, "bin", "hot.package.bin")
     if os.path.exists(hot):
         package_before = _sha256(hot)
-    builds = [v for v in VARIANTS if BUILD_ROBOT.get(v) == "RobotOne"]
+    robots = [who for who in FACTS_LEDGERS if any(BUILD_ROBOT.get(v) == who for v in VARIANTS)]
+    builds = [v for v in VARIANTS if BUILD_ROBOT.get(v) in robots]
     try:
-        for rel in _working_tree_files(repo):
-            src = os.path.join(repo, rel)
-            if rel.startswith(FACTS_COPY_DIR + os.sep) or not os.path.isfile(src):
-                continue  # a deleted-but-tracked file, or the copy itself
-            dst = os.path.join(copy, rel)
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            shutil.copy2(src, dst)
-        copied = os.path.join(copy, FACTS_LEDGER)
-        with open(copied, encoding="utf-8") as f:
-            text = f.read()
-        typed_text, n = type_every_fact(text)
-        with open(copied, "w", encoding="utf-8") as f:
-            f.write(typed_text)
-        marker = os.path.join(copy, FACTS_COPY_MARKER)
-        os.makedirs(os.path.dirname(marker), exist_ok=True)
-        with open(marker, "w", encoding="utf-8") as f:
-            f.write("the src build gate's facts-proof COPY (tools/src_build_gate.py) -- never in the repository\n")
+        n = make_typed_copy(repo, copy, robots, say)
         if _fail_after_typing:
             raise RuntimeError("self-test: the proof interrupted after the copy's ledger was typed")
         REPO = copy
@@ -2505,18 +2625,22 @@ def facts_copy_proof(path_env=None, say=print, _fail_after_typing=False):
                     problems += [f"[{v} (copy, every fact typed)] {x}" for x in p]
         finally:
             REPO = repo
-        say(f"  [facts-copy] {n} owed facts typed in {FACTS_COPY_DIR}/ only; robot one's {len(builds)} builds "
-            f"{'link and pass every check' if not problems else 'do NOT all pass — see below'}")
+        say(f"  [facts-copy] {n} owed facts typed in {FACTS_COPY_DIR}/ only ({', '.join(FACTS_LEDGERS[w]['words'] for w in robots)}); "
+            f"their {len(builds)} builds {'link and pass every check' if not problems else 'do NOT all pass — see below'}")
     finally:
         REPO = repo
         shutil.rmtree(copy, ignore_errors=True)
     if os.path.exists(copy):
         problems.append(f"{FACTS_COPY_DIR}/ is still there after the proof — the `finally` did not delete it")
-    if _sha256(ledger) != before:
-        problems.append(f"the repository's {FACTS_LEDGER} CHANGED during the copy's proof — the proof must "
-                        f"never touch the repo")
-    if os.path.exists(os.path.join(repo, FACTS_COPY_MARKER)):
-        problems.append(f"the copy's marker {FACTS_COPY_MARKER} is in the REPOSITORY after the proof")
+    for who, path in ledgers.items():
+        if _sha256(path) != before[who]:
+            problems.append(f"the repository's {FACTS_LEDGERS[who]['ledger']} CHANGED during the copy's proof — the "
+                            f"proof must never touch the repo")
+        marker = FACTS_LEDGERS[who]["marker"]
+        if marker not in present_before and os.path.exists(os.path.join(repo, marker)):
+            problems.append(f"the copy's marker {marker} is in the REPOSITORY after the proof")
+    if COPY_SENTINEL not in present_before and os.path.exists(os.path.join(repo, COPY_SENTINEL)):
+        problems.append(f"the copy's sentinel {COPY_SENTINEL} is in the REPOSITORY after the proof")
     if os.path.exists(hot):
         if _sha256(hot) != package_before:
             problems.append("the repository's bin/hot.package.bin CHANGED during the copy's proof — the proof "
@@ -2600,7 +2724,7 @@ def cmd_check(path_env=None, quiet=False):
     refused_as_owed = 0
     for robot in VARIANTS:
         b = run_build(robot, path_env)
-        if BUILD_ROBOT.get(robot) == "RobotOne":
+        if BUILD_ROBOT.get(robot) in FACTS_LEDGERS:
             ok, problems, refused = facts_verdict(robot, b)
         else:
             (ok, problems), refused = verdict(robot, b), False
@@ -2613,8 +2737,8 @@ def cmd_check(path_env=None, quiet=False):
         if not ok:
             all_problems += [f"[{robot}] {p}" for p in problems]
 
-    # The facts proof's COPY half (header, ROBOT ONE'S FACTS PROOF (ii)) — never in the repo.
-    if any(BUILD_ROBOT.get(v) == "RobotOne" for v in VARIANTS):
+    # The facts proof's COPY half (header, THE ROBOTS' FACTS PROOF (ii)) — never in the repo.
+    if any(BUILD_ROBOT.get(v) in FACTS_LEDGERS for v in VARIANTS):
         try:
             all_problems += [f"[facts-copy] {p}" for p in facts_copy_proof(path_env, say)]
         except (RuntimeError, OSError, ValueError, subprocess.SubprocessError) as e:
@@ -2628,7 +2752,7 @@ def cmd_check(path_env=None, quiet=False):
 
     allowed = (f"{'/'.join(sorted(ALLOWED_CATEGORIES))} allowed by category, "
                if ALLOWED_CATEGORIES else "no category allowed, ")
-    say(f"src build gate: PASS (all {len(VARIANTS)} builds link or, robot one's, refuse naming exactly "
+    say(f"src build gate: PASS (all {len(VARIANTS)} builds link or, robot one's and robot two's, refuse naming exactly "
         f"their owed facts ({refused_as_owed} refused; every one links in the gate's typed copy); policy: errors fail, "
         f"vendor warnings path-ignored, {allowed}every other warning fails; defines "
         f"token-exact; one chain picks program and robot; variant and robot beacons asserted; "
@@ -2847,6 +2971,64 @@ def _self_test_robot_half(expect):
                    and "(step 8, ROB1-A)" in p for p in problems),
                f"58: the failure did not name robot one's autons FILE PATH (step 8's robot half, the ELF's words — "
                f"the call site's elf_bytes): {problems}")
+
+
+def _self_test_cross_robot_words(expect, owe_one_fact=contextlib.nullcontext):
+    """Case 63 (ROB1-BT's review round): the three cross-robot rules no real build can trip — SYNTHETIC, no build.
+    (a) verdict(): a build's OUTPUT holding ANOTHER robot's `<robot>: OWED` line fails (a static_assert message is
+        compiler output, never ELF bytes — case 60's step-8 rule cannot see it); its own robot's line is not that.
+    (b) facts_verdict(): a refusal worded with the OTHER robot's words or ledger is not THIS robot's owed fact.
+    (c) step 0: a ledger other than the machinery keeping its own needsStageB() is named.
+    `owe_one_fact()` makes robot two owe at least one Stage A fact (the self-test copy has it typed)."""
+    for build, other in (("one-drive", "robot two"), ("tank-drive", "robot one")):
+        b = BuildResult()
+        b.exit = 1
+        b.text = f"static assertion failed: {other}: OWED -- x\n"
+        _, problems = verdict(build, b)
+        expect(any(f"printed a `{other}: OWED` line" in x for x in problems),
+               f"63a: build {build}'s output holding {other}'s OWED line passed verdict(): {problems}")
+    b = BuildResult()
+    b.exit = 1
+    b.text = "static assertion failed: robot one: OWED -- x\n"
+    _, problems = verdict("one-drive", b)
+    expect(not any("printed a `robot one: OWED` line" in x for x in problems),
+           "63a: robot one's OWN OWED line was taken for another robot's")
+    two = FACTS_LEDGERS["RobotTwo"]
+    with owe_one_fact():
+        want = sorted(expected_owed("tank"))
+        expect(bool(want), "63b: robot two owes nothing here — the case cannot run")
+
+        def refusal(words, ledger):
+            b = BuildResult()
+            b.exit = 1
+            b.errors = [(two["ledger"], 1, f"static assertion failed: {words}: OWED -- {n} ({ledger})") for n in want]
+            return facts_verdict("tank", b)
+        def foreign(problems):  # the refusal judged as NOT this robot's owed facts
+            return any("not an OWED fact" in x for x in problems) and any("wrong facts" in x for x in problems)
+        _, problems, _ = refusal("robot two", two["ledger"])
+        expect(not foreign(problems) and not any("wrong facts" in x for x in problems),
+               f"63b: robot two refusing in its own words with its own ledger was judged foreign: {problems}")
+        _, problems, _ = refusal("robot one", FACTS_LEDGERS["RobotOne"]["ledger"])
+        expect(foreign(problems), f"63b: robot two refusing with ROBOT ONE's words and ledger passed: {problems}")
+        _, problems, _ = refusal("robot two", FACTS_LEDGERS["RobotOne"]["ledger"])
+        expect(foreign(problems), f"63b: robot two's refusal naming ROBOT ONE's ledger passed: {problems}")
+        _, problems, _ = refusal("robot one", two["ledger"])
+        expect(foreign(problems), f"63b: robot two's refusal in ROBOT ONE's words passed: {problems}")
+    with _transform(os.path.join(REPO, two["ledger"]),
+                    lambda t: t + "\n// (self-test plant)\nconstexpr bool needsStageB(int) { return false; }\n"):
+        found = stage_table_problems()
+        expect(any(two["ledger"] in x and "needsStageB" in x for x in found),
+               f"63c: a needsStageB() of robot two's ledger's own passed step 0: {found}")
+
+
+def _owed_again_plant(ledger_path):
+    """(old, new): robot one's typed hold volts made OWED again -- a self-test's own owed fact (text plant, in the copy)."""
+    with open(ledger_path, encoding="utf-8") as f:
+        text = f.read()
+    i = text.index("inline constexpr auto kCascadeHoldVolts =")
+    j = text.index(");\n", i) + 3
+    return text[i:j], ('inline constexpr auto kCascadeHoldVolts = owed(1.0, Stage::B, "the cascade\'s hold volts");'
+                       '  // (self-test plant: owed again)\n')
 
 
 def do_self_test():
@@ -3439,8 +3621,8 @@ def do_self_test():
             (SRC_PLANT, "ProsImu imu{kChassis.imuPort", "ProsImu imu{kRobotTwoChassis.imuPort"),
             (DRIVE_PLANT, "st.mechanisms->bind(kMechanisms, ",
              "st.mechanisms->bind(mechanismTableFor(RobotId::BenchBot), "),
-            (CALIBRATE_PLANT, "calibrateFactsFor(kChassis, kMechanisms)",
-             "calibrateFactsFor(kChassis, mechanismTableFor(RobotId::BenchBot))")):
+            (CALIBRATE_PLANT, "calibrateFactsFor(kChassis, kMechanisms, ThisRobotWords::value.recordName)",
+             "calibrateFactsFor(kChassis, mechanismTableFor(RobotId::BenchBot), ThisRobotWords::value.recordName)")):
         rel = os.path.relpath(where, REPO)
         with _replace(where, old, new):
             found = one_chain_problems()
@@ -4239,18 +4421,21 @@ def do_self_test():
     #     one's Bench Tests owes nothing (its Stage A all typed), so the case uses Drive: with needs() dropped it
     #     also refuses the RECORDED facts (the camera's), which no program needs. FOLLOW-UP: plant an owed fact so
     #     this case holds once every fact is typed.
+    # Since 2026-11-17 robot one owes NO Stage B fact: the case plants ONE owed again (its hold volts) in the copy.
     needs_term = "::shulib::bench::robot_one_facts::needs(::shulib::bench::kProgram, (fact).needed)"
-    with _replace(ledger_path, needs_term, "true /* (self-test plant: needs dropped) */"):
+    owed_old, owed_new = _owed_again_plant(ledger_path)
+    with _replace(ledger_path, owed_old, owed_new):
+        with _replace(ledger_path, needs_term, "true /* (self-test plant: needs dropped) */"):
+            b = run_build("one-drive")
+            ok, problems, refused = facts_verdict("one-drive", b)
+            expect(not ok and not refused, "53: robot one's Drive refusing a RECORDED fact too PASSED")
+            expect(any("named and not owed by this program" in p and "the AI Vision camera's port" in p
+                       for p in problems), f"53: the failure did not name the extra RECORDED fact: {problems}")
         b = run_build("one-drive")
         ok, problems, refused = facts_verdict("one-drive", b)
-        expect(not ok and not refused, "53: robot one's Drive refusing a RECORDED fact too PASSED")
-        expect(any("named and not owed by this program" in p and "the AI Vision camera's port" in p
-                   for p in problems), f"53: the failure did not name the extra RECORDED fact: {problems}")
-    b = run_build("one-drive")
-    ok, problems, refused = facts_verdict("one-drive", b)
-    expect(ok and refused, f"53: the real robot-one Drive build does not refuse exactly its owed facts: {problems}")
-    expect(not os.path.exists(os.path.join(REPO, "bin", "hot.package.bin")),
-           "53: the refused robot-one build left bin/hot.package.bin")
+        expect(ok and refused, f"53: the real robot-one Drive build does not refuse exactly its owed facts: {problems}")
+        expect(not os.path.exists(os.path.join(REPO, "bin", "hot.package.bin")),
+               "53: the refused robot-one build left bin/hot.package.bin")
 
     # 54 ([R4]): THE COPY'S PROOF INTERRUPTED once the copy's ledger is typed (a crash, a kill) — the
     #     repository's ledger hash and bin/ unchanged, the copy deleted by the `finally`; and a LEFTOVER copy
@@ -4289,9 +4474,10 @@ def do_self_test():
         with open(elf_path, "rb") as f:
             beacon_ok = _beacon_bytes(VARIANT_BEACONS["tank-drive"]) in f.read()
     rc3, c3, _t3 = make_direct("ROBOT=tank", "PROGRAM=drive")
-    # A robot-one variant that still OWES facts: Bench Tests links since 2026-11-16 (its Stage A all typed), so
-    # the refusal half uses Drive (Stage B owed). FOLLOW-UP: plant an owed fact so this holds once all are typed.
-    rc4, _c4, t4 = make_direct("ROBOT=one", "PROGRAM=drive")
+    # A robot-one variant that still OWES a fact: since 2026-11-17 robot one owes none, so ONE is planted owed again.
+    owed_old, owed_new = _owed_again_plant(ledger_path)
+    with _replace(ledger_path, owed_old, owed_new):
+        rc4, _c4, t4 = make_direct("ROBOT=one", "PROGRAM=drive")
     expect(rc1 == 0 and rc2 == 0 and rc3 == 0, f"55: a robot-two build failed ({rc1}, {rc2}, {rc3})")
     expect(c1 == n_tus, f"55: the first build compiled {c1} of {n_tus} files")
     expect(c2 == n_tus, f"55: a PROGRAM switch with no rm compiled {c2} of {n_tus} files — the stamp does "
@@ -4366,6 +4552,70 @@ def do_self_test():
     # 58 (the review of ROB1-A's integration): STEP 8's ROBOT HALF — _self_test_robot_half() says how.
     _self_test_robot_half(expect)
 
+    # ── ROB1-BT (2026-11-16): robot two's facts proof — run in THIS copy, where robot two's ledger is typed ──────
+    # 59: ONE of robot two's facts turned back to OWED in this copy's ledger -> `tank` (robot two's Bench Tests)
+    #     REFUSES naming EXACTLY that fact (facts_verdict: refused, as it must), robot one's OWED words never in
+    #     its output; and the expected set is read from ROBOT TWO's ledger, not robot one's.
+    two = FACTS_LEDGERS["RobotTwo"]
+    two_path = os.path.join(REPO, two["ledger"])
+
+    def owe_one(text):
+        # type_every_fact() keeps each argument's own leading space (`,  Stage::A,  "…"`): any whitespace.
+        m = re.search(r'= typed\(([^,]+),\s*\1,\s*(Stage::A),\s*("the cascade motors\' cartridge"),\s*'
+                      r'"gate copy[^"]*"\)', text)
+        assert m, "the copy's robot-two ledger does not hold its typed cartridge fact"
+        return text[:m.start()] + f"= owed({m.group(1)}, {m.group(2)}, {m.group(3)})" + text[m.end():]
+    with _transform(two_path, owe_one):
+        want = expected_owed("tank")
+        expect(want == {"the cascade motors' cartridge"},
+               f"59: robot two's expected owed set is not read from robot two's ledger: {sorted(want)}")
+        one_owed_a = {f["name"] for f in ledger_facts(REPO, "RobotOne") if f["kind"] == "owed" and f["stage"] == "A"}
+        expect(expected_owed("one") == one_owed_a,
+               f"59: robot one's expected set is not its own ledger's owed Stage A facts: {sorted(expected_owed('one'))}")
+        b = run_build("tank")
+        ok, problems, refused = facts_verdict("tank", b)
+        expect(ok and refused, f"59: robot two's Bench Tests with ONE owed fact was not refused naming exactly it: "
+                               f"{problems}")
+        expect("robot one: OWED" not in b.text, "59: robot two's build printed robot one's OWED words")
+        expect(not os.path.exists(os.path.join(REPO, "bin", "hot.package.bin")),
+               "59: robot two's refused build left bin/hot.package.bin")
+    # 60: STEP 8's ELF RULE — a package whose BYTES carry another robot's OWED words fails, both ways (synthetic).
+    #     A static_assert message never reaches an ELF, so a real build cannot trip this one; the build-OUTPUT
+    #     rule (verdict()) is case 63's.
+    expect(any("another robot's words" in x for x in robot_separation_problems("one-drive", set(), b"robot two: OWED -- x")),
+           "60: robot one's package carrying robot two's OWED words passed step 8")
+    expect(any("another robot's words" in x for x in robot_separation_problems("tank-drive", set(), b"robot one: OWED -- x")),
+           "60: robot two's package carrying robot one's OWED words passed step 8")
+    # 61: THE COPY'S SENTINEL. Here (this copy names itself, robot two typed) step 0 accepts robot two's marker and
+    #     its "gate copy" sources; a sentinel naming ANOTHER tree (one copied back) is refused, and with it robot
+    #     two's marker and sources are flagged again (and so is a sentinel whose first line is BLANK); robot one's
+    #     marker is flagged here always.
+    expect(not any(two["ledger"] in x or two["marker"] in x for x in ledger_source_problems()),
+           f"61: this copy's own typed robot-two ledger or marker FAILED step 0: {ledger_source_problems()}")
+    sentinel_path = os.path.join(REPO, COPY_SENTINEL)
+    with _transform(sentinel_path, lambda t: "/somewhere/else" + t[t.index("\n"):]):
+        found = ledger_source_problems()
+        expect(any(COPY_SENTINEL in x and "not this tree" in x for x in found),
+               f"61: a sentinel naming another tree passed step 0: {found}")
+        expect(any(two["marker"] in x for x in found) and any("gate copy" in x and two["ledger"] in x for x in found),
+               f"61: with a foreign sentinel robot two's marker and sources were still exempt: {found}")
+    # ... and a BLANK first line (realpath("") is the working directory — this very tree) is refused too.
+    with _transform(sentinel_path, lambda t: t[t.index("\n"):]):
+        found = ledger_source_problems()
+        expect(any(COPY_SENTINEL in x and "not this tree" in x for x in found),
+               f"61: a sentinel with a BLANK first line passed step 0 (taken for this tree): {found}")
+    # 62: each ledger reads ITS OWN marker exactly once: robot one's text typed against robot two's marker read
+    #     is refused (a shared or crossed marker would type one robot in a copy meant for the other).
+    with open(os.path.join(REPO, FACTS_LEDGERS["RobotOne"]["ledger"]), encoding="utf-8") as f:
+        one_text = f.read()
+    try:
+        type_every_fact(one_text, two["marker_read"])
+        expect(False, "62: robot one's ledger typed against robot two's marker read")
+    except ValueError as e:
+        expect("marker" in str(e), f"62: a crossed marker raised something else: {e}")
+    # 63: the three cross-robot rules no real build trips — _self_test_cross_robot_words() says which.
+    _self_test_cross_robot_words(expect, lambda: _transform(two_path, owe_one))
+
     for f in failures:
         print(f"  SELF-TEST FAILURE — {f}", file=sys.stderr)
     if failures:
@@ -4375,11 +4625,58 @@ def do_self_test():
     return 0
 
 
+#: THE SELF-TEST RUNS IN A COPY (chunk ROB1-BT, 2026-11-16 — header, THE ROBOTS' FACTS PROOF). Since robot two
+#: became robot one's twin with every fact OWED, NO robot-two build links on the real tree — and two dozen of the
+#: detector cases below need a LINKED robot-two package (the drive, calibrate, autontest, competition and tune
+#: programs exist only for the two robots, and robot one's are owed too). So `self-test` makes a typed COPY of the
+#: working tree under build/src-gate-selftest/ (gitignored) with ROBOT TWO'S ledger typed (its marker and the copy's
+#: sentinel written there) and ROBOT ONE'S LEFT OWED (cases 50-58 prove robot one's refusals and its copy), runs
+#: the whole self-test THERE, in a child process whose REPO is the copy, and deletes the copy in a `finally` (a
+#: leftover one is swept at the next start). The repository is never planted any more: every `_plant`,
+#: `_transform` and `_newfile` writes into the copy. The child knows it is the copy by SELFTEST_ENV.
+SELFTEST_ENV = "SHULIB_SRC_GATE_SELFTEST_COPY"
+SELFTEST_COPY_DIR = os.path.join("build", "src-gate-selftest")
+
+
+def self_test_in_copy():
+    """`self-test` from the repository: the copy, the child, the cleanup and the repository's untouched-check
+    (header of SELFTEST_ENV). Returns the child's exit code, or 1 when the repository moved."""
+    repo = REPO
+    copy = os.path.join(repo, SELFTEST_COPY_DIR)
+    ledgers = {who: os.path.join(repo, led["ledger"]) for who, led in FACTS_LEDGERS.items()}
+    before = {who: _sha256(path) for who, path in ledgers.items()}
+    try:
+        n = make_typed_copy(repo, copy, ["RobotTwo"])
+        print(f"src build gate self-test: running in a COPY ({SELFTEST_COPY_DIR}/), robot two's ledger typed there "
+              f"({n} facts), robot one's left owed — the repository is never planted", flush=True)
+        env = dict(os.environ)
+        env[SELFTEST_ENV] = "1"
+        rc = subprocess.run([sys.executable, os.path.join(copy, "tools", "src_build_gate.py"), "self-test"],
+                            cwd=copy, env=env).returncode
+    finally:
+        shutil.rmtree(copy, ignore_errors=True)
+    moved = [FACTS_LEDGERS[w]["ledger"] for w, path in ledgers.items() if _sha256(path) != before[w]]
+    stray = [m for m in [led["marker"] for led in FACTS_LEDGERS.values()] + [COPY_SENTINEL]
+             if os.path.exists(os.path.join(repo, m))]
+    if moved or stray or os.path.exists(copy):
+        print(f"src build gate self-test: FAIL — the repository moved during the copy's self-test: ledgers "
+              f"{moved}, stray {stray}, copy left {os.path.exists(copy)}", file=sys.stderr)
+        return 1
+    return rc
+
+
 def main():
     arg = sys.argv[1] if len(sys.argv) > 1 else "check"
     if arg == "check":
         return cmd_check()
     if arg == "self-test":
+        if os.environ.get(SELFTEST_ENV) != "1":
+            return self_test_in_copy()
+        typed, _files, problem = copy_sentinel(REPO)
+        if problem or typed is None or "RobotTwo" not in typed:
+            print(f"src build gate self-test: FAIL — {SELFTEST_ENV} is set but {REPO} is not a self-test copy "
+                  f"({problem or 'no sentinel naming it with robot two typed'})", file=sys.stderr)
+            return 1
         return do_self_test()
     print(__doc__.split("USAGE")[0], file=sys.stderr)
     print(f"unknown subcommand '{arg}' — use: check | self-test", file=sys.stderr)

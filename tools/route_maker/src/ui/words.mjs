@@ -82,13 +82,13 @@ export function stepTitle(step, robot) {
     }
 }
 
-/** What a mechanism of each kind can do in A1 (D2's mechanism row). [action, words, the steps it adds]. */
-export function mechanismActions(kind) {
+/** What a mechanism of each kind can do in A1 (D2's mechanism row), given how many levels it has. */
+export function mechanismActions(kind, levels = true) {
     switch (kind) {
         case 'arm':
         case 'lift':
             return [
-                { id: 'move', words: 'Move to a level', do: 'move' },
+                ...(levels ? [{ id: 'move', words: 'Move to a level', do: 'move' }] : []),  // none: nothing to move to
                 { id: 'home', words: 'Home it (find its zero)', do: 'home' },
                 { id: 'wait', words: 'Wait until it is done', do: 'waitUntilDone' },
             ];

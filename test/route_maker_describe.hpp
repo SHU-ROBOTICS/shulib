@@ -6,7 +6,7 @@
 //
 // The route builder (tools/route_maker/, a web page) cannot read C++, so the robot's facts reach it through
 // this file: every mechanism of the robot's own list (its name, its declaration's C++ name, its kind, its
-// homing method, its presets or positions — a preset that is a level of robot one's facts ledger is marked
+// homing method, its unhomed volts (RMP1-B's controls), its presets or positions — a preset that is a level of robot one's facts ledger is marked
 // with its index, so the export names it `m[facts::lv(i).name]`), the drive the page plans on (a tank, the
 // library's own tank-steering window and curve rules — MotionConfig's defaults, the numbers a Chassis is
 // built with when nothing overrides them), the field's numbers (localization/override_walls.hpp,
@@ -88,7 +88,12 @@ namespace route_maker {
     if (file == nullptr || line == 0) {
         return {};
     }
+#ifdef SHULIB_SOURCE_DIR
+    // A name the build made relative (W10's prefix map) is this build's tree's, never the working directory's.
+    std::ifstream in{file[0] == '/' ? std::string{file} : std::string{SHULIB_SOURCE_DIR} + "/" + file};
+#else
     std::ifstream in{file};
+#endif
     if (!in) {
         return {};
     }
@@ -194,6 +199,7 @@ struct RobotSource {
                 j += ", \"kind\": " + str(arm ? "arm" : "lift") + ", \"units\": " + str(arm ? "deg" : "in");
                 j += ", \"homing\": " + str(homingWord(s.position.home));
                 j += ", \"range\": [" + num(s.position.minPosition) + ", " + num(s.position.maxPosition) + "]";
+                j += ", \"unhomedVolts\": " + num(s.position.unhomedVolts);  // RMP1-B: the controls' U5 rules
                 j += ", \"presets\": [";
                 for (std::size_t p = 0; p < s.position.presetCount; ++p) {
                     const std::string_view pn = textOf(s.position.presets[p].name);

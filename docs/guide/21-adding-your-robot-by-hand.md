@@ -4,16 +4,18 @@
 > hand: every file a robot lives in, its **facts file** (every number nobody has measured yet is written
 > there once, marked **OWED**, and the build of every program that needs it **refuses**, naming it), its
 > six programs and their slots, the order things happen on the robot, its six mechanisms and the builder's
-> button map (yours to change), the flipper's three forms, and why the two robots differ only in their facts.
-> **Read this if:** robot one is on your bench, the build just printed `robot one: OWED -- …`, or you are
-> adding a robot of your own.
+> button map (yours to change), the flipper's three forms, and robot two — robot one's TWIN: the same build,
+> its own facts file, the skills route mirrored.
+> **Read this if:** robot one or robot two is on your bench, the build just printed `robot one: OWED -- …` or
+> `robot two: OWED -- …`, or you are adding a robot of your own.
 > **Assumes:** [Chapter 7](07-getting-set-up.md) (building and uploading), [Chapter 18](18-mechanisms.md)
 > (declaring mechanisms) and [Chapter 19](19-calibrating-your-robot.md) (Calibrate).
 
 Robot one's mechanisms, its controls and its autons run in the host test suite on the host test plant (the
 suite's model of a robot) on the typed values and, where a fact is still owed, its **placeholder**, and its six
 builds are checked by the src build gate. A placeholder can never reach the robot: until a fact is typed, every
-build of a program that needs it stops with an error naming it.
+build of a program that needs it stops with an error naming it. **Robot two** was rebuilt as robot one's
+twin; its facts are owed until its builder reads them off it ([below](#robot-two-robot-ones-twin)).
 
 ## Where a robot lives in the code
 
@@ -24,21 +26,19 @@ once. Each line is what a robot needs — copy the pattern when you add yours.
 |---|---|
 | `src/build_selection.hpp` | its `RobotId` (`RobotOne`), one branch of THE ONE CHAIN per program (each sets the program, the robot and the build's beacon together), its robot beacon (`shulib-robot=robot-one`), and its define (`SHULIB_ROBOT_ONE_2026`) in each `PROGRAM=` guard above the chain — and, because it has mechanisms, in the Tune guard — without it that build stops at an `#error` naming why |
 | `Makefile` | its `ROBOT=` word (`ROBOT=one`) and its define; the four `PROGRAM=` lines accept it; and — because it has mechanisms — its word in `MECHANISM_ROBOTS`, the list "shulib Tune" (`PROGRAM=tune`) accepts |
-| `src/robots/chassis_table.hpp` | its drive table (`kRobotOneChassis`) — every unknown field left UNSET, and every station that needs one refuses by name. Calibrate discovers the drive's ports, directions, sides, front, scale and track width, and finds the **IMU** on the brain's own device list; the one drive fact it cannot discover is the drive **cartridge** (the form's A2) — typed here before Calibrate runs (robot one's: BLUE, 2026-11-15) |
+| `src/robots/chassis_table.hpp` | its drive table (`kRobotOneChassis`) — what Calibrate measured, and the autons' drive settings (speed, turn rate, heading), read from its facts file. Calibrate discovers the drive's ports, directions, sides, front, scale and track width, and finds the **IMU** on the brain's own device list; the one drive fact it cannot discover is the drive **cartridge** (the form's A2) — typed here before Calibrate runs (robot one's: BLUE, 2026-11-15) |
 | `src/robots/robot_one_facts.hpp` | **its facts file** — every number about its mechanisms, OWED or typed (below) |
 | `src/robots/mechanism_table.hpp` | its mechanisms, in its own `namespace robot_one`, between its `[robot one mechanisms]` markers, every number read from the facts file; its line in `mechanismTableFor()` |
 | `src/team/robot_one_driver.hpp` | its driver file — which button does what (the builder's map, below) |
-| `src/team/robot_one_autons.cpp` | its autons — a starter file: the 40 in as a SKILLS auton and the library's acceptance run. **The skills route is yours to write.** |
-| `src/common/this_robot.hpp`, `src/common/robot_words.hpp` | nothing to type: the programs run THIS build's driver file and autons (`ThisRobotDriver`, `registerThisRobotsAutons()`) and print THIS robot's words — robot one's screens say `MECH`, never `CLAW` |
+| `src/team/robot_one_autons.cpp` | its autons — the 40 in and the library's acceptance run as SKILLS autons, and the team's skills route |
+| `src/team/skills_route.cpp` | **the skills route, written once for both robots** (robot two runs it mirrored). **It is yours to write** — in the route maker, or by hand |
+| `src/common/this_robot.hpp`, `src/common/robot_words.hpp` | nothing to type: the programs run THIS build's driver file and autons (`ThisRobotDriver`, `registerThisRobotsAutons()`) and print THIS robot's words — both robots' screens say `MECH`, and Calibrate writes THIS robot's name into its record ([Chapter 19](19-calibrating-your-robot.md#two-robots-one-card-each-the-record-names-its-robot)) |
 | `test/CMakeLists.txt` | its autons file, so the host suite runs every auton in it |
 | `tools/src_build_gate.py` | its six builds |
 
-**Robot two is the worked example and was not changed.** Its tables, driver file and autons are byte for
-byte what they were, and the eight robot-two, bench and X-drive packages carry the same machine code and
-the same constant data as before (compared function by function and object by object) — and every robot-one line of
-`src/robots/mechanism_table.hpp` sits
-*below* robot two's region, because each of robot two's declarations records the line it is written on
-and a line added above it would change every robot-two package.
+Robot two has the same files with its own names — `src/robots/robot_two_facts.hpp`, its region in the
+mechanism table, `src/team/robot_two_driver.hpp`, `src/team/autons.cpp` — copied from robot one's when it
+became the twin ([below](#robot-two-robot-ones-twin)).
 
 ## The facts file: OWED until typed
 
@@ -67,8 +67,8 @@ src/robots/robot_one_facts.hpp: error: static assertion failed: robot one: OWED 
 `bin/` to upload**: `make` notices a changed `ROBOT=` or `PROGRAM=` and starts fresh by itself, so a
 refused build can never leave the last robot's or program's package behind. (One exception: if this
 same robot-and-program build once linked — every fact it needs typed — and is refused now, its last good
-package is still in `bin/`. It carries no placeholder.) Every other build — robot two's, the bench
-bot's, the host suite — is untouched by an owed fact.
+package is still in `bin/`. It carries no placeholder.) Every other build — the other robot's, the bench
+bot's, the host suite — is untouched by robot one's owed facts.
 
 ### Which program needs which fact
 
@@ -107,11 +107,12 @@ A fact is never "corrected" to match a belief, and never invented to get a build
 reads every typed fact's source too: it must say **when** (a date, like `2026-11-17`) and never call itself
 a guess — any wording otherwise (`station 13 RECORD, the team's builder, 2026-11-16` is fine).
 
-**After each typing, build robot two too.** Robot one's mechanisms compile in *every* build, so a typed
-value that breaks one of the library's rules — a level above the top stop, rows out of order, a preset in
-the driver file bound to a level that has no name — stops robot two's builds as well as robot one's
-(loudly, by name). The src build gate
-runs all fourteen builds; run it, or at least `make ROBOT=tank`, before uploading anything.
+**After each typing, run the host suite and the src build gate.** Both robots' mechanisms compile in
+*every* build, so a typed value that breaks one of the library's rules — a level above the top stop, rows
+out of order, a preset in the driver file bound to a level that has no name — stops every build, both
+robots' and the host suite's (loudly, by name). The gate runs all fourteen builds, and builds each robot's
+six again in a throwaway copy with every owed fact typed — so it checks a robot whose own builds still
+refuse. Run it before uploading anything.
 
 **Not a facts-file edit:** a third cascade motor, or a new mechanism's block — those are declarations, in
 `src/robots/mechanism_table.hpp` (the number of motors is part of the declaration's shape). A new
@@ -130,7 +131,8 @@ the block reads them as `facts::…` (that is how the side toggles and the three
 | shulib Tune | `make ROBOT=one PROGRAM=tune` | 7 | Stage A and B |
 
 Each is uploaded like robot two's (`pros upload --slot 3 --name "Bench Tests"`, and so on —
-[Chapter 7](07-getting-set-up.md)). Robot two's builds keep `ROBOT=tank`. **shulib Tune** tunes the cascade's
+[Chapter 7](07-getting-set-up.md)). Robot two's six are the same programs with `ROBOT=tank` (robot two kept
+its name). **shulib Tune** tunes the cascade's
 numbers live on the brain screen ([Chapter 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen)); it
 homes the cascade, jogs it and moves it to its first and last level — with fewer than two levels named (robot
 one's today: manual, no levels), to a quarter and three quarters of its range — so, like Drive, it needs Stage B:
@@ -142,10 +144,11 @@ cartridge driving the spool directly turns it thirty times faster.)
 
 ### Tune's COPY on robot one: each number goes to its fact
 
-Robot two's COPY lines are written into its declaration by hand
-([Chapter 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen)). **Robot one's are not**: its
-declaration reads every number from the facts file, and the host suite fails a number typed straight into
-robot one's region ("a literal number in robot one's mechanism region"). So each number a COPY prints is
+A robot with no facts file has its COPY lines written into its declaration by hand
+([Chapter 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen)). **Robot one's and robot two's
+are not**: each robot's declaration reads every number from its own facts file, and the host suite fails a
+number typed straight into robot one's region ("a literal number in robot one's mechanism region"; robot
+two's region is robot one's, token for token). So each number a COPY prints is
 typed into its FACT, like any other answer — by the coordinator, with a source such as
 `shulib Tune COPY, 2026-11-17`:
 
@@ -220,7 +223,8 @@ for station 13's answers above and the cascade's three voltages.
 
 The library's builder wrote a starting map when robot one first got a build (no robot-one program builds
 without a driver file); on 2026-11-15 the builder gave the real one, and it is typed exactly. **It is
-yours**: change any line in `src/team/robot_one_driver.hpp` and be able to say why.
+yours**: change any line in `src/team/robot_one_driver.hpp` and be able to say why — by hand, or by clicking on
+the route builder's picture of the controller ([chapter 22](22-making-your-first-route.md#the-drivers-buttons-and-the-driving-feel)).
 
 | Input | Does |
 |---|---|
@@ -248,7 +252,7 @@ until it stalls gently on its bottom stop (at most 3 s), and R1 / R2 wait until 
 through it does nothing until let go. That is the one line marked `[delete-able]`: delete it and the cascade
 is never homed in driver control. A side toggle held on L1 or L2 runs ONE way — the library's one-button
 hold, `whileHeld(mechanism, button, volts)` (a power mechanism only): its direction is the facts file's,
-never a second button.
+never a second button. As the builder gave it, the statement reads:
 
 ```cpp
 inline constexpr DriverControls kControls = controls(kRobotOneMechanisms,
@@ -266,8 +270,8 @@ Three numbers there were nobody's answer, and the file marks each **chosen, not 
 where you want), the side toggles' 12 V (each motor's chosen 1.5 A cap bounds the push against a stop), and
 the driver-start home's 3 s.
 
-**The Drive screen's mechanism row** is compact on robot one — six mechanisms do not fit the screen's
-50-character row in the long form robot two's two claws use:
+**The Drive screen's mechanism row** is compact on both robots — six mechanisms do not fit the screen's
+50-character row in the long form a robot with fewer mechanisms gets:
 
 ```text
 MECH 10H34 9B31 2B30 CLAW:C FLIP:O RAMP:U
@@ -278,7 +282,7 @@ reverse, or its stop: `H` hold, `B` brake, `C` coast — and its temperature in 
 Then each piston by the first four letters of its name and the first letter of its position (`C`losed,
 `O`pen, `U`p, `D`own; `?` its lines match neither, `X` not found). **`FLIP` is the front toggle** — its
 declared name is `flipper`, the name the flipper check looks for. ` FREED` at the end means what it means
-on robot two's row.
+on the long row.
 
 **When presets come back**, each level is typed into the facts file first — a name and a height, with a row
 AT each level (the cascade's string winds in layers, so the height per turn changes as it climbs) — and then
@@ -342,20 +346,54 @@ its wiring `wire(flipperAir, lines('D')));` and its control `toggle(flipperAir, 
 (The numbers in these blocks — a port, a gearing, a stall signature and cap, two angles, a stroke time
 — are placeholders of the test that proves the forms, not robot one's. Step 1 above replaces every one.)
 
-## Two robots, one design
+## Robot two: robot one's twin
 
-The builder says both robots are built alike. Each robot's mechanisms are written the same way from its
-own facts file, so when robot two is rebuilt as robot one's twin, its region becomes robot one's copied
-with its own facts file, and a test will fail if the two ever differ anywhere but their facts. Until
-then robot two stays exactly as it is.
+Robot two was rebuilt as robot one's twin (the team lead, 2026-11-13: "IT IS LITERALLY THE SAME ROBOT
+BUILD JUST A MIRRORED ROUTINE"). The two robots are one design in the code; only two things are each
+robot's own — **its facts** (each robot is wired and measured on its own) and **one auton line**: robot
+two runs the team's skills route MIRRORED across the field's skills diagonal, so in a skills run it works
+the right wall's Quadrant while robot one works the red wall's
+([cookbook chapter 9](../cookbook/09-one-route-two-robots.md)).
+
+![The real Override field from above, red station at the bottom, with the skills diagonal y = -x drawn from the red/right corner to the blue/left corner. An example leg: robot one at (-36, -60) facing 90 drives up; robot two runs the same function mirrored, from (60, 36) facing 180. At the leg's end, what robot one reaches with its RIGHT side toggle is on robot two's LEFT](../assets/twin-mirror.png)
+
+| | Robot one | Robot two |
+|---|---|---|
+| Mechanisms | its region of `src/robots/mechanism_table.hpp` | robot one's region, word for word, `robot_one` → `robot_two` |
+| Facts | `src/robots/robot_one_facts.hpp` | `src/robots/robot_two_facts.hpp`: the same facts, names and stages — **every one OWED** until its builder reads it off robot two |
+| Drive cartridge | BLUE (typed) | UNSET until read off robot two |
+| Driver file | the builder's map | the same map |
+| Autons | the 40 in, the acceptance run, the skills route | the same — the skills route **mirrored** (one line) |
+| Calibration record | names `robot-one` | names `robot-two` |
+
+Each robot-two placeholder is robot one's own value for that fact, so the host suite runs robot two
+exactly as robot one. Until a fact is typed, every robot-two build that needs it refuses:
+`robot two: OWED -- the cascade's motor ports (src/robots/robot_two_facts.hpp)`. Bench Tests and Calibrate
+wait on its 17 Stage A facts, the other four programs on all 31 of Stage A and B. A robot-two fact is typed
+like robot one's, keeping robot one's own PLACEHOLDER (`.placeholder` — it never changes, so typing robot
+one later cannot upset robot two) beside robot two's value:
+
+```text
+inline constexpr auto kCascadePorts = typed(one::kCascadePorts.placeholder, Pair<int>{10, 1}, Stage::A,
+    "the cascade's motor ports", "the team's builder, <date>, read off robot two");
+```
+
+**A change to one robot is a change to both.** `test/robot_twin_test.cpp` fails the host suite when the two
+mechanism regions, the two facts files' names and stages, the two driver files (their controls, their feel
+and their header maps) or the two autons lists differ anywhere but where the table above says. Change a
+button in both driver files; add a mechanism to both regions.
+
+Robot two's old build — two claw pivots on ports 6 and 7, a pneumatic claw on 3-wire A, and its measured
+drive table — is retired. The host suite keeps it as its example robot with claws
+([Chapter 16](16-testing-an-auton-on-the-bench.md#the-claws-in-an-auton)).
 
 ## What robot one does not do yet
 
-- **Nothing in this chapter has run on robot one yet.** No census has seen it, no reading has been taken
-  from it and no photo is on file; everything above runs on the host test plant on placeholder numbers.
-- **A calibration record names no robot** — both robots read `shulib_drivetrain.bin` from their own SD
-  card, and the boot recognises a card moved between them only by its ports. Keep one card per robot,
-  labelled, until the record carries the robot's name.
+- **Robot one's drive was measured by a Calibrate build that is not the standard one yet** (2026-11-17): one
+  motor of its ten could not turn the robot, so the sides were found by which motors move together (the standard
+  Calibrate's version of that is still being built). Its result is typed into `kRobotOneChassis` (the drive's
+  ports, signs, scale and an effective track width of 13.23 in), and the autons drive slower and softer than the
+  library's defaults (40 in/s, a heading arrival of 4 degrees — its ten geared motors rock about 2 degrees).
 - **Station 13 does not apply the cascade's current cap yet.** Until it does, keep its ceiling at 3 V on
   the cascade (never press R1 to raise it) and **never power the cascade into its top stop**: jog up at
   3 V to just short of it and stop; close the last bit by hand only if the cascade moves freely by hand

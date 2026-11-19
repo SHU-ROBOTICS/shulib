@@ -369,14 +369,14 @@ pivot 6" → `claw_pivot_6`). A program registers all of a robot's ids in one ca
 the manifest carries them like any other registered id.
 
 > **Status: host-tested only — registered by two programs, written to no manifest yet.** Since the
-> mechanism core's fifth part (2026-10-29) the competition program and the Auton Tester register robot
-> two's six ids at boot (their `ROUTES:` boot line counts them), so a route's markers can fire them;
-> no program writes a manifest, so no manifest a robot writes today contains them. The six lines below
-> are derived from a test fixture's copy of robot two's declarations, held byte for byte equal to the
-> robot file's region by a host test. Where a robot's manifest FILE lives for a picker to read is the
-> robot panel's work, not yet built.
+> mechanism core's fifth part (2026-10-29) the competition program and the Auton Tester register the
+> robot's ids at boot (their `ROUTES:` boot line counts them — eleven on each cascade robot), so a
+> route's markers can fire them; no program writes a manifest, so no manifest a robot writes today
+> contains them. The six lines below are derived from the host suite's claw robot — the OLD robot two's
+> declarations, retired in November 2026 when robot two was rebuilt as robot one's twin. Where a robot's
+> manifest FILE lives for a picker to read is the robot panel's work, not yet built.
 
-Robot two's six, exactly as the manifest writes them (after the header and the built-ins):
+The claw robot's six, exactly as the manifest writes them (after the header and the built-ins):
 
 ```
 {"id":"claw_pivot_6_run","builtin":false,"minArgs":2,"maxArgs":2,"doc":"claw pivot 6: run; args[0] = volts (-12..12), args[1] = how long, ms"}

@@ -15,7 +15,7 @@
 //
 // THE BENCH BOT AND THE INVENTED X-DRIVE run no driver file and no auton (PROS compiles every program's
 // .cpp in every build, and --gc-sections drops what their entry points never reach): they keep ROBOT
-// TWO'S driver type and autons, exactly the bytes their builds carried before ROB1-A (landmine 10).
+// TWO'S driver type and autons (landmine 10) — robot one's twin's since ROB1-BT; they never run them.
 //
 // The autons are chosen through a CONSTANT function pointer (kThisRobotsAutons), so only the chosen
 // robot's registration is referenced by a build — robot one's never reaches robot two's packages and
@@ -27,6 +27,7 @@
 #include "build_selection.hpp"
 #include "common/robot_words.hpp"
 #include "robots/robot_one_facts.hpp"
+#include "robots/robot_two_facts.hpp"
 #include "shulib/competition/auton_registry.hpp"
 #include "team/autons.hpp"
 #include "team/robot_one_autons.hpp"
@@ -76,22 +77,44 @@ inline constexpr RegisterAutons kThisRobotsAutons = autonsFor(kRobotId);
 /// program's initialize(), inside its try (src/team/autons.hpp's banner).
 inline void registerThisRobotsAutons(competition::AutonRegistry& registry) { kThisRobotsAutons(registry); }
 
-/// The facts line for `facts` facts of which `owed` are still owed, into `out` (at most `size` bytes,
-/// NUL-terminated); returns snprintf's count. Its counts are parameters so the host tests can give it a
-/// ledger with some facts typed (robot one's has none yet).
-inline int robotOneFactsLineFor(char* out, std::size_t size, int facts, int owed) {
-    return std::snprintf(out, size,
-                         "robot one: %d facts, %d typed (src/robots/robot_one_facts.hpp); %d still owed, none "
-                         "needed by this program",
-                         facts, facts - owed, owed);
+/// The facts line for `robot`'s ledger at `ledgerPath` ("robot one", "src/robots/robot_one_facts.hpp"),
+/// `facts` facts of which `owed` are still owed, into `out` (at most `size` bytes, NUL-terminated); returns
+/// snprintf's count. The counts are parameters so the host tests can try any.
+inline int robotFactsLineFor(char* out, std::size_t size, const char* robot, const char* ledgerPath, int facts,
+                             int owed) {
+    return std::snprintf(out, size, "%s: %d facts, %d typed (%s); %d still owed, none needed by this program",
+                         robot, facts, facts - owed, ledgerPath, owed);
 }
 
-/// Robot one's facts line for "shulib Drive"'s boot log: the ledger's counts — provenance, not a
-/// refusal (a program that needs an owed fact never links, so "none needed by this program" is true of
-/// every build that prints it). Robot one's builds call it; the programs never name robot one's ledger.
+/// The facts line for ROBOT ONE's ledger (ROB1-A's form; robotFactsLineFor for robot one).
+inline int robotOneFactsLineFor(char* out, std::size_t size, int facts, int owed) {
+    return robotFactsLineFor(out, size, "robot one", "src/robots/robot_one_facts.hpp", facts, owed);
+}
+
+/// Robot one's facts line (robotFactsLineFor over its ledger's counts).
 inline int robotOneFactsLine(char* out, std::size_t size) {
-    return robotOneFactsLineFor(out, size, robot_one_facts::kRobotOneFactCount,
-                                robot_one_facts::kRobotOneOwedCount);
+    return robotOneFactsLineFor(out, size, robot_one_facts::kRobotOneFactCount, robot_one_facts::kRobotOneOwedCount);
+}
+
+/// Robot two's facts line (ROB1-BT: robot two has a facts file too).
+inline int robotTwoFactsLine(char* out, std::size_t size) {
+    return robotFactsLineFor(out, size, "robot two", "src/robots/robot_two_facts.hpp",
+                             robot_two_facts::kRobotTwoFactCount, robot_two_facts::kRobotTwoOwedCount);
+}
+
+/// True when THIS build's robot has a facts ledger: robot one, and robot two since ROB1-BT (its twin).
+inline constexpr bool kThisRobotHasLedger = kRobotId == RobotId::RobotOne || kRobotId == RobotId::RobotTwo;
+
+/// THIS build's robot's facts line for "shulib Drive"'s boot log: its ledger's counts — provenance, not a
+/// refusal (a program that needs an owed fact never links, so "none needed by this program" is true of
+/// every build that prints it). Called only where kThisRobotHasLedger; a robot's package carries only ITS
+/// ledger's path (chosen at compile time).
+inline int thisRobotFactsLine(char* out, std::size_t size) {
+    if constexpr (kRobotId == RobotId::RobotTwo) {
+        return robotTwoFactsLine(out, size);
+    } else {
+        return robotOneFactsLine(out, size);
+    }
 }
 
 }  // namespace shulib::bench

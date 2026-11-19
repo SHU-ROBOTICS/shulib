@@ -487,10 +487,15 @@ TEST_CASE("P3-T3 (T4-3): the rows, the repaint and the boot's generated words co
     CHECK(count(boot,
                 "std::snprintf(line, sizeof line, kRobotOneBuild ? "
                 "\"driver control: robot one's driver file (src/team/robot_one_driver.hpp, the builder's \" "
-                "\"map -- the team's) -> runDriverControl, default profile (deadband 0.05, no expo, \" "
-                "\"no slew; HA-112); re-zero button %.5s; mode %.12s\" : ")
+                "\"map -- the team's) -> runDriverControl, its feel (the next line); re-zero button \" "
+                "\"%.5s; mode %.12s\" : ")
           == 1U);
     CHECK(count(c, "a DEFAULT") == 0U);
+    // RMP1-B: the feel's line is MADE from the driver file's kFeel, right after the driver line -- never typed,
+    // never pinned to the library's default (a team's feel would stop every build).
+    CHECK(count(boot, "logWrapped(log, hal::LogLevel::Info, line); feelLine(line, sizeof line, ThisRobotDriver::kFeel); "
+                      "logWrapped(log, hal::LogLevel::Info, line);") == 1U);
+    CHECK(count(c, "deadband 0.05, no expo") == 0U);
     CHECK(count(boot,
                 "log.log(driveBootLevel(boot.source == calibration::BootSource::UseRecord), kTag, "
                 "line);")

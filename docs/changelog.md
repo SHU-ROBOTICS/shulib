@@ -16,6 +16,234 @@
 
 ## API 2.9
 
+### 2026-11-17 — robot one is measured and drives its routes: its drive, its cascade, and gentler autons
+
+> Robot one's own files and the programs' boot (`src/`, `test/`): **no library change.** Measured on the robot.
+
+- **Robot one's drive** (`kRobotOneChassis`): MEASURED by Calibrate on the robot — left +11 −12 +13 −14 +15, right
+  −16 +17 −18 +19 −20, inches per radian 1.320 / 1.332 (typed as their mean), an effective track width of
+  13.23 in, the IMU on port 5.
+- **Robot one's cascade** (its facts file): station 13's two rows (the bottom stop, and 20 in at 3,759 deg), its
+  three volts chosen (hold 1 V, a 3 V homing push, 4 V before it is homed), the toggles' directions and the pistons'
+  levels from the builder's words (checked in Drive).
+- **A robot's own auton drive settings:** `ChassisTable` gains `driveMaxSpeedInPerS`, `driveMaxTurnRadPerS`,
+  `headingKp` and `headingSettleDeg` (0 = the library's default); the boot applies them (`applyDriveTuning`).
+  Robot one's, and its twin's: 40 in/s, 4 rad/s, heading kP 2.4, a heading arrival of 4 degrees — at the
+  defaults its autons ran at 60 in/s and rocked +-2-3 degrees at every target until their time limit.
+
+**What you must do:** nothing. Robot one's Drive, Auton Tester, Competition and Tune now build.
+
+### 2026-11-17 — PREVIEW in the route builder: the robot drives your route on the field, from the real library
+
+> Written when it was built (chunk RMP1, run RMP1-A2u). **No library change — no API change:** nothing under
+> `include/shulib/` or `src/` moved; this is the route builder's page. **Host and browser only: PREVIEW is the host
+> test plant's run, not the robot's.**
+
+**What you can now do (additive):**
+
+- **PREVIEW** in the [route builder](route-builder.md) (**Ctrl+Enter**): the real library runs the route on the
+  page — in the background, with **Cancel** — and the robot plays it on the field, its path solid beside the dashed
+  plan, under a timeline you can scrub (play, pause, step to the step before or after, the speed). Each step in the
+  list says how it went — done, failed (with the library's own line), through a wall, cut, skipped — and the steps
+  that used a number robot one's facts file has not measured yet are marked PLACEHOLDER. PREVIEW plays robot one;
+  robot two's mirrored run is not in it yet.
+- How: [guide chapter 22, step 6](guide/22-making-your-first-route.md#6-preview-watch-the-library-drive-it).
+
+**What changed:** robot one's cascade has no levels yet (its facts, typed 2026-11-15), so the route builder's
+Mechanism menu now says **"No levels yet: record them at Bench Tests station 13"** and offers what the cascade can
+do — home it, wait until it is done — instead of an empty list of levels. A move to a level in an older project file
+is red, with the same words.
+
+**What you must do:** nothing.
+
+### 2026-11-16 — the route builder's Controls tab: the driver's buttons and the driving feel, by clicking
+
+> Written when it was built (chunk RMP1, run RMP1-B). **No library change — no API change:** nothing under
+> `include/shulib/` moved. One line of `src/common/driver_file.hpp` is new (below). **Host and browser only: no map
+> or feel it writes has run on a robot here.**
+
+**Why:** the team's non-coders set the driver's buttons, and "a small push of the stick slow, a full push fast" —
+until now by typing C++.
+
+**What you can now do (additive):**
+
+- **The Controls tab** of the [route builder](route-builder.md): a picture of the V5 controller — click a free button,
+  pick a mechanism and what it does (run while held with one button or two, a toggle, a level or a position on one
+  press, a home); what the build refuses is refused in plain words with the build's own name beside them, and what is
+  unfinished or would leave the button map wrong is asked for.
+- **Driving feel:** the drive mode, and for each stick direction the dead zone and the curve, with a live graph of the
+  library's own formula (the same numbers as the library's C++, checked on the host at 9 630 points); the ramp, what
+  the drive does when the sticks are let go, the re-zero button.
+- **Export** writes the driver file's three marked parts — which button does what (`kControls`), the button map at
+  the top of the file, the feel (`kFeel`) — in Edge or Chrome with the shulib folder connected; in Firefox it hands
+  back the updated driver file you pick; or it copies them.
+  How: [guide chapter 22](guide/22-making-your-first-route.md#the-drivers-buttons-and-the-driving-feel).
+- **The top bar fits every laptop screen** (fixed at the merge, 2026-11-17): from 1101 px up, PREVIEW and Export
+  stay whole and apart; at 1600 px and below the folder button keeps only its icon (its words are on the Export page
+  too), and at 1366 px and below the "Route builder" words and the "Robot one" chip are not drawn.
+
+**CHANGED (a driver file that compiled can now stop the build — none in this repository does):** `DriverFile`
+refuses an out-of-range feel by name (`the feel is out of range`): a `.deadband` below 0 or at 1 and above, or an
+`.expo` outside 0 to 1. Outside those the curve overshoots full speed or turns the stick around.
+
+**What you must do:** nothing, unless your driver file's feel is out of range (fix the number the message names).
+The driver files carry the `control words` and `feel` markers from robot two's update; until then the tab offers
+Copy only. "shulib Drive" (and the competition program) now print the feel the driver file runs on their own boot
+line, `driver feel: …`, made from its `kFeel` — so a feel other than the library's default builds.
+
+### 2026-11-16 (built 2026-11-16) — robot two is robot one's twin; the calibration record names its robot; one skills route for both robots
+
+> Written when it was built (chunk ROB1, run BT — the brief's G1-B and G1-T together). **Added (no version
+> bump):** one optional fact and two functions in the calibration library — a layer no row of the
+> [Freeze Register](roadmap.md#freeze-register) freezes; a Calibrate that states no robot name writes exactly
+> what it always did, and the record's format is unchanged. **Host- and build-gated only: nothing has run on
+> either robot.**
+
+**Why:** the team lead, 2026-11-13: "robot 1 and robot 2 are the same build and just the auton routes are
+different". And two robots of one build, wired the same, pass each other's port check — so a card moved
+between them would boot the other robot's calibration.
+
+**ADDED (library, `calibration/`):**
+- **`CalibrateFacts::recordName`** (optional, last) — stated, Calibrate starts the record's provenance with
+  `robot=<name> `; when the card's record names another robot or none, the card line and the front check each
+  add one line saying so. A name that is not 1-24 lower-case letters, digits or `-` is a facts problem
+  (`FactsList::RecordName`).
+- **`calibration::isRecordName(name)`** and **`calibration::recordRobotName(provenance)`** (with
+  `kRecordNameKey`, `kRecordNameMax`) — the rule, and the name a record carries (empty for an older record).
+- **`calibration::kProvenanceKept`** (40) — the calibrator's cut of the provenance, named (it was a literal);
+  the record name sits within it.
+
+**BOTH ROBOTS (the team's files and the programs, not the library):**
+- **The boot refuses a record that names another robot, or none**, before the port check and with no fall-back
+  to the typed table: `the card's record is ANOTHER ROBOT'S` / `the card's record names NO ROBOT`, each with
+  "run shulib Calibrate (slot 4) on THIS robot". Each robot's Calibrate writes its own name (`robot-one`,
+  `robot-two`). [Guide chapter 19](guide/19-calibrating-your-robot.md#two-robots-one-card-each-the-record-names-its-robot).
+- **`src/team/skills_route.{hpp,cpp}`** — the team's skills route, written ONCE in robot one's numbers and
+  compiled into both robots: robot one registers it as written, robot two MIRRORED (one line). It is empty — the
+  route is the students'; the route maker writes only between its `BEGIN` and `END` lines.
+- Each driver file carries `[control words …]` and `[feel …]` markers around its header map and its feel.
+- The dropped-autons line and the Auton Tester's banner name the BUILD's robot's autons file (they chose it on
+  the claw words, so robot two's would have named robot one's file); on both robots a second line says the
+  shared skills route is fixed in `src/team/skills_route.cpp`.
+- **A mirror swaps the robot's SIDES, not its mechanisms:** robot one's right side toggle's job is robot two's
+  LEFT toggle in the mirrored route, so a side-toggle step picks the side with
+  `competition::isMirrored(ctx) ? leftToggle : rightToggle` ([cookbook chapter 9](cookbook/09-one-route-two-robots.md)).
+- The route preview hatches robot two's piston steps (their stroke times are owed in its facts file) and lists
+  every fact robot two still owes under PLACEHOLDER, as it does robot one's.
+- The route preview's stamp hashes the robot's autons file together with `src/team/skills_route.cpp`, so an edit to
+  the shared route shows in it; the route builder describes robot two's cascade levels from robot two's own facts.
+
+**ROBOT TWO — robot one's twin** ([guide chapter 21](guide/21-adding-your-robot-by-hand.md#robot-two-robot-ones-twin)):
+- `src/robots/robot_two_facts.hpp` (new): robot one's 35 facts, each placeholder robot one's value; every one
+  OWED but Calibrate's two thresholds (robot one's, typed for the same drive). Every robot-two build refuses, one line per owed fact its program needs
+  (`robot two: OWED -- … (src/robots/robot_two_facts.hpp)`), until they are typed.
+- Its mechanisms, driver file and autons list are robot one's (its region word for word; the builder's map);
+  its chassis table is robot one's design (the cartridge UNSET until read off robot two). `test/robot_twin_test.cpp`
+  fails the suite when the two robots differ anywhere else. Its claws (two pivots on ports 6 and 7, a pneumatic
+  claw on A) and its measured drive table are retired — the host suite keeps them as its example claw robot.
+
+**What you must do:** fill the [facts form](robot-facts-form.md) again for robot two; run shulib Calibrate once
+on each robot (a card written before today names no robot and is refused at boot). A button or an auton changed
+on one robot is changed on both.
+
+**The src build gate:** robot two's six builds join the facts proof (each refuses naming exactly its own owed
+facts; all twelve robot builds link in the gate's typed copy), and `self-test` runs in a copy of the tree with
+robot two's facts typed there — the repository is never planted.
+
+### 2026-11-16 — the pair check refuses a tank step that drives AND turns around
+
+> Written when it was built (chunk MIRROR1, run B). **A stricter host check (no API change):** a mirrored tank
+> route that passed before can now fail the suite — see What you must do. The host test suite (`test/`), and one
+> comment each in `chassis/chassis.hpp` and `competition/field_mirror.hpp`. Host test plant only.
+
+**Why:** on a tank, one step that drives AND turns about 180° ends beside its target, and robot two misses on
+the other side: on a 36 in drive each robot is about 7 in off, and robot two ends 14.2 in from robot one's mirror
+image. The team lead, asked whether to block it so students write turn, then drive (2026-11-15): "Block it".
+
+**Changed:** on a TANK the pair check (`test/mirrored_pair_check.hpp`) now fails a mirrored route — a RELATIVE one
+too — whose robot two logs the `[MIR]` half-turn line for a leg: a `driveTo`, `reverseTo`, `moveTo` or trajectory
+leg within 1° of 180° that drives at least 0.5 in. It names the step and the steps to write:
+
+```text
+auton 'one step': motion 2 (MoveToPose to (-36.0, -55.7)) at 1.54 s turns 180.0 deg while it drives, which a tank cannot mirror -- turn first, then drive: face(-36.0, -55.7), then driveTo(-36.0, -55.7).
+```
+
+Not refused: a `turnTo`, and a drive that can strafe (an X-drive, an H-drive). **What you must do:** if robot
+two's route fails this way, write the steps the sentence gives — turn first (`face`, or `faceAway` before a
+`reverseTo`), then drive ([cookbook chapter 9](cookbook/09-one-route-two-robots.md)).
+
+### 2026-11-16 (built 2026-11-15, reviewed and fixed to 2026-11-16) — the Toggle flip from an auton: the robot file's Toggle block, the robot's camera for the step, and the everyday call
+
+> Written when it was built (chunk AF1S, run A2). **No version bump** (the coordinator, at the merge: every change is additive and no frozen row is touched).
+> **Additive:** every name below is new, or a member appended with a default to a type no row of the
+> [Freeze Register](roadmap.md#freeze-register) freezes, or a verdict appended to the step's own list; a robot
+> file with no Toggle block builds exactly the robot it did, and its boot line is byte for byte what it was.
+> **Host- and build-gated, NOT run on a robot:** no Toggle, no flipper and no camera reading of a real Toggle
+> exist in this project.
+
+**Why:** the skills Toggle step (API 2.8's entry of 2026-11-13, "the Toggle flip for a SKILLS run, as one route
+step") could be called only over handles a hand-wired program passes. A team's skills route now calls it from
+its auton, with the robot's own camera.
+
+**Added:**
+
+- **The robot file's Toggle block** — `config::SensorsConfig::toggleCamera` (type `vision::ToggleCameraConfig`,
+  `vision/toggle_camera.hpp`): the Toggle tracker's numbers and the camera's read period, beside the camera's
+  own block, every number UNSET by default. `vision::toggleCameraCheck` (its answer a
+  `vision::ToggleCameraCheck`) / `toggleCameraProblem` check it, in one order, at build (`static_assert`) as well
+  as at boot; `vision::toggleIdsProblem` is its colour-id check alone. `RobotConfig::valid()` does not check it.
+- **The robot's camera for the step** — `robot::Robot` builds a `vision::ToggleCamera` (one `CameraFeed` over the
+  camera, the `CameraModel` of its measured mount, the tracker's numbers) when the block is declared, a camera is
+  declared and built, its mount is MEASURED (and inside the geometry's limits), the tracker's and the read
+  period's numbers are accepted and the three colour ids are colours the camera is taught; otherwise it is not
+  built, with the first reason (at most `vision::kToggleCameraReasonBytes`). **A Toggle block the step cannot
+  use never refuses the robot** — it boots and drives. `Robot::toggleCamera()` / `toggleCameraAbsence()`. It
+  asks the provider for nothing more.
+- **The context's second optional slot** — `chassis::RobotContextConfig::toggleCamera` /
+  `RobotContext::toggleCamera()` (appended, nullptr by default: a robot file with no Toggle block), carried by the
+  motion scheduler's shadow context like the wall sensors' slot, so `ctx.chassis.deps().ctx` reaches it.
+- **The everyday call** — `competition::checkAndFlipToggle(ctx, request)` and `competition::lookAtToggle(ctx,
+  request)`: the explicit form's visit, every rule the same but the two below, over the auton's context — the
+  camera slot, the mechanism service, the run guard, the entry and the telemetry. No slot, or one not built, is
+  NO CAMERA naming why (after NOT SKILLS). An optional third argument, `competition::TogglePoseBound`, states how far the estimate
+  may be off, so the block's position check can run under a FIELD start (without it it is skipped; under any
+  other start the step drops it and says `wall and position not checked (relative start)`). In a mirrored auton
+  it visits the image Toggle, as the explicit form does.
+- **`ToggleVisitVerdict::SpotsTooClose`** (appended) — the everyday call's answer when the request's
+  `lookFrom - pushFrom` is twice the Toggle block's `frozenMoveIn` or less (two numbers from two files): nothing
+  read or moved, the route's `onFail` applies. It is checked after NOT SKILLS and NO CAMERA and before FLIPPER
+  NOT READY, so a match auton still says NOT SKILLS. **`competition::toggleVisitBlockProblem(request, block)`** checks
+  that pair at build, in a `static_assert`. (The explicit form, where one caller holds both numbers, still
+  treats it as a programming error.)
+- `competition::ExplicitToggleCamera::absence` (appended): NO CAMERA's words for a camera the caller knows is
+  absent.
+- **The boot line**, with a Toggle block declared: the camera's words end `, toggles ready` or
+  `, toggles OFF (<why>)`; the camera's own words keep their length. (The brain's programs print the line cut
+  to 220 characters; the visit's `[TGL]` line carries the reason, cut to 100 characters, and
+  `toggleCameraAbsence()` whole.)
+
+**What you must do:** nothing, unless you want the checked flip from an auton: give the robot file a camera
+block (its port, the colours taught on the Toggle's real faces, a MEASURED mount — neither of the team's robot
+files has one yet) and a Toggle block ([guide chapter 20](guide/20-the-camera.md#the-robot-files-toggle-block)),
+measured on each robot that runs the route, and write the visit as
+[cookbook chapter 8](cookbook/08-skills-toggles.md) shows. The plan for the first competition stays the team's
+own blind two-push flip until this step has flipped a real Toggle.
+
+### 2026-11-17 — Calibrate on a drive with many motors per side: a robot's own pulse thresholds
+
+> Found on robot one's first Calibrate runs (2026-11-16): on its 10-motor drive one pulsed motor drags its four
+> side-mates and turned the robot only ~1.0 deg at 9 V, under the 2.0 deg the calibrator needs, so every run
+> stopped with IT ROLLED. **Added (no version bump — an additive member in an unfrozen header):**
+
+- `CalibrateFacts::calibrator` — the calibrator's thresholds for THIS robot (default: `CalibratorConfig`'s). Calibrate
+  builds its calibrator with them; `factsProblem()` refuses, before anything is powered, a pulse floor that the drift
+  of a still-looking robot could cross during a pulse.
+- Robot one's ledger types two chosen values (0.6 deg pulse floor, 1.0 deg/s rest rate) and its chassis table passes
+  them on; robot two, its twin, types the same two. Every other robot keeps the defaults.
+
+**What you must do:** nothing, unless your drive has many motors per side and Calibrate stops with IT ROLLED —
+then lower `pulseYawFloor` (and `restYawRateFloor` with it) in your robot's facts.
+
 ### 2026-11-16 (built 2026-11-15) — the docs by task: a new menu, a front page that asks "What do you want to do?", and limits as plain facts — no API change
 
 > Written when it was built (chunk DOCS3, run N1). **Documentation only** — nothing under `src/` or `include/`
