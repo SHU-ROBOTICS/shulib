@@ -1407,13 +1407,15 @@ this test cannot tell — write that. (Nothing in the library assumes either ans
 
 > **SUPERSEDED (ROB1-BT, 2026-11-16) — kept, not deleted.** Robot two was rebuilt as robot one's twin and its
 > claws retired: there are no claw pivots on ports 6 and 7 to power. Station 13 on either cascade robot is
-> Station R1.2 (robot one) and R2.2 (robot two). The page itself is unchanged, so the words below still
-> describe how station 13 runs a mechanism.
+> Station R1.2 (robot one) and R2.2 (robot two). The words below still describe how station 13 runs a mechanism,
+> except where **S13UX (2026-11-19)** made the page plain: P.1.2's boot lines go to serial and the SD log only
+> (the panel shows `1. 'claw pivot 6' found` / `NOT FOUND: check its cable` per mechanism), P.2's table and P.3's
+> cut rule below are updated, and the screen no longer says "INVENTED" (the log does).
 
 > **THIS STATION POWERS THE CLAWS** — one at a time, and only while you hold **L1**. It is the second
 > station on the menu with a **red** stripe (10 DRIVE is the other). **It has NEVER RUN ON A ROBOT**:
 > every word below is copied from the code, and its numbers (the 3 V start, the 1 s announcement and the
-> 0.4 s check, the cuts) are **invented for a first run** (A4 register HA-182) — the screen says so.
+> 0.4 s check, the cuts) are **invented for a first run** (A4 register HA-182) — the log says so (the screen did until S13UX).
 >
 > **What it answers:** which way each claw ACTUALLY moves for its "+" (A4 register HA-153 — robot two's
 > pivots on ports 6 and 7 are as REPORTED and their direction unmeasured), whether the pneumatic claw's
@@ -1468,13 +1470,14 @@ this test cannot tell — write that. (Nothing in the library assumes either ans
 | Where | It says | What it is |
 |---|---|---|
 | top bar | `13 MECHANISMS -- POWERS` | |
-| line 1 (white; **green** while powered; **red** when CUT or ABSENT) | `1/3 'claw pivot 6' POWER` (+ ` POWERED` / ` CUT` / ` ABSENT`) | which mechanism is on the page — **only this one can move** |
-| a motor's line | `m1 p6 +123.4deg +1.23r/s 0.42A 31C` | motor 1 on port 6: how far it has turned **since power-up** (its own degrees, its declared direction applied), speed, current, temperature — **`unknown`** when the temperature read failed (never a made-up "cool") |
-| an arm's or lift's units (another robot's) | `ARM +95.0 deg (power-up = home 0.0; 5.00:1)` | where it is **in its declared units**, taking the power-up pose as its declared home, through its gearing (5 motor turns per arm turn). **Turn the arm by hand and read its range, its presets and its level angle off this line**; a wrong gearing reads a wrong angle here |
+| line 1 (white; **green** while powered; **red** when CUT or ABSENT) | `1/3 'claw pivot 6' POWER` (+ ` POWERED` / ` CUT` / ` ABSENT`) — after a RECORD, in green, what it wrote: `REC 2: cascade output +3759.04 deg` | which mechanism is on the page — **only this one can move** |
+| line 2: **what to do now** (S13UX, 2026-11-19; amber; green while powered; red for no link, a cut or ABSENT) | `Hold L1 to power the claw pivot 6` · `UP / DOWN jog it; A checks which way (L1 held)` · `UP raises, DOWN lowers; A checks its way (L1 held)` (a lift) · `Moving UP -- 1.8 s of 3 s (let go to stop)` · `Let go of UP, then press it again` · `DOWN does nothing here: UP fires it` (a pneumatic) · `Did not move at 3 V. Not at a stop? R1 for 6 V` (only under a cap that holds; otherwise `Did not move at 3 V: at a stop, or check cables`) · `It was still moving: wait, then press A again` · `Touch YES on the screen -- keep L1 held` · `Watch it: it moves + in 0.6 s -- keep L1 held` · `Which way did it move? Touch your answer below` · `Stopped at 3 s: let go of L1, then hold it again` · `Its motors FIGHT: DONE, then open 13 again` · `It STALLED: at a stop? RECORD, then DONE, open 13` (a lift; once RECORDed: `RECORDed: now DONE, then open 13 again`) · `Pair the controller to the brain: it has no link` · `Controller says FIELD: unplug the field cable` (only when nothing else needs saying: the page works with a field link on) | the ONE thing to do next — it replaced the gates line |
+| the first reading line(s) | a lift: `To measure it, RECORD at each step (1 of 2):` · `> 1. Lower it onto its bottom stop, then RECORD` · `  2. Top stop: UP at 3-6 V till it stops; RECORD`; a power mechanism: `Run it briefly, never into its stop: which way?`; a pneumatic: `Fire it once (UP) and answer where it went` | what to do on this kind of mechanism; a lift's current step is marked `>` and each RECORD after a jog moves it on (one with nothing jogged since is that step again: the log says `AGAIN`) |
+| a motor's line | `motor 1 (port 6) +123.4 deg 0.42 A 31C` | motor 1 on port 6: how far it has turned **since power-up** (its own degrees, its declared direction applied), current, temperature — **`unknown`** when the temperature read failed (never a made-up "cool") |
+| an arm's or lift's units (another robot's) | `output +95.00 deg since power-up (+95.0 deg)` | the output's turn since power-up in RECORD's own digits, then where it is **in its declared units**, taking the power-up pose as its declared home, through its gearing. **Turn the arm by hand and read its range, its presets and its level angle off this line**; a wrong gearing reads a wrong angle here |
 | the claw's lines | `line A: commanded LOW` · `position: 'closed'` (` (FIRED)` while fired) | what the brain's 3-wire line was last COMMANDED (the line's own readback — never a sensor on the claw) and the declared position those levels are — read at each visit, so a claw an earlier visit left elsewhere shows where its line put it (`position: UNKNOWN (no declared one matches)` if no position matches; its first fire then goes to its safe one) |
-| the gates line (amber; green while powered; red on a cut) | `ceiling 3V \| L1+UP/DN jog \| L1+A check \| R1 raise` | what the controller does now; `POWERED +3.0 V -- let go of L1 to stop`; `CHECK: watch it -- keep L1 held` (the check's announcement); `CHECK: jog +3.0 V -- keep L1 held`; `CUT: <why>`; `CONTROLLER NOT CONNECTED -- nothing can be powered`; a mechanism whose `maxVolts` is under 12 V: `ceiling 3V, max 6.0V \| …` |
 | the last reading line, when there are more than fit | `-- page 1/2: TAP the readings for more --` | a mechanism with more readings than the panel holds (four motors, a sensor and a switch); a long verdict too — **tap the lines** for the next page |
-| the status line | the station's last log line, without its `[R3A] mech ` start | e.g. `ARMED 'claw pivot 6': hold L1, then UP / DOWN jog it…` |
+| the status line | `3 V now (R1 for more); cap 2.0 A` (red `3 V now; cap 2.0 A NOT SET: keep 3 V` when a motor would not take its cap) — after a RECORD: `RECORD 2: 25 line(s) -> serial + SD card` | the volts and the current cap now; the station's log lines go to serial and the SD card only |
 | buttons | **NEXT** (left — the next mechanism), **RECORD**, **DONE** (all safe) | grey for half a second whenever they change; a tap then is ignored (and logged) |
 
 **P.3 — the gates (what keeps your hands safe; each is in the code and host-tested — the order of the steps
@@ -1495,21 +1498,25 @@ is pinned by reading its source; only this station's run proves the page itself)
    one claw never reaches the next one's first move); each **R1** press raises it 3 → 6 → 9 → 12 (it never
    goes higher; leaving the station resets it). A power mechanism is never driven past its declared
    `maxVolts` whatever the ceiling (robot two's pivots keep the default 12 V).
-5. **A cut** stops that mechanism, names why, and keeps it stopped until you leave and re-enter 13: two of a
+5. **A cut** stops that mechanism and names why. **A jog held for 3 s** is cut until you **let go of L1 and
+   hold it again** (S13UX). A FAULT keeps it stopped until you press DONE and open 13 again: two of a
    mechanism's motors fighting each other for 250 ms; any motor above 2.4 A for 250 ms; its own stall
-   signature, when it states one (robot two's pivots state none — so the 2.4 A cut and the next one are what
-   protect them); **a jog held for 3 s**.
+   signature, when it states one (robot two's pivots state none — so the 2.4 A cut is what protects them). A
+   lift's stall is most likely a stop: RECORD first, then DONE (its steps carry over while Bench Tests runs; a
+   RECORD with nothing jogged since the last one is that step again; stop the program to start them over).
+   Each mechanism's declared current cap (`.currentCap`) is written into its motors when it is confirmed and
+   at every jog, and read back (robot one's cascade 2.0 A, its toggles 1.5 A; the claw robot's pivots state none).
 6. **DONE** (or any other way out of the station) puts everything it powered safe.
 
 **P.4 — each pivot: by hand, jogged, then its direction check** (port 6, then NEXT to port 7)
 
-- [ ] **P.4.1** **By hand, nothing powered:** swing the pivot a little. Its `m1 p6 …deg` changes, and the
+- [ ] **P.4.1** **By hand, nothing powered:** swing the pivot a little. Its `motor 1 (port 6) …deg` changes, and the
       sign follows your hand: write which way of the claw made it go **+**: ________.
 - [ ] **P.4.2** **Arm it:** hold **L1**, press **UP** → `POWER 'claw pivot 6'?` → **YES, POWER IT** (NO: nothing
       is powered). Nothing moves yet.
 - [ ] **P.4.3** **Jog:** keep **L1** held; hold **UP** a moment — the pivot turns its "+" way at 3 V and stops
       when you let go of UP (or of L1). **DOWN** turns it the other way. Hold either past **3 s** and it is CUT —
-      that is the gate, not a fault (leave and re-enter to clear it). Watch the current while you push it gently
+      that is the gate, not a fault (let go of L1 and hold it again to go on). Watch the current while you push it gently
       against something: it is the number a stall signature is sized by (P.7).
 - [ ] **P.4.4** **The direction check:** let go of UP and DOWN and let the pivot rest mid-travel, clear (A is
       REFUSED while a jog runs: `REFUSED A: 'claw pivot 6' is being jogged -- let go of the arrow first`). Hold
@@ -1560,8 +1567,8 @@ is pinned by reading its source; only this station's run proves the page itself)
 **P.7 — a limit switch and an angle sensor** (robot two has NEITHER today — these are for the robot that
 first declares one; the page shows the lines only then)
 
-- [ ] **P.7.1 (HA-184)** A mechanism with a home switch shows `home sw B: reads 1 = PRESSED (if HA-184)` — a
-      switch PIECE sensor `piece sw E: reads 1 = PRESSED (if HA-184)` — and asks `RECORD it pressed, released,
+- [ ] **P.7.1 (HA-184)** A mechanism with a home switch shows `home sw B: reads 1 = PRESSED` — a
+      switch PIECE sensor `piece sw E: reads 1 = PRESSED` — and asks `RECORD it pressed, released,
       and cable OUT`: RECORD with the switch **held pressed**, then **released**, then with its **3-wire cable
       pulled out** — three `[R3A] mech REC … home switch 3-wire B reads N (pressedLevel 1; HA-184)` lines (`…
       piece switch 3-wire E reads N …` for a piece switch). HA-184 holds when
@@ -2750,10 +2757,12 @@ naming each owed fact the program needs. This station is where the remaining ans
       one's region compiles in every build, robot two's too).
 - [ ] **R1.2 — Bench Tests (slot 3) on robot one:** the census matches R1.0; station 13's direction check on each
       cascade motor (HA-255 — port 10 taken as Forward); **each side toggle run once** — which way is "run"
-      (G21; briefly, never held against its stop: station 13 runs it UNCAPPED); **each piston fired once** —
+      (G21; briefly, never held against its stop — it declares no stall signature); **each piston fired once** —
       did the claw open or close, the front toggle go out or back, the ramp go down or up (G22–G24, HA-261:
-      and which position each rests in, unpowered). **Station 13 does not apply the cap yet (ROB1-C)** — keep
-      the ceiling at 3 V (never R1) and never power the cascade into its top stop (R1.4).
+      and which position each rests in, unpowered). **Since S13UX (2026-11-19) station 13 applies each declared
+      cap** (the cascade 2.0 A, the toggles 1.5 A — the bottom line says `cap 2.0 A`, red `NOT SET` if a motor
+      would not take it: then keep 3 V and say so); the line under the name always says what to do now; a jog
+      stopped at 3 s goes on after L1 is let go and held again. Never power the cascade into its top stop (R1.4).
 - [ ] **R1.3 — Calibrate (slot 4) on robot one** (Station G's steps G.0–G.6 — the push with the CAMERA end leading
       is robot two's old rule: lead with the end the team calls FRONT; G.4b.1 / G.4b.2 with a side toggle, as
       G.4b's note says). Since ROB1-BT the record names its robot
@@ -2761,10 +2770,13 @@ naming each owed fact the program needs. This station is where the remaining ans
       Calibrate once on THIS robot (guide chapter 19).
 - [ ] **R1.4 — the cascade measured at station 13** (C7): no levels yet (manual for now), so RECORD at the
       **bottom stop** and the **top stop** — two rows, the library's least — a taped height each; read
-      `output … deg`, never the inches (placeholders until Stage B is typed). **The top stop, until ROB1-C caps
-      station 13:** jog up at 3 V to just short of it and stop; close the last bit by hand only if the cascade
-      moves freely by hand (direct drive: the motors turn with it), then tape and RECORD; if not, the top row
-      waits for ROB1-C. C8: the hold volts, the homing push (it must draw more than the homing signature, 0.45 A
+      `output … deg` — the page shows it large after each RECORD (`REC 2: cascade output +3759.04 deg`) — never
+      the inches (placeholders until Stage B is typed); the cascade's page lists the steps and marks the current
+      one. **The top stop (station 13 capped since S13UX):** UP at 3–6 V (R1 raises the 3 V start) and stop when
+      it stops rising — never keep pushing — then tape and RECORD. `It STALLED` at a stop IS the stop: RECORD
+      first, then DONE and open 13 again (the steps carry over while Bench Tests runs; a RECORD with nothing jogged
+      since the last one is that step again; stop the program and run Bench Tests again to start them over). C8:
+      the hold volts, the homing push (it must draw more than the homing signature, 0.45 A
       chosen, when it stalls) and the volts before homing (each measured or "chosen, not measured"). Stage B
       typed; then Drive, the Auton Tester, Competition and shulib Tune (slot 7 — the hold volts, the homing push
       and its signature tuned live there; HOME must end SUCCEEDED; then re-typed from its COPY) link.

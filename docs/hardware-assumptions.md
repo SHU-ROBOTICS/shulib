@@ -1625,16 +1625,17 @@ there; homing, and so HA-186 and the home-switch half of HA-184, from MECH-A3.)*
   / `stopsSeeingPiece` on one leans on this belief), and since MECH-A3 (2026-10-15) its HOME switch too
   (`Slot::homeSwitchPressed()`: a position mechanism homed by switch is homed at boot when its switch
   reads pressed on a fresh read, and a homing push ends when it does); since MECH-A6 (2026-10-30) Bench Tests' station 13
-  (`src/programs/bench_r3a.hpp`, `mech_station::switchText()`: a level shown as `PRESSED (if HA-184)` or `released (if
-  HA-184)`, the page asking for all three readings — for a home switch and, since its review round (2026-11-03), a
+  (`src/programs/bench_r3a.hpp`, `mech_station::switchText()`: a level shown as `PRESSED` or `released` — `(if
+  HA-184)` until S13UX (2026-11-19) moved the HA number to the RECORD line only —, the page asking for all three readings — for a home switch and, since its review round (2026-11-03), a
   switch PIECE sensor alike); vendored `include/pros/adi.hpp` :731-757 (`get_value()`: "Gets the
   digital value (1 or 0) of a pin" — nothing about which level a pressed switch gives, or what an empty
   line reads; :705-729, which an earlier draft of the core's brief cited, is `get_new_press()`'s doc).
   *Confidence:* **unknown** — no vendored text says which level means pressed or what an unplugged
   input reads. HA-121 (that `get_value()` is a level) is its neighbour, not its answer.
-  *Settle (MECH-A6, Bench Tests station 13 — built 2026-10-30, not yet run; worksheet Station P, P.7.1):*
+  *Settle (MECH-A6, Bench Tests station 13 — built 2026-10-30; it ran on robot one 2026-11-17, which
+  declares no switch; worksheet Station P, P.7.1):*
   read a switch PRESSED, RELEASED and with its CABLE OUT; the screen asks for all three (`RECORD it pressed,
-  released, and cable OUT`, beside `home sw B: reads 1 = PRESSED (if HA-184)` or a piece switch's `piece sw E: …`),
+  released, and cable OUT`, beside `home sw B: reads 1 = PRESSED` or a piece switch's `piece sw E: …`),
   and each RECORD logs the raw level and its `pressedLevel`. No robot declares a switch yet: the first that does settles this.
   *Blast radius if wrong:* if pressed reads 0 — every switch-homed mechanism believes it is home
   wherever it stands at boot (the rule "a switch already pressed at bind: homed, no motion" fires on a
@@ -1673,7 +1674,8 @@ there; homing, and so HA-186 and the home-switch half of HA-184, from MECH-A3.)*
   the core's brief cited, is `get_angle()`).
   *Confidence:* reasoned — VEX describes the sensor as absolute within a turn; the vendored text says
   only "current position", and the program-restart half is not described anywhere we have.
-  *Settle (MECH-A6, station 13 — built 2026-10-30, not yet run; worksheet Station P, P.7.2):* with the shaft
+  *Settle (MECH-A6, station 13 — built 2026-10-30; it ran on robot one 2026-11-17, which declares no rotation
+  sensor; worksheet Station P, P.7.2):* with the shaft
   at two marked angles, power-cycle the brain and read; then move the arm, restart only the PROGRAM, and read
   again — the page shows the sensor raw and as mounted, the number `absoluteSensor(at, reads)` takes (the RAW
   reading in [0, 360)), and asks for the readings (`RECORD it at 2 marks: power-cycled, restarted`). No robot declares an angle sensor yet: the first that does settles this.
@@ -1789,8 +1791,8 @@ Those are a belief about real mechanisms.
   motor, `kMinMoveRad`) and its **"drawing" a peak current of 0.40 A or more** (`kDrawAmps`) — the two
   thresholds `judgeDirection` takes from the page and never invents; a hold-to-run jog is cut at **3 s**
   (`kJogMaxMs`) and any motor above **2.4 A for 250 ms** (station 10's numbers, `kCurrentLimitA`,
-  `kPersistTicks`). None was measured: the page says so on its screens, and its first run (worksheet
-  Station P) is where a 3 V check that is too weak to move a loaded claw (a BACK-DRIVEN or FIGHT-OR-JAM
+  `kPersistTicks`). None was measured: the log says so (its screens did until S13UX, 2026-11-19), and its
+  first run (worksheet Station P) is where a 3 V check that is too weak to move a loaded claw (a BACK-DRIVEN or FIGHT-OR-JAM
   finding on a free mechanism) or a "drawing" threshold a free motor reaches would show.
   *Blast radius if wrong:* a mechanism that moves too fast (overshooting toward a hard stop — which is
   why the guide tells a team to set limits short of the stops by more than the measured overshoot), too
@@ -2156,9 +2158,11 @@ code rests on about the robot itself.
   *Confidence:* **guess** until the builder's look, then station 13's direction check.
   *Settle:* Bench Tests' station 13 direction check on robot one (a correction is a typed fact).
   *Blast radius if wrong:* the two motors fight — the cascade does not move, and both stall. **Contained:**
-  station 13 checks the direction before any program drives it, and at station 13 — which does NOT apply the
-  cascade's current cap until ROB1-C — the containment is the station's own: the 3 V ceiling and its cut-outs
-  (two motors fighting for 250 ms, 2.4 A for 250 ms, the stall signature, a 3 s jog). In the programs that bind
+  station 13 checks the direction before any program drives it, and at station 13 the containment is the
+  station's own — the 3 V ceiling, its cut-outs (two motors fighting for 250 ms, 2.4 A for 250 ms, the stall
+  signature, a 3 s jog) and, since S13UX (2026-11-19), the cascade's current cap written into both motors when it
+  is confirmed and at every jog, read back (a motor that will not take it is said; HA-220's loss is re-written at
+  the next jog). In the programs that bind
   the mechanism service (Drive, the Auton Tester, Competition, and shulib Tune — which may change the cap live
   and puts the robot file's back on RESET and EXIT, HA-220), the cascade's current cap bounds the pull.
   *Update (ROB1-C2, 2026-11-15):* **reported** — the builder: the two motors face each other (port 10 `Forward`,

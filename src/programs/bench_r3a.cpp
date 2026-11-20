@@ -3389,6 +3389,7 @@ struct Built {
     bool attempted = false;  ///< the build ran this power cycle (MechanismParts builds once)
     bool failed = false;     ///< it threw: nothing on the page is powered this power cycle
     char why[160] = "";
+    ms::GuideMark guide[mechanism::kMaxMechanisms]{};  ///< each lift's place in its guide (S13UX D3), while it runs
 };
 Built& built() {
     static Built b;
@@ -3407,6 +3408,14 @@ std::optional<ms::Station>& station() {
 /// The RAW temperature of smart port `port` (PROS_ERR_F, infinity, when the read failed — "unknown",
 /// never the adapter's held 20 C).
 double rawTemperature(std::uint8_t port) { return pros::c::motor_get_temperature(port); }
+
+/// A line for serial and the SD log only, never the panel (S13UX D1: the engineering words stay in the log).
+void logOnly(const char* line) {
+    const bool was = g_screenActive;
+    g_screenActive = false;
+    emit(line);
+    g_screenActive = was;
+}
 
 /// A Station prompt through twoButtonPrompt, every string made panel-safe first.
 bool prompt(const ms::PromptText& t) {
@@ -3518,8 +3527,15 @@ void mechanismsStation(pros::c::v5_device_e_t*) {
     namespace ms = mech_station;
     rule("13 MECHANISMS -- POWERS");
     const mechanism::MechanismTable& list = kMechanisms;
-    emitf("[R3A] mech robot %s: %u mechanism(s) declared (src/robots/mechanism_table.hpp)", kChassis.robot,
-          static_cast<unsigned>(list.count));
+    {
+        char line[220];
+        std::snprintf(line, sizeof line, "[R3A] mech robot %s: %u mechanism(s) declared (src/robots/mechanism_table.hpp)",
+                      kChassis.robot, static_cast<unsigned>(list.count));
+        mech13::logOnly(line);
+    }
+    if (list.count > 0) {
+        emitf("%u mechanism(s) on this robot.", static_cast<unsigned>(list.count));
+    }
     if (list.count == 0) {
         emitS(Sev::Warn, "this robot declares NO mechanism -- nothing to show.");
         emit("  a robot's mechanisms are declared in");
@@ -3527,16 +3543,20 @@ void mechanismsStation(pros::c::v5_device_e_t*) {
         emit("  (the cascade robots: ROBOT=one, ROBOT=tank).");
         return;
     }
-    // Each line within the scrolling log's 54 columns.
+    // The panel's words (each within the scrolling log's 54 columns), then the log's (S13UX D1).
     emitS(Sev::Warn, "POWERS MECHANISMS -- one at a time, only with L1 held.");
-    emit("Six gates: only a built one; CLEAR, then a confirm per");
-    emit("mechanism and per pneumatic fire; L1 is the dead-man;");
-    emit("ceiling 3 V (R1: 6/9/12); a cut at a fight, 2.4 A for");
-    emit("250 ms, its stall signature or a 3 s jog; DONE = safe.");
-    emit("Each mechanism starts at 3 V; a power one never past");
-    emit("its maxVolts. A check names what should move first.");
-    emit("Every threshold INVENTED for a first run (HA-182).");
-    emit("Nothing is saved: a verdict names the line to edit.");
+    emit("Hold L1 the whole time: let go and it stops.");
+    emit("UP / DOWN move it; A checks which way it goes.");
+    emit("It starts gentle (3 V); R1 gives it more (6/9/12 V).");
+    emit("A move stops after 3 s: let go of L1, hold it again.");
+    emit("RECORD writes what it reads; DONE makes all safe.");
+    mech13::logOnly("Six gates: only a built one; CLEAR, then a confirm per mechanism and per pneumatic fire; L1 is "
+                    "the dead-man; ceiling 3 V (R1: 6/9/12); a cut at a fight, 2.4 A for 250 ms, its stall signature "
+                    "or a 3 s jog (re-armed by L1 let go and held again); DONE = safe.");
+    mech13::logOnly("Each mechanism starts at 3 V; a power one never past its maxVolts; each one's declared current "
+                    "cap written into its motors while it is powered. A check names what should move first.");
+    mech13::logOnly("Every threshold INVENTED for a first run (HA-182). Nothing is saved: a verdict names the line to "
+                    "edit.");
 
     std::optional<ms::Station>& slot = mech13::station();
     slot.emplace(list, mech13::built().parts);
@@ -3574,26 +3594,31 @@ void mechanismsStation(pros::c::v5_device_e_t*) {
         return;
     }
     st.markCleared();
+    for (std::size_t i = 0; i < st.count(); ++i) st.resumeGuide(i, b.guide[i]);
 
-    // ── each mechanism's boot lines first (the programs' words: the declaration, one per role) ──
+    // ── each mechanism's boot lines (the programs' words) to the log; one plain line each on the panel ──
     for (std::size_t i = 0; i < st.count(); ++i) {
-        emit(mechanismDeclarationLine(list, i).text);
+        mech13::logOnly(mechanismDeclarationLine(list, i).text);
         for (const mechanism::RoleFact& f : b.parts.roles(i)) {
             char line[kMechanismLineBytes];
             mechanism::roleLine(line, sizeof line, list.specs[i].name, f.role, f.port,
                                 static_cast<mechanism::Line>(f.line), f.state, f.refusal, f.degradeOnly);
+            mech13::logOnly(line);
             if (f.state == mechanism::RoleState::Refused) {
-                emitS(Sev::Warn, "%s", line);
-            } else {
-                emit(line);
+                setVerdict(Sev::Warn);  // the menu's dot, as before
             }
         }
         if (list.specs[i].kind == mechanism::Kind::Power) {
-            mechanismStateLines(list, i, st.built(i), false, [](const MechanismLine& l) { emit(l.text); });
+            mechanismStateLines(list, i, st.built(i), false, [](const MechanismLine& l) { mech13::logOnly(l.text); });
         } else if (list.specs[i].kind != mechanism::Kind::Pneumatic) {
             char line[kMechanismLineBytes];
             mechanism::startingValuesLine(line, sizeof line, list.specs[i]);
-            emit(line);
+            mech13::logOnly(line);
+        }
+        if (st.built(i)) {
+            emitf("%u. '%.23s' found", static_cast<unsigned>(i + 1), list.specs[i].name);
+        } else {
+            emitS(Sev::Warn, "%u. '%.23s' NOT FOUND: check its cable", static_cast<unsigned>(i + 1), list.specs[i].name);
         }
     }
     emit("TOUCH to open the live page.");
@@ -3605,27 +3630,30 @@ void mechanismsStation(pros::c::v5_device_e_t*) {
     const bool sdOn = g_card != nullptr && g_card->isOpen();
     hal::pros::ProsController master{hal::pros::ControllerId::Master};
 
+    // S13UX: the title (or RECORD's big line), the ONE "what to do now" line (D2), the reading lines, a status line.
     constexpr std::size_t kShown = ms::Station::kShownLines;
     constexpr std::int16_t kTitleY = 40;
-    constexpr std::int16_t kLinesY = 64;
-    constexpr std::int16_t kGatesY = static_cast<std::int16_t>(kLinesY + kShown * kLineH);
-    static_assert(kGatesY + kLineH <= kStatusY, "the gates line must end above the status line");
-    LiveLine title, lines[kShown], gates, status;
+    constexpr std::int16_t kDoNowY = 64;
+    constexpr std::int16_t kLinesY = kDoNowY + kLineH;
+    static_assert(kLinesY + kShown * kLineH <= kStatusY, "the reading lines must end above the status line");
+    static_assert(ms::Station::kTitleColumns == kMedium && ms::Station::kPanelColumns == kSmall,
+                  "the Station words its lines for the panel's columns");
+    LiveLine title, doNow, lines[kShown], status;
     bool rowArmed = false;
     int rowKind = -1;  // what the row shows: 0 NEXT/RECORD/DONE, 3 three answers, 4 four answers
     std::uint32_t rowSince = 0;
-    char statusText[96] = "hold L1: UP/DOWN jog, A checks its direction";  // the panel cuts it at 50
-    std::uint32_t statusPen = kColWarn;
+    char statusText[96] = "";  // RECORD's note while its big line shows; otherwise the Station's limitText()
+    std::uint32_t statusPen = kColText;
 
     const auto layout = [&]() {
         drawHeader("13 MECHANISMS -- POWERS");
         screenClear();
         title.place(pros::E_TEXT_MEDIUM, kTitleY, kMedium);
+        doNow.place(pros::E_TEXT_SMALL, kDoNowY, kSmall);
         for (std::size_t k = 0; k < kShown; ++k) {
             lines[k].place(pros::E_TEXT_SMALL, static_cast<std::int16_t>(kLinesY + static_cast<int>(k) * kLineH),
                            kSmall);
         }
-        gates.place(pros::E_TEXT_SMALL, kGatesY, kSmall);
         status.place(pros::E_TEXT_SMALL, kStatusY, kSmall);
         rowKind = -1;
     };
@@ -3662,7 +3690,7 @@ void mechanismsStation(pros::c::v5_device_e_t*) {
     hal::ButtonEdge l1Edge;
     std::size_t readPage = 0;  // the reading lines' page (more lines than the panel shows: a tap steps it)
     int shownKind = -1;        // what the reading lines show: 0 readings, 1 the question, 2 the announcement, 3 a verdict
-    constexpr std::size_t kBufLines = 20;  // a verdict's whole sentence, wrapped (459 characters at most) — with room
+    constexpr std::size_t kBufLines = 24;  // a verdict's whole sentence (459 characters), or every reading line
     static_assert(kBufLines >= ms::Station::kMaxPanelLines, "every reading line of a mechanism has a place");
     while (!done) {
         const std::uint32_t now = pros::millis();
@@ -3684,7 +3712,7 @@ void mechanismsStation(pros::c::v5_device_e_t*) {
             const int hit = menu_grid::hitTest(rowKind == 4 ? menu_grid::kAnswerRow4Hit : menu_grid::kStationRowHit,
                                                tx, ty);
             emitf("[R3A] mech touch x=%d y=%d -> slot %d%s", tx, ty, hit, rowArmed ? "" : " (IGNORED: arming)");
-            if (hit < 0 && ty >= kLinesY && ty < kGatesY) {
+            if (hit < 0 && ty >= kLinesY && ty < kLinesY + static_cast<int>(kShown) * kLineH) {
                 ++readPage;  // a tap on the reading lines: their next page (it wraps)
                 verdictSince = now;  // a verdict being read page by page stays up
                 lastPaint = now - ms::kPaintMs;
@@ -3710,8 +3738,9 @@ void mechanismsStation(pros::c::v5_device_e_t*) {
                         });
                     }
                     if (g_card != nullptr) (void)g_card->flush();
+                    st.recorded(records);  // S13UX D3: the big line, a lift's next step
                     std::snprintf(statusText, sizeof statusText, "RECORD %d: %d line(s) -> serial%s", records,
-                                  written + 1, sdOn ? " + SD card" : " only (SD OFF)");
+                                  written + 1, sdOn ? " + SD card" : " only (NO SD card)");
                     statusPen = sdOn ? kColGood : kColWarn;
                 } else if (rowKind == 0 && hit == 2) {
                     done = true;
@@ -3724,6 +3753,7 @@ void mechanismsStation(pros::c::v5_device_e_t*) {
         // ── the controller, the tick ─────────────────────────────────────────────────
         ms::Pad pad;
         pad.connected = master.isConnected();
+        pad.field = (pros::c::competition_get_status() & COMPETITION_CONNECTED) != 0;  // S13UX D2
         if (pad.connected) {
             pad.deadMan = master.pressed(hal::ControllerButton::L1);
             pad.raise = master.pressed(hal::ControllerButton::R1);
@@ -3757,13 +3787,9 @@ void mechanismsStation(pros::c::v5_device_e_t*) {
             taps = TapWatch{};  // the prompt's own tap is not a tap on this page
             lastPaint = pros::millis() - ms::kPaintMs;
         }
-        // ── the station's log lines: serial + SD, the newest on the status line ────────
+        // ── the station's log lines: serial + SD only (S13UX D1: the panel says what to do instead) ────────
         for (std::size_t k = 0; k < st.eventCount(); ++k) {
-            const char* e = st.event(k);
-            emit(e);
-            const char* shown = std::strncmp(e, "[R3A] mech ", 11) == 0 ? e + 11 : e;
-            std::snprintf(statusText, sizeof statusText, "%.54s", shown);
-            statusPen = std::strstr(e, "CUT") != nullptr || std::strstr(e, "REFUSED") != nullptr ? kColBad : kColWarn;
+            emit(st.event(k));
         }
         st.clearEvents();
 
@@ -3776,7 +3802,16 @@ void mechanismsStation(pros::c::v5_device_e_t*) {
             std::snprintf(t, sizeof t, "%u/%u '%.23s' %s%s", static_cast<unsigned>(i + 1),
                           static_cast<unsigned>(st.count()), s.name, mechanismKindWord(s),
                           !st.built(i) ? " ABSENT" : st.cut(i) ? " CUT" : st.live(i) ? " POWERED" : "");
-            title.set(t, !st.built(i) || st.cut(i) ? kColBad : st.live(i) ? kColGood : kColText);
+            if (st.recordShown()) {
+                title.set(st.recordText(), kColGood);  // S13UX D3: what RECORD wrote, in the coordinator's words
+            } else {
+                title.set(t, !st.built(i) || st.cut(i) ? kColBad : st.live(i) ? kColGood : kColText);
+            }
+            char d[96];
+            st.doNowText(i, pad, now, d, sizeof d);
+            doNow.set(d, !pad.connected || st.cut(i) || !st.built(i)        ? kColBad
+                         : st.live(i) || st.phase() == ms::Phase::Jogging ? kColGood
+                                                                          : kColWarn);
             // every line of what the page shows, then the page of them the panel has room for (a footer
             // says when there is more; a tap on the lines steps it)
             char shown[kBufLines][ms::Station::kPanelBytes]{};
@@ -3821,19 +3856,20 @@ void mechanismsStation(pros::c::v5_device_e_t*) {
                     lines[k].set(k < n ? shown[first + k] : "", pen);
                 }
             }
-            char g[96];
-            st.gatesText(i, pad.connected, g, sizeof g);
-            const std::uint32_t gp = !pad.connected || st.cut(i) ? kColBad
-                                     : st.phase() == ms::Phase::Jogging || st.live(i) ? kColGood
-                                                                                       : kColWarn;
-            gates.set(g, gp);
-            status.set(statusText, statusPen);
+            if (st.recordShown()) {
+                status.set(statusText, statusPen);
+            } else {
+                char l[96];
+                st.limitText(i, l, sizeof l);
+                status.set(l, std::strstr(l, "NOT SET") != nullptr ? kColBad : kColText);  // D5: a cap that did not take
+            }
         }
         pros::delay(ms::kTickMs);
     }
 
     // ── GATE 6: the exit -- every powered mechanism safe (the guard repeats it on scope exit) ──
     st.exit();
+    for (std::size_t i = 0; i < st.count(); ++i) b.guide[i] = st.guideMark(i);
     for (std::size_t k = 0; k < st.eventCount(); ++k) emit(st.event(k));
     st.clearEvents();
     emitf("[R3A] mech LEFT after %d RECORD(s): every powered mechanism safe; screen prints this station %lu",
@@ -3845,7 +3881,7 @@ void mechanismsStation(pros::c::v5_device_e_t*) {
     for (std::size_t i = 0; i < st.count(); ++i) {
         const mechanism::MechanismSpec& s = st.spec(i);
         emitf("  '%.23s' %s: %s", s.name, mechanismKindWord(s),
-              !st.built(i) ? "ABSENT" : st.cut(i) ? "CUT (see the log)" : st.armed(i) ? "armed" : "not powered");
+              !st.built(i) ? "NOT FOUND" : st.cut(i) ? "stopped (see the log)" : st.armed(i) ? "powered" : "not powered");
     }
     if (st.anyVerdict()) {
         // EVERY mechanism's latest verdict this entry (not only the last check's): a finding on any one is

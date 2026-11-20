@@ -294,7 +294,7 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
                     position — arms, lifts — and speed — flywheels; host-only so far); the
                     driver file's controls (presets on buttons) and the direction check's
                     judgement (which Bench Tests' station 13 MECHANISMS runs on the robot —
-                    built, not yet run on one)
+                    run on robot one 2026-11-17)
   runner/           runs a Route: the path runner, the command-id registry, the manifest,
                     and every mechanism's route ids bound in one call
   teleop/           driver control: stick mapping, input shaping, drive modes, field-centric,
