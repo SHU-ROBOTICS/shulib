@@ -121,7 +121,7 @@ test.describe('RMP1-F: export to the robot', { skip }, () => {
             const cmd = (what) => next.locator(`code[data-cmd="${what}"]`).textContent();
             const windows = await page.evaluate(() => /Windows/.test(navigator.userAgent));  // CI's Windows rows: `python`
             assert.equal(await cmd('the build command'), 'make ROBOT=one PROGRAM=autontest');
-            assert.equal(await cmd('the upload command'), 'pros upload --slot 6 --name "shulib Auton Tester"');
+            assert.equal(await cmd('the upload command'), 'pros upload --slot 6 --name "shulib Auton Tester" --description "$(git describe --always --dirty)"');
             assert.equal(await cmd('the one command'), robotCommands('one', { windows }).helper);
             assert.match(robotCommands('one', { windows }).helper, windows ? /^python tools/ : /^python3 tools/);
             assert.equal(await next.locator('.xr-easiest').textContent(), 'Easiest: open the route builder from VS Code — Terminal → Run Task → '

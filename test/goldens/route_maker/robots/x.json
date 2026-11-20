@@ -1,7 +1,7 @@
 {
   "id": "x",
   "name": "robot x (test)",
-  "api": "2.10",
+  "api": "2.11",
   "autonNameMaxChars": 29,
   "mirroredAutonNameMaxChars": 25,
   "maxAutons": 16,

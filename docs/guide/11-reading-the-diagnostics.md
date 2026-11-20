@@ -480,6 +480,11 @@ worth recognizing on sight:
   (its operation was not cancelled -- it may have lived on a deleted task)` — the mechanism
   service's line for the same kind of event as the `TEL` line above (`as autonomous began` when it is
   an auton that starts with a claim driver control left).
+- **A step that ended well** (Info, tag `RTN`, since API 2.11): `routine 'skills': step 3 (cascade) done in
+  1.42 s, at 18.0 in` — its number (the one `STOPPED at step N` would give), its verb or mechanism, the seconds
+  since it began, and a mechanism step's end (`at 'closed'` for a pneumatic; an outcome other than SUCCEEDED in
+  brackets, `(UNCONFIRMED)`); `started in 0.00 s` for a START form still running. The route builder's **Watch
+  the robot** ticks each step from it.
 - **A step's on-failure choice** (tag `RTN`, [Ch. 9](09-the-recipe-api.md#choosing-what-a-failure-does-onfail-and-label)):
   `routine 'two-pieces': step 2 (intake) FAILED: mechanism step FAILED (TIMED_OUT) — carrying on; drive
   safed` (Warn: a step written after `onFail(carryOn)` failed, and the routine went on), the same ending

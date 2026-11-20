@@ -59,7 +59,8 @@ RoutineResult grabOrBailOut(Chassis& chassis, Intake& intake) {
 - **Save `r.result()` first.** The fallback chain has its own counters. If you return
   `bail.result()` you have thrown away the only record of what actually failed.
 
-**What the log says.** One `Warn` and nothing else invented:
+**What the log says.** One `Warn` and nothing else invented (since API 2.11 each step before it
+also has its own `done in` line, left out here):
 
 ```text
 routine 'grab-or-bail' STOPPED at step 4 (grab): action FAILED — skipping the rest; drive safed
@@ -115,9 +116,11 @@ outcome goes into `outcomes` so the code after the routine can decide what two-o
 means.
 
 **Watch out for the price, which is real.** Swallowing the failure this way makes it **invisible
-in the transcript** — the routine layer logs nothing, because as far as it knows nothing went
-wrong. The test for this recipe asserts that silence deliberately, so nobody can claim otherwise
-later. If the miss matters, log it yourself inside the action.
+in the transcript** — worse, since API 2.11 the routine layer logs the miss as *done*
+(`routine 'sweep-three': step 5 (attempt-grab) done in 0.00 s`), because as far as it knows
+nothing went wrong. The test for this recipe asserts exactly that — no warning, and a `done` line
+for every attempt, the miss included — so nobody can claim otherwise later. If the miss matters,
+log it yourself inside the action.
 
 There is a second, sharper trap here: this idiom looks almost identical to the failing one. The
 only difference between "attempt and continue" and "attempt and bail" is whether the lambda

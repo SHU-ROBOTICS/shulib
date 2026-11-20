@@ -537,7 +537,7 @@ drive), for **any robot whose mechanism table is not empty**:
 
 ```sh
 rm -rf bin .d && make ROBOT=tank PROGRAM=tune
-pros upload --slot 7 --name "shulib Tune"
+pros upload --slot 7 --name "shulib Tune" --description "$(git describe --always --dirty)"
 ```
 
 (`ROBOT=` is your robot's — `tank` for robot two, `one` for robot one; a robot with no mechanisms is
@@ -690,7 +690,9 @@ routine 'score-three' STOPPED at step 4 (intake): mechanism step FAILED (TIMED_O
 ```
 
 — and the verdict is also `r.result().mechanismVerdict` (cause `MechanismStepFailed`) and
-`r.lastMechanism()`. A START form stops the chain only when its START failed (ABSENT, REFUSED,
+`r.lastMechanism()`. A step that ends well says so too (since API 2.11), with where the mechanism ended — in a run that
+gets that far, `routine 'score-three': step 6 (lift) done in … s, at 18.0 in`; a START form says it started
+(`routine 'score-three': step 2 (intake) started in 0.00 s`). A START form stops the chain only when its START failed (ABSENT, REFUSED,
 NOT_HOMED); its later verdict is `waitUntilDone`'s. A step on a mechanism this robot does not have is
 ABSENT and says so (`'claw' is not on this robot (its wiring list does not have it): the step did
 nothing`) — autons are per robot. After its step a mechanism KEEPS its behaviour (an arm holds, a
