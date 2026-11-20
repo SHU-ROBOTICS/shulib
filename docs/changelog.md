@@ -14,6 +14,30 @@
 > after the fact from those comments and the project records; everything above it was
 > written when the change landed.
 
+## API 2.10
+
+### 2026-11-20 — The cascade goes down at 60 %; Competition is slot 2
+
+> Written when it was built. **A library change, by the team lead's freeze exception the day before the
+> competition — additive (API 2.10):** a position mechanism's declaration can limit how hard anything drives it
+> down.
+
+**What you can now do (additive):**
+
+- **`.maxDownVolts` on an arm or a lift**: the most volts ANYTHING drives it DOWN with — a held button, a move
+  to a height, a level, the hold. Up keeps the full 12 V; leave it out (0) and nothing changes. A homing push
+  down harder than it is refused at build. Both robots' cascades go down at most **7.2 V (60 %)** (the team
+  lead, 2026-11-20): in driver control (R2) and in every route's cascade move down, which therefore takes a
+  little longer — PREVIEW shows the new time.
+- **Competition is slot 2, the Auton Tester slot 6** (the team lead, 2026-11-20: "drive should be on program 1
+  comp should be on program 2"). Drive stays slot 1, Bench Tests 3, Calibrate 4, Tune 7; slot 5 is still the
+  team's old code. `tools/upload_auton.py` and VS Code's **Upload routes** tasks upload the Auton Tester to slot 6.
+
+**What you must do:** upload Competition again with `--slot 2`, and the Auton Tester with
+`python3 tools/upload_auton.py one` (slot 6); delete the old copies from slots 2 and 6 on the brain (the brain's
+**Programs** list). A `switch` over `mechanism::Refusal` that lists every value needs the two new cases
+(`PositionMaxDownVoltsIsNotIn0To12`, `PositionTheHomingPushIsPastMaxDownVolts`).
+
 ## API 2.9
 
 ### 2026-11-20 — Robot two takes robot one's numbers; its own buttons

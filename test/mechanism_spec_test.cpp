@@ -331,6 +331,17 @@ std::vector<Case> oneProperty() {
         Refusal::PositionUnhomedVoltsIsNotIn0To12);
     add("unhomedVolts that is not a number", [] { auto s = wrist(); s.position.unhomedVolts = kNaN; return s; },
         Refusal::PositionUnhomedVoltsIsNotIn0To12);
+    add("maxDownVolts of 12.01", [] { auto s = tilt(); s.position.maxDownVolts = 12.01; return s; },
+        Refusal::PositionMaxDownVoltsIsNotIn0To12);
+    add("a negative maxDownVolts", [] { auto s = tilt(); s.position.maxDownVolts = -0.01; return s; },
+        Refusal::PositionMaxDownVoltsIsNotIn0To12);
+    add("maxDownVolts that is not a number", [] { auto s = tilt(); s.position.maxDownVolts = kNaN; return s; },
+        Refusal::PositionMaxDownVoltsIsNotIn0To12);
+    add("a homing push down past maxDownVolts", [] {
+        auto s = lift();  // switch-homed DOWN onto its bottom
+        s.position.maxDownVolts = -s.position.homeVolts - 0.01;
+        return s;
+    }, Refusal::PositionTheHomingPushIsPastMaxDownVolts);
     // MECH-A3: an angle sensor absolute within ONE turn (HA-186) cannot home a whole turn of travel.
     add("absolute homing over a whole output turn: an arm's -180..180", [] {
         auto s = wrist();
@@ -437,6 +448,13 @@ std::vector<Case> boundariesAccepted() {
     add("a gravity hold of exactly -12 V (elastics pulling harder than gravity)", [] { auto s = lift(); s.position.kG = -12.0; return s; });
     add("unhomedVolts of exactly 12", [] { auto s = tilt(); s.position.unhomedVolts = 12.0; return s; });
     add("unhomedVolts of 0 (nothing moves it before homing)", [] { auto s = tilt(); s.position.unhomedVolts = 0.0; return s; });
+    add("maxDownVolts of exactly 12", [] { auto s = tilt(); s.position.maxDownVolts = 12.0; return s; });
+    add("maxDownVolts of 0 (no limit)", [] { auto s = tilt(); s.position.maxDownVolts = 0.0; return s; });
+    add("a homing push down of exactly maxDownVolts", [] {
+        auto s = lift();
+        s.position.maxDownVolts = -s.position.homeVolts;
+        return s;
+    });
     // MECH-A3: absolute homing over just under one output turn, and on a linkage (its formula spans at
     // most 180 deg) — accepted.
     add("absolute homing over 359.9 deg of travel", [] {
@@ -490,7 +508,7 @@ TEST_CASE("MECH-A1 spec: ONE property wrong gives exactly THAT refusal and its s
     }
     // EVERY reason the list holds was produced by a case: a reason appended to spec.hpp with no case
     // here turns this red (the list's last enumerator is the bound).
-    const int last = static_cast<int>(Refusal::ACurrentCapMustBeAtLeastOneMilliamp);
+    const int last = static_cast<int>(Refusal::PositionTheHomingPushIsPastMaxDownVolts);
     for (int r = 1; r <= last; ++r) {
         CAPTURE(r);
         CHECK(hit.count(r) == 1U);
@@ -670,7 +688,7 @@ TEST_CASE("MECH-A1 spec: the CHECK ORDER, peeled -- each fix reveals the NEXT re
 
 TEST_CASE("MECH-A1 spec: every refusal has its own sentence; None has none; a byte past the list is 'unknown'") {
     std::set<std::string> sentences;
-    const int last = static_cast<int>(Refusal::ACurrentCapMustBeAtLeastOneMilliamp);
+    const int last = static_cast<int>(Refusal::PositionTheHomingPushIsPastMaxDownVolts);
     for (int r = 1; r <= last; ++r) {
         CAPTURE(r);
         const char* text = refusalText(static_cast<Refusal>(r));

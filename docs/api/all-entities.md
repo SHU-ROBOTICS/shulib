@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 6,502 of them, across 215 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 6,509 of them, across 215 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -205,6 +205,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Arm::gearing` | field | [kinds.md](kinds.md#arm-gearing) |
 | `Arm::gravity` | field | [kinds.md](kinds.md#arm-gravity) |
 | `Arm::home` | field | [kinds.md](kinds.md#arm-home) |
+| `Arm::maxDownVolts` | field | [kinds.md](kinds.md#arm-maxdownvolts) |
 | `Arm::motors` | field | [kinds.md](kinds.md#arm-motors) |
 | `Arm::name` | field | [kinds.md](kinds.md#arm-name) |
 | `Arm::operator[]` | function | [kinds.md](kinds.md#arm-operator-index) |
@@ -2994,6 +2995,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Lift::gearing` | field | [kinds.md](kinds.md#lift-gearing) |
 | `Lift::gravity` | field | [kinds.md](kinds.md#lift-gravity) |
 | `Lift::home` | field | [kinds.md](kinds.md#lift-home) |
+| `Lift::maxDownVolts` | field | [kinds.md](kinds.md#lift-maxdownvolts) |
 | `Lift::motors` | field | [kinds.md](kinds.md#lift-motors) |
 | `Lift::name` | field | [kinds.md](kinds.md#lift-name) |
 | `Lift::operator[]` | function | [kinds.md](kinds.md#lift-operator-index) |
@@ -4081,11 +4083,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `position_homing_by_switch_needs_a_homeswitch_role` | free function | [spec.md](spec.md#position_homing_by_switch_needs_a_homeswitch_role) |
 | `position_homing_method_unset` | free function | [spec.md](spec.md#position_homing_method_unset) |
 | `position_homing_needs_homevolts` | free function | [spec.md](spec.md#position_homing_needs_homevolts) |
+| `position_maxdownvolts_must_be_from_0_to_12` | free function | [spec.md](spec.md#position_maxdownvolts_must_be_from_0_to_12) |
 | `position_more_presets_than_fit` | free function | [spec.md](spec.md#position_more_presets_than_fit) |
 | `position_spool_diameter_must_be_more_than_zero` | free function | [spec.md](spec.md#position_spool_diameter_must_be_more_than_zero) |
 | `position_stall_homing_needs_its_stall_signature` | free function | [spec.md](spec.md#position_stall_homing_needs_its_stall_signature) |
 | `position_the_gravity_hold_must_be_within_12_volts_either_way` | free function | [spec.md](spec.md#position_the_gravity_hold_must_be_within_12_volts_either_way) |
 | `position_the_home_position_is_outside_the_travel_limits` | free function | [spec.md](spec.md#position_the_home_position_is_outside_the_travel_limits) |
+| `position_the_homing_push_down_must_be_within_maxdownvolts` | free function | [spec.md](spec.md#position_the_homing_push_down_must_be_within_maxdownvolts) |
 | `position_the_homing_push_must_be_within_12_volts_either_way` | free function | [spec.md](spec.md#position_the_homing_push_must_be_within_12_volts_either_way) |
 | `position_the_homing_push_points_away_from_its_home_end` | free function | [spec.md](spec.md#position_the_homing_push_points_away_from_its_home_end) |
 | `position_the_lookup_table_is_not_strictly_increasing` | free function | [spec.md](spec.md#position_the_lookup_table_is_not_strictly_increasing) |
@@ -4149,6 +4153,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PositionSpec::kS` | field | [spec.md](spec.md#positionspec-ks) |
 | `PositionSpec::kV` | field | [spec.md](spec.md#positionspec-kv) |
 | `PositionSpec::maxAcceleration` | field | [spec.md](spec.md#positionspec-maxacceleration) |
+| `PositionSpec::maxDownVolts` | field | [spec.md](spec.md#positionspec-maxdownvolts) |
 | `PositionSpec::maxPosition` | field | [spec.md](spec.md#positionspec-maxposition) |
 | `PositionSpec::maxVelocity` | field | [spec.md](spec.md#positionspec-maxvelocity) |
 | `PositionSpec::minPosition` | field | [spec.md](spec.md#positionspec-minposition) |
@@ -4629,12 +4634,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Refusal::PositionHomingMethodUNSET` | enumerator | [spec.md](spec.md#refusal-positionhomingmethodunset) |
 | `Refusal::PositionHomingNeedsHomeVolts` | enumerator | [spec.md](spec.md#refusal-positionhomingneedshomevolts) |
 | `Refusal::PositionHomingPushesAwayFromItsHomeEnd` | enumerator | [spec.md](spec.md#refusal-positionhomingpushesawayfromitshomeend) |
+| `Refusal::PositionMaxDownVoltsIsNotIn0To12` | enumerator | [spec.md](spec.md#refusal-positionmaxdownvoltsisnotin0to12) |
 | `Refusal::PositionMorePresetsThanFit` | enumerator | [spec.md](spec.md#refusal-positionmorepresetsthanfit) |
 | `Refusal::PositionSpoolDiameterMustBe0` | enumerator | [spec.md](spec.md#refusal-positionspooldiametermustbe0) |
 | `Refusal::PositionStallHomingNeedsItsStallSignature` | enumerator | [spec.md](spec.md#refusal-positionstallhomingneedsitsstallsignature) |
 | `Refusal::PositionTheGravityHoldIsPast12Volts` | enumerator | [spec.md](spec.md#refusal-positionthegravityholdispast12volts) |
 | `Refusal::PositionTheHomePositionIsOutsideTheTravelLimits` | enumerator | [spec.md](spec.md#refusal-positionthehomepositionisoutsidethetravellimits) |
 | `Refusal::PositionTheHomingPushIsPast12Volts` | enumerator | [spec.md](spec.md#refusal-positionthehomingpushispast12volts) |
+| `Refusal::PositionTheHomingPushIsPastMaxDownVolts` | enumerator | [spec.md](spec.md#refusal-positionthehomingpushispastmaxdownvolts) |
 | `Refusal::PositionTheLookupTableIsNotStrictlyIncreasing` | enumerator | [spec.md](spec.md#refusal-positionthelookuptableisnotstrictlyincreasing) |
 | `Refusal::PositionTheProfileNeedsMaxVelocityAndMaxAcceleration0` | enumerator | [spec.md](spec.md#refusal-positiontheprofileneedsmaxvelocityandmaxacceleration0) |
 | `Refusal::PositionTheSettleTimeIsNegative` | enumerator | [spec.md](spec.md#refusal-positionthesettletimeisnegative) |

@@ -169,8 +169,8 @@ MECHANISM_ROBOTS:=tank one
 #                                         RUN on the brain's screen — a 3 s countdown, then
 #                                         competition::runAuton, the competition program's own
 #                                         call; any controller button or a touch aborts
-#                                         (src/programs/auton_tester_program.cpp; slot 2 since
-#                                         T4 Part 3 retired Teleop — slot 7 until then, T4's N4).
+#                                         (src/programs/auton_tester_program.cpp; slot 6 since
+#                                         2026-11-20 — slot 2 before, when Competition had 6).
 #                                         It has not run on a robot.
 #     make ROBOT=tank PROGRAM=competition → "shulib Competition" (COMP-b, 2026-09-30): THE
 #                                         COMPETITION PROGRAM — the auton chosen on the brain's
@@ -179,8 +179,8 @@ MECHANISM_ROBOTS:=tank one
 #                                         the end of autonomous ends it, then driver control runs
 #                                         the team's driver file, its log appended to
 #                                         /usd/comp_log.txt (src/programs/competition_program.cpp;
-#                                         slot 6 — slot 5 is held for the team's old-code fallback,
-#                                         T4 Part 0). It has not run on a robot.
+#                                         slot 2 since 2026-11-20 (the team lead: Drive 1, Competition 2;
+#                                         slot 5 is held for the team's old-code fallback, T4 Part 0). It has not run on a robot.
 #     make ROBOT=<a robot in MECHANISM_ROBOTS> PROGRAM=tune → "shulib Tune" (TUNE1-B1, 2026-11-11):
 #                                         LIVE TUNING of the robot's MECHANISMS on the brain screen
 #                                         — never the drive (include/shulib/mechanism/tune_program.hpp

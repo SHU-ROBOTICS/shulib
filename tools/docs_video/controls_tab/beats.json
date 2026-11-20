@@ -17,5 +17,5 @@
   {"id": "c15", "say": "Robot two has its own driver file. Switch to robot two to set its buttons.", "caption": "**Robot two** has its **own** buttons"},
   {"id": "c16", "say": "Use the same buttons as robot one, or change them. It is up to the team.", "caption": "The **same** buttons, or **different**: the team's choice"},
   {"id": "c16b", "say": "Then export robot two's file too.", "caption": "**Export** robot two's file too"},
-  {"id": "c17", "say": "Build, and upload shulib Drive to slot one, and Competition to slot six. Check each button once.", "caption": "Upload **Drive (slot 1)** and **Competition (slot 6)**"}
+  {"id": "c17", "say": "Build, and upload shulib Drive to slot one, and Competition to slot two. Check each button once.", "caption": "Upload **Drive (slot 1)** and **Competition (slot 2)**"}
 ]

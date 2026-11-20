@@ -11,7 +11,7 @@
 //
 // ── Why here ────────────────────────────────────────────────────────────────────────
 // Two programs hand robot two to a driver: "shulib Drive" (src/programs/drive_program.cpp, slot
-// 1) and the competition program's opcontrol() (src/programs/competition_program.cpp, slot 6).
+// 1) and the competition program's opcontrol() (src/programs/competition_program.cpp, slot 2).
 // Both run the team's driver file (src/team/robot_two_driver.hpp), and the rule for a piece two
 // programs need is that it lives in ONE shared place and is never copied (the COMP brief's B11).
 // So everything either program says about the drive and the claws is made HERE, by pure functions

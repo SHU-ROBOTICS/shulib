@@ -1,6 +1,6 @@
 // ROBOT TWO'S DRIVER FILE (chunk ROB1-BT, 2026-11-16; its map its own since 2026-11-20). Robot two is robot one's
 // twin. Say "host test plant", never "simulator". Its record below is INVENTED; its mechanisms are
-// robot two's real declarations on its facts file's PLACEHOLDERS (robot one's numbers, every one owed). Run over
+// robot two's real declarations on its facts file's numbers (robot one's: the same build, 2026-11-20). Run over
 // the FAKE provider, the controller read through the PROS shim (test/robot_one_driver_test.cpp's rig). Nothing
 // here has run on a robot. (Robot two's OLD claw driver file is test/retired_robot_two_driver_test.cpp's now.)
 //

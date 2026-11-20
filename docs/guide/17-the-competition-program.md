@@ -21,7 +21,7 @@ programs — robot two's build below; robot one's is `make ROBOT=one PROGRAM=com
 
 ```sh
 rm -rf bin .d && make ROBOT=tank PROGRAM=competition
-pros upload --slot 6 --name "shulib Competition"
+pros upload --slot 2 --name "shulib Competition"
 ```
 
 The `rm -rf bin .d` is harmless, for the reason [Chapter 16](16-testing-an-auton-on-the-bench.md)
@@ -588,7 +588,7 @@ the bench worksheet's practice-match station (the same register, HA-162). If it 
 `autonomous()`, the station records that and tries the controller's **Match** instead.
 
 That makes the competition program the **one exception** to the rule that a program is never
-started from the controller's menu: this program, in slot 6, at that station. Afterwards, turn the
+started from the controller's menu: this program, in slot 2, at that station. Afterwards, turn the
 controller off, wait ten seconds, and see the brain's menu return before starting any other program.
 
 ## What it does not do yet

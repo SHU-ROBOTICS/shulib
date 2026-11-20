@@ -641,6 +641,11 @@ inline constexpr auto kRampStrokeTime =
           "chosen, not measured -- the coordinator's ROB1-C2 run, 2026-11-15 (robot two's claw's provisional "
           "time, HA-185)");
 ROBOT_ONE_CHECK(kRampStrokeTime, "the ramp's stroke time");
+// The most volts anything drives the cascade DOWN with (API 2.10's maxDownVolts): 60 % of 12 V. Up keeps 12 V.
+inline constexpr auto kCascadeMaxDownVolts =
+    typed(12.0, 7.2, Stage::B, "the cascade's most volts DOWN",
+          "chosen, not measured -- the team lead, 2026-11-20: 'it needs to go down to 60' (60 % of 12 V)");
+ROBOT_ONE_CHECK(kCascadeMaxDownVolts, "the cascade's most volts DOWN");
 
 // ── RECORDED — gating no build (D12, [R9]) ──────────────────────────────────────────────────
 
@@ -679,6 +684,7 @@ inline constexpr FactSummary kRobotOneFacts[] = {
     summary(kCascadeHomingStallAmps), summary(kCascadeUnhomedVolts),  summary(kRightToggleDirection),  summary(kLeftToggleDirection),
     summary(kClawOpenLevel),        summary(kFlipperOpenLevel),      summary(kRampDownLevel),
     summary(kClawStrokeTime),       summary(kFlipperStrokeTime),     summary(kRampStrokeTime),
+    summary(kCascadeMaxDownVolts),
     summary(kCameraPort),           summary(kCameraMount),
 };
 

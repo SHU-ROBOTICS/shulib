@@ -17,7 +17,7 @@
 <line x1="270" y1="276" x2="270" y2="298" stroke="#3f51b5" stroke-width="2.5" marker-end="url(#bp)"/>
 <rect x="12" y="300" width="516" height="58" rx="10" fill="#eceff1" stroke="#607d8b"/>
 <text x="28" y="325" font-size="14" font-family="Menlo, Consolas, monospace" fill="#111111">src/programs/auton_tester_program.cpp</text>
-<text x="28" y="344" font-size="13" fill="#607d8b">shulib Auton Tester, slot 2</text>
+<text x="28" y="344" font-size="13" fill="#607d8b">shulib Auton Tester, slot 6</text>
 <line x1="270" y1="360" x2="270" y2="382" stroke="#3f51b5" stroke-width="2.5" marker-end="url(#bp)"/>
 <rect x="12" y="384" width="516" height="58" rx="10" fill="#e8f5e9" stroke="#2e7d32"/>
 <text x="28" y="409" font-size="14" font-family="Menlo, Consolas, monospace" fill="#111111">src/team/robot_one_autons.cpp + src/team/skills_route.cpp</text>

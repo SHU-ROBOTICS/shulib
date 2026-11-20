@@ -225,6 +225,10 @@ ROBOT_TWO_CHECK(kFlipperStrokeTime, "the front toggle's stroke time");
 inline constexpr auto kRampStrokeTime = typed(one::kRampStrokeTime.placeholder, one::kRampStrokeTime.value(), Stage::B, "the ramp's stroke time",
           "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kRampStrokeTime, "the ramp's stroke time");
+inline constexpr auto kCascadeMaxDownVolts =
+    typed(one::kCascadeMaxDownVolts.placeholder, one::kCascadeMaxDownVolts.value(), Stage::B, "the cascade's most volts DOWN",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- chosen, not measured");
+ROBOT_TWO_CHECK(kCascadeMaxDownVolts, "the cascade's most volts DOWN");
 
 // ── RECORDED — gating no build (the camera: VIS1-B reads it) ──
 inline constexpr auto kCameraPort = owed(one::kCameraPort.value(), Stage::Recorded, "the AI Vision camera's port");
@@ -249,7 +253,8 @@ inline constexpr FactSummary kRobotTwoFacts[] = {
     summary(kCascadeHomingStallAmps), summary(kCascadeUnhomedVolts),  summary(kRightToggleDirection),
     summary(kLeftToggleDirection),    summary(kClawOpenLevel),        summary(kFlipperOpenLevel),
     summary(kRampDownLevel),          summary(kClawStrokeTime),       summary(kFlipperStrokeTime),
-    summary(kRampStrokeTime),         summary(kCameraPort),           summary(kCameraMount),
+    summary(kRampStrokeTime),         summary(kCascadeMaxDownVolts),  summary(kCameraPort),
+    summary(kCameraMount),
 };
 
 /// How many facts the ledger holds.

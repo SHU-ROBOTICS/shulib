@@ -5,7 +5,7 @@
     python3 tools/upload_auton.py two    robot two: make ROBOT=tank PROGRAM=autontest
     python3 tools/upload_auton.py self-test
 
-Then `pros upload --slot 2 --name "shulib Auton Tester" . <the brain's port>` (pros-cli takes the port as an argument
+Then `pros upload --slot 6 --name "shulib Auton Tester" . <the brain's port>` (pros-cli takes the port as an argument
 after the project folder; the port from `pros lsusb`'s "V5 System Ports", without a controller). Prints ✓ BUILT and
 ✓ UPLOADED, or ✗ and the first real error in plain words. Windows and Linux: Python 3 (`python` on Windows), `make` and
 `pros` from PATH (the PROS terminal), else from the PROS toolchain's folder (PROS_TOOLCHAIN, which the PROS extension
@@ -20,7 +20,7 @@ import sys
 import threading
 from pathlib import Path
 
-SLOT = 2
+SLOT = 6
 NAME = "shulib Auton Tester"
 ROBOTS = {"one": "one", "two": "tank"}
 SKILLS = "src/team/skills_route.cpp"
@@ -349,7 +349,7 @@ if case == "quiet":
     sys.exit(0)
 if case == "uploadfail":
     stop("Error: [Errno 13] could not open port " + port + ": Permission denied", code=1)
-print('Uploading program "shulib Auton Tester" (hot.package.bin) to V5 slot 2 on ' + port + " (compressed)")
+print('Uploading program "shulib Auton Tester" (hot.package.bin) to V5 slot ' + args[args.index('--slot') + 1] + ' on ' + port + " (compressed)")
 done = 'Finished uploading "shulib Auton Tester" (hot.package.bin) to V5'
 if case == "late":  # pros has ended with its last line still on the way (its own child prints it): read to the end
     import subprocess
@@ -435,10 +435,10 @@ def self_test():
             failures.append(f"{name}: ran {made}, wanted {calls}")
 
     make1, lsusb = "make ROBOT=one PROGRAM=autontest", "pros lsusb"
-    upload = f"pros upload --slot 2 --name {NAME}"
-    case("ok", "one", 0, ["✓ BUILT", "✓ UPLOADED to slot 2. On the brain: shulib Auton Tester → skills or left 1 → RUN"],
+    upload = f"pros upload --slot 6 --name {NAME}"
+    case("ok", "one", 0, ["✓ BUILT", "✓ UPLOADED to slot 6. On the brain: shulib Auton Tester → skills or left 1 → RUN"],
          calls=[make1, lsusb, upload + " . /dev/ttyACM0"])
-    case("ok", "two", 0, ["✓ UPLOADED to slot 2"], calls=["make ROBOT=tank PROGRAM=autontest", lsusb, upload + " . /dev/ttyACM0"])
+    case("ok", "two", 0, ["✓ UPLOADED to slot 6"], calls=["make ROBOT=tank PROGRAM=autontest", lsusb, upload + " . /dev/ttyACM0"])
     case("owed", "one", 1, ["✗ NOT BUILT", "robot one's build refuses while a fact it needs is OWED (not measured or typed yet):\n"
                             "    - the cascade's motor ports\n    - the AI Vision camera's port\n  Type them in src/robots/robot_one_facts.hpp"],
          unwanted=["✓ BUILT", "UPLOADED"], calls=[make1])
@@ -458,30 +458,30 @@ def self_test():
     case("controller", "one", 1, ["✗ NOT UPLOADED: Only the controller is plugged in. Plug the BRAIN in with USB"], calls=[make1, lsusb])
     case("ports", "one", 0, ["✓ UPLOADED"], calls=[make1, lsusb, upload + " . /dev/ttyACM0"])
     case("twobrains", "one", 1, ["Two brains are plugged in (/dev/ttyACM0, /dev/ttyACM3)"], calls=[make1, lsusb])
-    case("win", "one", 0, ["✓ UPLOADED to slot 2"], calls=[make1, lsusb, upload + " . COM3"])
-    case("winusb", "one", 0, ["✓ UPLOADED to slot 2"], calls=[make1, lsusb, upload + " . COM3"])
+    case("win", "one", 0, ["✓ UPLOADED to slot 6"], calls=[make1, lsusb, upload + " . COM3"])
+    case("winusb", "one", 0, ["✓ UPLOADED to slot 6"], calls=[make1, lsusb, upload + " . COM3"])
     case("winboth", "one", 1, ["More than one V5 port is plugged in (COM3, COM5)"], calls=[make1, lsusb])
     case("oddformat", "one", 0, ["✓ UPLOADED"], calls=[make1, lsusb, upload])  # not pros's shape: pros picks the port
     case("lsusbfail", "one", 0, ["✓ UPLOADED"], calls=[make1, lsusb, upload])
     case("hang", "one", 1, ["✗ NOT UPLOADED: pros gave no answer in 3 s"], extra=["--wait", "0.05"],
          calls=[make1, lsusb] if os.name != "nt" else None)  # Windows: the .cmd stand-in's python outlives cmd.exe
     case("quiet", "one", 1, ["✗ NOT UPLOADED: pros did not say it finished uploading."])
-    case("late", "one", 0, ["✓ UPLOADED to slot 2"])
+    case("late", "one", 0, ["✓ UPLOADED to slot 6"])
     case("uploadfail", "one", 1, ["✗ NOT UPLOADED: This computer may not use the brain's port"])
     case("nodevice", "one", 1, ["✗ NOT UPLOADED: No brain found."])
     case("question", "one", 1, ['✗ NOT UPLOADED: pros stopped to ask a question. Run the upload yourself to answer it: '
-                                'pros upload --slot 2 --name "shulib Auton Tester"'])
-    case("ok", "one", 0, ["✓ UPLOADED to slot 2. On the brain: shulib Auton Tester → your route → RUN"],
+                                'pros upload --slot 6 --name "shulib Auton Tester"'])
+    case("ok", "one", 0, ["✓ UPLOADED to slot 6. On the brain: shulib Auton Tester → your route → RUN"],
          skills=SKILLS_STANDIN.replace("// ═══ ROUTE MAKER", "// was ROUTE MAKER"))  # no markers: no names, no crash
     case("ok", "one", 0, ["→ your route → RUN"], skills=SKILLS_STANDIN + SKILLS_STANDIN)  # two pairs: no names
     case("ok", "one", 1, ["✗ make and pros not found. Run this in the PROS terminal (VS Code: PROS, then Integrated Terminal)",
                           PROS_HELP], calls=[], path=False)
     tc = work / "ext" / "install" / "pros-toolchain-test"
-    case("ok", "one", 0, ["(make from the PROS toolchain: ", "✓ BUILT", "✓ UPLOADED to slot 2"],
+    case("ok", "one", 0, ["(make from the PROS toolchain: ", "✓ BUILT", "✓ UPLOADED to slot 6"],
          calls=["tc" + make1, lsusb, upload + " . /dev/ttyACM0"], path=work / "prosonly", tc=tc)  # make from PROS_TOOLCHAIN/bin
-    case("ok", "two", 0, ["(make from the PROS toolchain: ", "✓ UPLOADED to slot 2"],
+    case("ok", "two", 0, ["(make from the PROS toolchain: ", "✓ UPLOADED to slot 6"],
          calls=["tcmake ROBOT=tank PROGRAM=autontest", lsusb, upload + " . /dev/ttyACM0"], path=False, tc=tc)  # both from there
-    case("ok", "one", 0, ["✓ UPLOADED to slot 2"], unwanted=["from the PROS toolchain"],
+    case("ok", "one", 0, ["✓ UPLOADED to slot 6"], unwanted=["from the PROS toolchain"],
          calls=[make1, lsusb, upload + " . /dev/ttyACM0"], tc=tc)  # make on PATH wins: the toolchain's is not used
     case("ok", "one", 1, ["✗ make not found. Run this in the PROS terminal"], unwanted=["make and pros"], calls=[],
          path=work / "prosonly", tc=work / "bare" / "pros-toolchain-test")  # a toolchain with no make: never `pros make`

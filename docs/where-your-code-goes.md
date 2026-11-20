@@ -25,13 +25,13 @@ Robot one's builds. Robot two's are the same with `ROBOT=tank`, and its files ar
 | Build | On the brain | Slot | Program file | The team's and robot's files it uses |
 |---|---|---|---|---|
 | `make ROBOT=one PROGRAM=drive` | shulib Drive | 1 | `src/programs/drive_program.cpp` | `src/team/robot_one_driver.hpp` |
-| `make ROBOT=one PROGRAM=autontest` | shulib Auton Tester | 2 | `src/programs/auton_tester_program.cpp` | `src/team/robot_one_autons.cpp`, `src/team/skills_route.cpp` |
+| `make ROBOT=one PROGRAM=competition` | shulib Competition | 2 | `src/programs/competition_program.cpp` | `src/team/robot_one_autons.cpp`, `src/team/skills_route.cpp`, `src/team/robot_one_driver.hpp` |
 | `make ROBOT=one` | Bench Tests | 3 | `src/programs/bench_r3a.cpp` | none |
 | `make ROBOT=one PROGRAM=calibrate` | shulib Calibrate | 4 | `src/programs/calibrate_program.cpp` | `src/robots/calibrate_facts.hpp` |
-| `make ROBOT=one PROGRAM=competition` | shulib Competition | 6 | `src/programs/competition_program.cpp` | `src/team/robot_one_autons.cpp`, `src/team/skills_route.cpp`, `src/team/robot_one_driver.hpp` |
+| `make ROBOT=one PROGRAM=autontest` | shulib Auton Tester | 6 | `src/programs/auton_tester_program.cpp` | `src/team/robot_one_autons.cpp`, `src/team/skills_route.cpp` |
 | `make ROBOT=one PROGRAM=tune` | shulib Tune | 7 | `src/programs/tune_program.cpp` | `src/robots/mechanism_table.hpp` |
 
-Slot 5 is kept for the team's old code. Upload a build with
+Slot 5 is kept for the team's old code. (Since 2026-11-20 Competition is slot 2 and the Auton Tester slot 6: the team lead.) Upload a build with
 `pros upload --slot <slot> --name "<on the brain>"` ([Build and upload the programs](guide/07-getting-set-up.md)).
 For the Auton Tester, `python3 tools/upload_auton.py one` (or `two`; `python` on Windows) does both and says plainly
 whether it worked.

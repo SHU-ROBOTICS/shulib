@@ -48,13 +48,13 @@ $(error))
   tank-autontest ROBOT=tank PROGRAM=autontest "shulib Auton Tester" (COMP-t): runs ONE of the
                                          team's autons (src/team/autons.cpp) from RUN on the
                                          brain's screen through competition::runAuton
-                                         (src/programs/auton_tester_program.cpp); slot 2
+                                         (src/programs/auton_tester_program.cpp); slot 6
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_AUTONTEST
   tank-competition ROBOT=tank PROGRAM=competition "shulib Competition" (COMP-b): THE
                                          COMPETITION PROGRAM — the chosen auton in autonomous()
                                          on the program's own task, then the team's driver file
-                                         (src/programs/competition_program.cpp); slot 6
+                                         (src/programs/competition_program.cpp); slot 2
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_COMPETITION
   tank-tune   ROBOT=tank PROGRAM=tune    "shulib Tune" (TUNE1-B1): LIVE TUNING of the robot's
@@ -4560,11 +4560,13 @@ def do_self_test():
     two_path = os.path.join(REPO, two["ledger"])
 
     def owe_one(text):
-        # type_every_fact() keeps each argument's own leading space (`,  Stage::A,  "…"`): any whitespace.
-        m = re.search(r'= typed\(([^,]+),\s*\1,\s*(Stage::A),\s*("the cascade motors\' cartridge"),\s*'
-                      r'"gate copy[^"]*"\)', text)
+        # The cartridge fact, typed either by type_every_fact() (`typed(X, X, Stage::A, …, "gate copy …")`, each
+        # argument's own leading space kept) or in the ledger itself as robot one's value (since 2026-11-20:
+        # `typed(one::k….placeholder, one::k….value(), Stage::A, …)`), turned back to owed with its value.
+        m = re.search(r'=\s*typed\(\s*([^,]+?),\s*([^,]+?),\s*(Stage::A),\s*("the cascade motors\' cartridge"),\s*'
+                      r'"[^"]*"\)', text)
         assert m, "the copy's robot-two ledger does not hold its typed cartridge fact"
-        return text[:m.start()] + f"= owed({m.group(1)}, {m.group(2)}, {m.group(3)})" + text[m.end():]
+        return text[:m.start()] + f"= owed({m.group(2)}, {m.group(3)}, {m.group(4)})" + text[m.end():]
     with _transform(two_path, owe_one):
         want = expected_owed("tank")
         expect(want == {"the cascade motors' cartridge"},

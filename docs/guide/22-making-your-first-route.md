@@ -224,7 +224,7 @@ The result is never silent: green (**Written and checked** with the routes and t
 build and upload commands for robot one or two, each with **Copy**, or one command for both
 ([chapter 16](16-testing-an-auton-on-the-bench.md)). The quickest: in VS Code, **Terminal → Run Task → Upload
 routes to robot one** (or two) — it runs `python3 tools/upload_auton.py one` and ends with **✓ UPLOADED** or **✗** and
-what to fix. On the brain: **shulib Auton Tester** (slot 2) → the route → **RUN**.
+what to fix. On the brain: **shulib Auton Tester** (slot 6) → the route → **RUN**.
 
 ![After Write: Written and checked, the routes and their steps, "Will it build?", and Next with robot one's commands](../assets/route-builder/export-written.png)
 

@@ -1626,7 +1626,12 @@ private:
         }
         return 0.0;
     }
-    void command(double volts) { devices_.motors->setVoltage(units::Voltage{std::clamp(volts, -12.0, 12.0)}); }
+    /// EVERY command it sends: the motor's 12 V either way, and DOWN (negative) at most the declaration's
+    /// maxDownVolts (API 2.10) — a held button, a move, a preset and the hold alike.
+    void command(double volts) {
+        const double down = spec_->position.maxDownVolts > 0.0 ? spec_->position.maxDownVolts : 12.0;
+        devices_.motors->setVoltage(units::Voltage{std::clamp(volts, -down, 12.0)});
+    }
     /// The output angle before the zero: the angle sensor (its declared mounting applied — the port is
     /// never signed for a sensor, mechanism::toMechanismConfig) or the motors through the gearing.
     [[nodiscard]] double rawJointDeg() const {

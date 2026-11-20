@@ -126,8 +126,8 @@ the block reads them as `facts::…` (that is how the side toggles and the three
 | Bench Tests | `make ROBOT=one` | 3 | Stage A |
 | shulib Calibrate | `make ROBOT=one PROGRAM=calibrate` | 4 | Stage A |
 | shulib Drive | `make ROBOT=one PROGRAM=drive` | 1 | Stage A and B |
-| shulib Auton Tester | `make ROBOT=one PROGRAM=autontest` | 2 | Stage A and B |
-| shulib Competition | `make ROBOT=one PROGRAM=competition` | 6 | Stage A and B |
+| shulib Competition | `make ROBOT=one PROGRAM=competition` | 2 | Stage A and B |
+| shulib Auton Tester | `make ROBOT=one PROGRAM=autontest` | 6 | Stage A and B |
 | shulib Tune | `make ROBOT=one PROGRAM=tune` | 7 | Stage A and B |
 
 Each is uploaded like robot two's (`pros upload --slot 3 --name "Bench Tests"`, and so on —

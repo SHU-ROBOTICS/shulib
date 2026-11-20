@@ -53,8 +53,8 @@ it GOES, the extras.
 
 | Kind | The order |
 |---|---|
-| `Arm` | `.name`, `.motors`, `.cartridge`, `.gearing`, `.angleSensor`, `.safe`, `.stall`, `.currentCap`, `.range`, `.gravity`, `.home`, `.presets`, `.unhomedVolts`, `.tuning` |
-| `Lift` | `.name`, `.motors`, `.cartridge`, `.gearing`, `.shape`, `.angleSensor`, `.safe`, `.stall`, `.currentCap`, `.range`, `.gravity`, `.home`, `.presets`, `.unhomedVolts`, `.tuning` |
+| `Arm` | `.name`, `.motors`, `.cartridge`, `.gearing`, `.angleSensor`, `.safe`, `.stall`, `.currentCap`, `.range`, `.gravity`, `.home`, `.presets`, `.unhomedVolts`, `.maxDownVolts`, `.tuning` |
+| `Lift` | `.name`, `.motors`, `.cartridge`, `.gearing`, `.shape`, `.angleSensor`, `.safe`, `.stall`, `.currentCap`, `.range`, `.gravity`, `.home`, `.presets`, `.unhomedVolts`, `.maxDownVolts`, `.tuning` |
 | `Flywheel` | `.name`, `.motors`, `.cartridge`, `.gearing`, `.angleSensor`, `.safe`, `.stall`, `.currentCap`, `.atSpeed`, `.presets`, `.tuning` |
 | `Power` | `.name`, `.motors`, `.cartridge`, `.pieceSensor`, `.safe`, `.stall`, `.currentCap`, `.maxVolts` |
 | `Pneumatic` | `.name`, `.positions`, `.start`, `.safe`, `.moveTime`, `.pieceSensor`, `.confirmWithin` |
@@ -157,6 +157,12 @@ stop at 0.2 °/s with its `.gravity` right, 13.5 °/s 1.5× as heavy, 35 °/s 2�
 
 No HOLD ever aims past a limit: a release, a move that ran out of time and a push at a limit are all
 clamped to the travel.
+
+**Going down gently: `.maxDownVolts`** (API 2.10). An arm or a lift can limit how hard ANYTHING drives it
+down — a held button, a move to a height, a level, the hold: `.maxDownVolts = 7.2_volt` (60 %). Up keeps the
+full 12 V; leave it out and nothing changes. A homing push down harder than it is refused at build (the push would
+be cut, and its stall might never trip). Both robots' cascades go down at most 7.2 V (the team lead, 2026-11-20),
+read from their facts files' `kCascadeMaxDownVolts`.
 
 ## Homing — every moment, and which one to choose
 
