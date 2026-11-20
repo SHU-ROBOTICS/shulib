@@ -17,8 +17,13 @@
 1. **Mechanisms made easy (SETUP1 + add/remove).** One setup program in place of Bench Tests, Calibrate and station 13
    that measures each mechanism and saves it; the route builder's Mechanisms tab then adds and removes mechanisms
    with no C++ typed. The team lead's most repeated ask (11-20: "we really need to make the mechanism stuff easier").
-2. **The camera, used.** The camera's data first (the test on White Bot), then AprilTags (see, drive to), the Pin
-   intake check, and camera-corrected position.
+2. **The camera: close-up pickup alignment** (the team lead, 2026-11-20: "the closeup pick up alignment would be
+   perfect and enough if we can get it right"). Teach the camera pins (a model or colour signatures, in VEX's AI
+   Vision Utility); record the "perfect grab" picture (a pin where the claw grabs it: its box's centre and size);
+   a route step "pick up with the camera" that drives slowly, steers the box to that centre and stops at that size,
+   falling back to the drawn point and time limit when the camera loses it; the route builder's camera view draws
+   the target box over the live one. AprilTag localisation is NOT the aim (the field carries no tags we may rely
+   on; a 1 in tag read to ~2 ft only).
 3. **The cascade's levels and its heights re-taped.** The builder's "MOST IMPORTANT" (11-05); White Bot's cascade
    has no levels yet.
 4. **Black Bot ready.** Its 5 owed wiring facts, its own Calibrate run and its mechanism setup (or SETUP1's).

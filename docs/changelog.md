@@ -16,6 +16,17 @@
 
 ## API 2.11
 
+### 2026-11-20 — Robot two's programs build: its wiring is robot one's
+
+> Written when it was decided (the team lead: "Use White Bot's"). **No library change:** robot two's facts file.
+
+**What changed:** robot two's five wiring facts (each side toggle's direction, which line opens the claw, pushes the
+front toggle out and puts the ramp down) are robot one's values — the same build — so its Drive, Auton Tester,
+Competition and Tune build. Each says it is not yet watched on robot two.
+
+**What you must do:** run shulib Calibrate on robot two first (its Drive refuses until the card has its record), then
+press each button once in Drive: one that runs a mechanism backwards is a fact to re-type for robot two.
+
 ### 2026-11-20 — Robot one's claw: the right way round, and closed from power-up
 
 > Written when it was fixed, with the team lead. **No library change:** robot one's facts and mechanism table.

@@ -368,7 +368,7 @@ the right wall's Quadrant while robot one works the red wall's
 | | Robot one | Robot two |
 |---|---|---|
 | Mechanisms | its region of `src/robots/mechanism_table.hpp` | robot one's region, word for word, `robot_one` → `robot_two` |
-| Facts | `src/robots/robot_one_facts.hpp` | `src/robots/robot_two_facts.hpp`: the same facts, names and stages — **robot one's values** (the same build), but five wiring facts OWED until station 13 on robot two |
+| Facts | `src/robots/robot_one_facts.hpp` | `src/robots/robot_two_facts.hpp`: the same facts, names and stages — **robot one's values** (the same build), its five wiring facts too (not yet watched on robot two) |
 | Drive cartridge | BLUE (typed) | BLUE (robot one's: the same build) |
 | Driver file | the builder's map | started as the same map; its buttons are its own |
 | Autons | the 40 in, the acceptance run, the team's routes | the same — the routes marked mirrored **mirrored** (one line) |
@@ -377,12 +377,12 @@ the right wall's Quadrant while robot one works the red wall's
 **Robot two takes robot one's numbers** (the team lead, 2026-11-20: "Use robot one's" — the same build): its
 ports, gears, cartridges, stall signatures, current caps, the cascade's rows and levels, its hold and homing
 volts and the pistons' stroke times are robot one's values, written `one::kCascadePorts.value()` so a
-re-measured robot one carries robot two with it. Bench Tests tile 1 confirms the ports on robot two. Five
-wiring facts stay OWED until station 13's quick pass on robot two confirms them ([Set up your robot
-first](23-set-up-your-robot-first.md#robot-two-the-quick-pass)): each side toggle's run direction, and which
-line level opens the claw, pushes the front toggle out and puts the ramp down. Until then robot two's Bench
-Tests and Calibrate build, and its Drive, Auton Tester, Competition and Tune refuse, one line each:
-`robot two: OWED -- the right side toggle's run direction (src/robots/robot_two_facts.hpp)`. A robot-two fact is typed
+re-measured robot one carries robot two with it. Bench Tests tile 1 confirms the ports on robot two. Its five
+wiring facts — each side toggle's run direction, and which line level opens the claw, pushes the front toggle out
+and puts the ramp down — are robot one's too (the team lead, 2026-11-20: "Use White Bot's"), each source saying it
+is not yet watched on robot two: if a button runs one of them backwards, station 13's quick pass on robot two
+([Set up your robot first](23-set-up-your-robot-first.md#robot-two-the-quick-pass)) says which, and that fact is
+typed with robot two's own value. Every robot-two program builds. A robot-two fact is typed
 like robot one's, keeping robot one's own PLACEHOLDER (`.placeholder` — it never changes, so typing robot
 one later cannot upset robot two) beside robot two's value:
 

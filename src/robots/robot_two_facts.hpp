@@ -201,19 +201,24 @@ inline constexpr auto kCascadeUnhomedVolts =
           "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeUnhomedVolts, "the cascade's volts before it is homed");
 inline constexpr auto kRightToggleDirection =
-    owed(one::kRightToggleDirection.value(), Stage::B, "the right side toggle's run direction");
+    typed(one::kRightToggleDirection.placeholder, one::kRightToggleDirection.value(), Stage::B, "the right side toggle's run direction",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'Use White Bot\'s') -- not yet watched on robot two");
 ROBOT_TWO_CHECK(kRightToggleDirection, "the right side toggle's run direction");
 inline constexpr auto kLeftToggleDirection =
-    owed(one::kLeftToggleDirection.value(), Stage::B, "the left side toggle's run direction");
+    typed(one::kLeftToggleDirection.placeholder, one::kLeftToggleDirection.value(), Stage::B, "the left side toggle's run direction",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'Use White Bot\'s') -- not yet watched on robot two");
 ROBOT_TWO_CHECK(kLeftToggleDirection, "the left side toggle's run direction");
 inline constexpr auto kClawOpenLevel =
-    owed(one::kClawOpenLevel.value(), Stage::B, "the claw's line level that OPENS it");
+    typed(one::kClawOpenLevel.placeholder, one::kClawOpenLevel.value(), Stage::B, "the claw's line level that OPENS it",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'Use White Bot\'s') -- not yet watched on robot two");
 ROBOT_TWO_CHECK(kClawOpenLevel, "the claw's line level that OPENS it");
-inline constexpr auto kFlipperOpenLevel = owed(one::kFlipperOpenLevel.value(), Stage::B,
-                                               "the front toggle's line level that pushes it OUT (open)");
+inline constexpr auto kFlipperOpenLevel =
+    typed(one::kFlipperOpenLevel.placeholder, one::kFlipperOpenLevel.value(), Stage::B, "the front toggle's line level that pushes it OUT (open)",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'Use White Bot\'s') -- not yet watched on robot two");
 ROBOT_TWO_CHECK(kFlipperOpenLevel, "the front toggle's line level that pushes it OUT (open)");
 inline constexpr auto kRampDownLevel =
-    owed(one::kRampDownLevel.value(), Stage::B, "the ramp's line level that puts it DOWN");
+    typed(one::kRampDownLevel.placeholder, one::kRampDownLevel.value(), Stage::B, "the ramp's line level that puts it DOWN",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'Use White Bot\'s') -- not yet watched on robot two");
 ROBOT_TWO_CHECK(kRampDownLevel, "the ramp's line level that puts it DOWN");
 inline constexpr auto kClawStrokeTime = typed(one::kClawStrokeTime.placeholder, one::kClawStrokeTime.value(), Stage::B, "the claw's stroke time",
           "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");

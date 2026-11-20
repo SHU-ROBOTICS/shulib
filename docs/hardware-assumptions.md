@@ -2402,8 +2402,8 @@ its own facts file, every fact OWED. One belief carries it.
   one's") also the same build NUMBERS: its ports, gears, cartridges (the drive's too), stall signatures, current
   caps, the cascade's rows, levels, hold and homing volts and the pistons' stroke times are robot one's values.
   *Source:* `src/robots/mechanism_table.hpp` (robot two's region, robot one's token for token);
-  `src/robots/robot_two_facts.hpp` (robot one's values, five wiring facts OWED: the side toggles' run directions
-  and the pistons' open levels, until station 13's quick pass on robot two); `test/robot_twin_test.cpp` (holds the two
+  `src/robots/robot_two_facts.hpp` (robot one's values, its five wiring facts too since 2026-11-20 — the side
+  toggles' run directions and the pistons' open levels, not yet watched on robot two); `test/robot_twin_test.cpp` (holds the two
   regions, facts files, driver files and autons lists equal but for the robot's name, its facts and the mirrored
   skills route).
   *Confidence:* **reported** — the team lead, 2026-11-13; nothing of robot two has been seen since.

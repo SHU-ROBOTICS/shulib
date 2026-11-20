@@ -162,8 +162,8 @@ only this:
 3. **Station 13, each piston** (claw, front toggle, ramp): fire it once and touch where it went.
 4. **Skip "measure the cascade"**: robot two uses robot one's heights.
 
-Send the six answers (step 2's three verdicts, step 3's three positions). Until they are typed, robot two's
-Drive and Auton Tester do not build; its Bench Tests and Calibrate do.
+Send the six answers (step 2's three verdicts, step 3's three positions). Robot two's programs already build on
+robot one's answers (the team lead, 2026-11-20); an answer that differs is typed as robot two's own.
 
 ### What to send
 
