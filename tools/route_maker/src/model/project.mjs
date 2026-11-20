@@ -16,11 +16,13 @@
 // have is KEPT and marked by the checks, never dropped (RT5). A top-level block this builder does not use
 // (`robots.<id>` — RMP1-B's controls and feel — or any other) is kept and written back untouched. Saving is
 // deterministic: the same project always writes the same bytes (RT1), two-space JSON, keys in one order, LF,
-// a final newline.
+// a final newline. RMP1-G: a step's `view` (hidden, locked, its section: step_view.mjs) is the page's own, saved here
+// and never exported; a project without one opens as before.
 //
 // Pure: no DOM, no file API.
 
 import { normalizeRoute, newRoute, STEP_KINDS, STEP_KEYS, CARE_KEYS, POINT_KEYS, ROUTE_KEYS, ROUTE_NAME } from './route.mjs';
+import { VIEW_KEYS } from './step_view.mjs';
 
 /** The project file's schema this builder reads and writes. */
 export const SCHEMA_VERSION = 1;
@@ -134,6 +136,11 @@ export function newerParts(data) {
             }
             if (s.bottom !== undefined && s.bottom !== true) {
                 return `a "bottom" of ${JSON.stringify(s.bottom)} (${at})`;
+            }
+            if (s.view !== undefined && (!plainObject(s.view) || unknownKey(s.view, VIEW_KEYS) !== undefined
+                || ['hidden', 'locked', 'folded'].some((k) => s.view[k] !== undefined && typeof s.view[k] !== 'boolean')
+                || (s.view.section !== undefined && typeof s.view.section !== 'string'))) {
+                return `a "view" of ${JSON.stringify(s.view)} (${at})`;
             }
         }
     }

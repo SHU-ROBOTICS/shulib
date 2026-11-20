@@ -10,8 +10,14 @@
 // shows ROBOT TWO — its start and planned path reflected, dimmed and labelled — and, when the two come too close, both
 // squares red at that moment. A handle never grows past 8 screen px, so zoomed in two points 1 in apart are two targets.
 // Snapping (field.mjs): the half-tile grid, a wall flush, 15 deg headings; Alt holds it off, Shift = 1 deg.
+// RMP1-G: a hidden step is not drawn; a locked one's points take no pointer (a click reaches what is under it); in
+// focus only the selected step and its neighbours are drawn full and take the pointer. Points on one spot: a press
+// takes the selected one if it is there (a drag moves what is highlighted), else the top one; a click there picks the
+// one under the selected ("2 of 3 here"); hovering names the one a press would take.
 
-import { s } from './dom.mjs';
+import { s, h } from './dom.mjs';
+import { stepTitle } from './words.mjs';
+import { isHidden, isLocked, focusSet } from '../model/step_view.mjs';
 import { fieldToPicture, pictureToField, snapPoint, snapHeading } from '../model/field.mjs';
 import { squareCorners, bearingDeg } from '../model/geometry.mjs';
 import { round3 } from '../model/numbers.mjs';
@@ -30,12 +36,52 @@ export function createFieldView(host, app) {
     const layer = s('g');
     const runLayer = s('g', { class: 'g-runs' });
     svg.append(image, dim, layer, runLayer);
-    host.append(svg);
+    const tip = h('div', { class: 'g-tip', role: 'tooltip', hidden: true });
+    host.append(svg, tip);
 
     let view = { x: 0, y: 0, w: pic.width, h: pic.height };
     let drag = null;  // {kind, ...}
     const pointers = new Map();
     let space = false;
+
+    /** Every handle under the pointer, topmost first (a hidden, locked or faded one takes no pointer, so is not here). */
+    function handlesAt(ev) {
+        const out = [];
+        for (const e of document.elementsFromPoint(ev.clientX, ev.clientY)) {
+            const el = svg.contains(e) && e.closest('[data-handle]');
+            if (el && !out.includes(el)) {
+                out.push(el);
+            }
+        }
+        return out;
+    }
+    function nameOf(el) {
+        const i = Number(el.dataset.index);
+        const step = app.route().steps[i];
+        if (!step) {
+            return el.dataset.handle === 'heading' ? 'The start\'s heading' : 'The start';
+        }
+        const pt = el.dataset.handle === 'curvePoint' ? `, point ${Number(el.dataset.point) + 1}` : '';
+        return `Step ${i + 1}${pt}: ${stepTitle(step, app.robot())[0]}`;
+    }
+    const handleOf = (el) => ({ handle: el.dataset.handle, index: Number(el.dataset.index), point: Number(el.dataset.point) });
+    /** Where the selected point is in `hs` (-1: not there). A press takes it, so the tip names it too. */
+    function selectedIn(hs) {
+        const st = app.state();
+        return hs.findIndex((x) => (x.index < 0 ? st.selected === 'start'
+            : st.selected === x.index && (x.handle !== 'curvePoint' || st.point === null || st.point === x.point)));
+    }
+    function showTip(ev, stack) {
+        tip.hidden = !stack.length;
+        if (stack.length) {
+            const r = host.getBoundingClientRect();
+            const j = selectedIn(stack.map(handleOf));
+            tip.textContent = stack.length < 2 ? nameOf(stack[0]) : j < 0 ? `${nameOf(stack[0])} (${stack.length} here: click again for the next)`
+                : `${nameOf(stack[j])} (selected · ${stack.length} here: click for the next)`;
+            tip.style.left = `${ev.clientX - r.left + 14}px`;
+            tip.style.top = `${ev.clientY - r.top + 14}px`;
+        }
+    }
 
     const P = (x, y) => fieldToPicture(x, y, pic);
     const inPx = (inches) => inches * pic.pxPerIn;
@@ -97,13 +143,17 @@ export function createFieldView(host, app) {
             drag = { kind: 'pinch', dist: Math.hypot(a.x - b.x, a.y - b.y) };
             return;
         }
-        const target = ev.target.closest('[data-handle]');
+        const stack = !space && ev.button === 0 ? handlesAt(ev) : [];
         const tool = app.state().tool;
-        if (target && !space && ev.button === 0) {
+        if (stack.length) {
+            // the press takes the selected point when it is here (a drag moves what is highlighted), else the top one;
+            // a click without a move picks the one under the selected (the top one when the selected is not here)
+            const hs = stack.map(handleOf);
+            const j = selectedIn(hs);
             ev.preventDefault();
+            tip.hidden = true;
             svg.setPointerCapture(ev.pointerId);
-            drag = { kind: 'handle', handle: target.dataset.handle, index: Number(target.dataset.index), point: Number(target.dataset.point),
-                     moved: false };
+            drag = { kind: 'handle', ...hs[Math.max(j, 0)], moved: false, stack: hs, next: (j + 1) % hs.length };
             app.beginDrag();
             return;
         }
@@ -131,6 +181,7 @@ export function createFieldView(host, app) {
             pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
         }
         if (!drag) {
+            showTip(ev, ev.buttons ? [] : handlesAt(ev));
             return;
         }
         if (drag.kind === 'pinch' && pointers.size === 2) {
@@ -168,7 +219,9 @@ export function createFieldView(host, app) {
         }
         if (drag.kind === 'handle') {
             app.endDrag(drag.moved);
-            app.selectHandle(drag.handle, drag.index, drag.point, !drag.moved);  // the one the arrows nudge; a drag opens no drawer
+            const n = drag.stack.length;
+            const got = drag.moved ? drag : drag.stack[drag.next];
+            app.selectHandle(got.handle, got.index, got.point, !drag.moved, !drag.moved && n > 1 ? { k: drag.next + 1, n } : null);  // the one the arrows nudge; a drag opens no drawer
         }
         if (drag.kind === 'pan' && drag.click && ev.type === 'pointerup') {
             app.backgroundClick(drag.at, drag.ev);  // a click, not a pan: place the start, or clear the selection
@@ -178,6 +231,7 @@ export function createFieldView(host, app) {
     };
     svg.addEventListener('pointerup', end);
     svg.addEventListener('pointercancel', end);
+    svg.addEventListener('pointerleave', () => { tip.hidden = true; });
     window.addEventListener('keydown', (ev) => {
         if (ev.code === 'Space' && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) {
             space = true;
@@ -286,9 +340,23 @@ export function createFieldView(host, app) {
         const level = app.levels();
         layer.replaceChildren();
         svg.classList.toggle('tool-add', st.tool !== 'select');
+        const near = st.focus ? focusSet(route, st.focusAt) : null;  // RMP1-G D3: null = no focus
+        const faded = (i) => (near && !near.has(i) ? ' faded' : '');
+        svg.classList.toggle('focusing', !!near);
         const parts = [];
-        // the planned path
+        // the planned path: each step in its own group (hidden: not drawn; faded or locked: its points take no pointer)
         route.steps.forEach((step, i) => {
+            if (isHidden(step)) {
+                return;
+            }
+            const n0 = parts.length;
+            drawStep(step, i);
+            const mine = parts.splice(n0).filter(Boolean);
+            if (mine.length) {
+                parts.push(s('g', { class: `g-step${faded(i)}${isLocked(step) ? ' locked' : ''}`, 'data-step': i }, ...mine));
+            }
+        });
+        function drawStep(step, i) {
             const p = plan[i];
             if (!p || !p.from) {
                 return;
@@ -328,7 +396,7 @@ export function createFieldView(host, app) {
                 parts.push(square(p.to, `g-ghost ${sel ? 'sel' : ''}`));
                 (step.points || []).forEach((q, k) => parts.push(handle(q.x, q.y, 'curvePoint', i, k, sel ? `sel${st.point === k ? ' point' : ''}` : '')));
             }
-        });
+        }
         // the curve being drawn
         if (st.tool === 'curveTo' && st.curveDraft.length) {
             const last = plan.length ? plan[plan.length - 1].to : startPose(route.start);
@@ -344,12 +412,12 @@ export function createFieldView(host, app) {
         // from a hand-edited file, is not: the step list shows "?" for the part and the inspector asks for it)
         const st0 = startPose(route.start);
         if (st0) {
-            parts.push(s('g', { 'data-handle': 'start', 'data-index': -1 }, square(st0, 'g-robot'), front(st0)));
+            parts.push(s('g', { class: `g-start${faded('start')}`, 'data-handle': 'start', 'data-index': -1 }, square(st0, 'g-robot'), front(st0)));
             const rad = (st0.headingDeg * Math.PI) / 180;
             const a = P(st0.x, st0.y);
             const k = P(st0.x + KNOB_IN * Math.cos(rad), st0.y + KNOB_IN * Math.sin(rad));
-            parts.push(s('line', { class: 'g-heading', x1: a.px, y1: a.py, x2: k.px, y2: k.py }));
-            parts.push(s('circle', { class: 'g-heading-knob', cx: k.px, cy: k.py, r: inPx(2), 'data-handle': 'heading', 'data-index': -1,
+            parts.push(s('line', { class: `g-heading${faded('start')}`, x1: a.px, y1: a.py, x2: k.px, y2: k.py }));
+            parts.push(s('circle', { class: `g-heading-knob${faded('start')}`, cx: k.px, cy: k.py, r: inPx(2), 'data-handle': 'heading', 'data-index': -1,
                                      'aria-label': `heading ${st0.headingDeg} degrees` }));
         }
         // numbers at each step's spot, drawn LAST so the start's robot never hides the first (a home there); they
@@ -358,18 +426,20 @@ export function createFieldView(host, app) {
         const spots = new Map();
         route.steps.forEach((step, i) => {
             const p = plan[i];
-            if (p && p.to && Number.isFinite(p.to.x) && Number.isFinite(p.to.y)) {
+            if (p && p.to && Number.isFinite(p.to.x) && Number.isFinite(p.to.y) && !isHidden(step)) {
                 const key = `${p.to.x.toFixed(2)},${p.to.y.toFixed(2)}`;
-                const spot = spots.get(key) || { pose: p.to, nums: [], level: '' };
-                spot.nums.push(i + 1);
-                if (level[i] === 'error' || (level[i] === 'warn' && spot.level !== 'error')) {
-                    spot.level = level[i];
+                const spot = spots.get(key) || { pose: p.to, all: [], lit: [] };
+                spot.all.push(i);
+                if (!near || near.has(i)) {
+                    spot.lit.push(i);
                 }
                 spots.set(key, spot);
             }
         });
-        for (const spot of spots.values()) {
-            parts.push(badge(spot.pose, numbersLabel(spot.nums), spot.level ? `badge-${spot.level}` : ''));
+        for (const spot of spots.values()) {  // in focus: a spot's pill lists only the steps in focus (none there: all, faded)
+            const nums = spot.lit.length ? spot.lit : spot.all;
+            const lv = nums.some((i) => level[i] === 'error') ? 'error' : nums.some((i) => level[i] === 'warn') ? 'warn' : '';
+            parts.push(badge(spot.pose, numbersLabel(nums.map((i) => i + 1)), `${lv ? `badge-${lv}` : ''}${spot.lit.length ? '' : ' faded'}`));
         }
         layer.append(...parts.filter(Boolean));
     }
