@@ -190,7 +190,7 @@ export function createDock(host, pv) {
         const lead = s && s.state !== 'ok' ? [h('strong', {}, `Step ${s.n}: ${s.words}. `), s.library.join(' '), ...two]
             : two.length ? [h('strong', {}, `Step ${s.n}:`), ...two]
                 : pairBad ? [h('strong', {}, 'Robot one and robot two come too close. '), play.pair.sentence]
-                    : hit ? [h('strong', {}, 'THROUGH a wall. '), noteWords(hit)]
+                    : hit ? [h('strong', {}, `THROUGH the ${hit.element}. `), noteWords(hit)]
                         : [s && s.placeholder ? s.placeholder : 'The robot as the real library drove it on the host test plant — not the robot: time it on the robot.'];
         mount(parts.words, lead);
         parts.words.title = parts.words.textContent;

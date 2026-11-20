@@ -16,6 +16,23 @@
 
 ## API 2.9
 
+### 2026-11-19 — The route builder knows the field's solid structures: the goals and the Loaders
+
+> Written when it was built (chunk RMP1, run RMP1-H). **No library change — no API change:** nothing under
+> `include/shulib/` or `src/` moved; the route builder's page and its description tool did. The exported C++ is
+> byte-for-byte what it was.
+
+**What you can now do (additive):** see the nine goals and the four Loaders on the field (from the game manual's
+drawings), and have every step checked against them: red when the robot's square goes into one on the way, or more
+than 0.5 in into one where a step ends (with **Go around: add a point at (x, y)** on a drive or a back-up), amber when
+it passes closer than 1 in, unless the step says it **touches it on purpose** (placing a cone, taking a load) — which
+also lets a step end with the robot's front up to 1 in over a red or blue goal's base. Robot two's mirrored path is
+checked too, and PREVIEW now marks a run THROUGH a goal (it already did for the Loaders). How:
+[guide chapter 22, step 3](guide/22-making-your-first-route.md#solid-structures-on-the-field).
+
+**What you must do:** open your routes — a step through a goal or a Loader is red now, and Export waits for it. A
+project saved by this page can carry a step's `touches`; an older page refuses that file by name.
+
 ### 2026-11-19 — PREVIEW shows the mechanisms: the cascade rising, the claw opening
 
 > Written when it was built (chunk RMP1, run RMP1-E). **No library change — no API change:** nothing under

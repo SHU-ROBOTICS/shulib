@@ -622,3 +622,17 @@ input.num.bad { border-color: var(--failed); }
 .ms-motor.running .ms-word { color: var(--text); font-weight: 600; }
 .ms-motor.on .ms-dot { border-color: var(--accent); }
 .ms-motor.on.running .ms-dot { background: var(--accent); }
+
+/* ── Field obstacles (RMP1-H) ── the solid structures: quiet outlines under the route; the selected step's one red or
+   amber, with the robot's square at that moment */
+:root { --obstacle-fill: rgba(28, 26, 35, .10); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --obstacle-fill: rgba(236, 235, 243, .12); } }
+:root[data-theme="dark"] { --obstacle-fill: rgba(236, 235, 243, .12); }
+.g-obstacle { fill: var(--obstacle-fill); stroke: var(--text-muted); stroke-width: 1.5; vector-effect: non-scaling-stroke; opacity: .85; }
+.g-obstacle.hit-error { fill: var(--error-soft); stroke: var(--failed); stroke-width: 2.5; opacity: 1; }
+.g-obstacle.hit-warn { fill: var(--warn-soft); stroke: var(--cut); stroke-width: 2.5; opacity: 1; }
+.g-obstacle-moment { fill: none; stroke-width: 2; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+.g-obstacle-moment.error { stroke: var(--failed); }
+.g-obstacle-moment.warn { stroke: var(--cut); }
+.field-svg.previewing .g-obstacle { opacity: .6; }
+/* ── end Field obstacles (RMP1-H) ── */

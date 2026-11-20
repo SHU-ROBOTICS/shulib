@@ -17,6 +17,7 @@ import { squareCorners, bearingDeg } from '../model/geometry.mjs';
 import { round3 } from '../model/numbers.mjs';
 import { startPose } from '../model/route.mjs';
 import { reflect, stepPoses } from '../model/pair.mjs';
+import { obstacleShapes } from './field_obstacles.mjs';
 
 const KNOB_IN = 15;  // the heading knob sits this far ahead of the start's centre
 
@@ -286,7 +287,7 @@ export function createFieldView(host, app) {
         const level = app.levels();
         layer.replaceChildren();
         svg.classList.toggle('tool-add', st.tool !== 'select');
-        const parts = [];
+        const parts = [obstacleShapes(app, P)];  // RMP1-H: the solid structures, under the route
         // the planned path
         route.steps.forEach((step, i) => {
             const p = plan[i];
