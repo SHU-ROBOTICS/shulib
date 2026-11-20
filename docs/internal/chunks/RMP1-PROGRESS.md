@@ -3971,3 +3971,344 @@ unchanged; the changelog, where-your-code-goes, the README and manual check 6 de
 - src gate `check`: `PASS (all 14 builds link or, robot one's and robot two's, refuse naming exactly their owed facts
   (6 refused; …))`. Self-test not run (no src/ or Makefile change).
 - Not run here: the Windows CI rows, the real `pros` (never). Nothing committed.
+
+## RMP1-G — steps you can hide, lock and focus on (overlapping steps stop getting in the way)
+
+Executor: Claude Opus 5.5 (subagent), worktree `.claude/worktrees/rmp1-g` (branch `rmp1-g`, from `200f491`). Brief:
+`docs/internal/chunks/RMP1-G-lock-hide-focus-steps.md`. Started 2026-11-19. Nothing committed.
+
+- Log opened before any code. Reading the brief, RESUMING's standing rules, then field_view / step_list / inspector /
+  project / app.
+- 21:34–21:48 — built. `src/model/step_view.mjs` (new, pure): a step's `view` = {hidden, locked, section, folded}, only
+  what is set; sections are by ORDER (a head's `view.section` runs to the step before the next head), so a reorder
+  never leaves a stale range; `focusSet` = the step and the one before and after (the start is step 1's neighbour).
+  `route.mjs`: `view` in STEP_KEYS, normalized LAST in a step, dropped by a duplicate. `project.mjs`: a `view` with a
+  key or a type this builder cannot write is refused by name (D3's never-half-read rule). `field_view.mjs`: each step
+  in its own `<g class="g-step">` — hidden not drawn, locked/faded points `pointer-events: none` (a click falls to what
+  is under it, natively); the handles under the pointer from `elementsFromPoint`; a PRESS takes the one picked last on
+  that spot (a drag moves it), a CLICK without a move picks the next one down — first cut cycled on the press, which
+  made "cycle to it, then drag it" grab the one after: re-cut before any test. Hover tip names the step ("3 here").
+  `app.mjs`: one delimited block (calls, the Focus tool button, `viewKey`) + `pick()` carries `here` and moves the
+  focus anchor + the nudge refuses a hidden/locked step + focus off on a route switch / an open. `step_list.mjs`: eye,
+  lock, ... on hover; section head rows (fold, hide/lock together, rename/remove); "N steps hidden · Show all".
+  `inspector.mjs`: one line each for "k of n here", hidden, locked. `help.mjs`: the keys. `dom.mjs`: six icon paths.
+- **Delta from the brief: Focus is `O`, not `F`.** `F` is Straight since RMP1-C (guide 22 :82 and :354, the changelog
+  :59, `named_routes.page.test.mjs:366`, the tutorial); moving it two days before the event breaks a learned key and a
+  shipped doc. `O` ("only this spot") is free; the Focus button shows it.
+- 21:49 — docs: guide 22 "### 10. Crowded spots: hide, lock, focus" (a 3-row table, click-again, sections, the
+  screenshot `docs/assets/route-builder/focus.png` = Firefox light 1440 focus shot), two keyboard rows, the project
+  file's `view`; `docs/route-builder.md` one sentence; `docs/changelog.md` an API 2.9 entry (no API change; an older
+  route builder refuses a project with a `view`, by name).
+- 21:52–22:00 — mutations (driver `.claude/coordinator/scratch/rmp1-g/mutate.py`: backup under `backups/`, restore in
+  `finally` and on SIGTERM/SIGHUP, `os.utime` on restore; each page mutant on a FRESH site build; Chromium under
+  `systemd-run --user --scope -p MemoryMax=6G`, node under `ulimit -v 4 GiB` + `timeout 600`). All 18 CAUGHT, each by
+  its intended assertion: N1 view not stored (round trip / normalize order), N2 the export skips a hidden step (D6: "gl12_fail_carry_on"
+  differs from its committed .cpp), N3 the view check gone (`{"hidden":true,"colour":"red"}` opened), N4 a section's end
+  off by one, N5 a duplicate keeps the view, N6 focus on step 1 loses step 1 itself; P1 hidden still drawn ("not
+  drawn"), P2 a locked point takes the pointer ("the click passes through to step 1"), P3 the nudge guard gone ("no
+  nudge"), P4 no cycling, P5 the press always takes the top one (the drag moves step 1, not the picked 3), P6 faded
+  points clickable (step 5 selected), P7 Esc keeps focus, P8 section hide never toggles back ("all hidden: one click
+  shows them all"), P9 a folded section still lists its steps, P10 a hidden step's number still on the field, P11 no
+  "k of n" line, P12 focus not following the selection. A first driver run was stopped (my `pkill -f` matched its own
+  shell); the restore was checked (every cut present once, tree as before) and the whole set re-run.
+- Found and fixed in my own test: `here()` used `locator.textContent()`, which WAITS 30 s for an absent line — the
+  "alone there now" assertion passed only after a timeout. Now a plain `querySelector`.
+- Prose review (grep run, hits read, 22:05): `hidden|\block|focus|overlap|crowded|on top of each other|Duplicate|Esc\b|
+  newer route builder|step list|route_maker.json` over docs/ (not internal, not api) and README.md; and every changed
+  file's name (`field_view|step_list|inspector.mjs|project.mjs|route.mjs|help.mjs|dom.mjs|style.css|step_view`): no
+  public doc names one. Read: guide 22 :428 (`V or Esc`: still true — Esc leaves focus only when nothing is being
+  added, the new row says so), :433 (Ctrl+D: a copy now shows and is unlocked — left, it is what "duplicate" means),
+  :422 (a newer project file: `view` is "a step field", still true), :449 (the project file: `view` added), guide 17
+  :132 and changelog :67 (`#9-more-routes`: the anchor is unchanged). No key edit in guide 23 (no route-builder
+  keys; its :253 edit, below, is the staleness gate's: corrected after the review) or the cookbook (no step-list UI).
+- **Gate found on the base tree:** `doc_staleness_audit.py` exit 1 on `docs/guide/23-set-up-your-robot-first.md:253`
+  ("Bench Tests tile 5 tests it" read as a claim of 5 test cases) — from `200f491` (the tutorial), not this run.
+  Reworded to "Bench Tests' tile 5 checks it": `clean (38 live docs, 0 numeric claims checked)`. (After the review:
+  main's `f480e08` fixed it the same evening as "Bench Tests' tile 5 checks the card"; this line is now that text.)
+
+### Gates (2026-11-19, `date`: 21:58–22:24 EST; every one on the final tree)
+
+- Build: `rm -f build/test/shulib_tests`, `briefing_status.py generate` (unbuilt), `cmake --build build/test -j8` → exit
+  0: `doc coverage: 6502 public entities across 215 headers, all documented`, `check-nav: OK — 264 public pages`,
+  `check-tone: OK — 49 pages`, `first_week: OK`; re-run (`--target shulib_doc_gates`) after guide 23's edit: the same.
+- Suite (`suite_run.py green`, 4 GiB cap): `suite run: green — 3893 cases, 3775836 assertions`. Briefing regenerated
+  on the built binary; `check`: `generated block current`; `self-test`: OK (38 cases).
+- Node (`node --test test/*.test.mjs`, 4 GiB cap): `# tests 181 # pass 181 # fail 0` (+8: `step_view.test.mjs`).
+- Page, every page test file on a site built from the final tree: Chromium `# tests 69 # pass 64 # skipped 5`,
+  Firefox `# tests 69 # pass 67 # skipped 2` (the skips as before: engine-only and Windows-only cases).
+  `view.page.test.mjs` with the screens (`~/shulib-render-tmp/rmp1-g/shots/`, light/dark at 1440 and 1280, both
+  browsers): `# tests 9 # pass 9` in each. No browser process left.
+- ARM header gate: `TU includes 259 headers` → `ARM compile gate: CLEAN`. CI greps: PROS-free, sim-free, the changed
+  and new files LF. `git diff -- include/` empty.
+- `api_doc_tool`: self-test OK, check-coverage as above, check-fresh exit 0, check-examples `988 quoted lines, all
+  verbatim`, check-removability `no public doc references docs/internal/`. `doc_staleness_audit.py`: self-test OK (16),
+  then `clean (38 live docs, 0 numeric claims checked)` (after the guide 23 rewording above).
+- src gate `check`: `src build gate: PASS (all 14 builds link or, robot one's and robot two's, refuse naming exactly
+  their owed facts …)`. `self-test` not run (no src/ or Makefile change, as the task allows).
+- Not run: the Windows CI, the engine build (no `wasm/` or `route_preview_model.hpp` change). Nothing committed.
+
+### Deltas from the brief, and for the coordinator
+
+- **D6: focus is not saved in the project file** (only hide, lock and sections are): it is for now, and is turned off
+  on a route switch, an open, a change to the set of routes, or an undo to another route (added after the review).
+- Focus is **O**, not F (above). The row's eye / lock / ... show on hover or keyboard focus only; a hidden or locked
+  row says so in its sub line ("Hidden on the field · ", "Locked · "), so the list stays quiet (the team lead's
+  "overstimulating"). The nudge also refuses a HIDDEN step (it would move a point nobody can see). A duplicate drops
+  the view. Sections also rename and remove; folding is a section edit (saved, undone). Focus stays on its step when
+  the background is clicked, follows any selection, and is turned off by a route switch or an open. In focus, robot
+  two's overlay fades too, and the start counts as step 1's neighbour. The press / click split of D4 (above).
+- **RMP1-E's file, not touched:** `src/model/playback.mjs:12` `routeKey` canonicalises the whole normalized route, `view`
+  included, so hiding or locking a step while a PREVIEW is shown puts the run away (it comes back on an undo or on
+  showing the step again). One line there (drop each step's `view` before `canon`) keeps it; their call.
+- Outside my listed files: `dom.mjs` (six icon paths appended to PATHS, after `mirror`), `help.mjs` (four rows),
+  `route.mjs` (`view` in STEP_KEYS / normalizeStep / duplicateStep), guide 23 :253 (the staleness false positive),
+  `PROJECT-BRIEFING.md` (regenerated). `app.mjs`: the delimited block plus small edits outside it (import, `ui`'s three
+  fields, `select`/`selectHandle`'s `here`, `pick()`, the nudge guard, `ui.focus = false` in `switchRoute` and
+  `adoptProject`, the Focus button state and hint in `render`, one `viewKey(e)` call in the key handler).
+- An older route builder (a site or an offline file from before this) refuses a project with any `view` by name. The
+  team should use the published site once a hidden/locked step or a section is saved.
+
+### RMP1-G review findings and their disposition (2026-11-19, from ~22:45 EST; the same executor, the same worktree)
+
+Three reviewers (correctness, tests, docs) returned 21 findings; deduped below, each re-checked against the tree before
+any change. Started: reading them, the reviewers' probes (`scratch/rmp1-g/review-correctness/`, `review-tests/`).
+
+Each finding, re-checked, then what was done (file:line as of the base `200f491` only where it says "base"):
+
+1. **Click-through: a drag could move a step neither selected nor on top** (correctness, major) — REAL: `lastPick` was
+   reset only by a drag or a pan/zoom, so a step chosen in the list, or a click on the empty field, left a stale pick.
+   **Fixed at the root:** `lastPick` is gone. `field_view.mjs` pointerdown: the press takes the SELECTED point when it
+   is in the stack under the pointer (a drag moves what is highlighted), else the top one; a click without a move picks
+   the one under the selected (the top one when the selected is not there). The start and its heading knob match a
+   selected start; a curve point matches its step when no point is picked, or the picked point. Guide 22 no longer
+   says "without moving the mouse"; it says a drag moves the highlighted one.
+2. **The stale-pick guard (`lastPick.keys === keys`) untested** (tests, major) — the guard no longer exists (1). The
+   reviewer's scenario (cycle to step 1 of three, H, drag the spot: step 5, the top one shown, moves) is now in D4.
+   R19 / R20 (the `lastPick` resets) are moot: the code is gone.
+3. **Hide / lock / fold while a PREVIEW shows puts the run away, "The route changed"** (correctness major; tests
+   minor; docs minor) — REAL (`routeKey` canonicalises `view` too). **`playback.mjs` is RMP1-E's: not edited.** A
+   ready patch for the coordinator: `scratch/rmp1-g/routekey/routekey-for-rmp1e.patch` — `routeKey` drops each step's
+   `view` before `canon`; `playback.test.mjs` asserts a fully hidden / locked / sectioned route has the key of the
+   bare one and a moved number still changes it; guide 22's sentence below goes. Checked: `git apply --check` clean
+   on this worktree; the new assertion RED on the unpatched `routeKey` and the playback file 19/19 GREEN patched (a
+   copy under `scratch/rmp1-g/routekey/copy/`). Safe: the engine never sees `view` (engine_backend.mjs `preview` gets
+   `routeLines(route, robot)`, the exported lines D6 pins byte for byte), so the key only stops counting page state.
+   Until it lands, guide 22's Hide row says it as a plain fact: hiding, locking or folding while a PREVIEW shows puts
+   the run away (Ctrl+Z brings it back).
+4. **Focus stays on, with a stale step, after New / Delete / Duplicate route and an undo across routes**
+   (correctness, minor) — REAL. Fixed: `editSet` turns focus off (the selection is dropped there too), `travel` keeps
+   it only when the route shown is the same. Pinned in the new D3 test (a new route; a switch; an undo back across
+   routes; and R4, opening a project: the folder's file changed under a non-empty route, "Open the folder's route").
+5. **"k of n here" stale after H, L or a nudge** (correctness, minor) — REAL. Fixed in `edit()`: any edit clears it
+   (what is on the clicked spot may have changed). Pinned: D4, after H "two left there now: the line goes".
+6. **Deleting a section's first step drops its steps into a folded section above** (correctness, minor) — REAL, and
+   the same root cause on a MOVE (Alt+Down on a section's first step put the next one in the section above). Fixed in
+   the model, not the list: `step_view.mjs passSection` — the step that takes the leaving one's place takes its
+   section name and fold, unless it starts a section itself; `route.mjs removeStep` and `moveStep` use it; a move to
+   where the step already is returns the route unchanged. A one-step section deleted goes; moved, it goes with its
+   step. The base run's node assertion "a head moved changes what its section holds" WAS this defect: replaced by the
+   new node test (delete, move away, one down, a one-step section, a no-op move).
+7. **The arrow keys said "move it" for a locked / hidden step with no point** (correctness, minor) — REAL. Fixed:
+   `nudge` resolves the point first and returns false (as at the base) when there is none; only then the guard.
+   Pinned: a locked Wait step, ArrowUp, no "unlock it" message.
+8. **In focus a shared number pill stayed full and listed faded steps' numbers** (correctness, minor) — REAL (the
+   builder's own focus shot: "2, 4, 6, 8, 11"). Fixed: in focus a spot's pill lists only the steps in focus (its red /
+   amber from those); a spot with none in focus lists all, faded. Pinned: [A, B, A, ...] focus on step 1 → A's pill
+   says "1", not "1, 3".
+9. **The hidden half of the nudge guard untested (R2)** (tests, major) — added (step 2 hidden, ArrowUp: no move, "Step
+   2 is hidden: show it (H) to move it").
+10. **The row's eye / lock never pressed (R9, R10, R25), the step menu's Hide / Focus and the section's Rename (R21,
+    R15, R16)** (tests, major) — added: a click on the eye (the row not selected by it), Tab to the lock + Enter; the
+    menus in "D5 from the menus".
+11. **Focus's one-highlight visuals unpinned (R5–R8)** (tests, major) — D3 now asserts `.focusing`, robot two faded,
+    the lit and faded pill numbers, and that the faded start's heading knob cannot be turned.
+12. **null / 5 / true views not in the refusal list (R14)** (tests, minor) — added.
+13. **Other untested paths** (tests, minor) — R23 (Show all keeps a lock: D1), R11 (Esc in a curve in focus), R17 (a
+    folded section keeps the selected step listed), R12 / R22 (the inspector's hidden line; Unlock unlocks), R3 (a
+    switch ends focus), R4 (an open ends it), R13 (the start's "1 of 2 here"), R24 (Shift+H / Shift+L do nothing):
+    each pinned.
+14. **Gate and mutation records predate the final test edit** (tests minor; docs minor) — TRUE (the 21:50–21:54
+    mutation run was before the `here()` fix at 21:54:26; "21:52–22:00" was loose). Every mutant re-run below on the
+    final files, each page mutant on a fresh site build, with the driver's own clock times; the screens re-taken.
+    Line refs: "guide 22 :82 and :354" above mixed trees: :82 is the same in both; base :354 is :377 now.
+15. **Changelog "What you must do: nothing" vs an offline copy downloaded earlier** (docs, major) — REAL. The
+    changelog's "What you must do" and guide 22 step 10 now say: an offline copy from before this refuses a project
+    using hide / lock / sections, download it again. **For the coordinator:** the between-parts release marker
+    (RMP1-PROGRESS.md line 3) is yours to declare: not touched here; the publish has to serve the new builder before
+    the team saves a view.
+16. **Brief D6 says focus is saved; the build keeps it only for now — an unlogged delta** (docs, minor) — TRUE; added
+    to the deltas below.
+17. **Merge hazard: guide 23 and PROJECT-BRIEFING against main** (docs, minor) — TRUE. Guide 23 :253 is now the SAME
+    line as main's `f480e08` ("Bench Tests' tile 5 checks the card"), so the two merge as one change; the earlier
+    bullet "Reworded to ... checks it" is superseded (found on the base tree; main's f480e08 fixed it the same
+    evening), and "Not touched: guide 23" in the prose-review bullet was wrong. `PROJECT-BRIEFING.md` here is
+    regenerated for this worktree's gates (its assertion count follows the source path's length, d79d257): **at the
+    merge take main's and regenerate it in the main tree after the build.**
+18. **step_list.mjs's header promised the selected card shows its buttons; the CSS did not** (docs, minor) — made the
+    comment TRUE rather than weaker: `.step.selected .step-acts` shows them (one row at a time; a touch screen, the
+    ≤1100 px drawer, now reaches the eye, the lock and the ... menu, which had no other way in). Pinned: the selected
+    row shows them with the pointer on the field, an unselected one does not.
+19. **Mutation verdicts observed against the test file before its `here()` fix** (docs, minor) — see 14.
+
+Found while re-checking, NOT fixed (for the coordinator): a card dropped onto a section's FIRST card (the drop line
+shows above that card, under the section's row) lands before that step, so in the section ABOVE; when that one is
+folded, the step leaves the list once it is deselected (it still runs; unfold shows it). Sections start at their first
+step by design (D5); a drop meaning "first in this section" is a list rule to decide, not a defect in the C++ (the
+export never reads a section).
+
+- Prose review after the fixes (grep run 23:08, hits read): `without moving|click (the spot|it) again|2 of 3|hover (it|the
+  row)|put away|offline|Download for offline|highlighted|section` over docs/ (not internal, not api) and README.md, kept to
+  route / step / preview / offline / click hits. Read: guide 22 :26 (download beforehand: still true; step 10 now says to
+  download again), :140 ("the one playing is highlighted": PREVIEW's, unrelated), :160 ("Change the route and the run
+  is put away (an undo brings it back)": consistent with the Hide row's new sentence), :249–:250 (rewritten: no
+  "without moving the mouse"; a drag moves the highlighted one), :241 ("hover or select it": the selected row now shows
+  its buttons), :257–:259 (the offline copy); `docs/route-builder.md` :42–:46 "Offline, at the event": one sentence
+  added (download again after an update; an older copy cannot open a project that uses something added since, and
+  names it — true of every newer-file refusal, not only `view`); changelog :26 and :30–:32. No other public doc
+  describes the click-through, the row buttons or the offline copy's age.
+
+**Mutations after the review** (driver `scratch/rmp1-g/mutate2.py`: backup under `backups2/`, restore in `finally` and
+on SIGTERM / SIGHUP / SIGINT, `os.utime` on restore; node mutants: every node test file under `ulimit -v 4 GiB` +
+`timeout 600`; page mutants: `view.page.test.mjs` on a FRESH site build each, Chromium under `systemd-run --user
+--scope -p MemoryMax=6G` + `timeout 900`; the site rebuilt from the restored tree at the end, and every cut checked
+present exactly once afterwards). First pass 22:52:43–22:57:33: 51 of 52 CAUGHT, **R4 SURVIVED** (no test opened a
+project with focus on) → the "opening a project ends it" step added → R4 CAUGHT at 23:08:22. **The record: the whole
+set re-run on the FINAL test files, 23:08:30–23:13:42, 52 of 52 CAUGHT**, each by the assertion meant for it:
+
+- Node: N1 view not stored (round trip / view LAST); N2 the export skips a hidden step (D6, `gl12_fail_carry_on`); N3
+  the view check gone (`{"hidden":true,"colour":"red"}` opened); N4 a section's end off by one; N5 a duplicate keeps the
+  view; N6 focus on step 1 loses the start; **N7** delete without the hand-off ("step 4 still in Back, not in the folded
+  Claw 1"); **N8** move without it; **N9** the hand-off onto a step that starts its own section; **N10** a move to where
+  it is shifts the section (reference-equal); **N11** the fold not handed on ("the fold goes with the name"); R14
+  `!plainObject` gone (`view: null` throws).
+- Page: P1 hidden still drawn; P2 a locked point takes the pointer (the locked step 2 moved by a drag); P3 the nudge
+  guard gone ("no nudge"); **P4** a click never cycles; **P5** the press always takes the top one ("steps 1 and 5
+  stay"); P6 faded points take the pointer (the faded start's knob turned); P7 Esc keeps focus; P8 a section's hide
+  never shows again; P9 a folded section lists its steps; P10 a hidden step's number drawn; P11 no "k of n"; P12 focus
+  not following the selection; R2 the hidden half of the guard; R3 / R4 focus kept on a switch / an open; R5–R8 focus's
+  visuals; R9 / R10 / R25 the row's eye and lock; R11 Esc in a curve; R12 / R22 the inspector's lines (R12 by the 30 s
+  wait on the absent line); R13 the start's "k of n"; R15 / R16 / R21 the menus; R17 the selected step in a folded
+  section; R18 focus kept on a background click; R23 Show all unlocking; R24 Shift+H; **F3a / F3b** focus kept after a
+  new route / an undo to another route; **F4** "k of n" kept after H; **F6** the "move it" message for a Wait; **F7**
+  the shared pill listing faded steps; **F8** the selected row without its buttons; **F10** a selected start not
+  matched in a stack. R19 / R20 (the reviewer's `lastPick` resets) have no code left to cut.
+
+**Gates after the review** (2026-11-19, `date`: 23:13–23:35 EST, every one on the final tree; logs under
+`scratch/rmp1-g/`: `gates2.log`, `build2.log`, `src_gate2.log`, `page_chromium.log`, `page_firefox.log`):
+
+- Node: `# tests 182 # pass 182 # fail 0` (+1: the section hand-off test; the refusal list +3 shapes).
+- Page, every page test file, on the site rebuilt from the restored tree: Chromium `# tests 73 # pass 68 # skipped 5`,
+  Firefox `# tests 73 # pass 71 # skipped 2` (+4 tests in `view.page.test.mjs`; the skips as before).
+  `view.page.test.mjs` with the screens (`~/shulib-render-tmp/rmp1-g/shots2/`, light/dark at 1440 and 1280, both
+  browsers): `# tests 13 # pass 13` in each. `docs/assets/route-builder/focus.png` re-taken (Firefox light 1440): the
+  crowded spot's pill now says "6", not "2, 4, 6, 8, 11". No browser process of mine left (the `chrome-headless-shell`
+  and `ffmpeg` running at 23:15 are the `integrate` worktree's: not touched).
+- Build: `rm -f build/test/shulib_tests`, briefing generated (unbuilt), `cmake --build build/test -j8` exit 0 (`doc
+  coverage: 6502 public entities across 215 headers, all documented`, `check-nav: OK — 264 public pages`,
+  `check-tone: OK — 49 pages`, `first_week: OK`). Suite (`suite_run.py green`, 4 GiB cap): `green — 3893 cases,
+  3775836 assertions`. Briefing regenerated on the built binary; `check`: `generated block current`; `self-test` OK.
+- src gate `check`: `PASS (all 14 builds link or, robot one's and robot two's, refuse naming exactly their owed facts …)`
+  (self-test not run: no src/ or Makefile change).
+- ARM header gate: `TU includes 259 headers` → `CLEAN`. CI greps: PROS-free, sim-free; every changed / new TEXT file LF
+  (the script's first pass flagged `focus.png`, a binary PNG: re-run with `grep -I`, clean). `git diff -- include/`
+  empty.
+- `api_doc_tool`: self-test OK, check-coverage as above, check-fresh exit 0, check-examples `988 quoted lines, all
+  verbatim`, check-removability `no public doc references docs/internal/`. `doc_staleness_audit.py`: self-test OK (16),
+  `clean (38 live docs, 0 numeric claims checked)`.
+- Not run: the Windows CI, the engine build (no `wasm/` or `route_preview_model.hpp` change). Nothing committed.
+
+**For the coordinator, after the review:** (a) `scratch/rmp1-g/routekey/routekey-for-rmp1e.patch` — RMP1-E's
+`playback.mjs` (`routeKey` without `view`), its test, and the guide 22 sentence it makes untrue; route it to RMP1-E or
+land it as a logged cross-file edit. (b) The between-parts release marker (line 3) is yours to declare before the
+publish; the changelog now tells teams with an old offline copy to download it again. (c) At the merge: take main's
+`PROJECT-BRIEFING.md` and regenerate it in the main tree; guide 23 :253 is already main's exact line. (d) Open, not
+fixed: a card dropped onto a section's first card lands in the section above (see the list above). (e) Docs moved in
+this pass: guide 22 (step 10: the click-again and drag words, the PREVIEW sentence, the offline copy; "hover or select
+it"), the changelog's "What you must do", `docs/route-builder.md`'s offline section, guide 23 :253.
+
+### Verification-round findings and their disposition (2026-11-19, from ~23:50 EST; the same executor, the same worktree)
+
+A fresh verifier returned 4 minor findings (its probes under `scratch/rmp1-g/verify/`). Started: re-checking each
+against the tree before any change.
+
+Each finding, re-checked, then what was done:
+
+1. **Fix 7's buttons covered the selected card's title** — REAL (the base fix made `.step.selected .step-acts`
+   visible, but they stayed `position: absolute` over the words). **Fixed in the RMP1-G CSS block:** the selected card
+   (not the start card) gets its own grid column for them (`grid-template-columns: 22px 32px 1fr auto auto`) and its
+   `.step-acts` turn `position: static` with no surface box or shadow; a hovered card that is not selected keeps the
+   overlay (only while the pointer is on it). The selected card's title is now cut with an ellipsis where it meets them
+   ("Back up ..." at the 300 px list), never drawn under them; the inspector shows the full title right under "Step N",
+   and the card's tooltip has it. Pinned in "D1 + D2 from the row": the selected card's `.step-main` ends at or before
+   `.step-acts` starts, and the grip stays on the row after them. `focus.png` re-taken (Firefox light 1440).
+2. **Alt+Down then Alt+Up on a section's first step left it in the section above (gone under a fold)** — REAL. A
+   symmetric index rule does not exist: after Alt+Down on a head ([a | N(head) s]) and after Alt+Down on the step
+   before a head ([a | N(head) s] again, s now in N's section) the route is the same shape, yet putting each back needs
+   a different answer (s heads N's section / s ends the section above), so no move rule restores both; Ctrl+Z restores
+   either exactly. The harm is the step leaving the list unseen, so **fixed at that root, in the model:**
+   `step_view.mjs unfoldAt` and `route.mjs moveStep` — a folded section a moved step lands in unfolds (one edit, one
+   undo). It covers the keys and a drop alike, so it also closes open item (d) (a card dropped onto a section's first
+   card). A move inside a folded section opens it too (you see what the step passed). Pinned by a node test over every
+   move (8 steps, 4 sections incl. two one-step ones, all 16 fold patterns, every from/to: 1024 moves): the moved step
+   is listed afterwards and every step listed before still is; plus the verifier's own keys (Claw 1 folded, Back's first
+   step Down then Up: the same order, the step listed, Claw 1 open). The existing assertion "Claw 1's first step one
+   down" now expects the fold open. Guide 22's Sections paragraph says it.
+3. **The hover tip named the top point while a drag moved the selected one under it** — REAL. **Fixed:** one rule for
+   both, `field_view.mjs selectedIn()`: the press takes the selected point when it is in the stack, and the tip names
+   that one first: "Step 1: ... (selected · 2 here: click for the next)"; with the selected point not there, the tip is
+   as before ("Step 3: ... (2 here: click again for the next)"). The selected group is not raised (that would reorder
+   the stack under the pointer on every pick and break cycling). Pinned in D4: on [A, B, A] with step 1 picked under
+   step 3, hovering A names step 1, "selected". Guide 22 step 10: hovering names the step a drag would move.
+4. **The focused pill's colour was untested** — TRUE (the verifier's M3 survived). D3 now gives step 3 (on A with step
+   1) an error (`onFail: skipTo` a label nobody has): no focus, A's pill "1, 3" is red; focus on step 1, the lit "1" is
+   NOT red; focus on step 3, "3" is red.
+
+Mutations of this round (driver `scratch/rmp1-g/mutate_v.py`, the review's 52 cuts plus 9 new, backups under
+`backups3/`, the same restore-on-signal and fresh-site rules; Chromium): 00:00:52–00:08:44, **61 of 61 CAUGHT**; the
+tree afterwards byte-identical to a copy taken before (`verify_round/src_before_mutations`, `diff -r` empty). New:
+**V1a** both new CSS lines gone (the overlay back: "the buttons sit beside its words", words to x 252, buttons from
+172); **V1b** the column gone (the grip wraps: "the grip stays on the row"); **V1c** `position: static` gone (covered
+again); **V2a** moveStep without `unfoldAt`, **V2b** unfolding where the step LEFT, **V2c** `unfoldAt` blind to a
+section's head (a one-step folded section moved: "mask 4, 6 -> 0") — node, the new property test; **V3a** the tip
+naming the top one, **V3b** the tip never saying "selected" — D4's new hover line; **V4** the verifier's M3 (the
+pill's colour from every step on the spot) — D3's "not the faded step 3's red".
+
+- Prose review of this round (grep run 00:09, hits read): `hover|names (its|the) step|fold|click (again|for the next)|
+  highlighted one|its row|select it\)|step.s row` over docs/ (not internal, not api) and README.md. Read: guide 22 :241
+  ("hover or select it": still true, the selected row shows them, now beside its words), :250–:251 and :254–:255 (this
+  round's two sentences), :435 (the keys table's "a click again on one spot": still true), changelog :27 ("sections
+  that fold, hide and lock together": still true); guide 16 :416 is PREVIEW's hover, unrelated; every other hit is
+  another meaning of "fold"/"folder"/"row". In the page: `help.mjs`'s "Click again on one spot" row still true;
+  `field_view.mjs`'s header now says hovering names the one a press would take (it said "names the step");
+  `step_list.mjs`'s header ("on a card (hovered, focused or selected)") still true.
+
+**Gates of this round** (2026-11-20, `date`: 00:09–00:27 EST, every one on the final tree; logs under
+`scratch/rmp1-g/`: `gates3.log`, `build3.log`, `src_gate3.log`, `page3_chromium.log`, `page3_firefox.log`,
+`verify_round_view_*.log`, `verify_round_shots_*.log`):
+
+- Node (4 GiB cap): `# tests 183 # pass 183 # fail 0` (+1: the every-move property test).
+- Page, every page test file, on a site built from the final tree: Chromium `# tests 73 # pass 68 # skipped 5`,
+  Firefox `# tests 73 # pass 71 # skipped 2` (the new assertions are inside existing tests; the skips as before).
+  `view.page.test.mjs` with the screens (`~/shulib-render-tmp/rmp1-g/shots3/`, light/dark at 1440 and 1280, both
+  browsers): `# tests 13 # pass 13` in each (taken before `field_view.mjs`'s header comment was reworded: comment only).
+  `docs/assets/route-builder/focus.png` = `shots3/firefox-rmp1g-focus-light-1440.png`: step 6's row "Back up ..." with
+  the eye, the lock and ... beside it, nothing over its words. No browser process of mine left (the
+  `chrome-headless-shell` processes running at 00:27 are `rmp1-h`'s and `integrate`'s: not touched).
+- Build: `rm -f build/test/shulib_tests`, briefing generated (unbuilt), `cmake --build build/test -j8` exit 0 (`doc
+  coverage: 6502 public entities across 215 headers, all documented`, `check-nav: OK — 264 public pages`, `check-tone:
+  OK — 49 pages`, `first_week: OK`). Suite (`suite_run.py green`, 4 GiB cap): `green — 3893 cases, 3775836 assertions`.
+  Briefing regenerated on the built binary; `check`: `generated block current`; `self-test` OK (38).
+- src gate `check`: `PASS (all 14 builds link or, robot one's and robot two's, refuse naming exactly their owed facts
+  …)` (self-test not run: no src/ or Makefile change).
+- ARM header gate: `TU includes 259 headers` → `CLEAN`. CI greps: PROS-free, sim-free; every changed / new TEXT file LF
+  (`grep -I`; the script's plain pass flags the binary `focus.png`, as last round). `git diff -- include/` empty.
+- `api_doc_tool`: self-test OK, check-coverage as above, check-fresh exit 0, check-examples `988 quoted lines, all
+  verbatim`, check-removability `no public doc references docs/internal/`. `doc_staleness_audit.py`: self-test OK (16),
+  `clean (38 live docs, 0 numeric claims checked)`.
+- Not run: the Windows CI, the engine build (no `wasm/` or `route_preview_model.hpp` change). Nothing committed.
+
+**For the coordinator, after this round:** open item (d) above (a card dropped onto a section's first card lands in
+the section above) is now harmless: that section opens if folded, so the step is never put away unseen; WHICH section
+a boundary drop means is still the list's rule (index moves cannot be exactly reversible across a section's edge,
+finding 2). (a)–(c) of the review stand unchanged (the `routeKey` patch for RMP1-E, the release marker, the briefing at
+the merge).

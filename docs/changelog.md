@@ -16,6 +16,21 @@
 
 ## API 2.9
 
+### 2026-11-19 — The route builder: hide, lock and focus on the steps of a crowded spot
+
+> Written when it was built (chunk RMP1, run RMP1-G). **No library change — no API change:** only the route
+> builder's page moved.
+
+**What you can now do (additive):** in the [route builder](route-builder.md), **hide** a step on the field (**H**),
+**lock** it so a drag or a click goes past it (**L**), **focus** on one step and its neighbours with the rest faded
+(**O**), click a crowded spot again for the next point under it ("2 of 3 here"), and gather steps into named
+**sections** that fold, hide and lock together. How:
+[guide chapter 22, step 10](guide/22-making-your-first-route.md#10-crowded-spots-hide-lock-focus).
+
+**What you must do:** if you downloaded the route builder for offline use before this update, download it again: an
+older copy refuses a project saved with a hidden or locked step or a section (it names what it cannot read and opens
+nothing). The exported code is unchanged.
+
 ### 2026-11-19 — Export says where the code goes and whether it landed; one command builds and uploads
 
 > Written when it was built (chunk RMP1, run RMP1-F). **No library change — no API change:** the route builder's
