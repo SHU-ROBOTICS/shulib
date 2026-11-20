@@ -25,7 +25,7 @@ push and a full push of the stick drive — and exports them into the robot's dr
 
 | Browser | What it does |
 |---|---|
-| **Edge or Chrome** (version 97 or newer) | Everything. Connect your shulib folder once: **Save** writes `src/team/route_maker.json`, **Export** writes the routes into `src/team/skills_route.cpp` and the **Controls** tab's export into the robot's driver file, each keeping the file's own line endings. |
+| **Edge or Chrome** (version 97 or newer) | Everything. Connect your shulib folder once: **Save** writes `src/team/route_maker.json`, **Export** writes the routes into `src/team/skills_route.cpp` (and reads it back) and the **Controls** tab's export into the robot's driver file, each keeping the file's own line endings. |
 | **Firefox** (115 or newer) | Everything except writing into the folder: **Save** downloads `route_maker.json`, **Export** copies the code (or hands back an updated `skills_route.cpp`, or driver file, to put in place). |
 | **Safari** (16 or newer) — not tested | Should work as Firefox does; no test runs it. |
 

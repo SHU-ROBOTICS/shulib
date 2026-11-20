@@ -5,14 +5,16 @@
 // re-implements anything here. The rules:
 //   * write ONLY between the two marker lines that already exist in the file (§6.3: `// ═══ ROUTE MAKER —
 //     route "<name>" — BEGIN ═══…` and its END), each alone on its line, exactly one pair; never create
-//     them (no student pastes markers — Copy until robot two's update places them);
+//     them (a student's Copy replaces the marked lines with a copy that carries them; never a new pair);
 //   * nothing outside the region changes, byte for byte;
 //   * the file's OWN line ending (CRLF from a Git-for-Windows checkout, or LF) and its final newline are kept
 //     (this repository has no repository-wide .gitattributes, on purpose);
 //   * a HAND EDIT inside the region is never overwritten silently: the project file keeps the hash of what
 //     the builder last wrote (`exports`, never inside a source file); a region that is neither that nor the
 //     empty starter region is a hand edit, refused unless the student says "overwrite";
-//   * only files under src/team/ (and never with "..").
+//   * only files under src/team/ (and never with "..");
+//   * the export into skills_route.cpp is READ BACK (readBack): a file that reads back different is a refusal,
+//     never a success (RMP1-F).
 // Hashes are SHA-256 of the region with LF line endings, so a CRLF checkout is not mistaken for an edit.
 //
 // Pure: no DOM, no file API. Tested directly and through the in-memory host (FA1-FA4).
@@ -76,21 +78,19 @@ export function findRegion(text) {
     }
     if (begins.length === 0 && ends.length === 0) {
         return { ok: false, why: 'noMarkers',
-                 words: 'This file has no ROUTE MAKER markers, so the route builder will not write into it. '
-                      + 'The skills-route file gets them with robot two\'s update; until then use Copy. '
-                      + '(If someone deleted them, the route there is hand-written code now, and the builder leaves it alone.)' };
+                 words: 'This file has no ROUTE MAKER lines, so the route builder will not write into it: someone removed '
+                      + 'them, or this is not the skills-route file.' };
     }
     if (begins.length !== 1 || ends.length !== 1) {
         return { ok: false, why: 'markerCount',
                  words: `This file has ${begins.length} BEGIN and ${ends.length} END ROUTE MAKER lines; the route builder `
-                      + 'writes only into exactly one pair. Fix the file by hand (or ask), then export again.' };
+                      + 'writes only into exactly one pair.' };
     }
     const [b] = begins;
     const [e] = ends;
     if (e.start < b.start || b.name !== e.name) {
         return { ok: false, why: 'markerOrder',
-                 words: 'The ROUTE MAKER END line comes before its BEGIN line, or they name different routes. '
-                      + 'Fix the file by hand (or ask), then export again.' };
+                 words: 'The ROUTE MAKER END line comes before its BEGIN line, or they name different routes.' };
     }
     return { ok: true, name: b.name, start: b.start, end: e.stop, eol };
 }
@@ -194,6 +194,23 @@ export function spliceRegion(fileText, newRegionLF, { lastHash, overwrite = fals
     const body = eol === '\n' ? newRegionLF : newRegionLF.replace(/\n/g, eol);
     const text = fileText.slice(0, found.start) + body + fileText.slice(found.end);
     return { ok: true, text, hash: regionHash(newRegionLF), changed: text !== fileText };
+}
+
+/**
+ * THE READ-BACK (RMP1-F D2): the file as read AFTER a write. `text`: null when it is gone; `regionLF`: the export;
+ * `wrote`: the whole text written (undefined: nothing was written, the file already had it). {ok: true}, or
+ * {ok: false, why: 'gone' | 'differs', words} (markers lost in the write are 'differs': the page wrote them).
+ */
+export function readBack(text, regionLF, wrote) {
+    if (text === null) {
+        return { ok: false, why: 'gone', words: 'The file was not there when the page read it back.' };
+    }
+    const found = findRegion(text);
+    if (!found.ok || regionText(text, found) !== regionLF || (wrote !== undefined && text !== wrote)) {
+        return { ok: false, why: 'differs', words: 'The file read back is not what the page wrote: something changed it as it was '
+                 + 'written (an editor with it open, or a sync folder).' };
+    }
+    return { ok: true };
 }
 
 /**

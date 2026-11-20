@@ -11,10 +11,10 @@
 //   offerDownload(name, text)  hand the student a file to save (every browser)
 //   pickText()            let the student pick a file; its {name, text}, or null
 // and EVERY rule — only under src/team/, only between the markers, the hand-edit hash, the file's own line
-// endings — is region.mjs's, applied here the same way for every host (so a later host re-implements a few
-// calls, never a rule).
+// endings, the read-back after the export into skills_route.cpp (RMP1-F) — is region.mjs's, applied here the same
+// way for every host (so a later host re-implements a few calls, never a rule).
 
-import { isTeamPath, spliceRegion, findRegion, regionText, regionHash, exportKey, hasTeamRoutesLine, SKILLS_ROUTE_FILE,
+import { isTeamPath, spliceRegion, findRegion, regionText, regionHash, exportKey, hasTeamRoutesLine, readBack, SKILLS_ROUTE_FILE,
          ROBOT_ONE_AUTONS_FILE, ROBOT_TWO_AUTONS_FILE } from '../model/region.mjs';
 import { exportRegion } from '../model/export.mjs';
 import { ROUTE_NAME } from '../model/route.mjs';
@@ -112,28 +112,40 @@ export function makeFiles(host) {
 
         /**
          * Write the routes (every route of the project, RMP1-C D2; one route is taken too) into the skills-route file's
-         * region (D4), keeping its line endings. Returns {ok, project (its `exports` hash updated), words} or
-         * {ok: false, why, words}. `overwrite`: the student chose to replace a hand edit; `robot`: the routes' robot's
-         * description (a lift's planned height, D7).
+         * region (D4), keeping its line endings, then READ IT BACK (RMP1-F D2). Returns {ok, project (its `exports` hash
+         * updated), changed, words} or {ok: false, why, words} — 'failed' when the folder refused (its message).
+         * `overwrite`: the student chose to replace a hand edit; `robot`: the routes' robot's description (D7).
          */
         async exportToFile(routes, project, { overwrite = false, robot = null } = {}) {
             guard(SKILLS_ROUTE_FILE);
             if (!(host.canWriteFolder && host.connected())) {
                 return { ok: false, why: 'noFolder', words: 'Connect your shulib folder first (Chrome or Edge).' };
             }
-            const text = await host.readText(SKILLS_ROUTE_FILE);
-            if (text === null) {
-                return { ok: false, why: 'noFile', words: `There is no ${SKILLS_ROUTE_FILE} in this folder: it arrives with `
-                    + 'robot two\'s update. Until then, use Copy.' };
+            const region = exportRegion(routes, robot);
+            let out;
+            let key;
+            let back;
+            try {
+                const text = await host.readText(SKILLS_ROUTE_FILE);
+                if (text === null) {
+                    return { ok: false, why: 'noFile', words: `There is no ${SKILLS_ROUTE_FILE} in this folder: it arrives with `
+                        + 'robot two\'s update. Until then, use Copy.' };
+                }
+                const found = findRegion(text);
+                key = exportKey(SKILLS_ROUTE_FILE, found.ok ? found.name : ROUTE_NAME);
+                out = spliceRegion(text, region, { lastHash: project.exports[key], overwrite });
+                if (!out.ok) {
+                    return out;
+                }
+                if (out.changed) {
+                    await host.writeText(SKILLS_ROUTE_FILE, out.text);
+                }
+                back = readBack(await host.readText(SKILLS_ROUTE_FILE), region, out.changed ? out.text : undefined);
+            } catch (e) {
+                return { ok: false, why: 'failed', words: `The folder refused: ${e && e.message ? e.message : e}` };
             }
-            const found = findRegion(text);
-            const key = exportKey(SKILLS_ROUTE_FILE, found.ok ? found.name : ROUTE_NAME);
-            const out = spliceRegion(text, exportRegion(routes, robot), { lastHash: project.exports[key], overwrite });
-            if (!out.ok) {
-                return out;
-            }
-            if (out.changed) {
-                await host.writeText(SKILLS_ROUTE_FILE, out.text);
+            if (!back.ok) {
+                return back;
             }
             const exportsNow = { ...project.exports };
             delete exportsNow[key];
@@ -144,7 +156,8 @@ export function makeFiles(host) {
 
         /**
          * Every other browser: the student picks their skills_route.cpp, gets the updated file back as a
-         * download to put in place (the same rules: only the region changes, its line endings kept).
+         * download to put in place (the same rules: only the region changes, its line endings kept). A refusal
+         * names the file picked (`picked`), so a wrong pick is said as one.
          */
         async exportByDownload(routes, project, { overwrite = false, robot = null } = {}) {
             const picked = await host.pickText();
@@ -155,7 +168,7 @@ export function makeFiles(host) {
             const key = exportKey(SKILLS_ROUTE_FILE, found.ok ? found.name : ROUTE_NAME);
             const out = spliceRegion(picked.text, exportRegion(routes, robot), { lastHash: project.exports[key], overwrite });
             if (!out.ok) {
-                return out;
+                return { ...out, picked: picked.name };
             }
             await host.offerDownload('skills_route.cpp', out.text);
             const exportsNow = { ...project.exports };

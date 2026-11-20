@@ -350,6 +350,10 @@ jobs:
       - name: The route builder's model on this OS (paths, line endings)
         if: ${{ !cancelled() }}
         run: node --test tools/route_maker/test/*.test.mjs
+      - name: tools/upload_auton.py against fake make and pros on this OS (RMP1-F D5)
+        if: ${{ !cancelled() }}
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then python tools/upload_auton.py self-test; else python3 tools/upload_auton.py self-test; fi
       - id: site
         if: ${{ !cancelled() }}
         uses: actions/download-artifact@v4

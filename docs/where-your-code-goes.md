@@ -33,6 +33,8 @@ Robot one's builds. Robot two's are the same with `ROBOT=tank`, and its files ar
 
 Slot 5 is kept for the team's old code. Upload a build with
 `pros upload --slot <slot> --name "<on the brain>"` ([Build and upload the programs](guide/07-getting-set-up.md)).
+For the Auton Tester, `python3 tools/upload_auton.py one` (or `two`; `python` on Windows) does both and says plainly
+whether it worked.
 
 ## What to change, and where
 

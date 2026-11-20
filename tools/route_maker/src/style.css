@@ -518,3 +518,49 @@ input.num.bad { border-color: var(--failed); }
 .g-twin-label { font: 600 12px var(--font-ui); fill: var(--blue-alliance); text-anchor: middle; dominant-baseline: central; pointer-events: none;
   paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
 .g-handle.sel.point { fill: var(--accent); }
+
+/* ── Export → robot (RMP1-F): the numbered step, the result, "Will it build?", where a copy goes, Next ── */
+.xr-steps h3 { font-size: var(--t-lg); }
+.xr-list, .xr-cmds { list-style: none; margin: var(--s-3) 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-3); }
+.xr-list > li, .xr-cmds > li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--s-3); align-items: start; }
+.xr-list small, .xr-cmds small { display: block; margin-top: var(--s-1); color: var(--text-muted); font-size: var(--t-xs); }
+.xr-num { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: var(--t-sm);
+  background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.xr-num svg { width: 16px; height: 16px; }
+.xr-step.now .xr-num { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.xr-step.done .xr-num { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.xr-step.later > div { opacity: .6; }
+.xr-or { margin: var(--s-3) 0 0; color: var(--text-muted); font-size: var(--t-sm); display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.xr-card { padding: var(--s-4); font-size: var(--t-md); }
+.xr-card > svg { width: 24px; height: 24px; flex: none; }
+.banner.ok.xr-card > svg, .banner.ok .xr-title { color: var(--ok); }
+.banner.error.xr-card > svg, .banner.error .xr-title { color: var(--failed); }
+.banner.warn.xr-card > svg { color: var(--cut); }
+.xr-title { display: block; font-size: var(--t-lg); margin-bottom: var(--s-1); }
+.xr-card p { margin: var(--s-1) 0; }
+.xr-sum { font-weight: 600; }
+.xr-warn { color: var(--cut); }
+.xr-fix { margin-top: var(--s-2); display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.xr-build { margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--border); }
+.xr-build h4 { margin: 0 0 var(--s-1); font-size: var(--t-sm); }
+.xr-build ul { list-style: none; margin: 0; padding: 0; font-size: var(--t-sm); }
+.xr-build li { display: flex; gap: var(--s-2); margin: 2px 0; }
+.xr-mark { width: 1em; flex: none; font-weight: 700; color: var(--ok); }
+.xr-build li.bad .xr-mark, .xr-build li.bad { color: var(--failed); }
+.xr-paste { margin: var(--s-2) 0; }
+.xr-paste-code { font: 12px/1.6 var(--font-mono); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: var(--s-2) 0; overflow-x: auto; }
+.xr-paste-code > div { padding: 0 var(--s-3); white-space: pre; color: var(--text-muted); border-left: 3px solid transparent; }
+.xr-paste-code > .sel { background: var(--accent-fill-strong); color: var(--text); border-left-color: var(--accent); }
+.xr-paste-code > .mid { font-style: italic; }
+.xr-paste figcaption { margin-top: var(--s-1); font-size: var(--t-xs); color: var(--text-muted); }
+.xr-next .card-head { justify-content: space-between; align-items: center; }
+.xr-next .card-head h3 { margin: 0; }
+.xr-helper { margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--border); font-size: var(--t-sm); color: var(--text-muted);
+  display: flex; flex-direction: column; gap: var(--s-2); }
+.xr-cmd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.xr-cmd code, .xr-path code { font: 13px var(--font-mono); background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 3px 8px; overflow-wrap: anywhere; }
+.xr-code summary { cursor: pointer; font-size: var(--t-sm); font-weight: 600; color: var(--text-muted); min-height: var(--hit); display: flex; align-items: center; }
+.xr-code[open] summary { margin-bottom: var(--s-2); }
+/* ── end Export → robot (RMP1-F) ── */

@@ -8,9 +8,9 @@ the skills route by clicking and exports the C++. Students: read
 
 | Where | What |
 |---|---|
-| `src/model/` | PURE ES modules (no DOM, no file API), each with its node test in `test/`: the route and its edits (`route.mjs`), the library's curve ported line for line (`curve.mjs`, pinned by CV1), every check (`checks.mjs`), the export (`export.mjs`), the ONE number formatter (`numbers.mjs`), the marker / hand-edit / line-ending rules (`region.mjs`), the project file (`project.mjs`), undo, the field and snapping, the library's quoted sentences (`library_words.mjs`, checked against the headers) |
+| `src/model/` | PURE ES modules (no DOM, no file API), each with its node test in `test/`: the route and its edits (`route.mjs`), the library's curve ported line for line (`curve.mjs`, pinned by CV1), every check (`checks.mjs`), the export (`export.mjs`), the ONE number formatter (`numbers.mjs`), the marker / hand-edit / line-ending / read-back rules (`region.mjs`), what Export says next (`to_robot.mjs`: the build and upload commands), the project file (`project.mjs`), undo, the field and snapping, the library's quoted sentences (`library_words.mjs`, checked against the headers) |
 | `src/host/` | the four host interfaces the screens call: `files.mjs` (over `files_fsaccess.mjs` — Chrome/Edge's folder — or `files_download.mjs` — every browser), `engine.mjs` (PREVIEW's engine, in a Worker — below), `robots.mjs` (the descriptions baked into the page), `capabilities.mjs`. A later VS Code panel or local helper swaps these, never the screens or a rule |
-| `src/ui/` | the screens: `app.mjs` (the shell and the store), `field_view.mjs`, `step_list.mjs`, `inspector.mjs`, `export_drawer.mjs`, `help.mjs`, `words.mjs` (what the page calls each step), `dom.mjs` (helpers and the icons); the Controls tab: `controls_tab.mjs` (the controller), `feel_tab.mjs` (the driving feel and its graph), `controls_export.mjs` |
+| `src/ui/` | the screens: `app.mjs` (the shell and the store), `field_view.mjs`, `step_list.mjs`, `inspector.mjs`, `export_drawer.mjs` (with `to_robot.mjs`: the result, "Will it build?", Next), `help.mjs`, `words.mjs` (what the page calls each step), `dom.mjs` (helpers and the icons); the Controls tab: `controls_tab.mjs` (the controller), `feel_tab.mjs` (the driving feel and its graph), `controls_export.mjs` |
 | `src/model/` (the Controls tab) | `controls.mjs` (the controls as data, one check per build refusal of `controls()`, the `controls` and `control words` regions), `feel.mjs` (the library's stick curve in the C++'s order, `checkFeel`, the `feel` region), `driver_file.mjs` (the driver file's three marked regions: found, read, written all or none) |
 | `controls_cases.mjs` | the CT agreement's data: one configuration per build refusal on the fixture robots; `goldens.mjs --write` turns each into `test/compile_refusals/rm_ct_*.cpp` |
 | `src/app.html`, `src/style.css`, `src/browser_check.js` | the page's template, its design tokens and stylesheet, and the script that runs first and refuses an old browser in plain words |
@@ -188,7 +188,12 @@ fails, not skips, when either is missing.
   field this builder cannot write — is refused by name (`project.mjs`), and a number the student has not typed is
   left OUT, never stored as `NaN` (which JSON turns into 0).
 - **Only between the markers, only under `src/team/`, the file's own line endings kept, a hand edit never
-  overwritten silently** — all in `region.mjs`, for every host.
+  overwritten silently** — all in `region.mjs`, applied by `files.mjs` for every host. **The export into
+  `skills_route.cpp` is READ BACK** (a file that reads back different is a red refusal, never a green).
+- **Export is never silent** (RMP1-F): one numbered step for this browser, then green (✓ written and checked,
+  downloaded, copied) or red with its reason and its fix; then the commands that build and upload, or
+  `tools/upload_auton.py one|two`, which does both and prints ✓ or ✗ (`python3 tools/upload_auton.py self-test`:
+  its cases against fake `make` and a fake `pros` that takes pros-cli's own grammar).
 - **Nothing is invented for the students** (G4): a one-click fix adds a step they see, and leaves its time limit
   empty for them to type. The Controls tab starts from the driver file's own map, never a made-up one.
 - **The Controls tab refuses what the build refuses, by the build's name**: each of those refusals has

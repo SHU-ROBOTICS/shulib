@@ -3090,3 +3090,388 @@ from the restored sources (exit 0).
   no `(self-test plant` in `git diff -- Makefile src/`; untracked under src/include/test only GL20–GL23 and
   `test/mirrored_pair_numbers.hpp`.
 - Not run here: the Windows/Linux CI (the coordinator's). Nothing committed.
+
+## RMP1-F — export → robot: where the code goes, whether it worked, what to do next
+
+*(executor: Claude Opus 5.5, in the worktree `.claude/worktrees/rmp1-f`, branch `rmp1-f` from `5e2c7f1`; started
+2026-11-19 at about 20:32 EST — the worktree and its base commit are both stamped 20:32:27 (corrected by the review:
+this line first said ~20:20, a time never measured). Brief: `chunks/RMP1-F-export-to-robot.md`. Nothing committed by
+the executor.)*
+
+- Started: read RESUMING's standing rules, the brief in full. Next: the export page's code (`src/ui/export*`,
+  `src/io/*`), RMP1's design system where touched.
+- ~20:40 — host build from the base: green (`doc coverage: 6502 … all documented`). Node: 173 before.
+- ~21:00 — code in: `region.mjs` readBack; `files.mjs` exportToFile reads back and returns a refusal for a write the
+  folder throws on (`failed`); `model/to_robot.mjs` (the commands, the summary); `ui/to_robot.mjs` (result card, Will it
+  build?, the paste picture, Next); `export_drawer.mjs` rebuilt around ONE numbered card per browser; CSS in one
+  delimited block; `tools/upload_auton.py` with its `self-test` (14 cases against fake make/pros). Node 179/179;
+  `export_robot.page.test.mjs` 6/6 Firefox, 5/5 + 1 skipped Chromium. Next: the whole page suite, docs, mutations.
+
+### RMP1-F — what was built (2026-11-19, about 20:32–21:31 EST: the worktree's stamp to this file's last write before the review)
+
+- **D1** `src/ui/export_drawer.mjs` (rebuilt): ONE card "Put it into your robot's code", numbered, the step to do now
+  the ONE primary button. Chrome/Edge (`files.canWriteFolder`): 1 Connect your shulib folder (the one with src inside),
+  2 Write into src/team/skills_route.cpp (disabled until 1). Any other browser: 1 Pick skills_route.cpp and download the
+  updated one, 2 Replace src/team/skills_route.cpp with the downloaded file (Copy beside the path). Both: "Or Copy the
+  code". The code is one click away (`<details>` "See the code: N lines of C++"), not a wall.
+- **D2** the read-back lives in the FILE LAYER, for every host: `region.mjs` `readBack(text, regionLF, wrote)` ('gone',
+  a findRegion why, 'differs' — the region AND the whole file compared); `files.mjs` `exportToFile` reads the file back
+  after writing (and when nothing was written), and a write the folder throws on is `{why: 'failed'}` (a refusal, never
+  an unhandled rejection). The UI (`ui/to_robot.mjs` `resultCard`): green "Written and checked: src/team/skills_route.cpp"
+  + "2 routes (skills, left 1), 3 steps"; "Downloaded skills_route.cpp — now replace src/team/skills_route.cpp with it"
+  (+ Copy the path, + Save route_maker.json); "Copied — paste it over the two ROUTE MAKER lines … and everything between
+  them" + a small picture of the two lines selected. Red: the reason + "The fix:" with its one button (Connect / Write
+  again / Copy); on a red card the fix is the ONE primary button. A hand edit: Keep their change → red "Not written:
+  their change was kept"; Overwrite → writes.
+- **D3** "Will it build?" in every green card: the steps checked by the library's rules; the code between the two
+  lines (read back after a write); after a write, both autons files' addTeamRoutes lines (✓ both, or ✗ per robot);
+  "The C++ compiler checks the rest when you build: that is the next step."
+- **D4** `nextCard`: Robot one | Robot two; 1 `make ROBOT=one PROGRAM=autontest` (two: `ROBOT=tank`) + Copy, "It worked
+  when make ends with no line saying "error"."; 2 `pros upload --slot 2 --name "shulib Auton Tester"` + Copy, "It worked
+  when pros says "Finished uploading"."; 3 On the brain: shulib Auton Tester (slot 2) → the routes → RUN; the one command
+  `python3 tools/upload_auton.py one|two` (`python` on a Windows browser) + Copy. Commands from `model/to_robot.mjs`.
+- **D5** `tools/upload_auton.py`: make for the robot, `pros lsusb` → the V5 Brain's own (not User, not Controller) port,
+  `pros upload --slot 2 --name "shulib Auton Tester" --port <it>` (stdin closed: a pros prompt fails instead of hanging;
+  300 s cap); ✓ BUILT / ✓ UPLOADED to slot 2 + the route names from the region, or ✗ with: the OWED facts (deduped, in
+  make's order) and their facts file; a compile error's file:line + message, inside the ROUTE MAKER region → "re-export
+  from the route builder", in skills_route.cpp's plumbing → "undo the change there", elsewhere → "fix that line";
+  make/pros missing → the PROS terminal or the install page; no brain / controller only / two brains; upload exit 0
+  without "Finished uploading" → ✗ (R3a's silent-upload lesson). Full output: build/upload_auton.log. `self-test`: 14
+  cases against fake make/pros on PATH (POSIX sh fakes; `.cmd` fakes on Windows) + a scan for POSIX-only calls. CI runs
+  it on every row of the route-builder browsers job (Windows included).
+- **REAL make, fake pros (a live probe, scratch/rmp1-f/realmake):** `upload_auton.py one` → `✓ BUILT` (robot one's
+  Auton Tester links today) → `✓ UPLOADED … skills`; `upload_auton.py two` → `✗ NOT BUILT`, robot two's 31 OWED facts,
+  "Type them in src/robots/robot_two_facts.hpp" — parsed from the real compiler's output.
+- **D6** the exported C++ is untouched (`export.mjs` not edited; the goldens' node tests pass unchanged).
+
+**Deltas from the brief, each with its reason.**
+- Copy's words: "paste it OVER the two ROUTE MAKER lines and everything between them" (the brief: "between"): the copied
+  code carries both marker lines (`exportRegion` is BEGIN..END inclusive), so pasting between them makes two pairs and
+  the next Write refuses (`markerCount`). The picture shows both lines selected.
+- The download way keeps the PICK (1 "Pick skills_route.cpp and download the updated one"): the page does not own the
+  plumbing outside the region, so it cannot make the whole file; the pick keeps every byte outside the region.
+- After a write the autons files' addTeamRoutes lines move into "Will it build?" (✓ both / ✗ per robot): a missing line
+  means the routes never reach the brain's menu, which is the question the team lead asked. `page.test.mjs`'s one
+  assertion of the old hint after a write (`Robot two registers every route`) became the new line (that test's folder
+  lacks robot one's autons file: "Robot one will not list the routes … — tell the coordinator").
+- A write that read back different leaves what is on disk NOT the builder's: "Write again" then ASKS (the hand-edit
+  question) and Overwrite writes — never a silent overwrite of what something else put there.
+- The code is collapsed under "See the code" (one idea at a time); guide 22's "Reading the code" points there.
+- Upload success needs exit 0 AND "Finished uploading" (the recorded real line, R3d G.1): R3a 13.14's silent failure.
+- Guide 23 step 5: NOT in this tree (guide 23 exists only on the `tutorial` branch) — for the coordinator.
+- CI: one step added to the route-builder browsers job (every row, Windows included): the script's self-test.
+- *(added by the review)* The card titles carry no ✓ or ✗ text (the brief: "✓ Written and checked …", "✓ Downloaded",
+  "✓ Copied"): the card's icon carries it (a check, or the error mark), so the title is the words alone.
+- *(added by the review)* The script printed `->` where D5 shows `→` (an ASCII-only console); since the review it
+  prints `→` where the console can, `->` where it cannot (the same test as ✓/✗ → OK/X).
+- *(added by the review)* Public docs touched also include `docs/changelog.md` (the API 2.9 entry, 2026-11-19).
+
+**Tests added (adversarial; every fault the test's own).**
+- Node `test/to_robot.test.mjs` (6): readBack (CRLF same region passes; gone; no markers; one character in the region;
+  one character OUTSIDE it; the old region); exportToFile with a writeText that changes the text → 'differs', no export
+  hash; one that deletes the file → 'gone'; one that throws NotAllowedError → 'failed', the file untouched; a good write
+  is read back (reads counted: read, write, read back; unchanged: still read back); the summary; the commands, pinned to
+  the Makefile's own words and to the script's SLOT/NAME.
+- Page `test/page/export_robot.page.test.mjs` (Firefox 6, Chromium 5 + the download case skipped): D1 per browser (and
+  that Chromium HAS the API and Firefox does not), one primary button; Write → green names "2 routes (skills, left 1), 3
+  steps", the file's region equals the drawer's code, Will it build?, Next for robot one then robot two, Copy puts the
+  command on the clipboard; a planted mismatch → red, no Next, nothing saved, ONE primary (the fix), Write again → the
+  question → Overwrite → green; markers removed after opening → red + "use Copy instead", its Copy copies the code; a
+  folder that refuses → red + Connect; Keep their change → red, file untouched; Copy → green + the picture; the download
+  (Firefox) → the downloaded file's region is the code, Copy the path, Save.
+- `tools/upload_auton.py self-test` (14): ok one / ok two (exact argv of make and pros), OWED (deduped, in order, no
+  upload), compile error in the region (a Windows `C:\…` path), in the plumbing, elsewhere, no brain, controller only,
+  brain + user port + controller (picks ttyACM0), two brains, upload exit 0 without "Finished uploading", permission
+  denied, make/pros not on PATH, a wrong robot word; and a scan for POSIX-only calls.
+
+**Mutations (driver `scratch/rmp1-f/mut/mut.py`: restores in finally and on SIGTERM/SIGHUP/SIGINT, bumps the restored
+file's timestamp; page mutants each on a FRESH site build; site rebuilt from the restored sources after).** All RED:
+M1 region compare dropped → readBack test; M2 whole-file compare dropped → "outside the region"; M3 no read-back → 3
+node tests; M4 the catch rethrows → "never a throw"; M5 robot two `ROBOT=two` → the commands test; M6 first route's steps
+only → the summary test; S1 first port, not the brain's → `--port /dev/ttyACM2`; S2 OWED not deduped → SURVIVED the
+first cut, the case strengthened (the header line, then exactly two facts), then RED; S3 region check off → "re-export"
+missing; S4 exit 0 = uploaded → "quiet" case; S5 two → `ROBOT=two` → argv; S6 no backslash normalising → the Windows
+path case; S7 the User port counted as a brain → "ports" case. Chromium page: P1 the browser test swapped → D1, D2, the
+mismatch test; P2 red shown green → the mismatch + markers tests; P3 no Next → D2-D4 + Copy tests; P4 the robot switch
+dead → `make ROBOT=one` where `ROBOT=tank` expected; P5 the fix not the one highlight → "one highlight: the fix"; P6 no
+picture → the Copy test; P7 no autons lines in Will it build → my D2-D4 test AND `page.test.mjs`'s; Firefox: P8 the
+download's green card not shown → the download test (first cut used `return;` — Firefox's "unreachable code" console
+warning made EVERY test red: re-cut as `void (…)`, then only the download test red).
+After the runs: every mutant's `old` text is in its file exactly once (S4's `new`, `if code != 0:`, is also make's own
+check — a true line, not a leftover).
+
+**Prose review (greps run and hits read BEFORE this line).**
+- `export_drawer|files\.mjs|region\.mjs|to_robot|upload_auton|exportToFile|readBack` over docs (internal excluded),
+  README, src, test, tools: the route_maker README rows (updated), guide 16 :58 (new); `readBack`/`readBackup` in
+  `test/record_store_test.cpp`, `calibration_record_test.cpp`, `fake_file_store_test.cpp` are C++ locals of other code.
+- `Copy the code|Write into src/team|Pick skills_route|Kept\. Nothing|Only the lines between|in place of everything|C++ with
+  Copy|export page|export drawer|checked once the folder|build and upload as always|the drawer shows`: guide 22 :168–177
+  (new), :203 "The export page checks both lines" (still true: the step card when connected, Will it build after a
+  write), :343 (the Controls tab's, not mine); changelog :178 (a dated entry). Fixed: guide 22's "the picture above"
+  (the code is under See the code now), "build and upload as always" → the Next card.
+- The page's own words: `capabilities.mjs` :22–23 and the top-bar chip "Save downloads · Export copies" stay true (Copy is
+  still there); `app.mjs` :691 true. `docs/where-your-code-goes.md` :35 — added the helper line (its picture check: OK).
+  `docs/route-builder.md` :28 — "(and reads it back)". `RMP1-A1-manual-checks.md` step 6 — the Windows check now covers
+  the green card, the Next card's build command and the script against the real pros.
+- NOT here: guide 23 (the `tutorial` branch only) — its step 5 should point at `tools/upload_auton.py` at the merge.
+
+### Gates (2026-11-19, the final tree; the gate logs' own stamps: 21:08–21:30 EST)
+
+- Build: `rm -f build/test/shulib_tests`, briefing generate (unbuilt), `cmake --build build/test -j8` → exit 0: `doc
+  coverage: 6502 public entities across 215 headers, all documented`, `check-nav: OK — 263 public pages`, `check-tone:
+  OK — 48 pages`, `first_week: OK`; re-run `--target shulib_doc_gates` after the last doc edit: the same.
+- Suite (`suite_run.py green`, 4 GiB cap): `suite run: green — 3880 cases, 3775113 assertions` (no C++ changed).
+  Briefing regenerated on the built binary; `check`: `generated block current`.
+- Node: `# tests 179 # pass 179 # fail 0` (173 + 6). `upload_auton self-test: OK (14 cases against fake make and pros)`.
+- Page, the full suite on a site built from the final tree (no `--engine`), under `MemoryMax=6G`: Firefox `# tests 69
+  # pass 67 # skipped 2`, Chromium `# tests 69 # pass 63 # skipped 6` (RMP1-C's skips + the Firefox-only download case).
+  Screens: `~/shulib-render-tmp/rmp1-f/shots/` — xr-step, xr-written, xr-read-back-differs, xr-copied in light/dark at
+  1440 and 1280 in both browsers, + firefox-xr-downloaded. Docs pictures re-made from Chromium light 1440 (1200 × 750,
+  256 colours, `scratch/rmp1-a2u/to_docs.py`): `export.png` (re-taken), `export-written.png` (NEW).
+- ARM header gate: `TU includes 259 headers` → `ARM compile gate: CLEAN`. CI greps: PROS-free, sim-free, the route
+  builder's files LF (and the new ones). `git diff -- include/ src/ Makefile test/` is empty.
+- `api_doc_tool`: self-test OK, check-coverage as above, check-fresh exit 0, check-examples `988 quoted lines, all
+  verbatim`, check-removability `no public doc references docs/internal/`. `doc_staleness_audit.py`: self-test `OK (16 …)`,
+  then `clean (37 live docs, 0 numeric claims checked)`.
+- src gate `check`: `PASS (all 14 builds link or, robot one's and robot two's, refuse naming exactly their owed facts
+  (6 refused; …))`. Its self-test NOT run (no src/ or Makefile change). `ctest -R compile_refusal` not run (no C++).
+- Not run here: the Windows CI rows (the script's self-test now runs there), the real `pros` (never). Nothing committed.
+
+### RMP1-F review findings and their disposition
+
+*(the builder again, Claude Opus 5.5, same worktree; started 2026-11-19 21:49 EST by `date`. Three reviewers'
+findings (correctness, tests, docs), deduped; each re-checked against the source or a probe before it is fixed or
+answered. Probes and mutation logs: `scratch/rmp1-f/fix/`. Nothing committed.)*
+
+- 21:49 — started: read RESUMING's rules again, the brief, and every finding. Checked pros-cli 3.5.6's own source on
+  this laptop (`~/.local/lib/python3.12/site-packages/pros/cli/upload.py`, `common.py`, `serial/devices/vex/v5_device.py`)
+  before touching the script. Next: the script.
+- 22:00 (the edited files' own stamps: the page test 21:57, the docs 21:59; the first mutant's log 22:00:40) — the script rewritten at the root (positional `[PATH] [PORT]`; the port from pros's own "V5 System Ports"
+  section; header errors traced to the region; ASCII consoles; timeouts and Ctrl+C as a plain ✗) and its self-test's
+  fake pros given pros-cli 3.5.6's grammar: `upload_auton self-test: OK (30 cases …)`. The page: titles, fixes, the
+  wrong pick named, the download's newest file, "Not checked here", the PROS terminal and Python 3 beside the one
+  command. Node 181/181; `export_robot.page.test.mjs` Chromium 8 + 1 skipped, Firefox 9/9. Docs: guide 22 step 7 cut,
+  guide 16, changelog, where-your-code-goes, README, manual check 6. Next: the mutations.
+- 22:06 (`date`) — the mutations done (below); the host build and the suite green. Next: the disposition, the gates.
+
+**The findings, deduped (19 → 16), each re-checked before it was fixed.**
+
+1. **BLOCKER — `--port` is not a pros-cli option (tests lens).** CONFIRMED twice: pros-cli 3.5.6's own source on this
+   laptop (`pros/cli/upload.py`: `@click.argument('path')`, `@click.argument('port')`; no `--port` anywhere), and a
+   probe that copies only those decorators into click 8.1.8 (`scratch/rmp1-f/fix/click_argv.py`; pros NOT imported or
+   run): the old argv → `No such option: --port`, exit 2; `… . /dev/ttyACM0` and `… . COM3` → `path='.'`,
+   `port=<it>`. FIXED: `pros upload --slot 2 --name "shulib Auton Tester" . <port>` (cwd = the repository, which
+   upload.py resolves to the project), no port → no path either (pros finds both). The self-test's fake pros now takes
+   pros-cli's grammar (an unknown option → `Error: No such option`, exit 2; `[PATH]` must exist; at most two
+   positionals) and prints lsusb in pros's own shape (`VEX EDR V5 System Ports:` / `There are no connected …`, from
+   `ls_usb`'s `PortReport.__str__`). Mutant F1 (the old `--port` command) → RED in ok/one, ok/two, ports, win, winusb.
+2. **The brain found only by the word "Brain" (correctness; and docs 15's "choose by System Ports").** CONFIRMED by
+   reading `find_v5_ports`: pros sorts by USB interface (location `…0` system, `…2` user, `…1` controller) and falls
+   back to names; `lsusb` prints that sorting as sections, and its System section also lists a controller
+   (`system_ports + joystick_ports`). FIXED: the port is the System section's one port whose name does not say
+   "Controller"; none → "Only the controller …" or "No brain found …"; two that both say "Brain" → "Two brains …";
+   two unnamed (Windows: a brain and a controller with the same driver name) → "More than one V5 port … keep only the
+   brain's USB cable in"; no System header at all (another pros's shape) → no port, pros picks. New cases: `win`
+   (COM3 "VEX Robotics Communications Port (COM3)" + a User section → `. COM3`, ✓), `winusb` ("USB Serial Device"
+   names → `. COM3`, ✓), `winboth`, `oddformat`. **For the coordinator — a belief, not a measurement:** Windows'
+   `pros lsusb` names are still unseen (the fake's Windows lines are made up); the choice now depends only on pros's
+   own sections and the word "Controller". Manual check 6 asks for the real output to be pasted into this log.
+3. **No markers / the wrong file picked: an out-of-date reason and a dead-end fix (correctness).** CONFIRMED (the
+   markers are in `src/team/skills_route.cpp` :37/:69 in this tree; Copy's card says to paste over lines that are not
+   there). FIXED: `region.mjs`'s noMarkers words no longer mention robot two's update ("someone removed them, or this
+   is not the skills-route file"); markerCount/markerOrder lose their "fix it by hand" tail (the page gives the fix);
+   Chrome — on Write and in the banner when the drawer opens — "The fix: ask the coordinator to put back its one pair
+   of ROUTE MAKER lines (git checkout src/team/skills_route.cpp undoes changes not yet committed)", no Copy offered;
+   Firefox — `exportByDownload` returns `picked` (the file's name) with a refusal, and a wrong pick says "You picked
+   autons.cpp: the routes go into src/team/skills_route.cpp. The fix: pick src/team/skills_route.cpp" with the Pick
+   button as the one highlight. "Robot two's update" stays only for a folder with NO skills-route file (an old copy).
+4. **"Not written" for a write that read back different (correctness).** CONFIRMED. FIXED: the title is "Written, but
+   it read back different" ('differs') or "Written, then the file was gone" ('gone'). Found while fixing: `readBack`
+   returned findRegion's own why when the markers were lost IN the write, so that case would also have said "Not
+   written" with the put-them-back fix; it is now 'differs' too (the page wrote those markers).
+5. **The download renamed `skills_route(1).cpp`; "✓ The file has exactly this code" after a download
+   (correctness + docs 19b).** FIXED: "Use the NEWEST skills_route.cpp in your Downloads: a second download gets a
+   number, like skills_route(1).cpp." (its own plain line: the first cut, inside the bold instruction, read as a wall
+   in the screenshot) and "The downloaded file has exactly this code between its two ROUTE MAKER lines: replace
+   yours with it."
+6. **Python not mentioned; three places name different terminals (correctness minor + docs major).** CONFIRMED (the
+   page: "Terminal → New Terminal"; the script and manual check 6: the PROS terminal). FIXED with ONE wording, from
+   the script's own constant `TERMINAL`: "the PROS terminal (VS Code: PROS, then Integrated Terminal)" — the Next
+   card, the script's missing-tool line, guide 16, manual check 6. Beside the one command: "it needs Python 3, from
+   python.org; without it, use 1 and 2" (also guide 16 and the changelog). Unverified, and now asked by manual check
+   6: whether that terminal has `make`, `pros` and `python` on the team's Windows laptop.
+7. **A header error caused by the region said "Fix that line" (correctness).** FIXED: `from_region` reads GCC's
+   context lines around the first error (back to the file's `Compiled …` line, on to the next error) and, when a
+   "required from" / "In file included from" line names a line inside the region, gives the region's advice. Both
+   region boundaries now share one test, `inside()`: cases `edge` (an error on the END line) and `header` (required
+   from the BEGIN line) pin `<=` on each side (mutants F7, F8 RED); `headerplain` keeps "Fix that line".
+8. **A long build prints nothing; Ctrl+C ends in a traceback (correctness).** FIXED: Ctrl+C → "✗ STOPPED (Ctrl+C).
+   What make and pros printed so far: build/upload_auton.log", exit 130 (a POSIX self-test case sends SIGINT while
+   the fake make sleeps; mutant F16 RED); the build line says "(a few minutes the first time; Ctrl+C stops it)" and
+   is flushed. NOT done: echoing make's `Compiled …` lines (the finding's optional half) — a hundred lines scrolling
+   is the dense screen the team lead asked us to avoid; the line says how long it takes.
+9. **The page test expects `python3` on Windows CI rows (tests).** CONFIRMED by reading CI (windows-latest rows run
+   `test/page/*.test.mjs`). FIXED: D2-D4 takes the word from the page's own userAgent through `robotCommands`; a new
+   test sets a Windows Chrome userAgent in the page (no harness change: `navigator.userAgent` is read when Next is
+   built) and asserts `python tools/upload_auton.py one`. Mutant P16 (`windows = false`) RED.
+10. **The whole-file half of the read-back untested end to end (tests).** CONFIRMED (R1 shape). FIXED: a node test
+    through `exportToFile` whose write changes only `#include` → 'differs', no export hash. Mutant N2 (R1) RED.
+11. **Never-silent and one-highlight mutants survive (tests: R2, R4, R6).** FIXED: a Copy the browser refuses
+    (Clipboard API and `execCommand` both) → red "Not copied", no Next, the code opened (P9 RED); route_maker.json
+    changed in the folder before Write → the green card's `.xr-warn` line, theirs kept (P10 RED); after connecting,
+    exactly one `.btn.primary`, the Write button (P11 RED).
+12. **What the cards claim, untested (tests: R3, R5, R7, R8).** FIXED: Copy's build list has "cannot see your editor"
+    and not "read back"/"has exactly this code" (P12 RED); the download's has "The downloaded file …" and not "read
+    back" (P13, Firefox, RED); one route → "→ skills → RUN" (P14 RED); a refused command copy → "Select it and copy"
+    (P15 RED).
+13. **Seven surviving script mutants (tests: T1–T7).** FIXED with cases, each mutant re-cut against the fixed script
+    and RED: T1 pros's own no-port words (`nodevice`, F9); T2 a linker error (`link`, F10); T3 both boundaries (F7,
+    F8); T4 no markers / two pairs → "→ your route → RUN", no traceback (F11); T5 a cut-short lsusb that fails →
+    pros picks (`lsusbfail`, F12); T6 an ASCII console (`curly`, PYTHONIOENCODING=ascii, GCC's ‘r’ quotes) → "X NOT
+    BUILT", "?r?" (F13) — which found a real crash: printing a compiler message the console cannot encode raised
+    UnicodeEncodeError, so stdout now replaces what it cannot print (F14 RED); T7 a hung lsusb under a short wait
+    (`--wait 0.05`, the self-test's hidden option) → "✗ NOT UPLOADED: pros gave no answer in 3 s" (F15; F18 for the
+    lsusb-timeout branch). Found while reading pros's source: with stdin closed, any pros question (several brains,
+    too many files on the brain, a wireless upload) ends "Aborted!"; it now says "pros stopped to ask a question. Run
+    the upload yourself to answer it: pros upload --slot 2 --name "shulib Auton Tester"" (`question`, F17 RED).
+14. **Public docs state the helper's real-brain behaviour as fact (docs).** FIXED in place, as CAL2's entry does:
+    guide 16 and the changelog say "It has run against stand-ins for `make` and `pros` only: not yet against the real
+    `pros`, or on Windows", and that it needs Python 3. The lsusb belief is item 2 above.
+15. **The log's times were never measured (docs).** CONFIRMED (the worktree and 5e2c7f1 are both 20:32:27; the gate
+    logs 21:08–21:30). FIXED in the three places. And caught in my own first entry above (it said 22:20 before 22:00
+    had passed): corrected to the files' stamps. Every time in this section is `date` or a file's stamp.
+16. **Small wording (docs 17, 18, 19; deltas).** FIXED: "every write is READ BACK" → "the export into
+    skills_route.cpp is READ BACK" in `region.mjs`, `files.mjs`'s header and the README (and the README's "14 cases"
+    → its cases against a fake pros with pros-cli's grammar); region.mjs's rule (a) "a student's Copy replaces the
+    marked lines with a copy that carries them; never a new pair"; where-your-code-goes adds "`python` on Windows";
+    guide 22 :203 "With the folder connected (Edge or Chrome), the export page checks both lines", :204 "Edge or
+    Chrome says so and offers Copy"; "Will it build?" after a Copy or a download says "Not checked here: the
+    addTeamRoutes line in each robot's autons file (Edge or Chrome checks it once the folder is connected)" (and a
+    Chrome page not yet connected no longer counts unread lines as present: P22 RED). The deltas list gains the
+    titles-without-✓ and the arrow (the script now prints → where the console can) and names the changelog. Guide 22
+    step 7: the command block and "Or both at once" cut to one sentence pointing at Next and chapter 16; 713 words
+    (base 617, the reviewed tree 836) — the rest is the three browser bullets, which are this chunk's point.
+
+**Mutations, this round** (driver `scratch/rmp1-f/fix/mut2.py`, the same discipline: restore in finally and on
+SIGTERM/SIGHUP/SIGINT, the restored file's timestamp bumped, every page mutant on a FRESH site build). All 34 RED:
+script F1–F18 (self-test), node N1 (lost markers → 'differs'), N2, N3 (`picked`), page P9–P12, P14–P19, P22 in
+Chromium and P13, P20 (the wrong pick named) in Firefox. Each failure was read: it is the assertion the mutant aims
+at (e.g. P15 `expected: 'Select it and copy'`, P16 `expected: 'python tools/upload_auton.py one'`). Logs:
+`scratch/rmp1-f/fix/mut/`.
+
+**Prose review, this round (greps run and every hit read BEFORE this line).** `--port`, `✓ Written`, `✓ Downloaded`,
+`✓ Copied`, `New Terminal`, `PROS terminal`, `Integrated Terminal`, `robot two's update`, `NEWEST`, `Not checked here`,
+`someone removed`, `Python 3`, `every write`, `no student pastes`, `14 cases`, `use Copy instead`, `has no ROUTE MAKER
+lines yet`, `checks both lines`, `upload_auton`, `Not written into`, `read back after` over docs (internal and api
+excluded), README, `tools/route_maker` and the script. Every hit is this round's wording, or another subsystem's
+(`every write` in guide 11, the changelog's old entries, hardware-assumptions; `14 cases` in the roadmap is another
+test), or the one kept case (no skills-route file: `use Copy instead`, "robot two's update"). **For the coordinator:**
+the Controls tab's own export (`controls_export.mjs` :113, `driver_file.mjs` :151 — RMP1-D's files, not edited) still
+says the driver file "gets them [its markers] with robot two's update"; `src/team/robot_one_driver.hpp` already has
+them (`// [control words one]` :22), so that wording has the same staleness finding 3 fixed here.
+
+### Gates, after the review (2026-11-19; `date` 22:05–22:32 EST)
+
+- `rm -f build/test/shulib_tests`, briefing generate (unbuilt), configure, `cmake --build build/test -j8` → exit 0:
+  `doc coverage: 6502 public entities across 215 headers, all documented`, `check-nav: OK — 263 public pages`,
+  `check-tone: OK — 48 pages`, `first_week: OK`; after the last doc edit `--target shulib_doc_gates` → the same.
+- Suite (`suite_run.py green`, 4 GiB cap): `suite run: green — 3880 cases, 3775113 assertions`. Briefing regenerated on
+  the built binary; `check`: `generated block current`.
+- Node: `# tests 181 # pass 181 # fail 0` (179 + 2). `upload_auton self-test: OK (30 cases against fake make and pros)`.
+- Page, the full suite on a site built from the final tree, under `MemoryMax=6G`: Firefox `# tests 72 # pass 70
+  # skipped 2`, Chromium `# tests 72 # pass 66 # skipped 6` (69 + the three new tests; Chromium skips the download way).
+  Screens re-taken: `~/shulib-render-tmp/rmp1-f/shots-review/` (light/dark at 1440 and 1280, both browsers, +
+  firefox-xr-downloaded; the full suite with screens: Firefox 111/109/2, Chromium 111/105/6). `export.png` re-made
+  from them is byte-identical to this tree's; `export-written.png` re-made (the Next card's words changed).
+- ARM header gate: `TU includes 259 headers` → `ARM compile gate: CLEAN`. CI greps: PROS-free, sim-free, LF (the
+  changed and new route-builder files and the script). `git diff -- include/ src/ Makefile test/` empty.
+- `api_doc_tool`: self-test OK, check-fresh exit 0, check-examples `988 quoted lines, all verbatim`, check-coverage as
+  above, check-removability `no public doc references docs/internal/`. `doc_staleness_audit.py`: `clean (37 live docs …)`.
+- src gate `check`: `PASS (all 14 builds link or, robot one's and robot two's, refuse naming exactly their owed facts
+  (6 refused; …))`. Self-test not run (no src/ or Makefile change).
+- Not run here: the Windows CI rows, the real `pros` (never). Nothing committed.
+
+### Verification-round findings and their disposition (2026-11-19 from 22:44 EST, `date`)
+
+*(the builder again, Claude Opus 5.5, same worktree. A fresh verifier's two minor findings; each re-checked against the
+source and its probe before it is fixed. Probes and mutation logs: `scratch/rmp1-f/vfix/`. Nothing committed.)*
+
+- 22:44 — started: read RESUMING's rules, the brief, both findings and the verifier's probes. Next: re-check each.
+- 22:47 (the edited files' own stamps: the page test 22:46; the drawer and the script restored by the mutation driver
+  22:54, so their stamps are its) — both fixed; the self-test `OK (31 cases …)`; the export page tests Chromium 8 + 1
+  skipped, Firefox 9/9. 22:51–22:54 (`date`) — the mutations (below). 22:56 — guide 22's one clause. 22:57–23:08 — the
+  gates (below).
+
+**The findings, each re-checked before it was fixed.**
+
+1. **Markers gone when the drawer opens: Copy still offered, focused, and it led to a green "Copied" that sends the
+   student to lines that are not there (minor).** CONFIRMED by reading `export_drawer.mjs` (the Copy line was always
+   appended and took the focus when nothing was primary) and by the verifier's probe. Also found while re-checking:
+   after a refused **Write** for the same reason, the red card had no Copy, but the steps card's "Or Copy the code"
+   line stayed (the old test looked only inside the card). FIXED at the root: `putBack()` (the one fix for markers
+   gone, doubled or out of order) now removes the Copy line wherever it is used — the banner on open, the refused
+   Write, Firefox's refused download — and on open, with that banner, the Copy line is never added and focus goes to
+   the banner (`tabindex="-1"`). No skills-route file at all (an old copy) keeps Copy and its focus: that banner says
+   "use Copy". Tests: the markers-gone test now asserts no Copy anywhere in the drawer after the refused Write; on open
+   (no markers, and two pairs) no Copy, no primary button, focus on the banner; no file: Copy focused. Firefox's
+   download test: a wrong pick keeps Copy; a skills_route.cpp without markers → red with the put-back fix and no Copy;
+   then the right file downloads. The verifier's probe, re-run on the fixed page: `PRIMARY COUNT: 0`, `COPY BUTTONS
+   IN STEPS: 0`, focus on the banner. Screens: `~/shulib-render-tmp/rmp1-f/shots-vfix/*-xr-markers-gone-*` (both
+   browsers, light/dark at 1440 and 1280); every other export screen byte-identical to the review round's, so
+   `export.png` and `export-written.png` stand. **Not changed, for the coordinator:** the no-file case's own Copy
+   ("it arrives with robot two's update. Until then, use Copy") also ends at "paste it over the two ROUTE MAKER
+   lines in src/team/skills_route.cpp", a file that folder lacks: an old copy, or the wrong folder connected. Left as
+   the review round decided; worth a look if the team ever connects the wrong folder.
+2. **Ctrl+C names build/upload_auton.log, but make's output reached the log only when make finished (minor).**
+   CONFIRMED by reading `run()` (`subprocess.run` captured everything, the log was written after it returned) and
+   by the verifier's probe (`LOG BYTES: 0`). FIXED at the root: `run()` starts the command with `Popen` and a reader
+   thread copies each line into the log as it is printed (flushed); Ctrl+C, a timeout or the end writes the
+   trailer — `(stopped: Ctrl+C)`, `(stopped: no answer in N s)` or `(exit N)` — then Ctrl+C goes on to the plain
+   ✗. A timed-out command is killed; the reader is waited for at most 5 s (a child's child can hold the pipe:
+   probe `vfix/probe_hold.py`, 6.0 s for a 1 s timeout). The verifier's probe re-run (SIGINT to the process group,
+   a shell `make` that prints two lines then sleeps): `EXIT 130`, the log has both `Compiled …` lines and
+   `(stopped: Ctrl+C)`. Self-test: the ctrl-c case's fake make prints a line first; the case asserts that line is in
+   the log WHILE make still runs, and `(stopped: Ctrl+C)` after; the `hang` fake now writes a call line if it outlives
+   the script's timeout (POSIX: the `.cmd` stand-in's python outlives `cmd.exe` on Windows, so that row skips the
+   calls check); a new case, `late`, has pros end with its last line still in the pipe (its own child prints
+   "Finished uploading" 0.5 s later), which only reading to the end gets right. The docstring says the log is
+   written as make and pros print. No walrus or other new syntax: the script still parses on any Python 3.
+
+**Mutations, this round** (driver `scratch/rmp1-f/vfix/mut3.py`: restore in finally and on SIGTERM/SIGHUP/SIGINT,
+the restored file's timestamp bumped; every page mutant on a FRESH site build in `vfix/site_mut`; checksums of
+both files checked clean after each batch). All 13 RED, each failure read: PM1 Copy appended with the banner (:194
+`1 !== 0`), PM2c Copy kept after a refused Write (:187), PM2f the same in Firefox's download (:324), PM3 focus not on
+the banner (:196 'focus on the fix'), PM4 two pairs of markers keep Copy (:194 via the markerCount call :201), PM5 no
+file takes Copy too (:206), PM6 a wrong pick takes Copy (:318 'the real file has its lines: Copy stays'), PM7 the
+banner without tabindex (:196); script SM1 the old `run()` (ctrl-c: 'not written as make printed'), SM2 no
+`(stopped: Ctrl+C)` (ctrl-c, the log live but no trailer), SM3 no flush (ctrl-c, not live), SM4 no kill on a
+timeout (hang: `pros lsusb ran past its timeout`), SM5 `reader.join(0)` (late: exit 1, wanted 0). SM5 first
+SURVIVED (the reader always won the race against the fakes' small outputs); the `late` case was added for it and it
+is RED. Logs: `scratch/rmp1-f/vfix/mut/`.
+
+**Prose review, this round (greps run and every hit read BEFORE this line).** `someone removed`, `put back`, `no
+ROUTE MAKER lines`, `Or Copy`, `use Copy`, `Copy the code`, `upload_auton`, `upload_auton.log`, `Ctrl+C` over docs
+(internal chunk logs and docs/api excluded), README, `tools/route_maker`: guide 22 :176 said Copy without the
+exception → one clause added ("A file that has lost those lines gets no Copy: the page says how to put them back
+first."); guide 16 :59 "Everything make and pros printed is in build/upload_auton.log" — now true after Ctrl+C too,
+unchanged; the changelog, where-your-code-goes, the README and manual check 6 describe neither behaviour, unchanged.
+
+### Gates after the verification-round fixes (2026-11-19, `date`: 22:57–23:14 EST; every one on the final tree)
+
+- `rm -f build/test/shulib_tests`, briefing generate (unbuilt), configure, `cmake --build build/test -j8` → exit 0:
+  `doc coverage: 6502 public entities across 215 headers, all documented`, `check-nav: OK — 263 public pages`,
+  `check-tone: OK — 48 pages`, `first_week: OK`.
+- Suite (`suite_run.py green`, 4 GiB cap): `suite run: green — 3880 cases, 3775113 assertions`. Briefing regenerated on
+  the built binary; `check`: `generated block current` (re-checked after this log's last edit); self-test OK.
+- Node: `# tests 181 # pass 181 # fail 0`. `upload_auton self-test: OK (31 cases against fake make and pros)`.
+- Page, the full suite on a site built from the final tree, under `MemoryMax=6G`: Firefox `# tests 72 # pass 70
+  # skipped 2`, Chromium `# tests 72 # pass 66 # skipped 6`. Screens (`export_robot.page.test.mjs` with
+  ROUTE_MAKER_SHOTS, Firefox 21/21, Chromium 20 + 1 skipped) in `~/shulib-render-tmp/rmp1-f/shots-vfix/`.
+- ARM header gate: `TU includes 259 headers` → `ARM compile gate: CLEAN`. CI greps: PROS-free, sim-free, LF (the
+  changed route-builder files, the script, the goldens). `git diff -- include/ src/ Makefile test/` empty.
+- `api_doc_tool`: self-test OK, check-fresh exit 0, check-examples `988 quoted lines, all verbatim`, check-coverage as
+  above, check-removability `no public doc references docs/internal/`. `doc_staleness_audit.py`: self-test OK,
+  `clean (37 live docs …)`.
+- src gate `check`: `PASS (all 14 builds link or, robot one's and robot two's, refuse naming exactly their owed facts
+  (6 refused; …))`. Self-test not run (no src/ or Makefile change).
+- Not run here: the Windows CI rows, the real `pros` (never). Nothing committed.
