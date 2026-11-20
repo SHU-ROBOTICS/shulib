@@ -52,8 +52,10 @@ pros upload --slot 2 --name "shulib Auton Tester"
 ```
 
 Or both in one command that says plainly whether it worked — `python3 tools/upload_auton.py two` (`one` for
-robot one; `python` on Windows), in the PROS terminal (VS Code: PROS, then Integrated Terminal). It needs Python 3
-([python.org](https://www.python.org/downloads/)); without it, use the two commands above. It prints **✓ BUILT** and
+robot one; `python` on Windows), in the PROS terminal (VS Code: PROS, then Integrated Terminal) or any VS Code
+terminal: when `make` or `pros` is not on the PATH, it takes them from the PROS toolchain's own folder, as the PROS
+extension's build does. It needs Python 3 ([python.org](https://www.python.org/downloads/)); without it, use the two
+commands above. It prints **✓ BUILT** and
 **✓ UPLOADED to slot 2** with the route names to pick on the brain, or **✗** and the first real error in plain words:
 the facts still OWED, a compile error's file and line (inside the route builder's lines: re-export), or "plug the
 brain in with USB (not the controller)". Everything make and pros printed is in `build/upload_auton.log`. It has run

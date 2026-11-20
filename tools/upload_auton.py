@@ -8,7 +8,9 @@
 Then `pros upload --slot 2 --name "shulib Auton Tester" . <the brain's port>` (pros-cli takes the port as an argument
 after the project folder; the port from `pros lsusb`'s "V5 System Ports", without a controller). Prints ✓ BUILT and
 ✓ UPLOADED, or ✗ and the first real error in plain words. Windows and Linux: Python 3 (`python` on Windows), `make` and
-`pros` from PATH (the PROS terminal). Everything make and pros print goes to build/upload_auton.log as they print it.
+`pros` from PATH (the PROS terminal), else from the PROS toolchain's folder (PROS_TOOLCHAIN, which the PROS extension
+sets in every VS Code terminal: its bin/make, as `pros make` finds it, and the pros-cli folder beside it). Everything
+make and pros print goes to build/upload_auton.log as they print it.
 """
 import os
 import re
@@ -45,8 +47,8 @@ def marks():
         return "OK", "X", "->"
 
 
-def run(cmd, root, log, timeout=None):
-    """Run `cmd` in `root` (stdin closed: a prompt fails instead of waiting), each line into `log` as it is printed (so
+def run(cmd, root, log, timeout=None, env=None):
+    """Run `cmd` in `root` (with `env`, else this process's) (stdin closed: a prompt fails instead of waiting), each line into `log` as it is printed (so
     Ctrl+C keeps it): (exit code, or None when it gave no answer in `timeout` s; its output)."""
     out = []
 
@@ -59,7 +61,7 @@ def run(cmd, root, log, timeout=None):
 
     with open(log, "a", encoding="utf-8") as f:
         f.write(f"$ {' '.join(cmd)}\n")
-    p = subprocess.Popen(cmd, cwd=root, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(cmd, cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     reader = threading.Thread(target=copy, args=(p.stdout,), daemon=True)
     reader.start()
     code, end = None, None
@@ -184,6 +186,26 @@ def no_answer(seconds):
     return f"pros gave no answer in {round(seconds)} s: unplug the brain's USB cable, plug it back in, then run this again."
 
 
+def find_tools():
+    """(make, pros, the build's environment): each from PATH, else from the PROS toolchain's folder -- make from
+    PROS_TOOLCHAIN/bin exactly as `pros make` finds it (and, as `pros make` does, that bin first on the build's PATH,
+    so the toolchain's compiler builds), pros from the pros-cli folder the PROS extension installs beside the
+    toolchain. Never `pros make` itself: when it cannot start make it says so and still exits 0, and an upload after
+    it would send the OLD program."""
+    make, pros, env = shutil.which("make"), shutil.which("pros"), None
+    tc = os.environ.get("PROS_TOOLCHAIN")
+    if tc:
+        bin_ = Path(tc) / "bin"
+        if not make:
+            make = shutil.which("make", path=str(bin_))
+            if make:
+                env = dict(os.environ, PATH=str(bin_) + os.pathsep + os.environ.get("PATH", ""))
+        if not pros:
+            near = [d for up in (Path(tc).parent, Path(tc).parent.parent) for d in sorted(up.glob("pros-cli-*"))]
+            pros = shutil.which("pros", path=os.pathsep.join(map(str, near))) if near else None
+    return make, pros, env
+
+
 def main(argv):
     root, wait = Path(__file__).resolve().parent.parent, 1.0
     while len(argv) >= 2 and argv[0] in ("--root", "--wait"):  # the self-test's stand-in repository and short waits
@@ -194,7 +216,7 @@ def main(argv):
         return 2
     ok, bad, to = marks()
     which = argv[0]
-    make, pros = shutil.which("make"), shutil.which("pros")
+    make, pros, env = find_tools()
     if not make or not pros:
         missing = " and ".join(n for n, p in (("make", make), ("pros", pros)) if not p)
         print(f"{bad} {missing} not found. Run this in {TERMINAL}, or install PROS: {PROS_HELP}")
@@ -205,7 +227,9 @@ def main(argv):
     cmd = [make, f"ROBOT={ROBOTS[which]}", "PROGRAM=autontest"]
     print(f"Building robot {which}'s Auton Tester: make ROBOT={ROBOTS[which]} PROGRAM=autontest (a few minutes the "
           "first time; Ctrl+C stops it)...", flush=True)
-    code, text = run(cmd, root, log)
+    if env:
+        print(f"  (make from the PROS toolchain: {make})", flush=True)
+    code, text = run(cmd, root, log, env=env)
     if code != 0:
         print(f"{bad} NOT BUILT")
         print("\n".join("  " + x for x in build_error(text, root)))
@@ -247,6 +271,10 @@ with open(os.environ["FAKE_CALLS"], "a", encoding="utf-8") as f:
 def stop(*lines, code=2):
     print("\n".join(lines))
     sys.exit(code)
+if tool == "tcmake":  # the toolchain folder's make: its bin must be first on PATH, as `pros make` puts it
+    if os.environ["PATH"].split(os.pathsep)[0] != os.environ["FAKE_TC"]:
+        stop("arm-none-eabi-g++: command not found (the toolchain's bin is not first on PATH)")
+    tool = "make"
 if tool == "make":
     if case == "slow":
         print("Compiled src/team/autons.cpp [OK]", flush=True)
@@ -360,24 +388,42 @@ def self_test():
     (work / "bin").mkdir(parents=True)
     (work / "repo" / "src" / "team").mkdir(parents=True)
     (work / "fake.py").write_text(FAKE, encoding="utf-8")
-    for tool in ("make", "pros"):
+    def stand_in(folder, tool, says=None):  # `says`: the name the fake records and acts as (default: `tool`)
+        folder.mkdir(parents=True, exist_ok=True)
         if os.name == "nt":
-            (work / "bin" / f"{tool}.cmd").write_text(f'@"{sys.executable}" "{work / "fake.py"}" {tool} %*\n', encoding="utf-8")
+            (folder / f"{tool}.cmd").write_text(f'@"{sys.executable}" "{work / "fake.py"}" {says or tool} %*\n', encoding="utf-8")
         else:
-            p = work / "bin" / tool
-            p.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{work / "fake.py"}" {tool} "$@"\n', encoding="utf-8")
+            p = folder / tool
+            p.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{work / "fake.py"}" {says or tool} "$@"\n', encoding="utf-8")
             p.chmod(0o755)
+
+    for tool in ("make", "pros"):
+        stand_in(work / "bin", tool)
+    stand_in(work / "prosonly", "pros")  # PATH with pros but no make (a plain terminal with pros-cli installed)
+    stand_in(work / "makeonly", "make")
+    # the PROS extension's install folder: the toolchain (PROS_TOOLCHAIN) with bin/make, and pros-cli beside it
+    stand_in(work / "ext" / "install" / "pros-toolchain-test" / "bin", "make", says="tcmake")
+    stand_in(work / "ext" / "install" / "pros-cli-test", "pros")
+    (work / "bare" / "pros-toolchain-test" / "bin").mkdir(parents=True)  # a toolchain folder with no make in it
     failures, count = [], [0]
 
-    def env_for(name, path=True, enc="utf-8"):
+    def env_for(name, path=True, enc="utf-8", tc=None):
+        """`path`: True the stand-ins' bin, False an empty folder, else that folder; `tc` the PROS_TOOLCHAIN folder
+        (None: unset, whatever this computer's is)."""
         (work / "calls.txt").write_text("", encoding="utf-8")
-        return dict(os.environ, FAKE_CASE=name, FAKE_CALLS=str(work / "calls.txt"), PYTHONIOENCODING=enc,
-                    PATH=str(work / "bin") if path else str(work / "empty"))
+        env = dict(os.environ, FAKE_CASE=name, FAKE_CALLS=str(work / "calls.txt"), PYTHONIOENCODING=enc,
+                   PATH=str(work / "bin") if path is True else str(work / "empty") if path is False else str(path))
+        env.pop("PROS_TOOLCHAIN", None)
+        env.pop("FAKE_TC", None)
+        if tc:
+            env.update(PROS_TOOLCHAIN=str(tc), FAKE_TC=str(Path(tc) / "bin"))
+        return env
 
-    def case(name, robot, want_code, want, unwanted=(), calls=None, path=True, skills=SKILLS_STANDIN, enc="utf-8", extra=()):
+    def case(name, robot, want_code, want, unwanted=(), calls=None, path=True, skills=SKILLS_STANDIN, enc="utf-8", extra=(),
+             tc=None):
         count[0] += 1
         (work / "repo" / SKILLS).write_text(skills, encoding="utf-8")
-        p = subprocess.run([sys.executable, str(here), "--root", str(work / "repo"), *extra, robot], env=env_for(name, path, enc),
+        p = subprocess.run([sys.executable, str(here), "--root", str(work / "repo"), *extra, robot], env=env_for(name, path, enc, tc),
                            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=120)
         out = p.stdout.decode("utf-8", errors="replace")
         made = (work / "calls.txt").read_text(encoding="utf-8").splitlines()
@@ -430,6 +476,17 @@ def self_test():
     case("ok", "one", 0, ["→ your route → RUN"], skills=SKILLS_STANDIN + SKILLS_STANDIN)  # two pairs: no names
     case("ok", "one", 1, ["✗ make and pros not found. Run this in the PROS terminal (VS Code: PROS, then Integrated Terminal)",
                           PROS_HELP], calls=[], path=False)
+    tc = work / "ext" / "install" / "pros-toolchain-test"
+    case("ok", "one", 0, ["(make from the PROS toolchain: ", "✓ BUILT", "✓ UPLOADED to slot 2"],
+         calls=["tc" + make1, lsusb, upload + " . /dev/ttyACM0"], path=work / "prosonly", tc=tc)  # make from PROS_TOOLCHAIN/bin
+    case("ok", "two", 0, ["(make from the PROS toolchain: ", "✓ UPLOADED to slot 2"],
+         calls=["tcmake ROBOT=tank PROGRAM=autontest", lsusb, upload + " . /dev/ttyACM0"], path=False, tc=tc)  # both from there
+    case("ok", "one", 0, ["✓ UPLOADED to slot 2"], unwanted=["from the PROS toolchain"],
+         calls=[make1, lsusb, upload + " . /dev/ttyACM0"], tc=tc)  # make on PATH wins: the toolchain's is not used
+    case("ok", "one", 1, ["✗ make not found. Run this in the PROS terminal"], unwanted=["make and pros"], calls=[],
+         path=work / "prosonly", tc=work / "bare" / "pros-toolchain-test")  # a toolchain with no make: never `pros make`
+    case("ok", "one", 1, ["✗ pros not found."], calls=[], path=work / "makeonly", tc=work / "bare" / "pros-toolchain-test")
+
     case("ok", "three", 2, ["Say which robot"], calls=[])
     if os.name != "nt":  # Ctrl+C while make runs: a plain ✗, never a traceback, and what make printed is in the log
         count[0] += 1

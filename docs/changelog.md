@@ -16,6 +16,18 @@
 
 ## API 2.9
 
+### 2026-11-20 — The upload command finds make and pros without the PROS terminal
+
+> Written when it was built. **No library change — no API change:** only `tools/upload_auton.py` changed.
+
+**What you can now do (additive):** run `python3 tools/upload_auton.py one` (or `two`), or VS Code's **Upload
+routes to robot one** task, from any VS Code terminal. When `make` or `pros` is not on the PATH, the command takes
+them from the PROS toolchain's folder (the `PROS_TOOLCHAIN` the PROS extension sets), as the PROS extension's own
+build does, and says so: `(make from the PROS toolchain: …)`. With neither found, it still stops with **✗** and
+where to get PROS.
+
+**What you must do:** nothing.
+
 ### 2026-11-19 — The route builder knows the field's solid structures: the goals and the Loaders
 
 > Written when it was built (chunk RMP1, run RMP1-H). **No library change — no API change:** nothing under
