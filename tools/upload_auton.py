@@ -4,7 +4,10 @@
     python3 tools/upload_auton.py one              robot one's Auton Tester (make ROBOT=one PROGRAM=autontest), slot 6
     python3 tools/upload_auton.py one drive        robot one's Drive (PROGRAM=drive), slot 1 -- the driver controls
     python3 tools/upload_auton.py one competition  robot one's Competition (PROGRAM=competition), slot 2
-    python3 tools/upload_auton.py two ...          robot two (ROBOT=tank), the same three
+    python3 tools/upload_auton.py one bench        Bench Tests (PROGRAM=tester), slot 3; `calibrate` slot 4, `tune` slot 7
+    python3 tools/upload_auton.py one all          ALL SIX, one after another (Drive, Competition, the Auton Tester,
+                                                   Bench Tests, Calibrate, Tune), and a line for each at the end
+    python3 tools/upload_auton.py two ...          robot two (ROBOT=tank), the same
     python3 tools/upload_auton.py self-test
 
 Then `pros upload --slot <its slot> --name "<its name>" . <the brain's port>` (pros-cli takes the port as an argument
@@ -26,7 +29,9 @@ from pathlib import Path
 # Each program: its PROGRAM= word, its slot and its name on the brain (the team lead, 2026-11-20: Drive 1, Competition 2;
 # the Auton Tester 6). The tester is the default, as the route builder's Send and the first tasks call it.
 PROGRAMS = {"tester": ("autontest", 6, "shulib Auton Tester"), "drive": ("drive", 1, "shulib Drive"),
-            "competition": ("competition", 2, "shulib Competition")}
+            "competition": ("competition", 2, "shulib Competition"), "bench": ("tester", 3, "Bench Tests"),
+            "calibrate": ("calibrate", 4, "shulib Calibrate"), "tune": ("tune", 7, "shulib Tune")}
+ALL = ("drive", "competition", "tester", "bench", "calibrate", "tune")  # `all`: in slot order of use
 SLOT, NAME = PROGRAMS["tester"][1], PROGRAMS["tester"][2]
 JOBS = os.cpu_count() or 1  # make's parallel jobs (the team lead, 2026-11-20: "i want to easily be able to iterate")
 ROBOTS = {"one": "one", "two": "tank"}
@@ -232,14 +237,27 @@ def main(argv):
     while len(argv) >= 2 and argv[0] in ("--root", "--wait"):  # the self-test's stand-in repository and short waits
         root, wait = (Path(argv[1]), wait) if argv[0] == "--root" else (root, float(argv[1]))
         argv = argv[2:]
-    if not 1 <= len(argv) <= 2 or argv[0] not in ROBOTS or (len(argv) == 2 and argv[1] not in PROGRAMS):
+    if not 1 <= len(argv) <= 2 or argv[0] not in ROBOTS or (len(argv) == 2 and argv[1] not in (*PROGRAMS, "all")):
         print("Say which robot, and which program if not the Auton Tester: python3 tools/upload_auton.py one   "
-              "(or two; then drive, competition or tester)")
+              "(or two; then drive, competition, tester, bench, calibrate, tune or all)")
         return 2
+    if len(argv) == 2 and argv[1] == "all":  # each in turn, as if asked one by one; then one line each
+        ok, bad, _to = marks()
+        done = []
+        for name in ALL:
+            print(f"\n== {PROGRAMS[name][2]} (slot {PROGRAMS[name][1]}) ==", flush=True)
+            code = main([*(["--root", str(root)] if root != Path(__file__).resolve().parent.parent else []),
+                         *(["--wait", str(wait)] if wait != 1.0 else []), argv[0], name])
+            done.append((name, code))
+            if code != 0 and name in ("drive", "competition"):
+                pass  # keep going: the other programs may still go up (each says its own ✗)
+        print("\n" + "\n".join(f"{ok if c == 0 else bad} slot {PROGRAMS[n][1]} {PROGRAMS[n][2]}" for n, c in done))
+        return 0 if all(c == 0 for _n, c in done) else 1
     ok, bad, to = marks()
     which = argv[0]
     program, slot, name = PROGRAMS[argv[1] if len(argv) == 2 else "tester"]
-    words = {"autontest": "Auton Tester", "drive": "Drive", "competition": "Competition"}[program]
+    words = {"autontest": "Auton Tester", "drive": "Drive", "competition": "Competition", "tester": "Bench Tests",
+             "calibrate": "Calibrate", "tune": "Tune"}[program]
     make, pros, env = find_tools()
     if not make or not pros:
         missing = " and ".join(n for n, p in (("make", make), ("pros", pros)) if not p)
@@ -277,8 +295,9 @@ def main(argv):
         print(f"  (everything pros printed: {log})")
         return 1
     if program != "autontest":
-        print(f"{ok} UPLOADED to slot {slot}. On the brain: {name}" + (" (the driver controls are in it)" if program == "drive"
-              else f" {to} pick the auton on its screen (its driver control is the driver file)"))
+        said = {"drive": " (the driver controls are in it)",
+                "competition": f" {to} pick the auton on its screen (its driver control is the driver file)"}.get(program, "")
+        print(f"{ok} UPLOADED to slot {slot}. On the brain: {name}{said}")
         return 0
     r = region(root)
     names = r[2] if r and r[2] else ["your route"]
@@ -536,6 +555,16 @@ def self_test():
     case("question", "one drive", 1, ['pros upload --slot 1 --name "shulib Drive"'])  # its own slot in the hand command
     case("ok", "one autontest", 2, ["Say which robot, and which program"], calls=[])  # the words are drive/competition/tester
     case("ok", "one drive extra", 2, ["Say which robot"], calls=[])
+    case("ok", "one bench", 0, ["Building robot one's Bench Tests: make ROBOT=one PROGRAM=tester", "✓ UPLOADED to slot 3. On the brain: Bench Tests"],
+         calls=[f"make -j{JOBS} ROBOT=one PROGRAM=tester", lsusb, "pros upload --slot 3 --name Bench Tests . /dev/ttyACM0"])
+    case("ok", "two tune", 0, ["✓ UPLOADED to slot 7. On the brain: shulib Tune"],
+         calls=[f"make -j{JOBS} ROBOT=tank PROGRAM=tune", lsusb, "pros upload --slot 7 --name shulib Tune . /dev/ttyACM0"])
+    every = [(n, PROGRAMS[n]) for n in ALL]
+    case("ok", "one all", 0, ["✓ slot 1 shulib Drive\n✓ slot 2 shulib Competition\n✓ slot 6 shulib Auton Tester\n"
+                              "✓ slot 3 Bench Tests\n✓ slot 4 shulib Calibrate\n✓ slot 7 shulib Tune"],
+         calls=[c for _n, (prog, slot, name) in every for c in (f"make -j{JOBS} ROBOT=one PROGRAM={prog}", lsusb,
+                                                                 f"pros upload --slot {slot} --name {name} . /dev/ttyACM0")])
+    case("owed", "one all", 1, ["✗ slot 1 shulib Drive", "✗ slot 7 shulib Tune"])  # each fails on its own; the summary says so
     # RMP1-I review: a VS Code task has no PROS_TOOLCHAIN; the extension's own install folder (globalStorage) is found
     gs = work / "gs"
     tcx = gs / ("Library/Application Support" if sys.platform == "darwin" else "") / "Code/User/globalStorage/sigbots.pros/install"

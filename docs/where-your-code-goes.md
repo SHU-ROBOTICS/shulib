@@ -31,7 +31,11 @@ Robot one's builds. Robot two's are the same with `ROBOT=tank`, and its files ar
 | `make ROBOT=one PROGRAM=autontest` | shulib Auton Tester | 6 | `src/programs/auton_tester_program.cpp` | `src/team/robot_one_autons.cpp`, `src/team/skills_route.cpp` |
 | `make ROBOT=one PROGRAM=tune` | shulib Tune | 7 | `src/programs/tune_program.cpp` | `src/robots/mechanism_table.hpp` |
 
-Slot 5 is kept for the team's old code. (Since 2026-11-20 Competition is slot 2 and the Auton Tester slot 6: the team lead.) Upload a build with
+Slot 5 is kept for the team's old code. (Since 2026-11-20 Competition is slot 2 and the Auton Tester slot 6: the team lead.)
+**All six at once:** VS Code's **Upload everything to robot one** task, or `python3 tools/upload_auton.py one all`;
+one program: **Upload a program to a robot**, or `python3 tools/upload_auton.py one competition` (`drive`,
+`tester`, `bench`, `calibrate`, `tune`). The PROS extension's own Upload button builds the bench bot's test program
+into slot 5 under the name "PROS button (bench bot)": not one of robot one's programs. Upload a build with
 `pros upload --slot <slot> --name "<on the brain>"` ([Build and upload the programs](guide/07-getting-set-up.md)).
 For the Auton Tester, `python3 tools/upload_auton.py one` (or `two`; `python` on Windows) does both and says plainly
 whether it worked.

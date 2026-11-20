@@ -16,6 +16,20 @@
 
 ## API 2.10
 
+### 2026-11-20 — One task uploads everything
+
+> Written when it was built (the team lead: "how do you upload to competition? im very confused i want to make
+> things easier"). **No library change.**
+
+**What you can now do (additive):** VS Code **Terminal → Run Task → Upload everything to robot one** (or two) builds
+and uploads all six programs, each to its slot, with a ✓ or ✗ line for each at the end (`python3
+tools/upload_auton.py one all`). **Upload a program to a robot** now also offers Bench Tests, Calibrate and Tune.
+
+**What changed:** the PROS extension's own Upload button now puts its build (the bench bot's test program, the
+Makefile's default) in slot 5, named "PROS button (bench bot)" — it used to write over Drive in slot 1.
+
+**What you must do:** use the VS Code tasks to upload; `git pull` first to get them.
+
 ### 2026-11-20 — Robot one's cascade: the right way round, and resting on its stops
 
 > Written when it was fixed, on robot one (the team lead, 2026-11-20). **A library behaviour change (no API

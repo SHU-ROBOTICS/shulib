@@ -31,8 +31,10 @@ Music: "Wallpaper" by Kevin MacLeod ([incompetech.com](https://incompetech.com))
 
 *Slots 3 and 4, from the laptop*
 
-Plug the brain into the laptop with a USB cable. In a terminal, in the shulib folder, build and upload
-both programs for **your** robot:
+Plug the brain into the laptop with a USB cable. **The easy way:** in VS Code, **Terminal → Run Task → Upload
+everything to robot one** (or two) puts all six programs on the robot, each in its slot, and ends with a ✓ or ✗ line
+for each. (Not the PROS extension's own Upload button: it builds the bench bot's test program.) Or, in a terminal,
+in the shulib folder, build and upload these two for **your** robot:
 
 | Robot | Build word |
 |---|---|
