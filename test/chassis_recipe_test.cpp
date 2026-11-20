@@ -438,7 +438,7 @@ TEST_CASE("D1 policy: a timed-out step stops the chain — skips the rest, safes
 
     // The transcript carries the stop and the skips.
     CHECK(countEntries(sink, 0, LogLevel::Warn, "RTN") == 1);
-    CHECK(countEntries(sink, 0, LogLevel::Info, "RTN") == 3);
+    CHECK(countEntries(sink, 0, LogLevel::Info, "RTN") == 5);  // 3 skipped + legs 1-2's "done in" (RMP1-K D4)
     bool sawStopLine = false;
     for (int i = 0; i < sink.size(); ++i) {
         if (sink.at(i).message.find("'starved' STOPPED at step 3 (moveTo)")

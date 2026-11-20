@@ -1,0 +1,3 @@
+[t=   1.00] [ATS] run 1: 'grab' (SKILLS, park T+57.00s, stop T+59.00s, start FIELD) -- RUN touched; 3 s countdown, the abort armed
+[t=   4.51] [RTN] routine 'grab': step 1 (claw) done in 0.51 s, at 'open'
+[t=   5.02] [RTN] routine 'grab': step 2 (claw) done in 0.51 s, at 'closed' (UNCONFIRMED)

@@ -104,12 +104,12 @@ test('what was exported: the routes\' names and every step counted', () => {
 test('the commands: robot one is ROBOT=one, robot two ROBOT=tank; the tester is slot 6 "shulib Auton Tester", as the Makefile says', () => {
     assert.deepEqual(robotCommands('one'), {
         build: 'make ROBOT=one PROGRAM=autontest',
-        upload: 'pros upload --slot 6 --name "shulib Auton Tester"',
+        upload: 'pros upload --slot 6 --name "shulib Auton Tester" --description "$(git describe --always --dirty)"',
         helper: 'python3 tools/upload_auton.py one',
     });
     assert.deepEqual(robotCommands('two', { windows: true }), {
         build: 'make ROBOT=tank PROGRAM=autontest',
-        upload: 'pros upload --slot 6 --name "shulib Auton Tester"',
+        upload: 'pros upload --slot 6 --name "shulib Auton Tester" --description "$(git describe --always --dirty)"',
         helper: 'python tools/upload_auton.py two',
     });
     const make = fs.readFileSync(path.join(REPO, 'Makefile'), 'utf8');

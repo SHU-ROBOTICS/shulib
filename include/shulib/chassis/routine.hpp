@@ -470,7 +470,7 @@ public:
             return *this;
         }
         chassis_->setPose(pose);
-        recordSuccess();
+        recordSuccess("startAt");
         return *this;
     }
 
@@ -571,7 +571,7 @@ public:
         }
         lastTrajectory_ = chassis_->followTrajectory(waypoints, options);
         if (lastTrajectory_.succeeded()) {
-            recordSuccess();
+            recordSuccess("followTrajectory");
         } else {
             recordStop("followTrajectory", RoutineStopCause::MotionFailed,
                        lastTrajectory_.exit);
@@ -642,7 +642,7 @@ public:
             return *this;
         }
         chassis_->wait(duration);  // throws on nonsense; counters untouched then
-        recordSuccess();
+        recordSuccess("pause");
         return *this;
     }
 
@@ -660,7 +660,7 @@ public:
         const motion::WaitResult w =
             chassis_->waitUntil(std::forward<Pred>(pred), timeout);
         if (w == motion::WaitResult::Satisfied) {
-            recordSuccess();
+            recordSuccess(name);
         } else {
             recordStop(name, RoutineStopCause::WaitTimedOut, control::ExitReason::Running);
         }
@@ -725,7 +725,7 @@ public:
             succeeded = static_cast<bool>(std::invoke(action));
         }
         if (succeeded) {
-            recordSuccess();
+            recordSuccess(name);
         } else {
             recordStop(name, failCause, exit, detail, manipulation::MechanismOutcome::Running, cancelled);
         }
@@ -1388,7 +1388,7 @@ private:
 
     Routine& runMotion(const char* name, control::ExitReason exit) {
         if (exit == control::ExitReason::Settled) {
-            recordSuccess();
+            recordSuccess(name);
         } else {
             recordStop(name, RoutineStopCause::MotionFailed, exit);
         }
@@ -1460,6 +1460,7 @@ private:
                 line.appendLiteral(")");
                 chassis_->deps().ctx->telemetry().log(hal::LogLevel::Info, "RTN", line.view());
                 skipTo_ = nullptr;
+                stepStartS_ = chassis_->deps().ctx->clock().now().value();  // RMP1-K D4: its "done in" seconds
                 return Door::Run;
             } else {
                 ++steps_;
@@ -1479,6 +1480,7 @@ private:
             }
         }
         if (stoppedAt_ == 0) {
+            stepStartS_ = chassis_->deps().ctx->clock().now().value();  // RMP1-K D4: its "done in" seconds
             return Door::Run;
         }
         ++steps_;
@@ -1496,9 +1498,44 @@ private:
         return Door::Skipped;
     }
 
-    void recordSuccess() noexcept {
+    /// A step that SUCCEEDED (RMP1-K D4, API 2.11): counted, and ONE Info line as it ends, so a run can be
+    /// followed step by step — `routine 'skills': step 3 (cascade) done in 1.42 s, at 18.0 in`: its number,
+    /// verb (or mechanism), "done" ("started" for a start form still running), the seconds since its door
+    /// let it run, and a mechanism's end (a position's place, a pneumatic's position; an outcome other than
+    /// SUCCEEDED in brackets). Logging only: nothing it reads is commanded.
+    void recordSuccess(const char* name, const mechanism::Slot* m = nullptr) {
         ++steps_;
         ++completed_;
+        const manipulation::MechanismOutcome o = lastMech_.outcome;
+        diag::lineformat::Line line;
+        line.appendLiteral("routine '");
+        line.appendLiteral(name_);
+        line.appendLiteral("': step ");
+        diag::lineformat::appendUnsigned(line, static_cast<unsigned long>(steps_));
+        line.appendLiteral(" (");
+        line.appendLiteral(name);
+        line.appendLiteral(m != nullptr && o == manipulation::MechanismOutcome::Running ? ") started in " : ") done in ");
+        diag::lineformat::appendNum(line, chassis_->deps().ctx->clock().now().value() - stepStartS_, 0, 2);
+        line.appendLiteral(" s");
+        if (m != nullptr && m->kind() == mechanism::Kind::Position && o != manipulation::MechanismOutcome::Running) {
+            const auto& p = static_cast<const mechanism::PositionSlot&>(*m);
+            line.appendLiteral(", at ");
+            diag::lineformat::appendNum(line, p.position(), 0, 1);
+            line.appendLiteral(p.spec().position.units == mechanism::Units::Inches ? " in" : " deg");
+        } else if (m != nullptr && m->kind() == mechanism::Kind::Pneumatic) {
+            const std::uint8_t at = static_cast<const mechanism::PneumaticSlot&>(*m).commandedPosition();
+            if (at != mechanism::PneumaticSlot::kNoPosition) {
+                line.appendLiteral(", at '");
+                line.appendLiteral(m->spec().pneumatic.positions[at].name);
+                line.appendLiteral("'");
+            }
+        }
+        if (m != nullptr && o != manipulation::MechanismOutcome::Succeeded && o != manipulation::MechanismOutcome::Running) {
+            line.appendLiteral(" (");
+            line.appendLiteral(manipulation::mechanismOutcomeName(o));
+            line.appendLiteral(")");
+        }
+        chassis_->deps().ctx->telemetry().log(hal::LogLevel::Info, "RTN", line.view());
     }
 
     /// A step FAILED: the error policy, and (STEP1-A) the step's on-failure choice. Under the
@@ -1767,7 +1804,7 @@ private:
         const manipulation::MechanismOutcome o = lastMech_.outcome;
         if (o == manipulation::MechanismOutcome::Succeeded ||
             (o == manipulation::MechanismOutcome::Unconfirmed && lastMech_.countedDone)) {
-            recordSuccess();
+            recordSuccess(step, &m);
         } else {
             recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
                        manipulation::mechanismOutcomeName(o), o);
@@ -1784,7 +1821,7 @@ private:
             recordStop(step, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running,
                        manipulation::mechanismOutcomeName(o), o);
         } else {
-            recordSuccess();
+            recordSuccess(step, &m);
         }
         return *this;
     }
@@ -1794,7 +1831,7 @@ private:
     Routine& stoppedMechanism(const mechanism::Slot& s, std::uint32_t seqBefore, const char* step) {
         if (s.commandSeq() != seqBefore) {
             lastMech_ = mechanism::StepReport{.outcome = manipulation::MechanismOutcome::Succeeded};
-            recordSuccess();
+            recordSuccess(step);
             return *this;
         }
         const manipulation::MechanismOutcome o =
@@ -2331,7 +2368,7 @@ private:
             recordStop(name, RoutineStopCause::MechanismStepFailed, control::ExitReason::Running, detail,
                        failing->report.outcome);
         } else {
-            recordSuccess();
+            recordSuccess(name);
         }
         return *this;
     }
@@ -2425,6 +2462,7 @@ private:
     std::uint32_t armGen_ = 0;               ///< the current trigger LINE's number (newLine())
     std::uint32_t fires_ = 0;                ///< fires so far (each trigger's fireOrder)
     motion::LegProgress legProgress_{};      ///< the leg's last progress (its geometry, for B3)
+    double stepStartS_ = 0.0;                ///< RMP1-K D4: the clock when the running step's door opened, s
 };
 
 }  // namespace shulib::chassis

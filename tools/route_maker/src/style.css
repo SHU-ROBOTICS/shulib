@@ -770,3 +770,45 @@ input.num.bad { border-color: var(--failed); }
 .g-mech-band { fill: none; stroke: var(--accent); stroke-width: 9; stroke-opacity: .22; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; pointer-events: none; }
 .field-svg.previewing .g-mech, .field-svg.previewing .g-mech-band { opacity: .45; }
 /* ── end Mechanism steps (RMP1-J) ── */
+
+/* ── Mechanism check and run view (RMP1-K) ── one idea per screen: what will move; how the run went; what is on the brain */
+.run-view { position: absolute; left: var(--s-3); top: 84px; z-index: 6; width: min(400px, calc(100% - 2 * var(--s-3)));
+  max-height: calc(100% - 84px - 56px); overflow: auto; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow); padding: var(--s-3) var(--s-4); display: flex; flex-direction: column; gap: var(--s-2); }
+.rk-status { display: flex; gap: var(--s-2); align-items: flex-start; font-size: var(--t-lg); }
+.rk-status svg { width: 20px; height: 20px; flex: none; margin-top: 2px; }
+.rk-status.ok { color: var(--ok); }
+.rk-status.bad { color: var(--failed); }
+.rk-status.warn { color: var(--cut); }
+.rk-how, .rk-log summary { font-size: var(--t-sm); color: var(--text-muted); margin: 0; }
+.rk-log summary { cursor: pointer; min-height: var(--hit); display: flex; align-items: center; }
+.rk-log pre { max-height: 240px; overflow: auto; font-size: var(--t-xs); white-space: pre-wrap; overflow-wrap: anywhere; }
+.step.rv-done { border-left: 4px solid var(--ok); }
+.step.rv-stopped { background: var(--error-soft); border-left: 4px solid var(--failed); }
+.step.rv-failed { background: var(--warn-soft); border-left: 4px solid var(--cut); }
+.step.rv-skipped .step-main, .step.rv-skipped .step-icon { opacity: .55; }
+.step-robot { display: flex; gap: 4px; align-items: flex-start; margin-top: 2px; font-size: var(--t-xs); font-weight: 600; color: var(--ok); }
+.step-robot svg { width: 13px; height: 13px; flex: none; margin-top: 2px; }
+.step-robot[data-state="stopped"] { color: var(--failed); }
+.step-robot[data-state="failed"] { color: var(--cut); }
+.step-robot[data-state="skipped"], .step-robot[data-state="started"] { color: var(--text-muted); }
+.rk-end polygon { fill: none; stroke: var(--text); stroke-width: 2.5; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
+.rk-end text { font: 700 14px var(--font-ui); fill: var(--text); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+.rk-dialog { width: min(560px, calc(100vw - 32px)); }
+.rk-head { display: flex; align-items: flex-start; gap: var(--s-2); }
+.rk-head h2 { flex: 1; }
+.rk-moves { font-size: var(--t-lg); line-height: 1.5; padding-left: 1.2em; }
+.rk-safe { display: flex; gap: var(--s-2); align-items: center; font-weight: 700; color: var(--cut); }
+.rk-safe svg { width: 18px; height: 18px; flex: none; }
+.rk-dialog .row { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); }
+.rk-why { color: var(--failed); font-weight: 600; overflow-wrap: anywhere; }
+.rk-verdict { font-size: var(--t-lg); font-weight: 700; }
+.rk-verdict.ok { color: var(--ok); }
+.rk-verdict.bad { color: var(--failed); }
+.rk-slots { width: 100%; border-collapse: collapse; font-size: var(--t-md); }
+.rk-slots th, .rk-slots td { text-align: left; padding: var(--s-1) var(--s-2); border-bottom: 1px solid var(--border); vertical-align: top; }
+.rk-slots td small { display: block; color: var(--text-muted); font-size: var(--t-xs); overflow-wrap: anywhere; }
+.rk-slots tr.ok .rk-mark { color: var(--ok); font-weight: 700; }
+.rk-slots tr.bad .rk-mark { color: var(--failed); font-weight: 700; }
+.rk-slots tr.first { background: var(--error-soft); }
+/* ── end Mechanism check and run view (RMP1-K) ── */

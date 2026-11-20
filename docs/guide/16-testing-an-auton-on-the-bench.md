@@ -51,7 +51,7 @@ still owes, until those facts are typed ([Chapter 21](21-adding-your-robot-by-ha
 
 ```sh
 rm -rf bin .d && make ROBOT=tank PROGRAM=autontest
-pros upload --slot 6 --name "shulib Auton Tester"
+pros upload --slot 6 --name "shulib Auton Tester" --description "$(git describe --always --dirty)"
 ```
 
 Or both in one command that says plainly whether it worked — `python3 tools/upload_auton.py two` (`one` for
@@ -481,8 +481,8 @@ robot tracks — against the field on every 10 ms step:
 The square is a drawing assumption, said on every page: the real frame may be smaller, the tracked
 point may not be its middle, and a claw or lift reaching past the square is not checked.
 
-**Why the numbers on the page are not your code's.** Today the library says nothing when a step
-*succeeds*; from outside, the preview can see every motion (drives, curves, strafes, turns, brakes and holds)
+**Why the numbers on the page are not your code's.** The page counts from outside (the library says when
+a step *succeeds* only since API 2.11; the page lists that line, and numbers its steps without it): it can see every motion (drives, curves, strafes, turns, brakes and holds)
 and every mechanism step, but not a `pause`, a wait (`waitFor`, `waitUntilDone`), a `then(...)` step
 (a wall reset is one) or a `startAt`. So the page counts the motions and mechanism steps in order.
 Two started at the same instant (`startRun` twice in a row) are numbered in the order of the

@@ -46,6 +46,7 @@
 #include "shulib/hal/digital_out.hpp"
 #include "shulib/hal/fake/fake_digital_out.hpp"
 #include "shulib/hal/fake/fake_motor.hpp"
+#include "routine_done_line.hpp"
 #include "shulib/hal/fake/fake_telemetry_sink.hpp"
 #include "shulib/hal/mechanism.hpp"
 #include "shulib/hal/motor.hpp"
@@ -192,6 +193,9 @@ inline void foldSink(const shulib::hal::fake::FakeTelemetrySink& sink, Fnv& fnv)
         fnv.bytes(buf, n);
     }
     for (int i = 0; i < sink.size(); ++i) {
+        if (routine_d4::isStepDoneLine(sink.at(i).level, sink.at(i).subsystem, sink.at(i).message)) {
+            continue;  // RMP1-K D4's line: after this golden's base (routine_done_line.hpp)
+        }
         fnv.num(static_cast<double>(static_cast<int>(sink.at(i).level)));
         fnv.text(sink.at(i).subsystem);
         fnv.text(sink.at(i).message);

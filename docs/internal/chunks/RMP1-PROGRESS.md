@@ -5345,3 +5345,351 @@ skipped: the download way and the shots case and the WebAssembly refusal, each F
 run). No browser or helper left running. Prose review this round: `vfix2/prose-greps.txt` ("PLACEHOLDER numbers", a
 Wait for it's number, "after a drive", "PLACEHOLDER mark", `limitHint`): guide 22 step 6, the changelog entry and the
 README rows all still true after the `since` change — nothing to edit. Not committed.
+
+
+## RMP1-K — see the mechanisms work: Check the mechanisms, Watch the run, What is on the robot
+
+> Executor: Claude Opus 5.5 (subagent of the coordinator), worktree `.claude/worktrees/rmp1-k` (branch `rmp1-k`, from
+> `458af5c`), started 2026-11-20. Brief: `RMP1-K-mechanism-check-and-run-view.md` (D1–D5). Scratch, backups and
+> mutation drivers: `.claude/coordinator/scratch/rmp1-k/`. Appended as the work goes.
+
+- **Read first:** RESUMING.md's standing rules; the brief; RMP1-I's brief and code (`tools/route_builder.py`,
+  `src/host/files_local.mjs`, `src/ui/send_panel.mjs`, `export_drawer.mjs`, `files.mjs`, `export.mjs`); the 11-19 robot
+  log; the line formats in `include/shulib/chassis/routine.hpp` (enterStep's skipped / jumped lines, stopHere's
+  STOPPED, carryOnFrom's FAILED) and `src/programs/auton_tester_run.hpp` / `auton_tester_program.cpp` (`run N: '…' (…)
+  -- RUN touched`, `routine STOPPED, k of N steps done, stopped at …`, `END estimate (x, y) facing h deg`).
+- **D4 (the library change, API 2.11), 2026-11-20 ~10:00:** `Routine::recordSuccess(name, slot)` logs ONE Info `[RTN]`
+  line as each step SUCCEEDS — `routine 'x': step N (verb) done in S s[, at 18.0 in | at 'closed'][ (UNCONFIRMED)]`,
+  `started in` for a start form still running; the seconds from the step's door (`stepStartS_`, read from the clock
+  where `enterStep` lets a step run). Failed / stopped / skipped / jumped steps keep their own lines, unchanged (no done
+  line). `kApiMinor` 11, `kApiVersionString` "2.11", docs/api regenerated, the three robot-description goldens' `api`.
+  Pinned by `test/routine_step_line_test.cpp` (2 cases). **The proof that it changes no motion:** the first suite run
+  went red in exactly the goldens that hash or count log lines (D1 policy's Info count, cookbook-02b, MIRROR1 T10, CV16,
+  RP35's sink hashes, RP38's silent loop, STEP1-A ST1's chains). A build with ONLY the new log call disabled (`if
+  (false)`, the clock reads kept; driver `scratch/rmp1-k/proof/run_proof.sh`, restored and cmp-checked after) ran those
+  seven groups against their OLD goldens: **29 cases / 590 assertions green** — so the line is the whole difference. The
+  bit-identity goldens now leave the D4 line out through one predicate (`test/routine_done_line.hpp`), keeping their
+  base values; the two count checks say the new count; RP38's "silent" fixture became a step that never ends (a loop of
+  succeeding steps now logs, so the preview's no-pace stop catches it — a side effect for the better, said in
+  `route_preview_run.hpp`'s header). Suite after: **3,907 cases / 3,777,331 assertions, green**.
+- **D3/D2/D5 in the helper:** `brain_port(root, "user")` from `pros lsusb` through upload_auton's own parse (generalized:
+  `brain_port(text, kind)`); `pros terminal <port> --no-banner` with a pseudo-terminal for stdin on POSIX (pros-cli
+  3.5.6's console calls `termios.tcgetattr(stdin)` — read in its source — so a plain pipe would crash it), a windowless
+  console on Windows; `/api/watch` streams it (one at a time, a ping a second finds a closed tab, closed by a Send under
+  the send lock and reopened after, saved to `build/robot_runs/<time>.log`); `/api/robot` and `route_builder.py robot
+  one|two` read `pros v5 ls-files` (one Python dict per file, `cli/v5_utils.py`) and each `slot_N.ini` by `pros v5
+  read-file` (`[program]` name / description / date, `v5_device.py generate_ini_file`). upload_auton passes
+  `--description "<git describe> | <routes>"`. Self-tests: route_builder 130 cases, upload_auton 45, both capped, green.
+- **D1/D2/D5 on the page (2026-11-20 ~10:30):** new `src/model/check_route.mjs` (the CHECK route: mechanism steps and
+  waits in order, each `onFail: carryOn` — a delta: one bench run shows every mechanism, not only up to the first
+  failure —, labels / views / touches dropped, a home (3 s, `CHECK_HOME_S`) before a switch- or stall-homed arm's or
+  lift's first move when nothing homed it first, named `"<route> mechs"` cut to the menu's width, `together: false`,
+  the route's own start; `checkWords` says what moves, one clause per mechanism), `src/model/run_log.mjs` (the line
+  reader: only the library's and the Auton Tester's own formats; settles a pre-2.11 run from its `k of N` line;
+  `routeVerbs`/`runDiffers`: a run of ANOTHER version of the route — its verbs or its step count differ — is said and
+  never painted: a delta beyond the brief, against a stale upload painting the wrong steps), `src/ui/run_view.mjs` (the
+  check screen, the watch card with the one summary line and "Show the robot's log", the END estimate drawn on the
+  field's SVG — robot two's reflected back —, the slot table), `files_local.mjs` `watchRobot` / `robotSlots` (and the
+  NDJSON reading shared with `sendToRobot`). Wiring: `app.mjs` (the host block: the run view beside the send panel, a
+  successful send opens the watch), `routes_menu.mjs` ("On the robot": Check the mechanisms / Watch the robot / What is
+  on robot one, two), `step_list.mjs` (one delimited call: `app.runView.markCard`), ONE `style.css` block. The site's
+  printed upload command (`to_robot.mjs`) carries the `--description` too. Node **239/239** (+14: `check_route.test.mjs`
+  6, `run_log.test.mjs` 6 over the real 11-19 fixtures in `test/fixtures/robot_log/`, `files_local.test.mjs` +2).
+- **D4 mutants, each on a FRESH probe binary** (`scratch/rmp1-k/mut/probe_build.sh`: `test_main.cpp` +
+  `routine_step_line_test.cpp` compiled from nothing per mutant, the suite's include roots and defines; driver
+  `mut/mutate.py`, restore in a finally and on SIGTERM/SIGHUP, md5 checked, mtime bumped): D4a no done line, D4b seconds
+  from the clock's zero, D4c a start form said done, D4d the wrong unit, D4e a done line on a failure, D4f a wrong end
+  position — **6/6 RED**, each by its named assertion (logs `mut/D4*.log`).
+- **Prose review (grepped, hits read, 2026-11-20):** `grep -rn "skipped — stopped at step\|STOPPED at step\|says nothing\|
+  pros upload --slot\|route_builder\|upload_auton" docs/ README.md tools/route_maker/README.md`: guide 09's transcript
+  "captured from this exact run" now has the run's done line (pinned verbatim by guide-09b's new CHECK); guide 16's "Today
+  the library says nothing when a step succeeds" corrected; guide 11 gains the done line's bullet; guide 18 one sentence;
+  every `pros upload --slot` in docs/ (guides 16, 17, 18, 21, 23, where-your-code-goes) gains `--description "$(git
+  describe --always --dirty)"` (bash and PowerShell both expand it); guide 22 gains "Check the mechanisms, then watch the
+  run"; route-builder.md one link; the changelog's API 2.11; the route builder's README. Not touched, checked: guide 11's
+  STOPPED bullets (still true), guide 18's stop block (true), README.md:215's bare `pros upload` (the quick start, no slot).
+- **RESUMED 2026-11-20 11:33 EST** (a second build run, same worktree; the first was cut by the usage limit at ~10:45,
+  its reviewers never started). Found: `git diff -- src/ Makefile` empty (no gate self-test plant left); every
+  mutated file's backup restored (the coordinator's check); `mut/verdicts.txt` — D4a–f, J1–J9 and P3–P7 RED, P1/P2 RED
+  only by the 600 s timeout (the self-test HUNG on them), **J10 GREEN (a survivor)**, P8–P12 and G1–G2 never run. Kept
+  everything finished; the build is redone from source before any result is trusted.
+- **Fresh build (11:33–11:35):** `build/test/shulib_tests` and `shulib_route_maker` removed, cmake configured, briefing
+  generated, built from source (exit 0, 0 warnings), briefing regenerated; the bounded suite **green — 3,907 cases /
+  3,777,332 assertions**; node 239/239; route_builder self-test 130 OK; upload_auton self-test 45 OK.
+- **J10 survived — fixed in the TEST, not the code:** run_log.test.mjs's "another routine's line" was step 1, the same
+  step the next line STOPPED (a stop overwrites any mark), so reading another routine's lines changed nothing visible.
+  Now it is `routine 'left 1': step 2 (driveTo) done`, a step nothing else touches. J10 **RED** (test 4).
+- **P1/P2 were RED only by the 600 s timeout: the self-test HUNG.** Root cause: the self-test's `more()` waited on a
+  watch's stream with no end of its own, and the helper's ping each second kept its socket timeout from ever firing.
+  `more()` now stops after 30 s. P1 **RED in 42 s** ("a Send closes the reader before its upload…"), P2 **RED in 72 s**
+  ("a second reader refused"), each by its named check.
+- **The mutants never run, now run:** P8 unplug unsaid, P9 controller-only unsaid, P10 nothing saved (route_builder
+  self-test), P11 no `--description`, P12 the user port read as the system port (upload_auton self-test) — **5/5 RED**,
+  each by its named check (`mut/P*.log`).
+- **Two reading fixes in `run_log.mjs` (found reviewing the resumed code, 11:40):** (1) `settle()` marked every unmarked
+  step before the stop DONE on the run's "k of N" line even when a stop line had been lost — a STALLED mechanism could
+  turn green. It now fills only when that adds up to the robot's own k; else nothing is invented. (2) The summary's
+  `stopped at <name> (<why>)` read one word, so a mechanism named "right toggle" lost its stop; now any name. New node
+  case "a stop line lost…"; mutants **J11** (the count ignored) and **J12** (one-word name) **RED** by it; J6 and J10
+  re-run on the new code, RED. Node **240/240**.
+- **The screens, looked at (Firefox and Chromium, light/dark, 1440 and 1280: 32 shots in `scratch/rmp1-k/shots/`):** the
+  run card covered the field's toolbar (Select, Drive, …) — now below it (`top: 84px`, as the coach card); a run whose
+  step FAILED and carried on said its summary with a green ✓ — now amber with ⚠ (`rk-status warn`), red when stopped.
+  Pinned in run_view.page.test.mjs; mutant **G3** (a failed run green) **RED**. G1 (no run marks) and G2 (the check not
+  sent) **RED** (Firefox). A race in the same page test (the END mark counted the instant the summary showed; its line
+  comes just after) failed once in Firefox: it now waits for the mark; mutant **G4** (the END never drawn) **RED** in both
+  of its tests; run_view repeated 3x per browser, green.
+- **Docs pictures:** `docs/assets/route-builder/{check,run-check,slots}.png` — Chromium light 1440 → 1200 × 750, 256
+  colours (`scratch/rmp1-k/to_docs.py`, as RMP1-I's send*.png); guide 22 already names them. The route builder README
+  gains one clause on the settle rule.
+- **Gates, final (2026-11-20 ~12:16, on the final tree):** bounded suite green — 3,907 cases / 3,777,332 assertions (fresh
+  build, no C++ changed after it); node 240/240; page suites Firefox 114 pass / 3 skipped / 0 fail and Chromium 110 / 7 /
+  0 (the skips are the older browser-specific ones, none RMP1-K's); run_view page test 3× per browser green; route_builder
+  self-test 130 OK; upload_auton self-test 45 OK; the ARM header gate over all 260 lines (every include/shulib header)
+  OK; the CI greps (PROS-free, sim-free, LF) hold; api_doc_tool generate + check-fresh / check-examples / self-test /
+  check-coverage / check-removability OK; doc_staleness_audit clean; briefing regenerated with the suite binary built,
+  `check` current; `src_build_gate.py check` PASS (14 builds). The src gate's self-test not run: nothing in `src/` or the
+  Makefile changed (`git diff -- src/ Makefile` empty).
+- **Prose review of this resumption's changes (grepped, hits read):** `grep -rn "pros upload --slot" docs/ README.md
+  tools/route_maker/README.md | grep -v docs/internal | grep -v -- --description` → none (every printed upload carries
+  it); `grep -rn "says nothing when a step\|prints nothing of its own\|A step that SUCCEEDS prints nothing" docs/
+  README.md` outside docs/internal → none; the `#check-the-mechanisms-then-watch-the-run` link (route-builder.md:35)
+  resolves to guide 22's heading; `grep "2\.10"` in public docs → only feature tags (maxDownVolts), no "current API"
+  claim. The amber summary and the card's place: guide 22 says "One line sums it up" (true); the changelog's colours
+  are the step marks' (true). The README gains the settle clause. Not touched: guide 22's text (its three pictures now
+  exist and match their alt text).
+
+### RMP1-K review findings and their disposition *(2026-11-20, the same executor, the same worktree; started 12:42 EST, `date`)*
+
+Three reviewers (correctness, tests, docs) returned 23 findings; overlaps merged below (the END estimate's LIVE flag is
+one item; the check route left in the file and "Before a match, Send once more" are one). Each was re-checked against
+the code (and pros-cli 3.5.6's own source for D5) before anything changed. Appended as each lands.
+
+- **1. (blocker) D5 could never read a slot's name with pros-cli 3.5.6 — REAL, fixed at the root.** Re-checked in pros-cli's
+  own source: `cli/v5_utils.py`'s `read-file` declares an `outfile` argument its function never takes, so click stops it
+  with `TypeError: read_file() got an unexpected keyword argument 'outfile'` before any device code (the reviewer's
+  stubbed probe, re-run here: the same TypeError; no port, no network); and its progress bar prints `Downloading
+  slot_N.ini` on stdout ahead of the bytes. So every occupied slot read as `?` and the table told the team to upload
+  programs that were already there. Now ONE `pros user-script tools/brain_slots.py` (pros-cli's hidden command that runs
+  a script in pros-cli's own Python, `cli/user_script.py`): the new script lists the files and reads each `slot_N.ini`
+  with pros-cli's own `V5Device.read_ini` (as its `used_slots()` does), and prints ONE `SHULIB_SLOTS {json}` line that
+  `read_slots` finds among whatever pros prints around it. A slot whose file cannot be read is said so ("slot 2 could
+  not be read (…): check again"), never "empty" or "holds ?: upload X". The PROS extension's frozen pros-cli (Python 3.9)
+  was checked, without running it, to bundle `pros.cli.user_script`, `json`, `configparser`, the V5Device and DirectPort
+  modules (their names in the executable's archive); the script is Python 3.9. The fake pros now behaves as the real one:
+  its `user-script` prints pros's `Loading …` and `Downloading slot_N.ini` lines and runs the script against a fake
+  `V5Device` that can only read (a write is an AttributeError); its `v5 read-file` fails with 3.5.6's TypeError.
+- **2. (major) The CHECK route kept start forms the robot then cut — REAL, fixed.** Re-checked: `RunGuard::run` cancels
+  every mechanism right after scoring (`run_guard.hpp` `cancelAll()`), and `beginStep` cancels a running step on the same
+  mechanism ("replaced by a newer command"); the check has no drive to give a start its time. `check_route.mjs` now runs
+  each start form to its end (startMove → move, startRun → run, startHome → home: the same fields, the ordinary
+  generator) and leaves out every waitUntilDone (nothing is left running for it). Separately, a `started` line is no
+  longer `done`: run_log marks it `started` (grey, a play icon, "started (not finished yet)"), and the mechanism's own
+  `[MECH] 'name': OUTCOME … in S.SSs (note)` line (`mechanism/service.hpp` finishStep) is read onto the step that started
+  it: SUCCEEDED (or UNCONFIRMED counted done) → done, anything else → amber with the robot's words ("started, then
+  CANCELLED in 0.31 s (replaced by a newer command)"). That card mark never colours the routine's verdict (a mechanism a
+  route's end cuts is not a routine failure).
+- **3. (major) The run's colour ignored the robot's own verdict — REAL, fixed.** `runTone(run)` (run_log.mjs, pure,
+  node-tested) takes the worst of: the verdict line (`run R: 'x' WORD -- …`, auton_tester_run.hpp testerResultWord:
+  FINISHED ok, `DONE, n FAILED` amber, anything else red), the summary's word (OK / DONE / STOPPED) and only then the
+  marks. The summary now parses `, f failed, j jumped`, says `the robot says STOPPED` / `the end action FAILED` /
+  `the robot says HARD STOP` when that is the robot's word, and a run that never reached its count (an abort in the
+  countdown) ends with "The robot says ABORTED". The stop / fail / skip regexes take the em dash whole or garbled into 1–3
+  other characters (` [^\s\w]{1,3} ` before a lower-case word). The dead `route …` replace is gone.
+- **4. (major) Run numbers restart at every boot — REAL, fixed.** Re-checked: `auton_tester_program.cpp` `int runs = 0;`
+  and the real log's run 3, then run 1 after a reboot. A later `[ATS] run N:` line now goes to the LAST run of that
+  number (`findLast`; a new boot's start line has already added its run). Node test: two boots in one stream.
+- **5. (minor) The END estimate was drawn when NOT LIVE — REAL, fixed** (with the tests reviewer's R2: the `live` field is
+  now used): not drawn; one line says "Its END estimate was NOT LIVE (the robot does not trust it): not drawn."
+- **6. (minor) Marks stayed after an edit — REAL, fixed.** The run view remembers the route's exported C++
+  (`exportRegion`) when it first marks a run; once the route's export differs, the marks are cleared and the panel says
+  "You changed this route after the run…" (an undo brings them back). The panel follows the step list's render (its
+  first card), so the words come with the edit.
+- **7. (minor; with the docs reviewer's "Before a match, Send once more leaves out Competition") After a Check, the team's
+  file kept the check — REAL, fixed at the root.** When the check's send ends (either way), the page writes
+  `src/team/skills_route.cpp` back with the team's routes alone (one more ordinary export) and says so; if that write
+  fails it says, in red and in a toast, that the file STILL holds the check: "Export before you build Competition". The
+  guide and the changelog say the same; "Send once more" is gone.
+- **8. (major, tests) D4's ` (UNCONFIRMED)` was pinned on the page's side only — REAL, fixed.** A new case in
+  `routine_step_line_test.cpp` runs robot two's sensorless claw (`set(claw["open"])`, `set(claw["closed"])`) and requires
+  the library's two done lines to EQUAL the RTN lines of a shared fixture, `tools/route_maker/test/fixtures/robot_log/
+  d4_lines.log` (read through `SHULIB_SOURCE_DIR`); `run_log.test.mjs` reads the same file — one string on both sides.
+- **9. (major, tests) D3's port guards were unpinned — REAL gaps, closed.** Self-test: a send while the slots are read →
+  409; a send that starts while the watch is still running `pros lsusb` (a slow fake lsusb, `FAKE_LSUSB_S`) → no fake
+  terminal alive at any moment the send's child runs, the watch pauses and opens after. `python3 tools/route_builder.py
+  robot one` now asks the helper running on this checkout (`build/route_builder.json`; its lock, its busy answer) and
+  reads the brain itself only when none runs — two self-test cases (busy: its 409 stands and no pros of its own; free:
+  the table).
+- **10. (minor, tests) The final page suites ran on a stale site copy — REAL (a process gap), fixed in the process:** the
+  site is rebuilt immediately before every page suite of this round (`build/route_maker_site/robots.json` stamped
+  13:04:05, then again before the final suites — the stamps are in the gates bullet below).
+- **11. (minor, tests) K1b and K8 unpinned — REAL, pinned:** a skip's landing step counts its seconds from its own door
+  (`waitFor` fails after 0.4 s, skips to `L`, a 0.3 s pause there reads 0.30 s, never 0.70 s); a `stop(intake)` step's
+  line is exactly `routine 'stops': step 2 (intake) done in 0.00 s`.
+- **12. (minor, tests) K4: the preview's green for D4 lines untested — REAL, pinned, and the lines KEPT:** the preview's
+  library-line list is "every RTN line, verbatim" (route_preview_model.hpp), so it keeps the robot's own lines; RP6 now
+  requires steps 1 and 2's done lines listed with Mark::Ok and rendered `<li class="ok">`. A deliberate RPV1-visible
+  change (see the deltas below).
+- **13. (minor, tests) pageMarks' failed-vs-done unpinned (R4) — REAL, pinned** (and started-vs-done, started-vs-skipped).
+- **14. (minor, tests) D5's error paths unpinned (P13, P16, P22, P14, P15) — REAL, pinned:** an unreadable slot (`?` is
+  gone; "could not be read"); `pros lsusb` exiting 1 after a whole list (`lsusbbad`: never trusted); the brain not
+  answering pros (`slotsfail`: pros's own words, no table); slot 6's and slot 5's whole terminal lines, tags included;
+  the old-code row's "never touched by shulib".
+- **15. (minor, tests) run_log's dead or unused code — REAL:** R2 (LIVE now drawn or not, item 5), R12 (the dead replace
+  deleted), R8 (a run whose skipped lines were lost still fills the steps before its stop: node case).
+- **16. (major, docs) Cookbook 02b said the opposite of its test — REAL, fixed:** the price paragraph now says the routine
+  layer logs the miss as done (`routine 'sweep-three': step 5 (attempt-grab) done in 0.00 s`, which the test now requires
+  verbatim) and that the test asserts exactly that; 02a's log block says the done lines before the stop are left out;
+  the test's header comment follows.
+- **17. (minor, docs) Guide 22's new section stranded step 7's Export paragraph — REAL, fixed:** the section now follows
+  that paragraph, before "From the website".
+- **18. (minor, docs) Guide 18's done-line example had the wrong step — REAL, fixed:** step 6 (lift), "in a run that gets
+  that far", seconds as `…`; and step 2 (intake)'s real START form line, `started in 0.00 s`.
+- **19. (minor, docs) Three guide 22 sentences and guide 16's "yet" — REAL, fixed:** "PREVIEW proves the order"; "A
+  program built before API 2.11"; "After a send that uploads"; guide 16: "the page lists that line, and numbers its steps
+  without it".
+- **20. (minor, docs) Deltas not logged — REAL:** the bullet below.
+- **21. (minor, docs) No close-out — REAL:** the last bullet of this section; and the changelog's 2.11 entry states, as a
+  plain fact, that Check, Watch and What is on robot have run against stand-ins for `pros` only.
+- **22. (minor, docs) upload_auton printed one upload command without `--description` — REAL, fixed:** when pros stops to
+  ask, the printed command carries the same `--description "<build> | <routes>"` the script passed; the "question"
+  self-test case pins it (mutant K-U1 RED). The earlier "every printed upload carries it" claim was about the grepped
+  scope (docs/ and the READMEs) only.
+- **Deltas from the brief and edits outside it (RMP1-K whole, each with its reason):** (1) D3 on Windows takes the user
+  port from `pros lsusb`'s "VEX EDR V5 User Ports" section, not "the second V5 COM port": pros lists the ports by section
+  on every OS, and a COM number's order would be a guess, which the brief forbids. (2) `--description` is cut to 60 ASCII
+  characters: pros-cli writes the slot's `.ini` as ASCII (`v5_device.py` write_program), so another character would fail
+  the upload; 60 keeps a slot's line on one line. (3) The docs' printed upload commands carry only `git describe`, not
+  the route names D5 asks for: a typed command cannot know the routes; `tools/upload_auton.py`, which reads the region,
+  carries both. (4) `.vscode/tasks.json` gained "What is on robot one" and "two" (D5; the helper's self-test pins both;
+  its header comment now names both). (5) `test/route_preview_run.hpp`'s `markOfRoutineLine` reads `) done in ` / `)
+  started in ` as Mark::Ok, so PREVIEW's library-line list and its terminal table show each done line, green — a
+  DELIBERATE RPV1-visible change (that list is every RTN line, verbatim), pinned by RP6. (6) RMP1-I's files edited:
+  `send_robot.page.test.mjs` (its `calls()` leaves out the watch's own `pros lsusb` / `pros terminal`, which a send that
+  ends well now starts) and `export_robot.page.test.mjs` (the printed upload's `--description`), and
+  `tools/route_maker/.gitattributes` (`test/fixtures/robot_log/*.log -text`: the brain's bytes, `\r` and all, never
+  converted). (7) D4 logs a line only for a step that SUCCEEDED (an outcome in brackets only when it is not SUCCEEDED),
+  where the brief said "as each step ends (… outcome …)": a failed, stopped or skipped step already has its own line with
+  its number, verb and outcome, and a second one would double-count on the page and change every failure transcript.
+  This round: (8) D5 reads through a new file, `tools/brain_slots.py`, run by `pros user-script` (item 1). (9) The check
+  runs each start form as its blocking form and leaves out waitUntilDone — beyond "every mechanism step with its own
+  numbers" (item 2). (10) The check's send writes the team's file back after the upload, where the brief said "the next
+  ordinary Send leaves it out" (item 7). (11) run_log reads `[MECH]` outcome lines onto started steps, beyond the brief's
+  line list (item 2). (12) `route_builder.py robot one` goes through a running helper (item 9).
+- **Mutants, each seen RED by its named check (driver `scratch/rmp1-k/mut/mutate_review.py` over `mutate.py`'s `run()`:
+  applied once, capped, restored in a finally and on SIGTERM/SIGHUP, md5 checked, mtime bumped; verdicts appended to
+  `mut/verdicts.txt` as `review K-…`):** helper self-test — K-P5a (`v5 read-file` again), K-P5b (only pros's first line
+  read), K-P5c (the script erases a file: the fake V5Device has no write), K-P13 (an unread slot dropped → "empty"),
+  K-P13b (an unread slot as "holds"), K-P14 (no build tag), K-P15 (the old code's words), K-P16 (a failed lsusb trusted),
+  K-P22 (pros's error words lost), K-P17 (a send during a slot read), K-P18 (no busy re-check before a reader opens),
+  K-P19 (`robot one` beside a running helper reads the brain itself); upload_auton self-test — K-U1 (the asked-question
+  command without `--description`); C++ on FRESH binaries — K-K2 (no outcome bracket), K-K1b (the landing step's clock
+  kept), K-K8 (a stop step named "stop"), each on the probe (test_main + routine_step_line_test.cpp compiled from
+  nothing), K-K4 (the preview's done lines grey) on the suite target rebuilt by cmake (every TU that includes the
+  header), then rebuilt clean; node — K-R1 (the first run of a number), K-R2 (the colour from the marks only), K-R3 (the
+  summary's word ignored), K-R4 (started = done), K-R5 (`[MECH]` ends unread), K-R6 (a mechanism cut colours the run),
+  K-R7 (a strict em dash), K-R8 (the fill's stop bound dropped), K-R9 (failed ranked below done), K-J13 (start forms kept
+  in the check), K-J14 (waitUntilDone kept); the page (Firefox) — K-G5 (the colour ignores the robot), K-G6 (a NOT LIVE
+  END drawn), K-G7 (an edit keeps the marks), K-G8 (the check left in the file). **32 / 32 RED.** The first cut of
+  K-P5a/b/c and K-P17 was caught only by a crash of the case; the checks were made to name it (an empty table read as
+  `[{}] * 7`, a 200 send's missing connection tolerated) and the four re-run: each RED by its named check.
+- **A test-harness fix found in Chromium:** the new run-view page test failed once per run in Chromium on two `409
+  (Conflict)` console errors — the helper refusing a second reader while the previous page's reader closes (≤ 1 s), which
+  `watchFromMenu` already waits out and retries. It now returns a filter that drops those 409s, and only when it was
+  refused; both tests that use it apply it. run_view repeated 3× per browser after: green.
+- **Gates on the final tree (2026-11-20, `date` 12:55–13:40 EST):** host build from a removed suite binary (briefing
+  generated before, regenerated after; 0 warnings); the bounded suite **green — 3,909 cases / 3,777,352 assertions** (+2
+  cases); node **246 / 246**; route_builder self-test **139 OK**; upload_auton self-test **45 OK**; the site rebuilt
+  13:26:21, no source newer after it; page suites **Firefox 115 pass / 3 skipped / 0 fail, Chromium 111 / 7 / 0**
+  (the skips the older browser-specific ones, as before this round); run_view 3× per browser
+  green, and with ROUTE_MAKER_SHOTS light/dark at 1440 and 1280 in both (32 shots, `scratch/rmp1-k/shots-review/`;
+  `check.png`, `run-check.png`, `slots.png` regenerated from Chromium's light 1440 by `scratch/rmp1-k/to_docs.py` — the
+  run-check picture now says "6 of 7 steps done — 1 failed and carried on", as guide 22's alt text); the ARM header gate
+  over all 260 lines OK; the CI greps (PROS-free, sim-free, LF) hold; api_doc_tool check-fresh / check-examples /
+  self-test / check-coverage / check-removability OK (no `///` comment changed this round: docs/api not regenerated);
+  doc_staleness_audit self-test and audit clean; briefing `check` current; `src_build_gate.py check` **PASS (14 builds)**
+  (its self-test not run: `git diff -- src/ Makefile` empty).
+- **Prose review of this round (grepped, hits read, 2026-11-20 13:30):** `grep -rn "read-file\|ls-files\|user-script\|
+  brain_slots\|Send to robot once more\|leaves the check out\|next ordinary Send\|7 of 8 steps\|uploaded before today\|
+  proves the order and the timing\|does not read that line yet\|After every send\|step 2 (lift)" docs/ README.md
+  tools/route_maker/README.md tools/*.py .vscode/tasks.json` outside docs/internal → only the new user-script lines (and
+  `git ls-files` in the src gate, unrelated); `grep "check_route\|run_log\|run_view\|routine_step_line\|stopped to ask\|
+  route_builder.py robot\|dashed square\|What is on robot"` → guide 22, the changelog and the route builder's README,
+  each read and true after this round's edits. Edited: cookbook 02 (02a's block, 02b's price), guides 16, 18 and 22, the
+  changelog's 2.11 entry, the route builder's README (the `/api/robot` row, the RMP1-K paragraph, the tests' fixture),
+  the robot_log fixtures' README, `.vscode/tasks.json`'s header; guide 09's "an `Info` as each step finishes" and guide
+  11's "A step that finished" now say "ends well" (a failed step finishes too, with its own Warn). Not touched, checked:
+  guide 09's transcript (its done line is a SUCCEEDED step's, pinned by guide-09b), docs/route-builder.md's link (the
+  heading kept its words), where-your-code-goes.md (its upload command already carries `--description`).
+- **Stopped here: uncommitted, for the coordinator.** Everything above ran against stand-ins for `pros` and on the host
+  test plant only; nothing has touched a real brain. **Owed on the robot (the coordinator, with the team lead's OK):**
+  (1) `pros terminal` on a real brain's USER port — on Linux through the pseudo-terminal, on Windows through the
+  windowless console; (2) `pros user-script tools/brain_slots.py` against a real brain, with the pip pros-cli 3.5.6
+  (Python 3.12) and with the PROS extension's frozen one (Python 3.9) — the slot table's names, descriptions and dates;
+  (3) real pros taking `--description` (3.5.6's `cli/upload.py` declares it; its default "Made with PROS" is dropped by
+  pros itself, so ours replaces it); (4) the Windows "User Ports" parse against a real Windows `pros lsusb`; (5) D4's
+  lines over the brain's real serial, ticking the page live; (6) one real Check on robot one — each start form's blocking
+  form on the real cascade, claw and toggles, and the file written back after.
+
+### Verification-round findings and their disposition *(2026-11-20 from 13:55 EST, `date`; the same executor, the same worktree)*
+
+One finding from a fresh verifier. Re-checked before anything changed.
+
+- **1. (minor) One `%` in any slot's `.ini` hid the whole slot table — REAL, fixed at the root.** Re-checked in pros-cli
+  3.5.6's own source (`~/.local/lib/python3.12/site-packages/pros/serial/devices/vex/v5_device.py`): `read_ini` builds a
+  plain `ConfigParser()` (BasicInterpolation), so `get` on a value with a lone `%` raises `InterpolationSyntaxError`; and
+  `brain_slots.py` called `prog.get(...)` AFTER its per-slot `try`, so the error reached the outer handler and the page got
+  "pros could not read the brain's programs: InterpolationSyntaxError …" with no table. The verifier's probe
+  (`scratch/rmp1-k/verify/bs_pct_probe.py`, slot 5 described "100% auton") printed exactly that here before the fix. pros
+  itself cannot write a `%` (`generate_ini_file` sets the values through the same interpolation, which refuses one), but
+  slot 5 holds the team's old code, which another tool may have uploaded. **Fix (`tools/brain_slots.py`):** every per-slot
+  step, the reading of the values included, is inside the `try`, so a slot that cannot be read marks only itself as
+  unread; and the values are read with `raw=True` (`SectionProxy.get`'s keyword-only `raw`, in CPython's configparser since
+  3.2, so the PROS extension's frozen 3.9 has it), so a `%` is text: "100% auton" is shown as written, not as unread. The
+  probe after the fix: the whole table, slot 5 `{"name": "old code", "description": "100% auton", …}`. **Pinned:** a new
+  self-test case in `tools/route_builder.py` (the fake pros's `read_ini` is a real `ConfigParser` too) gives slot 5 the
+  description "100% auton" and requires all seven rows, slot 5 NOT unread, `have` "VEXcode", `description` "100% auton".
+  The row's `ok` alone could not catch it (the old-code row is always ok), so the case checks `unread` and the words.
+  **Mutants (driver `scratch/rmp1-k/mut/mutate_vr2.py` over `mutate.py`'s `run()`: applied once, capped, restored in a
+  finally and on SIGTERM/SIGHUP, md5 checked, mtime bumped; verdicts in `mut/verdicts.txt` as `verify-2 …`):** K-V1 (the
+  values inside the `try` but interpolated: slot 5 reads as unread) and K-V2 (the code before the fix: the values read after
+  the `try`) — **2 / 2 RED, each by the new check alone** (each mutant's log is that one failing line). Docs in step: the
+  route builder's README `/api/robot` row now says each `slot_N.ini` is read with "its values as written — a `%` in another
+  tool's description is text" and that a slot it could not read is said so "the others still shown".
+- **Prose review of this round (grepped, hits read, 2026-11-20 14:20):** `grep -rn "brain_slots\|could not be read\|
+  read_ini\|ConfigParser\|interpolat"` over docs/ (outside docs/internal), README.md, the route builder's README,
+  tools/*.py and .vscode/tasks.json → the README row (edited above), `route_builder.py`'s own code and the fake, and
+  unrelated hits (faq's GAINS.BIN, the changelog's HA-207 line, curve_path's and kinds.md's interpolation); `grep "What is on
+  robot\|slot table\|SHULIB_SLOTS\|unread\|never hides"` over the changelog, guide 22, route-builder.md,
+  where-your-code-goes.md and the route builder's README → the changelog's 2.11 entry and guide 22's "What is on robot one"
+  paragraph, both still true (they say what the table shows, not how a value is read). No other doc changed.
+- **Gates on the final tree (2026-11-20, `date` 13:59–14:20 EST; runner `scratch/rmp1-k/vr2/gates.sh`, logs beside it):**
+  briefing generated with the suite binary removed, host build (0 warnings), briefing regenerated after; the bounded suite
+  **green — 3,909 cases / 3,777,352 assertions** (unchanged: no C++ changed this round); `src_build_gate.py check` **PASS
+  (14 builds)** (self-test not needed: no src/ or Makefile change); the ARM header gate over all 260 lines OK; the CI greps
+  (PROS-free, sim-free, LF) hold; api_doc_tool check-fresh / check-examples / self-test / check-coverage /
+  check-removability OK (no `///` comment changed: docs/api not regenerated); doc_staleness_audit self-test and audit clean;
+  briefing `check` current; node **246 / 246**; route_builder self-test **140 OK** (+1, the `%` case); upload_auton
+  self-test **45 OK**; the site rebuilt 14:17:58 immediately before the page suites; page suites **Firefox 115 pass / 3
+  skipped / 0 fail, Chromium 111 / 7 / 0** (the same skips as before). No helper or browser process left running.
+- **Stopped here: uncommitted, for the coordinator.** The "owed on the robot" list above stands unchanged; item (2), the
+  real `pros user-script tools/brain_slots.py`, also covers this round's `raw=True` read on the frozen 3.9 pros-cli.
+
+### RMP1-K coordinator fix at the merge (2026-11-20 14:35 EST): the slot table matches robot one's brain
+
+- **Found by the coordinator** before merging: D5's table held slot 5 for "the team's old code". On robot one
+  (2F007C00, `pros v5 ls-files` 11-20 12:40 and 13:52) the old code — the team lead: "we arent going to delete dan's
+  code" — is in **slot 8** (uploaded 2026-08-13), and slot 5 is where the PROS extension's own Upload button now builds
+  ("PROS button (bench bot)", integrate 61816f6). So a robot with every program right showed slot 8 nowhere, and
+  slot 5 was called the old code.
+- **Fix** (`tools/route_builder.py`): `WANTED` covers slots 1–8; slots 5 and 8 are `None` (never judged), worded by
+  `LEFT_ALONE`: 5 "the PROS button's build (optional)" / "optional, never judged"; 8 "the team's old code" / "never
+  touched by shulib". Self-test 142 (2 new: slot 5 named and optional; slot 5 EMPTY still ✓); the `%` case moved to
+  slot 8 (a VEXcode upload is where another tool's ini would be); the page test's fake brain has slot 5 = the PROS
+  button's build and slot 8 = old code, and pins both rows' words.
+- **Mutants:** S1 (slot 8 dropped from `WANTED`) RED — "every slot right" fails first; S2 (slot 5 judged as "PROS
+  button (bench bot)") RED — both slot-5 checks by name.
+- **Gates:** route_builder self-test 142 OK; `run_view.page.test.mjs` Chromium 4/4 (slots test, shots light/dark
+  1440/1280 in `scratch/rmp1-k/shots-slots8/`, read: 8 rows fit at 1280×800) and Firefox 4/4. `slots.png` re-made from
+  Chromium light 1440 (1200×750, 256 colours, as `to_docs.py`). The docs that say "slot 5 is the team's old code"
+  (where-your-code-goes, guide 17) are integrate's, corrected in the merge.

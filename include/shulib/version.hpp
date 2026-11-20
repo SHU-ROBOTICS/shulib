@@ -162,9 +162,13 @@ inline constexpr int kApiMajor = 2;
 /// frozen member changed shape, no enumerator moved; a declaration without it runs exactly as before. ONE
 /// thing to do, as at 2.5: a `switch` over `mechanism::Refusal` that lists every value needs the two new
 /// cases. docs/changelog.md, API 2.10, lists it.
-inline constexpr int kApiMinor = 10;
+/// 11 = RMP1-K D4, 2026-11-20 (the team lead's second freeze exception: "Yes, live ticks"): `Routine` logs ONE
+/// Info `[RTN]` line as each step SUCCEEDS (`routine 'skills': step 3 (cascade) done in 1.42 s, at 18.0 in`), so
+/// the route builder can tick a run's steps live. Logging only: no member, enumerator or motion changed (every
+/// routine golden re-checked). Nothing to do. docs/changelog.md, API 2.11, lists it.
+inline constexpr int kApiMinor = 11;
 
 /// "major.minor", for session headers / logs that want one printable token.
-inline constexpr const char* kApiVersionString = "2.10";
+inline constexpr const char* kApiVersionString = "2.11";
 
 }  // namespace shulib
