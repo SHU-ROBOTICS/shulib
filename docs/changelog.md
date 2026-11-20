@@ -16,6 +16,25 @@
 
 ## API 2.9
 
+### 2026-11-19 — Export says where the code goes and whether it landed; one command builds and uploads
+
+> Written when it was built (chunk RMP1, run RMP1-F). **No library change — no API change:** the route builder's
+> export page and one new tool, `tools/upload_auton.py`. The exported code is unchanged, byte for byte.
+
+**What you can now do (additive):**
+
+- **Export shows one step for your browser** — Edge or Chrome: connect the folder, write; any other: pick the file,
+  get it back, replace it; or Copy, with a picture of where it is pasted. After a write the page **reads the file
+  back**: green **Written and checked** names the routes and their steps; a refusal is red, with its fix. Then
+  **Will it build?** and **Next**: the build and upload commands for robot one or two, each with Copy. How:
+  [guide chapter 22, step 7](guide/22-making-your-first-route.md#7-export).
+- **`python3 tools/upload_auton.py one`** (or `two`; `python` on Windows) builds the Auton Tester, uploads it to
+  slot 2 on the brain's own port, and prints ✓ or ✗ with the first real error in plain words. It needs Python 3. It
+  has run against stand-ins for `make` and `pros` only: not yet against the real `pros`, or on Windows.
+  [Chapter 16](guide/16-testing-an-auton-on-the-bench.md) has it beside the two commands.
+
+**What you must do:** nothing.
+
 ### 2026-11-19 — PREVIEW shows the mechanisms: the cascade rising, the claw opening
 
 > Written when it was built (chunk RMP1, run RMP1-E). **No library change — no API change:** nothing under

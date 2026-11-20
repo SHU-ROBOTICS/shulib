@@ -176,25 +176,39 @@ running; one that takes longer than 20 s is stopped, and the page says so.
 When the bottom bar says **Ready to export**, press **Export** (**Ctrl+E**). While a step is still red, a red number
 on the Export button counts what is left, and Export shows only that list — each with **Go there** — and no code.
 
-![The export with the shulib folder connected (as Edge or Chrome shows it), before robot two's update: the route's C++ with Copy, writing into the file waiting for that update, and each robot's addTeamRoutes line not there yet](../assets/route-builder/export.png)
+Export shows **one card: the step for your browser**, the step to do now highlighted.
 
-- **In Edge or Chrome**, click **Connect your shulib folder** once (here, or the folder button in the top bar) and
-  pick the repository's top folder (the one with `src/team/` in it). Then **Write into src/team/skills_route.cpp** puts the route between the two
-  `ROUTE MAKER` lines of that file — and changes nothing else in it, keeping its own line endings.
-- **In another browser**, **Copy the code** — or pick your `src/team/skills_route.cpp`: the page writes the
-  updated file back as a download, to save in its place. **Then Save** (step 8): the project file remembers what
-  was exported, so the next export knows that code is the builder's.
+![Export in Edge or Chrome: step 1, connect your shulib folder, highlighted; step 2, write into src/team/skills_route.cpp, waiting for it; Copy the code below](../assets/route-builder/export.png)
+
+- **Edge or Chrome:** **1** **Connect your shulib folder** (the one with `src` inside), once. **2** **Write into
+  src/team/skills_route.cpp**: only the lines between its two `ROUTE MAKER` lines change, and the page **reads the
+  file back**.
+- **Firefox and others:** **1** **Pick skills_route.cpp and download the updated one**. **2** Replace
+  `src/team/skills_route.cpp` with the newest download. **Then Save** (step 8), so the next export knows that code is
+  the builder's.
+- **Or Copy the code** and paste it over the two `ROUTE MAKER` lines and everything between them (a picture shows
+  where). A file that has lost those lines gets no Copy: the page says how to put them back first.
+
+The result is never silent: green (**Written and checked** with the routes and their steps, **Downloaded**,
+**Copied**) or red, with **the fix**. Code changed by hand between the lines is replaced only if you choose
+**Overwrite**. Then **Will it build?** (what the page checked; the C++ compiler checks the rest) and **Next**: the
+build and upload commands for robot one or two, each with **Copy**, or one command for both
+([chapter 16](16-testing-an-auton-on-the-bench.md)). On the brain: **shulib Auton Tester** (slot 2) → the route →
+**RUN**.
+
+![After Write: Written and checked, the routes and their steps, "Will it build?", and Next with robot one's commands](../assets/route-builder/export-written.png)
 
 Export writes **every route** of the project (step 9) between the two `ROUTE MAKER` lines, and a red step on any of
 them stops it — the list names the route, and **Go there** opens it. One line in each robot's autons file registers
 them all: `addTeamRoutes(registry, TeamRobot::One);` in robot one's, `...::Two` in robot two's, which runs each route
-marked mirrored **mirrored** across the field's diagonal. The export page checks both lines are there and says so. (A copy of the repository from before robot two's update, 2026-11-17,
-has no `src/team/skills_route.cpp`: the page then offers Copy only — the picture above.)
+marked mirrored **mirrored** across the field's diagonal. With the folder connected (Edge or Chrome), the export page
+checks both lines are there and says so. (A copy of the repository from before robot two's update, 2026-11-17, has
+no `src/team/skills_route.cpp`: Edge or Chrome says so and offers Copy.)
 
 #### Reading the code
 
-Everything between the two `ROUTE MAKER` lines is the route, and every step is a comment, then its code — step 2
-in the picture above, for one:
+Everything between the two `ROUTE MAKER` lines is the route — **See the code**, under the card — and every step is a
+comment, then its code. Step 2, for one:
 
 - **The comment** says what the step does in plain words, with its numbers, and the page's step number first:
   *Step 2 — DRIVE to (-24, -36) in: about 26.8 in. First it turns to face the point …*
@@ -214,8 +228,7 @@ in the picture above, for one:
 
 You should be able to explain every line; if one surprises you, ask before you run it.
 
-Then build and upload as always ([chapter 16](16-testing-an-auton-on-the-bench.md)), and run the route in
-**shulib Auton Tester** on the robot.
+Then build and upload (the **Next** card above), and run the route in **shulib Auton Tester** on the robot.
 
 ### 8. Save
 
