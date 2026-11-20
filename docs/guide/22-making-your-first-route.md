@@ -249,9 +249,9 @@ autons, and those two take 2: at most 14 routes.
 
 **Quick start — the Controls tab in 5 steps**
 
-1. Click **Controls** in the top bar: robot one's controller.
-2. Click a button, then pick its job (a dashed button is free).
-3. Set the feel: the dead zone and the curve.
+1. Click **Controls** in the top bar: **1 · Buttons** shows robot one's controller.
+2. Click a button; a free (dashed) one: pick its mechanism, then its job.
+3. **2 · Driving feel**: set the dead zone and the curve.
 4. **Export** (**Ctrl+E**) → **Write into src/team/robot_one_driver.hpp**.
 5. Pick robot **two**, do the same, then build and upload.
 

@@ -1,12 +1,13 @@
 [
   {"id": "c01", "say": "The Controls tab sets what each button does in driver control, and how the sticks feel.", "caption": "The **Controls** tab: **buttons** and **stick feel**"},
   {"id": "c02", "say": "Open it from the top bar, beside Route.", "caption": "Click **Controls** in the top bar"},
-  {"id": "c03", "say": "This is robot one's controller. Each button's job is written beside it.", "caption": "**Robot one's** controller: each button's **job** beside it"},
+  {"id": "c03", "say": "Step one, Buttons, shows robot one's controller. Each label says that button's job.", "caption": "**1 · Buttons**: each label says that button's **job**"},
   {"id": "c04", "say": "Click R1. On the right: it moves the cascade up while held. R2 brings it down.", "caption": "**R1**: cascade **up while held**, R2 down"},
   {"id": "c05", "say": "Click A. A toggle: each press flips the claw, open, then closed.", "caption": "**A**: the claw, **each press flips it**"},
   {"id": "c06", "say": "A dashed button is free. If you do not need it, leave it free.", "caption": "**Dashed** = **free**. Leave it free if unneeded"},
-  {"id": "c07", "say": "To give a free button a job, click it, and pick one from this short menu.", "caption": "Free button: click it, **pick a job**"},
-  {"id": "c08", "say": "Below is the driving feel. The dead zone: a stick moved less than this does nothing.", "caption": "**Dead zone**: tiny stick moves do **nothing**"},
+  {"id": "c07", "say": "To give a free button a job, click it, then pick the mechanism.", "caption": "Free button: click it, pick the **mechanism**"},
+  {"id": "c07b", "say": "Then pick its job. Now Up sends the claw to open.", "caption": "Then its **job**: Up sends the claw to **open**"},
+  {"id": "c08", "say": "Step two is the driving feel. The dead zone: a stick moved less than this does nothing.", "caption": "**2 · Driving feel** — **dead zone**: tiny moves do nothing"},
   {"id": "c09", "say": "The curve. Zero is straight. Higher gives finer control near the middle.", "caption": "**Curve**: higher = **finer control** near the middle"},
   {"id": "c10", "say": "Drag the dot to try a push. Thirty percent stick asks for twelve percent speed.", "caption": "Drag the dot: **30 % stick → 12 % speed**"},
   {"id": "c11", "say": "And a full push is still full speed.", "caption": "Full push: still **full speed**"},
@@ -14,6 +15,7 @@
   {"id": "c13", "say": "In Edge or Chrome, with your folder connected, write robot one's driver file.", "caption": "**Write into** src/team/robot_one_driver.hpp"},
   {"id": "c14", "say": "In Firefox, copy each part into the file instead.", "caption": "Firefox: **Copy** each part"},
   {"id": "c15", "say": "Then switch to robot two. Its driver file must match robot one's.", "caption": "**Robot two**: its file must **match** robot one's"},
-  {"id": "c16", "say": "Make the same changes, and export robot two's file too.", "caption": "The **same changes**, then **Export** robot two"},
+  {"id": "c16", "say": "Make the same changes there: the same buttons, and the same feel.", "caption": "The **same buttons** and the **same feel**"},
+  {"id": "c16b", "say": "Then export robot two's file too.", "caption": "**Export** robot two's file too"},
   {"id": "c17", "say": "Build, and upload shulib Drive to slot one, and Competition to slot six. Check each button once.", "caption": "Upload **Drive (slot 1)** and **Competition (slot 6)**"}
 ]
