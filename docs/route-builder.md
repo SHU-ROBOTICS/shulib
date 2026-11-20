@@ -1,8 +1,10 @@
 # Route builder
 
-Build the skills route by clicking on the real field, see at once anything the robot would refuse, and export the
-C++ for the robot — in the browser, with nothing to install. Every change to it is tested in Edge, Chrome and
-Firefox on Windows, and in Chromium and Firefox on Linux.
+Build your routes — the skills route and any other you name, each picked by its name on the brain's menu — by
+clicking on the real field, see at once anything the robot would refuse, and export the C++ for the robot — in the
+browser, with nothing to install. Robot two's mirrored start and path are drawn beside robot one's, and when both
+robots run a route at the same time the page checks that its plan keeps them 6 in apart. Every change to it is
+tested in Edge, Chrome and Firefox on Windows, and in Chromium and Firefox on Linux.
 
 Press **PREVIEW** and the robot drives the route right there: the real library runs it on the host test plant
 inside the page, and plays it back on a timeline you can scrub — each step marked done, failed or skipped in the
@@ -23,7 +25,7 @@ push and a full push of the stick drive — and exports them into the robot's dr
 
 | Browser | What it does |
 |---|---|
-| **Edge or Chrome** (version 97 or newer) | Everything. Connect your shulib folder once: **Save** writes `src/team/route_maker.json`, **Export** writes the route into `src/team/skills_route.cpp` and the **Controls** tab's export into the robot's driver file, each keeping the file's own line endings. |
+| **Edge or Chrome** (version 97 or newer) | Everything. Connect your shulib folder once: **Save** writes `src/team/route_maker.json`, **Export** writes the routes into `src/team/skills_route.cpp` and the **Controls** tab's export into the robot's driver file, each keeping the file's own line endings. |
 | **Firefox** (115 or newer) | Everything except writing into the folder: **Save** downloads `route_maker.json`, **Export** copies the code (or hands back an updated `skills_route.cpp`, or driver file, to put in place). |
 | **Safari** (16 or newer) — not tested | Should work as Firefox does; no test runs it. |
 

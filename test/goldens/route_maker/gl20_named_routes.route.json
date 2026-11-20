@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "madeWith": "shulib route builder",
+  "routes": [
+    {
+      "name": "skills",
+      "kind": "skills",
+      "robot": "x",
+      "mirroredFor": "two",
+      "together": true,
+      "start": {
+        "x": -36,
+        "y": -55.7,
+        "headingDeg": 0
+      },
+      "endActionAtS": 57,
+      "hardStopAtS": 59,
+      "steps": [
+        {
+          "do": "forward",
+          "inches": 12
+        }
+      ]
+    },
+    {
+      "name": "practice 1",
+      "kind": "skills",
+      "robot": "x",
+      "start": {
+        "x": 24,
+        "y": -48,
+        "headingDeg": 90
+      },
+      "endActionAtS": 57,
+      "hardStopAtS": 59,
+      "steps": [
+        {
+          "do": "forward",
+          "inches": 6
+        },
+        {
+          "do": "backward",
+          "inches": 3
+        }
+      ]
+    },
+    {
+      "name": "40in test",
+      "kind": "skills",
+      "robot": "x",
+      "mirroredFor": "two",
+      "together": false,
+      "start": null,
+      "endActionAtS": 57,
+      "hardStopAtS": 59,
+      "steps": []
+    }
+  ],
+  "robots": {},
+  "exports": {}
+}

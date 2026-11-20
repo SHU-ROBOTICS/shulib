@@ -126,8 +126,9 @@ mental model, which matters more:
   Drive" runs it on its own, and the competition program's driver control runs it,
   [Chapter 17](17-the-competition-program.md)), each robot's autons file,
   `src/team/robot_one_autons.cpp` and `src/team/autons.cpp` (every autonomous routine that robot can run,
-  listed by its register function), and the skills route both robots share, `src/team/skills_route.cpp`
-  (written once in robot one's numbers — the route maker writes it — and run MIRRORED by robot two).
+  listed by its register function), and the routes both robots share, `src/team/skills_route.cpp` (the skills
+  route and every route the team names, written once in robot one's numbers — the route maker writes them; robot
+  two runs the ones marked mirrored, MIRRORED).
   The host suite compiles those three files and runs every auton in them; the auton tester runs them on
   the bench, [Chapter 16](16-testing-an-auton-on-the-bench.md), and the competition program in a
   match, [Chapter 17](17-the-competition-program.md) —

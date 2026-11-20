@@ -1,7 +1,7 @@
 # 22 — Making your first route with the route builder
 
-The **route builder** is a web page where you build the skills route by clicking on the real field, and get the
-C++ for the robot out of it. You place robot one's start, add steps — drive here, curve through there, open the
+The **route builder** is a web page where you build your team's routes — the skills route and any other you name —
+by clicking on the real field, and get the C++ for the robot out of it. You place robot one's start, add steps — drive here, curve through there, open the
 claw — and the page checks every step against the library's own rules as you go. When the route is right, you
 export it into the robot's code. Every line it writes is commented in plain words; it is your route, and you
 should be able to explain every line of it.
@@ -37,6 +37,25 @@ numbers are on the right, to type exactly.
 
 ![Robot one's start placed on the red tiles, facing blue: its x, y and heading on the right](../assets/route-builder/start.png)
 
+**Robot two on the field.** The skills route is **mirrored for robot two**: robot two runs it reflected across the
+field's diagonal (the dotted blue line). Its start and its path are drawn in blue, labelled **robot two (mirrored)**,
+so you always see where it goes. On the right, the route asks once: **do both robots run it at the same time?**
+
+- **Yes, together** (a skills run with both robots): the page checks that its plan keeps the two robots' squares
+  **6 in apart** all the way, the start included — the plan, not the field: run them together slowly first
+  ([chapter 17](17-the-competition-program.md#both-robots-at-once)). If they come closer, the step is red, both
+  squares are outlined in red at that moment, and **They don't run at the same time** (it answers No) is one click
+  away. At the start there is a second one-click fix, **Move the start … in away from the diagonal** (against a wall,
+  **Slide the start … in along** it). On a step: keep robot one 3 in off the diagonal there, or send only one robot
+  there with `isMirrored(ctx)` in the code.
+- **No, one at a time**: the too-close check is off (a tank's half-turn step is still refused).
+
+There is no default: until it is answered, Export waits (PREVIEW does not: it plays robot one). Robot two always
+runs the skills route mirrored. For any other route, **Runs it mirrored** (on the right) turns the mirror off;
+robot two then runs it as written, and nothing blue is drawn.
+
+![Both robots at the same time, from a start 0.8 in too close to the diagonal: robot two (mirrored) in blue, both squares outlined red, and the one-click fix on the right](../assets/route-builder/robot-two.png)
+
 ### 3. Add a drive
 
 Pick **Drive** in the toolbar (or press **D**) and click where the robot should drive to. A dashed line shows the
@@ -57,6 +76,12 @@ A drive's speed, time limit and "how close" (on the right, under **Speed, time l
 The numbers on the field are the step numbers, at the spot where each step ends. Steps that end at the same spot
 share one: **3–5** is the curve's end, where the claw opens and the robot waits.
 
+**Small moves.** **Straight** (**F**) drives forward a number of inches from where the robot is — type it; switch
+**Backwards** on to back up instead. The code is the point it reaches (`r.driveTo(…)` or `r.reverseTo(…)`), so it
+follows when you move a step before it. To place a point exactly, type its **x** and **y** on the right, or select it
+(a curve's point: click or drag it on the field) and press the **arrow keys**: 1 in a press, **Shift** for 0.25 in.
+Zoom in (**+**) and two points 1 in apart are two handles.
+
 ### 4. Add a curve
 
 Pick **Curve** (**C**) and click the points the robot should pass through — up to 16 — then press **Enter** or
@@ -71,16 +96,20 @@ sentence — here the path into point 1 doubles back on itself:
 
 ### 5. Work a mechanism
 
-Pick **Mechanism** (**M**): the menu lists robot one's mechanisms and what each one can do. Pick **claw → Set a
-position** and choose **open** on the right. (The route in the pictures also homes the cascade first: **cascade →
-Home it**, with its time limit typed, before the first drive.)
+Pick **Mechanism** (**M**): the menu lists robot one's mechanisms by name, each with what it can do. A claw, a ramp
+or a flipper has one button per position: **Open claw**, **Close claw**, **Ramp down**. (The route in the pictures
+also homes the cascade first: **Cascade → Home it**, with its time limit typed, before the first drive.)
 
-![The Mechanism menu: the cascade says "No levels yet: record them at Bench Tests station 13" and offers Home it and Wait until it is done; the claw, the flipper and the ramp offer Set a position](../assets/route-builder/mechanism-menu.png)
+![The Mechanism menu: the Cascade's Go up, Go down, Move to, Back to the bottom, Home it and Wait until it is done; each toggle's Run it for a time; the claw's Close claw and Open claw](../assets/route-builder/mechanism-menu.png)
 
-**The cascade has no levels yet.** Its builder records them at **Bench Tests station 13**; until they are in robot
-one's facts, the menu says so and offers only what the cascade can do. Once it has levels, **Move to a level**
-appears: choose the level on the right and type the most time it may take. The code names a level by its number in
-robot one's facts, so the route does not change when a level is renamed or measured.
+**The cascade, in inches.** **Go up _ in**, **Go down _ in**, **Move to _ in** and **Back to the bottom**: type the
+inches and the most time it may take. The library moves a lift to a height, not by an amount, so the page keeps
+track of where the cascade is at every step — after a home it is at the bottom, after "move to 18" at 18 — and
+writes each step as the height it reaches, its own words in the comment (*"Step 4 — MOVE the cascade UP 6 in, to
+18 in"*). On the right, each step says **from** where **to** where. "Go up" before anything says where the cascade
+is, or past the top of its travel (the step says the range), is red, with its fix. An arm turns up and down in degrees the same
+way. Once the cascade has levels (recorded at **Bench Tests station 13**), **Move to a level** appears too; the code
+names a level by its number in robot one's facts, so the route does not change when a level is renamed.
 
 The cascade only knows where its bottom is once it has been **homed** — pushed gently down until it stalls on its
 stop. A move before that stops the whole route (`NOT_HOMED`), so the page marks such a move red and offers **Home it
@@ -114,8 +143,9 @@ would not get there.
 ![A drive that ran out of time: step 2 red with the library's line "STOPPED at step 2 (driveTo): motion TIMEOUT", the two steps after it greyed as skipped](../assets/route-builder/preview-failed.png)
 
 **Robot two.** PREVIEW plays robot one; robot two's mirrored run is not in it yet, and the first line of **About
-this run** says so. To keep the two robots apart, keep robot one's whole robot 3 in off the diagonal
-([chapter 17](17-the-competition-program.md#both-robots-at-once)).
+this run** says so. Whether the two robots stay apart is checked while you build (step 2), for a route both run at
+the same time ([chapter 17](17-the-competition-program.md#both-robots-at-once)). PREVIEW does not wait for that
+answer, nor for a too-close start or step: robot one runs the route the same either way.
 
 **What the host test plant is not.** It is a stand-in drive — a 12 in tank with made-up gains, not your robot's —
 with no walls, and every number robot one's facts file has not measured yet is a **PLACEHOLDER**: the steps that
@@ -125,7 +155,7 @@ the host test plant's. Time the route on the robot with **shulib Auton Tester**
 ([chapter 16](16-testing-an-auton-on-the-bench.md)).
 
 PREVIEW runs the route on the page, saved or not. Change the route and the run is put away (an undo brings it
-back); press PREVIEW again. A route with a red step is not run — fix it first. **Cancel** stops a PREVIEW that is
+back); press PREVIEW again. A route with a red step is not run — fix it first (robot two's red waits only for Export). **Cancel** stops a PREVIEW that is
 running; one that takes longer than 20 s is stopped, and the page says so.
 
 ### 7. Export
@@ -133,7 +163,7 @@ running; one that takes longer than 20 s is stopped, and the page says so.
 When the bottom bar says **Ready to export**, press **Export** (**Ctrl+E**). While a step is still red, a red number
 on the Export button counts what is left, and Export shows only that list — each with **Go there** — and no code.
 
-![The export with the shulib folder connected (as Edge or Chrome shows it), before robot two's update: the route's C++ with Copy, writing into the file waiting for that update, and robot two's mirrored line not there yet](../assets/route-builder/export.png)
+![The export with the shulib folder connected (as Edge or Chrome shows it), before robot two's update: the route's C++ with Copy, writing into the file waiting for that update, and each robot's addTeamRoutes line not there yet](../assets/route-builder/export.png)
 
 - **In Edge or Chrome**, click **Connect your shulib folder** once (here, or the folder button in the top bar) and
   pick the repository's top folder (the one with `src/team/` in it). Then **Write into src/team/skills_route.cpp** puts the route between the two
@@ -142,8 +172,10 @@ on the Export button counts what is left, and Export shows only that list — ea
   updated file back as a download, to save in its place. **Then Save** (step 8): the project file remembers what
   was exported, so the next export knows that code is the builder's.
 
-One line in robot two's own autons file runs this same route **mirrored** across the field's diagonal; the export
-page checks that line is there and says so. (A copy of the repository from before robot two's update, 2026-11-17,
+Export writes **every route** of the project (step 9) between the two `ROUTE MAKER` lines, and a red step on any of
+them stops it — the list names the route, and **Go there** opens it. One line in each robot's autons file registers
+them all: `addTeamRoutes(registry, TeamRobot::One);` in robot one's, `...::Two` in robot two's, which runs each route
+marked mirrored **mirrored** across the field's diagonal. The export page checks both lines are there and says so. (A copy of the repository from before robot two's update, 2026-11-17,
 has no `src/team/skills_route.cpp`: the page then offers Copy only — the picture above.)
 
 #### Reading the code
@@ -161,8 +193,11 @@ in the picture above, for one:
   name. A drive that turns first is TWO calls, so the brain counts one step more than the page for each such drive
   — and wherever the two numbers differ, the comment says the brain's too (*"The brain's log calls the turn step 2
   and the drive step 3."*).
-- **Above the steps:** the `Routine` that runs them, named `"skills"`. **Below them:** the entry both robots register —
-  the name on the brain's menu, robot one's start, and the 60 s skills timing (stop at 57 s, everything off at 59 s).
+- **Above the steps:** the `Routine` that runs them, named for the route. **Below them:** the route's entry — the name
+  on the brain's menu, robot one's start, and the 60 s skills timing (stop at 57 s, everything off at 59 s). Each
+  route has its own steps and entry; at the end, **one list** (`kTeamRoutes`) of every route in order, each with
+  `Mirror::ForRobotTwo` or `Mirror::None` and `Together::Yes` or `Together::No` (the answer from step 2: the host
+  suite checks the two robots stay apart only on `Yes`).
 
 You should be able to explain every line; if one surprises you, ask before you run it.
 
@@ -181,6 +216,21 @@ Until you save, the page keeps a draft in this browser, and says so when you com
 draft, it opens a new route and says so; your `route_maker.json` is not touched). With the folder connected,
 it compares itself with the folder's `route_maker.json` — after a `git pull` brought a teammate's route, it asks
 which to keep — and **Save** never replaces a `route_maker.json` that changed in the folder without asking.
+
+### 9. More routes
+
+The button in the top bar (**Route skills ⌄**) holds the project's routes: the skills route, a test route, a
+practice route, each picked **by its name** on the brain's **Auton Tester** menu. Click it to switch routes (one is
+on the field at a time), and for **New route**, **Rename**, **Duplicate** and **Delete** (Delete asks first; **Ctrl+Z**
+brings a route back).
+
+![The routes: the skills route and two more, each with its steps and how robot two runs it; rename, duplicate and delete beside each, New route below](../assets/route-builder/routes-menu.png)
+
+A name is what the brain's menu shows: 1 to 29 plain characters (25 for a mirrored route, which robot two shows as
+`<name> SKILLS MIR`), no `%`, `"` or `\`, not `NONE`, and no two routes named alike (capitals aside) — nor like
+the menu's other two autons, `40in forward` and `TEST 24in turn back`. The box says why as you type, and **OK**
+waits. The **skills** route — the competition's — keeps its name and is always there. The brain's menu holds 16
+autons, and those two take 2: at most 14 routes.
 
 ## The driver's buttons and the driving feel
 
@@ -286,10 +336,11 @@ Then build as usual: the build is the final judge of every line.
 |---|---|---|---|
 | Start | click the empty field | where robot one is placed, and its heading | `e.start = competition::StartPose::field(x, y, h)` |
 | Drive | **D**, click | drives to a point, arriving facing along the line; on a tank it turns to face the point first | `r.face(x, y);` `r.driveTo(x, y);` |
+| Straight | **F**, type the inches | drives forward (or, **Backwards** on, backs up) that far from where the robot is | `r.driveTo(x, y);` / `r.reverseTo(x, y);` — the point it reaches |
 | Back up | **B**, click | the same, backwards (its back turned to the point first) | `r.faceAway(x, y);` `r.reverseTo(x, y);` |
 | Turn | **T**, click | turns in place to face a point, its back to a point, or to a heading | `r.face(x, y)` / `r.faceAway(x, y)` / `r.turnTo(h)` |
 | Curve | **C**, click 1–16 points, Enter | one smooth path through the points (forwards or backwards) | `r.curveTo({...})` / `r.reverseCurveTo({...})` |
-| Mechanism | **M** | an arm or lift to a level (wait for it, or start it and keep going), a pneumatic to a position, a motor for a time, a home | `r.move(...)`, `r.startMove(...)`, `r.set(...)`, `r.run(...)`, `r.home(...)` |
+| Mechanism | **M** | a lift up, down or to a height in inches, or back to the bottom (an arm in degrees), or to a level; a pneumatic's position (its own button); a motor for a time; a home | `r.move(cascade.to(18_in), t)`, `r.move(arm.to(90), t)`, `r.startMove(...)`, `r.set(claw["open"])`, `r.run(...)`, `r.home(...)` |
 | Wait until done | **M** → the mechanism | waits for the mechanism's last step | `r.waitUntilDone(m, t)` |
 | Wait | **P** | a pause in seconds — the run's own wait, so the 57 s cut still ends it | `r.then([&] { return ctx.guard.pause(t) ... })` |
 
@@ -298,14 +349,15 @@ Every step also has **If it fails** — stop the route (the default), carry on, 
 means the robot's own; on a drive that turns first, they are the drive's). A number box takes plain digits — `2.5`,
 not `2.5s`: anything else is marked and not kept.
 
-A level of the cascade is written through the robot's facts — `cascade[facts::lv(2).name]` — so renaming a level in
-the facts file never breaks a route. The cascade has no levels yet (they are recorded at Bench Tests station 13):
-until then its menu offers **Home it** and **Wait until it is done** only, and a move to a level in a project file
-from before is red, with the same words.
+A height is written as the library's constant target — `cascade.to(18_in)`, an arm's `arm.to(90)` (a plain number:
+the library refuses `_deg` there) — from the height the page tracked; the step's own words ("UP 6 in, to 18 in") are
+in its comment. A level of the cascade is written through the robot's facts — `cascade[facts::lv(2).name]` — so
+renaming a level in the facts file never breaks a route; the cascade has no levels yet (they are recorded at Bench
+Tests station 13), and a move to a level in a project file from before is red, with the same words.
 
 Not yet in the route builder (they come in its next updates; until then they are typed by hand inside the region,
-and the page never overwrites a hand edit): triggers partway through a drive, wall resets, the mirrored robot drawn
-on the field while you edit, the time bar, and the Toggle steps.
+and the page never overwrites a hand edit): triggers partway through a drive, wall resets, the time bar, and the
+Toggle steps.
 
 ### The checks
 
@@ -324,9 +376,12 @@ one-click fix it offers it.
 | Home first | a cascade (or any arm or lift homed by a stall or a switch) is moved before a FINISHED home on every way the route can go |
 | Wait until done | nothing before it starts that mechanism, or a skip can pass over the step that does |
 | Levels and positions | the mechanism, the level or the position is not on the robot (or the mechanism has no levels yet) |
+| Heights | a "go up" or "go down" where the page cannot know the height (nothing homed it or moved it to a height before: **Home it first**), or a height past the travel (one click: only as far as the top, or back to the bottom) |
+| Both robots together? | a mirrored route has no answer yet (**Yes, at the same time** / **No, one at a time**, one click) |
+| Too close | answered **Yes**: the two robots' squares come closer than 6 in at the start or on a step — the step, the moment and both places said, both squares outlined |
 | Time limits | a time limit is empty or not above 0; volts outside -12 to 12 |
 | Labels and skips | two steps with one label, or a skip to a label that is not on a LATER step |
-| The name | the route is not named `skills` — the name both robots' code registers it by (the page does not rename it; a project file with any other name, even one the brain could not show, offers **Name it "skills"**) |
+| The name | a name the brain's menu cannot show, one with `"` or `\` or a space at an end, two routes named alike (capitals aside), more than 14 routes, or a project with no `skills` route (offers **Name it "skills"**) |
 | A newer project file | opening a `route_maker.json` made by a newer route builder (a step, or a field of the route, this one cannot write): refused by name, nothing opened. A robot's Controls this one cannot read open read only instead (the Controls tab) |
 
 ### The keyboard
@@ -334,7 +389,8 @@ one-click fix it offers it.
 | Keys | |
 |---|---|
 | **V** or **Esc** | select (and cancel what is being added) |
-| **D**, **B**, **T**, **C**, **M**, **P** | drive, back up, turn, curve, mechanism, wait |
+| **D**, **B**, **T**, **C**, **F**, **M**, **P** | drive, back up, turn, curve, straight, mechanism, wait |
+| **Arrow keys** | move the selected point 1 in (**Shift**: 0.25 in) |
 | **Delete**, **Ctrl+D** | delete, duplicate the selected step |
 | **Ctrl+Z**, **Ctrl+Shift+Z** | undo, redo |
 | **Ctrl+S**, **Ctrl+E** | save, export |
@@ -351,11 +407,13 @@ Points snap to the half-tile grid (every 12 in) and flush against a wall; headin
 
 ### The project file
 
-Save writes `src/team/route_maker.json`. It holds the route in the same units you see — inches, degrees, seconds, volts — one step
-per entry, in a fixed order so a change shows as a small `git diff`. It also remembers a fingerprint of the code it
-last exported, so that if someone edits the code between the `ROUTE MAKER` lines by hand, the next export asks
-before replacing their change (**Keep their change**, or **Overwrite**). **Deleting the two `ROUTE MAKER` lines**
-makes the route hand-written code that the route builder leaves alone from then on.
+Save writes `src/team/route_maker.json`. It holds every route, in order, in the same units you see — inches,
+degrees, seconds, volts — one step per entry, in a fixed order so a change shows as a small `git diff`, and for a
+mirrored route the answer to "both robots at the same time?" (`together`). It also remembers a fingerprint of the
+code it last exported, so that if someone edits the code between the `ROUTE MAKER` lines by hand, the next export
+asks before replacing their change (**Keep their change**, or **Overwrite**). **Deleting the two `ROUTE MAKER`
+lines** makes the routes hand-written code that the route builder leaves alone from then on. A project file from
+before named routes (one route, `skills`) opens as it is, and asks the step-2 question.
 
 Once you change a robot's buttons or feel on the **Controls** tab, the project file also holds that robot's controls
 and feel (under `robots`, with a fingerprint of each part of its driver file it read or wrote), and from then on

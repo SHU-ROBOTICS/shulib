@@ -3,7 +3,7 @@
 // autons.hpp -- the team's autons for ROBOT TWO: the one function both auton-running programs call on a
 // robot-two build, and the two periods every auton's schedule is checked against (both robots'). Robot
 // two's autons are in src/team/autons.cpp (robot two keeps the file's name); robot one's are
-// src/team/robot_one_autons.cpp; the skills route both robots share is src/team/skills_route.cpp.
+// src/team/robot_one_autons.cpp; the routes both robots share are src/team/skills_route.cpp.
 //
 // "shulib Auton Tester" and "shulib Competition" both call registerAutons() from initialize(),
 // inside the try around building the robot, on a registry that DROPS an entry it refuses (the team

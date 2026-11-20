@@ -16,6 +16,35 @@
 
 ## API 2.9
 
+### 2026-11-17 — Named routes, robot two on the field, a cascade's steps in inches, small moves
+
+> Written when it was built (chunk RMP1, run RMP1-C). **No library change — no API change:** nothing under
+> `include/shulib/` moved; the route builder's page, the team's plumbing in `src/team/` and one boot line did.
+
+**What you can now do (additive):**
+
+- **Named routes** in the [route builder](route-builder.md): add, rename, duplicate and delete routes; each is picked
+  by its name on the brain's Auton Tester menu. Export writes every route into `src/team/skills_route.cpp`'s one
+  marked region. How: [guide chapter 22, step 9](guide/22-making-your-first-route.md#9-more-routes).
+- **Robot two on the field** for a mirrored route, and the question **"do both robots run it at the same time?"**:
+  answered Yes, the page checks that its plan keeps the two robots' squares 6 in apart all the way and offers the fix
+  when it does not (the host suite's pair check, `autons (1d)`, honours the same answer: a route answered No is not
+  gap-checked). How:
+  [step 2](guide/22-making-your-first-route.md#2-place-robot-ones-start).
+- **The cascade in inches** — Go up, Go down, Move to, Back to the bottom — written as the height it reaches; each
+  pneumatic position its own button (**Open claw**); **Straight** (**F**) and the arrow keys for small moves.
+
+**What changed:** both autons files register the team's routes with one line, `addTeamRoutes(registry,
+TeamRobot::One)` / `...::Two`, in place of `registry.add(skillsRoute())` and its mirrored twin; `skillsRoute()` is no
+longer declared in `src/team/skills_route.hpp` (each route's entry is the region's own). The region now ends with the
+list `kTeamRoutes`. The boot's dropped-autons line now says `(the route builder's routes are fixed in
+src/team/skills_route.cpp)`.
+
+**What you must do:** export once more from the route builder. Every region written before this update lacks the
+list `kTeamRoutes` and no longer compiles (or add the list by hand: guide chapter 22, "Reading the code"). A mirrored
+route with a start asks first whether both robots run it at the same time; until it is answered, Export waits, and a
+hand-written list that says `Together::NotAnswered` for such a route fails the host suite.
+
 ### 2026-11-17 — PREVIEW in the route builder: the robot drives your route on the field, from the real library
 
 > Written when it was built (chunk RMP1, run RMP1-A2u). **No library change — no API change:** nothing under

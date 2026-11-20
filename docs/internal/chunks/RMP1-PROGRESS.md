@@ -2665,3 +2665,415 @@ only — nothing here runs on a robot.
 - **Open:** the stand-in engine's "About this run" says "no recorded run of robot two" for one-robot fixtures (real
   use says "robot two's mirrored run is not in this preview engine yet") — cosmetic; the two-robot PREVIEW (SM4) still has
   no owner.
+
+## RMP1-C — named routes, robot two on the field, "both robots run this together?", plain mechanism steps and small moves
+
+- **Run by:** an executor subagent (Opus 5.5), worktree `.claude/worktrees/rmp1-c` (branch `rmp1-c`, base `88c8513`).
+  Brief: `RMP1-C-named-routes-and-the-twin.md` (D1–D10). Host and browser only; nothing committed or pushed.
+- **Started** 2026-11-17 (this log appended FIRST, before any code).
+- **Resumed** 2026-11-17 (date read: `Tue Nov 17 2026`, the afternoon) by a second executor run, after the weekly usage
+  limit stopped the first ~11:05 (its reviewers never started). Found: 51 files changed + 10 new, no src-gate self-test
+  plant (`git diff -- Makefile src/` has no `(self-test plant`; no untracked file under src/include/test but the run's
+  own goldens and `test/mirrored_pair_numbers.hpp`), the last suite run RED (4 cases). Every test object deleted and
+  rebuilt from source before any result was trusted.
+- **What the first run had built (kept, checked by a fresh build):** the C++ plumbing (`src/team/skills_route.{hpp,cpp}`:
+  `Mirror`, `Together`, `TeamRoute`, `TeamRobot`, `teamRoutes()`, `registerRoutes()`, `addTeamRoutes()`; both autons
+  files' one line), the pair check's `PairOptions::together` (D6) and its two numbers on their own
+  (`test/mirrored_pair_numbers.hpp`, baked into the robots' descriptions with the skills mirror, the menu's size, the
+  mirrored name budget and each arm's/lift's `homeAt`), the model (`lift.mjs` D7, `pair.mjs` D4/D5, the named-route
+  edits in `project.mjs`, the checks RC21/RCT1/RCP1/RCL1/RCL2, the N-route export, `forward`/`backward` D9, the lines'
+  `moveTo`/`startMoveTo` and the runner's `toGoal`), the C++ goldens GL20–GL22 and their suite cases, and half of the
+  page (the inspector's "where it goes" and robot-two section, the words, `dom.mjs`'s menu and name box). Its last suite
+  run was red (4 cases); on the fresh build the suite was green — it had fixed them before it stopped.
+- **What this run added:** the switcher (`src/ui/routes_menu.mjs`, the top bar), robot two on the field and the
+  too-close outlines (`field_view.mjs`), the mechanism menu grouped by name (`app.mjs`), the Straight tool (**F**), the
+  nudge keys, Export of every route (`export_drawer.mjs`, `files.mjs`: both autons files' lines checked), the old tests
+  moved to the new contract, `named_routes.test.mjs` (11 cases), `named_routes.page.test.mjs` (3 cases + 4 screens), a
+  runner case (`RMP1-C runner`), the docs. Two bugs of the first run's found by the new tests and fixed: `freeName` past
+  25 characters, and a small move after a step with a hole planned from NaN (now "not known"; the field never drew NaN).
+  One found in the page: a start with a hole crashed the inspector's robot-two line (`fmt(NaN)`) — fixed (`startPose`).
+- **Deltas from the brief (each with its reason):**
+  1. **D3 asked ON THE ROUTE, not in a dialog.** The first run's modal popped on the first click of the field and
+     stopped every flow; the question is the start's red issue with both answers one click away, the "Robot two"
+     section's Yes/No (highlighted until answered), a toast, and at 1100 px and below the step pane opens to show it.
+     No default: Export waits for it (RCT1). PREVIEW does NOT wait for it (the robot runs the same route either way).
+  2. **PREVIEW and "one at a time":** the brief's landmine says PREVIEW plays one robot; it does with today's engine
+     (`eng.pair` absent). For a route answered "No", the page drops a pair verdict from the run and says so, so a
+     future two-robot engine can never contradict the page. Nothing else in PREVIEW changed.
+  3. **"No levels yet" note gone from the mechanism menu:** the cascade now has its plain steps; "Move to a level" is
+     offered only when levels exist, and a level move in an old file keeps its red words (RC18).
+  4. **`skillsRoute()` is no longer declared in `skills_route.hpp`** — each route's entry lives in the region's anonymous
+     namespace (several routes, one file). Nothing outside the region used it but the two autons lines this run
+     replaced (grep: `docs/api/field_mirror.md`, `override_mirror.md`, cookbook 09 and guide 17 use `skillsRoute()` as
+     the LIBRARY's generic example — still valid, left; guide 17 now points at the team's lines).
+  5. **The markers keep the name "skills"** whatever the routes (the region is one; renaming it would be a contract
+     change for nothing).
+- **Tests added (each seen RED against a mutant, below):** node — `named_routes.test.mjs` (D1 set edits + undo, freeName,
+  the old project, D2 the N-route export and the C++ stems, D3 the question, D5 the team lead's start too close /
+  3 in out clear / mid-path / never / the one-click fix is the LEAST move, D7 the height tracker and refusals, D7/D8 the
+  menu, D9 small moves), the RC21 rewrite in `checks.test.mjs`, FA4 for both autons lines (`region.test.mjs`,
+  `host.test.mjs`), RT7's two new refusals and the named-routes project (`project.test.mjs`); C++ — `RMP1-C runner`
+  (`route_maker_runner_test.cpp`: `toGoal` equals the compile-time `m.to(...)`, refused past the travel); the first
+  run's GL20–GL22 and `RMP1-C D6` ×2 kept; browser — `named_routes.page.test.mjs` (the switcher, robot two + the
+  question + too close + its fix, the cascade's steps + the claw's buttons + Straight + the nudge keys; 4 screens).
+- **Mutations (every one observed RED, restored, its file's timestamp bumped; C++ each on a fresh link, the binary
+  removed before each build so the build's doc gate never ran a mutant):** M1 duplicate names case-sensitive, M2 the
+  start not pair-checked, M3 the pair check ignoring "one at a time", M4 "down" adding, M5 the list's Together, M6 back
+  up driving forward, M7 "skills" deletable, M8 either robot's line accepted, M9 freeName past 25, M10 two routes one C++
+  stem, M11 a small move from a NaN pose, M12 a lift past its top, M13 "up" from an unknown height, M14 the 15th route
+  allowed, M15 a pneumatic's buttons unnamed, M16 only the first route exported, M17 no question for an old project —
+  all 17 CAUGHT (node). C1b robot one mirrored (re-cut: C1 broke its own build, `robot` unused), C2 an unmarked route
+  mirrored, C3 the C++ pair check ignoring `together`, C4 the runner's lift past its top, C5 the runner's arm in inches,
+  C6 the gap retyped (5 in: the fixture descriptions' freshness case fails — the page's number IS the C++'s), C7b no
+  `homeAt` in the description (re-cut: C7's build failed at the doc gate on C6's still-linked mutant — the driver now
+  removes the binary first) — all 7 CAUGHT. B1 Shift nudging 1 in, B2 robot two not drawn, B3 a taken name accepted,
+  B4 Up moving down — all 4 CAUGHT (Chromium, each against its own scratch site).
+- **Prose review (greps run, hits read, BEFORE this line):** `skills_route` and `robot_one_autons|team/autons` over
+  `docs/` + `README.md` (internal excluded) — fixed guide 07 :129, guide 16 :5, :73-75, :372, guide 21 :33-34, README
+  :331; guide 17 gains the team's lines; `docs/roadmap.md` :577 a dated note (history, left); `docs/api/field_mirror.md`,
+  `override_mirror.md`, cookbook 09, guide 17's example — the LIBRARY's generic `skillsRoute()` example (left).
+  `route builder|route maker` over the same — guide 14 :563-566 fixed (named routes; "the mirrored robot drawn" no longer
+  missing); guide 09, 18, `how-the-docs-stay-true.md`, `api/routine.md` checked, nothing stale. `Mechanism menu|Move to
+  a level|Set a position|named \`skills\`` — guide 22 rewritten (steps 2, 3, 5, 7, "Reading the code", new step 9, the
+  reference tables, the keyboard, the project file); `docs/route-builder.md`, the changelog (top of API 2.9). Pictures:
+  `docs/assets/route-builder/{mechanism-menu,export}.png` re-taken, `{robot-two,routes-menu}.png` new (Playwright's
+  Firefox, light 1440).
+- **Found for the coordinator:** `tools/route_maker/node_modules` is a TRACKED symlink at the base 88c8513 (into the
+  `integrate` worktree); this run's `npm ci` replaced it and it was put back (`git checkout`) — shulib-v2's 531ffd4
+  already untracks it. Files this run changed that shulib-v2 also changed since 88c8513: `docs/changelog.md`, guides 07
+  and 21, `PROJECT-BRIEFING.md`, `RMP1-PROGRESS.md`, `test/robot_twin_test.cpp`. `test/robot_one_autons_test.cpp`
+  (the robot-one setup's) was touched by the first run: its pin moved with `robot_one_autons.cpp`'s line.
+- **Resumed again** 2026-11-19 (date read: `Thu Nov 19 03:33 PM EST 2026`) by a third executor run, after the weekly
+  limit stopped the second (~14:55 11-17) after its log through "Found for the coordinator" but before its gates. Found:
+  no src-gate self-test plant (`git diff -- Makefile src/` has no `(self-test plant`; untracked under src/include/test
+  only the run's goldens and `test/mirrored_pair_numbers.hpp`); every mutation backup equal to its restored file; its
+  last Chromium page run red (D7–D9 :243, 1 !== 2) and an unlogged browser mutant B5 (the field's handles never
+  shrinking) begun 14:38 for the fix it made in `field_view.mjs`; its src-gate self-test interrupted. `build/test`
+  deleted and rebuilt from source before any result below was trusted.
+- **Third run: nothing failed, nothing re-done.** Every gate below ran on the fresh build and passed; the second run's
+  work is kept whole. One mutant finished: **B5** (the field's handles never shrink when zoomed:
+  `handleR = () => inPx(1.6)`) — CAUGHT in Chromium (D7–D9: two points 1 in apart), restored (same md5), its own
+  scratch site. The second run's Chromium red (D7–D9 :243) was its last run BEFORE that `handleR` fix: green now.
+- **Found for the coordinator (third run):** at 1024 px the top bar's "Unsaved changes" chip is cut to "Uns" with no
+  "…" (the switcher keeps its width; the chip is the words that give way, as the top bar's rule says; `.chip` is a
+  flex box, so `text-overflow` draws no "…") — a polish item, not changed here. The engine was built with the shared
+  emsdk read-only (`EM_FROZEN_CACHE=1`, `TMPDIR=build/tmp`, its git tree clean after).
+
+### Gates (2026-11-19, `date`: 15:45–16:43 EST; every one on the fresh build)
+
+- Build: `rm -rf build/test`, configure, `briefing_status.py generate` (unbuilt), `cmake --build build/test -j8` →
+  exit 0; its gates: `doc coverage: 6485 public entities across 215 headers, all documented`, `check-nav: OK — 262
+  public pages`, `check-tone: OK — 47 pages`, `first_week: OK`.
+- Suite (`python3 tools/suite_run.py green`, 4 GiB cap): `suite run: green — 3859 cases, 3886114 assertions`.
+- Briefing regenerated on the built binary: `Suite: 3,859 cases / 3,886,114 assertions, 3 skipped — green`;
+  `briefing status: generated block current`; self-test `OK (38 cases …)`.
+- Node (`node --test tools/route_maker/test/*.test.mjs`): `# tests 167 # pass 167 # fail 0`.
+- Page, Firefox (`test/page/*.test.mjs`, `build/route_maker_site`): `# tests 86 # pass 84 # fail 0 # skipped 2` (WG3 in
+  the browser and THE REAL ENGINE: both need the module — run below). Chromium: `# tests 86 # pass 81 # fail 0
+  # skipped 5` (the same two, the download way ×2 — Chrome writes the folder — and the old-Firefox refusal).
+- The engine (Emscripten 6.0.13, `tools/route_maker/wasm`): built, exit 0; `node --test test/wasm/*.test.mjs` with the
+  native twin: `# tests 15 # pass 15` (WG1 compiles GL20–GL22's exported C++ into the module); `page/engine.test.mjs`
+  (WG3): Firefox `# pass 1`, Chromium `# pass 1`; the page suite in Firefox on a site built `--engine`: `# tests 86
+  # pass 86 # fail 0 # skipped 0`.
+- ARM header gate: `TU includes 259 headers` → `ARM compile gate: CLEAN (all v2 headers)`. CI greps: `library is
+  PROS-free (all of include/shulib except hal/pros/)`; `layering holds: core is sim-free`. `git diff -- include/`: empty.
+- Compile refusals: `100% tests passed, 0 tests failed out of 353`; 353 TUs.
+- `api_doc_tool`: self-test `OK`; check-coverage as above; check-fresh exit 0; check-examples `988 quoted lines, all
+  verbatim`; check-removability `no public doc references docs/internal/`. `doc_staleness_audit.py`: self-test `OK (16
+  …)`; `clean (37 live docs, 0 numeric claims checked)`.
+- src gate `check`: `src build gate: PASS (all 14 builds link or, robot one's and robot two's, refuse naming exactly
+  their owed facts (10 refused; every one links in the gate's typed copy); …)`; `self-test` (under `timeout -s INT`):
+  `src build gate self-test: OK (398 detector cases, each against a real build)`. After it: `git diff -- Makefile src/`
+  has no `(self-test plant`; untracked under src/include/test only GL20–GL22 and `test/mirrored_pair_numbers.hpp`.
+
+### RMP1-C review findings and their disposition (2026-11-19 from 17:06 EST, `date`)
+
+Three reviewers (correctness, tests, docs) returned 24 findings; overlaps merged below (the skills toggle: correctness
+#7a + docs #3; the retyped 6 in: correctness #5 + docs #6; the briefing line: tests #9 + docs #8). Each was re-checked
+against the tree before its disposition was written.
+
+**Correctness**
+
+1. **PREVIEW refused a "together" route the page finds too close (RCP1) — REAL, fixed.** Re-checked: `preview.mjs`
+   exempted RCT1 only, so the A2u fixture `pair_fail` answered Yes was refused. Robot one's run does not depend on the
+   gap. Now `checks.mjs` exports `ROBOT_TWO_ONLY` (RCT1, RCP1, and RCM1 below), and PREVIEW waits for none of them.
+   Page test `RMP1-C: a route both robots run TOGETHER …` (`preview.test.mjs`; the stand-in answers the same route
+   answered Yes, `standinScript(…, {together})`). Mutant B6 (RCP1 not exempted) below. **Correction to delta 2
+   above:** "Nothing else in PREVIEW changed" was wrong: the RCT1 exemption was a change, and it was incomplete.
+2. **Route names clashing with the other autons — REAL, fixed.** Re-checked: `nameProblem` and the menu box compared
+   only the project's routes. `shulib_route_maker` does not compile `src/team/` (on purpose), so the names cannot be
+   read from the real registration there. Instead `test/route_maker_describe.hpp` holds `kOtherAutonNames`
+   (`"40in forward"`, `kAcceptanceRunName`) and bakes them as `"otherAutons"`. The new suite case `RMP1-C: the other
+   autons` holds that list equal to both robots' real registries minus `teamRoutes()`. The page refuses those names
+   with capitals ignored, in RC21 and in the name box, quoting the library's "the name is already registered".
+   `freeName` skips them, and the route cap is `maxAutons − otherAutons.length` (`OTHER_AUTONS = 2` is gone). The
+   fixture descriptions x/y/z were re-made (`describe`), and the diff read: one line each.
+3. **The too-close fix pushed a wall-flush start into the wall — REAL, fixed.** `startAwayFromLine` now finds the
+   least move whose component away from the line clears the gap, inside a box that keeps every corner no further
+   past a wall's face than the start's already was. Against a wall the move slides along it, and the words say
+   **Slide the start N in along the blue wall, away from the diagonal**. With no such move, no one-click fix is
+   offered and the words still say which way. The team lead's start is unchanged (0.8 in, straight off the line).
+   Node case: flush on the blue wall at x = −50, −52, −58; no error after the fix; never into the wall; and no
+   direction (every 0.1°, bisected) clears it by less.
+4. **Export's errors unnamed for the route on the field — REAL, fixed** (`app.at()`). The page test now puts an error
+   on the route on the field AND on another: both are listed under their names.
+5. **Numbers retyped in JS — REAL, fixed.** The Yes button reads `too-close check: ${pairCheck.gapIn} in`.
+   `freeName(routes, robot, base)` takes the budget from `robot.mirroredAutonNameMaxChars`; a node case uses a
+   12-character budget. Mutation cannot see the label while the gap is 6 (the page bakes its robot): checked by
+   reading the code.
+6. **The nudge keys acted on a stale curve point — REAL, fixed.** `select(sel, point = null)` resets the point;
+   only `selectHandle` passes one, and a dragged handle is now selected too (`field_view.mjs`). Page case: a point of
+   curve 1 picked, curve 2 picked in the list → the arrows move nothing; a dragged point of curve 2 is the one
+   nudged.
+7. **(a) "skills" could be unmirrored (merged with docs #3) — REAL, fixed: the page keeps it mirrored.** ROB1-BT's
+   ruling (robot two runs the skills route mirrored) stands, and (1d)'s `≥ 1` is that ruling's pin. The toggle is
+   disabled on the skills route ("always, for the skills route"). A project file whose skills route is unmirrored
+   gets the new RCM1 error with **Mirror it for robot two**. The coordinator may reverse this by relaxing (1d)
+   instead. **(b) robot two's heading untested — REAL, fixed:** a node case reflects headings the mirror changes
+   (0→−90, 30→−120, 90→180, −135→45), worked by hand. Page case D4: robot two's square, front tip and path ends at
+   heading 30 → −120, compared with `squareCorners` of the hand-reflected pose.
+
+**Tests**
+
+8. **(1d)'s use of the answer untested — REAL, fixed.** The per-entry logic moved into `checkTeamRoutes()`
+   (autons_test.cpp). (1d) calls it on `teamRoutes()`. The new `autons (1d')` runs it on a planted TEST route on the
+   team lead's start, three ways: Yes fails, "4.35 in apart"; No is skipped by name; NotAnswered is reported. The
+   side defect is fixed too: `PairOptions::answered`, and the sentence now says "nobody has said yet …".
+9. **The page's sampling untested (J1–J3, J5) — REAL, fixed.** New node case: a straight drive and a curve across
+   the diagonal, a turn in place 45→135, and a face-first turn 45→−45, each with both ends clear; each must give RCP1
+   at its step. The same drive, already facing along the line, stays clear.
+10. **The fix on one side only (J4)** — the mirror image of the team lead's start is now asserted: under 1.5 in,
+    x + y down.
+11. **"Go down only N" never exercised (J9)** — home → up 6 → down 10: the fix is down 6, and RCL2 clears.
+12. **Lift-tracker edges (J6–J8)** — startHome → wait → up 6 is known, clean, and exported `lift.to(6_in)`; an owed
+    ledger level has no height (null), so "up" after it is "from where?"; up 0 and down 0 are refused (RCL1).
+13. **deleteRoute's shift (J10)** — a 4-route set; the last route deleted keeps the one before it on the field.
+14. **The runner's arm at 0 (C4)** — `arm.to(0)` added.
+15. **Page and suite agreement on a moving route — REAL gap, closed.** New golden **GL23**
+    (`gl23_pair_near_the_diagonal`, a TEST route on robot x, mirrored, Yes): it drives toward the diagonal and
+    stops 12 in off it. The page's plan gives a least gap of 9.0 in (node case). The C++ case runs
+    `checkMirroredPair` on the host test plant: ok, checked, least 9.48 in (each robot stops about 0.24 in short;
+    the page is the stricter one), held within 1 in. GL23 is in the WG list (`route_maker_goldens.cpp`), so the
+    engine was rebuilt for WG1/WG2. The optional "a golden the page flags" cannot be exported (the export refuses
+    an error), so it is not made.
+16. **The briefing's count depends on the build path (merged with docs #8)** — real, not a defect of this tree.
+    Logged for the coordinator below: regenerate in the main tree after the merge.
+
+**Docs**
+
+17. **D6's docs (guide 17, cookbook 09, HA-260, field_mirror) — REAL, fixed** except the library header. Guide 17
+    point 3 now says the check runs for "every mirrored route the team says both robots run at the SAME time
+    (`Together::Yes`)", that a No route is skipped by name, and that an unanswered field-start route fails the
+    suite. Guide 17 :100 is now plural. Cookbook 09 says "when both robots run the route at the same time". HA-260's
+    *Source:* now names `test/mirrored_pair_numbers.hpp`. `include/shulib/competition/field_mirror.hpp:43`
+    (generated into `docs/api/field_mirror.md:236`) still says "every mirrored entry": that is library text, and
+    there is no include/ change in this run, so it is logged below for the coordinator. The pair-check grep is
+    added to the prose review (below).
+18. **Guide 22's "0 to 40 in" — REAL, fixed:** the number is dropped ("the step says the range"). The page reads
+    the range from the description, so it shows 0–20 after the merge with fd290c3. Logged below.
+19. **The changelog's "what you must do" — REAL, fixed:** "export once more … every region written before this
+    update lacks the list `kTeamRoutes` and no longer compiles". It adds the together question and NotAnswered.
+20. **Guide 22 step 2 (four points) — REAL, fixed.** (a) "No: the too-close check is off (a tank's half-turn step
+    is still refused)". (b) The second button is named, and so is the slide variant. (c) The caption now reads "a
+    start 0.8 in too close". (d) "the page checks that its plan keeps …", with chapter 17's slow-first advice, also
+    in `route-builder.md` and the changelog. The picture `robot-two.png` was re-taken (the skills toggle and the
+    Yes label changed).
+21. **The inspector's typed "6 in"** — see 5.
+22. **Leftover wording — REAL, fixed:** guide 17 :100, guide 21 :8 / :34 / :366, `route-builder.md` :28,
+    `src/team/autons.hpp` :6, guide 07 :129–131, and guide 22's export.png caption ("each robot's addTeamRoutes
+    line"). The name words are now "plain keyboard characters … no %, \" or \\" (the box) and "letters, digits,
+    spaces, punctuation" (RC21).
+23. **Merge items not logged — REAL:** added below.
+
+**Mutations of this round.** Each mutant was observed red and then restored, its file's timestamp bumped. Driver:
+`scratch/rmp1-c/fix/mut.py`, which restores in `finally` and on SIGTERM/SIGHUP/SIGINT. Node: the full node suite per
+mutant. C++: a fresh link per mutant (the binary removed first, so the doc gate never ran a mutant), then the
+named cases; the whole build was re-made from the restored sources after. Browser: Chromium, each mutant on its own
+scratch site, with the file restored before the page test ran.
+- Node, all CAUGHT. The reviewers' J1–J10 (J4 re-cut onto the new `side` line), J11 (robot two's heading flipped),
+  N1 (the other autons case-sensitive), N2 (not checked), N3 (freeName's budget retyped 25), N4 (freeName ignoring
+  the other autons), N5 (the cap retyped − 2), N6 (the fix ignoring the walls), N8 (skills unmirrored allowed), N9
+  (the slide words lost). N7 (the slide longer than the least) first SURVIVED: the "1 % less" check measured only
+  the move's part away from the line. The flush case now compares the move against the least over every direction
+  (0.1° apart, bisected), and N7 is CAUGHT on a re-run, with N6 again.
+- C++, all CAUGHT. C1 `o.together = true` and C2 `= false` (both red in (1d')). C3 first did not build (`field`
+  unused, -Werror) and was re-cut as C3b (`… && false`), CAUGHT: (1d') :317 `unanswered`. C3c `o.answered = true`
+  (the sentence). C4 the runner's arm at 0 refused. C5 the description's "40in forward" drifting ("the other
+  autons" red). C6 the pair check's square 12 in (GL23's agreement red).
+- Browser, all CAUGHT. B6 PREVIEW waiting for RCP1 (the preview page case), B7 `app.state().at` back (D1: the
+  current route unnamed), B8 `select` keeping a stale point and B9 a dragged handle not picked (D9 nudge), B10 the
+  skills toggle enabled (D3–D5), B11 robot two's heading flipped (D4: the square drawn wrong).
+- After the runs: every mutant's `old` text is back in its file, exactly once. `git diff -- Makefile src/` has no
+  `(self-test plant`. Untracked under src/include/test: only GL20–GL23 and `test/mirrored_pair_numbers.hpp`.
+
+**Prose review of this round (greps run and hits read BEFORE this line).**
+- `pair check|mirrored_pair_check|mirrored_pair_numbers|(1d)|Together::|kMirrorGapIn` over `docs/` + `README.md`
+  (internal excluded). Fixed: guide 17 :238–256, cookbook 09 :110–113, HA-260 :2354. Read and left: guide 14 :547
+  (true for a Yes route), `docs/api/chassis.md` :1061 (the leg, still true), guide 22 :199 (true), changelog :414
+  (MIRROR1's dated entry: history). `docs/api/field_mirror.md` :236 is generated from the library: logged below.
+- `every mirrored entry|For every mirrored|mirrored entry robot two` — the hits are the same ones.
+- `Letters, digits|0 to 40 in|kept 6 in apart|Runs it mirrored|turns the mirror off` over docs + the page's
+  src. Fixed: guide 22 :54 (the skills route always mirrored).
+- `6 in apart|keeps them|keeps the two` — fixed `route-builder.md` :6 and changelog :30; HA-260's own wording left
+  (it states the claim it registers).
+- `PREVIEW` near `error|red|fix` in guide 22 — fixed :148 and :158 (robot two's red waits only for Export).
+- `40in forward|acceptance run take|at most 14` — fixed guide 22 :229–233. Guides 16/17 quote the auton itself
+  (still true).
+- `skills route both robots share|the skills route mirrored|each one marked` — fixed guides 07, 17 and 21, and
+  `src/team/autons.hpp`.
+- The picture `robot-two.png` was re-taken (Playwright's Firefox, light 1440), because the skills toggle and the
+  Yes label changed. The other three pictures show nothing that changed.
+
+**Found for the coordinator (this round).**
+- `include/shulib/competition/field_mirror.hpp:43` (and its generated `docs/api/field_mirror.md:236`) still says
+  "The host suite runs every mirrored entry robot two registers TOGETHER". Since D6 it checks only the routes
+  answered Yes. That is library text, and this run has no include/ change, so it is a known divergence for the
+  next include/ change.
+- At the merge onto shulib-v2:
+  - `docs/where-your-code-goes.md` (34eb853) :3, :13 and :42 say "the skills route both robots share" / "change
+    the skills route": they need the plural edit README :331 got.
+  - `PROJECT-BRIEFING.md`'s suite line conflicts. Here it is 3,862 / 3,886,152 at this worktree's path; the
+    assertion count depends on the source path's length (ee5a1f5). Regenerate in the main tree after the merge:
+    `rm -f build/test/shulib_tests`, build, then `briefing_status.py generate`.
+  - Robot one's cascade travel becomes 0–20 in (fd290c3). Guide 22 no longer states a number; the page reads the
+    range from the description.
+- The skills route is kept mirrored in the page (correctness #7a / docs #3). If the coordinator would rather let it
+  be unmirrored, relax autons (1d)'s `verdicts.size() >= 1` and drop RCM1.
+- The engine tests (`test/wasm/*.test.mjs`) cannot run under `ulimit -v`: a WebAssembly instance reserves more
+  address space than 8 GiB ("Out of memory: Cannot allocate Wasm memory"). They ran under `systemd-run --user
+  --scope -p MemoryMax=6G` instead, a real cap.
+
+### Gates after the review fixes (2026-11-19, `date`: 17:55–18:37 EST; every one on the final tree)
+
+- Build: `rm -rf build/test`, configure, then `briefing_status.py generate` (on an unbuilt tree), then `cmake --build
+  build/test -j8` → exit 0. Its gates: `doc coverage: 6485 public entities across 215 headers, all documented`,
+  `check-nav: OK — 262 public pages`, `check-tone: OK — 47 pages`, `first_week: OK`. The doc gates were re-run
+  (`--target shulib_doc_gates`) after the last guide edit: all the same.
+- Suite (`python3 tools/suite_run.py green`, 4 GiB cap): `suite run: green — 3862 cases, 3886152 assertions`
+  (+3: (1d'), GL23, the other autons).
+- Briefing, regenerated on the built binary: `Suite: 3,862 cases / 3,886,152 assertions, 3 skipped — green`.
+  `check`: `generated block current`.
+- Node (`node --test tools/route_maker/test/*.test.mjs`): `# tests 173 # pass 173 # fail 0`. Re-run after the last
+  comment edit: the same.
+- The engine (Emscripten, `EM_FROZEN_CACHE=1`, `TMPDIR=build/tmp`, the shared emsdk's git tree clean after): built,
+  exit 0. `node --test test/wasm/*.test.mjs` with the native twin, under `MemoryMax=6G`: `# tests 15 # pass 15`
+  (WG1/WG2 now include GL23).
+- Page, on the site re-built from the final tree (`otherAutons` baked). Firefox with the screens: `# tests 89 # pass
+  87 # skipped 2`. Chromium with the screens: `# tests 89 # pass 84 # skipped 5` (the same skips as before). On a
+  site built `--engine`: Firefox `# tests 62 # pass 61 # skipped 1` (THE REAL ENGINE passed); `page/engine.test.mjs`
+  (WG3) passes 1 of 1 in Firefox and in Chromium. Screens: `~/shulib-render-tmp/rmp1-c/shots-fix/` (light/dark, 1440
+  and 1024).
+- ARM header gate: `TU includes 259 headers` → `ARM compile gate: CLEAN`. CI greps: `library is PROS-free …`,
+  `layering holds: core is sim-free`, and the route builder's files are LF. `git diff -- include/` is empty.
+- `ctest -R compile_refusal`: `100% tests passed, 0 tests failed out of 353`.
+- `api_doc_tool`: self-test OK, check-coverage as above, check-fresh exit 0, check-examples `988 quoted lines, all
+  verbatim`, check-removability `no public doc references docs/internal/`. `doc_staleness_audit.py`: self-test
+  `OK (16 …)`, then `clean (37 live docs, 0 numeric claims checked)`.
+- src gate `check`: `src build gate: PASS (all 14 builds link or, robot one's and robot two's, refuse naming exactly
+  their owed facts (10 refused; every one links in the gate's typed copy); …)`.
+- src gate `self-test` (under `timeout -s INT`, in its own copy): `src build gate self-test: OK (398 detector cases,
+  each against a real build)`. After it: `git diff -- Makefile src/` has no `(self-test plant`, and the only
+  untracked files under src/include/test are GL20–GL23 and `test/mirrored_pair_numbers.hpp`.
+- Not run here: the Windows/Linux CI (the coordinator's, after the verifier).
+
+### Verification-round findings and their disposition (2026-11-19 from 18:53 EST, `date`)
+
+The fresh verifier returned 3 findings (all minor). Each was re-checked against the tree first; all three are real.
+
+1. **The arrows moved a point of a curve nobody picked (after a new curve, a delete, a move, a duplicate) — REAL,
+   fixed at the root, wider than reported.** Re-checked: `edit(r, sel)` set `ui.selected` and kept `ui.point`. The
+   verifier's suggested fix (reset only when the selection *differs*) is not enough: deleting the picked curve
+   selects `min(i, n − 2)`, which is often the SAME index, now holding the next curve. Two more paths had the same
+   defect: an **undo/redo** (the step at the selected index can be another one), and the inspector's **point
+   delete** (`update`, the point indices shift). Fix (`app.mjs`): one `pick(sel, point = null)` is now the only code
+   that writes `ui.selected` / `ui.point` (grep: two assignments, both in it). `edit()` with a selection drops the
+   point; only the nudge (no selection passed) keeps it; `select`, `editSet`, `switchRoute`, `adoptProject` and the
+   start-up fallback go through `pick`. Undo/redo go through `travel()`, which drops the point and, when the undo
+   shows ANOTHER route, the selection too (it was an index into the other route: undoing a new route left the
+   skills route's start selected). Page case D9 grows (`named_routes.page.test.mjs`): a point picked, then a new
+   curve drawn; the picked curve deleted (the next curve takes the same index); an undo that puts another curve at
+   the selected index; an undo that shows the skills route again (nothing of it selected). Each: the arrow moves
+   nothing. Mutants V1–V4 below.
+2. **A drag at ≤ 1100 px slid the step drawer over the field — REAL (a regression from fix 6), fixed.**
+   `select(sel, point, open = true)`; `selectHandle(…, open)`; `field_view.mjs` passes `!drag.moved`. A drag picks
+   the step and its point without opening the drawer; a click with no movement opens it, as at the base. New page
+   case `D9 at 1024 px`: after a drag, `.app` has no `data-right`, the dragged step is the one nudged; a click on
+   it opens the drawer. Mutants V5 (the drag opens it) and V6 (the click does not).
+3. **Guide 16 and the brain's boot line still said "the skills route both robots share" — REAL, fixed (the brain
+   line too).** Guide 16 :136–138 is plural ("The route builder's routes are not in the autons file: both robots
+   take them from …"). The boot line (`src/common/dropped_autons.hpp:84`) is now `(the route builder's routes are
+   fixed in %.40s)`: the file it names is the same; the words now fit every route it holds. Its pin
+   (`test/this_robot_test.cpp:219`), guide 17 :395–396 (which quotes the line), the `///` comments in
+   `dropped_autons.hpp` and `src/common/robot_words.hpp` (`routeFilePath`), and the changelog's RMP1-C entry ("The
+   boot's dropped-autons line now says …"; the banner now says "and one boot line") follow. Neither src/common file
+   is in the coordinator's in-flight list (`boot_source.*` is); the assertion count is unchanged (a string). The
+   wider grep also fixed: guide 16 :271/:273 ("the route builder's routes `using namespace this_robot;`", "In a
+   route robot two runs MIRRORED"), the page's Help text ("Build your routes … the Route button at the top"),
+   `region.mjs`'s `/** */`, and two test comments (`route_preview_model.hpp:169`, `route_maker_golden_test.cpp:470`).
+   Mutant V7 below.
+
+**Mutations of this round.** Driver `scratch/rmp1-c/vfix/mut.py` (the fix round's, restoring in `finally` and on
+SIGTERM/SIGHUP/SIGINT, timestamp bumped). Browser: each mutant on its own scratch site built from it, the file
+restored before Chromium ran `named_routes.page.test.mjs` under `MemoryMax=6G`; re-run with the failing assertion
+printed (`vfix/mut_detail.log`). C++: the binary removed, a fresh link, the named case; then the whole build re-made
+from the restored sources (exit 0).
+- V1 `edit` keeps the point → CAUGHT: D9 "a new curve drawn: nothing moved".
+- V2 the verifier's weaker fix (reset only when the selection differs) → CAUGHT: D9 "the picked curve deleted:
+  nothing moved" (the same index).
+- V3 `travel` keeps the point → CAUGHT: D9 "after an undo: nothing moved".
+- V4 `travel` keeps a selection across routes → CAUGHT: D9 "nothing of the skills route selected".
+- V5 the drag opens the drawer → CAUGHT: "a drag opens no drawer over the field".
+- V6 the click opens no drawer → CAUGHT: expected `'open'`.
+- V7 the boot line back to "the skills route both robots share" → CAUGHT: `this robot (R7)` :222 / :223, 4 of 31
+  assertions red.
+- After the runs: each mutant's `old` text is in its file exactly once and its `new` text nowhere. `git diff --
+  Makefile src/` has no `(self-test plant`.
+
+**Prose review of this round (greps run and hits read BEFORE this line).**
+- `skills route both robots share|the skills route mirrored|each one marked|shared skills route|the skills route's
+  entry` over docs, README, src, test and the page's src (internal excluded). Fixed: guide 16 :136–138 and guide 17
+  :395–396 (the boot line), and the comments listed in 3. Read and left (true of the skills route itself): guide 22
+  :54, `checks.mjs` :269, `this_robot_test.cpp` :66, `robot_twin_test.cpp` :347, `robot_one_autons_test.cpp` :65 (a
+  case name: the skills route, as written, on robot one). History: changelog :139 (ROB1-BT's dated entry). Not
+  mine to edit: `src/robots/mechanism_table.hpp` :236 (the coordinator's in-flight robot setup), logged below.
+- `Build the skills route|file the skills route` over the page and docs: fixed (Help, `region.mjs`); no hit left.
+- `arrow key|the arrows|drawer|narrow window|1024` over guide 22, `route-builder.md` and the changelog: guide 22 :82
+  now says how a curve's point is picked for the arrows ("click or drag it on the field"); :393's table and the
+  changelog's line stay true. No doc describes the drawer on a drag.
+
+**Found for the coordinator (this round).**
+- `src/robots/mechanism_table.hpp:236` says "The shared skills route (src/team/skills_route.cpp) is compiled into
+  BOTH robots' builds": still true, but the file now holds every route the builder exports. src/robots/ is your
+  in-flight area, so it is left.
+- At the merge: `docs/where-your-code-goes.md` (main) — the same plural edit as before; and if its text or any
+  other main-only page quotes the boot line, it is now `(the route builder's routes are fixed in
+  src/team/skills_route.cpp)`.
+
+### Gates after the verification-round fixes (2026-11-19, `date`: 19:03–20:28 EST; every one on the final tree)
+
+- Build: `rm -f build/test/shulib_tests`, `briefing_status.py generate` (unbuilt), `cmake --build build/test -j8` → exit
+  0: `doc coverage: 6485 public entities across 215 headers, all documented`, `check-nav: OK — 262 public pages`,
+  `check-tone: OK — 47 pages`, `first_week: OK`. Re-run (`--target shulib_doc_gates`) after guide 22's last edit:
+  the same.
+- Suite (`suite_run.py green`, 4 GiB cap): `suite run: green — 3862 cases, 3886152 assertions` (unchanged: the boot
+  line's pin is a string). Briefing regenerated on the built binary, `check`: `generated block current` (3,862 /
+  3,886,152 at this worktree's path).
+- Node: `# tests 173 # pass 173 # fail 0`.
+- The engine rebuilt (pinned emsdk, `EM_FROZEN_CACHE=1`, `TMPDIR=build/tmp`; it reads `route_preview_model.hpp`, whose
+  comment changed): exit 0, 0 warnings, the emsdk's git tree clean after. `test/wasm/*.test.mjs` under `MemoryMax=6G`:
+  `# tests 15 # pass 15`.
+- Page, a site built from the final tree. With the screens (`~/shulib-render-tmp/rmp1-c/shots-vfix/`, light/dark at
+  1440 and 1024): Firefox `# tests 90 # pass 88 # skipped 2`, Chromium `# tests 90 # pass 85 # skipped 5` (+1: the
+  1024 drawer case; the same skips). On a site built `--engine`: Firefox `# tests 63 # pass 62 # skipped 1` (THE REAL
+  ENGINE passed); WG3 (`page/engine.test.mjs`) 1 of 1 in Firefox and in Chromium. No browser process left.
+- ARM header gate: `TU includes 259 headers` → `ARM compile gate: CLEAN`. CI greps: PROS-free, sim-free, the route
+  builder's files LF. `git diff -- include/` is empty.
+- `ctest -R compile_refusal`: `100% tests passed, 0 tests failed out of 353`.
+- `api_doc_tool`: self-test OK, check-coverage as above, check-fresh exit 0, check-examples `988 quoted lines, all
+  verbatim`, check-removability `no public doc references docs/internal/`. `doc_staleness_audit.py`: self-test `OK
+  (16 …)`, then `clean (37 live docs, 0 numeric claims checked)`.
+- src gate `check`: `PASS (all 14 builds link or, robot one's and robot two's, refuse naming exactly their owed facts
+  …)`. `self-test` (`timeout -s INT`, in its copy): `OK (398 detector cases, each against a real build)`. After it:
+  no `(self-test plant` in `git diff -- Makefile src/`; untracked under src/include/test only GL20–GL23 and
+  `test/mirrored_pair_numbers.hpp`.
+- Not run here: the Windows/Linux CI (the coordinator's). Nothing committed.

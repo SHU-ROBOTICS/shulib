@@ -4,7 +4,7 @@
 //
 // Robot two is robot one's TWIN (chunk ROB1-BT, 2026-11-16): the same build, and the same autons file as
 // robot one's (src/team/robot_one_autons.cpp, whose comments explain each line) -- with ONE difference,
-// the team lead's ruling: robot two runs the team's skills route MIRRORED across the field's skills
+// the team lead's ruling: robot two runs each team route marked mirrored MIRRORED across the field's skills
 // diagonal (cookbook chapter 9, "One route, two robots"). Robot two's old claw autons file is retired
 // with its claws. Every line here is the team's to explain, defend and change (G4).
 //
@@ -21,8 +21,6 @@
 #include "shulib/chassis/routine.hpp"
 #include "shulib/competition/acceptance_run.hpp"
 #include "shulib/competition/auton_registry.hpp"
-#include "shulib/competition/field_mirror.hpp"
-#include "shulib/competition/override_mirror.hpp"
 #include "shulib/math/pose2d.hpp"
 #include "shulib/units/literals.hpp"
 #include "team/skills_route.hpp"
@@ -60,8 +58,9 @@ void registerAutons(competition::AutonRegistry& registry) {
     //    test that the whole library works on this robot, on the skills schedule.
     registry.add(competition::acceptanceRunEntry(competition::AutonKind::Skills, 57_s, 59_s));
 
-    // 3. THE TEAM'S SKILLS ROUTE (src/team/skills_route.cpp), MIRRORED for robot two:
-    registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));
+    // 3. THE TEAM'S ROUTES (src/team/skills_route.cpp, named in the route builder): each route marked mirrored for
+    //    robot two MIRRORED across the skills diagonal, the others as written.
+    addTeamRoutes(registry, TeamRobot::Two);
 }
 
 }  // namespace shulib::bench

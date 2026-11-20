@@ -38,7 +38,7 @@ const VARIANTS = (SHOTS ? [['light', 1440, 900], ['dark', 1440, 900], ['light', 
 const SKILLS_HEAD = '#include "team/skills_route.hpp"\r\n\r\nnamespace shulib::bench {\r\n\r\n';
 const BEGIN = '// ═══ ROUTE MAKER — route "skills" — BEGIN ═══════════════════════════════════════════════';
 const END = '// ═══ ROUTE MAKER — route "skills" — END ═════════════════════════════════════════════════';
-const MIRRORED = 'registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));';
+const MIRRORED = 'addTeamRoutes(registry, TeamRobot::Two);';  // robot two's line that registers the team's routes (RMP1-C D2)
 // The level tests' robot: robot x (the suite's description) with a cascade whose levels are facts-ledger levels, still
 // owed -- robot one's cascade as it was before ROB1-C2. Robot one's own cascade has NO levels now (its own test below).
 const LEVELS = ledgerRobot();
@@ -192,12 +192,17 @@ async function selectStep(page, viewport, i) {
 /** Robot one and its twin robot two (the mirrored route is checked on both) are LEVELS on this page from now on. */
 const useLevels = (page) => page.evaluate((r) => window.routeBuilder.useRobots(r), { one: LEVELS, two: { ...LEVELS, id: 'two', name: 'robot two (test)' } });
 
-/** A step setting robot one's claw to `position` (the claw's menu entry, not the cascade's). */
+/** A step setting robot one's claw to `position`: its own button in the menu (RMP1-C D8: "Open claw"). */
 async function setClaw(page, position) {
     await page.keyboard.press('m');
-    await page.locator('.popover h3', { hasText: /^claw · / }).locator('xpath=following-sibling::button[1]').click();
-    await page.locator('.pane.right select[name="position"]').selectOption(position);
+    await page.locator('.popover .menu-item', { hasText: new RegExp(`^${position === 'open' ? 'Open' : 'Close'} claw$`) }).click();
 }
+
+/** RMP1-C D3: answer "do both robots run it at the same time?" on the route (the start's inspector). */
+async function answerTogether(page, yes = false) {
+    await page.locator(`.pane.right [data-together="${yes}"]`).click();
+}
+const routeName = (page) => page.locator('#route-switch strong').textContent();
 
 // A READY route on robot one, built the way a student builds it (every number typed is the test's, never the page's):
 // the start on the red tiles facing blue (NOT flush against the wall: turning there would put a corner 2.4 in into
@@ -207,8 +212,9 @@ async function readyRoute(page) {
     await page.getByRole('button', { name: 'Got it' }).click();
     await clickField(page, -36, -60.3);  // snaps to the half-tile grid
     await typeIn(page, 'startH', 90);
+    await answerTogether(page, false);
     await page.keyboard.press('m');
-    await page.getByRole('button', { name: 'Home it (find its zero)' }).click();
+    await page.getByRole('button', { name: 'Home it (find the bottom stop — do this first)' }).click();
     await typeIn(page, 'boundS', 2);
     await page.keyboard.press('d');
     await clickField(page, -24, -36);
@@ -293,7 +299,7 @@ test.describe('the route builder in a browser', { skip }, () => {
                     assert.ok(boxes['#preview'].x + boxes['#preview'].width <= boxes['#export'].x, `${width} px: PREVIEW ends before Export starts`);
                 }
                 if (tab === 'Route') {
-                    const name = await page.locator('.topbar .route-name').evaluate((e) => ({ s: e.scrollWidth, c: e.clientWidth }));
+                    const name = await page.locator('#route-switch strong').evaluate((e) => ({ s: e.scrollWidth, c: e.clientWidth }));
                     assert.ok(name.s <= name.c + 1, `${width} px: the route's name is whole (${name.s} > ${name.c})`);
                 }
                 const bar = await page.locator('.topbar').evaluate((e) => ({ s: e.scrollWidth, c: e.clientWidth }));
@@ -309,6 +315,7 @@ test.describe('the route builder in a browser', { skip }, () => {
         await useLevels(page);
         await page.getByRole('button', { name: 'Got it' }).click();
         await clickField(page, -36, -55.7);
+        await answerTogether(page, false);
         await page.keyboard.press('p');  // a wait: its seconds empty (nothing invented)
         assert.equal(await page.locator('#export .count').textContent(), '1', 'the Export button carries the count');
         assert.match(await page.locator('#export').getAttribute('title'), /^Fix this first \(Ctrl\+E lists them\): step 1: A wait needs a time above 0 s\./);
@@ -348,10 +355,11 @@ test.describe('the route builder in a browser', { skip }, () => {
         const { page } = p;
         await useLevels(page);
         await page.getByRole('button', { name: 'Got it' }).click();
-        // the route's name is §6.3's, shown and not edited (renaming would rewrite the marker lines both robots' code pins)
-        assert.equal(await page.locator('.topbar .route-name').textContent(), 'skills');
+        // the skills route keeps its name (RMP1-C D1): shown in the switcher, no box to type it in
+        assert.equal(await routeName(page), 'skills');
         assert.equal(await page.locator('input[name="routeName"], .topbar input.route-name').count(), 0);
         await clickField(page, -36, -55.7);
+        await answerTogether(page, false);  // (its curve comes near the diagonal: named_routes.page.test.mjs checks that)
         let r = await route(page);
         assert.ok(Math.abs(r.start.x - -36) < 0.4 && Math.abs(r.start.y - -55.7) < 0.4, `the start where it was clicked: ${JSON.stringify(r.start)}`);
         assert.equal(r.start.x, Number(r.start.x.toFixed(3)), 'stored on the 0.001 grid (W7)');
@@ -436,10 +444,10 @@ test.describe('the route builder in a browser', { skip }, () => {
         assert.deepEqual([(await route(page)).steps[1].x, (await route(page)).steps[1].y], [-12, -24], 'and redo brings the drag back');
         await page.keyboard.press('Control+z');
         // export: the drawer shows exactly the code; then write it into an in-memory folder (the file layer's own rules)
-        await page.evaluate(() => window.routeBuilder.useMemoryFolder({
+        await page.evaluate((m) => window.routeBuilder.useMemoryFolder({
             'src/team/skills_route.cpp': '#include "x"\r\n\r\n// ═══ ROUTE MAKER — route "skills" — BEGIN ═══════════════════════════════════════════════\r\nold\r\n// ═══ ROUTE MAKER — route "skills" — END ═════════════════════════════════════════════════\r\n// after\r\n',
-            'src/team/autons.cpp': 'registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));',
-        }));
+            'src/team/autons.cpp': m,
+        }), MIRRORED);
         await openExport(page);
         const code = await page.locator('.drawer pre.code').textContent();
         assert.ok(code.includes('r.home(cascade, 3_s);'));
@@ -453,7 +461,7 @@ test.describe('the route builder in a browser', { skip }, () => {
         assert.ok(written.endsWith('═\r\n// after\r\n'), 'nothing after it changed, CRLF kept');
         assert.ok(!/[^\r]\n/.test(written), 'no bare LF written into a CRLF file');
         assert.ok(written.includes(code.replace(/\n/g, '\r\n')));
-        assert.ok(await page.getByText('Robot two runs this route mirrored').isVisible());
+        assert.ok(await page.getByText('Robot two registers every route').isVisible());
         // and the project saved with it (the export's hash), into the folder
         const saved = JSON.parse(await page.evaluate(() => window.routeBuilder.memory.store['src/team/route_maker.json']));
         assert.match(saved.exports['src/team/skills_route.cpp#skills'], /^sha256:[0-9a-f]{64}$/);
@@ -472,6 +480,7 @@ test.describe('the route builder in a browser', { skip }, () => {
         assert.equal(await page.getByText('Save downloads · Export copies').count(), offers ? 0 : 1);
         await page.getByRole('button', { name: 'Got it' }).click();
         await clickField(page, -36, -55.7);
+        await answerTogether(page, false);
         await page.keyboard.press('d');
         await clickField(page, 64.5, -55.7, { modifiers: ['Alt'] });  // Alt: no snapping (it would snap flush to the wall)
         assert.ok((await issues(page)).some((x) => x.code === 'RC1' && x.level === 'error'), 'through the right wall: refused');
@@ -550,7 +559,7 @@ test.describe('the route builder in a browser', { skip }, () => {
         const { page } = p;
         const file = (start, steps = [{ do: 'wait', seconds: 1 }]) => JSON.stringify({ schemaVersion: 1, madeWith: 'a hand edit',
             robots: {}, exports: {},
-            routes: [{ name: 'skills', kind: 'skills', robot: 'one', mirroredFor: 'two', start, endActionAtS: 57, hardStopAtS: 59, steps }] });
+            routes: [{ name: 'skills', kind: 'skills', robot: 'one', mirroredFor: 'two', together: false, start, endActionAtS: 57, hardStopAtS: 59, steps }] });
         const startCard = page.locator('.start-card');
         await pickFile(page, () => page.getByRole('button', { name: 'Open a project' }).click(), 'route_maker.json',
                        file({ x: null, y: -36, headingDeg: 90 }));
@@ -604,7 +613,7 @@ test.describe('the route builder in a browser', { skip }, () => {
     test('a project file with a name the page does not take (a hand edit: "NONE", the brain menu\'s own) -- its error offers Name it "skills", one click', async () => {
         const p = await openPage('site');
         const { page } = p;
-        const r = { name: 'NONE', kind: 'skills', robot: 'one', mirroredFor: 'two', start: { x: -36, y: -36, headingDeg: 90 },
+        const r = { name: 'NONE', kind: 'skills', robot: 'one', mirroredFor: 'two', together: false, start: { x: -36, y: -36, headingDeg: 90 },
                     endActionAtS: 57, hardStopAtS: 59, steps: [{ do: 'wait', seconds: 1 }] };
         await pickFile(page, () => page.getByRole('button', { name: 'Open a project' }).click(), 'route_maker.json',
                        JSON.stringify({ schemaVersion: 1, madeWith: 'a hand edit', robots: {}, exports: {}, routes: [r] }));
@@ -612,13 +621,12 @@ test.describe('the route builder in a browser', { skip }, () => {
         assert.deepEqual((await errorsOf(page)).map((x) => x.code), ['RC21']);
         const box = page.locator('.pane.right .issue.error');
         assert.match(await box.textContent(), /^NONE is the brain menu's own choice for "no auton", so no route can have that name\./);
-        assert.match(await page.locator('.pane.right .route-name-fixed').textContent(),
-                     /^"NONE" — not "skills", the name both robots' code registers the skills route by: Name it "skills" above\.$/);
+        assert.equal(await page.locator('.pane.right').getByRole('button', { name: 'Rename' }).count(), 1, 'any other name: Rename');
         await box.getByRole('button', { name: 'Name it "skills"' }).click();
         assert.equal((await route(page)).name, 'skills');
         assert.deepEqual(await errorsOf(page), []);
-        assert.equal(await page.locator('.topbar .route-name').textContent(), 'skills');
-        assert.match(await page.locator('.pane.right .route-name-fixed').textContent(), /so it stays\.$/);
+        assert.equal(await routeName(page), 'skills');
+        assert.match(await page.locator('.pane.right .route-name-fixed').textContent(), /keeps its name\.$/);
         assert.deepEqual(await p.done(), []);
     });
 
@@ -829,6 +837,7 @@ test.describe('the route builder in a browser', { skip }, () => {
             await page.getByRole('button', { name: 'Got it' }).click();
             await clickField(page, -36, -60.3);
             await typeIn(page, 'startH', 90);
+            await answerTogether(page, false);
             await settle(page);
             await shot(page, `start-placed-${v.tag}`);
             await useLevels(page);
@@ -869,22 +878,24 @@ test.describe('the route builder in a browser', { skip }, () => {
                 const out = [];
                 let on = false;
                 for (const el of document.querySelector('.popover').children) {
-                    on = el.tagName === 'H3' ? el.textContent.startsWith(`${n} · `) : on;
+                    on = el.tagName === 'H3' ? el.firstChild.textContent === n : on;  // RMP1-C D8: the name, the kind beside it
                     if (on && el.tagName !== 'H3') {
                         out.push(el.textContent.trim());
                     }
                 }
                 return out;
             }, name);
-            const words = 'No levels yet: record them at Bench Tests station 13.';
-            assert.deepEqual(await entries('cascade'), [words, 'Home it (find its zero)', 'Wait until it is done']);
-            assert.deepEqual(await entries('claw'), ['Set a position'], 'said for the cascade only');
+            // RMP1-C D7, D8: the cascade's plain steps (no "Move to a level": it has none); the claw's positions, each a button
+            assert.deepEqual(await entries('Cascade'), ['Go up _ in', 'Go down _ in', 'Move to _ in', 'Back to the bottom',
+                                                        'Home it (find the bottom stop — do this first)', 'Wait until it is done']);
+            assert.deepEqual(await entries('Claw'), ['Close claw', 'Open claw']);
+            assert.deepEqual(await entries('Ramp'), ['Ramp up', 'Ramp down']);
             await page.waitForFunction(() => !document.querySelector('.toast'), null, { timeout: 15000 });
             await shot(page, `mechanism-menu-${v.tag}`);
             await page.keyboard.press('Escape');
             // a project from when the cascade had levels: its move opens -- no empty list, the same words, Export lists it
             const old = JSON.stringify({ schemaVersion: 1, madeWith: 'an earlier route builder', robots: {}, exports: {},
-                                         routes: [{ name: 'skills', kind: 'skills', robot: 'one', mirroredFor: 'two', start: { x: -36, y: -55.7, headingDeg: 90 },
+                                         routes: [{ name: 'skills', kind: 'skills', robot: 'one', mirroredFor: 'two', together: false, start: { x: -36, y: -55.7, headingDeg: 90 },
                                                     endActionAtS: 57, hardStopAtS: 59, steps: [{ do: 'home', mechanism: 'cascade', boundS: 3 },
                                                                                                { do: 'move', mechanism: 'cascade', preset: 2, boundS: 2 }] }] });
             await pickFile(page, () => page.getByRole('button', { name: 'Open a project' }).click(), 'route_maker.json', old);
@@ -920,7 +931,7 @@ test.describe('the route builder in a browser', { skip }, () => {
             assert.ok(await page.getByText('src/team/skills_route.cpp is not in this folder yet: it arrives with robot two\'s update. Until then, use Copy.').isVisible());
             assert.ok(await page.getByRole('button', { name: 'Write into src/team/skills_route.cpp' }).isDisabled());
             assert.ok(await page.getByRole('button', { name: 'Copy the code' }).isEnabled());
-            assert.ok(await page.getByText(/The line that runs this route mirrored on robot two is missing/).isVisible());
+            assert.ok(await page.getByText(/The line that registers the routes on robot two is missing/).isVisible());
             await settle(page);
             await shot(page, `export-copy-only-${v.tag}`);
             await closeDrawer(page);
@@ -928,7 +939,7 @@ test.describe('the route builder in a browser', { skip }, () => {
             await page.evaluate((m) => window.routeBuilder.useMemoryFolder({ 'src/team/skills_route.cpp': 'int x;\n', 'src/team/autons.cpp': m }), MIRRORED);
             await openExport(page);
             assert.ok(await page.getByText('src/team/skills_route.cpp has no ROUTE MAKER lines yet').isVisible());
-            assert.ok(await page.getByText('Robot two runs this route mirrored').isVisible());
+            assert.ok(await page.getByText('Robot two registers every route').isVisible());
             await settle(page);
             await shot(page, `export-no-markers-${v.tag}`);
             await closeDrawer(page);

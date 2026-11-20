@@ -734,6 +734,25 @@ test.describe('PREVIEW in the page', { skip }, () => {
         assert.deepEqual(await p.done(), []);
     });
 
+    test('RMP1-C: a route both robots run TOGETHER that the page finds too close still PREVIEWs -- robot one runs it the same either way; the too-close error waits for Export', async () => {
+        const p = await openPage({ shared: true, engine: { together: ['pair_fail'] } });
+        const { page } = p;
+        const f = fixture('pair_fail');
+        const project = JSON.parse(f.text);
+        project.routes[0].together = true;
+        const [fc] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'Open a project' }).click()]);
+        await fc.setFiles({ name: 'route_maker.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(project), 'utf8') });
+        await page.waitForFunction(() => window.routeBuilder.route().together === true);
+        const errors = (await page.evaluate(() => window.routeBuilder.issues())).filter((x) => x.level === 'error');
+        assert.deepEqual(errors.map((x) => [x.code, x.stepIndex]), [['RCP1', 1]], 'the page: too close during step 2');
+        await preview(page);
+        assert.equal((await pv(page)).phase, 'open', 'PREVIEW played');
+        assert.equal(await page.locator('.toast.error').count(), 0);
+        assert.equal((await pv(page)).two, true, 'robot two\'s mirrored run beside it');
+        assert.match(await page.locator('.dock-words').textContent(), /come too close/);
+        assert.deepEqual(await p.done(), []);
+    });
+
     test('a route the library refuses before it moves (a record with no paces): said in plain words, nothing played', async () => {
         const why = 'the test\'s own refusal sentence';
         const p = await openPage({ engine: { refuse: { ready: why } } });

@@ -23,7 +23,10 @@ import { plannedPoses, MOTION_KINDS, MECHANISM_KINDS, CARE_MOTION_FIELDS, STEP_K
 import { CurvePath, checkCurve, curveCheckWords, CurveVerdict, kMaxCurvePoints } from './curve.mjs';
 import { squareCorners, dist, wrapDeg } from './geometry.mjs';
 import { libraryWords, tankNotSteeredWords } from './library_words.mjs';
-import { fmt } from './numbers.mjs';
+import { fmt, round3 } from './numbers.mjs';
+import { plannedHeights, targetKind, moveTarget, bottomOf, unitOf } from './lift.mjs';
+import { tooClose, startAwayFromLine } from './pair.mjs';
+import { otherAutons, routeCap } from './project.mjs';
 
 /** A corner may sit this far (in) past a wall's inner face — RPV1's THROUGH rule (more than 1 in is THROUGH). */
 export const WALL_SLACK_IN = 1.0;
@@ -101,37 +104,66 @@ export function labelProblem(label) {
 }
 
 /**
- * The route's name, as checkAutonEntry and MIRROR1 D5 take it (RC21) — and, in A1, §6.3's CONTRACT: the one
- * route is named "skills" (its marker lines and `e.name`, which robot one's and robot two's code register and
- * ROB1-BT's tests pin). The page offers no rename, so ANY other name — one the library's rules refuse too
- * ("NONE", empty, too long, a quote, a %) — carries the one-click fix "Name it skills" on its error, and no
- * sentence here asks for a name the page cannot take; a hand-edited file's first export cannot rewrite the markers.
+ * The route's name (RC21), as checkAutonEntry and MIRROR1 D5 take it — what the brain's menu shows — with the page's
+ * own rules beside them: no " or \\ (the name is written into C++), no space at either end, and no two routes of the
+ * project — nor a route and another auton of the menu — named alike, capitals aside (RMP1-C D1). Every project has
+ * the skills route ("skills"): a project without one is told so on its first route, with the one-click "Name it skills".
  */
-function nameIssues(route, mirrored) {
+export function nameProblem(n, mirrored, robot = {}) {
+    const max = robot.autonNameMaxChars || 29;
+    const maxMirrored = robot.mirroredAutonNameMaxChars || 25;
+    if (n.length === 0 || n.length > max || !/^[\x20-\x7e]*$/.test(n) || n.includes('%')) {
+        return { words: `A route's name is shown on the brain's screen: it is 1 to ${max} plain keyboard characters (letters, `
+            + 'digits, spaces, punctuation), without %.', library: libraryWords('autonName') };
+    }
+    if (n === 'NONE') {
+        return { words: 'NONE is the brain menu\'s own choice for "no auton", so no route can have that name.', library: libraryWords('autonNone') };
+    }
+    const other = otherAutons(robot).find((o) => o.toLowerCase() === n.toLowerCase());
+    if (other) {
+        return { words: `"${other}" is another auton on the brain's menu (both autons files register it beside the routes): a `
+            + 'route\'s name must differ from it by more than capitals.', library: libraryWords('autonTaken') };
+    }
+    if (mirrored && n.length > maxMirrored) {
+        return { words: `Robot two shows this route as "${n} SKILLS MIR" on one screen line, so a mirrored route's name is at `
+            + `most ${maxMirrored} characters.`, library: '' };
+    }
+    if (/["\\]/.test(n)) {
+        return { words: 'A route name cannot contain " or \\.', library: '' };
+    }
+    if (n.trim() !== n) {
+        return { words: 'A route name cannot start or end with a space.', library: '' };
+    }
+    return null;
+}
+
+function nameIssues(route, ctx, robot) {
     const out = [];
     const n = route.name ?? '';
-    const max = mirrored ? 25 : 29;
-    if (n.length === 0 || n.length > 29 || !/^[\x20-\x7e]*$/.test(n) || n.includes('%')) {
-        out.push(issue('RC21', 'error', -1, 'name', 'The route\'s name is shown on the brain\'s screen: it is 1 to 29 plain '
-            + 'characters (letters, digits, spaces), without %.', libraryWords('autonName')));
-    } else if (n === 'NONE') {
-        out.push(issue('RC21', 'error', -1, 'name', 'NONE is the brain menu\'s own choice for "no auton", so no route can '
-            + 'have that name.', libraryWords('autonNone')));
-    } else if (n.length > max) {
-        out.push(issue('RC21', 'error', -1, 'name', `Robot two shows this route as "${n} SKILLS MIR" on one screen line, `
-            + 'so a mirrored route\'s name is at most 25 characters.', ''));
-    } else if (/["\\]/.test(n)) {
-        out.push(issue('RC21', 'error', -1, 'name', 'A route name cannot contain " or \\.', ''));
+    const p = nameProblem(n, !!route.mirroredFor, robot);
+    if (p) {
+        out.push(issue('RC21', 'error', -1, 'name', p.words, p.library));
     }
-    if (n !== ROUTE_NAME) {
+    const routes = ctx.routes || [route];
+    const at = ctx.index ?? 0;
+    const twin = routes.findIndex((r, k) => k !== at && String(r.name).toLowerCase() === n.toLowerCase());
+    if (!p && twin >= 0) {
+        out.push(issue('RC21', 'error', -1, 'name', `Route ${twin + 1} is already named "${routes[twin].name}": two routes' names `
+            + 'must differ by more than capitals (the brain\'s menu lists both).'));
+    }
+    if (at === 0 && !routes.some((r) => r.name === ROUTE_NAME)) {
         const fix = { kind: 'nameSkills', stepIndex: -1 };
-        if (out.length === 0) {
-            out.push(issue('RC21', 'error', -1, 'name', `This route is named "${n}". Both robots' code registers the skills route as `
-                + `"${ROUTE_NAME}" (the lines the export writes between are named for it too), so this route builder keeps that name.`,
-            '', { contract: true, fix }));
+        if (out.length) {
+            out[0].fix = fix;
         } else {
-            out[0].fix = fix;  // whichever rule refused it: the page's one way to a name is "skills"
+            out.push(issue('RC21', 'error', -1, 'name', `This project has no route named "${ROUTE_NAME}": the competition's skills route `
+                + 'is always there, under that name (the docs and the competition program point at it).', '', { contract: true, fix }));
         }
+    }
+    const cap = routeCap(robot);
+    if (at >= cap) {
+        out.push(issue('RC21', 'error', -1, 'name', `The brain's menu holds ${robot.maxAutons || 16} autons, and the other autons `
+            + `(${otherAutons(robot).map((o) => `"${o}"`).join(', ')}) take ${otherAutons(robot).length}: a project holds at most ${cap} routes. Delete one.`));
     }
     return out;
 }
@@ -222,7 +254,7 @@ function walkPaths(route, robot) {
  * Every issue on `route` for the robots in `robots` (each a robot description; the first is the route's
  * own robot, whose numbers it is written in). `field`: {wallInnerFaceIn}.
  */
-export function checkRoute(route, robots, field) {
+export function checkRoute(route, robots, field, ctx = {}) {
     const out = [];
     const primary = robots[0];
     const size = primary.drive && primary.drive.footprintIn ? primary.drive.footprintIn : 15;
@@ -233,7 +265,11 @@ export function checkRoute(route, robots, field) {
     const tank = !!(primary.drive && primary.drive.tank);
     const maxSteer = primary.drive && primary.drive.maxSteerDeg !== undefined ? primary.drive.maxSteerDeg : 15;
 
-    out.push(...nameIssues(route, !!route.mirroredFor));
+    out.push(...nameIssues(route, ctx, primary));
+    if (route.name === ROUTE_NAME && !route.mirroredFor) {  // ROB1-BT: robot two runs the skills route mirrored
+        out.push(issue('RCM1', 'error', -1, 'mirrored', 'Robot two runs the skills route MIRRORED, always (the competition\'s skills '
+            + 'run, on both robots): turn its mirror back on.', '', { fix: { kind: 'mirrorSkills', stepIndex: -1, words: 'Mirror it for robot two' } }));
+    }
 
     // RC3: the start.
     if (!route.start) {
@@ -254,6 +290,7 @@ export function checkRoute(route, robots, field) {
     }
 
     const plan = plannedPoses(route, curveCfg);
+    const heights = new Map(robots.map((r) => [r, plannedHeights(route, r)]));
     const labels = new Map();
     route.steps.forEach((s, i) => {
         if (s.label !== undefined) {
@@ -349,6 +386,32 @@ export function checkRoute(route, robots, field) {
                                 + 'short of the point. "Turn to face it first" makes it straight.', '', { fix: { kind: 'faceFirst', stepIndex: i } }));
                         }
                     }
+                }
+                break;
+            }
+            case 'forward':
+            case 'backward': {
+                const back = s.do === 'backward';
+                if (!nmb(s.inches) || s.inches <= 0) {
+                    out.push(issue('RC1', 'error', i, 'inches', `Type how far it ${back ? 'backs up' : 'drives'} (inches, above 0).`));
+                    break;
+                }
+                if (!p.point) {
+                    if (route.start) {
+                        out.push(issue('RC1', 'error', i, 'inches', 'Where the robot is before this step is not known (a step before it '
+                            + 'has an error): fix that step first.'));
+                    }
+                    break;
+                }
+                if (s.inches < 1) {
+                    out.push(issue('RC1', 'error', i, 'inches', `${fmt(s.inches)} in is too short: the library steers to a POINT, and under `
+                        + '1 in from where the robot really is it has no clear direction to it. Make it at least 1 in.', libraryWords('noBearing')));
+                    break;
+                }
+                const o = wallOvershoot(p.to.x, p.to.y, p.to.headingDeg, field, size);
+                if (o > WALL_SLACK_IN) {
+                    out.push(issue('RC1', 'error', i, 'inches', `There the robot's ${size} in square goes ${o.toFixed(1)} in into `
+                        + `${wallName(p.to.x, p.to.y, field)}: the robot cannot get there.`));
                 }
                 break;
             }
@@ -448,11 +511,16 @@ export function checkRoute(route, robots, field) {
                         + 'this step does not fit it.', '', { robot: robot.id }));
                     continue;
                 }
-                if ((s.do === 'move' || s.do === 'startMove') && noLevels(mech)) {
+                const tk = s.do === 'move' || s.do === 'startMove' ? targetKind(s) : undefined;
+                if (tk === 'preset' && noLevels(mech)) {
                     out.push(issue('RC18', 'error', i, 'preset', `${cap(rname)}'s ${mech.name} has no levels yet: ${LEVELS_FROM}.`,
-                                   s.preset === undefined ? '' : libraryWords('noPreset'), { robot: robot.id }));
-                } else if ((s.do === 'move' || s.do === 'startMove') && s.preset === undefined) {
-                    out.push(issue('RC18', 'error', i, 'preset', 'Choose which level it moves to.', '', { robot: robot.id }));
+                                   libraryWords('noPreset'), { robot: robot.id }));
+                } else if (tk === null) {
+                    const many = ['preset', 'up', 'down', 'to'].filter((k) => s[k] !== undefined).length + (s.bottom ? 1 : 0) > 1;
+                    out.push(issue('RC18', 'error', i, 'preset', many ? 'This move says where to go more than once: keep one.'
+                        : `Say where the ${mech.name} goes: up, down, to a height${noLevels(mech) ? '' : ', or to a level'}.`, '', { robot: robot.id }));
+                } else if (tk !== 'preset' && tk !== undefined) {
+                    out.push(...liftIssues(s, i, mech, robot, heights.get(robot)[i].before[s.mechanism]));
                 } else if (s.do === 'move' || s.do === 'startMove') {
                     const ok = typeof s.preset === 'number'
                         ? (mech.presets || []).some((q) => q.ledger === s.preset)
@@ -529,6 +597,16 @@ export function checkRoute(route, robots, field) {
         });
     }
 
+    out.push(...pairIssues(route, plan, primary, field));
+
+    // A relative move on a mechanism nothing homed: RC25 says so and offers "Home it first" — RCL1 would say it twice.
+    const homeRule = new Set(out.filter((x) => x.code === 'RC25' && x.level === 'error').map((x) => x.stepIndex));
+    for (let k = out.length - 1; k >= 0; --k) {
+        if (out[k].code === 'RCL1' && out[k].notHomed && homeRule.has(out[k].stepIndex)) {
+            out.splice(k, 1);
+        }
+    }
+
     // The same issue on two robots reads once (it names the first robot it was found on).
     const seen = new Set();
     return out.filter((x) => {
@@ -544,6 +622,84 @@ export function checkRoute(route, robots, field) {
 function cap(s) {
     return s.length ? s[0].toUpperCase() + s.slice(1) : s;
 }
+
+/** RMP1-C D7: "go up / down N", "move to N", "back to the bottom" — the height known, the target inside the travel. */
+function liftIssues(s, i, m, robot, before) {
+    const out = [];
+    const tk = targetKind(s);
+    const u = unitOf(m);
+    const rname = robot.name || `robot ${robot.id}`;
+    if ((tk === 'up' || tk === 'down') && (!Number.isFinite(s[tk]) || s[tk] <= 0)) {
+        return [issue('RCL1', 'error', i, tk, `Type how far it goes ${tk} (${u}, above 0).`, '', { robot: robot.id })];
+    }
+    if (tk === 'to' && !Number.isFinite(s.to)) {
+        return [issue('RCL1', 'error', i, 'to', `Type where it goes (${u}).`, '', { robot: robot.id })];
+    }
+    if ((tk === 'up' || tk === 'down') && before === null) {
+        const homes = m.homing === 'stall' || m.homing === 'switch';
+        return [issue('RCL1', 'error', i, tk, `${cap(tk)} ${fmt(s[tk])} ${u} from where? Where the ${m.name} is here is not known: `
+            + `nothing before this step ${homes ? 'homes it or ' : ''}moves it to a ${u === 'deg' ? 'angle' : 'height'}. `
+            + `${homes ? 'Home it first, or make' : 'Make'} this step a "Move to".`, '',
+        { robot: robot.id, notHomed: homes, fix: homes ? { kind: 'homeFirst', stepIndex: i, mechanism: s.mechanism } : null })];
+    }
+    const target = moveTarget(s, m, before);
+    const [lo, hi] = m.range || [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY];
+    if (target === null || (target >= lo && target <= hi)) {
+        return out;
+    }
+    const past = target > hi;
+    const edge = past ? hi : bottomOf(m);
+    let fix = null;
+    if (tk === 'up' && past && round3(edge - before) > 0) {
+        fix = { kind: 'liftPatch', stepIndex: i, patch: { up: round3(edge - before) }, words: `Go up only ${fmt(round3(edge - before))} ${u} (to the top)` };
+    } else if (tk === 'down' && !past && round3(before - edge) > 0) {
+        fix = { kind: 'liftPatch', stepIndex: i, patch: { down: round3(before - edge) }, words: `Go down only ${fmt(round3(before - edge))} ${u} (to the bottom)` };
+    } else if (tk === 'to') {
+        fix = { kind: 'liftPatch', stepIndex: i, patch: past ? { to: round3(edge) } : { to: undefined, bottom: true },
+                words: past ? `Move to the top (${fmt(edge)} ${u})` : 'Back to the bottom instead' };
+    }
+    out.push(issue('RCL2', 'error', i, tk, `That takes ${rname}'s ${m.name} to ${fmt(target)} ${u}, ${past ? 'past the top' : 'below the bottom'} `
+        + `of its travel (${fmt(lo)} to ${fmt(hi)} ${u}): the build stops there.`, libraryWords('travelLimits'), { robot: robot.id, fix }));
+    return out;
+}
+
+/** RMP1-C D3, D5: a mirrored route says whether both robots run it at the same time; if they do, they never come too
+ *  close in the plan (pair.mjs, test/mirrored_pair_check.hpp's numbers). */
+function pairIssues(route, plan, robot, field) {
+    if (!route.mirroredFor || !route.start) {
+        return [];
+    }
+    const yes = { kind: 'together', value: true, stepIndex: -1 };
+    const no = { kind: 'together', value: false, stepIndex: -1 };
+    if (route.together === undefined) {
+        return [issue('RCT1', 'error', -1, 'together', 'Robot two runs this route mirrored. Will both robots run it at the SAME time? '
+            + 'Answer it, so the too-close check knows.', '', { fix: yes, alsoFix: no })];
+    }
+    if (route.together !== true || !robot.pairCheck || !robot.skillsMirror) {
+        return [];
+    }
+    const hit = tooClose(route, plan, robot.skillsMirror, robot.pairCheck);
+    if (!hit) {
+        return [];
+    }
+    const at = (q) => `(${fmt(round3(q.x))}, ${fmt(round3(q.y))})`;
+    const gap = robot.pairCheck.gapIn;
+    const where = hit.stepIndex < 0 ? 'At the START' : `During step ${hit.stepIndex + 1}`;
+    const words = `Both robots run this at the same time. ${where} robot one at ${at(hit.one)} and robot two (mirrored) at `
+        + `${at(hit.two)} are ${hit.gap.toFixed(1)} in apart: they must stay ${fmt(gap)} in apart. `
+        + (hit.stepIndex < 0 ? 'Move robot one\'s start away from the diagonal.'
+            : `Keep robot one's whole robot ${fmt(gap / 2)} in off the diagonal here, or send ONE robot there with isMirrored(ctx) in the code.`);
+    const away = hit.stepIndex < 0
+        ? startAwayFromLine(route.start, robot.skillsMirror, robot.pairCheck, round3, { inner: field.wallInnerFaceIn, slack: WALL_SLACK_IN }) : null;
+    const moveWords = away && (away.along ? `Slide the start ${away.by.toFixed(1)} in along ${wallName(route.start.x, route.start.y, field)}, away from the diagonal`
+        : `Move the start ${away.by.toFixed(1)} in away from the diagonal`);
+    return [issue('RCP1', 'error', hit.stepIndex, hit.stepIndex < 0 ? 'start' : 'x', words, '',
+                  { fix: away ? { kind: 'moveStart', stepIndex: -1, start: away.start, words: moveWords } : null,
+                    alsoFix: { ...no, words: 'They don\'t run at the same time' }, pair: hit })];
+}
+
+/** The errors about robot two running the route beside robot one: PREVIEW (robot one's run) never waits for them. */
+export const ROBOT_TWO_ONLY = new Set(['RCT1', 'RCP1', 'RCM1']);
 
 /** The first error, if any (while there is one, Export lists the errors instead of the code — §1.4). */
 export function firstError(issues) {
@@ -570,6 +726,14 @@ export function applyFix(route, fix, addStep, updateStep) {
             return addStep(route, { do: fix.away ? 'faceAway' : 'face', x: fix.x, y: fix.y }, fix.stepIndex);
         case 'nameSkills':
             return { ...route, name: ROUTE_NAME };
+        case 'together':
+            return { ...route, together: fix.value };
+        case 'mirrorSkills':
+            return { ...route, mirroredFor: 'two' };
+        case 'moveStart':
+            return { ...route, start: fix.start };
+        case 'liftPatch':
+            return updateStep(route, fix.stepIndex, { up: undefined, down: undefined, to: undefined, bottom: undefined, preset: undefined, ...fix.patch });
         default:
             return route;
     }

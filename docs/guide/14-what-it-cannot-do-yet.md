@@ -560,10 +560,10 @@ promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
   `.vexbot` file yet, so today a route is still typed in C++. The file reader is the rest of
   roadmap milestone M5, coordinated with the separate VexBuilder project.
   The [route builder](22-making-your-first-route.md) (2026-11) is the first piece a non-coder can use: it builds the
-  skills route by clicking on the field and WRITES the commented C++ into the skills-route file — the team still
+  team's named routes by clicking on the field and WRITES the commented C++ into the skills-route file — the team still
   builds and uploads it, and its **PREVIEW** plays the route from the real library on the host test plant (not the
   robot). What it does not do yet: robot two's mirrored run in PREVIEW, triggers partway through a drive, wall
-  resets, the mirrored robot drawn on the field while you edit, a time bar, the Toggle steps, strafing, moving to a
+  resets, a time bar, the Toggle steps, strafing, moving to a
   pose, driving through points, sensor waits, flywheel steps, a step of your own C++, relative starts, 30 s match
   routes, and exporting a route to VexBuilder. Until they come, they are
   typed by hand inside the route's region; the route builder never overwrites a hand edit there without asking.
