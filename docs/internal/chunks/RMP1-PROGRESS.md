@@ -4643,3 +4643,13 @@ change (9)'s ruling, now with the 1 in limit (item 2 above); the merge by hand o
 this round touched only `obstacles.mjs`, its node test, guide 22 and the changelog — no file RMP1-G or RMP1-F owns);
 `preview.png` / `preview-failed.png` and the four fixtures after the 21st; D5, D6, D2 tests after the 21st; the
 `touches` shape check after the merge.
+
+## RMP1-G + RMP1-H — the coordinator's merge *(2026-11-20)*
+
+- RMP1-H (base 518717a) merged after RMP1-G: `route.mjs` keeps both `touches` and `view` (touches first, view last in a
+  step — RMP1-G's rule), `field_view.mjs` draws the structures under RMP1-G's focus groups, `inspector.mjs` both imports.
+- **Two interactions found by the merged tree's own tests, fixed:** (1) `normalizeStep` lost RMP1-H's `delete out.touches`
+  in the resolution, so an empty list stayed as `touches: []` (node "the flag is page-only" RED) — restored; (2) RMP1-G's
+  `view.page.test.mjs` routes cross a goal, so RMP1-H's check turned a step's pill red in focus (D3 RED) — the view
+  tests now load without the structures (`noStructures()`, as the PREVIEW tests do).
+- Gates on the merged tree: suite 3,901 green; node 219/219; Firefox page tests 103 pass, 0 fail, 3 engine-skipped.

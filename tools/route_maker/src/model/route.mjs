@@ -175,6 +175,7 @@ export function normalizeStep(step) {
         out.care = care;
     }
     // RMP1-H: the structures this step touches on purpose (page-only: no export reads it), sorted, each once
+    delete out.touches;
     const touches = Array.isArray(step.touches) ? [...new Set(step.touches.filter((t) => typeof t === 'string' && t))].sort() : [];
     if (touches.length) {
         out.touches = touches;

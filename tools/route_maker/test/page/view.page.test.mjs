@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { SITE, SHOTS, skip, launch, serve, openPage, shot } from './harness.mjs';
+import { SITE, SHOTS, skip, launch, serve, openPage, shot, noStructures } from './harness.mjs';
 
 let browser;
 let site;
@@ -53,6 +53,8 @@ const FIVE = [[-12, -55.7], [-12, -36], [0, -36], [12, -36], [12, -12]];
 async function withRoute(steps, opts) {
     const p = await openPage(browser, site.base, opts);
     await p.page.getByRole('button', { name: 'Got it' }).click();
+    // RMP1-H: these test routes cross the field's goals; the view tests are not about structures
+    await p.page.evaluate((r) => window.routeBuilder.useRobots(r), noStructures());
     const project = { schemaVersion: 1, madeWith: 'test', routes: [{ name: 'skills', kind: 'skills', robot: 'one', mirroredFor: 'two', together: false,
         start: { x: -36, y: -55.7, headingDeg: 0 }, endActionAtS: 57, hardStopAtS: 59,
         steps: steps.map((s) => (Array.isArray(s) ? { do: s[2] ? 'reverseTo' : 'driveTo', x: s[0], y: s[1], faceFirst: true } : s)) }], robots: {}, exports: {} };
