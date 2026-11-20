@@ -41,11 +41,12 @@ change** (guide chapter 21, "Adding your robot by hand"). `robot_one_autons.hpp`
 40 in and the acceptance run as SKILLS autons, and the team's skills route.
 
 **Robot two is robot one's TWIN (chunk ROB1-BT, 2026-11-16).** Robot two was rebuilt as robot one's build
-(its claws retired), so its files are robot one's with robot two's name: `robot_two_driver.hpp` holds
-robot one's map, and `autons.cpp` robot one's list — with ONE difference, the team lead's: robot two runs
-the skills route MIRRORED (`registry.add(competition::mirrored(skillsRoute(), …kSkillsMirror));`, cookbook
-chapter 9). `test/robot_twin_test.cpp` fails the host suite when the two robots' files differ anywhere
-else, so **change a button or an auton in BOTH robots' files**. **`skills_route.hpp` / `.cpp`** hold the
+(its claws retired), so its files started as robot one's with robot two's name. `robot_two_driver.hpp`'s
+buttons, feel and map are **robot two's own** (the team lead, 2026-11-20): change them for robot two alone.
+`autons.cpp` holds robot one's list with ONE difference, the team lead's: robot two runs the skills route
+MIRRORED (`registry.add(competition::mirrored(skillsRoute(), …kSkillsMirror));`, cookbook chapter 9).
+`test/robot_twin_test.cpp` fails the host suite when the autons lists, the mechanisms or the driver files'
+plumbing differ, so **change an auton in BOTH robots' files**. **`skills_route.hpp` / `.cpp`** hold the
 team's skills route, written ONCE in robot one's numbers and compiled into both robots: its names
 (`cascade`, `claw`, …) are the BUILDING robot's (`using namespace this_robot;`). The route maker writes
 only between its `ROUTE MAKER — BEGIN` and `END` lines (delete those two lines to write the route by

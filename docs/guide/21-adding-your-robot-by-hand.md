@@ -370,7 +370,7 @@ the right wall's Quadrant while robot one works the red wall's
 | Mechanisms | its region of `src/robots/mechanism_table.hpp` | robot one's region, word for word, `robot_one` → `robot_two` |
 | Facts | `src/robots/robot_one_facts.hpp` | `src/robots/robot_two_facts.hpp`: the same facts, names and stages — **every one OWED** until its builder reads it off robot two |
 | Drive cartridge | BLUE (typed) | UNSET until read off robot two |
-| Driver file | the builder's map | the same map |
+| Driver file | the builder's map | started as the same map; its buttons are its own |
 | Autons | the 40 in, the acceptance run, the team's routes | the same — the routes marked mirrored **mirrored** (one line) |
 | Calibration record | names `robot-one` | names `robot-two` |
 
@@ -386,10 +386,10 @@ inline constexpr auto kCascadePorts = typed(one::kCascadePorts.placeholder, Pair
     "the cascade's motor ports", "the team's builder, <date>, read off robot two");
 ```
 
-**A change to one robot is a change to both.** `test/robot_twin_test.cpp` fails the host suite when the two
-mechanism regions, the two facts files' names and stages, the two driver files (their controls, their feel
-and their header maps) or the two autons lists differ anywhere but where the table above says. Change a
-button in both driver files; add a mechanism to both regions.
+**A change to one robot's build is a change to both.** `test/robot_twin_test.cpp` fails the host suite when
+the two mechanism regions, the two facts files' names and stages, the two driver files' plumbing or the two
+autons lists differ anywhere but where the table above says: add a mechanism to both regions. Each robot's
+buttons, feel and header map are its own (the team lead, 2026-11-20): change a button on one robot only.
 
 Robot two's old build — two claw pivots on ports 6 and 7, a pneumatic claw on 3-wire A, and its measured
 drive table — is retired. The host suite keeps it as its example robot with claws
