@@ -101,20 +101,20 @@ test('what was exported: the routes\' names and every step counted', () => {
     assert.equal(exportSummary([newRoute()]).words, '1 route (skills), 0 steps');
 });
 
-test('the commands: robot one is ROBOT=one, robot two ROBOT=tank; the tester is slot 2 "shulib Auton Tester", as the Makefile says', () => {
+test('the commands: robot one is ROBOT=one, robot two ROBOT=tank; the tester is slot 6 "shulib Auton Tester", as the Makefile says', () => {
     assert.deepEqual(robotCommands('one'), {
         build: 'make ROBOT=one PROGRAM=autontest',
-        upload: 'pros upload --slot 2 --name "shulib Auton Tester"',
+        upload: 'pros upload --slot 6 --name "shulib Auton Tester"',
         helper: 'python3 tools/upload_auton.py one',
     });
     assert.deepEqual(robotCommands('two', { windows: true }), {
         build: 'make ROBOT=tank PROGRAM=autontest',
-        upload: 'pros upload --slot 2 --name "shulib Auton Tester"',
+        upload: 'pros upload --slot 6 --name "shulib Auton Tester"',
         helper: 'python tools/upload_auton.py two',
     });
     const make = fs.readFileSync(path.join(REPO, 'Makefile'), 'utf8');
     assert.match(make, /make ROBOT=tank PROGRAM=autontest → "shulib Auton Tester"/);
-    assert.match(make, /slot 2 since\s*\n#\s+T4 Part 3/);
+    assert.match(make, /slot 6 since\s*\n#\s+2026-11-20/);
     const script = fs.readFileSync(path.join(REPO, 'tools', 'upload_auton.py'), 'utf8');
     assert.ok(script.includes(`SLOT = ${TESTER.slot}`) && script.includes(`NAME = "${TESTER.name}"`), 'the script uploads where the page says');
 });

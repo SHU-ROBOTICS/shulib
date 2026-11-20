@@ -93,6 +93,8 @@ constexpr Arm kAbsoluteWraps{.name = "arm", .motors = {Forward}, .cartridge = Gr
 constexpr Arm kInside{.name = "arm", .motors = {Forward}, .cartridge = Green, .gearing = gears(12, 60), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {20, 140}, .gravity = cosine(1.6_volt, 45), .home = restsAtStop(20)};
 // the lifts
 constexpr Lift kLift{.name = "lift", .motors = {Forward, Reversed}, .cartridge = Red, .gearing = direct, .shape = spool(1.5_in), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {0_in, 24_in}, .gravity = constantGravity(1.0_volt), .home = restsAtStop(0_in), .presets = {{"floor", 0_in}, {"low", 8_in}, {"high", 22_in}}};
+// kLift going DOWN at most 60 % (API 2.10; the team lead, 2026-11-20: the cascade "needs to go down to 60")
+constexpr Lift kLiftDown60{.name = "lift", .motors = {Forward, Reversed}, .cartridge = Red, .gearing = direct, .shape = spool(1.5_in), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {0_in, 24_in}, .gravity = constantGravity(1.0_volt), .home = restsAtStop(0_in), .presets = {{"floor", 0_in}, {"low", 8_in}, {"high", 22_in}}, .maxDownVolts = 7.2_volt};
 constexpr HeightAt kPairs[] = {{0_in, 0}, {6_in, 30}, {14_in, 70}, {20_in, 120}};
 constexpr Lift kTable{.name = "tilt", .motors = {Forward}, .cartridge = Red, .gearing = gears(12, 84), .shape = measured(kPairs), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {0_in, 20_in}, .gravity = noGravity, .home = restsAtStop(0_in), .presets = {{"top", 20_in}}};
 constexpr Lift kDr4b{.name = "dr4b", .motors = {Forward}, .cartridge = Red, .gearing = gears(12, 84), .shape = linkage(14_in, 10_in, 2), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {-18_in, 38_in}, .gravity = noGravity, .home = restsAtStop(-18_in)};
@@ -533,6 +535,55 @@ TEST_CASE("MECH-A3 position: a push held at a limit for 20 s stays ONE soft stop
             CHECK(std::abs(r.trueDeg() - limit) <= 0.1);
             CHECK(r.slot().target() == limit);
             CHECK(r.stallFaults() == 0);
+        }
+    }
+}
+
+TEST_CASE("API 2.10 position: maxDownVolts -- nothing drives it DOWN harder (a held button, a move, a preset, the hold); UP keeps 12 V; 0 changes nothing") {
+    // BUG CAUGHT: the limit on the held button only (a move or a preset down at full power), on both directions
+    // (up slowed too), with its sign flipped (up cut, down free), or applied to a mechanism that states none.
+    for (const bool limited : {true, false}) {
+        CAPTURE(limited);
+        ArmRig r{limited ? kLiftDown60.spec() : kLift.spec(), spoolPlant(1.0, 1.0)};
+        r.slot().moveTo(12.0, units::Time{6.0}, false);
+        double most = 0.0;
+        while (r.slot().running()) {
+            r.tick();
+            most = std::max(most, r.volts());
+        }
+        REQUIRE(r.slot().lastStep().outcome == MechanismOutcome::Succeeded);
+        for (int i = 0; i < 20; ++i) {  // held UP at 12 V, mid-travel: the push, whole
+            r.slot().jog(units::Voltage{12.0});
+            r.tick();
+            CHECK(r.volts() == 12.0);
+        }
+        r.slot().moveTo(12.0, units::Time{6.0}, false);
+        r.runStep();
+        for (int i = 0; i < 20; ++i) {  // held DOWN at 12 V, mid-travel: at most 7.2 V
+            r.slot().jog(units::Voltage{-12.0});
+            r.tick();
+            CHECK(r.volts() == (limited ? -7.2 : -12.0));
+        }
+        r.slot().moveTo(20.0, units::Time{6.0}, false);
+        r.runStep();
+        REQUIRE(r.slot().lastStep().outcome == MechanismOutcome::Succeeded);
+        // a move DOWN 19 in, then the hold at the bottom: never below -7.2 V when limited; it still arrives
+        r.slot().moveTo(1.0, units::Time{8.0}, false);
+        double least = 0.0;
+        int ticks = 0;
+        while (r.slot().running() || ticks < 300) {
+            r.tick();
+            ++ticks;
+            least = std::min(least, r.volts());
+        }
+        CHECK(r.slot().lastStep().outcome == MechanismOutcome::Succeeded);
+        CHECK(std::abs(r.slot().position() - 1.0) <= 0.25);
+        MESSAGE(std::string{limited ? "60 %" : "no limit"} << ": the move down's most negative command " << least << " V");
+        if (limited) {
+            CHECK(least >= -7.2 - 1e-12);
+            CHECK(least <= -7.2 + 1e-12);  // the limit is reached on this move: the clamp, not luck
+        } else {
+            CHECK(least < -7.2);  // without one the same move goes past it
         }
     }
 }

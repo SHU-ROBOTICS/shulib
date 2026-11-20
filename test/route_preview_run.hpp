@@ -131,13 +131,6 @@ struct Provisional {
 inline constexpr Provisional kRobotTwoProvisional[] = {
     {"claw", "0.5 s", "HA-185", "Station J times the real one"},
 };
-/// Robot two's pistons' stroke times — OWED in its facts file (robot one's chosen 0.5 s until the builder
-/// times robot two's; landmine 15: a preview drawn on an owed number says so). Pinned to the ledger (RP33b).
-inline constexpr Provisional kTwinProvisional[] = {
-    {"claw", "0.5 s", "HA-256", "owed: robot two's facts file, Station R2"},
-    {"flipper", "0.5 s", "HA-256", "owed: robot two's facts file, Station R2"},
-    {"ramp", "0.5 s", "HA-256", "owed: robot two's facts file, Station R2"},
-};
 
 /// The function a robot's autons file registers its autons with.
 using RegisterFn = void (*)(shulib::competition::AutonRegistry&);
@@ -159,7 +152,8 @@ struct PreviewRobot {
 
 /// Robot two — robot one's twin since ROB1-BT (src/team/autons.cpp, `using namespace robot_two;`), its
 /// mechanisms on fakes built from their declarations (its numbers are its facts file's placeholders until
-/// typed: the cascade is hatched as every lift on starting numbers is, the pistons by kTwinProvisional).
+/// typed; since 2026-11-20 robot one's values, the same build: its pistons' times are robot one's chosen ones,
+/// unhatched as robot one's are — RP33b pins this to the ledger).
 inline constexpr PreviewRobot kRobotTwo{
     .key = "two",
     .title = "robot two",
@@ -167,7 +161,6 @@ inline constexpr PreviewRobot kRobotTwo{
     .registerAutons = &shulib::bench::registerAutons,
     .autonsFile = "src/team/autons.cpp",
     .defaultRig = false,
-    .provisional = std::span<const Provisional>{kTwinProvisional},
     .ledger = Ledger{shulib::bench::robot_two_facts::kRobotTwoFacts},
     .ledgerFile = "src/robots/robot_two_facts.hpp",
 };

@@ -2,19 +2,15 @@
 //
 // robot_two_driver.hpp — ROBOT TWO'S DRIVER CONTROL: what every stick and button does.
 //
-// Robot two is robot one's TWIN (chunk ROB1-BT, 2026-11-16; the team lead: "IT IS LITERALLY THE SAME ROBOT
-// BUILD"), so this is robot one's driver file — the builder's map of 2026-11-15, the team's code (G4) —
-// with robot two's name: one build, one map, so a driver who learns one robot drives the other. CHANGE A
-// BUTTON IN BOTH FILES (src/team/robot_one_driver.hpp has every comment on why each line is what it is):
-// test/robot_twin_test.cpp fails the host suite while the two files' controls and feel differ in any code
-// but the robot's name, or their header maps in any word. Robot two's old claw map (the pivots on R1/R2 and L1/L2, the claw on A) was
-// retired with its claws.
+// Robot two is robot one's twin, and starts with robot one's map (the builder's of 2026-11-15, the team's code,
+// G4). Its buttons, feel and map are ROBOT TWO'S OWN (the team lead, 2026-11-20): change them here, or in the
+// route builder's Controls tab with robot two picked; robot one's file is not touched.
 //
 // What the robot IS is in src/robots/mechanism_table.hpp (robot two's region) and
 // src/robots/robot_two_facts.hpp; how it runs is src/common/driver_file.hpp. NOTHING HERE HAS RUN ON A
 // ROBOT: it is tested on the host against robot two's declarations (test/robot_two_driver_test.cpp).
 //
-// [the map] — the same as robot one's:
+// [the map]
 // [control words two]
 //   left stick   up / down: drive forward / back (toward the calibration record's front).
 //                Left / right does nothing: a tank cannot strafe.

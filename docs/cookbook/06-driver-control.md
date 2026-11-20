@@ -237,9 +237,9 @@ and the feel — in one file a student can read top to bottom and defend (the ca
 
 A team's own robot puts its driver's decisions in ONE file:
 [`src/team/robot_one_driver.hpp`](../../src/team/robot_one_driver.hpp) is robot one's — the builder's
-button map of 2026-11-15. Robot two is robot one's twin, so
-[`src/team/robot_two_driver.hpp`](../../src/team/robot_two_driver.hpp) is the same file with robot two's
-name: one build, one map, so a driver who learns one robot drives the other.
+button map of 2026-11-15. Robot two is robot one's twin, and
+[`src/team/robot_two_driver.hpp`](../../src/team/robot_two_driver.hpp) started as the same file with robot
+two's name; its buttons, feel and map are robot two's own, to change for robot two alone.
 
 ![The builder's controller map, on both robots: R1 / R2 hold the cascade up / down; A the claw, B the front toggle, X the ramp (each press flips it); L1 runs the right side toggle and L2 the left while held; the left stick drives and the right stick turns; Y is the re-zero (field-centric is off); the d-pad is free](../assets/cascade-controls.svg)
 
@@ -314,10 +314,11 @@ each robot's real declarations.
 - **The pistons start where they rest.** Each piston starts (and is made safe) in the position its
   solenoid holds UNPOWERED, so nothing moves at power-up; the first press moves it to the other. A press
   must be SEEN — up, then down, on two connected ticks — so a controller that drops out never flips one.
-- **The twin's file is the same file.** A change to a button is made in BOTH driver files, in the same
-  change: [`test/robot_twin_test.cpp`](../../test/robot_twin_test.cpp) fails while the two files' marked
-  regions — `[driver file one]` (the controls), `[control words one]` (the header's map) and `[feel one]`
-  (and robot two's `two` ones) — differ in anything but the robot's name.
+- **Each robot's map is its own.** The marked regions — `[driver file …]` (the controls), `[control words
+  …]` (the header's map) and `[feel …]` — are the team's on each robot, and each robot's test checks its
+  own: every button with a job has one row in the map, the re-zero button stays free, each button runs only
+  its own mechanism. [`test/robot_twin_test.cpp`](../../test/robot_twin_test.cpp) holds only the code
+  OUTSIDE those regions equal (but for the robot's name).
 
 **Watch out for:**
 

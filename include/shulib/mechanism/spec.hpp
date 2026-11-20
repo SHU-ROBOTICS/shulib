@@ -291,6 +291,10 @@ struct PositionSpec {
     StallSpec stall{};
     /// A hold-to-run before homing runs at most this, V, 0..12 (0 = nothing moves it before homing).
     double unhomedVolts = 0.0;
+    /// The most volts ANYTHING drives it DOWN with — toward its minimum, the negative volts: a held button, a
+    /// move, a preset, the hold — V, 0..12; 0 = no limit but the motor's 12 V. A homing push toward the
+    /// minimum must be within it (API 2.10; the team lead, 2026-11-20: "it needs to go down to 60").
+    double maxDownVolts = 0.0;
     /// Absolute: the angle sensor's reading (deg, [0, 360)) when the mechanism is at homePosition.
     double absoluteSensorAtZeroDeg = 0.0;
     /// Its named presets, in its units.
@@ -573,6 +577,8 @@ enum class Refusal : std::uint8_t {
     ACurrentCapMustBeAbove0AndAtMost25A,  ///< a written current cap outside (0, 2.5] A, a NaN included (MECH-S-A)
     AStallSignatureMustBeBelowTheCurrentCap,  ///< a written stall or homing signature at or above the current cap (MECH-S-A: it could never trip)
     ACurrentCapMustBeAtLeastOneMilliamp,  ///< a written current cap above 0 but below 0.001 A (MECH-S-A review: a V5 limit is whole mA — it would be sent as 0 mA)
+    PositionMaxDownVoltsIsNotIn0To12,  ///< a maxDownVolts outside [0, 12], a NaN included (API 2.10)
+    PositionTheHomingPushIsPastMaxDownVolts,  ///< a homing push DOWN harder than maxDownVolts (API 2.10: it would be cut, and its stall might never trip)
 };
 
 /// The SENTENCE for a refusal — what a run-time caller logs, a host test pins, and the robot
@@ -731,6 +737,11 @@ enum class Refusal : std::uint8_t {
         case Refusal::ACurrentCapMustBeAtLeastOneMilliamp:
             return "a current cap must be at least 0.001 A (a V5 motor holds its limit in whole milliamps: a "
                    "smaller cap would be sent as 0 mA, a motor with no torque at all)";
+        case Refusal::PositionMaxDownVoltsIsNotIn0To12:
+            return "position: maxDownVolts must be from 0 to 12 (0 = no limit but the motor's 12 V)";
+        case Refusal::PositionTheHomingPushIsPastMaxDownVolts:
+            return "position: the homing push down (homeVolts) must be within maxDownVolts (a push cut to the limit "
+                   "might never trip its homing stall)";
     }
     return "an unknown refusal";
 }
@@ -882,6 +893,10 @@ inline void position_absolute_homing_needs_a_travel_shorter_than_one_turn_of_its
 inline void a_current_cap_must_be_above_0_and_at_most_2_5_A() {}
 /// Refusal::AStallSignatureMustBeBelowTheCurrentCap's name at the robot file's line.
 inline void a_stall_signatures_amps_must_be_below_the_current_cap_it_could_never_trip() {}
+/// Refusal::PositionMaxDownVoltsIsNotIn0To12's name at the robot file's line.
+inline void position_maxdownvolts_must_be_from_0_to_12() {}
+/// Refusal::PositionTheHomingPushIsPastMaxDownVolts's name at the robot file's line.
+inline void position_the_homing_push_down_must_be_within_maxdownvolts() {}
 /// Refusal::ACurrentCapMustBeAtLeastOneMilliamp's name at the robot file's line.
 inline void a_current_cap_must_be_at_least_0_001_A_a_motor_holds_whole_milliamps() {}
 }  // namespace refused
@@ -1109,6 +1124,12 @@ consteval void refuse(Refusal r) {
             return;
         case Refusal::ACurrentCapMustBeAtLeastOneMilliamp:
             refused::a_current_cap_must_be_at_least_0_001_A_a_motor_holds_whole_milliamps();
+            return;
+        case Refusal::PositionMaxDownVoltsIsNotIn0To12:
+            refused::position_maxdownvolts_must_be_from_0_to_12();
+            return;
+        case Refusal::PositionTheHomingPushIsPastMaxDownVolts:
+            refused::position_the_homing_push_down_must_be_within_maxdownvolts();
             return;
     }
 }
@@ -1349,6 +1370,14 @@ namespace detail {
         // (MECH-A1's review: 40 V compiled, and the motor would have clamped it to full power).
         if (!(p.unhomedVolts >= 0.0 && p.unhomedVolts <= 12.0)) {
             return Refusal::PositionUnhomedVoltsIsNotIn0To12;
+        }
+        // The down limit (API 2.10): 0 (none) up to 12, a NaN refused; a homing push DOWN within it, or the push
+        // would be cut and its stall signature (stated for the full push) might never trip.
+        if (!(p.maxDownVolts >= 0.0 && p.maxDownVolts <= 12.0)) {
+            return Refusal::PositionMaxDownVoltsIsNotIn0To12;
+        }
+        if (p.maxDownVolts > 0.0 && p.homeVolts < -p.maxDownVolts) {
+            return Refusal::PositionTheHomingPushIsPastMaxDownVolts;
         }
         if (!p.stall.stated() || !(p.stall.time > 0.0)) {
             return Refusal::PositionTheStallSignatureIsUNSET;

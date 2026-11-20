@@ -25,13 +25,13 @@ Robot one's builds. Robot two's are the same with `ROBOT=tank`, and its files ar
 | Build | On the brain | Slot | Program file | The team's and robot's files it uses |
 |---|---|---|---|---|
 | `make ROBOT=one PROGRAM=drive` | shulib Drive | 1 | `src/programs/drive_program.cpp` | `src/team/robot_one_driver.hpp` |
-| `make ROBOT=one PROGRAM=autontest` | shulib Auton Tester | 2 | `src/programs/auton_tester_program.cpp` | `src/team/robot_one_autons.cpp`, `src/team/skills_route.cpp` |
+| `make ROBOT=one PROGRAM=competition` | shulib Competition | 2 | `src/programs/competition_program.cpp` | `src/team/robot_one_autons.cpp`, `src/team/skills_route.cpp`, `src/team/robot_one_driver.hpp` |
 | `make ROBOT=one` | Bench Tests | 3 | `src/programs/bench_r3a.cpp` | none |
 | `make ROBOT=one PROGRAM=calibrate` | shulib Calibrate | 4 | `src/programs/calibrate_program.cpp` | `src/robots/calibrate_facts.hpp` |
-| `make ROBOT=one PROGRAM=competition` | shulib Competition | 6 | `src/programs/competition_program.cpp` | `src/team/robot_one_autons.cpp`, `src/team/skills_route.cpp`, `src/team/robot_one_driver.hpp` |
+| `make ROBOT=one PROGRAM=autontest` | shulib Auton Tester | 6 | `src/programs/auton_tester_program.cpp` | `src/team/robot_one_autons.cpp`, `src/team/skills_route.cpp` |
 | `make ROBOT=one PROGRAM=tune` | shulib Tune | 7 | `src/programs/tune_program.cpp` | `src/robots/mechanism_table.hpp` |
 
-Slot 5 is kept for the team's old code. Upload a build with
+Slot 5 is kept for the team's old code. (Since 2026-11-20 Competition is slot 2 and the Auton Tester slot 6: the team lead.) Upload a build with
 `pros upload --slot <slot> --name "<on the brain>"` ([Build and upload the programs](guide/07-getting-set-up.md)).
 For the Auton Tester, `python3 tools/upload_auton.py one` (or `two`; `python` on Windows) does both and says plainly
 whether it worked.
@@ -42,7 +42,7 @@ whether it worked.
 |---|---|
 | add or change an auton | `src/team/robot_one_autons.cpp`, and the same in `src/team/autons.cpp` (the suite fails when the two robots' lists differ) |
 | add or change a route | the [route builder](route-builder.md): **Export** writes every route into `src/team/skills_route.cpp`, and each appears on the brain's menu by its name |
-| change a button or the stick feel | `src/team/robot_one_driver.hpp` and `src/team/robot_two_driver.hpp` |
+| change a button or the stick feel | that robot's driver file: `src/team/robot_one_driver.hpp` or `src/team/robot_two_driver.hpp` (each robot's buttons are its own), or the route builder's **Controls** tab |
 | move a mechanism to another port | `src/robots/robot_one_facts.hpp` ([Add your robot](guide/21-adding-your-robot-by-hand.md)) |
 | re-cable the drive | nothing by hand: run shulib Calibrate again with an SD card in the brain; its record beats the typed table ([Calibrate the drive](guide/19-calibrating-your-robot.md)) |
 | add a mechanism | `src/robots/mechanism_table.hpp` ([Declare a mechanism](guide/18-mechanisms.md)) |

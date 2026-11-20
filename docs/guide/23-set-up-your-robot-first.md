@@ -149,6 +149,20 @@ string safe. If it says **cap 2.0 A NOT SET**, stay at 3 V and tell whoever type
 | `Pair the controller to the brain: it has no link` | pair the controller |
 | `Controller says FIELD: unplug the cable or re-pair` | unplug the field cable, or re-pair the controller |
 
+### Robot two: the quick pass
+
+Robot two is the same build as robot one, so it already has robot one's measured numbers. On robot two, do
+only this:
+
+1. **Tile 1 DEVICE CENSUS**: every motor is on the port the screen expects.
+2. **Station 13, each motor mechanism** (the cascade, then each side toggle): the direction check with **A**.
+   For a side toggle, also note which arm moved: that is the **right** one or the **left** one.
+3. **Station 13, each piston** (claw, front toggle, ramp): fire it once and touch where it went.
+4. **Skip "measure the cascade"**: robot two uses robot one's heights.
+
+Send the six answers (step 2's three verdicts, step 3's three positions). Until they are typed, robot two's
+Drive and Auton Tester do not build; its Bench Tests and Calibrate do.
+
 ### What to send
 
 Write each answer on [the robot facts form](../robot-facts-form.md), with **who**, **how** and **the
@@ -290,7 +304,7 @@ says. Now open the [route builder](../route-builder.md) and follow
 
 To put a route on the robot after **Export**, plug the brain in by USB and run **one command** in the shulib folder —
 `python3 tools/upload_auton.py one` (robot two: `two`; on Windows, `python`) — or, in VS Code,
-**Terminal → Run Task → Upload routes to robot one**. It builds the Auton Tester, uploads it to slot 2 and ends with
+**Terminal → Run Task → Upload routes to robot one**. It builds the Auton Tester, uploads it to slot 6 and ends with
 **✓ UPLOADED** or **✗** and what to fix.
 
 ## If something goes wrong

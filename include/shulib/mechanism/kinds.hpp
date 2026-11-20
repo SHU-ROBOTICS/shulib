@@ -763,6 +763,8 @@ struct Arm {
     DegreePreset presets[kMaxPresets]{};
     /// Optional: a held button's most before homing (0 = nothing moves it before homing).
     units::Voltage unhomedVolts{0.0};
+    /// Optional: the most volts anything drives it DOWN with (0 = the motor's 12 V; API 2.10).
+    units::Voltage maxDownVolts{0.0};
     /// Optional: overrides of the starting values (header).
     PositionTuning tuning{};
 
@@ -817,6 +819,7 @@ struct Arm {
         p.stall = detail::stallSpec(stall);
         s.currentCapAmps = currentCap.amps;
         p.unhomedVolts = unhomedVolts.value();
+        p.maxDownVolts = maxDownVolts.value();
         detail::positionStart(p, tuning, cartridge, 1.0, 1.5);
         for (std::size_t i = 0; i < kMaxPresets; ++i) {
             if (presets[i].name == nullptr) {
@@ -863,6 +866,8 @@ struct Lift {
     InchPreset presets[kMaxPresets]{};
     /// Optional: a held button's most before homing.
     units::Voltage unhomedVolts{0.0};
+    /// Optional: the most volts anything drives it DOWN with (0 = the motor's 12 V; API 2.10).
+    units::Voltage maxDownVolts{0.0};
     /// Optional: overrides of the starting values.
     PositionTuning tuning{};
 
@@ -926,6 +931,7 @@ struct Lift {
         p.stall = detail::stallSpec(stall);
         s.currentCapAmps = currentCap.amps;
         p.unhomedVolts = unhomedVolts.value();
+        p.maxDownVolts = maxDownVolts.value();
         // The starting profile's scale, inches per output degree: exact for a spool; for a linkage
         // its steepest (level) slope and for a table its steepest segment's — conservative estimates.
         detail::positionStart(p, tuning, cartridge, detail::unitsPerOutputDeg(p), 0.25);
