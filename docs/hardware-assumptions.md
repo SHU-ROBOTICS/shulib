@@ -553,7 +553,7 @@
 | HA-253 | Robot one carries an inertial sensor (IMU) on a smart port — the library drives a tank only with one | **unknown** (the builder named only AI Vision and rotation sensors) | the facts form's A4; Bench Tests' census on robot one |
 | HA-254 | Between two measured rows, robot one's cascade height is close to straight in its output angle (a string winds onto its spool in layers, and stretches) | reasoned · **unmeasured** | the facts form's C7: a row at every level; a mid-row tape check at station 13 |
 | HA-255 | Robot one's two cascade motors face each other (`{Forward, Reversed}`) | **reported** (the builder, 2026-11-15: they face each other — port 10 `Forward`, port 1 `Reversed` as he sees them) | Bench Tests' station 13 direction check on robot one |
-| HA-256 | Robot two, rebuilt, is structurally robot one's build — the same mechanisms, kinds, motor counts and sensors — differing only in its ports and measured numbers | **reported** (the team lead, 2026-11-13: "IT IS LITERALLY THE SAME ROBOT BUILD"; never seen) | the facts form filled again for robot two (its F20); Bench Tests' census on robot two |
+| HA-256 | Robot two, rebuilt, is robot one's build — the same mechanisms, kinds, motor counts and sensors — and, since 2026-11-20, the same build numbers (ports, gears, cartridges, the cascade's rows and levels) | **reported** (the team lead, 2026-11-13: "IT IS LITERALLY THE SAME ROBOT BUILD"; 2026-11-20: "Use robot one's"; never seen) | Bench Tests' census on robot two; station 13's quick pass on robot two (directions, piston positions) |
 | HA-258 | The event's field is set up to Appendix A and Figure VURS1, so the red wall's and the right wall's Quadrants are mirror images across F1's y = -x (goals, Toggles, Pins, tape) — each element within `<T5>`a's +-1.0 in, so a mirrored target can land up to ~2 in from robot two's element where robot one's was tuned to its own — and the centre goal, two yellow Pins and the red/right corner's Load Zone sit ON the diagonal | **reasoned** (the manual's drawings A10, A11, VURS1 — the Pins by pixel, about +-1 in; v2.1's drawings not re-measured) | On the event's field: tape the two red goals and two Toggles from their walls |
 | HA-259 | Robot one's build is left-right symmetric for every part a route uses at the field: a part off the centre line (an intake, a flipper, a claw, the camera's `left`, the two side sensors' `forward`) lands twice its offset from the reflection of robot one's | **unknown** | MIRROR1 Step 0.2 (every part's sideways offset), Step 0.3 (both side sensors' mounts) |
 | HA-260 | The drivetrain's own left/right differences are NOT mirrored: robot two's arrivals differ from the reflection of robot one's by its own asymmetry (host test plant, a 9 % weak side: 0.56 in, 0.44 s) — and each robot's real position near the diagonal stays within half the pair check's gap (3 in) of its plan, and its whole robot inside the check's 15 in square centred on its tracking centre, so a route that passes the 6 in check keeps the two robots apart on the field | **invented** (the host plant's magnitudes; the 3 in is a chosen margin, unmeasured; the footprint's place about the tracking centre unmeasured) | MIRROR1 Step 0.4 on both robots; Step 0.5 (both together, slowly first); the tracking centre's place inside each robot's footprint, taped with Step 0.2 |
@@ -2398,18 +2398,26 @@ its own facts file, every fact OWED. One belief carries it.
 
 - [ ] **HA-256 — robot two is structurally robot one's build.**
   *Claim:* robot two, rebuilt, has robot one's mechanisms — a two-motor string cascade, two one-motor side toggles,
-  three pistons — the same kinds, motor counts and sensors; only its ports and measured numbers may differ.
+  three pistons — the same kinds, motor counts and sensors. **Since 2026-11-20** (the team lead: "Use robot
+  one's") also the same build NUMBERS: its ports, gears, cartridges (the drive's too), stall signatures, current
+  caps, the cascade's rows, levels, hold and homing volts and the pistons' stroke times are robot one's values.
   *Source:* `src/robots/mechanism_table.hpp` (robot two's region, robot one's token for token);
-  `src/robots/robot_two_facts.hpp` (robot one's facts, every one OWED); `test/robot_twin_test.cpp` (holds the two
+  `src/robots/robot_two_facts.hpp` (robot one's values, five wiring facts OWED: the side toggles' run directions
+  and the pistons' open levels, until station 13's quick pass on robot two); `test/robot_twin_test.cpp` (holds the two
   regions, facts files, driver files and autons lists equal but for the robot's name, its facts and the mirrored
   skills route).
   *Confidence:* **reported** — the team lead, 2026-11-13; nothing of robot two has been seen since.
-  *Settle:* the facts form filled again for robot two (its F20): every answer the two robots share by construction
-  must come out the same; Bench Tests' census on robot two.
+  *Settle:* Bench Tests' census on robot two (the ports); station 13's quick pass on robot two (each motor
+  mechanism's direction check, each piston fired once); the cascade reaching robot one's levels on robot two in
+  shulib Drive.
   *Blast radius if wrong:* a robot-two declaration describes a mechanism robot two does not have (a third cascade
   motor, a missing piston). **Contained:** every robot-two build refuses until its facts are typed; a motor on the
   Devices screen that robot two's list does not declare is refused by name at build (`kNonDriveMotorPorts`), and a
-  structural difference is a declaration edit in robot two's region — which the twin test then names.
+  structural difference is a declaration edit in robot two's region — which the twin test then names. A build
+  NUMBER that differs on robot two (a longer string, another gear) puts the cascade at the wrong height: seen at
+  the first shulib Drive run, settled by measuring robot two's cascade at station 13 and typing its own rows.
+  **Contained:** robot two's Drive, Auton Tester, Competition and Tune do not build until station 13's quick pass
+  is typed, so nothing homes the cascade on robot two before its direction is checked.
 ---
 
 ## Robot 2 — the 2026 tank chassis (added 2026-09-14, R3b Parts 1–3)
