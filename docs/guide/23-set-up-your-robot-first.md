@@ -10,7 +10,7 @@ Do the five steps below in order, on each robot, before anyone makes a route for
 
 Watch it first — about 3½ minutes, with a voice and quiet music.
 
-<video controls preload="metadata" poster="../assets/video/setup-first.jpg" src="../assets/video/setup-first.mp4" style="max-width:100%"></video>
+<video controls preload="metadata" poster="../../assets/video/setup-first.jpg" src="../../assets/video/setup-first.mp4" style="max-width:100%"></video>
 
 Music: "Wallpaper" by Kevin MacLeod ([incompetech.com](https://incompetech.com)), licensed under [Creative Commons: By Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). Voice: Kokoro.
 
