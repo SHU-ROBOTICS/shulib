@@ -1,7 +1,7 @@
-// feel_tab.mjs — DRIVING FEEL (RMP1-B; the brief §1.2): the drive mode, per stick axis a dead zone and a curve, THE
-// GRAPH — the library's own shapeAxis (feel.mjs, bit-identical to the C++: FE1) from 201 points, the straight line
-// faint beside it, a "try it" stick you drag —, the ramp with its "full speed from rest" readout, what the drive
-// does when let go, and the re-zero button. A slider moving redraws at once; the edit is kept when it is let go.
+// feel_tab.mjs — DRIVING FEEL, the Controls tab's step 2 (RMP1-B; RMP1-D: the essentials first): the style, then the
+// dead zone and the curve beside THE GRAPH — the library's own shapeAxis (feel.mjs, bit-identical to the C++: FE1),
+// a "try it" dot you drag. Under "More settings" (closed at first): the other stick axes, the ramp, what the drive
+// does when let go, the re-zero button. A slider moving redraws at once; the edit is kept when it is let go.
 
 import { h, s } from './dom.mjs';
 import { fmt, parseTyped } from '../model/numbers.mjs';
@@ -70,37 +70,41 @@ export function renderFeel(api) {
     const ramp = d.rampPerSecond || 0;
     const card = h('section', { class: 'card feel-card', 'aria-label': 'Driving feel' },
         h('div', { class: 'card-head' }, h('h2', {}, 'Driving feel'),
-          h('span', { class: 'hint' }, 'How far the stick is pushed, and what the robot is asked for. A small push slow, a full push fast: raise the curve.')),
+          h('span', { class: 'hint' }, 'A small push slow, a full push fast: raise the curve.')),
         errs.map((x) => h('div', { class: `issue ${x.level}`, role: 'alert' }, h('span', { class: 'ic' }, '!'), h('div', {}, x.words))),
-        h('div', { class: 'seg wide', role: 'radiogroup', 'aria-label': 'Drive mode' }, MODE_WORDS.map(([m, t, sub]) => h('button', {
-            role: 'radio', 'aria-checked': String(modeOf(d) === m), class: modeOf(d) === m ? 'on' : '', disabled: api.locked(),
+        h('div', { class: 'style-cards', role: 'radiogroup', 'aria-label': 'Drive mode' }, MODE_WORDS.map(([m, t, sub]) => h('button', {
+            role: 'radio', 'aria-checked': String(modeOf(d) === m), class: `style-card${modeOf(d) === m ? ' on' : ''}`, disabled: api.locked(),
             onclick: () => modeOf(d) !== m && api.set({ mode: m }) }, h('strong', {}, t), h('small', {}, sub)))),
         modeOf(d) === 'tankSticks' ? h('p', { class: 'hint' }, 'Tank: both sticks are first averaged into a forward request (left + right) / 2 and a turn request '
             + '(right − left) / 2; the curves below shape those.') : null,
         modeOf(d) === 'arcadeField' ? h('p', { class: 'hint' }, 'Field arcade needs a heading the robot trusts; without one it drives as plain arcade until the re-zero button is pressed.') : null,
         h('div', { class: 'feel-grid' },
-          h('div', {},
-            h('div', { class: 'seg', role: 'tablist', 'aria-label': 'Which stick axis' }, axes.map((a) => h('button', {
-                role: 'tab', 'aria-selected': String(axis === a), class: axis === a ? 'on' : '', onclick: () => { api.ui.axis = a; api.preview(); } }, AXIS_WORDS[a]))),
+          h('div', { class: 'feel-left' },
+            h('h3', { class: 'axis-title' }, AXIS_WORDS[axis]),
             slider('Dead zone', 'deadband', 0.5, 0.01, `stick moves under this do nothing (the library's ${fmt(DEFAULT_DEADBAND)})`),
             slider('Curve', 'expo', 1, 0.05, '0 = straight; higher = finer control near the middle, still full speed at the end'),
-            h('label', { class: 'fld slider' }, h('span', {}, 'Ramp', h('small', {}, rampWords(ramp))),
-              h('div', { class: 'row nowrap' },
-                h('input', { type: 'range', min: 0, max: 10, step: 0.5, value: ramp, name: 'feel-ramp-slider', 'aria-label': 'Ramp (per second)', disabled: api.locked(),
-                             oninput: (e) => { e.target.closest('.fld').querySelector('small').textContent = rampWords(Number(e.target.value)); },
-                             onchange: (e) => api.set({ rampPerSecond: Number(e.target.value) }) }),
-                h('input', { type: 'text', inputmode: 'decimal', class: 'num', name: 'feel-ramp', 'aria-label': 'Ramp (per second, number)', value: fmt(ramp),
-                             disabled: api.locked(), onchange: (e) => { const v = typed(e.target); if (v !== null) { api.set({ rampPerSecond: v }); } } }))),
-            h('div', { class: 'field-row' },
-              h('label', { class: 'fld' }, h('span', {}, 'When the sticks are let go'),
-                h('select', { class: 'sel', name: 'onRelease', disabled: api.locked(), onchange: (e) => api.set({ onRelease: e.target.value }) },
-                  [['coast', 'the drive coasts'], ['brake', 'the drive brakes'], ['hold', 'the drive holds where it is']].map(([v, t]) => h('option', { value: v, selected: (d.onRelease || 'coast') === v }, t)))),
-              h('label', { class: 'fld' }, h('span', {}, 'Re-zero button (field arcade)'),
-                h('select', { class: 'sel', name: 'rezeroButton', disabled: api.locked(), onchange: (e) => api.set({ rezeroButton: e.target.value }) },
-                  [...new Set([d.rezeroButton || 'Y', ...api.free()])].map((b) => h('option', { value: b, selected: (d.rezeroButton || 'Y') === b }, b))))),
-            h('button', { class: 'btn ghost', disabled: api.locked(), onclick: () => api.set({ forward: undefined, turn: undefined, strafe: undefined, rampPerSecond: undefined }) },
-              'Use the library\'s defaults')),
-          h('div', {}, graph, readout)));
+            h('details', { class: 'fold feel-more', open: !!api.ui.more, ontoggle: (e) => { api.ui.more = e.target.open; } },
+              h('summary', { onclick: (e) => { api.ui.more = !e.currentTarget.parentElement.open; } }, 'More settings', h('small', {}, 'turning, ramp, letting go, re-zero')),
+              h('div', { class: 'fld' }, h('span', {}, 'The dead zone and curve above shape'),
+                h('div', { class: 'seg', role: 'tablist', 'aria-label': 'Which stick axis' }, axes.map((a) => h('button', {
+                    role: 'tab', 'aria-selected': String(axis === a), class: axis === a ? 'on' : '', onclick: () => { api.ui.axis = a; api.preview(); } }, AXIS_WORDS[a])))),
+              h('label', { class: 'fld slider' }, h('span', {}, 'Ramp', h('small', {}, rampWords(ramp))),
+                h('div', { class: 'row nowrap' },
+                  h('input', { type: 'range', min: 0, max: 10, step: 0.5, value: ramp, name: 'feel-ramp-slider', 'aria-label': 'Ramp (per second)', disabled: api.locked(),
+                               oninput: (e) => { e.target.closest('.fld').querySelector('small').textContent = rampWords(Number(e.target.value)); },
+                               onchange: (e) => api.set({ rampPerSecond: Number(e.target.value) }) }),
+                  h('input', { type: 'text', inputmode: 'decimal', class: 'num', name: 'feel-ramp', 'aria-label': 'Ramp (per second, number)', value: fmt(ramp),
+                               disabled: api.locked(), onchange: (e) => { const v = typed(e.target); if (v !== null) { api.set({ rampPerSecond: v }); } } }))),
+              h('div', { class: 'field-row' },
+                h('label', { class: 'fld' }, h('span', {}, 'When the sticks are let go'),
+                  h('select', { class: 'sel', name: 'onRelease', disabled: api.locked(), onchange: (e) => api.set({ onRelease: e.target.value }) },
+                    [['coast', 'the drive coasts'], ['brake', 'the drive brakes'], ['hold', 'the drive holds where it is']].map(([v, t]) => h('option', { value: v, selected: (d.onRelease || 'coast') === v }, t)))),
+                h('label', { class: 'fld' }, h('span', {}, 'Re-zero button (field arcade)'),
+                  h('select', { class: 'sel', name: 'rezeroButton', disabled: api.locked(), onchange: (e) => api.set({ rezeroButton: e.target.value }) },
+                    [...new Set([d.rezeroButton || 'Y', ...api.free()])].map((b) => h('option', { value: b, selected: (d.rezeroButton || 'Y') === b }, b))))),
+              h('button', { class: 'btn ghost', disabled: api.locked(), onclick: () => api.set({ forward: undefined, turn: undefined, strafe: undefined, rampPerSecond: undefined }) },
+                'Use the library\'s defaults'))),
+          h('div', { class: 'feel-right' }, graph, readout)));
     draw();
     return card;
 }
@@ -156,9 +160,11 @@ function mountGraph(el, readout, a, api) {
         const up = () => {
             window.removeEventListener('pointermove', at);
             window.removeEventListener('pointerup', up);
+            window.removeEventListener('pointercancel', up);
         };
         window.addEventListener('pointermove', at);
         window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', up);
     });
     el.replaceChildren(svg);
     place(api.ui.probe);

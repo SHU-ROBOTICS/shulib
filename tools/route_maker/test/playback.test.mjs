@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { routeKey, playbackOf, poseAt, sampleIndexAt, stepAt, stepTime, thinPath, ownersOf, noteWords } from '../src/model/playback.mjs';
+import { routeKey, playbackOf, poseAt, sampleIndexAt, stepAt, stepTime, thinPath, ownersOf, noteWords, mechanismsAt } from '../src/model/playback.mjs';
 import { ROUTES, PAIR, projectOf } from './fixtures/record.mjs';
 
 const DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'preview');
@@ -295,4 +295,47 @@ test('the recorder (fixtures/record.mjs) makes every fixture\'s route exactly, a
         assert.equal(/PROTOTYPE of the runner's pair mode/.test(f.madeBy), PAIR.has(n), `${n}: ${f.madeBy}`);
         assert.equal(!!f.result.two, PAIR.has(n));
     }
+});
+
+test('RMP1-E mechanismsAt: every state is the record\'s own at that pace; ONE accented, its target only; a record without them, none', () => {
+    // BUG CAUGHT: the strip a pace off the record, two mechanisms lit as "the one playing", a target drawn on a lift no
+    // step is moving, a reversed toggle shown forward, an old engine's record breaking the page.
+    const rec = fixture('mechanisms').result.one;
+    const [cascade, right, , claw] = rec.mechanisms;
+    assert.equal(cascade.at.length, rec.samples.length);
+    for (let i = 0; i < rec.samples.length; ++i) {
+        const ms = mechanismsAt(rec, i);
+        ms.forEach((m, k) => assert.equal(m.value, rec.mechanisms[k].at[i], `${m.name} at pace ${i}`));
+        assert.ok(ms.every((m) => !m.on && (m.kind !== 'lift' || m.target === null)));
+        assert.ok(ms[0].level >= 0 && ms[0].level <= 1);
+        assert.equal(ms[0].level, Math.min(Math.max((cascade.at[i] - cascade.bottom) / (cascade.top - cascade.bottom), 0), 1));
+    }
+    const up = rec.pageSteps[1];  // up 6 in, playing
+    const ms = mechanismsAt(rec, up.last, { name: 'cascade', target: 6 });
+    assert.deepEqual(ms.map((m) => m.on), [true, false, false, false, false, false]);
+    assert.equal(ms[0].target, 6);
+    assert.equal(ms[0].targetLevel, 6 / (cascade.top - cascade.bottom));
+    assert.match(ms[0].words, /^[56]\.\d in$/);
+    assert.equal(mechanismsAt(rec, up.last, { name: 'claw', target: null })[0].target, null, 'a claw step marks no height');
+    const set = rec.pageSteps[4];
+    assert.deepEqual([set.first, set.first + 1].map((i) => mechanismsAt(rec, i)[3].words), ['closed', 'open']);
+    assert.deepEqual([0, 1].map((k) => claw.positions[k]), ['closed', 'open']);
+    const run = rec.pageSteps[5];
+    assert.equal(mechanismsAt(rec, run.first + 1)[1].words, 'backward');
+    assert.equal(right.at[run.first + 1], -1);
+    assert.equal(mechanismsAt(rec, run.first)[1].words, 'off');
+    assert.deepEqual(mechanismsAt(rec, 1e9).map((m) => m.value), rec.mechanisms.map((m) => m.at[m.at.length - 1]), 'held at the end');
+    assert.deepEqual(mechanismsAt(rec, -3).map((m) => m.value), rec.mechanisms.map((m) => m.at[0]), 'held at the start');
+    const { mechanisms: _, ...old } = rec;
+    assert.deepEqual(mechanismsAt(old, 5), [], 'a record from before RMP1-E (no member): no strip');
+    assert.equal(mechanismsAt({ mechanisms: [{ ...claw, at: [-1] }] }, 0)[0].words, 'between positions');
+    // two that move (robot x's arm and lift): the arm's step playing marks the ARM's target, never the lift's
+    const two = { mechanisms: [{ name: 'arm', kind: 'arm', units: 'deg', bottom: 0, top: 160, placeholder: '', at: [40] },
+                               { name: 'lift', kind: 'lift', units: 'in', bottom: 0, top: 24, placeholder: '', at: [6] }] };
+    const [arm, lift] = mechanismsAt(two, 0, { name: 'arm', target: 120 });
+    assert.deepEqual([arm.on, arm.target, arm.targetLevel, arm.words], [true, 120, 0.75, '40.0 deg']);
+    assert.deepEqual([lift.on, lift.target, lift.targetLevel, lift.level], [false, null, null, 0.25]);
+    const past = { mechanisms: [{ ...two.mechanisms[1], at: [-2, 30] }] };
+    assert.deepEqual([0, 1].map((i) => mechanismsAt(past, i, { name: 'lift', target: 40 })[0]).map((m) => [m.level, m.targetLevel]),
+                     [[0, 1], [1, 1]], 'past a stop: the bar empty or full, never outside its track');
 });

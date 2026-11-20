@@ -24,6 +24,7 @@ function standinBackend() {
     const canon = (v) => (Array.isArray(v) ? `[${v.map(canon).join(',')}]`
         : v && typeof v === 'object' ? `{${Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => `${JSON.stringify(k)}:${canon(v[k])}`).join(',')}}`
             : JSON.stringify(v));
+    const without = (o, keys) => Object.fromEntries(Object.entries(o).filter(([k]) => !keys.includes(k)));
     const busy = (ms) => {
         for (const end = Date.now() + ms; Date.now() < end;) { /* the module's run is synchronous too */ }
     };
@@ -46,7 +47,8 @@ function standinBackend() {
                 const why = run && STANDIN.refuse[run.name];
                 return why ? { rc: 1, record: refused(run.one, why) }
                     : run ? { rc: STANDIN.rcOf[run.name] ?? run.rc,
-                              record: { ...run.one, ...STANDIN.patch[run.name], standinInstance: made, standinRun: ++STANDIN.ran } }
+                              record: without({ ...run.one, ...STANDIN.patch[run.name], standinInstance: made, standinRun: ++STANDIN.ran },
+                                              STANDIN.omit[run.name] || []) }
                     : { rc: 2, record: null, words: 'the stand-in engine has no recorded run of this route' };
             },
             pair(route) {
@@ -61,15 +63,16 @@ function standinBackend() {
 
 /** The Worker script: the stand-in backend, then the page's own worker.mjs. */
 export function standinScript(names, { delayMs = 0, hang = null, failLoad = '', rcOf = {}, refuse = {}, two = {}, pairRc = {}, patch = {},
-                                       together = [] } = {}) {
+                                       together = [], omit = {} } = {}) {
     const runs = {};
     for (const n of names) {
         const f = fixture(n);
         runs[routeKey(f.route)] = { name: n, ...f.result };
-        if (together.includes(n)) {  // RMP1-C: the same route answered "both robots at the same time" -- the same runs
+        if (together.includes(n)) {  // RMP1-C: the same route with "both robots at the same time?" answered -- the same runs
             runs[routeKey({ ...f.route, together: true })] = { name: n, ...f.result };
+            runs[routeKey({ ...f.route, together: false })] = { name: n, ...f.result };
         }
     }
-    return `const STANDIN = ${JSON.stringify({ runs, delayMs, hang, failLoad, rcOf, refuse, two, pairRc, patch, made: 0, ran: 0 })};\n(${standinBackend.toString()})();\n`
+    return `const STANDIN = ${JSON.stringify({ runs, delayMs, hang, failLoad, rcOf, refuse, two, pairRc, patch, omit, made: 0, ran: 0 })};\n(${standinBackend.toString()})();\n`
         + fs.readFileSync(WORKER, 'utf8');
 }

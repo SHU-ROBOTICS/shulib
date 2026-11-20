@@ -1,17 +1,16 @@
-// export_drawer.mjs — EXPORT (RMP1 brief D4, A.3.7; §1.4's states). The route's C++ — exactly what will be
-// written — with Copy (always there), and the way this browser writes it: in Chrome or Edge with the shulib
-// folder connected, straight into the ONE marked region of src/team/skills_route.cpp (its line endings kept;
-// a hand edit there refused unless the student chooses "Overwrite"); elsewhere, "pick your skills_route.cpp,
-// get the updated one back". While any step has an error the drawer shows ONLY the list of errors, each one click
-// from its step, and no code: the C++ is made only from a route with no error (a step still missing a number has
-// nothing to print). The same hand-edit choice (keep / overwrite) in both ways of writing. RMP1-C: EVERY route of the
-// project is written (one region), so an error on ANY route stops it (each listed with its route); the line each
-// autons file needs to register the routes is CHECKED, never written (D6, R2).
+// export_drawer.mjs — EXPORT (RMP1 brief D4, A.3.7; RMP1-C; RMP1-F). While any route has an error the drawer lists ONLY
+// the errors, each one click from its step. Otherwise ONE numbered card for THIS browser (Chrome or Edge: connect the
+// folder, write into the ONE marked region of src/team/skills_route.cpp; any other: pick the file, get it back, replace
+// it; or Copy), then a result that is never silent: a write is READ BACK (files.mjs), a refusal is red with its fix, a
+// hand edit is the student's choice. A success hides the steps and shows "Will it build?" and Next (to_robot.mjs). The
+// code is one click away. The line each autons file needs to register the routes is CHECKED, never written (D6, R2).
 
 import { h, icon } from './dom.mjs';
 import { exportRegion } from '../model/export.mjs';
 import { teamRoutesLine, SKILLS_ROUTE_FILE, ROBOT_ONE_AUTONS_FILE, ROBOT_TWO_AUTONS_FILE } from '../model/region.mjs';
 import { copyText } from '../host/files_download.mjs';
+import { exportSummary } from '../model/to_robot.mjs';
+import { resultCard, copyButton, willItBuild, pastePicture, nextCard } from './to_robot.mjs';
 
 /** Open the export drawer. */
 export async function openExportDrawer(app) {
@@ -71,33 +70,81 @@ export async function openExportDrawer(app) {
         return;
     }
 
-    const status = h('div', { 'aria-live': 'polite' });
-    const say = (cls, text) => status.replaceChildren(h('div', { class: `banner ${cls}` }, icon(cls === 'ok' ? 'check' : cls === 'error' ? 'error' : 'warn'), h('div', {}, text)));
-    const copyBtn = h('button', { class: 'btn', onclick: async () => {
-        const ok = await copyText(code);
-        say(ok ? 'ok' : 'warn', ok ? 'Copied. Paste it in place of everything from the ROUTE MAKER BEGIN line to its END line.'
-                                   : 'This browser would not copy: select the code above and copy it by hand.');
-    } }, icon('copy'), 'Copy the code');
+    const summary = exportSummary(routes);
+    const steps = h('div', { class: 'card xr-steps' });
+    const result = h('div', { class: 'xr-result', 'aria-live': 'polite' });
+    const next = h('div');
+    const codeView = h('details', { class: 'xr-code' },
+        h('summary', {}, `See the code: ${code.split('\n').length} lines of C++, every step explained in a comment`),
+        h('pre', { class: 'code', tabindex: '0', 'aria-label': 'The exported code' }, code));
+    /** A success: the result, then Next; the steps card has done its job. */
+    const done = (card) => {
+        steps.remove();
+        result.replaceChildren(card);
+        next.replaceChildren(nextCard(summary.names));
+    };
+    /** A refusal: red, its reason, its one fix (the one highlighted button now). */
+    const fail = (title, words, ...fix) => {
+        steps.querySelectorAll('.btn.primary').forEach((b) => b.classList.remove('primary'));
+        result.replaceChildren(resultCard('error', title, h('p', {}, words), fix.length ? h('div', { class: 'xr-fix' }, h('strong', {}, 'The fix: '), fix) : null));
+        next.replaceChildren();
+    };
+    const copy = async () => {
+        if (await copyText(code)) {
+            done(resultCard('ok', 'Copied', h('p', {}, `Now paste it over the two ROUTE MAKER lines in ${SKILLS_ROUTE_FILE}, and everything between them:`),
+                pastePicture(), willItBuild('copy', missing)));
+        } else {
+            codeView.open = true;
+            fail('Not copied', 'This browser would not copy.', 'select the code below and copy it by hand.');
+        }
+    };
+    const copyBtn = (label = 'Copy the code') => h('button', { class: 'btn', onclick: copy }, icon('copy'), label);
+    const connectBtn = () => h('button', { class: 'btn primary', onclick: async () => {
+        close();
+        await app.connect();
+        openExportDrawer(app);
+    } }, icon('folder'), 'Connect your shulib folder');
 
-    const writeCard = h('div', { class: 'card' });
     /** The student's choice for a hand edit: keep it (nothing written) or overwrite it (`again(true)`). */
     const askHandEdit = (out, again) => {
-        say('warn', out.words);
-        status.append(h('div', { class: 'row', style: 'margin-top:8px' },
-            h('button', { class: 'btn', onclick: () => say('ok', 'Kept. Nothing was written. Copy the code if you want it.') }, 'Keep their change'),
-            h('button', { class: 'btn danger', onclick: () => again(true) }, 'Overwrite')));
+        result.replaceChildren(resultCard('warn', 'Someone changed this code by hand', h('p', {}, out.words),
+            h('div', { class: 'row' },
+                h('button', { class: 'btn', onclick: () => fail('Not written: their change was kept', 'Nothing was written.',
+                    'copy the code and put your routes in by hand, or export again and choose Overwrite. ', copyBtn()) }, 'Keep their change'),
+                h('button', { class: 'btn danger', onclick: () => again(true) }, 'Overwrite'))));
     };
+    const orCopy = h('p', { class: 'xr-or' }, 'Or ', copyBtn(), ' and paste it in yourself.');
+    /** Markers gone, doubled or out of order: they go back first, and Copy goes (it pastes over those lines). */
+    const putBack = () => {
+        orCopy.remove();
+        return [`ask the coordinator to put back its one pair of ROUTE MAKER lines (git checkout ${SKILLS_ROUTE_FILE} `
+            + 'undoes changes not yet committed).'];
+    };
+    const FIX = {
+        noMarkers: putBack,
+        markerCount: putBack,
+        markerOrder: putBack,
+        failed: () => ['connect your shulib folder again, then write again. ', connectBtn()],
+        gone: () => ['connect your shulib folder again, then write again. ', connectBtn()],
+        noFolder: () => [connectBtn()],
+        differs: () => ['close the file in your editor (or let the sync finish), then ',
+                        h('button', { class: 'btn primary', onclick: () => writeOut(false) }, 'Write again')],
+    };
+    let missing = null;  // the robots whose autons file lacks its line (read when the folder is connected; null: not read)
+    /** A write that landed and then read back wrong is not "Not written": the file did change. */
+    const TITLE = { differs: 'Written, but it read back different', gone: 'Written, then the file was gone' };
     const writeOut = async (overwrite) => {
         const out = await files.exportToFile(routes, app.project(), { overwrite, robot: app.robot() });
         if (out.ok) {
             app.setProject(out.project, 'exported');
-            const saved = await app.saveQuietly();  // false: route_maker.json changed in the folder since this page read it
-            say(saved === false ? 'warn' : 'ok', `${out.words}. Only the lines between ROUTE MAKER BEGIN and END changed; the file keeps its own line endings.`
-                + (saved === false ? ' src/team/route_maker.json was NOT saved: it changed in the folder since this page read it. Press Save to choose which to keep.' : ''));
+            const saved = await app.saveQuietly().catch(() => false);  // false: route_maker.json changed in the folder since this page read it
+            done(resultCard('ok', `Written and checked: ${SKILLS_ROUTE_FILE}`, h('p', { class: 'xr-sum' }, summary.words),
+                saved === false ? h('p', { class: 'xr-warn' }, 'src/team/route_maker.json was NOT saved: it changed in the folder since this page read it. Press Save to choose which to keep.') : null,
+                willItBuild('write', missing)));
         } else if (out.why === 'handEdit') {
             askHandEdit(out, writeOut);
         } else {
-            say('warn', out.words);
+            fail(TITLE[out.why] || `Not written into ${SKILLS_ROUTE_FILE}`, out.words, ...(FIX[out.why] ? FIX[out.why]() : ['use Copy instead. ', copyBtn()]));
         }
     };
     const downloadOut = async (overwrite) => {
@@ -106,54 +153,64 @@ export async function openExportDrawer(app) {
             // the project now remembers this export (its hash) -- but only in this page until route_maker.json is
             // saved: without that, the next export from the saved file would take this code for a hand edit
             app.setProject(out.project, 'unsaved');
-            say('ok', `${out.words}. Now save the project too (Save, Ctrl+S): route_maker.json remembers what was exported, so the next export knows this code is the builder's.`);
-            status.append(h('div', { class: 'row', style: 'margin-top:8px' },
-                h('button', { class: 'btn primary', onclick: () => app.save() }, icon('save'), 'Save route_maker.json')));
+            done(resultCard('ok', 'Downloaded skills_route.cpp',
+                h('p', { class: 'xr-sum' }, `Now replace ${SKILLS_ROUTE_FILE} with it. `, copyButton(SKILLS_ROUTE_FILE, 'the path')),
+                h('p', {}, 'Use the NEWEST skills_route.cpp in your Downloads: a second download gets a number, like skills_route(1).cpp.'),
+                h('p', {}, 'Then save the project: route_maker.json remembers what was exported, so the next export knows this code is the builder\'s. ',
+                  h('button', { class: 'btn small', onclick: () => app.save() }, icon('save'), 'Save route_maker.json')),
+                willItBuild('download')));
         } else if (out.why === 'handEdit') {
             askHandEdit(out, downloadOut);
+        } else if (out.why !== 'cancelled' && out.picked !== 'skills_route.cpp') {
+            fail('Not downloaded', `You picked ${out.picked}: the routes go into ${SKILLS_ROUTE_FILE}.`, `pick ${SKILLS_ROUTE_FILE}. `,
+                h('button', { class: 'btn primary', onclick: () => downloadOut(false) }, icon('download'), 'Pick skills_route.cpp'));
         } else if (out.why !== 'cancelled') {
-            say('warn', out.words);
+            fail('Not downloaded', out.words, ...putBack());
         }
     };
+
+    /** One numbered step: `state` 'now' (the one highlighted), 'done' or 'later'. */
+    const step = (n, state, control, hint) => h('li', { class: `xr-step ${state}` },
+        h('span', { class: 'xr-num' }, state === 'done' ? icon('check') : String(n)), h('div', {}, control, h('small', {}, hint)));
+    steps.append(h('h3', {}, 'Put it into your robot\'s code'));
+    let fixFirst = null;  // the banner when the markers must go back first: no Copy, and focus on it
     if (files.canWriteFolder) {
-        const st = files.connected() ? await files.skillsFileState() : { state: 'unknown' };
-        const lines = files.connected() ? await files.teamRoutesLines() : { One: 'unknown', Two: 'unknown' };
-        writeCard.append(h('h3', {}, `Write it into ${SKILLS_ROUTE_FILE}`));
-        if (!files.connected()) {
-            writeCard.append(h('p', {}, 'Connect your shulib folder (the repository\'s top folder) once; then Export writes the route there.'),
-                h('button', { class: 'btn primary', onclick: async () => {
-                    close();
-                    await app.connect();
-                    openExportDrawer(app);
-                } }, icon('folder'), 'Connect your shulib folder'));
-        } else if (st.state === 'ready') {
-            writeCard.append(h('p', {}, `Folder: ${files.folderName()}. The builder writes ONLY between the ROUTE MAKER lines.`),
-                h('button', { class: 'btn primary', onclick: () => writeOut(false) }, icon('download'), `Write into ${SKILLS_ROUTE_FILE}`));
-        } else {
-            writeCard.append(h('div', { class: 'banner warn' }, icon('warn'),
-                h('div', {}, st.state === 'noFile' || st.state === 'noMarkers'
-                    ? `${SKILLS_ROUTE_FILE} ${st.state === 'noFile' ? 'is not in this folder yet' : 'has no ROUTE MAKER lines yet'}: it arrives with robot two's update. Until then, use Copy.`
-                    : st.words || 'The skills-route file cannot be written.')),
-                h('button', { class: 'btn primary', disabled: true }, `Write into ${SKILLS_ROUTE_FILE}`));
+        const connected = files.connected();
+        const st = connected ? await files.skillsFileState() : { state: 'unknown' };
+        const lines = connected ? await files.teamRoutesLines() : { One: 'unknown', Two: 'unknown' };
+        const ready = connected && st.state === 'ready';
+        missing = !connected ? null : [['One', ROBOT_ONE_AUTONS_FILE], ['Two', ROBOT_TWO_AUTONS_FILE]].filter(([robot]) => lines[robot] === 'missing')
+            .map(([robot, file]) => ({ robot: robot.toLowerCase(), file, line: teamRoutesLine(robot) }));
+        steps.append(h('p', { class: 'muted' }, 'Chrome or Edge: the page writes it into the file for you.'),
+            h('ol', { class: 'xr-list' },
+                step(1, connected ? 'done' : 'now', connected ? h('strong', {}, `Connected: ${files.folderName()}`) : connectBtn(),
+                     'your shulib folder: the one with src inside'),
+                step(2, ready ? 'now' : 'later', h('button', { class: `btn${ready ? ' primary' : ''}`, disabled: !ready, onclick: () => writeOut(false) },
+                    icon('download'), `Write into ${SKILLS_ROUTE_FILE}`), 'only the lines between its two ROUTE MAKER lines change')));
+        if (connected && !ready) {
+            const banner = h('div', { class: 'banner warn', tabindex: '-1' }, icon('warn'),
+                h('div', {}, st.state === 'noFile'
+                    ? `${SKILLS_ROUTE_FILE} is not in this folder yet: it arrives with robot two's update. Until then, use Copy.`
+                    : [st.state === 'noMarkers' ? `${SKILLS_ROUTE_FILE} has no ROUTE MAKER lines: someone removed them.` : st.words,
+                        h('div', { class: 'xr-fix' }, h('strong', {}, 'The fix: '), putBack())]));
+            steps.append(banner);
+            fixFirst = st.state === 'noFile' ? null : banner;
         }
-        for (const [robot, file] of [['One', ROBOT_ONE_AUTONS_FILE], ['Two', ROBOT_TWO_AUTONS_FILE]]) {
-            const st0 = lines[robot];
-            writeCard.append(h('p', { class: 'hint', 'data-line': robot }, st0 === 'present' ? `Robot ${robot.toLowerCase()} registers every route: its line is in ${file}. ✓`
-                : st0 === 'missing' ? `The line that registers the routes on robot ${robot.toLowerCase()} is missing from ${file}: tell the coordinator. The line: ${teamRoutesLine(robot)}`
-                : `Robot ${robot.toLowerCase()}'s line is checked once the folder is connected.`));
+        for (const [robot, file] of connected ? [['One', ROBOT_ONE_AUTONS_FILE], ['Two', ROBOT_TWO_AUTONS_FILE]] : []) {
+            steps.append(h('p', { class: 'hint', 'data-line': robot }, lines[robot] === 'present' ? `Robot ${robot.toLowerCase()} registers every route: its line is in ${file}. ✓`
+                : `The line that registers the routes on robot ${robot.toLowerCase()} is missing from ${file}: tell the coordinator. The line: ${teamRoutesLine(robot)}`));
         }
     } else {
-        writeCard.append(h('h3', {}, 'Put it into your skills_route.cpp'),
-            h('p', {}, 'This browser cannot write into a folder (Chrome or Edge can). Pick your src/team/skills_route.cpp: you get the updated file back as a download to put in its place.'),
-            h('button', { class: 'btn primary', onclick: () => downloadOut(false) }, icon('download'), 'Pick skills_route.cpp and download the updated one'),
-            h('p', { class: 'hint' }, 'The autons files\' lines are not checked in this browser.'));
+        steps.append(h('p', { class: 'muted' }, 'This browser cannot write into a folder (Chrome or Edge can), so it is two steps:'),
+            h('ol', { class: 'xr-list' },
+                step(1, 'now', h('button', { class: 'btn primary', onclick: () => downloadOut(false) }, icon('download'), 'Pick skills_route.cpp and download the updated one'),
+                     `pick your ${SKILLS_ROUTE_FILE}: you get it back with the routes in`),
+                step(2, 'later', h('span', { class: 'xr-path' }, 'Replace ', h('code', {}, SKILLS_ROUTE_FILE), ' with the downloaded file ',
+                    copyButton(SKILLS_ROUTE_FILE, 'the path')), 'in your shulib folder; your editor reloads it')));
     }
-    body.append(
-        h('p', { class: 'muted', style: 'margin:0' }, `${routes.length > 1 ? `All ${routes.length} routes` : 'The route'} as C++ — every step explained in a comment, the same lines you could type. The robot runs exactly this.`),
-        h('pre', { class: 'code', tabindex: '0', 'aria-label': 'The exported code' }, code),
-        h('div', { class: 'row' }, copyBtn),
-        writeCard,
-        status,
-    );
-    copyBtn.focus();
+    if (!fixFirst) {
+        steps.append(orCopy);
+    }
+    body.append(steps, result, next, codeView);
+    (fixFirst || steps.querySelector('.btn.primary') || orCopy.querySelector('button')).focus();
 }

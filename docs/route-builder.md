@@ -11,7 +11,8 @@ tested in Edge, Chrome and Firefox on Windows, and in Chromium and Firefox on Li
 
 Press **PREVIEW** and the robot drives the route right there: the real library runs it on the host test plant
 inside the page, and plays it back on a timeline you can scrub — each step marked done, failed or skipped in the
-library's own words.
+library's own words, and the mechanisms moving beside the field: the cascade rising and falling, the claw opening,
+the toggles running.
 
 [Open the route builder](route-builder/app.html){ .md-button .md-button--primary }
 [Download for offline use](route-builder/shulib-route-builder.html){ .md-button download="shulib-route-builder.html" }
@@ -28,7 +29,7 @@ push and a full push of the stick drive — and exports them into the robot's dr
 
 | Browser | What it does |
 |---|---|
-| **Edge or Chrome** (version 97 or newer) | Everything. Connect your shulib folder once: **Save** writes `src/team/route_maker.json`, **Export** writes the routes into `src/team/skills_route.cpp` and the **Controls** tab's export into the robot's driver file, each keeping the file's own line endings. |
+| **Edge or Chrome** (version 97 or newer) | Everything. Connect your shulib folder once: **Save** writes `src/team/route_maker.json`, **Export** writes the routes into `src/team/skills_route.cpp` (and reads it back) and the **Controls** tab's export into the robot's driver file, each keeping the file's own line endings. |
 | **Firefox** (115 or newer) | Everything except writing into the folder: **Save** downloads `route_maker.json`, **Export** copies the code (or hands back an updated `skills_route.cpp`, or driver file, to put in place). |
 | **Safari** (16 or newer) — not tested | Should work as Firefox does; no test runs it. |
 

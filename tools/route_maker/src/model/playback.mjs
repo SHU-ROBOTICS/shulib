@@ -227,3 +227,24 @@ export function stepTime(play, t, dir, playing = false) {
     const back = playing ? 0.05 : 1e-6;
     return dir > 0 ? marks.find((m) => m > t + 1e-6) ?? play.duration : [...marks].reverse().find((m) => m < t - back) ?? 0;
 }
+
+/**
+ * The mechanisms at the record's pace `i` (RMP1-E): each one's state FROM THE RECORD, in the robot's list's order.
+ * `playing` = {name, target}: the mechanism the step playing uses (the one accented) and its planned target.
+ */
+export function mechanismsAt(rec, i, playing = null) {
+    return (rec.mechanisms || []).map((m) => {
+        const v = m.at.length ? m.at[Math.min(Math.max(i, 0), m.at.length - 1)] : null;
+        const one = { name: m.name, kind: m.kind, on: !!playing && playing.name === m.name, value: v, placeholder: m.placeholder || '' };
+        if (m.kind === 'lift' || m.kind === 'arm') {
+            const level = (x) => Math.min(Math.max((x - m.bottom) / (m.top - m.bottom || 1), 0), 1);
+            const target = one.on && Number.isFinite(playing.target) ? playing.target : null;
+            return { ...one, level: v === null ? 0 : level(v), target, targetLevel: target === null ? null : level(target),
+                     words: v === null ? '—' : `${(Math.round(v * 10) / 10 || 0).toFixed(1)} ${m.units}` };
+        }
+        if (m.kind === 'pneumatic') {
+            return { ...one, index: v, words: v === null ? '—' : v >= 0 ? m.positions[v] : 'between positions' };
+        }
+        return { ...one, words: !v ? 'off' : v > 0 ? 'forward' : 'backward' };
+    });
+}
