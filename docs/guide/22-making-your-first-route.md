@@ -1,5 +1,8 @@
 # 22 — Making your first route with the route builder
 
+**Do this first:** [Set up your robot first](23-set-up-your-robot-first.md) — Bench Tests and Calibrate on the
+robot, before you make a route.
+
 The **route builder** is a web page where you build your team's routes — the skills route and any other you name —
 by clicking on the real field, and get the C++ for the robot out of it. You place robot one's start, add steps — drive here, curve through there, open the
 claw — and the page checks every step against the library's own rules as you go. When the route is right, you
@@ -233,6 +236,18 @@ waits. The **skills** route — the competition's — keeps its name and is alwa
 autons, and those two take 2: at most 14 routes.
 
 ## The driver's buttons and the driving feel
+
+**Quick start — the Controls tab in 5 steps**
+
+1. Click **Controls** in the top bar: robot one's controller.
+2. Click a button, then pick its job (a dashed button is free).
+3. Set the feel: the dead zone and the curve.
+4. **Export** (**Ctrl+E**) → **Write into src/team/robot_one_driver.hpp**.
+5. Pick robot **two**, do the same, then build and upload.
+
+<video controls preload="metadata" poster="../assets/video/controls-tab.jpg" src="../assets/video/controls-tab.mp4" style="max-width:100%"></video>
+
+Music: "Wallpaper" by Kevin MacLeod ([incompetech.com](https://incompetech.com)), licensed under [Creative Commons: By Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). Voice: Kokoro.
 
 The **Controls** tab (top bar, beside **Route**) sets what each button does in driver control and how the sticks
 feel. It edits robot one's driver file, `src/team/robot_one_driver.hpp` (or robot two's — pick **one** or **two**

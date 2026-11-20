@@ -1,5 +1,8 @@
 # Route builder
 
+**Do this first:** [Set up your robot first](guide/23-set-up-your-robot-first.md) — Bench Tests and Calibrate on
+the robot, before you make a route.
+
 Build your routes — the skills route and any other you name, each picked by its name on the brain's menu — by
 clicking on the real field, see at once anything the robot would refuse, and export the C++ for the robot — in the
 browser, with nothing to install. Robot two's mirrored start and path are drawn beside robot one's, and when both

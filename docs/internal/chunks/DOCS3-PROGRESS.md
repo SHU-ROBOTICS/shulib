@@ -531,3 +531,30 @@ comment (`test/pros_digital_adapter_test.cpp` :32, unrelated, not N1's); HA-56's
   obvious (the precondition handler first; never a routine in `autonomous()`). Dropped, not moved: the "what has run" status
   block (stale: robot one has run library motion since 2026-11-17) and the build-history notes (the chunk records hold
   them). The gate's main.cpp plants (cases 18–22) match code lines, untouched.
+
+## Set up your robot first — guide 23 (2026-11-19, the team lead's ask)
+
+- **The team lead, 2026-11-19:** "please make a tutorial for the calibrate and bench test app usage so that people make
+  sure to do that before using the route builder". For the builders, before Saturday Nov 21.
+- **`docs/guide/23-set-up-your-robot-first.md` (new, menu: Robot → Set up, first):** what you need; 1 upload Bench Tests
+  (slot 3) and Calibrate (slot 4) — `make ROBOT=one` / `ROBOT=tank` and the `pros upload` lines; 2 Bench Tests — tiles 1,
+  4, 5, 2, then station 13 (its controls, each mechanism's direction check, the cascade's bottom-stop / level / top-stop
+  RECORDs and RECORD's big `output … deg` line, the side toggles, the pistons, every self-stop line and its one action)
+  and a "what to send" table keyed to the facts form's items; 3 Calibrate — one run (1/4 IMU, 2/4 PUSH 48 in front
+  first then DONE, 3/4 PULSES finding the sides, 4/4 SPIN, SAVED, RUN AGAIN for a second agreeing run), FRONT FLIPPED,
+  MECHANISM PORT TURNED, every STOPPED word with its do-line (from `calibrate_panel.hpp`'s `stoppedWords`), CANNOT START,
+  NOT SAVED; 4 check in shulib Drive (slot 1), with the controller map picture; 5 the route builder; "If something goes
+  wrong". **Written to tonight's programs:** CAL2's Calibrate (the pulses that find the sides, FINDING LEFT, SIDES
+  UNCLEAR, the follower SIGN MISMATCH) and S13UX's station 13 (the "what to do now" line, the 3 s cut re-armed by L1
+  released and held, the fault cuts' DONE-then-reopen, the cap applied and shown on the bottom line, RECORD's big
+  line, the lift's numbered steps) — the page must land after both.
+- **Its picture, `docs/assets/setup-first.svg`,** drawn by `tools/docs_figures/setup_first.py` FROM the page's own
+  `## N. Title` steps and the one-line italic caption under each (numbered in order; a title or caption too long for its
+  box refused) — `check` and a 15-case `self-test` (a planted failing case must exit 1; each scratch case seen failing)
+  in the suite's doc gates beside build_to_program's (COMMAND lines and DEPENDS), listed in "How these pages stay true".
+  Rendered once in Chromium and looked at: five boxes, numbered circles, the last (the route builder) green.
+- **"Do this first"** lines at the top of `docs/route-builder.md` and guide 22; the front page's "Set up a new robot" row
+  leads with it; guide/README.md row 23.
+- **Checks (in the worktree, capped):** doc_readability check-nav / check-tone / self-test OK; setup_first self-test and
+  check OK; first_week check OK; build_to_program check OK; api_doc_tool check-removability OK; doc_staleness_audit
+  clean.

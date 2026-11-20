@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Set up your robot first</title>
+<!-- The tutorial video: one idea per beat. The beats (what is said, what the caption shows) are beats.json;
+     record.mjs hands them in as window.BEATS, with each narration file's length as window.NARR, and records the
+     page. This file draws each beat: one element, large, with one highlight. Every brain-screen word is quoted
+     from src/programs/bench_r3a.{hpp,cpp} (the menu, station 13) or calibrate_panel.hpp (Calibrate).
+     ?t=SECONDS shows one moment; ?play plays it (both need BEATS: served over http, or through record.mjs). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#eef2f8; --mute:#93a0b4; --dim:#5f6b80; --line:rgba(255,255,255,.09);
+  --acc:#5aa9ff; --warm:#ffb547; --ok:#45d483;
+  --ui:"Inter","Noto Sans","DejaVu Sans",sans-serif;
+  --disp:"Space Grotesk","Inter","Noto Sans","DejaVu Sans",sans-serif;
+  --mono:"JetBrains Mono","DejaVu Sans Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#060b16}
+body{width:1280px;height:720px;overflow:hidden;font-family:var(--ui);color:var(--ink)}
+#stage{position:relative;width:1280px;height:720px;overflow:hidden;
+  background:radial-gradient(1000px 620px at 50% 30%, rgba(40,74,150,.42) 0%, rgba(40,74,150,0) 65%), linear-gradient(180deg,#0c1631 0%,#070d1c 100%)}
+#noise{position:absolute;inset:0;opacity:.045;pointer-events:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .7 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+/* the step bar: small and quiet */
+#top{position:absolute;left:0;top:0;width:1280px;height:44px;display:flex;align-items:center;justify-content:center;gap:8px;z-index:8}
+.pill{position:relative;height:24px;border-radius:999px;padding:0 12px;display:flex;align-items:center;gap:7px;font:600 12.5px var(--ui);color:#4f5b70;overflow:hidden}
+.pill .n{width:17px;height:17px;border-radius:50%;border:1.3px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:10px}
+.pill .bar{position:absolute;left:12px;right:12px;bottom:1px;height:2px;border-radius:2px;background:var(--acc);transform-origin:0 50%;transform:scaleX(0)}
+.sep{width:18px;height:1px;background:rgba(255,255,255,.1)}
+/* shots: each fills the picture area; one is shown at a time */
+.shot{position:absolute;left:0;top:44px;width:1280px;height:556px;opacity:0;overflow:hidden}
+.kick{font:700 15px/1 var(--ui);letter-spacing:.18em;text-transform:uppercase;color:var(--acc)}
+.card{position:absolute;background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.09);
+  border-radius:20px;box-shadow:0 18px 44px rgba(0,0,0,.36)}
+.term{position:absolute;background:#081022;border:1px solid rgba(255,255,255,.1);border-radius:18px;overflow:hidden;box-shadow:0 22px 50px rgba(0,0,0,.45)}
+.term .tb{height:38px;background:rgba(255,255,255,.05);display:flex;align-items:center;padding-left:18px;gap:8px;color:var(--mute);font:500 14px var(--ui)}
+.term .tb i{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.16)}
+.term .ln{font:500 27px/1.9 var(--mono);color:#e6ebf3;white-space:pre;padding-left:30px;height:51px}
+.term .ln:first-of-type{margin-top:18px}
+/* the brain screen mockup */
+.brainbox{position:absolute;left:0;top:0;transform-origin:0 0}
+.brainbox .lbl{height:24px;font:600 12.5px/24px var(--ui);letter-spacing:.06em;color:var(--mute);padding-left:4px;text-transform:uppercase}
+.brainbox .lbl b{color:#1b1200;background:var(--warm);border-radius:5px;padding:2px 6px;margin-right:6px;letter-spacing:.08em}
+.bezel{background:linear-gradient(180deg,#2c3443,#1b212c);border-radius:20px;padding:12px;box-shadow:0 24px 56px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08)}
+.scr{position:relative;width:480px;height:240px;background:#000;overflow:hidden;border-radius:3px}
+.scr .l{position:absolute;white-space:pre;font-family:"DejaVu Sans Mono",monospace;line-height:1}
+.scr .S{font-size:12px}.scr .M{font-size:17px}.scr .L{font-size:30px;font-weight:700}
+.scr .b{position:absolute;border:2px solid #6e9ad8;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:"DejaVu Sans Mono",monospace;font-weight:700;font-size:15px;color:#fff;text-align:center;line-height:1.1;background:#1b2230}
+.scr .b small{font-size:11px;font-weight:400;opacity:.85;margin-top:2px}
+.scr .hdrbar{position:absolute;left:0;top:0;width:480px;height:27px;font-family:"DejaVu Sans Mono",monospace;font-weight:700;font-size:17px;line-height:27px;padding-left:8px}
+.scr .rip{position:absolute;border-radius:50%;border:3px solid #fff;box-shadow:0 0 10px rgba(255,255,255,.6)}
+.scr .tip{position:absolute;border-radius:50%;background:rgba(255,255,255,.9)}
+.scr .flash{position:absolute;inset:0;background:#fff}
+/* the one highlight: everything else dimmed and softened, a ring, a short label */
+.dim{position:absolute;background:rgba(4,8,18,.66);z-index:5;pointer-events:none}
+#ring{position:absolute;border-radius:16px;border:2.5px solid var(--acc);z-index:6;pointer-events:none;opacity:0}
+#lbl{position:absolute;z-index:7;pointer-events:none;opacity:0;padding:7px 15px;border-radius:999px;background:var(--acc);color:#061226;font:700 19px var(--ui);white-space:nowrap;
+  box-shadow:0 8px 22px rgba(0,0,0,.35)}
+#cap{position:absolute;left:0;top:600px;width:1280px;height:120px;z-index:9;display:flex;align-items:center;justify-content:center;padding:0 60px;
+  background:rgba(8,14,30,.7);backdrop-filter:blur(18px) saturate(1.2);border-top:1px solid rgba(255,255,255,.08)}
+#capt{font:500 39px/1.25 var(--ui);text-align:center;letter-spacing:-.008em;color:#f3f6fb}
+#capt b{font-weight:700;color:#8ec5ff}
+svg text{font-family:var(--ui)}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="noise"></div>
+  <div id="top"></div>
+  <div id="shots"></div>
+  <div class="dim" id="d0"></div><div class="dim" id="d1"></div><div class="dim" id="d2"></div><div class="dim" id="d3"></div>
+  <div id="ring"></div><div id="lbl"></div>
+  <div id="mock" style="position:absolute;left:22px;top:56px;z-index:8;font:600 12.5px var(--ui);letter-spacing:.06em;color:#b8c3d4;text-transform:uppercase;opacity:0"><b style="color:#1b1200;background:var(--warm);border-radius:5px;padding:2px 6px;margin-right:6px;letter-spacing:.08em">Mockup</b>V5 brain screen &middot; layout approximate<span id="bx"></span></div>
+  <div id="cap"><div id="capt"></div></div>
+  <span style="position:absolute;left:-999px;font:400 10px var(--ui)">a<b style="font-weight:700">b</b><span style="font:700 10px var(--disp)">c</span><span style="font:500 10px var(--mono)">d</span></span>
+</div>
+
+<script>
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const prog = (t, a, b) => ease(clamp((t - a) / (b - a), 0, 1));
+const lin = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const one = (s) => (Math.floor(s * 10) / 10).toFixed(1);
+const R = (el) => { const r = el.getBoundingClientRect(); return {x: r.left, y: r.top, w: r.width, h: r.height}; };
+const ACC = '#5aa9ff', WARM = '#ffb547';
+const AREA = {x: 0, y: 44, w: 1280, h: 556};
+const CD = 1.9;  // a step's title card shows this long before the beat's picture
+
+// ── the beats: from record.mjs (window.BEATS), else read beside this page ─────────────────────────────────
+let BEATS = window.BEATS;
+if (!BEATS) {
+  try { const x = new XMLHttpRequest(); x.open('GET', 'beats.json', false); x.send(); BEATS = JSON.parse(x.responseText); } catch (e) { BEATS = []; }
+}
+const NARR = window.NARR || {};
+
+// ── the shots ─────────────────────────────────────────────────────────────────────────────────────────
+const SHOTS = {};
+function shot(id, html) {
+  const el = document.createElement('div');
+  el.className = 'shot';
+  el.id = 'shot-' + id;
+  el.innerHTML = html;
+  $('#shots').appendChild(el);
+  SHOTS[id] = el;
+  return el;
+}
+
+// the brain screen mockup (words: the programs'; layout: approximate), with a camera that zooms to one part
+const TONE = {W: '#f0f0f0', A: '#ffb020', G: '#36d46a', R: '#ff5a4f', Y: '#a0a6ad'};
+const BZ = 1.7;  // the brain's own zoom: its 480 x 240 screen drawn 816 x 408
+const BRAIN = (() => {
+  const el = shot('brain', `<div class="brainbox"><div class="lbl"></div><div class="bezel"><div class="scr" style="zoom:${BZ}"></div></div></div>`);
+  const box = $('.brainbox', el), scr = $('.scr', el);
+  let key = '';
+  const cam = {s: 1, x: 240, y: 112, ts: 1, tx: 240, ty: 112};
+  const W = 480 * BZ + 24, H = 240 * BZ + 24 + 24;
+  const f = (px, py) => [12 + px * BZ, 36 + py * BZ];
+  return {
+    extra(t) { $('#bx').innerHTML = t; },
+    aim(r, s) {  // r: the brain-pixel rectangle to centre on; s: its zoom (1 = the whole screen)
+      if (!r) { cam.ts = 1; cam.tx = 240; cam.ty = 112; return; }
+      cam.ts = s; cam.tx = (r[0] + r[2]) / 2; cam.ty = (r[1] + r[3]) / 2;
+    },
+    step(k) {
+      cam.s += (cam.ts - cam.s) * k; cam.x += (cam.tx - cam.x) * k; cam.y += (cam.ty - cam.y) * k;
+      let [fx, fy] = f(cam.x, cam.y);
+      const ww = AREA.w / cam.s, wh = AREA.h / cam.s;  // the window, in the box's own pixels
+      fx = ww >= W ? W / 2 : clamp(fx, ww / 2, W - ww / 2);
+      fy = wh >= H ? Math.min(fy, H / 2) : clamp(fy, wh / 2, H - wh / 2);
+      const tx = AREA.w / 2 - cam.s * fx, ty = AREA.h / 2 - cam.s * fy + 6;
+      box.style.transform = `translate(${tx.toFixed(1)}px,${ty.toFixed(1)}px) scale(${cam.s.toFixed(4)})`;
+    },
+    rect(x0, y0, x1, y1, pad = 6) {
+      const r = scr.getBoundingClientRect(), k = r.width / 480;
+      return {x: r.left + x0 * k - pad, y: r.top + y0 * k - pad, w: (x1 - x0) * k + 2 * pad, h: (y1 - y0) * k + 2 * pad};
+    },
+    set(spec) {
+      const k = JSON.stringify(spec);
+      if (k === key) return;
+      key = k;
+      let h = '';
+      if (spec.hdr) {
+        const [txt, tone] = spec.hdr;
+        const bg = {B: '#2f6fd6', A: '#ffb020', G: '#36d46a', R: '#e2564a', N: '#22385a'}[tone];
+        h += `<div class="hdrbar" style="background:${bg};color:${tone === 'A' || tone === 'G' ? '#000' : '#fff'};${tone === 'N' ? 'height:20px;line-height:20px;font-size:12px' : ''}">${esc(txt)}</div>`;
+      }
+      for (const [x, y, size, tone, text] of spec.lines || []) h += `<div class="l ${size}" style="left:${x}px;top:${y}px;color:${TONE[tone]}">${esc(text)}</div>`;
+      for (const b of spec.btns || []) {
+        const [x0, y0, x1, y1, lab, sub, tone, pressed] = b;
+        const fill = {G: '#1f7a3c', R: '#b8352c', A: '#8a5c00', N: '#1b2230', K: '#232831'}[tone || 'N'];
+        const bd = {G: '#36d46a', R: '#ff5a4f', A: '#ffb020', N: '#6e9ad8', K: '#4a515c'}[tone || 'N'];
+        h += `<div class="b" style="left:${x0}px;top:${y0}px;width:${x1 - x0}px;height:${y1 - y0}px;background:${fill};border-color:${bd};${pressed ? 'transform:scale(.94);filter:brightness(1.5);' : ''}">${esc(lab).replace(/\n/g, '<br>')}${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
+      }
+      if (spec.html) h += spec.html;
+      if (spec.tap) {
+        const {x, y, age} = spec.tap;
+        const r = 10 + 34 * ease(Math.min(age / 0.6, 1)), op = 1 - Math.min(age / 0.75, 1);
+        h += `<div class="rip" style="left:${x - r}px;top:${y - r}px;width:${2 * r}px;height:${2 * r}px;opacity:${op.toFixed(2)}"></div>`;
+        if (age < 0.32) h += `<div class="tip" style="left:${x - 9}px;top:${y - 9}px;width:18px;height:18px;opacity:${(1 - age / 0.32).toFixed(2)}"></div>`;
+      }
+      if (spec.flash) h += `<div class="flash" style="opacity:${spec.flash.toFixed(2)}"></div>`;
+      scr.innerHTML = h;
+    },
+  };
+})();
+function tapBtn(spec, i, bt, at) {
+  const a = bt - at;
+  if (a >= 0 && a < 0.8) {
+    const b = spec.btns[i];
+    spec.tap = {x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2, age: +a.toFixed(2)};
+    if (a < 0.22) b[7] = 1;
+  }
+  return spec;
+}
+
+// Bench Tests' menu (kMenu)
+const MENU = [
+  ['1 DEVICE', 'CENSUS', 0, 0], ['2 IMU +', 'ROTATE', 1, 0], ['3 MOTOR', 'WATCH', 1, 0], ['4 BATT/CTRL', '', 1, 0],
+  ['5 SD CARD', 'PROBE', 0, 0], ['6 LOOP RATE', '', 0, 0], ['7 RUN ALL', '', 1, 0], ['8 MOTORS', 'STATIC', 0, 0],
+  ['9 SCREEN', 'RULER', 1, 0], ['10 DRIVE', 'POWERS', 1, 1], ['11 DISTANCE', '', 1, 0], ['12 AI', 'VISION', 1, 0],
+  ['13 MECH', 'POWERS', 1, 1],
+];
+const tileBox = (n) => { const i = n - 1, c = i % 5, r = Math.floor(i / 5); return [2 + c * 96, 40 + r * 67, 94 + c * 96, 103 + r * 67]; };
+function menuSpec(sel, done, bt, tapAt) {
+  let html = '';
+  MENU.forEach(([a, b, hands, powers], i) => {
+    const n = i + 1, [x0, y0, x1, y1] = tileBox(n);
+    const stripe = powers ? '#e2564a' : hands ? '#ffb020' : '#2e3a4d';
+    const dot = done.includes(n) ? 'background:#36d46a;border-color:#36d46a;box-shadow:0 0 8px #36d46a' : '';
+    const pressed = sel === n && bt - tapAt >= 0 && bt - tapAt < 0.22;
+    html += `<div style="position:absolute;left:${x0}px;top:${y0}px;width:${x1 - x0}px;height:${y1 - y0}px;border-radius:6px;background:${sel === n ? '#1d3150' : '#162033'};border:2px solid ${sel === n ? '#5aa9ff' : '#3b4a62'};border-left:6px solid ${stripe};${pressed ? 'transform:scale(.94);' : ''}">
+      <div style="position:absolute;right:5px;top:5px;width:10px;height:10px;border-radius:50%;border:2px solid #8a94a3;${dot}"></div>
+      <div style="position:absolute;left:6px;top:14px;font:700 ${a.length <= 8 ? 16 : a.length <= 10 ? 13 : 12}px 'DejaVu Sans Mono',monospace;color:#fff;white-space:pre">${a}</div>
+      <div style="position:absolute;left:6px;top:38px;font:12px 'DejaVu Sans Mono',monospace;color:#c8d8f0">${b}</div></div>`;
+  });
+  const spec = {lines: [[8, 3, 'M', 'W', 'Bench Tests'], [250, 3, 'S', 'G', 'SD: logging'], [8, 22, 'S', 'Y', 'READ-ONLY except 10 + 13 (power motors)']], html};
+  if (sel && bt - tapAt >= 0 && bt - tapAt < 0.8) { const [x0, y0, x1, y1] = tileBox(sel); spec.tap = {x: (x0 + x1) / 2, y: (y0 + y1) / 2, age: +(bt - tapAt).toFixed(2)}; }
+  return spec;
+}
+// station 13's page (bench_r3a.cpp's layout, approximate) and its prompts
+const ROW = () => [[4, 174, 156, 236, 'NEXT', 'mechanism', 'N'], [164, 174, 316, 236, 'RECORD', '', 'N'], [324, 174, 476, 236, 'DONE', 'all safe', 'N']];
+const DO_R = [4, 47, 476, 66];
+function s13(o) {
+  const lines = [[8, 27, 'M', o.titleTone || 'W', o.title], [8, 51, 'S', o.doTone || 'A', o.doNow]];
+  (o.lines || []).forEach((l, k) => lines.push([8, 72 + 16 * k, 'S', o.lineTone || 'W', l]));
+  if (o.status) lines.push([8, 154, 'S', 'W', o.status]);
+  return {hdr: ['13 MECHANISMS -- POWERS', 'N'], lines, btns: o.btns || ROW()};
+}
+function prompt13(o) {
+  return {
+    hdr: ['13 MECHANISMS -- POWERS', 'N'],
+    lines: [[8, 28, 'M', 'A', o.title], [8, 52, 'S', 'W', o.sub], ...(o.foot1 ? [[8, 166, 'S', 'Y', o.foot1]] : []), ...(o.foot2 ? [[8, 184, 'S', 'Y', o.foot2]] : [])],
+    btns: [[8, 74, 236, 154, o.yes, o.yesSmall || '', 'G'], [244, 74, 472, 154, 'NO', o.noSmall, 'K']],
+  };
+}
+const sg = (v) => (v < 0 ? '-' : '+') + Math.abs(v).toFixed(1);
+const CASC = (deg, amps) => [`motor 1 (port 10) ${sg(deg)} deg ${amps} A 31C`, `motor 2 (port 1) ${sg(deg)} deg ${amps} A 31C`];
+const G2 = ['To measure it, RECORD at each step (2 of 2):', '  1. its bottom stop: RECORDed', '> 2. Top stop: UP at 3-6 V till it stops; RECORD'];
+const LIFT_DO = 'UP raises, DOWN lowers; A checks its way (L1 held)';
+const ABORT_SLOT = () => [330, 180, 474, 234, 'ABORT', '', 'R'];
+const FLIPPED = () => ({hdr: ['FRONT FLIPPED', 'A'], lines: [[8, 30, 'L', 'A', 'NOTHING SAVED YET'], [8, 160, 'M', 'A', 'the card calls the end you led BACK'], [8, 180, 'S', 'W', 'RUN AGAIN: you led with the BACK by mistake'], [8, 196, 'S', 'W', 'USE NEW: you led with the FRONT (cables swapped?)'], [8, 212, 'S', 'A', 'USE NEW after a wrong push reverses every auton']],
+  btns: [[6, 72, 234, 158, 'USE NEW', '', 'A'], [246, 72, 474, 158, 'RUN AGAIN', '', 'N']]});
+const SAVED = () => ({hdr: ['SAVED', 'G'], lines: [[8, 30, 'L', 'G', 'LEFT 5  RIGHT 5'], [8, 70, 'M', 'W', 'ipr L 1.62500 R 1.62500'], [8, 92, 'M', 'W', 'track 12.500 in'], [8, 180, 'S', 'W', 'NEXT: copy these, then RUN AGAIN to check'], [8, 212, 'S', 'A', 'FIRST RECORD -- the end you pushed first is FRONT']],
+  btns: [[246, 112, 474, 158, 'RUN AGAIN', '', 'N']]});
+
+// the controller
+function controllerSvg(w) {
+  const btn = (id, x, y, ww, hh, t, r = 6) =>
+    `<g id="${id}" class="cbtn"><rect class="cb" x="${x}" y="${y}" width="${ww}" height="${hh}" rx="${r}" fill="#343c4b" stroke="#566176" stroke-width="2"/>` +
+    `<text class="ct" x="${x + ww / 2}" y="${y + hh / 2 + 7}" text-anchor="middle" font-size="19" font-weight="800" fill="#eef2f8">${t}</text></g>`;
+  const circ = (id, x, y, r, t) =>
+    `<g id="${id}" class="cbtn"><circle class="cb" cx="${x}" cy="${y}" r="${r}" fill="#343c4b" stroke="#566176" stroke-width="2"/>` +
+    `<text class="ct" x="${x}" y="${y + 7}" text-anchor="middle" font-size="19" font-weight="800" fill="#eef2f8">${t}</text></g>`;
+  return `<svg id="ctlsvg" width="${w}" height="${w * 0.72}" viewBox="0 0 600 432">
+    <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a3140"/><stop offset="1" stop-color="#1a1f29"/></linearGradient></defs>
+    ${btn('L2', 70, 18, 120, 34, 'L2', 12)}${btn('L1', 70, 58, 120, 34, 'L1', 12)}
+    ${btn('R2', 410, 18, 120, 34, 'R2', 12)}${btn('R1', 410, 58, 120, 34, 'R1', 12)}
+    <path d="M 90 100 L 510 100 Q 560 100 568 150 L 590 330 Q 596 390 540 396 Q 500 400 470 360 L 440 320 L 160 320 L 130 360 Q 100 400 60 396 Q 4 390 10 330 L 32 150 Q 40 100 90 100 Z" fill="url(#cg)" stroke="#465065" stroke-width="2.5"/>
+    <rect x="245" y="125" width="110" height="54" rx="7" fill="#0a0d13" stroke="#465065" stroke-width="2"/>
+    <circle cx="150" cy="180" r="50" fill="#141820" stroke="#465065" stroke-width="3"/><circle id="LSk" cx="150" cy="180" r="30" fill="#343c4b" stroke="#566176" stroke-width="2"/>
+    <circle cx="450" cy="180" r="50" fill="#141820" stroke="#465065" stroke-width="3"/><circle id="RSk" cx="450" cy="180" r="30" fill="#343c4b" stroke="#566176" stroke-width="2"/>
+    ${btn('UP', 180, 238, 44, 36, '&#9650;')}${btn('DOWN', 180, 314, 44, 36, '&#9660;')}${btn('LEFT', 136, 276, 44, 36, '&#9664;')}${btn('RIGHT', 224, 276, 44, 36, '&#9654;')}
+    ${circ('X', 400, 250, 21, 'X')}${circ('A', 444, 293, 21, 'A')}${circ('B', 400, 336, 21, 'B')}${circ('Y', 356, 293, 21, 'Y')}
+    <g id="dpad"><rect x="136" y="238" width="132" height="112" fill="none"/></g>
+  </svg>`;
+}
+function ctl(lit, press = {}) {
+  SHOTS.ctl.querySelectorAll('g.cbtn').forEach((g) => {
+    const r = g.querySelector('.cb'), t = g.querySelector('.ct');
+    const on = lit.includes(g.id);
+    r.setAttribute('fill', on ? ACC : '#343c4b');
+    r.setAttribute('stroke', on ? '#d6e9ff' : '#566176');
+    r.style.filter = on ? 'drop-shadow(0 0 12px rgba(90,169,255,.9))' : '';
+    t.setAttribute('fill', on ? '#061226' : '#eef2f8');
+    const a = press[g.id];
+    const s = a !== undefined && a >= 0 && a < 0.3 ? 1 - 0.16 * Math.sin((a / 0.3) * Math.PI) : 1;
+    g.style.transformBox = 'fill-box'; g.style.transformOrigin = 'center'; g.style.transform = `scale(${s.toFixed(3)})`;
+  });
+}
+const pAge = (bt, at) => (bt >= at && bt < at + 0.3 ? bt - at : undefined);
+
+// the robot from above: five drive motors a side; its FRONT is the leading end (the green edge, the arrow, the word)
+function robotSvg(id) {
+  let m = '';
+  for (let s = 0; s < 2; s++) for (let k = 0; k < 5; k++) {
+    m += `<g id="${id}m${s * 5 + k}" transform="translate(${-48 + 24 * k},${s ? 36 : -36})"><circle r="10" fill="#3a4456" stroke="#9aa6b8" stroke-width="2"/><g class="sp"><line x1="0" y1="0" x2="0" y2="-8" stroke="#eef2f8" stroke-width="3" stroke-linecap="round"/></g></g>`;
+  }
+  const wheel = (x, y) => `<rect x="${x}" y="${y}" width="30" height="12" rx="4" fill="#1d2330" stroke="#566176" stroke-width="1.5"/>`;
+  return `<g id="${id}"><g id="${id}r">
+    ${wheel(-52, -70)}${wheel(-15, -70)}${wheel(22, -70)}${wheel(-52, 58)}${wheel(-15, 58)}${wheel(22, 58)}
+    <rect x="-66" y="-58" width="132" height="116" rx="14" fill="#263044" stroke="#a6b2c4" stroke-width="2.5"/>
+    <path id="${id}lA" d="M -48 -36 L 48 -36" stroke="${ACC}" stroke-width="5" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+    <path id="${id}lB" d="M -48 36 L 48 36" stroke="#dfe7f5" stroke-width="5" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+    ${m}
+    <rect x="61" y="-56" width="9" height="112" rx="4" fill="#45d483"/>
+    <path d="M 70 -15 L 90 0 L 70 15 Z" fill="#45d483"/>
+    <text x="96" y="7" font-size="19" font-weight="800" letter-spacing=".05em" fill="#45d483">FRONT</text>
+    <text id="${id}gA" x="0" y="-12" text-anchor="middle" font-size="17" font-weight="800" fill="${ACC}" opacity="0">A</text>
+    <text id="${id}gB" x="0" y="24" text-anchor="middle" font-size="17" font-weight="800" fill="#dfe7f5" opacity="0">B</text>
+  </g></g>`;
+}
+function motors(id, f) {
+  for (let k = 0; k < 10; k++) {
+    const g = document.getElementById(id + 'm' + k);
+    const o = f(k) || {};
+    g.querySelector('circle').setAttribute('fill', o.fill || '#3a4456');
+    g.querySelector('.sp').setAttribute('transform', `rotate(${(o.angle || 0).toFixed(1)})`);
+    g.setAttribute('transform', `translate(${(-48 + 24 * (k % 5) + (o.dx || 0)).toFixed(1)},${k >= 5 ? 36 : -36})`);
+  }
+}
+const ARROW = (id, c) => `<marker id="${id}" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="${c}"/></marker>`;
+
+// ── building the shots ──────────────────────────────────────────────────────────────────────────────────
+shot('card', `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+  <div class="kick" id="cardk"></div><div id="cardt" style="font:700 66px/1.08 var(--disp);letter-spacing:-.025em;margin-top:18px;max-width:1100px"></div>
+  <div style="width:72px;height:4px;border-radius:2px;background:var(--acc);margin-top:26px"></div></div>`);
+shot('words', `<div id="words" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center"></div>`);
+const NEED = [['The robot', 'robot'], ['A battery', 'battery'], ['The controller', 'ctl'], ['An SD card', 'sd'], ['48 in of tape', 'tape'], ['Two people', 'people'], ['A laptop', 'laptop']];
+function icon(kind) {
+  const s = 'fill="none" stroke="#cfe0f5" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"';
+  return {
+    robot: `<rect x="28" y="22" width="64" height="56" rx="10" ${s}/><rect x="20" y="28" width="8" height="18" rx="3" ${s}/><rect x="92" y="28" width="8" height="18" rx="3" ${s}/><rect x="20" y="54" width="8" height="18" rx="3" ${s}/><rect x="92" y="54" width="8" height="18" rx="3" ${s}/><path d="M 52 50 L 68 50 M 62 44 L 68 50 L 62 56" ${s}/>`,
+    battery: `<rect x="24" y="30" width="66" height="40" rx="8" ${s}/><rect x="90" y="42" width="7" height="16" rx="2" ${s}/><path d="M 34 50 h 12 M 40 44 v 12 M 64 50 h 14" ${s}/>`,
+    ctl: `<path d="M 30 34 h 60 q 10 0 12 12 l 4 22 q 2 10 -8 10 q -6 0 -10 -8 l -4 -6 h -48 l -4 6 q -4 8 -10 8 q -10 0 -8 -10 l 4 -22 q 2 -12 12 -12 z" ${s}/><circle cx="44" cy="50" r="6" ${s}/><circle cx="76" cy="50" r="6" ${s}/>`,
+    sd: `<path d="M 40 22 h 34 l 12 12 v 46 q 0 4 -4 4 h -42 q -4 0 -4 -4 v -54 q 0 -4 4 -4 z" ${s}/><path d="M 48 30 v 10 M 56 30 v 10 M 64 30 v 10" ${s}/>`,
+    tape: `<rect x="10" y="42" width="100" height="16" rx="3" ${s}/><path d="M 22 58 v -6 M 34 58 v -9 M 46 58 v -6 M 58 58 v -9 M 70 58 v -6 M 82 58 v -9 M 94 58 v -6" ${s}/>`,
+    people: `<circle cx="44" cy="36" r="10" ${s}/><path d="M 26 76 q 0 -22 18 -22 q 18 0 18 22" ${s}/><circle cx="78" cy="36" r="10" ${s}/><path d="M 60 76 q 0 -22 18 -22 q 18 0 18 22" ${s}/>`,
+    laptop: `<rect x="28" y="24" width="64" height="42" rx="5" ${s}/><path d="M 16 74 h 88 l -6 8 h -76 z" ${s}/>`,
+  }[kind];
+}
+shot('need', `<div style="position:absolute;left:0;top:96px;width:1280px;text-align:center"><div class="kick">What you need</div></div>
+  <div style="position:absolute;left:70px;top:190px;width:1140px;display:flex;justify-content:space-between">${NEED.map(([t, k], i) =>
+    `<div id="nd${i}" style="width:150px;text-align:center;opacity:0"><svg width="120" height="100" viewBox="0 0 120 100">${icon(k)}</svg><div style="font:600 19px/1.3 var(--ui);margin-top:12px">${t}</div></div>`).join('')}</div>`);
+shot('term', `<div class="term" id="term" style="left:170px;top:120px;width:940px;height:300px"><div class="tb"><i></i><i></i><i></i><span style="margin-left:10px">terminal &middot; in the shulib folder</span></div>
+  <div class="ln" id="l0"></div><div class="ln" id="l1"></div><div class="ln" id="l2"></div><div class="ln" id="l3"></div></div>`);
+shot('list', `<svg width="1280" height="556" viewBox="0 0 1280 556">${'<defs>' + ARROW('ahL', ACC) + '</defs>'}
+  <g transform="translate(380,150)"><rect x="0" y="0" width="180" height="230" rx="16" fill="#1a2336" stroke="#cfe0f5" stroke-width="3.5"/>
+    ${[0, 1, 2, 3, 4].map((k) => `<path d="M 30 ${44 + k * 38} h 120" stroke="#93a0b4" stroke-width="5" stroke-linecap="round"/>`).join('')}
+    <text x="90" y="272" text-anchor="middle" font-size="21" font-weight="600" fill="#eef2f8">make's list of facts</text></g>
+  <path id="lA" d="M 600 265 L 700 265" stroke="${ACC}" stroke-width="7" stroke-linecap="round" marker-end="url(#ahL)" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+  <g transform="translate(770,160)" id="lP" opacity="0"><circle cx="70" cy="50" r="38" fill="none" stroke="#cfe0f5" stroke-width="4"/><path d="M 0 210 q 0 -100 70 -100 q 70 0 70 100" fill="none" stroke="#cfe0f5" stroke-width="4"/>
+    <text x="70" y="262" text-anchor="middle" font-size="21" font-weight="600" fill="#eef2f8">whoever types the facts</text></g></svg>`);
+shot('ctl', `<div id="ctlw" style="position:absolute;left:290px;top:26px">${controllerSvg(700)}</div>`);
+shot('lift', `<svg id="lift" width="560" height="540" viewBox="-30 0 440 424" style="position:absolute;left:360px;top:8px"><defs>${ARROW('ah5', ACC)}<linearGradient id="lg5" x1="0" x2="1"><stop offset="0" stop-color="#2b3548"/><stop offset="1" stop-color="#1c2433"/></linearGradient></defs>
+  <rect x="30" y="372" width="270" height="44" rx="10" fill="url(#lg5)" stroke="#a6b2c4" stroke-width="2"/><text x="165" y="401" text-anchor="middle" font-size="16" fill="#93a0b4">robot</text>
+  <rect x="120" y="186" width="70" height="188" rx="5" fill="#1a2130" stroke="#a6b2c4" stroke-width="2.5"/>
+  <g id="st2"><rect x="132" y="196" width="46" height="168" rx="4" fill="#222b3c" stroke="#bcc6d4" stroke-width="2.5"/></g>
+  <g id="st3"><rect x="143" y="206" width="24" height="150" rx="4" fill="#2b3548" stroke="#d6dde7" stroke-width="2.5"/><rect id="plate" x="116" y="196" width="78" height="16" rx="5" fill="${ACC}"/></g>
+  <rect id="bstop" x="98" y="366" width="114" height="7" rx="3" fill="#ff6159"/><text x="92" y="374" text-anchor="end" font-size="15" fill="#ff9a92">bottom stop</text>
+  <rect x="98" y="16" width="114" height="7" rx="3" fill="#ff6159"/><text x="92" y="24" text-anchor="end" font-size="15" fill="#ff9a92">top stop</text>
+  <rect x="322" y="16" width="34" height="358" rx="4" fill="#3a3220" stroke="#d9c27a" stroke-width="2"/>
+  ${Array.from({length: 15}, (_, k) => `<line x1="322" y1="${372 - k * 25}" x2="${k % 2 ? 334 : 344}" y2="${372 - k * 25}" stroke="#d9c27a" stroke-width="2"/>`).join('')}
+  <g id="mk5" opacity="0"><line x1="200" y1="0" x2="356" y2="0" stroke="${WARM}" stroke-width="2.5" stroke-dasharray="5 5"/><path id="mkp" d="M 360 0 L 374 -9 L 374 9 Z" fill="${WARM}"/></g>
+  <text x="339" y="420" text-anchor="middle" font-size="15" fill="#d9c27a">tape</text></svg>`);
+shot('rec', `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+  <div style="font:600 12.5px var(--ui);letter-spacing:.06em;color:var(--mute);text-transform:uppercase;margin-bottom:10px"><b style="color:#1b1200;background:var(--warm);border-radius:5px;padding:2px 6px;margin-right:6px">Mockup</b>station 13, after RECORD &middot; example numbers</div>
+  <div style="background:#000;border-radius:16px;padding:30px 40px;box-shadow:0 24px 56px rgba(0,0,0,.5);border:12px solid #232a36;font:700 40px 'DejaVu Sans Mono',monospace;color:#36d46a;white-space:nowrap">REC 2: cascade <span id="recn">output +3759.04 deg</span></div></div>`);
+shot('tog', `<svg id="tog" width="520" height="532" viewBox="0 0 420 430" style="position:absolute;left:380px;top:12px">
+  <rect x="130" y="104" width="160" height="216" rx="16" fill="#263044" stroke="#a6b2c4" stroke-width="2.5"/>
+  <rect x="132" y="100" width="156" height="9" rx="4" fill="#45d483"/>
+  <path d="M 192 100 L 210 80 L 228 100 Z" fill="#45d483"/><text x="210" y="70" text-anchor="middle" font-size="16" font-weight="800" letter-spacing=".05em" fill="#45d483">FRONT</text>
+  <g id="armL"><rect x="54" y="150" width="80" height="16" rx="7" fill="#566176"/></g>
+  <g id="armR"><rect id="armRr" x="286" y="150" width="80" height="16" rx="7" fill="#566176"/></g>
+  <text x="58" y="200" font-size="15" fill="#93a0b4">left</text><text x="362" y="200" text-anchor="end" font-size="15" fill="#93a0b4">right</text>
+  <rect x="174" y="290" width="72" height="14" rx="5" fill="#566176"/>
+  <g id="claw"><rect id="clawL" x="174" y="304" width="14" height="46" rx="5" fill="#a6b2c4"/><rect id="clawR" x="232" y="304" width="14" height="46" rx="5" fill="#a6b2c4"/></g>
+  <text x="210" y="382" text-anchor="middle" font-size="15" fill="#93a0b4">claw</text></svg>`);
+shot('floor', `<svg id="floor" width="1200" height="524" viewBox="0 0 1100 480" style="position:absolute;left:40px;top:16px"><defs>${ARROW('ahH', ACC)}${ARROW('ahW', WARM)}${ARROW('ahG', '#45d483')}</defs>
+  <rect x="150" y="235" width="900" height="12" rx="3" fill="#d9c27a" opacity=".9"/>
+  ${Array.from({length: 9}, (_, k) => `<line x1="${190 + k * 83.75}" y1="249" x2="${190 + k * 83.75}" y2="${k % 2 ? 258 : 266}" stroke="#d9c27a" stroke-width="2.5"/>`).join('')}
+  <text x="190" y="372" text-anchor="middle" font-size="22" fill="#d9c27a">0 in</text><text x="860" y="372" text-anchor="middle" font-size="22" fill="#d9c27a">48 in</text>
+  <g id="rob" transform="translate(190,241)"><g transform="scale(1.35)">
+    <g id="hand" opacity="0"><g transform="translate(-150,0)">
+      <rect x="-34" y="-26" width="38" height="52" rx="14" fill="#dfe6f0"/><rect x="-2" y="-24" width="30" height="11" rx="5.5" fill="#dfe6f0"/><rect x="0" y="-11" width="34" height="11" rx="5.5" fill="#dfe6f0"/>
+      <rect x="0" y="2" width="32" height="11" rx="5.5" fill="#dfe6f0"/><rect x="-2" y="15" width="27" height="10" rx="5" fill="#dfe6f0"/>
+      <path d="M -96 0 L -46 0" stroke="${ACC}" stroke-width="7" stroke-linecap="round" marker-end="url(#ahH)"/></g></g>
+    <path id="arc" d="" fill="none" stroke="${WARM}" stroke-width="5" stroke-linecap="round" marker-end="url(#ahW)"/>
+    ${robotSvg('r7')}
+    <g id="dist" opacity="0"><rect x="-46" y="-124" width="92" height="32" rx="16" fill="${ACC}"/><text id="distt" x="0" y="-102" text-anchor="middle" font-size="18" font-weight="800" fill="#061226">0 in</text></g>
+    <path id="fw" d="" stroke="#45d483" stroke-width="6" stroke-linecap="round" marker-end="url(#ahG)"/>
+  </g></g></svg>`);
+shot('route', `<div class="card" style="left:150px;top:78px;width:400px;height:400px;overflow:hidden"><svg width="400" height="400" viewBox="0 0 400 400">
+    <g stroke="rgba(255,255,255,.08)" stroke-width="2"><line x1="133" y1="0" x2="133" y2="400"/><line x1="266" y1="0" x2="266" y2="400"/><line x1="0" y1="133" x2="400" y2="133"/><line x1="0" y1="266" x2="400" y2="266"/></g>
+    <path id="rt" d="M 50 356 C 80 216, 220 286, 240 176 S 340 66, 350 46" fill="none" stroke="${ACC}" stroke-width="8" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+    <circle cx="50" cy="356" r="11" fill="#eef2f8"/><circle id="rte" cx="350" cy="46" r="11" fill="${ACC}" opacity="0"/></svg></div>
+  <div style="position:absolute;left:620px;top:150px;width:600px">
+    <div style="font:700 56px/1.08 var(--disp);letter-spacing:-.02em">Now make your route</div>
+    <div style="font:500 26px/1.45 var(--ui);color:var(--mute);margin-top:18px">Open the <span style="color:var(--acc)">route builder</span>.</div>
+    <div style="font:500 17px/1.6 var(--ui);color:var(--mute);margin-top:70px">Music: &ldquo;Wallpaper&rdquo; by Kevin MacLeod (incompetech.com) &mdash; CC BY 4.0<br>Voice: Kokoro</div></div>`);
+// the brain shot was made before the others; keep the layers in one order
+$('#shots').appendChild(SHOTS.brain);
+
+// ── one picture per beat ────────────────────────────────────────────────────────────────────────────────
+// shot: the element shown; key: the caption's words in the accent colour; card: the step's title card first;
+// update(bt, dur) draws it and returns {focus, label} - the one highlighted part and its short label.
+const LIFT = (rise) => { $('#st2').setAttribute('transform', `translate(0,${(-rise / 2).toFixed(1)})`); $('#st3').setAttribute('transform', `translate(0,${(-rise).toFixed(1)})`); };
+const liftRect = (x0, y0, x1, y1) => { const r = R($('#lift')), k = r.w / 440; return {x: r.x + (x0 + 30) * k, y: r.y + y0 * k, w: (x1 - x0) * k, h: (y1 - y0) * k}; };
+const togRect = (x0, y0, x1, y1) => { const r = R($('#tog')), k = r.w / 420; return {x: r.x + x0 * k, y: r.y + y0 * k, w: (x1 - x0) * k, h: (y1 - y0) * k}; };
+const FLOOR = {vb: [0, 0, 1100, 480], t: [0, 0, 1100, 480]};
+function floorRect(x0, y0, x1, y1) {
+  const r = R($('#floor')), [vx, vy, vw, vh] = FLOOR.vb, k = Math.min(r.w / vw, r.h / vh);
+  const ox = r.x + (r.w - vw * k) / 2, oy = r.y + (r.h - vh * k) / 2;
+  return {x: ox + (x0 - vx) * k, y: oy + (y0 - vy) * k, w: (x1 - x0) * k, h: (y1 - y0) * k};
+}
+function robotAt(xIn, th = 0) {  // 0..48 in along the tape
+  const x = 190 + 670 * xIn / 48;
+  $('#rob').setAttribute('transform', `translate(${x.toFixed(1)},241)`);
+  $('#r7r').setAttribute('transform', `rotate(${th.toFixed(1)})`);
+  return x;
+}
+function floorReset() {
+  $('#hand').setAttribute('opacity', 0); $('#dist').setAttribute('opacity', 0); $('#arc').setAttribute('d', ''); $('#fw').setAttribute('d', '');
+  motors('r7', () => ({}));
+  $('#r7lA').setAttribute('stroke-dashoffset', 1); $('#r7lB').setAttribute('stroke-dashoffset', 1);
+  $('#r7gA').setAttribute('opacity', 0); $('#r7gB').setAttribute('opacity', 0);
+}
+const robRect = (x, pad = 130) => floorRect(x - pad - 10, 241 - pad, x + 250, 241 + pad);  // the word FRONT reaches x + 224
+function termLines(lines, bt, start, per = 0.85, morph = -1) {
+  lines.forEach((s, i) => {
+    const a = start + i * per;
+    const n = Math.floor(lin(bt, a, a + per - 0.2) * s.length);
+    let shown = esc(s.slice(0, n));
+    if (morph >= 0 && n === s.length && s.includes('ROBOT=one')) {
+      const m = prog(bt, morph, morph + 0.6);
+      shown = shown.replace('ROBOT=one', `ROBOT=<span style="display:inline-block;position:relative;color:${m > 0.5 ? ACC : '#e6ebf3'}">${m > 0.5 ? 'tank' : 'one'}</span>`);
+    }
+    $('#l' + i).innerHTML = bt >= a ? `<span style="color:#5f6b80">$ </span>${shown}${n < s.length ? '<span style="background:#e6ebf3">&nbsp;</span>' : ''}` : '';
+  });
+  for (let i = lines.length; i < 4; i++) $('#l' + i).innerHTML = '';
+}
+const UPL = ['make ROBOT=one', 'pros upload --slot 3 --name "Bench Tests"', 'make ROBOT=one PROGRAM=calibrate', 'pros upload --slot 4 --name "shulib Calibrate"'];
+const lineRect = (a, b) => { const r0 = R($('#l' + a)), r1 = R($('#l' + b)); return {x: r0.x + 16, y: r0.y + 2, w: Math.min(r0.w - 70, 800), h: r1.y + r1.h - r0.y - 4}; };
+
+const VIS = {
+  s1b1: {shot: 'words', step: 0, key: ['before you make a route'], update(bt) {
+    $('#words').innerHTML = `<div class="kick" style="opacity:${prog(bt, 0.2, 0.8)}">shulib</div><div style="font:700 74px/1.05 var(--disp);letter-spacing:-.025em;margin-top:18px;opacity:${prog(bt, 0.3, 1.0)};transform:translateY(${(1 - prog(bt, 0.3, 1.0)) * 14}px)">Set up your robot first</div>
+      <div style="font:500 28px var(--ui);color:var(--mute);margin-top:20px;opacity:${prog(bt, 1.0, 1.6)}">Five steps, on each robot</div>`;
+    return {};
+  }},
+  s1b2: {shot: 'words', step: 0, key: ['Bench Tests', 'Calibrate'], update(bt) {
+    $('#words').innerHTML = `<div style="font:700 64px/1.25 var(--disp);letter-spacing:-.02em;opacity:${prog(bt, 0.1, 0.6)}"><span style="color:var(--acc)">Bench Tests</span> checks.</div>
+      <div style="font:700 64px/1.25 var(--disp);letter-spacing:-.02em;opacity:${prog(bt, 1.6, 2.1)}"><span style="color:var(--acc)">Calibrate</span> measures.</div>`;
+    return {};
+  }},
+  s1b3: {shot: 'need', step: 0, key: [], update(bt) {
+    NEED.forEach((_, i) => { const k = prog(bt, 0.3 + 0.55 * i, 0.8 + 0.55 * i); const e = $('#nd' + i); e.style.opacity = k; e.style.transform = `translateY(${(1 - k) * 14}px)`; });
+    return {};
+  }},
+  s2b1: {shot: 'term', step: 1, card: ['Step 1', 'Upload Bench Tests and Calibrate'], key: ['slot 3', 'slot 4'], min: 7.4, update(bt) {
+    termLines(UPL, bt, CD + 0.3);
+    const t3 = CD + 0.3 + 2 * 0.85, t4 = CD + 0.3 + 4 * 0.85;
+    if (bt > t4 + 0.1) return {focus: lineRect(2, 3), label: 'slot 4', lpos: 'right'};
+    if (bt > t3 + 0.1) return {focus: lineRect(0, 1), label: 'slot 3', lpos: 'right'};
+    return {};
+  }},
+  s2b2: {shot: 'term', step: 1, key: ['ROBOT=tank'], update(bt) {
+    termLines(UPL, 99, 0, 0.85, 1.4);
+    const r = R($('#l0'));
+    return {focus: {x: r.x + 134, y: r.y + 6, w: 186, h: r.h - 12}, label: bt > 1.6 ? 'robot two' : 'robot one'};
+  }},
+  s2b3: {shot: 'list', step: 1, key: ['list of facts'], update(bt) {
+    $('#lA').setAttribute('stroke-dashoffset', (1 - prog(bt, 1.0, 1.8)).toFixed(3));
+    $('#lP').setAttribute('opacity', prog(bt, 1.6, 2.2));
+    return {};
+  }},
+  s3b1: {shot: 'brain', step: 2, card: ['Step 2', 'Check every part with Bench Tests'], key: ['Bench Tests'], update(bt) {
+    BRAIN.set(menuSpec(0, [], bt, -9)); BRAIN.aim(null);
+    return bt > CD + 0.8 ? {focus: BRAIN.rect(2, 0, 160, 22, 6), label: 'slot 3'} : {};
+  }},
+  s3b2: {shot: 'brain', step: 2, key: ['1 DEVICE CENSUS'], update(bt) { return tile(1, bt, 'just read it', []); }},
+  s3b3: {shot: 'brain', step: 2, key: ['CONNECTED'], update(bt) { return tile(4, bt, 'pair the controller', [1]); }},
+  s3b4: {shot: 'brain', step: 2, key: ['all three steps pass'], update(bt) { return tile(5, bt, 'tests the SD card', [1, 4]); }},
+  s3b5: {shot: 'floor', step: 2, key: ['turn it left'], update(bt) {
+    floorReset(); FLOOR.t = [0, 0, 1100, 480];
+    $('#dist').setAttribute('opacity', 0);
+    const x = robotAt(24, -90 * prog(bt, 0.8, 3.2));
+    const p = prog(bt, 0.8, 3.2);
+    $('#arc').setAttribute('d', p > 0.02 ? arcPath(-20, -20 - 100 * p, 110) : '');
+    return {focus: floorRect(x - 125, 241 - 236, x + 240, 241 + 125), label: 'counter-clockwise'};
+  }},
+  s3b6: {shot: 'brain', step: 2, key: ['13 MECH POWERS'], update(bt) { return tile(13, bt, 'red edge: powers motors', [1, 4, 5, 2], true); }},
+
+  s4b1: {shot: 'ctl', step: 2, key: ['Hold L1'], update(bt) {
+    ctl(bt > 0.6 ? ['L1'] : [], {L1: pAge(bt, 0.6)});
+    return {focus: R($('#L1')), label: 'hold the whole time'};
+  }},
+  s4b2: {shot: 'ctl', step: 2, key: ['UP / DOWN', 'R1'], update(bt, dur) {
+    const r1 = dur * 0.45;
+    if (bt < r1) {
+      ctl(['L1', bt < r1 / 2 ? 'UP' : 'DOWN'], {UP: pAge(bt, 0.4), DOWN: pAge(bt, r1 / 2)});
+      return {focus: R($('#dpad rect')), label: 'jog'};
+    }
+    const presses = [r1 + 0.3, r1 + 1.0, r1 + 1.7];
+    const v = bt > presses[2] ? 12 : bt > presses[1] ? 9 : bt > presses[0] ? 6 : 3;
+    ctl(['L1', 'R1'], {R1: pAge(bt, presses[0]) ?? pAge(bt, presses[1]) ?? pAge(bt, presses[2])});
+    return {focus: R($('#R1')), label: `${v} V`};
+  }},
+  s4b3: {shot: 'brain', step: 2, key: ['YES, CLEAR', 'YES, POWER IT'], update(bt, dur) {
+    const half = dur * 0.45;
+    let spec;
+    if (bt < half) {
+      spec = prompt13({title: 'STATION 13 POWERS MECHANISMS', sub: 'every path clear, hands away? (6 declared)', yes: 'YES, CLEAR', noSmall: 'back to the menu', foot2: 'then hold L1 and confirm each one before it moves'});
+      tapBtn(spec, 0, bt, half - 0.9);
+    } else {
+      spec = prompt13({title: "POWER 'cascade'?", sub: 'ONLY it may move: path clear, hands away?', yes: 'YES, POWER IT', yesSmall: 'UP/DOWN jog, A checks', noSmall: 'nothing is powered', foot1: 'hold L1 throughout: letting go stops it that tick'});
+      tapBtn(spec, 0, bt, dur - 1.3);
+    }
+    BRAIN.set(spec); BRAIN.aim([0, 20, 480, 160], 1.35);
+    return {focus: BRAIN.rect(8, 74, 236, 154, 6), label: bt < half ? 'path clear, hands away' : 'keep L1 held'};
+  }},
+  s4b4: {shot: 'brain', step: 2, key: ['which way it moved'], update(bt, dur) {
+    const title = "1/6 'cascade' LIFT POWERED";
+    const spec = s13({title, titleTone: 'G', doNow: 'Which way did it move? Touch your answer below', lines: [],
+      btns: [[4, 174, 156, 236, 'ITS + WAY', '', 'N'], [164, 174, 316, 236, 'THE OTHER\nWAY', '', 'N'], [324, 174, 476, 236, 'NOT MOVED /\nELSE MOVED', '', 'N']]});
+    tapBtn(spec, 0, bt, dur - 1.6);
+    BRAIN.set(spec); BRAIN.aim([0, 150, 480, 240], 1.45);
+    return {focus: BRAIN.rect(4, 174, 156, 236, 6), label: 'the cascade: + is up'};
+  }},
+  s4b5: {shot: 'brain', step: 2, key: ['OK', 'REVERSED'], update() {
+    BRAIN.set(s13({title: "1/6 'cascade' LIFT POWERED", titleTone: 'G', doNow: LIFT_DO, lines: ['OK'], lineTone: 'G', status: '3 V now (R1 for more); cap 2.0 A'}));
+    BRAIN.aim([0, 20, 240, 120], 1.7);
+    return {focus: BRAIN.rect(4, 69, 40, 87, 8), label: 'write it on the form'};
+  }},
+  s4b6: {shot: 'brain', step: 2, key: ['the line under the name'], update() {
+    BRAIN.set(s13({title: "2/6 'right toggle' POWER", doNow: 'Hold L1 to power the right toggle', lines: ['Run it briefly, never into its stop: which way?', 'motor 1 (port 9) +0.0 deg 0.00 A 31C'], status: '3 V now (R1 for more); cap 1.5 A'}));
+    BRAIN.aim([0, 20, 480, 80], 1.5);
+    return {focus: BRAIN.rect(...DO_R, 4), label: 'what to do now'};
+  }},
+
+  s5b1: {shot: 'lift', step: 2, key: ['Bottom stop', 'RECORD'], update() {
+    LIFT(0); $('#mk5').setAttribute('opacity', 0);
+    return {focus: liftRect(92, 340, 222, 386), label: 'bottom stop, then RECORD'};
+  }},
+  s5b2: {shot: 'lift', step: 2, key: ['Hold UP', 'stops rising'], update(bt, dur) {
+    const rise = 170 * prog(bt, 0.6, Math.min(dur - 1.0, 4.0));
+    LIFT(rise); $('#mk5').setAttribute('opacity', 0);
+    return {focus: liftRect(100, 184 - rise, 210, 222 - rise), label: rise > 168 ? 'it stopped: let go' : 'rising'};
+  }},
+  s5b3: {shot: 'lift', step: 2, key: ['tape it', 'RECORD'], update(bt) {
+    LIFT(170);
+    $('#mk5').setAttribute('transform', 'translate(0,26)'); $('#mk5').setAttribute('opacity', prog(bt, 0.4, 0.9));
+    return {focus: liftRect(196, 12, 380, 42), label: 'tape it, then RECORD'};
+  }},
+  s5b4: {shot: 'rec', step: 2, key: ['output … deg'], update() {
+    const r = R($('#recn'));
+    return {focus: r, label: 'write this down'};
+  }},
+
+  s6b1: {shot: 'tog', step: 2, key: ['which arm moves'], update(bt, dur) {
+    const sw = Math.sin(prog(bt, 0.6, Math.min(dur - 0.8, 3.4)) * Math.PI) * -34;
+    $('#armR').setAttribute('transform', `rotate(${sw.toFixed(1)} 290 158)`);
+    $('#armRr').setAttribute('fill', bt > 0.5 ? ACC : '#566176');
+    $('#clawL').removeAttribute('transform'); $('#clawR').removeAttribute('transform');
+    return {focus: togRect(270, 92, 380, 214), label: 'port 9: the right toggle'};
+  }},
+  s6b2: {shot: 'tog', step: 2, key: ['fire once'], update(bt) {
+    $('#armR').removeAttribute('transform'); $('#armRr').setAttribute('fill', '#566176');
+    const open = prog(bt, 0.8, 1.4);
+    $('#clawL').setAttribute('transform', `rotate(${(28 * open).toFixed(1)} 181 304)`);
+    $('#clawR').setAttribute('transform', `rotate(${(-28 * open).toFixed(1)} 239 304)`);
+    return {focus: togRect(150, 280, 270, 372), label: open > 0.5 ? 'open: touch open' : 'fire it'};
+  }},
+  s6b3: {shot: 'brain', step: 2, key: ['Stopped at 3 s?'], update() {
+    BRAIN.set(s13({title: "1/6 'cascade' LIFT CUT", titleTone: 'R', doNow: 'Stopped at 3 s: let go of L1, then hold it again', doTone: 'R', lines: G2, status: '3 V now (R1 for more); cap 2.0 A'}));
+    BRAIN.aim([0, 20, 480, 80], 1.5);
+    return {focus: BRAIN.rect(...DO_R, 4), label: 'let go, hold again'};
+  }},
+
+  s7b1: {shot: 'floor', step: 3, card: ['Step 3', 'Calibrate the drive'], key: ['front along it'], update(bt) {
+    floorReset(); FLOOR.t = [0, 0, 1100, 480];
+    const x = robotAt(0);
+    return bt > CD + 0.4 ? {focus: robRect(x, 120), label: 'front along the tape'} : {};
+  }},
+  s7b2: {shot: 'brain', step: 3, key: ['hands off'], update(bt) {
+    BRAIN.extra(' &middot; example numbers');
+    BRAIN.set({hdr: ['1/4 IMU', 'B'], lines: [[8, 30, 'L', 'W', 'HANDS OFF'], [8, 66, 'L', 'W', 'IMU WARMING UP'], [8, 102, 'L', 'A', one(Math.min(bt * 0.6, 2.2)) + ' s'], [8, 138, 'M', 'W', 'the end that leads the push is FRONT'], [8, 160, 'M', 'W', 'NEXT: push it 48 in along the tape']], btns: [ABORT_SLOT()]});
+    BRAIN.aim([0, 0, 320, 134], 1.5);
+    return {focus: BRAIN.rect(4, 28, 200, 62, 8), label: 'about 2 seconds'};
+  }},
+  s7b3: {shot: 'floor', step: 3, key: ['front first', 'the full 48 in'], update(bt, dur) {
+    floorReset(); FLOOR.t = [0, 0, 1100, 480];
+    const p = prog(bt, 0.8, dur - 1.0);
+    const x = robotAt(48 * p);
+    $('#hand').setAttribute('opacity', bt > 0.3 && bt < dur - 0.6 ? 1 : 0);
+    $('#dist').setAttribute('opacity', bt > 0.6 ? 1 : 0);
+    $('#distt').textContent = `${Math.round(48 * p)} in`;
+    return {focus: robRect(x, 120), label: p > 0.99 ? '48 in: let go' : 'front first', lpos: 'below'};
+  }},
+  s7b4: {shot: 'brain', step: 3, key: ['DONE', 'step back'], update(bt, dur) {
+    const spec = {hdr: ['2/4 PUSH', 'B'], lines: [[8, 30, 'L', 'W', 'PUSH FRONT FIRST'], [8, 66, 'L', 'W', '48 IN ALONG TAPE'], [8, 102, 'L', 'G', '10 of 10 turned'], [8, 138, 'M', 'W', 'drift +0.4 deg'], [8, 160, 'M', 'G', 'touch DONE -- then stand clear']], btns: [[6, 180, 300, 234, 'DONE', '', 'G'], ABORT_SLOT()]};
+    tapBtn(spec, 0, bt, dur * 0.55);
+    BRAIN.set(spec); BRAIN.aim([0, 150, 330, 240], 1.5);
+    return {focus: BRAIN.rect(6, 180, 300, 234, 6), label: bt > dur * 0.55 + 0.3 ? 'step back' : 'touch DONE'};
+  }},
+  s7b5: {shot: 'floor', step: 3, key: ['stand clear'], update(bt, dur) {
+    floorReset(); FLOOR.t = [600, 128, 520, 227];
+    const x = robotAt(48);
+    const h = dur / 2;
+    const tw = bt > 0.3 && bt < h - 0.6 ? 0 : bt > h + 0.1 && bt < dur - 0.7 ? 5 : -1;
+    const linkA = prog(bt, 0.8, 1.6), linkB = prog(bt, h + 0.6, h + 1.4);
+    const sideA = prog(bt, h - 0.7, h - 0.3), sideB = prog(bt, dur - 0.9, dur - 0.5);
+    motors('r7', (k) => {
+      const a = k < 5;
+      const t0 = a ? 0.3 : h + 0.1;
+      const fill = k === tw ? WARM : (a ? sideA : sideB) > 0.5 ? (a ? ACC : '#dfe7f5') : '#3a4456';
+      return {fill, angle: bt > t0 ? 220 * prog(bt, t0 + 0.2, t0 + 1.5) : 0, dx: k === tw ? Math.sin(bt * 50) * 1.6 : 0};
+    });
+    $('#r7lA').setAttribute('stroke-dashoffset', (1 - linkA).toFixed(3));
+    $('#r7lB').setAttribute('stroke-dashoffset', (1 - linkB).toFixed(3));
+    $('#r7gA').setAttribute('opacity', sideA.toFixed(2)); $('#r7gB').setAttribute('opacity', sideB.toFixed(2));
+    return {focus: robRect(x, 100), label: bt < h ? 'these turn together: one side' : 'and the other side'};
+  }},
+  s7b6: {shot: 'floor', step: 3, key: ['stand clear'], update(bt, dur) {
+    floorReset(); FLOOR.t = [0, 0, 1100, 480];
+    motors('r7', (k) => ({fill: k < 5 ? ACC : '#dfe7f5'}));
+    $('#r7lA').setAttribute('stroke-dashoffset', 0); $('#r7lB').setAttribute('stroke-dashoffset', 0);
+    $('#r7gA').setAttribute('opacity', 1); $('#r7gB').setAttribute('opacity', 1);
+    const h = dur / 2;
+    const a = prog(bt, 0.4, h - 0.2), b = prog(bt, h + 0.2, dur - 0.6);
+    const x = robotAt(48, -360 * a + 360 * b);
+    $('#arc').setAttribute('d', bt < h ? (a > 0.02 ? arcPath(-30, -30 - 300 * Math.min(a * 1.6, 1), 104) : '') : (b > 0.02 ? arcPath(150, 150 + 300 * Math.min(b * 1.6, 1), 104) : ''));
+    return {focus: floorRect(x - 234, 241 - 234, x + 234, 241 + 234), label: bt < h ? 'one way' : 'then the other'};
+  }},
+  s7b7: {shot: 'brain', step: 3, key: ['take a photo'], update(bt) {
+    const spec = SAVED();
+    const f = bt > 1.4 && bt < 2.0 ? 1 - lin(bt, 1.4, 2.0) : 0;
+    if (f > 0) spec.flash = +f.toFixed(2);
+    BRAIN.set(spec); BRAIN.aim([0, 0, 320, 120], 1.6);
+    return {focus: BRAIN.rect(4, 26, 300, 112, 8), label: 'take a photo'};
+  }},
+  s7b8: {shot: 'brain', step: 3, key: ['RUN AGAIN', 'two runs that agree'], update(bt) {
+    const spec = SAVED(); tapBtn(spec, 0, bt, 1.2);
+    BRAIN.set(spec); BRAIN.aim([200, 90, 480, 180], 1.55);
+    return {focus: BRAIN.rect(246, 112, 474, 158, 6), label: 'once more'};
+  }},
+
+  s8b1: {shot: 'brain', step: 3, key: ['FRONT FLIPPED', 'nothing saved yet'], update() {
+    BRAIN.extra('');
+    BRAIN.set(FLIPPED()); BRAIN.aim(null);
+    return {focus: BRAIN.rect(0, 0, 340, 64, 6), label: 'nothing saved yet'};
+  }},
+  s8b2: {shot: 'brain', step: 3, key: ['RUN AGAIN'], update(bt, dur) {
+    const spec = FLIPPED(); tapBtn(spec, 1, bt, dur - 1.4);
+    BRAIN.set(spec); BRAIN.aim([240, 60, 480, 170], 1.6);
+    return {focus: BRAIN.rect(246, 72, 474, 158, 6), label: 'the back led by mistake'};
+  }},
+  s8b3: {shot: 'brain', step: 3, key: ['USE NEW'], update() {
+    BRAIN.set(FLIPPED()); BRAIN.aim([0, 60, 240, 170], 1.6);
+    return {focus: BRAIN.rect(6, 72, 234, 158, 6), label: 'only on purpose'};
+  }},
+
+  s9b1: {shot: 'term', step: 4, card: ['Step 4', 'Check it in shulib Drive'], key: ['slot 1'], update(bt) {
+    termLines(['make ROBOT=one PROGRAM=drive', 'pros upload --slot 1 --name "shulib Drive"'], bt, CD + 0.3, 1.0);
+    return bt > CD + 2.4 ? {focus: lineRect(1, 1), label: 'slot 1', lpos: 'right'} : {};
+  }},
+  s9b2: {shot: 'floor', step: 4, key: ['toward its front'], update(bt, dur) {
+    floorReset(); FLOOR.t = [0, 0, 1100, 480];
+    const p = prog(bt, 0.6, dur - 1.0);
+    const x = robotAt(4 + 26 * p);
+    $('#fw').setAttribute('d', bt > 0.6 && bt < dur - 0.9 ? 'M 176 0 L 226 0' : '');
+    return {focus: robRect(x, 120), label: 'toward its front'};
+  }},
+  s9b3: {shot: 'ctl', step: 4, key: ['Every button'], min: 5.4, update(bt, dur) {
+    const tour = [['R1', 'cascade up'], ['R2', 'cascade down'], ['A', 'the claw'], ['B', 'the front toggle'], ['X', 'the ramp'], ['L1', 'right side toggle'], ['L2', 'left side toggle'], ['Y', 're-zero']];
+    const per = (dur - 1.2) / tour.length;
+    const i = clamp(Math.floor((bt - 0.4) / per), 0, tour.length - 1);
+    const at = 0.4 + i * per;
+    ctl([tour[i][0]], {[tour[i][0]]: pAge(bt, at)});
+    return {focus: R($('#' + tour[i][0])), label: tour[i][1]};
+  }},
+  s9b4: {shot: 'brain', step: 4, key: ['Backwards?', 'USE NEW'], update() {
+    BRAIN.set(FLIPPED()); BRAIN.aim([0, 60, 240, 170], 1.6);
+    return {focus: BRAIN.rect(6, 72, 234, 158, 6), label: 'after a front-first push'};
+  }},
+  s10b1: {shot: 'route', step: 5, card: ['Step 5', 'Now make your route'], key: ['route builder'], min: 7.6, tail: 2.0, update(bt) {
+    $('#rt').setAttribute('stroke-dashoffset', (1 - prog(bt, CD + 0.4, CD + 3.0)).toFixed(3));
+    $('#rte').setAttribute('opacity', prog(bt, CD + 2.9, CD + 3.3));
+    return {};
+  }},
+};
+function tile(n, bt, label, done, red = false) {
+  const finished = !red && bt > 2.6;
+  BRAIN.set(menuSpec(n, finished ? done.concat([n]) : done, bt, 0.9));
+  const [x0, y0, x1, y1] = tileBox(n);
+  BRAIN.aim([x0 - 40, y0 - 30, x1 + 40, y1 + 30], 1.9);
+  return {focus: BRAIN.rect(x0, y0, x1, y1, 6), label};
+}
+function arcPath(a0, a1, r) {
+  const p = (a) => [r * Math.cos(a * Math.PI / 180), r * Math.sin(a * Math.PI / 180)];
+  const [x0, y0] = p(a0), [x1, y1] = p(a1);
+  const large = Math.abs(a1 - a0) > 180 ? 1 : 0;
+  return `M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${r} ${r} 0 ${large} ${a1 > a0 ? 1 : 0} ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+}
+
+// ── the step bar ────────────────────────────────────────────────────────────────────────────────────────
+$('#top').innerHTML = ['Upload', 'Bench Tests', 'Calibrate', 'Check in Drive', 'Make your route']
+  .map((t, i) => `${i ? '<div class="sep"></div>' : ''}<div class="pill" data-s="${i + 1}"><span class="n">${i + 1}</span>${t}<div class="bar"></div></div>`).join('');
+
+// ── the timeline: a beat lasts its narration + 0.7 s (at least 3.5 s), else its caption's reading time ─────────
+let T = 0;
+const TL = [];
+let prevScene = null;
+for (const b of BEATS) {
+  const v = VIS[b.id];
+  if (!v) continue;
+  if (prevScene !== null && b.scene !== prevScene) T += 0.3;  // a breath between scenes
+  const words = b.caption.trim().split(/\s+/).length;
+  let dur = NARR[b.id] ? Math.max(3.5, NARR[b.id] + 0.7) : Math.max(3.5, 1.5 + 0.3 * words);
+  if (v.card) dur += 0.6;
+  if (v.min) dur = Math.max(dur, v.min);
+  TL.push({...b, v, t0: T, dur});
+  T += dur + (v.tail || 0);
+  prevScene = b.scene;
+}
+const TOTAL = T;
+window.TOTAL = TOTAL;
+window.BEAT_TIMES = TL.map((b) => ({id: b.id, scene: b.scene, start: +b.t0.toFixed(3), dur: +b.dur.toFixed(3)}));
+const STEP_AT = {};
+for (const b of TL) if (STEP_AT[b.v.step] === undefined) STEP_AT[b.v.step] = b.t0;
+
+function captionHtml(b) {
+  let h = esc(b.caption);
+  for (const k of b.v.key || []) {
+    const i = h.toLowerCase().indexOf(esc(k).toLowerCase());
+    if (i >= 0) h = h.slice(0, i) + '<b>' + h.slice(i, i + esc(k).length) + '</b>' + h.slice(i + esc(k).length);
+  }
+  return h;
+}
+
+// ── the highlight follows its target smoothly ──────────────────────────────────────────────────────────────
+const HL = {cur: null, op: 0, label: '', lpos: '', lastT: null};
+function placeFocus(focus, label, t, k, snap, lpos = '') {
+  if (focus) {
+    const tg = {x: focus.x - 8, y: focus.y - 8, w: focus.w + 16, h: focus.h + 16};
+    if (!HL.cur || HL.op < 0.03 || snap) HL.cur = {...tg};
+    else for (const f of ['x', 'y', 'w', 'h']) HL.cur[f] += (tg[f] - HL.cur[f]) * k;
+    if (label) { HL.label = label; HL.lpos = lpos; }
+  }
+  HL.op += ((focus ? 1 : 0) - HL.op) * (snap ? 1 : Math.min(1, k * 1.2));
+  const c = HL.cur || {x: 0, y: 0, w: 0, h: 0};
+  const op = HL.op;
+  const A = AREA;
+  const top = clamp(c.y, A.y, A.y + A.h), bot = clamp(c.y + c.h, A.y, A.y + A.h);
+  const set = (id, x, y, w, h) => { const e = $(id); e.style.left = x + 'px'; e.style.top = y + 'px'; e.style.width = Math.max(0, w) + 'px'; e.style.height = Math.max(0, h) + 'px'; e.style.opacity = op.toFixed(3); };
+  set('#d0', 0, A.y, 1280, top - A.y);
+  set('#d1', 0, bot, 1280, A.y + A.h - bot);
+  set('#d2', 0, top, c.x, bot - top);
+  set('#d3', c.x + c.w, top, 1280 - c.x - c.w, bot - top);
+  const ring = $('#ring');
+  ring.style.left = c.x + 'px'; ring.style.top = c.y + 'px'; ring.style.width = c.w + 'px'; ring.style.height = c.h + 'px';
+  const pulse = 0.5 + 0.5 * Math.sin(t * 2 * Math.PI / 1.6);
+  ring.style.opacity = op.toFixed(3);
+  ring.style.boxShadow = `0 0 ${(10 + 16 * pulse).toFixed(1)}px rgba(90,169,255,${(0.35 + 0.35 * pulse).toFixed(2)})`;
+  const lbl = $('#lbl');
+  if (lbl.textContent !== HL.label) lbl.textContent = HL.label;
+  const lw = lbl.offsetWidth, lh = lbl.offsetHeight;
+  let ly = c.y - lh - 12;
+  if (ly < A.y + 6) ly = c.y + c.h + 12;
+  if (ly + lh > A.y + A.h - 4) ly = c.y + 10;
+  let lx = clamp(c.x + c.w / 2 - lw / 2, 16, 1280 - lw - 16);
+  if (HL.lpos === 'right' && c.x + c.w + 14 + lw < 1264) { lx = c.x + c.w + 14; ly = c.y + c.h / 2 - lh / 2; }
+  if (HL.lpos === 'below' && c.y + c.h + 12 + lh < A.y + A.h - 4) ly = c.y + c.h + 12;
+  lbl.style.left = lx.toFixed(1) + 'px'; lbl.style.top = ly.toFixed(1) + 'px';
+  lbl.style.opacity = (op * (HL.label ? 1 : 0)).toFixed(3);
+}
+
+let lastT = null, lastBeat = null, lastShot = null, shotSince = 0, prevShotEl = null;
+function render(t) {
+  t = clamp(t, 0, TOTAL - 0.001);
+  const dt = lastT === null ? 1 : t - lastT;
+  lastT = t;
+  const snap = dt < 0 || dt > 0.35;
+  const k = snap ? 1 : 1 - Math.exp(-dt * 6);
+  let i = 0;
+  for (let j = 0; j < TL.length; j++) if (t >= TL[j].t0) i = j;
+  const b = TL[i], bt = t - b.t0;
+  // the caption
+  const capEl = $('#capt');
+  if (lastBeat !== b) capEl.innerHTML = captionHtml(b);
+  const gap = t > b.t0 + b.dur;  // a scene's breath, or the last beat's hold
+  const cin = prog(bt, 0, 0.35);
+  capEl.style.opacity = cin.toFixed(3);
+  capEl.style.transform = `translateY(${(8 * (1 - cin)).toFixed(1)}px)`;
+  // the step bar
+  const step = b.v.step;
+  document.querySelectorAll('.pill').forEach((p) => {
+    const s = +p.dataset.s;
+    const f = s < step ? 1 : s === step ? prog(t, STEP_AT[s], STEP_AT[s] + 0.9) : 0;
+    p.style.color = s === step ? '#cfe3ff' : s < step ? '#8a96aa' : '#4f5b70';
+    $('.bar', p).style.transform = `scaleX(${f.toFixed(3)})`;
+    $('.bar', p).style.opacity = s < step ? 0.45 : 1;
+  });
+  // which shot: a step's title card first, then the beat's own
+  const inCard = b.v.card && bt < CD;
+  const shotNow = inCard ? 'card' : b.v.shot;
+  if (shotNow !== lastShot || snap) {
+    prevShotEl = snap ? null : SHOTS[lastShot] || null;
+    shotSince = snap ? t - 1 : t;
+    lastShot = shotNow;
+  }
+  if (inCard) { $('#cardk').textContent = b.v.card[0]; $('#cardt').textContent = b.v.card[1]; }
+  const fin = prog(t, shotSince, shotSince + 0.55);
+  for (const [id, el] of Object.entries(SHOTS)) {
+    let op = 0, tr = '';
+    if (id === shotNow) { op = fin; tr = `translateY(${((1 - fin) * 16).toFixed(1)}px) scale(${(0.985 + 0.015 * fin).toFixed(4)})`; }
+    else if (el === prevShotEl) op = 1 - prog(t, shotSince, shotSince + 0.4);
+    el.style.opacity = op.toFixed(3);
+    el.style.transform = tr;
+  }
+  $('#mock').style.opacity = SHOTS.brain.style.opacity;
+  // the beat draws itself
+  const res = (inCard ? {} : b.v.update(bt, b.dur)) || {};
+  if (inCard && b.v.update) b.v.update(bt, b.dur);
+  BRAIN.step(snap || b.v.shot !== 'brain' || fin < 0.05 ? 1 : k * 0.9);
+  for (let j = 0; j < 4; j++) FLOOR.vb[j] += (FLOOR.t[j] - FLOOR.vb[j]) * (snap || b.v.shot !== 'floor' || fin < 0.05 ? 1 : k * 0.9);
+  $('#floor').setAttribute('viewBox', FLOOR.vb.map((v) => v.toFixed(1)).join(' '));
+  // the beat's highlight, recomputed after the camera moved (no highlight during a shot change or a breath)
+  let focus = null, label = '', lpos = '';
+  if (!inCard && !gap && fin > 0.6) {
+    const r2 = b.v.update(bt, b.dur) || {};
+    focus = r2.focus || null; label = r2.label || ''; lpos = r2.lpos || '';
+  }
+  void res;
+  placeFocus(focus, label, t, k, snap || lastBeat === null, lpos);
+  lastBeat = b;
+}
+window.render = render;
+let t0 = null;
+window.start = () => {
+  t0 = performance.now();
+  const loop = () => { render((performance.now() - t0) / 1000); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+};
+window.fontsReady = Promise.all(['400 16px Inter', '500 16px Inter', '600 16px Inter', '700 16px Inter', '700 16px "Space Grotesk"', '500 16px "JetBrains Mono"']
+  .map((f) => document.fonts.load(f).catch(() => null))).then(() => document.fonts.ready);
+const qs = new URLSearchParams(location.search);
+render(qs.has('t') ? +qs.get('t') : 0);
+if (qs.has('play')) window.start();
+</script>
+</body>
+</html>

@@ -314,6 +314,10 @@ add_custom_command(
   COMMAND "${Python3_EXECUTABLE}"
           "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/build_to_program.py" check
   COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/setup_first.py" self-test
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/setup_first.py" check
+  COMMAND "${Python3_EXECUTABLE}"
           "${CMAKE_CURRENT_SOURCE_DIR}/../tools/prepare_site.py" self-test
   COMMAND "${Python3_EXECUTABLE}"
           "${CMAKE_CURRENT_SOURCE_DIR}/../tools/prepare_site.py" check-register
@@ -341,6 +345,8 @@ add_custom_command(
     "${CMAKE_CURRENT_SOURCE_DIR}/../docs/assets/first-week.svg"
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/build_to_program.py"
     "${CMAKE_CURRENT_SOURCE_DIR}/../docs/assets/build-to-program.svg"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../tools/docs_figures/setup_first.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../docs/assets/setup-first.svg"
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/prepare_site.py"
     ${SHULIB_DOC_INPUTS}
   COMMENT "shulib doc gates: coverage, freshness, verbatim examples, removability, staleness, reading"

@@ -1,0 +1,52 @@
+[
+  {"id": "s1b1", "scene": "intro", "say": "Before you make a route, set up each robot in five steps.", "caption": "Set up each robot before you make a route."},
+  {"id": "s1b2", "scene": "intro", "say": "Bench Tests checks every mechanism. Calibrate measures the drive.", "caption": "Bench Tests checks. Calibrate measures."},
+  {"id": "s1b3", "scene": "intro", "say": "You need the robot, a battery, the controller, an SD card, tape, two people and a laptop.", "caption": "Robot, battery, controller, SD card, tape, two people, laptop."},
+
+  {"id": "s2b1", "scene": "upload", "say": "Step 1. Plug the brain into the laptop. Upload Bench Tests to slot 3, and Calibrate to slot 4.", "caption": "Bench Tests to slot 3. Calibrate to slot 4."},
+  {"id": "s2b2", "scene": "upload", "say": "These lines are for robot one. For robot two, type ROBOT equals tank.", "caption": "Robot two: ROBOT=tank instead of ROBOT=one."},
+  {"id": "s2b3", "scene": "upload", "say": "If make stops with a list of facts, give the list to whoever types your robot's facts.", "caption": "make stopped? Pass on its list of facts."},
+
+  {"id": "s3b1", "scene": "bench", "say": "Step 2. On the brain, open Bench Tests and do five tiles, in order.", "caption": "Open Bench Tests (slot 3). Five tiles, in order."},
+  {"id": "s3b2", "scene": "bench", "say": "Tile 1: every motor, the IMU and the camera should be on the port your form says.", "caption": "1 DEVICE CENSUS: every device on its port."},
+  {"id": "s3b3", "scene": "bench", "say": "Tile 4: pair the controller until it reads connected.", "caption": "4 BATT/CTRL: the controller reads CONNECTED."},
+  {"id": "s3b4", "scene": "bench", "say": "Tile 5: all three SD card steps should pass. If not, reformat the card.", "caption": "5 SD CARD PROBE: all three steps pass."},
+  {"id": "s3b5", "scene": "bench", "say": "Tile 2: turn the whole robot to its left. The big number should rise.", "caption": "2 IMU + ROTATE: turn it left; the number rises."},
+  {"id": "s3b6", "scene": "bench", "say": "Then tile 13. Its red edge means it powers the mechanisms.", "caption": "13 MECH POWERS: it powers motors."},
+
+  {"id": "s4b1", "scene": "station13", "say": "At station 13, nothing moves unless L1 is held. Hold it the whole time.", "caption": "Hold L1 the whole time."},
+  {"id": "s4b2", "scene": "station13", "say": "Up and down jog the mechanism. R1 adds volts: three, six, nine, twelve.", "caption": "UP / DOWN jog it. R1 adds volts."},
+  {"id": "s4b3", "scene": "station13", "say": "Touch YES, CLEAR. Then hold L1, press up, and touch YES, POWER IT.", "caption": "YES, CLEAR, then YES, POWER IT."},
+  {"id": "s4b4", "scene": "station13", "say": "Press A. It moves a little. Touch which way it went. For the cascade, plus is up.", "caption": "Press A, then touch which way it moved."},
+  {"id": "s4b5", "scene": "station13", "say": "Write the verdict on the form: OK, or a word like reversed.", "caption": "Write down the verdict: OK or REVERSED."},
+  {"id": "s4b6", "scene": "station13", "say": "The line under the name always tells you what to do now.", "caption": "Read the line under the name first."},
+
+  {"id": "s5b1", "scene": "cascade", "say": "To measure the cascade, start on its bottom stop and touch RECORD.", "caption": "Bottom stop, then RECORD."},
+  {"id": "s5b2", "scene": "cascade", "say": "Hold up to raise it. Let go the moment it stops rising.", "caption": "Hold UP. Let go when it stops rising."},
+  {"id": "s5b3", "scene": "cascade", "say": "Tape the height at the top, and touch RECORD. Do the same at any level.", "caption": "Top stop: tape it, then RECORD."},
+  {"id": "s5b4", "scene": "cascade", "say": "Write down the output degrees number. That is the one that gets typed.", "caption": "Write down the output … deg number."},
+
+  {"id": "s6b1", "scene": "toggles", "say": "Run each side toggle briefly. The arm that moves shows which port is the right one.", "caption": "Side toggles: which arm moves?"},
+  {"id": "s6b2", "scene": "toggles", "say": "Fire each piston once, then touch where it went.", "caption": "Pistons: fire once, touch where it went."},
+  {"id": "s6b3", "scene": "toggles", "say": "A jog stops after three seconds. Let go of L1, then hold it again.", "caption": "Stopped at 3 s? Let go of L1, hold again."},
+
+  {"id": "s7b1", "scene": "calibrate", "say": "Step 3. With the SD card in, put the robot at one end of the tape, front first.", "caption": "Robot at the tape's end, front along it."},
+  {"id": "s7b2", "scene": "calibrate", "say": "Open Calibrate in slot 4. Hands off while the IMU warms up.", "caption": "1/4 IMU: hands off."},
+  {"id": "s7b3", "scene": "calibrate", "say": "Push it straight along the tape, front leading, the full 48 inches. Then let go.", "caption": "2/4 PUSH: front first, the full 48 in."},
+  {"id": "s7b4", "scene": "calibrate", "say": "When the green DONE appears, touch it and step back.", "caption": "Touch DONE, then step back."},
+  {"id": "s7b5", "scene": "calibrate", "say": "It twitches one motor at a time. Motors that turn together are one side.", "caption": "3/4 PULSES: stand clear."},
+  {"id": "s7b6", "scene": "calibrate", "say": "Then it spins both ways to measure the track width.", "caption": "4/4 SPIN: stand clear."},
+  {"id": "s7b7", "scene": "calibrate", "say": "When it says SAVED, take a photo of the screen.", "caption": "SAVED: take a photo of the screen."},
+  {"id": "s7b8", "scene": "calibrate", "say": "Touch RUN AGAIN and do it once more. Two runs that agree are a measurement.", "caption": "RUN AGAIN: two runs that agree."},
+
+  {"id": "s8b1", "scene": "flipped", "say": "If you see FRONT FLIPPED, nothing was saved yet.", "caption": "FRONT FLIPPED: nothing saved yet."},
+  {"id": "s8b2", "scene": "flipped", "say": "Pushed with the back leading by mistake? Touch RUN AGAIN, and push front first.", "caption": "Back led by mistake? RUN AGAIN."},
+  {"id": "s8b3", "scene": "flipped", "say": "Touch USE NEW only if the cables were swapped, or you changed the front on purpose.", "caption": "Cables swapped, or a new front? USE NEW."},
+
+  {"id": "s9b1", "scene": "drive", "say": "Step 4. Once your answers are typed in, upload shulib Drive to slot 1 and run it.", "caption": "Upload shulib Drive to slot 1."},
+  {"id": "s9b2", "scene": "drive", "say": "Push the stick forward. The robot should drive toward its front, straight.", "caption": "Stick forward: it drives toward its front."},
+  {"id": "s9b3", "scene": "drive", "say": "Check that every button does what the driver file says.", "caption": "Every button does its job."},
+  {"id": "s9b4", "scene": "drive", "say": "If it drives backwards, run Calibrate again, front first, and touch USE NEW.", "caption": "Backwards? Calibrate again, then USE NEW."},
+
+  {"id": "s10b1", "scene": "route", "say": "Step 5. Your robot is ready. Open the route builder and make your first route.", "caption": "Now open the route builder."}
+]

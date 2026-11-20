@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 468" width="560" height="468" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="Set up your robot first">
+<title>Set up your robot first: 1 Upload Bench Tests and Calibrate; then 2 Check every part with Bench Tests; then 3 Calibrate the drive; then 4 Check it in shulib Drive; then 5 Now make your route</title>
+<defs><marker id="sf" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="10" refX="11" refY="5" orient="auto"><path d="M0,0 L12,5 L0,10 z" fill="#3f51b5"/></marker></defs>
+<rect width="560" height="468" fill="#ffffff"/>
+<text x="280" y="28" text-anchor="middle" font-size="17" font-weight="bold" fill="#1a237e">Before the route builder, in this order</text>
+<rect x="12" y="48" width="536" height="60" rx="10" fill="#e8eaf6" stroke="#3f51b5" stroke-width="1.5"/>
+<circle cx="46" cy="78" r="17" fill="#3f51b5"/>
+<text x="46" y="84" text-anchor="middle" font-size="17" font-weight="bold" fill="#ffffff">1</text>
+<text x="78" y="74" font-size="16" font-weight="bold" fill="#111111">Upload Bench Tests and Calibrate</text>
+<text x="78" y="93" font-size="13" fill="#3f51b5">Slots 3 and 4, from the laptop</text>
+<line x1="46" y1="110" x2="46" y2="132" stroke="#3f51b5" stroke-width="2.5" marker-end="url(#sf)"/>
+<rect x="12" y="134" width="536" height="60" rx="10" fill="#e8eaf6" stroke="#3f51b5" stroke-width="1.5"/>
+<circle cx="46" cy="164" r="17" fill="#3f51b5"/>
+<text x="46" y="170" text-anchor="middle" font-size="17" font-weight="bold" fill="#ffffff">2</text>
+<text x="78" y="160" font-size="16" font-weight="bold" fill="#111111">Check every part with Bench Tests</text>
+<text x="78" y="179" font-size="13" fill="#3f51b5">Slot 3: the sensors, then every mechanism at station 13</text>
+<line x1="46" y1="196" x2="46" y2="218" stroke="#3f51b5" stroke-width="2.5" marker-end="url(#sf)"/>
+<rect x="12" y="220" width="536" height="60" rx="10" fill="#e8eaf6" stroke="#3f51b5" stroke-width="1.5"/>
+<circle cx="46" cy="250" r="17" fill="#3f51b5"/>
+<text x="46" y="256" text-anchor="middle" font-size="17" font-weight="bold" fill="#ffffff">3</text>
+<text x="78" y="246" font-size="16" font-weight="bold" fill="#111111">Calibrate the drive</text>
+<text x="78" y="265" font-size="13" fill="#3f51b5">Slot 4: the robot measures its own drive</text>
+<line x1="46" y1="282" x2="46" y2="304" stroke="#3f51b5" stroke-width="2.5" marker-end="url(#sf)"/>
+<rect x="12" y="306" width="536" height="60" rx="10" fill="#e8eaf6" stroke="#3f51b5" stroke-width="1.5"/>
+<circle cx="46" cy="336" r="17" fill="#3f51b5"/>
+<text x="46" y="342" text-anchor="middle" font-size="17" font-weight="bold" fill="#ffffff">4</text>
+<text x="78" y="332" font-size="16" font-weight="bold" fill="#111111">Check it in shulib Drive</text>
+<text x="78" y="351" font-size="13" fill="#3f51b5">Slot 1: the robot drives the right way and every button works</text>
+<line x1="46" y1="368" x2="46" y2="390" stroke="#3f51b5" stroke-width="2.5" marker-end="url(#sf)"/>
+<rect x="12" y="392" width="536" height="60" rx="10" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+<circle cx="46" cy="422" r="17" fill="#2e7d32"/>
+<text x="46" y="428" text-anchor="middle" font-size="17" font-weight="bold" fill="#ffffff">5</text>
+<text x="78" y="418" font-size="16" font-weight="bold" fill="#111111">Now make your route</text>
+<text x="78" y="437" font-size="13" fill="#2e7d32">The route builder: the robot is ready</text>
+</svg>
