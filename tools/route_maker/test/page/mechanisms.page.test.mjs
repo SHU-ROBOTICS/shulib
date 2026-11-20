@@ -6,7 +6,7 @@
 //   ROUTE_MAKER_BROWSER=firefox node --test tools/route_maker/test/page/mechanisms.page.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SHOTS, launch, openPage, serve, shot, skip } from './harness.mjs';
+import { SHOTS, launch, noStructures, openPage, serve, shot, skip } from './harness.mjs';
 import { fixture, standinScript } from '../standin_engine.mjs';
 import { sampleIndexAt } from '../../src/model/playback.mjs';
 import { loadProject } from '../../src/model/project.mjs';
@@ -23,6 +23,7 @@ async function previewed(name, v = VARIANTS[0], { standin = {}, together, run = 
     const p = await openPage(browser, site.base, v);
     const { page } = p;
     await page.evaluate((text) => window.routeBuilder.useEngine({ text }), standinScript(['mechanisms', 'ready', 'failed'], { together: ['mechanisms', 'ready', 'failed'], ...standin }));
+    await page.evaluate((r) => window.routeBuilder.useRobots(r), noStructures());  // RMP1-H: the recordings predate the check
     const coach = page.getByRole('button', { name: 'Got it' });
     if (await coach.count()) {
         await coach.click();

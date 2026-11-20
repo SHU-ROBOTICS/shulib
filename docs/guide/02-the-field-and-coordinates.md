@@ -21,6 +21,10 @@ graph in math class:
 So (24, 36) means: 24 inches right of center, 36 inches toward the far side. Every position in
 every routine, every log line, and every test is written this way.
 
+The nine goals sit at (0, 0), (±23.5, ±47.1) and (±47.1, ±23.5), and the four Loaders stand 3.7 in out from the red
+and blue walls at x = ±58.8: solid, so a path must go around them (the route builder checks it,
+[chapter 22](22-making-your-first-route.md#solid-structures-on-the-field)).
+
 ![The real Override field from above, seen from behind the red alliance station: (0, 0) at the centre goal, +X to the right, +Y toward the blue station, with the points (0, 0), (24, 36), (48, 0) and (−48, −24) marked](../assets/field-coordinates.png)
 
 One convention, applied everywhere, matters more than which convention it is. The single worst

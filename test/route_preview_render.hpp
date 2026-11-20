@@ -43,8 +43,9 @@ inline constexpr const char* kNumberingLine =
     "library's own lines below give your code's step numbers.";
 /// What the field drawing holds.
 inline constexpr const char* kFieldLine =
-    "Drawn: the walls, Toggles, Loaders, Load Zones and start pieces \xe2\x80\x94 the only field parts shulib "
-    "knows. Anything else on the field is not drawn, and the host test plant has no walls, pieces or "
+    "Drawn: the walls, Toggles, Loaders, Load Zones and start pieces \xe2\x80\x94 the field parts the host "
+    "test plant's field model has. Anything else on the field, the goals included, is not drawn or checked "
+    "here (the route builder checks the goals), and the host test plant has no walls, pieces or "
     "other robots: it never stops or pushes anything.";
 
 /// The page's pixels per inch.

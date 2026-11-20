@@ -5,15 +5,18 @@
 // comes from the record (landmine 1). Pure: no DOM.
 
 import { normalizeRoute, MOTION_KINDS, MECHANISM_KINDS } from './route.mjs';
+import { runThrough } from './obstacles.mjs';
 
 const RAD = 180 / Math.PI;
 
-/** What a preview is OF: the route as canonical text (keys sorted), so an undo back to it finds its run again. */
+/** What a preview is OF: the route as canonical text (keys sorted), so an undo back to it finds its run again. A step's
+ *  `touches` (RMP1-H: page-only, the robot never sees it) is not part of it. */
 export function routeKey(route) {
     const canon = (v) => (Array.isArray(v) ? `[${v.map(canon).join(',')}]`
         : v && typeof v === 'object' ? `{${Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => `${JSON.stringify(k)}:${canon(v[k])}`).join(',')}}`
             : JSON.stringify(v));
-    return canon(normalizeRoute(route));
+    const r = normalizeRoute(route);
+    return canon({ ...r, steps: r.steps.map(({ touches, ...rest }) => rest) });
 }
 
 /** Each page-step verdict of the record: its colour on the screen and its plain words. */
@@ -136,7 +139,9 @@ function stepOfPace(ps, s) {
 /** A field note (RPV1's field check) in plain words, its step the PAGE's (`f.at`), never RPV1's from-below number. */
 export function noteWords(f) {
     const at = `at ${f.t.toFixed(2)} s, ${f.at >= 0 ? `in step ${f.at + 1}` : 'after the last step'}`;
-    return f.kind === 'THROUGH'
+    return f.kind === 'THROUGH' && f.structure
+        ? `On the robot it hits the ${f.element} ${at} (${f.depth.toFixed(2)} in into it): the host test plant drives through it.`
+        : f.kind === 'THROUGH'
         ? `On the robot it hits the ${f.element} ${at} (${f.depth.toFixed(2)} in past its face): the host test plant has no walls.`
         : f.kind === 'TOUCH' ? `Touches the ${f.element} ${at}: normal, not a failure.`
             : `Drives over a ${f.element} ${at} (the host test plant does not push pieces).`;
@@ -144,12 +149,18 @@ export function noteWords(f) {
 
 const AFTER_THROUGH = 'After the THROUGH: the robot would not get here';
 
-/** One robot's run: its samples, its thinned path, its page steps with times, verdicts and words, its field notes. */
-function runOf(id, rec, names) {
+/** One robot's run: its samples, its thinned path, its page steps with times, verdicts and words, its field notes —
+ *  RPV1's, and (RMP1-H) the page's THROUGH a solid structure (`field`: {obstacles, size}) when it comes first. */
+function runOf(id, rec, names, field) {
     const t = (i) => (i === null || i === undefined ? null : rec.samples[i][0]);
     const owner = ownersOf(rec, names);
     const ps = rec.pageSteps || [];
-    const notes = (rec.field || []).map((f) => ({ ...f, at: stepOfPace(ps, f.s) }));
+    let notes = (rec.field || []).map((f) => ({ ...f, at: stepOfPace(ps, f.s) }));
+    const mine = field && field.obstacles ? runThrough(rec.samples || [], field.obstacles, field.size || 15) : null;
+    const theirs = notes.find((f) => f.kind === 'THROUGH');
+    if (mine && (!theirs || mine.s < theirs.s)) {  // the robot never gets past the first: a later THROUGH is dropped
+        notes = [...notes.filter((f) => f.kind !== 'THROUGH'), { ...mine, at: stepOfPace(ps, mine.s) }].sort((a, b) => a.s - b.s);
+    }
     const hit = notes.find((f) => f.kind === 'THROUGH') || null;  // the first is the run's THROUGH (RPV1)
     const steps = ps.map((p, i) => {
         const v = VERDICTS[p.verdict] || VERDICTS.notReached;
@@ -178,12 +189,13 @@ const RANK = { ok: 0, cut: 1, failed: 2 };
 /**
  * The engine's result ({one, two?, verdict?}) ready to play: robot one's run (and robot two's, mirrored), the
  * duration, the run's own end times (the 57 s cut, the hard stop, the period) and the pair check's verdict.
- * `names` = {one, two}: each page step's mechanism `.name` on that robot (ownersOf). Robot two's verdict on a page
+ * `names` = {one, two}: each page step's mechanism `.name` on that robot (ownersOf); `field` = {obstacles, size}
+ * (RMP1-H: the solid structures a run is checked against, the robot's square). Robot two's verdict on a page
  * step is kept on robot one's (`.two`) where it went otherwise and not done; the headline is the worse of the two.
  */
-export function playbackOf(result, names = {}) {
-    const one = runOf('one', result.one, names.one);
-    const two = result.two ? runOf('two', result.two, names.two) : null;
+export function playbackOf(result, names = {}, field = null) {
+    const one = runOf('one', result.one, names.one, field);
+    const two = result.two ? runOf('two', result.two, names.two, field) : null;
     let headline = one.headline;
     if (two) {
         one.steps.forEach((s, i) => {

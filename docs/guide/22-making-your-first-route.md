@@ -92,6 +92,28 @@ follows when you move a step before it. To place a point exactly, type its **x**
 (a curve's point: click or drag it on the field) and press the **arrow keys**: 1 in a press, **Shift** for 0.25 in.
 Zoom in (**+**) and two points 1 in apart are two handles.
 
+#### Solid structures on the field
+
+The nine goals and the four Loaders stand on the floor, and the robot cannot drive through them. Each is drawn on
+the field as a quiet outline, from the game manual's drawings (hover one for its name). Every step's path — the
+robot's whole 15 in square, its turns and curves included — is checked against them:
+
+- **Red:** the square goes into one on the way, or more than 0.5 in into one where the step ends. Select the step: it
+  says where, which one and how far in, and that structure turns red with the robot's square at that moment. A drive
+  or a back-up to a point offers **Go around: add a point at (x, y)** when there is a clear way round: one click adds
+  a step to that point first, and both legs turn to face their point.
+- **Amber:** the robot passes closer than 1 in, so a little drift and it clips it. A step that is meant to touch one
+  — its front against a goal to place a cone, or against a Loader to take a load — switches on **Touches the … on
+  purpose** on the right. That silences the amber for that structure. A red or blue goal narrows above its low base,
+  so with the switch on, a step may end with the robot's front up to 1 in over that base. A red on the way stays
+  red.
+- A mirrored route checks robot two's path too, and the switch carries over: robot two touches the mirror-image
+  goal. The Loaders are only on the red and blue walls, so robot two can meet one that robot one never does.
+- In PREVIEW, a robot that drives more than 1 in into one went **THROUGH** it, as with a wall: its step red, the path
+  faded after.
+
+![A drive through the centre goal: the step red, saying how far in, the goal outlined red with the robot's square at that moment, and "Go around: add a point at (0, 15.5)" one click away](../assets/route-builder/structures.png)
+
 ### 4. Add a curve
 
 Pick **Curve** (**C**) and click the points the robot should pass through — up to 16 — then press **Enter** or
@@ -154,9 +176,9 @@ moves. Like the drive, their heights and times come from the host test plant.
 
 **The steps** on the left say how each one went, and the one playing is highlighted. A step that failed is red,
 with the library's own line under it — the line the brain's log would show. A step in which the robot would go
-**through a wall** is red too, saying where (the host test plant has no walls, so the page checks the robot's square
-against the real field); the steps after it are grey, and the robot is drawn faded from that moment: on the field it
-would not get there.
+**through a wall**, a goal or a Loader is red too, saying where (the host test plant has none of them in its way, so
+the page checks the robot's square against the real field); the steps after it are grey, and the robot is drawn
+faded from that moment: on the field it would not get there.
 
 ![A drive that ran out of time: step 2 red with the library's line "STOPPED at step 2 (driveTo): motion TIMEOUT", the two steps after it greyed as skipped; beside the field, the claw open from step 1](../assets/route-builder/preview-failed.png)
 
@@ -219,7 +241,7 @@ Everything between the two `ROUTE MAKER` lines is the route — **See the code**
 comment, then its code. Step 2, for one:
 
 - **The comment** says what the step does in plain words, with its numbers, and the page's step number first:
-  *Step 2 — DRIVE to (-24, -36) in: about 26.8 in. First it turns to face the point …*
+  *Step 2 — DRIVE to (0, -36) in: about 26.8 in. First it turns to face the point …*
 - **The code** is the library's own calls (`r.` is the route being built), every number with its unit: `_in`
   inches, `_deg` degrees, `_s` seconds, `_volt` volts. A drive that turns first is two calls — `r.face(…)`, then
   `r.driveTo(…)`. A position is `claw["open"]`; a level, once the cascade has levels, `cascade[facts::lv(2).name]` —
@@ -452,6 +474,7 @@ one-click fix it offers it.
 | The check | Red when |
 |---|---|
 | Inside the field | the robot's 15 in square would go more than 1 in into a wall — at a point, turning in place, or anywhere along a curve |
+| Solid structures | the square goes into a goal or a Loader on the way, or more than 0.5 in into one at the start or where a step ends (a red or blue goal: 1 in, when the step touches it on purpose); robot two's mirrored path too. Amber when it passes closer than 1 in, unless the step touches it on purpose |
 | The start | there is no start, a number of it is missing (a `route_maker.json` edited by hand: the list shows `?` for it, and the robot is drawn once you type it), or it is through a wall |
 | Turn first (tank) | a drive is not turned first and starts more than 15° off its line (amber from 0.5°) |
 | The curve | the library refuses it: its first point is behind the robot, two points are closer than 1 in, a point doubles back (amber: a bend tighter than the robot can follow) |
@@ -493,8 +516,9 @@ Points snap to the half-tile grid (every 12 in) and flush against a wall; headin
 
 Save writes `src/team/route_maker.json`. It holds every route, in order, in the same units you see — inches,
 degrees, seconds, volts — one step per entry, in a fixed order so a change shows as a small `git diff`, and for a
-mirrored route the answer to "both robots at the same time?" (`together`). It keeps how each step shows on the page
-too — hidden, locked, its section (`view`) — which the export never reads. It also remembers a fingerprint of the
+mirrored route the answer to "both robots at the same time?" (`together`), and the structures a step touches on
+purpose (`touches`). It keeps how each step shows on the page too — hidden, locked, its section (`view`). The export
+reads neither. It also remembers a fingerprint of the
 code it last exported, so that if someone edits the code between the `ROUTE MAKER` lines by hand, the next export
 asks before replacing their change (**Keep their change**, or **Overwrite**). **Deleting the two `ROUTE MAKER`
 lines** makes the routes hand-written code that the route builder leaves alone from then on. A project file from

@@ -11,6 +11,7 @@ import { ROUTE_NAME, startPose } from '../model/route.mjs';
 import { targetKind, unitOf, bottomOf, plannedHeights } from '../model/lift.mjs';
 import { reflect } from '../model/pair.mjs';
 import { isHidden, isLocked } from '../model/step_view.mjs';
+import { touchOnPurpose } from './field_obstacles.mjs';
 
 /**
  * A number with its unit. Empty means "nothing typed" (the step keeps its hole, and the checks ask for it);
@@ -329,6 +330,7 @@ export function renderInspector(el, app) {
         viewLines(step, i, st, app),
         mine.map((x) => issueBox(x, app)),
         body,
+        touchOnPurpose(step, i, app),  // RMP1-H
         failSection(step, i, app),
         h('div', { class: 'section row' },
           h('button', { class: 'btn', onclick: () => app.duplicate(i) }, icon('dup'), 'Duplicate'),
