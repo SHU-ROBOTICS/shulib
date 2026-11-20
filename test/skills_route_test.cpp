@@ -1,10 +1,11 @@
-// THE SHARED SKILLS ROUTE (src/team/skills_route.{hpp,cpp}; chunk ROB1-BT, 2026-11-16 — the route maker's
-// contract, the RMP1 brief's §6.3). Say "host test plant", never "simulator". Nothing here has run on a robot.
+// THE SHARED ROUTES (src/team/skills_route.{hpp,cpp}; chunk ROB1-BT, 2026-11-16, named routes RMP1-C — the route
+// maker's contract, the RMP1 brief's §6.3). Say "host test plant", never "simulator". Nothing here has run on a robot.
 //
 // WHAT THIS FILE TRIES TO BREAK
 //   * THE CONTRACT: exactly ONE marked region, its two marker lines each alone on its line, holding the route
-//     maker's output for an EMPTY route byte for byte; no #include or `using` inside it; the plumbing it needs
-//     outside it (the includes, the namespace, the literals, `using namespace this_robot;`).
+//     maker's output for the EMPTY project (the skills route, no steps) byte for byte; no #include or `using` inside
+//     it; the plumbing it needs outside it (the includes, the namespace, the literals, `using namespace this_robot;`,
+//     teamRoutes() and the registration both autons files call).
 //   * BOTH ROBOTS RUN IT: robot one registers it as written, robot two MIRRORED — each runs on the host test
 //     plant through the Auton Tester's own sequence: 0 steps, finished, safe.
 //   * THE BUILDING ROBOT'S NAMES: `cascade`, `claw`, ... and `facts::lv(i)` are THIS build's robot's (the host is
@@ -45,16 +46,15 @@ constexpr std::string_view kEmptyRegion =
     "// the route maker will not overwrite a hand edit between BEGIN and END.\n"
     "// To make this hand-written code instead, delete the BEGIN and END lines.\n"
     "namespace {\n"
-    "// The skills route, in ROBOT ONE's numbers. Robot two runs this same function MIRRORED across\n"
-    "// the field's diagonal (robot two's autons file says so in one line).\n"
+    "// The route \"skills\", in ROBOT ONE's numbers. Robot two runs this same function MIRRORED across\n"
+    "// the field's diagonal (the list at the bottom says so).\n"
     "chassis::RoutineResult skillsSteps(competition::AutonContext& ctx) {\n"
     "    chassis::Routine r{ctx, \"skills\"};\n"
     "    // NO STEPS YET: the team's route is made in the route maker and written here.\n"
     "    return r.result();\n"
     "}\n"
-    "}  // namespace\n"
     "\n"
-    "// The entry both robots register.\n"
+    "// Its entry.\n"
     "competition::AutonEntry skillsRoute() {\n"
     "    competition::AutonEntry e{};\n"
     "    e.name = \"skills\";                                // what the brain's menu shows\n"
@@ -65,6 +65,14 @@ constexpr std::string_view kEmptyRegion =
     "    e.hardStopAt = 59_s;   // everything stops, 1 s before the run's 60 s\n"
     "    return e;\n"
     "}\n"
+    "}  // namespace\n"
+    "\n"
+    "// EVERY ROUTE, in the order the brain's menu lists them (addTeamRoutes, below the END line, registers them).\n"
+    "// Robot one registers each as written; robot two MIRRORS one marked Mirror::ForRobotTwo. Together::Yes: both\n"
+    "// robots run it at the SAME time, so the host suite checks they never come too close.\n"
+    "const TeamRoute kTeamRoutes[] = {\n"
+    "    {&skillsRoute, Mirror::ForRobotTwo, Together::NotAnswered},  // \"skills\"\n"
+    "};\n"
     "// ═══ ROUTE MAKER — route \"skills\" — END ═════════════════════════════════════════════════\n";
 
 const std::string kBegin = "// ═══ ROUTE MAKER — route \"skills\" — BEGIN ";
@@ -106,7 +114,8 @@ TEST_CASE("skills route (§6.3): the plumbing OUTSIDE the region -- the includes
                             "#include \"shulib/competition/auton_wall_reset.hpp\"",
                             "#include \"shulib/localization/override_walls.hpp\"",
                             "#include \"shulib/sequence/run_guard.hpp\"", "#include \"shulib/units/literals.hpp\"",
-                            "#include \"shulib/math/angle.hpp\"", "#include \"shulib/competition/field_mirror.hpp\""}) {
+                            "#include \"shulib/math/angle.hpp\"", "#include \"shulib/competition/field_mirror.hpp\"",
+                            "#include \"shulib/competition/override_mirror.hpp\""}) {
         CAPTURE(inc);
         CHECK(source_pins::count(outside, inc) == 1);
     }
@@ -114,6 +123,11 @@ TEST_CASE("skills route (§6.3): the plumbing OUTSIDE the region -- the includes
     CHECK(source_pins::count(code, "namespace shulib::bench { using namespace units::literals; using namespace this_robot;") == 1);
     CHECK(code.find("robot_one") == std::string::npos);  // a file both robots compile names neither robot
     CHECK(code.find("robot_two") == std::string::npos);
+    // RMP1-C D2: the list is the region's; the registration is the plumbing's — robot two mirrors only a marked route
+    CHECK(source_pins::count(code, "std::span<const TeamRoute> teamRoutes() { return kTeamRoutes; }") == 1);
+    CHECK(source_pins::count(code, "const bool mirror = robot == TeamRobot::Two && route.mirror == Mirror::ForRobotTwo; "
+                                   "registry.add(mirror ? competition::mirrored(e, competition::override2026::kSkillsMirror) : e);") == 1);
+    CHECK(source_pins::count(code, "registerRoutes(registry, kTeamRoutes, robot);") == 1);
 }
 
 TEST_CASE("skills route: both robots run it on the host test plant -- robot one as written, robot two MIRRORED -- 0 steps, finished, safe") {
@@ -143,8 +157,11 @@ TEST_CASE("skills route: both robots run it on the host test plant -- robot one 
         CHECK(r.run.guard.endActionRan);
         CHECK(s.driveSafe());
     }
-    CHECK(sb::skillsRoute().routine != nullptr);
-    CHECK(sb::skillsRoute().hardStopAt.value() == 59.0);
+    REQUIRE(sb::teamRoutes().size() == 1);
+    CHECK(std::string_view{sb::teamRoutes()[0].entry().name} == "skills");
+    CHECK(sb::teamRoutes()[0].mirror == sb::Mirror::ForRobotTwo);
+    CHECK(sb::teamRoutes()[0].together == sb::Together::NotAnswered);  // the starter: nobody has answered yet
+    CHECK(sb::teamRoutes()[0].entry().hardStopAt.value() == 59.0);
 }
 
 TEST_CASE("skills route: `cascade`, `claw`, ... and `facts::lv(i)` are the BUILDING robot's -- each chosen by kRobotId, robot one's on robot one, robot two's elsewhere") {

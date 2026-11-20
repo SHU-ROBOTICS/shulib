@@ -14,9 +14,10 @@
 // endings — is region.mjs's, applied here the same way for every host (so a later host re-implements a few
 // calls, never a rule).
 
-import { isTeamPath, spliceRegion, findRegion, regionText, regionHash, exportKey, hasMirroredLine, SKILLS_ROUTE_FILE,
-         ROBOT_TWO_AUTONS_FILE } from '../model/region.mjs';
+import { isTeamPath, spliceRegion, findRegion, regionText, regionHash, exportKey, hasTeamRoutesLine, SKILLS_ROUTE_FILE,
+         ROBOT_ONE_AUTONS_FILE, ROBOT_TWO_AUTONS_FILE } from '../model/region.mjs';
 import { exportRegion } from '../model/export.mjs';
+import { ROUTE_NAME } from '../model/route.mjs';
 import { saveProject, loadProject, PROJECT_FILE } from '../model/project.mjs';
 
 /** The file layer over `host` (header). */
@@ -98,24 +99,24 @@ export function makeFiles(host) {
             return f.ok ? { state: 'ready', name: f.name } : { state: f.why === 'noMarkers' ? 'noMarkers' : 'bad', words: f.words };
         },
 
-        /** Is robot two's mirrored line there (D6)? 'present', 'missing', or 'unknown' (a host that cannot read). */
-        async mirroredLine() {
-            if (!(host.canWriteFolder && host.connected())) {
-                return 'unknown';
+        /** Does each autons file register the team's routes (RMP1-C D2)? {One, Two}: 'present', 'missing', or 'unknown'
+         *  (a host that cannot read). */
+        async teamRoutesLines() {
+            const out = {};
+            for (const [robot, path] of [['One', ROBOT_ONE_AUTONS_FILE], ['Two', ROBOT_TWO_AUTONS_FILE]]) {
+                const text = host.canWriteFolder && host.connected() ? await host.readText(path) : undefined;
+                out[robot] = text === undefined ? 'unknown' : text !== null && hasTeamRoutesLine(text, robot) ? 'present' : 'missing';
             }
-            const text = await host.readText(ROBOT_TWO_AUTONS_FILE);
-            if (text === null) {
-                return 'missing';
-            }
-            return hasMirroredLine(text) ? 'present' : 'missing';
+            return out;
         },
 
         /**
-         * Write the route into the skills-route file's region (D4), keeping its line endings. Returns
-         * {ok, project (its `exports` hash updated), words} or {ok: false, why, words}. `overwrite`: the student
-         * chose to replace a hand edit.
+         * Write the routes (every route of the project, RMP1-C D2; one route is taken too) into the skills-route file's
+         * region (D4), keeping its line endings. Returns {ok, project (its `exports` hash updated), words} or
+         * {ok: false, why, words}. `overwrite`: the student chose to replace a hand edit; `robot`: the routes' robot's
+         * description (a lift's planned height, D7).
          */
-        async exportToFile(route, project, { overwrite = false } = {}) {
+        async exportToFile(routes, project, { overwrite = false, robot = null } = {}) {
             guard(SKILLS_ROUTE_FILE);
             if (!(host.canWriteFolder && host.connected())) {
                 return { ok: false, why: 'noFolder', words: 'Connect your shulib folder first (Chrome or Edge).' };
@@ -126,8 +127,8 @@ export function makeFiles(host) {
                     + 'robot two\'s update. Until then, use Copy.' };
             }
             const found = findRegion(text);
-            const key = exportKey(SKILLS_ROUTE_FILE, found.ok ? found.name : route.name);
-            const out = spliceRegion(text, exportRegion(route), { lastHash: project.exports[key], overwrite });
+            const key = exportKey(SKILLS_ROUTE_FILE, found.ok ? found.name : ROUTE_NAME);
+            const out = spliceRegion(text, exportRegion(routes, robot), { lastHash: project.exports[key], overwrite });
             if (!out.ok) {
                 return out;
             }
@@ -136,30 +137,30 @@ export function makeFiles(host) {
             }
             const exportsNow = { ...project.exports };
             delete exportsNow[key];
-            exportsNow[exportKey(SKILLS_ROUTE_FILE, route.name)] = out.hash;
+            exportsNow[exportKey(SKILLS_ROUTE_FILE, ROUTE_NAME)] = out.hash;
             return { ok: true, project: { ...project, exports: exportsNow }, changed: out.changed,
-                     words: out.changed ? `Wrote the route into ${SKILLS_ROUTE_FILE}` : `${SKILLS_ROUTE_FILE} already has this route` };
+                     words: out.changed ? `Wrote the routes into ${SKILLS_ROUTE_FILE}` : `${SKILLS_ROUTE_FILE} already has these routes` };
         },
 
         /**
          * Every other browser: the student picks their skills_route.cpp, gets the updated file back as a
          * download to put in place (the same rules: only the region changes, its line endings kept).
          */
-        async exportByDownload(route, project, { overwrite = false } = {}) {
+        async exportByDownload(routes, project, { overwrite = false, robot = null } = {}) {
             const picked = await host.pickText();
             if (!picked) {
                 return { ok: false, why: 'cancelled', words: '' };
             }
             const found = findRegion(picked.text);
-            const key = exportKey(SKILLS_ROUTE_FILE, found.ok ? found.name : route.name);
-            const out = spliceRegion(picked.text, exportRegion(route), { lastHash: project.exports[key], overwrite });
+            const key = exportKey(SKILLS_ROUTE_FILE, found.ok ? found.name : ROUTE_NAME);
+            const out = spliceRegion(picked.text, exportRegion(routes, robot), { lastHash: project.exports[key], overwrite });
             if (!out.ok) {
                 return out;
             }
             await host.offerDownload('skills_route.cpp', out.text);
             const exportsNow = { ...project.exports };
             delete exportsNow[key];
-            exportsNow[exportKey(SKILLS_ROUTE_FILE, route.name)] = out.hash;
+            exportsNow[exportKey(SKILLS_ROUTE_FILE, ROUTE_NAME)] = out.hash;
             return { ok: true, project: { ...project, exports: exportsNow },
                      words: 'Downloaded the updated skills_route.cpp: put it back in src/team/ in place of the old one' };
         },

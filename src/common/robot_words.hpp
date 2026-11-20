@@ -66,7 +66,7 @@ struct RobotWords {
     /// Its name in its calibration record (ROB1-BT): robotRecordName(id). Calibrate writes it; the boot
     /// refuses a record that names another robot, or none. nullptr = a robot that never boots from a record.
     const char* recordName;
-    /// The skills route both robots register (ROB1-BT): its entry is fixed THERE, not in the autons file.
+    /// The route builder's routes both robots register (ROB1-BT, RMP1-C): fixed THERE, not in the autons file.
     /// nullptr = a robot that registers none.
     const char* routeFilePath;
 };

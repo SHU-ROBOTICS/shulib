@@ -8,7 +8,7 @@ import path from 'node:path';
 import { exportRegion, markerLine } from '../src/model/export.mjs';
 import { newRoute, setStart, addStep } from '../src/model/route.mjs';
 import { findRegion, regionText, sha256Hex } from '../src/model/region.mjs';
-import { goldens } from '../goldens.mjs';
+import { goldens, goldenRobot } from '../goldens.mjs';
 import { GOLDENS, REPO } from './helpers.mjs';
 
 const START = { x: -36, y: -55.7, headingDeg: 0 };
@@ -21,7 +21,7 @@ const one = (step) => exportRegion(addStep(setStart(newRoute(), START), step));
  * as well, so editing the file to follow a drifted exporter is a deliberate two-place change (and a contract
  * change: both chunks at once, the coordinator's).
  */
-const GL0_SHA256 = 'def1fbed7268dd80495427d09428ac9c1ee0f6a86b70227b3c0d165d36ee0680';
+const GL0_SHA256 = '90a7e2b7ab112925c3005e5e6ca035fc0db7eee96d7bc9264b5cd09c35a5a93a';  // RMP1-C: + the list of routes
 
 test('GL0: an EMPTY route exports §6.3\'s empty region byte for byte (the contract text, pinned -- never re-made from the exporter)', () => {
     const g = fs.readFileSync(path.join(GOLDENS, 'gl0_empty.cpp'), 'utf8');
@@ -118,10 +118,13 @@ test('a wait is the RUN GUARD\'s pause inside r.then -- never r.pause (the 57 s 
     assert.ok(!/r\.pause\(/.test(t));
 });
 
-test('UN1: every number carries its unit; the only bare forms are the caps\' two spellings and a level index', () => {
-    for (const [name, , cpp] of goldens()) {
+test('UN1: every number carries its unit; the only bare forms are the caps\' two spellings, a level index and an ARM\'s to(degrees)', () => {
+    for (const [name, project, cpp] of goldens()) {
         const code = cpp.split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
-        const stripped = code
+        // the library takes an arm's angle as a plain number (`arm.to(90)`; `90_deg` is refused by name) -- an ARM's only
+        const robot = goldenRobot(JSON.parse(project).routes[0].robot);
+        const arms = robot ? robot.mechanisms.filter((m) => m.kind === 'arm').map((m) => m.ident) : [];
+        const stripped = (arms.length ? code.replace(new RegExp(`\\b(${arms.join('|')})\\.to\\(-?\\d+(\\.\\d+)?\\)`, 'g'), 'ARM') : code)
             .replace(/units::AngularVelocity\{-?\d+(\.\d+)? \* math::Angle::kPi \/ 180\.0\}/g, 'CAP')
             .replace(/-?\d+(\.\d+)?_in \/ 1_s/g, 'CAP')
             .replace(/facts::lv\(\d+\)/g, 'LEVEL')
@@ -165,9 +168,11 @@ test('the export depends on the route ALONE: no time, no hash, no path in it; th
 
 test('every step is numbered as the page numbers it, in plain words (no "Routine" or "precondition")', () => {
     for (const [name, , cpp] of goldens()) {
-        const comments = cpp.split('\n').filter((l) => /^\s*\/\/ Step \d+ — /.test(l));
-        const nums = comments.map((l) => Number(/Step (\d+)/.exec(l)[1]));
-        assert.deepEqual(nums, nums.map((_, i) => i + 1), name);
-        assert.ok(!/precondition/i.test(comments.join('\n')), name);
+        for (const block of cpp.split('chassis::RoutineResult ').slice(1)) {  // RMP1-C: each route numbers its own steps
+            const comments = block.split('\n').filter((l) => /^\s*\/\/ Step \d+ — /.test(l));
+            const nums = comments.map((l) => Number(/Step (\d+)/.exec(l)[1]));
+            assert.deepEqual(nums, nums.map((_, i) => i + 1), name);
+            assert.ok(!/precondition/i.test(comments.join('\n')), name);
+        }
     }
 });

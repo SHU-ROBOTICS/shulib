@@ -13,11 +13,14 @@
 //   step do=driveTo x=-12 y=-55.7 face=1 timeout=2.5 label=finish fail=carryOn
 //   step do=curveTo p=0,-50 p=12,-36,90 skipTo=finish
 //   step do=move mech=cascade preset=L2 bound=2
+//   step do=moveTo mech=cascade to=18 bound=2  (RMP1-C D7: up / down / to / the bottom, as the height the export writes)
 //
+// A "drive forward / back up N in" step (D9) is the driveTo / reverseTo the export writes, its point from the plan.
 // Pure: no DOM, no file API. It THROWS on a route it cannot express (the checks refuse those first).
 
 import { fmt } from './numbers.mjs';
-import { CARE_MOTION_FIELDS, MOTION_KINDS } from './route.mjs';
+import { CARE_MOTION_FIELDS, MOTION_KINDS, plannedPoses } from './route.mjs';
+import { plannedHeights, targetKind, moveTarget } from './lift.mjs';
 
 /** The line format's version (the runner refuses another). */
 export const LINES_VERSION = 1;
@@ -65,9 +68,21 @@ export function routeLines(route, robot) {
                  `route robot=${enc(robot.id)} name=${enc(route.name)} park=${fmt(route.endActionAtS)} stop=${fmt(route.hardStopAtS)}`];
     const s0 = route.start;
     out.push(s0 ? `start x=${fmt(s0.x)} y=${fmt(s0.y)} h=${fmt(s0.headingDeg)}` : 'start relative');
-    for (const step of route.steps) {
+    const plan = plannedPoses(route);
+    const heights = plannedHeights(route, robot);
+    route.steps.forEach((step, i) => {
         const w = [`do=${step.do}`];
         switch (step.do) {
+            case 'forward':
+            case 'backward': {
+                const q = plan[i].point;
+                if (!q) {
+                    throw new Error('route lines: a drive forward or back from a pose the plan does not know');
+                }
+                w[0] = `do=${step.do === 'forward' ? 'driveTo' : 'reverseTo'}`;
+                w.push(`x=${fmt(q.x)}`, `y=${fmt(q.y)}`, 'face=0');
+                break;
+            }
             case 'driveTo':
             case 'reverseTo':
                 w.push(`x=${fmt(step.x)}`, `y=${fmt(step.y)}`, `face=${step.faceFirst ? 1 : 0}`);
@@ -88,7 +103,16 @@ export function routeLines(route, robot) {
             case 'move':
             case 'startMove': {
                 const m = mech(step);
-                w.push(`mech=${enc(m.name)}`, `preset=${enc(preset(step, m))}`, `bound=${fmt(step.boundS)}`);
+                if (targetKind(step) === 'preset') {
+                    w.push(`mech=${enc(m.name)}`, `preset=${enc(preset(step, m))}`, `bound=${fmt(step.boundS)}`);
+                    break;
+                }
+                const to = moveTarget(step, m, heights[i].before[m.ident] ?? null);
+                if (to === null) {
+                    throw new Error(`route lines: the ${m.name}'s target is not known`);
+                }
+                w[0] = `do=${step.do}To`;
+                w.push(`mech=${enc(m.name)}`, `to=${fmt(to)}`, `bound=${fmt(step.boundS)}`);
                 break;
             }
             case 'set':
@@ -124,6 +148,6 @@ export function routeLines(route, robot) {
             w.push(`skipTo=${enc(care.onFail.skipTo)}`);
         }
         out.push(`step ${w.join(' ')}`);
-    }
+    });
     return `${out.join('\n')}\n`;
 }

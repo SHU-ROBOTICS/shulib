@@ -5,7 +5,7 @@
 > there once, marked **OWED**, and the build of every program that needs it **refuses**, naming it), its
 > six programs and their slots, the order things happen on the robot, its six mechanisms and the builder's
 > button map (yours to change), the flipper's three forms, and robot two — robot one's TWIN: the same build,
-> its own facts file, the skills route mirrored.
+> its own facts file, the team's routes mirrored where they are marked so (the skills route always).
 > **Read this if:** robot one or robot two is on your bench, the build just printed `robot one: OWED -- …` or
 > `robot two: OWED -- …`, or you are adding a robot of your own.
 > **Assumes:** [Chapter 7](07-getting-set-up.md) (building and uploading), [Chapter 18](18-mechanisms.md)
@@ -30,8 +30,8 @@ once. Each line is what a robot needs — copy the pattern when you add yours.
 | `src/robots/robot_one_facts.hpp` | **its facts file** — every number about its mechanisms, OWED or typed (below) |
 | `src/robots/mechanism_table.hpp` | its mechanisms, in its own `namespace robot_one`, between its `[robot one mechanisms]` markers, every number read from the facts file; its line in `mechanismTableFor()` |
 | `src/team/robot_one_driver.hpp` | its driver file — which button does what (the builder's map, below) |
-| `src/team/robot_one_autons.cpp` | its autons — the 40 in and the library's acceptance run as SKILLS autons, and the team's skills route |
-| `src/team/skills_route.cpp` | **the skills route, written once for both robots** (robot two runs it mirrored). **It is yours to write** — in the route maker, or by hand |
+| `src/team/robot_one_autons.cpp` | its autons — the 40 in and the library's acceptance run as SKILLS autons, and the team's routes (one line, `addTeamRoutes`) |
+| `src/team/skills_route.cpp` | **the team's routes — the skills route and every route you name — written once for both robots** (robot two runs the ones marked mirrored, mirrored). **They are yours to write** — in the route maker, or by hand |
 | `src/common/this_robot.hpp`, `src/common/robot_words.hpp` | nothing to type: the programs run THIS build's driver file and autons (`ThisRobotDriver`, `registerThisRobotsAutons()`) and print THIS robot's words — both robots' screens say `MECH`, and Calibrate writes THIS robot's name into its record ([Chapter 19](19-calibrating-your-robot.md#two-robots-one-card-each-the-record-names-its-robot)) |
 | `test/CMakeLists.txt` | its autons file, so the host suite runs every auton in it |
 | `tools/src_build_gate.py` | its six builds |
@@ -363,7 +363,7 @@ the right wall's Quadrant while robot one works the red wall's
 | Facts | `src/robots/robot_one_facts.hpp` | `src/robots/robot_two_facts.hpp`: the same facts, names and stages — **every one OWED** until its builder reads it off robot two |
 | Drive cartridge | BLUE (typed) | UNSET until read off robot two |
 | Driver file | the builder's map | the same map |
-| Autons | the 40 in, the acceptance run, the skills route | the same — the skills route **mirrored** (one line) |
+| Autons | the 40 in, the acceptance run, the team's routes | the same — the routes marked mirrored **mirrored** (one line) |
 | Calibration record | names `robot-one` | names `robot-two` |
 
 Each robot-two placeholder is robot one's own value for that fact, so the host suite runs robot two

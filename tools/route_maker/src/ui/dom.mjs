@@ -93,6 +93,10 @@ const PATHS = {
     list: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
     panel: 'M4 4h16v16H4ZM14 4v16',
     download: 'M12 4v11m-5-5 5 5 5-5M5 20h14',
+    straight: 'M12 3v18m-4-14 4-4 4 4m-8 10 4 4 4-4',
+    chevron: 'm6 9 6 6 6-6',
+    edit: 'M4 20h4L19 9l-4-4L4 16Zm9-13 4 4',
+    mirror: 'M12 3v18M4 7l5 5-5 5ZM20 7l-5 5 5 5Z',
 };
 
 /** An icon (24 x 24, stroked in the current colour). */
@@ -129,5 +133,91 @@ export function ask({ title, words, choices, cancel = null }) {
         document.addEventListener('keydown', onKey, true);
         document.body.append(scrim, dlg);
         dlg.querySelector('button').focus();
+    });
+}
+
+/**
+ * A menu under `anchor` (role=menu, closed by a click outside, Esc, or a choice): `children` are its rows. Returns the
+ * function that closes it. The first enabled `.menu-item` is focused; Up / Down move between the items.
+ */
+export function openMenu(anchor, children, label) {
+    const close = () => {
+        pop.remove();
+        document.removeEventListener('pointerdown', outside, true);
+        document.removeEventListener('keydown', onKey, true);
+    };
+    const outside = (e) => !pop.contains(e.target) && !anchor.contains(e.target) && close();
+    const onKey = (e) => {
+        if (e.key === 'Escape') {
+            e.stopPropagation();
+            close();
+            anchor.focus();
+        } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            const items = [...pop.querySelectorAll('.menu-item:not(:disabled)')];
+            const i = items.indexOf(document.activeElement);
+            if (items.length) {
+                e.preventDefault();
+                e.stopPropagation();
+                items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
+            }
+        }
+    };
+    const pop = h('div', { class: 'popover', role: 'menu', 'aria-label': label }, children);
+    pop.addEventListener('click', (e) => e.target.closest('.menu-item') && close());
+    const r = anchor.getBoundingClientRect();
+    pop.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - 340))}px`;
+    pop.style.top = `${r.bottom + 6}px`;
+    document.body.append(pop);
+    setTimeout(() => {
+        document.addEventListener('pointerdown', outside, true);
+        document.addEventListener('keydown', onKey, true);
+        const first = pop.querySelector('.menu-item[aria-checked="true"], .menu-item:not(:disabled)');
+        if (first) {
+            first.focus();
+        }
+    }, 0);
+    return close;
+}
+
+/**
+ * Ask for a line of text (the page's own prompt). `check(text)` returns the problem in words, or null: OK is refused
+ * while there is one, and the words show under the box as it is typed. Resolves to the text, or null (Cancel, Esc).
+ */
+export function askText({ title, words, value = '', check = () => null, ok = 'OK', label = title }) {
+    return new Promise((resolve) => {
+        const done = (v) => {
+            scrim.remove();
+            dlg.remove();
+            document.removeEventListener('keydown', onKey, true);
+            resolve(v);
+        };
+        const onKey = (e) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                done(null);
+            }
+        };
+        const problem = h('p', { class: 'inline-err', role: 'alert', 'aria-live': 'polite' });
+        const okBtn = h('button', { class: 'btn primary', type: 'submit' }, ok);
+        const input = h('input', { class: 'txt', type: 'text', value, 'aria-label': label, maxlength: 40, spellcheck: 'false',
+                                   oninput: () => update() });
+        const update = () => {
+            const p = check(input.value);
+            problem.textContent = p || '';
+            okBtn.disabled = !!p;
+            return !p;
+        };
+        const form = h('form', { onsubmit: (e) => { e.preventDefault(); if (update()) { done(input.value); } } },
+            input, problem,
+            h('div', { class: 'row', style: 'justify-content:flex-end;margin-top:12px' },
+              h('button', { class: 'btn', type: 'button', onclick: () => done(null) }, 'Cancel'), okBtn));
+        const scrim = h('div', { class: 'scrim', onclick: () => done(null) });
+        const dlg = h('div', { class: 'dialog ask', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'ask-title' },
+            h('h2', { id: 'ask-title' }, title), words ? h('p', {}, words) : null, form);
+        document.addEventListener('keydown', onKey, true);
+        document.body.append(scrim, dlg);
+        update();
+        input.focus();
+        input.select();
     });
 }

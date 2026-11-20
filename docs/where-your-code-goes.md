@@ -1,6 +1,6 @@
 # Where your code goes
 
-Your robot's code lives in **`src/team/`**: the buttons, the autons and the skills route. Everything
+Your robot's code lives in **`src/team/`**: the buttons, the autons and the routes. Everything
 else under `src/` is the plumbing that runs it. You can read the plumbing, but a route, a button or a
 new auton never goes there, and `src/main.cpp` stays short so your own notes in it stand out.
 
@@ -10,7 +10,7 @@ new auton never goes there, and `src/main.cpp` stays short so your own notes in 
 
 | Folder | What is in it | Change it when |
 |---|---|---|
-| `src/team/` | each robot's driver file (buttons, stick feel), each robot's autons, the skills route both robots share | you change how the robot plays |
+| `src/team/` | each robot's driver file (buttons, stick feel), each robot's autons, the routes the route builder exports (`skills_route.cpp`, shared by both robots) | you change how the robot plays |
 | `src/robots/` | what each robot is: ports, motor directions, mechanisms, its measured facts | the robot is rebuilt, re-cabled or measured |
 | `src/programs/` | the six programs, one file each | a program itself changes |
 | `src/common/` | what the programs share: booting, the screens, the plumbing behind every driver file | a program itself changes |
@@ -39,7 +39,7 @@ Slot 5 is kept for the team's old code. Upload a build with
 | You want to | Change |
 |---|---|
 | add or change an auton | `src/team/robot_one_autons.cpp`, and the same in `src/team/autons.cpp` (the suite fails when the two robots' lists differ) |
-| change the skills route | the [route builder](route-builder.md), or `src/team/skills_route.cpp` by hand |
+| add or change a route | the [route builder](route-builder.md): **Export** writes every route into `src/team/skills_route.cpp`, and each appears on the brain's menu by its name |
 | change a button or the stick feel | `src/team/robot_one_driver.hpp` and `src/team/robot_two_driver.hpp` |
 | move a mechanism to another port | `src/robots/robot_one_facts.hpp` ([Add your robot](guide/21-adding-your-robot-by-hand.md)) |
 | re-cable the drive | nothing by hand: run shulib Calibrate again with an SD card in the brain; its record beats the typed table ([Calibrate the drive](guide/19-calibrating-your-robot.md)) |

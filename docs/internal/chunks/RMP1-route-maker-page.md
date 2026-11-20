@@ -2138,8 +2138,15 @@ the day RPV1-A lands (a small follow-up, not a new run). *[R7] Now: A1 never wai
 A2 does.*
 
 ### 6.3 THE CONTRACT with ROB1-BT — the shared skills-route file *[R3] new; the coordinator copies it into ROB1-BT's args*
-1. **One file pair, ROB1-BT's:** `src/team/skills_route.hpp` declares `competition::AutonEntry skillsRoute();`;
-   `src/team/skills_route.cpp` defines it. It is compiled into BOTH robots' packages (MIRROR1 §6.3; gate step 8 as
+> **Amended by RMP1-C (2026-11-17, named routes):** the region holds EVERY route of the project — each its own
+> `<stem>Steps` and `<stem>Route()` in the region's anonymous namespace — and ends with ONE list, `const TeamRoute
+> kTeamRoutes[]` (`{&<stem>Route, Mirror::…, Together::…}` per route, in the brain menu's order). The markers still name
+> the region "skills". Items 1, 3 and 4 below are the amended contract; GL0 (`gl0_empty.cpp`, its hash pinned in
+> `export.test.mjs`) was re-made with it.
+
+1. **One file pair, ROB1-BT's:** `src/team/skills_route.hpp` declares the list's types (`Mirror`, `Together`,
+   `TeamRoute`, `TeamRobot`), `teamRoutes()`, `registerRoutes()` and `addTeamRoutes()` (RMP1-C; it declared
+   `skillsRoute()` before); `src/team/skills_route.cpp` defines them below the END line. It is compiled into BOTH robots' packages (MIRROR1 §6.3; gate step 8 as
    MIRROR1 says).
 2. **Outside the markers, ROB1-BT's file carries** the includes the route maker's code needs — `robots/mechanism_table.hpp`
    (and through it the facts ledger), `shulib/chassis/routine.hpp`, `shulib/competition/auton_registry.hpp`,
@@ -2158,16 +2165,15 @@ A2 does.*
    // the route maker will not overwrite a hand edit between BEGIN and END.
    // To make this hand-written code instead, delete the BEGIN and END lines.
    namespace {
-   // The skills route, in ROBOT ONE's numbers. Robot two runs this same function MIRRORED across
-   // the field's diagonal (robot two's autons file says so in one line).
+   // The route "skills", in ROBOT ONE's numbers. Robot two runs this same function MIRRORED across
+   // the field's diagonal (the list at the bottom says so).
    chassis::RoutineResult skillsSteps(competition::AutonContext& ctx) {
        chassis::Routine r{ctx, "skills"};
        // NO STEPS YET: the team's route is made in the route maker and written here.
        return r.result();
    }
-   }  // namespace
 
-   // The entry both robots register.
+   // Its entry.
    competition::AutonEntry skillsRoute() {
        competition::AutonEntry e{};
        e.name = "skills";                                // what the brain's menu shows
@@ -2178,14 +2184,23 @@ A2 does.*
        e.hardStopAt = 59_s;   // everything stops, 1 s before the run's 60 s
        return e;
    }
+   }  // namespace
+
+   // EVERY ROUTE, in the order the brain's menu lists them (addTeamRoutes, below the END line, registers them).
+   // Robot one registers each as written; robot two MIRRORS one marked Mirror::ForRobotTwo. Together::Yes: both
+   // robots run it at the SAME time, so the host suite checks they never come too close.
+   const TeamRoute kTeamRoutes[] = {
+       {&skillsRoute, Mirror::ForRobotTwo, Together::NotAnswered},  // "skills"
+   };
    // ═══ ROUTE MAKER — route "skills" — END ═════════════════════════════════════════════════
    ```
    No route content (G4): no step, no field point; the relative start and the 57 / 59 s schedule are the plumbing a
    registration needs, replaced at the students' first export.
-4. **The registrations (plumbing, ROB1-BT):** robot one's autons file `registry.add(skillsRoute());` (its pin test
-   re-pointed from 2 registrations to 3, `rob1-int` `robot_one_autons_test.cpp` :162-166); robot two's
-   `registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));` once MIRROR1-A is
-   on its base, else a comment and the coordinator adds it at MIRROR1-A's merge (the GO, R2).
+4. **The registrations (plumbing):** since RMP1-C one line in each autons file — robot one's
+   `addTeamRoutes(registry, TeamRobot::One);` (every route as written), robot two's `addTeamRoutes(registry,
+   TeamRobot::Two);` (each route marked `Mirror::ForRobotTwo` mirrored by `kSkillsMirror`, the others as written); the
+   export page checks both (`region.mjs` `hasTeamRoutesLine`). (Before RMP1-C: `registry.add(skillsRoute());` and
+   its mirrored twin.)
 5. **The driver files (D9, R17):** in both robots' driver files, the `control words` and `feel` markers around the
    existing header map and THE FEEL block, content unchanged; each marker alone on its line.
 6. **Nothing else in `src/team/` is written by the route maker.** Its hand-edit check keeps the last-written hash in

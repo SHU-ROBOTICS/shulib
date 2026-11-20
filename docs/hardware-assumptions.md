@@ -2351,7 +2351,8 @@ not exist yet, and nothing here has run on a robot.**
   by up to d, out of the 3 in), so a route that passes the suite's 6 in check keeps the two robots apart on the
   field. *(The footprint half was added at MIRROR1-A's review, 2026-11-13 — a belief the check rested on and no
   number named; widened here rather than a fourth number, as R1 widened this one for the pair check.)*
-  *Source:* `kMirrorGapIn` in `test/mirrored_pair_check.hpp`; the Chassis's mirrored-run documentation
+  *Source:* `kMirrorGapIn` in `test/mirrored_pair_numbers.hpp` (since RMP1-C; the route builder reads the same
+  number); the Chassis's mirrored-run documentation
   (`chassis.hpp`).
   *Confidence:* **invented** — the host plant's magnitudes; the 3 in is a chosen margin, unmeasured; where the
   tracking centre sits inside each robot's footprint, unmeasured.

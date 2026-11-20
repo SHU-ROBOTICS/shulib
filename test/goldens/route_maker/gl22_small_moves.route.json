@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "madeWith": "shulib route builder",
+  "routes": [
+    {
+      "name": "skills",
+      "kind": "skills",
+      "robot": "x",
+      "mirroredFor": "two",
+      "together": false,
+      "start": {
+        "x": -36,
+        "y": -55.7,
+        "headingDeg": 0
+      },
+      "endActionAtS": 57,
+      "hardStopAtS": 59,
+      "steps": [
+        {
+          "do": "forward",
+          "inches": 1
+        },
+        {
+          "do": "turnTo",
+          "headingDeg": 90
+        },
+        {
+          "do": "forward",
+          "inches": 2.5,
+          "care": {
+            "maxSpeedInPerS": 20
+          }
+        },
+        {
+          "do": "backward",
+          "inches": 1
+        },
+        {
+          "do": "curveTo",
+          "points": [
+            {
+              "x": -35,
+              "y": -40
+            },
+            {
+              "x": -20,
+              "y": -28,
+              "headingDeg": 0
+            }
+          ]
+        },
+        {
+          "do": "forward",
+          "inches": 1.25
+        }
+      ]
+    }
+  ],
+  "robots": {},
+  "exports": {}
+}

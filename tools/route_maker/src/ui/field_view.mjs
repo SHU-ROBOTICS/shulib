@@ -6,7 +6,9 @@
 // curve.mjs), a ghost square where it ends, a handle on every point to drag, a step's number at its spot, and
 // any step with an error red (a warning amber). Nothing here is the robot's real path: that is the preview's,
 // drawn on its own layer (drawRun, RMP1-A2u): each robot as the record placed it, its path so far solid, the rest
-// faint, and for a mirrored route the pair check's 6 in band along the mirror line.
+// faint, and for a mirrored route the pair check's 6 in band along the mirror line. RMP1-C D4: a mirrored route also
+// shows ROBOT TWO — its start and planned path reflected, dimmed and labelled — and, when the two come too close, both
+// squares red at that moment. A handle never grows past 8 screen px, so zoomed in two points 1 in apart are two targets.
 // Snapping (field.mjs): the half-tile grid, a wall flush, 15 deg headings; Alt holds it off, Shift = 1 deg.
 
 import { s } from './dom.mjs';
@@ -14,6 +16,7 @@ import { fieldToPicture, pictureToField, snapPoint, snapHeading } from '../model
 import { squareCorners, bearingDeg } from '../model/geometry.mjs';
 import { round3 } from '../model/numbers.mjs';
 import { startPose } from '../model/route.mjs';
+import { reflect, stepPoses } from '../model/pair.mjs';
 
 const KNOB_IN = 15;  // the heading knob sits this far ahead of the start's centre
 
@@ -37,8 +40,10 @@ export function createFieldView(host, app) {
     const P = (x, y) => fieldToPicture(x, y, pic);
     const inPx = (inches) => inches * pic.pxPerIn;
 
+    const handleR = () => Math.min(inPx(1.6), (8 * view.w) / (svg.getBoundingClientRect().width || view.w));
     function applyView() {
         svg.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
+        layer.querySelectorAll('.g-handle[data-handle]').forEach((c) => c.setAttribute('r', handleR()));
     }
     function fit() {
         const r = svg.getBoundingClientRect();
@@ -163,9 +168,7 @@ export function createFieldView(host, app) {
         }
         if (drag.kind === 'handle') {
             app.endDrag(drag.moved);
-            if (!drag.moved) {
-                app.selectHandle(drag.handle, drag.index);
-            }
+            app.selectHandle(drag.handle, drag.index, drag.point, !drag.moved);  // the one the arrows nudge; a drag opens no drawer
         }
         if (drag.kind === 'pan' && drag.click && ev.type === 'pointerup') {
             app.backgroundClick(drag.at, drag.ev);  // a click, not a pan: place the start, or clear the selection
@@ -222,7 +225,7 @@ export function createFieldView(host, app) {
     }
     function handle(x, y, kind, index, point, cls = '') {
         const q = P(x, y);
-        return s('circle', { class: `g-handle ${cls}`, cx: q.px, cy: q.py, r: inPx(1.6), 'data-handle': kind, 'data-index': index,
+        return s('circle', { class: `g-handle ${cls}`, cx: q.px, cy: q.py, r: handleR(), 'data-handle': kind, 'data-index': index,
                              'data-point': point ?? 0 });
     }
     /** One pill at a spot, its steps' numbers in it ("3-5": the curve's end, then a level and a wait there). */
@@ -246,6 +249,34 @@ export function createFieldView(host, app) {
             }
         }
         return runs.map(([a, b]) => (a === b ? String(a) : b === a + 1 ? `${a}, ${b}` : `${a}\u2013${b}`)).join(', ');
+    }
+
+    /** D4: robot two on the field for a mirrored route — its start and planned path, robot one's reflected; D5: when
+     *  both run it together and come too close, both squares red at that moment (the check's own issue). */
+    function robotTwo(route, plan) {
+        const mirror = app.robot().skillsMirror;
+        const st0 = startPose(route.start);
+        if (!route.mirroredFor || !mirror || !st0) {
+            return [];
+        }
+        const out = [];
+        const w = app.field().wallInnerFaceIn;
+        const c = Math.atan2(mirror.sin2a, mirror.cos2a) / 2;  // the mirror line's heading
+        const ends = [-1, 1].map((k) => P(k * w * Math.SQRT2 * Math.cos(c), k * w * Math.SQRT2 * Math.sin(c)));
+        out.push(s('line', { class: 'g-mirror', x1: ends[0].px, y1: ends[0].py, x2: ends[1].px, y2: ends[1].py, 'data-mirror': '' }));
+        const path = [st0];
+        route.steps.forEach((step, i) => path.push(...stepPoses(step, plan[i])));
+        const two = path.map((q) => reflect(q, mirror));
+        out.push(s('polyline', { class: 'g-twin-path', points: pts(two) }));
+        const t0 = two[0];
+        out.push(s('g', { class: 'g-twin', 'data-twin': '' }, square(t0, 'g-twin-robot'), s('polygon', { class: 'g-twin-front', points: frontPoints(t0) })));
+        const q = P(t0.x, t0.y + app.size() / 2 + 2.5);
+        out.push(s('text', { class: 'g-twin-label', x: q.px, y: q.py }, 'robot two (mirrored)'));
+        const hit = app.issues().find((x) => x.code === 'RCP1' && x.pair);
+        if (hit) {
+            out.push(square(hit.pair.one, 'g-too-close'), square(hit.pair.two, 'g-too-close'));
+        }
+        return out;
     }
 
     function render() {
@@ -275,6 +306,11 @@ export function createFieldView(host, app) {
                     parts.push(square(p.to, `g-ghost ${sel ? 'sel' : ''}`));
                     parts.push(handle(step.x, step.y, 'point', i, 0, `${sel ? 'sel' : ''} ${level[i] === 'error' ? 'error' : ''}`));
                 }
+            } else if ((step.do === 'forward' || step.do === 'backward') && p.to) {
+                const a = P(p.from.x, p.from.y);
+                const b = P(p.to.x, p.to.y);
+                parts.push(s('line', { class: cls, x1: a.px, y1: a.py, x2: b.px, y2: b.py }));
+                parts.push(square(p.to, `g-ghost ${sel ? 'sel' : ''}`));
             } else if (step.do === 'face' || step.do === 'faceAway' || step.do === 'turnTo') {
                 parts.push(arc(p.from, p.from.headingDeg, p.to.headingDeg));
                 if (step.do !== 'turnTo' && Number.isFinite(step.x)) {
@@ -290,7 +326,7 @@ export function createFieldView(host, app) {
                 const pts = p.curve.samples(1).map((q) => P(q.x, q.y)).map((q) => `${q.px},${q.py}`).join(' ');
                 parts.push(s('polyline', { class: cls, points: pts }));
                 parts.push(square(p.to, `g-ghost ${sel ? 'sel' : ''}`));
-                (step.points || []).forEach((q, k) => parts.push(handle(q.x, q.y, 'curvePoint', i, k, sel ? 'sel' : '')));
+                (step.points || []).forEach((q, k) => parts.push(handle(q.x, q.y, 'curvePoint', i, k, sel ? `sel${st.point === k ? ' point' : ''}` : '')));
             }
         });
         // the curve being drawn
@@ -303,6 +339,7 @@ export function createFieldView(host, app) {
                 parts.push(s('circle', { class: 'g-handle sel', cx: c.px, cy: c.py, r: inPx(1.2) }));
             });
         }
+        parts.push(...robotTwo(route, plan));
         // the start: the robot, its front, its heading knob — drawn only when it is a place (a start missing a part,
         // from a hand-edited file, is not: the step list shows "?" for the part and the inspector asks for it)
         const st0 = startPose(route.start);

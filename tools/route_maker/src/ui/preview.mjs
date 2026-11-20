@@ -10,6 +10,7 @@ import { stepTitle } from './words.mjs';
 import { routeRobots } from '../host/robots.mjs';
 import { makeEngine } from '../host/engine.mjs';
 import { routeKey, playbackOf, poseAt, sampleIndexAt, stepAt, stepTime } from '../model/playback.mjs';
+import { ROBOT_TWO_ONLY } from '../model/checks.mjs';
 
 const PHASES = {
     starting: 'Starting the preview engine…',
@@ -144,7 +145,8 @@ export function createPreview(app, els, engine, baked, toast) {
             return;
         }
         const r = app.route();
-        const err = app.issues().find((x) => x.level === 'error');
+        // RMP1-C: robot two's errors (together? too close? skills mirrored?) are the export's -- robot one runs the same route
+        const err = app.issues().find((x) => x.level === 'error' && !ROBOT_TWO_ONLY.has(x.code));
         const notReady = !r.start ? 'Place robot one\'s start first: click the field where it starts.'
             : !r.steps.length ? 'Add a step first: PREVIEW plays the route\'s steps.'
                 : err ? `PREVIEW runs a route the robot would run: fix ${err.stepIndex >= 0 ? `step ${err.stepIndex + 1}` : 'the start'} first. ${err.words}` : '';
@@ -205,6 +207,10 @@ export function createPreview(app, els, engine, baked, toast) {
         }
         const names = (robot) => r.steps.map((x) => ((robot.mechanisms || []).find((m) => m.ident === x.mechanism) || {}).name || '');
         const runRec = { key, play: playbackOf(res, { one: names(one), two: two ? names(two) : [] }), pairWords };
+        if (r.together === false && runRec.play.pair) {  // RMP1-C D6: one robot at a time -- robot two's run shown, no gap verdict
+            runRec.play.pair = null;
+            runRec.pairWords = 'One robot at a time (this route\'s answer): robot two\'s mirrored run is shown, the too-close check is not.';
+        }
         cache.set(key, runRec);
         if (cache.size > 8) {
             cache.delete(cache.keys().next().value);
@@ -279,6 +285,7 @@ export function createPreview(app, els, engine, baked, toast) {
     renderButton();
     return {
         available: () => engine.available,
+        showing,  // RMP1-C: while a run shows, the arrow keys are its (the field's nudge waits)
         topbar: () => [btn, why],
         run,
         /** After every redraw of the shell: a run whose route changed is put away (and comes back on an undo). */

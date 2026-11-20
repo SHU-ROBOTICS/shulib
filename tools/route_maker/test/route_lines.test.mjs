@@ -31,28 +31,35 @@ function lineNumbers(line) {
 function codeNumbers(code) {
     const c = code.split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n')
         .replace(/ \/ 1_s/g, '').replace(/ \/ 180\.0/g, '').replace(/facts::lv\(\d+\)/g, '').replace(/"[^"]*"/g, '');
-    return [...c.matchAll(/(?<![A-Za-z_\d.])(-?\d+(?:\.\d+)?)(?=_(?:in|deg|s|volt)\b| \* math::Angle::kPi)/g)].map((m) => m[1]);
+    // ... and an arm's `.to(<degrees>)`, a plain number (the library refuses `_deg` there, RMP1-C D7)
+    return [...c.matchAll(/(?<![A-Za-z_\d.])(-?\d+(?:\.\d+)?)(?=_(?:in|deg|s|volt)\b| \* math::Angle::kPi|\)(?=, ))/g)].map((m) => m[1]);
 }
 
 const sorted = (a) => [...new Set(a)].sort();
 
 test('NF1 (the lines): on every golden, each step\'s numbers are the export\'s own text, character for character', () => {
-    for (const [name, project, cpp] of goldens()) {
-        const route = loadProject(project).project.routes[0];
-        const robot = route.robot === 'x' ? fixtureRobot('x') : { id: route.robot, mechanisms: route.steps
-            .filter((s) => s.mechanism).map((s) => ({ ident: s.mechanism, name: s.mechanism, presets: [] })) };
-        const lines = routeLines(route, robot).trimEnd().split('\n');
-        const steps = lines.filter((l) => l.startsWith('step '));
-        const blocks = cpp.split(/\n(?=    \/\/ Step \d+ — )/).slice(1);
-        assert.equal(steps.length, route.steps.length, name);
-        assert.equal(blocks.length, steps.length, `${name}: one export block per step`);
-        steps.forEach((l, i) => {
-            const code = blocks[i].split(/\n\n/)[0];
-            assert.deepEqual(sorted(lineNumbers(l)), sorted(codeNumbers(code)), `${name} step ${i + 1}: ${l}`);
+    for (const [name0, project, cpp0] of goldens()) {
+        const all = loadProject(project).project.routes;
+        const routeBlocks = cpp0.split('chassis::RoutineResult ').slice(1);  // RMP1-C: one block per route, in order
+        assert.equal(routeBlocks.length, all.length, `${name0}: one steps function per route`);
+        all.forEach((route, k) => {
+            const name = `${name0} route ${k + 1}`;
+            const cpp = routeBlocks[k].split('\n}  // namespace')[0];
+            const robot = route.robot === 'x' ? fixtureRobot('x') : { id: route.robot, mechanisms: route.steps
+                .filter((s) => s.mechanism).map((s) => ({ ident: s.mechanism, name: s.mechanism, presets: [] })) };
+            const lines = routeLines(route, robot).trimEnd().split('\n');
+            const steps = lines.filter((l) => l.startsWith('step '));
+            const blocks = cpp.split(/\n(?=    \/\/ Step \d+ — )/).slice(1);
+            assert.equal(steps.length, route.steps.length, name);
+            assert.equal(blocks.length, steps.length, `${name}: one export block per step`);
+            steps.forEach((l, i) => {
+                const code = blocks[i].split(/\n\n/)[0];
+                assert.deepEqual(sorted(lineNumbers(l)), sorted(codeNumbers(code)), `${name} step ${i + 1}: ${l}`);
+            });
+            const entry = cpp.slice(cpp.indexOf('competition::AutonEntry '));
+            assert.deepEqual(sorted([...lineNumbers(lines[1]), ...lineNumbers(lines[2])]), sorted(codeNumbers(entry)),
+                             `${name}: the start and the schedule`);
         });
-        const entry = cpp.slice(cpp.indexOf('competition::AutonEntry skillsRoute()'));
-        assert.deepEqual(sorted([...lineNumbers(lines[1]), ...lineNumbers(lines[2])]), sorted(codeNumbers(entry)),
-                         `${name}: the start and the schedule`);
     }
 });
 

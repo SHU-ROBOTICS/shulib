@@ -3,8 +3,8 @@
 // the route maker will not overwrite a hand edit between BEGIN and END.
 // To make this hand-written code instead, delete the BEGIN and END lines.
 namespace {
-// The skills route, in ROBOT ONE's numbers. Robot two runs this same function MIRRORED across
-// the field's diagonal (robot two's autons file says so in one line).
+// The route "skills", in ROBOT ONE's numbers. Robot two runs this same function MIRRORED across
+// the field's diagonal (the list at the bottom says so).
 chassis::RoutineResult skillsSteps(competition::AutonContext& ctx) {
     chassis::Routine r{ctx, "skills"};
 
@@ -129,9 +129,8 @@ chassis::RoutineResult skillsSteps(competition::AutonContext& ctx) {
 
     return r.result();
 }
-}  // namespace
 
-// The entry both robots register: robot one's start, the 60 s skills schedule.
+// Its entry: robot one's start, the 60 s skills schedule.
 competition::AutonEntry skillsRoute() {
     competition::AutonEntry e{};
     e.name = "skills";                                // what the brain's menu shows
@@ -142,4 +141,12 @@ competition::AutonEntry skillsRoute() {
     e.hardStopAt = 59_s;   // everything stops, 1 s before the run's 60 s
     return e;
 }
+}  // namespace
+
+// EVERY ROUTE, in the order the brain's menu lists them (addTeamRoutes, below the END line, registers them).
+// Robot one registers each as written; robot two MIRRORS one marked Mirror::ForRobotTwo. Together::Yes: both
+// robots run it at the SAME time, so the host suite checks they never come too close.
+const TeamRoute kTeamRoutes[] = {
+    {&skillsRoute, Mirror::ForRobotTwo, Together::NotAnswered},  // "skills"
+};
 // ═══ ROUTE MAKER — route "skills" — END ═════════════════════════════════════════════════

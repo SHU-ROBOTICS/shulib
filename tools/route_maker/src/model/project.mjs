@@ -9,8 +9,10 @@
 // Loading never half-reads (D3): a file from a NEWER route builder is refused by name, nothing loaded — a
 // schemaVersion above 1 (RT4), and ALSO a schemaVersion-1 file that carries what this builder cannot write:
 // a step kind it does not know (A1b's `wallReset`), a field it does not know on a route, a step, a step's
-// `care` or a curve point (A1b's `during` trigger), or a second route (RT7) — because opening such a file and
-// exporting it would silently drop that part from the robot's code. A step whose mechanism the robot does not
+// `care` or a curve point (A1b's `during` trigger) — because opening such a file and exporting it would silently
+// drop that part from the robot's code. Since RMP1-C a project holds the team's NAMED routes (D1), the skills route
+// among them; every route is exported (export.mjs), and `together` says whether both robots run a mirrored one at
+// the same time (D3: absent until the team answers). A step whose mechanism the robot does not
 // have is KEPT and marked by the checks, never dropped (RT5). A top-level block this builder does not use
 // (`robots.<id>` — RMP1-B's controls and feel — or any other) is kept and written back untouched. Saving is
 // deterministic: the same project always writes the same bytes (RT1), two-space JSON, keys in one order, LF,
@@ -18,7 +20,7 @@
 //
 // Pure: no DOM, no file API.
 
-import { normalizeRoute, newRoute, STEP_KINDS, STEP_KEYS, CARE_KEYS, POINT_KEYS, ROUTE_KEYS } from './route.mjs';
+import { normalizeRoute, newRoute, STEP_KINDS, STEP_KEYS, CARE_KEYS, POINT_KEYS, ROUTE_KEYS, ROUTE_NAME } from './route.mjs';
 
 /** The project file's schema this builder reads and writes. */
 export const SCHEMA_VERSION = 1;
@@ -30,7 +32,7 @@ export function newProject(madeWith = 'shulib route builder') {
     return { schemaVersion: SCHEMA_VERSION, madeWith, routes: [newRoute()], robots: {}, exports: {} };
 }
 
-const ROUTE_ORDER = ['name', 'kind', 'robot', 'mirroredFor', 'start', 'endActionAtS', 'hardStopAtS', 'steps'];
+const ROUTE_ORDER = ['name', 'kind', 'robot', 'mirroredFor', 'together', 'start', 'endActionAtS', 'hardStopAtS', 'steps'];
 const TOP_ORDER = ['schemaVersion', 'madeWith', 'routes', 'robots', 'exports'];
 
 function ordered(obj, order) {
@@ -63,9 +65,6 @@ const unknownKey = (obj, known) => Object.keys(obj).find((k) => !known.includes(
  * (route \"skills\", step 2)"), or null when every part is known (header: never half-read).
  */
 export function newerParts(data) {
-    if (data.routes.length > 1) {
-        return `${data.routes.length} routes (this one edits the one skills route)`;
-    }
     for (const r of data.routes) {
         const where = `route "${r.name}"`;
         const rk = unknownKey(r, ROUTE_KEYS);
@@ -77,6 +76,9 @@ export function newerParts(data) {
         }
         if (r.mirroredFor !== undefined && r.mirroredFor !== 'two') {
             return `a route mirrored for ${JSON.stringify(r.mirroredFor)} (${where})`;
+        }
+        if (r.together !== undefined && typeof r.together !== 'boolean') {
+            return `a "together" of ${JSON.stringify(r.together)} (${where})`;
         }
         for (const k of ['endActionAtS', 'hardStopAtS']) {
             if (r[k] !== undefined && !(typeof r[k] === 'number' && Number.isFinite(r[k]))) {
@@ -130,6 +132,9 @@ export function newerParts(data) {
             if (s.preset !== undefined && typeof s.preset !== 'number' && typeof s.preset !== 'string') {
                 return `a "preset" of ${JSON.stringify(s.preset)} (${at})`;
             }
+            if (s.bottom !== undefined && s.bottom !== true) {
+                return `a "bottom" of ${JSON.stringify(s.bottom)} (${at})`;
+            }
         }
     }
     return null;
@@ -180,9 +185,62 @@ export function loadProject(text) {
     }
     const project = {
         ...data,
-        routes: data.routes.map((r) => normalizeRoute({ ...newRoute(r.name), ...r })),
+        routes: data.routes.map((r) => normalizeRoute({ ...newRoute(r.name), mirroredFor: undefined, ...r })),
         robots: data.robots && typeof data.robots === 'object' ? data.robots : {},
         exports: data.exports && typeof data.exports === 'object' ? data.exports : {},
     };
     return { ok: true, project };
+}
+
+// ── the named routes (RMP1-C D1): every edit returns a NEW set {routes, at}, `at` the route on the field ──────────
+
+/** The autons both autons files register beside the routes (the 40 in, the acceptance run), by name — the robot's
+ *  description bakes them (test/route_maker_describe.hpp; the suite holds them equal to both files' real lists). */
+export const otherAutons = (robot) => (robot && robot.otherAutons) || [];
+
+/** The most routes a project holds: the brain's menu holds `maxAutons` autons, less the other autons. */
+export const routeCap = (robot) => (robot.maxAutons || 16) - otherAutons(robot).length;
+
+/** A name no route in `routes` and no other auton of `robot` has (capitals aside), inside the budget of a name robot
+ *  two shows mirrored: `base` itself, or "base 2", "base 3", ... */
+export function freeName(routes, robot, base0 = 'route') {
+    const max = robot.mirroredAutonNameMaxChars;
+    const taken = new Set([...routes.map((r) => r.name), ...otherAutons(robot)].map((n) => String(n).toLowerCase()));
+    const base = base0.slice(0, max).trim();
+    if (base !== 'route' && !taken.has(base.toLowerCase())) {
+        return base;
+    }
+    for (let n = 2; ; ++n) {
+        const name = `${base.slice(0, max - 1 - String(n).length).trim()} ${n}`;
+        if (!taken.has(name.toLowerCase())) {
+            return name;
+        }
+    }
+}
+
+/** A new, empty route named `name` after the last (robot two runs it as written until the mirror is turned on). */
+export function addRoute(set, name) {
+    const r = { ...newRoute(name), mirroredFor: undefined };
+    return { routes: [...set.routes, r], at: set.routes.length };
+}
+
+/** Route `i` renamed. */
+export function renameRouteAt(set, i, name) {
+    return { ...set, routes: set.routes.map((r, k) => (k === i ? { ...r, name: String(name) } : r)) };
+}
+
+/** A copy of route `i` just after it, named `name`, on the field. */
+export function duplicateRoute(set, i, name) {
+    const routes = set.routes.slice();
+    routes.splice(i + 1, 0, { ...set.routes[i], name });
+    return { routes, at: i + 1 };
+}
+
+/** Route `i` deleted (never the skills route, never the last route): the set unchanged when it cannot be. */
+export function deleteRoute(set, i) {
+    if (set.routes.length <= 1 || set.routes[i].name === ROUTE_NAME) {
+        return set;
+    }
+    const routes = set.routes.filter((_, k) => k !== i);
+    return { routes, at: Math.min(set.at > i ? set.at - 1 : set.at, routes.length - 1) };
 }

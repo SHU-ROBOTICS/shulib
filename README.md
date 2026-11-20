@@ -329,7 +329,7 @@ src/                the robot programs, one folder per job (every include writte
                     competition program's driver control runs it), each robot's autons
                     (autons.cpp, robot_one_autons.cpp — one list each, both auton programs
                     read it; the host suite compiles them and runs every auton in them) and
-                    the skills route both robots share (skills_route.cpp)
+                    the routes both robots share (skills_route.cpp)
   programs/         one program each: the bench tester, shulib Drive (the robot's driver file on
                     robot::Robot, with its MAIN / DETAILS / MORE pages), shulib Calibrate, the
                     X-drive's program, shulib Auton Tester (runs one of the team's autons on the
