@@ -10,7 +10,8 @@
 // with its index, so the export names it `m[facts::lv(i).name]`), the drive the page plans on (a tank, the
 // library's own tank-steering window and curve rules — MotionConfig's defaults, the numbers a Chassis is
 // built with when nothing overrides them), the field's numbers (localization/override_walls.hpp,
-// vision/override_elements.hpp) and the API version. A number the tables do not state is LEFT OUT, never
+// vision/override_elements.hpp) and the API version; since RMP1-C also each arm's and lift's home height, the
+// brain menu's name budgets and size, the other autons' names, the pair check's two numbers (mirrored_pair_numbers.hpp) and the skills mirror. A number the tables do not state is LEFT OUT, never
 // filled from the host test plant's stand-in drive [R16].
 //
 // The declaration's C++ name (what the export writes — `clawPivot6`, not its `.name` "claw pivot 6") is
@@ -23,6 +24,7 @@
 // the page's robots.json) and by test/route_maker_golden_test.cpp (the committed fixture descriptions the
 // page's node tests read must equal what this writes).
 
+#include <array>
 #include <charconv>
 #include <cmath>
 #include <cstddef>
@@ -33,9 +35,13 @@
 #include <string_view>
 #include <vector>
 
+#include "mirrored_pair_numbers.hpp"
+#include "shulib/competition/acceptance_run.hpp"
+#include "shulib/competition/override_mirror.hpp"
 #include "shulib/localization/override_walls.hpp"
 #include "shulib/mechanism/spec.hpp"
 #include "shulib/mechanism/wiring.hpp"
+#include "shulib/units/literals.hpp"
 #include "shulib/motion/curve_path.hpp"
 #include "shulib/motion/motion_config.hpp"
 #include "shulib/competition/auton_registry.hpp"
@@ -43,6 +49,11 @@
 #include "shulib/vision/override_elements.hpp"
 
 namespace route_maker {
+
+/// The autons both autons files register BESIDE the route builder's routes (the 40 in, the acceptance run), by name:
+/// no route may take one. Typed here (this program does not compile src/team/); the suite holds it equal to both
+/// robots' real lists (route_maker_golden_test.cpp, "RMP1-C: the other autons").
+inline constexpr std::array<const char*, 2> kOtherAutonNames{"40in forward", shulib::competition::kAcceptanceRunName};
 
 /// A double as the shortest text that reads back to the same double (std::to_chars), so the page's
 /// numbers are the C++'s, bit for bit.
@@ -182,6 +193,21 @@ struct RobotSource {
     j += "  \"name\": " + str(r.name) + ",\n";
     j += "  \"api\": " + str(shulib::kApiVersionString) + ",\n";
     j += "  \"autonNameMaxChars\": " + std::to_string(shulib::competition::kMaxAutonNameChars) + ",\n";
+    // RMP1-C: a mirrored name's budget, the menu's size, the pair check's numbers and the skills mirror (cos 2a, sin 2a
+    // of its line's heading a: the image of the point (1, 0))
+    j += "  \"mirroredAutonNameMaxChars\": " + std::to_string(shulib::competition::kMaxMirroredAutonNameChars) + ",\n";
+    j += "  \"maxAutons\": " + std::to_string(shulib::competition::kMaxAutons) + ",\n";
+    j += "  \"otherAutons\": [";
+    for (std::size_t i = 0; i < kOtherAutonNames.size(); ++i) {
+        j += (i == 0 ? "" : ", ") + str(kOtherAutonNames[i]);
+    }
+    j += "],\n";
+    j += "  \"pairCheck\": {\"gapIn\": " + num(mirror_pair::kMirrorGapIn) + ", \"squareIn\": " + num(mirror_pair::kRobotSquareIn) + "},\n";
+    {
+        using namespace shulib::units::literals;
+        const auto image = shulib::competition::override2026::kSkillsMirror.reflection.apply(1.0_in, 0.0_in);
+        j += "  \"skillsMirror\": {\"cos2a\": " + num(image.x.value()) + ", \"sin2a\": " + num(image.y.value()) + "},\n";
+    }
     j += "  \"drive\": {\"tank\": " + std::string{r.tank ? "true" : "false"} + ", \"footprintIn\": 15, \"maxSteerDeg\": "
          + num(cfg.tankSteer.maxSteer * kRadToDeg) + ", \"curve\": {\"maxStartOffDeg\": " + num(cfg.curve.maxStartOff * kRadToDeg)
          + ", \"lookAheadIn\": " + num(cfg.curve.lookAhead) + ", \"minSpacingIn\": " + num(shulib::motion::kCurveMinSpacing)
@@ -198,6 +224,9 @@ struct RobotSource {
                 const bool arm = s.position.units == m::Units::Degrees;
                 j += ", \"kind\": " + str(arm ? "arm" : "lift") + ", \"units\": " + str(arm ? "deg" : "in");
                 j += ", \"homing\": " + str(homingWord(s.position.home));
+                if (s.position.home != m::HomeMethod::None) {
+                    j += ", \"homeAt\": " + num(s.position.homePosition);  // RMP1-C: a home's planned height
+                }
                 j += ", \"range\": [" + num(s.position.minPosition) + ", " + num(s.position.maxPosition) + "]";
                 j += ", \"unhomedVolts\": " + num(s.position.unhomedVolts);  // RMP1-B: the controls' U5 rules
                 j += ", \"presets\": [";

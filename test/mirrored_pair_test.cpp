@@ -917,3 +917,44 @@ TEST_CASE("MIRROR1-B T12 (xii) planted tracks: a line after the last pace, a pac
     d.names = {{5, "TurnTo"}};
     CHECK_FALSE(mirror_pair::findHalfTurnLeg(d, identity).found);
 }
+
+// ═══ RMP1-C D6: "there isn't always going to be two robots on the field" (the team lead, 2026-11-17) ═════════
+// The gap matters only when BOTH robots run the route at the same time: the route builder asks, and the check
+// honours the answer. The team lead's first real start, (-36, 54.076) facing -90, mirrors to (-54.076, 36): the two
+// squares 4.35 in apart at the start. Bug caught: a route the team runs on one robot at a time refused for a gap
+// that can never happen — or the answer ignored the other way, a "together" route let through.
+TEST_CASE("RMP1-C D6: the team lead's real start FAILS together and is SKIPPED, by name, one at a time; 3 in further out it PASSES together") {
+    const AutonEntry close = mirroredEntry("lead start", &standStill, Pose2d{-36_in, 54.076_in, -90_deg});
+    mirror_pair::PairOptions o = options();
+    const mirror_pair::PairVerdict together = mirror_pair::checkMirroredPair(close, o);
+    MESSAGE(together.sentence);
+    CHECK(together.checked);
+    CHECK_FALSE(together.ok);
+    CHECK(together.paces > 0);
+    CHECK(together.failAt < 0.05);  // at the START: the first pace, before its first motion
+    CHECK(together.sentence.find("before its first motion") != std::string::npos);
+    CHECK(std::abs(together.failGapIn - 3.076 * std::sqrt(2.0)) < 0.01);  // 4.35 in, corner to corner
+    o.together = false;
+    const mirror_pair::PairVerdict alone = mirror_pair::checkMirroredPair(close, o);
+    CHECK_FALSE(alone.checked);
+    CHECK(alone.ok);
+    CHECK(alone.sentence == "auton 'lead start': the two robots do NOT run it at the same time (the route builder's answer), "
+                            "so the pair check is SKIPPED");
+    const AutonEntry clear = mirroredEntry("lead start", &standStill, Pose2d{-36_in, 57.076_in, -90_deg});
+    const mirror_pair::PairVerdict out = mirror_pair::checkMirroredPair(clear, options());
+    CHECK(out.checked);
+    CHECK(out.ok);
+    CHECK(out.leastGapIn > mirror_pair::kMirrorGapIn);
+}
+
+TEST_CASE("RMP1-C D6: one robot at a time still refuses a tank's half-turn leg (robot two runs it alone)") {
+    // Bug caught: "not together" skipping MORE than the gap — the half-turn leg is robot two's alone, together or not.
+    const AutonEntry e = mirroredEntry("leg 36", &halfTurnLeg36, Pose2d{-36_in, -58_in, 0_deg});
+    mirror_pair::PairOptions o = options();
+    o.together = false;
+    const mirror_pair::PairVerdict v = mirror_pair::checkMirroredPair(e, o);
+    MESSAGE(v.sentence);
+    CHECK(v.checked);
+    CHECK_FALSE(v.ok);
+    CHECK(v.halfTurn.found);
+}

@@ -112,6 +112,7 @@ nav:
       - Make your first route: guide/22-making-your-first-route.md
   - Robot:
       - Set up:
+          - Set up your robot first: guide/23-set-up-your-robot-first.md
           - Build and upload the programs: guide/07-getting-set-up.md
           - Where your code goes: where-your-code-goes.md
           - Add your robot: guide/21-adding-your-robot-by-hand.md

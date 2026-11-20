@@ -18,10 +18,12 @@
 
 #include <cmath>
 #include <fstream>
+#include <set>
 #include <sstream>
 #include <string>
 
 #include "doctest.h"
+#include "mirrored_pair_check.hpp"
 #include "route_maker_curves.hpp"
 #include "route_maker_rig.hpp"
 #include "route_maker_robots.hpp"
@@ -30,12 +32,19 @@
 #include "shulib/math/angle.hpp"
 #include "shulib/sequence/run_guard.hpp"
 #include "shulib/units/literals.hpp"
+#include "shulib/kinematics/tank.hpp"
+#include "team/autons.hpp"
+#include "team/robot_one_autons.hpp"
+#include "team/skills_route.hpp"
 
 // ── the exports, each in its own namespace (the shared file's names: §6.3 item 2) ─────────────────────
 #define RM_FIXTURE_X                       \
     using namespace shulib;                \
     using namespace shulib::units::literals; \
-    using namespace mech_fixture::robot_x;
+    using namespace mech_fixture::robot_x; \
+    using shulib::bench::TeamRoute;        \
+    using shulib::bench::Mirror;           \
+    using shulib::bench::Together;
 
 namespace rm_gl0 { RM_FIXTURE_X
 #include "goldens/route_maker/gl0_empty.cpp"
@@ -88,18 +97,36 @@ namespace rm_gl19 { RM_FIXTURE_X
 namespace rm_wg8 { RM_FIXTURE_X
 #include "goldens/route_maker/wg8_distinct_numbers.cpp"
 }
+namespace rm_gl20 { RM_FIXTURE_X
+#include "goldens/route_maker/gl20_named_routes.cpp"
+}
+namespace rm_gl21 { RM_FIXTURE_X
+#include "goldens/route_maker/gl21_lift_heights.cpp"
+}
+namespace rm_gl22 { RM_FIXTURE_X
+#include "goldens/route_maker/gl22_small_moves.cpp"
+}
+namespace rm_gl23 { RM_FIXTURE_X
+#include "goldens/route_maker/gl23_pair_near_the_diagonal.cpp"
+}
 // Robot one's and robot two's: their REAL declarations (src/robots/mechanism_table.hpp), as the shared file
 // sees them on each robot's build (robot one's names `facts` too: its ledger).
 namespace rm_smoke_one {
 using namespace shulib;
 using namespace shulib::units::literals;
 using namespace shulib::bench::robot_one;
+using shulib::bench::TeamRoute;
+using shulib::bench::Mirror;
+using shulib::bench::Together;
 #include "goldens/route_maker/smoke_robot_one.cpp"
 }
 namespace rm_smoke_two {
 using namespace shulib;
 using namespace shulib::units::literals;
 using namespace shulib::bench::robot_two;
+using shulib::bench::TeamRoute;
+using shulib::bench::Mirror;
+using shulib::bench::Together;
 #include "goldens/route_maker/smoke_robot_two.cpp"
 }
 #undef RM_FIXTURE_X
@@ -440,7 +467,7 @@ TEST_CASE("RMP1: each robot's description reads ITS OWN facts ledger's levels an
 }
 
 TEST_CASE("RMP1: a robot that builds the shared route and declares a cascade marks its levels as its facts ledger's (the tripwire for robot two)") {
-    // The shared skills route moves the cascade to LEDGER levels (`cascade[facts::lv(i).name]`); the page lets it
+    // The shared routes move the cascade to LEDGER levels (`cascade[facts::lv(i).name]`); the page lets it
     // only on a robot whose description marks them (RC18) — both robots since ROB1-BT (route_maker_robots.hpp),
     // never a silent "every level refused on robot two".
     for (const char* id : {"one", "two"}) {
@@ -460,4 +487,135 @@ TEST_CASE("RMP1: a robot that builds the shared route and declares a cascade mar
              << "\") its .ledgerLevel (test/route_maker_robots.hpp)");
         CHECK(d.substr(at, end - at).find("\"ledger\": 0") != std::string::npos);
     }
+}
+
+// ═══ RMP1-C: named routes, a lift's plain steps, small moves ═════════════════════════════════════════════════
+
+TEST_CASE("RMP1-C GL20: named routes -- each its own steps and entry, ONE list; robot one registers each as written, robot two mirrors only the marked ones (the twin rule)") {
+    // BUG CAUGHT: a route dropped from the list, the list out of the page's order, a route mirrored on robot ONE,
+    // an unmarked route mirrored on robot two (or a marked one not), a name's C++ stem colliding.
+    namespace sb = shulib::bench;
+    const auto& routes = rm_gl20::kTeamRoutes;
+    REQUIRE(std::size(routes) == 3);
+    const char* names[] = {"skills", "practice 1", "40in test"};
+    const sb::Mirror mirrors[] = {sb::Mirror::ForRobotTwo, sb::Mirror::None, sb::Mirror::ForRobotTwo};
+    const sb::Together together[] = {sb::Together::Yes, sb::Together::No, sb::Together::No};
+    for (std::size_t i = 0; i < 3; ++i) {
+        CAPTURE(i);
+        CHECK(std::string{routes[i].entry().name} == names[i]);
+        CHECK(routes[i].mirror == mirrors[i]);
+        CHECK(routes[i].together == together[i]);
+    }
+    CHECK(routes[1].entry == &rm_gl20::practice1Route);  // the stems: letters and digits, camelCase
+    CHECK(routes[2].entry == &rm_gl20::route40inTestRoute);  // a leading digit gets "route"
+    shulib::competition::AutonRegistry one{sb::kAutonPeriods};
+    shulib::competition::AutonRegistry two{sb::kAutonPeriods};
+    sb::registerRoutes(one, routes, sb::TeamRobot::One);
+    sb::registerRoutes(two, routes, sb::TeamRobot::Two);
+    REQUIRE(one.size() == 3);
+    REQUIRE(two.size() == 3);
+    for (std::size_t i = 0; i < 3; ++i) {
+        CAPTURE(i);
+        CHECK(std::string{one.at(i).name} == names[i]);
+        CHECK(std::string{two.at(i).name} == names[i]);
+        CHECK(one.at(i).routine == two.at(i).routine);
+        CHECK(one.at(i).mirror == nullptr);
+        CHECK(two.at(i).mirror == (mirrors[i] == sb::Mirror::ForRobotTwo ? &shulib::competition::override2026::kSkillsMirror : nullptr));
+    }
+    {
+        const AutonEntry e = routes[1].entry();  // forward 6 then back 3, from (24, -48) facing 90
+        XStack s{rm_rig::startOf(e), mech_fixture::robot_x::kRobotXMechanisms, false};
+        const auto r = s.run(e);
+        INFO(s.transcript());
+        REQUIRE(r.outcome == AutonRunOutcome::RoutineRan);
+        CHECK(r.routine.steps == 2);
+        CHECK(r.routine.ok);
+        const auto t = s.truth();
+        CHECK(std::hypot(t.x().value() - 24.0, t.y().value() - -45.0) < 0.6);
+    }
+    {
+        const AutonEntry e = routes[0].entry();  // forward 12 from (-36, -55.7) facing 0
+        XStack s{rm_rig::startOf(e), mech_fixture::robot_x::kRobotXMechanisms, false};
+        const auto r = s.run(e);
+        INFO(s.transcript());
+        REQUIRE(r.outcome == AutonRunOutcome::RoutineRan);
+        CHECK(r.routine.ok);
+        const auto t = s.truth();
+        CHECK(std::hypot(t.x().value() - -24.0, t.y().value() - -55.7) < 0.6);
+    }
+}
+
+TEST_CASE("RMP1-C GL21: a lift's plain steps -- home, up, up, down, to, back to the bottom -- and an arm's up, to, down, each the constant target the page tracked") {
+    // BUG CAUGHT: a relative step written from the wrong height (the export's target is all the robot gets: the
+    // library has no relative move), the bottom past the travel, an arm's target written with _deg.
+    const AutonEntry e = rm_gl21::skillsRoute();
+    XStack s{rm_rig::startOf(e), mech_fixture::robot_x::kRobotXMechanisms, false};
+    const auto r = s.run(e);
+    INFO(s.transcript());
+    REQUIRE(r.outcome == AutonRunOutcome::RoutineRan);
+    CHECK(r.routine.steps == 10);
+    CHECK(r.routine.completed == 10);
+    CHECK(r.routine.ok);
+    CHECK(s.count("MECH", "'lift': SUCCEEDED") == 6);   // the home, up, up, down, to, the bottom
+    CHECK(s.count("MECH", "'arm': SUCCEEDED") == 3);
+    CHECK(std::abs(s.fakes.liftInches() - 0.0) < 0.5);  // back to the bottom
+    // up 30, to 95.5, down 15.5: 80 (reached within 1.5 deg; the plant's arm settles ~3 deg off once the run is over —
+    // never near 95.5 or 30, the targets a wrong height would have written)
+    CHECK(std::abs(s.fakes.armDeg() - 80.0) < 4.0);
+}
+
+TEST_CASE("RMP1-C GL22: small moves -- drive forward / back up N in from the planned pose (1 in among them), after a turn and after a curve") {
+    // BUG CAUGHT: a small move written from the wrong pose (the turn's heading, the curve's end), a 1 in move
+    // refused or never ending.
+    const AutonEntry e = rm_gl22::skillsRoute();
+    XStack s{rm_rig::startOf(e), mech_fixture::robot_x::kRobotXMechanisms, false};
+    const auto r = s.run(e);
+    INFO(s.transcript());
+    REQUIRE(r.outcome == AutonRunOutcome::RoutineRan);
+    CHECK(r.routine.steps == 6);
+    CHECK(r.routine.ok);
+    const auto t = s.truth();
+    CHECK(std::hypot(t.x().value() - -18.75, t.y().value() - -28.0) < 0.6);
+}
+
+TEST_CASE("RMP1-C GL23: the page and the suite agree on a route both robots run together near the diagonal -- the page's plan 9.0 in apart at the least, the host test plant's pair within 1 in of it") {
+    // BUG CAUGHT: the page's too-close check (its own plan) and the suite's (both robots run on the host test plant)
+    // drifting apart -- a route the page passes and the suite fails (the team lead's start, the other way round).
+    namespace sb = shulib::bench;
+    shulib::competition::AutonRegistry two{sb::kAutonPeriods};
+    sb::registerRoutes(two, rm_gl23::kTeamRoutes, sb::TeamRobot::Two);
+    REQUIRE(two.size() == 1);
+    static const shulib::kinematics::TankKinematics tank{shulib::units::Length{12.0}};
+    mirror_pair::PairOptions o;
+    o.kin = &tank;
+    o.period = two.periodFor(two.at(0));
+    const mirror_pair::PairVerdict v = mirror_pair::checkMirroredPair(two.at(0), o);
+    INFO(v.sentence);
+    CHECK(v.checked);
+    CHECK(v.ok);
+    CHECK(std::abs(v.leastGapIn - 9.0) < 1.0);  // the page's least gap: 9.0 in (named_routes.test.mjs, GL23)
+}
+
+TEST_CASE("RMP1-C: the other autons -- the names the page refuses for a route are exactly the autons both files register beside the routes") {
+    // BUG CAUGHT: the 40 in renamed (or an auton added) in an autons file while the page keeps the old names: a route
+    // the page passes named like one of them, which the brain's menu then drops ("the name is already registered").
+    namespace sb = shulib::bench;
+    const std::set<std::string> want(route_maker::kOtherAutonNames.begin(), route_maker::kOtherAutonNames.end());
+    std::set<std::string> routes;
+    for (const sb::TeamRoute& r : sb::teamRoutes()) {
+        routes.insert(r.entry().name);
+    }
+    for (void (*reg)(shulib::competition::AutonRegistry&) : {&sb::registerRobotOneAutons, &sb::registerAutons}) {
+        shulib::competition::AutonRegistry r{sb::kAutonPeriods};
+        reg(r);
+        std::set<std::string> others;
+        for (std::size_t i = 0; i < r.size(); ++i) {
+            if (routes.count(r.at(i).name) == 0) {
+                others.insert(r.at(i).name);
+            }
+        }
+        CHECK(others == want);
+    }
+    CHECK(route_maker::describe(*route_maker::robotSource("one")).find("\"otherAutons\": [\"40in forward\", \"TEST 24in turn back\"]")
+          != std::string::npos);
 }

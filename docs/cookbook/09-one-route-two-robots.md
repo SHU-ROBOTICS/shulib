@@ -107,8 +107,9 @@ the SAME line — seats the right wall with its LEFT sensor, its log saying
 **Watch out for:**
 
 - **Stay 3 in off the diagonal.** Every point of robot one's route keeps its WHOLE robot at least 3 in from
-  the mirror line — then the two robots are at least 6 in apart whatever their timing. The suite checks it:
-  a route that brings the robots within 6 in fails, naming the moment and the motion
+  the mirror line — then the two robots are at least 6 in apart whatever their timing. When both robots run
+  the route at the same time (the route builder asks), the suite checks it: a route that brings the robots
+  within 6 in fails, naming the moment and the motion
   ([guide chapter 17](../guide/17-the-competition-program.md#both-robots-at-once)).
 - **The branch changes the timing.** After an `isMirrored` branch the two robots are no longer in step: give
   the waiting robot a margin (here robot two waits 4 s, longer than robot one needs), because a real robot's

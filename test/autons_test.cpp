@@ -26,6 +26,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -37,6 +38,7 @@
 #include "programs/auton_tester_panel.hpp"
 #include "programs/auton_tester_run.hpp"
 #include "team/autons.hpp"
+#include "team/skills_route.hpp"
 #include "shulib/chassis/routine.hpp"
 #include "shulib/competition/acceptance_run.hpp"
 #include "shulib/competition/auton_registry.hpp"
@@ -83,6 +85,54 @@ AutonRegistry teamRegistry() {
     AutonRegistry reg{kAutonPeriods};
     registerAutons(reg);
     return reg;
+}
+
+/// (1d)'s rule (RMP1-C D6) over `reg`'s MIRRORED entries, each found in `routes` by name and checked as its route's
+/// answer says: Yes the gap, No skipped by name; not answered with a field start: `unanswered` (the caller fails it).
+struct RouteVerdict {
+    std::string name;
+    bool unanswered = false;
+    mirror_pair::PairVerdict v;
+};
+std::vector<RouteVerdict> checkTeamRoutes(const AutonRegistry& reg, std::span<const shulib::bench::TeamRoute> routes) {
+    using shulib::bench::Together;
+    std::vector<RouteVerdict> out;
+    for (std::size_t i = 0; i < reg.size(); ++i) {
+        const shulib::competition::AutonEntry& e = reg.at(i);
+        if (e.mirror == nullptr) {
+            continue;
+        }
+        const shulib::bench::TeamRoute* route = nullptr;
+        for (const shulib::bench::TeamRoute& r : routes) {
+            route = std::string_view{r.entry().name} == e.name ? &r : route;
+        }
+        REQUIRE_MESSAGE(route != nullptr, "auton '", e.name, "' is mirrored but is not one of the route builder's routes");
+        mirror_pair::PairOptions o;
+        o.kin = &tank();
+        o.period = reg.periodFor(e);
+        o.together = route->together == Together::Yes;
+        o.answered = route->together != Together::NotAnswered;
+        const bool field = e.effectiveStart().mode() == StartPose::Mode::Field;
+        out.push_back({e.name, field && !o.answered, mirror_pair::checkMirroredPair(e, o)});
+    }
+    return out;
+}
+
+/// A TEST route (G4) on the team lead's first real start (-36, 54.076) facing -90, standing still: mirrored, its
+/// square and robot two's are 4.35 in apart.
+shulib::chassis::RoutineResult standStill(shulib::competition::AutonContext& ctx) {
+    shulib::chassis::Routine r{ctx, "planted"};
+    return r.result();
+}
+shulib::competition::AutonEntry plantedNearTheDiagonal() {
+    shulib::competition::AutonEntry e{};
+    e.name = "planted";
+    e.kind = AutonKind::Skills;
+    e.routine = &standStill;
+    e.start = StartPose::field(Length{-36.0}, Length{54.076}, Angle::degrees(-90.0));
+    e.endActionAt = Time{57.0};
+    e.hardStopAt = Time{59.0};
+    return e;
 }
 
 /// The index of the entry named `name` (FAILS the case when there is none).
@@ -136,16 +186,24 @@ TEST_CASE("autons (1): registerAutons registers robot one's list -- the 40 in, t
                   "kAutonPeriods is a constant expression with the manual's 30 s and 60 s");
 
     const AutonRegistry reg = teamRegistry();
-    REQUIRE_MESSAGE(reg.size() == 3,
-                    "src/team/autons.cpp registers ", reg.size(), " autons and this test pins 3. "
-                    "Added one? Pin its name, kind and schedule here too (and in robot one's file: the "
-                    "twins register the same list); test (1b) already runs it on the host test plant.");
-    const auto& skills = reg.at(2);
-    CHECK(std::string_view{skills.name} == "skills");
-    CHECK(skills.kind == AutonKind::Skills);
-    CHECK(skills.mirror == &shulib::competition::override2026::kSkillsMirror);  // robot two runs it MIRRORED
-    CHECK(skills.endActionAt.value() == 57.0);
-    CHECK(skills.hardStopAt.value() == 59.0);
+    const std::span<const shulib::bench::TeamRoute> routes = shulib::bench::teamRoutes();
+    REQUIRE_MESSAGE(reg.size() == 2 + routes.size(),
+                    "src/team/autons.cpp registers ", reg.size(), " autons and this test pins the 40 in, the acceptance run "
+                    "and the route builder's ", routes.size(), " routes. Added one by hand? Pin its name, kind and schedule "
+                    "here too (and in robot one's file: the twins register the same list; the route builder counts on two).");
+    int skills = 0;
+    for (std::size_t i = 0; i < routes.size(); ++i) {  // RMP1-C D2: every route, in order, mirrored only where marked
+        const auto& e = reg.at(2 + i);
+        CAPTURE(e.name);
+        CHECK(std::string_view{e.name} == routes[i].entry().name);
+        CHECK(e.kind == AutonKind::Skills);
+        CHECK(e.mirror == (routes[i].mirror == shulib::bench::Mirror::ForRobotTwo ? &shulib::competition::override2026::kSkillsMirror
+                                                                                   : nullptr));
+        CHECK(e.endActionAt.value() == 57.0);
+        CHECK(e.hardStopAt.value() == 59.0);
+        skills += std::string_view{e.name} == "skills" ? 1 : 0;
+    }
+    CHECK(skills == 1);  // the competition's skills route is always there (the route builder keeps it)
 
     const auto& fortyIn = reg.at(0);
     CHECK(std::string_view{fortyIn.name} == "40in forward");
@@ -219,20 +277,47 @@ TEST_CASE("autons (1b): EVERY registered auton runs through runTesterOnce and en
 // the drivers place it); its half-turn legs are still refused. Today's file (ROB1-BT) registers ONE mirrored
 // entry, the skills route — RELATIVE until the route maker writes robot one's start, so its gap is skipped
 // by name today; (1b) above runs every entry, mirrored ones included, through the tester's own sequence.
-TEST_CASE("autons (1d): every MIRRORED entry passes the pair check — 6 in apart, no tank half-turn leg") {
-    const AutonRegistry reg = teamRegistry();
-    std::size_t mirroredEntries = 0;
-    for (std::size_t i = 0; i < reg.size(); ++i) {
-        mirroredEntries += reg.at(i).mirror != nullptr ? 1U : 0U;
+//
+// RMP1-C D6: the gap is checked only for a route the team said BOTH robots run at the same time (Together::Yes); one
+// they run one at a time is reported as not checked, by name (its half-turn legs still refused); a mirrored route
+// with a field start and no answer FAILS here (the route builder asks before it exports one).
+TEST_CASE("autons (1d): every MIRRORED entry passes the pair check — 6 in apart when run together, no tank half-turn leg") {
+    const auto verdicts = checkTeamRoutes(teamRegistry(), shulib::bench::teamRoutes());
+    for (const RouteVerdict& r : verdicts) {
+        MESSAGE(r.v.sentence);
+        CHECK_MESSAGE(!r.unanswered, "auton '", r.name, "': will both robots run it at the SAME time? Answer it in the route builder");
+        CHECK((r.v.ok || !r.v.checked));
     }
-    const std::vector<mirror_pair::PairVerdict> verdicts = mirror_pair::checkEveryMirroredEntry(reg, tank());
-    CHECK(mirroredEntries == 1);
-    CHECK(verdicts.size() == mirroredEntries);
-    for (const mirror_pair::PairVerdict& v : verdicts) {
-        MESSAGE(v.sentence);
-        CHECK((v.ok || !v.checked));
+    CHECK(verdicts.size() >= 1);  // the skills route, mirrored for robot two
+    MESSAGE("src/team/autons.cpp registers ", verdicts.size(), " mirrored auton(s); each checked as its route says");
+}
+
+// (1d') RMP1-C D6, the plumbing (1d) runs on: the route's answer read from the list. Bug caught: every mirrored route
+// gap-checked (one the robots run one at a time failing for a meeting that never happens), none (two robots that
+// would collide, uploaded to both), or a route nobody answered passing in silence. The team lead's real start, three
+// ways: Yes fails (4.35 in apart), No is skipped by name, not answered is reported.
+TEST_CASE("autons (1d'): the pair check follows each route's answer -- Yes checked, No skipped by name, unanswered reported") {
+    using shulib::bench::Together;
+    const struct {
+        Together answer;
+        const char* says;
+    } cases[] = {{Together::Yes, "come within 6.0 in (4.35 in apart)"},
+                 {Together::No, "do NOT run it at the same time (the route builder's answer)"},
+                 {Together::NotAnswered, "nobody has said yet whether both robots run it at the same time"}};
+    for (const auto& c : cases) {
+        CAPTURE(static_cast<int>(c.answer));
+        const shulib::bench::TeamRoute routes[] = {{&plantedNearTheDiagonal, shulib::bench::Mirror::ForRobotTwo, c.answer}};
+        AutonRegistry reg{kAutonPeriods};
+        shulib::bench::registerRoutes(reg, routes, shulib::bench::TeamRobot::Two);
+        const auto v = checkTeamRoutes(reg, routes);
+        REQUIRE(v.size() == 1);
+        CAPTURE(v[0].v.sentence);
+        CHECK(v[0].name == "planted");
+        CHECK(says(v[0].v.sentence, c.says));
+        CHECK(v[0].unanswered == (c.answer == Together::NotAnswered));
+        CHECK(v[0].v.checked == (c.answer == Together::Yes));
+        CHECK(v[0].v.ok == (c.answer != Together::Yes));
     }
-    MESSAGE("src/team/autons.cpp registers ", mirroredEntries, " mirrored auton(s); each checked as a pair");
 }
 
 // (1c) Bug caught (the MECH brief's U3, 2026-10-29): an auton built as `Routine r{ctx.chassis, ...}`

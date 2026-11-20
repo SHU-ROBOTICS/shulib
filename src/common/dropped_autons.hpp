@@ -45,8 +45,9 @@ inline constexpr std::size_t kDroppedAutonLineBytes = 200;
 /// counting the rest (the T4-3 verification: "each" was false past the cap). Each line is a buffer
 /// valid only during its `emit` call. The first line names the robot's OWN autons file — robot two's
 /// `src/team/autons.cpp`, robot one's `src/team/robot_one_autons.cpp` (`Words::value.autonsFilePath`,
-/// src/common/robot_words.hpp; chunk ROB1-A, one format since ROB1-BT) — and, on a robot that shares the
-/// skills route (ROB1-BT), a second line naming that route's own file (`Words::value.routeFilePath`).
+/// src/common/robot_words.hpp; chunk ROB1-A, one format since ROB1-BT) — and, on a robot that registers the
+/// route builder's routes (ROB1-BT; named since RMP1-C), a second line naming their file
+/// (`Words::value.routeFilePath`).
 template <class Emit, class Words = ThisRobotWords>
 void sayDroppedAutons(const competition::AutonRegistry& registry, bool driverControlRuns,
                       Emit&& emit, Words = {}) {
@@ -79,9 +80,9 @@ void sayDroppedAutons(const competition::AutonRegistry& registry, bool driverCon
                   static_cast<unsigned>(dropped), static_cast<const char*>(named),
                   driverControlRuns ? " and driver control still run" : " still runs", Words::value.autonsFilePath);
     emit(static_cast<const char*>(line));
-    // The shared skills route's entry (its name, start, schedule) lives in its own file (ROB1-BT).
+    // The route builder's routes (each one's name, start, schedule) live in their own file (ROB1-BT, RMP1-C).
     if constexpr (Words::value.routeFilePath != nullptr) {
-        std::snprintf(line, sizeof line, "(the skills route both robots share is fixed in %.40s)",
+        std::snprintf(line, sizeof line, "(the route builder's routes are fixed in %.40s)",
                       Words::value.routeFilePath);
         emit(static_cast<const char*>(line));
     }

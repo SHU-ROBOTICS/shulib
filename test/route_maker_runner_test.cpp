@@ -10,6 +10,7 @@
 
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include "doctest.h"
 #include "mechanism_fixtures.hpp"
@@ -28,7 +29,10 @@ route_maker::StepWords wordsFor(const shulib::mechanism::MechanismTable& t, cons
 void sameGoal(const shulib::mechanism::PositionGoal& a, const shulib::mechanism::PositionGoal& b) {
     CHECK(a.mechanism == b.mechanism);
     CHECK(std::string_view{a.mechanismName} == b.mechanismName);
-    CHECK(std::string_view{a.presetName} == b.presetName);
+    CHECK((a.presetName == nullptr) == (b.presetName == nullptr));  // m.to(...) names no preset (RMP1-C)
+    if (a.presetName != nullptr && b.presetName != nullptr) {
+        CHECK(std::string_view{a.presetName} == b.presetName);
+    }
     CHECK(a.value == b.value);
     CHECK(a.computed == b.computed);
     CHECK(a.units == b.units);
@@ -64,4 +68,26 @@ TEST_CASE("RMP1-A2e runner: a number is read as its C++ unit literal is -- a neg
     CHECK_FALSE(route_maker::isNumberText("+1"));
     CHECK_FALSE(route_maker::isNumberText("1."));
     CHECK_FALSE(route_maker::isNumberText("-"));
+}
+
+TEST_CASE("RMP1-C runner: a move TO A NUMBER is the goal the compile-time m.to(...) builds -- an arm's plain degrees, a lift's inches -- refused past the travel") {
+    // BUG CAUGHT: PREVIEW running a "go up 6 in" to another height than the code (the lines carry the height the page
+    // tracked: the export's own `lift.to(6_in)`), a degrees target read as inches, a target past the travel driven.
+    using namespace mech_fixture::robot_x;
+    using namespace shulib::units::literals;
+    const auto& t = kRobotXMechanisms;
+    sameGoal(route_maker::toGoal(t, wordsFor(t, "lift", "to", "16.5")), lift.to(16.5_in));
+    sameGoal(route_maker::toGoal(t, wordsFor(t, "lift", "to", "0")), lift.to(0_in));
+    sameGoal(route_maker::toGoal(t, wordsFor(t, "lift", "to", "24")), lift.to(24_in));
+    sameGoal(route_maker::toGoal(t, wordsFor(t, "arm", "to", "95.5")), arm.to(95.5));
+    sameGoal(route_maker::toGoal(t, wordsFor(t, "arm", "to", "0")), arm.to(0));  // the bottom of its travel: taken
+    sameGoal(route_maker::toGoal(t, wordsFor(t, "arm", "to", "160")), arm.to(160));
+    for (const auto& [m, v] : {std::pair{"lift", "24.001"}, std::pair{"lift", "-0.5"}, std::pair{"arm", "160.5"}, std::pair{"arm", "-1"}}) {
+        CAPTURE(m);
+        CAPTURE(v);
+        CHECK_THROWS_WITH_AS((void)route_maker::toGoal(t, wordsFor(t, m, "to", v)), doctest::Contains("target_is_outside_the_travel_limits"),
+                             route_maker::LinesError);
+    }
+    CHECK_THROWS_WITH_AS((void)route_maker::toGoal(t, wordsFor(t, "hood", "to", "1")), doctest::Contains("not an arm or a lift"),
+                         route_maker::LinesError);
 }

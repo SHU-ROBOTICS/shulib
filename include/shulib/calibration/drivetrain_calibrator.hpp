@@ -17,11 +17,11 @@
 // other end yields every sign and both sides the other way round, which nothing in this class can
 // see; a program compares the result with the card's record (calibration/front_check.hpp).
 //
-// ── PROVEN ON THE PLANT; IT HAS NEVER FINISHED ON A ROBOT ───────────────────────────
+// ── PROVEN ON THE PLANT; THIS FORM HAS NOT RUN ON A ROBOT ───────────────────────────
 // Every property below is validated against the A2 host plant (sim/drive_plant.hpp) and nothing
 // else. The Part 1 version of this class ran five times on robot two on 2026-09-24 and never
-// finished — every run stopped at its side-assignment pulse or before it — and THIS version has
-// never run on a robot at all. No physical drivetrain has ever been described by it. Where this
+// finished — every run stopped at its side-assignment pulse or before it. The form before CAL2 ran
+// on robot one on 2026-11-16 and 11-17: every run that reached its pulses stopped there. Where this
 // header says the calibrator "measures" something it means "is designed to measure, and does
 // measure on the plant". The numbers in CalibratorConfig are INVENTED — every one of them (A4
 // register HA-136) — and the serial record this class exposes is what will say which must move.
@@ -68,7 +68,23 @@
 //                            Proven on the host test plant only: on a V5 no push reading is
 //                            expected to be non-finite, because ProsMotor screens a failed read
 //                            to the last good one first (A4 register HA-08).
-//   SideAssign   powered     one member at a time, a brief pulse at a RAMP of levels. On a tank,
+//   SideAssign   powered     FINDING THE SIDES (CAL2, 2026-11-17). One port at a time, a brief pulse
+//                            at a RAMP of levels; every OTHER drive port's sign-corrected travel is read.
+//                            Ports that turn with it (>= followThreshold) while at least one drive port
+//                            stays still share its GEAR TRAIN: they are one GROUP, and their side comes
+//                            from the spin (SpinTest). A heavy robot turns by chassis flex only (robot
+//                            one, 2026-11-17), so the coupling is read FIRST. With no follower, the
+//                            yaw decides as before (below) — a drive not geared together runs as it did.
+//                            Every port is still pulsed, a grouped one from its group's level, to
+//                            confirm it DRIVES its train: a slipping gear is dragged like a mate.
+//                            A grouped port that moves no mate stays in its group (KEPT) if its own
+//                            shaft turned movedThreshold, and is LEFT OUT if it spun decoupledOwnMin.
+//                            A turn drags the idle side: a port that went BACK while the robot turned
+//                            was rolled back, not reversed (one that went back while the robot held
+//                            still is refused, FOLLOWER_REVERSED), and a pulse that turned the robot
+//                            against its group's first pulse leaves that group, its mates there no
+//                            followers.
+//                            Before CAL2 every port was decided by the yaw alone. On a tank,
 //                            driving ONE side forward turns the robot toward the other: LEFT
 //                            forward turns it CLOCKWISE, which is NEGATIVE yaw in shulib's
 //                            CCW-positive frame (hal/imu.hpp), and RIGHT forward is positive —
@@ -79,7 +95,9 @@
 //                            can turn the robot with is classified (PulseVerdict). Once every
 //                            port is decided, each side's scale is pushDistance divided by the
 //                            MEDIAN of its members' push travel.
-//   SpinTest     powered     spin in place both ways; W = (dR - dL) / dtheta_imu per direction,
+//   SpinTest     powered     (CAL2) with groups: group A forward, group B backward until the yaw
+//                            reaches identifyYaw — CCW (+) means A is RIGHT. Then, as before:
+//                            spin in place both ways; W = (dR - dL) / dtheta_imu per direction,
 //                            averaged. On a floor this measures the EFFECTIVE width, which is
 //                            LARGER than a taped one because a turning tank scrubs (A4 register
 //                            HA-135). The coupled-side monitor watches both sides throughout; the
@@ -185,8 +203,7 @@ inline constexpr double kReproWidthTolerance = 0.03;
 /// there (calibrate_program.hpp's record name, chunk ROB1-BT) must fit the name inside it.
 inline constexpr int kProvenanceKept = 40;
 
-/// The most pulse levels a ramp may have. Four: the default ramp uses three, and a fourth leaves
-/// room to try one more without an array growing.
+/// The most pulse levels a ramp may have. Four: the default ramp (3 / 6 / 9 / 12 V since CAL2).
 inline constexpr std::size_t kMaxPulseLevels = 4;
 
 /// The most spin levels the start check may step through.
@@ -240,6 +257,8 @@ enum class Refusal : std::uint8_t {
     MissedTick,          ///< tick() was not called within commandTimeout while powered
     OutOfOrder,          ///< an answer arrived that no step was waiting for
     InvalidDescription,  ///< the measured description failed its own validity rules
+    SideConflict,        ///< (CAL2) a port moved both groups, a third group, or a port's yaw against its group's side
+    FollowerReversed,    ///< (CAL2) a port turned against its captured sign while another port was pulsed
 };
 
 /// What one pulse concluded about the port it drove — one per PulseRecord, and the deciding one on
@@ -253,6 +272,8 @@ enum class PulseVerdict : std::uint8_t {
     Decoupled,      ///< top level: its shaft turned, nothing else moved — a slipping gear, LEFT OUT
     Rolled,         ///< top level: other drive ports moved, the robot did not turn — refused
     Still,          ///< top level: nothing moved — refused
+    Followed,       ///< (CAL2) other ports turned with it: it and they are one group (side from the spin)
+    Kept,           ///< (CAL2) top level: a GROUPED port turned its own shaft but no mate past backlash — it stays
 };
 
 /// The three facts no measurement can supply, stated by a person before the run.
@@ -284,10 +305,10 @@ struct CalibratorConfig {
     /// |velocity| below which a motor counts as stopped, for the rest windows. PROVISIONAL
     /// (A4: HA-136).
     units::AngularVelocity restFloor{0.05};
-    /// |IMU yaw rate| below which the ROBOT counts as still, for the same rest windows (added at
-    /// 2F-1: the design always defined rest as "yaw rate and every velocity under a floor", and
-    /// the code checked the velocities only, so a robot being turned by hand with its motors
-    /// stationary counted as at rest). 2 deg/s. Bounded BELOW by the IMU's rest noise (unmeasured
+    /// The yaw rate below which the ROBOT counts as still, for the same rest windows (added at
+    /// 2F-1: a robot turned by hand with its motors stationary counted as at rest). Since CAL2 an
+    /// AVERAGE: the heading's change over the last restSettleTime, divided by it — robot one's IMU
+    /// reads ~1 deg/s instantaneous at rest, which flickered DONE. 2 deg/s. Bounded BELOW by the IMU's rest noise (unmeasured
     /// on a V5; the host's hostile IMU uses 0.5 deg/s, HA-22, so this is 4 sigma there), and
     /// ABOVE by the precondition restYawRateFloor x pulseTime < pulseYawFloor — a drift slow
     /// enough to pass the rest check then adds less than the floor to a pulse, and a side can only
@@ -295,32 +316,41 @@ struct CalibratorConfig {
     /// a side on its own. PROVISIONAL (A4: HA-136).
     units::AngularVelocity restYawRateFloor{2.0 * kDegreesToRadians};
     /// How long everything must stay at rest before a pulse or a spin may start — so one pulse's
-    /// coast-down cannot be read as the next pulse's motion. PROVISIONAL (A4: HA-136).
+    /// coast-down cannot be read as the next pulse's motion. Also the heading window restYawRateFloor
+    /// averages over (CAL2), so it must be positive. PROVISIONAL (A4: HA-136).
     units::Time restSettleTime{0.5};
     /// How long to wait for rest before refusing. Without a bound this wait is the one unbounded
     /// loop in the procedure. PROVISIONAL (A4: HA-136).
     units::Time restTimeout{3.0};
-    /// The pulse ramp: one member is pulsed at pulseLevels[0], then — only if the robot's yaw
-    /// stayed under pulseYawFloor — at the next level, and so on (added at 2F-1, replacing the
+    /// The pulse ramp: one member is pulsed at pulseLevels[0], then — only if no port followed it and
+    /// the robot's yaw stayed under pulseYawFloor — at the next level, and so on (added at 2F-1, replacing the
     /// single 3 V `pulseVolts`: one member of five delivers a fifth of its pulse to a coupled
     /// train under the plant's model, and robot two's port 11 turned the robot 0.14-0.17 deg at
-    /// 3 V). 3 / 6 / 9 V: the first is the old pulse; 9 V for 0.4 s on ONE motor is a visible
-    /// jerk, not a drive. Strictly increasing, each in (0, 12] V. PROVISIONAL (A4: HA-136).
+    /// 3 V). 3 / 6 / 9 / 12 V (12 V added at CAL2: a heavy robot's side-mates follow from 6 V, and
+    /// the top level is the last try before a port is classified). Strictly increasing, each in
+    /// (0, 12] V. PROVISIONAL (A4: HA-136).
     std::array<units::Voltage, kMaxPulseLevels> pulseLevels{units::Voltage{3.0}, units::Voltage{6.0},
-                                                            units::Voltage{9.0}, units::Voltage{0.0}};
-    /// How many entries of pulseLevels are used, 1..kMaxPulseLevels. PROVISIONAL (A4: HA-136).
-    std::size_t pulseLevelCount = 3;
+                                                            units::Voltage{9.0}, units::Voltage{12.0}};
+    /// How many entries of pulseLevels are used, 1..kMaxPulseLevels (4 since CAL2: 12 V added).
+    /// PROVISIONAL (A4: HA-136).
+    std::size_t pulseLevelCount = 4;
     /// How long one member is pulsed, at each level. PROVISIONAL (A4: HA-136).
     units::Time pulseTime{0.4};
     /// The |dtheta| a pulse must produce before its sign may be read as a side. PROVISIONAL
     /// (A4: HA-136).
     units::AngleDim pulseYawFloor{2.0 * kDegreesToRadians};
+    /// (CAL2) The sign-corrected travel at which another drive port FOLLOWS a pulsed one — it turned
+    /// with it through their shared gear train. 2 deg: robot one's side-mates showed 5-6 deg at 6 V and
+    /// the other side 0 (its serial log, 2026-11-17; 10-23 deg in the completed run). PROVISIONAL
+    /// (A4: HA-136).
+    units::AngleDim followThreshold{2.0 * kDegreesToRadians};
     /// At the top level, a port whose OWN shaft turned at least this far while no other drive
     /// port moved movedThreshold is DECOUPLED — its motor turns but does not drive its gear train
-    /// (a slipping or stripped gear) — and is LEFT OUT rather than refused. 20 degrees of shaft:
-    /// well past gear backlash, which a train that does not break free still shows. PROVISIONAL
-    /// (A4: HA-136).
-    units::AngleDim decoupledOwnMin{20.0 * kDegreesToRadians};
+    /// (a slipping or stripped gear) — and is LEFT OUT rather than refused. 90 degrees of shaft
+    /// (20 before CAL2's review): robot one's working motors turned theirs up to 18 deg against a
+    /// train that held and 24 deg moving it (2026-11-17); a slipping gear spins hundreds.
+    /// PROVISIONAL (A4: HA-136).
+    units::AngleDim decoupledOwnMin{90.0 * kDegreesToRadians};
     /// The one push's length along the tape: 48 in, two field tiles. A CHOICE, not a belief —
     /// stated here and on the screen, so a wrong distance cannot be answered (there is no
     /// distance question any more). Each side's scale is this divided by the side's median
@@ -348,6 +378,9 @@ struct CalibratorConfig {
     /// The |yaw| a spin level must reach within spinStartTime to count as turning. PROVISIONAL
     /// (A4: HA-136).
     units::AngleDim spinStartYaw{5.0 * kDegreesToRadians};
+    /// (CAL2) The |yaw| the group A forward / group B backward turn must reach to name the sides; its
+    /// levels step up like the spin's. PROVISIONAL (A4: HA-136).
+    units::AngleDim identifyYaw{5.0 * kDegreesToRadians};
     /// How far the spin may turn the WRONG way before it refuses — at once, mid-spin: sides that
     /// are swapped consistently cause no fight inside either side, so the coupled-side monitor is
     /// silent and nothing else would stop the robot spinning the wrong way under power.
@@ -383,6 +416,8 @@ struct PortObservation {
     std::int8_t sign = 0;
     /// −1 LEFT, +1 RIGHT, 0 = not a drive port, not yet decided, or LEFT OUT.
     std::int8_t side = 0;
+    /// (CAL2) The group it is in: 1 = A, 2 = B, 0 = none (decided by the yaw, or not a drive port).
+    std::int8_t group = 0;
     /// Shaft travel over the push, radians, as READ (before the sign is applied) — live while the
     /// push is watched, then the number the sign was read off.
     double pushDeltaRad = 0.0;
@@ -406,6 +441,8 @@ struct PortObservation {
     /// True when the port was LEFT OUT as decoupled: it moved on the push, it is on the
     /// drivetrain, and it is in no side of the description.
     bool excluded = false;
+    /// (CAL2) Its sign-corrected travel over the LATEST pulse of another port, degrees.
+    float followDeg = 0.0F;
 };
 
 /// One pulse, as the serial record prints it: which port, at which level, and what it did.
@@ -424,6 +461,9 @@ struct PulseRecord {
     double othersMaxRad = 0.0;
     /// What this pulse concluded.
     PulseVerdict verdict = PulseVerdict::None;
+    /// (CAL2) The ports that turned WITH it (>= followThreshold), as a mask of candidate indexes
+    /// (bit k = report.ports[k]) — on every pulse; FOLLOWED only when some drive port stayed still.
+    std::uint32_t followers = 0;
 };
 
 /// One direction of the spin, as the serial record prints it.
@@ -490,6 +530,12 @@ struct CalibrationReport {
     std::int8_t excludedPorts[hal::kMaxSmartPorts]{};
     /// How many entries of `excludedPorts` are real.
     std::uint8_t excludedCount = 0;
+    /// (CAL2) How many groups the pulses found (0 = every port decided by the yaw).
+    std::uint8_t groupCount = 0;
+    /// (CAL2) Each group's side once the identification turn named it: −1 LEFT, +1 RIGHT, 0 not yet.
+    std::int8_t groupSide[2]{};
+    /// (CAL2) The yaw of that turn, radians (+ = CCW).
+    double identifyYawRad = 0.0;
 };
 
 /// What a panel needs to paint this tick: where the run is, what the operator must DO, a live line
@@ -542,6 +588,8 @@ struct CalibratorStatus {
     double spinTurns = 0.0;
     /// The spin level in force, volts (0 when not spinning).
     double spinLevelVolts = 0.0;
+    /// (CAL2) True while group A forward / group B backward is turning the robot to name the sides.
+    bool identifying = false;
     /// Drive ports decided LEFT so far.
     std::uint8_t leftCount = 0;
     /// Drive ports decided RIGHT so far.
@@ -589,10 +637,12 @@ public:
         SHULIB_PRECONDITION(cfg_.movedThreshold.value() > 0.0
                                 && cfg_.restFloor.value() > 0.0
                                 && cfg_.restYawRateFloor.value() > 0.0
-                                && cfg_.restSettleTime.value() >= 0.0
+                                && cfg_.restSettleTime.value() > 0.0
                                 && cfg_.restTimeout.value() > cfg_.restSettleTime.value()
                                 && cfg_.pulseTime.value() > 0.0
                                 && cfg_.pulseYawFloor.value() > 0.0
+                                && cfg_.followThreshold.value() > 0.0
+                                && cfg_.identifyYaw.value() > 0.0
                                 && cfg_.decoupledOwnMin.value() > 0.0
                                 && cfg_.pushDistance.value() > 0.0
                                 && cfg_.straightBound.value() > 0.0
@@ -837,6 +887,7 @@ private:
         SideRest,
         SidePulse,
         SpinRestBefore,
+        SpinIdentify,
         SpinCcw,
         SpinRestMid,
         SpinCw,
@@ -929,7 +980,9 @@ private:
             case Step::SpinRestMid:
             case Step::SpinRestAfter: {
                 if (tickRest(now, 0)) {
-                    if (step_ == Step::SpinRestBefore) {
+                    if (step_ == Step::SpinRestBefore && identifying_) {
+                        beginSpin(now, -1.0, Step::SpinIdentify);  // A forward, B back (commandSpin)
+                    } else if (step_ == Step::SpinRestBefore) {
                         beginSpin(now, +1.0, Step::SpinCcw);
                     } else if (step_ == Step::SpinRestMid) {
                         beginSpin(now, -1.0, Step::SpinCw);
@@ -945,6 +998,10 @@ private:
         // (the wrong way, the start, the finish), watch the clock.
         commandSpin();
         if (fightDuringSpin()) {
+            return;
+        }
+        if (step_ == Step::SpinIdentify) {
+            tickIdentify(now);  // never "the wrong way": it is how the sides are found
             return;
         }
         const double directional = spinDirection_ * yaw_;
@@ -1043,7 +1100,7 @@ private:
                               "the robot is still rotating at %.1f deg/s after %.1f s of waiting "
                               "for rest %s, with every motor still -- hands off the robot, and "
                               "keep it on the floor",
-                              imu_.yawRate().value() / kDegreesToRadians,
+                              windowYawRate() / kDegreesToRadians,
                               cfg_.restTimeout.value(), where);
                 refuse(Refusal::RestTimeout, 0, msg);
             }
@@ -1123,8 +1180,6 @@ private:
                               : 0.0;
         }
         pulseIndex_ = 0;
-        levelIndex_ = 0;
-        pulseOrdinal_ = 1;
         if (!advanceToNextDrivePort()) {
             // Unreachable: finishPushCapture demands >= 2 drive ports before this step exists.
             refuse(Refusal::PushTooFew, 0, "no drive port to pulse");
@@ -1149,26 +1204,86 @@ private:
         commandOnly(i, 0.0);  // 0 V + Coast on every candidate
         const double own = static_cast<double>(sign_[i]) * (motors_[i]->position().value() - base_[i]);
         double others = 0.0;
+        const bool turned = std::abs(yaw_) >= cfg_.pulseYawFloor.value();
+        // CAL2: who turned with it. A travel is the train's only while some drive port stayed
+        // still — when every one moved, the robot moved, and the yaw decides as before. A port
+        // that went back while the robot turned was rolled back by the turn, not reversed.
+        std::uint32_t followers = 0;
+        std::size_t reversed = n_;
+        bool anyStill = false;
         for (std::size_t j = 0; j < n_; ++j) {
-            if (j != i && drive_[j]) {
-                others = std::max(others, std::abs(motors_[j]->position().value() - base_[j]));
+            if (j == i || !drive_[j]) {
+                continue;
+            }
+            const double d = motors_[j]->position().value() - base_[j];
+            others = std::max(others, std::abs(d));
+            if (excluded_[j]) {
+                continue;
+            }
+            const double t = static_cast<double>(sign_[j]) * d;
+            report_.ports[j].followDeg = static_cast<float>(t / kDegreesToRadians);
+            if (t >= cfg_.followThreshold.value()) {
+                followers |= std::uint32_t{1} << j;
+            } else if (t <= -cfg_.followThreshold.value()) {
+                reversed = reversed < n_ || turned ? reversed : j;
+            } else {
+                anyStill = true;
             }
         }
+        // A turn drags the idle side: a port in a group whose first pulse turned the robot the other
+        // way is no follower, and the pulsed port leaves such a group (its own pulse decides it).
+        const auto against = [this, turned](std::size_t j) {
+            return turned && group_[j] > 0 && groupYaw_[group_[j] - 1] * yaw_ < 0.0;
+        };
+        for (std::size_t j = 0; j < n_; ++j) {
+            if (against(j)) {
+                followers &= ~(std::uint32_t{1} << j);
+            }
+        }
+        if (against(i)) {
+            group_[i] = 0;
+            report_.ports[i].group = 0;
+        }
+        const bool coupled = anyStill && (followers != 0 || reversed < n_);
         const bool lastLevel = levelIndex_ + 1 >= cfg_.pulseLevelCount;
         PulseVerdict verdict = PulseVerdict::Weak;
-        if (std::abs(yaw_) >= cfg_.pulseYawFloor.value()) {
-            verdict = own > 0.0 ? (yaw_ < 0.0 ? PulseVerdict::Left : PulseVerdict::Right)
-                                : PulseVerdict::Contradiction;
-        } else if (own <= -cfg_.movedThreshold.value()) {
-            verdict = PulseVerdict::Contradiction;  // it clearly went backward, turn or no turn
+        if ((turned && own <= 0.0) || own <= -cfg_.movedThreshold.value()) {
+            verdict = PulseVerdict::Contradiction;  // it went backward, turn or no turn
+        } else if (coupled) {
+            verdict = PulseVerdict::Followed;  // read FIRST: a heavy robot's yaw is flex
+        } else if (turned) {
+            verdict = yaw_ < 0.0 ? PulseVerdict::Left : PulseVerdict::Right;
         } else if (lastLevel) {
+            // A grouped port that turns its own shaft but drags no mate (robot one's mates moved theirs
+            // 1.2-4.8 deg) is still in its group's train; a slipping gear's spin leaves it out.
             verdict = others >= cfg_.movedThreshold.value()    ? PulseVerdict::Rolled
                       : own >= cfg_.decoupledOwnMin.value() ? PulseVerdict::Decoupled
+                      : group_[i] > 0 && own >= cfg_.movedThreshold.value() ? PulseVerdict::Kept
                                                             : PulseVerdict::Still;
         }
-        recordPulse(i, level, own, others, verdict);
+        recordPulse(i, level, own, others, verdict, followers);
 
         switch (verdict) {
+            case PulseVerdict::Followed: {
+                if (reversed < n_) {
+                    char msg[kReasonCap];
+                    std::snprintf(msg, sizeof msg,
+                                  "port %d turned %.1f deg AGAINST its captured sign while port %d "
+                                  "was pulsed at %.1f V -- check its cable and its gears",
+                                  static_cast<int>(ports_[reversed]),
+                                  static_cast<double>(report_.ports[reversed].followDeg), static_cast<int>(ports_[i]),
+                                  level);
+                    refuse(Refusal::FollowerReversed, static_cast<int>(ports_[reversed]), msg);
+                    return;
+                }
+                if (joinGroup(i, followers)) {
+                    nextPort();
+                }
+                return;
+            }
+            case PulseVerdict::Kept:
+                nextPort();
+                return;
             case PulseVerdict::Left:
             case PulseVerdict::Right:
                 // Rule: LEFT alone drives the robot CLOCKWISE, which is NEGATIVE yaw in the
@@ -1224,26 +1339,168 @@ private:
                 char msg[kReasonCap];
                 std::snprintf(msg, sizeof msg,
                               "port %d could not move the robot at %.1f V: it turned %.2f deg "
-                              "(floor %.2f deg), its own shaft %.1f deg, no other drive port "
-                              "moved -- is it on the FLOOR? is a wheel stuck?",
+                              "(floor %.2f deg), its own shaft %.1f deg, the other drive ports "
+                              "at most %.1f deg -- is it on the FLOOR? is a wheel stuck?",
                               static_cast<int>(ports_[i]), level, yaw_ / kDegreesToRadians,
                               cfg_.pulseYawFloor.value() / kDegreesToRadians,
-                              own / kDegreesToRadians);
+                              own / kDegreesToRadians, others / kDegreesToRadians);
                 refuse(Refusal::PulseStill, static_cast<int>(ports_[i]), msg);
                 return;
             }
         }
     }
 
-    /// The current port is decided (a side, or left out): on to the next drive port, or finish.
+    /// The current port is decided (a side, a group, or left out): on to the next undecided drive
+    /// port, or finish.
     void nextPort() {
         ++pulseIndex_;
-        levelIndex_ = 0;
         if (advanceToNextDrivePort()) {
-            ++pulseOrdinal_;
             enterStep(Step::SideRest);
             return;
         }
+        finishPulses();
+    }
+
+    /// (CAL2) Pulsed port `i` and `followers` share a train: join the group any of them is in, or
+    /// make a new one. Refuses (and returns false) when they touch both groups, or would be a third.
+    [[nodiscard]] bool joinGroup(std::size_t i, std::uint32_t followers) {
+        const std::uint32_t members = followers | (std::uint32_t{1} << i);
+        std::size_t inGroup[2] = {n_, n_};
+        for (std::size_t j = 0; j < n_; ++j) {
+            if ((members >> j & 1u) != 0u && group_[j] > 0) {
+                inGroup[group_[j] - 1] = j;
+            }
+        }
+        char msg[kReasonCap];
+        if (inGroup[0] < n_ && inGroup[1] < n_) {
+            std::snprintf(msg, sizeof msg,
+                          "port %d turned ports of BOTH groups (port %d of A, port %d of B) -- one "
+                          "gear train cannot be on both sides",
+                          static_cast<int>(ports_[i]), static_cast<int>(ports_[inGroup[0]]),
+                          static_cast<int>(ports_[inGroup[1]]));
+            refuse(Refusal::SideConflict, static_cast<int>(ports_[i]), msg);
+            return false;
+        }
+        std::int8_t g = inGroup[0] < n_ ? std::int8_t{1} : inGroup[1] < n_ ? std::int8_t{2} : std::int8_t{0};
+        if (g == 0) {
+            if (report_.groupCount >= 2) {
+                std::snprintf(msg, sizeof msg,
+                              "port %d and the ports it turned are a THIRD group -- a tank has two "
+                              "sides",
+                              static_cast<int>(ports_[i]));
+                refuse(Refusal::SideConflict, static_cast<int>(ports_[i]), msg);
+                return false;
+            }
+            g = static_cast<std::int8_t>(++report_.groupCount);
+            groupLevel_[g - 1] = static_cast<std::uint8_t>(levelIndex_);
+            groupYaw_[g - 1] = std::abs(yaw_) < cfg_.pulseYawFloor.value() ? 0 : yaw_ < 0.0 ? -1 : 1;
+        }
+        for (std::size_t j = 0; j < n_; ++j) {
+            if ((members >> j & 1u) != 0u) {
+                group_[j] = g;
+                report_.ports[j].group = g;
+            }
+        }
+        return true;
+    }
+
+    /// Every drive port is decided. With no group, the yaw named every side (as before CAL2). With
+    /// groups, the spin first names them: group A forward and the rest backward — with one group,
+    /// "the rest" is the ports the yaw decided, which must all be on one side.
+    void finishPulses() {
+        if (report_.groupCount == 0) {
+            finishSideAssign();
+            return;
+        }
+        leftN_ = 0;
+        rightN_ = 0;
+        std::int8_t yawSide = 0;
+        for (std::size_t i = 0; i < n_; ++i) {
+            if (!drive_[i] || excluded_[i]) {
+                continue;
+            }
+            if (group_[i] == 1) {
+                leftIdx_[leftN_++] = i;
+            } else if (group_[i] == 2 || report_.groupCount == 1) {
+                if (group_[i] == 0 && yawSide != 0 && side_[i] != yawSide) {
+                    char msg[kReasonCap];
+                    std::snprintf(msg, sizeof msg,
+                                  "one group, and the yaw put port %d on the other side from the "
+                                  "ports before it -- the group's side cannot be found",
+                                  static_cast<int>(ports_[i]));
+                    refuse(Refusal::SideConflict, static_cast<int>(ports_[i]), msg);
+                    return;
+                }
+                yawSide = group_[i] == 0 ? side_[i] : yawSide;
+                rightIdx_[rightN_++] = i;
+            }
+        }
+        if (rightN_ == 0) {
+            char msg[kReasonCap];
+            std::snprintf(msg, sizeof msg,
+                          "the pulses found one group of %u port(s) and no port of another side "
+                          "(%u left out) -- a two-sided drivetrain needs both",
+                          static_cast<unsigned>(leftN_), static_cast<unsigned>(report_.excludedCount));
+            refuse(Refusal::OneSided, 0, msg);
+            return;
+        }
+        identifying_ = true;
+        enter(Phase::SpinTest, Step::SpinRestBefore);
+    }
+
+    /// (CAL2) One tick of the identification turn: group A (the provisional LEFT list) forward,
+    /// the rest backward, stepping up like the spin's start check until |yaw| reaches identifyYaw.
+    void tickIdentify(units::Time now) {
+        if (std::abs(yaw_) >= cfg_.identifyYaw.value()) {
+            identifySides(yaw_ > 0.0);
+            return;
+        }
+        if (now.value() - levelStart_.value() < cfg_.spinStartTime.value()) {
+            return;
+        }
+        if (spinLevelIndex_ + 1 < cfg_.spinLevelCount) {
+            ++spinLevelIndex_;
+            levelStart_ = now;
+            return;
+        }
+        char msg[kReasonCap];
+        std::snprintf(msg, sizeof msg,
+                      "the drive cannot turn the robot: group A forward and B backward turned it "
+                      "%.1f deg at %.1f V, the top spin level (need %.1f deg) -- is it pinned, or on "
+                      "blocks?",
+                      std::abs(yaw_) / kDegreesToRadians, currentSpinVolts(),
+                      cfg_.identifyYaw.value() / kDegreesToRadians);
+        refuse(Refusal::SpinNoStart, 0, msg);
+    }
+
+    /// Group A forward turned the robot CCW (`ccw`): A is RIGHT (RIGHT forward, LEFT back turns it
+    /// CCW); else A is LEFT. Every grouped port takes its group's side; a port the yaw also decided
+    /// must agree.
+    void identifySides(bool ccw) {
+        safeState();
+        const std::int8_t a = ccw ? std::int8_t{+1} : std::int8_t{-1};
+        report_.identifyYawRad = yaw_;
+        report_.groupSide[0] = a;
+        report_.groupSide[1] = report_.groupCount == 2 ? static_cast<std::int8_t>(-a) : std::int8_t{0};
+        for (std::size_t i = 0; i < n_; ++i) {
+            if (!drive_[i] || excluded_[i] || (group_[i] == 0 && report_.groupCount == 2)) {
+                continue;
+            }
+            const std::int8_t want = group_[i] == 1 ? a : static_cast<std::int8_t>(-a);
+            if (side_[i] != 0 && side_[i] != want) {
+                char msg[kReasonCap];
+                std::snprintf(msg, sizeof msg,
+                              "port %d: its pulse turned the robot %s, but the spin put it on the "
+                              "%s side -- check its gears and RUN AGAIN",
+                              static_cast<int>(ports_[i]), side_[i] < 0 ? "as a LEFT motor" : "as a RIGHT motor",
+                              want < 0 ? "LEFT" : "RIGHT");
+                refuse(Refusal::SideConflict, static_cast<int>(ports_[i]), msg);
+                return;
+            }
+            side_[i] = want;
+            report_.ports[i].side = want;
+        }
+        identifying_ = false;
         finishSideAssign();
     }
 
@@ -1462,12 +1719,48 @@ private:
         return n_;
     }
 
-    /// Every motor under restFloor AND the robot's yaw rate under restYawRateFloor — the design's
-    /// definition of rest ("yaw rate and every velocity under a floor"), which until 2F-1 the code
-    /// implemented without its first half.
+    /// Every motor under restFloor AND the robot's AVERAGE yaw rate over the last restSettleTime
+    /// under restYawRateFloor (CAL2: the heading's change, not the IMU's jumpy instant rate). Needs
+    /// a full window of heading samples.
     [[nodiscard]] bool atRest() const {
-        return firstMoving() == n_
-               && std::abs(imu_.yawRate().value()) <= cfg_.restYawRateFloor.value();
+        if (firstMoving() != n_ || restCount_ == 0) {
+            return false;
+        }
+        const double age = clock_.now().value() - restTime_[oldestSample()];
+        return age >= cfg_.restSettleTime.value()
+               && std::abs(windowYawRate()) <= cfg_.restYawRateFloor.value();
+    }
+
+    /// The ring's oldest heading sample (its first slot until the ring is full).
+    [[nodiscard]] std::size_t oldestSample() const noexcept {
+        return restCount_ < kRestSamples ? 0 : restNext_;
+    }
+
+    /// The heading's change since the oldest sample in the window, over its age, rad/s (0 with
+    /// fewer than two samples).
+    [[nodiscard]] double windowYawRate() const {
+        if (restCount_ < 2) {
+            return 0.0;
+        }
+        const std::size_t oldest = oldestSample();
+        const double age = clock_.now().value() - restTime_[oldest];
+        const double live = heading_ + prevHeading_.errorTo(imu_.heading());
+        return age > 0.0 ? (live - restHeading_[oldest]) / age : 0.0;
+    }
+
+    /// One heading sample every restSettleTime / (kRestSamples − 1), so the window spans it at any
+    /// tick rate.
+    void sampleHeading(units::Time now) {
+        const std::size_t last = (restNext_ + kRestSamples - 1) % kRestSamples;
+        if (restCount_ > 0
+            && now.value() - restTime_[last]
+                   < cfg_.restSettleTime.value() / static_cast<double>(kRestSamples - 1)) {
+            return;
+        }
+        restHeading_[restNext_] = heading_;
+        restTime_[restNext_] = now.value();
+        restNext_ = (restNext_ + 1) % kRestSamples;
+        restCount_ = restCount_ < kRestSamples ? restCount_ + 1 : restCount_;
     }
 
     /// The push so far, read LIVE from every candidate: the count that moved on the push
@@ -1569,7 +1862,8 @@ private:
                                       "persistence window during the spin -- stop and check "
                                       "that motor",
                                       static_cast<int>(ports_[idx[k]]),
-                                      s == 0 ? "LEFT" : "RIGHT");
+                                      identifying_ ? (s == 0 ? "group A" : "group B")
+                                                   : (s == 0 ? "LEFT" : "RIGHT"));
                         refuse(Refusal::SpinFight, static_cast<int>(ports_[idx[k]]), msg);
                         return true;
                     }
@@ -1601,18 +1895,28 @@ private:
         side.inchesPerRadian = units::Length{ipr};
     }
 
+    /// The next drive port, its 1-based place among the drive ports, and its first level. Every
+    /// drive port is still pulsed (CAL2): a grouped one CONFIRMS it drives its own train — a
+    /// slipping gear is dragged along like a mate, and only its own pulse shows it — starting at the
+    /// level its group was found at.
     [[nodiscard]] bool advanceToNextDrivePort() {
         while (pulseIndex_ < n_ && !drive_[pulseIndex_]) {
             ++pulseIndex_;
         }
+        pulseOrdinal_ = 0;
+        for (std::size_t j = 0; j < n_ && j <= pulseIndex_; ++j) {
+            pulseOrdinal_ = static_cast<std::uint8_t>(pulseOrdinal_ + (drive_[j] ? 1 : 0));
+        }
+        levelIndex_ = pulseIndex_ < n_ && group_[pulseIndex_] > 0 ? groupLevel_[group_[pulseIndex_] - 1] : 0;
         return pulseIndex_ < n_;
     }
 
     /// Append one pulse to the report's record and make it the port's deciding observation.
-    void recordPulse(std::size_t i, double level, double own, double others, PulseVerdict v) {
+    void recordPulse(std::size_t i, double level, double own, double others, PulseVerdict v,
+                     std::uint32_t followers) {
         if (report_.pulseCount < kMaxPulseRecords) {
             report_.pulses[report_.pulseCount++] =
-                PulseRecord{ports_[i], pulseOrdinal_, level, yaw_, own, others, v};
+                PulseRecord{ports_[i], pulseOrdinal_, level, yaw_, own, others, v, followers};
         }
         PortObservation& o = report_.ports[i];
         o.pulseYawRad = yaw_;
@@ -1657,16 +1961,21 @@ private:
     }
 
     void resetYaw() {
+        const math::Angle h = imu_.heading();
+        heading_ += prevHeading_.errorTo(h);  // the rest window's heading never loses a step
         yaw_ = 0.0;
-        prevHeading_ = imu_.heading();
+        prevHeading_ = h;
     }
 
     /// Rule 3: accumulate the shortest signed step every tick, so two full turns are two full
     /// turns and not a wrapped nothing.
     void accumulateYaw() {
         const math::Angle h = imu_.heading();
-        yaw_ += prevHeading_.errorTo(h);
+        const double step = prevHeading_.errorTo(h);
+        yaw_ += step;
+        heading_ += step;
         prevHeading_ = h;
+        sampleHeading(clock_.now());
     }
 
     void enter(Phase p, Step s) {
@@ -1733,7 +2042,8 @@ private:
         const bool spinning = step_ == Step::SpinCcw || step_ == Step::SpinCw;
         status_.spinDirection = spinning ? spinDirection_ : 0.0;
         status_.spinTurns = spinning ? spinDirection_ * yaw_ / (2.0 * math::Angle::kPi) : 0.0;
-        status_.spinLevelVolts = spinning ? currentSpinVolts() : 0.0;
+        status_.identifying = step_ == Step::SpinIdentify;
+        status_.spinLevelVolts = spinning || status_.identifying ? currentSpinVolts() : 0.0;
         status_.excludedCount = report_.excludedCount;
         std::uint8_t left = 0;
         std::uint8_t right = 0;
@@ -1744,14 +2054,6 @@ private:
         status_.leftCount = left;
         status_.rightCount = right;
         if (step_ == Step::PushWatching) {
-            // The yaw RATE is read on every tick of the push, though the push itself never uses it
-            // (CAL1 Part B, 2026-11-05): the PROS IMU adapter's default rate is the derivative of
-            // the rotation between FRESH reads (hal/pros/imu.hpp, DifferentiateRotation), and
-            // atRest() skips its rate read while a motor turns — as every one does all push long —
-            // so DONE's first rest tick would read a rate averaged over the WHOLE push, and a robot
-            // turned by hand at 3 deg/s then read as still for that tick (IMU1's T11). Until Part B
-            // the WHICH END tick between DONE and the rest window took that stale read.
-            (void)imu_.yawRate();
             const PushSummary s = pushSummary();
             status_.movedNow = s.moved;
             status_.pushTravelRad = s.medianRad;
@@ -1800,6 +2102,14 @@ private:
                 return;
             case Phase::SpinTest:
                 status_.prompt = "STAND CLEAR -- spinning in place, both ways.";
+                if (identifying_) {
+                    std::snprintf(status_.progress, sizeof status_.progress,
+                                  "%sgroup A forward, B back: yaw %+.1f of %.1f deg at %.1f V",
+                                  status_.identifying ? "" : "next: ", yaw_ / kDegreesToRadians + 0.0,
+                                  cfg_.identifyYaw.value() / kDegreesToRadians,
+                                  status_.spinLevelVolts);
+                    return;
+                }
                 std::snprintf(status_.progress, sizeof status_.progress,
                               "%s %.2f of %.2f turns at %.1f V",
                               spinDirection_ > 0.0 ? "CCW" : "CW",
@@ -1873,6 +2183,17 @@ private:
     std::size_t spinLevelIndex_ = 0;
     double levelStartYaw_ = 0.0;
     bool spinStarted_ = false;
+    std::int8_t group_[hal::kMaxSmartPorts]{};  // CAL2: 1 = A, 2 = B, 0 = none
+    std::uint8_t groupLevel_[2]{};              // the level each group was found at
+    std::int8_t groupYaw_[2]{};                 // the way its first pulse turned the robot (0: under the floor)
+    bool identifying_ = false;
+    // CAL2's rest window: the cumulative heading, sampled into a small ring (D4).
+    static constexpr std::size_t kRestSamples = 9;
+    double heading_ = 0.0;
+    double restHeading_[kRestSamples]{};
+    double restTime_[kRestSamples]{};
+    std::size_t restNext_ = 0;
+    std::size_t restCount_ = 0;
     teleop::CoupledSideMonitor leftMonitor_{cfg_.monitor};
     teleop::CoupledSideMonitor rightMonitor_{cfg_.monitor};
 };
@@ -1903,6 +2224,8 @@ private:
         case Refusal::MissedTick: return "MISSED_TICK";
         case Refusal::OutOfOrder: return "OUT_OF_ORDER";
         case Refusal::InvalidDescription: return "INVALID_DESCRIPTION";
+        case Refusal::SideConflict: return "SIDE_CONFLICT";
+        case Refusal::FollowerReversed: return "FOLLOWER_REVERSED";
     }
     return "?";
 }
@@ -1918,6 +2241,8 @@ private:
         case PulseVerdict::Decoupled: return "LEFT OUT (decoupled)";
         case PulseVerdict::Rolled: return "ROLLED";
         case PulseVerdict::Still: return "STILL";
+        case PulseVerdict::Followed: return "FOLLOWED";
+        case PulseVerdict::Kept: return "KEPT in its group (no follower)";
     }
     return "?";
 }
@@ -1953,6 +2278,86 @@ inline int formatPulseRecord(const PulseRecord& r, unsigned total, char* out, st
                          r.levelVolts, r.yawRad / kDegreesToRadians + 0.0,
                          r.ownRad / kDegreesToRadians + 0.0, r.othersMaxRad / kDegreesToRadians,
                          pulseVerdictWord(r.verdict));
+}
+
+namespace detail {
+/// Where the next append into a buffer of `cap` starts, after snprintf returned `w` at `used`.
+[[nodiscard]] inline std::size_t appended(std::size_t used, int w, std::size_t cap) noexcept {
+    used += w > 0 ? static_cast<std::size_t>(w) : 0;
+    return used < cap ? used : cap - 1;
+}
+}  // namespace detail
+
+/// (CAL2) The second line of a pulse: the ports that FOLLOWED it, with their sign-corrected travel —
+/// `pulse port 11 6.0 V followers 12 13 14 15 (+6 +6 +6 +5 deg)`, or `... no followers`, or — ports
+/// turned with it but made no group (the whole robot moved, or the pulse was refused) —
+/// `... turned with it (no group): 12 13 ...`.
+/// The travels are the LATEST pulse's (PortObservation::followDeg), so they are printed only when
+/// `latest` is true; an older record prints its ports alone. `cap` >= 1. ASCII, no '%'.
+inline void formatFollowerRecord(const PulseRecord& r, const CalibrationReport& rep, bool latest,
+                                 char* out, std::size_t cap) {
+    const char* word = r.followers == 0                     ? "no followers"
+                       : r.verdict == PulseVerdict::Followed ? "followers"
+                                                             : "turned with it (no group):";
+    std::size_t u = detail::appended(
+        0, std::snprintf(out, cap, "pulse port %d %.1f V %s", static_cast<int>(r.port), r.levelVolts, word),
+        cap);
+    for (std::size_t k = 0; k < rep.portCount; ++k) {
+        if ((r.followers >> k & 1u) != 0u) {
+            u = detail::appended(u, std::snprintf(out + u, cap - u, " %d", static_cast<int>(rep.ports[k].port)), cap);
+        }
+    }
+    if (!latest || r.followers == 0) {
+        return;
+    }
+    const char* open = " (";
+    for (std::size_t k = 0; k < rep.portCount; ++k) {
+        if ((r.followers >> k & 1u) != 0u) {
+            u = detail::appended(u, std::snprintf(out + u, cap - u, "%s%+.0f", open,
+                                                  static_cast<double>(rep.ports[k].followDeg)),
+                                 cap);
+            open = " ";
+        }
+    }
+    (void)std::snprintf(out + u, cap - u, " deg)");
+}
+
+/// (CAL2) After the pulses: each group's ports, and the ports the yaw decided —
+/// `groups: A 11 12 13 14 15 | B 16 17 18 19 20 | by yaw: none`. `cap` >= 1. ASCII, no '%'.
+inline void formatGroupsRecord(const CalibrationReport& rep, char* out, std::size_t cap) {
+    std::size_t u = detail::appended(0, std::snprintf(out, cap, "groups:"), cap);
+    for (int g = 1; g <= 3; ++g) {
+        u = detail::appended(u, std::snprintf(out + u, cap - u, "%s", g == 1 ? " A" : g == 2 ? " | B" : " | by yaw:"), cap);
+        bool any = false;
+        for (std::size_t k = 0; k < rep.portCount; ++k) {
+            const PortObservation& o = rep.ports[k];
+            if (g < 3 && o.group == g && !o.excluded) {
+                u = detail::appended(u, std::snprintf(out + u, cap - u, " %d", static_cast<int>(o.port)), cap);
+                any = true;
+            } else if (g == 3 && o.group == 0 && o.side != 0) {
+                u = detail::appended(u, std::snprintf(out + u, cap - u, " %d %s", static_cast<int>(o.port),
+                                                      o.side < 0 ? "LEFT" : "RIGHT"),
+                                     cap);
+                any = true;
+            }
+        }
+        if (!any) {
+            u = detail::appended(u, std::snprintf(out + u, cap - u, " none"), cap);
+        }
+    }
+}
+
+/// (CAL2) The identification turn's verdict — `sides: group A forward, B back turned the robot
+/// -6.1 deg (CW) -- A is LEFT, B is RIGHT`. ASCII, no '%'.
+inline int formatIdentifyRecord(const CalibrationReport& rep, char* out, std::size_t cap) {
+    const bool aLeft = rep.groupSide[0] < 0;
+    return std::snprintf(out, cap,
+                         "sides: group A forward, %s back turned the robot %+.1f deg (%s) -- A is "
+                         "%s, %s %s",
+                         rep.groupCount == 2 ? "B" : "the yaw's ports",
+                         rep.identifyYawRad / kDegreesToRadians + 0.0,
+                         rep.identifyYawRad > 0.0 ? "CCW" : "CW", aLeft ? "LEFT" : "RIGHT",
+                         rep.groupCount == 2 ? "B is" : "they are", aLeft ? "RIGHT" : "LEFT");
 }
 
 /// One line per SPIN DIRECTION for the serial record (F1.5): `spin CCW 3.0 V yaw +720.0 deg

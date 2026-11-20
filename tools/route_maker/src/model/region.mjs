@@ -23,10 +23,12 @@ import { newRoute } from './route.mjs';
 const BEGIN_RE = /^\/\/ ═══ ROUTE MAKER — route "([^"\r\n]*)" — BEGIN ═+$/;
 const END_RE = /^\/\/ ═══ ROUTE MAKER — route "([^"\r\n]*)" — END ═+$/;
 
-/** The project-relative file the skills route is written into (§6.3). */
+/** The project-relative file the team's routes are written into (§6.3). */
 export const SKILLS_ROUTE_FILE = 'src/team/skills_route.cpp';
-/** Robot two's autons file, read (never written) for its mirrored line (D6, R2). */
+/** Robot two's autons file, read (never written) for its line that registers the team's routes (D6, R2; RMP1-C D2). */
 export const ROBOT_TWO_AUTONS_FILE = 'src/team/autons.cpp';
+/** Robot one's autons file, read (never written) the same way. */
+export const ROBOT_ONE_AUTONS_FILE = 'src/team/robot_one_autons.cpp';
 
 /** True for a path the builder may write: under src/team/, relative, no "..", no backslash tricks. */
 export function isTeamPath(path) {
@@ -180,7 +182,7 @@ export function spliceRegion(fileText, newRegionLF, { lastHash, overwrite = fals
     }
     const current = regionText(fileText, found);
     const currentHash = regionHash(current);
-    const emptyStarter = exportRegion({ ...newRoute(found.name) });
+    const emptyStarter = exportRegion([newRoute()]);
     const known = currentHash === lastHash || current === emptyStarter || current === newRegionLF;
     if (!known && !overwrite) {
         return { ok: false, why: 'handEdit', currentHash,
@@ -195,14 +197,14 @@ export function spliceRegion(fileText, newRegionLF, { lastHash, overwrite = fals
 }
 
 /**
- * Does robot two's autons file register the shared skills route MIRRORED (D6, R2: plumbing, ROB1-BT's or
- * the coordinator's — the page only CHECKS)? Comments are ignored, so a commented-out line is "missing".
+ * Does an autons file register the team's routes — `addTeamRoutes(registry, TeamRobot::One)` in robot one's,
+ * `...::Two` in robot two's (RMP1-C D2: plumbing; the page only CHECKS)? Comments are ignored, so a commented-out line
+ * is "missing".
  */
-export function hasMirroredLine(autonsText) {
+export function hasTeamRoutesLine(autonsText, robot) {
     const code = autonsText.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-    return /registry\s*\.\s*add\s*\(\s*competition::mirrored\s*\(\s*skillsRoute\s*\(\s*\)\s*,\s*competition::override2026::kSkillsMirror\s*\)\s*\)\s*;/
-        .test(code);
+    return new RegExp(`addTeamRoutes\\s*\\(\\s*registry\\s*,\\s*TeamRobot::${robot}\\s*\\)\\s*;`).test(code);
 }
 
-/** The line robot two's autons file should carry (shown, with Copy, ONLY when it is missing — D6). */
-export const MIRRORED_LINE = 'registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));';
+/** The line each autons file carries (shown, with Copy, ONLY when it is missing — D6). */
+export const teamRoutesLine = (robot) => `addTeamRoutes(registry, TeamRobot::${robot});`;

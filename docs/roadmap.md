@@ -571,11 +571,14 @@ not silently break them. This table is the spine of the no-staleness promise.
 > and the library's one-button hold added; Bench Tests and Calibrate owe only "which port is the right side
 > toggle". [Chapter 21](guide/21-adding-your-robot-by-hand.md) and the
 > [robot facts form](robot-facts-form.md); register entries [HA-252..HA-255](hardware-assumptions.md) and
-> [HA-261](hardware-assumptions.md). **Next with it:** station 13's answers (the cascade's rows, the side
-> toggles' directions, each piston's opening level) and the cascade's three voltages; station 13 applying the
-> cascade's cap (ROB1-C). **ROB1-BT (2026-11-17):** robot two is robot one's twin — its facts file has robot one's
+> [HA-261](hardware-assumptions.md). **Next with it:** robot two's station 13 answers (the cascade's rows, the side
+> toggles' directions, each piston's opening level) and its cascade's three voltages — robot one's were typed
+> 2026-11-17. **ROB1-BT (2026-11-17):** robot two is robot one's twin — its facts file has robot one's
 > facts, owed until read off robot two; one skills route (`src/team/skills_route.cpp`) for both, robot two's mirrored;
-> the calibration record names its robot, and each robot's boot refuses the other's card.
+> the calibration record names its robot, and each robot's boot refuses the other's card. **S13UX (2026-11-19):**
+> station 13 applies each mechanism's declared cap and is worded for a student alone (a "what to do now" line, a
+> lift's measuring steps kept while Bench Tests runs, RECORD's number shown large, the 3 s jog stop re-armed by L1) —
+> host- and build-gated, not run on a robot.
 >
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a

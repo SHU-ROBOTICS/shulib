@@ -57,7 +57,7 @@ test('every library sentence the page quotes is still in its header, word for wo
 
 test('R9: a BUILD refusal is named by its function -- defined in its header, the twin fixture expecting exactly it', () => {
     const builds = Object.entries(LIBRARY_WORDS).filter(([, w]) => w.ident);
-    assert.deepEqual(builds.map(([k]) => k).sort(), ['noPosition', 'noPreset']);
+    assert.deepEqual(builds.map(([k]) => k).sort(), ['noPosition', 'noPreset', 'travelLimits']);
     for (const [key, { file, ident, twin, text }] of builds) {
         const header = fs.readFileSync(path.join(REPO, file), 'utf8');
         assert.ok(new RegExp(`\\binline void ${ident}\\(\\) \\{\\}`).test(header), `${key}: ${ident} is not defined in ${file}`);

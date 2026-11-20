@@ -13,6 +13,11 @@
 //   move / startMove      {mechanism, preset, boundS} r.move / r.startMove (an arm's or a lift's preset; a
 //                                                      NUMBER preset is the robot's facts ledger's level i,
 //                                                      written `m[facts::lv(i).name]`; a STRING is `m["name"]`)
+//                         or ONE of {up, down, to, bottom} in place of `preset` (RMP1-C D7): "go up 6", "go down
+//                         6", "move to 18", "back to the bottom" -- written as the library's constant target
+//                         `m.to(<height>)` from the height the plan tracks (lift.mjs)
+//   forward / backward    {inches}                    RMP1-C D9: "drive forward 6 in", "back up 6 in" from the
+//                                                      planned pose -- written as the driveTo / reverseTo point
 //   set                   {mechanism, position}       r.set (a pneumatic's named position)
 //   run / startRun        {mechanism, volts, forS}    r.run / r.startRun (a power mechanism, for a time)
 //   home / startHome      {mechanism, boundS}         r.home / r.startHome (an arm or a lift)
@@ -32,27 +37,31 @@ import { CurvePath, kDefaultCurveConfig } from './curve.mjs';
 
 /** Every step kind A1 offers, in the toolbar's order. */
 export const STEP_KINDS = Object.freeze([
-    'driveTo', 'reverseTo', 'turnTo', 'face', 'faceAway', 'curveTo', 'reverseCurveTo',
+    'driveTo', 'reverseTo', 'turnTo', 'face', 'faceAway', 'curveTo', 'reverseCurveTo', 'forward', 'backward',
     'move', 'startMove', 'set', 'run', 'startRun', 'home', 'startHome', 'waitUntilDone', 'wait',
 ]);
 /** The steps that drive the robot (they carry motion options). */
-export const MOTION_KINDS = new Set(['driveTo', 'reverseTo', 'turnTo', 'face', 'faceAway', 'curveTo', 'reverseCurveTo']);
+export const MOTION_KINDS = new Set(['driveTo', 'reverseTo', 'turnTo', 'face', 'faceAway', 'curveTo', 'reverseCurveTo',
+                                     'forward', 'backward']);
+/** A move's target fields: exactly one of them (or `preset`) says where it goes. */
+export const TARGET_KEYS = Object.freeze(['up', 'down', 'to', 'bottom']);
 /** The steps that name a mechanism. */
 export const MECHANISM_KINDS = new Set(['move', 'startMove', 'set', 'run', 'startRun', 'home', 'startHome', 'waitUntilDone']);
 /** The motion option fields, in MotionOptions' declaration order (the export writes them in this order). Their
  *  names are G3a's R.4 route schema's (D3, D14 (a)): the panel after the 21st reads the SAME file. */
 export const CARE_MOTION_FIELDS = Object.freeze(['timeoutS', 'maxSpeedInPerS', 'maxTurnDegPerS', 'toleranceIn', 'toleranceDeg']);
 /** Every field a step of THIS builder carries (D3: a file with any other is from a newer builder, refused). */
-export const STEP_KEYS = Object.freeze(['label', 'do', 'x', 'y', 'faceFirst', 'headingDeg', 'points', 'mechanism', 'preset',
-                                        'position', 'volts', 'forS', 'boundS', 'seconds', 'care']);
+export const STEP_KEYS = Object.freeze(['label', 'do', 'x', 'y', 'faceFirst', 'headingDeg', 'points', 'inches', 'mechanism', 'preset',
+                                        'up', 'down', 'to', 'bottom', 'position', 'volts', 'forS', 'boundS', 'seconds', 'care']);
 /** Every field of a step's `care` this builder knows. */
 export const CARE_KEYS = Object.freeze([...CARE_MOTION_FIELDS, 'onFail']);
 /** Every field of a curve point. */
 export const POINT_KEYS = Object.freeze(['x', 'y', 'headingDeg']);
 /** Every field of a route (the project file's `routes[i]`). */
-export const ROUTE_KEYS = Object.freeze(['name', 'kind', 'robot', 'mirroredFor', 'start', 'endActionAtS', 'hardStopAtS', 'steps']);
-/** The ONE route A1 edits: §6.3's contract fixes its name (the marker lines, `e.name`) — robot one's and robot two's
- *  code register it by that name, and ROB1-BT's tests pin it. Renaming it is a contract change, not a page edit. */
+export const ROUTE_KEYS = Object.freeze(['name', 'kind', 'robot', 'mirroredFor', 'together', 'start', 'endActionAtS', 'hardStopAtS',
+                                         'steps']);
+/** The competition's skills route (RMP1-C D1): every project has it, and it keeps this name — the marker lines, the
+ *  docs and the competition program point at it. The team's other routes are named by the team. */
 export const ROUTE_NAME = 'skills';
 
 /** The route an empty project starts with: robot one's skills route, mirrored for robot two (MIRROR1). */
@@ -69,7 +78,7 @@ export function newRoute(name = 'skills') {
     };
 }
 
-const NUMBER_FIELDS = ['x', 'y', 'boundS', 'volts', 'forS', 'seconds'];
+const NUMBER_FIELDS = ['x', 'y', 'inches', 'up', 'down', 'to', 'boundS', 'volts', 'forS', 'seconds'];
 
 /** True for a value that means "nothing typed": absent, null (JSON's form of a lost number) or empty. */
 const blank = (v) => v === undefined || v === null || v === '';
@@ -103,8 +112,8 @@ export function normalizeStep(step) {
         out.label = String(step.label);
     }
     out.do = step.do;
-    const order = ['x', 'y', 'faceFirst', 'headingDeg', 'points', 'mechanism', 'preset', 'position', 'volts', 'forS',
-                   'boundS', 'seconds'];
+    const order = ['x', 'y', 'faceFirst', 'headingDeg', 'points', 'inches', 'mechanism', 'preset', 'up', 'down', 'to', 'bottom',
+                   'position', 'volts', 'forS', 'boundS', 'seconds'];
     for (const k of order) {
         if (step[k] === undefined) {
             continue;
@@ -113,6 +122,8 @@ export function normalizeStep(step) {
             const v = round3(Number(step[k]));
             if (!Number.isNaN(v) && step[k] !== null && step[k] !== '') {
                 out[k] = v;  // an empty or unreadable number is left OUT: the checks ask for it by name
+            } else if (TARGET_KEYS.includes(k)) {
+                out[k] = null;  // "go up _ in" before the number is typed: WHICH move it is stays (the checks ask for it)
             }
         } else if (k === 'headingDeg') {
             const v = round3(wrapDeg(round3(Number(step[k]))));
@@ -142,6 +153,10 @@ export function normalizeStep(step) {
             out.preset = typeof step.preset === 'number' ? Math.trunc(step.preset) : String(step.preset);
         } else if (k === 'faceFirst') {
             out.faceFirst = !!step.faceFirst;
+        } else if (k === 'bottom') {
+            if (step.bottom) {
+                out.bottom = true;
+            }
         } else {
             out[k] = step[k];
         }
@@ -237,8 +252,7 @@ export function duplicateStep(route, index) {
     return addStep(route, copy, index + 1);
 }
 
-/** Rename the route (the auton's name on the brain's menu). The page does NOT offer this in A1: §6.3's contract
- *  fixes the one route's name (ROUTE_NAME); the model keeps it for the panel's later routes. */
+/** Rename the route (the auton's name on the brain's menu). */
 export function renameRoute(route, name) {
     return { ...route, name: String(name) };
 }
@@ -283,6 +297,19 @@ export function plannedPoses(route, curveCfg = kDefaultCurveConfig) {
                     entry.to = pose(step.x, step.y, leg);
                     break;
                 }
+                case 'forward':
+                case 'backward': {
+                    const q = relativePoint(at, step);
+                    if (q) {
+                        entry.point = q;
+                        const b = bearingDeg(at.x, at.y, q.x, q.y);
+                        const leg = Number.isNaN(b) ? at.headingDeg : step.do === 'backward' ? wrapDeg(b + 180) : b;
+                        entry.bearingDeg = leg;
+                        entry.offDeg = Math.abs(wrapDeg(leg - at.headingDeg));
+                        entry.to = pose(q.x, q.y, leg);
+                    }
+                    break;
+                }
                 case 'turnTo':
                     entry.to = pose(at.x, at.y, step.headingDeg);
                     break;
@@ -315,6 +342,17 @@ export function plannedPoses(route, curveCfg = kDefaultCurveConfig) {
     return out;
 }
 
+/** Where a "drive forward / back up N in" step goes from the planned pose `at`: the point N in ahead of (behind) it,
+ *  on the stored grid — what the export writes as its driveTo / reverseTo point. null without a pose or a number. */
+export function relativePoint(at, step) {
+    if (!at || ![at.x, at.y, at.headingDeg, step.inches].every(Number.isFinite)) {
+        return null;  // from a pose with a hole (a step before it has an error): nowhere, never NaN
+    }
+    const d = step.do === 'backward' ? -step.inches : step.inches;
+    const rad = (at.headingDeg * Math.PI) / 180;
+    return { x: round3(at.x + d * Math.cos(rad)), y: round3(at.y + d * Math.sin(rad)) };
+}
+
 /** The distance (in) of a drive or face target from where the plan has the robot before it. */
 export function targetDistance(entry, step) {
     if (!entry.from || step.x === undefined) {
@@ -339,7 +377,7 @@ export function everyNumberStored(route) {
     }
     for (const s of route.steps) {
         for (const k of NUMBER_FIELDS) {
-            if (s[k] !== undefined) {
+            if (s[k] !== undefined && s[k] !== null) {  // null: a target not typed yet (a hole, not a number)
                 nums.push(s[k]);
             }
         }

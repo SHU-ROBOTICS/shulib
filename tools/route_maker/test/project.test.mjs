@@ -116,7 +116,8 @@ test('RT7 (D3, never half-read): a schemaVersion-1 file with a part this builder
         ['a "care" field "maxAccel"', (p) => { p.routes[0].steps[0].care = { maxAccel: 3 }; }],
         ['a curve point field "speed"', (p) => { p.routes[0].steps.push({ do: 'curveTo', points: [{ x: 0, y: -40, speed: 3 }] }); }],
         ['a route field "who"', (p) => { p.routes[0].who = { 0: 'one' }; }],
-        ['2 routes', (p) => { p.routes.push({ ...p.routes[0], name: 'match' }); }],
+        ['a "together" of "yes"', (p) => { p.routes[0].together = 'yes'; }],  // RMP1-C D3: true or false, or not answered
+        ['a "bottom" of false', (p) => { p.routes[0].steps.push({ do: 'move', mechanism: 'lift', bottom: false, boundS: 2 }); }],
         ['a "match" route', (p) => { p.routes[0].kind = 'match'; }],
         ['an "onFail" of "retry"', (p) => { p.routes[0].steps[0].care = { onFail: 'retry' }; }],
         ['a "endActionAtS" that is not a number', (p) => { p.routes[0].endActionAtS = 'soon'; }],
@@ -130,10 +131,14 @@ test('RT7 (D3, never half-read): a schemaVersion-1 file with a part this builder
     }
     // what A1 itself writes always opens (every golden, RT1) -- and an unknown TOP-level block (RMP1-B's robots.<id>) is kept
     assert.ok(variant((p) => { p.robots = { one: { controls: { whileHeld: [] } } }; }).ok);
+    // RMP1-C D1: a project of NAMED routes opens, every route kept in order (A1 refused a second route)
+    const two = variant((p) => { p.routes.push({ ...p.routes[0], name: 'practice', mirroredFor: undefined }); });
+    assert.ok(two.ok);
+    assert.deepEqual(two.project.routes.map((r) => [r.name, r.mirroredFor]), [['skills', 'two'], ['practice', undefined]]);
 });
 
 test('RT6: save -> open is EXACT for a step with a hole in it -- an emptied curve point, a typed-over care field, a start part', () => {
-    let r = setStart(newRoute(), { x: -36, y: -55.7, headingDeg: 0 });
+    let r = setStart({ ...newRoute(), together: true }, { x: -36, y: -55.7, headingDeg: 0 });
     r = addStep(r, { do: 'curveTo', points: [{ x: -24, y: -50 }, { x: -12, y: -24 }] });
     // the inspector empties point 2's x (an empty box is "nothing typed")
     r = updateStep(r, 0, { points: [r.steps[0].points[0], { ...r.steps[0].points[1], x: undefined }] });

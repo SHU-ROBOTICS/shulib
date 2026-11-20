@@ -97,7 +97,7 @@ nothing else**: it is never on the menu, the menu names it in red while you choo
 'left side late': ...`), the boot logs its whole sentence (`DROPPED: auton 'left side late': ...`),
 and every other auton and driver control still run — an auton bug must not cost the match's driver
 period (the team lead's ruling, 2026-10-02). Fix the entry in the robot's autons file and upload again
-— or, for the skills route both robots share, in `src/team/skills_route.cpp`.
+— or, for the routes both robots share (the route builder's), in `src/team/skills_route.cpp`.
 A registry built without asking for that (`competition::AutonRegistry registry{periods};`) still
 throws the sentence at the `add()`. Leave a margin inside the period: a hard stop exactly on the
 field's 30 s never gets a tick to act.
@@ -128,6 +128,10 @@ void registerRobotTwoSkills(competition::AutonRegistry& registry) {
 [cookbook chapter 9](../cookbook/09-one-route-two-robots.md) shows a whole one. The route is theirs;
 the one line only says "run it mirrored". `mirrored()` copies the entry and marks it; mirroring it
 twice gives it back as written.
+
+The team's own files do this for every route the [route builder](22-making-your-first-route.md#9-more-routes)
+writes: each autons file has one line, `addTeamRoutes(registry, TeamRobot::One);` in robot one's and
+`addTeamRoutes(registry, TeamRobot::Two);` in robot two's, which mirrors each route marked mirrored.
 
 **What the program does with a mirrored entry.** It seats robot two at the **reflected** start — its
 REAL start, where the drivers must place it — and runs the routine AND its end action in a *mirrored
@@ -231,9 +235,10 @@ the two robots is exactly twice robot one's distance from the line, however thei
        }
    ```
 
-3. **The suite checks the pair.** For every mirrored entry robot two registers, the host suite runs robot
-   one's run and robot two's TOGETHER on the host test plant and fails — naming the moment, both
-   positions and the motion each robot was in — when their 15 in squares come within 6 in:
+3. **The suite checks the pair.** For every mirrored route the team says both robots run at the SAME time
+   (the route builder asks; `Together::Yes` in the routes' list), the host suite runs robot one's run and
+   robot two's TOGETHER on the host test plant and fails — naming the moment, both positions and the motion
+   each robot was in — when their 15 in squares come within 6 in:
 
    ```text
    auton 'P1 route': the two robots come within 6.0 in (5.76 in apart) at 10.02 s -- robot one at (-5.9, -12.7) in motion 8 (CurveTo ending at (12.0, -18.0)), robot two at (12.7, 5.9) in motion 8 (CurveTo). Keep robot one's whole robot 3.0 in off the mirror line, or send ONE robot there with isMirrored(ctx).
@@ -247,7 +252,9 @@ the two robots is exactly twice robot one's distance from the line, however thei
    and brake is one, and so is each leg of a `followTrajectory`; a `then()` or a Toggle step counts the
    drives it runs; a wall reset, a `pause`, a `waitFor` or a mechanism step is none. So it is not the
    `step N` the routine's own lines print — find the step by its target. A RELATIVE mirrored entry's gap
-   is skipped, by name — its field positions are wherever the drivers place the robots.
+   is skipped, by name — its field positions are wherever the drivers place the robots — and so is a
+   route the robots run one at a time (`Together::No`). A mirrored route with a field start that nobody
+   has answered yet fails the suite until it is answered.
 4. **On a tank, the check also refuses one step that drives AND turns around** (within 1° of 180°),
    RELATIVE entries too. Each robot ends beside its target, on opposite sides of the mirror. The check
    names the step and the steps to write instead:
@@ -385,8 +392,8 @@ SD run log ON, APPENDED to /usd/shulib_auton_runs.txt
 then one line per mechanism the robot could not build (`mechanism '...' is ABSENT -- the run guard
 cannot safe it: ...`), the autons the registry dropped (`N auton(s) REFUSED at registration and
 DROPPED -- NOT on the menu (each named below); every other auton and driver control still run -- fix
-src/team/autons.cpp` — robot one's names `src/team/robot_one_autons.cpp` — then `(the skills route
-both robots share is fixed in src/team/skills_route.cpp)`, then `DROPPED: auton '...': ...` for each —
+src/team/autons.cpp` — robot one's names `src/team/robot_one_autons.cpp` — then `(the route
+builder's routes are fixed in src/team/skills_route.cpp)`, then `DROPPED: auton '...': ...` for each —
 past eight, the line says `(the first 8 named below)` and a last line counts the rest), where the log copy is (`log
 copy: /usd/comp_log.txt (APPENDED, kept across boots) -- ...`, or that it did not open and why: `NO
 SD CARD`, or a card that is in and would not take the file), the mechanisms' lines — tag `MECH`, in

@@ -145,7 +145,8 @@ inline constexpr KindRule kKinds[] = {
     {"driveTo", "x y face", true},   {"reverseTo", "x y face", true}, {"turnTo", "h", true},
     {"face", "x y", true},           {"faceAway", "x y", true},       {"curveTo", "", true},
     {"reverseCurveTo", "", true},    {"move", "mech preset bound", false},
-    {"startMove", "mech preset bound", false}, {"set", "mech pos", false},
+    {"startMove", "mech preset bound", false}, {"moveTo", "mech to bound", false},
+    {"startMoveTo", "mech to bound", false}, {"set", "mech pos", false},
     {"run", "mech volts for", false}, {"startRun", "mech volts for", false},
     {"home", "mech bound", false},   {"startHome", "mech bound", false},
     {"waitUntilDone", "mech bound", false}, {"wait", "s", false},
@@ -245,7 +246,7 @@ inline void checkMechanismStep(const mech::MechanismTable& t, const StepWords& s
     if (known != w.kv.size()) {
         throw LinesError{"a " + w.kind + " step does not take one of its words"};
     }
-    for (const char* k : {"x", "y", "h", "bound", "volts", "for", "s"}) {
+    for (const char* k : {"x", "y", "h", "to", "bound", "volts", "for", "s"}) {
         if (w.has(k)) {
             (void)numberAt(w, k);
         }
@@ -406,6 +407,30 @@ template <class D>
     throw LinesError{"no_such_preset_on_this_mechanism: \"" + s.at("mech") + "\" has no preset \"" + want + "\""};
 }
 
+/// `m.to(<number>)` (RMP1-C D7): an arm's plain degrees (`arm.to(120)`, a double literal) or a lift's inches
+/// (`lift.to(18_in)`) — the goal its consteval to() builds, refused past the travel as the build refuses it.
+[[nodiscard]] inline mech::PositionGoal toGoal(const mech::MechanismTable& t, const StepWords& s) {
+    const std::string& v = s.at("to");
+    const auto refuse = [&] {
+        throw LinesError{"target_is_outside_the_travel_limits: \"" + s.at("mech") + "\" cannot go to " + v};
+    };
+    if (const mech::Arm* a = declAs<mech::Arm>(t, s.mech)) {
+        const double deg = std::strtod(v.c_str(), nullptr);
+        if (!(deg >= a->range.min && deg <= a->range.max)) {
+            refuse();
+        }
+        return mech::PositionGoal{a, a->name.text, nullptr, deg, false, mech::Units::Degrees};
+    }
+    if (const mech::Lift* l = declAs<mech::Lift>(t, s.mech)) {
+        const double in = quantity<shulib::units::Length>(v).value();
+        if (!(in >= l->range.min.value() && in <= l->range.max.value())) {
+            refuse();
+        }
+        return mech::PositionGoal{l, l->name.text, nullptr, in, false, mech::Units::Inches};
+    }
+    throw LinesError{"\"" + s.at("mech") + "\" is not an arm or a lift: it has no height to go to"};
+}
+
 /// `claw["position"]`.
 [[nodiscard]] inline mech::PneumaticGoal positionGoal(const mech::MechanismTable& t, const StepWords& s) {
     const mech::Pneumatic* p = declAs<mech::Pneumatic>(t, s.mech);
@@ -438,6 +463,8 @@ inline void checkMechanismStep(const mech::MechanismTable& t, const StepWords& s
     const std::string& k = s.kind;
     if (k == "move" || k == "startMove") {
         (void)presetGoal(t, s);
+    } else if (k == "moveTo" || k == "startMoveTo") {
+        (void)toGoal(t, s);
     } else if (k == "set") {
         (void)positionGoal(t, s);
     } else if ((k == "run" || k == "startRun") && declAs<mech::Power>(t, s.mech) == nullptr) {
@@ -487,6 +514,10 @@ inline void callStep(Routine& r, comp::AutonContext& ctx, const StepWords& s, co
         const mech::PositionGoal g = presetGoal(t, s);
         const Time bound = quantity<Time>(s.at("bound"));
         k == "move" ? r.move(g, bound) : r.startMove(g, bound);
+    } else if (k == "moveTo" || k == "startMoveTo") {
+        const mech::PositionGoal g = toGoal(t, s);
+        const Time bound = quantity<Time>(s.at("bound"));
+        k == "moveTo" ? r.move(g, bound) : r.startMove(g, bound);
     } else if (k == "set") {
         r.set(positionGoal(t, s));
     } else if (k == "run" || k == "startRun") {

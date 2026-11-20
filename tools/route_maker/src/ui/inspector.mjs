@@ -6,7 +6,9 @@
 import { h, icon, mount } from './dom.mjs';
 import { parseTyped, fmt } from '../model/numbers.mjs';
 import { stepTitle, stepIcon, KIND_LABEL, HOMING_WORDS } from './words.mjs';
-import { ROUTE_NAME } from '../model/route.mjs';
+import { ROUTE_NAME, startPose } from '../model/route.mjs';
+import { targetKind, unitOf, bottomOf, plannedHeights } from '../model/lift.mjs';
+import { reflect } from '../model/pair.mjs';
 
 /**
  * A number with its unit. Empty means "nothing typed" (the step keeps its hole, and the checks ask for it);
@@ -34,9 +36,9 @@ function numField(label, value, unit, onSet, { placeholder = '', bad = false, na
     return h('label', { class: 'fld' }, h('span', {}, label), wrap, said);
 }
 
-function toggle(label, sub, checked, onSet, name) {
+function toggle(label, sub, checked, onSet, name, disabled = false) {
     return h('label', { class: 'switch' }, h('span', {}, label, sub ? h('small', {}, sub) : null),
-             h('input', { type: 'checkbox', role: 'switch', checked, name, onchange: (e) => onSet(e.target.checked) }));
+             h('input', { type: 'checkbox', role: 'switch', checked, name, disabled, onchange: (e) => onSet(e.target.checked) }));
 }
 
 function select(label, value, options, onSet, name) {
@@ -49,10 +51,11 @@ function issueBox(issue, app) {
     const fixes = [];
     const fixWords = { faceFirst: 'Turn to face it first', homeFirst: 'Home it first', homeWhileDriving: 'Home it while the first leg drives',
                        waitForHome: 'Wait for the home first', faceCurveStart: issue.fix && issue.fix.away ? 'Turn its back to the first point first' : 'Turn to face the first point first',
-                       nameSkills: 'Name it "skills"' };
+                       nameSkills: 'Name it "skills"', together: 'Yes, at the same time' };
     for (const f of [issue.fix, issue.alsoFix]) {
         if (f) {
-            fixes.push(h('button', { class: 'btn', onclick: () => app.fix(f) }, fixWords[f.kind] || 'Fix it'));
+            const words = f.words || (f.kind === 'together' && !f.value ? 'No, one at a time' : fixWords[f.kind]) || 'Fix it';
+            fixes.push(h('button', { class: 'btn', onclick: () => app.fix(f) }, words));
         }
     }
     return h('div', { class: `issue ${issue.level}`, role: issue.level === 'error' ? 'alert' : 'status' },
@@ -101,6 +104,45 @@ function failSection(step, i, app) {
                        onchange: (e) => app.update(i, { label: e.target.value.trim() === '' ? undefined : e.target.value.trim() }) })));
 }
 
+/** RMP1-C D7: where an arm or a lift goes — up, down, to a number, the bottom, or a level — with the heights the plan
+ *  tracks before and after it ("from 12 in to 18 in"), so a relative step is never a guess. */
+function whereItGoes(step, i, app, m) {
+    const u = unitOf(m);
+    const lift = m.kind === 'lift';
+    const tk = targetKind(step);
+    const clear = { preset: undefined, up: undefined, down: undefined, to: undefined, bottom: undefined };
+    const level = levelMode(step, m);
+    const choices = [['up', `${lift ? 'Go' : 'Turn'} up`], ['down', `${lift ? 'Go' : 'Turn'} down`], ['to', 'Move to'],
+                     ...(lift ? [['bottom', 'Back to the bottom']] : []), ...((m.presets || []).length ? [['preset', 'A level']] : [])];
+    const out = [h('div', { class: 'seg wide', role: 'radiogroup', 'aria-label': 'Where it goes' },
+        choices.map(([k, words]) => {
+            const on = k === 'preset' ? level : tk === k;
+            return h('button', { class: on ? 'on' : '', role: 'radio', 'aria-checked': String(on), 'data-where': k,
+                onclick: () => !on && app.update(i, { ...clear, ...(k === 'bottom' ? { bottom: true } : k === 'preset' ? {} : { [k]: null }) }) }, words);
+        }))];
+    if (tk === 'up' || tk === 'down' || tk === 'to') {
+        out.push(h('div', { class: 'field-row one' }, numField(tk === 'to' ? 'Move to' : tk === 'up' ? 'How far up' : 'How far down', step[tk], u,
+            (v) => app.update(i, { [tk]: v === undefined ? null : v }), { placeholder: 'type it', bad: !Number.isFinite(step[tk]), name: tk })));
+    }
+    const hs = plannedHeights(app.route(), app.robot())[i];
+    const at = (v) => (v === null || v === undefined ? 'not known' : `${fmt(v)} ${u}`);
+    if (hs) {
+        const before = hs.before[m.ident];
+        const after = hs.after[m.ident];
+        out.push(h('p', { class: 'hint', 'data-heights': '' }, before === null && (tk === 'up' || tk === 'down')
+            ? `Where the ${m.name} is here is not known: home it first, or use "Move to".`
+            : `The ${m.name}: from ${at(before)} to ${at(after)}${m.range ? ` (its travel: ${fmt(m.range[0])} to ${fmt(m.range[1])} ${u})` : ''}.`));
+    }
+    if (tk === 'bottom' && m.range) {
+        out.push(h('p', { class: 'hint' }, `The bottom of its travel: ${fmt(bottomOf(m))} ${u}.`));
+    }
+    return out;
+}
+
+/** A move to one of its levels (or one that says nowhere yet, on a mechanism with levels: "A level" chosen). */
+const levelMode = (step, m) => (m.presets || []).length > 0 && (targetKind(step) === 'preset'
+    || (targetKind(step) === null && ['up', 'down', 'to'].every((k) => step[k] === undefined) && !step.bottom));
+
 function mechanismFields(step, i, app) {
     const robot = app.robot();
     const mechs = (robot && robot.mechanisms) || [];
@@ -110,7 +152,11 @@ function mechanismFields(step, i, app) {
     if (m && (m.kind === 'arm' || m.kind === 'lift')) {
         out.push(h('p', { class: 'hint' }, `The ${m.name} ${HOMING_WORDS[m.homing] || ''}.`));
     }
-    if ((step.do === 'move' || step.do === 'startMove') && m && (m.presets || []).length) {  // none: its RC18 says so
+    const moveStep = step.do === 'move' || step.do === 'startMove';
+    if (moveStep && m && (m.kind === 'arm' || m.kind === 'lift')) {
+        out.push(...whereItGoes(step, i, app, m));
+    }
+    if (moveStep && m && levelMode(step, m)) {
         // a level whose height the robot's facts still OWE shows no number: the page never states a placeholder as a fact
         const height = (p) => (p.owed ? 'not measured yet' : `${fmt(p.value)} ${m.units}`);
         const opts = (m.presets || []).map((p) => (p.ledger !== undefined ? [`L${p.ledger}`, `level ${p.ledger}: "${p.name}" (${height(p)})`]
@@ -143,6 +189,26 @@ function mechanismFields(step, i, app) {
     return out;
 }
 
+/** RMP1-C D3, D4: robot two runs the route mirrored, or as written; and, mirrored, whether both robots run it at the
+ *  SAME time (asked plainly, no default; changeable here). */
+function robotTwoSection(route, app) {
+    const robot = app.robot();
+    const s0 = startPose(route.start) && robot.skillsMirror ? reflect(startPose(route.start), robot.skillsMirror) : null;  // a start with a hole: none
+    const answer = (v) => h('button', { class: route.together === v ? 'on' : '', role: 'radio', 'aria-checked': String(route.together === v),
+                                        'data-together': String(v), onclick: () => app.setTogether(v) },
+        v ? 'Yes, together' : 'No, one at a time', h('small', {}, v ? `too-close check: ${fmt(robot.pairCheck.gapIn)} in` : 'no too-close check'));
+    const skills = route.name === ROUTE_NAME;
+    return h('div', { class: 'section' }, h('h3', {}, 'Robot two'),
+        toggle('Runs it mirrored', skills ? 'always, for the skills route (the competition\'s skills run, on both robots)' : 'across the field\'s skills diagonal',
+               !!route.mirroredFor, (on) => app.setMirror(on), 'mirrored', skills && !!route.mirroredFor),
+        route.mirroredFor ? [
+            s0 ? h('p', { class: 'hint' }, `Robot two starts at (${fmt(s0.x)}, ${fmt(s0.y)}) facing ${fmt(s0.headingDeg)} deg: the blue square on the field.`) : null,
+            h('div', { class: `fld ask-together${route.together === undefined ? ' unanswered' : ''}` },
+              h('span', {}, 'Do both robots run it at the SAME time?'),
+              h('div', { class: 'seg wide', role: 'radiogroup', 'aria-label': 'Both robots at the same time' }, answer(true), answer(false))),
+        ] : h('p', { class: 'hint' }, 'Robot two runs it as written, from robot one\'s start: for a route one robot runs.'));
+}
+
 /** Render the inspector into `el`. */
 export function renderInspector(el, app) {
     const st = app.state();
@@ -151,21 +217,23 @@ export function renderInspector(el, app) {
     if (st.selected === null || st.selected === 'start' || route.steps[st.selected] === undefined) {
         const startIssues = issues.filter((x) => x.stepIndex === -1);
         const s0 = route.start;
-        mount(el, 
-            h('h2', { class: 'insp-title' }, icon('start'), 'The route'),
+        mount(el,
+            h('h2', { class: 'insp-title' }, icon('start'), `The route "${route.name}"`),
             startIssues.map((x) => issueBox(x, app)),
             h('div', { class: 'fld' }, h('span', {}, 'Its name on the brain\'s menu'),
-              h('p', { class: 'route-name-fixed' }, h('strong', {}, `"${route.name}"`), route.name === ROUTE_NAME
-                  ? ' — both robots\' code registers the skills route by this name, so it stays.'
-                  : ` — not "${ROUTE_NAME}", the name both robots' code registers the skills route by: Name it "${ROUTE_NAME}" above.`)),
+              route.name === ROUTE_NAME
+                  ? h('p', { class: 'route-name-fixed' }, h('strong', {}, `"${route.name}"`), ' — the competition\'s skills route keeps its name.')
+                  : h('div', { class: 'row' }, h('strong', {}, `"${route.name}"`),
+                      h('button', { class: 'btn small', onclick: () => app.renameRoute(app.at()) }, icon('edit'), 'Rename'))),
             h('div', { class: 'section' }, h('h3', {}, 'Robot one\'s start'),
               s0 ? [
                   h('div', { class: 'field-row' },
                     numField('x', s0.x, 'in', (v) => app.setStart({ ...s0, x: v }), { name: 'startX' }),
                     numField('y', s0.y, 'in', (v) => app.setStart({ ...s0, y: v }), { name: 'startY' })),
                   h('div', { class: 'field-row' }, numField('Heading', s0.headingDeg, 'deg', (v) => app.setStart({ ...s0, headingDeg: v }), { name: 'startH' }),
-                    h('div', { class: 'hint' }, '0 faces the right wall, 90 faces blue. Drag the red knob on the field.')),
+                    h('div', { class: 'hint' }, '0 faces the right wall, 90 faces blue. Drag the red knob on the field; arrow keys move it 1 in (Shift: 0.25 in).')),
               ] : h('p', { class: 'hint' }, 'Click the field to place robot one where it starts; then drag it, and its red knob to turn it.')),
+            robotTwoSection(route, app),
             h('div', { class: 'section' }, h('h3', {}, 'The robots'),
               h('p', { class: 'hint' }, app.robotsWords())),
         );
@@ -192,6 +260,17 @@ export function renderInspector(el, app) {
             body.push(toggle('Backwards', 'the robot\'s back leads', step.do === 'reverseTo', (v) => app.update(i, { do: v ? 'reverseTo' : 'driveTo' }), 'backwards'));
             body.push(careSection(step, i, app, issuesOf));
             break;
+        case 'forward':
+        case 'backward': {
+            const q = app.plan()[i] && app.plan()[i].point;
+            body.push(h('div', { class: 'field-row one' }, numField(step.do === 'forward' ? 'Drive forward' : 'Back up', step.inches, 'in',
+                (v) => app.update(i, { inches: v }), { placeholder: 'type it', bad: !Number.isFinite(step.inches), name: 'inches' })));
+            body.push(h('p', { class: 'hint' }, q ? `Straight ${step.do === 'forward' ? 'on' : 'back'} from where the robot is, to (${fmt(q.x)}, ${fmt(q.y)}): `
+                + 'the point the code drives to. Move a step before it and this follows.' : 'Straight on from where the robot is (the step before it).'));
+            body.push(toggle('Backwards', 'the robot\'s back leads', step.do === 'backward', (v) => app.update(i, { do: v ? 'backward' : 'forward' }), 'backwards'));
+            body.push(careSection(step, i, app, issuesOf));
+            break;
+        }
         case 'turnTo':
         case 'face':
         case 'faceAway': {

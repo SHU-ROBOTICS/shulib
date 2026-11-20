@@ -11,7 +11,7 @@
 // ports drive, which way each is wired, which side, each side's inches per radian, the effective
 // track width, the IMU's port — and THE FRONT, which is the end that LEADS the push (the team lead,
 // 2026-10-06). A motor the facts do not list is a drive CANDIDATE: one that turns with the push is
-// POWERED (3, then 6, then 9 V) like a drive motor. The program says so wherever it can (its banner
+// POWERED (3, 6, 9, then 12 V) like a drive motor. The program says so wherever it can (its banner
 // when nothing is declared, a line per candidate that did not turn, the LEFT OUT and pulse-refusal
 // lines), because the facts are the only guard.
 //
@@ -97,8 +97,10 @@
 // PreconditionError inside the loop is caught once at its edge (PROGRAM FAULT: everything stopped,
 // said, idled until driver control ends the same way).
 //
-// NO HARDWARE CLAIM: this program has not run on a robot in this form. The calibrator inside it ran
-// on robot two in its R3d Part 2F form on 2026-09-24 (one run stopped, one finished unrecorded).
+// NO HARDWARE CLAIM: this program has not run on a robot in this form. Its form before CAL2 ran on
+// robot one on 2026-11-16 and 11-17 (every run that reached the pulses stopped there). The
+// calibrator inside it ran on robot two in its R3d Part 2F form on 2026-09-24 (one run stopped, one
+// finished unrecorded).
 // Every threshold is INVENTED (A4 register HA-136). PROS-free, sim-free; allocation-free.
 
 #include <cmath>
@@ -110,6 +112,7 @@
 #include <optional>
 #include <span>
 #include <string_view>
+#include <type_traits>
 
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/calibration/calibrate_screen.hpp"
@@ -137,7 +140,7 @@ namespace shulib::calibration {
 
 /// A motor Calibrate must never power: a mechanism's smart port, and what to call it in the log.
 /// LIST EVERY MOTOR THAT IS NOT A DRIVE MOTOR: a motor not listed is a drive CANDIDATE, and one that
-/// turns with the push is POWERED (3, then 6, then 9 V) like a drive motor. A 3-wire solenoid is not
+/// turns with the push is POWERED (3, 6, 9, then 12 V) like a drive motor. A 3-wire solenoid is not
 /// a motor and is never a candidate.
 struct MechanismPort {
     std::uint8_t port = 0;       ///< 1..21; 0 = an unused entry (only if `name` is null too)
@@ -435,6 +438,8 @@ struct ProgramRun {
     std::uint8_t pulsesPrinted = 0;
     std::uint8_t spinsPrinted = 0;
     std::uint8_t excludedPrinted = 0;
+    bool groupsPrinted = false;    // CAL2
+    bool identifyPrinted = false;  // CAL2
     bool outcomePrinted = false;
     SaveOutcome save = SaveOutcome::NotAttempted;
     FrontChoice front = FrontChoice::None;
@@ -462,6 +467,23 @@ struct ProgramRun {
     double turnedDeg[kMaxMechanismPorts]{};
     char note[kPanelLineCap] = "";  // the finished screen's NOTE row (empty = none)
 };
+
+/// The calibrator and the run's record, in STATIC storage — off the opcontrol task's stack (CAL2: a
+/// measurement build of Calibrate, ~140 B over the release, stopped with FATAL ERROR on robot one's
+/// opcontrol task at the save, 2026-11-17). One program runs at a time.
+struct ProgramStorage {
+    std::optional<DrivetrainCalibrator> cal;  ///< the run's calibrator; each run emplaces a new one
+    ProgramRun run{};                         ///< what the program printed and decided this run
+};
+// A task killed mid-run leaves its calibrator here; the next emplace destroys it without touching it.
+static_assert(std::is_trivially_destructible_v<ProgramStorage>,
+              "calibrate_program: the static storage must be trivially destructible");
+
+/// The one ProgramStorage, constant-initialised (no guard, nothing run at boot).
+inline ProgramStorage& programStorage() noexcept {
+    static constinit ProgramStorage storage{};
+    return storage;
+}
 
 /// "PORT 21 KEPT AS A MECHANISM -- see the log" — the widest NOTE a SAVE on ONE MECHANISM PORT
 /// TURNED question writes (two digits of port); checked against the SMALL budget below.
@@ -502,7 +524,8 @@ static_assert(screenText(kProgramWidestKeptManyNote, kSmallCols),
 /// THE STANDARD CALIBRATE (header). Construct it over the robot's devices and the team's facts and
 /// call run() from opcontrol(): it owns its own 10 ms loop, and returns when the field disables the
 /// robot or starts autonomous (cleanly, every motor at 0 V + Coast) or when no run can start (a
-/// refusal painted and printed before anything is made). Not copyable; one per program.
+/// refusal painted and printed before anything is made). Not copyable. One runs at a time: its
+/// calibrator and the run's record are static (detail::programStorage(), off opcontrol's stack).
 class CalibrateProgram {
 public:
     /// The least time between two `push live:` serial lines while the count changes, seconds.
@@ -726,15 +749,15 @@ public:
 
         const std::span<hal::IMotor* const> motorSpan{motorPtrs, n};
         const std::span<const std::int8_t> portSpan{ports, n};
-        std::optional<DrivetrainCalibrator> cal;
+        std::optional<DrivetrainCalibrator>& cal = detail::programStorage().cal;  // off the stack
         startRun(cal, motorSpan, portSpan, *imu, clock, facts);
         emitf("calibrator started: %u candidate(s), kind Tank, cartridge %s, IMU port %d, "
               "provenance \"%s\"",
               static_cast<unsigned>(n), hal::cartridgeWord(cartridge), imuPort, provenance);
         emitConfig(cal->config());
         emit("ONE PUSH, 48 in, FRONT END FIRST, along a tape -- the end that leads is the FRONT;");
-        emit("then STAND CLEAR: one motor at a time jerks (3, then 6, then 9 V), then it spins");
-        emit("both ways. INVENTED numbers.");
+        emit("then STAND CLEAR: one motor at a time jerks (3, 6, 9, then 12 V) until others turn with");
+        emit("it, then it turns to find LEFT and spins both ways. INVENTED numbers.");
         watchIntro();
 
         // ── 6. the touch baseline, from a GOOD read ───────────────────────────────────
@@ -758,7 +781,8 @@ public:
 
         // ── 7. the loop ──────────────────────────────────────────────────────────────
         motion::ITickPacer& pacer = d_.devices.pacer();
-        detail::ProgramRun run{};
+        detail::ProgramRun& run = detail::programStorage().run;  // off the stack
+        run = detail::ProgramRun{};
         int runNumber = 1;
         bool stoppedByField = false;
         held_ = {};
@@ -1197,7 +1221,7 @@ private:
         }
         if (!any) {
             emit("watch      : no mechanism port declared -- nothing to watch, and EVERY motor is a");
-            emit("             drive candidate: one that turns with the push is POWERED (3, 6, 9 V).");
+            emit("             drive candidate: one that turns with the push is POWERED (3, 6, 9, then 12 V).");
             emit("             Declare every mechanism motor in the robot's facts, or unplug it first.");
             return;
         }
@@ -1275,11 +1299,11 @@ private:
             used += w > 0 ? static_cast<std::size_t>(w) : 0;
             used = used < sizeof levels ? used : sizeof levels - 1;
         }
-        emitf("config: pulses ramp %s V for %.2f s each, a side needs %.1f deg of yaw; a port "
-              "whose own shaft turns %.0f deg with nothing else moving is LEFT OUT; rest = motors "
-              "under %.2f rad/s AND yaw rate under %.1f deg/s for %.1f s",
-              levels, c.pulseTime.value(), c.pulseYawFloor.value() / kDeg,
-              c.decoupledOwnMin.value() / kDeg, c.restFloor.value(),
+        emitf("config: pulses ramp %s V, %.2f s each; a port FOLLOWS past %.1f deg, else a side needs "
+              "%.1f deg of yaw; own shaft %.0f deg, nothing else moving = LEFT OUT; rest = motors under "
+              "%.2f rad/s AND heading under %.1f deg/s over %.1f s",
+              levels, c.pulseTime.value(), c.followThreshold.value() / kDeg,
+              c.pulseYawFloor.value() / kDeg, c.decoupledOwnMin.value() / kDeg, c.restFloor.value(),
               c.restYawRateFloor.value() / kDeg, c.restSettleTime.value());
         emitf("config: spin %.0f turns each way, levels %.1f then %.1f V; must turn %.1f deg "
               "within %.1f s per level; STOPS at %.1f deg the wrong way; %.0f s timeout; the two "
@@ -1716,7 +1740,22 @@ private:
             formatPulseRecord(rep.pulses[run.pulsesPrinted],
                               static_cast<unsigned>(rep.drivePortCount), line, sizeof line);
             emit(line);
+            formatFollowerRecord(rep.pulses[run.pulsesPrinted], rep,
+                                 run.pulsesPrinted + 1 == rep.pulseCount, line, sizeof line);
+            emit(line);
             ++run.pulsesPrinted;
+        }
+        if (rep.groupCount > 0 && !run.groupsPrinted && cal.phase() != Phase::SideAssign) {
+            run.groupsPrinted = true;  // CAL2: the pulses are over
+            char line[160];
+            formatGroupsRecord(rep, line, sizeof line);
+            emit(line);
+        }
+        if (rep.groupSide[0] != 0 && !run.identifyPrinted) {
+            run.identifyPrinted = true;
+            char line[160];
+            formatIdentifyRecord(rep, line, sizeof line);
+            emit(line);
         }
         while (run.excludedPrinted < rep.excludedCount) {
             emitf("LEFT OUT: port %d turns but does not move the robot (a slipping gear? or a "

@@ -52,6 +52,7 @@ For mentors, and for older notes that say "chapter N". The menu shows titles onl
 | 20 | [The camera and the Toggle](20-the-camera.md) | Routes |
 | 21 | [Add your robot](21-adding-your-robot-by-hand.md) | Robot |
 | 22 | [Make your first route](22-making-your-first-route.md) | Route builder |
+| 23 | [Set up your robot first](23-set-up-your-robot-first.md) | Robot |
 
 <a id="maintenance-read-before-editing-the-guide"></a><a id="how-its-organised"></a><a id="where-the-code-examples-live--the-anti-rot-rule"></a><a id="facts-policy-link-dont-restate"></a><a id="when-the-api-changes-check-in-this-order"></a><a id="voice"></a>**Maintenance** (how these pages are kept true: every listing compiled, every page in the menu) moved to
 [How these pages stay true](../how-the-docs-stay-true.md).

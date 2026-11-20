@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 6,485 of them, across 215 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 6,502 of them, across 215 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -535,6 +535,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CalibrationReport::drivePortCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-driveportcount) |
 | `CalibrationReport::excludedCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-excludedcount) |
 | `CalibrationReport::excludedPorts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-excludedports) |
+| `CalibrationReport::groupCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-groupcount) |
+| `CalibrationReport::groupSide` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-groupside) |
+| `CalibrationReport::identifyYawRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-identifyyawrad) |
 | `CalibrationReport::leftInchesPerRadian` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-leftinchesperradian) |
 | `CalibrationReport::leftMedianRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-leftmedianrad) |
 | `CalibrationReport::leftSpreadRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-leftspreadrad) |
@@ -555,6 +558,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CalibratorConfig` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-calibratorconfig) |
 | `CalibratorConfig::commandTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-commandtimeout) |
 | `CalibratorConfig::decoupledOwnMin` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-decoupledownmin) |
+| `CalibratorConfig::followThreshold` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-followthreshold) |
+| `CalibratorConfig::identifyYaw` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-identifyyaw) |
 | `CalibratorConfig::imuReadyTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-imureadytimeout) |
 | `CalibratorConfig::minPushRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-minpushrad) |
 | `CalibratorConfig::monitor` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-monitor) |
@@ -582,6 +587,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CalibratorStatus::candidates` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-candidates) |
 | `CalibratorStatus::driftRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-driftrad) |
 | `CalibratorStatus::excludedCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-excludedcount) |
+| `CalibratorStatus::identifying` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-identifying) |
 | `CalibratorStatus::leftCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-leftcount) |
 | `CalibratorStatus::liveYawRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-liveyawrad) |
 | `CalibratorStatus::movedNow` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-movednow) |
@@ -1805,6 +1811,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Flywheel::spec` | function | [kinds.md](kinds.md#flywheel-spec) |
 | `Flywheel::stall` | field | [kinds.md](kinds.md#flywheel-stall) |
 | `Flywheel::tuning` | field | [kinds.md](kinds.md#flywheel-tuning) |
+| `formatFollowerRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatfollowerrecord) |
+| `formatGroupsRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatgroupsrecord) |
+| `formatIdentifyRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatidentifyrecord) |
 | `formatPulseRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatpulserecord) |
 | `formatPushRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatpushrecord) |
 | `formatSaveReport` | free function | [record_store.md](record_store.md#formatsavereport) |
@@ -2591,6 +2600,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kFaultIdle` | constant | [calibrate_screen.md](calibrate_screen.md#kfaultidle) |
 | `kFileReasonBytes` | constant | [record_store.md](record_store.md#kfilereasonbytes) |
 | `kFindingDevices` | constant | [calibrate_screen.md](calibrate_screen.md#kfindingdevices) |
+| `kFindingLeft` | constant | [calibrate_panel.md](calibrate_panel.md#kfindingleft) |
 | `kFirstPeerDataType` | constant | [shul2_format.md](shul2_format.md#kfirstpeerdatatype) |
 | `kFirstRuntimeDataType` | constant | [shul2_format.md](shul2_format.md#kfirstruntimedatatype) |
 | `kFitExclusionReasons` | constant | [feedforward_fit.md](feedforward_fit.md#kfitexclusionreasons) |
@@ -4009,6 +4019,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `portClassWord` | free function | [boot_check.md](boot_check.md#portclassword) |
 | `PortObservation` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-portobservation) |
 | `PortObservation::excluded` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-excluded) |
+| `PortObservation::followDeg` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-followdeg) |
+| `PortObservation::group` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-group) |
 | `PortObservation::port` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-port) |
 | `PortObservation::pulseLevelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pulselevelvolts) |
 | `PortObservation::pulseOthersRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pulseothersrad) |
@@ -4414,6 +4426,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProtectionMode::Driving` | enumerator | [drive_protection.md](drive_protection.md#protectionmode-driving) |
 | `ProtectionMode::Refused` | enumerator | [drive_protection.md](drive_protection.md#protectionmode-refused) |
 | `PulseRecord` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-pulserecord) |
+| `PulseRecord::followers` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-followers) |
 | `PulseRecord::levelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-levelvolts) |
 | `PulseRecord::ordinal` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-ordinal) |
 | `PulseRecord::othersMaxRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-othersmaxrad) |
@@ -4424,6 +4437,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PulseVerdict` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-pulseverdict) |
 | `PulseVerdict::Contradiction` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-contradiction) |
 | `PulseVerdict::Decoupled` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-decoupled) |
+| `PulseVerdict::Followed` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-followed) |
+| `PulseVerdict::Kept` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-kept) |
 | `PulseVerdict::Left` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-left) |
 | `PulseVerdict::None` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-none) |
 | `PulseVerdict::Right` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-right) |
@@ -4580,6 +4595,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Refusal::AStallSignatureNeedsBelowMotorRpmAbove0` | enumerator | [spec.md](spec.md#refusal-astallsignatureneedsbelowmotorrpmabove0) |
 | `Refusal::AStallSignatureNeedsLastingAbove0` | enumerator | [spec.md](spec.md#refusal-astallsignatureneedslastingabove0) |
 | `Refusal::AStallSignatureSAmpsMustBeBelowTheMotorS25ACurrentLimit` | enumerator | [spec.md](spec.md#refusal-astallsignaturesampsmustbebelowthemotors25acurrentlimit) |
+| `Refusal::FollowerReversed` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-followerreversed) |
 | `Refusal::ImuNotReady` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-imunotready) |
 | `Refusal::InvalidDescription` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-invaliddescription) |
 | `Refusal::MissedTick` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-missedtick) |
@@ -4635,6 +4651,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Refusal::PushTooFew` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pushtoofew) |
 | `Refusal::PushTooShort` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pushtooshort) |
 | `Refusal::RestTimeout` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-resttimeout) |
+| `Refusal::SideConflict` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-sideconflict) |
 | `Refusal::SpeedAPresetHasNoName` | enumerator | [spec.md](spec.md#refusal-speedapresethasnoname) |
 | `Refusal::SpeedAPresetIsPastMaxRpm` | enumerator | [spec.md](spec.md#refusal-speedapresetispastmaxrpm) |
 | `Refusal::SpeedGearRatioAndMaxRpmMustBe0` | enumerator | [spec.md](spec.md#refusal-speedgearratioandmaxrpmmustbe0) |

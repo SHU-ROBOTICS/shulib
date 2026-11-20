@@ -234,7 +234,7 @@ private:
 };
 
 /// A motor that forwards to the plant's FakeMotor and COUNTS every command the program sends — so
-/// "never powered" and "pulsed at 3, 6 and 9 V" are measured, not assumed. Its REPORTED shaft can
+/// "never powered" and "pulsed at 3, 6, 9 and 12 V" are measured, not assumed. Its REPORTED shaft can
 /// be scaled (unequal side scales), and it can throw once on its first non-zero command (a planted
 /// PROGRAM FAULT).
 class RecordingMotor final : public IMotor {

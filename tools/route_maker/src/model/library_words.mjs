@@ -72,6 +72,12 @@ export const LIBRARY_WORDS = Object.freeze({
         twin: 'test/compile_refusals/n23_misspelt_position.cpp',
         text: 'the build stops: no_such_position_on_this_mechanism',
     },
+    travelLimits: {
+        file: 'include/shulib/mechanism/kinds.hpp',
+        ident: 'target_is_outside_the_travel_limits',
+        twin: 'test/compile_refusals/k_lift_past_top.cpp',
+        text: 'the build stops: target_is_outside_the_travel_limits',
+    },
     guardPause: {
         file: 'include/shulib/sequence/run_guard.hpp',
         text: 'RunGuard::pause: duration must be finite and > 0',
@@ -79,6 +85,10 @@ export const LIBRARY_WORDS = Object.freeze({
     autonName: {
         file: 'include/shulib/competition/auton_registry.hpp',
         text: "the name must be 1..29 printable ASCII characters with no percent sign (it is shown as 'AUTON: <name>' on one screen line)",
+    },
+    autonTaken: {
+        file: 'include/shulib/competition/auton_registry.hpp',
+        text: 'the name is already registered',
     },
     autonNone: {
         file: 'include/shulib/competition/auton_registry.hpp',

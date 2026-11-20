@@ -172,8 +172,9 @@ TEST_CASE("robot one autons (G4): the file is robot one's own -- it names robot 
     const std::string code = source_pins::stripComments(source_pins::readFile("src/team/robot_one_autons.cpp"));
     CHECK(source_pins::count(code, "using namespace robot_one;") == 1);
     CHECK(source_pins::count(code, "robot_two") == 0);
-    CHECK(source_pins::count(code, "registry.add(") == 3);
-    CHECK(source_pins::count(code, "registry.add(skillsRoute());") == 1);
+    CHECK(source_pins::count(code, "registry.add(") == 2);  // RMP1-C: the routes come in through ONE line
+    CHECK(source_pins::count(code, "addTeamRoutes(registry, TeamRobot::One);") == 1);
+    CHECK(source_pins::count(code, "TeamRobot::Two") == 0);
     CHECK(source_pins::count(code, "mirrored(") == 0);
     CHECK(source_pins::count(code, "AutonKind::Match") == 0);
 }

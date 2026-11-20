@@ -44,6 +44,7 @@
 #include "shulib/core/check.hpp"
 #include "shulib/hal/controller.hpp"
 #include "shulib/hal/mechanism.hpp"
+#include "shulib/hal/motor_conversion.hpp"
 #include "shulib/manipulation/stall_detector.hpp"
 #include "shulib/mechanism/devices.hpp"
 #include "shulib/mechanism/direction_check.hpp"
@@ -241,7 +242,7 @@ inline constexpr Spec kAnswerRow4Hit{4, 4, 6, 178, 111, 56, 4};
 // paths in Bench Tests that power anything are station 10's and this one.
 //
 // THE SIX GATES (station 10's, adapted — the MECH brief's §1.14; every number INVENTED, HA-182's page
-// entries, and the screen says so):
+// entries, and the log says so):
 //   1. REFUSE a mechanism that was not built (ABSENT: its page says the provider's sentence, and nothing
 //      on it is powered).
 //   2. TWO-STAGE CLEAR CONFIRM: stage 1 at every entry, before anything is made or powered ("is every
@@ -253,12 +254,16 @@ inline constexpr Spec kAnswerRow4Hit{4, 4, 6, 178, 111, 56, 4};
 //      POWERED in its declared safe state THAT TICK (a pneumatic back to its safe position). A
 //      mechanism the station never powered is never commanded, so nothing moves without a touch.
 //   4. A VOLTS CEILING starting at 3 V; R1's press steps it 3 -> 6 -> 9 -> 12 and stops at 12.
-//   5. CUT-OUTS, each cutting THAT mechanism to its safe state, named, until the station is re-entered:
-//      two of its motors disagreeing for 250 ms (the coupled-drivetrain evaluator station 10 uses:
-//      teleop::CoupledSideMonitor — a FIGHT, some motors against the others; every motor alike against
+//   5. CUT-OUTS, each cutting THAT mechanism to its safe state, named — a FAULT until the station is
+//      re-entered: two of its motors disagreeing for 250 ms (the coupled-drivetrain evaluator station 10
+//      uses: teleop::CoupledSideMonitor — a FIGHT, some motors against the others; every motor alike against
 //      the command is a BACK-DRIVE, the direction judgement's finding, never a fight); any of its motors
-//      above 2.4 A for 250 ms; its OWN stall signature when it states one; a hold-to-run jog held for its
-//      stated maximum time (3 s).
+//      above 2.4 A for 250 ms; its OWN stall signature when it states one. A hold-to-run jog held for its
+//      stated maximum time (3 s) is cut until L1 is let go and held again (S13UX D4).
+//
+// S13UX (2026-11-19, made plain for a student alone): one "what to do now" line (doNowText), a lift's measuring
+// steps and RECORD's big line (guideLines, recorded), the panel in plain words (the engineering in the log), and
+// each mechanism's DECLARED current cap written into its motors at its arming and every jog (applyCap).
 //   6. EXIT: every powered mechanism safe — the station's own exit and bench_r3a.cpp's guard on every
 //      other way out (a thrown precondition included).
 //
@@ -278,7 +283,7 @@ inline constexpr Spec kAnswerRow4Hit{4, 4, 6, 178, 111, 56, 4};
 // on a robot.
 namespace mech_station {
 
-// ── THE PAGE'S STATED NUMBERS — HA-182's page entries: INVENTED for a first run (the screen says so) ──
+// ── THE PAGE'S STATED NUMBERS — HA-182's page entries: INVENTED for a first run (the log says so) ──
 /// The station's loop period, ms.
 inline constexpr int kTickMs = 10;
 /// Gate 4: the volts ceiling starts here ...
@@ -365,10 +370,9 @@ struct UnitsReading {
     return r;
 }
 
-/// The reading's line on the panel (at most 50 characters for a 23-character-free word set; the RECORD
-/// line carries every number in full): `ARM +360.0 deg (power-up = home 0.0; 5.00:1)`,
-/// `LIFT +4.71 in (power-up = home 0.00; 1.00:1)`, `FLYWHEEL +3000 rpm out (0.17:1)`; "" when `r.has`
-/// is false.
+/// The reading's panel line (at most 50 characters): `output +3759.04 deg since power-up (+40.00 in)` — the
+/// output's turn in RECORD's own words and digits (the number the coordinator types, S13UX D3), then where
+/// that puts it in its units; a flywheel `output +3000 rpm`; "" when `r.has` is false.
 inline void unitsText(char* out, std::size_t cap, const mechanism::MechanismSpec& s, const UnitsReading& r) {
     if (out == nullptr || cap == 0) {
         return;
@@ -378,13 +382,12 @@ inline void unitsText(char* out, std::size_t cap, const mechanism::MechanismSpec
         return;
     }
     if (s.kind == mechanism::Kind::Speed) {
-        std::snprintf(out, cap, "%s %+.0f rpm out (%.2f:1)", mechanismKindWord(s), r.value, s.speed.gearRatio);
+        std::snprintf(out, cap, "output %+.0f rpm", std::clamp(r.value, -99999.0, 99999.0));
         return;
     }
-    const bool inches = s.position.units == mechanism::Units::Inches;
-    std::snprintf(out, cap, inches ? "%s %+.2f %s (power-up = home %.2f; %.2f:1)"
-                                   : "%s %+.1f %s (power-up = home %.1f; %.2f:1)",
-                  mechanismKindWord(s), r.value, r.unit, s.position.homePosition, s.position.gearRatio);
+    std::snprintf(out, cap, s.position.units == mechanism::Units::Inches ? "output %+.2f deg since power-up (%+.2f %s)"
+                                                                         : "output %+.2f deg since power-up (%+.1f %s)",
+                  std::clamp(r.outputDeg, -99999.99, 99999.99), std::clamp(r.value, -9999.99, 9999.99), r.unit);
 }
 
 /// A motor's temperature as the page shows it: `31C`, or `unknown` when the read FAILED (a non-finite
@@ -402,24 +405,24 @@ inline void temperatureText(char* out, std::size_t cap, double rawC) {
     }
 }
 
-/// One motor's line: `m1 p6 +123.4deg +1.23r/s 0.42A 31C` — its role, its port, its position since
-/// power-up (MOTOR degrees, as its adapter reads it: the declared direction applied), velocity, current
-/// and temperature (temperatureText).
-inline void motorText(char* out, std::size_t cap, std::size_t role, std::uint8_t port, double posRad,
-                      double velRadS, double amps, double rawTempC) {
+/// One motor's panel line: `motor 1 (port 6) +123.4 deg 0.42 A 31C` — its turn since power-up (MOTOR
+/// degrees, its declared direction applied), its current and temperature (S13UX D1: no radians on the panel;
+/// RECORD keeps them).
+inline void motorText(char* out, std::size_t cap, std::size_t role, std::uint8_t port, double posRad, double amps,
+                      double rawTempC) {
     if (out == nullptr || cap == 0) {
         return;
     }
     constexpr double kPi = 3.14159265358979323846;
     char t[16];
     temperatureText(t, sizeof t, rawTempC);
-    std::snprintf(out, cap, "m%u p%u %+.1fdeg %+.2fr/s %.2fA %s", static_cast<unsigned>(role + 1),
+    std::snprintf(out, cap, "motor %u (port %u) %+.1f deg %.2f A %s", static_cast<unsigned>(role + 1),
                   static_cast<unsigned>(port), std::clamp(posRad * 180.0 / kPi, -99999.9, 99999.9),
-                  std::clamp(velRadS, -999.0, 999.0), std::clamp(amps, -99.0, 99.0), t);
+                  std::clamp(amps, -99.0, 99.0), t);
 }
 
 /// A LIMIT SWITCH's line — the level it reads, what that means IF HA-184 holds (a VEX switch reads 1 when
-/// pressed), or that its read FAILED: `home sw B: reads 1 = PRESSED (if HA-184)`. The page asks for the
+/// pressed), or that its read FAILED: `home sw B: reads 1 = PRESSED`. The page asks for the
 /// switch pressed, released AND with its cable out (HA-184's settle): an unplugged line reads a LEVEL,
 /// never a failed read, so only the three readings side by side say what it does.
 inline void switchText(char* out, std::size_t cap, const char* what, char letter, bool level, bool pressedLevel,
@@ -431,7 +434,7 @@ inline void switchText(char* out, std::size_t cap, const char* what, char letter
         std::snprintf(out, cap, "%s %c: NOT ANSWERING (a read failed)", what, letter);
         return;
     }
-    std::snprintf(out, cap, "%s %c: reads %d = %s (if HA-184)", what, letter, level ? 1 : 0,
+    std::snprintf(out, cap, "%s %c: reads %d = %s", what, letter, level ? 1 : 0,
                   level == pressedLevel ? "PRESSED" : "released");
 }
 
@@ -509,6 +512,17 @@ struct Pad {
     bool plus = false;       ///< UP held — a motor mechanism's "+" jog; a pneumatic's fire, on the press
     bool minus = false;      ///< DOWN held — a motor mechanism's "-" jog
     bool check = false;      ///< A held — the direction check, on the press
+    bool field = false;      ///< the brain's competition status says a field or switch is connected (S13UX D2)
+};
+
+/// What cut a mechanism (S13UX D4): the jog's 3 s cap re-arms when L1 is let go and held again; a FAULT
+/// (a fight, the current, the stall signature) stays cut until the station is opened again.
+enum class CutKind : std::uint8_t { None, JogTime, Fight, Current, Stall };
+
+/// A lift's place in its measuring guide (S13UX D3), kept by bench_r3a.cpp across entries while Bench Tests runs.
+struct GuideMark {
+    std::size_t step = 0;  ///< the step it is on (Station::guideSteps() = every one RECORDed)
+    bool jogged = false;   ///< powered since that step's RECORD: only then is the next RECORD a NEW step
 };
 
 /// Where the page is.
@@ -679,12 +693,17 @@ public:
     /// The panel's SMALL columns a wrapped sentence is cut to (calibration::kSmallCols, an ESTIMATE until the
     /// SCREEN RULER is read — HA-136).
     static constexpr std::size_t kPanelColumns = 50;
-    /// The reading lines the live page has room for (bench_r3a.cpp's panel: they end above the gates line).
+    /// The panel's MEDIUM columns (calibration::kMediumCols, an ESTIMATE — HA-136): the title line, where a
+    /// RECORD's big line goes (S13UX D3).
+    static constexpr std::size_t kTitleColumns = 36;
+    /// The reading lines the live page has room for (bench_r3a.cpp's panel: below the "what to do now" line).
     static constexpr std::size_t kShownLines = 7;
-    /// The most reading lines one mechanism can have — every role at once: four motors, its units, the angle
-    /// sensor's three, the home switch's two and a piece switch's two (a declaration names fewer: robot x's
-    /// lift has six). More than kShownLines: the page is paged (readingsPage()).
-    static constexpr std::size_t kMaxPanelLines = mechanism::kMaxMotorRoles + 1 + 3 + 2 + 2;
+    /// The most reading lines one mechanism can have — what to do on it (a lift's guide: a heading, its bottom
+    /// stop, each level, its top stop — S13UX D3), then every role at once: four motors, its units, the angle
+    /// sensor's three, the home switch's two and a piece switch's two (a declaration names fewer). More than
+    /// kShownLines: the page is paged (readingsPage()).
+    static constexpr std::size_t kMaxPanelLines =
+        (1 + 2 + mechanism::kMaxPresets) + mechanism::kMaxMotorRoles + 1 + 3 + 2 + 2;
 
     /// Over `list` and `parts` (both must outlive the station). `parts` may be built later — before the
     /// stage-1 clear is marked (bench_r3a.cpp builds it on the first YES of a power cycle); until then
@@ -829,6 +848,9 @@ public:
             return;
         }
         leaveSelected("NEXT pressed");
+        showRecord_ = false;
+        stillMoving_ = false;
+        for (std::size_t k = 0; k < count_; ++k) mech_[k].stillAtV = 0.0;  // the ceiling starts over
         selected_ = (selected_ + 1) % count_;
         event("[R3A] mech page: '%.23s' (%s)", list_.specs[selected_].name, mechanismKindWord(list_.specs[selected_]));
         if (ceiling_ != kCeilingStartV) {
@@ -858,11 +880,21 @@ public:
                list_.specs[i].power.maxVolts < kCeilingMaxV;
     }
 
+    // ── S13UX D5: the declared current cap, in its motors while the station powers it ──────────
+    /// Whether mechanism `i` states a current cap (`.currentCap`).
+    [[nodiscard]] bool statesCap(std::size_t i) const noexcept {
+        return i < count_ && list_.specs[i].kind != mechanism::Kind::Pneumatic && list_.specs[i].currentCapAmps > 0.0;
+    }
+    /// Whether its cap was written and READ BACK on every one of its motors (at its arming and every jog).
+    [[nodiscard]] bool capHeld(std::size_t i) const noexcept { return i < count_ && mech_[i].capOk; }
+
     // ── gate 5 ─────────────────────────────────────────────────────────────────────────
-    /// Whether mechanism `i` was cut this entry.
+    /// Whether mechanism `i` is cut now.
     [[nodiscard]] bool cut(std::size_t i) const noexcept { return i < count_ && mech_[i].cut; }
     /// Why it was cut ("" when it was not).
     [[nodiscard]] const char* cutWhy(std::size_t i) const noexcept { return i < count_ ? mech_[i].cutWhy : ""; }
+    /// What cut it (S13UX D4).
+    [[nodiscard]] CutKind cutKind(std::size_t i) const noexcept { return i < count_ ? mech_[i].cutKind : CutKind::None; }
 
     // ── gate 2, stage 2 ────────────────────────────────────────────────────────────────
     /// Whether motor mechanism `i` was confirmed for power this entry.
@@ -892,12 +924,15 @@ public:
             std::snprintf(t.noBig, sizeof t.noBig, "NO");
             std::snprintf(t.noSmall, sizeof t.noSmall, "nothing is powered");
             std::snprintf(t.foot1, sizeof t.foot1, "hold L1 throughout: letting go stops it that tick");
+            char amps[32] = "";
+            if (statesCap(selected_)) {
+                std::snprintf(amps, sizeof amps, ", capped at %.1f A", s.currentCapAmps);
+            }
             if (capped(selected_)) {
-                std::snprintf(t.foot2, sizeof t.foot2, "ceiling %.0f V, at most %.1f V (maxVolts); R1 raises", ceiling_,
-                              s.power.maxVolts);
+                std::snprintf(t.foot2, sizeof t.foot2, "%.4g V now, its most %.4g V%s", voltsFor(selected_),
+                              s.power.maxVolts, amps);
             } else {
-                std::snprintf(t.foot2, sizeof t.foot2, "ceiling %.0f V, R1 raises; numbers INVENTED (HA-182)",
-                              ceiling_);
+                std::snprintf(t.foot2, sizeof t.foot2, "%.4g V now, R1 for more%s", ceiling_, amps);
             }
         }
         return t;
@@ -925,6 +960,7 @@ public:
             mech_[i].armed = yes && deadManHeldNow;
             if (mech_[i].armed) {
                 event("[R3A] mech ARMED '%.23s': hold L1, then UP / DOWN jog it, A checks its direction", s.name);
+                applyCap(i);  // S13UX D5: its cap in its motors before its first volt
             } else if (!deadManHeldNow) {
                 event("[R3A] mech not armed: '%.23s' -- L1 was let go during the prompt; hold L1, press again",
                       s.name);
@@ -959,6 +995,7 @@ public:
     /// One tick (every kTickMs): gates 3, 4 and 5 and the direction check's jog; at most one mechanism
     /// powered — the shown one. `nowMs` is the clock, whole milliseconds (pros::millis()).
     void tick(const Pad& pad, std::uint32_t nowMs) {
+        nowMs_ = nowMs;
         const bool held = pad.connected && pad.deadMan;
         // A PRESS is a release-then-press SEEN on a connected controller: while it is gone the edges keep their
         // last level, so an arrow still held when it comes back is not a new press (nothing resumes by itself).
@@ -969,6 +1006,7 @@ public:
         if (pad.connected && raiseEdge_.update(pad.raise)) {
             const double was = ceiling_;
             ceiling_ = std::min(ceiling_ + kCeilingStepV, kCeilingMaxV);
+            for (std::size_t k = 0; k < count_; ++k) mech_[k].stillAtV = 0.0;  // D2's "did not move" was at the old one
             if (capped(selected_)) {
                 event("[R3A] mech ceiling %.0f V -> %.0f V%s; '%.23s' at most %.1f V (its maxVolts)", was, ceiling_,
                       was == ceiling_ ? " (the most)" : "", list_.specs[selected_].name,
@@ -979,10 +1017,18 @@ public:
         }
         // GATE 3: the dead-man. Released, or the controller gone: every powered mechanism safe THIS tick.
         if (!held) {
+            if (pad.connected) {  // D4: L1 seen let go on a connected controller (a drop is not a deliberate act)
+                for (std::size_t k = 0; k < count_; ++k) {
+                    mech_[k].letGo = mech_[k].letGo || mech_[k].cutKind == CutKind::JogTime;
+                }
+            }
             if (heldWas_) {
                 if (phase_ == Phase::Announcing || phase_ == Phase::Jogging) {
                     abandonCheck(pad.connected ? "L1 was let go before the check's jog ended -- nothing judged"
                                                : "the controller DROPPED during the check -- nothing judged");
+                }
+                if (jogDir_ != 0 && selected_ < count_ && mech_[selected_].live) {
+                    endJog(selected_);
                 }
                 if (anyLive()) {
                     safeLive();
@@ -995,6 +1041,18 @@ public:
             return;
         }
         heldWas_ = true;
+        // D4: a jog-time cut re-arms on L1 held AGAIN after it was let go; a fault cut never does
+        for (std::size_t k = 0; k < count_; ++k) {
+            Mech& m = mech_[k];
+            if (m.cut && m.cutKind == CutKind::JogTime && m.letGo) {
+                m.cut = false;
+                m.cutKind = CutKind::None;
+                m.cutWhy[0] = '\0';
+                m.letGo = false;
+                event("[R3A] mech '%.23s': L1 let go and held again -- its 3 s stop is cleared; UP / DOWN jog it",
+                      list_.specs[k].name);
+            }
+        }
         if (phase_ == Phase::Confirm || phase_ == Phase::Asking) {
             return;  // nothing new is powered while a prompt or the question waits
         }
@@ -1021,7 +1079,9 @@ public:
             return;
         }
         if (press && mech_[i].cut) {  // GATE 5's latch
-            event("[R3A] mech REFUSED '%.23s': CUT (%.200s) -- leave and re-enter station 13", s.name, mech_[i].cutWhy);
+            event("[R3A] mech REFUSED '%.23s': CUT (%.200s) -- %s", s.name, mech_[i].cutWhy,
+                  mech_[i].cutKind == CutKind::JogTime ? "let go of L1 and hold it again"
+                                                       : "leave and re-enter station 13");
             return;
         }
         if (!cleared_ || !built(i) || mech_[i].cut) {
@@ -1059,10 +1119,13 @@ public:
             jogDir_ = plusPress ? +1 : -1;
             jogStartMs_ = nowMs;
             resetWatch(i, nowMs);
+            applyCap(i);
+            beginJog(i);
         }
         const bool stillHeld = (jogDir_ > 0 && pad.plus) || (jogDir_ < 0 && pad.minus);
         if (jogDir_ == 0 || !stillHeld) {
             if (mech_[i].live) {
+                endJog(i);
                 safeOne(i);
                 event("[R3A] mech '%.23s': jog released -- safe", s.name);
             }
@@ -1074,7 +1137,7 @@ public:
             char why[96];
             std::snprintf(why, sizeof why, "a jog held for its stated maximum, %.1f s (HA-182)",
                           static_cast<double>(kJogMaxMs) / 1000.0);
-            cutMech(i, why);
+            cutMech(i, why, CutKind::JogTime);
         }
     }
 
@@ -1284,12 +1347,13 @@ public:
             }
             return n;
         }
+        guideLines(i, out, n, max);
         const mechanism::Devices& d = parts_.devices()[i];
         if (d.motors != nullptr) {
             const auto motors = d.motors->motors();
             for (std::size_t m = 0; m < motors.size() && m < mechanism::kMaxMotorRoles && n < max; ++m) {
                 motorText(out[n++], kPanelBytes, m, w.motors[m], motors[m]->position().value(),
-                          motors[m]->velocity().value(), motors[m]->current().value(), rawTempC(w.motors[m]));
+                          motors[m]->current().value(), rawTempC(w.motors[m]));
             }
             const UnitsReading r =
                 unitsReading(s, d.motors->meanPosition().value(), d.motors->meanVelocity().value());
@@ -1355,29 +1419,170 @@ public:
                       static_cast<double>(left) / 1000.0);
     }
 
-    /// The live page's GATES line for mechanism `i` (at most kPanelColumns): the controller missing, a cut,
-    /// the check, powered, or the ceiling and the buttons (a power mechanism's maxVolts said when it caps).
-    void gatesText(std::size_t i, bool connected, char* out, std::size_t cap) const {
+    /// S13UX D2: the ONE "what to do now" line for mechanism `i` (at most kPanelColumns), from the station's
+    /// state and the controller as `pad` reads it; the first state that holds wins.
+    void doNowText(std::size_t i, const Pad& pad, std::uint32_t nowMs, char* out, std::size_t cap) const {
         if (out == nullptr || cap == 0) {
             return;
         }
-        if (!connected) {
-            std::snprintf(out, cap, "CONTROLLER NOT CONNECTED -- nothing can be powered");
-        } else if (cut(i)) {
-            std::snprintf(out, cap, "CUT: %.44s", cutWhy(i));
+        out[0] = '\0';
+        if (i >= count_) {
+            return;
+        }
+        const mechanism::MechanismSpec& s = list_.specs[i];
+        const Mech& m = mech_[i];
+        const bool pneumatic = s.kind == mechanism::Kind::Pneumatic;
+        if (!pad.connected) {
+            std::snprintf(out, cap, "Pair the controller to the brain: it has no link");
+        } else if (!cleared_) {
+            std::snprintf(out, cap, "Answer the CLEAR question first");
+        } else if (!built(i)) {
+            std::snprintf(out, cap, "Not found on the brain: check its cable, or NEXT");
+        } else if (phase_ == Phase::Asking) {  // before a cut: a check cut mid-jog can still ask
+            std::snprintf(out, cap, "%s", list_.specs[checkIdx_].kind == mechanism::Kind::Pneumatic
+                                              ? "Where did it go? Touch your answer below"
+                                              : "Which way did it move? Touch your answer below");
+        } else if (m.cut) {
+            std::snprintf(out, cap, "%s", m.cutKind == CutKind::JogTime   ? "Stopped at 3 s: let go of L1, then hold it again"
+                                          : m.cutKind == CutKind::Fight   ? "Its motors FIGHT: DONE, then open 13 again"
+                                          : m.cutKind == CutKind::Current ? "Drew too much current: DONE, then open 13 again"
+                                          : !isLift(s)    ? "It STALLED: DONE, then open 13 again"
+                                          : m.recordedCut ? "RECORDed: now DONE, then open 13 again"
+                                                          : "It STALLED: at a stop? RECORD, then DONE, open 13");
+        } else if (phase_ == Phase::Confirm) {
+            std::snprintf(out, cap, "Touch YES on the screen -- keep L1 held");
         } else if (phase_ == Phase::Announcing) {
-            std::snprintf(out, cap, "CHECK: watch it -- keep L1 held");
+            const std::uint32_t since = nowMs - announceStartMs_;
+            std::snprintf(out, cap, "Watch it: it moves + in %.1f s -- keep L1 held",
+                          static_cast<double>(since < kAnnounceMs ? kAnnounceMs - since : 0) / 1000.0);
         } else if (phase_ == Phase::Jogging) {
-            std::snprintf(out, cap, "CHECK: jog +%.1f V -- keep L1 held", observation_.commandVolts);
-        } else if (live(i)) {
-            std::snprintf(out, cap, "POWERED %+.1f V -- let go of L1 to stop", commanded(i));
-        } else if (capped(i)) {
-            std::snprintf(out, cap, "ceiling %.0fV, max %.1fV | L1+UP/DN | L1+A | R1", ceiling_,
-                          list_.specs[i].power.maxVolts);
+            std::snprintf(out, cap, "Checking which way it moves -- keep L1 held");
+        } else if (!pad.deadMan) {
+            std::snprintf(out, cap, pneumatic ? "Hold L1 to fire the %.23s" : "Hold L1 to power the %.23s", s.name);
+        } else if (m.live && !pneumatic) {
+            const std::uint32_t ran = std::min(nowMs - jogStartMs_, kJogMaxMs);
+            std::snprintf(out, cap, "Moving %s -- %.1f s of %.0f s (let go to stop)", m.commanded < 0.0 ? "DOWN" : "UP",
+                          static_cast<double>(ran / 100) / 10.0, static_cast<double>(kJogMaxMs) / 1000.0);
+        } else if (m.live) {
+            std::snprintf(out, cap, "UP fires it again; let go of L1 to make it safe");
+        } else if (pneumatic && pad.minus && !pad.plus) {  // a pneumatic fires on UP only
+            std::snprintf(out, cap, "DOWN does nothing here: UP fires it");
+        } else if (pad.plus || pad.minus) {  // held from before (a re-arm, a drop): only a fresh press moves it
+            std::snprintf(out, cap, "Let go of %s, then press it again", pad.plus ? "UP" : "DOWN");
+        } else if (stillMoving_ && checkIdx_ == i) {
+            std::snprintf(out, cap, "It was still moving: wait, then press A again");
+        } else if (m.stillAtV > 0.0) {  // R1 offered only under a cap that holds (D5), never to a power one
+            const double more = std::min(ceiling_ + kCeilingStepV, kCeilingMaxV);
+            const int dp = decimals(m.stillAtV);
+            if (statesCap(i) && !m.capOk) {
+                std::snprintf(out, cap, "Did not move at %.*f V, cap NOT SET: check cables", dp, m.stillAtV);
+            } else if (statesCap(i) && s.kind != mechanism::Kind::Power && more > m.stillAtV) {
+                std::snprintf(out, cap, "Did not move at %.*f V. Not at a stop? R1 for %.0f V", dp, m.stillAtV, more);
+            } else {
+                std::snprintf(out, cap, "Did not move at %.*f V: at a stop, or check cables", dp, m.stillAtV);
+            }
+        } else if (pad.field) {  // it works with a field link on; a match can stop it
+            std::snprintf(out, cap, "Controller says FIELD: unplug the field cable");
+        } else if (pneumatic) {
+            const std::uint8_t to = m.pneuKnown ? static_cast<std::uint8_t>((m.pneuPos + 1) % s.pneumatic.positionCount)
+                                                : s.pneumatic.safe;
+            std::snprintf(out, cap, "UP fires it to '%.15s' (keep L1 held)", s.pneumatic.positions[to].name);
+        } else if (isLift(s)) {
+            std::snprintf(out, cap, "UP raises, DOWN lowers; A checks its way (L1 held)");
         } else {
-            std::snprintf(out, cap, "ceiling %.0fV | L1+UP/DN jog | L1+A check | R1 raise", ceiling_);
+            std::snprintf(out, cap, "UP / DOWN jog it; A checks which way (L1 held)");
         }
     }
+
+    /// The status line's reading for mechanism `i` (at most kPanelColumns): its volts now and whether R1 gives
+    /// more, and its current cap (S13UX D5) — `3 V now (R1 for more); cap 2.0 A`, or `… NOT SET: keep 3 V`.
+    void limitText(std::size_t i, char* out, std::size_t cap) const {
+        if (out == nullptr || cap == 0) {
+            return;
+        }
+        out[0] = '\0';
+        if (i >= count_ || !built(i)) {
+            return;
+        }
+        const mechanism::MechanismSpec& s = list_.specs[i];
+        if (s.kind == mechanism::Kind::Pneumatic) {
+            std::snprintf(out, cap, "Let go of L1: it goes back to '%.15s'", s.pneumatic.positions[s.pneumatic.safe].name);
+            return;
+        }
+        if (statesCap(i) && mech_[i].capTried && !mech_[i].capOk) {  // guide 21: then keep the start volts
+            std::snprintf(out, cap, "%.*f V now; cap %.1f A NOT SET: keep %.0f V", decimals(voltsFor(i)), voltsFor(i),
+                          s.currentCapAmps, kCeilingStartV);
+            return;
+        }
+        char amps[32] = "";
+        if (statesCap(i)) {
+            std::snprintf(amps, sizeof amps, "; cap %.1f A%s", s.currentCapAmps, mech_[i].capOk ? "" : " when powered");
+        }
+        const double most = s.kind == mechanism::Kind::Power ? std::min(kCeilingMaxV, s.power.maxVolts) : kCeilingMaxV;
+        std::snprintf(out, cap, "%.*f V now (%s)%s", decimals(voltsFor(i)), voltsFor(i),
+                      voltsFor(i) < most ? "R1 for more" : "the most", amps);
+    }
+
+    // ── S13UX D3: the measuring guide and RECORD's big line ────────────────────────────
+    /// Whether `s` is a lift (a position mechanism in inches).
+    [[nodiscard]] static bool isLift(const mechanism::MechanismSpec& s) noexcept {
+        return s.kind == mechanism::Kind::Position && s.position.units == mechanism::Units::Inches;
+    }
+    /// A lift's measuring steps (guide 21, "The order on the robot", step 3): its bottom stop, each level, its
+    /// top stop; 0 for any other kind.
+    [[nodiscard]] std::size_t guideSteps(std::size_t i) const noexcept {
+        return i < count_ && isLift(list_.specs[i]) ? 2u + list_.specs[i].position.presetCount : 0u;
+    }
+    /// The step mechanism `i`'s guide is on (guideSteps(i) = every one RECORDed).
+    [[nodiscard]] std::size_t guideStep(std::size_t i) const noexcept { return guideMark(i).step; }
+    [[nodiscard]] GuideMark guideMark(std::size_t i) const noexcept { return i < count_ ? mech_[i].guide : GuideMark{}; }
+    /// An earlier entry's place (bench_r3a.cpp keeps it while Bench Tests runs: every RECORD reads the same counts).
+    void resumeGuide(std::size_t i, GuideMark g) noexcept {
+        if (i < count_) mech_[i].guide = {std::min(g.step, guideSteps(i)), g.jogged};
+    }
+    /// RECORD `rec` was written (record() ran for every mechanism): the shown mechanism's big line — what RECORD
+    /// wrote for it, in the coordinator's words — and a built lift's guide moves on one step, if it was jogged since
+    /// the last step's RECORD (else this RECORD is that step again).
+    void recorded(int rec) {
+        const std::size_t i = selected_;
+        if (i >= count_) {
+            return;
+        }
+        const mechanism::MechanismSpec& s = list_.specs[i];
+        const Mech& m = mech_[i];
+        const bool read = recNo_ == rec && recIdx_ == i && recReading_.has && built(i);
+        char tail[64];
+        if (read) {  // the serial line's own digits
+            std::snprintf(tail, sizeof tail, s.kind == mechanism::Kind::Speed ? "output %+.4f rpm" : "output %+.2f deg",
+                          s.kind == mechanism::Kind::Speed ? recReading_.value : recReading_.outputDeg);
+        } else if (s.kind == mechanism::Kind::Pneumatic && built(i) && m.pneuKnown) {
+            std::snprintf(tail, sizeof tail, "at '%.15s'", s.pneumatic.positions[m.pneuPos].name);
+        } else {
+            std::snprintf(tail, sizeof tail, "in the log");
+        }
+        const int head = std::snprintf(nullptr, 0, "REC %d: ", rec);
+        const int room = static_cast<int>(kTitleColumns) - head - 1 - static_cast<int>(std::strlen(tail));
+        std::snprintf(recLine_, sizeof recLine_, "REC %d: %.*s %s", rec, std::clamp(room, 1, 23), s.name, tail);
+        showRecord_ = true;
+        if (!read) {
+            return;
+        }
+        mech_[i].recordedCut = mech_[i].recordedCut || m.cut;
+        GuideMark& g = mech_[i].guide;
+        const bool again = g.step > 0 && !g.jogged;
+        const std::size_t k = again ? g.step - 1 : g.step;
+        if (k < guideSteps(i)) {
+            char what[32];
+            stepName(i, k, what, sizeof what);
+            event("[R3A] mech guide: REC %d = '%.23s' step %u of %u, %s%s", rec, s.name, static_cast<unsigned>(k + 1),
+                  static_cast<unsigned>(guideSteps(i)), what, again ? " -- AGAIN (not jogged since)" : "");
+            if (!again) g = {g.step + 1, false};
+        }
+    }
+    /// Whether the page shows RECORD's big line (from recorded() until NEXT, or anything is powered).
+    [[nodiscard]] bool recordShown() const noexcept { return showRecord_; }
+    /// RECORD's big line: `REC 2: cascade output +3759.04 deg` (at most kTitleColumns; the name is cut first).
+    [[nodiscard]] const char* recordText() const noexcept { return recLine_; }
 
     /// RECORD: mechanism `i`'s lines (`[R3A] mech REC <rec> ...`, every number in full) handed to
     /// `emit(const char*)` — its kind and built state, each motor or line, the units reading, every sensor,
@@ -1395,6 +1600,11 @@ public:
         std::snprintf(cont, sizeof cont, "[R3A] mech REC %d '%.23s' (cont.) ", rec, s.name);
         char line[kTextBytes];
         const auto out = [&]() { logPieces(line, cont, kLineChars, emit); };
+        if (i == selected_) {  // S13UX D3: the big line reads the very number this RECORD writes
+            recNo_ = rec;
+            recIdx_ = i;
+            recReading_ = UnitsReading{};
+        }
         if (!built(i)) {
             std::snprintf(line, sizeof line, "[R3A] mech REC %d '%.23s' %s ABSENT: %.200s", rec, s.name, mechanismKindWord(s),
                           absence(i));
@@ -1425,6 +1635,9 @@ public:
                 out();
             }
             const UnitsReading r = unitsReading(s, d.motors->meanPosition().value(), d.motors->meanVelocity().value());
+            if (i == selected_) {
+                recReading_ = r;
+            }
             if (r.has) {
                 std::snprintf(line, sizeof line,
                               "[R3A] mech REC %d '%.23s' %s %+.4f %s from power-up (output %+.2f deg through %.4f "
@@ -1517,6 +1730,13 @@ private:
         bool hasVerdict = false;              ///< a check of it ended in a verdict this entry
         mechanism::DirectionVerdict verdict;  ///< its LATEST verdict
         char answered[32]{};                  ///< what the person answered for it ("" when not asked)
+        CutKind cutKind = CutKind::None;      ///< what cut it (D4)
+        bool letGo = false;                   ///< L1 seen let go since its jog-time cut (D4)
+        double stillAtV = 0.0;                ///< its last jog did NOT move at these volts (D2); 0 = it moved
+        bool capTried = false;                ///< its cap was written this entry (D5)
+        bool capOk = false;                   ///< ... and read back on every motor
+        GuideMark guide;                      ///< a lift's measuring step (D3)
+        bool recordedCut = false;             ///< a RECORD read it while it was cut (D2's stall line moves on)
     };
 
     [[nodiscard]] std::size_t at(std::size_t i) const {
@@ -1607,14 +1827,22 @@ private:
         }
     }
 
-    /// GATE 5's latch: mechanism `i` safe, named, until the station is re-entered.
-    void cutMech(std::size_t i, const char* why) {
+    /// GATE 5's latch: mechanism `i` safe, named — a FAULT until the station is re-entered, the jog's 3 s cap until
+    /// L1 is let go and held again (D4).
+    void cutMech(std::size_t i, const char* why, CutKind kind) {
+        if (jogDir_ != 0 && phase_ != Phase::Jogging) {
+            endJog(i);
+        }
         safeOne(i);
         Mech& m = mech_[i];
         m.cut = true;
+        m.cutKind = kind;
+        m.letGo = false;
+        m.recordedCut = false;
         std::snprintf(m.cutWhy, sizeof m.cutWhy, "%.190s", why);
-        event("[R3A] mech CUT '%.23s': %.200s -- it stays cut until you leave and re-enter station 13",
-              list_.specs[i].name, m.cutWhy);
+        event("[R3A] mech CUT '%.23s': %.200s -- %s", list_.specs[i].name, m.cutWhy,
+              kind == CutKind::JogTime ? "let go of L1 and hold it again to go on"
+                                       : "it stays cut until you leave and re-enter station 13");
         jogDir_ = 0;
         if (phase_ == Phase::Jogging && checkIdx_ == i) {
             finishCheck(true);
@@ -1630,6 +1858,8 @@ private:
         mm->setVoltage(units::Voltage{volts});
         mech_[i].live = true;
         mech_[i].commanded = volts;
+        mech_[i].guide.jogged = true;  // D3: the next RECORD is a new step
+        showRecord_ = false;  // RECORD's big line was where it stood
         watch(i, volts, nowMs);
     }
 
@@ -1657,7 +1887,7 @@ private:
                 }
                 char why[160];
                 std::snprintf(why, sizeof why, "its motor(s)%s disagree with their mates for 250 ms (a FIGHT)", which);
-                cutMech(i, why);
+                cutMech(i, why, CutKind::Fight);
                 return;
             }
         }
@@ -1669,7 +1899,7 @@ private:
                 std::snprintf(why, sizeof why, "motor %u (port %u) above %.1f A for 250 ms",
                               static_cast<unsigned>(k + 1), static_cast<unsigned>(list_.wiring[i].motors[k]),
                               kCurrentLimitA);
-                cutMech(i, why);
+                cutMech(i, why, CutKind::Current);
                 return;
             }
         }
@@ -1681,7 +1911,7 @@ private:
             char why[160];
             std::snprintf(why, sizeof why, "its stall signature (%.2f A or more, slower than %.1f rad/s at the motor, "
                           "for %.2f s)", st->amps, st->speedRadS, st->time);
-            cutMech(i, why);
+            cutMech(i, why, CutKind::Stall);
         }
     }
 
@@ -1693,6 +1923,8 @@ private:
             return;
         }
         const mechanism::MechanismSpec& s = list_.specs[i];
+        applyCap(i);
+        stillMoving_ = false;
         observation_ = mechanism::DirectionObservation{};
         observation_.commandVolts = voltsFor(i);
         checkIdx_ = i;
@@ -1733,6 +1965,7 @@ private:
                               "let it settle, then press A again; nothing judged",
                               static_cast<unsigned>(m + 1), moved, static_cast<double>(kCheckJogMs) / 1000.0);
                 abandonCheck(why);
+                stillMoving_ = true;  // D2 says it: the log alone never reaches the panel
                 return;
             }
         }
@@ -1838,6 +2071,7 @@ private:
             levels[l] = s.pneumatic.positions[target].levels[l];
         }
         pm->setLevels(std::span<const bool>{levels, s.lineCount});
+        showRecord_ = false;
         mech_[i].pneuPos = target;
         mech_[i].pneuKnown = true;  // every line now holds a declared position's level
         mech_[i].live = true;
@@ -1907,6 +2141,126 @@ private:
         return true;
     }
 
+    /// S13UX D5: mechanism `i`'s DECLARED cap written into each of its motors and READ BACK in whole mA (the
+    /// service's rule, mechanism/service.hpp) — at its arming and every jog or check; nothing when it states none.
+    /// A cap is a limit, never a gate: a motor that does not take it is said (log, status line), and runs.
+    void applyCap(std::size_t i) {
+        if (!statesCap(i) || !built(i)) {
+            return;
+        }
+        const mechanism::MechanismSpec& s = list_.specs[i];
+        const mechanism::Devices& d = parts_.devices()[i];
+        const long want = hal::motorCurrentLimitToMilliamps(units::Current{s.currentCapAmps});
+        bool all = true;
+        for (std::size_t m = 0; m < s.motorCount && m < mechanism::kDevicesMaxMotors; ++m) {
+            hal::IMotorCurrentLimit* lim = d.currentLimits[m];
+            const bool took = lim != nullptr && lim->setCurrentLimit(units::Current{s.currentCapAmps});
+            const double reads = lim != nullptr ? lim->currentLimit().value() : 0.0;
+            if (took && std::isfinite(reads) && std::lround(reads * 1000.0) == want) {
+                continue;
+            }
+            all = false;
+            event("[R3A] mech '%.23s': motor %u (port %u) did NOT take its current cap %.2f A (reads %.2f A) -- it runs "
+                  "uncapped",
+                  s.name, static_cast<unsigned>(m + 1), static_cast<unsigned>(list_.wiring[i].motors[m]),
+                  s.currentCapAmps, std::isfinite(reads) ? std::clamp(reads, -99.0, 99.0) : -1.0);
+        }
+        if (all && !mech_[i].capOk) {
+            event("[R3A] mech '%.23s': current cap %.2f A per motor -- set and read back", s.name, s.currentCapAmps);
+        }
+        mech_[i].capTried = true;
+        mech_[i].capOk = all;
+    }
+
+    /// S13UX D2: a hold-to-run jog of `i` begins — where its motors are, to tell when it ends whether it moved.
+    void beginJog(std::size_t i) {
+        mech_[i].stillAtV = 0.0;
+        stillMoving_ = false;
+        jogFromMs_ = nowMs_;
+        if (hal::MotorMechanism* mm = parts_.motorAt(i)) {
+            const auto motors = mm->motors();
+            for (std::size_t m = 0; m < motors.size() && m < mechanism::kMaxMotorRoles; ++m) {
+                jogRad_[m] = motors[m]->position().value();
+            }
+        }
+    }
+    /// The jog ends (before it is made safe): one that ran kCheckJogMs or longer with every motor under
+    /// kMinMoveRad DID NOT MOVE at its volts — D2 then says what to do.
+    void endJog(std::size_t i) {
+        hal::MotorMechanism* mm = parts_.motorAt(i);
+        if (mm == nullptr || jogDir_ == 0) {
+            return;
+        }
+        double most = 0.0;
+        const auto motors = mm->motors();
+        for (std::size_t m = 0; m < motors.size() && m < mechanism::kMaxMotorRoles; ++m) {
+            most = std::max(most, std::abs(motors[m]->position().value() - jogRad_[m]));
+        }
+        const bool still = nowMs_ - jogFromMs_ >= kCheckJogMs && most < kMinMoveRad;
+        mech_[i].stillAtV = still ? std::abs(mech_[i].commanded) : 0.0;
+        if (still) {
+            event("[R3A] mech '%.23s': the jog did NOT move it at %.1f V (every motor under %.3f rad in %.2f s)",
+                  list_.specs[i].name, std::abs(mech_[i].commanded), kMinMoveRad,
+                  static_cast<double>(nowMs_ - jogFromMs_) / 1000.0);
+        }
+    }
+
+    /// S13UX D3: a lift's step `k` in a few words (the log's `mech guide` line, a done step).
+    void stepName(std::size_t i, std::size_t k, char* out, std::size_t cap) const {
+        const mechanism::PositionSpec& p = list_.specs[i].position;
+        if (k == 0) {
+            std::snprintf(out, cap, "its bottom stop");
+        } else if (k <= p.presetCount) {
+            std::snprintf(out, cap, "level '%.15s'", p.presets[k - 1].name);
+        } else {
+            std::snprintf(out, cap, "its top stop");
+        }
+    }
+    /// S13UX D3: what to do on mechanism `i`, first on its page — a lift's measuring steps, numbered, the
+    /// current one marked '>'; a power mechanism's and a pneumatic's one line.
+    void guideLines(std::size_t i, char (*out)[kPanelBytes], std::size_t& n, std::size_t max) const {
+        const mechanism::MechanismSpec& s = list_.specs[i];
+        if (s.kind == mechanism::Kind::Power) {
+            lineAt(out, n, max, "Run it briefly, never into its stop: which way?");
+            return;
+        }
+        if (s.kind == mechanism::Kind::Pneumatic) {
+            lineAt(out, n, max, "Fire it once (UP) and answer where it went");
+            return;
+        }
+        const std::size_t steps = guideSteps(i);
+        if (steps == 0) {
+            return;
+        }
+        const std::size_t at = mech_[i].guide.step;
+        if (at >= steps) {
+            lineAt(out, n, max, "Measured: all %u steps RECORDed", static_cast<unsigned>(steps));
+        } else {
+            lineAt(out, n, max, "To measure it, RECORD at each step (%u of %u):", static_cast<unsigned>(at + 1),
+                   static_cast<unsigned>(steps));
+        }
+        for (std::size_t k = 0; k < steps; ++k) {
+            const char* mark = k == at ? "> " : "  ";
+            const auto num = static_cast<unsigned>(k + 1);
+            if (k < at) {
+                char what[32];
+                stepName(i, k, what, sizeof what);
+                lineAt(out, n, max, "  %u. %s: RECORDed", num, what);
+            } else if (k == 0) {
+                lineAt(out, n, max, "%s%u. Lower it onto its bottom stop, then RECORD", mark, num);
+            } else if (k + 1 < steps) {
+                lineAt(out, n, max, "%s%u. Jog to level '%.13s', tape it, RECORD", mark, num,
+                       s.position.presets[k - 1].name);
+            } else {
+                lineAt(out, n, max, "%s%u. Top stop: UP at 3-6 V till it stops; RECORD", mark, num);
+            }
+        }
+    }
+
+    /// Decimals for volts on the panel: none for whole volts, one otherwise (the log's %.1f) — at most 4 characters
+    /// for every legal value, (0, 12] V.
+    [[nodiscard]] static int decimals(double v) noexcept { return v == std::floor(v) ? 0 : 1; }
+
     /// Append one formatted panel line to `out` at `n` when there is room.
     [[gnu::format(printf, 4, 5)]] static void lineAt(char (*out)[kPanelBytes], std::size_t& n, std::size_t max,
                                                      const char* fmt, ...) {
@@ -1951,6 +2305,16 @@ private:
     bool hasVerdict_ = false;
     std::uint32_t verdicts_ = 0;
     char answered_[32]{};
+    // S13UX: the last tick's clock, a jog's start (D2's "did not move"), RECORD's big line (D3)
+    std::uint32_t nowMs_ = 0;
+    std::uint32_t jogFromMs_ = 0;
+    double jogRad_[mechanism::kMaxMotorRoles]{};
+    bool stillMoving_ = false;  // the check at checkIdx_ was abandoned: still moving when its jog was due
+    int recNo_ = 0;
+    std::size_t recIdx_ = 0;
+    UnitsReading recReading_{};
+    char recLine_[kPanelBytes]{};
+    bool showRecord_ = false;
     // the log
     char event_[kMaxEvents][kLineBytes]{};
     std::size_t events_ = 0;

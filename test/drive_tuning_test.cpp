@@ -75,3 +75,62 @@ TEST_CASE("drive tuning: robot one's settings still finish a 69 in drive on the 
     const auto t = s.truth();
     CHECK(std::hypot(t.x().value() + 36.0, t.y().value() + 15.0) < 1.0);
 }
+
+namespace {
+// The small moves the builders' routes need (2026-11-19: "some of the movements are only a few inches").
+struct SmallMove {
+    double turnToX, turnToY;  // face this point first (the start's own heading when it is straight ahead)
+    double x, y;              // then drive to here
+    bool reverse;
+};
+SmallMove gMove{};
+
+shulib::chassis::RoutineResult smallMove(shulib::competition::AutonContext& ctx) {
+    shulib::chassis::Routine r{ctx, "small-move"};
+    r.face(shulib::units::Length{gMove.turnToX}, shulib::units::Length{gMove.turnToY});
+    if (gMove.reverse) {
+        r.reverseTo(shulib::units::Length{gMove.x}, shulib::units::Length{gMove.y});
+    } else {
+        r.driveTo(shulib::units::Length{gMove.x}, shulib::units::Length{gMove.y});
+    }
+    return r.result();
+}
+}  // namespace
+
+TEST_CASE("drive tuning: robot one's settings finish moves of 1, 2 and 3 in -- forward, back, and after a 90 deg turn -- within 0.5 in") {
+    // BUG CAUGHT: a short move that never starts (under the drive's dead band), overshoots by more than it moves,
+    // or rocks until MOTION_TIMEOUT -- the builders' routes have moves of a few inches.
+    // Start (-36, 54.076) facing -90 deg (toward -y): forward is -y, back is +y; after facing +x, forward is +x.
+    shulib::chassis::ChassisConfig cfg{.motion = motion_rig::motionConfig()};
+    sb::applyDriveTuning(cfg, sb::kRobotOneChassis);
+    const double x0 = -36.0, y0 = 54.076;
+    for (const double d : {1.0, 2.0, 3.0}) {
+        const SmallMove moves[] = {
+            {x0, y0 - 24.0, x0, y0 - d, false},  // forward, already facing it
+            {x0, y0 - 24.0, x0, y0 + d, true},   // back up
+            {x0 + 24.0, y0, x0 + d, y0, false},  // turn 90 deg, then forward
+        };
+        for (const SmallMove& m : moves) {
+            gMove = m;
+            CAPTURE(d);
+            CAPTURE(m.x);
+            CAPTURE(m.y);
+            CAPTURE(m.reverse);
+            shulib::competition::AutonEntry e{};
+            e.name = "small move";
+            e.kind = shulib::competition::AutonKind::Skills;
+            e.routine = &smallMove;
+            e.start = shulib::competition::StartPose::field(-36_in, 54.076_in, -90_deg);
+            e.endActionAt = 57_s;
+            e.hardStopAt = 59_s;
+            rm_rig::Stack<rm_rig::OneFakes> s{cfg, rm_rig::startOf(e), sb::robot_one::kRobotOneMechanisms};
+            const auto r = s.run(e);
+            INFO(s.transcript());
+            REQUIRE(r.outcome == shulib::competition::AutonRunOutcome::RoutineRan);
+            CHECK(r.routine.ok);
+            CHECK(s.count("RTN", "TIMEOUT") == 0);
+            const auto t = s.truth();
+            CHECK(std::hypot(t.x().value() - m.x, t.y().value() - m.y) < 0.5);
+        }
+    }
+}

@@ -69,6 +69,7 @@
 #include <vector>
 
 #include "auton_tester_rig.hpp"
+#include "mirrored_pair_numbers.hpp"
 #include "motion_test_rig.hpp"
 #include "robots/mechanism_table.hpp"
 #include "shulib/chassis/chassis.hpp"
@@ -90,12 +91,7 @@
 
 namespace mirror_pair {
 
-/// The least gap the two robots' squares may come to (inches): 3 in a side of the diagonal. A named
-/// constant the team may change. PROVISIONAL (A4: HA-260) — a chosen margin, unmeasured.
-inline constexpr double kMirrorGapIn = 6.0;
-/// The robots' square footprint (inches): both are 15 in — held equal to route_preview::kPreviewFootprintIn by a
-/// static_assert in mirrored_pair_test.cpp.
-inline constexpr double kRobotSquareIn = 15.0;
+// kMirrorGapIn (6 in) and kRobotSquareIn (15 in): mirrored_pair_numbers.hpp (the route builder bakes the same two).
 
 /// One pace of one robot's run.
 struct Pace {
@@ -507,13 +503,18 @@ struct PairOptions {
     double weakScale = 1.0;                                ///< a weak right side on BOTH (1.0: none)
     shulib::units::Time period{60.0};                      ///< the period the entry runs in
     double gapIn = kMirrorGapIn;
+    /// Do both robots run it at the SAME time (RMP1-C D6: the route builder's answer)? false: the gap is SKIPPED, by
+    /// name — robot two runs alone, so on a tank its half-turn legs are still refused.
+    bool together = true;
+    /// false: nobody has answered yet (`together` is then false; the sentence says so, and the caller fails it).
+    bool answered = true;
 };
 
 /// Robot one's and robot two's runs of the MIRRORED `entry`, compared (file banner). Robot one runs the
 /// entry as written (mirrored() toggled back) from its own start; robot two runs `entry` from the
-/// reflected start (competition::seatedStart). An unmirrored entry: no pair. A RELATIVE one: its gap
-/// SKIPPED, by name — on a tank robot two still runs alone, and a half-turn leg is refused (then
-/// `checked`). `tracks` (optional) receives both runs (a RELATIVE entry: robot two's only).
+/// reflected start (competition::seatedStart). An unmirrored entry: no pair. A RELATIVE one, or one the robots
+/// run one at a time (`o.together` false): its gap SKIPPED, by name — on a tank robot two still runs alone, and a
+/// half-turn leg is refused (then `checked`). `tracks` (optional) receives both runs (when skipped: robot two's only).
 inline PairVerdict checkMirroredPair(const shulib::competition::AutonEntry& entry, const PairOptions& o,
                                      std::pair<Track, Track>* tracks = nullptr) {
     PairVerdict v;
@@ -527,10 +528,15 @@ inline PairVerdict checkMirroredPair(const shulib::competition::AutonEntry& entr
     // A TANK's half-turn leg is refused (file banner). A tank: the library's own test, a drivetrain that
     // cannot strafe at all (motion_scheduler.hpp) — an X-drive or an H-drive is not refused.
     const bool tank = o.kin->strafeAuthority() == 0.0;
-    if (entry.effectiveStart().mode() != shulib::competition::StartPose::Mode::Field) {
+    const bool relative = entry.effectiveStart().mode() != shulib::competition::StartPose::Mode::Field;
+    if (relative || !o.together) {
         std::snprintf(line, sizeof line,
-                      "auton '%s': a RELATIVE mirrored entry -- its field positions are wherever the drivers place "
-                      "the robots, so the pair check is SKIPPED",
+                      relative     ? "auton '%s': a RELATIVE mirrored entry -- its field positions are wherever the "
+                                     "drivers place the robots, so the pair check is SKIPPED"
+                      : o.answered ? "auton '%s': the two robots do NOT run it at the same time (the route builder's "
+                                     "answer), so the pair check is SKIPPED"
+                                   : "auton '%s': nobody has said yet whether both robots run it at the same time, so the "
+                                     "pair check is SKIPPED -- answer it in the route builder",
                       name);
         v.sentence = line;
         if (tank) {  // the gap needs field positions; the leg does not — robot two alone, from its origin

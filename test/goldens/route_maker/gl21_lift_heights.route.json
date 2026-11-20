@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "madeWith": "shulib route builder",
+  "routes": [
+    {
+      "name": "skills",
+      "kind": "skills",
+      "robot": "x",
+      "mirroredFor": "two",
+      "together": false,
+      "start": {
+        "x": -36,
+        "y": -55.7,
+        "headingDeg": 0
+      },
+      "endActionAtS": 57,
+      "hardStopAtS": 59,
+      "steps": [
+        {
+          "do": "home",
+          "mechanism": "lift",
+          "boundS": 3
+        },
+        {
+          "do": "move",
+          "mechanism": "lift",
+          "up": 6,
+          "boundS": 2
+        },
+        {
+          "do": "move",
+          "mechanism": "lift",
+          "up": 10.5,
+          "boundS": 4
+        },
+        {
+          "do": "move",
+          "mechanism": "lift",
+          "down": 4.5,
+          "boundS": 3
+        },
+        {
+          "do": "move",
+          "mechanism": "lift",
+          "to": 20,
+          "boundS": 3.5
+        },
+        {
+          "do": "startMove",
+          "mechanism": "lift",
+          "bottom": true,
+          "boundS": 4
+        },
+        {
+          "do": "waitUntilDone",
+          "mechanism": "lift",
+          "boundS": 4
+        },
+        {
+          "do": "move",
+          "mechanism": "arm",
+          "up": 30,
+          "boundS": 3
+        },
+        {
+          "do": "move",
+          "mechanism": "arm",
+          "to": 95.5,
+          "boundS": 3
+        },
+        {
+          "do": "move",
+          "mechanism": "arm",
+          "down": 15.5,
+          "boundS": 3
+        }
+      ]
+    }
+  ],
+  "robots": {},
+  "exports": {}
+}

@@ -499,9 +499,18 @@ TEST_CASE("DrivetrainCalibrator 5: a push led with the OTHER end puts every port
 // ═══ 6. Side assignment from the IMU's yaw sign ═════════════════════════════════════
 // Bug caught: the yaw-sign → side rule backwards (every side flipped, and the robot would then
 // turn the wrong way for every commanded heading), or a REVERSED member read as a contradiction.
+// CAL2: coupling is read first, so the yaw's rule is pinned with it switched off (a drive whose
+// motors are not geared together); the default run must name the same sides.
 TEST_CASE("DrivetrainCalibrator 6: LEFT pulses turn the robot CLOCKWISE (negative yaw) and RIGHT "
           "pulses counter-clockwise; the sides are the plant's wheels exactly") {
-    CalibRig rig{CalibratorConfig{}, calibPlant(0.0)};
+    CalibratorConfig yawOnly;
+    yawOnly.followThreshold = shulib::units::AngleDim{360.0 * kDegreesToRadians};
+    CalibRig coupled{CalibratorConfig{}, calibPlant(0.0)};
+    coupled.setFault(0, 0, MemberFault::Reversed);
+    coupled.setFault(1, 3, MemberFault::Reversed);
+    coupled.cal.start(facts());
+    REQUIRE(runCalibration(coupled, RunOptions{}) == Phase::Done);
+    CalibRig rig{yawOnly, calibPlant(0.0)};
     rig.setFault(0, 0, MemberFault::Reversed);
     rig.setFault(1, 3, MemberFault::Reversed);
     rig.cal.start(facts());
@@ -525,6 +534,9 @@ TEST_CASE("DrivetrainCalibrator 6: LEFT pulses turn the robot CLOCKWISE (negativ
         // wired backwards, which is the whole point of the cross-check.
         CHECK(rep.ports[l].pulseShaftRad > 0.0);
         CHECK(rep.ports[r].pulseShaftRad > 0.0);
+        CHECK(coupled.cal.report().ports[l].side == -1);
+        CHECK(coupled.cal.report().ports[r].side == +1);
+        CHECK(coupled.cal.report().ports[l].pulseShaftRad > 0.0);
     }
     // The sides ARE the plant's wheels: ports 11–15 left, 16–20 right, no leakage either way.
     const DrivetrainDescription& d = rig.cal.result();
@@ -611,20 +623,31 @@ TEST_CASE("DrivetrainCalibrator 8: a motor that did not move on the push, creepi
 // description. Every pulse turns a motor and its train and nothing turns the robot, so the side
 // assignment would be whatever noise the IMU happened to have. From inside, wheels-up looks
 // exactly like a robot that ROLLED (its train moved, the yaw did not) — the refusal says both.
+// CAL2: with coupling the sides need no turn, so wheels-up is caught by the identification turn
+// (SPIN_NO_START, "on blocks?"); the yaw path's refusal is pinned with coupling off.
 TEST_CASE("DrivetrainCalibrator 9: with the heading held still the run refuses at port 11 saying "
           "the robot did not turn and naming the FLOOR; the yaw floor attacked from both sides") {
+    CalibratorConfig yawOnly;
+    yawOnly.followThreshold = shulib::units::AngleDim{360.0 * kDegreesToRadians};
     HeldHeading held;
-    CalibRig rig{CalibratorConfig{}, calibPlant(0.0), &held};
+    CalibRig rig{yawOnly, calibPlant(0.0), &held};
     rig.cal.start(facts());
     (void)runCalibration(rig, RunOptions{});
     requireRefusal(rig, Refusal::PulseRolled, 11);  // the first port pulsed
     CHECK(reasonMentions(rig.cal, "FLOOR"));
     CHECK(levelsOf(rig.cal, 11) == "3V:under the floor -- next level 6V:under the floor -- next "
-                                   "level 9V:ROLLED ");
+                                   "level 9V:under the floor -- next level 12V:ROLLED ");
+    HeldHeading held2;
+    CalibRig coupled{CalibratorConfig{}, calibPlant(0.0), &held2};
+    coupled.cal.start(facts());
+    (void)runCalibration(coupled, RunOptions{});
+    requireRefusal(coupled, Refusal::SpinNoStart, 0);
+    CHECK(reasonMentions(coupled.cal, "on blocks?"));
+    CHECK(coupled.cal.report().groupCount == 2);
 
     // BOTH SIDES of the floor, on the real plant: port 11's 9 V pulse turns the robot by a known
     // amount, so a floor just under it passes and a floor just over it refuses.
-    CalibRig measure{CalibratorConfig{}, calibPlant(0.0)};
+    CalibRig measure{yawOnly, calibPlant(0.0)};
     measure.cal.start(facts());
     REQUIRE(runCalibration(measure, RunOptions{}) == Phase::Done);
     const double observed =
@@ -633,7 +656,8 @@ TEST_CASE("DrivetrainCalibrator 9: with the heading held still the run refuses a
     REQUIRE(observed > 0.0);
     for (int over = 0; over < 2; ++over) {
         CAPTURE(over);
-        CalibratorConfig cfg;
+        CalibratorConfig cfg = yawOnly;
+        cfg.pulseLevelCount = 3;  // 9 V the top, as the floor was measured at (CAL2 added 12 V)
         cfg.pulseYawFloor = shulib::units::AngleDim{over != 0 ? observed * 1.05 : observed * 0.95};
         CalibRig rig2{cfg, calibPlant(0.0)};
         rig2.cal.start(facts());
@@ -934,11 +958,12 @@ TEST_CASE("DrivetrainCalibrator 16: a 0.2 s gap between ticks while spinning sto
             && std::abs(r.h.trueBodyTwist().omega().value()) > 1.0) {
             nudged = true;
             for (int i = 0; i < 9; ++i) {  // 9 extra steps + this tick's = 0.10 s, not MORE than it
-                r.h.plant().step(Time{kDt});
+                // CAL2: 1 ns short on the last, so float sums of the clock cannot land past 0.1 s
+                r.h.plant().step(Time{i == 8 ? kDt - 1e-9 : kDt});
             }
         }
     };
-    CHECK(runCalibration(fine, ok) == Phase::Done);
+    CHECK_MESSAGE(runCalibration(fine, ok) == Phase::Done, std::string{fine.cal.reason()});
     CHECK(nudged);
 }
 
@@ -1226,10 +1251,10 @@ TEST_CASE("DrivetrainCalibrator 23: each port is decided at the FIRST level that
         const char* levels;  // every port's records, identical for all ten
         double decidedAt;
     };
-    const Row rows[] = {
-        {0.0, "3V:LEFT ", 3.0},
-        {0.9, "3V:under the floor -- next level 6V:LEFT ", 6.0},
-        {1.2, "3V:under the floor -- next level 6V:under the floor -- next level 9V:LEFT ", 9.0},
+    const Row rows[] = {  // CAL2: the side-mates follow at the level the robot first turns
+        {0.0, "3V:FOLLOWED ", 3.0},
+        {0.9, "3V:under the floor -- next level 6V:FOLLOWED ", 6.0},
+        {1.2, "3V:under the floor -- next level 6V:under the floor -- next level 9V:FOLLOWED ", 9.0},
     };
     for (const Row& row : rows) {
         CAPTURE(row.kS);
@@ -1243,9 +1268,9 @@ TEST_CASE("DrivetrainCalibrator 23: each port is decided at the FIRST level that
             CAPTURE(rig.ports[i]);
             CHECK(rig.cal.report().ports[i].pulseLevelVolts == row.decidedAt);
         }
-        // 10 drive ports, each with one record per level it needed.
+        // The two ports that found a group, one record per level; the eight others once, at it.
         const std::size_t levelsUsed = row.decidedAt == 3.0 ? 1 : row.decidedAt == 6.0 ? 2 : 3;
-        CHECK(rig.cal.report().pulseCount == 10 * levelsUsed);
+        CHECK(rig.cal.report().pulseCount == 2 * levelsUsed + 8);
     }
 }
 
@@ -1268,8 +1293,9 @@ TEST_CASE("DrivetrainCalibrator 24: a DECOUPLED member is LEFT OUT with a warnin
     CHECK(rep.ports[i18].excluded);
     CHECK(rep.ports[i18].side == 0);
     CHECK(rep.ports[i18].verdict == PulseVerdict::Decoupled);
-    CHECK(levelsOf(rig.cal, 18) == "3V:under the floor -- next level 6V:under the floor -- next "
-                                   "level 9V:LEFT OUT (decoupled) ");
+    // CAL2: it followed port 16's 6 V pulse (dragged), so its own starts at 6 V: it moves no one.
+    CHECK(levelsOf(rig.cal, 18) == "6V:under the floor -- next level 9V:under the floor -- next "
+                                   "level 12V:LEFT OUT (decoupled) ");
     CHECK(rep.ports[i18].pulseShaftRad >= rig.cal.config().decoupledOwnMin.value());  // it spun
     CHECK(rep.ports[i18].pulseOthersRad < rig.cal.config().movedThreshold.value());   // alone
     CHECK(rep.excludedCount == 1);
@@ -1309,7 +1335,7 @@ TEST_CASE("DrivetrainCalibrator 25: at k = 1 and k = 0.9 the 9 V pulse ROLLS the
         requireRefusal(rig, Refusal::PulseRolled, 11);
         CHECK(reasonMentions(rig.cal, "rolled instead of turning"));
         const auto& last = rig.cal.report().pulses[rig.cal.report().pulseCount - 1];
-        CHECK(last.levelVolts == 9.0);
+        CHECK(last.levelVolts == 12.0);  // the top level (CAL2 added 12 V)
         CHECK(last.othersMaxRad >= rig.cal.config().movedThreshold.value());
         CHECK(std::abs(last.yawRad) < rig.cal.config().pulseYawFloor.value());
         if (kappa == 1.0) {
@@ -1352,7 +1378,7 @@ TEST_CASE("DrivetrainCalibrator 26: a hand turning the robot at the start of eve
         }
     };
     REQUIRE_MESSAGE(runCalibration(rig, opt) == Phase::Done, std::string{rig.cal.reason()});
-    CHECK(windows == 30);  // ten ports, three levels each, a hand before every one
+    CHECK(windows == 14);  // 11 and 16 at three levels, their mates once each (CAL2), a hand before every one
     // The sides are the plant's wheels exactly — the hand's CCW turn named none of them.
     const DrivetrainDescription& d = rig.cal.result();
     for (int p : {11, 12, 13, 14, 15}) {
@@ -1397,7 +1423,8 @@ TEST_CASE("DrivetrainCalibrator 27: a spin that turns the wrong way refuses with
     double thetaAtArm = 0.0;
     RunOptions opt;
     opt.hook = [&](CalibRig& r, const Script&) {
-        if (!mirror.armed && r.cal.phase() == Phase::SpinTest) {
+        // CAL2: after the identification turn, which names the sides from this same IMU.
+        if (!mirror.armed && r.cal.phase() == Phase::SpinTest && r.cal.report().groupSide[0] != 0) {
             mirror.armed = true;  // from here the IMU says the robot turns the other way
             thetaAtArm = r.h.sample().theta;
         }
@@ -1428,8 +1455,8 @@ TEST_CASE("DrivetrainCalibrator 28: a spin that cannot start steps up after 2 s 
         double steppedAt = -1.0;
         RunOptions opt;
         opt.hook = [&](CalibRig& r, const Script&) {
-            if (r.cal.phase() == Phase::SpinTest) {
-                held.armed = true;  // the IMU sees no turn from here on
+            if (r.cal.phase() == Phase::SpinTest && r.cal.report().groupSide[0] != 0) {
+                held.armed = true;  // the IMU sees no turn from here on (after CAL2's identification)
             }
             const auto& st = r.cal.status();
             if (spinBegan < 0.0 && st.spinDirection != 0.0) {
@@ -1480,6 +1507,13 @@ TEST_CASE("DrivetrainCalibrator 29: pushReady() says not-ready exactly where the
     SUBCASE("nothing pushed: not ready; DONE is refused too-few") {
         CalibRig rig{CalibratorConfig{}, calibPlant(0.0)};
         reachPushWatching(rig);
+        for (int t = 0; t < 60; ++t) {  // CAL2: rest needs a full heading window
+            rig.cal.tick();
+            rig.h.plant().step(Time{kDt});
+            if (t == 10) {
+                CHECK_FALSE(rig.cal.status().atRest);  // still, but 0.1 s of heading is no window
+            }
+        }
         CHECK_FALSE(rig.cal.pushReady());
         CHECK(rig.cal.status().movedNow == 0);
         CHECK_FALSE(rig.cal.status().pushFarEnough);
@@ -1542,8 +1576,10 @@ TEST_CASE("DrivetrainCalibrator 29: pushReady() says not-ready exactly where the
         REQUIRE(runCalibration(rig, opt) == Phase::PushCapture);
         REQUIRE(rig.cal.pushReady());
         hand.until = rig.h.clock().now().value() + 5.0;
-        rig.h.plant().step(Time{kDt});
-        rig.cal.tick();
+        for (int t = 0; t < 10; ++t) {  // CAL2: 20 deg/s for 0.1 s is 2 deg over the window
+            rig.h.plant().step(Time{kDt});
+            rig.cal.tick();
+        }
         CHECK_FALSE(rig.cal.status().atRest);
         CHECK_FALSE(rig.cal.pushReady());
     }
@@ -1613,7 +1649,7 @@ TEST_CASE("DrivetrainCalibrator 31: the record holds one line per pushed port, p
     (void)shulib::calibration::formatPushRecord(rep.ports[10], line, sizeof line);
     CHECK(std::strcmp(line, "push port 5 travel +0.0 deg still sign +0") == 0);
 
-    REQUIRE(rep.pulseCount == 30);
+    REQUIRE(rep.pulseCount == 14);
     for (std::size_t k = 0; k < rep.pulseCount; ++k) {
         (void)shulib::calibration::formatPulseRecord(rep.pulses[k], rep.drivePortCount, line,
                                                      sizeof line);
@@ -1623,7 +1659,7 @@ TEST_CASE("DrivetrainCalibrator 31: the record holds one line per pushed port, p
     (void)shulib::calibration::formatPulseRecord(rep.pulses[2], rep.drivePortCount, line,
                                                  sizeof line);
     CHECK(std::string{line}.find("pulse port 11 (1 of 10) 9.0 V yaw -") == 0);
-    CHECK(std::strstr(line, ": LEFT") != nullptr);
+    CHECK(std::strstr(line, ": FOLLOWED") != nullptr);
     (void)shulib::calibration::formatPulseRecord(rep.pulses[0], rep.drivePortCount, line,
                                                  sizeof line);
     CHECK(std::strcmp(line, "pulse port 11 (1 of 10) 3.0 V yaw +0.00 deg own +0.0 deg others "
@@ -1667,7 +1703,7 @@ TEST_CASE("DrivetrainCalibrator 32: a calibrator rebuilt in place after a refuse
     cal->start(facts());
     REQUIRE_MESSAGE(runWith(rig, *cal, RunOptions{}) == Phase::Done, std::string{cal->reason()});
     CHECK(cal->refusal() == Refusal::None);
-    CHECK(cal->report().pulseCount == 30);
+    CHECK(cal->report().pulseCount == 14);
     CHECK(cal->result().left.count == 5);
     CHECK(cal->result().right.count == 5);
 }
@@ -1699,7 +1735,10 @@ TEST_CASE("DrivetrainCalibrator 33: the status numbers track the push, the pulse
             CHECK(st.pulsePort == r.ports[static_cast<std::size_t>(st.pulseOrdinal - 1)]);
             sawPulsing = sawPulsing || st.pulsing;
             sawLevel9 = sawLevel9 || st.pulseLevelVolts == 9.0;
-            CHECK(static_cast<int>(st.leftCount + st.rightCount) == st.pulseOrdinal - 1);
+            for (int k = 0; k + 1 < st.pulseOrdinal; ++k) {  // CAL2: decided by a side or a group
+                const auto& o = r.cal.report().ports[static_cast<std::size_t>(k)];
+                CHECK((o.side != 0 || o.group != 0 || o.excluded));
+            }
         }
         if (st.spinDirection < 0.0) {
             sawCw = true;

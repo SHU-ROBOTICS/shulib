@@ -16,7 +16,7 @@ const FIELD = X.field;
 const START = { x: -36, y: -55.7, headingDeg: 0 };
 
 function route(steps, start = START) {
-    let r = setStart(newRoute(), start);
+    let r = setStart({ ...newRoute(), together: false }, start);  // answered (RMP1-C D3): RCT1 is named_routes.test.mjs's
     for (const s of steps) {
         r = addStep(r, s);
     }
@@ -218,17 +218,20 @@ test('RC18: an arm or lift with NO levels (robot one\'s cascade since ROB1-C2) -
     const lift = ledgerRobot().mechanisms[0];
     const none = { ...ledgerRobot(), mechanisms: [{ ...lift, presets: [] }] };
     const words = 'Robot one\'s cascade has no levels yet: record them at Bench Tests station 13.';
-    for (const step of [{ do: 'move', mechanism: 'cascade', boundS: 2 }, { do: 'startMove', mechanism: 'cascade', preset: 1, boundS: 2 }]) {
+    for (const step of [{ do: 'move', mechanism: 'cascade', preset: 1, boundS: 2 }, { do: 'startMove', mechanism: 'cascade', preset: 1, boundS: 2 }]) {
         const rc18 = at(checkRoute(route([{ do: 'home', mechanism: 'cascade', boundS: 3 }, step]), [none], FIELD), 'RC18');
         assert.deepEqual(rc18.map((x) => [x.level, x.stepIndex, x.field, x.words]), [['error', 1, 'preset', words]], JSON.stringify(step));
-        assert.equal(rc18[0].library, step.preset === undefined ? '' : libraryWords('noPreset'), 'a level named anyway: the library refuses it too');
+        assert.equal(rc18[0].library, libraryWords('noPreset'), 'a level named anyway: the library refuses it too');
     }
+    // RMP1-C D7: a move that says nowhere asks up / down / to -- never a level the cascade does not have
+    const nowhere = at(checkRoute(route([{ do: 'home', mechanism: 'cascade', boundS: 3 }, { do: 'move', mechanism: 'cascade', boundS: 2 }]), [none], FIELD), 'RC18');
+    assert.deepEqual(nowhere.map((x) => x.words), ['Say where the cascade goes: up, down, to a height.']);
     // its home and a wait on it are not refused; with ONE level the move is the old rule again (choose it)
     const home = route([{ do: 'startHome', mechanism: 'cascade', boundS: 3 }, { do: 'waitUntilDone', mechanism: 'cascade', boundS: 1 }]);
     assert.deepEqual(at(checkRoute(home, [none], FIELD), 'RC18'), []);
     const oneLevel = { ...none, mechanisms: [{ ...lift, presets: [lift.presets[0]] }] };
     const choose = at(checkRoute(route([{ do: 'home', mechanism: 'cascade', boundS: 3 }, { do: 'move', mechanism: 'cascade', boundS: 2 }]), [oneLevel], FIELD), 'RC18');
-    assert.deepEqual(choose.map((x) => x.words), ['Choose which level it moves to.']);
+    assert.deepEqual(choose.map((x) => x.words), ['Say where the cascade goes: up, down, to a height, or to a level.']);
 });
 
 test('RC19: the motion options -- 0 or more (0 is the robot\'s own), a heading tolerance under 180, only on a step that drives', () => {
@@ -284,30 +287,48 @@ test('RC21: the route name (29 printable, no %, not NONE; 25 when mirrored; no "
     }
 });
 
-test('RC21 / §6.3: the route is "skills" -- the name both robots\' code registers and the markers carry; any other is refused, with the fix', () => {
+test('RC21 (RMP1-C D1): a route\'s name -- the brain menu\'s rules, unique in the project (capitals aside), and the project keeps "skills"', () => {
     assert.deepEqual(at(checkRoute(newRoute(), [X], FIELD), 'RC21'), []);
-    const other = checkRoute(newRoute('skills A'), [X], FIELD);
-    const i = at(other, 'RC21');
-    assert.equal(i.length, 1);
-    assert.equal(i[0].level, 'error');
-    assert.ok(i[0].contract);
-    assert.match(i[0].words, /registers the skills route as "skills"/);
-    const fixed = applyFix(newRoute('skills A'), i[0].fix, addStep, updateStep);
-    assert.equal(fixed.name, 'skills');
-    assert.deepEqual(at(checkRoute(fixed, [X], FIELD), 'RC21'), []);
-    // a name the LIBRARY's rules refuse as well (a hand-edited file): the page has no rename, so the same one-click fix
-    // is on that error too -- and no sentence of the page's asks for a name it cannot take
-    for (const [n, mirrored] of [['NONE', true], ['a"b', true], ['a\\b', true], ['', true], ['50%', true], ['x'.repeat(26), true],
-                                 ['x'.repeat(30), false], ['caf\u00e9', true]]) {
-        const r = { ...newRoute(n), mirroredFor: mirrored ? 'two' : undefined };
-        const rc21 = at(checkRoute(r, [X], FIELD), 'RC21');
+    // the library's rules (a name the brain's menu cannot show) and the page's own (" and \\ in C++, a space at an end)
+    for (const [n, mirrored, why] of [['NONE', false, /NONE is the brain menu/], ['a"b', false, /cannot contain " or/], ['a\\b', false, /cannot contain " or/],
+                                      ['', false, /1 to 29 plain/], ['50%', false, /without %/], ['x'.repeat(26), true, /at most 25/],
+                                      ['x'.repeat(30), false, /1 to 29 plain/], ['caf\u00e9', false, /1 to 29 plain/], [' left', false, /start or end with a space/],
+                                      ['left ', false, /start or end with a space/]]) {
+        const routes = [newRoute(), { ...newRoute(n), mirroredFor: mirrored ? 'two' : undefined, together: false }];
+        const rc21 = at(checkRoute(routes[1], [X], FIELD, { routes, index: 1 }), 'RC21');
         assert.equal(rc21.length, 1, JSON.stringify(n));
-        assert.ok(!rc21[0].contract, `${JSON.stringify(n)}: the library's own rule refused it`);
-        assert.deepEqual(rc21[0].fix, { kind: 'nameSkills', stepIndex: -1 }, `${JSON.stringify(n)}: Name it "skills" is offered`);
-        assert.doesNotMatch(rc21[0].words, /pick another|use 1 to/, `${JSON.stringify(n)}: words the page cannot act on`);
-        const named = applyFix(r, rc21[0].fix, addStep, updateStep);
-        assert.deepEqual(at(checkRoute(named, [X], FIELD), 'RC21'), [], `${JSON.stringify(n)}: fixed`);
+        assert.match(rc21[0].words, why, JSON.stringify(n));
+        assert.ok(!rc21[0].fix, `${JSON.stringify(n)}: the project has "skills", so no "Name it skills" here`);
     }
+    // the edges pass: 29 plain characters (25 mirrored), digits and spaces inside
+    for (const [n, mirrored] of [['x'.repeat(29), false], ['x'.repeat(25), true], ['left side 2', true]]) {
+        const routes = [newRoute(), { ...newRoute(n), mirroredFor: mirrored ? 'two' : undefined, together: false }];
+        assert.deepEqual(at(checkRoute(routes[1], [X], FIELD, { routes, index: 1 }), 'RC21'), [], JSON.stringify(n));
+    }
+    // two routes named alike, capitals aside: the LATER one is told which route has it
+    const dup = [newRoute(), { ...newRoute('Left'), together: false }, { ...newRoute('LEFT'), together: false }];
+    assert.deepEqual(at(checkRoute(dup[1], [X], FIELD, { routes: dup, index: 1 }), 'RC21').map((x) => x.words.slice(0, 33)), ['Route 3 is already named "LEFT": ']);
+    assert.match(at(checkRoute(dup[2], [X], FIELD, { routes: dup, index: 2 }), 'RC21')[0].words, /Route 2 is already named "Left"/);
+    const skillsTwice = [newRoute(), { ...newRoute('Skills'), together: false }];
+    assert.equal(at(checkRoute(skillsTwice[1], [X], FIELD, { routes: skillsTwice, index: 1 }), 'RC21').length, 1, '"Skills" beside "skills"');
+    // a project WITHOUT "skills" (a hand-edited file): said once, on its first route, with the one-click fix
+    const none = [{ ...newRoute('left'), together: false }, { ...newRoute('right'), together: false }];
+    const first = at(checkRoute(none[0], [X], FIELD, { routes: none, index: 0 }), 'RC21');
+    assert.equal(first.length, 1);
+    assert.ok(first[0].contract);
+    assert.match(first[0].words, /no route named "skills"/);
+    assert.equal(applyFix(none[0], first[0].fix, addStep, updateStep).name, 'skills');
+    assert.deepEqual(at(checkRoute(none[1], [X], FIELD, { routes: none, index: 1 }), 'RC21'), [], 'said once, not on every route');
+    // a refused name on the FIRST route of a project with no skills route: the library's words, and the fix rides on it
+    const bad = [{ ...newRoute('NONE'), together: false }];
+    const rc = at(checkRoute(bad[0], [X], FIELD, { routes: bad, index: 0 }), 'RC21');
+    assert.equal(rc.length, 1);
+    assert.match(rc[0].words, /NONE is the brain menu/);
+    assert.deepEqual(rc[0].fix, { kind: 'nameSkills', stepIndex: -1 });
+    // the menu's size: 16 autons, the 40 in and the acceptance run take 2 -- route 15 is one too many
+    const many = [newRoute(), ...Array.from({ length: 14 }, (_, k) => ({ ...newRoute(`r${k}`), together: false }))];
+    assert.deepEqual(at(checkRoute(many[13], [X], FIELD, { routes: many, index: 13 }), 'RC21'), [], 'the 14th route fits');
+    assert.match(at(checkRoute(many[14], [X], FIELD, { routes: many, index: 14 }), 'RC21')[0].words, /at most 14 routes/);
 });
 
 test('RC24 (R6): a tank leg NOT turned first -- an ERROR past the robot\'s own 15 deg, a WARNING from 0.5 deg', () => {

@@ -36,7 +36,7 @@ class ProsCalibrateIo final : public calibration::CalibrateIo
 
 calibration::CalibrateIo on the brain (header): the serial line, the competition status, a plain wait, and the watch's read through PROS's C API with no motor object.
 
-*class, declared at [`include/shulib/hal/pros/calibrate.hpp:78`](../../include/shulib/hal/pros/calibrate.hpp#L78).*
+*class, declared at [`include/shulib/hal/pros/calibrate.hpp:79`](../../include/shulib/hal/pros/calibrate.hpp#L79).*
 
 <a id="proscalibrateio-line"></a>
 
@@ -48,7 +48,7 @@ void line(const char* text) override
 
 "[R3D] <text>" on the USB serial port: ONE write() per line, through serialWrapped() (SER1) — a text past one serial line goes out in "[R3D] ... " pieces.
 
-*function, declared at [`include/shulib/hal/pros/calibrate.hpp:82`](../../include/shulib/hal/pros/calibrate.hpp#L82).*
+*function, declared at [`include/shulib/hal/pros/calibrate.hpp:83`](../../include/shulib/hal/pros/calibrate.hpp#L83).*
 
 <a id="proscalibrateio-competitionstatus"></a>
 
@@ -60,7 +60,7 @@ void line(const char* text) override
 
 pros::c::competition_get_status().
 
-*function, declared at [`include/shulib/hal/pros/calibrate.hpp:84`](../../include/shulib/hal/pros/calibrate.hpp#L84).*
+*function, declared at [`include/shulib/hal/pros/calibrate.hpp:85`](../../include/shulib/hal/pros/calibrate.hpp#L85).*
 
 <a id="proscalibrateio-delayms"></a>
 
@@ -72,7 +72,7 @@ void delayMs(std::uint32_t ms) override
 
 pros::delay(ms).
 
-*function, declared at [`include/shulib/hal/pros/calibrate.hpp:88`](../../include/shulib/hal/pros/calibrate.hpp#L88).*
+*function, declared at [`include/shulib/hal/pros/calibrate.hpp:89`](../../include/shulib/hal/pros/calibrate.hpp#L89).*
 
 <a id="proscalibrateio-readshaftdegrees"></a>
 
@@ -84,7 +84,7 @@ pros::delay(ms).
 
 THE WATCH'S READ (header): motor_get_position() on `port` in the units the motor reports, turned into degrees of output shaft — no motor object, nothing written. False when PROS answers PROS_ERR_F (not a motor, or not answering), or a unit or gearing it does not know.
 
-*function, declared at [`include/shulib/hal/pros/calibrate.hpp:92`](../../include/shulib/hal/pros/calibrate.hpp#L92).*
+*function, declared at [`include/shulib/hal/pros/calibrate.hpp:93`](../../include/shulib/hal/pros/calibrate.hpp#L93).*
 
 <a id="calibrateinitialize"></a>
 
@@ -96,7 +96,7 @@ inline void calibrateInitialize(const char* label = nullptr, const char* buildSt
 
 initialize(): the boot banner (constructs nothing, powers nothing). `label` is a build's beacon, or null; `buildStamp` defaults to this translation unit's own (header: ONE unit).
 
-*free function, declared at [`include/shulib/hal/pros/calibrate.hpp:120`](../../include/shulib/hal/pros/calibrate.hpp#L120).*
+*free function, declared at [`include/shulib/hal/pros/calibrate.hpp:121`](../../include/shulib/hal/pros/calibrate.hpp#L121).*
 
 <a id="calibratestatescreen"></a>
 
@@ -108,7 +108,7 @@ inline void calibrateStateScreen(const char* state, const char* why)
 
 disabled(), competition_initialize() and autonomous(): Calibrate's competition-state screen — `state` and `why` are calibrate_screen.hpp's words (checked at compile time to fit).
 
-*free function, declared at [`include/shulib/hal/pros/calibrate.hpp:128`](../../include/shulib/hal/pros/calibrate.hpp#L128).*
+*free function, declared at [`include/shulib/hal/pros/calibrate.hpp:129`](../../include/shulib/hal/pros/calibrate.hpp#L129).*
 
 <a id="calibratedisabled"></a>
 
@@ -120,7 +120,7 @@ inline void calibrateDisabled()
 
 disabled(): the state screen, DISABLED.
 
-*free function, declared at [`include/shulib/hal/pros/calibrate.hpp:135`](../../include/shulib/hal/pros/calibrate.hpp#L135).*
+*free function, declared at [`include/shulib/hal/pros/calibrate.hpp:136`](../../include/shulib/hal/pros/calibrate.hpp#L136).*
 
 <a id="calibrateconnected"></a>
 
@@ -132,7 +132,7 @@ inline void calibrateConnected()
 
 competition_initialize(): the state screen, FIELD CONNECTED.
 
-*free function, declared at [`include/shulib/hal/pros/calibrate.hpp:141`](../../include/shulib/hal/pros/calibrate.hpp#L141).*
+*free function, declared at [`include/shulib/hal/pros/calibrate.hpp:142`](../../include/shulib/hal/pros/calibrate.hpp#L142).*
 
 <a id="calibrateautonomous"></a>
 
@@ -144,7 +144,7 @@ inline void calibrateAutonomous()
 
 autonomous(): the state screen, AUTONOMOUS — no motion here, ever.
 
-*free function, declared at [`include/shulib/hal/pros/calibrate.hpp:147`](../../include/shulib/hal/pros/calibrate.hpp#L147).*
+*free function, declared at [`include/shulib/hal/pros/calibrate.hpp:148`](../../include/shulib/hal/pros/calibrate.hpp#L148).*
 
 <a id="runcalibrate"></a>
 
@@ -156,14 +156,14 @@ inline void runCalibrate(const calibration::CalibrateFacts& facts, const char* b
 
 opcontrol(): the standard Calibrate on this brain, over the robot's real devices (header). Returns when the field disables the robot or starts autonomous (every motor at 0 V + Coast), or when no run can start. `buildStamp` defaults to this translation unit's own.
 
-*free function, declared at [`include/shulib/hal/pros/calibrate.hpp:155`](../../include/shulib/hal/pros/calibrate.hpp#L155).*
+*free function, declared at [`include/shulib/hal/pros/calibrate.hpp:156`](../../include/shulib/hal/pros/calibrate.hpp#L156).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
-<details markdown="1" open>
-<summary>The header’s own reasoning — 45 lines</summary>
+<details markdown="1">
+<summary>The header’s own reasoning — 46 lines, click to expand</summary>
 
 ```text
 
@@ -198,15 +198,16 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  The composition is runCalibrate()'s own frame: the registry, the provider over it (no log copy),
  the SD store (its default root), the screen and the IO — each borrowed by the program for its run.
 
- THE STACK it takes on PROS's opcontrol task (measured 2026-10-29 by GCC, never on a robot): the
- provider alone is 7,288 B on ARM and run() holds the 7,712 B calibrator, so the deepest path GCC
- can see in the team's one translation unit (arm-none-eabi-g++ -fstack-usage -fcallgraph-info=su,
- the team project's flags, over the 21-line file) is 22,464 B — runCalibrate 8,712, then
- CalibrateProgram::run 10,272, then the DONE path down to the safe save's CRC — BEFORE newlib's
- file and printf frames and VEXos's file calls, which it cannot see. PROS runs opcontrol() on a task
- of TASK_STACK_DEPTH_DEFAULT = 0x2000 words (32 KiB, include/pros/rtos.h:72): about 70 % of it
- before those frames (R3d's Calibrate, which this replaces in CAL1 Part B: 15,168 B, "about half").
- It fits; it is the margin to watch if the program's frame grows.
+ THE STACK it takes on PROS's opcontrol task (GCC's -fstack-usage -fcallgraph-info=su over robot one's
+ Calibrate, src/programs/calibrate_program.cpp with the robot's flags, 2026-11-17, never on a robot):
+ the deepest path GCC can see is 23,552 B — the caller 1,240, this runCalibrate 16,456 (the provider
+ alone 14,696), CalibrateProgram::run 1,960, then the DONE path down to the safe save's CRC — BEFORE
+ newlib's file and printf frames and VEXos's file calls, which it cannot see. PROS runs opcontrol()
+ on a task of TASK_STACK_DEPTH_DEFAULT = 0x2000 words (32 KiB, include/pros/rtos.h:72). The
+ calibrator and the run's record live in static storage (CAL2): on this stack they made the path
+ 31,824 B before CAL2 (a 7,712 B calibrator) and 32,072 B with CAL2's 7,928 B one; a measurement build
+ ~140 B over the release stopped with FATAL ERROR on robot one's opcontrol task at the save
+ (2026-11-17). The provider is next.
 
  NOTHING HERE HAS RUN ON A ROBOT in this form. Its host test (test/pros_calibrate_adapter_test.cpp)
  runs it through the host PROS shim, which tests the shell against our BELIEF about PROS, not the

@@ -60,11 +60,15 @@ function standinBackend() {
 }
 
 /** The Worker script: the stand-in backend, then the page's own worker.mjs. */
-export function standinScript(names, { delayMs = 0, hang = null, failLoad = '', rcOf = {}, refuse = {}, two = {}, pairRc = {}, patch = {} } = {}) {
+export function standinScript(names, { delayMs = 0, hang = null, failLoad = '', rcOf = {}, refuse = {}, two = {}, pairRc = {}, patch = {},
+                                       together = [] } = {}) {
     const runs = {};
     for (const n of names) {
         const f = fixture(n);
         runs[routeKey(f.route)] = { name: n, ...f.result };
+        if (together.includes(n)) {  // RMP1-C: the same route answered "both robots at the same time" -- the same runs
+            runs[routeKey({ ...f.route, together: true })] = { name: n, ...f.result };
+        }
     }
     return `const STANDIN = ${JSON.stringify({ runs, delayMs, hang, failLoad, rcOf, refuse, two, pairRc, patch, made: 0, ran: 0 })};\n(${standinBackend.toString()})();\n`
         + fs.readFileSync(WORKER, 'utf8');

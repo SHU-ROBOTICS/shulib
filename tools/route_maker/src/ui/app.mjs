@@ -8,15 +8,22 @@
 // Save never replaces a route_maker.json that changed in the folder since the page read it without asking. A route is
 // DRAWN before it is kept: an opened file the page cannot show leaves the page as it was (never the next visit's
 // draft), and a draft that cannot be shown starts a new route with a toast — never a page that will not start.
-// The route's NAME is not editable here: §6.3 fixes it ("skills", which both robots' code registers).
+// RMP1-C: the project's NAMED routes — the switcher (routes_menu.mjs) adds, renames, duplicates and deletes them, one
+// route on the field at a time, and the undo history holds the whole set (an undo can bring a deleted route back).
+// Robot two's mirrored start and path are drawn beside robot one's; a mirrored route asks, on the route (no dialog in
+// the way, no default: Export waits for the answer), whether both robots run it at the same time. Arrow keys nudge the
+// selected point 1 in (Shift: 0.25 in).
 
-import { h, icon, mount, ask } from './dom.mjs';
+import { h, icon, mount, ask, openMenu } from './dom.mjs';
+import { createRoutesMenu } from './routes_menu.mjs';
 import { createFieldView } from './field_view.mjs';
 import { renderStepList } from './step_list.mjs';
 import { renderInspector } from './inspector.mjs';
 import { openExportDrawer } from './export_drawer.mjs';
 import { openHelp, coachCard } from './help.mjs';
 import { TOOLS, mechanismActions, KIND_LABEL } from './words.mjs';
+import { round3 } from '../model/numbers.mjs';
+import { targetKind } from '../model/lift.mjs';
 import { makeFiles, memoryHost } from '../host/files.mjs';
 import { folderHost } from '../host/files_fsaccess.mjs';
 import { downloadHost } from '../host/files_download.mjs';
@@ -24,7 +31,7 @@ import { bakedRobots, routeRobots } from '../host/robots.mjs';
 import { capabilities, capabilityWords } from '../host/capabilities.mjs';
 import { makeEngine } from '../host/engine.mjs';
 import { createPreview } from './preview.mjs';
-import { newProject, loadProject, saveProject, PROJECT_FILE } from '../model/project.mjs';
+import { newProject, loadProject, saveProject, PROJECT_FILE, addRoute, renameRouteAt, duplicateRoute, deleteRoute } from '../model/project.mjs';
 import { addStep, updateStep, removeStep, moveStep, duplicateStep, setStart, plannedPoses, normalizeRoute, startPose } from '../model/route.mjs';
 import { checkRoute, applyFix, TURN_FIRST_EDGE_DEG, LEVELS_FROM, noLevels } from '../model/checks.mjs';
 import { historyOf, commit, undo as undoH, redo as redoH, canUndo, canRedo } from '../model/undo.mjs';
@@ -77,30 +84,53 @@ async function main() {
             startState = restoredDraft ? 'draft' : 'saved';
         }
     }
-    let hist = historyOf(project.routes[0]);
+    // the history holds the WHOLE set of routes and which one is on the field: {routes, at}
+    const setOf = (p) => ({ routes: p.routes.map(normalizeRoute), at: 0 });
+    let hist = historyOf(setOf(project));
     // The connected folder's route_maker.json as this page last read or wrote it (null: there is none, or the page
     // could not take the one there; undefined: not read yet). Save compares the folder's file with it before replacing
     // it, so it asks before replacing a file the page did not take.
     let folderBase;
     const ui = {
-        selected: null, tool: 'select', curveDraft: [], snap: true,
-        saveState: startState, coach: !store(COACH_KEY) && project.routes[0].steps.length === 0,
+        selected: null, point: null, tool: 'select', curveDraft: [], snap: true,
+        saveState: startState, coach: !store(COACH_KEY) && project.routes.every((r) => r.steps.length === 0),
         tab: store(TAB_KEY) === 'controls' ? 'controls' : 'route',
     };
     let dragBase = null;  // the route before a drag (a drag is ONE undo entry, committed when it ends)
     let derived = null;
 
-    const route = () => hist.present;
+    const routes = () => hist.present.routes;
+    const at = () => Math.min(hist.present.at, routes().length - 1);
+    const route = () => routes()[at()];
+    /** The set with the route on the field replaced by `r`. */
+    const withRoute = (r) => ({ ...hist.present, routes: routes().map((x, k) => (k === at() ? r : x)) });
     const robot = () => baked.robots[route().robot] || baked.robots.one;
     const field = () => robot().field;
     const size = () => (robot().drive && robot().drive.footprintIn) || 15;
+    const issueCache = new WeakMap();  // each route's issues, by its set (a route's names depend on the others)
+    /** Route `k`'s issues (its checks need the whole set: the names, the skills route). */
+    function issuesOf(k) {
+        const set = hist.present.routes;
+        const r = set[k];
+        const hit = issueCache.get(r);
+        if (hit && hit.set === set) {
+            return hit.issues;
+        }
+        const robots = routeRobots(baked, r);
+        const issues = checkRoute(r, robots.length ? robots : [robot()], field(), { routes: set, index: k });
+        issueCache.set(r, { set, issues });
+        return issues;
+    }
+    /** The errors of every OTHER route, each with its route: Export writes them all, so it refuses on any. */
+    function otherErrors() {
+        return routes().flatMap((r, k) => (k === at() ? [] : issuesOf(k).filter((x) => x.level === 'error').map((x) => ({ ...x, route: k }))));
+    }
     function derive() {
-        if (derived && derived.route === route()) {
+        if (derived && derived.route === route() && derived.set === routes()) {
             return derived;
         }
         const r = route();
-        const robots = routeRobots(baked, r);
-        const issues = checkRoute(r, robots.length ? robots : [robot()], field());
+        const issues = issuesOf(at());
         const levels = {};
         for (const x of issues) {
             const k = x.stepIndex === -1 ? 'start' : x.stepIndex;
@@ -108,7 +138,7 @@ async function main() {
                 levels[k] = x.level;
             }
         }
-        derived = { route: r, issues, levels, plan: plannedPoses(r) };
+        derived = { route: r, set: routes(), issues, levels, plan: plannedPoses(r) };
         return derived;
     }
 
@@ -118,26 +148,28 @@ async function main() {
     const app = {
         state: () => ui, route, robot, field, size, picture,
         plan: () => derive().plan, issues: () => derive().issues, levels: () => derive().levels,
-        files: () => files, project: () => ({ ...project, routes: [route()] }),
+        routes, at, otherErrors, issuesOf,
+        files: () => files, project: () => ({ ...project, routes: routes() }),
         robotsWords,
         hud(f) {
             els.hud.textContent = `x ${f.x.toFixed(1)}   y ${f.y.toFixed(1)} in`;
         },
-        select(sel) {
-            ui.selected = sel;
+        /** `open`: a narrow window's step drawer slides in (a click; never a drag, which would cover the field). */
+        select(sel, point = null, open = true) {
+            pick(sel, point);
             render();
-            if (typeof sel === 'number' && window.matchMedia('(max-width: 1100px)').matches) {
+            if (open && typeof sel === 'number' && window.matchMedia('(max-width: 1100px)').matches) {
                 els.app.dataset.right = 'open';
             }
         },
-        selectHandle(kind, index) {
-            app.select(kind === 'start' || kind === 'heading' ? 'start' : index);
+        selectHandle(kind, index, point, open) {
+            app.select(kind === 'start' || kind === 'heading' ? 'start' : index, kind === 'curvePoint' ? point : null, open);
         },
         beginDrag() {
-            dragBase = route();
+            dragBase = hist.present;
         },
         dragTo(d) {
-            let r = dragBase;
+            let r = dragBase.routes[dragBase.at];
             if (d.handle === 'start') {
                 r = setStart(r, { ...r.start, x: d.x, y: d.y });
             } else if (d.handle === 'heading') {
@@ -148,13 +180,13 @@ async function main() {
                 const pts = r.steps[d.index].points.map((p, k) => (k === d.point ? { ...p, x: d.x, y: d.y } : p));
                 r = updateStep(r, d.index, { points: pts });
             }
-            hist = { ...hist, present: r };
+            hist = { ...hist, present: { ...dragBase, routes: dragBase.routes.map((x, k) => (k === dragBase.at ? r : x)) } };
             renderFieldOnly();
         },
         endDrag(moved) {
             if (dragBase && moved) {
-                const r = hist.present;
-                hist = commit({ ...hist, present: dragBase }, r);
+                const set = hist.present;
+                hist = commit({ ...hist, present: dragBase }, set);
                 changed();
             } else if (dragBase) {
                 hist = { ...hist, present: dragBase };
@@ -166,7 +198,12 @@ async function main() {
             const r = route();
             if (!r.start) {
                 edit(setStart(r, { x: p.x, y: p.y, headingDeg: 0 }), 'start');
-                toast('Robot one\'s start is placed. Drag its red knob to turn it, then add a step.');
+                const ask = r.mirroredFor && r.together === undefined;
+                if (ask && window.matchMedia('(max-width: 1100px)').matches) {
+                    els.app.dataset.right = 'open';  // the question is on the right: a narrow window shows it
+                }
+                toast(ask ? 'Robot one\'s start is placed; robot two\'s mirrored one is the blue square. On the right: do both robots run this at the same time?'
+                    : 'Robot one\'s start is placed. Drag its red knob to turn it, then add a step.');
                 return;
             }
             const at = insertAt();
@@ -250,7 +287,8 @@ async function main() {
         },
         fix(f) {
             const r = applyFix(route(), f, addStep, updateStep);
-            const sel = f.kind === 'homeFirst' || f.kind === 'homeWhileDriving' ? 0 : f.kind === 'nameSkills' ? 'start' : f.stepIndex;
+            const sel = f.kind === 'homeFirst' || f.kind === 'homeWhileDriving' ? 0
+                : ['nameSkills', 'together', 'moveStart'].includes(f.kind) ? 'start' : f.stepIndex;
             edit(r, sel);
             if (f.kind === 'homeFirst' || f.kind === 'homeWhileDriving' || f.kind === 'waitForHome') {
                 toast('Added. Type its time limit: the most the home (or the wait) may take.');
@@ -262,7 +300,7 @@ async function main() {
             }
         },
         setProject(p, state) {
-            project = { ...p, routes: [route()] };
+            project = { ...p, routes: routes() };
             ui.saveState = state || ui.saveState;
             persistDraft();
             renderTop();
@@ -290,7 +328,7 @@ async function main() {
         toast: (t, c) => toast(t, c),
         changed: () => renderTop(),
         setRobots(robots, exports = project.exports) {
-            project = { ...project, robots, exports, routes: [route()] };
+            project = { ...project, robots, exports, routes: routes() };
             changed();
             renderTop();
             renderStatus();
@@ -306,32 +344,112 @@ async function main() {
             store(COACH_KEY, '1');
             render();
         },
+        // ── RMP1-C: the named routes ──
+        switchRoute(k) {
+            if (k !== at() && routes()[k]) {
+                hist = { ...hist, present: { ...hist.present, at: k } };  // which route shows is not an edit
+                pick(null);
+                ui.curveDraft = [];
+                ui.tool = 'select';
+                render();
+                els.fieldView.fit();
+            }
+        },
+        addRoute(name) {
+            editSet(addRoute(hist.present, name));
+            toast(`Route "${route().name}" added: place robot one's start on the field.`);
+        },
+        renameRoute(k, name) {
+            if (name === undefined) {
+                routesMenu.rename(k);
+                return;
+            }
+            const was = routes()[k].name;
+            editSet(renameRouteAt(hist.present, k, name));
+            toast(`Renamed "${was}" to "${name}" (Ctrl+Z puts it back).`);
+        },
+        duplicateRoute(k, name) {
+            editSet(duplicateRoute(hist.present, k, name));
+            toast(`Duplicated as "${route().name}".`);
+        },
+        deleteRoute(k) {
+            const was = routes()[k].name;
+            const next = deleteRoute(hist.present, k);
+            if (next !== hist.present) {
+                editSet(next);
+                toast(`Route "${was}" deleted (Ctrl+Z brings it back).`);
+            }
+        },
+        setMirror(on) {
+            const r = route();
+            edit({ ...r, mirroredFor: on ? 'two' : undefined, together: on ? r.together : undefined }, 'start');
+        },
+        setTogether(v) {
+            edit({ ...route(), together: v }, 'start');
+        },
     };
+    const routesMenu = createRoutesMenu(app);
 
+    /** D9: move the selected point (the start, a step's point, a curve point) by (dx, dy) in; one undo entry. false:
+     *  nothing selected has a point. Up is +y (the field's frame, as drawn). */
+    function nudge(dx, dy) {
+        const r = route();
+        const move = (p) => ({ ...p, x: round3(p.x + dx), y: round3(p.y + dy) });
+        if (ui.selected === 'start' && r.start && Number.isFinite(r.start.x) && Number.isFinite(r.start.y)) {
+            edit(setStart(r, move(r.start)), 'start');
+            return true;
+        }
+        const s = typeof ui.selected === 'number' ? r.steps[ui.selected] : null;
+        if (s && s.points && Number.isInteger(ui.point) && s.points[ui.point] && Number.isFinite(s.points[ui.point].x)) {
+            edit(updateStep(r, ui.selected, { points: s.points.map((p, k) => (k === ui.point ? move(p) : p)) }));
+            return true;
+        }
+        if (s && Number.isFinite(s.x) && Number.isFinite(s.y)) {
+            edit(updateStep(r, ui.selected, move(s)));
+            return true;
+        }
+        return false;
+    }
     function insertAt() {
         return typeof ui.selected === 'number' ? ui.selected + 1 : route().steps.length;
     }
+    /** The selection and the curve point picked ON THE FIELD are set only together: the point never outlives its pick. */
+    function pick(sel, point = null) {
+        ui.selected = sel;
+        ui.point = point;
+    }
+    /** `select` undefined (the nudge): the selection AND its picked point stay; any other edit drops the point. */
     function edit(r, select) {
-        hist = commit(hist, normalizeRoute(r));
-        ui.selected = select === undefined ? ui.selected : select;
-        if (ui.coach && hist.present.steps.length > 0) {
+        hist = commit(hist, withRoute(normalizeRoute(r)));
+        if (select !== undefined) {
+            pick(select);
+        }
+        if (ui.coach && route().steps.length > 0) {
             ui.coach = false;
         }
         changed();
         render();
+    }
+    /** A change to the set of routes (add, rename, duplicate, delete): one undo entry, the new `at` on the field. */
+    function editSet(set) {
+        hist = commit(hist, { ...set, routes: set.routes.map(normalizeRoute) });
+        pick(null);
+        changed();
+        render();
+        els.fieldView.fit();
     }
     function changed() {
         ui.saveState = 'unsaved';
         persistDraft();
     }
     function persistDraft() {
-        store(DRAFT_KEY, saveProject({ ...project, routes: [route()] }));
+        store(DRAFT_KEY, saveProject({ ...project, routes: routes() }));
     }
     function robotsWords() {
         const r = route();
         const list = routeRobots(baked, r).map((x) => x.name);
         const shared = baked.sharedRoute && baked.sharedRoute.present;
-        return `The route is written in robot one's numbers${r.mirroredFor ? ' and robot two runs it MIRRORED (one line in its own file)' : ''}. `
+        return `The route is written in robot one's numbers${r.mirroredFor ? '; robot two runs it MIRRORED' : '; robot two runs it as written'}. `
             + `It is checked on ${list.join(' and ')}'s mechanisms`
             + (shared ? '.' : `; robot two's update (the shared skills-route file) is not in this build of the route builder yet, so robot two is checked once it is.`);
     }
@@ -344,6 +462,16 @@ async function main() {
     function setTool(id) {
         if (id === 'mechanism') {
             openMechanismMenu();
+            return;
+        }
+        if (id === 'straight') {  // D9: "drive forward _ in" from where the robot is
+            if (!route().start) {
+                toast('Place robot one\'s start first: click the field where it starts.');
+                return;
+            }
+            const at = insertAt();
+            edit(addStep(route(), { do: 'forward' }, at), at);
+            toast('Added: type how far it drives (switch it to Backwards to back up).');
             return;
         }
         if (id === 'wait') {
@@ -367,54 +495,32 @@ async function main() {
             toast('Place robot one\'s start first: click the field where it starts.');
             return;
         }
-        const close = () => {
-            pop.remove();
-            document.removeEventListener('pointerdown', outside, true);
-            document.removeEventListener('keydown', onKey);
-        };
-        const outside = (e) => !pop.contains(e.target) && close();
-        const onKey = (e) => e.key === 'Escape' && close();
         const mechs = robot().mechanisms || [];
         const items = [];
         for (const m of mechs) {
-            items.push(h('h3', {}, `${m.name} · ${KIND_LABEL[m.kind] || m.kind}`));
-            const acts = mechanismActions(m.kind, !noLevels(m));
-            if (noLevels(m)) {  // RMP1-A2u
-                items.push(h('p', { class: 'hint menu-note' }, `No levels yet: ${LEVELS_FROM}.`));
-            }
+            // D8: each mechanism under its own name, plainly; the kind secondary
+            items.push(h('h3', { class: 'mech-head' }, `${m.name[0].toUpperCase()}${m.name.slice(1)}`, h('small', {}, KIND_LABEL[m.kind] || m.kind)));
+            const acts = mechanismActions(m, !noLevels(m));
             if (!acts.length) {
                 items.push(h('button', { class: 'menu-item', disabled: true }, 'Flywheel steps come later', h('small', {}, '')));
             }
             for (const a of acts) {
-                items.push(h('button', { class: 'menu-item', onclick: () => {
-                    close();
+                items.push(h('button', { class: 'menu-item', 'data-act': a.words, onclick: () => {
                     const at = insertAt();
-                    const step = { do: a.do, mechanism: m.ident };
-                    if (a.do === 'move' && (m.presets || []).length === 1) {
+                    const step = { ...a.step };
+                    if (step.do === 'move' && targetKind(step) === null && (m.presets || []).length === 1) {
                         const p = m.presets[0];
                         step.preset = p.ledger !== undefined ? p.ledger : p.name;
                     }
                     edit(addStep(route(), step, at), at);
-                    toast('Added: choose its level or position and type its time limit on the right.');
-                } }, icon(a.do === 'home' ? 'home' : a.do === 'waitUntilDone' ? 'wait' : 'mechanism'), a.words));
+                    toast(step.do === 'set' ? `Added: ${a.words}.` : 'Added: type its numbers on the right.');
+                } }, icon(a.icon), a.words));
             }
         }
         if (!mechs.length) {
             items.push(h('p', { class: 'hint', style: 'padding:8px' }, `${robot().name} declares no mechanism yet.`));
         }
-        const pop = h('div', { class: 'popover', role: 'menu', 'aria-label': 'Mechanisms' }, items);
-        const r = toolBtns.mechanism.getBoundingClientRect();
-        pop.style.left = `${Math.max(8, r.left)}px`;
-        pop.style.top = `${r.bottom + 6}px`;
-        document.body.append(pop);
-        setTimeout(() => {
-            document.addEventListener('pointerdown', outside, true);
-            document.addEventListener('keydown', onKey);
-            const first = pop.querySelector('.menu-item:not(:disabled)');
-            if (first) {
-                first.focus();
-            }
-        }, 0);
+        openMenu(toolBtns.mechanism, items, 'Mechanisms');
     }
 
     /** A save went through: remember it (the folder's base, and what "saved" means for the draft). */
@@ -462,20 +568,20 @@ async function main() {
      * happened to the Controls changes, in words ('' when there were none).
      */
     function adoptProject(p, folderText, keepControls = false) {
-        const before = { project, hist, folderBase, selected: ui.selected, saveState: ui.saveState, coach: ui.coach };
+        const before = { project, hist, folderBase, selected: ui.selected, point: ui.point, saveState: ui.saveState, coach: ui.coach };
         project = p;
-        hist = commit(hist, normalizeRoute(p.routes[0]));
+        hist = commit(hist, setOf(p));
         if (folderText !== undefined) {
             folderBase = folderText;
         }
-        ui.selected = null;
+        pick(null);
         ui.saveState = 'saved';
         ui.coach = false;
         try {
             render();
         } catch (e) {
             ({ project, hist, folderBase } = before);
-            ui.selected = before.selected;
+            pick(before.selected, before.point);
             ui.saveState = before.saveState;
             ui.coach = before.coach;
             render();
@@ -595,9 +701,7 @@ async function main() {
             renderStatus();
             return;
         }
-        hist = undoH(hist);
-        changed();
-        render();
+        travel(undoH(hist));
     }
     function redo() {
         if (ui.tab === 'controls') {
@@ -606,7 +710,14 @@ async function main() {
             renderStatus();
             return;
         }
-        hist = redoH(hist);
+        travel(redoH(hist));
+    }
+    /** Undo / redo: the step at the selected place may be another one now (its point was never picked), or the route
+     *  on the field another route (nothing of it was selected). */
+    function travel(h) {
+        const same = h.present.at === hist.present.at;
+        hist = h;
+        pick(same ? ui.selected : null);
         changed();
         render();
     }
@@ -683,7 +794,7 @@ async function main() {
                   role: 'tab', class: `tab${ui.tab === id ? ' on' : ''}`, 'aria-selected': String(ui.tab === id), id: `tab-${id}`,
                   onclick: () => showTab(id) }, icon(ic), t))),
             ui.tab === 'route' ? h('span', { class: 'chip robot hide-narrow', title: 'The route is written in robot one\'s numbers' }, 'Robot one') : null,
-            ui.tab === 'route' ? h('span', { class: 'route-name', title: 'The route\'s name on the brain\'s menu (both robots\' code registers it by this name)' }, r.name) : null,
+            ui.tab === 'route' ? routesMenu.button() : null,
             h('span', { class: `chip ${saveWords[1]}`, id: 'save-state', role: 'status' }, saveWords[0]),
             h('span', { class: 'spacer' }),
             h('button', { class: 'btn icon ghost', 'aria-label': 'Undo (Ctrl+Z)', title: 'Undo (Ctrl+Z)', disabled: ui.tab === 'controls' ? !controlsTab.canUndo() : !canUndo(hist), onclick: undo }, icon('undo')),
@@ -832,6 +943,11 @@ async function main() {
         if (typing || ctrl || e.altKey || document.querySelector('.drawer, .dialog, .popover')) {
             return;
         }
+        const arrow = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
+        if (arrow && !app.preview.showing() && nudge(arrow[0] * (e.shiftKey ? 0.25 : 1), arrow[1] * (e.shiftKey ? 0.25 : 1))) {
+            e.preventDefault();
+            return;
+        }
         if (e.key === 'Escape') {
             ui.curveDraft = [];
             ui.tool = 'select';
@@ -879,8 +995,8 @@ async function main() {
         // the route kept in this browser cannot be shown (one this page cannot draw): never a page that will not start
         // again — a new route, and the student told why; the project file is not touched
         project = newProject(madeWith);
-        hist = historyOf(project.routes[0]);
-        ui.selected = null;
+        hist = historyOf(setOf(project));
+        pick(null);
         ui.saveState = 'new';
         ui.coach = !store(COACH_KEY);
         restoredDraft = false;
@@ -899,6 +1015,7 @@ async function main() {
     // (and, for the file layer's page tests, an in-memory folder in place of the real one: the folder dialog itself
     // is the manual Windows check's, A.4)
     window.routeBuilder = { route: () => JSON.parse(JSON.stringify(route())), issues: () => derive().issues, ready: true,
+                            routes: () => JSON.parse(JSON.stringify(routes())), at,
                             controls: () => controlsTab.snapshot(), tab: (id) => showTab(id),
                             useMemoryFolder: async (files0, opts) => {
                                 const host = memoryHost(files0, opts || {});
