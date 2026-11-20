@@ -164,6 +164,11 @@ full 12 V; leave it out and nothing changes. A homing push down harder than it i
 be cut, and its stall might never trip). Both robots' cascades go down at most 7.2 V (the team lead, 2026-11-20),
 read from their facts files' `kCascadeMaxDownVolts`.
 
+**Resting on the stop it homes onto** (2026-11-20). A hold, or a held button, that has arrived at the end the
+mechanism homes onto (a stall, a switch, or resting there at start) rests on that stop: it never pushes into it
+beyond holding the mechanism's own weight. A string lift's bottom stop gives a little, so a target exactly on it is
+never quite reached; pushing on toward it only strains the motors until the stall signature cuts them.
+
 ## Homing — every moment, and which one to choose
 
 A position mechanism has to know where its zero is before it can go anywhere. **Before it does, a

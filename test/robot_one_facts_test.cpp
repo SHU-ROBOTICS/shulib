@@ -306,9 +306,9 @@ TEST_CASE("robot one facts (T3): Stage A for all six programs, Stage B for Drive
         owedB += (f.needed == Stage::B && !f.typed) ? 1 : 0;
     }
     CHECK(a == 19);  // ROB1-A's ten, ROB1-C2's side toggles (four) and pistons' letters (three), and Calibrate's two thresholds (2026-11-16)
-    CHECK(b == 19);  // ROB1-A's five, and ROB1-C2's side toggle directions (two), pistons' levels and strokes (six),
+    CHECK(b == 20);  // ROB1-A's five, and ROB1-C2's side toggle directions (two), pistons' levels and strokes (six),
                      // the homing's own stall signature (the review of ROB1-C2), the autons' four drive settings
-                     // (2026-11-17), and the cascade's most volts DOWN (2026-11-20, API 2.10)
+                     // (2026-11-17), the cascade's most volts DOWN (2026-11-20, API 2.10) and its soft top (2026-11-20)
     CHECK(owedB == 0);  // 2026-11-17: station 13's rows, the chosen volts, the directions and levels -- all typed
     CHECK(recorded == 2);
     CHECK(facts::owedFor(Program::BenchTests) == owedA);
@@ -325,8 +325,8 @@ TEST_CASE("robot one facts (T2): every fact has EXACTLY ONE check right below it
     // the pairing in the source); a second check for one fact.
     const std::string code = ledgerCode();
     const std::vector<SourceFact> all = sourceFacts(code);
-    REQUIRE(all.size() == 40);  // 33, Calibrate's two thresholds (2026-11-16), the autons' four drive settings (2026-11-17),
-                                // the cascade's most volts DOWN (2026-11-20)
+    REQUIRE(all.size() == 41);  // 33, Calibrate's two thresholds (2026-11-16), the autons' four drive settings (2026-11-17),
+                                // the cascade's most volts DOWN and its soft top (2026-11-20)
     const std::regex check{R"re(ROBOT_ONE_CHECK\s*\(\s*(k\w+)\s*,\s*"((\\.|[^"\\])*)"\s*\))re"};
     std::vector<std::pair<std::string, std::string>> checks;
     for (auto it = std::sregex_iterator(code.begin(), code.end(), check); it != std::sregex_iterator(); ++it) {
@@ -581,7 +581,9 @@ TEST_CASE("robot one facts (ROB1-C2): every fact the builder gave on 2026-11-15,
         if (given.count(f.name) == 1) {
             const bool builder = f.source.rfind("the team's builder, 2026-11-15", 0) == 0;
             const bool chosen = f.source.rfind("chosen, not measured -- ", 0) == 0;
-            CHECK_MESSAGE((builder || chosen),
+            // ...or re-typed later from what robot one itself did (2026-11-20: the cascade's directions, read off it)
+            const bool reread = f.source.rfind("the team lead, 2026-11-20, read off robot one", 0) == 0;
+            CHECK_MESSAGE((builder || chosen || reread),
                           "a fact typed on 2026-11-15 has the builder's words or 'chosen, not measured' as its source: ",
                           f.source);
         } else {
@@ -614,7 +616,8 @@ TEST_CASE("robot one facts (ROB1-C2): the typed values are the builder's -- port
     // the build alone would accept; a starting pair that breaks chapter 18's order (the signature not more than
     // 0.2 A under the cap).
     static_assert(facts::kCascadePorts.value().first == 10 && facts::kCascadePorts.value().second == 1);
-    static_assert(!facts::kCascadeDirections.value().first.reversed && facts::kCascadeDirections.value().second.reversed);
+    // 2026-11-20, read off robot one (the team lead: homing went UP, R1 down, R2 up): BOTH reversed from the first typing
+    static_assert(facts::kCascadeDirections.value().first.reversed && !facts::kCascadeDirections.value().second.reversed);
     static_assert(facts::kCascadeCartridge.value() == shulib::hal::MotorCartridge::Blue);
     static_assert(facts::kCascadeTeeth.value().motor == 1 && facts::kCascadeTeeth.value().spool == 1);
     static_assert(facts::kCascadeCapAmps.value() == 2.0 && facts::kCascadeStallAmps.value() == 1.5);

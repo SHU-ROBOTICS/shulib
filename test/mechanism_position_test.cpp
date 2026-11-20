@@ -588,6 +588,41 @@ TEST_CASE("API 2.10 position: maxDownVolts -- nothing drives it DOWN harder (a h
     }
 }
 
+TEST_CASE("2026-11-20 position: at the stop it homes onto, a held push and a hold REST -- never pushed into it; the top keeps its hold") {
+    // BUG CAUGHT (the team lead, 2026-11-20, robot one: "on the bottom ... it doesnt auto stop so it stalls"; "when i
+    // put it all the way down it starts studdering"): a string cascade's bottom stop gives a little, so a target ON
+    // it is never quite reached -- the hold (and a held R2) pushed on into it until the stall signature cut it, again
+    // and again. Modelled here by a bottom limit 0.1 in under the stop the lift rests on (the stop at -1 deg).
+    mech::MechanismSpec spec = kLift.spec();  // rests at its stop at 0 in: the bottom is its stop end
+    spec.position.minPosition = -0.1;
+    for (const bool released : {false, true}) {
+        CAPTURE(released);
+        ArmRig r{spec, spoolPlant(1.0, 1.0)};
+        r.slot().moveTo(12.0, units::Time{6.0}, false);
+        r.runStep();
+        REQUIRE(r.slot().lastStep().outcome == MechanismOutcome::Succeeded);
+        double most = 0.0;  // the most it pushed DOWN (negative volts) once resting, over the last 3 s
+        if (!released) {
+            for (int i = 0; i < 600; ++i) {
+                r.slot().jog(units::Voltage{-6.0});  // R2 held the whole time
+                r.tick();
+                if (i >= 300) most = std::max(most, -r.volts());
+            }
+            CHECK(r.slot().softStops() == 1);
+        } else {
+            r.slot().moveTo(-0.1, units::Time{6.0}, false);  // to the bottom limit, then the hold there
+            for (int i = 0; i < 700; ++i) {
+                r.tick();
+                if (i >= 400) most = std::max(most, -r.volts());
+            }
+        }
+        MESSAGE(std::string{released ? "held at the bottom" : "R2 held at the bottom"} << ": the most it pushed down " << most << " V");
+        CHECK(most <= 1e-9);                                     // never down into its stop
+        CHECK(std::abs(r.slot().position() - (-1.0 / 360.0 * kPi * 1.5)) <= 0.02);  // resting on it
+        CHECK(r.stallFaults() == 0);
+    }
+}
+
 TEST_CASE("MECH-A3 position: the soft stop takes a push only where it could no longer stop -- never far from the limit, never while it moves AWAY") {
     SUBCASE("a spool lift pushed at 6 V from 12 in: the driver's own until near the limit, then held AT it") {
         // Measured: the soft stop took the push 2.71 s in going down and 3.89 s in going up (the lift

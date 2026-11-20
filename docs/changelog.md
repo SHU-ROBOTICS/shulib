@@ -16,6 +16,25 @@
 
 ## API 2.10
 
+### 2026-11-20 — Robot one's cascade: the right way round, and resting on its stops
+
+> Written when it was fixed, on robot one (the team lead, 2026-11-20). **A library behaviour change (no API
+> change)** and two robot facts.
+
+**What changed:**
+
+- **Robot one's cascade ran backwards** — homing went UP, R1 drove it DOWN, R2 UP — because its two motors'
+  directions were typed from the builder's answers and never driven. Both are reversed now (port 10 reversed, port
+  1 forward). Robot two takes robot one's value (the same build); its station 13 quick pass checks it.
+- **At the stop a mechanism homes onto** (a stall, a switch, or resting there at start), a hold or a held button
+  that has arrived RESTS on it: nothing pushes into the stop beyond holding the mechanism's own weight (a bottom
+  stop carries the weight: nothing down at all). Before, the hold pushed on into a string cascade's bottom until
+  its stall signature cut it, again and again — the stutter at the bottom.
+- **The cascade's top is 1 in under its measured top row** (`kCascadeTopMargin`, both robots), so a held R1 brakes
+  before the real top.
+
+**What you must do:** upload every program again (they all drive the cascade).
+
 ### 2026-11-20 — The route builder's mechanism steps, made simple
 
 > Written when it was built (chunk RMP1, run RMP1-J). **No library change — no API change:** nothing under
