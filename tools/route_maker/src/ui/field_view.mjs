@@ -23,6 +23,7 @@ import { squareCorners, bearingDeg } from '../model/geometry.mjs';
 import { round3 } from '../model/numbers.mjs';
 import { startPose } from '../model/route.mjs';
 import { reflect, stepPoses } from '../model/pair.mjs';
+import { obstacleShapes } from './field_obstacles.mjs';
 
 const KNOB_IN = 15;  // the heading knob sits this far ahead of the start's centre
 
@@ -343,7 +344,7 @@ export function createFieldView(host, app) {
         const near = st.focus ? focusSet(route, st.focusAt) : null;  // RMP1-G D3: null = no focus
         const faded = (i) => (near && !near.has(i) ? ' faded' : '');
         svg.classList.toggle('focusing', !!near);
-        const parts = [];
+        const parts = [obstacleShapes(app, P)];  // RMP1-H: the solid structures, under the route
         // the planned path: each step in its own group (hidden: not drawn; faded or locked: its points take no pointer)
         route.steps.forEach((step, i) => {
             if (isHidden(step)) {

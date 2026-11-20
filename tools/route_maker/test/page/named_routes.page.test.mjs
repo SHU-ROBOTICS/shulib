@@ -78,7 +78,7 @@ test.describe('RMP1-C in a browser', { skip }, () => {
         assert.equal(await page.locator('#route-switch strong').textContent(), 'left side', 'the new route on the field');
         assert.equal(await page.locator('#route-switch .count').textContent(), '2/2');
         assert.equal((await route(page)).mirroredFor, undefined, 'a new route runs as written on robot two');
-        await clickField(page, 24, -48);
+        await clickField(page, 24, -60);  // RMP1-H: clear of the red goal by the red wall (at -48 its start is in it)
         assert.equal(await page.locator('[data-twin]').count(), 0, 'not mirrored: no robot two drawn');
         await page.keyboard.press('p');
         await typeIn(page, 'seconds', 1);
@@ -186,7 +186,7 @@ test.describe('RMP1-C in a browser', { skip }, () => {
         await openRoutes(page);
         await menu(page).getByRole('button', { name: 'New route' }).click();
         await page.getByRole('button', { name: 'Add the route' }).click();
-        await clickField(page, 24, -48);
+        await clickField(page, 24, -60);  // RMP1-H: (24, -48) is in the red goal by the red wall
         await page.locator('.pane.right input[name="mirrored"]').click();
         assert.deepEqual((await errorsOf(page)).map((x) => x.code), ['RCT1']);
         assert.equal(await page.locator('[data-twin]').count(), 1);

@@ -26,13 +26,14 @@ const codes = (issues, level) => issues.filter((i) => !level || i.level === leve
 const at = (issues, code) => issues.filter((i) => i.code === code);
 
 test('a clean route on robot x has no issue at all', () => {
+    // RMP1-H: along y = -60, clear of the black goal by the red wall (along y = -55.7 the square clips it by 1.7 in)
     const r = route([
         { do: 'home', mechanism: 'lift', boundS: 3 },
-        { do: 'driveTo', x: -12, y: -55.7, faceFirst: false },
+        { do: 'driveTo', x: -12, y: -60, faceFirst: false },
         { do: 'move', mechanism: 'lift', preset: 'low', boundS: 2 },
         { do: 'curveTo', points: [{ x: 0, y: -50 }, { x: 12, y: -36, headingDeg: 90 }] },
         { label: 'end', do: 'wait', seconds: 0.5 },
-    ]);
+    ], { ...START, y: -60 });
     assert.deepEqual(checkRoute(r, [X], FIELD), []);
 });
 

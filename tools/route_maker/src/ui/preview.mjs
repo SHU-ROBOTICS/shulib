@@ -216,7 +216,8 @@ export function createPreview(app, els, engine, baked, toast) {
         const names = (robot) => r.steps.map((x) => ((robot.mechanisms || []).find((m) => m.ident === x.mechanism) || {}).name || '');
         const planned = plannedHeights(r, one);  // the route that RAN: an edit made during the run never reaches its strip
         const mechs = r.steps.map((x, i) => (x.mechanism ? { name: mechName(one, x.mechanism), target: planned[i].after[x.mechanism] ?? null } : null));
-        const runRec = { key, play: playbackOf(res, { one: names(one), two: two ? names(two) : [] }), pairWords, mechs };
+        const solid = { obstacles: (one.field || {}).obstacles || [], size: (one.drive || {}).footprintIn || 15 };  // RMP1-H
+        const runRec = { key, play: playbackOf(res, { one: names(one), two: two ? names(two) : [] }, solid), pairWords, mechs };
         if (r.together === false && runRec.play.pair) {  // RMP1-C D6: one robot at a time -- robot two's run shown, no gap verdict
             runRec.play.pair = null;
             runRec.pairWords = 'One robot at a time (this route\'s answer): robot two\'s mirrored run is shown, the too-close check is not.';

@@ -96,12 +96,13 @@ test('D2: robot two always runs the skills route MIRRORED (ROB1-BT) -- an unmirr
     assert.equal(fixed.mirroredFor, 'two');
     assert.deepEqual(at(checkRoute(fixed, [X], FIELD), 'RCM1'), []);
     assert.deepEqual(at(checkRoute({ ...plain, name: 'left' }, [X], FIELD, { routes: [newRoute(), { ...plain, name: 'left' }], index: 1 }), 'RCM1'), []);
-    assert.ok(['RCT1', 'RCP1', 'RCM1'].every((c) => ROBOT_TWO_ONLY.has(c)), 'PREVIEW (robot one\'s run) never waits for these');
-    assert.equal(ROBOT_TWO_ONLY.size, 3);
+    assert.ok(['RCT1', 'RCP1', 'RCM1', 'RCO3'].every((c) => ROBOT_TWO_ONLY.has(c)), 'PREVIEW (robot one\'s run) never waits for these');
+    assert.equal(ROBOT_TWO_ONLY.size, 4);
 });
 
 test('D1: an OLD project (one route "skills", A1\'s file) opens unchanged and saves to the same bytes', () => {
-    const old = saveProject({ ...newProject(), routes: [route([{ do: 'driveTo', x: -12, y: -55.7, faceFirst: false }], START, {})] });
+    // RMP1-H: along y = -60, clear of the black goal by the red wall (along y = -55.7 the square clips it by 1.7 in)
+    const old = saveProject({ ...newProject(), routes: [route([{ do: 'driveTo', x: -12, y: -60, faceFirst: false }], { ...START, y: -60 }, {})] });
     assert.ok(!old.includes('together'), 'A1 never wrote "together"');
     const back = loadProject(old);
     assert.ok(back.ok);

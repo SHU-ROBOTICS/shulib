@@ -88,3 +88,14 @@ export async function shot(page, name, rest = false) {
         await page.screenshot({ path: path.join(SHOTS, `${BROWSER}-${name}.png`) });
     }
 }
+
+/**
+ * The site's robots with the field's solid structures taken out (RMP1-H). The recorded PREVIEW runs
+ * (test/fixtures/preview/) were made before the structures were checked, and four of their routes drive through a
+ * goal: PREVIEW refuses a route with an error, so the pages that play them are baked without the structures. The
+ * structures, PREVIEW's THROUGH one included, are obstacles.page.test.mjs's.
+ */
+export function noStructures() {
+    const baked = JSON.parse(fs.readFileSync(path.join(SITE, 'robots.json'), 'utf8')).robots;
+    return Object.fromEntries(Object.entries(baked).map(([id, r]) => [id, { ...r, field: { ...r.field, obstacles: [] } }]));
+}
