@@ -97,6 +97,13 @@ const PATHS = {
     chevron: 'm6 9 6 6 6-6',
     edit: 'M4 20h4L19 9l-4-4L4 16Zm9-13 4 4',
     mirror: 'M12 3v18M4 7l5 5-5 5ZM20 7l-5 5 5 5Z',
+    // RMP1-G: hide, lock, focus, a step's menu
+    target: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 4.5v1',
+    eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Zm10-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',
+    eyeOff: 'M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.7 8.5 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2',
+    lock: 'M6 11h12v10H6ZM8 11V7a4 4 0 0 1 8 0v4',
+    unlock: 'M6 11h12v10H6ZM8 11V7a4 4 0 0 1 7.7-1.5',
+    more: 'M5 12h.01M12 12h.01M19 12h.01',
 };
 
 /** An icon (24 x 24, stroked in the current colour). */
