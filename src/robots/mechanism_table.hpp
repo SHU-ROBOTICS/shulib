@@ -103,6 +103,7 @@ inline constexpr Lift cascade{
                 {facts::lv(4).name, facts::lv(4).at}, {facts::lv(5).name, facts::lv(5).at}},
     .unhomedVolts = units::Voltage{facts::kCascadeUnhomedVolts.value()},
     .maxDownVolts = units::Voltage{facts::kCascadeMaxDownVolts.value()},
+    .tuning = {.kP = facts::kCascadeHoldKp.value(), .kI = facts::kCascadeHoldKi.value(), .kD = facts::kCascadeHoldKd.value()},
 };
 
 // THE SIDE TOGGLES (the builder, 2026-11-15): two GREEN motors, DIRECT (a power mechanism states no
@@ -190,6 +191,7 @@ inline constexpr Lift cascade{
                 {facts::lv(4).name, facts::lv(4).at}, {facts::lv(5).name, facts::lv(5).at}},
     .unhomedVolts = units::Voltage{facts::kCascadeUnhomedVolts.value()},
     .maxDownVolts = units::Voltage{facts::kCascadeMaxDownVolts.value()},
+    .tuning = {.kP = facts::kCascadeHoldKp.value(), .kI = facts::kCascadeHoldKi.value(), .kD = facts::kCascadeHoldKd.value()},
 };
 
 // THE SIDE TOGGLES (robot one's).

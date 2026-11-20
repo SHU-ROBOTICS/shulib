@@ -652,6 +652,19 @@ inline constexpr auto kCascadeTopMargin =
           "chosen, not measured -- the team lead, 2026-11-20 (later): 'stopping it just before it was a bit unnesseary "
           "because right now we are stopping it mechanically' -- none: same as the placeholder, checked");
 ROBOT_ONE_CHECK(kCascadeTopMargin, "the cascade's soft top, under its top row");
+// The cascade's hold gains (per spool degree): the library's starting ones (the placeholders) shivered mid-travel.
+inline constexpr auto kCascadeHoldKp =
+    typed(0.25, 0.08, Stage::B, "the cascade's hold kP",
+          "measured on robot one -- the team lead, 2026-11-20: 0.25 shivered mid-travel; 0.08 held still at 8 in");
+ROBOT_ONE_CHECK(kCascadeHoldKp, "the cascade's hold kP");
+inline constexpr auto kCascadeHoldKi =
+    typed(0.3, 0.1, Stage::B, "the cascade's hold kI",
+          "measured on robot one -- the team lead, 2026-11-20: with kP 0.08, held still at 8 in");
+ROBOT_ONE_CHECK(kCascadeHoldKi, "the cascade's hold kI");
+inline constexpr auto kCascadeHoldKd =
+    typed(0.004, 0.001, Stage::B, "the cascade's hold kD",
+          "measured on robot one -- the team lead, 2026-11-20: with kP 0.08, held still at 8 in");
+ROBOT_ONE_CHECK(kCascadeHoldKd, "the cascade's hold kD");
 
 // ── RECORDED — gating no build (D12, [R9]) ──────────────────────────────────────────────────
 
@@ -691,6 +704,7 @@ inline constexpr FactSummary kRobotOneFacts[] = {
     summary(kClawOpenLevel),        summary(kFlipperOpenLevel),      summary(kRampDownLevel),
     summary(kClawStrokeTime),       summary(kFlipperStrokeTime),     summary(kRampStrokeTime),
     summary(kCascadeMaxDownVolts),  summary(kCascadeTopMargin),
+    summary(kCascadeHoldKp),        summary(kCascadeHoldKi),         summary(kCascadeHoldKd),
     summary(kCameraPort),           summary(kCameraMount),
 };
 
