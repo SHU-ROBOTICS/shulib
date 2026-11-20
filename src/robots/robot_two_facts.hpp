@@ -229,6 +229,10 @@ inline constexpr auto kCascadeMaxDownVolts =
     typed(one::kCascadeMaxDownVolts.placeholder, one::kCascadeMaxDownVolts.value(), Stage::B, "the cascade's most volts DOWN",
           "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- chosen, not measured");
 ROBOT_TWO_CHECK(kCascadeMaxDownVolts, "the cascade's most volts DOWN");
+inline constexpr auto kCascadeTopMargin =
+    typed(one::kCascadeTopMargin.placeholder, one::kCascadeTopMargin.value(), Stage::B, "the cascade's soft top, under its top row",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- none: same as the placeholder, checked");
+ROBOT_TWO_CHECK(kCascadeTopMargin, "the cascade's soft top, under its top row");
 
 // ── RECORDED — gating no build (the camera: VIS1-B reads it) ──
 inline constexpr auto kCameraPort = owed(one::kCameraPort.value(), Stage::Recorded, "the AI Vision camera's port");
@@ -253,7 +257,7 @@ inline constexpr FactSummary kRobotTwoFacts[] = {
     summary(kCascadeHomingStallAmps), summary(kCascadeUnhomedVolts),  summary(kRightToggleDirection),
     summary(kLeftToggleDirection),    summary(kClawOpenLevel),        summary(kFlipperOpenLevel),
     summary(kRampDownLevel),          summary(kClawStrokeTime),       summary(kFlipperStrokeTime),
-    summary(kRampStrokeTime),         summary(kCascadeMaxDownVolts),  summary(kCameraPort),
+    summary(kRampStrokeTime),         summary(kCascadeMaxDownVolts),  summary(kCascadeTopMargin),  summary(kCameraPort),
     summary(kCameraMount),
 };
 
@@ -284,6 +288,9 @@ constexpr units::Length cascadeBottom() { return kCascadeRows.value().row[0].hei
 
 /// The cascade's top stop: its last measured row.
 constexpr units::Length cascadeTop() { return kCascadeRows.value().row[one::kCascadeRowCount - 1].height; }
+
+/// The cascade's SOFT top: its top row less kCascadeTopMargin -- the range's top (a held R1 brakes before the stop).
+constexpr units::Length cascadeSoftTop() { return cascadeTop() - kCascadeTopMargin.value(); }
 
 /// The cascade's JAM stall signature — the declaration's `.stall`.
 constexpr mechanism::Stall cascadeStall() {

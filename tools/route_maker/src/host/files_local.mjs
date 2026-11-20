@@ -2,6 +2,7 @@
 // writes src/team/ through it (any browser, no folder dialog), and Send to robot runs tools/upload_auton.py there.
 // Every rule stays region.mjs's through files.mjs; the helper also refuses any path that is not a file under src/team/.
 // A refusal is thrown as an Error in the helper's words, as the folder host's are; a missing file (204) reads as null.
+// RMP1-K: watchRobot (the brain's own lines, D2) and robotSlots (what is in each slot, D5) over the same helper.
 
 import { downloadHost } from './files_download.mjs';
 
@@ -14,12 +15,29 @@ export function localPage(doc = typeof document !== 'undefined' ? document : nul
 }
 
 const fetchOf = (f) => f || ((...a) => globalThis.fetch(...a));
-async function call(f, token, method, url, body) {
+async function call(f, token, method, url, body, signal) {
     try {
-        return await f(url, { method, body, cache: 'no-store', headers: { 'X-Shulib-Token': token } });
-    } catch {
-        throw new Error(GONE);
+        return await f(url, { method, body, cache: 'no-store', headers: { 'X-Shulib-Token': token }, signal });
+    } catch (e) {
+        throw signal && signal.aborted ? e : new Error(GONE);
     }
+}
+/** Each JSON line of a streamed answer to `take(message)` as it comes; resolves at its end. */
+async function eachLine(res, take) {
+    const reader = res.body.getReader();
+    const text = new TextDecoder();
+    let rest = '';
+    const one = (raw) => raw.trim() && take(JSON.parse(raw));
+    for (;;) {
+        const r = await reader.read();
+        if (r.done) {
+            break;
+        }
+        const lines = (rest + text.decode(r.value, { stream: true })).split('\n');
+        rest = lines.pop();
+        lines.forEach(one);
+    }
+    one(rest + text.decode());
 }
 async function refused(res) {
     const words = await res.text().catch(() => '');
@@ -65,34 +83,15 @@ export async function sendToRobot({ token }, robot, onLine, { fetch } = {}) {
     if (!res.ok) {
         throw await refused(res);
     }
-    const reader = res.body.getReader();
-    const text = new TextDecoder();
-    let rest = '';
     let code = null;
-    const take = (raw) => {
-        if (raw.trim()) {
-            const m = JSON.parse(raw);
-            if (typeof m.line === 'string') {
-                onLine(m.line);
-            }
-            code = m.done ? m.code : code;
+    await eachLine(res, (m) => {
+        if (typeof m.line === 'string') {
+            onLine(m.line);
         }
-    };
-    for (;;) {
-        let r;
-        try {
-            r = await reader.read();
-        } catch {
-            throw new Error(GONE);
-        }
-        if (r.done) {
-            break;
-        }
-        const lines = (rest + text.decode(r.value, { stream: true })).split('\n');
-        rest = lines.pop();
-        lines.forEach(take);
-    }
-    take(rest + text.decode());
+        code = m.done ? m.code : code;
+    }).catch(() => {
+        throw new Error(GONE);
+    });
     if (code === null) {
         throw new Error(GONE);
     }
@@ -103,4 +102,28 @@ export async function sendToRobot({ token }, robot, onLine, { fetch } = {}) {
 export async function sendLog({ token }, { fetch } = {}) {
     const res = await call(fetchOf(fetch), token, 'GET', 'api/log');
     return res.ok ? res.text() : '';
+}
+
+/** RMP1-K D2: Watch the robot — every message of the helper's watch ({saved}, {open}, {line}, {paused}, {error}; its pings
+ *  left out) to `onMessage` as it comes; resolves when the watch ends; `signal` stops it. Throws in words when refused. */
+export async function watchRobot({ token }, onMessage, { fetch, signal } = {}) {
+    const res = await call(fetchOf(fetch), token, 'POST', 'api/watch', undefined, signal);
+    if (!res.ok) {
+        throw await refused(res);
+    }
+    await eachLine(res, (m) => Object.keys(m).length && onMessage(m)).catch((e) => {
+        if (!(signal && signal.aborted)) {
+            throw new Error(GONE);
+        }
+        return e;
+    });
+}
+
+/** RMP1-K D5: {robot, rows, why} — what is in each of robot `robot`'s slots beside the wanted table (rows null: why). */
+export async function robotSlots({ token }, robot, { fetch } = {}) {
+    const res = await call(fetchOf(fetch), token, 'POST', `api/robot?robot=${encodeURIComponent(robot)}`);
+    if (!res.ok) {
+        throw await refused(res);
+    }
+    return res.json();
 }

@@ -76,9 +76,16 @@ export function createRoutesMenu(app) {
                 h('button', { class: 'menu-item act danger', 'aria-label': `Delete "${r.name}"`, title: skills ? 'The skills route is always there' : 'Delete',
                               disabled: skills, onclick: () => remove(k) }, icon('trash')));
         });
+        const rv = app.runView;  // RMP1-K: on the page tools/route_builder.py serves, the robot itself
         openMenu(anchor, [h('h3', {}, 'Routes · the brain\'s menu lists them in this order'), rows,
             h('button', { class: 'menu-item add-route', disabled: full, onclick: add }, icon('plus'),
-              full ? `At most ${cap()} routes (the brain's menu is full)` : 'New route')], 'Routes');
+              full ? `At most ${cap()} routes (the brain's menu is full)` : 'New route'),
+            rv ? [h('h3', {}, 'On the robot'),
+                h('button', { class: 'menu-item', id: 'check-mechs', onclick: () => rv.check() }, icon('mechanism'),
+                  `Check the mechanisms of "${app.routes()[at].name}"`),
+                h('button', { class: 'menu-item', id: 'watch-robot', onclick: () => rv.watch() }, icon('play'), 'Watch the robot'),
+                ['one', 'two'].map((r) => h('button', { class: 'menu-item', 'data-slots': r, onclick: () => rv.slots(r) }, icon('list'),
+                    `What is on robot ${r}`))] : null], 'Routes');
     }
 
     function button() {

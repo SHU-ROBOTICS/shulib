@@ -390,10 +390,10 @@ ROBOT_ONE_CHECK(kCascadePorts, "the cascade's motor ports");
 // Station 13's direction check confirms each, and a correction is a typed edit here.
 inline constexpr auto kCascadeDirections =
     typed(Pair<mechanism::Motor>{mechanism::words::Forward, mechanism::words::Reversed},
-          Pair<mechanism::Motor>{mechanism::words::Forward, mechanism::words::Reversed}, Stage::A,
+          Pair<mechanism::Motor>{mechanism::words::Reversed, mechanism::words::Forward}, Stage::A,
           "the cascade motors' directions",
-          "the team's builder, 2026-11-15, read off the robot: the two motors FACE EACH OTHER; port 10 taken as "
-          "Forward and port 1 as Reversed by the coordinator, station 13 confirms -- same as the placeholder, checked");
+          "the team lead, 2026-11-20, read off robot one in shulib Drive: homing went UP, R1 drove it DOWN and R2 UP, "
+          "both motors together -- so BOTH reversed (port 10 reversed, port 1 forward); the old typing was never driven");
 ROBOT_ONE_CHECK(kCascadeDirections, "the cascade motors' directions");
 
 // Form C1: the cascade motors' cartridge (the colour of the insert).
@@ -646,6 +646,12 @@ inline constexpr auto kCascadeMaxDownVolts =
     typed(12.0, 7.2, Stage::B, "the cascade's most volts DOWN",
           "chosen, not measured -- the team lead, 2026-11-20: 'it needs to go down to 60' (60 % of 12 V)");
 ROBOT_ONE_CHECK(kCascadeMaxDownVolts, "the cascade's most volts DOWN");
+// The cascade's soft top: the range's top this far UNDER its top row, so a held R1 brakes before the top stop.
+inline constexpr auto kCascadeTopMargin =
+    typed(0.0_in, 0.0_in, Stage::B, "the cascade's soft top, under its top row",
+          "chosen, not measured -- the team lead, 2026-11-20 (later): 'stopping it just before it was a bit unnesseary "
+          "because right now we are stopping it mechanically' -- none: same as the placeholder, checked");
+ROBOT_ONE_CHECK(kCascadeTopMargin, "the cascade's soft top, under its top row");
 
 // ── RECORDED — gating no build (D12, [R9]) ──────────────────────────────────────────────────
 
@@ -684,7 +690,7 @@ inline constexpr FactSummary kRobotOneFacts[] = {
     summary(kCascadeHomingStallAmps), summary(kCascadeUnhomedVolts),  summary(kRightToggleDirection),  summary(kLeftToggleDirection),
     summary(kClawOpenLevel),        summary(kFlipperOpenLevel),      summary(kRampDownLevel),
     summary(kClawStrokeTime),       summary(kFlipperStrokeTime),     summary(kRampStrokeTime),
-    summary(kCascadeMaxDownVolts),
+    summary(kCascadeMaxDownVolts),  summary(kCascadeTopMargin),
     summary(kCameraPort),           summary(kCameraMount),
 };
 
@@ -716,6 +722,9 @@ constexpr units::Length cascadeBottom() { return kCascadeRows.value().row[0].hei
 
 /// The cascade's top stop: its LAST measured row's height — the range's top (no separate fact).
 constexpr units::Length cascadeTop() { return kCascadeRows.value().row[kCascadeRowCount - 1].height; }
+
+/// The cascade's SOFT top: its top row less kCascadeTopMargin -- the range's top (a held R1 brakes before the stop).
+constexpr units::Length cascadeSoftTop() { return cascadeTop() - kCascadeTopMargin.value(); }
 
 /// The cascade's JAM stall signature, from its three facts — the declaration's `.stall`.
 constexpr mechanism::Stall cascadeStall() {

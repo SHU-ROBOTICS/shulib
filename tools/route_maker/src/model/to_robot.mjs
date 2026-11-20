@@ -8,7 +8,7 @@ export function robotCommands(which, { windows = false } = {}) {
     const two = which === 'two';
     return {
         build: `make ROBOT=${two ? 'tank' : 'one'} PROGRAM=autontest`,
-        upload: `pros upload --slot ${TESTER.slot} --name "${TESTER.name}"`,
+        upload: `pros upload --slot ${TESTER.slot} --name "${TESTER.name}" --description "$(git describe --always --dirty)"`,  // RMP1-K D5
         helper: `${windows ? 'python' : 'python3'} tools/upload_auton.py ${two ? 'two' : 'one'}`,
     };
 }

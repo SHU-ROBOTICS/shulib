@@ -113,6 +113,11 @@ export function renderStepList(el, app) {
           act(`${locked ? 'Unlock' : 'Lock'} step ${i + 1} (L)`, locked ? 'lock' : 'unlock', locked, () => app.toggleLocked(i)),
           act(`More for step ${i + 1}`, 'more', false, (b) => stepMenu(b, app, i))),
         h('span', { class: 'grip', title: 'Drag to reorder', 'aria-hidden': 'true', draggable: 'true' }, icon('grip')));
+        // ═══ RMP1-K: how the robot's run went (run_view.mjs) ═══
+        if (app.runView) {
+            app.runView.markCard(card, i);
+        }
+        // ═══ end RMP1-K ═══
         const grip = card.querySelector('.grip');
         grip.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('text/plain', String(i));

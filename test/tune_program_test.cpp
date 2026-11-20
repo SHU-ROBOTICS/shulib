@@ -2217,7 +2217,7 @@ TEST_CASE("Tune (ROB1-A's integration; ROB1-C2's six mechanisms): over ROBOT ONE
     }
     const mech::TuneTargets targets = mech::tuneTargets(t.specs[0]);
     const double bottom = facts::cascadeBottom().value();
-    const double top = facts::cascadeTop().value();
+    const double top = facts::cascadeSoftTop().value();  // the range's top (2026-11-20: 1 in under the top row)
     if (named >= 2) {
         CHECK(std::string_view{targets.aName} == facts::lv(0).name);
         CHECK(std::string_view{targets.bName} == facts::lv(named - 1).name);

@@ -31,8 +31,10 @@ Music: "Wallpaper" by Kevin MacLeod ([incompetech.com](https://incompetech.com))
 
 *Slots 3 and 4, from the laptop*
 
-Plug the brain into the laptop with a USB cable. In a terminal, in the shulib folder, build and upload
-both programs for **your** robot:
+Plug the brain into the laptop with a USB cable. **The easy way:** in VS Code, **Terminal → Run Task → Upload
+everything to robot one** (or two) puts all six programs on the robot, each in its slot, and ends with a ✓ or ✗ line
+for each. (Not the PROS extension's own Upload button: it builds the bench bot's test program.) Or, in a terminal,
+in the shulib folder, build and upload these two for **your** robot:
 
 | Robot | Build word |
 |---|---|
@@ -43,9 +45,9 @@ Robot one:
 
 ```sh
 make ROBOT=one
-pros upload --slot 3 --name "Bench Tests"
+pros upload --slot 3 --name "Bench Tests" --description "$(git describe --always --dirty)"
 make ROBOT=one PROGRAM=calibrate
-pros upload --slot 4 --name "shulib Calibrate"
+pros upload --slot 4 --name "shulib Calibrate" --description "$(git describe --always --dirty)"
 ```
 
 Robot two: the same four lines with `ROBOT=tank` in place of `ROBOT=one`.
@@ -275,7 +277,7 @@ shulib Drive builds once the answers from step 2 are typed into your robot's fac
 
 ```sh
 make ROBOT=one PROGRAM=drive
-pros upload --slot 1 --name "shulib Drive"
+pros upload --slot 1 --name "shulib Drive" --description "$(git describe --always --dirty)"
 ```
 
 Run **shulib Drive** (slot 1) and check, with the robot on the floor:

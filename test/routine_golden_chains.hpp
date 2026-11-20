@@ -21,6 +21,7 @@
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/routine.hpp"
 #include "shulib/control/exit_group.hpp"
+#include "routine_done_line.hpp"
 #include "shulib/hal/fake/fake_telemetry_sink.hpp"
 #include "shulib/kinematics/tank.hpp"
 #include "shulib/manipulation/mechanism_outcome.hpp"
@@ -57,7 +58,7 @@ inline std::string fields(const shulib::chassis::RoutineResult& r) {
 inline std::vector<std::string> rtnLines(const shulib::hal::fake::FakeTelemetrySink& sink) {
     std::vector<std::string> out;
     for (int i = 0; i < sink.size(); ++i) {
-        if (sink.at(i).subsystem == "RTN") {
+        if (sink.at(i).subsystem == "RTN" && !routine_d4::isStepDoneLine(sink.at(i).level, sink.at(i).subsystem, sink.at(i).message)) {
             out.push_back(std::to_string(static_cast<int>(sink.at(i).level)) + "|" + sink.at(i).message);
         }
     }

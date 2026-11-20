@@ -109,6 +109,9 @@
 #include <string_view>
 
 #include "pros/misc.h"
+#include "pros/motors.h"
+#include "pros/ai_vision.h"
+#include "pros/apix.h"
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 
@@ -642,6 +645,125 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
     }
 }
 
+/// THE CASCADE TRACE (the team lead, 2026-11-20: "it still did the jitter ... can we add some logging so you can"
+/// see it): every 50 ms, one `[CAS]` line -- R1 / R2, the cascade's position, target, homed and soft stops, and
+/// each of its motors' volts, current and speed, read from PROS. Serial and the card, like every [DRV] line.
+class CascadeTrace {
+public:
+    CascadeTrace(mechanism::MechanismService& mechanisms, hal::ITelemetrySink& log) : mechanisms_{mechanisms}, log_{log} {
+        for (std::size_t i = 0; i < kMechanisms.count; ++i) {
+            if (std::string_view{kMechanisms.specs[i].name} == "cascade" &&
+                kMechanisms.specs[i].kind == mechanism::Kind::Position) {
+                slot_ = i;
+            }
+        }
+    }
+    void tick() {
+        if (slot_ == kNone || ++tick_ % 5 != 0) {
+            return;
+        }
+        mechanism::PositionSlot& c = mechanisms_.position(slot_);
+        char line[220];
+        int n = std::snprintf(line, sizeof line, "R1 %d R2 %d pos %7.3f tgt %7.3f homed %d soft %d",
+                              static_cast<int>(pros::c::controller_get_digital(pros::E_CONTROLLER_MASTER, pros::E_CONTROLLER_DIGITAL_R1)),
+                              static_cast<int>(pros::c::controller_get_digital(pros::E_CONTROLLER_MASTER, pros::E_CONTROLLER_DIGITAL_R2)),
+                              c.position(), c.target(), c.homed() ? 1 : 0, c.softStops());
+        for (std::size_t m = 0; m < kMechanisms.specs[slot_].motorCount && m < 2 && n > 0 && n < static_cast<int>(sizeof line); ++m) {
+            const auto port = static_cast<std::int8_t>(kMechanisms.wiring[slot_].motors[m]);
+            n += std::snprintf(line + n, sizeof line - static_cast<std::size_t>(n), " | p%d %6.2fV %5.2fA %6.1frpm",
+                               static_cast<int>(port), pros::c::motor_get_voltage(port) / 1000.0,
+                               pros::c::motor_get_current_draw(port) / 1000.0, pros::c::motor_get_actual_velocity(port));
+        }
+        log_.log(hal::LogLevel::Info, "CAS", line);
+    }
+
+private:
+    static constexpr std::size_t kNone = static_cast<std::size_t>(-1);
+    mechanism::MechanismService& mechanisms_;
+    hal::ITelemetrySink& log_;
+    std::size_t slot_ = kNone;
+    unsigned long tick_ = 0;
+};
+
+/// THE CAMERA TRACE (the team lead, 2026-11-20: "i want to see it through the route builder ... so i can use it to
+/// show you what its doing"): the AI Vision sensor found on any port (as Bench Tests' station 12 finds it), tags,
+/// objects and colours switched on, and every 100 ms one `[CAM]` line of what it reports -- each tag (id, centre,
+/// size), each object (class id, box, score), each colour (id, box) -- read raw, nothing interpreted. 1 s apart
+/// while it sees nothing.
+class CameraTrace {
+public:
+    explicit CameraTrace(hal::ITelemetrySink& log) : log_{log} {
+        for (int idx = 0; idx < 21; ++idx) {
+            if (pros::c::registry_get_plugged_type(static_cast<std::uint8_t>(idx)) == pros::c::E_DEVICE_AIVISION) {
+                port_ = idx + 1;
+                break;
+            }
+        }
+        char line[200];
+        if (port_ == 0) {
+            log_.log(hal::LogLevel::Info, "CAM", "no AI Vision sensor on any port: nothing to trace");
+            return;
+        }
+        const auto p = static_cast<std::uint8_t>(port_);
+        const std::int32_t ret = pros::c::aivision_enable_detection_types(
+            p, static_cast<std::uint8_t>(pros::E_AIVISION_MODE_TAGS | pros::E_AIVISION_MODE_OBJECTS | pros::E_AIVISION_MODE_COLORS));
+        std::snprintf(line, sizeof line, "AI Vision on port %d: tags, objects and colours on (%ld); a line every 100 ms: "
+                      "tag id c(x,y) WxH | obj class (x,y) WxH score%% | col id (x,y) WxH", port_, static_cast<long>(ret));
+        log_.log(hal::LogLevel::Info, "CAM", line);
+        for (std::int32_t id = 0; id < 8; ++id) {  // the model's class names, as the camera reports them
+            std::uint8_t name[AIVISION_MAX_CLASSNAME_COUNT + 1] = {};
+            if (pros::c::aivision_get_class_name(p, id, name) == 1 && name[0] != 0) {
+                std::snprintf(line, sizeof line, "class %ld: '%.20s'", static_cast<long>(id), reinterpret_cast<const char*>(name));
+                log_.log(hal::LogLevel::Info, "CAM", line);
+            }
+        }
+    }
+    void tick() {
+        if (port_ == 0 || ++tick_ % 10 != 0) {
+            return;
+        }
+        const auto p = static_cast<std::uint8_t>(port_);
+        std::int32_t n = pros::c::aivision_get_object_count(p);
+        if (n <= 0 && tick_ % 100 != 0) {
+            return;
+        }
+        char line[480];
+        int k = std::snprintf(line, sizeof line, "n %ld", static_cast<long>(n));
+        n = n < 0 ? 0 : n > 8 ? 8 : n;
+        for (std::int32_t i = 0; i < n && k > 0 && k < static_cast<int>(sizeof line) - 60; ++i) {
+            const pros::aivision_object_s_t o = pros::c::aivision_get_object(p, static_cast<std::uint32_t>(i));
+            const unsigned id = o.id;
+            const unsigned type = o.type;
+            const std::size_t room = sizeof line - static_cast<std::size_t>(k);
+            if (type == pros::E_AIVISION_DETECTED_TAG) {
+                const int xs[4] = {o.object.tag.x0, o.object.tag.x1, o.object.tag.x2, o.object.tag.x3};
+                const int ys[4] = {o.object.tag.y0, o.object.tag.y1, o.object.tag.y2, o.object.tag.y3};
+                int x0 = xs[0], x1 = xs[0], y0 = ys[0], y1 = ys[0];
+                for (int c = 1; c < 4; ++c) {
+                    x0 = std::min(x0, xs[c]); x1 = std::max(x1, xs[c]); y0 = std::min(y0, ys[c]); y1 = std::max(y1, ys[c]);
+                }
+                k += std::snprintf(line + k, room, " | tag %u c(%d,%d) %dx%d", id, (x0 + x1) / 2, (y0 + y1) / 2, x1 - x0, y1 - y0);
+            } else if (type == pros::E_AIVISION_DETECTED_OBJECT) {
+                const int x = o.object.element.xoffset, y = o.object.element.yoffset;
+                const int w = o.object.element.width, h = o.object.element.height, sc = o.object.element.score;
+                k += std::snprintf(line + k, room, " | obj %u (%d,%d) %dx%d %d%%", id, x, y, w, h, sc);
+            } else if (type == pros::E_AIVISION_DETECTED_COLOR || type == pros::E_AIVISION_DETECTED_CODE) {
+                const int x = o.object.color.xoffset, y = o.object.color.yoffset;
+                const int w = o.object.color.width, h = o.object.color.height;
+                k += std::snprintf(line + k, room, " | col %u (%d,%d) %dx%d", id, x, y, w, h);
+            } else {
+                k += std::snprintf(line + k, room, " | type %u id %u", type, id);
+            }
+        }
+        log_.log(hal::LogLevel::Info, "CAM", line);
+    }
+
+private:
+    hal::ITelemetrySink& log_;
+    int port_ = 0;
+    unsigned long tick_ = 0;
+};
+
 }  // namespace
 
 void driveInitialize(const char* variantBeacon, const char* competitionStatusBits) {
@@ -756,8 +878,15 @@ void runDrive() {
     DriveScreen screen{r, st.boot, st.driver, *st.mechanisms, *st.lcd, readTouch()};
     // The driver file's loop ticks the mechanism service itself, once per tick; its pacer is the raw
     // tick (header, THE MECHANISM SERVICE).
-    st.driver.run(r, *st.mechanisms, st.devices->pacer(),
-                  [] { return pros::c::competition_is_disabled() != 0; }, screen);
+    CascadeTrace trace{*st.mechanisms, log};
+    CameraTrace camera{log};
+    st.driver.run(r, *st.mechanisms, st.devices->pacer(), [] { return pros::c::competition_is_disabled() != 0; },
+                  [&screen, &trace, &camera](const math::ChassisSpeeds& command, bool connected,
+                                    const teleop::DriveShaperState& shaper, const teleop::DriveProtectionState& protection) {
+                      screen(command, connected, shaper, protection);
+                      trace.tick();
+                      camera.tick();
+                  });
     // This line races PROS's deletion of this task (HA-161 (a)): one that lands while the line is
     // being copied to the card ends the card's copy for the rest of the boot (serial keeps every
     // line; diag/log_copy_sink.hpp, "A writer that never comes back").

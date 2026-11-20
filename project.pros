@@ -1,7 +1,7 @@
 {
     "py/object": "pros.conductor.project.Project",
     "py/state": {
-        "project_name": "Bench Tests",
+        "project_name": "PROS button (bench bot)",
         "target": "v5",
         "templates": {
             "kernel": {
@@ -258,9 +258,9 @@
             }
         },
         "upload_options": {
-            "description": "driving code",
+            "description": "PROS button: the bench bot test build -- use VS Code Run Task, Upload everything",
             "icon": "pizza",
-            "slot": 1
+            "slot": 5
         },
         "use_early_access": false
     }
