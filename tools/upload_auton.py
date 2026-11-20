@@ -8,9 +8,10 @@
 Then `pros upload --slot 6 --name "shulib Auton Tester" . <the brain's port>` (pros-cli takes the port as an argument
 after the project folder; the port from `pros lsusb`'s "V5 System Ports", without a controller). Prints ✓ BUILT and
 ✓ UPLOADED, or ✗ and the first real error in plain words. Windows and Linux: Python 3 (`python` on Windows), `make` and
-`pros` from PATH (the PROS terminal), else from the PROS toolchain's folder (PROS_TOOLCHAIN, which the PROS extension
-sets in every VS Code terminal: its bin/make, as `pros make` finds it, and the pros-cli folder beside it). Everything
-make and pros print goes to build/upload_auton.log as they print it.
+`pros` from PATH (the PROS terminal), else from the PROS toolchain's folder (PROS_TOOLCHAIN, else the one the PROS
+extension installed, which it names only in its own PROS Terminal -- a VS Code task has neither: its bin/make, as
+`pros make` finds it, and the pros-cli folder beside it). Everything make and pros print goes to build/upload_auton.log
+as they print it.
 """
 import os
 import re
@@ -186,20 +187,34 @@ def no_answer(seconds):
     return f"pros gave no answer in {round(seconds)} s: unplug the brain's USB cable, plug it back in, then run this again."
 
 
+def pros_extension():
+    """The toolchain folder the PROS extension's one-click install made (VS Code's globalStorage), or None. The extension
+    puts it on PATH and in PROS_TOOLCHAIN for its own PROS Terminal only, so a VS Code task (route_builder.py's Send)
+    sees neither."""
+    base = (os.environ.get("APPDATA") if os.name == "nt" else Path.home() / "Library" / "Application Support"
+            if sys.platform == "darwin" else os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
+    install = Path(base or ".") / "Code" / "User" / "globalStorage" / "sigbots.pros" / "install"
+    return next((str(t) for t in (install / "pros-toolchain-windows" / "usr", install / "pros-toolchain-linux",
+                                  install / "pros-toolchain-macos") if base and (t / "bin").is_dir()), None)
+
+
 def find_tools():
     """(make, pros, the build's environment): each from PATH, else from the PROS toolchain's folder -- make from
     PROS_TOOLCHAIN/bin exactly as `pros make` finds it (and, as `pros make` does, that bin first on the build's PATH,
     so the toolchain's compiler builds), pros from the pros-cli folder the PROS extension installs beside the
-    toolchain. Never `pros make` itself: when it cannot start make it says so and still exits 0, and an upload after
-    it would send the OLD program."""
+    toolchain. With no PROS_TOOLCHAIN, the extension's own folder, as its PROS Terminal has it (that bin first on the
+    build's PATH, PROS_TOOLCHAIN set). Never `pros make` itself: when it cannot start make it says so and still exits
+    0, and an upload after it would send the OLD program."""
     make, pros, env = shutil.which("make"), shutil.which("pros"), None
-    tc = os.environ.get("PROS_TOOLCHAIN")
+    tc = os.environ.get("PROS_TOOLCHAIN") or (None if make and pros else pros_extension())
     if tc:
         bin_ = Path(tc) / "bin"
+        if tc != os.environ.get("PROS_TOOLCHAIN"):  # the extension's folder: the build sees it as its PROS Terminal does
+            env = dict(os.environ, PROS_TOOLCHAIN=tc, PATH=str(bin_) + os.pathsep + os.environ.get("PATH", ""))
         if not make:
             make = shutil.which("make", path=str(bin_))
             if make:
-                env = dict(os.environ, PATH=str(bin_) + os.pathsep + os.environ.get("PATH", ""))
+                env = dict(env or os.environ, PATH=str(bin_) + os.pathsep + os.environ.get("PATH", ""))
         if not pros:
             near = [d for up in (Path(tc).parent, Path(tc).parent.parent) for d in sorted(up.glob("pros-cli-*"))]
             pros = shutil.which("pros", path=os.pathsep.join(map(str, near))) if near else None
@@ -227,7 +242,7 @@ def main(argv):
     cmd = [make, f"ROBOT={ROBOTS[which]}", "PROGRAM=autontest"]
     print(f"Building robot {which}'s Auton Tester: make ROBOT={ROBOTS[which]} PROGRAM=autontest (a few minutes the "
           "first time; Ctrl+C stops it)...", flush=True)
-    if env:
+    if env and Path(make).parent == Path(env.get("PROS_TOOLCHAIN", "")) / "bin":
         print(f"  (make from the PROS toolchain: {make})", flush=True)
     code, text = run(cmd, root, log, env=env)
     if code != 0:
@@ -407,23 +422,28 @@ def self_test():
     (work / "bare" / "pros-toolchain-test" / "bin").mkdir(parents=True)  # a toolchain folder with no make in it
     failures, count = [], [0]
 
-    def env_for(name, path=True, enc="utf-8", tc=None):
+    def env_for(name, path=True, enc="utf-8", tc=None, ext=None):
         """`path`: True the stand-ins' bin, False an empty folder, else that folder; `tc` the PROS_TOOLCHAIN folder
-        (None: unset, whatever this computer's is)."""
+        (None: unset); `ext` (the folder VS Code's globalStorage is in, the extension's toolchain in it) -- None: an empty
+        one, never this computer's own."""
         (work / "calls.txt").write_text("", encoding="utf-8")
+        home = str(ext[0] if ext else work / "nohome")
         env = dict(os.environ, FAKE_CASE=name, FAKE_CALLS=str(work / "calls.txt"), PYTHONIOENCODING=enc,
-                   PATH=str(work / "bin") if path is True else str(work / "empty") if path is False else str(path))
+                   PATH=str(work / "bin") if path is True else str(work / "empty") if path is False else str(path),
+                   APPDATA=home, XDG_CONFIG_HOME=home, HOME=home, USERPROFILE=home)
         env.pop("PROS_TOOLCHAIN", None)
         env.pop("FAKE_TC", None)
         if tc:
             env.update(PROS_TOOLCHAIN=str(tc), FAKE_TC=str(Path(tc) / "bin"))
+        if ext:
+            env.update(FAKE_TC=str(Path(ext[1]) / "bin"))
         return env
 
     def case(name, robot, want_code, want, unwanted=(), calls=None, path=True, skills=SKILLS_STANDIN, enc="utf-8", extra=(),
-             tc=None):
+             tc=None, ext=None):
         count[0] += 1
         (work / "repo" / SKILLS).write_text(skills, encoding="utf-8")
-        p = subprocess.run([sys.executable, str(here), "--root", str(work / "repo"), *extra, robot], env=env_for(name, path, enc, tc),
+        p = subprocess.run([sys.executable, str(here), "--root", str(work / "repo"), *extra, robot], env=env_for(name, path, enc, tc, ext),
                            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=120)
         out = p.stdout.decode("utf-8", errors="replace")
         made = (work / "calls.txt").read_text(encoding="utf-8").splitlines()
@@ -488,6 +508,20 @@ def self_test():
     case("ok", "one", 1, ["✗ pros not found."], calls=[], path=work / "makeonly", tc=work / "bare" / "pros-toolchain-test")
 
     case("ok", "three", 2, ["Say which robot"], calls=[])
+    # RMP1-I review: a VS Code task has no PROS_TOOLCHAIN; the extension's own install folder (globalStorage) is found
+    gs = work / "gs"
+    tcx = gs / ("Library/Application Support" if sys.platform == "darwin" else "") / "Code/User/globalStorage/sigbots.pros/install"
+    tcx = tcx / ("pros-toolchain-windows/usr" if os.name == "nt" else "pros-toolchain-linux")
+    stand_in(tcx / "bin", "make", says="tcmake")
+    stand_in(tcx.parent.parent / "pros-cli-windows" if os.name == "nt" else tcx.parent / "pros-cli-linux", "pros")
+    ran = ["pros lsusb", f"pros upload --slot {SLOT} --name {NAME} . /dev/ttyACM0"]
+    case("ok", "one", 0, ["(make from the PROS toolchain: ", "✓ BUILT", "✓ UPLOADED"], path=False, ext=(gs, tcx),
+         calls=["tcmake ROBOT=one PROGRAM=autontest"] + ran)
+    case("ok", "one", 0, ["✓ UPLOADED"], unwanted=["from the PROS toolchain"], ext=(gs, tcx),
+         calls=["make ROBOT=one PROGRAM=autontest"] + ran)  # both on PATH: the extension's folder is not used
+    stand_in(work / "sysmake", "make", says="tcmake")  # Linux: make on PATH, the compiler only in the extension's bin
+    case("ok", "one", 0, ["✓ UPLOADED"], unwanted=["from the PROS toolchain"], path=work / "sysmake", ext=(gs, tcx),
+         calls=["tcmake ROBOT=one PROGRAM=autontest"] + ran)
     if os.name != "nt":  # Ctrl+C while make runs: a plain ✗, never a traceback, and what make printed is in the log
         count[0] += 1
         log, until = work / "repo" / "build" / "upload_auton.log", time.time() + 10

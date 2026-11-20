@@ -354,6 +354,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           if [ "$RUNNER_OS" = Windows ]; then python tools/upload_auton.py self-test; else python3 tools/upload_auton.py self-test; fi
+      - name: tools/route_builder.py (the route builder on the team laptop, Send to robot) against a stand-in checkout (RMP1-I)
+        if: ${{ !cancelled() }}
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then python tools/route_builder.py self-test; else python3 tools/route_builder.py self-test; fi
       - id: site
         if: ${{ !cancelled() }}
         uses: actions/download-artifact@v4

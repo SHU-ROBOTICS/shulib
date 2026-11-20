@@ -104,6 +104,7 @@ const PATHS = {
     lock: 'M6 11h12v10H6ZM8 11V7a4 4 0 0 1 8 0v4',
     unlock: 'M6 11h12v10H6ZM8 11V7a4 4 0 0 1 7.7-1.5',
     more: 'M5 12h.01M12 12h.01M19 12h.01',
+    send: 'M4 12 20 4l-6 16-2.5-6.5ZM11.5 13.5 20 4',  // RMP1-I: Send to robot
 };
 
 /** An icon (24 x 24, stroked in the current colour). */

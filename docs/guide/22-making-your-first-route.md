@@ -9,6 +9,9 @@ Watch it first — about 2 ¾ minutes, with a voice.
 
 Music: "Wallpaper" by Kevin MacLeod ([incompetech.com](https://incompetech.com)), licensed under [Creative Commons: By Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). Voice: Kokoro.
 
+The video shows the website's way. On the team laptop, steps 1 and 7 below are shorter: **Open the route builder**
+from VS Code, then **Send to robot**.
+
 The **route builder** is a web page where you build your team's routes — the skills route and any other you name —
 by clicking on the real field, and get the C++ for the robot out of it. You place robot one's start, add steps — drive here, curve through there, open the
 claw — and the page checks every step against the library's own rules as you go. When the route is right, you
@@ -26,10 +29,19 @@ one starts, where it goes and what each button does are your team's to decide.
 
 ### 1. Open it
 
-Open **docs.shurobotics.com** and click the **Route builder** tab, then **Open the route builder**. Use **Edge or
-Chrome** if you can: they can write the route straight into the shulib folder. Firefox works too — it downloads the
-project and copies the code instead (Safari should do the same, but no test runs it). For the event, click
-**Download for offline use** beforehand: it saves one file you double-click with no internet.
+On the team laptop: open the shulib folder in VS Code, then **Terminal → Run Task → Open the route builder**. The
+route builder opens in your browser — any browser — already working in the shulib folder: nothing to connect, and
+**Send to robot** at the top right. Keep its terminal open while you work (**Ctrl+C** there stops it).
+
+![The route builder opened from VS Code: Send to robot one at the top right](../assets/route-builder/send.png)
+
+Open it once at home with the internet on: it keeps the robots' facts and PREVIEW for a venue with no internet. If
+it says **Careful: the robots' facts are the published site's …**, tell the coordinator before you send.
+
+**On a computer without the shulib folder:** open **docs.shurobotics.com** → **Route builder** → **Open the route
+builder**. Edge or Chrome can write into a shulib folder you connect; Firefox downloads the project and copies the code
+(Safari should do the same, but no test runs it). **Download for offline use** saves one file you double-click with no
+internet.
 
 ![The route builder when it opens: the real field, seen from behind the red station, and the "your first route" card](../assets/route-builder/first-run.png)
 
@@ -200,12 +212,34 @@ PREVIEW runs the route on the page, saved or not. Change the route and the run i
 back); press PREVIEW again. A route with a red step is not run — fix it first (robot two's red waits only for Export). **Cancel** stops a PREVIEW that is
 running; one that takes longer than 20 s is stopped, and the page says so.
 
-### 7. Export
+### 7. Send it to the robot
 
-When the bottom bar says **Ready to export**, press **Export** (**Ctrl+E**). While a step is still red, a red number
-on the Export button counts what is left, and Export shows only that list — each with **Go there** — and no code.
+When the bottom bar says **Ready to export**, plug the robot's **brain** in with USB (not the controller) and press
+**Send to robot one**. It writes your routes into `src/team/skills_route.cpp`, reads the file back, then builds and
+uploads them. Each step shows as it happens (Export and Save wait until it ends):
 
-Export shows **one card: the step for your browser**, the step to do now highlighted.
+![Send to robot one, partway: Building robot one's Auton Tester](../assets/route-builder/send-mid.png)
+
+**✓ BUILT**, then **✓ UPLOADED** and where your route is on the brain:
+
+![UPLOADED, and where the route is on the brain: shulib Auton Tester → skills or left 1 → RUN](../assets/route-builder/send-ok.png)
+
+On the brain: **shulib Auton Tester** → your route → **RUN**.
+
+When something is wrong it says so in red — **NOT BUILT** or **NOT UPLOADED** — and what to fix: a line of code with
+its file and line number, "plug the BRAIN in with USB", or a robot fact still owed. **Show everything** has every line
+make and pros printed. A robot whose autons file has lost the line that lists the routes is not sent to: the card names
+the line, to tell the coordinator.
+
+![NOT BUILT: the file and line, and "re-export from the route builder"](../assets/route-builder/send-failed.png)
+
+**Export** (**Ctrl+E**) is the same in two clicks — **Write into src/team/skills_route.cpp**, then **Send to robot
+one** (or **two**) — with the code one click away. While a step is still red, a red number on Export counts what is
+left, and Export (or Send) shows only that list — each with **Go there**.
+
+#### From the website
+
+On the website's route builder, Export shows **one card: the step for your browser**, the step to do now highlighted.
 
 ![Export in Edge or Chrome: step 1, connect your shulib folder, highlighted; step 2, write into src/team/skills_route.cpp, waiting for it; Copy the code below](../assets/route-builder/export.png)
 
@@ -228,12 +262,14 @@ what to fix. On the brain: **shulib Auton Tester** (slot 6) → the route → **
 
 ![After Write: Written and checked, the routes and their steps, "Will it build?", and Next with robot one's commands](../assets/route-builder/export-written.png)
 
+Next's first line says the easiest way: the route builder opened from VS Code, where all of this is **Send to robot**.
+
 Export writes **every route** of the project (step 9) between the two `ROUTE MAKER` lines, and a red step on any of
 them stops it — the list names the route, and **Go there** opens it. One line in each robot's autons file registers
 them all: `addTeamRoutes(registry, TeamRobot::One);` in robot one's, `...::Two` in robot two's, which runs each route
-marked mirrored **mirrored** across the field's diagonal. With the folder connected (Edge or Chrome), the export page
+marked mirrored **mirrored** across the field's diagonal. Opened from VS Code (or with the folder connected), the export page
 checks both lines are there and says so. (A copy of the repository from before robot two's update, 2026-11-17, has
-no `src/team/skills_route.cpp`: Edge or Chrome says so and offers Copy.)
+no `src/team/skills_route.cpp`: opened from VS Code, or in Edge or Chrome, the page says so and offers Copy.)
 
 #### Reading the code
 
@@ -258,18 +294,20 @@ comment, then its code. Step 2, for one:
 
 You should be able to explain every line; if one surprises you, ask before you run it.
 
-Then build and upload (the **Next** card above), and run the route in **shulib Auton Tester** on the robot.
+Then **Send to robot** (or, on the website, the **Next** card above), and run the route in **shulib Auton Tester** on
+the robot.
 
 ### 8. Save
 
-**Save** (**Ctrl+S**) writes the project — your route, step by step — to `src/team/route_maker.json` (Edge or
-Chrome, with the folder connected) or downloads it (put it in `src/team/`). **Open** reads it back. Commit it with
+**Save** (**Ctrl+S**) writes the project — your route, step by step — to `src/team/route_maker.json` (opened from
+VS Code, or Edge or Chrome with the folder connected) or downloads it (put it in `src/team/`). **Open** reads it back. Commit it with
 the code: it is how anyone carries on from where you stopped.
 
 ![Saved by download in Firefox: the top bar says "Downloaded", and where to put the file](../assets/route-builder/saved.png)
 
 Until you save, the page keeps a draft in this browser, and says so when you come back (if it ever cannot show that
-draft, it opens a new route and says so; your `route_maker.json` is not touched). With the folder connected,
+draft, it opens a new route and says so; your `route_maker.json` is not touched). Opened from VS Code (or with the
+folder connected),
 it compares itself with the folder's `route_maker.json` — after a `git pull` brought a teammate's route, it asks
 which to keep — and **Save** never replaces a `route_maker.json` that changed in the folder without asking.
 
@@ -331,7 +369,7 @@ The **Controls** tab (top bar, beside **Route**) sets what each button does in d
 feel, in two steps — **1 · Buttons** and **2 · Driving feel** — one on the screen at a time. It edits robot one's
 driver file, `src/team/robot_one_driver.hpp` (or robot two's — pick **one** or **two** at the right of the steps). It
 opens with the driver file as it was when this page was published (with nothing clicked, the panel beside the
-controller gives the date); with your shulib folder connected (Edge or Chrome) it reads today's file. Once you change a robot's
+controller gives the date); opened from VS Code (or with your shulib folder connected) it reads today's file. Once you change a robot's
 controls, your project file keeps them, and the tab opens with those. It changes only what you change. Connecting
 the folder or opening a project keeps a change made here: when this page had no route yet and the folder's project
 has no controls for that robot, your change stays; otherwise **Ctrl+Z** on this tab brings it back. The one
@@ -419,7 +457,7 @@ range`). When "shulib Drive" starts, it prints the feel it runs (its `driver fee
 
 **Export** (**Ctrl+E**) on the Controls tab shows the three parts of the driver file it writes, each with **Copy**:
 which button does what (`kControls`), the button map at the top of the file, and the feel (`kFeel`, and the re-zero
-button and what the drive does when let go). With the shulib folder connected (Edge or Chrome), **Write into
+button and what the drive does when let go). Opened from VS Code (or with the shulib folder connected), **Write into
 src/team/robot_one_driver.hpp** changes only the lines between the file's three pairs of marker lines —
 `// [driver file one]`, `// [control words one]` and `// [feel one]`, each with its `[/…]` partner — and keeps the
 file's own line endings. A part someone changed by hand since the last export is not replaced unless you choose
