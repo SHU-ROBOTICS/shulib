@@ -6,10 +6,12 @@
 
 import { h, icon } from './dom.mjs';
 import { createDock } from './timeline.mjs';
-import { stepTitle } from './words.mjs';
+import { createStrip } from './mech_strip.mjs';
+import { mechName, stepTitle } from './words.mjs';
 import { routeRobots } from '../host/robots.mjs';
 import { makeEngine } from '../host/engine.mjs';
-import { routeKey, playbackOf, poseAt, sampleIndexAt, stepAt, stepTime } from '../model/playback.mjs';
+import { routeKey, playbackOf, poseAt, sampleIndexAt, stepAt, stepTime, mechanismsAt } from '../model/playback.mjs';
+import { plannedHeights } from '../model/lift.mjs';
 import { ROBOT_TWO_ONLY } from '../model/checks.mjs';
 
 const PHASES = {
@@ -23,7 +25,7 @@ const NO_TWO = 'PREVIEW plays robot one: robot two\'s mirrored run is not in thi
 /** The controller. `app` is the shell (app.mjs), `els` its elements, `engine` engine.mjs's, `toast` the shell's. */
 export function createPreview(app, els, engine, baked, toast) {
     const st = { phase: 'idle', play: null, key: '', t: 0, playing: false, speed: 1, stale: false, words: '', progress: '',
-                 details: false, pairWords: '', stepIndex: -1, scrubbing: false };
+                 details: false, pairWords: '', stepIndex: -1, scrubbing: false, mechs: [] };
     const cache = new Map();
     let raf = 0;
     let last = 0;
@@ -47,11 +49,15 @@ export function createPreview(app, els, engine, baked, toast) {
         scrub: (on) => { st.scrubbing = on; if (on) pause(); },
         stepName: (i) => stepTitle(app.route().steps[i] || {}, app.robot())[0],
     });
+    const strip = createStrip(els.fieldPane);
+    /** RMP1-E: the mechanism step `i` of the run's route uses and its planned target (run() keeps them), or null. */
+    const playingMech = (i) => (i >= 0 && st.mechs[i]) || null;
 
     // ── the frame: the robots on the field, the dock's playhead, the step playing ──
     function frame() {
         if (!showing()) {
             els.fieldView.drawRun(null);
+            strip.show(null);
             return;
         }
         const p = st.play;
@@ -70,6 +76,8 @@ export function createPreview(app, els, engine, baked, toast) {
                 now.scrollIntoView({ block: 'nearest' });
             }
         }
+        strip.show(p.one.record);
+        strip.update(mechanismsAt(p.one.record, sampleIndexAt(p.one.samples, st.t), playingMech(i)));
         dock.update();
     }
     function tick(now) {
@@ -120,7 +128,7 @@ export function createPreview(app, els, engine, baked, toast) {
     }
     function open(run) {
         Object.assign(st, { phase: 'open', play: run.play, key: run.key, pairWords: run.pairWords, t: 0, stale: false,
-                            words: '', stepIndex: -2, details: false });
+                            words: '', stepIndex: -2, details: false, mechs: run.mechs });
         dock.render();
         app.refresh();
         frame();
@@ -206,7 +214,9 @@ export function createPreview(app, els, engine, baked, toast) {
             Object.assign(res, { two: null, verdict: null });
         }
         const names = (robot) => r.steps.map((x) => ((robot.mechanisms || []).find((m) => m.ident === x.mechanism) || {}).name || '');
-        const runRec = { key, play: playbackOf(res, { one: names(one), two: two ? names(two) : [] }), pairWords };
+        const planned = plannedHeights(r, one);  // the route that RAN: an edit made during the run never reaches its strip
+        const mechs = r.steps.map((x, i) => (x.mechanism ? { name: mechName(one, x.mechanism), target: planned[i].after[x.mechanism] ?? null } : null));
+        const runRec = { key, play: playbackOf(res, { one: names(one), two: two ? names(two) : [] }), pairWords, mechs };
         if (r.together === false && runRec.play.pair) {  // RMP1-C D6: one robot at a time -- robot two's run shown, no gap verdict
             runRec.play.pair = null;
             runRec.pairWords = 'One robot at a time (this route\'s answer): robot two\'s mirrored run is shown, the too-close check is not.';

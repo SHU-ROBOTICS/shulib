@@ -8,9 +8,9 @@ the skills route by clicking and exports the C++. Students: read
 
 | Where | What |
 |---|---|
-| `src/model/` | PURE ES modules (no DOM, no file API), each with its node test in `test/`: the route and its edits (`route.mjs`), the library's curve ported line for line (`curve.mjs`, pinned by CV1), every check (`checks.mjs`), the export (`export.mjs`), the ONE number formatter (`numbers.mjs`), the marker / hand-edit / line-ending rules (`region.mjs`), the project file (`project.mjs`), undo, the field and snapping, the library's quoted sentences (`library_words.mjs`, checked against the headers) |
+| `src/model/` | PURE ES modules (no DOM, no file API), each with its node test in `test/`: the route and its edits (`route.mjs`), the library's curve ported line for line (`curve.mjs`, pinned by CV1), every check (`checks.mjs`), the export (`export.mjs`), the ONE number formatter (`numbers.mjs`), the marker / hand-edit / line-ending / read-back rules (`region.mjs`), what Export says next (`to_robot.mjs`: the build and upload commands), the project file (`project.mjs`), undo, the field and snapping, the library's quoted sentences (`library_words.mjs`, checked against the headers) |
 | `src/host/` | the four host interfaces the screens call: `files.mjs` (over `files_fsaccess.mjs` — Chrome/Edge's folder — or `files_download.mjs` — every browser), `engine.mjs` (PREVIEW's engine, in a Worker — below), `robots.mjs` (the descriptions baked into the page), `capabilities.mjs`. A later VS Code panel or local helper swaps these, never the screens or a rule |
-| `src/ui/` | the screens: `app.mjs` (the shell and the store), `field_view.mjs`, `step_list.mjs`, `inspector.mjs`, `export_drawer.mjs`, `help.mjs`, `words.mjs` (what the page calls each step), `dom.mjs` (helpers and the icons); the Controls tab: `controls_tab.mjs` (the controller), `feel_tab.mjs` (the driving feel and its graph), `controls_export.mjs` |
+| `src/ui/` | the screens: `app.mjs` (the shell and the store), `field_view.mjs`, `step_list.mjs`, `inspector.mjs`, `export_drawer.mjs` (with `to_robot.mjs`: the result, "Will it build?", Next), `help.mjs`, `words.mjs` (what the page calls each step), `dom.mjs` (helpers and the icons); the Controls tab, one step on screen at a time: `controls_tab.mjs` (step 1: the controller and the editor beside it), `feel_tab.mjs` (step 2: the driving feel and its graph, "More settings" closed at first), `controls_export.mjs` |
 | `src/model/` (the Controls tab) | `controls.mjs` (the controls as data, one check per build refusal of `controls()`, the `controls` and `control words` regions), `feel.mjs` (the library's stick curve in the C++'s order, `checkFeel`, the `feel` region), `driver_file.mjs` (the driver file's three marked regions: found, read, written all or none) |
 | `controls_cases.mjs` | the CT agreement's data: one configuration per build refusal on the fixture robots; `goldens.mjs --write` turns each into `test/compile_refusals/rm_ct_*.cpp` |
 | `src/app.html`, `src/style.css`, `src/browser_check.js` | the page's template, its design tokens and stylesheet, and the script that runs first and refuses an old browser in plain words |
@@ -109,10 +109,12 @@ are indices into `samples`):
 | `steps` | RPV1's steps seen from below: `n`, `kind`, `what`, `s0`, `s1`, `t0`, `t1`, `verdict`, `mark`, `sentence`, `endAction`, `background`, `openAtThrow`, `placeholder`, `target` (`[x, y, heading]` or null) |
 | `lines` | every log line from the arming on: `s`, `t`, `sub`, `text`, `mark` |
 | `field`, `through`, `throughAt` | RPV1's field check: `kind` (THROUGH, TOUCH, PIECE), `element`, `s`, `t`, `step`, `depth` |
+| `mechanisms` | (RMP1-E) each mechanism in the robot's list, in its order: `name`, `kind` (`lift`, `arm`, `pneumatic`, `power`, `flywheel`), a lift's or arm's `units`, `bottom`, `top`, a pneumatic's `positions`, `placeholder` (RPV1's PLACEHOLDER sentence, or ""), and `at` — its state at every sample, read from the library's own mechanism each pace: a lift's or arm's position in its units, a pneumatic's position index (-1: none), a power mechanism's or flywheel's direction (-1, 0, 1). An older record has no such member: the page shows no strip |
 | `samples` | every 10 ms pace: `[t, x, y, theta]` — the plant's TRUE pose (inches, radians unwrapped) |
 
-A non-finite number is written `null`. Native and WebAssembly records agree exactly but for the poses (within
-1e-5 in and 1e-6 rad: the two maths libraries round sin, cos and atan2 differently in the last bit — WG2).
+A non-finite number is written `null`. Native and WebAssembly records agree exactly but for the poses and a lift's
+or arm's position (within 1e-5 in — an arm's 1e-5 deg — and 1e-6 rad: the two maths libraries round differently in
+the last bit — WG2).
 
 ## PREVIEW in the page (RMP1-A2u)
 
@@ -125,6 +127,7 @@ PREVIEW runs the route on screen through the engine and plays the record back. T
 | `src/host/engine_backend.mjs` | the real engine for that script: RMP1-A2e's `engine_module.mjs` and `route_lines.mjs` around the WebAssembly module |
 | `src/model/playback.mjs` | the record (schema 1) → what the screen draws: each robot's pose at time t (only the record's own, straight between paces), each page step's span and verdict in plain words beside the library's own lines, the PLACEHOLDER marks, a run's key (the route it belongs to) |
 | `src/ui/preview.mjs`, `src/ui/timeline.mjs` | the button, the keys and the dock: progress and Cancel, then the scrubber; the run on its own field layer (`field_view.mjs`'s `drawRun`), the step cards lit (`step_list.mjs`) |
+| `src/ui/mech_strip.mjs` | (RMP1-E) the mechanisms beside the field, from the record's `mechanisms` (`playback.mjs`'s `mechanismsAt`) at the pace playing: a height bar per lift or arm (its stops, its height, the planned target of its step — `lift.mjs`), a piston per pneumatic, a motor per power mechanism or flywheel; the mechanism the step playing uses accented |
 
 `build.py --engine build/wasm` (the built module) writes `engine/worker.mjs` + `engine/preview.wasm` beside the SITE
 form's page (a `<meta name="shulib-engine">` points at it) and the same script, with the single-file module, inside
@@ -155,7 +158,8 @@ shape the page reads:
 `window.routeBuilder.useEngine` as the file tests inject a folder; a route with no recording is answered "no recorded
 run", never another's. Its options: a delay, a run that never returns, a load that fails, an exit code, a REFUSED
 record as RPV1's `refusedModel` writes it, a member of the record changed (`patch`), robot two's record and verdict
-(`two`, `pairRc`); every record it sends carries the instance and the run it came from. The robot-one records are the
+(`two`, `pairRc`), members left out as an older engine's record lacks them (`omit`); every record it sends carries
+the instance and the run it came from. The robot-one records are the
 engine's native twin's (`shulib_route_maker preview`), made by `test/fixtures/record.mjs` (the routes and the
 command) — re-record them when the record's schema, robot one's facts or the API change. The two PAIR fixtures' robot
 two and verdict came from a PROTOTYPE of the pair mode on a copy of RPV1's header with `plantStartFor` patched (their
@@ -169,11 +173,11 @@ On a site built with `--engine` the same file also runs the REAL module through 
 compares its record with the native twin's of the same route, from the same tree — made at test time when the
 program is there (`ROUTE_MAKER_NATIVE`, or `build/test/shulib_route_maker`), else read from
 `ROUTE_MAKER_NATIVE_RECORDS` (a folder `test/fixtures/record.mjs --out` wrote: CI's Linux job makes it for the
-browser rows, which have no native program) — every member exact, poses within 1e-5 in and 1e-6 rad. Off CI with
-neither, it compares with the committed fixture less the API version and the facts ledger's lists; that run is robot
-one's facts', so it goes red when they change until the fixtures are re-recorded. In CI (`CI` set) a tree with
-`tools/route_maker/wasm/` must have built its site with `--engine` and must give the native twin's record: that test
-fails, not skips, when either is missing.
+browser rows, which have no native program) — every member exact, poses (and a lift's or arm's position) within 1e-5
+in (an arm's 1e-5 deg) and 1e-6 rad; for the `ready` route and for `mechanisms`, the strip's. Off CI with neither, it compares with the committed fixture less the API version and the facts
+ledger's lists; that run is robot one's facts', so it goes red when they change until the fixtures are re-recorded.
+In CI (`CI` set) a tree with `tools/route_maker/wasm/` must have built its site with `--engine` and must give the
+native twin's record: that test fails, not skips, when either is missing.
 
 ## The rules that keep it true to the library
 
@@ -188,7 +192,12 @@ fails, not skips, when either is missing.
   field this builder cannot write — is refused by name (`project.mjs`), and a number the student has not typed is
   left OUT, never stored as `NaN` (which JSON turns into 0).
 - **Only between the markers, only under `src/team/`, the file's own line endings kept, a hand edit never
-  overwritten silently** — all in `region.mjs`, for every host.
+  overwritten silently** — all in `region.mjs`, applied by `files.mjs` for every host. **The export into
+  `skills_route.cpp` is READ BACK** (a file that reads back different is a red refusal, never a green).
+- **Export is never silent** (RMP1-F): one numbered step for this browser, then green (✓ written and checked,
+  downloaded, copied) or red with its reason and its fix; then the commands that build and upload, or
+  `tools/upload_auton.py one|two`, which does both and prints ✓ or ✗ (`python3 tools/upload_auton.py self-test`:
+  its cases against fake `make` and a fake `pros` that takes pros-cli's own grammar).
 - **Nothing is invented for the students** (G4): a one-click fix adds a step they see, and leaves its time limit
   empty for them to type. The Controls tab starts from the driver file's own map, never a made-up one.
 - **The Controls tab refuses what the build refuses, by the build's name**: each of those refusals has

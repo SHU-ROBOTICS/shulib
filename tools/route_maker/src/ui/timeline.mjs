@@ -151,6 +151,8 @@ export function createDock(host, pv) {
         };
         return h('div', { class: 'dock-details' },
             h('p', {}, h('strong', {}, 'The host test plant, not the robot. '), play.one.record.robotLine),
+            (play.one.record.mechanisms || []).length ? h('p', { class: 'ms-about' }, 'The mechanisms beside the field are the host '
+                + 'test plant\'s too: each height and time comes from its fakes and the declaration\'s numbers, not from the robot.') : null,
             pairWords ? h('p', {}, pairWords) : null,
             of(play.one),
             play.two ? [h('h4', {}, `Robot two: ${play.two.headline.word}`), of(play.two)] : null,

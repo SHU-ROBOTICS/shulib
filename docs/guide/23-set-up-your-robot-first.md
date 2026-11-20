@@ -288,6 +288,11 @@ Every mechanism goes the right way, the drive is measured, and the robot drives 
 says. Now open the [route builder](../route-builder.md) and follow
 [Making your first route](22-making-your-first-route.md).
 
+To put a route on the robot after **Export**, plug the brain in by USB and run **one command** in the shulib folder —
+`python3 tools/upload_auton.py one` (robot two: `two`; on Windows, `python`) — or, in VS Code,
+**Terminal → Run Task → Upload routes to robot one**. It builds the Auton Tester, uploads it to slot 2 and ends with
+**✓ UPLOADED** or **✗** and what to fix.
+
 ## If something goes wrong
 
 | What you see | What to do |

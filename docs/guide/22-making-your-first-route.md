@@ -129,7 +129,7 @@ not a drawing: the page runs the **real library** — the same code the robot ru
 library's own model of a drive, and plays back what it did. The path the robot drove is solid; your plan stays
 dashed beside it, so you see where the robot went differently from the plan.
 
-![PREVIEW playing: robot one partway through the curve, its path solid beside the dashed plan; the timeline across the bottom with each step's span, and the steps on the left marked done with their times](../assets/route-builder/preview.png)
+![PREVIEW playing: robot one partway through the curve, its path solid beside the dashed plan; the timeline across the bottom with each step's span, the steps on the left marked done with their times, and the mechanisms beside the field](../assets/route-builder/preview.png)
 
 **The timeline** across the bottom shows each step's span in the colour of how it went: green done, red failed,
 amber cut by the 57 s mark, grey skipped; a step too short to see at this scale is a thin mark at its moment. Play and pause with **Space**, go to the step before or after with
@@ -137,25 +137,35 @@ amber cut by the 57 s mark, grey skipped; a step too short to see at this scale 
 choose the speed (½×, 1×, 2×, 4×). Drag along the timeline, or click a step in the list to go to where it began.
 The small bar on the right is the run against the 60 s, the 57 s cut marked.
 
+**The mechanisms** move beside the field, in step with the robot: the cascade's height on a bar (its bottom and top
+marked, and while its step plays, the height it is going to), each piston's position (the claw open or closed), and
+each toggle's motor, lit while it runs, with its direction. The mechanism the playing step uses is highlighted.
+A step that only starts a mechanism ("keeps going") is not highlighted while the robot drives on, but its bar still
+moves. Like the drive, their heights and times come from the host test plant.
+
+![PREVIEW with the mechanisms beside the field: the cascade at 3.7 in on its way to 6 in, highlighted because its step is playing; the toggles off, the claw, the flipper and the ramp in their positions](../assets/route-builder/preview-mechanisms.png)
+
 **The steps** on the left say how each one went, and the one playing is highlighted. A step that failed is red,
 with the library's own line under it — the line the brain's log would show. A step in which the robot would go
 **through a wall** is red too, saying where (the host test plant has no walls, so the page checks the robot's square
 against the real field); the steps after it are grey, and the robot is drawn faded from that moment: on the field it
 would not get there.
 
-![A drive that ran out of time: step 2 red with the library's line "STOPPED at step 2 (driveTo): motion TIMEOUT", the two steps after it greyed as skipped](../assets/route-builder/preview-failed.png)
+![A drive that ran out of time: step 2 red with the library's line "STOPPED at step 2 (driveTo): motion TIMEOUT", the two steps after it greyed as skipped; beside the field, the claw open from step 1](../assets/route-builder/preview-failed.png)
 
-**Robot two.** PREVIEW plays robot one; robot two's mirrored run is not in it yet, and the first line of **About
-this run** says so. Whether the two robots stay apart is checked while you build (step 2), for a route both run at
-the same time ([chapter 17](17-the-competition-program.md#both-robots-at-once)). PREVIEW does not wait for that
-answer, nor for a too-close start or step: robot one runs the route the same either way.
+**Robot two.** PREVIEW plays robot one; robot two's mirrored run is not in it yet, and **About this run** says
+so. Whether the two robots stay apart is checked while you build (step 2), for a route both run at the same time
+([chapter 17](17-the-competition-program.md#both-robots-at-once)). PREVIEW does not wait for that answer, nor for a
+too-close start or step: robot one runs the route the same either way.
 
 **What the host test plant is not.** It is a stand-in drive — a 12 in tank with made-up gains, not your robot's —
 with no walls, and every number robot one's facts file has not measured yet is a **PLACEHOLDER**: the steps that
 used one say so, and **About this run** (the **?** button beside the speeds) lists them, with every line the library
-printed. The steps, their order and what the library refuses are the library's; the times and the exact path are
-the host test plant's. Time the route on the robot with **shulib Auton Tester**
-([chapter 16](16-testing-an-auton-on-the-bench.md)).
+printed. A mechanism still on the library's starting gains is marked **PLACEHOLDER** beside the field too (point at
+the mark for why; **shulib Tune** sets the real ones on the robot,
+[chapter 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen)). The steps, their order and what the
+library refuses are the library's; the times and the exact path are the host test plant's. Time the route on the
+robot with **shulib Auton Tester** ([chapter 16](16-testing-an-auton-on-the-bench.md)).
 
 PREVIEW runs the route on the page, saved or not. Change the route and the run is put away (an undo brings it
 back); press PREVIEW again. A route with a red step is not run — fix it first (robot two's red waits only for Export). **Cancel** stops a PREVIEW that is
@@ -166,25 +176,39 @@ running; one that takes longer than 20 s is stopped, and the page says so.
 When the bottom bar says **Ready to export**, press **Export** (**Ctrl+E**). While a step is still red, a red number
 on the Export button counts what is left, and Export shows only that list — each with **Go there** — and no code.
 
-![The export with the shulib folder connected (as Edge or Chrome shows it), before robot two's update: the route's C++ with Copy, writing into the file waiting for that update, and each robot's addTeamRoutes line not there yet](../assets/route-builder/export.png)
+Export shows **one card: the step for your browser**, the step to do now highlighted.
 
-- **In Edge or Chrome**, click **Connect your shulib folder** once (here, or the folder button in the top bar) and
-  pick the repository's top folder (the one with `src/team/` in it). Then **Write into src/team/skills_route.cpp** puts the route between the two
-  `ROUTE MAKER` lines of that file — and changes nothing else in it, keeping its own line endings.
-- **In another browser**, **Copy the code** — or pick your `src/team/skills_route.cpp`: the page writes the
-  updated file back as a download, to save in its place. **Then Save** (step 8): the project file remembers what
-  was exported, so the next export knows that code is the builder's.
+![Export in Edge or Chrome: step 1, connect your shulib folder, highlighted; step 2, write into src/team/skills_route.cpp, waiting for it; Copy the code below](../assets/route-builder/export.png)
+
+- **Edge or Chrome:** **1** **Connect your shulib folder** (the one with `src` inside), once. **2** **Write into
+  src/team/skills_route.cpp**: only the lines between its two `ROUTE MAKER` lines change, and the page **reads the
+  file back**.
+- **Firefox and others:** **1** **Pick skills_route.cpp and download the updated one**. **2** Replace
+  `src/team/skills_route.cpp` with the newest download. **Then Save** (step 8), so the next export knows that code is
+  the builder's.
+- **Or Copy the code** and paste it over the two `ROUTE MAKER` lines and everything between them (a picture shows
+  where). A file that has lost those lines gets no Copy: the page says how to put them back first.
+
+The result is never silent: green (**Written and checked** with the routes and their steps, **Downloaded**,
+**Copied**) or red, with **the fix**. Code changed by hand between the lines is replaced only if you choose
+**Overwrite**. Then **Will it build?** (what the page checked; the C++ compiler checks the rest) and **Next**: the
+build and upload commands for robot one or two, each with **Copy**, or one command for both
+([chapter 16](16-testing-an-auton-on-the-bench.md)). On the brain: **shulib Auton Tester** (slot 2) → the route →
+**RUN**.
+
+![After Write: Written and checked, the routes and their steps, "Will it build?", and Next with robot one's commands](../assets/route-builder/export-written.png)
 
 Export writes **every route** of the project (step 9) between the two `ROUTE MAKER` lines, and a red step on any of
 them stops it — the list names the route, and **Go there** opens it. One line in each robot's autons file registers
 them all: `addTeamRoutes(registry, TeamRobot::One);` in robot one's, `...::Two` in robot two's, which runs each route
-marked mirrored **mirrored** across the field's diagonal. The export page checks both lines are there and says so. (A copy of the repository from before robot two's update, 2026-11-17,
-has no `src/team/skills_route.cpp`: the page then offers Copy only — the picture above.)
+marked mirrored **mirrored** across the field's diagonal. With the folder connected (Edge or Chrome), the export page
+checks both lines are there and says so. (A copy of the repository from before robot two's update, 2026-11-17, has
+no `src/team/skills_route.cpp`: Edge or Chrome says so and offers Copy.)
 
 #### Reading the code
 
-Everything between the two `ROUTE MAKER` lines is the route, and every step is a comment, then its code — step 2
-in the picture above, for one:
+Everything between the two `ROUTE MAKER` lines is the route — **See the code**, under the card — and every step is a
+comment, then its code. Step 2, for one:
 
 - **The comment** says what the step does in plain words, with its numbers, and the page's step number first:
   *Step 2 — DRIVE to (-24, -36) in: about 26.8 in. First it turns to face the point …*
@@ -204,8 +228,7 @@ in the picture above, for one:
 
 You should be able to explain every line; if one surprises you, ask before you run it.
 
-Then build and upload as always ([chapter 16](16-testing-an-auton-on-the-bench.md)), and run the route in
-**shulib Auton Tester** on the robot.
+Then build and upload (the **Next** card above), and run the route in **shulib Auton Tester** on the robot.
 
 ### 8. Save
 
@@ -239,9 +262,9 @@ autons, and those two take 2: at most 14 routes.
 
 **Quick start — the Controls tab in 5 steps**
 
-1. Click **Controls** in the top bar: robot one's controller.
-2. Click a button, then pick its job (a dashed button is free).
-3. Set the feel: the dead zone and the curve.
+1. Click **Controls** in the top bar: **1 · Buttons** shows robot one's controller.
+2. Click a button; a free (dashed) one: pick its mechanism, then its job.
+3. **2 · Driving feel**: set the dead zone and the curve.
 4. **Export** (**Ctrl+E**) → **Write into src/team/robot_one_driver.hpp**.
 5. Pick robot **two**, do the same, then build and upload.
 
@@ -250,34 +273,39 @@ autons, and those two take 2: at most 14 routes.
 Music: "Wallpaper" by Kevin MacLeod ([incompetech.com](https://incompetech.com)), licensed under [Creative Commons: By Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). Voice: Kokoro.
 
 The **Controls** tab (top bar, beside **Route**) sets what each button does in driver control and how the sticks
-feel. It edits robot one's driver file, `src/team/robot_one_driver.hpp` (or robot two's — pick **one** or **two**
-above the list on the left). It opens with the driver file as it was when this page was published (the date is on
-the right); with your shulib folder connected (Edge or Chrome) it reads today's file. Once you change a robot's
+feel, in two steps — **1 · Buttons** and **2 · Driving feel** — one on the screen at a time. It edits robot one's
+driver file, `src/team/robot_one_driver.hpp` (or robot two's — pick **one** or **two** at the right of the steps). It
+opens with the driver file as it was when this page was published (with nothing clicked, the panel beside the
+controller gives the date); with your shulib folder connected (Edge or Chrome) it reads today's file. Once you change a robot's
 controls, your project file keeps them, and the tab opens with those. It changes only what you change. Connecting
 the folder or opening a project keeps a change made here: when this page had no route yet and the folder's project
 has no controls for that robot, your change stays; otherwise **Ctrl+Z** on this tab brings it back. The one
 exception is a project whose controls for that robot this page cannot read (a newer route builder's): the tab then
 shows the driver file, read only, and your change there is gone. The page says which.
 
-![The Controls tab: robot one's controller with each button's job beside it (a free button dashed), its mechanisms on the left, the driving feel below](../assets/route-builder/controls.png)
+![Step 1, Buttons: robot one's controller drawn large, each button's job on its label (a free button dashed), and the panel beside it listing the mechanisms](../assets/route-builder/controls.png)
 
-### What each button does
+### Step 1 · Buttons
 
-The picture is the V5 controller. Each button's job is written beside it; a **dashed** button is free, and Y is the
-drive's re-zero button. On the left, each mechanism lists its controls.
+The picture is the V5 controller. Each button's label says its job; a **dashed** button is free, and Y is the
+drive's re-zero button. Click a button (or its label) and the panel beside the controller (under it, in a narrow
+window) shows that one job — its button (both, for a pair) is the only one highlighted on the controller (a button
+with a problem stays red). **Esc** or **×** closes it. With nothing clicked, the panel lists your mechanisms and their
+buttons, and says in a sentence any job that needs no button ("The cascade homes by itself when driver control
+starts").
 
-- **Give a free button a job:** click it. A short menu lists what each mechanism can do with it, each item saying
-  exactly what it picks (**Move while held: Up up, Down down**; **Go to "open" on one press**); pick one, then finish it
-  on the right — the volts of a hold (12 is full power), the level and its time limit, or the second button of a pair
-  when its partner is taken.
-- **Change a job:** click the button (or the control on the left). On the right: the mechanism, what it does, its
-  button, its volts or time limit, and **Remove this control**.
-- **A job with no button:** **Add** under a mechanism — "home it when driver control starts", or "autons only".
+- **Give a free button a job:** click it, pick the mechanism, then pick the job. Each job says exactly what it picks
+  (**Move while held: Up up, Down down**; **Go to "open" on one press**). Then finish it in the panel — the volts of a
+  hold (12 is full power), the level and its time limit, or the second button of a pair when its partner is taken.
+- **Change a job:** click the button. The panel shows the mechanism, what it does, its button, its volts or time
+  limit, and **Make X free** (both buttons of a pair: **Make R1 and R2 free**).
+- **A job with no button:** click the mechanism in the panel's list — "home it when driver control starts", or
+  "autons only".
 - **The words:** the comment on its line and its row in the button map at the top of the file are yours to
-  reword (right, under "Its words in the file"). Change what a control does and both become the page's words again
-  (**Ctrl+Z** brings yours back); move it to another button and yours are kept.
+  reword (in the panel, under **Its words in the file**). Change what a control does and both become the page's words
+  again (**Ctrl+Z** brings yours back); move it to another button and yours are kept.
 
-![A free button clicked: the menu of what each mechanism can do with it](../assets/route-builder/controls-menu.png)
+![Up clicked, then the claw: the claw's three jobs, each a large button](../assets/route-builder/controls-menu.png)
 
 | Mechanism | What a button can do |
 |---|---|
@@ -294,28 +322,34 @@ meant), a control on the re-zero button, more than 24 controls, and an arm or li
 home it in driver control. It also asks for what is not finished yet — a button, a level, or the second button
 of a pair it does not choose for you. Export lists them, each with **Go there**. The button map at the top of the
 file is written from the same choices: each control's rows sit where its buttons are, in the code's order. Its
-words are yours, so the page also stops on words it can tell are wrong now — a map line calling the d-pad FREE once
-you give Up a job (**Remove that line**), or words naming a button whose job changed after they were written — the
-file's or yours (**Use the page's words** replaces only that comment or row) — and asks you to check a note in the
-file that speaks of a mechanism or button you changed. Words it
-cannot judge are yours to keep true.
+words are yours. Give a free button a job and a map line calling it free (the d-pad FREE line, once Up has a job)
+goes in the same click — the page says so, and one **Ctrl+Z** brings both back. The page stops on words it can tell
+are wrong now — a line like that already in the file (**Remove that line**), or words naming a button whose job
+changed after they were written — the file's or yours (**Use the page's words** replaces only that comment or row) —
+and asks you to check a note in the file that speaks of a mechanism or button you changed. Words it cannot judge are
+yours to keep true.
 
-![B given to the claw while the flipper has it: B turns red, the reason in plain words, and the build's name beside it](../assets/route-builder/controls-refused.png)
+![B given to the claw while the flipper has it: B and its label turn red, the reason in plain words, and the build's name beside it](../assets/route-builder/controls-refused.png)
 
-### The driving feel
+### Step 2 · Driving feel
 
 "Move the stick a little and the robot goes slowly, but still moves; push it all the way and it goes fast" — that
-is the **curve**. Under the controller:
+is the **curve**. Click **2 · Driving feel** (or a stick on the controller). First, the essentials:
 
-- **The drive mode** — **Arcade** (the left stick drives, the right stick turns), **Tank** (each stick drives its
+- **The style** — **Arcade** (the left stick drives, the right stick turns), **Tank** (each stick drives its
   own side) or **Field arcade** (push the stick the way to go on the field, whichever way the robot faces).
-- For each stick direction — **Forward and back**, **Turning** (and **Sideways** on a robot that can strafe):
-  - **Dead zone** — a stick moved less than this does nothing (the library's default is 0.05).
-  - **Curve** — 0 is straight: half a push asks for half speed. Higher gives finer control near the middle and still
-    full speed at the end.
+- **Dead zone** — a stick moved less than this does nothing (the library's default is 0.05).
+- **Curve** — 0 is straight: half a push asks for half speed. Higher gives finer control near the middle and still
+  full speed at the end.
+
+The rest waits under **More settings** (closed at first):
+
+- **Which stick direction** the dead zone and curve shape — **Forward and back**, **Turning** (and **Sideways** on a
+  robot that can strafe). The heading above them says which.
 - **Ramp** — how quickly the request may change: at 4 per second, "full speed from rest in 0.25 s" — and a stop from
   full speed takes as long, so with a ramp the robot does not stop the instant the sticks are let go. 0 is no ramp.
-- **When the sticks are let go** — the drive coasts, brakes or holds; and **the re-zero button**.
+- **When the sticks are let go** — the drive coasts, brakes or holds; **the re-zero button**; and **Use the library's
+  defaults**.
 
 ![The driving feel at a curve of 0.6: a 30 % push asks for 12 %, a full push still 100 %](../assets/route-builder/feel.png)
 

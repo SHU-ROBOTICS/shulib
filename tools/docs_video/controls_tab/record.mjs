@@ -4,6 +4,8 @@
 //
 //   node tools/docs_video/controls_tab/record.mjs [--site DIR] [--out DIR]
 //
+// The app's toasts are hidden while it records (one idea on the screen at a time); everything else is the page as is.
+//
 // Needs: narration/<id>.wav (narrate.py, from beats.json); the built site (--site, default build/route_maker_site:
 // python3 tools/route_maker/build.py); Playwright through PW_NODE_MODULES (else tools/route_maker/node_modules);
 // MUSIC (default ~/shulib-render-tmp/music/Wallpaper.mp3); FFMPEG (default ffmpeg); DRIVER_DIR, the folder holding
@@ -85,7 +87,8 @@ const OVERLAY_CSS = `
 #tut-cap{position:fixed;z-index:2147483644;pointer-events:none;left:0;right:0;bottom:0;min-height:58px;display:flex;align-items:center;
   justify-content:center;background:rgba(14,10,30,.92);color:#fff;font:600 24px/1.25 system-ui,"Segoe UI",Roboto,sans-serif;
   padding:8px 24px;letter-spacing:.005em;transition:opacity .25s}
-.drawer-body,.controls-mid{padding-bottom:76px!important}
+.drawer-body{padding-bottom:76px!important}
+.toast{visibility:hidden!important}
 #tut-cap b{color:#ffc94d;font-weight:800}
 #tut-card{position:fixed;z-index:2147483643;pointer-events:none;left:50%;top:44%;transform:translate(-50%,-50%) scale(.96);opacity:0;
   background:#fff;color:#1b1530;border-radius:18px;padding:30px 40px;min-width:560px;max-width:760px;box-shadow:0 20px 60px rgba(0,0,0,.45);
@@ -159,18 +162,6 @@ const rectOf = (...sels) => page.evaluate((s) => window.tutRect(s), sels);
 const textRect = (t, root) => page.evaluate(({t, root}) => { const e = window.tutText(t, root); return e && window.tutRect([e]); }, {t, root});
 /** A feel field's whole label: its name, its hint, its slider and its number box. */
 const fieldRect = (name) => page.evaluate((n) => window.tutRect([document.querySelector(`input[name="${n}"]`).closest('label')]), name);
-/** The Driving feel card at the top of the middle column (smoothly). */
-async function showFeel() {
-  const moved = await page.evaluate(() => {
-    const mid = document.querySelector('.controls-mid');
-    const card = document.querySelector('.feel-card');
-    const top = mid.scrollTop + card.getBoundingClientRect().top - mid.getBoundingClientRect().top - 16;
-    if (Math.abs(top - mid.scrollTop) < 4) return false;
-    mid.scrollTo({top, behavior: 'smooth'});
-    return true;
-  });
-  if (moved) await pause(900);
-}
 let cursorAt = {x: 640, y: 400};
 async function moveCursor(x, y, ms = 750) {
   cursorAt = {x, y};
@@ -228,7 +219,43 @@ const readout = () => page.locator('.readout strong').textContent();
 const md = (s) => s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/→/g, '&rarr;');
 
 // ---- each beat's actions (the narration plays from the beat's start; the beat lasts its audio + 0.7 s at least) ----
-const PANE = '#controls .pane.right';
+const ED = '.ctl-editor';
+/** Click the element (cursor, ripple), spotlighting it first. */
+async function press(rect, pad = 6, wait = 250) {
+  await spot(rect, pad);
+  await pause(wait);
+  await clickAt(rect);
+}
+const stepTab = (n) => page.getByRole('tab', {name: n === 1 ? 'Step 1: Buttons' : 'Step 2: Driving feel'}).boundingBox().then((b) => ({x: b.x, y: b.y, w: b.width, h: b.height}));
+const choice = (re) => page.evaluate((src) => {
+  const re = new RegExp(src);
+  const e = [...document.querySelectorAll('.ctl-editor .choice, .ctl-editor button')].find((x) => re.test(x.getAttribute('aria-label') || x.textContent));
+  return e && window.tutRect([e]);
+}, re.source);
+/** Up -> the claw -> "Go to open on one press" (each a click in the editor beside the controller). */
+async function upOpensClaw(quick) {
+  const w = quick ? 120 : 250;
+  await press(await rectOf('[data-button="Up"]'), 6, w);
+  await page.locator(`${ED} .choice`).first().waitFor();
+  await pause(quick ? 250 : 500);
+  if (!quick) {
+    await spot(await rectOf(ED), 4);
+    await pause(900);
+  }
+  await press(await choice(/^claw/), 4, w);
+  await page.locator(ED).getByRole('button', {name: 'claw: Go to "open" on one press', exact: true}).waitFor();
+  await pause(quick ? 250 : 400);
+}
+async function curveTo06(quick) {
+  const inp = await rectOf('input[name="feel-expo"]');
+  await spot(await fieldRect('feel-expo'), 8);
+  await pause(quick ? 150 : 300);
+  await clickAt(inp);
+  await page.locator('input[name="feel-expo"]').selectText();
+  await page.keyboard.type('0.6', {delay: quick ? 120 : 160});
+  await page.keyboard.press('Enter');
+  await pause(400);
+}
 const ACTIONS = {
   async c01() {
     await spot(null);
@@ -237,74 +264,76 @@ const ACTIONS = {
   },
   async c02() {
     await card(null);
-    const r = await page.getByRole('tab', {name: 'Controls'}).boundingBox();
-    await spot({x: r.x, y: r.y, w: r.width, h: r.height}, 4);
-    await pause(400);
-    await clickAt({x: r.x, y: r.y, w: r.width, h: r.height});
+    const b = await page.getByRole('tab', {name: 'Controls'}).boundingBox();
+    await press({x: b.x, y: b.y, w: b.width, h: b.height}, 4, 400);
     await page.locator('svg.pad').waitFor();
   },
   async c03() {
-    await spot(await rectOf('svg.pad'), 10);
-    await moveCursor(620, 380, 900);
+    await spot(await stepTab(1), 6);
+    await moveCursor(400, 300, 900);
+    await pause(700);
+    await spot(await rectOf('.pad-card'), 6);
   },
   async c04() {
-    await spot(await rectOf('[data-button="R1"]'), 6);
-    await pause(300);
-    await clickAt(await rectOf('[data-button="R1"] .cbtn-hit'));
+    await press(await rectOf('[data-button="R1"]'), 6, 300);
     await pause(500);
-    await spot(await rectOf(`${PANE} .insp-title`, `${PANE} select`), 10);
-    await moveCursor(1100, 300, 700);
+    await spot(await rectOf(`${ED} .ed-head`, `${ED} select`), 10);
+    await moveCursor(1100, 330, 700);
   },
   async c05() {
-    await spot(await rectOf('[data-button="A"]'), 6);
-    await pause(300);
-    await clickAt(await rectOf('[data-button="A"] .cbtn-hit'));
+    await press(await rectOf('[data-button="A"]'), 6, 300);
     await pause(500);
-    await spot(await rectOf(`${PANE} .insp-title`, `${PANE} select`), 10);
-    await moveCursor(1100, 300, 700);
+    await spot(await rectOf(`${ED} .ed-head`, `${ED} select`), 10);
+    await moveCursor(1100, 330, 700);
   },
   async c06() {
-    await spot(await rectOf('[data-button="Up"]', '[data-button="Down"]', '[data-button="Left"]', '[data-button="Right"]'), 8);
-    await moveCursor(500, 300, 800);
+    await spot(null);
+    await page.keyboard.press('Escape');  // the editor closes; nothing changed
+    await pause(300);
+    await spot(await rectOf(...['Up', 'Down', 'Left', 'Right'].flatMap((b) => [`[data-button="${b}"]`, `[data-label="${b}"]`])), 8);
+    await moveCursor(450, 460, 800);
   },
   async c07() {
-    const up = await rectOf('[data-button="Up"] .cbtn-hit');
-    await spot(up, 6);
-    await pause(300);
-    await clickAt(up);
-    await page.locator('.popover').waitFor();
-    await pause(450);
-    await spot(await rectOf('.popover'), 4);
-    await moveCursor(720, 330, 700);
+    await press(await rectOf('[data-button="Up"]'), 6, 300);
+    await page.locator(`${ED} .choice`).first().waitFor();
+    await pause(500);
+    await spot(await rectOf(ED), 4);
+    await pause(900);
+    await press(await choice(/^claw/), 4, 300);
+    await page.locator(ED).getByRole('button', {name: 'claw: Go to "open" on one press', exact: true}).waitFor();
+    await pause(400);
+    await spot(await rectOf(ED), 4);
+    await moveCursor(1235, 560, 600);  // off the choices: a hovered one would look chosen
+  },
+  async c07b() {
+    const b = await page.locator(ED).getByRole('button', {name: 'claw: Go to "open" on one press', exact: true}).boundingBox();
+    await press({x: b.x, y: b.y, w: b.width, h: b.height}, 4, 300);
+    await pause(600);
+    await spot(await rectOf('[data-label="Up"]', '[data-button="Up"]'), 10);
+    await moveCursor(300, 470, 700);
   },
   async c08() {
     await spot(null);
-    await page.keyboard.press('Escape');  // Up is left free: nothing chosen
-    await showFeel();
+    await page.keyboard.press('Escape');
+    await pause(200);
+    await press(await stepTab(2), 6, 300);
+    await page.locator('input[name="feel-deadband"]').waitFor();
+    await pause(600);
     const inp = await rectOf('input[name="feel-deadband"]');
     await spot(await fieldRect('feel-deadband'), 8);
     await moveCursor(inp.x + inp.w / 2, inp.y + inp.h / 2, 800);
   },
   async c09() {
-    const inp = await rectOf('input[name="feel-expo"]');
-    await spot(await fieldRect('feel-expo'), 8);
-    await pause(300);
-    await clickAt(inp);
-    await page.locator('input[name="feel-expo"]').selectText();
-    await page.keyboard.type('0.6', {delay: 160});
-    await page.keyboard.press('Enter');
-    await pause(300);
-    await showFeel();  // a kept change draws the tab again, from its top
+    await curveTo06(false);
     await spot(await rectOf('svg.graph'), 8);
   },
   async c10() {
-    const g = await rectOf('svg.graph', '.readout');
-    await spot(g, 8);
+    await spot(await rectOf('svg.graph', '.readout strong'), 8);
     const p = await rectOf('.g-probe');
     const x0 = p.x + p.w / 2, y0 = p.y + p.h / 2;
-    await drag(x0, y0, x0 + 45, y0, 900);
+    await drag(x0, y0, x0 + 60, y0, 900);
     await pause(400);
-    await drag(x0 + 45, y0, x0, y0, 900);
+    await drag(x0 + 60, y0, x0, y0, 900);
     await pause(300);
     const t = await readout();
     if (!/^30 % stick → 12 % speed$/.test(t)) throw new Error(`c10: the readout says "${t}"`);
@@ -345,8 +374,7 @@ const ACTIONS = {
     await spot(null);
     await page.evaluate(() => document.querySelector('.drawer-body').scrollTo({top: 0, behavior: 'smooth'}));
     await pause(700);
-    const row = await page.evaluate(() => window.tutRect([document.querySelector('.drawer .region .row')]));
-    await spot(row, 8);
+    await spot(await page.evaluate(() => window.tutRect([document.querySelector('.drawer .region .row')])), 8);
     const c = await page.evaluate(() => window.tutRect([document.querySelector('.drawer .region .row button')]));
     await moveCursor(c.x + c.w / 2, c.y + c.h / 2, 800);
   },
@@ -354,27 +382,30 @@ const ACTIONS = {
     await spot(null);
     await page.keyboard.press('Escape');
     await page.locator('.drawer').waitFor({state: 'detached'}).catch(() => {});
-    await pause(500);
-    const two = await page.getByRole('radio', {name: 'two'}).boundingBox();
-    const sw = await page.evaluate(() => window.tutRect([document.querySelector('[role="radio"]').parentElement]));
+    await pause(400);
+    const sw = await rectOf('.robot-pick');
     await spot(sw, 6);
-    await pause(300);
+    await pause(400);
+    const two = await page.getByRole('radio', {name: 'two'}).boundingBox();
     await clickAt({x: two.x, y: two.y, w: two.width, h: two.height});
-    await pause(700);
-    const title = await textRect("robot two's controller");
-    await spot(title, 10);
+    await pause(500);
   },
   async c16() {
-    await spot(null);
-    await showFeel();
-    const inp = await rectOf('input[name="feel-expo"]');
-    await spot(await fieldRect('feel-expo'), 8);
-    await pause(200);
-    await clickAt(inp);
-    await page.locator('input[name="feel-expo"]').selectText();
-    await page.keyboard.type('0.6', {delay: 140});
-    await page.keyboard.press('Enter');
+    await press(await stepTab(1), 6, 150);
+    await page.locator('svg.pad').waitFor();
+    await pause(300);
+    await upOpensClaw(true);
+    const b = await page.locator(ED).getByRole('button', {name: 'claw: Go to "open" on one press', exact: true}).boundingBox();
+    await press({x: b.x, y: b.y, w: b.width, h: b.height}, 4, 120);
     await pause(400);
+    await spot(null);
+    await page.keyboard.press('Escape');
+    await press(await stepTab(2), 6, 150);
+    await page.locator('input[name="feel-expo"]').waitFor();
+    await pause(300);
+    await curveTo06(true);
+  },
+  async c16b() {
     const ex = await rectOf('#export');
     await spot(ex, 6);
     await moveCursor(ex.x + ex.w / 2, ex.y + ex.h / 2, 700);

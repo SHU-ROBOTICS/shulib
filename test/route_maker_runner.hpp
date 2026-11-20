@@ -15,7 +15,8 @@
 // refused by name, as the compiler would refuse the C++.
 //
 // THE RUN is RPV1's previewEntry, unchanged. Through its hooks: onBuilt hands over the clock, so every page
-// step is dated where it began and ended (exact attribution, A.3.10); onLoop hands over the record of a
+// step is dated where it began and ended (exact attribution, A.3.10), and installs the mechanisms' tap below
+// the recorder (runEntry, RMP1-E); onLoop hands over the record of a
 // route that loops without letting time pass — RPV1 then ends the call with std::_Exit(1): natively the
 // process, in WebAssembly only callMain (P-W1f).
 
@@ -332,12 +333,45 @@ struct PageStep {
     int libTo = 0;     ///< ... and its last
     std::string verdict = "notReached";
 };
+/// THE MECHANISMS (RMP1-E): each one's state every pace, read from the library's own slots below the recorder, so
+/// it records when the recorder does (once at the start, once after each pace). A lift's or an arm's position in its
+/// units; a pneumatic's position index (-1: none); a power mechanism's or a flywheel's direction (-1, 0, 1).
+struct MechTap final : shulib::motion::ITickPacer {
+    shulib::motion::ITickPacer* inner = nullptr;
+    const mech::MechanismService* svc = nullptr;
+    std::vector<std::vector<double>> at;  ///< per slot, per pace
+    void record() {
+        at.resize(svc->size());
+        for (std::size_t i = 0; i < svc->size(); ++i) {
+            at[i].push_back(stateOf(*svc->slotPtr(i)));
+        }
+    }
+    void pace() override {
+        inner->pace();
+        record();
+    }
+    [[nodiscard]] static double stateOf(const mech::Slot& s) {
+        const auto sign = [](double v) { return v > 0.0 ? 1.0 : v < 0.0 ? -1.0 : 0.0; };
+        switch (s.kind()) {
+            case mech::Kind::Position: return static_cast<const mech::PositionSlot&>(s).position();
+            case mech::Kind::Power: return sign(static_cast<const mech::PowerSlot&>(s).commandedVolts());
+            case mech::Kind::Speed: return sign(static_cast<const mech::SpeedSlot&>(s).targetRpm());
+            case mech::Kind::Pneumatic: {
+                const std::uint8_t p = static_cast<const mech::PneumaticSlot&>(s).commandedPosition();
+                return p == mech::PneumaticSlot::kNoPosition ? -1.0 : p;
+            }
+        }
+        return 0.0;
+    }
+};
+
 struct RunState {
     Route route;
     const mech::MechanismTable* table = nullptr;
     tester_rig::TesterStack* stack = nullptr;
     std::vector<PageStep> page;
     std::deque<std::string> keep;  ///< the names a Routine stores by pointer, alive for the run
+    MechTap tap;
 };
 inline RunState& state() {
     static RunState s;
@@ -650,6 +684,25 @@ inline void registerRoute(comp::AutonRegistry& reg) {
     return p;
 }
 
+/// RPV1's previewEntry (entry 0) with the mechanisms tapped (RMP1-E); a test's own onBuilt runs after, given the
+/// layer below the tap (the fakes' world).
+[[nodiscard]] inline route_preview::Model runEntry(const route_preview::PreviewRobot& robot, const comp::AutonRegistry& reg,
+                                                   route_preview::PreviewOptions opt = {}) {
+    opt.onBuilt = [then = opt.onBuilt](tester_rig::TesterStack& s, shulib::motion::ITickPacer*& below) {
+        MechTap& tap = state().tap;
+        state().stack = &s;
+        tap = MechTap{};
+        tap.inner = below;
+        tap.svc = &s.mechanisms;
+        below = &tap;
+        tap.record();
+        if (then) {
+            then(s, tap.inner);
+        }
+    };
+    return route_preview::previewEntry(robot, reg, 0, opt);
+}
+
 // ── THE RECORD (schema 1 — tools/route_maker/README.md) ─────────────────────────────────────────────────────
 
 /// A JSON string: UTF-8 kept as it is; '"', '\\' and control characters escaped.
@@ -680,9 +733,45 @@ inline void registerRoute(comp::AutonRegistry& reg) {
     return i;
 }
 
+/// The record's `mechanisms` (RMP1-E): each one in `robot`'s list, in its order, and its state at every sample —
+/// `at[k]` is `samples[k]`'s pace (the record's samples are the recorder's last `n`; so are the tap's).
+[[nodiscard]] inline std::string mechanismsOf(const route_preview::PreviewRobot& robot, const MechTap* tap, std::size_t n) {
+    const mech::MechanismTable& t = *robot.table;
+    std::string o = "[";
+    for (std::size_t i = 0; i < t.count && i < mech::kMaxMechanisms; ++i) {
+        const mech::MechanismSpec& s = t.specs[i];
+        std::string kind = s.kind == mech::Kind::Power ? "power" : s.kind == mech::Kind::Speed ? "flywheel" : "pneumatic";
+        std::string more;
+        if (s.kind == mech::Kind::Position) {
+            const bool lift = s.position.units == mech::Units::Inches;
+            kind = lift ? "lift" : "arm";
+            more = ", \"units\": " + jstr(lift ? "in" : "deg") + ", \"bottom\": " + num(s.position.minPosition) +
+                   ", \"top\": " + num(s.position.maxPosition);
+        } else if (s.kind == mech::Kind::Pneumatic) {
+            more = ", \"positions\": [";
+            for (std::size_t p = 0; p < s.pneumatic.positionCount; ++p) {
+                more += (p == 0 ? "" : ", ") + jstr(s.pneumatic.positions[p].name);
+            }
+            more += "]";
+        }
+        std::string at = "[";
+        if (tap != nullptr && i < tap->at.size() && tap->at[i].size() >= n) {
+            const std::vector<double>& v = tap->at[i];
+            for (std::size_t k = v.size() - n; k < v.size(); ++k) {
+                at += (k == v.size() - n ? "" : ", ") + num(v[k]);
+            }
+        }
+        o += std::string{i == 0 ? "" : ",\n  "} + "{\"name\": " + jstr(mech::nameOf(s)) + ", \"kind\": " + jstr(kind) +
+             more + ", \"placeholder\": " + jstr(route_preview::placeholderFor(robot, std::string{mech::nameOf(s)})) + ", \"at\": " +
+             at + "]}";
+    }
+    return o + "]";
+}
+
 /// The record, one top-level member per line; `page` null for a run with no page steps (WG1's compiled twin).
+/// `mechs` is mechanismsOf's text.
 [[nodiscard]] inline std::string record(const route_preview::Model& m, const std::vector<PageStep>* page,
-                                        const std::vector<StepWords>* kinds) {
+                                        const std::vector<StepWords>* kinds, const std::string& mechs) {
     std::string o = "{\"schema\": 1,\n";
     const auto member = [&o](const char* k, const std::string& v, bool last = false) {
         o += std::string{"\""} + k + "\": " + v + (last ? "\n" : ",\n");
@@ -771,6 +860,7 @@ inline void registerRoute(comp::AutonRegistry& reg) {
     member("field", fs + "]");
     member("through", jbool(m.through));
     member("throughAt", std::to_string(m.throughAt));
+    member("mechanisms", mechs);
     std::string ss = "[";
     for (std::size_t i = 0; i < m.samples.size(); ++i) {
         const route_preview::Sample& s = m.samples[i];
@@ -787,6 +877,26 @@ inline void emit(const std::string& text) {
     std::fflush(stdout);
 }
 
+/// The route parsed into state() run on its robot (a test calls it as preview does): the Model, the page steps and
+/// the mechanisms' tap left in state(). A registry that refuses the entry gives RPV1's refused Model, nothing run.
+inline route_preview::Model runParsed(const route_preview::PreviewRobot& robot, const route_preview::PreviewOptions& opt) {
+    RunState& g = state();
+    g.table = robot.table;
+    g.page.assign(g.route.steps.size(), PageStep{});
+    comp::AutonRegistry reg{shulib::bench::kAutonPeriods, comp::OnRefusal::DropEntry};
+    robot.registerAutons(reg);
+    if (reg.size() != 1) {  // the registry refused the entry (its sentence is the reason)
+        return route_preview::refusedModel(robot, g.route.name, reg.refusedCount() > 0 ? reg.refusal(0) : "refused", {});
+    }
+    return runEntry(robot, reg, opt);
+}
+
+/// The record of `m` (run by runParsed on `robot`).
+[[nodiscard]] inline std::string recordOf(const route_preview::Model& m, const route_preview::PreviewRobot& robot) {
+    RunState& g = state();
+    return record(m, &g.page, &g.route.steps, mechanismsOf(robot, &g.tap, m.samples.size()));
+}
+
 /// PREVIEW: run the lines' route and write its record to stdout. 0 drawn, 1 a problem (refused, threw, went
 /// THROUGH, looped — the record says), 2 lines it cannot run (said on stderr, no record).
 inline int preview(const std::string& lines) {
@@ -799,24 +909,13 @@ inline int preview(const std::string& lines) {
         return 2;
     }
     const route_preview::PreviewRobot robot = previewRobot(g.route.robot, &registerRoute);
-    g.table = robot.table;
-    g.page.assign(g.route.steps.size(), PageStep{});
-    comp::AutonRegistry reg{shulib::bench::kAutonPeriods, comp::OnRefusal::DropEntry};
-    robot.registerAutons(reg);
-    if (reg.size() != 1) {  // the registry refused the entry (its sentence is the reason)
-        const route_preview::Model m =
-            route_preview::refusedModel(robot, g.route.name, reg.refusedCount() > 0 ? reg.refusal(0) : "refused", {});
-        emit(record(m, &g.page, &g.route.steps));
-        return m.exitCode;
-    }
     route_preview::PreviewOptions opt;
-    opt.onBuilt = [](tester_rig::TesterStack& s, shulib::motion::ITickPacer*&) { state().stack = &s; };
-    opt.onLoop = [](const route_preview::Model& lm) {
-        emit(record(lm, &state().page, &state().route.steps));
+    opt.onLoop = [&robot](const route_preview::Model& lm) {
+        emit(recordOf(lm, robot));
         return true;
     };
-    const route_preview::Model m = route_preview::previewEntry(robot, reg, 0, opt);
-    emit(record(m, &g.page, &g.route.steps));
+    const route_preview::Model m = runParsed(robot, opt);
+    emit(recordOf(m, robot));
     return m.exitCode;
 }
 

@@ -16,6 +16,37 @@
 
 ## API 2.9
 
+### 2026-11-19 — Export says where the code goes and whether it landed; one command builds and uploads
+
+> Written when it was built (chunk RMP1, run RMP1-F). **No library change — no API change:** the route builder's
+> export page and one new tool, `tools/upload_auton.py`. The exported code is unchanged, byte for byte.
+
+**What you can now do (additive):**
+
+- **Export shows one step for your browser** — Edge or Chrome: connect the folder, write; any other: pick the file,
+  get it back, replace it; or Copy, with a picture of where it is pasted. After a write the page **reads the file
+  back**: green **Written and checked** names the routes and their steps; a refusal is red, with its fix. Then
+  **Will it build?** and **Next**: the build and upload commands for robot one or two, each with Copy. How:
+  [guide chapter 22, step 7](guide/22-making-your-first-route.md#7-export).
+- **`python3 tools/upload_auton.py one`** (or `two`; `python` on Windows) builds the Auton Tester, uploads it to
+  slot 2 on the brain's own port, and prints ✓ or ✗ with the first real error in plain words. It needs Python 3. It
+  has run against stand-ins for `make` and `pros` only: not yet against the real `pros`, or on Windows.
+  [Chapter 16](guide/16-testing-an-auton-on-the-bench.md) has it beside the two commands.
+
+**What you must do:** nothing.
+
+### 2026-11-19 — PREVIEW shows the mechanisms: the cascade rising, the claw opening
+
+> Written when it was built (chunk RMP1, run RMP1-E). **No library change — no API change:** nothing under
+> `include/shulib/` or `src/` moved; the route builder's page and its preview engine did.
+
+**What you can now do (additive):** watch the mechanisms during PREVIEW. Beside the field, the cascade's height on a
+bar, each piston's position and each toggle's motor play in step with the robot, from the real library's run on the
+host test plant; the mechanism the playing step uses is highlighted. How:
+[guide chapter 22, step 6](guide/22-making-your-first-route.md#6-preview-watch-the-library-drive-it).
+
+**What you must do:** nothing.
+
 ### 2026-11-19 — Bench Tests' station 13 made plain: a student can measure a robot's mechanisms alone
 
 > Bench Tests' own page (`src/programs/bench_r3a.{hpp,cpp}`): **no library change, no API change.** Host- and
@@ -180,6 +211,11 @@ until now by typing C++.
   the top of the file, the feel (`kFeel`) — in Edge or Chrome with the shulib folder connected; in Firefox it hands
   back the updated driver file you pick; or it copies them.
   How: [guide chapter 22](guide/22-making-your-first-route.md#the-drivers-buttons-and-the-driving-feel).
+- **The Controls tab, one step at a time** (2026-11-19): **1 · Buttons** — the controller drawn large, its labels
+  readable on a laptop, and one panel beside it for the button clicked — then **2 · Driving feel** — the style, the dead
+  zone and the curve first, the rest under **More settings**. Giving a free button a job also takes out the button
+  map's line that called it free, in the same click (it was an error and a second click). What it exports is the
+  same, byte for byte.
 - **The top bar fits every laptop screen** (fixed at the merge, 2026-11-17): from 1101 px up, PREVIEW and Export
   stay whole and apart; at 1600 px and below the folder button keeps only its icon (its words are on the Export page
   too), and at 1366 px and below the "Route builder" words and the "Robot one" chip are not drawn.

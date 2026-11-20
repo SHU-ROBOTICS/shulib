@@ -5,9 +5,10 @@ the real route builder, one idea per beat, one highlight at a time, narrated, wi
 the script: each beat's spoken sentence (`say`) and its caption. `record.mjs` opens the built route builder in
 Chromium, connects an in-memory folder holding the two driver files (so Export shows its **Write into** button;
 it is pointed at, never pressed, and nothing is written anywhere), injects an overlay (spotlight, ring, cursor,
-click ripple, caption band — never the app's code), plays each beat (its narration's length + 0.7 s, at least
+click ripple, caption band — never the app's code; the app's toasts are hidden while it records), plays each beat (its narration's length + 0.7 s, at least
 3.5 s), then mixes the narration and the music and writes `docs/assets/video/controls-tab.mp4` and its poster
-`controls-tab.jpg` (about 85 s, in real time). `narration/` (Kokoro's WAVs) is not committed.
+`controls-tab.jpg` (about 95 s, in real time). It follows the tab's two steps, **1 · Buttons** and **2 · Driving
+feel**. `narration/` (Kokoro's WAVs) is not committed.
 
 From the repository root, with the route builder built (`python3 tools/route_maker/build.py`):
 

@@ -1,0 +1,28 @@
+{
+    // The team's buttons: Terminal -> Run Task -> one of these. Each builds the Auton Tester for that robot,
+    // uploads it to slot 2 and says plainly whether it worked (tools/upload_auton.py). Plug the BRAIN in by USB.
+    // (The PROS extension's own Build & Upload builds the default program, not the Auton Tester.)
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Upload routes to robot one",
+            "type": "shell",
+            "command": "python3",
+            "windows": { "command": "python" },
+            "args": ["tools/upload_auton.py", "one"],
+            "group": { "kind": "build", "isDefault": true },
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "Upload routes to robot two",
+            "type": "shell",
+            "command": "python3",
+            "windows": { "command": "python" },
+            "args": ["tools/upload_auton.py", "two"],
+            "group": "build",
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+            "problemMatcher": []
+        }
+    ]
+}
