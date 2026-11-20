@@ -419,8 +419,9 @@ says where it wrote the page: `build/route_preview/<name>.html` (robot one's in
 or changes your code: it only runs it and draws it.
 
 **What the page shows.** The field to scale, red station at the bottom: the walls, the Toggles,
-the Loaders, the Load Zones and the start pieces — the only field parts shulib knows; anything else
-on the field is not drawn. On it, the path the host test plant's robot really drove, step by step,
+the Loaders, the Load Zones and the start pieces — the field parts the host test plant's field model
+has; anything else on the field, the goals included, is not drawn or checked here (the route builder
+checks the goals, [chapter 22](22-making-your-first-route.md#solid-structures-on-the-field)). On it, the path the host test plant's robot really drove, step by step,
 each step numbered where it started (hover a number for each step's times and result, or a step's
 end outline for where it ended), its outline (a square, front edge in blue) at the start and end of
 every drive and turn, an × where each drive was aimed, and a diamond where each mechanism step ran.

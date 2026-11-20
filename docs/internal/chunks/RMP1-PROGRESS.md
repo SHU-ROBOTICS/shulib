@@ -4312,3 +4312,334 @@ the section above) is now harmless: that section opens if folded, so the step is
 a boundary drop means is still the list's rule (index moves cannot be exactly reversible across a section's edge,
 finding 2). (a)–(c) of the review stand unchanged (the `routeKey` patch for RMP1-E, the release marker, the briefing at
 the merge).
+
+## RMP1-H — the field's solid structures: drawn, and every step checked against them
+
+*(Started 2026-11-19, ~23:15 — the Start entry's time was not recorded; the first timed entry is D1's 23:16; the builder, Opus 5.5, in the worktree
+`.claude/worktrees/rmp1-h` from `518717a`. Brief: `RMP1-H-field-obstacles.md`, uncommitted, landing with this run.)*
+
+- **Start.** Read RESUMING's standing rules and the brief in full. Plan: D1 first (the manual) — if it cannot be
+  fetched, STOP before any number.
+- **D1 — the manual, read (23:16–23:35).** v2.0's PDF (`.claude/coordinator/scratch/autoflip/dl/override-2.0.pdf`,
+  2026-09-03) Appendix A rendered (`scratch/rmp1-h/manual/a-100..111.png`: A5–A16); **v2.1 READ this time**: the online
+  manual's Appendix A page (manuals.vex.com/v5/override/v2.1/appendix-a/) links its drawings, downloaded to
+  `scratch/rmp1-h/v21dl/` (FieldElementLocations, GoalSpecs, LoaderSpecs: release 2026-04-27, every number the same as
+  v2.0's). The solid floor structures: the **nine Goals** (A10 places them; A7 the base: 142.5 mm = 5.61 in flat to flat,
+  R81.9 mm = 3.22 in corners — "octagonal", the glossary; the black 5.77-in and centre 8.77-in goals' bases are drawn
+  332 / 330 px on the sheet where the red's 5.61 in spans 332 px) and the **four Loaders** (A9: 4.02 in wide, 3.74 in
+  into the field; A10: 58.764 in either side of centre on the red and blue walls — the library's HA-212 numbers). NOT:
+  the Toggles (on the wall's top, brackets 10.6 in up), the tape, the Pins and Cups. F1 from A10's audience view:
+  x = 70.205 - a_y, y = a_x - 70.205 — each goal's colour checked against A10 and HA-243's Quadrants.
+- **The picture (field.webp) is a PERSPECTIVE render** (found measuring it, `scratch/rmp1-h/probe/`): the walls' inner
+  faces show as a strip, and the Loaders' 23-in tops are drawn ~3 in outward of their floor footprints — the floor
+  footprint sits on the Loader's faint clear base (`probe/loader_zoom.png`). The goals (3–9 in tall) sit on their
+  outlines: 92–97 % of each outline's inside is not floor, 0 % of a 0.6–1.6 in ring outside it is (`probe/scores.py`).
+- **Built:** `test/override_field_obstacles.hpp` (the data, each number cited), `route_maker_describe.hpp` emits
+  `field.obstacles` (id, name, kind, x, y, source, footprint on the 0.001 grid), fixtures robots/x|y|z.json re-made;
+  `src/model/obstacles.mjs` (signedGap: SAT, the push-out depth; the sweep = pair.mjs's stepPoses with each two
+  neighbours' hull; RCO1 red > 0.5 in in, RCO2 amber < 1 in, RCO3 robot two's red; detour; runThrough for PREVIEW);
+  checks.mjs one line + `detour` fix + RCO3 in ROBOT_TWO_ONLY; route.mjs `touches` (STEP_KEYS, normalized sorted);
+  playback.mjs (routeKey ignores `touches`; the page's THROUGH a structure when it comes first); preview.mjs passes the
+  structures; timeline.mjs "THROUGH the <element>." (was "a wall"); `src/ui/field_obstacles.mjs` (outlines + the one
+  highlight + the "on purpose" switches); hooks: field_view.mjs (import + `parts = [obstacleShapes(app, P)]`),
+  inspector.mjs (import + `touchOnPurpose(step, i, app)`) — both RMP1-G's files (coordinator). CSS: one delimited block.
+- **What the check found in the TREE's own test routes (true, each):** the routes starting at (-36, -55.7) and driving
+  along y = -55.7 or to (-12, -36) go 1.7–10 in through the black goal by the red wall; the old ready route (-36, -60)
+  -> (-24, -36) the same; four recorded PREVIEW fixtures (ready, failed, pair_fail, through) through goals; 12 of the
+  goldens' TEST routes (`probe/goldens_rco.mjs`) — those are left as they are (the C++ goldens stay byte-for-byte;
+  they are the exporter's test routes, nothing checks their page issues). Test routes moved clear: checks.test.mjs
+  (clean route along y = -60), named_routes.test.mjs D1, page.test.mjs (the ready route 24 in right; the clicked
+  route's start (-9, -55.7); the ONE FILE leg through the LEFT wall), named_routes.page.test.mjs ((24, -48) is IN the
+  red goal by the red wall: (24, -60)). The PREVIEW page files (preview.test.mjs, mechanisms.page.test.mjs) are baked
+  without the structures (`harness.mjs noStructures()`, said why): re-recording those fixtures is for after the 21st.
+- **RESUMED 2026-11-20 01:43 EST (`date`)** after the 5-hour cut (~00:25). Found: `git diff -- src/ Makefile` EMPTY (no
+  gate plant left); every mutated file byte-equal to its pre-mutation md5 (`scratch/rmp1-h/mut/md5-before.txt`,
+  `md5-ui-before.txt`: `md5sum -c`, all OK). Done before the cut but not logged: the JS mutations M1–M19 (all CAUGHT,
+  `mut/verdicts-js.json`), U1–U4 and C1–C4 (all CAUGHT, `mut/log-*.txt`), the screens (both browsers, `shots/`), the
+  final page run (stopped in Firefox's mechanisms file). Missing: the guide's picture (`structures.png` is cited, not
+  in the tree), U1–U4 re-run (the page test was edited at 23:59, after them), the gates, the prose review. Plan: a
+  fresh build from source (`rm -f build/test/shulib_tests` first), then those.
+- **Built and run fresh (01:44–02:05).** `rm -f build/test/shulib_tests build/test/shulib_route_maker`, briefing
+  regenerated, `cmake -S test -B build/test` + `cmake --build build/test -j8` + `--target shulib_route_maker`. Suite
+  (capped): **3,900 cases / 3,776,969 assertions, 3 skipped — SUCCESS** (RMP1-H's 4 cases: 732 assertions). Node:
+  **188/188**. The page files, both browsers, on a site re-built from source (`scratch/rmp1-h/pagelogs/final-*.log`):
+  obstacles with the screens 10/10 each; every file green — Firefox controls 26, mechanisms 8 (+1 skip), named_routes 7,
+  obstacles 4, page 18, preview 21 (+1); Chromium controls 25 (+1), mechanisms 8 (+1), named_routes 7, obstacles 4,
+  page 16 (+2), preview 21 (+1); engine skipped in both (every skip a browser branch or the real engine, as before).
+  The native twin re-records every PREVIEW fixture from the new robots.json **byte-identical** (`record.mjs --out
+  scratch/rmp1-h/native_records`): the engine ignores `field.obstacles`. The wasm tests skip (no emsdk here: CI's).
+- **Mutations — every one observed RED, restored byte-equal (md5), the file's time bumped.** JS (`mut/jsmut.py`, node
+  capped, before the cut, against today's files: md5 equal): M1 TOUCH_IN 0.6, M2 CLEAR_IN 0.9, M3/M4 amber/red not
+  judged on the step, M5 no hull between samples, M6 overlap length for the push out, M7 the start unchecked, M8 robot
+  two unchecked, M9 any touch THROUGH, M10 the page's THROUGH always wins, M11 the key carries `touches`, M12 not
+  sorted, M13 the way around may leave the field, M14 a turn worded as a drive, M15 no way around, M16 on purpose
+  ignored, M17 RCO3 waits PREVIEW, M18 the way around checks no other structure, M19 no structure checked — all CAUGHT
+  (`mut/verdicts-js.json`). Page (`mut/uimut.py`, the site re-built from each mutant, Firefox in a 6G scope):
+  **U1–U4 RE-RUN at the resumption** (the page test changed at 23:59, after their first run): U1 no highlight, U2 not
+  drawn, U3 no on-purpose switch, U4 PREVIEW given no structures — all CAUGHT. C++ (the dependents touched, the fast
+  targets re-built, the suite capped): C1 a goal 2 in off the drawing (suite: the golden, the A10 grid and mirror
+  checks; page: "red-goal-right-wall: 65 % of its inside and 24 % of the ring around it is NOT floor"), C2 the Loaders
+  3.0 in deep (the plant's Loaders), C3 the corners R90 mm (A7's R81.9), C4 the description drops the Loaders — all
+  CAUGHT.
+- **Gates (final):** src_build_gate check PASS (14 builds; self-test not needed: no src/ or Makefile change); the ARM
+  header gate CLEAN (259 headers); PROS-free and sim-free greps hold; api_doc_tool self-test / check-coverage /
+  check-fresh / check-examples / check-removability OK (no `///` under include/ changed: docs/api not regenerated);
+  briefing self-test + check OK; doc_staleness_audit self-test + run clean; doc_readability self-test / check-nav /
+  check-tone OK. `git diff -- include/ src/ Makefile` EMPTY.
+- **Docs:** guide 22's picture `docs/assets/route-builder/structures.png` (the Chromium light 1440 screen); guide 22's
+  checks table now says "at the start or anywhere on a step" (RCO1 checks the start too).
+- **Prose review (greps run 01:58, `scratch/rmp1-h/prose/greps.txt`, hits read):** each changed file's name
+  (`override_field_obstacles`, `route_maker_describe`, `obstacles.mjs`, `field_obstacles`, `checks.mjs`, `playback.mjs`,
+  `route.mjs`, `field_view.mjs`, `inspector.mjs`, `preview.mjs`, `timeline.mjs`, `style.css`) — only
+  tools/route_maker/README.md, already updated; the concepts `THROUGH a wall`, `through a wall`, `no walls`,
+  `Loader`, `touches`, `newer builder`, `field.obstacles`, `solid structure`: guide 16 l.454/518 and the glossary's
+  "route preview" describe `tools/route_preview.py` (RPV1's walls and Loaders: still true — the CLI does not check
+  goals), guide 14 l.70 (the plant has no walls: true), guide 22 l.180 (true), README l.85/191 (true: an older page
+  refuses `touches` by STEP_KEYS), cookbook 09 l.117 (Loaders do not mirror: agrees with RCO3). Stale: guide 22's
+  table row (the start) — fixed.
+- **Deltas from the brief, each with its reason.** (1) D1's footprint-on-picture test is the PAGE's (the browser
+  decodes field.webp; the suite has no image decoder); the suite pins the footprints to A7/A9/A10 instead and to the
+  two other copies of the Loaders (the library's keep-outs, the host test plant's field). (2) The Loaders' picture
+  threshold is looser than the goals' (≥ 15 % not floor inside, vs 85 %): the render is a perspective, their 23-in tops
+  drawn ~3 in outward. (3) Added RCO3, robot two's mirrored path red (the Loaders are not mirror images); PREVIEW does
+  not wait for it, as for RCT1/RCP1/RCM1. (4) A step is judged on what IT does: one that starts touching and backs
+  away is clean (placing a cone, then leaving). (5) "Go around: add a point" only on a drive or back-up to a typed
+  point; a curve says "move a curve point", a turn "move the step before it". (6) PREVIEW's THROUGH a structure is the
+  page's (`runThrough`, RPV1's 1 in allowance) because D5 keeps the engine; robot one's square is used for robot
+  two's run too (both 15 in this season). (7) Two hook lines in RMP1-G's `inspector.mjs` (D4's checkbox needs one),
+  beside the one in `field_view.mjs`. (8) preview.test.mjs and mechanisms.page.test.mjs baked without the structures
+  (`harness.mjs noStructures`): four recorded fixtures drive through a goal; re-recording them clear is after the 21st.
+- **Stopped here: the run is complete, uncommitted, for the coordinator's verification.** For the coordinator: RMP1-G
+  merged on main (`e982165`) after this base — `field_view.mjs` (import + `parts = [obstacleShapes(app, P)]`) and
+  `inspector.mjs` (import + `touchOnPurpose(step, i, app)`) need a merge by hand there.
+
+### RMP1-H review findings and their disposition
+
+*(Started 2026-11-20 02:27 EST (`date`); the builder again, Opus 5.5, same worktree. Three reviewers' 24 findings,
+deduplicated below; each re-checked before it is fixed or answered.)*
+
+Probes and drivers: `.claude/coordinator/scratch/rmp1-h/fix/` (`probe/`, `mut/rmut.py`, `mut/verdicts.json`, logs).
+
+1. **A cone placed on a red or blue goal is red, and Export waits (correctness, major) — REAL; FIXED, a decision for
+   the coordinator's ruling (change 9 below).** A7 re-read (`v21dl/GoalSpecs.png`): the red goal's base is 142.5 mm
+   with a 10 mm lip; the body is ~132 mm wide just above the lip and narrows to 88.8 mm at its 82.5 mm top, so a front
+   at 1 / 2 / 3.25 in up sits 0.39 / 0.68 / 1.06 in inside the floor footprint. The black and centre goals stand full
+   width to 64 / 140.2 mm; the Loaders straight (A9). Fix: `override_field_obstacles.hpp` `kColourGoalOverhang` =
+   (142.5 - 88.8) / 2 mm, cited, a per-structure `overhang` (the four red and blue goals; 0 for the rest) emitted as
+   `field.obstacles[].overhangIn`; a step that ENDS at a structure it touches on purpose may go max(0.5, overhangIn)
+   in; unsaid, it stays red (the default is unchanged), and the red then says "If its front reaches over the base on
+   purpose (placing a cone), say so below" with the switch offered. Rejected: amber up to the overhang without the
+   switch (a mistaken 1 in end overlap would only be amber). Tests: node "a red or blue goal…" (0.9 in unsaid red,
+   said clear, 1.1 in said red, a black goal said still red); C++ "the overhang is A7's" and the description's counts.
+2. **Guide 22's pictures and quoted line show the old ready route (correctness minor + docs major, the same) — REAL;
+   FIXED but two.** Line 218 now quotes `DRIVE to (0, -36) in: about 26.8 in`. `route.png`, `route-dark.png`,
+   `export.png` (the `export-copy-only` screen) and `saved.png` re-taken from the moved ready route (Firefox, light /
+   dark 1440, RMP1-A2u's `to_docs.py`: 1200 x 750, 256 colours). **KNOWN-STALE: `preview.png` and
+   `preview-failed.png`** — they play the recorded `ready` and `failed` fixtures, made before the structures and both
+   through a goal (the PREVIEW pages run baked without the structures, `harness.mjs noStructures`). After the 21st:
+   move those fixtures' routes clear as `readyRoute` was, re-record (`test/fixtures/record.mjs`), drop
+   `noStructures`, re-take both pictures. Also found: `structures.png` was committed at 1440 x 900 RGB, not the
+   convention — re-made by `to_docs.py`.
+3. **The merge with RMP1-G conflicts in more files than the handoff named (correctness minor + docs minor, the same)
+   — REAL.** A dry run (`patch -p1 --dry-run` of `git diff 518717a` onto shulib-v2's copies, `fix/mergecheck/`):
+   hunks FAIL in `route.mjs` (STEP_KEYS), `style.css` (the end), `field_view.mjs`, `inspector.mjs`, the README (rows
+   11/13) and guide 22 (the project-file paragraph); the changelog, guide 16 and page.test.mjs apply with offsets.
+   The handoff below is rewritten. A malformed `touches` (not a list of strings) is dropped by `normalizeStep`, not
+   refused: `project.mjs` is RMP1-G's file (not edited here) — the follow-up for after the merge is beside RMP1-G's
+   `view` check in `newerParts`: `if (s.touches !== undefined && !(Array.isArray(s.touches) && s.touches.every((t) =>
+   typeof t === 'string' && t))) return \`a "touches" of ${JSON.stringify(s.touches)} (${at})\`;`.
+4. **The checks are 100–1000x slower; a drag re-checks (correctness minor) — REAL; FIXED.** Measured on the
+   reviewer's 21-step routes (`fix/probe/perf.mjs`; the pre-review code on a copy, `perf_base.mjs`): before 10.1 ms
+   (the "clean" one, which has two reds), 45.7 ms (red), 49.5 ms (mirrored), a drag 46.3 ms a move; after 2.4, 3.1,
+   4.1, 3.3 ms (no structures: 0.14). How: the way around is searched only for a red ON THE WAY (no point clears one
+   where a step ends) and remembered per field by everything it depends on (from, to, kind, turned first, the
+   structure, size, wall, `touches`); the sweep skips a structure the step's whole box is far from; `signedGap`
+   returns a bound once a gap passes CLEAR_IN + 1 in; the projections allocate nothing.
+5. **Wording (correctness minor) — REAL; FIXED.** (a) A Loader: "taking a load", in the amber and on the switch;
+   (b) a red forward / backward: "Change the inches."; (c) a red's depth rounds UP, an amber's DOWN, and a limit met
+   exactly is not past it (0.5 in is amber, says 0.5; 0.499 says 0.4; 0.51 red says 0.6) — so the guide's "more than
+   0.5 in" and the number agree; (d) the C++ test comment says "centre".
+6. **PREVIEW's turned square unpinned (R2) — REAL; test added** (a sample turned 45 deg 12 in from the centre goal:
+   THROUGH 1.41 in; square to it: clear).
+7. **The "on purpose" offer untested (N1, N2) — REAL; tests added, and the rule sharpened:** a step with a red no
+   switch clears offers none (one idea at a time); else one switch per structure it comes close to. Node:
+   `nearStructures` on an amber (exactly the centre goal), a red (none), a clean step (none), a liftable end (that
+   goal). Page: exactly one switch on the amber step, none on the red one or on a clean one.
+8. **The gap one way only (G1) — REAL; tests added:** square-on, 0.5 in short of the flat (amber "passes 0.5 in");
+   `signedGap` corner to corner is the diagonal (sqrt 2), never an axis's bound.
+9. **"Go around" never turns the second leg (D1) — REAL; test added** (a drive not turned first: both legs turned
+   after the fix, no error).
+10. **Robot two's mirrored start in a Loader (S1) — REAL; test added** (RCO3 at the start, robot two only).
+11. **Robot two's PREVIEW run (P2) — REAL; test added** (`p.two.through`).
+12. **The deepest named (W1) — REAL; test added** (centre goal 4.x in, not the clip).
+13. **The start's 0.5 in edge (T0) — REAL; test added** (0.49 clear, 0.51 and 1.0 red).
+14. **Untick, the highlight's step, the moment's square (T1, T2, V1) — REAL; page assertions added** (untick brings
+    the amber back; the wait selected lights nothing, the drive its goal; the moment's polygon equals
+    `squareCorners(issue.obstacle.at)` within 0.01 px).
+15. **The way around's preferences (I1, D3, D5, D6, D2) — I1 and D3 REAL, tests added** (a back-up detours as two
+    back-ups; a line just above the goal's centre goes round above it, below it below). **D5, D6, D2 deferred to
+    after the 21st, with the reason:** they choose WHICH point is offered or whether one is; the point applied is
+    re-checked like every step (anything it comes near shows at once), so none can let a collision through.
+16. **The logged doc gates predate the last guide edit (tests minor) — REAL (a log inaccuracy, the gates were
+    green).** Every gate is re-run this round AFTER the last doc edit (below).
+17. *(= 2.)*
+18. **The 0.5 in allowance and the switch applied anywhere on a step, not only where it ends (docs major) — REAL: an
+    unlogged departure from D3/D4. FIXED to the brief:** on the way any overlap (past 0.01 in) is red and the switch
+    never lifts it; the 0.5 in touch and the switch's overhang are for where the step ends (`sweep`'s `end`: its last
+    pose is its deepest). The switch still silences an amber anywhere (D4 does not limit it). Tests: "on the way, ANY
+    overlap is red" (0.3 in mid-pass red, said or not; 0.02 in red reads 0.1; flush amber).
+19. **Brief §1 was wrong about the Loaders (docs minor) — REAL; logged here.** The host test plant's field
+    (`route_preview_model.hpp`, Loader = `BoxRole::Solid`), the library's wall keep-outs and RPV1 all had them, and
+    PREVIEW already marked THROUGH more than 1 in into a Loader. The changelog now says "PREVIEW now marks a run
+    THROUGH a goal (it already did for the Loaders)". RPV1's own Loader words ("past its face: the host test plant
+    has no walls") are left: RMP1-A2u's, pinned by `playback.test.mjs` and `preview.test.mjs`, and true (the plant
+    has neither).
+20. **Guide 16 "the only field parts shulib knows" (docs minor) — REAL; FIXED** there and in the RPV1 page's own
+    sentence (`test/route_preview_render.hpp` `kFieldLine`; no golden holds it): "the field parts the host test
+    plant's field model has … the goals … not drawn or checked here (the route builder checks the goals)".
+21. **The data header's 5.77 / 8.77 in read as widths (docs minor) — REAL; FIXED** ("5.77 in tall", "8.77 in tall").
+22. **Guide 22's section broader than the page (docs minor) — REAL; FIXED:** "Select the step: …"; "A drive or a
+    back-up to a point offers Go around … when there is a clear way round … both legs turn to face their point"; the
+    depths (item 5c).
+23. *(= 3.)*
+24. **The PROGRESS header promised a `date` (docs minor) — REAL; FIXED** (the header now says the Start entry's time
+    was not recorded; the first timed entry is D1's 23:16).
+
+**Change (9), for the coordinator's ruling — the on-purpose overhang (item 1).** **Change (10) — not a change: item
+18 restores the brief's D3/D4** (the first round's mid-path allowance was the unlogged departure).
+
+**Mutations this round (`fix/mut/rmut.py`, every one observed RED, each file restored byte-equal — `md5sum -c
+mut/md5-before.txt` all OK — its time bumped, and its dependents re-built from the restored file):** node (all
+`tools/route_maker/test/*.test.mjs`, capped): R2, N1, N2, G1, D1, S1, P2, W1, T0, I1, D3, and the new rules' O1
+(overhang ignored), O2 (0.5 in allowed on the way), O3 (the switch lifts a red on the way), O4 (every step judged as
+ending there), O5 / O6 (depths rounded to nearest), O7 (a Loader for a cone), O8 (a straight drive told to move its
+point), O9 (a limit met exactly is past it), O12 (the step's box from its first pose), O13 (every gap an axis's bound)
+— all CAUGHT. Page (the site re-built from each mutant, Firefox in a 6G scope, `obstacles.page.test.mjs`): T1 (cannot
+untick: the uncheck never takes, Playwright's 30 s), T2, V1, N3 (the page offers all 13) — all CAUGHT. C++ (the
+including tests touched, the fast targets re-built, `-tc="RMP1*"` capped): C5 (no overhang), C6 (the lip's width read
+as the top's) — CAUGHT by the stale-fixture check and the description's overhang count.
+
+**The merge onto main, for the coordinator (replaces the first round's two-file note).** From the dry run (item 3),
+by hand: `tools/route_maker/src/model/route.mjs` — STEP_KEYS keeps BOTH `'view'` (RMP1-G) and `'touches'`, and
+`normalizeStep` keeps both RMP1-G's `view` block (its copy loop skips `view`) and this run's `touches` block, or a
+saved project with either is refused as "from a newer builder"; `src/style.css` — both delimited blocks at the end,
+RMP1-G's and `/* ── Field obstacles (RMP1-H) ── */`; `src/ui/field_view.mjs` — the import and `parts =
+[obstacleShapes(app, P)]`; `src/ui/inspector.mjs` — the import and `touchOnPurpose(step, i, app)`;
+`tools/route_maker/README.md` rows 11 and 13 (RMP1-F's and RMP1-G's words beside this run's); guide 22 (the
+project-file paragraph's `touches` beside RMP1-G's view words). With offsets: the changelog, guide 16,
+`page.test.mjs`; and `RMP1-PROGRESS.md`, `PROJECT-BRIEFING.md` (regenerate). After it: the node suite
+(`named_routes` "saves to the same bytes", `obstacles` "the flag is page-only"), the page tests, and the `touches`
+shape check in `project.mjs` `newerParts` (item 3).
+
+**Docs this round:** guide 22 (the section: red on the way / where a step ends, "Select the step", Go around on a
+drive or a back-up when there is a clear way, both legs turned, the Loader's "take a load", the red and blue goals'
+1.1 in with the switch, PREVIEW's 1 in; the checks table's row; line 218's quoted comment), its pictures `route.png`,
+`route-dark.png`, `export.png`, `saved.png`, `structures.png` (re-taken, item 2; `preview.png` and
+`preview-failed.png` KNOWN-STALE, item 2); the changelog's entry; guide 16 and the RPV1 page's `kFieldLine` (item
+20); the data header's comments (items 1, 21). Not touched, with why: guide 02's line (true: the goals' places and
+the Loaders'); `docs/route-builder.md` (its `route.png` re-taken; its words true); the route builder README (its
+rows name the modules, not the rules; true); `test/README.md` (RPV1's THROUGH and TOUCH: true).
+**Prose review (greps at 02:50, `fix/prose-greps.txt`, every hit read):** `overhang`, `on the way`, `more than 0.5
+in`, `0.5 in into`, `taking a load`, `placing a cone`, `Go around`, `only field parts`, `field parts`, `-24, -36`,
+`-36, -60`, `Change the inches`, `route_preview_render`, `kFieldLine`, `Touches the`, `touches it on purpose`,
+`THROUGH a goal`, `THROUGH it`, `solid structure`, `Loader`, and each re-taken picture's name, over `docs/` (less
+`docs/internal/`, `docs/api/`), `README.md`, the route builder's and `test/`'s READMEs. Stale: none left (guide 21
+l.366's (-36, -60) is the twin-mirror picture's own example leg, not the route builder's ready route; guide 16
+l.459-519, `test/README.md` l.268, cookbook 09 l.117, guide 02 l.206 describe RPV1 or the mirror: true).
+
+**Gates, final, on the final tree (02:47–03:04, every doc gate after the last public doc edit at 02:46; logs
+`fix/gates/`, `fix/pagelogs/`):** `rm -f build/test/shulib_tests build/test/shulib_route_maker`, the briefing
+regenerated, `cmake -S test -B build/test` + `cmake --build build/test -j8` (0 warnings), the briefing regenerated
+on the fresh binary. Suite (capped, 36 s, 66 MB): **3,901 cases / 3,776,984 assertions, 3 skipped — SUCCESS** (the
+one new case: the overhang). Node: **198/198**. Pages on a site re-built from the final sources, every file, both
+browsers: Firefox controls 26, engine 0 (+1 skip), mechanisms 8 (+1), named_routes 7, obstacles 4, page 18, preview
+21 (+1); Chromium controls 25 (+1), engine 0 (+1), mechanisms 8 (+1), named_routes 7, obstacles 4, page 16 (+2),
+preview 21 (+1) — the same skips as the first round (browser branches, the real engine); no Playwright browser left
+(`pgrep -af pw-browsers`: none). The screens: `fix/shots/` (obstacles light / dark at 1440 and 1280 in both browsers,
+10/10 each; page.test's in Firefox, 33/33). ARM header gate: 259 headers, CLEAN. PROS-free and sim-free greps hold.
+`git diff 518717a -- include/ src/ Makefile`: EMPTY. api_doc_tool self-test / check-coverage (6,502 entities) /
+check-fresh / check-examples (988 lines) / check-removability OK (no `///` changed: docs/api not regenerated);
+briefing self-test + check OK; doc_staleness_audit self-test + run clean; doc_readability self-test / check-nav /
+check-tone OK. src_build_gate check: **PASS** (14 builds; self-test not needed: no src/ or Makefile change).
+`git status`: nothing committed; the worktree's `bin/` and `.d/` are the gate's (gitignored).
+
+**Stopped here: the review round is complete, uncommitted, for the coordinator's verification.** Open for the
+coordinator: change (9)'s ruling (item 1); the merge by hand (above); `preview.png` / `preview-failed.png` and the
+four fixtures to re-record after the 21st (item 2); D5, D6, D2 tests after the 21st (item 15); the `touches` shape
+check after the merge (item 3).
+
+### Verification-round findings and their disposition
+
+*(Started 2026-11-20 03:19 EST (`date`); the builder again, Opus 5.5, same worktree. A fresh verifier's three findings;
+each re-checked before it is fixed or answered. Probes and drivers: `.claude/coordinator/scratch/rmp1-h/vfix/`.)*
+
+1. **Change 9 does not work on a mirrored route, the page's default (major) — REAL; FIXED.** Re-checked: the
+   verifier's `v1_mirror_overhang.mjs` re-run on the tree — said, robot two's RCO3 "goes 0.9 in into the red goal by
+   the red wall … (the Loaders are not mirror images)", an error Export refuses; no switch clears it. Root: robot two's
+   check took no "on purpose" at all. The mirror ((x, y) -> (-y, -x)) maps every goal onto a goal of its own colour
+   (red by the right wall <-> red by the red wall, blue <-> blue, black <-> black, the centre onto itself) and no
+   Loader onto a Loader. Fix (`obstacles.mjs`): `twinsOf` — each structure the step touches on purpose, its whole
+   footprint reflected, matched vertex for vertex (0.01 in) to the structure standing there; that set is robot two's
+   "on purpose" (a Loader has no twin). RCO3 says "(the Loaders are not mirror images)" only when it IS a Loader. After:
+   said, only RCT1 (the "together?" question) is left; "one at a time" said, nothing. Test "the overhang on a mirrored
+   route (the page's default)": `newRoute()` pinned mirrored; said 0.9 in → none; unsaid → RCO1 with the switch, not
+   RCO3; 1.1 in said → RCO1; a 16 in robot two (0.5 in deeper): unsaid → RCO3, its exact words with no Loader clause;
+   said → none; the twin's own id on robot one's step → RCO3. The Loader test now pins its clause. Guide 22: "the
+   switch carries over: robot two touches the mirror-image goal".
+2. **The docs' "1.1 in" vs the page (minor) — REAL; FIXED at the root, which is wider than the finding.** Re-checked
+   (`v2_words.mjs`: said, 1.06 / 1.08 / 1.1 in all read "1.1 in into … it is solid"). Also found beside it: an
+   UNSAID end 1.0–1.057 in read "1.1 in into the … base … say so below" (`v3.out`'s third case) — the same number for
+   a red the switch clears and one it does not; and PREVIEW marks a run THROUGH past 1 in (`THROUGH_IN`, RPV1's), so a
+   step said and ending 1.0–1.057 in over a base was clear in the check while its run, on the plan, is THROUGH. Three
+   limits sat within 0.06 in of each other. Fix: the check's on-purpose limit is `overOf` = min(overhangIn,
+   THROUGH_IN) = **1 in** — the walls' precedent (`checks.mjs` `WALL_SLACK_IN` is RPV1's THROUGH too); the data keeps
+   A7's 1.057 (no C++ change). Now: said, ≤ 1 in clear, past it red reading ≥ 1.1; unsaid, ≤ 1 in reads ≤ 1.0 with
+   the switch, past it reads "it is solid" and promises nothing. The base words take the same floating-point NOISE as
+   the check (a synthetic goal whose depth computes as 1.0000000000000013: the words promise the switch and the switch
+   clears it). Docs: guide 22 l.101 and the checks table, the changelog — "1 in", now exactly the page's number.
+   **Change (9), amended for the coordinator's ruling:** the on-purpose limit over a red or blue goal's base is 1 in
+   (PREVIEW's THROUGH), not A7's 1.057 in.
+3. **"Say so below" with no switch below (minor) — REAL; FIXED as suggested.** Re-checked (`v3_promise.mjs`: 3 of
+   368). A red no switch lifts (`goesIn(h, ALL)`) is now named first; a liftable one only when there is none, which is
+   exactly when `nearStructures` offers switches. After: the same search, run to 19,852 drives, 8,338 promising the
+   switch, 0 without it. Test: the verifier's route (the turn in place clips the black goal by the left wall: that red
+   is named, `nearStructures` []), and the verifier's generator in the node suite (seed 7, 1,000 drives): every "say
+   so below" has its structure's switch; over 100 reached.
+
+**Mutations this round (`vfix/mut/vmut.py`; every node test file, capped; `obstacles.mjs` restored byte-equal —
+`md5sum -c` OK — its time bumped):** V1 robot two never on purpose, V2 robot two given robot one's ids (the
+verifier's V-two-touches), V3 robot two everything on purpose, V4 a twin by vertex count only, V5 a twin is itself,
+V6 the Loader clause always, V7 never, V8 the liftable red first, V9 the overhang past PREVIEW's THROUGH, V10 the base
+words without NOISE (SURVIVED at first: the exact 1 in end computes as exactly 1; the synthetic float-noise goal
+added; re-run CAUGHT), V11 the base words past the cap, V12 the overhang ignored — **all CAUGHT** (`vfix/mut/verdicts.json`).
+
+**Docs this round:** guide 22 (the overhang's "1 in" twice; the mirrored bullet: the switch carries over), the
+changelog ("1 in"). Not touched, with why: `test/override_field_obstacles.hpp` (states A7's physical 1.057 in, still
+true; the page's cap is the page's rule, said in `obstacles.mjs`); the route builder README (its rows name modules,
+not limits); `structures.png` (a drive through the centre goal: its words did not change).
+**Prose review (greps at 03:26, `vfix/prose-greps.txt`, every hit read):** `1.1 in`, `overhang`, `1.057`, `mirror
+images`, `mirror-image goal`, `say so below`, `switch carries`, `up to 1 in`, `touches it on purpose`, `on purpose`,
+`robot two's mirrored path`, `RCO3`, over `docs/` (less `docs/internal/`, `docs/api/`), `README.md`, the route
+builder's and `test/`'s READMEs. Stale: none (`1.1 in`: gone; `overhang` in guide 14 / hardware-assumptions is the
+Toggle's; "mirror images" in guides 02 / 17 / 19, cookbook 09, HA-258 are the Quadrants' or a tank's; guide 02 l.207
+"A step at a Loader has no mirror" agrees with `twinsOf`).
+
+**Gates on the final tree (03:27–03:45 EST, `date`; logs `vfix/gates/`, `vfix/pagelogs/`):** `rm -f
+build/test/shulib_tests build/test/shulib_route_maker`, the briefing regenerated, `cmake -S test -B build/test` +
+`cmake --build build/test -j8` (0 warnings; no C++ changed this round, so it re-linked), the briefing regenerated on
+the fresh binary. Suite (capped, 36 s, 66 MB): **3,901 cases / 3,776,984 assertions, 3 skipped — SUCCESS**. Node:
+**201/201**. Pages on a site re-built from the final sources, every file, both browsers: Firefox controls 26, engine 0
+(+1 skip), mechanisms 8 (+1), named_routes 7, obstacles 4, page 18, preview 21 (+1); Chromium controls 25 (+1), engine
+0 (+1), mechanisms 8 (+1), named_routes 7, obstacles 4, page 16 (+2), preview 21 (+1) — the same skips as before; no
+Playwright browser left. The screens (`vfix/shots/`: obstacles light / dark at 1440 and 1280, both browsers, 10/10
+each). ARM header gate: 259 headers, CLEAN. PROS-free and sim-free greps hold. `git diff 518717a -- include/ src/
+Makefile`: EMPTY. src_build_gate check: **PASS** (14 builds; self-test not needed: no src/ or Makefile change).
+api_doc_tool self-test / check-coverage (6,502 entities) / check-fresh / check-examples (988 lines) /
+check-removability OK (no `///` changed: docs/api not regenerated); briefing self-test + check, doc_staleness_audit
+self-test + run, doc_readability self-test / check-nav / check-tone: all OK, and re-run after this entry (below).
+
+**Stopped here: the verification round is complete, uncommitted, for the coordinator.** Open for the coordinator:
+change (9)'s ruling, now with the 1 in limit (item 2 above); the merge by hand onto main (the review round's list;
+this round touched only `obstacles.mjs`, its node test, guide 22 and the changelog — no file RMP1-G or RMP1-F owns);
+`preview.png` / `preview-failed.png` and the four fixtures after the 21st; D5, D6, D2 tests after the 21st; the
+`touches` shape check after the merge.

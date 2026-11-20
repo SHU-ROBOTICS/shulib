@@ -11,7 +11,8 @@
 // library's own tank-steering window and curve rules — MotionConfig's defaults, the numbers a Chassis is
 // built with when nothing overrides them), the field's numbers (localization/override_walls.hpp,
 // vision/override_elements.hpp) and the API version; since RMP1-C also each arm's and lift's home height, the
-// brain menu's name budgets and size, the other autons' names, the pair check's two numbers (mirrored_pair_numbers.hpp) and the skills mirror. A number the tables do not state is LEFT OUT, never
+// brain menu's name budgets and size, the other autons' names, the pair check's two numbers (mirrored_pair_numbers.hpp) and the skills mirror;
+// since RMP1-H the field's solid structures (override_field_obstacles.hpp: the goals and the Loaders, each footprint and overhang cited). A number the tables do not state is LEFT OUT, never
 // filled from the host test plant's stand-in drive [R16].
 //
 // The declaration's C++ name (what the export writes — `clawPivot6`, not its `.name` "claw pivot 6") is
@@ -36,6 +37,7 @@
 #include <vector>
 
 #include "mirrored_pair_numbers.hpp"
+#include "override_field_obstacles.hpp"
 #include "shulib/competition/acceptance_run.hpp"
 #include "shulib/competition/override_mirror.hpp"
 #include "shulib/localization/override_walls.hpp"
@@ -282,7 +284,21 @@ struct RobotSource {
         j += i == 0 ? "" : ", ";
         j += "{\"name\": " + str(toggleNames[i]) + ", \"x\": " + num(el::kTogglePlaces[i].x) + ", \"y\": " + num(el::kTogglePlaces[i].y) + "}";
     }
-    j += "]}\n}\n";
+    // RMP1-H: the solid structures (override_field_obstacles.hpp), each with its source and its footprint
+    j += "], \"obstacles\": [";
+    for (std::size_t i = 0; i < route_maker::obstacles::kObstacles.size(); ++i) {
+        const auto& o = route_maker::obstacles::kObstacles[i];
+        const bool goal = o.kind == route_maker::obstacles::Kind::Goal;
+        j += (i == 0 ? "\n    " : ",\n    ") + std::string{"{\"id\": "} + str(o.id) + ", \"name\": " + str(o.name) + ", \"kind\": "
+             + str(goal ? "goal" : "Loader") + ", \"x\": " + num(route_maker::obstacles::grid(o.x)) + ", \"y\": "
+             + num(route_maker::obstacles::grid(o.y)) + ", \"overhangIn\": " + num(route_maker::obstacles::grid(o.overhang)) + ", \"source\": " + str(route_maker::obstacles::sourceOf(o.kind)) + ", \"footprint\": [";
+        const auto f = route_maker::obstacles::footprint(o);
+        for (std::size_t k = 0; k < f.size(); ++k) {
+            j += (k == 0 ? "[" : ", [") + num(f[k][0]) + ", " + num(f[k][1]) + "]";
+        }
+        j += "]}";
+    }
+    j += "\n  ]}\n}\n";
     return j;
 }
 

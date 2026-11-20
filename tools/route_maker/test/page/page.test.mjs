@@ -207,27 +207,28 @@ const routeName = (page) => page.locator('#route-switch strong').textContent();
 // A READY route on robot one, built the way a student builds it (every number typed is the test's, never the page's):
 // the start on the red tiles facing blue (NOT flush against the wall: turning there would put a corner 2.4 in into
 // it -- the page says so, RC1), a home with its time limit, a drive (turned first), a curve, the claw opened, a wait.
-// The screens of §2.5.2 and the docs' pictures are taken of it.
+// The screens of §2.5.2 and the docs' pictures are taken of it. RMP1-H: 24 in right of where it was, so it clears
+// every structure (from (-36, -60) to (-24, -36) the square went through the black goal by the red wall).
 async function readyRoute(page) {
     await page.getByRole('button', { name: 'Got it' }).click();
-    await clickField(page, -36, -60.3);  // snaps to the half-tile grid
+    await clickField(page, -12, -60.3);  // snaps to the half-tile grid
     await typeIn(page, 'startH', 90);
     await answerTogether(page, false);
     await page.keyboard.press('m');
     await page.getByRole('button', { name: 'Home it (find the bottom stop — do this first)' }).click();
     await typeIn(page, 'boundS', 2);
     await page.keyboard.press('d');
-    await clickField(page, -24, -36);
+    await clickField(page, 0, -36);
     await page.keyboard.press('c');
-    await clickField(page, -12, -12);
     await clickField(page, 12, -12);
+    await clickField(page, 36, -12);
     await page.keyboard.press('Enter');
     await setClaw(page, 'open');
     await page.keyboard.press('p');
     await typeIn(page, 'seconds', 0.5);
     const r = await route(page);
     assert.deepEqual(r.steps.map((x) => x.do), ['home', 'driveTo', 'curveTo', 'set', 'wait']);
-    assert.deepEqual([r.start.x, r.start.y], [-36, -60], 'snapped to the 12 in grid');
+    assert.deepEqual([r.start.x, r.start.y], [-12, -60], 'snapped to the 12 in grid');
     assert.deepEqual(await errorsOf(page), [], 'a ready route');
 }
 
@@ -358,10 +359,11 @@ test.describe('the route builder in a browser', { skip }, () => {
         // the skills route keeps its name (RMP1-C D1): shown in the switcher, no box to type it in
         assert.equal(await routeName(page), 'skills');
         assert.equal(await page.locator('input[name="routeName"], .topbar input.route-name').count(), 0);
-        await clickField(page, -36, -55.7);
+        // RMP1-H: right of the black goal by the red wall (from (-36, -55.7) the drive to (-12, -36) went through it)
+        await clickField(page, -9, -55.7);
         await answerTogether(page, false);  // (its curve comes near the diagonal: named_routes.page.test.mjs checks that)
         let r = await route(page);
-        assert.ok(Math.abs(r.start.x - -36) < 0.4 && Math.abs(r.start.y - -55.7) < 0.4, `the start where it was clicked: ${JSON.stringify(r.start)}`);
+        assert.ok(Math.abs(r.start.x - -9) < 0.4 && Math.abs(r.start.y - -55.7) < 0.4, `the start where it was clicked: ${JSON.stringify(r.start)}`);
         assert.equal(r.start.x, Number(r.start.x.toFixed(3)), 'stored on the 0.001 grid (W7)');
         await page.keyboard.press('d');
         await clickField(page, -12, -36);
@@ -485,8 +487,10 @@ test.describe('the route builder in a browser', { skip }, () => {
         await clickField(page, -36, -55.7);
         await answerTogether(page, false);
         await page.keyboard.press('d');
-        await clickField(page, 64.5, -55.7, { modifiers: ['Alt'] });  // Alt: no snapping (it would snap flush to the wall)
-        assert.ok((await issues(page)).some((x) => x.code === 'RC1' && x.level === 'error'), 'through the right wall: refused');
+        // RMP1-H: through the LEFT wall -- toward the right wall the leg went through two goals, and robot two (mirrored)
+        // through a Loader, too: ONE error is the point here
+        await clickField(page, -64.5, -36, { modifiers: ['Alt'] });  // Alt: no snapping (it would snap flush to the wall)
+        assert.ok((await issues(page)).some((x) => x.code === 'RC1' && x.level === 'error'), 'through the left wall: refused');
         // a site built with the engine (build.py --engine) has PREVIEW; one without says it comes next (preview.test.mjs
         // plays it)
         const engine = fs.existsSync(path.join(SITE, 'engine', 'worker.mjs'));
@@ -820,7 +824,7 @@ test.describe('the route builder in a browser', { skip }, () => {
             assert.equal((await route(page)).steps[1].faceFirst, true);
             // the curve's first point moved behind the robot (typed: the student's number)
             await selectStep(page, v.viewport, 2);
-            await typeIn(page, 'x', -24, '.pane.right table.points tr:first-child');
+            await typeIn(page, 'x', 0, '.pane.right table.points tr:first-child');
             await typeIn(page, 'y', -48, '.pane.right table.points tr:first-child');
             // the library's own verdict (curve.mjs is checkCurve ported, pinned by CV1): the path into point 1 doubles
             // back on the robot's heading -- refused, in the library's words, the point named
@@ -838,14 +842,14 @@ test.describe('the route builder in a browser', { skip }, () => {
             const p = await openPage('site', v);
             const { page } = p;
             await page.getByRole('button', { name: 'Got it' }).click();
-            await clickField(page, -36, -60.3);
+            await clickField(page, -12, -60.3);  // RMP1-H: the ready route's start and drive, clear of the goals
             await typeIn(page, 'startH', 90);
             await answerTogether(page, false);
             await settle(page);
             await shot(page, `start-placed-${v.tag}`);
             await useLevels(page);
             await page.keyboard.press('d');
-            await clickField(page, -24, -36);
+            await clickField(page, 0, -36);
             await page.keyboard.press('m');
             await page.getByRole('button', { name: 'Move to a level' }).click();
             await page.locator('.pane.right select[name="preset"]').selectOption({ index: 3 });

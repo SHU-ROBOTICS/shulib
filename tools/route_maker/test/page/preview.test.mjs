@@ -16,6 +16,7 @@ import { standinScript, fixture } from '../standin_engine.mjs';
 import { poseAt, thinPath, sampleIndexAt, playbackOf } from '../../src/model/playback.mjs';
 import { squareCorners } from '../../src/model/geometry.mjs';
 import { TIMEOUT_WORDS } from '../../src/host/engine.mjs';
+import { noStructures } from './harness.mjs';
 
 const BROWSER = process.env.ROUTE_MAKER_BROWSER || '';
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
@@ -75,6 +76,7 @@ async function openPage({ form = 'site', viewport = { width: 1440, height: 900 }
         await page.evaluate(([text, t, s]) => window.routeBuilder.useEngine({ text, timeoutMs: t, sharedRoute: s }),
                             [engine.text ?? standinScript(names, engine), engine.timeoutMs, shared ? SHARED : null]);
     }
+    await page.evaluate((r) => window.routeBuilder.useRobots(r), noStructures());  // RMP1-H: the recordings predate the check
     const coach = page.getByRole('button', { name: 'Got it' });
     if (await coach.count()) {
         await coach.click();

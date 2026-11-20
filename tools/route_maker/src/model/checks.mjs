@@ -27,6 +27,7 @@ import { fmt, round3 } from './numbers.mjs';
 import { plannedHeights, targetKind, moveTarget, bottomOf, unitOf } from './lift.mjs';
 import { tooClose, startAwayFromLine } from './pair.mjs';
 import { otherAutons, routeCap } from './project.mjs';
+import { obstacleIssues } from './obstacles.mjs';
 
 /** A corner may sit this far (in) past a wall's inner face — RPV1's THROUGH rule (more than 1 in is THROUGH). */
 export const WALL_SLACK_IN = 1.0;
@@ -598,6 +599,7 @@ export function checkRoute(route, robots, field, ctx = {}) {
     }
 
     out.push(...pairIssues(route, plan, primary, field));
+    out.push(...obstacleIssues(route, plan, robots, field, issue));  // RMP1-H: the goals and the Loaders
 
     // A relative move on a mechanism nothing homed: RC25 says so and offers "Home it first" — RCL1 would say it twice.
     const homeRule = new Set(out.filter((x) => x.code === 'RC25' && x.level === 'error').map((x) => x.stepIndex));
@@ -699,7 +701,7 @@ function pairIssues(route, plan, robot, field) {
 }
 
 /** The errors about robot two running the route beside robot one: PREVIEW (robot one's run) never waits for them. */
-export const ROBOT_TWO_ONLY = new Set(['RCT1', 'RCP1', 'RCM1']);
+export const ROBOT_TWO_ONLY = new Set(['RCT1', 'RCP1', 'RCM1', 'RCO3']);
 
 /** The first error, if any (while there is one, Export lists the errors instead of the code — §1.4). */
 export function firstError(issues) {
@@ -732,6 +734,10 @@ export function applyFix(route, fix, addStep, updateStep) {
             return { ...route, mirroredFor: 'two' };
         case 'moveStart':
             return { ...route, start: fix.start };
+        case 'detour': {  // RMP1-H: a point beside the structure first; both legs turned first (the corner)
+            const r = addStep(route, { do: route.steps[fix.stepIndex].do, x: fix.x, y: fix.y, faceFirst: true }, fix.stepIndex);
+            return updateStep(r, fix.stepIndex + 1, { faceFirst: true });
+        }
         case 'liftPatch':
             return updateStep(route, fix.stepIndex, { up: undefined, down: undefined, to: undefined, bottom: undefined, preset: undefined, ...fix.patch });
         default:

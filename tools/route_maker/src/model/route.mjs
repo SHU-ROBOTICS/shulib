@@ -23,7 +23,8 @@
 //   home / startHome      {mechanism, boundS}         r.home / r.startHome (an arm or a lift)
 //   waitUntilDone         {mechanism, boundS}         r.waitUntilDone
 //   wait                  {seconds}                   the run guard's pause (never r.pause: it cannot be cut)
-// and on EVERY step: `label` (a name a skip can land on) and `care` — {timeoutS, maxSpeedInPerS, maxTurnDegPerS,
+// and on EVERY step: `label` (a name a skip can land on), `touches` (RMP1-H: the ids of field structures it touches on
+// purpose -- page-only, silences their "too close"), and `care` — {timeoutS, maxSpeedInPerS, maxTurnDegPerS,
 // toleranceIn, toleranceDeg} on a motion (0 or absent = the robot's own), and `onFail`: "stop" (the default,
 // absent), "carryOn", or {"skipTo": "<label>"}. A `mechanism` is the declaration's C++ NAME (what the export
 // writes); the page shows the mechanism's `.name` beside it from the robot's description.
@@ -54,7 +55,8 @@ export const MECHANISM_KINDS = new Set(['move', 'startMove', 'set', 'run', 'star
 export const CARE_MOTION_FIELDS = Object.freeze(['timeoutS', 'maxSpeedInPerS', 'maxTurnDegPerS', 'toleranceIn', 'toleranceDeg']);
 /** Every field a step of THIS builder carries (D3: a file with any other is from a newer builder, refused). */
 export const STEP_KEYS = Object.freeze(['label', 'do', 'x', 'y', 'faceFirst', 'headingDeg', 'points', 'inches', 'mechanism', 'preset',
-                                        'up', 'down', 'to', 'bottom', 'position', 'volts', 'forS', 'boundS', 'seconds', 'care', 'view']);
+                                        'up', 'down', 'to', 'bottom', 'position', 'volts', 'forS', 'boundS', 'seconds', 'care',
+                                        'touches', 'view']);
 /** Every field of a step's `care` this builder knows. */
 export const CARE_KEYS = Object.freeze([...CARE_MOTION_FIELDS, 'onFail']);
 /** Every field of a curve point. */
@@ -171,6 +173,11 @@ export function normalizeStep(step) {
     const care = roundCare(step.care);
     if (care) {
         out.care = care;
+    }
+    // RMP1-H: the structures this step touches on purpose (page-only: no export reads it), sorted, each once
+    const touches = Array.isArray(step.touches) ? [...new Set(step.touches.filter((t) => typeof t === 'string' && t))].sort() : [];
+    if (touches.length) {
+        out.touches = touches;
     }
     const view = normalizeView(step.view);
     if (view) {
