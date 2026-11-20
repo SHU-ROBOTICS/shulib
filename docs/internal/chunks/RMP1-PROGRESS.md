@@ -4992,3 +4992,356 @@ run the self-test and the page test for the first time.
   on Linux, `WindowsLookup` already holds the self-test to Windows' rule); the make-a-route video's re-record;
   `send-ok.png` after the slot-6 merge; the "line missing" check inside `upload_auton.py`; the one REAL upload and
   the VS Code task on the team laptop.
+## RMP1-J — mechanism steps made simple (the two-step menu, one height, wait in plain words, a suggested time limit, badges, homing as one card)
+
+> Executor: Claude Opus 5.5, subagent of the coordinator, 2026-11-20. Worktree `.claude/worktrees/rmp1-j` (branch
+> `rmp1-j`, base `ae87076`). Brief: `RMP1-J-mechanism-steps-simple.md`. Scratch: `.claude/coordinator/scratch/rmp1-j/`.
+
+- Started: this entry first, then reading the brief, `app.mjs` `openMechanismMenu`, `words.mjs` `mechanismActions`,
+  `inspector.mjs` `mechanismFields`, `field_view.mjs`, the RMP1-C goldens.
+- 07:00 — read: the brief in full; `app.mjs` `openMechanismMenu`, `words.mjs` `mechanismActions`, `inspector.mjs`
+  `mechanismFields` / `whereItGoes`, `checks.mjs` (RC19's `empty`, RC25's two fixes, `applyFix`), `lift.mjs`,
+  `playback.mjs`, `preview.mjs`, `field_view.mjs`, the goldens. Host build (0 warnings) and the engine (pinned emsdk,
+  read-only, `EM_FROZEN_CACHE=1`, `TMPDIR=build/tmp`) built; the site built with `--engine`; `npm ci` in this worktree.
+- 07:05–07:20 — built: `src/model/mech_steps.mjs` (D1's menu model from today's `mechanismActions`, D2's `heightPatch` /
+  `barHeight` / `asHeight`, D3's `waitsFor`, D4's `limitHint` / `suggestS` / `measureEmptyLimits`, D6's `homeCard`),
+  `src/ui/mech_menu.mjs` (the two-step menu: arrows, Enter, Esc back then closed), `src/ui/mech_badges.mjs` (D5, one
+  hook line in `field_view.mjs`), the inspector's mechanism block rewritten (one height control with the bar, wait or
+  keep driving, the limit line, the home card; a mechanism step's issues under their controls, an "empty" one only as
+  the marked box), `preview.mjs` (an empty mechanism limit runs with the cut; the last run kept), `playback.mjs`
+  (`tookOf`), CSS in one delimited block, four icons in `dom.mjs` (+ `iconPath`).
+- **Found and fixed (an RMP1-E bug):** `playback.mjs` `ownersOf` matched a mechanism step only to a page step whose
+  `do` is in `MECHANISM_KINDS` — but `route_lines.mjs` sends a height move as `moveTo` / `startMoveTo`, so EVERY lift
+  or arm height move lost its mechanism step: its PLACEHOLDER mark and its failed line never reached the step list
+  (the `mechanisms` fixture: owners `[0, -1, -1, -1, 4, 5]`). Seen when D4's time for a move came out as the page
+  step's span (1.8 s suggested for the library's 1.2 s). Fixed (`MECH_DO`), regression test in `mech_steps.test.mjs`
+  (mutant N18 RED).
+- **Delta from the brief, D4:** PREVIEW refused any route with an error, and an EMPTY mechanism time limit is one
+  (RC19) — so "Run PREVIEW to get a suggestion" was a dead end for exactly the steps D4 and D6 are about. Now PREVIEW
+  skips that one error (RC19 on `boundS` with its existing `empty` flag) and runs a COPY of the route with each empty
+  mechanism limit set to the route's cut (57 s; `measureEmptyLimits`), says so in a toast, and the run is keyed to the
+  route as it is (empty). The route keeps the hole; Export still refuses it. Nothing invented reaches the route: the
+  limit is written only by the student's click on PREVIEW's measured time + 0.5 s.
+- **Delta, D6:** the card shows for a lift or an arm homed by a stall OR a switch (RC25's own rule), not only a stall.
+- **Delta, D1:** today's one-preset auto-fill (a lift with exactly one level got it on "Move to a level") is gone: the
+  move is added with no height and the bar's level button is one click.
+- **Delta, D3:** "add a wait before it is needed" is offered when a LATER step uses the mechanism again before any wait
+  (the fix is the existing `waitForHome` one: a wait put before that step); a started step nothing later touches says
+  "Nothing waits for it: it finishes while the route goes on" — no fix, none is needed.
+- **Delta, D5:** a LOCKED step's badge takes no click (RMP1-G's lock: clicks pass through); the badges at one spot
+  stack above its number pill in step order, the first on top.
+- 07:25–07:35 — found by the browsers: a badge drawn as a nested `<svg>` icon had a 328 px box in Firefox (Playwright's
+  click landed on the start robot) — now a `<path>` (`dom.mjs` `iconPath`); the menu's keys were attached a tick late,
+  so Chromium's fast Down presses went to the page (P10 below) — now at once (`pointerdown` still deferred).
+
+### Tests (adversarial)
+- Node `test/mech_steps.test.mjs`, 10 cases: D1 menu model on robots x, the ledger robot and robot one's shape (each
+  kind of today's `mechanismActions` offered once, none lost, the move with NO height; "Wait for it" only after a
+  start of THAT mechanism before the insertion point); **D2 golden — every x-robot golden with a mechanism step (gl4,
+  gl18a–d, gl21, wg8) rebuilt through the new menu + height patch + wait choice, `exportRegion` == the committed `.cpp`
+  byte for byte**; the bar (grid, clamp: never below a 0.2 bottom); gl21's old `up`/`down` edited in their own field →
+  the golden byte for byte, "make it a height" → the same code lines (only the comment differs); D3 `waitsFor`; D4
+  `suggestS` table (0.90001 → 1.5: up, never down), `limitHint` against the RECORDED runs (`mechanisms`: 0.78 s →
+  1.3 s with PLACEHOLDER; `ready`: the drive alone 1.58 s, not its turn; `two_starts`: a started home 0.32 s; `failed`:
+  ranOut; skipped: none; `through`: none; limits-only edits keep it; an earlier step, the step, the start changed:
+  none; never writes), `measureEmptyLimits`; D6 card (once, today's fix, none with a home anywhere, none at rest, a
+  stall-homed arm too). Plus the `ownersOf` regression (moveTo owns its step).
+- Page `test/page/mech_steps.page.test.mjs` (Firefox AND Chromium; the REAL engine, the site built `--engine`): D1
+  (6 rows, claw's two, Esc back on the claw then closed, Down×3 + Enter, Back, Run it + keep driving + Wait for it),
+  D2 + D6 (no height invented, ONE card and no RC25 box, the bar at a quarter = 5 in, typed 18, Bottom, the card's
+  click = today's fix, an old "up 6" shown / edited / made a height), D5 (three badges over their start poses within
+  1 px, stacked first-on-top, the band to the wait, click selects, H hides, O fades, L passes clicks through), D4
+  ("Run PREVIEW…" before a run; the toast; each "Use" == `suggestS` of the library's own from-below time; nothing
+  written before the click; then no error left), and the screens.
+- Old page tests moved to the new menu (page.test.mjs: `mech()` helper, the A1 route-by-clicking now through the card:
+  its steps, pills `3–5` and `r.startHome(cascade, 3_s)`; the ROB1-C2 menu test per mechanism; named_routes D7–D9).
+
+### Mutations (each on a fresh run; page ones on a fresh SITE build, restored + rebuilt in a finally; driver
+`scratch/rmp1-j/mutate.py`, logs `scratch/rmp1-j/mutants/`)
+- Node, all RED (19): N01 menu keyed per old button (dupes) · N02 "Wait for it" from the whole route · N03 Bottom
+  written as `to: 0` (golden) · N04 level by name when ledger 0 · N05 bar unclamped · N06 round not ceil · N07 margin
+  0.4 · N08 limits kept in the head · N09 start ignored · N10 head = whole route · N11 first owned step (the turn) ·
+  N12 no ranOut · N13 suggest from a failed step · N14 typed limits overwritten · N15 card on every move · N16 card
+  despite a home · N17 `needed` lost · N18 `ownersOf` without moveTo · N19 THROUGH keeps its time.
+- Page (Firefox; P10 Chromium), all RED on the final code (10): P1 Esc closes at once · P2 badge selects the next ·
+  P3 bar upside down (15 vs 5) · P4 Use writes the raw time · P5 badges not stacked · P6 card AND the rule's box · P7
+  PREVIEW refuses an empty limit (times out) · P8 hidden badge drawn · P9 locked badge clickable · P10 keys attached a
+  tick late.
+
+### Docs (one idea per screen)
+Guide 22 step 5 rewritten (the menu's two steps, the height bar, wait or keep driving, the time limit, the home card,
+the badges — five pictures, `mechanism-menu.png` replaced, four new); step 6's PREVIEW paragraph (an empty mechanism
+limit runs) and "A time limit from PREVIEW" (+ `time-suggestion.png`); the steps table (Mechanism, Wait for it), the
+checks table (Home first: the card; Heights; Wait for it), the keys table (the M menu's keys); the in-page `?` list's
+M line (`help.mjs`); the changelog (2026-11-20 entry under API 2.9); the route builder README (playback's `took`,
+preview's empty limits, the three new modules' row). Not touched, with why: `docs/route-builder.md` (no mechanism step
+words); `RMP1-route-maker-page.md` (the brief of record: D4 says it amends "never invents one").
+- **Delta, D4 (drives):** a drive's limit is optional (empty = the robot's own), so "Run PREVIEW to get a suggestion"
+  shows only under an EMPTY mechanism limit; a drive gets its line (suggestion, or "its time limit stopped it") once a
+  run exists, above its folded **Speed, time limit and how close** so it is seen without opening it.
+- Untouched, checked by `git diff`: `route.mjs`, `export.mjs` (the contract), every RMP1-I file (`export_drawer.mjs`,
+  `to_robot.mjs`, `host/*`, `tools/route_builder.py`, `.vscode/`), `include/`, `src/`, `Makefile`. `app.mjs`: one
+  import line (`mech_menu.mjs`) and `openMechanismMenu` only; its now-unused imports (`mechanismActions`,
+  `KIND_LABEL`, `targetKind`, `noLevels`, `openMenu`) left for after RMP1-I's merge (to keep the edit contiguous).
+
+### Gates on the final tree (07:22–07:45 EST, `date`; logs under `scratch/rmp1-j/`)
+`rm -f build/test/shulib_tests`, the briefing regenerated, `cmake -S test -B build/test` + `cmake --build build/test -j8`
+(0 warnings; no C++ changed, it re-linked), the briefing regenerated on the fresh binary (its only change: the
+station 13 log case's assertion count, the worktree path's length). Suite (capped): **3,901 cases / 3,776,984
+assertions, 3 skipped — SUCCESS**. Node: **229/229**. Pages on a site built `--engine` from the final sources, every
+file: Firefox controls 26, engine 1, export_robot 9, mechanisms 8 (+1 skip), mech_steps 5, named_routes 7, obstacles 4,
+page 18, preview 22, view 10; Chromium controls 25 (+1), engine 1, export_robot 8 (+1), mechanisms 8 (+1), mech_steps 5,
+named_routes 7, obstacles 4, page 16 (+2), preview 22, view 10 — the skips as before; no Playwright browser left.
+Screens: `rmp1j-*` light/dark at 1440 and 1280 in both browsers (`~/shulib-render-tmp/rmp1-j/shots*`). ARM header
+gate: 259 headers CLEAN. PROS-free and sim-free greps hold. `git diff ae87076 -- include/ src/ Makefile`: EMPTY.
+src_build_gate check: **PASS** (14 builds; self-test not needed: no src/ or Makefile change). api_doc_tool self-test /
+check-coverage (6,502) / check-fresh / check-examples (988 lines) / check-removability OK (no `///` changed: docs/api
+not regenerated); briefing self-test + check, doc_staleness_audit self-test + run, doc_readability self-test /
+check-nav / check-tone: all OK.
+**Prose review (greps, `scratch/rmp1-j/prose-greps.txt` then `prose-greps-final.txt`, every hit read):** `Go up`, `Go
+down`, `Move to _`, `Move to a level`, `Wait until it is done`, `Home it first`, `Home it while the first leg drives`,
+`Back to the bottom`, `Run it for a time`, `mechanism menu`, `mechanism-menu`, `mechanismActions`,
+`openMechanismMenu`, `never invents`, `invents one`, `wait until done`, `Wait until done`, `red step is not run`,
+`ownersOf`, `moveTo` over `docs/` (less internal/ and api/), `README.md`, the route builder's and `test/`'s READMEs.
+Stale and fixed: guide 22 step 5 (all of it), step 6's "a red step is not run", the steps / checks / keys tables'
+rows. Not stale: `moveTo` hits (the library's verb); guide 18's "never invents one" (the library's current caps);
+guide 22's "Home it first" (still RCL1's fix for an old up / down); the changelog's older entries (history, not
+rewritten).
+
+**Stopped here: RMP1-J built and verified, uncommitted, for the coordinator.** For the coordinator: app.mjs's
+now-unused imports after RMP1-I merges; the make-a-route video re-recorded after the merge (the brief); the
+PROJECT-BRIEFING.md diff is the worktree's path-length artifact (regenerate in the main tree).
+
+### RMP1-J review findings and their disposition *(2026-11-20, from 08:14 EST)*
+
+> The same executor, on three reviewers' 24 findings (correctness, tests, docs; deduped below). Each re-checked first;
+> fixed at the root or answered with evidence. Logs: `scratch/rmp1-j/fix/`.
+
+- 08:14 — started: the findings read; the code each one names re-read (`mech_badges.mjs`, `mech_steps.mjs`,
+  `inspector.mjs`, `playback.mjs` `tookOf`, `preview.mjs`, `mech_menu.mjs`, `checks.mjs` RC18 / RC25 / RCL1,
+  `run_guard.hpp` 520-530: `cancelAll()` after scoring returns — confirmed).
+- 08:20–09:10 — each finding re-checked against the code (and the reviewers' probes re-read), then fixed at the root:
+
+**Correctness (8, all real, all fixed):**
+1. *A badge crashed the field when a drive before it had no x or y* — real (`keyOf` on `plan[i].from.x` undefined).
+   Fixed: the badges' placement is now a pure `badgeSpots(route, plan, size)` in `mech_badges.mjs`; a step whose
+   start has no finite x and y gets no badge (and a band keeps only finite points). Node: a holed drive (typed empty
+   AND opened from a file) → no throw, no badge until the next full point; page D5: x emptied in the inspector → the
+   start still drawn, only the later wait's badge, no page error. **Found beside it, older than RMP1-J, NOT fixed
+   (field_view's drawing, outside this run's one hook line):** that drive's own plan line and robot two's path are
+   drawn with NaN (Firefox warns, Chromium logs a console error) — the page test tolerates exactly those two notes;
+   for the coordinator.
+2. *D3's "it finishes while the route goes on" is false* — real: `RunGuard::run` calls `cancelAll()` when the routine
+   returns (`run_guard.hpp` 520-522); the new `waits` fixture shows the last started move `CANCELLED` at 0.00 s. Now:
+   "Nothing waits for it: if the route ends before it is done, the library stops it." with a one-click **Wait for it
+   at the end** (the existing `waitForHome` fix at `steps.length`).
+3. *An unowned start got "Use 0.5 s"* — real. `tookOf` returns null for a start (`startMove`, `startMoveTo`,
+   `startHome`, `startRun`) that owns no library step; such a step now says "its own time is not known". New fixture
+   `two_moves` (two cascade starts on one pace, recorded by the native twin): steps 2 and 3 get no number.
+4. *A suggestion survived an earlier limit lowered below what its step took* — real. `limitHint` now also asks
+   `sameRun` of every earlier step whose limit changed: it must have finished in the run (`ok`) within the new limit
+   (an emptied mechanism limit = the cut, as PREVIEW runs it; an emptied drive limit = the robot's own, unknown here,
+   so no suggestion). A step that ran out given longer: no suggestion (another run).
+5. *"Run PREVIEW" after a run that did not finish the step* — real. `limitHint` returns `{notRun: why}` for this
+   route's run when the step has no time (skipped, THROUGH, not timed apart) or ended neither ok nor ran out
+   (`CANCELLED`: "it was stopped before it was done"; else the step's own words); the line says "PREVIEW did not
+   finish this step (…): no suggestion."
+6. *"Empty it" for a limit already empty* — real (a long curve TIMED_OUT at the library's 5.0 s). The words are now a
+   pure `limitWords` (node-tested): empty → "the robot's own time limit stopped it: type a longer one…"; typed →
+   "give it longer…". Guide 22 to match.
+7. *Badges took the pointer over the start robot* — real (D6 always puts `startHome` at the start). At the start the
+   stack now sits past the robot (half its diagonal), on the side away from its knob and toward the field's middle:
+   beside it (right or left) when the knob points up or down, above or below when it points sideways; elsewhere
+   unchanged. (First cut: below the robot when the knob points up — seen in the 1280 dark shot to run off the field
+   for a start at the bottom wall, the usual skills start: replaced.) Page: the three badges at the start overlap
+   neither the robot nor its knob, and the robot's upper half is the robot's (`elementFromPoint`).
+8. *A click on a level's mark wrote a raw height* — real (also docs finding 4.1). `barPick`: a click within 3% of the
+   travel of a MEASURED level picks the level (`preset`); an owed level has no mark and no snap. The export names the
+   level (node: `lift[...]`); page: a click on L1's tick writes `preset: 1`.
+
+**Tests (10, all real; each new assertion seen RED):** drive "Use" (page D4: `care` equals the old care plus
+`timeoutS` only); D3's "Wait for it before step N" (page D3, the wait lands at N-1) and "at the end"; the wait
+branch (fixtures `threw` → `{notRun}`, `waits` → its span, a synthetic wait owning a library step → still its span);
+the newest run (page D4: the move made 14 in → no line, a second PREVIEW → `data-took` is the new run's); limits /
+hide / lock / touches keep the hint, a lowered drive limit does not; D6 on a first `startMove`; D1's ArrowUp, the
+outside click, a disabled row (robot x's flywheel) and Back's focus; the display rules (PLACEHOLDER words, In use.,
+no "Run PREVIEW" under a typed limit, no empty-limit box, ticks only for measured levels, the arrow at BEFORE);
+`badgeWord`'s table, the band's exact points and none for `needed`, the badge's error class. *Gate logs:* every gate
+this round writes its log under `scratch/rmp1-j/fix/` (below).
+
+**Docs (5):**
+1. *The make-a-route video's recorder and beats use the removed menu* — real, and NOT edited here:
+   `tools/docs_video/make_a_route/` is the coordinator's re-record (its `beats.json` is modified in the integrate tree
+   now). **For the coordinator, before the re-record:** `record.mjs` `mechItem` (282-288) must become two clicks
+   (`.mech-menu [data-mech="cascade"]`, then `[data-act="…"]`); beat m07 "Mechanism, then Home it" → "Mechanism, the
+   cascade, Home it" (or the home card's **Home it at the start**); m14 "Go up… twelve inches" → **Move the cascade**,
+   then the height box (`input[name="height"]`, 12), not `typeBox('up', 12)`, and the step-list label `stepItem('go up
+   12 in')` → the new title; m15 "Back to the bottom" → **Move the cascade**, then **Bottom** (`[data-level="bottom"]`).
+   `tools/docs_video` is now in the prose greps (its hits listed in `fix/prose-greps.txt`).
+2. *A drive's suggestion had no "not your robot"* — real. Drive: "PREVIEW's stand-in drive (not your robot) took 1.58
+   s here, + 0.5 s: time it on the robot too."; a mechanism: "PREVIEW took 0.78 s here on the host test plant (on
+   PLACEHOLDER numbers), + 0.5 s." Guide 22 step 6 says the drive's is the stand-in's time.
+3. *"ONE card instead of a red step"* — real: the step stays red (RC25 is still an error; only its box gives way to the
+   card). Guide: "is red, with ONE card above its details"; the checks row "shows one card for it".
+4. *Wording* — real, all three: "the same C++ line; only its comment now says to 18 in" (guide, changelog); the steps
+   table "A move, a home or a run waits…, or keeps driving"; the page's own messages (`checks.mjs`): RC18 "Pick the
+   cascade's height: click its bar[ or a level], or type it."; RCL1 "…Home it first, or pick a height instead: click
+   its bar." (the bar is the way out: **Make it a height** is not shown while the start height is unknown); RC25
+   running "Wait for the cascade's home before this move." (the fix button's words). Their tests re-pinned
+   (`checks.test.mjs`, `named_routes.test.mjs`); guide 22's Heights row says "or pick a height on the bar".
+5. *Departures* — (a) the level marks: fixed (correctness 8), no departure left. (b) **Delta, D5 (logged now):** a band
+   is drawn only to an explicit **Wait for it**; a start that a later step merely uses again (`needed`) has none — the
+   route never waits for it there (the step says so in words, with its one-click fix); node pins it (mutant FN04).
+   (c) `route.png` / `route-dark.png` re-taken this round (they now show the badges; 1200 × 750, 256 colours, by the
+   repository's `to_docs.py` method) — and the six RMP1-J pictures, which the first round copied as raw 1440 × 900
+   shots (~600 KB each, against that convention), re-made the same way. (d) `PROJECT-BRIEFING.md`: its only change is
+   the worktree path's assertion count — **do not commit it; regenerate in the main tree.**
+
+**Not in the findings, found and pinned:** the reviewers' other surviving node mutants — RN08 (a wait's span), RN10 /
+RN11 (ok needs both the library's mark and the page verdict), RN13 (a height on the 0.001 grid), RN14 (the action's
+kind icon): new assertions, all RED now; RN05 (`Math.max(0, took)`) was dead code (a library step's `t1 >= t0`):
+removed.
+
+**Mutations this round** (each on a fresh run; page ones on a fresh SITE build, restored + rebuilt in a finally, the
+files' md5 checked after each batch; driver `scratch/rmp1-j/mutate.py`, lists and verdicts `scratch/rmp1-j/fix/*.json`
+/ `*.out`, logs `scratch/rmp1-j/mutants/F*`, `RN*-again`):
+- Node, all RED (38): FN01 no finite guard · FN02 start not avoided (first cut) and FN02b (final) · FN03 knob side
+  ignored, FN03b knob axis ignored, FN03c / FN03d not toward the middle, FN03e first not on top beside · FN04 band to
+  `needed` · FN05 band one pose long · FN06 / FN07 badge words · FN08 unowned start timed by its span · FN09 a wait
+  always ok · FN10 every failure "ran out" · FN11 `sameRun` always · FN12 ignores ok · FN13 an empty drive limit as
+  endless · FN14 an empty mechanism limit as unknown · FN15 / FN16 the head keeps a drive limit / the view · FN17 /
+  FN18 the card on a first `startMove` · FN19 no snap · FN20 snaps an owed level · FN21 CANCELLED's words · FN22
+  "empty it" when empty · FN23 drive words lost · FN24 "Run PREVIEW" under a typed limit · FN25 never "In use." ·
+  FN26 PLACEHOLDER words dropped · FN27 earlier limits unchecked · FN28 notRun as null · RN08 / RN10 / RN11 / RN13 /
+  RN14 (the reviewers' survivors, again).
+- Page (Firefox; FP14c Chromium), all RED (19): FP01 the `needed` fix on the wrong step · FP02 the end wait after the
+  step · FP03 a drive's Use into its top speed · FP04 the first run kept (the second PREVIEW's line never comes) ·
+  FP05 ArrowUp goes down · FP06 an outside click keeps the menu · FP07 an empty mechanism enabled · FP08 Back loses
+  the place · FP09 an owed level's tick · FP10 the empty-limit box back · FP11 the arrow at AFTER · FP12 the badge's
+  error class dropped · FP13 a mark's click writes the height · FP14b / FP14c badges over the start (overlap) · FP15 no
+  finite guard (page error) · FP16 the drive flag lost (mechanism words on a drive) · FP17 never "In use.".
+
+**Gates on the final tree (09:00–09:45 EST; every log under `scratch/rmp1-j/fix/`):** `rm -f build/test/shulib_tests`,
+the briefing regenerated, `cmake -S test -B build/test` + `cmake --build build/test -j8` (0 warnings; no C++ changed:
+a relink, `build.log`), the briefing regenerated on the fresh binary (its only change: the station 13 log case's
+assertion count, the worktree path — do not commit). Suite (capped): **3,901 cases / 3,776,984 assertions, 3 skipped
+— SUCCESS** (`suite.log`). Node: **236/236** (`node-final.log`). Pages, every file, on a site built `--engine` from
+the final sources, screenshots on: Firefox controls 29, engine 1, export_robot 21, mechanisms 11, mech_steps 11,
+named_routes 10, obstacles 10, page 33, preview 28, view 13 (`pagelogs-firefox/`); Chromium controls 28 (+1 skip),
+engine 1, export_robot 20 (+1), mechanisms 11, mech_steps 11, named_routes 10, obstacles 10, page 31 (+2), preview 28,
+view 13 (`pagelogs-chromium/`) — the skips as before; no Playwright browser left. ARM header gate: **259 headers
+CLEAN** (`arm.log`). PROS-free and sim-free greps hold; `git diff ae87076 -- include/ src/ Makefile`: EMPTY
+(`ci-greps.log`). src_build_gate check: **PASS** (14 builds, `src_gate.log`; self-test not needed). api_doc_tool
+self-test / check-coverage / check-fresh / check-examples / check-removability, briefing self-test + check,
+doc_staleness_audit self-test + run, doc_readability self-test / check-nav / check-tone: all exit 0 (`doc-gates.log`,
+re-run after the last doc edit: `doc-gates-final.log`). Untouched, by `git diff`: `route.mjs`, `export.mjs`, every
+RMP1-I file, `tools/docs_video/`, `.vscode/`.
+**Prose review (`fix/prose-greps.txt`, then `fix/prose-greps-final.txt`, every hit read):** `finishes while the route
+goes on`, `the same code`, `instead of a red step`, `one card instead`, `Empty it`, `empty its limit`, `Say where the`,
+`Move to"`, `wait until done`, `PREVIEW took`, `Each waits`, `button beside the bar`, `1 home at the start`, `just
+below the start`, `Home it`, `Go up`, `Go down`, `Back to the bottom`, `Move to a level`, `menu-item`, `mechItem`,
+`stand-in drive`, `Run PREVIEW to get`, `level mark`, `Nothing waits`, `Wait for it at the end`, `did not finish this
+step`, `route.png`, `mechanism-badges`, `time-suggestion` over `docs/` (less internal/ and api/), `README.md`, the
+route builder's and `test/`'s READMEs and (new) `tools/docs_video/`. Stale and fixed: guide 22 (step 5's levels, "the
+same code", wait-or-keep-driving, the home card, the badges and their picture's words; step 6's time-limit paragraph
+and its picture's words; the steps table's Mechanism row; the checks table's Home first and Heights rows), the
+changelog's entry. Stale, NOT fixed here (for the coordinator, above): `tools/docs_video/make_a_route` m07 / m14 / m15
+and `record.mjs`. Not stale: guide 22's other "Home it" (the menu's real button; RCL1's fix button), the changelog's
+older "Go up…" entry (history), "the same code the robot runs" (PREVIEW), guide 16 / 14's "stand-in drive" (true).
+Pictures: the six RMP1-J ones re-made from the final Firefox light 1440 shots and `route.png` / `route-dark.png`
+re-taken (all 1200 × 750, 256 colours; shots `~/shulib-render-tmp/rmp1-j/shots-fix-ff2`, `shots-fix-chromium`).
+
+**Stopped here: the RMP1-J review findings fixed and verified, uncommitted, for the coordinator.** For the
+coordinator: (1) `PROJECT-BRIEFING.md` — do not commit; regenerate in the main tree. (2) The make-a-route video's
+`record.mjs` and beats m07 / m14 / m15 must be rewritten (above) before its re-record. (3) Older than RMP1-J: a drive
+with an emptied x or y draws its own plan line and robot two's path with NaN (`field_view.mjs`; console notes in
+both browsers, no page error). (4) app.mjs's now-unused imports after RMP1-I merges (as before). (5) Two new recorded
+fixtures (`waits`, `two_moves`, by `test/fixtures/record.mjs` on the native twin): CI's Linux job re-records every
+route in `ROUTES`, these included.
+
+### Verification-round findings and their disposition *(2026-11-20, from 10:09 EST, `date`; the same executor)*
+
+> A fresh verifier's 3 findings (1 major, 2 minor). Each re-checked first; fixed at the root or answered with
+> evidence. Logs: `scratch/rmp1-j/vfix/`.
+
+- Started: the findings read; `playback.mjs` `runOf` / `tookOf`, `mech_steps.mjs` `limitHint` / `limitWords` /
+  `measureEmptyLimits`, `mech_badges.mjs` `bandOf`, the `waits` / `two_moves` / `through` / `ready` fixtures and the
+  page D4 test re-read.
+- 10:09–10:16 (`date`) — each finding re-checked against the code and the fixtures (the verifier's `verify/probe1.mjs` re-run
+  on the fixed code: `vfix/` has the round's logs), then fixed at the root:
+
+1. *(major) A wait's suggestion said neither PLACEHOLDER nor the stand-in drive* — **real.** `runOf` took a step's
+   PLACEHOLDER mark only from the library steps it owns, and a `waitUntilDone` owns none, so the wait's line (and its
+   step-list row) had no mark, though its number IS its mechanism's time; and `limitWords` named the stand-in only for a
+   drive, though a wait's number is the mechanism's time *after* the steps since its start — the stand-in drive's
+   among them. Fixed at the root: (a) `playback.mjs` `runOf`: a wait's PLACEHOLDER is its mechanism's own (the
+   record's `mechanisms[].placeholder`, by the page step's mechanism name — so it holds even when the start it
+   collects owns no library step, as in `two_moves`); (b) `limitHint` gives a wait `{wait, afterDrive}` (a motion
+   between the start it collects and it); (c) `limitWords`: "PREVIEW waited 0.69 s here on the host test plant (on
+   PLACEHOLDER numbers, after the stand-in drive, not your robot), + 0.5 s: time it on the robot too." — no drive
+   between: "PREVIEW waited 0.4 s here on the host test plant, + 0.5 s.". The D6 card's first PREVIEW now reads, on
+   the wait: "PREVIEW waited 0 s here … (on PLACEHOLDER numbers, after the stand-in drive, not your robot) … Use
+   0.5 s" (page D4, real engine). Guide 22 step 6 (one sentence: a **Wait for it**'s number, after a drive, depends on
+   the stand-in drive too, and its line says so — so its "the line says PLACEHOLDER numbers" is now true for the
+   wait), the changelog entry, the README's playback row.
+2. *(minor) "PREVIEW did not finish this step" on a started step that ran* — **real.** `limitHint` now returns
+   `{untimed: together}` for a start with no library step of its own whose page step ran (`ok`): "PREVIEW ran it but
+   cannot time it on its own (another step starts the cascade at the same moment): no suggestion." (`together`: a
+   start of the SAME mechanism on the SAME pace — `ownersOf`'s one ambiguity; otherwise the line has no reason it
+   cannot back). **Found beside it and fixed:** a start "Done" whose library step ended neither ok, ran out nor
+   cancelled (e.g. STALLED) said "(Done)"; now "(the library ended it STALLED)". Guide 22 step 6 names the case.
+3. *(minor) Three surviving mutants* — **real, all three.** New assertions, each seen RED: V20 — `measureEmptyLimits`'
+   input has a `waitUntilDone` (and a `startMove`, an arm `home`) with an empty limit, all filled to 57; the page D4
+   test now leaves the card's wait EMPTY (typed 3 then emptied: "a typed limit: nothing to ask" kept), the toast says
+   3 steps, and the wait's line and its **Use** are asserted (`suggestS` of the record's own span) — PV09 on the page:
+   RED (the PREVIEW never opens). V21 — the `ready` run with a THROUGH put in its drive: the THROUGH step gives
+   `notRun: 'Went THROUGH the right wall'`, the curve after it (its own limit, timed without the THROUGH) gives
+   `notRun: 'After the THROUGH: …'`. V13 — the verifier's suggested case (a holed drive then a wait) gives no NaN at
+   all (`stepPoses` returns nothing for a step whose plan has no end: probe `vfix/probes/band.mjs`); the NaN comes from
+   a TURN after the hole (it turns in place at a pose with no x: `band3.mjs`), so the node case is a start, a drive,
+   a drive with no x, a turn, a wait: the band runs, every point finite (the test also pins that the turn's own poses
+   have no x, so the case stays meaningful).
+
+**Mutations this round** (driver `scratch/rmp1-j/mutate.py`; lists and verdicts `vfix/*mutants*.json` / `.out`, logs
+`scratch/rmp1-j/mutants/VF*`; md5 of every `src/` file checked after each batch: restored):
+- Node, all RED (16): the verifier's three survivors again — VF-V13 band unfiltered, VF-V20 measure skips the wait,
+  VF-V21 THROUGH keeps its time — and VF01 a wait without its mechanism's PLACEHOLDER · VF02 a wait takes ANY
+  mechanism's · VF03 `afterDrive` never · VF04 counted from the route's start (a drive before the start) · VF05 any
+  step counts as a drive · VF06 the stand-in words dropped · VF07 "took" for a wait · VF08 no "time it on the robot
+  too" · VF09 untimed back to "did not finish" · VF10 `together` for any mechanism · VF11 `together` at any pace ·
+  VF12 the library's verdict as "(Done)" · VF13 the untimed reason dropped. (First pass: VF-V13, VF10, VF11 GREEN —
+  the band case had no NaN, and the hand-made run gave each step its own pace; both cases re-cut as above, then RED.)
+- Page (Firefox, a fresh site build each, restored + rebuilt in a finally), all RED (4): VFP-PV09 (times out: the
+  PREVIEW never opens), VFP01, VFP03, VFP07 (the wait's line).
+
+**Resumed 2026-11-20 11:33 EST (`date`)** — this fix round's run was stopped partway (the session ended during the
+Chromium page gate, at `export_robot.page.test`, ~10:51). On resuming: the log above read; `git status` / `git diff --
+src/ Makefile` (empty: nothing under `src/`, `include/` or the Makefile changed); every file the mutation driver backed
+up this round (`backups/VF*`, `VFP*`) compared with the live file: all 20 identical, and every `src/` file's md5 equal
+to `vfix/pre-page-mutation.md5` — no mutant left applied, no gate plant (the src gate's self-test is not run: nothing
+under `src/` or the Makefile moved). Dispositions 1–3 re-verified against the code and the tests (the probe's lines,
+the hand-made runs, the page D4 test's empty wait) — they stand. **One gap in 1 found and closed:** a wait's number
+is its mechanism's time after EVERY step since its start, not only drives: a blocking move of another mechanism on
+PLACEHOLDER gains in between (an arm `move` between `startMove cascade` and its wait) made the wait's number rest on
+PLACEHOLDER numbers its line did not name. `limitHint` now marks a wait PLACEHOLDER when its own mechanism is, or any
+page step since the start it collects is (`since`: the same steps `afterDrive` reads). Node: the arm case says
+"(on PLACEHOLDER numbers)", and an arm move BEFORE the start does not. Mutations (`vfix2/node_mutants.*`): VF14 the
+steps since ignored — RED; VF15 counted from the route's start — RED; VF16 `since` includes the wait itself — GREEN,
+**equivalent** (the wait's own mark is already `s.placeholder`, and a wait is no motion). Guide 22 step 6 needs no
+change ("on the library's starting gains the line says PLACEHOLDER numbers" now holds for this case too). Then every
+gate on the final tree (below), the binary removed and relinked first.
+
+**Gates on the final tree after the resumption** (2026-11-20, `date` 11:35–12:26 EST; logs `scratch/rmp1-j/vfix2/`,
+driver `vfix2/gates.sh`): `build/test/shulib_tests` removed, the briefing regenerated, configure + a full build (0
+warnings, the binary relinked), the briefing regenerated again; the suite under `ulimit -v 4 GiB` + `timeout 600`:
+3901 cases / 3776984 assertions, 0 failed (3 skipped, as before); the CI greps (PROS-free, sim-free; `git diff ae87076
+-- include/ src/ Makefile`: 0 lines); the ARM header gate over all 259 `include/shulib` headers: clean; `src_build_gate.py
+check`: PASS (its self-test not run: nothing under `src/` or the Makefile moved); api_doc_tool self-test /
+check-coverage / check-fresh / check-examples / check-removability, briefing_status self-test / check,
+doc_staleness_audit self-test / audit, doc_readability self-test / check-nav / check-tone: 12/12 exit 0 (no `///`
+comment changed: `docs/api` not regenerated); node `test/*.test.mjs`: 238 pass, 0 fail; the site rebuilt with the
+engine, then every page file in **Firefox** (167 pass, 0 fail, 0 skipped) and **Chromium** (163 pass, 0 fail, 4
+skipped: the download way and the shots case and the WebAssembly refusal, each Firefox's by design, as in every earlier
+run). No browser or helper left running. Prose review this round: `vfix2/prose-greps.txt` ("PLACEHOLDER numbers", a
+Wait for it's number, "after a drive", "PLACEHOLDER mark", `limitHint`): guide 22 step 6, the changelog entry and the
+README rows all still true after the `since` change — nothing to edit. Not committed.

@@ -16,6 +16,31 @@
 
 ## API 2.10
 
+### 2026-11-20 — The route builder's mechanism steps, made simple
+
+> Written when it was built (chunk RMP1, run RMP1-J). **No library change — no API change:** nothing under
+> `include/shulib/` or `src/` moved; only the route builder's page did. The exported C++ is byte-for-byte what it
+> was for the same steps.
+
+**What you can now do (additive):** add a mechanism step in two short steps — **M**, the mechanism (one row each),
+then what it does in plain words (**Close claw**, **Run it**, **Move the cascade**, **Home it**); move a lift or an
+arm with ONE control, its travel drawn as a bar (click it, click **Bottom** or a level, or type the height); choose
+**Wait here until it is done** or **Keep driving while it moves**, with where the route waits for it said; use a time
+limit PREVIEW measured (*PREVIEW took 0.78 s here on the host test plant, + 0.5 s — **Use 1.3 s***: written only on
+the click; a drive's says it is the stand-in drive's time, and so does a **Wait for it** after a drive; an empty
+mechanism limit no longer stops PREVIEW, which times it); see each mechanism step as a badge on the field where it
+happens, and click it to select the step; and home the cascade with one card, **Home it at the start**, at its first
+move.
+
+**What changed (not breaking):** the menu no longer offers "go up / go down _ in" — a height says the same, and a
+project with those steps opens, edits and exports unchanged (**Make it a height** turns one into the same C++ line;
+only its comment says "to"). Three of the page's own check messages use the new words (*pick its height*, *Wait for
+the cascade's home*).
+In PREVIEW, a lift's height move now carries its PLACEHOLDER mark and its library line (they were lost before), and a
+**Wait for it** carries its mechanism's PLACEHOLDER mark.
+
+**What you must do:** nothing.
+
 ### 2026-11-20 — The route builder on the team laptop: Send to robot is one button
 
 > Written when it was built. **No library change — no API change:** a new tool, `tools/route_builder.py`, and the

@@ -116,5 +116,5 @@ test('the commands: robot one is ROBOT=one, robot two ROBOT=tank; the tester is 
     assert.match(make, /make ROBOT=tank PROGRAM=autontest → "shulib Auton Tester"/);
     assert.match(make, /slot 6 since\s*\n#\s+2026-11-20/);
     const script = fs.readFileSync(path.join(REPO, 'tools', 'upload_auton.py'), 'utf8');
-    assert.ok(script.includes(`SLOT = ${TESTER.slot}`) && script.includes(`NAME = "${TESTER.name}"`), 'the script uploads where the page says');
+    assert.ok(script.includes(`"tester": ("autontest", ${TESTER.slot}, "${TESTER.name}")`), 'the script uploads where the page says');
 });
